@@ -107,6 +107,22 @@ function creerCourriel({ config, stockage, scelleur, horloge, journaliser }) {
     return { ok: true };
   }
 
+  /* Un message de COMPTE (le code d'inscription, le code d'un nouveau mot de passe, « cette adresse a déjà un compte ») : `compte-courriel.js` seul l'appelle, avec SES gabarits fixes —
+     aucun texte n'y vient d'un inconnu. Les plafonds sont ceux du module des comptes (par adresse et par réseau), pris avant d'appeler. Rend true, ou lève `courriel_echec`. */
+  async function envoyerTexte({ a, sujet, texte }) {
+    if (!ouvert()) throw erreur('courriel_non_ouvert');
+    const adresse = adresseValide(a);
+    if (!adresse) throw erreur('courriel_invalide');
+    try {
+      await transporter().sendMail({ from: { name: cfg.nom, address: cfg.de }, to: adresse, subject: sujet, text: texte, headers: { 'X-Auto-Response-Suppress': 'All', 'Auto-Submitted': 'auto-generated' } });
+    } catch (e) {
+      journal('courriel', { etat: 'echec', nom: (e && (e.code || e.name)) || 'Erreur' });
+      throw erreur('courriel_echec');
+    }
+    journal('courriel', { etat: 'envoye' });
+    return true;
+  }
+
   /* Pour `configurer-courriel.js` et les bancs : le relais répond-il, et accepte-t-il l'identifiant ? (une connexion, aucun courriel). */
   async function verifier() {
     if (!ouvert()) throw erreur('courriel_non_ouvert');
@@ -114,7 +130,7 @@ function creerCourriel({ config, stockage, scelleur, horloge, journaliser }) {
     return true;
   }
   function arreter() { try { if (transport && typeof transport.close === 'function') transport.close(); } catch (e) { /* déjà fermé */ } transport = null; }
-  return { ouvert, envoyer, verifier, arreter, mode: () => cfg.mode, COMPTE_MAX, DEST_MAX };
+  return { ouvert, envoyer, envoyerTexte, verifier, arreter, mode: () => cfg.mode, COMPTE_MAX, DEST_MAX };
 }
 
 module.exports = { creerCourriel, adresseValide, normalisee, corpsDuMessage, SUJET, COMPTE_MAX, DEST_MAX, COMPTE_FENETRE_MS, DEST_FENETRE_MS };

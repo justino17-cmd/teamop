@@ -25,6 +25,7 @@ const { MANIFESTE } = require('./manifeste');
 const { creerHandlers, ID_CONV } = require('./routes');
 const { cleReseau } = require('./quotas');
 const { installerTelephone, appareilToucherDe, SESSION_TEL_MS } = require('./telephone');
+const { installerCompteCourriel } = require('./compte-courriel');
 const { installerPieces } = require('./routes-pieces');
 const { installerPush } = require('./routes-push');
 const { installerCompte } = require('./compte');
@@ -111,6 +112,26 @@ function construireApp(ctx) {
     if (!origineOk(req)) return refus(res, 403, 'origine_refusee');
     if (req.headers[NOM_ENTETE] !== '1') return refus(res, 403, 'entete_requis');
     next();
+  });
+
+  /* ── La version minimale de la page : sous elle, les écritures refusent (426), la lecture continue ────────────────────────
+     Comme la porte du nuage d'OP GESTION : une page trop ancienne LIT encore, mais n'écrit plus, et se met à jour d'elle-même (elle lit
+     `min_client` dans `/api/config` et reçoit ce 426). Le numéro voyage dans `X-OPM-Version` ; une page d'avant ce verrou ne l'envoie
+     pas — elle passe tant qu'aucun minimum n'est exigé (`exige()` vaut 1 : toute page porte au moins 1), plus jamais ensuite.
+     ⛔ Les mêmes gestes que sous le plancher de disque passent toujours (se déconnecter, supprimer son compte, exporter ses données,
+     acquitter un événement), et ceux de `SANS_VERSION` : une version ancienne n'ôte pas un droit.
+     ⚠️ Ce n'est PAS une frontière de sécurité (`X-OPM-Version: 99999` passe) : c'est l'ergonomie des pages honnêtes. Un correctif de sécurité se pose au service. */
+  /* ⛔ ET DES GESTES DE PROTECTION DE PLUS (relecture du gardien, 6 octobre 2026) : bloquer quelqu'un, retirer son consentement aux notifications, déconnecter un
+     appareil, raccrocher. Une page trop ancienne doit pouvoir se protéger et sortir d'un appel ; aucun de ces gestes n'écrit de contenu. Une seule liste, à côté de celle du disque. */
+  const SANS_VERSION = /^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack|contacts\/bloquer|push\/desabonner|moi\/appareils\/deconnecter|appels\/[^/]+\/quitter)\/?$/i;
+  app.use((req, res, next) => {
+    if (req.method === 'GET' || req.method === 'HEAD' || !ctx.versionClient) return next();
+    const exige = ctx.versionClient.exige();
+    if (exige < 2 || SANS_VERSION.test(req.path)) return next();
+    const brut = String(req.headers['x-opm-version'] || '');
+    const v = /^[0-9]{1,5}$/.test(brut) ? parseInt(brut, 10) : 0;
+    if (v >= exige) return next();
+    return refus(res, 426, 'version_trop_ancienne', { min: exige });
   });
 
   /* ── Plancher d'espace disque : les écritures refusent, la lecture continue ───────────── */
@@ -232,7 +253,9 @@ function construireApp(ctx) {
   /* ── Les routes : UNIQUEMENT depuis le manifeste ─────────────────────────────────────── */
   const H = creerHandlers(ctx);
   H['health'] = (req, res) => res.json(ctx.sante());
+  ctx.compteCourriel = installerCompteCourriel(H, ctx);   // le compte PERSO par adresse e-mail, « comme Discord » (numéro facultatif) — inscriptions fermées par défaut
   installerTelephone(H, ctx);   // le compte PERSO par numéro : ses gestionnaires et la déconnexion qui coupe aussi le jeton d'appareil
+  if (ctx.agenda) Object.assign(H, ctx.agenda.handlers);   // l'agenda personnel : des événements à soi, avec un rappel (gratuit)
   installerPieces(H, ctx);      // les pièces : déposer, lire, photo de profil, espace utilisé
   installerPush(H, ctx);        // les notifications : abonner, désabonner, essai, acquitter
   installerCompte(H, ctx);      // le compte : exporter ses données, supprimer son compte

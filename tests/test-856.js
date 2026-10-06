@@ -190,8 +190,11 @@ function controler(PAGE, DOC, SRC) {
     [...JS.matchAll(/classList\.remove\('on'\),\s*(\d+)\)/g)].some(m => +m[1] >= 3000 && +m[1] <= 4000), '');
 
   /* 4. LA NAVIGATION ET LES ÉCRANS : 4 onglets, une vue par écran, des données à part ── */
-  v('les 4 onglets du document, dans l\'ordre (Messages · Appels · Réunions · Réglages)', (/const ORDRE = \[([^\]]*)\]/.exec(JS) || [, ''])[1].replace(/['\s]/g, ''), 'messages,appels,reunions,reglages');
-  v('   et leurs titres', ['Messages', 'Appels', 'Réunions', 'Réglages'].filter(t => !new RegExp("titre: '" + t + "'").test(JS)), []);
+  /* l'onglet « Contacts » (6 octobre 2026) n'existe que là où les demandes de contact existent (CAP.identifiants : le service) ; l'aperçu garde ses quatre onglets */
+  const ordres = (/const ORDRE = CAP\.identifiants \? \[([^\]]*)\] : \[([^\]]*)\]/.exec(JS) || [, '', '']).slice(1).map(x => x.replace(/['\s]/g, ''));
+  v('les onglets du document, dans l\'ordre : Messages · Contacts · Appels · Réunions · Réglages au service, sans Contacts dans l\'aperçu', ordres, ['messages,contacts,appels,reunions,reglages', 'messages,appels,reunions,reglages']);
+  /* (l'onglet des réunions s'appelle « Agenda » là où l'agenda personnel existe — CAP.agenda, le service — et garde « Réunions » dans l'aperçu) */
+  v('   et leurs titres', ['Messages', 'Contacts', 'Appels', 'Réglages'].filter(t => !new RegExp("titre: '" + t + "'").test(JS)).concat(/titre: CAP\.agenda \? 'Agenda' : 'Réunions'/.test(JS) ? [] : ['Agenda | Réunions']), []);
   vrai('la barre latérale porte le statut « Disponible »', />Disponible</.test(HTML) || /<i><\/i>Disponible/.test(HTML));
   vrai('la bulle de l\'onglet actif se place par UN numéro (--i) et le CSS : aucune largeur recopiée en JavaScript', /translate:\s*calc\(var\(--i\)/.test(CSS) && /setProperty\('--i'/.test(JS) && !/offsetWidth|getBoundingClientRect/.test(JS.replace(/function ndLettreSous\([\s\S]*?\n  \}\n/, '')));       // (hors `ndLettreSous` : l'index de « Nouvelle discussion » cherche quelle lettre est SOUS le doigt, il ne recopie la géométrie d'aucun onglet)
   /* les données d'exemple vivent dans un MODULE à part (apercu/opmessages/source.js) : la page ne contient aucun nom, aucun message — elle parle à

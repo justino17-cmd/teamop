@@ -50,7 +50,13 @@
 # « Mon espace » ne lit pas des options écrites par le client) — plancher relevé à 3 350.
 # 1er octobre 2026 : `test-940` (la Tour v2.81 ouvre les accès bêta d'OP MESSAGES, ses vraies fonctions contre le vrai serveur) n'entre PAS ici : il lit `tour.html`, et `main` sert encore la v2.79 — comme `test-854` (v2.80). Il y entre le jour où la Tour v2.81 est publiée.
 # 3 octobre 2026 : 3 748 (54 suites) avec `test-860` (une décision d'achat ne croit qu'une lecture Stripe lancée après elle) — plancher relevé à 3 730.
-#plancher 3730
+# 6 octobre 2026 : `test-999` — un minimum par application ET par canal (bêta d'OP GESTION, bêta et publique d'OP MESSAGES), posé depuis la
+# Tour sans toucher au minimum public ni à Firestore ; le vrai serveur, deux fausses instances d'OP MESSAGES, sans page — plancher relevé à 3 780.
+# 6 octobre 2026 : `test-978` — la Tour v2.84 (ses vraies fonctions, ses deux consoles) contre le vrai serveur : chaque console règle les versions de
+# SES applications, bêta et publique à part. Il lit `tour.html`, qui part avec le serveur (`PAGES_LIEES`) — plancher relevé à 3 815.
+# 6 octobre 2026, soir : `test-979` — la Tour v2.85 sépare OP GESTION et OP MESSAGES (Justin : « sépare bien ») : chaque console ses incidents,
+# sa remise à zéro, son journal, son équipe ; les erreurs d'une entreprise sans celles d'OP MESSAGES — plancher relevé à 3 850.
+#plancher 3850
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
@@ -159,3 +165,7 @@ tests/test-940.js
 # elle. `test-850` est tombé sur GitHub (un second Stock × 3 accepté) : la liste avait 2 ms au moment de décider et « relire si elle
 # a plus d'une milliseconde » ne relisait pas ; une lecture déjà en cours se partageait de même. Les vraies fonctions, au geste.
 tests/test-860.js
+# 6 octobre 2026 : `test-999` (voir plus haut).
+tests/test-999.js
+tests/test-978.js
+tests/test-979.js

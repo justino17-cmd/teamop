@@ -1958,7 +1958,14 @@ function monUA(req) {   // appareil simplifié pour le journal (jamais l'UA comp
   return ap + ' · ' + nv;
 }
 function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réussies ET échouées) ; apps : ce que le compte ouvre, sur les réussites
-  monJournal.push(Object.assign({ ts: Date.now(), qui: monStr(ident, 120), ok: !!ok, appareil: monUA(req), motif: monStr(motif, 60) }, apps ? { apps: monStr(apps, 40) } : {}));
+  /* `app` : la console du GESTE (Justin, 6 octobre 2026 : « dans la Tour, sépare bien OP GESTION et OP MESSAGES ») — une action posée par une route d'OP MESSAGES
+     (ses versions, ses accès bêta) ne s'affiche que dans le Journal de la console OP MESSAGES, et inversement. Une connexion à la Tour (route commune) n'en a pas. */
+  /* ⛔ LA CONNEXION À UNE BÊTA (`/api/beta/login`) dit SA bêta dans le corps (`app`, déjà lu contre BETA_APPS) — pas la route, qui serait « gestion » pour
+     les deux (relecture du gardien : les échecs de connexion à la bêta d'OP MESSAGES tombaient dans le Journal d'OP GESTION, le signal de sécurité au mauvais endroit). */
+  const beta = req && req.path && /^\/api\/beta\/login\/?$/.test(req.path);
+  const app = beta ? (((req.body || {}).app === 'messages') ? 'messages' : 'gestion')
+    : (req && req.path && !/^\/api\/monitor\/login\/?$/.test(req.path) ? monAppDeRoute(req) : null);
+  monJournal.push(Object.assign({ ts: Date.now(), qui: monStr(ident, 120), ok: !!ok, appareil: monUA(req), motif: monStr(motif, 60) }, apps ? { apps: monStr(apps, 40) } : {}, app ? { app } : {}));
   if (monJournal.length > 300) monJournal = monJournal.slice(-300);
   monSave();
 }
@@ -3866,7 +3873,8 @@ app.post('/api/monitor/entreprise/dossier', monAdmin, (req, res) => {
       .map(l => { try { return JSON.parse(l); } catch (err) { return null; } })
       /* Même filigrane que la pastille. Sans ça la fiche dirait « 0 erreur » en haut et en
          listerait 25 juste en dessous — pire que de ne rien remettre à zéro. */
-      .filter(b => b && b.team === t && (+b.ts || 0) > zeroDe(t))
+      /* … et la MÊME population que le compteur de la liste (relecture du gardien) : les erreurs d'OP GESTION, pas celles qu'OP MESSAGES remonte */
+      .filter(b => b && b.team === t && (+b.ts || 0) > zeroDe(t) && monAppDeTag(b.app) !== 'messages')
       .sort((a, b) => (b.ts || 0) - (a.ts || 0)).slice(0, 25)
       .map(b => ({ ts: b.ts, app: b.app, version: b.version, msg: b.msg, src: b.src, line: b.line, ua: b.ua }));
   } catch (err) {}
@@ -5015,7 +5023,8 @@ app.get('/api/monitor/entreprises', monAdmin, (req, res) => {
     for (const l of fs.readFileSync(BUGS_PATH, 'utf8').trim().split('\n')) {
       /* Le filigrane (voir ZERO_PATH) : on ne compte que ce qui est arrivé APRÈS la remise à
          zéro de cet espace. Rien n'est effacé du fichier. */
-      try { const b = JSON.parse(l); if (b && b.team && (+b.ts || 0) > zeroDe(b.team)) erreursPar[b.team] = (erreursPar[b.team] || 0) + 1; } catch (err) {}
+      /* ⛔ les erreurs d'OP GESTION seulement : une erreur remontée par OP MESSAGES (`app: 'opmessages'`) n'est pas celle de l'entreprise dans OP GESTION */
+      try { const b = JSON.parse(l); if (b && b.team && (+b.ts || 0) > zeroDe(b.team) && monAppDeTag(b.app) !== 'messages') erreursPar[b.team] = (erreursPar[b.team] || 0) + 1; } catch (err) {}
     }
   } catch (err) {}
 
@@ -7002,6 +7011,29 @@ let versionsCfg = { min: 0, enLigne: 'enLigne', maj: 0, par: '' };
 try { Object.assign(versionsCfg, JSON.parse(fs.readFileSync(VERSIONS_PATH, 'utf8')) || {}); } catch (e) {}
 versionsCfg.min = Math.max(0, parseInt(versionsCfg.min, 10) || 0);
 versionsCfg.enLigne = 'enLigne';   // plus d'autre valeur possible
+/* ══ UN MINIMUM PAR APPLICATION ET PAR CANAL (Justin, 6 octobre 2026 : « qu'on sépare la version bêta et la version publique —
+   le forçage de mise à jour, le panneau OP MESSAGES, le panneau OP GESTION, et que tout soit bien séparé ») ══
+   `min` (ci-dessus) RESTE le minimum de la version PUBLIQUE d'OP GESTION : c'est lui que Firestore, l'annuaire (426) et la copie des
+   documents lisent, rien n'y change. Les trois autres vivent à part, dans `canaux`, et ne touchent JAMAIS Firestore :
+     · `gestion-beta`  — beta.html (lu par `/api/version?canal=beta`, que `beta-build.js` écrit dans la bêta) ;
+     · `messages-beta` et `messages-prod` — les deux instances d'OP MESSAGES, qui viennent le relire ici (leur `version-client.js`, par HTTP en boucle locale : aucun code partagé).
+   ⛔ Exiger une version de la bêta ne bloque AUCUN client, et inversement : c'est la raison d'être de la séparation. Un canal absent
+   du fichier vaut « aucun minimum ». */
+const CANAUX_VERSION = ['gestion-beta', 'messages-beta', 'messages-prod'];
+versionsCfg.canaux = (versionsCfg.canaux && typeof versionsCfg.canaux === 'object' && !Array.isArray(versionsCfg.canaux)) ? versionsCfg.canaux : {};
+for (const k of Object.keys(versionsCfg.canaux)) if (!CANAUX_VERSION.includes(k)) delete versionsCfg.canaux[k];
+for (const k of CANAUX_VERSION) {
+  const c = versionsCfg.canaux[k];
+  versionsCfg.canaux[k] = { min: Math.max(0, parseInt(c && c.min, 10) || 0), maj: +(c && c.maj) || 0, par: String((c && c.par) || '').slice(0, 80) };
+}
+/* `?app=…&canal=…` → la clé du canal ; '' = la version publique d'OP GESTION (le défaut, celui que lisent toutes les versions d'avant) ;
+   null = une demande qui ne nomme rien de connu (400 : une faute de frappe ne doit pas lire le minimum d'un autre canal en silence). */
+function canalVersion(app, canal) {
+  const a = app === undefined || app === '' ? 'gestion' : app, c = canal === undefined || canal === '' ? 'prod' : canal;
+  if (a === 'gestion' && c === 'prod') return '';
+  if ((a === 'gestion' || a === 'messages') && (c === 'beta' || c === 'prod')) return a + '-' + c;
+  return null;
+}
 function versionsSave() { try { const tmp = VERSIONS_PATH + '.tmp'; fs.writeFileSync(tmp, JSON.stringify(versionsCfg)); fs.renameSync(tmp, VERSIONS_PATH); return true; } catch (e) { console.error('versions.json non écrit :', e.message); return false; } }
 /* Le document que la règle de sécurité lit. Écrit par la clé admin (qui passe outre les règles) ;
    sans clé, le réglage vit quand même côté serveur — l'application s'y conforme d'elle-même,
@@ -7032,7 +7064,8 @@ function versionEnLigne(frais) {
   versionLigne.encours = (async () => {
     const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 15000);
     try {
-      const r = await fetch('https://teamop.fr/app.html', { signal: ctrl.signal, headers: { 'Cache-Control': 'no-cache' } });
+      /* un banc la sert sur 127.0.0.1 (`TEAMOP_APP_PAGE_URL`, `urlBanc` : rien d'autre ne se règle) — sinon il lirait le VRAI teamop.fr */
+      const r = await fetch(urlBanc(process.env.TEAMOP_APP_PAGE_URL, 'https://teamop.fr/app.html'), { signal: ctrl.signal, headers: { 'Cache-Control': 'no-cache' } });
       /* app.html pèse près de 3 Mo et APP_VERSION vit dans son premier demi-mégaoctet : on lit au fil
          de l'eau et on coupe dès qu'on l'a trouvée, ou au plafond. Sans ça, chaque clic sur « Exiger »
          tirait 3 Mo, et un corps qui s'arrête en route (pair mort, sans fermeture) figeait la promesse
@@ -7061,10 +7094,16 @@ function versionEnLigne(frais) {
    démarrage, à chaque retour au premier plan, et tous les quarts d'heure. */
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne });
+  const q = req.query || {};
+  const brut = x => x === undefined || typeof x === 'string' ? x : '?';   // `app[]=x` est un tableau : une demande qui ne nomme rien de connu
+  const k = canalVersion(brut(q.app), brut(q.canal));
+  if (k === null) return res.status(400).json({ ok: false, error: 'app : gestion ou messages ; canal : beta ou prod' });
+  if (!k) return res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne });
+  res.json({ ok: true, min: versionsCfg.canaux[k].min, enLigne: versionsCfg.enLigne, canal: k });
 });
 app.get('/api/monitor/version', monAdmin, async (req, res) => {
-  const enLigne = await versionEnLigne();
+  /* les deux pages se lisent EN MÊME TEMPS (relecture du gardien : en série, une beta.html lente retardait de 15 s le panneau de la version publique) */
+  const [enLigne, betaEnLigne] = await Promise.all([versionEnLigne(), versionBetaEnLigne()]);
   /* Qui est encore en dessous : par espace, les appareils DISTINCTS vus sur 7 jours avec une
      version inférieure au minimum — c'est la liste de ceux que la porte bloque. */
   const j7 = Date.now() - 7 * 86400000; const sous = [];
@@ -7076,11 +7115,20 @@ app.get('/api/monitor/version', monAdmin, async (req, res) => {
   }
   /* `minFirestore` : la version minimale que Google a CONFIRMÉE. La copie des documents d'équipe
      l'attend (`VERSION_SANS_FIREBASE`) : la Tour doit pouvoir le lire avant de croire la porte fermée. */
+  /* La bêta d'OP GESTION, à part : son minimum, et la version que beta.html sert. */
+  const b = versionsCfg.canaux['gestion-beta'];
+  const beta = { min: b.min, maj: b.maj, par: b.par, versionEnLigne: betaEnLigne };
   res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne, maj: versionsCfg.maj || 0, par: versionsCfg.par || '', versionEnLigne: enLigne, sous, cleAdmin: !!fbAdminCle,
-    minFirestore: +versionsCfg.minFirestore || 0 });
+    minFirestore: +versionsCfg.minFirestore || 0, beta });
 });
 app.post('/api/monitor/version-min', monPatronStrict, async (req, res) => {
   const b = req.body || {};
+  /* ⛔ LA BÊTA D'OP GESTION a son minimum à elle (`canal:'beta'`), et il ne va JAMAIS chez Firestore : la porte du nuage est celle des
+     clients. Sans `canal`, la route fait ce qu'elle a toujours fait — la version publique. */
+  if (b.canal !== undefined && b.canal !== 'prod') {
+    if (b.canal !== 'beta') return res.status(400).json({ error: 'canal : beta ou prod' });
+    return canalVersionPoser(req, res, 'gestion-beta', b.min, () => versionBetaEnLigne(true));
+  }
   let min = parseInt(b.min, 10);
   /* « Exiger la dernière version » : celle qui est SERVIE à l'instant, jamais un reste de cache.
      La garde regarde si la lecture a VRAIMENT abouti — pas si la valeur est récente. Une lecture
@@ -7110,6 +7158,96 @@ app.post('/api/monitor/version-min', monPatronStrict, async (req, res) => {
   monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'version minimale v' + min + ' · ' + enLigne + (fsr.fait ? '' : ' · Firestore KO'));
   console.log('version minimale exigée :', min, '· mode', enLigne, '· Firestore', fsr.fait ? 'à jour' : ('NON (' + fsr.motif + ')'));
   res.json({ ok: true, min, enLigne, firestore: fsr });
+});
+/* ── Poser le minimum d'un canal à part (bêta d'OP GESTION, les deux OP MESSAGES). `lire(true)` rend la version SERVIE à l'instant
+   (0 si illisible) : « Exiger la dernière version » échoue fermé quand on ne l'a pas lue, comme pour la version publique. ── */
+async function canalVersionPoser(req, res, k, brut, lire) {
+  let min = parseInt(brut, 10);
+  if (brut === 'ligne') {
+    if (!quotaOk(versionQuota, 'exiger:' + k, 30, 3600000)) return res.status(429).json({ error: 'Trop de demandes — réessaie dans quelques minutes.' });
+    min = await lire(true);
+    if (!min) {
+      monLog((req.tourUser && req.tourUser.nom) || 'patron', false, req, 'exiger la dernière version (' + k + ') : version servie illisible');
+      return res.status(503).json({ error: 'La version servie n\'a pas pu être lue — réessaie dans un instant.' });
+    }
+  }
+  if (!isFinite(min) || min < 0 || min > 99999) return res.status(400).json({ error: 'min : un entier entre 0 et 99999, ou « ligne »' });
+  /* ⛔ JAMAIS AU-DESSUS DE CE QUI EST SERVI (relecture du gardien, 6 octobre 2026) : un minimum qu'aucune page servie n'atteint met TOUT LE MONDE sous la porte,
+     même les appareils à jour — sans issue. Quand la version servie se lit, on refuse ce qui la dépasse ; quand elle ne se lit pas, le service d'OP MESSAGES
+     ignore de lui-même un minimum au-dessus de sa page (`version-client.js`). */
+  if (brut !== 'ligne' && min > 0) {
+    const servie = await lire(false);
+    if (servie && min > servie) return res.status(400).json({ error: 'v' + min + ' est au-dessus de la version servie (v' + servie + ') : personne ne pourrait l\'atteindre.', servie });
+  }
+  const avant = Object.assign({}, versionsCfg.canaux[k]);
+  versionsCfg.canaux[k] = { min, maj: Date.now(), par: String((req.tourUser && req.tourUser.nom) || '').slice(0, 80) };
+  if (!versionsSave()) { versionsCfg.canaux[k] = avant; return res.status(500).json({ error: 'réglage non enregistré' }); }
+  monLog((req.tourUser && req.tourUser.nom) || 'patron', true, req, 'version minimale ' + k + ' : ' + (min ? 'v' + min : 'levée'));
+  console.log('version minimale', k, ':', min || 'levée');
+  res.json({ ok: true, canal: k, min });
+}
+/* La version que beta.html sert : même lecture que `versionEnLigne` (au fil de l'eau, coupée dès le numéro, délai sur tout le corps),
+   pour la page de la bêta — son numéro porte « -beta ». Cache d'une minute, « Exiger » relit. */
+const versionBeta = { v: 0, ts: 0, encours: null };
+function versionBetaEnLigne(frais) {
+  if (!frais && versionBeta.v && Date.now() - versionBeta.ts < 60000) return Promise.resolve(versionBeta.v);
+  if (versionBeta.encours) return frais ? versionBeta.encours : versionBeta.encours.then(v => v || versionBeta.v);
+  versionBeta.encours = (async () => {
+    const ctrl = new AbortController(); const tm = setTimeout(() => ctrl.abort(), 15000);
+    let lu1 = 0;
+    try {
+      const r = await fetch(urlBanc(process.env.TEAMOP_BETA_PAGE_URL, 'https://teamop.fr/beta.html'), { signal: ctrl.signal, headers: { 'Cache-Control': 'no-cache' } });
+      if (r.ok && r.body) {
+        const dec = new TextDecoder(); let buf = '', lu = 0;
+        for await (const morceau of r.body) {
+          buf += dec.decode(morceau, { stream: true }); lu += morceau.length;
+          const m = /const APP_VERSION = '([0-9]+)(?:-beta)?'/.exec(buf);
+          if (m) { lu1 = parseInt(m[1], 10) || 0; break; }
+          if (lu > 1200000) break;
+          if (buf.length > 200000) buf = buf.slice(-100);
+        }
+        try { ctrl.abort(); } catch (e) {}
+      }
+    } catch (e) { console.error('version de la bêta illisible :', e.message); }
+    clearTimeout(tm);
+    if (lu1) { versionBeta.v = lu1; versionBeta.ts = Date.now(); }
+    versionBeta.encours = null;
+    return lu1;
+  })();
+  /* « Exiger » ne prend QUE ce qui vient d'être lu (0 si la lecture a échoué) ; l'affichage, lui, garde la dernière version connue. */
+  return frais ? versionBeta.encours : versionBeta.encours.then(v => v || versionBeta.v);
+}
+/* ══ LES DEUX INSTANCES D'OP MESSAGES, VUES PAR LA TOUR ══
+   Chacune tourne sur ce VPS (bêta 8091, publique 8090) ; on lit sa `/api/config` en boucle locale — la version de la page qu'elle sert
+   (`version_client`), son empreinte, et si les inscriptions y sont ouvertes : des booléens et des numéros, jamais une donnée de personne.
+   ⛔ Une instance qui ne répond pas se DIT injoignable : la Tour n'invente pas une version. */
+function msgInstanceUrl(c) {
+  return c === 'prod' ? urlBanc(process.env.TEAMOP_MSG_PROD_URL, 'http://127.0.0.1:8090') : urlBanc(process.env.TEAMOP_MSG_BETA_URL, 'http://127.0.0.1:8091');
+}
+async function msgInstanceEtat(c) {
+  try {
+    const r = await fetch(msgInstanceUrl(c) + '/api/config', { signal: AbortSignal.timeout(4000), redirect: 'error' });
+    if (!r.ok) return { joignable: false };
+    const j = await r.json();
+    const v = parseInt(j && j.version_client, 10);
+    return {
+      joignable: true,
+      version: Number.isInteger(v) && v > 0 ? v : 0,
+      build: /^[0-9a-f]{12}$/.test(String(j && j.build || '')) ? String(j.build).slice(0, 7) : '',
+      minService: Number.isInteger(j && j.min_client) ? j.min_client : 0,
+      inscription: !!(j && j.comptes && j.comptes.inscription),
+    };
+  } catch (e) { return { joignable: false }; }
+}
+app.get('/api/monitor/messages/versions', monAdmin, async (req, res) => {
+  const [beta, prod] = await Promise.all([msgInstanceEtat('beta'), msgInstanceEtat('prod')]);
+  const canal = (k, svc) => Object.assign({}, versionsCfg.canaux[k], { service: svc });
+  res.json({ ok: true, beta: canal('messages-beta', beta), prod: canal('messages-prod', prod) });
+});
+app.post('/api/monitor/messages/version-min', monPatronStrict, async (req, res) => {
+  const b = req.body || {};
+  if (b.canal !== 'beta' && b.canal !== 'prod') return res.status(400).json({ error: 'canal : beta ou prod' });
+  return canalVersionPoser(req, res, 'messages-' + b.canal, b.min, async () => { const e = await msgInstanceEtat(b.canal); return e.joignable ? e.version : 0; });
 });
 const retraitCodes = new Map();   // email -> { code, exp, tries }
 // retirer une entreprise de la liste (patron uniquement — pour les entrées de test ; tracé)
@@ -8133,8 +8271,13 @@ app.get('/api/monitor/issues', monAdmin, (req, res) => {
    Réservé au patron, comme « Ignorer » à l'unité. */
 app.post('/api/monitor/issues/tout-ignorer', monPatronStrict, (req, res) => {
   const note = monStr((req.body || {}).note, 300);
+  /* `app` (facultatif) : la console d'où l'on remet à zéro — elle ne classe QUE ses problèmes (Justin : « sépare bien OP GESTION et OP MESSAGES »).
+     Sans lui (une Tour d'avant), toutes les applications du compte, comme avant. */
+  const seule = (req.body || {}).app;
+  if (seule !== undefined && (typeof seule !== 'string' || !TOUR_APPS.includes(seule))) return res.status(400).json({ error: 'app : gestion ou messages' });
+  if (seule !== undefined && !req.tourUser.apps.includes(seule)) return res.status(403).json({ error: 'Cette console n’est pas ouverte à ton compte.', app: seule });
   const cibles = monIssues.filter(i => (i.statut === 'nouveau' || i.statut === 'encours')
-    && req.tourUser.apps.includes(monAppDeTag(i.app)));
+    && req.tourUser.apps.includes(monAppDeTag(i.app)) && (seule === undefined || monAppDeTag(i.app) === seule));
   if (!cibles.length) return res.json({ ok: true, classes: 0 });
   const quand = Date.now();
   for (const i of cibles) {

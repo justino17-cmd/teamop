@@ -85,6 +85,18 @@ const MATRICE = {
   'tel.code':           { ok: () => ['POST', '/api/tel/code', { numero: '+3247' + String(crypto.randomInt(1000000, 9999999)) }], codes: [200] },
   'tel.verifier':       { ok: () => ['POST', '/api/tel/verifier', { numero: '+32470123456', code: '000000' }], codes: [401] },
   'tel.appareil':       { ok: () => ['POST', '/api/tel/appareil', {}], codes: [401] },
+  /* Le compte par adresse e-mail (« comme Discord »). Le service de ce banc n'a NI relais NI inscriptions ouvertes : la garde P passe pour tout le monde, et la ROUTE répond son
+     refus de configuration (503 `inscription_fermee`, `courriel_non_ouvert`) ; la connexion, elle, répond le 401 uniforme `identifiants` (aucun compte n'existe à cette adresse). */
+  /* L'agenda personnel : S. Lister et créer répondent 200/201 à toute session ; modifier et supprimer un événement qui n'est pas le sien (ici : qui n'existe pas) répondent 404 — la garde a passé. */
+  'agenda.lister':      { ok: () => ['GET', '/api/agenda?du=' + Date.UTC(2026, 9, 1) + '&au=' + Date.UTC(2026, 9, 8)], codes: [200] },
+  'agenda.creer':       { ok: () => ['POST', '/api/agenda', { titre: 'Banc', debut: '2026-10-26T14:00', tz: 'Europe/Paris' }], codes: [201] },
+  'agenda.maj':         { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/maj', { titre: 'x' }], codes: [404] },
+  'agenda.supprimer':   { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/supprimer', {}], codes: [404] },
+  'mel.inscrire':       { ok: () => ['POST', '/api/mel/inscrire', { courriel: 'quelquun@exemple.invalid', mdp: 'un-mot-de-passe-long', prenom: 'Zoé', conditions: true }], codes: [503] },
+  'mel.confirmer':      { ok: () => ['POST', '/api/mel/confirmer', { courriel: 'quelquun@exemple.invalid', code: '000000' }], codes: [503] },
+  'mel.connexion':      { ok: () => ['POST', '/api/mel/connexion', { courriel: 'quelquun@exemple.invalid', mdp: 'un-mot-de-passe-long' }], codes: [401] },
+  'mel.oubli':          { ok: () => ['POST', '/api/mel/oubli', { courriel: 'quelquun@exemple.invalid' }], codes: [503] },
+  'mel.reinit':         { ok: () => ['POST', '/api/mel/reinit', { courriel: 'quelquun@exemple.invalid', code: '000000', mdp: 'un-mot-de-passe-long' }], codes: [503] },
   'moi.confidentialite.lire': { ok: () => ['GET', '/api/moi/confidentialite'], codes: [200] },
   'moi.confidentialite': { ok: () => ['POST', '/api/moi/confidentialite', { trouvable: 'tous' }], codes: [200] },
   'moi.appareils.deconnecter': { ok: () => ['POST', '/api/moi/appareils/deconnecter', {}], codes: [200] },

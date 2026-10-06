@@ -13,7 +13,103 @@ de ligne du tout.
 
 ---
 
-# ⏳ 5 OCTOBRE 2026 — OP MESSAGES : LE THÈME « 100 % APPLE » (LOT 1) ET L'IDENTIFIANT « PRÉNOM#1234 » — SUR LA BRANCHE, PAS ENCORE SUR `main`
+# ⏳ 6 OCTOBRE 2026 (NUIT) — BÊTA ET VERSION PUBLIQUE SÉPARÉES, LA MISE À JOUR FORCÉE D'OP MESSAGES, LA TOUR v2.84 — SUR LA BRANCHE (justino17-cmd/teamop#95)
+
+Justin : « je veux qu'on sépare la version bêta et la version publique. Pour les mises à jour, je veux aussi le forçage de mise à jour, comme sur OP GESTION depuis la Tour ; je veux
+le panneau OP MESSAGES, le panneau OP GESTION, et que tout soit bien séparé. » — « fait ».
+
+1. **Quatre minimums, chacun à part** (`server/index.js`, `versionsCfg.canaux`) : OP GESTION publique (`min`, inchangé : Firestore, l'annuaire, la copie des documents le lisent
+   toujours), OP GESTION bêta (`gestion-beta`, jamais chez Firestore), OP MESSAGES bêta et publique (`messages-beta`, `messages-prod`). `/api/version?app=…&canal=…` les rend ; sans
+   paramètre, le minimum public, comme avant. `test-999` (50 ✓, neuf mutations qui le font tomber).
+2. **La bêta d'OP GESTION lit le sien** : `beta-build.js` réécrit son unique appel en `/api/version?canal=beta` (`test-804`). `app.html` ne bouge pas. ⚠️ La bêta reste « 767-beta » :
+   un appareil de la bêta déjà ouvert lit encore le minimum public (plus bas que lui) jusqu'à la prochaine version de la bêta — sans conséquence.
+3. **OP MESSAGES : la mise à jour forcée.** La page servie porte un NUMÉRO (`OPMSG_VERSION`), que `scripts/opmsg-public.js` déduit de ce qui est commité (même empreinte, même numéro ;
+   empreinte nouvelle, le suivant — personne ne le monte à la main ; il vaut 1 aujourd'hui). Le service relit le minimum de SON instance chez OP GESTION chaque minute
+   (`server-msg/version-client.js` ; ⛔ il exige l'ÉCHO du canal : un OP GESTION d'avant, qui rend son minimum à lui, ne bloque personne ; une panne garde la dernière valeur). Sous le
+   minimum, il refuse les ÉCRITURES (426 `version_trop_ancienne`) — la lecture continue, se déconnecter / supprimer son compte / exporter passent toujours. La page envoie son numéro
+   (`X-OPM-Version`), et sous le minimum se met à jour d'elle-même : écran « Mise à jour obligatoire », sans « Plus tard » ; revenue toujours en dessous, elle le DIT et propose
+   « Réessayer », sans boucler. `test-977` (41 ✓, douze mutations), `test-941` (le numéro), `tests/sonde-opmessages-maj-forcee.js` (22 ✓, la vraie page servie).
+4. **La Tour v2.84** : la Surveillance de la console OP GESTION a deux cartes, « Version publique » (la porte du nuage) et « Bêta » ; celle de la console OP MESSAGES, une carte par
+   instance (msg.teamop.fr, msg-beta.teamop.fr) — version servie, minimum exigé, « appliqué par le service » (un service qui n'a pas encore relu se DIT ; une instance éteinte aussi, et
+   son « Exiger » se grise). « Accès » de la console OP MESSAGES montre la version publique à côté de la bêta (on n'y crée pas d'accès : chacun s'inscrit). Un serveur d'avant : chaque
+   carte le dit. `test-978` (39 ✓, les vraies fonctions de la Tour contre le vrai serveur), `scratchpad/sonde-tour-versions.js` (60 ✓, téléphone et bureau, nuit et jour).
+4 bis. **Le gardien sur ce chantier** : aucun bloquant, trois « à corriger », corrigés : un minimum au-dessus de la page servie est refusé (serveur) et ignoré
+   (OP MESSAGES, journalisé) ; la mise à jour obligatoire garde le brouillon (la SOURCE le range dans le stockage de l'onglet — la page ne touche à aucun
+   stockage, `test-856`) et attend la fin d'un appel ; bloquer, se désabonner, déconnecter un appareil et raccrocher passent sous le minimum. ⚠️ Le 426 n'est
+   pas une frontière de sécurité (un en-tête se forge) : un correctif de sécurité se pose au service. ⚠️ `minClient` du fichier de config d'OP MESSAGES est
+   désormais APPLIQUÉ : à vérifier sur le VPS avant le déploiement (une valeur ≥ 2 bloquerait toute page d'avant ce verrou).
+4 ter. **La Tour v2.85 — OP GESTION et OP MESSAGES bien séparés** (Justin : « dans la Tour, sépare bien OP GESTION et OP MESSAGES ») : Stripe et l'espace client
+   sont d'OP GESTION (`appDe`, comme le serveur) ; « Tout remettre à zéro » ne classe que la console ouverte (`app` côté serveur) ; le Courrier n'est plus dans
+   la console OP MESSAGES ; Journal (`monLog.app`, actions de session marquées), Équipe (les comptes de la console, les autres à part), compteurs et
+   « entreprises surveillées » de la console ; la fiche d'OP GESTION ne règle plus OP MESSAGES ; les erreurs d'OP MESSAGES ne gonflent plus le compteur d'une
+   entreprise d'OP GESTION ; l'accueil d'OP MESSAGES dit son état réel (bêta en service). `test-979` (28 ✓, sept mutations), `scratchpad/sonde-tour-separation.js`
+   (toutes les vues des deux consoles, 52 ✓). Reste, choisi : l'interrupteur de console montre le nombre d'incidents ouverts de l'AUTRE console (un rappel).
+4 quater. **La légende sous les photos** (Justin : « comme WhatsApp ») : choisir une photo ouvre un aperçu (photo en grand, vignettes, « Ajouter une légende… ») ;
+   photo et légende partent en UN message ; bulle à la largeur de la photo (260 px) ; « 📷 légende » dans la liste et les notifications ; « Modifier la
+   légende ». `test-966` (22 ✓), `tests/sonde-opmessages-legende.js` (34 ✓, iPhone et bureau), huit mutations.
+5. **Ce que fait la fusion** : le serveur d'OP GESTION (les routes) ; la bêta d'OP MESSAGES ; la Tour v2.85 (GitHub Pages). L'ordre n'importe pas : une Tour neuve sur un serveur
+   d'avant dit « pas encore » ; un OP MESSAGES neuf sur un OP GESTION d'avant n'exige rien. La version PUBLIQUE d'OP MESSAGES ne reçoit la mise à jour forcée qu'à son propre
+   déploiement (approbation `msg-prod`).
+
+---
+
+# ⏳ 6 OCTOBRE 2026 (SOIR) — OP MESSAGES : S'INSCRIRE « COMME DISCORD », L'AGENDA PERSONNEL, CHERCHER DANS CONTACTS — SUR LA BRANCHE (justino17-cmd/teamop#95)
+
+Justin : « fais les 3 dans l'ordre ». Les trois sont faits, éprouvés, et attendent la fusion de justino17-cmd/teamop#95 (qui déploie la BÊTA d'OP MESSAGES et le serveur d'OP GESTION).
+
+1. **Le compte par adresse e-mail** (`server-msg/compte-courriel.js`, migration 12) : s'inscrire (un CODE à six chiffres par courriel — pas de lien : depuis Mail, un lien ouvrirait Safari,
+   pas l'application installée), confirmer, se connecter, mot de passe oublié. Le numéro de téléphone reste possible, il n'est plus nécessaire. L'écran : « Se connecter » par adresse,
+   « Créer un compte », le code, « Mot de passe oublié ? » ; l'accès d'essai de la Tour reste en dessous.
+   ⛔ **INSCRIPTIONS FERMÉES PAR DÉFAUT** : il faut DEUX gestes de Justin sur le VPS — un relais SMTP (`node server-msg/configurer-courriel.js`, déjà prévu pour les invitations) et
+   `"inscriptionCourriel": true` dans la configuration de l'instance. Sans eux, l'écran reste celui de l'accès d'essai (rien n'est proposé qui ne marcherait pas).
+   **Deux relectures adverses du `gardien`** : 1 bloquant + 7 « à corriger » au premier tour, 2 bloquants NOUVEAUX (introduits par les correctifs) + 2 reliquats au second — tout est corrigé
+   et rejoué dans `test-997` (58 ✓, dix mutations qui le font tomber). Ce qui reste ouvert, nommé par le gardien et non fait : une vraie liste de mots de passe courants (milliers
+   d'entrées ; aujourd'hui la règle refuse répétitions, suites, adresse, prénom et une vingtaine de mots) ; les plafonds par réseau à l'échelle d'un /64 en IPv6 (un hébergeur qui route
+   un /48 les contourne) et 20 demandes par jour et par IP qui peuvent gêner derrière un NAT d'opérateur ; un plafond GLOBAL de courriels de compte avec alerte ; un intrus déjà
+   connecté pourrait marquer « Nouvel appareil connecté » comme lu (le push et les autres appareils compensent en partie).
+2. **L'agenda personnel** (`server-msg/routes-agenda.js`, migration 13) : l'onglet s'appelle « Agenda » ; « Événement » (gratuit : titre, journée entière ou heures, lieu, rappel,
+   note) à côté de « Réunion » (Perso+ / Pro). L'heure est locale et son fuseau part avec (le service convertit, changements d'heure compris). Le rappel part UNE fois par le planificateur
+   des réunions (abandonné si l'événement a commencé). Titre, lieu et note scellés ; exportés ; une suppression est notée au registre des purges. `test-998` (25 ✓),
+   `tests/sonde-opmessages-agenda.js` (17 ✓). C'est la fondation de l'agent « Pro Assistant » (`OFFRE-PRO.md` § 11 bis).
+   ⚠️ Un événement créé sur un appareil ne paraît sur un autre qu'à l'entrée dans l'onglet (pas encore poussé en temps réel).
+3. **Chercher dans Contacts** : un champ qui filtre demandes et contacts (sans accents ni casse), et « Chercher Camille#4821 » quand la saisie a la forme d'un identifiant.
+   La liste des contacts ne porte pas leur identifiant (la page ne le reçoit pas) : la recherche y est par nom.
+4. ✅ **Ensuite** : la bêta et la version publique séparées, la mise à jour forcée, les deux panneaux de la Tour — fait, section du dessus.
+
+---
+
+# ⏳ 6 OCTOBRE 2026 — « NOUVELLE VERSION D'OP MESSAGES », LA FAILLE `proxy-addr` D'OP GESTION, ET CE QUI EST DÉCIDÉ POUR LA SUITE
+
+1. **La mise à jour se VOIT** (demandé le 5 octobre : « je sais pas si les mises à jour se font ») : `scripts/opmsg-public.js` pose dans l'interface servie son empreinte
+   (`OPMSG_BUILD`, 12 hexadécimaux des cinq fichiers) ; le service la relit au démarrage et la sert dans `/api/config` (`build`). La page compare au démarrage, au retour sur
+   l'application, au retour du réseau et toutes les dix minutes : différente → bandeau « Nouvelle version d'OP MESSAGES » (« Plus tard » 30 min, « Mettre à jour ») ; l'écran de mise à
+   jour relit les fichiers sans cache avec une barre qui avance, recharge, puis dit « OP MESSAGES est à jour » ou « pas encore pu s'installer » (sans relancer). « À propos » montre
+   l'empreinte. La page n'appelle jamais le réseau elle-même (`api.js` › `relireApplication`, liste de fichiers FIXE). `test-941`, `tests/sonde-opmessages-maj.js` (19 ✓, deux mutations
+   qui la font tomber). Aucun service worker ne cache rien (il n'y en a pas pour les pages) : c'est ce qui rend la relecture fiable.
+2. **Faille critique `proxy-addr` (GHSA-jqcg-44mw-7w3h) d'OP GESTION** : 2.0.8 dans `server/package-lock.json`, `npm audit` à 0, bancs serveur 54 suites · 3 786. Demande de fusion
+   ouverte (justino17-cmd/teamop#95) : la fusionner DÉPLOIE le serveur d'OP GESTION.
+3. **Décidé par Justin** :
+   · inscription perso **« comme Discord »** (le numéro de téléphone devient FACULTATIF : e-mail, clé d'accès) — le prochain chantier d'OP MESSAGES ;
+   · compte **trouvable par défaut** (« Activé d'office ») et **écran d'appel au bleu du logo** — les deux questions du 5 octobre sont tranchées ;
+   · **toutes les applications téléchargeables sur tout appareil** (Mac, Windows, iPhone, Android), **la version web restant disponible** — lot I de
+     `design/opmessages/FEUILLE-DE-ROUTE.md`, élargi à OP GESTION (qui attend sa sortie de Firebase).
+   · numéros virtuels pour le pro (« comme 3CX en mieux ») : idée retenue, étude pas encore lancée.
+4 bis. **Deux demandes du même jour, sur la bêta d'OP MESSAGES** (dans justino17-cmd/teamop#95) :
+   · **la carte de profil en bas à gauche ouvre les Réglages** (« pourquoi les réglages ne sont pas quand on clique sur le profil ») — `tests/sonde-opmessages-profil.js`, 16 ✓ ;
+   · **un onglet « Contacts »** (« je vois bien les notifications mais je ne vois pas accepter ou refuser… dans Contacts on voit les demandes de contact, ça fait plus pro ») :
+     cinq onglets (Messages · Contacts · Appels · Réunions · Réglages), les demandes reçues avec Accepter / Refuser / Bloquer, les envoyées avec Retirer, les contacts de A à Z
+     (un toucher ouvre la conversation), un compteur rouge sur l'onglet ; la bannière d'une demande se TOUCHE et mène à l'onglet, et la notification push d'une demande
+     ouvre `/#contacts` (`server-msg/telephone.js`). L'aperçu garde ses quatre onglets (pas de demandes sans service). `tests/sonde-opmessages-contacts.js` : 25 ✓ à trois
+     personnes, trois mutations qui la font tomber.
+4. **La fusion de justino17-cmd/teamop#94 est EN LIGNE sur la bêta d'OP MESSAGES** — après une relance : le premier passage de la CI a vu `test-904` (la couture avec le vrai
+   serveur d'OP GESTION) tomber à 41 ✓ 4 ✗ (la session de Mona jamais fermée, puis trente comptes bêta que le vrai OP GESTION n'a pas créés : `null.id` ligne 203) ; la relance est
+   verte, et le banc passe 5 fois sur 5 ici, sur l'arbre de `main`. Rien n'avait changé dans `server/`, ce banc ni ses outils depuis le déploiement réussi d'avant. **Une deuxième
+   instabilité, comme `test-957`** : ce qui ressemble à un OP GESTION qui cesse de répondre en cours de banc. À creuser (journal du processus d'OP GESTION dans le banc) avant
+   qu'on apprenne à relancer sans regarder. ⚠️ En local, `test-904` saute ENTIÈREMENT (0 ✓) sans `server/node_modules` : `npm ci --omit=dev --prefix server` avant la porte.
+
+---
+
+# ✅ 5 OCTOBRE 2026 — OP MESSAGES : LE THÈME « 100 % APPLE » (LOT 1) ET L'IDENTIFIANT « PRÉNOM#1234 » — SUR `main` (justino17-cmd/teamop#94), BÊTA EN DÉPLOIEMENT LE 6
 
 ⚠️ **La mémoire d'OP MESSAGES vit dans `design/opmessages/`** (`FEUILLE-DE-ROUTE.md`, `SERVEUR.md`, `THEME-OPMESSAGES.md`) : ce fichier n'en a rien dit du 1er au 5 octobre.
 Branche `claude/apple-theme-op-messages-gcb3j9`. Une poussée sur `main` qui touche `server-msg/` déploie la BÊTA d'OP MESSAGES (jamais la production : approbation `msg-prod`).
@@ -23,11 +119,11 @@ Branche `claude/apple-theme-op-messages-gcb3j9`. Une poussée sur `main` qui tou
    Le document de référence change (`THEME-OPMESSAGES.md`, avec un tableau « Jetons système » que `test-856` relit) ; l'ancien est dans `design/archives/`. Sonde complète :
    **3 172 ✓ 0 ✗** (tous les appareils, jour et nuit, contrastes lus au pixel) ; une première passe avait lu l'onglet actif de nuit à 3,89:1 → #c7d6fb.
    **Lots suivants** : la conversation (barre et saisie en capsules de verre au-dessus du fil), la barre latérale du bureau en panneau de verre, Appels et Réunions.
-   ❓ **Question ouverte à Justin** : l'écran d'appel garde le bleu du logo (aujourd'hui) ou passe au gris sombre d'Apple ?
+   ✅ Tranché le 6 octobre : l'écran d'appel garde le bleu du logo.
 2. **L'identifiant « Prénom#1234 » et les demandes de contact** (`SERVEUR.md` § 2.5 bis) : « + » › Nouveau contact ou Réglages › Ajouter un contact ; l'identifiant EXACT ou le numéro ;
    une DEMANDE que la personne accepte, refuse ou bloque. La relecture du `gardien` a trouvé un **bloquant** (l'ancienne route `contacts/ajouter` contournait l'accord ET le refus) et
    cinq défauts (refus devinable, relance en boucle, demandeur non blocable, écritures non latines toutes sous « op », demandes qui suivaient la personne) : tous corrigés et rejoués dans
-   `test-996`. ❓ **Gardé tel quel, à confirmer par Justin** : un compte est trouvable par défaut (comme par numéro), anciens comptes compris.
+   `test-996`. ✅ Confirmé le 6 octobre : un compte est trouvable par défaut, anciens comptes compris.
 3. **Deux bancs qui tombent pour une raison qui n'est pas la nôtre** — ne pas les « corriger » à l'aveugle :
    · `test-971` (fuseaux des réunions, Vancouver) tombe dans un conteneur dont le Node porte la base de fuseaux **2025b** (`process.versions.tz`) : elle ignore l'heure d'été permanente
      de Vancouver (2026). La CI de `main` l'a passé. Un plancher de la porte manqué en local vient aussi de `server/node_modules` absent (`test-904` saute sa couture).

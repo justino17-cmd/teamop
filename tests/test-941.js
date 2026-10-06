@@ -54,10 +54,17 @@ console.log('\nLa sortie ne diffère de l\'aperçu que par les substitutions dé
   /* le manifeste, l'icône d'écran d'accueil et les trois métas se retirent EN PREMIER : sinon le renvoi des icônes vers ../../icons/ les toucherait aussi */
   let inv = html.replace(GEN.LIGNE_ICONE + GEN.LIGNES_PWA, GEN.LIGNE_ICONE).replace('<script src="api.js"></script>\n<script src="source-serveur.js"></script>', '<script src="source.js"></script>').replace('<script src="opmsg-ui.js"></script>', () => '<script>\n' + ui + '</script>');
   inv = inv.split('src="opmsg-').join('src="../../icons/opmsg-').split('href="opmsg-').join('href="../../icons/opmsg-');
+  /* l'empreinte de la version (« Mettre à jour ») : la seule chose que le générateur ÉCRIT dans le script — elle se retire comme le reste */
+  inv = inv.replace(/const OPMSG_BUILD = '[0-9a-f]{12}';/, "const OPMSG_BUILD = '';");
+  inv = inv.replace(/const OPMSG_VERSION = [0-9]{1,5};/, 'const OPMSG_VERSION = 0;');   // le numéro de la version (6 octobre 2026), posé comme l'empreinte
   inv = inv.replace('<title>OP MESSAGES</title>', '<title>OP MESSAGES — aperçu</title>').replace('OP MESSAGES a besoin de JavaScript.', 'Cet aperçu d\'OP MESSAGES a besoin de JavaScript.');
   const csp = (s) => s.replace(/<meta http-equiv="Content-Security-Policy" content="[^"]*">/, '<CSP>');
   const sansCommentaireCsp = (s) => s.replace(/<!-- ⛔ (?:AUCUN APPEL RÉSEAU|FICHIER GÉNÉRÉ)[\s\S]*?-->\n/, '');
   v('⛔ inverser les substitutions (pièce de données, script extrait, logo, titre, phrase) redonne l\'aperçu EXACT — hors politique de la page et son commentaire, qui sont les deux seules différences voulues', sansCommentaireCsp(csp(inv)) === sansCommentaireCsp(csp(apercu)), true);
+  const builds = ui.match(/const OPMSG_BUILD = '([0-9a-f]*)';/g) || [];
+  vrai('« Mettre à jour » : l\'interface servie porte son empreinte UNE fois, 12 hexadécimaux, celle que le générateur rend (le service la lit dans ce fichier et la sert dans /api/config)',
+    builds.length === 1 && /'([0-9a-f]{12})'/.test(builds[0]) && builds[0].includes("'" + g.empreinte + "'"), builds);
+  vrai('(contre-épreuve) l\'aperçu, lui, ne porte AUCUNE empreinte (la page sait qu\'elle n\'a rien à comparer)', /const OPMSG_BUILD = '';/.test(apercu) && (apercu.match(/const OPMSG_BUILD = /g) || []).length === 1);
   vrai('la politique du service remplace celle de l\'aperçu : connect-src \'self\' (le réseau, vers le service seul), plus de « default-src none » sans connect-src', html.includes(GEN.CSP_SERVICE) && !/content="default-src 'none'; img-src 'self' blob:; media-src blob:;/.test(html));
   v('⛔ aucun script en ligne, aucun onclick=, aucun domaine tiers dans la page servie', [/<script(?![^>]*\bsrc=)[^>]*>/i.test(html.replace(/<!--[\s\S]*?-->/g, '')), /\son[a-z]+\s*=\s*["']/i.test(html.replace(/<!--[\s\S]*?-->/g, '')), /(src|href)="https?:\/\//i.test(html)], [false, false, false]);
   v('les trois scripts, dans l\'ordre : le client, le module de données, l\'interface', Array.from(html.matchAll(/<script[^>]*\bsrc="([^"]+)"/g)).map(m => m[1]), ['api.js', 'source-serveur.js', 'opmsg-ui.js']);
@@ -135,7 +142,33 @@ console.log('\nUne sortie fabriquée à la main ne passe pas la vérification');
     GEN.ecrire(GEN.generer({ racine: d }));
     v('population : régénérée, la copie est de nouveau « à jour »', GEN.ecarts(GEN.generer({ racine: d })), []);
     muter(d, 'apercu/opmessages/index.html', s => s.replace('<p class="hors-ligne"', '<!-- ajout dans l\'aperçu --><p class="hors-ligne"'));
-    v('⛔ un aperçu changé SANS régénérer est détecté aussi (la page servie n\'est plus celle que Justin a validée)', GEN.ecarts(GEN.generer({ racine: d })), ['index.html']);
+    v('⛔ un aperçu changé SANS régénérer est détecté aussi (la page servie n\'est plus celle que Justin a validée)', GEN.ecarts(GEN.generer({ racine: d })), ['index.html', 'opmsg-ui.js']);   // l'interface aussi : son empreinte de version change avec la page (« Mettre à jour » le verra)
   } finally { fs.rmSync(d, { recursive: true, force: true }); }
 }
+
+/* ⛔ LE NUMÉRO DE LA VERSION (6 octobre 2026) : c'est ce que la Tour EXIGE. Personne ne le monte à la main : il se déduit de ce qui est commité —
+   la même empreinte garde son numéro, une empreinte nouvelle prend le suivant. Un numéro qui ne bougerait pas rendrait « Exiger la dernière version »
+   muet (la nouvelle page porterait le numéro de l'ancienne) ; un numéro qui bougerait sans changement ferait échouer `--verifier` à chaque passage. */
+console.log('\nLe numéro de la version se déduit, il ne se tape pas');
+{
+  const num = (d) => parseInt((/const OPMSG_VERSION = ([0-9]+);/.exec(fs.readFileSync(path.join(d, 'server-msg/public/opmsg-ui.js'), 'utf8')) || [])[1] || '-1', 10);
+  const d = copie();
+  try {
+    let g2 = GEN.generer({ racine: d });
+    v('un dossier public sans page d\'avant : la version 1', g2.numero, 1);
+    GEN.ecrire(g2);
+    v('… écrite dans la page servie', num(d), 1);
+    g2 = GEN.generer({ racine: d }); GEN.ecrire(g2);
+    v('la même empreinte garde son numéro (régénérer ne change rien)', [g2.numero, num(d), GEN.ecarts(GEN.generer({ racine: d }))], [1, 1, []]);
+    muter(d, 'server-msg/public/api.js', s => s + '\n// une retouche du client\n');
+    g2 = GEN.generer({ racine: d });
+    v('⛔ un fichier servi qui change : le numéro SUIVANT', g2.numero, 2);
+    GEN.ecrire(g2);
+    muter(d, 'apercu/opmessages/index.html', s => s.replace('<p class="hors-ligne"', '<!-- ajout --><p class="hors-ligne"'));
+    GEN.ecrire(GEN.generer({ racine: d }));
+    v('… et encore le suivant à la retouche d\'après', num(d), 3);
+    v('population : la page de la branche porte un numéro (' + num(RACINE) + '), au moins 1', num(RACINE) >= 1, true);
+  } finally { fs.rmSync(d, { recursive: true, force: true }); }
+}
+refuse('une page sans la place du numéro', 'apercu/opmessages/index.html', s => s.replace('const OPMSG_VERSION = 0;', 'const OPMSG_VERSION = 7;'), /OPMSG_VERSION/);
 fin();

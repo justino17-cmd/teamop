@@ -192,12 +192,18 @@
         if (c.annoncesSeulement && !c.admins.includes('moi')) return Promise.reject(erreur('interdit'));
         brouillon = brouillon || {};
         let corps;
-        if (typeof brouillon.texte === 'string' && brouillon.texte.trim()) {
+        /* des photos d'abord : leur `texte` est une LÉGENDE, pas un message à part */
+        if (Array.isArray(brouillon.photos) && brouillon.photos.length) {
+          corps = { photos: brouillon.photos.slice(0, 10).map(p => ({ url: p.url, w: p.w, h: p.h })) };
+          if (typeof brouillon.texte === 'string' && brouillon.texte.trim()) {
+            const legende = brouillon.texte.replace(/\r\n?/g, '\n').trim();
+            if (legende.length > LIMITE_TEXTE) return Promise.reject(erreur('trop-long'));
+            corps.texte = legende;
+          }
+        } else if (typeof brouillon.texte === 'string' && brouillon.texte.trim()) {
           const texte = brouillon.texte.replace(/\r\n?/g, '\n').trim();
           if (texte.length > LIMITE_TEXTE) return Promise.reject(erreur('trop-long'));
           corps = { texte };
-        } else if (Array.isArray(brouillon.photos) && brouillon.photos.length) {
-          corps = { photos: brouillon.photos.slice(0, 10).map(p => ({ url: p.url, w: p.w, h: p.h })) };
         } else if (brouillon.vocal && brouillon.vocal.dur > 0) {
           corps = { vocal: { url: brouillon.vocal.url || null, dur: Math.max(1, Math.round(brouillon.vocal.dur)), bars: (brouillon.vocal.bars || []).slice(0, 10) } };
         } else return Promise.reject(erreur('vide'));

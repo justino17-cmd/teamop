@@ -50,7 +50,7 @@ const COURRIER_GARDE_MS = 8 * JOUR;       // le plus long plafond du courriel es
 
 /* `chrono` : la montre RÉELLE du temps qu'un tour a pris (`performance.now`) — jamais `horloge`, qui est l'heure des réunions et qu'un banc déplace. Un banc injecte la sienne pour jouer le plafond de temps
    au geste. Le budget (`rappelsParTour`, `tourMaxMs`, `urgentesMax`, `parTour`) se lit dans `config.reunions` ; un paramètre le remplace (les bancs). */
-function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push, parTour, rappelsParTour, tourMaxMs, urgentesMax, chrono }) {
+function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push, parTour, rappelsParTour, tourMaxMs, urgentesMax, chrono, agenda }) {
   const cfg = config.reunions;
   const entier = (v, defaut) => (Number.isInteger(v) && v >= 1 ? v : defaut);
   const lot = entier(parTour, PAR_TOUR);
@@ -152,6 +152,16 @@ function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push,
         const u = balayer('urgentes', { avant: t + URGENT_MS, depuis: -1, max: urgentesPlafond }, restauree);
         const l = u === 'plein' ? 'plein' : balayer('lointaines', { avant: t + HORIZON_MS, depuis: t + URGENT_MS, max: lot }, restauree);
         bilan.coupe = u !== 'fin' || l === 'plein';
+        /* les rappels de l'AGENDA PERSONNEL (`routes-agenda.js`) : sous le même bail (une instance), avec ce qui reste du budget de rappels du tour */
+        if (agenda && !plein()) {
+          try {
+            const a = agenda.rappelsTour(t, Math.max(1, budget - bilan.envoyes), (uid, n, titre, quand) => {
+              hub.reveiller({ uids: [uid] });
+              if (push) push.pousser(uid, { type: 'agenda', tag: 'agenda', url: '/#reunions', renotify: true, titre: 'OP MESSAGES', corps: 'Rappel', detail: { titre, corps: quand } }, { gid: n.gid });
+            });
+            bilan.envoyes += a.envoyes; bilan.abandonnes += a.abandonnes;
+          } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }
+        }
         if (t - etat.dernierElagage >= ELAGAGE_PERIODE_MS) {
           try { stockage.rappelsElaguer(t - RAPPELS_GARDES_MS); stockage.courrierElaguer(t - COURRIER_GARDE_MS); etat.dernierElagage = t; }
           catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }

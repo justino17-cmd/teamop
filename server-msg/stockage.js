@@ -511,6 +511,45 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS demande_contact_vers ON demande_contact(vers, etat)`,
     `PRAGMA user_version = 11`,
   ] },
+  /* ── 12 : le compte par ADRESSE E-MAIL, « comme Discord » (Justin, 6 octobre 2026 : le numéro de téléphone devient FACULTATIF). Le mot de passe vit déjà dans `personne`
+         (`sel`, `mdp`, `params` : prévus dès la migration 1) ; l'adresse aussi (`email_h`, `email_ch` scellé, identifiant `mel:<adresse en minuscules>`). Il manquait le CODE à six chiffres
+         envoyé par courriel : `code_mel`, une ligne par (adresse, but) — `inscription` porte, SCELLÉ, ce que la personne a saisi (prénom, nom, mot de passe DÉJÀ haché) jusqu'à la
+         confirmation ; `reinit` ne porte rien. Le code n'est jamais en clair (`code_h`, une empreinte liée à l'adresse), il est lié à l'APPAREIL qui l'a demandé (`ap_h`, comme `code_tel`)
+         et il vit quinze minutes. ── */
+  { v: 12, sql: [
+    `CREATE TABLE IF NOT EXISTS code_mel(
+       adr_h TEXT NOT NULL,
+       but TEXT NOT NULL CHECK (but IN ('inscription', 'reinit')),
+       code_h TEXT NOT NULL,
+       donnees BLOB,
+       cree INTEGER NOT NULL, exp INTEGER NOT NULL,
+       essais INTEGER NOT NULL DEFAULT 0,
+       ap_h TEXT NOT NULL,
+       PRIMARY KEY(adr_h, but, ap_h))`,
+    /* la date du mot de passe : un changement se REJOUE après une restauration (registre `purge`, genre `mdp`) — une copie d'avant ne ramène pas le mot de passe qu'un intrus connaissait */
+    `ALTER TABLE personne ADD COLUMN mdp_le INTEGER`,
+    /* les appareils qui ont DÉJÀ prouvé le mot de passe d'un compte (relecture du gardien, C3) : le plafond d'essais par adresse ne vise que les AUTRES — un inconnu qui se trompe deux cents
+       fois ne ferme pas la porte au propriétaire sur son propre appareil ; une connexion depuis un appareil inconnu prévient les autres (« Nouvel appareil connecté »). L'empreinte du jeton, jamais le jeton. */
+    `CREATE TABLE IF NOT EXISTS appareil_mel(
+       h TEXT NOT NULL, personne TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE, vu INTEGER NOT NULL,
+       PRIMARY KEY(h, personne))`,
+    `PRAGMA user_version = 12`,
+  ] },
+  /* ── 13 : l'AGENDA PERSONNEL (6 octobre 2026, le chantier qui prépare l'agent « Pro Assistant »). Un événement est à UNE personne : titre, lieu et note SCELLÉS (comme une réunion),
+         l'horaire en instants UTC et son fuseau, `journee` pour une journée entière. `rappel` : les minutes avant (null : aucun) ; `rappel_a` : l'instant où il est DÛ, effacé quand il part
+         (dans la même transaction que la notification) — un index partiel ne garde que ceux qui restent à envoyer. ── */
+  { v: 13, sql: [
+    `CREATE TABLE IF NOT EXISTS evenement(
+       id TEXT PRIMARY KEY,
+       uid TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
+       titre_ch BLOB NOT NULL, lieu_ch BLOB, note_ch BLOB,
+       debut INTEGER NOT NULL, fin INTEGER NOT NULL, journee INTEGER NOT NULL DEFAULT 0, tz TEXT NOT NULL,
+       rappel INTEGER, rappel_a INTEGER,
+       cree INTEGER NOT NULL, maj INTEGER NOT NULL)`,
+    `CREATE INDEX IF NOT EXISTS evenement_uid ON evenement(uid, debut)`,
+    `CREATE INDEX IF NOT EXISTS evenement_rappel ON evenement(rappel_a) WHERE rappel_a IS NOT NULL`,
+    `PRAGMA user_version = 13`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -1345,7 +1384,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
            lu dans la méta scellée du message. Une méta illisible garde le mot seul — la liste ne tombe pas pour une ligne abîmée. */
         if (!p.supprime_le && (p.type === 'photo' || p.type === 'vocal' || p.type === 'fichier')) {
           let meta = null; try { meta = p.meta_ch ? JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(l.id, p.seq, p.auteur), p.meta_ch)) : null; } catch (e) { meta = null; }
-          clair = apercuPiece(p.type, meta);
+          /* une photo LÉGENDÉE se dit par sa légende, précédée de l'appareil photo (comme WhatsApp) */
+          clair = p.type === 'photo' && clair && clair.trim() ? '📷 ' + clair : apercuPiece(p.type, meta);
         }
         o.apercu = { seq: p.seq, auteur: p.auteur, type: p.type, supprime: !!p.supprime_le, texte: clair === null ? null : debut(clair, 120) };
         /* ⛔ le NOM de l'auteur d'un aperçu de groupe : sans lui, la liste disait « Quelqu'un : … » pour tout membre qui n'est pas dans mes contacts (le cas
@@ -1438,10 +1478,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!m || seq < m.depuis_seq) throw erreur('introuvable');
       if (!r || r.supprime_le) throw erreur('introuvable');
       if (r.auteur !== auteur) throw erreur('interdit');
-      if (r.type !== 'texte') throw erreur('type');
+      if (r.type !== 'texte' && r.type !== 'photo') throw erreur('type');   // la légende d'une photo se modifie comme un message
+      if (texte === null && r.type !== 'photo') throw erreur('vide');   // un message texte ne se vide pas ; une photo, si : sa légende est retirée
       if (horloge() - r.ts > DELAI_MODIF_MS) throw erreur('delai');
       const t = horloge();
-      Q('UPDATE message SET corps_ch = ?, modifie = ? WHERE conv = ? AND seq = ?').run(sceller('message', 'corps_ch', aadMsg(conv, seq, auteur), texte), t, conv, seq);
+      Q('UPDATE message SET corps_ch = ?, modifie = ? WHERE conv = ? AND seq = ?').run(texte === null ? null : sceller('message', 'corps_ch', aadMsg(conv, seq, auteur), texte), t, conv, seq);
       return { gid: journalAjouter('msg_modifie', conv, null, seq), modifie: t };
     });
   }
@@ -1772,6 +1813,120 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { code_h: r.code_h };
     });
   }
+  /* ══ LE COMPTE PAR ADRESSE E-MAIL (migration 12) ══ — même discipline que `code_tel` : UN code par (adresse, but), un essai se compte AVANT d'être jugé, lié à l'appareil. */
+  /* ⛔ CHAQUE APPAREIL A SON CODE (relectures du gardien, C2 puis N3) : un code par (adresse, but, APPAREIL), trois vivants au plus par (adresse, but). Un inconnu qui connaît l'adresse ne
+     remplace pas le code que la personne vient de recevoir (C2), et il ne lui PREND pas la place non plus en demandant le premier (N3) : la personne reçoit le sien. Le même appareil
+     remplace le sien. → true si le code est posé (alors seulement on l'envoie), false sinon (trois appareils ont déjà un code vivant) — la réponse à l'appelant est la même. */
+  const CODES_MEL_VIVANTS = 3;
+  function melCodePoser({ adr_h, but, code_h, exp, ap_h, donnees }) {
+    const d = donnees === undefined || donnees === null ? null : sceller('code_mel', 'donnees', adr_h + '|' + but + '|' + ap_h, JSON.stringify(donnees));
+    const t = horloge();
+    return tx(() => {
+      Q('DELETE FROM code_mel WHERE adr_h = ? AND but = ? AND exp <= ?').run(adr_h, but, t);
+      const autres = num(Q('SELECT COUNT(*) AS n FROM code_mel WHERE adr_h = ? AND but = ? AND ap_h <> ?').get(adr_h, but, ap_h).n);
+      if (autres >= CODES_MEL_VIVANTS) return false;
+      Q(`INSERT INTO code_mel(adr_h, but, code_h, donnees, cree, exp, essais, ap_h) VALUES(?, ?, ?, ?, ?, ?, 0, ?)
+         ON CONFLICT(adr_h, but, ap_h) DO UPDATE SET code_h = excluded.code_h, donnees = excluded.donnees, cree = excluded.cree, exp = excluded.exp, essais = 0`)
+        .run(adr_h, but, code_h, d, t, exp, ap_h);
+      return true;
+    });
+  }
+  /* → { code_h, donnees } ou null (absent, expiré, épuisé, ou demandé par un AUTRE appareil — ses essais ne brûlent pas le code de la personne) */
+  function melCodeEssayer(adr_h, but, maxEssais, ap_h) {
+    return tx(() => {
+      const r = Q('SELECT code_h, donnees, exp, essais FROM code_mel WHERE adr_h = ? AND but = ? AND ap_h = ?').get(adr_h, but, ap_h);
+      if (!r) return null;                                    // pas de code pour CET appareil : les essais d'un autre ne touchent pas celui de la personne
+      if (r.exp <= horloge() || r.essais >= maxEssais) { Q('DELETE FROM code_mel WHERE adr_h = ? AND but = ? AND ap_h = ?').run(adr_h, but, ap_h); return null; }
+      Q('UPDATE code_mel SET essais = essais + 1 WHERE adr_h = ? AND but = ? AND ap_h = ?').run(adr_h, but, ap_h);
+      if (r.essais + 1 >= maxEssais) Q('UPDATE code_mel SET exp = 0 WHERE adr_h = ? AND but = ? AND ap_h = ?').run(adr_h, but, ap_h);
+      let donnees = null;
+      if (r.donnees) { try { donnees = JSON.parse(ouvrirS('code_mel', 'donnees', adr_h + '|' + but + '|' + ap_h, r.donnees)); } catch (e) { donnees = null; } }
+      return { code_h: r.code_h, donnees };
+    });
+  }
+  /* usage unique : un code accepté retire TOUS ceux de (adresse, but) — ceux des autres appareils ne servent plus à rien */
+  function melCodeSupprimer(adr_h, but) { return num(Q('DELETE FROM code_mel WHERE adr_h = ? AND but = ?').run(adr_h, but).changes); }
+  function melCodeCree(adr_h, but) { const r = Q('SELECT MAX(cree) AS c FROM code_mel WHERE adr_h = ? AND but = ?').get(adr_h, but); return r && r.c !== null ? num(r.c) : null; }
+  function melCodesElaguer(avant) { return num(Q('DELETE FROM code_mel WHERE exp < ?').run(avant).changes); }
+  /* Le mot de passe d'une personne : sel, empreinte et paramètres de scrypt (jamais le mot de passe). `null` si elle n'en a pas (compte bêta, compte par numéro). */
+  function mdpLire(id) {
+    const r = Q('SELECT sel, mdp, params FROM personne WHERE id = ?').get(id);
+    return r && r.sel && r.mdp && r.params ? { sel: Buffer.from(r.sel), hash: Buffer.from(r.mdp), params: r.params } : null;
+  }
+  /* ══ L'AGENDA PERSONNEL (migration 13) ══ — tout se lit et s'écrit PAR SA PERSONNE : un identifiant d'un autre rend null (la route répond 404). */
+  const evtRang = (r) => r ? {
+    id: r.id, titre: ouvrirOuNull('evenement', 'titre_ch', r.id + '|titre', r.titre_ch) || '', lieu: r.lieu_ch ? (ouvrirOuNull('evenement', 'lieu_ch', r.id + '|lieu', r.lieu_ch) || '') : '',
+    note: r.note_ch ? (ouvrirOuNull('evenement', 'note_ch', r.id + '|note', r.note_ch) || '') : '', debut: num(r.debut), fin: num(r.fin), journee: !!r.journee, tz: r.tz,
+    rappel: r.rappel === null ? null : num(r.rappel), rappelEnAttente: r.rappel_a !== null, cree: num(r.cree), maj: num(r.maj),
+  } : null;
+  const scellerEvt = (id, champ, v) => v ? sceller('evenement', champ + '_ch', id + '|' + champ, v) : null;
+  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA }) {
+    const id = nouvelId('e'), t = horloge();
+    Q(`INSERT INTO evenement(id, uid, titre_ch, lieu_ch, note_ch, debut, fin, journee, tz, rappel, rappel_a, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, uid, sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
+        rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
+    return evenementLire(uid, id);
+  }
+  function evenementLire(uid, id) { return evtRang(Q('SELECT * FROM evenement WHERE id = ? AND uid = ?').get(id, uid)); }
+  /* `rappelA` : undefined garde l'échéance telle quelle (un rappel déjà parti ne repart pas), null l'efface, un nombre la pose. */
+  function evenementMaj(uid, id, { titre, lieu, note, debut, fin, journee, tz, rappel, rappelA }) {
+    const r = Q('SELECT id FROM evenement WHERE id = ? AND uid = ?').get(id, uid);
+    if (!r) return null;
+    return tx(() => {
+      Q('UPDATE evenement SET titre_ch = ?, lieu_ch = ?, note_ch = ?, debut = ?, fin = ?, journee = ?, tz = ?, rappel = ?, maj = ? WHERE id = ? AND uid = ?')
+        .run(sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
+          rappel === null || rappel === undefined ? null : rappel, horloge(), id, uid);
+      if (rappelA !== undefined) Q('UPDATE evenement SET rappel_a = ? WHERE id = ? AND uid = ?').run(rappelA === null ? null : rappelA, id, uid);
+      return evenementLire(uid, id);
+    });
+  }
+  /* supprimé, il est noté au registre des purges (genre `evenement`) : une restauration d'une archive d'avant ne le fait pas revenir */
+  function evenementSupprimer(uid, id) {
+    return tx(() => {
+      const ok = num(Q('DELETE FROM evenement WHERE id = ? AND uid = ?').run(id, uid).changes) > 0;
+      if (ok) Q(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'evenement', ?)`).run(id, horloge());
+      return ok;
+    });
+  }
+  function evenementsCompter(uid) { return num(Q('SELECT COUNT(*) AS n FROM evenement WHERE uid = ?').get(uid).n); }
+  /* ceux qui TOUCHENT la fenêtre [du, au) : commencés avant sa fin, finis après son début */
+  function evenementsDe(uid, du, au, max) { return Q('SELECT * FROM evenement WHERE uid = ? AND debut < ? AND fin > ? ORDER BY debut, id LIMIT ?').all(uid, au, du, max).map(evtRang); }
+  /* les rappels DUS (`rappel_a` passé), les plus anciens d'abord — seulement des personnes actives */
+  function evenementsRappelsDus(t, max) {
+    return Q(`SELECT e.* FROM evenement e JOIN personne p ON p.id = e.uid WHERE e.rappel_a IS NOT NULL AND e.rappel_a <= ? AND p.etat = 'actif' ORDER BY e.rappel_a, e.id LIMIT ?`).all(t, max)
+      .map(r => Object.assign(evtRang(r), { uid: r.uid }));
+  }
+  /* ⛔ UN RAPPEL PART UNE FOIS : l'échéance s'efface et la notification s'écrit dans la MÊME transaction ; si l'échéance n'est plus là (une autre instance, un geste de la personne), rien ne part. */
+  function evenementRappelEnvoyer(id, { titre, texte }) {
+    return tx(() => {
+      const r = Q('SELECT uid FROM evenement WHERE id = ? AND rappel_a IS NOT NULL').get(id);
+      if (!r) return null;
+      Q('UPDATE evenement SET rappel_a = NULL WHERE id = ?').run(id);
+      return notifCreer({ uid: r.uid, type: 'agenda_rappel', titre, texte, cible: id, remplacer: true });
+    });
+  }
+  function evenementRappelAbandonner(id) { return num(Q('UPDATE evenement SET rappel_a = NULL WHERE id = ? AND rappel_a IS NOT NULL').run(id).changes) > 0; }
+  /* pour l'export de ses données : ses événements, en clair (ce sont les siens) */
+  function exportEvenements(uid) { return versionActuelle() >= 13 ? Q('SELECT * FROM evenement WHERE uid = ? ORDER BY debut, id').all(uid).map(evtRang) : []; }
+  /* L'âge et les conditions acceptés à l'inscription (colonnes prévues dès la migration 1) : la version des conditions est gardée, pour savoir lesquelles la personne a lues. */
+  function personneConsentir(id, cguV) { return num(Q('UPDATE personne SET age_ok = 1, cgu_v = ? WHERE id = ?').run(String(cguV).slice(0, 20), id).changes) > 0; }
+  /* `change: true` : un CHANGEMENT (pas la création du compte) — noté au registre des purges dans la même transaction, pour qu'une restauration ne ramène pas l'ancien mot de passe (C5). */
+  function mdpPoser(id, { sel, hash, params }, { change = false } = {}) {
+    return tx(() => {
+      const t = horloge();
+      const ok = num(Q('UPDATE personne SET sel = ?, mdp = ?, params = ?, mdp_le = ? WHERE id = ?').run(Buffer.from(sel), Buffer.from(hash), String(params), t, id).changes) > 0;
+      if (ok && change) Q(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'mdp', ?)`).run(id + '|' + t, t);   // `personne|date` : chaque changement a SA ligne (la recopie dédoublonne par objet)
+      return ok;
+    });
+  }
+  function appareilMelConnu(h, personne) { return !!Q('SELECT 1 AS x FROM appareil_mel WHERE h = ? AND personne = ?').get(h, personne); }
+  function appareilMelNoter(h, personne) {
+    return tx(() => {
+      Q('INSERT INTO appareil_mel(h, personne, vu) VALUES(?, ?, ?) ON CONFLICT(h, personne) DO UPDATE SET vu = excluded.vu').run(h, personne, horloge());
+      Q('DELETE FROM appareil_mel WHERE personne = ? AND h NOT IN (SELECT h FROM appareil_mel WHERE personne = ? ORDER BY vu DESC LIMIT 20)').run(personne, personne);   // vingt au plus
+    });
+  }
+  function appareilsMelOublier(personne, garderH) { return num(Q('DELETE FROM appareil_mel WHERE personne = ? AND h <> ?').run(personne, garderH || '').changes); }
   function telCodeSupprimer(num_h) { return num(Q('DELETE FROM code_tel WHERE num_h = ?').run(num_h).changes); }
   function telCodeCree(num_h) { const r = Q('SELECT cree FROM code_tel WHERE num_h = ?').get(num_h); return r ? r.cree : null; }
 
@@ -1864,6 +2019,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     let n = 0;
     n += num(Q('DELETE FROM sms_envoi WHERE ts < ?').run(journalAvant).changes);
     n += num(Q('DELETE FROM code_tel WHERE exp < ?').run(codesAvant).changes);
+    if (versionActuelle() >= 12) n += num(Q('DELETE FROM code_mel WHERE exp < ?').run(codesAvant).changes);   // les codes reçus par courriel (compte par adresse), même rétention
     n += num(Q('DELETE FROM recherche_tel WHERE ts < ?').run(recherchesAvant).changes);
     n += num(Q('DELETE FROM sms_tentative WHERE ts < ?').run(tentativesAvant).changes);
     n += num(Q('DELETE FROM sms_bouclier WHERE jusqua < ?').run(journalAvant).changes);
@@ -2139,6 +2295,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM notification WHERE uid = ?').run(uid);
       Q('DELETE FROM contact WHERE de = ? OR vers = ?').run(uid, uid);
       if (IDENT) Q('DELETE FROM demande_contact WHERE de = ? OR vers = ?').run(uid, uid);
+      if (versionActuelle() >= 12) Q('DELETE FROM appareil_mel WHERE personne = ?').run(uid);
+      if (versionActuelle() >= 13) Q('DELETE FROM evenement WHERE uid = ?').run(uid);   // son agenda personnel part avec elle
       Q('DELETE FROM lien WHERE par = ?').run(uid);
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
       Q('DELETE FROM msg_masque WHERE uid = ?').run(uid);
@@ -3716,6 +3874,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         personne: non(() => Q('SELECT 1 FROM personne LIMIT 1')),
         contact: non(() => Q('SELECT 1 FROM contact LIMIT 1')),
         demande_contact: non(() => Q('SELECT 1 FROM demande_contact LIMIT 1')),
+        evenement: non(() => Q('SELECT 1 FROM evenement LIMIT 1')),
         lien: non(() => Q('SELECT 1 FROM lien LIMIT 1')),
         conversation: non(() => Q('SELECT 1 FROM conversation LIMIT 1')),
         membre: non(() => Q('SELECT 1 FROM membre LIMIT 1')),
@@ -3782,6 +3941,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,
     rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)
     telCodePoser, telCodeEssayer, telCodeSupprimer, telCodeCree,
+    melCodePoser, melCodeEssayer, melCodeSupprimer, melCodeCree, melCodesElaguer, mdpLire, mdpPoser, personneConsentir, appareilMelConnu, appareilMelNoter, appareilsMelOublier,
+    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, exportEvenements,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
@@ -3807,7 +3968,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -3826,6 +3987,7 @@ function lignesDe(d) {
     personne: n(() => d.prepare('SELECT COUNT(*) AS n FROM personne')),
     contact: n(() => d.prepare('SELECT COUNT(*) AS n FROM contact')),
     demande_contact: n(() => d.prepare('SELECT COUNT(*) AS n FROM demande_contact')),
+    evenement: n(() => d.prepare('SELECT COUNT(*) AS n FROM evenement')),
     lien: n(() => d.prepare('SELECT COUNT(*) AS n FROM lien')),
     conversation: n(() => d.prepare('SELECT COUNT(*) AS n FROM conversation')),
     membre: n(() => d.prepare('SELECT COUNT(*) AS n FROM membre')),
@@ -3907,6 +4069,8 @@ const GENRES_PURGE = {
   groupe_membre: 'copie',      // quelqu'un sort d'un GROUPE (retiré par un administrateur, ou il le quitte) : `conversation|personne|date` — et si c'était le dernier administrateur, la copie promeut comme le service l'avait fait
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
   suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
+  evenement: 'copie',                // un événement de l'agenda personnel SUPPRIMÉ : sa ligne part
+  mdp: 'copie',                      // un mot de passe CHANGÉ (« mot de passe oublié ») : objet `personne|date` — une copie dont le mot de passe est plus ancien le perd (il faudra le réinitialiser), et ses sessions tombent
   suppression_annulee: 'service',    // l'ANNULATION (la personne est revenue) : une copie d'avant ne doit pas ramener l'échéance — idem
 };
 
@@ -3973,6 +4137,13 @@ function rejouerPurge(chemin, registre, opts) {
     /* le lien d'invité d'une réunion (migration 9) : une archive d'un schéma plus ancien n'a pas la colonne — rien à y retirer, la ligne du registre est quand même recopiée */
     const colonneCode = tableReunion && d.prepare(`SELECT 1 AS n FROM pragma_table_info('reunion') WHERE name = 'code_h'`).get() !== undefined;
     const retirerCode = colonneCode ? d.prepare('UPDATE reunion SET code_h = NULL, code_ch = NULL, code_le = NULL WHERE code_h = ?') : null;
+    /* un mot de passe CHANGÉ (migration 12) : une copie qui porte un mot de passe PLUS ANCIEN que le changement le perd — peut-être celui qu'un intrus connaissait — et ses sessions et abonnements push
+       d'avant tombent ; la personne passera par « mot de passe oublié ». Une archive d'un schéma plus ancien n'a pas la colonne : rien à y faire, la ligne est quand même recopiée. */
+    const colonneMdpLe = d.prepare(`SELECT 1 AS n FROM pragma_table_info('personne') WHERE name = 'mdp_le'`).get() !== undefined;
+    const oublierMdp = colonneMdpLe ? d.prepare('UPDATE personne SET sel = NULL, mdp = NULL, params = NULL WHERE id = ? AND mdp IS NOT NULL AND (mdp_le IS NULL OR mdp_le < ?)') : null;
+    const sessionsAvant = d.prepare('DELETE FROM session WHERE personne = ? AND cree <= ?');
+    const retirerEvenement = a('evenement') ? d.prepare('DELETE FROM evenement WHERE id = ?') : null;   // (migration 13 : une archive plus ancienne n'a pas la table)
+    const pushAvant = a('push') ? d.prepare('DELETE FROM push WHERE uid = ? AND cree <= ?') : null;
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
     try {
@@ -4027,6 +4198,12 @@ function rejouerPurge(chemin, registre, opts) {
           if (annulerReunion) bilan.reunionsAnnulees += Number(annulerReunion.run(r.objet).changes);
         } else if (genre === 'reunion_lien') {
           if (retirerCode) bilan.liensReunionRetires += Number(retirerCode.run(r.objet).changes);
+        } else if (genre === 'evenement') {
+          if (retirerEvenement) bilan.evenementsRetires = (bilan.evenementsRetires || 0) + Number(retirerEvenement.run(r.objet).changes);
+        } else if (genre === 'mdp') {
+          const q = Number(r.quand) || 0, uid = String(r.objet).split('|')[0];
+          if (oublierMdp) bilan.mdpOublies = (bilan.mdpOublies || 0) + Number(oublierMdp.run(uid, q).changes);
+          sessionsAvant.run(uid, q); if (pushAvant) pushAvant.run(uid, q);
         } else if (GENRES_PURGE[genre] === 'service') {
           bilan.auService++;   // recopiée seulement : le service la rejoue à son premier démarrage (`rejeu.js`) — ni « ignorée », ni faite ici
         } else {

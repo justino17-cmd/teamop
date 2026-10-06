@@ -304,12 +304,12 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .tabs {
   position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
   bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 2px; padding: 7px; border-radius: 34px;
   background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
   border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;
 }
 .tabs-bulle {
-  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 20px) / 4); border-radius: 26px;
+  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 14px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
   background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
   translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
 }
@@ -321,6 +321,15 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab:active { transform: scale(.94); }
 .tab[aria-current="page"] { color: var(--tab-active-fg); font-weight: 600; }
+/* le nombre de demandes de contact reçues, sur l'onglet et le lien « Contacts » : un badge d'iOS (rouge système), l'encre blanche */
+.onglet-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.onglet-n[hidden] { display: none; }
+.tab .onglet-n { position: absolute; top: 4px; left: calc(50% + 6px); }
+.side-lien .onglet-n { margin-left: auto; }
+.mini.plein { background: var(--fill); color: var(--on-fill); }
+#vue-contacts .contact-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+#vue-contacts .carte-pad .mini { margin-top: 10px; }
+.vc-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
    la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
 @media (min-width: 900px) { .tabs { display: none; } }
@@ -341,9 +350,16 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 @media (hover: hover) { .side-lien:not([aria-current="page"]):hover { background: var(--field); } }
 @media (pointer: coarse) { .side-lien { min-height: 44px; } }
 .side-fin { margin-top: auto; }
-.moi { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--field); }
+/* la carte « moi » OUVRE les Réglages (demandé le 6 octobre 2026 : « pourquoi les réglages ne sont pas quand on clique sur le profil en bas à gauche ») —
+   comme Discord ou Slack ; « Réglages » reste au menu. Elle ne porte pas la pastille de la rubrique choisie : c'est le lien du menu qui la porte. */
+.moi { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px; border-radius: 10px; background: var(--field); color: var(--text); text-decoration: none; transition: background-color .2s, transform .12s ease-out; }
+.moi:active { transform: scale(.98); }
+@media (hover: hover) { .moi:hover { background: var(--fill-soft); } }
+.moi:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.moi-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .moi .avatar { width: 26px; height: 26px; font-size: 11px; }
-.moi-texte { min-width: 0; display: flex; flex-direction: column; }
+.moi-texte { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.moi-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moi-nom { font-size: 13px; font-weight: 600; }
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
 .moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
@@ -442,6 +458,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   transform: translateY(calc(-100% - var(--haut) - 24px)); opacity: 0; transition: transform .5s cubic-bezier(.32,.72,0,1), opacity .35s;
 }
 .notif.on { transform: none; opacity: 1; }
+.notif.on.touchable { pointer-events: auto; cursor: pointer; }
 .notif img { width: 38px; height: 38px; border-radius: 10px; display: block; flex: none; }
 .notif-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .notif-tete { display: flex; align-items: baseline; gap: 8px; }
@@ -450,6 +467,33 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
 .notif-aide { font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .notif-aide:empty { display: none; }
+
+/* ══ 7 ter. LA MISE À JOUR — « Nouvelle version d'OP MESSAGES » puis l'écran de la barre ══════════════════════════════════════════════
+   Demandé le 5 octobre 2026 : « que ça soit comme OP GESTION, une barre et la mise à jour qui se fait, ou même que ça affiche “mettre à jour” ».
+   Le bandeau est une capsule de verre en haut (le même verre que la bannière, mais qu'on TOUCHE) ; rien ne bloque : la mise à jour n'est
+   jamais obligatoire ici. L'écran de la mise à jour couvre tout, le temps de relire les fichiers (la barre avance au fil des octets). */
+.maj-bandeau {
+  position: fixed; z-index: 45; top: max(10px, calc(env(safe-area-inset-top, 0px) + 8px)); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  margin: 0 auto; max-width: 520px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 26px;
+  background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+  border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.2), var(--verre-reflet); color: var(--text);
+  animation: maj-entree .5s cubic-bezier(.32,.72,0,1) both;
+}
+@keyframes maj-entree { from { transform: translateY(-140%); opacity: 0; } to { transform: none; opacity: 1; } }
+.maj-bandeau .ic { flex: none; font-size: 22px; color: var(--accent); }
+.maj-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.maj-texte b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.maj-texte small { font-size: 13px; line-height: 17px; color: var(--sub-meta); }
+.maj-plus-tard { flex: none; min-height: 44px; min-width: 44px; padding: 0 8px; border-radius: 22px; font-size: 15px; color: var(--accent-txt); }
+.maj-bouton { flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; background: var(--fill); color: var(--on-fill); font-size: 15px; font-weight: 600; }
+.maj-ecran { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 28px; background: var(--base); color: var(--text); text-align: center; }
+.maj-carte { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.maj-carte img { width: 72px; height: 72px; border-radius: 18px; display: block; }
+.maj-carte h2 { font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -.02em; }
+.maj-carte p { font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+.maj-piste { width: 100%; height: 8px; border-radius: 99px; background: var(--field); overflow: hidden; }
+.maj-barre { height: 100%; width: 4%; border-radius: 99px; background: var(--fill); transition: width .25s ease; }
+.maj-etat { font-size: 13px; color: var(--sub-meta); font-variant-numeric: tabular-nums; min-height: 17px; }
 
 /* un petit mot qui s'efface seul (« Modifier » n'est pas encore dessiné) */
 /* ⛔ centré par left/right + margin:auto + width:max-content, JAMAIS par left:50% + translate(-50%) : à largeur automatique, la boîte
@@ -600,6 +644,46 @@ button.photo:active { transform: scale(.97); }
 .enreg-duree { min-width: 40px; font-size: 17px; font-variant-numeric: tabular-nums; }
 .enreg-onde { flex: 1; min-width: 0; height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; overflow: hidden; }
 .enreg-onde i { width: 3px; flex: none; border-radius: 2px; background: var(--accent); }
+
+/* ══ LA PHOTO AVANT L'ENVOI — l'aperçu et la légende (6 octobre 2026 : « comme WhatsApp ») ══
+   Un écran sombre, la photo en grand, les vignettes (une croix pour en retirer une, « + » pour en ajouter), et en bas la légende avec la flèche.
+   Rien ne part tant qu'on n'a pas touché la flèche ; la croix du haut (et Échap) annule tout. */
+.envoi-photos {
+  position: fixed; inset: 0; z-index: 61; display: flex; flex-direction: column; background: #0b0c10; color: #fff;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.envoi-photos[hidden] { display: none; }
+.ep-tete { display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-height: 56px; }
+.ep-titre { flex: 1; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+.ep-cale { width: 44px; flex: none; }
+.ep-rond { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 18px; }
+.ep-scene { flex: 1; min-height: 0; display: grid; place-items: center; padding: 4px 12px; }
+.ep-scene img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.ep-vignettes { display: flex; gap: 8px; padding: 8px 12px 4px; overflow-x: auto; scrollbar-width: none; }
+.ep-vignettes:empty { display: none; }
+.ep-vig { position: relative; flex: none; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; padding: 0; background: rgba(255,255,255,.1); outline: 2px solid transparent; outline-offset: -2px; }
+.ep-vig[aria-current="true"] { outline-color: var(--fill); }
+.ep-vig img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ep-retirer { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: rgba(0,0,0,.66); color: #fff; font-size: 11px; }
+.ep-retirer::after { content: ''; position: absolute; inset: -11px; }   /* la croix se touche sur 44 px, même dessinée sur 22 */
+.ep-bas { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px 10px; }
+.ep-pilule { flex: 1; min-width: 0; display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 22px; background: rgba(255,255,255,.12); }
+.ep-pilule textarea { width: 100%; border: 0; background: none; color: #fff; font: inherit; font-size: 17px; line-height: 22px; padding: 11px 0; resize: none; max-height: 124px; outline: none; }
+.ep-pilule textarea::placeholder { color: rgba(255,255,255,.62); }
+.ep-envoyer { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--fill); color: var(--on-fill); font-size: 18px; }
+.ep-envoyer .ic { stroke-width: 2.6; }
+.ep-envoyer[aria-disabled="true"] { opacity: .5; }
+/* la légende sous les photos, dans la bulle de l'envoyeur : collée à elles, ses coins du haut rentrés. La colonne prend la largeur des PHOTOS : la légende
+   n'apporte aucune largeur à elle (`width: 0; min-width: 100%`), elle s'étale sur celle des photos et passe à la ligne dedans. */
+/* ⛔ UNE LARGEUR FIXE POUR UNE PHOTO LÉGENDÉE (mesuré au navigateur : une photo en portrait de 150 px coupait la légende en « Envoy / ée par ») : la colonne fait 260 px
+   (78 % au plus), la photo seule en prend toute la largeur à ses proportions (plafonnée en hauteur : `contain` la montre entière), une grille aussi. */
+.photos-leg { display: flex; flex-direction: column; gap: 2px; width: 260px; max-width: 70vw; flex: none; }   /* une largeur ABSOLUE : la rangée du message prend la largeur de son contenu, un pourcentage s y calculerait sur lui-même */
+.photos-leg .photos { max-width: 100%; width: 100%; }
+.photos-leg .photos.une .photo { width: 100% !important; max-height: 420px; }
+.photos-leg .photos:not(.une) .photo { flex: 1 1 calc(50% - 2px); width: auto; }
+.photos-leg .legende { width: 100%; max-width: none; box-sizing: border-box; }
+.recue.legende { border-radius: 6px 20px 20px 20px; }
+.envoyee.legende { border-radius: 20px 6px 20px 20px; }
 
 /* la photo agrandie : un voile noir, la photo en entier, une croix de 44 px — Échap, le retour système et le voile la ferment */
 .visionneuse {
@@ -810,6 +894,20 @@ html[data-service] .mention-apercu { display: none; }
 .connexion-bouton { min-height: 48px; border-radius: 14px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; text-align: center; transition: transform .12s ease-out, opacity .2s; }
 .connexion-bouton:active { transform: scale(.98); }
 .connexion-bouton[aria-disabled="true"] { opacity: .6; cursor: default; }
+/* le compte par adresse e-mail : des liens texte (l'accent), une case à cocher de 44 px, le code en gros chiffres espacés */
+.cx-lien { min-height: 44px; padding: 0 8px; margin: 0 auto; border-radius: 10px; color: var(--accent-txt); font-size: 15px; font-weight: 500; }
+.cx-lien.en-ligne { min-height: 0; padding: 0; margin: 0; font-weight: 600; }
+.cx-lien.discret { color: var(--sub-meta); font-size: 14px; }
+.cx-lien[hidden], .cx-bas[hidden] { display: none; }
+.cx-bas { font-size: 15px; color: var(--sub-meta); }
+.cx-gauche { text-align: left; }
+.cx-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 360px) { .cx-duo { grid-template-columns: 1fr; } }
+.cx-case { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 4px 2px; text-align: left; font-size: 14px; line-height: 19px; color: var(--text); cursor: pointer; }
+.cx-case input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+/* ⛔ la règle `.champ` des feuilles (plus bas : une marge de 14 px) s'ajoutait ici à l'écart de la carte — les champs de connexion s'espaçaient de travers */
+.connexion-carte .champ { margin-bottom: 0; }
+.champ input.cx-code { text-align: center; font-size: 26px; letter-spacing: .32em; font-variant-numeric: tabular-nums; }
 
 /* la coupure du temps réel : une bande qui reste tant que la connexion n'est pas revenue — jamais un écran qui fait semblant d'être à jour */
 .hors-ligne {
@@ -981,6 +1079,9 @@ a.mini .ic { font-size: 16px; }
 .champ { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .champ > label { padding: 0 4px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
 .champ input, .champ select { width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; caret-color: var(--accent); }
+/* la note d'un événement de l'agenda : la même matière que les champs, sur plusieurs lignes */
+.champ textarea { width: 100%; min-width: 0; min-height: 88px; padding: 10px 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; line-height: 22px; caret-color: var(--accent); resize: vertical; }
+.champ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .champ input:focus, .champ select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .champ input::placeholder { color: var(--placeholder); opacity: 1; }
 .champ .info-note { margin: 0; padding: 0 4px; }
@@ -1224,6 +1325,54 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <button type="submit" class="connexion-bouton" id="c-entrer">Entrer</button>
     <p class="connexion-aide">L'identifiant et le mot de passe sont ceux que la Tour de contrôle a donnés pour l'essai.</p>
     <p class="connexion-aide" id="connexion-oubli">Mot de passe oublié ? Demande-en un nouveau à la Tour de contrôle.</p>
+    <button type="button" class="cx-lien" data-cx="f-mel" hidden>Se connecter avec une adresse e-mail</button>
+  </form>
+  <!-- ── le compte par adresse e-mail, « comme Discord » (le numéro est facultatif) : n'existe que si le service le propose (/api/config → comptes) ── -->
+  <form class="connexion-carte" id="f-mel" method="post" novalidate hidden aria-labelledby="cx-mel-titre">
+    <img src="opmsg-192.png" alt="" width="64" height="64">
+    <h1 id="cx-mel-titre">OP MESSAGES</h1>
+    <p class="connexion-sous">Content de te revoir&nbsp;!</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-mel-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-mel-mdp" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
+    <button type="submit" class="connexion-bouton">Se connecter</button>
+    <button type="button" class="cx-lien" data-cx="f-oubli">Mot de passe oublié&nbsp;?</button>
+    <p class="cx-bas" data-cx-inscription hidden>Pas encore de compte&nbsp;? <button type="button" class="cx-lien en-ligne" data-cx="f-inscrire">Créer un compte</button></p>
+    <button type="button" class="cx-lien discret" data-cx="f-connexion" data-cx-essai hidden>Accès d'essai (Tour de contrôle)</button>
+  </form>
+  <form class="connexion-carte" id="f-inscrire" method="post" novalidate hidden aria-labelledby="cx-ins-titre">
+    <h1 id="cx-ins-titre">Créer un compte</h1>
+    <p class="connexion-sous">Une adresse e-mail suffit&nbsp;: pas besoin de numéro de téléphone.</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <div class="cx-duo">
+      <label class="champ"><span class="sr-seul">Prénom</span><input id="cx-ins-prenom" type="text" autocomplete="given-name" enterkeyhint="next" maxlength="60" placeholder="Prénom"></label>
+      <label class="champ"><span class="sr-seul">Nom (facultatif)</span><input id="cx-ins-nom" type="text" autocomplete="family-name" enterkeyhint="next" maxlength="60" placeholder="Nom (facultatif)"></label>
+    </div>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-ins-adresse" type="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-ins-mdp" type="password" autocomplete="new-password" enterkeyhint="done" placeholder="Mot de passe (10 caractères au moins)" aria-describedby="cx-ins-aide"></label>
+    <p class="connexion-aide cx-gauche" id="cx-ins-aide">Ton prénom donne ton identifiant (Camille#4821) : c'est par lui qu'on t'ajoute, sans connaître ton adresse.</p>
+    <label class="cx-case"><input type="checkbox" id="cx-ins-conditions"><span>J'ai au moins 15 ans et j'accepte les conditions d'utilisation d'OP MESSAGES.</span></label>
+    <button type="submit" class="connexion-bouton">Continuer</button>
+    <p class="cx-bas">Déjà un compte&nbsp;? <button type="button" class="cx-lien en-ligne" data-cx="f-mel">Se connecter</button></p>
+  </form>
+  <form class="connexion-carte" id="f-code" method="post" novalidate hidden aria-labelledby="cx-code-titre">
+    <h1 id="cx-code-titre">Vérifie tes e-mails</h1>
+    <p class="connexion-sous" id="cx-code-sous"></p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Code à six chiffres</span><input id="cx-code" class="cx-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" enterkeyhint="go" placeholder="······"></label>
+    <label class="champ" id="cx-code-mdp-champ" hidden><span class="sr-seul">Nouveau mot de passe</span><input id="cx-code-mdp" type="password" autocomplete="new-password" enterkeyhint="go" placeholder="Nouveau mot de passe (10 caractères au moins)"></label>
+    <button type="submit" class="connexion-bouton" id="cx-code-bouton">Confirmer</button>
+    <button type="button" class="cx-lien" id="cx-renvoyer">Renvoyer le code</button>
+    <p class="connexion-aide">Rien reçu&nbsp;? Regarde dans les courriers indésirables. Le code vaut 15 minutes.</p>
+    <button type="button" class="cx-lien discret" id="cx-code-retour">Changer d'adresse</button>
+  </form>
+  <form class="connexion-carte" id="f-oubli" method="post" novalidate hidden aria-labelledby="cx-oubli-titre">
+    <h1 id="cx-oubli-titre">Mot de passe oublié</h1>
+    <p class="connexion-sous">Tape ton adresse : si elle a un compte, un code y part pour choisir un nouveau mot de passe.</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-oubli-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="send" placeholder="Adresse e-mail"></label>
+    <button type="submit" class="connexion-bouton">Envoyer un code</button>
+    <button type="button" class="cx-lien discret" data-cx="f-mel">Retour</button>
   </form>
 </main>
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
@@ -1233,7 +1382,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
-      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span></div>
+      <a href="#reglages" class="moi presse" data-vue="reglages" id="moi-carte" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span><svg class="moi-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
   </aside>
 
@@ -1249,6 +1398,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>
       <ul class="carte-liste" id="liste-conv" role="list" aria-label="Conversations"></ul>
     </section>
+    <section class="vue" id="vue-contacts" aria-labelledby="titre-contacts" hidden></section>
     <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
       <div class="entete-vue">
         <button type="button" class="lien-texte presse" id="btn-modifier-appels">Modifier</button>
@@ -1434,11 +1584,42 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <img id="visionneuse-img" alt="">
 </div>
 
+<div class="envoi-photos" id="envoi-photos" role="dialog" aria-modal="true" aria-labelledby="ep-titre" hidden>
+  <div class="ep-tete">
+    <button type="button" class="ep-rond presse" id="ep-fermer" aria-label="Annuler l'envoi"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
+    <span class="ep-titre" id="ep-titre">Photo</span>
+    <span class="ep-cale" aria-hidden="true"></span>
+  </div>
+  <div class="ep-scene"><img id="ep-grande" alt=""></div>
+  <div class="ep-vignettes" id="ep-vignettes"></div>
+  <div class="ep-bas">
+    <button type="button" class="ep-rond presse" id="ep-ajouter" aria-label="Ajouter des photos"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <div class="ep-pilule"><textarea id="ep-legende" rows="1" maxlength="100000" placeholder="Ajouter une légende…" aria-label="Légende" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea></div>
+    <button type="button" class="ep-envoyer presse" id="ep-envoyer" aria-label="Envoyer"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></button>
+  </div>
+</div>
+
 <div class="notif" id="notif" data-glass="1" role="status" aria-live="polite" aria-atomic="true">
   <img src="opmsg-192.png" alt="" width="38" height="38">
   <span class="notif-corps"><span class="notif-tete"><b>OP MESSAGES</b><span>maintenant</span></span><span class="notif-texte" id="notif-texte"></span><span class="notif-aide" id="notif-aide"></span></span>
 </div>
 <div class="mot" id="mot" role="status" aria-live="polite"></div>
+<div class="maj-bandeau" id="maj-bandeau" data-glass="1" role="status" aria-live="polite" hidden>
+  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"/></svg>
+  <span class="maj-texte"><b>Nouvelle version d'OP MESSAGES</b><small>Les nouveautés s'installent en un geste.</small></span>
+  <button type="button" class="maj-plus-tard presse" id="maj-plus-tard">Plus tard</button>
+  <button type="button" class="maj-bouton presse" id="maj-bouton">Mettre à jour</button>
+</div>
+<div class="maj-ecran" id="maj-ecran" role="alertdialog" aria-modal="true" aria-labelledby="maj-titre" hidden>
+  <div class="maj-carte">
+    <img src="opmsg-192.png" alt="" width="72" height="72">
+    <h2 id="maj-titre">Mise à jour d'OP MESSAGES</h2>
+    <p id="maj-sous">La nouvelle version s'installe. Quelques secondes : ne ferme pas l'application.</p>
+    <div class="maj-piste" role="progressbar" aria-labelledby="maj-titre" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4" id="maj-piste"><div class="maj-barre" id="maj-barre"></div></div>
+    <p class="maj-etat" id="maj-etat">Préparation…</p>
+    <button type="button" class="maj-bouton presse" id="maj-reessayer" hidden>Réessayer</button>
+  </div>
+</div>
 
 <script src="api.js"></script>
 <script src="source-serveur.js"></script>

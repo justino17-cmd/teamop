@@ -72,7 +72,7 @@ vrai('population : renderVue dessine des vues', rendues.length >= 11, rendues.le
 v('le menu et renderVue connaissent les MÊMES vues (aucune orpheline, aucune fantôme)', [...cles].sort(), [...new Set(rendues)].sort());
 v('la liste des vues de GESTION est DÉDUITE du menu, dans son ordre', P.VUES_PAR_APP.gestion,
   cles.filter(k => P.MENU.some(g => g.vues.some(x => x[0] === k && x[2].split(' ').includes('gestion')))));
-v('…celle de MESSAGES aussi', P.VUES_PAR_APP.messages, ['accueil', 'entreprises', 'surveillance', 'support', 'essais', 'equipe', 'journal']);
+v('…celle de MESSAGES aussi — sans le Courrier, qui est celui d’OP GESTION (v2.85)', P.VUES_PAR_APP.messages, ['accueil', 'entreprises', 'surveillance', 'essais', 'equipe', 'journal']);
 vrai('⛔ plus aucune liste des vues écrite à la main', /var VUES_PAR_APP=\{gestion:vuesDe\('gestion'\),messages:vuesDe\('messages'\)\};/.test(CODE) && !/\nvar VUES=/.test(CODE));
 
 console.log('\n2. Un nom par vue, partout');
@@ -130,7 +130,7 @@ v('la note d’Équipe se DÉDUIT du menu', P.eqNoteCollaborateur(),
 v('la ligne d’un compte aussi (collaborateur)', ' · ni ' + P.libsPatronSeul().join(', ni '), ' · ni Accès, ni Équipe, ni Journal, ni Sauvegardes');
 v('…(patron)', P.enPhrase(P.libsPatronSeul(), 'et'), 'Accès, Équipe, Journal et Sauvegardes');
 const lq = fonction('vueEquipe');
-vrai('⛔ vueEquipe n’écrit plus aucune liste de vues à la main', /libsPatronSeul\(\)/.test(lq) && /eqNoteCollaborateur\(\)/.test(lq) && !/ni Équipe, ni Accès|pas Équipe, pas Accès|y compris Équipe, Accès/.test(lq));
+vrai('⛔ vueEquipe n’écrit plus aucune liste de vues à la main', /libsPatronSeul\(APP\)/.test(lq) && /eqNoteCollaborateur\(\)/.test(lq) && !/ni Équipe, ni Accès|pas Équipe, pas Accès|y compris Équipe, Accès/.test(lq));
 
 console.log('\n4. Le statut des problèmes : UNE commande, et des chiffres qui comptent comme la liste');
 const STAT = [ligne('var ST_L='), ligne('var ST_ECARTES='), fonction('incSegStatut'), fonction('incAffinePastille'), fonction('incFiltres'),

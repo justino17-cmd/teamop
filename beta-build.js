@@ -17,6 +17,17 @@ s = s.split('"elan_').join('"elanB_');
 s = s.split("'op_devis_code'").join("'opB_devis_code'");
 s = s.split("FB_TEAM='elan-gestion'").join("FB_TEAM='opgestion-beta'");
 s = s.replace(/const APP_VERSION = '([0-9]+)'/, "const APP_VERSION = '$1-beta'");
+/* ⛔ LA BÊTA A SA VERSION MINIMALE À ELLE (Justin, 6 octobre 2026 : « qu'on sépare la version bêta et la version publique »).
+   L'application demande `/api/version` ; la bêta demande `/api/version?canal=beta` — le minimum que la Tour pose sur la carte
+   « Bêta » d'OP GESTION, jamais celui des clients (et inversement : exiger une bêta ne bloque aucun client). Un serveur d'avant
+   ignore le paramètre et rend le minimum public, plus bas que tout numéro de bêta : rien ne casse pendant le déploiement.
+   On exige UN appel trouvé, et on vérifie l'absence de l'ancien après coup : un appel de plus dans app.html, et la bêta lirait
+   en silence le minimum des clients. */
+const VER_AVANT = "fetch(PUSH_API+'/api/version',";
+const nVer = s.split(VER_AVANT).length - 1;
+if (nVer !== 1) { console.error('ÉCHEC : l\'appel à /api/version doit être trouvé UNE fois dans app.html, il l\'est ' + nVer + ' fois'); process.exit(1); }
+s = s.split(VER_AVANT).join("fetch(PUSH_API+'/api/version?canal=beta',");
+if (/PUSH_API\s*\+\s*'\/api\/version'/.test(s)) { console.error('ÉCHEC : la bêta lirait encore le minimum de la version publique'); process.exit(1); }
 // La porte serveur : la bêta ne connaît aucun compte de départ et demande à api.teamop.fr
 // avant d'ouvrir. Les accès se créent et se coupent depuis la Tour de contrôle (Accès bêta).
 s = s.split("const BETA_ESSAI=false;").join("const BETA_ESSAI=true;");

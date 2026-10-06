@@ -300,12 +300,12 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .tabs {
   position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
   bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 7px; border-radius: 34px;
+  display: grid; grid-template-columns: repeat(var(--n, 4), 1fr); gap: 2px; padding: 7px; border-radius: 34px;
   background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
   border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;
 }
 .tabs-bulle {
-  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 20px) / 4); border-radius: 26px;
+  position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 14px - (var(--n, 4) - 1) * 2px) / var(--n, 4)); border-radius: 26px;
   background: var(--tab-active-bg); box-shadow: var(--tab-active-shadow);
   translate: calc(var(--i) * (100% + 2px)) 0; transition: translate .45s cubic-bezier(.32,.72,0,1);
 }
@@ -317,6 +317,15 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .tab span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .tab:active { transform: scale(.94); }
 .tab[aria-current="page"] { color: var(--tab-active-fg); font-weight: 600; }
+/* le nombre de demandes de contact reçues, sur l'onglet et le lien « Contacts » : un badge d'iOS (rouge système), l'encre blanche */
+.onglet-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.onglet-n[hidden] { display: none; }
+.tab .onglet-n { position: absolute; top: 4px; left: calc(50% + 6px); }
+.side-lien .onglet-n { margin-left: auto; }
+.mini.plein { background: var(--fill); color: var(--on-fill); }
+#vue-contacts .contact-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+#vue-contacts .carte-pad .mini { margin-top: 10px; }
+.vc-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 /* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
    la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
 @media (min-width: 900px) { .tabs { display: none; } }
@@ -337,9 +346,16 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 @media (hover: hover) { .side-lien:not([aria-current="page"]):hover { background: var(--field); } }
 @media (pointer: coarse) { .side-lien { min-height: 44px; } }
 .side-fin { margin-top: auto; }
-.moi { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: var(--field); }
+/* la carte « moi » OUVRE les Réglages (demandé le 6 octobre 2026 : « pourquoi les réglages ne sont pas quand on clique sur le profil en bas à gauche ») —
+   comme Discord ou Slack ; « Réglages » reste au menu. Elle ne porte pas la pastille de la rubrique choisie : c'est le lien du menu qui la porte. */
+.moi { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px; border-radius: 10px; background: var(--field); color: var(--text); text-decoration: none; transition: background-color .2s, transform .12s ease-out; }
+.moi:active { transform: scale(.98); }
+@media (hover: hover) { .moi:hover { background: var(--fill-soft); } }
+.moi:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.moi-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .moi .avatar { width: 26px; height: 26px; font-size: 11px; }
-.moi-texte { min-width: 0; display: flex; flex-direction: column; }
+.moi-texte { min-width: 0; flex: 1; display: flex; flex-direction: column; }
+.moi-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moi-nom { font-size: 13px; font-weight: 600; }
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
 .moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
@@ -438,6 +454,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   transform: translateY(calc(-100% - var(--haut) - 24px)); opacity: 0; transition: transform .5s cubic-bezier(.32,.72,0,1), opacity .35s;
 }
 .notif.on { transform: none; opacity: 1; }
+.notif.on.touchable { pointer-events: auto; cursor: pointer; }
 .notif img { width: 38px; height: 38px; border-radius: 10px; display: block; flex: none; }
 .notif-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .notif-tete { display: flex; align-items: baseline; gap: 8px; }
@@ -446,6 +463,33 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .notif-texte { font-size: 15px; line-height: 20px; letter-spacing: -.01em; text-wrap: pretty; overflow-wrap: anywhere; }
 .notif-aide { font-size: 13px; line-height: 17px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .notif-aide:empty { display: none; }
+
+/* ══ 7 ter. LA MISE À JOUR — « Nouvelle version d'OP MESSAGES » puis l'écran de la barre ══════════════════════════════════════════════
+   Demandé le 5 octobre 2026 : « que ça soit comme OP GESTION, une barre et la mise à jour qui se fait, ou même que ça affiche “mettre à jour” ».
+   Le bandeau est une capsule de verre en haut (le même verre que la bannière, mais qu'on TOUCHE) ; rien ne bloque : la mise à jour n'est
+   jamais obligatoire ici. L'écran de la mise à jour couvre tout, le temps de relire les fichiers (la barre avance au fil des octets). */
+.maj-bandeau {
+  position: fixed; z-index: 45; top: max(10px, calc(env(safe-area-inset-top, 0px) + 8px)); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  margin: 0 auto; max-width: 520px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 26px;
+  background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
+  border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.2), var(--verre-reflet); color: var(--text);
+  animation: maj-entree .5s cubic-bezier(.32,.72,0,1) both;
+}
+@keyframes maj-entree { from { transform: translateY(-140%); opacity: 0; } to { transform: none; opacity: 1; } }
+.maj-bandeau .ic { flex: none; font-size: 22px; color: var(--accent); }
+.maj-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.maj-texte b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.maj-texte small { font-size: 13px; line-height: 17px; color: var(--sub-meta); }
+.maj-plus-tard { flex: none; min-height: 44px; min-width: 44px; padding: 0 8px; border-radius: 22px; font-size: 15px; color: var(--accent-txt); }
+.maj-bouton { flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; background: var(--fill); color: var(--on-fill); font-size: 15px; font-weight: 600; }
+.maj-ecran { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 28px; background: var(--base); color: var(--text); text-align: center; }
+.maj-carte { width: 100%; max-width: 380px; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.maj-carte img { width: 72px; height: 72px; border-radius: 18px; display: block; }
+.maj-carte h2 { font-size: 22px; line-height: 28px; font-weight: 700; letter-spacing: -.02em; }
+.maj-carte p { font-size: 15px; line-height: 20px; color: var(--sub-meta); }
+.maj-piste { width: 100%; height: 8px; border-radius: 99px; background: var(--field); overflow: hidden; }
+.maj-barre { height: 100%; width: 4%; border-radius: 99px; background: var(--fill); transition: width .25s ease; }
+.maj-etat { font-size: 13px; color: var(--sub-meta); font-variant-numeric: tabular-nums; min-height: 17px; }
 
 /* un petit mot qui s'efface seul (« Modifier » n'est pas encore dessiné) */
 /* ⛔ centré par left/right + margin:auto + width:max-content, JAMAIS par left:50% + translate(-50%) : à largeur automatique, la boîte
@@ -596,6 +640,46 @@ button.photo:active { transform: scale(.97); }
 .enreg-duree { min-width: 40px; font-size: 17px; font-variant-numeric: tabular-nums; }
 .enreg-onde { flex: 1; min-width: 0; height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 2px; overflow: hidden; }
 .enreg-onde i { width: 3px; flex: none; border-radius: 2px; background: var(--accent); }
+
+/* ══ LA PHOTO AVANT L'ENVOI — l'aperçu et la légende (6 octobre 2026 : « comme WhatsApp ») ══
+   Un écran sombre, la photo en grand, les vignettes (une croix pour en retirer une, « + » pour en ajouter), et en bas la légende avec la flèche.
+   Rien ne part tant qu'on n'a pas touché la flèche ; la croix du haut (et Échap) annule tout. */
+.envoi-photos {
+  position: fixed; inset: 0; z-index: 61; display: flex; flex-direction: column; background: #0b0c10; color: #fff;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.envoi-photos[hidden] { display: none; }
+.ep-tete { display: flex; align-items: center; gap: 8px; padding: 6px 10px; min-height: 56px; }
+.ep-titre { flex: 1; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
+.ep-cale { width: 44px; flex: none; }
+.ep-rond { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 18px; }
+.ep-scene { flex: 1; min-height: 0; display: grid; place-items: center; padding: 4px 12px; }
+.ep-scene img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.ep-vignettes { display: flex; gap: 8px; padding: 8px 12px 4px; overflow-x: auto; scrollbar-width: none; }
+.ep-vignettes:empty { display: none; }
+.ep-vig { position: relative; flex: none; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; padding: 0; background: rgba(255,255,255,.1); outline: 2px solid transparent; outline-offset: -2px; }
+.ep-vig[aria-current="true"] { outline-color: var(--fill); }
+.ep-vig img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ep-retirer { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: rgba(0,0,0,.66); color: #fff; font-size: 11px; }
+.ep-retirer::after { content: ''; position: absolute; inset: -11px; }   /* la croix se touche sur 44 px, même dessinée sur 22 */
+.ep-bas { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px 10px; }
+.ep-pilule { flex: 1; min-width: 0; display: flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 22px; background: rgba(255,255,255,.12); }
+.ep-pilule textarea { width: 100%; border: 0; background: none; color: #fff; font: inherit; font-size: 17px; line-height: 22px; padding: 11px 0; resize: none; max-height: 124px; outline: none; }
+.ep-pilule textarea::placeholder { color: rgba(255,255,255,.62); }
+.ep-envoyer { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--fill); color: var(--on-fill); font-size: 18px; }
+.ep-envoyer .ic { stroke-width: 2.6; }
+.ep-envoyer[aria-disabled="true"] { opacity: .5; }
+/* la légende sous les photos, dans la bulle de l'envoyeur : collée à elles, ses coins du haut rentrés. La colonne prend la largeur des PHOTOS : la légende
+   n'apporte aucune largeur à elle (`width: 0; min-width: 100%`), elle s'étale sur celle des photos et passe à la ligne dedans. */
+/* ⛔ UNE LARGEUR FIXE POUR UNE PHOTO LÉGENDÉE (mesuré au navigateur : une photo en portrait de 150 px coupait la légende en « Envoy / ée par ») : la colonne fait 260 px
+   (78 % au plus), la photo seule en prend toute la largeur à ses proportions (plafonnée en hauteur : `contain` la montre entière), une grille aussi. */
+.photos-leg { display: flex; flex-direction: column; gap: 2px; width: 260px; max-width: 70vw; flex: none; }   /* une largeur ABSOLUE : la rangée du message prend la largeur de son contenu, un pourcentage s y calculerait sur lui-même */
+.photos-leg .photos { max-width: 100%; width: 100%; }
+.photos-leg .photos.une .photo { width: 100% !important; max-height: 420px; }
+.photos-leg .photos:not(.une) .photo { flex: 1 1 calc(50% - 2px); width: auto; }
+.photos-leg .legende { width: 100%; max-width: none; box-sizing: border-box; }
+.recue.legende { border-radius: 6px 20px 20px 20px; }
+.envoyee.legende { border-radius: 20px 6px 20px 20px; }
 
 /* la photo agrandie : un voile noir, la photo en entier, une croix de 44 px — Échap, le retour système et le voile la ferment */
 .visionneuse {
@@ -806,6 +890,20 @@ html[data-service] .mention-apercu { display: none; }
 .connexion-bouton { min-height: 48px; border-radius: 14px; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; text-align: center; transition: transform .12s ease-out, opacity .2s; }
 .connexion-bouton:active { transform: scale(.98); }
 .connexion-bouton[aria-disabled="true"] { opacity: .6; cursor: default; }
+/* le compte par adresse e-mail : des liens texte (l'accent), une case à cocher de 44 px, le code en gros chiffres espacés */
+.cx-lien { min-height: 44px; padding: 0 8px; margin: 0 auto; border-radius: 10px; color: var(--accent-txt); font-size: 15px; font-weight: 500; }
+.cx-lien.en-ligne { min-height: 0; padding: 0; margin: 0; font-weight: 600; }
+.cx-lien.discret { color: var(--sub-meta); font-size: 14px; }
+.cx-lien[hidden], .cx-bas[hidden] { display: none; }
+.cx-bas { font-size: 15px; color: var(--sub-meta); }
+.cx-gauche { text-align: left; }
+.cx-duo { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 360px) { .cx-duo { grid-template-columns: 1fr; } }
+.cx-case { display: flex; align-items: flex-start; gap: 10px; min-height: 44px; padding: 4px 2px; text-align: left; font-size: 14px; line-height: 19px; color: var(--text); cursor: pointer; }
+.cx-case input { flex: none; width: 22px; height: 22px; margin: 0; accent-color: var(--accent); }
+/* ⛔ la règle `.champ` des feuilles (plus bas : une marge de 14 px) s'ajoutait ici à l'écart de la carte — les champs de connexion s'espaçaient de travers */
+.connexion-carte .champ { margin-bottom: 0; }
+.champ input.cx-code { text-align: center; font-size: 26px; letter-spacing: .32em; font-variant-numeric: tabular-nums; }
 
 /* la coupure du temps réel : une bande qui reste tant que la connexion n'est pas revenue — jamais un écran qui fait semblant d'être à jour */
 .hors-ligne {
@@ -977,6 +1075,9 @@ a.mini .ic { font-size: 16px; }
 .champ { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
 .champ > label { padding: 0 4px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
 .champ input, .champ select { width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; caret-color: var(--accent); }
+/* la note d'un événement de l'agenda : la même matière que les champs, sur plusieurs lignes */
+.champ textarea { width: 100%; min-width: 0; min-height: 88px; padding: 10px 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; line-height: 22px; caret-color: var(--accent); resize: vertical; }
+.champ textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .champ input:focus, .champ select:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .champ input::placeholder { color: var(--placeholder); opacity: 1; }
 .champ .info-note { margin: 0; padding: 0 4px; }
@@ -1220,6 +1321,54 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <button type="submit" class="connexion-bouton" id="c-entrer">Entrer</button>
     <p class="connexion-aide">L'identifiant et le mot de passe sont ceux que la Tour de contrôle a donnés pour l'essai.</p>
     <p class="connexion-aide" id="connexion-oubli">Mot de passe oublié ? Demande-en un nouveau à la Tour de contrôle.</p>
+    <button type="button" class="cx-lien" data-cx="f-mel" hidden>Se connecter avec une adresse e-mail</button>
+  </form>
+  <!-- ── le compte par adresse e-mail, « comme Discord » (le numéro est facultatif) : n'existe que si le service le propose (/api/config → comptes) ── -->
+  <form class="connexion-carte" id="f-mel" method="post" novalidate hidden aria-labelledby="cx-mel-titre">
+    <img src="../../icons/opmsg-192.png" alt="" width="64" height="64">
+    <h1 id="cx-mel-titre">OP MESSAGES</h1>
+    <p class="connexion-sous">Content de te revoir&nbsp;!</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-mel-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-mel-mdp" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
+    <button type="submit" class="connexion-bouton">Se connecter</button>
+    <button type="button" class="cx-lien" data-cx="f-oubli">Mot de passe oublié&nbsp;?</button>
+    <p class="cx-bas" data-cx-inscription hidden>Pas encore de compte&nbsp;? <button type="button" class="cx-lien en-ligne" data-cx="f-inscrire">Créer un compte</button></p>
+    <button type="button" class="cx-lien discret" data-cx="f-connexion" data-cx-essai hidden>Accès d'essai (Tour de contrôle)</button>
+  </form>
+  <form class="connexion-carte" id="f-inscrire" method="post" novalidate hidden aria-labelledby="cx-ins-titre">
+    <h1 id="cx-ins-titre">Créer un compte</h1>
+    <p class="connexion-sous">Une adresse e-mail suffit&nbsp;: pas besoin de numéro de téléphone.</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <div class="cx-duo">
+      <label class="champ"><span class="sr-seul">Prénom</span><input id="cx-ins-prenom" type="text" autocomplete="given-name" enterkeyhint="next" maxlength="60" placeholder="Prénom"></label>
+      <label class="champ"><span class="sr-seul">Nom (facultatif)</span><input id="cx-ins-nom" type="text" autocomplete="family-name" enterkeyhint="next" maxlength="60" placeholder="Nom (facultatif)"></label>
+    </div>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-ins-adresse" type="email" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-ins-mdp" type="password" autocomplete="new-password" enterkeyhint="done" placeholder="Mot de passe (10 caractères au moins)" aria-describedby="cx-ins-aide"></label>
+    <p class="connexion-aide cx-gauche" id="cx-ins-aide">Ton prénom donne ton identifiant (Camille#4821) : c'est par lui qu'on t'ajoute, sans connaître ton adresse.</p>
+    <label class="cx-case"><input type="checkbox" id="cx-ins-conditions"><span>J'ai au moins 15 ans et j'accepte les conditions d'utilisation d'OP MESSAGES.</span></label>
+    <button type="submit" class="connexion-bouton">Continuer</button>
+    <p class="cx-bas">Déjà un compte&nbsp;? <button type="button" class="cx-lien en-ligne" data-cx="f-mel">Se connecter</button></p>
+  </form>
+  <form class="connexion-carte" id="f-code" method="post" novalidate hidden aria-labelledby="cx-code-titre">
+    <h1 id="cx-code-titre">Vérifie tes e-mails</h1>
+    <p class="connexion-sous" id="cx-code-sous"></p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Code à six chiffres</span><input id="cx-code" class="cx-code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="7" enterkeyhint="go" placeholder="······"></label>
+    <label class="champ" id="cx-code-mdp-champ" hidden><span class="sr-seul">Nouveau mot de passe</span><input id="cx-code-mdp" type="password" autocomplete="new-password" enterkeyhint="go" placeholder="Nouveau mot de passe (10 caractères au moins)"></label>
+    <button type="submit" class="connexion-bouton" id="cx-code-bouton">Confirmer</button>
+    <button type="button" class="cx-lien" id="cx-renvoyer">Renvoyer le code</button>
+    <p class="connexion-aide">Rien reçu&nbsp;? Regarde dans les courriers indésirables. Le code vaut 15 minutes.</p>
+    <button type="button" class="cx-lien discret" id="cx-code-retour">Changer d'adresse</button>
+  </form>
+  <form class="connexion-carte" id="f-oubli" method="post" novalidate hidden aria-labelledby="cx-oubli-titre">
+    <h1 id="cx-oubli-titre">Mot de passe oublié</h1>
+    <p class="connexion-sous">Tape ton adresse : si elle a un compte, un code y part pour choisir un nouveau mot de passe.</p>
+    <p class="connexion-erreur" role="alert" hidden></p>
+    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-oubli-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="send" placeholder="Adresse e-mail"></label>
+    <button type="submit" class="connexion-bouton">Envoyer un code</button>
+    <button type="button" class="cx-lien discret" data-cx="f-mel">Retour</button>
   </form>
 </main>
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
@@ -1229,7 +1378,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="side-marque"><img src="../../icons/opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
-      <div class="moi"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span></div>
+      <a href="#reglages" class="moi presse" data-vue="reglages" id="moi-carte" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span><svg class="moi-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
   </aside>
 
@@ -1245,6 +1394,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>
       <ul class="carte-liste" id="liste-conv" role="list" aria-label="Conversations"></ul>
     </section>
+    <section class="vue" id="vue-contacts" aria-labelledby="titre-contacts" hidden></section>
     <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
       <div class="entete-vue">
         <button type="button" class="lien-texte presse" id="btn-modifier-appels">Modifier</button>
@@ -1430,16 +1580,53 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <img id="visionneuse-img" alt="">
 </div>
 
+<div class="envoi-photos" id="envoi-photos" role="dialog" aria-modal="true" aria-labelledby="ep-titre" hidden>
+  <div class="ep-tete">
+    <button type="button" class="ep-rond presse" id="ep-fermer" aria-label="Annuler l'envoi"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
+    <span class="ep-titre" id="ep-titre">Photo</span>
+    <span class="ep-cale" aria-hidden="true"></span>
+  </div>
+  <div class="ep-scene"><img id="ep-grande" alt=""></div>
+  <div class="ep-vignettes" id="ep-vignettes"></div>
+  <div class="ep-bas">
+    <button type="button" class="ep-rond presse" id="ep-ajouter" aria-label="Ajouter des photos"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></button>
+    <div class="ep-pilule"><textarea id="ep-legende" rows="1" maxlength="100000" placeholder="Ajouter une légende…" aria-label="Légende" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea></div>
+    <button type="button" class="ep-envoyer presse" id="ep-envoyer" aria-label="Envoyer"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></button>
+  </div>
+</div>
+
 <div class="notif" id="notif" data-glass="1" role="status" aria-live="polite" aria-atomic="true">
   <img src="../../icons/opmsg-192.png" alt="" width="38" height="38">
   <span class="notif-corps"><span class="notif-tete"><b>OP MESSAGES</b><span>maintenant</span></span><span class="notif-texte" id="notif-texte"></span><span class="notif-aide" id="notif-aide"></span></span>
 </div>
 <div class="mot" id="mot" role="status" aria-live="polite"></div>
+<div class="maj-bandeau" id="maj-bandeau" data-glass="1" role="status" aria-live="polite" hidden>
+  <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V6M6 11l6-6 6 6"/></svg>
+  <span class="maj-texte"><b>Nouvelle version d'OP MESSAGES</b><small>Les nouveautés s'installent en un geste.</small></span>
+  <button type="button" class="maj-plus-tard presse" id="maj-plus-tard">Plus tard</button>
+  <button type="button" class="maj-bouton presse" id="maj-bouton">Mettre à jour</button>
+</div>
+<div class="maj-ecran" id="maj-ecran" role="alertdialog" aria-modal="true" aria-labelledby="maj-titre" hidden>
+  <div class="maj-carte">
+    <img src="../../icons/opmsg-192.png" alt="" width="72" height="72">
+    <h2 id="maj-titre">Mise à jour d'OP MESSAGES</h2>
+    <p id="maj-sous">La nouvelle version s'installe. Quelques secondes : ne ferme pas l'application.</p>
+    <div class="maj-piste" role="progressbar" aria-labelledby="maj-titre" aria-valuemin="0" aria-valuemax="100" aria-valuenow="4" id="maj-piste"><div class="maj-barre" id="maj-barre"></div></div>
+    <p class="maj-etat" id="maj-etat">Préparation…</p>
+    <button type="button" class="maj-bouton presse" id="maj-reessayer" hidden>Réessayer</button>
+  </div>
+</div>
 
 <script src="source.js"></script>
 <script>
 (function () {
   'use strict';
+  /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
+  const OPMSG_BUILD = '';
+  /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
+     (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
+  const OPMSG_VERSION = 0;
+  try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -1451,7 +1638,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, comptesCourriel: false, agenda: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -1459,15 +1646,20 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   if (typeof source.demarrer === 'function') $('app').hidden = true;     // jamais l'écran d'un autre avant de savoir qui est là
   const VUES = {
     messages: { titre: 'Messages',  icone: 'i-chat' },
+    contacts: { titre: 'Contacts',  icone: 'i-groupe' },
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
-    reunions: { titre: 'Réunions',  icone: 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
+    /* avec l'agenda personnel (le service), l'onglet porte les deux : « Agenda » ; l'aperçu garde « Réunions » */
+    reunions: { titre: CAP.agenda ? 'Agenda' : 'Réunions',  icone: CAP.agenda ? 'i-agenda' : 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
     reglages: { titre: 'Réglages',  icone: 'i-gear',  texte: 'Le compte, les notifications et la confidentialité.' }
   };
-  const ORDRE = ['messages', 'appels', 'reunions', 'reglages'];
+  /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
+  const ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
   const VOCAL_MIN_MS = 800, VOCAL_MAX_MS = 180000, TENU_MS = 600, TEXTE_MAX = CAP.texteMax;
 
   /* ═══ 2. L'ÉTAT — un seul objet, que des instantanés et des gestes en cours ════════════════════════════════════════════════ */
+  /* l'aperçu des photos avant l'envoi (« 7 bis ») — déclaré ICI, avant tout ce qui le lit (`synchroInert`, Échap) : plus bas, il serait en zone morte au premier rendu */
+  const ep = { ouvert: false, conv: null, photos: [], sel: 0, max: 10, declencheur: null, envoi: false };
   const etat = {
     route: null,                  // { vue, conv, feuille, photo } — c'est elle qui est écrite dans l'historique
     conversations: [],            // la liste, telle que la source l'a rendue
@@ -1542,7 +1734,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
        recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
     const neuves = new Set(etat.neuves); etat.neuves.clear();
     $('liste-conv').innerHTML = vues.length ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') :
-      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (Réglages), puis écris-lui ou crée un groupe.</li>' : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>');
+      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>' : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>');
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
     const pins = etat.conversations.filter(c => c.epingle);
     $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
@@ -1571,7 +1763,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
   }
   function construireNavigation() {
-    const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span></a>';
+    const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span>' +
+      (cle === 'contacts' ? '<b class="onglet-n" data-onglet-n="contacts" hidden></b>' : '') + '</a>';
+    $('tabs').style.setProperty('--n', ORDRE.length);
     $('nav-side').innerHTML = ORDRE.map(c => lien(c, 'side-lien')).join('');
     $('tabs').insertAdjacentHTML('beforeend', ORDRE.map(c => lien(c, 'tab')).join(''));
   }
@@ -1590,7 +1784,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const p = location.hash.slice(1).split('/');
     let conv = null; try { conv = p[1] ? decodeURIComponent(p[1]) : null; } catch (e) { conv = null; }
     /* ⛔ `VUES[p[0]]` lit aussi la chaîne de prototypes : « #constructor » ou « #__proto__ » passaient pour des vues et laissaient les quatre masquées */
-    const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) ? p[0] : 'messages';
+    const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) && ORDRE.includes(p[0]) ? p[0] : 'messages';
     /* une adresse « #reunions/<identifiant> » (le toucher d'une notification quand la page était fermée) ouvre la fiche de CETTE réunion — l'identifiant est vérifié avant de servir */
     const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv : false;
     return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, feuille, photo: null, appel: null };
@@ -1645,11 +1839,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       /* ⛔ la position se LIT avant de masquer la vue : une fois masquée, le document raccourcit et la fenêtre est ramenée à la hauteur de la vue d'arrivée (mesuré : 500 px lus 106) */
       if (prec) etat.posVues[prec.vue] = prec.vue === 'messages' && etat.conv ? etat.scrollListe : window.scrollY;
       ORDRE.forEach(k => { $('vue-' + k).hidden = k !== r.vue; });
-      document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      document.querySelectorAll('[data-vue]:not(#moi-carte)').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
       $('tabs').style.setProperty('--i', ORDRE.indexOf(r.vue));
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (r.vue === 'contacts' && CAP.identifiants) { rendreVueContacts(); chargerDemandes(); }
       if (r.vue === 'appels' && CAP.appels && prec) rafraichirAppels();       // ⛔ entrer dans Appels RELIT l'historique : un appel passé ou pris sur un autre appareil pendant qu'on était ailleurs y est déjà (relecture, T1)
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
          ⛔ avec une conversation ouverte la fenêtre n'est plus la liste (iOS la ramène en haut pour le clavier) : la position de la liste est celle gardée à l'ouverture */
@@ -1670,7 +1865,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      la conversation rend la liste inerte quand elle la recouvre (jusqu'à 1 099 px) */
   const largeBureau = matchMedia('(min-width: 1100px)');
   function synchroInert() {
-    $('app').inert = !!(etat.groupe.ouvert || etat.photo || etat.menu);
+    $('app').inert = !!(etat.groupe.ouvert || etat.photo || etat.menu || ep.ouvert);
     /* un appel recouvre la liste ET la conversation (au bureau, la barre latérale reste, et reste active : l'onglet qu'on touche raccroche) */
     $('contenu').inert = !!(etat.appelId || (etat.conv && !largeBureau.matches));
     $('conv-ecran').inert = !!etat.appelId; $('conv-vide').inert = !!etat.appelId;
@@ -1721,9 +1916,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const debutCorps = h.length;
     if (m.photos) {
       const une = m.photos.length === 1;
+      /* une photo LÉGENDÉE : la photo et sa légende forment UNE colonne, à la largeur de la photo (la légende y passe à la ligne, comme WhatsApp) */
+      if (m.texte) h += '<span class="photos-leg">';
       h += '<span class="photos' + (une ? ' une' : '') + '">' + m.photos.map((p, i) => blob(p.url) ?
         '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '"' + (une ? styleUne(p) : '') + ' aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
         photoAttente(p, i, m.photos.length, une)).join('') + '</span>';
+      /* la LÉGENDE, dessous, dans une bulle de l'envoyeur */
+      if (m.texte) h += '<span class="bulle legende ' + sens + '" dir="auto">' + esc(m.texte) + '</span></span>';
     } else if (m.vocal) {
       h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
         '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
@@ -1947,7 +2146,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   async function envoyerTexte() {
     if (etat.envoiEnCours) { etat.envoiSuivant = true; return; }     // deux clics dans le même instant ne postent pas deux messages ; un toucher pendant l'attente n'est pas perdu : le message suivant part ensuite
     const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
-    if (!t.trim()) return;
+    /* vider le champ en modifiant la LÉGENDE d'une photo, c'est la retirer ; partout ailleurs, un champ vide n'envoie rien */
+    const ctx0 = etat.contexte, cible = ctx0 && ctx0.type === 'modif' ? trouverMessage(ctx0.mid) : null;
+    if (!t.trim() && !(cible && cible.photos)) return;
     const nt = nSignes(t);
     if (nt > TEXTE_MAX) { avis(texteTropLong(nt)); return; }
     etat.envoiEnCours = true;
@@ -2122,7 +2323,86 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (ratees) dits.push(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
     if (lourds) dits.push(lourds === 1 ? 'Un GIF était trop lourd pour rester animé : il est parti sans mouvement.' : lourds + ' GIF étaient trop lourds pour rester animés : ils sont partis sans mouvement.');
     if (dits.length) avis(dits.join(' '));
-    if (bonnes.length && id === etat.conv && !(await envoi({ photos: bonnes }))) bonnes.forEach(p => URL.revokeObjectURL(p.url));
+    if (!bonnes.length || id !== etat.conv) { bonnes.forEach(p => URL.revokeObjectURL(p.url)); return; }
+    /* ⛔ RIEN NE PART AU CHOIX : l'aperçu s'ouvre (la photo en grand, la légende) — ou, s'il est déjà ouvert (« + »), les photos s'y ajoutent, dans la limite d'un envoi */
+    if (ep.ouvert) {
+      const place = Math.max(0, lim.parMessage - ep.photos.length);
+      bonnes.slice(place).forEach(p => URL.revokeObjectURL(p.url));
+      if (bonnes.length > place) avis(lim.parMessage + ' photos au plus par envoi : ' + (bonnes.length - place === 1 ? 'une n\'a pas été ajoutée.' : (bonnes.length - place) + ' n\'ont pas été ajoutées.'));
+      ep.photos = ep.photos.concat(bonnes.slice(0, place)); ep.sel = ep.photos.length - 1; epRendre();
+      return;
+    }
+    epOuvrir(id, bonnes, lim.parMessage);
+  });
+
+  /* ═══ LA PHOTO AVANT L'ENVOI — l'aperçu et la légende (6 octobre 2026 : « quand j'envoie une photo, il faudrait pouvoir mettre un texte en dessous, comme WhatsApp ») ═══
+     ⛔ La légende fait partie du message (un seul envoi, photos + texte) : elle n'est pas un second message envoyé à la suite. Annuler (la croix, Échap) ne laisse rien partir
+     et rend les adresses des images. Le champ du message, en bas de la conversation, n'est pas touché : la légende est à part. */
+  function epOuvrir(conv, photos, max) {
+    Object.assign(ep, { ouvert: true, conv, photos, sel: 0, max: max || 10, declencheur: document.activeElement });
+    $('ep-legende').value = ''; epAjuster();
+    $('envoi-photos').hidden = false; synchroInert();
+    epRendre();
+    setTimeout(() => { try { $('ep-legende').focus({ preventScroll: true }); } catch (e) { /* rien */ } }, 30);
+  }
+  function epRendre() {
+    if (!ep.ouvert) return;
+    if (!ep.photos.length) { epFermer(); return; }
+    ep.sel = Math.max(0, Math.min(ep.sel, ep.photos.length - 1));
+    const n = ep.photos.length;
+    $('ep-titre').textContent = n > 1 ? n + ' photos' : 'Photo';
+    $('ep-grande').src = ep.photos[ep.sel].url;
+    $('ep-grande').alt = 'Photo ' + (ep.sel + 1) + ' sur ' + n;
+    /* une seule photo : pas de bande de vignettes (rien à choisir) ; au-delà, chacune se touche pour la voir, sa croix la retire */
+    $('ep-vignettes').innerHTML = n < 2 ? '' : ep.photos.map((p, i) => '<span class="ep-vig-l"><button type="button" class="ep-vig presse" data-ep-voir="' + i + '" aria-current="' + (i === ep.sel) + '" aria-label="Voir la photo ' + (i + 1) + '"><img src="' + esc(p.url) + '" alt=""></button>' +
+      '<button type="button" class="ep-retirer" data-ep-retirer="' + i + '" aria-label="Retirer la photo ' + (i + 1) + '"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></span>').join('');
+    $('ep-ajouter').hidden = n >= ep.max;
+  }
+  function epAjuster() { const ta = $('ep-legende'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 124) + 'px'; }
+  function epFermer(envoye) {
+    if (!ep.ouvert) return;
+    ep.ouvert = false; $('envoi-photos').hidden = true;
+    if (!envoye) ep.photos.forEach(p => URL.revokeObjectURL(p.url));
+    ep.photos = []; $('ep-grande').removeAttribute('src'); $('ep-vignettes').innerHTML = ''; $('ep-legende').value = '';
+    synchroInert();
+    const d = ep.declencheur; ep.declencheur = null;
+    try { if (d && d.focus && document.contains(d)) d.focus({ preventScroll: true }); else $('saisie').focus({ preventScroll: true }); } catch (e) { /* rien */ }
+  }
+  async function epEnvoyer() {
+    if (!ep.ouvert || ep.envoi) return;
+    const legende = $('ep-legende').value.replace(/\s+$/, '');
+    if (legende.trim() && nSignes(legende) > TEXTE_MAX) { avis(texteTropLong(nSignes(legende))); return; }
+    const conv = ep.conv, photos = ep.photos.slice();
+    ep.envoi = true;
+    /* on ferme AVANT l'attente (comme le champ du message se vide avant) : l'image part, l'écran rend la conversation ; un refus se dit par l'avis et rend les adresses */
+    epFermer(true);
+    try {
+      if (!(await envoi(legende.trim() ? { photos, texte: legende } : { photos }, conv))) photos.forEach(p => URL.revokeObjectURL(p.url));
+    } finally { ep.envoi = false; }
+  }
+  $('ep-fermer').addEventListener('click', () => epFermer());
+  $('ep-envoyer').addEventListener('mousedown', e => e.preventDefault());
+  $('ep-envoyer').addEventListener('click', () => epEnvoyer());
+  $('ep-ajouter').addEventListener('click', () => $('compo-fichier').click());
+  $('ep-legende').addEventListener('input', epAjuster);
+  $('ep-legende').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || e.isComposing) return;
+    if ((matchMedia('(pointer: fine)').matches && !e.shiftKey && !e.altKey) || e.ctrlKey || e.metaKey) { e.preventDefault(); epEnvoyer(); }   // les mêmes règles que le champ du message
+  });
+  $('ep-vignettes').addEventListener('click', e => {
+    const r = e.target.closest('[data-ep-retirer]');
+    if (r) { const i = +r.dataset.epRetirer; const [p] = ep.photos.splice(i, 1); if (p) URL.revokeObjectURL(p.url); if (ep.sel >= i && ep.sel > 0) ep.sel--; epRendre(); return; }
+    const v = e.target.closest('[data-ep-voir]');
+    if (v) { ep.sel = +v.dataset.epVoir; epRendre(); }
+  });
+  /* le piège du focus : Tab tourne dans l'aperçu (le fond est inerte) */
+  $('envoi-photos').addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const f = Array.from($('envoi-photos').querySelectorAll('button:not([hidden]), textarea')).filter(x => x.getClientRects().length);
+    if (!f.length) return;
+    const i = f.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+    else if (!e.shiftKey && i === f.length - 1) { e.preventDefault(); f[0].focus(); }
   });
   /* un fichier : n'importe quoi, tel quel (le service juge ce que c'est, le sert toujours en pièce jointe, jamais en ligne). Trop lourd, il est refusé par la source AVANT tout envoi. */
   $('compo-doc').addEventListener('change', async e => {
@@ -2336,13 +2616,113 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 
   /* ═══ 8. LA BANNIÈRE ET LE PETIT MOT ═══════════════════════════════════════════════════════════════════════════════════════ */
   let minNotif = 0, minMot = 0;
-  function notifier(texte, aide) {
+  function notifier(texte, aide, cible) {
     clearTimeout(minNotif);
     $('notif-texte').textContent = texte;
     $('notif-aide').textContent = aide || '';
+    /* une demande de contact se TOUCHE : la bannière mène à l'onglet Contacts, où l'on accepte ou refuse */
+    const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : '';
+    $('notif').dataset.vers = vers; $('notif').classList.toggle('touchable', !!vers);
     $('notif').classList.add('on');
     minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
   }
+  /* ═══ 7 ter. LA MISE À JOUR — la page compare son empreinte à celle que le service sert ══════════════════════════════════════════
+     Une page restée ouverte (l'application d'un iPhone reste en mémoire des jours) garde la version qu'elle a chargée : rien ne le disait. Elle relit l'empreinte du service
+     au démarrage, quand on revient sur l'application, quand la connexion revient (un déploiement redémarre le service) et toutes les dix minutes ; différente, le bandeau
+     « Nouvelle version » propose « Mettre à jour ». La mise à jour RELIT les fichiers de la page sans cache (la barre avance au fil des octets), puis recharge.
+     ⛔ Rien n'est rangé sur l'appareil : le retour d'une mise à jour se dit par l'adresse (`?maj=1`), retirée aussitôt. Une mise à jour qui revient avec la MÊME vieille
+     version (un relais qui garde l'ancien fichier) le DIT, sans relancer en boucle. */
+  const EMPREINTE = /^[0-9a-f]{12}$/;
+  const majRetour = /(?:^|[?&])maj=1(?:&|$)/.test(location.search);
+  if (majRetour) { try { history.replaceState(history.state, '', location.pathname + location.hash); } catch (e) { /* l'adresse garde « ?maj=1 » : sans conséquence */ } }
+  const maj = { vu: null, repousseA: 0, enCours: false, dernier: 0, retourDit: false, obligatoire: 0 };
+  async function verifierVersion(force) {
+    if (!CAP.miseAJour || !EMPREINTE.test(OPMSG_BUILD) || typeof source.versionServie !== 'function' || maj.enCours) return;
+    const t = Date.now();
+    if (!force && t - maj.dernier < 20000) return;
+    maj.dernier = t;
+    let r; try { r = await source.versionServie(); } catch (e) { return; }   // pas de réponse : on réessaiera au prochain rendez-vous
+    if (!r) return;
+    /* ⛔ SOUS LE MINIMUM QUE LA TOUR A POSÉ, PAS DE « PLUS TARD » : la page ne peut plus écrire (le service répond 426), elle se met à jour tout de suite. */
+    if (OPMSG_VERSION > 0 && Number.isInteger(r.min) && r.min > OPMSG_VERSION) { majObligatoire(r.min); return; }
+    if (!EMPREINTE.test(r.build || '')) return;
+    if (r.build === OPMSG_BUILD) { if (majRetour && !maj.retourDit) { maj.retourDit = true; mot('OP MESSAGES est à jour'); } $('maj-bandeau').hidden = true; return; }
+    maj.vu = r.build;
+    if (majRetour && !maj.retourDit) { maj.retourDit = true; mot('La nouvelle version n\'a pas encore pu s\'installer : réessaie dans un instant'); maj.repousseA = t + 5 * 60000; }
+    if (t < maj.repousseA) return;
+    $('maj-bandeau').hidden = false;
+  }
+  /* ⛔ CE QU'ON ÉTAIT EN TRAIN D'ÉCRIRE SURVIT AU RECHARGEMENT (relecture du gardien, 6 octobre 2026) : les brouillons ne vivent qu'en mémoire, et une mise à jour
+     recharge la page. La source les range dans le stockage de l'ONGLET juste avant (effacé à sa fermeture, jamais partagé), et les rend — puis les efface — au
+     chargement suivant. Un stockage refusé (navigation privée) : on perd le brouillon, comme avant, sans casser la mise à jour. */
+  function brouillonsGarder() {
+    if (typeof source.garderBrouillons !== 'function') return;
+    if (etat.conv) etat.brouillons[etat.conv] = $('saisie').value;
+    const b = {}; for (const [k, v] of Object.entries(etat.brouillons)) if (typeof v === 'string' && v.trim()) b[k] = v.slice(0, 20000);
+    source.garderBrouillons(b);
+  }
+  /* ⛔ c'est la SOURCE qui range (le stockage de l'onglet, dans `source-serveur.js`) : la page ne touche à aucun stockage, et l'aperçu — dont la source n'a pas
+     ces deux méthodes — ne garde rien (test-856) */
+  if (typeof source.reprendreBrouillons === 'function') {
+    const b = source.reprendreBrouillons() || {};
+    for (const [k, v] of Object.entries(b)) if (typeof v === 'string' && !etat.brouillons[k]) etat.brouillons[k] = v;
+  }
+  /* La mise à jour OBLIGATOIRE : l'écran de mise à jour, sans « Plus tard », qui part tout seul.
+     ⛔ PAS PENDANT UN APPEL : recharger le couperait. Elle attend qu'il soit fini (la page n'envoie rien d'autre entre-temps : le service refuse déjà).
+     ⛔ UNE SEULE FOIS PAR CHARGEMENT : revenue d'une mise à jour
+     (`?maj=1`) et toujours sous le minimum (un relais qui sert encore l'ancien fichier), la page ne relance pas en boucle — elle le DIT, et propose « Réessayer ». */
+  function majObligatoire(min) {
+    if (maj.enCours || maj.obligatoire) return;
+    if (etat.appelId) { clearTimeout(maj.apresAppel); maj.apresAppel = setTimeout(() => majObligatoire(min), 3000); return; }
+    maj.obligatoire = min;
+    $('maj-bandeau').hidden = true;
+    $('maj-titre').textContent = 'Mise à jour obligatoire';
+    $('maj-sous').textContent = 'Cette version d\'OP MESSAGES n\'est plus acceptée : la nouvelle s\'installe. Tes messages et ce que tu étais en train d\'écrire sont gardés.';
+    if (majRetour) {
+      $('maj-ecran').hidden = false; $('maj-reessayer').hidden = false;
+      majProgres(4, 'La nouvelle version n\'a pas encore pu s\'installer : réessaie dans un instant.');
+      $('maj-reessayer').focus();
+      return;
+    }
+    appliquerMaj();
+  }
+  /* un refus 426 (le service vient de dire « trop ancienne ») : on relit tout de suite ce qu'il exige */
+  window.addEventListener('opmsg-version', () => { if (!maj.obligatoire) verifierVersion(true); });
+  function majProgres(pct, texte) {
+    const p = Math.max(4, Math.min(100, Math.round(pct)));
+    $('maj-barre').style.width = p + '%'; $('maj-piste').setAttribute('aria-valuenow', String(p));
+    if (texte !== undefined) $('maj-etat').textContent = texte;
+  }
+  async function appliquerMaj() {
+    if (maj.enCours || typeof source.relireApplication !== 'function') return;
+    maj.enCours = true;
+    $('maj-bandeau').hidden = true; $('maj-reessayer').hidden = true;
+    $('maj-ecran').hidden = false; majProgres(4, 'Téléchargement de la nouvelle version…');
+    const taille = (o) => o >= 1048576 ? (o / 1048576).toFixed(1).replace('.', ',') + ' Mo' : Math.round(o / 1024) + ' Ko';
+    try {
+      await source.relireApplication((part, octets) => majProgres(part * 92 + 4, 'Téléchargement de la nouvelle version… ' + taille(octets)));
+      majProgres(100, 'Redémarrage…');
+      brouillonsGarder();
+      setTimeout(() => { location.replace(location.pathname + '?maj=1' + location.hash); }, 350);
+    } catch (e) {
+      maj.enCours = false;
+      majProgres(4, 'Le téléchargement n\'a pas abouti : vérifie ta connexion.');
+      $('maj-reessayer').hidden = false; $('maj-reessayer').focus();
+    }
+  }
+  $('notif').addEventListener('click', () => {
+    if ($('notif').dataset.vers !== 'contacts' || !$('notif').classList.contains('on')) return;
+    clearTimeout(minNotif); $('notif').classList.remove('on', 'touchable');
+    const r = { vue: 'contacts', conv: null, feuille: false, photo: null, appel: null };
+    if (!memeRoute(etat.route, r)) pousser(r);
+  });
+  $('maj-bouton').addEventListener('click', () => { appliquerMaj(); });
+  $('maj-reessayer').addEventListener('click', () => { appliquerMaj(); });
+  $('maj-plus-tard').addEventListener('click', () => { maj.repousseA = Date.now() + 30 * 60000; $('maj-bandeau').hidden = true; });
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') verifierVersion(); });
+  setInterval(() => verifierVersion(), 10 * 60000);
+  setTimeout(() => verifierVersion(true), 1500);
+
   function mot(texte) {
     clearTimeout(minMot);
     $('mot').textContent = texte; $('mot').classList.add('on');
@@ -2374,10 +2754,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -2407,7 +2787,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     etat.groupe.mode = mode === 'appel' || mode === 'info' || mode === 'nouvelle' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
-      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') ? mode : 'chat';
+      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
@@ -2433,6 +2813,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'reunion') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; ouvrirFicheEtat(arg); rendreFiche(); }
     if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
+    if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -2578,6 +2959,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; effacerRefusFeuille(); g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (ep.ouvert) { e.preventDefault(); epFermer(); return; }
     if (etat.menu) { e.preventDefault(); fermerMenu(); return; }
     /* dans le champ de recherche de la liste, Échap EFFACE la recherche (puis ne fait rien) : il ne ferme pas la conversation affichée à côté */
     if (e.target === $('recherche-conv') && !etat.photo && !etat.groupe.ouvert) { if (e.target.value) { e.preventDefault(); e.target.value = ''; etat.recherche = ''; rendreListe(); } return; }
@@ -3099,7 +3481,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.partir || typeof source.enAttente !== 'function' || !(source.enAttente() > 0)) return;
     e.preventDefault(); e.returnValue = '';
   });
-  const erreurConnexion = t => { const e = $('connexion-erreur'); e.textContent = t || ''; e.hidden = !t; };
+  const erreurConnexion = t => {
+    const f = CX_PANNEAUX.map(id => $(id)).find(x => x && !x.hidden) || $('f-connexion');
+    const e = f.id === 'f-connexion' ? $('connexion-erreur') : f.querySelector('.connexion-erreur');
+    e.textContent = t || ''; e.hidden = !t;
+  };
   function afficherConnexion(motif, d) {
     $('app').hidden = true; $('connexion').hidden = false;
     document.title = 'Connexion' + SUFFIXE_TITRE;
@@ -3108,6 +3494,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (t && etat.perdus > 0) t += ' ' + (etat.perdus === 1 ? 'Un message n\'était pas encore parti : il n\'a pas été envoyé, écris-le de nouveau.' : etat.perdus + ' messages n\'étaient pas encore partis : ils n\'ont pas été envoyés, écris-les de nouveau.');
     if (!t && d && d.motif && d.motif !== 'session_requise') t = d.phrase || phrase(null, 'Le service ne répond pas.');
     erreurConnexion(t);
+    if (CAP.comptesCourriel && typeof source.comptesOuverts === 'function') source.comptesOuverts().then(c => cxProposer(c, t), () => { /* sans réponse, l'écran reste celui d'avant */ });
     /* (salles) un lien d'invité ouvert sans session : la connexion DIT à quelle réunion il mène (l'aperçu public du service — rien qu'un titre et une heure), puis la page repart avec le lien */
     const cr = CAP.salles ? reunionDansAdresse() : null;
     if (cr && typeof source.apercuReunion === 'function') source.apercuReunion(cr).then(r => {
@@ -3115,6 +3502,104 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (e && r && !$('connexion').hidden) { e.textContent = 'Tu es invité à « ' + r.titre + ' » (' + FMT_JOUR_LONG.format(r.debut) + ' à ' + FMT_HEURE.format(r.debut) + '). Connecte-toi pour la rejoindre.'; e.hidden = false; }
     }, () => { /* sans aperçu, la connexion reste la connexion */ });
   }
+  /* ═══ LE COMPTE PAR ADRESSE E-MAIL — « comme Discord » (6 octobre 2026 : le numéro devient facultatif) ═════════════════════════════════════════════════════════
+     Un panneau visible à la fois. Le service dit ce qu'il propose (`comptesOuverts()` : la connexion par adresse, la création de compte) ; sans réponse, l'écran reste celui de l'accès
+     d'essai. ⛔ La création ne dit jamais si une adresse a déjà un compte (le service répond pareil) : l'écran du code dit « si cette adresse n'a pas encore de compte ». ⛔ Le code se TAPE
+     (pas de lien : depuis Mail, un lien ouvrirait Safari, pas l'application installée). Rien n'est rangé sur l'appareil : l'adresse ne vit que le temps de l'écran. */
+  const CX_PANNEAUX = ['f-connexion', 'f-mel', 'f-inscrire', 'f-code', 'f-oubli'];
+  const cx = { comptes: null, adresse: '', but: 'inscription', minuterie: 0, renvoiA: 0, enCours: false, champs: null };
+  function cxMontrer(id) {
+    CX_PANNEAUX.forEach(f => { $(f).hidden = f !== id; });
+    const err = id === 'f-connexion' ? $('connexion-erreur') : $(id).querySelector('.connexion-erreur'); err.textContent = ''; err.hidden = true;
+    const premier = $(id).querySelector('input:not([type=checkbox])');
+    if (premier && window.matchMedia && window.matchMedia('(pointer: fine)').matches) premier.focus({ preventScroll: true });
+  }
+  function cxProposer(c, motifTexte) {
+    cx.comptes = c;
+    if (!c || !c.courriel) return;
+    document.querySelectorAll('[data-cx-inscription]').forEach(e => { e.hidden = !c.inscription; });
+    document.querySelectorAll('[data-cx-essai]').forEach(e => { e.hidden = !CAP.connexion; });
+    document.querySelectorAll('#f-connexion [data-cx="f-mel"]').forEach(e => { e.hidden = false; });
+    if (!$('f-connexion').hidden) { cxMontrer('f-mel'); if (motifTexte) erreurConnexion(motifTexte); }
+  }
+  function cxRenvoiDecompte() {
+    clearInterval(cx.minuterie);
+    const b = $('cx-renvoyer');
+    const tic = () => {
+      const s = Math.ceil((cx.renvoiA - Date.now()) / 1000);
+      if (s > 0) { b.disabled = true; b.textContent = 'Renvoyer le code (' + s + ' s)'; }
+      else { b.disabled = false; b.textContent = 'Renvoyer le code'; clearInterval(cx.minuterie); }
+    };
+    tic(); cx.minuterie = setInterval(tic, 1000);
+  }
+  function cxVersCode(but, adresse) {
+    cx.but = but; cx.adresse = adresse; cx.renvoiA = Date.now() + 60000;
+    $('cx-code-titre').textContent = but === 'reinit' ? 'Nouveau mot de passe' : 'Vérifie tes e-mails';
+    $('cx-code-sous').textContent = but === 'reinit'
+      ? 'Si « ' + adresse + ' » a un compte, un code à six chiffres vient d\'y partir. Tape-le, puis choisis ton nouveau mot de passe : tous tes appareils seront déconnectés.'
+      : 'Si « ' + adresse + ' » n\'a pas encore de compte, un code à six chiffres vient d\'y partir. Tape-le pour créer ton compte.';
+    $('cx-code-mdp-champ').hidden = but !== 'reinit';
+    $('cx-code-bouton').textContent = but === 'reinit' ? 'Changer le mot de passe' : 'Créer mon compte';
+    $('cx-code').value = ''; $('cx-code-mdp').value = '';
+    cxMontrer('f-code'); cxRenvoiDecompte();
+  }
+  /* un geste à la fois : le bouton dit qu'il travaille, chaque essai écrit SON verdict (le refus d'avant ne survit pas) */
+  async function cxGeste(form, fn) {
+    if (cx.enCours) return;
+    erreurConnexion('');
+    const b = $(form).querySelector('button[type=submit]');
+    cx.enCours = true; b.setAttribute('aria-disabled', 'true');
+    try { await fn(); }
+    catch (e) { erreurConnexion(phrase(e, 'Ça n\'a pas pu se faire. Réessaie.')); }
+    finally { cx.enCours = false; b.removeAttribute('aria-disabled'); }
+  }
+  const cxEntrer = (moi) => { if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload(); };
+  document.addEventListener('click', e => {
+    const l = e.target.closest('[data-cx]');
+    if (!l || !$('connexion').contains(l)) return;
+    e.preventDefault();
+    const vers = l.dataset.cx;
+    if (vers === 'f-oubli' && $('cx-mel-adresse').value.trim()) $('cx-oubli-adresse').value = $('cx-mel-adresse').value.trim();
+    cxMontrer(vers);
+  });
+  $('f-mel').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-mel', async () => {
+    const a = $('cx-mel-adresse').value.trim(), m = $('cx-mel-mdp').value;
+    if (!a || !m) { erreurConnexion('Saisis ton adresse e-mail et ton mot de passe.'); return; }
+    try { const moi = await source.connexionCourriel(a, m); $('cx-mel-mdp').value = ''; cxEntrer(moi); }
+    catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Adresse e-mail ou mot de passe incorrect.'); return; } throw e; }
+  }); });
+  $('f-inscrire').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-inscrire', async () => {
+    const champs = { prenom: $('cx-ins-prenom').value.trim(), nom: $('cx-ins-nom').value.trim(), courriel: $('cx-ins-adresse').value.trim(), mdp: $('cx-ins-mdp').value, conditions: $('cx-ins-conditions').checked };
+    if (!champs.prenom) { erreurConnexion('Ton prénom, s\'il te plaît : il donne ton identifiant.'); $('cx-ins-prenom').focus(); return; }
+    if (!champs.courriel) { erreurConnexion('Ton adresse e-mail, s\'il te plaît.'); $('cx-ins-adresse').focus(); return; }
+    if (champs.mdp.length < 10) { erreurConnexion('Choisis un mot de passe d\'au moins 10 caractères.'); $('cx-ins-mdp').focus(); return; }
+    if (!champs.conditions) { erreurConnexion('Coche la case : il faut avoir au moins 15 ans et accepter les conditions d\'utilisation.'); return; }
+    await source.inscrire(champs);
+    cx.champs = champs;
+    cxVersCode('inscription', champs.courriel);
+  }); });
+  $('f-oubli').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-oubli', async () => {
+    const a = $('cx-oubli-adresse').value.trim();
+    if (!a) { erreurConnexion('Ton adresse e-mail, s\'il te plaît.'); return; }
+    await source.oubliMdp(a);
+    cxVersCode('reinit', a);
+  }); });
+  $('f-code').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-code', async () => {
+    const code = $('cx-code').value.replace(/\s+/g, '');
+    if (!/^\d{6}$/.test(code)) { erreurConnexion('Le code fait six chiffres.'); $('cx-code').focus(); return; }
+    if (cx.but === 'reinit') {
+      const m = $('cx-code-mdp').value;
+      if (m.length < 10) { erreurConnexion('Choisis un mot de passe d\'au moins 10 caractères.'); $('cx-code-mdp').focus(); return; }
+      cxEntrer(await source.reinitMdp(cx.adresse, code, m));
+    } else { await source.confirmerInscription(cx.adresse, code); cx.champs = null; location.reload(); }
+  }); });
+  $('cx-renvoyer').addEventListener('click', () => cxGeste('f-code', async () => {
+    if (Date.now() < cx.renvoiA) return;
+    if (cx.but === 'reinit') await source.oubliMdp(cx.adresse); else if (cx.champs) await source.inscrire(cx.champs); else { cxMontrer('f-inscrire'); return; }
+    cx.renvoiA = Date.now() + 60000; cxRenvoiDecompte(); mot('Un nouveau code est parti');
+  }));
+  $('cx-code-retour').addEventListener('click', () => { clearInterval(cx.minuterie); cxMontrer(cx.but === 'reinit' ? 'f-oubli' : 'f-inscrire'); });
+
   let fluxPerdu = false;                                  // le temps réel est-il rompu ? (dit par la source)
   let connexionEnCours = false;
   $('f-connexion').addEventListener('submit', async ev => {
@@ -3267,6 +3752,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (!reg.propos) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     const p = reg.propos, l = p.limites || {};
     c.innerHTML = '<p class="reg-ligne"><b>Service</b> ' + esc(LIEUX[p.instance] || p.instance || '—') + ', version ' + esc(p.version || '—') + '</p>' +
+      (EMPREINTE.test(OPMSG_BUILD) ? '<p class="reg-ligne"><b>Application</b> ' + esc(OPMSG_BUILD.slice(0, 7)) + (p.build && p.build !== OPMSG_BUILD ? ' · <b>une nouvelle version est prête</b>' : ' · à jour') + '</p>' : '') +
       '<p class="reg-ligne"><b>Adresse</b> ' + esc(location.host) + '</p>' +
       (l.photo_max ? '<p class="reg-ligne"><b>Au plus</b> photo ' + esc(tailleTexte(l.photo_max)) + ' · vocal ' + esc(tailleTexte(l.vocal_max)) + ' · fichier ' + esc(tailleTexte(l.fichier_max)) + '</p>' : '') +
       '<p class="info-note">Rien n\'est rangé sur cet appareil : les messages, les photos et les fichiers sont relus du service. Les photos sont réduites, et le lieu et l\'appareil qui les ont prises sont retirés avant qu\'elles soient rangées.</p>';
@@ -3436,10 +3922,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   async function chargerDemandes() {
     if (!CAP.identifiants || typeof source.demandesContact !== 'function') return;
     try { demandesEtat = await source.demandesContact(); } catch (e) { demandesEtat = demandesEtat || { erreur: true }; }
-    peindreDemandes(); peindreIdentMoi(); peindreDemandesN(); peindreProfilReglage();
+    peindreDemandes(); peindreIdentMoi(); peindreDemandesN(); peindreProfilReglage(); rendreVueContacts();
   }
   const relireDemandes = () => { clearTimeout(demandesMinuterie); demandesMinuterie = setTimeout(() => chargerDemandes(), 400); };
-  function peindreDemandesN() { const n = $('reg-demandes-n'); if (!n) return; const k = demandesEtat && demandesEtat.recues ? demandesEtat.recues.length : 0; n.textContent = k ? String(k) : ''; n.classList.toggle('pastille-n', k > 0); }
+  function peindreDemandesN() {
+    const k = demandesEtat && demandesEtat.recues ? demandesEtat.recues.length : 0;
+    document.querySelectorAll('[data-onglet-n="contacts"]').forEach(b => { b.hidden = !k; b.textContent = k > 99 ? '99+' : String(k); });
+    document.querySelectorAll('a[data-vue="contacts"]').forEach(a => a.setAttribute('aria-label', 'Contacts' + (k ? ', ' + k + (k > 1 ? ' demandes de contact' : ' demande de contact') : '')));
+    const n = $('reg-demandes-n'); if (!n) return; n.textContent = k ? String(k) : ''; n.classList.toggle('pastille-n', k > 0);
+  }
   function peindreDemandes() {
     const c = $('ct-demandes'); if (!c) return;
     if (!demandesEtat) { c.innerHTML = ''; return; }
@@ -3453,6 +3944,73 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       (E.length ? '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d,
         '<button type="button" class="mini" data-act="demande-retirer" data-uid="' + esc(d.id) + '">Retirer</button>', (d.identifiant || '') + ' · en attente')).join('') + '</div>' : '');
   }
+  /* ═══ 5 bis. L'ONGLET « CONTACTS » — les demandes d'abord, puis les contacts de A à Z ═════════════════════════════════════════════════════════
+     Demandé le 6 octobre 2026 : « quand je cherche quelqu'un je vois bien les notifications mais je ne vois pas accepter ou refuser… un onglet Contacts, on voit
+     les demandes de contact, ça fait plus pro : la personne, on accepte, on refuse ». Les demandes vivaient au fond de Réglages › Ajouter un contact : elles ont
+     maintenant leur onglet, avec un compteur sur l'onglet. ⛔ Rien ne s'affiche avant d'avoir été LU : une panne dit « indisponible », jamais « aucune demande ». */
+  /* La RECHERCHE (6 octobre 2026) : le champ est posé UNE fois (le redessin des listes ne le recrée pas : on ne perd ni la saisie ni le clavier) et filtre les demandes et les contacts par
+     nom (et les demandes aussi par leur identifiant, qu'elles portent), sans tenir compte des accents ni de la casse. Une saisie qui a la forme d'un identifiant (« Camille#4821 ») propose de chercher CETTE personne dans « Ajouter ». */
+  const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  function rendreVueContacts() {
+    const sec = $('vue-contacts'); if (!sec || !CAP.identifiants) return;
+    if (!$('vc-corps')) {
+      sec.innerHTML = '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" data-act="vc-ajouter" aria-haspopup="dialog">Ajouter</button></div>' +
+        '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>' +
+        '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les contacts</span><input type="search" id="vc-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
+        '<div id="vc-corps"></div>';
+      $('vc-recherche').addEventListener('input', () => rendreVueContacts());
+    }
+    const corps = $('vc-corps');
+    const garde = document.activeElement && corps.contains(document.activeElement) ? document.activeElement : null;
+    const cleFocus = garde && garde.dataset ? (garde.dataset.act || '') + '|' + (garde.dataset.uid || '') : '';
+    const brut = $('vc-recherche').value.trim(), q = vcNorm(brut);
+    const garder = x => !q || vcNorm(x.nom).includes(q) || vcNorm(x.identifiant).includes(q) || vcNorm(x.role).includes(q);
+    const D = demandesEtat, R = (D && D.recues || []).filter(garder), E = (D && D.envoyees || []).filter(garder);
+    const ligne = (d, sous, actions) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
+    let h = '';
+    if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
+    else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
+    else if (!q || R.length) {
+      h += '<div class="rubrique"><span>Demandes de contact</span><span>' + (R.length || '') + '</span></div>';
+      h += R.length ? '<div class="carte vc-recues">' + R.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'veut t\'ajouter à ses contacts',
+          '<button type="button" class="mini plein" data-act="vc-accepter" data-uid="' + esc(d.id) + '" aria-label="Accepter la demande de ' + esc(d.nom) + '">Accepter</button>' +
+          '<button type="button" class="mini" data-act="vc-refuser" data-uid="' + esc(d.id) + '" aria-label="Refuser la demande de ' + esc(d.nom) + '">Refuser</button>' +
+          (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="vc-bloquer" data-uid="' + esc(d.id) + '" aria-label="Bloquer ' + esc(d.nom) + '">Bloquer</button>' : ''))).join('') + '</div>'
+        : '<div class="carte carte-pad"><p class="info-note">Aucune demande en attente. Quand quelqu\'un voudra t\'ajouter, elle apparaîtra ici.</p></div>';
+    }
+    if (D && !(D.erreur && !D.recues) && E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
+          '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
+    const tous = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })), C = tous.filter(garder);
+    if (!q || C.length) h += '<div class="rubrique"><span>Mes contacts</span><span>' + (C.length || '') + '</span></div>';
+    if (C.length) h += '<div class="carte">' + C.map(c => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
+        '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
+    else if (!q) h += '<div class="carte carte-pad"><p class="info-note">Pas encore de contact. Ajoute quelqu\'un par son identifiant (Camille#4821), son numéro ou un lien.</p><button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button></div>';
+    if (q && !R.length && !E.length && !C.length) {
+      const ident = /^[^#\s]{1,40}#\d{4,5}$/.test(brut);
+      h += '<div class="carte carte-pad vc-aucun"><p class="info-note">Aucun contact ni demande pour « ' + esc(brut) + ' ».' + (ident ? '' : ' Pour ajouter quelqu\'un, il faut son identifiant (Camille#4821) ou son numéro.') + '</p>' +
+        (ident ? '<button type="button" class="mini plein" data-act="vc-chercher-ident">Chercher ' + esc(brut) + '</button>' : '<button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button>') + '</div>';
+    }
+    corps.innerHTML = h;
+    if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
+  }
+  $('vue-contacts').addEventListener('click', async e => {
+    const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    const act = b.dataset.act, uid = b.dataset.uid;
+    try {
+      if (act === 'vc-ajouter') { declencheur = b; ouvrirFeuille('contact'); return; }
+      /* une saisie qui a la forme d'un identifiant : « Ajouter » s'ouvre avec le champ déjà rempli (la recherche elle-même part de là, par le geste de la personne) */
+      if (act === 'vc-chercher-ident') { const t = $('vc-recherche').value.trim(); declencheur = b; ouvrirFeuille('contact'); const remplir = () => { const c = $('ct-ident'); if (c) { c.value = t; c.focus({ preventScroll: true }); } }; if ($('ct-ident')) remplir(); else requestAnimationFrame(remplir); return; }
+      if (act === 'vc-relire') { await chargerDemandes(); return; }
+      if (act === 'vc-ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
+      b.disabled = true;
+      if (act === 'vc-accepter') { await source.repondreDemande(uid, true); mot('Contact ajouté'); }
+      else if (act === 'vc-refuser') { await source.repondreDemande(uid, false); mot('Demande refusée'); }
+      else if (act === 'vc-bloquer') { await source.bloquer(uid); mot('Bloqué : cette personne ne peut plus te trouver ni t\'écrire'); }
+      else if (act === 'vc-retirer') { await source.annulerDemande(uid); mot('Demande retirée'); }
+      await chargerDemandes();
+    } catch (er) { b.disabled = false; mot(phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }
+  });
   async function identVoir() {
     const champ = $('ct-ident'), res = $('ct-ident-res'); if (!champ || !res) return;
     const t = champ.value.trim();
@@ -3648,7 +4206,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (typeof source.contacts !== 'function') return;
     CONTACTS = source.contacts();
     if (CAP.reunions && etat.route && etat.route.vue === 'reunions') rendreReunions();
-    peindreBloquesN(); peindreProfilReglage();
+    peindreBloquesN(); peindreProfilReglage(); rendreVueContacts();
     if (CAP.identifiants && (!etat.groupe.ouvert || etat.groupe.mode !== 'contact')) relireDemandes();   // le compteur des demandes reçues (Réglages)
     if (!etat.groupe.ouvert) return;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { construireContacts(); synchroFeuille(); }
@@ -4045,7 +4603,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
     if (!m.supprime && m.texte) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
-    if (moi && !m.supprime && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">Modifier</button>';
+    /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
+    if (moi && !m.supprime && !m.vocal && !m.fichier && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
     h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
     if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer-tous">Supprimer pour tous</button>';
     $('menu-msg').innerHTML = h;
@@ -4272,12 +4831,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      quand l'heure n'est pas la même. ⛔ Elle n'affiche que ce que le service tient : pas de « Rejoindre » (l'étape 8), pas de promesse d'un envoi par courriel que le service n'a pas ouvert.
      ⛔ Une réunion ne porte que des IDENTIFIANTS de personnes : on les habille au moment de peindre (`contactDe`), donc une photo arrivée après coup apparaît sans relire l'agenda. */
   const ID_REUNION = /^r_[0-9a-f]{32}$/;
+  const ID_EVT = /^e_[0-9a-f]{32}$/;
   /* ⛔ Une réunion supprimée et une personne RETIRÉE de la réunion arrivent à la page de la même façon (la réunion ne se lit plus) : elle ne peut pas les distinguer, et ne dit pas plus qu'elle ne sait. La phrase est la même que
      celle d'une réunion qu'on ne trouve pas — qui n'apprend rien à quelqu'un qui n'y a jamais été invité. */
   const PHRASE_REUNION_PERDUE = 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.';
   const reu = {
     semaine: 0, jour: 0,                 // le lundi (minuit, heure de l'appareil) de la semaine affichée, et le jour choisi (minuit)
     liste: [], charge: false, panne: null, jeton: 0,
+    evenements: [],                      // l'agenda personnel de la semaine (capacité `agenda`)
     fiche: null,                         // { id, donnees, jeton, confirme: null | 'annuler' | 'supprimer', courriel: null | {ouvert, serie}, prevenir, occurrence }
     occurrences: {},                     // l'occurrence touchée dans la liste, par réunion : la fiche parle de CELLE-LÀ
     colleagues: null,                    // les membres de mes espaces que je peux inviter (chargés une fois, à l'ouverture d'un formulaire ou d'une fiche d'hôte)
@@ -4335,8 +4896,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function construireReunions() {
     const sec = $('vue-reunions');
     sec.innerHTML =
-      '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">Programmer</button></div>' +
-      '<h1 class="grand-titre" id="titre-reunions">Réunions</h1>' +
+      '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
+        '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
+      '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="sem-nav" role="group" aria-label="Semaine affichée">' +
         '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
         '<button type="button" class="sem-titre presse" id="sem-titre" aria-label="Revenir à aujourd\'hui"></button>' +
@@ -4350,6 +4912,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const auj = minuitDe(Date.now());
     reu.semaine = lundiDe(auj); reu.jour = auj;
     $('btn-reunion-nouvelle').addEventListener('click', () => programmerReunion());
+    if (CAP.agenda) $('btn-evenement-nouveau').addEventListener('click', () => { declencheur = $('btn-evenement-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' })); });
     $('sem-prec').addEventListener('click', () => changerSemaine(-7));
     $('sem-suiv').addEventListener('click', () => changerSemaine(7));
     $('sem-titre').addEventListener('click', () => { const t = minuitDe(Date.now()); allerAuJour(t); });
@@ -4358,6 +4921,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('liste-reunions').addEventListener('click', e => {
       const j = e.target.closest('[data-rejoindre]');
       if (j) { rejoindreReunionUI(j.dataset.rejoindre, undefined, j, false); return; }                   // (salle) « Rejoindre » : on entre sans passer par la fiche
+      const ev = e.target.closest('[data-evenement]');
+      if (ev) { declencheur = ev; pousser(Object.assign({}, etat.route, { feuille: 'evenement:' + ev.dataset.evenement })); return; }
       const b = e.target.closest('[data-reunion]'); if (!b) return;
       reu.occurrences[b.dataset.reunion] = +b.dataset.debut || null;
       declencheur = b;
@@ -4378,18 +4943,30 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   async function chargerReunions() {
     if (!CAP.reunions) return;
     const n = ++reu.jeton, du = reu.semaine, au = plusJours(reu.semaine, 7);
-    let l = null, panne = null;
-    try { l = await source.reunions(du, au); } catch (e) { panne = e; }
+    let l = null, panne = null, evs = [];
+    const [r1, r2] = await Promise.allSettled([source.reunions(du, au), CAP.agenda && typeof source.evenements === 'function' ? source.evenements(du, au) : Promise.resolve([])]);
+    if (r1.status === 'fulfilled') l = r1.value; else panne = r1.reason;
+    if (r2.status === 'fulfilled') evs = r2.value; else panne = panne || r2.reason;      // une moitié qui manque se DIT (jamais une semaine vide qui ment)
     if (n !== reu.jeton) return;                      // une semaine plus récente a pris la place pendant l'attente
     reu.charge = true;
-    if (panne) reu.panne = panne; else { reu.panne = null; reu.liste = l; }
+    if (panne) reu.panne = panne; else { reu.panne = null; reu.liste = l; reu.evenements = evs; }
     rendreReunions();
   }
   /* les occurrences de la semaine, rangées par jour (le jour où elles COMMENCENT, à l'heure de l'appareil) */
   function occurrencesDuJour(jour) {
     const fin = plusJours(jour, 1), sortie = [];
     for (const r of reu.liste) for (const o of r.occurrences) if (o.debut >= jour && o.debut < fin) sortie.push({ r, o });
-    return sortie.sort((a, b) => a.o.debut - b.o.debut || a.r.id.localeCompare(b.r.id));
+    /* les événements de l'agenda personnel : ceux qui TOUCHENT le jour (une journée entière, ou qui déborde de la veille), rangés avec les réunions — les journées entières d'abord */
+    for (const e of (CAP.agenda ? reu.evenements : [])) if (e.debut < fin && e.fin > jour) sortie.push({ e, o: { debut: e.journee || e.debut < jour ? jour - 1 : e.debut, fin: e.fin } });
+    return sortie.sort((a, b) => a.o.debut - b.o.debut || (a.r ? a.r.id : a.e.id).localeCompare(b.r ? b.r.id : b.e.id));
+  }
+  function ligneEvenement(e, jour) {
+    const continu = !e.journee && e.debut < jour;
+    const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : '<span class="reunion-heure">' + esc(continu ? 'Suite' : FMT_HEURE.format(e.debut)) + '<small>' + esc(FMT_HEURE.format(e.fin)) + '</small></span>';
+    const rappel = e.rappel === null ? '' : e.rappel === 0 ? 'Rappel à l\'heure' : e.rappel === 1440 ? 'Rappel la veille' : 'Rappel ' + (e.rappel >= 60 ? (e.rappel / 60) + ' h' : e.rappel + ' min') + ' avant';
+    const sous = [e.lieu, rappel].filter(Boolean).join(' · ');
+    return '<li><button type="button" class="reunion-ligne evenement-ligne presse" data-evenement="' + esc(e.id) + '" aria-label="' + esc(e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + FMT_HEURE.format(e.debut) + ' à ') + FMT_HEURE.format(e.fin)) + (sous ? ', ' + sous : '')) + '">' + heure +
+      '<span class="reunion-corps"><span class="reunion-titre">' + esc(e.titre) + '</span>' + (sous ? '<span class="reunion-sous">' + esc(sous) + '</span>' : '') + '</span></button></li>';
   }
   function libelleEtat(r) {
     if (r.annulee) return 'Annulée';
@@ -4414,7 +4991,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     for (let i = 0; i < 7; i++) {
       const t = plusJours(reu.semaine, i), n = occurrencesDuJour(t).length;
       h += '<button type="button" class="jour presse' + (n ? ' avec' : '') + '" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
-        ' aria-label="' + esc(FMT_JOUR_LONG.format(t) + ', ' + (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion')) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
+        ' aria-label="' + esc(FMT_JOUR_LONG.format(t) + ', ' + (CAP.agenda ? (n ? n + (n > 1 ? ' éléments' : ' élément') : 'rien de prévu') : (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion'))) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
     }
     $('sem-jours').innerHTML = h;
     if (cle) { const b = $('sem-jours').querySelector('[data-jour="' + cle.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
@@ -4425,8 +5002,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (reu.panne) $('reu-erreur-texte').textContent = phrase(reu.panne, 'L\'agenda n\'a pas pu être chargé.');
     $('liste-reunions').setAttribute('aria-busy', reu.charge ? 'false' : 'true');
     $('liste-reunions').innerHTML = !reu.charge && !reu.panne ? '<li class="vide">Chargement…</li>'
-      : lignes.length ? lignes.map(x => ligneReunion(x.r, x.o)).join('')
-      : reu.panne ? '' : '<li class="vide">Aucune réunion ce jour-là</li>';
+      : lignes.length ? lignes.map(x => x.e ? ligneEvenement(x.e, reu.jour) : ligneReunion(x.r, x.o)).join('')
+      : reu.panne ? '' : '<li class="vide">' + (CAP.agenda ? 'Rien de prévu ce jour-là' : 'Aucune réunion ce jour-là') + '</li>';
   }
   /* on arrive sur l'onglet : la semaine du jour, relue (elle a pu changer ailleurs) */
   function entrerReunions() {
@@ -4453,6 +5030,70 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     mot(F.sortie || PHRASE_REUNION_PERDUE);
     if (ouvertePour(F.id) && reu.fiche === F) fermerCouche();
   }
+  /* ═══ L'AGENDA PERSONNEL — le formulaire d'un événement (nouveau ou existant) ═══════════════════════════════════════════════════════════════════
+     Un événement à soi : titre, journée entière ou heures, lieu, rappel, note. L'heure est celle de l'APPAREIL (son fuseau part avec), le service convertit. Le geste « Supprimer » se
+     confirme en touchant deux fois (comme « Bloquer »). Après un enregistrement, la feuille se ferme et la semaine se relit : l'écran dit ce que le SERVICE a retenu. */
+  const RAPPELS_EVT = [['', 'Aucun'], ['0', 'À l\'heure'], ['5', '5 minutes avant'], ['15', '15 minutes avant'], ['30', '30 minutes avant'], ['60', '1 heure avant'], ['1440', 'La veille']];
+  async function rendreFormEvenement(id) {
+    const corps = $('info-corps');
+    let e = null;
+    if (id) {
+      try { e = (reu.evenements || []).find(x => x.id === id) || null; } catch (er) { e = null; }
+      if (!e) { corps.innerHTML = '<p class="info-erreur" role="alert">Cet événement n\'existe plus.</p>'; return; }
+    }
+    const tz = e ? e.tz : (fuseauAppareil() || 'Europe/Paris');
+    const d0 = e ? e.debut : (reu.jour && reu.jour > Date.now() ? reu.jour + 9 * 3600000 : Math.ceil((Date.now() + 60000) / 3600000) * 3600000);
+    const f0 = e ? e.fin : d0 + 3600000;
+    const journee = !!(e && e.journee);
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="champ"><label for="ev-titre">Titre</label><input id="ev-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.titre : '') + '" placeholder="Dentiste, anniversaire, rendez-vous…"></div>' +
+      '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (journee ? 'true' : 'false') + '" id="ev-journee"><span class="reglage-texte">Toute la journée</span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
+      '<div class="champ"><label for="ev-debut">Début</label><input id="ev-debut" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(d0, tz).slice(0, 10) : localDans(d0, tz)) + '"></div>' +
+      '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
+      '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="Facultatif"></div>' +
+      '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>' +
+      '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
+      '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
+    reu.formEvt = { id: id || null, tz };
+  }
+  function evtBasculerJournee() {
+    const b = $('ev-journee'); if (!b) return;
+    const oui = b.getAttribute('aria-checked') !== 'true';
+    b.setAttribute('aria-checked', oui ? 'true' : 'false');
+    for (const k of ['ev-debut', 'ev-fin']) { const c = $(k), v = c.value; c.type = oui ? 'date' : 'datetime-local'; c.value = oui ? v.slice(0, 10) : (v.length === 10 ? v + (k === 'ev-debut' ? 'T09:00' : 'T10:00') : v); }
+  }
+  async function evtEnregistrer(b) {
+    const F = reu.formEvt; if (!F) return;
+    const journee = $('ev-journee').getAttribute('aria-checked') === 'true';
+    const titre = $('ev-titre').value.trim(), debut = $('ev-debut').value, fin = $('ev-fin').value;
+    if (!titre) { erreurInfo('Donne un titre à l\'événement.'); $('ev-titre').focus(); return; }
+    if (!debut) { erreurInfo('Choisis le début.'); $('ev-debut').focus(); return; }
+    const r = $('ev-rappel').value;
+    const champs = { titre, lieu: $('ev-lieu').value.trim() || null, note: $('ev-note').value.trim() || null, journee, debut, fin: fin || null, rappel: r === '' ? null : Number(r) };
+    if (!F.id) champs.tz = F.tz;
+    b.disabled = true;
+    try {
+      if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
+      mot(F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
+      fermerCouche(); chargerReunions();
+    } catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être enregistré.')); }
+  }
+  async function evtSupprimer(b) {
+    const F = reu.formEvt; if (!F || !F.id) return;
+    if (b.dataset.pret !== '1') { b.dataset.pret = '1'; b.textContent = 'Toucher encore pour supprimer'; setTimeout(() => { if (b.isConnected) { b.dataset.pret = ''; b.textContent = 'Supprimer'; } }, 4000); return; }
+    b.disabled = true;
+    try { await source.supprimerEvenement(F.id); mot('Événement supprimé'); fermerCouche(); chargerReunions(); }
+    catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être supprimé.')); }
+  }
+  $('info-corps').addEventListener('click', e => {
+    if (!etat.groupe.ouvert || (etat.groupe.mode !== 'evenement-new' && etat.groupe.mode !== 'evenement')) return;
+    if (e.target.closest('#ev-journee')) { evtBasculerJournee(); return; }
+    const b = e.target.closest('[data-evt]'); if (!b || b.disabled) return;
+    erreurInfo('');
+    if (b.dataset.evt === 'enregistrer') evtEnregistrer(b); else if (b.dataset.evt === 'supprimer') evtSupprimer(b);
+  });
+  /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
+  $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
   const ouvrirReunionId = id => { if (CAP.reunions && ID_REUNION.test(id)) remplacer({ vue: 'reunions', conv: null, feuille: 'reunion:' + id, photo: null, appel: null }); };
 
   /* ── les gens qu'on peut inviter : mes contacts, et les membres de MES espaces (jamais un annuaire) ── */
@@ -5506,12 +6147,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (ev.type === 'espaces') surEspaces(ev);
       if (ev.type === 'reunions') surReunions(ev);
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
-      if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; }
+      if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
-      if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '');
+      if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : '');
       if (ev.type === 'retire') surRetire(ev.id);
       if (ev.type === 'avis') avis(ev.texte);
-      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
+      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else if (ev.contacts && ORDRE.includes('contacts')) remplacer({ vue: 'contacts', conv: null, feuille: false, photo: null, appel: null }); else if (ev.conv) ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });
     if (CAP.appelsMedias && typeof source.appelActif === 'function') { const a = source.appelActif(); if (a && a.entrant) surAppelEntrant(a.id); }       // une sonnerie vue avant que la page écoute (la liste des appels l'a lue) sonne quand même
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }

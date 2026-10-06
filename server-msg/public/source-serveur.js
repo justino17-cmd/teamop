@@ -100,6 +100,7 @@
   const MOTIF_OUVRIR = /^\/#messages\/(c_[0-9a-f]{32})$/;
   const MOTIF_OUVRIR_REUNION = /^\/#reunions\/(r_[0-9a-f]{32})$/;
   const MOTIF_OUVRIR_APPELS = /^\/#appels$/;
+  const MOTIF_OUVRIR_CONTACTS = /^\/#contacts$/;          // une demande de contact touchée mène à l'onglet Contacts (accepter, refuser)
   function erreurLocale(code) {
     const e = new Error(PHRASES_LOCALES[code] || PHRASES_LOCALES.invalide);
     e.name = 'ErreurLocale'; e.code = code; e.statut = 0; e.retry = 0; e.dit = true; e.phrase = () => e.message;
@@ -1897,7 +1898,7 @@
     function citation(c, seq) {
       const q = c.messages.find(x => x.seq === seq);
       if (!q) return { seq, auteur: null, nom: 'Message plus ancien', texte: '', introuvable: true };
-      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q, genreSysteme(c)) : (q.texte || resumeMedia(q.type, q.meta)), 120), supprime: !!q.supprime };
+      return { seq, id: q.id, auteur: q.auteur, nom: nomDe(q.auteur), texte: q.supprime ? 'Message supprimé' : extrait(q.type === 'systeme' ? texteSysteme(q, genreSysteme(c)) : (q.type === 'photo' && q.texte ? '📷 ' + q.texte : (q.texte || resumeMedia(q.type, q.meta))), 120), supprime: !!q.supprime };
     }
     /* Les pièces d'un message : l'adresse est celle d'une pièce DÉJÀ LUE (sinon null, et `etat` dit où on en est). `auto` : les pièces que l'ouverture lit toute seule — les plus
        récentes ; les autres attendent le toucher (une conversation de cent photos ne se télécharge pas d'un coup sur un téléphone). */
@@ -1925,7 +1926,8 @@
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
       if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, genreSysteme(c)) });
       const media = MEDIAS.includes(m.type);
-      const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? '' : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
+      /* une photo garde sa LÉGENDE (le seul média qui en porte une) ; les autres pièces n'ont pas de texte */
+      const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? (m.type === 'photo' && typeof m.texte === 'string' ? m.texte : '') : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
       if (m.supprime) v.supprime = true;
       else if (media && !m.illisible) Object.assign(v, vuePieces(m, auto));
       if (m.modifie) v.modifie = m.modifie;
@@ -2057,10 +2059,10 @@
              et il ne doit pas faire relire une image que l'appareil a déjà */
           if (x.url && (p.type === 'photo' || p.type === 'vocal')) poserCache(x.id, x.url, x.blob.size);
         }
-        const champs = p.type === 'photo' ? { pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) } : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
+        const champs = p.type === 'photo' ? Object.assign({ pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) }, p.texte ? { texte: p.texte } : {}) : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
         const r = await A.envoyerPieces(p.conv, p.type, champs, { cid: p.cid });
         if (retirer) retirer();
-        apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
+        apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: p.type === 'photo' && p.texte ? p.texte : null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
         return r;
       } finally { p.enVol = false; }
     }
@@ -2139,6 +2141,8 @@
         if (!liste.length) throw erreurLocale('vide');
         if (liste.length > PHOTOS_PAR_MESSAGE) throw erreurLocale('trop-de-photos');      // ⛔ jamais « les dix premières, le reste en silence »
         p.photos = liste.map(x => ({ blob: x.blob, url: x.url || null, w: Math.max(1, x.w | 0), h: Math.max(1, x.h | 0), id: null }));
+        /* la LÉGENDE (« comme WhatsApp ») : facultative ; vide ou faite d'espaces, la photo part sans */
+        if (typeof b.texte === 'string' && b.texte.trim()) p.texte = valider(b.texte);
       } else if (type === 'vocal') {
         const v = b.vocal;
         if (!v || !v.blob || !(v.blob.size > 0) || !(v.dur > 0)) throw erreurLocale('vide');
@@ -2224,7 +2228,9 @@
     /* ── les gestes sur un message ── */
     const trouver = (id, mid) => { const c = convs.get(id); const m = c && c.messages.find(x => x.id === mid); if (!m) throw erreurLocale('introuvable'); return { c, m }; };
     async function modifier(id, mid, texte) {
-      const t = valider(texte), { c, m } = trouver(id, mid);
+      const { c, m } = trouver(id, mid);
+      /* la légende d'une photo peut se RETIRER (un texte vide) ; un message texte, non */
+      const t = (m && m.type === 'photo' && typeof texte === 'string' && !texte.trim()) ? '' : valider(texte);
       const r = await A.modifier(id, m.seq, t);
       ranger(c, { seq: m.seq, texte: t, modifie: r.modifie || maintenant() });
       emettre({ type: 'conversation', id }); relireListePlusTard();
@@ -2389,7 +2395,7 @@
       relireListePlusTard();
       if (!moi && d.type !== 'systeme') {
         const r = convsApi.find(x => x.id === d.conv);
-        emettre({ type: 'arrivee', conv: d.conv, de: nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : extrait(d.texte, 140)) });
+        emettre({ type: 'arrivee', conv: d.conv, de: nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
       }
     }
     const gestionnaires = {
@@ -2522,6 +2528,29 @@
       const m = await api0.connexionBeta(String(login || ''), String(pass || ''));
       return m;
     }
+    /* ── l'agenda personnel (capacité `agenda`) : ce que le service a retenu, jamais ce que la page croit avoir demandé ── */
+    const vueEvenement = (x) => ({ id: String(x.id), titre: String(x.titre || ''), lieu: String(x.lieu || ''), note: String(x.note || ''), debut: +x.debut || 0, fin: +x.fin || 0,
+      journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true });
+    async function evenements(du, au) { return (await A.agenda(du, au) || []).map(vueEvenement); }
+    async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
+    async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
+    async function supprimerEvenement(id) { await A.supprimerEvenement(id); return true; }
+    /* ── le compte par adresse e-mail (« comme Discord » : le numéro est facultatif) ──
+       `comptesOuverts()` : ce que le service propose AVANT toute connexion — { courriel, inscription } (deux booléens), ou null quand on n'a pas pu le savoir (la page garde
+       alors l'écran d'avant, jamais « pas ouvert » sur une panne). Les autres rendent ce que le service a répondu ; une connexion réussie pose la session (cookie) : la page recharge. */
+    async function comptesOuverts() {
+      try { const c = await api0.config(); const k = c && c.comptes; return k && typeof k === 'object' ? { courriel: k.courriel === true, inscription: k.inscription === true } : { courriel: false, inscription: false }; }
+      catch (e) { return null; }
+    }
+    async function connexionCourriel(courriel, mdp) { const r = await api0.melConnexion(String(courriel || '').trim(), String(mdp || '')); return r.suppression_annulee === true ? Object.assign({}, r.moi, { suppression_annulee: true }) : r.moi; }
+    async function inscrire(champs) {
+      const c = champs || {};
+      await api0.melInscrire({ courriel: String(c.courriel || '').trim(), mdp: String(c.mdp || ''), prenom: String(c.prenom || ''), nom: String(c.nom || ''), conditions: c.conditions === true });
+      return true;
+    }
+    async function confirmerInscription(courriel, code) { const r = await api0.melConfirmer(String(courriel || '').trim(), String(code || '')); return r.moi; }
+    async function oubliMdp(courriel) { await api0.melOubli(String(courriel || '').trim()); return true; }
+    async function reinitMdp(courriel, code, mdp) { const r = await api0.melReinit(String(courriel || '').trim(), String(code || ''), String(mdp || '')); return r.suppression_annulee === true ? Object.assign({}, r.moi, { suppression_annulee: true }) : r.moi; }
     async function deconnexion() {
       const sub = await abonnementLocal();                 // le point d'accès push de CE navigateur, s'il y en a un (jamais une erreur)
       await api0.deconnexion(sub && sub.endpoint);        // ⛔ d'abord le service : s'il refuse, le flux reste ouvert et l'écran n'a pas menti. L'abonnement part avec la session, dans la même requête.
@@ -2588,10 +2617,31 @@
     /* ⛔ pas `| 0` : le quota est de 2 Gio (2 147 483 648 octets), un entier signé sur 32 bits le rendrait NÉGATIF */
     const entierPositif = (x) => Number.isFinite(+x) ? Math.max(0, Math.floor(+x)) : 0;
     async function stockageUtilise() { const r = await A.stockage(); return { utilise: entierPositif(r.utilise), max: entierPositif(r.max) }; }
+    /* la version que le service sert EN CE MOMENT : la page la compare à la sienne pour proposer « Mettre à jour » */
+    /* « Mettre à jour » : la page dit la progression, le module relit les fichiers (la page n'appelle jamais le réseau elle-même) */
+    async function relireApplication(surProgres) { return A.relireApplication(surProgres); }
+    /* LES BROUILLONS À TRAVERS UNE MISE À JOUR (relecture du gardien, 6 octobre 2026) : rangés dans le stockage de l'ONGLET juste avant le rechargement, rendus — et
+       effacés — au chargement suivant. Jamais `localStorage` (partagé entre onglets, il survivrait à la fermeture) ; un stockage refusé ne casse rien. */
+    const CLE_BROUILLONS = 'opmsg-brouillons-maj';
+    const stockageOnglet = () => { try { return typeof sessionStorage !== 'undefined' ? sessionStorage : null; } catch (e) { return null; } };
+    function garderBrouillons(b) {
+      const st = stockageOnglet(); if (!st) return;
+      try { if (b && typeof b === 'object' && Object.keys(b).length) st.setItem(CLE_BROUILLONS, JSON.stringify(b)); else st.removeItem(CLE_BROUILLONS); } catch (e) { /* refusé : tant pis */ }
+    }
+    function reprendreBrouillons() {
+      const st = stockageOnglet(); if (!st) return {};
+      try { const x = st.getItem(CLE_BROUILLONS); if (!x) return {}; st.removeItem(CLE_BROUILLONS); const o = JSON.parse(x); return o && typeof o === 'object' && !Array.isArray(o) ? o : {}; } catch (e) { return {}; }
+    }
+    /* `min` : le numéro de page en dessous duquel le service refuse d'écrire (la Tour le pose) ; `numero` : celui de la page qu'il sert — un entier, ou null quand il ne le dit pas */
+    async function versionServie() {
+      const c = await A.config();
+      const ent = (x) => Number.isInteger(x) && x >= 0 && x <= 99999 ? x : null;
+      return { build: /^[0-9a-f]{12}$/.test(String(c.build || '')) ? String(c.build) : null, version: String(c.version || ''), min: ent(c.min_client), numero: ent(c.version_client) };
+    }
     async function aPropos() {
       const c = await A.config();
       const jours = c.limites && c.limites.suppression_jours;
-      return { version: String(c.version || ''), instance: String(c.instance || ''), limites: Object.assign({}, c.limites && c.limites.pieces), suppressionJours: Number.isInteger(jours) && jours > 0 ? jours : null };
+      return { version: String(c.version || ''), build: /^[0-9a-f]{12}$/.test(String(c.build || '')) ? String(c.build) : null, instance: String(c.instance || ''), limites: Object.assign({}, c.limites && c.limites.pieces), suppressionJours: Number.isInteger(jours) && jours > 0 ? jours : null };
     }
 
     /* ═══ LES NOTIFICATIONS (capacité `notifications`) ═══════════════════════════════════════════════════════════════════════════════════════════
@@ -2678,6 +2728,7 @@
           const r = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR_REUNION.exec(d.url) : null;
           if (r && !mort) emettre({ type: 'ouvrir', reunion: r[1] });
           if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_APPELS.test(d.url) && !mort) emettre({ type: 'ouvrir', appels: true });      // la notification d'un appel (sonnerie ou manqué) mène à l'onglet des appels
+          if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_CONTACTS.test(d.url) && !mort) emettre({ type: 'ouvrir', contacts: true });
         });
       } catch (e) { /* un navigateur sans service worker n'a pas de notification à toucher */ }
     }
@@ -2985,8 +3036,10 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
+      comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
+      evenements, creerEvenement, majEvenement, supprimerEvenement,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
@@ -3001,7 +3054,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, reessayer, abandonner, limitesPieces: limites,
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */

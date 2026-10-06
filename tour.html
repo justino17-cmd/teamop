@@ -2942,7 +2942,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.83</div>
+    <div class="lg-pied">console interne · v2.85</div>
   </div>
 </div>
 
@@ -2984,7 +2984,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.83</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.85</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2996,7 +2996,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.83</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.85</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3049,7 +3049,7 @@ var MENU=[
   {section:'Tour',vues:[['accueil','Accueil','gestion messages']]},
   {section:'Clients',vues:[['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion'],
     ['connexions','Connexions','gestion'],['devisia','Devis IA','gestion']]},
-  {section:'Support',vues:[['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Courrier','gestion messages','bdg-supp']]},
+  {section:'Support',vues:[['surveillance','Surveillance','gestion messages','bdg-surv'],['support','Courrier','gestion','bdg-supp']]},
   {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion']]}
 ];
 /* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal et Sauvegardes
@@ -3062,10 +3062,11 @@ function vuesDe(app){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(functio
 var VUES_PAR_APP={gestion:vuesDe('gestion'),messages:vuesDe('messages')};
 /* les vues de la console ouverte que CE compte peut ouvrir — c'est la porte de setTab */
 function vues(){ return (VUES_PAR_APP[APP]||VUES_PAR_APP.gestion).filter(vuePermise); }
-/* À quelle console appartient un tag d'incident, de connexion… 'espace' et 'stripe' sont communs. */
+/* À quelle console appartient un tag d'incident, de connexion… ⛔ v2.85 — PLUS DE « COMMUN » (Justin, 6 octobre 2026 : « dans la Tour, sépare bien
+   OP GESTION et OP MESSAGES ») : l'espace client et Stripe sont ceux d'OP GESTION — c'est déjà ce que dit le serveur (`monAppDeTag`) et `APPS_TOUR.gestion.tags`.
+   La console OP MESSAGES montrait les « Paiement en échec » des clients d'OP GESTION. */
 function appDe(code){ code=String(code||'').toLowerCase();
   if(APPS_TOUR.messages.tags.indexOf(code)>=0) return 'messages';
-  if(code==='espace'||code==='stripe'||code==='') return '*';
   return 'gestion'; }
 function appVisible(code){ var a=appDe(code); return a==='*'||a===APP; }
 /* Le hash dit la console ET l'onglet : #messages/surveillance. Un ancien favori (#entreprises), un
@@ -3089,7 +3090,9 @@ function setApp(app,sansAnim,tabVoulu){
   if(MYAPPS.indexOf(app)<0){ toast('La Tour '+APPS_TOUR[app].nom+' n’est pas ouverte à ton compte'); return; }
   var change=(app!==APP);
   APP=app; document.body.dataset.app=app; try{ localStorage.setItem('tour_app',app); }catch(e){}
-  if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; }catch(e){} }
+  if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; if(INC.f) INC.f.app=''; }catch(e){} }
+  /* le compteur de Surveillance est celui de la console OUVERTE (il gardait celui de l'autre jusqu'au prochain chargement) */
+  try{ if(INC.loaded) setBdg('bdg-surv',incOuverts().length); }catch(e){}
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
   var nom=APPS_TOUR[app].nom;
   var hd=$('hd-tour'); if(hd) hd.textContent='Tour '+nom+' · '+TOUR_VERSION;
@@ -3107,7 +3110,7 @@ function setApp(app,sansAnim,tabVoulu){
 /* La cellule INACTIVE de l'interrupteur porte le compteur d'incidents ouverts de l'autre console. */
 function majCompteursApp(){
   var n={gestion:0,messages:0};
-  try{ (INC.list||[]).filter(function(i){ var st=i.statut||'nouveau'; return st==='nouveau'||st==='encours'; }).forEach(function(i){ var a=appDe(i.app); if(a==='*') a='gestion'; n[a]++; }); }catch(e){}
+  try{ (INC.list||[]).filter(function(i){ var st=i.statut||'nouveau'; return st==='nouveau'||st==='encours'; }).forEach(function(i){ n[appDe(i.app)]++; }); }catch(e){}
   ['gestion','messages'].forEach(function(a){ var el=$('app-n-'+a); if(!el) return; el.textContent=n[a]; el.hidden=!n[a]; });
   var sw=$('app-sw'); if(sw) sw.hidden=!(MYAPPS.length>1);
   var pill=$('app-pill'); if(pill) pill.classList.toggle('seul',!(MYAPPS.length>1));
@@ -3262,7 +3265,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.83';
+var TOUR_VERSION='v2.85';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -4187,7 +4190,7 @@ function entZeroCompteurs(poser){
   apiPost('/api/monitor/espaces/compteurs-zero',{t:t,annuler:!poser}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
     toast(poser?'Compteurs repartis de zéro':'Historique complet rétabli');
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+(poser?' a remis à zéro les compteurs d’une entreprise':' a rétabli l’historique complet d’une entreprise')});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(poser?' a remis à zéro les compteurs d’une entreprise':' a rétabli l’historique complet d’une entreprise')});
     chargerEntreprises(); entSel(t); entSel(t);   // entSel bascule : deux appels rouvrent la même fiche, rechargée
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -4195,19 +4198,20 @@ function entZeroCompteurs(poser){
    « ignoré ». Rien n'est effacé, rien n'est envoyé aux clients — « corrigé » aurait déclenché
    un courriel par problème et par entreprise touchée. */
 function incToutIgnorer(){
-  var n=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
+  var n=incOuverts().length;
   if(!n){ toast('Rien à classer'); return; }
-  /* v2.68 — le serveur classe ceux de TOUTES les consoles du compte : la question le dit. */
-  var deux=MYAPPS.length>1;
-  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+(n>1?' problèmes passent':' problème passe')+' en « ignoré »'+(deux?', dans les deux consoles (OP GESTION et OP MESSAGES)':'')+'. Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
-  apiPost('/api/monitor/issues/tout-ignorer',{}).then(function(r){
+  /* v2.85 — ceux de CETTE console seulement : la demande porte `app`, le serveur ne classe qu'elle. */
+  if(!confirm('Remettre Surveillance à zéro ?\n\n'+n+(n>1?' problèmes passent':' problème passe')+' en « ignoré »'+(MYAPPS.length>1?', dans la console '+APPS_TOUR[APP].nom+' seulement':'')+'. Rien n’est effacé — ils restent consultables, et un problème qui se reproduit reviendra de lui-même en « nouveau ». Aucun courriel n’est envoyé aux clients.')) return;
+  apiPost('/api/monitor/issues/tout-ignorer',{app:APP}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
     toast(nMot(r.d.classes,'problème classé','problèmes classés'));
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a remis Surveillance à zéro ('+nMot(r.d.classes,'problème','problèmes')+')'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a remis Surveillance à zéro ('+nMot(r.d.classes,'problème','problèmes')+')'});
     chargerIncidents();
   }).catch(function(){ toast('Serveur injoignable'); });
 }
 function entQ(v){ ENT.q=v; rafraichirSiConcerne(); }
+/* v2.85 — les entreprises que la console OUVERTE surveille : toutes, pour OP GESTION ; celles ouvertes à OP MESSAGES pour l'autre */
+function nbEntSurveillees(){ return APP==='messages'?(ENT.liste||[]).filter(function(o){ return o&&o.opMessages&&!o.technique; }).length:(INC.nbEnt||0); }
 /* Cliquer un compteur restreint la liste ; le recliquer la rouvre. C'est le seul geste
    de cet ecran, donc il doit etre reversible sans chercher un bouton « tout voir »
    ailleurs. La selection en cours est conservee : on filtre ce qu'on regarde, on ne
@@ -4294,7 +4298,7 @@ function csSupprimer(email,btn){
   if(!confirm('Supprimer définitivement le compte « '+email+' » ?\n\n• son accès à teamop.fr/espace.html\n• sa fiche et sa messagerie\n\nSa boîte mail, elle, n\'est pas touchée : elle continue de recevoir et d\'envoyer.')) return;
   if(btn){ btn.disabled=true; btn.textContent='Suppression…'; }
   apiPost('/api/monitor/comptes-site/supprimer',{email:email}).then(function(r){
-    if(r&&r.ok&&r.d&&r.d.ok){ toast('🗑 Compte supprimé'); JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a supprimé le compte du site « '+email+' »'}); chargerComptesSite(); return; }
+    if(r&&r.ok&&r.d&&r.d.ok){ toast('🗑 Compte supprimé'); JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a supprimé le compte du site « '+email+' »'}); chargerComptesSite(); return; }
     toast((r&&r.d&&r.d.error)||'Suppression refusée');
     if(btn){ btn.disabled=false; btn.textContent='🗑 Supprimer'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='🗑 Supprimer'; } });
@@ -4625,7 +4629,9 @@ function tourConnexionsCharge(nm){
     if(el) el.innerHTML=videTour('Serveur injoignable','Les connexions de cette entreprise n’ont pas pu être lues.','','connexions'); });
 }
 
-function chargerTout(){ chargerIncidents(); chargerClients(); chargerAbos(); chargerJournal(); chargerEquipe(); chargerEssais(); chargerAccesPublics(); chargerMail(); }
+/* v2.85 — un compte qui n'a QUE la console OP MESSAGES ne charge pas le courrier, les clientes ni les abonnements d'OP GESTION : le serveur les lui refuse,
+   et chaque refus tombait en « Serveur injoignable » dans un coin de l'écran */
+function chargerTout(){ var g=MYAPPS.indexOf('gestion')>=0; chargerIncidents(); if(g){ chargerClients(); chargerAbos(); } chargerJournal(); chargerEquipe(); chargerEssais(); if(g){ chargerAccesPublics(); chargerMail(); } }
 
 function chargerIncidents(){
   apiGet('/api/monitor/issues').then(function(d){
@@ -5111,7 +5117,7 @@ function tourApps(slug,nom,ouvrir){
   if(!ouvrir && !confirm('Fermer OP MESSAGES pour « '+(nom||slug)+' » ?\n\nLa rangée disparaît de son OP GESTION à la prochaine ouverture. Rien d’autre ne change : ni ses données, ni sa formule, ni ses connexions.')) return;
   apiPost('/api/monitor/espaces/apps',{slug:slug,opMessages:!!ouvrir}).then(function(r){
     if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron'); return; }
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+(ouvrir?' a ouvert':' a fermé')+' OP MESSAGES pour « '+(nom||slug)+' »'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(ouvrir?' a ouvert':' a fermé')+' OP MESSAGES pour « '+(nom||slug)+' »'});
     toast(ouvrir?'💬 OP MESSAGES ouvert':'💬 OP MESSAGES fermé');
     chargerAccesPublics();
   }).catch(function(){ toast('Serveur injoignable'); });
@@ -5134,7 +5140,7 @@ function tourAccesRenommer(slug,nom){
   if(v===String(nom||'').trim()){ toast('C’est déjà ce nom'); return; }
   apiPost('/api/monitor/espaces/renommer',{slug:slug,nouveau:v}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Renommage impossible.'); return; }
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a renommé l’espace « '+(nom||slug)+' » en « '+v+' »'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a renommé l’espace « '+(nom||slug)+' » en « '+v+' »'});
     chargerAccesPublics(); chargerClients();
     tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">✏️ Renommé — '+esc(v)+'</div>'+
       '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">Rien à redonner à l’entreprise : son adresse n’a pas changé.</div>'+
@@ -5148,7 +5154,7 @@ function tourAccesSuspendre(slug,nom,rouvrir){
   if(!rouvrir && !confirm('⏸ SUSPENDRE l’accès de « '+(nom||slug)+' » ?\n\n• la connexion est refusée immédiatement (lien, code et identifiants compris)\n• les appareils déjà connectés se videront à leur prochain lancement\n• AUCUNE donnée n’est effacée : rouvrir les rend\n\nPour effacer pour de bon, c’est « Supprimer ».')) return;
   apiPost('/api/monitor/espaces/suspendre',{slug:slug,rouvrir:!!rouvrir}).then(function(r){
     if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron'); return; }
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+(rouvrir?' a rouvert':' a suspendu')+' l’accès « '+(nom||slug)+' »'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(rouvrir?' a rouvert':' a suspendu')+' l’accès « '+(nom||slug)+' »'});
     /* ⛔ SUSPENDRE NE SUFFIT PAS À COUPER, et il faut que ça se voie. Le serveur refuse les
        nouveaux jetons, mais un appareil déjà connecté tient une session renouvelable : sans
        la révocation Firebase il garde l'accès aux données. Le serveur la tente et dit si elle
@@ -5172,7 +5178,7 @@ function tourAccesSupprimer(slug,nom){
   supprAppel('/api/monitor/espaces/renaitre',{nom:cible}).then(function(r){
     if(r&&r.annule){ toast('Code non saisi — rien n’a été supprimé'); return; }
     if(!renaitreReussi(r)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron',12000); return; }
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a supprimé l’accès « '+cible+' »'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a supprimé l’accès « '+cible+' »'});
     /* Le cas où une coupure ratée coûte le plus : l'espace est supprimé et sort de l'annuaire,
        mais un appareil qui garde sa session le fait RENAÎTRE hors annuaire, orphelin — la
        genèse même des « espaces hors annuaire ». L'autre appelant de cette route (repartir à
@@ -5840,7 +5846,7 @@ function vueAccueil(){
     {t:'Incidents ouverts',v:incOuverts().length,s:incCompteurs().nouveau?null:'aucun nouveau',
       past:incCompteurs().nouveau?{c:'p-rouge',t:incCompteurs().nouveau+' nouveau'+(incCompteurs().nouveau>1?'x':'')}:null,go:"setTab('surveillance')"},
     {t:'Messages non lus',v:MSG.nonLus,s:MSG.boites.length+' boîte'+(MSG.boites.length>1?'s':'')+' reliée'+(MSG.boites.length>1?'s':''),go:"setTab('support')"},
-    {t:'Entreprises clientes',v:CLI.total||CLI.list.length,s:INC.nbEnt+' surveillée'+(INC.nbEnt>1?'s':''),go:"setTab('entreprises')"},
+    {t:'Entreprises clientes',v:CLI.total||CLI.list.length,s:nbEntSurveillees()+' surveillée'+(nbEntSurveillees()>1?'s':''),go:"setTab('entreprises')"},
     {t:'Revenu mensuel',v:ABO.configured?fmtEur(ABO.mrr):'—',mini:true,
       s:ABO.configured?(ABO.actifs+' abonnement'+(ABO.actifs>1?'s':'')+' actif'+(ABO.actifs>1?'s':'')):'Stripe n’est pas relié',go:"setTab('abonnements')"}
   ].map(function(x){
@@ -5918,43 +5924,43 @@ function vueAccueil(){
 function vueAccueilMsg(){
   var jour=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); jour=jour.charAt(0).toUpperCase()+jour.slice(1);
   var ouvertes=(ENT.liste||[]).filter(function(o){ return o&&o.opMessages; }).length;
-  var inc=incOuverts().length, nonLus=MSG.nonLus||0;
+  var inc=incOuverts().length;
   var d=OPM.d||{}, enTravaux=!(OPM.loaded&&d&&d.enTravaux===false);
   var etat='';
   if(!OPM.loaded) etat='<div class="carte"><div class="squel" style="height:14px;width:60%">&nbsp;</div><div class="squel" style="height:12px;width:90%;margin-top:8px">&nbsp;</div></div>';
   else if(OPM.err) etat='<div class="carte"><div class="ttl-carte">État d’OP MESSAGES</div><div style="color:var(--muted);font-size:13px">'+esc(OPM.err)+'</div></div>';
-  else if(enTravaux) etat='<div class="carte" style="border-color:var(--app-brd)"><div class="ttl-carte"><span class="past p-ambre">En travaux</span> OP MESSAGES change d’infrastructure'+(d.depuis?' <span class="n">depuis le '+esc(d.depuis)+'</span>':'')+'</div>'+
+  else if(enTravaux) etat='<div class="carte" style="border-color:var(--app-brd)"><div class="ttl-carte"><span class="past p-ambre">Bêta</span> OP MESSAGES — la version publique n’est pas encore ouverte'+(d.depuis?' <span class="n">depuis le '+esc(d.depuis)+'</span>':'')+'</div>'+
       /* v2.81 — plus la note du serveur : elle parlait encore de Firebase (« bascule vers le projet OP MESSAGES »), et Justin l'a lue le 2 octobre 2026 */
-      '<div style="font-size:13px;color:var(--text2);line-height:1.6">OP MESSAGES aura son propre serveur, séparé d’OP GESTION et de Firebase. En attendant, l’application publique reste fermée ; la bêta s’essaie avec les accès de l’onglet <b>Accès</b>.</div>'+
+      /* v2.85 — le serveur d'OP MESSAGES EXISTE (la bêta tourne sur msg-beta.teamop.fr) : la carte ne dit plus qu'il reste à l'installer */
+      '<div style="font-size:13px;color:var(--text2);line-height:1.6">OP MESSAGES a son propre serveur, séparé d’OP GESTION et de Firebase. La bêta tourne sur <span class="mono">msg-beta.teamop.fr</span> (accès dans l’onglet <b>Accès</b>) ; la version publique, <span class="mono">msg.teamop.fr</span>, s’ouvre à son déploiement.</div>'+
       (MYROLE==='patron'?'<div class="sec" style="margin-top:12px">Ce qui attend pour la bascule</div><ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.7">'+
         /* v2.81 — OP MESSAGES n'a plus de Firebase : il a son propre serveur (server-msg/), séparé d'OP GESTION */
-        '<li>installer le serveur d’OP MESSAGES sur le VPS — les gestes sont dans <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span></li><li>la bêta : <span class="mono">msg-beta.teamop.fr</span>, ses accès s’ouvrent dans l’onglet <b>Accès</b> de cette console</li><li>puis <span class="mono">OPMSG_EN_TRAVAUX=false</span> dans messages.html, et publication</li></ul>'+
+        '<li>déployer l’instance publique (<span class="mono">msg.teamop.fr</span>) — l’approbation « msg-prod » du déploiement ; les gestes sont dans <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span></li><li>régler sa version minimale dans <b>Surveillance</b> de cette console</li><li>puis « Déclarer la bascule faite »</li></ul>'+
         '<div style="margin-top:12px"><button type="button" class="btn-fant" onclick="opmBascule()">Déclarer la bascule faite</button></div>':'')+'</div>';
   else etat='<div class="carte"><div class="ttl-carte"><span class="past p-vert">En service</span> OP MESSAGES'+(d.projet?' <span class="n">sur '+esc(d.projet)+'</span>':'')+'</div></div>';
   var tuile=function(l,n,go,cls){ return '<button type="button" class="kpi clic '+(cls||'')+'" onclick="'+go+'"><div class="l">'+l+'</div><div class="n">'+n+'</div></button>'; };
   var kpis='<div class="grille-kpi rang" style="margin:0 0 20px">'+
     tuile('Entreprises ouvertes à OP MESSAGES',ouvertes,"setTab('entreprises')")+
     tuile('Incidents OP MESSAGES ouverts',inc,"setTab('surveillance')",inc?'ko':'')+
-    tuile('Messages non lus',nonLus,"setTab('support')",nonLus?'att':'')+'</div>';
-  var sup=(MSG.loaded&&!MSG.err&&(MSG.messages||[]).length)?acGroupe({titre:'Courrier',n:Math.min(4,(MSG.messages||[]).filter(function(m){ return !m.lu; }).length),tot:(MSG.messages||[]).filter(function(m){ return !m.lu; }).length,
-      sous:'Le courrier est commun aux deux consoles : un message lu ici l’est aussi dans OP GESTION.',bloc:'reg-bloc',voir:"setTab('support')",
-      l:(MSG.messages||[]).filter(function(m){ return !m.lu; }).slice(0,4).map(function(m){ return ligneAc({ico:'support',ton:'bleu',titre:m.objet||'',t1:esc(m.deNom||m.de||'—'),l2:esc(m.objet||''),action:"setTab('support')"}); })}):'';
+    /* v2.85 — le courrier (support@, controle@) est celui d'OP GESTION : il n'a plus de tuile ici */
+    tuile('Accès à la bêta',btDeLaConsole().filter(function(c){ return c.actif!==false; }).length,"setTab('essais')")+'</div>';
+  var sup='';
   return '<div class="page-tete"><div class="page-txt"><div class="tt-section">'+esc(vueInfo('accueil').section+' · '+vueInfo('accueil').lib)+'</div><div class="ttl-page">Bonjour '+esc(MYNOM)+'</div><div class="desc">'+jour+' · Tour OP MESSAGES</div></div></div>'+etat+'<div style="height:16px"></div>'+kpis+'<div class="reg">'+sup+'</div>';
 }
 function opmBascule(){
   var projet=prompt('Nom du serveur d’OP MESSAGES (ex. msg.teamop.fr) :',''); if(!projet) return;
   if(!confirm('Déclarer OP MESSAGES en service sur « '+projet+' » ?\n\nÀ ne faire QU’APRÈS l’installation du serveur et la publication de messages.html : l’accueil cessera d’afficher « en travaux ».')) return;
   apiPost('/api/monitor/messages/etat',{enTravaux:false,projet:projet}).then(function(r){ if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé'); return; }
-    toast('OP MESSAGES déclaré en service'); JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a déclaré OP MESSAGES en service ('+projet+')'}); chargerEtatMessages(); }).catch(function(){ toast('Serveur injoignable'); });
+    toast('OP MESSAGES déclaré en service'); JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a déclaré OP MESSAGES en service ('+projet+')'}); chargerEtatMessages(); }).catch(function(){ toast('Serveur injoignable'); });
 }
 /* Le seul écran ACTIONNABLE d'OP MESSAGES aujourd'hui : qui y est ouvert, et l'ouvrir ou le fermer. */
 function vueEntreprisesMsg(){
-  var tete=enTete('Entreprises','Les entreprises ouvertes à OP MESSAGES. Ouvrir ajoute la rangée SUITE dans leur OP GESTION ; la messagerie elle-même n’est pas disponible tant que son serveur n’est pas installé.');   /* v2.68 : le 3ᵉ argument (un ternaire vide des deux côtés) ne dessinait rien */
+  var tete=enTete('Entreprises','Les entreprises ouvertes à OP MESSAGES — l’application à part, avec son propre abonnement. C’est ici, et seulement ici, qu’on les ouvre ou les ferme.');   /* v2.68 : le 3ᵉ argument (un ternaire vide des deux côtés) ne dessinait rien */
   if(!ENT.loaded) return tete+acSquel();
   if(ENT.err) return tete+acErr('Impossible de charger les entreprises',ENT.err,'chargerEntreprises()');
   /* tour.html n'a pas de norm() : on neutralise casse et accents ici, comme fait la recherche d'Entreprises */
   var nrm=function(x){ return String(x||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); };
-  var q=nrm(ENT.q||''); var tous=(ENT.liste||[]).filter(function(o){ return o&&(o.nom||o.slug||o.t); });
+  var q=nrm(ENT.q||''); var tous=(ENT.liste||[]).filter(function(o){ return o&&!o.technique&&(o.nom||o.slug||o.t); });
   var filtre=function(o){ return !q||nrm((o.nom||'')+' '+(o.slug||'')+' '+(o.t||'')+' '+(o.email||'')).indexOf(q)>=0; };
   var ouvertes=tous.filter(function(o){ return o.opMessages; }).filter(filtre), autres=tous.filter(function(o){ return !o.opMessages; }).filter(filtre);
   var ligne=function(o,ouv){ var nm=o.nom||o.slug||o.t||'?';
@@ -6142,7 +6148,7 @@ function blocVersions(){
   sous.forEach(function(x){ nSous+=(x.n||0); });
   var patron=(MYROLE==='patron');
   var p=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
-  return '<div class="sec" style="margin-top:18px">VERSIONS <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— la porte du nuage</span></div>'+
+  return '<div class="sec" style="margin-top:18px">VERSIONS · VERSION PUBLIQUE <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— teamop.fr/app.html, la porte du nuage</span></div>'+
     '<div class="grille-kpi" style="margin-top:10px">'+
       p('version en ligne', ligne?'v'+ligne:'?')+
       p('minimum exigé', min?'v'+min:'aucun', min?'':'var(--amber)')+
@@ -6162,7 +6168,74 @@ function blocVersions(){
        côté d'ELAN — qui est la seule vraie cliente des trois. C'est le mot qu'on retire
        partout depuis le 14 septembre, et ce panneau était le dernier oubli. */
     (sous.length?'<div style="margin-top:12px">'+sous.map(function(x){ return '<div style="display:flex;gap:10px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);font-size:13px"><span style="flex:1"><b>'+esc(nomEspace(x.nom,x.t))+'</b></span><span class="past p-ambre">'+x.n+' appareil'+(x.n>1?'s':'')+' bloqué'+(x.n>1?'s':'')+'</span></div>'; }).join('')+'</div>':'')+
-    (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'');
+    (d.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(d.maj))+(d.par?' par '+esc(d.par):'')+'</div>':'')+
+    blocVersionBeta(d.beta);
+}
+/* ══ v2.84 — CHAQUE CANAL SA VERSION MINIMALE (Justin, 6 octobre 2026 : « qu'on sépare la version bêta et la version publique. Pour les mises
+   à jour, je veux aussi le forçage de mise à jour, comme sur OP GESTION depuis la Tour ; je veux le panneau OP MESSAGES, le panneau OP GESTION,
+   et que tout soit bien séparé ») ══
+   Quatre réglages, chacun dans SA console et SA carte : OP GESTION publique (ci-dessus, la porte du nuage — rien n'y change) et bêta (ici) ;
+   OP MESSAGES publique et bêta (`blocVersionsMsg`, console OP MESSAGES). ⛔ Exiger une version de la bêta ne bloque AUCUN client : le serveur
+   les tient à part (`versionsCfg.canaux`), et la bêta d'OP GESTION ne touche jamais Firestore.
+   Un serveur d'avant ne rend pas `beta` (ni la route d'OP MESSAGES) : la carte le DIT, elle n'invente pas « aucun minimum ». */
+function carteCanal(o){   // o : {titre, sous, servie, min, applique, joignable, note, exiger, lever, maj, par}
+  var p=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
+  var patron=(MYROLE==='patron');
+  return '<div class="sec" style="margin-top:22px">'+esc(o.titre)+' <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— '+esc(o.sous)+'</span></div>'+
+    '<div class="grille-kpi" style="margin-top:10px">'+
+      p('version servie', o.joignable===false?'injoignable':(o.servie?'v'+o.servie:'?'), o.joignable===false?'var(--redText)':'')+
+      p('minimum exigé', o.min?'v'+o.min:'aucun', o.min?'':'var(--amber)')+
+      (o.applique!==undefined?p('appliqué par le service', o.applique>1?'v'+o.applique:'aucun', (o.joignable!==false&&o.applique!==Math.max(1,o.min||0))?'var(--amber)':''):'')+
+    '</div>'+
+    (o.note?'<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:10px">'+o.note+'</div>':'')+
+    (patron?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">'+
+      '<button class="btn-plein" onclick="'+o.exiger+'"'+(o.servie&&o.joignable!==false?'':' disabled')+'>Exiger la dernière version'+(o.servie?' (v'+o.servie+')':'')+'</button>'+
+      (o.min?'<button class="btn-fant" onclick="'+o.lever+'">Lever l’exigence</button>':'')+
+    '</div>':'')+
+    (o.maj?'<div style="font-size:11px;color:var(--muted);margin-top:8px">Dernier réglage '+esc(fmtJour(o.maj))+(o.par?' par '+esc(o.par):'')+'</div>':'');
+}
+function blocVersionBeta(b){
+  if(!b) return '<div class="sec" style="margin-top:22px">VERSIONS · BÊTA</div><div style="font-size:12.5px;color:var(--amber);margin-top:8px;line-height:1.55">Le serveur ne tient pas encore de minimum à part pour la bêta : il le fera à son prochain déploiement. D’ici là, la bêta lit le minimum de la version publique.</div>';
+  return carteCanal({ titre:'VERSIONS · BÊTA', sous:'teamop.fr/beta.html, à part des clients', servie:b.versionEnLigne||0, min:b.min||0, maj:b.maj, par:b.par,
+    exiger:'versionBetaExiger()', lever:'versionBetaLever()',
+    note:'Sous ce minimum, la bêta se met à jour toute seule. ⛔ Rien de ce qui se règle ici ne touche les clients, ni le nuage : la version publique a sa propre carte, juste au-dessus.' });
+}
+/* ⛔ un serveur d'AVANT lirait `{canal:'beta', min}` comme un minimum PUBLIC (et le pousserait chez Firestore) : on ne pose rien tant que le serveur n'a pas dit
+   qu'il tient la bêta à part (`VER.d.beta`) — relecture du gardien. */
+function versionBetaPrete(){ if(VER.d&&VER.d.beta) return true; toast('Le serveur ne tient pas encore la bêta à part — rien n’a été posé'); return false; }
+function versionBetaExiger(){ if(!versionBetaPrete()) return; if(!confirm('Exiger la dernière version de la BÊTA d’OP GESTION ?\n\nSeuls les appareils de la bêta sont concernés : sous ce numéro, ils se mettent à jour tout seuls. Les clients ne sont pas touchés.')) return;
+  versionRegler({canal:'beta',min:'ligne'},'Bêta : dernière version exigée'); }
+function versionBetaLever(){ if(!versionBetaPrete()) return; if(!confirm('Lever l’exigence de version de la bêta d’OP GESTION ?')) return; versionRegler({canal:'beta',min:0},'Bêta : exigence levée'); }
+
+/* ── la console OP MESSAGES : ses deux instances, chacune sa carte ── */
+var MV={d:null,err:'',ts:0,encours:false};
+function chargerVersionsMsg(){ if(MV.encours) return; MV.encours=true;
+  apiGet('/api/monitor/messages/versions').then(function(d){ MV.d=d||{}; MV.err=''; MV.encours=false; MV.ts=Date.now(); if(TAB==='surveillance'||TAB==='essais') render(); })
+  .catch(function(e){ MV.err=(e&&e.status===404)?'Le serveur ne connaît pas encore les versions d’OP MESSAGES : il les connaîtra à son prochain déploiement.':msgErreur(e); MV.encours=false; MV.ts=Date.now(); if(TAB==='surveillance'||TAB==='essais') render(); }); }
+function versionMsgRegler(canal,min,msg){ apiPost('/api/monitor/messages/version-min',{canal:canal,min:min}).then(function(x){
+    if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
+    toast(msg); MV.d=null; chargerVersionsMsg(); }).catch(function(){ toast('Serveur injoignable'); }); }
+var MSG_CANAUX={prod:{nom:'version publique',adr:'msg.teamop.fr'},beta:{nom:'bêta',adr:'msg-beta.teamop.fr'}};
+function versionMsgExiger(canal){ var c=MSG_CANAUX[canal]; if(!c) return;
+  if(!confirm('Exiger la dernière version d’OP MESSAGES — '+c.nom+' ('+c.adr+') ?\n\nUne page plus ancienne ne pourra plus rien envoyer : elle se met à jour toute seule, dans la minute si elle est ouverte. '+(canal==='beta'?'La version publique n’est pas touchée.':'La bêta n’est pas touchée.'))) return;
+  versionMsgRegler(canal,'ligne',(canal==='beta'?'Bêta':'Version publique')+' d’OP MESSAGES : dernière version exigée'); }
+function versionMsgLever(canal){ var c=MSG_CANAUX[canal]; if(!c) return;
+  if(!confirm('Lever l’exigence de version d’OP MESSAGES — '+c.nom+' ?')) return;
+  versionMsgRegler(canal,0,(canal==='beta'?'Bêta':'Version publique')+' d’OP MESSAGES : exigence levée'); }
+function carteMsg(canal){
+  var c=MSG_CANAUX[canal], x=(MV.d&&MV.d[canal])||{}, sv=x.service||{};
+  var rien=sv.joignable===false;
+  var attend=!rien&&sv.minService!==undefined&&sv.minService!==Math.max(1,x.min||0);
+  return carteCanal({ titre:'VERSIONS · '+(canal==='beta'?'BÊTA':'VERSION PUBLIQUE'), sous:c.adr, servie:sv.version||0, joignable:sv.joignable, min:x.min||0, applique:rien?undefined:sv.minService, maj:x.maj, par:x.par,
+    exiger:'versionMsgExiger(\''+canal+'\')', lever:'versionMsgLever(\''+canal+'\')',
+    note:rien?'<span style="color:var(--redText)">Le service ne répond pas : on ne peut ni lire sa version, ni l’exiger.</span> Le minimum déjà posé reste, et il l’appliquera à son redémarrage.'
+      :('Sous ce minimum, une page lit encore mais <b>n’envoie plus rien</b>, et se met à jour toute seule.'+(attend?' <b style="color:var(--amber)">Le service ne l’a pas encore relu — il le fait chaque minute.</b>':'')) });
+}
+function blocVersionsMsg(){
+  if(!MV.d&&!MV.err){ chargerVersionsMsg(); return '<div class="sous-sec"><div class="sec">VERSIONS</div>'+squelListe(2)+'</div>'; }
+  if(MV.err&&!MV.d) return '<div class="sec" style="margin-top:18px">VERSIONS</div><div style="color:var(--redText);font-size:13px;margin-top:8px">'+esc(MV.err)+' <a onclick="MV.err=\'\';chargerVersionsMsg()">réessayer</a></div>';
+  if(Date.now()-(MV.ts||0)>120000) chargerVersionsMsg();
+  return carteMsg('prod')+carteMsg('beta');
 }
 /* ══ SORTIE DE FIREBASE — les gestes du jour J (25 septembre 2026) ══
    Deux gestes n'existaient que par l'API, donc depuis un terminal : reprendre les dossiers du
@@ -6291,7 +6364,8 @@ function vueSurveillance(){
   var filtres='<div class="filtres svl-filtres">'+
     '<select class="sel-f" onchange="incF(\'type\',this.value)">'+opt('',INC.f.type,'Tous les types')+opt('erreur',INC.f.type,'Erreurs')+opt('lenteur',INC.f.type,'Lenteurs')+opt('reseau',INC.f.type,'Réseau')+'</select>'+
     '<select class="sel-f" onchange="incF(\'grav\',this.value)">'+opt('',INC.f.grav,'Toutes gravités')+opt('haute',INC.f.grav,'Haute')+opt('moyenne',INC.f.grav,'Moyenne')+opt('faible',INC.f.grav,'Faible')+'</select>'+
-    '<select class="sel-f large" onchange="incF(\'app\',this.value)">'+opt('',INC.f.app,'Toutes les applications')+opt('opgestion',INC.f.app,'OP GESTION')+opt('opmessages',INC.f.app,'OP MESSAGES')+opt('espace',INC.f.app,'Espace client')+'</select>'+
+    /* v2.85 — une console, ses applications : OP MESSAGES n'en a qu'une (pas de menu) ; OP GESTION, l'application et l'espace client */
+    (APP==='gestion'?'<select class="sel-f large" onchange="incF(\'app\',this.value)">'+opt('',INC.f.app,'Toutes les applications')+opt('opgestion',INC.f.app,'OP GESTION')+opt('espace',INC.f.app,'Espace client')+'</select>':'')+
     '<select class="sel-f large" onchange="incF(\'ent\',this.value)">'+opt('',INC.f.ent,'Toutes les entreprises')+Object.keys(ents).sort().map(function(n){ return opt(n,INC.f.ent,n); }).join('')+'</select>'+
   '</div>';
 
@@ -6355,7 +6429,7 @@ function vueSurveillance(){
   if(!nomsG.length){
     var auDefaut=(INC.f.statut==='actifs'&&!INC.f.type&&!INC.f.grav&&!INC.f.app&&!INC.f.ent);
     if(auDefaut) listeVide='<div class="svl-calme"><span class="svl-ic">✅</span><div><b>Rien à traiter.</b>'+
-      '<p>Aucun problème ouvert sur les '+(INC.nbEnt||0)+' entreprise'+((INC.nbEnt||0)>1?'s':'')+' surveillée'+((INC.nbEnt||0)>1?'s':'')+
+      '<p>Aucun problème ouvert sur les '+nbEntSurveillees()+' entreprise'+(nbEntSurveillees()>1?'s':'')+' surveillée'+(nbEntSurveillees()>1?'s':'')+
       '. Les dossiers déjà corrigés restent consultables : choisissez « Tout, corrigés inclus » dans le filtre ci-dessus.</p></div></div>';
     else{
       var dits=[];
@@ -6377,11 +6451,13 @@ function vueSurveillance(){
   var saines='';
   if(!INC.f.ent){
     var connues={}; nomsG.forEach(function(n){ connues[n]=1; });
-    var noms=(CLI.list||[]).map(function(c){ return c.entreprise||c.nom||c.email; })
+    /* v2.85 — les entreprises DE LA CONSOLE : les clientes d'OP GESTION ici, celles ouvertes à OP MESSAGES dans l'autre */
+    var noms=(APP==='messages'?(ENT.liste||[]).filter(function(o){ return o&&o.opMessages&&!o.technique; }).map(function(o){ return o.nom||o.slug||o.t; })
+        :(CLI.list||[]).map(function(c){ return c.entreprise||c.nom||c.email; }))
       .filter(function(n,ix,arr){ return n&&!connues[n]&&arr.indexOf(n)===ix; });
     if(noms.length) saines='<div class="reg-tech svl-saines"><b>'+noms.length+' entreprise'+(noms.length>1?'s n’ont':' n’a')+
       ' rien remonté.</b> Leur application est surveillée en continu — le moindre pépin apparaîtra ici tout seul.<div>'+
-      noms.map(function(n){ return '<button type="button" class="svl-saine-l" onclick="allerFicheEntreprise(\''+jsq(n)+'\')">'+esc(n)+'</button>'; }).join('')+
+      noms.map(function(n){ return '<button type="button" class="svl-saine-l" onclick="'+(APP==='messages'?'entQ(\''+jsq(n)+'\');setTab(\'entreprises\')':'allerFicheEntreprise(\''+jsq(n)+'\')')+'">'+esc(n)+'</button>'; }).join('')+
       '</div></div>';
   }
 
@@ -6391,7 +6467,8 @@ function vueSurveillance(){
      combien de problèmes on s'apprête à classer — le mettre en haut à droite en ferait un
      réflexe, et une surveillance qu'on vide par réflexe ne surveille plus rien. Il disparaît
      quand il n'y a rien à classer : un bouton qui ne fait rien apprend à cliquer pour rien. */
-  var _aClasser=(INC.cnt&&((INC.cnt.nouveau||0)+(INC.cnt.encours||0)))||0;
+  /* v2.85 — les problèmes DE CETTE CONSOLE (le serveur ne classe plus qu'elle : `app` dans la demande) */
+  var _aClasser=incOuverts().length;
   /* L'explication se range À CÔTÉ du bouton quand il y a la place, DESSOUS sinon : écrite en ligne derrière
      lui, au téléphone elle s'enroulait autour (« passe en « » à droite du bouton, le reste en dessous). */
   /* v2.68 — la phrase est une PHRASE : au téléphone elle passe sous le bouton, et « passe en « ignoré »… »
@@ -6399,7 +6476,7 @@ function vueSurveillance(){
      du compte (le serveur les classe toutes) : dans la Tour OP MESSAGES, « 4 problèmes » à côté
      d'« Ouverts 1 » avait l'air d'une erreur. On le dit. */
   var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
-    '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">'+(MYAPPS.length>1?'Dans les deux consoles, ils passent':'Ils passent')+' en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
+    '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">'+(MYAPPS.length>1?'Ceux d’'+esc(APPS_TOUR[APP].nom)+' seulement passent':'Ils passent')+' en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
   /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses segments (incSegStatut) : Ouverts · Corrigés ·
      Écartés · Tout, posés par le même filtre de statut (incF). ⛔ v2.68 : le menu déroulant à neuf choix
      qui doublait ces segments a été RETIRÉ (ici et dans la fiche d'une entreprise) — les quatre états mis
@@ -6411,9 +6488,9 @@ function vueSurveillance(){
   return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+teteL+filtres+
     '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+incAffinePastille(sSt)+'</div>'+
     (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
-    /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents,
-       et n'existe qu'en console GESTION : versions.json gouverne app.html */
-    (APP==='gestion'?blocVersions()+blocSortieFirebase():'');
+    /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents. Chaque console règle SES
+       applications (v2.84) : GESTION la publique et la bêta d'OP GESTION, MESSAGES les deux instances d'OP MESSAGES. */
+    (APP==='gestion'?blocVersions()+blocSortieFirebase():blocVersionsMsg());
 }
 
 /* ── la page d'une entreprise : ses problèmes, regroupés par application ── */
@@ -6678,7 +6755,7 @@ function incCause(id){
   apiPost('/api/monitor/expliquer',{id:id,refaire:refaire}).then(function(x){
     if(!x.ok){ toast('\u26a0\ufe0f '+(x.d.error||'refus\u00e9'),6000); return; }
     if(i) i.explication=x.d.explication;
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a cherch\u00e9 la cause de l\u2019incident #'+String(id).slice(-6)});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a cherch\u00e9 la cause de l\u2019incident #'+String(id).slice(-6)});
     renderNav('fondu');
     toast(x.d.deja?'Cause d\u00e9j\u00e0 \u00e9tablie \u2014 affich\u00e9e':'\u2713 Cause \u00e9tablie ('+(CONF_L[x.d.explication.confiance]||'').toLowerCase()+')',5000);
   });
@@ -6710,7 +6787,7 @@ function incProposer(id){
   apiPost('/api/monitor/proposer',{id:id,refaire:!!(i&&i.proposition)}).then(function(x){
     if(!x.ok){ toast('\u26a0\ufe0f '+(x.d.error||'refus\u00e9'),9000); return; }
     if(i) i.proposition=x.d.proposition;
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a propos\u00e9 une correction pour l\u2019incident #'+String(id).slice(-6)});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a propos\u00e9 une correction pour l\u2019incident #'+String(id).slice(-6)});
     renderNav('fondu');
     toast(x.d.deja?'Proposition d\u00e9j\u00e0 ouverte \u2014 affich\u00e9e':'\u2713 Proposition #'+x.d.proposition.numero+' ouverte, en attente de ta validation',7000);
   });
@@ -6722,7 +6799,7 @@ function incStatut(id,st,note){
   apiPost('/api/monitor/status',{id:id,statut:st,note:note||''}).then(function(x){
     if(!x.ok){ toast('\u26a0\ufe0f '+(x.d.error||'refus\u00e9')); return; }
     if(i){ i.statut=st; if(note) i.notes=(i.notes?i.notes+'\n':'')+note; }
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a marqu\u00e9 l\u2019incident #'+String(id).slice(-6)+' \u00ab '+ST_L[st]+' \u00bb'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a marqu\u00e9 l\u2019incident #'+String(id).slice(-6)+' \u00ab '+ST_L[st]+' \u00bb'});
     setBdg('bdg-surv',incOuverts().length);
     renderNav('fondu');
     var n=(x.d.mails||0)+(x.d.mailsSimules||0);
@@ -7995,7 +8072,7 @@ function entSupprimer(t,nm){
       caseTxt:'Oui, je veux supprimer « '+nm+' » partout', oui:'Oui, supprimer partout',
       chemin:'/api/monitor/entreprise/supprimer', corps:{t:t},
       fin:function(x){
-        JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a supprimé « '+nm+' » partout'});
+        JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a supprimé « '+nm+' » partout'});
         /* On ne dit jamais « tout est propre » si le serveur signale qu'une écriture a
            échoué : un ménage à moitié fait qu'on croit terminé est pire qu'un ménage
            annoncé incomplet. */
@@ -8582,11 +8659,11 @@ function blocGestionClient(){
        ferme ici, sans toucher à la formule OP GESTION. */
     sect('UTILISATION',[['Déclaré à l’inscription',apps],['Dernière visite',esc(fmtDate(c.majTs))],
       ['OP MESSAGES',(function(){
+        /* v2.85 — OP MESSAGES s'ouvre et se ferme dans SA console (Justin : « sépare bien OP GESTION et OP MESSAGES ») : ici, l'état seul */
         var es=(PBL.liste||[]).filter(function(x){ return (x.email&&c.email&&String(x.email).toLowerCase()===String(c.email).toLowerCase())||espSlugJs(x.nom||'')===espSlugJs(nm); })[0];
-        if(!es) return '<span class="g">espace inconnu du serveur — génère d’abord son « Lien de connexion »</span>';
+        if(!es) return '<span class="g">espace inconnu du serveur</span>';
         return '<span class="past '+(es.opMessages?'p-vert':'p-gris')+'">'+(es.opMessages?'ouvert':'fermé')+'</span>'+
-          '<button type="button" class="pill-act v-act" onclick="tourApps(\''+jsq(es.slug||'')+'\',\''+jsq(es.nom||nm)+'\','+(es.opMessages?'false':'true')+')">'+(es.opMessages?'Fermer':'Ouvrir')+'</button>'+
-          '<span class="v-note">Application séparée, abonnement séparé. Fermée, elle disparaît de la barre d’OP GESTION ; rien d’autre ne change.</span>';
+          '<span class="v-note">Se règle dans la console OP MESSAGES'+(MYAPPS.indexOf('messages')>=0?' — <a onclick="setApp(\'messages\',false,\'entreprises\')">l’ouvrir</a>':'')+'.</span>';
       })()]])+
     '<div class="sous-sec"><div class="sec">CONNEXIONS</div><div id="fiche-connexions">'+squelListe(2)+'</div></div>'+
     '<div class="sous-sec"><div class="sec">ACTIVITÉ PAR ONGLET &amp; PROBLÈMES</div><div id="fiche-activite">'+squelListe(2)+'</div></div>'+
@@ -9021,7 +9098,7 @@ function eqApps(id,cle){
   apiPost('/api/monitor/users/apps',{id:id,apps:apps}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
     u.apps=(x.d&&x.d.apps)||apps; u.appsPar=MYNOM;
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a réglé les applications de « '+u.nom+' » : '+u.apps.map(function(a){ return APPS_TOUR[a]?APPS_TOUR[a].nom:a; }).join(' + ')});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a réglé les applications de « '+u.nom+' » : '+u.apps.map(function(a){ return APPS_TOUR[a]?APPS_TOUR[a].nom:a; }).join(' + ')});
     toast('Applications de '+u.nom+' : '+u.apps.map(function(a){ return APPS_TOUR[a].court; }).join(' + ')); render();
   }).catch(function(e){ toast(msgErreur(e)); });
 }
@@ -9034,7 +9111,7 @@ function eqAjouter(){
   apiPost('/api/monitor/users',{nom:nom,email:'',pass:pass,apps:apps}).then(function(x){
     if(!x.ok){ toast('⚠️ '+(x.d.error||'refusé')); return; }
     EQ.nom=''; EQ.pass='';
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a créé le compte équipe « '+nom+' »'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a créé le compte équipe « '+nom+' »'});
     toast('Compte « '+nom+' » créé'); chargerEquipe();
   });
 }
@@ -9065,7 +9142,7 @@ function btAjouter(){
   apiPost('/api/monitor/beta',{login:login,nom:nom,pass:pass,chantier:chantier,apps:apps}).then(function(x){
     if(!x.ok){ toast('⚠️ '+(x.d.error||'refusé')); return; }
     BT.login=''; BT.nom=''; BT.chantier=''; BT.pass='';
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a ouvert l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a ouvert l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
     /* un serveur d'avant ignore `apps` et rend un accès sans le champ : il n'ouvre que OP GESTION — ne pas le laisser croire le contraire */
     if(APP==='messages'&&!(x.d&&x.d.compte&&Array.isArray(x.d.compte.apps))){ toast('⚠️ Accès créé, mais le serveur ne connaît pas encore OP MESSAGES (mise à jour en attente) : il n’ouvre que la bêta d’OP GESTION'); }
     else toast('Accès « '+login+' » ouvert');
@@ -9073,7 +9150,7 @@ function btAjouter(){
   });
 }
 function btToggle(id){ apiPost('/api/monitor/beta/toggle',{id:id}).then(function(x){
-  if(x&&x.ok){ JR.actions.unshift({ts:Date.now(),tx:MYNOM+(x.d.actif?' a rouvert':' a coupé')+' un accès bêta'}); }
+  if(x&&x.ok){ JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(x.d.actif?' a rouvert':' a coupé')+' un accès bêta'}); }
   chargerEssais(); }); }
 function btSuppr(id,login){ if(!confirm('Supprimer définitivement l’accès bêta « '+login+' » ?')) return;
   apiPost('/api/monitor/beta/delete',{id:id}).then(function(){ toast('Accès supprimé'); chargerEssais(); }); }
@@ -9115,7 +9192,7 @@ async function pbCreer(btn){
     var e=await tourEspaceDe(email,nom,ident,mdp,!dejaLa,'tour');
     if(!e){ if(btn){ btn.disabled=false; btn.textContent='Ouvrir l\'accès'; } return; }
     PB.nom=''; PB.email=''; PB.ident=''; PB.pass='';
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a ouvert un accès à la version publique « '+nom+' »'});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a ouvert un accès à la version publique « '+nom+' »'});
     chargerAccesPublics();   // il doit apparaître dans la liste, tout de suite
     tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">🌍 Accès version publique — '+esc(e.nom)+'</div>'+
       '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">C’est un vrai espace d’entreprise sur <b>teamop.fr/app.html</b>. Ouvre le lien sur chaque appareil qui doit y accéder.</div>'+
@@ -9343,7 +9420,7 @@ function btMdp(id,login){
   if(v.length<8){ toast('⚠️ Mot de passe de 8 caractères minimum — rien n’a été changé'); return; }
   apiPost('/api/monitor/beta/mdp',{id:id,pass:v}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+(x&&x.status===403?'Réservé au patron — ton compte n’a pas cet accès.':((x&&x.d&&x.d.error)||'refusé'))+' — rien n’a été changé'); return; }
-    JR.actions.unshift({ts:Date.now(),tx:MYNOM+' a posé un nouveau mot de passe à l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
+    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a posé un nouveau mot de passe à l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
     toast('Nouveau mot de passe posé pour « '+login+' » — l’ancien ne passe plus'); chargerEssais();
   }).catch(function(){ toast('⚠️ Serveur injoignable — rien n’a été changé'); });
 }
@@ -9383,7 +9460,18 @@ function vueEssaisMsg(){
     '<div class="reg-sous">N’ouvrent que msg-beta.teamop.fr — jamais les données d’une entreprise. L’identifiant et le mot de passe donnés ici.</div>'+
     '</div><button type="button" class="ac-act" onclick="accAllerForm(\'ac-f-beta\')">Ouvrir un accès bêta</button></div>'+
     accBlocBeta()+'</div>';
-  return tete+'<div class="deux ac-deux"><div class="col-liste"><div class="reg">'+gBeta+'</div></div><div class="col-detail">'+accFormBeta()+'</div></div>';
+  /* v2.84 — la version publique d'OP MESSAGES : on n'y ouvre pas d'accès (chacun s'inscrit lui-même, par son numéro ou son adresse), mais elle a SA
+     place, à côté de la bêta et jamais mêlée à elle. Son état se lit ici ; sa version minimale se règle dans Surveillance. */
+  if(!MV.d&&!MV.err) chargerVersionsMsg();
+  var sp=(MV.d&&MV.d.prod&&MV.d.prod.service)||null;
+  var etatPub=!sp?(MV.err?esc(MV.err):'Lecture…')
+    :(sp.joignable===false?'<span style="color:var(--redText)">Le service ne répond pas.</span>'
+      :'En ligne · v'+(sp.version||'?')+(sp.build?' ('+esc(sp.build)+')':'')+' · inscriptions '+(sp.inscription?'<b>ouvertes</b>':'<b>fermées</b>'));
+  var gPub='<div class="reg-g reg-g-fixe"><div class="ac-tete"><div class="reg-tete">'+
+    '<span class="reg-nom">Version publique d’OP MESSAGES</span>'+
+    '<div class="reg-sous">msg.teamop.fr — pour tout le monde. On ne crée pas d’accès ici : chacun ouvre son compte lui-même. '+etatPub+'</div>'+
+    '</div><button type="button" class="ac-act" onclick="setTab(\'surveillance\')">Régler sa version</button></div></div>';
+  return tete+'<div class="deux ac-deux"><div class="col-liste"><div class="reg">'+gBeta+gPub+'</div></div><div class="col-detail">'+accFormBeta()+'</div></div>';
 }
 /* Le formulaire d'un accès bêta, commun aux deux consoles : il crée l'accès de la console ouverte, et l'encart dit SA bêta. */
 function accFormBeta(){
@@ -9472,7 +9560,11 @@ function vueEquipe(){
     var a=ACT[k]||(ACT[k]={last:0,ko:0});
     if(j.ok){ if(j.ts>a.last) a.last=j.ts; } else a.ko++; });
 
-  var U=(EQ.users||[]).slice();
+  /* v2.85 — CHAQUE CONSOLE SES COMPTES (Justin : « sépare bien OP GESTION et OP MESSAGES ») : ceux qui ouvrent la console ouverte ; les autres comptes
+     se rangent à part, repliés, pour que le patron puisse leur donner cette console d'ici — sans les mêler à l'équipe de la console. */
+  var TOUS=(EQ.users||[]).slice();
+  var U=TOUS.filter(function(u){ return appsDuCompte(u).indexOf(APP)>=0; });
+  var ailleurs=TOUS.filter(function(u){ return appsDuCompte(u).indexOf(APP)<0; });
   var ouverts=U.filter(function(u){ return u.actif!==false; });
   var coupes=U.filter(function(u){ return u.actif===false; });
   /* L'ordre serveur est l'ordre de création : on le remplace par un ordre explicite. */
@@ -9486,11 +9578,11 @@ function vueEquipe(){
     var a=ACT[String(u.nom||'').trim().toLowerCase()]||{last:0,ko:0};
     /* Les applications du compte : le serveur les dit (apps), le patron a tout par calcul. C'est ICI
        que le patron règle qui travaille sur quelle console — deux chips à bascule par ligne. */
-    var apps=Array.isArray(u.apps)&&u.apps.length?u.apps:(pat?['gestion','messages']:['gestion']);
+    var apps=appsDuCompte(u);
     var appsTx=apps.map(function(a){ return APPS_TOUR[a]?APPS_TOUR[a].nom:a; }).join(' + ');
     var l2='<b>'+(ROLE_L[u.role]||'Collaborateur')+'</b> · '+esc(appsTx)+
       /* ⛔ déduit du menu (libsPatronSeul) : écrite à la main, la phrase avait oublié les Sauvegardes (v2.68) */
-      (pat?' · tous les onglets, y compris '+esc(enPhrase(libsPatronSeul(),'et')):' · ni '+esc(libsPatronSeul().join(', ni ')))+
+      (pat?' · tous les onglets, y compris '+esc(enPhrase(libsPatronSeul(APP),'et')):' · ni '+esc(libsPatronSeul(APP).join(', ni ')))+
       (JR.loaded&&!JR.err?' · '+(a.last?'vu '+esc(fmtAgo(a.last)):'aucune trace dans les 100 dernières connexions'):'');
     /* Chaque fait absent disparaît : jamais de « — » de remplissage. Et « Jamais connecté »
        était faux — u.ts est une date de CRÉATION. */
@@ -9499,7 +9591,7 @@ function vueEquipe(){
     if(u.email) f.push(esc(u.email));
     var act=pat?'<span class="eqp-fixe">Compte fixe</span>'
       :'<span class="eqp-actions">'+
-        (MYROLE==='patron'?['gestion','messages'].map(function(a){ var on=apps.indexOf(a)>=0;
+        (MYROLE==='patron'?[APP].map(function(a){ var on=apps.indexOf(a)>=0;
             return '<button type="button" class="eqp-act app'+(on?' on':'')+'" aria-pressed="'+on+'" onclick="eqApps(\''+jsq(u.id)+'\',\''+a+'\')" title="'+(on?'Retirer':'Donner')+' la Tour '+APPS_TOUR[a].nom+'"><i style="--c:'+APP_TEINTE[a]+'"></i>'+APPS_TOUR[a].court+'</button>'; }).join(''):'')+
         (haut?'<button type="button" class="eqp-act" onclick="eqToggle(\''+jsq(u.id)+'\')">Couper l’accès</button>'
              :'<button type="button" class="eqp-act rou" onclick="eqToggle(\''+jsq(u.id)+'\')">Rouvrir</button>')+
@@ -9522,6 +9614,10 @@ function vueEquipe(){
     '<span class="reg-n">'+coupes.length+'</span>'+
     '<div class="reg-sous">Le mot de passe existe encore, la porte ne s’ouvre plus. Rouvrir se fait d’un bouton ; supprimer est définitif.</div></div>'+
     '<div class="reg-bloc">'+coupes.map(function(u){ return ligne(u,false); }).join('')+'</div></div>');
+  if(ailleurs.length&&MYROLE==='patron') G.push('<div class="reg-g"><div class="reg-tete"><span class="reg-nom">Sans accès à la Tour '+esc(APPS_TOUR[APP].nom)+'</span>'+
+    '<span class="reg-n">'+ailleurs.length+'</span>'+
+    '<div class="reg-sous">Ils travaillent dans l’autre console. Le bouton '+esc(APPS_TOUR[APP].court)+' leur ouvre celle-ci.</div></div>'+
+    '<div class="reg-bloc">'+ailleurs.map(function(u){ return ligne(u,u.actif!==false); }).join('')+'</div></div>');
   var liste=G.length?'<div class="reg">'+G.join('')+'</div>'
     :videTour('Aucun compte d’équipe','Seul le vôtre ouvre cette console.','','equipe');
 
@@ -9534,8 +9630,9 @@ function vueEquipe(){
         '<input class="inp mono" id="eq-pass" type="password" autocomplete="new-password" value="'+esc(EQ.pass)+'" oninput="eqChamp(\'pass\',this.value)" placeholder="12 caractères">'+
         '<button type="button" class="btn-fant" onclick="eqGen()">Générer</button></div></div>'+
       '<div class="lbl" style="margin-top:12px">Applications</div>'+
-      '<div class="eq-apps"><label><input type="checkbox" id="eq-app-gestion" checked> <i style="--c:var(--app-gestion)"></i>OP GESTION</label>'+
-      '<label><input type="checkbox" id="eq-app-messages"> <i style="--c:var(--app-messages)"></i>OP MESSAGES <span class="sous">(en travaux)</span></label></div>'+
+      /* v2.85 — la console ouverte est cochée d'office ; l'autre se donne d'ici aussi, mais rien ne la coche par défaut */
+      '<div class="eq-apps"><label><input type="checkbox" id="eq-app-gestion"'+(APP==='gestion'?' checked':'')+'> <i style="--c:var(--app-gestion)"></i>OP GESTION</label>'+
+      '<label><input type="checkbox" id="eq-app-messages"'+(APP==='messages'?' checked':'')+'> <i style="--c:var(--app-messages)"></i>OP MESSAGES</label></div>'+
       '<button type="button" class="btn-plein large" onclick="eqAjouter()">Ajouter le collaborateur</button>'+
     '</div>'+
     /* Le <select> promettait « Patron » et créait un collaborateur : le serveur ignore le
@@ -9553,12 +9650,14 @@ function vueEquipe(){
    son menu : « Il voit Accueil, Entreprises, … — pas Accès, Équipe, Journal ni Sauvegardes. » */
 function eqNoteCollaborateur(){
   var voit=[], pas=[];
-  MENU.forEach(function(g){ g.vues.forEach(function(x){ if((x[2]||'').split(' ').indexOf('gestion')<0) return;
+  MENU.forEach(function(g){ g.vues.forEach(function(x){ if((x[2]||'').split(' ').indexOf(APP)<0) return;
     (PATRON_SEUL.indexOf(x[0])<0?voit:pas).push(x[1]); }); });
   return 'Il voit '+esc(enPhrase(voit,'et'))+(pas.length?' — pas '+esc(enPhrase(pas,'ni')):'')+'.';
 }
-/* les NOMS du menu des vues réservées au patron, dans l'ordre du menu, toutes consoles confondues */
-function libsPatronSeul(){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(function(x){ if(PATRON_SEUL.indexOf(x[0])>=0&&l.indexOf(x[1])<0) l.push(x[1]); }); }); return l; }
+/* les NOMS du menu des vues réservées au patron, dans l'ordre du menu — d'UNE console (`app`), ou de toutes */
+function libsPatronSeul(app){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(function(x){ if(app&&(x[2]||'').split(' ').indexOf(app)<0) return; if(PATRON_SEUL.indexOf(x[0])>=0&&l.indexOf(x[1])<0) l.push(x[1]); }); }); return l; }
+/* les applications d'un compte de la Tour : le serveur les dit (`apps`) ; le patron a tout par calcul ; un compte d'avant le champ n'a qu'OP GESTION */
+function appsDuCompte(u){ return Array.isArray(u&&u.apps)&&u.apps.length?u.apps:((u&&u.role==='patron')?['gestion','messages']:['gestion']); }
 /* « A, B et C » — ou « A, B ni C » */
 function enPhrase(l,mot){ return l.length>1?l.slice(0,-1).join(', ')+' '+mot+' '+l[l.length-1]:(l[0]||''); }
 
@@ -9729,7 +9828,14 @@ function donSauvLancer(){
   });
 }
 function vueJournal(){
-  var A=JR.actions||[], C=JR.cnx||[];
+  /* v2.85 — CHAQUE CONSOLE SON JOURNAL : une action (de cette session, ou notée par le serveur avec la console de sa route — `app`) ne paraît que dans la
+     console où elle a été faite. Une connexion à la Tour n'a pas de console : elle paraît là où le compte travaille (`apps`), et une tentative refusée
+     (un identifiant qui ne dit rien) dans les deux — c'est le signal de sécurité. */
+  var A=(JR.actions||[]).filter(function(a){ return !a.app||a.app===APP; });
+  var C=(JR.cnx||[]).filter(function(j){
+    if(j.app) return j.app===APP;
+    if(j.ok&&j.apps) return String(j.apps).split('+').indexOf(APP)>=0;
+    return true; });
   var ok=C.filter(function(j){ return j.ok; });
   var ko=C.filter(function(j){ return !j.ok; });
   var f=JR.f||'tout';
@@ -9822,8 +9928,8 @@ function vueJournal(){
     kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Mes actions',A.length]],f,'jrFiltrePoser(')+
     '<div class="reg">'+bloc+'</div>'+
     '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console. Au-delà, elles sont effacées — y compris depuis ici.</div>'+
-    '<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Courrier → Envois TeamOP.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+
-    '<button type="button" class="btn-plein" onclick="setTab(\'support\');envoyesOuvrir()">Ouvrir les envois</button></div>';
+    (APP!=='gestion'?'':'<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Courrier → Envois TeamOP.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+
+    '<button type="button" class="btn-plein" onclick="setTab(\'support\');envoyesOuvrir()">Ouvrir les envois</button></div>');
 }
 
 /* ══ démarrage : une session déjà ouverte reprend la main ══ */

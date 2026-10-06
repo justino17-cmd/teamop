@@ -57,6 +57,7 @@
  *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
+ *   inscriptionCourriel  true pour OUVRIR les inscriptions par adresse e-mail (« comme Discord ») ; absent ou autre chose : fermées (503 `inscription_fermee`). Il faut aussi un relais (`courriel`).
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
@@ -424,6 +425,9 @@ function charger(env = process.env) {
      de connexion en clair sur le disque — le démarrage est refusé, avant toute création de dossier. */
   const testCodes = env.OPMSG_TEST_CODES ? path.resolve(String(env.OPMSG_TEST_CODES)) : null;
   if (testCodes && instance !== 'beta') { const e = new Error('config: OPMSG_TEST_CODES (porte de test des codes SMS) est refusée en production'); e.code = 'CONFIG'; throw e; }
+  /* la porte de banc du numéro de page servie (`index.js`) : refusée en production, comme les autres */
+  const testVersionPage = env.OPMSG_TEST_VERSION_PAGE ? parseInt(env.OPMSG_TEST_VERSION_PAGE, 10) : 0;
+  if (env.OPMSG_TEST_VERSION_PAGE && (instance !== 'beta' || !(testVersionPage > 0 && testVersionPage <= 99999))) { const e = new Error('config: OPMSG_TEST_VERSION_PAGE (porte de test) est refusée en production, et doit être un entier'); e.code = 'CONFIG'; throw e; }
   const cookie = Object.assign({ nom: '__Host-opm', secure: true }, cfg.cookie || {});
   /* Le préfixe __Host- impose Secure : un cookie « __Host-… » sans Secure est refusé par le
      navigateur, donc personne ne pourrait se connecter. On le refuse ICI plutôt qu'en production. */
@@ -447,11 +451,14 @@ function charger(env = process.env) {
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,
+    testVersionPage,
     disqueMinMo: Number.isFinite(cfg.disqueMinMo) ? cfg.disqueMinMo : 512,
     pulsationMs: Number.isFinite(cfg.pulsationMs) ? cfg.pulsationMs : 20000,
     presenceGraceMs: Number.isFinite(cfg.presenceGraceMs) ? cfg.presenceGraceMs : 20000,
     balayageMs: Number.isFinite(cfg.balayageMs) ? cfg.balayageMs : 60000,
     minClient: Number.isInteger(cfg.minClient) ? cfg.minClient : 1,
+    /* les inscriptions par adresse e-mail (« comme Discord ») : FERMÉES sauf `true` écrit dans le fichier — un geste de Justin, jamais une valeur par défaut */
+    inscriptionCourriel: cfg.inscriptionCourriel === true,
   };
 }
 

@@ -66,6 +66,7 @@ function creerHandlers(ctx) {
       case 'interdit': return refus(res, 403, 'interdit');
       case 'delai': return refus(res, 409, 'delai_depasse');
       case 'type': return refus(res, 409, 'type_invalide');
+      case 'vide': return refus(res, 400, 'champ_invalide');   // un message texte vidé par une modification (seule une légende se retire)
       case 'groupe_plein': return refus(res, 409, 'groupe_plein');
       case 'dernier_admin': return refus(res, 409, 'dernier_admin');
       case 'conversation_directe': return refus(res, 409, 'conversation_directe');
@@ -120,7 +121,10 @@ function creerHandlers(ctx) {
 
   /* ── Service ─────────────────────────────────────────────────────────────────────────── */
   H['config'] = (req, res) => res.json({
-    version: ctx.version, instance: config.instance, min_client: config.minClient,
+    /* `version_client` : le numéro de la page que CE service sert ; `min_client` : celui en dessous duquel il refuse d'écrire (le plancher du fichier,
+       ou celui que la Tour a posé pour cette instance). Une page sous `min_client` se met à jour d'elle-même, sans « Plus tard ». */
+    version: ctx.version, build: ctx.build || null, instance: config.instance,
+    min_client: ctx.versionClient ? ctx.versionClient.exige() : config.minClient, version_client: ctx.versionPage || 0,
     limites: {
       message_max: MSG_MAX, membres_max: ctx.maxMembres, nom_groupe_max: 80, modif_ms: ctx.delaiModifMs, ephemeres: EPHEMERES,
       /* le nombre de PERSONNES d'une réunion (organisateur compris) : Perso+ comme Pro, jamais plus (`formule.js`, une seule constante) — la page l'écrit, elle ne le recopie pas. Un appel de GROUPE n'est pas concerné. */
@@ -134,6 +138,9 @@ function creerHandlers(ctx) {
     push: { vapid: ctx.push ? ctx.push.cle() : null },
     /* l'envoi des invitations par courriel est-il ouvert ? (un relais SMTP configuré) — un booléen, jamais l'hôte, l'identifiant ou l'adresse d'expédition : la page dit « pas encore ouvert » */
     courriel: { ouvert: !!(ctx.courriel && ctx.courriel.ouvert()) },
+    /* le compte par adresse e-mail (« comme Discord ») : la page montre « Créer un compte » seulement si les inscriptions sont ouvertes ET un relais configuré ; la connexion par adresse,
+       elle, existe dès qu'il peut y avoir un compte (un relais configuré) — un booléen chacun, rien d'autre */
+    comptes: { inscription: !!(ctx.compteCourriel && ctx.compteCourriel.inscriptionOuverte()), courriel: !!(ctx.courriel && ctx.courriel.ouvert()) },
     /* les appels à deux : le relais est-il installé (un booléen — jamais son adresse, ni son secret) ? la page dit alors, en cas d'échec, que l'appel ne passe que si les deux appareils se joignent directement.
        `sonnerie_s` : combien de temps un appel sonne avant d'être « manqué » (la page l'écrit à l'appelant, elle ne le recopie pas). */
     appels: { relais: !!(ctx.appels && ctx.appels.relais()), sonnerie_s: Math.round(config.appels.sonnerieMs / 1000) },
@@ -495,6 +502,16 @@ function creerHandlers(ctx) {
     } else {
       pj = lirePieces(type, b);
       if (!pj) return refus(res, 400, 'champ_invalide');
+      /* ⛔ LA LÉGENDE D'UNE PHOTO (Justin, 6 octobre 2026 : « quand j'envoie une photo, il faudrait pouvoir mettre un texte en dessous, comme WhatsApp ») : facultative,
+         les mêmes règles qu'un message (nettoyée, pas d'invisible seul, `MSG_MAX` signes), scellée comme lui. Vide ou absente : une photo sans légende, comme avant.
+         Seulement pour une photo : un vocal ou un fichier n'en portent pas. */
+      if (type === 'photo' && b.texte !== undefined && b.texte !== null) {
+        if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
+        if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');   // le même refus que le texte d'un message (relecture du gardien)
+        const t = nettoyerTexte(b.texte);
+        if (Array.from(t).length > MSG_MAX) return refus(res, 413, 'trop_long');
+        texte = INVISIBLE.test(t) ? null : t;
+      } else if (b.texte !== undefined && b.texte !== null && b.texte !== '') return refus(res, 400, 'champ_invalide');
     }
     let repondA = null;
     if (b.reponse_a !== undefined && b.reponse_a !== null) {
@@ -530,11 +547,13 @@ function creerHandlers(ctx) {
   H['msg.modifier'] = (req, res) => {
     const s = seqCorps(req, res); if (s === null) return;
     const t = corps(req).texte;
-    if (typeof t !== 'string' || t.length > MSG_MAX * 2) return refus(res, 400, 'champ_invalide');
+    if (typeof t !== 'string') return refus(res, 400, 'champ_invalide');
+    if (t.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
     const texte = nettoyerTexte(t);
-    if (INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
     if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
-    const r = stockage.messageModifier({ conv: req.conv.conv.id, seq: s, auteur: req.moi.id, texte });
+    /* un texte vide n'est permis qu'à la LÉGENDE d'une photo : c'est la retirer (relecture du gardien) — `messageModifier` refuse le vide pour un message texte */
+    const vide = INVISIBLE.test(texte);
+    const r = stockage.messageModifier({ conv: req.conv.conv.id, seq: s, auteur: req.moi.id, texte: vide ? null : texte });
     hub.reveiller({ conv: req.conv.conv.id });
     res.json({ ok: true, modifie: r.modifie });
   };

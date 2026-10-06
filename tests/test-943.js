@@ -405,7 +405,8 @@ async function gestionnaireLecture() {
       v('⛔ un renvoi qui cite une pièce de plus ne l\'attache PAS (le premier envoi a fait foi)', [(await A.post('/api/conversations/' + G + '/messages', { cid: cid1, type: 'photo', pieces: [{ id: pA, w: 8, h: 8 }, { id: pB, w: 8, h: 8 }] })).j.deja, requete('SELECT attachee FROM piece WHERE id = ?', pB)[0].attachee], [true, null]);
       r = await envoyer(B, G, { type: 'photo', pieces: [{ id: pB, w: 8, h: 8 }] });
       v('et Bruno envoie sa propre photo : 201', r.code, 201);
-      v('un message de pièce ne se MODIFIE pas : 409 type_invalide', (await A.post('/api/conversations/' + G + '/messages/modifier', { seq: m1.j.seq, texte: 'x' })).code, 409);
+      /* 6 octobre 2026 : une photo porte une LÉGENDE, qui se modifie comme un message (« comme WhatsApp ») ; un vocal ou un fichier ne se modifient toujours pas (test-966) */
+      v('la légende d\'une photo se MODIFIE (200) — un vocal, non (test-966)', (await A.post('/api/conversations/' + G + '/messages/modifier', { seq: m1.j.seq, texte: 'x' })).code, 200);
       const react = await A.post('/api/conversations/' + G + '/messages/reagir', { seq: m1.j.seq, emoji: '👍' });
       v('mais on peut RÉAGIR à une photo, et y répondre', [react.code, (await envoyer(B, G, { type: 'texte', texte: 'belle photo', reponse_a: m1.j.seq })).code], [200, 201]);
       v('un message texte reste un message texte (ni pièce, ni méta)', (await envoyer(A, G, { texte: 'bonjour' })).code, 201);

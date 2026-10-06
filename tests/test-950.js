@@ -1360,7 +1360,7 @@ const horlogeFixe = (h) => () => h.t;
       const comptees = STOCK.ouvrir.copie.TABLES_COMPTEES;
       /* Ce qui ne se compte pas, et pourquoi : une vie courte ou un état technique. Une table qui porte les DONNÉES d'une personne n'a rien à faire ici. */
       const TRANSITOIRES = {
-        code_tel: 'codes de connexion par SMS (quelques minutes)', jeton: 'jetons à usage unique', meta: 'témoin de clé et version du schéma (contrôlés à part)',
+        code_tel: 'codes de connexion par SMS (quelques minutes)', code_mel: 'codes reçus par courriel pour s\'inscrire ou changer de mot de passe (quinze minutes)', appareil_mel: 'appareils reconnus d\'un compte par adresse (refaits à la connexion suivante)', jeton: 'jetons à usage unique', meta: 'témoin de clé et version du schéma (contrôlés à part)',
         recherche_tel: 'compteurs anti-énumération (une fenêtre de temps)', session: 'sessions (recréées à la reconnexion)',
         sms_bouclier: 'état du bouclier SMS (recalculé)', sms_tentative: 'tentatives de saisie d\'un code (une fenêtre de temps)',
       };

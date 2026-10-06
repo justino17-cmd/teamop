@@ -27,6 +27,7 @@ const stockageMod = require('./stockage');
 const { creerQuotas } = require('./quotas');
 const { creerFlux } = require('./flux');
 const { creerPorteBeta } = require('./porte-beta');
+const { creerVersionClient } = require('./version-client');
 const { construireApp } = require('./app');
 const { lireConfigSms, creerGarde } = require('./sms-garde');
 const { APPAREIL_ABS_MS } = require('./telephone');
@@ -38,10 +39,11 @@ const { creerFormule } = require('./formule');
 const { creerFacturation } = require('./facturation');
 const { creerPlanificateur } = require('./planificateur');
 const { creerCourriel } = require('./courriel');
+const { creerAgenda } = require('./routes-agenda');
 const { creerAppels } = require('./appels');
 
-const VERSION = '1.8.0-perso-plus';
-const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays']);   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
+const VERSION = '1.9.0-mise-a-jour';
+const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays', 'gabarit']);   // `gabarit` : le NOM d'un gabarit fixe de courriel de compte (inscription, existe, reinit, change), jamais une adresse   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
 
 function journaliser(evt, champs) {
   const o = { t: new Date().toISOString(), evt: String(evt).slice(0, 40) };
@@ -95,7 +97,9 @@ function demarrer(env = process.env) {
   const formule = creerFormule({ stockage, config });
   const facturation = creerFacturation({ stockage, config, formule, journaliser, horloge: Date.now });
   /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
-  const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push });
+  /* L'AGENDA PERSONNEL (`routes-agenda.js`) : ses routes, et ses rappels — envoyés par le planificateur des réunions, qui tient le bail (une seule instance envoie) */
+  const agenda = creerAgenda({ stockage, quotas, config, horloge: Date.now, journaliser });
+  const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push, agenda });
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
@@ -120,9 +124,21 @@ function demarrer(env = process.env) {
   mesurerDisque();
   const minuteurDisque = setInterval(mesurerDisque, 30000); minuteurDisque.unref();
 
+  /* L'EMPREINTE DE L'INTERFACE SERVIE : `scripts/opmsg-public.js` la pose dans `public/opmsg-ui.js` (douze hexadécimaux calculés sur les fichiers servis). La page ouverte compare
+     la SIENNE à celle-ci (`/api/config`) : différentes, une nouvelle version a été déployée pendant qu'elle restait ouverte, et elle propose « Mettre à jour ». Lue une fois, au
+     démarrage : c'est la version que CE service sert. Illisible (un dossier public d'avant) : null, et la page ne propose rien. */
+  const build = (() => { try { const m = /const OPMSG_BUILD = '([0-9a-f]{12})';/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return m ? m[1] : null; } catch (e) { return null; } })();
+  /* LE NUMÉRO DE LA PAGE SERVIE (`OPMSG_VERSION`, posé par le générateur, +1 à chaque empreinte nouvelle) : c'est ce que la Tour
+     exige (« Exiger la dernière version »), et ce que la page envoie à chaque écriture (`X-OPM-Version`). Illisible : 0. */
+  /* ⛔ LA PORTE DE BANC (`OPMSG_TEST_VERSION_PAGE`) : un banc fait croire que le service sert une page PLUS RÉCENTE que celle du dossier public, pour jouer une page
+     restée en arrière. Bêta seulement — en production elle est refusée au démarrage (`config.js`). */
+  const versionPageBanc = config.testVersionPage || 0;
+  const versionPage = (() => { try { const m = /const OPMSG_VERSION = ([0-9]{1,5});/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return versionPageBanc || (m ? parseInt(m[1], 10) : 0); } catch (e) { return versionPageBanc; } })();
+  /* LA VERSION MINIMALE que la Tour pose pour CETTE instance, relue chez OP GESTION (`version-client.js`) */
+  const versionClient = creerVersionClient({ config, versionPage, journaliser });
   const ctx = {
-    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels,
+    config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, versionPage, versionClient, scelleur, sms,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -224,6 +240,13 @@ function demarrer(env = process.env) {
       catch (e) { journaliser('relecture_echec', { nom: e && (e.code || e.name) }); }
       finally { enCours = false; }
     }, config.beta.relectureMs));
+  }
+  /* ⛔ le minimum de la Tour se relit à la même cadence que les accès bêta ; une relecture à la fois */
+  {
+    let enCours = false;
+    const relireVersion = async () => { if (enCours) return; enCours = true; try { await versionClient.relire(); } finally { enCours = false; } };
+    minuteurs.push(setTimeout(relireVersion, 300));
+    minuteurs.push(setInterval(relireVersion, config.beta.relectureMs));
   }
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau

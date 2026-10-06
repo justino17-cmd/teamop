@@ -498,6 +498,44 @@ Chemin le plus court vers la première vente à une entreprise :
 
 ---
 
+## 11 bis. « Pro Assistant » — l'agent qui gère l'agenda (décidé le 6 octobre 2026)
+
+Demandé par Justin : « un agent qui leur gère leur agenda… qu'il fasse les choses les plus importantes et qui soit très utile. Je veux pas un agent juste
+pour dire qu'il y a un agent. » Décisions du même jour : **un forfait au-dessus du Pro**, l'IA **Claude (Anthropic)**, et **« il propose, on confirme »**.
+
+**Le critère de réussite** : l'agent fait gagner du temps chaque jour SANS qu'on lui parle. S'il faut ouvrir une fenêtre pour qu'il serve, il a raté.
+
+**Ce qu'il fait, par ordre d'utilité** (on construit dans cet ordre, et chaque marche doit servir seule) :
+1. **Il repère les rendez-vous dans les conversations** (« on se voit jeudi 14 h chez le client ») et propose « Ajouter à l'agenda ? » sous le message : un geste.
+2. **Il trouve un créneau à plusieurs** (« réunion avec Karim et Sophie cette semaine ») : agendas, heures de travail, trajets ; 2 ou 3 créneaux ; invitation ; il gère
+   les réponses et repropose si quelqu'un refuse.
+3. **Le point du matin** : la journée, les conflits, le temps de trajet entre deux rendez-vous (équipes de terrain), ce qu'il faut préparer.
+4. **Les promesses** : « je t'envoie le devis avant vendredi » devient un rappel la veille.
+5. **On lui parle normalement**, à l'écrit ou à la voix : « décale mon 15 h à demain et préviens Karim ».
+6. **Il protège le temps** : rien hors des heures de travail (droit à la déconnexion), des plages sans réunion.
+
+**La règle de confiance** : seul ce qui ne concerne que la personne se fait sans demander (un rappel, une entrée dans SON agenda). Tout ce qui touche quelqu'un
+d'autre — inviter, déplacer, annuler, écrire en son nom — attend un geste de confirmation. Une invitation fausse envoyée à un client coûte la confiance d'un coup.
+
+**Le prix** : un forfait **« Pro Assistant »** vers **22 à 25 € TTC** par personne et par mois (le Pro + l'agent), à fixer avec le coût MESURÉ.
+
+**Le coût — estimation, à mesurer avant de fixer le prix** (modèle `claude-opus-5-5` : 4 $ / 20 $ le million de jetons en entrée / sortie, 0,20 $ en lecture
+de cache ; tarifs relevés le 6 octobre 2026). Pour une personne active, par mois (22 jours ouvrés) :
+- repérage : un filtre fait sur NOTRE serveur (dates, heures, jours, « demain »…) ne transmet que les messages qui en parlent — ~20 par jour, consigne mise en cache,
+  réponse courte et structurée → ~1,5 à 2 $ ;
+- point du matin → ~0,5 $ ; recherche de créneaux et demandes à la voix (~10 par mois) → ~1 $.
+- **Total : ~2,5 à 4 $ par personne et par mois (2,3 à 3,7 €)**, avec un **plafond écrit par personne** pour qu'un compte ne coûte jamais plus que sa marge.
+  ⚠️ La première estimation donnée à Justin (0,50 à 1,50 €) était trop basse : c'est la sortie du modèle qui coûte, pas l'entrée. Un modèle plus léger pour le seul
+  repérage diviserait ce poste ; c'est une décision de Justin, pas un réglage à faire en silence.
+
+**⛔ Avant d'ouvrir (le droit)** : l'agent LIT des messages et les envoie à Anthropic (société américaine). La promesse « données en France » doit donc le dire :
+- l'agent s'active **par entreprise**, avec son accord écrit, et chaque personne peut le couper pour elle ;
+- un **contrat de sous-traitance de l'IA** est écrit AVANT (modèle : `sous-traitance.html` et `server/agent-devis.js`) — c'est la règle du lot E ;
+- le filtre local fait que **seuls** les messages qui parlent d'un rendez-vous partent, jamais une conversation entière ; rien de ce qui part n'entre dans les journaux.
+
+**Ce qu'il faut AVANT l'agent** : un vrai agenda personnel dans OP MESSAGES (aujourd'hui il n'y a que les réunions programmées). L'agent écrit dans cet agenda ;
+sans lui, il n'a rien à gérer. La synchronisation avec Google Agenda et Outlook viendra ensuite (beaucoup de clients vivent déjà dedans).
+
 ## 12. Sources
 
 **Dans le dépôt** : `design/opmessages/FEUILLE-DE-ROUTE.md`, `VEILLE-CONCURRENCE.md`, `SERVEUR.md` (§ 3.5, 3.7, 3.8, 5, étapes 6 à 10), `tarifs.html`, `recap-abonnement.html`, `server/index.js:3321`, `REPRISE.md`.

@@ -123,6 +123,21 @@
     occurrence_inconnue: 'Cette date ne fait pas partie de la réunion.',
     /* l'invitation par courriel : chaque refus a sa phrase, et aucune ne promet ce que le service ne tient pas (« l'envoi par courriel n'est pas encore ouvert » est la vérité d'un service sans relais) */
     courriel_non_ouvert: 'L\'envoi par courriel n\'est pas encore ouvert.',
+    /* l'agenda personnel (heure_invalide, fin_avant_debut, rappel_invalide, fenetre_invalide : les phrases des réunions, plus haut, servent aussi — une clé en double remplacerait la première) */
+    evenement_trop_long: 'Un événement dure 31 jours au plus.',
+    agenda_plein: 'Ton agenda est plein (2 000 événements) : supprime d\'anciens événements.',
+    /* le compte par adresse e-mail (« comme Discord ») */
+    inscription_fermee: 'La création de compte n\'est pas encore ouverte.',
+    mdp_faible: 'Ce mot de passe se devine trop facilement. Choisis-en un d\'au moins 10 caractères, sans ton prénom, ton adresse ni une suite comme « azerty » ou « 123456 ».',
+    conditions_requises: 'Coche la case : il faut avoir au moins 15 ans et accepter les conditions d\'utilisation.',
+    reseau_plafond: 'Trop de demandes depuis ce réseau. Réessaie plus tard.',
+    code_recent: 'Un code vient de partir. Attends une minute avant d\'en redemander un.',
+    courriel_plafond: 'Trop de codes demandés pour cette adresse. Réessaie plus tard.',
+    code_invalide: 'Ce code n\'est pas le bon, ou il a expiré. Vérifie-le, ou demande-en un nouveau.',
+    code_plafond: 'Trop de codes faux. Réessaie dans une heure.',
+    identifiants_plafond: 'Trop d\'essais de connexion sur ce compte. Réessaie plus tard, ou choisis « Mot de passe oublié ? » : un code partira à ton adresse.',
+    service_occupe: 'Le service est très demandé en ce moment. Réessaie dans quelques secondes.',
+    version_trop_ancienne: 'Cette version d\'OP MESSAGES n\'est plus acceptée : elle se met à jour.',
     courriel_invalide: 'Cette adresse courriel n\'est pas valable.',
     courriel_quota_compte: 'Tu as déjà envoyé dix invitations par courriel ces dernières 24 heures : réessaie plus tard.',
     courriel_quota_destinataire: 'Cette adresse a déjà reçu deux invitations de ta part cette semaine : réessaie dans quelques jours.',
@@ -226,6 +241,14 @@
     const f = o.fetch || (typeof fetch !== 'undefined' ? fetch.bind(typeof window !== 'undefined' ? window : undefined) : null);
     const ES = o.EventSource || (typeof EventSource !== 'undefined' ? EventSource : null);
     if (!f) throw new Error('fetch indisponible');
+    /* LE NUMÉRO DE LA PAGE, envoyé avec chaque écriture (`X-OPM-Version`) : la page le pose (`window.OPMSG_VERSION_CLIENT`, lu à CHAQUE appel — elle se charge après
+       ce module) ; un banc le passe en `opts.versionClient`. 0 ou absent : l'en-tête ne part pas (le service ne refuse alors que quand la Tour exige une version). */
+    const numeroPage = () => {
+      const w = typeof window !== 'undefined' ? window.OPMSG_VERSION_CLIENT : undefined;
+      const n = Number.isInteger(w) ? w : (Number.isInteger(o.versionClient) ? o.versionClient : 0);
+      return n > 0 && n <= 99999 ? n : 0;
+    };
+    const avecVersion = (h) => { const n = numeroPage(); if (n) h['X-OPM-Version'] = String(n); return h; };
 
     /* La réponse d'une route : le JSON d'une réussite, ou une `ErreurApi` qui se dit. `opts.piece` : c'est le dépôt d'une pièce — un relais (nginx) qui refuse le poids avant que le
        service ne voie le corps répond 413 en HTML, ce qui veut dire « trop lourd » (avec le maximum que la page connaît : `opts.max`), jamais « inconnue ». */
@@ -234,6 +257,10 @@
       try { txt = await r.text(); } catch (e) { txt = ''; }
       try { j = txt ? JSON.parse(txt) : null; } catch (e) { j = null; }
       if (!r.ok) {
+        /* ⛔ 426 : la page est sous le minimum que la Tour a posé — elle le dit à l'écran (la mise à jour obligatoire), qui relit ce que le service exige */
+        if (r.status === 426 && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+          try { window.dispatchEvent(new CustomEvent('opmsg-version', { detail: { min: j && Number.isInteger(j.min) ? j.min : 0 } })); } catch (e) { /* l'écran se rattrapera au prochain contrôle */ }
+        }
         const retry = parseInt(r.headers && r.headers.get ? (r.headers.get('Retry-After') || '') : '', 10) || (j && j.retry) || 0;
         let code = j && typeof j.error === 'string' && MESSAGES[j.error] ? j.error : (r.status >= 500 ? 'serveur' : 'inconnue');
         let extra = j;
@@ -248,7 +275,7 @@
       const h = { Accept: 'application/json' };
       const init = { method: methode, headers: h, credentials: 'same-origin', cache: 'no-store' };
       if (opts && opts.keepalive === true) init.keepalive = true;   // un raccrochage lancé quand la page se ferme doit PARTIR quand même (c'est tout le but)
-      if (methode !== 'GET') { h['Content-Type'] = 'application/json'; h['X-OPM'] = '1'; init.body = JSON.stringify(corps === undefined ? {} : corps); }
+      if (methode !== 'GET') { h['Content-Type'] = 'application/json'; h['X-OPM'] = '1'; avecVersion(h); init.body = JSON.stringify(corps === undefined ? {} : corps); }
       let r;
       try { r = await f(base + chemin, init); }
       catch (e) { throw new ErreurApi('reseau', 0, 0); }
@@ -260,6 +287,43 @@
     const api = {
       base, appel,
       config: () => appel('GET', '/api/config'),
+      /* l'agenda personnel : des événements à soi (l'heure LOCALE et son fuseau ; le service convertit) */
+      agenda: async (du, au) => (await appel('GET', '/api/agenda' + rq({ du, au }))).evenements,
+      creerEvenement: async (champs) => (await appel('POST', '/api/agenda', champs)).evenement,
+      majEvenement: async (id, champs) => (await appel('POST', '/api/agenda/' + e(id) + '/maj', champs)).evenement,
+      supprimerEvenement: (id) => appel('POST', '/api/agenda/' + e(id) + '/supprimer'),
+      /* le compte par adresse e-mail (« comme Discord ») — routes publiques : la session est posée par la réponse (cookie) */
+      melInscrire: (champs) => appel('POST', '/api/mel/inscrire', champs),
+      melConfirmer: (courriel, code) => appel('POST', '/api/mel/confirmer', { courriel, code }),
+      melConnexion: (courriel, mdp) => appel('POST', '/api/mel/connexion', { courriel, mdp }),
+      melOubli: (courriel) => appel('POST', '/api/mel/oubli', { courriel }),
+      melReinit: (courriel, code, mdp) => appel('POST', '/api/mel/reinit', { courriel, code, mdp }),
+      /* « Mettre à jour » : relit SANS CACHE les fichiers de l'application (liste FIXE, de cette origine : jamais une adresse reçue), en disant combien d'octets sont arrivés.
+         La page recharge ensuite : le navigateur ne relit que ce qu'il vient de recevoir. Un refus ou une coupure jette `ErreurApi` comme le reste. */
+      relireApplication: async (surProgres) => {
+        const FICHIERS = ['/', '/opmsg-ui.js', '/source-serveur.js', '/api.js'];
+        const dire = typeof surProgres === 'function' ? surProgres : () => {};
+        let recu = 0;
+        for (let i = 0; i < FICHIERS.length; i++) {
+          let r;
+          try { r = await f(base + FICHIERS[i], { credentials: 'same-origin', cache: 'reload' }); }
+          catch (e2) { throw new ErreurApi('reseau', 0, 0); }
+          if (!r.ok) throw new ErreurApi(r.status >= 500 ? 'serveur' : 'inconnue', r.status, 0);
+          const total = +(r.headers && r.headers.get ? r.headers.get('content-length') : 0) || 0;
+          if (r.body && r.body.getReader) {
+            const lecteur = r.body.getReader(); let ici = 0;
+            for (;;) {
+              let morceau;
+              try { morceau = await lecteur.read(); } catch (e2) { throw new ErreurApi('reseau', 0, 0); }
+              if (morceau.done) break;
+              ici += morceau.value.length; recu += morceau.value.length;
+              dire((i + (total ? Math.min(1, ici / total) : 0.5)) / FICHIERS.length, recu);
+            }
+          } else { try { recu += (await r.arrayBuffer()).byteLength; } catch (e2) { throw new ErreurApi('reseau', 0, 0); } }
+          dire((i + 1) / FICHIERS.length, recu);
+        }
+        return { octets: recu };
+      },
       /* La porte bêta : identifiant et mot de passe de la Tour. Rend la personne connectée. */
       connexionBeta: async (login, pass) => {
         const r = await appel('POST', '/api/beta/entrer', { login, pass });
@@ -329,7 +393,7 @@
          `genre: 'avatar'` seul pour une photo de profil (d'une personne ou d'un groupe). Rend `{ id, taille, mime }`. */
       deposer: async (corps, o2) => {
         const x = o2 || {};
-        const h = { Accept: 'application/json', 'Content-Type': 'application/octet-stream', 'X-OPM': '1' };
+        const h = avecVersion({ Accept: 'application/json', 'Content-Type': 'application/octet-stream', 'X-OPM': '1' });
         /* ⛔ le NOM d'un fichier voyage dans un en-tête (encodé en pourcentage), jamais dans l'adresse : une adresse se retrouve dans le journal d'accès d'un proxy */
         if (x.nom !== undefined && x.nom !== null) h['X-OPM-Nom'] = encodeURIComponent(String(x.nom));
         let r;
