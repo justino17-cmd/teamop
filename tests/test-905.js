@@ -89,7 +89,12 @@ const MATRICE = {
   'moi.confidentialite': { ok: () => ['POST', '/api/moi/confidentialite', { trouvable: 'tous' }], codes: [200] },
   'moi.appareils.deconnecter': { ok: () => ['POST', '/api/moi/appareils/deconnecter', {}], codes: [200] },
   'contacts.chercher':  { ok: () => ['POST', '/api/contacts/chercher', { numero: '+32470999888' }], codes: [200] },
-  'contacts.ajouter':   { ok: (F) => ['POST', '/api/contacts/ajouter', { id: F.A }], codes: [400, 404] },   // sans recherche préalable, ou son propre identifiant : la garde V a passé, le geste dit non
+  /* l'identifiant « Prénom#1234 » et les demandes de contact : un identifiant qui n'existe pas rend la réponse neutre ; demander sans avoir trouvé, répondre ou retirer une demande qui n'existe pas : la garde a passé, le geste dit non */
+  'contacts.identifiant': { ok: () => ['POST', '/api/contacts/identifiant', { identifiant: 'Personne#1000' }], codes: [200] },
+  'contacts.demander':  { ok: (F) => ['POST', '/api/contacts/demander', { id: F.A }], codes: [400, 404] },
+  'contacts.demandes':  { ok: () => ['GET', '/api/contacts/demandes'], codes: [200] },
+  'contacts.repondre':  { ok: (F) => ['POST', '/api/contacts/demandes/repondre', { id: F.A, accepter: true }], codes: [400, 404] },
+  'contacts.annuler':   { ok: (F) => ['POST', '/api/contacts/demandes/annuler', { id: F.A }], codes: [400, 404] },
   /* Les pièces (étape 4). Le dépôt se joue en `avatar` : c'est le seul genre qui n'exige pas d'être MEMBRE d'une conversation, donc le seul que les quatre profils confirmés
      peuvent tous réussir — l'appartenance (404 pour un non-membre, 403 dans un groupe d'annonces) est jouée par `test-943`. La lecture passe la garde J : une pièce attachée à
      un message du groupe (Ana et Ben y sont, Cleo non). */
@@ -240,7 +245,7 @@ const ATTENDU = {
   const lire = T.lireBase;
   const instantane = () => {
     const d = lire(path.join(svc.data, 'msg.db'));
-    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'appel', 'appel_part'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
+    try { return ['personne', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'lien', 'notification', 'contact', 'demande_contact', 'journal', 'piece', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'appel', 'appel_part'].map(t => d.prepare('SELECT COUNT(*) AS n, COALESCE(SUM(LENGTH(CAST(rowid AS TEXT))),0) AS s FROM ' + t).get().n).join(',') + '|' + d.prepare('SELECT COALESCE(SUM(lu_seq),0) AS a, COALESCE(SUM(role=\'admin\'),0) AS b, COALESCE(SUM(epingle),0) AS c FROM membre').get().a; } finally { d.close(); }
   };
   try {
     console.log('Le manifeste et la matrice disent la MÊME chose');

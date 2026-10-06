@@ -11,7 +11,7 @@
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -998,7 +998,9 @@
     document.documentElement.classList.add('feuille-ouverte');
     /* le focus va à la feuille, pas au champ : sur un téléphone, un champ focalisé ouvre le clavier et cache la moitié du
        contenu avant que la personne ait rien vu */
-    requestAnimationFrame(() => $('feuille').focus({ preventScroll: true }));
+    /* « Nouveau contact » au BUREAU (une souris, pas de clavier qui surgit) : le focus va droit au champ de l'identifiant — c'est ce qu'on vient faire */
+    const versChamp = etat.contactSaisie && etat.groupe.mode === 'contact' && matchMedia('(pointer: fine)').matches; etat.contactSaisie = false;
+    requestAnimationFrame(() => { const c = versChamp && $('ct-ident'); if (c) c.focus({ preventScroll: true }); else $('feuille').focus({ preventScroll: true }); });
   }
   function fermerFeuille(garderPhoto) { if (!etat.groupe.ouvert) return; etat.garderPhoto = !!garderPhoto; fermerCouche(); }
   function fermerFeuilleDom() {
@@ -1118,7 +1120,7 @@
     if (a) {
       const id = a.dataset.ndAct;
       if (id === 'groupe') ouvrirFeuille('chat', true);
-      else if (id === 'contact') ouvrirFeuille('contact', true);
+      else if (id === 'contact') { etat.contactSaisie = true; ouvrirFeuille('contact', true); }   // « Nouveau contact » : le champ de l'identifiant prend le focus
       else if (id === 'appel') ouvrirFeuille('appel', true);
       else if (id === 'reunion') programmerReunion(true);
       return;
@@ -1740,14 +1742,16 @@
   }
   function peindreProfilReglage() {
     const c = $('reg-profil'); if (!c || !MOI) return;
-    c.innerHTML = '<button type="button" class="contact presse" id="reg-profil-bouton">' + avatar(MOI) + '<span class="contact-texte"><span class="contact-nom">' + esc(MOI.nom) + '</span><span class="contact-role">' + esc(MOI.statut || 'Modifier mon profil') + '</span></span>' + CHEVRON + '</button>';
+    const ident = CAP.identifiants && typeof source.monIdentifiant === 'function' ? source.monIdentifiant() : null;   // « Alex#3307 » : ce qu'on donne pour être retrouvé
+    c.innerHTML = '<button type="button" class="contact presse" id="reg-profil-bouton">' + avatar(MOI) + '<span class="contact-texte"><span class="contact-nom">' + esc(MOI.nom) + '</span><span class="contact-role">' + esc((ident ? ident + (MOI.statut ? ' · ' : '') : '') + (MOI.statut || (ident ? '' : 'Modifier mon profil'))) + '</span></span>' + CHEVRON + '</button>';
   }
   function peindreConf() {
     const c = $('reg-conf'); if (!c) return;
     if (!reg.conf) { c.innerHTML = reg.confErreur ? '<div class="carte-pad">' + refusBloc(reg.confErreur) + '</div>' : '<p class="vide">Chargement…</p>'; return; }
     const sw = (cle, titre, aide) => '<button type="button" class="reglage presse" role="switch" data-reg-cle="' + cle + '" aria-checked="' + (reg.conf[cle] ? 'true' : 'false') + '"' + (reg.occupe ? ' aria-disabled="true"' : '') +
       '><span class="reglage-texte">' + esc(titre) + '<small>' + esc(aide) + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
-    c.innerHTML = sw('presence', 'Afficher quand je suis en ligne', 'Réciproque : si tu le coupes, tu ne vois plus non plus qui est en ligne.') +
+    c.innerHTML = (CAP.identifiants && typeof reg.conf.trouvable === 'boolean' ? sw('trouvable', 'Me trouver par mon identifiant ou mon numéro', 'Coupé : personne ne peut te retrouver ni t\'envoyer de demande. Tes contacts restent.') : '') +
+      sw('presence', 'Afficher quand je suis en ligne', 'Réciproque : si tu le coupes, tu ne vois plus non plus qui est en ligne.') +
       sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres.') +
       (reg.confErreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.confErreur) + '</p></div>' : '');
   }
@@ -1840,6 +1844,7 @@
     peindreConf(); peindreStock(); peindreApropos();
   }
   function rendreReglages() {
+    if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Ajouter un contact »
     Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
     $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Réglages</h1>' +
       '<div class="carte" id="reg-profil"></div>' +
@@ -1847,7 +1852,8 @@
       '<div class="rubrique"><span>Confidentialité</span></div><div class="carte" id="reg-conf"></div>' +
       (CAP.notifications ? '<div class="rubrique"><span>Notifications</span></div><div class="carte" id="reg-notif"></div>' : '') +
       '<div class="rubrique"><span>Contacts</span></div><div class="carte">' +
-        '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-groupe') + '<span class="reglage-texte">Ajouter un contact<small>Par un lien d\'invitation</small></span>' + CHEVRON + '</button>' +
+        '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-groupe') + '<span class="reglage-texte">Ajouter un contact<small>' + (CAP.identifiants ? 'Par son identifiant, son numéro ou un lien' : 'Par un lien d\'invitation') + '</small></span>' +
+          (CAP.identifiants ? '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>' : '') + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>' +
       '<div class="rubrique"><span>Appareils</span></div><div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>' +
       '<div class="rubrique"><span>Stockage</span></div><div class="carte carte-pad" id="reg-stock"></div>' +
@@ -1966,9 +1972,67 @@
   });
 
   /* ── Contacts et liens : la feuille « Contacts » ── */
+  /* ── L'identifiant « Prénom#1234 » et les demandes de contact (capacité `identifiants`, 5 octobre 2026) ──
+     On ajoute quelqu'un qui a DÉJÀ OP MESSAGES en tapant son identifiant EXACT (« Camille#4821 ») ou son numéro : le service répond « trouvé » ou une phrase neutre, jamais une
+     liste — ce n'est pas un annuaire. Trouvé, on lui envoie une DEMANDE ; tant qu'elle n'a pas accepté, ce n'est pas un contact. Un refus ne se dit pas : la demande reste
+     « en attente » aux yeux de l'auteur. */
+  const blocIdentifiants = () => !CAP.identifiants ? '' :
+    '<div id="ct-demandes"></div>' +   // EN TÊTE : une demande reçue est ce qu'on vient trancher
+    '<div class="rubrique"><span>Ajouter quelqu\'un qui a OP MESSAGES</span></div><div class="carte carte-pad">' +
+      '<p class="info-note">Tape son identifiant — son prénom, « # » et ses chiffres, comme Camille#4821 — ou son numéro de téléphone.</p>' +
+      '<div class="info-champ"><input id="ct-ident" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" placeholder="Camille#4821 ou un numéro" aria-label="Identifiant ou numéro de la personne"><button type="button" class="mini" data-act="ident-voir">Voir</button></div>' +
+      '<div id="ct-ident-res" aria-live="polite"></div></div>' +
+    '<div class="rubrique"><span>Mon identifiant</span></div><div class="carte carte-pad">' +
+      '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Réglages › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
+  function peindreIdentMoi() {
+    const c = $('ct-ident-moi'); if (!c || typeof source.monIdentifiant !== 'function') return;
+    const id = source.monIdentifiant();
+    c.innerHTML = id ? '<div class="lien-boite"><input id="ct-ident-moi-champ" type="text" readonly value="' + esc(id) + '" aria-label="Mon identifiant"><button type="button" class="mini" data-act="copier" data-champ="ct-ident-moi-champ" data-mot="Identifiant copié">Copier</button>' +
+      (navigator.share ? '<button type="button" class="mini" data-act="ident-partager">Partager</button>' : '') + '</div>' : '<p class="vide">Ton identifiant arrive…</p>';
+  }
+  /* Les demandes : lues au service (une liste courte), redessinées quand il dit qu'elles ont bougé (flux « contacts »). Aucune ne s'affiche avant d'avoir été LUE : une
+     panne dit « indisponible », jamais « aucune demande ». */
+  let demandesEtat = null, demandesMinuterie = 0;
+  async function chargerDemandes() {
+    if (!CAP.identifiants || typeof source.demandesContact !== 'function') return;
+    try { demandesEtat = await source.demandesContact(); } catch (e) { demandesEtat = demandesEtat || { erreur: true }; }
+    peindreDemandes(); peindreIdentMoi(); peindreDemandesN(); peindreProfilReglage();
+  }
+  const relireDemandes = () => { clearTimeout(demandesMinuterie); demandesMinuterie = setTimeout(() => chargerDemandes(), 400); };
+  function peindreDemandesN() { const n = $('reg-demandes-n'); if (!n) return; const k = demandesEtat && demandesEtat.recues ? demandesEtat.recues.length : 0; n.textContent = k ? String(k) : ''; n.classList.toggle('pastille-n', k > 0); }
+  function peindreDemandes() {
+    const c = $('ct-demandes'); if (!c) return;
+    if (!demandesEtat) { c.innerHTML = ''; return; }
+    if (demandesEtat.erreur && !demandesEtat.recues) { c.innerHTML = '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p></div>'; return; }
+    const R = demandesEtat.recues || [], E = demandesEtat.envoyees || [];
+    const ligne = (d, actions, sous) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
+    c.innerHTML = (R.length ? '<div class="rubrique"><span>Demandes reçues</span><span>' + R.length + '</span></div><div class="carte">' + R.map(d => ligne(d,
+        '<button type="button" class="mini" data-act="demande-accepter" data-uid="' + esc(d.id) + '">Accepter</button><button type="button" class="mini" data-act="demande-refuser" data-uid="' + esc(d.id) + '">Refuser</button>' +
+        (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="demande-bloquer" data-uid="' + esc(d.id) + '">Bloquer</button>' : ''),
+        (d.identifiant || '') + ' · veut t\'ajouter')).join('') + '</div>' : '') +
+      (E.length ? '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d,
+        '<button type="button" class="mini" data-act="demande-retirer" data-uid="' + esc(d.id) + '">Retirer</button>', (d.identifiant || '') + ' · en attente')).join('') + '</div>' : '');
+  }
+  async function identVoir() {
+    const champ = $('ct-ident'), res = $('ct-ident-res'); if (!champ || !res) return;
+    const t = champ.value.trim();
+    res.innerHTML = '';
+    if (!t) { erreurInfo('Tape un identifiant (Camille#4821) ou un numéro.'); champ.focus(); return; }
+    if (!t.includes('#') && !/^\+?[\d\s.()-]{6,}$/.test(t)) { erreurInfo('Un nom seul ne suffit pas : ajoute « # » et les chiffres de son identifiant (Camille#4821), ou tape son numéro.'); champ.focus(); return; }
+    res.innerHTML = '<p class="vide">Recherche…</p>';
+    const r = await source.contactParIdentifiant(t);
+    if (!r.trouve) { res.innerHTML = '<p class="info-note ident-neutre">Personne avec cet identifiant, ou cette personne ne souhaite pas être trouvée.</p>'; return; }
+    const action = r.dejaContact ? '<button type="button" class="mini" data-act="ecrire" data-uid="' + esc(r.id) + '">Écrire</button>'
+      : r.demande === 'envoyee' ? '<button type="button" class="mini" disabled>Demande envoyée</button>'
+      : r.demande === 'recue' ? '<button type="button" class="mini" data-act="demande-accepter" data-uid="' + esc(r.id) + '">Accepter sa demande</button>'
+      : '<button type="button" class="mini" data-act="demande-envoyer" data-uid="' + esc(r.id) + '">Demander</button>';
+    res.innerHTML = '<div class="contact avec-actions ident-trouve">' + avatar({ initiales: r.initiales, avatar: r.avatar }) + '<span class="contact-texte"><span class="contact-nom">' + esc(r.prenom) + '</span><span class="contact-role">' +
+      esc((r.identifiant ? r.identifiant + ' · ' : '') + (r.dejaContact ? 'déjà dans tes contacts' : 'utilise OP MESSAGES')) + '</span></span><span class="contact-actions">' + action + '</span></div>';
+  }
+
   function rendreFeuilleContact() {
     const code = etat.codeLien; etat.codeLien = null;
-    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + blocIdentifiants() +
       '<div class="rubrique"><span>Mon lien d\'invitation</span></div><div class="carte carte-pad">' +
         '<p class="info-note">Envoie ce lien à quelqu\'un : en l\'ouvrant, il devient ton contact. Il ne sert qu\'une fois et reste valable 7 jours.</p><div id="ct-lien"></div>' +
         '<div class="info-actions"><button type="button" class="mini" data-act="lien-creer">Créer un lien</button><button type="button" class="mini danger" data-act="lien-revoquer">Révoquer mes liens</button></div></div>' +
@@ -1977,6 +2041,7 @@
       '<div class="rubrique"><span>Mes contacts</span><span id="ct-n"></span></div><div class="carte" id="ct-liste"></div>' +
       (typeof source.bloques === 'function' ? '<div class="rubrique"><span>Contacts bloqués</span><span id="ct-nb"></span></div><div class="carte" id="ct-bloques"></div>' : '');
     rendreListeContacts();
+    if (CAP.identifiants) { peindreIdentMoi(); peindreDemandes(); chargerDemandes(); }
     if (code) { $('ct-code').value = code; lireLienSaisi().catch(e => erreurInfo(phrase(e, 'Ce lien n\'a pas pu être lu.'))); }
   }
   function rendreListeContacts() {
@@ -2080,7 +2145,19 @@
     try {
       if (act === 'lien-creer') { const r = await source.lienContact(); $('ct-lien').innerHTML = boiteLien('ct-lien-champ', r.code); }
       else if (act === 'lien-revoquer') { const n = await source.revoquerLiens(); $('ct-lien').innerHTML = ''; mot(n ? n + (n > 1 ? ' liens révoqués' : ' lien révoqué') : 'Aucun lien à révoquer'); }
-      else if (act === 'copier') { const c = $(b.dataset.champ); mot(c && await copier(c.value) ? 'Lien copié' : 'Copie impossible : sélectionne le lien et copie-le'); }
+      else if (act === 'copier') { const c = $(b.dataset.champ); mot(c && await copier(c.value) ? (b.dataset.mot || 'Lien copié') : 'Copie impossible : sélectionne le texte et copie-le'); }
+      else if (act === 'ident-voir') await identVoir();
+      else if (act === 'ident-partager') { const t = source.monIdentifiant(); if (t) try { await navigator.share({ text: 'Retrouve-moi sur OP MESSAGES : ' + t }); } catch (e2) { /* partage annulé : rien à dire */ } }
+      else if (act === 'demande-envoyer') {
+        b.disabled = true;
+        const r = await source.demanderContact(b.dataset.uid);
+        if (r === 'acceptee') { mot('Vous êtes maintenant en contact'); const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
+        else { b.textContent = 'Demande envoyée'; mot(r === 'deja' ? 'Déjà dans tes contacts' : 'Demande envoyée'); chargerDemandes(); }
+      }
+      else if (act === 'demande-accepter') { b.disabled = true; await source.repondreDemande(b.dataset.uid, true); mot('Contact ajouté'); const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
+      else if (act === 'demande-refuser') { b.disabled = true; await source.repondreDemande(b.dataset.uid, false); mot('Demande refusée'); await chargerDemandes(); }
+      else if (act === 'demande-bloquer') { b.disabled = true; await source.bloquer(b.dataset.uid); mot('Bloqué : cette personne ne peut plus te trouver ni t\'écrire'); await chargerDemandes(); }
+      else if (act === 'demande-retirer') { b.disabled = true; await source.annulerDemande(b.dataset.uid); mot('Demande retirée'); await chargerDemandes(); }
       else if (act === 'lien-lire') await lireLienSaisi();
       else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(r.deja ? 'Déjà dans tes contacts' : r.genre === 'groupe' ? 'Tu as rejoint le groupe' : 'Contact ajouté'); ouvrirConvId(r.conv); }
       else if (act === 'ecrire') { const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
@@ -2121,15 +2198,22 @@
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
     } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
+  /* Entrée dans le champ de l'identifiant : « Voir » (le clavier d'un téléphone dit « Rechercher », enterkeyhint) */
+  $('info-corps').addEventListener('keydown', e => {
+    if (e.key !== 'Enter' || !e.target || e.target.id !== 'ct-ident' || e.isComposing) return;
+    e.preventDefault(); erreurInfo('');
+    identVoir().catch(er => erreurInfo(phrase(er, 'La recherche n\'a pas pu se faire.')));
+  });
   function surContacts() {
     if (typeof source.contacts !== 'function') return;
     CONTACTS = source.contacts();
     if (CAP.reunions && etat.route && etat.route.vue === 'reunions') rendreReunions();
     peindreBloquesN(); peindreProfilReglage();
+    if (CAP.identifiants && (!etat.groupe.ouvert || etat.groupe.mode !== 'contact')) relireDemandes();   // le compteur des demandes reçues (Réglages)
     if (!etat.groupe.ouvert) return;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { construireContacts(); synchroFeuille(); }
     else if (etat.groupe.mode === 'nouvelle') rendreNouvelle();
-    else if (etat.groupe.mode === 'contact') rendreListeContacts();      // la liste des contacts ET celle des bloqués
+    else if (etat.groupe.mode === 'contact') { rendreListeContacts(); relireDemandes(); }      // la liste des contacts ET celle des bloqués, et les demandes (une reçue, une acceptée)
     else if (etat.groupe.mode === 'convinfo') rendreConvInfo();
   }
 

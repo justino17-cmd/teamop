@@ -9,8 +9,8 @@
      cette origine (le script en ligne de l'aperçu est extrait dans opmsg-ui.js), les images et les médias ne sortent pas de la page. -->
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#eef3fb" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#1a2e6b" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1633" media="(prefers-color-scheme: dark)">
 <title>OP MESSAGES</title>
 <link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">
 <link rel="manifest" href="manifest.webmanifest">
@@ -20,66 +20,66 @@
 <meta name="apple-mobile-web-app-title" content="OP MESSAGES">
 <style>
 /* ══ 1. LES JETONS — LE DOCUMENT `design/opmessages/THEME-OPMESSAGES.md` EST LA SOURCE ══════════════════════════════════
-   Les valeurs du tableau « Couleurs » du document sont recopiées ici telles quelles ; celles que le document ne cite pas
-   (faint, inputBg, line, shadowBar, segTrack, segKnob, sheet, sheetBg, notifBg, toggleOff, handle) viennent de la fonction
-   `tokens(dark)` de la maquette source (« OP Messages Apple.dc.html », l. 583-595). `tests/test-856.js` RELIT le document et
-   compare, jeton par jeton, jour ET nuit : un banc qui recopie des valeurs garde une croyance, un banc qui relit la source
-   garde un accord (la leçon de test-759).
+   Thème « 100 % Apple » (décidé le 5 octobre 2026 : « 2 et 3 », « Apple partout ») : les couleurs SYSTÈME d'Apple — fond uni
+   #f2f2f7, cartes blanches, séparateurs et gris d'iOS — avec le BLEU DU LOGO pour l'accent et la bulle envoyée, et le verre
+   Liquid Glass d'iOS 26 (--verre-reflet). DE NUIT, PAS DE NOIR (même jour : « un mode bleu comme on a, un peu plus sombre pour
+   pas abîmer les yeux, pas du noir — c'est trop connu ») : fond uni bleu nuit #0b1633, cartes #16244b un cran plus claires. L'ancien thème (dégradé bleu nuit, diagonale à 112°) est rangé dans
+   `design/archives/THEME-OPMESSAGES-2026-09-29.md`.
+   Les valeurs du tableau « Couleurs » du document sont recopiées ici telles quelles, et celles du tableau « Jetons système »
+   aussi. `tests/test-856.js` RELIT les deux tableaux et compare, jeton par jeton, jour ET nuit : un banc qui recopie des valeurs
+   garde une croyance, un banc qui relit la source garde un accord (la leçon de test-759).
    ⛔ Le jour et la nuit suivent l'APPAREIL (prefers-color-scheme) et rien d'autre : pas de bouton, pas de clé rangée.
-   TROIS jetons sont à NOUS, ils ne sont ni dans le document ni dans la maquette — écarts déclarés un par un dans test-856 :
-   · --sub-meta : le « secondaire » du document (.6 de jour) tombe à ~4,1:1 sur le coin bleu du décor — trop clair pour une
-     légende de 11 px (datage, « Lu », nom d'auteur, mention d'aperçu). Mesuré au pixel : ≥ 4,5 jour et nuit avec celui-ci ;
-   · --rond-bord : le contour des cases décochées (rgba(120,120,128,.4)) faisait ~1,4:1 sur la carte — il en faut 3 (WCAG 1.4.11) ;
+   Des jetons sont à NOUS, ils ne sont pas dans le document — écarts déclarés un par un dans test-856, chacun pour une lisibilité :
+   · --sub-meta, --sub-meta-sel, --placeholder, --tab-inactif-fg : le gris « secondaire » d'Apple (rgba(60,60,67,.6)) fait 3,3:1
+     sur le fond #f2f2f7 et 3,1:1 sur un champ — trop clair pour une légende de 11 px ou le texte d'un champ vide. Le nôtre (.8 de
+     jour, .75 à .8 de nuit) fait ≥ 5:1 sur le fond, la carte, le champ et une ligne choisie (calculé, puis lu au pixel par la sonde) ;
+     le libellé d'un onglet inactif est posé sur du VERRE : sa lisibilité dépend aussi de ce qui défile derrière la barre ;
+   · --rond-bord : le contour des cases décochées : 3:1 au moins sur la carte (WCAG 1.4.11) ;
    · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre ;
-   · --placeholder : le texte d'un champ VIDE, sur la matière du champ (--field, plus claire que la carte) : la légende de 11 px passe, le placeholder de 17 px posé sur
-     ce fond tombait à 4,0–4,2:1 de nuit (lu au pixel, tout le texte de l'écran) ;
-   · --tab-inactif-fg : le libellé (11 px) d'un onglet inactif est posé sur du VERRE : sa lisibilité dépend de ce qui défile derrière la barre. De nuit, avec une rangée claire derrière,
-     le « secondaire » tombait à 4,0:1 (lu au pixel, liste défilée avec la bannière descendue) ;
-   · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat, pas d'une lettre — posé en texte sur le décor bleu (« Modifier »,
-     la pastille « Groupe ») il tombait à 4,2:1 et 3,6:1, et sur le fond vif de la barre latérale (saturate 180 %) à 2,65:1 (mesuré au pixel, 1er octobre 2026).
-     Le texte prend sa propre teinte (jour : l'accent, qui passe) ; l'accent reste celui des aplats, des anneaux de focus et des contours ;
-   · --rouge-txt : le #ff453a du paquet (« manqué », « raccrocher ») est une couleur d'APLAT : en texte de 17 px sur la carte il fait 3,5:1 de jour et ~3,5:1 de nuit (le décor de nuit est plus clair vers le coin du haut : #ff9a93 y tombait à 3,7:1).
-     Le NOM d'un appel manqué prend sa propre teinte (jour #d70015, nuit #ffaaa4) ; l'aplat de « Raccrocher » garde le rouge du paquet (non-texte : 3:1 suffit) ;
-   · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes (le paquet : « il ne s'adapte pas au thème jour »), donc leurs
+   · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat ; en lettres sur une ligne choisie il
+     tombe à 4,2:1 — le texte prend #9db8f5 (5,3:1). De jour, l'accent passe partout (≥ 6,7:1) ;
+   · --rouge-txt : le #ff453a des statuts est une couleur d'APLAT (« Raccrocher » : non-texte, 3:1 suffit) ; le NOM d'un appel
+     manqué prend sa propre teinte (jour #d70015, 5,4:1 ; nuit #ff8a82, 6,6:1 sur la carte et 5,1:1 sur une ligne pressée) ;
+   · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes, au bleu du logo, donc leurs
      valeurs sont les mêmes de jour et de nuit — le voile sombre posé sur la couleur d'un avatar est ce qui rend le blanc lisible sur l'orange. */
 :root {
-  --text: #0e1a3f;
-  --sub: rgba(14,26,63,.6);
-  --faint: rgba(14,26,63,.3);
-  --sub-meta: rgba(14,26,63,.72);
-  --placeholder: rgba(14,26,63,.72);
-  --tab-inactif-fg: rgba(14,26,63,.72);
+  --text: #000000;
+  --sub: rgba(60,60,67,.6);
+  --faint: rgba(60,60,67,.3);
+  --sub-meta: rgba(60,60,67,.8);
+  --placeholder: rgba(60,60,67,.8);
+  --tab-inactif-fg: rgba(60,60,67,.8);
   --accent: #2a4a9c;
   --accent-txt: #2a4a9c;
   --side-actif-fg: #2a4a9c;
   --fill: #2a4a9c;
   --fill-soft: rgba(42,74,156,.12);
-  --card: rgba(255,255,255,.82);
-  --field: rgba(42,74,156,.1);
+  --card: #ffffff;
+  --field: rgba(118,118,128,.12);
   --input-bg: #ffffff;
   --line: 0.5px solid rgba(60,60,67,.29);
-  --sep: 0.5px solid rgba(60,60,67,.2);
+  --sep: 0.5px solid rgba(60,60,67,.29);
   --nav-bar: rgba(255,255,255,.78);
   --tab-bar: rgba(255,255,255,.72);
-  --shadow-bar: 0 12px 32px rgba(11,20,38,.12), inset 0 1px 0 #fff;
-  --bubble-in: #e6ecf7;
-  --bubble-in-fg: #0e1a3f;
+  --shadow-bar: 0 8px 28px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.06);
+  --bubble-in: #e9e9eb;
+  --bubble-in-fg: #000000;
   --seg-track: rgba(118,118,128,.12);
   --seg-knob: #fff;
-  --sidebar: rgba(255,255,255,.4);
-  --sheet: rgba(248,250,255,.94);
+  --sidebar: rgba(255,255,255,.5);
+  --sheet: rgba(242,242,247,.94);
   --sheet-bg: rgba(242,242,247,.94);
   --notif-bg: rgba(255,255,255,.82);
   --toggle-off: rgba(120,120,128,.16);
   --rond-bord: rgba(60,60,67,.6);
   --on-fill: #ffffff;
-  --sub-meta-sel: rgba(14,26,63,.72);
-  --group-r: 12px;
+  --sub-meta-sel: rgba(60,60,67,.8);
+  --group-r: 22px;
   --handle: rgba(0,0,0,.72);
-  --tab-active-bg: rgba(255,255,255,.88);
-  --tab-active-fg: #1a2e6b;
-  --tab-active-shadow: 0 4px 14px rgba(0,0,0,.12), inset 0 1px 0 #fff;
-  --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.4) 58.2%), radial-gradient(120% 90% at 0% 0%, #ffffff 0%, rgba(255,255,255,0) 55%), radial-gradient(110% 80% at 100% 100%, #c9d8f5 0%, rgba(201,216,245,0) 60%), linear-gradient(160deg, #eef3fb, #dfe8f8);
+  --tab-active-bg: rgba(118,118,128,.16);
+  --tab-active-fg: #2a4a9c;
+  --tab-active-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+  --screen: none;
   /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
   --rouge: #ff453a;
   --rouge-txt: #d70015;
@@ -89,62 +89,64 @@
   --appel-bouton: rgba(255,255,255,.18);
   --puce-x: #ffffff;
   --coche: #ffffff;
-  --solide: #f6f8fd;
+  --solide: #f9f9fb;
   --solide-feuille: #f2f2f7;
   --solide-notif: #ffffff;
-  --base: #eef3fb;
+  --base: #f2f2f7;
+  --verre-reflet: inset 0 1px 0 rgba(255,255,255,.9), inset 0 -1px 0 rgba(255,255,255,.35), inset 0 0 0 .5px rgba(255,255,255,.55);
 }
 @media (prefers-color-scheme: dark) {
   :root {
     --text: #ffffff;
-    --sub: rgba(220,228,250,.66);
-    --faint: rgba(220,228,250,.32);
-    --sub-meta: rgba(220,228,250,.78);
-    --placeholder: rgba(236,241,255,.9);
-    --tab-inactif-fg: rgba(236,241,255,.9);
+    --sub: rgba(220,228,250,.6);
+    --faint: rgba(220,228,250,.3);
+    --sub-meta: rgba(220,228,250,.75);
+    --placeholder: rgba(220,228,250,.75);
+    --tab-inactif-fg: rgba(220,228,250,.78);
     --accent: #7ea2f0;
-    --accent-txt: #c7d6fb;
+    --accent-txt: #9db8f5;
     --side-actif-fg: #ffffff;
     --fill: #3b63c4;
-    --fill-soft: rgba(126,162,240,.22);
-    --card: rgba(255,255,255,.09);
-    --field: rgba(255,255,255,.14);
-    --input-bg: rgba(255,255,255,.06);
-    --line: 1px solid rgba(255,255,255,.14);
-    --sep: 0.5px solid rgba(84,84,88,.6);
-    --nav-bar: rgba(26,46,107,.72);
-    --tab-bar: rgba(255,255,255,.1);
-    --shadow-bar: 0 12px 32px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.16);
-    --bubble-in: rgba(255,255,255,.14);
+    --fill-soft: rgba(126,162,240,.2);
+    --card: #16244b;
+    --field: rgba(120,140,200,.18);
+    --input-bg: rgba(120,140,200,.18);
+    --line: 0.5px solid rgba(120,140,200,.32);
+    --sep: 0.5px solid rgba(120,140,200,.26);
+    --nav-bar: rgba(14,26,58,.74);
+    --tab-bar: rgba(22,36,76,.62);
+    --shadow-bar: 0 8px 28px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.3);
+    --bubble-in: #203262;
     --bubble-in-fg: #fff;
-    --seg-track: rgba(118,118,128,.24);
-    --seg-knob: #636366;
-    --sidebar: rgba(255,255,255,.04);
-    --sheet: rgba(20,32,74,.92);
-    --sheet-bg: rgba(28,28,30,.92);
-    --notif-bg: rgba(44,44,46,.82);
-    --toggle-off: rgba(120,120,128,.32);
+    --seg-track: rgba(120,140,200,.22);
+    --seg-knob: #3d4f80;
+    --sidebar: rgba(14,26,58,.6);
+    --sheet: rgba(18,31,66,.94);
+    --sheet-bg: rgba(18,31,66,.94);
+    --notif-bg: rgba(28,44,90,.84);
+    --toggle-off: rgba(120,140,200,.3);
     --rond-bord: rgba(235,235,245,.6);
     --on-fill: #ffffff;
-    --sub-meta-sel: rgba(240,244,255,.92);
-    --group-r: 12px;
+    --sub-meta-sel: rgba(220,228,250,.8);
+    --group-r: 22px;
     --handle: rgba(255,255,255,.8);
-    --tab-active-bg: rgba(42,74,156,.8);
-    --tab-active-fg: #fff;
-    --tab-active-shadow: 0 6px 16px rgba(34,59,110,.3), inset 0 1px 0 rgba(255,255,255,.28);
-    --screen: linear-gradient(112deg, rgba(255,255,255,0) 58%, rgba(255,255,255,.05) 58.2%), radial-gradient(120% 90% at 0% 0%, #24408a 0%, rgba(36,64,138,0) 55%), linear-gradient(160deg, #1a2e6b, #0e1a3f);
+    --tab-active-bg: rgba(255,255,255,.14);
+    --tab-active-fg: #c7d6fb;
+    --tab-active-shadow: inset 0 1px 0 rgba(255,255,255,.12);
+    --screen: none;
     --rouge: #ff453a;
-    --rouge-txt: #ffaaa4;
+    --rouge-txt: #ff8a82;
     --vert: #30d158;
     --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
     --appel-voile: rgba(14,26,63,.62);
     --appel-bouton: rgba(255,255,255,.18);
-    --puce-x: #0e1a3f;
+    --puce-x: #0b1633;
     --coche: #ffffff;
-    --solide: #1b2d68;
-    --solide-feuille: #1c1c1e;
-    --solide-notif: #2c2c2e;
-    --base: #0e1a3f;
+    --solide: #0e1a3a;
+    --solide-feuille: #14224a;
+    --solide-notif: #1c2c5a;
+    --base: #0b1633;
+    --verre-reflet: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -1px 0 rgba(255,255,255,.06), inset 0 0 0 .5px rgba(255,255,255,.1);
   }
 }
 
@@ -258,8 +260,14 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 
 /* la liste : une carte, des lignes de 72 px minimum */
 .carte-liste { border-radius: var(--group-r); overflow: hidden; background: var(--card); }
-.carte-liste > li { border-bottom: var(--sep); }
-.carte-liste > li:last-child { border-bottom: 0; }
+/* le séparateur commence sous le TEXTE, comme dans les listes d'Apple (Messages, Téléphone) : il ne coupe pas l'avatar.
+   Le retrait se déduit de la ligne : 14 (marge) + 10 (point non lu) + 12 + 50 (avatar) + 12 = 98 px pour une conversation,
+   14 + 40 + 12 = 66 px pour un appel ; une liste qui ne le dit pas garde un séparateur plein. */
+.carte-liste > li { position: relative; }
+.carte-liste > li::after { content: ''; position: absolute; left: var(--sep-retrait, 0px); right: 0; bottom: 0; border-bottom: var(--sep); pointer-events: none; }
+.carte-liste > li:last-child::after { display: none; }
+#liste-conv { --sep-retrait: 98px; }
+#liste-appels { --sep-retrait: 66px; }
 /* la ligne est un BOUTON (clavier, lecteur d'écran, doigt) : toute sa largeur répond */
 .conv { width: 100%; display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 14px; min-height: 72px; color: var(--text); transition: background-color .2s, transform .12s ease-out; }
 .conv:active { transform: scale(.985); }
@@ -286,7 +294,10 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .coquille h2 { font-size: 20px; line-height: 25px; font-weight: 700; letter-spacing: -.02em; }
 .coquille p { max-width: 34ch; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
 
-/* ══ 4. LA BARRE D'ONGLETS (téléphone) — pilule flottante en verre, bulle sur l'onglet actif ═══════════════════════════════
+/* ══ 4. LA BARRE D'ONGLETS (téléphone) — capsule de verre (Liquid Glass) qui flotte, lentille sur l'onglet actif ═══════════════
+   Liquid Glass (thème « 100 % Apple », 5 octobre 2026) : la teinte est légère, c'est le REFLET de l'arête (--verre-reflet) qui
+   dessine le bord — plus de trait gris — et l'ombre qui la fait flotter. L'onglet actif est une lentille grise translucide ; son
+   icône et son libellé prennent l'accent (--tab-active-fg), comme dans les applications d'Apple sous iOS 26.
    Les colonnes sont ÉGALES et se déduisent de leur NOMBRE ; le JavaScript ne pose qu'un NUMÉRO (--i), le CSS calcule la
    place de la bulle : rien n'est mesuré, donc rien ne peut être mesuré trop tôt (CLAUDE.md, « une géométrie recopiée en
    JavaScript dépend du moment où on la copie »). translate en pourcentage = largeur de la bulle = une colonne. */
@@ -294,8 +305,8 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   position: fixed; z-index: 18; left: max(14px, env(safe-area-inset-left, 0px)); right: max(14px, env(safe-area-inset-right, 0px));
   bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)); margin: 0 auto; max-width: 480px;
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; padding: 7px; border-radius: 34px;
-  background: var(--tab-bar); -webkit-backdrop-filter: blur(36px) saturate(200%); backdrop-filter: blur(36px) saturate(200%);
-  border: var(--line); box-shadow: var(--shadow-bar); --i: 0;
+  background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%);
+  border: 0; box-shadow: var(--shadow-bar), var(--verre-reflet); --i: 0;
 }
 .tabs-bulle {
   position: absolute; top: 7px; bottom: 7px; left: 7px; width: calc((100% - 20px) / 4); border-radius: 26px;
@@ -337,6 +348,8 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
 .moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
 .moi-statut.masque i { background: var(--sub-meta); }
+/* le nombre de demandes de contact REÇUES, sur « Ajouter un contact » (Réglages) : une pastille à l'accent, comme un badge d'iOS */
+.reglage-valeur.pastille-n { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 13px; font-weight: 600; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }
 
 /* ══ 6. LA FEUILLE « NOUVEAU GROUPE » — monte du bas (téléphone), fenêtre centrée de 520 px (bureau) ══════════════════════ */
 .voile {
@@ -347,7 +360,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .feuille {
   position: fixed; z-index: 41; left: 0; right: 0; bottom: 0; max-height: 88vh; max-height: 88dvh; display: flex; flex-direction: column;
   border-radius: 30px 30px 0 0; background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
-  border: var(--line); border-bottom: 0; box-shadow: 0 -16px 44px rgba(0,0,0,.24); overflow: hidden; color: var(--text);
+  border: var(--line); border-bottom: 0; box-shadow: 0 -16px 44px rgba(0,0,0,.24), var(--verre-reflet); overflow: hidden; color: var(--text);
   transform: translateY(104%); visibility: hidden; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s linear .45s;
   outline: none;
 }
@@ -425,7 +438,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
   position: fixed; z-index: 50; top: var(--haut); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
   margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 24px;
   background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
-  border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.28); color: var(--text); pointer-events: none;
+  border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.28), var(--verre-reflet); color: var(--text); pointer-events: none;
   transform: translateY(calc(-100% - var(--haut) - 24px)); opacity: 0; transition: transform .5s cubic-bezier(.32,.72,0,1), opacity .35s;
 }
 .notif.on { transform: none; opacity: 1; }

@@ -192,8 +192,8 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
     {
       /* la recherche de Dan (plus haut) date d'AVANT la demande : l'ajout se revérifie au moment d'ajouter, et un compte qui va disparaître n'entre plus dans un carnet d'adresses */
       const dejaDansLeCarnet = (await D.get('/api/contacts')).j.contacts.some(c => c.id === A.moi.id);
-      const tardif = await D.post('/api/contacts/ajouter', { id: A.moi.id });
-      v('⛔ Dan ajoute Alice depuis sa recherche d\'AVANT la demande de suppression : refusé 404 introuvable, et rien n\'est ajouté', [dejaDansLeCarnet, tardif.code, tardif.j && tardif.j.error, (await D.get('/api/contacts')).j.contacts.some(c => c.id === A.moi.id)], [false, 404, 'introuvable', false]);
+      const tardif = await D.post('/api/contacts/demander', { id: A.moi.id });
+      v('⛔ Dan demande Alice depuis sa recherche d\'AVANT la demande de suppression : refusé 404 introuvable, et rien n\'est ajouté', [dejaDansLeCarnet, tardif.code, tardif.j && tardif.j.error, (await D.get('/api/contacts')).j.contacts.some(c => c.id === A.moi.id)], [false, 404, 'introuvable', false]);
     }
     v('⛔ Dan ne la trouve plus par son numéro (un compte qui va disparaître n\'est trouvé par personne)', (await (async () => { avancer(61000); return D.post('/api/contacts/chercher', { numero: nA }); })()).j.trouve, false);
     vrai('pendant les quatorze jours, rien ne change pour les autres : Bob la voit toujours dans ses contacts et la conversation existe', (await B.get('/api/contacts')).j.contacts.some(c => c.id === A.moi.id) && (await B.get('/api/conversations/' + AB)).code === 200);
@@ -247,15 +247,17 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       const charge = JSON.parse(P.dechiffrer(cp, fps.envois.filter(e => e.chemin === '/push/cleo-tel')[avant].corps));
       v('⛔ « Nouvel appareil connecté » par push, charge minimale : ni nom, ni lieu, ni modèle d\'appareil', [charge.type, charge.titre, JSON.stringify(charge).includes('Téléphone inconnu'), JSON.stringify(charge).includes('Cleo')], ['appareil', 'Nouvel appareil connecté', false, false]);
       v('la notification dans l\'application existe aussi', (await C.get('/api/notifications')).j.notifications.filter(n => n.type === 'nouvel_appareil').length, 1);
-      /* un contact ajouté PAR NUMÉRO prévient la personne trouvée : une notification MINIMALE (« Nouveau contact »), sans le nom de celui qui l'a ajoutée (Cléo n'a pas activé l'aperçu) */
+      /* une DEMANDE de contact par NUMÉRO prévient la personne trouvée : une notification MINIMALE (« Demande de contact »), sans le nom de celui qui demande (Cléo n'a pas activé
+         l'aperçu). Depuis le 5 octobre 2026 il n'y a plus d'ajout sans accord : Cléo accepte ensuite, et c'est Dan qu'on prévient. */
       avancer(61 * 1000);
       const trouveC = await D.post('/api/contacts/chercher', { numero: nC });
       const avantContact = fps.envois.filter(e => e.chemin === '/push/cleo-tel').length;
-      const ajoutC = await D.post('/api/contacts/ajouter', { id: C.moi.id });
+      const ajoutC = await D.post('/api/contacts/demander', { id: C.moi.id });
       const arriveC = await T.attendre(() => fps.envois.filter(e => e.chemin === '/push/cleo-tel').length > avantContact, 8000, 10);
-      vrai('population : Dan a trouvé Cléo par son numéro, l\'a ajoutée, et la notification de Cléo est arrivée', trouveC.j.trouve === true && ajoutC.code === 200 && !!arriveC);
+      vrai('population : Dan a trouvé Cléo par son numéro, lui a demandé, et la notification de Cléo est arrivée', trouveC.j.trouve === true && ajoutC.code === 200 && !!arriveC);
       const chargeC = arriveC ? JSON.parse(P.dechiffrer(cp, fps.envois.filter(e => e.chemin === '/push/cleo-tel')[avantContact].corps)) : {};
-      v('⛔ « Nouveau contact » par push, charge minimale : ni le nom de Dan ni le texte « est maintenant dans vos contacts »', [chargeC.type, chargeC.corps, JSON.stringify(chargeC).includes('Dan'), JSON.stringify(chargeC).includes('dans vos contacts')], ['contact', 'Nouveau contact', false, false]);
+      v('⛔ « Demande de contact » par push, charge minimale : ni le nom de Dan ni le texte « veut vous ajouter »', [chargeC.type, chargeC.corps, JSON.stringify(chargeC).includes('Dan'), JSON.stringify(chargeC).includes('veut vous ajouter')], ['contact', 'Demande de contact', false, false]);
+      await C.post('/api/contacts/demandes/repondre', { id: D.moi.id, accepter: true });   // Cléo accepte : Dan et elle sont en contact (la suite du banc en a besoin)
       await C.post('/api/push/desabonner', { endpoint: cp.sub.endpoint });
     }
 
@@ -287,7 +289,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
     const nommant = (liste, mot) => liste.filter(n => (n.titre + ' ' + n.texte).includes(mot));
     const nb0 = await notifs(B), nc0 = await notifs(C);
     v('population : avant l\'effacement, les notifications de Bob nomment Dan Banc trois fois (ajouté en contact, ajouté à un groupe, mentionné — le titre de la mention est SON nom), celles de Cléo deux (ajoutée par numéro, ajoutée à un groupe existant) ; Bob en garde une qui nomme Cléo',
-      [nommant(nb0, 'Dan Banc').map(n => n.type).sort(), nb0.filter(n => n.type === 'mention').map(n => n.titre), nommant(nc0, 'Dan Banc').map(n => n.type).sort(), nommant(nb0, 'Cleo Banc').length], [['contact_ajoute', 'groupe_ajoute', 'mention'], ['Dan Banc'], ['contact_ajoute', 'groupe_ajoute'], 1]);
+      [nommant(nb0, 'Dan Banc').map(n => n.type).sort(), nb0.filter(n => n.type === 'mention').map(n => n.titre), nommant(nc0, 'Dan Banc').map(n => n.type).sort(), nommant(nb0, 'Cleo Banc').length], [['contact_ajoute', 'groupe_ajoute', 'mention'], ['Dan Banc'], ['contact_demande', 'groupe_ajoute'], 1]);
     /* ⛔ DEUX GARDES POUR « LES FICHIERS D'UN COMPTE EFFACÉ NE RESTENT PAS » : l'effacement les retire AUSSITÔT (`effacerPieces(e.pieces)`), et la réconciliation périodique (toutes les dix passes du balayeur) emporte
        tout fichier sans ligne qui a plus de dix minutes — or l'horloge de ce banc saute de quatorze jours, donc dès la passe suivante TOUT fichier lui paraît vieux. Mutation D12 (l'effacement immédiat retiré) :
        elle a survécu une fois sur deux, quand la réconciliation passait dans la même passe que l'effacement et emportait les fichiers avant qu'on les regarde. Pour que ce banc garde l'effacement IMMÉDIAT, les trois
@@ -344,7 +346,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       const dits = (liste) => liste.filter(n => /Un compte supprimé/.test(n.titre + ' ' + n.texte)).map(n => [n.type, n.titre, n.texte]).sort();
       v('⛔ ...elles disent « un compte supprimé », AU MÊME ENDROIT (chez Bob : le contact, le groupe — dont le nom est celui du groupe —, la mention dont le TITRE n\'était que son nom ; chez Cléo : le contact par numéro, et le groupe auquel il l\'avait ajoutée après coup)',
         [dits(nb1), dits(nc1)], [[['contact_ajoute', 'Nouveau contact', 'Un compte supprimé était dans vos contacts.'], ['groupe_ajoute', 'Groupe de Dan', 'Un compte supprimé vous a ajouté au groupe.'], ['mention', 'Un compte supprimé', 'Un compte supprimé vous a mentionné.']],
-          [['contact_ajoute', 'Nouveau contact', 'Un compte supprimé était dans vos contacts.'], ['groupe_ajoute', 'Second groupe', 'Un compte supprimé vous a ajouté au groupe.']]]);
+          [['contact_demande', 'Demande de contact', 'Un compte supprimé voulait vous ajouter à ses contacts.'], ['groupe_ajoute', 'Second groupe', 'Un compte supprimé vous a ajouté au groupe.']]]);
       v('   celles qui nomment quelqu\'un d\'autre ne bougent pas (Cléo, chez Bob), les notifications gardent leur nombre, et plus aucune ligne ne désigne Dan comme auteur', [nommant(nb1, 'Cleo Banc').length, nb1.length === nb0.length, nc1.length === nc0.length, sql('SELECT COUNT(*) AS n FROM notification WHERE auteur = ?', danId).n], [1, true, true, 0]);
       v('Dan n\'est plus membre de H (quitté)', (await B.get('/api/conversations/' + H)).j.membres.some(m => m.id === danId), false);
       v('Dan est introuvable (404) pour qui consulte son profil', (await B.get('/api/personnes/' + danId)).code, 404);
@@ -576,6 +578,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
         const quotas = creerQuotas(() => h.t);
         const conv = o.conv || [{ id: 'c1', n: 3 }, { id: 'c2', n: 3 }];
         const stockage = {
+          identDe: () => 'Alice#4821', demandesRecues: () => [], demandesEnvoyees: () => [],   // l'identifiant public et les demandes de contact (5 octobre 2026)
           exportProfil: (uid) => { if (o.profilLeve) throw new Error('panne simulée'); return { id: uid, prenom: 'Alice', nom: 'Banc', statut: '', langue: 'fr', fuseau: 'UTC', cree: h.t - 86400000, origine: 'beta', prefs: {}, trouvable: false }; },
           contactsDe: () => [],
           exportConversationsIds: () => conv.map(c => c.id),

@@ -81,7 +81,12 @@ const MANIFESTE = [
   { id: 'moi.confidentialite', m: 'POST', p: '/api/moi/confidentialite',             garde: 'S' },
   { id: 'moi.appareils.deconnecter', m: 'POST', p: '/api/moi/appareils/deconnecter', garde: 'S' },
   { id: 'contacts.chercher', m: 'POST', p: '/api/contacts/chercher',                 garde: 'V' },
-  { id: 'contacts.ajouter',  m: 'POST', p: '/api/contacts/ajouter',                  garde: 'V' },
+  /* L'identifiant « Prénom#1234 » et les demandes de contact (`telephone.js` § 6) : retrouver par l'identifiant EXACT, demander, répondre, retirer sa demande. */
+  { id: 'contacts.identifiant', m: 'POST', p: '/api/contacts/identifiant',           garde: 'V' },
+  { id: 'contacts.demander', m: 'POST', p: '/api/contacts/demander',                 garde: 'V' },
+  { id: 'contacts.demandes', m: 'GET',  p: '/api/contacts/demandes',                 garde: 'S' },
+  { id: 'contacts.repondre', m: 'POST', p: '/api/contacts/demandes/repondre',        garde: 'V' },
+  { id: 'contacts.annuler',  m: 'POST', p: '/api/contacts/demandes/annuler',         garde: 'V' },
   /* Étape 4 : les pièces (`routes-pieces.js`). Un dépôt exige l'adresse confirmée (V) ET, pour une pièce de conversation, d'en être membre
      (vérifié dans la route : le membre se lit dans l'adresse de la requête, pas dans le chemin) ; une lecture passe la garde J. */
   { id: 'pieces.deposer',    m: 'POST', p: '/api/pieces',                            garde: 'V' },

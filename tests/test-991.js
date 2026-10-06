@@ -550,7 +550,7 @@ const tick = () => new Promise(r => setImmediate(r));
       } finally { d.close(); }
       S.fermer();
       S = ouvrir({ chemin: path.join(bac, 'msg.db'), scelleur: creerScelleur(kek), horloge: () => h.t });
-      v('⛔ la migration REJOUÉE sur une base qui a déjà ses tables (le compteur remis à 9) : pas d\'échec, schéma 10, l\'abonnement personnel est intact', [S.schema(), S.abonnementPersoLire(mig.id).statut], [10, 'active']);
+      v('⛔ la migration REJOUÉE sur une base qui a déjà ses tables (le compteur remis à 9) : pas d\'échec, le schéma va au bout des migrations (10, puis 11 depuis l\'identifiant public), l\'abonnement personnel est intact', [S.schema(), S.abonnementPersoLire(mig.id).statut], [MIGRATIONS[MIGRATIONS.length - 1].v, 'active']);
       vrai('une copie « avant-v10 » est gardée avant de migrer une base qui a vécu', fs.existsSync(path.join(bac, 'msg.db.avant-v10')));
       const k = ouvrir.copie.controlerFichier(path.join(bac, 'msg.db'));
       const nonVides = Object.keys(S.sonde().nonVides), lignes = Object.keys(k.lignes);

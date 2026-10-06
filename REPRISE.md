@@ -13,6 +13,29 @@ de ligne du tout.
 
 ---
 
+# ⏳ 5 OCTOBRE 2026 — OP MESSAGES : LE THÈME « 100 % APPLE » (LOT 1) ET L'IDENTIFIANT « PRÉNOM#1234 » — SUR LA BRANCHE, PAS ENCORE SUR `main`
+
+⚠️ **La mémoire d'OP MESSAGES vit dans `design/opmessages/`** (`FEUILLE-DE-ROUTE.md`, `SERVEUR.md`, `THEME-OPMESSAGES.md`) : ce fichier n'en a rien dit du 1er au 5 octobre.
+Branche `claude/apple-theme-op-messages-gcb3j9`. Une poussée sur `main` qui touche `server-msg/` déploie la BÊTA d'OP MESSAGES (jamais la production : approbation `msg-prod`).
+
+1. **Thème « 100 % Apple »** (Justin : « 2 et 3 », « Apple partout », puis « pour la nuit, un bleu comme on a, plus sombre, pas du noir ») : couleurs système d'Apple, accent et bulle
+   envoyée au bleu du logo, verre Liquid Glass (barre d'onglets en capsule flottante, reflet d'arête `--verre-reflet`), fond UNI #f2f2f7 / bleu nuit #0b1633, cartes #ffffff / #16244b.
+   Le document de référence change (`THEME-OPMESSAGES.md`, avec un tableau « Jetons système » que `test-856` relit) ; l'ancien est dans `design/archives/`. Sonde complète :
+   **3 172 ✓ 0 ✗** (tous les appareils, jour et nuit, contrastes lus au pixel) ; une première passe avait lu l'onglet actif de nuit à 3,89:1 → #c7d6fb.
+   **Lots suivants** : la conversation (barre et saisie en capsules de verre au-dessus du fil), la barre latérale du bureau en panneau de verre, Appels et Réunions.
+   ❓ **Question ouverte à Justin** : l'écran d'appel garde le bleu du logo (aujourd'hui) ou passe au gris sombre d'Apple ?
+2. **L'identifiant « Prénom#1234 » et les demandes de contact** (`SERVEUR.md` § 2.5 bis) : « + » › Nouveau contact ou Réglages › Ajouter un contact ; l'identifiant EXACT ou le numéro ;
+   une DEMANDE que la personne accepte, refuse ou bloque. La relecture du `gardien` a trouvé un **bloquant** (l'ancienne route `contacts/ajouter` contournait l'accord ET le refus) et
+   cinq défauts (refus devinable, relance en boucle, demandeur non blocable, écritures non latines toutes sous « op », demandes qui suivaient la personne) : tous corrigés et rejoués dans
+   `test-996`. ❓ **Gardé tel quel, à confirmer par Justin** : un compte est trouvable par défaut (comme par numéro), anciens comptes compris.
+3. **Deux bancs qui tombent pour une raison qui n'est pas la nôtre** — ne pas les « corriger » à l'aveugle :
+   · `test-971` (fuseaux des réunions, Vancouver) tombe dans un conteneur dont le Node porte la base de fuseaux **2025b** (`process.versions.tz`) : elle ignore l'heure d'été permanente
+     de Vancouver (2026). La CI de `main` l'a passé. Un plancher de la porte manqué en local vient aussi de `server/node_modules` absent (`test-904` saute sa couture).
+   · `test-957` **se fige une fois sur dix**, `main` compris (mesuré : 1/10 sans aucun changement), au DÉPÔT d'une photo juste avant « L'effacement à J+14 » : le `fetch` de
+     `tests/outils-pieces.js` `deposer()` n'a pas de délai, et le service ne répond pas. Cause non établie — à creuser avant qu'on apprenne à l'ignorer.
+
+---
+
 # ✅ 30 SEPTEMBRE 2026, NUIT — TROIS RELECTURES DU SERVEUR AVANT « POUSSE » : TOUT CE QUI A ÉTÉ REJOUÉ EST CORRIGÉ (`test-849`)
 
 Promise avant d'envoyer le serveur : des relectures adverses (chaque constat reproduit sur le vrai serveur, PUIS attaqué par

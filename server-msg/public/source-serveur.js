@@ -2326,6 +2326,38 @@
       noter(a.par);
       return { genre: a.genre, de: nomComplet(a.par), groupe: a.groupe ? { nom: a.groupe.nom, membres: a.groupe.membres } : null };
     }
+    /* ── l'identifiant « Prénom#1234 » et les demandes de contact ──
+       `contactParIdentifiant(texte)` : l'identifiant EXACT (« Camille#4821 ») ou un numéro EXACT (« +33 6 12 34 56 78 ») — jamais un nom seul (le service le refuse). La réponse est
+       NEUTRE quand personne ne correspond (ou ne veut pas être trouvé) : `{ trouve: false }`. Trouvée, la personne n'est pas un contact : `demanderContact` lui envoie une
+       demande qu'elle accepte ou refuse (`demandesContact`, `repondreDemande`) ; deux demandes croisées valent un accord. */
+    const NUMERO = /^\+?[\d\s.()-]{6,}$/;
+    async function contactParIdentifiant(texte) {
+      const t = String(texte || '').trim();
+      if (!t.includes('#') && NUMERO.test(t)) {
+        const r = await A.contactParNumero(t);
+        return r.trouve ? { trouve: true, id: r.id, prenom: r.prenom, identifiant: null, dejaContact: !!r.deja_contact, demande: 'aucune', initiales: initialesDe(r.prenom || '?'), avatar: indexAvatar(r.id) } : { trouve: false };
+      }
+      const r = await A.contactParIdentifiant(t);
+      return r.trouve ? { trouve: true, id: r.id, prenom: r.prenom, identifiant: r.identifiant || null, dejaContact: !!r.deja_contact, demande: r.demande || 'aucune', initiales: initialesDe(r.prenom || '?'), avatar: indexAvatar(r.id) } : { trouve: false };
+    }
+    async function demanderContact(id) {
+      const r = await A.demanderContact(id);
+      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      return r.resultat;
+    }
+    const vueDemande = (d) => Object.assign(vuePersonne({ id: d.id, prenom: d.prenom, nom: d.nom || '', avatar: null }), { identifiant: d.identifiant || null, ts: d.ts });
+    async function demandesContact() {
+      const r = await A.demandesContact();
+      if (moiApi && r.identifiant) moiApi.identifiant = r.identifiant;
+      return { recues: (r.recues || []).map(vueDemande), envoyees: (r.envoyees || []).map(vueDemande), identifiant: r.identifiant || null };
+    }
+    async function repondreDemande(id, accepter) {
+      const r = await A.repondreDemande(id, accepter === true);
+      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      return r.resultat;
+    }
+    async function annulerDemande(id) { await A.annulerDemande(id); emettre({ type: 'contacts' }); }
+
     async function accepterLien(code) {
       const r = await A.accepterLien(code);
       if (r.genre === 'contact') {
@@ -2395,6 +2427,7 @@
         acquitter(gid);
         emettre({ type: 'notification', titre: d.titre, texte: d.texte, nature: d.type, cible: d.cible });
         if (d.type === 'contact_ajoute') rafraichirContacts().catch(() => {});
+        if (d.type === 'contact_demande') emettre({ type: 'contacts' });          // une demande reçue : la feuille « Contacts » relit ses demandes
         if (d.type === 'groupe_ajoute') relireListePlusTard();
         if (d.type === 'appel_manque') emettre({ type: 'appels' });          // un appel manqué entre dans l'historique
       },
@@ -2528,11 +2561,13 @@
       adopterMoi(r.moi);
       return vueProfil(r.moi);
     }
-    const etatConfidentialite = (r) => ({ presence: r.presence !== false, accuses: r.accuses !== false });
+    /* `trouvable` : « me trouver par mon identifiant ou mon numéro » — le service dit 'tous' | 'personne', la page lit un interrupteur */
+    const etatConfidentialite = (r) => ({ presence: r.presence !== false, accuses: r.accuses !== false, trouvable: r.trouvable !== 'personne' });
     async function confidentialite() { return etatConfidentialite(await A.confidentialite()); }
     async function majConfidentialite(champs) {
       const c = {};
       for (const k of ['presence', 'accuses']) if (champs && typeof champs[k] === 'boolean') c[k] = champs[k];
+      if (champs && typeof champs.trouvable === 'boolean') c.trouvable = champs.trouvable ? 'tous' : 'personne';
       if (!Object.keys(c).length) throw erreurLocale('vide');
       const r = etatConfidentialite(await A.majConfidentialite(c));
       if (moiApi) { moiApi.prefs = Object.assign({}, moiApi.prefs, { presence: r.presence, accuses: r.accuses }); emettre({ type: 'moi' }); }      // la barre de la page redit MA présence
@@ -2950,7 +2985,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
@@ -2961,6 +2996,9 @@
       modifier, supprimer, reagir,
       creerGroupe, ouvrirDirecte, conversationPour, infos, majConversation, retirerMembre, nommerAdmin, ajouterMembres, quitter, lienGroupe,
       lienContact, revoquerLiens, lireLien, accepterLien,
+      /* ── l'identifiant « Prénom#1234 » et les demandes de contact (capacité `identifiants`) ── */
+      monIdentifiant: () => (moiApi && moiApi.identifiant) || null,
+      contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, reessayer, abandonner, limitesPieces: limites,
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos,
