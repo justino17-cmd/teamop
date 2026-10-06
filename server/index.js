@@ -7093,7 +7093,8 @@ app.get('/api/version', (req, res) => {
   res.json({ ok: true, min: versionsCfg.canaux[k].min, enLigne: versionsCfg.enLigne, canal: k });
 });
 app.get('/api/monitor/version', monAdmin, async (req, res) => {
-  const enLigne = await versionEnLigne();
+  /* les deux pages se lisent EN MÊME TEMPS (relecture du gardien : en série, une beta.html lente retardait de 15 s le panneau de la version publique) */
+  const [enLigne, betaEnLigne] = await Promise.all([versionEnLigne(), versionBetaEnLigne()]);
   /* Qui est encore en dessous : par espace, les appareils DISTINCTS vus sur 7 jours avec une
      version inférieure au minimum — c'est la liste de ceux que la porte bloque. */
   const j7 = Date.now() - 7 * 86400000; const sous = [];
@@ -7107,7 +7108,7 @@ app.get('/api/monitor/version', monAdmin, async (req, res) => {
      l'attend (`VERSION_SANS_FIREBASE`) : la Tour doit pouvoir le lire avant de croire la porte fermée. */
   /* La bêta d'OP GESTION, à part : son minimum, et la version que beta.html sert. */
   const b = versionsCfg.canaux['gestion-beta'];
-  const beta = { min: b.min, maj: b.maj, par: b.par, versionEnLigne: await versionBetaEnLigne() };
+  const beta = { min: b.min, maj: b.maj, par: b.par, versionEnLigne: betaEnLigne };
   res.json({ ok: true, min: versionsCfg.min, enLigne: versionsCfg.enLigne, maj: versionsCfg.maj || 0, par: versionsCfg.par || '', versionEnLigne: enLigne, sous, cleAdmin: !!fbAdminCle,
     minFirestore: +versionsCfg.minFirestore || 0, beta });
 });
@@ -7162,6 +7163,13 @@ async function canalVersionPoser(req, res, k, brut, lire) {
     }
   }
   if (!isFinite(min) || min < 0 || min > 99999) return res.status(400).json({ error: 'min : un entier entre 0 et 99999, ou « ligne »' });
+  /* ⛔ JAMAIS AU-DESSUS DE CE QUI EST SERVI (relecture du gardien, 6 octobre 2026) : un minimum qu'aucune page servie n'atteint met TOUT LE MONDE sous la porte,
+     même les appareils à jour — sans issue. Quand la version servie se lit, on refuse ce qui la dépasse ; quand elle ne se lit pas, le service d'OP MESSAGES
+     ignore de lui-même un minimum au-dessus de sa page (`version-client.js`). */
+  if (brut !== 'ligne' && min > 0) {
+    const servie = await lire(false);
+    if (servie && min > servie) return res.status(400).json({ error: 'v' + min + ' est au-dessus de la version servie (v' + servie + ') : personne ne pourrait l\'atteindre.', servie });
+  }
   const avant = Object.assign({}, versionsCfg.canaux[k]);
   versionsCfg.canaux[k] = { min, maj: Date.now(), par: String((req.tourUser && req.tourUser.nom) || '').slice(0, 80) };
   if (!versionsSave()) { versionsCfg.canaux[k] = avant; return res.status(500).json({ error: 'réglage non enregistré' }); }

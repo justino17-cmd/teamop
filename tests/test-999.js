@@ -138,6 +138,12 @@ function faux(reponse) {
     v('⛔ et les deux canaux d\'OP GESTION n\'ont pas bougé', [d.min, d.canaux['gestion-beta'].min], [760, 771]);
     r = await post('/api/monitor/messages/version-min', { canal: 'beta', min: 9 }, AUTH);
     v('un numéro écrit à la main se pose aussi', [r.statut, r.j && r.j.min], [200, 9]);
+    r = await post('/api/monitor/messages/version-min', { canal: 'beta', min: 15 }, AUTH);
+    v('⛔ au-dessus de la version servie (v15 > v14) : 400, personne ne pourrait l\'atteindre — l\'exigence d\'avant reste', [r.statut, r.j && r.j.servie, disque().canaux['messages-beta'].min], [400, 14, 9]);
+    r = await post('/api/monitor/version-min', { canal: 'beta', min: 772 }, AUTH);
+    v('⛔ la bêta d\'OP GESTION de même (v772 > v771)', [r.statut, disque().canaux['gestion-beta'].min], [400, 771]);
+    r = await post('/api/monitor/version-min', { canal: 'beta', min: 771 }, AUTH);
+    v('   la version servie elle-même se pose', r.statut, 200);
     r = await post('/api/monitor/messages/version-min', { canal: 'beta', min: 0 }, AUTH);
     v('« Lever l\'exigence » : 0', [r.statut, (await get('/api/version?app=messages&canal=beta')).j.min], [200, 0]);
     for (const [corps, quoi] of [[{ canal: 'beta', min: -1 }, 'négatif'], [{ canal: 'beta', min: 100000 }, 'trop grand'], [{ canal: 'beta', min: 'x' }, 'pas un nombre'], [{ canal: 'gestion', min: 3 }, 'canal inconnu'], [{ min: 3 }, 'sans canal']]) {

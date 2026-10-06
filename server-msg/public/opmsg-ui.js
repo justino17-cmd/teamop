@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'ca4bbc05cf53';
+  const OPMSG_BUILD = '45cdd3905f61';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 1;
+  const OPMSG_VERSION = 3;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -944,14 +944,36 @@
     if (t < maj.repousseA) return;
     $('maj-bandeau').hidden = false;
   }
-  /* La mise à jour OBLIGATOIRE : l'écran de mise à jour, sans « Plus tard », qui part tout seul. ⛔ UNE SEULE FOIS PAR CHARGEMENT : revenue d'une mise à jour
+  /* ⛔ CE QU'ON ÉTAIT EN TRAIN D'ÉCRIRE SURVIT AU RECHARGEMENT (relecture du gardien, 6 octobre 2026) : les brouillons ne vivent qu'en mémoire, et une mise à jour
+     recharge la page. On les range dans le stockage de l'ONGLET (`sessionStorage` : effacé à sa fermeture, jamais partagé) juste avant, et on les reprend — puis on
+     les efface — au chargement suivant. Un stockage refusé (navigation privée) : on perd le brouillon, comme avant, sans casser la mise à jour. */
+  const CLE_BROUILLONS = 'opmsg-brouillons-maj';
+  function brouillonsGarder() {
+    try {
+      if (etat.conv) etat.brouillons[etat.conv] = $('saisie').value;
+      const b = {}; for (const [k, v] of Object.entries(etat.brouillons)) if (typeof v === 'string' && v.trim()) b[k] = v.slice(0, 20000);
+      if (Object.keys(b).length) sessionStorage.setItem(CLE_BROUILLONS, JSON.stringify(b)); else sessionStorage.removeItem(CLE_BROUILLONS);
+    } catch (e) { /* stockage refusé : la mise à jour part quand même */ }
+  }
+  (function brouillonsReprendre() {
+    try {
+      const brut = sessionStorage.getItem(CLE_BROUILLONS); if (!brut) return;
+      sessionStorage.removeItem(CLE_BROUILLONS);
+      const b = JSON.parse(brut);
+      if (b && typeof b === 'object') for (const [k, v] of Object.entries(b)) if (typeof v === 'string' && !etat.brouillons[k]) etat.brouillons[k] = v;
+    } catch (e) { /* rien à reprendre */ }
+  })();
+  /* La mise à jour OBLIGATOIRE : l'écran de mise à jour, sans « Plus tard », qui part tout seul.
+     ⛔ PAS PENDANT UN APPEL : recharger le couperait. Elle attend qu'il soit fini (la page n'envoie rien d'autre entre-temps : le service refuse déjà).
+     ⛔ UNE SEULE FOIS PAR CHARGEMENT : revenue d'une mise à jour
      (`?maj=1`) et toujours sous le minimum (un relais qui sert encore l'ancien fichier), la page ne relance pas en boucle — elle le DIT, et propose « Réessayer ». */
   function majObligatoire(min) {
     if (maj.enCours || maj.obligatoire) return;
+    if (etat.appelId) { clearTimeout(maj.apresAppel); maj.apresAppel = setTimeout(() => majObligatoire(min), 3000); return; }
     maj.obligatoire = min;
     $('maj-bandeau').hidden = true;
     $('maj-titre').textContent = 'Mise à jour obligatoire';
-    $('maj-sous').textContent = 'Cette version d\'OP MESSAGES n\'est plus acceptée : la nouvelle s\'installe. Rien n\'est perdu.';
+    $('maj-sous').textContent = 'Cette version d\'OP MESSAGES n\'est plus acceptée : la nouvelle s\'installe. Tes messages et ce que tu étais en train d\'écrire sont gardés.';
     if (majRetour) {
       $('maj-ecran').hidden = false; $('maj-reessayer').hidden = false;
       majProgres(4, 'La nouvelle version n\'a pas encore pu s\'installer : réessaie dans un instant.');
@@ -976,6 +998,7 @@
     try {
       await source.relireApplication((part, octets) => majProgres(part * 92 + 4, 'Téléchargement de la nouvelle version… ' + taille(octets)));
       majProgres(100, 'Redémarrage…');
+      brouillonsGarder();
       setTimeout(() => { location.replace(location.pathname + '?maj=1' + location.hash); }, 350);
     } catch (e) {
       maj.enCours = false;

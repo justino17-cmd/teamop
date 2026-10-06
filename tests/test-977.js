@@ -55,9 +55,12 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
     const NUM = parseInt((/const OPMSG_VERSION = ([0-9]+);/.exec(pageServie) || [])[1] || '0', 10);
     vrai('la page servie porte son numéro (' + NUM + ')', NUM >= 1);
     og = await T.fauxOpGestion({ alice: { pass: 'secret-alice', nom: 'Alice', actif: true } });
-    svc = await T.lancerService({ urlGestion: og.url, config: { beta: { relectureMs: 120 } } });
+    /* le service fait croire qu'il sert une page PLUS RÉCENTE (NUM + 5) : les en-têtes « NUM » du banc jouent la page restée en arrière, et la Tour peut exiger
+       jusqu'à NUM + 5 (au-delà, le service ignore un minimum que personne n'atteindrait — vérifié plus bas) */
+    const SERVIE = NUM + 5;
+    svc = await T.lancerService({ urlGestion: og.url, config: { beta: { relectureMs: 120 } }, env: { OPMSG_TEST_VERSION_PAGE: String(SERVIE) } });
     let r = await T.client(svc.base).get('/api/config');
-    v('/api/config annonce le numéro de la page servie', r.j && r.j.version_client, NUM);
+    v('/api/config annonce le numéro de la page servie', r.j && r.j.version_client, SERVIE);
     v('… et aucun minimum au-delà du plancher', r.j && r.j.min_client, 1);
     vrai('le service a demandé SON canal à OP GESTION', await T.attendre(() => og.versionAppels.some(a => a.app === 'messages' && a.canal === 'beta')));
     v('⛔ et ces relectures ne se mêlent pas aux appels de la porte', og.appels.filter(a => /version/.test(a.chemin)).length, 0);
@@ -100,6 +103,25 @@ const { creerVersionClient } = require(path.join(T.SERVICE, 'version-client.js')
     vrai('min_client revient au plancher', await T.attendre(async () => (await lu()) === 1, 6000));
     r = await alice.post('/api/agenda', EVT);
     v('une écriture sans numéro repasse', r.code, 201);
+    og.versionMin = NUM + 5;
+    await T.attendre(async () => (await lu()) === NUM + 5, 6000);
+    /* ⛔ LES GESTES DE PROTECTION passent sous le minimum (relecture du gardien) : se protéger, retirer son consentement, déconnecter un appareil, raccrocher */
+    for (const [chemin, corps] of [['/api/contacts/bloquer', { uid: 'p_inconnu' }], ['/api/push/desabonner', {}], ['/api/moi/appareils/deconnecter', {}], ['/api/appels/ap_inconnu/quitter', {}]]) {
+      r = await alice.post(chemin, corps);
+      v('⛔ sous le minimum, ' + chemin + ' n\'est pas refusé pour sa version (' + r.code + ')', r.code === 426, false);
+    }
+    r = await alice.post('/api/contacts/debloquer', { uid: 'p_inconnu' });
+    v('   … mais un geste ordinaire, si (débloquer : 426)', r.code, 426);
+
+    console.log('\n── 977 · un minimum qu\'aucune page servie n\'atteint est IGNORÉ ──');
+    og.versionMin = SERVIE + 1;
+    const ignore = await T.attendre(() => /version_min_ignoree/.test(svc.sortie.texte()), 6000);
+    vrai('⛔ au-dessus de la page servie (v' + (SERVIE + 1) + ' > v' + SERVIE + ') : le service l\'ignore et le DIT au journal', ignore);
+    v('   min_client revient au plancher : personne n\'est enfermé', await lu(), 1);
+    r = await alice.post('/api/agenda', EVT);
+    v('   et une écriture sans numéro passe', r.code, 201);
+    og.versionMin = SERVIE;
+    vrai('la page servie elle-même (v' + SERVIE + ') s\'exige normalement', await T.attendre(async () => (await lu()) === SERVIE, 6000));
     og.versionMin = NUM + 5;
     await T.attendre(async () => (await lu()) === NUM + 5, 6000);
     r = await alice.post('/api/compte/deconnexion', {});

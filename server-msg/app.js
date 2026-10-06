@@ -119,11 +119,15 @@ function construireApp(ctx) {
      `min_client` dans `/api/config` et reçoit ce 426). Le numéro voyage dans `X-OPM-Version` ; une page d'avant ce verrou ne l'envoie
      pas — elle passe tant qu'aucun minimum n'est exigé (`exige()` vaut 1 : toute page porte au moins 1), plus jamais ensuite.
      ⛔ Les mêmes gestes que sous le plancher de disque passent toujours (se déconnecter, supprimer son compte, exporter ses données,
-     acquitter un événement) : une version ancienne n'ôte pas un droit. */
+     acquitter un événement), et ceux de `SANS_VERSION` : une version ancienne n'ôte pas un droit.
+     ⚠️ Ce n'est PAS une frontière de sécurité (`X-OPM-Version: 99999` passe) : c'est l'ergonomie des pages honnêtes. Un correctif de sécurité se pose au service. */
+  /* ⛔ ET DES GESTES DE PROTECTION DE PLUS (relecture du gardien, 6 octobre 2026) : bloquer quelqu'un, retirer son consentement aux notifications, déconnecter un
+     appareil, raccrocher. Une page trop ancienne doit pouvoir se protéger et sortir d'un appel ; aucun de ces gestes n'écrit de contenu. Une seule liste, à côté de celle du disque. */
+  const SANS_VERSION = /^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack|contacts\/bloquer|push\/desabonner|moi\/appareils\/deconnecter|appels\/[^/]+\/quitter)\/?$/i;
   app.use((req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD' || !ctx.versionClient) return next();
     const exige = ctx.versionClient.exige();
-    if (exige < 2 || /^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack)\/?$/i.test(req.path)) return next();
+    if (exige < 2 || SANS_VERSION.test(req.path)) return next();
     const brut = String(req.headers['x-opm-version'] || '');
     const v = /^[0-9]{1,5}$/.test(brut) ? parseInt(brut, 10) : 0;
     if (v >= exige) return next();

@@ -6194,9 +6194,12 @@ function blocVersionBeta(b){
     exiger:'versionBetaExiger()', lever:'versionBetaLever()',
     note:'Sous ce minimum, la bêta se met à jour toute seule. ⛔ Rien de ce qui se règle ici ne touche les clients, ni le nuage : la version publique a sa propre carte, juste au-dessus.' });
 }
-function versionBetaExiger(){ if(!confirm('Exiger la dernière version de la BÊTA d’OP GESTION ?\n\nSeuls les appareils de la bêta sont concernés : sous ce numéro, ils se mettent à jour tout seuls. Les clients ne sont pas touchés.')) return;
+/* ⛔ un serveur d'AVANT lirait `{canal:'beta', min}` comme un minimum PUBLIC (et le pousserait chez Firestore) : on ne pose rien tant que le serveur n'a pas dit
+   qu'il tient la bêta à part (`VER.d.beta`) — relecture du gardien. */
+function versionBetaPrete(){ if(VER.d&&VER.d.beta) return true; toast('Le serveur ne tient pas encore la bêta à part — rien n’a été posé'); return false; }
+function versionBetaExiger(){ if(!versionBetaPrete()) return; if(!confirm('Exiger la dernière version de la BÊTA d’OP GESTION ?\n\nSeuls les appareils de la bêta sont concernés : sous ce numéro, ils se mettent à jour tout seuls. Les clients ne sont pas touchés.')) return;
   versionRegler({canal:'beta',min:'ligne'},'Bêta : dernière version exigée'); }
-function versionBetaLever(){ if(!confirm('Lever l’exigence de version de la bêta d’OP GESTION ?')) return; versionRegler({canal:'beta',min:0},'Bêta : exigence levée'); }
+function versionBetaLever(){ if(!versionBetaPrete()) return; if(!confirm('Lever l’exigence de version de la bêta d’OP GESTION ?')) return; versionRegler({canal:'beta',min:0},'Bêta : exigence levée'); }
 
 /* ── la console OP MESSAGES : ses deux instances, chacune sa carte ── */
 var MV={d:null,err:'',ts:0,encours:false};

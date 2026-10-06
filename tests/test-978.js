@@ -35,7 +35,7 @@ function bloc(motif) {
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour', 'nomEspace', 'nomTechnique',
-  'chargerVersion', 'versionRegler', 'versionExigerLigne', 'versionLever', 'blocVersions', 'carteCanal', 'blocVersionBeta', 'versionBetaExiger', 'versionBetaLever',
+  'chargerVersion', 'versionRegler', 'versionExigerLigne', 'versionLever', 'blocVersions', 'carteCanal', 'blocVersionBeta', 'versionBetaPrete', 'versionBetaExiger', 'versionBetaLever',
   'chargerVersionsMsg', 'versionMsgRegler', 'versionMsgExiger', 'versionMsgLever', 'carteMsg', 'blocVersionsMsg',
   'chargerEssais', 'btDeLaConsole', 'btAppsDe', 'btAvec', 'accLigneBeta', 'accBlocBeta', 'accFormBeta', 'vueEssaisMsg'];
 const VARS = ['VER', 'MV', 'MSG_CANAUX', 'BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
@@ -162,6 +162,10 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     console.log('\n── 978 · 4. un serveur d\'AVANT : chaque carte le dit ──');
     const TA = tour(B, PATRON, 'gestion');
     const avant = texte(TA.run('blocVersionBeta(undefined)'));
+    TA.run('VER.d={ok:true,min:760}');
+    TA.run('versionBetaExiger()');
+    vrai('⛔ et « Exiger » de la bêta ne POSTE rien sur un serveur d\'avant (il le lirait comme le minimum PUBLIC)', TA.confirmations.length === 0 && /rien n’a été posé/.test(TA.toasts.join(' ')));
+    v('   (le minimum public est resté à 760)', await version(''), 760);
     vrai('⛔ la bêta d\'OP GESTION : « pas encore de minimum à part », jamais « aucun »', /ne tient pas encore de minimum à part/.test(avant) && !/aucun/.test(avant));
     const TV = tour(B + '/inexistant', PATRON, 'messages');
     TV.run('chargerVersionsMsg()');

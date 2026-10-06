@@ -130,9 +130,12 @@ function demarrer(env = process.env) {
   const build = (() => { try { const m = /const OPMSG_BUILD = '([0-9a-f]{12})';/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return m ? m[1] : null; } catch (e) { return null; } })();
   /* LE NUMÉRO DE LA PAGE SERVIE (`OPMSG_VERSION`, posé par le générateur, +1 à chaque empreinte nouvelle) : c'est ce que la Tour
      exige (« Exiger la dernière version »), et ce que la page envoie à chaque écriture (`X-OPM-Version`). Illisible : 0. */
-  const versionPage = (() => { try { const m = /const OPMSG_VERSION = ([0-9]{1,5});/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return m ? parseInt(m[1], 10) : 0; } catch (e) { return 0; } })();
+  /* ⛔ LA PORTE DE BANC (`OPMSG_TEST_VERSION_PAGE`) : un banc fait croire que le service sert une page PLUS RÉCENTE que celle du dossier public, pour jouer une page
+     restée en arrière. Bêta seulement — en production elle est refusée au démarrage (`config.js`). */
+  const versionPageBanc = config.testVersionPage || 0;
+  const versionPage = (() => { try { const m = /const OPMSG_VERSION = ([0-9]{1,5});/.exec(fs.readFileSync(path.join(__dirname, 'public', 'opmsg-ui.js'), 'utf8')); return versionPageBanc || (m ? parseInt(m[1], 10) : 0); } catch (e) { return versionPageBanc; } })();
   /* LA VERSION MINIMALE que la Tour pose pour CETTE instance, relue chez OP GESTION (`version-client.js`) */
-  const versionClient = creerVersionClient({ config });
+  const versionClient = creerVersionClient({ config, versionPage, journaliser });
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, versionPage, versionClient, scelleur, sms,
     pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda,

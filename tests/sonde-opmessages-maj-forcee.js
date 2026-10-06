@@ -29,9 +29,11 @@ const NUM = parseInt((/const OPMSG_VERSION = ([0-9]+);/.exec(fs.readFileSync(pat
 
 (async () => {
   if (!NUM) { console.error('Sonde non lançable : server-msg/public/opmsg-ui.js ne porte pas de numéro (lancer node scripts/opmsg-public.js).'); process.exit(2); }
-  const og = await T.fauxOpGestion({ alice: { pass: MOT, nom: 'Alice Martin', actif: true } });
+  const og = await T.fauxOpGestion({ alice: { pass: MOT, nom: 'Alice Martin', actif: true }, bruno: { pass: 'pw-bruno-1234', nom: 'Bruno Petit', actif: true } });
   const port = await T.portLibre();
-  const svc = await T.lancerService({ port, urlGestion: og.url, config: { origines: ['http://127.0.0.1:' + port], beta: { relectureMs: 150 } } });
+  /* le service fait croire qu'il sert une page plus récente (NUM + 1) : la page chargée (NUM) est celle restée en arrière — sinon le service ignorerait un minimum
+     au-dessus de sa propre page (`version-client.js`), et la sonde ne jouerait rien */
+  const svc = await T.lancerService({ port, urlGestion: og.url, config: { origines: ['http://127.0.0.1:' + port], beta: { relectureMs: 150 } }, env: { OPMSG_TEST_VERSION_PAGE: String(NUM + 1) } });
   const minServi = async () => ((await T.client(svc.base).get('/api/config')).j || {}).min_client;
   const exiger = async (n) => { og.versionMin = n; return T.attendre(async () => (await minServi()) === Math.max(1, n), 8000); };
   let b = null;
@@ -65,6 +67,20 @@ const NUM = parseInt((/const OPMSG_VERSION = ([0-9]+);/.exec(fs.readFileSync(pat
     v('aucun écran de mise à jour', [await visible('maj-ecran'), await visible('maj-bandeau')], [false, false]);
 
     console.log('\n── 2. la Tour exige la version suivante : la page qui écrit se met à jour ──');
+    /* ⛔ un brouillon en cours (relecture du gardien) : il doit survivre au rechargement. Bruno devient contact d'Alice (par le service), Alice ouvre leur
+       conversation et commence à écrire — sans envoyer. */
+    const api = (m, chemin, corps) => page.evaluate(async ([m, chemin, corps]) => { const r = await fetch(chemin, { method: m, credentials: 'same-origin', headers: m === 'GET' ? {} : { 'Content-Type': 'application/json', 'X-OPM': '1' }, body: m === 'GET' ? undefined : JSON.stringify(corps) }); let j = null; try { j = await r.json(); } catch (e) {} return { s: r.status, j }; }, [m, chemin, corps]);
+    const bruno = await T.connecter(svc, og, 'bruno', 'pw-bruno-1234');
+    const idB = (await bruno.get('/api/moi')).j.moi.identifiant;
+    const t = await api('POST', '/api/contacts/identifiant', { identifiant: idB });
+    await api('POST', '/api/contacts/demander', { id: t.j && t.j.id });
+    const dem = ((await bruno.get('/api/contacts/demandes')).j || {});
+    const recue = (dem.recues || [])[0];
+    await bruno.post('/api/contacts/demandes/repondre', { id: recue && recue.id, accepter: true });
+    const dir = await api('POST', '/api/conversations/directe', { uid: t.j && t.j.id });
+    const convId = dir.j && (dir.j.id || (dir.j.conversation && dir.j.conversation.id));
+    if (convId) { await page.evaluate((id) => { location.hash = '#messages/' + id; }, convId); await attendre(() => { const x = document.getElementById('saisie'); return !!x && x.getClientRects().length > 0; }); await page.locator('#saisie').fill('Brouillon en cours, à ne pas perdre'); }
+    v('population : une conversation où écrire un brouillon', !!convId, true, ) ; if (!convId) console.log('      ' + JSON.stringify({ t: t.j, dem, dir }).slice(0, 600));
     vrai('le service a relu le minimum de la Tour (' + (NUM + 1) + ')', await exiger(NUM + 1));
     let lacher; retenir = { promesse: new Promise(r => { lacher = r; }) };
     const avant = chargements.length;
@@ -80,6 +96,7 @@ const NUM = parseInt((/const OPMSG_VERSION = ([0-9]+);/.exec(fs.readFileSync(pat
     await page.waitForLoadState('load');
 
     console.log('\n── 3. revenue toujours sous le minimum : elle le dit, sans boucler ──');
+    if (convId) vrai('⛔ le brouillon a survécu au rechargement : rouvert, la conversation le rend dans le champ', await page.evaluate((id) => { location.hash = '#messages'; setTimeout(() => { location.hash = '#messages/' + id; }, 80); return true; }, convId) && await attendre(() => { const x = document.getElementById('saisie'); return !!x && x.value === 'Brouillon en cours, à ne pas perdre'; }));
     vrai('« n\'a pas encore pu s\'installer », et « Réessayer »', await attendre(() => { const e = document.getElementById('maj-ecran'); const r = document.getElementById('maj-reessayer'); return !!e && !e.hidden && !!r && !r.hidden && document.getElementById('maj-etat').textContent.includes('pas encore pu'); }));
     await page.waitForTimeout(2500);
     v('⛔ aucun rechargement de plus tout seul', chargements.filter(s => s === '?maj=1').length, 1);
