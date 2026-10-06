@@ -441,7 +441,9 @@ $H2_ON
         proxy_set_header Host \$host;
         proxy_set_header X-Forwarded-For \$remote_addr;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 120s;
+        # ⛔ 900 s, pas 120 (relecture du gardien, A5) : après le dernier octet d'un fichier de 5 Go, le service le SYNCHRONISE sur le disque puis l'écrit en base ; sur un disque chargé,
+        # plus de deux minutes. nginx aurait répondu 504 pour une pièce bien rangée — et la page, qui réessaie, l'aurait envoyée une seconde fois.
+        proxy_read_timeout 900s;
         proxy_send_timeout 120s;
     }
 

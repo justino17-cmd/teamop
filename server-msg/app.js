@@ -95,6 +95,18 @@ function construireApp(ctx) {
   /* ⛔ le lecteur JSON ne touche JAMAIS au dépôt d'une pièce : son corps est un flux binaire que la route lit elle-même, au fil de l'eau. Sans cette exception, un client qui
      annonce « application/json » sur ce chemin ferait lire (et rejeter) son corps par un autre lecteur que celui qui juge le type et le poids. Le chemin se compare sans égard à la
      casse ni à la barre oblique finale, comme le routeur d'Express (`/API/pieces/` y mène aussi). */
+  /* ⛔ UN CORPS ORDINAIRE ARRIVE EN TRENTE SECONDES, OU LA CONNEXION SE FERME (relecture du gardien, 6 octobre 2026, A1, rejouée). Le délai de requête de Node se déduit désormais du
+     plus gros fichier (`server.requestTimeout`, ~22,7 h, index.js) ; derrière Caddy ou sans proxy (rien ne tamponne), n'importe qui pouvait ouvrir un POST qui annonce 60 Ko et
+     en envoyer un octet par minute — le lecteur JSON l'attendait 22 h, avant même la garde de session. Seul le dépôt d'une pièce a sa propre garde (un débit, `gardeDebit`). */
+  app.use((req, res, next) => {
+    if (req.method === 'POST' && /^\/api\/pieces\/?$/i.test(req.path)) return next();
+    const aUnCorps = req.headers['transfer-encoding'] !== undefined || (req.headers['content-length'] !== undefined && req.headers['content-length'] !== '0');
+    if (!aUnCorps || req.complete) return next();
+    const t = setTimeout(() => { if (!req.complete) { journaliser('corps_lent', {}); req.destroy(); } }, config.corpsLentMs);
+    const fin = () => clearTimeout(t);
+    req.on('end', fin); req.on('close', fin); res.on('close', fin);
+    next();
+  });
   const lecteurJson = express.json({ limit: '64kb', strict: true });
   app.use((req, res, next) => (req.method === 'POST' && /^\/api\/pieces\/?$/i.test(req.path)) ? next() : lecteurJson(req, res, next));
 

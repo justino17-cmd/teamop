@@ -25,7 +25,7 @@
  * est REFUSÉ (400) : un client d'avant qui l'enverrait encore le saurait au lieu de le voir silencieusement ignoré. Le bloc nginx de l'instance n'écrit plus de journal d'accès (`install-msg.sh`).
  */
 'use strict';
-const { ID_PIECE, enLigne, dispositionDe, couperNom } = require('./pieces');
+const { ID_PIECE, enLigne, dispositionDe, couperNom, gardeDebit } = require('./pieces');
 const { ID_CONV, nettoyerNom } = require('./routes');
 
 const Mo = 1048576, JOUR = 86400000;
@@ -200,9 +200,16 @@ function installerPieces(H, ctx) {
     let coupee = null;
     const couper = (raison) => { if (coupee) return; coupee = raison; ctx.journaliser('piece_lecture_coupee', { motif: raison }); try { res.destroy(); } catch (x) { /* déjà fermée */ } };
     const butoir = setTimeout(() => couper('duree'), pc.lectureMaxMs); if (butoir.unref) butoir.unref();
+    /* ⛔ ET UN DÉBIT MINIMAL, AU SEAU PLAFONNÉ (relecture du gardien, 6 octobre 2026, A2) : depuis qu'un fichier va jusqu'à 5 Go, la durée totale vaut six heures — un lecteur qui laisse
+       sa connexion se vider un peu toutes les 29 s tenait deux descripteurs six heures, et quelques adresses bloquaient toutes les lectures du service. Ce qui part compte (un bloc
+       accepté par la connexion) ; le temps vide le seau au débit minimal ; vide, la lecture est coupée — le même seau que le dépôt (`gardeDebit`), une avance ne se capitalise pas. */
+    const gl = gardeDebit({ debitMin: pc.lectureDebitMin, graceMs: pc.lectureAttenteMs });
+    gl.vigile.catch(() => couper('lent'));
     try {
       for await (const bloc of pieces.lire(p.id, debut, fin)) {
         if (res.destroyed || res.writableEnded) return;                     // le client est parti : on arrête de déchiffrer
+        gl.compter(bloc.length);
+        if (coupee) return;
         if (!res.write(bloc)) {
           await new Promise((ok) => {
             const attente = setTimeout(() => { fini(); couper('attente'); }, pc.lectureAttenteMs);
@@ -219,7 +226,7 @@ function installerPieces(H, ctx) {
          pendant qu'on la lisait (même course que ci-dessus : sa ligne n'existe plus) */
       if (stockage.pieceExiste(p.id)) { ctx.piecesEtat.illisibles++; ctx.journaliser('piece_illisible', { nom: e && e.code }); }
       try { res.destroy(); } catch (x) { /* déjà fermée */ }
-    } finally { clearTimeout(butoir); }
+    } finally { clearTimeout(butoir); gl.arreter(); }
   });
 
   /* ══ MA PHOTO DE PROFIL ═════════════════════════════════════════════════════════════════════════════════════════════════ */

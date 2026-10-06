@@ -153,6 +153,8 @@ vrai('⛔ le DÉPÔT D\'UNE PIÈCE a SA propre exception (5200 Mo — un fichier
 vrai('⛔ et cette route est bornée en DÉBIT et en ENVOIS SIMULTANÉS, par réseau ET pour tout le monde — et, depuis le 6 octobre 2026 (fichiers de 5 Go), SANS tampon sur le disque de nginx : 24 envois tamponnés de 5 Go feraient 122 Go, plus que le disque d\'OP GESTION ; le service juge session, maximum, quota et disque AVANT de lire et coupe un envoi trop lent',
   /limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(piecesBloc) && /limit_conn opmsg_conn_beta \d+;/.test(piecesBloc) && /limit_conn opmsg_depots_beta \d+;/.test(piecesBloc)
   && /limit_conn_zone \$opmsg_reseau_beta zone=opmsg_conn_beta:10m;/.test(ngxCode) && /limit_conn_zone \$server_name zone=opmsg_depots_beta:1m;/.test(ngxCode) && /^\s*proxy_request_buffering off;$/m.test(piecesBloc) && (ngxCode.match(/proxy_request_buffering/g) || []).length === 1);
+vrai('⛔ la fin d\'un gros envoi a 900 s (le service SYNCHRONISE 5 Go sur le disque avant de répondre) : 120 s, nginx répondait 504 pour une pièce rangée, et la page la renvoyait — relecture du gardien, A5',
+  /proxy_read_timeout 900s;/.test(piecesBloc));
 vrai('⛔ un plafond de débit par RÉSEAU (limit_req) devant le service — hors flux SSE, qui n\'est qu\'une requête longue par onglet',
   /limit_req_zone \$opmsg_reseau_beta zone=opmsg_beta:10m rate=\d+r\/s;/.test(ngx) && /location \/ \{\s*\n\s*limit_req zone=opmsg_beta burst=\d+ nodelay;/.test(ngx) && !/location = \/api\/flux \{[^}]*limit_req/.test(ngx));
 /* ⛔ relecture du gardien, A3 : la clé d'un plafond est le RÉSEAU (l'IPv4 entière, le /64 d'une IPv6), jamais l'adresse — et la table qui la calcule est dans le fichier */
