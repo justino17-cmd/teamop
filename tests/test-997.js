@@ -249,8 +249,12 @@ const sansAleas = (r) => JSON.stringify({ code: r.code, j: r.j });
       svc.avancer(61000);
       const R = T.client(svc.base, { xff: '10.3.1.1' }), n2 = relais.messages.length;
       await R.post('/api/mel/oubli', { courriel: ADR });
-      vrai('⛔ « mot de passe oublié » envoie quand même un code (sinon le compte serait verrouillé pour toujours)', await T.attendre(() => relais.messages.length > n2, 8000, 25));
-      const c2 = codeDe(messages()[n2]);
+      /* ⛔ ON VISE LE COURRIEL DU GESTE, PAS LE SUIVANT (pris en CI le 6 octobre 2026, run « Vérification des pages ») : la réinitialisation réussie
+         juste au-dessus envoie AUSSI « ton mot de passe a changé », et il peut arriver APRÈS `n2` — lu comme le courriel du code, il n'en porte aucun,
+         et la réponse est 400. On prend le premier courriel arrivé depuis `n2` qui porte le sujet d'une réinitialisation. */
+      const reinitDepuis = () => messages().slice(n2).find(x => x.sujet === 'Ton code pour un nouveau mot de passe OP MESSAGES');
+      vrai('⛔ « mot de passe oublié » envoie quand même un code (sinon le compte serait verrouillé pour toujours)', await T.attendre(() => !!reinitDepuis(), 8000, 25));
+      const c2 = codeDe(reinitDepuis());
       v('   et le nouveau mot de passe se pose : on entre', (await R.post('/api/mel/reinit', { courriel: ADR, code: c2, mdp: 'riviere-lanterne-sapin-47' })).code, 200);
     }
 
