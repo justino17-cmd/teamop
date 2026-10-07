@@ -19,7 +19,7 @@ Justin : « les catégories Contacts qui manquent », puis « fais le 2 » sans 
 un segmenté **Tous · Favoris · Groupes · Entreprise** sous la recherche (`rendreVueContacts`, `vcCats`, `rendreVcCategorie` dans `apercu/opmessages/index.html`).
 « Tous » garde les demandes en tête puis range les contacts **de A à Z** (une lettre par carte) ; « Favoris » ne garde que les **étoilés** ; « Groupes » liste les conversations
 de groupe (+ « Nouveau groupe ») ; « Entreprise » lit les collègues de chaque espace (`source.espaceContacts`) — rien ne s'affiche avant d'avoir été lu. La recherche filtre la
-catégorie choisie ; la catégorie se retient sur l'appareil (`opm_vc_cat`, rangement facultatif).
+catégorie choisie ; la catégorie vaut pour la visite (rien n'est rangé sur l'appareil).
 ⛔ **Le favori vit chez le SERVICE** (il suit la personne d'un appareil à l'autre) : migration **14** (`contact.favori`, sur MA ligne : il part avec le contact retiré), route
 `POST /api/contacts/favori {uid, favori}` (garde V, un booléen et rien d'autre, 404 pour un inconnu ou un bloqué), un bloqué ne ressort jamais favori, l'export le dit.
 `tests/test-921.js` (21 ✓, quatre mutations mordent), `tests/sonde-opmessages-categories.js` (23 ✓, iPhone puis bureau de nuit, l'étoile posée sur l'un se lit sur l'autre).

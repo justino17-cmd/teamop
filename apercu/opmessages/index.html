@@ -1383,7 +1383,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <h1 id="cx-mel-titre">OP MESSAGES</h1>
     <p class="connexion-sous">Content de te revoir&nbsp;!</p>
     <p class="connexion-erreur" role="alert" hidden></p>
-    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-mel-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Adresse e-mail, ou identifiant d'essai donné par la Tour</span><input id="cx-mel-adresse" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail ou identifiant"></label>
     <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-mel-mdp" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
     <button type="submit" class="connexion-bouton">Se connecter</button>
     <button type="button" class="cx-lien" data-cx="f-oubli">Mot de passe oublié&nbsp;?</button>
@@ -3711,6 +3711,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('f-mel').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-mel', async () => {
     const a = $('cx-mel-adresse').value.trim(), m = $('cx-mel-mdp').value;
     if (!a || !m) { erreurConnexion('Saisis ton adresse e-mail et ton mot de passe.'); return; }
+    /* ⛔ UN IDENTIFIANT D'ESSAI TAPÉ ICI (7 octobre 2026 : « quand je crée les accès et que je me connecte, ça ne marche pas ») : depuis que le compte par e-mail existe, c'est CE formulaire qui
+       s'ouvre, et l'identifiant donné par la Tour (« controle », sans @) y recevait « adresse e-mail incorrecte ». Ce qui n'a pas de @ n'est pas une adresse : il passe par la porte de l'essai,
+       exactement comme le formulaire « Accès d'essai ». */
+    if (!a.includes('@') && CAP.connexion && typeof source.connexion === 'function') {
+      try { const moi = await source.connexion(a, m); $('cx-mel-mdp').value = ''; if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload(); }
+      catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Identifiant ou mot de passe incorrect.'); return; } throw e; }
+      return;
+    }
     try { const moi = await source.connexionCourriel(a, m); $('cx-mel-mdp').value = ''; cxEntrer(moi); }
     catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Adresse e-mail ou mot de passe incorrect.'); return; } throw e; }
   }); });
@@ -4157,8 +4165,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       $('vc-recherche').addEventListener('input', () => rendreVueContacts());
       $('vc-seg').addEventListener('click', e => {
         const b = e.target.closest('[data-cat]'); if (!b) return;
-        etat.vcCat = b.dataset.cat;
-        try { localStorage.setItem('opm_vc_cat', etat.vcCat); } catch (x) { /* le rangement refusé : la catégorie vaut pour cette visite */ }
+        etat.vcCat = b.dataset.cat;                              // ⛔ rien n'est rangé sur l'appareil : la catégorie vaut pour la visite
         if (etat.vcCat === 'entreprise' && !etat.vcEsp) chargerVcEspaces();
         rendreVueContacts();
       });
@@ -4205,7 +4212,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* ── Les CATÉGORIES (7 octobre 2026, « les catégories Contacts qui manquent ») : Tous, Favoris, Groupes, Entreprise — comme les listes de Contacts sur iPhone et les filtres de WhatsApp.
      « Tous » garde les demandes en tête puis les contacts de A à Z ; « Favoris » ne garde que les étoilés (l'étoile vit chez le SERVICE : elle suit la personne d'un appareil à l'autre) ;
      « Groupes », les conversations de groupe ; « Entreprise », les collègues de chaque espace dont on est membre. La recherche filtre la catégorie choisie. Une catégorie dont la source
-     n'a pas le moyen (une source sans favoris, sans espaces) n'est pas proposée — et une catégorie mémorisée qui n'existe plus retombe sur « Tous ». ── */
+     n'a pas le moyen (une source sans favoris, sans espaces) n'est pas proposée — et une catégorie choisie qui n'existe plus retombe sur « Tous ». ── */
   function vcCats() {
     const L = [['tous', 'Tous']];
     if (CAP.favoris && typeof source.favori === 'function') L.push(['favoris', 'Favoris']);
@@ -4214,7 +4221,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     return L;
   }
   function vcCat() {
-    if (!etat.vcCat) { try { etat.vcCat = localStorage.getItem('opm_vc_cat') || 'tous'; } catch (x) { etat.vcCat = 'tous'; } }
+    if (!etat.vcCat) etat.vcCat = 'tous';
     if (!vcCats().some(c => c[0] === etat.vcCat)) etat.vcCat = 'tous';
     return etat.vcCat;
   }

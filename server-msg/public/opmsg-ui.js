@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'b2c48962730d';
+  const OPMSG_BUILD = '2e8b3504b690';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 17;
+  const OPMSG_VERSION = 20;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -2035,6 +2035,14 @@
   $('f-mel').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-mel', async () => {
     const a = $('cx-mel-adresse').value.trim(), m = $('cx-mel-mdp').value;
     if (!a || !m) { erreurConnexion('Saisis ton adresse e-mail et ton mot de passe.'); return; }
+    /* ⛔ UN IDENTIFIANT D'ESSAI TAPÉ ICI (7 octobre 2026 : « quand je crée les accès et que je me connecte, ça ne marche pas ») : depuis que le compte par e-mail existe, c'est CE formulaire qui
+       s'ouvre, et l'identifiant donné par la Tour (« controle », sans @) y recevait « adresse e-mail incorrecte ». Ce qui n'a pas de @ n'est pas une adresse : il passe par la porte de l'essai,
+       exactement comme le formulaire « Accès d'essai ». */
+    if (!a.includes('@') && CAP.connexion && typeof source.connexion === 'function') {
+      try { const moi = await source.connexion(a, m); $('cx-mel-mdp').value = ''; if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload(); }
+      catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Identifiant ou mot de passe incorrect.'); return; } throw e; }
+      return;
+    }
     try { const moi = await source.connexionCourriel(a, m); $('cx-mel-mdp').value = ''; cxEntrer(moi); }
     catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Adresse e-mail ou mot de passe incorrect.'); return; } throw e; }
   }); });
@@ -2481,8 +2489,7 @@
       $('vc-recherche').addEventListener('input', () => rendreVueContacts());
       $('vc-seg').addEventListener('click', e => {
         const b = e.target.closest('[data-cat]'); if (!b) return;
-        etat.vcCat = b.dataset.cat;
-        try { localStorage.setItem('opm_vc_cat', etat.vcCat); } catch (x) { /* le rangement refusé : la catégorie vaut pour cette visite */ }
+        etat.vcCat = b.dataset.cat;                              // ⛔ rien n'est rangé sur l'appareil : la catégorie vaut pour la visite
         if (etat.vcCat === 'entreprise' && !etat.vcEsp) chargerVcEspaces();
         rendreVueContacts();
       });
@@ -2529,7 +2536,7 @@
   /* ── Les CATÉGORIES (7 octobre 2026, « les catégories Contacts qui manquent ») : Tous, Favoris, Groupes, Entreprise — comme les listes de Contacts sur iPhone et les filtres de WhatsApp.
      « Tous » garde les demandes en tête puis les contacts de A à Z ; « Favoris » ne garde que les étoilés (l'étoile vit chez le SERVICE : elle suit la personne d'un appareil à l'autre) ;
      « Groupes », les conversations de groupe ; « Entreprise », les collègues de chaque espace dont on est membre. La recherche filtre la catégorie choisie. Une catégorie dont la source
-     n'a pas le moyen (une source sans favoris, sans espaces) n'est pas proposée — et une catégorie mémorisée qui n'existe plus retombe sur « Tous ». ── */
+     n'a pas le moyen (une source sans favoris, sans espaces) n'est pas proposée — et une catégorie choisie qui n'existe plus retombe sur « Tous ». ── */
   function vcCats() {
     const L = [['tous', 'Tous']];
     if (CAP.favoris && typeof source.favori === 'function') L.push(['favoris', 'Favoris']);
@@ -2538,7 +2545,7 @@
     return L;
   }
   function vcCat() {
-    if (!etat.vcCat) { try { etat.vcCat = localStorage.getItem('opm_vc_cat') || 'tous'; } catch (x) { etat.vcCat = 'tous'; } }
+    if (!etat.vcCat) etat.vcCat = 'tous';
     if (!vcCats().some(c => c[0] === etat.vcCat)) etat.vcCat = 'tous';
     return etat.vcCat;
   }
