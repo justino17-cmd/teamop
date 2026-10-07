@@ -356,6 +356,7 @@
       contactParNumero: (numero) => appel('POST', '/api/contacts/chercher', { numero }),
       demanderContact: (id) => appel('POST', '/api/contacts/demander', { id }),
       demanderCarte: (conv, seq) => appel('POST', '/api/contacts/demander_carte', { conv, seq }),      // demander la personne d'une fiche reçue dans une conversation
+      ecrireCarte: (conv, seq) => appel('POST', '/api/contacts/ecrire_carte', { conv, seq }),          // lui ÉCRIRE : la directe (une invitation, si l'on n'est pas encore en contact)
       demandesContact: () => appel('GET', '/api/contacts/demandes'),
       repondreDemande: (id, accepter) => appel('POST', '/api/contacts/demandes/repondre', { id, accepter: accepter === true }),
       annulerDemande: (id) => appel('POST', '/api/contacts/demandes/annuler', { id }),

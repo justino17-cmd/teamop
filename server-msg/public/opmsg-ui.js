@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'eba1ddf874db';
+  const OPMSG_BUILD = '0bf72a88a3c8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 77;
+  const OPMSG_VERSION = 80;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -150,16 +150,32 @@
       '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
       '<span class="conv-apercu" dir="auto">' + esc(c.apercu) + '</span></span></button></li>';
   }
+  /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
+     la liste les rassemble (comme « Archivées » chez WhatsApp, « Invitations » chez Instagram) ; on y entre, on ouvre, on accepte ou on refuse. */
+  function ligneInvitations(invits) {
+    const noms = invits.slice(0, 2).map(c => c.court || c.nom), plus = invits.length - noms.length;
+    const ap = noms.join(', ') + (plus > 0 ? ' et ' + plus + ' autre' + (plus > 1 ? 's' : '') : '') + (invits.length > 1 ? ' t\'ont écrit' : ' t\'a écrit');
+    return '<li><button type="button" class="conv presse conv-invit" data-invitations aria-label="Invitations, ' + invits.length + ' : ' + esc(ap) + '">' +
+      '<span class="conv-point">' + (invits.some(c => c.nonLu) ? '<i class="point"></i>' : '') + '</span><span class="avatar av-invit" aria-hidden="true">' + icone('i-chat') + '</span>' +
+      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">Invitations<span class="invit-n">' + invits.length + '</span></span>' + CHEVRON + '</span>' +
+      '<span class="conv-apercu" dir="auto">' + esc(ap) + '</span></span></button></li>';
+  }
   function rendreListe() {
     const q = norme(etat.recherche);
-    const vues = etat.conversations.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
+    const invits = etat.conversations.filter(c => c.invitation === 'recue');
+    if (!invits.length) etat.listeInvit = false;
+    const base = etat.listeInvit ? invits : etat.conversations.filter(c => c.invitation !== 'recue');
+    const vues = base.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
+    const tete = etat.listeInvit ? '<li class="liste-invit-tete"><button type="button" class="presse" data-invit-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Invitations</h2></li>' +
+      '<li class="liste-invit-note">Des personnes qui ne sont pas dans tes contacts t\'ont écrit. Tant que tu n\'as pas accepté, elles ne savent pas que tu as lu leur message.</li>'
+      : invits.length && !q ? ligneInvitations(invits) : '';
     /* ⛔ une conversation neuve s'anime UNE fois : le drapeau est consommé par ce rendu, pas gardé — sinon chaque frappe dans la
        recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
     const neuves = new Set(etat.neuves); etat.neuves.clear();
-    $('liste-conv').innerHTML = vues.length ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') :
-      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>' : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>');
+    $('liste-conv').innerHTML = tete + (vues.length || tete ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') :
+      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>' : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
-    const pins = etat.conversations.filter(c => c.epingle);
+    const pins = etat.listeInvit ? [] : etat.conversations.filter(c => c.epingle && c.invitation !== 'recue');
     $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
       avatar(c) + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>').join('');
     $('epingles').hidden = !pins.length;
@@ -317,6 +333,8 @@
       if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId) remplacer(r); else pousser(r);
       return;
     }
+    if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
+    if (e.target.closest('[data-invit-retour]')) { etat.listeInvit = false; rendreListe(); const r = document.querySelector('[data-invitations]'); if (r) r.focus({ preventScroll: true }); return; }
     const o = e.target.closest('[data-ouvrir]');
     if (o) ouvrirDepuisListe(o.dataset.ouvrir, o);
   });
@@ -414,10 +432,12 @@
   const fichesDemandees = new Map();         // message → ce que la demande a donné (« envoyee », « acceptee »…)
   function htmlCarteFiche(m, sens) {
     const f = m.carteContact, d = fichesDemandees.get(m.id);
+    /* « Écrire » à quelqu'un qui n'est pas (encore) un contact : une INVITATION — la personne trouve le message dans ses « Invitations » et choisit d'y répondre */
+    const ecrireInv = CAP.invitations ? '<button type="button" class="carte-btn presse" data-fiche-ecrire-carte="' + esc(m.id) + '">' + icone('i-chat') + '<span>Écrire</span></button>' : '';
     const action = f.indisponible ? '<span class="carte-sous">Cette personne ne se laisse plus trouver.</span>' : f.moi ? '<span class="carte-sous">C\'est toi</span>' :
       f.contact || d === 'acceptee' ? '<button type="button" class="carte-btn presse" data-fiche-ecrire="' + esc(f.uid) + '">' + icone('i-chat') + '<span>Écrire</span></button>' :
-      d ? '<button type="button" class="carte-btn presse" aria-disabled="true">Demande envoyée</button>' :
-      '<button type="button" class="carte-btn presse" data-fiche-ajouter="' + esc(m.id) + '">' + icone('i-personne') + '<span>Ajouter</span></button>';
+      ecrireInv + (d ? '<button type="button" class="carte-btn presse" aria-disabled="true">Demande envoyée</button>' :
+      '<button type="button" class="carte-btn presse" data-fiche-ajouter="' + esc(m.id) + '">' + icone('i-personne') + '<span>Ajouter</span></button>');
     return '<span class="carte-msg fiche ' + sens + '" role="group" aria-label="Fiche de ' + esc(f.prenom) + '">' +
       '<span class="fiche-haut">' + avatar({ initiales: f.initiales, avatar: f.avatar }) + '<span><span class="carte-titre" dir="auto">' + esc(f.prenom) + '</span><span class="carte-sous">' + esc(f.indisponible ? 'Fiche indisponible' : f.identifiant || 'Contact OP MESSAGES') + '</span></span></span>' +
       '<span class="carte-actions">' + action + '</span></span>';
@@ -546,12 +566,41 @@
     $('precedents').hidden = !(CAP.historique && c.aPlus);
     /* « Seuls les admins écrivent » : une personne qui n'est pas admin lit, elle n'écrit pas */
     const ferme = !!compoFerme(c);
-    $('compo').hidden = ferme || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
+    /* une invitation REÇUE (ou refusée) : on lit, on répond par un geste — pas de champ ; ENVOYÉE : on écrit, une ligne dit ce qui se passe de l'autre côté */
+    const iv = c && c.invitation, recue = iv === 'recue' || iv === 'refusee';
+    $('compo').hidden = ferme || recue || !!enr.etat && enr.etat !== 'repos'; $('compo-ferme').hidden = !ferme;
     if (ferme) $('compo-ferme').textContent = compoFerme(c);
+    $('compo-invit').hidden = ferme || !recue;
+    if (recue && !ferme) {
+      const p = (c.court || c.nom || '').split(' ')[0] || 'Cette personne';
+      $('compo-invit-texte').textContent = iv === 'refusee' ? 'Tu as refusé cette invitation. ' + p + ' ne le sait pas.' : p + ' ne fait pas partie de tes contacts. Accepte pour lui répondre : tant que tu n\'as pas accepté, ' + p + ' ne sait pas que tu as lu son message.';
+      document.querySelectorAll('#compo-invit [data-invit="accepter"], #compo-invit [data-invit="refuser"]').forEach(b => { b.hidden = iv === 'refusee'; });
+    }
+    $('compo-note').hidden = iv !== 'envoyee' || ferme;
+    if (iv === 'envoyee') $('compo-note').textContent = 'Invitation : ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + ' trouvera ton message dans ses invitations, et choisira d\'y répondre.';
     appliquerLecture();
     if (colle) defilerBas();
   }
   function defilerBas() { const f = $('conv-fil'); f.scrollTop = f.scrollHeight; }
+  /* répondre à une invitation : accepter (un contact : chacun écrit), refuser (elle quitte ma liste, son auteur n'en sait rien), bloquer (deux touches : « Confirmer le blocage ») */
+  let invitBloquer = 0;
+  $('compo-invit').addEventListener('click', async e => {
+    const b = e.target.closest('[data-invit]'), c = etat.convDonnees;
+    if (!b || b.getAttribute('aria-disabled') === 'true' || !c || !c.autre) return;
+    const g = b.dataset.invit, conv = c.id;
+    if (g === 'bloquer' && Date.now() - invitBloquer > 5000) { invitBloquer = Date.now(); b.textContent = 'Confirmer le blocage'; setTimeout(() => { if (Date.now() - invitBloquer >= 5000) b.textContent = 'Bloquer'; }, 5000); return; }
+    invitBloquer = 0;
+    document.querySelectorAll('#compo-invit [data-invit]').forEach(x => x.setAttribute('aria-disabled', 'true'));
+    try {
+      if (g === 'bloquer') { await source.bloquer(c.autre); mot('Bloqué'); }
+      else {
+        const r = await source.repondreInvitation(conv, c.autre, g === 'accepter');
+        mot(r === 'acceptee' ? 'Invitation acceptée : vous êtes en contact' : 'Invitation refusée');
+        if (r !== 'acceptee' && etat.conv === conv) $('conv-retour').click();      // refusée : on revient à la liste, d'où elle est partie
+      }
+    } catch (er) { avis(phrase(er, 'La réponse n\'a pas pu partir.')); }
+    finally { document.querySelectorAll('#compo-invit [data-invit]').forEach(x => { x.removeAttribute('aria-disabled'); if (x.dataset.invit === 'bloquer') x.textContent = 'Bloquer'; }); }
+  });
   const trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);
 
   async function ouvrirConv(id) {
@@ -1028,6 +1077,17 @@
         er => { fa.removeAttribute('aria-disabled'); avis(phrase(er, 'La demande n\'a pas pu partir.')); });
       return true;
     }
+    const fw = e.target.closest('[data-fiche-ecrire-carte]');
+    if (fw) {
+      const mid = fw.dataset.ficheEcrireCarte, m = trouverMessage(mid); if (!m || !conv || fw.getAttribute('aria-disabled') === 'true') return true;
+      fw.setAttribute('aria-disabled', 'true');
+      source.ecrireCarte(conv, m.seq).then(r => {
+        fichesDemandees.set(mid, r.resultat === 'deja' ? 'acceptee' : r.resultat); fw.removeAttribute('aria-disabled');
+        if (r.resultat === 'envoyee') mot('Invitation : écris ton message');
+        pousser({ vue: 'messages', conv: r.conv, feuille: false, photo: null, appel: null });
+      }, er => { fw.removeAttribute('aria-disabled'); avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.')); });
+      return true;
+    }
     const fe = e.target.closest('[data-fiche-ecrire]');
     if (fe) { source.ouvrirDirecte(fe.dataset.ficheEcrire).then(c => pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }), er => avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.'))); return true; }
     return false;
@@ -1276,7 +1336,7 @@
     $('notif-texte').textContent = texte;
     $('notif-aide').textContent = aide || '';
     /* une demande de contact se TOUCHE : la bannière mène à l'onglet Contacts, où l'on accepte ou refuse */
-    const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : '';
+    const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : cible === 'invitations' ? 'invitations' : '';
     $('notif').dataset.vers = vers; $('notif').classList.toggle('touchable', !!vers);
     $('notif').classList.add('on');
     minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
@@ -1366,9 +1426,11 @@
     }
   }
   $('notif').addEventListener('click', () => {
-    if ($('notif').dataset.vers !== 'contacts' || !$('notif').classList.contains('on')) return;
+    const vers = $('notif').dataset.vers;
+    if ((vers !== 'contacts' && vers !== 'invitations') || !$('notif').classList.contains('on')) return;
     clearTimeout(minNotif); $('notif').classList.remove('on', 'touchable');
-    const r = { vue: 'contacts', conv: null, feuille: false, photo: null, appel: null };
+    if (vers === 'invitations') { etat.listeInvit = true; rendreListe(); }      // « Invitations » : la liste des messages, ouverte sur les invitations
+    const r = { vue: vers === 'invitations' ? 'messages' : 'contacts', conv: null, feuille: false, photo: null, appel: null };
     if (!memeRoute(etat.route, r)) pousser(r);
   });
   $('maj-bouton').addEventListener('click', () => { appliquerMaj(); });
@@ -3777,6 +3839,7 @@
   /* ── les bannières du temps réel ── */
   function surArrivee(ev) {
     if (ev.conv === etat.conv && document.visibilityState === 'visible') return;      // la conversation est sous les yeux : le message y paraît, pas de bannière
+    if (ev.invitation) { notifier('Invitation · ' + ev.de, 'Quelqu\'un qui n\'est pas dans tes contacts souhaite t\'écrire. Touche pour voir tes invitations.', 'invitations'); return; }
     notifier(ev.groupe && ev.convNom ? ev.de + ' · ' + ev.convNom : ev.de, ev.texte || 'Nouveau message');
   }
   function surRetire(id) {

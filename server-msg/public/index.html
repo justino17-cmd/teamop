@@ -761,6 +761,24 @@ button.photo:active { transform: scale(.97); }
   .pilule-saisie textarea { height: 44px; }
 }
 .compo-ferme { margin: 0 auto; max-width: 860px; padding: 11px 8px; text-align: center; font-size: 15px; line-height: 20px; color: var(--text); }
+/* L'INVITATION (7 octobre 2026) : qui la reçoit lit, et répond par trois gestes — accepter, refuser, bloquer — au lieu d'écrire ; qui l'envoie écrit, une ligne le lui rappelle */
+.compo-invit { margin: 0 auto; max-width: 860px; padding: 8px 8px 4px; text-align: center; }
+.compo-invit p { margin: 0 0 10px; font-size: 15px; line-height: 20px; color: var(--text); }
+.compo-invit-gestes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.compo-invit-gestes button { flex: 1 1 0; min-width: 96px; max-width: 200px; min-height: 44px; padding: 0 16px; border-radius: 22px; font-size: 16px; font-weight: 600; background: var(--field); color: var(--text); }
+.compo-invit-gestes .accepter { background: var(--fill); color: var(--on-fill); }
+.compo-invit-gestes .bloquer { color: var(--rouge-txt); }
+.compo-invit-gestes [aria-disabled="true"] { opacity: .55; }
+.compo-note { margin: 0 auto 6px; max-width: 860px; padding: 0 12px; font-size: 13px; line-height: 17px; color: var(--sub-meta); text-align: center; }
+/* « Invitations » en tête de la liste (comme « Archivées » chez WhatsApp), et l'en-tête de la liste des invitations */
+.av-invit { display: grid; place-items: center; background: var(--fill); color: var(--on-fill); }
+.av-invit .ic { width: 24px; height: 24px; }
+.invit-n { flex: none; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; display: inline-grid; place-items: center; background: var(--fill); color: var(--on-fill); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 6px; }
+.liste-invit-tete { display: flex; align-items: center; gap: 6px; padding: 4px 4px 2px; list-style: none; }
+.liste-invit-tete button { min-height: 44px; display: inline-flex; align-items: center; gap: 2px; padding: 0 8px; font-size: 17px; color: var(--accent); background: none; }
+.liste-invit-tete button .ic { width: 22px; height: 22px; }
+.liste-invit-tete h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.liste-invit-note { list-style: none; padding: 0 16px 10px; font-size: 13px; line-height: 18px; color: var(--sub-meta); }
 .enreg { align-items: center; min-height: 44px; }
 .enreg-annuler { color: var(--rouge); }
 .enreg-point { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--rouge); animation: pulse 1s infinite; }
@@ -2002,6 +2020,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p class="avis-saisie" id="avis" role="status" aria-live="polite" hidden></p>
     <footer class="composer" data-glass="1">
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
+      <p class="compo-note" id="compo-note" hidden></p>
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
@@ -2021,6 +2040,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         <button type="button" class="compo-bouton envoyer presse" id="enreg-envoyer" aria-label="Envoyer le message vocal"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
       </div>
       <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
+      <div class="compo-invit" id="compo-invit" role="group" aria-labelledby="compo-invit-texte" hidden>
+        <p id="compo-invit-texte"></p>
+        <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-invit="accepter">Accepter</button><button type="button" class="presse" data-invit="refuser">Refuser</button><button type="button" class="bloquer presse" data-invit="bloquer">Bloquer</button></div>
+      </div>
     </footer>
   </section>
 

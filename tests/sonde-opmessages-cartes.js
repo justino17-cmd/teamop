@@ -96,7 +96,7 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', dan: 'Dan Banc' };
     vrai('la fiche de Dan part : chez Ben, son prénom, son identifiant, « Ajouter »', await att(B, () => { const c = document.querySelector('#conv-messages .carte-msg.fiche'); return !!c && /Dan/.test(c.textContent) && !/Banc/.test(c.textContent) && !!c.querySelector('[data-fiche-ajouter]'); }));
     vrai('chez Ana (déjà en contact avec Dan) : « Écrire »', await att(A, () => { const c = document.querySelector('#conv-messages .carte-msg.fiche'); return !!c && !!c.querySelector('[data-fiche-ecrire]'); }));
     await B.page.locator('#conv-messages .carte-msg.fiche [data-fiche-ajouter]').click();
-    vrai('Ben touche « Ajouter » : « Demande envoyée »', await att(B, () => { const c = document.querySelector('#conv-messages .carte-msg.fiche .carte-btn'); return !!c && c.textContent.trim() === 'Demande envoyée' && c.getAttribute('aria-disabled') === 'true'; }));
+    vrai('Ben touche « Ajouter » : « Demande envoyée » (et « Écrire » reste : une invitation, test-928)', await att(B, () => { const l = Array.from(document.querySelectorAll('#conv-messages .carte-msg.fiche .carte-btn')); return l.length === 2 && l[0].textContent.trim() === 'Écrire' && l[1].textContent.trim() === 'Demande envoyée' && l[1].getAttribute('aria-disabled') === 'true'; }));
     vrai('…et Dan a bien la demande de Ben', ((await D0.get('/api/contacts/demandes')).j.recues || []).some(x => x.id === B0.moi.id));
     await capture(B, 'cartes-5-fiche');
 
