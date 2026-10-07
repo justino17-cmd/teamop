@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '14d07a73d725';
+  const OPMSG_BUILD = '89e6c7165824';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 62;
+  const OPMSG_VERSION = 64;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -412,12 +412,12 @@
   const fichesDemandees = new Map();         // message → ce que la demande a donné (« envoyee », « acceptee »…)
   function htmlCarteFiche(m, sens) {
     const f = m.carteContact, d = fichesDemandees.get(m.id);
-    const action = f.moi ? '<span class="carte-sous">C\'est toi</span>' :
+    const action = f.indisponible ? '<span class="carte-sous">Cette personne ne se laisse plus trouver.</span>' : f.moi ? '<span class="carte-sous">C\'est toi</span>' :
       f.contact || d === 'acceptee' ? '<button type="button" class="carte-btn presse" data-fiche-ecrire="' + esc(f.uid) + '">' + icone('i-chat') + '<span>Écrire</span></button>' :
       d ? '<button type="button" class="carte-btn presse" aria-disabled="true">Demande envoyée</button>' :
       '<button type="button" class="carte-btn presse" data-fiche-ajouter="' + esc(m.id) + '">' + icone('i-personne') + '<span>Ajouter</span></button>';
     return '<span class="carte-msg fiche ' + sens + '" role="group" aria-label="Fiche de ' + esc(f.prenom) + '">' +
-      '<span class="fiche-haut">' + avatar({ initiales: f.initiales, avatar: f.avatar }) + '<span><span class="carte-titre" dir="auto">' + esc(f.prenom) + '</span><span class="carte-sous">' + esc(f.identifiant || 'Contact OP MESSAGES') + '</span></span></span>' +
+      '<span class="fiche-haut">' + avatar({ initiales: f.initiales, avatar: f.avatar }) + '<span><span class="carte-titre" dir="auto">' + esc(f.prenom) + '</span><span class="carte-sous">' + esc(f.indisponible ? 'Fiche indisponible' : f.identifiant || 'Contact OP MESSAGES') + '</span></span></span>' +
       '<span class="carte-actions">' + action + '</span></span>';
   }
   /* le sondage : ses règles DITES (on sait d'avance si c'est anonyme, si l'on verra les résultats), un choix par rangée qu'on touche pour voter — une réponse ou plusieurs —,
@@ -442,12 +442,12 @@
     h += '<span class="sond-regles">' + esc(reglesTexte(s)) + '</span><span class="sond-liste">';
     const vol = sondEnVol.has(m.id), total = s.votants || 0;
     for (const c of s.choix) {
-      const pct = s.resultats && total ? Math.round((c.n || 0) * 100 / total) : 0;
-      const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + (c.n || 0) + ' vote' + ((c.n || 0) > 1 ? 's' : '') : '');
-      h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + c.idx + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
+      const n = c.n | 0, pct = s.resultats && total ? Math.max(0, Math.min(100, Math.round(n * 100 / total))) : 0;
+      const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + n + ' vote' + (n > 1 ? 's' : '') : '');
+      h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + (c.idx | 0) + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
         (s.resultats ? '<span class="sond-barre" style="--p:' + pct + '%"></span>' : '') +
         '<span class="sond-coche" aria-hidden="true"></span><span class="sond-texte" dir="auto">' + esc(c.texte) + '</span>' +
-        '<span class="sond-n" aria-hidden="true">' + (s.resultats ? (c.n || 0) : '') + '</span>' +
+        '<span class="sond-n" aria-hidden="true">' + (s.resultats ? n : '') + '</span>' +
         (s.resultats && c.qui && c.qui.length ? '<span class="sond-qui" aria-hidden="true">' + esc(quiTexte(c.qui)) + '</span>' : c.ajoutePar ? '<span class="sond-qui" aria-hidden="true">Ajouté par ' + esc(c.ajoutePar) + '</span>' : '') + '</button>';
     }
     h += '</span>';
@@ -4203,8 +4203,9 @@
     const corps = $('info-corps'), jeton = etat.groupe.cle;
     const encore = () => etat.groupe.ouvert && etat.groupe.mode === 'position' && etat.groupe.cle === jeton;
     corps.innerHTML = '<p class="vide">Chargement…</p>';
-    let conf = reg.conf;
-    if (!conf) { try { conf = reg.conf = await source.confidentialite(); } catch (x) { if (encore()) corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(phrase(x, 'Le réglage n\'a pas pu être lu.')) + '</p><div class="info-actions"><button type="button" class="mini" data-pos="relire">Réessayer</button></div>'; return; } }
+    /* ⛔ le réglage se relit au SERVICE à chaque ouverture (relecture du gardien) : coupé depuis un autre appareil, la page ne demande même pas où est celui-ci */
+    let conf;
+    try { conf = reg.conf = await source.confidentialite(); } catch (x) { if (encore()) corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(phrase(x, 'Le réglage n\'a pas pu être lu.')) + '</p><div class="info-actions"><button type="button" class="mini" data-pos="relire">Réessayer</button></div>'; return; }
     if (!encore()) return;
     if (!conf.position) {
       corps.innerHTML = '<div class="pos-explication"><span class="pos-epingle" aria-hidden="true">' + icone('i-lieu') + '</span><h3>Le partage de position est coupé</h3>' +

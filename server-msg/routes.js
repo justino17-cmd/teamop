@@ -26,8 +26,9 @@ const EPHEMERES = [0, 86400, 604800, 7776000];
 const MSG_MAX = 8000, SESSION_MS = 30 * 86400000, JOUR = 86400000;
 const EMOJI = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️|⃣){1,12}$/u;
 const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
-/* `position` : le bouton « Position » des conversations. ⛔ COUPÉ PAR DÉFAUT (7 octobre 2026 : « quand on clique dessus, il faut qu'il l'active dans les paramètres, c'est une sécurité pour eux ») */
-const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses', 'position'];
+/* ⛔ `position` (le bouton « Position » des conversations, COUPÉ par défaut — 7 octobre 2026 : « il faut qu'il l'active dans les paramètres, c'est une sécurité pour eux ») N'EST PAS ICI :
+   une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
+const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
 const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
 const CARTES = ['position', 'contact', 'sondage'];      // un message « carte » : un texte (son résumé, pour les versions d'avant) qui porte `meta.k`
 const RESULTATS_SONDAGE = ['toujours', 'apres_vote', 'apres_cloture'];
@@ -584,8 +585,8 @@ function creerHandlers(ctx) {
       const p = stockage.personneParId(uid);
       if (!p || p.etat !== 'actif' || stockage.suppressionLe(uid) !== null) return non(404, 'introuvable');
       if (stockage.telTrouvableLire(uid) !== 'tous') return non(403, 'contact_non_partageable');
-      const prenom = String(p.prenom || '').trim().split(/\s+/)[0] || 'Contact', identifiant = stockage.identDe(uid) || null;
-      return { texte: '👤 Contact : ' + prenom + (identifiant ? ' (' + identifiant + ')' : ''), meta: { k: 'contact', uid, prenom, identifiant } };
+      /* le message ne garde QUE l'identifiant : prénom et identifiant public se relisent à chaque lecture, tant que la personne se laisse trouver (`metaLue`) — et le résumé ne nomme personne */
+      return { texte: '👤 Fiche de contact', meta: { k: 'contact', uid } };
     }
     /* le sondage : une question, de deux à douze choix, et ses RÈGLES */
     const q = typeof b.question === 'string' ? nettoyerTexte(b.question).replace(/\s+/g, ' ').trim() : '';
@@ -637,6 +638,7 @@ function creerHandlers(ctx) {
   };
   H['sondage.clore'] = (req, res) => {
     const s = seqParam(req); if (!s) return refus(res, 400, 'champ_invalide');
+    if (!stockage.ecritureAutorisee(req.conv.conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
     stockage.sondageClore(req.conv.conv.id, s, req.moi.id);
     hub.reveiller({ conv: req.conv.conv.id });
     res.json(stockage.sondageVue(req.conv.conv.id, s, req.moi.id));

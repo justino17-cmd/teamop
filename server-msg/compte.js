@@ -81,7 +81,7 @@ function installerCompte(H, ctx) {
       const jour = new Date(t).toISOString().slice(0, 10);
       res.status(200);
       res.set({ 'Content-Type': 'application/json; charset=utf-8', 'Content-Disposition': 'attachment; filename="opmessages-export-' + jour + '.json"', 'Cache-Control': 'no-store' });
-      const reglages = { presence: profil.prefs.presence !== false, accuses: profil.prefs.accuses !== false, apercu_notif: profil.prefs.apercu_notif === true, trouvable: profil.trouvable };
+      const reglages = { presence: profil.prefs.presence !== false, accuses: profil.prefs.accuses !== false, apercu_notif: profil.prefs.apercu_notif === true, trouvable: profil.trouvable, position: profil.prefs.position === true };
       const contacts = stockage.contactsDe(uid).map(c => ({ id: c.id, prenom: c.prenom, nom: c.nom, statut: c.statut, depuis: c.depuis, bloque: !!c.bloque, mutuel: !!c.mutuel, favori: !!c.favori }));
       await ecrire('{"format":"opmessages-export-v1","genere_le":' + J(new Date(t).toISOString()) +
         ',"avertissement":' + J('Ce fichier contient TES données dans OP MESSAGES : ton profil, tes réglages, ton identifiant public, tes contacts et tes demandes de contact, tes espaces et tes réunions, l\'historique de tes appels (quand, combien de temps, avec quel identifiant : jamais ce qui s\'est dit), les conversations dont tu es membre avec les messages que tu peux y lire, et la liste de tes pièces (sans leur contenu). Il ne contient rien des autres au-delà de ce que tu vois déjà. Ton numéro de téléphone n\'y figure pas : le service ne le rend à personne, toi comprise.') +

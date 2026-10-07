@@ -154,6 +154,7 @@
     partage_interdit: 'L\'hôte n\'autorise pas le partage d\'écran.',
     evt_trop_gros: 'Ce message est trop gros pour la salle (2 Ko au plus).',
     annot_pleine: 'Le dessin est plein : efface des annotations pour continuer.',
+    reunion_introuvable: 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.',
     position_desactivee: 'Le partage de position est coupé : allume-le dans Profil › Confidentialité.',
     contact_non_partageable: 'Ce contact ne se laisse pas trouver : sa fiche ne se partage pas.',
     sondage_clos: 'Ce sondage est clos.',

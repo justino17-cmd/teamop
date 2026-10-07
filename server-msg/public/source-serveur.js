@@ -1995,7 +1995,9 @@
     }
     function vueCarte(conv, m) {
       const x = m.meta;
-      if (x.k === 'position' && Number.isFinite(x.lat) && Number.isFinite(x.lng)) return { position: { lat: x.lat, lng: x.lng, prec: Number.isInteger(x.prec) ? x.prec : null } };
+      if (x.k === 'position' && Number.isFinite(x.lat) && Number.isFinite(x.lng) && Math.abs(x.lat) <= 90 && Math.abs(x.lng) <= 180) return { position: { lat: x.lat, lng: x.lng, prec: Number.isInteger(x.prec) ? x.prec : null } };
+      /* une fiche dont la personne ne se laisse plus trouver (ou dont le compte est effacé) : le service ne dit plus qui c'est (`uid: null`) */
+      if (x.k === 'contact' && x.uid === null) return { carteContact: { uid: null, indisponible: true, prenom: 'Contact', identifiant: null, moi: false, contact: false, avatar: 0, initiales: '?' } };
       if (x.k === 'contact' && typeof x.uid === 'string') return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact: contactsApi.some(k => k.id === x.uid), avatar: indexAvatar(x.uid), initiales: initialesDe(x.prenom || '?') } };
       if (x.k === 'sondage') return { sondage: vueSondage(conv, m.seq, x.q) };
       return null;

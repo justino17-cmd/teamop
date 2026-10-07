@@ -13,8 +13,11 @@
      · chaque changement prévient les membres (`sondage` : « relis-le », chacun avec SES droits) ;
      · une carte ne se modifie pas ; mes votes partent dans « Mes données ».  */
 'use strict';
+const path = require('path');
 const T = require('./outils-msg');
 T.sauterSiSansDependances();
+const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
+const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const { v, vrai, fin } = T.compteur();
 const MDP = (l) => 'pw-' + l + '-1234';
 
@@ -22,10 +25,10 @@ const MDP = (l) => 'pw-' + l + '-1234';
   const og = await T.fauxOpGestion(Object.fromEntries(['alice', 'bruno', 'carla', 'dave', 'eve'].map(l => [l, { pass: MDP(l), nom: l[0].toUpperCase() + l.slice(1) + ' Banc', actif: true }])));
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true });
   const flux = [];
-  const path = require('path');
   const compter = (sql, ...a) => { const d = T.lireBase(path.join(svc.data, 'msg.db')); try { return d.prepare(sql).get(...a).n; } finally { d.close(); } };
   try {
     const [A, B, C, D, E] = await Promise.all(['alice', 'bruno', 'carla', 'dave', 'eve'].map(l => T.connecter(svc, og, l, MDP(l))));
+    const B0id = B.moi.id;
     const relier = async (x, y) => { const l = await x.post('/api/contacts/lien', {}); await y.post('/api/liens/accepter', { code: l.j.code }); };
     await relier(A, B); await relier(A, C); await relier(A, D); await relier(A, E); await relier(B, C);
     const G = (await A.post('/api/conversations/groupe', { nom: 'Chantier Nord', membres: [B.moi.id, C.moi.id] })).j.conversation.id;
@@ -41,6 +44,8 @@ const MDP = (l) => 'pw-' + l + '-1234';
     v('⛔ envoyer une position sans l\'avoir allumée : 403 position_desactivee (le service refuse, pas seulement la page)', [r.code, r.j.error], [403, 'position_desactivee']);
     r = await A.post('/api/moi/confidentialite', { position: 'oui' });
     v('le réglage n\'accepte qu\'un vrai ou faux', r.code, 400);
+    await A.post('/api/moi/maj', { prefs: { position: true } });
+    v('⛔ une seule porte l\'allume : « position » glissée dans les préférences générales (`/api/moi/maj`) n\'allume rien', [(await A.get('/api/moi/confidentialite')).j.position, (await envoyer(A, { type: 'position', lat: 1, lng: 1 })).code], [false, 403]);
     r = await A.post('/api/moi/confidentialite', { position: true });
     v('Alice l\'allume dans Confidentialité', [r.code, r.j.position], [200, true]);
     r = await envoyer(A, { type: 'position', lat: 48.8566123456, lng: 2.3522, precision: 12 });
@@ -64,7 +69,7 @@ const MDP = (l) => 'pw-' + l + '-1234';
     const seqFiche = r.j.seq;
     m = await message(C, seqFiche);
     v('Carla reçoit une carte « contact » : l\'identifiant de Dave, son prénom seul', [m.meta.k, m.meta.uid, m.meta.prenom, typeof m.meta.identifiant], ['contact', D.moi.id, 'Dave', 'string']);
-    vrai('le résumé dit « Contact » et le prénom, pas le nom de famille', m.texte.startsWith('👤 Contact : Dave') && !/Banc/.test(m.texte));
+    v('⛔ le résumé (notification, aperçu, version d\'avant) ne nomme personne', m.texte, '👤 Fiche de contact');
     const refusesFiche = await Promise.all([
       envoyer(B, { type: 'contact', uid: D.moi.id }), envoyer(A, { type: 'contact', uid: A.moi.id }), envoyer(A, { type: 'contact', uid: 'p_x' }), envoyer(A, { type: 'contact' }),
     ]);
@@ -75,9 +80,11 @@ const MDP = (l) => 'pw-' + l + '-1234';
     const demander = (P, corps) => P.post('/api/contacts/demander_carte', corps);
     r = await demander(C, { conv: G, seq: seqFiche });
     v('⛔ …et la fiche DÉJÀ envoyée ne permet plus de le demander (son choix vaut à l\'instant de la demande)', r.code, 404);
+    v('⛔ …ni ne dit plus qui il est : la fiche se lit à l\'instant (ni identifiant, ni prénom)', (await message(C, seqFiche)).meta, { k: 'contact', uid: null, prenom: null, identifiant: null });
     await D.post('/api/moi/confidentialite', { trouvable: 'tous' });
     r = await demander(C, { conv: G, seq: seqFiche });
     v('Dave se laisse trouver de nouveau : Carla le demande depuis la fiche reçue — demande envoyée', [r.code, r.j.resultat], [200, 'envoyee']);
+    v('…et sa fiche redit qui il est', [(await message(C, seqFiche)).meta.uid, (await message(C, seqFiche)).meta.prenom], [D.moi.id, 'Dave']);
     const recues = (await D.get('/api/contacts/demandes')).j.recues || [];
     vrai('Dave voit la demande de Carla', recues.some(x => x.id === C.moi.id));
     v('la redemander : « déjà envoyée »', (await demander(C, { conv: G, seq: seqFiche })).j.resultat, 'deja_envoyee');
@@ -150,7 +157,7 @@ const MDP = (l) => 'pw-' + l + '-1234';
     v('⛔ ANONYME : personne ne voit qui a voté quoi — Bruno non plus…', r.j.choix.map(c => c.qui), [null, null]);
     v('⛔ …ni l\'autrice', (await lire(A, S2)).j.choix.map(c => c.qui), [null, null]);
     r = await C.post('/api/conversations/' + G + '/sondages/' + S2 + '/choix', { texte: 'Mercredi' });
-    v('« les membres ajoutent des choix » : Carla ajoute mercredi', [r.code, r.j.choix.map(c => c.texte), r.j.choix[2].ajoute_par], [200, ['Lundi', 'Mardi', 'Mercredi'], C.moi.id]);
+    v('« les membres ajoutent des choix » : Carla ajoute mercredi — ⛔ et, le sondage étant anonyme, qui l\'a ajouté ne se dit pas (il vote presque toujours pour lui)', [r.code, r.j.choix.map(c => c.texte), r.j.choix[2].ajoute_par], [200, ['Lundi', 'Mardi', 'Mercredi'], null]);
     r = await B.post('/api/conversations/' + G + '/sondages/' + S2 + '/choix', { texte: '  MERCREDI ' });
     v('⛔ « MERCREDI » existe déjà (casse, espaces) : 409 sondage_doublon', [r.code, r.j.error], [409, 'sondage_doublon']);
     for (let i = 3; i < 12; i++) await A.post('/api/conversations/' + G + '/sondages/' + S2 + '/choix', { texte: 'Jour ' + i });
@@ -172,10 +179,22 @@ const MDP = (l) => 'pw-' + l + '-1234';
 
     console.log('\n5. Ce que le sondage ne laisse pas voir');
     v('⛔ Eve (étrangère) : la garde de la conversation (404)', (await lire(E, S1)).code, 404);
+    const S4 = (await nouveau(A, { question: 'Avant Eve ?', choix: ['Oui', 'Non'], regles: { anonyme: true, resultats: 'apres_cloture' } })).j.seq;
     await A.post('/api/conversations/' + G + '/membres/ajouter', { uids: [E.moi.id] });
-    v('⛔ Eve, ajoutée APRÈS le sondage : 404', (await lire(E, S1)).code, 404);
+    v('⛔ Eve, ajoutée APRÈS le sondage : 404', [(await lire(E, S1)).code, (await lire(E, S4)).code], [404, 404]);
     r = await nouveau(A, { question: 'Et maintenant ?', choix: ['Oui', 'Non'] });
-    v('…un sondage posé après son arrivée, elle le lit', (await lire(E, r.j.seq)).code, 200);
+    const S5 = r.j.seq;
+    v('…un sondage posé après son arrivée, elle le lit', (await lire(E, S5)).code, 200);
+    await voter(B, S4, [1]); await voter(B, S5, [0]);
+    const evE = ((await E.get('/api/sync?depuis=0')).j.evenements || []).filter(x => x.event === 'sondage').map(x => x.data.seq);
+    v('⛔ …et ne reçoit PAS les événements d\'un sondage d\'avant son arrivée (on y vote : elle l\'apprendrait) — population : celui d\'après, si', [evE.includes(S4), evE.includes(S5)], [false, true]);
+
+    // (relecture du gardien) dans une DIRECTE, les deux membres sont « admin » : l'autre ne clôt pas MON sondage
+    const dir = (await A.post('/api/conversations/directe', { uid: B.moi.id })).j.conversation.id;
+    const S6 = (await A.post('/api/conversations/' + dir + '/messages', { cid: cid(), type: 'sondage', question: 'Résultats à la fin ?', choix: ['Oui', 'Non'], regles: { resultats: 'apres_cloture' } })).j.seq;
+    r = await B.get('/api/conversations/' + dir + '/sondages/' + S6);
+    v('⛔ directe : Bruno ne peut pas clore le sondage d\'Alice — ni annoncé, ni permis (403), et les résultats restent cachés', [r.j.peut_clore, (await B.post('/api/conversations/' + dir + '/sondages/' + S6 + '/clore', {})).code, (await B.get('/api/conversations/' + dir + '/sondages/' + S6)).j.resultats_visibles], [false, 403, false]);
+    v('…Alice, l\'autrice, le peut', (await A.post('/api/conversations/' + dir + '/sondages/' + S6 + '/clore', {})).j.clos, true);
     v('un message qui n\'est pas un sondage, un numéro mal formé : 404, 400', [(await lire(A, seqFiche)).code, (await A.get('/api/conversations/' + G + '/sondages/1x')).code], [404, 400]);
     r = await A.post('/api/conversations/' + G + '/messages/supprimer', { seq: S2, pour: 'tous' });
     v('Alice efface son sondage pour tous…', r.code, 200);
@@ -187,6 +206,17 @@ const MDP = (l) => 'pw-' + l + '-1234';
     const ex = await B.post('/api/compte/export', {});
     const votes = (ex.j && ex.j.votes_sondages) || [];
     vrai('l\'export de Bruno dit ses votes (conversation, message, choix, date)', ex.code === 200 && votes.some(x => x.conversation === G && x.message === S1 && x.choix === 2) && votes.every(x => typeof x.le === 'string'));
+
+    console.log('\n7. L\'effacement d\'un compte ne trahit pas un vote anonyme');
+    const S7 = (await nouveau(A, { question: 'Anonyme ?', choix: ['Oui', 'Non'], regles: { anonyme: true } })).j.seq;
+    await voter(B, S7, [0]); await voter(C, S7, [1]);
+    const avantEff = (await lire(A, S7)).j;
+    const St = ouvrir({ chemin: path.join(svc.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')), horloge: () => Date.now() + 3601000 });
+    const eff = St.compteEffacer(B0id, { rejeu: true });
+    vrai('population : le compte de Bruno est effacé', eff.effacee === true);
+    const apresEff = (await lire(A, S7)).j;
+    v('⛔ les décomptes ne bougent pas (un décompte qui baisse le jour d\'un effacement dirait ce qu\'il avait voté)', [apresEff.choix.map(c => c.n), apresEff.votants], [avantEff.choix.map(c => c.n), avantEff.votants]);
+    v('⛔ …mais plus aucun vote ne porte son identifiant', compter('SELECT COUNT(*) AS n FROM sondage_vote WHERE uid = ?', B0id), 0);
   } catch (e) {
     vrai('le banc est mort : ' + (e && e.stack || e), false);
   } finally {

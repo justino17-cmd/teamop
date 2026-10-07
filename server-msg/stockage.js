@@ -42,7 +42,7 @@ const MAX_MEMBRES = 1024;
 const DELAI_MODIF_MS = 15 * 60 * 1000;
 const JOURNAL_JOURS = 7, JOURNAL_LIGNES = 10000;
 const TAILLE_PORTEE = 2048;   // un texte de 2 Ko ou moins est porté dans l'événement
-const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction'];
+const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage'];
 const PUSH_MAX = 10;   // dix appareils au plus par personne : le plus ancien part au onzième
 const DEMANDES_MAX = 50;   // demandes de contact qu'une personne voit « en attente » à la fois (relecture du gardien, A2)
 
@@ -1498,6 +1498,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     let meta = null; if (r.meta_ch) { try { meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), r.meta_ch)); } catch (e) { meta = null; } }
     return { auteur: r.auteur, meta, role: m.role };
   }
+  /* ⛔ LA FICHE D'UN CONTACT SE LIT À L'INSTANT (relecture du gardien) : le message ne garde que l'identifiant de la personne ; son prénom et son identifiant public se relisent à chaque
+     lecture, et seulement tant qu'elle se laisse trouver (compte actif, sans suppression en cours, « trouvable par tous »). Elle s'est retirée, ou son compte est effacé : la fiche ne dit plus
+     rien d'elle — ni son nom, ni qui elle est (`uid: null`). */
+  function metaLue(meta) {
+    if (!meta || meta.k !== 'contact') return meta;
+    const id = typeof meta.uid === 'string' ? meta.uid : null, p = id ? personneParId(id) : null;
+    if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous') return { k: 'contact', uid: null, prenom: null, identifiant: null };
+    return { k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) };
+  }
   /* la fiche de contact d'un message (`meta.k = 'contact'`) que `uid` voit, ou null */
   function carteContactLire(conv, seq, uid) { const v = messageVuPar(conv, seq, uid); return v && v.meta && v.meta.k === 'contact' && typeof v.meta.uid === 'string' ? v.meta : null; }
   /* ── les sondages ── */
@@ -1512,7 +1521,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (!SONDAGES) return null;
     const v = messageVuPar(conv, seq, uid); if (!v) return null;
     const s = Q('SELECT auteur, multiple, anonyme, ajout, resultats, fin, clos, cree FROM sondage WHERE conv = ? AND seq = ?').get(conv, seq);
-    return s ? { s, role: v.role } : null;
+    if (!s) return null;
+    /* ⛔ « administrateur » ne vaut que dans un GROUPE ou un CANAL (relecture du gardien) : dans une directe, les deux membres le sont — l'autre aurait clos MON sondage et fait paraître des
+       résultats promis « à la clôture ». La même règle que « supprimer pour tous ». */
+    const c = Q('SELECT type FROM conversation WHERE id = ?').get(conv);
+    return { s, admin: v.role === 'admin' && !!c && (c.type === 'groupe' || c.type === 'canal') };
   }
   const sondageClos = (s, t) => s.clos !== null && s.clos !== undefined ? true : (s.fin !== null && s.fin !== undefined && num(s.fin) <= t);
   const sondageChoix = (conv, seq) => Q('SELECT idx, texte_ch, par FROM sondage_choix WHERE conv = ? AND seq = ? ORDER BY idx').all(conv, seq)
@@ -1530,10 +1543,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       clos, clos_le: s.clos !== null && s.clos !== undefined ? num(s.clos) : (clos ? num(s.fin) : null),
       choix: choix.map(c => {
         const pour = votes.filter(v => num(v.idx) === c.idx);
-        return { idx: c.idx, texte: c.texte, ajoute_par: c.par && c.par !== s.auteur ? c.par : null, n: voir ? pour.length : null, qui: voir && !s.anonyme ? pour.map(v => v.uid) : null };
+        return { idx: c.idx, texte: c.texte, ajoute_par: !s.anonyme && c.par && c.par !== s.auteur ? c.par : null, n: voir ? pour.length : null, qui: voir && !s.anonyme ? pour.map(v => v.uid) : null };
       }),
       mes_choix: mes, votants: voir ? new Set(votes.map(v => v.uid)).size : null, resultats_visibles: voir,
-      peut_voter: !clos, peut_ajouter: !clos && (!!s.ajout || s.auteur === uid) && choix.length < SONDAGE_CHOIX_MAX, peut_clore: !clos && (s.auteur === uid || a.role === 'admin'),
+      peut_voter: !clos, peut_ajouter: !clos && (!!s.ajout || s.auteur === uid) && choix.length < SONDAGE_CHOIX_MAX, peut_clore: !clos && (s.auteur === uid || a.admin),
     };
   }
   /* voter : REMPLACE mes votes (une liste vide les retire) ; un seul choix si la règle n'en permet pas plusieurs ; jamais après la clôture ou l'échéance */
@@ -1568,7 +1581,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function sondageClore(conv, seq, uid) {
     return tx(() => {
       const a = sondageAcces(conv, seq, uid); if (!a) throw erreur('introuvable');
-      if (a.s.auteur !== uid && a.role !== 'admin') throw erreur('interdit');
+      if (a.s.auteur !== uid && !a.admin) throw erreur('interdit');
       const t = horloge(); if (sondageClos(a.s, t)) return { deja: true };
       Q('UPDATE sondage SET clos = ? WHERE conv = ? AND seq = ?').run(t, conv, seq);
       return { gid: journalAjouter('sondage', conv, null, String(seq)) };
@@ -1582,7 +1595,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (r.auteur === moi) o.cid = r.cid;
     if (!r.supprime_le) {
       if (r.corps_ch) { o.texte = ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch); if (o.texte === null) o.illisible = true; }
-      if (r.meta_ch) { try { o.meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)); } catch (e) { o.meta = null; } }
+      if (r.meta_ch) { try { o.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch))); } catch (e) { o.meta = null; } }
     }
     return o;
   }
@@ -1887,7 +1900,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         AND ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
                        AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )
       ORDER BY j.gid LIMIT ?`).all(apresGid, uid, uid, limite);
     const evenements = [];
@@ -1910,7 +1923,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       WHERE ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
                        AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )`).get(uid, uid);
     return r && r.g !== null && r.g !== undefined ? num(r.g) : 0;
   }
@@ -1931,7 +1944,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
             if (t === null) d.illisible = true;
             else if (Buffer.byteLength(t, 'utf8') <= TAILLE_PORTEE) d.texte = t; else d.relis = true;
           }
-          if (r.meta_ch) { try { d.meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(j.conv, r.seq, r.auteur), r.meta_ch)); } catch (e) {} }
+          if (r.meta_ch) { try { d.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(j.conv, r.seq, r.auteur), r.meta_ch))); } catch (e) {} }
         }
         return { gid, event: 'message', data: d };
       }
@@ -2503,7 +2516,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
       Q('DELETE FROM msg_masque WHERE uid = ?').run(uid);
       /* le suivi des documents (migration 15) : ce que J'ai ouvert, et ce qu'on a ouvert de MES pièces — la ligne `personne` reste (anonymisée), le CASCADE ne joue pas */
-      if (SONDAGES) Q('DELETE FROM sondage_vote WHERE uid = ?').run(uid);          // ses votes partent avec lui (les décomptes baissent) ; ses sondages restent avec ses messages
+      /* ses votes PERDENT son identifiant (un jeton tiré au hasard, un par sondage) mais restent comptés : un décompte qui baisse le jour d'un effacement connu dirait ce qu'il avait voté,
+         même dans un sondage anonyme (relecture du gardien). Ses sondages restent avec ses messages. */
+      if (SONDAGES) for (const x of Q('SELECT DISTINCT conv, seq FROM sondage_vote WHERE uid = ?').all(uid)) Q('UPDATE sondage_vote SET uid = ? WHERE conv = ? AND seq = ? AND uid = ?').run('x_' + alea(16), x.conv, x.seq, uid);
       if (SUIVI) { Q('DELETE FROM piece_acces WHERE uid = ?').run(uid); Q('DELETE FROM piece_acces WHERE piece IN (SELECT id FROM piece WHERE proprio = ?)').run(uid); }
       Q('DELETE FROM journal WHERE uid = ?').run(uid);
       Q('UPDATE membre SET muet_jusqua = 0, epingle = 0, archive = 0 WHERE uid = ?').run(uid);
