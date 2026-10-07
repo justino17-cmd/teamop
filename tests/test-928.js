@@ -68,7 +68,7 @@ const NOMS = ['alice', 'bruno', 'carla', 'dave', 'eve', 'fanny'];
     v('…mais Carla voit son propre lu_seq', ((await detail(C, BC)).membres.find(m => m.id === C.moi.id) || {}).lu_seq, s1);
     /* ⛔ relecture du gardien (bloquant) : l'invitation ne donne pas le profil de la personne invitée — ni la route, ni la liste, ni le détail */
     v('⛔ Bruno ne lit PAS le profil de Carla (404, comme avant l\'invitation) ; Carla, elle, lit celui de Bruno (il lui écrit)', [(await B.get('/api/personnes/' + C.moi.id)).code, (await C.get('/api/personnes/' + B.moi.id)).code], [404, 200]);
-    v('⛔ sa liste et son détail ne disent que le premier mot du prénom : ni nom, ni photo', [(await ligne(B, BC)).autre, ((await detail(B, BC)).membres.find(m => m.id === C.moi.id) || {}).nom], [{ id: C.moi.id, prenom: 'Carla', nom: '', avatar: null }, '']);
+    v('⛔ sa liste et son détail ne disent que le premier mot du prénom : ni nom, ni photo', [(await ligne(B, BC)).autre, (({ prenom, nom, avatar }) => ({ prenom, nom, avatar }))((await detail(B, BC)).membres.find(m => m.id === C.moi.id) || {})], [{ id: C.moi.id, prenom: 'Carla', nom: '', avatar: null }, { prenom: 'Carla', nom: '', avatar: null }]);      // ⛔ le PRÉNOM aussi : un compte de banc y range son nom entier (mutation G9)
     v('⛔ du TEXTE seul tant qu\'elle n\'a pas accepté : une carte, une photo → 403 invitation_texte', [(await B.post('/api/conversations/' + BC + '/messages', { cid: cid(), type: 'contact', uid: A.moi.id })).j.error, (await PC.deposer(B, { conv: BC, genre: 'photo', corps: PC.png({ w: 8, h: 8 }) })).j.error], ['invitation_texte', 'invitation_texte']);
     const encore = [];
     for (let i = 0; i < 5; i++) encore.push((await dire(B, BC, 'Relance ' + i)).code);
