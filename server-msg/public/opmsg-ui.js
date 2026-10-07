@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '4b76c079e6eb';
+  const OPMSG_BUILD = '14295585e445';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 34;
+  const OPMSG_VERSION = 37;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3688,6 +3688,34 @@
       return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute;
     } catch (e) { return ''; }
   }
+  /* l'INSTANT d'une heure locale « 2026-10-26T14:00 » dans un fuseau (l'inverse de `localDans`) : deux passes suffisent, même le jour d'un changement d'heure */
+  function instantDans(s, tz) {
+    const brut = Date.parse(String(s || '') + ':00Z'); if (!Number.isFinite(brut)) return null;
+    let t = brut;
+    for (let i = 0; i < 2; i++) { const vu = Date.parse(localDans(t, tz) + ':00Z'); if (!Number.isFinite(vu)) return null; t += brut - vu; }
+    return t;
+  }
+  /* ⛔ LE FUSEAU SUIT L'APPAREIL (7 octobre 2026 : « automatique en fonction du système ; je ne vois pas l'intérêt de le mettre comme tu l'as fait ») : le formulaire ne le
+     montre plus. Une case « Participants dans un autre pays » ouvre le choix du pays, et dit l'heure CHEZ EUX pendant qu'on règle la sienne. Chaque invité voit de toute façon la
+     réunion à l'heure de SON appareil : le pays ne sert qu'à l'organisateur, pour ne pas fixer 9 h à Paris quand il est 3 h à New York. */
+  const PAYS_FUSEAUX = [
+    ['Europe/London', 'Royaume-Uni — Londres'], ['Europe/Dublin', 'Irlande — Dublin'], ['Europe/Lisbon', 'Portugal — Lisbonne'], ['Europe/Madrid', 'Espagne — Madrid'],
+    ['Europe/Brussels', 'Belgique — Bruxelles'], ['Europe/Zurich', 'Suisse — Zurich'], ['Europe/Luxembourg', 'Luxembourg'], ['Europe/Berlin', 'Allemagne — Berlin'],
+    ['Europe/Amsterdam', 'Pays-Bas — Amsterdam'], ['Europe/Rome', 'Italie — Rome'], ['Europe/Warsaw', 'Pologne — Varsovie'], ['Europe/Athens', 'Grèce — Athènes'],
+    ['Europe/Bucharest', 'Roumanie — Bucarest'], ['Europe/Istanbul', 'Turquie — Istanbul'], ['Europe/Moscow', 'Russie — Moscou'],
+    ['Africa/Casablanca', 'Maroc — Casablanca'], ['Africa/Algiers', 'Algérie — Alger'], ['Africa/Tunis', 'Tunisie — Tunis'], ['Africa/Dakar', 'Sénégal — Dakar'],
+    ['Africa/Abidjan', 'Côte d\'Ivoire — Abidjan'], ['Africa/Douala', 'Cameroun — Douala'], ['Africa/Kinshasa', 'RD Congo — Kinshasa'], ['Africa/Cairo', 'Égypte — Le Caire'],
+    ['Africa/Johannesburg', 'Afrique du Sud — Johannesburg'], ['Indian/Reunion', 'La Réunion'], ['Indian/Mauritius', 'Maurice'], ['Indian/Mayotte', 'Mayotte'],
+    ['Asia/Jerusalem', 'Israël — Jérusalem'], ['Asia/Beirut', 'Liban — Beyrouth'], ['Asia/Riyadh', 'Arabie saoudite — Riyad'], ['Asia/Dubai', 'Émirats arabes unis — Dubaï'],
+    ['Asia/Kolkata', 'Inde'], ['Asia/Bangkok', 'Thaïlande — Bangkok'], ['Asia/Ho_Chi_Minh', 'Viêt Nam — Hô Chi Minh-Ville'], ['Asia/Singapore', 'Singapour'],
+    ['Asia/Shanghai', 'Chine — Pékin, Shanghai'], ['Asia/Hong_Kong', 'Hong Kong'], ['Asia/Seoul', 'Corée du Sud — Séoul'], ['Asia/Tokyo', 'Japon — Tokyo'],
+    ['Australia/Sydney', 'Australie — Sydney'], ['Pacific/Noumea', 'Nouvelle-Calédonie — Nouméa'], ['Pacific/Tahiti', 'Polynésie française — Tahiti'],
+    ['America/Martinique', 'Martinique'], ['America/Guadeloupe', 'Guadeloupe'], ['America/Cayenne', 'Guyane — Cayenne'], ['America/Montreal', 'Canada — Montréal, Québec'],
+    ['America/Toronto', 'Canada — Toronto'], ['America/Vancouver', 'Canada — Vancouver'], ['America/New_York', 'États-Unis — New York (Est)'], ['America/Chicago', 'États-Unis — Chicago (Centre)'],
+    ['America/Denver', 'États-Unis — Denver (Rocheuses)'], ['America/Los_Angeles', 'États-Unis — Los Angeles (Pacifique)'], ['America/Mexico_City', 'Mexique — Mexico'],
+    ['America/Bogota', 'Colombie — Bogota'], ['America/Lima', 'Pérou — Lima'], ['America/Sao_Paulo', 'Brésil — São Paulo'], ['America/Argentina/Buenos_Aires', 'Argentine — Buenos Aires'],
+    ['Europe/Paris', 'France — Paris']
+  ];
   const dateDeChaine = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : null; };
   function libelleSemaine(lundi) {
     const dim = plusJours(lundi, 6), a = new Date(lundi), b = new Date(dim);
@@ -4125,19 +4153,12 @@
         else if (act === 'form-invite') { basculerInviteForm(b.dataset.uid); }
         else if (act === 'form-notifier') { reu.form.notifier = !reu.form.notifier; b.setAttribute('aria-checked', reu.form.notifier ? 'true' : 'false'); }
         else if (act === 'form-attente') { reu.form.attente = !reu.form.attente; b.setAttribute('aria-checked', reu.form.attente ? 'true' : 'false'); }
+        else if (act === 'form-etranger') { const oui = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', oui ? 'true' : 'false'); $('rf-etranger').hidden = !oui; peindreChezEux(); }
       }
     } catch (er) { if (F) F.sortie = null; b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }          // le geste a échoué : la phrase qu'il avait annoncée tombe avec lui
   });
 
   /* ── « Programmer » et « Modifier » : le formulaire (les feuilles « reunion-new » et « reunion-edit:<id> ») ── */
-  function listeFuseaux(courant) {
-    let l = [];
-    try { if (typeof Intl.supportedValuesOf === 'function') l = Intl.supportedValuesOf('timeZone').slice(); } catch (e) { l = []; }
-    if (!l.length) l = ['Europe/Paris', 'Europe/Londres', 'Europe/Brussels', 'Europe/Zurich', 'Europe/Madrid', 'Europe/Berlin', 'Europe/Rome', 'Atlantic/Reykjavik', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Montreal', 'America/Sao_Paulo', 'Africa/Casablanca', 'Africa/Algiers', 'Africa/Dakar', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'];
-    if (l.indexOf('UTC') < 0) l.push('UTC');
-    if (courant && l.indexOf(courant) < 0) l.push(courant);
-    return l;
-  }
   const optionsDe = (liste, courant) => liste.map(x => '<option value="' + esc(x[0]) + '"' + (x[0] === courant ? ' selected' : '') + '>' + esc(x[1]) + '</option>').join('');
   function htmlRappelsForm(F) { return RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (F.rappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="form-rappel" data-min="' + x[0] + '"><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
   function htmlInvitesForm(F) {
@@ -4202,7 +4223,11 @@
       '<div class="champ"><label for="rf-lieu">Lieu ou lien</label><input id="rf-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(initial.lieu) + '" placeholder="Salle, adresse ou lien"></div>' +
       '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
       '<div class="champ"><label for="rf-fin">Fin</label><input id="rf-fin" type="datetime-local" step="60" value="' + esc(initial.fin) + '"></div>' +
-      '<div class="champ"><label for="rf-tz">Fuseau horaire</label><select id="rf-tz">' + optionsDe(listeFuseaux(tz).map(x => [x, x]), tz) + '</select><p class="info-note">Les heures ci-dessus sont celles de ce fuseau.</p></div>' +
+      '<input type="hidden" id="rf-tz" value="' + esc(tz) + '">' +
+      (fuseauAppareil() && tz !== fuseauAppareil() ? '<p class="info-note" id="rf-tz-note">Les heures ci-dessus sont celles de ' + esc(villeDe(tz)) + ', le fuseau de la réunion.</p>' : '') +
+      '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="false" aria-controls="rf-etranger" data-reu="form-etranger"><span class="reglage-texte">Participants dans un autre pays<small>Voir l\'heure qu\'il sera chez eux</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
+      '<div id="rf-etranger" hidden><div class="champ"><label for="rf-pays">Leur pays</label><select id="rf-pays">' + optionsDe(PAYS_FUSEAUX.filter(x => x[0] !== tz), 'America/New_York') + '</select></div>' +
+        '<p class="info-note rf-chez-eux" id="rf-chez-eux" aria-live="polite"></p></div>' +
       '<div class="champ"><label for="rf-rep">Répétition</label><select id="rf-rep">' + optionsDe(REPETITIONS, initial.repetition) + '</select><p class="info-note" id="rf-rep-note" hidden></p></div>' +
       '<div id="rf-fin-rep"><div class="champ"><label for="rf-fin-type">Fin de la répétition</label><select id="rf-fin-type">' + optionsDe([['jamais', 'Jamais'], ['date', 'À une date'], ['nombre', 'Après un nombre de fois']], typeFin) + '</select></div>' +
         '<div class="champ" id="rf-jusqua-c"><label for="rf-jusqua">Dernier jour</label><input id="rf-jusqua" type="date" value="' + esc(initial.jusqua || '') + '"></div>' +
@@ -4215,6 +4240,7 @@
       (CAP.salles ? '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (initial.attente ? 'true' : 'false') + '" data-reu="form-attente"><span class="reglage-texte">Salle d\'attente<small>Les personnes qui arrivent attendent que tu les admettes</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' : '') +
       '<div class="info-actions"><button type="button" class="mini" data-reu="form-enregistrer">' + (id ? 'Enregistrer' : 'Programmer') + '</button></div>';
     synchroFormRepetition();
+    ['rf-debut', 'rf-fin', 'rf-pays'].forEach(x => { $(x).addEventListener('input', peindreChezEux); $(x).addEventListener('change', peindreChezEux); });
     $('rf-rep').addEventListener('change', synchroFormRepetition);
     $('rf-fin-type').addEventListener('change', synchroFormRepetition);
     /* une fin avant le début n'a pas de sens : changer le début déplace la fin d'autant (la durée est gardée) */
@@ -4232,6 +4258,18 @@
       $('rf-recherche').addEventListener('input', () => { reu.form.recherche = $('rf-recherche').value; $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
       chargerCollegues().then(() => { if (etat.groupe.ouvert && etat.groupe.mode === 'reunion-new' && $('rf-invites')) $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
     }
+  }
+  /* « Chez eux » : l'heure de début et de fin dans le pays choisi, le jour compris quand il change (« mardi 03:00 – 04:00 à New York ») */
+  function peindreChezEux() {
+    const n = $('rf-chez-eux'), z = $('rf-pays'); if (!n || !z || $('rf-etranger').hidden) return;
+    const tz = $('rf-tz').value, a = instantDans($('rf-debut').value, tz), b = instantDans($('rf-fin').value, tz), ville = (PAYS_FUSEAUX.find(x => x[0] === z.value) || [z.value, villeDe(z.value)])[1];
+    if (a === null || b === null) { n.textContent = ''; return; }
+    let jour = '';
+    try { jour = new Intl.DateTimeFormat('fr-FR', { timeZone: z.value, weekday: 'long', day: 'numeric', month: 'long' }).format(a); } catch (e) { jour = ''; }
+    const ici = localDans(a, tz).slice(0, 10), labas = localDans(a, z.value).slice(0, 10);
+    const lieu = ville.includes(' — ') ? ville.split(' — ')[1].replace(/ \(.*\)$/, '') : ville, h = Number(heureDans(a, z.value).slice(0, 2)), hf = Number(heureDans(b, z.value).slice(0, 2));
+    const horsBureau = h < 8 || h >= 19 || hf > 20 || hf < h;
+    n.textContent = 'À ' + lieu + ' : ' + jour + ', de ' + heureDans(a, z.value) + ' à ' + heureDans(b, z.value) + (ici !== labas ? ' — ce n\'est pas le même jour qu\'ici' : '') + (horsBureau ? ' — en dehors des heures de bureau chez eux.' : '.');
   }
   /* ce que le formulaire dit, prêt pour le service ; un refus local dit pourquoi et rend `null` */
   function lireFormReunion() {
