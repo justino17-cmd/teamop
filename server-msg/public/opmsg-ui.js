@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '27ec9353d8b2';
+  const OPMSG_BUILD = 'eba1ddf874db';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 75;
+  const OPMSG_VERSION = 77;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -436,7 +436,7 @@
     return l.join(' · ');
   }
   /* la bulle d'un votant : moi, un contact, ou quelqu'un que la source a vu (membre du groupe) — sinon ses initiales */
-  const avatarVotant = uid => avatar((uid === (MOI && MOI.id) ? MOI : contactDe(uid)) || { initiales: '?', avatar: 0 });
+  const avatarVotant = (uid, court) => { const c = (uid === (MOI && MOI.id) ? MOI : contactDe(uid)) || { initiales: '?', avatar: 0 }; return avatar(court ? Object.assign({}, c, { initiales: Array.from(c.initiales || '?')[0] }) : c); };   // `court` : une seule initiale, pour les bulles empilées de 24 px
   const nomVotant = (uid, repli) => uid === (MOI && MOI.id) ? 'Vous' : ((contactDe(uid) || {}).nom || repli || 'Quelqu\'un');
   function quiTexte(l) { const n = l.filter(Boolean); return n.length > 3 ? n.slice(0, 3).join(', ') + ' et ' + (n.length - 3) + ' autre' + (n.length - 3 > 1 ? 's' : '') : n.join(', '); }
   function htmlSondage(m, sens) {
@@ -448,12 +448,12 @@
     const vol = sondEnVol.has(m.id), total = s.votants || 0;
     for (const c of s.choix) {
       const n = c.n | 0, pct = s.resultats && total ? Math.max(0, Math.min(100, Math.round(n * 100 / total))) : 0;
-      const ids = s.resultats && Array.isArray(c.quiIds) ? c.quiIds : [];
+      const ids = s.resultats && Array.isArray(c.quiIds) ? c.quiIds.slice().sort((a, b) => (b === (MOI && MOI.id)) - (a === (MOI && MOI.id))) : [];   // ma bulle d'abord, comme dans « Voir les votes »
       const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + n + ' vote' + (n > 1 ? 's' : '') : '') + (ids.length && c.qui ? ' : ' + quiTexte(c.qui) : '');
       h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + (c.idx | 0) + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
         (s.resultats ? '<span class="sond-barre" style="--p:' + pct + '%"></span>' : '') +
         '<span class="sond-coche" aria-hidden="true"></span><span class="sond-texte" dir="auto">' + esc(c.texte) + '</span>' +
-        '<span class="sond-avatars" aria-hidden="true">' + ids.slice(0, 3).map(avatarVotant).join('') + (ids.length > 3 ? '<span class="sond-plus">+' + (ids.length - 3) + '</span>' : '') + '</span>' +
+        '<span class="sond-avatars" aria-hidden="true">' + ids.slice(0, 3).map(u => avatarVotant(u, true)).join('') + (ids.length > 3 ? '<span class="sond-plus">+' + (ids.length - 3) + '</span>' : '') + '</span>' +
         '<span class="sond-n" aria-hidden="true">' + (s.resultats ? n : '') + '</span>' +
         (c.ajoutePar ? '<span class="sond-qui" aria-hidden="true">Ajouté par ' + esc(c.ajoutePar) + '</span>' : '') + '</button>';
     }

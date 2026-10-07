@@ -7,6 +7,8 @@
      3. la fiche de Dan (contact d'Ana) : Ben la reçoit avec « Ajouter », la touche → « Demande envoyée » ; Ana, déjà en contact, voit « Écrire » ;
      4. le sondage : la feuille refuse un seul choix, deux choix égaux ; envoyé avec ses règles (une réponse, résultats après le vote, choix ouverts) ; chez Ben, rien avant le vote, les
         décomptes après ; Ana le voit SANS recharger (le flux) avec le nom de Ben ; Ben ajoute un choix ; Ana clôt en deux touches ; les choix ne se touchent plus ;
+     4 bis. (7 octobre 2026 : « voir les bulles des personnes qui votent, et pouvoir voir tous ceux qui votent ») la BULLE de chaque votant sur son choix, « Voir les votes » :
+        chaque choix, son décompte, ses votants (moi d'abord) — et un sondage ANONYME ne montre ni bulle ni nom, nulle part ;
      5. le menu d'une carte ne propose ni « Modifier » ni « Copier le texte » ; aucune carte ne déborde à 390 px ; aucune erreur JavaScript.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-cartes.js   (CAPTURES=/dossier pour les images)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
@@ -126,10 +128,20 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', dan: 'Dan Banc' };
       const c = document.querySelector('#conv-messages .carte-msg.sondage'); const x = c && c.querySelector('[data-sond$="|1"]');
       return !!x && x.getAttribute('aria-pressed') === 'true' && x.querySelector('.sond-n').textContent === '1' && !!c.querySelector('.sond-barre') && /1 personne a voté/.test(c.textContent);
     }));
-    vrai('Ana le voit SANS recharger (le flux) : 1 vote, le nom de Ben sous le choix', await att(A, () => { const x = document.querySelector('#conv-messages .carte-msg.sondage [data-sond$="|1"]'); return !!x && x.querySelector('.sond-n').textContent === '1' && /Ben/.test(x.querySelector('.sond-qui') ? x.querySelector('.sond-qui').textContent : ''); }));
+    vrai('Ana le voit SANS recharger (le flux) : 1 vote, la BULLE de Ben sur le choix (ses initiales), et son nom dans l\'étiquette du choix', await att(A, () => { const x = document.querySelector('#conv-messages .carte-msg.sondage [data-sond$="|1"]'); if (!x) return false; const av = x.querySelectorAll('.sond-avatars .avatar'); return x.querySelector('.sond-n').textContent === '1' && av.length === 1 && /^B/.test(av[0].textContent.trim()) && /Ben/.test(x.getAttribute('aria-label') || ''); }));
     await B.page.locator('#conv-messages .carte-msg.sondage [data-sond$="|2"]').click();
     vrai('une réponse : Ben touche « Au bureau » — son vote PASSE à ce choix (un seul coché)', await att(B, () => { const l = Array.from(document.querySelectorAll('#conv-messages .carte-msg.sondage [data-sond]')); return l.length === 3 && l.map(x => x.getAttribute('aria-pressed')).join() === 'false,false,true'; }));
     await capture(B, 'cartes-7-sondage-vote');
+    await A.page.locator('#conv-messages .carte-msg.sondage [data-sond$="|2"]').click();
+    vrai('Ana vote « Au bureau » aussi : DEUX bulles sur ce choix, aucune sur « Sur le chantier »', await att(A, () => { const l = Array.from(document.querySelectorAll('#conv-messages .carte-msg.sondage [data-sond]')); return l.length === 3 && l[2].querySelectorAll('.sond-avatars .avatar').length === 2 && l[1].querySelectorAll('.sond-avatars .avatar').length === 0 && l[2].querySelector('.sond-n').textContent === '2'; }));
+    await capture(A, 'cartes-7b-sondage-bulles');
+    await A.page.locator('#conv-messages .carte-msg.sondage [data-sond-votes]').click();
+    vrai('« Voir les votes » ouvre la feuille « Votes »', await feuille(A, 'Votes'));
+    v('la feuille : chaque choix et son décompte ; « Au bureau » : Vous d\'abord, puis Ben ; « Sur le chantier » : Personne', await A.page.evaluate(() => Array.from(document.querySelectorAll('#info-corps .votes-choix')).map(s => [s.querySelector('.rubrique span').textContent, s.querySelector('.rubrique span:last-child').textContent, Array.from(s.querySelectorAll('.votes-ligne')).map(l => l.querySelector('span[dir]').textContent.trim()).join('|') || (s.querySelector('.votes-vide') || {}).textContent])),
+      [['Au dépôt', '0 vote', 'Personne'], ['Sur le chantier', '0 vote', 'Personne'], ['Au bureau', '2 votes', 'Vous|Ben Banc']]);
+    await capture(A, 'cartes-7c-voir-les-votes');
+    await A.page.keyboard.press('Escape');
+    vrai('Échap ferme la feuille', await att(A, () => !document.documentElement.classList.contains('feuille-ouverte')));
     await B.page.locator('#conv-messages .carte-msg.sondage [data-sond-ajouter]').click();
     vrai('« Ajouter un choix » (choix ouverts) : la feuille, la question rappelée', (await feuille(B, 'Ajouter un choix')) && await att(B, () => /On se retrouve où demain/.test(document.getElementById('info-corps').textContent)));
     await B.page.locator('#sc-texte').fill('À la gare');
@@ -142,6 +154,19 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', dan: 'Dan Banc' };
     await A.page.locator('#conv-messages .carte-msg.sondage [data-sond-clore]').click();
     vrai('seconde touche : le sondage est clos — chez Ben, « Clos », les choix ne se touchent plus', await att(B, () => { const c = document.querySelector('#conv-messages .carte-msg.sondage'); return !!c && /Clos/.test(c.querySelector('.sond-regles').textContent) && Array.from(c.querySelectorAll('[data-sond]')).every(x => x.getAttribute('aria-disabled') === 'true'); }));
     await capture(A, 'cartes-8-sondage-clos');
+
+    /* ⛔ un sondage ANONYME : les décomptes, jamais une bulle ni un nom — ni sur la carte, ni dans la feuille (« Voir les résultats ») */
+    const anon = await A0.post('/api/conversations/' + G + '/messages', { cid: 'sonde-anonyme-1', type: 'sondage', question: 'Vote secret ?', choix: ['Oui', 'Non'], regles: { anonyme: true } });
+    v('population : le sondage anonyme part (par le service)', [anon.code >= 200 && anon.code < 300, Number.isInteger(anon.j && anon.j.seq)], [true, true]);
+    vrai('population : Ben le reçoit', await att(B, () => Array.from(document.querySelectorAll('#conv-messages .carte-msg.sondage')).some(c => /Vote secret/.test(c.textContent))));
+    await B.page.locator('#conv-messages .carte-msg.sondage', { hasText: 'Vote secret' }).locator('[data-sond$="|0"]').click();
+    vrai('population : chez Ana, « Oui » compte 1 vote', await att(A, () => { const c = Array.from(document.querySelectorAll('#conv-messages .carte-msg.sondage')).find(x => /Vote secret/.test(x.textContent)); const x = c && c.querySelector('[data-sond$="|0"]'); return !!x && x.querySelector('.sond-n').textContent === '1'; }));
+    v('⛔ anonyme : aucune bulle sur la carte d\'Ana, aucun nom dans l\'étiquette ; le bouton dit « Voir les résultats »', await A.page.evaluate(() => { const c = Array.from(document.querySelectorAll('#conv-messages .carte-msg.sondage')).find(x => /Vote secret/.test(x.textContent)); return [c.querySelectorAll('.sond-avatars .avatar').length, /Ben/.test(c.innerHTML), (c.querySelector('[data-sond-votes]') || {}).textContent]; }), [0, false, 'Voir les résultats']);
+    await A.page.locator('#conv-messages .carte-msg.sondage', { hasText: 'Vote secret' }).locator('[data-sond-votes]').click();
+    vrai('la feuille « Votes » s\'ouvre', await feuille(A, 'Votes'));
+    v('⛔ la feuille d\'un sondage anonyme : les décomptes et la phrase « Vote anonyme », AUCUNE ligne de votant, aucun nom', await A.page.evaluate(() => { const c = document.getElementById('info-corps'); return [c.querySelectorAll('.votes-choix').length, c.querySelectorAll('.votes-ligne').length, /Vote anonyme/.test(c.textContent), /Ben/.test(c.innerHTML), /1 vote/.test(c.textContent)]; }), [2, 0, true, false, true]);
+    await A.page.keyboard.press('Escape');
+    await att(A, () => !document.documentElement.classList.contains('feuille-ouverte'));
 
     console.log('\n5. Le menu, la largeur, les erreurs');
     const menuDe = async (S, sel) => {

@@ -1245,10 +1245,14 @@ html[data-service] .mention-apercu { display: none; }
 /* les BULLES de ceux qui ont voté (« il faudrait voir les bulles des personnes qui votent »), empilées comme chez WhatsApp : trois au plus, puis « +n » */
 .sond-avatars { display: flex; align-items: center; justify-content: flex-end; }
 .sond-avatars .avatar { width: 24px; height: 24px; font-size: 11px; box-shadow: 0 0 0 2px var(--sond-bord, var(--bubble-in)); }
-.sond-avatars .avatar + .avatar { margin-left: -7px; }
+.sond-avatars .avatar { position: relative; }
+.sond-avatars .avatar + .avatar { margin-left: -6px; }
+.sond-avatars .avatar:nth-child(1) { z-index: 3; } .sond-avatars .avatar:nth-child(2) { z-index: 2; }      /* la première (la mienne) dessus, entière */
+.sond-avatars .presence { display: none; }        /* la pastille « en ligne » couvrirait les initiales d'une bulle de 24 px : la feuille des votes la montre */
 .envoyee .sond-avatars { --sond-bord: var(--fill); }
 .sond-plus { margin-left: 4px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .85; }
 .votes-choix { margin-bottom: 18px; }
+.votes-choix:first-of-type { margin-top: 16px; }
 .votes-choix .rubrique { text-transform: none; font-size: 15px; color: var(--text); font-weight: 600; }
 .votes-choix .rubrique span:last-child { font-weight: 400; color: var(--sub-meta); font-size: 13px; }
 .votes-ligne { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 14px; border-bottom: var(--sep); font-size: 16px; }
