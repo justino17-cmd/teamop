@@ -1655,13 +1655,18 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   :root { --bureau-sel: color-mix(in srgb, var(--text) 9%, transparent); --bureau-bord: color-mix(in srgb, var(--text) 10%, transparent); }
   body { font-size: 13px; }
 
-  /* la barre latérale : celle du Finder, de Messages et de Mail */
-  .side { padding: 10px 10px 12px; }
-  .side-marque { padding: 6px 8px 14px; gap: 8px; }
-  .side-marque img { width: 22px; height: 22px; border-radius: 5px; }
-  .side-marque b { font-size: 13px; letter-spacing: 0; }
-  .side-lien { min-height: 28px; padding: 3px 8px; border-radius: 6px; gap: 8px; font-size: 13px; }
-  .side-lien .ic { font-size: 15px; color: var(--accent-txt); }
+  /* la barre latérale : celle du Finder, de Messages et de Mail — ⛔ PLUS GROSSE (7 octobre 2026, capture de la barre : « là aussi il faudrait que ça soit plus gros », après les
+     Réglages) : 15 px, lignes de 40 px, icônes de 20 px, la carte « moi » à 34 px ; la largeur (236 px, écrite à dix endroits) ne bouge pas, les libellés y tiennent */
+  .side { padding: 12px 12px 14px; }
+  .side-marque { padding: 6px 8px 18px; gap: 10px; }
+  .side-marque img { width: 30px; height: 30px; border-radius: 7px; }
+  .side-marque b { font-size: 16px; letter-spacing: -.01em; }
+  .side-lien { min-height: 40px; padding: 6px 10px; border-radius: 9px; gap: 12px; font-size: 15px; }
+  .side-lien .ic { font-size: 20px; color: var(--accent-txt); }
+  .moi { min-height: 52px; padding: 8px 10px; gap: 10px; }
+  .moi .avatar { width: 34px; height: 34px; font-size: 13px; }
+  .moi-nom { font-size: 15px; }
+  .moi-statut { font-size: 13px; }
   .side-lien[aria-current="page"] { background: var(--bureau-sel); color: var(--text); font-weight: 500; }
   .moi { background: transparent; border-radius: 8px; }
   .moi:hover { background: var(--field); }
@@ -1681,52 +1686,52 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   html[data-vue="messages"] #vue-messages > .entete-vue { margin-inline: -16px; padding-left: 16px; }
   /* les boutons de barre d'outils : du texte (ou une icône) sans cadre, un fond au survol — comme sur le Mac */
-  .vue > .entete-vue .lien-texte { min-height: 28px; min-width: 0; padding: 0 10px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text); }
+  .vue > .entete-vue .lien-texte { min-height: 32px; min-width: 0; padding: 0 12px; border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--text); }
   .vue > .entete-vue .lien-texte:hover { background: var(--field); }
-  .btn-plus { min-height: 28px; min-width: 28px; justify-content: center; border-radius: 6px; }
+  .btn-plus { min-height: 32px; min-width: 32px; justify-content: center; border-radius: 8px; }
   .btn-plus:hover { background: var(--field); }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
   /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
   #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
-  .vue .recherche { min-height: 28px; height: 28px; padding: 0 8px; gap: 6px; border-radius: 7px; margin-bottom: 12px; }
-  .vue .recherche .ic { font-size: 13px; }
-  .vue .recherche input { font-size: 13px; }
+  .vue .recherche { min-height: 34px; height: 34px; padding: 0 10px; gap: 8px; border-radius: 9px; margin-bottom: 12px; }
+  .vue .recherche .ic { font-size: 16px; }
+  .vue .recherche input { font-size: 15px; }
 
   /* le segmenté du Mac : 24 px, 12 px, compact */
   .seg { margin-bottom: 14px; border-radius: 7px; }
   .seg-knob { border-radius: 5px; }
-  .seg-bouton { min-height: 24px; font-size: 12px; }
+  .seg-bouton { min-height: 30px; font-size: 14px; }
 
   /* les LISTES : nues sur le fond, la ligne choisie en aplat d'accent, un fond au survol — plus de carte, plus de chevron */
   .carte-liste { background: transparent; border-radius: 0; overflow: visible; }
   .carte-liste > li::after { left: 60px; right: 8px; }
   .carte-liste > li:has(+ li > [aria-current="true"])::after, .carte-liste > li:has(> [aria-current="true"])::after { display: none; }
-  .conv { min-height: 60px; padding: 8px 10px; gap: 10px; border-radius: 8px; }
+  .conv { min-height: 68px; padding: 10px 12px; gap: 12px; border-radius: 10px; }
   .conv:active { transform: none; }
-  .conv .avatar { width: 40px; height: 40px; font-size: 15px; }
-  .conv-nom { font-size: 13px; line-height: 17px; letter-spacing: 0; }
-  .conv-heure { font-size: 12px; }
-  .conv-apercu { font-size: 13px; line-height: 17px; }
+  .conv .avatar { width: 46px; height: 46px; font-size: 17px; }
+  .conv-nom { font-size: 15px; line-height: 20px; letter-spacing: 0; }
+  .conv-heure { font-size: 13px; }
+  .conv-apercu { font-size: 14px; line-height: 19px; }
   .conv .chev, .appel-ligne .chev { display: none; }
   .conv[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
-  .vide { font-size: 13px; }
+  .vide { font-size: 15px; }
 
   /* la conversation : l'en-tête de Messages sur Mac (la photo et le nom sur une ligne, à gauche), des bulles de bureau, la saisie compacte */
   .conv-nav { min-height: 52px; padding-top: 0; padding-bottom: 0; }
   .conv-titre { flex-direction: row; justify-content: flex-start; gap: 8px; min-height: 52px; }
-  .conv-titre .avatar { width: 28px; height: 28px; font-size: 11px; }
-  .conv-titre-nom { font-size: 13px; font-weight: 600; }
+  .conv-titre .avatar { width: 34px; height: 34px; font-size: 13px; }
+  .conv-titre-nom { font-size: 15px; font-weight: 600; }
   .conv-gauche { width: auto; }
-  .bulle { font-size: 14px; line-height: 19px; letter-spacing: 0; padding: 6px 12px; max-width: 62%; }
+  .bulle { font-size: 15px; line-height: 21px; letter-spacing: 0; padding: 7px 13px; max-width: 62%; }
   .recue { border-radius: 16px 16px 16px 5px; }
   .envoyee { border-radius: 16px 16px 5px 16px; }
   .composer { padding: 8px 14px 12px; }
-  .pilule-saisie { min-height: 30px; border-radius: 15px; --pad-y: 5px; }
-  .pilule-saisie textarea { height: 30px; font-size: 13px; line-height: 20px; letter-spacing: 0; padding-left: 12px; max-height: calc(8 * 20px + 2 * var(--pad-y)); }
-  .compo-bouton { width: 30px; height: 30px; font-size: 18px; }
-  .compo-plus .disque { width: 26px; height: 26px; font-size: 13px; }
+  .pilule-saisie { min-height: 36px; border-radius: 18px; --pad-y: 7px; }
+  .pilule-saisie textarea { height: 36px; font-size: 15px; line-height: 22px; letter-spacing: 0; padding-left: 14px; max-height: calc(8 * 22px + 2 * var(--pad-y)); }
+  .compo-bouton { width: 36px; height: 36px; font-size: 20px; }
+  .compo-plus .disque { width: 30px; height: 30px; font-size: 15px; }
 
   /* les GROUPES de réglages et de contacts : le formulaire groupé du Mac (Réglages Système) */
   /* ⛔ plus gros que Réglages Système (7 octobre 2026, capture des Notifications : « il faudrait que ça soit plus gros ») : 15 px au corps, lignes de 48 px,
