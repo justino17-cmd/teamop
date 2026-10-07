@@ -121,9 +121,10 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     await A.page.mouse.up();
     await att(C, () => true);
     await C.page.waitForTimeout(400);
-    const lc = await lire(C, 0.5, 0.45, 4), la = await lire(A, 0.5, 0.45, 4);
-    v('⛔ le trait tombe au MÊME endroit de l\'image chez Cléo (téléphone) et chez Ana (bureau), alors que leurs vignettes n\'ont pas la même taille : rouge au milieu du trait, chez les deux',
-      [rouge(lc && lc.px), rouge(la && la.px), !!lc && !!la && lc.W !== la.W], [true, true, true]);
+    /* deux points du trait : son milieu, et un point près de son DÉBUT — loin du centre, là où des coordonnées prises sur la vignette (et pas sur l'image) s'écarteraient d'une taille d'écran à l'autre */
+    const lc = await lire(C, 0.5, 0.45, 4), la = await lire(A, 0.5, 0.45, 4), lc2 = await lire(C, 0.34, 0.33, 4), la2 = await lire(A, 0.34, 0.33, 4);
+    v('⛔ le trait tombe au MÊME endroit de l\'image chez Cléo (téléphone) et chez Ana (bureau), alors que leurs vignettes n\'ont pas la même taille : rouge au milieu et près du début, chez les deux',
+      [rouge(lc && lc.px), rouge(la && la.px), rouge(lc2 && lc2.px), rouge(la2 && la2.px), !!lc && !!la && lc.W !== la.W], [true, true, true, true, true]);
     const ailleurs = await lire(C, 0.85, 0.15, 2);
     vrai('   et RIEN ailleurs (un point loin du trait reste transparent sur le calque de Cléo)', !!ailleurs && ailleurs.px[3] === 0);
     await capture(C, 'annot-telephone-trait');

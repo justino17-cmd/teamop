@@ -75,7 +75,12 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     const tenu = (await salle(b1)).items.find(x => x.id === t1);
     v('deux morceaux de plus (le dernier avec `fin`) : Ana reçoit chaque morceau (`suite`), l\'instantané tient le trait ENTIER, terminé', [m2.code, m3.code, annot(fA).filter(e => e.op === 'trait' && e.item.id === t1).map(e => [e.suite, e.item.pts.length]), tenu && tenu.pts.length, tenu && tenu.fini],
       [200, 200, [[false, 4], [true, 4], [true, 2]], 10, true]);
-    v('⛔ personne n\'ajoute au trait d\'un autre (Ana, hôte, sur le trait de Cleo), ni à un trait terminé : 400', [dit(await P(a1, { op: 'trait', id: t1, pts: [5, 5] })), dit(await P(c1, { op: 'trait', id: t1, pts: [5, 5] }))], [[400, 'champ_invalide'], [400, 'champ_invalide']]);
+    const t2 = ID();
+    await P(c1, { op: 'trait', id: t2, outil: 'stylo', couleur: 'vert', ep: 1, pts: [3000, 3000] });
+    const pris = await P(a1, { op: 'trait', id: t2, pts: [9000, 9000] });
+    v('⛔ personne n\'ajoute au trait d\'un autre, même EN COURS (Ana, hôte, sur celui que Cleo trace encore) : 400, et le trait de Cleo n\'a pas bougé', [dit(pris), (await salle(a1)).items.find(x => x.id === t2).pts], [[400, 'champ_invalide'], [3000, 3000]]);
+    await P(c1, { op: 'trait', id: t2, pts: [3100, 3100], fin: true });
+    v('⛔ ni à un trait terminé, le sien compris : 400', [dit(await P(a1, { op: 'trait', id: t1, pts: [5, 5] })), dit(await P(c1, { op: 'trait', id: t1, pts: [5, 5] }))], [[400, 'champ_invalide'], [400, 'champ_invalide']]);
     const nb = (await salle(a1)).items.length;
     v('⛔ un trait mal formé est refusé 400 et n\'est pas écrit : outil, couleur ou épaisseur hors liste, nombre impair de coordonnées, hors de 0..10 000, non entier, plus de 600 points d\'un coup, identifiant malformé, rien',
       [await P(c1, { op: 'trait', id: ID(), outil: 'laser', couleur: 'rouge', ep: 2, pts: [1, 1] }), await P(c1, { op: 'trait', id: ID(), outil: 'stylo', couleur: '#ff0000', ep: 2, pts: [1, 1] }),
@@ -98,7 +103,7 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     console.log('\nCelui qui arrive après voit ce qui est dessiné ; Dan, qui sonne, ne reçoit rien');
     const vu = await salle(a1);
     v('l\'instantané (`GET /api/salles/:id`) porte le support, le permis et chaque trait avec son auteur', [vu.support === 'ecran:' + ben.id, vu.permis, vu.items.map(x => [x.outil, x.de === cleo.id ? 'Cleo' : x.de === ben.id ? 'Ben' : '?'])],
-      [true, 'tous', [['stylo', 'Cleo'], ['fleche', 'Ben'], ['texte', 'Cleo'], ['texte', 'Cleo']]]);
+      [true, 'tous', [['stylo', 'Cleo'], ['stylo', 'Cleo'], ['fleche', 'Ben'], ['texte', 'Cleo'], ['texte', 'Cleo']]]);
     await marqueVers(dan, fD);
     v('⛔ Dan (invité qui sonne) n\'a reçu AUCUN événement d\'annotation (marqueur reçu après : son flux est vivant) ; il ne peut pas dessiner', [annot(fD).length, (await P(d1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 1, pts: [1, 1] })).code !== 200], [0, true]);
     v('⛔ l\'expéditeur ne reçoit pas ses propres traits par le flux (il les a dans la réponse) : Cleo n\'a reçu que ceux de Ben', annot(fC).filter(e => e.op === 'trait').map(e => e.de === ben.id), [true]);
