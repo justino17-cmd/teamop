@@ -13,6 +13,23 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (NUIT) — ANNOTER L'ÉCRAN PARTAGÉ, LE TABLEAU BLANC, L'ENREGISTREMENT QUI VA AUX ABSENTS (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « partage d'écran, dessiner sur l'écran, ajouter du texte… enregistrer les réunions, qu'ils puissent les renvoyer à des personnes qui n'ont pas pu assister ». En salle :
+**« Annoter »** paraît dès qu'un écran est partagé — stylo, surligneur, flèche, rectangle, cercle, texte, huit couleurs (les mêmes chez tous, jamais celles du thème), trois épaisseurs,
+annuler (⌘Z), effacer les siennes ou tout, « Capturer » (l'image annotée part en photo dans la discussion). **Tableau blanc** depuis « Plus ». Les traits partent en morceaux (on les voit
+se tracer, toutes les 200 ms) en coordonnées de l'IMAGE (0..10 000) : même endroit sur un téléphone et un ordinateur. Chez les autres que le partageur, la vue passe en « intervenant »
+le temps du support. Service : l'état vit EN MÉMOIRE (`appels.js`, `annoter`), route `POST /api/salles/:id/annot` (SP). **Enregistrement** : 720p, la mise en page de la salle,
+annotations comprises ; à l'arrêt une carte « Enregistrement terminé » — envoyer dans la discussion de la réunion (elle nomme qui n'était pas là ; le suivi dira qui l'a téléchargé),
+garder sur l'appareil (nom en ASCII : un Chromium sans jeu de caractères ignorait un nom accentué), supprimer (deux touches) ; elle survit à la sortie de la salle. Corrigé en chemin :
+l'écran partagé par quelqu'un dont la caméra est coupée était caché derrière son avatar. ⛔ Relecture `gardien`, corrigée : un partage s'ANNONCE sans se prouver — il ne vole plus le
+support (premier arrivé), ne donne aucun droit sous « réservées aux hôtes » ; l'éphémère (dessins, sondage) ne se raconte qu'aux PRÉSENTS (plus à un invité qui sonne ni à la salle
+d'attente) ; la route a son plafond par COMPTE (900 gestes, 40 000 coordonnées par minute), hors des 300 écritures communes qui coupaient un trait ; la mémoire se compte comme V8 la
+tient (512 Ko par salle, 64 Mo au total). `tests/test-924.js` (49 ✓ ; 22 mutations, toutes mordent sauf la pile de la palette, neutralisée par la mise en page du téléphone),
+`tests/sonde-opmessages-annotations.js` (34 ✓, trois navigateurs dont un téléphone), `tests/sonde-opmessages-enregistrement.js` (20 ✓, le rectangle rouge relu DANS la vidéo).
+⚠️ Reste : le partageur ne voit pas les annotations sur son écran réel (une page web ne dessine pas hors d'elle) — il les voit sur sa vignette ; la sortie de l'enregistrement est en
+WebM (lu par Chrome, Firefox, VLC ; QuickTime d'un Mac ne le lit pas) ; une salle pleine (2 000 éphémères) oublie d'abord une salle vide, sinon la plus ancienne.
+
 # ⏳ 7 OCTOBRE 2026 (NUIT) — QUI A REÇU, QUI A TÉLÉCHARGÉ UN DOCUMENT (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin : « s'envoyer des documents par cette réunion… savoir qui a reçu le document, savoir qui a téléchargé le document, c'est très important pour les patrons ». Sous chacun de MES

@@ -46,7 +46,8 @@
 # 8 034 vérifications mesurées par la commande de la porte (test-971 tombait en local sur la base de fuseaux 2025b du conteneur, avec son total complet) — plancher 8020 (le total moins 14).
 # 6 octobre 2026, « Nouvelle version d'OP MESSAGES » (test-941 : l'empreinte de version, trois contrôles de plus) : 66 suites, 8 036 vérifications mesurées par la commande de la porte avec la couture de test-904 (test-971 tombant en local sur la base de fuseaux 2025b, comme le 5) — plancher 8022 (le total moins 14).
 # 6 octobre 2026 au soir, l'inscription « comme Discord » (997), l'agenda personnel (998), la recherche dans Contacts : 68 suites, 8 173 vérifications mesurées par la commande de la porte (test-971 tombant en local, fuseaux 2025b) — plancher 8159 (le total moins 14).
-#plancher 8159
+# 7 octobre 2026, la fiche d'un contact (922), le suivi des documents (923), les annotations et le tableau blanc (924) : 75 suites, 8 406 vérifications mesurées par la commande de la porte (test-971 tombe en local sur la base de fuseaux 2025b, avec son total complet) — plancher 8390.
+#plancher 8390
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
