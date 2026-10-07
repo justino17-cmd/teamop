@@ -81,6 +81,11 @@ const MATRICE = {
   'msg.modifier':       { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/modifier', { seq: F.seqDe(a), texte: 'modifié' }], codes: [200] },
   'msg.supprimer':      { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/supprimer', { seq: F.seqDe(a), pour: 'tous' }], codes: [200] },
   'msg.reagir':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/reagir', { seq: 1, emoji: '👍' }], codes: [200] },
+  /* les sondages d'une conversation : la garde M passée, un numéro de message illisible rend le 400 du gestionnaire — jamais le 404 de la garde */
+  'sondage.lire':       { ok: (F) => ['GET', '/api/conversations/' + F.G + '/sondages/x'], codes: [400] },
+  'sondage.voter':      { ok: (F) => ['POST', '/api/conversations/' + F.G + '/sondages/x/voter', { choix: [0] }], codes: [400] },
+  'sondage.choix':      { ok: (F) => ['POST', '/api/conversations/' + F.G + '/sondages/x/choix', { texte: 'Mardi' }], codes: [400] },
+  'sondage.clore':      { ok: (F) => ['POST', '/api/conversations/' + F.G + '/sondages/x/clore', {}], codes: [400] },
   /* Le téléphone (étape 2). Les trois routes PUBLIQUES passent la garde pour tout le monde : `tel.code` avec un numéro belge NEUF à chaque
      cellule (un plafond « 1 par 60 s par numéro » refuserait la deuxième sinon), `tel.verifier` avec un code que personne n'a demandé — la
      réponse d'une garde P qui a passé est le 401 uniforme `code_invalide`, et `tel.appareil` sans jeton d'appareil le 401 `appareil_inconnu`. */
@@ -106,6 +111,7 @@ const MATRICE = {
   /* l'identifiant « Prénom#1234 » et les demandes de contact : un identifiant qui n'existe pas rend la réponse neutre ; demander sans avoir trouvé, répondre ou retirer une demande qui n'existe pas : la garde a passé, le geste dit non */
   'contacts.identifiant': { ok: () => ['POST', '/api/contacts/identifiant', { identifiant: 'Personne#1000' }], codes: [200] },
   'contacts.demander':  { ok: (F) => ['POST', '/api/contacts/demander', { id: F.A }], codes: [400, 404] },
+  'contacts.demander_carte': { ok: () => ['POST', '/api/contacts/demander_carte', { conv: 'x', seq: 1 }], codes: [400] },
   'contacts.demandes':  { ok: () => ['GET', '/api/contacts/demandes'], codes: [200] },
   'contacts.repondre':  { ok: (F) => ['POST', '/api/contacts/demandes/repondre', { id: F.A, accepter: true }], codes: [400, 404] },
   'contacts.annuler':   { ok: (F) => ['POST', '/api/contacts/demandes/annuler', { id: F.A }], codes: [400, 404] },

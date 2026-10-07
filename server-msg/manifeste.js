@@ -74,6 +74,11 @@ const MANIFESTE = [
   { id: 'msg.modifier',      m: 'POST', p: '/api/conversations/:id/messages/modifier', garde: 'M' },
   { id: 'msg.supprimer',     m: 'POST', p: '/api/conversations/:id/messages/supprimer', garde: 'M' },
   { id: 'msg.reagir',        m: 'POST', p: '/api/conversations/:id/messages/reagir', garde: 'M' },
+  /* les sondages d'une conversation (7 octobre 2026) : lire, voter, ajouter un choix, clore — un membre */
+  { id: 'sondage.lire',      m: 'GET',  p: '/api/conversations/:id/sondages/:seq',   garde: 'M' },
+  { id: 'sondage.voter',     m: 'POST', p: '/api/conversations/:id/sondages/:seq/voter', garde: 'M' },
+  { id: 'sondage.choix',     m: 'POST', p: '/api/conversations/:id/sondages/:seq/choix', garde: 'M' },
+  { id: 'sondage.clore',     m: 'POST', p: '/api/conversations/:id/sondages/:seq/clore', garde: 'M' },
   /* Étape 2 : le compte PERSO par numéro de téléphone (`telephone.js`). Les trois premières sont PUBLIQUES (garde P) : on ne peut pas
      avoir de session avant d'en avoir une — leur défense est dans les plafonds, le budget en euros et les réponses uniformes. */
   { id: 'tel.code',          m: 'POST', p: '/api/tel/code',                          garde: 'P' },
@@ -98,6 +103,7 @@ const MANIFESTE = [
   /* L'identifiant « Prénom#1234 » et les demandes de contact (`telephone.js` § 6) : retrouver par l'identifiant EXACT, demander, répondre, retirer sa demande. */
   { id: 'contacts.identifiant', m: 'POST', p: '/api/contacts/identifiant',           garde: 'V' },
   { id: 'contacts.demander', m: 'POST', p: '/api/contacts/demander',                 garde: 'V' },
+  { id: 'contacts.demander_carte', m: 'POST', p: '/api/contacts/demander_carte',     garde: 'V' },   // demander une personne dont on a reçu la FICHE dans une conversation
   { id: 'contacts.demandes', m: 'GET',  p: '/api/contacts/demandes',                 garde: 'S' },
   { id: 'contacts.repondre', m: 'POST', p: '/api/contacts/demandes/repondre',        garde: 'V' },
   { id: 'contacts.annuler',  m: 'POST', p: '/api/contacts/demandes/annuler',         garde: 'V' },

@@ -578,6 +578,26 @@ const MIGRATIONS = [
     `ALTER TABLE appel_part ADD COLUMN cumul INTEGER NOT NULL DEFAULT 0`,
     `PRAGMA user_version = 16`,
   ] },
+  /* ── 17 (7 octobre 2026) : LES SONDAGES D'UNE CONVERSATION — « des sondages personnalisables, avec ses règles ; on garde le système de WhatsApp, mais on l'améliore ». Le message (un texte « 📊 … »
+     pour les versions d'avant, `meta.k = 'sondage'` pour celle-ci) porte la question ; ces tables, ses RÈGLES (plusieurs réponses, anonyme, les membres ajoutent des choix, quand les résultats se
+     voient, une échéance), ses CHOIX (scellés comme un message) et les VOTES. ⛔ Un vote « anonyme » l'est pour les MEMBRES : le service garde qui a voté (sinon rien n'empêcherait de voter deux fois),
+     il ne le dit à personne. Le message effacé ou expiré emporte tout (clé étrangère). */
+  { v: 17, sql: [
+    `CREATE TABLE IF NOT EXISTS sondage(
+       conv TEXT NOT NULL, seq INTEGER NOT NULL, auteur TEXT NOT NULL,
+       multiple INTEGER NOT NULL DEFAULT 0, anonyme INTEGER NOT NULL DEFAULT 0, ajout INTEGER NOT NULL DEFAULT 0,
+       resultats TEXT NOT NULL DEFAULT 'toujours' CHECK(resultats IN ('toujours','apres_vote','apres_cloture')),
+       fin INTEGER, clos INTEGER, cree INTEGER NOT NULL,
+       PRIMARY KEY(conv, seq), FOREIGN KEY(conv, seq) REFERENCES message(conv, seq) ON DELETE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS sondage_choix(
+       conv TEXT NOT NULL, seq INTEGER NOT NULL, idx INTEGER NOT NULL, texte_ch BLOB NOT NULL, par TEXT, ts INTEGER NOT NULL,
+       PRIMARY KEY(conv, seq, idx), FOREIGN KEY(conv, seq) REFERENCES sondage(conv, seq) ON DELETE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS sondage_vote(
+       conv TEXT NOT NULL, seq INTEGER NOT NULL, uid TEXT NOT NULL, idx INTEGER NOT NULL, ts INTEGER NOT NULL,
+       PRIMARY KEY(conv, seq, uid, idx), FOREIGN KEY(conv, seq) REFERENCES sondage(conv, seq) ON DELETE CASCADE)`,
+    `CREATE INDEX IF NOT EXISTS sondage_vote_uid ON sondage_vote(uid)`,
+    `PRAGMA user_version = 17`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -659,7 +679,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* le favori de l'onglet Contacts (migration 14) : une base ouverte à un schéma plus ancien (un banc de migration) n'a pas la colonne — on ne la lit pas, et poser un favori n'y fait rien */
   const FAVORI = versionActuelle() >= 14;
   const SUIVI = versionActuelle() >= 15;
-  const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
+  const PRESENCE = versionActuelle() >= 16;
+  const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
@@ -1096,7 +1117,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return { piece: lignes[0].id, nom: nom || 'fichier', taille: lignes[0].taille };
   }
 
-  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal }) {
+  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage }) {
     const dej = Q('SELECT seq, ts, id FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid);
     if (dej) return { deja: true, seq: dej.seq, ts: dej.ts, id: dej.id };
     const c = Q('SELECT dernier_seq, ephemere_s FROM conversation WHERE id = ?').get(conv);
@@ -1112,6 +1133,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     Q('INSERT INTO message(conv, seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, expire_ts) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(conv, seq, id, auteur, cid, ts, type, corps, metaCh, repondA == null ? null : repondA, expire);
     Q('UPDATE conversation SET dernier_seq = ?, dernier_ts = ? WHERE id = ?').run(seq, ts, conv);
+    if (sondage) sondageCreerDansTx({ conv, seq, auteur, choix: sondage.choix, regles: sondage.regles, t: ts });       // dans la MÊME transaction : jamais un « 📊 » sans ses choix
     /* ⛔ ENVOYER N'EST PAS LIRE. Celui qui écrit a lu son propre message, pas ce qui précède : `lu_seq` ne suit son
        message que si RIEN n'attendait d'être lu (`lu_seq = seq - 1`). L'ancienne version le portait à `seq` quoi qu'il
        arrive, et un envoi sorti d'une file hors ligne marquait lus les messages d'autrui jamais vus (relecture
@@ -1461,9 +1483,98 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ MESSAGES ════════════════════════════════════════════════════════════════════════════ */
-  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null }) {
-    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal }));
+  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null }) {
+    if (sondage && !SONDAGES) throw erreur('type');
+    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage }));
   }
+  /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. ── */
+  /* un message que `uid` voit (membre depuis, ni masqué, ni effacé, ni expiré) → son auteur et sa méta, ou null */
+  function messageVuPar(conv, seq, uid) {
+    const m = Q('SELECT depuis_seq, role FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    if (!m || seq < m.depuis_seq) return null;
+    const r = Q(`SELECT x.auteur AS auteur, x.meta_ch AS meta_ch, x.supprime_le AS supprime_le FROM message x WHERE x.conv = ? AND x.seq = ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
+                 AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)`).get(conv, seq, horloge(), uid);
+    if (!r || r.supprime_le) return null;
+    let meta = null; if (r.meta_ch) { try { meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), r.meta_ch)); } catch (e) { meta = null; } }
+    return { auteur: r.auteur, meta, role: m.role };
+  }
+  /* la fiche de contact d'un message (`meta.k = 'contact'`) que `uid` voit, ou null */
+  function carteContactLire(conv, seq, uid) { const v = messageVuPar(conv, seq, uid); return v && v.meta && v.meta.k === 'contact' && typeof v.meta.uid === 'string' ? v.meta : null; }
+  /* ── les sondages ── */
+  const SONDAGE_CHOIX_MAX = 12;
+  const aadChoix = (conv, seq, idx) => conv + '|' + seq + '|' + idx;
+  function sondageCreerDansTx({ conv, seq, auteur, choix, regles, t }) {
+    Q('INSERT INTO sondage(conv, seq, auteur, multiple, anonyme, ajout, resultats, fin, cree) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(conv, seq, auteur, regles.multiple ? 1 : 0, regles.anonyme ? 1 : 0, regles.ajout ? 1 : 0, regles.resultats, regles.fin === null ? null : regles.fin, t);
+    choix.forEach((c, i) => Q('INSERT INTO sondage_choix(conv, seq, idx, texte_ch, par, ts) VALUES(?, ?, ?, ?, ?, ?)').run(conv, seq, i, sceller('sondage_choix', 'texte_ch', aadChoix(conv, seq, i), c), auteur, t));
+  }
+  function sondageAcces(conv, seq, uid) {
+    if (!SONDAGES) return null;
+    const v = messageVuPar(conv, seq, uid); if (!v) return null;
+    const s = Q('SELECT auteur, multiple, anonyme, ajout, resultats, fin, clos, cree FROM sondage WHERE conv = ? AND seq = ?').get(conv, seq);
+    return s ? { s, role: v.role } : null;
+  }
+  const sondageClos = (s, t) => s.clos !== null && s.clos !== undefined ? true : (s.fin !== null && s.fin !== undefined && num(s.fin) <= t);
+  const sondageChoix = (conv, seq) => Q('SELECT idx, texte_ch, par FROM sondage_choix WHERE conv = ? AND seq = ? ORDER BY idx').all(conv, seq)
+    .map(r => ({ idx: num(r.idx), texte: ouvrirOuNull('sondage_choix', 'texte_ch', aadChoix(conv, seq, num(r.idx)), r.texte_ch) || '', par: r.par }));
+  /* ce que `uid` voit d'un sondage : les règles, les choix, SES votes ; les décomptes selon la règle des résultats (l'auteur les voit toujours) ; QUI a voté quoi seulement s'il n'est pas anonyme */
+  function sondageVue(conv, seq, uid) {
+    const a = sondageAcces(conv, seq, uid); if (!a) return null;
+    const s = a.s, t = horloge(), clos = sondageClos(s, t);
+    const choix = sondageChoix(conv, seq), votes = Q('SELECT uid, idx FROM sondage_vote WHERE conv = ? AND seq = ? ORDER BY ts, uid').all(conv, seq);
+    const mes = votes.filter(v => v.uid === uid).map(v => num(v.idx));
+    const voir = s.auteur === uid || clos || s.resultats === 'toujours' || (s.resultats === 'apres_vote' && mes.length > 0);
+    return {
+      seq, auteur: s.auteur,
+      regles: { multiple: !!s.multiple, anonyme: !!s.anonyme, ajout: !!s.ajout, resultats: s.resultats, fin: s.fin === null || s.fin === undefined ? null : num(s.fin) },
+      clos, clos_le: s.clos !== null && s.clos !== undefined ? num(s.clos) : (clos ? num(s.fin) : null),
+      choix: choix.map(c => {
+        const pour = votes.filter(v => num(v.idx) === c.idx);
+        return { idx: c.idx, texte: c.texte, ajoute_par: c.par && c.par !== s.auteur ? c.par : null, n: voir ? pour.length : null, qui: voir && !s.anonyme ? pour.map(v => v.uid) : null };
+      }),
+      mes_choix: mes, votants: voir ? new Set(votes.map(v => v.uid)).size : null, resultats_visibles: voir,
+      peut_voter: !clos, peut_ajouter: !clos && (!!s.ajout || s.auteur === uid) && choix.length < SONDAGE_CHOIX_MAX, peut_clore: !clos && (s.auteur === uid || a.role === 'admin'),
+    };
+  }
+  /* voter : REMPLACE mes votes (une liste vide les retire) ; un seul choix si la règle n'en permet pas plusieurs ; jamais après la clôture ou l'échéance */
+  function sondageVoter(conv, seq, uid, idxs) {
+    return tx(() => {
+      const a = sondageAcces(conv, seq, uid); if (!a) throw erreur('introuvable');
+      const t = horloge(); if (sondageClos(a.s, t)) throw erreur('sondage_clos');
+      const n = num(Q('SELECT COUNT(*) AS n FROM sondage_choix WHERE conv = ? AND seq = ?').get(conv, seq).n);
+      const l = Array.from(new Set(idxs));
+      if (l.some(i => !Number.isInteger(i) || i < 0 || i >= n) || (!a.s.multiple && l.length > 1)) throw erreur('vide');
+      Q('DELETE FROM sondage_vote WHERE conv = ? AND seq = ? AND uid = ?').run(conv, seq, uid);
+      for (const i of l) Q('INSERT INTO sondage_vote(conv, seq, uid, idx, ts) VALUES(?, ?, ?, ?, ?)').run(conv, seq, uid, i, t);
+      return { gid: journalAjouter('sondage', conv, null, String(seq)) };
+    });
+  }
+  /* ajouter un choix : l'auteur toujours, les membres si la règle le permet ; douze au plus ; jamais deux fois le même (casse et accents comptent pour rien) */
+  function sondageAjouterChoix(conv, seq, uid, texte) {
+    return tx(() => {
+      const a = sondageAcces(conv, seq, uid); if (!a) throw erreur('introuvable');
+      const t = horloge(); if (sondageClos(a.s, t)) throw erreur('sondage_clos');
+      if (!a.s.ajout && a.s.auteur !== uid) throw erreur('interdit');
+      const l = sondageChoix(conv, seq);
+      if (l.length >= SONDAGE_CHOIX_MAX) throw erreur('sondage_plein');
+      const cle = (x) => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (l.some(c => cle(c.texte) === cle(texte))) throw erreur('sondage_doublon');
+      const idx = l.length;
+      Q('INSERT INTO sondage_choix(conv, seq, idx, texte_ch, par, ts) VALUES(?, ?, ?, ?, ?, ?)').run(conv, seq, idx, sceller('sondage_choix', 'texte_ch', aadChoix(conv, seq, idx), texte), uid, t);
+      return { idx, gid: journalAjouter('sondage', conv, null, String(seq)) };
+    });
+  }
+  /* clore : l'auteur ou un administrateur de la conversation */
+  function sondageClore(conv, seq, uid) {
+    return tx(() => {
+      const a = sondageAcces(conv, seq, uid); if (!a) throw erreur('introuvable');
+      if (a.s.auteur !== uid && a.role !== 'admin') throw erreur('interdit');
+      const t = horloge(); if (sondageClos(a.s, t)) return { deja: true };
+      Q('UPDATE sondage SET clos = ? WHERE conv = ? AND seq = ?').run(t, conv, seq);
+      return { gid: journalAjouter('sondage', conv, null, String(seq)) };
+    });
+  }
+  const exportSondagesVotes = (uid) => SONDAGES ? Q('SELECT conv, seq, idx, ts FROM sondage_vote WHERE uid = ? ORDER BY ts LIMIT 10000').all(uid).map(r => ({ conversation: r.conv, message: num(r.seq), choix: num(r.idx), le: num(r.ts) })) : [];
   function messageExiste(conv, seq) { return !!Q('SELECT 1 AS x FROM message WHERE conv = ? AND seq = ?').get(conv, seq); }
 
   const messageRang = (conv, r, moi, reactions) => {
@@ -1518,6 +1629,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!r || r.supprime_le) throw erreur('introuvable');
       if (r.auteur !== auteur) throw erreur('interdit');
       if (r.type !== 'texte' && r.type !== 'photo') throw erreur('type');   // la légende d'une photo se modifie comme un message
+      if (r.type === 'texte' && Q('SELECT meta_ch FROM message WHERE conv = ? AND seq = ?').get(conv, seq).meta_ch) throw erreur('type');   // une position, une fiche, un sondage : leur texte est leur résumé, il ne se modifie pas
       if (texte === null && r.type !== 'photo') throw erreur('vide');   // un message texte ne se vide pas ; une photo, si : sa légende est retirée
       if (horloge() - r.ts > DELAI_MODIF_MS) throw erreur('delai');
       const t = horloge();
@@ -1543,6 +1655,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (r.supprime_le) return { gid: 0, deja: true, pour: 'tous', pieces: [] };
       Q('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE conv = ? AND seq = ?').run(horloge(), conv, seq);
       Q('DELETE FROM reaction WHERE conv = ? AND seq = ?').run(conv, seq);
+      if (SONDAGES) Q('DELETE FROM sondage WHERE conv = ? AND seq = ?').run(conv, seq);    // ⛔ un sondage effacé emporte ses choix (scellés, mais écrits) et ses votes — la clé étrangère les suit
       /* ⛔ « supprimer pour tous » EFFACE LES PIÈCES (la ligne ici, le fichier par l'appelant) : un message supprimé ne doit pas rester lisible dans le fichier d'une photo */
       const pieces = piecesDuMessageEffacer(conv, seq);
       /* ⛔ NOTÉ DANS `purge` : une sauvegarde prise AVANT ce geste porte encore le texte ; la restauration rejoue le registre
@@ -1835,6 +1948,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       case 'msg_supprime': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: j.uid ? 'moi' : 'tous' } };
       case 'msg_expire': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: 'expire' } };
       case 'msg_reaction': return { gid, event: 'reaction', data: { conv: j.conv, seq: parseInt(j.ref, 10), reactions: reactionsDe(j.conv, parseInt(j.ref, 10)) } };
+      case 'sondage': return { gid, event: 'sondage', data: { conv: j.conv, seq: parseInt(j.ref, 10) } };      // « relis-le » : chacun le relit avec SES droits (anonyme, résultats cachés)
       case 'conv_maj': return { gid, event: 'conversation', data: { conv: j.conv } };
       case 'retire': return { gid, event: 'retire', data: { conv: j.conv } };
       case 'lu': {
@@ -2389,6 +2503,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
       Q('DELETE FROM msg_masque WHERE uid = ?').run(uid);
       /* le suivi des documents (migration 15) : ce que J'ai ouvert, et ce qu'on a ouvert de MES pièces — la ligne `personne` reste (anonymisée), le CASCADE ne joue pas */
+      if (SONDAGES) Q('DELETE FROM sondage_vote WHERE uid = ?').run(uid);          // ses votes partent avec lui (les décomptes baissent) ; ses sondages restent avec ses messages
       if (SUIVI) { Q('DELETE FROM piece_acces WHERE uid = ?').run(uid); Q('DELETE FROM piece_acces WHERE piece IN (SELECT id FROM piece WHERE proprio = ?)').run(uid); }
       Q('DELETE FROM journal WHERE uid = ?').run(uid);
       Q('UPDATE membre SET muet_jusqua = 0, epingle = 0, archive = 0 WHERE uid = ?').run(uid);
@@ -4050,6 +4165,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         appel: non(() => Q('SELECT 1 FROM appel LIMIT 1')),
         appel_part: non(() => Q('SELECT 1 FROM appel_part LIMIT 1')),
         piece_acces: non(() => Q('SELECT 1 FROM piece_acces LIMIT 1')),
+        sondage: non(() => Q('SELECT 1 FROM sondage LIMIT 1')),
+        sondage_choix: non(() => Q('SELECT 1 FROM sondage_choix LIMIT 1')),
+        sondage_vote: non(() => Q('SELECT 1 FROM sondage_vote LIMIT 1')),
       },
     };
   }
@@ -4101,6 +4219,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     presenceSalle, presenceReunion,   // le rapport de présence (migration 16)
+    carteContactLire, sondageVue, sondageVoter, sondageAjouterChoix, sondageClore, exportSondagesVotes,   // les cartes d'un message et les sondages (migration 17)
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
@@ -4118,7 +4237,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -4165,6 +4284,9 @@ function lignesDe(d) {
     appel: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel')),
     appel_part: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel_part')),
     piece_acces: n(() => d.prepare('SELECT COUNT(*) AS n FROM piece_acces')),
+    sondage: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage')),
+    sondage_choix: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_choix')),
+    sondage_vote: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_vote')),
   };
 }
 
@@ -4258,6 +4380,7 @@ function rejouerPurge(chemin, registre, opts) {
     const chercher = d.prepare('SELECT conv, seq, supprime_le FROM message WHERE id = ?');
     const blanchir = d.prepare('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE id = ?');
     const sansReactions = d.prepare('DELETE FROM reaction WHERE conv = ? AND seq = ?');
+    const sansSondage = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'sondage'`).get() !== undefined ? d.prepare('DELETE FROM sondage WHERE conv = ? AND seq = ?') : null;
     const retirerPiece = tablePiece ? d.prepare('DELETE FROM piece WHERE id = ?') : null;
     const retirerLiens = d.prepare(`DELETE FROM lien WHERE genre = 'groupe' AND cible = ?`);
     const retirerJournal = d.prepare('DELETE FROM journal WHERE conv = ?');
@@ -4308,6 +4431,7 @@ function rejouerPurge(chemin, registre, opts) {
           if (l && (l.supprime_le === null || l.supprime_le === undefined)) {
             blanchir.run(Number(r.quand) || 0, r.objet);
             sansReactions.run(l.conv, l.seq);
+            if (sansSondage) sansSondage.run(l.conv, l.seq);      // un sondage effacé dans l'archive aussi (migration 17)
             bilan.messagesBlanchis++;
           }
         } else if (/^piece/.test(genre)) {

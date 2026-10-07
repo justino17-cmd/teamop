@@ -304,20 +304,20 @@ function creerTelephone(ctx) {
      `stockage.js`) : un réglage que seule la page respecterait ne protégerait personne. Les trois champs sont facultatifs, au moins un est obligatoire. */
   const etatConfidentialite = (id) => {
     const p = stockage.personneParId(id), prefs = (p && p.prefs) || {};
-    return { trouvable: stockage.telTrouvableLire(id), presence: prefs.presence !== false, accuses: prefs.accuses !== false };
+    return { trouvable: stockage.telTrouvableLire(id), presence: prefs.presence !== false, accuses: prefs.accuses !== false, position: prefs.position === true };   // la position : COUPÉE tant qu'on ne l'a pas allumée
   };
   H_['moi.confidentialite.lire'] = (req, res) => res.json(etatConfidentialite(req.moi.id));
   H_['moi.confidentialite'] = (req, res) => {
     const b = corps(req), c = {};
     if (b.trouvable !== undefined) { if (b.trouvable !== 'tous' && b.trouvable !== 'personne') return refus(res, 400, 'champ_invalide'); c.trouvable = b.trouvable; }
-    for (const k of ['presence', 'accuses']) if (b[k] !== undefined) { if (typeof b[k] !== 'boolean') return refus(res, 400, 'champ_invalide'); c[k] = b[k]; }
+    for (const k of ['presence', 'accuses', 'position']) if (b[k] !== undefined) { if (typeof b[k] !== 'boolean') return refus(res, 400, 'champ_invalide'); c[k] = b[k]; }
     if (!Object.keys(c).length) return refus(res, 400, 'champ_invalide');
     const q = essai('moi_confidentialite', req.moi.id, { max: 30, fenetreMs: H });
     if (!q.ok) return trop(res, 'quota_atteint', q.retry);
     if (c.trouvable !== undefined) stockage.telTrouvableMaj(req.moi.id, c.trouvable);
-    if (c.presence !== undefined || c.accuses !== undefined) {
+    if (c.presence !== undefined || c.accuses !== undefined || c.position !== undefined) {
       const avant = req.moi.prefs || {}, prefs = Object.assign({}, avant);
-      for (const k of ['presence', 'accuses']) if (c[k] !== undefined) prefs[k] = c[k];
+      for (const k of ['presence', 'accuses', 'position']) if (c[k] !== undefined) prefs[k] = c[k];
       const moi = stockage.personneMaj(req.moi.id, { prefs });
       hub.reglagesChanges(req.moi.id, avant, moi.prefs);   // les autres l'apprennent tout de suite (présence), ou relisent les « Lu » (accusés)
     }
@@ -427,6 +427,26 @@ function creerTelephone(ctx) {
     if (r.neuve && r.resultat === 'envoyee') prevenir(id, 'contact_demande', 'Demande de contact', nomDe(req.moi) + ' veut vous ajouter à ses contacts.', uid);
     else if (r.neuve && r.resultat === 'acceptee') prevenir(id, 'contact_ajoute', 'Nouveau contact', nomDe(req.moi) + ' est maintenant dans vos contacts.', uid);
     /* le plafond se consomme sur ce que l'AUTEUR voit (« envoyee », « acceptee »), jamais sur ce que l'autre a répondu : refusée ou non, la même chose */
+    if (r.resultat === 'deja' || r.resultat === 'deja_envoyee') rendre([q.cle]);
+    res.json({ ok: true, resultat: r.resultat });
+  };
+
+  /* ⛔ DEMANDER UNE PERSONNE DONT ON A REÇU LA FICHE (« partager des contacts », 7 octobre 2026) : la fiche est un message de MA conversation que je vois ; la personne se laisse toujours
+     trouver (« par tous » — sinon la fiche ne prouve rien de son accord), n'est ni bloquée ni sur le départ ; les mêmes plafonds qu'une demande par identifiant, la même notification. */
+  H_['contacts.demander_carte'] = (req, res) => {
+    const b = corps(req), uid = req.moi.id;
+    if (typeof b.conv !== 'string' || !/^c_[0-9a-f]{32}$/.test(b.conv) || !Number.isInteger(b.seq) || b.seq < 1) return refus(res, 400, 'champ_invalide');
+    const carte = stockage.carteContactLire(b.conv, b.seq, uid);
+    if (!carte || carte.uid === uid) return refus(res, 404, 'introuvable');
+    const id = carte.uid;
+    const q = essai('ajout_jour', uid, { max: cfg.ajoutJour, fenetreMs: JOUR }, jeune(req.moi) ? 1 / 3 : 1);
+    if (!q.ok) return trop(res, 'ajouts_plafond', q.retry);
+    const p = stockage.personneParId(id), t = p ? stockage.telTrouvableLire(id) : null;
+    if (!p || p.etat !== 'actif' || t !== 'tous' || stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) { rendre([q.cle]); return refus(res, 404, 'introuvable'); }
+    let r;
+    try { r = stockage.demandeCreer(uid, id); } catch (e) { if (e && e.code === 'demandes_plafond') { rendre([q.cle]); return trop(res, 'demandes_plafond', 3600); } throw e; }
+    if (r.neuve && r.resultat === 'envoyee') prevenir(id, 'contact_demande', 'Demande de contact', nomDe(req.moi) + ' veut vous ajouter à ses contacts.', uid);
+    else if (r.neuve && r.resultat === 'acceptee') prevenir(id, 'contact_ajoute', 'Nouveau contact', nomDe(req.moi) + ' est maintenant dans vos contacts.', uid);
     if (r.resultat === 'deja' || r.resultat === 'deja_envoyee') rendre([q.cle]);
     res.json({ ok: true, resultat: r.resultat });
   };
