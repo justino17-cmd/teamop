@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '12c5267833d6';
+  const OPMSG_BUILD = '11ecdb4783ba';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 110;
+  const OPMSG_VERSION = 112;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4498,14 +4498,22 @@
     if (r.moi.hote) return 'Organisateur';
     return r.moi.statut === 'attente' ? 'À répondre' : r.moi.statut === 'decline' ? 'Refusée' : r.moi.statut === 'peutetre' ? 'Peut-être' : '';
   }
+  /* « 42 min », « 1 h 05 » : la durée d'une séance */
+  const dureeSeance = s => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
   function ligneReunion(r, o) {
-    const { h, note, hz, ville } = libelleHoraire(r, o), etatTxt = libelleEtat(r);
-    const sous = [r.lieu, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
-    const rej = CAP.salles && r.rejoignable && !r.annulee ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
-    return '<li' + (rej ? ' class="reunion-li"' : '') + '><button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">' +
+    const { h, note, hz, ville } = libelleHoraire(r, o);
+    /* ⛔ UNE OCCURRENCE QUI A EU LIEU LE DIT (8 octobre 2026 : « une fois que la réunion est terminée pour tous, ça le marque, avec les participants, la durée ») : « Terminée », combien de temps,
+       combien sont venus — et, pour l'organisateur, qui (le service ne donne les noms qu'à lui). Plus de « Rejoindre » tant qu'aucune salle n'est rouverte. */
+    const se = o.seance && !r.salleOuverte ? o.seance : null;
+    const etatTxt = se && !r.annulee ? 'Terminée' : libelleEtat(r);
+    const sous = se ? [r.lieu, 'Durée ' + dureeSeance(se.dureeS), se.n + (se.n > 1 ? ' présents' : ' présent')].filter(Boolean)
+      : [r.lieu, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
+    const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
+    const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
+    return '<li' + (rej ? ' class="reunion-li"' : '') + '><button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note && !se ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '') + (se ? ', durée ' + dureeSeance(se.dureeS) + ', ' + se.n + (se.n > 1 ? ' présents' : ' présent') + (qui ? ' : ' + qui : '') : '')) + '">' +
       '<span class="reunion-heure">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>' +
-      '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (note ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
-      (etatTxt ? '<span class="reunion-etat' + (r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + '</button>' + rej + '</li>';
+      '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
+      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + '</button>' + rej + '</li>';
   }
   /* la grille du mois : une case par jour, les rendez-vous qui y COMMENCENT (et les journées entières), dans l'ordre de la journée */
   function rendreMois(auj) {

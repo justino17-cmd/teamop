@@ -122,6 +122,22 @@ const geometrie = (S) => S.page.evaluate(() => {
     await toucher(A, '#nav-side a[data-vue="reunions"]');
     vrai('rechargée, la page rouvre l\'Agenda sur le MOIS', await attendre(A, () => !document.getElementById('mois').hidden && document.querySelectorAll('#mois-jours .mjour').length >= 28));
 
+    console.log('\n── 3 bis. Une réunion TERMINÉE POUR TOUS le dit dans l\'agenda (durée, présents) ──');
+    {
+      const t0r = Date.now() + 2 * 60000, loc = (t) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(t)).replace(' ', 'T');
+      const cr = await A0.post('/api/reunions', { titre: 'Point WQXZ fini', debut: loc(t0r), fin: loc(t0r + 3600000), tz: 'Europe/Paris', invites: [B0.moi.id], notifier: false });
+      vrai('population : la réunion est programmée (dans deux minutes : sa salle est déjà ouverte à l\'entrée)', cr.code === 201, JSON.stringify(cr.j));
+      const R = cr.j.reunion.id, s1 = await A0.post('/api/reunions/' + R + '/rejoindre', {});
+      await B0.post('/api/reunions/' + R + '/rejoindre', {});
+      const fini = await A0.post('/api/salles/' + s1.j.appel.id + '/terminer', {});
+      vrai('population : Alice et Ben y sont entrés, Alice la TERMINE POUR TOUS', !!s1.j.appel && fini.code === 200, JSON.stringify(fini.j));
+      await A.page.evaluate(() => { location.hash = '#messages'; }); await A.page.waitForTimeout(200);
+      await toucher(A, '#nav-side a[data-vue="reunions"]');
+      const ligne = () => A.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#liste-reunions .reunion-ligne')).find(x => /Point WQXZ fini/.test(x.textContent)); return l ? { etat: (l.querySelector('.reunion-etat') || {}).textContent, sous: Array.from(l.querySelectorAll('.reunion-sous')).map(x => x.textContent), rej: !!l.parentElement.querySelector('.reunion-rejoindre') } : null; });
+      vrai('⛔ l\'agenda dit « Terminée », la durée et le nombre de présents ; pour l\'organisatrice, QUI (« Vous, Ben Banc ») ; plus de « Rejoindre »', await attendre(A, () => { const l = Array.from(document.querySelectorAll('#liste-reunions .reunion-ligne')).find(x => /Point WQXZ fini/.test(x.textContent)); if (!l) return false; const sous = Array.from(l.querySelectorAll('.reunion-sous')).map(x => x.textContent); return (l.querySelector('.reunion-etat') || {}).textContent === 'Terminée' && /^Durée 1 min · 2 présents$/.test(sous[0]) && sous[1] === 'Vous, Ben Banc' && !l.parentElement.querySelector('.reunion-rejoindre'); }, null, 12000), JSON.stringify(await ligne()));
+      await capture(A, '3b-agenda-reunion-terminee');
+    }
+
     console.log('\n── 4. Au téléphone ──');
     const P = await ouvrir(b, svc.base, IPHONE);
     await toucher(P, '#tabs a[data-vue="reunions"]');
@@ -130,7 +146,7 @@ const geometrie = (S) => S.page.evaluate(() => {
       const cases = Array.from(document.querySelectorAll('#mois-jours .mjour')), avec = cases.filter(x => /Rappel : Peux-tu/.test(x.getAttribute('aria-label')));
       return { h: Math.min(...cases.map(x => x.offsetHeight)), w: Math.min(...cases.map(x => x.offsetWidth)), points: avec.length ? avec[0].querySelectorAll('.mjour-points i').length : -1, elts: avec.length ? getComputedStyle(avec[0].querySelector('.mjour-elts')).display : '', jour: avec.length ? avec[0].dataset.jour : null };
     });
-    v('au doigt : chaque case fait 44 px au moins (haut et large), la case du rappel porte UN point, et pas de texte (trop étroit)', [tel.h >= 44, tel.w >= 44, tel.points, tel.elts], [true, true, 1, 'none']);
+    v('au doigt : chaque case fait 44 px au moins (haut et large), la case du rappel porte ses points (un par élément, trois au plus — la réunion terminée peut tomber le même jour), et pas de texte (trop étroit)', [tel.h >= 44, tel.w >= 44, tel.points >= 1 && tel.points <= 3, tel.elts], [true, true, true, 'none']);
     await toucher(P, '#mois-jours [data-jour="' + tel.jour + '"]');
     vrai('toucher ce jour : il est choisi, et la liste dessous porte le rappel', await attendre(P, (j) => document.querySelector('#mois-jours [data-jour="' + j + '"]').getAttribute('aria-pressed') === 'true' && /Rappel : Peux-tu/.test(document.getElementById('liste-reunions').textContent), tel.jour));
     v('aucune case ne fait glisser la page de côté (téléphone)', await P.page.evaluate(() => { window.scrollTo(9999, scrollY); const x = scrollX; window.scrollTo(0, scrollY); return x; }), 0);

@@ -3939,6 +3939,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     }
     return { seances };
   }
+  /* ⛔ LES SÉANCES FINIES d'une réunion (8 octobre 2026 : « une fois que la réunion est terminée pour tous, ça le marque, avec les participants, la durée ») : les salles qui ont COURU
+     (« fini ») ou que l'hôte a terminées pour tous, dans une fenêtre — leur début (la première réponse), leur fin, comment elles ont fini, et qui est VENU (dans l'ordre d'arrivée). L'agenda les
+     range sous leur occurrence ; les NOMS ne sortent que pour l'organisateur (la règle du rapport de présence : un invité ne lit pas l'assiduité des autres). */
+  function seancesFinies(reunion, du, au) {
+    return Q(`SELECT id, cree, repondu, fin, motif FROM appel WHERE reunion = ? AND genre = 'reunion' AND fin IS NOT NULL AND (etat = 'fini' OR motif = 'termine') AND fin > ? AND cree < ? ORDER BY cree LIMIT 40`).all(reunion, du, au).map(a => ({
+      id: a.id, debut: a.repondu !== null && a.repondu !== undefined ? num(a.repondu) : num(a.cree), fin: num(a.fin), motif: a.motif || null,
+      venus: PRESENCE ? Q(`SELECT p.uid AS uid, x.prenom AS prenom, x.nom AS nom FROM appel_part p JOIN personne x ON x.id = p.uid WHERE p.appel = ? AND p.premier IS NOT NULL ORDER BY p.premier, p.uid`).all(a.id).map(x => ({ id: x.uid, prenom: x.prenom || null, nom: x.nom || null })) : []
+    }));
+  }
   /* Deux personnes dans la salle : l'appel sonnait, il COURT (l'instant de la première réponse date `repondu`). */
   function salleDemarrerSiDeux(id, t) {
     if (sallePresents(id) >= 2) Q(`UPDATE appel SET etat = 'en_cours', repondu = COALESCE(repondu, ?) WHERE id = ? AND etat = 'sonne'`).run(t, id);
@@ -4332,7 +4341,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
     appelVue, appelAcces, appelActifDe, appelActifVue, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
-    appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
+    appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, seancesFinies, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };
 }
 

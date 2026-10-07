@@ -99,6 +99,11 @@ const sec = (ms) => Math.round(ms / 1000);                // l'horloge du banc e
     const rr = await a1.get(UR);
     const se = rr.j.seances[0];
     v('une séance : Ana 15 min, Ben 10 min (entré à +2 min) — finie', se && [se.en_cours, sec(se.debut - ts1), nom(se.venus, ana).duree_s, nom(se.venus, ben).duree_s, sec(nom(se.venus, ben).arrivee - ts1), sec(se.fin - ts1)], [false, 0, 900, 600, 120, 900]);
+    /* l'agenda (8 octobre 2026 : « une fois que la réunion est terminée, ça le marque, avec les participants, la durée ») : l'occurrence porte SA séance — les noms pour l'organisatrice seule */
+    const agenda = async (c) => ((await c.get('/api/reunions?du=' + (debut - 86400000) + '&au=' + (debut + 86400000))).j.reunions || []).find(x => x.id === R);
+    const oA = (await agenda(a1)).occurrences[0], oB = (await agenda(b1)).occurrences[0];
+    v('⛔ l\'agenda d\'Ana (organisatrice) : l\'occurrence porte sa séance — 15 min, deux présents nommés (Ana, Ben), pas « terminée pour tous », plus de salle ouverte', oA.seance && [oA.seance.duree_s, oA.seance.n, oA.seance.pour_tous, (oA.seance.presents || []).map(x => x.prenom), (await agenda(a1)).salle_ouverte], [900, 2, false, ['Ana', 'Ben'], false]);
+    v('⛔ l\'agenda de Ben (invité) : la durée et le NOMBRE, jamais les noms (un invité ne lit pas l\'assiduité des autres)', oB.seance && [oB.seance.duree_s, oB.seance.n, 'presents' in oB.seance], [900, 2, false]);
     v('⛔ les ABSENTS d\'une réunion sont ses INVITÉS jamais entrés, avec leur réponse : Cleo a décliné, Eve avait accepté', se && se.absents.map(x => [x.prenom, x.reponse]).sort(), [['Cleo', 'decline'], ['Eve', 'accepte']]);
     v('⛔ un invité ne lit pas le rapport (Ben, venu, ni Eve) : refusé comme tout geste d\'organisateur', [(await b1.get(UR)).code, (await e1.get(UR)).code].map(c => c === 403 || c === 404), [true, true]);
     avancer(20 * MIN);
@@ -107,6 +112,14 @@ const sec = (ms) => Math.round(ms / 1000);                // l'horloge du banc e
     const deux = (await a1.get(UR)).j.seances;
     v('une seconde séance (Eve rouvre la salle) : deux séances, la plus récente d\'abord ; Eve y est présente 5 min, et cette fois Ana (qui organise compte parmi les invités), Ben et Cleo sont absents', [deux.length, deux[0].en_cours, nom(deux[0].venus, eve) && nom(deux[0].venus, eve).duree_s, deux[0].absents.map(x => x.prenom).sort(), deux[1].venus.length],
       [2, true, 300, ['Ana', 'Ben', 'Cleo'], 2]);
+    {
+      const ouverte = await agenda(a1);
+      v('la salle rouverte par Eve : l\'agenda dit « salle ouverte » (la page propose encore « Rejoindre »)', ouverte.salle_ouverte, true);
+      await a1.post('/api/reunions/' + R + '/rejoindre', {});
+      await a1.post('/api/salles/' + deux[0].appel + '/terminer', {});
+      const fin2 = await agenda(a1), o2 = fin2.occurrences[0];
+      v('⛔ Ana TERMINE POUR TOUS : plus de salle ouverte ; la séance de l\'occurrence réunit les deux salles (trois présents : Ana, Ben, Eve) et le dit « terminée pour tous »', [fin2.salle_ouverte, o2.seance && o2.seance.pour_tous, o2.seance && o2.seance.n, o2.seance && (o2.seance.presents || []).map(x => x.prenom)], [false, true, 3, ['Ana', 'Ben', 'Eve']]);
+    }
     v('⛔ une réunion inconnue ou d\'un autre : 404', (await a1.get('/api/reunions/r_' + 'x'.repeat(20) + '/presence')).code, 404);
   } finally {
     try { S.fermer(); } catch (e) { /* déjà fermé */ }

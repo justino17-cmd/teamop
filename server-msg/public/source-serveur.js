@@ -3135,7 +3135,10 @@
       const r = await A.reunions(du, au);
       return (r.reunions || []).map((x) => {
         for (const p of x.participants || []) noter(p);
-        return Object.assign(vueReunion(x), { rejoignable: x.rejoignable === true, moi: vueMoiReunion(x.moi), participantsN: x.participants_n | 0, participants: (x.participants || []).map((p) => p.id), occurrences: (x.occurrences || []).map((o) => ({ debut: o.debut, fin: o.fin })) });
+        return Object.assign(vueReunion(x), { rejoignable: x.rejoignable === true, moi: vueMoiReunion(x.moi), participantsN: x.participants_n | 0, participants: (x.participants || []).map((p) => p.id), salleOuverte: x.salle_ouverte === true,
+          /* une occurrence qui a eu lieu : sa séance (début, fin, durée, combien sont venus, terminée pour tous) — les noms des présents, seulement quand le service les donne (l'organisateur) */
+          occurrences: (x.occurrences || []).map((o) => { const se = o.seance && typeof o.seance === 'object' ? o.seance : null; for (const p of (se && se.presents) || []) noter(p);
+            return { debut: o.debut, fin: o.fin, seance: se ? { debut: +se.debut || 0, fin: +se.fin || 0, dureeS: se.duree_s | 0, n: se.n | 0, pourTous: se.pour_tous === true, presents: Array.isArray(se.presents) ? se.presents.map((p) => p.id) : null } : null }; }) });
       });
     }
     async function reunion(id) {
