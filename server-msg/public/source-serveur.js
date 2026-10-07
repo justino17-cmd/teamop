@@ -1996,7 +1996,8 @@
       const nomDeUid = (u) => typeof u === 'string' ? prenomDe(u) : null;
       return Object.assign(base, {
         etat: 'ok', regles: Object.assign({}, s.regles), clos: !!s.clos, closLe: s.clos_le || null, auteur: nomDeUid(s.auteur), deMoi: estMoi(s.auteur),
-        choix: (s.choix || []).map(c => ({ idx: c.idx, texte: c.texte, n: c.n, qui: Array.isArray(c.qui) ? c.qui.map(nomDeUid) : null, ajoutePar: c.ajoute_par ? nomDeUid(c.ajoute_par) : null, mien: (s.mes_choix || []).includes(c.idx) })),
+        /* `quiIds` : les identifiants des votants (la page en tire leurs avatars) — seulement quand le service les dit, c'est-à-dire jamais pour un sondage anonyme */
+        choix: (s.choix || []).map(c => ({ idx: c.idx, texte: c.texte, n: c.n, qui: Array.isArray(c.qui) ? c.qui.map(nomDeUid) : null, quiIds: Array.isArray(c.qui) ? c.qui.filter(u => typeof u === 'string') : null, ajoutePar: c.ajoute_par ? nomDeUid(c.ajoute_par) : null, mien: (s.mes_choix || []).includes(c.idx) })),
         mesChoix: (s.mes_choix || []).slice(), votants: s.votants, resultats: !!s.resultats_visibles,
         peutVoter: !!s.peut_voter, peutAjouter: !!s.peut_ajouter, peutClore: !!s.peut_clore,
       });

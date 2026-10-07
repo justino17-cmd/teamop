@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '52f741ddf28a';
+  const OPMSG_BUILD = '27ec9353d8b2';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 70;
+  const OPMSG_VERSION = 75;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -435,6 +435,9 @@
     if (s.clos) l.push('Clos'); else if (r.fin) l.push('Jusqu\'au ' + FMT_FIN.format(r.fin));
     return l.join(' · ');
   }
+  /* la bulle d'un votant : moi, un contact, ou quelqu'un que la source a vu (membre du groupe) — sinon ses initiales */
+  const avatarVotant = uid => avatar((uid === (MOI && MOI.id) ? MOI : contactDe(uid)) || { initiales: '?', avatar: 0 });
+  const nomVotant = (uid, repli) => uid === (MOI && MOI.id) ? 'Vous' : ((contactDe(uid) || {}).nom || repli || 'Quelqu\'un');
   function quiTexte(l) { const n = l.filter(Boolean); return n.length > 3 ? n.slice(0, 3).join(', ') + ' et ' + (n.length - 3) + ' autre' + (n.length - 3 > 1 ? 's' : '') : n.join(', '); }
   function htmlSondage(m, sens) {
     const s = m.sondage;
@@ -445,18 +448,21 @@
     const vol = sondEnVol.has(m.id), total = s.votants || 0;
     for (const c of s.choix) {
       const n = c.n | 0, pct = s.resultats && total ? Math.max(0, Math.min(100, Math.round(n * 100 / total))) : 0;
-      const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + n + ' vote' + (n > 1 ? 's' : '') : '');
+      const ids = s.resultats && Array.isArray(c.quiIds) ? c.quiIds : [];
+      const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + n + ' vote' + (n > 1 ? 's' : '') : '') + (ids.length && c.qui ? ' : ' + quiTexte(c.qui) : '');
       h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + (c.idx | 0) + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
         (s.resultats ? '<span class="sond-barre" style="--p:' + pct + '%"></span>' : '') +
         '<span class="sond-coche" aria-hidden="true"></span><span class="sond-texte" dir="auto">' + esc(c.texte) + '</span>' +
+        '<span class="sond-avatars" aria-hidden="true">' + ids.slice(0, 3).map(avatarVotant).join('') + (ids.length > 3 ? '<span class="sond-plus">+' + (ids.length - 3) + '</span>' : '') + '</span>' +
         '<span class="sond-n" aria-hidden="true">' + (s.resultats ? n : '') + '</span>' +
-        (s.resultats && c.qui && c.qui.length ? '<span class="sond-qui" aria-hidden="true">' + esc(quiTexte(c.qui)) + '</span>' : c.ajoutePar ? '<span class="sond-qui" aria-hidden="true">Ajouté par ' + esc(c.ajoutePar) + '</span>' : '') + '</button>';
+        (c.ajoutePar ? '<span class="sond-qui" aria-hidden="true">Ajouté par ' + esc(c.ajoutePar) + '</span>' : '') + '</button>';
     }
     h += '</span>';
     const pied = s.resultats ? (total ? total + (total > 1 ? ' personnes ont voté' : ' personne a voté') : 'Personne n\'a encore voté') :
       s.regles.resultats === 'apres_vote' ? 'Vote pour voir les résultats' : s.mesChoix.length ? 'Tu as voté — les résultats paraîtront à la clôture' : 'Les résultats paraîtront à la clôture';
     h += '<span class="sond-pied">' + esc(pied) + (s.peutVoter && s.mesChoix.length && !s.regles.multiple ? ' · touche ton choix pour le retirer' : '') + '</span>';
-    const actions = (s.peutAjouter ? '<button type="button" class="carte-btn presse" data-sond-ajouter="' + esc(m.id) + '">Ajouter un choix</button>' : '') +
+    const actions = (s.resultats && total ? '<button type="button" class="carte-btn presse" data-sond-votes="' + esc(m.id) + '">' + (s.regles.anonyme ? 'Voir les résultats' : 'Voir les votes') + '</button>' : '') +
+      (s.peutAjouter ? '<button type="button" class="carte-btn presse" data-sond-ajouter="' + esc(m.id) + '">Ajouter un choix</button>' : '') +
       (s.peutClore ? '<button type="button" class="carte-btn presse" data-sond-clore="' + esc(m.id) + '">' + (sondClore && sondClore.mid === m.id ? 'Confirmer la clôture' : 'Clore le sondage') + '</button>' : '');
     return h + (actions ? '<span class="carte-actions">' + actions + '</span>' : '') + '</span>';
   }
@@ -534,6 +540,7 @@
     etat.forcerBas = false;
     etat.convDonnees = c;
     rendreEntete(c);
+    if (etat.groupe.ouvert && etat.groupe.mode === 'sondage-votes' && typeof rendreSondageVotes === 'function') rendreSondageVotes();   // « Voir les votes » suit les votes qui arrivent
     peindreMessages(partiesMessages(c));
     $('conv-messages').setAttribute('aria-busy', 'false');
     $('precedents').hidden = !(CAP.historique && c.aPlus);
@@ -881,8 +888,9 @@
      et rend les adresses des images. Le champ du message, en bas de la conversation, n'est pas touché : la légende est à part. */
   function epOuvrir(conv, photos, max) {
     Object.assign(ep, { ouvert: true, conv, photos, sel: 0, max: max || 10, declencheur: document.activeElement });
-    $('ep-legende').value = ''; epAjuster();
+    $('ep-legende').value = '';
     $('envoi-photos').hidden = false; synchroInert();
+    epAjuster();      // ⛔ APRÈS l'ouverture : mesuré caché, le champ prenait 0 px de contenu et la légende se lisait coupée en deux
     epRendre();
     setTimeout(() => { try { $('ep-legende').focus({ preventScroll: true }); } catch (e) { /* rien */ } }, 30);
   }
@@ -998,6 +1006,8 @@
     const conv = etat.conv;
     const vo = e.target.closest('[data-sond]');
     if (vo) { if (vo.getAttribute('aria-disabled') !== 'true') voterSondage(vo.dataset.sond); return true; }
+    const vv = e.target.closest('[data-sond-votes]');
+    if (vv) { const m = trouverMessage(vv.dataset.sondVotes); if (m && m.seq) { declencheur = vv; ouvrirFeuille('sondage-votes:' + m.seq); } return true; }
     const aj = e.target.closest('[data-sond-ajouter]');
     if (aj) { const m = trouverMessage(aj.dataset.sondAjouter); if (m && m.seq) { declencheur = aj; ouvrirFeuille('sondage-choix:' + m.seq); } return true; }
     const cl = e.target.closest('[data-sond-clore]');
@@ -1399,10 +1409,10 @@
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || G.mode === 'theme' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -1436,8 +1446,9 @@
       || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
       || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
+      || (CAP.sondagesConv && mode === 'sondage-votes' && /^\d{1,12}$/.test(arg || ''))
       || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || '')))) ? mode : 'chat';
-    if (etat.groupe.mode === 'sondage-choix') etat.groupe.sondSeq = +arg;
+    if (etat.groupe.mode === 'sondage-choix' || etat.groupe.mode === 'sondage-votes') etat.groupe.sondSeq = +arg;
     if (etat.groupe.mode === 'theme') etat.groupe.convId = arg;
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
@@ -1474,6 +1485,7 @@
     if (etat.groupe.mode === 'carte-contact') rendreCarteContact();
     if (etat.groupe.mode === 'sondage-nouveau') rendreSondageNouveau();
     if (etat.groupe.mode === 'sondage-choix') rendreSondageChoix();
+    if (etat.groupe.mode === 'sondage-votes') rendreSondageVotes();
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -4334,6 +4346,24 @@
       await source.envoyerSondage(conv, { question: q, choix, regles: { multiple: oui('sd-multiple'), anonyme: oui('sd-anonyme'), ajout: oui('sd-ajout'), resultats: $('sd-resultats').value, fin } });
       sondForm = null; fermerFeuille(); mot('Sondage envoyé');
     } catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le sondage n\'a pas pu partir.')); }
+  }
+  /* ── « Voir les votes » : chaque choix, son décompte, et qui l'a choisi (« que l'on puisse voir tous ceux qui votent ») ; anonyme : les décomptes seuls, et pourquoi.
+     Elle se redessine quand un vote arrive (`rendreConv` la relance). ── */
+  function rendreSondageVotes() {
+    const corps = $('info-corps'), c = etat.convDonnees, m = c && c.messages.find(x => x.seq === etat.groupe.sondSeq), s = m && m.sondage;
+    if (!s || s.etat !== 'ok') { corps.innerHTML = '<p class="vide">' + (s && s.etat === 'charge' ? 'Chargement…' : 'Ce sondage n\'est plus disponible.') + '</p>'; return; }
+    if (!s.resultats) { corps.innerHTML = '<p class="info-note" dir="auto">« ' + esc(s.q) + ' »</p><p class="vide">Les résultats ne sont pas encore visibles.</p>'; return; }
+    const total = s.votants || 0;
+    const h = '<p class="info-note" dir="auto">« ' + esc(s.q) + ' » · ' + esc(reglesTexte(s)) + ' · ' + total + (total > 1 ? ' personnes ont voté' : ' personne a voté') + '</p>' +
+      (s.regles.anonyme ? '<p class="info-note">Vote anonyme : personne ne voit qui a voté quoi — l\'auteur non plus. Seuls les décomptes se lisent.</p>' : '') +
+      s.choix.map(x => {
+        const ids = Array.isArray(x.quiIds) ? x.quiIds.slice() : [], n = x.n | 0;
+        ids.sort((a, b) => (b === (MOI && MOI.id)) - (a === (MOI && MOI.id)));      // moi d'abord
+        return '<section class="votes-choix"><div class="rubrique"><span dir="auto">' + esc(x.texte) + '</span><span>' + n + (n > 1 ? ' votes' : ' vote') + '</span></div>' +
+          (s.regles.anonyme ? '' : '<div class="carte">' + (ids.length ? ids.map(u => '<div class="votes-ligne">' + avatarVotant(u) + '<span dir="auto">' + esc(nomVotant(u, (x.qui || [])[x.quiIds.indexOf(u)])) + '</span></div>').join('') : '<p class="votes-vide">Personne</p>') + '</div>') + '</section>';
+      }).join('');
+    if (corps.dataset.sig === h) return;
+    corps.dataset.sig = h; corps.innerHTML = h;
   }
   /* ── ajouter un choix à un sondage ouvert ── */
   function rendreSondageChoix() {

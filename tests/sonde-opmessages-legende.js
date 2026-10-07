@@ -7,6 +7,10 @@
      4. la bulle montre la photo et, dessous, la légende — chez l'envoyeur et chez l'autre ;
      5. au bureau, Entrée envoie depuis la légende ; Échap ferme l'aperçu ;
      6. « Modifier la légende » dans le menu du message.
+   ⛔ 7 octobre 2026, capture du bureau : « bug d'affichage quand on envoie des photos ». Une VRAIE photo (2 400 px, 3 000 px de haut) sortait de l'écran,
+      coupée — la grille de la scène n'avait pas de piste définie, donc `max-height: 100%` ne bornait rien ; et le champ de la légende, mesuré pendant
+      que l'aperçu était encore caché, restait écrasé à moitié. Les petites images de 64 px ne pouvaient voir ni l'un ni l'autre : la sonde joue
+      désormais des photos plus grandes que l'écran, en large ET en haut, et lit le champ au pixel près.
    ⛔ ON ATTEND AU GESTE, JAMAIS AU CHRONOMÈTRE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.
    Lancer :   node tests/sonde-opmessages-legende.js          CAPTURES=/dossier pour les images.  Code 1 si un contrôle tombe, 2 si elle ne peut pas tourner. */
 const fs = require('fs'), path = require('path');
@@ -26,6 +30,18 @@ const MOTS = { alice: 'pw-alice-1234', bruno: 'pw-bruno-1234' };
 const IPHONE = { viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
 const BUREAU = { viewport: { width: 1280, height: 860 }, deviceScaleFactor: 1, isMobile: false, hasTouch: false };
 const PNG_A = F.png({ w: 64, h: 48, couleur: [30, 140, 220] }), PNG_B = F.png({ w: 48, h: 64, couleur: [220, 90, 40] });
+const PNG_LARGE = F.png({ w: 2400, h: 1500, couleur: [40, 160, 90] }), PNG_HAUTE = F.png({ w: 1200, h: 3000, couleur: [160, 60, 160] });
+/* la photo tient dans sa scène et dans l'écran, entière ; la barre du bas reste dans l'écran ; le champ de légende n'est pas écrasé (sa ligne entière se voit) */
+const tenue = () => {
+  const i = document.getElementById('ep-grande'), s = document.querySelector('.ep-scene'), ta = document.getElementById('ep-legende'), env = document.getElementById('ep-envoyer');
+  const a = i.getBoundingClientRect(), c = s.getBoundingClientRect(), t = ta.getBoundingClientRect(), e = env.getBoundingClientRect();
+  return { charge: i.complete && i.naturalWidth > 0, grande: i.naturalWidth > innerWidth || i.naturalHeight > innerHeight,
+    dansScene: a.top >= c.top - 1 && a.bottom <= c.bottom + 1 && a.left >= c.left - 1 && a.right <= c.right + 1,
+    dansEcran: a.top >= 0 && a.left >= 0 && a.right <= innerWidth + 1 && a.bottom <= innerHeight + 1,
+    proportions: Math.abs(a.width / a.height - i.naturalWidth / i.naturalHeight) < 0.03,
+    barre: e.bottom <= innerHeight + 1 && e.top >= c.bottom - 1,
+    champ: t.height >= 40 && ta.scrollHeight <= ta.clientHeight + 1 };
+};
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: MOTS.alice, nom: 'Alice Martin', actif: true }, bruno: { pass: MOTS.bruno, nom: 'Bruno Petit', actif: true } });
@@ -65,11 +81,25 @@ const PNG_A = F.png({ w: 64, h: 48, couleur: [30, 140, 220] }), PNG_B = F.png({ 
       v('   le titre dit « Photo », le champ « Ajouter une légende… », une seule photo : pas de vignettes', await page.evaluate(() => [document.getElementById('ep-titre').textContent, document.getElementById('ep-legende').placeholder, document.querySelectorAll('#ep-vignettes .ep-vig').length]), ['Photo', 'Ajouter une légende…', 0]);
       const geo = await page.evaluate(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); const e = r('ep-envoyer'), f = r('ep-fermer'), l = r('ep-legende'); return { e: [Math.round(e.width), Math.round(e.height)], f: [Math.round(f.width), Math.round(f.height)], dedans: e.right <= innerWidth && l.left >= 0, bas: Math.round(innerHeight - e.bottom) }; });
       v('   la flèche et la croix répondent sur 44 px, tout tient dans l\'écran', [geo.e, geo.f, geo.dedans], [[44, 44], [44, 44], true]);
+      v('⛔ le champ « Ajouter une légende… » n\'est pas écrasé (sa ligne se voit en entier)', (await page.evaluate(tenue)).champ, true);
       await capture('1-apercu');
       await page.waitForTimeout(400);
       v('⛔ rien n\'est parti tant qu\'on n\'a pas touché la flèche', (await derniers()).length, nAvant);
       await toucher('#ep-fermer');
       vrai('2. la croix ferme l\'aperçu', await attendre(() => document.getElementById('envoi-photos').hidden));
+
+      /* 2 bis — une VRAIE photo, plus grande que l'écran : en large, puis en haut */
+      for (const [nomG, buf] of [['large (2 400 × 1 500)', PNG_LARGE], ['haute (1 200 × 3 000)', PNG_HAUTE]]) {
+        await choisir(buf);
+        vrai('population : la photo ' + nomG + ' est chargée, et plus grande que l\'écran', await attendre(() => { const e = document.getElementById('envoi-photos'), i = document.getElementById('ep-grande'); return !e.hidden && i.complete && i.naturalWidth > 0 && (i.naturalWidth > innerWidth || i.naturalHeight > innerHeight); }));
+        await page.waitForTimeout(120);
+        const g = await page.evaluate(tenue);
+        v('⛔ photo ' + nomG + ' : entière dans sa scène ET dans l\'écran, sans déformation ; la barre de légende dessous, dans l\'écran ; le champ entier',
+          [g.dansScene, g.dansEcran, g.proportions, g.barre, g.champ], [true, true, true, true, true]);
+        await capture('2-' + (buf === PNG_LARGE ? 'large' : 'haute'));
+        await toucher('#ep-fermer');
+        await attendre(() => document.getElementById('envoi-photos').hidden);
+      }
       await page.waitForTimeout(400);
       v('⛔ … et rien n\'est parti', (await derniers()).length, nAvant);
 
