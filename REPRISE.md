@@ -22,7 +22,7 @@ de groupe (+ « Nouveau groupe ») ; « Entreprise » lit les collègues de chaq
 catégorie choisie ; la catégorie se retient sur l'appareil (`opm_vc_cat`, rangement facultatif).
 ⛔ **Le favori vit chez le SERVICE** (il suit la personne d'un appareil à l'autre) : migration **14** (`contact.favori`, sur MA ligne : il part avec le contact retiré), route
 `POST /api/contacts/favori {uid, favori}` (garde V, un booléen et rien d'autre, 404 pour un inconnu ou un bloqué), un bloqué ne ressort jamais favori, l'export le dit.
-`tests/test-1000.js` (21 ✓, quatre mutations mordent), `tests/sonde-opmessages-categories.js` (23 ✓, iPhone puis bureau de nuit, l'étoile posée sur l'un se lit sur l'autre).
+`tests/test-921.js` (21 ✓, quatre mutations mordent), `tests/sonde-opmessages-categories.js` (23 ✓, iPhone puis bureau de nuit, l'étoile posée sur l'un se lit sur l'autre).
 ⚠️ Le déploiement monte la base au schéma 14 (`VACUUM INTO` conservé avant, comme chaque migration).
 
 # ⏳ 6 OCTOBRE 2026 (SOIR, SUITE) — FICHIERS DE 5 GO, LE PROFIL FAÇON IPHONE, LES APPELS (LOT 1) — SUR LA BRANCHE `claude/apple-theme-op-messages-gcb3j9` (PR justino17-cmd/teamop#95)
