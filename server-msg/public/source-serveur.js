@@ -2919,7 +2919,7 @@
       moiApi = r; noter(r);
       return modeTravail();
     }
-    async function ranger(id, cote) {
+    async function rangerCote(id, cote) {
       if (cote !== null && cote !== 'perso' && cote !== 'pro') throw erreurLocale('invalide');
       await A.prefs(id, { cote });
       await relireListe();
@@ -3275,7 +3275,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
-      modeTravail, choisirMode, ranger,                                                                            // Perso / Pro
+      modeTravail, choisirMode, rangerCote,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
