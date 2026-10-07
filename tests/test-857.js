@@ -46,6 +46,10 @@ async function controler(PAGE, SRC, DOC) {
   const CSS = sansCommentairesCss(style);
   const script = (/<script>([\s\S]*?)<\/script>/.exec(PAGE) || [, ''])[1];
   const JS = sansCommentairesJs(script);
+  /* ⛔ 7 octobre 2026 : un commentaire `//` posé au milieu d'une ligne a avalé le `finally` qui la suivait — la page entière ne démarrait plus (plus d'écran de connexion), et les
+     178 contrôles de ce banc passaient : ils lisent le TEXTE. Le script se COMPILE d'abord ; l'erreur dit où. */
+  { let err = ''; try { new (require('vm').Script)(script, { filename: 'page.js' }); } catch (e) { err = String(e && e.message) + ' — ' + String((e && e.stack) || '').split('\n')[0]; }
+    R.push(['⛔ le script de la page se COMPILE (une erreur de syntaxe éteint toute l\'application, et aucun motif ne la voit)', !err, err ? '\n      ' + err : '']); }
   const SRCJS = sansCommentairesJs(SRC);
   const HTML = PAGE.replace(/<style>[\s\S]*?<\/style>/, ' ').replace(/<script>[\s\S]*?<\/script>/, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
   const corps = nom => { const i = JS.indexOf(nom); if (i < 0) return ''; const f = JS.slice(i).search(/\n  (?:async )?function |\n  \/\* ═══|\n  \$\(/); return JS.slice(i, f > 0 ? i + f : i + 4000); };

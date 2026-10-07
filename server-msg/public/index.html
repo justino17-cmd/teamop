@@ -1141,6 +1141,20 @@ html[data-service] .mention-apercu { display: none; }
 .menu-action:last-child { border-bottom: 0; }
 .menu-action.danger { color: var(--rouge-txt); }
 .menu-question { padding: 14px 18px 6px; font-size: 15px; line-height: 20px; text-align: center; }
+/* ⛔ LE MENU D'UN MESSAGE SE POSE CONTRE SA BULLE (capture du bureau, 8 octobre 2026 : « il faudrait que ce soit mieux placé » — la fenêtre s'ouvrait au milieu de l'écran, loin
+   du message qu'on venait de toucher). Dès 700 px, il s'ancre à la rangée du message (`.menu-ancre`, posée à l'ouverture) : sous la bulle, du côté où elle est (à droite pour les
+   miens), au-dessus quand la place manque, en bas de l'écran pour un message plus haut que l'écran. Le positionnement par ancre IGNORE les transformations des ancêtres (le
+   panneau de la conversation glisse) : il lit la boîte telle qu'elle est dessinée. Sans ancre (un navigateur d'avant), la fenêtre reste centrée. Au téléphone : la feuille du bas. */
+.menu-ancre { anchor-name: --menu-msg; }
+@supports (anchor-name: --menu-msg) {
+  @media (min-width: 700px) {
+    .menu-fond.ancre { background: rgba(0,0,0,.1); }
+    .menu-fond.ancre .menu-msg { position: fixed; position-anchor: --menu-msg; inset: auto; top: anchor(bottom); left: anchor(left); margin: 6px 0 0; width: 300px; max-width: calc(100vw - 24px); position-try-fallbacks: flip-block, --menu-ecran; }
+    .menu-fond.ancre.de-moi .menu-msg { left: auto; right: anchor(right); }
+  }
+}
+@position-try --menu-ecran { top: auto; bottom: 12px; margin: 0; }
+.menu-action small { margin-left: auto; padding-left: 12px; font-size: 15px; color: var(--sub); font-variant-numeric: tabular-nums; }
 /* « + » : la grille des pièces jointes — un disque de couleur par geste, son nom dessous (la feuille d'iMessage) ; trois par rangée */
 .menu-msg.pj { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 12px 8px 8px; }
 .pj-tuile { min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border-radius: 16px; font-size: 13px; line-height: 16px; color: var(--text); }

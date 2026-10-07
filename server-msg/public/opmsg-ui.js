@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '1af59a307ba0';
+  const OPMSG_BUILD = '70555a9739b1';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 103;
+  const OPMSG_VERSION = 104;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -484,7 +484,7 @@
       h += '<span class="bulle ' + sens + '" dir="auto">' + esc(m.texte) + '</span>';
     }
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
-    if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
+    if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang' + (etat.menu && etat.menu.mid === m.id ? ' menu-ancre' : '') + '">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
     if (m.attente && m.echec && typeof source.reessayer === 'function') h += echecHtml(m);
     if (m.reactions && m.reactions.length) h += reactionsHtml(m);
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
@@ -3899,7 +3899,7 @@
       if (act === 'esp-lien-lire') { await lireInvitationSaisie(); return; }
       if (act === 'esp-rejoindre') {
         b.setAttribute('aria-disabled', 'true');
-        try { const r = await source.invitationAccepter(b.dataset.code); mot(r.deja ? 'Tu es déjà dans cet espace' : 'Tu as rejoint « ' + r.espace.nom + ' »'); basculerFeuille('espace:' + r.espace.id); chargerEspaces(); if (modesActifs()) changerMode('pro', true, true); }   // ⛔ entrer dans une entreprise, c'est passer côté Pro : resté en Perso, on ne voyait ni ses canaux ni ses collègues (« Aucune conversation Perso ») finally { b.removeAttribute('aria-disabled'); }
+        try { const r = await source.invitationAccepter(b.dataset.code); mot(r.deja ? 'Tu es déjà dans cet espace' : 'Tu as rejoint « ' + r.espace.nom + ' »'); basculerFeuille('espace:' + r.espace.id); chargerEspaces(); if (modesActifs()) changerMode('pro', true, true); /* ⛔ entrer dans une entreprise, c'est passer côté Pro : resté en Perso, on ne voyait ni ses canaux ni ses collègues (« Aucune conversation Perso ») */ } finally { b.removeAttribute('aria-disabled'); }
         return;
       }
       if (act === 'esp-renommer') { await source.espaceRenommer(id, $('esp-nom').value); mot('Nom enregistré'); chargerEspaces(); await relire(); return; }
@@ -4013,7 +4013,8 @@
   function fermerMenu() {
     if (!etat.menu) return;
     const d = etat.menu.declencheur; etat.menu = null;
-    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj'); $('menu-fond').classList.remove('pj');
+    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj'); $('menu-fond').classList.remove('pj', 'ancre', 'de-moi');
+    $('conv-messages').querySelectorAll('.menu-ancre').forEach(x => x.classList.remove('menu-ancre'));
     synchroInert();
     rendreFocus(d);
   }
@@ -4029,14 +4030,45 @@
     /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
     if (moi && !m.supprime && !m.vocal && !m.fichier && !estCarte(m) && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
     if (!m.supprime && m.photos && m.photos.length) h += '<button type="button" class="menu-action" data-menu="enregistrer">' + (m.photos.length > 1 ? 'Enregistrer les ' + m.photos.length + ' photos' : 'Enregistrer la photo') + '</button>';
+    if (!m.supprime && rappelPossible()) h += '<button type="button" class="menu-action" data-menu="rappel" aria-haspopup="menu">Me le rappeler</button>';
     const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
     if (pieceSuivie) h += '<button type="button" class="menu-action" data-menu="suivi">' + (m.fichier ? 'Qui l\'a téléchargé' : m.vocal ? 'Qui l\'a écouté' : 'Qui l\'a vue') + '</button>';
     h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
     if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer-tous">Supprimer pour tous</button>';
     $('menu-msg').innerHTML = h;
+    const rang = Array.from($('conv-messages').querySelectorAll('.msg[data-mid]')).find(x => x.dataset.mid === mid);
+    const ancre = rang && (rang.querySelector('.msg-rang') || rang);
+    if (ancre) { ancre.classList.add('menu-ancre'); $('menu-fond').classList.add('ancre'); $('menu-fond').classList.toggle('de-moi', moi); }
     $('menu-fond').hidden = false;
     synchroInert();
     const premier = $('menu-msg').querySelector('button'); if (premier) premier.focus({ preventScroll: true });
+  }
+  /* ── « ME LE RAPPELER » (8 octobre 2026 : « il faudrait pouvoir le mettre en rappel ») : un événement de l'AGENDA, à l'heure choisie, avec son rappel à l'heure — la notification
+     part du service, même application fermée. Le titre dit de quoi il s'agit, le lieu dit la conversation, la note garde le texte. Rien de neuf côté service : l'agenda sait déjà le faire. */
+  const rappelPossible = () => !!(CAP.agenda && typeof source.creerEvenement === 'function');
+  function rappelChoix() {
+    const tz = fuseauAppareil() || 'Europe/Paris', t0 = Date.now(), JOUR_MS = 86400000;
+    const a9h = d => instantDans(localDans(t0 + d * JOUR_MS, tz).slice(0, 10) + 'T09:00', tz);
+    const l = [['20m', 'Dans 20 minutes', t0 + 20 * 60000], ['1h', 'Dans 1 heure', t0 + 3600000], ['3h', 'Dans 3 heures', t0 + 3 * 3600000], ['demain', 'Demain', a9h(1)]];
+    for (let d = 2; d <= 7; d++) { if (new Date(localDans(t0 + d * JOUR_MS, tz).slice(0, 10) + 'T12:00Z').getUTCDay() === 1) { l.push(['lundi', 'Lundi', a9h(d)]); break; } }
+    return l.filter(x => Number.isFinite(x[2]) && x[2] > t0).map(x => ({ cle: x[0], nom: x[1], t: Math.ceil(x[2] / 60000) * 60000, tz }));
+  }
+  function rappelMenu() {
+    const h = rappelChoix().map(x => '<button type="button" class="menu-action" data-menu="rappel-choix" data-quand="' + x.cle + '"><span>' + esc(x.nom) + '</span><small>' + esc(heureDans(x.t, x.tz)) + '</small></button>').join('');
+    $('menu-msg').innerHTML = '<p class="menu-question">Me le rappeler</p>' + h + '<button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
+    $('menu-msg').querySelector('button').focus({ preventScroll: true });
+  }
+  async function rappelPoser(m, quand) {
+    const x = rappelChoix().find(y => y.cle === quand), c = etat.convDonnees; if (!x || !c) return;
+    const moi = m.auteur === MOI.id, de = moi ? 'ton message' : 'le message de ' + nomAuteur(m.auteur);
+    const quoi = m.texte ? m.texte.replace(/\s+/g, ' ').trim() : m.photos ? 'une photo' : m.vocal ? 'un message vocal' : m.fichier ? 'le fichier « ' + m.fichier.nom + ' »' : m.sondage ? 'un sondage' : m.position ? 'une position' : m.carteContact ? 'une fiche de contact' : 'un message';
+    const titre = Array.from('Rappel : ' + quoi).slice(0, 118).join('') + (Array.from('Rappel : ' + quoi).length > 118 ? '…' : '');
+    const note = Array.from('Rappel sur ' + de + ', dans « ' + nomConv(c) + ' ».' + (m.texte ? '\n\n' + m.texte : '')).slice(0, 2000).join('');
+    try {
+      await source.creerEvenement({ titre, lieu: Array.from(nomConv(c)).slice(0, 300).join(''), note, journee: false, debut: localDans(x.t, x.tz), fin: localDans(x.t + 15 * 60000, x.tz), rappel: 0, tz: x.tz });
+      mot('Je te le rappelle ' + (x.cle === 'demain' ? 'demain à ' : x.cle === 'lundi' ? 'lundi à ' : 'à ') + heureDans(x.t, x.tz) + ' — c\'est dans ton agenda');
+      if (etat.route && etat.route.vue === 'reunions') chargerReunions();
+    } catch (er) { avis(phrase(er, 'Le rappel n\'a pas pu être posé.')); }
   }
   $('menu-fond').addEventListener('click', async e => {
     if (!etat.menu) return;
@@ -4060,7 +4092,9 @@
       $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message pour tous ?</p><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
       $('menu-msg').querySelector('button').focus({ preventScroll: true }); return;
     }
+    if (act === 'rappel') { rappelMenu(); return; }
     fermerMenu();
+    if (act === 'rappel-choix') { rappelPoser(m, a.dataset.quand); return; }
     if (act === 'repondre') { etat.contexte = { type: 'reponse', mid, nom: nomAuteur(m.auteur), texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
     else if (act === 'enregistrer') { for (let i = 0; i < (m.photos || []).length; i++) await enregistrerPhoto(m, i); }
