@@ -13,6 +13,16 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (SOIR) — OP MESSAGES SELON L'APPAREIL (`data-plat`, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « look Apple partout ; adapte le comportement selon data-plat : iPhone (tactile, barre d'onglets, encoches), iPad (menu latéral dès 781 px, pas de barre d'onglets), Mac (souris,
+verre si Safari 26), Windows et Android (même identité Apple, sans verre natif ni faux éléments système) » — question posée : il s'agit de l'APPLICATION OP MESSAGES (la porte dans
+`beta.html` reste fermée, `OPMSG_EN_TRAVAUX`). `opPlat()` (§ 0 du script d'`apercu/opmessages/index.html`) pose data-plat, data-os, data-kind, data-nav, data-verre-natif,
+data-autonome — les noms de `opPlatAppliquer` d'OP GESTION ; rien n'est rangé sur l'appareil. La feuille : l'iPad (`data-kind="tablette"`) prend le menu latéral dès 781 px (l'iPad mini
+en portrait, 744, garde la barre) ; Liquid Glass natif = reflet de l'arête et cartes à 26 px au doigt ; ailleurs la même matière sans reflet ; Android 28 px, Windows 8 px (boutons 6) ;
+Linux et l'inconnu gardent le rendu commun (« web »). `tests/sonde-opmessages-appareils.js` : 9 profils, vrais agents, encoches posées (`Emulation.setSafeAreaInsetsOverride`),
+118 ✓ ; retirer le menu de la tablette fait tomber l'iPad 820. ⚠️ Reste à faire sur cette lancée : les séparateurs des listes partent du bord (iOS les décale après l'icône).
+
 # ⏳ 7 OCTOBRE 2026 (FIN D'APRÈS-MIDI) — LA FICHE D'UN CONTACT DIT CE QU'ON A EN COMMUN (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin : « au niveau des contacts, pour le pro, voir leur tableau de réunion — s'ils participent à la même réunion — quand on clique sur le contact ». La fiche (comme la carte de
