@@ -201,6 +201,8 @@ const MATRICE = {
      salle verrouillée, un co-hôte qui vise l'hôte, un Perso qui lance un groupe) sont jouées plus bas. */
   'appels.rejoindre':   { ok: (F) => ['POST', '/api/appels/' + F.SA + '/rejoindre', {}], codes: [200] },
   'salles.lire':        { ok: (F) => ['GET', '/api/salles/' + F.SA], codes: [200] },
+  /* le rapport de présence : l'hôte et les co-hôtes de la salle (SH), l'organisateur de la réunion (H) — test-925 dit ce qu'il contient */
+  'salles.presence':    { ok: (F) => ['GET', '/api/salles/' + F.SA + '/presence'], codes: [200] },
   'salles.admettre':    { ok: (F) => ['POST', '/api/salles/' + F.SA + '/admettre', { uid: F.D }], codes: [200] },
   'salles.refuser':     { ok: (F) => ['POST', '/api/salles/' + F.SA + '/refuser', { uid: F.D }], codes: [200] },
   'salles.exclure':     { ok: (F) => ['POST', '/api/salles/' + F.SA + '/exclure', { uid: F.D }], codes: [200] },
@@ -224,6 +226,7 @@ const MATRICE = {
   'reunions.rejoindre_code': { ok: (F) => ['POST', '/api/reunions/rejoindre', { code: F.codeR }], codes: [200] },
   'reunions.rejoindre': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/rejoindre', {}], codes: [200] },
   'reunions.lien':      { ok: (F) => ['POST', '/api/reunions/' + F.R + '/lien', {}], codes: [200] },
+  'reunions.presence':  { ok: (F) => ['GET', '/api/reunions/' + F.R + '/presence'], codes: [200] },
   'reunions.lien_renouveler': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/lien/renouveler', {}], codes: [200] },
 };
 
@@ -517,7 +520,7 @@ const ATTENDU = {
     vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : le 404 « réunion inexistante » a été comparé pour toutes les routes de réunion à garde R ou H (' + reunionsVerifiees + ')', reunionsVerifiees === MANIFESTE.filter(r => ['R', 'H'].includes(r.garde)).length && reunionsVerifiees >= 8);
     vrai('population : le 404 « appel inexistant » a été comparé pour les trois routes à garde AP (' + appelsVerifies + ')', appelsVerifies === MANIFESTE.filter(r => r.garde === 'AP').length && appelsVerifies === 3);
-    vrai('population : le 404 « salle inexistante » a été comparé pour les dix-sept routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 17);
+    vrai('population : le 404 « salle inexistante » a été comparé pour les dix-huit routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 18);
     vrai('population : des refus ont bien été relevés avant/après (' + refusSansEffet + ')', refusSansEffet >= 60);
     v('⛔ AUCUN refus n\'a écrit quoi que ce soit (instantané de la base identique avant/après)', refusAvecEffet, []);
 

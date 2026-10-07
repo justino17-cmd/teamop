@@ -160,3 +160,5 @@ tests/test-922.js
 tests/test-923.js
 # ── Les annotations d'une salle (7 octobre 2026) : dessiner sur l'écran partagé, écrire, le tableau blanc — le vrai service (924) ; la vraie page à trois navigateurs est la sonde tests/sonde-opmessages-annotations.js
 tests/test-924.js
+# ── Le rapport de présence (7 octobre 2026) : le vrai service (925) ; la vraie page est la sonde tests/sonde-opmessages-presence.js
+tests/test-925.js

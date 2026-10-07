@@ -377,6 +377,13 @@ function installerReunions(H, ctx) {
     const r = ctx.appels.rejoindreReunion({ moi: req.moi, reunion: req.reunion.id, sessionH: req.sessionH, type });
     res.json({ appel: r.vue, etat: r.etat, deja: !!r.deja, attente: !!r.attente, salle: r.salle });
   });
+  /* ⛔ LE RAPPORT DE PRÉSENCE d'une réunion : son ORGANISATEUR seul (la garde H) — chaque séance (une salle par occurrence, les vingt dernières) : qui est venu, à quelle heure, combien de temps ; et
+     les invités jamais entrés, avec leur réponse. Un invité ne lit pas l'assiduité des autres. */
+  H['reunions.presence'] = garder((req, res) => {
+    const r = stockage.presenceReunion(req.reunion.id, horloge());
+    if (!r) return refus(res, 404, 'reunion_introuvable');
+    res.json(r);
+  });
   H['reunions.lien'] = garder((req, res) => {
     const l = stockage.reunionLien({ id: req.reunion.id, par: req.moi.id });
     res.set('Cache-Control', 'no-store');

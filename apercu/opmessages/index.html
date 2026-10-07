@@ -525,6 +525,10 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .reglage:last-child { border-bottom: 0; }
 .reglage-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 17px; }
 .reglage-texte small { font-size: 13px; color: var(--sub-meta); }
+.presence-seance, .presence-ligne { color: var(--text); }
+.presence-seance .reglage-texte { font-weight: 600; }
+.presence-ligne { min-height: 44px; padding-left: 30px; }
+.presence-ligne.absent .reglage-texte { color: var(--sub-meta); }
 .reglage-valeur { font-size: 15px; color: var(--sub-meta); }
 .reglage .chev { width: 8px; height: 13px; }
 /* ── PROFIL (6 octobre 2026) : le profil en tête, des lignes à pastille, une page par rubrique — Réglages d'iPhone ; au bureau, liste et rubrique côte à côte ──
@@ -6117,6 +6121,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (!d.annulee) s += '<div class="carte"><button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
       if (F.courriel && !d.annulee) s += htmlCourriel(d, o);
+      if (CAP.presenceRapport) {
+        s += '<div class="rubrique"><span>Présence</span></div><div class="carte">';
+        if (!F.presence) s += '<button type="button" class="reglage presse" data-reu="presence">' + icone('i-groupe') + '<span class="reglage-texte">Rapport de présence<small>Qui est venu à chaque séance, combien de temps — et qui manquait</small></span>' + CHEVRON + '</button>';
+        else if (!F.presence.seances.length) s += '<div class="reglage"><span class="reglage-texte">Pas encore de séance<small>Le rapport se remplit dès que la salle s\'ouvre</small></span></div>';
+        else s += F.presence.seances.slice(0, 5).map(p => { const L = presenceLignes(p);
+          return '<div class="reglage presence-seance"><span class="reglage-texte">' + esc(maj1(FMT_SUIVI.format(p.debut))) + (p.enCours ? ' · en cours' : '') + '<small>' + L.venus.length + (L.venus.length > 1 ? ' présences' : ' présence') + (L.absents.length ? ', ' + L.absents.length + (L.absents.length > 1 ? ' absences' : ' absence') : '') + '</small></span></div>' +
+            L.venus.map(x => '<div class="reglage presence-ligne"><span class="reglage-texte">' + esc(x.nom) + '<small>' + esc(x.detail) + '</small></span></div>').join('') +
+            L.absents.map(x => '<div class="reglage presence-ligne absent"><span class="reglage-texte">' + esc(x.nom) + '<small>' + esc(x.detail) + '</small></span></div>').join(''); }).join('') +
+          '<button type="button" class="reglage presse" data-reu="presence-csv">' + icone('i-telecharger') + '<span class="reglage-texte">Exporter (CSV)<small>' + (F.presence.seances.length > 5 ? 'Les ' + F.presence.seances.length + ' séances, dans un tableur' : 'Dans un tableur') + '</small></span></button>';
+        s += '</div>';
+      }
       if (CAP.salles && !d.annulee) s += '<div class="rubrique"><span>Salle</span></div><div class="carte">' +
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Les personnes qui arrivent attendent que tu les admettes</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité<small>Ouvre la salle à qui a un compte OP MESSAGES' + (d.plafond ? ', dans la limite de ' + d.plafond + ' personnes' : '') + '</small></span></button>' +
@@ -6169,7 +6184,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       F.occVersion = d.version;
     }
     if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
-    const sig = JSON.stringify([d, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; })]);
+    const sig = JSON.stringify([d, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; })]);
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
     const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;
@@ -6180,7 +6195,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
-  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
+  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
   function versFiche(id) {
     const h = entree(), cible = 'reunion:' + id;
@@ -6217,6 +6232,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
           mot(act === 'lien-copier' ? (ok ? 'Lien d\'invité copié' : 'Le lien n\'a pas pu être copié') : (ok ? 'Nouveau lien copié : l\'ancien ne marche plus' : 'Lien renouvelé : l\'ancien ne marche plus'));
         }
         else if (act === 'modifier') ouvrirFeuille('reunion-edit:' + id);
+        else if (act === 'presence') { b.setAttribute('aria-disabled', 'true'); F.presence = await source.presenceReunion(id); await relire(); }
+        else if (act === 'presence-csv') { if (F.presence) presenceCsv(d.titre, F.presence.seances); }
         else if (act === 'courriel-ouvrir') {
           if (F.courriel) F.courriel = null;
           else { F.courriel = { ouvert: undefined, serie: true }; const o = await source.courrielOuvert(); if (reu.fiche === F && F.courriel) F.courriel.ouvert = o; }
@@ -6427,6 +6444,32 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     }
   }
 
+
+  /* ── LE RAPPORT DE PRÉSENCE (7 octobre 2026 : « un vrai système de réunion très pro ») : qui est venu, à quelle heure, combien de temps ; qui n'est jamais venu, et pourquoi. Le même rendu pour la salle
+     (l'hôte, en direct) et la fiche d'une réunion (son organisateur, séance par séance) ; l'export CSV s'ouvre dans un tableur (séparateur « ; », en-tête UTF-8).
+     ⛔ Une cellule qui commence par = + - @ est désamorcée (une apostrophe devant) : un nom choisi par quelqu'un d'autre ne devient jamais une formule dans le tableur du patron. ── */
+  const REPONSES_INVITE = { accepte: 'Avait accepté', decline: 'Avait décliné', peutetre: 'Avait répondu « peut-être »', attente: 'Sans réponse' };
+  const ABSENCES_APPEL = { invite: 'Son appareil sonne', manque: 'N\'a pas répondu', refuse: 'A refusé l\'appel', attente: 'À la porte', parti: 'Sorti', exclu: 'Retiré' };
+  function presenceLignes(p) {
+    return {
+      venus: p.venus.map(x => ({ id: x.id, nom: x.nom, present: x.present, duree: dureeCourte(x.duree),
+        detail: (x.present ? 'Depuis ' + FMT_HEURE.format(x.arrivee) + ' · en ce moment' : FMT_HEURE.format(x.arrivee) + (x.depart ? ' → ' + FMT_HEURE.format(x.depart) : '')) + ' · ' + dureeCourte(x.duree) })),
+      absents: p.absents.map(x => ({ id: x.id, nom: x.nom, detail: x.reponse ? (REPONSES_INVITE[x.reponse] || 'Invité') : (ABSENCES_APPEL[x.statut] || 'Absence') })),
+    };
+  }
+  function presenceCsv(titre, seances) {
+    const cel = v => { let t = String(v === null || v === undefined ? '' : v); if (/^[=+\-@\t\r]/.test(t)) t = '\'' + t; return '"' + t.replace(/"/g, '""') + '"'; };
+    const lignes = [['Séance', 'Nom', 'Présence', 'Arrivée', 'Départ', 'Durée (min)', 'Détail'].map(cel).join(';')];
+    for (const p of seances) {
+      const seance = FMT_SUIVI.format(p.debut);
+      for (const x of p.venus) lignes.push([seance, x.nom, 'oui', FMT_HEURE.format(x.arrivee), x.depart ? FMT_HEURE.format(x.depart) : (x.present ? 'en cours' : ''), (x.duree / 60).toFixed(1).replace('.', ','), ''].map(cel).join(';'));
+      for (const x of presenceLignes(p).absents) lignes.push([seance, x.nom, 'non', '', '', '0', x.detail].map(cel).join(';'));
+    }
+    const nom = 'presence-' + String(titre || 'reunion').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).toLowerCase() + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    const url = URL.createObjectURL(new Blob(['\ufeff' + lignes.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a');
+    a.href = url; a.download = nom; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
+    mot('Rapport de présence enregistré (' + nom + ')');
+  }
 
   /* ═══ 13. LES SALLES — l'écran « En réunion » (étape 8) ═══════════════════════════════════════════════════════════════════════════════
      Un appel à plusieurs et la salle d'une réunion partagent UN écran : `salle-ecran`, que `rendreAppel` montre dès que la source annonce `snap.salle` — sauf tant que la personne SONNE (`snap.entrant` : la sonnerie
@@ -6672,7 +6715,23 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
 
   /* ── les panneaux : Participants, Discussion, Plus, Quitter (l'hôte qui part) ── */
-  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document' };
+  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document', presence: 'Rapport de présence' };
+  /* le rapport de présence, en direct (l'hôte et les co-hôtes) : relu toutes les 15 s tant qu'il est ouvert */
+  function htmlPresenceSalle(A) {
+    const X = sx(A), d = X.presenceDonnees;
+    const retour = '<button type="button" class="salle-btn presse salle-suivi-retour" data-sa="presence-retour">‹ Plus</button>';
+    if (!d) return retour + '<p class="salle-note">' + esc(X.presencePanne || 'Chargement…') + '</p>';
+    const L = presenceLignes(d);
+    return retour + '<p class="salle-suivi-compte"><b>' + L.venus.length + '</b> ' + (L.venus.length > 1 ? 'personnes sont venues' : 'personne est venue') + (L.absents.length ? ', ' + L.absents.length + ' absente' + (L.absents.length > 1 ? 's' : '') : '') + '</p>' +
+      '<ul class="salle-suivi" role="list" aria-label="Présences">' + L.venus.map(x => '<li><span>' + esc(x.nom) + '</span><small>' + esc(x.detail) + '</small></li>').join('') + '</ul>' +
+      (L.absents.length ? '<div class="salle-rub"><span>Absences</span><span>' + L.absents.length + '</span></div><ul class="salle-suivi" role="list" aria-label="Absences">' + L.absents.map(x => '<li class="pas"><span>' + esc(x.nom) + '</span><small>' + esc(x.detail) + '</small></li>').join('') + '</ul>' : '') +
+      '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="presence-csv">' + icone('i-telecharger') + ' Exporter (CSV)</button></p>';
+  }
+  async function sallePresenceCharger(A) {
+    const X = sx(A);
+    try { X.presenceDonnees = await source.presenceSalle(A.id); X.presencePanne = ''; } catch (e) { if (!X.presenceDonnees) X.presencePanne = phrase(e, 'Le rapport n\'a pas pu être lu.'); }
+    if (!perime(A) && sx(A).panneau === 'presence') sallePanneauRendre(A, true);
+  }
   /* le suivi d'un document, dans la salle (le panneau « suivi ») : les mêmes lignes que la feuille, dans l'encre de la salle, et le retour à la discussion */
   function htmlSuiviSalle(A) {
     const X = sx(A), d = X.suiviDonnees;
@@ -6770,6 +6829,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       h += '<div class="salle-rang libre"><span class="texte">Minuteur<small>' + (s.minuteur ? 'En cours' : 'Visible de tous') + '</small></span>' +
         (s.minuteur ? '<button type="button" class="salle-btn presse" data-sa="minuteur-arreter">Arrêter</button>' : MINUTEURS.map(x => '<button type="button" class="salle-btn presse" data-sa="minuteur" data-s="' + x[0] + '">' + x[1] + '</button>').join('')) + '</div></div>';
     }
+    if (hote && CAP.presenceRapport) h += '<div class="salle-rub"><span>Présence</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="presence"><span class="texte">Rapport de présence<small>Qui est venu, à quelle heure, combien de temps — et qui manque</small></span></button></div>';
     if (hote) {
       /* la salle d'attente et le verrou sont des OUTILS d'organisateur (dans un appel gratuit, ils ne sont pas proposés) ; le partage d'écran des participants reste un réglage de la salle, pour tous */
       h += '<div class="salle-rub"><span>Sécurité</span></div><div class="salle-liste">' +
@@ -6837,7 +6897,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const actif = document.activeElement, dans = actif && corps.contains(actif), cle = dans ? (actif.dataset.sa || '') + '|' + (actif.dataset.uid || actif.dataset.s || '') : null;
     const champs = {}; corps.querySelectorAll('input[id]').forEach(i => { champs[i.id] = { v: i.value, focus: i === actif, a: i.selectionStart }; });
     const bas = (() => { const f = $('salle-fil'); return !f || f.scrollHeight - f.scrollTop - f.clientHeight < 40; })();
-    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : htmlDiscussion(A);
+    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : htmlDiscussion(A);
     for (const id of Object.keys(champs)) { const i = $(id); if (i && corps.contains(i)) { i.value = champs[id].v; if (champs[id].focus) { i.focus({ preventScroll: true }); try { i.setSelectionRange(champs[id].a, champs[id].a); } catch (e) { /* un champ sans curseur */ } } } }
     if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); }
     const f = $('salle-fil'); if (f && bas) f.scrollTop = f.scrollHeight;
@@ -6879,6 +6939,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         try { X.suiviDonnees = await source.suiviPiece(el.dataset.s); } catch (e) { X.suiviPanne = phrase(e, 'Le suivi n\'a pas pu être lu.'); }
         if (!perime(A) && sx(A).panneau === 'suivi') sallePanneauRendre(A, true);
         return;
+      case 'presence': X.panneau = 'presence'; X.presenceDonnees = null; X.presencePanne = ''; sallePanneauRendre(A, true); sallePresenceCharger(A);
+        clearInterval(X.minuteriePresence); X.minuteriePresence = setInterval(() => { const Y = sx(A); if (perime(A) || Y.panneau !== 'presence') { clearInterval(Y.minuteriePresence); return; } sallePresenceCharger(A); }, 15000);
+        return;
+      case 'presence-retour': clearInterval(X.minuteriePresence); X.panneau = 'plus'; sallePanneauRendre(A, true); return;
+      case 'presence-csv': if (X.presenceDonnees) presenceCsv(s.nom, [X.presenceDonnees]); return;
       case 'suivi-retour': X.panneau = 'discussion'; X.suiviPiece = null; X.suiviDonnees = null; sallePanneauRendre(A, true); salleDiscussionCharger(A, true); return;
       case 'voir-participants': salleOuvrirPanneau(A, 'participants', $('salle-participants')); return;
       case 'micro-ok': X.bandeauMic = null; salleBandeaux(A); return;

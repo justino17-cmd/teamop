@@ -18,6 +18,7 @@
  *   POST /api/salles/:id/reaction {emoji}      SP   pouce, coeur, bravo, rire
  *   POST /api/salles/:id/etat {camera,micro,partage}  SP   l'état de MON appareil (l'image de ma tuile chez les autres)
  *   POST /api/salles/:id/evt {k, donnees}      SP   sondage, minuteur, épingle (2 Ko au plus) : voter est à tous, ouvrir / fermer / démarrer / épingler à l'hôte et aux co-hôtes
+ *   GET  /api/salles/:id/presence               SH   le rapport de présence de la salle : qui est entré (première entrée, dernière sortie, temps passé), qui n'est jamais entré — l'hôte et les co-hôtes
  *   POST /api/salles/:id/annot {op, …}         SP   dessiner et écrire sur l'écran partagé ou le tableau blanc (trait, texte, retirer, annuler, effacer, tableau, permis) — 900 gestes par minute
  *
  * Les gardes (`app.js`) : SP participant d'une SALLE (un exclu, un non-participant, un appel à deux : le MÊME 404 qu'une salle qui n'existe pas), SH hôte ou co-hôte PRÉSENT (un participant voit 403), SO hôte seul.
@@ -161,6 +162,13 @@ function installerSalles(H, ctx) {
     res.json({ ok: true });
   });
   /* les annotations : un trait en cours part en morceaux (dix par seconde) — un plafond à part, assez large pour dessiner, assez court pour qu'une boucle ne submerge pas la salle */
+  /* le rapport de présence : l'hôte et les co-hôtes PRÉSENTS (la garde SH) — « savoir qui était là, et combien de temps », comme les rapports de présence de Teams */
+  H['salles.presence'] = garder((req, res) => {
+    if (!plafond(res, 'salle_presence:' + req.moi.id, 120, 60000)) return;
+    const r = stockage.presenceSalle(req.appel.id, ctx.horloge());
+    if (!r) return refus(res, 404, 'introuvable');
+    res.json(r);
+  });
   H['salles.annot'] = garder((req, res) => {
     const b = corps(req);
     if (typeof b.op !== 'string') return refus(res, 400, 'champ_invalide');

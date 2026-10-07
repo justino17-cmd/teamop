@@ -529,6 +529,10 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .reglage:last-child { border-bottom: 0; }
 .reglage-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 17px; }
 .reglage-texte small { font-size: 13px; color: var(--sub-meta); }
+.presence-seance, .presence-ligne { color: var(--text); }
+.presence-seance .reglage-texte { font-weight: 600; }
+.presence-ligne { min-height: 44px; padding-left: 30px; }
+.presence-ligne.absent .reglage-texte { color: var(--sub-meta); }
 .reglage-valeur { font-size: 15px; color: var(--sub-meta); }
 .reglage .chev { width: 8px; height: 13px; }
 /* ── PROFIL (6 octobre 2026) : le profil en tête, des lignes à pastille, une page par rubrique — Réglages d'iPhone ; au bureau, liste et rubrique côte à côte ──

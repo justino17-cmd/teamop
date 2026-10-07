@@ -354,7 +354,9 @@
       annulerDemande: (id) => appel('POST', '/api/contacts/demandes/annuler', { id }),
       personne: async (id) => (await appel('GET', '/api/personnes/' + e(id))).personne,
       enCommun: (id) => appel('GET', '/api/personnes/' + e(id) + '/commun'),
-      suiviPiece: (id) => appel('GET', '/api/pieces/' + e(id) + '/suivi'),   // le suivi d'un document : à son auteur seul   // la fiche d'un contact : réunions, groupes, espaces en commun
+      suiviPiece: (id) => appel('GET', '/api/pieces/' + e(id) + '/suivi'),
+      sallePresence: (id) => appel('GET', '/api/salles/' + e(id) + '/presence'),          // le rapport de présence d'une salle : l'hôte et les co-hôtes
+      reunionPresence: (id) => appel('GET', '/api/reunions/' + e(id) + '/presence'),      // celui d'une réunion : son organisateur   // le suivi d'un document : à son auteur seul   // la fiche d'un contact : réunions, groupes, espaces en commun
       conversations: async () => (await appel('GET', '/api/conversations')).conversations,
       directe: (uid) => appel('POST', '/api/conversations/directe', { uid }),
       groupe: (champs) => appel('POST', '/api/conversations/groupe', champs),

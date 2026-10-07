@@ -2665,6 +2665,13 @@
        Les réunions passent par la même vue que l'agenda (`vueReunion`) : une réunion de la fiche s'ouvre comme une réunion de l'agenda. */
     /* LE SUIVI D'UN DOCUMENT que j'ai envoyé : chaque membre qui voit le message — reçu, lu (null : ses confirmations de lecture, ou les miennes, sont coupées), ouvert
        ({ premier, dernier, n } en millisecondes ; false : pas encore ; null : caché, une photo ou un vocal sous confirmations coupées). Un fichier téléchargé est toujours dit. */
+    /* le rapport de présence : qui est entré (première entrée, dernière sortie, temps passé), qui ne l'est jamais — une salle (l'hôte et les co-hôtes), une réunion (son organisateur, séance par séance) */
+    const nomRapport = (x) => [x.prenom, x.nom].filter(v => typeof v === 'string' && v).join(' ') || 'Compte supprimé';
+    const vuePresence = (p) => ({ appel: p.appel, debut: Number(p.debut) || 0, fin: p.fin === null || p.fin === undefined ? null : Number(p.fin), enCours: p.en_cours === true,
+      venus: (p.venus || []).map(x => ({ id: x.id, nom: nomRapport(x), arrivee: Number(x.arrivee) || 0, depart: x.depart === null || x.depart === undefined ? null : Number(x.depart), duree: Math.max(0, x.duree_s | 0), present: x.present === true })),
+      absents: (p.absents || []).map(x => ({ id: x.id, nom: nomRapport(x), statut: typeof x.statut === 'string' ? x.statut : null, reponse: typeof x.reponse === 'string' ? x.reponse : null })) });
+    async function presenceSalle(id) { return vuePresence(await A.sallePresence(id)); }
+    async function presenceReunion(id) { const r = await A.reunionPresence(id); return { seances: (r.seances || []).map(vuePresence) }; }
     async function suiviPiece(id) {
       const r = await A.suiviPiece(id);
       return { genre: String(r.genre || ''), suivi: r.suivi !== false, membres: (r.membres || []).map((m) => {
@@ -3115,7 +3122,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3133,7 +3140,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */

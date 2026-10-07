@@ -190,12 +190,14 @@ const MANIFESTE = [
   { id: 'salles.reaction',   m: 'POST', p: '/api/salles/:id/reaction',               garde: 'SP' },
   { id: 'salles.etat',       m: 'POST', p: '/api/salles/:id/etat',                   garde: 'SP' },
   { id: 'salles.evt',        m: 'POST', p: '/api/salles/:id/evt',                    garde: 'SP' },
+  { id: 'salles.presence',   m: 'GET',  p: '/api/salles/:id/presence',               garde: 'SH' },   // le rapport de présence (l'hôte et les co-hôtes)
   { id: 'salles.annot',      m: 'POST', p: '/api/salles/:id/annot',                  garde: 'SP' },   // dessiner et écrire sur l'écran partagé ou le tableau blanc
   /* Le lien d'invité d'une réunion et sa salle. L'aperçu est PUBLIC et limité (il ne dit que de quoi décider de rejoindre, jamais un participant) ; rejoindre par le lien exige un compte (S, v1) ; la salle d'une
      réunion où l'on est invité s'ouvre par R (l'hôte en est un) ; le lien se lit et se renouvelle par H (l'ancien meurt). */
   { id: 'reunions.apercu',   m: 'POST', p: '/api/reunions/apercu',                   garde: 'P' },
   { id: 'reunions.rejoindre_code', m: 'POST', p: '/api/reunions/rejoindre',          garde: 'S' },
   { id: 'reunions.rejoindre', m: 'POST', p: '/api/reunions/:id/rejoindre',           garde: 'R' },
+  { id: 'reunions.presence', m: 'GET',  p: '/api/reunions/:id/presence',             garde: 'H' },   // le rapport de présence (l'organisateur seul)
   { id: 'reunions.lien',     m: 'POST', p: '/api/reunions/:id/lien',                 garde: 'H' },
   { id: 'reunions.lien_renouveler', m: 'POST', p: '/api/reunions/:id/lien/renouveler', garde: 'H' },
   /* PERSO+ (4 octobre 2026) : le forfait d'une PERSONNE (`facturation-perso.js`). La personne est CELLE DE LA SESSION, jamais celle du corps ; le corps ne nomme qu'un rythme. Aucune ligne n'est `pro` ni `organiser` :

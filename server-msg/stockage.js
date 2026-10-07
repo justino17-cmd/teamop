@@ -569,6 +569,15 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS piece_acces_uid ON piece_acces(uid)`,
     `PRAGMA user_version = 15`,
   ] },
+  /* ── 16 (7 octobre 2026) : LA PRÉSENCE DANS UNE SALLE — « un vrai système de réunion très pro » : qui est venu, à quelle heure, combien de temps, et qui n'est jamais venu (le rapport de présence
+     de l'hôte et de l'organisateur). Trois colonnes AJOUTÉES à `appel_part` (le code d'avant les ignore) : `premier`, l'instant de la première entrée ; `sorti`, celui de la dernière sortie ; `cumul`,
+     le temps passé dedans (en ms), sorties comprises — une présence en cours se compte jusqu'à maintenant au moment du rapport. */
+  { v: 16, sql: [
+    `ALTER TABLE appel_part ADD COLUMN premier INTEGER`,
+    `ALTER TABLE appel_part ADD COLUMN sorti INTEGER`,
+    `ALTER TABLE appel_part ADD COLUMN cumul INTEGER NOT NULL DEFAULT 0`,
+    `PRAGMA user_version = 16`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -649,7 +658,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const IDENT = versionActuelle() >= 11;
   /* le favori de l'onglet Contacts (migration 14) : une base ouverte à un schéma plus ancien (un banc de migration) n'a pas la colonne — on ne la lit pas, et poser un favori n'y fait rien */
   const FAVORI = versionActuelle() >= 14;
-  const SUIVI = versionActuelle() >= 15;          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
+  const SUIVI = versionActuelle() >= 15;
+  const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
@@ -3512,6 +3522,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin, genre, conv, capacite, attente) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
         .run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null, 'groupe', conv || null, capacite, attente ? 1 : 0);
       Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, appelant, 'appelant', occupe ? null : (session || null), occupe ? 'parti' : 'present', GRADE_HOTE, t, 1);
+      if (!occupe) presenceEntrer(id, appelant, t);                        // celui qui lance l'appel est dedans dès le départ
       for (const u of dispo) Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, gen) VALUES(?, ?, ?, ?, ?, ?, ?)').run(id, u, 'appele', null, 'invite', 0, 0);
       const notifs = [];
       for (const u of occupes) {
@@ -3665,11 +3676,46 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const statut = attend ? 'attente' : 'present';
       if (p) Q('UPDATE appel_part SET statut = ?, session = ?, grade = ?, entre = ?, gen = gen + ? WHERE appel = ? AND uid = ?').run(statut, session, grade, t, attend ? 0 : 1, id, uid);
       else Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, uid, 'appele', session, statut, grade, t, attend ? 0 : 1);
+      if (!attend) presenceEntrer(id, uid, t);
       /* l'organisateur qui arrive REPREND la main : celui qui la tenait à sa place (le plus ancien, ou un co-hôte) devient co-hôte */
       if (hoteReunion && !attend) Q(`UPDATE appel_part SET grade = ? WHERE appel = ? AND uid <> ? AND grade = ?`).run(GRADE_COHOTE, id, uid, GRADE_HOTE);
       if (!attend) salleDemarrerSiDeux(id, t);
       return { deja: false, attente: attend, gids: appelEvenements(id, [uid]), vue: appelVue(uid, id), etat: appelBrut(id).etat };
     });
+  }
+  /* ── LA PRÉSENCE (migration 16) : une entrée pose la PREMIÈRE fois (jamais réécrite) ; une sortie ajoute le temps passé depuis la dernière entrée (`entre`) — seulement si la personne était
+     DEDANS (`statut = 'present'` : une sortie de la salle d'attente ne compte rien). Les deux passent AVANT le changement de statut, dans la même transaction. */
+  function presenceEntrer(id, uid, t) { if (PRESENCE) Q('UPDATE appel_part SET premier = COALESCE(premier, ?) WHERE appel = ? AND uid = ?').run(t, id, uid); }
+  function presenceSortir(id, uid, t) { if (PRESENCE) Q(`UPDATE appel_part SET cumul = cumul + MAX(0, ? - COALESCE(entre, ?)), sorti = ? WHERE appel = ? AND uid = ? AND statut = 'present'`).run(t, t, t, id, uid); }
+  /* le rapport d'UNE salle : qui y est entré (première entrée, dernière sortie, temps passé — une présence en cours compte jusqu'à `t`), et qui n'y est jamais entré (sonné sans répondre, refusé,
+     resté à la porte). Les noms sont ceux du compte (un compte effacé n'en a plus). */
+  function presenceSalle(id, t) {
+    if (!PRESENCE) return null;
+    const a = appelBrut(id); if (!a || a.genre === 'deux') return null;
+    const vivante = a.etat === 'sonne' || a.etat === 'en_cours';
+    const lignes = Q(`SELECT p.uid AS uid, p.statut AS statut, p.grade AS grade, p.entre AS entre, p.premier AS premier, p.sorti AS sorti, p.cumul AS cumul, x.prenom AS prenom, x.nom AS nom
+                      FROM appel_part p JOIN personne x ON x.id = p.uid WHERE p.appel = ? ORDER BY p.premier IS NULL, p.premier, p.uid`).all(id);
+    const venus = [], absents = [];
+    for (const r of lignes) {
+      const dedans = vivante && r.statut === 'present' && r.entre !== null && r.entre !== undefined;
+      if (r.premier !== null && r.premier !== undefined) {
+        const ms = num(r.cumul) + (dedans ? Math.max(0, t - num(r.entre)) : 0);
+        venus.push({ id: r.uid, prenom: r.prenom || null, nom: r.nom || null, arrivee: num(r.premier), depart: dedans || r.sorti === null || r.sorti === undefined ? null : num(r.sorti), duree_s: Math.round(ms / 1000), present: dedans, grade: num(r.grade) });
+      } else absents.push({ id: r.uid, prenom: r.prenom || null, nom: r.nom || null, statut: r.statut });
+    }
+    const debut = a.repondu !== null && a.repondu !== undefined ? num(a.repondu) : num(a.cree);
+    return { appel: id, genre: a.genre, debut, fin: vivante || a.fin === null || a.fin === undefined ? null : num(a.fin), en_cours: vivante, venus, absents };
+  }
+  /* le rapport d'une RÉUNION programmée : ses vingt dernières séances (une salle par occurrence), chacune avec ses absents — les INVITÉS jamais entrés, avec leur réponse à l'invitation */
+  function presenceReunion(reunion, t) {
+    if (!PRESENCE) return null;
+    const invites = Q(`SELECT i.uid AS uid, i.statut AS statut, x.prenom AS prenom, x.nom AS nom FROM reunion_invite i JOIN personne x ON x.id = i.uid WHERE i.reunion = ? ORDER BY i.cree, i.uid`).all(reunion);
+    const seances = Q(`SELECT id FROM appel WHERE reunion = ? AND genre = 'reunion' ORDER BY cree DESC LIMIT 20`).all(reunion).map(r => presenceSalle(r.id, t)).filter(Boolean);
+    for (const s of seances) {
+      const venus = new Set(s.venus.map(v => v.id));
+      s.absents = invites.filter(i => !venus.has(i.uid)).map(i => ({ id: i.uid, prenom: i.prenom || null, nom: i.nom || null, reponse: i.statut }));
+    }
+    return { seances };
   }
   /* Deux personnes dans la salle : l'appel sonnait, il COURT (l'instant de la première réponse date `repondu`). */
   function salleDemarrerSiDeux(id, t) {
@@ -3695,6 +3741,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const a = appelBrut(id), p = appelPart(id, uid), t = horloge();
     if (!a || !p || (a.etat !== 'sonne' && a.etat !== 'en_cours')) return { deja: true, gids: {}, vue: p ? appelVue(uid, id) : null, etat: a ? a.etat : null, notif: null, notifs: [] };
     if (p.statut === 'present' || p.statut === 'attente') {
+      presenceSortir(id, uid, t);
       Q(`UPDATE appel_part SET statut = 'parti', session = NULL, grade = CASE WHEN grade = ? THEN 0 ELSE grade END WHERE appel = ? AND uid = ?`).run(GRADE_HOTE, id, uid);
       if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
       if (num(p.grade) === GRADE_HOTE && p.statut === 'present') {
@@ -3725,7 +3772,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (p.statut === 'invite') {
         Q(`UPDATE appel_part SET statut = 'manque', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
         const n = appelant ? appelNotifManque(id, a.type, appelant, p.uid) : null; if (n) notifs.push(n);
-      } else if (p.statut === 'present') Q(`UPDATE appel_part SET statut = 'parti', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
+      } else if (p.statut === 'present') { presenceSortir(id, p.uid, fin); Q(`UPDATE appel_part SET statut = 'parti', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid); }
       else if (p.statut === 'attente') Q(`UPDATE appel_part SET statut = 'refuse', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
     }
     const gids = {};
@@ -3752,6 +3799,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       for (const u of attendent) {
         if (sallePresents(id) >= num(a.capacite)) break;
         Q(`UPDATE appel_part SET statut = 'present', gen = gen + 1, entre = ? WHERE appel = ? AND uid = ? AND statut = 'attente'`).run(t, id, u);
+        presenceEntrer(id, u, t);
         admis.push(u);
       }
       if (!admis.length) throw erreur('appel_complet');
@@ -3777,6 +3825,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (p.statut === 'exclu') return { deja: true, gids: {}, etait: 'exclu' };
       if (num(p.grade) >= GRADE_HOTE) throw erreur('interdit');
       if (num(p.grade) >= GRADE_COHOTE && num(moi.grade) < GRADE_HOTE) throw erreur('interdit');
+      presenceSortir(id, uid, horloge());
       Q(`UPDATE appel_part SET statut = 'exclu', session = NULL, grade = 0 WHERE appel = ? AND uid = ?`).run(id, uid);
       if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
       return { deja: false, gids: appelEvenements(id, [uid]), etait: p.statut };
@@ -4051,6 +4100,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
+    presenceSalle, presenceReunion,   // le rapport de présence (migration 16)
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
