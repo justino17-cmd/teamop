@@ -1764,6 +1764,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 }
 .rec-fin-carte h3 { margin: 0; font-size: 20px; line-height: 25px; font-weight: 700; }
 .rec-fin-carte p { margin: 0; font-size: 15px; line-height: 20px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.rec-fin-carte .rec-fin-garde { font-size: 13px; line-height: 17px; text-align: center; }
 .rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
 .rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
@@ -2336,7 +2337,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p id="rec-fin-info"></p>
     <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
     <p id="rec-fin-absents" hidden></p>
-    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer dans la discussion</button>
+    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer à tous les participants</button>
+    <p class="rec-fin-garde" id="rec-fin-garde">Dans la discussion de la réunion, gardé 3 jours puis supprimé automatiquement.</p>
     <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
     <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
   </div>

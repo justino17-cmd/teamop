@@ -2018,6 +2018,7 @@
     }
     function vueMessage(conv, c, m, auto) {
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
+      if (Number.isFinite(m.expire) && m.expire > 0) base.expire = m.expire;            // l'échéance que le service a posée (éphémère, ou un fichier gardé quelques jours)
       if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, genreSysteme(c)) });
       const media = MEDIAS.includes(m.type);
       /* une photo garde sa LÉGENDE (le seul média qui en porte une) ; les autres pièces n'ont pas de texte */
@@ -2161,7 +2162,7 @@
              et il ne doit pas faire relire une image que l'appareil a déjà */
           if (x.url && (p.type === 'photo' || p.type === 'vocal')) poserCache(x.id, x.url, x.blob.size);
         }
-        const champs = p.type === 'photo' ? Object.assign({ pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) }, p.texte ? { texte: p.texte } : {}) : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
+        const champs = p.type === 'photo' ? Object.assign({ pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) }, p.texte ? { texte: p.texte } : {}) : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : Object.assign({ piece: p.fichier.id }, p.garderS ? { garder_s: p.garderS } : {});
         const r = await A.envoyerPieces(p.conv, p.type, champs, { cid: p.cid });
         if (retirer) retirer();
         apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: p.type === 'photo' && p.texte ? p.texte : null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
@@ -2256,6 +2257,7 @@
         if (!f || !f.blob || !(f.blob.size > 0)) throw erreurLocale('vide');
         const nom = couperNom(String(f.nom || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\/\\]/g, '_').trim(), 120) || 'fichier';
         p.fichier = { blob: f.blob, nom, taille: f.blob.size, id: null };
+        if ([86400, 259200, 604800].includes(f.garderS)) p.garderS = f.garderS;          // un fichier gardé quelques jours (l'enregistrement d'une réunion : 3) — le service l'efface à l'échéance
       }
       const l = await limites(), max = maxDe(l, type);
       for (const x of lesPieces(p)) if (x.blob.size > max) throw new OPMSG.ErreurApi('piece_trop_lourde', 413, 0, { max });

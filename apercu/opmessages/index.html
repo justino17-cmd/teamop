@@ -1760,6 +1760,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 }
 .rec-fin-carte h3 { margin: 0; font-size: 20px; line-height: 25px; font-weight: 700; }
 .rec-fin-carte p { margin: 0; font-size: 15px; line-height: 20px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.rec-fin-carte .rec-fin-garde { font-size: 13px; line-height: 17px; text-align: center; }
 .rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
 .rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
@@ -2332,7 +2333,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p id="rec-fin-info"></p>
     <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
     <p id="rec-fin-absents" hidden></p>
-    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer dans la discussion</button>
+    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer à tous les participants</button>
+    <p class="rec-fin-garde" id="rec-fin-garde">Dans la discussion de la réunion, gardé 3 jours puis supprimé automatiquement.</p>
     <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
     <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
   </div>
@@ -2906,7 +2908,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         '<span class="vocal-duree">' + duree(m.vocal.dur) + '</span></button>';
     } else if (m.fichier) {
       h += '<button type="button" class="fichier ' + sens + ' presse" data-fichier="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="Télécharger le fichier ' + esc(m.fichier.nom) + ', ' + esc(tailleTexte(m.fichier.taille)) + '">' +
-        '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="fichier-texte"><span class="fichier-nom" dir="auto">' + esc(m.fichier.nom) + '</span><span class="fichier-taille">' + esc(tailleTexte(m.fichier.taille)) + '</span></span></button>';
+        '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="fichier-texte"><span class="fichier-nom" dir="auto">' + esc(m.fichier.nom) + '</span><span class="fichier-taille">' + esc([tailleTexte(m.fichier.taille), echeanceTexte(m.expire)].filter(Boolean).join(' · ')) + '</span></span></button>';
       /* MON fichier : qui l'a reçu, qui l'a téléchargé (« très important pour les patrons ») — un lien à part, sous la carte (on n'imbrique pas deux boutons) */
       if (moi && m.fichier.piece && suiviPossible()) h += '<button type="button" class="suivi-lien presse" data-suivi="' + esc(m.fichier.piece) + '">' + icone('i-personne') + '<span>Qui l\'a téléchargé ?</span></button>';
     } else if (m.position && !m.supprime) {
@@ -2928,6 +2930,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     /* le statut DIT VRAI : « Envoi… » seulement quand des octets partent vraiment (la source le sait), « En attente de connexion… » quand rien ne part ; une pièce en échec a sa phrase et ses deux boutons, pas de statut */
     return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? (Number.isInteger(m.progres) ? 'Envoi… ' + m.progres + ' %' : 'Envoi…') : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
   }
+  /* l'échéance d'un fichier gardé quelques jours (un enregistrement de réunion : 3) ou d'un éphémère : « supprimé dans 3 jours », « supprimé dans 5 h » — rien s'il n'en a pas */
+  const echeanceTexte = t => { const ms = +t - Date.now(); if (!(ms > 0)) return ''; const h = Math.ceil(ms / 3600000); return h < 24 ? 'supprimé dans ' + h + ' h' : 'supprimé dans ' + Math.round(h / 24) + (Math.round(h / 24) > 1 ? ' jours' : ' jour'); };
   /* ── LES CARTES (7 octobre 2026) — position, fiche d'un contact, sondage ── */
   const estCarte = m => !!(m && (m.position || m.carteContact || m.sondage));
   const FMT_COORD = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 5, maximumFractionDigits: 5 });
@@ -8245,7 +8249,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       const moi = m.auteur === MOI.id, sv = moi && X.suivis ? X.suivis.get(m.fichier.piece) : null;
       return '<div class="salle-msg doc' + (moi ? ' moi' : '') + '">' + (moi ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') +
         '<button type="button" class="salle-doc presse" data-sa="doc" data-mid="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="' + esc('Télécharger ' + m.fichier.nom + ', ' + tailleTexte(m.fichier.taille)) + '">' +
-          '<span class="salle-doc-ic">' + icone('i-fichier') + '</span><span class="salle-doc-t"><b dir="auto">' + esc(m.fichier.nom) + '</b><small>' + esc(tailleTexte(m.fichier.taille)) + '</small></span>' + icone('i-telecharger') + '</button>' +
+          '<span class="salle-doc-ic">' + icone('i-fichier') + '</span><span class="salle-doc-t"><b dir="auto">' + esc(m.fichier.nom) + '</b><small>' + esc([tailleTexte(m.fichier.taille), echeanceTexte(m.expire)].filter(Boolean).join(' · ')) + '</small></span>' + icone('i-telecharger') + '</button>' +
         (moi && m.fichier.piece && suiviPossible() ? '<button type="button" class="salle-doc-suivi presse" data-sa="doc-suivi" data-s="' + esc(m.fichier.piece) + '">' + (sv ? esc('Téléchargé par ' + sv.faits + ' sur ' + sv.total) : 'Qui l\'a téléchargé ?') + '</button>' : '') + '</div>';
     };
     /* ⛔ UNE PHOTO SE VOIT (capture du 8 octobre 2026 : « quand on fait les captures d'écran ça marche pas » — la capture annotée partait bien, mais la discussion de la salle n'en
@@ -8848,32 +8852,42 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      des voix, par `MediaRecorder` ; le fichier se range à l'arrêt. ⛔ Un onglet caché ralentit le dessin : on le dit à l'hôte. ── */
   const recDisponible = () => typeof MediaRecorder === 'function' && typeof HTMLCanvasElement !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function' && !!(window.AudioContext || window.webkitAudioContext);
   /* ce que l'appareil garde jusqu'à l'arrêt : au bureau 1,5 Go (plus de deux heures en 720p), ailleurs 300 Mo (une demi-heure) */
-  const recOctetsMax = () => (document.documentElement.dataset.kind === 'desktop' ? 1536 : 300) * 1048576;
+  const recOctetsMax = () => (document.documentElement.dataset.kind === 'desktop' ? 3072 : 400) * 1048576;
+  /* ⛔ LA QUALITÉ (8 octobre 2026 : « il faudrait que ce soit de meilleure qualité ») : au bureau 1080p, 24 images par seconde, 3 Mb/s (VP9 quand le navigateur le sait — un écran partagé y reste
+     net à débit égal) ; ailleurs 720p, 2 Mb/s. La voix en 128 kb/s. Un écran partagé ou le tableau prend la grande place de l'image, même en vue galerie : c'est ce qu'on relira. */
+  const recProfil = () => document.documentElement.dataset.kind === 'desktop' ? { w: 1920, h: 1080, ips: 24, video: 3000000 } : { w: 1280, h: 720, ips: 24, video: 2000000 };
   const tailleRec = o => o >= 1073741824 ? (Math.round(o / 107374182.4) / 10).toString().replace('.', ',') + ' Go' : Math.max(1, Math.round(o / 1048576)) + ' Mo';
   async function recDemarrer(A) {
     if (A.rec || A.recEnCours || !recDisponible()) return;
     A.recEnCours = true;
+    /* ⛔ LE SON (« il faut que ça enregistre le son aussi ») : le mélangeur naît DANS le geste, avant toute attente — né après (la réponse du service), Safari le laisse endormi et le fichier est muet */
+    const AC = window.AudioContext || window.webkitAudioContext; let ctx = null;
+    try { ctx = new AC(); if (ctx.state === 'suspended') ctx.resume().catch(() => {}); } catch (e) { ctx = null; }
     try {
-      if (!await salleGeste(A, 'rec', { actif: true }, 'L\'enregistrement n\'a pas pu commencer.')) return;       // le service d'abord : sans son accord, aucun bandeau chez les autres, donc aucune image enregistrée en cachette
-      const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720;              // 720p : l'écran partagé et le tableau restent LISIBLES à la relecture
-      const AC = window.AudioContext || window.webkitAudioContext, ctx = new AC(), dest = ctx.createMediaStreamDestination();
+      if (!ctx) throw new Error('mélangeur');
+      if (!await salleGeste(A, 'rec', { actif: true }, 'L\'enregistrement n\'a pas pu commencer.')) { try { ctx.close(); } catch (e) { /* rien */ } return; }       // le service d'abord : sans son accord, aucun bandeau chez les autres, donc aucune image enregistrée en cachette
+      const P = recProfil(), cv = document.createElement('canvas'); cv.width = P.w; cv.height = P.h;
+      if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
+      const dest = ctx.createMediaStreamDestination();
       const R = { cv, ctx, dest, sources: new Map(), chunks: [], octets: 0, minuterie: 0, rec: null, fini: false, debut: Date.now(), titre: A.snap.nom, conv: A.snap.conv || null };
-      const flux = cv.captureStream(15);
+      const flux = cv.captureStream(P.ips);
       dest.stream.getAudioTracks().forEach(t => flux.addTrack(t));
-      const types = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'], mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+      const types = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'], mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
       R.mime = mime;
-      const debits = { videoBitsPerSecond: 1200000, audioBitsPerSecond: 96000 };
+      const debits = { videoBitsPerSecond: P.video, audioBitsPerSecond: 128000 };
       R.rec = new MediaRecorder(flux, mime ? Object.assign({ mimeType: mime }, debits) : debits);
       R.rec.ondataavailable = ev => { if (ev.data && ev.data.size) { R.chunks.push(ev.data); R.octets += ev.data.size; if (R.octets > recOctetsMax() && A.rec === R) { mot('Limite de ' + tailleRec(recOctetsMax()) + ' atteinte sur cet appareil : l\'enregistrement s\'arrête.'); recArreter(A, true); } } };
       A.rec = R;
       recSynchro(A);
       recDessiner(A);
-      R.minuterie = setInterval(() => recDessiner(A), 66);
+      R.minuterie = setInterval(() => recDessiner(A), Math.round(1000 / P.ips));
       R.rec.start(2000);
-      mot('Enregistrement commencé : garde cet onglet visible');
+      /* ma voix n'entre que si mon micro est OUVERT : on le dit tout de suite, plutôt qu'à la relecture d'un fichier muet */
+      mot(!A.audio || A.micro === false ? 'Enregistrement commencé — ton micro est coupé : ta voix n\'y sera pas tant que tu ne l\'ouvres pas' : 'Enregistrement commencé : garde cet onglet visible');
       rendreAppel();
     } catch (e) {
       if (A.rec) { try { A.rec.rec.stop(); } catch (er) { /* rien */ } clearInterval(A.rec.minuterie); A.rec = null; }
+      if (ctx) { try { ctx.close(); } catch (er) { /* rien */ } }
       salleGeste(A, 'rec', { actif: false });
       if (!perime(A)) mot('L\'enregistrement n\'a pas pu démarrer sur cet appareil.');
     } finally { A.recEnCours = false; }
@@ -8918,9 +8932,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function recDessiner(A) {
     const R = A.rec; if (!R || R.fini || !A.snap) return;
     const g2 = R.cv.getContext('2d'), W = R.cv.width, H = R.cv.height, tuiles = Array.from($('salle-scene').querySelectorAll(':scope > .salle-tuile'));
+    g2.imageSmoothingEnabled = true; g2.imageSmoothingQuality = 'high';
     const sup = annotCible(A), items = sup ? annotItems(A) : [];            // ce qui est dessiné entre dans l'enregistrement, sur l'image qu'il annote
     g2.fillStyle = '#0b0d12'; g2.fillRect(0, 0, W, H);
-    const grand = tuiles.find(t => t.classList.contains('grand')) || null;
+    const grand = tuiles.find(t => t.classList.contains('grand')) || tuiles.find(t => t.id === 'salle-tableau' || t.dataset.ecran === '1') || null;
     if (grand && tuiles.length > 1) {
       const autres = tuiles.filter(t => t !== grand).slice(0, 6), bande = Math.round(H * 0.2), bw = W / Math.max(4, autres.length);
       recTuile(g2, grand, 0, 0, W, H - bande, sup, items);
@@ -8968,7 +8983,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       ab.textContent = (noms.length === absents.length && noms.length <= 3 ? 'Pas là : ' + noms.join(', ') : absents.length + (absents.length > 1 ? ' personnes n\'étaient pas là' : ' personne n\'était pas là')) + ' — l\'enregistrement ' + (absents.length > 1 ? 'les ' : 'l\'') + 'attendra dans la discussion, et tu verras qui l\'a téléchargé.';
       ab.hidden = false;
     }, () => { /* sans la liste des membres, la carte ne dit simplement pas qui manquait */ });
-    $('rec-fin-envoyer').hidden = !F.conv;
+    $('rec-fin-envoyer').hidden = !F.conv; $('rec-fin-garde').hidden = !F.conv;
     $('rec-fin-jeter').textContent = 'Supprimer'; $('rec-fin-jeter').dataset.confirmer = '';
     $('rec-fin').hidden = false;
     requestAnimationFrame(() => (F.conv ? $('rec-fin-envoyer') : $('rec-fin-garder')).focus({ preventScroll: true }));
@@ -8983,7 +8998,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const F = recEnAttente; if (!F || !F.conv) return;
     recFinFermer();
     mot('Envoi de l\'enregistrement…');
-    if (await envoi({ fichier: { blob: F.blob, nom: F.nom, taille: F.blob.size } }, F.conv)) { mot('Enregistrement envoyé dans la discussion'); const A = etat.appelUI; if (enSalle(A) && A.snap.conv === F.conv) salleDiscussionCharger(A, false); }
+    /* ⛔ GARDÉ TROIS JOURS (8 octobre 2026 : « qu'il se supprime 3 jours après, pour pas que ça prenne des Go pour rien ») : le service pose l'échéance, son balayeur emporte le message ET le fichier */
+    if (await envoi({ fichier: { blob: F.blob, nom: F.nom, taille: F.blob.size, garderS: 259200 } }, F.conv)) { mot('Enregistrement envoyé à tous — gardé 3 jours'); const A = etat.appelUI; if (enSalle(A) && A.snap.conv === F.conv) salleDiscussionCharger(A, false); }
     else { recEnAttente = null; recFinOuvrir(F); }                         // l'envoi a échoué (la phrase l'a dit) : le fichier revient, rien n'est perdu
   });
   $('rec-fin-garder').addEventListener('click', () => {

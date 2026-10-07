@@ -1145,7 +1145,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return { piece: lignes[0].id, nom: nom || 'fichier', taille: lignes[0].taille };
   }
 
-  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage }) {
+  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS }) {
     const dej = Q('SELECT seq, ts, id FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid);
     if (dej) return { deja: true, seq: dej.seq, ts: dej.ts, id: dej.id };
     const c = Q('SELECT dernier_seq, ephemere_s FROM conversation WHERE id = ?').get(conv);
@@ -1157,7 +1157,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (pieces && pieces.length) meta = piecesAttacher({ conv, auteur, seq, ts, type, pieces, vocal });
     const corps = texte != null ? sceller('message', 'corps_ch', aadMsg(conv, seq, auteur), texte) : null;
     const metaCh = meta != null ? sceller('message', 'meta_ch', aadMsg(conv, seq, auteur), JSON.stringify(meta)) : null;
-    const expire = c.ephemere_s > 0 ? ts + c.ephemere_s * 1000 : null;
+    /* ⛔ l'échéance : celle de la conversation (messages éphémères) ou celle que l'envoi demande (`garderS` — un enregistrement de réunion gardé trois jours, 8 octobre 2026), la PLUS PROCHE ;
+       à l'échéance le balayeur emporte la ligne ET ses pièces (`purgerExpires`) : un fichier de plusieurs Go ne dort pas sur le disque pour rien */
+    const echeances = [c.ephemere_s > 0 ? ts + c.ephemere_s * 1000 : null, garderS > 0 ? ts + garderS * 1000 : null].filter(x => x !== null);
+    const expire = echeances.length ? Math.min(...echeances) : null;
     Q('INSERT INTO message(conv, seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, expire_ts) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(conv, seq, id, auteur, cid, ts, type, corps, metaCh, repondA == null ? null : repondA, expire);
     Q('UPDATE conversation SET dernier_seq = ?, dernier_ts = ? WHERE id = ?').run(seq, ts, conv);
@@ -1302,7 +1305,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (m && m.quitte_le === null) continue;
         if (n >= max) throw erreur('groupe_plein');
         const t = horloge(), ds = c.dernier_seq + 1 + ajoutes.length;
-        if (m) Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0${COTES ? ', cote = NULL' : ''} WHERE conv = ? AND uid = ?`).run(ds, ds - 1, t, conv, u);   // revenir, c'est repartir des réglages par défaut — le côté choisi compris
+        /* revenir, c'est repartir des réglages par défaut — le côté choisi compris (une base d'avant la migration 20 n'a pas la colonne : deux requêtes LITTÉRALES, jamais un texte construit) */
+        if (m) (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
+          : Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(ds, ds - 1, t, conv, u);
         else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, 'membre', ?, ?, ?)`).run(conv, u, ds, ds - 1, t);
         n++; ajoutes.push(u);
         messageSysteme(conv, par || u, { k: par && par !== u ? 'membre_ajoute' : 'rejoint', uid: u });
@@ -1571,9 +1576,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ MESSAGES ════════════════════════════════════════════════════════════════════════════ */
-  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null }) {
+  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null, garderS = 0 }) {
     if (sondage && !SONDAGES) throw erreur('type');
-    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage }));
+    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS }));
   }
   /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. ── */
   /* un message que `uid` voit (membre depuis, ni masqué, ni effacé, ni expiré) → son auteur et sa méta, ou null */
@@ -1683,6 +1688,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const messageRang = (conv, r, moi, reactions) => {
     const o = { seq: r.seq, id: r.id, auteur: r.auteur, ts: r.ts, type: r.type, repond_a: r.repond_a, modifie: r.modifie || null, supprime: !!r.supprime_le, texte: null, meta: null, reactions: reactions || [] };
     if (r.auteur === moi) o.cid = r.cid;
+    if (r.expire_ts !== null && r.expire_ts !== undefined) o.expire = num(r.expire_ts);          // l'échéance (éphémère, ou un fichier gardé quelques jours) : la page la dit
     if (!r.supprime_le) {
       if (r.corps_ch) { o.texte = ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch); if (o.texte === null) o.illisible = true; }
       if (r.meta_ch) { try { o.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)), moi); } catch (e) { o.meta = null; } }
@@ -1696,12 +1702,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const lim = Math.max(1, Math.min(100, limite | 0 || 50));
     let rows, aPlus = false;
     if (apresSeq !== null) {
-      rows = Q(`SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, modifie, supprime_le FROM message x
+      rows = Q(`SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, modifie, supprime_le, expire_ts FROM message x
                 WHERE x.conv = ? AND x.seq >= ? AND x.seq > ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                   AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)
                 ORDER BY x.seq ASC LIMIT ?`).all(conv, m.depuis_seq, apresSeq, horloge(), uid, lim);
     } else {
-      rows = Q(`SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, modifie, supprime_le FROM message x
+      rows = Q(`SELECT seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, modifie, supprime_le, expire_ts FROM message x
                 WHERE x.conv = ? AND x.seq >= ? AND x.seq < ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
                   AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)
                 ORDER BY x.seq DESC LIMIT ?`).all(conv, m.depuis_seq, avantSeq === null ? 9007199254740991 : avantSeq, horloge(), uid, lim + 1);
@@ -3177,7 +3183,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const ds = num(c.dernier_seq) + 1;
     const m = Q('SELECT quitte_le FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);
     if (m && m.quitte_le === null) { Q('UPDATE membre SET role = ? WHERE conv = ? AND uid = ?').run(role, conv, uid); return false; }
-    if (m) Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0${COTES ? ', cote = NULL' : ''} WHERE conv = ? AND uid = ?`).run(role, ds, ds - 1, t, conv, uid);
+    if (m) (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
+      : Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(role, ds, ds - 1, t, conv, uid);
     else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, ?, ?, ?, ?)`).run(conv, uid, role, ds, ds - 1, t);
     return true;
   }
