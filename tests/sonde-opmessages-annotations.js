@@ -31,7 +31,8 @@ const ECRAN = () => {
   const md = navigator.mediaDevices; if (!md) return;
   md.getDisplayMedia = async function () {
     const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const g = cv.getContext('2d'); let k = 0;
-    const dessiner = () => { k++; g.fillStyle = '#243b6b'; g.fillRect(0, 0, 1280, 720); g.fillStyle = '#ffffff'; g.fillRect(80 + (k % 20) * 4, 80, 300, 40); };
+    const fond = (window.__ecranN = (window.__ecranN || 0) + 1) % 2 ? '#243b6b' : '#8a1c1c';          // la seconde fenêtre choisie est ROUGE : « Changer de fenêtre » se voit chez les autres
+    const dessiner = () => { k++; g.fillStyle = fond; g.fillRect(0, 0, 1280, 720); g.fillStyle = '#ffffff'; g.fillRect(80 + (k % 20) * 4, 80, 300, 40); };
     dessiner(); const iv = setInterval(dessiner, 100);
     const f = cv.captureStream(10); f.getTracks().forEach(t => { const arret = t.stop.bind(t); t.stop = function () { clearInterval(iv); arret(); }; });
     return f;
@@ -135,6 +136,18 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     await A.page.keyboard.type('Point clé à revoir'); await A.page.keyboard.press('Enter');
     vrai('Entrée pose le texte : Cléo a deux annotations', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '2'));
     await capture(A, 'annot-bureau-texte');
+    /* 8 octobre 2026 : « il faudrait pouvoir déplacer les textes » — avec l'outil Texte, Ana prend son texte et le fait glisser en haut à droite ; Cléo (téléphone) le voit à sa nouvelle place */
+    const rougeVers = async (S, fx, fy, oui) => { for (let i = 0; i < 40; i++) { const l = await lire(S, fx, fy, 24); if (!!l && rouge(l.px) === oui) return true; await S.page.waitForTimeout(150); } return false; };
+    vrai('population : le texte rouge est chez Cléo, en bas à gauche', await rougeVers(C, 0.13, 0.775, true));
+    const d0 = await pointSur(A, 0.12, 0.77), d1 = await pointSur(A, 0.70, 0.12);
+    await A.page.mouse.move(d0[0], d0[1]); await A.page.mouse.down();
+    for (let i = 1; i <= 8; i++) await A.page.mouse.move(d0[0] + (d1[0] - d0[0]) * i / 8, d0[1] + (d1[1] - d0[1]) * i / 8);
+    vrai('⛔ prendre son texte ne crée pas un nouveau champ (on le déplace, on n\'écrit pas)', await A.page.evaluate(() => !document.querySelector('.annot-saisie')));
+    await A.page.mouse.up();
+    vrai('⛔ Ana DÉPLACE son texte : chez Cléo (téléphone), il est en haut à droite…', await rougeVers(C, 0.71, 0.135, true));
+    vrai('…et plus en bas à gauche', await rougeVers(C, 0.13, 0.775, false));
+    vrai('…toujours deux annotations (le texte a bougé, il n\'a pas été recopié)', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '2'));
+    await capture(C, 'annot-telephone-texte-deplace');
     await A.page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     vrai('⌘Z / Ctrl+Z retire le dernier geste d\'Ana : Cléo n\'en a plus qu\'une', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '1'));
     await C.page.locator('#salle-annoter').click();
@@ -157,8 +170,30 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     vrai('rendu à tous : « Annoter » revient chez Cléo', await att(C, visible, 'salle-annoter'));
     await A.page.locator('#salle-panneau-fermer').click();
 
+    console.log('\n3 ter. « Image dans l\'image » sur l\'écran de la réunion (8 octobre 2026)');
+    const pipA = await A.page.evaluate(() => ({ permis: document.pictureInPictureEnabled === true, vu: !document.getElementById('salle-pip').hidden && document.getElementById('salle-pip').getClientRects().length > 0, rang: document.getElementById('salle-pip').parentElement === document.getElementById('salle-vue').parentElement }));
+    v('la pastille « Image dans l\'image » est sur l\'écran de la réunion, à côté de « Vue », là où le navigateur le permet (ici : ' + (pipA.permis ? 'oui' : 'non') + ')', [pipA.vu, pipA.rang], [pipA.permis, true]);
+    if (pipA.permis) {
+      await A.page.locator('#salle-pip').click();
+      vrai('la toucher ouvre l\'image flottante (la vidéo de l\'écran partagé), et la pastille le dit', await att(A, () => document.pictureInPictureElement && document.pictureInPictureElement.tagName === 'VIDEO' && document.getElementById('salle-pip').getAttribute('aria-pressed') === 'true', null, 6000));
+      await A.page.locator('#salle-pip').click();
+      vrai('la retoucher la ferme', await att(A, () => !document.pictureInPictureElement && document.getElementById('salle-pip').getAttribute('aria-pressed') === 'false', null, 6000));
+    }
+
+    console.log('\n3 bis. Ben change de fenêtre sans arrêter (8 octobre 2026)');
+    const pxBen = (S) => S.page.evaluate((uid) => { const v = document.querySelector('#salle-scene .salle-tuile[data-uid="' + uid + '"] video'); if (!v || !v.videoWidth) return null; const c = document.createElement('canvas'); c.width = 8; c.height = 8; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 8, 8); const d = g.getImageData(1, 6, 1, 1).data; return [d[0], d[1], d[2]]; }, B0.moi.id);
+    const bleuAvant = await pxBen(A);
+    vrai('population : Ana voit la fenêtre de Ben (bleue), et « Changer de fenêtre » n\'est proposé qu\'à Ben', !!bleuAvant && bleuAvant[2] > bleuAvant[0] && await B.page.evaluate(() => !document.getElementById('salle-partage-changer').hidden) && await A.page.evaluate(() => document.getElementById('salle-partage-changer').hidden), JSON.stringify(bleuAvant));
+    vrai('population : il y a des annotations sur la fenêtre de Ben', await att(C, () => +(document.querySelector('.annot-calque') || {}).dataset.n > 0));
+    await B.page.locator('#salle-partage-changer').click();
+    let rougeApres = null; for (let i = 0; i < 40; i++) { rougeApres = await pxBen(A); if (rougeApres && rougeApres[0] > rougeApres[2] + 40) break; await A.page.waitForTimeout(150); }
+    vrai('⛔ « Changer de fenêtre » : Ana voit la NOUVELLE fenêtre (rouge) dans la même vignette', !!rougeApres && rougeApres[0] > rougeApres[2] + 40, JSON.stringify(rougeApres));
+    v('⛔ …sans que le partage s\'arrête : Ben partage toujours (« Arrêter »), le calque est toujours sur sa vignette chez Ana', [await B.page.evaluate(() => document.querySelector('#salle-partage .salle-cmd-texte').textContent), await A.page.evaluate(() => !!document.querySelector('.salle-tuile .annot-calque'))], ['Arrêter', true]);
+    vrai('…et les annotations de l\'ancienne fenêtre sont effacées (elles tomberaient sur autre chose)', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '0'));
+
     console.log('\n4. Ben arrête de partager');
     await B.page.locator('#salle-partage').click();
+    vrai('chez Ben, « Changer de fenêtre » s\'efface avec le partage', await att(B, () => document.getElementById('salle-partage-changer').hidden));
     vrai('chez Ana : la barre d\'outils et le calque s\'en vont, « Annoter » disparaît, la vue revient en galerie', await att(A, () => document.getElementById('annot-barre').hidden && !document.querySelector('.annot-calque')?.isConnected && document.getElementById('salle-annoter').hidden && document.getElementById('salle-scene').dataset.vue === 'galerie'));
 
     console.log('\n5. Le tableau blanc');
@@ -183,6 +218,11 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     let photo = null;
     for (let i = 0; i < 60 && !photo; i++) { const r = await A0.get('/api/conversations/' + G + '/messages'); const l = (r.j && (r.j.messages || r.j.items)) || []; photo = l.find(m => /Tableau blanc/.test(m.texte || '')) || null; if (!photo) await new Promise(ok => setTimeout(ok, 250)); }
     v('« Capturer » : l\'image du tableau part dans la discussion du groupe, en PHOTO légendée « Tableau blanc — … »', [!!photo, photo && photo.type, photo && /^Tableau blanc — /.test(photo.texte)], [true, 'photo', true]);
+    /* 8 octobre 2026 : « quand on fait les captures d'écran ça marche pas » — la photo partait, mais la discussion de la SALLE n'en montrait que la légende */
+    await A.page.locator('#salle-discussion').click();
+    vrai('⛔ dans la discussion de la salle (Ana), la capture se VOIT : une image décodée, sa légende dessous', await att(A, () => Array.from(document.querySelectorAll('.salle-msg-photo')).some(x => { const i = x.querySelector('.salle-photo img'); return !!i && i.complete && i.naturalWidth > 100 && /^Tableau blanc — /.test((x.querySelector('.salle-photo-leg') || {}).textContent || ''); }), null, 15000),
+      await A.page.evaluate(() => (document.getElementById('salle-panneau-corps') || {}).textContent || '').then(t => t.slice(0, 200)));
+    await capture(A, 'annot-discussion-capture');
     await C.page.keyboard.press('Escape');
     vrai('Échap quitte le mode « Annoter » (la barre se range, le calque laisse passer le doigt)', await att(C, () => document.getElementById('annot-barre').hidden && getComputedStyle(document.querySelector('.annot-calque')).pointerEvents === 'none'));
     vrai('   ⛔ et Échap n\'a PAS quitté la salle', await C.page.evaluate(() => document.documentElement.dataset.salle === '1'));

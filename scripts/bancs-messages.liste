@@ -50,7 +50,8 @@
 # 7 octobre 2026, les cartes (926 : position, fiche d'un contact, sondages) et le thème d'une conversation (927), après la relecture du gardien : 78 suites, 8 556 vérifications mesurées par la commande de la porte (test-971 tombe en local sur la base de fuseaux 2025b, avec son total complet) — plancher 8542 (le total moins 14).
 # 7 octobre 2026, fin de soirée : l'invitation à écrire (928), le tableau de bord, les votants — 79 suites, 8 613 vérifications mesurées par la commande de la porte (test-971 tombe
 # en local sur la base de fuseaux 2025b, avec son total complet) — plancher 8599 (le total moins 14).
-#plancher 8599
+# 7 octobre 2026, tard : Perso / Pro (929 : le côté de chaque conversation, rangé à la main ou automatique, et la préférence du compte) — 80 suites, plancher relevé de 26.
+#plancher 8625
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -168,3 +169,5 @@ tests/test-925.js
 tests/test-926.js
 tests/test-927.js
 tests/test-928.js
+tests/test-929.js
+# ── Le menu d'un message contre sa bulle, « Me le rappeler », l'Agenda au mois (8 octobre 2026) : la préférence du compte (929) ; la vraie page est la sonde tests/sonde-opmessages-menu-rappel.js

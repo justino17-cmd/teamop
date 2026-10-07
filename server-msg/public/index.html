@@ -242,6 +242,13 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
    là où le conteneur défile, un décalage NÉGATIF (l'anneau dessiné dedans) là où une ligne touche les bords de sa carte. */
 .epingle-bouton:focus-visible { outline-offset: 0; border-radius: 12px; }
 .carte-liste .conv:focus-visible, .carte .contact:focus-visible, .carte .reglage:focus-visible { outline-offset: -3px; }
+/* ⛔ L'ANNEAU DE FOCUS RENDU APRÈS UN GESTE AU DOIGT NE S'ALLUME PAS (capture d'un iPhone, 7 octobre 2026 : « bug d'affichage », un cadre bleu carré sur la conversation qu'on
+   venait de quitter). La page REND le focus (à la ligne, au bouton qui avait ouvert une feuille, un menu) pour le clavier et le lecteur d'écran ; Safari allume alors l'anneau,
+   parce que l'élément d'avant — le champ de saisie — l'avait. Après un toucher ou un clic, `rendreFocus` marque l'élément (`data-focus-doux`) : il a le focus, pas l'anneau.
+   Au clavier (Échap, Tab, flèches), rien n'est marqué : l'anneau se voit. Et quand il se voit, en tête ou en pied d'une carte arrondie, il en suit l'arrondi. */
+[data-focus-doux]:focus-visible { outline: none !important; }     /* ⛔ !important : une règle d'anneau écrite PLUS LOIN (`.moi-pastille`, `.deroule-choix`…), de même force, l'emportait (relecture du 7 octobre 2026) */
+.carte-liste > li:first-child > .conv:focus-visible { border-top-left-radius: var(--group-r); border-top-right-radius: var(--group-r); }
+.carte-liste > li:last-child > .conv:focus-visible { border-bottom-left-radius: var(--group-r); border-bottom-right-radius: var(--group-r); }
 .epingles::-webkit-scrollbar { display: none; }
 .epingle { flex: none; width: 76px; }
 .epingle-bouton { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; transition: transform .12s ease-out; }
@@ -1134,6 +1141,20 @@ html[data-service] .mention-apercu { display: none; }
 .menu-action:last-child { border-bottom: 0; }
 .menu-action.danger { color: var(--rouge-txt); }
 .menu-question { padding: 14px 18px 6px; font-size: 15px; line-height: 20px; text-align: center; }
+/* ⛔ LE MENU D'UN MESSAGE SE POSE CONTRE SA BULLE (capture du bureau, 8 octobre 2026 : « il faudrait que ce soit mieux placé » — la fenêtre s'ouvrait au milieu de l'écran, loin
+   du message qu'on venait de toucher). Dès 700 px, il s'ancre à la rangée du message (`.menu-ancre`, posée à l'ouverture) : sous la bulle, du côté où elle est (à droite pour les
+   miens), au-dessus quand la place manque, en bas de l'écran pour un message plus haut que l'écran. Le positionnement par ancre IGNORE les transformations des ancêtres (le
+   panneau de la conversation glisse) : il lit la boîte telle qu'elle est dessinée. Sans ancre (un navigateur d'avant), la fenêtre reste centrée. Au téléphone : la feuille du bas. */
+.menu-ancre { anchor-name: --menu-msg; }
+@supports (anchor-name: --menu-msg) {
+  @media (min-width: 700px) {
+    .menu-fond.ancre { background: rgba(0,0,0,.1); }
+    .menu-fond.ancre .menu-msg { position: fixed; position-anchor: --menu-msg; inset: auto; top: anchor(bottom); left: anchor(left); margin: 6px 0 0; width: 300px; max-width: calc(100vw - 24px); position-try-fallbacks: flip-block, --menu-ecran; }
+    .menu-fond.ancre.de-moi .menu-msg { left: auto; right: anchor(right); }
+  }
+}
+@position-try --menu-ecran { top: auto; bottom: 12px; margin: 0; }
+.menu-action small { margin-left: auto; padding-left: 12px; font-size: 15px; color: var(--sub); font-variant-numeric: tabular-nums; }
 /* « + » : la grille des pièces jointes — un disque de couleur par geste, son nom dessous (la feuille d'iMessage) ; trois par rangée */
 .menu-msg.pj { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 12px 8px 8px; }
 .pj-tuile { min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border-radius: 16px; font-size: 13px; line-height: 16px; color: var(--text); }
@@ -1180,6 +1201,26 @@ html[data-service] .mention-apercu { display: none; }
   .deroule { position-anchor: --deroule; inset: auto; top: anchor(bottom); right: anchor(right); margin: 6px 0 0; position-try-fallbacks: flip-block; transform-origin: 85% 0; }
 }
 @keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+
+/* ══ PERSO / PRO — « un bouton pour basculer de perso à pro, et le nom OP MESSAGES PRO quand on est en pro » (demande du 7 octobre 2026) ═════════════════════════════
+   Un compte pro (un espace d'entreprise, ou Messages Pro) a deux côtés : le sélecteur « Perso | Pro » (le segmenté de la page) en haut de la barre latérale au bureau, sous
+   le titre de Messages au téléphone. En Pro, le nom devient « OP MESSAGES PRO » (la pastille PRO), le tableau de bord paraît, la liste ne montre que les conversations de
+   travail ; une pastille sur l'autre côté dit ce qui n'y est pas lu. Un compte qui n'est pas pro ne voit rien de tout ça. */
+.cote-seg { margin: 0 0 12px; }
+.side .cote-seg { margin: 0 6px 12px; }
+.cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
+/* « Confirmer l'envoi » (côté pro) : une barre au-dessus du champ — « Envoyer à « Équipe » — 5 personnes ? » — que l'on confirme (Envoyer, ou Entrée une seconde fois) ou qu'on annule */
+.compo-confirme { max-width: 860px; margin: 0 auto 6px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 16px; background: var(--card); border: var(--line); font-size: 15px; line-height: 20px; }
+.compo-confirme-texte { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+.compo-confirme-boutons { display: flex; gap: 8px; margin-left: auto; }      /* les deux gestes restent ENSEMBLE, à droite, même quand la phrase prend la ligne */
+.compo-confirme-texte small { display: block; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
+@media (pointer: coarse) { .compo-confirme-texte small { display: none; } .compo-confirme .mini { min-height: 44px; } }
+.side-marque b { white-space: nowrap; }      /* « OP MESSAGES PRO » tient sur une ligne dans les 236 px de la barre (mesuré : la pastille passait dessous) */
+.marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
+#vue-messages > .entete-vue { position: relative; }
+.marque-tel { position: absolute; left: 96px; right: 96px; margin: 0 auto; width: max-content; max-width: calc(100% - 192px); display: flex; align-items: center; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; pointer-events: none; }
+@media (min-width: 900px) { .cote-seg-liste, .marque-tel { display: none !important; } }
+@media (min-width: 781px) and (max-width: 899.98px) { html[data-kind="tablette"] .cote-seg-liste, html[data-kind="tablette"] .marque-tel { display: none !important; } }
 .deroule-titre { width: 0; min-width: 100%; margin: 0; padding: 7px 14px 7px 38px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `width: 0` + `min-width: 100%` : le titre se replie dans la largeur des choix, il ne l'élargit pas */
 .deroule-liste { display: flex; flex-direction: column; }
 .deroule-choix { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 18px 0 6px; border-radius: 12px; font-size: 17px; line-height: 22px; color: var(--text); text-align: left; }
@@ -1418,6 +1459,37 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .jour[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
 .jour[aria-pressed="true"][aria-current="date"] b { color: inherit; }
 .jour:focus-visible, .sem-fleche:focus-visible, .sem-titre:focus-visible { outline-offset: 0; }
+/* ── LE MOIS (8 octobre 2026 : « le calendrier du mois complet pour voir tous ses rendez-vous ») — la grille du Calendrier d'Apple : sept colonnes, la semaine commence le lundi.
+   Au téléphone, un point par rendez-vous sous le numéro (trois au plus) et la liste du jour touché en dessous ; dès 700 px, les rendez-vous eux-mêmes dans la case (l'heure et le titre,
+   trois au plus, puis « +2 »). Un jour d'un autre mois se lit en gris et mène à son mois. */
+#vue-reunions > #reu-vue-seg { max-width: 320px; margin-inline: auto; }        /* le choix de l'affichage : un petit segmenté centré (le Calendrier du Mac), jamais une barre de toute la largeur */
+.mois { margin: 0 0 16px; }
+.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub); text-align: center; }
+.mois-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.mjour { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; border-radius: 12px; color: var(--text); }
+.mjour > b { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mjour.hors { color: var(--sub); }
+.mjour.hors > b { font-weight: 400; }
+.mjour[aria-current="date"] > b { color: var(--accent-txt); }
+.mjour[aria-pressed="true"] > b { background: var(--fill); color: var(--on-fill); }
+.mjour-points { display: flex; gap: 3px; height: 5px; }
+.mjour-points i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .8; }
+.mjour-elts { display: none; }
+.mjour:focus-visible { outline-offset: -2px; }
+@media (min-width: 700px) {
+  .mois-jours { gap: 4px; }
+  .mjour { min-height: 108px; align-items: stretch; gap: 2px; padding: 4px 4px 6px; border-radius: 10px; background: var(--card); text-align: left; }
+  .mjour.hors { background: transparent; box-shadow: inset 0 0 0 1px var(--fill-soft); }
+  .mjour > b { align-self: flex-end; width: 28px; height: 28px; font-size: 14px; }
+  .mjour[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+  .mjour-points { display: none; }
+  .mjour-elts { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .mjour-elt { display: block; min-width: 0; padding: 1px 6px; border-radius: 5px; font-size: 12px; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); }
+  .mjour-elt.journee { background: color-mix(in srgb, var(--accent) 34%, transparent); }
+  .mjour-elt.annulee { text-decoration: line-through; opacity: .7; }
+  .mjour-elt time { font-variant-numeric: tabular-nums; color: var(--sub); margin-right: 4px; }
+  .mjour-plus { padding: 0 6px; font-size: 12px; line-height: 16px; color: var(--sub); }
+}
 .reunion-ligne { width: 100%; display: flex; align-items: stretch; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-align: left; transition: background-color .15s; }
 .reunion-ligne:active { transform: scale(.985); }
 .carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
@@ -1428,6 +1500,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .reunion-sous { font-size: 14px; line-height: 19px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .reunion-etat { flex: none; align-self: center; font-size: 13px; color: var(--sub-meta); }
 .reunion-etat.attention { color: var(--accent-txt); font-weight: 600; }
+.reunion-etat.terminee { font-weight: 600; }
 .reunion-ligne.annulee .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
 .reunion-ligne.annulee .reunion-corps { border-left-color: var(--faint); }
 /* la fiche et le formulaire */
@@ -1486,6 +1559,30 @@ html[data-salle] .appel-ecran { display: none; }
   font-size: 14px; line-height: 19px; -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
 }
 .salle-bandeau > .texte { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+/* ── LE MINUTEUR (8 octobre 2026 : « le logo OP MESSAGES en design motion, avec le chrono, au style 100 % Apple ») — celui de l'app Horloge, en capsule : un anneau qui se VIDE autour du logo,
+   les chiffres fins et tabulaires (ils ne sautent pas d'une seconde à l'autre). Le logo respire ; dans les dix dernières secondes l'anneau passe à l'orange et le souffle s'accélère ; à zéro, rouge,
+   le logo tressaille trois fois. Le temps qui reste se règle en CSS (`--mn-p`, de 1 à 0) : la page ne mesure rien. Sans mouvement si l'appareil le demande. */
+.minuteur-carte { align-self: center; width: auto; min-width: 210px; max-width: 100%; flex-wrap: nowrap; gap: 12px; padding: 10px 22px 10px 10px; border-radius: 30px; background: rgba(28,28,30,.74); border: 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 .5px rgba(255,255,255,.16); --mn-p: 1; --mn-c: #30d158; }
+.minuteur-carte[data-etat="bientot"] { --mn-c: #ff9f0a; }
+.minuteur-carte[data-etat="fin"] { --mn-c: #ff453a; }
+.mn-logo { position: relative; flex: none; width: 54px; height: 54px; display: grid; place-items: center; }
+.mn-anneau { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mn-anneau circle { fill: none; stroke-width: 3.5; }
+.mn-piste { stroke: rgba(255,255,255,.14); }
+.mn-reste { stroke: var(--mn-c); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--mn-p) * 100); transition: stroke-dashoffset 1s linear, stroke .4s ease; }
+.mn-logo img { width: 32px; height: 32px; border-radius: 9px; animation: mn-souffle 2.4s ease-in-out infinite; }
+.minuteur-carte[data-etat="bientot"] .mn-logo img { animation-duration: 1s; }
+.minuteur-carte[data-etat="fin"] .mn-logo img { animation: mn-tressaille .45s ease-in-out 3; }
+@keyframes mn-souffle { 0%, 100% { transform: scale(1); } 50% { transform: scale(.88); } }
+@keyframes mn-tressaille { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+.mn-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.minuteur-carte > .salle-btn { margin-right: -10px; }
+.mn-texte small { font-size: 13px; line-height: 16px; font-weight: 600; color: rgba(235,235,245,.62); }
+.mn-texte b { font: 300 36px/42px -apple-system, "SF Pro Display", "Helvetica Neue", system-ui, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #fff; }
+.minuteur-carte[data-etat="bientot"] .mn-texte b { color: var(--mn-c); }
+.minuteur-carte[data-etat="fin"] .mn-texte b { font-size: 26px; line-height: 42px; font-weight: 500; color: var(--mn-c); }
+@media (prefers-reduced-motion: reduce) { .mn-logo img { animation: none !important; } .mn-reste { transition: none; } }
 .salle-btn {
   min-height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
 }
@@ -1591,6 +1688,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-saisie { display: flex; gap: 8px; margin-top: 8px; }
 .salle-joindre { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; }
 .salle-msg.doc { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.salle-msg-photo { padding: 4px; display: flex; flex-direction: column; gap: 4px; width: min(100%, 300px); }
+.salle-msg-photo small { padding: 2px 7px 0; }
+.salle-photo { display: block; width: 100%; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.08); }
+.salle-photo img { display: block; width: 100%; height: auto; }
+.salle-photo.attente { min-height: 72px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 14px; color: var(--salle-sub); }
+.salle-photo.attente .ic { width: 20px; height: 20px; }
+.salle-photo-leg { padding: 2px 7px 4px; font-size: 14px; line-height: 19px; overflow-wrap: anywhere; }
 .salle-msg.doc small { padding: 0 5px; }
 .salle-doc { display: flex; align-items: center; gap: 10px; min-height: 52px; width: 100%; padding: 6px 8px; border-radius: 10px; background: rgba(0,0,0,.18); color: #fff; text-align: left; }
 .salle-doc-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: rgba(255,255,255,.16); font-size: 19px; }
@@ -1642,6 +1746,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .annot-calque { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .salle-ecran[data-annoter] .annot-calque { pointer-events: auto; touch-action: none; cursor: crosshair; }
 .salle-ecran[data-annoter] .annot-calque[data-outil="texte"] { cursor: text; }
+.salle-ecran[data-annoter] .annot-calque[data-outil="texte"][data-survol] { cursor: move; }      /* au-dessus d'un texte qu'on peut déplacer */
 .salle-tableau { background: #3a3d48; }
 .salle-tableau::before { display: none; }
 .annot-saisie { position: absolute; z-index: 3; width: min(260px, 70%); min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 2px solid #0a84ff; background: #fff; color: #1c1c1e; font-size: 16px; line-height: 22px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
@@ -1659,6 +1764,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 }
 .rec-fin-carte h3 { margin: 0; font-size: 20px; line-height: 25px; font-weight: 700; }
 .rec-fin-carte p { margin: 0; font-size: 15px; line-height: 20px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.rec-fin-carte .rec-fin-garde { font-size: 13px; line-height: 17px; text-align: center; }
 .rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
 .rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
@@ -1758,6 +1864,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
   /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
   #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
+  #vue-reunions > #mois { max-width: 1120px; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
   .vue .recherche { min-height: 34px; height: 34px; padding: 0 10px; gap: 8px; border-radius: 9px; margin-bottom: 12px; }
@@ -1774,6 +1881,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .carte-liste > li::after { left: 60px; right: 8px; }
   .carte-liste > li:has(+ li > [aria-current="true"])::after, .carte-liste > li:has(> [aria-current="true"])::after { display: none; }
   .conv { min-height: 68px; padding: 10px 12px; gap: 12px; border-radius: 10px; }
+  .carte-liste > li:first-child > .conv:focus-visible, .carte-liste > li:last-child > .conv:focus-visible { border-radius: 10px; }      /* au bureau, la ligne est une pastille : son anneau aussi */
   .conv:active { transform: none; }
   .conv .avatar { width: 46px; height: 46px; font-size: 17px; }
   .conv-nom { font-size: 15px; line-height: 20px; letter-spacing: 0; }
@@ -2037,7 +2145,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 </div>
 <div class="app" id="app">
   <aside class="side" data-glass="1" aria-label="Barre latérale">
-    <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
+    <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES<span class="marque-pro" hidden><span class="sr-seul"> </span>PRO</span></b></div>
+    <div class="seg cote-seg cote-seg-side" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-cote="perso" aria-pressed="true">Perso<b class="cote-n" hidden></b></button><button type="button" class="seg-bouton" data-cote="pro" aria-pressed="false">Pro<b class="cote-n" hidden></b></button></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
       <a href="#reglages" class="moi presse" data-vue="reglages" id="moi-carte" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages"><span class="avatar av0 moi-av" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span><svg class="moi-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
@@ -2048,9 +2157,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <section class="vue" id="vue-messages" aria-labelledby="titre-messages">
       <div class="entete-vue">
         <button type="button" class="lien-texte presse" id="btn-modifier">Modifier</button>
+        <span class="marque-tel" id="marque-tel" hidden>OP MESSAGES<span class="marque-pro" hidden><span class="sr-seul"> </span>PRO</span></span>
         <button type="button" class="btn-plus" id="btn-plus" aria-haspopup="dialog" aria-label="Nouvelle discussion"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
       </div>
       <h1 class="grand-titre" id="titre-messages">Messages</h1>
+      <div class="seg cote-seg cote-seg-liste" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-cote="perso" aria-pressed="true">Perso<b class="cote-n" hidden></b></button><button type="button" class="seg-bouton" data-cote="pro" aria-pressed="false">Pro<b class="cote-n" hidden></b></button></div>
       <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les conversations</span><input type="search" id="recherche-conv" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>
       <p class="liste-erreur" id="liste-erreur" role="alert" hidden><span id="liste-erreur-texte"></span><button type="button" id="liste-erreur-bouton">Réessayer</button></p>
       <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>
@@ -2103,6 +2214,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <footer class="composer" data-glass="1">
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <p class="compo-note" id="compo-note" hidden></p>
+      <div class="compo-confirme" id="compo-confirme" role="alert" hidden><span class="compo-confirme-texte" id="compo-confirme-texte"></span><span class="compo-confirme-boutons"><button type="button" class="mini" id="compo-confirme-non">Annuler</button><button type="button" class="mini plein" id="compo-confirme-oui">Envoyer</button></span></div>
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
@@ -2196,7 +2308,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       </div>
       <button type="button" class="salle-pastille presse" id="salle-main" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-main"/></svg><span>Lever la main</span></button>
       <button type="button" class="salle-pastille presse" id="salle-vue"><svg class="ic" aria-hidden="true"><use href="#i-intervenant"/></svg><span>Intervenant</span></button>
+      <button type="button" class="salle-pastille presse" id="salle-pip" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-pip"/></svg><span>Image dans l'image</span></button>
       <button type="button" class="salle-pastille presse" id="salle-annoter" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg><span>Annoter</span></button>
+      <button type="button" class="salle-pastille presse" id="salle-partage-changer" hidden><svg class="ic" aria-hidden="true"><use href="#i-ecran"/></svg><span>Changer de fenêtre</span></button>
       <button type="button" class="salle-pastille presse" id="salle-rec-btn" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-rec"/></svg><span>Enregistrer</span></button>
     </div>
     <div class="salle-bas">
@@ -2223,7 +2337,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p id="rec-fin-info"></p>
     <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
     <p id="rec-fin-absents" hidden></p>
-    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer dans la discussion</button>
+    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer à tous les participants</button>
+    <p class="rec-fin-garde" id="rec-fin-garde">Dans la discussion de la réunion, gardé 3 jours puis supprimé automatiquement.</p>
     <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
     <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
   </div>

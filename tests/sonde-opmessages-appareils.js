@@ -5,7 +5,7 @@
    sinon, CLAUDE.md). Pour chacun, contre le VRAI service :
      1. les attributs posés sur <html> (data-plat, data-os, data-kind, data-verre-natif) ;
      2. LA navigation : la barre d'onglets OU le menu latéral, jamais les deux, jamais aucune — et l'entrée du Profil (l'avatar au bout du titre, ou la carte du bas) ;
-     3. la matière : le reflet du Liquid Glass sur la barre seulement là où il est natif ; les rayons des cartes du système (26 · 12 · 28 · 8 · 10 au bureau) ;
+     3. la matière : le reflet du Liquid Glass sur la barre seulement là où il est natif ; les rayons des cartes du système (26 · 12 · 28 · 8 · 12 au Mac — 10 jusqu'au 7 octobre 2026, quand les Réglages du bureau ont grandi : lignes de 48 px, texte de 15) ;
      4. les encoches : le titre sous l'encoche du haut, la barre d'onglets au-dessus de celle du bas ;
      5. aucun écran ne glisse de côté (Messages, Contacts, Appels, Agenda, Profil — la page interrogée, `scrollTo` puis `scrollX`), aucune erreur JavaScript ;
      6. ⛔ aucun faux élément système : ni barre d'état, ni feux de fenêtre, ni barre d'adresse dessinés.
@@ -38,8 +38,8 @@ const PROFILS = [
   { nom: 'iPad 820 portrait · iPadOS 26', ua: UA.macSafari26, w: 820, h: 1180, dpr: 2, touch: 5, mobile: true, insets: { top: 24, bottom: 20 }, plat: 'iosweb', os: 'ios', kind: 'tablette', natif: true, nav: 'menu', rayon: 26 },
   { nom: 'iPad 1180 paysage · iPadOS 26', ua: UA.macSafari26, w: 1180, h: 820, dpr: 2, touch: 5, mobile: true, insets: { top: 24, bottom: 20 }, plat: 'iosweb', os: 'ios', kind: 'tablette', natif: true, nav: 'menu', rayon: 26 },
   { nom: 'iPad mini 744 portrait', ua: UA.macSafari26, w: 744, h: 1133, dpr: 2, touch: 5, mobile: true, insets: { top: 24, bottom: 20 }, plat: 'iosweb', os: 'ios', kind: 'tablette', natif: true, nav: 'onglets', rayon: 26 },
-  { nom: 'Mac 1440 · Safari 26', ua: UA.macSafari26, w: 1440, h: 900, dpr: 2, touch: 0, mobile: false, insets: null, plat: 'macweb', os: 'macos', kind: 'desktop', natif: true, nav: 'menu', rayon: 10 },
-  { nom: 'Mac 1440 · Chrome', ua: UA.macChrome, w: 1440, h: 900, dpr: 2, touch: 0, mobile: false, insets: null, plat: 'macos14', os: 'macos', kind: 'desktop', natif: false, nav: 'menu', rayon: 10 },
+  { nom: 'Mac 1440 · Safari 26', ua: UA.macSafari26, w: 1440, h: 900, dpr: 2, touch: 0, mobile: false, insets: null, plat: 'macweb', os: 'macos', kind: 'desktop', natif: true, nav: 'menu', rayon: 12 },
+  { nom: 'Mac 1440 · Chrome', ua: UA.macChrome, w: 1440, h: 900, dpr: 2, touch: 0, mobile: false, insets: null, plat: 'macos14', os: 'macos', kind: 'desktop', natif: false, nav: 'menu', rayon: 12 },
   { nom: 'Windows 1366 · Edge', ua: UA.edge, w: 1366, h: 768, dpr: 1, touch: 0, mobile: false, insets: null, plat: 'winweb', os: 'windows', kind: 'desktop', natif: false, nav: 'menu', rayon: 8 },
   { nom: 'Android 412 · Chrome', ua: UA.android, w: 412, h: 915, dpr: 2.625, touch: 5, mobile: true, insets: { top: 32, bottom: 24 }, plat: 'androidweb', os: 'android', kind: 'mobile', natif: false, nav: 'onglets', rayon: 28 }
 ];

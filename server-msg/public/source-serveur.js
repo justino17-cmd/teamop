@@ -1371,6 +1371,7 @@
         return false;
       }
       if (e.op === 'retirer' && Array.isArray(e.ids)) { const partis = new Set(e.ids); a.items = a.items.filter(i => !partis.has(i.id)); }
+      if (e.op === 'deplacer' && typeof e.id === 'string' && Array.isArray(e.pts) && e.pts.length === 2 && e.pts.every(n => Number.isInteger(n) && n >= 0 && n <= 10000)) { const x = a.items.find(i => i.id === e.id); if (x && x.outil === 'texte') x.pts = e.pts.slice(); }   // un texte déplacé (le service le dit)
       return false;
     }
     function surSalleEvt(e) {
@@ -1862,6 +1863,8 @@
         autre: direct && c.autre ? c.autre.id : null,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
         invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
+        /* PERSO / PRO : le côté qui vaut, l'automatique, et celui que j'ai choisi à la main (null : l'automatique) — un service d'avant n'en dit rien : tout est Perso */
+        cote: c.cote === 'pro' ? 'pro' : 'perso', coteAuto: c.cote_auto === 'pro' ? 'pro' : 'perso', coteChoisi: c.cote_choisi === 'pro' || c.cote_choisi === 'perso' ? c.cote_choisi : null,
         /* un CANAL dit l'espace auquel il appartient et s'il est privé (la liste s'en sert pour le nommer « # canal ») ; les autres conversations n'ont ni l'un ni l'autre */
         espace: canal && typeof c.espace === 'string' ? c.espace : null, prive: canal && c.prive === true,
         /* la conversation d'une RÉUNION dit laquelle (la page ouvre sa fiche au toucher du titre) */
@@ -2015,6 +2018,7 @@
     }
     function vueMessage(conv, c, m, auto) {
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
+      if (Number.isFinite(m.expire) && m.expire > 0) base.expire = m.expire;            // l'échéance que le service a posée (éphémère, ou un fichier gardé quelques jours)
       if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, genreSysteme(c)) });
       const media = MEDIAS.includes(m.type);
       /* une photo garde sa LÉGENDE (le seul média qui en porte une) ; les autres pièces n'ont pas de texte */
@@ -2158,7 +2162,7 @@
              et il ne doit pas faire relire une image que l'appareil a déjà */
           if (x.url && (p.type === 'photo' || p.type === 'vocal')) poserCache(x.id, x.url, x.blob.size);
         }
-        const champs = p.type === 'photo' ? Object.assign({ pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) }, p.texte ? { texte: p.texte } : {}) : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : { piece: p.fichier.id };
+        const champs = p.type === 'photo' ? Object.assign({ pieces: p.photos.map(x => ({ id: x.id, w: x.w, h: x.h })) }, p.texte ? { texte: p.texte } : {}) : p.type === 'vocal' ? { piece: p.vocal.id, dur: p.vocal.dur, bars: p.vocal.bars } : Object.assign({ piece: p.fichier.id }, p.garderS ? { garder_s: p.garderS } : {});
         const r = await A.envoyerPieces(p.conv, p.type, champs, { cid: p.cid });
         if (retirer) retirer();
         apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: p.type, texte: p.type === 'photo' && p.texte ? p.texte : null, meta: metaDe(p), repond_a: null, supprime: false, modifie: null, reactions: [] });
@@ -2253,6 +2257,7 @@
         if (!f || !f.blob || !(f.blob.size > 0)) throw erreurLocale('vide');
         const nom = couperNom(String(f.nom || '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/[\/\\]/g, '_').trim(), 120) || 'fichier';
         p.fichier = { blob: f.blob, nom, taille: f.blob.size, id: null };
+        if ([86400, 259200, 604800].includes(f.garderS)) p.garderS = f.garderS;          // un fichier gardé quelques jours (l'enregistrement d'une réunion : 3) — le service l'efface à l'échéance
       }
       const l = await limites(), max = maxDe(l, type);
       for (const x of lesPieces(p)) if (x.blob.size > max) throw new OPMSG.ErreurApi('piece_trop_lourde', 413, 0, { max });
@@ -2908,6 +2913,37 @@
       moiApi = m; noter(m);
       return notifEtat();
     }
+    /* ── PERSO / PRO (7 octobre 2026) : le côté où l'on travaille est une préférence du COMPTE (il suit la personne d'un appareil à l'autre ; rien n'est rangé sur l'appareil) ;
+       une conversation se range à la main d'un côté ou de l'autre (`null` : le côté automatique) ── */
+    const modeTravail = () => moiApi && moiApi.prefs && moiApi.prefs.mode === 'pro' ? 'pro' : 'perso';
+    async function choisirMode(m) {
+      if (m !== 'perso' && m !== 'pro') throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { mode: m } });
+      moiApi = r; noter(r);
+      return modeTravail();
+    }
+    /* la confirmation avant d'envoyer (« côté pro », 7 octobre 2026) : 'jamais' | 'groupes' (groupes, canaux, réunions) | 'partout' — une préférence du compte */
+    const confirmerEnvoi = () => { const x = moiApi && moiApi.prefs && moiApi.prefs.confirmer_envoi; return x === 'groupes' || x === 'partout' ? x : 'jamais'; };
+    async function choisirConfirmerEnvoi(x) {
+      if (x !== 'jamais' && x !== 'groupes' && x !== 'partout') throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { confirmer_envoi: x } });
+      moiApi = r; noter(r);
+      return confirmerEnvoi();
+    }
+    /* l'Agenda s'ouvre sur la semaine ou sur le MOIS (8 octobre 2026 : « le calendrier du mois complet pour voir tous ses rendez-vous ») — le dernier choix, retenu par le compte */
+    const agendaVue = () => moiApi && moiApi.prefs && moiApi.prefs.agenda_vue === 'mois' ? 'mois' : 'semaine';
+    async function choisirAgendaVue(v) {
+      if (v !== 'semaine' && v !== 'mois') throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { agenda_vue: v } });
+      moiApi = r; noter(r);
+      return agendaVue();
+    }
+    async function rangerCote(id, cote) {
+      if (cote !== null && cote !== 'perso' && cote !== 'pro') throw erreurLocale('invalide');
+      await A.prefs(id, { cote });
+      await relireListe();
+      emettre({ type: 'liste' }); emettre({ type: 'conversation', id });
+    }
     async function notifEssai() { const r = await A.pushEssai(); return { appareils: r.appareils | 0, envoyes: r.envoyes | 0 }; }
     /* un abonnement que ce navigateur porte déjà est redit au service (idempotent) : il a pu le perdre (accès rouvert, appareil retiré), et un appareil prêté suit son dernier utilisateur */
     async function reabonner() {
@@ -3101,7 +3137,10 @@
       const r = await A.reunions(du, au);
       return (r.reunions || []).map((x) => {
         for (const p of x.participants || []) noter(p);
-        return Object.assign(vueReunion(x), { rejoignable: x.rejoignable === true, moi: vueMoiReunion(x.moi), participantsN: x.participants_n | 0, participants: (x.participants || []).map((p) => p.id), occurrences: (x.occurrences || []).map((o) => ({ debut: o.debut, fin: o.fin })) });
+        return Object.assign(vueReunion(x), { rejoignable: x.rejoignable === true, moi: vueMoiReunion(x.moi), participantsN: x.participants_n | 0, participants: (x.participants || []).map((p) => p.id), salleOuverte: x.salle_ouverte === true,
+          /* une occurrence qui a eu lieu : sa séance (début, fin, durée, combien sont venus, terminée pour tous) — les noms des présents, seulement quand le service les donne (l'organisateur) */
+          occurrences: (x.occurrences || []).map((o) => { const se = o.seance && typeof o.seance === 'object' ? o.seance : null; for (const p of (se && se.presents) || []) noter(p);
+            return { debut: o.debut, fin: o.fin, seance: se ? { debut: +se.debut || 0, fin: +se.fin || 0, dureeS: se.duree_s | 0, n: se.n | 0, pourTous: se.pour_tous === true, presents: Array.isArray(se.presents) ? se.presents.map((p) => p.id) : null } : null }; }) });
       });
     }
     async function reunion(id) {
@@ -3238,7 +3277,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3258,6 +3297,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
+      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,

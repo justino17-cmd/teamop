@@ -341,10 +341,11 @@ async function parcoursA(b, ctx) {
   console.log('── L\'agenda vide (au doigt, iPhone 393) ──');
   await onglet(A, 'reunions');
   vrai('population : le service ne tient AUCUNE réunion (l\'agenda vide est donc vrai, ce n\'est pas une liste qui n\'a pas chargé)', nb('SELECT COUNT(*) AS n FROM reunion') === 0);
-  await verifier('l\'onglet Réunions : son titre, la semaine, sept jours dont UN SEUL « aujourd\'hui » (et c\'est le jour choisi), « Programmer », et « Aucune réunion ce jour-là »', A, () => {
+  /* depuis l'agenda personnel (6 octobre 2026), l'onglet s'appelle « Agenda » et un jour vide dit « Rien de prévu » (une réunion n'est plus seule à y vivre) */
+  await verifier('l\'onglet Agenda : son titre, la semaine, sept jours dont UN SEUL « aujourd\'hui » (et c\'est le jour choisi), « Programmer », et « Rien de prévu ce jour-là »', A, () => {
     const auj = document.querySelectorAll('#sem-jours [aria-current="date"]');
-    return document.getElementById('titre-reunions').textContent === 'Réunions' && document.querySelectorAll('#sem-jours .jour').length === 7 && auj.length === 1 && auj[0].getAttribute('aria-pressed') === 'true'
-      && !!document.getElementById('btn-reunion-nouvelle') && /Aucune réunion ce jour-là/.test(document.getElementById('liste-reunions').textContent);
+    return document.getElementById('titre-reunions').textContent === 'Agenda' && document.querySelectorAll('#sem-jours .jour').length === 7 && auj.length === 1 && auj[0].getAttribute('aria-pressed') === 'true'
+      && !!document.getElementById('btn-reunion-nouvelle') && /Rien de prévu ce jour-là/.test(document.getElementById('liste-reunions').textContent);
   }, null, 10000, () => lire(A, '#vue-reunions'));
   v('chaque cible tactile de l\'agenda mesure 44 px au moins (population : sept jours, deux flèches, le titre de la semaine, « Programmer »)', [(await A.page.evaluate(() => document.querySelectorAll('#sem-jours .jour, .sem-fleche, #sem-titre, #btn-reunion-nouvelle').length)), await petitesCibles(A, '#sem-jours .jour, .sem-fleche, #sem-titre, #btn-reunion-nouvelle')], [11, []]);
   await capture(A, 'r1-agenda-vide');
@@ -559,7 +560,7 @@ async function telecharger(S, sel) {
 const dernierPost = (S, motif) => { const l = S.postes.filter(p => motif.test(p.chemin)); return l.length ? JSON.parse(l[l.length - 1].corps || '{}') : null; };
 const ligneAgenda = (S, a, ms) => verifier(a.titre_verif, S, (x) => {
   const j = document.querySelector('#sem-jours .jour[aria-pressed="true"]'), l = document.querySelector('#liste-reunions .reunion-ligne');
-  return !!j && j.getAttribute('aria-label').startsWith(x.jour + ',') && /1 réunion/.test(j.getAttribute('aria-label')) && !!l && l.querySelector('.reunion-heure').textContent === x.heures && l.querySelector('.reunion-titre').textContent === x.titre
+  return !!j && j.getAttribute('aria-label').startsWith(x.jour + ',') && /1 élément/.test(j.getAttribute('aria-label')) && !!l && l.querySelector('.reunion-heure').textContent === x.heures && l.querySelector('.reunion-titre').textContent === x.titre
     && x.sous.test(l.querySelector('.reunion-sous').textContent) && l.querySelector('.reunion-etat').textContent === x.etat;
 }, { jour: a.jour, heures: a.heures, titre: a.titre, sous: a.sous, etat: a.etat }, ms || 12000, () => lire(S, '#vue-reunions'));
 
@@ -576,6 +577,8 @@ async function parcoursA2(E) {
   const brut = await P.alice.get('/api/reunions?du=' + (OCC[0] - JOUR) + '&au=' + (OCC[2] + JOUR));
   v('… le service le dit en UTC : 12:00 puis 13:00 puis 13:00 (population : une réunion, trois occurrences)', [brut.j.reunions.length, brut.j.reunions[0].occurrences.map(o => o.debut)], [1, OCC]);
   await onglet(A, 'messages');
+  /* Perso / Pro (7 octobre 2026) : une réunion se range côté Pro — Alice, qui a un espace, a les deux côtés ; on passe en Pro (sans les deux côtés, la liste montre tout) */
+  await A.page.evaluate(() => { const b = Array.from(document.querySelectorAll('[data-cote-seg] [data-cote="pro"]')).find(x => x.getClientRects().length); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
   await verifier('la conversation de la réunion est dans la liste d\'Alice : le titre pour nom, une icône d\'agenda, et — le dernier message étant une phrase système (Dora retirée) — « Activité de la réunion » (jamais « du groupe »)', A, (a) => {
     const c = Array.from(document.querySelectorAll('#liste-conv .conv')).find(e => e.querySelector('.conv-nom').textContent === a);
     return !!c && c.querySelector('.conv-apercu').textContent === 'Activité de la réunion' && !!c.querySelector('.avatar svg');
@@ -810,7 +813,7 @@ async function parcoursC(b, ctx) {
   await capture(A, 'r11-programmer-perso-plus');
   await largeur(A, 'feuille du forfait (non ouvert)');
   await fermerFeuille(A);
-  await verifier('l\'agenda reste lisible (« Aucune réunion ce jour-là »), la feuille n\'a rien cassé', A, () => /Aucune réunion ce jour-là/.test(document.getElementById('liste-reunions').textContent), null, 8000, () => lire(A, '#vue-reunions'));
+  await verifier('l\'agenda reste lisible (« Rien de prévu ce jour-là »), la feuille n\'a rien cassé', A, () => /Rien de prévu ce jour-là/.test(document.getElementById('liste-reunions').textContent), null, 8000, () => lire(A, '#vue-reunions'));
   return { tous: [A] };
 }
 
@@ -855,8 +858,8 @@ async function parcoursD(b, ctx) {
   /* ce que la fermeture a fait : UN retour (celui de la fiche, qui quitte l'entrée 2), et la page arrive sur l'AGENDA (entrée 1) — la même page, la feuille fermée. Une page qui a QUITTÉ l'application se lit « quittée ». */
   const verifierFermeture = (qui, e0, e1, mots, arrivee) => {
     arrivee = arrivee || { vue: 'reunions', lieu: 'l\'agenda' };
-    v('⛔ ' + qui + ' : la feuille ne rend QU\'UNE entrée d\'historique — un seul `history.back()`, celui de la feuille (il quitte l\'entrée 2) ; une disparition que la page apprend de plusieurs côtés ne le répète pas', { retours: e1.retours, de: e1.de, pile: e1.pile }, { retours: 1, de: [2], pile: e1.pile });
-    v('⛔ … et la page ARRIVE sur ' + arrivee.lieu + ' (l\'entrée 1, pas #messages), dans la MÊME page (elle n\'a pas quitté l\'application), la feuille fermée', e1.page ? { meme: e1.page.marque === e0.page.marque, vue: e1.page.vue, feuille: e1.page.feuille, n: e1.page.n, hash: e1.page.hash, popstates: e1.popstates } : { page: 'quittée', popstates: e1.popstates }, { meme: true, vue: arrivee.vue, feuille: false, n: 1, hash: '#' + arrivee.vue, popstates: [1] });
+    v('⛔ ' + qui + ' : la feuille ne rend QU\'UNE entrée d\'historique — un seul `history.back()`, celui de la feuille (il quitte l\'entrée 2) ; une disparition que la page apprend de plusieurs côtés ne le répète pas', { retours: e1.retours, de: e1.de, pile: e1.pile }, { retours: 1, de: [arrivee.entree || 2], pile: e1.pile });
+    v('⛔ … et la page ARRIVE sur ' + arrivee.lieu + ' (l\'entrée 1, pas #messages), dans la MÊME page (elle n\'a pas quitté l\'application), la feuille fermée', e1.page ? { meme: e1.page.marque === e0.page.marque, vue: e1.page.vue, feuille: e1.page.feuille, n: e1.page.n, hash: e1.page.hash, popstates: e1.popstates } : { page: 'quittée', popstates: e1.popstates }, { meme: true, vue: arrivee.vue, feuille: false, n: (arrivee.entree || 2) - 1, hash: arrivee.hash || '#' + arrivee.vue, popstates: [(arrivee.entree || 2) - 1] });
     /* `mots` absent : le toast n'est pas l'objet (la feuille d'un espace dit encore « n'existe plus » à celle qui vient de le quitter : dit à Justin, pas traité ici) */
     if (mots) v('… et le toast dit ' + JSON.stringify(mots) + ' (population : ce que `mot()` a écrit, une entrée par appel)', e1.mots, mots);
   };
@@ -954,11 +957,11 @@ async function parcoursD(b, ctx) {
   await toucher(D3, '[data-esp-ouvrir]');
   await verifier('Dora ouvre la feuille de l\'espace (Réglages › Entreprise) AU DOIGT', D3, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Espace' && !!document.querySelector('#info-corps .info-nom'), null, 10000, () => etatPage(D3));
   const ee = await lireHistorique(D3);
-  v('population : la feuille de l\'espace est aussi sur la SECONDE entrée (Réglages, puis la feuille) et aucun retour n\'a encore été demandé', ee.page && [ee.page.n, ee.page.vue, ee.retours, ee.page.hash], [2, 'reglages', 0, '#reglages']);
+  v('population : la feuille de l\'espace est sur la TROISIÈME entrée (Réglages, la rubrique Entreprise, puis la feuille) et aucun retour n\'a encore été demandé', ee.page && [ee.page.n, ee.page.vue, ee.retours, ee.page.hash], [3, 'reglages', 0, '#reglages/entreprise']);
   const dissous = await P.alice.post('/api/espaces/' + esp.j.espace.id + '/supprimer', { confirmation: 'SUPPRIMER' });
   vrai('population : l\'espace est supprimé par son propriétaire', dissous.code === 200 && nb('SELECT COUNT(*) AS n FROM espace') === 0);
   vrai('… la page de Dora a reposé (la feuille a demandé son retour, plus aucun n\'est en vol)', await reposer(D3, null));
-  verifierFermeture('l\'espace supprimé pendant que sa feuille est ouverte (le flux seul)', ee, await lireHistorique(D3), null, { vue: 'reglages', lieu: 'Réglages' });
+  verifierFermeture('l\'espace supprimé pendant que sa feuille est ouverte (le flux seul)', ee, await lireHistorique(D3), null, { vue: 'reglages', lieu: 'Réglages › Entreprise', entree: 3, hash: '#reglages/entreprise' });
 
   /* ── f. le même espace, mais c'est la MEMBRE qui le quitte (deux touchers : le premier arme, le second quitte) : le geste ET le flux disent la même chose, comme pour la réunion ── */
   const esp2 = await P.alice.post('/api/espaces', { nom: 'Atelier WQXZ-HIST-2' });
@@ -970,13 +973,13 @@ async function parcoursD(b, ctx) {
   await toucher(D4, '[data-esp-ouvrir]');
   await verifier('Dora ouvre la feuille du second espace AU DOIGT, avec « Quitter l\'espace »', D4, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Espace' && !!document.querySelector('[data-act="esp-quitter"]'), null, 10000, () => etatPage(D4));
   const e5 = await lireHistorique(D4);
-  v('population : la feuille est sur la SECONDE entrée, aucun retour demandé', e5.page && [e5.page.n, e5.page.vue, e5.retours], [2, 'reglages', 0]);
+  v('population : la feuille est sur la TROISIÈME entrée (Réglages › Entreprise), aucun retour demandé', e5.page && [e5.page.n, e5.page.vue, e5.retours], [3, 'reglages', 0]);
   await toucher(D4, '[data-act="esp-quitter"]');
   await verifier('le premier toucher arme (« Toucher encore pour quitter l\'espace »)', D4, () => /Toucher encore pour quitter l'espace/.test(document.getElementById('info-corps').textContent), null, 4000, () => texteCorps(D4));
   await toucher(D4, '[data-act="esp-quitter"]');
   vrai('… la page de Dora a reposé', await reposer(D4, null));
   vrai('population : Dora a quitté l\'espace (il lui reste zéro espace, il en reste un au service)', nb('SELECT COUNT(*) AS n FROM espace_membre WHERE uid = ?', P.dora.moi.id) === 0 && nb('SELECT COUNT(*) AS n FROM espace') === 1);
-  verifierFermeture('la membre qui QUITTE l\'espace (le geste ET le flux)', e5, await lireHistorique(D4), null, { vue: 'reglages', lieu: 'Réglages' });
+  verifierFermeture('la membre qui QUITTE l\'espace (le geste ET le flux)', e5, await lireHistorique(D4), null, { vue: 'reglages', lieu: 'Réglages › Entreprise', entree: 3, hash: '#reglages/entreprise' });
   return { tous: [A, D, D2, A2, D3, D4] };
 }
 

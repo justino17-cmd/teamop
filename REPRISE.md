@@ -13,6 +13,48 @@ de ligne du tout.
 
 ---
 
+# ⏳ 8 OCTOBRE 2026 (NUIT) — LA VÉRIFICATION DE A À Z, LE MENU D'UN MESSAGE CONTRE SA BULLE, « ME LE RAPPELER », L'AGENDA AU MOIS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+« Vérifie toute l'application et teste tout de A à Z » : 35 sondes de la vraie page + les 80 suites de la porte (deux moitiés, 40 suites et 5 820 vérifications
+pour la première), un gardien sur le serveur, un relecteur sur la page. Ce qui a été trouvé, et ce qui en est fait :
+· **six défauts de la relecture, corrigés** : « Confirmer l'envoi » contourné par un double toucher ou une Entrée tenue (400 ms, `e.repeat`), pris pour une conversation à
+  deux pendant le chargement (`convCourante`), absent du chat de la salle (premier envoi = « Confirmer ») ; le lien « Invitations » en Pro menait nulle part ; Espace hors
+  d'un champ = geste de clavier ; la règle qui éteint l'anneau rendu au doigt perdait contre les anneaux écrits plus loin (`!important`).
+· **rejoindre ou créer un espace passe côté Pro** (resté en Perso, on ne voyait ni canaux ni collègues : « Aucune conversation Perso »).
+· **serveur** : le côté automatique en UNE requête (gardien : une par conversation) ; revenir dans une conversation remet le côté choisi à zéro.
+· **sondes périmées remises à jour** (le défaut était dans la sonde) : réunions (l'onglet « Agenda », la rubrique Entreprise qui ajoute une entrée d'historique — 280 ✓ 11 ✗
+  → 291 ✓ 0 ✗), espaces (173 ✓), pièces (« + » façon WhatsApp), groupe (la carte « Enregistrement terminé »), appareils (cartes du Mac à 12 px), tableau de bord.
+⛔ **Un commit de cette nuit cassait le démarrage** : un commentaire `//` posé au milieu d'une ligne avalait le `finally` qui suivait — plus d'écran de connexion. Tous les
+bancs passaient (ils lisent le texte) ; ce sont les SONDES qui l'ont vu, toutes mortes à la connexion. test-857 COMPILE désormais le script de la page. Rien n'était poussé.
+
+Deux demandes de Justin, captures du bureau :
+· **« le message, il faudrait que ce soit mieux placé, et pouvoir le mettre en rappel »** : dès 700 px le menu d'un message s'ancre à sa bulle (CSS `anchor-name`, sous elle,
+  de son côté, au-dessus quand la place manque) ; au téléphone, la feuille du bas reste. « Me le rappeler » : 20 min, 1 h, 3 h, demain 9:00, lundi 9:00 → un ÉVÉNEMENT de
+  l'agenda (titre « Rappel : … », la conversation pour lieu, le texte en note, rappel à l'heure : la notification part du service).
+· **« le calendrier du mois complet pour voir tous ses rendez-vous »** : l'Agenda propose « Semaine | Mois » — la grille du Calendrier d'Apple (les rendez-vous dans la case
+  au bureau, des points au téléphone, le jour touché liste les siens dessous). Le choix va au COMPTE (`prefs.agenda_vue`).
+`sonde-opmessages-menu-rappel` (29 ✓, deux mutations qui mordent), test-857 (253 ✓), test-929 (27 ✓).
+
+Puis, la même nuit, sept demandes de plus, captures à l'appui (toutes sur la bêta, chacune avec sa preuve) :
+· **déplacer les textes des annotations** : outil Texte, appuyer et glisser ; le service tient `deplacer` (un texte, son auteur ou le maître du support) — test-924 (52 ✓),
+  sonde-opmessages-annotations (le texte vu ailleurs au téléphone) ;
+· **la capture d'écran annotée paraît dans la discussion de la salle** (elle partait, mais la salle n'écrivait que la légende) ;
+· **« Changer de fenêtre » pendant un partage**, sans l'arrêter (la piste remplacée chez les autres, les annotations de l'ancienne fenêtre effacées) ;
+· **« Image dans l'image » sur l'écran de la réunion** (une pastille à côté de « Vue ») ;
+· **une réunion terminée le dit dans l'Agenda** : « Terminée », durée, nombre de présents, et pour l'organisateur seul les noms (la règle du rapport de présence) ;
+  plus de « Rejoindre » tant qu'aucune salle n'est rouverte — test-925 (25 ✓) ;
+· **le minuteur façon Apple** : la capsule de l'Horloge, le logo OP MESSAGES dans un anneau qui se vide, chiffres fins, orange puis rouge ;
+· **l'enregistrement** : 1080p/24 i/s/3 Mb/s au bureau (VP9), le SON (mélangeur né dans le geste ; la page dit quand ton micro est coupé — sur les captures de
+  Justin les deux micros étaient coupés), « Envoyer à tous les participants » gardé 3 jours : `garder_s` (1, 3 ou 7 jours, un FICHIER seul) pose l'échéance, le
+  balayeur emporte message ET fichier — test-923 (27 ✓), sonde-opmessages-enregistrement (23 ✓, le son décodé à la relecture).
+⚠️ Décisions prises sans Justin : la durée d'une séance va du premier début à la dernière fin (deux salles d'une même occurrence sont réunies) ; le son d'un écran
+partagé (une vidéo qu'on montre) n'est ni transmis ni enregistré — il faudrait une renégociation, à décider ; l'enregistrement garde le fichier 3 jours, pas plus.
+⚠️ Dette connue, d'avant ce soir : la sonde « groupe », bloc 6 (enregistrement), voit le bouton REC « pas stable » une fois sur deux sous charge — pas un défaut
+de la page (le même passage passe ailleurs), mais à rendre robuste.
+⚠️ Décisions prises sans Justin, à revoir s'il le veut autrement : l'Agenda s'ouvre sur la SEMAINE tant qu'on n'a pas choisi « Mois » (puis il s'en souvient) ; « demain » et
+« lundi » à 9:00 ; toucher la notification d'un rappel ouvre l'agenda, pas le message (le relier au message demanderait un champ de plus au service) ; une réunion est
+toujours côté Pro.
+
 # ⏳ 7 OCTOBRE 2026 (TARD) — L'APPEL QUI CONTINUE, « FOND ET COULEURS » À LA APPLE, LES MENUS DÉROULANTS DES INFOS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Trois demandes de Justin, captures à l'appui :
@@ -28,7 +70,18 @@ Trois demandes de Justin, captures à l'appui :
   droite — elle se centre maintenant par inset 0 + margin auto, sans transformation une fois ouverte. ⛔ Le toucher qui referme le menu au dehors ne fait rien d'autre (il
   aurait basculé l'interrupteur voisin). `sonde-opmessages-deroule` (62 ✓ : téléphone au doigt, bureau souris et clavier, jour et nuit), test-857 § 4 ter (série D, 8 mutations
   qui mordent).
-Le menu déroulant est un composant (`ouvrirDeroule(ligne, nom, titre, choix, surChoix)`) : « Confirmer l'envoi » (#37, à faire) le prendra.
+Le menu déroulant est un composant (`ouvrirDeroule(ligne, nom, titre, choix, surChoix)`) : « Ranger dans » et « Confirmer l'envoi » le prennent.
+· **Perso / Pro** (« un bouton pour basculer de perso à pro, et le nom OP MESSAGES PRO quand on est en pro ») : un compte pro (un espace, ou Messages Pro) a un sélecteur
+  « Perso | Pro » — en haut de la barre latérale au bureau, sous le titre de Messages au téléphone — avec une pastille pour les non-lus de l'autre côté. En Pro : « OP MESSAGES
+  PRO » (pastille PRO, titre de l'onglet), le tableau de bord, « Contacts » sur « Entreprise », les conversations de travail. Le côté de chaque conversation vient du SERVICE
+  (migration 20, `membre.cote`) : automatique (canal, réunion, directe avec un collègue, groupe dont TOUS les autres sont collègues : Pro) ou rangé à la main dans les infos
+  (« Ranger dans », pour soi seul). Une recherche cherche des deux côtés ; ouvrir une conversation de l'autre côté y bascule. Le côté où l'on travaille est une préférence du
+  COMPTE (`prefs.mode`), pas de l'appareil. ⛔ Le nom `ranger` existait déjà dans le module de l'appareil (ranger un message) : le mien l'écrasait en silence — test-911 l'a vu,
+  c'est `rangerCote`. `test-929` (26 ✓, dans la porte), `sonde-opmessages-perso-pro` (41 ✓), test-857 § 4 quater (séries P et K).
+· **« Confirmer l'envoi »** (côté pro) : Profil → Jamais / Groupes et canaux / Partout (`prefs.confirmer_envoi`). La flèche pose « Envoyer à « Équipe » — 5 personnes ? »
+  (Annuler / Envoyer ; Entrée une seconde fois, Échap) ; retaper annule ; le texte seul (photo, vocal, carte ont leur propre geste).
+⚠️ Décisions prises sans Justin (il a dit « fais tout ») et à revoir avec lui s'il le veut autrement : le compte démarre du côté Perso tant qu'il n'a rien choisi ; un groupe
+avec un seul membre hors de mes espaces est Perso ; le côté suit le compte d'un appareil à l'autre (au démarrage, pas en direct).
 ⚠️ Sondes en retard sur l'application (d'avant ce soir, pas touchées par ces changements) : `sonde-opmessages-serveur` attend encore « Appels : bientôt », un « + » à deux
 actions et une caméra d'en-tête qui ne lance rien — sa caméra lance désormais un VRAI appel, qui couvre la suite et fait tomber les blocs d'après ; `sonde-opmessages` (l'aperçu)
 s'arrêtait à l'étape photo depuis la légende (corrigé : elle passe par l'aperçu d'envoi).

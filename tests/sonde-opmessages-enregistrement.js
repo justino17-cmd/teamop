@@ -92,7 +92,9 @@ const ECRAN = () => {
     vrai('Ana arrête : la carte « Enregistrement terminé » paraît', await att(A, () => !document.getElementById('rec-fin').hidden, null, 15000));
     const info = await A.page.evaluate(() => document.getElementById('rec-fin-info').textContent);
     vrai('   elle dit le titre, la durée et la taille (« Revue de projet · 3 s · 1 Mo »)', /^Revue de projet · \d+ s · \d+ Mo$/.test(info), info);
-    vrai('   l\'aperçu se lit : une vidéo 1280 × 720', await att(A, () => { const v = document.getElementById('rec-fin-video'); return v.readyState >= 2 && v.videoWidth === 1280 && v.videoHeight === 720; }, null, 15000));
+    /* 8 octobre 2026 : « il faudrait que ce soit de meilleure qualité » — au bureau 1080p (ailleurs 720p) */
+    vrai('   l\'aperçu se lit : en 1920 × 1080 au bureau (1280 × 720 ailleurs)', await att(A, () => { const v = document.getElementById('rec-fin-video'), hd = document.documentElement.dataset.kind === 'desktop'; return v.readyState >= 2 && v.videoWidth === (hd ? 1920 : 1280) && v.videoHeight === (hd ? 1080 : 720); }, null, 15000),
+      await A.page.evaluate(() => { const v = document.getElementById('rec-fin-video'); return document.documentElement.dataset.kind + ' ' + v.videoWidth + '×' + v.videoHeight; }));
     /* ⛔ l'image ENREGISTRÉE porte le rectangle d'Ana : une image de la vidéo, relue au pixel (le rouge des annotations, #ff3b30) */
     const rouges = await A.page.evaluate(async () => {
       const v = document.getElementById('rec-fin-video'); v.muted = true;
@@ -102,18 +104,33 @@ const ECRAN = () => {
       for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] < 110 && d[i + 2] < 110) n++;
       return n;
     });
+    /* 8 octobre 2026 : « il faut que ça enregistre le son aussi » — la piste audio du fichier, DÉCODÉE (pas seulement présente) : l'énergie de la voix mélangée (le faux micro du navigateur bipe) */
+    const son = await A.page.evaluate(async () => {
+      /* la page interdit `fetch` vers une adresse blob: (sa politique) : on écoute l'aperçu lui-même, par un analyseur (la sortie du navigateur est coupée, le graphe tourne quand même) */
+      try {
+        const v = document.getElementById('rec-fin-video'), ctx = new (window.AudioContext || window.webkitAudioContext)(), an = ctx.createAnalyser(); an.fftSize = 2048;
+        ctx.createMediaElementSource(v).connect(an); an.connect(ctx.destination); await ctx.resume();
+        v.muted = false; v.volume = 1; v.currentTime = 0; await v.play();
+        const d = new Float32Array(an.fftSize); let pic = 0, n = 0;
+        const t0 = performance.now(); while (performance.now() - t0 < 2500) { an.getFloatTimeDomainData(d); for (let i = 0; i < d.length; i++) pic = Math.max(pic, Math.abs(d[i])); n++; await new Promise(r => setTimeout(r, 50)); }
+        v.pause(); return { duree: Math.round(v.duration * 10) / 10 || 0, pic: Math.round(pic * 1000) / 1000, lectures: n };
+      } catch (e) { return { erreur: String(e && e.message || e) }; }
+    });
+    vrai('⛔ le fichier porte du SON : sa piste audio se décode et n\'est pas muette (' + JSON.stringify(son) + ')', !son.erreur && son.lectures > 10 && son.pic > 0.01);
     vrai('⛔ l\'image ENREGISTRÉE porte le rectangle rouge d\'Ana (' + rouges + ' points rouges relus sur la vidéo)', rouges > 300);
     await att(A, () => !document.getElementById('rec-fin-absents').hidden, null, 6000);
     v('la carte dit qui n\'était pas là : Cléo', await A.page.evaluate(() => [!document.getElementById('rec-fin-absents').hidden, /^Pas là : Cleo Banc — /.test(document.getElementById('rec-fin-absents').textContent)]), [true, true]);
     await capture(A, 'rec-fin');
     v('le focus est sur « Envoyer dans la discussion », et Échap ne ferme PAS la carte (le fichier ne part pas en fumée)', await (async () => { const f = await A.page.evaluate(() => document.activeElement.id); await A.page.keyboard.press('Escape'); return [f, await A.page.evaluate(() => !document.getElementById('rec-fin').hidden), await A.page.evaluate(() => document.documentElement.dataset.salle === '1')]; })(), ['rec-fin-envoyer', true, true]);
 
-    console.log('\n2. Envoyer dans la discussion');
+    console.log('\n2. Envoyer à tous les participants, gardé trois jours');
+    v('la carte dit « Envoyer à tous les participants » et « gardé 3 jours puis supprimé automatiquement »', await A.page.evaluate(() => [document.getElementById('rec-fin-envoyer').textContent, !document.getElementById('rec-fin-garde').hidden && /gardé 3 jours puis supprimé/.test(document.getElementById('rec-fin-garde').textContent)]), ['Envoyer à tous les participants', true]);
     await A.page.locator('#rec-fin-envoyer').click();
     vrai('la carte se ferme', await att(A, () => document.getElementById('rec-fin').hidden));
     let msg = null;
     for (let i = 0; i < 80 && !msg; i++) { const r = await C0.get('/api/conversations/' + G + '/messages'); const l = (r.j && (r.j.messages || r.j.items)) || []; msg = l.find(m => m.type === 'fichier') || null; if (!msg) await new Promise(ok => setTimeout(ok, 250)); }
     const meta = msg ? (msg.fichier || msg.meta || msg) : {};
+    v('⛔ le service tient l\'échéance : le message expire TROIS JOURS après son envoi (le balayeur l\'emportera, fichier compris)', msg && msg.expire - msg.ts, 259200000);
     vrai('Cléo, qui n\'était pas là, a le fichier dans la conversation du groupe : « Enregistrement — Revue de projet — … .webm »', !!msg && /^Enregistrement — Revue de projet — \d{4}-\d{2}-\d{2} \d{2}h\d{2}\.webm$/.test(meta.nom || JSON.stringify(msg)), msg ? JSON.stringify(meta).slice(0, 200) : 'aucun message');
 
     console.log('\n3. Supprimer demande une seconde touche');

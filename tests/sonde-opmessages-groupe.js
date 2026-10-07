@@ -513,6 +513,11 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await toucher(A, '[data-sa="minuteur"][data-s="60"]');
       for (const S of [B, C]) await verifier(S.nom + ' : le minuteur court (un décompte de moins d\'une minute)', S, () => { const m = document.getElementById('salle-minuteur'); return !!m && /^00:\d\d$/.test(m.textContent.trim()); }, null, 10000, async () => '«' + (await lire(S, '#salle-bandeaux')) + '»');
       await panneau(A, 'plus');
+      /* 8 octobre 2026 : « le logo OP MESSAGES en design motion avec le chrono, au style 100 % Apple » */
+      const mn = await B.page.evaluate(() => { const c = document.querySelector('.minuteur-carte'); if (!c) return null; const img = c.querySelector('.mn-logo img'), b = c.querySelector('#salle-minuteur'), cs = getComputedStyle(b);
+        return { logo: !!img && img.complete && img.naturalWidth > 0, anneau: !!c.querySelector('.mn-reste'), p: parseFloat(c.style.getPropertyValue('--mn-p')), poids: cs.fontWeight, chiffres: cs.fontVariantNumeric, etat: c.dataset.etat, anim: getComputedStyle(img).animationName, mouvement: matchMedia('(prefers-reduced-motion: reduce)').matches }; });
+      v('le minuteur façon Apple (Ben) : le logo OP MESSAGES chargé dans un anneau ENTAMÉ, chiffres fins (300) et tabulaires, état « court », le logo respire (sauf mouvement réduit)', mn && [mn.logo, mn.anneau, mn.p > 0 && mn.p < 1, mn.poids, /tabular-nums/.test(mn.chiffres), mn.etat, mn.anim === (mn.mouvement ? 'none' : 'mn-souffle')], [true, true, true, '300', true, 'court', true]);
+      if (DOSSIER_CAPTURES) { await B.page.waitForTimeout(1200); await B.page.screenshot({ path: path.join(DOSSIER_CAPTURES, 'minuteur-apple.png') }); }
       await toucher(A, geste('minuteur-arreter'));
       await verifier('Ana l\'ARRÊTE : le minuteur disparaît chez Cleo', C, () => !document.getElementById('salle-minuteur'), null, 10000);
       await fermer(A);
@@ -663,7 +668,11 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       vrai('… et Ben (co-hôte) ne peut pas enregistrer en même temps : son bouton dit QUI enregistre', await verifier('… le bouton de Ben', B, () => /Enregistré par/.test(document.getElementById('salle-rec-btn').textContent) && document.getElementById('salle-rec-btn').getAttribute('aria-disabled') === 'true', null, 8000, async () => '«' + (await lire(B, '#salle-rec-btn')) + '»'));
       await largeur(C, 'salle · REC (téléphone)');
       await dormir(7000);
-      const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 30000 }), toucher(A, '#salle-rec-btn')]);
+      /* depuis le 7 octobre 2026, l'arrêt ouvre la carte « Enregistrement terminé » (l'envoyer aux absents, le garder, le supprimer) : le fichier se range par « Enregistrer sur cet appareil » */
+      await toucher(A, '#salle-rec-btn');
+      await verifier('Ana : l\'arrêt ouvre la carte « Enregistrement terminé »', A, () => !document.getElementById('rec-fin').hidden, null, 15000);
+      const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 30000 }), A.page.locator('#rec-fin-garder').click()]);
+      await verifier('… « Enregistrer sur cet appareil » ferme la carte (elle ne couvre plus les commandes de la salle)', A, () => document.getElementById('rec-fin').hidden, null, 6000);
       const fichier = path.join(dir, 'enregistrement.webm'); await dl.saveAs(fichier);
       const J = jugerFichier(fichier);
       console.log('  ℹ️  fichier : ' + dl.suggestedFilename() + ' · ' + fs.statSync(fichier).size + ' octets · ' + J.codecs + ' · ' + (Math.round(J.duree * 10) / 10) + ' s · luminance moyenne ' + J.luminance + ' sur ' + J.images + ' images · Goertzel 440 Hz ' + (Math.round(J.g440 * 10000) / 10000) + ' contre ses voisins ' + (Math.round(J.g1000 * 10000) / 10000));

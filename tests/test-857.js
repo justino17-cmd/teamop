@@ -46,6 +46,10 @@ async function controler(PAGE, SRC, DOC) {
   const CSS = sansCommentairesCss(style);
   const script = (/<script>([\s\S]*?)<\/script>/.exec(PAGE) || [, ''])[1];
   const JS = sansCommentairesJs(script);
+  /* ⛔ 7 octobre 2026 : un commentaire `//` posé au milieu d'une ligne a avalé le `finally` qui la suivait — la page entière ne démarrait plus (plus d'écran de connexion), et les
+     178 contrôles de ce banc passaient : ils lisent le TEXTE. Le script se COMPILE d'abord ; l'erreur dit où. */
+  { let err = ''; try { new (require('vm').Script)(script, { filename: 'page.js' }); } catch (e) { err = String(e && e.message) + ' — ' + String((e && e.stack) || '').split('\n')[0]; }
+    R.push(['⛔ le script de la page se COMPILE (une erreur de syntaxe éteint toute l\'application, et aucun motif ne la voit)', !err, err ? '\n      ' + err : '']); }
   const SRCJS = sansCommentairesJs(SRC);
   const HTML = PAGE.replace(/<style>[\s\S]*?<\/style>/, ' ').replace(/<script>[\s\S]*?<\/script>/, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
   const corps = nom => { const i = JS.indexOf(nom); if (i < 0) return ''; const f = JS.slice(i).search(/\n  (?:async )?function |\n  \/\* ═══|\n  \$\(/); return JS.slice(i, f > 0 ? i + f : i + 4000); };
@@ -206,7 +210,8 @@ async function controler(PAGE, SRC, DOC) {
       && (JS.match(/history\.back\(\)/g) || []).length === 4 && (JS.match(/rendreEntree\(\)/g) || []).length === 5);   // la cinquième (7 octobre 2026) : « ‹ Agenda » du Profil, qui rend l'entrée d'où l'on venait
   vrai('le retour système (popstate) rejoue la route de l\'entrée — il ne ferme rien lui-même', /window\.addEventListener\('popstate', e => appliquer\(/.test(JS));
   vrai('⛔ « UN GESTE, UNE NAVIGATION » : aucun écouteur de balayage à la page (touchmove, touchend, swipe) — le navigateur n\'a pas de second retour à jouer ; le seul touchstart est le vide qui réveille :active sur iOS', !/addEventListener\('touch(?:move|end|cancel)'|swipe|overscroll-behavior-x/.test(JS + CSS) && (JS.match(/addEventListener\('touchstart'/g) || []).length === 1 && /addEventListener\('touchstart', function \(\) \{\}, \{ passive: true \}\)/.test(JS));
-  vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, la conversation (dans cet ordre)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,420}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}etat\.conv/.test(JS));
+  /* (7 octobre 2026) le menu déroulant et la demande « Envoyer à … ? » se ferment AVANT toute couche : la fenêtre du motif s'élargit, l'ORDRE des couches reste gardé */
+  vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, la conversation (dans cet ordre)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,800}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}etat\.conv/.test(JS));
   vrai('la liste recouverte devient inerte (inert) — sous la conversation ou sous un appel AFFICHÉ (réduit, il ne recouvre plus rien) — et la photo, la feuille ou l\'aperçu d\'envoi de photos rendent tout le fond inerte',
     /const couvre = !!etat\.appelId && !etat\.appelReduit;/.test(JS) && /\$\('contenu'\)\.inert = !!\(couvre \|\| \(etat\.conv && !largeBureau\.matches\)\)/.test(JS) && /\$\('app'\)\.inert = !!\(etat\.groupe\.ouvert \|\| etat\.photo \|\| etat\.menu \|\| ep\.ouvert\)/.test(JS));
   vrai('la liste revient à sa position : elle est notée à l\'ouverture et rendue à la fermeture', /etat\.scrollListe = window\.scrollY/.test(JS) && /window\.scrollTo\(0, etat\.scrollListe\)/.test(JS));
@@ -278,7 +283,7 @@ async function controler(PAGE, SRC, DOC) {
      le menu d'abord, un nouveau rendu qui le garde sur la nouvelle ligne. `finSourdine` est EXTRAITE et EXÉCUTÉE. */
   {
     vrai('(population) le menu déroulant : son élément (#deroule, `popover`, une liste role="menu") et ses deux fonctions sont trouvés',
-      /<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden><\/p><div class="deroule-liste" id="deroule-liste" role="menu"><\/div><\/div>/.test(HTML) && /function ouvrirDeroule\(declencheur, nom, titre, choix, surChoix\) \{/.test(JS) && /function fermerDeroule\(rendreFocus\) \{/.test(JS));
+      /<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden><\/p><div class="deroule-liste" id="deroule-liste" role="menu"><\/div><\/div>/.test(HTML) && /function ouvrirDeroule\(declencheur, nom, titre, choix, surChoix\) \{/.test(JS) && /function fermerDeroule\(rendreFocusLigne\) \{/.test(JS));
     vrai('les trois lignes OUVRENT le menu (aria-haspopup="menu", aria-expanded, aria-controls) : « Messages éphémères » des infos (un administrateur ; inactive pour les autres), « Mettre en sourdine », « Messages éphémères » de « Nouveau groupe » — et plus aucune ne tourne d\'une valeur à la suivante',
       /data-act="ephemeres" data-valeur="' \+ esc\(String\(i\.ephemeres \|\| 0\)\) \+ '"' \+ \(i\.moiAdmin \? ' aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' : ' disabled'\)/.test(JS)
       && /data-act="sourdine" data-valeur="' \+ \(sd > Date\.now\(\) \? sd : 0\) \+ '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"/.test(JS)
@@ -310,6 +315,44 @@ async function controler(PAGE, SRC, DOC) {
     }
   }
 
+  /* 4 quater. PERSO / PRO ET « CONFIRMER L'ENVOI » (7 octobre 2026, « côté pro ») — la sonde tests/sonde-opmessages-perso-pro.js les joue au doigt contre le vrai service ;
+     le banc garde les décisions : la liste du côté en cours (une recherche cherche partout), ouvrir de l'autre côté y bascule, le nom PRO, la seconde touche avant d'envoyer */
+  vrai('Perso / Pro : la liste montre le côté en cours — mais une RECHERCHE cherche des deux côtés (on ne perd pas une conversation parce qu\'on est du mauvais)',
+    /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| dansMode\(c\)\)\)/.test(JS) && /const dansMode = c => !modesActifs\(\) \|\| coteDe\(c\) === etat\.mode;/.test(JS));
+  vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
+    /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
+  vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',
+    /const suffixeTitre = \(\) => modesActifs\(\) && etat\.mode === 'pro' \? SUFFIXE_TITRE\.replace\('OP MESSAGES', 'OP MESSAGES PRO'\) : SUFFIXE_TITRE;/.test(JS) && (HTML.match(/<span class="marque-pro" hidden><span class="sr-seul"> <\/span>PRO<\/span>/g) || []).length === 2);
+  {
+    const env = corps('async function envoyerTexte'), iConf = env.indexOf('confirmationRequise()'), iVide = env.indexOf("ta.value = ''");
+    vrai('⛔ « Confirmer l\'envoi » : la PREMIÈRE touche demande, la seconde envoie — la demande passe AVANT que le champ se vide et que l\'envoi parte (une modification n\'est pas un envoi)',
+      /if \(!\(ctx0 && ctx0\.type === 'modif'\) && confirmationRequise\(\) && etat\.confirmeAttente !== etat\.conv\) \{ demanderConfirmation\(\); return; \}/.test(env) && iConf > 0 && iVide > iConf && env.indexOf('etat.envoiEnCours = true') > iConf);
+  }
+  vrai('« Confirmer l\'envoi » : retaper le texte annule la demande (on ne confirme pas un texte qu\'on n\'a pas relu) ; « Groupes et canaux » = une conversation à plusieurs ; un compte pro seulement',
+    /\$\('saisie'\)\.addEventListener\('input', \(\) => fermerConfirmation\(\)\);/.test(JS) && /return x === 'partout' \|\| \(x === 'groupes' && multi\(convCourante\(\)\)\);/.test(JS) && /const convCourante = \(\) => \(etat\.convDonnees && etat\.convDonnees\.id === etat\.conv \? etat\.convDonnees : null\) \|\| etat\.conversations\.find\(x => x\.id === etat\.conv\) \|\| null;/.test(JS) && /const confirmerActif = \(\) => !!\(etat\.pro && CAP\.confirmerEnvoi/.test(JS));
+
+  /* relecture du 7 octobre 2026 (« vérifie tout de A à Z ») : les six défauts trouvés, gardés sur le CODE */
+  vrai('⛔ « Confirmer l\'envoi » : le geste qui DEMANDE ne confirme pas — une touche Entrée tenue (répétition) n\'envoie rien, et la confirmation n\'est prise qu\'après 400 ms (double toucher sur la flèche)',
+    /const confirmeTropTot = \(\) => etat\.confirmeAttente === etat\.conv && performance\.now\(\) - \(etat\.confirmeDepuis \|\| 0\) < 400;/.test(JS) && /etat\.confirmeAttente = etat\.conv; etat\.confirmeDepuis = performance\.now\(\);/.test(JS)
+      && /\{ e\.preventDefault\(\); if \(e\.repeat \|\| confirmeTropTot\(\)\) return; envoyerTexte\(\); \}/.test(JS));
+  vrai('⛔ « Confirmer l\'envoi » vaut aussi dans le chat de la SALLE (une réunion est à plusieurs) : le premier envoi devient « Confirmer », retaper annule',
+    /if \(confirmerActif\(\) && source\.confirmerEnvoi\(\) !== 'jamais' && X\.confirme !== t\) \{ X\.confirme = t; sallePanneauRendre\(A, true\);/.test(JS) && /<button type="submit">' \+ \(X\.confirme \? 'Confirmer' : 'Envoyer'\) \+ '<\/button>/.test(JS)
+      && /if \(enSalle\(A\) && sx\(A\)\.confirme\) \{ sx\(A\)\.confirme = null; sallePanneauRendre\(A, true\); \}/.test(JS));
+  vrai('⛔ Perso / Pro : le lien « Invitations » passe du côté de l\'invitation avant d\'ouvrir la liste ; créer ou rejoindre un espace passe côté Pro (sans couvrir « Tu as rejoint… »)',
+    /const i0 = etat\.conversations\.find\(c => c\.invitation === 'recue'\); if \(i0 && !dansMode\(i0\)\) changerMode\(coteDe\(i0\), true\);/.test(JS)
+      && (JS.match(/chargerEspaces\(\); if \(modesActifs\(\)\) changerMode\('pro', true, true\);/g) || []).length === 2 && /if \(!muet\) annonceMode\(m\);/.test(JS));
+  vrai('⛔ focus : Espace HORS d\'un champ est un geste de clavier (l\'anneau rendu se voit) ; et la règle qui éteint l\'anneau rendu au doigt gagne sur les anneaux écrits plus loin',
+    /&& !\(e\.key === ' ' && !champTexte\(e\.target\)\)\) return;/.test(JS) && /\[data-focus-doux\]:focus-visible \{ outline: none !important; \}/.test(CSS));
+
+  /* 8 octobre 2026 : le menu d'un message contre sa bulle, « Me le rappeler », l'Agenda au mois — le comportement est mesuré par la sonde tests/sonde-opmessages-menu-rappel.js */
+  vrai('le menu d\'un message s\'ancre à la rangée du message (dès 700 px, si le navigateur sait l\'ancre) et l\'ancre part avec lui',
+    /@supports \(anchor-name: --menu-msg\)/.test(CSS) && /\.menu-fond\.ancre \.menu-msg \{ position: fixed; position-anchor: --menu-msg;/.test(CSS) && /if \(ancre\) \{ ancre\.classList\.add\('menu-ancre'\); \$\('menu-fond'\)\.classList\.add\('ancre'\);/.test(JS)
+      && /\$\('conv-messages'\)\.querySelectorAll\('\.menu-ancre'\)\.forEach\(x => x\.classList\.remove\('menu-ancre'\)\);/.test(JS));
+  vrai('« Me le rappeler » pose un ÉVÉNEMENT de l\'agenda, rappel à l\'heure (rien de neuf côté service)',
+    /await source\.creerEvenement\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \}\);/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
+  vrai('l\'Agenda au mois : la fenêtre chargée est celle qu\'on voit (le mois entier en semaines), et le choix va au COMPTE',
+    /const n = \+\+reu\.jeton, \[du, au\] = fenetreAgenda\(\);/.test(JS) && /if \(M\) rendreMois\(auj\);/.test(JS) && /source\.choisirAgendaVue\(v\)/.test(JS) && /reu\.vue = typeof source\.agendaVue === 'function' && source\.agendaVue\(\) === 'mois'/.test(JS));
+
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);
   v('(population) ' + (HTML.match(/<button\b/g) || []).length + ' boutons dans le balisage — aucun ne porte une icône SANS nom (aria-label) : retour, caméra, joindre, envoyer, micro, annuler, fermer', sansNom, []);
@@ -325,7 +368,7 @@ async function controler(PAGE, SRC, DOC) {
   vrai('adresse : un nom n\'est une VUE que s\'il est à la page (hasOwnProperty) — « #constructor », « #__proto__ » ne masquent plus les quatre vues [sonde : adresses]', /Object\.prototype\.hasOwnProperty\.call\(VUES, p\[0\]\)/.test(JS) && !/VUES\[p\[0\]\]/.test(JS));
   vrai('vocal : changer de conversation coupe la prise de son ET la lecture de l\'ancienne, et un vocal part vers la conversation où il a COMMENCÉ [sonde : vocal-conv]', /if \(etat\.conv && etat\.conv !== id\) \{ arreterLecture\(\); annulerEnregistrement\(\); \}/.test(JS) && /enr\.conv = etat\.conv/.test(JS) && /envoi\(\{ vocal: \{ blob: b, url, dur: msVu \/ 1000, bars \} \}, cible\)/.test(JS));
   vrai('double toucher : un second toucher dans les 400 ms ne tombe pas sur ce que le premier a laissé — micro, « + » et caméra refusent (pas « Retour » : il n\'a jamais été sous un de ces gestes) ; la flèche, l\'envoi du vocal, l\'annulation et la croix de la photo l\'arment ; deux clics synchrones = un message [sonde : double-toucher]',
-    /const armerRetap = \(\) => \{ retapJusqua = Date\.now\(\) \+ 400; \};/.test(JS) && /\$\('envoyer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\); envoyerTexte\(\); \}\)/.test(JS) && /if \(retap\(\)\) \{ e\.preventDefault\(\); return; \}/.test(JS) && /\$\('enreg-envoyer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\)/.test(JS) && /\$\('visionneuse-fermer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\); fermerCouche\(\); \}\)/.test(JS) && /if \(etat\.envoiEnCours\) \{ etat\.envoiSuivant = true; return; \}/.test(JS) && /ta\.value = ''; delete etat\.brouillons\[id\]; ajusterSaisie\(\); majBoutons\(\);\n    try \{/.test(JS));
+    /const armerRetap = \(\) => \{ retapJusqua = Date\.now\(\) \+ 400; \};/.test(JS) && /\$\('envoyer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\); if \(confirmeTropTot\(\)\) return; envoyerTexte\(\); \}\)/.test(JS) && /if \(retap\(\)\) \{ e\.preventDefault\(\); return; \}/.test(JS) && /\$\('enreg-envoyer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\)/.test(JS) && /\$\('visionneuse-fermer'\)\.addEventListener\('click', \(\) => \{ armerRetap\(\); fermerCouche\(\); \}\)/.test(JS) && /if \(etat\.envoiEnCours\) \{ etat\.envoiSuivant = true; return; \}/.test(JS) && /ta\.value = ''; delete etat\.brouillons\[id\]; ajusterSaisie\(\); majBoutons\(\);\n    try \{/.test(JS));
   const jetonsTexte = ['--accent-txt', '--side-actif-fg', '--placeholder', '--sub-meta-sel', '--tab-inactif-fg'];
   vrai('contraste : les encres de TEXTE ont leurs jetons (jour ET nuit) et servent — l\'accent de nuit reste celui des aplats, des anneaux et des contours [sonde : contrastes]', jetonsTexte.every(t => (CSS.match(new RegExp(ech(t) + ':', 'g')) || []).length >= 2 && new RegExp('var\\(' + ech(t) + '\\)').test(CSS)) &&
     /\.lien-texte \{[^}]*color: var\(--accent-txt\)/.test(CSS) && /\.btn-plus \.pastille \{[^}]*color: var\(--on-fill\)/.test(CSS) && /\.side-lien\[aria-current="page"\] \{[^}]*color: var\(--side-actif-fg\)/.test(CSS) && /\.conv\[aria-current="true"\] \{[^}]*--sub-meta: var\(--sub-meta-sel\)/.test(CSS) && /\.recherche input::placeholder \{ color: var\(--placeholder\)/.test(CSS));

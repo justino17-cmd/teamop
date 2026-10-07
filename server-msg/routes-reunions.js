@@ -187,7 +187,16 @@ function installerReunions(H, ctx) {
       if (!occ.length) continue;
       total += occ.length;
       if (total > OCCURRENCES_MAX) break;
-      sortie.push(Object.assign({}, r, { occurrences: occ.map(o => ({ debut: o.debut, fin: o.fin })), rejoignable: !!fenetreRejoindre(r, horloge()) }));
+      /* une occurrence qui a eu lieu porte SA séance (les salles ouvertes dans sa fenêtre d'entrée, réunies) : début, fin, combien sont venus, terminée pour tous ou non — et les noms, pour l'organisateur seul */
+      const avant = config.appels.reunionAvantMin * 60000, apres = config.appels.reunionApresMin * 60000, hote = !!(r.hote && r.hote.id === req.moi.id);
+      const seances = occ.some(o => o.debut - avant <= horloge()) ? stockage.seancesFinies(r.id, du - avant - JOUR, au + apres) : [];      // toutes à venir : aucune séance à lire
+      const seanceDe = (o) => {
+        const l = seances.filter(x => x.debut >= o.debut - avant && x.debut <= o.fin + apres).sort((a, b) => a.debut - b.debut); if (!l.length) return null;      // dans l'ordre : les présents par ordre d'arrivée
+        const venus = []; for (const x of l) for (const v of x.venus) if (!venus.some(y => y.id === v.id)) venus.push(v);
+        const d = Math.min(...l.map(x => x.debut)), f = Math.max(...l.map(x => x.fin));
+        return Object.assign({ debut: d, fin: f, duree_s: Math.max(0, Math.round((f - d) / 1000)), n: venus.length, pour_tous: l.some(x => x.motif === 'termine') }, hote ? { presents: venus.slice(0, 12) } : {});
+      };
+      sortie.push(Object.assign({}, r, { occurrences: occ.map(o => { const se = seanceDe(o); return se ? { debut: o.debut, fin: o.fin, seance: se } : { debut: o.debut, fin: o.fin }; }), rejoignable: !!fenetreRejoindre(r, horloge()), salle_ouverte: stockage.salleDeReunion(r.id) !== null }));
     }
     res.json({ du, au, reunions: sortie });
   });

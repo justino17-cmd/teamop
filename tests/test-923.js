@@ -105,6 +105,19 @@ const MDP = (l) => 'pw-' + l + '-1234';
     const sup = await A.post('/api/conversations/' + G + '/messages/supprimer', { seq: m.j.seq, pour: 'tous' });
     v('« supprimer pour tous » : le suivi répond 404', [sup.code, (await suivi(A, dep.j.id)).code], [200, 404]);
     v('sans session : 401', (await T.client(svc.base).get('/api/pieces/' + ph.j.id + '/suivi')).code, 401);
+
+    /* 8 octobre 2026 : « l'enregistrement… qu'il se supprime 3 jours après, pour pas que ça prenne des Go pour rien » — un FICHIER envoyé avec `garder_s` porte son échéance ; le balayeur des
+       éphémères emporte le message ET la pièce */
+    console.log('\n7. Un fichier gardé trois jours');
+    const dep3 = await F.deposer(A, { conv: G, genre: 'fichier', nom: 'Enregistrement réunion.webm', corps: F.pdf() });
+    v('⛔ `garder_s` sur un TEXTE, ou une durée hors des trois permises (1, 3, 7 jours) : 400', [(await envoyer(A, { type: 'texte', texte: 'x', garder_s: 259200 })).code, (await envoyer(A, { type: 'fichier', piece: dep3.j.id, garder_s: 1000 })).code, (await envoyer(A, { type: 'fichier', piece: dep3.j.id, garder_s: '259200' })).code], [400, 400, 400]);
+    const m3 = await envoyer(A, { type: 'fichier', piece: dep3.j.id, garder_s: 259200 });
+    const vu3 = ((await B.get('/api/conversations/' + G + '/messages')).j.messages || []).find(x => x.seq === m3.j.seq);
+    v('envoyé (201) : Bruno le voit avec son échéance — trois jours après l\'envoi, à la milliseconde', [m3.code, vu3 && vu3.expire - vu3.ts], [201, 259200000]);
+    v('population : la pièce est là et se lit', [compter('SELECT COUNT(*) AS n FROM piece WHERE id = ?', dep3.j.id), (await F.lirePiece(B, dep3.j.id)).code], [1, 200]);
+    svc.avancer(259200000 + 60000);
+    const partie = await T.attendre(() => compter('SELECT COUNT(*) AS n FROM piece WHERE id = ?', dep3.j.id) === 0, 8000, 100);
+    v('⛔ trois jours plus tard : le message est parti de la conversation, la pièce aussi (sa ligne, et sa lecture répond 404)', [!!partie, ((await B.get('/api/conversations/' + G + '/messages')).j.messages || []).some(x => x.seq === m3.j.seq), (await F.lirePiece(B, dep3.j.id)).code], [true, false, 404]);
   } finally { await svc.arreter(); await og.fermer(); }
   fin();
 })().catch(e => { console.error(e); process.exit(1); });

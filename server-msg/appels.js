@@ -323,6 +323,15 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
       annotPeser(a, poidsAnnot(item));
       a.items.push(item); annotCompter(a, poidsAnnot(item));
       ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'trait', item: Object.assign({}, item), suite: false };
+    } else if (op === 'deplacer') {
+      /* déplacer un TEXTE déjà posé (8 octobre 2026 : « il faudrait pouvoir déplacer les textes ») : son auteur, ou le maître du support — la même règle que le retirer. La nouvelle place est un
+         point de l'image (0..10 000) ; le texte, sa couleur et son auteur ne bougent pas. */
+      const x = typeof d.id === 'string' ? a.items.find(i => i.id === d.id) : null;
+      if (!x) throw erreur('introuvable');
+      if (x.outil !== 'texte' || !entiers(d.pts, 2)) throw erreur('champ_invalide');
+      if (x.de !== moi.id && !maitre) throw erreur('interdit');
+      x.pts = d.pts.slice();
+      ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'deplacer', id: x.id, pts: x.pts.slice() };
     } else if (op === 'retirer') {
       const i = typeof d.id === 'string' ? a.items.findIndex(x => x.id === d.id) : -1;
       if (i < 0) throw erreur('introuvable');
