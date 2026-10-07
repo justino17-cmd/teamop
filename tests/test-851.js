@@ -52,11 +52,11 @@ function serveur(traiter) {
     if (req.method === 'POST' && u === '/actions/workflows/deploiement-messages.yml/dispatches') {
       if (G.refusLancer) return { code: G.refusLancer, j: { message: 'Resource not accessible by personal access token' } };
       const id = 4242 + G.demandes.length;
-      G.run = { id, created_at: new Date().toISOString(), html_url: 'https://github.com/org-banc/depot-banc/actions/runs/' + id, display_title: 'Publier ' + j.inputs.cible + ' ' + j.inputs.sha, etapes: G.deroule.slice() };
+      G.run = { id, created_at: new Date().toISOString(), html_url: G.urlPiege ? 'javascript:alert(1)' : 'https://github.com/org-banc/depot-banc/actions/runs/' + id, display_title: 'Publier ' + j.inputs.cible + ' ' + j.inputs.sha, etapes: G.deroule.slice() };
       return { code: 204 };
     }
     /* ⛔ un LEURRE, listé d'abord et plus récent : un autre lancement du même workflow (une bêta lancée à la main) — le serveur ne doit jamais l'adopter */
-    if (req.method === 'GET' && u.startsWith('/actions/workflows/deploiement-messages.yml/runs')) return { code: 200, j: { workflow_runs: G.run ? [{ id: 9999, created_at: new Date().toISOString(), html_url: 'https://github.com/org-banc/depot-banc/actions/runs/9999', display_title: 'Publier beta ' }, { id: G.run.id, created_at: G.run.created_at, html_url: G.run.html_url, display_title: G.run.display_title }] : [] } };
+    if (req.method === 'GET' && u.startsWith('/actions/workflows/deploiement-messages.yml/runs')) return { code: 200, j: { workflow_runs: G.run ? [{ id: 9999, created_at: new Date(Date.parse(G.run.created_at) - 1000).toISOString(), html_url: 'https://github.com/org-banc/depot-banc/actions/runs/9999', display_title: 'Publier beta ' }, { id: G.run.id, created_at: G.run.created_at, html_url: G.run.html_url, display_title: G.run.display_title }] : [] } };
     if (req.method === 'GET' && u === '/actions/runs/9999') { G.leurre = (G.leurre || 0) + 1; return { code: 200, j: { id: 9999, status: 'waiting' } }; }
     if (G.run && req.method === 'GET' && u === '/actions/runs/' + G.run.id) {
       const e = G.run.etapes.length > 1 ? G.run.etapes.shift() : G.run.etapes[0];
@@ -165,9 +165,12 @@ function serveur(traiter) {
     console.log('\n4. Un banc rouge, une approbation impossible');
     G.deroule = [['in_progress'], ['completed', 'failure']];
     inst.prod.sha = 'c'.repeat(40);
+    G.urlPiege = true;          // ce lancement-ci rend un lien qui ne mène pas chez GitHub
     r = await publier(H);
     v('après une publication finie, on peut republier (200)', r.code, 200);
     vrai('⛔ les bancs tombent : « échec » (rien n\'a été approuvé)', !!(await T.attendre(async () => (await versions()).publication.etat === 'echec', 8000, 50)) && G.approbations.length === 1);
+    v('⛔ un lien qui ne mène pas chez GitHub (« javascript: ») n\'est pas gardé : la Tour ne le met dans aucun href', [(await versions()).publication.url, /javascript:/.test(carte(await versions(), 'patron'))], ['', false]);
+    G.urlPiege = false;
     G.deroule = [['in_progress'], ['waiting']]; G.peutApprouver = false;
     r = await publier(H);
     vrai('un jeton qui ne peut pas approuver : « à approuver », avec le lien où le faire — rien n\'est approuvé à sa place', !!(await T.attendre(async () => { const p = (await versions()).publication; return p.etat === 'a_approuver' && /\/actions\/runs\/\d+$/.test(p.url); }, 8000, 50)) && G.approbations.length === 1);
