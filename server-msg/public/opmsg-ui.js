@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'cc8c5a915fb7';
+  const OPMSG_BUILD = '41ab3ac7b9ff';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 95;
+  const OPMSG_VERSION = 97;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -200,7 +200,7 @@
   function peindreMode() {
     const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
     if (actif) racine.dataset.cote = etat.mode; else delete racine.dataset.cote;
-    document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });
+    document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });       // (son espace caché : « OP MESSAGES PRO » se lit en trois mots, jamais « MESSAGESPRO »)
     $('marque-tel').hidden = !actif;
     const n = actif ? etat.conversations.filter(c => c.nonLu && c.id !== etat.conv && coteDe(c) === autre).length : 0;
     document.querySelectorAll('[data-cote-seg]').forEach(seg => {

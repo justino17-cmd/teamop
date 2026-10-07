@@ -1184,7 +1184,8 @@ html[data-service] .mention-apercu { display: none; }
 .cote-seg { margin: 0 0 12px; }
 .side .cote-seg { margin: 0 6px 12px; }
 .cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
-.marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 7px; padding: 0 6px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
+.side-marque b { white-space: nowrap; }      /* « OP MESSAGES PRO » tient sur une ligne dans les 236 px de la barre (mesuré : la pastille passait dessous) */
+.marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
 #vue-messages > .entete-vue { position: relative; }
 .marque-tel { position: absolute; left: 96px; right: 96px; margin: 0 auto; width: max-content; max-width: calc(100% - 192px); display: flex; align-items: center; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; pointer-events: none; }
 @media (min-width: 900px) { .cote-seg-liste, .marque-tel { display: none !important; } }
@@ -2046,7 +2047,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 </div>
 <div class="app" id="app">
   <aside class="side" data-glass="1" aria-label="Barre latérale">
-    <div class="side-marque"><img src="../../icons/opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES<span class="marque-pro" hidden>PRO</span></b></div>
+    <div class="side-marque"><img src="../../icons/opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES<span class="marque-pro" hidden><span class="sr-seul"> </span>PRO</span></b></div>
     <div class="seg cote-seg cote-seg-side" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-cote="perso" aria-pressed="true">Perso<b class="cote-n" hidden></b></button><button type="button" class="seg-bouton" data-cote="pro" aria-pressed="false">Pro<b class="cote-n" hidden></b></button></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
@@ -2058,7 +2059,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <section class="vue" id="vue-messages" aria-labelledby="titre-messages">
       <div class="entete-vue">
         <button type="button" class="lien-texte presse" id="btn-modifier">Modifier</button>
-        <span class="marque-tel" id="marque-tel" hidden>OP MESSAGES<span class="marque-pro" hidden>PRO</span></span>
+        <span class="marque-tel" id="marque-tel" hidden>OP MESSAGES<span class="marque-pro" hidden><span class="sr-seul"> </span>PRO</span></span>
         <button type="button" class="btn-plus" id="btn-plus" aria-haspopup="dialog" aria-label="Nouvelle discussion"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
       </div>
       <h1 class="grand-titre" id="titre-messages">Messages</h1>
@@ -2540,7 +2541,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function peindreMode() {
     const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
     if (actif) racine.dataset.cote = etat.mode; else delete racine.dataset.cote;
-    document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });
+    document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });       // (son espace caché : « OP MESSAGES PRO » se lit en trois mots, jamais « MESSAGESPRO »)
     $('marque-tel').hidden = !actif;
     const n = actif ? etat.conversations.filter(c => c.nonLu && c.id !== etat.conv && coteDe(c) === autre).length : 0;
     document.querySelectorAll('[data-cote-seg]').forEach(seg => {
