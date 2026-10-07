@@ -1663,6 +1663,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-saisie { display: flex; gap: 8px; margin-top: 8px; }
 .salle-joindre { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; }
 .salle-msg.doc { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.salle-msg-photo { padding: 4px; display: flex; flex-direction: column; gap: 4px; width: min(100%, 300px); }
+.salle-msg-photo small { padding: 2px 7px 0; }
+.salle-photo { display: block; width: 100%; border-radius: 10px; overflow: hidden; background: rgba(255,255,255,.08); }
+.salle-photo img { display: block; width: 100%; height: auto; }
+.salle-photo.attente { min-height: 72px; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; font-size: 14px; color: var(--salle-sub); }
+.salle-photo.attente .ic { width: 20px; height: 20px; }
+.salle-photo-leg { padding: 2px 7px 4px; font-size: 14px; line-height: 19px; overflow-wrap: anywhere; }
 .salle-msg.doc small { padding: 0 5px; }
 .salle-doc { display: flex; align-items: center; gap: 10px; min-height: 52px; width: 100%; padding: 6px 8px; border-radius: 10px; background: rgba(0,0,0,.18); color: #fff; text-align: left; }
 .salle-doc-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: rgba(255,255,255,.16); font-size: 19px; }

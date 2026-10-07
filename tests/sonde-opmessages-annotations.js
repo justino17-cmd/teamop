@@ -195,6 +195,11 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     let photo = null;
     for (let i = 0; i < 60 && !photo; i++) { const r = await A0.get('/api/conversations/' + G + '/messages'); const l = (r.j && (r.j.messages || r.j.items)) || []; photo = l.find(m => /Tableau blanc/.test(m.texte || '')) || null; if (!photo) await new Promise(ok => setTimeout(ok, 250)); }
     v('« Capturer » : l\'image du tableau part dans la discussion du groupe, en PHOTO légendée « Tableau blanc — … »', [!!photo, photo && photo.type, photo && /^Tableau blanc — /.test(photo.texte)], [true, 'photo', true]);
+    /* 8 octobre 2026 : « quand on fait les captures d'écran ça marche pas » — la photo partait, mais la discussion de la SALLE n'en montrait que la légende */
+    await A.page.locator('#salle-discussion').click();
+    vrai('⛔ dans la discussion de la salle (Ana), la capture se VOIT : une image décodée, sa légende dessous', await att(A, () => Array.from(document.querySelectorAll('.salle-msg-photo')).some(x => { const i = x.querySelector('.salle-photo img'); return !!i && i.complete && i.naturalWidth > 100 && /^Tableau blanc — /.test((x.querySelector('.salle-photo-leg') || {}).textContent || ''); }), null, 15000),
+      await A.page.evaluate(() => (document.getElementById('salle-panneau-corps') || {}).textContent || '').then(t => t.slice(0, 200)));
+    await capture(A, 'annot-discussion-capture');
     await C.page.keyboard.press('Escape');
     vrai('Échap quitte le mode « Annoter » (la barre se range, le calque laisse passer le doigt)', await att(C, () => document.getElementById('annot-barre').hidden && getComputedStyle(document.querySelector('.annot-calque')).pointerEvents === 'none'));
     vrai('   ⛔ et Échap n\'a PAS quitté la salle', await C.page.evaluate(() => document.documentElement.dataset.salle === '1'));

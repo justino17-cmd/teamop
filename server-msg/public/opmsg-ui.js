@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '657704569c02';
+  const OPMSG_BUILD = '82e65a833bb5';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 106;
+  const OPMSG_VERSION = 108;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5789,7 +5789,17 @@
           '<span class="salle-doc-ic">' + icone('i-fichier') + '</span><span class="salle-doc-t"><b dir="auto">' + esc(m.fichier.nom) + '</b><small>' + esc(tailleTexte(m.fichier.taille)) + '</small></span>' + icone('i-telecharger') + '</button>' +
         (moi && m.fichier.piece && suiviPossible() ? '<button type="button" class="salle-doc-suivi presse" data-sa="doc-suivi" data-s="' + esc(m.fichier.piece) + '">' + (sv ? esc('Téléchargé par ' + sv.faits + ' sur ' + sv.total) : 'Qui l\'a téléchargé ?') + '</button>' : '') + '</div>';
     };
-    const fil = X.discussion.length ? X.discussion.map(m => m.fichier ? docHtml(m) : '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
+    /* ⛔ UNE PHOTO SE VOIT (capture du 8 octobre 2026 : « quand on fait les captures d'écran ça marche pas » — la capture annotée partait bien, mais la discussion de la salle n'en
+       montrait que la légende) : l'image, à la largeur du panneau, sa légende dessous ; la toucher l'enregistre. Pas encore lue : une case qui se charge d'elle-même. */
+    const photoHtml = m => {
+      const moi = m.auteur === MOI.id;
+      return '<div class="salle-msg salle-msg-photo' + (moi ? ' moi' : '') + '">' + (moi ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') +
+        m.photos.slice(0, 4).map((p, i) => blob(p.url)
+          ? '<button type="button" class="salle-photo presse" data-sa="photo" data-mid="' + esc(m.id) + '" data-i="' + i + '" aria-label="' + esc(['Enregistrer la photo', m.texte].filter(Boolean).join(' : ')) + '"><img src="' + esc(p.url) + '" alt=""></button>'
+          : '<span class="salle-photo attente" role="img" aria-label="' + (p.etat === 'indisponible' ? 'Photo indisponible' : 'Photo en cours de chargement') + '">' + icone('i-image') + '<span aria-hidden="true">' + (p.etat === 'indisponible' ? 'Photo indisponible' : 'Chargement…') + '</span></span>').join('') +
+        (m.texte ? '<span class="salle-photo-leg" dir="auto">' + esc(m.texte) + '</span>' : '') + '</div>';
+    };
+    const fil = X.discussion.length ? X.discussion.map(m => m.fichier ? docHtml(m) : m.photos && m.photos.length && !m.supprime ? photoHtml(m) : '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
     return '<div class="salle-fil" id="salle-fil" role="log" aria-label="Messages" tabindex="0">' + fil + '</div>' +
       '<form class="salle-saisie" id="salle-saisie-form">' + (CAP.fichiers ? '<button type="button" class="salle-joindre presse" data-sa="doc-joindre" aria-label="Envoyer un document">' + icone('i-plus') + '</button>' : '') + '<input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">' + (X.confirme ? 'Confirmer' : 'Envoyer') + '</button></form>';
   }
@@ -5800,7 +5810,7 @@
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom]);
-    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null]);
+    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
@@ -5826,6 +5836,10 @@
     else if (!init) X.neufs = X.discussion.filter(m => !X.vus.has(m.id) && m.auteur !== MOI.id).length;
     salleCommandes(A, A.mediaPret && (!A.micro || !A.audio));
     sallePanneauRendre(A);
+    /* les photos pas encore lues (les six dernières) : chacune demandée UNE fois par salle — un échec ne relance pas en boucle */
+    const D = X.photosDemandees || (X.photosDemandees = new Set());
+    const manquent = X.discussion.flatMap(m => (m.photos || []).filter(p => p.piece && !blob(p.url) && p.etat !== 'indisponible').map(p => p.piece)).filter(id => !D.has(id)).slice(-6);
+    if (manquent.length) { manquent.forEach(id => D.add(id)); Promise.allSettled(manquent.map(id => source.pieceUrl(id))).then(() => { if (!perime(A) && enSalle(A)) salleDiscussionCharger(A, false); }); }
   }
   function salleConversation(id) {
     const A = etat.appelUI;
@@ -5843,6 +5857,7 @@
     switch (act) {
       case 'panneau-fermer': salleFermerPanneau(A); return;
       case 'doc-joindre': $('salle-doc').click(); return;
+      case 'photo': { const m = (X.discussion || []).find(x => x.id === el.dataset.mid); if (m && m.photos) await enregistrerPhoto(m, +el.dataset.i || 0); return; }
       case 'doc': { const m = (X.discussion || []).find(x => x.id === el.dataset.mid); if (m && m.fichier) await telechargerPiece(m.fichier, el); return; }
       case 'doc-suivi': X.suiviPiece = el.dataset.s; X.suiviDonnees = null; X.suiviPanne = '';
         X.panneau = 'suivi'; sallePanneauRendre(A, true);
