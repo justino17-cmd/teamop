@@ -32,8 +32,10 @@ barre de saisie. Une CARTE est un message texte (son résumé, pour une version 
   libre ; dégradés mêlés à `--base` (lisibles de jour et de nuit : date à 5,4:1 / 5,9:1, mesuré au pixel avec contre-épreuve du lecteur).
 `tests/test-926.js` (68 ✓ ; 19 + 8 mutations, toutes mordent), `tests/test-927.js` (13 ✓ ; 2 mutations), `tests/sonde-opmessages-cartes.js` (37 ✓, deux téléphones),
 `tests/sonde-opmessages-theme.js` (13 ✓, jour et nuit). Relecture `gardien` : 0 bloquant, 3 importants corrigés (ci-dessus).
-⚠️ Attend Justin : (1) dans un groupe « seuls les admins écrivent », un membre peut AJOUTER un choix si l'auteur a ouvert les choix (comme une réaction) — le garder ? ; (2) partager la
-fiche d'un contact qui s'est rendu introuvable répond « ne se laisse pas trouver » à l'expéditeur — c'est l'état d'un réglage privé ; un « introuvable » neutre le cacherait.
+✅ Tranché par Justin (7 octobre 2026 : « on laisse avec des paramètres, comme ça l'admin décide ») : (1) dans un groupe « seuls les admins écrivent », seul un admin pose un sondage —
+c'est donc lui qui ouvre ou non les choix aux membres, sondage par sondage (`test-926` § 6 bis le tient) ; (2) partager la fiche d'un contact devenu introuvable garde son message clair
+(« ne se laisse pas trouver ») — l'expéditeur, déjà son contact, pouvait le deviner, et un refus muet passe pour une panne. Proposé, pas demandé : « Retirer ce choix » pour l'auteur et
+les admins (aujourd'hui un choix déplacé ne part qu'avec tout le sondage).
 ⚠️ Corrigé en passant : `htmlFiche` existait déjà (la fiche d'une réunion) — la seconde déclaration gagnait partout ; `reunion_introuvable` (rapport de présence d'une réunion) n'avait
 pas de phrase (test-906).
 

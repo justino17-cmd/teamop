@@ -207,6 +207,17 @@ const MDP = (l) => 'pw-' + l + '-1234';
     const votes = (ex.j && ex.j.votes_sondages) || [];
     vrai('l\'export de Bruno dit ses votes (conversation, message, choix, date)', ex.code === 200 && votes.some(x => x.conversation === G && x.message === S1 && x.choix === 2) && votes.every(x => typeof x.le === 'string'));
 
+    console.log('\n6 bis. Un groupe d\'annonces : l\'admin décide (Justin, 7 octobre 2026 : « on laisse avec des paramètres, comme ça l\'admin décide »)');
+    const GA = (await A.post('/api/conversations/groupe', { nom: 'Annonces', membres: [B.moi.id, C.moi.id], annonces_seules: true })).j.conversation.id;
+    const dansGA = (P, corps) => P.post('/api/conversations/' + GA + '/messages', Object.assign({ cid: cid(), type: 'sondage' }, corps));
+    r = await dansGA(B, { question: 'Moi aussi ?', choix: ['Oui', 'Non'] });
+    v('⛔ un membre ne pose pas de sondage dans un groupe d\'annonces (403 annonces_seules) : seul un admin en pose — c\'est donc toujours un admin qui ouvre ou non les choix', [r.code, r.j.error], [403, 'annonces_seules']);
+    const SO = (await dansGA(A, { question: 'Quel jour pour la formation ?', choix: ['Lundi', 'Mardi'], regles: { ajout: true } })).j.seq;
+    const SF = (await dansGA(A, { question: 'Quelle salle ?', choix: ['Haut', 'Bas'] })).j.seq;
+    const ajouterGA = (P, s, texte) => P.post('/api/conversations/' + GA + '/sondages/' + s + '/choix', { texte });
+    v('l\'admin a ouvert les choix : Bruno ajoute « Samedi » ; fermés : refusé (403)', [(await ajouterGA(B, SO, 'Samedi')).code, (await ajouterGA(B, SF, 'Dehors')).code], [200, 403]);
+    v('les membres répondent toujours : Bruno vote dans les deux', [(await B.post('/api/conversations/' + GA + '/sondages/' + SO + '/voter', { choix: [2] })).code, (await B.post('/api/conversations/' + GA + '/sondages/' + SF + '/voter', { choix: [0] })).code], [200, 200]);
+
     console.log('\n7. L\'effacement d\'un compte ne trahit pas un vote anonyme');
     const S7 = (await nouveau(A, { question: 'Anonyme ?', choix: ['Oui', 'Non'], regles: { anonyme: true } })).j.seq;
     await voter(B, S7, [0]); await voter(C, S7, [1]);
