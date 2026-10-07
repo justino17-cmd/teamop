@@ -1,11 +1,44 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '0d8e1630f0b5';
+  const OPMSG_BUILD = '4b76c079e6eb';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 33;
+  const OPMSG_VERSION = 34;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
+
+  /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
+     Les mêmes noms que la bêta d'OP GESTION (`opPlatAppliquer`) : data-plat, data-os, data-kind, data-nav, data-verre-natif, data-autonome. La feuille s'y accroche, aucun
+     écran ne fait de `if` : un appareil qu'on ne reconnaît pas garde le rendu d'avant. Quatre pièges, tous connus :
+       · l'ORDRE de lecture : Edge contient « Chrome », Chrome contient « Safari » — à l'envers, tout le monde serait Safari et le verre s'allumerait sur Windows ;
+       · l'iPad se dit « Macintosh » depuis iPadOS 13 : ce sont ses points de contact qui le trahissent ;
+       · le VERRE NATIF (Liquid Glass) se décide sur la version de SAFARI (26), sur un WebKit d'Apple : un Chrome sur Mac ne le rend pas, un « on ne sait pas » non plus ;
+       · `data-kind` : « tablette » pour un iPad (et un Android à grand écran tactile) — c'est lui qui prend le menu latéral dès 781 px, sans barre d'onglets.
+     Rien n'est rangé sur l'appareil, rien ne part au service. */
+  function opPlat() {
+    const ua = navigator.userAgent || '', p = (navigator.userAgentData && navigator.userAgentData.platform) || '', points = navigator.maxTouchPoints || 0;
+    const os = /Android/i.test(ua) || /Android/i.test(p) ? 'android' : /iPhone|iPod/i.test(ua) ? 'ios' : (/iPad/i.test(ua) || (/Macintosh/i.test(ua) && points > 1)) ? 'ipados'
+      : /Macintosh|Mac OS X/i.test(ua) || /macOS/i.test(p) ? 'macos' : /Windows/i.test(ua) || /Windows/i.test(p) ? 'windows' : /CrOS/i.test(ua) ? 'chromeos' : /Linux/i.test(ua) ? 'linux' : 'autre';
+    const nav = /Edg[A-Z]?\//.test(ua) ? 'edge' : /SamsungBrowser/i.test(ua) ? 'samsung' : /FxiOS|Firefox/i.test(ua) ? 'firefox' : /CriOS|Chrome\//i.test(ua) ? 'chrome' : /Safari/i.test(ua) ? 'safari' : 'autre';
+    const m = ua.match(/Version\/(\d+)[.\d]*\s+(?:Mobile\/\S+\s+)?Safari/), safari = m ? parseInt(m[1], 10) || 0 : 0;
+    let autonome = navigator.standalone === true;
+    try { autonome = autonome || matchMedia('(display-mode: standalone)').matches; } catch (e) { /* un navigateur sans matchMedia : pas installée */ }
+    const apple = os === 'ios' || os === 'ipados' || os === 'macos', webkitApple = apple && (nav === 'safari' || os !== 'macos');
+    const natif = webkitApple && safari >= 26;
+    const court = Math.min(screen.width || 0, screen.height || 0);
+    const kind = os === 'ipados' || (os === 'android' && court >= 600) ? 'tablette' : os === 'ios' || os === 'android' ? 'mobile' : 'desktop';
+    const plat = os === 'ios' || os === 'ipados' ? (natif ? (autonome ? 'ios27' : 'iosweb') : 'ios18') : os === 'android' ? (autonome ? 'android' : 'androidweb')
+      : os === 'macos' ? (natif ? (autonome ? 'macos27' : 'macweb') : 'macos14') : os === 'windows' ? (autonome ? 'windows' : 'winweb') : 'web';
+    /* Linux, ChromeOS, un agent inconnu : « web » — ni les rayons de Windows ni ceux d'Apple, le rendu commun (et pas de verre natif) */
+    return { plat, os: os === 'ipados' ? 'ios' : (os === 'macos' || os === 'android' || os === 'windows' || os === 'ios' ? os : 'autre'), kind, nav, natif, autonome };
+  }
+  const PLAT = (() => {
+    const p = opPlat(), r = document.documentElement;
+    r.setAttribute('data-plat', p.plat); r.setAttribute('data-os', p.os); r.setAttribute('data-kind', p.kind); r.setAttribute('data-nav', p.nav);
+    if (p.natif) r.setAttribute('data-verre-natif', '1'); else r.removeAttribute('data-verre-natif');
+    if (p.autonome) r.setAttribute('data-autonome', '1'); else r.removeAttribute('data-autonome');
+    return p;
+  })();
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de

@@ -188,7 +188,8 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .presse:active { transform: scale(.97); }
 
 /* ══ 3. LA MISE EN PAGE — téléphone (barre d'onglets flottante) ET bureau (barre latérale de 236 px) ═════════════════════
-   La navigation se choisit à la LARGEUR, jamais au type d'appareil : un iPad en portrait (820) garde la barre d'onglets. */
+   La navigation se choisit à la LARGEUR — sauf sur TABLETTE (`data-kind="tablette"`, un iPad) : le menu latéral dès 781 px, sans barre d'onglets
+   (7 octobre 2026 ; un iPad en portrait, 820 px, n'a plus la barre du téléphone). Un iPad mini en portrait (744) garde la barre d'onglets. */
 .app { min-height: 100vh; min-height: 100dvh; }
 .contenu {
   min-width: 0;
@@ -413,6 +414,26 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 /* le retour du Profil vers la vue d'avant (au bureau, la barre latérale y suffit) */
 .profil-retour { text-decoration: none; margin-left: -6px; }
 @media (min-width: 900px) { .vue .moi-pastille, .vue .profil-retour { display: none; } }
+/* LA TABLETTE (un iPad) prend la mise en page du bureau dès 781 px : le menu latéral, la carte « moi » en bas, ni barre d'onglets ni avatar au titre.
+   ⛔ Plus spécifique que chaque règle qu'elle remplace (`html[data-kind]` + la classe) : elle gagne quel que soit l'ordre du fichier. */
+@media (min-width: 781px) and (max-width: 899.98px) {
+  html[data-kind="tablette"] .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); }
+  html[data-kind="tablette"] .contenu { padding: 6px 24px 40px; }
+  html[data-kind="tablette"] .side { display: flex; }
+  html[data-kind="tablette"] .tabs { display: none; }
+  html[data-kind="tablette"] .conv-ecran, html[data-kind="tablette"] .appel-ecran, html[data-kind="tablette"] .salle-ecran { left: 236px; }
+  html[data-kind="tablette"] .vue .moi-pastille, html[data-kind="tablette"] .vue .profil-retour { display: none; }
+}
+/* ── LES RAYONS ET LA MATIÈRE DE CHAQUE SYSTÈME (design/THEME-REFERENCE.md § 4 et § 5) ── la même identité Apple partout ; ce qui change, c'est ce que le système sait faire.
+   · Liquid Glass NATIF (Safari 26, sur iPhone, iPad et Mac : `data-verre-natif`) : le reflet de l'arête, et des cartes à 26 px au doigt ;
+   · ailleurs (iOS 18, macOS 15 et avant, Windows, Android) : la même matière translucide, SANS le reflet du verre d'Apple — on n'imite pas un verre que le système n'a pas ;
+   · Android : cartes à 28 px ; Windows : cartes à 8 px, boutons à 6 px. Rien n'est dessiné qui appartient au système (barre d'état, feux, barre d'adresse). */
+html[data-verre-natif]:not([data-kind="desktop"]) .carte { border-radius: 26px; }
+html[data-os="android"] .carte { border-radius: 28px; }
+html[data-os="windows"] .carte { border-radius: 8px; }
+html[data-os="windows"] .mini, html[data-os="windows"] .feuille-bouton, html[data-os="windows"] .vc-action, html[data-os="windows"] .seg, html[data-os="windows"] .seg-knob { border-radius: 6px; }
+html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet: inset 0 0 0 .5px rgba(255,255,255,.4); }
+@media (prefers-color-scheme: dark) { html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet: inset 0 0 0 .5px rgba(255,255,255,.1); } }
 /* dans le Profil, aucun onglet n'est la vue : la bulle de la barre s'efface au lieu de rester posée sur « Messages » */
 .tabs.sans-onglet .tabs-bulle { opacity: 0; transition: opacity .2s; }
 .moi:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
