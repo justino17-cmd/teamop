@@ -238,6 +238,13 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
    là où le conteneur défile, un décalage NÉGATIF (l'anneau dessiné dedans) là où une ligne touche les bords de sa carte. */
 .epingle-bouton:focus-visible { outline-offset: 0; border-radius: 12px; }
 .carte-liste .conv:focus-visible, .carte .contact:focus-visible, .carte .reglage:focus-visible { outline-offset: -3px; }
+/* ⛔ L'ANNEAU DE FOCUS RENDU APRÈS UN GESTE AU DOIGT NE S'ALLUME PAS (capture d'un iPhone, 7 octobre 2026 : « bug d'affichage », un cadre bleu carré sur la conversation qu'on
+   venait de quitter). La page REND le focus (à la ligne, au bouton qui avait ouvert une feuille, un menu) pour le clavier et le lecteur d'écran ; Safari allume alors l'anneau,
+   parce que l'élément d'avant — le champ de saisie — l'avait. Après un toucher ou un clic, `rendreFocus` marque l'élément (`data-focus-doux`) : il a le focus, pas l'anneau.
+   Au clavier (Échap, Tab, flèches), rien n'est marqué : l'anneau se voit. Et quand il se voit, en tête ou en pied d'une carte arrondie, il en suit l'arrondi. */
+[data-focus-doux]:focus-visible { outline: none; }
+.carte-liste > li:first-child > .conv:focus-visible { border-top-left-radius: var(--group-r); border-top-right-radius: var(--group-r); }
+.carte-liste > li:last-child > .conv:focus-visible { border-bottom-left-radius: var(--group-r); border-bottom-right-radius: var(--group-r); }
 .epingles::-webkit-scrollbar { display: none; }
 .epingle { flex: none; width: 76px; }
 .epingle-bouton { width: 100%; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; transition: transform .12s ease-out; }
@@ -1790,6 +1797,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .carte-liste > li::after { left: 60px; right: 8px; }
   .carte-liste > li:has(+ li > [aria-current="true"])::after, .carte-liste > li:has(> [aria-current="true"])::after { display: none; }
   .conv { min-height: 68px; padding: 10px 12px; gap: 12px; border-radius: 10px; }
+  .carte-liste > li:first-child > .conv:focus-visible, .carte-liste > li:last-child > .conv:focus-visible { border-radius: 10px; }      /* au bureau, la ligne est une pastille : son anneau aussi */
   .conv:active { transform: none; }
   .conv .avatar { width: 46px; height: 46px; font-size: 17px; }
   .conv-nom { font-size: 15px; line-height: 20px; letter-spacing: 0; }
@@ -2605,6 +2613,20 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
   }
+  /* le dernier geste : un doigt ou une souris (pointerdown), ou une touche de NAVIGATION (Tab, Échap, Entrée, flèches) — taper un texte ne compte pas */
+  let modalite = 'pointeur';
+  document.addEventListener('pointerdown', () => { modalite = 'pointeur'; }, true);
+  document.addEventListener('keydown', e => {
+    if (!/^(Tab|Escape|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Home|End|PageUp|PageDown)$/.test(e.key)) return;
+    modalite = 'clavier';
+    const a = document.activeElement; if (a && a.dataset && a.dataset.focusDoux && e.key === 'Tab') delete a.dataset.focusDoux;     // on se met à tabuler : l'anneau revient
+  }, true);
+  /* rendre le focus (la feuille fermée, la conversation quittée, le menu refermé) : après un geste au doigt ou à la souris, SANS anneau (voir la feuille de style) */
+  function rendreFocus(el) {
+    if (!el || !el.isConnected || typeof el.focus !== 'function') return;
+    if (modalite === 'pointeur' && el.dataset) { el.dataset.focusDoux = '1'; el.addEventListener('blur', () => { delete el.dataset.focusDoux; }, { once: true }); }
+    el.focus({ preventScroll: true });
+  }
   function marquerNav(v) {
     document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
     $('tabs').style.setProperty('--i', Math.max(0, NAV.indexOf(v)));
@@ -3058,7 +3080,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     requestAnimationFrame(() => {
       if (etat.route && etat.route.vue === 'messages') window.scrollTo(0, etat.scrollListe);
       const ligne = id && document.querySelector('[data-ouvrir="' + id.replace(/"/g, '') + '"]');
-      if (ligne) ligne.focus({ preventScroll: true }); else if (dec && dec.isConnected && dec.focus) dec.focus({ preventScroll: true });
+      if (ligne) rendreFocus(ligne); else rendreFocus(dec);
     });
   }
   async function rafraichirConv() {
@@ -4011,7 +4033,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('feuille').inert = true;
     synchroInert();
     const d = declencheur; declencheur = null;
-    if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
+    rendreFocus(d);
   }
   function montrerRefusFeuille(texte) { const e = $('g-erreur'); e.textContent = texte; e.hidden = false; }
   function effacerRefusFeuille() { const e = $('g-erreur'); e.textContent = ''; e.hidden = true; }
@@ -5732,13 +5754,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const l = Array.from(L.querySelectorAll('.deroule-choix'));
     (l.find(b => b.getAttribute('aria-checked') === 'true') || l[0]).focus({ preventScroll: true });
   }
-  function fermerDeroule(rendreFocus) {
+  function fermerDeroule(rendreFocusLigne) {
     const o = etat.deroule; if (!o) return;
     etat.deroule = null;
     const D = $('deroule');
     if (typeof D.hidePopover === 'function') try { D.hidePopover(); } catch (e) { /* déjà fermé */ }
     D.hidden = true; $('deroule-liste').innerHTML = '';
-    if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocus) o.declencheur.focus({ preventScroll: true }); }
+    if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocusLigne) rendreFocus(o.declencheur); }
   }
   $('deroule-liste').addEventListener('click', e => {
     const b = e.target.closest('.deroule-choix'), o = etat.deroule; if (!b || !o) return;
@@ -6337,7 +6359,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const d = etat.menu.declencheur; etat.menu = null;
     $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj'); $('menu-fond').classList.remove('pj');
     synchroInert();
-    if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
+    rendreFocus(d);
   }
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;

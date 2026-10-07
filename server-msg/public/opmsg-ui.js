@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '60c2688cc9ec';
+  const OPMSG_BUILD = 'ab12f89d8496';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 101;
+  const OPMSG_VERSION = 102;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -256,6 +256,20 @@
     const v = VUES[cle], sec = $('vue-' + cle);
     sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
+  }
+  /* le dernier geste : un doigt ou une souris (pointerdown), ou une touche de NAVIGATION (Tab, Échap, Entrée, flèches) — taper un texte ne compte pas */
+  let modalite = 'pointeur';
+  document.addEventListener('pointerdown', () => { modalite = 'pointeur'; }, true);
+  document.addEventListener('keydown', e => {
+    if (!/^(Tab|Escape|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Home|End|PageUp|PageDown)$/.test(e.key)) return;
+    modalite = 'clavier';
+    const a = document.activeElement; if (a && a.dataset && a.dataset.focusDoux && e.key === 'Tab') delete a.dataset.focusDoux;     // on se met à tabuler : l'anneau revient
+  }, true);
+  /* rendre le focus (la feuille fermée, la conversation quittée, le menu refermé) : après un geste au doigt ou à la souris, SANS anneau (voir la feuille de style) */
+  function rendreFocus(el) {
+    if (!el || !el.isConnected || typeof el.focus !== 'function') return;
+    if (modalite === 'pointeur' && el.dataset) { el.dataset.focusDoux = '1'; el.addEventListener('blur', () => { delete el.dataset.focusDoux; }, { once: true }); }
+    el.focus({ preventScroll: true });
   }
   function marquerNav(v) {
     document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
@@ -710,7 +724,7 @@
     requestAnimationFrame(() => {
       if (etat.route && etat.route.vue === 'messages') window.scrollTo(0, etat.scrollListe);
       const ligne = id && document.querySelector('[data-ouvrir="' + id.replace(/"/g, '') + '"]');
-      if (ligne) ligne.focus({ preventScroll: true }); else if (dec && dec.isConnected && dec.focus) dec.focus({ preventScroll: true });
+      if (ligne) rendreFocus(ligne); else rendreFocus(dec);
     });
   }
   async function rafraichirConv() {
@@ -1663,7 +1677,7 @@
     $('feuille').inert = true;
     synchroInert();
     const d = declencheur; declencheur = null;
-    if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
+    rendreFocus(d);
   }
   function montrerRefusFeuille(texte) { const e = $('g-erreur'); e.textContent = texte; e.hidden = false; }
   function effacerRefusFeuille() { const e = $('g-erreur'); e.textContent = ''; e.hidden = true; }
@@ -3384,13 +3398,13 @@
     const l = Array.from(L.querySelectorAll('.deroule-choix'));
     (l.find(b => b.getAttribute('aria-checked') === 'true') || l[0]).focus({ preventScroll: true });
   }
-  function fermerDeroule(rendreFocus) {
+  function fermerDeroule(rendreFocusLigne) {
     const o = etat.deroule; if (!o) return;
     etat.deroule = null;
     const D = $('deroule');
     if (typeof D.hidePopover === 'function') try { D.hidePopover(); } catch (e) { /* déjà fermé */ }
     D.hidden = true; $('deroule-liste').innerHTML = '';
-    if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocus) o.declencheur.focus({ preventScroll: true }); }
+    if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocusLigne) rendreFocus(o.declencheur); }
   }
   $('deroule-liste').addEventListener('click', e => {
     const b = e.target.closest('.deroule-choix'), o = etat.deroule; if (!b || !o) return;
@@ -3989,7 +4003,7 @@
     const d = etat.menu.declencheur; etat.menu = null;
     $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj'); $('menu-fond').classList.remove('pj');
     synchroInert();
-    if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
+    rendreFocus(d);
   }
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
