@@ -2279,6 +2279,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <button type="button" class="salle-pastille presse" id="salle-main" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-main"/></svg><span>Lever la main</span></button>
       <button type="button" class="salle-pastille presse" id="salle-vue"><svg class="ic" aria-hidden="true"><use href="#i-intervenant"/></svg><span>Intervenant</span></button>
       <button type="button" class="salle-pastille presse" id="salle-annoter" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg><span>Annoter</span></button>
+      <button type="button" class="salle-pastille presse" id="salle-partage-changer" hidden><svg class="ic" aria-hidden="true"><use href="#i-ecran"/></svg><span>Changer de fenêtre</span></button>
       <button type="button" class="salle-pastille presse" id="salle-rec-btn" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-rec"/></svg><span>Enregistrer</span></button>
     </div>
     <div class="salle-bas">
@@ -7975,6 +7976,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       bp.setAttribute('aria-pressed', A.ecran ? 'true' : 'false'); bp.setAttribute('aria-disabled', permis ? 'false' : 'true');
       bp.setAttribute('aria-label', A.ecran ? 'Arrêter le partage d\'écran' : permis ? 'Partager l\'écran' : 'Partager l\'écran (l\'hôte ne l\'autorise pas)');
       bp.querySelector('.salle-cmd-texte').textContent = A.ecran ? 'Arrêter' : 'Partager';
+      $('salle-partage-changer').hidden = !A.ecran;                                        // pendant le partage seulement : une autre fenêtre, sans arrêter
     }
     const bd = $('salle-discussion'); bd.hidden = !s.conv;
     const nl = X.neufs; $('salle-discussion-n').hidden = !nl; $('salle-discussion-n').textContent = nl > 9 ? '9+' : String(nl);
@@ -8344,6 +8346,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('salle-cam').addEventListener('click', basculerCamera);
   $('salle-flip').addEventListener('click', retournerCamera);
   $('salle-partage').addEventListener('click', () => basculerPartage());
+  $('salle-partage-changer').addEventListener('click', () => changerPartage());
   $('salle-quitter').addEventListener('click', () => {
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;
@@ -8764,6 +8767,27 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       t.addEventListener('ended', () => { if (A.ecran === t && !A.fini) arreterPartage(A); });
       pousserPistes(A); avisAppelEffacer(); rendreAppel(); annonceAppel('Partage d\'écran commencé');
     } catch (e) { if (!perime(A) && e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') avisAppel('Le partage d\'écran n\'a pas pu démarrer.'); }       // fermer la fenêtre de choix n'est pas une panne
+    finally { A.partageEnCours = false; }
+  }
+  /* ⛔ CHANGER DE FENÊTRE SANS ARRÊTER (8 octobre 2026 : « pouvoir changer de fenêtre quand on veut sans arrêter le partage ») : le choix de l'appareil se rouvre ; la nouvelle piste REMPLACE
+     l'ancienne chez les autres (le même émetteur, aucune renégociation : `appelPistes`), puis l'ancienne s'arrête — personne ne voit le partage s'interrompre. Fermer le choix garde la fenêtre
+     d'avant. Les annotations posées sur l'ancienne fenêtre s'effacent (elles tomberaient sur autre chose), quand on en a le droit — comme Zoom. */
+  async function changerPartage() {
+    const A = etat.appelUI; if (!enSalle(A) || !A.ecran || A.partageEnCours) return;
+    A.partageEnCours = true;
+    try {
+      const f = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const t = f.getVideoTracks()[0];
+      if (perime(A) || !A.ecran || !t) { f.getTracks().forEach(x => x.stop()); return; }
+      const ancien = A.ecran;
+      A.ecran = t; A.pistes = A.pistes.filter(x => x !== ancien); A.pistes.push(t);
+      t.addEventListener('ended', () => { if (A.ecran === t && !A.fini) arreterPartage(A); });
+      pousserPistes(A);
+      try { ancien.stop(); } catch (e) { /* déjà arrêtée */ }
+      const an = source.salleAnnotations && source.salleAnnotations(A.id);
+      if (an && an.items && an.items.length && annotMaitre(A)) annotEnvoyer(A, { op: 'effacer', qui: 'tous' }).then(() => { if (!perime(A)) annotPlanifier(); });
+      rendreAppel(); annonceAppel('Une autre fenêtre est partagée');
+    } catch (e) { if (!perime(A) && e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') avisAppel('L\'autre fenêtre n\'a pas pu être partagée : le partage en cours continue.'); }
     finally { A.partageEnCours = false; }
   }
   function arreterPartage(A) {

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '82e65a833bb5';
+  const OPMSG_BUILD = '091f8c87942e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 108;
+  const OPMSG_VERSION = 109;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5565,6 +5565,7 @@
       bp.setAttribute('aria-pressed', A.ecran ? 'true' : 'false'); bp.setAttribute('aria-disabled', permis ? 'false' : 'true');
       bp.setAttribute('aria-label', A.ecran ? 'Arrêter le partage d\'écran' : permis ? 'Partager l\'écran' : 'Partager l\'écran (l\'hôte ne l\'autorise pas)');
       bp.querySelector('.salle-cmd-texte').textContent = A.ecran ? 'Arrêter' : 'Partager';
+      $('salle-partage-changer').hidden = !A.ecran;                                        // pendant le partage seulement : une autre fenêtre, sans arrêter
     }
     const bd = $('salle-discussion'); bd.hidden = !s.conv;
     const nl = X.neufs; $('salle-discussion-n').hidden = !nl; $('salle-discussion-n').textContent = nl > 9 ? '9+' : String(nl);
@@ -5934,6 +5935,7 @@
   $('salle-cam').addEventListener('click', basculerCamera);
   $('salle-flip').addEventListener('click', retournerCamera);
   $('salle-partage').addEventListener('click', () => basculerPartage());
+  $('salle-partage-changer').addEventListener('click', () => changerPartage());
   $('salle-quitter').addEventListener('click', () => {
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;
@@ -6354,6 +6356,27 @@
       t.addEventListener('ended', () => { if (A.ecran === t && !A.fini) arreterPartage(A); });
       pousserPistes(A); avisAppelEffacer(); rendreAppel(); annonceAppel('Partage d\'écran commencé');
     } catch (e) { if (!perime(A) && e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') avisAppel('Le partage d\'écran n\'a pas pu démarrer.'); }       // fermer la fenêtre de choix n'est pas une panne
+    finally { A.partageEnCours = false; }
+  }
+  /* ⛔ CHANGER DE FENÊTRE SANS ARRÊTER (8 octobre 2026 : « pouvoir changer de fenêtre quand on veut sans arrêter le partage ») : le choix de l'appareil se rouvre ; la nouvelle piste REMPLACE
+     l'ancienne chez les autres (le même émetteur, aucune renégociation : `appelPistes`), puis l'ancienne s'arrête — personne ne voit le partage s'interrompre. Fermer le choix garde la fenêtre
+     d'avant. Les annotations posées sur l'ancienne fenêtre s'effacent (elles tomberaient sur autre chose), quand on en a le droit — comme Zoom. */
+  async function changerPartage() {
+    const A = etat.appelUI; if (!enSalle(A) || !A.ecran || A.partageEnCours) return;
+    A.partageEnCours = true;
+    try {
+      const f = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+      const t = f.getVideoTracks()[0];
+      if (perime(A) || !A.ecran || !t) { f.getTracks().forEach(x => x.stop()); return; }
+      const ancien = A.ecran;
+      A.ecran = t; A.pistes = A.pistes.filter(x => x !== ancien); A.pistes.push(t);
+      t.addEventListener('ended', () => { if (A.ecran === t && !A.fini) arreterPartage(A); });
+      pousserPistes(A);
+      try { ancien.stop(); } catch (e) { /* déjà arrêtée */ }
+      const an = source.salleAnnotations && source.salleAnnotations(A.id);
+      if (an && an.items && an.items.length && annotMaitre(A)) annotEnvoyer(A, { op: 'effacer', qui: 'tous' }).then(() => { if (!perime(A)) annotPlanifier(); });
+      rendreAppel(); annonceAppel('Une autre fenêtre est partagée');
+    } catch (e) { if (!perime(A) && e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') avisAppel('L\'autre fenêtre n\'a pas pu être partagée : le partage en cours continue.'); }
     finally { A.partageEnCours = false; }
   }
   function arreterPartage(A) {

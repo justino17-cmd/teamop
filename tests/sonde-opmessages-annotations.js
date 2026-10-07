@@ -31,7 +31,8 @@ const ECRAN = () => {
   const md = navigator.mediaDevices; if (!md) return;
   md.getDisplayMedia = async function () {
     const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720; const g = cv.getContext('2d'); let k = 0;
-    const dessiner = () => { k++; g.fillStyle = '#243b6b'; g.fillRect(0, 0, 1280, 720); g.fillStyle = '#ffffff'; g.fillRect(80 + (k % 20) * 4, 80, 300, 40); };
+    const fond = (window.__ecranN = (window.__ecranN || 0) + 1) % 2 ? '#243b6b' : '#8a1c1c';          // la seconde fenêtre choisie est ROUGE : « Changer de fenêtre » se voit chez les autres
+    const dessiner = () => { k++; g.fillStyle = fond; g.fillRect(0, 0, 1280, 720); g.fillStyle = '#ffffff'; g.fillRect(80 + (k % 20) * 4, 80, 300, 40); };
     dessiner(); const iv = setInterval(dessiner, 100);
     const f = cv.captureStream(10); f.getTracks().forEach(t => { const arret = t.stop.bind(t); t.stop = function () { clearInterval(iv); arret(); }; });
     return f;
@@ -169,8 +170,20 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     vrai('rendu à tous : « Annoter » revient chez Cléo', await att(C, visible, 'salle-annoter'));
     await A.page.locator('#salle-panneau-fermer').click();
 
+    console.log('\n3 bis. Ben change de fenêtre sans arrêter (8 octobre 2026)');
+    const pxBen = (S) => S.page.evaluate((uid) => { const v = document.querySelector('#salle-scene .salle-tuile[data-uid="' + uid + '"] video'); if (!v || !v.videoWidth) return null; const c = document.createElement('canvas'); c.width = 8; c.height = 8; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 8, 8); const d = g.getImageData(1, 6, 1, 1).data; return [d[0], d[1], d[2]]; }, B0.moi.id);
+    const bleuAvant = await pxBen(A);
+    vrai('population : Ana voit la fenêtre de Ben (bleue), et « Changer de fenêtre » n\'est proposé qu\'à Ben', !!bleuAvant && bleuAvant[2] > bleuAvant[0] && await B.page.evaluate(() => !document.getElementById('salle-partage-changer').hidden) && await A.page.evaluate(() => document.getElementById('salle-partage-changer').hidden), JSON.stringify(bleuAvant));
+    vrai('population : il y a des annotations sur la fenêtre de Ben', await att(C, () => +(document.querySelector('.annot-calque') || {}).dataset.n > 0));
+    await B.page.locator('#salle-partage-changer').click();
+    let rougeApres = null; for (let i = 0; i < 40; i++) { rougeApres = await pxBen(A); if (rougeApres && rougeApres[0] > rougeApres[2] + 40) break; await A.page.waitForTimeout(150); }
+    vrai('⛔ « Changer de fenêtre » : Ana voit la NOUVELLE fenêtre (rouge) dans la même vignette', !!rougeApres && rougeApres[0] > rougeApres[2] + 40, JSON.stringify(rougeApres));
+    v('⛔ …sans que le partage s\'arrête : Ben partage toujours (« Arrêter »), le calque est toujours sur sa vignette chez Ana', [await B.page.evaluate(() => document.querySelector('#salle-partage .salle-cmd-texte').textContent), await A.page.evaluate(() => !!document.querySelector('.salle-tuile .annot-calque'))], ['Arrêter', true]);
+    vrai('…et les annotations de l\'ancienne fenêtre sont effacées (elles tomberaient sur autre chose)', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '0'));
+
     console.log('\n4. Ben arrête de partager');
     await B.page.locator('#salle-partage').click();
+    vrai('chez Ben, « Changer de fenêtre » s\'efface avec le partage', await att(B, () => document.getElementById('salle-partage-changer').hidden));
     vrai('chez Ana : la barre d\'outils et le calque s\'en vont, « Annoter » disparaît, la vue revient en galerie', await att(A, () => document.getElementById('annot-barre').hidden && !document.querySelector('.annot-calque')?.isConnected && document.getElementById('salle-annoter').hidden && document.getElementById('salle-scene').dataset.vue === 'galerie'));
 
     console.log('\n5. Le tableau blanc');
