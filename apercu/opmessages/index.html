@@ -765,6 +765,8 @@ button.photo:active { transform: scale(.97); }
 .compo-invit-gestes .accepter { background: var(--fill); color: var(--on-fill); }
 .compo-invit-gestes .bloquer { color: var(--rouge-txt); }
 .compo-invit-gestes [aria-disabled="true"] { opacity: .55; }
+/* une invitation qui attend : du texte seul (le service refuse photos, fichiers, vocaux et cartes) — le « + », l'appareil photo et le micro s'effacent */
+.compo-ligne.texte-seul .compo-plus, .compo-ligne.texte-seul .compo-camera, .compo-ligne.texte-seul .compo-micro { display: none; }
 .compo-note { margin: 0 auto 6px; max-width: 860px; padding: 0 12px; font-size: 13px; line-height: 17px; color: var(--sub-meta); text-align: center; }
 /* « Invitations » en tête de la liste (comme « Archivées » chez WhatsApp), et l'en-tête de la liste des invitations */
 .av-invit { display: grid; place-items: center; background: var(--fill); color: var(--on-fill); }
@@ -2832,7 +2834,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       document.querySelectorAll('#compo-invit [data-invit="accepter"], #compo-invit [data-invit="refuser"]').forEach(b => { b.hidden = iv === 'refusee'; });
     }
     $('compo-note').hidden = iv !== 'envoyee' || ferme;
-    if (iv === 'envoyee') $('compo-note').textContent = 'Invitation : ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + ' trouvera ton message dans ses invitations, et choisira d\'y répondre.';
+    $('compo').classList.toggle('texte-seul', iv === 'envoyee');
+    if (iv === 'envoyee') $('compo-note').textContent = 'Invitation : ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + ' trouvera ton message dans ses invitations, et choisira d\'y répondre. D\'ici là : du texte seul, cinq messages au plus.';
     appliquerLecture();
     if (colle) defilerBas();
   }

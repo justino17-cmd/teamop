@@ -60,7 +60,7 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc', dan: 'Dan B
     console.log('\n2. Ben touche « Écrire » : la directe s\'ouvre, l\'invitation est dite, il écrit');
     await B.page.locator('#conv-messages .carte-msg.fiche', { hasText: 'Cléo' }).locator('[data-fiche-ecrire-carte]').tap();
     vrai('la conversation avec Cléo s\'ouvre', await att(B, () => /Cléo/.test(document.getElementById('conv-titre') ? document.getElementById('conv-titre').textContent : document.querySelector('.conv-entete, #conv-ecran').textContent) && document.documentElement.dataset.conv === '1'));
-    vrai('une ligne dit l\'invitation, le champ est là', await att(B, () => { const n = document.getElementById('compo-note'); return !n.hidden && /Invitation/.test(n.textContent) && !document.getElementById('compo').hidden; }));
+    vrai('une ligne dit l\'invitation (texte seul, cinq messages), le champ est là — sans « + », appareil photo ni micro', await att(B, () => { const n = document.getElementById('compo-note'); const vis = id => { const e = document.getElementById(id); return !!e && e.getClientRects().length > 0; }; return !n.hidden && /Invitation/.test(n.textContent) && /cinq messages/.test(n.textContent) && !document.getElementById('compo').hidden && vis('saisie') && !vis('compo-plus') && !vis('compo-micro') && !vis('compo-camera'); }));
     await ecrireMsg(B, 'Bonjour Cléo, c\'est Ben du chantier Nord.');
     vrai('le message part (chez Ben)', await att(B, () => Array.from(document.querySelectorAll('#conv-messages .msg.de-moi')).some(m => /chantier Nord/.test(m.textContent) && !/En attente/.test(m.textContent))));
     await capture(B, 'invit-2-ben-ecrit');

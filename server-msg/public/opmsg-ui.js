@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a14f1d449c1a';
+  const OPMSG_BUILD = 'b9ccae3c63fb';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 83;
+  const OPMSG_VERSION = 84;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -581,7 +581,8 @@
       document.querySelectorAll('#compo-invit [data-invit="accepter"], #compo-invit [data-invit="refuser"]').forEach(b => { b.hidden = iv === 'refusee'; });
     }
     $('compo-note').hidden = iv !== 'envoyee' || ferme;
-    if (iv === 'envoyee') $('compo-note').textContent = 'Invitation : ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + ' trouvera ton message dans ses invitations, et choisira d\'y répondre.';
+    $('compo').classList.toggle('texte-seul', iv === 'envoyee');
+    if (iv === 'envoyee') $('compo-note').textContent = 'Invitation : ' + ((c.court || c.nom || '').split(' ')[0] || 'cette personne') + ' trouvera ton message dans ses invitations, et choisira d\'y répondre. D\'ici là : du texte seul, cinq messages au plus.';
     appliquerLecture();
     if (colle) defilerBas();
   }
