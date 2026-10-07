@@ -13,6 +13,42 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (FIN DE SOIRÉE) — L'INVITATION À ÉCRIRE, LE TABLEAU DE BORD PRO, LES VOTANTS D'UN SONDAGE, « PUBLIER » DANS LA TOUR (OP MESSAGES bêta, Tour v2.86, serveur d'OP GESTION) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Cinq demandes de Justin, captures à l'appui, dans l'ordre :
+· **Votants d'un sondage** (« voir les bulles des personnes qui votent, et voir tous ceux qui votent ») : sur chaque choix, les bulles empilées (trois, puis « +n », la mienne d'abord,
+  une initiale à 24 px) ; « Voir les votes » (« Voir les résultats » si anonyme) ouvre une feuille : chaque choix, son décompte, ses votants. ⛔ Anonyme : ni bulle ni nom, nulle part
+  (la source ne reçoit aucun identifiant). `sonde-opmessages-cartes` 47 ✓.
+· **Bureau plus gros** (« il faudrait que ça soit plus gros », deux fois) : Réglages (15 px, lignes de 48 px, interrupteur 44 × 26), barre latérale (15 px, lignes de 40 px, icônes de
+  20 px), et la même densité pour la liste, la conversation, la saisie, la recherche — la couche bureau restait à 13 px (la taille du Mac), illisible chez Justin.
+· **Bug d'affichage en envoyant des photos** (bureau) : une vraie photo s'affichait à sa taille, coupée (la grille de l'aperçu n'avait pas de piste définie) ; le champ de légende,
+  mesuré caché, était coupé en deux. `sonde-opmessages-legende` joue désormais des photos plus grandes que l'écran : 6 ✗ avant, 44 ✓ après.
+· **Écrire à la personne d'une fiche reçue, qui n'est pas un contact — « Invitations » dans Messages** (migration 19, `demande_contact.message`) : une invitation EST une demande de
+  contact qui porte une directe. `/api/contacts/ecrire_carte` (les preuves et plafonds de « Ajouter ») ; `invitationEtat(conv, uid)` — 'envoyee' (j'écris : TEXTE SEUL, 5 messages
+  au plus), 'recue' (je lis ; Accepter = un contact, Refuser = muet, Bloquer), 'refusee' (caché de ma liste). ⛔ L'auteur ne sait pas si c'est lu (ni lu_seq, ni « lu », ni suivi
+  de pièce), n'obtient pas le profil (premier mot du prénom, rien d'autre — /api/personnes reste 404), ne sait pas s'il est refusé ; une invitation retirée reste cachée ; la
+  fiche d'une personne qui m'a bloqué se lit « introuvable » ; pas de push pour l'invitée. Page : « Écrire » + « Ajouter » sur la fiche, la ligne « Invitations · n » en tête de
+  la liste, la sous-liste, la bannière « Invitation · <nom> ». `test-928` (47 ✓ ; 9 + 9 mutations, toutes mordent), `sonde-opmessages-invitations` (22 ✓, 3 mutations).
+· **Tableau de bord « côté pro »** : un onglet « Accueil » (« Tableau de bord » au bureau), EN TÊTE, pour qui fait partie d'un espace ou a Messages Pro (⚠️ sur la bêta,
+  `formule.toutOuvert` rend TOUT LE MONDE Pro : tout le monde l'y voit). Réunions prévues (7 jours), Rappels (aujourd'hui + ce qui porte un rappel), Appels manqués IMPORTANTS
+  (raison écrite : a appelé 2 fois ou plus, favori, collègue d'un espace — et seulement s'ils n'ont pas été rendus). `sonde-opmessages-tableau-bord` (17 ✓, formule de production).
+· **« Publier » dans la Tour** (v2.86, serveur d'OP GESTION) : `POST /api/monitor/messages/publier` (patron) lit le commit que SERT la bêta, lance `deploiement-messages.yml`
+  (prod, ce commit), suit le run et approuve `msg-prod` au nom du patron une fois les bancs passés. ⛔ La Tour envoie le commit AFFICHÉ (la bêta a changé → 409) ; l'état se pose
+  avant la première attente (un double clic = un lancement) ; le run adopté porte « Publier prod <commit> » (`run-name` du workflow) ; un lien hors github.com n'est pas gardé.
+  `test-851` (28 ✓ ; 4 mutations mordent), entré dans `bancs-serveur.liste`.
+⚠️ Ce qu'il FAUT sur le VPS pour que « Publier » marche : `config.github.token` capable de lancer un workflow (Actions : écriture) ET d'approuver `msg-prod` (son propriétaire en est
+relecteur). Sans jeton, la carte le dit (503) et la publication se lance à la main dans GitHub.
+Relecture `gardien` (deux passes de mutations) : 1 bloquant (le profil de l'invitée) + 7 « à corriger », tous corrigés et gardés par un banc. ⛔ Pendant cette relecture, l'agent a
+lancé `git checkout` sur un fichier NON COMMITÉ (le tableau de bord, réécrit depuis) — la consigne « ne modifie rien » ne l'en a pas empêché, c'est la règle de CLAUDE.md :
+commiter avant de laisser un agent à `Bash` travailler sur le même arbre.
+✅ **test-904 (tombé en CI sur #98) : racine trouvée et rejouée.** La relecture bêta part de 127.0.0.1 vers `/api/beta/etat` d'OP GESTION (route SENSIBLE : 20/min/adresse) ;
+le banc la réglait à 250 ms (240/min). Sept secondes en local : passait ; trente en CI : 429. Une copie ralentie de 25 s tombait pareil ; 3,5 s et une adresse propre aux appels
+du banc la font passer. La production relit toutes les 60 s. Et `test-978` mourait (sa copie de `blocVersionsMsg` appelle désormais `blocPublierMsg`) : nourri, 41 ✓.
+⏳ Demandé, à faire ensuite : **« Message » pendant un appel ne doit plus raccrocher** (l'appel continue, une barre « Revenir à l'appel ») ; **un réglage « Confirmer l'envoi »**
+côté pro (jamais / groupes et canaux / partout ; une barre de confirmation au-dessus du champ, Entrée deux fois au bureau) — proposé à Justin, pas encore tranché entre
+confirmation et « annuler l'envoi » façon Gmail (parti sur la confirmation).
+Reste ouvert : les invitations n'expirent pas ; `invitationEtat` coûte jusqu'à 5 requêtes par directe dans la liste (à surveiller sur une grosse liste).
+
 # ⏳ 7 OCTOBRE 2026 (NUIT) — LE « + » DES PIÈCES JOINTES, POSITION, FICHE D'UN CONTACT, SONDAGES À RÈGLES, THÈME D'UNE CONVERSATION (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin, captures de WhatsApp à l'appui : « pouvoir sélectionner plusieurs photos ; la localisation s'il l'active dans les paramètres — c'est une sécurité pour eux ; partager des
