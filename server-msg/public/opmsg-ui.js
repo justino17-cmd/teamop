@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '7287cb4b1f94';
+  const OPMSG_BUILD = '52f741ddf28a';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 68;
+  const OPMSG_VERSION = 70;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -832,7 +832,7 @@
     if (etat.menu || !etat.conv) return;
     etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now() };
     const M = $('menu-msg');
-    M.setAttribute('aria-label', 'Joindre'); M.classList.add('pj');
+    M.setAttribute('aria-label', 'Joindre'); M.classList.add('pj'); $('menu-fond').classList.add('pj');   // le fond le sait aussi : à la souris, un menu ancré au « + », sans voile
     M.innerHTML = tuilesPlus().map(x => '<button type="button" class="pj-tuile presse" data-plus="' + x[0] + '"><span class="pj-disque" aria-hidden="true">' + icone(x[2]) + '</span><span>' + esc(x[1]) + '</span></button>').join('');
     $('menu-fond').hidden = false;
     synchroInert();
@@ -3667,7 +3667,7 @@
   function fermerMenu() {
     if (!etat.menu) return;
     const d = etat.menu.declencheur; etat.menu = null;
-    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj');
+    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj'); $('menu-fond').classList.remove('pj');
     synchroInert();
     if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }

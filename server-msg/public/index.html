@@ -1106,6 +1106,21 @@ html[data-service] .mention-apercu { display: none; }
 [data-plus="fichier"] > .pj-disque { background: #5e5ce6; }
 [data-plus="sondage"] > .pj-disque { background: #ff9f0a; }
 @media (hover: hover) { .pj-tuile:hover { background: var(--field); } }
+/* ⛔ À LA SOURIS, LE « + » OUVRE UN MENU QUI SORT DU BOUTON (capture à l'appui, 7 octobre 2026 : « quand je clique sur le +, il faudrait pas que ça se mette comme ça ») —
+   une liste comme celle de Messages sur Mac, collée au « + », sans voile sur la conversation ; jamais une fenêtre au milieu de l'écran. Ancré en CSS au bouton (`anchor-name`),
+   sans rien mesurer ; un navigateur qui ne sait pas ancrer le pose en bas à gauche de la conversation. Au doigt, la grille reste la feuille du bas. */
+@media (hover: hover) and (pointer: fine) {
+  .compo-plus { anchor-name: --plus-pj; }
+  .menu-fond.pj { display: block; padding: 0; background: transparent; }
+  .menu-fond.pj .menu-msg { position: fixed; left: 16px; bottom: 64px; width: 230px; max-width: calc(100vw - 32px); border-radius: 14px; padding: 6px; grid-template-columns: 1fr; gap: 0;
+    box-shadow: 0 10px 34px rgba(0,0,0,.24), 0 0 0 .5px rgba(0,0,0,.08); transform-origin: 14px 100%; animation: pj-sort .18s cubic-bezier(.2,.8,.2,1) both; }
+  @supports (anchor-name: --plus-pj) { .menu-fond.pj .menu-msg { position-anchor: --plus-pj; left: anchor(left); bottom: anchor(top); margin: 0 0 8px -4px; position-try-fallbacks: flip-block; } }
+  .menu-fond.pj .pj-tuile { min-height: 36px; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 4px 10px 4px 6px; border-radius: 8px; font-size: 14px; line-height: 18px; }
+  .menu-fond.pj .pj-disque { width: 26px; height: 26px; }
+  .menu-fond.pj .pj-disque .ic { width: 15px; height: 15px; stroke-width: 2.2; }
+  .menu-fond.pj .pj-tuile:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+}
+@keyframes pj-sort { from { opacity: 0; transform: scale(.92) translateY(6px); } to { opacity: 1; transform: none; } }
 @media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
 
 /* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
