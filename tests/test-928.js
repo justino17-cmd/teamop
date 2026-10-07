@@ -112,6 +112,17 @@ const NOMS = ['alice', 'bruno', 'carla', 'dave', 'eve', 'fanny'];
     const sF3 = (await A.post('/api/conversations/' + G3 + '/messages', { cid: cid(), type: 'contact', uid: F.moi.id })).j.seq;
     v('Dave demande Fanny (« Ajouter », pas « Écrire ») : demande envoyée', (await D.post('/api/contacts/demander_carte', { conv: G3, seq: sF3 })).j.resultat, 'envoyee');
     v('⛔ …et ne peut pas ouvrir de directe avec elle (404)', (await D.post('/api/conversations/directe', { uid: F.moi.id })).code, 404);
+    /* ⛔ une directe d'AVANT (deux anciens contacts) ne se rouvre pas par une demande ordinaire : seule une invitation (« Écrire ») donne le droit d'y écrire — mutation M9 */
+    await relier(C, F);
+    const CF = (await C.post('/api/conversations/directe', { uid: F.moi.id })).j.conversation.id;
+    v('population : Carla et Fanny, contacts, s\'écrivent', (await dire(C, CF, 'Coucou')).code, 201);
+    await F.post('/api/contacts/retirer', { uid: C.moi.id });
+    v('Fanny retire Carla : Carla ne peut plus écrire dans leur directe (404)', (await dire(C, CF, 'Encore là ?')).code, 404);
+    const GF = (await A.post('/api/conversations/groupe', { nom: 'Quai', membres: [C.moi.id] })).j.conversation.id;
+    const sF = (await A.post('/api/conversations/' + GF + '/messages', { cid: cid(), type: 'contact', uid: F.moi.id })).j.seq;
+    v('Carla redemande Fanny (« Ajouter ») : demande envoyée', (await C.post('/api/contacts/demander_carte', { conv: GF, seq: sF })).j.resultat, 'envoyee');
+    v('⛔ …une demande ordinaire ne rouvre PAS leur directe (404), et ce n\'est pas une invitation', [(await dire(C, CF, 'Tu m\'acceptes ?')).code, (await detail(C, CF)).conversation.invitation], [404, undefined]);
+    v('« Écrire » depuis la fiche la change en invitation : Carla écrit (201)', [(await ecrire(C, { conv: GF, seq: sF })).j.conv, (await dire(C, CF, 'C\'est Carla')).code], [CF, 201]);
   } catch (e) {
     vrai('le banc est mort : ' + (e && e.stack || e), false);
   } finally {
