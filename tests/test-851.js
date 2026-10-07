@@ -134,7 +134,7 @@ function serveur(traiter) {
     const lancement = G.demandes.find(d => d.m === 'POST' && /dispatches$/.test(d.u));
     v('la demande à GitHub : la route du workflow, le jeton du serveur, `main`, la production, CE commit', [!!lancement, lancement && lancement.auth, lancement && lancement.j], [true, 'Bearer jeton-du-banc-851', { ref: 'main', inputs: { cible: 'prod', sha: SHA_BETA, retour: 'false' } }]);
     v('⛔ une seconde publication pendant celle-ci : 409', (await publier(H)).code, 409);
-    vrai('pendant les bancs : « tests », avec le lien du déploiement', !!(await T.attendre(async () => { const p = (await versions()).publication; return p && p.etat === 'tests' && /run\//.test(p.url); }, 8000, 50)));
+    vrai('pendant les bancs : « tests », avec le lien du déploiement', !!(await T.attendre(async () => { const p = (await versions()).publication; return p && p.etat === 'tests' && /\/actions\/runs\/\d+$/.test(p.url); }, 8000, 50)));
     vrai('les bancs passés, le job attend msg-prod : approuvé au nom de Justin, puis EN LIGNE', !!(await T.attendre(async () => (await versions()).publication.etat === 'en_ligne', 10000, 50)));
     v('⛔ une seule approbation, pour l\'environnement msg-prod (77), « approved », au nom de Justin', [G.approbations.length, G.approbations[0] && G.approbations[0].environment_ids, G.approbations[0] && G.approbations[0].state, /Justin/.test(G.approbations[0] && G.approbations[0].comment || '')], [1, [77], 'approved', true]);
     v('⛔ le leurre (un autre lancement du même workflow, plus récent, listé d\'abord) n\'a jamais été suivi ni approuvé', [G.leurre || 0, G.demandes.some(d => /\/actions\/runs\/9999/.test(d.u))], [0, false]);
@@ -170,7 +170,7 @@ function serveur(traiter) {
     vrai('⛔ les bancs tombent : « échec » (rien n\'a été approuvé)', !!(await T.attendre(async () => (await versions()).publication.etat === 'echec', 8000, 50)) && G.approbations.length === 1);
     G.deroule = [['in_progress'], ['waiting']]; G.peutApprouver = false;
     r = await publier(H);
-    vrai('un jeton qui ne peut pas approuver : « à approuver », avec le lien où le faire — rien n\'est approuvé à sa place', !!(await T.attendre(async () => { const p = (await versions()).publication; return p.etat === 'a_approuver' && /run\//.test(p.url); }, 8000, 50)) && G.approbations.length === 1);
+    vrai('un jeton qui ne peut pas approuver : « à approuver », avec le lien où le faire — rien n\'est approuvé à sa place', !!(await T.attendre(async () => { const p = (await versions()).publication; return p.etat === 'a_approuver' && /\/actions\/runs\/\d+$/.test(p.url); }, 8000, 50)) && G.approbations.length === 1);
     v('…et tant qu\'elle attend, pas de seconde publication (409)', (await publier(H)).code, 409);
     vrai('⛔ le jeton du serveur ne paraît ni dans les réponses de la Tour ni dans le journal', !JSON.stringify(await versions()).includes('jeton-du-banc') && !og.sortie().includes('jeton-du-banc'));
   } catch (e) {
