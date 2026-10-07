@@ -1632,10 +1632,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
 .bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
 .carte-liste > li.bord-jour::after { display: none; }
-.bord-raison { display: inline-block; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
+.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
 .bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .bord-vide button { min-height: 44px; padding: 0 14px; border-radius: 22px; font-size: 15px; font-weight: 600; background: var(--field); color: var(--accent); }
 #bord-appels { --sep-retrait: 66px; }
+#vue-accueil .carte-liste { margin-bottom: 24px; }          /* trois blocs : l'intertitre du suivant ne colle pas à la carte d'avant */
 .reunion-li { display: flex; align-items: center; }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }

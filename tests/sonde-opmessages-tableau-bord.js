@@ -53,8 +53,9 @@ function localDans(t, tz) {
     const t0 = Math.ceil((Date.now() + 2 * H) / (15 * 60000)) * 15 * 60000;
     const reu = await P.ana.post('/api/reunions', { titre: 'Point chantier WQXZ', lieu: 'Dépôt', debut: localDans(t0, PARIS), fin: localDans(t0 + H, PARIS), tz: PARIS, invites: [P.cleo.moi.id], notifier: false });
     v('population : la réunion est programmée', reu.code, 201);
-    const demain10 = (() => { const d = new Date(Date.now() + JOUR); d.setHours(10, 0, 0, 0); return d.getTime(); })();
-    const evt = await P.ana.post('/api/agenda', { titre: 'Rappeler le fournisseur WQXZ', debut: localDans(demain10, PARIS), fin: localDans(demain10 + H / 2, PARIS), tz: PARIS, rappel: 30 });
+    /* demain à midi, À PARIS (l'heure locale part telle quelle, avec son fuseau) : pas aujourd'hui — il n'entre au tableau que par son RAPPEL */
+    const demainParis = localDans(Date.now() + JOUR, PARIS).slice(0, 10);
+    const evt = await P.ana.post('/api/agenda', { titre: 'Rappeler le fournisseur WQXZ', debut: demainParis + 'T12:00', fin: demainParis + 'T12:30', tz: PARIS, rappel: 30 });
     v('population : l\'événement de demain, avec un rappel', evt.code, 201);
     /* des appels manqués : Ben une fois, Cléo une fois, Dan deux fois d'affilée — chacun raccroche avant qu'Ana réponde */
     const manquer = async (X) => { const r = await X.post('/api/appels', { uid: P.ana.moi.id, type: 'audio' }); if (r.code !== 201) return r.code; return (await X.post('/api/appels/' + r.j.appel.id + '/quitter', {})).code; };
@@ -78,16 +79,18 @@ function localDans(t, tz) {
 
     console.log('\n1. Qui a le tableau de bord');
     const B = await ouvrir('ben', TEL), A = await ouvrir('ana', TEL);
-    const onglets = (X) => X.page.evaluate(() => Array.from(document.querySelectorAll('#tabs .tab')).map(t => t.textContent.trim()));
+    const onglets = (X) => X.page.evaluate(() => Array.from(document.querySelectorAll('#tabs .tab')).map(t => t.querySelector('span').textContent.trim()));      // le libellé seul (pas le compteur caché de Contacts)
     v('⛔ Ben (Perso, aucun espace) : pas d\'« Accueil » (population : ses quatre onglets)', await onglets(B), ['Messages', 'Contacts', 'Appels', 'Agenda']);
     v('Ana (un espace abonné) : « Accueil » EN TÊTE', await onglets(A), ['Accueil', 'Messages', 'Contacts', 'Appels', 'Agenda']);
     await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
     vrai('Ana touche « Accueil » : « Tableau de bord » et la date', await att(A, () => !document.getElementById('vue-accueil').hidden && document.getElementById('titre-accueil').textContent === 'Tableau de bord' && document.getElementById('bord-date').textContent.length > 5));
 
     console.log('\n2. Les réunions prévues');
-    vrai('la réunion d\'Ana paraît, sous « Aujourd\'hui »', await att(A, () => { const l = document.getElementById('bord-reunions'); return /Aujourd'hui/.test(l.textContent) && /Point chantier WQXZ/.test(l.textContent); }));
+    /* l'intertitre attendu se CALCULE (à Paris) : la réunion, dans deux heures, peut tomber demain si la sonde tourne le soir */
+    const jourDe = (t) => localDans(t, PARIS).slice(0, 10), libelle = (t) => jourDe(t) === jourDe(Date.now()) ? 'Aujourd\'hui' : jourDe(t) === jourDe(Date.now() + JOUR) ? 'Demain' : null;
+    vrai('la réunion d\'Ana paraît, sous « ' + libelle(t0) + ' »', await att(A, (lb) => { const l = document.getElementById('bord-reunions'); const j = l.querySelector('.bord-jour'); return !!j && j.textContent === lb && /Point chantier WQXZ/.test(l.textContent); }, libelle(t0)));
     console.log('\n3. Les rappels');
-    vrai('l\'événement de demain, avec son rappel, sous « Demain »', await att(A, () => { const l = document.getElementById('bord-rappels'); return /Demain/.test(l.textContent) && /Rappeler le fournisseur WQXZ/.test(l.textContent) && /Rappel 30 min avant/.test(l.textContent); }));
+    vrai('l\'événement de demain, avec son rappel, sous « Demain »', await att(A, () => { const l = document.getElementById('bord-rappels'); const j = l.querySelector('.bord-jour'); return !!j && j.textContent === 'Demain' && /Rappeler le fournisseur WQXZ/.test(l.textContent) && /Rappel 30 min avant/.test(l.textContent); }));
 
     console.log('\n4. Les appels manqués IMPORTANTS');
     vrai('population : la liste des appels est lue', await att(A, () => !/Chargement/.test(document.getElementById('bord-appels').textContent)));
