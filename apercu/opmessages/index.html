@@ -1628,6 +1628,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }
 .salle-panneau-corps { display: block; }
+/* LE TABLEAU DE BORD (côté pro) : la date sous le grand titre, un intertitre de jour dans la liste des réunions, la raison d'un appel « important » */
+.bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
+.bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
+.carte-liste > li.bord-jour::after { display: none; }
+.bord-raison { display: inline-block; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
+.bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.bord-vide button { min-height: 44px; padding: 0 14px; border-radius: 22px; font-size: 15px; font-weight: 600; background: var(--field); color: var(--accent); }
+#bord-appels { --sep-retrait: 66px; }
 .reunion-li { display: flex; align-items: center; }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
@@ -1986,6 +1994,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
     </section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
+    <section class="vue" id="vue-accueil" aria-labelledby="titre-accueil" hidden></section>
     <section class="vue" id="vue-reglages" aria-labelledby="titre-reglages" hidden></section>
     <p class="mention-apercu">Aperçu — données d'exemple</p>
   </main>
@@ -2298,6 +2307,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   if (CAP.service) document.documentElement.dataset.service = '1';
   if (typeof source.demarrer === 'function') $('app').hidden = true;     // jamais l'écran d'un autre avant de savoir qui est là
   const VUES = {
+    /* « côté pro » (7 octobre 2026) : le TABLEAU DE BORD — les réunions prévues, les rappels, les appels manqués importants. L'onglet s'appelle « Accueil » (la barre est étroite) */
+    accueil:  { titre: 'Tableau de bord', court: 'Accueil', icone: 'i-grille', texte: 'Tes réunions prévues, tes rappels et les appels manqués importants.' },
     messages: { titre: 'Messages',  icone: 'i-chat' },
     contacts: { titre: 'Contacts',  icone: 'i-groupe' },
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
@@ -2308,11 +2319,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     reglages: { titre: 'Profil',  icone: 'i-personne',  texte: 'Ton profil, le compte, les notifications et la confidentialité.' }
   };
   /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
-  const ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
+  /* ⛔ `let` : le tableau de bord s'ajoute EN TÊTE au démarrage, pour un compte pro seulement (`demarrer`, avant que la navigation se construise) */
+  let ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
   /* ⛔ LE MENU N'A PAS « PROFIL » (demandé le 7 octobre 2026 : « je ne veux pas le profil avec contact et agenda — le profil, c'est en bas, on clique, ça nous emmène à nos paramètres »).
      Comme sur Mac (le compte en bas de la barre latérale) et sur iPhone (l'avatar en bout de grand titre, comme l'App Store) : on y entre par SOI, pas par une rubrique.
      La vue existe toujours (ORDRE la garde : adresses « #reglages/… », notifications, bancs) — seuls le menu et la barre d'onglets la perdent. */
-  const NAV = ORDRE.filter(k => k !== 'reglages');
+  let NAV = ORDRE.filter(k => k !== 'reglages');
   /* l'avatar qui mène au Profil, au bout du grand titre de chaque vue (téléphone et tablette en portrait ; au bureau, c'est la carte du bas de la barre latérale) */
   const pastilleMoi = () => '<a href="#reglages" class="moi-pastille presse" data-vue="reglages" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages">' +
     '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span></a>';
@@ -2444,7 +2456,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
   }
   function construireNavigation() {
-    const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span>' +
+    const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '"' + (cls === 'tab' && VUES[cle].court ? ' aria-label="' + esc(VUES[cle].titre) + '"' : '') + '>' + icone(VUES[cle].icone) + '<span>' + esc(cls === 'tab' && VUES[cle].court ? VUES[cle].court : VUES[cle].titre) + '</span>' +
       (cle === 'contacts' ? '<b class="onglet-n" data-onglet-n="contacts" hidden></b>' : '') + '</a>';
     $('tabs').style.setProperty('--n', NAV.length);
     $('nav-side').innerHTML = NAV.map(c => lien(c, 'side-lien')).join('');
@@ -2533,6 +2545,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (r.vue === 'accueil') entrerAccueil();
       if (r.vue === 'contacts' && CAP.identifiants) { rendreVueContacts(); chargerDemandes(); }
       if (r.vue === 'appels' && CAP.appels && prec) rafraichirAppels();       // ⛔ entrer dans Appels RELIT l'historique : un appel passé ou pris sur un autre appareil pendant qu'on était ailleurs y est déjà (relecture, T1)
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
@@ -6431,6 +6444,93 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       : lignes.length ? lignes.map(x => x.e ? ligneEvenement(x.e, reu.jour) : ligneReunion(x.r, x.o)).join('')
       : reu.panne ? '' : '<li class="vide">' + (CAP.agenda ? 'Rien de prévu ce jour-là' : 'Aucune réunion ce jour-là') + '</li>';
   }
+  /* ═══ LE TABLEAU DE BORD — « côté pro » (7 octobre 2026 : « un tableau de bord avec les réunions prévues, les rappels, les appels manqués mais importants ») ═══
+     Pour qui fait partie d'un espace d'entreprise (ou a Messages Pro) : l'onglet « Accueil ». Trois blocs, chacun avec SON geste — rejoindre ou ouvrir une réunion, ouvrir un rappel,
+     rappeler. Rien n'est rangé sur l'appareil : tout se relit du service à l'entrée de l'onglet, et quand une réunion ou un appel change.
+     ⛔ « IMPORTANT » SE DIT : un appel manqué n'entre ici que s'il n'a pas été rendu depuis (aucun appel pris ou passé avec la même personne après lui), et s'il vient de quelqu'un qui a
+     insisté (deux appels d'affilée ou plus), d'un favori, ou d'un collègue d'un espace — la raison est écrite sur la ligne. Les autres restent dans « Appels ». */
+  const BORD_JOURS = 7;
+  const bord = { charge: false, panne: null, reunions: [], evenements: [], appels: [], collegues: new Set(), espaces: [], colleguesLus: false, jeton: 0 };
+  function libelleJourBord(j) { const n = ecartJours(Date.now(), j); return n === 0 ? 'Aujourd\'hui' : n === 1 ? 'Demain' : maj1(FMT_JOUR_LONG.format(j)); }
+  function appelsImportants(liste) {
+    const t0 = Date.now() - BORD_JOURS * 86400000, out = [];
+    for (const a of liste) {
+      if (a.sens !== 'manque' || a.groupe || !(+a.t >= t0) || !a.membres.length) continue;
+      const u = a.membres[0];
+      if (liste.some(x => +x.t > +a.t && !x.groupe && x.membres[0] === u && x.sens !== 'manque')) continue;      // rendu depuis : il n'attend plus rien
+      const c = contactDe(u) || {}, raisons = [];
+      if (a.repetitions > 1) raisons.push('A appelé ' + a.repetitions + ' fois');
+      if (c.favori) raisons.push('Favori');
+      if (bord.collegues.has(u)) raisons.push('Collègue');
+      if (raisons.length) out.push({ a, raisons });
+    }
+    return out.slice(0, 8);
+  }
+  function rendreAccueil() {
+    const sec = $('vue-accueil'); if (!sec) return;
+    if (!sec.dataset.pret) {
+      sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-accueil">Tableau de bord</h1><p class="bord-date" id="bord-date"></p>' +
+        '<p class="info-note" id="bord-erreur" role="status" hidden></p>' +
+        '<div class="rubrique"><span>Réunions prévues</span><span id="bord-reunions-n"></span></div><ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
+        '<div class="rubrique"><span>Rappels</span><span id="bord-rappels-n"></span></div><ul class="carte-liste" id="bord-rappels" role="list" aria-label="Rappels"></ul>' +
+        '<div class="rubrique"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
+      sec.dataset.pret = '1';
+    }
+    $('bord-date').textContent = maj1(FMT_JOUR_LONG.format(Date.now()));
+    $('bord-erreur').hidden = !bord.panne; if (bord.panne) $('bord-erreur').textContent = phrase(bord.panne, 'Le tableau de bord n\'a pas pu être chargé entièrement.');
+    const att = !bord.charge ? '<li class="vide">Chargement…</li>' : null, now = Date.now(), fin = now + BORD_JOURS * 86400000;
+    /* les réunions des sept prochains jours (en cours comprises), un intertitre par jour */
+    const occ = [];
+    for (const r of bord.reunions) if (!r.annulee) for (const o of r.occurrences) if (o.fin > now && o.debut < fin) occ.push({ r, o });
+    occ.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
+    let h = '', jp = null;
+    for (const x of occ.slice(0, 10)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
+    $('bord-reunions').innerHTML = att || h || '<li class="bord-vide"><span>Aucune réunion dans les sept prochains jours.</span>' + (CAP.reunions ? '<button type="button" class="presse" data-bord="programmer">Programmer</button>' : '') + '</li>';
+    $('bord-reunions-n').textContent = occ.length ? String(occ.length) : '';
+    /* les rappels : les événements d'aujourd'hui, et ceux à venir qui portent un rappel */
+    const auj = minuitDe(now), demain = plusJours(auj, 1);
+    const evs = bord.evenements.filter(e => e.fin > now && (e.debut < demain || e.rappel !== null)).sort((x, y) => x.debut - y.debut).slice(0, 10);
+    h = ''; jp = null;
+    for (const e of evs) { const j = Math.max(minuitDe(e.debut), auj); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneEvenement(e, j); }
+    $('bord-rappels').innerHTML = att || h || '<li class="bord-vide"><span>Aucun rappel à venir.</span><button type="button" class="presse" data-bord="evenement">Nouvel événement</button></li>';
+    $('bord-rappels-n').textContent = evs.length ? String(evs.length) : '';
+    /* les appels manqués IMPORTANTS, avec leur raison */
+    const imp = appelsImportants(bord.appels);
+    $('bord-appels').innerHTML = att || (imp.length ? imp.map(x => ligneAppel(x.a).replace('<span class="appel-kind">', '<span class="bord-raison">' + esc(x.raisons.join(' · ')) + '</span><span class="appel-kind">')).join('')
+      : '<li class="bord-vide"><span>Aucun appel manqué important. Les autres sont dans Appels.</span></li>');
+    $('bord-appels-n').textContent = imp.length ? String(imp.length) : '';
+  }
+  async function chargerAccueil() {
+    const n = ++bord.jeton, now = Date.now(), du = minuitDe(now), au = plusJours(du, BORD_JOURS + 1);
+    const [r1, r2, r3] = await Promise.allSettled([source.reunions(du, au), source.evenements(du, au), source.appels('tous')]);
+    /* les collègues : une fois par séance (les membres de mes espaces), pour juger « important » */
+    if (!bord.colleguesLus && Array.isArray(bord.espaces) && typeof source.espaceContacts === 'function') {
+      bord.colleguesLus = true;
+      await Promise.allSettled(bord.espaces.map(async e => { const c = await source.espaceContacts(e.id); for (const p of (c && c.contacts) || []) if (p && p.id && p.id !== (MOI && MOI.id)) bord.collegues.add(p.id); }));
+    }
+    if (n !== bord.jeton) return;
+    bord.charge = true;
+    bord.panne = [r1, r2, r3].filter(x => x.status === 'rejected').map(x => x.reason)[0] || null;         // une moitié qui manque se DIT (jamais un tableau vide qui ment)
+    if (r1.status === 'fulfilled') bord.reunions = r1.value;
+    if (r2.status === 'fulfilled') bord.evenements = r2.value;
+    if (r3.status === 'fulfilled') bord.appels = r3.value;
+    if (etat.route && etat.route.vue === 'accueil') rendreAccueil();
+  }
+  function entrerAccueil() { rendreAccueil(); chargerAccueil(); }
+  $('vue-accueil').addEventListener('click', e => {
+    const j = e.target.closest('[data-rejoindre]');
+    if (j) { rejoindreReunionUI(j.dataset.rejoindre, undefined, j, false); return; }
+    const ev = e.target.closest('[data-evenement]');
+    if (ev) { const x = bord.evenements.find(y => y.id === ev.dataset.evenement); if (x && !(reu.evenements || []).some(y => y.id === x.id)) reu.evenements = (reu.evenements || []).concat([x]); declencheur = ev; pousser(Object.assign({}, etat.route, { feuille: 'evenement:' + ev.dataset.evenement })); return; }
+    const b = e.target.closest('[data-reunion]');
+    if (b) { reu.occurrences[b.dataset.reunion] = +b.dataset.debut || null; declencheur = b; pousser(Object.assign({}, etat.route, { feuille: 'reunion:' + b.dataset.reunion })); return; }
+    const r = e.target.closest('[data-rappeler]');
+    if (r) { const a = bord.appels.find(x => x.id === r.dataset.rappeler); if (a) rappeler(a, a.type, false, r); return; }
+    const i = e.target.closest('[data-infos]');
+    if (i) { const a = bord.appels.find(x => x.id === i.dataset.infos); if (a) { etat.appels = etat.appels.some(x => x.id === a.id) ? etat.appels : etat.appels.concat([a]); declencheur = i; pousser(Object.assign({}, etat.route, { feuille: 'info:' + a.id })); } return; }
+    const g = e.target.closest('[data-bord]');
+    if (g) { declencheur = g; ouvrirFeuille(g.dataset.bord === 'programmer' ? 'reunion-new' : 'evenement-new'); }
+  });
   /* on arrive sur l'onglet : la semaine du jour, relue (elle a pu changer ailleurs) */
   function entrerReunions() {
     if (!CAP.reunions || !$('vue-reunions').dataset.pret) return;
@@ -8335,6 +8435,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const codeLien = CAP.liens ? lienDansAdresse() : null;       // lu AVANT que la route ne réécrive l'adresse
     const codeInvitation = CAP.espaces ? invitationDansAdresse() : null;
     const codeReunion = CAP.salles ? reunionDansAdresse() : null;
+    /* ⛔ « CÔTÉ PRO » : qui fait partie d'un espace d'entreprise (ou a Messages Pro) reçoit le tableau de bord, en tête. Une lecture de plus au démarrage — refusée, l'application
+       démarre sans lui (il reviendra au prochain lancement), jamais l'inverse. */
+    if (CAP.agenda && CAP.espaces && CAP.appels && typeof source.espaces === 'function') {
+      try { const e0 = await source.espaces(); etat.pro = !!e0 && ((Array.isArray(e0.espaces) && e0.espaces.length > 0) || e0.formule === 'pro'); bord.espaces = e0 && Array.isArray(e0.espaces) ? e0.espaces : []; } catch (e) { etat.pro = false; }
+      if (etat.pro) { ORDRE = ['accueil'].concat(ORDRE); NAV = ORDRE.filter(k => k !== 'reglages'); }
+    }
     construireNavigation();
     construireContacts();
     if (!CAP.appels) rendreCoquille('appels');
@@ -8355,7 +8461,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         salleConversation(ev.id);
         if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && etat.groupe.convId === ev.id) rendreConvInfo();
       }
-      if (ev.type === 'appels' && CAP.appels) rafraichirAppels();
+      if (ev.type === 'appels' && CAP.appels) { rafraichirAppels(); if (etat.route && etat.route.vue === 'accueil') chargerAccueil(); }
       if (ev.type === 'appel' && ev.id === etat.appelId) rafraichirAppel();
       if (ev.type === 'appel-entrant') surAppelEntrant(ev.id);
       if (ev.type === 'appel-flux' && ev.id === etat.appelId) lierFluxDistant(etat.appelUI);
@@ -8365,7 +8471,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (ev.type === 'salle-annot' && ev.id === etat.appelId) annotPlanifier();
       if (ev.type === 'contacts') surContacts();
       if (ev.type === 'espaces') surEspaces(ev);
-      if (ev.type === 'reunions') { surReunions(ev); commun.cache.clear(); if (etat.vcSel && auBureau()) chargerCommun(etat.vcSel, true); if (etat.groupe.ouvert && etat.groupe.mode === 'personne') chargerCommun(etat.groupe.personneId, true); }   // une réunion programmée, modifiée, annulée : la fiche ouverte se relit
+      if (ev.type === 'reunions') { surReunions(ev); if (etat.route && etat.route.vue === 'accueil') chargerAccueil(); commun.cache.clear(); if (etat.vcSel && auBureau()) chargerCommun(etat.vcSel, true); if (etat.groupe.ouvert && etat.groupe.mode === 'personne') chargerCommun(etat.groupe.personneId, true); }   // une réunion programmée, modifiée, annulée : la fiche ouverte se relit
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);

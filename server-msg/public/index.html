@@ -1632,6 +1632,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }
 .salle-panneau-corps { display: block; }
+/* LE TABLEAU DE BORD (côté pro) : la date sous le grand titre, un intertitre de jour dans la liste des réunions, la raison d'un appel « important » */
+.bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
+.bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
+.carte-liste > li.bord-jour::after { display: none; }
+.bord-raison { display: inline-block; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
+.bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.bord-vide button { min-height: 44px; padding: 0 14px; border-radius: 22px; font-size: 15px; font-weight: 600; background: var(--field); color: var(--accent); }
+#bord-appels { --sep-retrait: 66px; }
 .reunion-li { display: flex; align-items: center; }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
@@ -1990,6 +1998,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
     </section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
+    <section class="vue" id="vue-accueil" aria-labelledby="titre-accueil" hidden></section>
     <section class="vue" id="vue-reglages" aria-labelledby="titre-reglages" hidden></section>
     <p class="mention-apercu">Aperçu — données d'exemple</p>
   </main>
