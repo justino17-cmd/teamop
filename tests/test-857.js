@@ -279,7 +279,7 @@ async function controler(PAGE, SRC, DOC) {
      le menu d'abord, un nouveau rendu qui le garde sur la nouvelle ligne. `finSourdine` est EXTRAITE et EXÉCUTÉE. */
   {
     vrai('(population) le menu déroulant : son élément (#deroule, `popover`, une liste role="menu") et ses deux fonctions sont trouvés',
-      /<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden><\/p><div class="deroule-liste" id="deroule-liste" role="menu"><\/div><\/div>/.test(HTML) && /function ouvrirDeroule\(declencheur, nom, titre, choix, surChoix\) \{/.test(JS) && /function fermerDeroule\(rendreFocus\) \{/.test(JS));
+      /<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden><\/p><div class="deroule-liste" id="deroule-liste" role="menu"><\/div><\/div>/.test(HTML) && /function ouvrirDeroule\(declencheur, nom, titre, choix, surChoix\) \{/.test(JS) && /function fermerDeroule\(rendreFocusLigne\) \{/.test(JS));
     vrai('les trois lignes OUVRENT le menu (aria-haspopup="menu", aria-expanded, aria-controls) : « Messages éphémères » des infos (un administrateur ; inactive pour les autres), « Mettre en sourdine », « Messages éphémères » de « Nouveau groupe » — et plus aucune ne tourne d\'une valeur à la suivante',
       /data-act="ephemeres" data-valeur="' \+ esc\(String\(i\.ephemeres \|\| 0\)\) \+ '"' \+ \(i\.moiAdmin \? ' aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' : ' disabled'\)/.test(JS)
       && /data-act="sourdine" data-valeur="' \+ \(sd > Date\.now\(\) \? sd : 0\) \+ '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"/.test(JS)
