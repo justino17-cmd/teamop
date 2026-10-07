@@ -440,9 +440,15 @@ async function couple(b, env, cfg) {
     await verifier('« Seuls les admins écrivent » : chez B le champ est fermé et la phrase le dit', B, () => !document.getElementById('compo-ferme').hidden || document.getElementById('compo').hidden, null, 8000, () => texteVu(B, '#compo-ferme'));
     await toucher(A, '[data-act="annonces"]');
     await verifier('rouvert : B peut de nouveau écrire', B, () => !document.getElementById('compo').hidden && document.getElementById('compo-ferme').hidden, null, 8000);
+    /* « Messages éphémères » est un MENU DÉROULANT (7 octobre 2026) : la ligne l'ouvre, on choisit — sonde-opmessages-deroule le mesure en entier */
     await toucher(A, '[data-act="ephemeres"]');
-    await verifier('« Messages éphémères » : la valeur change (24 h) et la feuille la redit', A, () => /h|jour|min/.test(((document.querySelector('[data-act="ephemeres"] .reglage-valeur') || {}).textContent) || ''), null, 5000);
+    await verifier('« Messages éphémères » : le menu s\'ouvre', A, () => document.getElementById('deroule').matches(':popover-open'), null, 5000);
+    await toucher(A, '#deroule-liste .deroule-choix[data-valeur="86400"]');
+    await verifier('« 24 heures » choisi : la feuille le redit', A, () => ((document.querySelector('[data-act="ephemeres"] .reglage-valeur') || {}).textContent || '').trim() === '24 heures', null, 5000);
     await toucher(A, '[data-act="ephemeres"]');
+    await verifier('le menu se rouvre', A, () => document.getElementById('deroule').matches(':popover-open'), null, 5000);
+    await toucher(A, '#deroule-liste .deroule-choix[data-valeur="0"]');
+    await verifier('« Désactivés » : la feuille le redit', A, () => ((document.querySelector('[data-act="ephemeres"] .reglage-valeur') || {}).textContent || '').trim() === 'Désactivés', null, 5000);
     /* lien de groupe : C le COLLE dans la feuille Contacts */
     await toucher(A, '[data-act="lien-groupe"]');
     await verifier('« Inviter par un lien » : le lien du groupe est montré', A, () => !!document.getElementById('ci-lien-champ') && /#lien=/.test(document.getElementById('ci-lien-champ').value), null, 5000);

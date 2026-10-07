@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e6eadb69e031';
+  const OPMSG_BUILD = 'a2295e0c81b7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 92;
+  const OPMSG_VERSION = 93;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2220,7 +2220,7 @@
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
     const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
-    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); if (etat.appelReduit) quitterAppel(); else raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer
+    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
     if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
     rendreAppel();
@@ -2274,7 +2274,7 @@
     $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t);
   }
   $('appel-barre-revenir').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) pousser(Object.assign({}, etat.route, { feuille: false, photo: null, appel: etat.appelId })); });
-  $('appel-barre-raccrocher').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) { etat.raccrocher = true; quitterAppel(); } });
+  $('appel-barre-raccrocher').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) raccrocherCouche(); });
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);

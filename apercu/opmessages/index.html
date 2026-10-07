@@ -4544,7 +4544,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
     const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
-    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); if (etat.appelReduit) quitterAppel(); else raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer
+    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
     if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
     rendreAppel();
@@ -4598,7 +4598,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t);
   }
   $('appel-barre-revenir').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) pousser(Object.assign({}, etat.route, { feuille: false, photo: null, appel: etat.appelId })); });
-  $('appel-barre-raccrocher').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) { etat.raccrocher = true; quitterAppel(); } });
+  $('appel-barre-raccrocher').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) raccrocherCouche(); });
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
