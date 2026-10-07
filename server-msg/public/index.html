@@ -873,6 +873,7 @@ button.photo:active { transform: scale(.97); }
 .info-sous { margin: 0; font-size: 15px; line-height: 20px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .info-corps .reglage .ic { font-size: 22px; color: var(--accent); }
 .info-corps .reglage-texte { color: var(--accent-txt); }
+.info-corps .reglage[role="switch"] .reglage-texte { color: var(--text); }      /* un interrupteur n'est pas un lien : son titre à l'encre du texte, comme dans Réglages */
 
 /* ══ 9 bis. « NOUVELLE DISCUSSION » — la recherche, les actions, les contacts de A à Z et l'index sur le bord droit ══════════════════════════════════════
    Le corps ne défile PAS : la recherche reste en haut, la liste défile dans `.nd-defile`, l'index reste posé à droite. Le bord droit de la feuille n'a pas son rembourrage (l'index y vit). */
@@ -1146,6 +1147,62 @@ html[data-service] .mention-apercu { display: none; }
 .fichier-nom { font-size: 16px; line-height: 20px; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .fichier-taille { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; opacity: .85; }
 .fichier[aria-disabled="true"] { opacity: .7; }
+/* ── LES CARTES D'UN MESSAGE (7 octobre 2026 : « la localisation, partager des contacts, des sondages personnalisables ») — une position, la fiche d'un contact, un sondage. Une carte est une
+   bulle comme un fichier (même fond, même encre : `.recue` / `.envoyee`) ; ses boutons prennent l'encre de la bulle sur un voile d'elle-même, lisibles sur le vert comme sur le gris. ── */
+.carte-msg { display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 78%; padding: 12px 14px; box-sizing: border-box; text-align: left; overflow: hidden; }
+.msg-rang > .carte-msg { max-width: 100%; min-width: 0; }
+.carte-titre, .carte-sous { display: block; }
+.carte-titre { font-size: 16px; line-height: 21px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.carte-sous { font-size: 13px; line-height: 17px; opacity: .85; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.carte-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.carte-btn { flex: 1 1 auto; min-height: 36px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 600; color: inherit; background: color-mix(in srgb, currentColor 14%, transparent); text-decoration: none; text-align: center; transition: transform .12s ease-out; }
+.carte-btn:active { transform: scale(.97); }
+.carte-btn[aria-disabled="true"] { opacity: .6; }
+.carte-btn .icone, .carte-btn svg { width: 16px; height: 16px; }
+@media (pointer: coarse) { .carte-btn { min-height: 44px; } }
+/* la position : un plan DESSINÉ (aucune tuile de carte ne se charge — rien ne part vers un tiers pour l'afficher), l'épingle au centre */
+.pos-plan { position: relative; height: 116px; margin: -12px -14px 0; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(115deg, transparent 0 44%, color-mix(in srgb, currentColor 16%, transparent) 44% 50%, transparent 50%),
+    linear-gradient(25deg, transparent 0 62%, color-mix(in srgb, currentColor 12%, transparent) 62% 66%, transparent 66%),
+    repeating-linear-gradient(0deg, color-mix(in srgb, currentColor 8%, transparent) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, currentColor 8%, transparent) 0 1px, transparent 1px 22px),
+    color-mix(in srgb, currentColor 7%, transparent); }
+.pos-epingle { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg) translate(4px, -4px); background: var(--rouge); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+.pos-epingle svg { width: 20px; height: 20px; transform: rotate(45deg); color: #fff; fill: currentColor; }
+/* la fiche d'un contact */
+.fiche-haut { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.fiche-haut .avatar { width: 44px; height: 44px; font-size: 17px; }
+.fiche-haut > span:last-child { min-width: 0; display: flex; flex-direction: column; }
+/* le sondage : la question, ses règles en une ligne, un choix par rangée (sa barre de résultat en fond), le pied */
+.sond-q { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.sond-regles, .sond-pied { font-size: 12px; line-height: 16px; opacity: .85; }
+.sond-liste { display: flex; flex-direction: column; gap: 6px; }
+.sond-choix { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px 8px 10px; border-radius: 12px; text-align: left; color: inherit; background: color-mix(in srgb, currentColor 7%, transparent); }
+.sond-choix[aria-disabled="true"] { cursor: default; }
+.sond-barre { position: absolute; inset: 0 auto 0 0; z-index: -1; width: var(--p, 0%); background: color-mix(in srgb, currentColor 16%, transparent); transition: width .35s cubic-bezier(.2, .8, .2, 1); }
+.sond-coche { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 2px solid color-mix(in srgb, currentColor 55%, transparent); box-sizing: border-box; }
+.sondage[data-multiple="1"] .sond-coche { border-radius: 6px; }
+.sond-choix[aria-pressed="true"] .sond-coche { border-color: currentColor; }
+.sond-choix[aria-pressed="true"] .sond-coche::after { content: ""; width: 10px; height: 10px; border-radius: inherit; background: currentColor; }
+.sond-texte { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+.sond-n { font-size: 13px; line-height: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sond-qui { grid-column: 2 / 4; font-size: 12px; line-height: 16px; opacity: .8; overflow-wrap: anywhere; }
+.sond-etat { font-size: 14px; line-height: 19px; opacity: .85; }
+@media (forced-colors: active) { .carte-msg, .sond-choix { border: 1px solid CanvasText; } .sond-barre { background: Highlight; } }
+/* la feuille « Nouveau sondage » : les choix comme une liste de Réglages (un champ par ligne, un retrait à droite), les règles en interrupteurs */
+.sd-ligne { display: flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; }
+.sd-ligne + .sd-ligne { border-top: 1px solid var(--sep); }
+.sd-ligne input { flex: 1; min-width: 0; height: 48px; border: 0; background: transparent; font-size: 17px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.sd-ligne input::placeholder { color: var(--placeholder); opacity: 1; }
+.sd-ligne:focus-within { box-shadow: inset 3px 0 0 var(--accent); }
+.sd-retirer { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--sub-meta); }
+.sd-retirer svg { width: 16px; height: 16px; }
+.sd-plus { margin: 10px 0 18px; }
+.pos-apercu { width: 100%; max-width: none; margin-bottom: 14px; }
+.pos-explication { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 8px 22px; text-align: center; }
+.pos-explication .pos-epingle { margin-bottom: 6px; }
+.pos-explication h3 { font-size: 20px; line-height: 25px; font-weight: 600; letter-spacing: -.02em; }
+.pos-explication p { font-size: 15px; line-height: 21px; color: var(--sub-meta); max-width: 34em; }
 .photo.chargement { opacity: .65; }
 .photo.indisponible { outline: 1px dashed var(--faint); outline-offset: -3px; grid-auto-flow: row; align-content: center; justify-items: center; gap: 4px; padding: 6px; min-width: 118px; text-align: center; }
 .photo-etat { font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }

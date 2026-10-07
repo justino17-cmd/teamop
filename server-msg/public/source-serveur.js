@@ -1968,6 +1968,38 @@
       return s;
     }
     const MEDIAS = ['photo', 'vocal', 'fichier'];
+    /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. Le texte reste leur résumé (une version d'avant,
+       une notification, l'aperçu de la liste) ; la page dessine la carte. Un SONDAGE se relit au service : chacun a SA vue (ses votes, les décomptes que les règles lui montrent). ── */
+    const sondages = new Map(), sondagesEnVol = new Set();           // « conv|seq » → la vue du service ; ceux qu'on relit en ce moment
+    const SONDAGE_REPRISE_MS = 15000;                                 // une relecture ratée (réseau) ne se retente pas à chaque dessin : la page redessine souvent
+    function relireSondage(conv, seq) {
+      const k = conv + '|' + seq; if (sondagesEnVol.has(k)) return;
+      sondagesEnVol.add(k);
+      A.sondageLire(conv, seq).then(v => { sondages.set(k, v); }, e => { sondages.set(k, e && e.code === 'introuvable' ? { absent: true } : { erreur: true, reprise: maintenant() + SONDAGE_REPRISE_MS }); })
+        .then(() => { sondagesEnVol.delete(k); emettre({ type: 'conversation', id: conv }); });
+    }
+    function vueSondage(conv, seq, q) {
+      const k = conv + '|' + seq, s = sondages.get(k);
+      if (!s || (s.erreur && maintenant() >= s.reprise)) relireSondage(conv, seq);
+      const base = { q: typeof q === 'string' ? q : '', seq };
+      if (!s) return Object.assign(base, { etat: 'charge' });
+      if (s.absent) return Object.assign(base, { etat: 'absent' });
+      if (s.erreur) return Object.assign(base, { etat: 'erreur' });
+      const nomDeUid = (u) => typeof u === 'string' ? prenomDe(u) : null;
+      return Object.assign(base, {
+        etat: 'ok', regles: Object.assign({}, s.regles), clos: !!s.clos, closLe: s.clos_le || null, auteur: nomDeUid(s.auteur), deMoi: estMoi(s.auteur),
+        choix: (s.choix || []).map(c => ({ idx: c.idx, texte: c.texte, n: c.n, qui: Array.isArray(c.qui) ? c.qui.map(nomDeUid) : null, ajoutePar: c.ajoute_par ? nomDeUid(c.ajoute_par) : null, mien: (s.mes_choix || []).includes(c.idx) })),
+        mesChoix: (s.mes_choix || []).slice(), votants: s.votants, resultats: !!s.resultats_visibles,
+        peutVoter: !!s.peut_voter, peutAjouter: !!s.peut_ajouter, peutClore: !!s.peut_clore,
+      });
+    }
+    function vueCarte(conv, m) {
+      const x = m.meta;
+      if (x.k === 'position' && Number.isFinite(x.lat) && Number.isFinite(x.lng)) return { position: { lat: x.lat, lng: x.lng, prec: Number.isInteger(x.prec) ? x.prec : null } };
+      if (x.k === 'contact' && typeof x.uid === 'string') return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact: contactsApi.some(k => k.id === x.uid), avatar: indexAvatar(x.uid), initiales: initialesDe(x.prenom || '?') } };
+      if (x.k === 'sondage') return { sondage: vueSondage(conv, m.seq, x.q) };
+      return null;
+    }
     function vueMessage(conv, c, m, auto) {
       const base = { id: m.id, seq: m.seq, auteur: m.auteur, t: m.ts, lu: luDe(conv, c, m) };
       if (m.type === 'systeme') return Object.assign(base, { systeme: true, texte: texteSysteme(m, genreSysteme(c)) });
@@ -1976,6 +2008,7 @@
       const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? (m.type === 'photo' && typeof m.texte === 'string' ? m.texte : '') : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
       if (m.supprime) v.supprime = true;
       else if (media && !m.illisible) Object.assign(v, vuePieces(m, auto));
+      else if (m.type === 'texte' && !m.illisible && m.meta && typeof m.meta === 'object' && typeof m.meta.k === 'string') { const k = vueCarte(conv, m); if (k) Object.assign(v, k); }
       if (m.modifie) v.modifie = m.modifie;
       if (m.repond_a) v.reponse = citation(c, m.repond_a);
       if (m.reactions && m.reactions.length) {
@@ -2396,6 +2429,35 @@
       const r = await A.contactParIdentifiant(t);
       return r.trouve ? { trouve: true, id: r.id, prenom: r.prenom, identifiant: r.identifiant || null, dejaContact: !!r.deja_contact, demande: r.demande || 'aucune', initiales: initialesDe(r.prenom || '?'), avatar: indexAvatar(r.id) } : { trouve: false };
     }
+    /* ── envoyer une carte : une position (`lat`, `lng`, `precision` en mètres), la fiche d'un contact (`uid`), un sondage (`question`, `choix`, `regles`). Pas de file d'attente :
+       une carte n'a pas de sens envoyée deux heures plus tard (une position surtout) — un refus se dit tout de suite. ── */
+    async function envoyerCarte(id, type, champs) {
+      const r = await A.envoyerPieces(id, type, champs);
+      const c = convs.get(id);
+      if (c && c.charge && Number.isInteger(r.seq) && !c.messages.some(x => x.seq === r.seq)) {
+        try { const l = await A.messages(id, { apres_seq: r.seq - 1, limite: 1 }); l.messages.forEach(m => ranger(c, m)); } catch (e) { /* le flux l'apportera */ }
+      }
+      emettre({ type: 'conversation', id }); relireListePlusTard();
+      return { seq: r.seq };
+    }
+    const envoyerPosition = (id, p) => envoyerCarte(id, 'position', { lat: p.lat, lng: p.lng, precision: Number.isFinite(p.precision) ? Math.max(0, Math.min(100000, Math.round(p.precision))) : undefined });
+    const envoyerFiche = (id, uid) => envoyerCarte(id, 'contact', { uid });
+    const envoyerSondage = (id, s) => envoyerCarte(id, 'sondage', { question: s.question, choix: s.choix, regles: s.regles });
+    async function sondageAgir(conv, seq, faire) {
+      const v = await faire();
+      sondages.set(conv + '|' + seq, v); emettre({ type: 'conversation', id: conv });
+      return vueSondage(conv, seq, '');
+    }
+    const sondageVoter = (conv, seq, choix) => sondageAgir(conv, seq, () => A.sondageVoter(conv, seq, choix));
+    const sondageAjouter = (conv, seq, texte) => sondageAgir(conv, seq, () => A.sondageChoix(conv, seq, texte));
+    const sondageClore = (conv, seq) => sondageAgir(conv, seq, () => A.sondageClore(conv, seq));
+    /* demander la personne d'une fiche reçue (`contacts.demander_carte`) : les mêmes résultats que `demanderContact` */
+    async function demanderCarte(conv, seq) {
+      const r = await A.demanderCarte(conv, seq);
+      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      emettre({ type: 'conversation', id: conv });
+      return r.resultat;
+    }
     async function demanderContact(id) {
       const r = await A.demanderContact(id);
       if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
@@ -2460,6 +2522,7 @@
         const c = convs.get(d.conv);
         if (c && c.charge) {
           const m = c.messages.find(x => x.seq === d.seq); if (m) oublierMeta(m.meta);
+          sondages.delete(d.conv + '|' + d.seq);
           if (d.pour === 'moi' || d.pour === 'expire') c.messages = c.messages.filter(x => x.seq !== d.seq);
           else ranger(c, { seq: d.seq, supprime: true, texte: null, meta: null, reactions: [], modifie: null });
           emettre({ type: 'conversation', id: d.conv });
@@ -2467,6 +2530,8 @@
         relireListePlusTard();
       },
       reaction: (d) => { const c = convs.get(d.conv); if (!c || !c.charge) return; ranger(c, { seq: d.seq, reactions: d.reactions || [] }); emettre({ type: 'conversation', id: d.conv }); },
+      /* un sondage a changé (un vote, un choix, la clôture) : « relis-le » — chacun avec SES droits ; une conversation qu'on n'a pas ouverte le relira en s'ouvrant */
+      sondage: (d) => { if (!Number.isInteger(d.seq)) return; const k = d.conv + '|' + d.seq; if (sondages.has(k)) relireSondage(d.conv, d.seq); },
       conversation: (d) => {
         const c = convs.get(d.conv);
         const fin = () => { emettre({ type: 'conversation', id: d.conv }); relireListePlusTard(); };
@@ -2641,15 +2706,15 @@
       return vueProfil(r.moi);
     }
     /* `trouvable` : « me trouver par mon identifiant ou mon numéro » — le service dit 'tous' | 'personne', la page lit un interrupteur */
-    const etatConfidentialite = (r) => ({ presence: r.presence !== false, accuses: r.accuses !== false, trouvable: r.trouvable !== 'personne' });
+    const etatConfidentialite = (r) => ({ presence: r.presence !== false, accuses: r.accuses !== false, trouvable: r.trouvable !== 'personne', position: r.position === true });   // la position : coupée tant qu'on ne l'allume pas
     async function confidentialite() { return etatConfidentialite(await A.confidentialite()); }
     async function majConfidentialite(champs) {
       const c = {};
-      for (const k of ['presence', 'accuses']) if (champs && typeof champs[k] === 'boolean') c[k] = champs[k];
+      for (const k of ['presence', 'accuses', 'position']) if (champs && typeof champs[k] === 'boolean') c[k] = champs[k];
       if (champs && typeof champs.trouvable === 'boolean') c.trouvable = champs.trouvable ? 'tous' : 'personne';
       if (!Object.keys(c).length) throw erreurLocale('vide');
       const r = etatConfidentialite(await A.majConfidentialite(c));
-      if (moiApi) { moiApi.prefs = Object.assign({}, moiApi.prefs, { presence: r.presence, accuses: r.accuses }); emettre({ type: 'moi' }); }      // la barre de la page redit MA présence
+      if (moiApi) { moiApi.prefs = Object.assign({}, moiApi.prefs, { presence: r.presence, accuses: r.accuses, position: r.position }); emettre({ type: 'moi' }); }      // la barre de la page redit MA présence
       /* ce que je vois des autres change avec mes réglages (leur présence, leur « Lu ») : tout se relit */
       rafraichirContacts().catch(() => {});
       for (const id of convs.keys()) rafraichirDetail(id).then(() => emettre({ type: 'conversation', id }), () => {});
@@ -3122,7 +3187,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3140,6 +3205,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
+      envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte,   // les cartes d'un message
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,

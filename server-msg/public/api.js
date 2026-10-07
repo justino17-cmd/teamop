@@ -154,6 +154,11 @@
     partage_interdit: 'L\'hôte n\'autorise pas le partage d\'écran.',
     evt_trop_gros: 'Ce message est trop gros pour la salle (2 Ko au plus).',
     annot_pleine: 'Le dessin est plein : efface des annotations pour continuer.',
+    position_desactivee: 'Le partage de position est coupé : allume-le dans Profil › Confidentialité.',
+    contact_non_partageable: 'Ce contact ne se laisse pas trouver : sa fiche ne se partage pas.',
+    sondage_clos: 'Ce sondage est clos.',
+    sondage_plein: 'Douze choix au plus.',
+    sondage_doublon: 'Ce choix existe déjà.',
     rien_a_annoter: 'Il n\'y a plus rien à annoter : le partage s\'est arrêté.',
     annot_occupe: 'Quelqu\'un partage son écran : seul un hôte peut ouvrir le tableau blanc par-dessus.',
     reunion_hors_horaire: 'Cette réunion n\'est pas ouverte : on y entre de quinze minutes avant son début à trois heures après sa fin.',
@@ -236,7 +241,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'salle_evt', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'sondage', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'salle_evt', 'resync'];
 
   function creer(opts) {
     const o = opts || {};
@@ -349,6 +354,7 @@
       contactParIdentifiant: (identifiant) => appel('POST', '/api/contacts/identifiant', { identifiant }),
       contactParNumero: (numero) => appel('POST', '/api/contacts/chercher', { numero }),
       demanderContact: (id) => appel('POST', '/api/contacts/demander', { id }),
+      demanderCarte: (conv, seq) => appel('POST', '/api/contacts/demander_carte', { conv, seq }),      // demander la personne d'une fiche reçue dans une conversation
       demandesContact: () => appel('GET', '/api/contacts/demandes'),
       repondreDemande: (id, accepter) => appel('POST', '/api/contacts/demandes/repondre', { id, accepter: accepter === true }),
       annulerDemande: (id) => appel('POST', '/api/contacts/demandes/annuler', { id }),
@@ -389,6 +395,11 @@
       modifier: (id, seq, texte) => appel('POST', '/api/conversations/' + e(id) + '/messages/modifier', { seq, texte }),
       supprimer: (id, seq, pour) => appel('POST', '/api/conversations/' + e(id) + '/messages/supprimer', { seq, pour: pour || 'tous' }),
       reagir: (id, seq, emoji) => appel('POST', '/api/conversations/' + e(id) + '/messages/reagir', { seq, emoji }),
+      /* les sondages d'une conversation : la vue de chacun (ses votes, les décomptes selon les règles), voter (remplace mes votes), ajouter un choix, clore */
+      sondageLire: (id, seq) => appel('GET', '/api/conversations/' + e(id) + '/sondages/' + e(seq)),
+      sondageVoter: (id, seq, choix) => appel('POST', '/api/conversations/' + e(id) + '/sondages/' + e(seq) + '/voter', { choix }),
+      sondageChoix: (id, seq, texte) => appel('POST', '/api/conversations/' + e(id) + '/sondages/' + e(seq) + '/choix', { texte }),
+      sondageClore: (id, seq) => appel('POST', '/api/conversations/' + e(id) + '/sondages/' + e(seq) + '/clore', {}),
       marquerLu: (id, seq) => appel('POST', '/api/conversations/' + e(id) + '/lu', { seq }),
       saisie: (id, actif) => appel('POST', '/api/conversations/' + e(id) + '/saisie', { actif: !!actif }),
       notifications: () => appel('GET', '/api/notifications'),

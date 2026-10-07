@@ -869,6 +869,7 @@ button.photo:active { transform: scale(.97); }
 .info-sous { margin: 0; font-size: 15px; line-height: 20px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .info-corps .reglage .ic { font-size: 22px; color: var(--accent); }
 .info-corps .reglage-texte { color: var(--accent-txt); }
+.info-corps .reglage[role="switch"] .reglage-texte { color: var(--text); }      /* un interrupteur n'est pas un lien : son titre à l'encre du texte, comme dans Réglages */
 
 /* ══ 9 bis. « NOUVELLE DISCUSSION » — la recherche, les actions, les contacts de A à Z et l'index sur le bord droit ══════════════════════════════════════
    Le corps ne défile PAS : la recherche reste en haut, la liste défile dans `.nd-defile`, l'index reste posé à droite. Le bord droit de la feuille n'a pas son rembourrage (l'index y vit). */
@@ -1142,6 +1143,62 @@ html[data-service] .mention-apercu { display: none; }
 .fichier-nom { font-size: 16px; line-height: 20px; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .fichier-taille { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; opacity: .85; }
 .fichier[aria-disabled="true"] { opacity: .7; }
+/* ── LES CARTES D'UN MESSAGE (7 octobre 2026 : « la localisation, partager des contacts, des sondages personnalisables ») — une position, la fiche d'un contact, un sondage. Une carte est une
+   bulle comme un fichier (même fond, même encre : `.recue` / `.envoyee`) ; ses boutons prennent l'encre de la bulle sur un voile d'elle-même, lisibles sur le vert comme sur le gris. ── */
+.carte-msg { display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 78%; padding: 12px 14px; box-sizing: border-box; text-align: left; overflow: hidden; }
+.msg-rang > .carte-msg { max-width: 100%; min-width: 0; }
+.carte-titre, .carte-sous { display: block; }
+.carte-titre { font-size: 16px; line-height: 21px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.carte-sous { font-size: 13px; line-height: 17px; opacity: .85; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.carte-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.carte-btn { flex: 1 1 auto; min-height: 36px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 600; color: inherit; background: color-mix(in srgb, currentColor 14%, transparent); text-decoration: none; text-align: center; transition: transform .12s ease-out; }
+.carte-btn:active { transform: scale(.97); }
+.carte-btn[aria-disabled="true"] { opacity: .6; }
+.carte-btn .icone, .carte-btn svg { width: 16px; height: 16px; }
+@media (pointer: coarse) { .carte-btn { min-height: 44px; } }
+/* la position : un plan DESSINÉ (aucune tuile de carte ne se charge — rien ne part vers un tiers pour l'afficher), l'épingle au centre */
+.pos-plan { position: relative; height: 116px; margin: -12px -14px 0; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(115deg, transparent 0 44%, color-mix(in srgb, currentColor 16%, transparent) 44% 50%, transparent 50%),
+    linear-gradient(25deg, transparent 0 62%, color-mix(in srgb, currentColor 12%, transparent) 62% 66%, transparent 66%),
+    repeating-linear-gradient(0deg, color-mix(in srgb, currentColor 8%, transparent) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, currentColor 8%, transparent) 0 1px, transparent 1px 22px),
+    color-mix(in srgb, currentColor 7%, transparent); }
+.pos-epingle { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg) translate(4px, -4px); background: var(--rouge); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+.pos-epingle svg { width: 20px; height: 20px; transform: rotate(45deg); color: #fff; fill: currentColor; }
+/* la fiche d'un contact */
+.fiche-haut { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.fiche-haut .avatar { width: 44px; height: 44px; font-size: 17px; }
+.fiche-haut > span:last-child { min-width: 0; display: flex; flex-direction: column; }
+/* le sondage : la question, ses règles en une ligne, un choix par rangée (sa barre de résultat en fond), le pied */
+.sond-q { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.sond-regles, .sond-pied { font-size: 12px; line-height: 16px; opacity: .85; }
+.sond-liste { display: flex; flex-direction: column; gap: 6px; }
+.sond-choix { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px 8px 10px; border-radius: 12px; text-align: left; color: inherit; background: color-mix(in srgb, currentColor 7%, transparent); }
+.sond-choix[aria-disabled="true"] { cursor: default; }
+.sond-barre { position: absolute; inset: 0 auto 0 0; z-index: -1; width: var(--p, 0%); background: color-mix(in srgb, currentColor 16%, transparent); transition: width .35s cubic-bezier(.2, .8, .2, 1); }
+.sond-coche { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 2px solid color-mix(in srgb, currentColor 55%, transparent); box-sizing: border-box; }
+.sondage[data-multiple="1"] .sond-coche { border-radius: 6px; }
+.sond-choix[aria-pressed="true"] .sond-coche { border-color: currentColor; }
+.sond-choix[aria-pressed="true"] .sond-coche::after { content: ""; width: 10px; height: 10px; border-radius: inherit; background: currentColor; }
+.sond-texte { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+.sond-n { font-size: 13px; line-height: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sond-qui { grid-column: 2 / 4; font-size: 12px; line-height: 16px; opacity: .8; overflow-wrap: anywhere; }
+.sond-etat { font-size: 14px; line-height: 19px; opacity: .85; }
+@media (forced-colors: active) { .carte-msg, .sond-choix { border: 1px solid CanvasText; } .sond-barre { background: Highlight; } }
+/* la feuille « Nouveau sondage » : les choix comme une liste de Réglages (un champ par ligne, un retrait à droite), les règles en interrupteurs */
+.sd-ligne { display: flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; }
+.sd-ligne + .sd-ligne { border-top: 1px solid var(--sep); }
+.sd-ligne input { flex: 1; min-width: 0; height: 48px; border: 0; background: transparent; font-size: 17px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.sd-ligne input::placeholder { color: var(--placeholder); opacity: 1; }
+.sd-ligne:focus-within { box-shadow: inset 3px 0 0 var(--accent); }
+.sd-retirer { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--sub-meta); }
+.sd-retirer svg { width: 16px; height: 16px; }
+.sd-plus { margin: 10px 0 18px; }
+.pos-apercu { width: 100%; max-width: none; margin-bottom: 14px; }
+.pos-explication { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 8px 22px; text-align: center; }
+.pos-explication .pos-epingle { margin-bottom: 6px; }
+.pos-explication h3 { font-size: 20px; line-height: 25px; font-weight: 600; letter-spacing: -.02em; }
+.pos-explication p { font-size: 15px; line-height: 21px; color: var(--sub-meta); max-width: 34em; }
 .photo.chargement { opacity: .65; }
 .photo.indisponible { outline: 1px dashed var(--faint); outline-offset: -3px; grid-auto-flow: row; align-content: center; justify-items: center; gap: 4px; padding: 6px; min-width: 118px; text-align: center; }
 .photo-etat { font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }
@@ -2456,6 +2513,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="fichier-texte"><span class="fichier-nom" dir="auto">' + esc(m.fichier.nom) + '</span><span class="fichier-taille">' + esc(tailleTexte(m.fichier.taille)) + '</span></span></button>';
       /* MON fichier : qui l'a reçu, qui l'a téléchargé (« très important pour les patrons ») — un lien à part, sous la carte (on n'imbrique pas deux boutons) */
       if (moi && m.fichier.piece && suiviPossible()) h += '<button type="button" class="suivi-lien presse" data-suivi="' + esc(m.fichier.piece) + '">' + icone('i-personne') + '<span>Qui l\'a téléchargé ?</span></button>';
+    } else if (m.position && !m.supprime) {
+      h += htmlPosition(m, sens);
+    } else if (m.carteContact && !m.supprime) {
+      h += htmlCarteFiche(m, sens);
+    } else if (m.sondage && !m.supprime) {
+      h += htmlSondage(m, sens);
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
@@ -2468,6 +2531,76 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
     /* le statut DIT VRAI : « Envoi… » seulement quand des octets partent vraiment (la source le sait), « En attente de connexion… » quand rien ne part ; une pièce en échec a sa phrase et ses deux boutons, pas de statut */
     return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? (Number.isInteger(m.progres) ? 'Envoi… ' + m.progres + ' %' : 'Envoi…') : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
+  }
+  /* ── LES CARTES (7 octobre 2026) — position, fiche d'un contact, sondage ── */
+  const estCarte = m => !!(m && (m.position || m.carteContact || m.sondage));
+  const FMT_COORD = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 5, maximumFractionDigits: 5 });
+  const coordTexte = p => FMT_COORD.format(p.lat) + ' · ' + FMT_COORD.format(p.lng);
+  const precTexte = p => Number.isInteger(p.prec) ? 'à ' + (p.prec >= 1000 ? (Math.round(p.prec / 100) / 10).toString().replace('.', ',') + ' km' : p.prec + ' m') + ' près' : '';
+  /* ouvrir la position dans l'application de plans de L'APPAREIL (Plans chez Apple, Cartes chez Windows, l'application choisie ailleurs) : aucune page d'un tiers ne s'ouvre d'office */
+  function lienPlan(p) {
+    const la = p.lat.toFixed(6), lo = p.lng.toFixed(6), os = document.documentElement.dataset.os || '';
+    if (os === 'ios' || os === 'macos') return 'maps://?ll=' + la + ',' + lo + '&q=' + encodeURIComponent('Position partagée');
+    if (os === 'windows') return 'bingmaps:?collection=point.' + la + '_' + lo + '_Position&lvl=16';
+    return 'geo:' + la + ',' + lo + '?q=' + la + ',' + lo;
+  }
+  const planDessine = () => '<span class="pos-plan" aria-hidden="true"><span class="pos-epingle">' + icone('i-lieu') + '</span></span>';
+  function htmlPosition(m, sens) {
+    const p = m.position, prec = precTexte(p);
+    return '<span class="carte-msg pos ' + sens + '" role="group" aria-label="Position partagée">' + planDessine() +
+      '<span><span class="carte-titre">Position partagée</span><span class="carte-sous">' + esc(coordTexte(p)) + (prec ? ' · ' + esc(prec) : '') + '</span></span>' +
+      '<span class="carte-actions"><a class="carte-btn presse" href="' + esc(lienPlan(p)) + '" rel="noopener noreferrer">' + icone('i-lieu') + '<span>Ouvrir dans Plans</span></a>' +
+      '<button type="button" class="carte-btn presse" data-pos-copier="' + esc(m.id) + '">Copier</button></span></span>';
+  }
+  /* la fiche d'un contact : « Écrire » s'il l'est déjà, « Ajouter » sinon (une demande, que la personne accepte ou non), rien pour soi-même */
+  const fichesDemandees = new Map();         // message → ce que la demande a donné (« envoyee », « acceptee »…)
+  function htmlCarteFiche(m, sens) {
+    const f = m.carteContact, d = fichesDemandees.get(m.id);
+    const action = f.moi ? '<span class="carte-sous">C\'est toi</span>' :
+      f.contact || d === 'acceptee' ? '<button type="button" class="carte-btn presse" data-fiche-ecrire="' + esc(f.uid) + '">' + icone('i-chat') + '<span>Écrire</span></button>' :
+      d ? '<button type="button" class="carte-btn presse" aria-disabled="true">Demande envoyée</button>' :
+      '<button type="button" class="carte-btn presse" data-fiche-ajouter="' + esc(m.id) + '">' + icone('i-personne') + '<span>Ajouter</span></button>';
+    return '<span class="carte-msg fiche ' + sens + '" role="group" aria-label="Fiche de ' + esc(f.prenom) + '">' +
+      '<span class="fiche-haut">' + avatar({ initiales: f.initiales, avatar: f.avatar }) + '<span><span class="carte-titre" dir="auto">' + esc(f.prenom) + '</span><span class="carte-sous">' + esc(f.identifiant || 'Contact OP MESSAGES') + '</span></span></span>' +
+      '<span class="carte-actions">' + action + '</span></span>';
+  }
+  /* le sondage : ses règles DITES (on sait d'avance si c'est anonyme, si l'on verra les résultats), un choix par rangée qu'on touche pour voter — une réponse ou plusieurs —,
+     les décomptes quand les règles les montrent, qui a voté quoi quand ce n'est pas anonyme */
+  const sondEnVol = new Set();               // les sondages dont un vote part en ce moment (on ne vote pas deux fois sur le même geste)
+  let sondClore = null;                       // { mid, t } : « Clore » touché une fois — la seconde touche, dans les cinq secondes, le clôt
+  const FMT_FIN = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function reglesTexte(s) {
+    const r = s.regles, l = [r.multiple ? 'Plusieurs réponses' : 'Une réponse'];
+    if (r.anonyme) l.push('Anonyme');
+    if (r.resultats === 'apres_vote') l.push('Résultats après ton vote'); else if (r.resultats === 'apres_cloture') l.push('Résultats à la clôture');
+    if (r.ajout) l.push('Choix ouverts');
+    if (s.clos) l.push('Clos'); else if (r.fin) l.push('Jusqu\'au ' + FMT_FIN.format(r.fin));
+    return l.join(' · ');
+  }
+  function quiTexte(l) { const n = l.filter(Boolean); return n.length > 3 ? n.slice(0, 3).join(', ') + ' et ' + (n.length - 3) + ' autre' + (n.length - 3 > 1 ? 's' : '') : n.join(', '); }
+  function htmlSondage(m, sens) {
+    const s = m.sondage;
+    let h = '<span class="carte-msg sondage ' + sens + '" role="group" aria-label="Sondage : ' + esc(s.q) + '"' + (s.regles && s.regles.multiple ? ' data-multiple="1"' : '') + '>' +
+      '<span class="sond-q" dir="auto">' + esc(s.q) + '</span>';
+    if (s.etat !== 'ok') return h + '<span class="sond-etat">' + (s.etat === 'absent' ? 'Ce sondage n\'est plus disponible.' : s.etat === 'erreur' ? 'Le sondage n\'a pas pu être lu.' : 'Chargement…') + '</span></span>';
+    h += '<span class="sond-regles">' + esc(reglesTexte(s)) + '</span><span class="sond-liste">';
+    const vol = sondEnVol.has(m.id), total = s.votants || 0;
+    for (const c of s.choix) {
+      const pct = s.resultats && total ? Math.round((c.n || 0) * 100 / total) : 0;
+      const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + (c.n || 0) + ' vote' + ((c.n || 0) > 1 ? 's' : '') : '');
+      h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + c.idx + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
+        (s.resultats ? '<span class="sond-barre" style="--p:' + pct + '%"></span>' : '') +
+        '<span class="sond-coche" aria-hidden="true"></span><span class="sond-texte" dir="auto">' + esc(c.texte) + '</span>' +
+        '<span class="sond-n" aria-hidden="true">' + (s.resultats ? (c.n || 0) : '') + '</span>' +
+        (s.resultats && c.qui && c.qui.length ? '<span class="sond-qui" aria-hidden="true">' + esc(quiTexte(c.qui)) + '</span>' : c.ajoutePar ? '<span class="sond-qui" aria-hidden="true">Ajouté par ' + esc(c.ajoutePar) + '</span>' : '') + '</button>';
+    }
+    h += '</span>';
+    const pied = s.resultats ? (total ? total + (total > 1 ? ' personnes ont voté' : ' personne a voté') : 'Personne n\'a encore voté') :
+      s.regles.resultats === 'apres_vote' ? 'Vote pour voir les résultats' : s.mesChoix.length ? 'Tu as voté — les résultats paraîtront à la clôture' : 'Les résultats paraîtront à la clôture';
+    h += '<span class="sond-pied">' + esc(pied) + (s.peutVoter && s.mesChoix.length && !s.regles.multiple ? ' · touche ton choix pour le retirer' : '') + '</span>';
+    const actions = (s.peutAjouter ? '<button type="button" class="carte-btn presse" data-sond-ajouter="' + esc(m.id) + '">Ajouter un choix</button>' : '') +
+      (s.peutClore ? '<button type="button" class="carte-btn presse" data-sond-clore="' + esc(m.id) + '">' + (sondClore && sondClore.mid === m.id ? 'Confirmer la clôture' : 'Clore le sondage') + '</button>' : '');
+    return h + (actions ? '<span class="carte-actions">' + actions + '</span>' : '') + '</span>';
   }
   /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320 ; une image minuscule est agrandie du double au plus, mais jamais laissée sous 72 px de côté ; un panorama
      extrême garde sa largeur — il est vu ENTIER (`contain`), jamais coupé. La largeur et le rapport sont posés en ligne (la boîte d'une photo à peine arrivée est déjà la bonne : rien ne saute). Sans dimensions
@@ -2525,7 +2658,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      texte. Chaque morceau garde le balisage qui l'a produit (`__h`) ; seul ce qui a CHANGÉ est remplacé, le reste est le même nœud. */
   function peindreMessages(parts) {
     const col = $('conv-messages'), tpl = document.createElement('template');
-    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.photo ? 'photo' : null) : null, val = cle ? actif.dataset[cle] : null;
+    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : null) : null, val = cle ? actif.dataset[cle] : null;
     for (let i = 0; i < parts.length; i++) {
       const vieux = col.children[i];
       if (vieux && vieux.__h === parts[i].h) { majStatut(vieux, parts[i].st); continue; }
@@ -2533,7 +2666,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (vieux) col.replaceChild(neuf, vieux); else col.appendChild(neuf);
     }
     while (col.children.length > parts.length) col.removeChild(col.lastChild);
-    if (cle && !col.contains(document.activeElement)) { const b = col.querySelector('[data-' + cle + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
+    if (cle && !col.contains(document.activeElement)) { const b = col.querySelector('[data-' + cle.replace(/[A-Z]/g, x => '-' + x.toLowerCase()) + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
   }
   /* pourquoi on ne peut pas écrire ici (le texte), ou '' : un groupe d'annonces dont on n'est pas admin, un compte supprimé */
   const compoFerme = c => !c ? '' : c.supprime ? 'Ce compte a été supprimé : tu ne peux plus lui écrire.' : (c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0 ? 'Seuls les admins peuvent écrire dans ce groupe.' : '');
@@ -2998,9 +3131,55 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (c) { source.pieceUrl(c.dataset.charger).then(masquerAvis, er => avis(phrase(er, 'La photo n\'a pas pu être chargée.'))); return; }
     const sv = e.target.closest('[data-suivi]');
     if (sv) { declencheur = sv; ouvrirFeuille('suivi:' + sv.dataset.suivi); return; }
+    if (gesteCarte(e)) return;
     const f = e.target.closest('[data-fichier]');
     if (f) telechargerFichier(f.dataset.fichier, f);
   });
+  /* les gestes d'une carte : voter, ajouter un choix, clore (deux touches), copier une position, demander ou écrire au contact d'une fiche → vrai si le geste était pour une carte */
+  function gesteCarte(e) {
+    const conv = etat.conv;
+    const vo = e.target.closest('[data-sond]');
+    if (vo) { if (vo.getAttribute('aria-disabled') !== 'true') voterSondage(vo.dataset.sond); return true; }
+    const aj = e.target.closest('[data-sond-ajouter]');
+    if (aj) { const m = trouverMessage(aj.dataset.sondAjouter); if (m && m.seq) { declencheur = aj; ouvrirFeuille('sondage-choix:' + m.seq); } return true; }
+    const cl = e.target.closest('[data-sond-clore]');
+    if (cl) {
+      const mid = cl.dataset.sondClore, m = trouverMessage(mid); if (!m || !conv) return true;
+      if (!sondClore || sondClore.mid !== mid || Date.now() - sondClore.t > 5000) { sondClore = { mid, t: Date.now() }; rafraichirConv(); setTimeout(() => { if (sondClore && sondClore.mid === mid) { sondClore = null; rafraichirConv(); } }, 5000); return true; }
+      sondClore = null;
+      source.sondageClore(conv, m.seq).then(() => mot('Sondage clos'), er => avis(phrase(er, 'Le sondage n\'a pas pu être clos.')));
+      return true;
+    }
+    const cp = e.target.closest('[data-pos-copier]');
+    if (cp) { const m = trouverMessage(cp.dataset.posCopier); if (m && m.position) copierTexte(m.position.lat.toFixed(6) + ', ' + m.position.lng.toFixed(6), 'Coordonnées copiées'); return true; }
+    const fa = e.target.closest('[data-fiche-ajouter]');
+    if (fa) {
+      const mid = fa.dataset.ficheAjouter, m = trouverMessage(mid); if (!m || !conv || fa.getAttribute('aria-disabled') === 'true') return true;
+      fa.setAttribute('aria-disabled', 'true');
+      source.demanderCarte(conv, m.seq).then(r => { fichesDemandees.set(mid, r); mot(r === 'acceptee' ? 'Vous êtes maintenant en contact' : r === 'deja' ? 'Vous êtes déjà en contact' : 'Demande envoyée'); rafraichirConv(); },
+        er => { fa.removeAttribute('aria-disabled'); avis(phrase(er, 'La demande n\'a pas pu partir.')); });
+      return true;
+    }
+    const fe = e.target.closest('[data-fiche-ecrire]');
+    if (fe) { source.ouvrirDirecte(fe.dataset.ficheEcrire).then(c => pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }), er => avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.'))); return true; }
+    return false;
+  }
+  /* voter : une réponse — toucher un autre choix le remplace, toucher le sien le retire ; plusieurs — chaque touche coche ou décoche */
+  async function voterSondage(cle) {
+    const [mid, i] = cle.split('|'), m = trouverMessage(mid), conv = etat.conv;
+    if (!m || !m.sondage || m.sondage.etat !== 'ok' || !conv || sondEnVol.has(mid)) return;
+    const s = m.sondage, idx = +i, mes = new Set(s.mesChoix);
+    const liste = s.regles.multiple ? (mes.has(idx) ? s.mesChoix.filter(x => x !== idx) : s.mesChoix.concat([idx])) : (mes.has(idx) ? [] : [idx]);
+    sondEnVol.add(mid); rafraichirConv();
+    try { await source.sondageVoter(conv, m.seq, liste); }
+    catch (er) { avis(phrase(er, 'Ton vote n\'a pas pu partir.')); }
+    sondEnVol.delete(mid); rafraichirConv();
+  }
+  function copierTexte(t, ok) {
+    const fin = () => mot(ok);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(fin, () => avis('Le presse-papiers est refusé par le navigateur : ' + t));
+    else avis(t);
+  }
   function ouvrirPhotoDom(cle) {
     const [mid, i] = cle.split('|'), m = trouverMessage(mid), p = m && m.photos && m.photos[+i];
     if (!p || !blob(p.url)) { remplacer(Object.assign({}, etat.route, { photo: null })); return; }
@@ -3362,10 +3541,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -3397,7 +3576,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
       || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
       || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
-      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || '')))) ? mode : 'chat';
+      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
+      || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || '')))) ? mode : 'chat';
+    if (etat.groupe.mode === 'sondage-choix') etat.groupe.sondSeq = +arg;
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
     if (etat.groupe.mode === 'suivi') etat.groupe.pieceId = arg;
@@ -3428,6 +3609,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
     if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
+    if (etat.groupe.mode === 'position') rendrePosition();
+    if (etat.groupe.mode === 'carte-contact') rendreCarteContact();
+    if (etat.groupe.mode === 'sondage-nouveau') rendreSondageNouveau();
+    if (etat.groupe.mode === 'sondage-choix') rendreSondageChoix();
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -4382,6 +4567,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const sw = (cle, titre, aide) => '<button type="button" class="reglage presse" role="switch" data-reg-cle="' + cle + '" aria-checked="' + (reg.conf[cle] ? 'true' : 'false') + '"' + (reg.occupe ? ' aria-disabled="true"' : '') +
       '><span class="reglage-texte">' + esc(titre) + '<small>' + esc(aide) + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
     c.innerHTML = (CAP.identifiants && typeof reg.conf.trouvable === 'boolean' ? sw('trouvable', 'Me trouver par mon identifiant ou mon numéro', 'Coupé : personne ne peut te retrouver ni t\'envoyer de demande. Tes contacts restent.') : '') +
+      (CAP.positions && typeof reg.conf.position === 'boolean' ? sw('position', 'Partager ma position', 'Coupé (par défaut) : le bouton « Position » des conversations ne fait rien partir — le service le refuse. Allumé : ta position part seulement quand tu l\'envoies, une fois, dans une conversation — jamais en continu.') : '') +
       sw('presence', 'Afficher quand je suis en ligne', 'Réciproque : si tu le coupes, tu ne vois plus non plus qui est en ligne.') +
       sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres — ni l\'ouverture d\'une photo ou d\'un vocal. Le téléchargement d\'un fichier, lui, est toujours dit à la personne qui l\'a envoyé.') +
       (reg.confErreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.confErreur) + '</p></div>' : '');
@@ -5628,9 +5814,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
-    if (!m.supprime && m.texte) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
+    if (!m.supprime && m.texte && !estCarte(m)) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
     /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
-    if (moi && !m.supprime && !m.vocal && !m.fichier && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
+    if (moi && !m.supprime && !m.vocal && !m.fichier && !estCarte(m) && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
     if (!m.supprime && m.photos && m.photos.length) h += '<button type="button" class="menu-action" data-menu="enregistrer">' + (m.photos.length > 1 ? 'Enregistrer les ' + m.photos.length + ' photos' : 'Enregistrer la photo') + '</button>';
     const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
     if (pieceSuivie) h += '<button type="button" class="menu-action" data-menu="suivi">' + (m.fichier ? 'Qui l\'a téléchargé' : m.vocal ? 'Qui l\'a écouté' : 'Qui l\'a vue') + '</button>';
@@ -6153,6 +6339,180 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   });
   /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
   $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
+  /* ═══ LES FEUILLES DES CARTES (7 octobre 2026) ═══ */
+  /* ── la position : ⛔ coupée tant que la personne ne l'a pas allumée dans Profil › Confidentialité (« c'est une sécurité pour eux ») — la feuille l'explique et mène au réglage, elle
+     ne l'allume pas à sa place ; allumée, l'appareil dit où il est, on montre ce qui partira, et rien ne part sans « Envoyer ». ── */
+  function partagerPosition() { if (etat.conv) ouvrirFeuille('position'); }
+  async function rendrePosition() {
+    const corps = $('info-corps'), jeton = etat.groupe.cle;
+    const encore = () => etat.groupe.ouvert && etat.groupe.mode === 'position' && etat.groupe.cle === jeton;
+    corps.innerHTML = '<p class="vide">Chargement…</p>';
+    let conf = reg.conf;
+    if (!conf) { try { conf = reg.conf = await source.confidentialite(); } catch (x) { if (encore()) corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(phrase(x, 'Le réglage n\'a pas pu être lu.')) + '</p><div class="info-actions"><button type="button" class="mini" data-pos="relire">Réessayer</button></div>'; return; } }
+    if (!encore()) return;
+    if (!conf.position) {
+      corps.innerHTML = '<div class="pos-explication"><span class="pos-epingle" aria-hidden="true">' + icone('i-lieu') + '</span><h3>Le partage de position est coupé</h3>' +
+        '<p>C\'est une sécurité : ta position ne part d\'OP MESSAGES que si tu l\'as allumée toi-même, dans Profil › Confidentialité. Même allumée, elle ne part qu\'au moment où tu l\'envoies, une fois — jamais en continu.</p></div>' +
+        '<div class="info-actions"><button type="button" class="mini plein" data-pos="reglages">Ouvrir Confidentialité</button></div>';
+      return;
+    }
+    if (!navigator.geolocation) { corps.innerHTML = '<p class="info-erreur" role="alert">Cet appareil ne sait pas donner sa position.</p>'; return; }
+    corps.innerHTML = '<p class="vide">Recherche de ta position…</p>';
+    navigator.geolocation.getCurrentPosition(p => {
+      if (!encore()) return;
+      const pos = { lat: Math.round(p.coords.latitude * 1e6) / 1e6, lng: Math.round(p.coords.longitude * 1e6) / 1e6, prec: Number.isFinite(p.coords.accuracy) ? Math.round(p.coords.accuracy) : null };
+      etat.groupe.pos = pos;
+      const prec = precTexte(pos);
+      corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+        '<div class="carte carte-msg pos pos-apercu">' + planDessine() + '<span><span class="carte-titre">Ta position actuelle</span><span class="carte-sous">' + esc(coordTexte(pos)) + (prec ? ' · ' + esc(prec) : '') + '</span></span></div>' +
+        '<p class="info-note">Elle part une fois, dans cette conversation. Ses membres la voient ; tu peux la supprimer pour tous ensuite.</p>' +
+        '<div class="info-actions"><button type="button" class="mini plein" data-pos="envoyer">Envoyer ma position</button><button type="button" class="mini" data-pos="relire">Relocaliser</button></div>';
+    }, er => {
+      if (!encore()) return;
+      const t = er && er.code === 1 ? 'Ton navigateur refuse de donner ta position : autorise-la pour ce site dans ses réglages, puis réessaie.' : er && er.code === 3 ? 'Ta position a mis trop de temps à venir.' : 'Ta position n\'a pas pu être trouvée.';
+      corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(t) + '</p><div class="info-actions"><button type="button" class="mini" data-pos="relire">Réessayer</button></div>';
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  }
+  /* ── la fiche d'un contact : on choisit, elle part ── */
+  function rendreCarteContact() {
+    const l = typeof source.contacts === 'function' ? source.contacts() : [];
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<p class="info-note">Choisis la personne dont tu envoies la fiche. Seul un contact qui se laisse trouver se partage : il reste maître de son choix.</p>' +
+      (l.length ? '<div class="info-champ"><input id="cc-recherche" type="search" autocomplete="off" enterkeyhint="search" placeholder="Rechercher" aria-label="Rechercher un contact"></div>' +
+        '<div class="carte" id="cc-liste">' + l.map(c => '<button type="button" class="contact presse" data-cc="' + esc(c.id) + '" data-cherche="' + esc(norme(c.nom + ' ' + (c.role || ''))) + '">' + avatar(c) +
+          '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span></button>').join('') + '</div>' +
+        '<p class="vide" id="cc-aucun" hidden>Aucun contact ne correspond.</p>' : '<p class="vide">Tu n\'as pas encore de contact à partager.</p>');
+  }
+  /* ── le sondage : la question, de deux à douze choix, ses RÈGLES ── */
+  const SOND_FINS = [['', 'Quand je le clos'], ['3600000', 'Dans 1 heure'], ['86400000', 'Dans 1 jour'], ['259200000', 'Dans 3 jours'], ['604800000', 'Dans 1 semaine'], ['date', 'Choisir une date…']];
+  const SOND_RESULTATS = [['toujours', 'Tout de suite'], ['apres_vote', 'Après avoir voté'], ['apres_cloture', 'À la clôture']];
+  let sondForm = null;
+  const swSond = (id, titre, aide, oui) => '<button type="button" class="reglage presse" role="switch" id="' + id + '" aria-checked="' + (oui ? 'true' : 'false') + '"><span class="reglage-texte">' + esc(titre) + '<small>' + esc(aide) + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+  function rendreSondageNouveau() {
+    sondForm = { choix: ['', ''] };
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="champ"><label for="sd-q">Question</label><input id="sd-q" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" placeholder="Pose ta question"></div>' +
+      '<div class="rubrique"><span>Choix</span><span id="sd-n"></span></div><div class="carte" id="sd-choix"></div>' +
+      '<button type="button" class="mini sd-plus" data-sd="plus">Ajouter un choix</button>' +
+      '<div class="rubrique"><span>Règles</span></div><div class="carte">' +
+        swSond('sd-multiple', 'Plusieurs réponses', 'Chacun peut cocher plusieurs choix.', false) +
+        swSond('sd-anonyme', 'Vote anonyme', 'Personne ne voit qui a voté quoi — toi non plus. Seuls les décomptes se lisent.', false) +
+        swSond('sd-ajout', 'Les membres ajoutent des choix', 'Douze choix au plus, jamais deux fois le même.', false) + '</div>' +
+      '<div class="champ"><label for="sd-resultats">Résultats visibles</label><select id="sd-resultats">' + SOND_RESULTATS.map(x => '<option value="' + x[0] + '">' + esc(x[1]) + '</option>').join('') + '</select></div>' +
+      '<div class="champ"><label for="sd-fin">Fin du vote</label><select id="sd-fin">' + SOND_FINS.map(x => '<option value="' + x[0] + '">' + esc(x[1]) + '</option>').join('') + '</select></div>' +
+      '<div class="champ" id="sd-date-champ" hidden><label for="sd-date">Date et heure de fin</label><input id="sd-date" type="datetime-local" step="60"></div>' +
+      '<div class="info-actions"><button type="button" class="mini plein" data-sd="envoyer">Envoyer le sondage</button></div>';
+    peindreChoixSondage();
+  }
+  function peindreChoixSondage(focus) {
+    const F = sondForm, b = $('sd-choix'); if (!F || !b) return;
+    b.innerHTML = F.choix.map((t, i) => '<div class="sd-ligne"><input type="text" maxlength="100" autocomplete="off" enterkeyhint="next" data-sd-c="' + i + '" value="' + esc(t) + '" placeholder="Choix ' + (i + 1) + '" aria-label="Choix ' + (i + 1) + '">' +
+      (F.choix.length > 2 ? '<button type="button" class="sd-retirer presse" data-sd-retirer="' + i + '" aria-label="Retirer le choix ' + (i + 1) + '">' + icone('i-croix') + '</button>' : '') + '</div>').join('');
+    $('sd-n').textContent = F.choix.length + ' / 12';
+    const plus = document.querySelector('[data-sd="plus"]'); if (plus) plus.hidden = F.choix.length >= 12;
+    if (Number.isInteger(focus)) { const c = b.querySelector('[data-sd-c="' + focus + '"]'); if (c) c.focus(); }
+  }
+  const cleChoix = x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  async function envoyerSondageForm(b) {
+    const F = sondForm, conv = etat.conv; if (!F) return;
+    if (!conv) { erreurInfo('Ouvre d\'abord une conversation.'); return; }
+    const q = $('sd-q').value.replace(/\s+/g, ' ').trim();
+    if (!q) { erreurInfo('Écris la question.'); $('sd-q').focus(); return; }
+    const choix = F.choix.map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    if (choix.length < 2) { erreurInfo('Donne au moins deux choix.'); return; }
+    if (new Set(choix.map(cleChoix)).size !== choix.length) { erreurInfo('Deux choix sont identiques.'); return; }
+    const oui = id => $(id).getAttribute('aria-checked') === 'true';
+    const f = $('sd-fin').value;
+    let fin = null;
+    if (f === 'date') {
+      const v = $('sd-date').value, t = v ? new Date(v).getTime() : NaN;
+      if (!Number.isFinite(t) || t < Date.now() + 120000) { erreurInfo('Choisis une fin dans l\'avenir (au moins deux minutes).'); $('sd-date').focus(); return; }
+      if (t > Date.now() + 90 * 86400000) { erreurInfo('Un sondage dure quatre-vingt-dix jours au plus.'); $('sd-date').focus(); return; }
+      fin = Math.round(t);
+    } else if (f) fin = Date.now() + Number(f);
+    b.setAttribute('aria-disabled', 'true');
+    try {
+      await source.envoyerSondage(conv, { question: q, choix, regles: { multiple: oui('sd-multiple'), anonyme: oui('sd-anonyme'), ajout: oui('sd-ajout'), resultats: $('sd-resultats').value, fin } });
+      sondForm = null; fermerFeuille(); mot('Sondage envoyé');
+    } catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le sondage n\'a pas pu partir.')); }
+  }
+  /* ── ajouter un choix à un sondage ouvert ── */
+  function rendreSondageChoix() {
+    const c = etat.convDonnees, m = c && c.messages.find(x => x.seq === etat.groupe.sondSeq);
+    const q = m && m.sondage ? m.sondage.q : '';
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + (q ? '<p class="info-note" dir="auto">« ' + esc(q) + ' »</p>' : '') +
+      '<div class="champ"><label for="sc-texte">Nouveau choix</label><input id="sc-texte" type="text" maxlength="100" autocomplete="off" enterkeyhint="done" placeholder="Ton choix"></div>' +
+      '<div class="info-actions"><button type="button" class="mini plein" data-sc="ajouter">Ajouter</button></div>';
+  }
+  async function ajouterChoixForm(b) {
+    const conv = etat.conv, t = $('sc-texte').value.replace(/\s+/g, ' ').trim();
+    if (!conv) return;
+    if (!t) { erreurInfo('Écris le choix.'); $('sc-texte').focus(); return; }
+    b.setAttribute('aria-disabled', 'true');
+    try { await source.sondageAjouter(conv, etat.groupe.sondSeq, t); fermerFeuille(); mot('Choix ajouté'); }
+    catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le choix n\'a pas pu être ajouté.')); }
+  }
+  const modeCarte = () => etat.groupe.ouvert && ['position', 'carte-contact', 'sondage-nouveau', 'sondage-choix'].includes(etat.groupe.mode);
+  $('info-corps').addEventListener('click', async e => {
+    if (!modeCarte()) return;
+    const G = etat.groupe;
+    if (G.mode === 'position') {
+      const b = e.target.closest('[data-pos]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+      if (b.dataset.pos === 'relire') { rendrePosition(); return; }
+      if (b.dataset.pos === 'reglages') { remplacer({ vue: 'reglages', sec: 'confidentialite', conv: null, feuille: false, photo: null, appel: null }); return; }
+      if (b.dataset.pos === 'envoyer' && G.pos && etat.conv) {
+        erreurInfo(''); b.setAttribute('aria-disabled', 'true');
+        try { await source.envoyerPosition(etat.conv, { lat: G.pos.lat, lng: G.pos.lng, precision: G.pos.prec }); fermerFeuille(); mot('Position envoyée'); }
+        catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Ta position n\'a pas pu partir.')); if (x && x.code === 'position_desactivee') reg.conf = null; }
+      }
+      return;
+    }
+    if (G.mode === 'carte-contact') {
+      const b = e.target.closest('[data-cc]'); if (!b || b.getAttribute('aria-disabled') === 'true' || !etat.conv) return;
+      erreurInfo(''); b.setAttribute('aria-disabled', 'true');
+      try { await source.envoyerFiche(etat.conv, b.dataset.cc); fermerFeuille(); mot('Fiche envoyée'); }
+      catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'La fiche n\'a pas pu partir.')); }
+      return;
+    }
+    if (G.mode === 'sondage-nouveau') {
+      const sw = e.target.closest('#sd-multiple, #sd-anonyme, #sd-ajout');
+      if (sw) { sw.setAttribute('aria-checked', sw.getAttribute('aria-checked') === 'true' ? 'false' : 'true'); return; }
+      const r = e.target.closest('[data-sd-retirer]');
+      if (r && sondForm && sondForm.choix.length > 2) { sondForm.choix.splice(+r.dataset.sdRetirer, 1); peindreChoixSondage(Math.min(+r.dataset.sdRetirer, sondForm.choix.length - 1)); return; }
+      const b = e.target.closest('[data-sd]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+      erreurInfo('');
+      if (b.dataset.sd === 'plus' && sondForm && sondForm.choix.length < 12) { sondForm.choix.push(''); peindreChoixSondage(sondForm.choix.length - 1); }
+      else if (b.dataset.sd === 'envoyer') envoyerSondageForm(b);
+      return;
+    }
+    const b = e.target.closest('[data-sc]'); if (b && b.getAttribute('aria-disabled') !== 'true') { erreurInfo(''); ajouterChoixForm(b); }
+  });
+  $('info-corps').addEventListener('input', e => {
+    if (!modeCarte()) return;
+    const t = e.target;
+    if (t.id === 'cc-recherche') {
+      const q = norme(t.value.trim()); let vus = 0;
+      document.querySelectorAll('#cc-liste [data-cc]').forEach(b => { b.hidden = !!q && !b.dataset.cherche.includes(q); if (!b.hidden) vus++; });
+      const a = $('cc-aucun'); if (a) a.hidden = vus > 0;
+      return;
+    }
+    if (t.dataset && t.dataset.sdC !== undefined && sondForm) sondForm.choix[+t.dataset.sdC] = t.value;
+    erreurInfo('');
+  });
+  $('info-corps').addEventListener('change', e => { if (modeCarte() && e.target.id === 'sd-fin') { const c = $('sd-date-champ'); if (c) c.hidden = e.target.value !== 'date'; } });
+  $('info-corps').addEventListener('keydown', e => {
+    if (!modeCarte() || e.key !== 'Enter' || e.isComposing) return;
+    const t = e.target;
+    if (t.id === 'sc-texte') { e.preventDefault(); const b = document.querySelector('[data-sc="ajouter"]'); if (b) ajouterChoixForm(b); return; }
+    if (t.dataset && t.dataset.sdC !== undefined && sondForm) {
+      e.preventDefault();
+      const i = +t.dataset.sdC;
+      if (i === sondForm.choix.length - 1 && sondForm.choix.length < 12 && t.value.trim()) { sondForm.choix.push(''); peindreChoixSondage(i + 1); }
+      else { const n = document.querySelector('[data-sd-c="' + (i + 1) + '"]'); if (n) n.focus(); }
+      return;
+    }
+    if (t.id === 'sd-q') { e.preventDefault(); const n = document.querySelector('[data-sd-c="0"]'); if (n) n.focus(); }
+  });
   const ouvrirReunionId = id => { if (CAP.reunions && ID_REUNION.test(id)) remplacer({ vue: 'reunions', conv: null, feuille: 'reunion:' + id, photo: null, appel: null }); };
 
   /* ── les gens qu'on peut inviter : mes contacts, et les membres de MES espaces (jamais un annuaire) ── */
