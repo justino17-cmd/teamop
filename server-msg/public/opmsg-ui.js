@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '2e8b3504b690';
+  const OPMSG_BUILD = '02dd98e00861';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 20;
+  const OPMSG_VERSION = 21;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -2562,7 +2562,7 @@
   }
   const vcEtoile = c => CAP.favoris && typeof source.favori === 'function'
     ? '<button type="button" class="vc-etoile presse" data-act="vc-favori" data-uid="' + esc(c.id) + '" aria-pressed="' + (c.favori ? 'true' : 'false') + '" aria-label="' +
-      esc((c.favori ? 'Retirer ' + c.nom + ' des favoris' : 'Ajouter ' + c.nom + ' aux favoris')) + '"><svg aria-hidden="true"><use href="#i-etoile"/></svg></button>' : '';
+      (c.favori ? 'Retirer ' : 'Ajouter ') + esc(c.nom) + (c.favori ? ' des favoris' : ' aux favoris') + '"><svg aria-hidden="true"><use href="#i-etoile"/></svg></button>' : '';
   const vcLigneContact = c => '<div class="vc-ligne"><button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
       '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
       '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>' + vcEtoile(c) + '</div>';

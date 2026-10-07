@@ -4238,7 +4238,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   const vcEtoile = c => CAP.favoris && typeof source.favori === 'function'
     ? '<button type="button" class="vc-etoile presse" data-act="vc-favori" data-uid="' + esc(c.id) + '" aria-pressed="' + (c.favori ? 'true' : 'false') + '" aria-label="' +
-      esc((c.favori ? 'Retirer ' + c.nom + ' des favoris' : 'Ajouter ' + c.nom + ' aux favoris')) + '"><svg aria-hidden="true"><use href="#i-etoile"/></svg></button>' : '';
+      (c.favori ? 'Retirer ' : 'Ajouter ') + esc(c.nom) + (c.favori ? ' des favoris' : ' aux favoris') + '"><svg aria-hidden="true"><use href="#i-etoile"/></svg></button>' : '';
   const vcLigneContact = c => '<div class="vc-ligne"><button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
       '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
       '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>' + vcEtoile(c) + '</div>';
