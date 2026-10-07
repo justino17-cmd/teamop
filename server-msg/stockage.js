@@ -2392,8 +2392,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q(`SELECT r.id, r.conv, r.hote, r.titre_ch, r.lieu_ch, r.debut, r.fin, r.tz, r.rep, r.n, r.jusqua, r.rappels, r.annulee, r.attente, r.version, r.cree, r.maj, i.statut AS mon_statut, i.rappels AS mes_rappels,
                      (SELECT COUNT(*) FROM reunion_invite x WHERE x.reunion = r.id) AS participants_n
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion
-              WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)` + (ids ? ` AND r.id IN (${ids.map(() => '?').join(', ') || 'NULL'})` : '') + `
-              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du, ...(ids || [])).map(r => {
+              WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
+                AND (? IS NULL OR r.id IN (SELECT value FROM json_each(?)))
+              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du, ids ? 1 : null, JSON.stringify(ids || [])).map(r => {
       const rang = reunionRang(r);
       rang.hote = personneCourte(uid, r.hote);
       rang.participants_n = num(r.participants_n);
