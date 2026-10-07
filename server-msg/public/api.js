@@ -350,6 +350,7 @@
       repondreDemande: (id, accepter) => appel('POST', '/api/contacts/demandes/repondre', { id, accepter: accepter === true }),
       annulerDemande: (id) => appel('POST', '/api/contacts/demandes/annuler', { id }),
       personne: async (id) => (await appel('GET', '/api/personnes/' + e(id))).personne,
+      enCommun: (id) => appel('GET', '/api/personnes/' + e(id) + '/commun'),   // la fiche d'un contact : réunions, groupes, espaces en commun
       conversations: async () => (await appel('GET', '/api/conversations')).conversations,
       directe: (uid) => appel('POST', '/api/conversations/directe', { uid }),
       groupe: (champs) => appel('POST', '/api/conversations/groupe', champs),

@@ -60,8 +60,8 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     const iA = (await api(A, 'GET', '/api/moi')).j.moi.identifiant;
 
     console.log('\n── 1. l\'onglet existe, vide ──');
-    v('la barre du téléphone porte CINQ onglets, Contacts en deuxième', await A.page.evaluate(() => Array.from(document.querySelectorAll('#tabs a[data-vue]')).map(a => a.dataset.vue)), ['messages', 'contacts', 'appels', 'reunions', 'reglages']);
-    v('la barre latérale du bureau aussi', await B.page.evaluate(() => Array.from(document.querySelectorAll('#nav-side a[data-vue]')).map(a => a.dataset.vue)), ['messages', 'contacts', 'appels', 'reunions', 'reglages']);
+    v('la barre du téléphone porte QUATRE onglets, Contacts en deuxième (« Profil » n\'est plus un onglet depuis le 7 octobre 2026 : on y entre par son avatar)', await A.page.evaluate(() => Array.from(document.querySelectorAll('#tabs a[data-vue]')).map(a => a.dataset.vue)), ['messages', 'contacts', 'appels', 'reunions']);
+    v('la barre latérale du bureau aussi', await B.page.evaluate(() => Array.from(document.querySelectorAll('#nav-side a[data-vue]')).map(a => a.dataset.vue)), ['messages', 'contacts', 'appels', 'reunions']);
     const barre = await A.page.evaluate(() => { const t = document.getElementById('tabs').getBoundingClientRect(); const libs = Array.from(document.querySelectorAll('#tabs a span')).map(s => s.scrollWidth <= s.clientWidth + 1); return { dedans: t.left >= 0 && t.right <= innerWidth, coupe: libs.filter(x => !x).length, page: document.documentElement.scrollWidth <= innerWidth }; });
     v('iPhone 393 : la barre tient dans l\'écran, aucun libellé coupé, la page ne défile pas de côté', [barre.dedans, barre.coupe, barre.page], [true, 0, true]);
     v('population : aucune demande au départ, la pastille de l\'onglet est cachée', await badge(A), []);
@@ -94,6 +94,8 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     v('la pastille de l\'onglet disparaît', await badge(A), []);
     vrai('chez Bruno, sans rien toucher : Alice passe de « en attente » à « Mes contacts »', await attendre(B, () => { const s = document.getElementById('vue-contacts'); return !s.querySelector('[data-act="vc-retirer"]') && !!Array.from(s.querySelectorAll('[data-act="vc-ecrire"]')).find(x => x.textContent.includes('Alice')); }, null, 12000));
     await toucher(B, '#vue-contacts [data-act="vc-ecrire"]');
+    /* au bureau (Contacts sur Mac, 7 octobre 2026), toucher la ligne CHOISIT la personne : sa fiche paraît à droite, et c'est « Message » qui ouvre la conversation */
+    if (!B.pf.mobile) { await B.page.waitForFunction(() => !!document.querySelector('#vc-fiche [data-fiche="ecrire"]'), null, { timeout: 6000 }).catch(() => {}); await toucher(B, '#vc-fiche [data-fiche="ecrire"]'); }
     vrai('Bruno touche Alice : leur conversation s\'ouvre', await attendre(B, () => { const t = document.getElementById('conv-titre'); return location.hash.startsWith('#messages/') && !!t && t.textContent.includes('Alice'); }));
 
     console.log('\n── 4. Chloé demande, Alice refuse ──');

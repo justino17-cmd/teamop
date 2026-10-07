@@ -13,6 +13,18 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (FIN D'APRÈS-MIDI) — LA FICHE D'UN CONTACT DIT CE QU'ON A EN COMMUN (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « au niveau des contacts, pour le pro, voir leur tableau de réunion — s'ils participent à la même réunion — quand on clique sur le contact ». La fiche (comme la carte de
+Contacts sur iPhone) : photo, nom, Message · Appeler · Vidéo · Réunion · Favori, puis **Réunions à venir ensemble** (pastille de calendrier, horaire, SA réponse, « Programmer une
+réunion avec … » qui ouvre le formulaire avec la personne déjà invitée), **Groupes en commun**, **Entreprise**. Au bureau, le volet droit de Contacts ; au téléphone, toucher un
+contact ouvre désormais SA FICHE (feuille « personne:<id> ») — « Message » y est le premier geste. Un squelette pendant la première lecture, une copie d'une minute ensuite.
+⛔ Route `GET /api/personnes/:id/commun` (garde V, la porte de `personnes.lire`) : seulement ce dont on fait PARTIE — jamais l'agenda de l'autre ; 404 pour inconnu, soi-même,
+mal formé, bloqué par l'autre ; 120 lectures par minute ; les réunions communes se cherchent d'abord (`enCommun`), puis s'habillent par `reunionsDe(…, ids)` (relecture `gardien` :
+sans ça, une fiche faisait calculer tout l'agenda, et une réunion commune pouvait disparaître derrière 600 autres). `tests/test-922.js` (16 ✓ ; fuite, blocage et annulation : les
+mutations mordent), `tests/sonde-opmessages-fiche-contact.js` (32 ✓, bureau et téléphone). ⚠️ Pas encore joués par un banc : un canal PRIVÉ quitté, un espace quitté, une série
+dont la première occurrence est passée (lus dans le code par `gardien`, sans défaut).
+
 # ⏳ 7 OCTOBRE 2026 (APRÈS-MIDI) — OP MESSAGES AU BUREAU « 100 % FAÇON APPLE », ET LE PROFIL QUITTE LE MENU (bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin, capture du Profil au bureau : « pour tout ce qui va être PC et version web, il faudrait une autre interface… très moche, pas hyper pro », puis « refais les interfaces pour la

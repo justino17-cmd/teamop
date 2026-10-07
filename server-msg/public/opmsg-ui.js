@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '08ac1437a627';
+  const OPMSG_BUILD = '0d8e1630f0b5';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 29;
+  const OPMSG_VERSION = 33;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -278,7 +278,7 @@
       e.preventDefault();
       /* « ‹ Messages » du Profil REND l'entrée d'où l'on venait (le retour d'iOS) au lieu d'en empiler une : sinon le retour système ramènerait au Profil */
       const h = entree();
-      if (a.id === 'profil-retour' && h && h.p && h.p.vue === a.dataset.vue && etat.route && etat.route.vue === 'reglages' && !etat.route.sec) { history.back(); return; }
+      if (a.id === 'profil-retour' && h && h.p && h.p.vue === a.dataset.vue && etat.route && etat.route.vue === 'reglages' && !etat.route.sec) { rendreEntree(); return; }
       const r = { vue: a.dataset.vue, conv: null, feuille: false, photo: null, appel: null };
       /* un onglet touché PENDANT un appel prend la place de l'entrée de l'appel (il raccroche) : pas d'entrée morte « appel terminé » qu'un retour ferait retomber dessus */
       if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId) remplacer(r); else pousser(r);
@@ -1160,10 +1160,10 @@
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -1193,8 +1193,10 @@
     etat.groupe.mode = mode === 'appel' || mode === 'info' || mode === 'nouvelle' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
+      || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
+    if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
@@ -1211,6 +1213,7 @@
     if (etat.groupe.mode === 'contact') rendreFeuilleContact();
     if (etat.groupe.mode === 'convinfo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreConvInfo(); }
     if (etat.groupe.mode === 'profil') rendreProfil();
+    if (etat.groupe.mode === 'personne') rendrePersonne();
     if (etat.groupe.mode === 'suppression') rendreSuppression();
     if (etat.groupe.mode === 'entreprise') rendreEntreprise();
     if (etat.groupe.mode === 'espace') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreEspace(); }
@@ -2568,22 +2571,111 @@
     if (S && S.membres) for (const k of Object.keys(S.membres)) { const p = (S.membres[k] || []).find(x => x.id === uid); if (p) return p; }
     return null;
   }
-  function peindreVcFiche() {
-    const f = $('vc-fiche'); if (!f) return;
-    if (!auBureau()) { f.innerHTML = ''; return; }
-    const p = etat.vcSel ? vcPersonne(etat.vcSel) : null;
-    if (!p) { f.innerHTML = '<div class="vc-fiche-vide"><span class="coquille-icone" aria-hidden="true">' + icone('i-groupe') + '</span><p>Choisis un contact pour voir sa fiche.</p></div>'; return; }
-    const estContact = (CONTACTS || []).some(x => x.id === p.id);
-    f.innerHTML = '<div class="vc-fiche-tete">' + avatar(p) + '<h2 class="vc-fiche-nom">' + esc(p.nom) + '</h2>' +
+  /* ── LA FICHE D'UNE PERSONNE (7 octobre 2026 : « au niveau des contacts, pour le pro, voir leur tableau de réunion — s'ils participent à la même réunion — quand on clique sur le
+     contact »). Comme la carte de Contacts sur iPhone : la photo, le nom, les gestes (Message, Appeler, Vidéo, Réunion, Favori), puis ce qu'on a EN COMMUN — les réunions à venir où l'on est
+     invités tous les deux (la prochaine d'abord, et SA réponse), les groupes, l'entreprise. Au bureau, le volet droit de Contacts ; au téléphone, une feuille (« personne:<id> »).
+     ⛔ Seulement ce dont on fait PARTIE (le service le décide, `/api/personnes/:id/commun`) : jamais l'agenda de l'autre au-delà. Ce qui a été lu une fois se montre aussitôt (une minute)
+     et se relit derrière ; avant la première lecture, un squelette — jamais un trou, jamais un « rien en commun » qu'on n'a pas encore vérifié. ── */
+  const commun = { cache: new Map(), enCours: new Map() };
+  const FMT_MOIS_CAL = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
+  const FMT_JOUR_FICHE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const sonStatutTxt = (r, p) => r.hote === p.id ? prenom(p) + ' organise' : r.sonStatut === 'accepte' ? prenom(p) + ' a accepté' : r.sonStatut === 'decline' ? prenom(p) + ' a refusé' : r.sonStatut === 'peutetre' ? prenom(p) + ' : peut-être' : prenom(p) + ' n\'a pas encore répondu';
+  function ficheTete(p) {
+    const estContact = (CONTACTS || []).some(x => x.id === p.id), uid = esc(p.id);
+    const geste = (fiche, ic, txt, extra) => '<button type="button" class="vc-action presse" data-fiche="' + fiche + '" data-uid="' + uid + '"' + (extra || '') + '><span class="vc-action-rond">' + ic + '</span><span>' + txt + '</span></button>';
+    return '<div class="vc-fiche-tete">' + avatar(p) + '<h2 class="vc-fiche-nom">' + esc(p.nom) + '</h2>' +
       (p.enLigne || p.statut || p.role ? '<p class="vc-fiche-statut">' + esc(p.enLigne ? 'En ligne' : (p.statut || p.role)) + '</p>' : '') + '</div>' +
-      '<div class="vc-fiche-actions">' +
-        '<button type="button" class="vc-action presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '"><span class="vc-action-rond">' + icone('i-chat') + '</span><span>Message</span></button>' +
-        (CAP.appels ? '<button type="button" class="vc-action presse" data-act="vc-appel" data-video="0" data-uid="' + esc(p.id) + '"><span class="vc-action-rond">' + icone('i-phone') + '</span><span>Appeler</span></button>' +
-          '<button type="button" class="vc-action presse" data-act="vc-appel" data-video="1" data-uid="' + esc(p.id) + '"><span class="vc-action-rond">' + icone('i-video') + '</span><span>Vidéo</span></button>' : '') +
-        (estContact && CAP.favoris && typeof source.favori === 'function' ? '<button type="button" class="vc-action presse" data-act="vc-favori" data-uid="' + esc(p.id) + '" aria-pressed="' + (p.favori ? 'true' : 'false') + '"><span class="vc-action-rond">' +
-          '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg></span><span>' + (p.favori ? 'Favori' : 'Favoris') + '</span></button>' : '') +
+      '<div class="vc-fiche-actions">' + geste('ecrire', icone('i-chat'), 'Message') +
+        (CAP.appels ? geste('appel', icone('i-phone'), 'Appeler', ' data-video="0"') + geste('appel', icone('i-video'), 'Vidéo', ' data-video="1"') : '') +
+        (CAP.reunions ? geste('programmer', icone('i-agenda'), 'Réunion') : '') +
+        (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', p.favori ? 'Favori' : 'Favoris', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
       '</div>';
   }
+  function ficheCommun(p) {
+    if (typeof source.enCommun !== 'function') return '';
+    const e = commun.cache.get(p.id), d = e && e.d;
+    if (!d) {
+      if (e && e.panne) return '<div class="rubrique"><span>En commun</span></div><div class="carte"><p class="fc-note" role="alert">' + esc(e.panne) + '</p>' +
+        '<button type="button" class="fc-ligne fc-agir presse" data-fiche="relire" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-agenda') + '</span><span class="fc-texte"><span class="fc-titre">Réessayer</span></span></button></div>';
+      const sq = '<div class="fc-squelette" aria-hidden="true"><i></i><span><b></b><b></b></span></div>';
+      return '<div class="rubrique"><span>Réunions à venir ensemble</span></div><div class="carte" aria-busy="true" aria-label="Chargement de ce que vous avez en commun">' + sq + sq + '</div>';
+    }
+    let h = '';
+    if (CAP.reunions) {
+      h += '<div class="rubrique"><span>Réunions à venir ensemble</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
+      if (!d.reunions.length) h += '<p class="fc-note">Aucune réunion prévue avec ' + esc(prenom(p)) + ' dans les deux prochains mois.</p>';
+      h += d.reunions.map(r => {
+        const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
+        const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(FMT_JOUR_FICHE.format(o.debut) + ' · ' + FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin)) + '<br>' + esc(sonStatutTxt(r, p));
+        return '<button type="button" class="fc-ligne presse" data-fiche="reunion" data-id="' + esc(r.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-date" aria-hidden="true"><small>' + esc(FMT_MOIS_CAL.format(o.debut).replace('.', '')) + '</small><b>' + new Date(o.debut).getDate() + '</b></span>' +
+          '<span class="fc-texte"><span class="fc-titre">' + esc(r.titre || 'Réunion') + '</span><span class="fc-sous">' + sous + '</span></span>' + CHEVRON + '</button>';
+      }).join('');
+      h += '<button type="button" class="fc-ligne fc-agir presse" data-fiche="programmer" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-plus') + '</span><span class="fc-texte"><span class="fc-titre">Programmer une réunion avec ' + esc(prenom(p)) + '</span></span></button></div>';
+    }
+    if (d.groupes.length) h += '<div class="rubrique"><span>Groupes en commun</span><span>' + d.groupes.length + '</span></div><div class="carte">' + d.groupes.map(g =>
+      '<button type="button" class="fc-ligne presse" data-fiche="groupe" data-id="' + esc(g.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone(g.type === 'canal' ? 'i-entreprise' : 'i-groupe') + '</span>' +
+        '<span class="fc-texte"><span class="fc-titre">' + esc(g.nom || 'Groupe') + '</span>' + (g.type === 'canal' ? '<span class="fc-sous">Canal d\'entreprise</span>' : '') + '</span>' + CHEVRON + '</button>').join('') + '</div>';
+    if (d.espaces.length && CAP.espaces) h += '<div class="rubrique"><span>Entreprise</span></div><div class="carte">' + d.espaces.map(x =>
+      '<button type="button" class="fc-ligne presse" data-fiche="espace" data-id="' + esc(x.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-entreprise') + '</span>' +
+        '<span class="fc-texte"><span class="fc-titre">' + esc(x.nom || 'Espace') + '</span><span class="fc-sous">Collègues dans cet espace</span></span>' + CHEVRON + '</button>').join('') + '</div>';
+    return h;
+  }
+  const ficheHtml = p => ficheTete(p) + '<div class="fc-commun" data-commun-uid="' + esc(p.id) + '">' + ficheCommun(p) + '</div>';
+  /* relit ce qu'on a en commun (une lecture à la fois par personne) et repeint chaque fiche ouverte sur elle ; `force` : relire même si la copie a moins d'une minute */
+  async function chargerCommun(uid, force) {
+    if (typeof source.enCommun !== 'function' || !uid) return;
+    const e = commun.cache.get(uid);
+    if (!force && e && e.d && Date.now() - e.t < 60000) return;
+    if (commun.enCours.has(uid)) return commun.enCours.get(uid);
+    const lecture = (async () => {
+      try { commun.cache.set(uid, { t: Date.now(), d: await source.enCommun(uid) }); }
+      catch (er) { if (!(e && e.d)) commun.cache.set(uid, { t: 0, d: null, panne: phrase(er, 'Ce que vous avez en commun n\'a pas pu être lu.') }); }
+      finally { commun.enCours.delete(uid); }
+      peindreCommun(uid);
+    })();
+    commun.enCours.set(uid, lecture);
+    return lecture;
+  }
+  function peindreCommun(uid) {
+    const p = vcPersonne(uid); if (!p) return;
+    document.querySelectorAll('.fc-commun').forEach(c => { if (c.dataset.communUid === uid) c.innerHTML = ficheCommun(p); });
+  }
+  function peindreVcFiche() {
+    const f = $('vc-fiche'); if (!f) return;
+    if (!auBureau()) { f.innerHTML = ''; f.dataset.sig = ''; return; }
+    const p = etat.vcSel ? vcPersonne(etat.vcSel) : null;
+    if (!p) { f.dataset.sig = ''; f.innerHTML = '<div class="vc-fiche-vide"><span class="coquille-icone" aria-hidden="true">' + icone('i-groupe') + '</span><p>Choisis un contact pour voir sa fiche.</p></div>'; return; }
+    const h = ficheHtml(p);
+    if (f.dataset.sig !== h) { f.dataset.sig = h; f.innerHTML = h; }
+    chargerCommun(p.id);
+  }
+  /* au téléphone : la feuille « personne:<id> » (la même fiche) */
+  function rendrePersonne() {
+    const uid = etat.groupe.personneId, p = uid ? vcPersonne(uid) : null, corps = $('info-corps');
+    if (!p) { mot('Ce contact n\'est plus disponible.'); fermerCouche(); return; }
+    corps.dataset.sig = ''; corps.innerHTML = '<div class="fiche-personne">' + ficheHtml(p) + '</div>';
+    chargerCommun(uid, true);
+  }
+  /* les gestes de la fiche, au bureau comme dans la feuille */
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-fiche]'); if (!b || b.disabled) return;
+    const act = b.dataset.fiche, uid = b.dataset.uid;
+    try {
+      if (act === 'ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
+      if (act === 'appel') { await lancerAppel({ membres: [uid], video: b.dataset.video === '1' }, b); return; }
+      if (act === 'programmer') { reu.prechoisis = uid; declencheur = b; await programmerReunion(); return; }
+      if (act === 'reunion') { declencheur = b; ouvrirFeuille('reunion:' + b.dataset.id); return; }
+      if (act === 'groupe') { pousser({ vue: 'messages', conv: b.dataset.id, feuille: false, photo: null, appel: null }); return; }
+      if (act === 'espace') { declencheur = b; ouvrirFeuille('espace:' + b.dataset.id); return; }
+      if (act === 'relire') { commun.cache.delete(uid); peindreCommun(uid); await chargerCommun(uid, true); return; }
+      if (act === 'favori') {
+        const oui = b.getAttribute('aria-pressed') !== 'true';
+        b.disabled = true;
+        try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
+        if (etat.groupe.ouvert && etat.groupe.mode === 'personne') rendrePersonne();
+      }
+    } catch (er) { mot(phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }
+  });
   function vcRendreFocus(corps, cleFocus) {
     if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
@@ -2695,9 +2787,9 @@
         try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
         return;
       }
-      if (act === 'vc-ecrire' && auBureau() && !b.closest('#vc-fiche')) { etat.vcSel = uid; rendreVueContacts(); return; }
-      if (act === 'vc-appel') { await lancerAppel({ membres: [uid], video: b.dataset.video === '1' }, b); return; }
-      if (act === 'vc-ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
+      if (act === 'vc-ecrire' && auBureau()) { etat.vcSel = uid; rendreVueContacts(); return; }
+      /* au téléphone, toucher un contact ouvre SA FICHE (la carte de Contacts sur iPhone) : « Message » y est le premier geste */
+      if (act === 'vc-ecrire') { declencheur = b; ouvrirFeuille('personne:' + uid); return; }
       b.disabled = true;
       if (act === 'vc-accepter') { await source.repondreDemande(uid, true); mot('Contact ajouté'); }
       else if (act === 'vc-refuser') { await source.repondreDemande(uid, false); mot('Demande refusée'); }
@@ -4067,7 +4159,9 @@
     const maintenant = Date.now(), debut0 = d ? d.debut : Math.ceil((maintenant + 60000) / 3600000) * 3600000;
     const fin0 = d ? d.fin : debut0 + 3600000;
     const initial = { titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
-    reu.form = { id: id || null, choisis: [], rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut };
+    /* « Programmer une réunion avec … » depuis la fiche d'une personne : elle est déjà invitée (une fois — le formulaire suivant repart vide) */
+    const avec = !id && reu.prechoisis ? [reu.prechoisis] : []; reu.prechoisis = null;
+    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut };
     const typeFin = initial.n ? 'nombre' : initial.jusqua ? 'date' : 'jamais';
     corps.dataset.sig = '';
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
@@ -4854,7 +4948,7 @@
       if (ev.type === 'salle-parle' && ev.id === etat.appelId) majParle();
       if (ev.type === 'contacts') surContacts();
       if (ev.type === 'espaces') surEspaces(ev);
-      if (ev.type === 'reunions') surReunions(ev);
+      if (ev.type === 'reunions') { surReunions(ev); commun.cache.clear(); if (etat.vcSel && auBureau()) chargerCommun(etat.vcSel, true); if (etat.groupe.ouvert && etat.groupe.mode === 'personne') chargerCommun(etat.groupe.personneId, true); }   // une réunion programmée, modifiée, annulée : la fiche ouverte se relit
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);

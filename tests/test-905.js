@@ -61,6 +61,7 @@ const MATRICE = {
   'liens.lire':         { ok: (F) => ['POST', '/api/liens/lire', { code: F.code }], codes: [200] },
   'liens.accepter':     { ok: (F) => ['POST', '/api/liens/accepter', { code: F.code }], codes: [200] },
   'personnes.lire':     { ok: (F) => ['GET', '/api/personnes/' + F.A], codes: [200] },
+  'personnes.commun':   { prep: (F, S, a) => S.contactEtat(a, F.cibleDe(a), 'ok'), ok: (F, a) => ['GET', '/api/personnes/' + F.cibleDe(a) + '/commun'], codes: [200] },   // jamais soi-même : la fiche d'un AUTRE
   'conv.liste':         { ok: () => ['GET', '/api/conversations'], codes: [200] },
   'conv.directe':       { ok: (F, a) => ['POST', '/api/conversations/directe', { uid: a === F.A ? F.B : F.A }], codes: T_OK },
   'conv.groupe':        { ok: () => ['POST', '/api/conversations/groupe', { nom: 'Nouveau', membres: [] }], codes: [201] },

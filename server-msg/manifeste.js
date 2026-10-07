@@ -54,6 +54,7 @@ const MANIFESTE = [
   { id: 'liens.lire',        m: 'POST', p: '/api/liens/lire',                        garde: 'S' },
   { id: 'liens.accepter',    m: 'POST', p: '/api/liens/accepter',                    garde: 'V' },
   { id: 'personnes.lire',    m: 'GET',  p: '/api/personnes/:id',                     garde: 'V' },
+  { id: 'personnes.commun',  m: 'GET',  p: '/api/personnes/:id/commun',              garde: 'V' },   // la fiche d'un contact : les réunions, groupes et espaces EN COMMUN (seulement ce dont on fait partie)
   { id: 'conv.liste',        m: 'GET',  p: '/api/conversations',                     garde: 'S' },
   { id: 'conv.directe',      m: 'POST', p: '/api/conversations/directe',             garde: 'V' },
   { id: 'conv.groupe',       m: 'POST', p: '/api/conversations/groupe',              garde: 'V' },

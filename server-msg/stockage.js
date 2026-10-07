@@ -2385,15 +2385,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
      (`calendrier.js`). Une version courte de chaque (pas la liste des invités) : l'agenda en montre beaucoup. */
-  function reunionsDe(uid, du, au) {
+  function reunionsDe(uid, du, au, ids) {
     /* ⛔ L'AGENDA D'UN INVITÉ NE SE LAISSE PAS MASQUER. Les 600 places se donnaient dans l'ordre du DÉBUT de la série : six cents séries d'il y a vingt-six ans, terminées, prenaient toutes les places et
        l'invitation d'aujourd'hui n'apparaissait nulle part — sans autre moyen d'en sortir. Deux règles : une série TERMINÉE avant la fenêtre est écartée ici, par `fin_serie` (NULL : une série « Jamais »,
        toujours gardée) ; et l'ordre garde ce qui vient d'abord (`prochain`, la prochaine occurrence non commencée), ce qui n'a plus de prochaine occurrence passe après. */
     return Q(`SELECT r.id, r.conv, r.hote, r.titre_ch, r.lieu_ch, r.debut, r.fin, r.tz, r.rep, r.n, r.jusqua, r.rappels, r.annulee, r.attente, r.version, r.cree, r.maj, i.statut AS mon_statut, i.rappels AS mes_rappels,
                      (SELECT COUNT(*) FROM reunion_invite x WHERE x.reunion = r.id) AS participants_n
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion
-              WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
-              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du).map(r => {
+              WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)` + (ids ? ` AND r.id IN (${ids.map(() => '?').join(', ') || 'NULL'})` : '') + `
+              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du, ...(ids || [])).map(r => {
       const rang = reunionRang(r);
       rang.hote = personneCourte(uid, r.hote);
       rang.participants_n = num(r.participants_n);
@@ -2405,6 +2405,24 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   const reunionParticipants = (id) => Q('SELECT uid FROM reunion_invite WHERE reunion = ? ORDER BY cree, uid').all(id).map(r => r.uid);
+  /* CE QUE DEUX PERSONNES ONT EN COMMUN (la fiche d'un contact, 7 octobre 2026 : « voir s'ils participent à la même réunion ») — vu par `a` : seulement ce dont `a` fait PARTIE.
+     Rien n'en sort que `a` ne pourrait lire en ouvrant chaque réunion, chaque groupe, chaque espace : la liste de ses invités, de ses membres. ⛔ Jamais l'agenda de `b` au-delà.
+     Les réunions : les identifiants et le statut de `b` (la route les habille avec `reunionsDe(a)`, qui calcule les occurrences) ; les groupes et canaux (pas les directes, pas les réunions) ;
+     les espaces. Plafonnés : une fiche, pas un export. */
+  function enCommun(a, b, du, au) {
+    /* les réunions COMMUNES qui peuvent toucher [du, au) — les mêmes bornes que `reunionsDe`, mais sur les seules réunions partagées : une personne à 600 réunions ne fait pas
+       calculer tout son agenda pour une fiche, et une réunion commune n'est jamais éclipsée par les autres (relecture du gardien, 7 octobre 2026) */
+    const reunions = new Map(Q(`SELECT i.reunion AS id, j.statut AS statut FROM reunion_invite i JOIN reunion_invite j ON j.reunion = i.reunion AND j.uid = ? JOIN reunion r ON r.id = i.reunion
+                               WHERE i.uid = ? AND r.annulee = 0 AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
+                               ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 40`).all(b, a, au, du, du).map(r => [r.id, r.statut]));
+    const groupes = Q(`SELECT c.id, c.type, c.nom_ch FROM conversation c
+                         JOIN membre x ON x.conv = c.id AND x.uid = ? AND x.quitte_le IS NULL
+                         JOIN membre y ON y.conv = c.id AND y.uid = ? AND y.quitte_le IS NULL
+                       WHERE c.type IN ('groupe', 'canal') ORDER BY c.dernier_ts DESC, c.id LIMIT 30`).all(a, b).map(c => ({ id: c.id, type: c.type, nom: nomDe(c.id, c.nom_ch) || '' }));
+    const espaces = Q(`SELECT e.id, e.nom_ch FROM espace e JOIN espace_membre x ON x.espace = e.id AND x.uid = ? JOIN espace_membre y ON y.espace = e.id AND y.uid = ? ORDER BY e.cree, e.id LIMIT 30`)
+      .all(a, b).map(e => ({ id: e.id, nom: nomEspace(e) || '' }));
+    return { reunions, groupes, espaces };
+  }
   /* Le LAISSEZ-PASSER léger des gardes R et H (`app.js`) : { id, conv, hote (cette personne l'est-elle ?), annulee, statut } — `null` pour inexistante COMME pour « tu n'es pas invité ». Pas la liste
      des invités : chaque route lit ce dont elle a besoin. */
   function reunionAcces(id, uid) {
@@ -3966,7 +3984,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
-    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
+    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation

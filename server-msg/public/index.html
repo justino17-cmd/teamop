@@ -342,6 +342,40 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .vc-etoile:active { transform: scale(.9); }
 .vc-lettre { margin: 14px 4px 6px; font-size: 13px; font-weight: 600; color: var(--sub-meta); }
 #vc-seg .seg-bouton { font-size: 12px; }
+/* ── LA FICHE D'UNE PERSONNE (7 octobre 2026) : au téléphone une feuille, au bureau le volet droit de Contacts. Comme la carte de Contacts sur iPhone : la photo, le nom, une rangée de gestes
+   en tuiles, puis ce qu'on a EN COMMUN — les réunions à venir (une pastille de calendrier : le mois en rouge, le jour en grand), les groupes, l'entreprise. ── */
+.vc-fiche-tete { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 8px 18px; text-align: center; }
+.vc-fiche-tete .avatar { width: 96px; height: 96px; font-size: 36px; margin-bottom: 10px; }
+.vc-fiche-nom { margin: 0; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.vc-fiche-statut { margin: 0; font-size: 15px; color: var(--sub-meta); }
+.vc-fiche-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px; padding: 0 0 22px; }
+.vc-action { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 2px; border-radius: 12px; background: var(--card); color: var(--accent-txt); font-size: 12px; font-weight: 500; }
+.vc-action-rond { display: grid; place-items: center; font-size: 22px; }
+.vc-action[aria-pressed="true"] .vc-action-rond { color: #f5a623; }
+.vc-action[aria-pressed="true"] .vc-action-rond svg { fill: currentColor; }
+.vc-action:active { transform: scale(.96); }
+.fc-ligne { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 8px 14px; text-align: left; border-bottom: var(--sep); color: var(--text); }
+.carte > .fc-ligne:last-child, .carte > .fc-ligne.fc-dernier { border-bottom: 0; }
+.fc-date { flex: none; width: 42px; height: 44px; border-radius: 10px; background: var(--field); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.fc-date small { font-size: 11px; font-weight: 600; color: var(--rouge); text-transform: uppercase; letter-spacing: .02em; }
+.fc-date b { margin-top: 2px; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fc-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fc-titre { font-size: 17px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-sous { font-size: 13px; line-height: 17px; color: var(--sub-meta); }
+.fc-sous .fc-en-cours { color: var(--vert, #34c759); font-weight: 600; }
+.fc-icone { flex: none; width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; background: var(--fill-soft); color: var(--accent-txt); font-size: 20px; }
+.fc-ligne.fc-agir .fc-titre { color: var(--accent-txt); }
+.fc-ligne.fc-agir .fc-icone { background: transparent; }
+.fc-note { margin: 0; padding: 12px 14px; font-size: 13px; line-height: 18px; color: var(--sub-meta); border-bottom: var(--sep); }
+.fc-squelette { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; border-bottom: var(--sep); }
+.fc-squelette:last-child { border-bottom: 0; }
+.fc-squelette i { flex: none; width: 42px; height: 44px; border-radius: 10px; background: var(--field); }
+.fc-squelette span { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.fc-squelette b { display: block; height: 11px; border-radius: 6px; background: var(--field); }
+.fc-squelette b + b { width: 60%; }
+.fc-squelette i, .fc-squelette b { animation: fc-pouls 1.4s ease-in-out infinite; }
+@keyframes fc-pouls { 50% { opacity: .45; } }
+@media (hover: hover) { .fc-ligne:hover { background: var(--field); } }
 /* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
    la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
 @media (min-width: 900px) { .tabs { display: none; } }
@@ -1369,9 +1403,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
-  .recherche { min-height: 28px; height: 28px; padding: 0 8px; gap: 6px; border-radius: 7px; margin-bottom: 12px; }
-  .recherche .ic { font-size: 13px; }
-  .recherche input { font-size: 13px; }
+  .vue .recherche { min-height: 28px; height: 28px; padding: 0 8px; gap: 6px; border-radius: 7px; margin-bottom: 12px; }
+  .vue .recherche .ic { font-size: 13px; }
+  .vue .recherche input { font-size: 13px; }
 
   /* le segmenté du Mac : 24 px, 12 px, compact */
   .seg { margin-bottom: 14px; border-radius: 7px; }
@@ -1410,11 +1444,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* les GROUPES de réglages et de contacts : le formulaire groupé du Mac (Réglages Système) */
   .rubrique { padding: 0 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
   .carte { border-radius: 10px; margin-bottom: 16px; box-shadow: 0 0 0 .5px var(--bureau-bord), 0 1px 2px rgba(0,0,0,.04); }
-  .reglage, .contact { min-height: 40px; padding: 6px 12px; gap: 10px; }
-  .reglage-texte, .contact-nom { font-size: 13px; letter-spacing: 0; }
-  .reglage-texte small, .contact-role { font-size: 11px; line-height: 14px; }
+  /* les ÉCRANS (pas les feuilles : « Nouvelle discussion », « Nouveau groupe »… gardent leurs lignes de 44 px, leur index et leur défilement) */
+  .vue .reglage, .vue .contact { min-height: 40px; padding: 6px 12px; gap: 10px; }
+  .vue .reglage-texte, .vue .contact-nom { font-size: 13px; letter-spacing: 0; }
+  .vue .reglage-texte small, .vue .contact-role { font-size: 11px; line-height: 14px; }
   .reglage-valeur { font-size: 13px; }
-  .contact .avatar { width: 28px; height: 28px; font-size: 11px; }
+  .vue .contact .avatar { width: 28px; height: 28px; font-size: 11px; }
   .reglage:hover, .contact.presse:hover, button.contact:hover { background: var(--field); }
   .info-note { font-size: 12px; line-height: 16px; }
   .mini { min-height: 24px; padding: 2px 10px; border-radius: 6px; font-size: 13px; }
@@ -1480,9 +1515,23 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .vc-fiche-nom { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
   .vc-fiche-statut { font-size: 13px; color: var(--sub-meta); }
   .vc-fiche-actions { display: flex; justify-content: center; gap: 10px; padding: 4px 24px 24px; }
-  .vc-action { width: 72px; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; border-radius: 10px; font-size: 11px; color: var(--accent-txt); }
+  .vc-action { width: 72px; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; border-radius: 10px; background: none; font-size: 11px; font-weight: 400; color: var(--accent-txt); }
+  .vc-fiche-nom { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; }
+  .vc-fiche-statut { font-size: 13px; }
+  .vc-fiche-actions { display: flex; justify-content: center; gap: 10px; padding: 4px 24px 24px; }
+  .vc-fiche .fc-commun { max-width: 560px; margin: 0 auto; padding: 0 24px 40px; }
+  .fc-ligne { min-height: 44px; padding: 6px 12px; gap: 10px; }
+  .fc-date { width: 36px; height: 38px; border-radius: 8px; }
+  .fc-date small { font-size: 11px; }
+  .fc-date b { font-size: 15px; }
+  .fc-icone { width: 34px; height: 34px; border-radius: 8px; font-size: 16px; }
+  .fc-titre { font-size: 13px; }
+  .fc-sous { font-size: 11px; line-height: 14px; }
+  .fc-squelette { min-height: 44px; padding: 6px 12px; }
+  .fc-squelette i { width: 34px; height: 36px; }
   .vc-action:hover { background: var(--field); }
   .vc-action-rond { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--field); font-size: 17px; }
+  .vc-fiche-tete { gap: 4px; padding: 48px 24px 20px; }
   .vc-action[aria-pressed="true"] .vc-action-rond { color: #f5a623; }
   .vc-action[aria-pressed="true"] .vc-action-rond svg { fill: currentColor; }
 }

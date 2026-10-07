@@ -138,7 +138,7 @@ async function saisir(S, sel, texte) { const loc = S.page.locator(sel); await lo
 async function retourListe(S) {
   if (await visible(S, '#conv-retour')) { await toucher(S, '#conv-retour'); await S.page.waitForFunction(() => document.documentElement.dataset.conv !== '1', null, { timeout: 4000 }).catch(() => {}); }
 }
-async function onglet(S, vue) { await retourListe(S); await toucher(S, 'a[data-vue="' + vue + '"]'); await S.page.waitForFunction(x => { const s = document.getElementById('vue-' + x); return s && !s.hidden && s.getClientRects().length > 0; }, vue, { timeout: 5000 }).catch(() => {}); }
+async function onglet(S, vue) { if (vue === 'reglages' && await S.page.evaluate(() => { const s = document.getElementById('vue-reglages'); return !!s && !s.hidden && s.getClientRects().length > 0; })) return;   /* déjà dans le Profil (une rubrique ouverte) : « Profil » n'est plus un onglet (7 octobre 2026), et la rubrique se choisit d'ici */ await retourListe(S); await toucher(S, 'a[data-vue="' + vue + '"]'); await S.page.waitForFunction(x => { const s = document.getElementById('vue-' + x); return s && !s.hidden && s.getClientRects().length > 0; }, vue, { timeout: 5000 }).catch(() => {}); }
 async function appuiLong(S, sel) {
   await S.page.locator(sel).first().scrollIntoViewIfNeeded().catch(() => {});
   const bb = await S.page.locator(sel).first().boundingBox(); if (!bb) throw new Error('appui long : ' + sel + ' sans boîte');

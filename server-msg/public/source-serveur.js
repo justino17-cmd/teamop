@@ -2620,6 +2620,17 @@
     async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
     /* ⛔ LE FAVORI SE POSE D'ABORD CHEZ LE SERVICE : l'étoile ne change qu'une fois la réponse reçue (un refus laisse la liste comme elle était), puis la liste est relue — un autre appareil
        de la même personne le verra à sa prochaine lecture des contacts. */
+    /* CE QU'ON A EN COMMUN avec une personne (la fiche d'un contact) : les réunions à venir où l'on est invités tous les deux (la prochaine d'abord, et SA réponse), les groupes et les espaces.
+       Les réunions passent par la même vue que l'agenda (`vueReunion`) : une réunion de la fiche s'ouvre comme une réunion de l'agenda. */
+    async function enCommun(uid) {
+      const r = await A.enCommun(uid);
+      return {
+        reunions: (r.reunions || []).map((x) => Object.assign(vueReunion(x), { rejoignable: x.rejoignable === true, moi: vueMoiReunion(x.moi), sonStatut: statutInvite(x.son_statut),
+          prochaine: x.occurrences && x.occurrences[0] ? { debut: x.occurrences[0].debut, fin: x.occurrences[0].fin } : null })),
+        groupes: (r.groupes || []).map((g) => ({ id: String(g.id), type: g.type === 'canal' ? 'canal' : 'groupe', nom: String(g.nom || '') })),
+        espaces: (r.espaces || []).map((x) => ({ id: String(x.id), nom: String(x.nom || '') }))
+      };
+    }
     async function favori(uid, oui) {
       const r = await A.favori(uid, oui === true);
       for (const c of contactsTous) if (c.id === uid) c.favori = r.favori === true;
@@ -3053,7 +3064,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3071,7 +3082,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */

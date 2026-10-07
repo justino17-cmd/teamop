@@ -192,6 +192,31 @@ function installerReunions(H, ctx) {
     res.json({ du, au, reunions: sortie });
   });
 
+  /* ── ce qu'on a EN COMMUN avec une personne (la fiche d'un contact, 7 octobre 2026 : « voir s'ils participent à la même réunion ») ──
+     La même porte que la fiche (`personnes.lire`) : quelqu'un qu'on peut voir, et qui ne nous a pas bloqués — sinon le même 404 qu'une personne qui n'existe pas. Les réunions : celles où l'on est
+     invités TOUS LES DEUX, dont une occurrence n'est pas finie dans les 62 jours (la prochaine d'abord), habillées comme l'agenda (`reunionsDe`), plus la réponse de l'autre (`son_statut`).
+     ⛔ Rien dont on ne fait pas partie : c'est ce que montrerait la liste des invités de chaque réunion qu'on a déjà. */
+  H['personnes.commun'] = garder((req, res) => {
+    const id = req.params.id, moi = req.moi.id;
+    if (!ID_PERS.test(id) || id === moi || !stockage.peutVoir(moi, id)) return refus(res, 404, 'introuvable');
+    const contre = stockage.contactLigne(id, moi);
+    if (contre && contre.etat === 'bloque') return refus(res, 404, 'introuvable');
+    if (!stockage.personneParId(id)) return refus(res, 404, 'introuvable');          // la même porte que `personnes.lire`, mot pour mot
+    if (!plafond(res, 'commun', moi, { max: 120, fenetreMs: 60000 })) return;          // une fiche ouverte se relit ; une boucle ne fait pas travailler le service
+    const t = horloge(), au = t + FENETRE_MAX, c = stockage.enCommun(moi, id, t, au), reunions = [];
+    if (c.reunions.size) {
+      for (const r of stockage.reunionsDe(moi, t, au, Array.from(c.reunions.keys()))) {
+        if (!c.reunions.has(r.id) || r.annulee) continue;
+        const duree = r.fin - r.debut;
+        const occ = (r.repetition === 'aucune' ? [{ debut: r.debut, fin: r.fin }] : cal.occurrences(serieDe(r), t - duree, au, 3)).filter(o => o.fin > t);
+        if (!occ.length) continue;
+        reunions.push(Object.assign({}, r, { occurrences: occ.slice(0, 1).map(o => ({ debut: o.debut, fin: o.fin })), rejoignable: !!fenetreRejoindre(r, t), son_statut: c.reunions.get(r.id) }));
+      }
+      reunions.sort((x, y) => x.occurrences[0].debut - y.occurrences[0].debut);
+    }
+    res.json({ reunions: reunions.slice(0, 20), groupes: c.groupes, espaces: c.espaces });
+  });
+
   /* ── programmer ── */
   H['reunions.creer'] = garder((req, res) => {
     const b = corps(req), hote = req.moi;
