@@ -6231,11 +6231,49 @@ function carteMsg(canal){
     note:rien?'<span style="color:var(--redText)">Le service ne répond pas : on ne peut ni lire sa version, ni l’exiger.</span> Le minimum déjà posé reste, et il l’appliquera à son redémarrage.'
       :('Sous ce minimum, une page lit encore mais <b>n’envoie plus rien</b>, et se met à jour toute seule.'+(attend?' <b style="color:var(--amber)">Le service ne l’a pas encore relu — il le fait chaque minute.</b>':'')) });
 }
+/* ── PUBLIER OP MESSAGES (7 octobre 2026 — Justin : « la bêta, tu la fais ; la version publique, comme OP GESTION, on la fait dans la Tour ») ──
+   Un geste du patron : le serveur publie le commit que SERT la bêta (ce qui a été essayé), les bancs repassent, et la production n'est
+   approuvée qu'après eux. La carte dit où on en est, se relit seule tant que ça tourne, et donne le lien du déploiement chez GitHub. */
+var PUB_ETATS={lance:['Lancée — GitHub démarre…',''],tests:['Les bancs repassent (une dizaine de minutes)…',''],approuve:['Bancs passés : mise en ligne en cours…',''],
+  en_ligne:['En ligne','var(--green)'],echec:['Échec — rien n’a été mis en ligne','var(--redText)'],annule:['Annulée','var(--amber)'],
+  a_approuver:['À approuver dans GitHub : le jeton du serveur ne peut pas le faire','var(--amber)'],perdu:['Plus de nouvelles — voir le déploiement dans GitHub','var(--amber)']};
+var PUB_SUIVI=null;
+var pubEnCours=function(p){ return !!p&&['lance','tests','approuve','a_approuver'].indexOf(p.etat)>=0; };
+function pubSuivre(){ if(PUB_SUIVI) return; PUB_SUIVI=setInterval(function(){
+  if(!pubEnCours((MV.d||{}).publication)){ clearInterval(PUB_SUIVI); PUB_SUIVI=null; return; }
+  if(document.visibilityState==='visible') chargerVersionsMsg(); },15000); }
+function blocPublierMsg(){
+  var d=MV.d||{}, b=(d.beta&&d.beta.service)||{}, p=(d.prod&&d.prod.service)||{}, pub=d.publication, patron=(MYROLE==='patron');
+  var meme=!!(b.sha&&p.sha&&b.sha===p.sha), enCours=pubEnCours(pub), e=pub?(PUB_ETATS[pub.etat]||[pub.etat,'']):null;
+  if(enCours) pubSuivre();
+  var k=function(l,v,c){ return '<div class="kpi"><div class="n"'+(c?' style="color:'+c+'"':'')+'>'+v+'</div><div class="l">'+l+'</div></div>'; };
+  var ver=function(x){ return x.joignable===false?'injoignable':((x.version?'v'+x.version:'?')+(x.sha?' <span style="font-size:12px;color:var(--muted);font-weight:400">'+esc(x.sha)+'</span>':'')); };
+  var raison=!b.sha?'La bêta ne dit pas quel commit elle sert : rien à publier pour l’instant.':meme?'La version publique sert déjà ce que sert la bêta.':'';
+  return '<div class="sec" style="margin-top:18px">PUBLIER OP MESSAGES <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">— la bêta essayée part en public</span></div>'+
+    '<div class="grille-kpi" style="margin-top:10px">'+k('bêta',ver(b),b.joignable===false?'var(--redText)':'')+k('version publique',ver(p),p.joignable===false?'var(--redText)':'')+'</div>'+
+    (pub?'<div style="font-size:12.5px;line-height:1.6;margin-top:10px"><b style="color:'+(e[1]||'var(--text)')+'">'+esc(e[0])+'</b>'+
+      ' <span style="color:var(--muted)">· '+esc(pub.sha||'')+' · '+esc(pub.par||'')+' · '+esc(fmtHeure(pub.ts))+'</span>'+
+      (pub.url?' · <a href="'+esc(pub.url)+'" target="_blank" rel="noopener">voir le déploiement</a>':'')+
+      (pub.message?'<div style="color:var(--amber)">'+esc(pub.message)+'</div>':'')+
+      (pub.etat==='en_ligne'?'<div style="color:var(--text2)">Pour obliger les téléphones à prendre cette version : « Exiger la dernière version » de la version publique, juste en dessous.</div>':'')+'</div>':'')+
+    (raison&&!enCours?'<div style="font-size:12px;color:var(--text2);margin-top:8px">'+raison+'</div>':'')+
+    (patron?(d.publier?'<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn-plein" onclick="publierMsg(this)"'+(raison||enCours?' disabled':'')+'>'+(enCours?'Publication en cours…':'Publier la bêta'+(b.version?' (v'+b.version+')':'')+' en public')+'</button></div>'
+      :'<div style="font-size:12px;color:var(--amber);margin-top:10px">Le serveur n’a pas de jeton GitHub : la publication se lance dans GitHub (Actions → Déploiement d’OP MESSAGES → prod).</div>'):'');
+}
+function publierMsg(btn){
+  var b=((MV.d||{}).beta||{}).service||{};
+  if(!confirm('Publier la bêta d’OP MESSAGES (v'+(b.version||'?')+', '+(b.sha||'?')+') en version publique ?\n\nLes bancs repassent d’abord : si l’un tombe, rien n’est mis en ligne. Compte une dizaine de minutes.')) return;
+  btn.disabled=true; btn.textContent='Lancement…';
+  apiPost('/api/monitor/messages/publier',{}).then(function(x){
+    if(!(x&&x.ok)) toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); else toast('Publication lancée');
+    MV.d=null; chargerVersionsMsg(); })
+  .catch(function(){ toast('Serveur injoignable'); btn.disabled=false; btn.textContent='Publier la bêta en public'; });
+}
 function blocVersionsMsg(){
   if(!MV.d&&!MV.err){ chargerVersionsMsg(); return '<div class="sous-sec"><div class="sec">VERSIONS</div>'+squelListe(2)+'</div>'; }
   if(MV.err&&!MV.d) return '<div class="sec" style="margin-top:18px">VERSIONS</div><div style="color:var(--redText);font-size:13px;margin-top:8px">'+esc(MV.err)+' <a onclick="MV.err=\'\';chargerVersionsMsg()">réessayer</a></div>';
   if(Date.now()-(MV.ts||0)>120000) chargerVersionsMsg();
-  return carteMsg('prod')+carteMsg('beta');
+  return blocPublierMsg()+carteMsg('prod')+carteMsg('beta');
 }
 /* ══ SORTIE DE FIREBASE — les gestes du jour J (25 septembre 2026) ══
    Deux gestes n'existaient que par l'API, donc depuis un terminal : reprendre les dossiers du

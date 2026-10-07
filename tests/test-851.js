@@ -59,10 +59,11 @@ function serveur(traiter) {
       const e = G.run.etapes.length > 1 ? G.run.etapes.shift() : G.run.etapes[0];
       return { code: 200, j: { id: G.run.id, html_url: G.run.html_url, status: e[0], conclusion: e[1] || null } };
     }
-    if (G.run && req.method === 'GET' && u === '/actions/runs/' + G.run.id + '/pending_deployments') return { code: 200, j: [{ environment: { id: 77, name: 'msg-prod' }, current_user_can_approve: G.peutApprouver }] };
+    /* un AUTRE environnement en attente, listé d'abord : seul msg-prod s'approuve */
+    if (G.run && req.method === 'GET' && u === '/actions/runs/' + G.run.id + '/pending_deployments') return { code: 200, j: [{ environment: { id: 66, name: 'msg-beta' }, current_user_can_approve: true }, { environment: { id: 77, name: 'msg-prod' }, current_user_can_approve: G.peutApprouver }] };
     if (G.run && req.method === 'POST' && u === '/actions/runs/' + G.run.id + '/pending_deployments') {
       G.approbations.push(j);
-      G.run.etapes = [['in_progress'], ['completed', 'success']];
+      G.run.etapes = [['waiting'], ['waiting'], ['in_progress'], ['completed', 'success']];   // GitHub peut dire « waiting » encore un instant après l'approbation : on n'approuve pas deux fois
       return { code: 200, j: [] };
     }
     return { code: 404, j: { message: 'Not Found' } };
@@ -125,6 +126,29 @@ function serveur(traiter) {
     vrai('pendant les bancs : « tests », avec le lien du déploiement', !!(await T.attendre(async () => { const p = (await versions()).publication; return p && p.etat === 'tests' && /run\//.test(p.url); }, 8000, 50)));
     vrai('les bancs passés, le job attend msg-prod : approuvé au nom de Justin, puis EN LIGNE', !!(await T.attendre(async () => (await versions()).publication.etat === 'en_ligne', 10000, 50)));
     v('⛔ une seule approbation, pour l\'environnement msg-prod (77), « approved », au nom de Justin', [G.approbations.length, G.approbations[0] && G.approbations[0].environment_ids, G.approbations[0] && G.approbations[0].state, /Justin/.test(G.approbations[0] && G.approbations[0].comment || '')], [1, [77], 'approved', true]);
+
+    console.log('\n3 bis. La carte de la Tour : la VRAIE fonction de tour.html, la VRAIE réponse du serveur');
+    const carte = (rep, role) => {
+      const src = fs.readFileSync(path.join(T.RACINE, 'tour.html'), 'utf8');
+      const i0 = src.indexOf('var PUB_ETATS='), i1 = src.indexOf('function blocVersionsMsg(){', i0);
+      if (i0 < 0 || i1 < 0) throw new Error('carte de publication introuvable dans tour.html');
+      const bac = { MV: { d: rep }, MYROLE: role, esc: (x) => String(x).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), fmtHeure: () => '19:00',
+        setInterval: () => 1, clearInterval: () => {}, document: { visibilityState: 'hidden' }, chargerVersionsMsg: () => {}, apiPost: () => Promise.resolve({}), toast: () => {}, confirm: () => false };
+      require('vm').runInNewContext(src.slice(i0, i1) + '\n;this.__h = blocPublierMsg();', bac);
+      return bac.__h;
+    };
+    let h = carte(await versions(), 'patron');
+    vrai('population : la carte se dessine (« PUBLIER OP MESSAGES »)', /PUBLIER OP MESSAGES/.test(h));
+    v('elle dit « En ligne », qui a publié, le lien du déploiement, le commit, et le rappel d\'« Exiger »', [/>En ligne</.test(h), /Justin/.test(h), /href="https:\/\/github\.example\/run\/\d+"/.test(h), h.includes(SHA_BETA.slice(0, 7)), /Exiger la dernière version/.test(h)], [true, true, true, true, true]);
+    inst.prod.sha = SHA_PROD;
+    h = carte(await versions(), 'patron');
+    v('une bêta en avance sur la publique : le bouton « Publier la bêta (v68) en public », actif', [/Publier la bêta \(v68\) en public/.test(h), /publierMsg\(this\)"\s*disabled/.test(h)], [true, false]);
+    inst.prod.sha = SHA_BETA;
+    h = carte(await versions(), 'patron');
+    v('⛔ la publique sert le commit de la bêta : bouton grisé, raison dite', [/publierMsg\(this\)"\s*disabled/.test(h), /déjà ce que sert la bêta/.test(h)], [true, true]);
+    h = carte(await versions(), 'collaborateur');
+    v('⛔ un collaborateur voit l\'état, jamais le bouton', [/PUBLIER OP MESSAGES/.test(h), /publierMsg\(/.test(h)], [true, false]);
+    inst.prod.sha = SHA_PROD;
 
     console.log('\n4. Un banc rouge, une approbation impossible');
     G.deroule = [['in_progress'], ['completed', 'failure']];
