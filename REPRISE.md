@@ -13,6 +13,19 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (APRÈS-MIDI) — OP MESSAGES AU BUREAU « 100 % FAÇON APPLE », ET LE PROFIL QUITTE LE MENU (bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin, capture du Profil au bureau : « pour tout ce qui va être PC et version web, il faudrait une autre interface… très moche, pas hyper pro », puis « refais les interfaces pour la
+version web Mac Windows, à 100 % de façon Apple ». **Le téléphone et la tablette ne changent pas** : toute la couche vit sous `@media (min-width: 900px) and (hover: hover) and
+(pointer: fine)` (§ 20 « LE BUREAU » de `apercu/opmessages/index.html`, `auBureau()` côté script) — barre latérale en lignes de 28 px, barre d'outils de 52 px (titre 15 px,
+boutons texte), champ de recherche macOS, segmentés compacts, listes nues (la ligne choisie en aplat d'accent), conversation et compositeur resserrés, Profil = Réglages Système
+(colonne des rubriques à gauche), **Contacts = Contacts sur Mac** (la liste à gauche, la FICHE de la personne à droite : avatar 96, Message · Appeler · Vidéo · Favoris).
+Puis : « pour tous les appareils, je ne veux pas le profil avec contact et agenda — le profil, c'est en bas, on clique, ça nous emmène à nos paramètres ». Le menu et la barre
+d'onglets se bâtissent sur `NAV` (ORDRE sans « reglages » : la VUE reste, adresses `#reglages/…` comprises) ; au bureau la carte du bas est la seule entrée et porte la page ;
+au téléphone, l'avatar au bout du grand titre (comme le compte de l'App Store, 44 px de cible) y mène, et le Profil a « ‹ Agenda » (la vue d'où l'on vient — il REND l'entrée
+d'historique au lieu d'en empiler une). `tests/test-856.js` (deux mutations mordent), `tests/sonde-opmessages-entree-profil.js` (20 ✓, téléphone au doigt, bureau à la
+souris), `tests/sonde-opmessages-profil.js` mise à jour (la carte porte la page). Captures jour/nuit : `scratchpad/captures-bureau.js`.
+
 # ⏳ 7 OCTOBRE 2026 — LES CATÉGORIES DE L'ONGLET CONTACTS (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin : « les catégories Contacts qui manquent », puis « fais le 2 » sans préciser lesquelles — choisies sur le modèle de Contacts d'iPhone et des filtres de WhatsApp :

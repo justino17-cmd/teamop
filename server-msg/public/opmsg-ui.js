@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '02dd98e00861';
+  const OPMSG_BUILD = '08ac1437a627';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 21;
+  const OPMSG_VERSION = 29;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
@@ -35,6 +35,13 @@
   };
   /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
   const ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
+  /* ⛔ LE MENU N'A PAS « PROFIL » (demandé le 7 octobre 2026 : « je ne veux pas le profil avec contact et agenda — le profil, c'est en bas, on clique, ça nous emmène à nos paramètres »).
+     Comme sur Mac (le compte en bas de la barre latérale) et sur iPhone (l'avatar en bout de grand titre, comme l'App Store) : on y entre par SOI, pas par une rubrique.
+     La vue existe toujours (ORDRE la garde : adresses « #reglages/… », notifications, bancs) — seuls le menu et la barre d'onglets la perdent. */
+  const NAV = ORDRE.filter(k => k !== 'reglages');
+  /* l'avatar qui mène au Profil, au bout du grand titre de chaque vue (téléphone et tablette en portrait ; au bureau, c'est la carte du bas de la barre latérale) */
+  const pastilleMoi = () => '<a href="#reglages" class="moi-pastille presse" data-vue="reglages" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages">' +
+    '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span></a>';
   /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
   const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
@@ -143,15 +150,16 @@
      jetons ne bougent pas. */
   function rendreCoquille(cle) {
     const v = VUES[cle], sec = $('vue-' + cle);
-    sec.innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
+    sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
   }
   function construireNavigation() {
     const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span>' +
       (cle === 'contacts' ? '<b class="onglet-n" data-onglet-n="contacts" hidden></b>' : '') + '</a>';
-    $('tabs').style.setProperty('--n', ORDRE.length);
-    $('nav-side').innerHTML = ORDRE.map(c => lien(c, 'side-lien')).join('');
-    $('tabs').insertAdjacentHTML('beforeend', ORDRE.map(c => lien(c, 'tab')).join(''));
+    $('tabs').style.setProperty('--n', NAV.length);
+    $('nav-side').innerHTML = NAV.map(c => lien(c, 'side-lien')).join('');
+    $('tabs').insertAdjacentHTML('beforeend', NAV.map(c => lien(c, 'tab')).join(''));
+    document.querySelectorAll('.vue > .grand-titre').forEach(h => { if (!(h.previousElementSibling && h.previousElementSibling.classList.contains('moi-pastille')) && h.id !== 'titre-reglages') h.insertAdjacentHTML('beforebegin', pastilleMoi()); });
   }
 
   /* ═══ 6. LA NAVIGATION — UNE ROUTE, UNE ENTRÉE D'HISTORIQUE PAR COUCHE ═════════════════════════════════════════════════════
@@ -226,8 +234,12 @@
       /* ⛔ la position se LIT avant de masquer la vue : une fois masquée, le document raccourcit et la fenêtre est ramenée à la hauteur de la vue d'arrivée (mesuré : 500 px lus 106) */
       if (prec) etat.posVues[prec.vue] = prec.vue === 'messages' && etat.conv ? etat.scrollListe : window.scrollY;
       ORDRE.forEach(k => { $('vue-' + k).hidden = k !== r.vue; });
-      document.querySelectorAll('[data-vue]:not(#moi-carte)').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-      $('tabs').style.setProperty('--i', ORDRE.indexOf(r.vue));
+      document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      $('tabs').style.setProperty('--i', Math.max(0, NAV.indexOf(r.vue)));
+      $('tabs').classList.toggle('sans-onglet', !NAV.includes(r.vue));
+      /* le retour du Profil (téléphone) ramène à la vue d'où l'on venait — « ‹ Messages », « ‹ Agenda »… */
+      if (r.vue !== 'reglages') etat.avantProfil = r.vue;
+      peindreProfilRetour();
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
@@ -264,6 +276,9 @@
     const a = e.target.closest('a[data-vue]');
     if (a) {
       e.preventDefault();
+      /* « ‹ Messages » du Profil REND l'entrée d'où l'on venait (le retour d'iOS) au lieu d'en empiler une : sinon le retour système ramènerait au Profil */
+      const h = entree();
+      if (a.id === 'profil-retour' && h && h.p && h.p.vue === a.dataset.vue && etat.route && etat.route.vue === 'reglages' && !etat.route.sec) { history.back(); return; }
       const r = { vue: a.dataset.vue, conv: null, feuille: false, photo: null, appel: null };
       /* un onglet touché PENDANT un appel prend la place de l'entrée de l'appel (il raccroche) : pas d'entrée morte « appel terminé » qu'un retour ferait retomber dessus */
       if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId) remplacer(r); else pousser(r);
@@ -2135,8 +2150,8 @@
   const LIEUX = { beta: 'Bêta', prod: 'Production' };
   const refusBloc = t => '<p class="info-erreur" role="alert">' + esc(t) + '</p><button type="button" class="mini reg-relire" data-reg-relire="1">Réessayer</button>';
   function peindreMoi() {
-    const a = $('moi-avatar'), ph = blob(MOI.photo);
-    a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : '';
+    const ph = blob(MOI.photo);
+    document.querySelectorAll('.moi-av').forEach(a => { a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : ''; });
     $('moi-nom').textContent = MOI.nom;
     /* ⛔ MA présence : coupée, la barre ne dit plus « Disponible » avec un point vert pendant que personne ne me voit (relecture du testeur). L'aperçu n'a pas ce réglage : `presence` y est absente. */
     const masquee = MOI.presence === false;
@@ -2280,10 +2295,16 @@
     if (voulue && !largeBureau.matches) { window.scrollTo(0, 0); const t = $('reg-titre-' + voulue); if (t) t.focus({ preventScroll: true }); }
   }
   largeBureau.addEventListener('change', () => { if (etat.route && etat.route.vue === 'reglages') montrerSection(etat.route.sec || null); });
+  function peindreProfilRetour() {
+    const a = $('profil-retour'); if (!a) return;
+    const v = NAV.includes(etat.avantProfil) ? etat.avantProfil : 'messages';
+    a.dataset.vue = v; a.setAttribute('href', '#' + v); a.lastElementChild.textContent = VUES[v].titre;
+    a.setAttribute('aria-label', 'Retour : ' + VUES[v].titre);
+  }
   function rendreReglages() {
     if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Contacts »
     Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
-    $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Profil</h1>' +
+    $('vue-reglages').innerHTML = '<div class="entete-vue"><a href="#messages" class="reg-retour profil-retour presse" data-vue="messages" id="profil-retour"><svg class="chev chev-g" viewBox="0 0 8 13" aria-hidden="true"><path d="M6.5 1.5 1.5 6.5 6.5 11.5"/></svg><span>Messages</span></a></div><h1 class="grand-titre" id="titre-reglages">Profil</h1>' +
       '<div class="reg-grille"><div class="reg-accueil" id="reg-accueil">' +
         '<div id="reg-profil"></div>' +
         '<div class="carte reg-menu">' +
@@ -2311,7 +2332,7 @@
         regSection('apropos', 'À propos', '<div class="carte carte-pad" id="reg-apropos"></div>') +
       '</div></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
-    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN();
+    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour();
     if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
@@ -2478,14 +2499,22 @@
      maintenant leur onglet, avec un compteur sur l'onglet. ⛔ Rien ne s'affiche avant d'avoir été LU : une panne dit « indisponible », jamais « aucune demande ». */
   /* La RECHERCHE (6 octobre 2026) : le champ est posé UNE fois (le redessin des listes ne le recrée pas : on ne perd ni la saisie ni le clavier) et filtre les demandes et les contacts par
      nom (et les demandes aussi par leur identifiant, qu'elles portent), sans tenir compte des accents ni de la casse. Une saisie qui a la forme d'un identifiant (« Camille#4821 ») propose de chercher CETTE personne dans « Ajouter ». */
+  /* LE BUREAU : un écran large piloté à la souris — la même requête que la couche CSS « 20. LE BUREAU » (une seule définition des deux côtés) */
+  const BUREAU_MQ = window.matchMedia ? window.matchMedia('(min-width: 900px) and (hover: hover) and (pointer: fine)') : null;
+  const auBureau = () => !!(BUREAU_MQ && BUREAU_MQ.matches);
   const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   function rendreVueContacts() {
     const sec = $('vue-contacts'); if (!sec || !CAP.identifiants) return;
     if (!$('vc-corps')) {
       sec.innerHTML = '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" data-act="vc-ajouter" aria-haspopup="dialog">Ajouter</button></div>' +
-        '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>' +
+        pastilleMoi() + '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>' +
         '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les contacts</span><input type="search" id="vc-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
         vcSegment() + '<div id="vc-corps"></div>';
+      /* au BUREAU (Contacts sur Mac) : la liste à gauche, la FICHE de la personne choisie à droite ; au téléphone, la fiche n'existe pas (toucher ouvre la conversation) */
+      sec.insertAdjacentHTML('beforeend', '<aside class="vc-fiche" id="vc-fiche" aria-label="Fiche du contact"></aside>');
+      const col = document.createElement('div'); col.className = 'vc-col'; col.id = 'vc-col';
+      for (const id of ['vc-recherche', 'vc-seg', 'vc-corps']) { const x = $(id); col.appendChild(id === 'vc-recherche' ? x.closest('label') : x); }
+      sec.insertBefore(col, $('vc-fiche'));
       $('vc-recherche').addEventListener('input', () => rendreVueContacts());
       $('vc-seg').addEventListener('click', e => {
         const b = e.target.closest('[data-cat]'); if (!b) return;
@@ -2529,6 +2558,31 @@
     }
     corps.innerHTML = h;
     vcRendreFocus(corps, cleFocus);
+    peindreVcFiche();
+  }
+  /* ── LA FICHE (bureau seulement) : la personne choisie dans la liste, en grand, et ce qu'on fait avec elle — écrire, appeler, la mettre en favori. Comme Contacts sur Mac. ── */
+  function vcPersonne(uid) {
+    const c = (CONTACTS || []).find(x => x.id === uid);
+    if (c) return c;
+    const S = etat.vcEsp;
+    if (S && S.membres) for (const k of Object.keys(S.membres)) { const p = (S.membres[k] || []).find(x => x.id === uid); if (p) return p; }
+    return null;
+  }
+  function peindreVcFiche() {
+    const f = $('vc-fiche'); if (!f) return;
+    if (!auBureau()) { f.innerHTML = ''; return; }
+    const p = etat.vcSel ? vcPersonne(etat.vcSel) : null;
+    if (!p) { f.innerHTML = '<div class="vc-fiche-vide"><span class="coquille-icone" aria-hidden="true">' + icone('i-groupe') + '</span><p>Choisis un contact pour voir sa fiche.</p></div>'; return; }
+    const estContact = (CONTACTS || []).some(x => x.id === p.id);
+    f.innerHTML = '<div class="vc-fiche-tete">' + avatar(p) + '<h2 class="vc-fiche-nom">' + esc(p.nom) + '</h2>' +
+      (p.enLigne || p.statut || p.role ? '<p class="vc-fiche-statut">' + esc(p.enLigne ? 'En ligne' : (p.statut || p.role)) + '</p>' : '') + '</div>' +
+      '<div class="vc-fiche-actions">' +
+        '<button type="button" class="vc-action presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '"><span class="vc-action-rond">' + icone('i-chat') + '</span><span>Message</span></button>' +
+        (CAP.appels ? '<button type="button" class="vc-action presse" data-act="vc-appel" data-video="0" data-uid="' + esc(p.id) + '"><span class="vc-action-rond">' + icone('i-phone') + '</span><span>Appeler</span></button>' +
+          '<button type="button" class="vc-action presse" data-act="vc-appel" data-video="1" data-uid="' + esc(p.id) + '"><span class="vc-action-rond">' + icone('i-video') + '</span><span>Vidéo</span></button>' : '') +
+        (estContact && CAP.favoris && typeof source.favori === 'function' ? '<button type="button" class="vc-action presse" data-act="vc-favori" data-uid="' + esc(p.id) + '" aria-pressed="' + (p.favori ? 'true' : 'false') + '"><span class="vc-action-rond">' +
+          '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg></span><span>' + (p.favori ? 'Favori' : 'Favoris') + '</span></button>' : '') +
+      '</div>';
   }
   function vcRendreFocus(corps, cleFocus) {
     if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
@@ -2563,7 +2617,7 @@
   const vcEtoile = c => CAP.favoris && typeof source.favori === 'function'
     ? '<button type="button" class="vc-etoile presse" data-act="vc-favori" data-uid="' + esc(c.id) + '" aria-pressed="' + (c.favori ? 'true' : 'false') + '" aria-label="' +
       (c.favori ? 'Retirer ' : 'Ajouter ') + esc(c.nom) + (c.favori ? ' des favoris' : ' aux favoris') + '"><svg aria-hidden="true"><use href="#i-etoile"/></svg></button>' : '';
-  const vcLigneContact = c => '<div class="vc-ligne"><button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
+  const vcLigneContact = c => '<div class="vc-ligne"><button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '"' + (auBureau() && etat.vcSel === c.id ? ' aria-current="true"' : '') + '>' + avatar(c) +
       '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
       '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>' + vcEtoile(c) + '</div>';
   /* de A à Z, une lettre par carte — l'initiale sans accent (« Élodie » range sous E), et tout ce qui ne commence pas par une lettre sous « # » */
@@ -2641,6 +2695,8 @@
         try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
         return;
       }
+      if (act === 'vc-ecrire' && auBureau() && !b.closest('#vc-fiche')) { etat.vcSel = uid; rendreVueContacts(); return; }
+      if (act === 'vc-appel') { await lancerAppel({ membres: [uid], video: b.dataset.video === '1' }, b); return; }
       if (act === 'vc-ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
       b.disabled = true;
       if (act === 'vc-accepter') { await source.repondreDemande(uid, true); mot('Contact ajouté'); }
@@ -3537,7 +3593,7 @@
     sec.innerHTML =
       '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
         '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
-      '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
+      pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="sem-nav" role="group" aria-label="Semaine affichée">' +
         '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
         '<button type="button" class="sem-titre presse" id="sem-titre" aria-label="Revenir à aujourd\'hui"></button>' +
