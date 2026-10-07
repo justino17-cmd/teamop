@@ -311,6 +311,22 @@ async function controler(PAGE, SRC, DOC) {
     }
   }
 
+  /* 4 quater. PERSO / PRO ET « CONFIRMER L'ENVOI » (7 octobre 2026, « côté pro ») — la sonde tests/sonde-opmessages-perso-pro.js les joue au doigt contre le vrai service ;
+     le banc garde les décisions : la liste du côté en cours (une recherche cherche partout), ouvrir de l'autre côté y bascule, le nom PRO, la seconde touche avant d'envoyer */
+  vrai('Perso / Pro : la liste montre le côté en cours — mais une RECHERCHE cherche des deux côtés (on ne perd pas une conversation parce qu\'on est du mauvais)',
+    /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| dansMode\(c\)\)\)/.test(JS) && /const dansMode = c => !modesActifs\(\) \|\| coteDe\(c\) === etat\.mode;/.test(JS));
+  vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
+    /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
+  vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',
+    /const suffixeTitre = \(\) => modesActifs\(\) && etat\.mode === 'pro' \? SUFFIXE_TITRE\.replace\('OP MESSAGES', 'OP MESSAGES PRO'\) : SUFFIXE_TITRE;/.test(JS) && (HTML.match(/<span class="marque-pro" hidden><span class="sr-seul"> <\/span>PRO<\/span>/g) || []).length === 2);
+  {
+    const env = corps('async function envoyerTexte'), iConf = env.indexOf('confirmationRequise()'), iVide = env.indexOf("ta.value = ''");
+    vrai('⛔ « Confirmer l\'envoi » : la PREMIÈRE touche demande, la seconde envoie — la demande passe AVANT que le champ se vide et que l\'envoi parte (une modification n\'est pas un envoi)',
+      /if \(!\(ctx0 && ctx0\.type === 'modif'\) && confirmationRequise\(\) && etat\.confirmeAttente !== etat\.conv\) \{ demanderConfirmation\(\); return; \}/.test(env) && iConf > 0 && iVide > iConf && env.indexOf('etat.envoiEnCours = true') > iConf);
+  }
+  vrai('« Confirmer l\'envoi » : retaper le texte annule la demande (on ne confirme pas un texte qu\'on n\'a pas relu) ; « Groupes et canaux » = une conversation à plusieurs ; un compte pro seulement',
+    /\$\('saisie'\)\.addEventListener\('input', \(\) => fermerConfirmation\(\)\);/.test(JS) && /return x === 'partout' \|\| \(x === 'groupes' && multi\(etat\.convDonnees\)\);/.test(JS) && /const confirmerActif = \(\) => !!\(etat\.pro && CAP\.confirmerEnvoi/.test(JS));
+
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);
   v('(population) ' + (HTML.match(/<button\b/g) || []).length + ' boutons dans le balisage — aucun ne porte une icône SANS nom (aria-label) : retour, caméra, joindre, envoyer, micro, annuler, fermer', sansNom, []);
