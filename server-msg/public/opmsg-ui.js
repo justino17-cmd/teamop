@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '308ce424816c';
+  const OPMSG_BUILD = '19447af4c2cc';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 52;
+  const OPMSG_VERSION = 56;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -892,12 +892,49 @@
   function ouvrirPhotoDom(cle) {
     const [mid, i] = cle.split('|'), m = trouverMessage(mid), p = m && m.photos && m.photos[+i];
     if (!p || !blob(p.url)) { remplacer(Object.assign({}, etat.route, { photo: null })); return; }
+    const deja = !$('visionneuse').hidden;
     etat.photo = cle;
     $('visionneuse-img').src = p.url;
-    $('visionneuse-img').alt = 'Photo envoyée par ' + (m.auteur === MOI.id ? 'vous' : nomAuteur(m.auteur));
+    $('visionneuse-img').alt = 'Photo envoyée par ' + (m.auteur === MOI.id ? 'vous' : nomAuteur(m.auteur)) + (m.photos.length > 1 ? ', ' + (+i + 1) + ' sur ' + m.photos.length : '');
+    /* plusieurs photos dans le message : on passe de l'une à l'autre (les flèches de l'écran, ← et → au clavier) */
+    const n = m.photos.length, k = +i;
+    $('visionneuse-prec').hidden = n < 2; $('visionneuse-suiv').hidden = n < 2;
+    /* la flèche qu'on vient de toucher se grise au bout de la série : le focus passe à l'autre, sinon il tombait sur la page et ← → ne répondaient plus */
+    const focusPerdu = document.activeElement && ((document.activeElement.id === 'visionneuse-prec' && k <= 0) || (document.activeElement.id === 'visionneuse-suiv' && k >= n - 1));
+    $('visionneuse-prec').disabled = k <= 0; $('visionneuse-suiv').disabled = k >= n - 1;
+    if (focusPerdu) (k <= 0 ? $('visionneuse-suiv') : $('visionneuse-prec')).focus({ preventScroll: true });
+    $('visionneuse-rang').textContent = n > 1 ? (k + 1) + ' / ' + n : '';
+    /* « Partager » : la feuille de partage de l'appareil (sur iPhone, « Enregistrer l'image » la range dans Photos) — seulement là où le navigateur sait partager un fichier */
+    $('visionneuse-partager').hidden = !(p.piece && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && typeof File === 'function' && navigator.canShare({ files: [new File([''], 'photo.jpg', { type: 'image/jpeg' })] }));
     $('visionneuse').hidden = false;
-    $('visionneuse-fermer').focus({ preventScroll: true });
+    if (!deja) $('visionneuse-fermer').focus({ preventScroll: true });
   }
+  /* le nom d'une photo enregistrée : « photo-20261007-1840-2.jpg » (en ASCII : un nom accentué peut être ignoré par le navigateur) */
+  const EXT_IMAGE = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+  function nomPhoto(m, i, type) { const d = new Date(m.t || Date.now()), z = x => String(x).padStart(2, '0'); return 'photo-' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '-' + z(d.getHours()) + z(d.getMinutes()) + (m.photos.length > 1 ? '-' + (i + 1) : '') + (EXT_IMAGE[type] || '.jpg'); }
+  /* enregistrer une photo : le service la sert telle qu'elle a été envoyée (`pieceLien`) ; une photo qui part encore n'a que son adresse locale */
+  async function enregistrerPhoto(m, i) {
+    const p = m.photos[i]; if (!p) return;
+    let href = null, type = '', jeter = null;
+    if (p.piece) {
+      try { const b = await source.pieceBlob(p.piece); type = b.type || ''; href = jeter = URL.createObjectURL(b); }
+      catch (er) { avis(phrase(er, 'La photo n\'a pas pu être enregistrée.')); return; }
+    } else if (blob(p.url)) href = p.url;
+    if (!href) return;
+    const a = document.createElement('a'); a.href = href; a.download = nomPhoto(m, i, type); a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
+    if (jeter) setTimeout(() => URL.revokeObjectURL(jeter), 60000);
+  }
+  async function partagerPhoto(m, i) {
+    const p = m.photos[i]; if (!p || !p.piece) return;
+    try { const b = await source.pieceBlob(p.piece); await navigator.share({ files: [new File([b], nomPhoto(m, i, b.type), { type: b.type || 'image/jpeg' })] }); }
+    catch (er) { if (er && er.name !== 'AbortError') avis(er && er.dit ? phrase(er) : 'Le partage n\'a pas pu se faire.'); }       // fermer la feuille de partage n'est pas une panne
+  }
+  const photoOuverte = () => { if (!etat.photo) return null; const [mid, i] = etat.photo.split('|'), m = trouverMessage(mid); return m && m.photos ? { m, i: +i } : null; };
+  function photoVoisine(d) { const o = photoOuverte(); if (!o) return; const j = o.i + d; if (j < 0 || j >= o.m.photos.length) return; remplacer(Object.assign({}, etat.route, { photo: o.m.id + '|' + j })); }
+  $('visionneuse-enregistrer').addEventListener('click', () => { const o = photoOuverte(); if (o) enregistrerPhoto(o.m, o.i); });
+  $('visionneuse-partager').addEventListener('click', () => { const o = photoOuverte(); if (o) partagerPhoto(o.m, o.i); });
+  $('visionneuse-prec').addEventListener('click', () => photoVoisine(-1));
+  $('visionneuse-suiv').addEventListener('click', () => photoVoisine(1));
   function fermerPhotoDom() {
     etat.photo = null;
     $('visionneuse').hidden = true; $('visionneuse-img').removeAttribute('src');
@@ -906,7 +943,17 @@
   }
   $('visionneuse-fermer').addEventListener('click', () => { armerRetap(); fermerCouche(); });      // la croix est juste au-dessus de la caméra de la conversation
   $('visionneuse').addEventListener('click', e => { if (e.target === $('visionneuse')) { armerRetap(); fermerCouche(); } });
-  $('visionneuse').addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); $('visionneuse-fermer').focus(); } });   // un seul contrôle : le focus ne sort pas
+  /* le focus ne sort pas de la photo (Tab tourne sur ses boutons) ; ← et → passent d'une photo à l'autre */
+  document.addEventListener('keydown', e => {
+    if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || $('visionneuse').hidden || e.altKey || e.metaKey || e.ctrlKey) return;
+    e.preventDefault(); photoVoisine(e.key === 'ArrowLeft' ? -1 : 1);
+  });
+  $('visionneuse').addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const l = Array.from($('visionneuse').querySelectorAll('button')).filter(b => !b.hidden && !b.disabled); if (!l.length) return;
+    const i = l.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); l[l.length - 1].focus(); } else if (!e.shiftKey && i === l.length - 1) { e.preventDefault(); l[0].focus(); }
+  });
 
   /* ── le vocal : lecture ──
      Un vocal ENREGISTRÉ ici se relit par `Audio`. Un vocal d'EXEMPLE (aucun fichier sonore dans l'aperçu) rejoue sa durée sans son :
@@ -3472,6 +3519,7 @@
     if (!m.supprime && m.texte) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
     /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
     if (moi && !m.supprime && !m.vocal && !m.fichier && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
+    if (!m.supprime && m.photos && m.photos.length) h += '<button type="button" class="menu-action" data-menu="enregistrer">' + (m.photos.length > 1 ? 'Enregistrer les ' + m.photos.length + ' photos' : 'Enregistrer la photo') + '</button>';
     const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
     if (pieceSuivie) h += '<button type="button" class="menu-action" data-menu="suivi">' + (m.fichier ? 'Qui l\'a téléchargé' : m.vocal ? 'Qui l\'a écouté' : 'Qui l\'a vue') + '</button>';
     h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
@@ -3506,6 +3554,7 @@
     fermerMenu();
     if (act === 'repondre') { etat.contexte = { type: 'reponse', mid, nom: nomAuteur(m.auteur), texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
+    else if (act === 'enregistrer') { for (let i = 0; i < (m.photos || []).length; i++) await enregistrerPhoto(m, i); }
     else if (act === 'suivi') { const pc = pieceDe(m); if (pc) { declencheur = null; ouvrirFeuille('suivi:' + pc); } }
     else if (act === 'modifier') { etat.contexte = { type: 'modif', mid, nom: '', texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').value = m.texte || ''; ajusterSaisie(); majBoutons(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }

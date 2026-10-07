@@ -809,12 +809,21 @@ button.photo:active { transform: scale(.97); }
 .recue.legende { border-radius: 6px 20px 20px 20px; }
 .envoyee.legende { border-radius: 20px 6px 20px 20px; }
 
-/* la photo agrandie : un voile noir, la photo en entier, une croix de 44 px — Échap, le retour système et le voile la ferment */
+/* la photo agrandie : un voile noir, la photo EN ENTIER, une croix de 44 px — Échap, le retour système et le voile la ferment ; dessous, la barre : précédente, Enregistrer, Partager, suivante.
+   ⛔ LA PISTE DE L'IMAGE EST `minmax(0, 1fr)` : dans une piste `auto`, WebKit (Safari) ne résout pas le `max-height: 100%` de l'image (sa hauteur dépend de son contenu) — une capture d'iPhone,
+   haute, sortait de l'écran par le bas (capture sur un Mac, 7 octobre 2026). ⚠️ Chromium, lui, résout ce pourcentage : la sonde (Chromium) ne voit pas le défaut d'avant — c'est sur Safari qu'il se juge. */
 .visionneuse {
-  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 56px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  position: fixed; inset: 0; z-index: 60; display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: center; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
   background: rgba(0,0,0,.88);
 }
-.visionneuse img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.visionneuse img { max-width: 100%; max-height: 100%; min-height: 0; object-fit: contain; border-radius: 12px; display: block; }
+.visionneuse-barre { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; color: #fff; }
+.visionneuse-barre button { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: rgba(255,255,255,.16); color: #fff; font-size: 15px; font-weight: 600; }
+.visionneuse-barre button[hidden] { display: none; }
+.visionneuse-barre .ic { width: 20px; height: 20px; }
+.visionneuse-rang { min-width: 48px; text-align: center; font-size: 15px; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.8); }
+.visionneuse-rang:empty { display: none; }
 .visionneuse-fermer { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 6px); right: max(8px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.16); color: #fff; font-size: 18px; }
 
 /* ══ 10. L'ONGLET APPELS — le segmenté Tous / Manqués, la liste, la feuille « Nouvel appel » ═════════════════════════════════════
@@ -1712,6 +1721,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-texte" viewBox="0 0 24 24"><path d="M5.5 7V5h13v2M12 5v14M9 19h6"/></symbol>
   <symbol id="i-annuler" viewBox="0 0 24 24"><path d="M9 13.5 4.5 9 9 4.5M4.5 9h10a5 5 0 0 1 0 10H11"/></symbol>
   <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8.5h3.2L8.8 6h6.4l1.6 2.5H20v10.5H4ZM12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></symbol>
+  <symbol id="i-gauche" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></symbol>
+  <symbol id="i-droite" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-partager" viewBox="0 0 24 24"><path d="M12 15V3.5M8 7.5l4-4 4 4M7 10.5H5.5v10h13v-10H17"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
@@ -2014,6 +2026,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
   <button type="button" class="visionneuse-fermer presse" id="visionneuse-fermer" aria-label="Fermer la photo"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
   <img id="visionneuse-img" alt="">
+  <div class="visionneuse-barre" role="toolbar" aria-label="Photo">
+    <button type="button" class="presse" id="visionneuse-prec" aria-label="Photo précédente" hidden><svg class="ic" aria-hidden="true"><use href="#i-gauche"/></svg></button>
+    <span class="visionneuse-rang" id="visionneuse-rang" aria-live="polite"></span>
+    <button type="button" class="presse" id="visionneuse-enregistrer"><svg class="ic" aria-hidden="true"><use href="#i-telecharger"/></svg>Enregistrer</button>
+    <button type="button" class="presse" id="visionneuse-partager" hidden><svg class="ic" aria-hidden="true"><use href="#i-partager"/></svg>Partager</button>
+    <button type="button" class="presse" id="visionneuse-suiv" aria-label="Photo suivante" hidden><svg class="ic" aria-hidden="true"><use href="#i-droite"/></svg></button>
+  </div>
 </div>
 
 <div class="envoi-photos" id="envoi-photos" role="dialog" aria-modal="true" aria-labelledby="ep-titre" hidden>
