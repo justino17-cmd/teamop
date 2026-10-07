@@ -34,6 +34,23 @@ Deux demandes de Justin, captures du bureau :
 · **« le calendrier du mois complet pour voir tous ses rendez-vous »** : l'Agenda propose « Semaine | Mois » — la grille du Calendrier d'Apple (les rendez-vous dans la case
   au bureau, des points au téléphone, le jour touché liste les siens dessous). Le choix va au COMPTE (`prefs.agenda_vue`).
 `sonde-opmessages-menu-rappel` (29 ✓, deux mutations qui mordent), test-857 (253 ✓), test-929 (27 ✓).
+
+Puis, la même nuit, sept demandes de plus, captures à l'appui (toutes sur la bêta, chacune avec sa preuve) :
+· **déplacer les textes des annotations** : outil Texte, appuyer et glisser ; le service tient `deplacer` (un texte, son auteur ou le maître du support) — test-924 (52 ✓),
+  sonde-opmessages-annotations (le texte vu ailleurs au téléphone) ;
+· **la capture d'écran annotée paraît dans la discussion de la salle** (elle partait, mais la salle n'écrivait que la légende) ;
+· **« Changer de fenêtre » pendant un partage**, sans l'arrêter (la piste remplacée chez les autres, les annotations de l'ancienne fenêtre effacées) ;
+· **« Image dans l'image » sur l'écran de la réunion** (une pastille à côté de « Vue ») ;
+· **une réunion terminée le dit dans l'Agenda** : « Terminée », durée, nombre de présents, et pour l'organisateur seul les noms (la règle du rapport de présence) ;
+  plus de « Rejoindre » tant qu'aucune salle n'est rouverte — test-925 (25 ✓) ;
+· **le minuteur façon Apple** : la capsule de l'Horloge, le logo OP MESSAGES dans un anneau qui se vide, chiffres fins, orange puis rouge ;
+· **l'enregistrement** : 1080p/24 i/s/3 Mb/s au bureau (VP9), le SON (mélangeur né dans le geste ; la page dit quand ton micro est coupé — sur les captures de
+  Justin les deux micros étaient coupés), « Envoyer à tous les participants » gardé 3 jours : `garder_s` (1, 3 ou 7 jours, un FICHIER seul) pose l'échéance, le
+  balayeur emporte message ET fichier — test-923 (27 ✓), sonde-opmessages-enregistrement (23 ✓, le son décodé à la relecture).
+⚠️ Décisions prises sans Justin : la durée d'une séance va du premier début à la dernière fin (deux salles d'une même occurrence sont réunies) ; le son d'un écran
+partagé (une vidéo qu'on montre) n'est ni transmis ni enregistré — il faudrait une renégociation, à décider ; l'enregistrement garde le fichier 3 jours, pas plus.
+⚠️ Dette connue, d'avant ce soir : la sonde « groupe », bloc 6 (enregistrement), voit le bouton REC « pas stable » une fois sur deux sous charge — pas un défaut
+de la page (le même passage passe ailleurs), mais à rendre robuste.
 ⚠️ Décisions prises sans Justin, à revoir s'il le veut autrement : l'Agenda s'ouvre sur la SEMAINE tant qu'on n'a pas choisi « Mois » (puis il s'en souvient) ; « demain » et
 « lundi » à 9:00 ; toucher la notification d'un rappel ouvre l'agenda, pas le message (le relier au message demanderait un champ de plus au service) ; une réunion est
 toujours côté Pro.
