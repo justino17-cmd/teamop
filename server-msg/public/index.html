@@ -343,6 +343,15 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .vc-etoile:active { transform: scale(.9); }
 .vc-lettre { margin: 14px 4px 6px; font-size: 13px; font-weight: 600; color: var(--sub-meta); }
 #vc-seg .seg-bouton { font-size: 12px; }
+/* le lien « Qui l'a téléchargé ? » sous MES fichiers, et la feuille du suivi */
+.suivi-lien { display: flex; align-items: center; gap: 5px; align-self: flex-end; min-height: 32px; margin: 2px 2px 0; padding: 4px 8px; border-radius: 8px; font-size: 13px; color: var(--accent-txt); }
+.suivi-lien .ic { font-size: 14px; }
+@media (pointer: coarse) { .suivi-lien { min-height: 44px; } }
+.suivi-tete { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 20px; text-align: center; }
+.suivi-compte { font-size: 15px; color: var(--sub-meta); font-variant-numeric: tabular-nums; }
+.suivi-compte b { font-size: 34px; line-height: 41px; font-weight: 700; color: var(--text); }
+.suivi-texte { font-size: 15px; color: var(--sub-meta); }
+.suivi-ligne { cursor: default; }
 /* ── LA FICHE D'UNE PERSONNE (7 octobre 2026) : au téléphone une feuille, au bureau le volet droit de Contacts. Comme la carte de Contacts sur iPhone : la photo, le nom, une rangée de gestes
    en tuiles, puis ce qu'on a EN COMMUN — les réunions à venir (une pastille de calendrier : le mois en rouge, le jour en grand), les groupes, l'entreprise. ── */
 .vc-fiche-tete { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 8px 18px; text-align: center; }
@@ -1037,6 +1046,9 @@ html[data-service] .mention-apercu { display: none; }
 .msg-rang { max-width: 82%; display: flex; align-items: center; gap: 2px; }
 .msg.de-moi .msg-rang { flex-direction: row-reverse; }
 .msg-rang > .bulle, .msg-rang > .photos, .msg-rang > .vocal, .msg-rang > .fichier { max-width: 100%; min-width: 0; }
+/* « Qui l'a téléchargé ? » passe SOUS la carte, à droite (comme le « Lu » d'iMessage) : la rangée se replie, le lien prend sa propre ligne */
+.msg-rang:has(> .suivi-lien) { flex-wrap: wrap; }
+.msg-rang > .suivi-lien { order: 5; flex-basis: 100%; justify-content: flex-end; }
 .msg-plus { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 18px; }
 @media (hover: hover) { .msg-plus { opacity: 0; } .msg:hover .msg-plus, .msg-plus:focus-visible { opacity: 1; } }
 @media (hover: none) { .msg-plus { display: none; } }
@@ -1342,6 +1354,26 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-msg.moi { align-self: flex-end; background: var(--fill); }
 .salle-msg small { display: block; font-size: 12px; line-height: 15px; color: var(--salle-sub); }
 .salle-saisie { display: flex; gap: 8px; margin-top: 8px; }
+.salle-joindre { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; }
+.salle-msg.doc { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.salle-msg.doc small { padding: 0 5px; }
+.salle-doc { display: flex; align-items: center; gap: 10px; min-height: 52px; width: 100%; padding: 6px 8px; border-radius: 10px; background: rgba(0,0,0,.18); color: #fff; text-align: left; }
+.salle-doc-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: rgba(255,255,255,.16); font-size: 19px; }
+.salle-doc-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.salle-doc-t b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.salle-doc-t small { font-size: 12px; color: var(--salle-sub); padding: 0 !important; }
+.salle-doc > .ic:last-child { flex: none; font-size: 18px; opacity: .85; }
+.salle-doc-suivi { align-self: flex-end; min-height: 32px; padding: 4px 8px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+@media (pointer: coarse) { .salle-doc-suivi { min-height: 44px; } }
+.salle-suivi-retour { margin-bottom: 8px; }
+.salle-suivi-compte { margin: 0 0 10px; font-size: 15px; color: var(--salle-sub); }
+.salle-suivi-compte b { font-size: 28px; color: #fff; }
+.salle-suivi { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow-y: auto; }
+.salle-suivi li { display: flex; flex-direction: column; gap: 1px; padding: 9px 2px; border-bottom: 1px solid var(--salle-bord); }
+.salle-suivi li:last-child { border-bottom: 0; }
+.salle-suivi li span { font-size: 15px; font-weight: 600; }
+.salle-suivi li small { font-size: 13px; color: var(--salle-sub); }
+.salle-suivi li.pas span { font-weight: 400; color: var(--salle-sub); }
 .salle-saisie input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 22px; border: 1px solid var(--salle-bord); background: rgba(255,255,255,.1); color: #fff; font: inherit; font-size: 16px; }
 .salle-saisie input::placeholder { color: rgba(255,255,255,.7); }
 .salle-saisie button { flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; background: #fff; color: #000; font-weight: 600; }
@@ -1834,6 +1866,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="salle-panneau" id="salle-panneau" role="dialog" aria-modal="false" aria-labelledby="salle-panneau-titre" tabindex="-1" hidden>
       <div class="salle-panneau-tete"><h3 id="salle-panneau-titre"></h3><button type="button" class="presse" id="salle-panneau-fermer" aria-label="Fermer ce panneau"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <div id="salle-panneau-corps"></div>
+      <input type="file" id="salle-doc" hidden>
     </div>
   </section>
 </div>

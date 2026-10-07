@@ -114,6 +114,7 @@ const MATRICE = {
      un message du groupe (Ana et Ben y sont, Cleo non). */
   'pieces.deposer':     { ok: (F) => ['BIN', { genre: 'avatar', corps: F.png }], codes: [201] },
   'pieces.lire':        { ok: (F) => ['GET', '/api/pieces/' + F.P], codes: [200] },
+  'pieces.suivi':       { ok: (F) => ['GET', '/api/pieces/' + F.P + '/suivi'], codes: [200, 404] },   // l'AUTEUR seul (l'administrateur de la fixture, qui a déposé la pièce) : tout autre reçoit 404
   'moi.avatar':         { ok: () => ['POST', '/api/moi/avatar', { piece: null }], codes: [200] },
   'moi.stockage':       { ok: () => ['GET', '/api/moi/stockage'], codes: [200] },
   /* Les notifications push et le compte (étape 2, suite). Un abonnement se joue avec un hôte de la liste blanche (FCM) et de VRAIES clés : la route juge la forme de l'appareil, pas
@@ -367,7 +368,7 @@ const ATTENDU = {
       if (r.garde === 'AP') F.AP = appelPrepare(r.id === 'appels.repondre' ? 'sonne' : 'en_cours');
       if (['SP', 'SH', 'SO', 'SJ'].includes(r.garde)) F.SA = sallePrepare({ benPresent: r.garde !== 'SJ', attend: r.id === 'salles.admettre' || r.id === 'salles.refuser' });
       /* la fixture des pièces : une photo déposée PAR LA ROUTE (le fichier est réellement rangé et scellé), attachée à un message du groupe par le module de stockage */
-      if (r.garde === 'J') {
+      if (r.garde === 'J' || r.id === 'pieces.suivi') {
         const dep = await F_PIECES.deposer(clientDe('admin'), { conv: G, genre: 'photo', corps: PNG });
         if (dep.code !== 201) throw new Error('fixture de pièce refusée : ' + dep.code);
         S.messageEnvoyer({ conv: G, auteur: A.id, cid: 'cid-fx-piece-01', type: 'photo', pieces: [{ id: dep.j.id, w: 8, h: 8 }] });

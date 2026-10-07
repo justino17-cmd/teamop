@@ -13,6 +13,19 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (NUIT) — QUI A REÇU, QUI A TÉLÉCHARGÉ UN DOCUMENT (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « s'envoyer des documents par cette réunion… savoir qui a reçu le document, savoir qui a téléchargé le document, c'est très important pour les patrons ». Sous chacun de MES
+fichiers (conversation et discussion d'une salle) : « Qui l'a téléchargé ? » → la liste des membres : téléchargé (la première fois, et combien de fois), reçu, lu, pas encore reçu ; la
+salle a un bouton ＋ pour envoyer un document, et ses cartes de documents portent le compteur (relu toutes les 15 s tant que la discussion est ouverte). Serveur : table `piece_acces`
+(schéma v15 : première et dernière fois, nombre ; dédoublonné à la minute, un téléchargement par plage `bytes=1-` compte), route `GET /api/pieces/:id/suivi` (garde V, 120/min),
+« reçu » posé quand l'appareil relit la liste des conversations. ⛔ Les règles tranchées avec `gardien` : seul l'AUTEUR lit le suivi, et seulement tant qu'il voit encore le message
+(parti du groupe, message masqué, supprimé ou expiré → 404) ; « lu » et l'ouverture d'une PHOTO ou d'un VOCAL suivent les confirmations de lecture réciproques (coupées → rien n'est
+noté, rien n'est rendu) ; le téléchargement d'un FICHIER est toujours dit à l'auteur (écrit dans Confidentialité) ; la suppression d'un compte efface ses lignes ; l'export du compte les
+porte (`documents_ouverts`) ; la table entre dans le comptage de la sauvegarde (`TABLES_COMPTEES`, sonde, copie). `tests/test-923.js` (23 ✓, cinq mutations mordent),
+`tests/sonde-opmessages-documents.js` (17 ✓, trois navigateurs). ⚠️ **Attend Justin** : le texte de `confidentialite.html` sur ce suivi et sa DURÉE de conservation (aujourd'hui :
+celle du fichier) — relecture `gardien` C4 ; l'export ne donne que des identifiants de pièces (N7).
+
 # ⏳ 7 OCTOBRE 2026 (SOIR) — OP MESSAGES SELON L'APPAREIL (`data-plat`, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin : « look Apple partout ; adapte le comportement selon data-plat : iPhone (tactile, barre d'onglets, encoches), iPad (menu latéral dès 781 px, pas de barre d'onglets), Mac (souris,

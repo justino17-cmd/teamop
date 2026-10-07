@@ -2622,6 +2622,16 @@
        de la même personne le verra à sa prochaine lecture des contacts. */
     /* CE QU'ON A EN COMMUN avec une personne (la fiche d'un contact) : les réunions à venir où l'on est invités tous les deux (la prochaine d'abord, et SA réponse), les groupes et les espaces.
        Les réunions passent par la même vue que l'agenda (`vueReunion`) : une réunion de la fiche s'ouvre comme une réunion de l'agenda. */
+    /* LE SUIVI D'UN DOCUMENT que j'ai envoyé : chaque membre qui voit le message — reçu, lu (null : ses confirmations de lecture, ou les miennes, sont coupées), ouvert
+       ({ premier, dernier, n } en millisecondes ; false : pas encore ; null : caché, une photo ou un vocal sous confirmations coupées). Un fichier téléchargé est toujours dit. */
+    async function suiviPiece(id) {
+      const r = await A.suiviPiece(id);
+      return { genre: String(r.genre || ''), suivi: r.suivi !== false, membres: (r.membres || []).map((m) => {
+        noter(m);
+        const o = m.ouvert && typeof m.ouvert === 'object' ? { premier: Number(m.ouvert.premier) || 0, dernier: Number(m.ouvert.dernier) || 0, n: Number(m.ouvert.n) || 1 } : m.ouvert === null ? null : false;
+        return { id: m.id, recu: m.recu === true, lu: m.lu === null || m.lu === undefined ? null : m.lu === true, ouvert: o };
+      }) };
+    }
     async function enCommun(uid) {
       const r = await A.enCommun(uid);
       return {
@@ -3064,7 +3074,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3082,7 +3092,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */

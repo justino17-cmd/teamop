@@ -105,6 +105,7 @@ const MANIFESTE = [
      (vérifié dans la route : le membre se lit dans l'adresse de la requête, pas dans le chemin) ; une lecture passe la garde J. */
   { id: 'pieces.deposer',    m: 'POST', p: '/api/pieces',                            garde: 'V' },
   { id: 'pieces.lire',       m: 'GET',  p: '/api/pieces/:id',                        garde: 'J' },
+  { id: 'pieces.suivi',      m: 'GET',  p: '/api/pieces/:id/suivi',                  garde: 'V' },   // le suivi d'un document : son AUTEUR seul (reçu, lu, ouvert, téléchargé)
   { id: 'moi.avatar',        m: 'POST', p: '/api/moi/avatar',                        garde: 'S' },
   { id: 'moi.stockage',      m: 'GET',  p: '/api/moi/stockage',                      garde: 'S' },
   /* Étape 2 (suite) : les notifications push (`routes-push.js`) et le compte (`compte.js`). Toutes S : l'identité vient de la SESSION, jamais du corps. L'acquittement d'un événement

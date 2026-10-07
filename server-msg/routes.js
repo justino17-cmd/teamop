@@ -312,7 +312,11 @@ function creerHandlers(ctx) {
   };
 
   /* ── Conversations ───────────────────────────────────────────────────────────────────── */
-  H['conv.liste'] = (req, res) => res.json({ conversations: stockage.convListe(req.moi.id) });
+  H['conv.liste'] = (req, res) => {
+    const conversations = stockage.convListe(req.moi.id);
+    try { stockage.membreRecuTout(req.moi.id); } catch (e) { /* « reçu » est une information de plus : une base qui refuse n'empêche pas de lire ses conversations */ }
+    res.json({ conversations });
+  };
 
   H['conv.directe'] = (req, res) => {
     const u = cibleContact(req, res); if (!u) return;

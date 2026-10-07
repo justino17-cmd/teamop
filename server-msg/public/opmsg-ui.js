@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '14295585e445';
+  const OPMSG_BUILD = 'c74881b47ce9';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 37;
+  const OPMSG_VERSION = 41;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -367,6 +367,8 @@
     } else if (m.fichier) {
       h += '<button type="button" class="fichier ' + sens + ' presse" data-fichier="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="Télécharger le fichier ' + esc(m.fichier.nom) + ', ' + esc(tailleTexte(m.fichier.taille)) + '">' +
         '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="fichier-texte"><span class="fichier-nom" dir="auto">' + esc(m.fichier.nom) + '</span><span class="fichier-taille">' + esc(tailleTexte(m.fichier.taille)) + '</span></span></button>';
+      /* MON fichier : qui l'a reçu, qui l'a téléchargé (« très important pour les patrons ») — un lien à part, sous la carte (on n'imbrique pas deux boutons) */
+      if (moi && m.fichier.piece && suiviPossible()) h += '<button type="button" class="suivi-lien presse" data-suivi="' + esc(m.fichier.piece) + '">' + icone('i-personne') + '<span>Qui l\'a téléchargé ?</span></button>';
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
@@ -850,7 +852,13 @@
   /* télécharger un fichier reçu : lu du service à la demande, jamais gardé (l'adresse est rendue une minute après) */
   async function telechargerFichier(mid, bouton) {
     const m = trouverMessage(mid);
-    if (!m || !m.fichier || !m.fichier.piece || bouton.getAttribute('aria-disabled') === 'true') return;
+    if (!m || !m.fichier) return;
+    return telechargerPiece(m.fichier, bouton);
+  }
+  /* un fichier ({ piece, nom }) : la conversation et la discussion de la salle passent par ici */
+  async function telechargerPiece(fichier, bouton) {
+    const m = { fichier };
+    if (!m.fichier.piece || bouton.getAttribute('aria-disabled') === 'true') return;
     /* un vrai fichier du service : le navigateur le télécharge lui-même, sans le tenir en mémoire (5 Go au plus) — voir `pieceLien` */
     const lien = typeof source.pieceLien === 'function' ? source.pieceLien(m.fichier.piece) : null;
     if (lien) { const a = document.createElement('a'); a.href = lien; a.download = m.fichier.nom; a.hidden = true; document.body.appendChild(a); a.click(); a.remove(); return; }
@@ -876,6 +884,8 @@
     if (an) { if (typeof source.abandonner === 'function') source.abandonner(an.dataset.annuler); return; }
     const c = e.target.closest('[data-charger]');
     if (c) { source.pieceUrl(c.dataset.charger).then(masquerAvis, er => avis(phrase(er, 'La photo n\'a pas pu être chargée.'))); return; }
+    const sv = e.target.closest('[data-suivi]');
+    if (sv) { declencheur = sv; ouvrirFeuille('suivi:' + sv.dataset.suivi); return; }
     const f = e.target.closest('[data-fichier]');
     if (f) telechargerFichier(f.dataset.fichier, f);
   });
@@ -1193,10 +1203,10 @@
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -1227,9 +1237,11 @@
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
       || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
+      || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
+    if (etat.groupe.mode === 'suivi') etat.groupe.pieceId = arg;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
@@ -1247,6 +1259,7 @@
     if (etat.groupe.mode === 'convinfo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreConvInfo(); }
     if (etat.groupe.mode === 'profil') rendreProfil();
     if (etat.groupe.mode === 'personne') rendrePersonne();
+    if (etat.groupe.mode === 'suivi') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = '<p class="vide">Chargement…</p>'; rendreSuivi(); }
     if (etat.groupe.mode === 'suppression') rendreSuppression();
     if (etat.groupe.mode === 'entreprise') rendreEntreprise();
     if (etat.groupe.mode === 'espace') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreEspace(); }
@@ -2211,7 +2224,7 @@
       '><span class="reglage-texte">' + esc(titre) + '<small>' + esc(aide) + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
     c.innerHTML = (CAP.identifiants && typeof reg.conf.trouvable === 'boolean' ? sw('trouvable', 'Me trouver par mon identifiant ou mon numéro', 'Coupé : personne ne peut te retrouver ni t\'envoyer de demande. Tes contacts restent.') : '') +
       sw('presence', 'Afficher quand je suis en ligne', 'Réciproque : si tu le coupes, tu ne vois plus non plus qui est en ligne.') +
-      sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres.') +
+      sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres — ni l\'ouverture d\'une photo ou d\'un vocal. Le téléchargement d\'un fichier, lui, est toujours dit à la personne qui l\'a envoyé.') +
       (reg.confErreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.confErreur) + '</p></div>' : '');
   }
   /* ── Notifications : l'interrupteur de CET appareil (ce que le navigateur et le service ont retenu), l'aperçu (valable pour tous mes appareils), l'essai ──
@@ -2681,6 +2694,40 @@
     const h = ficheHtml(p);
     if (f.dataset.sig !== h) { f.dataset.sig = h; f.innerHTML = h; }
     chargerCommun(p.id);
+  }
+  /* ── LE SUIVI D'UN DOCUMENT (7 octobre 2026 : « savoir qui a reçu le document, qui l'a téléchargé — très important pour les patrons ») ──
+     La feuille « suivi:<pièce> », à l'expéditeur seul (le service le décide) : d'abord ceux qui l'ont téléchargé (ouvert, écouté) avec le jour et l'heure, puis ceux qui ne l'ont pas
+     encore fait — reçu, lu ou pas encore reçu. Elle se relit toutes les 10 s tant qu'elle est ouverte : on la garde ouverte pendant la réunion, elle suit. */
+  const suiviPossible = () => !!CAP.suiviPieces && typeof source.suiviPiece === 'function';
+  const pieceDe = m => m.fichier ? m.fichier.piece : m.vocal ? m.vocal.piece : m.photos && m.photos[0] ? m.photos[0].piece : null;
+  const FMT_SUIVI = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  let suiviMinuterie = 0;
+  async function rendreSuivi(relecture) {
+    const id = etat.groupe.pieceId, corps = $('info-corps');
+    clearTimeout(suiviMinuterie);
+    let d = null, panne = null;
+    try { d = await source.suiviPiece(id); } catch (e) { panne = e; }
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'suivi' || etat.groupe.pieceId !== id) return;          // la feuille s'est fermée (ou a changé) pendant l'attente
+    suiviMinuterie = setTimeout(() => { if (etat.groupe.ouvert && etat.groupe.mode === 'suivi' && etat.groupe.pieceId === id) rendreSuivi(true); }, 10000);
+    if (panne) { if (!relecture) { corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(phrase(panne, 'Le suivi n\'a pas pu être lu.')) + '</p>'; } return; }
+    const h = htmlSuivi(d);
+    if (corps.dataset.sig === h) return;
+    corps.dataset.sig = h; corps.innerHTML = h;
+  }
+  /* le suivi en HTML — la même lecture pour la feuille et pour le panneau de la salle */
+  const suiviFaits = d => d.membres.filter(m => m.ouvert && m.ouvert.premier);
+  function htmlSuivi(d) {
+    const verbe = d.genre === 'fichier' ? 'Téléchargé' : d.genre === 'vocal' ? 'Écouté' : 'Vu', infinitif = d.genre === 'fichier' ? 'téléchargé' : d.genre === 'vocal' ? 'écouté' : 'vu';
+    const faits = suiviFaits(d), autres = d.membres.filter(m => !(m.ouvert && m.ouvert.premier));
+    const nomDe = id2 => esc(nomPersonne(id2));
+    const ligne = (m, sous) => '<div class="contact suivi-ligne">' + avatarDe(m.id) + '<span class="contact-texte"><span class="contact-nom">' + nomDe(m.id) + '</span><span class="contact-role">' + sous + '</span></span></div>';
+    const etatSans = m => m.ouvert === null ? (m.lu ? 'Lu' : m.recu ? 'Reçu' : 'Pas encore reçu') + ' · confirmations de lecture coupées' : m.lu ? 'Lu, pas encore ' + infinitif : m.recu ? 'Reçu, pas encore ' + infinitif : 'Pas encore reçu';
+    return '<div class="suivi-tete"><span class="suivi-compte"><b>' + faits.length + '</b> / ' + d.membres.length + '</span><span class="suivi-texte">' + esc(verbe + (faits.length > 1 ? 's' : '') ) + ' par ' + faits.length + (faits.length > 1 ? ' personnes' : ' personne') + ' sur ' + d.membres.length + '</span></div>' +
+      (faits.length ? '<div class="rubrique"><span>' + esc(verbe) + '</span><span>' + faits.length + '</span></div><div class="carte">' + faits.sort((a, b) => a.ouvert.premier - b.ouvert.premier).map(m =>
+        ligne(m, esc(FMT_SUIVI.format(m.ouvert.premier)) + (m.ouvert.n > 1 ? esc(' · ' + m.ouvert.n + ' fois, la dernière ' + FMT_SUIVI.format(m.ouvert.dernier)) : ''))).join('') + '</div>' : '') +
+      (autres.length ? '<div class="rubrique"><span>Pas encore ' + esc(infinitif) + '</span><span>' + autres.length + '</span></div><div class="carte">' + autres.map(m => ligne(m, esc(etatSans(m)))).join('') + '</div>' : '') +
+      (!d.membres.length ? '<p class="vide">Personne d\'autre dans cette conversation ne voit ce message.</p>' : '') +
+      '<p class="info-note">' + (d.genre === 'fichier' ? 'Le téléchargement d\'un fichier est toujours dit à la personne qui l\'a envoyé. ' : '') + '« Lu » et l\'ouverture d\'une photo ou d\'un vocal suivent les confirmations de lecture : qui les coupe ne les donne ni ne les voit.</p>';
   }
   /* au téléphone : la feuille « personne:<id> » (la même fiche) */
   function rendrePersonne() {
@@ -3425,6 +3472,8 @@
     if (!m.supprime && m.texte) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
     /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
     if (moi && !m.supprime && !m.vocal && !m.fichier && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
+    const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
+    if (pieceSuivie) h += '<button type="button" class="menu-action" data-menu="suivi">' + (m.fichier ? 'Qui l\'a téléchargé' : m.vocal ? 'Qui l\'a écouté' : 'Qui l\'a vue') + '</button>';
     h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
     if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer-tous">Supprimer pour tous</button>';
     $('menu-msg').innerHTML = h;
@@ -3457,6 +3506,7 @@
     fermerMenu();
     if (act === 'repondre') { etat.contexte = { type: 'reponse', mid, nom: nomAuteur(m.auteur), texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
+    else if (act === 'suivi') { const pc = pieceDe(m); if (pc) { declencheur = null; ouvrirFeuille('suivi:' + pc); } }
     else if (act === 'modifier') { etat.contexte = { type: 'modif', mid, nom: '', texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').value = m.texte || ''; ajusterSaisie(); majBoutons(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }
   });
@@ -4558,12 +4608,43 @@
   }
 
   /* ── les panneaux : Participants, Discussion, Plus, Quitter (l'hôte qui part) ── */
-  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle' };
+  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document' };
+  /* le suivi d'un document, dans la salle (le panneau « suivi ») : les mêmes lignes que la feuille, dans l'encre de la salle, et le retour à la discussion */
+  function htmlSuiviSalle(A) {
+    const X = sx(A), d = X.suiviDonnees;
+    const retour = '<button type="button" class="salle-btn presse salle-suivi-retour" data-sa="suivi-retour">‹ Discussion</button>';
+    if (!d) return retour + '<p class="salle-note">' + (X.suiviPanne ? esc(X.suiviPanne) : 'Chargement…') + '</p>';
+    const faits = suiviFaits(d), autres = d.membres.filter(m => !(m.ouvert && m.ouvert.premier));
+    const etat = m => m.ouvert === null ? (m.lu ? 'Lu' : m.recu ? 'Reçu' : 'Pas encore reçu') : m.lu ? 'Lu, pas encore téléchargé' : m.recu ? 'Reçu, pas encore téléchargé' : 'Pas encore reçu';
+    return retour + '<p class="salle-suivi-compte"><b>' + faits.length + '</b> / ' + d.membres.length + ' ont téléchargé</p>' +
+      '<ul class="salle-suivi" role="list">' + faits.sort((a, b) => a.ouvert.premier - b.ouvert.premier).map(m => '<li><span>' + esc(nomPersonne(m.id)) + '</span><small>' + esc(FMT_SUIVI.format(m.ouvert.premier) + (m.ouvert.n > 1 ? ' · ' + m.ouvert.n + ' fois' : '')) + '</small></li>').join('') +
+        autres.map(m => '<li class="pas"><span>' + esc(nomPersonne(m.id)) + '</span><small>' + esc(etat(m)) + '</small></li>').join('') + '</ul>';
+  }
+  /* les compteurs « Téléchargé par x sur y » de MES documents de la discussion (les dix derniers), relus au plus toutes les 15 s */
+  async function salleSuivisCharger(A, force) {
+    const X = sx(A); if (!suiviPossible() || !X.discussion) return;
+    if (!X.suivis) X.suivis = new Map();
+    if (!force && X.suivisLu && Date.now() - X.suivisLu < 15000) return;
+    X.suivisLu = Date.now();
+    const miens = X.discussion.filter(m => m.fichier && m.fichier.piece && m.auteur === MOI.id).slice(-10);
+    let change = false;
+    for (const m of miens) {
+      let d = null; try { d = await source.suiviPiece(m.fichier.piece); } catch (e) { d = null; }
+      if (perime(A) || !d) continue;
+      const v = { faits: suiviFaits(d).length, total: d.membres.length }, avant = X.suivis.get(m.fichier.piece);
+      if (!avant || avant.faits !== v.faits || avant.total !== v.total) { X.suivis.set(m.fichier.piece, v); change = true; }
+      if (X.panneau === 'suivi' && X.suiviPiece === m.fichier.piece) { X.suiviDonnees = d; change = true; }
+    }
+    if (change && !perime(A)) sallePanneauRendre(A, true);
+  }
   function salleOuvrirPanneau(A, nom, declencheurEl) {
     const X = sx(A);
     if (X.panneau === nom) { salleFermerPanneau(A); return; }
     X.panneau = nom; X.emojis = false; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
     if (nom === 'discussion') { X.neufs = 0; salleDiscussionCharger(A, true); }
+    /* la discussion ou le suivi ouverts : les compteurs de MES documents se relisent toutes les 15 s (un patron garde le panneau ouvert, il voit les téléchargements arriver) */
+    clearInterval(X.minuterieSuivis);
+    if (nom === 'discussion' || nom === 'suivi') X.minuterieSuivis = setInterval(() => { const Y = sx(A); if (perime(A) || (Y.panneau !== 'discussion' && Y.panneau !== 'suivi')) { clearInterval(Y.minuterieSuivis); return; } salleSuivisCharger(A, true); }, 15000);
     /* « Plus » : les micros, caméras et sorties de l'appareil, lus à l'ouverture (leurs noms n'existent qu'une fois le micro autorisé — c'est le cas dans une salle) */
     if (nom === 'plus') listeAppareils().then(l => { if (!perime(A) && sx(A).panneau === 'plus') { sx(A).appareils = l; sallePanneauRendre(A, true); } });
     A.snap && salleCommandes(A, A.mediaPret && (!A.micro || !A.audio));
@@ -4656,9 +4737,16 @@
   function htmlDiscussion(A) {
     const X = sx(A);
     const nomDe = id => { const m = A.snap.membres.find(x => x.id === id); return m ? nomM(m) : nomAuteur(id); };
-    const fil = X.discussion.length ? X.discussion.map(m => '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
+    const docHtml = m => {
+      const moi = m.auteur === MOI.id, sv = moi && X.suivis ? X.suivis.get(m.fichier.piece) : null;
+      return '<div class="salle-msg doc' + (moi ? ' moi' : '') + '">' + (moi ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') +
+        '<button type="button" class="salle-doc presse" data-sa="doc" data-mid="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="' + esc('Télécharger ' + m.fichier.nom + ', ' + tailleTexte(m.fichier.taille)) + '">' +
+          '<span class="salle-doc-ic">' + icone('i-fichier') + '</span><span class="salle-doc-t"><b dir="auto">' + esc(m.fichier.nom) + '</b><small>' + esc(tailleTexte(m.fichier.taille)) + '</small></span>' + icone('i-telecharger') + '</button>' +
+        (moi && m.fichier.piece && suiviPossible() ? '<button type="button" class="salle-doc-suivi presse" data-sa="doc-suivi" data-s="' + esc(m.fichier.piece) + '">' + (sv ? esc('Téléchargé par ' + sv.faits + ' sur ' + sv.total) : 'Qui l\'a téléchargé ?') + '</button>' : '') + '</div>';
+    };
+    const fil = X.discussion.length ? X.discussion.map(m => m.fichier ? docHtml(m) : '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
     return '<div class="salle-fil" id="salle-fil" role="log" aria-label="Messages" tabindex="0">' + fil + '</div>' +
-      '<form class="salle-saisie" id="salle-saisie-form"><input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">Envoyer</button></form>';
+      '<form class="salle-saisie" id="salle-saisie-form">' + (CAP.fichiers ? '<button type="button" class="salle-joindre presse" data-sa="doc-joindre" aria-label="Envoyer un document">' + icone('i-plus') + '</button>' : '') + '<input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">Envoyer</button></form>';
   }
   function sallePanneauRendre(A, force) {
     const X = sx(A), p = $('salle-panneau'), corps = $('salle-panneau-corps');
@@ -4674,7 +4762,7 @@
     const actif = document.activeElement, dans = actif && corps.contains(actif), cle = dans ? (actif.dataset.sa || '') + '|' + (actif.dataset.uid || actif.dataset.s || '') : null;
     const champs = {}; corps.querySelectorAll('input[id]').forEach(i => { champs[i.id] = { v: i.value, focus: i === actif, a: i.selectionStart }; });
     const bas = (() => { const f = $('salle-fil'); return !f || f.scrollHeight - f.scrollTop - f.clientHeight < 40; })();
-    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : htmlDiscussion(A);
+    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : htmlDiscussion(A);
     for (const id of Object.keys(champs)) { const i = $(id); if (i && corps.contains(i)) { i.value = champs[id].v; if (champs[id].focus) { i.focus({ preventScroll: true }); try { i.setSelectionRange(champs[id].a, champs[id].a); } catch (e) { /* un champ sans curseur */ } } } }
     if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); }
     const f = $('salle-fil'); if (f && bas) f.scrollTop = f.scrollHeight;
@@ -4686,6 +4774,7 @@
     let c = null; try { c = await source.ouvrir(s.conv); } catch (e) { c = null; }
     if (perime(A) || !c) return;
     X.discussion = c.messages.filter(m => !m.systeme && !m.supprime).slice(-60);
+    salleSuivisCharger(A);
     const ids = new Set(X.discussion.map(m => m.id));
     if (!X.vus) X.vus = ids;
     if (X.panneau === 'discussion') { X.vus = ids; X.neufs = 0; }
@@ -4708,6 +4797,14 @@
     const s = A.snap, X = sx(A), uid = el.dataset.uid;
     switch (act) {
       case 'panneau-fermer': salleFermerPanneau(A); return;
+      case 'doc-joindre': $('salle-doc').click(); return;
+      case 'doc': { const m = (X.discussion || []).find(x => x.id === el.dataset.mid); if (m && m.fichier) await telechargerPiece(m.fichier, el); return; }
+      case 'doc-suivi': X.suiviPiece = el.dataset.s; X.suiviDonnees = null; X.suiviPanne = '';
+        X.panneau = 'suivi'; sallePanneauRendre(A, true);
+        try { X.suiviDonnees = await source.suiviPiece(el.dataset.s); } catch (e) { X.suiviPanne = phrase(e, 'Le suivi n\'a pas pu être lu.'); }
+        if (!perime(A) && sx(A).panneau === 'suivi') sallePanneauRendre(A, true);
+        return;
+      case 'suivi-retour': X.panneau = 'discussion'; X.suiviPiece = null; X.suiviDonnees = null; sallePanneauRendre(A, true); salleDiscussionCharger(A, true); return;
       case 'voir-participants': salleOuvrirPanneau(A, 'participants', $('salle-participants')); return;
       case 'micro-ok': X.bandeauMic = null; salleBandeaux(A); return;
       case 'micro-rouvrir': X.bandeauMic = null; if (A.audio) { A.micro = true; A.audio.enabled = true; pousserPistes(A); } rendreAppel(); annonceAppel('Micro activé'); return;
@@ -4784,6 +4881,15 @@
   $('salle-main').addEventListener('click', async () => { const A = etat.appelUI; if (!enSalle(A)) return; const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } });
   $('salle-vue').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A)) return; const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); });
   $('salle-rec-btn').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A) || $('salle-rec-btn').getAttribute('aria-disabled') === 'true') return; if (A.rec) recArreter(A, true); else recDemarrer(A); });
+  /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
+  $('salle-doc').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    const A = etat.appelUI; if (!enSalle(A) || !A.snap.conv || !f) return;
+    if (!(f.size > 0)) { mot('Ce fichier est vide : il n\'a pas été envoyé.'); return; }
+    mot('Envoi de « ' + (f.name || 'fichier') + ' »…');
+    if (await envoi({ fichier: { blob: f, nom: f.name || 'fichier', taille: f.size } }, A.snap.conv)) { if (!perime(A)) { mot('Document envoyé'); salleDiscussionCharger(A, false); } }
+    else if (!perime(A)) mot('Le document n\'a pas pu être envoyé.');
+  });
   $('salle-panneau-corps').addEventListener('submit', async e => {
     if (e.target.id !== 'salle-saisie-form') return;
     e.preventDefault();

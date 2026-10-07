@@ -556,6 +556,19 @@ const MIGRATIONS = [
     `ALTER TABLE contact ADD COLUMN favori INTEGER NOT NULL DEFAULT 0`,
     `PRAGMA user_version = 14`,
   ] },
+  /* ── 15 (7 octobre 2026) : LE SUIVI D'UN DOCUMENT — qui l'a ouvert ou téléchargé, et quand (« savoir qui a reçu, qui a téléchargé le document : très important pour les patrons »).
+     Une ligne par pièce ET par personne qui l'a lue (pas son auteur) : la première fois, la dernière, combien de fois (une par minute au plus). Elle part avec la pièce (CASCADE) et avec
+     le COMPTE (`compteEffacer` : la ligne `personne` est anonymisée, pas supprimée — le CASCADE ne joue pas, l'effacement est écrit). Seul l'auteur de la pièce la lit (`pieceSuivi`), et
+     seulement pour les gens qui voient le message ; la page d'un fichier reçu dit que son expéditeur voit le téléchargement. ── */
+  { v: 15, sql: [
+    `CREATE TABLE IF NOT EXISTS piece_acces(
+       piece TEXT NOT NULL REFERENCES piece(id) ON DELETE CASCADE,
+       uid TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
+       premier INTEGER NOT NULL, dernier INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 1,
+       PRIMARY KEY(piece, uid))`,
+    `CREATE INDEX IF NOT EXISTS piece_acces_uid ON piece_acces(uid)`,
+    `PRAGMA user_version = 15`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -636,6 +649,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const IDENT = versionActuelle() >= 11;
   /* le favori de l'onglet Contacts (migration 14) : une base ouverte à un schéma plus ancien (un banc de migration) n'a pas la colonne — on ne la lit pas, et poser un favori n'y fait rien */
   const FAVORI = versionActuelle() >= 14;
+  const SUIVI = versionActuelle() >= 15;          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
@@ -1611,6 +1625,55 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (Q('SELECT 1 AS x FROM msg_masque WHERE conv = ? AND seq = ? AND uid = ?').get(r.conv, r.attachee, uid)) return null;
     return rang();
   }
+  /* « REÇU » : la liste des conversations est arrivée sur un appareil de la personne — tout ce qu'elle annonçait (jusqu'au dernier message de chaque conversation) est donc arrivé
+     chez elle, comme les deux coches grises. Une écriture par relecture de la liste, seulement là où quelque chose a bougé. */
+  function membreRecuTout(uid) {
+    Q(`UPDATE membre SET recu_seq = (SELECT c.dernier_seq FROM conversation c WHERE c.id = membre.conv)
+       WHERE uid = ? AND quitte_le IS NULL AND recu_seq < (SELECT c.dernier_seq FROM conversation c WHERE c.id = membre.conv)`).run(uid);
+  }
+  /* ── LE SUIVI D'UN DOCUMENT (migration 15) ── noter une lecture : une pièce de conversation lue par quelqu'un d'autre que son auteur (la route l'a déjà jugée visible). */
+  /* ⛔ DÉDOUBLONNÉ À LA MINUTE (relecture du gardien, C1-C2) : toute lecture compte — une plage qui ne part pas du début aussi (sinon `Range: bytes=1-` téléchargeait sans être vu) —,
+     mais une rafale de plages (un lecteur, un gestionnaire de téléchargement, une boucle) n'en fait qu'une, et n'écrit rien : la base n'écrit qu'une fois par minute et par lecteur. */
+  const SUIVI_FENETRE_MS = 60000;
+  function pieceAccesNoter(piece, uid) {
+    if (!SUIVI) return;
+    const t = horloge();
+    Q(`INSERT INTO piece_acces(piece, uid, premier, dernier, n) VALUES(?, ?, ?, ?, 1)
+       ON CONFLICT(piece, uid) DO UPDATE SET dernier = excluded.dernier, n = n + 1 WHERE excluded.dernier - dernier > ?`).run(piece, uid, t, t, SUIVI_FENETRE_MS);
+  }
+  /* Qui a reçu, lu, ouvert (une photo, un vocal) ou téléchargé (un fichier) MA pièce — l'AUTEUR seul, sinon null (le même 404 qu'une pièce qui n'existe pas).
+     Les gens : les membres d'aujourd'hui qui VOIENT le message (arrivés avant lui, pas masqué pour eux). « Reçu » est toujours dit (l'arrivée sur l'appareil, comme les deux coches
+     grises) ; « lu » et l'ouverture d'une photo ou d'un vocal suivent la règle des confirmations de lecture (réciproque : qui les coupe ne les donne ni ne les voit) ;
+     ⛔ le TÉLÉCHARGEMENT d'un fichier est toujours dit à son auteur — c'est le fichier qu'il a envoyé (comme un service de transfert de fichiers), et la page de confidentialité le dit. */
+  /* l'export « Mes données » : les documents que J'ai ouverts ou téléchargés (ce que leurs auteurs voient de moi) */
+  const exportPiecesOuvertes = (uid) => SUIVI ? Q('SELECT piece, premier, dernier, n FROM piece_acces WHERE uid = ? ORDER BY premier LIMIT 10000').all(uid).map(r => ({ piece: r.piece, premier: num(r.premier), dernier: num(r.dernier), n: num(r.n) })) : [];
+  function pieceSuivi(id, viewer) {
+    const p = Q('SELECT id, proprio, conv, genre, attachee FROM piece WHERE id = ?').get(id);
+    if (!p || p.proprio !== viewer || !p.conv || p.genre === 'avatar' || p.attachee === null) return null;
+    const msg = Q('SELECT supprime_le, expire_ts FROM message WHERE conv = ? AND seq = ?').get(p.conv, p.attachee);
+    if (!msg || msg.supprime_le || (msg.expire_ts !== null && msg.expire_ts <= horloge())) return null;
+    /* ⛔ L'AUTEUR DOIT ENCORE VOIR SON MESSAGE (relecture du gardien, B1) : parti du groupe, retiré, ou l'ayant masqué pour lui, il ne suit plus rien — sinon un salarié parti gardait
+       la liste des membres d'aujourd'hui et leurs téléchargements datés. Les MÊMES règles que `pieceVisible`. */
+    const mien = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(p.conv, viewer);
+    if (!mien || p.attachee < mien.depuis_seq) return null;
+    if (Q('SELECT 1 AS x FROM msg_masque WHERE conv = ? AND seq = ? AND uid = ?').get(p.conv, p.attachee, viewer)) return null;
+    const jeVois = accuses((personneParId(viewer) || {}).prefs);
+    const lignes = Q(`SELECT m.uid AS id, x.prenom, x.nom, x.avatar_piece, x.prefs, m.recu_seq, m.lu_seq FROM membre m JOIN personne x ON x.id = m.uid
+                      WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ? AND m.depuis_seq <= ?
+                        AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = m.conv AND k.seq = ? AND k.uid = m.uid)
+                      ORDER BY x.prenom, x.nom, x.id`).all(p.conv, viewer, p.attachee, p.attachee);
+    const acces = new Map(SUIVI ? Q('SELECT uid, premier, dernier, n FROM piece_acces WHERE piece = ?').all(id).map(a => [a.uid, a]) : []);
+    const fichier = p.genre === 'fichier';
+    const membres = lignes.map(r => {
+      let pr = {}; try { pr = JSON.parse(r.prefs) || {}; } catch (e) { pr = {}; }
+      const ilDit = jeVois && accuses(pr), a = acces.get(r.id) || null;
+      const voitOuverture = fichier || ilDit;
+      return { id: r.id, prenom: r.prenom, nom: r.nom, avatar: avatarPour(viewer, r.id, r.avatar_piece), recu: num(r.recu_seq) >= p.attachee || num(r.lu_seq) >= p.attachee || !!a,
+        lu: ilDit ? num(r.lu_seq) >= p.attachee : null,
+        ouvert: voitOuverture ? (a ? { premier: num(a.premier), dernier: num(a.dernier), n: num(a.n) } : false) : null };
+    });
+    return { piece: id, genre: p.genre, suivi: SUIVI, membres };
+  }
   /* Poser (identifiant) ou retirer (null) MA photo de profil. La pièce doit être À MOI, de genre « avatar », jamais posée (ni chez une personne ni chez un groupe),
      non échue — sinon `piece_inconnue`. L'ancienne photo est effacée (la ligne ici, le fichier par l'appelant). → { pieces: [identifiants à effacer] } */
   function avatarPersonnePoser(uid, piece) {
@@ -2315,6 +2378,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM lien WHERE par = ?').run(uid);
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
       Q('DELETE FROM msg_masque WHERE uid = ?').run(uid);
+      /* le suivi des documents (migration 15) : ce que J'ai ouvert, et ce qu'on a ouvert de MES pièces — la ligne `personne` reste (anonymisée), le CASCADE ne joue pas */
+      if (SUIVI) { Q('DELETE FROM piece_acces WHERE uid = ?').run(uid); Q('DELETE FROM piece_acces WHERE piece IN (SELECT id FROM piece WHERE proprio = ?)').run(uid); }
       Q('DELETE FROM journal WHERE uid = ?').run(uid);
       Q('UPDATE membre SET muet_jusqua = 0, epingle = 0, archive = 0 WHERE uid = ?').run(uid);
       /* LA définition d'un compte effacé : plus d'identité (le numéro se libère), plus de nom, plus de mot de passe, plus de réglage — l'identifiant seul demeure, pour que « l'auteur » d'un message
@@ -3935,6 +4000,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         courrier_envoi: non(() => Q('SELECT 1 FROM courrier_envoi LIMIT 1')),
         appel: non(() => Q('SELECT 1 FROM appel LIMIT 1')),
         appel_part: non(() => Q('SELECT 1 FROM appel_part LIMIT 1')),
+        piece_acces: non(() => Q('SELECT 1 FROM piece_acces LIMIT 1')),
       },
     };
   }
@@ -3985,7 +4051,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
-    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
+    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
@@ -4002,7 +4068,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -4048,6 +4114,7 @@ function lignesDe(d) {
     courrier_envoi: n(() => d.prepare('SELECT COUNT(*) AS n FROM courrier_envoi')),
     appel: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel')),
     appel_part: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel_part')),
+    piece_acces: n(() => d.prepare('SELECT COUNT(*) AS n FROM piece_acces')),
   };
 }
 
