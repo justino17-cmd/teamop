@@ -51,10 +51,13 @@ function serveur(traiter) {
     const u = req.url.slice(base.length);
     if (req.method === 'POST' && u === '/actions/workflows/deploiement-messages.yml/dispatches') {
       if (G.refusLancer) return { code: G.refusLancer, j: { message: 'Resource not accessible by personal access token' } };
-      G.run = { id: 4242 + G.demandes.length, created_at: new Date().toISOString(), html_url: 'https://github.example/run/' + (4242 + G.demandes.length), etapes: G.deroule.slice() };
+      const id = 4242 + G.demandes.length;
+      G.run = { id, created_at: new Date().toISOString(), html_url: 'https://github.com/org-banc/depot-banc/actions/runs/' + id, display_title: 'Publier ' + j.inputs.cible + ' ' + j.inputs.sha, etapes: G.deroule.slice() };
       return { code: 204 };
     }
-    if (req.method === 'GET' && u.startsWith('/actions/workflows/deploiement-messages.yml/runs')) return { code: 200, j: { workflow_runs: G.run ? [{ id: G.run.id, created_at: G.run.created_at, html_url: G.run.html_url }] : [] } };
+    /* ⛔ un LEURRE, listé d'abord et plus récent : un autre lancement du même workflow (une bêta lancée à la main) — le serveur ne doit jamais l'adopter */
+    if (req.method === 'GET' && u.startsWith('/actions/workflows/deploiement-messages.yml/runs')) return { code: 200, j: { workflow_runs: G.run ? [{ id: 9999, created_at: new Date().toISOString(), html_url: 'https://github.com/org-banc/depot-banc/actions/runs/9999', display_title: 'Publier beta ' }, { id: G.run.id, created_at: G.run.created_at, html_url: G.run.html_url, display_title: G.run.display_title }] : [] } };
+    if (req.method === 'GET' && u === '/actions/runs/9999') { G.leurre = (G.leurre || 0) + 1; return { code: 200, j: { id: 9999, status: 'waiting' } }; }
     if (G.run && req.method === 'GET' && u === '/actions/runs/' + G.run.id) {
       const e = G.run.etapes.length > 1 ? G.run.etapes.shift() : G.run.etapes[0];
       return { code: 200, j: { id: G.run.id, html_url: G.run.html_url, status: e[0], conclusion: e[1] || null } };
@@ -93,7 +96,7 @@ function serveur(traiter) {
   try {
     const H = { Authorization: 'Bearer ' + (await json(og.base, 'POST', '/api/monitor/login', { nom: 'Justin', pass: MDP_TOUR })).j.token };
     const Hs = { Authorization: 'Bearer ' + (await json(ogSans.base, 'POST', '/api/monitor/login', { nom: 'Justin', pass: MDP_TOUR })).j.token };
-    const publier = (h, base) => json(base || og.base, 'POST', '/api/monitor/messages/publier', {}, h);
+    const publier = (h, base, sha) => json(base || og.base, 'POST', '/api/monitor/messages/publier', { sha: sha === undefined ? SHA_BETA.slice(0, 7) : sha }, h);      // la Tour envoie le commit qu'elle AFFICHE
     const versions = async () => (await json(og.base, 'GET', '/api/monitor/messages/versions', undefined, H)).j;
 
     console.log('\n1. Qui publie, et avec quoi');
@@ -115,10 +118,18 @@ function serveur(traiter) {
     r = await publier(H);
     vrai('un jeton sans le droit de lancer un workflow : 502 et la phrase qui dit quoi ajouter (« Actions : lecture et écriture »)', r.code === 502 && /Actions : lecture et écriture/.test(r.j.error));
     G.refusLancer = 0; G.demandes = [];
+    r = await publier(H, undefined, null);
+    v('⛔ sans le commit affiché : 400, rien ne part', [r.code, G.demandes.length], [400, 0]);
+    r = await publier(H, undefined, 'deadbee');
+    v('⛔ la bêta a changé depuis l\'affichage (le commit vu n\'est pas celui qu\'elle sert) : 409, la phrase dit lequel elle sert, rien ne part', [r.code, r.j.error.includes(SHA_BETA.slice(0, 7)), G.demandes.length], [409, true, 0]);
+    v('…et un refus ne laisse pas l\'état « lancé » derrière lui', (await versions()).publication, null);
 
     console.log('\n3. Le lancement, les bancs, l\'approbation, la mise en ligne');
     G.deroule = [['queued'], ['in_progress'], ['in_progress'], ['waiting']];
-    r = await publier(H);
+    /* ⛔ deux clics dans la même seconde : UN lancement (relecture du gardien) */
+    const [r1, r2] = await Promise.all([publier(H), publier(H)]);
+    v('⛔ deux clics simultanés : un 200 et un 409, UN seul lancement chez GitHub', [[r1.code, r2.code].sort(), G.demandes.filter(d => d.m === 'POST' && /dispatches$/.test(d.u)).length], [[200, 409], 1]);
+    r = r1.code === 200 ? r1 : r2;
     v('Justin publie : 200, état « lancé », le commit de la bêta', [r.code, r.j.publication.etat, r.j.publication.sha, r.j.publication.par], [200, 'lance', SHA_BETA.slice(0, 7), 'Justin']);
     const lancement = G.demandes.find(d => d.m === 'POST' && /dispatches$/.test(d.u));
     v('la demande à GitHub : la route du workflow, le jeton du serveur, `main`, la production, CE commit', [!!lancement, lancement && lancement.auth, lancement && lancement.j], [true, 'Bearer jeton-du-banc-851', { ref: 'main', inputs: { cible: 'prod', sha: SHA_BETA, retour: 'false' } }]);
@@ -126,6 +137,7 @@ function serveur(traiter) {
     vrai('pendant les bancs : « tests », avec le lien du déploiement', !!(await T.attendre(async () => { const p = (await versions()).publication; return p && p.etat === 'tests' && /run\//.test(p.url); }, 8000, 50)));
     vrai('les bancs passés, le job attend msg-prod : approuvé au nom de Justin, puis EN LIGNE', !!(await T.attendre(async () => (await versions()).publication.etat === 'en_ligne', 10000, 50)));
     v('⛔ une seule approbation, pour l\'environnement msg-prod (77), « approved », au nom de Justin', [G.approbations.length, G.approbations[0] && G.approbations[0].environment_ids, G.approbations[0] && G.approbations[0].state, /Justin/.test(G.approbations[0] && G.approbations[0].comment || '')], [1, [77], 'approved', true]);
+    v('⛔ le leurre (un autre lancement du même workflow, plus récent, listé d\'abord) n\'a jamais été suivi ni approuvé', [G.leurre || 0, G.demandes.some(d => /\/actions\/runs\/9999/.test(d.u))], [0, false]);
 
     console.log('\n3 bis. La carte de la Tour : la VRAIE fonction de tour.html, la VRAIE réponse du serveur');
     const carte = (rep, role) => {
@@ -139,7 +151,7 @@ function serveur(traiter) {
     };
     let h = carte(await versions(), 'patron');
     vrai('population : la carte se dessine (« PUBLIER OP MESSAGES »)', /PUBLIER OP MESSAGES/.test(h));
-    v('elle dit « En ligne », qui a publié, le lien du déploiement, le commit, et le rappel d\'« Exiger »', [/>En ligne</.test(h), /Justin/.test(h), /href="https:\/\/github\.example\/run\/\d+"/.test(h), h.includes(SHA_BETA.slice(0, 7)), /Exiger la dernière version/.test(h)], [true, true, true, true, true]);
+    v('elle dit « En ligne », qui a publié, le lien du déploiement, le commit, et le rappel d\'« Exiger »', [/>En ligne</.test(h), /Justin/.test(h), /href="https:\/\/github\.com\/org-banc\/depot-banc\/actions\/runs\/\d+"/.test(h), h.includes(SHA_BETA.slice(0, 7)), /Exiger la dernière version/.test(h)], [true, true, true, true, true]);
     inst.prod.sha = SHA_PROD;
     h = carte(await versions(), 'patron');
     v('une bêta en avance sur la publique : le bouton « Publier la bêta (v68) en public », actif', [/Publier la bêta \(v68\) en public/.test(h), /publierMsg\(this\)"\s*disabled/.test(h)], [true, false]);

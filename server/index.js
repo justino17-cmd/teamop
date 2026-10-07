@@ -7268,6 +7268,8 @@ const MSG_PUB_DUREE = 60 * 60000;     // on suit une publication une heure au pl
 const msgPub = { run: 0, sha: '', par: '', ts: 0, etat: '', message: '', url: '', approuve: 0, suivi: null };
 const msgPubVue = () => (msgPub.etat ? { etat: msgPub.etat, sha: msgPub.sha.slice(0, 7), par: msgPub.par, ts: msgPub.ts, url: msgPub.url, message: msgPub.message } : null);
 const msgPubFini = () => ['en_ligne', 'echec', 'annule', 'perdu'].includes(msgPub.etat);
+/* le lien d'un déploiement n'est gardé que s'il mène chez GitHub (la Tour le met dans un `href`) */
+const msgUrlGh = (u) => typeof u === 'string' && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/actions\/runs\/\d+$/.test(u) ? u : '';
 /* le commit que sert une instance (`/health` → `sha`), complet (40 hexadécimaux) ou '' : ce qu'on ne sait pas lire, on ne le publie pas */
 async function msgInstanceSha(c) {
   try {
@@ -7288,13 +7290,16 @@ function msgPubSuivre() {
     const ts = msgPub.ts;
     try {
       if (!msgPub.run) {
-        const l = await gh('/actions/workflows/' + MSG_FLUX + '/runs?event=workflow_dispatch&branch=main&per_page=10');
-        const r = ((l && l.workflow_runs) || []).filter(x => Date.parse(x.created_at) >= ts - 60000).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))[0];
-        if (r && Number.isInteger(r.id)) { msgPub.run = r.id; msgPub.url = typeof r.html_url === 'string' ? r.html_url : ''; }
+        /* ⛔ LE RUN ADOPTÉ EST CELUI DE CE LANCEMENT (relecture du gardien, 7 octobre 2026) : son nom (`run-name` du workflow) porte la cible et le commit. Un autre lancement du même
+           workflow — une bêta, une production lancée à la main dans GitHub — ne porte pas ce nom : il n'est jamais adopté, donc jamais approuvé au nom du patron. */
+        const nom = 'Publier prod ' + msgPub.sha;
+        const l = await gh('/actions/workflows/' + MSG_FLUX + '/runs?event=workflow_dispatch&branch=main&per_page=20');
+        const r = ((l && l.workflow_runs) || []).filter(x => x && x.display_title === nom && Date.parse(x.created_at) >= ts - 60000).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))[0];
+        if (r && Number.isInteger(r.id)) { msgPub.run = r.id; msgPub.url = msgUrlGh(r.html_url); }
       }
       if (msgPub.run) {
         const r = await gh('/actions/runs/' + msgPub.run);
-        if (r && typeof r.html_url === 'string') msgPub.url = r.html_url;
+        if (r && msgUrlGh(r.html_url)) msgPub.url = r.html_url;
         if (r && r.status === 'completed') msgPub.etat = r.conclusion === 'success' ? 'en_ligne' : r.conclusion === 'cancelled' ? 'annule' : 'echec';
         else if (r && r.status === 'waiting') {
           const attente = await gh('/actions/runs/' + msgPub.run + '/pending_deployments');
@@ -7316,14 +7321,22 @@ function msgPubSuivre() {
 app.post('/api/monitor/messages/publier', monPatronStrict, async (req, res) => {
   if (!ghActif()) return res.status(503).json({ error: 'Le serveur n’a pas de jeton GitHub (config.json → github.token et github.depot) : la publication se lance à la main, dans GitHub.' });
   if (msgPub.etat && !msgPubFini() && Date.now() - msgPub.ts < MSG_PUB_DUREE) return res.status(409).json({ error: 'Une publication est déjà en cours.', publication: msgPubVue() });
-  const [sb, sp] = await Promise.all([msgInstanceSha('beta'), msgInstanceSha('prod')]);
-  if (!sb) return res.status(409).json({ error: 'La bêta ne dit pas quel commit elle sert (injoignable, ou d’avant ce réglage) : rien n’a été lancé.' });
-  if (sp === sb) return res.status(409).json({ error: 'La version publique sert déjà le même commit que la bêta : rien à publier.' });
-  const t0 = Date.now();
-  try { await gh('/actions/workflows/' + MSG_FLUX + '/dispatches', { method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { cible: 'prod', sha: sb, retour: 'false' } }) }); }
-  catch (e) { return res.status(502).json({ error: ghPhrase(e) }); }
+  /* ⛔ ON PUBLIE CE QUE LE PATRON A VU (relecture du gardien) : la Tour envoie le commit qu'elle affichait ; la bêta a pu se redéployer entre l'affichage et le clic */
+  const vu = typeof (req.body || {}).sha === 'string' ? req.body.sha : '';
+  if (!/^[0-9a-f]{7,40}$/.test(vu)) return res.status(400).json({ error: 'Le commit affiché manque : recharge la carte de la Tour, puis publie de nouveau.' });
+  /* ⛔ L'ÉTAT SE POSE AVANT LA PREMIÈRE ATTENTE (relecture du gardien) : deux clics dans la même seconde passaient tous les deux le garde ci-dessus et lançaient DEUX déploiements.
+     Un refus rend l'état d'avant. */
+  const avant = Object.assign({}, msgPub), t0 = Date.now();
   clearTimeout(msgPub.suivi);
-  Object.assign(msgPub, { run: 0, sha: sb, par: req.tourUser.nom, ts: t0, etat: 'lance', message: '', url: '', approuve: 0, suivi: null });
+  Object.assign(msgPub, { run: 0, sha: '', par: req.tourUser.nom, ts: t0, etat: 'lance', message: '', url: '', approuve: 0, suivi: null });
+  const rendre = (code, error) => { Object.assign(msgPub, avant, { suivi: null }); return res.status(code).json({ error }); };
+  const [sb, sp] = await Promise.all([msgInstanceSha('beta'), msgInstanceSha('prod')]);
+  if (!sb) return rendre(409, 'La bêta ne dit pas quel commit elle sert (injoignable, ou d’avant ce réglage) : rien n’a été lancé.');
+  if (sp === sb) return rendre(409, 'La version publique sert déjà le même commit que la bêta : rien à publier.');
+  if (!sb.startsWith(vu)) return rendre(409, 'La bêta a changé depuis l’affichage (elle sert maintenant ' + sb.slice(0, 7) + ') : recharge la carte, vérifie, puis publie de nouveau.');
+  try { await gh('/actions/workflows/' + MSG_FLUX + '/dispatches', { method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { cible: 'prod', sha: sb, retour: 'false' } }) }); }
+  catch (e) { return rendre(502, ghPhrase(e)); }
+  msgPub.sha = sb;
   console.log('Tour :', req.tourUser.nom, 'publie OP MESSAGES', sb.slice(0, 7));
   msgPubSuivre();
   res.json({ ok: true, publication: msgPubVue() });

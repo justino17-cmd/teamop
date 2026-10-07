@@ -6264,7 +6264,7 @@ function publierMsg(btn){
   var b=((MV.d||{}).beta||{}).service||{};
   if(!confirm('Publier la bêta d’OP MESSAGES (v'+(b.version||'?')+', '+(b.sha||'?')+') en version publique ?\n\nLes bancs repassent d’abord : si l’un tombe, rien n’est mis en ligne. Compte une dizaine de minutes.')) return;
   btn.disabled=true; btn.textContent='Lancement…';
-  apiPost('/api/monitor/messages/publier',{}).then(function(x){
+  apiPost('/api/monitor/messages/publier',{sha:b.sha||''}).then(function(x){      // ⛔ le commit AFFICHÉ : si la bêta a changé depuis, le serveur refuse (409) au lieu de publier autre chose
     if(!(x&&x.ok)) toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); else toast('Publication lancée');
     MV.d=null; chargerVersionsMsg(); })
   .catch(function(){ toast('Serveur injoignable'); btn.disabled=false; btn.textContent='Publier la bêta en public'; });

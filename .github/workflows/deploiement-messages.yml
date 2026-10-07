@@ -17,6 +17,9 @@
 # Settings → Environments → msg-prod : ce fichier ne peut pas le poser, et sans lui la protection
 # n'existe pas (le mode d'emploi le fait faire).
 name: Déploiement d'OP MESSAGES
+# ⛔ le NOM d'un lancement à la main porte sa cible et son commit : le serveur d'OP GESTION (« Publier » dans la Tour) n'adopte — donc n'approuve — que le run qui porte
+# « Publier prod <le commit qu'il a lancé> ». Un push garde le nom par défaut (le message du commit).
+run-name: ${{ github.event_name == 'workflow_dispatch' && format('Publier {0} {1}', inputs.cible, inputs.sha) || github.event.head_commit.message }}
 
 on:
   push:
