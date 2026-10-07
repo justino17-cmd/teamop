@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '24da672f5c01';
+  const OPMSG_BUILD = '6ec10e7cc770';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 86;
+  const OPMSG_VERSION = 88;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4420,10 +4420,11 @@
     etat.groupe.theme = t;                // ⛔ la feuille garde SON état : deux touches rapides (un fond, puis une couleur) ne partent pas d'une liste pas encore relue
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="theme-apercu" id="theme-apercu" data-fond="' + esc(t.fond) + '" data-bulle="' + esc(t.bulle) + '" aria-hidden="true"><span class="bulle recue">On se voit demain ?</span><span class="bulle envoyee">Oui, à 9 h au dépôt.</span></div>' +
-      '<div class="rubrique"><span>Fond</span></div><div class="theme-grille" role="radiogroup" aria-label="Fond de la conversation">' +
-        FONDS_CONV.map(f => '<button type="button" class="theme-fond presse" role="radio" data-fond="' + f[0] + '" aria-checked="' + (f[0] === t.fond ? 'true' : 'false') + '"><span class="theme-vignette" aria-hidden="true"></span><span>' + esc(f[1]) + '</span></button>').join('') + '</div>' +
-      '<div class="rubrique"><span>Mes bulles</span></div><div class="theme-couleurs" role="radiogroup" aria-label="Couleur de mes bulles">' +
-        BULLES_CONV.map(b => '<button type="button" class="theme-pastille presse" role="radio" data-bulle="' + b[0] + '" aria-checked="' + (b[0] === t.bulle ? 'true' : 'false') + '"><span class="theme-rond" aria-hidden="true">' + icone('i-coche') + '</span><span>' + esc(b[1]) + '</span></button>').join('') + '</div>' +
+      '<div class="rubrique"><span>Fond</span></div><div class="theme-carte"><div class="theme-grille" role="radiogroup" aria-label="Fond de la conversation">' +
+        FONDS_CONV.map(f => '<button type="button" class="theme-fond presse" role="radio" data-fond="' + f[0] + '" aria-checked="' + (f[0] === t.fond ? 'true' : 'false') + '"><span class="theme-vignette" aria-hidden="true"><span class="theme-coche">' + icone('i-coche') + '</span></span><span>' + esc(f[1]) + '</span></button>').join('') + '</div></div>' +
+      '<div class="rubrique"><span>Mes bulles</span></div><div class="theme-carte"><div class="theme-couleurs" role="radiogroup" aria-label="Couleur de mes bulles">' +
+        BULLES_CONV.map(b => '<button type="button" class="theme-pastille presse" role="radio" data-bulle="' + b[0] + '" aria-checked="' + (b[0] === t.bulle ? 'true' : 'false') + '" aria-label="' + esc(b[1]) + '" title="' + esc(b[1]) + '"><span class="theme-rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('') + '</div>' +
+        '<p class="theme-nom" id="theme-bulle-nom" aria-hidden="true">' + esc((BULLES_CONV.find(b => b[0] === t.bulle) || BULLES_CONV[0])[1]) + '</p></div>' +
       '<p class="info-note">Ce choix n\'est que pour toi : les autres membres gardent leurs couleurs. Il suit ton compte sur tous tes appareils.</p>';
   }
   async function choisirTheme(champ, valeur) {
@@ -4434,6 +4435,7 @@
     const avant = { fond: $('conv-ecran').dataset.fond, bulle: $('conv-ecran').dataset.bulle };
     poser(t);                             // l'écran de la conversation, sous la feuille, change AVEC l'aperçu (il n'est pas redessiné tant que la feuille est ouverte)
     document.querySelectorAll('#info-corps [data-' + champ + ']').forEach(b => b.setAttribute('aria-checked', b.dataset[champ] === valeur ? 'true' : 'false'));
+    if (champ === 'bulle' && $('theme-bulle-nom')) $('theme-bulle-nom').textContent = (BULLES_CONV.find(b => b[0] === valeur) || BULLES_CONV[0])[1];       // le nom de la couleur choisie, sous la rangée
     erreurInfo('');
     try { await source.themeConv(id, t); }
     catch (x) { poser(avant); if (etat.groupe.ouvert && etat.groupe.mode === 'theme' && etat.groupe.convId === id) { rendreTheme(); erreurInfo(phrase(x, 'Le thème n\'a pas pu être enregistré.')); } }
