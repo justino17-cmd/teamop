@@ -89,6 +89,8 @@ const JOUR = 86400000;
     r = await maj(a, { mode: 'perso', confirmer_envoi: 'groupes' });
     v('Perso, et la confirmation avant d\'envoyer « groupes » : acceptés ensemble', [r.code, r.j.moi.prefs.mode, r.j.moi.prefs.confirmer_envoi], [200, 'perso', 'groupes']);
     v('les trois valeurs de confirmer_envoi passent', [(await maj(a, { confirmer_envoi: 'jamais' })).code, (await maj(a, { confirmer_envoi: 'partout' })).code, (await maj(a, { confirmer_envoi: 'groupes' })).code], [200, 200, 200]);
+    /* l'Agenda au mois (8 octobre 2026) : la vue retenue par le compte, deux valeurs et rien d'autre */
+    v('agenda_vue : « mois » et « semaine » passent, et le compte les rend ; « annee » est refusée (400)', [(await maj(a, { agenda_vue: 'mois' })).j.moi.prefs.agenda_vue, (await maj(a, { agenda_vue: 'semaine' })).j.moi.prefs.agenda_vue, await refusMoi({ agenda_vue: 'annee' })], ['mois', 'semaine', [400, 'champ_invalide']]);
     const fiche = await d.get('/api/personnes/' + ana.id);
     v('⛔ la fiche d\'Ana vue par Dan (un collègue) ne dit rien de ses préférences', [fiche.code, 'prefs' in (fiche.j.personne || {}), JSON.stringify(fiche.j).includes('groupes')], [200, false, false]);
 

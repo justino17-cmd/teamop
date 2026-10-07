@@ -2927,6 +2927,14 @@
       moiApi = r; noter(r);
       return confirmerEnvoi();
     }
+    /* l'Agenda s'ouvre sur la semaine ou sur le MOIS (8 octobre 2026 : « le calendrier du mois complet pour voir tous ses rendez-vous ») — le dernier choix, retenu par le compte */
+    const agendaVue = () => moiApi && moiApi.prefs && moiApi.prefs.agenda_vue === 'mois' ? 'mois' : 'semaine';
+    async function choisirAgendaVue(v) {
+      if (v !== 'semaine' && v !== 'mois') throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { agenda_vue: v } });
+      moiApi = r; noter(r);
+      return agendaVue();
+    }
     async function rangerCote(id, cote) {
       if (cote !== null && cote !== 'perso' && cote !== 'pro') throw erreurLocale('invalide');
       await A.prefs(id, { cote });
@@ -3283,7 +3291,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
-      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi,                                                                            // Perso / Pro
+      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,

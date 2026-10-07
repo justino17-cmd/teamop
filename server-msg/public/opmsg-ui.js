@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '70555a9739b1';
+  const OPMSG_BUILD = '915d2e1f36b8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 104;
+  const OPMSG_VERSION = 105;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4054,7 +4054,7 @@
     return l.filter(x => Number.isFinite(x[2]) && x[2] > t0).map(x => ({ cle: x[0], nom: x[1], t: Math.ceil(x[2] / 60000) * 60000, tz }));
   }
   function rappelMenu() {
-    const h = rappelChoix().map(x => '<button type="button" class="menu-action" data-menu="rappel-choix" data-quand="' + x.cle + '"><span>' + esc(x.nom) + '</span><small>' + esc(heureDans(x.t, x.tz)) + '</small></button>').join('');
+    const h = rappelChoix().map(x => '<button type="button" class="menu-action" data-menu="rappel-choix" data-quand="' + x.cle + '" aria-label="' + esc(x.nom + ', à ' + heureDans(x.t, x.tz)) + '"><span>' + esc(x.nom) + '</span><small>' + esc(heureDans(x.t, x.tz)) + '</small></button>').join('');
     $('menu-msg').innerHTML = '<p class="menu-question">Me le rappeler</p>' + h + '<button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
     $('menu-msg').querySelector('button').focus({ preventScroll: true });
   }
@@ -4300,6 +4300,7 @@
   const PHRASE_REUNION_PERDUE = 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.';
   const reu = {
     semaine: 0, jour: 0,                 // le lundi (minuit, heure de l'appareil) de la semaine affichée, et le jour choisi (minuit)
+    vue: 'semaine', mois: 0,             // la semaine ou le MOIS (le premier du mois, minuit) — le choix est retenu par le compte (`source.agendaVue`)
     liste: [], charge: false, panne: null, jeton: 0,
     evenements: [],                      // l'agenda personnel de la semaine (capacité `agenda`)
     fiche: null,                         // { id, donnees, jeton, confirme: null | 'annuler' | 'supprimer', courriel: null | {ouvert, serie}, prevenir, occurrence }
@@ -4319,6 +4320,16 @@
   const minuitDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const plusJours = (t, n) => { const d = new Date(t); d.setDate(d.getDate() + n); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const lundiDe = t => plusJours(minuitDe(t), -((new Date(t).getDay() + 6) % 7));
+  const premierDuMois = t => { const d = new Date(t); d.setDate(1); d.setHours(0, 0, 0, 0); return d.getTime(); };
+  const plusMois = (t, n) => { const d = new Date(premierDuMois(t)); d.setMonth(d.getMonth() + n); return d.getTime(); };
+  const FMT_MOIS_AN = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' });
+  const vueMois = () => reu.vue === 'mois';
+  /* la fenêtre affichée : la semaine, ou les semaines entières qui couvrent le mois (du lundi de la première au lundi qui suit la dernière : 4 à 6 semaines, 42 jours au plus) */
+  function fenetreAgenda() {
+    if (!vueMois()) return [reu.semaine, plusJours(reu.semaine, 7)];
+    const fin = plusJours(plusMois(reu.mois, 1), -1);
+    return [lundiDe(reu.mois), plusJours(lundiDe(fin), 7)];
+  }
   const fuseauAppareil = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } };
   /* l'heure d'un instant dans UN fuseau (celui de la réunion) : de quoi dire « 14:00 à Paris » quand l'appareil est ailleurs */
   function heureDans(t, tz) { try { return new Intl.DateTimeFormat('fr-FR', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(t); } catch (e) { return ''; } }
@@ -4390,22 +4401,28 @@
       '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
         '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
       pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
-      '<div class="sem-nav" role="group" aria-label="Semaine affichée">' +
+      '<div class="seg" id="reu-vue-seg" role="group" aria-label="Afficher"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-reu-vue="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-reu-vue="mois" aria-pressed="false">Mois</button></div>' +
+      '<div class="sem-nav" role="group" aria-label="Période affichée">' +
         '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
         '<button type="button" class="sem-titre presse" id="sem-titre" aria-label="Revenir à aujourd\'hui"></button>' +
         '<button type="button" class="sem-fleche suiv presse" id="sem-suiv" aria-label="Semaine suivante">' + CHEVRON + '</button>' +
       '</div>' +
       '<div class="sem-jours" id="sem-jours" role="group" aria-label="Jours de la semaine"></div>' +
+      '<div class="mois" id="mois" hidden><div class="mois-entete" aria-hidden="true">' + ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(j => '<span>' + j + '</span>').join('') + '</div>' +
+        '<div class="mois-jours" id="mois-jours" role="group" aria-label="Jours du mois"></div></div>' +
       '<p class="liste-erreur" id="reu-erreur" role="alert" hidden><span id="reu-erreur-texte"></span><button type="button" id="reu-erreur-bouton">Réessayer</button></p>' +
       '<div class="rubrique"><span id="reu-jour-titre"></span><span id="reu-jour-n"></span></div>' +
       '<ul class="carte-liste" id="liste-reunions" role="list" aria-label="Réunions du jour"></ul>';
     sec.dataset.pret = '1';
     const auj = minuitDe(Date.now());
-    reu.semaine = lundiDe(auj); reu.jour = auj;
+    reu.semaine = lundiDe(auj); reu.jour = auj; reu.mois = premierDuMois(auj);
+    reu.vue = typeof source.agendaVue === 'function' && source.agendaVue() === 'mois' ? 'mois' : 'semaine';
+    $('reu-vue-seg').addEventListener('click', e => { const b = e.target.closest('[data-reu-vue]'); if (b) changerVueAgenda(b.dataset.reuVue); });
+    $('mois-jours').addEventListener('click', e => { const b = e.target.closest('[data-jour]'); if (!b) return; const t = +b.dataset.jour; if (premierDuMois(t) !== reu.mois) allerAuJour(t); else { reu.jour = t; reu.semaine = lundiDe(t); rendreReunions(); } });
     $('btn-reunion-nouvelle').addEventListener('click', () => programmerReunion());
     if (CAP.agenda) $('btn-evenement-nouveau').addEventListener('click', () => { declencheur = $('btn-evenement-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' })); });
-    $('sem-prec').addEventListener('click', () => changerSemaine(-7));
-    $('sem-suiv').addEventListener('click', () => changerSemaine(7));
+    $('sem-prec').addEventListener('click', () => vueMois() ? changerMois(-1) : changerSemaine(-7));
+    $('sem-suiv').addEventListener('click', () => vueMois() ? changerMois(1) : changerSemaine(7));
     $('sem-titre').addEventListener('click', () => { const t = minuitDe(Date.now()); allerAuJour(t); });
     $('reu-erreur-bouton').addEventListener('click', () => chargerReunions());
     $('sem-jours').addEventListener('click', e => { const b = e.target.closest('[data-jour]'); if (b) { reu.jour = +b.dataset.jour; rendreReunions(); } });
@@ -4422,18 +4439,32 @@
   }
   /* un jour choisi : sa semaine est chargée si ce n'est pas celle qu'on voit */
   function allerAuJour(t) {
-    const sem = lundiDe(t), autre = sem !== reu.semaine;
-    reu.jour = minuitDe(t); reu.semaine = sem;
+    const sem = lundiDe(t), mois = premierDuMois(t), autre = vueMois() ? mois !== reu.mois : sem !== reu.semaine;
+    reu.jour = minuitDe(t); reu.semaine = sem; reu.mois = mois;
     if (autre) { reu.liste = []; reu.charge = false; rendreReunions(); chargerReunions(); } else rendreReunions();
   }
   function changerSemaine(delta) {
     reu.semaine = plusJours(reu.semaine, delta);
     reu.jour = minuitDe(Date.now()) >= reu.semaine && minuitDe(Date.now()) < plusJours(reu.semaine, 7) ? minuitDe(Date.now()) : reu.semaine;
+    reu.mois = premierDuMois(reu.jour);
     reu.liste = []; reu.charge = false; rendreReunions(); chargerReunions();
+  }
+  /* le mois suivant ou précédent : le jour choisi est aujourd'hui s'il en fait partie, sinon le premier du mois */
+  function changerMois(delta) {
+    reu.mois = plusMois(reu.mois, delta);
+    const auj = minuitDe(Date.now());
+    reu.jour = premierDuMois(auj) === reu.mois ? auj : reu.mois; reu.semaine = lundiDe(reu.jour);
+    reu.liste = []; reu.charge = false; rendreReunions(); chargerReunions();
+  }
+  function changerVueAgenda(v) {
+    if ((v !== 'semaine' && v !== 'mois') || v === reu.vue) return;
+    reu.vue = v; reu.mois = premierDuMois(reu.jour); reu.semaine = lundiDe(reu.jour);
+    reu.liste = []; reu.charge = false; rendreReunions(); chargerReunions();
+    if (typeof source.choisirAgendaVue === 'function') source.choisirAgendaVue(v).catch(() => {});     // retenu par le compte ; refusé, le choix vaut pour cette visite
   }
   async function chargerReunions() {
     if (!CAP.reunions) return;
-    const n = ++reu.jeton, du = reu.semaine, au = plusJours(reu.semaine, 7);
+    const n = ++reu.jeton, [du, au] = fenetreAgenda();
     let l = null, panne = null, evs = [];
     const [r1, r2] = await Promise.allSettled([source.reunions(du, au), CAP.agenda && typeof source.evenements === 'function' ? source.evenements(du, au) : Promise.resolve([])]);
     if (r1.status === 'fulfilled') l = r1.value; else panne = r1.reason;
@@ -4473,18 +4504,42 @@
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (note ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
       (etatTxt ? '<span class="reunion-etat' + (r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + '</button>' + rej + '</li>';
   }
+  /* la grille du mois : une case par jour, les rendez-vous qui y COMMENCENT (et les journées entières), dans l'ordre de la journée */
+  function rendreMois(auj) {
+    const [du, au] = fenetreAgenda(), actif = document.activeElement, cle = actif && actif.closest && actif.closest('#mois-jours') && actif.dataset.jour ? actif.dataset.jour : null;
+    let h = '';
+    for (let t = du; t < au; t = plusJours(t, 1)) {
+      const l = reu.charge ? occurrencesDuJour(t) : [], hors = premierDuMois(t) !== reu.mois;
+      const elts = l.slice(0, 3).map(x => {
+        const journee = !!(x.e && (x.e.journee || x.e.debut < t)), titre = x.e ? x.e.titre : (x.r.titre || 'Réunion'), annulee = !!(x.r && x.r.annulee);
+        return '<span class="mjour-elt' + (journee ? ' journee' : '') + (annulee ? ' annulee' : '') + '">' + (journee ? '' : '<time>' + esc(FMT_HEURE.format(x.o.debut)) + '</time>') + esc(titre) + '</span>';
+      }).join('') + (l.length > 3 ? '<span class="mjour-plus">+' + (l.length - 3) + '</span>' : '');
+      const dit = l.slice(0, 3).map(x => (x.e && (x.e.journee || x.e.debut < t) ? '' : FMT_HEURE.format(x.o.debut) + ' ') + (x.e ? x.e.titre : (x.r.titre || 'Réunion'))).join(', ') + (l.length > 3 ? ' et ' + (l.length - 3) + ' autre' + (l.length > 4 ? 's' : '') : '');
+      h += '<button type="button" class="mjour presse' + (hors ? ' hors' : '') + (l.length ? ' avec' : '') + '" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
+        ' aria-label="' + esc(maj1(FMT_JOUR_LONG.format(t)) + ', ' + (l.length ? l.length + (l.length > 1 ? ' éléments : ' : ' élément : ') + dit : 'rien de prévu')) + '"><b>' + new Date(t).getDate() + '</b>' +
+        '<span class="mjour-points" aria-hidden="true">' + '<i></i>'.repeat(Math.min(3, l.length)) + '</span><span class="mjour-elts" aria-hidden="true">' + elts + '</span></button>';
+    }
+    $('mois-jours').innerHTML = h;
+    if (cle) { const b = $('mois-jours').querySelector('[data-jour="' + cle.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
+  }
   function rendreReunions() {
     const sec = $('vue-reunions'); if (!CAP.reunions || !sec.dataset.pret) return;
     const auj = minuitDe(Date.now()), actif = document.activeElement, cle = actif && actif.closest && actif.closest('#sem-jours') && actif.dataset.jour ? actif.dataset.jour : null;
-    $('sem-titre').textContent = libelleSemaine(reu.semaine);
-    $('sem-titre').setAttribute('aria-label', 'Semaine du ' + FMT_JOUR_LONG.format(reu.semaine) + ' — revenir à aujourd\'hui');
+    const M = vueMois(), seg = $('reu-vue-seg');
+    seg.style.setProperty('--i', M ? 1 : 0);
+    for (const b of seg.querySelectorAll('[data-reu-vue]')) b.setAttribute('aria-pressed', b.dataset.reuVue === reu.vue ? 'true' : 'false');
+    $('sem-jours').hidden = M; $('mois').hidden = !M;
+    $('sem-prec').setAttribute('aria-label', M ? 'Mois précédent' : 'Semaine précédente'); $('sem-suiv').setAttribute('aria-label', M ? 'Mois suivant' : 'Semaine suivante');
+    $('sem-titre').textContent = M ? maj1(FMT_MOIS_AN.format(reu.mois)) : libelleSemaine(reu.semaine);
+    $('sem-titre').setAttribute('aria-label', (M ? maj1(FMT_MOIS_AN.format(reu.mois)) : 'Semaine du ' + FMT_JOUR_LONG.format(reu.semaine)) + ' — revenir à aujourd\'hui');
+    if (M) rendreMois(auj);
     let h = '';
     for (let i = 0; i < 7; i++) {
       const t = plusJours(reu.semaine, i), n = occurrencesDuJour(t).length;
       h += '<button type="button" class="jour presse' + (n ? ' avec' : '') + '" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
         ' aria-label="' + esc(FMT_JOUR_LONG.format(t) + ', ' + (CAP.agenda ? (n ? n + (n > 1 ? ' éléments' : ' élément') : 'rien de prévu') : (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion'))) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
     }
-    $('sem-jours').innerHTML = h;
+    if (!M) $('sem-jours').innerHTML = h;
     if (cle) { const b = $('sem-jours').querySelector('[data-jour="' + cle.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
     const lignes = occurrencesDuJour(reu.jour);
     $('reu-jour-titre').textContent = maj1(FMT_JOUR_LONG.format(reu.jour));

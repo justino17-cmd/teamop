@@ -344,6 +344,15 @@ async function controler(PAGE, SRC, DOC) {
   vrai('⛔ focus : Espace HORS d\'un champ est un geste de clavier (l\'anneau rendu se voit) ; et la règle qui éteint l\'anneau rendu au doigt gagne sur les anneaux écrits plus loin',
     /&& !\(e\.key === ' ' && !champTexte\(e\.target\)\)\) return;/.test(JS) && /\[data-focus-doux\]:focus-visible \{ outline: none !important; \}/.test(CSS));
 
+  /* 8 octobre 2026 : le menu d'un message contre sa bulle, « Me le rappeler », l'Agenda au mois — le comportement est mesuré par la sonde tests/sonde-opmessages-menu-rappel.js */
+  vrai('le menu d\'un message s\'ancre à la rangée du message (dès 700 px, si le navigateur sait l\'ancre) et l\'ancre part avec lui',
+    /@supports \(anchor-name: --menu-msg\)/.test(CSS) && /\.menu-fond\.ancre \.menu-msg \{ position: fixed; position-anchor: --menu-msg;/.test(CSS) && /if \(ancre\) \{ ancre\.classList\.add\('menu-ancre'\); \$\('menu-fond'\)\.classList\.add\('ancre'\);/.test(JS)
+      && /\$\('conv-messages'\)\.querySelectorAll\('\.menu-ancre'\)\.forEach\(x => x\.classList\.remove\('menu-ancre'\)\);/.test(JS));
+  vrai('« Me le rappeler » pose un ÉVÉNEMENT de l\'agenda, rappel à l\'heure (rien de neuf côté service)',
+    /await source\.creerEvenement\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \}\);/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
+  vrai('l\'Agenda au mois : la fenêtre chargée est celle qu\'on voit (le mois entier en semaines), et le choix va au COMPTE',
+    /const n = \+\+reu\.jeton, \[du, au\] = fenetreAgenda\(\);/.test(JS) && /if \(M\) rendreMois\(auj\);/.test(JS) && /source\.choisirAgendaVue\(v\)/.test(JS) && /reu\.vue = typeof source\.agendaVue === 'function' && source\.agendaVue\(\) === 'mois'/.test(JS));
+
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);
   v('(population) ' + (HTML.match(/<button\b/g) || []).length + ' boutons dans le balisage — aucun ne porte une icône SANS nom (aria-label) : retour, caméra, joindre, envoyer, micro, annuler, fermer', sansNom, []);

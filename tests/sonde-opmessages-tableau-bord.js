@@ -113,7 +113,8 @@ function localDans(t, tz) {
 
     console.log('\n5. Au bureau');
     const A2 = await ouvrir('ana', { viewport: { width: 1280, height: 860 } });
-    v('la barre latérale dit « Tableau de bord » en tête', await A2.page.evaluate(() => Array.from(document.querySelectorAll('#nav-side .side-lien')).map(x => x.textContent.trim())[0]), 'Tableau de bord');
+    /* on ATTEND la barre (lue d'un coup, elle pouvait ne pas être encore bâtie) — Ana a choisi Pro au téléphone : le compte le retient, le bureau s'ouvre côté Pro */
+    vrai('la barre latérale dit « Tableau de bord » en tête (le côté Pro, retenu par le compte)', await att(A2, () => { const l = document.querySelector('#nav-side .side-lien'); return !!l && l.textContent.trim() === 'Tableau de bord'; }), await A2.page.evaluate(() => Array.from(document.querySelectorAll('#nav-side .side-lien')).map(x => x.textContent.trim()).join(' | ')));
     await A2.page.locator('#nav-side [data-vue="accueil"]').click();
     vrai('le tableau s\'ouvre, ses trois blocs remplis', await att(A2, () => /Point chantier WQXZ/.test(document.getElementById('bord-reunions').textContent) && /fournisseur/.test(document.getElementById('bord-rappels').textContent) && /Dan Banc/.test(document.getElementById('bord-appels').textContent)));
     await capture(A2, 'bord-2-bureau');

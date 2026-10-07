@@ -1459,6 +1459,37 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .jour[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
 .jour[aria-pressed="true"][aria-current="date"] b { color: inherit; }
 .jour:focus-visible, .sem-fleche:focus-visible, .sem-titre:focus-visible { outline-offset: 0; }
+/* ── LE MOIS (8 octobre 2026 : « le calendrier du mois complet pour voir tous ses rendez-vous ») — la grille du Calendrier d'Apple : sept colonnes, la semaine commence le lundi.
+   Au téléphone, un point par rendez-vous sous le numéro (trois au plus) et la liste du jour touché en dessous ; dès 700 px, les rendez-vous eux-mêmes dans la case (l'heure et le titre,
+   trois au plus, puis « +2 »). Un jour d'un autre mois se lit en gris et mène à son mois. */
+#vue-reunions > #reu-vue-seg { max-width: 320px; margin-inline: auto; }        /* le choix de l'affichage : un petit segmenté centré (le Calendrier du Mac), jamais une barre de toute la largeur */
+.mois { margin: 0 0 16px; }
+.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub); text-align: center; }
+.mois-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
+.mjour { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; border-radius: 12px; color: var(--text); }
+.mjour > b { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mjour.hors { color: var(--sub); }
+.mjour.hors > b { font-weight: 400; }
+.mjour[aria-current="date"] > b { color: var(--accent-txt); }
+.mjour[aria-pressed="true"] > b { background: var(--fill); color: var(--on-fill); }
+.mjour-points { display: flex; gap: 3px; height: 5px; }
+.mjour-points i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .8; }
+.mjour-elts { display: none; }
+.mjour:focus-visible { outline-offset: -2px; }
+@media (min-width: 700px) {
+  .mois-jours { gap: 4px; }
+  .mjour { min-height: 108px; align-items: stretch; gap: 2px; padding: 4px 4px 6px; border-radius: 10px; background: var(--card); text-align: left; }
+  .mjour.hors { background: transparent; box-shadow: inset 0 0 0 1px var(--fill-soft); }
+  .mjour > b { align-self: flex-end; width: 28px; height: 28px; font-size: 14px; }
+  .mjour[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+  .mjour-points { display: none; }
+  .mjour-elts { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .mjour-elt { display: block; min-width: 0; padding: 1px 6px; border-radius: 5px; font-size: 12px; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); }
+  .mjour-elt.journee { background: color-mix(in srgb, var(--accent) 34%, transparent); }
+  .mjour-elt.annulee { text-decoration: line-through; opacity: .7; }
+  .mjour-elt time { font-variant-numeric: tabular-nums; color: var(--sub); margin-right: 4px; }
+  .mjour-plus { padding: 0 6px; font-size: 12px; line-height: 16px; color: var(--sub); }
+}
 .reunion-ligne { width: 100%; display: flex; align-items: stretch; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-align: left; transition: background-color .15s; }
 .reunion-ligne:active { transform: scale(.985); }
 .carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
@@ -1799,6 +1830,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
   /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
   #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
+  #vue-reunions > #mois { max-width: 1120px; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
   .vue .recherche { min-height: 34px; height: 34px; padding: 0 10px; gap: 8px; border-radius: 9px; margin-bottom: 12px; }

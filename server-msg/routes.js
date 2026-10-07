@@ -30,7 +30,7 @@ const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
    une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
 const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
 /* les préférences à CHOIX (une valeur parmi celles-ci, rien d'autre) : le côté où l'on travaille (« Perso | Pro », 7 octobre 2026) et la confirmation avant d'envoyer */
-const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'] };
+const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'], agenda_vue: ['semaine', 'mois'] };      // agenda_vue : l'Agenda s'ouvre sur la semaine ou sur le mois (8 octobre 2026)
 const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
 const CARTES = ['position', 'contact', 'sondage'];
 const INVITATION_MAX = 5;      // les messages d'une invitation qui attend (texte seul) : la personne lit, elle n'est pas inondée      // un message « carte » : un texte (son résumé, pour les versions d'avant) qui porte `meta.k`
