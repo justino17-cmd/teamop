@@ -23,6 +23,7 @@ seule mémoire qui passe de l'une à l'autre. Le tenir à jour quand un chantier
 - **Racine** — site vitrine et applications, HTML/CSS/JS sans framework, servi par GitHub Pages
 - **`server/`** — API Node/Express déployée sur un VPS, hors GitHub Pages
 - **`.github/workflows/`** — surveillance horaire du site et de l'API
+- **`scripts/web/`** — lire un site (Crawl4AI, installé à la première utilisation, dans une session du cloud comme sur le Mac) : `bash scripts/web/lire-site.sh <url> [--liens|--pages N]` — voir son `LISEZMOI.md` (et le cadre RGPD avant de prendre des coordonnées)
 
 Pas de compilation, pas de bundler. Ce qui est écrit est ce qui est servi.
 

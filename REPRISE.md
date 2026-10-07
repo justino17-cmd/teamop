@@ -26,10 +26,14 @@ trouve tout ce que tu peux et on le fait ».
    navigateur l'écrit sur le disque, la page ne le tient plus en mémoire. L'envoi dit « Envoi… N % » (XMLHttpRequest). `test-967`, `test-931` (compare `piecesConfig()` aux
    deux proxys), `tests/sonde-proxy-nginx.js` (vrai nginx 1.24 : 46 ✓, contre-épreuve « tampon remis » 2 ✗), `tests/sonde-opmessages-gros-fichier.js` (60 Mo : pourcentage,
    téléchargement direct, octet pour octet).
-   ⛔ **GESTE SUR LE VPS, APRÈS LA FUSION** : le déploiement ne réécrit PAS le proxy. Sans le geste, nginx refuse tout dépôt au-delà de 26 Mo (en HTML) :
-   `sed -i 's/client_max_body_size 26m;/client_max_body_size 5200m;\n        proxy_request_buffering off;/' /etc/nginx/sites-available/opmsg-beta.conf && nginx -t && systemctl reload nginx`
-   (ou relancer `install-msg.sh`) — et dans le même bloc `proxy_read_timeout 120s` → `900s` (A5 ci-dessous). Le relais SMTP est posé (`support@teamop.fr`, ssl0.ovh.net:465,
-   essai réussi le 6 au soir) ; `inscriptionCourriel` attend la fusion.
+   ✅ **GESTE SUR LE VPS FAIT LE 7 OCTOBRE 2026 (10 h 20 UTC)** — et ce n'était PAS nginx : le VPS sert OP MESSAGES par **Caddy** (nginx inactif ; le fichier est
+   `/etc/caddy/opmsg/beta.caddy`, port 8091). Ce fichier datait d'AVANT les pièces : un seul `request_body { max_size 64KB }` pour tout — donc tout dépôt de photo, de vocal
+   ou de fichier au-delà de 64 Ko était refusé par le PROXY sur la bêta (le défaut que décrit `SERVEUR.md` § déploiement). Réécrit à la forme d'`install-msg.sh`
+   (`@pasPieces` 64 KB, `@pieces` 5200 MB), `caddy validate` puis rechargé ; copie d'avant : `beta.caddy.avant-5go`. Preuve, 200 Ko sans session : `/api/pieces` → 403
+   (le SERVICE répond), `/api/contacts/lien` → 413 (le proxy garde 64 Ko). ⛔ **Leçon : avant de donner un geste de proxy, demander lequel tourne**
+   (`systemctl is-active nginx caddy`) — la consigne nginx d'ici visait un fichier qui n'existe pas. Caddy ne tamponne pas un corps et n'a pas de délai de lecture par défaut :
+   rien d'autre à poser. Le relais SMTP est posé (`support@teamop.fr`, ssl0.ovh.net:465) et **`inscriptionCourriel` est ouvert** (`/api/config` :
+   `"comptes":{"inscription":true,"courriel":true}`, même matin).
    ⛔ **Relecture du gardien (6 au soir), un bloquant et cinq « à corriger », traités** : B1 la garde de débit d'un envoi faisait une MOYENNE (4,9 Go d'un trait achetaient 22 h de
    place) → seau plafonné (`gardeDebit`, `test-942`) ; A1 un corps JSON au compte-gouttes tenait 22 h derrière Caddy → coupé en 30 s (`app.js`, `corpsLentMs`, `test-967` § 5) ;
    A2 un lecteur lent tenait 6 h → débit minimal de lecture au même seau (`lectureDebitMin`, 16 Ko/s ; `test-967` § 6) ; A3 plancher disque 512 Mo → **10 Go** (`disqueMinMo`) ;
