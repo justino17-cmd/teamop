@@ -341,6 +341,7 @@
       retirerContact: (uid) => appel('POST', '/api/contacts/retirer', { uid }),
       bloquer: (uid) => appel('POST', '/api/contacts/bloquer', { uid }),
       debloquer: (uid) => appel('POST', '/api/contacts/debloquer', { uid }),
+      favori: (uid, favori) => appel('POST', '/api/contacts/favori', { uid, favori: favori === true }),
       /* l'identifiant « Prénom#1234 » EXACT ou un numéro EXACT (jamais un nom seul), puis une DEMANDE que la personne accepte */
       contactParIdentifiant: (identifiant) => appel('POST', '/api/contacts/identifiant', { identifiant }),
       contactParNumero: (numero) => appel('POST', '/api/contacts/chercher', { numero }),

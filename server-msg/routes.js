@@ -279,6 +279,14 @@ function creerHandlers(ctx) {
     if (!stockage.contactRetirer(req.moi.id, u) && !(l && l.etat === 'bloque')) return refus(res, 404, 'introuvable');
     res.json({ ok: true });
   };
+  /* Les FAVORIS de l'onglet Contacts : { uid, favori: true|false }. Un booléen, rien d'autre (« 1 », « oui » ne passent pas) ; un contact qu'on n'a pas (ou qu'on a bloqué) → 404. */
+  H['contacts.favori'] = (req, res) => {
+    const u = cibleContact(req, res); if (!u) return;
+    const f = corps(req).favori;
+    if (typeof f !== 'boolean') return refus(res, 400, 'champ_invalide');
+    if (!stockage.contactFavori(req.moi.id, u, f)) return refus(res, 404, 'introuvable');
+    res.json({ ok: true, favori: f });
+  };
   H['contacts.bloquer'] = (req, res) => {
     const u = cibleContact(req, res); if (!u) return;
     /* un contact, ou quelqu'un qu'on voit sans l'avoir en contact (un collègue d'un espace, un membre d'un groupe) : la ligne de blocage est créée si elle manque — un inconnu reste « introuvable » */

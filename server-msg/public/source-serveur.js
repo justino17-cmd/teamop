@@ -1782,7 +1782,7 @@
     const nomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).nom : 'Quelqu\'un');
 
     /* ── les contacts ── */
-    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id) });
+    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id), favori: c.favori === true });
     function installerContacts(liste) {
       contactsTous = liste.slice();
       contactsApi = liste.filter(c => c.mutuel && !c.bloque);
@@ -2618,6 +2618,14 @@
     const bloques = () => contactsTous.filter(c => c.bloque).map(c => Object.assign(vuePersonne(c), { bloque: true }));
     async function bloquer(uid) { await A.bloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
     async function debloquer(uid) { await A.debloquer(uid); await rafraichirContacts(); relireListePlusTard(); }
+    /* ⛔ LE FAVORI SE POSE D'ABORD CHEZ LE SERVICE : l'étoile ne change qu'une fois la réponse reçue (un refus laisse la liste comme elle était), puis la liste est relue — un autre appareil
+       de la même personne le verra à sa prochaine lecture des contacts. */
+    async function favori(uid, oui) {
+      const r = await A.favori(uid, oui === true);
+      for (const c of contactsTous) if (c.id === uid) c.favori = r.favori === true;
+      emettre({ type: 'contacts' });
+      return r.favori === true;
+    }
     async function deconnecterAutres() {
       const sub = await abonnementLocal();                 // le nôtre reste ; les abonnements push des AUTRES appareils partent avec leurs sessions
       const r = await A.deconnecterAutres(sub && sub.endpoint);
@@ -3045,7 +3053,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3063,7 +3071,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
-      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
+      profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */
