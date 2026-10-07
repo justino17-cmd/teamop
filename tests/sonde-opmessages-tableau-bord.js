@@ -81,7 +81,11 @@ function localDans(t, tz) {
     const B = await ouvrir('ben', TEL), A = await ouvrir('ana', TEL);
     const onglets = (X) => X.page.evaluate(() => Array.from(document.querySelectorAll('#tabs .tab')).map(t => t.querySelector('span').textContent.trim()));      // le libellé seul (pas le compteur caché de Contacts)
     v('⛔ Ben (Perso, aucun espace) : pas d\'« Accueil » (population : ses quatre onglets)', await onglets(B), ['Messages', 'Contacts', 'Appels', 'Agenda']);
-    v('Ana (un espace abonné) : « Accueil » EN TÊTE', await onglets(A), ['Accueil', 'Messages', 'Contacts', 'Appels', 'Agenda']);
+    /* (7 octobre 2026, Perso / Pro) le tableau de bord est du côté PRO : un compte pro démarre côté Perso tant qu'il n'a rien choisi — « Pro » le fait paraître, en tête */
+    v('Ana (un espace abonné) côté Perso : ses quatre onglets, et le sélecteur « Perso | Pro »', [await onglets(A), await A.page.evaluate(() => !!Array.from(document.querySelectorAll('[data-cote-seg]')).find(x => x.getClientRects().length))], [['Messages', 'Contacts', 'Appels', 'Agenda'], true]);
+    await A.page.locator('.cote-seg-liste [data-cote="pro"]').tap();
+    await att(A, () => !!document.querySelector('#tabs .tab[data-vue="accueil"]'));
+    v('Ana côté Pro : « Accueil » EN TÊTE', await onglets(A), ['Accueil', 'Messages', 'Contacts', 'Appels', 'Agenda']);
     await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
     vrai('Ana touche « Accueil » : « Tableau de bord » et la date', await att(A, () => !document.getElementById('vue-accueil').hidden && document.getElementById('titre-accueil').textContent === 'Tableau de bord' && document.getElementById('bord-date').textContent.length > 5));
 
