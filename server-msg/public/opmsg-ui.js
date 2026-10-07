@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '091f8c87942e';
+  const OPMSG_BUILD = '12c5267833d6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 109;
+  const OPMSG_VERSION = 110;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2220,7 +2220,10 @@
     } catch (e) { avisAppel('L\'image dans l\'image n\'a pas pu s\'ouvrir sur ce navigateur.'); }
   }
   function majPip() {
-    const A = etat.appelUI, b = $('appel-pip'); if (!b) return;
+    const A = etat.appelUI, b = $('appel-pip'), sp = $('salle-pip');
+    /* (salle) la pastille « Image dans l'image » est SUR l'écran de la réunion (8 octobre 2026 : « ça serait bien sur l'écran de la réunion ») — le panneau Plus la garde aussi */
+    if (sp) { sp.hidden = !(A && enSalle(A) && pipPossible()); sp.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false'); }
+    if (!b) return;
     b.hidden = !(A && !enSalle(A) && pipPossible() && videoAPip(A));
     b.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false');
   }
@@ -5574,6 +5577,7 @@
     $('salle-participants').setAttribute('aria-label', 'Participants, ' + s.nb + (att ? ', ' + att + (att > 1 ? ' personnes attendent' : ' personne attend') : ''));
     const bmn = $('salle-main'); bmn.setAttribute('aria-pressed', s.moi.main ? 'true' : 'false'); bmn.querySelector('span').textContent = s.moi.main ? 'Baisser la main' : 'Lever la main';
     const bv = $('salle-vue'); bv.querySelector('span').textContent = X.vue === 'intervenant' ? 'Vue galerie' : 'Vue intervenant'; bv.querySelector('use').setAttribute('href', X.vue === 'intervenant' ? '#i-grille' : '#i-intervenant');
+    majPip();
     const br = $('salle-rec-btn'), moiRec = !!(s.rec && s.rec.par === MOI.id), autreRec = !!(s.rec && !moiRec);
     br.hidden = !(hote && ((s.outils && recDisponible()) || moiRec));          // l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, mais on peut toujours ÉTEINDRE celui qu'on a lancé
     br.setAttribute('aria-pressed', moiRec ? 'true' : 'false'); br.setAttribute('aria-disabled', autreRec ? 'true' : 'false');
@@ -5936,6 +5940,7 @@
   $('salle-flip').addEventListener('click', retournerCamera);
   $('salle-partage').addEventListener('click', () => basculerPartage());
   $('salle-partage-changer').addEventListener('click', () => changerPartage());
+  $('salle-pip').addEventListener('click', () => basculerPip());
   $('salle-quitter').addEventListener('click', () => {
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;

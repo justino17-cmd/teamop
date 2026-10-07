@@ -170,6 +170,16 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     vrai('rendu à tous : « Annoter » revient chez Cléo', await att(C, visible, 'salle-annoter'));
     await A.page.locator('#salle-panneau-fermer').click();
 
+    console.log('\n3 ter. « Image dans l\'image » sur l\'écran de la réunion (8 octobre 2026)');
+    const pipA = await A.page.evaluate(() => ({ permis: document.pictureInPictureEnabled === true, vu: !document.getElementById('salle-pip').hidden && document.getElementById('salle-pip').getClientRects().length > 0, rang: document.getElementById('salle-pip').parentElement === document.getElementById('salle-vue').parentElement }));
+    v('la pastille « Image dans l\'image » est sur l\'écran de la réunion, à côté de « Vue », là où le navigateur le permet (ici : ' + (pipA.permis ? 'oui' : 'non') + ')', [pipA.vu, pipA.rang], [pipA.permis, true]);
+    if (pipA.permis) {
+      await A.page.locator('#salle-pip').click();
+      vrai('la toucher ouvre l\'image flottante (la vidéo de l\'écran partagé), et la pastille le dit', await att(A, () => document.pictureInPictureElement && document.pictureInPictureElement.tagName === 'VIDEO' && document.getElementById('salle-pip').getAttribute('aria-pressed') === 'true', null, 6000));
+      await A.page.locator('#salle-pip').click();
+      vrai('la retoucher la ferme', await att(A, () => !document.pictureInPictureElement && document.getElementById('salle-pip').getAttribute('aria-pressed') === 'false', null, 6000));
+    }
+
     console.log('\n3 bis. Ben change de fenêtre sans arrêter (8 octobre 2026)');
     const pxBen = (S) => S.page.evaluate((uid) => { const v = document.querySelector('#salle-scene .salle-tuile[data-uid="' + uid + '"] video'); if (!v || !v.videoWidth) return null; const c = document.createElement('canvas'); c.width = 8; c.height = 8; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 8, 8); const d = g.getImageData(1, 6, 1, 1).data; return [d[0], d[1], d[2]]; }, B0.moi.id);
     const bleuAvant = await pxBen(A);
