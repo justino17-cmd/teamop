@@ -58,7 +58,8 @@
 # sa remise à zéro, son journal, son équipe ; les erreurs d'une entreprise sans celles d'OP MESSAGES — plancher relevé à 3 850.
 # 7 octobre 2026 : `test-851` (publier OP MESSAGES depuis la Tour : le vrai serveur, un faux GitHub, les deux instances, et la VRAIE carte de `tour.html` v2.86) — il entre
 # avec la Tour v2.86 qu'il lit : les deux partent ensemble sur `main`. Plancher relevé du nombre de ses vérifications (28).
-#plancher 3878
+# 7 octobre 2026, mesuré : 58 suites, 3 939 vérifications une fois `test-978` nourri de la carte « Publier » (il mourait à 18) — plancher 3925.
+#plancher 3925
 tests/test-640.js
 tests/test-641.js
 tests/test-668.js
