@@ -13,6 +13,30 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (NUIT) — LE « + » DES PIÈCES JOINTES, POSITION, FICHE D'UN CONTACT, SONDAGES À RÈGLES, THÈME D'UNE CONVERSATION (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin, captures de WhatsApp à l'appui : « pouvoir sélectionner plusieurs photos ; la localisation s'il l'active dans les paramètres — c'est une sécurité pour eux ; partager des
+contacts, des documents, des sondages personnalisables, avec leurs règles ; personnaliser les conversations, des thèmes derrière, les bulles de couleurs ; l'appareil photo à côté » —
+« événements, images IA, je m'en fous » (pas faits). **« + »** ouvre une grille (Photos à plusieurs, Caméra au doigt, Position, Contact, Document, Sondage), l'appareil photo est dans la
+barre de saisie. Une CARTE est un message texte (son résumé, pour une version d'avant et les notifications) qui porte `meta.k` ; un message à carte ne se modifie pas.
+· **Position** : ⛔ COUPÉE par défaut, refusée PAR LE SERVICE (403 `position_desactivee`) tant que Profil › Confidentialité ne l'a pas allumée — UNE seule porte (`moi.confidentialite`) ;
+  la feuille l'explique et y mène, elle ne l'allume jamais ; allumée, la page relit le réglage au service, montre la position, rien ne part sans « Envoyer ». Un plan DESSINÉ (aucune tuile
+  d'un tiers), « Ouvrir dans Plans » (maps:, geo:, bingmaps: — l'application de l'appareil). Le résumé ne porte pas les coordonnées.
+· **Fiche d'un contact** : un de MES contacts qui se laisse trouver ; le message ne garde QUE son identifiant — prénom et identifiant public se relisent à chaque lecture, tant qu'il se
+  laisse trouver (retiré ou effacé, la fiche ne dit plus qui c'est) ; « Ajouter » (`contacts.demander_carte`, les refus et plafonds d'une demande par identifiant) ou « Écrire ».
+· **Sondage** (migration 17) : 2 à 12 choix sans doublon (casse, accents), une ou plusieurs réponses, anonyme (personne ne voit qui a voté quoi, l'auteur non plus — ni qui a ajouté un
+  choix), choix ouverts aux membres, résultats tout de suite / après son vote / à la clôture, échéance (1 min à 90 j) ; clore = l'auteur ou l'admin d'un GROUPE ou d'un CANAL (dans une
+  directe les deux membres sont « admin » : l'autre clôturait mon sondage — corrigé) ; l'événement `sondage` borné par `depuis_seq` ; effacé pour tous, il emporte choix et votes (archive
+  comprise) ; un compte effacé : ses votes perdent son identifiant mais restent comptés (un décompte qui baisse trahirait un vote anonyme) ; ses votes sont dans « Mes données ».
+· **Thème d'une conversation** (migration 18, `membre.theme`) : sept fonds, huit couleurs de bulles, À CHACUN, sur tous ses appareils ; deux NOMS de listes fermées, jamais une couleur
+  libre ; dégradés mêlés à `--base` (lisibles de jour et de nuit : date à 5,4:1 / 5,9:1, mesuré au pixel avec contre-épreuve du lecteur).
+`tests/test-926.js` (68 ✓ ; 19 + 8 mutations, toutes mordent), `tests/test-927.js` (13 ✓ ; 2 mutations), `tests/sonde-opmessages-cartes.js` (37 ✓, deux téléphones),
+`tests/sonde-opmessages-theme.js` (13 ✓, jour et nuit). Relecture `gardien` : 0 bloquant, 3 importants corrigés (ci-dessus).
+⚠️ Attend Justin : (1) dans un groupe « seuls les admins écrivent », un membre peut AJOUTER un choix si l'auteur a ouvert les choix (comme une réaction) — le garder ? ; (2) partager la
+fiche d'un contact qui s'est rendu introuvable répond « ne se laisse pas trouver » à l'expéditeur — c'est l'état d'un réglage privé ; un « introuvable » neutre le cacherait.
+⚠️ Corrigé en passant : `htmlFiche` existait déjà (la fiche d'une réunion) — la seconde déclaration gagnait partout ; `reunion_introuvable` (rapport de présence d'une réunion) n'avait
+pas de phrase (test-906).
+
 # ⏳ 7 OCTOBRE 2026 (NUIT) — ANNOTER L'ÉCRAN PARTAGÉ, LE TABLEAU BLANC, L'ENREGISTREMENT QUI VA AUX ABSENTS (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin : « partage d'écran, dessiner sur l'écran, ajouter du texte… enregistrer les réunions, qu'ils puissent les renvoyer à des personnes qui n'ont pas pu assister ». En salle :
