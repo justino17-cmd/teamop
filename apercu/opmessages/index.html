@@ -1089,6 +1089,18 @@ html[data-service] .mention-apercu { display: none; }
 .menu-action:last-child { border-bottom: 0; }
 .menu-action.danger { color: var(--rouge-txt); }
 .menu-question { padding: 14px 18px 6px; font-size: 15px; line-height: 20px; text-align: center; }
+/* « + » : la grille des pièces jointes — un disque de couleur par geste, son nom dessous (la feuille d'iMessage) ; trois par rangée */
+.menu-msg.pj { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 12px 8px 8px; }
+.pj-tuile { min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border-radius: 16px; font-size: 13px; line-height: 16px; color: var(--text); }
+.pj-disque { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.pj-disque .ic { width: 26px; height: 26px; stroke-width: 1.9; }
+[data-plus="photo"] > .pj-disque { background: #0a84ff; }
+[data-plus="camera"] > .pj-disque { background: #636366; }
+[data-plus="position"] > .pj-disque { background: #34c759; }
+[data-plus="contact"] > .pj-disque { background: #8e8e93; }
+[data-plus="fichier"] > .pj-disque { background: #5e5ce6; }
+[data-plus="sondage"] > .pj-disque { background: #ff9f0a; }
+@media (hover: hover) { .pj-tuile:hover { background: var(--field); } }
 @media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
 
 /* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
@@ -1720,6 +1732,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-gauche" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></symbol>
   <symbol id="i-droite" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   <symbol id="i-partager" viewBox="0 0 24 24"><path d="M12 15V3.5M8 7.5l4-4 4 4M7 10.5H5.5v10h13v-10H17"/></symbol>
+  <symbol id="i-sondage" viewBox="0 0 24 24"><path d="M5 19.5V13M10 19.5V5M15 19.5v-9M20 19.5V8.5"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
@@ -1855,13 +1868,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <footer class="composer" data-glass="1">
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <div class="compo-ligne" id="compo">
-        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre une photo"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
+        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
         <input type="file" id="compo-doc" class="sr-seul" tabindex="-1" aria-hidden="true">
         <div class="pilule-saisie">
           <textarea id="saisie" rows="1" maxlength="100000" placeholder="Message" aria-label="Écrire un message" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
           <button type="button" class="compo-bouton envoyer presse" id="envoyer" aria-label="Envoyer le message" hidden><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
         </div>
+        <button type="button" class="compo-bouton compo-camera presse" id="compo-camera" aria-label="Prendre une photo" hidden><svg class="ic" aria-hidden="true"><use href="#i-capture"/></svg></button>
+        <input type="file" id="compo-appareil" class="sr-seul" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
         <button type="button" class="compo-bouton compo-micro presse" id="compo-micro" aria-label="Enregistrer un message vocal : maintenir, ou toucher pour démarrer"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
       </div>
       <div class="enreg" id="enreg" role="group" aria-label="Enregistrement du message vocal" hidden>
@@ -2637,6 +2652,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function majBoutons() {
     const a = $('saisie').value.trim().length > 0;
     $('envoyer').hidden = !a; $('compo-micro').hidden = a;
+    $('compo-camera').hidden = a || !auDoigt() || !CAP.photos;
   }
   const MESSAGES_ERREUR = { interdit: 'Seuls les admins peuvent écrire dans ce groupe.', 'trop-long': 'Ce message est trop long (4 000 signes au plus).', introuvable: 'Cette conversation n\'existe plus.' };
   let minAvis = 0;
@@ -2808,18 +2824,42 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (CAP.fichiers) { ouvrirMenuPlus(); return; }
     $('compo-fichier').click();
   });
-  /* « + » avec des fichiers : une petite feuille Photo / Fichier, le même cadre que le menu d'un message (Échap, le fond et chaque geste la referment) */
+  /* « + » : la feuille des pièces jointes (7 octobre 2026, capture de la feuille de WhatsApp à l'appui) — une grille d'icônes comme celle d'iMessage : Photos (plusieurs à la fois), Caméra (au doigt),
+     Position, Contact, Document, Sondage ; chacune n'est là que si le service la sait (une tuile qui mènerait à « bientôt » n'est pas montrée). Le même cadre que le menu d'un message (Échap, le fond et
+     chaque geste la referment). ⛔ Le choix ouvre le sélecteur de l'appareil DANS le clic : passé une attente, le navigateur le refuserait. */
+  const auDoigt = () => document.documentElement.dataset.kind === 'mobile' || document.documentElement.dataset.kind === 'tablette' || (window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  function tuilesPlus() {
+    const t = [['photo', 'Photos', 'i-image']];
+    if (auDoigt()) t.push(['camera', 'Caméra', 'i-capture']);
+    if (CAP.positions) t.push(['position', 'Position', 'i-lieu']);
+    if (CAP.cartesContact) t.push(['contact', 'Contact', 'i-personne']);
+    if (CAP.fichiers) t.push(['fichier', 'Document', 'i-fichier']);
+    if (CAP.sondagesConv) t.push(['sondage', 'Sondage', 'i-sondage']);
+    return t;
+  }
   function ouvrirMenuPlus() {
     if (etat.menu || !etat.conv) return;
     etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now() };
-    $('menu-msg').setAttribute('aria-label', 'Joindre');
-    $('menu-msg').innerHTML = '<button type="button" class="menu-action" data-plus="photo">Photo</button><button type="button" class="menu-action" data-plus="fichier">Fichier</button>';
+    const M = $('menu-msg');
+    M.setAttribute('aria-label', 'Joindre'); M.classList.add('pj');
+    M.innerHTML = tuilesPlus().map(x => '<button type="button" class="pj-tuile presse" data-plus="' + x[0] + '"><span class="pj-disque" aria-hidden="true">' + icone(x[2]) + '</span><span>' + esc(x[1]) + '</span></button>').join('');
     $('menu-fond').hidden = false;
     synchroInert();
-    $('menu-msg').querySelector('button').focus({ preventScroll: true });
+    M.querySelector('button').focus({ preventScroll: true });
   }
-  $('compo-fichier').addEventListener('change', async e => {
-    const choisies = Array.from(e.target.files || []); e.target.value = '';
+  /* un choix de la feuille : les sélecteurs de l'appareil s'ouvrent DANS le geste ; position, contact et sondage ont leur propre feuille */
+  function choixPlus(x) {
+    if (x === 'photo') $('compo-fichier').click();
+    else if (x === 'camera') $('compo-appareil').click();
+    else if (x === 'fichier') $('compo-doc').click();
+    else if (x === 'position' && typeof partagerPosition === 'function') partagerPosition();
+    else if (x === 'contact') ouvrirFeuille('carte-contact');
+    else if (x === 'sondage') ouvrirFeuille('sondage-nouveau');
+  }
+  $('compo-camera').addEventListener('click', () => { if (!retap()) $('compo-appareil').click(); });
+  $('compo-fichier').addEventListener('change', e => { const l = Array.from(e.target.files || []); e.target.value = ''; photosChoisies(l); });
+  $('compo-appareil').addEventListener('change', e => { const l = Array.from(e.target.files || []); e.target.value = ''; photosChoisies(l); });     // la photo prise à l'instant : le même aperçu, la même légende
+  async function photosChoisies(choisies) {
     const id = etat.conv; if (!id || !choisies.length) return;
     const lim = await limitesPhotos();
     /* ⛔ jamais « les dix premières, le reste en silence » (relecture du testeur : la onzième disparaissait sans un mot) */
@@ -2843,7 +2883,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       return;
     }
     epOuvrir(id, bonnes, lim.parMessage);
-  });
+  }
 
   /* ═══ LA PHOTO AVANT L'ENVOI — l'aperçu et la légende (6 octobre 2026 : « quand j'envoie une photo, il faudrait pouvoir mettre un texte en dessous, comme WhatsApp ») ═══
      ⛔ La légende fait partie du message (un seul envoi, photos + texte) : elle n'est pas un second message envoyé à la suite. Annuler (la croix, Échap) ne laisse rien partir
@@ -5576,7 +5616,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function fermerMenu() {
     if (!etat.menu) return;
     const d = etat.menu.declencheur; etat.menu = null;
-    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message');
+    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj');
     synchroInert();
     if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }
@@ -5610,7 +5650,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (Date.now() - m0.t < 350 || (m0.appuiLong && !m0.avale && m0.relache && Date.now() - m0.relache < 500)) { m0.avale = true; return; }
     if (m0.plus) {                                  // « + » : Photo ou Fichier — le choix ouvre le sélecteur de l'appareil (le clic en cours est encore le geste de la personne)
       const x = e.target.closest('[data-plus]');
-      if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) $(x.dataset.plus === 'photo' ? 'compo-fichier' : 'compo-doc').click(); }
+      if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) choixPlus(x.dataset.plus); }
       return;
     }
     if (e.target === $('menu-fond')) { fermerMenu(); return; }

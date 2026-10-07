@@ -1093,6 +1093,18 @@ html[data-service] .mention-apercu { display: none; }
 .menu-action:last-child { border-bottom: 0; }
 .menu-action.danger { color: var(--rouge-txt); }
 .menu-question { padding: 14px 18px 6px; font-size: 15px; line-height: 20px; text-align: center; }
+/* « + » : la grille des pièces jointes — un disque de couleur par geste, son nom dessous (la feuille d'iMessage) ; trois par rangée */
+.menu-msg.pj { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 12px 8px 8px; }
+.pj-tuile { min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border-radius: 16px; font-size: 13px; line-height: 16px; color: var(--text); }
+.pj-disque { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.pj-disque .ic { width: 26px; height: 26px; stroke-width: 1.9; }
+[data-plus="photo"] > .pj-disque { background: #0a84ff; }
+[data-plus="camera"] > .pj-disque { background: #636366; }
+[data-plus="position"] > .pj-disque { background: #34c759; }
+[data-plus="contact"] > .pj-disque { background: #8e8e93; }
+[data-plus="fichier"] > .pj-disque { background: #5e5ce6; }
+[data-plus="sondage"] > .pj-disque { background: #ff9f0a; }
+@media (hover: hover) { .pj-tuile:hover { background: var(--field); } }
 @media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
 
 /* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
@@ -1724,6 +1736,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-gauche" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></symbol>
   <symbol id="i-droite" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   <symbol id="i-partager" viewBox="0 0 24 24"><path d="M12 15V3.5M8 7.5l4-4 4 4M7 10.5H5.5v10h13v-10H17"/></symbol>
+  <symbol id="i-sondage" viewBox="0 0 24 24"><path d="M5 19.5V13M10 19.5V5M15 19.5v-9M20 19.5V8.5"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
@@ -1859,13 +1872,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <footer class="composer" data-glass="1">
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <div class="compo-ligne" id="compo">
-        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre une photo"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
+        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
         <input type="file" id="compo-doc" class="sr-seul" tabindex="-1" aria-hidden="true">
         <div class="pilule-saisie">
           <textarea id="saisie" rows="1" maxlength="100000" placeholder="Message" aria-label="Écrire un message" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
           <button type="button" class="compo-bouton envoyer presse" id="envoyer" aria-label="Envoyer le message" hidden><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
         </div>
+        <button type="button" class="compo-bouton compo-camera presse" id="compo-camera" aria-label="Prendre une photo" hidden><svg class="ic" aria-hidden="true"><use href="#i-capture"/></svg></button>
+        <input type="file" id="compo-appareil" class="sr-seul" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
         <button type="button" class="compo-bouton compo-micro presse" id="compo-micro" aria-label="Enregistrer un message vocal : maintenir, ou toucher pour démarrer"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
       </div>
       <div class="enreg" id="enreg" role="group" aria-label="Enregistrement du message vocal" hidden>

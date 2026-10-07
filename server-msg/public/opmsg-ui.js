@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '19447af4c2cc';
+  const OPMSG_BUILD = '4f2c5bce5a4b';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 56;
+  const OPMSG_VERSION = 57;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -565,6 +565,7 @@
   function majBoutons() {
     const a = $('saisie').value.trim().length > 0;
     $('envoyer').hidden = !a; $('compo-micro').hidden = a;
+    $('compo-camera').hidden = a || !auDoigt() || !CAP.photos;
   }
   const MESSAGES_ERREUR = { interdit: 'Seuls les admins peuvent écrire dans ce groupe.', 'trop-long': 'Ce message est trop long (4 000 signes au plus).', introuvable: 'Cette conversation n\'existe plus.' };
   let minAvis = 0;
@@ -736,18 +737,42 @@
     if (CAP.fichiers) { ouvrirMenuPlus(); return; }
     $('compo-fichier').click();
   });
-  /* « + » avec des fichiers : une petite feuille Photo / Fichier, le même cadre que le menu d'un message (Échap, le fond et chaque geste la referment) */
+  /* « + » : la feuille des pièces jointes (7 octobre 2026, capture de la feuille de WhatsApp à l'appui) — une grille d'icônes comme celle d'iMessage : Photos (plusieurs à la fois), Caméra (au doigt),
+     Position, Contact, Document, Sondage ; chacune n'est là que si le service la sait (une tuile qui mènerait à « bientôt » n'est pas montrée). Le même cadre que le menu d'un message (Échap, le fond et
+     chaque geste la referment). ⛔ Le choix ouvre le sélecteur de l'appareil DANS le clic : passé une attente, le navigateur le refuserait. */
+  const auDoigt = () => document.documentElement.dataset.kind === 'mobile' || document.documentElement.dataset.kind === 'tablette' || (window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  function tuilesPlus() {
+    const t = [['photo', 'Photos', 'i-image']];
+    if (auDoigt()) t.push(['camera', 'Caméra', 'i-capture']);
+    if (CAP.positions) t.push(['position', 'Position', 'i-lieu']);
+    if (CAP.cartesContact) t.push(['contact', 'Contact', 'i-personne']);
+    if (CAP.fichiers) t.push(['fichier', 'Document', 'i-fichier']);
+    if (CAP.sondagesConv) t.push(['sondage', 'Sondage', 'i-sondage']);
+    return t;
+  }
   function ouvrirMenuPlus() {
     if (etat.menu || !etat.conv) return;
     etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now() };
-    $('menu-msg').setAttribute('aria-label', 'Joindre');
-    $('menu-msg').innerHTML = '<button type="button" class="menu-action" data-plus="photo">Photo</button><button type="button" class="menu-action" data-plus="fichier">Fichier</button>';
+    const M = $('menu-msg');
+    M.setAttribute('aria-label', 'Joindre'); M.classList.add('pj');
+    M.innerHTML = tuilesPlus().map(x => '<button type="button" class="pj-tuile presse" data-plus="' + x[0] + '"><span class="pj-disque" aria-hidden="true">' + icone(x[2]) + '</span><span>' + esc(x[1]) + '</span></button>').join('');
     $('menu-fond').hidden = false;
     synchroInert();
-    $('menu-msg').querySelector('button').focus({ preventScroll: true });
+    M.querySelector('button').focus({ preventScroll: true });
   }
-  $('compo-fichier').addEventListener('change', async e => {
-    const choisies = Array.from(e.target.files || []); e.target.value = '';
+  /* un choix de la feuille : les sélecteurs de l'appareil s'ouvrent DANS le geste ; position, contact et sondage ont leur propre feuille */
+  function choixPlus(x) {
+    if (x === 'photo') $('compo-fichier').click();
+    else if (x === 'camera') $('compo-appareil').click();
+    else if (x === 'fichier') $('compo-doc').click();
+    else if (x === 'position' && typeof partagerPosition === 'function') partagerPosition();
+    else if (x === 'contact') ouvrirFeuille('carte-contact');
+    else if (x === 'sondage') ouvrirFeuille('sondage-nouveau');
+  }
+  $('compo-camera').addEventListener('click', () => { if (!retap()) $('compo-appareil').click(); });
+  $('compo-fichier').addEventListener('change', e => { const l = Array.from(e.target.files || []); e.target.value = ''; photosChoisies(l); });
+  $('compo-appareil').addEventListener('change', e => { const l = Array.from(e.target.files || []); e.target.value = ''; photosChoisies(l); });     // la photo prise à l'instant : le même aperçu, la même légende
+  async function photosChoisies(choisies) {
     const id = etat.conv; if (!id || !choisies.length) return;
     const lim = await limitesPhotos();
     /* ⛔ jamais « les dix premières, le reste en silence » (relecture du testeur : la onzième disparaissait sans un mot) */
@@ -771,7 +796,7 @@
       return;
     }
     epOuvrir(id, bonnes, lim.parMessage);
-  });
+  }
 
   /* ═══ LA PHOTO AVANT L'ENVOI — l'aperçu et la légende (6 octobre 2026 : « quand j'envoie une photo, il faudrait pouvoir mettre un texte en dessous, comme WhatsApp ») ═══
      ⛔ La légende fait partie du message (un seul envoi, photos + texte) : elle n'est pas un second message envoyé à la suite. Annuler (la croix, Échap) ne laisse rien partir
@@ -3504,7 +3529,7 @@
   function fermerMenu() {
     if (!etat.menu) return;
     const d = etat.menu.declencheur; etat.menu = null;
-    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message');
+    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj');
     synchroInert();
     if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }
@@ -3538,7 +3563,7 @@
     if (Date.now() - m0.t < 350 || (m0.appuiLong && !m0.avale && m0.relache && Date.now() - m0.relache < 500)) { m0.avale = true; return; }
     if (m0.plus) {                                  // « + » : Photo ou Fichier — le choix ouvre le sélecteur de l'appareil (le clic en cours est encore le geste de la personne)
       const x = e.target.closest('[data-plus]');
-      if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) $(x.dataset.plus === 'photo' ? 'compo-fichier' : 'compo-doc').click(); }
+      if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) choixPlus(x.dataset.plus); }
       return;
     }
     if (e.target === $('menu-fond')) { fermerMenu(); return; }
