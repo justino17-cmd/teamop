@@ -13,6 +13,31 @@ de ligne du tout.
 
 ---
 
+# ⏳ 8 OCTOBRE 2026 (NUIT) — LA VÉRIFICATION DE A À Z, LE MENU D'UN MESSAGE CONTRE SA BULLE, « ME LE RAPPELER », L'AGENDA AU MOIS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+« Vérifie toute l'application et teste tout de A à Z » : 35 sondes de la vraie page + les 80 suites de la porte (deux moitiés, 40 suites et 5 820 vérifications
+pour la première), un gardien sur le serveur, un relecteur sur la page. Ce qui a été trouvé, et ce qui en est fait :
+· **six défauts de la relecture, corrigés** : « Confirmer l'envoi » contourné par un double toucher ou une Entrée tenue (400 ms, `e.repeat`), pris pour une conversation à
+  deux pendant le chargement (`convCourante`), absent du chat de la salle (premier envoi = « Confirmer ») ; le lien « Invitations » en Pro menait nulle part ; Espace hors
+  d'un champ = geste de clavier ; la règle qui éteint l'anneau rendu au doigt perdait contre les anneaux écrits plus loin (`!important`).
+· **rejoindre ou créer un espace passe côté Pro** (resté en Perso, on ne voyait ni canaux ni collègues : « Aucune conversation Perso »).
+· **serveur** : le côté automatique en UNE requête (gardien : une par conversation) ; revenir dans une conversation remet le côté choisi à zéro.
+· **sondes périmées remises à jour** (le défaut était dans la sonde) : réunions (l'onglet « Agenda », la rubrique Entreprise qui ajoute une entrée d'historique — 280 ✓ 11 ✗
+  → 291 ✓ 0 ✗), espaces (173 ✓), pièces (« + » façon WhatsApp), groupe (la carte « Enregistrement terminé »), appareils (cartes du Mac à 12 px), tableau de bord.
+⛔ **Un commit de cette nuit cassait le démarrage** : un commentaire `//` posé au milieu d'une ligne avalait le `finally` qui suivait — plus d'écran de connexion. Tous les
+bancs passaient (ils lisent le texte) ; ce sont les SONDES qui l'ont vu, toutes mortes à la connexion. test-857 COMPILE désormais le script de la page. Rien n'était poussé.
+
+Deux demandes de Justin, captures du bureau :
+· **« le message, il faudrait que ce soit mieux placé, et pouvoir le mettre en rappel »** : dès 700 px le menu d'un message s'ancre à sa bulle (CSS `anchor-name`, sous elle,
+  de son côté, au-dessus quand la place manque) ; au téléphone, la feuille du bas reste. « Me le rappeler » : 20 min, 1 h, 3 h, demain 9:00, lundi 9:00 → un ÉVÉNEMENT de
+  l'agenda (titre « Rappel : … », la conversation pour lieu, le texte en note, rappel à l'heure : la notification part du service).
+· **« le calendrier du mois complet pour voir tous ses rendez-vous »** : l'Agenda propose « Semaine | Mois » — la grille du Calendrier d'Apple (les rendez-vous dans la case
+  au bureau, des points au téléphone, le jour touché liste les siens dessous). Le choix va au COMPTE (`prefs.agenda_vue`).
+`sonde-opmessages-menu-rappel` (29 ✓, deux mutations qui mordent), test-857 (253 ✓), test-929 (27 ✓).
+⚠️ Décisions prises sans Justin, à revoir s'il le veut autrement : l'Agenda s'ouvre sur la SEMAINE tant qu'on n'a pas choisi « Mois » (puis il s'en souvient) ; « demain » et
+« lundi » à 9:00 ; toucher la notification d'un rappel ouvre l'agenda, pas le message (le relier au message demanderait un champ de plus au service) ; une réunion est
+toujours côté Pro.
+
 # ⏳ 7 OCTOBRE 2026 (TARD) — L'APPEL QUI CONTINUE, « FOND ET COULEURS » À LA APPLE, LES MENUS DÉROULANTS DES INFOS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Trois demandes de Justin, captures à l'appui :
