@@ -1559,6 +1559,30 @@ html[data-salle] .appel-ecran { display: none; }
   font-size: 14px; line-height: 19px; -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
 }
 .salle-bandeau > .texte { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; }
+/* ── LE MINUTEUR (8 octobre 2026 : « le logo OP MESSAGES en design motion, avec le chrono, au style 100 % Apple ») — celui de l'app Horloge, en capsule : un anneau qui se VIDE autour du logo,
+   les chiffres fins et tabulaires (ils ne sautent pas d'une seconde à l'autre). Le logo respire ; dans les dix dernières secondes l'anneau passe à l'orange et le souffle s'accélère ; à zéro, rouge,
+   le logo tressaille trois fois. Le temps qui reste se règle en CSS (`--mn-p`, de 1 à 0) : la page ne mesure rien. Sans mouvement si l'appareil le demande. */
+.minuteur-carte { align-self: center; width: auto; min-width: 210px; max-width: 100%; flex-wrap: nowrap; gap: 12px; padding: 10px 22px 10px 10px; border-radius: 30px; background: rgba(28,28,30,.74); border: 0;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 0 0 .5px rgba(255,255,255,.16); --mn-p: 1; --mn-c: #30d158; }
+.minuteur-carte[data-etat="bientot"] { --mn-c: #ff9f0a; }
+.minuteur-carte[data-etat="fin"] { --mn-c: #ff453a; }
+.mn-logo { position: relative; flex: none; width: 54px; height: 54px; display: grid; place-items: center; }
+.mn-anneau { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.mn-anneau circle { fill: none; stroke-width: 3.5; }
+.mn-piste { stroke: rgba(255,255,255,.14); }
+.mn-reste { stroke: var(--mn-c); stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: calc(100 - var(--mn-p) * 100); transition: stroke-dashoffset 1s linear, stroke .4s ease; }
+.mn-logo img { width: 32px; height: 32px; border-radius: 9px; animation: mn-souffle 2.4s ease-in-out infinite; }
+.minuteur-carte[data-etat="bientot"] .mn-logo img { animation-duration: 1s; }
+.minuteur-carte[data-etat="fin"] .mn-logo img { animation: mn-tressaille .45s ease-in-out 3; }
+@keyframes mn-souffle { 0%, 100% { transform: scale(1); } 50% { transform: scale(.88); } }
+@keyframes mn-tressaille { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+.mn-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.minuteur-carte > .salle-btn { margin-right: -10px; }
+.mn-texte small { font-size: 13px; line-height: 16px; font-weight: 600; color: rgba(235,235,245,.62); }
+.mn-texte b { font: 300 36px/42px -apple-system, "SF Pro Display", "Helvetica Neue", system-ui, sans-serif; letter-spacing: -.02em; font-variant-numeric: tabular-nums; color: #fff; }
+.minuteur-carte[data-etat="bientot"] .mn-texte b { color: var(--mn-c); }
+.minuteur-carte[data-etat="fin"] .mn-texte b { font-size: 26px; line-height: 42px; font-weight: 500; color: var(--mn-c); }
+@media (prefers-reduced-motion: reduce) { .mn-logo img { animation: none !important; } .mn-reste { transition: none; } }
 .salle-btn {
   min-height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
 }

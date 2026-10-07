@@ -513,6 +513,11 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await toucher(A, '[data-sa="minuteur"][data-s="60"]');
       for (const S of [B, C]) await verifier(S.nom + ' : le minuteur court (un décompte de moins d\'une minute)', S, () => { const m = document.getElementById('salle-minuteur'); return !!m && /^00:\d\d$/.test(m.textContent.trim()); }, null, 10000, async () => '«' + (await lire(S, '#salle-bandeaux')) + '»');
       await panneau(A, 'plus');
+      /* 8 octobre 2026 : « le logo OP MESSAGES en design motion avec le chrono, au style 100 % Apple » */
+      const mn = await B.page.evaluate(() => { const c = document.querySelector('.minuteur-carte'); if (!c) return null; const img = c.querySelector('.mn-logo img'), b = c.querySelector('#salle-minuteur'), cs = getComputedStyle(b);
+        return { logo: !!img && img.complete && img.naturalWidth > 0, anneau: !!c.querySelector('.mn-reste'), p: parseFloat(c.style.getPropertyValue('--mn-p')), poids: cs.fontWeight, chiffres: cs.fontVariantNumeric, etat: c.dataset.etat, anim: getComputedStyle(img).animationName, mouvement: matchMedia('(prefers-reduced-motion: reduce)').matches }; });
+      v('le minuteur façon Apple (Ben) : le logo OP MESSAGES chargé dans un anneau ENTAMÉ, chiffres fins (300) et tabulaires, état « court », le logo respire (sauf mouvement réduit)', mn && [mn.logo, mn.anneau, mn.p > 0 && mn.p < 1, mn.poids, /tabular-nums/.test(mn.chiffres), mn.etat, mn.anim === (mn.mouvement ? 'none' : 'mn-souffle')], [true, true, true, '300', true, 'court', true]);
+      if (DOSSIER_CAPTURES) { await B.page.waitForTimeout(1200); await B.page.screenshot({ path: path.join(DOSSIER_CAPTURES, 'minuteur-apple.png') }); }
       await toucher(A, geste('minuteur-arreter'));
       await verifier('Ana l\'ARRÊTE : le minuteur disparaît chez Cleo', C, () => !document.getElementById('salle-minuteur'), null, 10000);
       await fermer(A);

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '11ecdb4783ba';
+  const OPMSG_BUILD = 'dc6ab27f1ef7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 112;
+  const OPMSG_VERSION = 114;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5617,16 +5617,25 @@
         '<div class="salle-rang libre"><span class="texte"><small>' + total + (total > 1 ? ' votes' : ' vote') + (so.ouvert ? '' : ' · terminé') + '</small></span>' +
         (so.ouvert && hote ? '<button type="button" class="salle-btn presse" data-sa="sondage-fermer">Terminer le sondage</button>' : '') + (so.ouvert ? '' : '<button type="button" class="salle-btn presse" data-sa="sondage-masquer">Masquer</button>') + '</div></div>';
     }
-    if (s.minuteur) h += '<div class="salle-bandeau"><span class="texte">Minuteur <b id="salle-minuteur" role="timer"></b></span>' + (hote ? '<button type="button" class="salle-btn presse" data-sa="minuteur-arreter">Arrêter</button>' : '') + '</div>';
+    if (s.minuteur) h += '<div class="salle-bandeau minuteur-carte" data-etat="court"><span class="mn-logo" aria-hidden="true"><svg class="mn-anneau" viewBox="0 0 54 54"><circle class="mn-piste" cx="27" cy="27" r="24.5"/><circle class="mn-reste" cx="27" cy="27" r="24.5" pathLength="100"/></svg><img src="' + esc(logoMarque()) + '" alt="" width="32" height="32"></span>' +
+      '<span class="mn-texte"><small>Minuteur</small><b id="salle-minuteur" role="timer"></b></span>' + (hote ? '<button type="button" class="salle-btn presse" data-sa="minuteur-arreter">Arrêter</button>' : '') + '</div>';
     zone.innerHTML = h;
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(zone.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.i || x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
     majMinuteur(A);
   }
+  /* le logo d'OP MESSAGES : celui de la marque, dans la barre latérale (son adresse est juste sur l'aperçu comme sur la page servie — la construction la réécrit dans le balisage seul) */
+  const logoMarque = () => { const i = document.querySelector('.side-marque img'); return (i && i.getAttribute('src')) || ''; };
   function majMinuteur(A) {
     const s = A.snap, X = sx(A), el = $('salle-minuteur'); if (!s.minuteur || !el) return;
     const reste = Math.max(0, Math.ceil((s.minuteur.fin - Date.now()) / 1000));
     const t = reste > 0 ? dureeAppel(reste) : 'Temps écoulé';
     if (el.textContent !== t) el.textContent = t;
+    const carte = el.closest('.minuteur-carte');
+    if (carte) {                                                                            // l'anneau : ce qui RESTE sur la durée choisie ; l'état : court, bientôt (dix secondes), fini
+      const tot = Math.max(1, +s.minuteur.secondes || reste || 1), p = Math.max(0, Math.min(1, (s.minuteur.fin - Date.now()) / 1000 / tot));
+      carte.style.setProperty('--mn-p', p.toFixed(4));
+      const e = reste === 0 ? 'fin' : reste <= 10 ? 'bientot' : 'court'; if (carte.dataset.etat !== e) carte.dataset.etat = e;
+    }
     if (reste === 0 && X.finMinuteur !== s.minuteur.fin) { X.finMinuteur = s.minuteur.fin; annonceAppel('Le minuteur est terminé'); }
   }
   function majStatutSalle(A) {
