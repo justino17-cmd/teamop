@@ -45,8 +45,8 @@ function installerSalles(H, ctx) {
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };
-  function plafond(res, cle, max, fenetreMs) {
-    const r = quotas.essai(cle, Math.max(1, Math.floor(max)), fenetreMs);
+  function plafond(res, cle, max, fenetreMs, poids) {
+    const r = quotas.essai(cle, Math.max(1, Math.floor(max)), fenetreMs, poids);
     if (r.ok) return true;
     res.set('Retry-After', String(r.retry));
     refus(res, 429, 'quota_atteint', { retry: r.retry });
@@ -164,7 +164,12 @@ function installerSalles(H, ctx) {
   H['salles.annot'] = garder((req, res) => {
     const b = corps(req);
     if (typeof b.op !== 'string') return refus(res, 400, 'champ_invalide');
-    if (!plafond(res, 'salle_annot:' + req.appel.id + ':' + req.moi.id, 900, 60000)) return;
+    /* ⛔ un plafond PAR COMPTE, toutes salles confondues (ouvrir dix salles ne le multiplie pas), en gestes ET en points : ce qui coûte, c'est ce que la salle diffuse à chacun de ses présents, et un trait de
+       600 points en pèse 600. Cette route est HORS du plafond commun des écritures (300 par minute, `app.js`) : un trait en cours part en morceaux, et ce plafond-là coupait le dessin au bout d'une
+       demi-minute (relecture gardien, mesuré avec les plafonds de production). */
+    if (!plafond(res, 'salle_annot:' + req.moi.id, 900, 60000)) return;
+    const n = Array.isArray(b.pts) ? b.pts.length : 0;
+    if (n && !plafond(res, 'salle_annot_pts:' + req.moi.id, 40000, 60000, Math.min(n, 40000))) return;
     res.json({ ok: true, ev: appels.annoter({ moi: req.moi, acces: req.appel, d: b }) });
   });
   H['salles.evt'] = garder((req, res) => {

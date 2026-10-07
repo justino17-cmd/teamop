@@ -1424,6 +1424,7 @@
       if (st === 'attente') { c.attente = true; emettreAppel(c); return; }
       if (st === 'present') {
         const etaitAttente = c.attente; c.attente = false;
+        if (etaitAttente) relire(c);                                         // admis : le service ne raconte l'éphémère (ce qui est dessiné, le sondage) qu'à ceux qui sont DANS la salle
         if (!c.debut) c.debut = maintenant();
         if (c.minSonnerie) { annuler(c.minSonnerie); c.minSonnerie = null; }
         syncPairs(c);

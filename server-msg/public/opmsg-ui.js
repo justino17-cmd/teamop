@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '48944b51a324';
+  const OPMSG_BUILD = '3259a0354b39';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 48;
+  const OPMSG_VERSION = 50;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4951,7 +4951,7 @@
      Le SERVICE tient ce qui est dessiné (en mémoire, le temps de la salle) ; la source en garde la copie (`source.salleAnnotations`) et dit 'salle-annot' quand elle change. La page :
      · un CALQUE (`canvas.annot-calque`) posé dans la vignette du support (l'écran partagé de quelqu'un, ou le tableau), redessiné à l'image près (`annotPlanifier`) ;
      · des coordonnées RELATIVES à l'image (0..10 000), pas aux pixels d'un appareil : un trait posé sur un téléphone tombe au même endroit sur l'écran d'un ordinateur ;
-     · le trait en cours part en morceaux (toutes les 120 ms) pendant qu'on dessine — les autres le voient se tracer ; le mien reste dessiné ICI jusqu'à ce que le service l'ait entier (`N.locaux`).
+     · le trait en cours part en morceaux (toutes les 200 ms) pendant qu'on dessine — les autres le voient se tracer ; le mien reste dessiné ICI jusqu'à ce que le service l'ait entier (`N.locaux`).
      ⛔ Le partageur ne voit pas les annotations sur SON écran réel (une page web ne dessine pas hors d'elle) : il les voit sur sa vignette. Le dire plutôt que le laisser croire. */
   const ANNOT_COULEURS = { rouge: '#ff3b30', orange: '#ff9500', jaune: '#ffcc00', vert: '#34c759', bleu: '#0a84ff', violet: '#af52de', noir: '#1c1c1e', blanc: '#ffffff' };
   const NOMS_COULEURS = { rouge: 'Rouge', orange: 'Orange', jaune: 'Jaune', vert: 'Vert', bleu: 'Bleu', violet: 'Violet', noir: 'Noir', blanc: 'Blanc' };
@@ -4959,7 +4959,8 @@
   const ANNOT_TABLEAU = 1.6, ANNOT_PAS = 30, ANNOT_POINTS_MAX = 4000;
   const annotEtat = A => { const X = sx(A); return X.an || (X.an = { outil: 'stylo', couleur: 'rouge', ep: 2, trait: null, locaux: new Map(), file: Promise.resolve(), support: undefined, vueAvant: null, calque: null, cible: null, ro: null, planifie: 0, minuterie: 0, boite: null, saisie: null, palette: null, n: 0 }); };
   const annotInfo = A => { const a = A && A.snap && A.snap.annot; return a && a.support ? a : null; };
-  function annotMaitre(A) { const a = annotInfo(A); return !!a && (!!A.snap.moi.hote || a.support === 'ecran:' + MOI.id || (a.support === 'tableau' && a.ouvreur === MOI.id)); }
+  /* la même règle que le service : l'hôte ; et, tant que les annotations sont à tous, celui qui partage ou qui a ouvert le tableau */
+  function annotMaitre(A) { const a = annotInfo(A); return !!a && (!!A.snap.moi.hote || (a.permis === 'tous' && (a.support === 'ecran:' + MOI.id || (a.support === 'tableau' && a.ouvreur === MOI.id)))); }
   function annotPeut(A) { const a = annotInfo(A); return !!a && !A.snap.attente && (a.permis === 'tous' || annotMaitre(A)); }
   function annotCible(A) {
     const a = annotInfo(A); if (!a || A.snap.attente) return null;
@@ -5106,7 +5107,7 @@
       if (N.trait) annotFinir(A, true);
       try { cv.setPointerCapture(e.pointerId); } catch (er) { /* le pointeur est déjà parti */ }
       N.trait = { id: annotId(), de: MOI.id, outil: N.outil, couleur: N.couleur, ep: N.ep, pts: p.slice(), fini: false, envoyes: 0, cree: false, pointeur: e.pointerId };
-      if (N.outil === 'stylo' || N.outil === 'surligneur') N.minuterie = setInterval(() => annotVider(A, false), 120);
+      if (N.outil === 'stylo' || N.outil === 'surligneur') N.minuterie = setInterval(() => annotVider(A, false), 200);
       annotPlanifier();
     });
     cv.addEventListener('pointermove', e => {

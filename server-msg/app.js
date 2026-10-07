@@ -293,7 +293,8 @@ function construireApp(ctx) {
     if (r.pro === true && r.organiser === true) throw new Error('route à la fois pro et organiser : ' + r.id);
     if (r.pro === true) chaine.push(...garde.PRO);     // ⛔ la route le DÉCLARE (manifeste) ; après sa garde d'appartenance, jamais avant (un non-membre reçoit 404, pas 402)
     if (r.organiser === true) chaine.push(...garde.ORGANISER);     // idem : Pro OU Perso+ (le forfait d'une personne)
-    if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B') chaine.push(limiteEcriture);
+    /* ⛔ les annotations d'une salle ont LEUR plafond, par compte, en gestes et en points (`routes-salles.js`) : un trait part en morceaux pendant qu'on dessine, et les 300 écritures par minute le coupaient */
+    if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B' && r.id !== 'salles.annot') chaine.push(limiteEcriture);
     app[r.m.toLowerCase()](r.p, ...chaine, h);
   }
 

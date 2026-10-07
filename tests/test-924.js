@@ -89,6 +89,7 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
        await P(c1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 2, pts: new Array(1202).fill(3) }), await P(c1, { op: 'trait', id: '<x>', outil: 'stylo', couleur: 'rouge', ep: 2, pts: [1, 1] }),
        await P(c1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 2 }), await P(c1, { op: 'gribouille' }), await P(c1, {})].map(dit).concat([(await salle(a1)).items.length]),
       new Array(11).fill([400, 'champ_invalide']).concat([nb]));
+    v('⛔ une forme a DEUX points, pas un de plus ni de moins : 400', [dit(await P(b1, { op: 'trait', id: ID(), outil: 'rect', couleur: 'jaune', ep: 1, pts: [1, 1, 2, 2, 3, 3] })), dit(await P(b1, { op: 'trait', id: ID(), outil: 'fleche', couleur: 'jaune', ep: 1, pts: [1, 1] }))], [[400, 'champ_invalide'], [400, 'champ_invalide']]);
     const fl = await P(b1, { op: 'trait', id: ID(), outil: 'fleche', couleur: 'jaune', ep: 3, pts: [5000, 5000, 7000, 3000] });
     v('une forme (flèche, rectangle, cercle) part d\'un coup et naît TERMINÉE', [fl.code, fl.j.ev.item.outil, fl.j.ev.item.fini], [200, 'fleche', true]);
 
@@ -98,12 +99,17 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     v('Cleo pose un texte : 200, les espaces sont resserrés, Ana le reçoit', [tx.code, tx.j.ev.item.texte, annot(fA).filter(e => e.op === 'trait' && e.item.outil === 'texte').map(e => e.item.texte)], [200, 'À revoir avant vendredi', ['À revoir avant vendredi']]);
     v('⛔ un texte vide, de 201 signes, à deux points, ou un identifiant déjà pris : 400', [dit(await P(c1, { op: 'texte', id: ID(), pts: [1, 1], texte: '   ', couleur: 'rouge', ep: 1 })), dit(await P(c1, { op: 'texte', id: ID(), pts: [1, 1], texte: 'é'.repeat(201), couleur: 'rouge', ep: 1 })),
       dit(await P(c1, { op: 'texte', id: ID(), pts: [1, 1, 2, 2], texte: 'x', couleur: 'rouge', ep: 1 })), dit(await P(c1, { op: 'texte', id: t1, pts: [1, 1], texte: 'x', couleur: 'rouge', ep: 1 }))], new Array(4).fill([400, 'champ_invalide']));
+    const bidi = await P(c1, { op: 'texte', id: ID(), pts: [1, 1], texte: '\u202Eabc\u200B\u0007def', couleur: 'noir', ep: 1 });
+    v('⛔ les caractères de commande et de renversement bidirectionnel ne passent pas (un contrôle devient une espace)', bidi.j.ev.item.texte, 'abc def');
+    await P(a1, { op: 'retirer', id: bidi.j.ev.item.id });
     vrai('   et 200 signes passent (la borne est comprise)', (await P(c1, { op: 'texte', id: ID(), pts: [1, 1], texte: 'é'.repeat(200), couleur: 'noir', ep: 1 })).code === 200);
 
     console.log('\nCelui qui arrive après voit ce qui est dessiné ; Dan, qui sonne, ne reçoit rien');
     const vu = await salle(a1);
     v('l\'instantané (`GET /api/salles/:id`) porte le support, le permis et chaque trait avec son auteur', [vu.support === 'ecran:' + ben.id, vu.permis, vu.items.map(x => [x.outil, x.de === cleo.id ? 'Cleo' : x.de === ben.id ? 'Ben' : '?'])],
       [true, 'tous', [['stylo', 'Cleo'], ['stylo', 'Cleo'], ['fleche', 'Ben'], ['texte', 'Cleo'], ['texte', 'Cleo']]]);
+    const lueParDan = await d1.get(U);
+    v('⛔ Dan, invité qui SONNE, lit la salle sans ce qui y est dessiné (relecture gardien B2 : ni texte, ni trait, ni sondage — la salle d\'attente existe pour ça)', [lueParDan.code, lueParDan.j.salle.annot, lueParDan.j.salle.sondage, JSON.stringify(lueParDan.j).includes('avant vendredi')], [200, { support: null, ouvreur: null, permis: 'tous', items: [] }, null, false]);
     await marqueVers(dan, fD);
     v('⛔ Dan (invité qui sonne) n\'a reçu AUCUN événement d\'annotation (marqueur reçu après : son flux est vivant) ; il ne peut pas dessiner', [annot(fD).length, (await P(d1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 1, pts: [1, 1] })).code !== 200], [0, true]);
     v('⛔ l\'expéditeur ne reçoit pas ses propres traits par le flux (il les a dans la réponse) : Cleo n\'a reçu que ceux de Ben', annot(fC).filter(e => e.op === 'trait').map(e => e.de === ben.id), [true]);
@@ -112,9 +118,10 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     v('⛔ un participant ne règle pas le permis (403) ; un permis inconnu : 400', [dit(await P(c1, { op: 'permis', qui: 'hotes' })), dit(await P(a1, { op: 'permis', qui: 'personne' }))], [[403, 'interdit'], [400, 'champ_invalide']]);
     const pm = await P(a1, { op: 'permis', qui: 'hotes' });
     await attendreOp(fC, 'permis');
-    v('l\'hôte les réserve aux hôtes : 200, Cleo le reçoit ; elle ne dessine plus (403) — Ben, qui PARTAGE, si (le support est le sien)',
-      [pm.code, annot(fC).filter(e => e.op === 'permis').map(e => e.permis), dit(await P(c1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 1, pts: [1, 1] })), (await P(b1, { op: 'trait', id: ID(), outil: 'rect', couleur: 'vert', ep: 1, pts: [100, 100, 900, 900] })).code, (await salle(c1)).permis],
-      [200, ['hotes'], [403, 'interdit'], 200, 'hotes']);
+    v('l\'hôte les réserve aux hôtes : 200, Cleo le reçoit ; elle ne dessine plus (403) — ⛔ Ben non plus, alors que c\'est SON écran (un partage s\'annonce, il ne se prouve pas : il ne donne pas la main) ; l\'hôte, si',
+      [pm.code, annot(fC).filter(e => e.op === 'permis').map(e => e.permis), dit(await P(c1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 1, pts: [1, 1] })), dit(await P(b1, { op: 'trait', id: ID(), outil: 'rect', couleur: 'vert', ep: 1, pts: [100, 100, 900, 900] })), dit(await P(b1, { op: 'effacer', qui: 'tous' })),
+       (await P(a1, { op: 'trait', id: ID(), outil: 'rect', couleur: 'vert', ep: 1, pts: [100, 100, 900, 900] })).code, (await salle(c1)).permis],
+      [200, ['hotes'], [403, 'interdit'], [403, 'interdit'], [403, 'interdit'], 200, 'hotes']);
     await P(a1, { op: 'permis', qui: 'tous' });
     const deBen = (await salle(a1)).items.find(x => x.de === ben.id).id, deCleo = (await salle(a1)).items.find(x => x.de === cleo.id && x.outil === 'texte').id;
     const nA = fA.evenements.length;
@@ -127,14 +134,34 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     v('Cleo annule : SON dernier trait part (et lui seul)', [an1.code, an1.j.ev.ids, (await salle(a1)).items.filter(x => x.de === cleo.id).map(x => x.id)], [200, [avantAnn[avantAnn.length - 1]], avantAnn.slice(0, -1)]);
     v('⛔ Cleo n\'efface pas tout (403) ; un « qui » inconnu : 400', [dit(await P(c1, { op: 'effacer', qui: 'tous' })), dit(await P(c1, { op: 'effacer', qui: 'autres' }))], [[403, 'interdit'], [400, 'champ_invalide']]);
     const ef = await P(c1, { op: 'effacer', qui: 'miens' });
-    v('Cleo efface les siennes : celles de Ben restent', [ef.code, (await salle(a1)).items.map(x => x.de === ben.id)], [200, [true, true]]);
+    v('Cleo efface les siennes : celles des autres restent', [ef.code, (await salle(a1)).items.map(x => x.de === cleo.id)], [200, [false, false]]);
     const vide = await P(c1, { op: 'annuler' });
     v('   annuler quand on n\'a plus rien : 200, rien ne part', [vide.code, vide.j.ev.ids], [200, []]);
     await P(c1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 1, pts: [1, 1], fin: true });
     const tout = await P(a1, { op: 'effacer', qui: 'tous' });
     v('l\'hôte efface TOUT : 200, plus rien de dessiné', [tout.code, tout.j.ev.ids.length, (await salle(b1)).items.length], [200, 3, 0]);
 
+    console.log('\n⛔ Un partage s\'ANNONCE, il ne se prouve pas : il ne vole jamais le support ni ce qui y est dessiné (relecture gardien B1)');
+    await P(b1, { op: 'texte', id: ID(), pts: [100, 100], texte: 'Note de Ben', couleur: 'noir', ep: 1 });
+    const avantFaux = (await salle(a1)).items.length;
+    const nB1 = fB.evenements.length;
+    const faux = await c1.post(U + '/etat', { partage: true });
+    await marqueVers(ben, fB);
+    v('Cleo annonce un partage pendant que Ben partage : 200 (l\'état est le sien), mais le support RESTE l\'écran de Ben, rien ne s\'efface, et Ben ne reçoit aucun changement de support',
+      [faux.code, (await salle(a1)).support === 'ecran:' + ben.id, (await salle(a1)).items.length, fB.evenements.slice(nB1).filter(e => e.event === 'salle_evt' && e.data.k === 'annot' && e.data.op === 'support').length], [200, true, avantFaux, 0]);
+    v('   ⛔ et elle n\'en tire aucun droit : effacer pour tous reste refusé (403)', dit(await P(c1, { op: 'effacer', qui: 'tous' })), [403, 'interdit']);
+    await P(a1, { op: 'permis', qui: 'hotes' });
+    await b1.post(U + '/etat', { partage: false });
+    v('⛔ sous « réservées aux hôtes », quand Ben s\'arrête, le support ne passe PAS au partage annoncé par Cleo (une participante) : plus de support', (await salle(a1)).support, null);
+    await c1.post(U + '/etat', { partage: false }); await c1.post(U + '/etat', { partage: true });
+    v('   et un nouveau partage annoncé par Cleo ne devient pas support non plus', (await salle(a1)).support, null);
+    await c1.post(U + '/etat', { partage: false });
+    await P(a1, { op: 'permis', qui: 'tous' });
+    await b1.post(U + '/etat', { partage: true });
+    v('population : Ben repartage, le support est de nouveau son écran', (await salle(a1)).support, 'ecran:' + ben.id);
+
     console.log('\nLe tableau blanc : il s\'ouvre, il ne s\'écrase pas, il se ferme — et le partage reprend la main');
+    await P(a1, { op: 'effacer', qui: 'tous' });
     v('⛔ Cleo n\'ouvre pas le tableau par-dessus l\'écran que Ben partage (409 `annot_occupe`) ; un « actif » qui n\'est pas un booléen : 400', [dit(await P(c1, { op: 'tableau', actif: true })), dit(await P(c1, { op: 'tableau', actif: 'oui' }))], [[409, 'annot_occupe'], [400, 'champ_invalide']]);
     await P(c1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 1, pts: [1, 1], fin: true });
     const nA2 = fA.evenements.length;
@@ -180,11 +207,47 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     v('⛔ ni un texte posé ni un identifiant de trait n\'apparaît dans le journal du service', ['Ordre du jour', 'revoir avant vendredi', t1, lg].filter(x => journal.includes(x)), []);
     v('⛔ ni dans la base : aucune table ne porte le texte d\'une annotation (l\'éphémère vit en mémoire)', S.sonde().schema > 0 && !Buffer.concat([require('fs').readFileSync(path.join(svc.data, 'msg.db'))].concat(require('fs').existsSync(path.join(svc.data, 'msg.db-wal')) ? [require('fs').readFileSync(path.join(svc.data, 'msg.db-wal'))] : [])).includes(Buffer.from('Ordre du jour')), true);
 
-    console.log('\nLe plafond : 900 gestes d\'annotation par minute et par personne');
+    console.log('\nLe plafond en POINTS : 40 000 coordonnées par minute et par compte');
+    svc.avancer(61000); decal += 61000;
     await b1.post(U + '/etat', { partage: true });
+    let envoyees = 0, refus = null;
+    for (let t = 0; t < 6 && !refus; t++) {
+      const id0 = ID();
+      for (let k = 0; k < 7 && !refus; k++) {
+        const pts = morceau().slice(0, k === 6 ? 800 : 1200);
+        const x = await P(b1, k === 0 ? { op: 'trait', id: id0, outil: 'stylo', couleur: 'rouge', ep: 1, pts } : { op: 'trait', id: id0, pts });
+        if (x.code === 200) envoyees += pts.length; else refus = [x.code, x.j.error, envoyees];
+      }
+    }
+    v('⛔ 40 000 coordonnées passent dans la minute (cinq traits de 4 000 points) ; le morceau suivant est refusé 429', refus, [429, 'quota_atteint', 40000]);
+
+    console.log('\nLe plafond : 900 gestes d\'annotation par minute et par personne');
     let passes = 0, code = 0;
     for (let i = 0; i < 920 && code !== 429; i++) { const x = await P(a1, { op: 'annuler' }); code = x.code; if (code === 200) passes++; }
     v('⛔ les premiers passent, puis 429 (une boucle ne submerge pas la salle)', [passes > 0 && passes <= 900, code], [true, 429]);
+
+    console.log('\nAvec les plafonds de PRODUCTION : dessiner longtemps ne bute pas sur le plafond commun des écritures (300 par minute)');
+    {
+      const svc2 = await T.lancerService({ horloge: true, quotasProd: true, config: { appels: { balayageMs: 1000, perduMs: 600000 } } });
+      try {
+        const S2 = ouvrir({ chemin: path.join(svc2.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc2.cle, 'hex')), horloge: () => Date.now() });
+        const p2 = (nom) => S2.personneCreer({ identifiant: 'beta:' + nom + crypto.randomBytes(3).toString('hex'), prenom: nom, nom: 'Banc', origine: 'beta', verifie: true });
+        const cl2 = (p) => { const c = T.client(svc2.base); const j = jeton(); S2.sessionAjouter({ h: sha(j), personne: p.id, appareil: null, ttlMs: 60 * JOUR }); c.poserCookie(j); return c; };
+        const x = p2('Xia'), y = p2('Yan'), z = p2('Zoe'); S2.contactLier(x.id, y.id); S2.contactLier(x.id, z.id);
+        const cx = cl2(x), cy = cl2(y), cz = cl2(z);
+        const g2 = S2.convCreerGroupe({ createur: x.id, nom: 'Prod', membres: [y.id, z.id], annonces_seules: false, ephemere_s: 0 }).id;
+        const ap = await cx.post('/api/appels', { conv: g2, type: 'video' }); const id2 = ap.j.appel.id, U2 = '/api/salles/' + id2;
+        await cy.post('/api/appels/' + id2 + '/repondre', { accepte: true });
+        await cy.post(U2 + '/etat', { partage: true });
+        const tr = 'prod' + crypto.randomBytes(4).toString('hex');
+        let ok2 = 0, premier = null;
+        for (let i = 0; i < 360; i++) { const q = await cx.post(U2 + '/annot', i === 0 ? { op: 'trait', id: tr, outil: 'stylo', couleur: 'bleu', ep: 1, pts: [i, i] } : { op: 'trait', id: tr, pts: [i, i] }); if (q.code === 200) ok2++; else if (!premier) premier = [i, q.code, q.j && q.j.error]; }
+        v('⛔ 360 morceaux de trait dans la minute (une minute de dessin continu, un toutes les 200 ms, plus de marge) : tous passent — avant, le 301ᵉ prenait 429 et le trait s\'arrêtait', [ok2, premier], [360, null]);
+        const msg = await cx.post('/api/conversations/' + g2 + '/messages', { cid: 'cid-p-' + crypto.randomBytes(5).toString('hex'), texte: 'après le dessin' });
+        v('   ⛔ et le dessin n\'USE pas le plafond commun : juste après, un message part (relecture gardien : la même clé coupait aussi ses messages)', msg.code < 300, true);
+        try { S2.fermer(); } catch (e) { /* déjà fermé */ }
+      } finally { await svc2.arreter(); }
+    }
   } finally {
     for (const f of flux) { try { f.fermer(); } catch (e) { /* déjà fermé */ } }
     try { S.fermer(); } catch (e) { /* déjà fermé */ }

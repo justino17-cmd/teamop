@@ -4,7 +4,7 @@
      1. personne ne partage : pas de « Annoter » ; Ben partage → « Annoter » paraît chez les trois, l'écran de Ben passe EN GRAND chez Ana et Cléo (pas chez Ben) ;
      2. Ana annote : un trait à la souris — ⛔ Cléo le voit SE TRACER avant qu'Ana lâche le bouton, et au MÊME endroit de l'image alors que sa vignette n'a pas la même taille (pixels relus
         sur son calque) ; un texte ; ⌘Z/Ctrl+Z le retire ; Cléo choisit le vert dans la palette et trace un rectangle qu'Ana voit en vert ;
-     3. l'hôte réserve les annotations aux hôtes : « Annoter » disparaît chez Cléo, reste chez Ben (c'est son écran) ; rendu à tous, il revient ;
+     3. l'hôte réserve les annotations aux hôtes : « Annoter » disparaît chez Cléo ET chez Ben (son écran ne lui donne pas la main), reste chez Ana ; rendu à tous, il revient ;
      4. Ben arrête : la barre et le calque s'en vont, la vue revient en galerie ;
      5. Cléo ouvre un TABLEAU BLANC (Plus) : la vignette blanche paraît en grand chez les trois, Cléo est déjà en mode « Annoter » ; elle dessine, Ana le voit sur le blanc ; « Capturer » envoie
         l'image dans la discussion du groupe (une photo, légendée) ; Échap quitte le mode ; la barre tient dans les 390 px du téléphone, chaque bouton répond sur 44 px.
@@ -152,7 +152,7 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     vrai('population : le panneau Plus d\'Ana a « Tableau blanc et annotations »', await att(A, () => /Tableau blanc et annotations/.test(document.getElementById('salle-panneau-corps').textContent)));
     await A.page.locator('[data-sa="annot-permis"]').click();
     vrai('« Annotations des participants » coupé : chez Cléo, « Annoter » disparaît et son mode s\'éteint', await att(C, () => document.getElementById('salle-annoter').hidden && !document.getElementById('salle-ecran').hasAttribute('data-annoter')));
-    v('   ⛔ chez Ben, il reste (c\'est SON écran) ; chez Ana (hôte) aussi', [await B.page.evaluate(() => document.getElementById('salle-annoter').hidden), await A.page.evaluate(() => document.getElementById('salle-annoter').hidden)], [false, false]);
+    v('   ⛔ chez Ben aussi, alors que c\'est SON écran (un partage s\'annonce, il ne donne pas la main) ; chez Ana (hôte), il reste', [await att(B, () => document.getElementById('salle-annoter').hidden), await A.page.evaluate(() => document.getElementById('salle-annoter').hidden)], [true, false]);
     await A.page.locator('[data-sa="annot-permis"]').click();
     vrai('rendu à tous : « Annoter » revient chez Cléo', await att(C, visible, 'salle-annoter'));
     await A.page.locator('#salle-panneau-fermer').click();
