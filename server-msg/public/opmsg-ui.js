@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '079dbe3deb43';
+  const OPMSG_BUILD = '24da672f5c01';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 85;
+  const OPMSG_VERSION = 86;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -309,9 +309,16 @@
     if (r.feuille && (!etat.groupe.ouvert || etat.groupe.cle !== cleFeuille(r.feuille))) ouvrirFeuilleDom(r.feuille); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
     const cle = r.photo || null;
     if (cle !== etat.photo) { if (cle) ouvrirPhotoDom(cle); else fermerPhotoDom(); }
-    /* l'appel est la couche du DESSUS : la route qui n'en porte plus le raccroche (retour système, Échap, onglet, bouton — un seul chemin, comme la photo) */
+    /* l'appel est la couche du DESSUS. ⛔ Une route qui n'en porte plus le RÉDUIT (« Message », un onglet, le retour système, Échap) : l'appel continue, la barre du haut y ramène.
+       Seul un RACCROCHAGE le termine (le bouton rouge, « Refuser », « Quitter la salle », l'appel fini ailleurs : `raccrocherCouche`) — et un appel ENTRANT qu'on quitte sans
+       l'avoir pris est refusé, comme avant. Une seule sortie reste : `quitterAppel`. */
     const veutAppel = r.appel || null;
-    if (veutAppel !== etat.appelId) { if (veutAppel) afficherAppel(veutAppel); else quitterAppel(); }
+    if (veutAppel && veutAppel === etat.appelId && etat.appelReduit) restaurerAppel();
+    else if (veutAppel !== etat.appelId && !(veutAppel === null && etat.appelReduit)) {
+      if (veutAppel) { if (etat.appelReduit) quitterAppel(); afficherAppel(veutAppel); }
+      else if (appelReductible()) reduireAppel(); else quitterAppel();
+    }
+    etat.raccrocher = false;
     synchroInert();
   }
   /* ce qui n'est pas au premier plan ne reçoit ni le focus ni le lecteur d'écran : la feuille et la photo rendent TOUT inerte,
@@ -319,9 +326,10 @@
   const largeBureau = matchMedia('(min-width: 1100px)');
   function synchroInert() {
     $('app').inert = !!(etat.groupe.ouvert || etat.photo || etat.menu || ep.ouvert);
-    /* un appel recouvre la liste ET la conversation (au bureau, la barre latérale reste, et reste active : l'onglet qu'on touche raccroche) */
-    $('contenu').inert = !!(etat.appelId || (etat.conv && !largeBureau.matches));
-    $('conv-ecran').inert = !!etat.appelId; $('conv-vide').inert = !!etat.appelId;
+    /* un appel recouvre la liste ET la conversation (au bureau, la barre latérale reste, et reste active : l'onglet qu'on touche RÉDUIT l'appel) ; réduit, il ne recouvre plus rien */
+    const couvre = !!etat.appelId && !etat.appelReduit;
+    $('contenu').inert = !!(couvre || (etat.conv && !largeBureau.matches));
+    $('conv-ecran').inert = couvre; $('conv-vide').inert = couvre;
   }
   if (largeBureau.addEventListener) largeBureau.addEventListener('change', synchroInert);
 
@@ -333,8 +341,8 @@
       const h = entree();
       if (a.id === 'profil-retour' && h && h.p && h.p.vue === a.dataset.vue && etat.route && etat.route.vue === 'reglages' && !etat.route.sec) { rendreEntree(); return; }
       const r = { vue: a.dataset.vue, conv: null, feuille: false, photo: null, appel: null };
-      /* un onglet touché PENDANT un appel prend la place de l'entrée de l'appel (il raccroche) : pas d'entrée morte « appel terminé » qu'un retour ferait retomber dessus */
-      if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId) remplacer(r); else pousser(r);
+      /* un onglet touché PENDANT un appel prend la place de l'entrée de l'appel (il le RÉDUIT : l'appel continue, la barre du haut y ramène) */
+      if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId && !etat.appelReduit) remplacer(r); else pousser(r);
       return;
     }
     if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
@@ -1704,7 +1712,7 @@
     if (e.target === $('recherche-conv') && !etat.photo && !etat.groupe.ouvert) { if (e.target.value) { e.preventDefault(); e.target.value = ''; etat.recherche = ''; rendreListe(); } return; }
     /* Échap ferme la couche du dessus : la photo, la feuille, un appel (il raccroche), un enregistrement en cours, la conversation */
     if (etat.photo || etat.groupe.ouvert) { e.preventDefault(); fermerCouche(); }
-    else if (etat.appelId) { e.preventDefault(); fermerCouche(); }
+    else if (etat.appelId && !etat.appelReduit) { e.preventDefault(); fermerCouche(); }      // Échap RÉDUIT l'appel (il continue) ; réduit, c'est la couche d'en dessous qui se ferme
     else if (enr.etat === 'enregistre' || enr.etat === 'demande') { e.preventDefault(); annulerEnregistrement(); }
     else if (etat.contexte) { e.preventDefault(); annulerContexte(); }
     else if (etat.conv) { e.preventDefault(); fermerCouche(); }
@@ -2041,7 +2049,7 @@
     return (muet ? 'Micro coupé' : A.camera ? 'Vidéo activée' : 'Appel en cours') + ' · ' + dureeAppel((Date.now() - (s.debut || Date.now())) / 1000);
   }
   /* ⛔ la durée se relit quatre fois par seconde, pas une : une minuterie à 1 s, lancée AVANT que l'autre réponde, n'est pas calée sur le début de l'appel et affiche un chiffre en retard de près d'une seconde */
-  const majStatutAppel = () => { const A = etat.appelUI; if (!A) return; if (enSalle(A)) { majStatutSalle(A); return; } const t = statutAppel(A), e = $('appel-statut'); if (e.textContent !== t) e.textContent = t; };
+  const majStatutAppel = () => { const A = etat.appelUI; if (!A) return; if (etat.appelReduit) majBarreAppel(); if (enSalle(A)) { majStatutSalle(A); return; } const t = statutAppel(A), e = $('appel-statut'); if (e.textContent !== t) e.textContent = t; };
   /* (version servie) la voix et l'image de l'AUTRE : le flux que le moteur tient est branché sur l'élément audio (la voix) et sur la vignette de l'autre (l'image, muette — son son passe déjà par l'élément audio).
      Rebranché à chaque rendu, mais seulement quand il a changé : une vignette refaite repart sans flux. */
   function lierFluxDistant(A) {
@@ -2206,7 +2214,7 @@
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
     const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
-    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); fermerCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi
+    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); if (etat.appelReduit) quitterAppel(); else raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer
     if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
     rendreAppel();
@@ -2215,7 +2223,8 @@
      la source l'apprend ensuite (terminerAppel crée la ligne d'historique), et l'écran en garde une phrase pour le lecteur d'écran. */
   function quitterAppel() {
     const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
-    etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null;
+    etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null; etat.appelReduit = false;
+    delete document.documentElement.dataset.appelReduit;
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
     if (A) { if (A.rec) recArreter(A, false); salleNettoyer(A); }
     arreterSonnerie();
@@ -2229,7 +2238,37 @@
     requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
     if (id) source.terminerAppel(id).then(rec => annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé'), () => { /* l'appel n'existait plus chez la source */ });
   }
-  $('appel-raccrocher').addEventListener('click', fermerCouche);
+  $('appel-raccrocher').addEventListener('click', raccrocherCouche);
+  /* ── L'APPEL RÉDUIT ── raccrocher = fermer la couche EN LE DISANT (sinon la fermer le réduit) ; réduire = rendre la page, garder l'appel ; restaurer = rouvrir l'écran tel quel */
+  function raccrocherCouche() { etat.raccrocher = true; if (etat.appelReduit) quitterAppel(); else fermerCouche(); }
+  /* on réduit un appel qu'on a lancé ou pris (il sonne chez l'autre, ou il est en cours) ; un appel ENTRANT qu'on n'a pas pris se refuse en partant, et une page sans médias (l'aperçu) raccroche */
+  const appelReductible = () => { const A = etat.appelUI; return !etat.raccrocher && CAP.appelsMedias && !!(A && A.snap && !A.fini && !A.snap.entrant && A.snap.etat !== 'termine'); };
+  function reduireAppel() {
+    const A = etat.appelUI; if (!A) return;
+    etat.appelReduit = true;
+    const racine = document.documentElement;
+    A.salleReduite = racine.dataset.salle === '1';
+    delete racine.dataset.appel; delete racine.dataset.salle; racine.dataset.appelReduit = '1';
+    majBarreAppel(); synchroInert();
+  }
+  function restaurerAppel() {
+    const A = etat.appelUI; if (!A) return;
+    etat.appelReduit = false;
+    const racine = document.documentElement;
+    delete racine.dataset.appelReduit; racine.dataset.appel = '1'; if (A.salleReduite) racine.dataset.salle = '1';
+    synchroInert(); rendreAppel();
+    (enSalle(A) ? $('salle-ecran') : $('appel-ecran')).focus({ preventScroll: true });
+  }
+  /* le texte de la barre : qui, et depuis combien de temps (la même horloge que l'écran, toutes les 250 ms) */
+  function majBarreAppel() {
+    const A = etat.appelUI; if (!etat.appelReduit || !A || !A.snap) return;
+    const qui = A.snap.titre || A.snap.nom || (A.snap.membres || []).map(m => m.nom || m.prenom).filter(Boolean).slice(0, 2).join(', ') || 'Appel';
+    const t = 'Appel en cours · ' + qui + (A.snap.etat === 'en-cours' && A.snap.debut ? ' · ' + dureeAppel((Date.now() - A.snap.debut) / 1000) : A.snap.etat === 'sonne' ? ' · ça sonne…' : ''), e = $('appel-barre-texte');
+    if (e.textContent !== t) e.textContent = t;
+    $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t);
+  }
+  $('appel-barre-revenir').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) pousser(Object.assign({}, etat.route, { feuille: false, photo: null, appel: etat.appelId })); });
+  $('appel-barre-raccrocher').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) { etat.raccrocher = true; quitterAppel(); } });
   $('appel-micro').addEventListener('click', basculerMicro);
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
@@ -2239,7 +2278,7 @@
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
   /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
      (la demande d'autorisation ne retarde jamais la réponse : la sonnerie a une échéance) */
-  $('appel-refuser').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap && A.snap.entrant) fermerCouche(); });
+  $('appel-refuser').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap && A.snap.entrant) raccrocherCouche(); });
   async function repondreAppelUI() {
     const A = etat.appelUI; if (!A || !A.snap || !A.snap.entrant || A.reponse) return;
     A.reponse = true; arreterSonnerie();
@@ -5144,7 +5183,7 @@
   /* ── le rendu de la salle : l'en-tête, les vignettes, les commandes, les bandeaux, le panneau ouvert ── */
   function rendreSalle(A) {
     const s = A.snap, X = sx(A), E = $('salle-ecran');
-    document.documentElement.dataset.salle = '1';
+    if (etat.appelReduit) A.salleReduite = true; else document.documentElement.dataset.salle = '1';      // ⛔ réduite, la salle continue SANS couvrir la page (un rafraîchissement ne la remet pas devant)
     if (s.attente) E.setAttribute('data-attente', '1'); else E.removeAttribute('data-attente');
     if (!s.attente && !A.mediasDemandes) acquerirMedias(A, s.type === 'video');           // en salle d'attente, ni micro ni caméra : on ne s'ouvre à personne avant d'être admis
     if (s.conv && !s.attente && !X.discutee) { X.discutee = true; salleDiscussionCharger(A, true); }           // le fil tel qu'il est à mon ENTRÉE : ce qui arrive ensuite est « nouveau » (la pastille du bouton Discussion)
@@ -5545,7 +5584,7 @@
       }
       case 'terminer-demander': salleOuvrirPanneau(A, 'quitter', $('salle-plus')); return;
       case 'terminer-confirmer': salleFermerPanneau(A, false); await salleGeste(A, 'terminerPourTous', {}, 'La salle n\'a pas pu être terminée.'); return;
-      case 'quitter-simple': salleFermerPanneau(A, false); fermerCouche(); return;
+      case 'quitter-simple': salleFermerPanneau(A, false); raccrocherCouche(); return;
       default: return;
     }
   }
@@ -5564,7 +5603,7 @@
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;
     if (enSalle(A) && s.moi.proprietaire && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
-    fermerCouche();
+    raccrocherCouche();
   });
   $('salle-reagir').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A)) return; const X = sx(A); X.emojis = !X.emojis; if (X.emojis && X.panneau) salleFermerPanneau(A, false); salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); });
   $('salle-emojis').addEventListener('click', async e => {

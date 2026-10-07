@@ -565,10 +565,25 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (420 s
         await toucher(A, '#appel-cam');
         await verifier('la caméra éteinte, « Retourner la caméra » disparaît avec elle', A, () => document.getElementById('appel-flip').hidden, null, 6000);
         await verifier('… et Ben revient à l\'audio (la caméra d\'Ana est éteinte, la sienne l\'était déjà)', B, () => document.getElementById('appel-ecran').dataset.mise === 'audio', null, 8000);
+        /* ⛔ « MESSAGE » NE RACCROCHE PLUS (7 octobre 2026, capture : « en appel, quand je clique sur Message, ça ferme l'appel ») : la conversation s'ouvre, l'appel CONTINUE — la voix
+           passe toujours, micro et caméra restent tenus ; la barre du haut ramène à l'écran ou raccroche. */
+        const pistesAvant = await pistesVivantes(B);
         await toucher(B, '#appel-msg');
-        await attendreFermeture('Ben touche « Message » : l\'appel se raccroche, son écran se ferme', B); await attendreFermeture('Ana l\'apprend : son écran se ferme', A);
         await B.page.waitForFunction(() => document.documentElement.dataset.conv === '1' && document.getElementById('conv-titre').textContent.includes('Ana'), null, { timeout: 8000 }).catch(() => {});
-        v('⛔ « Message » pendant l\'appel RACCROCHE et ouvre la conversation avec Ana (la vue messages, la conversation ouverte)', [await B.page.evaluate(() => document.documentElement.dataset.vue), await B.page.evaluate(() => document.documentElement.dataset.conv), await B.page.evaluate(() => document.getElementById('conv-titre').textContent.includes('Ana'))], ['messages', '1', true]);
+        v('« Message » : la conversation avec Ana s\'ouvre (la vue messages, la conversation ouverte)', [await B.page.evaluate(() => document.documentElement.dataset.vue), await B.page.evaluate(() => document.documentElement.dataset.conv), await B.page.evaluate(() => document.getElementById('conv-titre').textContent.includes('Ana'))], ['messages', '1', true]);
+        await verifier('⛔ …et l\'appel CONTINUE : l\'écran d\'appel est réduit, la barre « Appel en cours · … » est là, avec « Revenir » et « Raccrocher »', B, () => { const b = document.getElementById('appel-barre'); return document.documentElement.dataset.appelReduit === '1' && !document.documentElement.dataset.appel && !!b && b.getClientRects().length > 0 && /Appel en cours/.test(document.getElementById('appel-barre-texte').textContent); }, null, 6000, async () => lire(B, '#appel-barre'));
+        await verifier('⛔ chez Ana, rien n\'a raccroché : son écran d\'appel reste ouvert', A, () => document.documentElement.dataset.appel === '1', null, 3000);
+        const pistesReduit = await pistesVivantes(B), voix = await croit(B, { ms: 1800 });
+        v('⛔ réduit, l\'appel tient ses médias (population : des pistes vivaient avant) et la voix d\'Ana passe toujours', [pistesAvant.vivantes > 0, pistesReduit.vivantes, voix.audio], [true, pistesAvant.vivantes, true]);
+        v('la page n\'est pas couverte : la conversation se touche (le fil n\'est pas inerte) et la barre la pousse vers le bas', await B.page.evaluate(() => { const c = document.getElementById('conv-ecran'), b = document.getElementById('appel-barre'); return [!c.inert, Math.round(c.getBoundingClientRect().top) >= Math.round(b.getBoundingClientRect().bottom) - 1]; }), [true, true]);
+        await toucher(B, '#appel-barre-revenir');
+        await verifier('« Revenir » : l\'écran d\'appel revient, la barre part', B, () => document.documentElement.dataset.appel === '1' && !document.documentElement.dataset.appelReduit, null, 6000);
+        await toucher(B, '#appel-msg');
+        await verifier('population : de nouveau réduit', B, () => document.documentElement.dataset.appelReduit === '1', null, 6000);
+        await toucher(B, '#appel-barre-raccrocher');
+        await verifier('le rouge de la barre RACCROCHE : la barre part, plus d\'appel', B, () => !document.documentElement.dataset.appelReduit && !document.documentElement.dataset.appel, null, 6000);
+        await attendreFermeture('Ana l\'apprend : son écran se ferme', A);
+        v('…et la conversation reste ouverte chez Ben', [await B.page.evaluate(() => document.documentElement.dataset.conv)], ['1']);
         const pa = await pistesVivantes(A), pb = await pistesVivantes(B);
         v('⛔ micro ET caméra relâchés des deux côtés (population : des pistes audio et vidéo ont existé)', [await A.page.evaluate(() => window.__pistes.some(t => t.kind === 'video')), await B.page.evaluate(() => window.__pistes.some(t => t.kind === 'video')), pa.vivantes, pb.vivantes], [true, true, 0, 0]);
       });
