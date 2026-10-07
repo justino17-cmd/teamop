@@ -135,6 +135,18 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     await A.page.keyboard.type('Point clé à revoir'); await A.page.keyboard.press('Enter');
     vrai('Entrée pose le texte : Cléo a deux annotations', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '2'));
     await capture(A, 'annot-bureau-texte');
+    /* 8 octobre 2026 : « il faudrait pouvoir déplacer les textes » — avec l'outil Texte, Ana prend son texte et le fait glisser en haut à droite ; Cléo (téléphone) le voit à sa nouvelle place */
+    const rougeVers = async (S, fx, fy, oui) => { for (let i = 0; i < 40; i++) { const l = await lire(S, fx, fy, 24); if (!!l && rouge(l.px) === oui) return true; await S.page.waitForTimeout(150); } return false; };
+    vrai('population : le texte rouge est chez Cléo, en bas à gauche', await rougeVers(C, 0.13, 0.775, true));
+    const d0 = await pointSur(A, 0.12, 0.77), d1 = await pointSur(A, 0.70, 0.12);
+    await A.page.mouse.move(d0[0], d0[1]); await A.page.mouse.down();
+    for (let i = 1; i <= 8; i++) await A.page.mouse.move(d0[0] + (d1[0] - d0[0]) * i / 8, d0[1] + (d1[1] - d0[1]) * i / 8);
+    vrai('⛔ prendre son texte ne crée pas un nouveau champ (on le déplace, on n\'écrit pas)', await A.page.evaluate(() => !document.querySelector('.annot-saisie')));
+    await A.page.mouse.up();
+    vrai('⛔ Ana DÉPLACE son texte : chez Cléo (téléphone), il est en haut à droite…', await rougeVers(C, 0.71, 0.135, true));
+    vrai('…et plus en bas à gauche', await rougeVers(C, 0.13, 0.775, false));
+    vrai('…toujours deux annotations (le texte a bougé, il n\'a pas été recopié)', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '2'));
+    await capture(C, 'annot-telephone-texte-deplace');
     await A.page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     vrai('⌘Z / Ctrl+Z retire le dernier geste d\'Ana : Cléo n\'en a plus qu\'une', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '1'));
     await C.page.locator('#salle-annoter').click();

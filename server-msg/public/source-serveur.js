@@ -1371,6 +1371,7 @@
         return false;
       }
       if (e.op === 'retirer' && Array.isArray(e.ids)) { const partis = new Set(e.ids); a.items = a.items.filter(i => !partis.has(i.id)); }
+      if (e.op === 'deplacer' && typeof e.id === 'string' && Array.isArray(e.pts) && e.pts.length === 2 && e.pts.every(n => Number.isInteger(n) && n >= 0 && n <= 10000)) { const x = a.items.find(i => i.id === e.id); if (x && x.outil === 'texte') x.pts = e.pts.slice(); }   // un texte déplacé (le service le dit)
       return false;
     }
     function surSalleEvt(e) {

@@ -1710,6 +1710,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .annot-calque { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; pointer-events: none; }
 .salle-ecran[data-annoter] .annot-calque { pointer-events: auto; touch-action: none; cursor: crosshair; }
 .salle-ecran[data-annoter] .annot-calque[data-outil="texte"] { cursor: text; }
+.salle-ecran[data-annoter] .annot-calque[data-outil="texte"][data-survol] { cursor: move; }      /* au-dessus d'un texte qu'on peut déplacer */
 .salle-tableau { background: #3a3d48; }
 .salle-tableau::before { display: none; }
 .annot-saisie { position: absolute; z-index: 3; width: min(260px, 70%); min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 2px solid #0a84ff; background: #fff; color: #1c1c1e; font-size: 16px; line-height: 22px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
@@ -8390,7 +8391,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   const NOMS_COULEURS = { rouge: 'Rouge', orange: 'Orange', jaune: 'Jaune', vert: 'Vert', bleu: 'Bleu', violet: 'Violet', noir: 'Noir', blanc: 'Blanc' };
   const NOMS_OUTILS = { stylo: 'Stylo', surligneur: 'Surligneur', fleche: 'Flèche', rect: 'Rectangle', ellipse: 'Cercle', texte: 'Texte' };
   const ANNOT_TABLEAU = 1.6, ANNOT_PAS = 30, ANNOT_POINTS_MAX = 4000;
-  const annotEtat = A => { const X = sx(A); return X.an || (X.an = { outil: 'stylo', couleur: 'rouge', ep: 2, trait: null, locaux: new Map(), file: Promise.resolve(), support: undefined, vueAvant: null, calque: null, cible: null, ro: null, planifie: 0, minuterie: 0, boite: null, saisie: null, palette: null, n: 0 }); };
+  const annotEtat = A => { const X = sx(A); return X.an || (X.an = { outil: 'stylo', couleur: 'rouge', ep: 2, trait: null, locaux: new Map(), deplaces: new Map(), textes: [], glisse: null, file: Promise.resolve(), support: undefined, vueAvant: null, calque: null, cible: null, ro: null, planifie: 0, minuterie: 0, boite: null, saisie: null, palette: null, n: 0 }); };
   const annotInfo = A => { const a = A && A.snap && A.snap.annot; return a && a.support ? a : null; };
   /* la même règle que le service : l'hôte ; et, tant que les annotations sont à tous, celui qui partage ou qui a ouvert le tableau */
   function annotMaitre(A) { const a = annotInfo(A); return !!a && (!!A.snap.moi.hote || (a.permis === 'tous' && (a.support === 'ecran:' + MOI.id || (a.support === 'tableau' && a.ouvreur === MOI.id)))); }
@@ -8411,7 +8412,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   /* tracer des annotations dans un contexte 2D, sur la boîte `b` (en pixels de ce contexte) ; `k` : combien de pixels du contexte font un pixel CSS (les épaisseurs ne descendent pas sous 1,5 px à l'écran).
      Une seule fonction pour le calque, la capture envoyée dans la discussion et l'image de l'enregistrement : ce qu'on enregistre est ce qu'on a vu. */
-  function annotTracer(g, items, b, k) {
+  function annotTracer(g, items, b, k, boites) {
     for (const x of items) {
       const P = x.pts; if (!P || P.length < 2) continue;
       const col = ANNOT_COULEURS[x.couleur] || ANNOT_COULEURS.rouge, ep = (x.ep | 0) || 2, X = i => b.x + P[i] / 10000 * b.w, Y = i => b.y + P[i + 1] / 10000 * b.h;
@@ -8424,6 +8425,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         for (const mot of String(x.texte || '').split(' ')) { const essai = l ? l + ' ' + mot : mot; if (l && g.measureText(essai).width > larg) { lignes.push(l); l = mot; } else l = essai; }
         if (l) lignes.push(l);
         lignes.slice(0, 6).forEach((t, i) => g.fillText(t, X(0), Y(0) + i * fs * 1.25));
+        if (boites) boites.push({ id: x.id, de: x.de, x: X(0), y: Y(0), w: Math.max(...lignes.slice(0, 6).map(t => g.measureText(t).width), fs), h: Math.min(6, lignes.length || 1) * fs * 1.25 });      // de quoi le TOUCHER (le déplacer)
         g.restore(); continue;
       }
       const lw = Math.max(1.5 * k, b.h * [0.004, 0.007, 0.012][ep - 1]) * (x.outil === 'surligneur' ? 3.5 : 1);
@@ -8448,7 +8450,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function annotItems(A) {
     const N = annotEtat(A), tenus = (source.salleAnnotations && source.salleAnnotations(A.id) || { items: [] }).items;
     const caches = new Set(N.locaux.keys()); if (N.trait) caches.add(N.trait.id);
-    const l = tenus.filter(x => !caches.has(x.id));
+    const l = tenus.filter(x => !caches.has(x.id)).map(x => N.deplaces.has(x.id) ? Object.assign({}, x, { pts: N.deplaces.get(x.id) }) : x);
     for (const x of N.locaux.values()) l.push(x);
     if (N.trait) l.push(N.trait);
     return l;
@@ -8473,8 +8475,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const b0 = annotBoite(t); N.boite = b0; if (!b0) return;
     const b = { x: b0.x * dpr, y: b0.y * dpr, w: b0.w * dpr, h: b0.h * dpr };
     if (t.id === 'salle-tableau') { g.fillStyle = '#fbfbfd'; g.fillRect(b.x, b.y, b.w, b.h); }
-    const items = annotItems(A);
-    annotTracer(g, items, b, dpr);
+    const items = annotItems(A), boites = [];
+    annotTracer(g, items, b, dpr, boites);
+    N.textes = boites.map(x => ({ id: x.id, de: x.de, x: x.x / dpr, y: x.y / dpr, w: x.w / dpr, h: x.h / dpr }));       // en px CSS de la vignette, comme `offsetX/Y`
     N.n = items.length; cv.dataset.n = String(items.length);
   }
   function annotPlanifier() {
@@ -8488,7 +8491,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const a = annotInfo(A), N = annotEtat(A), X = sx(A), sup = a ? a.support : null;
     if (sup !== N.support) {
       const avant = N.support; N.support = sup;
-      clearInterval(N.minuterie); N.minuterie = 0; N.trait = null; N.locaux.clear(); annotSaisieFermer(A, false); annotPaletteFermer(A);
+      clearInterval(N.minuterie); N.minuterie = 0; N.trait = null; N.locaux.clear(); N.deplaces.clear(); N.glisse = null; annotSaisieFermer(A, false); annotPaletteFermer(A);
       const grandir = !!sup && sup !== 'ecran:' + MOI.id;
       if (grandir && X.vue !== 'intervenant' && !N.vueAvant) { N.vueAvant = X.vue; X.vue = 'intervenant'; }
       else if (!grandir && N.vueAvant) { X.vue = N.vueAvant; N.vueAvant = null; }
@@ -8530,13 +8533,40 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (x < -0.03 || x > 1.03 || y < -0.03 || y > 1.03) return null;
     return [Math.round(Math.max(0, Math.min(1, x)) * 10000), Math.round(Math.max(0, Math.min(1, y)) * 10000)];
   }
+  /* ⛔ DÉPLACER UN TEXTE (8 octobre 2026 : « il faudrait pouvoir déplacer les textes ») : avec l'outil Texte, appuyer sur un texte posé et le faire glisser — le sien, ou n'importe lequel pour le
+     maître du support (la règle du service). Il suit le doigt ICI tout de suite ; sa place part au relâcher, une fois. Un toucher sans glisser écrit, comme avant. */
+  function annotTexteSous(A, e) {
+    const N = annotEtat(A), maitre = annotMaitre(A);
+    for (let i = N.textes.length - 1; i >= 0; i--) { const t = N.textes[i]; if ((t.de === MOI.id || maitre) && e.offsetX >= t.x - 8 && e.offsetX <= t.x + t.w + 8 && e.offsetY >= t.y - 8 && e.offsetY <= t.y + t.h + 8) return t; }
+    return null;
+  }
+  function annotGlisser(A, e) {
+    const N = annotEtat(A), G = N.glisse, b = N.boite; if (!G || !b || G.pointeur !== e.pointerId) return;
+    if (!G.bouge && Math.hypot(e.offsetX - G.x0, e.offsetY - G.y0) < 6) return;
+    G.bouge = true;
+    const cl = v => Math.round(Math.max(0, Math.min(10000, v)));
+    N.deplaces.set(G.id, [cl(G.p0[0] + (e.offsetX - G.x0) / b.w * 10000), cl(G.p0[1] + (e.offsetY - G.y0) / b.h * 10000)]);
+    annotPlanifier();
+  }
+  function annotLacher(A, e, perdu) {
+    const N = annotEtat(A), G = N.glisse; if (!G || G.pointeur !== e.pointerId) return;
+    N.glisse = null;
+    if (!G.bouge) { if (!perdu) { const p = annotPoint(A, e); if (p) annotSaisieOuvrir(A, p, e); } return; }      // un toucher sans glisser : écrire, là
+    const pts = N.deplaces.get(G.id);
+    if (perdu || !pts) { N.deplaces.delete(G.id); annotPlanifier(); return; }
+    annotEnvoyer(A, { op: 'deplacer', id: G.id, pts }).then(() => { if (N.deplaces.get(G.id) === pts) N.deplaces.delete(G.id); if (!perime(A)) annotPlanifier(); });
+  }
   const annotId = () => { const t = new Uint8Array(9); crypto.getRandomValues(t); return 'a' + Array.from(t, n => n.toString(36).padStart(2, '0')).join('').slice(0, 15); };
   function annotBrancher(cv) {
     cv.addEventListener('pointerdown', e => {
       const A = etat.appelUI; if (!enSalle(A) || !sx(A).annoter || !annotPeut(A) || (e.pointerType === 'mouse' && e.button !== 0)) return;
       const N = annotEtat(A), p = annotPoint(A, e); if (!p) return;
       e.preventDefault(); annotPaletteFermer(A);
-      if (N.outil === 'texte') { annotSaisieOuvrir(A, p, e); return; }
+      if (N.outil === 'texte') {
+        const t = annotTexteSous(A, e), it = t && annotItems(A).find(x => x.id === t.id);
+        if (it && !N.saisie) { try { cv.setPointerCapture(e.pointerId); } catch (er) { /* parti */ } N.glisse = { id: it.id, p0: it.pts.slice(0, 2), x0: e.offsetX, y0: e.offsetY, pointeur: e.pointerId, bouge: false }; return; }
+        annotSaisieOuvrir(A, p, e); return;
+      }
       if (N.trait) annotFinir(A, true);
       try { cv.setPointerCapture(e.pointerId); } catch (er) { /* le pointeur est déjà parti */ }
       N.trait = { id: annotId(), de: MOI.id, outil: N.outil, couleur: N.couleur, ep: N.ep, pts: p.slice(), fini: false, envoyes: 0, cree: false, pointeur: e.pointerId };
@@ -8545,7 +8575,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     });
     cv.addEventListener('pointermove', e => {
       const A = etat.appelUI; if (!enSalle(A)) return;
-      const N = annotEtat(A), tr = N.trait; if (!tr || tr.pointeur !== e.pointerId) return;
+      const N = annotEtat(A);
+      if (N.glisse) { annotGlisser(A, e); return; }
+      if (N.outil === 'texte' && e.pointerType === 'mouse') { const sur = !!annotTexteSous(A, e); if (sur !== (cv.dataset.survol === '1')) { if (sur) cv.dataset.survol = '1'; else delete cv.dataset.survol; } }   // la souris dit qu'on peut le prendre
+      const tr = N.trait; if (!tr || tr.pointeur !== e.pointerId) return;
       const evs = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e];
       for (const ev of (evs.length ? evs : [e])) {
         const p = annotPoint(A, ev); if (!p) continue;
@@ -8557,7 +8590,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       }
       annotPlanifier();
     });
-    const fin = e => { const A = etat.appelUI; if (!enSalle(A)) return; const N = annotEtat(A); if (N.trait && N.trait.pointeur === e.pointerId) annotFinir(A, e.type === 'pointercancel'); };
+    const fin = e => { const A = etat.appelUI; if (!enSalle(A)) return; const N = annotEtat(A); if (N.glisse) { annotLacher(A, e, e.type === 'pointercancel'); return; } if (N.trait && N.trait.pointeur === e.pointerId) annotFinir(A, e.type === 'pointercancel'); };
     cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
   }
   /* le trait se termine : une forme part d'un coup (si on a bougé), un trait à main levée envoie son dernier morceau */
@@ -8672,7 +8705,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('annot-barre').addEventListener('click', async e => {
     const b = e.target.closest('button'), A = etat.appelUI; if (!b || !enSalle(A) || !$('annot-barre').contains(b)) return;
     const N = annotEtat(A);
-    if (b.dataset.outil) { if (N.outil !== 'texte' || b.dataset.outil !== 'texte') annotSaisieFermer(A, true); N.outil = b.dataset.outil; annotPaletteFermer(A); annotOutils(A); annonceAppel(NOMS_OUTILS[N.outil]); return; }
+    if (b.dataset.outil) { if (N.outil !== 'texte' || b.dataset.outil !== 'texte') annotSaisieFermer(A, true); N.outil = b.dataset.outil; annotPaletteFermer(A); annotOutils(A); annonceAppel(N.outil === 'texte' ? 'Texte : touche pour écrire, fais glisser un texte pour le déplacer' : NOMS_OUTILS[N.outil]); return; }
     const ap = b.dataset.ap;
     if (ap === 'couleur') { N.couleur = b.dataset.couleur; annotPaletteFermer(A); annotOutils(A); $('annot-couleur').focus({ preventScroll: true }); return; }
     if (ap === 'ep') { N.ep = +b.dataset.n; annotPaletteFermer(A); annotOutils(A); $('annot-couleur').focus({ preventScroll: true }); return; }

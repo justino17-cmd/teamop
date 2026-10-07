@@ -114,6 +114,20 @@ const dit = (rep) => [rep.code, rep.j && rep.j.error];
     v('⛔ Dan (invité qui sonne) n\'a reçu AUCUN événement d\'annotation (marqueur reçu après : son flux est vivant) ; il ne peut pas dessiner', [annot(fD).length, (await P(d1, { op: 'trait', id: ID(), outil: 'stylo', couleur: 'rouge', ep: 1, pts: [1, 1] })).code !== 200], [0, true]);
     v('⛔ l\'expéditeur ne reçoit pas ses propres traits par le flux (il les a dans la réponse) : Cleo n\'a reçu que ceux de Ben', annot(fC).filter(e => e.op === 'trait').map(e => e.de === ben.id), [true]);
 
+    console.log('\nDéplacer un texte (8 octobre 2026 : « il faudrait pouvoir déplacer les textes ») : son auteur, ou le maître du support ; la place change, rien d\'autre');
+    {
+      const idTx = tx.j.ev.item.id, n0 = fA.evenements.length;
+      const dep = await P(c1, { op: 'deplacer', id: idTx, pts: [3000, 7000] });
+      await attendreOp(fA, 'deplacer', n0);
+      v('Cleo déplace SON texte : 200, Ana reçoit `deplacer` (l\'identifiant, la place), l\'instantané a la nouvelle place et le même texte', [dep.code, annot(fA).filter(e => e.op === 'deplacer').map(e => [e.id === idTx, e.pts, e.de === cleo.id]), (await salle(a1)).items.filter(x => x.id === idTx).map(x => [x.pts, x.texte, x.de === cleo.id])],
+        [200, [[true, [3000, 7000], true]], [[[3000, 7000], 'À revoir avant vendredi', true]]]);
+      v('⛔ un TRAIT ne se déplace pas, ni vers une place hors de l\'image ou à quatre nombres (400) ; un texte inconnu : 404', [dit(await P(c1, { op: 'deplacer', id: t1, pts: [1, 1] })), dit(await P(c1, { op: 'deplacer', id: idTx, pts: [10001, 5] })), dit(await P(c1, { op: 'deplacer', id: idTx, pts: [1, 1, 2, 2] })), dit(await P(c1, { op: 'deplacer', id: 'inconnu123', pts: [1, 1] }))],
+        [[400, 'champ_invalide'], [400, 'champ_invalide'], [400, 'champ_invalide'], [404, 'introuvable']]);
+      const dAna = await P(a1, { op: 'texte', id: ID(), pts: [500, 500], texte: 'Ana écrit', couleur: 'bleu', ep: 1 });
+      v('⛔ Cleo ne déplace pas le texte d\'Ana (403) ; Ana, l\'hôte, déplace celui de Cleo (200)', [dit(await P(c1, { op: 'deplacer', id: dAna.j.ev.item.id, pts: [1, 1] })), (await P(a1, { op: 'deplacer', id: idTx, pts: [2000, 8000] })).code], [[403, 'interdit'], 200]);
+      await P(a1, { op: 'retirer', id: dAna.j.ev.item.id });             // la suite compte les traits de chacun et les retraits qu'Ana REÇOIT : on rend la salle telle qu'elle était (Ana ne reçoit pas ses propres gestes)
+    }
+
     console.log('\nLes droits : l\'hôte réserve les annotations ; le maître du support efface pour tous ; chacun retire, annule, efface les siennes');
     v('⛔ un participant ne règle pas le permis (403) ; un permis inconnu : 400', [dit(await P(c1, { op: 'permis', qui: 'hotes' })), dit(await P(a1, { op: 'permis', qui: 'personne' }))], [[403, 'interdit'], [400, 'champ_invalide']]);
     const pm = await P(a1, { op: 'permis', qui: 'hotes' });
