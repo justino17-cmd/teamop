@@ -29,6 +29,8 @@ const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
 /* ⛔ `position` (le bouton « Position » des conversations, COUPÉ par défaut — 7 octobre 2026 : « il faut qu'il l'active dans les paramètres, c'est une sécurité pour eux ») N'EST PAS ICI :
    une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
 const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
+/* les préférences à CHOIX (une valeur parmi celles-ci, rien d'autre) : le côté où l'on travaille (« Perso | Pro », 7 octobre 2026) et la confirmation avant d'envoyer */
+const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'] };
 const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
 const CARTES = ['position', 'contact', 'sondage'];
 const INVITATION_MAX = 5;      // les messages d'une invitation qui attend (texte seul) : la personne lit, elle n'est pas inondée      // un message « carte » : un texte (son résumé, pour les versions d'avant) qui porte `meta.k`
@@ -196,6 +198,7 @@ function creerHandlers(ctx) {
       if (!b.prefs || typeof b.prefs !== 'object' || Array.isArray(b.prefs)) return refus(res, 400, 'champ_invalide');
       const p = Object.assign({}, req.moi.prefs);
       for (const k of PREFS_PERSONNE) if (b.prefs[k] !== undefined) { if (typeof b.prefs[k] !== 'boolean') return refus(res, 400, 'champ_invalide'); p[k] = b.prefs[k]; }
+      for (const k of Object.keys(PREFS_CHOIX)) if (b.prefs[k] !== undefined) { if (!PREFS_CHOIX[k].includes(b.prefs[k])) return refus(res, 400, 'champ_invalide'); p[k] = b.prefs[k]; }
       c.prefs = p;
     }
     const moi = stockage.personneMaj(req.moi.id, c);
@@ -463,6 +466,12 @@ function creerHandlers(ctx) {
     if (b.muet_jusqua !== undefined) { const v = entier(b.muet_jusqua); if (v === null || v < 0 || v > horloge() + 10 * 365 * JOUR) return refus(res, 400, 'champ_invalide'); o.muet_jusqua = v; }
     if (b.epingle !== undefined) { if (typeof b.epingle !== 'boolean') return refus(res, 400, 'champ_invalide'); o.epingle = b.epingle; }
     if (b.archive !== undefined) { if (typeof b.archive !== 'boolean') return refus(res, 400, 'champ_invalide'); o.archive = b.archive; }
+    /* Perso / Pro rangé à la main : une directe ou un groupe (un canal, une réunion sont Pro par nature) ; `null` rend le côté automatique */
+    if (b.cote !== undefined) {
+      if (b.cote !== null && b.cote !== 'perso' && b.cote !== 'pro') return refus(res, 400, 'champ_invalide');
+      if (req.conv.conv.type !== 'direct' && req.conv.conv.type !== 'groupe') return refus(res, 400, 'champ_invalide');
+      o.cote = b.cote;
+    }
     if (!Object.keys(o).length) return refus(res, 400, 'champ_invalide');
     stockage.membrePrefs(Object.assign({ conv: req.conv.conv.id, uid: req.moi.id }, o));
     hub.reveiller({ uids: [req.moi.id] });

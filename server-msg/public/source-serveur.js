@@ -1862,6 +1862,8 @@
         autre: direct && c.autre ? c.autre.id : null,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
         invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
+        /* PERSO / PRO : le côté qui vaut, l'automatique, et celui que j'ai choisi à la main (null : l'automatique) — un service d'avant n'en dit rien : tout est Perso */
+        cote: c.cote === 'pro' ? 'pro' : 'perso', coteAuto: c.cote_auto === 'pro' ? 'pro' : 'perso', coteChoisi: c.cote_choisi === 'pro' || c.cote_choisi === 'perso' ? c.cote_choisi : null,
         /* un CANAL dit l'espace auquel il appartient et s'il est privé (la liste s'en sert pour le nommer « # canal ») ; les autres conversations n'ont ni l'un ni l'autre */
         espace: canal && typeof c.espace === 'string' ? c.espace : null, prive: canal && c.prive === true,
         /* la conversation d'une RÉUNION dit laquelle (la page ouvre sa fiche au toucher du titre) */
@@ -2908,6 +2910,21 @@
       moiApi = m; noter(m);
       return notifEtat();
     }
+    /* ── PERSO / PRO (7 octobre 2026) : le côté où l'on travaille est une préférence du COMPTE (il suit la personne d'un appareil à l'autre ; rien n'est rangé sur l'appareil) ;
+       une conversation se range à la main d'un côté ou de l'autre (`null` : le côté automatique) ── */
+    const modeTravail = () => moiApi && moiApi.prefs && moiApi.prefs.mode === 'pro' ? 'pro' : 'perso';
+    async function choisirMode(m) {
+      if (m !== 'perso' && m !== 'pro') throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { mode: m } });
+      moiApi = r; noter(r);
+      return modeTravail();
+    }
+    async function ranger(id, cote) {
+      if (cote !== null && cote !== 'perso' && cote !== 'pro') throw erreurLocale('invalide');
+      await A.prefs(id, { cote });
+      await relireListe();
+      emettre({ type: 'liste' }); emettre({ type: 'conversation', id });
+    }
     async function notifEssai() { const r = await A.pushEssai(); return { appareils: r.appareils | 0, envoyes: r.envoyes | 0 }; }
     /* un abonnement que ce navigateur porte déjà est redit au service (idempotent) : il a pu le perdre (accès rouvert, appareil retiré), et un appareil prêté suit son dernier utilisateur */
     async function reabonner() {
@@ -3238,7 +3255,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, modes: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3258,6 +3275,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
+      modeTravail, choisirMode, ranger,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,

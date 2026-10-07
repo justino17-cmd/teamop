@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a2295e0c81b7';
+  const OPMSG_BUILD = 'cc8c5a915fb7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 93;
+  const OPMSG_VERSION = 95;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -54,6 +54,7 @@
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
+  const suffixeTitre = () => modesActifs() && etat.mode === 'pro' ? SUFFIXE_TITRE.replace('OP MESSAGES', 'OP MESSAGES PRO') : SUFFIXE_TITRE;
   if (CAP.service) document.documentElement.dataset.service = '1';
   if (typeof source.demarrer === 'function') $('app').hidden = true;     // jamais l'écran d'un autre avant de savoir qui est là
   const VUES = {
@@ -89,6 +90,7 @@
   const etat = {
     route: null,                  // { vue, conv, feuille, photo } — c'est elle qui est écrite dans l'historique
     conversations: [],            // la liste, telle que la source l'a rendue
+    mode: 'perso',                // Perso / Pro : le côté où l'on travaille (un compte pro seulement — la préférence du compte, lue au démarrage)
     conv: null, convDonnees: null, jeton: 0,
     recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, posVues: {}, forcerBas: false, envoiEnCours: false,
     groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false,
@@ -165,9 +167,9 @@
   }
   function rendreListe() {
     const q = norme(etat.recherche);
-    const invits = etat.conversations.filter(c => c.invitation === 'recue');
+    const invits = etat.conversations.filter(c => c.invitation === 'recue' && dansMode(c));
     if (!invits.length) etat.listeInvit = false;
-    const base = etat.listeInvit ? invits : etat.conversations.filter(c => c.invitation !== 'recue');
+    const base = etat.listeInvit ? invits : etat.conversations.filter(c => c.invitation !== 'recue' && (q || dansMode(c)));     // ⛔ une RECHERCHE cherche des deux côtés : on ne perd pas une conversation parce qu'on est du mauvais
     const vues = base.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
     const tete = etat.listeInvit ? '<li class="liste-invit-tete"><button type="button" class="presse" data-invit-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Invitations</h2></li>' +
       '<li class="liste-invit-note">Des personnes qui ne sont pas dans tes contacts t\'ont écrit. Tant que tu n\'as pas accepté, elles ne savent pas que tu as lu leur message.</li>'
@@ -176,14 +178,64 @@
        recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
     const neuves = new Set(etat.neuves); etat.neuves.clear();
     $('liste-conv').innerHTML = tete + (vues.length || tete ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') :
-      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>' : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
+      (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>'
+        : !q && modesActifs() ? '<li class="vide">' + (etat.mode === 'pro' ? 'Aucune conversation Pro pour l\'instant : les canaux de ton entreprise, tes réunions et tes échanges avec tes collègues viennent ici.' : 'Aucune conversation Perso pour l\'instant.') + '</li>'
+        : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
-    const pins = etat.listeInvit ? [] : etat.conversations.filter(c => c.epingle && c.invitation !== 'recue');
+    const pins = etat.listeInvit ? [] : etat.conversations.filter(c => c.epingle && c.invitation !== 'recue' && dansMode(c));
     $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
       avatar(c) + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>').join('');
     $('epingles').hidden = !pins.length;
-    majBadge();
+    majBadge(); peindreMode();
   }
+  /* ══ PERSO / PRO (la feuille de style dit le pourquoi) ══
+     Le côté d'une conversation vient du service (`cote` : le côté rangé à la main, sinon l'automatique — un canal, une réunion, un collègue, un groupe de collègues : Pro). Le côté où
+     l'on travaille est une préférence du COMPTE (`source.modeTravail`, rien n'est rangé sur l'appareil). Ouvrir une conversation de l'autre côté (une recherche, une bannière, un
+     lien) y BASCULE : la conversation ouverte est toujours dans la liste qu'on voit. */
+  const NOM_COTE = { perso: 'Perso', pro: 'Pro' };
+  const modesActifs = () => !!(etat.pro && CAP.modes && typeof source.choisirMode === 'function');
+  const coteDe = c => c && c.cote === 'pro' ? 'pro' : 'perso';
+  const dansMode = c => !modesActifs() || coteDe(c) === etat.mode;
+  const navPour = () => ORDRE.filter(k => k !== 'reglages' && (k !== 'accueil' || !modesActifs() || etat.mode === 'pro'));
+  function peindreMode() {
+    const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
+    if (actif) racine.dataset.cote = etat.mode; else delete racine.dataset.cote;
+    document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });
+    $('marque-tel').hidden = !actif;
+    const n = actif ? etat.conversations.filter(c => c.nonLu && c.id !== etat.conv && coteDe(c) === autre).length : 0;
+    document.querySelectorAll('[data-cote-seg]').forEach(seg => {
+      seg.hidden = !actif;
+      seg.style.setProperty('--i', etat.mode === 'pro' ? 1 : 0);
+      seg.querySelectorAll('[data-cote]').forEach(b => {
+        const ici = b.dataset.cote === etat.mode, k = ici ? 0 : n, pastille = b.querySelector('.cote-n');
+        b.setAttribute('aria-pressed', ici ? 'true' : 'false');
+        pastille.hidden = !k; pastille.textContent = k > 99 ? '99+' : String(k);
+        b.setAttribute('aria-label', NOM_COTE[b.dataset.cote] + (k ? ', ' + k + (k > 1 ? ' conversations non lues' : ' conversation non lue') : ''));
+      });
+    });
+    /* le tableau de bord n'est que du côté Pro : la navigation se refait quand elle change */
+    const nav = navPour();
+    if (nav.join() !== NAV.join()) {
+      NAV = nav;
+      $('tabs').querySelectorAll('a.tab').forEach(a => a.remove());
+      construireNavigation(); peindreDemandesN();
+      if (etat.route) marquerNav(etat.route.vue);
+    }
+    if (etat.route && VUES[etat.route.vue]) document.title = VUES[etat.route.vue].titre + suffixeTitre();
+  }
+  async function changerMode(m, depuisOuverture) {
+    if (!modesActifs() || (m !== 'perso' && m !== 'pro') || m === etat.mode) return;
+    etat.mode = m; etat.vcCat = null;                            // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro)
+    const c0 = etat.conv ? etat.conversations.find(x => x.id === etat.conv) : null;
+    rendreListe();
+    if (etat.route && etat.route.vue === 'accueil' && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+    else if (!depuisOuverture && c0 && coteDe(c0) !== m && etat.route && etat.route.vue === 'messages' && !etat.route.feuille) remplacer(Object.assign({}, etat.route, { conv: null }));   // la conversation ouverte est de l'autre côté : on la ferme (sauf quand c'est elle qu'on ouvre)
+    if (etat.route && etat.route.vue === 'contacts') rendreVueContacts();
+    annonceMode(m);
+    try { await source.choisirMode(m); } catch (e) { mot(phrase(e, 'Le côté choisi n\'a pas pu être enregistré : il vaut pour cette visite.')); }
+  }
+  const annonceMode = m => mot(m === 'pro' ? 'OP MESSAGES PRO' : 'OP MESSAGES · Perso');
+  document.addEventListener('click', e => { const b = e.target.closest('[data-cote-seg] [data-cote]'); if (b) changerMode(b.dataset.cote); });
   /* ⛔ UN ÉCHEC DE CHARGEMENT SE DIT. Un 429 ou un 503 sur la liste faisait retomber la page de l'étape 1 sur son écran de connexion, sans un mot (relecture du gardien,
      remarque 2) : la liste reste celle d'avant, une phrase explique pourquoi elle n'est pas à jour et « Réessayer » la relit. Une réussite efface le refus d'avant. */
   function montrerErreurListe(e) { $('liste-erreur-texte').textContent = phrase(e, 'La liste n\'a pas pu être mise à jour.'); $('liste-erreur').hidden = false; }
@@ -204,6 +256,11 @@
     const v = VUES[cle], sec = $('vue-' + cle);
     sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
+  }
+  function marquerNav(v) {
+    document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === v) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+    $('tabs').style.setProperty('--i', Math.max(0, NAV.indexOf(v)));
+    $('tabs').classList.toggle('sans-onglet', !NAV.includes(v));
   }
   function construireNavigation() {
     const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '"' + (cls === 'tab' && VUES[cle].court ? ' aria-label="' + esc(VUES[cle].titre) + '"' : '') + '>' + icone(VUES[cle].icone) + '<span>' + esc(cls === 'tab' && VUES[cle].court ? VUES[cle].court : VUES[cle].titre) + '</span>' +
@@ -286,13 +343,11 @@
       /* ⛔ la position se LIT avant de masquer la vue : une fois masquée, le document raccourcit et la fenêtre est ramenée à la hauteur de la vue d'arrivée (mesuré : 500 px lus 106) */
       if (prec) etat.posVues[prec.vue] = prec.vue === 'messages' && etat.conv ? etat.scrollListe : window.scrollY;
       ORDRE.forEach(k => { $('vue-' + k).hidden = k !== r.vue; });
-      document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-      $('tabs').style.setProperty('--i', Math.max(0, NAV.indexOf(r.vue)));
-      $('tabs').classList.toggle('sans-onglet', !NAV.includes(r.vue));
+      marquerNav(r.vue);
       /* le retour du Profil (téléphone) ramène à la vue d'où l'on venait — « ‹ Messages », « ‹ Agenda »… */
       if (r.vue !== 'reglages') etat.avantProfil = r.vue;
       peindreProfilRetour();
-      document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
+      document.title = VUES[r.vue].titre + suffixeTitre();
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
       if (r.vue === 'accueil') entrerAccueil();
@@ -618,6 +673,7 @@
 
   async function ouvrirConv(id) {
     const jeton = ++etat.jeton;
+    if (modesActifs()) { const c0 = etat.conversations.find(x => x.id === id); if (c0 && coteDe(c0) !== etat.mode) changerMode(coteDe(c0), true); }
     /* ⛔ passer d'une conversation à l'autre (maître-détail) ne passe PAS par fermerConv : la prise de son et la lecture de l'ancienne se coupent ici,
        sinon le vocal enregistré chez Camille partait chez Hugo (mesuré au bureau, 1er octobre 2026) */
     if (etat.conv && etat.conv !== id) { arreterLecture(); annulerEnregistrement(); }
@@ -3101,7 +3157,7 @@
     return L;
   }
   function vcCat() {
-    if (!etat.vcCat) etat.vcCat = 'tous';
+    if (!etat.vcCat) etat.vcCat = modesActifs() && etat.mode === 'pro' && vcCats().some(c => c[0] === 'entreprise') ? 'entreprise' : 'tous';
     if (!vcCats().some(c => c[0] === etat.vcCat)) etat.vcCat = 'tous';
     return etat.vcCat;
   }
@@ -3346,8 +3402,8 @@
       try { collegues = (await source.espaceContacts(i.espace)).contacts; } catch (e) { collegues = []; }
       if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     }
-    const thC = (etat.conversations.find(x => x.id === id) || {}).theme || { fond: 'aucun', bulle: 'defaut' };
-    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, thC.fond, thC.bulle, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
+    const lc = etat.conversations.find(x => x.id === id) || null, thC = (lc || {}).theme || { fond: 'aucun', bulle: 'defaut' };
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, thC.fond, thC.bulle, lc && lc.coteAuto, lc && lc.coteChoisi, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
@@ -3362,6 +3418,8 @@
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
     /* le thème : à moi seul (les autres gardent leurs couleurs) */
     if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
+    /* Perso / Pro : où cette conversation paraît, pour moi seul — l'automatique, ou un côté choisi (une directe, un groupe : un canal et une réunion sont Pro par nature) */
+    if (modesActifs() && (i.type === 'direct' || g) && !i.supprime && lc) h += '<div class="carte"><button type="button" class="reglage presse" data-act="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>';
     if (sd >= 0) h += '<div class="carte"><button type="button" class="reglage presse" data-act="sourdine" data-valeur="' + (sd > Date.now() ? sd : 0) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Mettre en sourdine</span><span class="reglage-valeur">' + esc(sd > Date.now() ? finSourdine(sd) : 'Non') + CHEVRON_UD + '</span></button></div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
@@ -3461,6 +3519,13 @@
         return;
       }
       else if (act === 'theme') { ouvrirFeuille('theme:' + id, true); return; }
+      else if (act === 'cote') {
+        const avant = b.dataset.valeur, auto = b.dataset.auto === 'pro' ? 'pro' : 'perso';
+        ouvrirDeroule(b, 'Ranger dans', 'Le côté où cette conversation paraît. Pour toi seul : les autres gardent leur rangement.',
+          [{ valeur: 'auto', libelle: 'Automatique (' + NOM_COTE[auto] + ')', coche: avant === 'auto' }, '-', { valeur: 'perso', libelle: 'Perso', coche: avant === 'perso' }, { valeur: 'pro', libelle: 'Pro', coche: avant === 'pro' }],
+          v => { if (v !== avant) apresChoixInfo(id, () => source.ranger(id, v === 'auto' ? null : v), v === 'auto' ? 'Rangée automatiquement (' + NOM_COTE[auto] + ')' : 'Rangée dans ' + NOM_COTE[v]); });
+        return;
+      }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
       else if (act === 'suppression-confirmer') {
         if (b.getAttribute('aria-disabled') === 'true') { if (!$('sp-case').checked) erreurInfo('Coche la case pour confirmer la suppression de ton compte.'); return; }
@@ -4400,7 +4465,7 @@
     if (r3.status === 'fulfilled') bord.appels = r3.value;
     if (etat.route && etat.route.vue === 'accueil') rendreAccueil();
   }
-  function entrerAccueil() { rendreAccueil(); chargerAccueil(); }
+  function entrerAccueil() { if (modesActifs() && etat.mode !== 'pro') changerMode('pro'); rendreAccueil(); chargerAccueil(); }
   $('vue-accueil').addEventListener('click', e => {
     const j = e.target.closest('[data-rejoindre]');
     if (j) { rejoindreReunionUI(j.dataset.rejoindre, undefined, j, false); return; }
@@ -6325,7 +6390,7 @@
        démarre sans lui (il reviendra au prochain lancement), jamais l'inverse. */
     if (CAP.agenda && CAP.espaces && CAP.appels && typeof source.espaces === 'function') {
       try { const e0 = await source.espaces(); etat.pro = !!e0 && ((Array.isArray(e0.espaces) && e0.espaces.length > 0) || e0.formule === 'pro'); bord.espaces = e0 && Array.isArray(e0.espaces) ? e0.espaces : []; } catch (e) { etat.pro = false; }
-      if (etat.pro) { ORDRE = ['accueil'].concat(ORDRE); NAV = ORDRE.filter(k => k !== 'reglages'); }
+      if (etat.pro) { ORDRE = ['accueil'].concat(ORDRE); etat.mode = modesActifs() && typeof source.modeTravail === 'function' && source.modeTravail() === 'pro' ? 'pro' : 'perso'; NAV = navPour(); }
     }
     construireNavigation();
     construireContacts();

@@ -612,6 +612,13 @@ const MIGRATIONS = [
     `ALTER TABLE demande_contact ADD COLUMN message INTEGER NOT NULL DEFAULT 0`,
     `PRAGMA user_version = 19`,
   ] },
+  /* ── 20 (7 octobre 2026) : PERSO / PRO — « un bouton pour basculer de perso à pro ». Chaque conversation est d'un côté : AUTOMATIQUEMENT (un canal, une réunion, une directe
+         avec un collègue, un groupe dont tous les autres membres sont des collègues : Pro ; le reste : Perso), ou À LA MAIN — `cote` ('perso' | 'pro'), propre à chaque membre :
+         ce que je range ne change rien chez les autres. */
+  { v: 20, sql: [
+    `ALTER TABLE membre ADD COLUMN cote TEXT`,
+    `PRAGMA user_version = 20`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -695,6 +702,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const SUIVI = versionActuelle() >= 15;          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
   const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas
   const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation
+  const COTES = versionActuelle() >= 20;          // une base d'avant la migration 20 : aucune conversation rangée à la main (le côté automatique seul)
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
   const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
 
@@ -1400,13 +1408,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Réglages PERSONNELS d'une conversation : seul son titulaire les voit, ses autres appareils
      sont prévenus (un événement adressé à lui seul). */
-  function membrePrefs({ conv, uid, muet_jusqua, epingle, archive, theme }) {
+  function membrePrefs({ conv, uid, muet_jusqua, epingle, archive, theme, cote }) {
     return tx(() => {
       const m = Q('SELECT muet_jusqua, epingle, archive FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
       if (!m) throw erreur('introuvable');
       Q('UPDATE membre SET muet_jusqua = ?, epingle = ?, archive = ? WHERE conv = ? AND uid = ?')
         .run(muet_jusqua !== undefined ? muet_jusqua : m.muet_jusqua, epingle !== undefined ? (epingle ? 1 : 0) : m.epingle, archive !== undefined ? (archive ? 1 : 0) : m.archive, conv, uid);
       if (theme !== undefined) { if (!THEMES) throw erreur('type'); Q('UPDATE membre SET theme = ? WHERE conv = ? AND uid = ?').run(theme, conv, uid); }   // `theme` : 'fond/bulle' (validé par la route) ou null
+      if (cote !== undefined) { if (!COTES) throw erreur('type'); Q('UPDATE membre SET cote = ? WHERE conv = ? AND uid = ?').run(cote, conv, uid); }       // `cote` : 'perso' | 'pro' (validé par la route) ou null (le côté automatique)
       const gid = journalAjouter('conv_maj', conv, uid, '');
       return { gid };
     });
@@ -1454,6 +1463,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       ORDER BY m.epingle DESC, c.dernier_ts DESC, c.id`).all(horloge(), uid);
     /* les thèmes (migration 18) : une requête à part, littérale — une base plus ancienne n'a pas la colonne */
     const themes = THEMES ? new Map(Q('SELECT conv, theme FROM membre WHERE uid = ? AND quitte_le IS NULL AND theme IS NOT NULL').all(uid).map(r => [r.conv, r.theme])) : null;
+    /* le côté rangé À LA MAIN (migration 20) : une requête à part, littérale, comme les thèmes */
+    const cotes = COTES ? new Map(Q('SELECT conv, cote FROM membre WHERE uid = ? AND quitte_le IS NULL AND cote IS NOT NULL').all(uid).map(r => [r.conv, r.cote])) : null;
     return lignes.map(l => {
       const o = {
         id: l.id, type: l.type, nom: nomDe(l.id, l.nom_ch), avatar: l.avatar_piece || null, annonces_seules: !!l.annonces_seules, ephemere_s: l.ephemere_s,
@@ -1496,8 +1507,24 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         /* ⛔ l'auteur d'une invitation n'en sait pas plus que la fiche : le PREMIER MOT du prénom, ni nom ni photo, tant qu'elle n'est pas acceptée */
         if (iv === 'envoyee' && o.autre) o.autre = { id: o.autre.id, prenom: premierMot(o.autre.prenom), nom: '', avatar: null };
       }
+      /* PERSO / PRO : le côté automatique, celui que j'ai choisi (s'il y en a un), et celui qui vaut */
+      o.cote_auto = coteAuto(uid, l.id, l.type);
+      const choisi = cotes ? cotes.get(l.id) : null;
+      o.cote_choisi = choisi === 'perso' || choisi === 'pro' ? choisi : null;
+      o.cote = o.cote_choisi || o.cote_auto;
       return o;
     }).filter(o => o.invitation !== 'refusee');     // ⛔ une invitation refusée disparaît de MA liste, sans un mot à son auteur (il la voit toujours « envoyée »)
+  }
+
+  /* ⛔ LE CÔTÉ AUTOMATIQUE D'UNE CONVERSATION, VU PAR `uid` : un canal (il appartient à un espace) et une réunion sont Pro ; une directe ou un groupe est Pro quand TOUS les autres
+     membres actifs sont des collègues (un espace en commun avec moi) — et qu'il y en a au moins un. Le reste est Perso : un ami qui n'est pas collègue, un groupe où il y a un
+     inconnu de mes espaces. Rien ne se décide sur un nom ou un texte. */
+  function coteAuto(uid, conv, type) {
+    if (type === 'canal' || type === 'reunion') return 'pro';
+    const r = Q(`SELECT COUNT(*) AS n,
+                        SUM(CASE WHEN EXISTS (SELECT 1 FROM espace_membre a JOIN espace_membre b ON a.espace = b.espace WHERE a.uid = ? AND b.uid = y.uid) THEN 1 ELSE 0 END) AS c
+                 FROM membre y WHERE y.conv = ? AND y.quitte_le IS NULL AND y.uid <> ?`).get(uid, conv, uid);
+    return num(r.n) > 0 && num(r.c) === num(r.n) ? 'pro' : 'perso';
   }
 
   /* L'autre participant d'une conversation directe (pour savoir si on peut encore lui écrire). */
