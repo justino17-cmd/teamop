@@ -153,6 +153,9 @@
     groupe_trop_grand: 'Ce groupe compte trop de monde pour un appel (douze personnes au plus avec toi). Programme une réunion, ou choisis les personnes à appeler.',
     partage_interdit: 'L\'hôte n\'autorise pas le partage d\'écran.',
     evt_trop_gros: 'Ce message est trop gros pour la salle (2 Ko au plus).',
+    annot_pleine: 'Le dessin est plein : efface des annotations pour continuer.',
+    rien_a_annoter: 'Il n\'y a plus rien à annoter : le partage s\'est arrêté.',
+    annot_occupe: 'Quelqu\'un partage son écran : seul un hôte peut ouvrir le tableau blanc par-dessus.',
     reunion_hors_horaire: 'Cette réunion n\'est pas ouverte : on y entre de quinze minutes avant son début à trois heures après sa fin.',
     appele_sature: 'Cette personne reçoit beaucoup d\'appels en ce moment. Réessaie plus tard.',
     appel_pris: 'Cet appel a déjà été pris sur un autre appareil.',
@@ -521,6 +524,7 @@
       salleReaction: (id, emoji) => appel('POST', '/api/salles/' + e(id) + '/reaction', { emoji }),
       salleEtat: (id, champs) => appel('POST', '/api/salles/' + e(id) + '/etat', champs),
       salleEvt: (id, k, donnees) => appel('POST', '/api/salles/' + e(id) + '/evt', { k, donnees }),
+      salleAnnot: (id, d) => appel('POST', '/api/salles/' + e(id) + '/annot', d),
       /* la salle d'une réunion programmée, et son lien d'invité (le code va dans le FRAGMENT de l'adresse : il ne passe jamais dans les journaux du proxy) */
       rejoindreReunion: (id, type) => appel('POST', '/api/reunions/' + e(id) + '/rejoindre', type ? { type } : {}),
       lienReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/lien'),

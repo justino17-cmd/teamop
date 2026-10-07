@@ -1401,6 +1401,50 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-tuile[data-ecran="1"] video, .salle-tuile.grand video { object-fit: contain; }
 .salle-tuile[data-ecran="1"].vous video { transform: none; }
 .salle-scene[data-vue="intervenant"] .salle-tuile.grand { order: -1; }
+/* ── les annotations (7 octobre 2026 : « partage d'écran, dessiner sur l'écran, ajouter du texte ») : un calque posé sur l'écran partagé ou le tableau blanc. Il ne prend le doigt qu'en mode « Annoter »
+   (`data-annoter` sur l'écran de la salle) : le reste du temps, toucher la vignette fait ce qu'il faisait. `touch-action: none` sur le SEUL calque — le geste du doigt y dessine, la scène garde son défilement.
+   ⛔ Les couleurs d'un trait sont celles de la personne qui l'a tracé, les mêmes chez tous : jamais une couleur du thème (un rouge de nuit ne serait pas le rouge du jour d'un autre). */
+.annot-calque { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.salle-ecran[data-annoter] .annot-calque { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.salle-ecran[data-annoter] .annot-calque[data-outil="texte"] { cursor: text; }
+.salle-tableau { background: #3a3d48; }
+.salle-tableau::before { display: none; }
+.annot-saisie { position: absolute; z-index: 3; width: min(260px, 70%); min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 2px solid #0a84ff; background: #fff; color: #1c1c1e; font-size: 16px; line-height: 22px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.annot-barre {
+  flex: none; position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; width: max-content; max-width: calc(100% - 28px); margin: 4px auto 0; padding: 4px 8px;
+  border-radius: 24px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.annot-barre[hidden] { display: none; }
+/* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
+@media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
+/* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
+.annot-barre > button, .annot-palette > button { min-width: 44px; min-height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; }
+.annot-barre > button[aria-pressed="true"], .annot-palette > button[aria-pressed="true"] { background: rgba(255,255,255,.22); }
+.annot-barre > button[aria-disabled="true"] { opacity: .4; }
+.annot-barre .ic { width: 22px; height: 22px; stroke-width: 1.8; }
+.annot-barre .annot-fin { min-width: 0; padding: 0 14px; border-radius: 999px; background: #fff; color: #000; font-size: 15px; font-weight: 600; }
+.annot-sep { width: 1px; height: 26px; background: var(--salle-bord); }
+.annot-pastille { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,.75); }
+.annot-palette > button[aria-pressed="true"] .annot-pastille { box-shadow: 0 0 0 2px var(--salle-fond), 0 0 0 4px #fff; }
+[data-couleur="rouge"] > .annot-pastille { background: #ff3b30; }
+[data-couleur="orange"] > .annot-pastille { background: #ff9500; }
+[data-couleur="jaune"] > .annot-pastille { background: #ffcc00; }
+[data-couleur="vert"] > .annot-pastille { background: #34c759; }
+[data-couleur="bleu"] > .annot-pastille { background: #0a84ff; }
+[data-couleur="violet"] > .annot-pastille { background: #af52de; }
+[data-couleur="noir"] > .annot-pastille { background: #1c1c1e; }
+[data-couleur="blanc"] > .annot-pastille { background: #fff; }
+.annot-palette {
+  position: absolute; z-index: 4; bottom: calc(100% + 6px); left: 0; right: 0; margin: 0 auto; width: max-content; max-width: calc(100vw - 32px); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px;
+  padding: 6px; border-radius: 20px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.annot-palette[hidden] { display: none; }
+.annot-palette .annot-ep { display: block; width: 22px; border-radius: 4px; background: #fff; }
+.annot-palette .annot-ep[data-n="1"] { height: 3px; }
+.annot-palette .annot-ep[data-n="2"] { height: 6px; }
+.annot-palette .annot-ep[data-n="3"] { height: 10px; }
+.annot-palette > .salle-btn { min-height: 44px; }
+.annot-barre > button[hidden] { display: none; }
 .salle-rang.libre { min-height: 44px; }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }
@@ -1645,6 +1689,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-disque" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
   <symbol id="i-entreprise" viewBox="0 0 24 24"><path d="M4 20.5h16M6 20.5V5.5l7-2v17M13 9h5v11.5M8.6 8h1.8M8.6 11.5h1.8M8.6 15h1.8M15.3 12.5h1M15.3 16h1"/></symbol>
   <symbol id="i-etoile" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z"/></symbol>
+  <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M4.5 19.5l1-4.2L16.3 4.5a2.1 2.1 0 0 1 3 3L8.5 18.3l-4 1.2ZM14.3 6.5l3.2 3.2"/></symbol>
+  <symbol id="i-surligneur" viewBox="0 0 24 24"><path d="M8.5 14.5 5 18l1 1h4l1.5-1.5M8.5 14.5l2.5 2.5M8.5 14.5 15 8l3 3-6.5 6.5M15 8l2.2-2.2a1.5 1.5 0 0 1 2.1 0l.9.9a1.5 1.5 0 0 1 0 2.1L18 11M4 21.5h16"/></symbol>
+  <symbol id="i-fleche" viewBox="0 0 24 24"><path d="M5.5 18.5 18.5 5.5M10 5.5h8.5V14"/></symbol>
+  <symbol id="i-rect" viewBox="0 0 24 24"><path d="M4.5 6.5h15v11h-15Z"/></symbol>
+  <symbol id="i-ellipse" viewBox="0 0 24 24"><path d="M12 5.5c4.4 0 8 2.9 8 6.5s-3.6 6.5-8 6.5-8-2.9-8-6.5 3.6-6.5 8-6.5Z"/></symbol>
+  <symbol id="i-texte" viewBox="0 0 24 24"><path d="M5.5 7V5h13v2M12 5v14M9 19h6"/></symbol>
+  <symbol id="i-annuler" viewBox="0 0 24 24"><path d="M9 13.5 4.5 9 9 4.5M4.5 9h10a5 5 0 0 1 0 10H11"/></symbol>
+  <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8.5h3.2L8.8 6h6.4l1.6 2.5H20v10.5H4ZM12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
@@ -1841,6 +1893,21 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="salle-scene" id="salle-scene" role="list" aria-label="Participants" data-vue="galerie" data-n="1" tabindex="0">
       <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
+    <div class="annot-barre" id="annot-barre" role="toolbar" aria-label="Annoter" hidden>
+      <div class="annot-palette" id="annot-palette" role="group" aria-label="Choix" hidden></div>
+      <button type="button" class="presse" data-outil="stylo" aria-pressed="true" aria-label="Stylo"><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg></button>
+      <button type="button" class="presse" data-outil="surligneur" aria-pressed="false" aria-label="Surligneur"><svg class="ic" aria-hidden="true"><use href="#i-surligneur"/></svg></button>
+      <button type="button" class="presse" data-outil="fleche" aria-pressed="false" aria-label="Flèche"><svg class="ic" aria-hidden="true"><use href="#i-fleche"/></svg></button>
+      <button type="button" class="presse" data-outil="rect" aria-pressed="false" aria-label="Rectangle"><svg class="ic" aria-hidden="true"><use href="#i-rect"/></svg></button>
+      <button type="button" class="presse" data-outil="ellipse" aria-pressed="false" aria-label="Cercle"><svg class="ic" aria-hidden="true"><use href="#i-ellipse"/></svg></button>
+      <button type="button" class="presse" data-outil="texte" aria-pressed="false" aria-label="Texte"><svg class="ic" aria-hidden="true"><use href="#i-texte"/></svg></button>
+      <span class="annot-sep" aria-hidden="true"></span>
+      <button type="button" class="presse" id="annot-couleur" data-couleur="rouge" aria-haspopup="true" aria-expanded="false" aria-label="Couleur et épaisseur"><span class="annot-pastille" aria-hidden="true"></span></button>
+      <button type="button" class="presse" id="annot-annuler" aria-label="Annuler le dernier trait"><svg class="ic" aria-hidden="true"><use href="#i-annuler"/></svg></button>
+      <button type="button" class="presse" id="annot-effacer" aria-haspopup="true" aria-expanded="false" aria-label="Effacer mes annotations"><svg class="ic" aria-hidden="true"><use href="#i-corbeille"/></svg></button>
+      <button type="button" class="presse" id="annot-capturer" aria-label="Capturer et envoyer dans la discussion" hidden><svg class="ic" aria-hidden="true"><use href="#i-capture"/></svg></button>
+      <button type="button" class="presse annot-fin" id="annot-fin">OK</button>
+    </div>
     <div class="salle-pastilles" role="group" aria-label="Réactions et affichage">
       <button type="button" class="salle-pastille presse" id="salle-reagir" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-reaction"/></svg>Réagir</button>
       <div class="salle-emojis" id="salle-emojis" role="group" aria-label="Réactions" hidden>
@@ -1851,6 +1918,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       </div>
       <button type="button" class="salle-pastille presse" id="salle-main" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-main"/></svg><span>Lever la main</span></button>
       <button type="button" class="salle-pastille presse" id="salle-vue"><svg class="ic" aria-hidden="true"><use href="#i-intervenant"/></svg><span>Intervenant</span></button>
+      <button type="button" class="salle-pastille presse" id="salle-annoter" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg><span>Annoter</span></button>
       <button type="button" class="salle-pastille presse" id="salle-rec-btn" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-rec"/></svg><span>Enregistrer</span></button>
     </div>
     <div class="salle-bas">

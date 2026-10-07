@@ -18,6 +18,7 @@
  *   POST /api/salles/:id/reaction {emoji}      SP   pouce, coeur, bravo, rire
  *   POST /api/salles/:id/etat {camera,micro,partage}  SP   l'état de MON appareil (l'image de ma tuile chez les autres)
  *   POST /api/salles/:id/evt {k, donnees}      SP   sondage, minuteur, épingle (2 Ko au plus) : voter est à tous, ouvrir / fermer / démarrer / épingler à l'hôte et aux co-hôtes
+ *   POST /api/salles/:id/annot {op, …}         SP   dessiner et écrire sur l'écran partagé ou le tableau blanc (trait, texte, retirer, annuler, effacer, tableau, permis) — 900 gestes par minute
  *
  * Les gardes (`app.js`) : SP participant d'une SALLE (un exclu, un non-participant, un appel à deux : le MÊME 404 qu'une salle qui n'existe pas), SH hôte ou co-hôte PRÉSENT (un participant voit 403), SO hôte seul.
  * ⛔ LES OUTILS DE L'ORGANISATEUR SE PAIENT, LA SALLE NON (Justin, 4 octobre 2026 : « comme WhatsApp » pour le public ; les réunions à ceux qui organisent). Dans la salle d'une RÉUNION, ou dans un appel de groupe lancé par quelqu'un
@@ -38,7 +39,7 @@ function installerSalles(H, ctx) {
   const refus = (res, statut, code, extra) => res.status(statut).json(Object.assign({ error: code }, extra || {}));
   const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
   /* Les codes de refus du stockage et du chef d'orchestre, traduits : tous des chaînes courtes que la page sait dire (`public/api.js`, `MESSAGES`). Un code inconnu est une vraie panne : il part à `next`. */
-  const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], appel_fini: [409, 'appel_fini'], appel_pas_en_cours: [409, 'appel_pas_en_cours'], appel_complet: [409, 'appel_complet'], champ_invalide: [400, 'champ_invalide'] };
+  const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], annot_pleine: [409, 'annot_pleine'], rien_a_annoter: [409, 'rien_a_annoter'], annot_occupe: [409, 'annot_occupe'], appel_fini: [409, 'appel_fini'], appel_pas_en_cours: [409, 'appel_pas_en_cours'], appel_complet: [409, 'appel_complet'], champ_invalide: [400, 'champ_invalide'] };
   const garder = (f) => (req, res, next) => {
     const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], c[2]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
@@ -158,6 +159,13 @@ function installerSalles(H, ctx) {
     if (!gesteSimple(req, res)) return;
     appels.etatMien({ moi: req.moi, acces: req.appel, camera: b.camera, micro: b.micro, partage: b.partage });
     res.json({ ok: true });
+  });
+  /* les annotations : un trait en cours part en morceaux (dix par seconde) — un plafond à part, assez large pour dessiner, assez court pour qu'une boucle ne submerge pas la salle */
+  H['salles.annot'] = garder((req, res) => {
+    const b = corps(req);
+    if (typeof b.op !== 'string') return refus(res, 400, 'champ_invalide');
+    if (!plafond(res, 'salle_annot:' + req.appel.id + ':' + req.moi.id, 900, 60000)) return;
+    res.json({ ok: true, ev: appels.annoter({ moi: req.moi, acces: req.appel, d: b }) });
   });
   H['salles.evt'] = garder((req, res) => {
     const b = corps(req);

@@ -98,7 +98,7 @@ const pause = (ms) => new Promise(r => setTimeout(r, ms));
       v('⛔ Ben, qui sonne (invité), ne lance pas d\'autre appel : 409 `occupe` `moi:true`', [dit(occ), occ.j.moi], [[409, 'occupe'], true]);
       /* Ben répond ; Cleo rejoint depuis le bandeau ; Dan refuse */
       const rb = await b1.post('/api/appels/' + ap.id + '/repondre', { accepte: true });
-      v('Ben répond : présent, l\'appel COURT, sa vue porte l\'état de la salle (rien d\'éphémère encore) ET dit que la salle a ses outils d\'organisateur (la bêta ouvre tout)', [rb.code, rb.j.appel.moi.statut, rb.j.etat, rb.j.salle], [200, 'present', 'en_cours', { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: true }]);
+      v('Ben répond : présent, l\'appel COURT, sa vue porte l\'état de la salle (rien d\'éphémère encore) ET dit que la salle a ses outils d\'organisateur (la bêta ouvre tout)', [rb.code, rb.j.appel.moi.statut, rb.j.etat, rb.j.salle], [200, 'present', 'en_cours', { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: true, annot: { support: null, ouvreur: null, permis: 'tous', items: [] } }]);
       const rd = await d1.post('/api/appels/' + ap.id + '/repondre', { accepte: false });
       v('Dan REFUSE : « refusé » pour lui seul, la salle continue pour les autres', [rd.code, rd.j.appel.moi.statut, (await a1.get('/api/salles/' + ap.id)).j.appel.etat], [200, 'refuse', 'en_cours']);
       const rj = await c1.post('/api/appels/' + ap.id + '/rejoindre', {});

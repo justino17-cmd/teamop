@@ -216,6 +216,8 @@ const MATRICE = {
   'salles.etat':        { ok: (F) => ['POST', '/api/salles/' + F.SA + '/etat', { micro: false }], codes: [200] },
   'salles.evt':         { ok: (F) => ['POST', '/api/salles/' + F.SA + '/evt', { k: 'epingle', donnees: { op: 'retirer' } }], codes: [200, 403],
                           exactes: { membre: [403, 'interdit'], admin: [200, null] } },
+  /* les annotations (dessiner sur l'écran partagé, le tableau blanc) : « fermer le tableau » quand rien n'est ouvert répond 200 à tout présent — la garde est ce qui est éprouvé ici, test-924 le reste */
+  'salles.annot':       { ok: (F) => ['POST', '/api/salles/' + F.SA + '/annot', { op: 'tableau', actif: false }], codes: [200] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
      renouvelle par H. Les deux routes qui ENTRENT jouent une réunion dont la fenêtre est ouverte (elle commence dans deux minutes) : une réunion dans trois jours refuse, et le refus est joué plus bas. */
   'reunions.apercu':    { ok: (F) => ['POST', '/api/reunions/apercu', { code: F.codeR }], codes: [200] },
@@ -515,7 +517,7 @@ const ATTENDU = {
     vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : le 404 « réunion inexistante » a été comparé pour toutes les routes de réunion à garde R ou H (' + reunionsVerifiees + ')', reunionsVerifiees === MANIFESTE.filter(r => ['R', 'H'].includes(r.garde)).length && reunionsVerifiees >= 8);
     vrai('population : le 404 « appel inexistant » a été comparé pour les trois routes à garde AP (' + appelsVerifies + ')', appelsVerifies === MANIFESTE.filter(r => r.garde === 'AP').length && appelsVerifies === 3);
-    vrai('population : le 404 « salle inexistante » a été comparé pour les seize routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 16);
+    vrai('population : le 404 « salle inexistante » a été comparé pour les dix-sept routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 17);
     vrai('population : des refus ont bien été relevés avant/après (' + refusSansEffet + ')', refusSansEffet >= 60);
     v('⛔ AUCUN refus n\'a écrit quoi que ce soit (instantané de la base identique avant/après)', refusAvecEffet, []);
 

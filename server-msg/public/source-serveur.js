@@ -55,7 +55,8 @@
    la vue `appel(id)` d'une salle porte `groupe:true`, `salle:true`, `genre` ('groupe'|'reunion'), `membres` (chacun : statut, grade, liaison, caméra, micro, partage, main, parle, epingle), `moi` (statut, grade, hote, caméra, micro,
    partage, main), `verrou`, `salleAttente`, `partageOk`, `rec`, `enAttente`, `sondage`, `minuteur`, `demandeMicro` ; appelFlux(id, uid) rend le flux d'UNE personne. sallesOuvertes() (les salles où entrer, relues), rejoindreAppel(id),
    rejoindreReunion(id, type), rejoindreParCode(code, type), apercuReunion(code) (public : titre, horaire, si la salle est ouverte), lienReunion(id) et renouvelerLienReunion(id) (l'hôte), salleAction(id, nom, args) (admettre, refuser,
-   exclure, verrouiller, attente, couperMicro, partage, rec, cohote, terminerPourTous, main, reaction, evt), accuserMicro(id). ⛔ « Couper le micro » n'est qu'une DEMANDE : la page de la personne l'honore ou non.
+   exclure, verrouiller, attente, couperMicro, partage, rec, cohote, terminerPourTous, main, reaction, evt, annot), accuserMicro(id), salleAnnotations(id) (ce qui est dessiné sur l'écran partagé ou le tableau
+   blanc : `{support, ouvreur, permis, items}` — `support` vaut « ecran:<uid> », « tableau » ou null ; l'événement 'salle-annot' (id) dit qu'il a changé). ⛔ « Couper le micro » n'est qu'une DEMANDE : la page de la personne l'honore ou non.
    Événements en plus : 'salles' (les bannières à relire), 'salle-reaction' (id, uid, emoji), 'salle-micro' (id, de : l'hôte demande de couper le micro), 'salle-parle' (id : qui parle a changé).
    Les événements de `ecouter(cb)` : 'liste', 'appels' (l'historique a changé), 'appel' (id : un appel a changé), 'appel-entrant' (id : il sonne pour moi), 'appel-flux' (id : l'autre a une piste de plus), 'reunions' (id, supprime : une réunion a changé, ici ou ailleurs), 'conversation' (id), 'contacts', 'espaces' (id : un espace a changé), 'presence', 'reseau' (etat), 'arrivee' (un message d'un autre : de quoi
    afficher une bannière), 'notification', 'retire' (id : la personne n'est plus dans cette conversation), 'avis' (texte : un refus arrivé après coup),
@@ -783,7 +784,7 @@
 
     function nouvelle(v, extra) {
       return Object.assign({
-        id: v.id, vue: v, salle: { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: false },
+        id: v.id, vue: v, salle: { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: false, annot: normAnnot(null) },
         local: false, entrant: false, reponse: false, attente: false,
         pairs: new Map(), pistes: { audio: null, video: null, ecran: false, micro: true }, etatDit: null,
         ice: null, promesseIce: null, relais: false, sansRelais: false, ttl: 0,
@@ -852,6 +853,7 @@
         verrou: !!v.verrou, salleAttente: !!v.attente, partageOk: v.partage_ok !== false, rec: v.rec ? { par: v.rec.par, nom: v.rec.par === moi() ? 'vous' : personneDe(v.rec.par).prenom } : null,
         enAttente: v.en_attente || 0, epingle: c.salle.epingle || null, sondage: c.salle.sondage || null, outils: c.salle.outils === true,
         minuteur: c.salle.minuteur ? { fin: c.salle.minuteur.fin, secondes: c.salle.minuteur.secondes } : null, demandeMicro: c.demandeMicro,
+        annot: { support: c.salle.annot.support, ouvreur: c.salle.annot.ouvreur, permis: c.salle.annot.permis, n: c.salle.annot.items.length },
         debut: c.debut, fin: fini ? c.fini.t : null, duree: fini ? dureeFinale(c) : (c.debut ? Math.max(0, Math.round((maintenant() - c.debut) / 1000)) : 0),
         sens: v.sens, liaison, issue: fini ? c.fini.issue : null, avis: fini ? c.fini.avis : null, relais: c.relais,
       };
@@ -1339,7 +1341,37 @@
         /* ⛔ les OUTILS de l'organisateur (attente, verrou, retirer, couper les micros, sondage, minuteur, enregistrement) : la salle d'une réunion les a, un appel de groupe les a si celui qui l'a lancé est Pro ou Perso+.
            Le SERVICE le dit (`outils`) ; tant qu'il ne l'a pas dit (l'instant entre le lancement d'un appel et la première lecture de la salle), ils ne sont pas proposés. */
         outils: s.outils === true,
+        annot: normAnnot(s.annot),
       };
+    }
+    /* ── les annotations : ce que le service tient (`annot` de l'état de la salle), relu tel quel et borné ici — une page ne dessine jamais une forme qu'elle ne sait pas lire ── */
+    const OUTILS_ANNOT = ['stylo', 'surligneur', 'fleche', 'rect', 'ellipse', 'texte'];
+    function itemAnnot(x) {
+      if (!x || typeof x !== 'object' || typeof x.id !== 'string' || typeof x.de !== 'string' || !OUTILS_ANNOT.includes(x.outil) || typeof x.couleur !== 'string') return null;
+      if (!Array.isArray(x.pts) || x.pts.length < 2 || x.pts.length % 2 || !x.pts.every(n => Number.isInteger(n) && n >= 0 && n <= 10000)) return null;
+      if (x.outil === 'texte' && (typeof x.texte !== 'string' || !x.texte)) return null;
+      return { id: x.id, de: x.de, outil: x.outil, couleur: x.couleur, ep: Math.max(1, Math.min(3, x.ep | 0)), pts: x.pts.slice(), texte: x.outil === 'texte' ? x.texte : undefined, fini: x.fini !== false };
+    }
+    function normAnnot(a) {
+      const o = a && typeof a === 'object' ? a : {};
+      const support = typeof o.support === 'string' && (o.support === 'tableau' || /^ecran:[A-Za-z0-9_-]+$/.test(o.support)) ? o.support : null;
+      return { support, ouvreur: support && typeof o.ouvreur === 'string' ? o.ouvreur : null, permis: o.permis === 'hotes' ? 'hotes' : 'tous', items: support && Array.isArray(o.items) ? o.items.map(itemAnnot).filter(Boolean) : [] };
+    }
+    /* un événement d'annotation : vrai quand le SUPPORT ou le permis a changé (les commandes de la page se redessinent), faux pour un trait (seul le calque se redessine) */
+    function appliquerAnnot(S, e) {
+      const a = S.annot || (S.annot = normAnnot(null));
+      if (e.op === 'support') { const n = normAnnot({ support: e.support, ouvreur: e.ouvreur, permis: e.permis || a.permis }); S.annot = n; return true; }
+      if (e.op === 'permis') { a.permis = e.permis === 'hotes' ? 'hotes' : 'tous'; return true; }
+      if (!a.support) return false;
+      if (e.op === 'trait') {
+        const it = itemAnnot(e.item); if (!it) return false;
+        const x = a.items.find(i => i.id === it.id);
+        if (e.suite && x) { if (x.pts.length + it.pts.length <= 8000) x.pts = x.pts.concat(it.pts); x.fini = it.fini; }
+        else if (!x) a.items.push(it);
+        return false;
+      }
+      if (e.op === 'retirer' && Array.isArray(e.ids)) { const partis = new Set(e.ids); a.items = a.items.filter(i => !partis.has(i.id)); }
+      return false;
     }
     function surSalleEvt(e) {
       if (!e || typeof e !== 'object' || typeof e.appel !== 'string' || typeof e.k !== 'string') return;
@@ -1352,6 +1384,11 @@
       else if (e.k === 'sondage') S.sondage = e.sondage && typeof e.sondage === 'object' ? e.sondage : null;
       else if (e.k === 'minuteur') S.minuteur = e.minuteur && Number.isFinite(e.minuteur.fin_dans_s) ? { fin: maintenant() + e.minuteur.fin_dans_s * 1000, secondes: e.minuteur.secondes } : null;
       else if (e.k === 'epingle') S.epingle = typeof e.uid === 'string' ? e.uid : null;
+      else if (e.k === 'annot') {
+        const support = appliquerAnnot(S, e);
+        d.emettre({ type: 'salle-annot', id: c.id });
+        if (!support) return;                                                    // un trait (dix par seconde pendant qu'on dessine) ne refait pas le cliché de la salle : seul le calque se redessine
+      }
       else if (e.k === 'couper_micro') {
         if (e.cible === 'tous' || e.cible === moi()) { c.demandeMicro = { de: e.de, t: maintenant(), cible: e.cible }; d.emettre({ type: 'salle-micro', id: c.id, de: e.de }); }
       } else return;
@@ -1560,6 +1597,7 @@
       verrouiller: (id, a) => d.api.salleVerrouiller(id, a.actif), attente: (id, a) => d.api.salleAttente(id, a.actif), couperMicro: (id, a) => d.api.salleCouperMicro(id, a),
       partage: (id, a) => d.api.sallePartage(id, a.actif), rec: (id, a) => d.api.salleRec(id, a.actif), cohote: (id, a) => d.api.salleCohote(id, a.uid, a.actif), terminerPourTous: (id) => d.api.salleTerminer(id),
       main: (id, a) => d.api.salleMain(id, a.actif), reaction: (id, a) => d.api.salleReaction(id, a.emoji), evt: (id, a) => d.api.salleEvt(id, a.k, a.donnees),
+      annot: (id, a) => d.api.salleAnnot(id, a),
     };
     async function action(id, nom, args) {
       const c = courant;
@@ -1568,7 +1606,7 @@
       const a = args || {};
       const r = await ACTIONS[nom](id, a);
       if (c.fini) return r;
-      if (nom === 'evt' && r && r.ev) surSalleEvt(r.ev);                    // l'épingle ou le minuteur que je viens de poser : le service ne me le pousse pas, il me le rend
+      if ((nom === 'evt' || nom === 'annot') && r && r.ev) surSalleEvt(r.ev);   // l'épingle, le minuteur, le trait que je viens de poser : le service ne me le pousse pas, il me le rend
       if (nom === 'main') { c.salle.mains = c.salle.mains.filter(x => x !== moi()); if (a.actif) c.salle.mains.push(moi()); emettreAppel(c); }
       if (nom === 'reaction') d.emettre({ type: 'salle-reaction', id, uid: moi(), emoji: a.emoji });
       if (r && r.appel) { memoriser(r.appel); appliquer(c, r.appel); }
@@ -1585,6 +1623,8 @@
       return { id: a.id, type: a.type, sens: a.manque ? 'manque' : a.sens === 'sortant' ? 'sortant' : 'entrant', groupe: true, conv: a.conv || null, reunion: a.reunion || null, membres: ids, nom, court: nom, initiales: '?', avatar: 0, photo: null, repetitions: 1, t: a.debut, duree: Number.isInteger(a.duree_s) ? a.duree_s : 0 };
     }
     function accuserMicro(id) { const c = courant; if (c && c.id === id) { c.demandeMicro = null; emettreAppel(c); } }
+    /* les annotations de la salle en cours : une COPIE (la page dessine, elle ne modifie rien) */
+    const annotations = (id) => { const c = courant; if (!c || c.id !== id || c.fini) return null; const a = c.salle.annot; return { support: a.support, ouvreur: a.ouvreur, permis: a.permis, items: a.items.map(x => Object.assign({}, x)) }; };
     const flux = (id, uid) => { const c = courant; if (!c || c.id !== id || c.fini) return null; const pr = c.pairs.get(uid); return pr ? pr.flux : null; };
     const instantaneDe = (id) => courant && courant.id === id ? instantane(courant) : null;
     const actif = () => courant && !courant.fini ? instantane(courant) : null;
@@ -1596,7 +1636,7 @@
       courant = null;
     }
     return {
-      lancer, rejoindre, rejoindreReunion, rejoindreParCode, repondre, terminer, fermeture, pistes, flux, instantane: instantaneDe, actif, action, accuserMicro, possede, vueHistorique,
+      lancer, rejoindre, rejoindreReunion, rejoindreParCode, repondre, terminer, fermeture, pistes, flux, instantane: instantaneDe, actif, action, accuserMicro, possede, vueHistorique, annotations,
       surAppel, surSignal, surSalleEvt, surResync: () => { if (courant && !courant.fini) relire(courant); else relireActif(); }, surReseau: (etat) => { if (etat === 'ok' && courant && !courant.fini) relire(courant); },
       reprendre, arreter,
       etat: () => courant ? { id: courant.id, fini: !!courant.fini, local: courant.local, relais: courant.relais, paires: Array.from(courant.pairs.values()).map(p => ({ uid: p.uid, etat: p.etat, relais: p.relais, offrant: p.offrant, gen: p.gen, lien: p.lien, pc: !!p.pc, reprises: p.reprises })) } : null,
@@ -3074,7 +3114,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3122,6 +3162,7 @@
       lienReunion: async (id) => { const r = await pourReunion(A.lienReunion(id)); return String(r.code || ''); },
       renouvelerLienReunion: async (id) => { const r = await pourReunion(A.renouvelerLienReunion(id)); return String(r.code || ''); },
       salleAction: (id, nom, args) => moteurSalle.action(id, nom, args),
+      salleAnnotations: (id) => moteurSalle.annotations(id),
       accuserMicro: (id) => moteurSalle.accuserMicro(id),
       ecouter(cb) {
         ecouteurs.push(cb);

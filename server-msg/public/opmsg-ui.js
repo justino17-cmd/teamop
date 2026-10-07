@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c74881b47ce9';
+  const OPMSG_BUILD = '713c11174eb6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 41;
+  const OPMSG_VERSION = 45;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4407,7 +4407,9 @@
   function majTuile(t, m, A, grand) {
     const s = A.snap, cls = 'tuile salle-tuile av' + (((m.avatar | 0) % 6 + 6) % 6) + (m.parle ? ' parle' : '') + (s.epingle === m.id ? ' epingle' : '') + (grand ? ' grand' : '');
     if (t.className !== cls) t.className = cls;
-    const cam = m.camera ? 'on' : 'off'; if (t.dataset.camera !== cam) t.dataset.camera = cam;
+    /* ⛔ un écran partagé PASSE PAR LA PISTE DE LA CAMÉRA (même émetteur) : caméra coupée ou non, l'image est là — mesuré le 7 octobre 2026, l'écran de quelqu'un qui partageait caméra coupée
+       était CACHÉ derrière son avatar et « Caméra désactivée » (et l'enregistrement ne le prenait pas) */
+    const cam = m.camera || m.partage ? 'on' : 'off'; if (t.dataset.camera !== cam) t.dataset.camera = cam;
     const ecr = m.partage ? '1' : '0'; if (t.dataset.ecran !== ecr) t.dataset.ecran = ecr;
     const sig = [m.initiales, m.nom, m.prenom, m.micro, m.main, m.partage, m.grade, m.camera].join('|');
     if (t.dataset.sig === sig) return;
@@ -4424,6 +4426,9 @@
     if (X.vue !== 'intervenant') return null;
     if (s.epingle === MOI.id) return 'vous';
     if (s.epingle && presents.some(m => m.id === s.epingle)) return s.epingle;
+    const sup = s.annot && s.annot.support;
+    if (sup === 'tableau' && !s.attente) return 'tableau';
+    if (sup && sup !== 'ecran:' + MOI.id && presents.some(m => 'ecran:' + m.id === sup)) return sup.slice(6);
     const part = presents.find(m => m.partage); if (part) return part.id;
     const p = presents.find(m => m.parle); if (p) { X.grand = p.id; return p.id; }
     if (X.grand && presents.some(m => m.id === X.grand)) return X.grand;
@@ -4431,6 +4436,11 @@
   }
   function salleTuiles(A, presents) {
     const scene = $('salle-scene'), vous = $('salle-vous'), X = sx(A);
+    /* le tableau blanc : une vignette de plus, la première, tant qu'il est ouvert */
+    let tab = $('salle-tableau');
+    const avecTableau = !!(A.snap.annot && A.snap.annot.support === 'tableau') && !A.snap.attente;
+    if (avecTableau && !tab) { scene.insertAdjacentHTML('afterbegin', '<div class="tuile salle-tuile salle-tableau" id="salle-tableau" role="listitem" aria-label="Tableau blanc"><span class="tuile-nom">Tableau blanc</span></div>'); tab = $('salle-tableau'); }
+    else if (!avecTableau && tab) { tab.remove(); tab = null; }
     const grand = choisirGrand(A, presents);
     const existantes = new Map(); scene.querySelectorAll(':scope > .salle-tuile[data-uid]').forEach(t => existantes.set(t.dataset.uid, t));
     const voulus = new Set(presents.map(m => m.id));
@@ -4441,7 +4451,8 @@
       majTuile(t, m, A, grand === m.id);
     }
     vous.className = 'tuile salle-tuile vous av0' + (grand === 'vous' ? ' grand' : '') + (A.snap.epingle === MOI.id ? ' epingle' : '');
-    scene.dataset.vue = X.vue; scene.dataset.n = String(Math.min(9, presents.length + 1));
+    if (tab) tab.className = 'tuile salle-tuile salle-tableau' + (grand === 'tableau' ? ' grand' : '');
+    scene.dataset.vue = X.vue; scene.dataset.n = String(Math.min(9, presents.length + 1 + (tab ? 1 : 0)));
     let seul = $('salle-seul');
     if (!presents.length) {
       if (!seul) { scene.insertAdjacentHTML('beforeend', '<p class="salle-attente" id="salle-seul"></p>'); seul = $('salle-seul'); }
@@ -4472,6 +4483,7 @@
       const m = presents.find(x => x.id === t.dataset.uid); if (m) majTuile(t, m, A, grand === m.id);
     });
     $('salle-vous').classList.toggle('grand', grand === 'vous');
+    const tab = $('salle-tableau'); if (tab) tab.classList.toggle('grand', grand === 'tableau');
   }
   /* une réaction monte de la vignette de celui qui l'envoie (la mienne comprise) et s'efface ; le lecteur d'écran l'entend */
   function reactionSalle(uid, nom) {
@@ -4514,6 +4526,7 @@
       for (const m of presents) if (mains.has(m.id) && !X.mains.has(m.id)) annonceAppel(nomM(m) + ' lève la main');
     }
     X.ids = ids; X.mains = mains;
+    annotSynchro(A);                                                         // AVANT les vignettes : un support qui arrive met la vue en « intervenant »
     if (s.attente) { salleTuiles(A, []); const seul = $('salle-seul'); if (seul) { seul.innerHTML = '<b>Salle d\'attente</b>Un hôte va te laisser entrer. Tu peux quitter à tout moment.'; } }
     else salleTuiles(A, presents);
     /* « Vous » */
@@ -4529,6 +4542,7 @@
     lierFluxSalle(A);
     recSynchro(A);
     majStatutSalle(A);
+    annotRendre(A);
   }
   function sallePistesVous(A) {
     const v = $('salle-video-local'), vous = $('salle-vous'), piste = A.ecran && A.ecran.readyState === 'live' ? A.ecran : A.video && A.video.readyState === 'live' ? A.video : null;
@@ -4714,6 +4728,17 @@
         inter('partage-ok', s.partageOk, 'Partage d\'écran des participants', 'Les hôtes peuvent toujours partager') + '</div>';
       if (!s.outils) h += '<p class="salle-note" id="salle-sans-outils">Les outils de l\'organisateur — salle d\'attente, verrou, sondage, minuteur, enregistrement — sont dans les réunions.</p>';
     }
+    /* le tableau blanc et les annotations : ouvrir le tableau (tous, sauf si l'hôte les a réservées aux hôtes), le fermer (l'hôte, celui qui l'a ouvert), le réglage de l'hôte */
+    const an = s.annot || { support: null, permis: 'tous', ouvreur: null };
+    if (CAP.annotations) {
+      const surTableau = an.support === 'tableau', ouvreur = surTableau ? s.membres.find(m => m.id === an.ouvreur) : null;
+      let lignes = '';
+      if (surTableau) lignes += annotMaitre(A) ? '<button type="button" class="salle-rang" data-sa="tableau-fermer"><span class="texte">Fermer le tableau blanc<small>Ce qui y est dessiné s\'efface pour tous : « Capturer » l\'envoie d\'abord dans la discussion</small></span></button>'
+        : '<div class="salle-rang libre"><span class="texte">Tableau blanc ouvert<small>' + esc(an.ouvreur === MOI.id ? 'Par vous' : 'Par ' + nomM(ouvreur)) + '</small></span></div>';
+      else if (an.permis === 'tous' || hote) lignes += '<button type="button" class="salle-rang" data-sa="tableau-ouvrir"><span class="texte">Ouvrir un tableau blanc<small>Chacun y dessine et y écrit, tout le monde le voit</small></span></button>';
+      if (hote) lignes += inter('annot-permis', an.permis === 'tous', 'Annotations des participants', 'Dessiner sur l\'écran partagé et le tableau (les hôtes le peuvent toujours)');
+      if (lignes) h += '<div class="salle-rub"><span>Tableau blanc et annotations</span></div><div class="salle-liste">' + lignes + '</div>';
+    }
     /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image, là où le navigateur la sait */
     const ap = X.appareils || [], choix = (quoi, kind, titre) => { const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
       const actuel = prefMedias[quoi] || '';
@@ -4755,7 +4780,7 @@
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom]);
-    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, s.capacite, s.nom]);
+    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
@@ -4822,6 +4847,9 @@
       case 'verrou': await salleGeste(A, 'verrouiller', { actif: !s.verrou }); return;
       case 'attente': await salleGeste(A, 'attente', { actif: !s.salleAttente }); return;
       case 'partage-ok': await salleGeste(A, 'partage', { actif: !s.partageOk }); return;
+      case 'tableau-ouvrir': if (await salleGeste(A, 'annot', { op: 'tableau', actif: true }, 'Le tableau blanc n\'a pas pu s\'ouvrir.')) { X.annoterApres = 'tableau'; salleFermerPanneau(A, false); rendreAppel(); } return;
+      case 'tableau-fermer': await salleGeste(A, 'annot', { op: 'tableau', actif: false }, 'Le tableau blanc n\'a pas pu se fermer.'); return;
+      case 'annot-permis': await salleGeste(A, 'annot', { op: 'permis', qui: (s.annot && s.annot.permis) === 'hotes' ? 'tous' : 'hotes' }); return;
       case 'sondage-nouveau': X.formSondage = true; X.choixN = 2; sallePanneauRendre(A, true); requestAnimationFrame(() => { const q = $('salle-sq'); if (q) q.focus({ preventScroll: true }); }); return;
       case 'sondage-annuler': X.formSondage = false; sallePanneauRendre(A, true); return;
       case 'sondage-choix': X.choixN = Math.min(6, X.choixN + 1); sallePanneauRendre(A, true); return;
@@ -4903,6 +4931,12 @@
   function salleEchap() {
     const A = etat.appelUI; if (!enSalle(A)) return false;
     const X = sx(A);
+    if (X.annoter) {                                                         // en annotant : le champ de texte, puis la palette, puis le mode lui-même
+      const N = annotEtat(A);
+      if (N.saisie) { annotSaisieFermer(A, false); return true; }
+      if (N.palette) { const q = N.palette; annotPaletteFermer(A); $(q === 'couleur' ? 'annot-couleur' : 'annot-effacer').focus({ preventScroll: true }); return true; }
+      annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return true;
+    }
     if (X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); $('salle-reagir').focus({ preventScroll: true }); return true; }
     if (X.panneau) { salleFermerPanneau(A); return true; }
     return true;
@@ -4911,6 +4945,319 @@
     if (e.key !== 'Escape' || !etat.appelId || etat.photo || etat.groupe.ouvert || etat.menu) return;
     if (salleEchap()) { e.preventDefault(); e.stopPropagation(); }
   }, true);
+
+  /* ── les annotations : dessiner et écrire sur l'écran partagé ou le tableau blanc (7 octobre 2026 : « partage d'écran, dessiner sur l'écran, ajouter du texte ») ──
+     Le SERVICE tient ce qui est dessiné (en mémoire, le temps de la salle) ; la source en garde la copie (`source.salleAnnotations`) et dit 'salle-annot' quand elle change. La page :
+     · un CALQUE (`canvas.annot-calque`) posé dans la vignette du support (l'écran partagé de quelqu'un, ou le tableau), redessiné à l'image près (`annotPlanifier`) ;
+     · des coordonnées RELATIVES à l'image (0..10 000), pas aux pixels d'un appareil : un trait posé sur un téléphone tombe au même endroit sur l'écran d'un ordinateur ;
+     · le trait en cours part en morceaux (toutes les 120 ms) pendant qu'on dessine — les autres le voient se tracer ; le mien reste dessiné ICI jusqu'à ce que le service l'ait entier (`N.locaux`).
+     ⛔ Le partageur ne voit pas les annotations sur SON écran réel (une page web ne dessine pas hors d'elle) : il les voit sur sa vignette. Le dire plutôt que le laisser croire. */
+  const ANNOT_COULEURS = { rouge: '#ff3b30', orange: '#ff9500', jaune: '#ffcc00', vert: '#34c759', bleu: '#0a84ff', violet: '#af52de', noir: '#1c1c1e', blanc: '#ffffff' };
+  const NOMS_COULEURS = { rouge: 'Rouge', orange: 'Orange', jaune: 'Jaune', vert: 'Vert', bleu: 'Bleu', violet: 'Violet', noir: 'Noir', blanc: 'Blanc' };
+  const NOMS_OUTILS = { stylo: 'Stylo', surligneur: 'Surligneur', fleche: 'Flèche', rect: 'Rectangle', ellipse: 'Cercle', texte: 'Texte' };
+  const ANNOT_TABLEAU = 1.6, ANNOT_PAS = 30, ANNOT_POINTS_MAX = 4000;
+  const annotEtat = A => { const X = sx(A); return X.an || (X.an = { outil: 'stylo', couleur: 'rouge', ep: 2, trait: null, locaux: new Map(), file: Promise.resolve(), support: undefined, vueAvant: null, calque: null, cible: null, ro: null, planifie: 0, minuterie: 0, boite: null, saisie: null, palette: null, n: 0 }); };
+  const annotInfo = A => { const a = A && A.snap && A.snap.annot; return a && a.support ? a : null; };
+  function annotMaitre(A) { const a = annotInfo(A); return !!a && (!!A.snap.moi.hote || a.support === 'ecran:' + MOI.id || (a.support === 'tableau' && a.ouvreur === MOI.id)); }
+  function annotPeut(A) { const a = annotInfo(A); return !!a && !A.snap.attente && (a.permis === 'tous' || annotMaitre(A)); }
+  function annotCible(A) {
+    const a = annotInfo(A); if (!a || A.snap.attente) return null;
+    if (a.support === 'tableau') return $('salle-tableau');
+    const uid = a.support.slice(6);
+    return uid === MOI.id ? $('salle-vous') : $('salle-scene').querySelector(':scope > .salle-tuile[data-uid="' + uid.replace(/[^A-Za-z0-9_-]/g, '') + '"]');
+  }
+  /* la boîte de l'IMAGE dans sa vignette (px CSS, relatifs à la vignette) : l'écran partagé est montré en entier (« contain ») ; le tableau est un 16:10, le même chez tous */
+  function annotBoite(t) {
+    const W = t.clientWidth, H = t.clientHeight; if (!W || !H) return null;
+    let r = ANNOT_TABLEAU;
+    if (t.id !== 'salle-tableau') { const v = t.querySelector('video'); r = v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : W / H; }
+    const w = Math.min(W, H * r), h = w / r;
+    return { x: (W - w) / 2, y: (H - h) / 2, w, h };
+  }
+  /* tracer des annotations dans un contexte 2D, sur la boîte `b` (en pixels de ce contexte) ; `k` : combien de pixels du contexte font un pixel CSS (les épaisseurs ne descendent pas sous 1,5 px à l'écran).
+     Une seule fonction pour le calque, la capture envoyée dans la discussion et l'image de l'enregistrement : ce qu'on enregistre est ce qu'on a vu. */
+  function annotTracer(g, items, b, k) {
+    for (const x of items) {
+      const P = x.pts; if (!P || P.length < 2) continue;
+      const col = ANNOT_COULEURS[x.couleur] || ANNOT_COULEURS.rouge, ep = (x.ep | 0) || 2, X = i => b.x + P[i] / 10000 * b.w, Y = i => b.y + P[i + 1] / 10000 * b.h;
+      g.save();
+      if (x.outil === 'texte') {
+        const fs = Math.max(11 * k, b.h * [0.035, 0.05, 0.07][ep - 1]), larg = Math.max(fs * 3, b.x + b.w - X(0) - 4 * k);
+        g.font = '600 ' + Math.round(fs) + 'px -apple-system, system-ui, sans-serif'; g.textBaseline = 'top'; g.fillStyle = col;
+        if (x.couleur === 'blanc' || x.couleur === 'jaune') { g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 3 * k; }        // un texte clair reste lisible sur un écran clair
+        const lignes = []; let l = '';
+        for (const mot of String(x.texte || '').split(' ')) { const essai = l ? l + ' ' + mot : mot; if (l && g.measureText(essai).width > larg) { lignes.push(l); l = mot; } else l = essai; }
+        if (l) lignes.push(l);
+        lignes.slice(0, 6).forEach((t, i) => g.fillText(t, X(0), Y(0) + i * fs * 1.25));
+        g.restore(); continue;
+      }
+      const lw = Math.max(1.5 * k, b.h * [0.004, 0.007, 0.012][ep - 1]) * (x.outil === 'surligneur' ? 3.5 : 1);
+      g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = col;
+      if (x.outil === 'surligneur') { g.globalAlpha = 0.35; g.lineCap = 'butt'; }
+      g.beginPath();
+      if (x.outil === 'stylo' || x.outil === 'surligneur') {
+        g.moveTo(X(0), Y(0));
+        if (P.length === 2) g.lineTo(X(0) + 0.01, Y(0));                               // un simple toucher fait un point
+        for (let i = 2; i < P.length - 2; i += 2) g.quadraticCurveTo(X(i), Y(i), (X(i) + X(i + 2)) / 2, (Y(i) + Y(i + 2)) / 2);
+        if (P.length > 2) g.lineTo(X(P.length - 2), Y(P.length - 2));
+      } else {
+        const n = P.length - 2, x1 = X(0), y1 = Y(0), x2 = X(n), y2 = Y(n);
+        if (x.outil === 'rect') g.rect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+        else if (x.outil === 'ellipse') g.ellipse((x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1) / 2, Math.abs(y2 - y1) / 2, 0, 0, Math.PI * 2);
+        else { const a = Math.atan2(y2 - y1, x2 - x1), L = Math.max(12 * k, lw * 4); g.moveTo(x1, y1); g.lineTo(x2, y2); g.moveTo(x2 - L * Math.cos(a - 0.45), y2 - L * Math.sin(a - 0.45)); g.lineTo(x2, y2); g.lineTo(x2 - L * Math.cos(a + 0.45), y2 - L * Math.sin(a + 0.45)); }
+      }
+      g.stroke(); g.restore();
+    }
+  }
+  /* ce que le calque montre : ce que le service tient, sauf mes traits pas encore entiers chez lui (dessinés depuis ICI, sans saut) */
+  function annotItems(A) {
+    const N = annotEtat(A), tenus = (source.salleAnnotations && source.salleAnnotations(A.id) || { items: [] }).items;
+    const caches = new Set(N.locaux.keys()); if (N.trait) caches.add(N.trait.id);
+    const l = tenus.filter(x => !caches.has(x.id));
+    for (const x of N.locaux.values()) l.push(x);
+    if (N.trait) l.push(N.trait);
+    return l;
+  }
+  function annotRendre(A) {
+    const N = annotEtat(A), t = annotCible(A);
+    if (N.cible && N.cible !== t && N.ro) N.ro.unobserve(N.cible);
+    if (!t) { if (N.calque) N.calque.remove(); N.cible = null; N.boite = null; return; }
+    let cv = N.calque;
+    if (!cv) { cv = N.calque = document.createElement('canvas'); cv.className = 'annot-calque'; cv.setAttribute('aria-hidden', 'true'); annotBrancher(cv); }
+    if (cv.parentNode !== t) t.insertBefore(cv, t.querySelector('.tuile-nom'));
+    if (N.cible !== t) {
+      N.cible = t;
+      if (!N.ro && typeof ResizeObserver === 'function') N.ro = new ResizeObserver(() => annotPlanifier());
+      if (N.ro) N.ro.observe(t);
+      const v = t.querySelector('video'); if (v && !v.dataset.annot) { v.dataset.annot = '1'; v.addEventListener('resize', annotPlanifier); v.addEventListener('loadedmetadata', annotPlanifier); }
+    }
+    cv.dataset.outil = N.outil;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(t.clientWidth * dpr), H = Math.round(t.clientHeight * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+    const b0 = annotBoite(t); N.boite = b0; if (!b0) return;
+    const b = { x: b0.x * dpr, y: b0.y * dpr, w: b0.w * dpr, h: b0.h * dpr };
+    if (t.id === 'salle-tableau') { g.fillStyle = '#fbfbfd'; g.fillRect(b.x, b.y, b.w, b.h); }
+    const items = annotItems(A);
+    annotTracer(g, items, b, dpr);
+    N.n = items.length; cv.dataset.n = String(items.length);
+  }
+  function annotPlanifier() {
+    const A = etat.appelUI; if (!enSalle(A)) return;
+    const N = annotEtat(A); if (N.planifie) return;
+    N.planifie = requestAnimationFrame(() => { N.planifie = 0; if (etat.appelUI === A && enSalle(A)) annotRendre(A); });
+  }
+  /* le support change (un partage commence ou finit, le tableau s'ouvre ou se ferme) : ce qui était en cours s'arrête ; chez les AUTRES que le partageur, la vue passe à « intervenant » le temps du
+     support (l'image en grand, comme Zoom et Teams), et revient à ce qu'elle était ensuite. Appelé par `rendreSalle` AVANT les vignettes. */
+  function annotSynchro(A) {
+    const a = annotInfo(A), N = annotEtat(A), X = sx(A), sup = a ? a.support : null;
+    if (sup !== N.support) {
+      const avant = N.support; N.support = sup;
+      clearInterval(N.minuterie); N.minuterie = 0; N.trait = null; N.locaux.clear(); annotSaisieFermer(A, false); annotPaletteFermer(A);
+      const grandir = !!sup && sup !== 'ecran:' + MOI.id;
+      if (grandir && X.vue !== 'intervenant' && !N.vueAvant) { N.vueAvant = X.vue; X.vue = 'intervenant'; }
+      else if (!grandir && N.vueAvant) { X.vue = N.vueAvant; N.vueAvant = null; }
+      if (avant !== undefined) {
+        if (sup === 'tableau') { const m = A.snap.membres.find(x => x.id === a.ouvreur); annonceAppel(a.ouvreur === MOI.id ? 'Tableau blanc ouvert' : nomM(m) + ' a ouvert le tableau blanc'); }
+        else if (avant === 'tableau') annonceAppel('Tableau blanc fermé');
+      }
+      if (!sup && X.annoter) annoterBasculer(A, false);
+    }
+    if (X.annoterApres && sup === X.annoterApres) { X.annoterApres = null; if (!X.annoter) annoterBasculer(A, true); }       // je viens d'ouvrir le tableau : j'y dessine tout de suite
+    if (X.annoter && !annotPeut(A)) { annoterBasculer(A, false); if (sup) mot('L\'hôte a réservé les annotations aux hôtes.'); }
+    const bp = $('salle-annoter'); bp.hidden = !annotPeut(A); bp.setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
+    $('annot-capturer').hidden = !(sup === 'tableau' || annotMaitre(A));                 // l'écran de quelqu'un ne se capture que par lui ou un hôte ; le tableau, par tous
+    $('annot-effacer').setAttribute('aria-label', annotMaitre(A) ? 'Effacer…' : 'Effacer mes annotations');
+  }
+  function annoterBasculer(A, actif) {
+    const X = sx(A), E = $('salle-ecran');
+    X.annoter = !!actif && annotPeut(A);
+    if (X.annoter) E.dataset.annoter = '1'; else { E.removeAttribute('data-annoter'); annotSaisieFermer(A, true); annotPaletteFermer(A); }
+    $('annot-barre').hidden = !X.annoter;
+    $('salle-annoter').setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
+    annotOutils(A);
+    if (X.annoter && X.panneau) salleFermerPanneau(A, false);
+    if (X.annoter && X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); }
+    if (X.annoter) { const sup = annotInfo(A).support; annonceAppel(sup === 'tableau' ? 'Annoter : dessine sur le tableau blanc' : sup === 'ecran:' + MOI.id ? 'Annoter : dessine sur ton écran partagé, tous le voient sur leur écran' : 'Annoter : dessine sur l\'écran partagé'); }
+    annotPlanifier();
+  }
+  /* l'état des boutons de la barre : l'outil choisi, la pastille de la couleur */
+  function annotOutils(A) {
+    const N = annotEtat(A);
+    $('annot-barre').querySelectorAll('[data-outil]').forEach(b => b.setAttribute('aria-pressed', b.dataset.outil === N.outil ? 'true' : 'false'));
+    const bc = $('annot-couleur'); bc.dataset.couleur = N.couleur; bc.setAttribute('aria-label', 'Couleur et épaisseur : ' + NOMS_COULEURS[N.couleur] + ', ' + ['fin', 'moyen', 'épais'][N.ep - 1]);
+    if (N.calque) N.calque.dataset.outil = N.outil;
+  }
+  /* un point du doigt ou de la souris → coordonnées de l'image (0..10 000), ou null hors de l'image */
+  function annotPoint(A, e) {
+    const N = annotEtat(A), b = N.boite; if (!b || !N.calque) return null;
+    const x = (e.offsetX - b.x) / b.w, y = (e.offsetY - b.y) / b.h;                       // le calque couvre la vignette depuis son coin : `offsetX/Y` sont déjà relatifs à elle
+    if (x < -0.03 || x > 1.03 || y < -0.03 || y > 1.03) return null;
+    return [Math.round(Math.max(0, Math.min(1, x)) * 10000), Math.round(Math.max(0, Math.min(1, y)) * 10000)];
+  }
+  const annotId = () => { const t = new Uint8Array(9); crypto.getRandomValues(t); return 'a' + Array.from(t, n => n.toString(36).padStart(2, '0')).join('').slice(0, 15); };
+  function annotBrancher(cv) {
+    cv.addEventListener('pointerdown', e => {
+      const A = etat.appelUI; if (!enSalle(A) || !sx(A).annoter || !annotPeut(A) || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const N = annotEtat(A), p = annotPoint(A, e); if (!p) return;
+      e.preventDefault(); annotPaletteFermer(A);
+      if (N.outil === 'texte') { annotSaisieOuvrir(A, p, e); return; }
+      if (N.trait) annotFinir(A, true);
+      try { cv.setPointerCapture(e.pointerId); } catch (er) { /* le pointeur est déjà parti */ }
+      N.trait = { id: annotId(), de: MOI.id, outil: N.outil, couleur: N.couleur, ep: N.ep, pts: p.slice(), fini: false, envoyes: 0, cree: false, pointeur: e.pointerId };
+      if (N.outil === 'stylo' || N.outil === 'surligneur') N.minuterie = setInterval(() => annotVider(A, false), 120);
+      annotPlanifier();
+    });
+    cv.addEventListener('pointermove', e => {
+      const A = etat.appelUI; if (!enSalle(A)) return;
+      const N = annotEtat(A), tr = N.trait; if (!tr || tr.pointeur !== e.pointerId) return;
+      const evs = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e];
+      for (const ev of (evs.length ? evs : [e])) {
+        const p = annotPoint(A, ev); if (!p) continue;
+        if (tr.outil !== 'stylo' && tr.outil !== 'surligneur') { tr.pts = [tr.pts[0], tr.pts[1], p[0], p[1]]; continue; }
+        const n = tr.pts.length;
+        if (Math.hypot(p[0] - tr.pts[n - 2], p[1] - tr.pts[n - 1]) < ANNOT_PAS) continue;
+        if (n / 2 >= ANNOT_POINTS_MAX) { annotFinir(A, false); return; }
+        tr.pts.push(p[0], p[1]);
+      }
+      annotPlanifier();
+    });
+    const fin = e => { const A = etat.appelUI; if (!enSalle(A)) return; const N = annotEtat(A); if (N.trait && N.trait.pointeur === e.pointerId) annotFinir(A, e.type === 'pointercancel'); };
+    cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
+  }
+  /* le trait se termine : une forme part d'un coup (si on a bougé), un trait à main levée envoie son dernier morceau */
+  function annotFinir(A, perdu) {
+    const N = annotEtat(A), tr = N.trait; if (!tr) return;
+    clearInterval(N.minuterie); N.minuterie = 0; N.trait = null;
+    if (tr.outil === 'stylo' || tr.outil === 'surligneur') { if (perdu && !tr.cree) { annotPlanifier(); return; } N.locaux.set(tr.id, tr); annotVider(A, true, tr); }
+    else if (tr.pts.length === 4 && Math.hypot(tr.pts[2] - tr.pts[0], tr.pts[3] - tr.pts[1]) >= ANNOT_PAS * 2) { N.locaux.set(tr.id, tr); annotEnvoyer(A, { op: 'trait', id: tr.id, outil: tr.outil, couleur: tr.couleur, ep: tr.ep, pts: tr.pts.slice(), fin: true }, tr); }
+    annotPlanifier();
+  }
+  /* un morceau du trait en cours (ou le dernier, `fin`) : seulement les points pas encore envoyés, 600 au plus par envoi */
+  function annotVider(A, fin, tr0) {
+    const N = annotEtat(A), tr = tr0 || N.trait; if (!tr) return;
+    let neufs = tr.pts.slice(tr.envoyes);
+    if (!neufs.length && !fin) return;
+    if (!neufs.length) neufs = tr.pts.slice(-2);
+    while (neufs.length) {
+      const m = neufs.splice(0, 1200), dernier = !neufs.length;
+      tr.envoyes = Math.min(tr.pts.length, tr.envoyes + m.length);
+      const d = tr.cree ? { op: 'trait', id: tr.id, pts: m } : { op: 'trait', id: tr.id, outil: tr.outil, couleur: tr.couleur, ep: tr.ep, pts: m };
+      if (fin && dernier) d.fin = true;
+      tr.cree = true;
+      annotEnvoyer(A, d, tr);
+    }
+  }
+  /* UNE file : les gestes partent dans l'ordre où ils ont été faits (un morceau de trait n'arrive jamais avant son début) ; un refus arrête le trait et se DIT une fois */
+  function annotEnvoyer(A, d, tr) {
+    const N = annotEtat(A);
+    N.file = N.file.then(async () => {
+      if (perime(A) || (tr && tr.rate)) return;
+      try { await source.salleAction(A.id, 'annot', d); }
+      catch (e) { if (tr) tr.rate = true; if (!perime(A)) { mot(phrase(e, 'Ce trait n\'a pas pu être envoyé.')); if (e && e.code === 'rien_a_annoter') annoterBasculer(A, false); } }
+      finally { if (tr && (d.fin || tr.rate)) { N.locaux.delete(tr.id); if (!perime(A)) annotPlanifier(); } }
+    });
+    return N.file;
+  }
+  /* le texte : un champ posé là où l'on a touché ; Entrée le pose, Échap l'abandonne, quitter le champ le pose aussi (ce qu'on a écrit n'est pas perdu) */
+  function annotSaisieOuvrir(A, p, e) {
+    const N = annotEtat(A), t = N.cible; if (!t) return;
+    annotSaisieFermer(A, true);
+    const W = t.clientWidth, H = t.clientHeight, ch = document.createElement('input');
+    ch.type = 'text'; ch.className = 'annot-saisie'; ch.maxLength = 200; ch.autocomplete = 'off'; ch.enterKeyHint = 'done'; ch.setAttribute('aria-label', 'Texte à poser sur ' + (annotInfo(A).support === 'tableau' ? 'le tableau' : 'l\'écran partagé'));
+    ch.style.left = Math.max(4, Math.min(e.offsetX, W - Math.min(260, W * 0.7) - 4)) + 'px';
+    ch.style.top = Math.max(4, Math.min(e.offsetY - 20, H - 48)) + 'px';
+    N.saisie = { ch, p };
+    t.appendChild(ch);
+    ch.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); annotSaisieFermer(A, true); } else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); annotSaisieFermer(A, false); } });
+    ch.addEventListener('blur', () => setTimeout(() => { if (N.saisie && N.saisie.ch === ch) annotSaisieFermer(A, true); }, 0));
+    requestAnimationFrame(() => ch.focus({ preventScroll: true }));
+  }
+  function annotSaisieFermer(A, poser) {
+    const N = annotEtat(A), s = N.saisie; if (!s) return;
+    N.saisie = null;
+    const texte = s.ch.value.replace(/\s+/g, ' ').trim();
+    s.ch.remove();
+    if (!poser || !texte || !annotPeut(A)) return;
+    const it = { id: annotId(), de: MOI.id, outil: 'texte', couleur: N.couleur, ep: N.ep, pts: s.p.slice(), texte: Array.from(texte).slice(0, 200).join(''), fini: true };
+    N.locaux.set(it.id, it); annotPlanifier();
+    annotEnvoyer(A, { op: 'texte', id: it.id, pts: it.pts, texte: it.texte, couleur: it.couleur, ep: it.ep, fin: true }, it);
+  }
+  /* la palette (couleur et épaisseur) et le choix « effacer » : un panneau au-dessus de la barre, un à la fois */
+  function annotPaletteOuvrir(A, quoi) {
+    const N = annotEtat(A), P = $('annot-palette');
+    if (N.palette === quoi) { annotPaletteFermer(A); return; }
+    N.palette = quoi;
+    if (quoi === 'couleur') P.innerHTML = Object.keys(ANNOT_COULEURS).map(c => '<button type="button" class="presse" data-ap="couleur" data-couleur="' + c + '" aria-pressed="' + (c === N.couleur ? 'true' : 'false') + '" aria-label="' + NOMS_COULEURS[c] + '"><span class="annot-pastille" aria-hidden="true"></span></button>').join('') +
+      '<span class="annot-sep" aria-hidden="true"></span>' + [1, 2, 3].map(n => '<button type="button" class="presse" data-ap="ep" data-n="' + n + '" aria-pressed="' + (n === N.ep ? 'true' : 'false') + '" aria-label="' + ['Trait fin', 'Trait moyen', 'Trait épais'][n - 1] + '"><span class="annot-ep" data-n="' + n + '" aria-hidden="true"></span></button>').join('');
+    else P.innerHTML = '<button type="button" class="salle-btn presse" data-ap="effacer-miens">Mes annotations</button><button type="button" class="salle-btn danger presse" data-ap="effacer-tous">Tout effacer</button>';
+    P.hidden = false;
+    $(quoi === 'couleur' ? 'annot-couleur' : 'annot-effacer').setAttribute('aria-expanded', 'true');
+    const b = P.querySelector('[aria-pressed="true"]') || P.querySelector('button'); if (b) b.focus({ preventScroll: true });
+  }
+  function annotPaletteFermer(A) {
+    const N = annotEtat(A); if (!N.palette) return;
+    N.palette = null; $('annot-palette').hidden = true; $('annot-palette').innerHTML = '';
+    $('annot-couleur').setAttribute('aria-expanded', 'false'); $('annot-effacer').setAttribute('aria-expanded', 'false');
+  }
+  async function annotEffacer(A, qui) {
+    const N = annotEtat(A); annotPaletteFermer(A);
+    if (N.trait) annotFinir(A, true);
+    await annotEnvoyer(A, { op: 'effacer', qui });
+    if (!perime(A)) { annonceAppel(qui === 'tous' ? 'Toutes les annotations sont effacées' : 'Tes annotations sont effacées'); annotPlanifier(); }
+  }
+  /* la capture : l'image du support ET ce qui est dessiné dessus, envoyée dans la discussion de la salle (les absents la retrouvent dans la conversation) — ou rangée dans les téléchargements quand la salle
+     n'a pas de discussion. L'écran de quelqu'un ne se capture que par lui ou un hôte (le bouton n'est montré qu'à eux). */
+  async function annotCapturer(A) {
+    const a = annotInfo(A), t = annotCible(A); if (!a || !t) return;
+    const tableau = a.support === 'tableau', v = tableau ? null : t.querySelector('video');
+    if (!tableau && !(v && v.videoWidth)) { mot('L\'image de l\'écran partagé n\'est pas encore arrivée.'); return; }
+    const r = tableau ? 1600 / 1000 : v.videoWidth / v.videoHeight, W = tableau ? 1600 : Math.min(1920, v.videoWidth), H = Math.round(W / r);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    if (tableau) { g.fillStyle = '#fbfbfd'; g.fillRect(0, 0, W, H); } else g.drawImage(v, 0, 0, W, H);
+    const N = annotEtat(A);
+    annotTracer(g, annotItems(A), { x: 0, y: 0, w: W, h: H }, N.boite && N.boite.h ? H / N.boite.h : 1);
+    const blob = await new Promise(ok => { try { cv.toBlob(ok, tableau ? 'image/png' : 'image/jpeg', 0.9); } catch (e) { ok(null); } });
+    if (perime(A)) return;
+    if (!blob) { mot('La capture n\'a pas pu se faire sur cet appareil.'); return; }
+    const sup = a.support.slice(6), qui = tableau ? null : sup === MOI.id ? 'vous' : nomM(A.snap.membres.find(m => m.id === sup));
+    const legende = tableau ? 'Tableau blanc — ' + A.snap.nom : 'Écran partagé' + (qui === 'vous' ? '' : ' par ' + qui) + ', annoté — ' + A.snap.nom;
+    if (A.snap.conv) {
+      mot('Envoi de la capture…');
+      if (await envoi({ photos: [{ blob, w: W, h: H }], texte: legende }, A.snap.conv)) { if (!perime(A)) { mot('Capture envoyée dans la discussion'); salleDiscussionCharger(A, false); } }
+      return;
+    }
+    const url = URL.createObjectURL(blob), lien = document.createElement('a');
+    lien.href = url; lien.download = (tableau ? 'tableau-' : 'capture-') + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '') + (tableau ? '.png' : '.jpg'); lien.style.display = 'none';
+    document.body.appendChild(lien); lien.click(); setTimeout(() => { lien.remove(); URL.revokeObjectURL(url); }, 4000);
+    mot('Capture rangée dans tes téléchargements');
+  }
+  $('salle-annoter').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) annoterBasculer(A, !sx(A).annoter); });
+  $('annot-barre').addEventListener('click', async e => {
+    const b = e.target.closest('button'), A = etat.appelUI; if (!b || !enSalle(A) || !$('annot-barre').contains(b)) return;
+    const N = annotEtat(A);
+    if (b.dataset.outil) { if (N.outil !== 'texte' || b.dataset.outil !== 'texte') annotSaisieFermer(A, true); N.outil = b.dataset.outil; annotPaletteFermer(A); annotOutils(A); annonceAppel(NOMS_OUTILS[N.outil]); return; }
+    const ap = b.dataset.ap;
+    if (ap === 'couleur') { N.couleur = b.dataset.couleur; annotPaletteFermer(A); annotOutils(A); $('annot-couleur').focus({ preventScroll: true }); return; }
+    if (ap === 'ep') { N.ep = +b.dataset.n; annotPaletteFermer(A); annotOutils(A); $('annot-couleur').focus({ preventScroll: true }); return; }
+    if (ap === 'effacer-miens' || ap === 'effacer-tous') { await annotEffacer(A, ap === 'effacer-tous' ? 'tous' : 'miens'); $('annot-effacer').focus({ preventScroll: true }); return; }
+    switch (b.id) {
+      case 'annot-couleur': annotPaletteOuvrir(A, 'couleur'); return;
+      case 'annot-effacer': if (annotMaitre(A)) annotPaletteOuvrir(A, 'effacer'); else await annotEffacer(A, 'miens'); return;
+      case 'annot-annuler': annotPaletteFermer(A); if (N.trait) annotFinir(A, true); await annotEnvoyer(A, { op: 'annuler' }); if (!perime(A)) annotPlanifier(); return;
+      case 'annot-capturer': annotPaletteFermer(A); await annotCapturer(A); return;
+      case 'annot-fin': annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return;
+      default: return;
+    }
+  });
+  /* ⌘Z / Ctrl+Z pendant qu'on annote (hors d'un champ) : le dernier trait part */
+  document.addEventListener('keydown', e => {
+    if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || (e.key !== 'z' && e.key !== 'Z')) return;
+    const A = etat.appelUI; if (!enSalle(A) || !sx(A).annoter || (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) return;
+    e.preventDefault(); $('annot-annuler').click();
+  });
+  window.addEventListener('resize', annotPlanifier);
 
   /* ── le partage d'écran : la piste d'écran REMPLACE la caméra chez les autres (même émetteur, aucune renégociation), et la caméra revient quand le partage s'arrête ── */
   async function basculerPartage() {
@@ -4985,14 +5332,21 @@
   function recDessiner(A) {
     const R = A.rec; if (!R || R.fini || !A.snap) return;
     const g2 = R.cv.getContext('2d'), tuiles = Array.from($('salle-scene').querySelectorAll(':scope > .salle-tuile')), n = Math.max(1, tuiles.length);
+    const sup = annotCible(A), items = sup ? annotItems(A) : [];            // ce qui est dessiné entre dans l'enregistrement, sur l'image qu'il annote
     const cols = Math.ceil(Math.sqrt(n * 16 / 9)), lignes = Math.ceil(n / cols), w = R.cv.width / cols, h = R.cv.height / lignes;
     g2.fillStyle = '#0b0d12'; g2.fillRect(0, 0, R.cv.width, R.cv.height);
     tuiles.forEach((t, i) => {
       const x = (i % cols) * w, y = Math.floor(i / cols) * h, v = t.querySelector('video');
       g2.fillStyle = '#1c2a4f'; g2.fillRect(x + 2, y + 2, w - 4, h - 4);
-      if (t.dataset.camera === 'on' && v && v.readyState >= 2 && v.videoWidth) {
-        const r = Math.max((w - 4) / v.videoWidth, (h - 4) / v.videoHeight), dw = v.videoWidth * r, dh = v.videoHeight * r;
-        g2.save(); g2.beginPath(); g2.rect(x + 2, y + 2, w - 4, h - 4); g2.clip(); g2.drawImage(v, x + 2 + (w - 4 - dw) / 2, y + 2 + (h - 4 - dh) / 2, dw, dh); g2.restore();
+      if (t.id === 'salle-tableau') {
+        const bw = Math.min(w - 4, (h - 4) * ANNOT_TABLEAU), bh = bw / ANNOT_TABLEAU, b = { x: x + 2 + (w - 4 - bw) / 2, y: y + 2 + (h - 4 - bh) / 2, w: bw, h: bh };
+        g2.fillStyle = '#fbfbfd'; g2.fillRect(b.x, b.y, b.w, b.h); annotTracer(g2, items, b, 0.5);
+      } else if (t.dataset.camera === 'on' && v && v.readyState >= 2 && v.videoWidth) {
+        /* un écran partagé s'enregistre EN ENTIER (comme il est montré) ; une caméra remplit sa case */
+        const r = (t.dataset.ecran === '1' ? Math.min : Math.max)((w - 4) / v.videoWidth, (h - 4) / v.videoHeight), dw = v.videoWidth * r, dh = v.videoHeight * r, bx = x + 2 + (w - 4 - dw) / 2, by = y + 2 + (h - 4 - dh) / 2;
+        g2.save(); g2.beginPath(); g2.rect(x + 2, y + 2, w - 4, h - 4); g2.clip(); g2.drawImage(v, bx, by, dw, dh);
+        if (t === sup) annotTracer(g2, items, { x: bx, y: by, w: dw, h: dh }, 0.5);
+        g2.restore();
       } else {
         const ini = (t.querySelector('.tuile-av') || {}).textContent || '?';
         g2.fillStyle = 'rgba(255,255,255,.22)'; g2.beginPath(); g2.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.2, 0, Math.PI * 2); g2.fill();
@@ -5029,6 +5383,11 @@
     $('salle-panneau').hidden = true; $('salle-panneau-corps').innerHTML = ''; $('salle-panneau-corps').dataset.sig = '';
     $('salle-emojis').hidden = true; $('salle-avis').hidden = true;
     $('salle-ecran').removeAttribute('data-attente');
+    /* les annotations : le tableau, le calque, la barre — et la minuterie d'un trait en cours */
+    const tab = $('salle-tableau'); if (tab) tab.remove();
+    document.querySelectorAll('.annot-calque, .annot-saisie').forEach(x => x.remove());
+    if (A && A.sx && A.sx.an) { clearInterval(A.sx.an.minuterie); if (A.sx.an.ro) A.sx.an.ro.disconnect(); A.sx.an.trait = null; }
+    $('salle-ecran').removeAttribute('data-annoter'); $('annot-barre').hidden = true; $('annot-palette').hidden = true; $('annot-palette').innerHTML = ''; $('salle-annoter').hidden = true;
     const v = $('salle-video-local'); try { v.pause(); } catch (e) { /* rien */ } v.srcObject = null;
     $('salle-vous').dataset.camera = 'off';
     scene.dataset.vue = 'galerie'; scene.dataset.n = '1';
@@ -5123,6 +5482,7 @@
       if (ev.type === 'salles') majBanniereSalle();
       if (ev.type === 'salle-reaction' && ev.id === etat.appelId) reactionSalle(ev.uid, ev.emoji);
       if (ev.type === 'salle-parle' && ev.id === etat.appelId) majParle();
+      if (ev.type === 'salle-annot' && ev.id === etat.appelId) annotPlanifier();
       if (ev.type === 'contacts') surContacts();
       if (ev.type === 'espaces') surEspaces(ev);
       if (ev.type === 'reunions') { surReunions(ev); commun.cache.clear(); if (etat.vcSel && auBureau()) chargerCommun(etat.vcSel, true); if (etat.groupe.ouvert && etat.groupe.mode === 'personne') chargerCommun(etat.groupe.personneId, true); }   // une réunion programmée, modifiée, annulée : la fiche ouverte se relit

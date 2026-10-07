@@ -190,6 +190,7 @@ const MANIFESTE = [
   { id: 'salles.reaction',   m: 'POST', p: '/api/salles/:id/reaction',               garde: 'SP' },
   { id: 'salles.etat',       m: 'POST', p: '/api/salles/:id/etat',                   garde: 'SP' },
   { id: 'salles.evt',        m: 'POST', p: '/api/salles/:id/evt',                    garde: 'SP' },
+  { id: 'salles.annot',      m: 'POST', p: '/api/salles/:id/annot',                  garde: 'SP' },   // dessiner et écrire sur l'écran partagé ou le tableau blanc
   /* Le lien d'invité d'une réunion et sa salle. L'aperçu est PUBLIC et limité (il ne dit que de quoi décider de rejoindre, jamais un participant) ; rejoindre par le lien exige un compte (S, v1) ; la salle d'une
      réunion où l'on est invité s'ouvre par R (l'hôte en est un) ; le lien se lit et se renouvelle par H (l'ancien meurt). */
   { id: 'reunions.apercu',   m: 'POST', p: '/api/reunions/apercu',                   garde: 'P' },
