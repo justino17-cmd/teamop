@@ -207,7 +207,7 @@ const MDP = (l) => 'pw-' + l + '-1234';
     const votes = (ex.j && ex.j.votes_sondages) || [];
     vrai('l\'export de Bruno dit ses votes (conversation, message, choix, date)', ex.code === 200 && votes.some(x => x.conversation === G && x.message === S1 && x.choix === 2) && votes.every(x => typeof x.le === 'string'));
 
-    console.log('\n6 bis. Un groupe d\'annonces : l\'admin décide (Justin, 7 octobre 2026 : « on laisse avec des paramètres, comme ça l\'admin décide »)');
+    console.log('\n6 bis. Un groupe d\'annonces : l\'admin décide ; ailleurs, tout le monde (Justin, 7 octobre 2026 : « on laisse avec des paramètres, comme ça l\'admin décide » ; « sauf si c\'est un groupe où tout le monde peut parler, ou autres : tout le monde peut faire le sondage »)');
     const GA = (await A.post('/api/conversations/groupe', { nom: 'Annonces', membres: [B.moi.id, C.moi.id], annonces_seules: true })).j.conversation.id;
     const dansGA = (P, corps) => P.post('/api/conversations/' + GA + '/messages', Object.assign({ cid: cid(), type: 'sondage' }, corps));
     r = await dansGA(B, { question: 'Moi aussi ?', choix: ['Oui', 'Non'] });
@@ -216,6 +216,7 @@ const MDP = (l) => 'pw-' + l + '-1234';
     const SF = (await dansGA(A, { question: 'Quelle salle ?', choix: ['Haut', 'Bas'] })).j.seq;
     const ajouterGA = (P, s, texte) => P.post('/api/conversations/' + GA + '/sondages/' + s + '/choix', { texte });
     v('l\'admin a ouvert les choix : Bruno ajoute « Samedi » ; fermés : refusé (403)', [(await ajouterGA(B, SO, 'Samedi')).code, (await ajouterGA(B, SF, 'Dehors')).code], [200, 403]);
+    v('ailleurs, TOUT LE MONDE pose un sondage : Bruno (simple membre) dans un groupe où chacun parle, et dans une directe', [(await nouveau(B, { question: 'Pizza ou sushis ?', choix: ['Pizza', 'Sushis'] })).code, (await B.post('/api/conversations/' + dir + '/messages', { cid: cid(), type: 'sondage', question: 'On s\'appelle ?', choix: ['Oui', 'Non'] })).code], [201, 201]);
     v('les membres répondent toujours : Bruno vote dans les deux', [(await B.post('/api/conversations/' + GA + '/sondages/' + SO + '/voter', { choix: [2] })).code, (await B.post('/api/conversations/' + GA + '/sondages/' + SF + '/voter', { choix: [0] })).code], [200, 200]);
 
     console.log('\n7. L\'effacement d\'un compte ne trahit pas un vote anonyme');

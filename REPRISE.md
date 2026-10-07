@@ -33,7 +33,8 @@ barre de saisie. Une CARTE est un message texte (son résumé, pour une version 
 `tests/test-926.js` (68 ✓ ; 19 + 8 mutations, toutes mordent), `tests/test-927.js` (13 ✓ ; 2 mutations), `tests/sonde-opmessages-cartes.js` (37 ✓, deux téléphones),
 `tests/sonde-opmessages-theme.js` (13 ✓, jour et nuit). Relecture `gardien` : 0 bloquant, 3 importants corrigés (ci-dessus).
 ✅ Tranché par Justin (7 octobre 2026 : « on laisse avec des paramètres, comme ça l'admin décide ») : (1) dans un groupe « seuls les admins écrivent », seul un admin pose un sondage —
-c'est donc lui qui ouvre ou non les choix aux membres, sondage par sondage (`test-926` § 6 bis le tient) ; (2) partager la fiche d'un contact devenu introuvable garde son message clair
+c'est donc lui qui ouvre ou non les choix aux membres, sondage par sondage ; partout ailleurs (un groupe où chacun parle, une directe, un canal où l'on écrit), TOUT LE MONDE pose un
+sondage (« sauf si c'est un groupe où tout le monde peut parler, ou autres : tout le monde peut faire le sondage ») — `test-926` § 6 bis tient les deux ; (2) partager la fiche d'un contact devenu introuvable garde son message clair
 (« ne se laisse pas trouver ») — l'expéditeur, déjà son contact, pouvait le deviner, et un refus muet passe pour une panne. Proposé, pas demandé : « Retirer ce choix » pour l'auteur et
 les admins (aujourd'hui un choix déplacé ne part qu'avec tout le sondage).
 ⚠️ Corrigé en passant : `htmlFiche` existait déjà (la fiche d'une réunion) — la seconde déclaration gagnait partout ; `reunion_introuvable` (rapport de présence d'une réunion) n'avait
