@@ -1415,6 +1415,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   border-radius: 24px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
 }
 .annot-barre[hidden] { display: none; }
+/* la fin d'un enregistrement : une carte au-dessus de tout (la salle peut être déjà fermée), comme une alerte d'iOS — le fichier n'est jamais perdu sans un geste */
+.rec-fin { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); background: rgba(0,0,0,.55); }
+.rec-fin[hidden] { display: none; }
+.rec-fin-carte {
+  width: min(420px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 22px; color: #fff;
+  background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.rec-fin-carte h3 { margin: 0; font-size: 20px; line-height: 25px; font-weight: 700; }
+.rec-fin-carte p { margin: 0; font-size: 15px; line-height: 20px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
+.rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
 @media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
 /* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
@@ -1939,6 +1950,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   </section>
 </div>
 <p class="sr-seul" id="annonce-appel" role="status" aria-live="polite" aria-atomic="true"></p>
+<div class="rec-fin" id="rec-fin" role="alertdialog" aria-modal="true" aria-labelledby="rec-fin-titre" aria-describedby="rec-fin-info" hidden>
+  <div class="rec-fin-carte">
+    <h3 id="rec-fin-titre">Enregistrement terminé</h3>
+    <p id="rec-fin-info"></p>
+    <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
+    <p id="rec-fin-absents" hidden></p>
+    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer dans la discussion</button>
+    <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
+    <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
+  </div>
+</div>
 
 <div class="voile" id="voile"></div>
 <section class="feuille" id="feuille" data-glass="1" role="dialog" aria-modal="true" aria-labelledby="feuille-titre" tabindex="-1" inert>

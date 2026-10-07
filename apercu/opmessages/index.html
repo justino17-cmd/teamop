@@ -1411,6 +1411,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   border-radius: 24px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
 }
 .annot-barre[hidden] { display: none; }
+/* la fin d'un enregistrement : une carte au-dessus de tout (la salle peut être déjà fermée), comme une alerte d'iOS — le fichier n'est jamais perdu sans un geste */
+.rec-fin { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); background: rgba(0,0,0,.55); }
+.rec-fin[hidden] { display: none; }
+.rec-fin-carte {
+  width: min(420px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 22px; color: #fff;
+  background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.rec-fin-carte h3 { margin: 0; font-size: 20px; line-height: 25px; font-weight: 700; }
+.rec-fin-carte p { margin: 0; font-size: 15px; line-height: 20px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
+.rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
 @media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
 /* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
@@ -1935,6 +1946,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   </section>
 </div>
 <p class="sr-seul" id="annonce-appel" role="status" aria-live="polite" aria-atomic="true"></p>
+<div class="rec-fin" id="rec-fin" role="alertdialog" aria-modal="true" aria-labelledby="rec-fin-titre" aria-describedby="rec-fin-info" hidden>
+  <div class="rec-fin-carte">
+    <h3 id="rec-fin-titre">Enregistrement terminé</h3>
+    <p id="rec-fin-info"></p>
+    <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
+    <p id="rec-fin-absents" hidden></p>
+    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer dans la discussion</button>
+    <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
+    <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
+  </div>
+</div>
 
 <div class="voile" id="voile"></div>
 <section class="feuille" id="feuille" data-glass="1" role="dialog" aria-modal="true" aria-labelledby="feuille-titre" tabindex="-1" inert>
@@ -6553,6 +6575,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       for (const m of presents) if (mains.has(m.id) && !X.mains.has(m.id)) annonceAppel(nomM(m) + ' lève la main');
     }
     X.ids = ids; X.mains = mains;
+    if (!s.attente) { X.venus = X.venus || new Set(); for (const m of presents) X.venus.add(m.id); }          // tous ceux qui sont venus, ne serait-ce qu'un instant : la fin d'un enregistrement dit qui n'était PAS là
     annotSynchro(A);                                                         // AVANT les vignettes : un support qui arrive met la vue en « intervenant »
     if (s.attente) { salleTuiles(A, []); const seul = $('salle-seul'); if (seul) { seul.innerHTML = '<b>Salle d\'attente</b>Un hôte va te laisser entrer. Tu peux quitter à tout moment.'; } }
     else salleTuiles(A, presents);
@@ -7312,25 +7335,28 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* ── l'enregistrement : l'hôte enregistre EN LOCAL (sur son appareil, rien n'est envoyé au service) ; le service ne porte que le bandeau « REC » de tout le monde. Une image composée de toutes les vignettes + le mélange
      des voix, par `MediaRecorder` ; le fichier se range à l'arrêt. ⛔ Un onglet caché ralentit le dessin : on le dit à l'hôte. ── */
   const recDisponible = () => typeof MediaRecorder === 'function' && typeof HTMLCanvasElement !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function' && !!(window.AudioContext || window.webkitAudioContext);
-  const REC_OCTETS_MAX = 150 * 1048576;
+  /* ce que l'appareil garde jusqu'à l'arrêt : au bureau 1,5 Go (plus de deux heures en 720p), ailleurs 300 Mo (une demi-heure) */
+  const recOctetsMax = () => (document.documentElement.dataset.kind === 'desktop' ? 1536 : 300) * 1048576;
+  const tailleRec = o => o >= 1073741824 ? (Math.round(o / 107374182.4) / 10).toString().replace('.', ',') + ' Go' : Math.max(1, Math.round(o / 1048576)) + ' Mo';
   async function recDemarrer(A) {
     if (A.rec || A.recEnCours || !recDisponible()) return;
     A.recEnCours = true;
     try {
       if (!await salleGeste(A, 'rec', { actif: true }, 'L\'enregistrement n\'a pas pu commencer.')) return;       // le service d'abord : sans son accord, aucun bandeau chez les autres, donc aucune image enregistrée en cachette
-      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 360;
+      const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720;              // 720p : l'écran partagé et le tableau restent LISIBLES à la relecture
       const AC = window.AudioContext || window.webkitAudioContext, ctx = new AC(), dest = ctx.createMediaStreamDestination();
-      const R = { cv, ctx, dest, sources: new Map(), chunks: [], octets: 0, minuterie: 0, rec: null, fini: false };
-      const flux = cv.captureStream(10);
+      const R = { cv, ctx, dest, sources: new Map(), chunks: [], octets: 0, minuterie: 0, rec: null, fini: false, debut: Date.now(), titre: A.snap.nom, conv: A.snap.conv || null };
+      const flux = cv.captureStream(15);
       dest.stream.getAudioTracks().forEach(t => flux.addTrack(t));
       const types = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'], mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
       R.mime = mime;
-      R.rec = new MediaRecorder(flux, mime ? { mimeType: mime, videoBitsPerSecond: 600000 } : { videoBitsPerSecond: 600000 });
-      R.rec.ondataavailable = ev => { if (ev.data && ev.data.size) { R.chunks.push(ev.data); R.octets += ev.data.size; if (R.octets > REC_OCTETS_MAX && A.rec === R) { mot('Limite de 150 Mo atteinte : l\'enregistrement s\'arrête.'); recArreter(A, true); } } };
+      const debits = { videoBitsPerSecond: 1200000, audioBitsPerSecond: 96000 };
+      R.rec = new MediaRecorder(flux, mime ? Object.assign({ mimeType: mime }, debits) : debits);
+      R.rec.ondataavailable = ev => { if (ev.data && ev.data.size) { R.chunks.push(ev.data); R.octets += ev.data.size; if (R.octets > recOctetsMax() && A.rec === R) { mot('Limite de ' + tailleRec(recOctetsMax()) + ' atteinte sur cet appareil : l\'enregistrement s\'arrête.'); recArreter(A, true); } } };
       A.rec = R;
       recSynchro(A);
       recDessiner(A);
-      R.minuterie = setInterval(() => recDessiner(A), 100);
+      R.minuterie = setInterval(() => recDessiner(A), 66);
       R.rec.start(2000);
       mot('Enregistrement commencé : garde cet onglet visible');
       rendreAppel();
@@ -7356,50 +7382,110 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     A.snap.membres.filter(m => m.statut === 'present').forEach(m => brancher(m.id, source.appelFlux(A.id, m.id)));
     for (const [cle, pris] of R.sources) if (!vus.has(cle) && cle !== 'moi') { try { pris.noeud.disconnect(); } catch (e) { /* rien */ } R.sources.delete(cle); }
   }
+  /* une vignette dans un rectangle de l'image enregistrée : l'écran partagé et le tableau EN ENTIER (avec ce qui est dessiné dessus), une caméra qui remplit sa case, sinon les initiales */
+  function recTuile(g2, t, x, y, w, h, sup, items) {
+    const v = t.querySelector('video'), k = 1;
+    g2.fillStyle = '#1c2a4f'; g2.fillRect(x + 2, y + 2, w - 4, h - 4);
+    if (t.id === 'salle-tableau') {
+      const bw = Math.min(w - 4, (h - 4) * ANNOT_TABLEAU), bh = bw / ANNOT_TABLEAU, b = { x: x + 2 + (w - 4 - bw) / 2, y: y + 2 + (h - 4 - bh) / 2, w: bw, h: bh };
+      g2.fillStyle = '#fbfbfd'; g2.fillRect(b.x, b.y, b.w, b.h); annotTracer(g2, items, b, k);
+    } else if (t.dataset.camera === 'on' && v && v.readyState >= 2 && v.videoWidth) {
+      const r = (t.dataset.ecran === '1' ? Math.min : Math.max)((w - 4) / v.videoWidth, (h - 4) / v.videoHeight), dw = v.videoWidth * r, dh = v.videoHeight * r, bx = x + 2 + (w - 4 - dw) / 2, by = y + 2 + (h - 4 - dh) / 2;
+      g2.save(); g2.beginPath(); g2.rect(x + 2, y + 2, w - 4, h - 4); g2.clip(); g2.drawImage(v, bx, by, dw, dh);
+      if (t === sup) annotTracer(g2, items, { x: bx, y: by, w: dw, h: dh }, k);
+      g2.restore();
+    } else {
+      const ini = (t.querySelector('.tuile-av') || {}).textContent || '?';
+      g2.fillStyle = 'rgba(255,255,255,.22)'; g2.beginPath(); g2.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.2, 0, Math.PI * 2); g2.fill();
+      g2.fillStyle = '#fff'; g2.font = '600 ' + Math.round(Math.min(w, h) * 0.18) + 'px sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(ini, x + w / 2, y + h / 2);
+    }
+    const nom = ((t.querySelector('.tuile-nom') || {}).textContent || '').trim();
+    if (nom) { const fs = Math.round(Math.max(12, Math.min(18, h * 0.09))); g2.font = '600 ' + fs + 'px sans-serif'; g2.textAlign = 'left'; g2.textBaseline = 'alphabetic'; const l = g2.measureText(nom).width + fs; g2.fillStyle = 'rgba(0,0,0,.6)'; g2.fillRect(x + 8, y + h - fs * 2 - 4, l, fs * 1.6); g2.fillStyle = '#fff'; g2.fillText(nom, x + 8 + fs / 2, y + h - fs - 6); }
+  }
+  /* l'image enregistrée suit la salle : en vue « intervenant » (ou quand un écran est partagé, ou le tableau ouvert) la vignette en grand prend l'image et les autres passent en bande dessous ; sinon une grille */
   function recDessiner(A) {
     const R = A.rec; if (!R || R.fini || !A.snap) return;
-    const g2 = R.cv.getContext('2d'), tuiles = Array.from($('salle-scene').querySelectorAll(':scope > .salle-tuile')), n = Math.max(1, tuiles.length);
+    const g2 = R.cv.getContext('2d'), W = R.cv.width, H = R.cv.height, tuiles = Array.from($('salle-scene').querySelectorAll(':scope > .salle-tuile'));
     const sup = annotCible(A), items = sup ? annotItems(A) : [];            // ce qui est dessiné entre dans l'enregistrement, sur l'image qu'il annote
-    const cols = Math.ceil(Math.sqrt(n * 16 / 9)), lignes = Math.ceil(n / cols), w = R.cv.width / cols, h = R.cv.height / lignes;
-    g2.fillStyle = '#0b0d12'; g2.fillRect(0, 0, R.cv.width, R.cv.height);
-    tuiles.forEach((t, i) => {
-      const x = (i % cols) * w, y = Math.floor(i / cols) * h, v = t.querySelector('video');
-      g2.fillStyle = '#1c2a4f'; g2.fillRect(x + 2, y + 2, w - 4, h - 4);
-      if (t.id === 'salle-tableau') {
-        const bw = Math.min(w - 4, (h - 4) * ANNOT_TABLEAU), bh = bw / ANNOT_TABLEAU, b = { x: x + 2 + (w - 4 - bw) / 2, y: y + 2 + (h - 4 - bh) / 2, w: bw, h: bh };
-        g2.fillStyle = '#fbfbfd'; g2.fillRect(b.x, b.y, b.w, b.h); annotTracer(g2, items, b, 0.5);
-      } else if (t.dataset.camera === 'on' && v && v.readyState >= 2 && v.videoWidth) {
-        /* un écran partagé s'enregistre EN ENTIER (comme il est montré) ; une caméra remplit sa case */
-        const r = (t.dataset.ecran === '1' ? Math.min : Math.max)((w - 4) / v.videoWidth, (h - 4) / v.videoHeight), dw = v.videoWidth * r, dh = v.videoHeight * r, bx = x + 2 + (w - 4 - dw) / 2, by = y + 2 + (h - 4 - dh) / 2;
-        g2.save(); g2.beginPath(); g2.rect(x + 2, y + 2, w - 4, h - 4); g2.clip(); g2.drawImage(v, bx, by, dw, dh);
-        if (t === sup) annotTracer(g2, items, { x: bx, y: by, w: dw, h: dh }, 0.5);
-        g2.restore();
-      } else {
-        const ini = (t.querySelector('.tuile-av') || {}).textContent || '?';
-        g2.fillStyle = 'rgba(255,255,255,.22)'; g2.beginPath(); g2.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.2, 0, Math.PI * 2); g2.fill();
-        g2.fillStyle = '#fff'; g2.font = '600 ' + Math.round(Math.min(w, h) * 0.18) + 'px sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(ini, x + w / 2, y + h / 2);
-      }
-      const nom = ((t.querySelector('.tuile-nom') || {}).textContent || '').trim();
-      if (nom) { g2.font = '600 12px sans-serif'; g2.textAlign = 'left'; g2.textBaseline = 'alphabetic'; const l = g2.measureText(nom).width + 12; g2.fillStyle = 'rgba(0,0,0,.6)'; g2.fillRect(x + 6, y + h - 24, l, 18); g2.fillStyle = '#fff'; g2.fillText(nom, x + 12, y + h - 11); }
-    });
-    g2.fillStyle = '#ff453a'; g2.beginPath(); g2.arc(R.cv.width - 22, 22, 7, 0, Math.PI * 2); g2.fill();
+    g2.fillStyle = '#0b0d12'; g2.fillRect(0, 0, W, H);
+    const grand = tuiles.find(t => t.classList.contains('grand')) || null;
+    if (grand && tuiles.length > 1) {
+      const autres = tuiles.filter(t => t !== grand).slice(0, 6), bande = Math.round(H * 0.2), bw = W / Math.max(4, autres.length);
+      recTuile(g2, grand, 0, 0, W, H - bande, sup, items);
+      autres.forEach((t, i) => recTuile(g2, t, (W - bw * autres.length) / 2 + i * bw, H - bande, bw, bande, sup, items));
+    } else {
+      const n = Math.max(1, tuiles.length), cols = Math.ceil(Math.sqrt(n * 16 / 9)), lignes = Math.ceil(n / cols), w = W / cols, h = H / lignes;
+      tuiles.forEach((t, i) => recTuile(g2, t, (i % cols) * w, Math.floor(i / cols) * h, w, h, sup, items));
+    }
+    g2.fillStyle = '#ff453a'; g2.beginPath(); g2.arc(W - 30, 30, 9, 0, Math.PI * 2); g2.fill();
   }
   /* l'arrêt range le fichier : `dire` = vrai quand c'est le geste de l'hôte (le service est prévenu), faux quand c'est lui qui a déjà fini */
   function recArreter(A, dire) {
     const R = A.rec; if (!R || R.fini) return;
     R.fini = true; A.rec = null; clearInterval(R.minuterie);
+    const X = sx(A), venus = new Set(X.venus || []);
     const fin = () => {
       try { R.ctx.close(); } catch (e) { /* déjà fermé */ }
-      if (!R.chunks.length) return;
-      const nom = 'enregistrement-' + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '') + (/mp4/.test(R.mime) ? '.mp4' : '.webm');
-      const url = URL.createObjectURL(new Blob(R.chunks, { type: R.mime || 'video/webm' })), a = document.createElement('a');
-      a.href = url; a.download = nom; a.style.display = 'none'; document.body.appendChild(a); a.click();
-      setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
+      if (!R.chunks.length) { mot('L\'enregistrement est vide : rien n\'a été gardé.'); return; }
+      recFinOuvrir({ blob: new Blob(R.chunks, { type: R.mime || 'video/webm' }), mime: R.mime, debut: R.debut, duree: Math.max(1, Math.round((Date.now() - R.debut) / 1000)), titre: R.titre, conv: R.conv, venus });
     };
     try { R.rec.addEventListener('stop', fin, { once: true }); R.rec.stop(); } catch (e) { fin(); }
     if (dire && !A.fini) salleGeste(A, 'rec', { actif: false });
-    if (!A.fini) { mot('Enregistrement terminé : le fichier est rangé dans tes téléchargements'); rendreAppel(); }
+    if (!A.fini) { annonceAppel('Enregistrement terminé'); rendreAppel(); }
   }
+  /* ── la fin d'un enregistrement : l'envoyer dans la discussion de la réunion (ceux qui n'ont pas pu venir l'y retrouvent, et le suivi dit qui l'a téléchargé), le garder sur l'appareil, ou le supprimer.
+     ⛔ La carte vit HORS de la salle : l'hôte qui quitte en enregistrant ne perd pas son fichier ; et elle ne se ferme que par un de ses trois gestes. ── */
+  let recEnAttente = null;
+  function recNomFichier(F) {
+    const d = new Date(F.debut), z = n => String(n).padStart(2, '0');
+    const titre = String(F.titre || 'Réunion').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Réunion';
+    return 'Enregistrement — ' + titre + ' — ' + d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + 'h' + z(d.getMinutes()) + (/mp4/.test(F.mime || '') ? '.mp4' : '.webm');
+  }
+  function recFinOuvrir(F) {
+    if (recEnAttente) recFinFermer();
+    F.nom = recNomFichier(F); F.url = URL.createObjectURL(F.blob); recEnAttente = F;
+    $('rec-fin-info').textContent = (F.titre || 'Réunion') + ' · ' + dureeCourte(F.duree) + ' · ' + tailleRec(F.blob.size);
+    const v = $('rec-fin-video'); v.src = F.url;
+    /* qui n'était pas là : les membres de la conversation de la réunion qui ne sont jamais entrés (la liste des conversations ne porte pas les membres : `infos` les lit) */
+    const ab = $('rec-fin-absents'); ab.hidden = true; ab.textContent = '';
+    if (F.conv && typeof source.infos === 'function') source.infos(F.conv).then(i => {
+      if (recEnAttente !== F || !i || !Array.isArray(i.membres)) return;
+      const absents = i.membres.filter(m => !m.moi && m.id !== MOI.id && !F.venus.has(m.id));
+      if (!absents.length) return;
+      const noms = absents.map(m => m.nom || m.prenom || '').filter(Boolean);
+      ab.textContent = (noms.length === absents.length && noms.length <= 3 ? 'Pas là : ' + noms.join(', ') : absents.length + (absents.length > 1 ? ' personnes n\'étaient pas là' : ' personne n\'était pas là')) + ' — l\'enregistrement ' + (absents.length > 1 ? 'les ' : 'l\'') + 'attendra dans la discussion, et tu verras qui l\'a téléchargé.';
+      ab.hidden = false;
+    }, () => { /* sans la liste des membres, la carte ne dit simplement pas qui manquait */ });
+    $('rec-fin-envoyer').hidden = !F.conv;
+    $('rec-fin-jeter').textContent = 'Supprimer'; $('rec-fin-jeter').dataset.confirmer = '';
+    $('rec-fin').hidden = false;
+    requestAnimationFrame(() => (F.conv ? $('rec-fin-envoyer') : $('rec-fin-garder')).focus({ preventScroll: true }));
+  }
+  function recFinFermer() {
+    const F = recEnAttente; recEnAttente = null;
+    $('rec-fin').hidden = true;
+    const v = $('rec-fin-video'); try { v.pause(); } catch (e) { /* rien */ } v.removeAttribute('src'); try { v.load(); } catch (e) { /* rien */ }
+    if (F && F.url) setTimeout(() => URL.revokeObjectURL(F.url), 4000);
+  }
+  $('rec-fin-envoyer').addEventListener('click', async () => {
+    const F = recEnAttente; if (!F || !F.conv) return;
+    recFinFermer();
+    mot('Envoi de l\'enregistrement…');
+    if (await envoi({ fichier: { blob: F.blob, nom: F.nom, taille: F.blob.size } }, F.conv)) { mot('Enregistrement envoyé dans la discussion'); const A = etat.appelUI; if (enSalle(A) && A.snap.conv === F.conv) salleDiscussionCharger(A, false); }
+    else { recEnAttente = null; recFinOuvrir(F); }                         // l'envoi a échoué (la phrase l'a dit) : le fichier revient, rien n'est perdu
+  });
+  $('rec-fin-garder').addEventListener('click', () => {
+    const F = recEnAttente; if (!F) return;
+    /* ⛔ le nom du fichier RANGÉ sur l'appareil est en ASCII : mesuré, un Chromium dont le système de fichiers n'a pas de jeu de caractères ignore un nom accentué (« download » sans extension) */
+    const ascii = F.nom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[—–]/g, '-').replace(/[^\x20-\x7e]/g, '');
+    const a = document.createElement('a'); a.href = F.url; a.download = ascii; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 4000);
+    recFinFermer(); mot('Enregistrement rangé dans tes téléchargements');
+  });
+  $('rec-fin-jeter').addEventListener('click', () => {
+    const b = $('rec-fin-jeter');
+    if (!b.dataset.confirmer) { b.dataset.confirmer = '1'; b.textContent = 'Supprimer définitivement ?'; return; }      // deux touches : un enregistrement ne disparaît pas sur un geste malheureux
+    recFinFermer(); mot('Enregistrement supprimé');
+  });
 
   /* ── la sortie : tout ce que la salle tenait est lâché d'un coup (quitterAppel) ── */
   function salleNettoyer(A) {
