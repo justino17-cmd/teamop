@@ -451,6 +451,31 @@ function creerTelephone(ctx) {
     res.json({ ok: true, resultat: r.resultat });
   };
 
+  /* ⛔ ÉCRIRE À LA PERSONNE D'UNE FICHE REÇUE (« quand on partage un contact, qu'on puisse lui envoyer un message », 7 octobre 2026) : les mêmes preuves et les mêmes plafonds que
+     « Ajouter » (la fiche est un message que JE vois ; la personne se laisse trouver « par tous » ; ni bloquée ni sur le départ), puis la directe s'ouvre :
+       · on peut déjà s'écrire (contacts, collègues) → la directe, rien de plus ;
+       · sinon une DEMANDE DE CONTACT part (ou celle qui attendait), marquée invitation : j'écris dans la directe, l'autre la trouve dans « Invitations » et choisit.
+     → { ok, resultat: 'deja' | 'envoyee' | 'deja_envoyee' | 'acceptee', conv }. Une invitation n'est jamais plus qu'une demande : un refus ne se dit pas, un blocage efface tout. */
+  H_['contacts.ecrire_carte'] = (req, res) => {
+    const b = corps(req), uid = req.moi.id;
+    if (typeof b.conv !== 'string' || !/^c_[0-9a-f]{32}$/.test(b.conv) || !Number.isInteger(b.seq) || b.seq < 1) return refus(res, 400, 'champ_invalide');
+    const carte = stockage.carteContactLire(b.conv, b.seq, uid);
+    if (!carte || carte.uid === uid) return refus(res, 404, 'introuvable');
+    const id = carte.uid;
+    if (stockage.peutEcrire(uid, id)) return res.json({ ok: true, resultat: 'deja', conv: stockage.convDirecteObtenir(uid, id).id });
+    const q = essai('ajout_jour', uid, { max: cfg.ajoutJour, fenetreMs: JOUR }, jeune(req.moi) ? 1 / 3 : 1);
+    if (!q.ok) return trop(res, 'ajouts_plafond', q.retry);
+    const p = stockage.personneParId(id), t = p ? stockage.telTrouvableLire(id) : null;
+    if (!p || p.etat !== 'actif' || t !== 'tous' || stockage.contactBloque(uid, id) || stockage.suppressionLe(id) !== null) { rendre([q.cle]); return refus(res, 404, 'introuvable'); }
+    let r;
+    try { r = stockage.demandeCreer(uid, id); } catch (e) { if (e && e.code === 'demandes_plafond') { rendre([q.cle]); return trop(res, 'demandes_plafond', 3600); } throw e; }
+    if (r.resultat === 'envoyee' || r.resultat === 'deja_envoyee') stockage.invitationMarquer(uid, id);
+    if (r.neuve && r.resultat === 'envoyee') prevenir(id, 'contact_demande', 'Invitation', nomDe(req.moi) + ' souhaite vous écrire. Retrouvez son message dans Invitations.', uid);
+    else if (r.neuve && r.resultat === 'acceptee') prevenir(id, 'contact_ajoute', 'Nouveau contact', nomDe(req.moi) + ' est maintenant dans vos contacts.', uid);
+    if (r.resultat === 'deja' || r.resultat === 'deja_envoyee') rendre([q.cle]);
+    res.json({ ok: true, resultat: r.resultat, conv: stockage.convDirecteObtenir(uid, id).id });
+  };
+
   H_['contacts.demandes'] = (req, res) => {
     res.json({ recues: stockage.demandesRecues(req.moi.id), envoyees: stockage.demandesEnvoyees(req.moi.id), identifiant: stockage.identDe(req.moi.id) });
   };
@@ -462,7 +487,8 @@ function creerTelephone(ctx) {
     if (!q.ok) return trop(res, 'quota_atteint', q.retry);
     let r;
     try { r = stockage.demandeRepondre(req.moi.id, id, b.accepter); } catch (e) { if (e && e.code === 'introuvable') return refus(res, 404, 'introuvable'); throw e; }
-    if (r === 'acceptee') { prevenir(id, 'contact_ajoute', 'Demande acceptée', nomDe(req.moi) + ' a accepté votre demande : vous êtes maintenant en contact.', req.moi.id); hub.reveiller({ uids: [req.moi.id] }); }
+    /* accepter réveille aussi l'auteur : son invitation (« envoyée ») cesse d'en être une — la notification le lui dit déjà ; un REFUS ne réveille personne (il ne se dit pas) */
+    if (r === 'acceptee') { prevenir(id, 'contact_ajoute', 'Demande acceptée', nomDe(req.moi) + ' a accepté votre demande : vous êtes maintenant en contact.', req.moi.id); hub.reveiller({ uids: [req.moi.id, id] }); }
     res.json({ ok: true, resultat: r });
   };
 

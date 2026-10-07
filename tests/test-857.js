@@ -207,7 +207,8 @@ async function controler(PAGE, SRC, DOC) {
   vrai('le retour système (popstate) rejoue la route de l\'entrée — il ne ferme rien lui-même', /window\.addEventListener\('popstate', e => appliquer\(/.test(JS));
   vrai('⛔ « UN GESTE, UNE NAVIGATION » : aucun écouteur de balayage à la page (touchmove, touchend, swipe) — le navigateur n\'a pas de second retour à jouer ; le seul touchstart est le vide qui réveille :active sur iOS', !/addEventListener\('touch(?:move|end|cancel)'|swipe|overscroll-behavior-x/.test(JS + CSS) && (JS.match(/addEventListener\('touchstart'/g) || []).length === 1 && /addEventListener\('touchstart', function \(\) \{\}, \{ passive: true \}\)/.test(JS));
   vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, la conversation (dans cet ordre)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,420}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}etat\.conv/.test(JS));
-  vrai('la liste recouverte devient inerte (inert) et la photo, la feuille ou l\'aperçu d\'envoi de photos rendent tout le fond inerte', /\$\('contenu'\)\.inert = !!\(etat\.appelId \|\| \(etat\.conv && !largeBureau\.matches\)\)/.test(JS) && /\$\('app'\)\.inert = !!\(etat\.groupe\.ouvert \|\| etat\.photo \|\| etat\.menu \|\| ep\.ouvert\)/.test(JS));
+  vrai('la liste recouverte devient inerte (inert) — sous la conversation ou sous un appel AFFICHÉ (réduit, il ne recouvre plus rien) — et la photo, la feuille ou l\'aperçu d\'envoi de photos rendent tout le fond inerte',
+    /const couvre = !!etat\.appelId && !etat\.appelReduit;/.test(JS) && /\$\('contenu'\)\.inert = !!\(couvre \|\| \(etat\.conv && !largeBureau\.matches\)\)/.test(JS) && /\$\('app'\)\.inert = !!\(etat\.groupe\.ouvert \|\| etat\.photo \|\| etat\.menu \|\| ep\.ouvert\)/.test(JS));
   vrai('la liste revient à sa position : elle est notée à l\'ouverture et rendue à la fermeture', /etat\.scrollListe = window\.scrollY/.test(JS) && /window\.scrollTo\(0, etat\.scrollListe\)/.test(JS));
   vrai('la feuille et la conversation se ferment par le MÊME chemin (fermerCouche) : annuler, voile, retour, Échap, glissé', (JS.match(/fermerCouche\b/g) || []).length >= 6 && /function fermerFeuille\(garderPhoto\) \{[^}]*fermerCouche\(\)/.test(JS));
 
@@ -269,6 +270,44 @@ async function controler(PAGE, SRC, DOC) {
     vrai('repères physiques de la feuille : le « + » répond sur 44 × 44, l\'index sur 44 px de large, le ✕ sur 44, l\'encre du « + » est celle de l\'aplat (--on-fill), jamais un blanc écrit en dur', parseFloat(prop(regle(CSS, '.btn-plus'), 'min-height')) >= 44 && parseFloat(prop(regle(CSS, '.btn-plus'), 'min-width')) >= 44 && /\.nd-index \{[^}]*width: 44px/.test(cssNd) && /\.nd-index button \{[^}]*width: 44px/.test(cssNd) && /\.nd-x \{[^}]*padding: 0 4px/.test(cssNd) && /\.btn-plus \.pastille \{[^}]*background: var\(--fill\)[^}]*color: var\(--on-fill\)/.test(CSS) && !/\.btn-plus \.pastille \{[^}]*color: #fff/.test(CSS));
     vrai('la feuille se met à jour quand la source dit « contacts » ou « liste » (un contact accepté pendant qu\'elle est ouverte paraît, « Contacts fréquents » suit la liste)', /else if \(etat\.groupe\.mode === 'nouvelle'\) rendreNouvelle\(\);/.test(JS) && /if \(etat\.groupe\.ouvert && etat\.groupe\.mode === 'nouvelle'\) rendreNouvelle\(\);/.test(JS));
     vrai('chaque ligne du texte venu d\'une personne (nom, statut, recherche) passe par esc() dans la feuille', /esc\(c\.nom\)/.test(JS.slice(fND, fND + 3000)) && /esc\(c\.role\)/.test(JS.slice(fND, fND + 3000)) && /esc\(G\.recherche\.trim\(\)\)/.test(JS.slice(fND, fND + 4000)) && /esc\(c\.id\)/.test(JS.slice(fND, fND + 3000)));
+  }
+
+  /* 4 ter. LE MENU DÉROULANT (7 octobre 2026, capture des infos d'une conversation : « Messages éphémères » et « Mettre en sourdine » en menu déroulant) ─────────────────
+     La sonde (`tests/sonde-opmessages-deroule.js`) le joue au doigt, à la souris et au clavier, téléphone et bureau, et mesure qu'il reste COLLÉ à sa ligne ; le banc garde les
+     décisions qui le tiennent : la couche du dessus et l'ancrage CSS, la fenêtre du bureau sans transformation, le toucher du dehors qui ne fait que refermer, Échap qui referme
+     le menu d'abord, un nouveau rendu qui le garde sur la nouvelle ligne. `finSourdine` est EXTRAITE et EXÉCUTÉE. */
+  {
+    vrai('(population) le menu déroulant : son élément (#deroule, `popover`, une liste role="menu") et ses deux fonctions sont trouvés',
+      /<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden><\/p><div class="deroule-liste" id="deroule-liste" role="menu"><\/div><\/div>/.test(HTML) && /function ouvrirDeroule\(declencheur, nom, titre, choix, surChoix\) \{/.test(JS) && /function fermerDeroule\(rendreFocus\) \{/.test(JS));
+    vrai('les trois lignes OUVRENT le menu (aria-haspopup="menu", aria-expanded, aria-controls) : « Messages éphémères » des infos (un administrateur ; inactive pour les autres), « Mettre en sourdine », « Messages éphémères » de « Nouveau groupe » — et plus aucune ne tourne d\'une valeur à la suivante',
+      /data-act="ephemeres" data-valeur="' \+ esc\(String\(i\.ephemeres \|\| 0\)\) \+ '"' \+ \(i\.moiAdmin \? ' aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' : ' disabled'\)/.test(JS)
+      && /data-act="sourdine" data-valeur="' \+ \(sd > Date\.now\(\) \? sd : 0\) \+ '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"/.test(JS)
+      && /id="g-ephemeres" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"/.test(HTML) && !/% EPHEMERES\.length/.test(JS));
+    vrai('⛔ il s\'accroche à sa ligne EN CSS — la ligne ouverte porte `anchor-name`, le menu `position-anchor` et se retourne vers le haut s\'il manque de place — sans rien mesurer ; il vit dans la couche du dessus (showPopover)',
+      /\.reglage\[aria-haspopup="menu"\]\[aria-expanded="true"\] \{ anchor-name: --deroule; \}/.test(CSS) && /@supports \(anchor-name: --deroule\) \{\s*\.deroule \{ position-anchor: --deroule; inset: auto; top: anchor\(bottom\); right: anchor\(right\);[^}]*position-try-fallbacks: flip-block;/.test(CSS) && /D\.showPopover\(\)/.test(JS));
+    vrai('⛔ au bureau, la fenêtre des feuilles OUVERTE ne porte aucune transformation (l\'ancrage les ignore : le menu tombait 260 px à droite) — centrée par inset 0 + margin auto, jamais par translate(-50 %)',
+      /\.feuille-ouverte \.feuille \{ transform: none; opacity: 1;/.test(CSS) && /\.feuille \{\s*inset: 0; margin: auto; width: 520px;[^}]*height: fit-content;/.test(CSS) && !/\.feuille[^{]*\{[^}]*translate\(-50%/.test(CSS));
+    vrai('⛔ le toucher qui referme le menu AU DEHORS ne fait rien d\'autre : il referme (pointerdown, en capture) et le clic qui le suit est AVALÉ — sinon l\'interrupteur voisin basculait, ou la ligne rouvrait le menu qu\'il fermait',
+      /document\.addEventListener\('pointerdown', e => \{\s*if \(!etat\.deroule \|\| \$\('deroule'\)\.contains\(e\.target\)\) return;\s*etat\.derouleAvale = Date\.now\(\) \+ 700;\s*fermerDeroule\(true\);\s*\}, true\);/.test(JS)
+      && /document\.addEventListener\('click', e => \{\s*if \(!\(etat\.derouleAvale > Date\.now\(\)\)\) return;\s*etat\.derouleAvale = 0; e\.preventDefault\(\); e\.stopPropagation\(\);\s*\}, true\);/.test(JS));
+    vrai('⛔ Échap referme le MENU d\'abord, jamais la feuille sous lui : dans le menu il s\'arrête là (stopPropagation), et l\'écoute de la page ferme un menu AVANT toute couche',
+      /else if \(e\.key === 'Escape'\) \{ e\.preventDefault\(\); e\.stopPropagation\(\); fermerDeroule\(true\); \}/.test(JS) && /if \(e\.key !== 'Escape'\) return;\s*if \(etat\.deroule\) \{ e\.preventDefault\(\); fermerDeroule\(true\); return; \}\s*if \(ep\.ouvert\)/.test(JS));
+    vrai('le clavier d\'un menu : le focus va au choix EN COURS à l\'ouverture ; ↑ ↓ en boucle, Début, Fin ; Tab le referme et poursuit depuis la ligne ; un choix rend le focus à la ligne',
+      /\(l\.find\(b => b\.getAttribute\('aria-checked'\) === 'true'\) \|\| l\[0\]\)\.focus\(\{ preventScroll: true \}\);/.test(JS) && /l\[\(\(i < 0 \? \(pas > 0 \? -1 : 0\) : i\) \+ pas \+ n\) % n\]\.focus\(\);/.test(JS)
+      && /else if \(e\.key === 'Home' \|\| e\.key === 'End'\)/.test(JS) && /else if \(e\.key === 'Tab'\) fermerDeroule\(true\);/.test(JS) && /fermerDeroule\(true\);\s*o\.surChoix\(b\.dataset\.valeur\);/.test(JS));
+    vrai('⛔ un nouveau rendu des infos garde le menu OUVERT sur la NOUVELLE ligne (une présence qui change ne le referme pas) ; une valeur changée ailleurs le REFERME (sa coche mentirait)',
+      /if \(n && n\.dataset\.valeur === dr\.dataset\.valeur\) \{ n\.setAttribute\('aria-expanded', 'true'\); etat\.deroule\.declencheur = n; \}\s*else \{ if \(n\) etat\.deroule\.declencheur = n; fermerDeroule\(true\); \}/.test(JS));
+    vrai('une feuille qui s\'ouvre ou se ferme emporte son menu, un rendu en panne aussi (jamais un menu accroché à une ligne disparue)',
+      /function ouvrirFeuilleDom\(f\) \{\s*fermerDeroule\(false\);/.test(JS) && /function fermerFeuilleDom\(\) \{\s*fermerDeroule\(false\);/.test(JS) && /if \(panne\) \{ if \(etat\.deroule && corps\.contains\(etat\.deroule\.declencheur\)\) fermerDeroule\(false\);/.test(JS));
+    const iF = JS.indexOf('const SOURDINE_TOUJOURS_MS'), fF = JS.indexOf('const CHEVRON_UD');
+    let finS = null; try { const ctx = {}; vm.createContext(ctx); vm.runInContext(JS.slice(iF, fF) + '\nthis.f = finSourdine;', ctx, { timeout: 2000 }); finS = ctx.f; } catch (e) { finS = null; }
+    vrai('la fonction `finSourdine` de la page s\'exécute dans un bac à sable (' + (fF - iF) + ' caractères)', iF > 0 && fF > iF && typeof finS === 'function');
+    if (typeof finS === 'function') {
+      const J = 86400000, t0 = Date.now();
+      v('finSourdine : au-delà de cinq ans « Toujours » (la ligne) et « pour toujours » (le titre) ; dans une minute « Jusqu\'à HH:MM » ; dans une semaine « Jusqu\'au 14 oct. » sur la ligne, « jusqu\'au mercredi 14 octobre à HH:MM » dans le titre — jamais l\'année',
+        [finS(t0 + 9 * 365 * J), finS(t0 + 9 * 365 * J, true), /^Jusqu'à (demain )?\d\d:\d\d$/.test(finS(t0 + 60000)), /^Jusqu'au \d{1,2} \S+$/.test(finS(t0 + 7 * J)), /^jusqu'au \S+ \d{1,2} \S+ à \d\d:\d\d$/.test(finS(t0 + 7 * J, true)), /20\d\d/.test(finS(t0 + 7 * J, true) + finS(t0 + 7 * J))],
+        ['Toujours', 'pour toujours', true, true, true, false]);
+    }
   }
 
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */

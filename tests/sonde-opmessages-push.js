@@ -375,16 +375,21 @@ async function parcours(b, ctx) {
     await A.page.goto(A.base + '/#messages/' + conv); await A.page.reload();
     await A.page.waitForFunction(() => document.documentElement.dataset.conv === '1' && document.getElementById('conv-titre').textContent.includes('Bruno Petit'), null, { timeout: 15000 });
     await toucher(A, '#conv-titre');
-    await verifier('les infos de la conversation proposent « Mettre en sourdine » : 8 heures, 1 semaine, Toujours', A, () => [...document.querySelectorAll('#info-corps [data-act="sourdine"]')].map(x => x.textContent).join('|') === '8 heures|1 semaine|Toujours', null, 10000, () => lire(A, '#info-corps'));
+    /* la sourdine est un MENU DÉROULANT (7 octobre 2026) : la ligne dit sa valeur, le menu propose les durées — sonde-opmessages-deroule le mesure en entier */
+    await verifier('les infos de la conversation ont la ligne « Mettre en sourdine », valeur « Non »', A, () => { const r = document.querySelector('#info-corps [data-act="sourdine"][aria-haspopup="menu"]'); return !!r && r.querySelector('.reglage-valeur').textContent.trim() === 'Non'; }, null, 10000, () => lire(A, '#info-corps'));
+    await toucher(A, '#info-corps [data-act="sourdine"]');
+    await verifier('son menu propose 8 heures, 1 semaine, Toujours', A, () => document.getElementById('deroule').matches(':popover-open') && [...document.querySelectorAll('#deroule-liste .deroule-choix')].map(x => x.textContent.trim()).join('|') === '8 heures|1 semaine|Toujours', null, 10000, () => lire(A, '#deroule'));
     await capture(A, '8-sourdine-proposee');
-    await toucher(A, '#info-corps [data-act="sourdine"][data-duree="8h"]');
-    await verifier('⛔ en sourdine : « Notifications coupées », l\'échéance dite, « Réactiver »', A, () => { const t = document.getElementById('info-corps').textContent; return /Notifications coupées/.test(t) && /En sourdine jusqu'au/.test(t) && !!document.querySelector('#info-corps [data-act="sourdine"][data-duree="off"]'); }, null, 10000, () => lire(A, '#info-corps'));
+    await toucher(A, '#deroule-liste .deroule-choix[data-valeur="8h"]');
+    await verifier('⛔ en sourdine : la ligne dit l\'échéance (« Jusqu\'à … »)', A, () => /^Jusqu'à /.test(document.querySelector('#info-corps [data-act="sourdine"] .reglage-valeur').textContent.trim()), null, 10000, () => lire(A, '#info-corps'));
     const idA = await A.page.evaluate(async () => (await (await fetch('/api/moi')).json()).moi.id);
     const muet = sql('SELECT muet_jusqua AS m FROM membre WHERE conv = ? AND uid = ?', conv, idA).m;
     vrai('le service a retenu l\'échéance (dans huit heures, à une minute près)', Math.abs(muet - (Date.now() + 8 * 3600000)) < 60000);
     await capture(A, '8-sourdine-posee');
-    await toucher(A, '#info-corps [data-act="sourdine"][data-duree="off"]');
-    await verifier('« Réactiver » : la proposition revient, le service n\'a plus d\'échéance', A, () => !!document.querySelector('#info-corps [data-act="sourdine"][data-duree="8h"]') && !/Notifications coupées/.test(document.getElementById('info-corps').textContent), null, 10000, () => lire(A, '#info-corps'));
+    await toucher(A, '#info-corps [data-act="sourdine"]');
+    await verifier('rouvert, le menu propose d\'abord « Réactiver les notifications »', A, () => document.getElementById('deroule').matches(':popover-open') && (document.querySelector('#deroule-liste .deroule-choix') || {}).textContent === 'Réactiver les notifications', null, 10000, () => lire(A, '#deroule'));
+    await toucher(A, '#deroule-liste .deroule-choix[data-valeur="off"]');
+    await verifier('« Réactiver » : la ligne redit « Non »', A, () => document.querySelector('#info-corps [data-act="sourdine"] .reglage-valeur').textContent.trim() === 'Non', null, 10000, () => lire(A, '#info-corps'));
     v('et le service n\'a plus d\'échéance', sql('SELECT muet_jusqua AS m FROM membre WHERE conv = ? AND uid = ?', conv, idA).m, 0);
     await A.page.keyboard.press('Escape');
     await largeur(A, 'infos de la conversation');

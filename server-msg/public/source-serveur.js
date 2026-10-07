@@ -1860,6 +1860,8 @@
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
+        invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
         /* un CANAL dit l'espace auquel il appartient et s'il est privé (la liste s'en sert pour le nommer « # canal ») ; les autres conversations n'ont ni l'un ni l'autre */
         espace: canal && typeof c.espace === 'string' ? c.espace : null, prive: canal && c.prive === true,
         /* la conversation d'une RÉUNION dit laquelle (la page ouvre sa fiche au toucher du titre) */
@@ -1996,7 +1998,8 @@
       const nomDeUid = (u) => typeof u === 'string' ? prenomDe(u) : null;
       return Object.assign(base, {
         etat: 'ok', regles: Object.assign({}, s.regles), clos: !!s.clos, closLe: s.clos_le || null, auteur: nomDeUid(s.auteur), deMoi: estMoi(s.auteur),
-        choix: (s.choix || []).map(c => ({ idx: c.idx, texte: c.texte, n: c.n, qui: Array.isArray(c.qui) ? c.qui.map(nomDeUid) : null, ajoutePar: c.ajoute_par ? nomDeUid(c.ajoute_par) : null, mien: (s.mes_choix || []).includes(c.idx) })),
+        /* `quiIds` : les identifiants des votants (la page en tire leurs avatars) — seulement quand le service les dit, c'est-à-dire jamais pour un sondage anonyme */
+        choix: (s.choix || []).map(c => ({ idx: c.idx, texte: c.texte, n: c.n, qui: Array.isArray(c.qui) ? c.qui.map(nomDeUid) : null, quiIds: Array.isArray(c.qui) ? c.qui.filter(u => typeof u === 'string') : null, ajoutePar: c.ajoute_par ? nomDeUid(c.ajoute_par) : null, mien: (s.mes_choix || []).includes(c.idx) })),
         mesChoix: (s.mes_choix || []).slice(), votants: s.votants, resultats: !!s.resultats_visibles,
         peutVoter: !!s.peut_voter, peutAjouter: !!s.peut_ajouter, peutClore: !!s.peut_clore,
       });
@@ -2079,6 +2082,9 @@
       if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
       base.membres = d.membres.map(x => x.id); base.admins = d.membres.filter(x => x.role === 'admin').map(x => x.id);
       base.annoncesSeulement = !!d.conversation.annonces_seules; base.ephemeres = d.conversation.ephemere_s || 0;
+      /* l'invitation : la LISTE la tient à jour (relue à chaque événement) ; une conversation qui n'y est pas (une invitation refusée, ouverte par son adresse) prend celle du détail */
+      const iv = resumeConv ? resumeConv.invitation : d.conversation.invitation;
+      base.invitation = d.conversation.type === 'direct' && (iv === 'envoyee' || iv === 'recue' || iv === 'refusee') ? iv : null;
       const auto = piecesAuto(c.messages);
       const vues = c.messages.map(m => vueMessage(id, c, m, auto));
       for (const p of file) if (p.conv === id) vues.push(vueEnAttente(p));
@@ -2468,6 +2474,22 @@
       emettre({ type: 'conversation', id: conv });
       return r.resultat;
     }
+    /* ÉCRIRE à la personne d'une fiche reçue (`contacts.ecrire_carte`) : la directe s'ouvre — une INVITATION si l'on n'est pas encore en contact. → { conv, resultat } */
+    async function ecrireCarte(conv, seq) {
+      const r = await A.ecrireCarte(conv, seq);
+      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      await relireListe(); emettre({ type: 'liste' });
+      return { conv: r.conv, resultat: r.resultat };
+    }
+    /* répondre à une INVITATION (la conversation `conv`, de la personne `uid`) : accepter (un contact, et chacun écrit) ou refuser (elle quitte ma liste, sans un mot à son auteur).
+       C'est la réponse à SA demande de contact : la même route que « Demandes reçues ». */
+    async function repondreInvitation(conv, uid, accepter) {
+      const r = await A.repondreDemande(uid, accepter === true);
+      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      const c = convs.get(conv); if (c) c.detail = Object.assign({}, c.detail, { conversation: Object.assign({}, c.detail && c.detail.conversation, { invitation: r.resultat === 'acceptee' ? null : 'refusee' }) });
+      await relireListe(); emettre({ type: 'liste' }); emettre({ type: 'conversation', id: conv });
+      return r.resultat;
+    }
     /* le thème d'une conversation : À MOI seul, sur tous mes appareils. Posé tout de suite dans la copie (la page le montre sans attendre), rendu tel qu'avant si le service refuse. */
     /* ⛔ un choix PAS ENCORE CONFIRMÉ par une liste du service gagne sur elle : deux touches rapides (un fond, puis une couleur), et la liste relue entre les deux — qui ne porte que la
        première — ramenait l'écran à l'avant-dernier choix (mesuré au navigateur). Il cède dès qu'une liste relue porte la même valeur, ou si le service le refuse. */
@@ -2529,8 +2551,14 @@
       emettre({ type: 'conversation', id: d.conv });
       relireListePlusTard();
       if (!moi && d.type !== 'systeme') {
+        /* ⛔ une INVITATION (quelqu'un qui n'est pas dans mes contacts) : la bannière dit qui, et que c'est une invitation — pas « Quelqu'un : <son texte> ». Une conversation que la liste ne
+           connaît pas encore (le premier message d'une directe) attend la liste relue pour le savoir. */
+        const arrivee = (r) => {
+          const inv = !!r && r.invitation === 'recue';
+          emettre({ type: 'arrivee', conv: d.conv, invitation: inv, de: inv ? resume(r).nom : nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
+        };
         const r = convsApi.find(x => x.id === d.conv);
-        emettre({ type: 'arrivee', conv: d.conv, de: nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
+        if (r) arrivee(r); else relireListe().then(() => arrivee(convsApi.find(x => x.id === d.conv)), () => arrivee(null));
       }
     }
     const gestionnaires = {
@@ -2570,7 +2598,7 @@
       notification: (d, gid) => {
         acquitter(gid);
         emettre({ type: 'notification', titre: d.titre, texte: d.texte, nature: d.type, cible: d.cible });
-        if (d.type === 'contact_ajoute') rafraichirContacts().catch(() => {});
+        if (d.type === 'contact_ajoute') { rafraichirContacts().catch(() => {}); relireListePlusTard(); }      // une INVITATION acceptée cesse d'en être une : la liste le dit (la ligne « Invitation » part)
         if (d.type === 'contact_demande') emettre({ type: 'contacts' });          // une demande reçue : la feuille « Contacts » relit ses demandes
         if (d.type === 'groupe_ajoute') relireListePlusTard();
         if (d.type === 'appel_manque') emettre({ type: 'appels' });          // un appel manqué entre dans l'historique
@@ -3210,7 +3238,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3228,7 +3256,7 @@
       contactParIdentifiant, demanderContact, demandesContact, repondreDemande, annulerDemande,
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
-      envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte,   // les cartes d'un message
+      envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */

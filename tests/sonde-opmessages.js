@@ -614,6 +614,10 @@ async function etapeSaisie(S) {
 async function choisirFichiers(S, fichiers) {
   const [fc] = await Promise.all([S.page.waitForEvent('filechooser', { timeout: 6000 }), geste(S, '#compo-plus')]);
   await fc.setFiles(fichiers);
+  /* depuis la légende sous les photos, des photos choisies passent par l'APERÇU D'ENVOI (« Ajouter une légende… », puis Envoyer) : on envoie sans légende. Un fichier que la page
+     refuse (illisible) n'ouvre pas l'aperçu, ou l'ouvre sans rien : on ne l'attend que 2,5 s — sonde-opmessages-legende mesure l'aperçu lui-même */
+  const ouvert = await S.page.waitForFunction(() => { const e = document.getElementById('envoi-photos'); return !!e && !e.hidden; }, null, { timeout: 2500, polling: 100 }).then(() => true, () => false);
+  if (ouvert) { await geste(S, '#ep-envoyer'); await S.page.waitForFunction(() => document.getElementById('envoi-photos').hidden, null, { timeout: 6000 }).catch(() => {}); }
 }
 async function etapePhotos(S, F) {
   const nom = S.nom;
@@ -854,7 +858,8 @@ async function etapeFeuille(S, F) {
   await S.page.locator('#g-recherche').fill(''); await dormir(150);
   /* nom, réglages */
   await geste(S, '#g-nom'); await taper(S, 'Équipe terrain'); await S.page.keyboard.press('Enter');
-  await geste(S, '#g-annonces'); await geste(S, '#g-ephemeres'); await dormir(250);
+  /* « Messages éphémères » est un MENU DÉROULANT (7 octobre 2026) : la ligne l'ouvre, on y choisit « 24 heures » */
+  await geste(S, '#g-annonces'); await geste(S, '#g-ephemeres'); await dormir(250); await geste(S, '#deroule-liste .deroule-choix[data-valeur="86400"]'); await dormir(250);
   k = await S.page.evaluate(() => ({ annonces: document.getElementById('g-annonces').getAttribute('aria-checked'), eph: document.getElementById('g-ephemeres-val').textContent, nom: document.getElementById('g-nom').value }));
   v(nom + ' : nom saisi, « Seuls les admins écrivent » activé, messages éphémères → « 24 heures »', k.annonces === 'true' && k.eph === '24 heures' && k.nom === 'Équipe terrain', k);
   /* la photo du groupe : une image illisible laisse la pastille de repli ET le dit ; un vrai fichier est réduit à 512 px ; une illisible de plus ne casse pas la bonne */

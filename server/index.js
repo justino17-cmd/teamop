@@ -7240,14 +7240,106 @@ async function msgInstanceEtat(c) {
   } catch (e) { return { joignable: false }; }
 }
 app.get('/api/monitor/messages/versions', monAdmin, async (req, res) => {
-  const [beta, prod] = await Promise.all([msgInstanceEtat('beta'), msgInstanceEtat('prod')]);
+  const [beta, prod, shaBeta, shaProd] = await Promise.all([msgInstanceEtat('beta'), msgInstanceEtat('prod'), msgInstanceSha('beta'), msgInstanceSha('prod')]);
+  if (beta.joignable) beta.sha = shaBeta.slice(0, 7);
+  if (prod.joignable) prod.sha = shaProd.slice(0, 7);
   const canal = (k, svc) => Object.assign({}, versionsCfg.canaux[k], { service: svc });
-  res.json({ ok: true, beta: canal('messages-beta', beta), prod: canal('messages-prod', prod) });
+  res.json({ ok: true, beta: canal('messages-beta', beta), prod: canal('messages-prod', prod), publication: msgPubVue(), publier: ghActif() });
 });
 app.post('/api/monitor/messages/version-min', monPatronStrict, async (req, res) => {
   const b = req.body || {};
   if (b.canal !== 'beta' && b.canal !== 'prod') return res.status(400).json({ error: 'canal : beta ou prod' });
   return canalVersionPoser(req, res, 'messages-' + b.canal, b.min, async () => { const e = await msgInstanceEtat(b.canal); return e.joignable ? e.version : 0; });
+});
+
+/* ══ PUBLIER OP MESSAGES DEPUIS LA TOUR (7 octobre 2026) ══
+   Justin : « la bêta, tu la fais ; la version publique, comme OP GESTION, on la fait dans la Tour ». UN geste du patron :
+     1. le serveur lit le commit que SERT la bêta (son `/health`) — on publie ce qui a été essayé, jamais « le dernier commit de main » ;
+     2. il lance le déploiement de la production (`deploiement-messages.yml`, cible prod, CE commit) ;
+     3. quand le job de production attend l'environnement `msg-prod` — c'est-à-dire APRÈS les bancs, qu'il déclare en `needs` —, il
+        l'approuve au nom du patron qui a cliqué : sa phrase « publie », traduite en geste, comme le dit le workflow.
+   ⛔ Rien ne part sans les bancs : l'approbation n'existe que pour un job qui les a passés, et un banc rouge finit le lancement en « échec ».
+   ⛔ Le jeton GitHub du serveur (`config.github`) doit pouvoir lancer un workflow (Actions : écriture) et approuver (son propriétaire est
+      relecteur de `msg-prod`). Sinon on le DIT : un refus de GitHub a sa phrase, et une approbation impossible laisse le lien où la faire.
+   ⛔ Une publication à la fois ; l'état vit en mémoire (un redémarrage du serveur l'oublie — le déploiement, lui, continue chez GitHub). */
+const MSG_FLUX = 'deploiement-messages.yml';
+const MSG_PUB_PAS = (() => { const n = parseInt(process.env.TEAMOP_MSG_PUB_PAS_MS || '', 10); return Number.isInteger(n) && n >= 100 && n <= 60000 ? n : 20000; })();
+const MSG_PUB_DUREE = 60 * 60000;     // on suit une publication une heure au plus (les bancs prennent dix minutes)
+const msgPub = { run: 0, sha: '', par: '', ts: 0, etat: '', message: '', url: '', approuve: 0, suivi: null };
+const msgPubVue = () => (msgPub.etat ? { etat: msgPub.etat, sha: msgPub.sha.slice(0, 7), par: msgPub.par, ts: msgPub.ts, url: msgPub.url, message: msgPub.message } : null);
+const msgPubFini = () => ['en_ligne', 'echec', 'annule', 'perdu'].includes(msgPub.etat);
+/* le lien d'un déploiement n'est gardé que s'il mène chez GitHub (la Tour le met dans un `href`) */
+const msgUrlGh = (u) => typeof u === 'string' && /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/actions\/runs\/\d+$/.test(u) ? u : '';
+/* le commit que sert une instance (`/health` → `sha`), complet (40 hexadécimaux) ou '' : ce qu'on ne sait pas lire, on ne le publie pas */
+async function msgInstanceSha(c) {
+  try {
+    const r = await fetch(msgInstanceUrl(c) + '/health', { signal: AbortSignal.timeout(4000), redirect: 'error' });
+    if (!r.ok) return '';
+    const j = await r.json(), s = String(j && j.sha || '');
+    return /^[0-9a-f]{40}$/.test(s) ? s : '';
+  } catch (e) { return ''; }
+}
+const ghPhrase = (e) => e && e.statutGh === 401 ? 'GitHub refuse le jeton du serveur (expiré ou révoqué) : il faut le remplacer sur le serveur.'
+  : e && (e.statutGh === 403 || e.statutGh === 404) ? 'Le jeton GitHub du serveur n’a pas le droit de lancer ce déploiement (il lui faut « Actions : lecture et écriture » sur le dépôt).'
+  : e && e.statutGh === 422 ? 'GitHub refuse la demande (le workflow ou ses paramètres ne correspondent pas).'
+  : 'GitHub ne répond pas : réessaie dans une minute.';
+/* le suivi : retrouver le lancement, attendre les bancs, approuver la production, dire comment ça s'est fini */
+function msgPubSuivre() {
+  clearTimeout(msgPub.suivi);
+  const pas = async () => {
+    const ts = msgPub.ts;
+    try {
+      if (!msgPub.run) {
+        /* ⛔ LE RUN ADOPTÉ EST CELUI DE CE LANCEMENT (relecture du gardien, 7 octobre 2026) : son nom (`run-name` du workflow) porte la cible et le commit. Un autre lancement du même
+           workflow — une bêta, une production lancée à la main dans GitHub — ne porte pas ce nom : il n'est jamais adopté, donc jamais approuvé au nom du patron. */
+        const nom = 'Publier prod ' + msgPub.sha;
+        const l = await gh('/actions/workflows/' + MSG_FLUX + '/runs?event=workflow_dispatch&branch=main&per_page=20');
+        const r = ((l && l.workflow_runs) || []).filter(x => x && x.display_title === nom && Date.parse(x.created_at) >= ts - 60000).sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))[0];
+        if (r && Number.isInteger(r.id)) { msgPub.run = r.id; msgPub.url = msgUrlGh(r.html_url); }
+      }
+      if (msgPub.run) {
+        const r = await gh('/actions/runs/' + msgPub.run);
+        if (r && msgUrlGh(r.html_url)) msgPub.url = r.html_url;
+        if (r && r.status === 'completed') msgPub.etat = r.conclusion === 'success' ? 'en_ligne' : r.conclusion === 'cancelled' ? 'annule' : 'echec';
+        else if (r && r.status === 'waiting') {
+          const attente = await gh('/actions/runs/' + msgPub.run + '/pending_deployments');
+          const env = (Array.isArray(attente) ? attente : []).find(p => p && p.environment && p.environment.name === 'msg-prod' && Number.isInteger(p.environment.id));
+          if (env && env.current_user_can_approve === true && msgPub.approuve !== msgPub.run) {
+            await gh('/actions/runs/' + msgPub.run + '/pending_deployments', { method: 'POST', body: JSON.stringify({ environment_ids: [env.environment.id], state: 'approved', comment: 'Publié depuis la Tour par ' + msgPub.par }) });
+            msgPub.approuve = msgPub.run; msgPub.etat = 'approuve';
+          } else if (env && env.current_user_can_approve !== true) msgPub.etat = 'a_approuver';
+        } else if (msgPub.etat !== 'approuve') msgPub.etat = 'tests';
+        msgPub.message = '';
+      }
+    } catch (e) { msgPub.message = ghPhrase(e); }
+    if (ts !== msgPub.ts || msgPubFini()) return;                                    // une autre publication a pris la place, ou c'est fini
+    if (Date.now() - ts > MSG_PUB_DUREE) { msgPub.etat = 'perdu'; msgPub.message = 'Plus de nouvelles depuis une heure : voir le déploiement dans GitHub.'; return; }
+    msgPub.suivi = setTimeout(pas, MSG_PUB_PAS); if (msgPub.suivi.unref) msgPub.suivi.unref();
+  };
+  msgPub.suivi = setTimeout(pas, MSG_PUB_PAS); if (msgPub.suivi.unref) msgPub.suivi.unref();
+}
+app.post('/api/monitor/messages/publier', monPatronStrict, async (req, res) => {
+  if (!ghActif()) return res.status(503).json({ error: 'Le serveur n’a pas de jeton GitHub (config.json → github.token et github.depot) : la publication se lance à la main, dans GitHub.' });
+  if (msgPub.etat && !msgPubFini() && Date.now() - msgPub.ts < MSG_PUB_DUREE) return res.status(409).json({ error: 'Une publication est déjà en cours.', publication: msgPubVue() });
+  /* ⛔ ON PUBLIE CE QUE LE PATRON A VU (relecture du gardien) : la Tour envoie le commit qu'elle affichait ; la bêta a pu se redéployer entre l'affichage et le clic */
+  const vu = typeof (req.body || {}).sha === 'string' ? req.body.sha : '';
+  if (!/^[0-9a-f]{7,40}$/.test(vu)) return res.status(400).json({ error: 'Le commit affiché manque : recharge la carte de la Tour, puis publie de nouveau.' });
+  /* ⛔ L'ÉTAT SE POSE AVANT LA PREMIÈRE ATTENTE (relecture du gardien) : deux clics dans la même seconde passaient tous les deux le garde ci-dessus et lançaient DEUX déploiements.
+     Un refus rend l'état d'avant. */
+  const avant = Object.assign({}, msgPub), t0 = Date.now();
+  clearTimeout(msgPub.suivi);
+  Object.assign(msgPub, { run: 0, sha: '', par: req.tourUser.nom, ts: t0, etat: 'lance', message: '', url: '', approuve: 0, suivi: null });
+  const rendre = (code, error) => { Object.assign(msgPub, avant, { suivi: null }); return res.status(code).json({ error }); };
+  const [sb, sp] = await Promise.all([msgInstanceSha('beta'), msgInstanceSha('prod')]);
+  if (!sb) return rendre(409, 'La bêta ne dit pas quel commit elle sert (injoignable, ou d’avant ce réglage) : rien n’a été lancé.');
+  if (sp === sb) return rendre(409, 'La version publique sert déjà le même commit que la bêta : rien à publier.');
+  if (!sb.startsWith(vu)) return rendre(409, 'La bêta a changé depuis l’affichage (elle sert maintenant ' + sb.slice(0, 7) + ') : recharge la carte, vérifie, puis publie de nouveau.');
+  try { await gh('/actions/workflows/' + MSG_FLUX + '/dispatches', { method: 'POST', body: JSON.stringify({ ref: 'main', inputs: { cible: 'prod', sha: sb, retour: 'false' } }) }); }
+  catch (e) { return rendre(502, ghPhrase(e)); }
+  msgPub.sha = sb;
+  console.log('Tour :', req.tourUser.nom, 'publie OP MESSAGES', sb.slice(0, 7));
+  msgPubSuivre();
+  res.json({ ok: true, publication: msgPubVue() });
 });
 const retraitCodes = new Map();   // email -> { code, exp, tries }
 // retirer une entreprise de la liste (patron uniquement — pour les entrées de test ; tracé)
@@ -8582,8 +8674,10 @@ const PROPOSE_SCHEMA = {
 };
 function ghConf() { return config.github || {}; }
 function ghActif() { return !!(ghConf().token && ghConf().depot); }
+/* ⛔ L'adresse de GitHub ne se change que pour un banc (127.0.0.1 seulement, `urlBanc`) : posée par erreur sur le VPS, une autre adresse recevrait le jeton. */
+const GH_API = urlBanc(process.env.TEAMOP_GITHUB_API_URL, 'https://api.github.com');
 async function gh(chemin, options) {
-  const r = await fetch('https://api.github.com/repos/' + ghConf().depot + chemin, Object.assign({
+  const r = await fetch(GH_API + '/repos/' + ghConf().depot + chemin, Object.assign({
     headers: {
       'Authorization': 'Bearer ' + ghConf().token,
       'Accept': 'application/vnd.github+json',

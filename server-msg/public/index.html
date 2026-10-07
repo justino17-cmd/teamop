@@ -471,14 +471,17 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
   outline: none;
 }
 .feuille-ouverte .feuille { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s; }
+/* ⛔ au bureau, la fenêtre se centre par `inset: 0` + `margin: auto` + une hauteur à son contenu, JAMAIS par left/top 50 % + translate(-50 %) : OUVERTE, elle ne porte
+   AUCUNE transformation. Un menu déroulant s'accroche à une ligne de la feuille par `anchor-name`, et l'ancrage ignore les transformations — mesuré le 7 octobre 2026 :
+   le menu tombait 260 px à droite et 162 px trop bas, la moitié de la translation. La transformation ne sert plus qu'à l'entrée et à la sortie. */
 @media (min-width: 700px) {
   .feuille {
-    left: 50%; right: auto; top: 50%; bottom: auto; width: 520px; max-width: calc(100vw - 32px); max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
+    inset: 0; margin: auto; width: 520px; max-width: calc(100vw - 32px); height: fit-content; max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
     border-radius: 22px; border-bottom: var(--line);
-    transform: translate(-50%, calc(-50% + 16px)) scale(.97); opacity: 0;
+    transform: translateY(16px) scale(.97); opacity: 0;
     transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s linear .35s;
   }
-  .feuille-ouverte .feuille { transform: translate(-50%, -50%); opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
+  .feuille-ouverte .feuille { transform: none; opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
 }
 .feuille-tete { flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
 .poignee { padding: 8px 0 4px; display: grid; place-items: center; }
@@ -761,6 +764,26 @@ button.photo:active { transform: scale(.97); }
   .pilule-saisie textarea { height: 44px; }
 }
 .compo-ferme { margin: 0 auto; max-width: 860px; padding: 11px 8px; text-align: center; font-size: 15px; line-height: 20px; color: var(--text); }
+/* L'INVITATION (7 octobre 2026) : qui la reçoit lit, et répond par trois gestes — accepter, refuser, bloquer — au lieu d'écrire ; qui l'envoie écrit, une ligne le lui rappelle */
+.compo-invit { margin: 0 auto; max-width: 860px; padding: 8px 8px 4px; text-align: center; }
+.compo-invit p { margin: 0 0 10px; font-size: 15px; line-height: 20px; color: var(--text); }
+.compo-invit-gestes { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.compo-invit-gestes button { flex: 1 1 0; min-width: 96px; max-width: 200px; min-height: 44px; padding: 0 16px; border-radius: 22px; font-size: 16px; font-weight: 600; background: var(--field); color: var(--text); }
+.compo-invit-gestes .accepter { background: var(--fill); color: var(--on-fill); }
+.compo-invit-gestes .bloquer { color: var(--rouge-txt); }
+.compo-invit-gestes [aria-disabled="true"] { opacity: .55; }
+/* une invitation qui attend : du texte seul (le service refuse photos, fichiers, vocaux et cartes) — le « + », l'appareil photo et le micro s'effacent */
+.compo-ligne.texte-seul .compo-plus, .compo-ligne.texte-seul .compo-camera, .compo-ligne.texte-seul .compo-micro { display: none; }
+.compo-note { margin: 0 auto 6px; max-width: 860px; padding: 0 12px; font-size: 13px; line-height: 17px; color: var(--sub-meta); text-align: center; }
+/* « Invitations » en tête de la liste (comme « Archivées » chez WhatsApp), et l'en-tête de la liste des invitations */
+.av-invit { display: grid; place-items: center; background: var(--fill); color: var(--on-fill); }
+.av-invit .ic { width: 24px; height: 24px; }
+.invit-n { flex: none; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 11px; display: inline-grid; place-items: center; background: var(--fill); color: var(--on-fill); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; margin-left: 6px; }
+.liste-invit-tete { display: flex; align-items: center; gap: 6px; padding: 4px 4px 2px; list-style: none; }
+.liste-invit-tete button { min-height: 44px; display: inline-flex; align-items: center; gap: 2px; padding: 0 8px; font-size: 17px; color: var(--accent); background: none; }
+.liste-invit-tete button .ic { width: 22px; height: 22px; }
+.liste-invit-tete h2 { margin: 0; font-size: 17px; font-weight: 600; }
+.liste-invit-note { list-style: none; padding: 0 16px 10px; font-size: 13px; line-height: 18px; color: var(--sub-meta); }
 .enreg { align-items: center; min-height: 44px; }
 .enreg-annuler { color: var(--rouge); }
 .enreg-point { width: 10px; height: 10px; flex: none; border-radius: 50%; background: var(--rouge); animation: pulse 1s infinite; }
@@ -781,7 +804,9 @@ button.photo:active { transform: scale(.97); }
 .ep-titre { flex: 1; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; }
 .ep-cale { width: 44px; flex: none; }
 .ep-rond { width: 44px; height: 44px; flex: none; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 18px; }
-.ep-scene { flex: 1; min-height: 0; display: grid; place-items: center; padding: 4px 12px; }
+/* ⛔ la piste de la grille est DÉFINIE (minmax(0, 1fr)) : sans elle, `max-height: 100%` de l'image ne se rapporte à rien et une vraie photo (3 000 px)
+   s'affichait à sa taille, coupée par l'écran (7 octobre 2026, capture du bureau) — les images de 64 px des bancs tenaient d'elles-mêmes */
+.ep-scene { flex: 1; min-height: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; padding: 4px 12px; overflow: hidden; }
 .ep-scene img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
 .ep-vignettes { display: flex; gap: 8px; padding: 8px 12px 4px; overflow-x: auto; scrollbar-width: none; }
 .ep-vignettes:empty { display: none; }
@@ -903,6 +928,21 @@ button.photo:active { transform: scale(.97); }
   background: var(--appel-fond); color: #fff; outline: none;
 }
 html[data-appel] .appel-ecran { display: flex; }
+/* ⛔ L'APPEL RÉDUIT (7 octobre 2026, capture : « en appel, quand je clique sur Message, ça ferme l'appel ») : quitter l'écran d'appel ne raccroche plus — l'appel continue, la voix
+   aussi, et cette barre (celle de l'iPhone pendant un appel) ramène à l'écran ou raccroche. Elle pousse la page de sa hauteur : rien n'est caché dessous. */
+.appel-barre { position: fixed; z-index: 45; top: 0; left: 0; right: 0; display: none; align-items: center; gap: 8px; min-height: var(--haut-appel); padding: env(safe-area-inset-top, 0px) max(10px, env(safe-area-inset-right, 0px)) 0 max(10px, env(safe-area-inset-left, 0px)); background: var(--vert); color: #000; }
+html[data-appel-reduit] { --haut-appel: calc(44px + env(safe-area-inset-top, 0px)); }
+html[data-appel-reduit] .appel-barre { display: flex; }
+html[data-appel-reduit] body { padding-top: var(--haut-appel); }
+html[data-appel-reduit] .conv-ecran { top: calc(var(--vvt, 0px) + var(--haut-appel)); height: calc(var(--vvh, 100%) - var(--haut-appel)); }
+html[data-appel-reduit] .conv-vide { top: var(--haut-appel); }
+html[data-appel-reduit] .side { top: var(--haut-appel); height: calc(100dvh - var(--haut-appel)); }
+.appel-barre-revenir { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 4px; background: none; color: inherit; font-size: 15px; font-weight: 600; text-align: left; }
+.appel-barre-revenir .texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.appel-barre-revenir b { flex: none; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.14); font-size: 14px; }
+.appel-barre-raccrocher { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: none; color: #000; }
+.appel-barre-raccrocher .rond { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #e5484d; color: #fff; }
+.appel-barre-raccrocher .ic { width: 18px; height: 18px; }
 html[data-appel], html[data-appel] body { overflow: hidden; }
 html[data-appel] .tabs { display: none; }
 @media (min-width: 900px) { .appel-ecran { left: 236px; } }
@@ -1106,7 +1146,56 @@ html[data-service] .mention-apercu { display: none; }
 [data-plus="fichier"] > .pj-disque { background: #5e5ce6; }
 [data-plus="sondage"] > .pj-disque { background: #ff9f0a; }
 @media (hover: hover) { .pj-tuile:hover { background: var(--field); } }
+/* ⛔ À LA SOURIS, LE « + » OUVRE UN MENU QUI SORT DU BOUTON (capture à l'appui, 7 octobre 2026 : « quand je clique sur le +, il faudrait pas que ça se mette comme ça ») —
+   une liste comme celle de Messages sur Mac, collée au « + », sans voile sur la conversation ; jamais une fenêtre au milieu de l'écran. Ancré en CSS au bouton (`anchor-name`),
+   sans rien mesurer ; un navigateur qui ne sait pas ancrer le pose en bas à gauche de la conversation. Au doigt, la grille reste la feuille du bas. */
+@media (hover: hover) and (pointer: fine) {
+  .compo-plus { anchor-name: --plus-pj; }
+  .menu-fond.pj { display: block; padding: 0; background: transparent; }
+  .menu-fond.pj .menu-msg { position: fixed; left: 16px; bottom: 64px; width: 230px; max-width: calc(100vw - 32px); border-radius: 14px; padding: 6px; grid-template-columns: 1fr; gap: 0;
+    box-shadow: 0 10px 34px rgba(0,0,0,.24), 0 0 0 .5px rgba(0,0,0,.08); transform-origin: 14px 100%; animation: pj-sort .18s cubic-bezier(.2,.8,.2,1) both; }
+  @supports (anchor-name: --plus-pj) { .menu-fond.pj .menu-msg { position-anchor: --plus-pj; left: anchor(left); bottom: anchor(top); margin: 0 0 8px -4px; position-try-fallbacks: flip-block; } }
+  .menu-fond.pj .pj-tuile { min-height: 36px; flex-direction: row; justify-content: flex-start; gap: 10px; padding: 4px 10px 4px 6px; border-radius: 8px; font-size: 14px; line-height: 18px; }
+  .menu-fond.pj .pj-disque { width: 26px; height: 26px; }
+  .menu-fond.pj .pj-disque .ic { width: 15px; height: 15px; stroke-width: 2.2; }
+  .menu-fond.pj .pj-tuile:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+}
+@keyframes pj-sort { from { opacity: 0; transform: scale(.92) translateY(6px); } to { opacity: 1; transform: none; } }
 @media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
+
+/* ══ LE MENU DÉROULANT — le « pop-up button » d'iOS et du Mac ═══════════════════════════════════════════════════════════════════════════════════════════
+   Demande du 7 octobre 2026, capture des infos d'une conversation à l'appui : « Messages éphémères » et « Mettre en sourdine » en menu déroulant. La ligne dit sa valeur à l'encre de
+   l'accent, avec ⌃⌄ ; le menu SORT de la ligne, une coche devant le choix en cours. Il vit dans la couche du dessus (`popover`) : ni le défilement ni l'`overflow` de la
+   feuille ne le coupent. Il s'accroche en CSS à la ligne ouverte (`anchor-name`), sans rien mesurer, et se retourne vers le haut s'il manque de place. Un navigateur qui ne
+   sait pas ancrer le pose au milieu de l'écran (la place d'origine d'un `popover`) ; un navigateur sans `popover` le montre au pied de la feuille. */
+.reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
+.reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
+.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
+  background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); color: var(--text);
+  box-shadow: 0 12px 38px rgba(0,0,0,.26), 0 0 0 .5px rgba(0,0,0,.06); }
+.deroule:popover-open { animation: deroule-sort .2s cubic-bezier(.2,.8,.2,1) both; }
+@supports (anchor-name: --deroule) {
+  .deroule { position-anchor: --deroule; inset: auto; top: anchor(bottom); right: anchor(right); margin: 6px 0 0; position-try-fallbacks: flip-block; transform-origin: 85% 0; }
+}
+@keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.deroule-titre { width: 0; min-width: 100%; margin: 0; padding: 7px 14px 7px 38px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `width: 0` + `min-width: 100%` : le titre se replie dans la largeur des choix, il ne l'élargit pas */
+.deroule-liste { display: flex; flex-direction: column; }
+.deroule-choix { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 18px 0 6px; border-radius: 12px; font-size: 17px; line-height: 22px; color: var(--text); text-align: left; }
+.deroule-coche { width: 28px; flex: none; display: grid; place-items: center; }
+.deroule-coche .ic { font-size: 17px; stroke-width: 2.4; }
+.deroule-sep { margin: 5px 10px; border: 0; border-top: var(--sep); }
+.deroule-choix:active { background: var(--field); }
+.deroule-choix:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (hover: hover) { .deroule-choix:hover { background: var(--field); } }
+@media (hover: hover) and (pointer: fine) {
+  .deroule { min-width: 220px; padding: 5px; border-radius: 13px; }
+  .deroule-titre { padding: 5px 12px 5px 32px; }
+  .deroule-choix { min-height: 34px; padding: 0 16px 0 4px; border-radius: 8px; font-size: 15px; line-height: 20px; }
+  .deroule-coche { width: 26px; }
+  .deroule-coche .ic { font-size: 15px; }
+}
 
 /* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
 .carte-pad { padding: 12px 14px; }
@@ -1174,16 +1263,25 @@ html[data-service] .mention-apercu { display: none; }
 .theme-apercu .bulle { max-width: 78%; padding: 8px 12px; font-size: 16px; line-height: 21px; }
 .theme-apercu .recue { align-self: flex-start; }
 .theme-apercu .envoyee { align-self: flex-end; }
-.theme-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; margin-bottom: 18px; }
-.theme-fond { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px; border-radius: 16px; font-size: 13px; line-height: 17px; color: var(--text); }
-.theme-vignette { width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; background-color: var(--base); border: var(--line); display: block; }
-.theme-fond[aria-checked="true"] .theme-vignette { outline: 3px solid var(--accent); outline-offset: 2px; }
-.theme-couleurs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.theme-pastille { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; padding: 4px; border-radius: 14px; font-size: 12px; line-height: 16px; color: var(--text); }
-.theme-rond { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); color: var(--on-fill); }
-.theme-rond svg { width: 18px; height: 18px; opacity: 0; }
-.theme-pastille[aria-checked="true"] .theme-rond { box-shadow: 0 0 0 3px var(--base), 0 0 0 5px var(--accent); }
+/* ⛔ À LA APPLE (7 octobre 2026, capture de la feuille : « ici, fais à la Apple ») : chaque choix dans une CARTE groupée, comme Réglages ; les fonds en rangées ÉGALES de quatre
+   (huit fonds : deux rangées pleines, plus de 6 + 2) ; les couleurs en UNE rangée de pastilles sans légende — le nom de la couleur choisie se lit dessous, comme dans Rappels ;
+   le choix se dit par un anneau détaché (et une coche sur la vignette), jamais par une bordure collée. */
+.theme-carte { padding: 16px; margin-bottom: 18px; border-radius: var(--group-r, 18px); background: var(--card); }
+.theme-grille { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px 12px; }
+.theme-fond { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 0; border-radius: 14px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }
+.theme-fond[aria-checked="true"] { color: var(--text); font-weight: 600; }
+.theme-vignette { position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; background-color: var(--base); box-shadow: inset 0 0 0 .5px color-mix(in srgb, var(--text) 18%, transparent); display: block; }
+.theme-fond[aria-checked="true"] .theme-vignette { box-shadow: 0 0 0 3px var(--card), 0 0 0 5.5px var(--accent); }
+.theme-vignette .theme-coche { position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: #fff; opacity: 0; transform: scale(.6); transition: opacity .2s, transform .2s cubic-bezier(.32,.72,0,1); }
+.theme-vignette .theme-coche svg { width: 13px; height: 13px; stroke-width: 3; }
+.theme-fond[aria-checked="true"] .theme-coche { opacity: 1; transform: none; }
+.theme-couleurs { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); justify-items: center; gap: 4px; }
+.theme-pastille { display: grid; place-items: center; width: 44px; height: 44px; max-width: 100%; padding: 0; border-radius: 50%; }
+.theme-rond { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); color: var(--on-fill); transition: transform .15s cubic-bezier(.32,.72,0,1); }
+.theme-rond svg { width: 15px; height: 15px; stroke-width: 3; opacity: 0; }
+.theme-pastille[aria-checked="true"] .theme-rond { box-shadow: 0 0 0 2.5px var(--card), 0 0 0 4.5px color-mix(in srgb, var(--text) 55%, transparent); }
 .theme-pastille[aria-checked="true"] .theme-rond svg { opacity: 1; }
+.theme-nom { margin: 10px 0 0; text-align: center; font-size: 13px; line-height: 17px; color: var(--sub-meta); }
 @media (forced-colors: active) { .theme-fond[aria-checked="true"] .theme-vignette, .theme-pastille[aria-checked="true"] .theme-rond { outline: 3px solid Highlight; } }
 /* ── LES CARTES D'UN MESSAGE (7 octobre 2026 : « la localisation, partager des contacts, des sondages personnalisables ») — une position, la fiche d'un contact, un sondage. Une carte est une
    bulle comme un fichier (même fond, même encre : `.recue` / `.envoyee`) ; ses boutons prennent l'encre de la bulle sur un voile d'elle-même, lisibles sur le vert comme sur le gris. ── */
@@ -1215,7 +1313,7 @@ html[data-service] .mention-apercu { display: none; }
 .sond-q { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .sond-regles, .sond-pied { font-size: 12px; line-height: 16px; opacity: .85; }
 .sond-liste { display: flex; flex-direction: column; gap: 6px; }
-.sond-choix { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px 8px 10px; border-radius: 12px; text-align: left; color: inherit; background: color-mix(in srgb, currentColor 7%, transparent); }
+.sond-choix { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px 8px 10px; border-radius: 12px; text-align: left; color: inherit; background: color-mix(in srgb, currentColor 7%, transparent); }
 .sond-choix[aria-disabled="true"] { cursor: default; }
 .sond-barre { position: absolute; inset: 0 auto 0 0; z-index: -1; width: var(--p, 0%); background: color-mix(in srgb, currentColor 16%, transparent); transition: width .35s cubic-bezier(.2, .8, .2, 1); }
 .sond-coche { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 2px solid color-mix(in srgb, currentColor 55%, transparent); box-sizing: border-box; }
@@ -1224,7 +1322,24 @@ html[data-service] .mention-apercu { display: none; }
 .sond-choix[aria-pressed="true"] .sond-coche::after { content: ""; width: 10px; height: 10px; border-radius: inherit; background: currentColor; }
 .sond-texte { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
 .sond-n { font-size: 13px; line-height: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.sond-qui { grid-column: 2 / 4; font-size: 12px; line-height: 16px; opacity: .8; overflow-wrap: anywhere; }
+.sond-qui { grid-column: 2 / 5; font-size: 12px; line-height: 16px; opacity: .8; overflow-wrap: anywhere; }
+/* les BULLES de ceux qui ont voté (« il faudrait voir les bulles des personnes qui votent »), empilées comme chez WhatsApp : trois au plus, puis « +n » */
+.sond-avatars { display: flex; align-items: center; justify-content: flex-end; }
+.sond-avatars .avatar { width: 24px; height: 24px; font-size: 11px; box-shadow: 0 0 0 2px var(--sond-bord, var(--bubble-in)); }
+.sond-avatars .avatar { position: relative; }
+.sond-avatars .avatar + .avatar { margin-left: -6px; }
+.sond-avatars .avatar:nth-child(1) { z-index: 3; } .sond-avatars .avatar:nth-child(2) { z-index: 2; }      /* la première (la mienne) dessus, entière */
+.sond-avatars .presence { display: none; }        /* la pastille « en ligne » couvrirait les initiales d'une bulle de 24 px : la feuille des votes la montre */
+.envoyee .sond-avatars { --sond-bord: var(--fill); }
+.sond-plus { margin-left: 4px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: .85; }
+.votes-choix { margin-bottom: 18px; }
+.votes-choix:first-of-type { margin-top: 16px; }
+.votes-choix .rubrique { text-transform: none; font-size: 15px; color: var(--text); font-weight: 600; }
+.votes-choix .rubrique span:last-child { font-weight: 400; color: var(--sub-meta); font-size: 13px; }
+.votes-ligne { display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 6px 14px; border-bottom: var(--sep); font-size: 16px; }
+.votes-ligne:last-child { border-bottom: 0; }
+.votes-ligne .avatar { width: 32px; height: 32px; font-size: 12px; }
+.votes-vide { padding: 12px 14px; font-size: 14px; color: var(--sub-meta); }
 .sond-etat { font-size: 14px; line-height: 19px; opacity: .85; }
 @media (forced-colors: active) { .carte-msg, .sond-choix { border: 1px solid CanvasText; } .sond-barre { background: Highlight; } }
 /* la feuille « Nouveau sondage » : les choix comme une liste de Réglages (un champ par ligne, un retrait à droite), les règles en interrupteurs */
@@ -1580,6 +1695,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }
 .salle-panneau-corps { display: block; }
+/* LE TABLEAU DE BORD (côté pro) : la date sous le grand titre, un intertitre de jour dans la liste des réunions, la raison d'un appel « important » */
+.bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
+.bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
+.carte-liste > li.bord-jour::after { display: none; }
+.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
+.bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.bord-vide button { min-height: 44px; padding: 0 14px; border-radius: 22px; font-size: 15px; font-weight: 600; background: var(--field); color: var(--accent); }
+#bord-appels { --sep-retrait: 66px; }
+#vue-accueil .carte-liste { margin-bottom: 24px; }          /* trois blocs : l'intertitre du suivant ne colle pas à la carte d'avant */
 .reunion-li { display: flex; align-items: center; }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
@@ -1596,13 +1720,18 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   :root { --bureau-sel: color-mix(in srgb, var(--text) 9%, transparent); --bureau-bord: color-mix(in srgb, var(--text) 10%, transparent); }
   body { font-size: 13px; }
 
-  /* la barre latérale : celle du Finder, de Messages et de Mail */
-  .side { padding: 10px 10px 12px; }
-  .side-marque { padding: 6px 8px 14px; gap: 8px; }
-  .side-marque img { width: 22px; height: 22px; border-radius: 5px; }
-  .side-marque b { font-size: 13px; letter-spacing: 0; }
-  .side-lien { min-height: 28px; padding: 3px 8px; border-radius: 6px; gap: 8px; font-size: 13px; }
-  .side-lien .ic { font-size: 15px; color: var(--accent-txt); }
+  /* la barre latérale : celle du Finder, de Messages et de Mail — ⛔ PLUS GROSSE (7 octobre 2026, capture de la barre : « là aussi il faudrait que ça soit plus gros », après les
+     Réglages) : 15 px, lignes de 40 px, icônes de 20 px, la carte « moi » à 34 px ; la largeur (236 px, écrite à dix endroits) ne bouge pas, les libellés y tiennent */
+  .side { padding: 12px 12px 14px; }
+  .side-marque { padding: 6px 8px 18px; gap: 10px; }
+  .side-marque img { width: 30px; height: 30px; border-radius: 7px; }
+  .side-marque b { font-size: 16px; letter-spacing: -.01em; }
+  .side-lien { min-height: 40px; padding: 6px 10px; border-radius: 9px; gap: 12px; font-size: 15px; }
+  .side-lien .ic { font-size: 20px; color: var(--accent-txt); }
+  .moi { min-height: 52px; padding: 8px 10px; gap: 10px; }
+  .moi .avatar { width: 34px; height: 34px; font-size: 13px; }
+  .moi-nom { font-size: 15px; }
+  .moi-statut { font-size: 13px; }
   .side-lien[aria-current="page"] { background: var(--bureau-sel); color: var(--text); font-weight: 500; }
   .moi { background: transparent; border-radius: 8px; }
   .moi:hover { background: var(--field); }
@@ -1622,93 +1751,95 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   html[data-vue="messages"] #vue-messages > .entete-vue { margin-inline: -16px; padding-left: 16px; }
   /* les boutons de barre d'outils : du texte (ou une icône) sans cadre, un fond au survol — comme sur le Mac */
-  .vue > .entete-vue .lien-texte { min-height: 28px; min-width: 0; padding: 0 10px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text); }
+  .vue > .entete-vue .lien-texte { min-height: 32px; min-width: 0; padding: 0 12px; border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--text); }
   .vue > .entete-vue .lien-texte:hover { background: var(--field); }
-  .btn-plus { min-height: 28px; min-width: 28px; justify-content: center; border-radius: 6px; }
+  .btn-plus { min-height: 32px; min-width: 32px; justify-content: center; border-radius: 8px; }
   .btn-plus:hover { background: var(--field); }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
   /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
   #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
 
   /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
-  .vue .recherche { min-height: 28px; height: 28px; padding: 0 8px; gap: 6px; border-radius: 7px; margin-bottom: 12px; }
-  .vue .recherche .ic { font-size: 13px; }
-  .vue .recherche input { font-size: 13px; }
+  .vue .recherche { min-height: 34px; height: 34px; padding: 0 10px; gap: 8px; border-radius: 9px; margin-bottom: 12px; }
+  .vue .recherche .ic { font-size: 16px; }
+  .vue .recherche input { font-size: 15px; }
 
   /* le segmenté du Mac : 24 px, 12 px, compact */
   .seg { margin-bottom: 14px; border-radius: 7px; }
   .seg-knob { border-radius: 5px; }
-  .seg-bouton { min-height: 24px; font-size: 12px; }
+  .seg-bouton { min-height: 30px; font-size: 14px; }
 
   /* les LISTES : nues sur le fond, la ligne choisie en aplat d'accent, un fond au survol — plus de carte, plus de chevron */
   .carte-liste { background: transparent; border-radius: 0; overflow: visible; }
   .carte-liste > li::after { left: 60px; right: 8px; }
   .carte-liste > li:has(+ li > [aria-current="true"])::after, .carte-liste > li:has(> [aria-current="true"])::after { display: none; }
-  .conv { min-height: 60px; padding: 8px 10px; gap: 10px; border-radius: 8px; }
+  .conv { min-height: 68px; padding: 10px 12px; gap: 12px; border-radius: 10px; }
   .conv:active { transform: none; }
-  .conv .avatar { width: 40px; height: 40px; font-size: 15px; }
-  .conv-nom { font-size: 13px; line-height: 17px; letter-spacing: 0; }
-  .conv-heure { font-size: 12px; }
-  .conv-apercu { font-size: 13px; line-height: 17px; }
+  .conv .avatar { width: 46px; height: 46px; font-size: 17px; }
+  .conv-nom { font-size: 15px; line-height: 20px; letter-spacing: 0; }
+  .conv-heure { font-size: 13px; }
+  .conv-apercu { font-size: 14px; line-height: 19px; }
   .conv .chev, .appel-ligne .chev { display: none; }
   .conv[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
-  .vide { font-size: 13px; }
+  .vide { font-size: 15px; }
 
   /* la conversation : l'en-tête de Messages sur Mac (la photo et le nom sur une ligne, à gauche), des bulles de bureau, la saisie compacte */
   .conv-nav { min-height: 52px; padding-top: 0; padding-bottom: 0; }
   .conv-titre { flex-direction: row; justify-content: flex-start; gap: 8px; min-height: 52px; }
-  .conv-titre .avatar { width: 28px; height: 28px; font-size: 11px; }
-  .conv-titre-nom { font-size: 13px; font-weight: 600; }
+  .conv-titre .avatar { width: 34px; height: 34px; font-size: 13px; }
+  .conv-titre-nom { font-size: 15px; font-weight: 600; }
   .conv-gauche { width: auto; }
-  .bulle { font-size: 14px; line-height: 19px; letter-spacing: 0; padding: 6px 12px; max-width: 62%; }
+  .bulle { font-size: 15px; line-height: 21px; letter-spacing: 0; padding: 7px 13px; max-width: 62%; }
   .recue { border-radius: 16px 16px 16px 5px; }
   .envoyee { border-radius: 16px 16px 5px 16px; }
   .composer { padding: 8px 14px 12px; }
-  .pilule-saisie { min-height: 30px; border-radius: 15px; --pad-y: 5px; }
-  .pilule-saisie textarea { height: 30px; font-size: 13px; line-height: 20px; letter-spacing: 0; padding-left: 12px; max-height: calc(8 * 20px + 2 * var(--pad-y)); }
-  .compo-bouton { width: 30px; height: 30px; font-size: 18px; }
-  .compo-plus .disque { width: 26px; height: 26px; font-size: 13px; }
+  .pilule-saisie { min-height: 36px; border-radius: 18px; --pad-y: 7px; }
+  .pilule-saisie textarea { height: 36px; font-size: 15px; line-height: 22px; letter-spacing: 0; padding-left: 14px; max-height: calc(8 * 22px + 2 * var(--pad-y)); }
+  .compo-bouton { width: 36px; height: 36px; font-size: 20px; }
+  .compo-plus .disque { width: 30px; height: 30px; font-size: 15px; }
 
   /* les GROUPES de réglages et de contacts : le formulaire groupé du Mac (Réglages Système) */
-  .rubrique { padding: 0 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
-  .carte { border-radius: 10px; margin-bottom: 16px; box-shadow: 0 0 0 .5px var(--bureau-bord), 0 1px 2px rgba(0,0,0,.04); }
+  /* ⛔ plus gros que Réglages Système (7 octobre 2026, capture des Notifications : « il faudrait que ça soit plus gros ») : 15 px au corps, lignes de 48 px,
+     interrupteur de 44 × 26 — la densité du Mac (13 px, 34 × 20) se lisait mal sur un grand écran */
+  .rubrique { padding: 0 12px 6px; font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+  .carte { border-radius: 12px; margin-bottom: 18px; box-shadow: 0 0 0 .5px var(--bureau-bord), 0 1px 2px rgba(0,0,0,.04); }
   /* les ÉCRANS (pas les feuilles : « Nouvelle discussion », « Nouveau groupe »… gardent leurs lignes de 44 px, leur index et leur défilement) */
-  .vue .reglage, .vue .contact { min-height: 40px; padding: 6px 12px; gap: 10px; }
-  .vue .reglage-texte, .vue .contact-nom { font-size: 13px; letter-spacing: 0; }
-  .vue .reglage-texte small, .vue .contact-role { font-size: 11px; line-height: 14px; }
-  .reglage-valeur { font-size: 13px; }
-  .vue .contact .avatar { width: 28px; height: 28px; font-size: 11px; }
+  .vue .reglage, .vue .contact { min-height: 48px; padding: 8px 16px; gap: 12px; }
+  .vue .reglage-texte, .vue .contact-nom { font-size: 15px; letter-spacing: 0; }
+  .vue .reglage-texte small, .vue .contact-role { font-size: 13px; line-height: 17px; }
+  .reglage-valeur { font-size: 15px; }
+  .vue .contact .avatar { width: 34px; height: 34px; font-size: 13px; }
   .reglage:hover, .contact.presse:hover, button.contact:hover { background: var(--field); }
-  .info-note { font-size: 12px; line-height: 16px; }
+  .info-note { font-size: 13px; line-height: 18px; }
   .mini { min-height: 24px; padding: 2px 10px; border-radius: 6px; font-size: 13px; }
-  .interrupteur { width: 34px; height: 20px; }
-  .interrupteur::after { width: 16px; height: 16px; top: 2px; left: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
-  .reglage[aria-checked="true"] .interrupteur::after { transform: translateX(14px); }
-  .reg-tuile { width: 20px; height: 20px; border-radius: 5px; }
-  .reg-tuile .ic { width: 13px; height: 13px; }
+  .interrupteur { width: 44px; height: 26px; }
+  .interrupteur::after { width: 22px; height: 22px; top: 2px; left: 2px; box-shadow: 0 1px 4px rgba(0,0,0,.25); }
+  .reglage[aria-checked="true"] .interrupteur::after { transform: translateX(18px); }
+  .reg-tuile { width: 28px; height: 28px; border-radius: 7px; }
+  .reg-tuile .ic { width: 17px; height: 17px; }
 
   /* PROFIL = LES RÉGLAGES SYSTÈME : la colonne des rubriques (ma carte en tête, puis les rubriques en lignes de 28 px, la choisie en aplat d'accent), la rubrique à droite */
-  #vue-reglages .reg-grille { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; align-items: start; max-width: 1100px; margin-inline: auto; }
+  #vue-reglages .reg-grille { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 32px; align-items: start; max-width: 1100px; margin-inline: auto; }
   #vue-reglages .reg-accueil { position: sticky; top: 66px; display: block !important; }
   #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: flex; }
   #vue-reglages .reg-barre { display: none; }
-  .reg-moi { flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 12px; border-radius: 10px; background: transparent; text-align: left; display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 0; }
+  .reg-moi { flex-direction: row; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 14px; border-radius: 12px; background: transparent; text-align: left; display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 0; }
   .reg-moi:hover { background: var(--field); }
-  .reg-moi .avatar { width: 40px; height: 40px; font-size: 15px; margin: 0; grid-row: 1 / 3; }
-  .reg-moi-nom { font-size: 13px; line-height: 17px; font-weight: 600; letter-spacing: 0; align-self: end; }
-  .reg-moi-ident { font-size: 11px; line-height: 15px; align-self: start; grid-column: 2; }
+  .reg-moi .avatar { width: 48px; height: 48px; font-size: 17px; margin: 0; grid-row: 1 / 3; }
+  .reg-moi-nom { font-size: 16px; line-height: 21px; font-weight: 600; letter-spacing: 0; align-self: end; }
+  .reg-moi-ident { font-size: 13px; line-height: 17px; align-self: start; grid-column: 2; }
   .reg-moi-statut, .reg-moi-modifier { display: none; }
   .reg-menu { background: transparent; box-shadow: none; margin-bottom: 10px; overflow: visible; }
-  .reg-menu .reglage { min-height: 28px; padding: 3px 8px; border: 0; border-radius: 6px; gap: 8px; }
+  .reg-menu .reglage { min-height: 40px; padding: 6px 12px; border: 0; border-radius: 9px; gap: 12px; }
   .reg-menu .reglage .chev { display: none; }
-  .reg-menu .reglage-texte { font-size: 13px; }
-  .reg-menu .reglage-valeur { font-size: 12px; }
+  .reg-menu .reglage-texte { font-size: 15px; }
+  .reg-menu .reglage-valeur { font-size: 14px; }
   .reg-menu .reglage[aria-current="true"] { background: var(--fill); color: var(--on-fill); }
   .reg-menu .reglage[aria-current="true"] .reglage-valeur { color: color-mix(in srgb, var(--on-fill) 80%, transparent); }
-  #reg-sortir { min-height: 28px; padding: 3px 8px; border-radius: 6px; }
+  #reg-sortir { min-height: 40px; padding: 6px 12px; border-radius: 9px; }
   .reg-accueil > .carte:last-child { background: transparent; box-shadow: none; }
   .reg-detail { padding-top: 2px; }
-  .reg-titre { font-size: 20px; line-height: 26px; letter-spacing: -.01em; margin: 0 2px 14px; }
+  .reg-titre { font-size: 26px; line-height: 32px; letter-spacing: -.015em; margin: 0 2px 18px; }
   #vue-reglages { max-width: none; }
   .reglage[aria-checked="true"] .interrupteur { background: var(--fill); }
   .pilule-saisie:focus-within { outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent); outline-offset: 0; }
@@ -1900,6 +2031,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 </main>
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
 
+<div class="appel-barre" id="appel-barre" role="region" aria-label="Appel en cours">
+  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte">Appel en cours</span><b>Revenir</b></button>
+  <button type="button" class="appel-barre-raccrocher presse" id="appel-barre-raccrocher" aria-label="Raccrocher"><span class="rond"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></span></button>
+</div>
 <div class="app" id="app">
   <aside class="side" data-glass="1" aria-label="Barre latérale">
     <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
@@ -1936,6 +2071,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <ul class="carte-liste" id="liste-appels" role="list" aria-label="Appels"></ul>
     </section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
+    <section class="vue" id="vue-accueil" aria-labelledby="titre-accueil" hidden></section>
     <section class="vue" id="vue-reglages" aria-labelledby="titre-reglages" hidden></section>
     <p class="mention-apercu">Aperçu — données d'exemple</p>
   </main>
@@ -1966,6 +2102,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p class="avis-saisie" id="avis" role="status" aria-live="polite" hidden></p>
     <footer class="composer" data-glass="1">
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
+      <p class="compo-note" id="compo-note" hidden></p>
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
@@ -1985,6 +2122,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         <button type="button" class="compo-bouton envoyer presse" id="enreg-envoyer" aria-label="Envoyer le message vocal"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
       </div>
       <p class="compo-ferme" id="compo-ferme" hidden>Seuls les admins peuvent écrire dans ce groupe.</p>
+      <div class="compo-invit" id="compo-invit" role="group" aria-labelledby="compo-invit-texte" hidden>
+        <p id="compo-invit-texte"></p>
+        <div class="compo-invit-gestes"><button type="button" class="accepter presse" data-invit="accepter">Accepter</button><button type="button" class="presse" data-invit="refuser">Refuser</button><button type="button" class="bloquer presse" data-invit="bloquer">Bloquer</button></div>
+      </div>
     </footer>
   </section>
 
@@ -2010,7 +2151,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         <button type="button" class="appel-cmd" id="appel-hp" aria-pressed="false" aria-label="Haut-parleur"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-hautparleur"/></svg></span><span class="appel-cmd-texte">Haut-parleur</span></button>
         <button type="button" class="appel-cmd" id="appel-cam" aria-pressed="false" aria-label="Activer la caméra"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-video-off"/></svg></span><span class="appel-cmd-texte">Caméra</span></button>
         <button type="button" class="appel-cmd" id="appel-pip" aria-pressed="false" aria-label="Image dans l'image" hidden><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-pip"/></svg></span><span class="appel-cmd-texte">Réduire</span></button>
-        <button type="button" class="appel-cmd" id="appel-msg" aria-label="Message : raccrocher et ouvrir la conversation"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="appel-cmd-texte">Message</span></button>
+        <button type="button" class="appel-cmd" id="appel-msg" aria-label="Message : ouvrir la conversation, l'appel continue"><span class="rond-cmd"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg></span><span class="appel-cmd-texte">Message</span></button>
       </div>
       <button type="button" class="appel-raccrocher" id="appel-raccrocher" aria-label="Raccrocher"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></button>
     </div>
@@ -2115,7 +2256,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="rubrique"><span>Contacts de l'entreprise</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
     <div class="carte" id="g-contacts" role="group" aria-label="Contacts de l'entreprise"></div>
     <div class="carte" id="g-reglages">
-      <button type="button" class="reglage presse" id="g-ephemeres"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur" id="g-ephemeres-val">Désactivés</span><svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg></button>
+      <button type="button" class="reglage presse" id="g-ephemeres" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur"><span id="g-ephemeres-val">Désactivés</span><svg class="chev-ud" viewBox="0 0 9 14" aria-hidden="true"><path d="M1.5 5 4.5 2 7.5 5M1.5 9 4.5 12 7.5 9"/></svg></span></button>
       <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>
     </div>
   </div>
@@ -2132,6 +2273,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 <input type="file" id="profil-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <input type="file" id="groupe-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <div class="menu-fond" id="menu-fond" hidden><div class="menu-msg" id="menu-msg" role="dialog" aria-modal="true" aria-label="Actions du message"></div></div>
+<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden></p><div class="deroule-liste" id="deroule-liste" role="menu"></div></div>
 
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
   <button type="button" class="visionneuse-fermer presse" id="visionneuse-fermer" aria-label="Fermer la photo"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>

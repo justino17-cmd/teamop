@@ -37,12 +37,13 @@ function bloc(motif) {
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour', 'nomEspace', 'nomTechnique',
   'chargerVersion', 'versionRegler', 'versionExigerLigne', 'versionLever', 'blocVersions', 'carteCanal', 'blocVersionBeta', 'versionBetaPrete', 'versionBetaExiger', 'versionBetaLever',
   'chargerVersionsMsg', 'versionMsgRegler', 'versionMsgExiger', 'versionMsgLever', 'carteMsg', 'blocVersionsMsg',
+  'fmtHeure', 'pubSuivre', 'blocPublierMsg', 'publierMsg',          // la carte « Publier OP MESSAGES » (Tour v2.86) : `blocVersionsMsg` l'appelle — un bac à sable qui ne l'a pas MEURT
   'chargerEssais', 'btDeLaConsole', 'btAppsDe', 'btAvec', 'accLigneBeta', 'accBlocBeta', 'accFormBeta', 'vueEssaisMsg'];
-const VARS = ['VER', 'MV', 'MSG_CANAUX', 'BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
+const VARS = ['VER', 'MV', 'MSG_CANAUX', 'BT', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE', 'PUB_ETATS', 'PUB_SUIVI', 'pubEnCours'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
 function tour(API, jeton, app, role) {
-  const toasts = [], confirmations = [], ctx = { fetch, URL, Object, String, JSON, Promise, Math, Date, Array, Error, document: { getElementById: () => null }, console };
+  const toasts = [], confirmations = [], ctx = { fetch, URL, Object, String, JSON, Promise, Math, Date, Array, Error, document: { getElementById: () => null, visibilityState: 'hidden' }, console, setInterval: () => 0, clearInterval: () => {} };
   vm.createContext(ctx);
   vm.runInContext('var API=' + JSON.stringify(API) + ', TOKEN=' + JSON.stringify(jeton) + ', APP=' + JSON.stringify(app) + ", TAB='surveillance', MYROLE=" + JSON.stringify(role || 'patron') + ", MYNOM='Patron banc';\n" +
     "var JR={actions:[]}, IC={cadenas:''}; function doLogout(){} function srvEtat(){} function render(){} function squelListe(){ return '<i class=\"squel\"></i>'; }\n" +

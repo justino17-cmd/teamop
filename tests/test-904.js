@@ -50,7 +50,8 @@ async function lancerOpGestion(dossier, port) {
   return { base, enfant, dossier, tuer: () => { try { enfant.kill('SIGKILL'); } catch (e) {} }, sortie: () => sortie };
 }
 const json = async (base, methode, chemin, corps, entetes) => {
-  const r = await fetch(base + chemin, { method: methode, headers: Object.assign({ 'Content-Type': 'application/json' }, entetes || {}), body: corps === undefined ? undefined : JSON.stringify(corps) });
+  /* les appels DU BANC (la Tour, les connexions directes) ont leur propre adresse : à 127.0.0.1, ils mangeaient le budget des relectures du service */
+  const r = await fetch(base + chemin, { method: methode, headers: Object.assign({ 'Content-Type': 'application/json', 'X-Forwarded-For': '198.51.100.9' }, entetes || {}), body: corps === undefined ? undefined : JSON.stringify(corps) });
   let j = null; try { j = await r.json(); } catch (e) {}
   return { code: r.status, j };
 };
@@ -69,7 +70,11 @@ const json = async (base, methode, chemin, corps, entetes) => {
     const a1 = await creer('alice', 'pw-alice-reel1', 'Alice Réelle'), a2 = await creer('bob', 'pw-bob-reel12', 'Bob Réel'), a3 = await creer('carl', 'pw-carl-reel1', 'Carl');
     vrai('population : trois accès bêta ouverts depuis la Tour', a1.code === 200 && a2.code === 200 && a3.code === 200 && a1.j.compte.id);
 
-    svc = await T.lancerService({ urlGestion: og.base, config: { beta: { relectureMs: 250, timeoutMs: 1500 } } });
+    /* ⛔ LA RELECTURE TIENT DANS LE BUDGET D'OP GESTION (racine de l'échec en CI, 7 octobre 2026) : `/api/beta/*` est une route SENSIBLE, 20 requêtes par minute et par
+       adresse, et la relecture part de 127.0.0.1. À 250 ms (240 par minute), le budget tombait au bout de cinq secondes : ici le banc dure sept secondes et passait, en CI
+       il en dure trente et les relectures répondaient 429 — un accès coupé gardait sa session, et la Tour du banc (même adresse) se voyait refuser ses créations.
+       3,5 s, c'est 17 par minute ; la production relit toutes les 60 s. Rejoué : une copie du banc ralentie de 25 s tombait comme la CI avec 250 ms, passe avec 3,5 s. */
+    svc = await T.lancerService({ urlGestion: og.base, config: { beta: { relectureMs: 3500, timeoutMs: 1500 } } });
 
     console.log('Un accès ouvert par la Tour entre par la porte d\'OP MESSAGES');
     {

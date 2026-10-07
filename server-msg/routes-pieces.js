@@ -81,6 +81,7 @@ function installerPieces(H, ctx) {
       conv = q.conv;
       /* on ne dépose pas dans une conversation où l'on n'a plus le droit d'écrire (directe bloquée ou sans contact, groupe d'annonces) */
       if (!stockage.ecritureAutorisee(conv, uid)) return refus(res, 404, 'introuvable');
+      if (r.conv.type === 'direct' && stockage.invitationEtat(conv, uid) === 'envoyee') return refus(res, 403, 'invitation_texte');     // une invitation qui attend : du texte seul (`routes.js`)
       if (r.conv.type === 'groupe' && r.conv.annonces_seules && r.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
     }
     /* ⛔ le nom d'un fichier vient d'un EN-TÊTE, jamais de l'adresse (B2) : `?nom=` est refusé quel que soit le genre */

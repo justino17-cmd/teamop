@@ -104,6 +104,7 @@ const MANIFESTE = [
   { id: 'contacts.identifiant', m: 'POST', p: '/api/contacts/identifiant',           garde: 'V' },
   { id: 'contacts.demander', m: 'POST', p: '/api/contacts/demander',                 garde: 'V' },
   { id: 'contacts.demander_carte', m: 'POST', p: '/api/contacts/demander_carte',     garde: 'V' },   // demander une personne dont on a reçu la FICHE dans une conversation
+  { id: 'contacts.ecrire_carte', m: 'POST', p: '/api/contacts/ecrire_carte',         garde: 'V' },   // lui ÉCRIRE : la directe s'ouvre (une invitation, si l'on ne peut pas encore s'écrire)
   { id: 'contacts.demandes', m: 'GET',  p: '/api/contacts/demandes',                 garde: 'S' },
   { id: 'contacts.repondre', m: 'POST', p: '/api/contacts/demandes/repondre',        garde: 'V' },
   { id: 'contacts.annuler',  m: 'POST', p: '/api/contacts/demandes/annuler',         garde: 'V' },

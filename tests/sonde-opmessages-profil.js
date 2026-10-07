@@ -44,7 +44,7 @@ const MOT = 'pw-alice-1234';
       await page.locator('#moi-carte').click();
       vrai('un clic sur la carte ouvre Réglages', await reglagesOuverts());
       /* depuis le 7 octobre 2026, le menu n'a plus de lien « Profil » : c'est la carte qui y mène, c'est donc ELLE qui porte la page (tests/sonde-opmessages-entree-profil.js joue le reste) */
-      v('le menu n\'a pas de lien « Profil », et c\'est la carte qui porte la page', await page.evaluate(() => [document.querySelectorAll('#nav-side a').length, !!document.querySelector('#nav-side a[data-vue="reglages"]'), document.getElementById('moi-carte').getAttribute('aria-current')]), [4, false, 'page']);
+      v('le menu n\'a pas de lien « Profil » (quatre rubriques, sans compter le tableau de bord d\'un compte pro), et c\'est la carte qui porte la page', await page.evaluate(() => [Array.from(document.querySelectorAll('#nav-side a')).filter(a => a.dataset.vue !== 'accueil').length, !!document.querySelector('#nav-side a[data-vue="reglages"]'), document.getElementById('moi-carte').getAttribute('aria-current')]), [4, false, 'page']);
       if (DOSSIER) { fs.mkdirSync(DOSSIER, { recursive: true }); await page.screenshot({ path: path.join(DOSSIER, 'profil-' + mode + '.png') }); }
       await page.goBack();
       vrai('le retour du navigateur ramène à Messages (une entrée d\'historique, pas deux)', await attendre(() => { const s = document.getElementById('vue-messages'); return !!s && !s.hidden; }));

@@ -605,6 +605,13 @@ const MIGRATIONS = [
     `ALTER TABLE membre ADD COLUMN theme TEXT`,
     `PRAGMA user_version = 18`,
   ] },
+  /* ── 19 (7 octobre 2026) : L'INVITATION À ÉCRIRE — « quand on partage un contact, qu'on puisse lui envoyer un message ; et dans Messages, une invitation, un message envoyé par
+         quelqu'un qui n'est pas dans les contacts ». Ce n'est pas une seconde notion : c'est une DEMANDE DE CONTACT qui porte une conversation (`message = 1`). Tant qu'elle attend,
+         son auteur peut écrire dans la directe ; la personne la trouve dans « Invitations », et y répond comme à toute demande (accepter = un contact, refuser = muet, bloquer). */
+  { v: 19, sql: [
+    `ALTER TABLE demande_contact ADD COLUMN message INTEGER NOT NULL DEFAULT 0`,
+    `PRAGMA user_version = 19`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -688,6 +695,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const SUIVI = versionActuelle() >= 15;          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
   const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas
   const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation
+  const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
   const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
@@ -1022,8 +1030,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function peutVoir(uid, autre) {
     if (uid === autre) return true;
     if (contactLigne(uid, autre)) return true;
-    if (Q(`SELECT 1 AS x FROM membre a JOIN membre b ON a.conv = b.conv
-           WHERE a.uid = ? AND b.uid = ? AND a.quitte_le IS NULL AND b.quitte_le IS NULL LIMIT 1`).get(uid, autre)) return true;
+    /* ⛔ la directe d'une INVITATION QUE J'AI ENVOYÉE ne compte pas (relecture du gardien, 7 octobre 2026, bloquant) : elle faisait de moi un « membre d'une conversation commune », et
+       `/api/personnes/:id` me rendait le profil complet de la personne invitée (nom, statut, photo) avant qu'elle accepte — et après son refus. Deux personnes n'ont qu'UNE directe :
+       deux lignes suffisent à trouver une conversation commune qui, elle, compte. */
+    const communes = Q(`SELECT a.conv AS conv, c.type AS type FROM membre a JOIN membre b ON a.conv = b.conv JOIN conversation c ON c.id = a.conv
+           WHERE a.uid = ? AND b.uid = ? AND a.quitte_le IS NULL AND b.quitte_le IS NULL LIMIT 2`).all(uid, autre);
+    if (communes.some(x => x.type !== 'direct' || invitationEtat(x.conv, uid) !== 'envoyee')) return true;
     return collegues(uid, autre);
   }
   /* ⛔ QUI PEUT S'ÉCRIRE, EN UNE FONCTION : des contacts mutuels sans blocage, OU des collègues d'un même espace — sauf si l'un a bloqué l'autre (un blocage est personnel :
@@ -1167,6 +1179,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (c.type === 'canal') { const k = canalDe(conv); if (k) { rang.espace = k.espace; rang.prive = k.prive; } }
     /* une conversation de RÉUNION dit laquelle (pour ouvrir sa fiche) ; les autres conversations n'ont pas ce champ */
     if (c.type === 'reunion') { const k = Q('SELECT id FROM reunion WHERE conv = ?').get(conv); if (k) rang.reunion = k.id; }
+    if (c.type === 'direct') { const iv = invitationEtat(conv, uid); if (iv) rang.invitation = iv; }      // seule une directe en a une ; les autres n'ont pas le champ
     const th = THEMES ? Q('SELECT theme FROM membre WHERE conv = ? AND uid = ?').get(conv, uid) : null;     // le thème (migration 18) : une requête à part — une base plus ancienne n'a pas la colonne
     return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive, theme: (th && th.theme) || null } };
   }
@@ -1191,11 +1204,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return l && l.etat === 'bloque' ? null : piece;
   }
   function membresDetail(conv, viewer) {
-    const moi = personneParId(viewer), jeVois = accuses(moi && moi.prefs);
+    /* ⛔ l'auteur d'une invitation ne sait pas si elle a été LUE (comme chez Instagram) : la personne la lit sans rien promettre, tant qu'elle n'a pas accepté */
+    const moi = personneParId(viewer), invite = invitationEtat(conv, viewer) === 'envoyee', jeVois = accuses(moi && moi.prefs) && !invite;
     return Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.prefs, m.role, m.depuis_seq, m.lu_seq FROM membre m JOIN personne p ON p.id = m.uid
               WHERE m.conv = ? AND m.quitte_le IS NULL ORDER BY m.rejoint, m.rowid`).all(conv)
       .map(r => {
         let prefs = {}; try { prefs = JSON.parse(r.prefs) || {}; } catch (e) {}
+        if (invite && r.id !== viewer) return { id: r.id, prenom: premierMot(r.prenom), nom: '', avatar: null, role: r.role, depuis_seq: r.depuis_seq, lu_seq: null };      // l'invitée : ce que dit la fiche, rien de plus
         return { id: r.id, prenom: r.prenom, nom: r.nom, avatar: avatarPour(viewer, r.id, r.avatar_piece), role: r.role, depuis_seq: r.depuis_seq, lu_seq: (r.id === viewer || (accuses(prefs) && jeVois)) ? r.lu_seq : null };
       });
   }
@@ -1409,7 +1424,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const r = Q('UPDATE membre SET lu_seq = ? WHERE conv = ? AND uid = ? AND lu_seq < ?').run(cible, conv, uid, cible);
       let gid = 0;
       /* Sans accusés, l'événement n'est adressé qu'à son titulaire (ses autres appareils) : les membres ne l'apprennent pas. */
-      if (num(r.changes) > 0) gid = journalAjouter('lu', conv, accuses((personneParId(uid) || {}).prefs) ? null : uid, uid + ':' + cible);
+      /* ⛔ lire une invitation qu'on n'a pas acceptée ne se dit pas non plus à son auteur (`invitationEtat`) : l'événement n'est adressé qu'à soi */
+      if (num(r.changes) > 0) gid = journalAjouter('lu', conv, accuses((personneParId(uid) || {}).prefs) && !invitationEtat(conv, uid) ? null : uid, uid + ':' + cible);
       return { lu_seq: Math.max(m.lu_seq, cible), gid };
     });
   }
@@ -1476,9 +1492,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           o.autre = { id: a.id, prenom: a.prenom, nom: a.nom, avatar: avatarPour(uid, a.id, a.avatar_piece) };
           if (a.etat === 'supprime') o.autre.supprime = true;   // ⛔ un compte supprimé n'a plus de nom : la page écrit « Compte supprimé » (un historique reste, comme chez WhatsApp)
         }
+        const iv = invitationEtat(l.id, uid); if (iv) o.invitation = iv;      // 'envoyee' | 'recue' (la page la range dans « Invitations ») — 'refusee' quitte la liste, ci-dessous
+        /* ⛔ l'auteur d'une invitation n'en sait pas plus que la fiche : le PREMIER MOT du prénom, ni nom ni photo, tant qu'elle n'est pas acceptée */
+        if (iv === 'envoyee' && o.autre) o.autre = { id: o.autre.id, prenom: premierMot(o.autre.prenom), nom: '', avatar: null };
       }
       return o;
-    });
+    }).filter(o => o.invitation !== 'refusee');     // ⛔ une invitation refusée disparaît de MA liste, sans un mot à son auteur (il la voit toujours « envoyée »)
   }
 
   /* L'autre participant d'une conversation directe (pour savoir si on peut encore lui écrire). */
@@ -1486,12 +1505,39 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const r = Q(`SELECT m.uid FROM membre m JOIN conversation c ON c.id = m.conv WHERE m.conv = ? AND c.type = 'direct' AND m.uid <> ?`).get(conv, uid);
     return r ? r.uid : null;
   }
-  /* Écrire dans une directe exige un contact mutuel ET aucun blocage ; un groupe n'a pas cette règle. */
+  /* ⛔ L'INVITATION D'UNE DIRECTE, VUE PAR `uid` (migration 19) → 'envoyee' (j'invite : j'écris, l'autre choisira) | 'recue' (on m'invite : je lis, j'accepte, je refuse ou je bloque) |
+     'refusee' (j'ai refusé : la conversation quitte ma liste) | null (rien : on peut s'écrire, ou rien n'attend). UNE fonction, lue par l'écriture, la liste, le détail, les accusés.
+     ⛔ Ce que l'AUTEUR voit ne dépend jamais de la réponse (la règle des demandes de contact) : refusée, son invitation reste « envoyee » de son côté — il écrit, rien n'arrive.
+     Un blocage, dans un sens ou dans l'autre, efface tout : c'est alors une directe bloquée comme une autre. */
+  function invitationEtat(conv, uid) {
+    if (!INVITATIONS) return null;
+    const autre = autreDirect(conv, uid);
+    if (!autre || contactBloque(uid, autre) || peutEcrire(uid, autre)) return null;
+    const mien = Q('SELECT masque, message FROM demande_contact WHERE de = ? AND vers = ?').get(uid, autre);
+    if (mien && mien.masque === 0 && mien.message === 1) return 'envoyee';
+    const sien = Q(`SELECT d.etat, d.masque, d.message FROM demande_contact d JOIN personne p ON p.id = d.de WHERE d.de = ? AND d.vers = ? AND p.etat = 'actif' AND p.suppression_le IS NULL`).get(autre, uid);
+    /* ⛔ RETIRÉE par son auteur (`masque = 1`), une invitation reste cachée chez qui l'a reçue (relecture du gardien) : sinon la conversation revenait dans sa liste PRINCIPALE, message
+       compris — retirer contournait un refus. Seule une invitation qui attend vraiment se montre (« recue »). */
+    if (sien && sien.message === 1) return sien.masque === 0 && sien.etat === 'attente' ? 'recue' : 'refusee';
+    return null;
+  }
+  /* combien de messages l'auteur a écrits dans la directe depuis sa demande (le plafond d'une invitation qui attend : `routes.js`) */
+  function invitationEnvoyes(conv, uid) {
+    const autre = autreDirect(conv, uid); if (!autre) return 0;
+    return num(Q('SELECT COUNT(*) AS n FROM message WHERE conv = ? AND auteur = ? AND ts >= (SELECT ts FROM demande_contact WHERE de = ? AND vers = ?)').get(conv, uid, uid, autre).n);
+  }
+  /* une demande de contact (déjà posée par `demandeCreer`, visible) devient une invitation à écrire → vrai si elle l'est */
+  function invitationMarquer(de, vers) {
+    if (!INVITATIONS) return false;
+    return num(Q('UPDATE demande_contact SET message = 1 WHERE de = ? AND vers = ? AND masque = 0').run(de, vers).changes) > 0;
+  }
+  /* Écrire dans une directe exige un contact mutuel ET aucun blocage — OU d'en être l'auteur d'une invitation qui attend (l'autre n'y écrit pas avant d'avoir accepté) ;
+     un groupe n'a pas cette règle. */
   function ecritureAutorisee(conv, uid) {
     const c = convBrute(conv); if (!c) return false;
     if (c.type !== 'direct') return true;
     const autre = autreDirect(conv, uid);
-    return !!autre && peutEcrire(uid, autre);
+    return !!autre && (peutEcrire(uid, autre) || invitationEtat(conv, uid) === 'envoyee');
   }
 
   /* ══ MESSAGES ════════════════════════════════════════════════════════════════════════════ */
@@ -1513,10 +1559,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* ⛔ LA FICHE D'UN CONTACT SE LIT À L'INSTANT (relecture du gardien) : le message ne garde que l'identifiant de la personne ; son prénom et son identifiant public se relisent à chaque
      lecture, et seulement tant qu'elle se laisse trouver (compte actif, sans suppression en cours, « trouvable par tous »). Elle s'est retirée, ou son compte est effacé : la fiche ne dit plus
      rien d'elle — ni son nom, ni qui elle est (`uid: null`). */
-  function metaLue(meta) {
+  function metaLue(meta, viewer) {
     if (!meta || meta.k !== 'contact') return meta;
     const id = typeof meta.uid === 'string' ? meta.uid : null, p = id ? personneParId(id) : null;
-    if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous') return { k: 'contact', uid: null, prenom: null, identifiant: null };
+    /* ⛔ la fiche d'une personne qui M'A bloqué se lit comme celle d'une personne introuvable (relecture du gardien) : sinon « fiche lisible, mais Écrire et Ajouter refusés » disait le blocage */
+    const bloqueMoi = !!(id && viewer && (contactLigne(id, viewer) || {}).etat === 'bloque');
+    if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous' || bloqueMoi) return { k: 'contact', uid: null, prenom: null, identifiant: null };
     return { k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) };
   }
   /* la fiche de contact d'un message (`meta.k = 'contact'`) que `uid` voit, ou null */
@@ -1607,7 +1655,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (r.auteur === moi) o.cid = r.cid;
     if (!r.supprime_le) {
       if (r.corps_ch) { o.texte = ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch); if (o.texte === null) o.illisible = true; }
-      if (r.meta_ch) { try { o.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch))); } catch (e) { o.meta = null; } }
+      if (r.meta_ch) { try { o.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)), moi); } catch (e) { o.meta = null; } }
     }
     return o;
   }
@@ -1805,6 +1853,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const mien = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(p.conv, viewer);
     if (!mien || p.attachee < mien.depuis_seq) return null;
     if (Q('SELECT 1 AS x FROM msg_masque WHERE conv = ? AND seq = ? AND uid = ?').get(p.conv, p.attachee, viewer)) return null;
+    /* ⛔ l'auteur d'une invitation ne sait pas si elle a été lue : pas davantage par le suivi d'une pièce (relecture du gardien — un fichier ouvert devenait un témoin de lecture) */
+    if (invitationEtat(p.conv, viewer) === 'envoyee') return { piece: id, genre: p.genre, suivi: SUIVI, membres: [] };
     const jeVois = accuses((personneParId(viewer) || {}).prefs);
     const lignes = Q(`SELECT m.uid AS id, x.prenom, x.nom, x.avatar_piece, x.prefs, m.recu_seq, m.lu_seq FROM membre m JOIN personne x ON x.id = m.uid
                       WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ? AND m.depuis_seq <= ?
@@ -1956,7 +2006,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
             if (t === null) d.illisible = true;
             else if (Buffer.byteLength(t, 'utf8') <= TAILLE_PORTEE) d.texte = t; else d.relis = true;
           }
-          if (r.meta_ch) { try { d.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(j.conv, r.seq, r.auteur), r.meta_ch))); } catch (e) {} }
+          if (r.meta_ch) { try { d.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(j.conv, r.seq, r.auteur), r.meta_ch)), uid); } catch (e) {} }
         }
         return { gid, event: 'message', data: d };
       }
@@ -4241,7 +4291,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
-    identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler,
+    identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler, invitationEtat, invitationMarquer, invitationEnvoyes,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,

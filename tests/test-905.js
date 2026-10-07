@@ -112,6 +112,7 @@ const MATRICE = {
   'contacts.identifiant': { ok: () => ['POST', '/api/contacts/identifiant', { identifiant: 'Personne#1000' }], codes: [200] },
   'contacts.demander':  { ok: (F) => ['POST', '/api/contacts/demander', { id: F.A }], codes: [400, 404] },
   'contacts.demander_carte': { ok: () => ['POST', '/api/contacts/demander_carte', { conv: 'x', seq: 1 }], codes: [400] },
+  'contacts.ecrire_carte': { ok: () => ['POST', '/api/contacts/ecrire_carte', { conv: 'x', seq: 1 }], codes: [400] },
   'contacts.demandes':  { ok: () => ['GET', '/api/contacts/demandes'], codes: [200] },
   'contacts.repondre':  { ok: (F) => ['POST', '/api/contacts/demandes/repondre', { id: F.A, accepter: true }], codes: [400, 404] },
   'contacts.annuler':   { ok: (F) => ['POST', '/api/contacts/demandes/annuler', { id: F.A }], codes: [400, 404] },

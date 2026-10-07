@@ -30,7 +30,8 @@ const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
    une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
 const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
 const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
-const CARTES = ['position', 'contact', 'sondage'];      // un message « carte » : un texte (son résumé, pour les versions d'avant) qui porte `meta.k`
+const CARTES = ['position', 'contact', 'sondage'];
+const INVITATION_MAX = 5;      // les messages d'une invitation qui attend (texte seul) : la personne lit, elle n'est pas inondée      // un message « carte » : un texte (son résumé, pour les versions d'avant) qui porte `meta.k`
 const RESULTATS_SONDAGE = ['toujours', 'apres_vote', 'apres_cloture'];
 const PHOTOS_MAX = 10, BARRES_MAX = 64, DUREE_VOCAL_MAX = 600, COTE_MAX = 20000;
 
@@ -560,6 +561,12 @@ function creerHandlers(ctx) {
     if (conv.type === 'direct' && stockage.autreSupprime(conv.id, req.moi.id)) return refus(res, 410, 'compte_supprime');
     /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage. */
     if (!stockage.ecritureAutorisee(conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
+    /* ⛔ UNE INVITATION QUI ATTEND (relecture du gardien, 7 octobre 2026) : du TEXTE seul — ni photo, ni fichier, ni carte — et cinq messages au plus, tant que la personne n'a pas accepté.
+       Sinon son dossier « Invitations » se remplissait de ce que voulait un inconnu, et un refus n'arrêtait rien. */
+    if (conv.type === 'direct' && stockage.invitationEtat(conv.id, req.moi.id) === 'envoyee') {
+      if (type !== 'texte') return refus(res, 403, 'invitation_texte');
+      if (stockage.invitationEnvoyes(conv.id, req.moi.id) >= INVITATION_MAX) return refus(res, 409, 'invitation_plafond');
+    }
     if (conv.type === 'groupe' && conv.annonces_seules && req.conv.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
     if (!plafond(res, 'msg', req.moi.id, { max: 60, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
     const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type: CARTES.includes(type) ? 'texte' : type, texte, meta, sondage, repondA, pieces: pj && pj.pieces, vocal: pj && pj.vocal });
