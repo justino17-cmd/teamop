@@ -443,8 +443,22 @@ function creerHandlers(ctx) {
     res.json({ ok: true });
   };
 
+  /* ⛔ LE THÈME D'UNE CONVERSATION (7 octobre 2026) : deux NOMS pris dans deux listes fermées — jamais une couleur ni une image libres (rien de ce qu'une personne écrit ne devient du style).
+     `null` ou { fond: 'aucun', bulle: 'defaut' } : le thème par défaut. */
+  const FONDS = ['aube', 'ocean', 'foret', 'lavande', 'sable', 'corail', 'ardoise'];
+  const BULLES = ['bleu', 'vert', 'violet', 'orange', 'rose', 'graphite', 'sarcelle', 'bordeaux'];
   H['conv.prefs'] = (req, res) => {
     const b = corps(req), o = {};
+    if (b.theme !== undefined) {
+      if (b.theme === null) o.theme = null;
+      else {
+        const t = b.theme;
+        if (!t || typeof t !== 'object' || Array.isArray(t)) return refus(res, 400, 'champ_invalide');
+        const f = t.fond === undefined || t.fond === null ? 'aucun' : t.fond, u = t.bulle === undefined || t.bulle === null ? 'defaut' : t.bulle;
+        if ((f !== 'aucun' && !FONDS.includes(f)) || (u !== 'defaut' && !BULLES.includes(u))) return refus(res, 400, 'champ_invalide');
+        o.theme = f === 'aucun' && u === 'defaut' ? null : f + '/' + u;
+      }
+    }
     if (b.muet_jusqua !== undefined) { const v = entier(b.muet_jusqua); if (v === null || v < 0 || v > horloge() + 10 * 365 * JOUR) return refus(res, 400, 'champ_invalide'); o.muet_jusqua = v; }
     if (b.epingle !== undefined) { if (typeof b.epingle !== 'boolean') return refus(res, 400, 'champ_invalide'); o.epingle = b.epingle; }
     if (b.archive !== undefined) { if (typeof b.archive !== 'boolean') return refus(res, 400, 'champ_invalide'); o.archive = b.archive; }

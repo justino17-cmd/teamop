@@ -598,6 +598,13 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS sondage_vote_uid ON sondage_vote(uid)`,
     `PRAGMA user_version = 17`,
   ] },
+  /* ── 18 (7 octobre 2026) : LE THÈME D'UNE CONVERSATION — « personnaliser les conversations, mettre des thèmes derrière, les bulles de couleurs ». Le choix est À CHACUN (comme le fond d'écran
+     d'une discussion chez WhatsApp : ce que je vois ne change rien chez les autres), suit la personne sur tous ses appareils, et n'est qu'un NOM pris dans deux listes fermées (`fond/bulle`) —
+     jamais une couleur ni une image libres : rien de ce qu'une personne écrit ne devient du style chez elle. */
+  { v: 18, sql: [
+    `ALTER TABLE membre ADD COLUMN theme TEXT`,
+    `PRAGMA user_version = 18`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -678,9 +685,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const IDENT = versionActuelle() >= 11;
   /* le favori de l'onglet Contacts (migration 14) : une base ouverte à un schéma plus ancien (un banc de migration) n'a pas la colonne — on ne la lit pas, et poser un favori n'y fait rien */
   const FAVORI = versionActuelle() >= 14;
-  const SUIVI = versionActuelle() >= 15;
-  const PRESENCE = versionActuelle() >= 16;
-  const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
+  const SUIVI = versionActuelle() >= 15;          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
+  const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas
+  const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation
+  const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
@@ -1159,7 +1167,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (c.type === 'canal') { const k = canalDe(conv); if (k) { rang.espace = k.espace; rang.prive = k.prive; } }
     /* une conversation de RÉUNION dit laquelle (pour ouvrir sa fiche) ; les autres conversations n'ont pas ce champ */
     if (c.type === 'reunion') { const k = Q('SELECT id FROM reunion WHERE conv = ?').get(conv); if (k) rang.reunion = k.id; }
-    return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive } };
+    const th = THEMES ? Q('SELECT theme FROM membre WHERE conv = ? AND uid = ?').get(conv, uid) : null;     // le thème (migration 18) : une requête à part — une base plus ancienne n'a pas la colonne
+    return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive, theme: (th && th.theme) || null } };
   }
   function canalDe(conv) {
     const k = Q('SELECT espace, prive FROM canal WHERE conv = ?').get(conv);
@@ -1376,12 +1385,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Réglages PERSONNELS d'une conversation : seul son titulaire les voit, ses autres appareils
      sont prévenus (un événement adressé à lui seul). */
-  function membrePrefs({ conv, uid, muet_jusqua, epingle, archive }) {
+  function membrePrefs({ conv, uid, muet_jusqua, epingle, archive, theme }) {
     return tx(() => {
       const m = Q('SELECT muet_jusqua, epingle, archive FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
       if (!m) throw erreur('introuvable');
       Q('UPDATE membre SET muet_jusqua = ?, epingle = ?, archive = ? WHERE conv = ? AND uid = ?')
         .run(muet_jusqua !== undefined ? muet_jusqua : m.muet_jusqua, epingle !== undefined ? (epingle ? 1 : 0) : m.epingle, archive !== undefined ? (archive ? 1 : 0) : m.archive, conv, uid);
+      if (theme !== undefined) { if (!THEMES) throw erreur('type'); Q('UPDATE membre SET theme = ? WHERE conv = ? AND uid = ?').run(theme, conv, uid); }   // `theme` : 'fond/bulle' (validé par la route) ou null
       const gid = journalAjouter('conv_maj', conv, uid, '');
       return { gid };
     });
@@ -1426,11 +1436,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       FROM membre m JOIN conversation c ON c.id = m.conv LEFT JOIN canal k ON k.conv = c.id LEFT JOIN reunion u ON u.conv = c.id
       WHERE m.uid = ? AND m.quitte_le IS NULL AND (c.type <> 'direct' OR c.dernier_seq > 0 OR c.cree_par = m.uid)
       ORDER BY m.epingle DESC, c.dernier_ts DESC, c.id`).all(horloge(), uid);
+    /* les thèmes (migration 18) : une requête à part, littérale — une base plus ancienne n'a pas la colonne */
+    const themes = THEMES ? new Map(Q('SELECT conv, theme FROM membre WHERE uid = ? AND quitte_le IS NULL AND theme IS NOT NULL').all(uid).map(r => [r.conv, r.theme])) : null;
     return lignes.map(l => {
       const o = {
         id: l.id, type: l.type, nom: nomDe(l.id, l.nom_ch), avatar: l.avatar_piece || null, annonces_seules: !!l.annonces_seules, ephemere_s: l.ephemere_s,
         dernier_seq: l.dernier_seq, dernier_ts: l.dernier_ts, role: l.role, lu_seq: l.lu_seq, non_lus: num(l.non_lus),
-        membres_n: num(l.membres_n), epingle: !!l.epingle, archive: !!l.archive, muet_jusqua: l.muet_jusqua, apercu: null, autre: null,
+        membres_n: num(l.membres_n), epingle: !!l.epingle, archive: !!l.archive, muet_jusqua: l.muet_jusqua, apercu: null, autre: null, theme: (themes && themes.get(l.id)) || null,
       };
       if (l.type === 'canal' && l.canal_espace) { o.espace = l.canal_espace; o.prive = !!l.canal_prive; }   // un canal dit son espace et s'il est privé ; les autres conversations n'ont pas ces champs
       if (l.type === 'reunion' && l.reunion_id) o.reunion = l.reunion_id;                                   // une conversation de réunion dit laquelle (pour ouvrir sa fiche)

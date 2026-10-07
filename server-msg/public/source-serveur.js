@@ -1856,6 +1856,7 @@
       const nonLus = loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq ? 0 : c.non_lus;
       return {
         id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, supprime,
+        theme: themeDe(c.theme),
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
@@ -1871,6 +1872,7 @@
          tient en mémoire (ouvertes ou lues) sont dites — une conversation que la personne vient de quitter elle-même a déjà été oubliée (`quitter`) : pas de second avis. */
       const parties = convsApi.filter(c => !liste.some(x => x.id === c.id) && convs.has(c.id)).map(c => c.id);
       convsApi = liste; listeFraiche = true;
+      for (const [id, v] of themesEnCours) { const x = convsApi.find(c => c.id === id); if (!x || (x.theme || null) === v) themesEnCours.delete(id); else x.theme = v; }   // un thème pas encore confirmé gagne
       for (const c of liste) if (c.autre) noter(c.autre);
       for (const id of parties) { convs.delete(id); emettre({ type: 'retire', id }); }
     }
@@ -1935,6 +1937,12 @@
     /* le genre d'une conversation pour les phrases système : 'canal', 'reunion', ou '' (un groupe) */
     const genreSysteme = (c) => { const t = c && c.detail && c.detail.conversation && c.detail.conversation.type; return t === 'canal' || t === 'reunion' ? t : ''; };
     /* ce que dit de lui-même un message qui n'est pas du texte : dans une citation, une bannière */
+    /* le thème d'une conversation (migration 18) : « fond/bulle », deux noms d'une liste fermée — tout autre valeur est lue comme le thème par défaut */
+    const FONDS_CONV = ['aube', 'ocean', 'foret', 'lavande', 'sable', 'corail', 'ardoise'], BULLES_CONV = ['bleu', 'vert', 'violet', 'orange', 'rose', 'graphite', 'sarcelle', 'bordeaux'];
+    function themeDe(t) {
+      const [f, b] = typeof t === 'string' ? t.split('/') : [];
+      return { fond: FONDS_CONV.includes(f) ? f : 'aucun', bulle: BULLES_CONV.includes(b) ? b : 'defaut' };
+    }
     function resumeMedia(type, meta) {
       if (type === 'photo') { const n = meta && Array.isArray(meta.pieces) ? meta.pieces.length : 1; return n > 1 ? n + ' photos' : 'Photo'; }
       if (type === 'vocal') { const d = meta && meta.dur > 0 ? Math.round(meta.dur) : 0; return 'Message vocal' + (d ? ' · ' + Math.floor(d / 60) + ':' + String(d % 60).padStart(2, '0') : ''); }
@@ -2459,6 +2467,19 @@
       if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
       emettre({ type: 'conversation', id: conv });
       return r.resultat;
+    }
+    /* le thème d'une conversation : À MOI seul, sur tous mes appareils. Posé tout de suite dans la copie (la page le montre sans attendre), rendu tel qu'avant si le service refuse. */
+    /* ⛔ un choix PAS ENCORE CONFIRMÉ par une liste du service gagne sur elle : deux touches rapides (un fond, puis une couleur), et la liste relue entre les deux — qui ne porte que la
+       première — ramenait l'écran à l'avant-dernier choix (mesuré au navigateur). Il cède dès qu'une liste relue porte la même valeur, ou si le service le refuse. */
+    const themesEnCours = new Map();
+    async function themeConv(id, theme) {
+      const r = convsApi.find(x => x.id === id); if (!r) throw erreurLocale('introuvable');
+      const avant = r.theme, t = themeDe(theme.fond + '/' + theme.bulle), v = t.fond === 'aucun' && t.bulle === 'defaut' ? null : t.fond + '/' + t.bulle;
+      r.theme = v; themesEnCours.set(id, v);
+      emettre({ type: 'conversation', id }); emettre({ type: 'liste' });
+      try { await A.prefs(id, { theme: v === null ? null : t }); }
+      catch (e) { if (themesEnCours.get(id) === v) { themesEnCours.delete(id); const x = convsApi.find(c => c.id === id); if (x) x.theme = avant; emettre({ type: 'conversation', id }); } throw e; }
+      return t;
     }
     async function demanderContact(id) {
       const r = await A.demanderContact(id);
@@ -3189,7 +3210,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3208,6 +3229,7 @@
       /* ── les pièces et les réglages ── */
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte,   // les cartes d'un message
+      themeConv,                                                                                                   // le fond et les bulles d'une conversation
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,

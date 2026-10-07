@@ -1143,6 +1143,44 @@ html[data-service] .mention-apercu { display: none; }
 .fichier-nom { font-size: 16px; line-height: 20px; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .fichier-taille { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; opacity: .85; }
 .fichier[aria-disabled="true"] { opacity: .7; }
+/* ── LE THÈME D'UNE CONVERSATION (7 octobre 2026 : « personnaliser les conversations, mettre des thèmes derrière, les bulles de couleurs ») — à CHACUN (ce que je choisis ne change rien chez
+   les autres), sur tous ses appareils. Un fond est un dégradé de deux teintes MÊLÉES au fond de l'application (`--base`) : de jour il reste clair, de nuit il reste sombre, les dates et les
+   messages du système restent lisibles ; un semis de points discret par-dessus (le « papier peint »). Une bulle prend une couleur pleine choisie pour porter le BLANC (5:1 au moins). Rien ne
+   se charge : aucune image. ── */
+/* ⛔ `--motif` ne porte QUE l'image : une taille glissée dedans (« 0 0 / 18px 18px ») rend `background-image` invalide, et la déclaration entière tombe en silence — la taille a sa règle */
+.conv-ecran[data-fond], .theme-apercu, .theme-fond .theme-vignette { --motif: radial-gradient(color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1.6px); }
+.conv-ecran[data-fond]:not([data-fond="aucun"]), .theme-apercu:not([data-fond="aucun"]), .theme-fond:not([data-fond="aucun"]) .theme-vignette { background-size: 18px 18px, auto; }
+.conv-ecran[data-fond="aucun"] { --motif: none; }
+.conv-ecran[data-fond="aube"], .theme-apercu[data-fond="aube"], .theme-fond[data-fond="aube"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #ff9f0a 20%, var(--base)), color-mix(in srgb, #ff375f 14%, var(--base))); }
+.conv-ecran[data-fond="ocean"], .theme-apercu[data-fond="ocean"], .theme-fond[data-fond="ocean"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #64d2ff 24%, var(--base)), color-mix(in srgb, #0a84ff 16%, var(--base))); }
+.conv-ecran[data-fond="foret"], .theme-apercu[data-fond="foret"], .theme-fond[data-fond="foret"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #30d158 18%, var(--base)), color-mix(in srgb, #0b6e4f 18%, var(--base))); }
+.conv-ecran[data-fond="lavande"], .theme-apercu[data-fond="lavande"], .theme-fond[data-fond="lavande"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #bf5af2 16%, var(--base)), color-mix(in srgb, #5e5ce6 16%, var(--base))); }
+.conv-ecran[data-fond="sable"], .theme-apercu[data-fond="sable"], .theme-fond[data-fond="sable"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #ffd60a 18%, var(--base)), color-mix(in srgb, #ac8e68 22%, var(--base))); }
+.conv-ecran[data-fond="corail"], .theme-apercu[data-fond="corail"], .theme-fond[data-fond="corail"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #ff6b5a 18%, var(--base)), color-mix(in srgb, #ff9f0a 12%, var(--base))); }
+.conv-ecran[data-fond="ardoise"], .theme-apercu[data-fond="ardoise"], .theme-fond[data-fond="ardoise"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #8e8e93 18%, var(--base)), color-mix(in srgb, #48484a 22%, var(--base))); }
+.conv-ecran[data-bulle="bleu"] .envoyee, .theme-apercu[data-bulle="bleu"] .envoyee, .theme-pastille[data-bulle="bleu"] .theme-rond { background: #0a66d9; color: #fff; }
+.conv-ecran[data-bulle="vert"] .envoyee, .theme-apercu[data-bulle="vert"] .envoyee, .theme-pastille[data-bulle="vert"] .theme-rond { background: #1f7a34; color: #fff; }
+.conv-ecran[data-bulle="violet"] .envoyee, .theme-apercu[data-bulle="violet"] .envoyee, .theme-pastille[data-bulle="violet"] .theme-rond { background: #7a3fc8; color: #fff; }
+.conv-ecran[data-bulle="orange"] .envoyee, .theme-apercu[data-bulle="orange"] .envoyee, .theme-pastille[data-bulle="orange"] .theme-rond { background: #b84e00; color: #fff; }
+.conv-ecran[data-bulle="rose"] .envoyee, .theme-apercu[data-bulle="rose"] .envoyee, .theme-pastille[data-bulle="rose"] .theme-rond { background: #c2185b; color: #fff; }
+.conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #3a3a3c; color: #fff; }
+.conv-ecran[data-bulle="sarcelle"] .envoyee, .theme-apercu[data-bulle="sarcelle"] .envoyee, .theme-pastille[data-bulle="sarcelle"] .theme-rond { background: #0b6e79; color: #fff; }
+.conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #8e1b3a; color: #fff; }
+.theme-apercu { display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; margin-bottom: 18px; border-radius: 18px; background-color: var(--base); border: var(--line); }
+.theme-apercu .bulle { max-width: 78%; padding: 8px 12px; font-size: 16px; line-height: 21px; }
+.theme-apercu .recue { align-self: flex-start; }
+.theme-apercu .envoyee { align-self: flex-end; }
+.theme-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.theme-fond { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px; border-radius: 16px; font-size: 13px; line-height: 17px; color: var(--text); }
+.theme-vignette { width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; background-color: var(--base); border: var(--line); display: block; }
+.theme-fond[aria-checked="true"] .theme-vignette { outline: 3px solid var(--accent); outline-offset: 2px; }
+.theme-couleurs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.theme-pastille { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; padding: 4px; border-radius: 14px; font-size: 12px; line-height: 16px; color: var(--text); }
+.theme-rond { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); color: var(--on-fill); }
+.theme-rond svg { width: 18px; height: 18px; opacity: 0; }
+.theme-pastille[aria-checked="true"] .theme-rond { box-shadow: 0 0 0 3px var(--base), 0 0 0 5px var(--accent); }
+.theme-pastille[aria-checked="true"] .theme-rond svg { opacity: 1; }
+@media (forced-colors: active) { .theme-fond[aria-checked="true"] .theme-vignette, .theme-pastille[aria-checked="true"] .theme-rond { outline: 3px solid Highlight; } }
 /* ── LES CARTES D'UN MESSAGE (7 octobre 2026 : « la localisation, partager des contacts, des sondages personnalisables ») — une position, la fiche d'un contact, un sondage. Une carte est une
    bulle comme un fichier (même fond, même encre : `.recue` / `.envoyee`) ; ses boutons prennent l'encre de la bulle sur un voile d'elle-même, lisibles sur le vert comme sur le gris. ── */
 .carte-msg { display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 78%; padding: 12px 14px; box-sizing: border-box; text-align: left; overflow: hidden; }
@@ -2478,6 +2516,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.conv) remplacer(r); else pousser(r);
   }
   function rendreEntete(c) {
+    const th = c.theme || { fond: 'aucun', bulle: 'defaut' };
+    $('conv-ecran').dataset.fond = th.fond; $('conv-ecran').dataset.bulle = th.bulle;      // le thème de CETTE conversation (à moi seul)
     $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>';
     $('conv-titre').setAttribute('aria-label', c.type === 'reunion' ? nomConv(c) + ' — voir la réunion' : nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
     $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
@@ -3541,10 +3581,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || G.mode === 'theme' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -3577,8 +3617,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
       || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
+      || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'sondage-choix') etat.groupe.sondSeq = +arg;
+    if (etat.groupe.mode === 'theme') etat.groupe.convId = arg;
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
     if (etat.groupe.mode === 'suivi') etat.groupe.pieceId = arg;
@@ -3610,6 +3652,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
     if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
     if (etat.groupe.mode === 'position') rendrePosition();
+    if (etat.groupe.mode === 'theme') rendreTheme();
     if (etat.groupe.mode === 'carte-contact') rendreCarteContact();
     if (etat.groupe.mode === 'sondage-nouveau') rendreSondageNouveau();
     if (etat.groupe.mode === 'sondage-choix') rendreSondageChoix();
@@ -5295,7 +5338,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       try { collegues = (await source.espaceContacts(i.espace)).contacts; } catch (e) { collegues = []; }
       if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     }
-    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
+    const thC = (etat.conversations.find(x => x.id === id) || {}).theme || { fond: 'aucun', bulle: 'defaut' };
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, thC.fond, thC.bulle, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
@@ -5308,6 +5352,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       (canal ? '' : '<div class="carte">') + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
       (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>');
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
+    /* le thème : à moi seul (les autres gardent leurs couleurs) */
+    if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
     if (sd > Date.now()) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Notifications coupées<small>' + esc(sd - Date.now() > 5 * 365 * 86400000 ? 'En sourdine pour toujours' : 'En sourdine jusqu\'au ' + dateLongue(sd)) + '</small></span><button type="button" class="mini" data-act="sourdine" data-duree="off">Réactiver</button></div></div>';
     else if (sd >= 0) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Mettre en sourdine<small>Plus de notification pour cette conversation</small></span></div><div class="carte-pad info-actions"><button type="button" class="mini" data-act="sourdine" data-duree="8h">8 heures</button><button type="button" class="mini" data-act="sourdine" data-duree="1s">1 semaine</button><button type="button" class="mini" data-act="sourdine" data-duree="tj">Toujours</button></div></div>';
     if (g) {
@@ -5384,6 +5430,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
       else if (act === 'sourdine') { await source.sourdine(id, b.dataset.duree); mot(b.dataset.duree === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'); }
+      else if (act === 'theme') { ouvrirFeuille('theme:' + id, true); return; }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
       else if (act === 'suppression-confirmer') {
         if (b.getAttribute('aria-disabled') === 'true') { if (!$('sp-case').checked) erreurInfo('Coche la case pour confirmer la suppression de ton compte.'); return; }
@@ -6339,6 +6386,39 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   });
   /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
   $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
+  /* ═══ LE THÈME D'UNE CONVERSATION (7 octobre 2026) — un aperçu, les fonds, les couleurs de mes bulles ; chaque touche s'applique tout de suite et s'enregistre ═══ */
+  const FONDS_CONV = [['aucun', 'Par défaut'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['lavande', 'Lavande'], ['sable', 'Sable'], ['corail', 'Corail'], ['ardoise', 'Ardoise']];
+  const BULLES_CONV = [['defaut', 'Par défaut'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['violet', 'Violet'], ['orange', 'Orange'], ['rose', 'Rose'], ['graphite', 'Graphite'], ['sarcelle', 'Sarcelle'], ['bordeaux', 'Bordeaux']];
+  const nomTheme = t => t.fond === 'aucun' && t.bulle === 'defaut' ? 'Par défaut' : [t.fond !== 'aucun' ? (FONDS_CONV.find(x => x[0] === t.fond) || [, ''])[1] : '', t.bulle !== 'defaut' ? 'bulles ' + ((BULLES_CONV.find(x => x[0] === t.bulle) || [, ''])[1] || '').toLowerCase() : ''].filter(Boolean).join(', ');
+  function themeCourant() { const c = etat.conversations.find(x => x.id === etat.groupe.convId); return (c && c.theme) || { fond: 'aucun', bulle: 'defaut' }; }
+  function rendreTheme() {
+    const t = Object.assign({}, themeCourant()), corps = $('info-corps');
+    etat.groupe.theme = t;                // ⛔ la feuille garde SON état : deux touches rapides (un fond, puis une couleur) ne partent pas d'une liste pas encore relue
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="theme-apercu" id="theme-apercu" data-fond="' + esc(t.fond) + '" data-bulle="' + esc(t.bulle) + '" aria-hidden="true"><span class="bulle recue">On se voit demain ?</span><span class="bulle envoyee">Oui, à 9 h au dépôt.</span></div>' +
+      '<div class="rubrique"><span>Fond</span></div><div class="theme-grille" role="radiogroup" aria-label="Fond de la conversation">' +
+        FONDS_CONV.map(f => '<button type="button" class="theme-fond presse" role="radio" data-fond="' + f[0] + '" aria-checked="' + (f[0] === t.fond ? 'true' : 'false') + '"><span class="theme-vignette" aria-hidden="true"></span><span>' + esc(f[1]) + '</span></button>').join('') + '</div>' +
+      '<div class="rubrique"><span>Mes bulles</span></div><div class="theme-couleurs" role="radiogroup" aria-label="Couleur de mes bulles">' +
+        BULLES_CONV.map(b => '<button type="button" class="theme-pastille presse" role="radio" data-bulle="' + b[0] + '" aria-checked="' + (b[0] === t.bulle ? 'true' : 'false') + '"><span class="theme-rond" aria-hidden="true">' + icone('i-coche') + '</span><span>' + esc(b[1]) + '</span></button>').join('') + '</div>' +
+      '<p class="info-note">Ce choix n\'est que pour toi : les autres membres gardent leurs couleurs. Il suit ton compte sur tous tes appareils.</p>';
+  }
+  async function choisirTheme(champ, valeur) {
+    const id = etat.groupe.convId, t = Object.assign({}, etat.groupe.theme || themeCourant(), { [champ]: valeur });
+    etat.groupe.theme = t;
+    const a = $('theme-apercu'); if (a) { a.dataset.fond = t.fond; a.dataset.bulle = t.bulle; }
+    const poser = (x) => { if (etat.conv === id) { $('conv-ecran').dataset.fond = x.fond; $('conv-ecran').dataset.bulle = x.bulle; } };
+    const avant = { fond: $('conv-ecran').dataset.fond, bulle: $('conv-ecran').dataset.bulle };
+    poser(t);                             // l'écran de la conversation, sous la feuille, change AVEC l'aperçu (il n'est pas redessiné tant que la feuille est ouverte)
+    document.querySelectorAll('#info-corps [data-' + champ + ']').forEach(b => b.setAttribute('aria-checked', b.dataset[champ] === valeur ? 'true' : 'false'));
+    erreurInfo('');
+    try { await source.themeConv(id, t); }
+    catch (x) { poser(avant); if (etat.groupe.ouvert && etat.groupe.mode === 'theme' && etat.groupe.convId === id) { rendreTheme(); erreurInfo(phrase(x, 'Le thème n\'a pas pu être enregistré.')); } }
+  }
+  $('info-corps').addEventListener('click', e => {
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'theme') return;
+    const f = e.target.closest('[data-fond]'); if (f && f.classList.contains('theme-fond')) { choisirTheme('fond', f.dataset.fond); return; }
+    const b = e.target.closest('[data-bulle]'); if (b && b.classList.contains('theme-pastille')) choisirTheme('bulle', b.dataset.bulle);
+  });
   /* ═══ LES FEUILLES DES CARTES (7 octobre 2026) ═══ */
   /* ── la position : ⛔ coupée tant que la personne ne l'a pas allumée dans Profil › Confidentialité (« c'est une sécurité pour eux ») — la feuille l'explique et mène au réglage, elle
      ne l'allume pas à sa place ; allumée, l'appareil dit où il est, on montre ce qui partira, et rien ne part sans « Envoyer ». ── */

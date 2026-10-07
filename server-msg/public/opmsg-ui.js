@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '89e6c7165824';
+  const OPMSG_BUILD = '7287cb4b1f94';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 64;
+  const OPMSG_VERSION = 68;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -334,6 +334,8 @@
     if (etat.conv) remplacer(r); else pousser(r);
   }
   function rendreEntete(c) {
+    const th = c.theme || { fond: 'aucun', bulle: 'defaut' };
+    $('conv-ecran').dataset.fond = th.fond; $('conv-ecran').dataset.bulle = th.bulle;      // le thème de CETTE conversation (à moi seul)
     $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>';
     $('conv-titre').setAttribute('aria-label', c.type === 'reunion' ? nomConv(c) + ' — voir la réunion' : nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
     $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
@@ -1397,10 +1399,10 @@
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || G.mode === 'theme' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -1433,8 +1435,10 @@
       || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
       || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
+      || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || '')))) ? mode : 'chat';
     if (etat.groupe.mode === 'sondage-choix') etat.groupe.sondSeq = +arg;
+    if (etat.groupe.mode === 'theme') etat.groupe.convId = arg;
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
     if (etat.groupe.mode === 'suivi') etat.groupe.pieceId = arg;
@@ -1466,6 +1470,7 @@
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
     if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
     if (etat.groupe.mode === 'position') rendrePosition();
+    if (etat.groupe.mode === 'theme') rendreTheme();
     if (etat.groupe.mode === 'carte-contact') rendreCarteContact();
     if (etat.groupe.mode === 'sondage-nouveau') rendreSondageNouveau();
     if (etat.groupe.mode === 'sondage-choix') rendreSondageChoix();
@@ -3151,7 +3156,8 @@
       try { collegues = (await source.espaceContacts(i.espace)).contacts; } catch (e) { collegues = []; }
       if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     }
-    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
+    const thC = (etat.conversations.find(x => x.id === id) || {}).theme || { fond: 'aucun', bulle: 'defaut' };
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, thC.fond, thC.bulle, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
@@ -3164,6 +3170,8 @@
       (canal ? '' : '<div class="carte">') + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
       (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>');
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
+    /* le thème : à moi seul (les autres gardent leurs couleurs) */
+    if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
     if (sd > Date.now()) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Notifications coupées<small>' + esc(sd - Date.now() > 5 * 365 * 86400000 ? 'En sourdine pour toujours' : 'En sourdine jusqu\'au ' + dateLongue(sd)) + '</small></span><button type="button" class="mini" data-act="sourdine" data-duree="off">Réactiver</button></div></div>';
     else if (sd >= 0) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Mettre en sourdine<small>Plus de notification pour cette conversation</small></span></div><div class="carte-pad info-actions"><button type="button" class="mini" data-act="sourdine" data-duree="8h">8 heures</button><button type="button" class="mini" data-act="sourdine" data-duree="1s">1 semaine</button><button type="button" class="mini" data-act="sourdine" data-duree="tj">Toujours</button></div></div>';
     if (g) {
@@ -3240,6 +3248,7 @@
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
       else if (act === 'sourdine') { await source.sourdine(id, b.dataset.duree); mot(b.dataset.duree === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'); }
+      else if (act === 'theme') { ouvrirFeuille('theme:' + id, true); return; }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
       else if (act === 'suppression-confirmer') {
         if (b.getAttribute('aria-disabled') === 'true') { if (!$('sp-case').checked) erreurInfo('Coche la case pour confirmer la suppression de ton compte.'); return; }
@@ -4195,6 +4204,39 @@
   });
   /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
   $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
+  /* ═══ LE THÈME D'UNE CONVERSATION (7 octobre 2026) — un aperçu, les fonds, les couleurs de mes bulles ; chaque touche s'applique tout de suite et s'enregistre ═══ */
+  const FONDS_CONV = [['aucun', 'Par défaut'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['lavande', 'Lavande'], ['sable', 'Sable'], ['corail', 'Corail'], ['ardoise', 'Ardoise']];
+  const BULLES_CONV = [['defaut', 'Par défaut'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['violet', 'Violet'], ['orange', 'Orange'], ['rose', 'Rose'], ['graphite', 'Graphite'], ['sarcelle', 'Sarcelle'], ['bordeaux', 'Bordeaux']];
+  const nomTheme = t => t.fond === 'aucun' && t.bulle === 'defaut' ? 'Par défaut' : [t.fond !== 'aucun' ? (FONDS_CONV.find(x => x[0] === t.fond) || [, ''])[1] : '', t.bulle !== 'defaut' ? 'bulles ' + ((BULLES_CONV.find(x => x[0] === t.bulle) || [, ''])[1] || '').toLowerCase() : ''].filter(Boolean).join(', ');
+  function themeCourant() { const c = etat.conversations.find(x => x.id === etat.groupe.convId); return (c && c.theme) || { fond: 'aucun', bulle: 'defaut' }; }
+  function rendreTheme() {
+    const t = Object.assign({}, themeCourant()), corps = $('info-corps');
+    etat.groupe.theme = t;                // ⛔ la feuille garde SON état : deux touches rapides (un fond, puis une couleur) ne partent pas d'une liste pas encore relue
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="theme-apercu" id="theme-apercu" data-fond="' + esc(t.fond) + '" data-bulle="' + esc(t.bulle) + '" aria-hidden="true"><span class="bulle recue">On se voit demain ?</span><span class="bulle envoyee">Oui, à 9 h au dépôt.</span></div>' +
+      '<div class="rubrique"><span>Fond</span></div><div class="theme-grille" role="radiogroup" aria-label="Fond de la conversation">' +
+        FONDS_CONV.map(f => '<button type="button" class="theme-fond presse" role="radio" data-fond="' + f[0] + '" aria-checked="' + (f[0] === t.fond ? 'true' : 'false') + '"><span class="theme-vignette" aria-hidden="true"></span><span>' + esc(f[1]) + '</span></button>').join('') + '</div>' +
+      '<div class="rubrique"><span>Mes bulles</span></div><div class="theme-couleurs" role="radiogroup" aria-label="Couleur de mes bulles">' +
+        BULLES_CONV.map(b => '<button type="button" class="theme-pastille presse" role="radio" data-bulle="' + b[0] + '" aria-checked="' + (b[0] === t.bulle ? 'true' : 'false') + '"><span class="theme-rond" aria-hidden="true">' + icone('i-coche') + '</span><span>' + esc(b[1]) + '</span></button>').join('') + '</div>' +
+      '<p class="info-note">Ce choix n\'est que pour toi : les autres membres gardent leurs couleurs. Il suit ton compte sur tous tes appareils.</p>';
+  }
+  async function choisirTheme(champ, valeur) {
+    const id = etat.groupe.convId, t = Object.assign({}, etat.groupe.theme || themeCourant(), { [champ]: valeur });
+    etat.groupe.theme = t;
+    const a = $('theme-apercu'); if (a) { a.dataset.fond = t.fond; a.dataset.bulle = t.bulle; }
+    const poser = (x) => { if (etat.conv === id) { $('conv-ecran').dataset.fond = x.fond; $('conv-ecran').dataset.bulle = x.bulle; } };
+    const avant = { fond: $('conv-ecran').dataset.fond, bulle: $('conv-ecran').dataset.bulle };
+    poser(t);                             // l'écran de la conversation, sous la feuille, change AVEC l'aperçu (il n'est pas redessiné tant que la feuille est ouverte)
+    document.querySelectorAll('#info-corps [data-' + champ + ']').forEach(b => b.setAttribute('aria-checked', b.dataset[champ] === valeur ? 'true' : 'false'));
+    erreurInfo('');
+    try { await source.themeConv(id, t); }
+    catch (x) { poser(avant); if (etat.groupe.ouvert && etat.groupe.mode === 'theme' && etat.groupe.convId === id) { rendreTheme(); erreurInfo(phrase(x, 'Le thème n\'a pas pu être enregistré.')); } }
+  }
+  $('info-corps').addEventListener('click', e => {
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'theme') return;
+    const f = e.target.closest('[data-fond]'); if (f && f.classList.contains('theme-fond')) { choisirTheme('fond', f.dataset.fond); return; }
+    const b = e.target.closest('[data-bulle]'); if (b && b.classList.contains('theme-pastille')) choisirTheme('bulle', b.dataset.bulle);
+  });
   /* ═══ LES FEUILLES DES CARTES (7 octobre 2026) ═══ */
   /* ── la position : ⛔ coupée tant que la personne ne l'a pas allumée dans Profil › Confidentialité (« c'est une sécurité pour eux ») — la feuille l'explique et mène au réglage, elle
      ne l'allume pas à sa place ; allumée, l'appareil dit où il est, on montre ce qui partira, et rien ne part sans « Envoyer ». ── */
