@@ -1,7 +1,8 @@
 /* ══ SONDE — LA PHOTO AGRANDIE : EN ENTIER, ENREGISTRÉE, PARTAGÉE, D'UNE PHOTO À L'AUTRE (la vraie page servie) ══════════════════════════════════════════════════════════════
    7 octobre 2026, capture de Justin : « quand je clique sur la photo, ça ne l'affiche pas en entier, ça la coupe ; il faudrait aussi pouvoir télécharger les photos ». Contre le VRAI service, Ana
    reçoit de Ben un message de DEUX photos : une capture d'iPhone (1170 × 2532, haute) et une photo en largeur. Au bureau (1280 × 800) et au téléphone (390 × 844, encoches posées) :
-     1. ⛔ la capture agrandie tient ENTIÈRE dans l'écran (son rectangle peint, contenu compris, dans la fenêtre), proportions gardées ;
+     1. ⛔ la capture agrandie tient ENTIÈRE dans l'écran (son rectangle peint, contenu compris, dans la fenêtre), proportions gardées — ⚠️ la coupure d'avant était de WebKit (Safari) :
+        Chromium résout le pourcentage, cette sonde passait déjà sur l'ancienne mise en page ; elle garde le résultat, pas la cause ;
      2. « Enregistrer » télécharge « photo-AAAAMMJJ-HHMM-1.png » ; la flèche → passe à la seconde (« 2 / 2 »), ← revient ; au clavier aussi ;
      3. le menu du message propose « Enregistrer les 2 photos ».
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-photo-agrandie.js   (CAPTURES=/dossier pour les images)
