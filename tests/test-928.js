@@ -14,6 +14,7 @@
 'use strict';
 const path = require('path');
 const T = require('./outils-msg');
+const PC = require('./outils-pieces');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const MDP = (l) => 'pw-' + l + '-1234';
@@ -65,12 +66,20 @@ const NOMS = ['alice', 'bruno', 'carla', 'dave', 'eve', 'fanny'];
     const luC = (await detail(B, BC)).membres.find(m => m.id === C.moi.id);
     v('⛔ Bruno ne sait PAS qu\'elle l\'a lue : pas de lu_seq dans son détail, aucun événement « lu » de Carla dans son flux', [luC && luC.lu_seq, fB.evenements.some(e => e.event === 'lu' && e.data && e.data.uid === C.moi.id)], [null, false]);
     v('…mais Carla voit son propre lu_seq', ((await detail(C, BC)).membres.find(m => m.id === C.moi.id) || {}).lu_seq, s1);
+    /* ⛔ relecture du gardien (bloquant) : l'invitation ne donne pas le profil de la personne invitée — ni la route, ni la liste, ni le détail */
+    v('⛔ Bruno ne lit PAS le profil de Carla (404, comme avant l\'invitation) ; Carla, elle, lit celui de Bruno (il lui écrit)', [(await B.get('/api/personnes/' + C.moi.id)).code, (await C.get('/api/personnes/' + B.moi.id)).code], [404, 200]);
+    v('⛔ sa liste et son détail ne disent que le premier mot du prénom : ni nom, ni photo', [(await ligne(B, BC)).autre, ((await detail(B, BC)).membres.find(m => m.id === C.moi.id) || {}).nom], [{ id: C.moi.id, prenom: 'Carla', nom: '', avatar: null }, '']);
+    v('⛔ du TEXTE seul tant qu\'elle n\'a pas accepté : une carte, une photo → 403 invitation_texte', [(await B.post('/api/conversations/' + BC + '/messages', { cid: cid(), type: 'contact', uid: A.moi.id })).j.error, (await PC.deposer(B, { conv: BC, genre: 'photo', corps: PC.png({ w: 8, h: 8 }) })).j.error], ['invitation_texte', 'invitation_texte']);
+    const encore = [];
+    for (let i = 0; i < 5; i++) encore.push((await dire(B, BC, 'Relance ' + i)).code);
+    v('⛔ cinq messages au plus avant d\'être accepté : les quatre suivants passent, le sixième est refusé (409 invitation_plafond)', [encore, (await dire(B, BC, 'Encore')).j.error], [[201, 201, 201, 201, 409], 'invitation_plafond']);
 
     console.log('\n3. Accepter : un contact, chacun écrit, les accusés reviennent');
     r = await C.post('/api/contacts/demandes/repondre', { id: B.moi.id, accepter: true });
     v('Carla accepte : un contact', [r.code, r.j.resultat], [200, 'acceptee']);
     v('plus d\'invitation, des deux côtés', [(await ligne(B, BC) || {}).invitation, (await ligne(C, BC) || {}).invitation, (await detail(C, BC)).conversation.invitation], [undefined, undefined, undefined]);
     v('Carla répond : 201', (await dire(C, BC, 'Bonjour Bruno !')).code, 201);
+    v('acceptée : Bruno lit son profil, son nom entier (un compte de banc le range dans le prénom), et n\'est plus plafonné', [(await B.get('/api/personnes/' + C.moi.id)).code, (await ligne(B, BC)).autre.prenom, (await dire(B, BC, 'Merci !')).code], [200, 'Carla Banc', 201]);
     const luApres = ((await detail(B, BC)).membres.find(m => m.id === C.moi.id) || {}).lu_seq;
     vrai('Bruno voit maintenant jusqu\'où Carla a lu (au moins son message : ' + luApres + ')', Number.isInteger(luApres) && luApres >= s1);
 
@@ -90,6 +99,8 @@ const NOMS = ['alice', 'bruno', 'carla', 'dave', 'eve', 'fanny'];
     v('Bruno écrit à Eve (invitation)', [r.j.resultat, (await dire(B, BE, 'Bonjour Eve')).code], ['envoyee', 201]);
     v('Eve bloque Bruno', (await E.post('/api/contacts/bloquer', { uid: B.moi.id })).code, 200);
     v('⛔ Bruno ne peut plus écrire (404), et ce n\'est plus une invitation', [(await dire(B, BE, 'Encore moi')).code, (await detail(B, BE)).conversation.invitation], [404, undefined]);
+    const ficheE = ((await B.get('/api/conversations/' + G + '/messages')).j.messages || []).find(m => m.seq === sE);
+    v('⛔ la fiche d\'Eve, chez Bruno qu\'elle a bloqué, se lit « introuvable » (comme une personne qui ne se laisse pas trouver) — chez Alice, non', [ficheE && ficheE.meta, (((await A.get('/api/conversations/' + G + '/messages')).j.messages || []).find(m => m.seq === sE) || {}).meta.uid], [{ k: 'contact', uid: null, prenom: null, identifiant: null }, E.moi.id]);
 
     console.log('\n6. ⛔ Ce qui n\'ouvre rien');
     const refuses = await Promise.all([
@@ -123,6 +134,9 @@ const NOMS = ['alice', 'bruno', 'carla', 'dave', 'eve', 'fanny'];
     v('Carla redemande Fanny (« Ajouter ») : demande envoyée', (await C.post('/api/contacts/demander_carte', { conv: GF, seq: sF })).j.resultat, 'envoyee');
     v('⛔ …une demande ordinaire ne rouvre PAS leur directe (404), et ce n\'est pas une invitation', [(await dire(C, CF, 'Tu m\'acceptes ?')).code, (await detail(C, CF)).conversation.invitation], [404, undefined]);
     v('« Écrire » depuis la fiche la change en invitation : Carla écrit (201)', [(await ecrire(C, { conv: GF, seq: sF })).j.conv, (await dire(C, CF, 'C\'est Carla')).code], [CF, 201]);
+    v('population : Fanny voit l\'invitation de Carla', (await ligne(F, CF) || {}).invitation, 'recue');
+    v('Carla retire sa demande', (await C.post('/api/contacts/demandes/annuler', { id: F.moi.id })).code, 200);
+    v('⛔ retirée, l\'invitation ne REVIENT pas dans la liste principale de Fanny ; Carla ne peut plus écrire', [await ligne(F, CF), (await dire(C, CF, 'Et maintenant ?')).code], [null, 404]);
   } catch (e) {
     vrai('le banc est mort : ' + (e && e.stack || e), false);
   } finally {
