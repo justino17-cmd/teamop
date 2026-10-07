@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'ab12f89d8496';
+  const OPMSG_BUILD = '1af59a307ba0';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 102;
+  const OPMSG_VERSION = 103;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -223,7 +223,7 @@
     }
     if (etat.route && VUES[etat.route.vue]) document.title = VUES[etat.route.vue].titre + suffixeTitre();
   }
-  async function changerMode(m, depuisOuverture) {
+  async function changerMode(m, depuisOuverture, muet) {
     if (!modesActifs() || (m !== 'perso' && m !== 'pro') || m === etat.mode) return;
     etat.mode = m; etat.vcCat = null;                            // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro)
     const c0 = etat.conv ? etat.conversations.find(x => x.id === etat.conv) : null;
@@ -231,7 +231,7 @@
     if (etat.route && etat.route.vue === 'accueil' && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
     else if (!depuisOuverture && c0 && coteDe(c0) !== m && etat.route && etat.route.vue === 'messages' && !etat.route.feuille) remplacer(Object.assign({}, etat.route, { conv: null }));   // la conversation ouverte est de l'autre côté : on la ferme (sauf quand c'est elle qu'on ouvre)
     if (etat.route && etat.route.vue === 'contacts') rendreVueContacts();
-    annonceMode(m);
+    if (!muet) annonceMode(m);                                   // muet : le geste qui y mène a déjà sa phrase (« Tu as rejoint… »)
     try { await source.choisirMode(m); } catch (e) { mot(phrase(e, 'Le côté choisi n\'a pas pu être enregistré : il vaut pour cette visite.')); }
   }
   const annonceMode = m => mot(m === 'pro' ? 'OP MESSAGES PRO' : 'OP MESSAGES · Perso');
@@ -257,11 +257,13 @@
     sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
   }
-  /* le dernier geste : un doigt ou une souris (pointerdown), ou une touche de NAVIGATION (Tab, Échap, Entrée, flèches) — taper un texte ne compte pas */
+  /* le dernier geste : un doigt ou une souris (pointerdown), ou une touche de NAVIGATION (Tab, Échap, Entrée, flèches — et Espace HORS d'un champ : c'est elle qui active un bouton
+     au clavier) — taper un texte ne compte pas */
   let modalite = 'pointeur';
+  const champTexte = t => !!t && (t.isContentEditable || t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|reset|range|color|file)$/.test(t.type)));
   document.addEventListener('pointerdown', () => { modalite = 'pointeur'; }, true);
   document.addEventListener('keydown', e => {
-    if (!/^(Tab|Escape|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Home|End|PageUp|PageDown)$/.test(e.key)) return;
+    if (!/^(Tab|Escape|Enter|ArrowUp|ArrowDown|ArrowLeft|ArrowRight|Home|End|PageUp|PageDown)$/.test(e.key) && !(e.key === ' ' && !champTexte(e.target))) return;
     modalite = 'clavier';
     const a = document.activeElement; if (a && a.dataset && a.dataset.focusDoux && e.key === 'Tab') delete a.dataset.focusDoux;     // on se met à tabuler : l'anneau revient
   }, true);
@@ -806,15 +808,21 @@
      du champ : une photo, un vocal, une carte passent déjà par leur propre geste d'envoi. Ce qu'on retape annule la demande (on ne confirme jamais un texte qu'on n'a pas relu). */
   const CONFIRMER = [['jamais', 'Jamais'], ['groupes', 'Groupes et canaux'], ['partout', 'Partout']];
   const confirmerActif = () => !!(etat.pro && CAP.confirmerEnvoi && typeof source.confirmerEnvoi === 'function');
+  /* ⛔ la conversation ouverte : ses données, ou — pendant qu'elles se chargent (`ouvrirConv` remet `convDonnees` à null, une seconde en 4G) — son résumé de la liste. Sans ça, un envoi
+     fait dans cette fenêtre passait pour une conversation à deux et partait sans demander (relecture du 7 octobre 2026). */
+  const convCourante = () => (etat.convDonnees && etat.convDonnees.id === etat.conv ? etat.convDonnees : null) || etat.conversations.find(x => x.id === etat.conv) || null;
   function confirmationRequise() {
     if (!confirmerActif()) return false;
     const x = source.confirmerEnvoi();
-    return x === 'partout' || (x === 'groupes' && multi(etat.convDonnees));
+    return x === 'partout' || (x === 'groupes' && multi(convCourante()));
   }
+  /* ⛔ le geste qui DEMANDE ne confirme pas : deux touchers rapides sur la flèche, ou Entrée tenue (la répétition du clavier), envoyaient sans qu'on ait rien lu.
+     La confirmation n'est prise qu'après 400 ms — le temps de voir la barre ; le bouton « Envoyer » de la barre, lui, est un autre geste et passe toujours. */
+  const confirmeTropTot = () => etat.confirmeAttente === etat.conv && performance.now() - (etat.confirmeDepuis || 0) < 400;
   function demanderConfirmation() {
-    const c = etat.convDonnees || {}, n = Math.max(0, (c.membres || []).length - 1);
+    const c = convCourante() || {}, n = Math.max(0, (c.membres || []).length - 1);
     $('compo-confirme-texte').innerHTML = esc('Envoyer à ' + (multi(c) ? '« ' + nomConv(c) + ' »' + (n ? ' — ' + n + (n > 1 ? ' personnes' : ' personne') : '') : (c.nom || 'ce contact')) + ' ?') + '<small>Entrée pour envoyer, Échap pour annuler</small>';
-    $('compo-confirme').hidden = false; etat.confirmeAttente = etat.conv;
+    $('compo-confirme').hidden = false; etat.confirmeAttente = etat.conv; etat.confirmeDepuis = performance.now();
   }
   function fermerConfirmation() { if (!etat.confirmeAttente && $('compo-confirme').hidden) return; $('compo-confirme').hidden = true; etat.confirmeAttente = null; }
   $('compo-confirme-oui').addEventListener('mousedown', e => e.preventDefault());       // le bouton ne vole pas le focus du champ
@@ -896,10 +904,10 @@
     if (e.key !== 'Enter' || e.isComposing) return;
     /* au bureau (une souris) : Entrée envoie, Maj+Entrée va à la ligne ; au doigt, Entrée va à la ligne (la flèche envoie) ;
        Ctrl/Cmd+Entrée envoie partout */
-    if ((matchMedia('(pointer: fine)').matches && !e.shiftKey && !e.altKey) || e.ctrlKey || e.metaKey) { e.preventDefault(); envoyerTexte(); }
+    if ((matchMedia('(pointer: fine)').matches && !e.shiftKey && !e.altKey) || e.ctrlKey || e.metaKey) { e.preventDefault(); if (e.repeat || confirmeTropTot()) return; envoyerTexte(); }   // une touche TENUE n'envoie pas : sa répétition confirmerait ce que la première vient de demander
   });
   $('envoyer').addEventListener('mousedown', e => e.preventDefault());        // la flèche ne vole pas le focus (le clavier reste ouvert)
-  $('envoyer').addEventListener('click', () => { armerRetap(); envoyerTexte(); });
+  $('envoyer').addEventListener('click', () => { armerRetap(); if (confirmeTropTot()) return; envoyerTexte(); });
 
   /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ──
      ⛔ SAUF UN GIF (relecture du testeur : un GIF animé devenait une image fixe, sans que rien ne le dise) : jusqu'au poids maximum d'une photo, il part TEL QUEL — le service en retire les
@@ -1537,7 +1545,11 @@
     const vers = $('notif').dataset.vers;
     if ((vers !== 'contacts' && vers !== 'invitations') || !$('notif').classList.contains('on')) return;
     clearTimeout(minNotif); $('notif').classList.remove('on', 'touchable');
-    if (vers === 'invitations') { etat.listeInvit = true; rendreListe(); }      // « Invitations » : la liste des messages, ouverte sur les invitations
+    if (vers === 'invitations') {                                              // « Invitations » : la liste des messages, ouverte sur les invitations
+      /* ⛔ une invitation vit d'UN côté (Perso, presque toujours) : en Pro, la liste les filtrait toutes et le lien menait à la liste ordinaire (relecture du 7 octobre 2026) — on passe du côté de la première */
+      if (modesActifs()) { const i0 = etat.conversations.find(c => c.invitation === 'recue'); if (i0 && !dansMode(i0)) changerMode(coteDe(i0), true); }
+      etat.listeInvit = true; rendreListe();
+    }
     const r = { vue: vers === 'invitations' ? 'messages' : 'contacts', conv: null, feuille: false, photo: null, appel: null };
     if (!memeRoute(etat.route, r)) pousser(r);
   });
@@ -3881,13 +3893,13 @@
         const nom = ($('en-nom').value || '').trim();
         if (!nom) { erreurInfo('Donne un nom à l\'espace.'); $('en-nom').focus(); return; }
         b.setAttribute('aria-disabled', 'true');
-        try { const d = await source.espaceCreer(nom); mot('Espace créé'); basculerFeuille('espace:' + d.id); chargerEspaces(); } finally { b.removeAttribute('aria-disabled'); }
+        try { const d = await source.espaceCreer(nom); mot('Espace créé'); basculerFeuille('espace:' + d.id); chargerEspaces(); if (modesActifs()) changerMode('pro', true, true); } finally { b.removeAttribute('aria-disabled'); }
         return;
       }
       if (act === 'esp-lien-lire') { await lireInvitationSaisie(); return; }
       if (act === 'esp-rejoindre') {
         b.setAttribute('aria-disabled', 'true');
-        try { const r = await source.invitationAccepter(b.dataset.code); mot(r.deja ? 'Tu es déjà dans cet espace' : 'Tu as rejoint « ' + r.espace.nom + ' »'); basculerFeuille('espace:' + r.espace.id); chargerEspaces(); } finally { b.removeAttribute('aria-disabled'); }
+        try { const r = await source.invitationAccepter(b.dataset.code); mot(r.deja ? 'Tu es déjà dans cet espace' : 'Tu as rejoint « ' + r.espace.nom + ' »'); basculerFeuille('espace:' + r.espace.id); chargerEspaces(); if (modesActifs()) changerMode('pro', true, true); }   // ⛔ entrer dans une entreprise, c'est passer côté Pro : resté en Perso, on ne voyait ni ses canaux ni ses collègues (« Aucune conversation Perso ») finally { b.removeAttribute('aria-disabled'); }
         return;
       }
       if (act === 'esp-renommer') { await source.espaceRenommer(id, $('esp-nom').value); mot('Nom enregistré'); chargerEspaces(); await relire(); return; }
@@ -5690,7 +5702,7 @@
     };
     const fil = X.discussion.length ? X.discussion.map(m => m.fichier ? docHtml(m) : '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
     return '<div class="salle-fil" id="salle-fil" role="log" aria-label="Messages" tabindex="0">' + fil + '</div>' +
-      '<form class="salle-saisie" id="salle-saisie-form">' + (CAP.fichiers ? '<button type="button" class="salle-joindre presse" data-sa="doc-joindre" aria-label="Envoyer un document">' + icone('i-plus') + '</button>' : '') + '<input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">Envoyer</button></form>';
+      '<form class="salle-saisie" id="salle-saisie-form">' + (CAP.fichiers ? '<button type="button" class="salle-joindre presse" data-sa="doc-joindre" aria-label="Envoyer un document">' + icone('i-plus') + '</button>' : '') + '<input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">' + (X.confirme ? 'Confirmer' : 'Envoyer') + '</button></form>';
   }
   function sallePanneauRendre(A, force) {
     const X = sx(A), p = $('salle-panneau'), corps = $('salle-panneau-corps');
@@ -5808,6 +5820,7 @@
   }
   $('salle-bandeaux').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b && !b.disabled) salleAgir(b.dataset.sa, b); });
   $('salle-panneau-corps').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b) salleAgir(b.dataset.sa, b); });
+  $('salle-panneau-corps').addEventListener('input', e => { if (e.target.id !== 'salle-saisie') return; const A = etat.appelUI; if (enSalle(A) && sx(A).confirme) { sx(A).confirme = null; sallePanneauRendre(A, true); } });   // retaper annule la demande
   $('salle-panneau-corps').addEventListener('change', e => { const sel = e.target.closest('select[data-appareil]'); if (sel) changerAppareil(sel.dataset.appareil, sel.value); });
   $('salle-panneau-fermer').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleFermerPanneau(A); });
   $('salle-participants').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) salleOuvrirPanneau(A, 'participants', $('salle-participants')); });
@@ -5847,7 +5860,13 @@
     e.preventDefault();
     const A = etat.appelUI; if (!enSalle(A) || !A.snap.conv) return;
     const champ = $('salle-saisie'), t = champ.value.trim(); if (!t) return;
+    /* « Confirmer l'envoi » vaut AUSSI ici (une réunion est une conversation à plusieurs) : le premier « Envoyer » devient « Confirmer », le second envoie ; retaper annule.
+       Relecture du 7 octobre 2026 : le chat de la salle était la seule porte d'un texte qui ne demandait jamais. */
+    const X = sx(A);
+    if (confirmerActif() && source.confirmerEnvoi() !== 'jamais' && X.confirme !== t) { X.confirme = t; sallePanneauRendre(A, true); mot('Envoyer à la réunion ? Touche « Confirmer » pour envoyer.'); return; }
+    const confirmee = !!X.confirme; X.confirme = null;
     champ.value = '';
+    if (confirmee) sallePanneauRendre(A, true);                                // le bouton redevient « Envoyer » (le redessin garde le champ — vide — et son focus)
     /* ⛔ UNE SEULE porte pour envoyer : `envoi()` (la même que la conversation) — le refus du service se dit avec SA phrase */
     if (!await envoi({ texte: t }, A.snap.conv) && !perime(A)) { mot('Le message n\'a pas pu être envoyé.'); const c2 = $('salle-saisie'); if (c2 && !c2.value) c2.value = t; }
   });

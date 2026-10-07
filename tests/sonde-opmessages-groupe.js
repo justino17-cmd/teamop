@@ -663,7 +663,11 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       vrai('… et Ben (co-hôte) ne peut pas enregistrer en même temps : son bouton dit QUI enregistre', await verifier('… le bouton de Ben', B, () => /Enregistré par/.test(document.getElementById('salle-rec-btn').textContent) && document.getElementById('salle-rec-btn').getAttribute('aria-disabled') === 'true', null, 8000, async () => '«' + (await lire(B, '#salle-rec-btn')) + '»'));
       await largeur(C, 'salle · REC (téléphone)');
       await dormir(7000);
-      const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 30000 }), toucher(A, '#salle-rec-btn')]);
+      /* depuis le 7 octobre 2026, l'arrêt ouvre la carte « Enregistrement terminé » (l'envoyer aux absents, le garder, le supprimer) : le fichier se range par « Enregistrer sur cet appareil » */
+      await toucher(A, '#salle-rec-btn');
+      await verifier('Ana : l\'arrêt ouvre la carte « Enregistrement terminé »', A, () => !document.getElementById('rec-fin').hidden, null, 15000);
+      const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 30000 }), A.page.locator('#rec-fin-garder').click()]);
+      await verifier('… « Enregistrer sur cet appareil » ferme la carte (elle ne couvre plus les commandes de la salle)', A, () => document.getElementById('rec-fin').hidden, null, 6000);
       const fichier = path.join(dir, 'enregistrement.webm'); await dl.saveAs(fichier);
       const J = jugerFichier(fichier);
       console.log('  ℹ️  fichier : ' + dl.suggestedFilename() + ' · ' + fs.statSync(fichier).size + ' octets · ' + J.codecs + ' · ' + (Math.round(J.duree * 10) / 10) + ' s · luminance moyenne ' + J.luminance + ' sur ' + J.images + ' images · Goertzel 440 Hz ' + (Math.round(J.g440 * 10000) / 10000) + ' contre ses voisins ' + (Math.round(J.g1000 * 10000) / 10000));

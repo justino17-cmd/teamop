@@ -246,7 +246,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
    venait de quitter). La page REND le focus (à la ligne, au bouton qui avait ouvert une feuille, un menu) pour le clavier et le lecteur d'écran ; Safari allume alors l'anneau,
    parce que l'élément d'avant — le champ de saisie — l'avait. Après un toucher ou un clic, `rendreFocus` marque l'élément (`data-focus-doux`) : il a le focus, pas l'anneau.
    Au clavier (Échap, Tab, flèches), rien n'est marqué : l'anneau se voit. Et quand il se voit, en tête ou en pied d'une carte arrondie, il en suit l'arrondi. */
-[data-focus-doux]:focus-visible { outline: none; }
+[data-focus-doux]:focus-visible { outline: none !important; }     /* ⛔ !important : une règle d'anneau écrite PLUS LOIN (`.moi-pastille`, `.deroule-choix`…), de même force, l'emportait (relecture du 7 octobre 2026) */
 .carte-liste > li:first-child > .conv:focus-visible { border-top-left-radius: var(--group-r); border-top-right-radius: var(--group-r); }
 .carte-liste > li:last-child > .conv:focus-visible { border-bottom-left-radius: var(--group-r); border-bottom-right-radius: var(--group-r); }
 .epingles::-webkit-scrollbar { display: none; }

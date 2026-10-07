@@ -186,7 +186,8 @@ async function parcours(b, ctx) {
     s1: { if (!voulu('1')) break s1;
     console.log('\n── Une photo : choisie, réduite, « Envoi… », vue chez l\'autre sans recharger, dessinée ──');
     await toucher(A, '#compo-plus');
-    await verifier('« + » propose « Photo » et « Fichier » (une petite feuille, rien d\'ouvert encore)', A, () => document.querySelectorAll('#menu-msg [data-plus]').length === 2 && !document.getElementById('menu-fond').hidden, null, 4000, () => lire(A, '#menu-msg'));
+    /* la feuille « + » est celle de WhatsApp depuis le 7 octobre 2026 (Photos, Caméra, Position, Contact, Document, Sondage) : la sonde exige la photo et le fichier, pas un nombre d'entrées */
+    await verifier('« + » propose « Photos » et « Document » (une petite feuille, rien d\'ouvert encore)', A, () => !!document.querySelector('#menu-msg [data-plus="photo"]') && !!document.querySelector('#menu-msg [data-plus="fichier"]') && !document.getElementById('menu-fond').hidden, null, 4000, () => lire(A, '#menu-msg'));
     await capture(A, '1-plus');
     await A.page.route('**/api/pieces?*', async (route) => { await dormir(1500); await route.continue(); });        // le dépôt est LENT : on peut voir « Envoi… »
     await A.page.keyboard.press('Escape');

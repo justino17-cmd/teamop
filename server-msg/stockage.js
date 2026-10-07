@@ -1302,7 +1302,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (m && m.quitte_le === null) continue;
         if (n >= max) throw erreur('groupe_plein');
         const t = horloge(), ds = c.dernier_seq + 1 + ajoutes.length;
-        if (m) Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`).run(ds, ds - 1, t, conv, u);
+        if (m) Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0${COTES ? ', cote = NULL' : ''} WHERE conv = ? AND uid = ?`).run(ds, ds - 1, t, conv, u);   // revenir, c'est repartir des réglages par défaut — le côté choisi compris
         else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, 'membre', ?, ?, ?)`).run(conv, u, ds, ds - 1, t);
         n++; ajoutes.push(u);
         messageSysteme(conv, par || u, { k: par && par !== u ? 'membre_ajoute' : 'rejoint', uid: u });
@@ -1465,6 +1465,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const themes = THEMES ? new Map(Q('SELECT conv, theme FROM membre WHERE uid = ? AND quitte_le IS NULL AND theme IS NOT NULL').all(uid).map(r => [r.conv, r.theme])) : null;
     /* le côté rangé À LA MAIN (migration 20) : une requête à part, littérale, comme les thèmes */
     const cotes = COTES ? new Map(Q('SELECT conv, cote FROM membre WHERE uid = ? AND quitte_le IS NULL AND cote IS NOT NULL').all(uid).map(r => [r.conv, r.cote])) : null;
+    /* le côté automatique de TOUTES mes conversations en UNE requête (relecture du gardien : une requête par conversation, sur des groupes de 1 024 membres, bloquait la boucle
+       à chaque relecture de la liste) — pour chacune, ses autres membres actifs et combien sont des collègues ; l'ensemble de mes collègues n'est calculé qu'une fois */
+    const comptes = new Map(Q(`SELECT y.conv AS conv, COUNT(*) AS n,
+                                      SUM(CASE WHEN y.uid IN (SELECT b.uid FROM espace_membre a JOIN espace_membre b ON a.espace = b.espace WHERE a.uid = ?) THEN 1 ELSE 0 END) AS c
+                               FROM membre m JOIN membre y ON y.conv = m.conv AND y.quitte_le IS NULL AND y.uid <> m.uid
+                               WHERE m.uid = ? AND m.quitte_le IS NULL GROUP BY y.conv`).all(uid, uid).map(r => [r.conv, r]));
     return lignes.map(l => {
       const o = {
         id: l.id, type: l.type, nom: nomDe(l.id, l.nom_ch), avatar: l.avatar_piece || null, annonces_seules: !!l.annonces_seules, ephemere_s: l.ephemere_s,
@@ -1508,7 +1514,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (iv === 'envoyee' && o.autre) o.autre = { id: o.autre.id, prenom: premierMot(o.autre.prenom), nom: '', avatar: null };
       }
       /* PERSO / PRO : le côté automatique, celui que j'ai choisi (s'il y en a un), et celui qui vaut */
-      o.cote_auto = coteAuto(uid, l.id, l.type);
+      o.cote_auto = coteAuto(l.type, comptes.get(l.id));
       const choisi = cotes ? cotes.get(l.id) : null;
       o.cote_choisi = choisi === 'perso' || choisi === 'pro' ? choisi : null;
       o.cote = o.cote_choisi || o.cote_auto;
@@ -1519,12 +1525,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* ⛔ LE CÔTÉ AUTOMATIQUE D'UNE CONVERSATION, VU PAR `uid` : un canal (il appartient à un espace) et une réunion sont Pro ; une directe ou un groupe est Pro quand TOUS les autres
      membres actifs sont des collègues (un espace en commun avec moi) — et qu'il y en a au moins un. Le reste est Perso : un ami qui n'est pas collègue, un groupe où il y a un
      inconnu de mes espaces. Rien ne se décide sur un nom ou un texte. */
-  function coteAuto(uid, conv, type) {
+  function coteAuto(type, compte) {
     if (type === 'canal' || type === 'reunion') return 'pro';
-    const r = Q(`SELECT COUNT(*) AS n,
-                        SUM(CASE WHEN EXISTS (SELECT 1 FROM espace_membre a JOIN espace_membre b ON a.espace = b.espace WHERE a.uid = ? AND b.uid = y.uid) THEN 1 ELSE 0 END) AS c
-                 FROM membre y WHERE y.conv = ? AND y.quitte_le IS NULL AND y.uid <> ?`).get(uid, conv, uid);
-    return num(r.n) > 0 && num(r.c) === num(r.n) ? 'pro' : 'perso';
+    return compte && num(compte.n) > 0 && num(compte.c) === num(compte.n) ? 'pro' : 'perso';      // `compte` : { n : les autres membres actifs, c : combien sont des collègues } (convListe)
   }
 
   /* L'autre participant d'une conversation directe (pour savoir si on peut encore lui écrire). */
@@ -3174,7 +3177,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const ds = num(c.dernier_seq) + 1;
     const m = Q('SELECT quitte_le FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);
     if (m && m.quitte_le === null) { Q('UPDATE membre SET role = ? WHERE conv = ? AND uid = ?').run(role, conv, uid); return false; }
-    if (m) Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`).run(role, ds, ds - 1, t, conv, uid);
+    if (m) Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0${COTES ? ', cote = NULL' : ''} WHERE conv = ? AND uid = ?`).run(role, ds, ds - 1, t, conv, uid);
     else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, ?, ?, ?, ?)`).run(conv, uid, role, ds, ds - 1, t);
     return true;
   }

@@ -146,6 +146,13 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
     await att(A, () => !document.getElementById('compo-confirme').hidden);
     await A.page.locator('#compo-confirme-oui').tap();
     vrai('« Envoyer » : le message part (le service l\'a), la barre s\'en va, le champ est vide', await (async () => { for (let i = 0; i < 40; i++) { if (await nMsg(G2) === n0 + 1) return true; await new Promise(r => setTimeout(r, 100)); } return false; })() && await att(A, () => document.getElementById('compo-confirme').hidden && !document.getElementById('saisie').value));
+    /* relecture du 7 octobre 2026 : deux touchers rapides sur la flèche envoyaient sans qu'on ait rien lu (le premier demandait, le second confirmait) */
+    await A.page.locator('#saisie').fill('Point à 11 h');
+    await A.page.evaluate(() => { const b = document.getElementById('envoyer'); b.click(); b.click(); });
+    await A.page.waitForTimeout(600);
+    v('⛔ un DOUBLE toucher sur la flèche ne confirme pas : la barre demande, rien n\'est parti, le texte est là', [await nMsg(G2), await A.page.evaluate(() => !document.getElementById('compo-confirme').hidden), await A.page.inputValue('#saisie')], [n0 + 1, true, 'Point à 11 h']);
+    await A.page.locator('#compo-confirme-oui').tap();
+    vrai('… et « Envoyer » de la barre le fait partir', await (async () => { for (let i = 0; i < 40; i++) { if (await nMsg(G2) === n0 + 2) return true; await new Promise(r => setTimeout(r, 100)); } return false; })());
     await A.page.evaluate(c => { location.hash = '#messages/' + c; }, AB);
     await att(A, () => document.documentElement.dataset.conv === '1' && /Ben/.test(document.getElementById('conv-titre').textContent));
     const n1 = await nMsg(AB);
