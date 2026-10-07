@@ -13,6 +13,18 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 — LES CATÉGORIES DE L'ONGLET CONTACTS (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « les catégories Contacts qui manquent », puis « fais le 2 » sans préciser lesquelles — choisies sur le modèle de Contacts d'iPhone et des filtres de WhatsApp :
+un segmenté **Tous · Favoris · Groupes · Entreprise** sous la recherche (`rendreVueContacts`, `vcCats`, `rendreVcCategorie` dans `apercu/opmessages/index.html`).
+« Tous » garde les demandes en tête puis range les contacts **de A à Z** (une lettre par carte) ; « Favoris » ne garde que les **étoilés** ; « Groupes » liste les conversations
+de groupe (+ « Nouveau groupe ») ; « Entreprise » lit les collègues de chaque espace (`source.espaceContacts`) — rien ne s'affiche avant d'avoir été lu. La recherche filtre la
+catégorie choisie ; la catégorie se retient sur l'appareil (`opm_vc_cat`, rangement facultatif).
+⛔ **Le favori vit chez le SERVICE** (il suit la personne d'un appareil à l'autre) : migration **14** (`contact.favori`, sur MA ligne : il part avec le contact retiré), route
+`POST /api/contacts/favori {uid, favori}` (garde V, un booléen et rien d'autre, 404 pour un inconnu ou un bloqué), un bloqué ne ressort jamais favori, l'export le dit.
+`tests/test-1000.js` (21 ✓, quatre mutations mordent), `tests/sonde-opmessages-categories.js` (23 ✓, iPhone puis bureau de nuit, l'étoile posée sur l'un se lit sur l'autre).
+⚠️ Le déploiement monte la base au schéma 14 (`VACUUM INTO` conservé avant, comme chaque migration).
+
 # ⏳ 6 OCTOBRE 2026 (SOIR, SUITE) — FICHIERS DE 5 GO, LE PROFIL FAÇON IPHONE, LES APPELS (LOT 1) — SUR LA BRANCHE `claude/apple-theme-op-messages-gcb3j9` (PR justino17-cmd/teamop#95)
 
 Justin, capture à l'appui (« Ce fichier est trop lourd (12 Mo au plus) ») : « je voulais que tout le monde puisse envoyer autant de fichiers… », puis « je veux 5 Go » ;
