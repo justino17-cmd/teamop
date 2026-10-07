@@ -212,8 +212,8 @@ async function controler(PAGE, SRC) {
 
   /* 4. LA MISE EN PAGE ──────────────────────────────────────────────────────────────────────────────────────────────────────── */
   const seg = regle(CSS, '.seg'), knob = regle(CSS, '.seg-knob');
-  v('segmenté : piste --seg-track, rayon 9, curseur --seg-knob de rayon 7, une colonne de large, il glisse par translate = --i × 100 % (rien n\'est mesuré en JavaScript)',
-    [prop(seg, 'background'), prop(seg, 'border-radius'), prop(knob, 'background'), prop(knob, 'border-radius'), prop(knob, 'width'), prop(knob, 'translate')], ['var(--seg-track)', '9px', 'var(--seg-knob)', '7px', 'calc((100% - 4px) / 2)', 'calc(var(--i) * 100%) 0']);
+  v('segmenté : piste --seg-track, rayon 9, curseur --seg-knob de rayon 7, une colonne de large (--n colonnes, deux par défaut), il glisse par translate = --i × 100 % (rien n\'est mesuré en JavaScript)',
+    [prop(seg, 'background'), prop(seg, 'border-radius'), prop(knob, 'background'), prop(knob, 'border-radius'), prop(knob, 'width'), prop(knob, 'translate')], ['var(--seg-track)', '9px', 'var(--seg-knob)', '7px', 'calc((100% - 4px) / var(--n, 2))', 'calc(var(--i) * 100%) 0']);
   vrai('segmenté : 44 px au doigt (pointer: coarse), 32 à la souris — la zone qui répond (le paquet dessine 29)', parseFloat(prop(regle(CSS, '.seg-bouton'), 'min-height')) === 32 && /@media \(pointer: coarse\) \{ \.seg-bouton \{ min-height: 44px; \} \}/.test(CSS));
   vrai('liste d\'appels : ligne de 60 px au moins, avatar de 40, nom de 17 px, type de 15 px, bouton « i » de 52 × 60 (la zone qui répond), icône de 22 (le paquet)',
     prop(regle(CSS, '.appel-ligne'), 'min-height') === '60px' && prop(regle(CSS, '.appel-ligne .avatar'), 'width') === '40px' && prop(regle(CSS, '.appel-nom-ligne'), 'font-size') === '17px' && prop(regle(CSS, '.appel-kind'), 'font-size') === '15px' && prop(regle(CSS, '.appel-info'), 'width') === '52px' && prop(regle(CSS, '.appel-info'), 'min-height') === '60px' && prop(regle(CSS, '.appel-info .ic'), 'width') === '22px');

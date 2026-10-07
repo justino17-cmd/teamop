@@ -330,6 +330,18 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 #vue-contacts .contact-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 #vue-contacts .carte-pad .mini { margin-top: 10px; }
 .vc-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* Les catégories de l'onglet Contacts (7 octobre 2026) : une ligne = le contact (un bouton, qui ouvre la conversation) + son étoile (un AUTRE bouton : on n'imbrique pas deux boutons).
+   Le filet passe de la rangée au conteneur, sinon le dernier contact d'une carte garderait le sien. L'étoile pleine dit « favori » — et `aria-pressed` le dit au lecteur d'écran. */
+.vc-ligne { display: flex; align-items: center; border-bottom: var(--sep); }
+.vc-ligne:last-child { border-bottom: 0; }
+.vc-ligne > .contact { flex: 1; min-width: 0; border-bottom: 0; }
+.vc-etoile { flex: none; width: 44px; height: 44px; margin-right: 6px; display: grid; place-items: center; border-radius: 50%; color: var(--sub-meta); }
+.vc-etoile svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.vc-etoile[aria-pressed="true"] { color: #f5a623; }
+.vc-etoile[aria-pressed="true"] svg { fill: currentColor; }
+.vc-etoile:active { transform: scale(.9); }
+.vc-lettre { margin: 14px 4px 6px; font-size: 13px; font-weight: 600; color: var(--sub-meta); }
+#vc-seg .seg-bouton { font-size: 12px; }
 /* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
    la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
 @media (min-width: 900px) { .tabs { display: none; } }
@@ -727,9 +739,9 @@ button.photo:active { transform: scale(.97); }
    Le segmenté est une piste (--seg-track) et un curseur (--seg-knob) qui glisse d'une colonne : comme la barre d'onglets, il ne MESURE rien — le
    JavaScript pose un numéro (--i), le CSS calcule la place (translate en pourcentage = la largeur du curseur = une colonne). Chaque moitié est un VRAI
    bouton (aria-pressed) : le doigt, le clavier et le lecteur d'écran n'ont pas à deviner. 44 px au doigt (le paquet dessine 29), 32 à la souris. */
-.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; margin: 0 0 14px; border-radius: 9px; background: var(--seg-track); --i: 0; }
+.seg { position: relative; display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); padding: 2px; margin: 0 0 14px; border-radius: 9px; background: var(--seg-track); --i: 0; }
 .seg-knob {
-  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 2); border-radius: 7px; background: var(--seg-knob); box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n, 2)); border-radius: 7px; background: var(--seg-knob); box-shadow: 0 1px 3px rgba(0,0,0,.15);
   translate: calc(var(--i) * 100%) 0; transition: translate .35s cubic-bezier(.32,.72,0,1);
 }
 .seg-bouton { position: relative; z-index: 1; min-height: 32px; text-align: center; font-size: 13px; font-weight: 400; color: var(--text); border-radius: 7px; transition: transform .12s ease-out; }
@@ -1350,6 +1362,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-appareil" viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="2.4"/><path d="M11 17.5h2"/></symbol>
   <symbol id="i-disque" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
   <symbol id="i-entreprise" viewBox="0 0 24 24"><path d="M4 20.5h16M6 20.5V5.5l7-2v17M13 9h5v11.5M8.6 8h1.8M8.6 11.5h1.8M8.6 15h1.8M15.3 12.5h1M15.3 16h1"/></symbol>
+  <symbol id="i-etoile" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
@@ -1374,7 +1387,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <h1 id="cx-mel-titre">OP MESSAGES</h1>
     <p class="connexion-sous">Content de te revoir&nbsp;!</p>
     <p class="connexion-erreur" role="alert" hidden></p>
-    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-mel-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Adresse e-mail, ou identifiant d'essai donné par la Tour</span><input id="cx-mel-adresse" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail ou identifiant"></label>
     <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-mel-mdp" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
     <button type="submit" class="connexion-bouton">Se connecter</button>
     <button type="button" class="cx-lien" data-cx="f-oubli">Mot de passe oublié&nbsp;?</button>

@@ -326,6 +326,18 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 #vue-contacts .contact-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 #vue-contacts .carte-pad .mini { margin-top: 10px; }
 .vc-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+/* Les catégories de l'onglet Contacts (7 octobre 2026) : une ligne = le contact (un bouton, qui ouvre la conversation) + son étoile (un AUTRE bouton : on n'imbrique pas deux boutons).
+   Le filet passe de la rangée au conteneur, sinon le dernier contact d'une carte garderait le sien. L'étoile pleine dit « favori » — et `aria-pressed` le dit au lecteur d'écran. */
+.vc-ligne { display: flex; align-items: center; border-bottom: var(--sep); }
+.vc-ligne:last-child { border-bottom: 0; }
+.vc-ligne > .contact { flex: 1; min-width: 0; border-bottom: 0; }
+.vc-etoile { flex: none; width: 44px; height: 44px; margin-right: 6px; display: grid; place-items: center; border-radius: 50%; color: var(--sub-meta); }
+.vc-etoile svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+.vc-etoile[aria-pressed="true"] { color: #f5a623; }
+.vc-etoile[aria-pressed="true"] svg { fill: currentColor; }
+.vc-etoile:active { transform: scale(.9); }
+.vc-lettre { margin: 14px 4px 6px; font-size: 13px; font-weight: 600; color: var(--sub-meta); }
+#vc-seg .seg-bouton { font-size: 12px; }
 /* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
    la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
 @media (min-width: 900px) { .tabs { display: none; } }
@@ -723,9 +735,9 @@ button.photo:active { transform: scale(.97); }
    Le segmenté est une piste (--seg-track) et un curseur (--seg-knob) qui glisse d'une colonne : comme la barre d'onglets, il ne MESURE rien — le
    JavaScript pose un numéro (--i), le CSS calcule la place (translate en pourcentage = la largeur du curseur = une colonne). Chaque moitié est un VRAI
    bouton (aria-pressed) : le doigt, le clavier et le lecteur d'écran n'ont pas à deviner. 44 px au doigt (le paquet dessine 29), 32 à la souris. */
-.seg { position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 2px; margin: 0 0 14px; border-radius: 9px; background: var(--seg-track); --i: 0; }
+.seg { position: relative; display: grid; grid-template-columns: repeat(var(--n, 2), 1fr); padding: 2px; margin: 0 0 14px; border-radius: 9px; background: var(--seg-track); --i: 0; }
 .seg-knob {
-  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / 2); border-radius: 7px; background: var(--seg-knob); box-shadow: 0 1px 3px rgba(0,0,0,.15);
+  position: absolute; top: 2px; bottom: 2px; left: 2px; width: calc((100% - 4px) / var(--n, 2)); border-radius: 7px; background: var(--seg-knob); box-shadow: 0 1px 3px rgba(0,0,0,.15);
   translate: calc(var(--i) * 100%) 0; transition: translate .35s cubic-bezier(.32,.72,0,1);
 }
 .seg-bouton { position: relative; z-index: 1; min-height: 32px; text-align: center; font-size: 13px; font-weight: 400; color: var(--text); border-radius: 7px; transition: transform .12s ease-out; }
@@ -1346,6 +1358,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-appareil" viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="2.4"/><path d="M11 17.5h2"/></symbol>
   <symbol id="i-disque" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
   <symbol id="i-entreprise" viewBox="0 0 24 24"><path d="M4 20.5h16M6 20.5V5.5l7-2v17M13 9h5v11.5M8.6 8h1.8M8.6 11.5h1.8M8.6 15h1.8M15.3 12.5h1M15.3 16h1"/></symbol>
+  <symbol id="i-etoile" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
@@ -1370,7 +1383,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <h1 id="cx-mel-titre">OP MESSAGES</h1>
     <p class="connexion-sous">Content de te revoir&nbsp;!</p>
     <p class="connexion-erreur" role="alert" hidden></p>
-    <label class="champ"><span class="sr-seul">Adresse e-mail</span><input id="cx-mel-adresse" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail"></label>
+    <label class="champ"><span class="sr-seul">Adresse e-mail, ou identifiant d'essai donné par la Tour</span><input id="cx-mel-adresse" type="text" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" inputmode="email" enterkeyhint="next" placeholder="Adresse e-mail ou identifiant"></label>
     <label class="champ"><span class="sr-seul">Mot de passe</span><input id="cx-mel-mdp" type="password" autocomplete="current-password" enterkeyhint="go" placeholder="Mot de passe"></label>
     <button type="submit" class="connexion-bouton">Se connecter</button>
     <button type="button" class="cx-lien" data-cx="f-oubli">Mot de passe oublié&nbsp;?</button>
@@ -1796,6 +1809,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     let l; try { l = await source.lister(forcer === true); } catch (e) { montrerErreurListe(e); return; }
     etat.conversations = l; masquerErreurListe();
     rendreListe();
+    if (etat.route && etat.route.vue === 'contacts' && etat.vcCat === 'groupes') rendreVueContacts();   // « Groupes » suit la liste (un groupe créé, renommé, quitté)
     if (etat.groupe.ouvert && etat.groupe.mode === 'nouvelle') rendreNouvelle();       // « Contacts fréquents » suit la liste
   }
   $('liste-erreur-bouton').addEventListener('click', () => rafraichirListe(true));
@@ -3697,6 +3711,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('f-mel').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-mel', async () => {
     const a = $('cx-mel-adresse').value.trim(), m = $('cx-mel-mdp').value;
     if (!a || !m) { erreurConnexion('Saisis ton adresse e-mail et ton mot de passe.'); return; }
+    /* ⛔ UN IDENTIFIANT D'ESSAI TAPÉ ICI (7 octobre 2026 : « quand je crée les accès et que je me connecte, ça ne marche pas ») : depuis que le compte par e-mail existe, c'est CE formulaire qui
+       s'ouvre, et l'identifiant donné par la Tour (« controle », sans @) y recevait « adresse e-mail incorrecte ». Ce qui n'a pas de @ n'est pas une adresse : il passe par la porte de l'essai,
+       exactement comme le formulaire « Accès d'essai ». */
+    if (!a.includes('@') && CAP.connexion && typeof source.connexion === 'function') {
+      try { const moi = await source.connexion(a, m); $('cx-mel-mdp').value = ''; if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload(); }
+      catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Identifiant ou mot de passe incorrect.'); return; } throw e; }
+      return;
+    }
     try { const moi = await source.connexionCourriel(a, m); $('cx-mel-mdp').value = ''; cxEntrer(moi); }
     catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Adresse e-mail ou mot de passe incorrect.'); return; } throw e; }
   }); });
@@ -4139,17 +4161,27 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       sec.innerHTML = '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" data-act="vc-ajouter" aria-haspopup="dialog">Ajouter</button></div>' +
         '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>' +
         '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les contacts</span><input type="search" id="vc-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
-        '<div id="vc-corps"></div>';
+        vcSegment() + '<div id="vc-corps"></div>';
       $('vc-recherche').addEventListener('input', () => rendreVueContacts());
+      $('vc-seg').addEventListener('click', e => {
+        const b = e.target.closest('[data-cat]'); if (!b) return;
+        etat.vcCat = b.dataset.cat;                              // ⛔ rien n'est rangé sur l'appareil : la catégorie vaut pour la visite
+        if (etat.vcCat === 'entreprise' && !etat.vcEsp) chargerVcEspaces();
+        rendreVueContacts();
+      });
+      if (vcCat() === 'entreprise' && !etat.vcEsp) chargerVcEspaces();
     }
+    peindreVcSegment();
     const corps = $('vc-corps');
     const garde = document.activeElement && corps.contains(document.activeElement) ? document.activeElement : null;
     const cleFocus = garde && garde.dataset ? (garde.dataset.act || '') + '|' + (garde.dataset.uid || '') : '';
     const brut = $('vc-recherche').value.trim(), q = vcNorm(brut);
     const garder = x => !q || vcNorm(x.nom).includes(q) || vcNorm(x.identifiant).includes(q) || vcNorm(x.role).includes(q);
-    const D = demandesEtat, R = (D && D.recues || []).filter(garder), E = (D && D.envoyees || []).filter(garder);
+    const cat = vcCat();
+    const D = demandesEtat, R = cat === 'tous' ? (D && D.recues || []).filter(garder) : [], E = cat === 'tous' ? (D && D.envoyees || []).filter(garder) : [];
     const ligne = (d, sous, actions) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
     let h = '';
+    if (cat !== 'tous') { corps.innerHTML = rendreVcCategorie(cat, brut, q); vcRendreFocus(corps, cleFocus); return; }
     if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
     else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
     else if (!q || R.length) {
@@ -4164,9 +4196,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
           '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
     const tous = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })), C = tous.filter(garder);
     if (!q || C.length) h += '<div class="rubrique"><span>Mes contacts</span><span>' + (C.length || '') + '</span></div>';
-    if (C.length) h += '<div class="carte">' + C.map(c => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
-        '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
-        '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
+    if (C.length) h += vcParLettre(C);
     else if (!q) h += '<div class="carte carte-pad"><p class="info-note">Pas encore de contact. Ajoute quelqu\'un par son identifiant (Camille#4821), son numéro ou un lien.</p><button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button></div>';
     if (q && !R.length && !E.length && !C.length) {
       const ident = /^[^#\s]{1,40}#\d{4,5}$/.test(brut);
@@ -4174,7 +4204,101 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         (ident ? '<button type="button" class="mini plein" data-act="vc-chercher-ident">Chercher ' + esc(brut) + '</button>' : '<button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button>') + '</div>';
     }
     corps.innerHTML = h;
+    vcRendreFocus(corps, cleFocus);
+  }
+  function vcRendreFocus(corps, cleFocus) {
     if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
+  }
+  /* ── Les CATÉGORIES (7 octobre 2026, « les catégories Contacts qui manquent ») : Tous, Favoris, Groupes, Entreprise — comme les listes de Contacts sur iPhone et les filtres de WhatsApp.
+     « Tous » garde les demandes en tête puis les contacts de A à Z ; « Favoris » ne garde que les étoilés (l'étoile vit chez le SERVICE : elle suit la personne d'un appareil à l'autre) ;
+     « Groupes », les conversations de groupe ; « Entreprise », les collègues de chaque espace dont on est membre. La recherche filtre la catégorie choisie. Une catégorie dont la source
+     n'a pas le moyen (une source sans favoris, sans espaces) n'est pas proposée — et une catégorie choisie qui n'existe plus retombe sur « Tous ». ── */
+  function vcCats() {
+    const L = [['tous', 'Tous']];
+    if (CAP.favoris && typeof source.favori === 'function') L.push(['favoris', 'Favoris']);
+    L.push(['groupes', 'Groupes']);
+    if (CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function') L.push(['entreprise', 'Entreprise']);
+    return L;
+  }
+  function vcCat() {
+    if (!etat.vcCat) etat.vcCat = 'tous';
+    if (!vcCats().some(c => c[0] === etat.vcCat)) etat.vcCat = 'tous';
+    return etat.vcCat;
+  }
+  function vcSegment() {
+    const L = vcCats();
+    return '<div class="seg" id="vc-seg" role="group" aria-label="Catégories de contacts" style="--n:' + L.length + '"><span class="seg-knob" aria-hidden="true"></span>' +
+      L.map(c => '<button type="button" class="seg-bouton" data-cat="' + c[0] + '" aria-pressed="false">' + esc(c[1]) + '</button>').join('') + '</div>';
+  }
+  function peindreVcSegment() {
+    const seg = $('vc-seg'); if (!seg) return;
+    const cat = vcCat(), L = vcCats();
+    seg.querySelectorAll('[data-cat]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === cat ? 'true' : 'false'));
+    seg.style.setProperty('--i', Math.max(0, L.findIndex(c => c[0] === cat)));
+  }
+  const vcEtoile = c => CAP.favoris && typeof source.favori === 'function'
+    ? '<button type="button" class="vc-etoile presse" data-act="vc-favori" data-uid="' + esc(c.id) + '" aria-pressed="' + (c.favori ? 'true' : 'false') + '" aria-label="' +
+      (c.favori ? 'Retirer ' : 'Ajouter ') + esc(c.nom) + (c.favori ? ' des favoris' : ' aux favoris') + '"><svg aria-hidden="true"><use href="#i-etoile"/></svg></button>' : '';
+  const vcLigneContact = c => '<div class="vc-ligne"><button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
+      '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
+      '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>' + vcEtoile(c) + '</div>';
+  /* de A à Z, une lettre par carte — l'initiale sans accent (« Élodie » range sous E), et tout ce qui ne commence pas par une lettre sous « # » */
+  function vcParLettre(C) {
+    const groupes = new Map();
+    for (const c of C) { const l = vcNorm(c.nom).charAt(0).toUpperCase(); const k = /^[A-Z]$/.test(l) ? l : '#'; if (!groupes.has(k)) groupes.set(k, []); groupes.get(k).push(c); }
+    const cles = Array.from(groupes.keys()).sort((a, b) => a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b));
+    return cles.map(k => '<h2 class="vc-lettre" aria-label="Lettre ' + k + '">' + k + '</h2><div class="carte">' + groupes.get(k).map(vcLigneContact).join('') + '</div>').join('');
+  }
+  const vcAucun = brut => '<div class="carte carte-pad vc-aucun"><p class="info-note">Rien ne correspond à « ' + esc(brut) + ' » dans cette catégorie.</p></div>';
+  function rendreVcCategorie(cat, brut, q) {
+    const garderNom = x => !q || vcNorm(x.nom).includes(q);
+    if (cat === 'favoris') {
+      const F = (CONTACTS || []).filter(c => c.favori).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })).filter(garderNom);
+      if (F.length) return '<div class="rubrique"><span>Favoris</span><span>' + F.length + '</span></div><div class="carte">' + F.map(vcLigneContact).join('') + '</div>';
+      return q ? vcAucun(brut) : '<div class="carte carte-pad"><p class="info-note">Aucun favori pour l\'instant. Touche l\'étoile à côté d\'un contact, dans « Tous », pour le retrouver ici.</p></div>';
+    }
+    if (cat === 'groupes') {
+      const G = (etat.conversations || []).filter(c => c.type === 'groupe').filter(garderNom).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' }));
+      let h = '<div class="carte"><button type="button" class="contact presse" data-act="vc-nouveau-groupe">' + avatar({ initiales: '+', avatar: 0 }) +
+        '<span class="contact-texte"><span class="contact-nom">Nouveau groupe</span><span class="contact-role">Choisis des contacts et donne-lui un nom</span></span></button></div>';
+      if (G.length) h += '<div class="rubrique"><span>Mes groupes</span><span>' + G.length + '</span></div><div class="carte">' + G.map(g => '<button type="button" class="contact presse" data-act="vc-groupe" data-id="' + esc(g.id) + '">' +
+        avatar(g) + '<span class="contact-texte"><span class="contact-nom">' + esc(g.nom) + '</span></span><svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
+      else h += q ? vcAucun(brut) : '<div class="carte carte-pad"><p class="info-note">Tu ne fais partie d\'aucun groupe pour l\'instant.</p></div>';
+      return h;
+    }
+    /* Entreprise : les collègues de chaque espace, lus au service. Rien ne s'affiche avant d'avoir été LU : une panne le dit, jamais « aucun collègue ». */
+    const S = etat.vcEsp;
+    if (!S || S.charge) return '<p class="vide vc-attente">Chargement de tes espaces…</p>';
+    if (S.erreur) return '<div class="carte carte-pad"><p class="info-note">' + esc(S.erreur) + '</p><button type="button" class="mini" data-act="vc-esp-relire">Réessayer</button></div>';
+    if (!S.espaces.length) return '<div class="carte carte-pad"><p class="info-note">Tu ne fais partie d\'aucun espace d\'entreprise. Un administrateur de ton entreprise peut t\'envoyer un lien d\'invitation.</p></div>';
+    let h = '', vus = 0;
+    for (const e of S.espaces) {
+      const m = S.membres[e.id];
+      const L = m ? m.filter(p => !p.moi).filter(garderNom) : null;
+      if (q && L && !L.length) continue;
+      vus++;
+      h += '<div class="rubrique"><span>' + esc(e.nom) + '</span><span>' + (L ? L.length || '' : '') + '</span></div>';
+      if (!L) h += '<p class="vide">' + (S.panne[e.id] ? esc(S.panne[e.id]) : 'Chargement…') + '</p>';
+      else if (!L.length) h += '<div class="carte carte-pad"><p class="info-note">Personne d\'autre dans cet espace pour l\'instant.</p></div>';
+      else h += '<div class="carte">' + L.map(p => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '">' + avatar(p) +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (p.enLigne || p.statut ? '<span class="contact-role">' + esc(p.enLigne ? 'En ligne' : p.statut) + '</span>' : '') + '</span>' +
+        '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
+    }
+    return vus ? h : vcAucun(brut);
+  }
+  async function chargerVcEspaces() {
+    const jeton = (etat.vcEspJeton || 0) + 1; etat.vcEspJeton = jeton;
+    etat.vcEsp = { charge: true, espaces: [], membres: {}, panne: {}, erreur: '' };
+    let r = null, panne = '';
+    try { r = await source.espaces(); } catch (x) { panne = phrase(x, 'Tes espaces n\'ont pas pu être lus.'); }
+    if (jeton !== etat.vcEspJeton) return;
+    etat.vcEsp = { charge: false, espaces: r ? (r.espaces || []) : [], membres: {}, panne: {}, erreur: r ? '' : panne };
+    rendreVueContacts();
+    await Promise.all(etat.vcEsp.espaces.map(async e => {
+      try { const c = await source.espaceContacts(e.id); if (jeton === etat.vcEspJeton) etat.vcEsp.membres[e.id] = c.contacts || []; }
+      catch (x) { if (jeton === etat.vcEspJeton) etat.vcEsp.panne[e.id] = phrase(x, 'Les membres de cet espace n\'ont pas pu être lus.'); }
+      if (jeton === etat.vcEspJeton) rendreVueContacts();
+    }));
   }
   $('vue-contacts').addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -4184,6 +4308,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       /* une saisie qui a la forme d'un identifiant : « Ajouter » s'ouvre avec le champ déjà rempli (la recherche elle-même part de là, par le geste de la personne) */
       if (act === 'vc-chercher-ident') { const t = $('vc-recherche').value.trim(); declencheur = b; ouvrirFeuille('contact'); const remplir = () => { const c = $('ct-ident'); if (c) { c.value = t; c.focus({ preventScroll: true }); } }; if ($('ct-ident')) remplir(); else requestAnimationFrame(remplir); return; }
       if (act === 'vc-relire') { await chargerDemandes(); return; }
+      if (act === 'vc-esp-relire') { await chargerVcEspaces(); return; }
+      if (act === 'vc-nouveau-groupe') { declencheur = b; ouvrirFeuille('nouvelle'); return; }
+      if (act === 'vc-groupe') { pousser({ vue: 'messages', conv: b.dataset.id, feuille: false, photo: null, appel: null }); return; }
+      if (act === 'vc-favori') {
+        const oui = b.getAttribute('aria-pressed') !== 'true';
+        b.disabled = true;
+        try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
+        return;
+      }
       if (act === 'vc-ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
       b.disabled = true;
       if (act === 'vc-accepter') { await source.repondreDemande(uid, true); mot('Contact ajouté'); }

@@ -154,3 +154,4 @@ tests/test-977.js
 # ── La légende sous les photos (6 octobre 2026 : « comme WhatsApp ») : le vrai service et la vraie source (966) ; la vraie page, au doigt et à la souris, est la sonde tests/sonde-opmessages-legende.js ──
 tests/test-966.js
 tests/test-967.js
+tests/test-921.js

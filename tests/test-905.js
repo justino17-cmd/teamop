@@ -56,6 +56,7 @@ const MATRICE = {
   'contacts.liens.revoquer': { ok: () => ['POST', '/api/contacts/liens/revoquer', {}], codes: [200] },
   'contacts.retirer':   { ok: (F, a) => ['POST', '/api/contacts/retirer', { uid: F.cibleDe(a) }], codes: [200] },
   'contacts.bloquer':   { ok: (F, a) => ['POST', '/api/contacts/bloquer', { uid: F.cibleDe(a) }], codes: [200] },
+  'contacts.favori':   { prep: (F, S, a) => S.contactEtat(a, F.cibleDe(a), 'ok'), ok: (F, a) => ['POST', '/api/contacts/favori', { uid: F.cibleDe(a), favori: true }], codes: [200] },
   'contacts.debloquer': { prep: (F, S, a) => S.contactEtat(a, F.cibleDe(a), 'bloque'), ok: (F, a) => ['POST', '/api/contacts/debloquer', { uid: F.cibleDe(a) }], codes: [200] },
   'liens.lire':         { ok: (F) => ['POST', '/api/liens/lire', { code: F.code }], codes: [200] },
   'liens.accepter':     { ok: (F) => ['POST', '/api/liens/accepter', { code: F.code }], codes: [200] },

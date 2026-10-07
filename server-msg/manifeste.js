@@ -49,6 +49,7 @@ const MANIFESTE = [
   { id: 'contacts.liens.revoquer', m: 'POST', p: '/api/contacts/liens/revoquer',    garde: 'V' },
   { id: 'contacts.retirer',  m: 'POST', p: '/api/contacts/retirer',                  garde: 'V' },
   { id: 'contacts.bloquer',  m: 'POST', p: '/api/contacts/bloquer',                  garde: 'V' },
+  { id: 'contacts.favori',   m: 'POST', p: '/api/contacts/favori',                   garde: 'V' },
   { id: 'contacts.debloquer', m: 'POST', p: '/api/contacts/debloquer',               garde: 'V' },
   { id: 'liens.lire',        m: 'POST', p: '/api/liens/lire',                        garde: 'S' },
   { id: 'liens.accepter',    m: 'POST', p: '/api/liens/accepter',                    garde: 'V' },

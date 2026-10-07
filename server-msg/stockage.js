@@ -550,6 +550,12 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS evenement_rappel ON evenement(rappel_a) WHERE rappel_a IS NOT NULL`,
     `PRAGMA user_version = 13`,
   ] },
+  /* ── 14 : les FAVORIS de l'onglet Contacts (7 octobre 2026, « les catégories Contacts qui manquent »). Un favori est un point de vue, comme la ligne `contact` elle-même : il vit sur
+         MA ligne (de = moi), et part avec elle quand le contact est retiré — on ne garde pas un favori orphelin qui renaîtrait au prochain ajout. ── */
+  { v: 14, sql: [
+    `ALTER TABLE contact ADD COLUMN favori INTEGER NOT NULL DEFAULT 0`,
+    `PRAGMA user_version = 14`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -628,6 +634,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* ⛔ L'IDENTIFIANT PUBLIC n'existe qu'à partir du schéma 11 : une base ouverte avec des migrations plus anciennes (les bancs qui rejouent une migration d'avant, une copie
      restaurée) n'a pas ses colonnes, et chaque lecture d'une personne y planterait. Le schéma ne change plus après ce point : on le lit une fois. */
   const IDENT = versionActuelle() >= 11;
+  /* le favori de l'onglet Contacts (migration 14) : une base ouverte à un schéma plus ancien (un banc de migration) n'a pas la colonne — on ne la lit pas, et poser un favori n'y fait rien */
+  const FAVORI = versionActuelle() >= 14;
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
@@ -899,11 +907,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return n === 2;
   }
   function contactsDe(uid) {
+    /* ⛔ une requête À PART pour les favoris (et non une colonne de plus ci-dessous) : la requête reste un littéral, et une base d'avant la 14 se lit sans elle */
+    const fav = FAVORI ? new Set(Q(`SELECT vers FROM contact WHERE de = ? AND favori = 1 AND etat = 'ok'`).all(uid).map(r => r.vers)) : null;
     return Q(`SELECT p.id, p.prenom, p.nom, p.statut, p.avatar_piece, c.etat AS mon_etat, c.depuis,
                 COALESCE((SELECT c2.etat FROM contact c2 WHERE c2.de = p.id AND c2.vers = c.de), 'retire') AS son_etat
               FROM contact c JOIN personne p ON p.id = c.vers
               WHERE c.de = ? ORDER BY p.prenom, p.nom, p.id`).all(uid)
-      .map(r => ({ id: r.id, prenom: r.prenom, nom: r.nom, statut: r.statut, avatar: r.son_etat === 'bloque' ? null : (r.avatar_piece || null), bloque: r.mon_etat === 'bloque', mutuel: r.son_etat !== 'retire', depuis: r.depuis }));
+      .map(r => ({ id: r.id, prenom: r.prenom, nom: r.nom, statut: r.statut, avatar: r.son_etat === 'bloque' ? null : (r.avatar_piece || null), bloque: r.mon_etat === 'bloque', favori: !!fav && fav.has(r.id), mutuel: r.son_etat !== 'retire', depuis: r.depuis }));
   }
   /* Ceux à qui `uid` peut montrer sa présence : mutuels et sans blocage dans aucun sens. */
   function contactsActifs(uid) {
@@ -944,6 +954,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       else Q('DELETE FROM contact WHERE de = ? AND vers = ?').run(a, b);
       return true;
     });
+  }
+  /* ⛔ UN FAVORI NE SE POSE QUE SUR UN CONTACT QUE J'AI (ma ligne `ok`) : pas sur un bloqué, pas sur un inconnu — la réponse est alors « introuvable », comme pour retirer. */
+  function contactFavori(a, b, oui) {
+    if (!FAVORI) return 0;
+    return num(Q(`UPDATE contact SET favori = ? WHERE de = ? AND vers = ? AND etat = 'ok'`).run(oui ? 1 : 0, a, b).changes);
   }
   function contactLigne(a, b) { return Q('SELECT etat FROM contact WHERE de = ? AND vers = ?').get(a, b) || null; }
   /* Deux personnes qui partagent un ESPACE (des collègues). Ce n'est pas un contact : c'est ce qui leur permet de se trouver dans « Contacts de l'entreprise » et de s'écrire. */
@@ -3924,7 +3939,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
     sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAvant, sessionsSupprimerAutres, betaARelire,
-    contactLier, contactBloque, contactActif, contactsDe, contactsActifs, contactRetirer, contactEtat, contactBloquer, contactDebloquer, contactLigne, peutVoir,
+    contactLier, contactBloque, contactActif, contactsDe, contactFavori, contactsActifs, contactRetirer, contactEtat, contactBloquer, contactDebloquer, contactLigne, peutVoir,
     lienCreer, lienValide, lienApercu, lienAccepter, liensRevoquerGroupe, liensRevoquerContact,
     collegues, peutEcrire,
     espaceCreer, espaceBrut, espacePourMembre, espacesDe, espacesIds, espaceMembres, espaceMembresN, espaceMaj, espaceMembreRetirer, espaceRoleMembre, espaceTransferer, espaceSupprimer, espaceQuitterTout, espacesAbonnesSeul, exportEspaces,
