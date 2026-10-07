@@ -13,6 +13,98 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (NUIT) — LE « + » DES PIÈCES JOINTES, POSITION, FICHE D'UN CONTACT, SONDAGES À RÈGLES, THÈME D'UNE CONVERSATION (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin, captures de WhatsApp à l'appui : « pouvoir sélectionner plusieurs photos ; la localisation s'il l'active dans les paramètres — c'est une sécurité pour eux ; partager des
+contacts, des documents, des sondages personnalisables, avec leurs règles ; personnaliser les conversations, des thèmes derrière, les bulles de couleurs ; l'appareil photo à côté » —
+« événements, images IA, je m'en fous » (pas faits). **« + »** ouvre une grille (Photos à plusieurs, Caméra au doigt, Position, Contact, Document, Sondage), l'appareil photo est dans la
+barre de saisie. Une CARTE est un message texte (son résumé, pour une version d'avant et les notifications) qui porte `meta.k` ; un message à carte ne se modifie pas.
+· **Position** : ⛔ COUPÉE par défaut, refusée PAR LE SERVICE (403 `position_desactivee`) tant que Profil › Confidentialité ne l'a pas allumée — UNE seule porte (`moi.confidentialite`) ;
+  la feuille l'explique et y mène, elle ne l'allume jamais ; allumée, la page relit le réglage au service, montre la position, rien ne part sans « Envoyer ». Un plan DESSINÉ (aucune tuile
+  d'un tiers), « Ouvrir dans Plans » (maps:, geo:, bingmaps: — l'application de l'appareil). Le résumé ne porte pas les coordonnées.
+· **Fiche d'un contact** : un de MES contacts qui se laisse trouver ; le message ne garde QUE son identifiant — prénom et identifiant public se relisent à chaque lecture, tant qu'il se
+  laisse trouver (retiré ou effacé, la fiche ne dit plus qui c'est) ; « Ajouter » (`contacts.demander_carte`, les refus et plafonds d'une demande par identifiant) ou « Écrire ».
+· **Sondage** (migration 17) : 2 à 12 choix sans doublon (casse, accents), une ou plusieurs réponses, anonyme (personne ne voit qui a voté quoi, l'auteur non plus — ni qui a ajouté un
+  choix), choix ouverts aux membres, résultats tout de suite / après son vote / à la clôture, échéance (1 min à 90 j) ; clore = l'auteur ou l'admin d'un GROUPE ou d'un CANAL (dans une
+  directe les deux membres sont « admin » : l'autre clôturait mon sondage — corrigé) ; l'événement `sondage` borné par `depuis_seq` ; effacé pour tous, il emporte choix et votes (archive
+  comprise) ; un compte effacé : ses votes perdent son identifiant mais restent comptés (un décompte qui baisse trahirait un vote anonyme) ; ses votes sont dans « Mes données ».
+· **Thème d'une conversation** (migration 18, `membre.theme`) : sept fonds, huit couleurs de bulles, À CHACUN, sur tous ses appareils ; deux NOMS de listes fermées, jamais une couleur
+  libre ; dégradés mêlés à `--base` (lisibles de jour et de nuit : date à 5,4:1 / 5,9:1, mesuré au pixel avec contre-épreuve du lecteur).
+`tests/test-926.js` (68 ✓ ; 19 + 8 mutations, toutes mordent), `tests/test-927.js` (13 ✓ ; 2 mutations), `tests/sonde-opmessages-cartes.js` (37 ✓, deux téléphones),
+`tests/sonde-opmessages-theme.js` (13 ✓, jour et nuit). Relecture `gardien` : 0 bloquant, 3 importants corrigés (ci-dessus).
+✅ Tranché par Justin (7 octobre 2026 : « on laisse avec des paramètres, comme ça l'admin décide ») : (1) dans un groupe « seuls les admins écrivent », seul un admin pose un sondage —
+c'est donc lui qui ouvre ou non les choix aux membres, sondage par sondage ; partout ailleurs (un groupe où chacun parle, une directe, un canal où l'on écrit), TOUT LE MONDE pose un
+sondage (« sauf si c'est un groupe où tout le monde peut parler, ou autres : tout le monde peut faire le sondage ») — `test-926` § 6 bis tient les deux ; (2) partager la fiche d'un contact devenu introuvable garde son message clair
+(« ne se laisse pas trouver ») — l'expéditeur, déjà son contact, pouvait le deviner, et un refus muet passe pour une panne. Proposé, pas demandé : « Retirer ce choix » pour l'auteur et
+les admins (aujourd'hui un choix déplacé ne part qu'avec tout le sondage).
+⚠️ Corrigé en passant : `htmlFiche` existait déjà (la fiche d'une réunion) — la seconde déclaration gagnait partout ; `reunion_introuvable` (rapport de présence d'une réunion) n'avait
+pas de phrase (test-906).
+
+# ⏳ 7 OCTOBRE 2026 (NUIT) — ANNOTER L'ÉCRAN PARTAGÉ, LE TABLEAU BLANC, L'ENREGISTREMENT QUI VA AUX ABSENTS (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « partage d'écran, dessiner sur l'écran, ajouter du texte… enregistrer les réunions, qu'ils puissent les renvoyer à des personnes qui n'ont pas pu assister ». En salle :
+**« Annoter »** paraît dès qu'un écran est partagé — stylo, surligneur, flèche, rectangle, cercle, texte, huit couleurs (les mêmes chez tous, jamais celles du thème), trois épaisseurs,
+annuler (⌘Z), effacer les siennes ou tout, « Capturer » (l'image annotée part en photo dans la discussion). **Tableau blanc** depuis « Plus ». Les traits partent en morceaux (on les voit
+se tracer, toutes les 200 ms) en coordonnées de l'IMAGE (0..10 000) : même endroit sur un téléphone et un ordinateur. Chez les autres que le partageur, la vue passe en « intervenant »
+le temps du support. Service : l'état vit EN MÉMOIRE (`appels.js`, `annoter`), route `POST /api/salles/:id/annot` (SP). **Enregistrement** : 720p, la mise en page de la salle,
+annotations comprises ; à l'arrêt une carte « Enregistrement terminé » — envoyer dans la discussion de la réunion (elle nomme qui n'était pas là ; le suivi dira qui l'a téléchargé),
+garder sur l'appareil (nom en ASCII : un Chromium sans jeu de caractères ignorait un nom accentué), supprimer (deux touches) ; elle survit à la sortie de la salle. Corrigé en chemin :
+l'écran partagé par quelqu'un dont la caméra est coupée était caché derrière son avatar. ⛔ Relecture `gardien`, corrigée : un partage s'ANNONCE sans se prouver — il ne vole plus le
+support (premier arrivé), ne donne aucun droit sous « réservées aux hôtes » ; l'éphémère (dessins, sondage) ne se raconte qu'aux PRÉSENTS (plus à un invité qui sonne ni à la salle
+d'attente) ; la route a son plafond par COMPTE (900 gestes, 40 000 coordonnées par minute), hors des 300 écritures communes qui coupaient un trait ; la mémoire se compte comme V8 la
+tient (512 Ko par salle, 64 Mo au total). `tests/test-924.js` (49 ✓ ; 22 mutations, toutes mordent sauf la pile de la palette, neutralisée par la mise en page du téléphone),
+`tests/sonde-opmessages-annotations.js` (34 ✓, trois navigateurs dont un téléphone), `tests/sonde-opmessages-enregistrement.js` (20 ✓, le rectangle rouge relu DANS la vidéo).
+⚠️ Reste : le partageur ne voit pas les annotations sur son écran réel (une page web ne dessine pas hors d'elle) — il les voit sur sa vignette ; la sortie de l'enregistrement est en
+WebM (lu par Chrome, Firefox, VLC ; QuickTime d'un Mac ne le lit pas) ; une salle pleine (2 000 éphémères) oublie d'abord une salle vide, sinon la plus ancienne.
+
+# ⏳ 7 OCTOBRE 2026 (NUIT) — QUI A REÇU, QUI A TÉLÉCHARGÉ UN DOCUMENT (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « s'envoyer des documents par cette réunion… savoir qui a reçu le document, savoir qui a téléchargé le document, c'est très important pour les patrons ». Sous chacun de MES
+fichiers (conversation et discussion d'une salle) : « Qui l'a téléchargé ? » → la liste des membres : téléchargé (la première fois, et combien de fois), reçu, lu, pas encore reçu ; la
+salle a un bouton ＋ pour envoyer un document, et ses cartes de documents portent le compteur (relu toutes les 15 s tant que la discussion est ouverte). Serveur : table `piece_acces`
+(schéma v15 : première et dernière fois, nombre ; dédoublonné à la minute, un téléchargement par plage `bytes=1-` compte), route `GET /api/pieces/:id/suivi` (garde V, 120/min),
+« reçu » posé quand l'appareil relit la liste des conversations. ⛔ Les règles tranchées avec `gardien` : seul l'AUTEUR lit le suivi, et seulement tant qu'il voit encore le message
+(parti du groupe, message masqué, supprimé ou expiré → 404) ; « lu » et l'ouverture d'une PHOTO ou d'un VOCAL suivent les confirmations de lecture réciproques (coupées → rien n'est
+noté, rien n'est rendu) ; le téléchargement d'un FICHIER est toujours dit à l'auteur (écrit dans Confidentialité) ; la suppression d'un compte efface ses lignes ; l'export du compte les
+porte (`documents_ouverts`) ; la table entre dans le comptage de la sauvegarde (`TABLES_COMPTEES`, sonde, copie). `tests/test-923.js` (23 ✓, cinq mutations mordent),
+`tests/sonde-opmessages-documents.js` (17 ✓, trois navigateurs). ⚠️ **Attend Justin** : le texte de `confidentialite.html` sur ce suivi et sa DURÉE de conservation (aujourd'hui :
+celle du fichier) — relecture `gardien` C4 ; l'export ne donne que des identifiants de pièces (N7).
+
+# ⏳ 7 OCTOBRE 2026 (SOIR) — OP MESSAGES SELON L'APPAREIL (`data-plat`, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « look Apple partout ; adapte le comportement selon data-plat : iPhone (tactile, barre d'onglets, encoches), iPad (menu latéral dès 781 px, pas de barre d'onglets), Mac (souris,
+verre si Safari 26), Windows et Android (même identité Apple, sans verre natif ni faux éléments système) » — question posée : il s'agit de l'APPLICATION OP MESSAGES (la porte dans
+`beta.html` reste fermée, `OPMSG_EN_TRAVAUX`). `opPlat()` (§ 0 du script d'`apercu/opmessages/index.html`) pose data-plat, data-os, data-kind, data-nav, data-verre-natif,
+data-autonome — les noms de `opPlatAppliquer` d'OP GESTION ; rien n'est rangé sur l'appareil. La feuille : l'iPad (`data-kind="tablette"`) prend le menu latéral dès 781 px (l'iPad mini
+en portrait, 744, garde la barre) ; Liquid Glass natif = reflet de l'arête et cartes à 26 px au doigt ; ailleurs la même matière sans reflet ; Android 28 px, Windows 8 px (boutons 6) ;
+Linux et l'inconnu gardent le rendu commun (« web »). `tests/sonde-opmessages-appareils.js` : 9 profils, vrais agents, encoches posées (`Emulation.setSafeAreaInsetsOverride`),
+118 ✓ ; retirer le menu de la tablette fait tomber l'iPad 820. ⚠️ Reste à faire sur cette lancée : les séparateurs des listes partent du bord (iOS les décale après l'icône).
+
+# ⏳ 7 OCTOBRE 2026 (FIN D'APRÈS-MIDI) — LA FICHE D'UN CONTACT DIT CE QU'ON A EN COMMUN (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin : « au niveau des contacts, pour le pro, voir leur tableau de réunion — s'ils participent à la même réunion — quand on clique sur le contact ». La fiche (comme la carte de
+Contacts sur iPhone) : photo, nom, Message · Appeler · Vidéo · Réunion · Favori, puis **Réunions à venir ensemble** (pastille de calendrier, horaire, SA réponse, « Programmer une
+réunion avec … » qui ouvre le formulaire avec la personne déjà invitée), **Groupes en commun**, **Entreprise**. Au bureau, le volet droit de Contacts ; au téléphone, toucher un
+contact ouvre désormais SA FICHE (feuille « personne:<id> ») — « Message » y est le premier geste. Un squelette pendant la première lecture, une copie d'une minute ensuite.
+⛔ Route `GET /api/personnes/:id/commun` (garde V, la porte de `personnes.lire`) : seulement ce dont on fait PARTIE — jamais l'agenda de l'autre ; 404 pour inconnu, soi-même,
+mal formé, bloqué par l'autre ; 120 lectures par minute ; les réunions communes se cherchent d'abord (`enCommun`), puis s'habillent par `reunionsDe(…, ids)` (relecture `gardien` :
+sans ça, une fiche faisait calculer tout l'agenda, et une réunion commune pouvait disparaître derrière 600 autres). `tests/test-922.js` (16 ✓ ; fuite, blocage et annulation : les
+mutations mordent), `tests/sonde-opmessages-fiche-contact.js` (32 ✓, bureau et téléphone). ⚠️ Pas encore joués par un banc : un canal PRIVÉ quitté, un espace quitté, une série
+dont la première occurrence est passée (lus dans le code par `gardien`, sans défaut).
+
+# ⏳ 7 OCTOBRE 2026 (APRÈS-MIDI) — OP MESSAGES AU BUREAU « 100 % FAÇON APPLE », ET LE PROFIL QUITTE LE MENU (bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin, capture du Profil au bureau : « pour tout ce qui va être PC et version web, il faudrait une autre interface… très moche, pas hyper pro », puis « refais les interfaces pour la
+version web Mac Windows, à 100 % de façon Apple ». **Le téléphone et la tablette ne changent pas** : toute la couche vit sous `@media (min-width: 900px) and (hover: hover) and
+(pointer: fine)` (§ 20 « LE BUREAU » de `apercu/opmessages/index.html`, `auBureau()` côté script) — barre latérale en lignes de 28 px, barre d'outils de 52 px (titre 15 px,
+boutons texte), champ de recherche macOS, segmentés compacts, listes nues (la ligne choisie en aplat d'accent), conversation et compositeur resserrés, Profil = Réglages Système
+(colonne des rubriques à gauche), **Contacts = Contacts sur Mac** (la liste à gauche, la FICHE de la personne à droite : avatar 96, Message · Appeler · Vidéo · Favoris).
+Puis : « pour tous les appareils, je ne veux pas le profil avec contact et agenda — le profil, c'est en bas, on clique, ça nous emmène à nos paramètres ». Le menu et la barre
+d'onglets se bâtissent sur `NAV` (ORDRE sans « reglages » : la VUE reste, adresses `#reglages/…` comprises) ; au bureau la carte du bas est la seule entrée et porte la page ;
+au téléphone, l'avatar au bout du grand titre (comme le compte de l'App Store, 44 px de cible) y mène, et le Profil a « ‹ Agenda » (la vue d'où l'on vient — il REND l'entrée
+d'historique au lieu d'en empiler une). `tests/test-856.js` (deux mutations mordent), `tests/sonde-opmessages-entree-profil.js` (20 ✓, téléphone au doigt, bureau à la
+souris), `tests/sonde-opmessages-profil.js` mise à jour (la carte porte la page). Captures jour/nuit : `scratchpad/captures-bureau.js`.
+
 # ⏳ 7 OCTOBRE 2026 — LES CATÉGORIES DE L'ONGLET CONTACTS (OP MESSAGES, bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin : « les catégories Contacts qui manquent », puis « fais le 2 » sans préciser lesquelles — choisies sur le modèle de Contacts d'iPhone et des filtres de WhatsApp :

@@ -61,6 +61,7 @@ const MATRICE = {
   'liens.lire':         { ok: (F) => ['POST', '/api/liens/lire', { code: F.code }], codes: [200] },
   'liens.accepter':     { ok: (F) => ['POST', '/api/liens/accepter', { code: F.code }], codes: [200] },
   'personnes.lire':     { ok: (F) => ['GET', '/api/personnes/' + F.A], codes: [200] },
+  'personnes.commun':   { prep: (F, S, a) => S.contactEtat(a, F.cibleDe(a), 'ok'), ok: (F, a) => ['GET', '/api/personnes/' + F.cibleDe(a) + '/commun'], codes: [200] },   // jamais soi-même : la fiche d'un AUTRE
   'conv.liste':         { ok: () => ['GET', '/api/conversations'], codes: [200] },
   'conv.directe':       { ok: (F, a) => ['POST', '/api/conversations/directe', { uid: a === F.A ? F.B : F.A }], codes: T_OK },
   'conv.groupe':        { ok: () => ['POST', '/api/conversations/groupe', { nom: 'Nouveau', membres: [] }], codes: [201] },
@@ -80,6 +81,11 @@ const MATRICE = {
   'msg.modifier':       { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/modifier', { seq: F.seqDe(a), texte: 'modifié' }], codes: [200] },
   'msg.supprimer':      { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/supprimer', { seq: F.seqDe(a), pour: 'tous' }], codes: [200] },
   'msg.reagir':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/reagir', { seq: 1, emoji: '👍' }], codes: [200] },
+  /* les sondages d'une conversation : la garde M passée, un numéro de message illisible rend le 400 du gestionnaire — jamais le 404 de la garde */
+  'sondage.lire':       { ok: (F) => ['GET', '/api/conversations/' + F.G + '/sondages/x'], codes: [400] },
+  'sondage.voter':      { ok: (F) => ['POST', '/api/conversations/' + F.G + '/sondages/x/voter', { choix: [0] }], codes: [400] },
+  'sondage.choix':      { ok: (F) => ['POST', '/api/conversations/' + F.G + '/sondages/x/choix', { texte: 'Mardi' }], codes: [400] },
+  'sondage.clore':      { ok: (F) => ['POST', '/api/conversations/' + F.G + '/sondages/x/clore', {}], codes: [400] },
   /* Le téléphone (étape 2). Les trois routes PUBLIQUES passent la garde pour tout le monde : `tel.code` avec un numéro belge NEUF à chaque
      cellule (un plafond « 1 par 60 s par numéro » refuserait la deuxième sinon), `tel.verifier` avec un code que personne n'a demandé — la
      réponse d'une garde P qui a passé est le 401 uniforme `code_invalide`, et `tel.appareil` sans jeton d'appareil le 401 `appareil_inconnu`. */
@@ -105,6 +111,7 @@ const MATRICE = {
   /* l'identifiant « Prénom#1234 » et les demandes de contact : un identifiant qui n'existe pas rend la réponse neutre ; demander sans avoir trouvé, répondre ou retirer une demande qui n'existe pas : la garde a passé, le geste dit non */
   'contacts.identifiant': { ok: () => ['POST', '/api/contacts/identifiant', { identifiant: 'Personne#1000' }], codes: [200] },
   'contacts.demander':  { ok: (F) => ['POST', '/api/contacts/demander', { id: F.A }], codes: [400, 404] },
+  'contacts.demander_carte': { ok: () => ['POST', '/api/contacts/demander_carte', { conv: 'x', seq: 1 }], codes: [400] },
   'contacts.demandes':  { ok: () => ['GET', '/api/contacts/demandes'], codes: [200] },
   'contacts.repondre':  { ok: (F) => ['POST', '/api/contacts/demandes/repondre', { id: F.A, accepter: true }], codes: [400, 404] },
   'contacts.annuler':   { ok: (F) => ['POST', '/api/contacts/demandes/annuler', { id: F.A }], codes: [400, 404] },
@@ -113,6 +120,7 @@ const MATRICE = {
      un message du groupe (Ana et Ben y sont, Cleo non). */
   'pieces.deposer':     { ok: (F) => ['BIN', { genre: 'avatar', corps: F.png }], codes: [201] },
   'pieces.lire':        { ok: (F) => ['GET', '/api/pieces/' + F.P], codes: [200] },
+  'pieces.suivi':       { ok: (F) => ['GET', '/api/pieces/' + F.P + '/suivi'], codes: [200, 404] },   // l'AUTEUR seul (l'administrateur de la fixture, qui a déposé la pièce) : tout autre reçoit 404
   'moi.avatar':         { ok: () => ['POST', '/api/moi/avatar', { piece: null }], codes: [200] },
   'moi.stockage':       { ok: () => ['GET', '/api/moi/stockage'], codes: [200] },
   /* Les notifications push et le compte (étape 2, suite). Un abonnement se joue avec un hôte de la liste blanche (FCM) et de VRAIES clés : la route juge la forme de l'appareil, pas
@@ -199,6 +207,8 @@ const MATRICE = {
      salle verrouillée, un co-hôte qui vise l'hôte, un Perso qui lance un groupe) sont jouées plus bas. */
   'appels.rejoindre':   { ok: (F) => ['POST', '/api/appels/' + F.SA + '/rejoindre', {}], codes: [200] },
   'salles.lire':        { ok: (F) => ['GET', '/api/salles/' + F.SA], codes: [200] },
+  /* le rapport de présence : l'hôte et les co-hôtes de la salle (SH), l'organisateur de la réunion (H) — test-925 dit ce qu'il contient */
+  'salles.presence':    { ok: (F) => ['GET', '/api/salles/' + F.SA + '/presence'], codes: [200] },
   'salles.admettre':    { ok: (F) => ['POST', '/api/salles/' + F.SA + '/admettre', { uid: F.D }], codes: [200] },
   'salles.refuser':     { ok: (F) => ['POST', '/api/salles/' + F.SA + '/refuser', { uid: F.D }], codes: [200] },
   'salles.exclure':     { ok: (F) => ['POST', '/api/salles/' + F.SA + '/exclure', { uid: F.D }], codes: [200] },
@@ -214,12 +224,15 @@ const MATRICE = {
   'salles.etat':        { ok: (F) => ['POST', '/api/salles/' + F.SA + '/etat', { micro: false }], codes: [200] },
   'salles.evt':         { ok: (F) => ['POST', '/api/salles/' + F.SA + '/evt', { k: 'epingle', donnees: { op: 'retirer' } }], codes: [200, 403],
                           exactes: { membre: [403, 'interdit'], admin: [200, null] } },
+  /* les annotations (dessiner sur l'écran partagé, le tableau blanc) : « fermer le tableau » quand rien n'est ouvert répond 200 à tout présent — la garde est ce qui est éprouvé ici, test-924 le reste */
+  'salles.annot':       { ok: (F) => ['POST', '/api/salles/' + F.SA + '/annot', { op: 'tableau', actif: false }], codes: [200] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
      renouvelle par H. Les deux routes qui ENTRENT jouent une réunion dont la fenêtre est ouverte (elle commence dans deux minutes) : une réunion dans trois jours refuse, et le refus est joué plus bas. */
   'reunions.apercu':    { ok: (F) => ['POST', '/api/reunions/apercu', { code: F.codeR }], codes: [200] },
   'reunions.rejoindre_code': { ok: (F) => ['POST', '/api/reunions/rejoindre', { code: F.codeR }], codes: [200] },
   'reunions.rejoindre': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/rejoindre', {}], codes: [200] },
   'reunions.lien':      { ok: (F) => ['POST', '/api/reunions/' + F.R + '/lien', {}], codes: [200] },
+  'reunions.presence':  { ok: (F) => ['GET', '/api/reunions/' + F.R + '/presence'], codes: [200] },
   'reunions.lien_renouveler': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/lien/renouveler', {}], codes: [200] },
 };
 
@@ -366,7 +379,7 @@ const ATTENDU = {
       if (r.garde === 'AP') F.AP = appelPrepare(r.id === 'appels.repondre' ? 'sonne' : 'en_cours');
       if (['SP', 'SH', 'SO', 'SJ'].includes(r.garde)) F.SA = sallePrepare({ benPresent: r.garde !== 'SJ', attend: r.id === 'salles.admettre' || r.id === 'salles.refuser' });
       /* la fixture des pièces : une photo déposée PAR LA ROUTE (le fichier est réellement rangé et scellé), attachée à un message du groupe par le module de stockage */
-      if (r.garde === 'J') {
+      if (r.garde === 'J' || r.id === 'pieces.suivi') {
         const dep = await F_PIECES.deposer(clientDe('admin'), { conv: G, genre: 'photo', corps: PNG });
         if (dep.code !== 201) throw new Error('fixture de pièce refusée : ' + dep.code);
         S.messageEnvoyer({ conv: G, auteur: A.id, cid: 'cid-fx-piece-01', type: 'photo', pieces: [{ id: dep.j.id, w: 8, h: 8 }] });
@@ -513,7 +526,7 @@ const ATTENDU = {
     vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : le 404 « réunion inexistante » a été comparé pour toutes les routes de réunion à garde R ou H (' + reunionsVerifiees + ')', reunionsVerifiees === MANIFESTE.filter(r => ['R', 'H'].includes(r.garde)).length && reunionsVerifiees >= 8);
     vrai('population : le 404 « appel inexistant » a été comparé pour les trois routes à garde AP (' + appelsVerifies + ')', appelsVerifies === MANIFESTE.filter(r => r.garde === 'AP').length && appelsVerifies === 3);
-    vrai('population : le 404 « salle inexistante » a été comparé pour les seize routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 16);
+    vrai('population : le 404 « salle inexistante » a été comparé pour les dix-huit routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 18);
     vrai('population : des refus ont bien été relevés avant/après (' + refusSansEffet + ')', refusSansEffet >= 60);
     v('⛔ AUCUN refus n\'a écrit quoi que ce soit (instantané de la base identique avant/après)', refusAvecEffet, []);
 

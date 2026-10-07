@@ -154,6 +154,7 @@ async function retourListe(S) {
   if (vis) { await toucher(S, '#conv-retour'); await S.page.waitForFunction(() => document.documentElement.dataset.conv !== '1', null, { timeout: 4000 }).catch(() => {}); }
 }
 async function onglet(S, vue) {
+  if (vue === 'reglages' && await S.page.evaluate(() => { const s = document.getElementById('vue-reglages'); return !!s && !s.hidden && s.getClientRects().length > 0; })) return;   /* déjà dans le Profil (une rubrique ouverte) : « Profil » n'est plus un onglet (7 octobre 2026), et la rubrique se choisit d'ici */
   await retourListe(S);
   await toucher(S, 'a[data-vue="' + vue + '"]');
   await S.page.waitForFunction(x => { const s = document.getElementById('vue-' + x); return s && !s.hidden && s.getClientRects().length > 0; }, vue, { timeout: 6000 });
@@ -355,7 +356,9 @@ async function parcoursA(b, ctx) {
   const form = await A.page.evaluate(() => {
     const ids = ['rf-titre', 'rf-lieu', 'rf-debut', 'rf-fin', 'rf-tz', 'rf-rep'], el = (i) => document.getElementById(i);
     return {
-      presents: ids.map(i => !!el(i)), tz: el('rf-tz').value, rep: el('rf-rep').value, finRepCachee: el('rf-fin-rep').hidden, polices: ids.map(i => parseFloat(getComputedStyle(el(i)).fontSize)), hauteurs: ids.map(i => Math.round(el(i).getBoundingClientRect().height)),
+      presents: ids.map(i => !!el(i)), tz: el('rf-tz').value, tzCache: el('rf-tz').type === 'hidden', etranger: [!!document.querySelector('[data-reu="form-etranger"]'), el('rf-etranger').hidden], rep: el('rf-rep').value, finRepCachee: el('rf-fin-rep').hidden,
+      /* le fuseau n'est plus un champ (7 octobre 2026 : « automatique en fonction du système ») : les tailles se mesurent sur les cinq champs qu'on touche */
+      polices: ids.filter(i => i !== 'rf-tz').map(i => parseFloat(getComputedStyle(el(i)).fontSize)), hauteurs: ids.filter(i => i !== 'rf-tz').map(i => Math.round(el(i).getBoundingClientRect().height)),
       rappels: Array.from(document.querySelectorAll('#rf-rappels [data-min]')).map(e => [e.dataset.min, e.getAttribute('aria-checked')]),
       invites: Array.from(document.querySelectorAll('#rf-invites [data-uid]')).map(e => e.querySelector('.contact-nom').textContent), n: el('rf-invites-n').textContent,
       notifier: document.querySelector('[data-reu="form-notifier"]').getAttribute('aria-checked'), debut: el('rf-debut').value, fin: el('rf-fin').value,
@@ -363,6 +366,7 @@ async function parcoursA(b, ctx) {
   });
   v('le formulaire neuf : six champs, le fuseau de l\'appareil (Paris), pas de répétition (sa fin cachée), le rappel de 15 minutes seul coché, « Notifier » allumé, aucun invité choisi', [form.presents, form.tz, form.rep, form.finRepCachee, form.rappels, form.n, form.notifier],
     [[true, true, true, true, true, true], PARIS, 'aucune', true, [['5', 'false'], ['15', 'true'], ['60', 'false'], ['1440', 'false']], '0', 'true']);
+  v('⛔ le fuseau suit l\'appareil, sans champ à l\'écran ; la case « Participants dans un autre pays » est là, son choix replié', [form.tzCache, form.etranger], [true, [true, true]]);
   v('… les deux contacts (Bruno, Dora) sont proposés', form.invites.slice().sort(), ['Bruno Petit', 'Dora Leroy']);
   vrai('… le début est une heure pleine à venir et la fin une heure plus tard', /^\d{4}-\d{2}-\d{2}T\d{2}:00$/.test(form.debut) && Date.parse(form.fin + ':00Z') - Date.parse(form.debut + ':00Z') === H);
   v('⛔ chaque champ fait 16 px de police au moins (Safari zoomerait la page au toucher) et 44 px de haut', [form.polices.every(p => p >= 16), form.hauteurs.every(h => h >= 43)], [true, true]);

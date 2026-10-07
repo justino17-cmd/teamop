@@ -18,6 +18,8 @@
  *   POST /api/salles/:id/reaction {emoji}      SP   pouce, coeur, bravo, rire
  *   POST /api/salles/:id/etat {camera,micro,partage}  SP   l'état de MON appareil (l'image de ma tuile chez les autres)
  *   POST /api/salles/:id/evt {k, donnees}      SP   sondage, minuteur, épingle (2 Ko au plus) : voter est à tous, ouvrir / fermer / démarrer / épingler à l'hôte et aux co-hôtes
+ *   GET  /api/salles/:id/presence               SH   le rapport de présence de la salle : qui est entré (première entrée, dernière sortie, temps passé), qui n'est jamais entré — l'hôte et les co-hôtes
+ *   POST /api/salles/:id/annot {op, …}         SP   dessiner et écrire sur l'écran partagé ou le tableau blanc (trait, texte, retirer, annuler, effacer, tableau, permis) — 900 gestes par minute
  *
  * Les gardes (`app.js`) : SP participant d'une SALLE (un exclu, un non-participant, un appel à deux : le MÊME 404 qu'une salle qui n'existe pas), SH hôte ou co-hôte PRÉSENT (un participant voit 403), SO hôte seul.
  * ⛔ LES OUTILS DE L'ORGANISATEUR SE PAIENT, LA SALLE NON (Justin, 4 octobre 2026 : « comme WhatsApp » pour le public ; les réunions à ceux qui organisent). Dans la salle d'une RÉUNION, ou dans un appel de groupe lancé par quelqu'un
@@ -38,14 +40,14 @@ function installerSalles(H, ctx) {
   const refus = (res, statut, code, extra) => res.status(statut).json(Object.assign({ error: code }, extra || {}));
   const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
   /* Les codes de refus du stockage et du chef d'orchestre, traduits : tous des chaînes courtes que la page sait dire (`public/api.js`, `MESSAGES`). Un code inconnu est une vraie panne : il part à `next`. */
-  const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], appel_fini: [409, 'appel_fini'], appel_pas_en_cours: [409, 'appel_pas_en_cours'], appel_complet: [409, 'appel_complet'], champ_invalide: [400, 'champ_invalide'] };
+  const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], annot_pleine: [409, 'annot_pleine'], rien_a_annoter: [409, 'rien_a_annoter'], annot_occupe: [409, 'annot_occupe'], appel_fini: [409, 'appel_fini'], appel_pas_en_cours: [409, 'appel_pas_en_cours'], appel_complet: [409, 'appel_complet'], champ_invalide: [400, 'champ_invalide'] };
   const garder = (f) => (req, res, next) => {
     const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], c[2]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };
-  function plafond(res, cle, max, fenetreMs) {
-    const r = quotas.essai(cle, Math.max(1, Math.floor(max)), fenetreMs);
+  function plafond(res, cle, max, fenetreMs, poids) {
+    const r = quotas.essai(cle, Math.max(1, Math.floor(max)), fenetreMs, poids);
     if (r.ok) return true;
     res.set('Retry-After', String(r.retry));
     refus(res, 429, 'quota_atteint', { retry: r.retry });
@@ -158,6 +160,25 @@ function installerSalles(H, ctx) {
     if (!gesteSimple(req, res)) return;
     appels.etatMien({ moi: req.moi, acces: req.appel, camera: b.camera, micro: b.micro, partage: b.partage });
     res.json({ ok: true });
+  });
+  /* les annotations : un trait en cours part en morceaux (dix par seconde) — un plafond à part, assez large pour dessiner, assez court pour qu'une boucle ne submerge pas la salle */
+  /* le rapport de présence : l'hôte et les co-hôtes PRÉSENTS (la garde SH) — « savoir qui était là, et combien de temps », comme les rapports de présence de Teams */
+  H['salles.presence'] = garder((req, res) => {
+    if (!plafond(res, 'salle_presence:' + req.moi.id, 120, 60000)) return;
+    const r = stockage.presenceSalle(req.appel.id, ctx.horloge());
+    if (!r) return refus(res, 404, 'introuvable');
+    res.json(r);
+  });
+  H['salles.annot'] = garder((req, res) => {
+    const b = corps(req);
+    if (typeof b.op !== 'string') return refus(res, 400, 'champ_invalide');
+    /* ⛔ un plafond PAR COMPTE, toutes salles confondues (ouvrir dix salles ne le multiplie pas), en gestes ET en points : ce qui coûte, c'est ce que la salle diffuse à chacun de ses présents, et un trait de
+       600 points en pèse 600. Cette route est HORS du plafond commun des écritures (300 par minute, `app.js`) : un trait en cours part en morceaux, et ce plafond-là coupait le dessin au bout d'une
+       demi-minute (relecture gardien, mesuré avec les plafonds de production). */
+    if (!plafond(res, 'salle_annot:' + req.moi.id, 900, 60000)) return;
+    const n = Array.isArray(b.pts) ? b.pts.length : 0;
+    if (n && !plafond(res, 'salle_annot_pts:' + req.moi.id, 40000, 60000, Math.min(n, 40000))) return;
+    res.json({ ok: true, ev: appels.annoter({ moi: req.moi, acces: req.appel, d: b }) });
   });
   H['salles.evt'] = garder((req, res) => {
     const b = corps(req);

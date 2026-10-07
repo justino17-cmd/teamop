@@ -54,6 +54,7 @@ const MANIFESTE = [
   { id: 'liens.lire',        m: 'POST', p: '/api/liens/lire',                        garde: 'S' },
   { id: 'liens.accepter',    m: 'POST', p: '/api/liens/accepter',                    garde: 'V' },
   { id: 'personnes.lire',    m: 'GET',  p: '/api/personnes/:id',                     garde: 'V' },
+  { id: 'personnes.commun',  m: 'GET',  p: '/api/personnes/:id/commun',              garde: 'V' },   // la fiche d'un contact : les réunions, groupes et espaces EN COMMUN (seulement ce dont on fait partie)
   { id: 'conv.liste',        m: 'GET',  p: '/api/conversations',                     garde: 'S' },
   { id: 'conv.directe',      m: 'POST', p: '/api/conversations/directe',             garde: 'V' },
   { id: 'conv.groupe',       m: 'POST', p: '/api/conversations/groupe',              garde: 'V' },
@@ -73,6 +74,11 @@ const MANIFESTE = [
   { id: 'msg.modifier',      m: 'POST', p: '/api/conversations/:id/messages/modifier', garde: 'M' },
   { id: 'msg.supprimer',     m: 'POST', p: '/api/conversations/:id/messages/supprimer', garde: 'M' },
   { id: 'msg.reagir',        m: 'POST', p: '/api/conversations/:id/messages/reagir', garde: 'M' },
+  /* les sondages d'une conversation (7 octobre 2026) : lire, voter, ajouter un choix, clore — un membre */
+  { id: 'sondage.lire',      m: 'GET',  p: '/api/conversations/:id/sondages/:seq',   garde: 'M' },
+  { id: 'sondage.voter',     m: 'POST', p: '/api/conversations/:id/sondages/:seq/voter', garde: 'M' },
+  { id: 'sondage.choix',     m: 'POST', p: '/api/conversations/:id/sondages/:seq/choix', garde: 'M' },
+  { id: 'sondage.clore',     m: 'POST', p: '/api/conversations/:id/sondages/:seq/clore', garde: 'M' },
   /* Étape 2 : le compte PERSO par numéro de téléphone (`telephone.js`). Les trois premières sont PUBLIQUES (garde P) : on ne peut pas
      avoir de session avant d'en avoir une — leur défense est dans les plafonds, le budget en euros et les réponses uniformes. */
   { id: 'tel.code',          m: 'POST', p: '/api/tel/code',                          garde: 'P' },
@@ -97,6 +103,7 @@ const MANIFESTE = [
   /* L'identifiant « Prénom#1234 » et les demandes de contact (`telephone.js` § 6) : retrouver par l'identifiant EXACT, demander, répondre, retirer sa demande. */
   { id: 'contacts.identifiant', m: 'POST', p: '/api/contacts/identifiant',           garde: 'V' },
   { id: 'contacts.demander', m: 'POST', p: '/api/contacts/demander',                 garde: 'V' },
+  { id: 'contacts.demander_carte', m: 'POST', p: '/api/contacts/demander_carte',     garde: 'V' },   // demander une personne dont on a reçu la FICHE dans une conversation
   { id: 'contacts.demandes', m: 'GET',  p: '/api/contacts/demandes',                 garde: 'S' },
   { id: 'contacts.repondre', m: 'POST', p: '/api/contacts/demandes/repondre',        garde: 'V' },
   { id: 'contacts.annuler',  m: 'POST', p: '/api/contacts/demandes/annuler',         garde: 'V' },
@@ -104,6 +111,7 @@ const MANIFESTE = [
      (vérifié dans la route : le membre se lit dans l'adresse de la requête, pas dans le chemin) ; une lecture passe la garde J. */
   { id: 'pieces.deposer',    m: 'POST', p: '/api/pieces',                            garde: 'V' },
   { id: 'pieces.lire',       m: 'GET',  p: '/api/pieces/:id',                        garde: 'J' },
+  { id: 'pieces.suivi',      m: 'GET',  p: '/api/pieces/:id/suivi',                  garde: 'V' },   // le suivi d'un document : son AUTEUR seul (reçu, lu, ouvert, téléchargé)
   { id: 'moi.avatar',        m: 'POST', p: '/api/moi/avatar',                        garde: 'S' },
   { id: 'moi.stockage',      m: 'GET',  p: '/api/moi/stockage',                      garde: 'S' },
   /* Étape 2 (suite) : les notifications push (`routes-push.js`) et le compte (`compte.js`). Toutes S : l'identité vient de la SESSION, jamais du corps. L'acquittement d'un événement
@@ -188,11 +196,14 @@ const MANIFESTE = [
   { id: 'salles.reaction',   m: 'POST', p: '/api/salles/:id/reaction',               garde: 'SP' },
   { id: 'salles.etat',       m: 'POST', p: '/api/salles/:id/etat',                   garde: 'SP' },
   { id: 'salles.evt',        m: 'POST', p: '/api/salles/:id/evt',                    garde: 'SP' },
+  { id: 'salles.presence',   m: 'GET',  p: '/api/salles/:id/presence',               garde: 'SH' },   // le rapport de présence (l'hôte et les co-hôtes)
+  { id: 'salles.annot',      m: 'POST', p: '/api/salles/:id/annot',                  garde: 'SP' },   // dessiner et écrire sur l'écran partagé ou le tableau blanc
   /* Le lien d'invité d'une réunion et sa salle. L'aperçu est PUBLIC et limité (il ne dit que de quoi décider de rejoindre, jamais un participant) ; rejoindre par le lien exige un compte (S, v1) ; la salle d'une
      réunion où l'on est invité s'ouvre par R (l'hôte en est un) ; le lien se lit et se renouvelle par H (l'ancien meurt). */
   { id: 'reunions.apercu',   m: 'POST', p: '/api/reunions/apercu',                   garde: 'P' },
   { id: 'reunions.rejoindre_code', m: 'POST', p: '/api/reunions/rejoindre',          garde: 'S' },
   { id: 'reunions.rejoindre', m: 'POST', p: '/api/reunions/:id/rejoindre',           garde: 'R' },
+  { id: 'reunions.presence', m: 'GET',  p: '/api/reunions/:id/presence',             garde: 'H' },   // le rapport de présence (l'organisateur seul)
   { id: 'reunions.lien',     m: 'POST', p: '/api/reunions/:id/lien',                 garde: 'H' },
   { id: 'reunions.lien_renouveler', m: 'POST', p: '/api/reunions/:id/lien/renouveler', garde: 'H' },
   /* PERSO+ (4 octobre 2026) : le forfait d'une PERSONNE (`facturation-perso.js`). La personne est CELLE DE LA SESSION, jamais celle du corps ; le corps ne nomme qu'un rythme. Aucune ligne n'est `pro` ni `organiser` :

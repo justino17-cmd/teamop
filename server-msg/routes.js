@@ -26,8 +26,12 @@ const EPHEMERES = [0, 86400, 604800, 7776000];
 const MSG_MAX = 8000, SESSION_MS = 30 * 86400000, JOUR = 86400000;
 const EMOJI = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indicator}|‍|️|⃣){1,12}$/u;
 const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
+/* ⛔ `position` (le bouton « Position » des conversations, COUPÉ par défaut — 7 octobre 2026 : « il faut qu'il l'active dans les paramètres, c'est une sécurité pour eux ») N'EST PAS ICI :
+   une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
 const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
-const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier'];
+const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
+const CARTES = ['position', 'contact', 'sondage'];      // un message « carte » : un texte (son résumé, pour les versions d'avant) qui porte `meta.k`
+const RESULTATS_SONDAGE = ['toujours', 'apres_vote', 'apres_cloture'];
 const PHOTOS_MAX = 10, BARRES_MAX = 64, DUREE_VOCAL_MAX = 600, COTE_MAX = 20000;
 
 const CTRL_NOM = /[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
@@ -74,6 +78,9 @@ function creerHandlers(ctx) {
       case 'lien_propre': return refus(res, 409, 'lien_propre');
       case 'piece_inconnue': return refus(res, 404, 'piece_inconnue');
       case 'canal_public': return refus(res, 409, 'canal_public');
+      case 'sondage_clos': return refus(res, 409, 'sondage_clos');
+      case 'sondage_plein': return refus(res, 409, 'sondage_plein');
+      case 'sondage_doublon': return refus(res, 409, 'sondage_doublon');
       default: throw e;
     }
   }
@@ -312,7 +319,11 @@ function creerHandlers(ctx) {
   };
 
   /* ── Conversations ───────────────────────────────────────────────────────────────────── */
-  H['conv.liste'] = (req, res) => res.json({ conversations: stockage.convListe(req.moi.id) });
+  H['conv.liste'] = (req, res) => {
+    const conversations = stockage.convListe(req.moi.id);
+    try { stockage.membreRecuTout(req.moi.id); } catch (e) { /* « reçu » est une information de plus : une base qui refuse n'empêche pas de lire ses conversations */ }
+    res.json({ conversations });
+  };
 
   H['conv.directe'] = (req, res) => {
     const u = cibleContact(req, res); if (!u) return;
@@ -432,8 +443,22 @@ function creerHandlers(ctx) {
     res.json({ ok: true });
   };
 
+  /* ⛔ LE THÈME D'UNE CONVERSATION (7 octobre 2026) : deux NOMS pris dans deux listes fermées — jamais une couleur ni une image libres (rien de ce qu'une personne écrit ne devient du style).
+     `null` ou { fond: 'aucun', bulle: 'defaut' } : le thème par défaut. */
+  const FONDS = ['aube', 'ocean', 'foret', 'lavande', 'sable', 'corail', 'ardoise'];
+  const BULLES = ['bleu', 'vert', 'violet', 'orange', 'rose', 'graphite', 'sarcelle', 'bordeaux'];
   H['conv.prefs'] = (req, res) => {
     const b = corps(req), o = {};
+    if (b.theme !== undefined) {
+      if (b.theme === null) o.theme = null;
+      else {
+        const t = b.theme;
+        if (!t || typeof t !== 'object' || Array.isArray(t)) return refus(res, 400, 'champ_invalide');
+        const f = t.fond === undefined || t.fond === null ? 'aucun' : t.fond, u = t.bulle === undefined || t.bulle === null ? 'defaut' : t.bulle;
+        if ((f !== 'aucun' && !FONDS.includes(f)) || (u !== 'defaut' && !BULLES.includes(u))) return refus(res, 400, 'champ_invalide');
+        o.theme = f === 'aucun' && u === 'defaut' ? null : f + '/' + u;
+      }
+    }
     if (b.muet_jusqua !== undefined) { const v = entier(b.muet_jusqua); if (v === null || v < 0 || v > horloge() + 10 * 365 * JOUR) return refus(res, 400, 'champ_invalide'); o.muet_jusqua = v; }
     if (b.epingle !== undefined) { if (typeof b.epingle !== 'boolean') return refus(res, 400, 'champ_invalide'); o.epingle = b.epingle; }
     if (b.archive !== undefined) { if (typeof b.archive !== 'boolean') return refus(res, 400, 'champ_invalide'); o.archive = b.archive; }
@@ -500,8 +525,12 @@ function creerHandlers(ctx) {
     if (typeof b.cid !== 'string' || !CID.test(b.cid)) return refus(res, 400, 'champ_invalide');
     const type = b.type === undefined ? 'texte' : b.type;
     if (typeof type !== 'string' || !TYPES_ENVOI.includes(type)) return refus(res, 400, 'champ_invalide');
-    let texte = null, pj = null;
-    if (type === 'texte') {
+    let texte = null, pj = null, meta = null, sondage = null;
+    if (CARTES.includes(type)) {
+      const c = lireCarte(type, b, req.moi);
+      if (c.refus) return refus(res, c.refus[0], c.refus[1]);
+      texte = c.texte; meta = c.meta; sondage = c.sondage || null;
+    } else if (type === 'texte') {
       if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
       if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
       texte = nettoyerTexte(b.texte);
@@ -533,11 +562,11 @@ function creerHandlers(ctx) {
     if (!stockage.ecritureAutorisee(conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
     if (conv.type === 'groupe' && conv.annonces_seules && req.conv.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
     if (!plafond(res, 'msg', req.moi.id, { max: 60, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
-    const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type, texte, repondA, pieces: pj && pj.pieces, vocal: pj && pj.vocal });
+    const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type: CARTES.includes(type) ? 'texte' : type, texte, meta, sondage, repondA, pieces: pj && pj.pieces, vocal: pj && pj.vocal });
     if (r.deja) return res.status(200).json({ deja: true, seq: r.seq, ts: r.ts, id: r.id });
     hub.reveiller({ conv: conv.id });
     /* ⛔ LA NOTIFICATION PUSH suit le message : aux membres qui ont un appareil abonné, sans l'auteur, sans les conversations en sourdine ; elle attend l'acquittement d'une page ouverte (`push.js`) */
-    try { if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type, texte }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+    try { if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type: CARTES.includes(type) ? 'texte' : type, texte }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
     if (Array.isArray(b.mentions)) {
       const membres = new Set(stockage.membresActifs(conv.id));
       for (const u of Array.from(new Set(b.mentions.slice(0, 20)))) {
@@ -545,6 +574,88 @@ function creerHandlers(ctx) {
       }
     }
     res.status(201).json({ seq: r.seq, ts: r.ts, id: r.id });
+  };
+
+  /* ── LES CARTES (7 octobre 2026) : une position, la fiche d'un contact, un sondage. Chacune est un TEXTE (son résumé : ce que montre une version d'avant, une notification, l'aperçu de la liste)
+     qui porte sa forme dans `meta` (scellée comme le reste). → { texte, meta, sondage? } ou { refus: [statut, code] } ── */
+  function lireCarte(type, b, moi) {
+    const non = (s, c) => ({ refus: [s, c || 'champ_invalide'] });
+    if (b.texte !== undefined && b.texte !== null && b.texte !== '') return non(400);
+    if (type === 'position') {
+      /* ⛔ seulement si la personne l'a ALLUMÉ dans ses réglages : sinon le service refuse, même si une page l'oubliait */
+      if (!(moi.prefs && moi.prefs.position === true)) return non(403, 'position_desactivee');
+      const ok = (x, max) => typeof x === 'number' && Number.isFinite(x) && Math.abs(x) <= max;
+      if (!ok(b.lat, 90) || !ok(b.lng, 180)) return non(400);
+      if (b.precision !== undefined && b.precision !== null && !(Number.isInteger(b.precision) && b.precision >= 0 && b.precision <= 100000)) return non(400);
+      const lat = Math.round(b.lat * 1e6) / 1e6, lng = Math.round(b.lng * 1e6) / 1e6, prec = Number.isInteger(b.precision) ? b.precision : null;
+      return { texte: '📍 Position partagée', meta: { k: 'position', lat, lng, prec } };
+    }
+    if (type === 'contact') {
+      /* la fiche d'un de MES contacts : seulement quelqu'un qui se laisse trouver (« trouvable par tous ») — sinon son choix de rester introuvable ne vaudrait rien. Ce qu'elle dit : ce qu'une
+         recherche par identifiant dit (le premier mot du prénom, l'identifiant), figé à l'envoi. */
+      const uid = b.uid;
+      if (typeof uid !== 'string' || !ID_PERS.test(uid) || uid === moi.id) return non(400);
+      if (!stockage.contactActif(moi.id, uid)) return non(404, 'introuvable');
+      const p = stockage.personneParId(uid);
+      if (!p || p.etat !== 'actif' || stockage.suppressionLe(uid) !== null) return non(404, 'introuvable');
+      if (stockage.telTrouvableLire(uid) !== 'tous') return non(403, 'contact_non_partageable');
+      /* le message ne garde QUE l'identifiant : prénom et identifiant public se relisent à chaque lecture, tant que la personne se laisse trouver (`metaLue`) — et le résumé ne nomme personne */
+      return { texte: '👤 Fiche de contact', meta: { k: 'contact', uid } };
+    }
+    /* le sondage : une question, de deux à douze choix, et ses RÈGLES */
+    const q = typeof b.question === 'string' ? nettoyerTexte(b.question).replace(/\s+/g, ' ').trim() : '';
+    if (!q || INVISIBLE.test(q) || Array.from(q).length > 300) return non(400);
+    if (!Array.isArray(b.choix) || b.choix.length < 2 || b.choix.length > 12) return non(400);
+    const choix = b.choix.map(c => typeof c === 'string' ? nettoyerTexte(c).replace(/\s+/g, ' ').trim() : '');
+    if (choix.some(c => !c || INVISIBLE.test(c) || Array.from(c).length > 100)) return non(400);
+    const cle = (x) => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (new Set(choix.map(cle)).size !== choix.length) return non(400);
+    const r = b.regles && typeof b.regles === 'object' && !Array.isArray(b.regles) ? b.regles : {};
+    for (const k of ['multiple', 'anonyme', 'ajout']) if (r[k] !== undefined && typeof r[k] !== 'boolean') return non(400);
+    const resultats = r.resultats === undefined ? 'toujours' : r.resultats;
+    if (!RESULTATS_SONDAGE.includes(resultats)) return non(400);
+    let fin = null;
+    if (r.fin !== undefined && r.fin !== null) {
+      const t = horloge();
+      if (!Number.isInteger(r.fin) || r.fin < t + 60000 || r.fin > t + 90 * 86400000) return non(400);         // une minute à quatre-vingt-dix jours
+      fin = r.fin;
+    }
+    return { texte: '📊 Sondage : ' + q, meta: { k: 'sondage', q }, sondage: { choix, regles: { multiple: r.multiple === true, anonyme: r.anonyme === true, ajout: r.ajout === true, resultats, fin } } };
+  }
+  /* les routes d'un sondage : lire, voter, ajouter un choix, clore — un membre qui VOIT le message (la garde M, puis le stockage) */
+  const seqParam = (req) => { const s = /^\d{1,12}$/.test(String(req.params.seq || '')) ? parseInt(req.params.seq, 10) : null; return s && s >= 1 ? s : null; };
+  H['sondage.lire'] = (req, res) => {
+    const s = seqParam(req); if (!s) return refus(res, 400, 'champ_invalide');
+    const v = stockage.sondageVue(req.conv.conv.id, s, req.moi.id);
+    if (!v) return refus(res, 404, 'introuvable');
+    res.json(v);
+  };
+  H['sondage.voter'] = (req, res) => {
+    const s = seqParam(req); if (!s) return refus(res, 400, 'champ_invalide');
+    const l = corps(req).choix;
+    if (!Array.isArray(l) || l.length > 12 || l.some(i => !Number.isInteger(i))) return refus(res, 400, 'champ_invalide');
+    if (!stockage.ecritureAutorisee(req.conv.conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
+    if (!plafond(res, 'sondage', req.moi.id, { max: 60, fenetreMs: 60000 })) return;
+    stockage.sondageVoter(req.conv.conv.id, s, req.moi.id, l);
+    hub.reveiller({ conv: req.conv.conv.id });
+    res.json(stockage.sondageVue(req.conv.conv.id, s, req.moi.id));
+  };
+  H['sondage.choix'] = (req, res) => {
+    const s = seqParam(req); if (!s) return refus(res, 400, 'champ_invalide');
+    const t = corps(req).texte, c = typeof t === 'string' ? nettoyerTexte(t).replace(/\s+/g, ' ').trim() : '';
+    if (!c || INVISIBLE.test(c) || Array.from(c).length > 100) return refus(res, 400, 'champ_invalide');
+    if (!stockage.ecritureAutorisee(req.conv.conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
+    if (!plafond(res, 'sondage', req.moi.id, { max: 60, fenetreMs: 60000 })) return;
+    stockage.sondageAjouterChoix(req.conv.conv.id, s, req.moi.id, c);
+    hub.reveiller({ conv: req.conv.conv.id });
+    res.json(stockage.sondageVue(req.conv.conv.id, s, req.moi.id));
+  };
+  H['sondage.clore'] = (req, res) => {
+    const s = seqParam(req); if (!s) return refus(res, 400, 'champ_invalide');
+    if (!stockage.ecritureAutorisee(req.conv.conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
+    stockage.sondageClore(req.conv.conv.id, s, req.moi.id);
+    hub.reveiller({ conv: req.conv.conv.id });
+    res.json(stockage.sondageVue(req.conv.conv.id, s, req.moi.id));
   };
 
   const seqCorps = (req, res) => {

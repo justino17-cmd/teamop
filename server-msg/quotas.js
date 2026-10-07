@@ -41,8 +41,9 @@ function creerQuotas(horloge = Date.now, maxCles = MAX_CLES) {
   let refus = 0, evinces = 0;
   function balayer(maintenant) { for (const [k, v] of t) if (v.fin <= maintenant) t.delete(k); }
   return {
-    /* Compte UNE tentative pour `cle` : { ok:true } ou { ok:false, retry:<secondes> }. */
-    essai(cle, max, fenetreMs) {
+    /* Compte UNE tentative pour `cle` (ou `poids` : un geste qui en vaut plusieurs — les points d'un trait) : { ok:true } ou { ok:false, retry:<secondes> }. */
+    essai(cle, max, fenetreMs, poids) {
+      const w = Number.isInteger(poids) && poids > 0 ? poids : 1;
       const maintenant = horloge();
       let e = t.get(cle);
       if (e && e.fin <= maintenant) { t.delete(cle); e = null; }
@@ -54,8 +55,8 @@ function creerQuotas(horloge = Date.now, maxCles = MAX_CLES) {
         }
         e = { n: 0, fin: maintenant + fenetreMs }; t.set(cle, e);
       }
-      if (e.n >= max) { refus++; return { ok: false, retry: Math.max(1, Math.ceil((e.fin - maintenant) / 1000)) }; }
-      e.n++;
+      if (e.n + w > max) { refus++; return { ok: false, retry: Math.max(1, Math.ceil((e.fin - maintenant) / 1000)) }; }
+      e.n += w;
       return { ok: true };
     },
     /* Rend UNE tentative comptée (la connexion a réussi : un succès n'use pas le plafond des échecs). */

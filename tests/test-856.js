@@ -193,6 +193,9 @@ function controler(PAGE, DOC, SRC) {
   /* l'onglet « Contacts » (6 octobre 2026) n'existe que là où les demandes de contact existent (CAP.identifiants : le service) ; l'aperçu garde ses quatre onglets */
   const ordres = (/const ORDRE = CAP\.identifiants \? \[([^\]]*)\] : \[([^\]]*)\]/.exec(JS) || [, '', '']).slice(1).map(x => x.replace(/['\s]/g, ''));
   v('les onglets du document, dans l\'ordre : Messages · Contacts · Appels · Réunions · Réglages au service, sans Contacts dans l\'aperçu', ordres, ['messages,contacts,appels,reunions,reglages', 'messages,appels,reunions,reglages']);
+  /* ⛔ Justin, 7 octobre 2026 : « je ne veux pas le profil avec contact et agenda — le profil, c'est en bas ». La VUE reste (adresses #reglages/…), le MENU et la barre d'onglets la perdent ;
+     on y entre par soi : la carte du bas de la barre latérale, l'avatar au bout du grand titre au téléphone. La contre-épreuve navigateur : tests/sonde-opmessages-entree-profil.js */
+  vrai('⛔ le menu et la barre d\'onglets n\'ont PAS « Profil » : ils se construisent sur NAV (ORDRE sans « reglages »)', /const NAV = ORDRE\.filter\(k => k !== 'reglages'\)/.test(JS) && /\$\('nav-side'\)\.innerHTML = NAV\.map\(/.test(JS) && /insertAdjacentHTML\('beforeend', NAV\.map\(c => lien\(c, 'tab'\)\)/.test(JS) && /setProperty\('--n', NAV\.length\)/.test(JS));
   /* (l'onglet des réunions s'appelle « Agenda » là où l'agenda personnel existe — CAP.agenda, le service — et garde « Réunions » dans l'aperçu) */
   v('   et leurs titres', ['Messages', 'Contacts', 'Appels', 'Profil'].filter(t => !new RegExp("titre: '" + t + "'").test(JS)).concat(/titre: CAP\.agenda \? 'Agenda' : 'Réunions'/.test(JS) ? [] : ['Agenda | Réunions']), []);
   vrai('la barre latérale porte le statut « Disponible »', />Disponible</.test(HTML) || /<i><\/i>Disponible/.test(HTML));

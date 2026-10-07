@@ -1,11 +1,44 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '02dd98e00861';
+  const OPMSG_BUILD = '7287cb4b1f94';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 21;
+  const OPMSG_VERSION = 68;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
+
+  /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
+     Les mêmes noms que la bêta d'OP GESTION (`opPlatAppliquer`) : data-plat, data-os, data-kind, data-nav, data-verre-natif, data-autonome. La feuille s'y accroche, aucun
+     écran ne fait de `if` : un appareil qu'on ne reconnaît pas garde le rendu d'avant. Quatre pièges, tous connus :
+       · l'ORDRE de lecture : Edge contient « Chrome », Chrome contient « Safari » — à l'envers, tout le monde serait Safari et le verre s'allumerait sur Windows ;
+       · l'iPad se dit « Macintosh » depuis iPadOS 13 : ce sont ses points de contact qui le trahissent ;
+       · le VERRE NATIF (Liquid Glass) se décide sur la version de SAFARI (26), sur un WebKit d'Apple : un Chrome sur Mac ne le rend pas, un « on ne sait pas » non plus ;
+       · `data-kind` : « tablette » pour un iPad (et un Android à grand écran tactile) — c'est lui qui prend le menu latéral dès 781 px, sans barre d'onglets.
+     Rien n'est rangé sur l'appareil, rien ne part au service. */
+  function opPlat() {
+    const ua = navigator.userAgent || '', p = (navigator.userAgentData && navigator.userAgentData.platform) || '', points = navigator.maxTouchPoints || 0;
+    const os = /Android/i.test(ua) || /Android/i.test(p) ? 'android' : /iPhone|iPod/i.test(ua) ? 'ios' : (/iPad/i.test(ua) || (/Macintosh/i.test(ua) && points > 1)) ? 'ipados'
+      : /Macintosh|Mac OS X/i.test(ua) || /macOS/i.test(p) ? 'macos' : /Windows/i.test(ua) || /Windows/i.test(p) ? 'windows' : /CrOS/i.test(ua) ? 'chromeos' : /Linux/i.test(ua) ? 'linux' : 'autre';
+    const nav = /Edg[A-Z]?\//.test(ua) ? 'edge' : /SamsungBrowser/i.test(ua) ? 'samsung' : /FxiOS|Firefox/i.test(ua) ? 'firefox' : /CriOS|Chrome\//i.test(ua) ? 'chrome' : /Safari/i.test(ua) ? 'safari' : 'autre';
+    const m = ua.match(/Version\/(\d+)[.\d]*\s+(?:Mobile\/\S+\s+)?Safari/), safari = m ? parseInt(m[1], 10) || 0 : 0;
+    let autonome = navigator.standalone === true;
+    try { autonome = autonome || matchMedia('(display-mode: standalone)').matches; } catch (e) { /* un navigateur sans matchMedia : pas installée */ }
+    const apple = os === 'ios' || os === 'ipados' || os === 'macos', webkitApple = apple && (nav === 'safari' || os !== 'macos');
+    const natif = webkitApple && safari >= 26;
+    const court = Math.min(screen.width || 0, screen.height || 0);
+    const kind = os === 'ipados' || (os === 'android' && court >= 600) ? 'tablette' : os === 'ios' || os === 'android' ? 'mobile' : 'desktop';
+    const plat = os === 'ios' || os === 'ipados' ? (natif ? (autonome ? 'ios27' : 'iosweb') : 'ios18') : os === 'android' ? (autonome ? 'android' : 'androidweb')
+      : os === 'macos' ? (natif ? (autonome ? 'macos27' : 'macweb') : 'macos14') : os === 'windows' ? (autonome ? 'windows' : 'winweb') : 'web';
+    /* Linux, ChromeOS, un agent inconnu : « web » — ni les rayons de Windows ni ceux d'Apple, le rendu commun (et pas de verre natif) */
+    return { plat, os: os === 'ipados' ? 'ios' : (os === 'macos' || os === 'android' || os === 'windows' || os === 'ios' ? os : 'autre'), kind, nav, natif, autonome };
+  }
+  const PLAT = (() => {
+    const p = opPlat(), r = document.documentElement;
+    r.setAttribute('data-plat', p.plat); r.setAttribute('data-os', p.os); r.setAttribute('data-kind', p.kind); r.setAttribute('data-nav', p.nav);
+    if (p.natif) r.setAttribute('data-verre-natif', '1'); else r.removeAttribute('data-verre-natif');
+    if (p.autonome) r.setAttribute('data-autonome', '1'); else r.removeAttribute('data-autonome');
+    return p;
+  })();
 
   /* ═══ 1. LA SOURCE — l'UNIQUE porte vers les données ═══════════════════════════════════════════════════════════════════════
      ⛔ Cette page ne contient AUCUNE donnée et n'en modifie AUCUNE : tout ce qu'elle sait des personnes et des conversations vient de
@@ -35,6 +68,13 @@
   };
   /* « Contacts » n'existe que là où les demandes de contact existent (le service) : l'aperçu garde ses quatre onglets */
   const ORDRE = CAP.identifiants ? ['messages', 'contacts', 'appels', 'reunions', 'reglages'] : ['messages', 'appels', 'reunions', 'reglages'];
+  /* ⛔ LE MENU N'A PAS « PROFIL » (demandé le 7 octobre 2026 : « je ne veux pas le profil avec contact et agenda — le profil, c'est en bas, on clique, ça nous emmène à nos paramètres »).
+     Comme sur Mac (le compte en bas de la barre latérale) et sur iPhone (l'avatar en bout de grand titre, comme l'App Store) : on y entre par SOI, pas par une rubrique.
+     La vue existe toujours (ORDRE la garde : adresses « #reglages/… », notifications, bancs) — seuls le menu et la barre d'onglets la perdent. */
+  const NAV = ORDRE.filter(k => k !== 'reglages');
+  /* l'avatar qui mène au Profil, au bout du grand titre de chaque vue (téléphone et tablette en portrait ; au bureau, c'est la carte du bas de la barre latérale) */
+  const pastilleMoi = () => '<a href="#reglages" class="moi-pastille presse" data-vue="reglages" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages">' +
+    '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span></a>';
   /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
   const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
@@ -143,15 +183,16 @@
      jetons ne bougent pas. */
   function rendreCoquille(cle) {
     const v = VUES[cle], sec = $('vue-' + cle);
-    sec.innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
+    sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-' + cle + '">' + esc(v.titre) + '</h1>' +
       '<div class="coquille"><span class="coquille-icone">' + icone(v.icone) + '</span><h2>Bientôt disponible</h2><p>' + esc(v.texte) + (CAP.service ? ' Cet écran arrive bientôt.' : ' Cet écran n\'est pas encore dessiné dans l\'aperçu.') + '</p></div>';
   }
   function construireNavigation() {
     const lien = (cle, cls) => '<a href="#' + cle + '" class="' + cls + '" data-vue="' + cle + '">' + icone(VUES[cle].icone) + '<span>' + esc(VUES[cle].titre) + '</span>' +
       (cle === 'contacts' ? '<b class="onglet-n" data-onglet-n="contacts" hidden></b>' : '') + '</a>';
-    $('tabs').style.setProperty('--n', ORDRE.length);
-    $('nav-side').innerHTML = ORDRE.map(c => lien(c, 'side-lien')).join('');
-    $('tabs').insertAdjacentHTML('beforeend', ORDRE.map(c => lien(c, 'tab')).join(''));
+    $('tabs').style.setProperty('--n', NAV.length);
+    $('nav-side').innerHTML = NAV.map(c => lien(c, 'side-lien')).join('');
+    $('tabs').insertAdjacentHTML('beforeend', NAV.map(c => lien(c, 'tab')).join(''));
+    document.querySelectorAll('.vue > .grand-titre').forEach(h => { if (!(h.previousElementSibling && h.previousElementSibling.classList.contains('moi-pastille')) && h.id !== 'titre-reglages') h.insertAdjacentHTML('beforebegin', pastilleMoi()); });
   }
 
   /* ═══ 6. LA NAVIGATION — UNE ROUTE, UNE ENTRÉE D'HISTORIQUE PAR COUCHE ═════════════════════════════════════════════════════
@@ -226,8 +267,12 @@
       /* ⛔ la position se LIT avant de masquer la vue : une fois masquée, le document raccourcit et la fenêtre est ramenée à la hauteur de la vue d'arrivée (mesuré : 500 px lus 106) */
       if (prec) etat.posVues[prec.vue] = prec.vue === 'messages' && etat.conv ? etat.scrollListe : window.scrollY;
       ORDRE.forEach(k => { $('vue-' + k).hidden = k !== r.vue; });
-      document.querySelectorAll('[data-vue]:not(#moi-carte)').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
-      $('tabs').style.setProperty('--i', ORDRE.indexOf(r.vue));
+      document.querySelectorAll('[data-vue]').forEach(a => { if (a.dataset.vue === r.vue) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current'); });
+      $('tabs').style.setProperty('--i', Math.max(0, NAV.indexOf(r.vue)));
+      $('tabs').classList.toggle('sans-onglet', !NAV.includes(r.vue));
+      /* le retour du Profil (téléphone) ramène à la vue d'où l'on venait — « ‹ Messages », « ‹ Agenda »… */
+      if (r.vue !== 'reglages') etat.avantProfil = r.vue;
+      peindreProfilRetour();
       document.title = VUES[r.vue].titre + SUFFIXE_TITRE;
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
@@ -264,6 +309,9 @@
     const a = e.target.closest('a[data-vue]');
     if (a) {
       e.preventDefault();
+      /* « ‹ Messages » du Profil REND l'entrée d'où l'on venait (le retour d'iOS) au lieu d'en empiler une : sinon le retour système ramènerait au Profil */
+      const h = entree();
+      if (a.id === 'profil-retour' && h && h.p && h.p.vue === a.dataset.vue && etat.route && etat.route.vue === 'reglages' && !etat.route.sec) { rendreEntree(); return; }
       const r = { vue: a.dataset.vue, conv: null, feuille: false, photo: null, appel: null };
       /* un onglet touché PENDANT un appel prend la place de l'entrée de l'appel (il raccroche) : pas d'entrée morte « appel terminé » qu'un retour ferait retomber dessus */
       if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId) remplacer(r); else pousser(r);
@@ -286,6 +334,8 @@
     if (etat.conv) remplacer(r); else pousser(r);
   }
   function rendreEntete(c) {
+    const th = c.theme || { fond: 'aucun', bulle: 'defaut' };
+    $('conv-ecran').dataset.fond = th.fond; $('conv-ecran').dataset.bulle = th.bulle;      // le thème de CETTE conversation (à moi seul)
     $('conv-titre').innerHTML = avatar(c) + '<span class="conv-titre-nom"><span>' + esc(nomConv(c)) + '</span>' + CHEVRON + '</span>';
     $('conv-titre').setAttribute('aria-label', c.type === 'reunion' ? nomConv(c) + ' — voir la réunion' : nomConv(c) + ' — infos du ' + genreConv(c) + (CAP.groupeInfos ? '' : ' (bientôt)'));
     $('conv-cam').setAttribute('aria-label', 'Appel vidéo avec ' + c.nom);
@@ -319,6 +369,14 @@
     } else if (m.fichier) {
       h += '<button type="button" class="fichier ' + sens + ' presse" data-fichier="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="Télécharger le fichier ' + esc(m.fichier.nom) + ', ' + esc(tailleTexte(m.fichier.taille)) + '">' +
         '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="fichier-texte"><span class="fichier-nom" dir="auto">' + esc(m.fichier.nom) + '</span><span class="fichier-taille">' + esc(tailleTexte(m.fichier.taille)) + '</span></span></button>';
+      /* MON fichier : qui l'a reçu, qui l'a téléchargé (« très important pour les patrons ») — un lien à part, sous la carte (on n'imbrique pas deux boutons) */
+      if (moi && m.fichier.piece && suiviPossible()) h += '<button type="button" class="suivi-lien presse" data-suivi="' + esc(m.fichier.piece) + '">' + icone('i-personne') + '<span>Qui l\'a téléchargé ?</span></button>';
+    } else if (m.position && !m.supprime) {
+      h += htmlPosition(m, sens);
+    } else if (m.carteContact && !m.supprime) {
+      h += htmlCarteFiche(m, sens);
+    } else if (m.sondage && !m.supprime) {
+      h += htmlSondage(m, sens);
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
@@ -331,6 +389,76 @@
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
     /* le statut DIT VRAI : « Envoi… » seulement quand des octets partent vraiment (la source le sait), « En attente de connexion… » quand rien ne part ; une pièce en échec a sa phrase et ses deux boutons, pas de statut */
     return { h: h + '</div>', st: estDernierEnvoye ? (m.attente ? (m.echec ? null : m.envoi ? (Number.isInteger(m.progres) ? 'Envoi… ' + m.progres + ' %' : 'Envoi…') : 'En attente de connexion…') : m.lu ? (m.lu === true ? 'Lu' : 'Lu ' + FMT_HEURE.format(m.lu)) : 'Envoyé') : null };
+  }
+  /* ── LES CARTES (7 octobre 2026) — position, fiche d'un contact, sondage ── */
+  const estCarte = m => !!(m && (m.position || m.carteContact || m.sondage));
+  const FMT_COORD = new Intl.NumberFormat('fr-FR', { minimumFractionDigits: 5, maximumFractionDigits: 5 });
+  const coordTexte = p => FMT_COORD.format(p.lat) + ' · ' + FMT_COORD.format(p.lng);
+  const precTexte = p => Number.isInteger(p.prec) ? 'à ' + (p.prec >= 1000 ? (Math.round(p.prec / 100) / 10).toString().replace('.', ',') + ' km' : p.prec + ' m') + ' près' : '';
+  /* ouvrir la position dans l'application de plans de L'APPAREIL (Plans chez Apple, Cartes chez Windows, l'application choisie ailleurs) : aucune page d'un tiers ne s'ouvre d'office */
+  function lienPlan(p) {
+    const la = p.lat.toFixed(6), lo = p.lng.toFixed(6), os = document.documentElement.dataset.os || '';
+    if (os === 'ios' || os === 'macos') return 'maps://?ll=' + la + ',' + lo + '&q=' + encodeURIComponent('Position partagée');
+    if (os === 'windows') return 'bingmaps:?collection=point.' + la + '_' + lo + '_Position&lvl=16';
+    return 'geo:' + la + ',' + lo + '?q=' + la + ',' + lo;
+  }
+  const planDessine = () => '<span class="pos-plan" aria-hidden="true"><span class="pos-epingle">' + icone('i-lieu') + '</span></span>';
+  function htmlPosition(m, sens) {
+    const p = m.position, prec = precTexte(p);
+    return '<span class="carte-msg pos ' + sens + '" role="group" aria-label="Position partagée">' + planDessine() +
+      '<span><span class="carte-titre">Position partagée</span><span class="carte-sous">' + esc(coordTexte(p)) + (prec ? ' · ' + esc(prec) : '') + '</span></span>' +
+      '<span class="carte-actions"><a class="carte-btn presse" href="' + esc(lienPlan(p)) + '" rel="noopener noreferrer">' + icone('i-lieu') + '<span>Ouvrir dans Plans</span></a>' +
+      '<button type="button" class="carte-btn presse" data-pos-copier="' + esc(m.id) + '">Copier</button></span></span>';
+  }
+  /* la fiche d'un contact : « Écrire » s'il l'est déjà, « Ajouter » sinon (une demande, que la personne accepte ou non), rien pour soi-même */
+  const fichesDemandees = new Map();         // message → ce que la demande a donné (« envoyee », « acceptee »…)
+  function htmlCarteFiche(m, sens) {
+    const f = m.carteContact, d = fichesDemandees.get(m.id);
+    const action = f.indisponible ? '<span class="carte-sous">Cette personne ne se laisse plus trouver.</span>' : f.moi ? '<span class="carte-sous">C\'est toi</span>' :
+      f.contact || d === 'acceptee' ? '<button type="button" class="carte-btn presse" data-fiche-ecrire="' + esc(f.uid) + '">' + icone('i-chat') + '<span>Écrire</span></button>' :
+      d ? '<button type="button" class="carte-btn presse" aria-disabled="true">Demande envoyée</button>' :
+      '<button type="button" class="carte-btn presse" data-fiche-ajouter="' + esc(m.id) + '">' + icone('i-personne') + '<span>Ajouter</span></button>';
+    return '<span class="carte-msg fiche ' + sens + '" role="group" aria-label="Fiche de ' + esc(f.prenom) + '">' +
+      '<span class="fiche-haut">' + avatar({ initiales: f.initiales, avatar: f.avatar }) + '<span><span class="carte-titre" dir="auto">' + esc(f.prenom) + '</span><span class="carte-sous">' + esc(f.indisponible ? 'Fiche indisponible' : f.identifiant || 'Contact OP MESSAGES') + '</span></span></span>' +
+      '<span class="carte-actions">' + action + '</span></span>';
+  }
+  /* le sondage : ses règles DITES (on sait d'avance si c'est anonyme, si l'on verra les résultats), un choix par rangée qu'on touche pour voter — une réponse ou plusieurs —,
+     les décomptes quand les règles les montrent, qui a voté quoi quand ce n'est pas anonyme */
+  const sondEnVol = new Set();               // les sondages dont un vote part en ce moment (on ne vote pas deux fois sur le même geste)
+  let sondClore = null;                       // { mid, t } : « Clore » touché une fois — la seconde touche, dans les cinq secondes, le clôt
+  const FMT_FIN = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  function reglesTexte(s) {
+    const r = s.regles, l = [r.multiple ? 'Plusieurs réponses' : 'Une réponse'];
+    if (r.anonyme) l.push('Anonyme');
+    if (r.resultats === 'apres_vote') l.push('Résultats après ton vote'); else if (r.resultats === 'apres_cloture') l.push('Résultats à la clôture');
+    if (r.ajout) l.push('Choix ouverts');
+    if (s.clos) l.push('Clos'); else if (r.fin) l.push('Jusqu\'au ' + FMT_FIN.format(r.fin));
+    return l.join(' · ');
+  }
+  function quiTexte(l) { const n = l.filter(Boolean); return n.length > 3 ? n.slice(0, 3).join(', ') + ' et ' + (n.length - 3) + ' autre' + (n.length - 3 > 1 ? 's' : '') : n.join(', '); }
+  function htmlSondage(m, sens) {
+    const s = m.sondage;
+    let h = '<span class="carte-msg sondage ' + sens + '" role="group" aria-label="Sondage : ' + esc(s.q) + '"' + (s.regles && s.regles.multiple ? ' data-multiple="1"' : '') + '>' +
+      '<span class="sond-q" dir="auto">' + esc(s.q) + '</span>';
+    if (s.etat !== 'ok') return h + '<span class="sond-etat">' + (s.etat === 'absent' ? 'Ce sondage n\'est plus disponible.' : s.etat === 'erreur' ? 'Le sondage n\'a pas pu être lu.' : 'Chargement…') + '</span></span>';
+    h += '<span class="sond-regles">' + esc(reglesTexte(s)) + '</span><span class="sond-liste">';
+    const vol = sondEnVol.has(m.id), total = s.votants || 0;
+    for (const c of s.choix) {
+      const n = c.n | 0, pct = s.resultats && total ? Math.max(0, Math.min(100, Math.round(n * 100 / total))) : 0;
+      const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + n + ' vote' + (n > 1 ? 's' : '') : '');
+      h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + (c.idx | 0) + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
+        (s.resultats ? '<span class="sond-barre" style="--p:' + pct + '%"></span>' : '') +
+        '<span class="sond-coche" aria-hidden="true"></span><span class="sond-texte" dir="auto">' + esc(c.texte) + '</span>' +
+        '<span class="sond-n" aria-hidden="true">' + (s.resultats ? n : '') + '</span>' +
+        (s.resultats && c.qui && c.qui.length ? '<span class="sond-qui" aria-hidden="true">' + esc(quiTexte(c.qui)) + '</span>' : c.ajoutePar ? '<span class="sond-qui" aria-hidden="true">Ajouté par ' + esc(c.ajoutePar) + '</span>' : '') + '</button>';
+    }
+    h += '</span>';
+    const pied = s.resultats ? (total ? total + (total > 1 ? ' personnes ont voté' : ' personne a voté') : 'Personne n\'a encore voté') :
+      s.regles.resultats === 'apres_vote' ? 'Vote pour voir les résultats' : s.mesChoix.length ? 'Tu as voté — les résultats paraîtront à la clôture' : 'Les résultats paraîtront à la clôture';
+    h += '<span class="sond-pied">' + esc(pied) + (s.peutVoter && s.mesChoix.length && !s.regles.multiple ? ' · touche ton choix pour le retirer' : '') + '</span>';
+    const actions = (s.peutAjouter ? '<button type="button" class="carte-btn presse" data-sond-ajouter="' + esc(m.id) + '">Ajouter un choix</button>' : '') +
+      (s.peutClore ? '<button type="button" class="carte-btn presse" data-sond-clore="' + esc(m.id) + '">' + (sondClore && sondClore.mid === m.id ? 'Confirmer la clôture' : 'Clore le sondage') + '</button>' : '');
+    return h + (actions ? '<span class="carte-actions">' + actions + '</span>' : '') + '</span>';
   }
   /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320 ; une image minuscule est agrandie du double au plus, mais jamais laissée sous 72 px de côté ; un panorama
      extrême garde sa largeur — il est vu ENTIER (`contain`), jamais coupé. La largeur et le rapport sont posés en ligne (la boîte d'une photo à peine arrivée est déjà la bonne : rien ne saute). Sans dimensions
@@ -388,7 +516,7 @@
      texte. Chaque morceau garde le balisage qui l'a produit (`__h`) ; seul ce qui a CHANGÉ est remplacé, le reste est le même nœud. */
   function peindreMessages(parts) {
     const col = $('conv-messages'), tpl = document.createElement('template');
-    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.photo ? 'photo' : null) : null, val = cle ? actif.dataset[cle] : null;
+    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : null) : null, val = cle ? actif.dataset[cle] : null;
     for (let i = 0; i < parts.length; i++) {
       const vieux = col.children[i];
       if (vieux && vieux.__h === parts[i].h) { majStatut(vieux, parts[i].st); continue; }
@@ -396,7 +524,7 @@
       if (vieux) col.replaceChild(neuf, vieux); else col.appendChild(neuf);
     }
     while (col.children.length > parts.length) col.removeChild(col.lastChild);
-    if (cle && !col.contains(document.activeElement)) { const b = col.querySelector('[data-' + cle + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
+    if (cle && !col.contains(document.activeElement)) { const b = col.querySelector('[data-' + cle.replace(/[A-Z]/g, x => '-' + x.toLowerCase()) + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
   }
   /* pourquoi on ne peut pas écrire ici (le texte), ou '' : un groupe d'annonces dont on n'est pas admin, un compte supprimé */
   const compoFerme = c => !c ? '' : c.supprime ? 'Ce compte a été supprimé : tu ne peux plus lui écrire.' : (c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0 ? 'Seuls les admins peuvent écrire dans ce groupe.' : '');
@@ -515,6 +643,7 @@
   function majBoutons() {
     const a = $('saisie').value.trim().length > 0;
     $('envoyer').hidden = !a; $('compo-micro').hidden = a;
+    $('compo-camera').hidden = a || !auDoigt() || !CAP.photos;
   }
   const MESSAGES_ERREUR = { interdit: 'Seuls les admins peuvent écrire dans ce groupe.', 'trop-long': 'Ce message est trop long (4 000 signes au plus).', introuvable: 'Cette conversation n\'existe plus.' };
   let minAvis = 0;
@@ -686,18 +815,42 @@
     if (CAP.fichiers) { ouvrirMenuPlus(); return; }
     $('compo-fichier').click();
   });
-  /* « + » avec des fichiers : une petite feuille Photo / Fichier, le même cadre que le menu d'un message (Échap, le fond et chaque geste la referment) */
+  /* « + » : la feuille des pièces jointes (7 octobre 2026, capture de la feuille de WhatsApp à l'appui) — une grille d'icônes comme celle d'iMessage : Photos (plusieurs à la fois), Caméra (au doigt),
+     Position, Contact, Document, Sondage ; chacune n'est là que si le service la sait (une tuile qui mènerait à « bientôt » n'est pas montrée). Le même cadre que le menu d'un message (Échap, le fond et
+     chaque geste la referment). ⛔ Le choix ouvre le sélecteur de l'appareil DANS le clic : passé une attente, le navigateur le refuserait. */
+  const auDoigt = () => document.documentElement.dataset.kind === 'mobile' || document.documentElement.dataset.kind === 'tablette' || (window.matchMedia && matchMedia('(pointer: coarse)').matches);
+  function tuilesPlus() {
+    const t = [['photo', 'Photos', 'i-image']];
+    if (auDoigt()) t.push(['camera', 'Caméra', 'i-capture']);
+    if (CAP.positions) t.push(['position', 'Position', 'i-lieu']);
+    if (CAP.cartesContact) t.push(['contact', 'Contact', 'i-personne']);
+    if (CAP.fichiers) t.push(['fichier', 'Document', 'i-fichier']);
+    if (CAP.sondagesConv) t.push(['sondage', 'Sondage', 'i-sondage']);
+    return t;
+  }
   function ouvrirMenuPlus() {
     if (etat.menu || !etat.conv) return;
     etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now() };
-    $('menu-msg').setAttribute('aria-label', 'Joindre');
-    $('menu-msg').innerHTML = '<button type="button" class="menu-action" data-plus="photo">Photo</button><button type="button" class="menu-action" data-plus="fichier">Fichier</button>';
+    const M = $('menu-msg');
+    M.setAttribute('aria-label', 'Joindre'); M.classList.add('pj');
+    M.innerHTML = tuilesPlus().map(x => '<button type="button" class="pj-tuile presse" data-plus="' + x[0] + '"><span class="pj-disque" aria-hidden="true">' + icone(x[2]) + '</span><span>' + esc(x[1]) + '</span></button>').join('');
     $('menu-fond').hidden = false;
     synchroInert();
-    $('menu-msg').querySelector('button').focus({ preventScroll: true });
+    M.querySelector('button').focus({ preventScroll: true });
   }
-  $('compo-fichier').addEventListener('change', async e => {
-    const choisies = Array.from(e.target.files || []); e.target.value = '';
+  /* un choix de la feuille : les sélecteurs de l'appareil s'ouvrent DANS le geste ; position, contact et sondage ont leur propre feuille */
+  function choixPlus(x) {
+    if (x === 'photo') $('compo-fichier').click();
+    else if (x === 'camera') $('compo-appareil').click();
+    else if (x === 'fichier') $('compo-doc').click();
+    else if (x === 'position' && typeof partagerPosition === 'function') partagerPosition();
+    else if (x === 'contact') ouvrirFeuille('carte-contact');
+    else if (x === 'sondage') ouvrirFeuille('sondage-nouveau');
+  }
+  $('compo-camera').addEventListener('click', () => { if (!retap()) $('compo-appareil').click(); });
+  $('compo-fichier').addEventListener('change', e => { const l = Array.from(e.target.files || []); e.target.value = ''; photosChoisies(l); });
+  $('compo-appareil').addEventListener('change', e => { const l = Array.from(e.target.files || []); e.target.value = ''; photosChoisies(l); });     // la photo prise à l'instant : le même aperçu, la même légende
+  async function photosChoisies(choisies) {
     const id = etat.conv; if (!id || !choisies.length) return;
     const lim = await limitesPhotos();
     /* ⛔ jamais « les dix premières, le reste en silence » (relecture du testeur : la onzième disparaissait sans un mot) */
@@ -721,7 +874,7 @@
       return;
     }
     epOuvrir(id, bonnes, lim.parMessage);
-  });
+  }
 
   /* ═══ LA PHOTO AVANT L'ENVOI — l'aperçu et la légende (6 octobre 2026 : « quand j'envoie une photo, il faudrait pouvoir mettre un texte en dessous, comme WhatsApp ») ═══
      ⛔ La légende fait partie du message (un seul envoi, photos + texte) : elle n'est pas un second message envoyé à la suite. Annuler (la croix, Échap) ne laisse rien partir
@@ -802,7 +955,13 @@
   /* télécharger un fichier reçu : lu du service à la demande, jamais gardé (l'adresse est rendue une minute après) */
   async function telechargerFichier(mid, bouton) {
     const m = trouverMessage(mid);
-    if (!m || !m.fichier || !m.fichier.piece || bouton.getAttribute('aria-disabled') === 'true') return;
+    if (!m || !m.fichier) return;
+    return telechargerPiece(m.fichier, bouton);
+  }
+  /* un fichier ({ piece, nom }) : la conversation et la discussion de la salle passent par ici */
+  async function telechargerPiece(fichier, bouton) {
+    const m = { fichier };
+    if (!m.fichier.piece || bouton.getAttribute('aria-disabled') === 'true') return;
     /* un vrai fichier du service : le navigateur le télécharge lui-même, sans le tenir en mémoire (5 Go au plus) — voir `pieceLien` */
     const lien = typeof source.pieceLien === 'function' ? source.pieceLien(m.fichier.piece) : null;
     if (lien) { const a = document.createElement('a'); a.href = lien; a.download = m.fichier.nom; a.hidden = true; document.body.appendChild(a); a.click(); a.remove(); return; }
@@ -828,18 +987,103 @@
     if (an) { if (typeof source.abandonner === 'function') source.abandonner(an.dataset.annuler); return; }
     const c = e.target.closest('[data-charger]');
     if (c) { source.pieceUrl(c.dataset.charger).then(masquerAvis, er => avis(phrase(er, 'La photo n\'a pas pu être chargée.'))); return; }
+    const sv = e.target.closest('[data-suivi]');
+    if (sv) { declencheur = sv; ouvrirFeuille('suivi:' + sv.dataset.suivi); return; }
+    if (gesteCarte(e)) return;
     const f = e.target.closest('[data-fichier]');
     if (f) telechargerFichier(f.dataset.fichier, f);
   });
+  /* les gestes d'une carte : voter, ajouter un choix, clore (deux touches), copier une position, demander ou écrire au contact d'une fiche → vrai si le geste était pour une carte */
+  function gesteCarte(e) {
+    const conv = etat.conv;
+    const vo = e.target.closest('[data-sond]');
+    if (vo) { if (vo.getAttribute('aria-disabled') !== 'true') voterSondage(vo.dataset.sond); return true; }
+    const aj = e.target.closest('[data-sond-ajouter]');
+    if (aj) { const m = trouverMessage(aj.dataset.sondAjouter); if (m && m.seq) { declencheur = aj; ouvrirFeuille('sondage-choix:' + m.seq); } return true; }
+    const cl = e.target.closest('[data-sond-clore]');
+    if (cl) {
+      const mid = cl.dataset.sondClore, m = trouverMessage(mid); if (!m || !conv) return true;
+      if (!sondClore || sondClore.mid !== mid || Date.now() - sondClore.t > 5000) { sondClore = { mid, t: Date.now() }; rafraichirConv(); setTimeout(() => { if (sondClore && sondClore.mid === mid) { sondClore = null; rafraichirConv(); } }, 5000); return true; }
+      sondClore = null;
+      source.sondageClore(conv, m.seq).then(() => mot('Sondage clos'), er => avis(phrase(er, 'Le sondage n\'a pas pu être clos.')));
+      return true;
+    }
+    const cp = e.target.closest('[data-pos-copier]');
+    if (cp) { const m = trouverMessage(cp.dataset.posCopier); if (m && m.position) copierTexte(m.position.lat.toFixed(6) + ', ' + m.position.lng.toFixed(6), 'Coordonnées copiées'); return true; }
+    const fa = e.target.closest('[data-fiche-ajouter]');
+    if (fa) {
+      const mid = fa.dataset.ficheAjouter, m = trouverMessage(mid); if (!m || !conv || fa.getAttribute('aria-disabled') === 'true') return true;
+      fa.setAttribute('aria-disabled', 'true');
+      source.demanderCarte(conv, m.seq).then(r => { fichesDemandees.set(mid, r); mot(r === 'acceptee' ? 'Vous êtes maintenant en contact' : r === 'deja' ? 'Vous êtes déjà en contact' : 'Demande envoyée'); rafraichirConv(); },
+        er => { fa.removeAttribute('aria-disabled'); avis(phrase(er, 'La demande n\'a pas pu partir.')); });
+      return true;
+    }
+    const fe = e.target.closest('[data-fiche-ecrire]');
+    if (fe) { source.ouvrirDirecte(fe.dataset.ficheEcrire).then(c => pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }), er => avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.'))); return true; }
+    return false;
+  }
+  /* voter : une réponse — toucher un autre choix le remplace, toucher le sien le retire ; plusieurs — chaque touche coche ou décoche */
+  async function voterSondage(cle) {
+    const [mid, i] = cle.split('|'), m = trouverMessage(mid), conv = etat.conv;
+    if (!m || !m.sondage || m.sondage.etat !== 'ok' || !conv || sondEnVol.has(mid)) return;
+    const s = m.sondage, idx = +i, mes = new Set(s.mesChoix);
+    const liste = s.regles.multiple ? (mes.has(idx) ? s.mesChoix.filter(x => x !== idx) : s.mesChoix.concat([idx])) : (mes.has(idx) ? [] : [idx]);
+    sondEnVol.add(mid); rafraichirConv();
+    try { await source.sondageVoter(conv, m.seq, liste); }
+    catch (er) { avis(phrase(er, 'Ton vote n\'a pas pu partir.')); }
+    sondEnVol.delete(mid); rafraichirConv();
+  }
+  function copierTexte(t, ok) {
+    const fin = () => mot(ok);
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(fin, () => avis('Le presse-papiers est refusé par le navigateur : ' + t));
+    else avis(t);
+  }
   function ouvrirPhotoDom(cle) {
     const [mid, i] = cle.split('|'), m = trouverMessage(mid), p = m && m.photos && m.photos[+i];
     if (!p || !blob(p.url)) { remplacer(Object.assign({}, etat.route, { photo: null })); return; }
+    const deja = !$('visionneuse').hidden;
     etat.photo = cle;
     $('visionneuse-img').src = p.url;
-    $('visionneuse-img').alt = 'Photo envoyée par ' + (m.auteur === MOI.id ? 'vous' : nomAuteur(m.auteur));
+    $('visionneuse-img').alt = 'Photo envoyée par ' + (m.auteur === MOI.id ? 'vous' : nomAuteur(m.auteur)) + (m.photos.length > 1 ? ', ' + (+i + 1) + ' sur ' + m.photos.length : '');
+    /* plusieurs photos dans le message : on passe de l'une à l'autre (les flèches de l'écran, ← et → au clavier) */
+    const n = m.photos.length, k = +i;
+    $('visionneuse-prec').hidden = n < 2; $('visionneuse-suiv').hidden = n < 2;
+    /* la flèche qu'on vient de toucher se grise au bout de la série : le focus passe à l'autre, sinon il tombait sur la page et ← → ne répondaient plus */
+    const focusPerdu = document.activeElement && ((document.activeElement.id === 'visionneuse-prec' && k <= 0) || (document.activeElement.id === 'visionneuse-suiv' && k >= n - 1));
+    $('visionneuse-prec').disabled = k <= 0; $('visionneuse-suiv').disabled = k >= n - 1;
+    if (focusPerdu) (k <= 0 ? $('visionneuse-suiv') : $('visionneuse-prec')).focus({ preventScroll: true });
+    $('visionneuse-rang').textContent = n > 1 ? (k + 1) + ' / ' + n : '';
+    /* « Partager » : la feuille de partage de l'appareil (sur iPhone, « Enregistrer l'image » la range dans Photos) — seulement là où le navigateur sait partager un fichier */
+    $('visionneuse-partager').hidden = !(p.piece && typeof navigator.share === 'function' && typeof navigator.canShare === 'function' && typeof File === 'function' && navigator.canShare({ files: [new File([''], 'photo.jpg', { type: 'image/jpeg' })] }));
     $('visionneuse').hidden = false;
-    $('visionneuse-fermer').focus({ preventScroll: true });
+    if (!deja) $('visionneuse-fermer').focus({ preventScroll: true });
   }
+  /* le nom d'une photo enregistrée : « photo-20261007-1840-2.jpg » (en ASCII : un nom accentué peut être ignoré par le navigateur) */
+  const EXT_IMAGE = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'image/gif': '.gif' };
+  function nomPhoto(m, i, type) { const d = new Date(m.t || Date.now()), z = x => String(x).padStart(2, '0'); return 'photo-' + d.getFullYear() + z(d.getMonth() + 1) + z(d.getDate()) + '-' + z(d.getHours()) + z(d.getMinutes()) + (m.photos.length > 1 ? '-' + (i + 1) : '') + (EXT_IMAGE[type] || '.jpg'); }
+  /* enregistrer une photo : le service la sert telle qu'elle a été envoyée (`pieceLien`) ; une photo qui part encore n'a que son adresse locale */
+  async function enregistrerPhoto(m, i) {
+    const p = m.photos[i]; if (!p) return;
+    let href = null, type = '', jeter = null;
+    if (p.piece) {
+      try { const b = await source.pieceBlob(p.piece); type = b.type || ''; href = jeter = URL.createObjectURL(b); }
+      catch (er) { avis(phrase(er, 'La photo n\'a pas pu être enregistrée.')); return; }
+    } else if (blob(p.url)) href = p.url;
+    if (!href) return;
+    const a = document.createElement('a'); a.href = href; a.download = nomPhoto(m, i, type); a.hidden = true; document.body.appendChild(a); a.click(); a.remove();
+    if (jeter) setTimeout(() => URL.revokeObjectURL(jeter), 60000);
+  }
+  async function partagerPhoto(m, i) {
+    const p = m.photos[i]; if (!p || !p.piece) return;
+    try { const b = await source.pieceBlob(p.piece); await navigator.share({ files: [new File([b], nomPhoto(m, i, b.type), { type: b.type || 'image/jpeg' })] }); }
+    catch (er) { if (er && er.name !== 'AbortError') avis(er && er.dit ? phrase(er) : 'Le partage n\'a pas pu se faire.'); }       // fermer la feuille de partage n'est pas une panne
+  }
+  const photoOuverte = () => { if (!etat.photo) return null; const [mid, i] = etat.photo.split('|'), m = trouverMessage(mid); return m && m.photos ? { m, i: +i } : null; };
+  function photoVoisine(d) { const o = photoOuverte(); if (!o) return; const j = o.i + d; if (j < 0 || j >= o.m.photos.length) return; remplacer(Object.assign({}, etat.route, { photo: o.m.id + '|' + j })); }
+  $('visionneuse-enregistrer').addEventListener('click', () => { const o = photoOuverte(); if (o) enregistrerPhoto(o.m, o.i); });
+  $('visionneuse-partager').addEventListener('click', () => { const o = photoOuverte(); if (o) partagerPhoto(o.m, o.i); });
+  $('visionneuse-prec').addEventListener('click', () => photoVoisine(-1));
+  $('visionneuse-suiv').addEventListener('click', () => photoVoisine(1));
   function fermerPhotoDom() {
     etat.photo = null;
     $('visionneuse').hidden = true; $('visionneuse-img').removeAttribute('src');
@@ -848,7 +1092,17 @@
   }
   $('visionneuse-fermer').addEventListener('click', () => { armerRetap(); fermerCouche(); });      // la croix est juste au-dessus de la caméra de la conversation
   $('visionneuse').addEventListener('click', e => { if (e.target === $('visionneuse')) { armerRetap(); fermerCouche(); } });
-  $('visionneuse').addEventListener('keydown', e => { if (e.key === 'Tab') { e.preventDefault(); $('visionneuse-fermer').focus(); } });   // un seul contrôle : le focus ne sort pas
+  /* le focus ne sort pas de la photo (Tab tourne sur ses boutons) ; ← et → passent d'une photo à l'autre */
+  document.addEventListener('keydown', e => {
+    if ((e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') || $('visionneuse').hidden || e.altKey || e.metaKey || e.ctrlKey) return;
+    e.preventDefault(); photoVoisine(e.key === 'ArrowLeft' ? -1 : 1);
+  });
+  $('visionneuse').addEventListener('keydown', e => {
+    if (e.key !== 'Tab') return;
+    const l = Array.from($('visionneuse').querySelectorAll('button')).filter(b => !b.hidden && !b.disabled); if (!l.length) return;
+    const i = l.indexOf(document.activeElement);
+    if (e.shiftKey && i <= 0) { e.preventDefault(); l[l.length - 1].focus(); } else if (!e.shiftKey && i === l.length - 1) { e.preventDefault(); l[0].focus(); }
+  });
 
   /* ── le vocal : lecture ──
      Un vocal ENREGISTRÉ ici se relit par `Audio`. Un vocal d'EXEMPLE (aucun fichier sonore dans l'aperçu) rejoue sa durée sans son :
@@ -1145,10 +1399,10 @@
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
     $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement', corpsInfo = info || G.mode === 'contact' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || G.mode === 'theme' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
     $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
@@ -1178,8 +1432,16 @@
     etat.groupe.mode = mode === 'appel' || mode === 'info' || mode === 'nouvelle' || (mode === 'contact' && CAP.liens) || (mode === 'convinfo' && CAP.groupeInfos) || (mode === 'profil' && CAP.reglages) || (mode === 'suppression' && CAP.compte)
       || (CAP.espaces && (mode === 'entreprise' || ((mode === 'espace' || mode === 'abo') && ID_ESPACE.test(arg || ''))))
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
-      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || '')))) ? mode : 'chat';
+      || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
+      || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
+      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
+      || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
+      || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || '')))) ? mode : 'chat';
+    if (etat.groupe.mode === 'sondage-choix') etat.groupe.sondSeq = +arg;
+    if (etat.groupe.mode === 'theme') etat.groupe.convId = arg;
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
+    if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
+    if (etat.groupe.mode === 'suivi') etat.groupe.pieceId = arg;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
@@ -1196,6 +1458,8 @@
     if (etat.groupe.mode === 'contact') rendreFeuilleContact();
     if (etat.groupe.mode === 'convinfo') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreConvInfo(); }
     if (etat.groupe.mode === 'profil') rendreProfil();
+    if (etat.groupe.mode === 'personne') rendrePersonne();
+    if (etat.groupe.mode === 'suivi') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = '<p class="vide">Chargement…</p>'; rendreSuivi(); }
     if (etat.groupe.mode === 'suppression') rendreSuppression();
     if (etat.groupe.mode === 'entreprise') rendreEntreprise();
     if (etat.groupe.mode === 'espace') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; rendreEspace(); }
@@ -1205,6 +1469,11 @@
     if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
     if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
+    if (etat.groupe.mode === 'position') rendrePosition();
+    if (etat.groupe.mode === 'theme') rendreTheme();
+    if (etat.groupe.mode === 'carte-contact') rendreCarteContact();
+    if (etat.groupe.mode === 'sondage-nouveau') rendreSondageNouveau();
+    if (etat.groupe.mode === 'sondage-choix') rendreSondageChoix();
     synchroFeuille();
     $('feuille').inert = false;
     document.documentElement.classList.add('feuille-ouverte');
@@ -2135,8 +2404,8 @@
   const LIEUX = { beta: 'Bêta', prod: 'Production' };
   const refusBloc = t => '<p class="info-erreur" role="alert">' + esc(t) + '</p><button type="button" class="mini reg-relire" data-reg-relire="1">Réessayer</button>';
   function peindreMoi() {
-    const a = $('moi-avatar'), ph = blob(MOI.photo);
-    a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : '';
+    const ph = blob(MOI.photo);
+    document.querySelectorAll('.moi-av').forEach(a => { a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : ''; });
     $('moi-nom').textContent = MOI.nom;
     /* ⛔ MA présence : coupée, la barre ne dit plus « Disponible » avec un point vert pendant que personne ne me voit (relecture du testeur). L'aperçu n'a pas ce réglage : `presence` y est absente. */
     const masquee = MOI.presence === false;
@@ -2159,8 +2428,9 @@
     const sw = (cle, titre, aide) => '<button type="button" class="reglage presse" role="switch" data-reg-cle="' + cle + '" aria-checked="' + (reg.conf[cle] ? 'true' : 'false') + '"' + (reg.occupe ? ' aria-disabled="true"' : '') +
       '><span class="reglage-texte">' + esc(titre) + '<small>' + esc(aide) + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
     c.innerHTML = (CAP.identifiants && typeof reg.conf.trouvable === 'boolean' ? sw('trouvable', 'Me trouver par mon identifiant ou mon numéro', 'Coupé : personne ne peut te retrouver ni t\'envoyer de demande. Tes contacts restent.') : '') +
+      (CAP.positions && typeof reg.conf.position === 'boolean' ? sw('position', 'Partager ma position', 'Coupé (par défaut) : le bouton « Position » des conversations ne fait rien partir — le service le refuse. Allumé : ta position part seulement quand tu l\'envoies, une fois, dans une conversation — jamais en continu.') : '') +
       sw('presence', 'Afficher quand je suis en ligne', 'Réciproque : si tu le coupes, tu ne vois plus non plus qui est en ligne.') +
-      sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres.') +
+      sw('accuses', 'Confirmations de lecture', 'Réciproque : si tu les coupes, ton « Lu » n\'est montré à personne et tu ne vois pas celui des autres — ni l\'ouverture d\'une photo ou d\'un vocal. Le téléchargement d\'un fichier, lui, est toujours dit à la personne qui l\'a envoyé.') +
       (reg.confErreur ? '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.confErreur) + '</p></div>' : '');
   }
   /* ── Notifications : l'interrupteur de CET appareil (ce que le navigateur et le service ont retenu), l'aperçu (valable pour tous mes appareils), l'essai ──
@@ -2280,10 +2550,16 @@
     if (voulue && !largeBureau.matches) { window.scrollTo(0, 0); const t = $('reg-titre-' + voulue); if (t) t.focus({ preventScroll: true }); }
   }
   largeBureau.addEventListener('change', () => { if (etat.route && etat.route.vue === 'reglages') montrerSection(etat.route.sec || null); });
+  function peindreProfilRetour() {
+    const a = $('profil-retour'); if (!a) return;
+    const v = NAV.includes(etat.avantProfil) ? etat.avantProfil : 'messages';
+    a.dataset.vue = v; a.setAttribute('href', '#' + v); a.lastElementChild.textContent = VUES[v].titre;
+    a.setAttribute('aria-label', 'Retour : ' + VUES[v].titre);
+  }
   function rendreReglages() {
     if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Contacts »
     Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
-    $('vue-reglages').innerHTML = '<div class="entete-vue"></div><h1 class="grand-titre" id="titre-reglages">Profil</h1>' +
+    $('vue-reglages').innerHTML = '<div class="entete-vue"><a href="#messages" class="reg-retour profil-retour presse" data-vue="messages" id="profil-retour"><svg class="chev chev-g" viewBox="0 0 8 13" aria-hidden="true"><path d="M6.5 1.5 1.5 6.5 6.5 11.5"/></svg><span>Messages</span></a></div><h1 class="grand-titre" id="titre-reglages">Profil</h1>' +
       '<div class="reg-grille"><div class="reg-accueil" id="reg-accueil">' +
         '<div id="reg-profil"></div>' +
         '<div class="carte reg-menu">' +
@@ -2311,7 +2587,7 @@
         regSection('apropos', 'À propos', '<div class="carte carte-pad" id="reg-apropos"></div>') +
       '</div></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
-    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN();
+    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour();
     if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
@@ -2478,14 +2754,22 @@
      maintenant leur onglet, avec un compteur sur l'onglet. ⛔ Rien ne s'affiche avant d'avoir été LU : une panne dit « indisponible », jamais « aucune demande ». */
   /* La RECHERCHE (6 octobre 2026) : le champ est posé UNE fois (le redessin des listes ne le recrée pas : on ne perd ni la saisie ni le clavier) et filtre les demandes et les contacts par
      nom (et les demandes aussi par leur identifiant, qu'elles portent), sans tenir compte des accents ni de la casse. Une saisie qui a la forme d'un identifiant (« Camille#4821 ») propose de chercher CETTE personne dans « Ajouter ». */
+  /* LE BUREAU : un écran large piloté à la souris — la même requête que la couche CSS « 20. LE BUREAU » (une seule définition des deux côtés) */
+  const BUREAU_MQ = window.matchMedia ? window.matchMedia('(min-width: 900px) and (hover: hover) and (pointer: fine)') : null;
+  const auBureau = () => !!(BUREAU_MQ && BUREAU_MQ.matches);
   const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
   function rendreVueContacts() {
     const sec = $('vue-contacts'); if (!sec || !CAP.identifiants) return;
     if (!$('vc-corps')) {
       sec.innerHTML = '<div class="entete-vue"><span></span><button type="button" class="lien-texte presse" data-act="vc-ajouter" aria-haspopup="dialog">Ajouter</button></div>' +
-        '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>' +
+        pastilleMoi() + '<h1 class="grand-titre" id="titre-contacts">Contacts</h1>' +
         '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les contacts</span><input type="search" id="vc-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
         vcSegment() + '<div id="vc-corps"></div>';
+      /* au BUREAU (Contacts sur Mac) : la liste à gauche, la FICHE de la personne choisie à droite ; au téléphone, la fiche n'existe pas (toucher ouvre la conversation) */
+      sec.insertAdjacentHTML('beforeend', '<aside class="vc-fiche" id="vc-fiche" aria-label="Fiche du contact"></aside>');
+      const col = document.createElement('div'); col.className = 'vc-col'; col.id = 'vc-col';
+      for (const id of ['vc-recherche', 'vc-seg', 'vc-corps']) { const x = $(id); col.appendChild(id === 'vc-recherche' ? x.closest('label') : x); }
+      sec.insertBefore(col, $('vc-fiche'));
       $('vc-recherche').addEventListener('input', () => rendreVueContacts());
       $('vc-seg').addEventListener('click', e => {
         const b = e.target.closest('[data-cat]'); if (!b) return;
@@ -2529,7 +2813,155 @@
     }
     corps.innerHTML = h;
     vcRendreFocus(corps, cleFocus);
+    peindreVcFiche();
   }
+  /* ── LA FICHE (bureau seulement) : la personne choisie dans la liste, en grand, et ce qu'on fait avec elle — écrire, appeler, la mettre en favori. Comme Contacts sur Mac. ── */
+  function vcPersonne(uid) {
+    const c = (CONTACTS || []).find(x => x.id === uid);
+    if (c) return c;
+    const S = etat.vcEsp;
+    if (S && S.membres) for (const k of Object.keys(S.membres)) { const p = (S.membres[k] || []).find(x => x.id === uid); if (p) return p; }
+    return null;
+  }
+  /* ── LA FICHE D'UNE PERSONNE (7 octobre 2026 : « au niveau des contacts, pour le pro, voir leur tableau de réunion — s'ils participent à la même réunion — quand on clique sur le
+     contact »). Comme la carte de Contacts sur iPhone : la photo, le nom, les gestes (Message, Appeler, Vidéo, Réunion, Favori), puis ce qu'on a EN COMMUN — les réunions à venir où l'on est
+     invités tous les deux (la prochaine d'abord, et SA réponse), les groupes, l'entreprise. Au bureau, le volet droit de Contacts ; au téléphone, une feuille (« personne:<id> »).
+     ⛔ Seulement ce dont on fait PARTIE (le service le décide, `/api/personnes/:id/commun`) : jamais l'agenda de l'autre au-delà. Ce qui a été lu une fois se montre aussitôt (une minute)
+     et se relit derrière ; avant la première lecture, un squelette — jamais un trou, jamais un « rien en commun » qu'on n'a pas encore vérifié. ── */
+  const commun = { cache: new Map(), enCours: new Map() };
+  const FMT_MOIS_CAL = new Intl.DateTimeFormat('fr-FR', { month: 'short' });
+  const FMT_JOUR_FICHE = new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  const sonStatutTxt = (r, p) => r.hote === p.id ? prenom(p) + ' organise' : r.sonStatut === 'accepte' ? prenom(p) + ' a accepté' : r.sonStatut === 'decline' ? prenom(p) + ' a refusé' : r.sonStatut === 'peutetre' ? prenom(p) + ' : peut-être' : prenom(p) + ' n\'a pas encore répondu';
+  function ficheTete(p) {
+    const estContact = (CONTACTS || []).some(x => x.id === p.id), uid = esc(p.id);
+    const geste = (fiche, ic, txt, extra) => '<button type="button" class="vc-action presse" data-fiche="' + fiche + '" data-uid="' + uid + '"' + (extra || '') + '><span class="vc-action-rond">' + ic + '</span><span>' + txt + '</span></button>';
+    return '<div class="vc-fiche-tete">' + avatar(p) + '<h2 class="vc-fiche-nom">' + esc(p.nom) + '</h2>' +
+      (p.enLigne || p.statut || p.role ? '<p class="vc-fiche-statut">' + esc(p.enLigne ? 'En ligne' : (p.statut || p.role)) + '</p>' : '') + '</div>' +
+      '<div class="vc-fiche-actions">' + geste('ecrire', icone('i-chat'), 'Message') +
+        (CAP.appels ? geste('appel', icone('i-phone'), 'Appeler', ' data-video="0"') + geste('appel', icone('i-video'), 'Vidéo', ' data-video="1"') : '') +
+        (CAP.reunions ? geste('programmer', icone('i-agenda'), 'Réunion') : '') +
+        (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', p.favori ? 'Favori' : 'Favoris', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
+      '</div>';
+  }
+  function ficheCommun(p) {
+    if (typeof source.enCommun !== 'function') return '';
+    const e = commun.cache.get(p.id), d = e && e.d;
+    if (!d) {
+      if (e && e.panne) return '<div class="rubrique"><span>En commun</span></div><div class="carte"><p class="fc-note" role="alert">' + esc(e.panne) + '</p>' +
+        '<button type="button" class="fc-ligne fc-agir presse" data-fiche="relire" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-agenda') + '</span><span class="fc-texte"><span class="fc-titre">Réessayer</span></span></button></div>';
+      const sq = '<div class="fc-squelette" aria-hidden="true"><i></i><span><b></b><b></b></span></div>';
+      return '<div class="rubrique"><span>Réunions à venir ensemble</span></div><div class="carte" aria-busy="true" aria-label="Chargement de ce que vous avez en commun">' + sq + sq + '</div>';
+    }
+    let h = '';
+    if (CAP.reunions) {
+      h += '<div class="rubrique"><span>Réunions à venir ensemble</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
+      if (!d.reunions.length) h += '<p class="fc-note">Aucune réunion prévue avec ' + esc(prenom(p)) + ' dans les deux prochains mois.</p>';
+      h += d.reunions.map(r => {
+        const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
+        const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(FMT_JOUR_FICHE.format(o.debut) + ' · ' + FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin)) + '<br>' + esc(sonStatutTxt(r, p));
+        return '<button type="button" class="fc-ligne presse" data-fiche="reunion" data-id="' + esc(r.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-date" aria-hidden="true"><small>' + esc(FMT_MOIS_CAL.format(o.debut).replace('.', '')) + '</small><b>' + new Date(o.debut).getDate() + '</b></span>' +
+          '<span class="fc-texte"><span class="fc-titre">' + esc(r.titre || 'Réunion') + '</span><span class="fc-sous">' + sous + '</span></span>' + CHEVRON + '</button>';
+      }).join('');
+      h += '<button type="button" class="fc-ligne fc-agir presse" data-fiche="programmer" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-plus') + '</span><span class="fc-texte"><span class="fc-titre">Programmer une réunion avec ' + esc(prenom(p)) + '</span></span></button></div>';
+    }
+    if (d.groupes.length) h += '<div class="rubrique"><span>Groupes en commun</span><span>' + d.groupes.length + '</span></div><div class="carte">' + d.groupes.map(g =>
+      '<button type="button" class="fc-ligne presse" data-fiche="groupe" data-id="' + esc(g.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone(g.type === 'canal' ? 'i-entreprise' : 'i-groupe') + '</span>' +
+        '<span class="fc-texte"><span class="fc-titre">' + esc(g.nom || 'Groupe') + '</span>' + (g.type === 'canal' ? '<span class="fc-sous">Canal d\'entreprise</span>' : '') + '</span>' + CHEVRON + '</button>').join('') + '</div>';
+    if (d.espaces.length && CAP.espaces) h += '<div class="rubrique"><span>Entreprise</span></div><div class="carte">' + d.espaces.map(x =>
+      '<button type="button" class="fc-ligne presse" data-fiche="espace" data-id="' + esc(x.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-entreprise') + '</span>' +
+        '<span class="fc-texte"><span class="fc-titre">' + esc(x.nom || 'Espace') + '</span><span class="fc-sous">Collègues dans cet espace</span></span>' + CHEVRON + '</button>').join('') + '</div>';
+    return h;
+  }
+  const ficheHtml = p => ficheTete(p) + '<div class="fc-commun" data-commun-uid="' + esc(p.id) + '">' + ficheCommun(p) + '</div>';
+  /* relit ce qu'on a en commun (une lecture à la fois par personne) et repeint chaque fiche ouverte sur elle ; `force` : relire même si la copie a moins d'une minute */
+  async function chargerCommun(uid, force) {
+    if (typeof source.enCommun !== 'function' || !uid) return;
+    const e = commun.cache.get(uid);
+    if (!force && e && e.d && Date.now() - e.t < 60000) return;
+    if (commun.enCours.has(uid)) return commun.enCours.get(uid);
+    const lecture = (async () => {
+      try { commun.cache.set(uid, { t: Date.now(), d: await source.enCommun(uid) }); }
+      catch (er) { if (!(e && e.d)) commun.cache.set(uid, { t: 0, d: null, panne: phrase(er, 'Ce que vous avez en commun n\'a pas pu être lu.') }); }
+      finally { commun.enCours.delete(uid); }
+      peindreCommun(uid);
+    })();
+    commun.enCours.set(uid, lecture);
+    return lecture;
+  }
+  function peindreCommun(uid) {
+    const p = vcPersonne(uid); if (!p) return;
+    document.querySelectorAll('.fc-commun').forEach(c => { if (c.dataset.communUid === uid) c.innerHTML = ficheCommun(p); });
+  }
+  function peindreVcFiche() {
+    const f = $('vc-fiche'); if (!f) return;
+    if (!auBureau()) { f.innerHTML = ''; f.dataset.sig = ''; return; }
+    const p = etat.vcSel ? vcPersonne(etat.vcSel) : null;
+    if (!p) { f.dataset.sig = ''; f.innerHTML = '<div class="vc-fiche-vide"><span class="coquille-icone" aria-hidden="true">' + icone('i-groupe') + '</span><p>Choisis un contact pour voir sa fiche.</p></div>'; return; }
+    const h = ficheHtml(p);
+    if (f.dataset.sig !== h) { f.dataset.sig = h; f.innerHTML = h; }
+    chargerCommun(p.id);
+  }
+  /* ── LE SUIVI D'UN DOCUMENT (7 octobre 2026 : « savoir qui a reçu le document, qui l'a téléchargé — très important pour les patrons ») ──
+     La feuille « suivi:<pièce> », à l'expéditeur seul (le service le décide) : d'abord ceux qui l'ont téléchargé (ouvert, écouté) avec le jour et l'heure, puis ceux qui ne l'ont pas
+     encore fait — reçu, lu ou pas encore reçu. Elle se relit toutes les 10 s tant qu'elle est ouverte : on la garde ouverte pendant la réunion, elle suit. */
+  const suiviPossible = () => !!CAP.suiviPieces && typeof source.suiviPiece === 'function';
+  const pieceDe = m => m.fichier ? m.fichier.piece : m.vocal ? m.vocal.piece : m.photos && m.photos[0] ? m.photos[0].piece : null;
+  const FMT_SUIVI = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  let suiviMinuterie = 0;
+  async function rendreSuivi(relecture) {
+    const id = etat.groupe.pieceId, corps = $('info-corps');
+    clearTimeout(suiviMinuterie);
+    let d = null, panne = null;
+    try { d = await source.suiviPiece(id); } catch (e) { panne = e; }
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'suivi' || etat.groupe.pieceId !== id) return;          // la feuille s'est fermée (ou a changé) pendant l'attente
+    suiviMinuterie = setTimeout(() => { if (etat.groupe.ouvert && etat.groupe.mode === 'suivi' && etat.groupe.pieceId === id) rendreSuivi(true); }, 10000);
+    if (panne) { if (!relecture) { corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(phrase(panne, 'Le suivi n\'a pas pu être lu.')) + '</p>'; } return; }
+    const h = htmlSuivi(d);
+    if (corps.dataset.sig === h) return;
+    corps.dataset.sig = h; corps.innerHTML = h;
+  }
+  /* le suivi en HTML — la même lecture pour la feuille et pour le panneau de la salle */
+  const suiviFaits = d => d.membres.filter(m => m.ouvert && m.ouvert.premier);
+  function htmlSuivi(d) {
+    const verbe = d.genre === 'fichier' ? 'Téléchargé' : d.genre === 'vocal' ? 'Écouté' : 'Vu', infinitif = d.genre === 'fichier' ? 'téléchargé' : d.genre === 'vocal' ? 'écouté' : 'vu';
+    const faits = suiviFaits(d), autres = d.membres.filter(m => !(m.ouvert && m.ouvert.premier));
+    const nomDe = id2 => esc(nomPersonne(id2));
+    const ligne = (m, sous) => '<div class="contact suivi-ligne">' + avatarDe(m.id) + '<span class="contact-texte"><span class="contact-nom">' + nomDe(m.id) + '</span><span class="contact-role">' + sous + '</span></span></div>';
+    const etatSans = m => m.ouvert === null ? (m.lu ? 'Lu' : m.recu ? 'Reçu' : 'Pas encore reçu') + ' · confirmations de lecture coupées' : m.lu ? 'Lu, pas encore ' + infinitif : m.recu ? 'Reçu, pas encore ' + infinitif : 'Pas encore reçu';
+    return '<div class="suivi-tete"><span class="suivi-compte"><b>' + faits.length + '</b> / ' + d.membres.length + '</span><span class="suivi-texte">' + esc(verbe + (faits.length > 1 ? 's' : '') ) + ' par ' + faits.length + (faits.length > 1 ? ' personnes' : ' personne') + ' sur ' + d.membres.length + '</span></div>' +
+      (faits.length ? '<div class="rubrique"><span>' + esc(verbe) + '</span><span>' + faits.length + '</span></div><div class="carte">' + faits.sort((a, b) => a.ouvert.premier - b.ouvert.premier).map(m =>
+        ligne(m, esc(FMT_SUIVI.format(m.ouvert.premier)) + (m.ouvert.n > 1 ? esc(' · ' + m.ouvert.n + ' fois, la dernière ' + FMT_SUIVI.format(m.ouvert.dernier)) : ''))).join('') + '</div>' : '') +
+      (autres.length ? '<div class="rubrique"><span>Pas encore ' + esc(infinitif) + '</span><span>' + autres.length + '</span></div><div class="carte">' + autres.map(m => ligne(m, esc(etatSans(m)))).join('') + '</div>' : '') +
+      (!d.membres.length ? '<p class="vide">Personne d\'autre dans cette conversation ne voit ce message.</p>' : '') +
+      '<p class="info-note">' + (d.genre === 'fichier' ? 'Le téléchargement d\'un fichier est toujours dit à la personne qui l\'a envoyé. ' : '') + '« Lu » et l\'ouverture d\'une photo ou d\'un vocal suivent les confirmations de lecture : qui les coupe ne les donne ni ne les voit.</p>';
+  }
+  /* au téléphone : la feuille « personne:<id> » (la même fiche) */
+  function rendrePersonne() {
+    const uid = etat.groupe.personneId, p = uid ? vcPersonne(uid) : null, corps = $('info-corps');
+    if (!p) { mot('Ce contact n\'est plus disponible.'); fermerCouche(); return; }
+    corps.dataset.sig = ''; corps.innerHTML = '<div class="fiche-personne">' + ficheHtml(p) + '</div>';
+    chargerCommun(uid, true);
+  }
+  /* les gestes de la fiche, au bureau comme dans la feuille */
+  document.addEventListener('click', async e => {
+    const b = e.target.closest('[data-fiche]'); if (!b || b.disabled) return;
+    const act = b.dataset.fiche, uid = b.dataset.uid;
+    try {
+      if (act === 'ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
+      if (act === 'appel') { await lancerAppel({ membres: [uid], video: b.dataset.video === '1' }, b); return; }
+      if (act === 'programmer') { reu.prechoisis = uid; declencheur = b; await programmerReunion(); return; }
+      if (act === 'reunion') { declencheur = b; ouvrirFeuille('reunion:' + b.dataset.id); return; }
+      if (act === 'groupe') { pousser({ vue: 'messages', conv: b.dataset.id, feuille: false, photo: null, appel: null }); return; }
+      if (act === 'espace') { declencheur = b; ouvrirFeuille('espace:' + b.dataset.id); return; }
+      if (act === 'relire') { commun.cache.delete(uid); peindreCommun(uid); await chargerCommun(uid, true); return; }
+      if (act === 'favori') {
+        const oui = b.getAttribute('aria-pressed') !== 'true';
+        b.disabled = true;
+        try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
+        if (etat.groupe.ouvert && etat.groupe.mode === 'personne') rendrePersonne();
+      }
+    } catch (er) { mot(phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }
+  });
   function vcRendreFocus(corps, cleFocus) {
     if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
@@ -2563,7 +2995,7 @@
   const vcEtoile = c => CAP.favoris && typeof source.favori === 'function'
     ? '<button type="button" class="vc-etoile presse" data-act="vc-favori" data-uid="' + esc(c.id) + '" aria-pressed="' + (c.favori ? 'true' : 'false') + '" aria-label="' +
       (c.favori ? 'Retirer ' : 'Ajouter ') + esc(c.nom) + (c.favori ? ' des favoris' : ' aux favoris') + '"><svg aria-hidden="true"><use href="#i-etoile"/></svg></button>' : '';
-  const vcLigneContact = c => '<div class="vc-ligne"><button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '">' + avatar(c) +
+  const vcLigneContact = c => '<div class="vc-ligne"><button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(c.id) + '"' + (auBureau() && etat.vcSel === c.id ? ' aria-current="true"' : '') + '>' + avatar(c) +
       '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span>' +
       '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>' + vcEtoile(c) + '</div>';
   /* de A à Z, une lettre par carte — l'initiale sans accent (« Élodie » range sous E), et tout ce qui ne commence pas par une lettre sous « # » */
@@ -2641,7 +3073,9 @@
         try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
         return;
       }
-      if (act === 'vc-ecrire') { const c = await source.ouvrirDirecte(uid); pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }); return; }
+      if (act === 'vc-ecrire' && auBureau()) { etat.vcSel = uid; rendreVueContacts(); return; }
+      /* au téléphone, toucher un contact ouvre SA FICHE (la carte de Contacts sur iPhone) : « Message » y est le premier geste */
+      if (act === 'vc-ecrire') { declencheur = b; ouvrirFeuille('personne:' + uid); return; }
       b.disabled = true;
       if (act === 'vc-accepter') { await source.repondreDemande(uid, true); mot('Contact ajouté'); }
       else if (act === 'vc-refuser') { await source.repondreDemande(uid, false); mot('Demande refusée'); }
@@ -2722,7 +3156,8 @@
       try { collegues = (await source.espaceContacts(i.espace)).contacts; } catch (e) { collegues = []; }
       if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     }
-    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
+    const thC = (etat.conversations.find(x => x.id === id) || {}).theme || { fond: 'aucun', bulle: 'defaut' };
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, thC.fond, thC.bulle, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
@@ -2735,6 +3170,8 @@
       (canal ? '' : '<div class="carte">') + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
       (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>');
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
+    /* le thème : à moi seul (les autres gardent leurs couleurs) */
+    if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
     if (sd > Date.now()) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Notifications coupées<small>' + esc(sd - Date.now() > 5 * 365 * 86400000 ? 'En sourdine pour toujours' : 'En sourdine jusqu\'au ' + dateLongue(sd)) + '</small></span><button type="button" class="mini" data-act="sourdine" data-duree="off">Réactiver</button></div></div>';
     else if (sd >= 0) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Mettre en sourdine<small>Plus de notification pour cette conversation</small></span></div><div class="carte-pad info-actions"><button type="button" class="mini" data-act="sourdine" data-duree="8h">8 heures</button><button type="button" class="mini" data-act="sourdine" data-duree="1s">1 semaine</button><button type="button" class="mini" data-act="sourdine" data-duree="tj">Toujours</button></div></div>';
     if (g) {
@@ -2811,6 +3248,7 @@
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
       else if (act === 'sourdine') { await source.sourdine(id, b.dataset.duree); mot(b.dataset.duree === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'); }
+      else if (act === 'theme') { ouvrirFeuille('theme:' + id, true); return; }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
       else if (act === 'suppression-confirmer') {
         if (b.getAttribute('aria-disabled') === 'true') { if (!$('sp-case').checked) erreurInfo('Coche la case pour confirmer la suppression de ton compte.'); return; }
@@ -3229,7 +3667,7 @@
   function fermerMenu() {
     if (!etat.menu) return;
     const d = etat.menu.declencheur; etat.menu = null;
-    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message');
+    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj');
     synchroInert();
     if (d && d.isConnected && d.focus) d.focus({ preventScroll: true });
   }
@@ -3241,9 +3679,12 @@
     etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
-    if (!m.supprime && m.texte) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
+    if (!m.supprime && m.texte && !estCarte(m)) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
     /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
-    if (moi && !m.supprime && !m.vocal && !m.fichier && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
+    if (moi && !m.supprime && !m.vocal && !m.fichier && !estCarte(m) && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
+    if (!m.supprime && m.photos && m.photos.length) h += '<button type="button" class="menu-action" data-menu="enregistrer">' + (m.photos.length > 1 ? 'Enregistrer les ' + m.photos.length + ' photos' : 'Enregistrer la photo') + '</button>';
+    const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
+    if (pieceSuivie) h += '<button type="button" class="menu-action" data-menu="suivi">' + (m.fichier ? 'Qui l\'a téléchargé' : m.vocal ? 'Qui l\'a écouté' : 'Qui l\'a vue') + '</button>';
     h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
     if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer-tous">Supprimer pour tous</button>';
     $('menu-msg').innerHTML = h;
@@ -3260,7 +3701,7 @@
     if (Date.now() - m0.t < 350 || (m0.appuiLong && !m0.avale && m0.relache && Date.now() - m0.relache < 500)) { m0.avale = true; return; }
     if (m0.plus) {                                  // « + » : Photo ou Fichier — le choix ouvre le sélecteur de l'appareil (le clic en cours est encore le geste de la personne)
       const x = e.target.closest('[data-plus]');
-      if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) $(x.dataset.plus === 'photo' ? 'compo-fichier' : 'compo-doc').click(); }
+      if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) choixPlus(x.dataset.plus); }
       return;
     }
     if (e.target === $('menu-fond')) { fermerMenu(); return; }
@@ -3276,6 +3717,8 @@
     fermerMenu();
     if (act === 'repondre') { etat.contexte = { type: 'reponse', mid, nom: nomAuteur(m.auteur), texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
+    else if (act === 'enregistrer') { for (let i = 0; i < (m.photos || []).length; i++) await enregistrerPhoto(m, i); }
+    else if (act === 'suivi') { const pc = pieceDe(m); if (pc) { declencheur = null; ouvrirFeuille('suivi:' + pc); } }
     else if (act === 'modifier') { etat.contexte = { type: 'modif', mid, nom: '', texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').value = m.texte || ''; ajusterSaisie(); majBoutons(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }
   });
@@ -3507,6 +3950,34 @@
       return p.year + '-' + p.month + '-' + p.day + 'T' + p.hour + ':' + p.minute;
     } catch (e) { return ''; }
   }
+  /* l'INSTANT d'une heure locale « 2026-10-26T14:00 » dans un fuseau (l'inverse de `localDans`) : deux passes suffisent, même le jour d'un changement d'heure */
+  function instantDans(s, tz) {
+    const brut = Date.parse(String(s || '') + ':00Z'); if (!Number.isFinite(brut)) return null;
+    let t = brut;
+    for (let i = 0; i < 2; i++) { const vu = Date.parse(localDans(t, tz) + ':00Z'); if (!Number.isFinite(vu)) return null; t += brut - vu; }
+    return t;
+  }
+  /* ⛔ LE FUSEAU SUIT L'APPAREIL (7 octobre 2026 : « automatique en fonction du système ; je ne vois pas l'intérêt de le mettre comme tu l'as fait ») : le formulaire ne le
+     montre plus. Une case « Participants dans un autre pays » ouvre le choix du pays, et dit l'heure CHEZ EUX pendant qu'on règle la sienne. Chaque invité voit de toute façon la
+     réunion à l'heure de SON appareil : le pays ne sert qu'à l'organisateur, pour ne pas fixer 9 h à Paris quand il est 3 h à New York. */
+  const PAYS_FUSEAUX = [
+    ['Europe/London', 'Royaume-Uni — Londres'], ['Europe/Dublin', 'Irlande — Dublin'], ['Europe/Lisbon', 'Portugal — Lisbonne'], ['Europe/Madrid', 'Espagne — Madrid'],
+    ['Europe/Brussels', 'Belgique — Bruxelles'], ['Europe/Zurich', 'Suisse — Zurich'], ['Europe/Luxembourg', 'Luxembourg'], ['Europe/Berlin', 'Allemagne — Berlin'],
+    ['Europe/Amsterdam', 'Pays-Bas — Amsterdam'], ['Europe/Rome', 'Italie — Rome'], ['Europe/Warsaw', 'Pologne — Varsovie'], ['Europe/Athens', 'Grèce — Athènes'],
+    ['Europe/Bucharest', 'Roumanie — Bucarest'], ['Europe/Istanbul', 'Turquie — Istanbul'], ['Europe/Moscow', 'Russie — Moscou'],
+    ['Africa/Casablanca', 'Maroc — Casablanca'], ['Africa/Algiers', 'Algérie — Alger'], ['Africa/Tunis', 'Tunisie — Tunis'], ['Africa/Dakar', 'Sénégal — Dakar'],
+    ['Africa/Abidjan', 'Côte d\'Ivoire — Abidjan'], ['Africa/Douala', 'Cameroun — Douala'], ['Africa/Kinshasa', 'RD Congo — Kinshasa'], ['Africa/Cairo', 'Égypte — Le Caire'],
+    ['Africa/Johannesburg', 'Afrique du Sud — Johannesburg'], ['Indian/Reunion', 'La Réunion'], ['Indian/Mauritius', 'Maurice'], ['Indian/Mayotte', 'Mayotte'],
+    ['Asia/Jerusalem', 'Israël — Jérusalem'], ['Asia/Beirut', 'Liban — Beyrouth'], ['Asia/Riyadh', 'Arabie saoudite — Riyad'], ['Asia/Dubai', 'Émirats arabes unis — Dubaï'],
+    ['Asia/Kolkata', 'Inde'], ['Asia/Bangkok', 'Thaïlande — Bangkok'], ['Asia/Ho_Chi_Minh', 'Viêt Nam — Hô Chi Minh-Ville'], ['Asia/Singapore', 'Singapour'],
+    ['Asia/Shanghai', 'Chine — Pékin, Shanghai'], ['Asia/Hong_Kong', 'Hong Kong'], ['Asia/Seoul', 'Corée du Sud — Séoul'], ['Asia/Tokyo', 'Japon — Tokyo'],
+    ['Australia/Sydney', 'Australie — Sydney'], ['Pacific/Noumea', 'Nouvelle-Calédonie — Nouméa'], ['Pacific/Tahiti', 'Polynésie française — Tahiti'],
+    ['America/Martinique', 'Martinique'], ['America/Guadeloupe', 'Guadeloupe'], ['America/Cayenne', 'Guyane — Cayenne'], ['America/Montreal', 'Canada — Montréal, Québec'],
+    ['America/Toronto', 'Canada — Toronto'], ['America/Vancouver', 'Canada — Vancouver'], ['America/New_York', 'États-Unis — New York (Est)'], ['America/Chicago', 'États-Unis — Chicago (Centre)'],
+    ['America/Denver', 'États-Unis — Denver (Rocheuses)'], ['America/Los_Angeles', 'États-Unis — Los Angeles (Pacifique)'], ['America/Mexico_City', 'Mexique — Mexico'],
+    ['America/Bogota', 'Colombie — Bogota'], ['America/Lima', 'Pérou — Lima'], ['America/Sao_Paulo', 'Brésil — São Paulo'], ['America/Argentina/Buenos_Aires', 'Argentine — Buenos Aires'],
+    ['Europe/Paris', 'France — Paris']
+  ];
   const dateDeChaine = s => { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3]).getTime() : null; };
   function libelleSemaine(lundi) {
     const dim = plusJours(lundi, 6), a = new Date(lundi), b = new Date(dim);
@@ -3537,7 +4008,7 @@
     sec.innerHTML =
       '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
         '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
-      '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
+      pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="sem-nav" role="group" aria-label="Semaine affichée">' +
         '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
         '<button type="button" class="sem-titre presse" id="sem-titre" aria-label="Revenir à aujourd\'hui"></button>' +
@@ -3733,6 +4204,214 @@
   });
   /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
   $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
+  /* ═══ LE THÈME D'UNE CONVERSATION (7 octobre 2026) — un aperçu, les fonds, les couleurs de mes bulles ; chaque touche s'applique tout de suite et s'enregistre ═══ */
+  const FONDS_CONV = [['aucun', 'Par défaut'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['lavande', 'Lavande'], ['sable', 'Sable'], ['corail', 'Corail'], ['ardoise', 'Ardoise']];
+  const BULLES_CONV = [['defaut', 'Par défaut'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['violet', 'Violet'], ['orange', 'Orange'], ['rose', 'Rose'], ['graphite', 'Graphite'], ['sarcelle', 'Sarcelle'], ['bordeaux', 'Bordeaux']];
+  const nomTheme = t => t.fond === 'aucun' && t.bulle === 'defaut' ? 'Par défaut' : [t.fond !== 'aucun' ? (FONDS_CONV.find(x => x[0] === t.fond) || [, ''])[1] : '', t.bulle !== 'defaut' ? 'bulles ' + ((BULLES_CONV.find(x => x[0] === t.bulle) || [, ''])[1] || '').toLowerCase() : ''].filter(Boolean).join(', ');
+  function themeCourant() { const c = etat.conversations.find(x => x.id === etat.groupe.convId); return (c && c.theme) || { fond: 'aucun', bulle: 'defaut' }; }
+  function rendreTheme() {
+    const t = Object.assign({}, themeCourant()), corps = $('info-corps');
+    etat.groupe.theme = t;                // ⛔ la feuille garde SON état : deux touches rapides (un fond, puis une couleur) ne partent pas d'une liste pas encore relue
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="theme-apercu" id="theme-apercu" data-fond="' + esc(t.fond) + '" data-bulle="' + esc(t.bulle) + '" aria-hidden="true"><span class="bulle recue">On se voit demain ?</span><span class="bulle envoyee">Oui, à 9 h au dépôt.</span></div>' +
+      '<div class="rubrique"><span>Fond</span></div><div class="theme-grille" role="radiogroup" aria-label="Fond de la conversation">' +
+        FONDS_CONV.map(f => '<button type="button" class="theme-fond presse" role="radio" data-fond="' + f[0] + '" aria-checked="' + (f[0] === t.fond ? 'true' : 'false') + '"><span class="theme-vignette" aria-hidden="true"></span><span>' + esc(f[1]) + '</span></button>').join('') + '</div>' +
+      '<div class="rubrique"><span>Mes bulles</span></div><div class="theme-couleurs" role="radiogroup" aria-label="Couleur de mes bulles">' +
+        BULLES_CONV.map(b => '<button type="button" class="theme-pastille presse" role="radio" data-bulle="' + b[0] + '" aria-checked="' + (b[0] === t.bulle ? 'true' : 'false') + '"><span class="theme-rond" aria-hidden="true">' + icone('i-coche') + '</span><span>' + esc(b[1]) + '</span></button>').join('') + '</div>' +
+      '<p class="info-note">Ce choix n\'est que pour toi : les autres membres gardent leurs couleurs. Il suit ton compte sur tous tes appareils.</p>';
+  }
+  async function choisirTheme(champ, valeur) {
+    const id = etat.groupe.convId, t = Object.assign({}, etat.groupe.theme || themeCourant(), { [champ]: valeur });
+    etat.groupe.theme = t;
+    const a = $('theme-apercu'); if (a) { a.dataset.fond = t.fond; a.dataset.bulle = t.bulle; }
+    const poser = (x) => { if (etat.conv === id) { $('conv-ecran').dataset.fond = x.fond; $('conv-ecran').dataset.bulle = x.bulle; } };
+    const avant = { fond: $('conv-ecran').dataset.fond, bulle: $('conv-ecran').dataset.bulle };
+    poser(t);                             // l'écran de la conversation, sous la feuille, change AVEC l'aperçu (il n'est pas redessiné tant que la feuille est ouverte)
+    document.querySelectorAll('#info-corps [data-' + champ + ']').forEach(b => b.setAttribute('aria-checked', b.dataset[champ] === valeur ? 'true' : 'false'));
+    erreurInfo('');
+    try { await source.themeConv(id, t); }
+    catch (x) { poser(avant); if (etat.groupe.ouvert && etat.groupe.mode === 'theme' && etat.groupe.convId === id) { rendreTheme(); erreurInfo(phrase(x, 'Le thème n\'a pas pu être enregistré.')); } }
+  }
+  $('info-corps').addEventListener('click', e => {
+    if (!etat.groupe.ouvert || etat.groupe.mode !== 'theme') return;
+    const f = e.target.closest('[data-fond]'); if (f && f.classList.contains('theme-fond')) { choisirTheme('fond', f.dataset.fond); return; }
+    const b = e.target.closest('[data-bulle]'); if (b && b.classList.contains('theme-pastille')) choisirTheme('bulle', b.dataset.bulle);
+  });
+  /* ═══ LES FEUILLES DES CARTES (7 octobre 2026) ═══ */
+  /* ── la position : ⛔ coupée tant que la personne ne l'a pas allumée dans Profil › Confidentialité (« c'est une sécurité pour eux ») — la feuille l'explique et mène au réglage, elle
+     ne l'allume pas à sa place ; allumée, l'appareil dit où il est, on montre ce qui partira, et rien ne part sans « Envoyer ». ── */
+  function partagerPosition() { if (etat.conv) ouvrirFeuille('position'); }
+  async function rendrePosition() {
+    const corps = $('info-corps'), jeton = etat.groupe.cle;
+    const encore = () => etat.groupe.ouvert && etat.groupe.mode === 'position' && etat.groupe.cle === jeton;
+    corps.innerHTML = '<p class="vide">Chargement…</p>';
+    /* ⛔ le réglage se relit au SERVICE à chaque ouverture (relecture du gardien) : coupé depuis un autre appareil, la page ne demande même pas où est celui-ci */
+    let conf;
+    try { conf = reg.conf = await source.confidentialite(); } catch (x) { if (encore()) corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(phrase(x, 'Le réglage n\'a pas pu être lu.')) + '</p><div class="info-actions"><button type="button" class="mini" data-pos="relire">Réessayer</button></div>'; return; }
+    if (!encore()) return;
+    if (!conf.position) {
+      corps.innerHTML = '<div class="pos-explication"><span class="pos-epingle" aria-hidden="true">' + icone('i-lieu') + '</span><h3>Le partage de position est coupé</h3>' +
+        '<p>C\'est une sécurité : ta position ne part d\'OP MESSAGES que si tu l\'as allumée toi-même, dans Profil › Confidentialité. Même allumée, elle ne part qu\'au moment où tu l\'envoies, une fois — jamais en continu.</p></div>' +
+        '<div class="info-actions"><button type="button" class="mini plein" data-pos="reglages">Ouvrir Confidentialité</button></div>';
+      return;
+    }
+    if (!navigator.geolocation) { corps.innerHTML = '<p class="info-erreur" role="alert">Cet appareil ne sait pas donner sa position.</p>'; return; }
+    corps.innerHTML = '<p class="vide">Recherche de ta position…</p>';
+    navigator.geolocation.getCurrentPosition(p => {
+      if (!encore()) return;
+      const pos = { lat: Math.round(p.coords.latitude * 1e6) / 1e6, lng: Math.round(p.coords.longitude * 1e6) / 1e6, prec: Number.isFinite(p.coords.accuracy) ? Math.round(p.coords.accuracy) : null };
+      etat.groupe.pos = pos;
+      const prec = precTexte(pos);
+      corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+        '<div class="carte carte-msg pos pos-apercu">' + planDessine() + '<span><span class="carte-titre">Ta position actuelle</span><span class="carte-sous">' + esc(coordTexte(pos)) + (prec ? ' · ' + esc(prec) : '') + '</span></span></div>' +
+        '<p class="info-note">Elle part une fois, dans cette conversation. Ses membres la voient ; tu peux la supprimer pour tous ensuite.</p>' +
+        '<div class="info-actions"><button type="button" class="mini plein" data-pos="envoyer">Envoyer ma position</button><button type="button" class="mini" data-pos="relire">Relocaliser</button></div>';
+    }, er => {
+      if (!encore()) return;
+      const t = er && er.code === 1 ? 'Ton navigateur refuse de donner ta position : autorise-la pour ce site dans ses réglages, puis réessaie.' : er && er.code === 3 ? 'Ta position a mis trop de temps à venir.' : 'Ta position n\'a pas pu être trouvée.';
+      corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(t) + '</p><div class="info-actions"><button type="button" class="mini" data-pos="relire">Réessayer</button></div>';
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  }
+  /* ── la fiche d'un contact : on choisit, elle part ── */
+  function rendreCarteContact() {
+    const l = typeof source.contacts === 'function' ? source.contacts() : [];
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<p class="info-note">Choisis la personne dont tu envoies la fiche. Seul un contact qui se laisse trouver se partage : il reste maître de son choix.</p>' +
+      (l.length ? '<div class="info-champ"><input id="cc-recherche" type="search" autocomplete="off" enterkeyhint="search" placeholder="Rechercher" aria-label="Rechercher un contact"></div>' +
+        '<div class="carte" id="cc-liste">' + l.map(c => '<button type="button" class="contact presse" data-cc="' + esc(c.id) + '" data-cherche="' + esc(norme(c.nom + ' ' + (c.role || ''))) + '">' + avatar(c) +
+          '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span></button>').join('') + '</div>' +
+        '<p class="vide" id="cc-aucun" hidden>Aucun contact ne correspond.</p>' : '<p class="vide">Tu n\'as pas encore de contact à partager.</p>');
+  }
+  /* ── le sondage : la question, de deux à douze choix, ses RÈGLES ── */
+  const SOND_FINS = [['', 'Quand je le clos'], ['3600000', 'Dans 1 heure'], ['86400000', 'Dans 1 jour'], ['259200000', 'Dans 3 jours'], ['604800000', 'Dans 1 semaine'], ['date', 'Choisir une date…']];
+  const SOND_RESULTATS = [['toujours', 'Tout de suite'], ['apres_vote', 'Après avoir voté'], ['apres_cloture', 'À la clôture']];
+  let sondForm = null;
+  const swSond = (id, titre, aide, oui) => '<button type="button" class="reglage presse" role="switch" id="' + id + '" aria-checked="' + (oui ? 'true' : 'false') + '"><span class="reglage-texte">' + esc(titre) + '<small>' + esc(aide) + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+  function rendreSondageNouveau() {
+    sondForm = { choix: ['', ''] };
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="champ"><label for="sd-q">Question</label><input id="sd-q" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" placeholder="Pose ta question"></div>' +
+      '<div class="rubrique"><span>Choix</span><span id="sd-n"></span></div><div class="carte" id="sd-choix"></div>' +
+      '<button type="button" class="mini sd-plus" data-sd="plus">Ajouter un choix</button>' +
+      '<div class="rubrique"><span>Règles</span></div><div class="carte">' +
+        swSond('sd-multiple', 'Plusieurs réponses', 'Chacun peut cocher plusieurs choix.', false) +
+        swSond('sd-anonyme', 'Vote anonyme', 'Personne ne voit qui a voté quoi — toi non plus. Seuls les décomptes se lisent.', false) +
+        swSond('sd-ajout', 'Les membres ajoutent des choix', 'Douze choix au plus, jamais deux fois le même.', false) + '</div>' +
+      '<div class="champ"><label for="sd-resultats">Résultats visibles</label><select id="sd-resultats">' + SOND_RESULTATS.map(x => '<option value="' + x[0] + '">' + esc(x[1]) + '</option>').join('') + '</select></div>' +
+      '<div class="champ"><label for="sd-fin">Fin du vote</label><select id="sd-fin">' + SOND_FINS.map(x => '<option value="' + x[0] + '">' + esc(x[1]) + '</option>').join('') + '</select></div>' +
+      '<div class="champ" id="sd-date-champ" hidden><label for="sd-date">Date et heure de fin</label><input id="sd-date" type="datetime-local" step="60"></div>' +
+      '<div class="info-actions"><button type="button" class="mini plein" data-sd="envoyer">Envoyer le sondage</button></div>';
+    peindreChoixSondage();
+  }
+  function peindreChoixSondage(focus) {
+    const F = sondForm, b = $('sd-choix'); if (!F || !b) return;
+    b.innerHTML = F.choix.map((t, i) => '<div class="sd-ligne"><input type="text" maxlength="100" autocomplete="off" enterkeyhint="next" data-sd-c="' + i + '" value="' + esc(t) + '" placeholder="Choix ' + (i + 1) + '" aria-label="Choix ' + (i + 1) + '">' +
+      (F.choix.length > 2 ? '<button type="button" class="sd-retirer presse" data-sd-retirer="' + i + '" aria-label="Retirer le choix ' + (i + 1) + '">' + icone('i-croix') + '</button>' : '') + '</div>').join('');
+    $('sd-n').textContent = F.choix.length + ' / 12';
+    const plus = document.querySelector('[data-sd="plus"]'); if (plus) plus.hidden = F.choix.length >= 12;
+    if (Number.isInteger(focus)) { const c = b.querySelector('[data-sd-c="' + focus + '"]'); if (c) c.focus(); }
+  }
+  const cleChoix = x => x.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+  async function envoyerSondageForm(b) {
+    const F = sondForm, conv = etat.conv; if (!F) return;
+    if (!conv) { erreurInfo('Ouvre d\'abord une conversation.'); return; }
+    const q = $('sd-q').value.replace(/\s+/g, ' ').trim();
+    if (!q) { erreurInfo('Écris la question.'); $('sd-q').focus(); return; }
+    const choix = F.choix.map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    if (choix.length < 2) { erreurInfo('Donne au moins deux choix.'); return; }
+    if (new Set(choix.map(cleChoix)).size !== choix.length) { erreurInfo('Deux choix sont identiques.'); return; }
+    const oui = id => $(id).getAttribute('aria-checked') === 'true';
+    const f = $('sd-fin').value;
+    let fin = null;
+    if (f === 'date') {
+      const v = $('sd-date').value, t = v ? new Date(v).getTime() : NaN;
+      if (!Number.isFinite(t) || t < Date.now() + 120000) { erreurInfo('Choisis une fin dans l\'avenir (au moins deux minutes).'); $('sd-date').focus(); return; }
+      if (t > Date.now() + 90 * 86400000) { erreurInfo('Un sondage dure quatre-vingt-dix jours au plus.'); $('sd-date').focus(); return; }
+      fin = Math.round(t);
+    } else if (f) fin = Date.now() + Number(f);
+    b.setAttribute('aria-disabled', 'true');
+    try {
+      await source.envoyerSondage(conv, { question: q, choix, regles: { multiple: oui('sd-multiple'), anonyme: oui('sd-anonyme'), ajout: oui('sd-ajout'), resultats: $('sd-resultats').value, fin } });
+      sondForm = null; fermerFeuille(); mot('Sondage envoyé');
+    } catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le sondage n\'a pas pu partir.')); }
+  }
+  /* ── ajouter un choix à un sondage ouvert ── */
+  function rendreSondageChoix() {
+    const c = etat.convDonnees, m = c && c.messages.find(x => x.seq === etat.groupe.sondSeq);
+    const q = m && m.sondage ? m.sondage.q : '';
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + (q ? '<p class="info-note" dir="auto">« ' + esc(q) + ' »</p>' : '') +
+      '<div class="champ"><label for="sc-texte">Nouveau choix</label><input id="sc-texte" type="text" maxlength="100" autocomplete="off" enterkeyhint="done" placeholder="Ton choix"></div>' +
+      '<div class="info-actions"><button type="button" class="mini plein" data-sc="ajouter">Ajouter</button></div>';
+  }
+  async function ajouterChoixForm(b) {
+    const conv = etat.conv, t = $('sc-texte').value.replace(/\s+/g, ' ').trim();
+    if (!conv) return;
+    if (!t) { erreurInfo('Écris le choix.'); $('sc-texte').focus(); return; }
+    b.setAttribute('aria-disabled', 'true');
+    try { await source.sondageAjouter(conv, etat.groupe.sondSeq, t); fermerFeuille(); mot('Choix ajouté'); }
+    catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le choix n\'a pas pu être ajouté.')); }
+  }
+  const modeCarte = () => etat.groupe.ouvert && ['position', 'carte-contact', 'sondage-nouveau', 'sondage-choix'].includes(etat.groupe.mode);
+  $('info-corps').addEventListener('click', async e => {
+    if (!modeCarte()) return;
+    const G = etat.groupe;
+    if (G.mode === 'position') {
+      const b = e.target.closest('[data-pos]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+      if (b.dataset.pos === 'relire') { rendrePosition(); return; }
+      if (b.dataset.pos === 'reglages') { remplacer({ vue: 'reglages', sec: 'confidentialite', conv: null, feuille: false, photo: null, appel: null }); return; }
+      if (b.dataset.pos === 'envoyer' && G.pos && etat.conv) {
+        erreurInfo(''); b.setAttribute('aria-disabled', 'true');
+        try { await source.envoyerPosition(etat.conv, { lat: G.pos.lat, lng: G.pos.lng, precision: G.pos.prec }); fermerFeuille(); mot('Position envoyée'); }
+        catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Ta position n\'a pas pu partir.')); if (x && x.code === 'position_desactivee') reg.conf = null; }
+      }
+      return;
+    }
+    if (G.mode === 'carte-contact') {
+      const b = e.target.closest('[data-cc]'); if (!b || b.getAttribute('aria-disabled') === 'true' || !etat.conv) return;
+      erreurInfo(''); b.setAttribute('aria-disabled', 'true');
+      try { await source.envoyerFiche(etat.conv, b.dataset.cc); fermerFeuille(); mot('Fiche envoyée'); }
+      catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'La fiche n\'a pas pu partir.')); }
+      return;
+    }
+    if (G.mode === 'sondage-nouveau') {
+      const sw = e.target.closest('#sd-multiple, #sd-anonyme, #sd-ajout');
+      if (sw) { sw.setAttribute('aria-checked', sw.getAttribute('aria-checked') === 'true' ? 'false' : 'true'); return; }
+      const r = e.target.closest('[data-sd-retirer]');
+      if (r && sondForm && sondForm.choix.length > 2) { sondForm.choix.splice(+r.dataset.sdRetirer, 1); peindreChoixSondage(Math.min(+r.dataset.sdRetirer, sondForm.choix.length - 1)); return; }
+      const b = e.target.closest('[data-sd]'); if (!b || b.getAttribute('aria-disabled') === 'true') return;
+      erreurInfo('');
+      if (b.dataset.sd === 'plus' && sondForm && sondForm.choix.length < 12) { sondForm.choix.push(''); peindreChoixSondage(sondForm.choix.length - 1); }
+      else if (b.dataset.sd === 'envoyer') envoyerSondageForm(b);
+      return;
+    }
+    const b = e.target.closest('[data-sc]'); if (b && b.getAttribute('aria-disabled') !== 'true') { erreurInfo(''); ajouterChoixForm(b); }
+  });
+  $('info-corps').addEventListener('input', e => {
+    if (!modeCarte()) return;
+    const t = e.target;
+    if (t.id === 'cc-recherche') {
+      const q = norme(t.value.trim()); let vus = 0;
+      document.querySelectorAll('#cc-liste [data-cc]').forEach(b => { b.hidden = !!q && !b.dataset.cherche.includes(q); if (!b.hidden) vus++; });
+      const a = $('cc-aucun'); if (a) a.hidden = vus > 0;
+      return;
+    }
+    if (t.dataset && t.dataset.sdC !== undefined && sondForm) sondForm.choix[+t.dataset.sdC] = t.value;
+    erreurInfo('');
+  });
+  $('info-corps').addEventListener('change', e => { if (modeCarte() && e.target.id === 'sd-fin') { const c = $('sd-date-champ'); if (c) c.hidden = e.target.value !== 'date'; } });
+  $('info-corps').addEventListener('keydown', e => {
+    if (!modeCarte() || e.key !== 'Enter' || e.isComposing) return;
+    const t = e.target;
+    if (t.id === 'sc-texte') { e.preventDefault(); const b = document.querySelector('[data-sc="ajouter"]'); if (b) ajouterChoixForm(b); return; }
+    if (t.dataset && t.dataset.sdC !== undefined && sondForm) {
+      e.preventDefault();
+      const i = +t.dataset.sdC;
+      if (i === sondForm.choix.length - 1 && sondForm.choix.length < 12 && t.value.trim()) { sondForm.choix.push(''); peindreChoixSondage(i + 1); }
+      else { const n = document.querySelector('[data-sd-c="' + (i + 1) + '"]'); if (n) n.focus(); }
+      return;
+    }
+    if (t.id === 'sd-q') { e.preventDefault(); const n = document.querySelector('[data-sd-c="0"]'); if (n) n.focus(); }
+  });
   const ouvrirReunionId = id => { if (CAP.reunions && ID_REUNION.test(id)) remplacer({ vue: 'reunions', conv: null, feuille: 'reunion:' + id, photo: null, appel: null }); };
 
   /* ── les gens qu'on peut inviter : mes contacts, et les membres de MES espaces (jamais un annuaire) ── */
@@ -3809,6 +4488,17 @@
       if (!d.annulee) s += '<div class="carte"><button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
       if (F.courriel && !d.annulee) s += htmlCourriel(d, o);
+      if (CAP.presenceRapport) {
+        s += '<div class="rubrique"><span>Présence</span></div><div class="carte">';
+        if (!F.presence) s += '<button type="button" class="reglage presse" data-reu="presence">' + icone('i-groupe') + '<span class="reglage-texte">Rapport de présence<small>Qui est venu à chaque séance, combien de temps — et qui manquait</small></span>' + CHEVRON + '</button>';
+        else if (!F.presence.seances.length) s += '<div class="reglage"><span class="reglage-texte">Pas encore de séance<small>Le rapport se remplit dès que la salle s\'ouvre</small></span></div>';
+        else s += F.presence.seances.slice(0, 5).map(p => { const L = presenceLignes(p);
+          return '<div class="reglage presence-seance"><span class="reglage-texte">' + esc(maj1(FMT_SUIVI.format(p.debut))) + (p.enCours ? ' · en cours' : '') + '<small>' + L.venus.length + (L.venus.length > 1 ? ' présences' : ' présence') + (L.absents.length ? ', ' + L.absents.length + (L.absents.length > 1 ? ' absences' : ' absence') : '') + '</small></span></div>' +
+            L.venus.map(x => '<div class="reglage presence-ligne"><span class="reglage-texte">' + esc(x.nom) + '<small>' + esc(x.detail) + '</small></span></div>').join('') +
+            L.absents.map(x => '<div class="reglage presence-ligne absent"><span class="reglage-texte">' + esc(x.nom) + '<small>' + esc(x.detail) + '</small></span></div>').join(''); }).join('') +
+          '<button type="button" class="reglage presse" data-reu="presence-csv">' + icone('i-telecharger') + '<span class="reglage-texte">Exporter (CSV)<small>' + (F.presence.seances.length > 5 ? 'Les ' + F.presence.seances.length + ' séances, dans un tableur' : 'Dans un tableur') + '</small></span></button>';
+        s += '</div>';
+      }
       if (CAP.salles && !d.annulee) s += '<div class="rubrique"><span>Salle</span></div><div class="carte">' +
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Les personnes qui arrivent attendent que tu les admettes</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité<small>Ouvre la salle à qui a un compte OP MESSAGES' + (d.plafond ? ', dans la limite de ' + d.plafond + ' personnes' : '') + '</small></span></button>' +
@@ -3861,7 +4551,7 @@
       F.occVersion = d.version;
     }
     if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
-    const sig = JSON.stringify([d, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; })]);
+    const sig = JSON.stringify([d, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; })]);
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
     const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;
@@ -3872,7 +4562,7 @@
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
-  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
+  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
   function versFiche(id) {
     const h = entree(), cible = 'reunion:' + id;
@@ -3909,6 +4599,8 @@
           mot(act === 'lien-copier' ? (ok ? 'Lien d\'invité copié' : 'Le lien n\'a pas pu être copié') : (ok ? 'Nouveau lien copié : l\'ancien ne marche plus' : 'Lien renouvelé : l\'ancien ne marche plus'));
         }
         else if (act === 'modifier') ouvrirFeuille('reunion-edit:' + id);
+        else if (act === 'presence') { b.setAttribute('aria-disabled', 'true'); F.presence = await source.presenceReunion(id); await relire(); }
+        else if (act === 'presence-csv') { if (F.presence) presenceCsv(d.titre, F.presence.seances); }
         else if (act === 'courriel-ouvrir') {
           if (F.courriel) F.courriel = null;
           else { F.courriel = { ouvert: undefined, serie: true }; const o = await source.courrielOuvert(); if (reu.fiche === F && F.courriel) F.courriel.ouvert = o; }
@@ -3944,19 +4636,12 @@
         else if (act === 'form-invite') { basculerInviteForm(b.dataset.uid); }
         else if (act === 'form-notifier') { reu.form.notifier = !reu.form.notifier; b.setAttribute('aria-checked', reu.form.notifier ? 'true' : 'false'); }
         else if (act === 'form-attente') { reu.form.attente = !reu.form.attente; b.setAttribute('aria-checked', reu.form.attente ? 'true' : 'false'); }
+        else if (act === 'form-etranger') { const oui = b.getAttribute('aria-checked') !== 'true'; b.setAttribute('aria-checked', oui ? 'true' : 'false'); $('rf-etranger').hidden = !oui; peindreChezEux(); }
       }
     } catch (er) { if (F) F.sortie = null; b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }          // le geste a échoué : la phrase qu'il avait annoncée tombe avec lui
   });
 
   /* ── « Programmer » et « Modifier » : le formulaire (les feuilles « reunion-new » et « reunion-edit:<id> ») ── */
-  function listeFuseaux(courant) {
-    let l = [];
-    try { if (typeof Intl.supportedValuesOf === 'function') l = Intl.supportedValuesOf('timeZone').slice(); } catch (e) { l = []; }
-    if (!l.length) l = ['Europe/Paris', 'Europe/Londres', 'Europe/Brussels', 'Europe/Zurich', 'Europe/Madrid', 'Europe/Berlin', 'Europe/Rome', 'Atlantic/Reykjavik', 'America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Montreal', 'America/Sao_Paulo', 'Africa/Casablanca', 'Africa/Algiers', 'Africa/Dakar', 'Asia/Dubai', 'Asia/Kolkata', 'Asia/Shanghai', 'Asia/Tokyo', 'Australia/Sydney', 'Pacific/Auckland'];
-    if (l.indexOf('UTC') < 0) l.push('UTC');
-    if (courant && l.indexOf(courant) < 0) l.push(courant);
-    return l;
-  }
   const optionsDe = (liste, courant) => liste.map(x => '<option value="' + esc(x[0]) + '"' + (x[0] === courant ? ' selected' : '') + '>' + esc(x[1]) + '</option>').join('');
   function htmlRappelsForm(F) { return RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (F.rappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="form-rappel" data-min="' + x[0] + '"><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
   function htmlInvitesForm(F) {
@@ -4011,7 +4696,9 @@
     const maintenant = Date.now(), debut0 = d ? d.debut : Math.ceil((maintenant + 60000) / 3600000) * 3600000;
     const fin0 = d ? d.fin : debut0 + 3600000;
     const initial = { titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
-    reu.form = { id: id || null, choisis: [], rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut };
+    /* « Programmer une réunion avec … » depuis la fiche d'une personne : elle est déjà invitée (une fois — le formulaire suivant repart vide) */
+    const avec = !id && reu.prechoisis ? [reu.prechoisis] : []; reu.prechoisis = null;
+    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut };
     const typeFin = initial.n ? 'nombre' : initial.jusqua ? 'date' : 'jamais';
     corps.dataset.sig = '';
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
@@ -4019,7 +4706,11 @@
       '<div class="champ"><label for="rf-lieu">Lieu ou lien</label><input id="rf-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(initial.lieu) + '" placeholder="Salle, adresse ou lien"></div>' +
       '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
       '<div class="champ"><label for="rf-fin">Fin</label><input id="rf-fin" type="datetime-local" step="60" value="' + esc(initial.fin) + '"></div>' +
-      '<div class="champ"><label for="rf-tz">Fuseau horaire</label><select id="rf-tz">' + optionsDe(listeFuseaux(tz).map(x => [x, x]), tz) + '</select><p class="info-note">Les heures ci-dessus sont celles de ce fuseau.</p></div>' +
+      '<input type="hidden" id="rf-tz" value="' + esc(tz) + '">' +
+      (fuseauAppareil() && tz !== fuseauAppareil() ? '<p class="info-note" id="rf-tz-note">Les heures ci-dessus sont celles de ' + esc(villeDe(tz)) + ', le fuseau de la réunion.</p>' : '') +
+      '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="false" aria-controls="rf-etranger" data-reu="form-etranger"><span class="reglage-texte">Participants dans un autre pays<small>Voir l\'heure qu\'il sera chez eux</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
+      '<div id="rf-etranger" hidden><div class="champ"><label for="rf-pays">Leur pays</label><select id="rf-pays">' + optionsDe(PAYS_FUSEAUX.filter(x => x[0] !== tz), 'America/New_York') + '</select></div>' +
+        '<p class="info-note rf-chez-eux" id="rf-chez-eux" aria-live="polite"></p></div>' +
       '<div class="champ"><label for="rf-rep">Répétition</label><select id="rf-rep">' + optionsDe(REPETITIONS, initial.repetition) + '</select><p class="info-note" id="rf-rep-note" hidden></p></div>' +
       '<div id="rf-fin-rep"><div class="champ"><label for="rf-fin-type">Fin de la répétition</label><select id="rf-fin-type">' + optionsDe([['jamais', 'Jamais'], ['date', 'À une date'], ['nombre', 'Après un nombre de fois']], typeFin) + '</select></div>' +
         '<div class="champ" id="rf-jusqua-c"><label for="rf-jusqua">Dernier jour</label><input id="rf-jusqua" type="date" value="' + esc(initial.jusqua || '') + '"></div>' +
@@ -4032,6 +4723,7 @@
       (CAP.salles ? '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (initial.attente ? 'true' : 'false') + '" data-reu="form-attente"><span class="reglage-texte">Salle d\'attente<small>Les personnes qui arrivent attendent que tu les admettes</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' : '') +
       '<div class="info-actions"><button type="button" class="mini" data-reu="form-enregistrer">' + (id ? 'Enregistrer' : 'Programmer') + '</button></div>';
     synchroFormRepetition();
+    ['rf-debut', 'rf-fin', 'rf-pays'].forEach(x => { $(x).addEventListener('input', peindreChezEux); $(x).addEventListener('change', peindreChezEux); });
     $('rf-rep').addEventListener('change', synchroFormRepetition);
     $('rf-fin-type').addEventListener('change', synchroFormRepetition);
     /* une fin avant le début n'a pas de sens : changer le début déplace la fin d'autant (la durée est gardée) */
@@ -4049,6 +4741,18 @@
       $('rf-recherche').addEventListener('input', () => { reu.form.recherche = $('rf-recherche').value; $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
       chargerCollegues().then(() => { if (etat.groupe.ouvert && etat.groupe.mode === 'reunion-new' && $('rf-invites')) $('rf-invites').innerHTML = htmlInvitesForm(reu.form); });
     }
+  }
+  /* « Chez eux » : l'heure de début et de fin dans le pays choisi, le jour compris quand il change (« mardi 03:00 – 04:00 à New York ») */
+  function peindreChezEux() {
+    const n = $('rf-chez-eux'), z = $('rf-pays'); if (!n || !z || $('rf-etranger').hidden) return;
+    const tz = $('rf-tz').value, a = instantDans($('rf-debut').value, tz), b = instantDans($('rf-fin').value, tz), ville = (PAYS_FUSEAUX.find(x => x[0] === z.value) || [z.value, villeDe(z.value)])[1];
+    if (a === null || b === null) { n.textContent = ''; return; }
+    let jour = '';
+    try { jour = new Intl.DateTimeFormat('fr-FR', { timeZone: z.value, weekday: 'long', day: 'numeric', month: 'long' }).format(a); } catch (e) { jour = ''; }
+    const ici = localDans(a, tz).slice(0, 10), labas = localDans(a, z.value).slice(0, 10);
+    const lieu = ville.includes(' — ') ? ville.split(' — ')[1].replace(/ \(.*\)$/, '') : ville, h = Number(heureDans(a, z.value).slice(0, 2)), hf = Number(heureDans(b, z.value).slice(0, 2));
+    const horsBureau = h < 8 || h >= 19 || hf > 20 || hf < h;
+    n.textContent = 'À ' + lieu + ' : ' + jour + ', de ' + heureDans(a, z.value) + ' à ' + heureDans(b, z.value) + (ici !== labas ? ' — ce n\'est pas le même jour qu\'ici' : '') + (horsBureau ? ' — en dehors des heures de bureau chez eux.' : '.');
   }
   /* ce que le formulaire dit, prêt pour le service ; un refus local dit pourquoi et rend `null` */
   function lireFormReunion() {
@@ -4108,6 +4812,32 @@
   }
 
 
+  /* ── LE RAPPORT DE PRÉSENCE (7 octobre 2026 : « un vrai système de réunion très pro ») : qui est venu, à quelle heure, combien de temps ; qui n'est jamais venu, et pourquoi. Le même rendu pour la salle
+     (l'hôte, en direct) et la fiche d'une réunion (son organisateur, séance par séance) ; l'export CSV s'ouvre dans un tableur (séparateur « ; », en-tête UTF-8).
+     ⛔ Une cellule qui commence par = + - @ est désamorcée (une apostrophe devant) : un nom choisi par quelqu'un d'autre ne devient jamais une formule dans le tableur du patron. ── */
+  const REPONSES_INVITE = { accepte: 'Avait accepté', decline: 'Avait décliné', peutetre: 'Avait répondu « peut-être »', attente: 'Sans réponse' };
+  const ABSENCES_APPEL = { invite: 'Son appareil sonne', manque: 'N\'a pas répondu', refuse: 'A refusé l\'appel', attente: 'À la porte', parti: 'Sorti', exclu: 'Retiré' };
+  function presenceLignes(p) {
+    return {
+      venus: p.venus.map(x => ({ id: x.id, nom: x.nom, present: x.present, duree: dureeCourte(x.duree),
+        detail: (x.present ? 'Depuis ' + FMT_HEURE.format(x.arrivee) + ' · en ce moment' : FMT_HEURE.format(x.arrivee) + (x.depart ? ' → ' + FMT_HEURE.format(x.depart) : '')) + ' · ' + dureeCourte(x.duree) })),
+      absents: p.absents.map(x => ({ id: x.id, nom: x.nom, detail: x.reponse ? (REPONSES_INVITE[x.reponse] || 'Invité') : (ABSENCES_APPEL[x.statut] || 'Absence') })),
+    };
+  }
+  function presenceCsv(titre, seances) {
+    const cel = v => { let t = String(v === null || v === undefined ? '' : v); if (/^[=+\-@\t\r]/.test(t)) t = '\'' + t; return '"' + t.replace(/"/g, '""') + '"'; };
+    const lignes = [['Séance', 'Nom', 'Présence', 'Arrivée', 'Départ', 'Durée (min)', 'Détail'].map(cel).join(';')];
+    for (const p of seances) {
+      const seance = FMT_SUIVI.format(p.debut);
+      for (const x of p.venus) lignes.push([seance, x.nom, 'oui', FMT_HEURE.format(x.arrivee), x.depart ? FMT_HEURE.format(x.depart) : (x.present ? 'en cours' : ''), (x.duree / 60).toFixed(1).replace('.', ','), ''].map(cel).join(';'));
+      for (const x of presenceLignes(p).absents) lignes.push([seance, x.nom, 'non', '', '', '0', x.detail].map(cel).join(';'));
+    }
+    const nom = 'presence-' + String(titre || 'reunion').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).toLowerCase() + '-' + new Date().toISOString().slice(0, 10) + '.csv';
+    const url = URL.createObjectURL(new Blob(['\ufeff' + lignes.join('\r\n') + '\r\n'], { type: 'text/csv;charset=utf-8' })), a = document.createElement('a');
+    a.href = url; a.download = nom; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
+    mot('Rapport de présence enregistré (' + nom + ')');
+  }
+
   /* ═══ 13. LES SALLES — l'écran « En réunion » (étape 8) ═══════════════════════════════════════════════════════════════════════════════
      Un appel à plusieurs et la salle d'une réunion partagent UN écran : `salle-ecran`, que `rendreAppel` montre dès que la source annonce `snap.salle` — sauf tant que la personne SONNE (`snap.entrant` : la sonnerie
      reste l'écran d'appel, avec « Répondre » et « Refuser »). Le moteur est celui de la source (`creerMoteurSalle` : une liaison par paire, direct d'abord, relais en repli) ; la page n'en sait que ce que le cliché dit
@@ -4136,7 +4866,9 @@
   function majTuile(t, m, A, grand) {
     const s = A.snap, cls = 'tuile salle-tuile av' + (((m.avatar | 0) % 6 + 6) % 6) + (m.parle ? ' parle' : '') + (s.epingle === m.id ? ' epingle' : '') + (grand ? ' grand' : '');
     if (t.className !== cls) t.className = cls;
-    const cam = m.camera ? 'on' : 'off'; if (t.dataset.camera !== cam) t.dataset.camera = cam;
+    /* ⛔ un écran partagé PASSE PAR LA PISTE DE LA CAMÉRA (même émetteur) : caméra coupée ou non, l'image est là — mesuré le 7 octobre 2026, l'écran de quelqu'un qui partageait caméra coupée
+       était CACHÉ derrière son avatar et « Caméra désactivée » (et l'enregistrement ne le prenait pas) */
+    const cam = m.camera || m.partage ? 'on' : 'off'; if (t.dataset.camera !== cam) t.dataset.camera = cam;
     const ecr = m.partage ? '1' : '0'; if (t.dataset.ecran !== ecr) t.dataset.ecran = ecr;
     const sig = [m.initiales, m.nom, m.prenom, m.micro, m.main, m.partage, m.grade, m.camera].join('|');
     if (t.dataset.sig === sig) return;
@@ -4153,6 +4885,9 @@
     if (X.vue !== 'intervenant') return null;
     if (s.epingle === MOI.id) return 'vous';
     if (s.epingle && presents.some(m => m.id === s.epingle)) return s.epingle;
+    const sup = s.annot && s.annot.support;
+    if (sup === 'tableau' && !s.attente) return 'tableau';
+    if (sup && sup !== 'ecran:' + MOI.id && presents.some(m => 'ecran:' + m.id === sup)) return sup.slice(6);
     const part = presents.find(m => m.partage); if (part) return part.id;
     const p = presents.find(m => m.parle); if (p) { X.grand = p.id; return p.id; }
     if (X.grand && presents.some(m => m.id === X.grand)) return X.grand;
@@ -4160,6 +4895,11 @@
   }
   function salleTuiles(A, presents) {
     const scene = $('salle-scene'), vous = $('salle-vous'), X = sx(A);
+    /* le tableau blanc : une vignette de plus, la première, tant qu'il est ouvert */
+    let tab = $('salle-tableau');
+    const avecTableau = !!(A.snap.annot && A.snap.annot.support === 'tableau') && !A.snap.attente;
+    if (avecTableau && !tab) { scene.insertAdjacentHTML('afterbegin', '<div class="tuile salle-tuile salle-tableau" id="salle-tableau" role="listitem" aria-label="Tableau blanc"><span class="tuile-nom">Tableau blanc</span></div>'); tab = $('salle-tableau'); }
+    else if (!avecTableau && tab) { tab.remove(); tab = null; }
     const grand = choisirGrand(A, presents);
     const existantes = new Map(); scene.querySelectorAll(':scope > .salle-tuile[data-uid]').forEach(t => existantes.set(t.dataset.uid, t));
     const voulus = new Set(presents.map(m => m.id));
@@ -4170,7 +4910,8 @@
       majTuile(t, m, A, grand === m.id);
     }
     vous.className = 'tuile salle-tuile vous av0' + (grand === 'vous' ? ' grand' : '') + (A.snap.epingle === MOI.id ? ' epingle' : '');
-    scene.dataset.vue = X.vue; scene.dataset.n = String(Math.min(9, presents.length + 1));
+    if (tab) tab.className = 'tuile salle-tuile salle-tableau' + (grand === 'tableau' ? ' grand' : '');
+    scene.dataset.vue = X.vue; scene.dataset.n = String(Math.min(9, presents.length + 1 + (tab ? 1 : 0)));
     let seul = $('salle-seul');
     if (!presents.length) {
       if (!seul) { scene.insertAdjacentHTML('beforeend', '<p class="salle-attente" id="salle-seul"></p>'); seul = $('salle-seul'); }
@@ -4201,6 +4942,7 @@
       const m = presents.find(x => x.id === t.dataset.uid); if (m) majTuile(t, m, A, grand === m.id);
     });
     $('salle-vous').classList.toggle('grand', grand === 'vous');
+    const tab = $('salle-tableau'); if (tab) tab.classList.toggle('grand', grand === 'tableau');
   }
   /* une réaction monte de la vignette de celui qui l'envoie (la mienne comprise) et s'efface ; le lecteur d'écran l'entend */
   function reactionSalle(uid, nom) {
@@ -4243,6 +4985,8 @@
       for (const m of presents) if (mains.has(m.id) && !X.mains.has(m.id)) annonceAppel(nomM(m) + ' lève la main');
     }
     X.ids = ids; X.mains = mains;
+    if (!s.attente) { X.venus = X.venus || new Set(); for (const m of presents) X.venus.add(m.id); }          // tous ceux qui sont venus, ne serait-ce qu'un instant : la fin d'un enregistrement dit qui n'était PAS là
+    annotSynchro(A);                                                         // AVANT les vignettes : un support qui arrive met la vue en « intervenant »
     if (s.attente) { salleTuiles(A, []); const seul = $('salle-seul'); if (seul) { seul.innerHTML = '<b>Salle d\'attente</b>Un hôte va te laisser entrer. Tu peux quitter à tout moment.'; } }
     else salleTuiles(A, presents);
     /* « Vous » */
@@ -4258,6 +5002,7 @@
     lierFluxSalle(A);
     recSynchro(A);
     majStatutSalle(A);
+    annotRendre(A);
   }
   function sallePistesVous(A) {
     const v = $('salle-video-local'), vous = $('salle-vous'), piste = A.ecran && A.ecran.readyState === 'live' ? A.ecran : A.video && A.video.readyState === 'live' ? A.video : null;
@@ -4337,12 +5082,59 @@
   }
 
   /* ── les panneaux : Participants, Discussion, Plus, Quitter (l'hôte qui part) ── */
-  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle' };
+  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document', presence: 'Rapport de présence' };
+  /* le rapport de présence, en direct (l'hôte et les co-hôtes) : relu toutes les 15 s tant qu'il est ouvert */
+  function htmlPresenceSalle(A) {
+    const X = sx(A), d = X.presenceDonnees;
+    const retour = '<button type="button" class="salle-btn presse salle-suivi-retour" data-sa="presence-retour">‹ Plus</button>';
+    if (!d) return retour + '<p class="salle-note">' + esc(X.presencePanne || 'Chargement…') + '</p>';
+    const L = presenceLignes(d);
+    return retour + '<p class="salle-suivi-compte"><b>' + L.venus.length + '</b> ' + (L.venus.length > 1 ? 'personnes sont venues' : 'personne est venue') + (L.absents.length ? ', ' + L.absents.length + ' absente' + (L.absents.length > 1 ? 's' : '') : '') + '</p>' +
+      '<ul class="salle-suivi" role="list" aria-label="Présences">' + L.venus.map(x => '<li><span>' + esc(x.nom) + '</span><small>' + esc(x.detail) + '</small></li>').join('') + '</ul>' +
+      (L.absents.length ? '<div class="salle-rub"><span>Absences</span><span>' + L.absents.length + '</span></div><ul class="salle-suivi" role="list" aria-label="Absences">' + L.absents.map(x => '<li class="pas"><span>' + esc(x.nom) + '</span><small>' + esc(x.detail) + '</small></li>').join('') + '</ul>' : '') +
+      '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="presence-csv">' + icone('i-telecharger') + ' Exporter (CSV)</button></p>';
+  }
+  async function sallePresenceCharger(A) {
+    const X = sx(A);
+    try { X.presenceDonnees = await source.presenceSalle(A.id); X.presencePanne = ''; } catch (e) { if (!X.presenceDonnees) X.presencePanne = phrase(e, 'Le rapport n\'a pas pu être lu.'); }
+    if (!perime(A) && sx(A).panneau === 'presence') sallePanneauRendre(A, true);
+  }
+  /* le suivi d'un document, dans la salle (le panneau « suivi ») : les mêmes lignes que la feuille, dans l'encre de la salle, et le retour à la discussion */
+  function htmlSuiviSalle(A) {
+    const X = sx(A), d = X.suiviDonnees;
+    const retour = '<button type="button" class="salle-btn presse salle-suivi-retour" data-sa="suivi-retour">‹ Discussion</button>';
+    if (!d) return retour + '<p class="salle-note">' + (X.suiviPanne ? esc(X.suiviPanne) : 'Chargement…') + '</p>';
+    const faits = suiviFaits(d), autres = d.membres.filter(m => !(m.ouvert && m.ouvert.premier));
+    const etat = m => m.ouvert === null ? (m.lu ? 'Lu' : m.recu ? 'Reçu' : 'Pas encore reçu') : m.lu ? 'Lu, pas encore téléchargé' : m.recu ? 'Reçu, pas encore téléchargé' : 'Pas encore reçu';
+    return retour + '<p class="salle-suivi-compte"><b>' + faits.length + '</b> / ' + d.membres.length + ' ont téléchargé</p>' +
+      '<ul class="salle-suivi" role="list">' + faits.sort((a, b) => a.ouvert.premier - b.ouvert.premier).map(m => '<li><span>' + esc(nomPersonne(m.id)) + '</span><small>' + esc(FMT_SUIVI.format(m.ouvert.premier) + (m.ouvert.n > 1 ? ' · ' + m.ouvert.n + ' fois' : '')) + '</small></li>').join('') +
+        autres.map(m => '<li class="pas"><span>' + esc(nomPersonne(m.id)) + '</span><small>' + esc(etat(m)) + '</small></li>').join('') + '</ul>';
+  }
+  /* les compteurs « Téléchargé par x sur y » de MES documents de la discussion (les dix derniers), relus au plus toutes les 15 s */
+  async function salleSuivisCharger(A, force) {
+    const X = sx(A); if (!suiviPossible() || !X.discussion) return;
+    if (!X.suivis) X.suivis = new Map();
+    if (!force && X.suivisLu && Date.now() - X.suivisLu < 15000) return;
+    X.suivisLu = Date.now();
+    const miens = X.discussion.filter(m => m.fichier && m.fichier.piece && m.auteur === MOI.id).slice(-10);
+    let change = false;
+    for (const m of miens) {
+      let d = null; try { d = await source.suiviPiece(m.fichier.piece); } catch (e) { d = null; }
+      if (perime(A) || !d) continue;
+      const v = { faits: suiviFaits(d).length, total: d.membres.length }, avant = X.suivis.get(m.fichier.piece);
+      if (!avant || avant.faits !== v.faits || avant.total !== v.total) { X.suivis.set(m.fichier.piece, v); change = true; }
+      if (X.panneau === 'suivi' && X.suiviPiece === m.fichier.piece) { X.suiviDonnees = d; change = true; }
+    }
+    if (change && !perime(A)) sallePanneauRendre(A, true);
+  }
   function salleOuvrirPanneau(A, nom, declencheurEl) {
     const X = sx(A);
     if (X.panneau === nom) { salleFermerPanneau(A); return; }
     X.panneau = nom; X.emojis = false; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
     if (nom === 'discussion') { X.neufs = 0; salleDiscussionCharger(A, true); }
+    /* la discussion ou le suivi ouverts : les compteurs de MES documents se relisent toutes les 15 s (un patron garde le panneau ouvert, il voit les téléchargements arriver) */
+    clearInterval(X.minuterieSuivis);
+    if (nom === 'discussion' || nom === 'suivi') X.minuterieSuivis = setInterval(() => { const Y = sx(A); if (perime(A) || (Y.panneau !== 'discussion' && Y.panneau !== 'suivi')) { clearInterval(Y.minuterieSuivis); return; } salleSuivisCharger(A, true); }, 15000);
     /* « Plus » : les micros, caméras et sorties de l'appareil, lus à l'ouverture (leurs noms n'existent qu'une fois le micro autorisé — c'est le cas dans une salle) */
     if (nom === 'plus') listeAppareils().then(l => { if (!perime(A) && sx(A).panneau === 'plus') { sx(A).appareils = l; sallePanneauRendre(A, true); } });
     A.snap && salleCommandes(A, A.mediaPret && (!A.micro || !A.audio));
@@ -4404,6 +5196,7 @@
       h += '<div class="salle-rang libre"><span class="texte">Minuteur<small>' + (s.minuteur ? 'En cours' : 'Visible de tous') + '</small></span>' +
         (s.minuteur ? '<button type="button" class="salle-btn presse" data-sa="minuteur-arreter">Arrêter</button>' : MINUTEURS.map(x => '<button type="button" class="salle-btn presse" data-sa="minuteur" data-s="' + x[0] + '">' + x[1] + '</button>').join('')) + '</div></div>';
     }
+    if (hote && CAP.presenceRapport) h += '<div class="salle-rub"><span>Présence</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="presence"><span class="texte">Rapport de présence<small>Qui est venu, à quelle heure, combien de temps — et qui manque</small></span></button></div>';
     if (hote) {
       /* la salle d'attente et le verrou sont des OUTILS d'organisateur (dans un appel gratuit, ils ne sont pas proposés) ; le partage d'écran des participants reste un réglage de la salle, pour tous */
       h += '<div class="salle-rub"><span>Sécurité</span></div><div class="salle-liste">' +
@@ -4411,6 +5204,17 @@
         inter('attente', s.salleAttente, 'Salle d\'attente', 'Les nouveaux arrivants attendent d\'être admis') : '') +
         inter('partage-ok', s.partageOk, 'Partage d\'écran des participants', 'Les hôtes peuvent toujours partager') + '</div>';
       if (!s.outils) h += '<p class="salle-note" id="salle-sans-outils">Les outils de l\'organisateur — salle d\'attente, verrou, sondage, minuteur, enregistrement — sont dans les réunions.</p>';
+    }
+    /* le tableau blanc et les annotations : ouvrir le tableau (tous, sauf si l'hôte les a réservées aux hôtes), le fermer (l'hôte, celui qui l'a ouvert), le réglage de l'hôte */
+    const an = s.annot || { support: null, permis: 'tous', ouvreur: null };
+    if (CAP.annotations) {
+      const surTableau = an.support === 'tableau', ouvreur = surTableau ? s.membres.find(m => m.id === an.ouvreur) : null;
+      let lignes = '';
+      if (surTableau) lignes += annotMaitre(A) ? '<button type="button" class="salle-rang" data-sa="tableau-fermer"><span class="texte">Fermer le tableau blanc<small>Ce qui y est dessiné s\'efface pour tous : « Capturer » l\'envoie d\'abord dans la discussion</small></span></button>'
+        : '<div class="salle-rang libre"><span class="texte">Tableau blanc ouvert<small>' + esc(an.ouvreur === MOI.id ? 'Par vous' : 'Par ' + nomM(ouvreur)) + '</small></span></div>';
+      else if (an.permis === 'tous' || hote) lignes += '<button type="button" class="salle-rang" data-sa="tableau-ouvrir"><span class="texte">Ouvrir un tableau blanc<small>Chacun y dessine et y écrit, tout le monde le voit</small></span></button>';
+      if (hote) lignes += inter('annot-permis', an.permis === 'tous', 'Annotations des participants', 'Dessiner sur l\'écran partagé et le tableau (les hôtes le peuvent toujours)');
+      if (lignes) h += '<div class="salle-rub"><span>Tableau blanc et annotations</span></div><div class="salle-liste">' + lignes + '</div>';
     }
     /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image, là où le navigateur la sait */
     const ap = X.appareils || [], choix = (quoi, kind, titre) => { const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
@@ -4435,9 +5239,16 @@
   function htmlDiscussion(A) {
     const X = sx(A);
     const nomDe = id => { const m = A.snap.membres.find(x => x.id === id); return m ? nomM(m) : nomAuteur(id); };
-    const fil = X.discussion.length ? X.discussion.map(m => '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
+    const docHtml = m => {
+      const moi = m.auteur === MOI.id, sv = moi && X.suivis ? X.suivis.get(m.fichier.piece) : null;
+      return '<div class="salle-msg doc' + (moi ? ' moi' : '') + '">' + (moi ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') +
+        '<button type="button" class="salle-doc presse" data-sa="doc" data-mid="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="' + esc('Télécharger ' + m.fichier.nom + ', ' + tailleTexte(m.fichier.taille)) + '">' +
+          '<span class="salle-doc-ic">' + icone('i-fichier') + '</span><span class="salle-doc-t"><b dir="auto">' + esc(m.fichier.nom) + '</b><small>' + esc(tailleTexte(m.fichier.taille)) + '</small></span>' + icone('i-telecharger') + '</button>' +
+        (moi && m.fichier.piece && suiviPossible() ? '<button type="button" class="salle-doc-suivi presse" data-sa="doc-suivi" data-s="' + esc(m.fichier.piece) + '">' + (sv ? esc('Téléchargé par ' + sv.faits + ' sur ' + sv.total) : 'Qui l\'a téléchargé ?') + '</button>' : '') + '</div>';
+    };
+    const fil = X.discussion.length ? X.discussion.map(m => m.fichier ? docHtml(m) : '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
     return '<div class="salle-fil" id="salle-fil" role="log" aria-label="Messages" tabindex="0">' + fil + '</div>' +
-      '<form class="salle-saisie" id="salle-saisie-form"><input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">Envoyer</button></form>';
+      '<form class="salle-saisie" id="salle-saisie-form">' + (CAP.fichiers ? '<button type="button" class="salle-joindre presse" data-sa="doc-joindre" aria-label="Envoyer un document">' + icone('i-plus') + '</button>' : '') + '<input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">Envoyer</button></form>';
   }
   function sallePanneauRendre(A, force) {
     const X = sx(A), p = $('salle-panneau'), corps = $('salle-panneau-corps');
@@ -4446,14 +5257,14 @@
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom]);
-    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, s.capacite, s.nom]);
+    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
     const actif = document.activeElement, dans = actif && corps.contains(actif), cle = dans ? (actif.dataset.sa || '') + '|' + (actif.dataset.uid || actif.dataset.s || '') : null;
     const champs = {}; corps.querySelectorAll('input[id]').forEach(i => { champs[i.id] = { v: i.value, focus: i === actif, a: i.selectionStart }; });
     const bas = (() => { const f = $('salle-fil'); return !f || f.scrollHeight - f.scrollTop - f.clientHeight < 40; })();
-    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : htmlDiscussion(A);
+    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : htmlDiscussion(A);
     for (const id of Object.keys(champs)) { const i = $(id); if (i && corps.contains(i)) { i.value = champs[id].v; if (champs[id].focus) { i.focus({ preventScroll: true }); try { i.setSelectionRange(champs[id].a, champs[id].a); } catch (e) { /* un champ sans curseur */ } } } }
     if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); }
     const f = $('salle-fil'); if (f && bas) f.scrollTop = f.scrollHeight;
@@ -4465,6 +5276,7 @@
     let c = null; try { c = await source.ouvrir(s.conv); } catch (e) { c = null; }
     if (perime(A) || !c) return;
     X.discussion = c.messages.filter(m => !m.systeme && !m.supprime).slice(-60);
+    salleSuivisCharger(A);
     const ids = new Set(X.discussion.map(m => m.id));
     if (!X.vus) X.vus = ids;
     if (X.panneau === 'discussion') { X.vus = ids; X.neufs = 0; }
@@ -4487,6 +5299,19 @@
     const s = A.snap, X = sx(A), uid = el.dataset.uid;
     switch (act) {
       case 'panneau-fermer': salleFermerPanneau(A); return;
+      case 'doc-joindre': $('salle-doc').click(); return;
+      case 'doc': { const m = (X.discussion || []).find(x => x.id === el.dataset.mid); if (m && m.fichier) await telechargerPiece(m.fichier, el); return; }
+      case 'doc-suivi': X.suiviPiece = el.dataset.s; X.suiviDonnees = null; X.suiviPanne = '';
+        X.panneau = 'suivi'; sallePanneauRendre(A, true);
+        try { X.suiviDonnees = await source.suiviPiece(el.dataset.s); } catch (e) { X.suiviPanne = phrase(e, 'Le suivi n\'a pas pu être lu.'); }
+        if (!perime(A) && sx(A).panneau === 'suivi') sallePanneauRendre(A, true);
+        return;
+      case 'presence': X.panneau = 'presence'; X.presenceDonnees = null; X.presencePanne = ''; sallePanneauRendre(A, true); sallePresenceCharger(A);
+        clearInterval(X.minuteriePresence); X.minuteriePresence = setInterval(() => { const Y = sx(A); if (perime(A) || Y.panneau !== 'presence') { clearInterval(Y.minuteriePresence); return; } sallePresenceCharger(A); }, 15000);
+        return;
+      case 'presence-retour': clearInterval(X.minuteriePresence); X.panneau = 'plus'; sallePanneauRendre(A, true); return;
+      case 'presence-csv': if (X.presenceDonnees) presenceCsv(s.nom, [X.presenceDonnees]); return;
+      case 'suivi-retour': X.panneau = 'discussion'; X.suiviPiece = null; X.suiviDonnees = null; sallePanneauRendre(A, true); salleDiscussionCharger(A, true); return;
       case 'voir-participants': salleOuvrirPanneau(A, 'participants', $('salle-participants')); return;
       case 'micro-ok': X.bandeauMic = null; salleBandeaux(A); return;
       case 'micro-rouvrir': X.bandeauMic = null; if (A.audio) { A.micro = true; A.audio.enabled = true; pousserPistes(A); } rendreAppel(); annonceAppel('Micro activé'); return;
@@ -4504,6 +5329,9 @@
       case 'verrou': await salleGeste(A, 'verrouiller', { actif: !s.verrou }); return;
       case 'attente': await salleGeste(A, 'attente', { actif: !s.salleAttente }); return;
       case 'partage-ok': await salleGeste(A, 'partage', { actif: !s.partageOk }); return;
+      case 'tableau-ouvrir': if (await salleGeste(A, 'annot', { op: 'tableau', actif: true }, 'Le tableau blanc n\'a pas pu s\'ouvrir.')) { X.annoterApres = 'tableau'; salleFermerPanneau(A, false); rendreAppel(); } return;
+      case 'tableau-fermer': await salleGeste(A, 'annot', { op: 'tableau', actif: false }, 'Le tableau blanc n\'a pas pu se fermer.'); return;
+      case 'annot-permis': await salleGeste(A, 'annot', { op: 'permis', qui: (s.annot && s.annot.permis) === 'hotes' ? 'tous' : 'hotes' }); return;
       case 'sondage-nouveau': X.formSondage = true; X.choixN = 2; sallePanneauRendre(A, true); requestAnimationFrame(() => { const q = $('salle-sq'); if (q) q.focus({ preventScroll: true }); }); return;
       case 'sondage-annuler': X.formSondage = false; sallePanneauRendre(A, true); return;
       case 'sondage-choix': X.choixN = Math.min(6, X.choixN + 1); sallePanneauRendre(A, true); return;
@@ -4563,6 +5391,15 @@
   $('salle-main').addEventListener('click', async () => { const A = etat.appelUI; if (!enSalle(A)) return; const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } });
   $('salle-vue').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A)) return; const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); });
   $('salle-rec-btn').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A) || $('salle-rec-btn').getAttribute('aria-disabled') === 'true') return; if (A.rec) recArreter(A, true); else recDemarrer(A); });
+  /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
+  $('salle-doc').addEventListener('change', async e => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    const A = etat.appelUI; if (!enSalle(A) || !A.snap.conv || !f) return;
+    if (!(f.size > 0)) { mot('Ce fichier est vide : il n\'a pas été envoyé.'); return; }
+    mot('Envoi de « ' + (f.name || 'fichier') + ' »…');
+    if (await envoi({ fichier: { blob: f, nom: f.name || 'fichier', taille: f.size } }, A.snap.conv)) { if (!perime(A)) { mot('Document envoyé'); salleDiscussionCharger(A, false); } }
+    else if (!perime(A)) mot('Le document n\'a pas pu être envoyé.');
+  });
   $('salle-panneau-corps').addEventListener('submit', async e => {
     if (e.target.id !== 'salle-saisie-form') return;
     e.preventDefault();
@@ -4576,6 +5413,12 @@
   function salleEchap() {
     const A = etat.appelUI; if (!enSalle(A)) return false;
     const X = sx(A);
+    if (X.annoter) {                                                         // en annotant : le champ de texte, puis la palette, puis le mode lui-même
+      const N = annotEtat(A);
+      if (N.saisie) { annotSaisieFermer(A, false); return true; }
+      if (N.palette) { const q = N.palette; annotPaletteFermer(A); $(q === 'couleur' ? 'annot-couleur' : 'annot-effacer').focus({ preventScroll: true }); return true; }
+      annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return true;
+    }
     if (X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); $('salle-reagir').focus({ preventScroll: true }); return true; }
     if (X.panneau) { salleFermerPanneau(A); return true; }
     return true;
@@ -4584,6 +5427,320 @@
     if (e.key !== 'Escape' || !etat.appelId || etat.photo || etat.groupe.ouvert || etat.menu) return;
     if (salleEchap()) { e.preventDefault(); e.stopPropagation(); }
   }, true);
+
+  /* ── les annotations : dessiner et écrire sur l'écran partagé ou le tableau blanc (7 octobre 2026 : « partage d'écran, dessiner sur l'écran, ajouter du texte ») ──
+     Le SERVICE tient ce qui est dessiné (en mémoire, le temps de la salle) ; la source en garde la copie (`source.salleAnnotations`) et dit 'salle-annot' quand elle change. La page :
+     · un CALQUE (`canvas.annot-calque`) posé dans la vignette du support (l'écran partagé de quelqu'un, ou le tableau), redessiné à l'image près (`annotPlanifier`) ;
+     · des coordonnées RELATIVES à l'image (0..10 000), pas aux pixels d'un appareil : un trait posé sur un téléphone tombe au même endroit sur l'écran d'un ordinateur ;
+     · le trait en cours part en morceaux (toutes les 200 ms) pendant qu'on dessine — les autres le voient se tracer ; le mien reste dessiné ICI jusqu'à ce que le service l'ait entier (`N.locaux`).
+     ⛔ Le partageur ne voit pas les annotations sur SON écran réel (une page web ne dessine pas hors d'elle) : il les voit sur sa vignette. Le dire plutôt que le laisser croire. */
+  const ANNOT_COULEURS = { rouge: '#ff3b30', orange: '#ff9500', jaune: '#ffcc00', vert: '#34c759', bleu: '#0a84ff', violet: '#af52de', noir: '#1c1c1e', blanc: '#ffffff' };
+  const NOMS_COULEURS = { rouge: 'Rouge', orange: 'Orange', jaune: 'Jaune', vert: 'Vert', bleu: 'Bleu', violet: 'Violet', noir: 'Noir', blanc: 'Blanc' };
+  const NOMS_OUTILS = { stylo: 'Stylo', surligneur: 'Surligneur', fleche: 'Flèche', rect: 'Rectangle', ellipse: 'Cercle', texte: 'Texte' };
+  const ANNOT_TABLEAU = 1.6, ANNOT_PAS = 30, ANNOT_POINTS_MAX = 4000;
+  const annotEtat = A => { const X = sx(A); return X.an || (X.an = { outil: 'stylo', couleur: 'rouge', ep: 2, trait: null, locaux: new Map(), file: Promise.resolve(), support: undefined, vueAvant: null, calque: null, cible: null, ro: null, planifie: 0, minuterie: 0, boite: null, saisie: null, palette: null, n: 0 }); };
+  const annotInfo = A => { const a = A && A.snap && A.snap.annot; return a && a.support ? a : null; };
+  /* la même règle que le service : l'hôte ; et, tant que les annotations sont à tous, celui qui partage ou qui a ouvert le tableau */
+  function annotMaitre(A) { const a = annotInfo(A); return !!a && (!!A.snap.moi.hote || (a.permis === 'tous' && (a.support === 'ecran:' + MOI.id || (a.support === 'tableau' && a.ouvreur === MOI.id)))); }
+  function annotPeut(A) { const a = annotInfo(A); return !!a && !A.snap.attente && (a.permis === 'tous' || annotMaitre(A)); }
+  function annotCible(A) {
+    const a = annotInfo(A); if (!a || A.snap.attente) return null;
+    if (a.support === 'tableau') return $('salle-tableau');
+    const uid = a.support.slice(6);
+    return uid === MOI.id ? $('salle-vous') : $('salle-scene').querySelector(':scope > .salle-tuile[data-uid="' + uid.replace(/[^A-Za-z0-9_-]/g, '') + '"]');
+  }
+  /* la boîte de l'IMAGE dans sa vignette (px CSS, relatifs à la vignette) : l'écran partagé est montré en entier (« contain ») ; le tableau est un 16:10, le même chez tous */
+  function annotBoite(t) {
+    const W = t.clientWidth, H = t.clientHeight; if (!W || !H) return null;
+    let r = ANNOT_TABLEAU;
+    if (t.id !== 'salle-tableau') { const v = t.querySelector('video'); r = v && v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : W / H; }
+    const w = Math.min(W, H * r), h = w / r;
+    return { x: (W - w) / 2, y: (H - h) / 2, w, h };
+  }
+  /* tracer des annotations dans un contexte 2D, sur la boîte `b` (en pixels de ce contexte) ; `k` : combien de pixels du contexte font un pixel CSS (les épaisseurs ne descendent pas sous 1,5 px à l'écran).
+     Une seule fonction pour le calque, la capture envoyée dans la discussion et l'image de l'enregistrement : ce qu'on enregistre est ce qu'on a vu. */
+  function annotTracer(g, items, b, k) {
+    for (const x of items) {
+      const P = x.pts; if (!P || P.length < 2) continue;
+      const col = ANNOT_COULEURS[x.couleur] || ANNOT_COULEURS.rouge, ep = (x.ep | 0) || 2, X = i => b.x + P[i] / 10000 * b.w, Y = i => b.y + P[i + 1] / 10000 * b.h;
+      g.save();
+      if (x.outil === 'texte') {
+        const fs = Math.max(11 * k, b.h * [0.035, 0.05, 0.07][ep - 1]), larg = Math.max(fs * 3, b.x + b.w - X(0) - 4 * k);
+        g.font = '600 ' + Math.round(fs) + 'px -apple-system, system-ui, sans-serif'; g.textBaseline = 'top'; g.fillStyle = col;
+        if (x.couleur === 'blanc' || x.couleur === 'jaune') { g.shadowColor = 'rgba(0,0,0,.55)'; g.shadowBlur = 3 * k; }        // un texte clair reste lisible sur un écran clair
+        const lignes = []; let l = '';
+        for (const mot of String(x.texte || '').split(' ')) { const essai = l ? l + ' ' + mot : mot; if (l && g.measureText(essai).width > larg) { lignes.push(l); l = mot; } else l = essai; }
+        if (l) lignes.push(l);
+        lignes.slice(0, 6).forEach((t, i) => g.fillText(t, X(0), Y(0) + i * fs * 1.25));
+        g.restore(); continue;
+      }
+      const lw = Math.max(1.5 * k, b.h * [0.004, 0.007, 0.012][ep - 1]) * (x.outil === 'surligneur' ? 3.5 : 1);
+      g.lineWidth = lw; g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = col;
+      if (x.outil === 'surligneur') { g.globalAlpha = 0.35; g.lineCap = 'butt'; }
+      g.beginPath();
+      if (x.outil === 'stylo' || x.outil === 'surligneur') {
+        g.moveTo(X(0), Y(0));
+        if (P.length === 2) g.lineTo(X(0) + 0.01, Y(0));                               // un simple toucher fait un point
+        for (let i = 2; i < P.length - 2; i += 2) g.quadraticCurveTo(X(i), Y(i), (X(i) + X(i + 2)) / 2, (Y(i) + Y(i + 2)) / 2);
+        if (P.length > 2) g.lineTo(X(P.length - 2), Y(P.length - 2));
+      } else {
+        const n = P.length - 2, x1 = X(0), y1 = Y(0), x2 = X(n), y2 = Y(n);
+        if (x.outil === 'rect') g.rect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+        else if (x.outil === 'ellipse') g.ellipse((x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1) / 2, Math.abs(y2 - y1) / 2, 0, 0, Math.PI * 2);
+        else { const a = Math.atan2(y2 - y1, x2 - x1), L = Math.max(12 * k, lw * 4); g.moveTo(x1, y1); g.lineTo(x2, y2); g.moveTo(x2 - L * Math.cos(a - 0.45), y2 - L * Math.sin(a - 0.45)); g.lineTo(x2, y2); g.lineTo(x2 - L * Math.cos(a + 0.45), y2 - L * Math.sin(a + 0.45)); }
+      }
+      g.stroke(); g.restore();
+    }
+  }
+  /* ce que le calque montre : ce que le service tient, sauf mes traits pas encore entiers chez lui (dessinés depuis ICI, sans saut) */
+  function annotItems(A) {
+    const N = annotEtat(A), tenus = (source.salleAnnotations && source.salleAnnotations(A.id) || { items: [] }).items;
+    const caches = new Set(N.locaux.keys()); if (N.trait) caches.add(N.trait.id);
+    const l = tenus.filter(x => !caches.has(x.id));
+    for (const x of N.locaux.values()) l.push(x);
+    if (N.trait) l.push(N.trait);
+    return l;
+  }
+  function annotRendre(A) {
+    const N = annotEtat(A), t = annotCible(A);
+    if (N.cible && N.cible !== t && N.ro) N.ro.unobserve(N.cible);
+    if (!t) { if (N.calque) N.calque.remove(); N.cible = null; N.boite = null; return; }
+    let cv = N.calque;
+    if (!cv) { cv = N.calque = document.createElement('canvas'); cv.className = 'annot-calque'; cv.setAttribute('aria-hidden', 'true'); annotBrancher(cv); }
+    if (cv.parentNode !== t) t.insertBefore(cv, t.querySelector('.tuile-nom'));
+    if (N.cible !== t) {
+      N.cible = t;
+      if (!N.ro && typeof ResizeObserver === 'function') N.ro = new ResizeObserver(() => annotPlanifier());
+      if (N.ro) N.ro.observe(t);
+      const v = t.querySelector('video'); if (v && !v.dataset.annot) { v.dataset.annot = '1'; v.addEventListener('resize', annotPlanifier); v.addEventListener('loadedmetadata', annotPlanifier); }
+    }
+    cv.dataset.outil = N.outil;
+    const dpr = Math.min(2, window.devicePixelRatio || 1), W = Math.round(t.clientWidth * dpr), H = Math.round(t.clientHeight * dpr);
+    if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+    const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+    const b0 = annotBoite(t); N.boite = b0; if (!b0) return;
+    const b = { x: b0.x * dpr, y: b0.y * dpr, w: b0.w * dpr, h: b0.h * dpr };
+    if (t.id === 'salle-tableau') { g.fillStyle = '#fbfbfd'; g.fillRect(b.x, b.y, b.w, b.h); }
+    const items = annotItems(A);
+    annotTracer(g, items, b, dpr);
+    N.n = items.length; cv.dataset.n = String(items.length);
+  }
+  function annotPlanifier() {
+    const A = etat.appelUI; if (!enSalle(A)) return;
+    const N = annotEtat(A); if (N.planifie) return;
+    N.planifie = requestAnimationFrame(() => { N.planifie = 0; if (etat.appelUI === A && enSalle(A)) annotRendre(A); });
+  }
+  /* le support change (un partage commence ou finit, le tableau s'ouvre ou se ferme) : ce qui était en cours s'arrête ; chez les AUTRES que le partageur, la vue passe à « intervenant » le temps du
+     support (l'image en grand, comme Zoom et Teams), et revient à ce qu'elle était ensuite. Appelé par `rendreSalle` AVANT les vignettes. */
+  function annotSynchro(A) {
+    const a = annotInfo(A), N = annotEtat(A), X = sx(A), sup = a ? a.support : null;
+    if (sup !== N.support) {
+      const avant = N.support; N.support = sup;
+      clearInterval(N.minuterie); N.minuterie = 0; N.trait = null; N.locaux.clear(); annotSaisieFermer(A, false); annotPaletteFermer(A);
+      const grandir = !!sup && sup !== 'ecran:' + MOI.id;
+      if (grandir && X.vue !== 'intervenant' && !N.vueAvant) { N.vueAvant = X.vue; X.vue = 'intervenant'; }
+      else if (!grandir && N.vueAvant) { X.vue = N.vueAvant; N.vueAvant = null; }
+      if (avant !== undefined) {
+        if (sup === 'tableau') { const m = A.snap.membres.find(x => x.id === a.ouvreur); annonceAppel(a.ouvreur === MOI.id ? 'Tableau blanc ouvert' : nomM(m) + ' a ouvert le tableau blanc'); }
+        else if (avant === 'tableau') annonceAppel('Tableau blanc fermé');
+      }
+      if (!sup && X.annoter) annoterBasculer(A, false);
+    }
+    if (X.annoterApres && sup === X.annoterApres) { X.annoterApres = null; if (!X.annoter) annoterBasculer(A, true); }       // je viens d'ouvrir le tableau : j'y dessine tout de suite
+    if (X.annoter && !annotPeut(A)) { annoterBasculer(A, false); if (sup) mot('L\'hôte a réservé les annotations aux hôtes.'); }
+    const bp = $('salle-annoter'); bp.hidden = !annotPeut(A); bp.setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
+    $('annot-capturer').hidden = !(sup === 'tableau' || annotMaitre(A));                 // l'écran de quelqu'un ne se capture que par lui ou un hôte ; le tableau, par tous
+    $('annot-effacer').setAttribute('aria-label', annotMaitre(A) ? 'Effacer…' : 'Effacer mes annotations');
+  }
+  function annoterBasculer(A, actif) {
+    const X = sx(A), E = $('salle-ecran');
+    X.annoter = !!actif && annotPeut(A);
+    if (X.annoter) E.dataset.annoter = '1'; else { E.removeAttribute('data-annoter'); annotSaisieFermer(A, true); annotPaletteFermer(A); }
+    $('annot-barre').hidden = !X.annoter;
+    $('salle-annoter').setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
+    annotOutils(A);
+    if (X.annoter && X.panneau) salleFermerPanneau(A, false);
+    if (X.annoter && X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); }
+    if (X.annoter) { const sup = annotInfo(A).support; annonceAppel(sup === 'tableau' ? 'Annoter : dessine sur le tableau blanc' : sup === 'ecran:' + MOI.id ? 'Annoter : dessine sur ton écran partagé, tous le voient sur leur écran' : 'Annoter : dessine sur l\'écran partagé'); }
+    annotPlanifier();
+  }
+  /* l'état des boutons de la barre : l'outil choisi, la pastille de la couleur */
+  function annotOutils(A) {
+    const N = annotEtat(A);
+    $('annot-barre').querySelectorAll('[data-outil]').forEach(b => b.setAttribute('aria-pressed', b.dataset.outil === N.outil ? 'true' : 'false'));
+    const bc = $('annot-couleur'); bc.dataset.couleur = N.couleur; bc.setAttribute('aria-label', 'Couleur et épaisseur : ' + NOMS_COULEURS[N.couleur] + ', ' + ['fin', 'moyen', 'épais'][N.ep - 1]);
+    if (N.calque) N.calque.dataset.outil = N.outil;
+  }
+  /* un point du doigt ou de la souris → coordonnées de l'image (0..10 000), ou null hors de l'image */
+  function annotPoint(A, e) {
+    const N = annotEtat(A), b = N.boite; if (!b || !N.calque) return null;
+    const x = (e.offsetX - b.x) / b.w, y = (e.offsetY - b.y) / b.h;                       // le calque couvre la vignette depuis son coin : `offsetX/Y` sont déjà relatifs à elle
+    if (x < -0.03 || x > 1.03 || y < -0.03 || y > 1.03) return null;
+    return [Math.round(Math.max(0, Math.min(1, x)) * 10000), Math.round(Math.max(0, Math.min(1, y)) * 10000)];
+  }
+  const annotId = () => { const t = new Uint8Array(9); crypto.getRandomValues(t); return 'a' + Array.from(t, n => n.toString(36).padStart(2, '0')).join('').slice(0, 15); };
+  function annotBrancher(cv) {
+    cv.addEventListener('pointerdown', e => {
+      const A = etat.appelUI; if (!enSalle(A) || !sx(A).annoter || !annotPeut(A) || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      const N = annotEtat(A), p = annotPoint(A, e); if (!p) return;
+      e.preventDefault(); annotPaletteFermer(A);
+      if (N.outil === 'texte') { annotSaisieOuvrir(A, p, e); return; }
+      if (N.trait) annotFinir(A, true);
+      try { cv.setPointerCapture(e.pointerId); } catch (er) { /* le pointeur est déjà parti */ }
+      N.trait = { id: annotId(), de: MOI.id, outil: N.outil, couleur: N.couleur, ep: N.ep, pts: p.slice(), fini: false, envoyes: 0, cree: false, pointeur: e.pointerId };
+      if (N.outil === 'stylo' || N.outil === 'surligneur') N.minuterie = setInterval(() => annotVider(A, false), 200);
+      annotPlanifier();
+    });
+    cv.addEventListener('pointermove', e => {
+      const A = etat.appelUI; if (!enSalle(A)) return;
+      const N = annotEtat(A), tr = N.trait; if (!tr || tr.pointeur !== e.pointerId) return;
+      const evs = typeof e.getCoalescedEvents === 'function' ? e.getCoalescedEvents() : [e];
+      for (const ev of (evs.length ? evs : [e])) {
+        const p = annotPoint(A, ev); if (!p) continue;
+        if (tr.outil !== 'stylo' && tr.outil !== 'surligneur') { tr.pts = [tr.pts[0], tr.pts[1], p[0], p[1]]; continue; }
+        const n = tr.pts.length;
+        if (Math.hypot(p[0] - tr.pts[n - 2], p[1] - tr.pts[n - 1]) < ANNOT_PAS) continue;
+        if (n / 2 >= ANNOT_POINTS_MAX) { annotFinir(A, false); return; }
+        tr.pts.push(p[0], p[1]);
+      }
+      annotPlanifier();
+    });
+    const fin = e => { const A = etat.appelUI; if (!enSalle(A)) return; const N = annotEtat(A); if (N.trait && N.trait.pointeur === e.pointerId) annotFinir(A, e.type === 'pointercancel'); };
+    cv.addEventListener('pointerup', fin); cv.addEventListener('pointercancel', fin);
+  }
+  /* le trait se termine : une forme part d'un coup (si on a bougé), un trait à main levée envoie son dernier morceau */
+  function annotFinir(A, perdu) {
+    const N = annotEtat(A), tr = N.trait; if (!tr) return;
+    clearInterval(N.minuterie); N.minuterie = 0; N.trait = null;
+    if (tr.outil === 'stylo' || tr.outil === 'surligneur') { if (perdu && !tr.cree) { annotPlanifier(); return; } N.locaux.set(tr.id, tr); annotVider(A, true, tr); }
+    else if (tr.pts.length === 4 && Math.hypot(tr.pts[2] - tr.pts[0], tr.pts[3] - tr.pts[1]) >= ANNOT_PAS * 2) { N.locaux.set(tr.id, tr); annotEnvoyer(A, { op: 'trait', id: tr.id, outil: tr.outil, couleur: tr.couleur, ep: tr.ep, pts: tr.pts.slice(), fin: true }, tr); }
+    annotPlanifier();
+  }
+  /* un morceau du trait en cours (ou le dernier, `fin`) : seulement les points pas encore envoyés, 600 au plus par envoi */
+  function annotVider(A, fin, tr0) {
+    const N = annotEtat(A), tr = tr0 || N.trait; if (!tr) return;
+    let neufs = tr.pts.slice(tr.envoyes);
+    if (!neufs.length && !fin) return;
+    if (!neufs.length) neufs = tr.pts.slice(-2);
+    while (neufs.length) {
+      const m = neufs.splice(0, 1200), dernier = !neufs.length;
+      tr.envoyes = Math.min(tr.pts.length, tr.envoyes + m.length);
+      const d = tr.cree ? { op: 'trait', id: tr.id, pts: m } : { op: 'trait', id: tr.id, outil: tr.outil, couleur: tr.couleur, ep: tr.ep, pts: m };
+      if (fin && dernier) d.fin = true;
+      tr.cree = true;
+      annotEnvoyer(A, d, tr);
+    }
+  }
+  /* UNE file : les gestes partent dans l'ordre où ils ont été faits (un morceau de trait n'arrive jamais avant son début) ; un refus arrête le trait et se DIT une fois */
+  function annotEnvoyer(A, d, tr) {
+    const N = annotEtat(A);
+    N.file = N.file.then(async () => {
+      if (perime(A) || (tr && tr.rate)) return;
+      try { await source.salleAction(A.id, 'annot', d); }
+      catch (e) { if (tr) tr.rate = true; if (!perime(A)) { mot(phrase(e, 'Ce trait n\'a pas pu être envoyé.')); if (e && e.code === 'rien_a_annoter') annoterBasculer(A, false); } }
+      finally { if (tr && (d.fin || tr.rate)) { N.locaux.delete(tr.id); if (!perime(A)) annotPlanifier(); } }
+    });
+    return N.file;
+  }
+  /* le texte : un champ posé là où l'on a touché ; Entrée le pose, Échap l'abandonne, quitter le champ le pose aussi (ce qu'on a écrit n'est pas perdu) */
+  function annotSaisieOuvrir(A, p, e) {
+    const N = annotEtat(A), t = N.cible; if (!t) return;
+    annotSaisieFermer(A, true);
+    const W = t.clientWidth, H = t.clientHeight, ch = document.createElement('input');
+    ch.type = 'text'; ch.className = 'annot-saisie'; ch.maxLength = 200; ch.autocomplete = 'off'; ch.enterKeyHint = 'done'; ch.setAttribute('aria-label', 'Texte à poser sur ' + (annotInfo(A).support === 'tableau' ? 'le tableau' : 'l\'écran partagé'));
+    ch.style.left = Math.max(4, Math.min(e.offsetX, W - Math.min(260, W * 0.7) - 4)) + 'px';
+    ch.style.top = Math.max(4, Math.min(e.offsetY - 20, H - 48)) + 'px';
+    N.saisie = { ch, p };
+    t.appendChild(ch);
+    ch.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); annotSaisieFermer(A, true); } else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); annotSaisieFermer(A, false); } });
+    ch.addEventListener('blur', () => setTimeout(() => { if (N.saisie && N.saisie.ch === ch) annotSaisieFermer(A, true); }, 0));
+    requestAnimationFrame(() => ch.focus({ preventScroll: true }));
+  }
+  function annotSaisieFermer(A, poser) {
+    const N = annotEtat(A), s = N.saisie; if (!s) return;
+    N.saisie = null;
+    const texte = s.ch.value.replace(/\s+/g, ' ').trim();
+    s.ch.remove();
+    if (!poser || !texte || !annotPeut(A)) return;
+    const it = { id: annotId(), de: MOI.id, outil: 'texte', couleur: N.couleur, ep: N.ep, pts: s.p.slice(), texte: Array.from(texte).slice(0, 200).join(''), fini: true };
+    N.locaux.set(it.id, it); annotPlanifier();
+    annotEnvoyer(A, { op: 'texte', id: it.id, pts: it.pts, texte: it.texte, couleur: it.couleur, ep: it.ep, fin: true }, it);
+  }
+  /* la palette (couleur et épaisseur) et le choix « effacer » : un panneau au-dessus de la barre, un à la fois */
+  function annotPaletteOuvrir(A, quoi) {
+    const N = annotEtat(A), P = $('annot-palette');
+    if (N.palette === quoi) { annotPaletteFermer(A); return; }
+    N.palette = quoi;
+    if (quoi === 'couleur') P.innerHTML = Object.keys(ANNOT_COULEURS).map(c => '<button type="button" class="presse" data-ap="couleur" data-couleur="' + c + '" aria-pressed="' + (c === N.couleur ? 'true' : 'false') + '" aria-label="' + NOMS_COULEURS[c] + '"><span class="annot-pastille" aria-hidden="true"></span></button>').join('') +
+      '<span class="annot-sep" aria-hidden="true"></span>' + [1, 2, 3].map(n => '<button type="button" class="presse" data-ap="ep" data-n="' + n + '" aria-pressed="' + (n === N.ep ? 'true' : 'false') + '" aria-label="' + ['Trait fin', 'Trait moyen', 'Trait épais'][n - 1] + '"><span class="annot-ep" data-n="' + n + '" aria-hidden="true"></span></button>').join('');
+    else P.innerHTML = '<button type="button" class="salle-btn presse" data-ap="effacer-miens">Mes annotations</button><button type="button" class="salle-btn danger presse" data-ap="effacer-tous">Tout effacer</button>';
+    P.hidden = false;
+    $(quoi === 'couleur' ? 'annot-couleur' : 'annot-effacer').setAttribute('aria-expanded', 'true');
+    const b = P.querySelector('[aria-pressed="true"]') || P.querySelector('button'); if (b) b.focus({ preventScroll: true });
+  }
+  function annotPaletteFermer(A) {
+    const N = annotEtat(A); if (!N.palette) return;
+    N.palette = null; $('annot-palette').hidden = true; $('annot-palette').innerHTML = '';
+    $('annot-couleur').setAttribute('aria-expanded', 'false'); $('annot-effacer').setAttribute('aria-expanded', 'false');
+  }
+  async function annotEffacer(A, qui) {
+    const N = annotEtat(A); annotPaletteFermer(A);
+    if (N.trait) annotFinir(A, true);
+    await annotEnvoyer(A, { op: 'effacer', qui });
+    if (!perime(A)) { annonceAppel(qui === 'tous' ? 'Toutes les annotations sont effacées' : 'Tes annotations sont effacées'); annotPlanifier(); }
+  }
+  /* la capture : l'image du support ET ce qui est dessiné dessus, envoyée dans la discussion de la salle (les absents la retrouvent dans la conversation) — ou rangée dans les téléchargements quand la salle
+     n'a pas de discussion. L'écran de quelqu'un ne se capture que par lui ou un hôte (le bouton n'est montré qu'à eux). */
+  async function annotCapturer(A) {
+    const a = annotInfo(A), t = annotCible(A); if (!a || !t) return;
+    const tableau = a.support === 'tableau', v = tableau ? null : t.querySelector('video');
+    if (!tableau && !(v && v.videoWidth)) { mot('L\'image de l\'écran partagé n\'est pas encore arrivée.'); return; }
+    const r = tableau ? 1600 / 1000 : v.videoWidth / v.videoHeight, W = tableau ? 1600 : Math.min(1920, v.videoWidth), H = Math.round(W / r);
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    if (tableau) { g.fillStyle = '#fbfbfd'; g.fillRect(0, 0, W, H); } else g.drawImage(v, 0, 0, W, H);
+    const N = annotEtat(A);
+    annotTracer(g, annotItems(A), { x: 0, y: 0, w: W, h: H }, N.boite && N.boite.h ? H / N.boite.h : 1);
+    const blob = await new Promise(ok => { try { cv.toBlob(ok, tableau ? 'image/png' : 'image/jpeg', 0.9); } catch (e) { ok(null); } });
+    if (perime(A)) return;
+    if (!blob) { mot('La capture n\'a pas pu se faire sur cet appareil.'); return; }
+    const sup = a.support.slice(6), qui = tableau ? null : sup === MOI.id ? 'vous' : nomM(A.snap.membres.find(m => m.id === sup));
+    const legende = tableau ? 'Tableau blanc — ' + A.snap.nom : 'Écran partagé' + (qui === 'vous' ? '' : ' par ' + qui) + ', annoté — ' + A.snap.nom;
+    if (A.snap.conv) {
+      mot('Envoi de la capture…');
+      if (await envoi({ photos: [{ blob, w: W, h: H }], texte: legende }, A.snap.conv)) { if (!perime(A)) { mot('Capture envoyée dans la discussion'); salleDiscussionCharger(A, false); } }
+      return;
+    }
+    const url = URL.createObjectURL(blob), lien = document.createElement('a');
+    lien.href = url; lien.download = (tableau ? 'tableau-' : 'capture-') + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '') + (tableau ? '.png' : '.jpg'); lien.style.display = 'none';
+    document.body.appendChild(lien); lien.click(); setTimeout(() => { lien.remove(); URL.revokeObjectURL(url); }, 4000);
+    mot('Capture rangée dans tes téléchargements');
+  }
+  $('salle-annoter').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) annoterBasculer(A, !sx(A).annoter); });
+  $('annot-barre').addEventListener('click', async e => {
+    const b = e.target.closest('button'), A = etat.appelUI; if (!b || !enSalle(A) || !$('annot-barre').contains(b)) return;
+    const N = annotEtat(A);
+    if (b.dataset.outil) { if (N.outil !== 'texte' || b.dataset.outil !== 'texte') annotSaisieFermer(A, true); N.outil = b.dataset.outil; annotPaletteFermer(A); annotOutils(A); annonceAppel(NOMS_OUTILS[N.outil]); return; }
+    const ap = b.dataset.ap;
+    if (ap === 'couleur') { N.couleur = b.dataset.couleur; annotPaletteFermer(A); annotOutils(A); $('annot-couleur').focus({ preventScroll: true }); return; }
+    if (ap === 'ep') { N.ep = +b.dataset.n; annotPaletteFermer(A); annotOutils(A); $('annot-couleur').focus({ preventScroll: true }); return; }
+    if (ap === 'effacer-miens' || ap === 'effacer-tous') { await annotEffacer(A, ap === 'effacer-tous' ? 'tous' : 'miens'); $('annot-effacer').focus({ preventScroll: true }); return; }
+    switch (b.id) {
+      case 'annot-couleur': annotPaletteOuvrir(A, 'couleur'); return;
+      case 'annot-effacer': if (annotMaitre(A)) annotPaletteOuvrir(A, 'effacer'); else await annotEffacer(A, 'miens'); return;
+      case 'annot-annuler': annotPaletteFermer(A); if (N.trait) annotFinir(A, true); await annotEnvoyer(A, { op: 'annuler' }); if (!perime(A)) annotPlanifier(); return;
+      case 'annot-capturer': annotPaletteFermer(A); await annotCapturer(A); return;
+      case 'annot-fin': annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return;
+      default: return;
+    }
+  });
+  /* ⌘Z / Ctrl+Z pendant qu'on annote (hors d'un champ) : le dernier trait part */
+  document.addEventListener('keydown', e => {
+    if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey || (e.key !== 'z' && e.key !== 'Z')) return;
+    const A = etat.appelUI; if (!enSalle(A) || !sx(A).annoter || (e.target && /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName))) return;
+    e.preventDefault(); $('annot-annuler').click();
+  });
+  window.addEventListener('resize', annotPlanifier);
 
   /* ── le partage d'écran : la piste d'écran REMPLACE la caméra chez les autres (même émetteur, aucune renégociation), et la caméra revient quand le partage s'arrête ── */
   async function basculerPartage() {
@@ -4611,25 +5768,28 @@
   /* ── l'enregistrement : l'hôte enregistre EN LOCAL (sur son appareil, rien n'est envoyé au service) ; le service ne porte que le bandeau « REC » de tout le monde. Une image composée de toutes les vignettes + le mélange
      des voix, par `MediaRecorder` ; le fichier se range à l'arrêt. ⛔ Un onglet caché ralentit le dessin : on le dit à l'hôte. ── */
   const recDisponible = () => typeof MediaRecorder === 'function' && typeof HTMLCanvasElement !== 'undefined' && typeof HTMLCanvasElement.prototype.captureStream === 'function' && !!(window.AudioContext || window.webkitAudioContext);
-  const REC_OCTETS_MAX = 150 * 1048576;
+  /* ce que l'appareil garde jusqu'à l'arrêt : au bureau 1,5 Go (plus de deux heures en 720p), ailleurs 300 Mo (une demi-heure) */
+  const recOctetsMax = () => (document.documentElement.dataset.kind === 'desktop' ? 1536 : 300) * 1048576;
+  const tailleRec = o => o >= 1073741824 ? (Math.round(o / 107374182.4) / 10).toString().replace('.', ',') + ' Go' : Math.max(1, Math.round(o / 1048576)) + ' Mo';
   async function recDemarrer(A) {
     if (A.rec || A.recEnCours || !recDisponible()) return;
     A.recEnCours = true;
     try {
       if (!await salleGeste(A, 'rec', { actif: true }, 'L\'enregistrement n\'a pas pu commencer.')) return;       // le service d'abord : sans son accord, aucun bandeau chez les autres, donc aucune image enregistrée en cachette
-      const cv = document.createElement('canvas'); cv.width = 640; cv.height = 360;
+      const cv = document.createElement('canvas'); cv.width = 1280; cv.height = 720;              // 720p : l'écran partagé et le tableau restent LISIBLES à la relecture
       const AC = window.AudioContext || window.webkitAudioContext, ctx = new AC(), dest = ctx.createMediaStreamDestination();
-      const R = { cv, ctx, dest, sources: new Map(), chunks: [], octets: 0, minuterie: 0, rec: null, fini: false };
-      const flux = cv.captureStream(10);
+      const R = { cv, ctx, dest, sources: new Map(), chunks: [], octets: 0, minuterie: 0, rec: null, fini: false, debut: Date.now(), titre: A.snap.nom, conv: A.snap.conv || null };
+      const flux = cv.captureStream(15);
       dest.stream.getAudioTracks().forEach(t => flux.addTrack(t));
       const types = ['video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4'], mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
       R.mime = mime;
-      R.rec = new MediaRecorder(flux, mime ? { mimeType: mime, videoBitsPerSecond: 600000 } : { videoBitsPerSecond: 600000 });
-      R.rec.ondataavailable = ev => { if (ev.data && ev.data.size) { R.chunks.push(ev.data); R.octets += ev.data.size; if (R.octets > REC_OCTETS_MAX && A.rec === R) { mot('Limite de 150 Mo atteinte : l\'enregistrement s\'arrête.'); recArreter(A, true); } } };
+      const debits = { videoBitsPerSecond: 1200000, audioBitsPerSecond: 96000 };
+      R.rec = new MediaRecorder(flux, mime ? Object.assign({ mimeType: mime }, debits) : debits);
+      R.rec.ondataavailable = ev => { if (ev.data && ev.data.size) { R.chunks.push(ev.data); R.octets += ev.data.size; if (R.octets > recOctetsMax() && A.rec === R) { mot('Limite de ' + tailleRec(recOctetsMax()) + ' atteinte sur cet appareil : l\'enregistrement s\'arrête.'); recArreter(A, true); } } };
       A.rec = R;
       recSynchro(A);
       recDessiner(A);
-      R.minuterie = setInterval(() => recDessiner(A), 100);
+      R.minuterie = setInterval(() => recDessiner(A), 66);
       R.rec.start(2000);
       mot('Enregistrement commencé : garde cet onglet visible');
       rendreAppel();
@@ -4655,43 +5815,110 @@
     A.snap.membres.filter(m => m.statut === 'present').forEach(m => brancher(m.id, source.appelFlux(A.id, m.id)));
     for (const [cle, pris] of R.sources) if (!vus.has(cle) && cle !== 'moi') { try { pris.noeud.disconnect(); } catch (e) { /* rien */ } R.sources.delete(cle); }
   }
+  /* une vignette dans un rectangle de l'image enregistrée : l'écran partagé et le tableau EN ENTIER (avec ce qui est dessiné dessus), une caméra qui remplit sa case, sinon les initiales */
+  function recTuile(g2, t, x, y, w, h, sup, items) {
+    const v = t.querySelector('video'), k = 1;
+    g2.fillStyle = '#1c2a4f'; g2.fillRect(x + 2, y + 2, w - 4, h - 4);
+    if (t.id === 'salle-tableau') {
+      const bw = Math.min(w - 4, (h - 4) * ANNOT_TABLEAU), bh = bw / ANNOT_TABLEAU, b = { x: x + 2 + (w - 4 - bw) / 2, y: y + 2 + (h - 4 - bh) / 2, w: bw, h: bh };
+      g2.fillStyle = '#fbfbfd'; g2.fillRect(b.x, b.y, b.w, b.h); annotTracer(g2, items, b, k);
+    } else if (t.dataset.camera === 'on' && v && v.readyState >= 2 && v.videoWidth) {
+      const r = (t.dataset.ecran === '1' ? Math.min : Math.max)((w - 4) / v.videoWidth, (h - 4) / v.videoHeight), dw = v.videoWidth * r, dh = v.videoHeight * r, bx = x + 2 + (w - 4 - dw) / 2, by = y + 2 + (h - 4 - dh) / 2;
+      g2.save(); g2.beginPath(); g2.rect(x + 2, y + 2, w - 4, h - 4); g2.clip(); g2.drawImage(v, bx, by, dw, dh);
+      if (t === sup) annotTracer(g2, items, { x: bx, y: by, w: dw, h: dh }, k);
+      g2.restore();
+    } else {
+      const ini = (t.querySelector('.tuile-av') || {}).textContent || '?';
+      g2.fillStyle = 'rgba(255,255,255,.22)'; g2.beginPath(); g2.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.2, 0, Math.PI * 2); g2.fill();
+      g2.fillStyle = '#fff'; g2.font = '600 ' + Math.round(Math.min(w, h) * 0.18) + 'px sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(ini, x + w / 2, y + h / 2);
+    }
+    const nom = ((t.querySelector('.tuile-nom') || {}).textContent || '').trim();
+    if (nom) { const fs = Math.round(Math.max(12, Math.min(18, h * 0.09))); g2.font = '600 ' + fs + 'px sans-serif'; g2.textAlign = 'left'; g2.textBaseline = 'alphabetic'; const l = g2.measureText(nom).width + fs; g2.fillStyle = 'rgba(0,0,0,.6)'; g2.fillRect(x + 8, y + h - fs * 2 - 4, l, fs * 1.6); g2.fillStyle = '#fff'; g2.fillText(nom, x + 8 + fs / 2, y + h - fs - 6); }
+  }
+  /* l'image enregistrée suit la salle : en vue « intervenant » (ou quand un écran est partagé, ou le tableau ouvert) la vignette en grand prend l'image et les autres passent en bande dessous ; sinon une grille */
   function recDessiner(A) {
     const R = A.rec; if (!R || R.fini || !A.snap) return;
-    const g2 = R.cv.getContext('2d'), tuiles = Array.from($('salle-scene').querySelectorAll(':scope > .salle-tuile')), n = Math.max(1, tuiles.length);
-    const cols = Math.ceil(Math.sqrt(n * 16 / 9)), lignes = Math.ceil(n / cols), w = R.cv.width / cols, h = R.cv.height / lignes;
-    g2.fillStyle = '#0b0d12'; g2.fillRect(0, 0, R.cv.width, R.cv.height);
-    tuiles.forEach((t, i) => {
-      const x = (i % cols) * w, y = Math.floor(i / cols) * h, v = t.querySelector('video');
-      g2.fillStyle = '#1c2a4f'; g2.fillRect(x + 2, y + 2, w - 4, h - 4);
-      if (t.dataset.camera === 'on' && v && v.readyState >= 2 && v.videoWidth) {
-        const r = Math.max((w - 4) / v.videoWidth, (h - 4) / v.videoHeight), dw = v.videoWidth * r, dh = v.videoHeight * r;
-        g2.save(); g2.beginPath(); g2.rect(x + 2, y + 2, w - 4, h - 4); g2.clip(); g2.drawImage(v, x + 2 + (w - 4 - dw) / 2, y + 2 + (h - 4 - dh) / 2, dw, dh); g2.restore();
-      } else {
-        const ini = (t.querySelector('.tuile-av') || {}).textContent || '?';
-        g2.fillStyle = 'rgba(255,255,255,.22)'; g2.beginPath(); g2.arc(x + w / 2, y + h / 2, Math.min(w, h) * 0.2, 0, Math.PI * 2); g2.fill();
-        g2.fillStyle = '#fff'; g2.font = '600 ' + Math.round(Math.min(w, h) * 0.18) + 'px sans-serif'; g2.textAlign = 'center'; g2.textBaseline = 'middle'; g2.fillText(ini, x + w / 2, y + h / 2);
-      }
-      const nom = ((t.querySelector('.tuile-nom') || {}).textContent || '').trim();
-      if (nom) { g2.font = '600 12px sans-serif'; g2.textAlign = 'left'; g2.textBaseline = 'alphabetic'; const l = g2.measureText(nom).width + 12; g2.fillStyle = 'rgba(0,0,0,.6)'; g2.fillRect(x + 6, y + h - 24, l, 18); g2.fillStyle = '#fff'; g2.fillText(nom, x + 12, y + h - 11); }
-    });
-    g2.fillStyle = '#ff453a'; g2.beginPath(); g2.arc(R.cv.width - 22, 22, 7, 0, Math.PI * 2); g2.fill();
+    const g2 = R.cv.getContext('2d'), W = R.cv.width, H = R.cv.height, tuiles = Array.from($('salle-scene').querySelectorAll(':scope > .salle-tuile'));
+    const sup = annotCible(A), items = sup ? annotItems(A) : [];            // ce qui est dessiné entre dans l'enregistrement, sur l'image qu'il annote
+    g2.fillStyle = '#0b0d12'; g2.fillRect(0, 0, W, H);
+    const grand = tuiles.find(t => t.classList.contains('grand')) || null;
+    if (grand && tuiles.length > 1) {
+      const autres = tuiles.filter(t => t !== grand).slice(0, 6), bande = Math.round(H * 0.2), bw = W / Math.max(4, autres.length);
+      recTuile(g2, grand, 0, 0, W, H - bande, sup, items);
+      autres.forEach((t, i) => recTuile(g2, t, (W - bw * autres.length) / 2 + i * bw, H - bande, bw, bande, sup, items));
+    } else {
+      const n = Math.max(1, tuiles.length), cols = Math.ceil(Math.sqrt(n * 16 / 9)), lignes = Math.ceil(n / cols), w = W / cols, h = H / lignes;
+      tuiles.forEach((t, i) => recTuile(g2, t, (i % cols) * w, Math.floor(i / cols) * h, w, h, sup, items));
+    }
+    g2.fillStyle = '#ff453a'; g2.beginPath(); g2.arc(W - 30, 30, 9, 0, Math.PI * 2); g2.fill();
   }
   /* l'arrêt range le fichier : `dire` = vrai quand c'est le geste de l'hôte (le service est prévenu), faux quand c'est lui qui a déjà fini */
   function recArreter(A, dire) {
     const R = A.rec; if (!R || R.fini) return;
     R.fini = true; A.rec = null; clearInterval(R.minuterie);
+    const X = sx(A), venus = new Set(X.venus || []);
     const fin = () => {
       try { R.ctx.close(); } catch (e) { /* déjà fermé */ }
-      if (!R.chunks.length) return;
-      const nom = 'enregistrement-' + new Date().toISOString().slice(0, 16).replace(/[-:T]/g, '') + (/mp4/.test(R.mime) ? '.mp4' : '.webm');
-      const url = URL.createObjectURL(new Blob(R.chunks, { type: R.mime || 'video/webm' })), a = document.createElement('a');
-      a.href = url; a.download = nom; a.style.display = 'none'; document.body.appendChild(a); a.click();
-      setTimeout(() => { a.remove(); URL.revokeObjectURL(url); }, 4000);
+      if (!R.chunks.length) { mot('L\'enregistrement est vide : rien n\'a été gardé.'); return; }
+      recFinOuvrir({ blob: new Blob(R.chunks, { type: R.mime || 'video/webm' }), mime: R.mime, debut: R.debut, duree: Math.max(1, Math.round((Date.now() - R.debut) / 1000)), titre: R.titre, conv: R.conv, venus });
     };
     try { R.rec.addEventListener('stop', fin, { once: true }); R.rec.stop(); } catch (e) { fin(); }
     if (dire && !A.fini) salleGeste(A, 'rec', { actif: false });
-    if (!A.fini) { mot('Enregistrement terminé : le fichier est rangé dans tes téléchargements'); rendreAppel(); }
+    if (!A.fini) { annonceAppel('Enregistrement terminé'); rendreAppel(); }
   }
+  /* ── la fin d'un enregistrement : l'envoyer dans la discussion de la réunion (ceux qui n'ont pas pu venir l'y retrouvent, et le suivi dit qui l'a téléchargé), le garder sur l'appareil, ou le supprimer.
+     ⛔ La carte vit HORS de la salle : l'hôte qui quitte en enregistrant ne perd pas son fichier ; et elle ne se ferme que par un de ses trois gestes. ── */
+  let recEnAttente = null;
+  function recNomFichier(F) {
+    const d = new Date(F.debut), z = n => String(n).padStart(2, '0');
+    const titre = String(F.titre || 'Réunion').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Réunion';
+    return 'Enregistrement — ' + titre + ' — ' + d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' ' + z(d.getHours()) + 'h' + z(d.getMinutes()) + (/mp4/.test(F.mime || '') ? '.mp4' : '.webm');
+  }
+  function recFinOuvrir(F) {
+    if (recEnAttente) recFinFermer();
+    F.nom = recNomFichier(F); F.url = URL.createObjectURL(F.blob); recEnAttente = F;
+    $('rec-fin-info').textContent = (F.titre || 'Réunion') + ' · ' + dureeCourte(F.duree) + ' · ' + tailleRec(F.blob.size);
+    const v = $('rec-fin-video'); v.src = F.url;
+    /* qui n'était pas là : les membres de la conversation de la réunion qui ne sont jamais entrés (la liste des conversations ne porte pas les membres : `infos` les lit) */
+    const ab = $('rec-fin-absents'); ab.hidden = true; ab.textContent = '';
+    if (F.conv && typeof source.infos === 'function') source.infos(F.conv).then(i => {
+      if (recEnAttente !== F || !i || !Array.isArray(i.membres)) return;
+      const absents = i.membres.filter(m => !m.moi && m.id !== MOI.id && !F.venus.has(m.id));
+      if (!absents.length) return;
+      const noms = absents.map(m => m.nom || m.prenom || '').filter(Boolean);
+      ab.textContent = (noms.length === absents.length && noms.length <= 3 ? 'Pas là : ' + noms.join(', ') : absents.length + (absents.length > 1 ? ' personnes n\'étaient pas là' : ' personne n\'était pas là')) + ' — l\'enregistrement ' + (absents.length > 1 ? 'les ' : 'l\'') + 'attendra dans la discussion, et tu verras qui l\'a téléchargé.';
+      ab.hidden = false;
+    }, () => { /* sans la liste des membres, la carte ne dit simplement pas qui manquait */ });
+    $('rec-fin-envoyer').hidden = !F.conv;
+    $('rec-fin-jeter').textContent = 'Supprimer'; $('rec-fin-jeter').dataset.confirmer = '';
+    $('rec-fin').hidden = false;
+    requestAnimationFrame(() => (F.conv ? $('rec-fin-envoyer') : $('rec-fin-garder')).focus({ preventScroll: true }));
+  }
+  function recFinFermer() {
+    const F = recEnAttente; recEnAttente = null;
+    $('rec-fin').hidden = true;
+    const v = $('rec-fin-video'); try { v.pause(); } catch (e) { /* rien */ } v.removeAttribute('src'); try { v.load(); } catch (e) { /* rien */ }
+    if (F && F.url) setTimeout(() => URL.revokeObjectURL(F.url), 4000);
+  }
+  $('rec-fin-envoyer').addEventListener('click', async () => {
+    const F = recEnAttente; if (!F || !F.conv) return;
+    recFinFermer();
+    mot('Envoi de l\'enregistrement…');
+    if (await envoi({ fichier: { blob: F.blob, nom: F.nom, taille: F.blob.size } }, F.conv)) { mot('Enregistrement envoyé dans la discussion'); const A = etat.appelUI; if (enSalle(A) && A.snap.conv === F.conv) salleDiscussionCharger(A, false); }
+    else { recEnAttente = null; recFinOuvrir(F); }                         // l'envoi a échoué (la phrase l'a dit) : le fichier revient, rien n'est perdu
+  });
+  $('rec-fin-garder').addEventListener('click', () => {
+    const F = recEnAttente; if (!F) return;
+    /* ⛔ le nom du fichier RANGÉ sur l'appareil est en ASCII : mesuré, un Chromium dont le système de fichiers n'a pas de jeu de caractères ignore un nom accentué (« download » sans extension) */
+    const ascii = F.nom.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[—–]/g, '-').replace(/[^\x20-\x7e]/g, '');
+    const a = document.createElement('a'); a.href = F.url; a.download = ascii; a.style.display = 'none'; document.body.appendChild(a); a.click(); setTimeout(() => a.remove(), 4000);
+    recFinFermer(); mot('Enregistrement rangé dans tes téléchargements');
+  });
+  $('rec-fin-jeter').addEventListener('click', () => {
+    const b = $('rec-fin-jeter');
+    if (!b.dataset.confirmer) { b.dataset.confirmer = '1'; b.textContent = 'Supprimer définitivement ?'; return; }      // deux touches : un enregistrement ne disparaît pas sur un geste malheureux
+    recFinFermer(); mot('Enregistrement supprimé');
+  });
 
   /* ── la sortie : tout ce que la salle tenait est lâché d'un coup (quitterAppel) ── */
   function salleNettoyer(A) {
@@ -4702,6 +5929,11 @@
     $('salle-panneau').hidden = true; $('salle-panneau-corps').innerHTML = ''; $('salle-panneau-corps').dataset.sig = '';
     $('salle-emojis').hidden = true; $('salle-avis').hidden = true;
     $('salle-ecran').removeAttribute('data-attente');
+    /* les annotations : le tableau, le calque, la barre — et la minuterie d'un trait en cours */
+    const tab = $('salle-tableau'); if (tab) tab.remove();
+    document.querySelectorAll('.annot-calque, .annot-saisie').forEach(x => x.remove());
+    if (A && A.sx && A.sx.an) { clearInterval(A.sx.an.minuterie); if (A.sx.an.ro) A.sx.an.ro.disconnect(); A.sx.an.trait = null; }
+    $('salle-ecran').removeAttribute('data-annoter'); $('annot-barre').hidden = true; $('annot-palette').hidden = true; $('annot-palette').innerHTML = ''; $('salle-annoter').hidden = true;
     const v = $('salle-video-local'); try { v.pause(); } catch (e) { /* rien */ } v.srcObject = null;
     $('salle-vous').dataset.camera = 'off';
     scene.dataset.vue = 'galerie'; scene.dataset.n = '1';
@@ -4796,9 +6028,10 @@
       if (ev.type === 'salles') majBanniereSalle();
       if (ev.type === 'salle-reaction' && ev.id === etat.appelId) reactionSalle(ev.uid, ev.emoji);
       if (ev.type === 'salle-parle' && ev.id === etat.appelId) majParle();
+      if (ev.type === 'salle-annot' && ev.id === etat.appelId) annotPlanifier();
       if (ev.type === 'contacts') surContacts();
       if (ev.type === 'espaces') surEspaces(ev);
-      if (ev.type === 'reunions') surReunions(ev);
+      if (ev.type === 'reunions') { surReunions(ev); commun.cache.clear(); if (etat.vcSel && auBureau()) chargerCommun(etat.vcSel, true); if (etat.groupe.ouvert && etat.groupe.mode === 'personne') chargerCommun(etat.groupe.personneId, true); }   // une réunion programmée, modifiée, annulée : la fiche ouverte se relit
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);

@@ -151,6 +151,15 @@ function installerPieces(H, ctx) {
 
   /* ══ LIRE ══════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   /* `req.piece` est posé par la garde J : la pièce que CETTE personne a le droit de lire (sinon 404 avant d'arriver ici). */
+  /* ── GET /api/pieces/:id/suivi  V : qui a reçu, lu, ouvert ou téléchargé MA pièce (l'auteur seul ; tout autre — et une pièce qui n'existe pas — reçoit le même 404) ── */
+  H['pieces.suivi'] = garder((req, res) => {
+    const id = req.params.id;
+    if (!ID_PIECE.test(id)) return refus(res, 404, 'introuvable');
+    if (!quotas.essai('piece_suivi:' + req.moi.id, 120, 60000).ok) return refus(res, 429, 'quota_atteint');
+    const s = stockage.pieceSuivi(id, req.moi.id);
+    if (!s) return refus(res, 404, 'introuvable');
+    res.json(s);
+  });
   H['pieces.lire'] = garder(async (req, res) => {
     const p = req.piece, total = p.taille;
     /* le fichier doit être là ET annoncer la taille que la base annonce — sinon la ligne ment (fichier perdu, remplacé) : on le dit à /health, on ne sert rien */
@@ -194,6 +203,12 @@ function installerPieces(H, ctx) {
     });
     if (partiel) res.set('Content-Range', 'bytes ' + debut + '-' + fin + '/' + total);
     if (req.method === 'HEAD') return res.end();
+    /* le SUIVI DU DOCUMENT (migration 15) : toute lecture, par quelqu'un d'autre que l'auteur, d'une pièce de conversation — dédoublonnée à la minute par le stockage (une rafale de
+       plages ne compte qu'une fois, et `Range: bytes=1-` ne passe pas inaperçu : relecture du gardien, C1). ⛔ Une PHOTO ou un VOCAL n'est noté que si la personne a ses confirmations
+       de lecture ALLUMÉES au moment où elle l'ouvre (C5) : coupées, rien n'est gardé qui réapparaîtrait le jour où elle les rallume. Un FICHIER téléchargé est toujours noté — c'est
+       dit sur la carte du fichier et dans les réglages. Une base qui refuse d'écrire ne prive personne de son fichier. */
+    const noteOk = p.genre === 'fichier' || !(req.moi.prefs && req.moi.prefs.accuses === false);
+    if (p.conv && p.genre !== 'avatar' && p.proprio !== req.moi.id && noteOk) { try { stockage.pieceAccesNoter(p.id, req.moi.id); } catch (e) { ctx.journaliser('piece_suivi_echec', {}); } }
     /* ⛔ UN LECTEUR LENT NE TIENT PAS UN FICHIER OUVERT (A2) : chaque lecture garde deux descripteurs (la connexion et le fichier). Sans tampon devant le service, un client qui ne lit plus
        — ou qui lit un octet de temps en temps — les garde pour toujours. Deux butoirs : l'attente d'un `drain` (la connexion pleine ne se vide plus) et la durée totale de la lecture
        (celui qui lit juste assez vite pour ne jamais s'arrêter). Le fichier est rendu par la fin du générateur. */

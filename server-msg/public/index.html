@@ -188,7 +188,8 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .presse:active { transform: scale(.97); }
 
 /* ══ 3. LA MISE EN PAGE — téléphone (barre d'onglets flottante) ET bureau (barre latérale de 236 px) ═════════════════════
-   La navigation se choisit à la LARGEUR, jamais au type d'appareil : un iPad en portrait (820) garde la barre d'onglets. */
+   La navigation se choisit à la LARGEUR — sauf sur TABLETTE (`data-kind="tablette"`, un iPad) : le menu latéral dès 781 px, sans barre d'onglets
+   (7 octobre 2026 ; un iPad en portrait, 820 px, n'a plus la barre du téléphone). Un iPad mini en portrait (744) garde la barre d'onglets. */
 .app { min-height: 100vh; min-height: 100dvh; }
 .contenu {
   min-width: 0;
@@ -342,6 +343,49 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .vc-etoile:active { transform: scale(.9); }
 .vc-lettre { margin: 14px 4px 6px; font-size: 13px; font-weight: 600; color: var(--sub-meta); }
 #vc-seg .seg-bouton { font-size: 12px; }
+/* le lien « Qui l'a téléchargé ? » sous MES fichiers, et la feuille du suivi */
+.suivi-lien { display: flex; align-items: center; gap: 5px; align-self: flex-end; min-height: 32px; margin: 2px 2px 0; padding: 4px 8px; border-radius: 8px; font-size: 13px; color: var(--accent-txt); }
+.suivi-lien .ic { font-size: 14px; }
+@media (pointer: coarse) { .suivi-lien { min-height: 44px; } }
+.suivi-tete { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 20px; text-align: center; }
+.suivi-compte { font-size: 15px; color: var(--sub-meta); font-variant-numeric: tabular-nums; }
+.suivi-compte b { font-size: 34px; line-height: 41px; font-weight: 700; color: var(--text); }
+.suivi-texte { font-size: 15px; color: var(--sub-meta); }
+.suivi-ligne { cursor: default; }
+/* ── LA FICHE D'UNE PERSONNE (7 octobre 2026) : au téléphone une feuille, au bureau le volet droit de Contacts. Comme la carte de Contacts sur iPhone : la photo, le nom, une rangée de gestes
+   en tuiles, puis ce qu'on a EN COMMUN — les réunions à venir (une pastille de calendrier : le mois en rouge, le jour en grand), les groupes, l'entreprise. ── */
+.vc-fiche-tete { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 8px 18px; text-align: center; }
+.vc-fiche-tete .avatar { width: 96px; height: 96px; font-size: 36px; margin-bottom: 10px; }
+.vc-fiche-nom { margin: 0; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.vc-fiche-statut { margin: 0; font-size: 15px; color: var(--sub-meta); }
+.vc-fiche-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px; padding: 0 0 22px; }
+.vc-action { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 2px; border-radius: 12px; background: var(--card); color: var(--accent-txt); font-size: 12px; font-weight: 500; }
+.vc-action-rond { display: grid; place-items: center; font-size: 22px; }
+.vc-action[aria-pressed="true"] .vc-action-rond { color: #f5a623; }
+.vc-action[aria-pressed="true"] .vc-action-rond svg { fill: currentColor; }
+.vc-action:active { transform: scale(.96); }
+.fc-ligne { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 58px; padding: 8px 14px; text-align: left; border-bottom: var(--sep); color: var(--text); }
+.carte > .fc-ligne:last-child, .carte > .fc-ligne.fc-dernier { border-bottom: 0; }
+.fc-date { flex: none; width: 42px; height: 44px; border-radius: 10px; background: var(--field); display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1; }
+.fc-date small { font-size: 11px; font-weight: 600; color: var(--rouge); text-transform: uppercase; letter-spacing: .02em; }
+.fc-date b { margin-top: 2px; font-size: 19px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.fc-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.fc-titre { font-size: 17px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fc-sous { font-size: 13px; line-height: 17px; color: var(--sub-meta); }
+.fc-sous .fc-en-cours { color: var(--vert, #34c759); font-weight: 600; }
+.fc-icone { flex: none; width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; background: var(--fill-soft); color: var(--accent-txt); font-size: 20px; }
+.fc-ligne.fc-agir .fc-titre { color: var(--accent-txt); }
+.fc-ligne.fc-agir .fc-icone { background: transparent; }
+.fc-note { margin: 0; padding: 12px 14px; font-size: 13px; line-height: 18px; color: var(--sub-meta); border-bottom: var(--sep); }
+.fc-squelette { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; border-bottom: var(--sep); }
+.fc-squelette:last-child { border-bottom: 0; }
+.fc-squelette i { flex: none; width: 42px; height: 44px; border-radius: 10px; background: var(--field); }
+.fc-squelette span { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.fc-squelette b { display: block; height: 11px; border-radius: 6px; background: var(--field); }
+.fc-squelette b + b { width: 60%; }
+.fc-squelette i, .fc-squelette b { animation: fc-pouls 1.4s ease-in-out infinite; }
+@keyframes fc-pouls { 50% { opacity: .45; } }
+@media (hover: hover) { .fc-ligne:hover { background: var(--field); } }
 /* ⛔ APRÈS la règle de .tabs (même spécificité : la dernière écrite gagne) — placée dans la requête du § 3, elle ne cachait rien et
    la pilule se posait sur la barre latérale (relevé à la première capture au bureau). */
 @media (min-width: 900px) { .tabs { display: none; } }
@@ -367,6 +411,40 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .moi { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 6px 8px; border-radius: 10px; background: var(--field); color: var(--text); text-decoration: none; transition: background-color .2s, transform .12s ease-out; }
 .moi:active { transform: scale(.98); }
 @media (hover: hover) { .moi:hover { background: var(--fill-soft); } }
+/* la carte « moi » porte la page Profil quand on y est : c'est la seule entrée du Profil au bureau (plus de lien « Profil » au menu, 7 octobre 2026) */
+.moi[aria-current="page"] { background: var(--fill-soft); }
+.moi[aria-current="page"] .moi-nom { color: var(--side-actif-fg); }
+/* au téléphone (et sur tablette en portrait), l'avatar au bout du grand titre — comme le compte de l'App Store : il flotte à droite de la ligne du titre, sans la décaler.
+   La cible fait 44 px (le plancher tactile) pour un avatar de 36. Au bureau, la barre latérale a la carte du bas : l'avatar ne s'y montre pas. */
+.moi-pastille { float: right; display: grid; place-items: center; width: 44px; height: 44px; margin: -1px 0 0 8px; border-radius: 50%; position: relative; z-index: 1; }
+.moi-pastille .avatar { width: 36px; height: 36px; font-size: 14px; }
+.moi-pastille:active { transform: scale(.94); }
+.moi-pastille:focus-visible { outline: 2px solid var(--accent-txt); outline-offset: -2px; }
+/* le retour du Profil vers la vue d'avant (au bureau, la barre latérale y suffit) */
+.profil-retour { text-decoration: none; margin-left: -6px; }
+@media (min-width: 900px) { .vue .moi-pastille, .vue .profil-retour { display: none; } }
+/* LA TABLETTE (un iPad) prend la mise en page du bureau dès 781 px : le menu latéral, la carte « moi » en bas, ni barre d'onglets ni avatar au titre.
+   ⛔ Plus spécifique que chaque règle qu'elle remplace (`html[data-kind]` + la classe) : elle gagne quel que soit l'ordre du fichier. */
+@media (min-width: 781px) and (max-width: 899.98px) {
+  html[data-kind="tablette"] .app { display: grid; grid-template-columns: 236px minmax(0, 1fr); }
+  html[data-kind="tablette"] .contenu { padding: 6px 24px 40px; }
+  html[data-kind="tablette"] .side { display: flex; }
+  html[data-kind="tablette"] .tabs { display: none; }
+  html[data-kind="tablette"] .conv-ecran, html[data-kind="tablette"] .appel-ecran, html[data-kind="tablette"] .salle-ecran { left: 236px; }
+  html[data-kind="tablette"] .vue .moi-pastille, html[data-kind="tablette"] .vue .profil-retour { display: none; }
+}
+/* ── LES RAYONS ET LA MATIÈRE DE CHAQUE SYSTÈME (design/THEME-REFERENCE.md § 4 et § 5) ── la même identité Apple partout ; ce qui change, c'est ce que le système sait faire.
+   · Liquid Glass NATIF (Safari 26, sur iPhone, iPad et Mac : `data-verre-natif`) : le reflet de l'arête, et des cartes à 26 px au doigt ;
+   · ailleurs (iOS 18, macOS 15 et avant, Windows, Android) : la même matière translucide, SANS le reflet du verre d'Apple — on n'imite pas un verre que le système n'a pas ;
+   · Android : cartes à 28 px ; Windows : cartes à 8 px, boutons à 6 px. Rien n'est dessiné qui appartient au système (barre d'état, feux, barre d'adresse). */
+html[data-verre-natif]:not([data-kind="desktop"]) .carte { border-radius: 26px; }
+html[data-os="android"] .carte { border-radius: 28px; }
+html[data-os="windows"] .carte { border-radius: 8px; }
+html[data-os="windows"] .mini, html[data-os="windows"] .feuille-bouton, html[data-os="windows"] .vc-action, html[data-os="windows"] .seg, html[data-os="windows"] .seg-knob { border-radius: 6px; }
+html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet: inset 0 0 0 .5px rgba(255,255,255,.4); }
+@media (prefers-color-scheme: dark) { html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet: inset 0 0 0 .5px rgba(255,255,255,.1); } }
+/* dans le Profil, aucun onglet n'est la vue : la bulle de la barre s'efface au lieu de rester posée sur « Messages » */
+.tabs.sans-onglet .tabs-bulle { opacity: 0; transition: opacity .2s; }
 .moi:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .moi-chevron { flex: none; width: 14px; height: 14px; margin-left: auto; fill: none; stroke: var(--sub-meta); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 .moi .avatar { width: 26px; height: 26px; font-size: 11px; }
@@ -451,6 +529,10 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .reglage:last-child { border-bottom: 0; }
 .reglage-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 17px; }
 .reglage-texte small { font-size: 13px; color: var(--sub-meta); }
+.presence-seance, .presence-ligne { color: var(--text); }
+.presence-seance .reglage-texte { font-weight: 600; }
+.presence-ligne { min-height: 44px; padding-left: 30px; }
+.presence-ligne.absent .reglage-texte { color: var(--sub-meta); }
 .reglage-valeur { font-size: 15px; color: var(--sub-meta); }
 .reglage .chev { width: 8px; height: 13px; }
 /* ── PROFIL (6 octobre 2026) : le profil en tête, des lignes à pastille, une page par rubrique — Réglages d'iPhone ; au bureau, liste et rubrique côte à côte ──
@@ -727,12 +809,21 @@ button.photo:active { transform: scale(.97); }
 .recue.legende { border-radius: 6px 20px 20px 20px; }
 .envoyee.legende { border-radius: 20px 6px 20px 20px; }
 
-/* la photo agrandie : un voile noir, la photo en entier, une croix de 44 px — Échap, le retour système et le voile la ferment */
+/* la photo agrandie : un voile noir, la photo EN ENTIER, une croix de 44 px — Échap, le retour système et le voile la ferment ; dessous, la barre : précédente, Enregistrer, Partager, suivante.
+   ⛔ LA PISTE DE L'IMAGE EST `minmax(0, 1fr)` : dans une piste `auto`, WebKit (Safari) ne résout pas le `max-height: 100%` de l'image (sa hauteur dépend de son contenu) — une capture d'iPhone,
+   haute, sortait de l'écran par le bas (capture sur un Mac, 7 octobre 2026). ⚠️ Chromium, lui, résout ce pourcentage : la sonde (Chromium) ne voit pas le défaut d'avant — c'est sur Safari qu'il se juge. */
 .visionneuse {
-  position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 56px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  position: fixed; inset: 0; z-index: 60; display: grid; grid-template-rows: minmax(0, 1fr) auto; grid-template-columns: minmax(0, 1fr); justify-items: center; align-items: center; gap: 10px;
+  padding: calc(env(safe-area-inset-top, 0px) + 56px) 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
   background: rgba(0,0,0,.88);
 }
-.visionneuse img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 12px; display: block; }
+.visionneuse img { max-width: 100%; max-height: 100%; min-height: 0; object-fit: contain; border-radius: 12px; display: block; }
+.visionneuse-barre { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; color: #fff; }
+.visionneuse-barre button { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; background: rgba(255,255,255,.16); color: #fff; font-size: 15px; font-weight: 600; }
+.visionneuse-barre button[hidden] { display: none; }
+.visionneuse-barre .ic { width: 20px; height: 20px; }
+.visionneuse-rang { min-width: 48px; text-align: center; font-size: 15px; font-variant-numeric: tabular-nums; color: rgba(255,255,255,.8); }
+.visionneuse-rang:empty { display: none; }
 .visionneuse-fermer { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 6px); right: max(8px, env(safe-area-inset-right, 0px)); width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.16); color: #fff; font-size: 18px; }
 
 /* ══ 10. L'ONGLET APPELS — le segmenté Tous / Manqués, la liste, la feuille « Nouvel appel » ═════════════════════════════════════
@@ -782,6 +873,7 @@ button.photo:active { transform: scale(.97); }
 .info-sous { margin: 0; font-size: 15px; line-height: 20px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .info-corps .reglage .ic { font-size: 22px; color: var(--accent); }
 .info-corps .reglage-texte { color: var(--accent-txt); }
+.info-corps .reglage[role="switch"] .reglage-texte { color: var(--text); }      /* un interrupteur n'est pas un lien : son titre à l'encre du texte, comme dans Réglages */
 
 /* ══ 9 bis. « NOUVELLE DISCUSSION » — la recherche, les actions, les contacts de A à Z et l'index sur le bord droit ══════════════════════════════════════
    Le corps ne défile PAS : la recherche reste en haut, la liste défile dans `.nd-defile`, l'index reste posé à droite. Le bord droit de la feuille n'a pas son rembourrage (l'index y vit). */
@@ -968,6 +1060,9 @@ html[data-service] .mention-apercu { display: none; }
 .msg-rang { max-width: 82%; display: flex; align-items: center; gap: 2px; }
 .msg.de-moi .msg-rang { flex-direction: row-reverse; }
 .msg-rang > .bulle, .msg-rang > .photos, .msg-rang > .vocal, .msg-rang > .fichier { max-width: 100%; min-width: 0; }
+/* « Qui l'a téléchargé ? » passe SOUS la carte, à droite (comme le « Lu » d'iMessage) : la rangée se replie, le lien prend sa propre ligne */
+.msg-rang:has(> .suivi-lien) { flex-wrap: wrap; }
+.msg-rang > .suivi-lien { order: 5; flex-basis: 100%; justify-content: flex-end; }
 .msg-plus { flex: none; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: var(--sub); font-size: 18px; }
 @media (hover: hover) { .msg-plus { opacity: 0; } .msg:hover .msg-plus, .msg-plus:focus-visible { opacity: 1; } }
 @media (hover: none) { .msg-plus { display: none; } }
@@ -999,6 +1094,18 @@ html[data-service] .mention-apercu { display: none; }
 .menu-action:last-child { border-bottom: 0; }
 .menu-action.danger { color: var(--rouge-txt); }
 .menu-question { padding: 14px 18px 6px; font-size: 15px; line-height: 20px; text-align: center; }
+/* « + » : la grille des pièces jointes — un disque de couleur par geste, son nom dessous (la feuille d'iMessage) ; trois par rangée */
+.menu-msg.pj { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; padding: 12px 8px 8px; }
+.pj-tuile { min-height: 88px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px; border-radius: 16px; font-size: 13px; line-height: 16px; color: var(--text); }
+.pj-disque { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; color: #fff; }
+.pj-disque .ic { width: 26px; height: 26px; stroke-width: 1.9; }
+[data-plus="photo"] > .pj-disque { background: #0a84ff; }
+[data-plus="camera"] > .pj-disque { background: #636366; }
+[data-plus="position"] > .pj-disque { background: #34c759; }
+[data-plus="contact"] > .pj-disque { background: #8e8e93; }
+[data-plus="fichier"] > .pj-disque { background: #5e5ce6; }
+[data-plus="sondage"] > .pj-disque { background: #ff9f0a; }
+@media (hover: hover) { .pj-tuile:hover { background: var(--field); } }
 @media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
 
 /* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
@@ -1040,6 +1147,100 @@ html[data-service] .mention-apercu { display: none; }
 .fichier-nom { font-size: 16px; line-height: 20px; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .fichier-taille { font-size: 12px; line-height: 16px; font-variant-numeric: tabular-nums; opacity: .85; }
 .fichier[aria-disabled="true"] { opacity: .7; }
+/* ── LE THÈME D'UNE CONVERSATION (7 octobre 2026 : « personnaliser les conversations, mettre des thèmes derrière, les bulles de couleurs ») — à CHACUN (ce que je choisis ne change rien chez
+   les autres), sur tous ses appareils. Un fond est un dégradé de deux teintes MÊLÉES au fond de l'application (`--base`) : de jour il reste clair, de nuit il reste sombre, les dates et les
+   messages du système restent lisibles ; un semis de points discret par-dessus (le « papier peint »). Une bulle prend une couleur pleine choisie pour porter le BLANC (5:1 au moins). Rien ne
+   se charge : aucune image. ── */
+/* ⛔ `--motif` ne porte QUE l'image : une taille glissée dedans (« 0 0 / 18px 18px ») rend `background-image` invalide, et la déclaration entière tombe en silence — la taille a sa règle */
+.conv-ecran[data-fond], .theme-apercu, .theme-fond .theme-vignette { --motif: radial-gradient(color-mix(in srgb, var(--text) 7%, transparent) 1px, transparent 1.6px); }
+.conv-ecran[data-fond]:not([data-fond="aucun"]), .theme-apercu:not([data-fond="aucun"]), .theme-fond:not([data-fond="aucun"]) .theme-vignette { background-size: 18px 18px, auto; }
+.conv-ecran[data-fond="aucun"] { --motif: none; }
+.conv-ecran[data-fond="aube"], .theme-apercu[data-fond="aube"], .theme-fond[data-fond="aube"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #ff9f0a 20%, var(--base)), color-mix(in srgb, #ff375f 14%, var(--base))); }
+.conv-ecran[data-fond="ocean"], .theme-apercu[data-fond="ocean"], .theme-fond[data-fond="ocean"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #64d2ff 24%, var(--base)), color-mix(in srgb, #0a84ff 16%, var(--base))); }
+.conv-ecran[data-fond="foret"], .theme-apercu[data-fond="foret"], .theme-fond[data-fond="foret"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #30d158 18%, var(--base)), color-mix(in srgb, #0b6e4f 18%, var(--base))); }
+.conv-ecran[data-fond="lavande"], .theme-apercu[data-fond="lavande"], .theme-fond[data-fond="lavande"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #bf5af2 16%, var(--base)), color-mix(in srgb, #5e5ce6 16%, var(--base))); }
+.conv-ecran[data-fond="sable"], .theme-apercu[data-fond="sable"], .theme-fond[data-fond="sable"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #ffd60a 18%, var(--base)), color-mix(in srgb, #ac8e68 22%, var(--base))); }
+.conv-ecran[data-fond="corail"], .theme-apercu[data-fond="corail"], .theme-fond[data-fond="corail"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #ff6b5a 18%, var(--base)), color-mix(in srgb, #ff9f0a 12%, var(--base))); }
+.conv-ecran[data-fond="ardoise"], .theme-apercu[data-fond="ardoise"], .theme-fond[data-fond="ardoise"] .theme-vignette { background-image: var(--motif), linear-gradient(165deg, color-mix(in srgb, #8e8e93 18%, var(--base)), color-mix(in srgb, #48484a 22%, var(--base))); }
+.conv-ecran[data-bulle="bleu"] .envoyee, .theme-apercu[data-bulle="bleu"] .envoyee, .theme-pastille[data-bulle="bleu"] .theme-rond { background: #0a66d9; color: #fff; }
+.conv-ecran[data-bulle="vert"] .envoyee, .theme-apercu[data-bulle="vert"] .envoyee, .theme-pastille[data-bulle="vert"] .theme-rond { background: #1f7a34; color: #fff; }
+.conv-ecran[data-bulle="violet"] .envoyee, .theme-apercu[data-bulle="violet"] .envoyee, .theme-pastille[data-bulle="violet"] .theme-rond { background: #7a3fc8; color: #fff; }
+.conv-ecran[data-bulle="orange"] .envoyee, .theme-apercu[data-bulle="orange"] .envoyee, .theme-pastille[data-bulle="orange"] .theme-rond { background: #b84e00; color: #fff; }
+.conv-ecran[data-bulle="rose"] .envoyee, .theme-apercu[data-bulle="rose"] .envoyee, .theme-pastille[data-bulle="rose"] .theme-rond { background: #c2185b; color: #fff; }
+.conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #3a3a3c; color: #fff; }
+.conv-ecran[data-bulle="sarcelle"] .envoyee, .theme-apercu[data-bulle="sarcelle"] .envoyee, .theme-pastille[data-bulle="sarcelle"] .theme-rond { background: #0b6e79; color: #fff; }
+.conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #8e1b3a; color: #fff; }
+.theme-apercu { display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; margin-bottom: 18px; border-radius: 18px; background-color: var(--base); border: var(--line); }
+.theme-apercu .bulle { max-width: 78%; padding: 8px 12px; font-size: 16px; line-height: 21px; }
+.theme-apercu .recue { align-self: flex-start; }
+.theme-apercu .envoyee { align-self: flex-end; }
+.theme-grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.theme-fond { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 4px; border-radius: 16px; font-size: 13px; line-height: 17px; color: var(--text); }
+.theme-vignette { width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; background-color: var(--base); border: var(--line); display: block; }
+.theme-fond[aria-checked="true"] .theme-vignette { outline: 3px solid var(--accent); outline-offset: 2px; }
+.theme-couleurs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.theme-pastille { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; padding: 4px; border-radius: 14px; font-size: 12px; line-height: 16px; color: var(--text); }
+.theme-rond { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: var(--fill); color: var(--on-fill); }
+.theme-rond svg { width: 18px; height: 18px; opacity: 0; }
+.theme-pastille[aria-checked="true"] .theme-rond { box-shadow: 0 0 0 3px var(--base), 0 0 0 5px var(--accent); }
+.theme-pastille[aria-checked="true"] .theme-rond svg { opacity: 1; }
+@media (forced-colors: active) { .theme-fond[aria-checked="true"] .theme-vignette, .theme-pastille[aria-checked="true"] .theme-rond { outline: 3px solid Highlight; } }
+/* ── LES CARTES D'UN MESSAGE (7 octobre 2026 : « la localisation, partager des contacts, des sondages personnalisables ») — une position, la fiche d'un contact, un sondage. Une carte est une
+   bulle comme un fichier (même fond, même encre : `.recue` / `.envoyee`) ; ses boutons prennent l'encre de la bulle sur un voile d'elle-même, lisibles sur le vert comme sur le gris. ── */
+.carte-msg { display: flex; flex-direction: column; gap: 10px; width: 300px; max-width: 78%; padding: 12px 14px; box-sizing: border-box; text-align: left; overflow: hidden; }
+.msg-rang > .carte-msg { max-width: 100%; min-width: 0; }
+.carte-titre, .carte-sous { display: block; }
+.carte-titre { font-size: 16px; line-height: 21px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.carte-sous { font-size: 13px; line-height: 17px; opacity: .85; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.carte-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.carte-btn { flex: 1 1 auto; min-height: 36px; padding: 0 14px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 14px; font-weight: 600; color: inherit; background: color-mix(in srgb, currentColor 14%, transparent); text-decoration: none; text-align: center; transition: transform .12s ease-out; }
+.carte-btn:active { transform: scale(.97); }
+.carte-btn[aria-disabled="true"] { opacity: .6; }
+.carte-btn .icone, .carte-btn svg { width: 16px; height: 16px; }
+@media (pointer: coarse) { .carte-btn { min-height: 44px; } }
+/* la position : un plan DESSINÉ (aucune tuile de carte ne se charge — rien ne part vers un tiers pour l'afficher), l'épingle au centre */
+.pos-plan { position: relative; height: 116px; margin: -12px -14px 0; overflow: hidden; display: grid; place-items: center;
+  background: linear-gradient(115deg, transparent 0 44%, color-mix(in srgb, currentColor 16%, transparent) 44% 50%, transparent 50%),
+    linear-gradient(25deg, transparent 0 62%, color-mix(in srgb, currentColor 12%, transparent) 62% 66%, transparent 66%),
+    repeating-linear-gradient(0deg, color-mix(in srgb, currentColor 8%, transparent) 0 1px, transparent 1px 22px),
+    repeating-linear-gradient(90deg, color-mix(in srgb, currentColor 8%, transparent) 0 1px, transparent 1px 22px),
+    color-mix(in srgb, currentColor 7%, transparent); }
+.pos-epingle { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50% 50% 50% 4px; transform: rotate(-45deg) translate(4px, -4px); background: var(--rouge); box-shadow: 0 4px 12px rgba(0, 0, 0, .25); }
+.pos-epingle svg { width: 20px; height: 20px; transform: rotate(45deg); color: #fff; fill: currentColor; }
+/* la fiche d'un contact */
+.fiche-haut { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.fiche-haut .avatar { width: 44px; height: 44px; font-size: 17px; }
+.fiche-haut > span:last-child { min-width: 0; display: flex; flex-direction: column; }
+/* le sondage : la question, ses règles en une ligne, un choix par rangée (sa barre de résultat en fond), le pied */
+.sond-q { font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.sond-regles, .sond-pied { font-size: 12px; line-height: 16px; opacity: .85; }
+.sond-liste { display: flex; flex-direction: column; gap: 6px; }
+.sond-choix { position: relative; isolation: isolate; overflow: hidden; display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; row-gap: 2px; width: 100%; min-height: 44px; padding: 8px 12px 8px 10px; border-radius: 12px; text-align: left; color: inherit; background: color-mix(in srgb, currentColor 7%, transparent); }
+.sond-choix[aria-disabled="true"] { cursor: default; }
+.sond-barre { position: absolute; inset: 0 auto 0 0; z-index: -1; width: var(--p, 0%); background: color-mix(in srgb, currentColor 16%, transparent); transition: width .35s cubic-bezier(.2, .8, .2, 1); }
+.sond-coche { width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; border: 2px solid color-mix(in srgb, currentColor 55%, transparent); box-sizing: border-box; }
+.sondage[data-multiple="1"] .sond-coche { border-radius: 6px; }
+.sond-choix[aria-pressed="true"] .sond-coche { border-color: currentColor; }
+.sond-choix[aria-pressed="true"] .sond-coche::after { content: ""; width: 10px; height: 10px; border-radius: inherit; background: currentColor; }
+.sond-texte { font-size: 15px; line-height: 20px; overflow-wrap: anywhere; }
+.sond-n { font-size: 13px; line-height: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sond-qui { grid-column: 2 / 4; font-size: 12px; line-height: 16px; opacity: .8; overflow-wrap: anywhere; }
+.sond-etat { font-size: 14px; line-height: 19px; opacity: .85; }
+@media (forced-colors: active) { .carte-msg, .sond-choix { border: 1px solid CanvasText; } .sond-barre { background: Highlight; } }
+/* la feuille « Nouveau sondage » : les choix comme une liste de Réglages (un champ par ligne, un retrait à droite), les règles en interrupteurs */
+.sd-ligne { display: flex; align-items: center; gap: 6px; padding: 0 6px 0 14px; }
+.sd-ligne + .sd-ligne { border-top: 1px solid var(--sep); }
+.sd-ligne input { flex: 1; min-width: 0; height: 48px; border: 0; background: transparent; font-size: 17px; color: var(--text); caret-color: var(--accent); outline: none; -webkit-appearance: none; appearance: none; }
+.sd-ligne input::placeholder { color: var(--placeholder); opacity: 1; }
+.sd-ligne:focus-within { box-shadow: inset 3px 0 0 var(--accent); }
+.sd-retirer { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; color: var(--sub-meta); }
+.sd-retirer svg { width: 16px; height: 16px; }
+.sd-plus { margin: 10px 0 18px; }
+.pos-apercu { width: 100%; max-width: none; margin-bottom: 14px; }
+.pos-explication { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 18px 8px 22px; text-align: center; }
+.pos-explication .pos-epingle { margin-bottom: 6px; }
+.pos-explication h3 { font-size: 20px; line-height: 25px; font-weight: 600; letter-spacing: -.02em; }
+.pos-explication p { font-size: 15px; line-height: 21px; color: var(--sub-meta); max-width: 34em; }
 .photo.chargement { opacity: .65; }
 .photo.indisponible { outline: 1px dashed var(--faint); outline-offset: -3px; grid-auto-flow: row; align-content: center; justify-items: center; gap: 4px; padding: 6px; min-width: 118px; text-align: center; }
 .photo-etat { font-size: 11px; line-height: 14px; color: var(--sub-meta); overflow-wrap: anywhere; }
@@ -1273,6 +1474,26 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-msg.moi { align-self: flex-end; background: var(--fill); }
 .salle-msg small { display: block; font-size: 12px; line-height: 15px; color: var(--salle-sub); }
 .salle-saisie { display: flex; gap: 8px; margin-top: 8px; }
+.salle-joindre { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; }
+.salle-msg.doc { padding: 6px; display: flex; flex-direction: column; gap: 4px; }
+.salle-msg.doc small { padding: 0 5px; }
+.salle-doc { display: flex; align-items: center; gap: 10px; min-height: 52px; width: 100%; padding: 6px 8px; border-radius: 10px; background: rgba(0,0,0,.18); color: #fff; text-align: left; }
+.salle-doc-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 9px; background: rgba(255,255,255,.16); font-size: 19px; }
+.salle-doc-t { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.salle-doc-t b { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.salle-doc-t small { font-size: 12px; color: var(--salle-sub); padding: 0 !important; }
+.salle-doc > .ic:last-child { flex: none; font-size: 18px; opacity: .85; }
+.salle-doc-suivi { align-self: flex-end; min-height: 32px; padding: 4px 8px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff; text-decoration: underline; text-underline-offset: 2px; }
+@media (pointer: coarse) { .salle-doc-suivi { min-height: 44px; } }
+.salle-suivi-retour { margin-bottom: 8px; }
+.salle-suivi-compte { margin: 0 0 10px; font-size: 15px; color: var(--salle-sub); }
+.salle-suivi-compte b { font-size: 28px; color: #fff; }
+.salle-suivi { list-style: none; margin: 0; padding: 0; max-height: 40vh; overflow-y: auto; }
+.salle-suivi li { display: flex; flex-direction: column; gap: 1px; padding: 9px 2px; border-bottom: 1px solid var(--salle-bord); }
+.salle-suivi li:last-child { border-bottom: 0; }
+.salle-suivi li span { font-size: 15px; font-weight: 600; }
+.salle-suivi li small { font-size: 13px; color: var(--salle-sub); }
+.salle-suivi li.pas span { font-weight: 400; color: var(--salle-sub); }
 .salle-saisie input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border-radius: 22px; border: 1px solid var(--salle-bord); background: rgba(255,255,255,.1); color: #fff; font: inherit; font-size: 16px; }
 .salle-saisie input::placeholder { color: rgba(255,255,255,.7); }
 .salle-saisie button { flex: none; min-height: 44px; padding: 0 16px; border-radius: 22px; background: #fff; color: #000; font-weight: 600; }
@@ -1300,6 +1521,61 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-tuile[data-ecran="1"] video, .salle-tuile.grand video { object-fit: contain; }
 .salle-tuile[data-ecran="1"].vous video { transform: none; }
 .salle-scene[data-vue="intervenant"] .salle-tuile.grand { order: -1; }
+/* ── les annotations (7 octobre 2026 : « partage d'écran, dessiner sur l'écran, ajouter du texte ») : un calque posé sur l'écran partagé ou le tableau blanc. Il ne prend le doigt qu'en mode « Annoter »
+   (`data-annoter` sur l'écran de la salle) : le reste du temps, toucher la vignette fait ce qu'il faisait. `touch-action: none` sur le SEUL calque — le geste du doigt y dessine, la scène garde son défilement.
+   ⛔ Les couleurs d'un trait sont celles de la personne qui l'a tracé, les mêmes chez tous : jamais une couleur du thème (un rouge de nuit ne serait pas le rouge du jour d'un autre). */
+.annot-calque { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.salle-ecran[data-annoter] .annot-calque { pointer-events: auto; touch-action: none; cursor: crosshair; }
+.salle-ecran[data-annoter] .annot-calque[data-outil="texte"] { cursor: text; }
+.salle-tableau { background: #3a3d48; }
+.salle-tableau::before { display: none; }
+.annot-saisie { position: absolute; z-index: 3; width: min(260px, 70%); min-height: 40px; padding: 6px 10px; border-radius: 10px; border: 2px solid #0a84ff; background: #fff; color: #1c1c1e; font-size: 16px; line-height: 22px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.annot-barre {
+  flex: none; position: relative; z-index: 5; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 6px; width: max-content; max-width: calc(100% - 28px); margin: 4px auto 0; padding: 4px 8px;
+  border-radius: 24px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.annot-barre[hidden] { display: none; }
+/* la fin d'un enregistrement : une carte au-dessus de tout (la salle peut être déjà fermée), comme une alerte d'iOS — le fichier n'est jamais perdu sans un geste */
+.rec-fin { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); background: rgba(0,0,0,.55); }
+.rec-fin[hidden] { display: none; }
+.rec-fin-carte {
+  width: min(420px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 22px; color: #fff;
+  background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); box-shadow: 0 20px 60px rgba(0,0,0,.45);
+}
+.rec-fin-carte h3 { margin: 0; font-size: 20px; line-height: 25px; font-weight: 700; }
+.rec-fin-carte p { margin: 0; font-size: 15px; line-height: 20px; color: var(--salle-sub); overflow-wrap: anywhere; }
+.rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
+.rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
+/* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
+@media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
+/* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
+.annot-barre > button, .annot-palette > button { min-width: 44px; min-height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; }
+.annot-barre > button[aria-pressed="true"], .annot-palette > button[aria-pressed="true"] { background: rgba(255,255,255,.22); }
+.annot-barre > button[aria-disabled="true"] { opacity: .4; }
+.annot-barre .ic { width: 22px; height: 22px; stroke-width: 1.8; }
+.annot-barre .annot-fin { min-width: 0; padding: 0 14px; border-radius: 999px; background: #fff; color: #000; font-size: 15px; font-weight: 600; }
+.annot-sep { width: 1px; height: 26px; background: var(--salle-bord); }
+.annot-pastille { width: 24px; height: 24px; border-radius: 50%; border: 2px solid rgba(255,255,255,.75); }
+.annot-palette > button[aria-pressed="true"] .annot-pastille { box-shadow: 0 0 0 2px var(--salle-fond), 0 0 0 4px #fff; }
+[data-couleur="rouge"] > .annot-pastille { background: #ff3b30; }
+[data-couleur="orange"] > .annot-pastille { background: #ff9500; }
+[data-couleur="jaune"] > .annot-pastille { background: #ffcc00; }
+[data-couleur="vert"] > .annot-pastille { background: #34c759; }
+[data-couleur="bleu"] > .annot-pastille { background: #0a84ff; }
+[data-couleur="violet"] > .annot-pastille { background: #af52de; }
+[data-couleur="noir"] > .annot-pastille { background: #1c1c1e; }
+[data-couleur="blanc"] > .annot-pastille { background: #fff; }
+.annot-palette {
+  position: absolute; z-index: 4; bottom: calc(100% + 6px); left: 0; right: 0; margin: 0 auto; width: max-content; max-width: calc(100vw - 32px); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px;
+  padding: 6px; border-radius: 20px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+}
+.annot-palette[hidden] { display: none; }
+.annot-palette .annot-ep { display: block; width: 22px; border-radius: 4px; background: #fff; }
+.annot-palette .annot-ep[data-n="1"] { height: 3px; }
+.annot-palette .annot-ep[data-n="2"] { height: 6px; }
+.annot-palette .annot-ep[data-n="3"] { height: 10px; }
+.annot-palette > .salle-btn { min-height: 44px; }
+.annot-barre > button[hidden] { display: none; }
 .salle-rang.libre { min-height: 44px; }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }
@@ -1308,6 +1584,187 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
 .salle-attente b { display: block; }
+
+/* ══ 20. LE BUREAU — l'interface d'un ORDINATEUR (Mac, Windows, navigateur), « 100 % façon Apple » ═════════════════════════════════════════════════════════
+   7 octobre 2026 : « chaque version téléphone a son interface ; pour le PC et la version web il faudrait une autre interface, là c'est très moche et ça ne fait
+   pas pro » — « refais les interfaces de la version web, Mac, Windows, à 100 % façon Apple ». Le modèle est celui des applications du Mac (Messages, Contacts,
+   Réglages Système) : une barre latérale fine, une BARRE D'OUTILS compacte qui porte le titre (15 px, demi-gras) au lieu du grand titre de l'iPhone (34 px), des listes
+   nues sur le fond (pas des cartes), la ligne choisie en aplat d'accent, une densité de bureau (13 px, la taille du texte du Mac), le survol à la souris.
+   ⛔ SEULEMENT pour un écran large piloté à la SOURIS (`hover: hover` et `pointer: fine`) : un iPad, un téléphone, un écran tactile gardent l'interface du doigt et ses 44 px.
+   ⛔ UNE COUCHE, PAS UNE SECONDE PAGE : rien n'est récrit ailleurs ; les mêmes éléments, les mêmes identifiants, les mêmes gestes — seule la forme change ici, après tout le reste. */
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) {
+  :root { --bureau-sel: color-mix(in srgb, var(--text) 9%, transparent); --bureau-bord: color-mix(in srgb, var(--text) 10%, transparent); }
+  body { font-size: 13px; }
+
+  /* la barre latérale : celle du Finder, de Messages et de Mail */
+  .side { padding: 10px 10px 12px; }
+  .side-marque { padding: 6px 8px 14px; gap: 8px; }
+  .side-marque img { width: 22px; height: 22px; border-radius: 5px; }
+  .side-marque b { font-size: 13px; letter-spacing: 0; }
+  .side-lien { min-height: 28px; padding: 3px 8px; border-radius: 6px; gap: 8px; font-size: 13px; }
+  .side-lien .ic { font-size: 15px; color: var(--accent-txt); }
+  .side-lien[aria-current="page"] { background: var(--bureau-sel); color: var(--text); font-weight: 500; }
+  .moi { background: transparent; border-radius: 8px; }
+  .moi:hover { background: var(--field); }
+  .moi[aria-current="page"] { background: var(--bureau-sel); }
+  .moi[aria-current="page"] .moi-nom { color: var(--text); }
+
+  /* la BARRE D'OUTILS de chaque vue : le titre à gauche, les gestes à droite, collée en haut, en verre — elle remplace le grand titre de l'iPhone */
+  .contenu { padding: 0 24px 32px; }
+  .vue { position: relative; max-width: none; }
+  .vue > .entete-vue {
+    position: sticky; top: 0; z-index: 6; min-height: 52px; margin: 0 -24px 14px; padding: 0 14px 0 24px; justify-content: flex-end; gap: 4px;
+    background: var(--nav-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); border-bottom: var(--line);
+  }
+  .vue > .grand-titre {
+    position: absolute; top: 0; left: 0; z-index: 7; height: 52px; margin: 0; display: flex; align-items: center; pointer-events: none;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif; font-size: 15px; line-height: 20px; font-weight: 600; letter-spacing: -.01em;
+  }
+  html[data-vue="messages"] #vue-messages > .entete-vue { margin-inline: -16px; padding-left: 16px; }
+  /* les boutons de barre d'outils : du texte (ou une icône) sans cadre, un fond au survol — comme sur le Mac */
+  .vue > .entete-vue .lien-texte { min-height: 28px; min-width: 0; padding: 0 10px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text); }
+  .vue > .entete-vue .lien-texte:hover { background: var(--field); }
+  .btn-plus { min-height: 28px; min-width: 28px; justify-content: center; border-radius: 6px; }
+  .btn-plus:hover { background: var(--field); }
+  .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }
+  /* sur une vue de liste (Appels, Agenda, Contacts), le contenu se lit dans une colonne de lecture ; la barre d'outils, elle, prend toute la largeur */
+  #vue-appels > :not(.entete-vue):not(.grand-titre), #vue-reunions > :not(.entete-vue):not(.grand-titre), #vue-contacts > :not(.entete-vue):not(.grand-titre):not(.vc-col):not(.vc-fiche) { max-width: 760px; margin-inline: auto; }
+
+  /* la recherche : le champ du Mac — 28 px, coins de 7 px, 13 px */
+  .vue .recherche { min-height: 28px; height: 28px; padding: 0 8px; gap: 6px; border-radius: 7px; margin-bottom: 12px; }
+  .vue .recherche .ic { font-size: 13px; }
+  .vue .recherche input { font-size: 13px; }
+
+  /* le segmenté du Mac : 24 px, 12 px, compact */
+  .seg { margin-bottom: 14px; border-radius: 7px; }
+  .seg-knob { border-radius: 5px; }
+  .seg-bouton { min-height: 24px; font-size: 12px; }
+
+  /* les LISTES : nues sur le fond, la ligne choisie en aplat d'accent, un fond au survol — plus de carte, plus de chevron */
+  .carte-liste { background: transparent; border-radius: 0; overflow: visible; }
+  .carte-liste > li::after { left: 60px; right: 8px; }
+  .carte-liste > li:has(+ li > [aria-current="true"])::after, .carte-liste > li:has(> [aria-current="true"])::after { display: none; }
+  .conv { min-height: 60px; padding: 8px 10px; gap: 10px; border-radius: 8px; }
+  .conv:active { transform: none; }
+  .conv .avatar { width: 40px; height: 40px; font-size: 15px; }
+  .conv-nom { font-size: 13px; line-height: 17px; letter-spacing: 0; }
+  .conv-heure { font-size: 12px; }
+  .conv-apercu { font-size: 13px; line-height: 17px; }
+  .conv .chev, .appel-ligne .chev { display: none; }
+  .conv[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
+  .vide { font-size: 13px; }
+
+  /* la conversation : l'en-tête de Messages sur Mac (la photo et le nom sur une ligne, à gauche), des bulles de bureau, la saisie compacte */
+  .conv-nav { min-height: 52px; padding-top: 0; padding-bottom: 0; }
+  .conv-titre { flex-direction: row; justify-content: flex-start; gap: 8px; min-height: 52px; }
+  .conv-titre .avatar { width: 28px; height: 28px; font-size: 11px; }
+  .conv-titre-nom { font-size: 13px; font-weight: 600; }
+  .conv-gauche { width: auto; }
+  .bulle { font-size: 14px; line-height: 19px; letter-spacing: 0; padding: 6px 12px; max-width: 62%; }
+  .recue { border-radius: 16px 16px 16px 5px; }
+  .envoyee { border-radius: 16px 16px 5px 16px; }
+  .composer { padding: 8px 14px 12px; }
+  .pilule-saisie { min-height: 30px; border-radius: 15px; --pad-y: 5px; }
+  .pilule-saisie textarea { height: 30px; font-size: 13px; line-height: 20px; letter-spacing: 0; padding-left: 12px; max-height: calc(8 * 20px + 2 * var(--pad-y)); }
+  .compo-bouton { width: 30px; height: 30px; font-size: 18px; }
+  .compo-plus .disque { width: 26px; height: 26px; font-size: 13px; }
+
+  /* les GROUPES de réglages et de contacts : le formulaire groupé du Mac (Réglages Système) */
+  .rubrique { padding: 0 10px 6px; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+  .carte { border-radius: 10px; margin-bottom: 16px; box-shadow: 0 0 0 .5px var(--bureau-bord), 0 1px 2px rgba(0,0,0,.04); }
+  /* les ÉCRANS (pas les feuilles : « Nouvelle discussion », « Nouveau groupe »… gardent leurs lignes de 44 px, leur index et leur défilement) */
+  .vue .reglage, .vue .contact { min-height: 40px; padding: 6px 12px; gap: 10px; }
+  .vue .reglage-texte, .vue .contact-nom { font-size: 13px; letter-spacing: 0; }
+  .vue .reglage-texte small, .vue .contact-role { font-size: 11px; line-height: 14px; }
+  .reglage-valeur { font-size: 13px; }
+  .vue .contact .avatar { width: 28px; height: 28px; font-size: 11px; }
+  .reglage:hover, .contact.presse:hover, button.contact:hover { background: var(--field); }
+  .info-note { font-size: 12px; line-height: 16px; }
+  .mini { min-height: 24px; padding: 2px 10px; border-radius: 6px; font-size: 13px; }
+  .interrupteur { width: 34px; height: 20px; }
+  .interrupteur::after { width: 16px; height: 16px; top: 2px; left: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .reglage[aria-checked="true"] .interrupteur::after { transform: translateX(14px); }
+  .reg-tuile { width: 20px; height: 20px; border-radius: 5px; }
+  .reg-tuile .ic { width: 13px; height: 13px; }
+
+  /* PROFIL = LES RÉGLAGES SYSTÈME : la colonne des rubriques (ma carte en tête, puis les rubriques en lignes de 28 px, la choisie en aplat d'accent), la rubrique à droite */
+  #vue-reglages .reg-grille { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; align-items: start; max-width: 1100px; margin-inline: auto; }
+  #vue-reglages .reg-accueil { position: sticky; top: 66px; display: block !important; }
+  #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: flex; }
+  #vue-reglages .reg-barre { display: none; }
+  .reg-moi { flex-direction: row; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 12px; border-radius: 10px; background: transparent; text-align: left; display: grid; grid-template-columns: 40px 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 0; }
+  .reg-moi:hover { background: var(--field); }
+  .reg-moi .avatar { width: 40px; height: 40px; font-size: 15px; margin: 0; grid-row: 1 / 3; }
+  .reg-moi-nom { font-size: 13px; line-height: 17px; font-weight: 600; letter-spacing: 0; align-self: end; }
+  .reg-moi-ident { font-size: 11px; line-height: 15px; align-self: start; grid-column: 2; }
+  .reg-moi-statut, .reg-moi-modifier { display: none; }
+  .reg-menu { background: transparent; box-shadow: none; margin-bottom: 10px; overflow: visible; }
+  .reg-menu .reglage { min-height: 28px; padding: 3px 8px; border: 0; border-radius: 6px; gap: 8px; }
+  .reg-menu .reglage .chev { display: none; }
+  .reg-menu .reglage-texte { font-size: 13px; }
+  .reg-menu .reglage-valeur { font-size: 12px; }
+  .reg-menu .reglage[aria-current="true"] { background: var(--fill); color: var(--on-fill); }
+  .reg-menu .reglage[aria-current="true"] .reglage-valeur { color: color-mix(in srgb, var(--on-fill) 80%, transparent); }
+  #reg-sortir { min-height: 28px; padding: 3px 8px; border-radius: 6px; }
+  .reg-accueil > .carte:last-child { background: transparent; box-shadow: none; }
+  .reg-detail { padding-top: 2px; }
+  .reg-titre { font-size: 20px; line-height: 26px; letter-spacing: -.01em; margin: 0 2px 14px; }
+  #vue-reglages { max-width: none; }
+  .reglage[aria-checked="true"] .interrupteur { background: var(--fill); }
+  .pilule-saisie:focus-within { outline: 3px solid color-mix(in srgb, var(--accent) 35%, transparent); outline-offset: 0; }
+
+  /* CONTACTS = Contacts sur Mac : la liste (380 px) à gauche, la fiche à droite, séparées d'un filet ; la fiche se tient en haut quand la liste défile */
+  #vue-contacts { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); column-gap: 0; }
+  #vue-contacts > .entete-vue { grid-column: 1 / -1; }
+  #vue-contacts > .vc-col { max-width: none; margin: 0; padding-right: 20px; min-width: 0; }
+  #vue-contacts > .vc-fiche { max-width: none; margin: -14px -24px 0 0; min-height: calc(100vh - 52px); border-left: var(--line); position: sticky; top: 52px; align-self: start; }
+  #vue-contacts .contact[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
+  #vue-contacts .contact[aria-current="true"] .vc-chevron { stroke: currentColor; }
+  #vue-contacts .vc-ligne .vc-chevron { display: none; }
+  /* la liste nue, comme Contacts sur Mac : pas de carte par lettre, la lettre en petit titre, la ligne choisie en aplat (étoile comprise) ; l'étoile vide ne paraît qu'au survol */
+  #vue-contacts .vc-col .carte:not(.carte-pad) { background: transparent; box-shadow: none; border-radius: 0; margin-bottom: 4px; }
+  #vue-contacts .vc-ligne { border-bottom: 0; border-radius: 6px; }
+  #vue-contacts .vc-ligne > .contact { background: transparent; border-radius: 6px; }
+  #vue-contacts .vc-ligne:hover { background: var(--field); }
+  #vue-contacts .vc-ligne:has(> [aria-current="true"]) { background: var(--fill); }
+  #vue-contacts .vc-ligne:has(> [aria-current="true"]) .vc-etoile { color: var(--on-fill); }
+  #vue-contacts .vc-etoile { width: 28px; height: 28px; margin-right: 6px; }
+  #vue-contacts .vc-etoile svg { width: 15px; height: 15px; }
+  #vue-contacts .vc-etoile[aria-pressed="false"] { opacity: 0; }
+  #vue-contacts .vc-ligne:hover .vc-etoile, #vue-contacts .vc-etoile:focus-visible { opacity: 1; }
+  #vue-contacts .vc-lettre { margin: 12px 12px 2px; font-size: 11px; line-height: 14px; }
+  /* un segmenté de vue (Appels) est un petit contrôle centré, comme dans FaceTime — pas une barre de 760 px */
+  .vue > .seg { width: min(100%, calc(var(--n, 2) * 112px)); margin-inline: auto; }
+  /* l'état vide se pose au milieu de la page, en gris discret, comme une liste vide sur Mac */
+  #vue-appels li.vide { padding: 22vh 16px 0; font-size: 15px; font-weight: 500; color: var(--sub-meta); text-align: center; background: transparent; }
+  .vc-fiche-vide { height: 60vh; display: grid; place-content: center; justify-items: center; gap: 10px; text-align: center; color: var(--sub-meta); font-size: 13px; }
+  .vc-fiche-tete { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 48px 24px 20px; text-align: center; }
+  .vc-fiche-tete .avatar { width: 96px; height: 96px; font-size: 36px; margin-bottom: 10px; }
+  .vc-fiche-nom { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; overflow-wrap: anywhere; }
+  .vc-fiche-statut { font-size: 13px; color: var(--sub-meta); }
+  .vc-fiche-actions { display: flex; justify-content: center; gap: 10px; padding: 4px 24px 24px; }
+  .vc-action { width: 72px; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px 0; border-radius: 10px; background: none; font-size: 11px; font-weight: 400; color: var(--accent-txt); }
+  .vc-fiche-nom { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.01em; }
+  .vc-fiche-statut { font-size: 13px; }
+  .vc-fiche-actions { display: flex; justify-content: center; gap: 10px; padding: 4px 24px 24px; }
+  .vc-fiche .fc-commun { max-width: 560px; margin: 0 auto; padding: 0 24px 40px; }
+  .fc-ligne { min-height: 44px; padding: 6px 12px; gap: 10px; }
+  .fc-date { width: 36px; height: 38px; border-radius: 8px; }
+  .fc-date small { font-size: 11px; }
+  .fc-date b { font-size: 15px; }
+  .fc-icone { width: 34px; height: 34px; border-radius: 8px; font-size: 16px; }
+  .fc-titre { font-size: 13px; }
+  .fc-sous { font-size: 11px; line-height: 14px; }
+  .fc-squelette { min-height: 44px; padding: 6px 12px; }
+  .fc-squelette i { width: 34px; height: 36px; }
+  .vc-action:hover { background: var(--field); }
+  .vc-action-rond { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; background: var(--field); font-size: 17px; }
+  .vc-fiche-tete { gap: 4px; padding: 48px 24px 20px; }
+  .vc-action[aria-pressed="true"] .vc-action-rond { color: #f5a623; }
+  .vc-action[aria-pressed="true"] .vc-action-rond svg { fill: currentColor; }
+}
+/* au téléphone et à la tablette, la fiche n'existe pas */
+@media not all and (min-width: 900px) and (hover: hover) and (pointer: fine) { .vc-fiche { display: none; } }
 </style>
 </head>
 <body>
@@ -1363,6 +1820,18 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-disque" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
   <symbol id="i-entreprise" viewBox="0 0 24 24"><path d="M4 20.5h16M6 20.5V5.5l7-2v17M13 9h5v11.5M8.6 8h1.8M8.6 11.5h1.8M8.6 15h1.8M15.3 12.5h1M15.3 16h1"/></symbol>
   <symbol id="i-etoile" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.85L12 16.9l-5.25 2.75 1-5.85L3.5 9.7l5.9-.9z"/></symbol>
+  <symbol id="i-crayon" viewBox="0 0 24 24"><path d="M4.5 19.5l1-4.2L16.3 4.5a2.1 2.1 0 0 1 3 3L8.5 18.3l-4 1.2ZM14.3 6.5l3.2 3.2"/></symbol>
+  <symbol id="i-surligneur" viewBox="0 0 24 24"><path d="M8.5 14.5 5 18l1 1h4l1.5-1.5M8.5 14.5l2.5 2.5M8.5 14.5 15 8l3 3-6.5 6.5M15 8l2.2-2.2a1.5 1.5 0 0 1 2.1 0l.9.9a1.5 1.5 0 0 1 0 2.1L18 11M4 21.5h16"/></symbol>
+  <symbol id="i-fleche" viewBox="0 0 24 24"><path d="M5.5 18.5 18.5 5.5M10 5.5h8.5V14"/></symbol>
+  <symbol id="i-rect" viewBox="0 0 24 24"><path d="M4.5 6.5h15v11h-15Z"/></symbol>
+  <symbol id="i-ellipse" viewBox="0 0 24 24"><path d="M12 5.5c4.4 0 8 2.9 8 6.5s-3.6 6.5-8 6.5-8-2.9-8-6.5 3.6-6.5 8-6.5Z"/></symbol>
+  <symbol id="i-texte" viewBox="0 0 24 24"><path d="M5.5 7V5h13v2M12 5v14M9 19h6"/></symbol>
+  <symbol id="i-annuler" viewBox="0 0 24 24"><path d="M9 13.5 4.5 9 9 4.5M4.5 9h10a5 5 0 0 1 0 10H11"/></symbol>
+  <symbol id="i-capture" viewBox="0 0 24 24"><path d="M4 8.5h3.2L8.8 6h6.4l1.6 2.5H20v10.5H4ZM12 16a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></symbol>
+  <symbol id="i-gauche" viewBox="0 0 24 24"><path d="M15 5 8 12l7 7"/></symbol>
+  <symbol id="i-droite" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+  <symbol id="i-partager" viewBox="0 0 24 24"><path d="M12 15V3.5M8 7.5l4-4 4 4M7 10.5H5.5v10h13v-10H17"/></symbol>
+  <symbol id="i-sondage" viewBox="0 0 24 24"><path d="M5 19.5V13M10 19.5V5M15 19.5v-9M20 19.5V8.5"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
@@ -1436,7 +1905,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="side-marque"><img src="opmsg-192.png" alt="" width="28" height="28"><b>OP MESSAGES</b></div>
     <nav aria-label="Navigation principale" id="nav-side"></nav>
     <div class="side-fin">
-      <a href="#reglages" class="moi presse" data-vue="reglages" id="moi-carte" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages"><span class="avatar av0" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span><svg class="moi-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
+      <a href="#reglages" class="moi presse" data-vue="reglages" id="moi-carte" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages"><span class="avatar av0 moi-av" aria-hidden="true" id="moi-avatar"></span><span class="moi-texte"><span class="moi-nom" id="moi-nom"></span><span class="moi-statut" id="moi-statut"><i></i><span id="moi-statut-texte">Disponible</span></span></span><svg class="moi-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>
     </div>
   </aside>
 
@@ -1498,13 +1967,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <footer class="composer" data-glass="1">
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <div class="compo-ligne" id="compo">
-        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre une photo"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
+        <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
         <input type="file" id="compo-doc" class="sr-seul" tabindex="-1" aria-hidden="true">
         <div class="pilule-saisie">
           <textarea id="saisie" rows="1" maxlength="100000" placeholder="Message" aria-label="Écrire un message" autocomplete="off" autocapitalize="sentences" spellcheck="true"></textarea>
           <button type="button" class="compo-bouton envoyer presse" id="envoyer" aria-label="Envoyer le message" hidden><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-haut"/></svg></span></button>
         </div>
+        <button type="button" class="compo-bouton compo-camera presse" id="compo-camera" aria-label="Prendre une photo" hidden><svg class="ic" aria-hidden="true"><use href="#i-capture"/></svg></button>
+        <input type="file" id="compo-appareil" class="sr-seul" accept="image/*" capture="environment" tabindex="-1" aria-hidden="true">
         <button type="button" class="compo-bouton compo-micro presse" id="compo-micro" aria-label="Enregistrer un message vocal : maintenir, ou toucher pour démarrer"><svg class="ic" aria-hidden="true"><use href="#i-mic"/></svg></button>
       </div>
       <div class="enreg" id="enreg" role="group" aria-label="Enregistrement du message vocal" hidden>
@@ -1559,6 +2030,21 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="salle-scene" id="salle-scene" role="list" aria-label="Participants" data-vue="galerie" data-n="1" tabindex="0">
       <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
+    <div class="annot-barre" id="annot-barre" role="toolbar" aria-label="Annoter" hidden>
+      <div class="annot-palette" id="annot-palette" role="group" aria-label="Choix" hidden></div>
+      <button type="button" class="presse" data-outil="stylo" aria-pressed="true" aria-label="Stylo"><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg></button>
+      <button type="button" class="presse" data-outil="surligneur" aria-pressed="false" aria-label="Surligneur"><svg class="ic" aria-hidden="true"><use href="#i-surligneur"/></svg></button>
+      <button type="button" class="presse" data-outil="fleche" aria-pressed="false" aria-label="Flèche"><svg class="ic" aria-hidden="true"><use href="#i-fleche"/></svg></button>
+      <button type="button" class="presse" data-outil="rect" aria-pressed="false" aria-label="Rectangle"><svg class="ic" aria-hidden="true"><use href="#i-rect"/></svg></button>
+      <button type="button" class="presse" data-outil="ellipse" aria-pressed="false" aria-label="Cercle"><svg class="ic" aria-hidden="true"><use href="#i-ellipse"/></svg></button>
+      <button type="button" class="presse" data-outil="texte" aria-pressed="false" aria-label="Texte"><svg class="ic" aria-hidden="true"><use href="#i-texte"/></svg></button>
+      <span class="annot-sep" aria-hidden="true"></span>
+      <button type="button" class="presse" id="annot-couleur" data-couleur="rouge" aria-haspopup="true" aria-expanded="false" aria-label="Couleur et épaisseur"><span class="annot-pastille" aria-hidden="true"></span></button>
+      <button type="button" class="presse" id="annot-annuler" aria-label="Annuler le dernier trait"><svg class="ic" aria-hidden="true"><use href="#i-annuler"/></svg></button>
+      <button type="button" class="presse" id="annot-effacer" aria-haspopup="true" aria-expanded="false" aria-label="Effacer mes annotations"><svg class="ic" aria-hidden="true"><use href="#i-corbeille"/></svg></button>
+      <button type="button" class="presse" id="annot-capturer" aria-label="Capturer et envoyer dans la discussion" hidden><svg class="ic" aria-hidden="true"><use href="#i-capture"/></svg></button>
+      <button type="button" class="presse annot-fin" id="annot-fin">OK</button>
+    </div>
     <div class="salle-pastilles" role="group" aria-label="Réactions et affichage">
       <button type="button" class="salle-pastille presse" id="salle-reagir" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-reaction"/></svg>Réagir</button>
       <div class="salle-emojis" id="salle-emojis" role="group" aria-label="Réactions" hidden>
@@ -1569,6 +2055,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       </div>
       <button type="button" class="salle-pastille presse" id="salle-main" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-main"/></svg><span>Lever la main</span></button>
       <button type="button" class="salle-pastille presse" id="salle-vue"><svg class="ic" aria-hidden="true"><use href="#i-intervenant"/></svg><span>Intervenant</span></button>
+      <button type="button" class="salle-pastille presse" id="salle-annoter" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg><span>Annoter</span></button>
       <button type="button" class="salle-pastille presse" id="salle-rec-btn" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-rec"/></svg><span>Enregistrer</span></button>
     </div>
     <div class="salle-bas">
@@ -1584,10 +2071,22 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="salle-panneau" id="salle-panneau" role="dialog" aria-modal="false" aria-labelledby="salle-panneau-titre" tabindex="-1" hidden>
       <div class="salle-panneau-tete"><h3 id="salle-panneau-titre"></h3><button type="button" class="presse" id="salle-panneau-fermer" aria-label="Fermer ce panneau"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <div id="salle-panneau-corps"></div>
+      <input type="file" id="salle-doc" hidden>
     </div>
   </section>
 </div>
 <p class="sr-seul" id="annonce-appel" role="status" aria-live="polite" aria-atomic="true"></p>
+<div class="rec-fin" id="rec-fin" role="alertdialog" aria-modal="true" aria-labelledby="rec-fin-titre" aria-describedby="rec-fin-info" hidden>
+  <div class="rec-fin-carte">
+    <h3 id="rec-fin-titre">Enregistrement terminé</h3>
+    <p id="rec-fin-info"></p>
+    <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
+    <p id="rec-fin-absents" hidden></p>
+    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer dans la discussion</button>
+    <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
+    <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
+  </div>
+</div>
 
 <div class="voile" id="voile"></div>
 <section class="feuille" id="feuille" data-glass="1" role="dialog" aria-modal="true" aria-labelledby="feuille-titre" tabindex="-1" inert>
@@ -1637,6 +2136,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
   <button type="button" class="visionneuse-fermer presse" id="visionneuse-fermer" aria-label="Fermer la photo"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
   <img id="visionneuse-img" alt="">
+  <div class="visionneuse-barre" role="toolbar" aria-label="Photo">
+    <button type="button" class="presse" id="visionneuse-prec" aria-label="Photo précédente" hidden><svg class="ic" aria-hidden="true"><use href="#i-gauche"/></svg></button>
+    <span class="visionneuse-rang" id="visionneuse-rang" aria-live="polite"></span>
+    <button type="button" class="presse" id="visionneuse-enregistrer"><svg class="ic" aria-hidden="true"><use href="#i-telecharger"/></svg>Enregistrer</button>
+    <button type="button" class="presse" id="visionneuse-partager" hidden><svg class="ic" aria-hidden="true"><use href="#i-partager"/></svg>Partager</button>
+    <button type="button" class="presse" id="visionneuse-suiv" aria-label="Photo suivante" hidden><svg class="ic" aria-hidden="true"><use href="#i-droite"/></svg></button>
+  </div>
 </div>
 
 <div class="envoi-photos" id="envoi-photos" role="dialog" aria-modal="true" aria-labelledby="ep-titre" hidden>

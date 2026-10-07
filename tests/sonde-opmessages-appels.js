@@ -165,7 +165,7 @@ async function connecter(S, login) {
   await toucher(S, '#c-entrer');
   await S.page.waitForFunction(() => { const a = document.getElementById('app'); return a && !a.hidden && document.getElementById('moi-nom').textContent.trim().length > 0; }, null, { timeout: 12000 });
 }
-async function onglet(S, vue) { await toucher(S, 'a[data-vue="' + vue + '"]'); await S.page.waitForFunction(x => { const s = document.getElementById('vue-' + x); return s && !s.hidden && s.getClientRects().length > 0; }, vue, { timeout: 6000 }).catch(() => {}); }
+async function onglet(S, vue) { if (vue === 'reglages' && await S.page.evaluate(() => { const s = document.getElementById('vue-reglages'); return !!s && !s.hidden && s.getClientRects().length > 0; })) return;   /* déjà dans le Profil (une rubrique ouverte) : « Profil » n'est plus un onglet (7 octobre 2026), et la rubrique se choisit d'ici */ await toucher(S, 'a[data-vue="' + vue + '"]'); await S.page.waitForFunction(x => { const s = document.getElementById('vue-' + x); return s && !s.hidden && s.getClientRects().length > 0; }, vue, { timeout: 6000 }).catch(() => {}); }
 const stats = (S) => S.page.evaluate(() => window.__stats());
 /* la paire retenue se lit quand le navigateur l'a nommée : « connecté » arrive un instant avant que les statistiques sachent laquelle (mesuré : un côté la rendait vide) — on attend qu'elle ait un type */
 async function paire(S) { let s = null; for (let i = 0; i < 50; i++) { s = await stats(S); if (s.locale) return s; await dormir(100); } return s; }

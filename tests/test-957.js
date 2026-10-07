@@ -110,7 +110,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
     v('l\'export répond 200 et son corps est du JSON valide', [ex.code, E && E.format], [200, 'opmessages-export-v1']);
     v('c\'est un TÉLÉCHARGEMENT (attachment, nom daté), jamais mis en cache, écrit au fil de l\'eau (pas de longueur annoncée)', [/^attachment; filename="opmessages-export-\d{4}-\d{2}-\d{2}\.json"$/.test(ex.h.get('content-disposition')), ex.h.get('cache-control'), /application\/json/.test(ex.h.get('content-type')), ex.h.get('content-length')], [true, 'no-store', true, null]);
     v('le profil : son identifiant, son prénom et son nom', [E.profil.id, E.profil.prenom, E.profil.nom], [A.moi.id, 'Alice', 'Banc']);
-    v('les réglages (présence, accusés, aperçu des notifications, qui me trouve)', E.reglages, { presence: true, accuses: true, apercu_notif: false, trouvable: 'tous' });
+    v('les réglages (présence, accusés, aperçu des notifications, qui me trouve, la position — coupée)', E.reglages, { presence: true, accuses: true, apercu_notif: false, trouvable: 'tous', position: false });
     v('les contacts d\'Alice : Bob et Cléo (pas Dan)', E.contacts.map(c => c.prenom).sort(), ['Bob', 'Cleo']);
     const conv = Object.fromEntries(E.conversations.map(c => [c.id, c]));
     v('⛔ les conversations d\'Alice : AB, G, H — PAS BC (entre deux autres), PAS BD', Object.keys(conv).sort(), [AB, G, H].sort());
@@ -590,7 +590,7 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
             for (let q = apresSeq + 1; q <= c.n && messages.length < limite; q++) messages.push({ seq: q, id: 'm_' + id + '_' + q, ts: h.t, auteur: 'p_alice', type: 'texte', texte: 'message ' + q + ' ' + 'x'.repeat(o.taille || 20), modifie: null, supprime: false, repond_a: null, reactions: [], meta: null });
             return { messages, supprimes: [] };
           },
-          exportPieces: () => [], notifListe: () => [], exportEspaces: () => [], exportReunions: () => [], exportAppels: () => [], exportEvenements: () => [],   // les sections « espaces » (lot 4), « réunions » (lot 5), « appels » (lot 6) et « agenda » (6 octobre 2026) de l'export : un magasin simulé porte les dépendances du module qu'il monte
+          exportPieces: () => [], notifListe: () => [], exportEspaces: () => [], exportReunions: () => [], exportAppels: () => [], exportEvenements: () => [], exportPiecesOuvertes: () => [], exportSondagesVotes: () => [],   // (et « votes des sondages », 7 octobre 2026) les sections « espaces » (lot 4), « réunions » (lot 5), « appels » (lot 6) et « agenda » (6 octobre 2026) et « documents ouverts » (7 octobre 2026) de l'export : un magasin simulé porte les dépendances du module qu'il monte
         };
         const config = { compte: Object.assign({ exportOctetsMax: 64 * 1048576, exportAttenteMs: 300, exportMaxMs: 900000 }, o.compte || {}), quotas: { export: o.quota || { max: 1, fenetreMs: 86400000 } }, cookie: { nom: 'x', secure: false } };
         const H = {};

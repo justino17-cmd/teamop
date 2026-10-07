@@ -130,7 +130,9 @@ async function parcours(b, base, pf, sombre, personnes) {
   /* ── 1. LE « + » ── */
   const plus = await S.page.evaluate(() => { const e = document.getElementById('btn-plus'); const r = e.getBoundingClientRect(), p = e.querySelector('.pastille').getBoundingClientRect(); const cs = getComputedStyle(e.querySelector('.pastille')); return { nom: e.getAttribute('aria-label'), w: Math.round(r.width), h: Math.round(r.height), pw: Math.round(p.width), ph: Math.round(p.height), rayon: cs.borderRadius, fond: cs.backgroundColor, svg: !!e.querySelector('svg'), texte: e.textContent.trim(), anciens: !!document.getElementById('btn-groupe') }; });
   v(S.nom + ' : le « + » est nommé « Nouvelle discussion », sans texte, avec son icône, et l\'ancien bouton « Groupe » n\'existe plus', [plus.nom, plus.texte, plus.svg, plus.anciens], ['Nouvelle discussion', '', true, false]);
-  vrai(S.nom + ' : la zone qui répond fait 44 px au moins (' + plus.w + ' × ' + plus.h + '), le rond qu\'on voit ' + plus.pw + ' × ' + plus.ph + ' (rayon ' + plus.rayon + ', fond ' + plus.fond + ')', plus.w >= 44 && plus.h >= 44 && plus.pw === plus.ph && plus.pw >= 30 && plus.fond !== 'rgba(0, 0, 0, 0)');
+  /* au doigt, un rond de 44 px ; à la SOURIS (le bureau façon Mac, 7 octobre 2026), un bouton de barre d'outils de 28 px au moins, l'icône seule — comme « Nouveau message » dans Messages sur Mac */
+  if (S.pf.mobile) vrai(S.nom + ' : la zone qui répond fait 44 px au moins (' + plus.w + ' × ' + plus.h + '), le rond qu\'on voit ' + plus.pw + ' × ' + plus.ph + ' (rayon ' + plus.rayon + ', fond ' + plus.fond + ')', plus.w >= 44 && plus.h >= 44 && plus.pw === plus.ph && plus.pw >= 30 && plus.fond !== 'rgba(0, 0, 0, 0)');
+  else vrai(S.nom + ' : un bouton de barre d\'outils de 28 px au moins (' + plus.w + ' × ' + plus.h + '), l\'icône carrée (' + plus.pw + ' × ' + plus.ph + ')', plus.w >= 28 && plus.h >= 28 && plus.pw === plus.ph && plus.pw >= 16);
   await toucher(S, '#btn-plus');
   await verifier('toucher le « + » ouvre la feuille « Nouvelle discussion »', S, ouverte, 'Nouvelle discussion', 6000);
   await dormir(500);

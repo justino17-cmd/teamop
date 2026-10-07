@@ -42,7 +42,7 @@ const MAX_MEMBRES = 1024;
 const DELAI_MODIF_MS = 15 * 60 * 1000;
 const JOURNAL_JOURS = 7, JOURNAL_LIGNES = 10000;
 const TAILLE_PORTEE = 2048;   // un texte de 2 Ko ou moins est porté dans l'événement
-const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction'];
+const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage'];
 const PUSH_MAX = 10;   // dix appareils au plus par personne : le plus ancien part au onzième
 const DEMANDES_MAX = 50;   // demandes de contact qu'une personne voit « en attente » à la fois (relecture du gardien, A2)
 
@@ -556,6 +556,55 @@ const MIGRATIONS = [
     `ALTER TABLE contact ADD COLUMN favori INTEGER NOT NULL DEFAULT 0`,
     `PRAGMA user_version = 14`,
   ] },
+  /* ── 15 (7 octobre 2026) : LE SUIVI D'UN DOCUMENT — qui l'a ouvert ou téléchargé, et quand (« savoir qui a reçu, qui a téléchargé le document : très important pour les patrons »).
+     Une ligne par pièce ET par personne qui l'a lue (pas son auteur) : la première fois, la dernière, combien de fois (une par minute au plus). Elle part avec la pièce (CASCADE) et avec
+     le COMPTE (`compteEffacer` : la ligne `personne` est anonymisée, pas supprimée — le CASCADE ne joue pas, l'effacement est écrit). Seul l'auteur de la pièce la lit (`pieceSuivi`), et
+     seulement pour les gens qui voient le message ; la page d'un fichier reçu dit que son expéditeur voit le téléchargement. ── */
+  { v: 15, sql: [
+    `CREATE TABLE IF NOT EXISTS piece_acces(
+       piece TEXT NOT NULL REFERENCES piece(id) ON DELETE CASCADE,
+       uid TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
+       premier INTEGER NOT NULL, dernier INTEGER NOT NULL, n INTEGER NOT NULL DEFAULT 1,
+       PRIMARY KEY(piece, uid))`,
+    `CREATE INDEX IF NOT EXISTS piece_acces_uid ON piece_acces(uid)`,
+    `PRAGMA user_version = 15`,
+  ] },
+  /* ── 16 (7 octobre 2026) : LA PRÉSENCE DANS UNE SALLE — « un vrai système de réunion très pro » : qui est venu, à quelle heure, combien de temps, et qui n'est jamais venu (le rapport de présence
+     de l'hôte et de l'organisateur). Trois colonnes AJOUTÉES à `appel_part` (le code d'avant les ignore) : `premier`, l'instant de la première entrée ; `sorti`, celui de la dernière sortie ; `cumul`,
+     le temps passé dedans (en ms), sorties comprises — une présence en cours se compte jusqu'à maintenant au moment du rapport. */
+  { v: 16, sql: [
+    `ALTER TABLE appel_part ADD COLUMN premier INTEGER`,
+    `ALTER TABLE appel_part ADD COLUMN sorti INTEGER`,
+    `ALTER TABLE appel_part ADD COLUMN cumul INTEGER NOT NULL DEFAULT 0`,
+    `PRAGMA user_version = 16`,
+  ] },
+  /* ── 17 (7 octobre 2026) : LES SONDAGES D'UNE CONVERSATION — « des sondages personnalisables, avec ses règles ; on garde le système de WhatsApp, mais on l'améliore ». Le message (un texte « 📊 … »
+     pour les versions d'avant, `meta.k = 'sondage'` pour celle-ci) porte la question ; ces tables, ses RÈGLES (plusieurs réponses, anonyme, les membres ajoutent des choix, quand les résultats se
+     voient, une échéance), ses CHOIX (scellés comme un message) et les VOTES. ⛔ Un vote « anonyme » l'est pour les MEMBRES : le service garde qui a voté (sinon rien n'empêcherait de voter deux fois),
+     il ne le dit à personne. Le message effacé ou expiré emporte tout (clé étrangère). */
+  { v: 17, sql: [
+    `CREATE TABLE IF NOT EXISTS sondage(
+       conv TEXT NOT NULL, seq INTEGER NOT NULL, auteur TEXT NOT NULL,
+       multiple INTEGER NOT NULL DEFAULT 0, anonyme INTEGER NOT NULL DEFAULT 0, ajout INTEGER NOT NULL DEFAULT 0,
+       resultats TEXT NOT NULL DEFAULT 'toujours' CHECK(resultats IN ('toujours','apres_vote','apres_cloture')),
+       fin INTEGER, clos INTEGER, cree INTEGER NOT NULL,
+       PRIMARY KEY(conv, seq), FOREIGN KEY(conv, seq) REFERENCES message(conv, seq) ON DELETE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS sondage_choix(
+       conv TEXT NOT NULL, seq INTEGER NOT NULL, idx INTEGER NOT NULL, texte_ch BLOB NOT NULL, par TEXT, ts INTEGER NOT NULL,
+       PRIMARY KEY(conv, seq, idx), FOREIGN KEY(conv, seq) REFERENCES sondage(conv, seq) ON DELETE CASCADE)`,
+    `CREATE TABLE IF NOT EXISTS sondage_vote(
+       conv TEXT NOT NULL, seq INTEGER NOT NULL, uid TEXT NOT NULL, idx INTEGER NOT NULL, ts INTEGER NOT NULL,
+       PRIMARY KEY(conv, seq, uid, idx), FOREIGN KEY(conv, seq) REFERENCES sondage(conv, seq) ON DELETE CASCADE)`,
+    `CREATE INDEX IF NOT EXISTS sondage_vote_uid ON sondage_vote(uid)`,
+    `PRAGMA user_version = 17`,
+  ] },
+  /* ── 18 (7 octobre 2026) : LE THÈME D'UNE CONVERSATION — « personnaliser les conversations, mettre des thèmes derrière, les bulles de couleurs ». Le choix est À CHACUN (comme le fond d'écran
+     d'une discussion chez WhatsApp : ce que je vois ne change rien chez les autres), suit la personne sur tous ses appareils, et n'est qu'un NOM pris dans deux listes fermées (`fond/bulle`) —
+     jamais une couleur ni une image libres : rien de ce qu'une personne écrit ne devient du style chez elle. */
+  { v: 18, sql: [
+    `ALTER TABLE membre ADD COLUMN theme TEXT`,
+    `PRAGMA user_version = 18`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -636,6 +685,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const IDENT = versionActuelle() >= 11;
   /* le favori de l'onglet Contacts (migration 14) : une base ouverte à un schéma plus ancien (un banc de migration) n'a pas la colonne — on ne la lit pas, et poser un favori n'y fait rien */
   const FAVORI = versionActuelle() >= 14;
+  const SUIVI = versionActuelle() >= 15;          // une base d'avant la migration 15 (bancs de migration) : rien n'est noté, le suivi dit « indisponible »
+  const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas
+  const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation
+  const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
@@ -1072,7 +1125,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return { piece: lignes[0].id, nom: nom || 'fichier', taille: lignes[0].taille };
   }
 
-  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal }) {
+  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage }) {
     const dej = Q('SELECT seq, ts, id FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid);
     if (dej) return { deja: true, seq: dej.seq, ts: dej.ts, id: dej.id };
     const c = Q('SELECT dernier_seq, ephemere_s FROM conversation WHERE id = ?').get(conv);
@@ -1088,6 +1141,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     Q('INSERT INTO message(conv, seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, expire_ts) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(conv, seq, id, auteur, cid, ts, type, corps, metaCh, repondA == null ? null : repondA, expire);
     Q('UPDATE conversation SET dernier_seq = ?, dernier_ts = ? WHERE id = ?').run(seq, ts, conv);
+    if (sondage) sondageCreerDansTx({ conv, seq, auteur, choix: sondage.choix, regles: sondage.regles, t: ts });       // dans la MÊME transaction : jamais un « 📊 » sans ses choix
     /* ⛔ ENVOYER N'EST PAS LIRE. Celui qui écrit a lu son propre message, pas ce qui précède : `lu_seq` ne suit son
        message que si RIEN n'attendait d'être lu (`lu_seq = seq - 1`). L'ancienne version le portait à `seq` quoi qu'il
        arrive, et un envoi sorti d'une file hors ligne marquait lus les messages d'autrui jamais vus (relecture
@@ -1113,7 +1167,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (c.type === 'canal') { const k = canalDe(conv); if (k) { rang.espace = k.espace; rang.prive = k.prive; } }
     /* une conversation de RÉUNION dit laquelle (pour ouvrir sa fiche) ; les autres conversations n'ont pas ce champ */
     if (c.type === 'reunion') { const k = Q('SELECT id FROM reunion WHERE conv = ?').get(conv); if (k) rang.reunion = k.id; }
-    return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive } };
+    const th = THEMES ? Q('SELECT theme FROM membre WHERE conv = ? AND uid = ?').get(conv, uid) : null;     // le thème (migration 18) : une requête à part — une base plus ancienne n'a pas la colonne
+    return { conv: rang, moi: { role: m.role, depuis_seq: m.depuis_seq, lu_seq: m.lu_seq, muet_jusqua: m.muet_jusqua, epingle: !!m.epingle, archive: !!m.archive, theme: (th && th.theme) || null } };
   }
   function canalDe(conv) {
     const k = Q('SELECT espace, prive FROM canal WHERE conv = ?').get(conv);
@@ -1330,12 +1385,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Réglages PERSONNELS d'une conversation : seul son titulaire les voit, ses autres appareils
      sont prévenus (un événement adressé à lui seul). */
-  function membrePrefs({ conv, uid, muet_jusqua, epingle, archive }) {
+  function membrePrefs({ conv, uid, muet_jusqua, epingle, archive, theme }) {
     return tx(() => {
       const m = Q('SELECT muet_jusqua, epingle, archive FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
       if (!m) throw erreur('introuvable');
       Q('UPDATE membre SET muet_jusqua = ?, epingle = ?, archive = ? WHERE conv = ? AND uid = ?')
         .run(muet_jusqua !== undefined ? muet_jusqua : m.muet_jusqua, epingle !== undefined ? (epingle ? 1 : 0) : m.epingle, archive !== undefined ? (archive ? 1 : 0) : m.archive, conv, uid);
+      if (theme !== undefined) { if (!THEMES) throw erreur('type'); Q('UPDATE membre SET theme = ? WHERE conv = ? AND uid = ?').run(theme, conv, uid); }   // `theme` : 'fond/bulle' (validé par la route) ou null
       const gid = journalAjouter('conv_maj', conv, uid, '');
       return { gid };
     });
@@ -1380,11 +1436,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       FROM membre m JOIN conversation c ON c.id = m.conv LEFT JOIN canal k ON k.conv = c.id LEFT JOIN reunion u ON u.conv = c.id
       WHERE m.uid = ? AND m.quitte_le IS NULL AND (c.type <> 'direct' OR c.dernier_seq > 0 OR c.cree_par = m.uid)
       ORDER BY m.epingle DESC, c.dernier_ts DESC, c.id`).all(horloge(), uid);
+    /* les thèmes (migration 18) : une requête à part, littérale — une base plus ancienne n'a pas la colonne */
+    const themes = THEMES ? new Map(Q('SELECT conv, theme FROM membre WHERE uid = ? AND quitte_le IS NULL AND theme IS NOT NULL').all(uid).map(r => [r.conv, r.theme])) : null;
     return lignes.map(l => {
       const o = {
         id: l.id, type: l.type, nom: nomDe(l.id, l.nom_ch), avatar: l.avatar_piece || null, annonces_seules: !!l.annonces_seules, ephemere_s: l.ephemere_s,
         dernier_seq: l.dernier_seq, dernier_ts: l.dernier_ts, role: l.role, lu_seq: l.lu_seq, non_lus: num(l.non_lus),
-        membres_n: num(l.membres_n), epingle: !!l.epingle, archive: !!l.archive, muet_jusqua: l.muet_jusqua, apercu: null, autre: null,
+        membres_n: num(l.membres_n), epingle: !!l.epingle, archive: !!l.archive, muet_jusqua: l.muet_jusqua, apercu: null, autre: null, theme: (themes && themes.get(l.id)) || null,
       };
       if (l.type === 'canal' && l.canal_espace) { o.espace = l.canal_espace; o.prive = !!l.canal_prive; }   // un canal dit son espace et s'il est privé ; les autres conversations n'ont pas ces champs
       if (l.type === 'reunion' && l.reunion_id) o.reunion = l.reunion_id;                                   // une conversation de réunion dit laquelle (pour ouvrir sa fiche)
@@ -1437,9 +1495,111 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ MESSAGES ════════════════════════════════════════════════════════════════════════════ */
-  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null }) {
-    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal }));
+  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null }) {
+    if (sondage && !SONDAGES) throw erreur('type');
+    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage }));
   }
+  /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. ── */
+  /* un message que `uid` voit (membre depuis, ni masqué, ni effacé, ni expiré) → son auteur et sa méta, ou null */
+  function messageVuPar(conv, seq, uid) {
+    const m = Q('SELECT depuis_seq, role FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    if (!m || seq < m.depuis_seq) return null;
+    const r = Q(`SELECT x.auteur AS auteur, x.meta_ch AS meta_ch, x.supprime_le AS supprime_le FROM message x WHERE x.conv = ? AND x.seq = ? AND (x.expire_ts IS NULL OR x.expire_ts > ?)
+                 AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)`).get(conv, seq, horloge(), uid);
+    if (!r || r.supprime_le) return null;
+    let meta = null; if (r.meta_ch) { try { meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), r.meta_ch)); } catch (e) { meta = null; } }
+    return { auteur: r.auteur, meta, role: m.role };
+  }
+  /* ⛔ LA FICHE D'UN CONTACT SE LIT À L'INSTANT (relecture du gardien) : le message ne garde que l'identifiant de la personne ; son prénom et son identifiant public se relisent à chaque
+     lecture, et seulement tant qu'elle se laisse trouver (compte actif, sans suppression en cours, « trouvable par tous »). Elle s'est retirée, ou son compte est effacé : la fiche ne dit plus
+     rien d'elle — ni son nom, ni qui elle est (`uid: null`). */
+  function metaLue(meta) {
+    if (!meta || meta.k !== 'contact') return meta;
+    const id = typeof meta.uid === 'string' ? meta.uid : null, p = id ? personneParId(id) : null;
+    if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous') return { k: 'contact', uid: null, prenom: null, identifiant: null };
+    return { k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) };
+  }
+  /* la fiche de contact d'un message (`meta.k = 'contact'`) que `uid` voit, ou null */
+  function carteContactLire(conv, seq, uid) { const v = messageVuPar(conv, seq, uid); return v && v.meta && v.meta.k === 'contact' && typeof v.meta.uid === 'string' ? v.meta : null; }
+  /* ── les sondages ── */
+  const SONDAGE_CHOIX_MAX = 12;
+  const aadChoix = (conv, seq, idx) => conv + '|' + seq + '|' + idx;
+  function sondageCreerDansTx({ conv, seq, auteur, choix, regles, t }) {
+    Q('INSERT INTO sondage(conv, seq, auteur, multiple, anonyme, ajout, resultats, fin, cree) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)')
+      .run(conv, seq, auteur, regles.multiple ? 1 : 0, regles.anonyme ? 1 : 0, regles.ajout ? 1 : 0, regles.resultats, regles.fin === null ? null : regles.fin, t);
+    choix.forEach((c, i) => Q('INSERT INTO sondage_choix(conv, seq, idx, texte_ch, par, ts) VALUES(?, ?, ?, ?, ?, ?)').run(conv, seq, i, sceller('sondage_choix', 'texte_ch', aadChoix(conv, seq, i), c), auteur, t));
+  }
+  function sondageAcces(conv, seq, uid) {
+    if (!SONDAGES) return null;
+    const v = messageVuPar(conv, seq, uid); if (!v) return null;
+    const s = Q('SELECT auteur, multiple, anonyme, ajout, resultats, fin, clos, cree FROM sondage WHERE conv = ? AND seq = ?').get(conv, seq);
+    if (!s) return null;
+    /* ⛔ « administrateur » ne vaut que dans un GROUPE ou un CANAL (relecture du gardien) : dans une directe, les deux membres le sont — l'autre aurait clos MON sondage et fait paraître des
+       résultats promis « à la clôture ». La même règle que « supprimer pour tous ». */
+    const c = Q('SELECT type FROM conversation WHERE id = ?').get(conv);
+    return { s, admin: v.role === 'admin' && !!c && (c.type === 'groupe' || c.type === 'canal') };
+  }
+  const sondageClos = (s, t) => s.clos !== null && s.clos !== undefined ? true : (s.fin !== null && s.fin !== undefined && num(s.fin) <= t);
+  const sondageChoix = (conv, seq) => Q('SELECT idx, texte_ch, par FROM sondage_choix WHERE conv = ? AND seq = ? ORDER BY idx').all(conv, seq)
+    .map(r => ({ idx: num(r.idx), texte: ouvrirOuNull('sondage_choix', 'texte_ch', aadChoix(conv, seq, num(r.idx)), r.texte_ch) || '', par: r.par }));
+  /* ce que `uid` voit d'un sondage : les règles, les choix, SES votes ; les décomptes selon la règle des résultats (l'auteur les voit toujours) ; QUI a voté quoi seulement s'il n'est pas anonyme */
+  function sondageVue(conv, seq, uid) {
+    const a = sondageAcces(conv, seq, uid); if (!a) return null;
+    const s = a.s, t = horloge(), clos = sondageClos(s, t);
+    const choix = sondageChoix(conv, seq), votes = Q('SELECT uid, idx FROM sondage_vote WHERE conv = ? AND seq = ? ORDER BY ts, uid').all(conv, seq);
+    const mes = votes.filter(v => v.uid === uid).map(v => num(v.idx));
+    const voir = s.auteur === uid || clos || s.resultats === 'toujours' || (s.resultats === 'apres_vote' && mes.length > 0);
+    return {
+      seq, auteur: s.auteur,
+      regles: { multiple: !!s.multiple, anonyme: !!s.anonyme, ajout: !!s.ajout, resultats: s.resultats, fin: s.fin === null || s.fin === undefined ? null : num(s.fin) },
+      clos, clos_le: s.clos !== null && s.clos !== undefined ? num(s.clos) : (clos ? num(s.fin) : null),
+      choix: choix.map(c => {
+        const pour = votes.filter(v => num(v.idx) === c.idx);
+        return { idx: c.idx, texte: c.texte, ajoute_par: !s.anonyme && c.par && c.par !== s.auteur ? c.par : null, n: voir ? pour.length : null, qui: voir && !s.anonyme ? pour.map(v => v.uid) : null };
+      }),
+      mes_choix: mes, votants: voir ? new Set(votes.map(v => v.uid)).size : null, resultats_visibles: voir,
+      peut_voter: !clos, peut_ajouter: !clos && (!!s.ajout || s.auteur === uid) && choix.length < SONDAGE_CHOIX_MAX, peut_clore: !clos && (s.auteur === uid || a.admin),
+    };
+  }
+  /* voter : REMPLACE mes votes (une liste vide les retire) ; un seul choix si la règle n'en permet pas plusieurs ; jamais après la clôture ou l'échéance */
+  function sondageVoter(conv, seq, uid, idxs) {
+    return tx(() => {
+      const a = sondageAcces(conv, seq, uid); if (!a) throw erreur('introuvable');
+      const t = horloge(); if (sondageClos(a.s, t)) throw erreur('sondage_clos');
+      const n = num(Q('SELECT COUNT(*) AS n FROM sondage_choix WHERE conv = ? AND seq = ?').get(conv, seq).n);
+      const l = Array.from(new Set(idxs));
+      if (l.some(i => !Number.isInteger(i) || i < 0 || i >= n) || (!a.s.multiple && l.length > 1)) throw erreur('vide');
+      Q('DELETE FROM sondage_vote WHERE conv = ? AND seq = ? AND uid = ?').run(conv, seq, uid);
+      for (const i of l) Q('INSERT INTO sondage_vote(conv, seq, uid, idx, ts) VALUES(?, ?, ?, ?, ?)').run(conv, seq, uid, i, t);
+      return { gid: journalAjouter('sondage', conv, null, String(seq)) };
+    });
+  }
+  /* ajouter un choix : l'auteur toujours, les membres si la règle le permet ; douze au plus ; jamais deux fois le même (casse et accents comptent pour rien) */
+  function sondageAjouterChoix(conv, seq, uid, texte) {
+    return tx(() => {
+      const a = sondageAcces(conv, seq, uid); if (!a) throw erreur('introuvable');
+      const t = horloge(); if (sondageClos(a.s, t)) throw erreur('sondage_clos');
+      if (!a.s.ajout && a.s.auteur !== uid) throw erreur('interdit');
+      const l = sondageChoix(conv, seq);
+      if (l.length >= SONDAGE_CHOIX_MAX) throw erreur('sondage_plein');
+      const cle = (x) => String(x).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+      if (l.some(c => cle(c.texte) === cle(texte))) throw erreur('sondage_doublon');
+      const idx = l.length;
+      Q('INSERT INTO sondage_choix(conv, seq, idx, texte_ch, par, ts) VALUES(?, ?, ?, ?, ?, ?)').run(conv, seq, idx, sceller('sondage_choix', 'texte_ch', aadChoix(conv, seq, idx), texte), uid, t);
+      return { idx, gid: journalAjouter('sondage', conv, null, String(seq)) };
+    });
+  }
+  /* clore : l'auteur ou un administrateur de la conversation */
+  function sondageClore(conv, seq, uid) {
+    return tx(() => {
+      const a = sondageAcces(conv, seq, uid); if (!a) throw erreur('introuvable');
+      if (a.s.auteur !== uid && !a.admin) throw erreur('interdit');
+      const t = horloge(); if (sondageClos(a.s, t)) return { deja: true };
+      Q('UPDATE sondage SET clos = ? WHERE conv = ? AND seq = ?').run(t, conv, seq);
+      return { gid: journalAjouter('sondage', conv, null, String(seq)) };
+    });
+  }
+  const exportSondagesVotes = (uid) => SONDAGES ? Q('SELECT conv, seq, idx, ts FROM sondage_vote WHERE uid = ? ORDER BY ts LIMIT 10000').all(uid).map(r => ({ conversation: r.conv, message: num(r.seq), choix: num(r.idx), le: num(r.ts) })) : [];
   function messageExiste(conv, seq) { return !!Q('SELECT 1 AS x FROM message WHERE conv = ? AND seq = ?').get(conv, seq); }
 
   const messageRang = (conv, r, moi, reactions) => {
@@ -1447,7 +1607,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (r.auteur === moi) o.cid = r.cid;
     if (!r.supprime_le) {
       if (r.corps_ch) { o.texte = ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch); if (o.texte === null) o.illisible = true; }
-      if (r.meta_ch) { try { o.meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)); } catch (e) { o.meta = null; } }
+      if (r.meta_ch) { try { o.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch))); } catch (e) { o.meta = null; } }
     }
     return o;
   }
@@ -1494,6 +1654,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!r || r.supprime_le) throw erreur('introuvable');
       if (r.auteur !== auteur) throw erreur('interdit');
       if (r.type !== 'texte' && r.type !== 'photo') throw erreur('type');   // la légende d'une photo se modifie comme un message
+      if (r.type === 'texte' && Q('SELECT meta_ch FROM message WHERE conv = ? AND seq = ?').get(conv, seq).meta_ch) throw erreur('type');   // une position, une fiche, un sondage : leur texte est leur résumé, il ne se modifie pas
       if (texte === null && r.type !== 'photo') throw erreur('vide');   // un message texte ne se vide pas ; une photo, si : sa légende est retirée
       if (horloge() - r.ts > DELAI_MODIF_MS) throw erreur('delai');
       const t = horloge();
@@ -1519,6 +1680,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (r.supprime_le) return { gid: 0, deja: true, pour: 'tous', pieces: [] };
       Q('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE conv = ? AND seq = ?').run(horloge(), conv, seq);
       Q('DELETE FROM reaction WHERE conv = ? AND seq = ?').run(conv, seq);
+      if (SONDAGES) Q('DELETE FROM sondage WHERE conv = ? AND seq = ?').run(conv, seq);    // ⛔ un sondage effacé emporte ses choix (scellés, mais écrits) et ses votes — la clé étrangère les suit
       /* ⛔ « supprimer pour tous » EFFACE LES PIÈCES (la ligne ici, le fichier par l'appelant) : un message supprimé ne doit pas rester lisible dans le fichier d'une photo */
       const pieces = piecesDuMessageEffacer(conv, seq);
       /* ⛔ NOTÉ DANS `purge` : une sauvegarde prise AVANT ce geste porte encore le texte ; la restauration rejoue le registre
@@ -1611,6 +1773,55 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (Q('SELECT 1 AS x FROM msg_masque WHERE conv = ? AND seq = ? AND uid = ?').get(r.conv, r.attachee, uid)) return null;
     return rang();
   }
+  /* « REÇU » : la liste des conversations est arrivée sur un appareil de la personne — tout ce qu'elle annonçait (jusqu'au dernier message de chaque conversation) est donc arrivé
+     chez elle, comme les deux coches grises. Une écriture par relecture de la liste, seulement là où quelque chose a bougé. */
+  function membreRecuTout(uid) {
+    Q(`UPDATE membre SET recu_seq = (SELECT c.dernier_seq FROM conversation c WHERE c.id = membre.conv)
+       WHERE uid = ? AND quitte_le IS NULL AND recu_seq < (SELECT c.dernier_seq FROM conversation c WHERE c.id = membre.conv)`).run(uid);
+  }
+  /* ── LE SUIVI D'UN DOCUMENT (migration 15) ── noter une lecture : une pièce de conversation lue par quelqu'un d'autre que son auteur (la route l'a déjà jugée visible). */
+  /* ⛔ DÉDOUBLONNÉ À LA MINUTE (relecture du gardien, C1-C2) : toute lecture compte — une plage qui ne part pas du début aussi (sinon `Range: bytes=1-` téléchargeait sans être vu) —,
+     mais une rafale de plages (un lecteur, un gestionnaire de téléchargement, une boucle) n'en fait qu'une, et n'écrit rien : la base n'écrit qu'une fois par minute et par lecteur. */
+  const SUIVI_FENETRE_MS = 60000;
+  function pieceAccesNoter(piece, uid) {
+    if (!SUIVI) return;
+    const t = horloge();
+    Q(`INSERT INTO piece_acces(piece, uid, premier, dernier, n) VALUES(?, ?, ?, ?, 1)
+       ON CONFLICT(piece, uid) DO UPDATE SET dernier = excluded.dernier, n = n + 1 WHERE excluded.dernier - dernier > ?`).run(piece, uid, t, t, SUIVI_FENETRE_MS);
+  }
+  /* Qui a reçu, lu, ouvert (une photo, un vocal) ou téléchargé (un fichier) MA pièce — l'AUTEUR seul, sinon null (le même 404 qu'une pièce qui n'existe pas).
+     Les gens : les membres d'aujourd'hui qui VOIENT le message (arrivés avant lui, pas masqué pour eux). « Reçu » est toujours dit (l'arrivée sur l'appareil, comme les deux coches
+     grises) ; « lu » et l'ouverture d'une photo ou d'un vocal suivent la règle des confirmations de lecture (réciproque : qui les coupe ne les donne ni ne les voit) ;
+     ⛔ le TÉLÉCHARGEMENT d'un fichier est toujours dit à son auteur — c'est le fichier qu'il a envoyé (comme un service de transfert de fichiers), et la page de confidentialité le dit. */
+  /* l'export « Mes données » : les documents que J'ai ouverts ou téléchargés (ce que leurs auteurs voient de moi) */
+  const exportPiecesOuvertes = (uid) => SUIVI ? Q('SELECT piece, premier, dernier, n FROM piece_acces WHERE uid = ? ORDER BY premier LIMIT 10000').all(uid).map(r => ({ piece: r.piece, premier: num(r.premier), dernier: num(r.dernier), n: num(r.n) })) : [];
+  function pieceSuivi(id, viewer) {
+    const p = Q('SELECT id, proprio, conv, genre, attachee FROM piece WHERE id = ?').get(id);
+    if (!p || p.proprio !== viewer || !p.conv || p.genre === 'avatar' || p.attachee === null) return null;
+    const msg = Q('SELECT supprime_le, expire_ts FROM message WHERE conv = ? AND seq = ?').get(p.conv, p.attachee);
+    if (!msg || msg.supprime_le || (msg.expire_ts !== null && msg.expire_ts <= horloge())) return null;
+    /* ⛔ L'AUTEUR DOIT ENCORE VOIR SON MESSAGE (relecture du gardien, B1) : parti du groupe, retiré, ou l'ayant masqué pour lui, il ne suit plus rien — sinon un salarié parti gardait
+       la liste des membres d'aujourd'hui et leurs téléchargements datés. Les MÊMES règles que `pieceVisible`. */
+    const mien = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(p.conv, viewer);
+    if (!mien || p.attachee < mien.depuis_seq) return null;
+    if (Q('SELECT 1 AS x FROM msg_masque WHERE conv = ? AND seq = ? AND uid = ?').get(p.conv, p.attachee, viewer)) return null;
+    const jeVois = accuses((personneParId(viewer) || {}).prefs);
+    const lignes = Q(`SELECT m.uid AS id, x.prenom, x.nom, x.avatar_piece, x.prefs, m.recu_seq, m.lu_seq FROM membre m JOIN personne x ON x.id = m.uid
+                      WHERE m.conv = ? AND m.quitte_le IS NULL AND m.uid <> ? AND m.depuis_seq <= ?
+                        AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = m.conv AND k.seq = ? AND k.uid = m.uid)
+                      ORDER BY x.prenom, x.nom, x.id`).all(p.conv, viewer, p.attachee, p.attachee);
+    const acces = new Map(SUIVI ? Q('SELECT uid, premier, dernier, n FROM piece_acces WHERE piece = ?').all(id).map(a => [a.uid, a]) : []);
+    const fichier = p.genre === 'fichier';
+    const membres = lignes.map(r => {
+      let pr = {}; try { pr = JSON.parse(r.prefs) || {}; } catch (e) { pr = {}; }
+      const ilDit = jeVois && accuses(pr), a = acces.get(r.id) || null;
+      const voitOuverture = fichier || ilDit;
+      return { id: r.id, prenom: r.prenom, nom: r.nom, avatar: avatarPour(viewer, r.id, r.avatar_piece), recu: num(r.recu_seq) >= p.attachee || num(r.lu_seq) >= p.attachee || !!a,
+        lu: ilDit ? num(r.lu_seq) >= p.attachee : null,
+        ouvert: voitOuverture ? (a ? { premier: num(a.premier), dernier: num(a.dernier), n: num(a.n) } : false) : null };
+    });
+    return { piece: id, genre: p.genre, suivi: SUIVI, membres };
+  }
   /* Poser (identifiant) ou retirer (null) MA photo de profil. La pièce doit être À MOI, de genre « avatar », jamais posée (ni chez une personne ni chez un groupe),
      non échue — sinon `piece_inconnue`. L'ancienne photo est effacée (la ligne ici, le fichier par l'appelant). → { pieces: [identifiants à effacer] } */
   function avatarPersonnePoser(uid, piece) {
@@ -1701,7 +1912,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         AND ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
                        AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )
       ORDER BY j.gid LIMIT ?`).all(apresGid, uid, uid, limite);
     const evenements = [];
@@ -1724,7 +1935,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       WHERE ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
                        AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )`).get(uid, uid);
     return r && r.g !== null && r.g !== undefined ? num(r.g) : 0;
   }
@@ -1745,7 +1956,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
             if (t === null) d.illisible = true;
             else if (Buffer.byteLength(t, 'utf8') <= TAILLE_PORTEE) d.texte = t; else d.relis = true;
           }
-          if (r.meta_ch) { try { d.meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(j.conv, r.seq, r.auteur), r.meta_ch)); } catch (e) {} }
+          if (r.meta_ch) { try { d.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(j.conv, r.seq, r.auteur), r.meta_ch))); } catch (e) {} }
         }
         return { gid, event: 'message', data: d };
       }
@@ -1762,6 +1973,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       case 'msg_supprime': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: j.uid ? 'moi' : 'tous' } };
       case 'msg_expire': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: 'expire' } };
       case 'msg_reaction': return { gid, event: 'reaction', data: { conv: j.conv, seq: parseInt(j.ref, 10), reactions: reactionsDe(j.conv, parseInt(j.ref, 10)) } };
+      case 'sondage': return { gid, event: 'sondage', data: { conv: j.conv, seq: parseInt(j.ref, 10) } };      // « relis-le » : chacun le relit avec SES droits (anonyme, résultats cachés)
       case 'conv_maj': return { gid, event: 'conversation', data: { conv: j.conv } };
       case 'retire': return { gid, event: 'retire', data: { conv: j.conv } };
       case 'lu': {
@@ -2315,6 +2527,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('DELETE FROM lien WHERE par = ?').run(uid);
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
       Q('DELETE FROM msg_masque WHERE uid = ?').run(uid);
+      /* le suivi des documents (migration 15) : ce que J'ai ouvert, et ce qu'on a ouvert de MES pièces — la ligne `personne` reste (anonymisée), le CASCADE ne joue pas */
+      /* ses votes PERDENT son identifiant (un jeton tiré au hasard, un par sondage) mais restent comptés : un décompte qui baisse le jour d'un effacement connu dirait ce qu'il avait voté,
+         même dans un sondage anonyme (relecture du gardien). Ses sondages restent avec ses messages. */
+      if (SONDAGES) for (const x of Q('SELECT DISTINCT conv, seq FROM sondage_vote WHERE uid = ?').all(uid)) Q('UPDATE sondage_vote SET uid = ? WHERE conv = ? AND seq = ? AND uid = ?').run('x_' + alea(16), x.conv, x.seq, uid);
+      if (SUIVI) { Q('DELETE FROM piece_acces WHERE uid = ?').run(uid); Q('DELETE FROM piece_acces WHERE piece IN (SELECT id FROM piece WHERE proprio = ?)').run(uid); }
       Q('DELETE FROM journal WHERE uid = ?').run(uid);
       Q('UPDATE membre SET muet_jusqua = 0, epingle = 0, archive = 0 WHERE uid = ?').run(uid);
       /* LA définition d'un compte effacé : plus d'identité (le numéro se libère), plus de nom, plus de mot de passe, plus de réglage — l'identifiant seul demeure, pour que « l'auteur » d'un message
@@ -2385,7 +2602,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
      (`calendrier.js`). Une version courte de chaque (pas la liste des invités) : l'agenda en montre beaucoup. */
-  function reunionsDe(uid, du, au) {
+  function reunionsDe(uid, du, au, ids) {
     /* ⛔ L'AGENDA D'UN INVITÉ NE SE LAISSE PAS MASQUER. Les 600 places se donnaient dans l'ordre du DÉBUT de la série : six cents séries d'il y a vingt-six ans, terminées, prenaient toutes les places et
        l'invitation d'aujourd'hui n'apparaissait nulle part — sans autre moyen d'en sortir. Deux règles : une série TERMINÉE avant la fenêtre est écartée ici, par `fin_serie` (NULL : une série « Jamais »,
        toujours gardée) ; et l'ordre garde ce qui vient d'abord (`prochain`, la prochaine occurrence non commencée), ce qui n'a plus de prochaine occurrence passe après. */
@@ -2393,7 +2610,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
                      (SELECT COUNT(*) FROM reunion_invite x WHERE x.reunion = r.id) AS participants_n
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion
               WHERE i.uid = ? AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
-              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du).map(r => {
+                AND (? IS NULL OR r.id IN (SELECT value FROM json_each(?)))
+              ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 600`).all(uid, au, du, du, ids ? 1 : null, JSON.stringify(ids || [])).map(r => {
       const rang = reunionRang(r);
       rang.hote = personneCourte(uid, r.hote);
       rang.participants_n = num(r.participants_n);
@@ -2405,6 +2623,24 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   const reunionParticipants = (id) => Q('SELECT uid FROM reunion_invite WHERE reunion = ? ORDER BY cree, uid').all(id).map(r => r.uid);
+  /* CE QUE DEUX PERSONNES ONT EN COMMUN (la fiche d'un contact, 7 octobre 2026 : « voir s'ils participent à la même réunion ») — vu par `a` : seulement ce dont `a` fait PARTIE.
+     Rien n'en sort que `a` ne pourrait lire en ouvrant chaque réunion, chaque groupe, chaque espace : la liste de ses invités, de ses membres. ⛔ Jamais l'agenda de `b` au-delà.
+     Les réunions : les identifiants et le statut de `b` (la route les habille avec `reunionsDe(a)`, qui calcule les occurrences) ; les groupes et canaux (pas les directes, pas les réunions) ;
+     les espaces. Plafonnés : une fiche, pas un export. */
+  function enCommun(a, b, du, au) {
+    /* les réunions COMMUNES qui peuvent toucher [du, au) — les mêmes bornes que `reunionsDe`, mais sur les seules réunions partagées : une personne à 600 réunions ne fait pas
+       calculer tout son agenda pour une fiche, et une réunion commune n'est jamais éclipsée par les autres (relecture du gardien, 7 octobre 2026) */
+    const reunions = new Map(Q(`SELECT i.reunion AS id, j.statut AS statut FROM reunion_invite i JOIN reunion_invite j ON j.reunion = i.reunion AND j.uid = ? JOIN reunion r ON r.id = i.reunion
+                               WHERE i.uid = ? AND r.annulee = 0 AND r.debut < ? AND (r.rep <> 'aucune' OR r.fin > ?) AND (r.fin_serie IS NULL OR r.fin_serie > ?)
+                               ORDER BY (r.prochain IS NULL), r.prochain, r.debut, r.id LIMIT 40`).all(b, a, au, du, du).map(r => [r.id, r.statut]));
+    const groupes = Q(`SELECT c.id, c.type, c.nom_ch FROM conversation c
+                         JOIN membre x ON x.conv = c.id AND x.uid = ? AND x.quitte_le IS NULL
+                         JOIN membre y ON y.conv = c.id AND y.uid = ? AND y.quitte_le IS NULL
+                       WHERE c.type IN ('groupe', 'canal') ORDER BY c.dernier_ts DESC, c.id LIMIT 30`).all(a, b).map(c => ({ id: c.id, type: c.type, nom: nomDe(c.id, c.nom_ch) || '' }));
+    const espaces = Q(`SELECT e.id, e.nom_ch FROM espace e JOIN espace_membre x ON x.espace = e.id AND x.uid = ? JOIN espace_membre y ON y.espace = e.id AND y.uid = ? ORDER BY e.cree, e.id LIMIT 30`)
+      .all(a, b).map(e => ({ id: e.id, nom: nomEspace(e) || '' }));
+    return { reunions, groupes, espaces };
+  }
   /* Le LAISSEZ-PASSER léger des gardes R et H (`app.js`) : { id, conv, hote (cette personne l'est-elle ?), annulee, statut } — `null` pour inexistante COMME pour « tu n'es pas invité ». Pas la liste
      des invités : chaque route lit ce dont elle a besoin. */
   function reunionAcces(id, uid) {
@@ -3428,6 +3664,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin, genre, conv, capacite, attente) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
         .run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null, 'groupe', conv || null, capacite, attente ? 1 : 0);
       Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, appelant, 'appelant', occupe ? null : (session || null), occupe ? 'parti' : 'present', GRADE_HOTE, t, 1);
+      if (!occupe) presenceEntrer(id, appelant, t);                        // celui qui lance l'appel est dedans dès le départ
       for (const u of dispo) Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, gen) VALUES(?, ?, ?, ?, ?, ?, ?)').run(id, u, 'appele', null, 'invite', 0, 0);
       const notifs = [];
       for (const u of occupes) {
@@ -3581,11 +3818,46 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const statut = attend ? 'attente' : 'present';
       if (p) Q('UPDATE appel_part SET statut = ?, session = ?, grade = ?, entre = ?, gen = gen + ? WHERE appel = ? AND uid = ?').run(statut, session, grade, t, attend ? 0 : 1, id, uid);
       else Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, uid, 'appele', session, statut, grade, t, attend ? 0 : 1);
+      if (!attend) presenceEntrer(id, uid, t);
       /* l'organisateur qui arrive REPREND la main : celui qui la tenait à sa place (le plus ancien, ou un co-hôte) devient co-hôte */
       if (hoteReunion && !attend) Q(`UPDATE appel_part SET grade = ? WHERE appel = ? AND uid <> ? AND grade = ?`).run(GRADE_COHOTE, id, uid, GRADE_HOTE);
       if (!attend) salleDemarrerSiDeux(id, t);
       return { deja: false, attente: attend, gids: appelEvenements(id, [uid]), vue: appelVue(uid, id), etat: appelBrut(id).etat };
     });
+  }
+  /* ── LA PRÉSENCE (migration 16) : une entrée pose la PREMIÈRE fois (jamais réécrite) ; une sortie ajoute le temps passé depuis la dernière entrée (`entre`) — seulement si la personne était
+     DEDANS (`statut = 'present'` : une sortie de la salle d'attente ne compte rien). Les deux passent AVANT le changement de statut, dans la même transaction. */
+  function presenceEntrer(id, uid, t) { if (PRESENCE) Q('UPDATE appel_part SET premier = COALESCE(premier, ?) WHERE appel = ? AND uid = ?').run(t, id, uid); }
+  function presenceSortir(id, uid, t) { if (PRESENCE) Q(`UPDATE appel_part SET cumul = cumul + MAX(0, ? - COALESCE(entre, ?)), sorti = ? WHERE appel = ? AND uid = ? AND statut = 'present'`).run(t, t, t, id, uid); }
+  /* le rapport d'UNE salle : qui y est entré (première entrée, dernière sortie, temps passé — une présence en cours compte jusqu'à `t`), et qui n'y est jamais entré (sonné sans répondre, refusé,
+     resté à la porte). Les noms sont ceux du compte (un compte effacé n'en a plus). */
+  function presenceSalle(id, t) {
+    if (!PRESENCE) return null;
+    const a = appelBrut(id); if (!a || a.genre === 'deux') return null;
+    const vivante = a.etat === 'sonne' || a.etat === 'en_cours';
+    const lignes = Q(`SELECT p.uid AS uid, p.statut AS statut, p.grade AS grade, p.entre AS entre, p.premier AS premier, p.sorti AS sorti, p.cumul AS cumul, x.prenom AS prenom, x.nom AS nom
+                      FROM appel_part p JOIN personne x ON x.id = p.uid WHERE p.appel = ? ORDER BY p.premier IS NULL, p.premier, p.uid`).all(id);
+    const venus = [], absents = [];
+    for (const r of lignes) {
+      const dedans = vivante && r.statut === 'present' && r.entre !== null && r.entre !== undefined;
+      if (r.premier !== null && r.premier !== undefined) {
+        const ms = num(r.cumul) + (dedans ? Math.max(0, t - num(r.entre)) : 0);
+        venus.push({ id: r.uid, prenom: r.prenom || null, nom: r.nom || null, arrivee: num(r.premier), depart: dedans || r.sorti === null || r.sorti === undefined ? null : num(r.sorti), duree_s: Math.round(ms / 1000), present: dedans, grade: num(r.grade) });
+      } else absents.push({ id: r.uid, prenom: r.prenom || null, nom: r.nom || null, statut: r.statut });
+    }
+    const debut = a.repondu !== null && a.repondu !== undefined ? num(a.repondu) : num(a.cree);
+    return { appel: id, genre: a.genre, debut, fin: vivante || a.fin === null || a.fin === undefined ? null : num(a.fin), en_cours: vivante, venus, absents };
+  }
+  /* le rapport d'une RÉUNION programmée : ses vingt dernières séances (une salle par occurrence), chacune avec ses absents — les INVITÉS jamais entrés, avec leur réponse à l'invitation */
+  function presenceReunion(reunion, t) {
+    if (!PRESENCE) return null;
+    const invites = Q(`SELECT i.uid AS uid, i.statut AS statut, x.prenom AS prenom, x.nom AS nom FROM reunion_invite i JOIN personne x ON x.id = i.uid WHERE i.reunion = ? ORDER BY i.cree, i.uid`).all(reunion);
+    const seances = Q(`SELECT id FROM appel WHERE reunion = ? AND genre = 'reunion' ORDER BY cree DESC LIMIT 20`).all(reunion).map(r => presenceSalle(r.id, t)).filter(Boolean);
+    for (const s of seances) {
+      const venus = new Set(s.venus.map(v => v.id));
+      s.absents = invites.filter(i => !venus.has(i.uid)).map(i => ({ id: i.uid, prenom: i.prenom || null, nom: i.nom || null, reponse: i.statut }));
+    }
+    return { seances };
   }
   /* Deux personnes dans la salle : l'appel sonnait, il COURT (l'instant de la première réponse date `repondu`). */
   function salleDemarrerSiDeux(id, t) {
@@ -3611,6 +3883,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const a = appelBrut(id), p = appelPart(id, uid), t = horloge();
     if (!a || !p || (a.etat !== 'sonne' && a.etat !== 'en_cours')) return { deja: true, gids: {}, vue: p ? appelVue(uid, id) : null, etat: a ? a.etat : null, notif: null, notifs: [] };
     if (p.statut === 'present' || p.statut === 'attente') {
+      presenceSortir(id, uid, t);
       Q(`UPDATE appel_part SET statut = 'parti', session = NULL, grade = CASE WHEN grade = ? THEN 0 ELSE grade END WHERE appel = ? AND uid = ?`).run(GRADE_HOTE, id, uid);
       if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
       if (num(p.grade) === GRADE_HOTE && p.statut === 'present') {
@@ -3641,7 +3914,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (p.statut === 'invite') {
         Q(`UPDATE appel_part SET statut = 'manque', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
         const n = appelant ? appelNotifManque(id, a.type, appelant, p.uid) : null; if (n) notifs.push(n);
-      } else if (p.statut === 'present') Q(`UPDATE appel_part SET statut = 'parti', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
+      } else if (p.statut === 'present') { presenceSortir(id, p.uid, fin); Q(`UPDATE appel_part SET statut = 'parti', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid); }
       else if (p.statut === 'attente') Q(`UPDATE appel_part SET statut = 'refuse', session = NULL WHERE appel = ? AND uid = ?`).run(id, p.uid);
     }
     const gids = {};
@@ -3668,6 +3941,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       for (const u of attendent) {
         if (sallePresents(id) >= num(a.capacite)) break;
         Q(`UPDATE appel_part SET statut = 'present', gen = gen + 1, entre = ? WHERE appel = ? AND uid = ? AND statut = 'attente'`).run(t, id, u);
+        presenceEntrer(id, u, t);
         admis.push(u);
       }
       if (!admis.length) throw erreur('appel_complet');
@@ -3693,6 +3967,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (p.statut === 'exclu') return { deja: true, gids: {}, etait: 'exclu' };
       if (num(p.grade) >= GRADE_HOTE) throw erreur('interdit');
       if (num(p.grade) >= GRADE_COHOTE && num(moi.grade) < GRADE_HOTE) throw erreur('interdit');
+      presenceSortir(id, uid, horloge());
       Q(`UPDATE appel_part SET statut = 'exclu', session = NULL, grade = 0 WHERE appel = ? AND uid = ?`).run(id, uid);
       if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
       return { deja: false, gids: appelEvenements(id, [uid]), etait: p.statut };
@@ -3916,6 +4191,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         courrier_envoi: non(() => Q('SELECT 1 FROM courrier_envoi LIMIT 1')),
         appel: non(() => Q('SELECT 1 FROM appel LIMIT 1')),
         appel_part: non(() => Q('SELECT 1 FROM appel_part LIMIT 1')),
+        piece_acces: non(() => Q('SELECT 1 FROM piece_acces LIMIT 1')),
+        sondage: non(() => Q('SELECT 1 FROM sondage LIMIT 1')),
+        sondage_choix: non(() => Q('SELECT 1 FROM sondage_choix LIMIT 1')),
+        sondage_vote: non(() => Q('SELECT 1 FROM sondage_vote LIMIT 1')),
       },
     };
   }
@@ -3966,7 +4245,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
-    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
+    presenceSalle, presenceReunion,   // le rapport de présence (migration 16)
+    carteContactLire, sondageVue, sondageVoter, sondageAjouterChoix, sondageClore, exportSondagesVotes,   // les cartes d'un message et les sondages (migration 17)
+    reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
@@ -3983,7 +4264,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -4029,6 +4310,10 @@ function lignesDe(d) {
     courrier_envoi: n(() => d.prepare('SELECT COUNT(*) AS n FROM courrier_envoi')),
     appel: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel')),
     appel_part: n(() => d.prepare('SELECT COUNT(*) AS n FROM appel_part')),
+    piece_acces: n(() => d.prepare('SELECT COUNT(*) AS n FROM piece_acces')),
+    sondage: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage')),
+    sondage_choix: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_choix')),
+    sondage_vote: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_vote')),
   };
 }
 
@@ -4122,6 +4407,7 @@ function rejouerPurge(chemin, registre, opts) {
     const chercher = d.prepare('SELECT conv, seq, supprime_le FROM message WHERE id = ?');
     const blanchir = d.prepare('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE id = ?');
     const sansReactions = d.prepare('DELETE FROM reaction WHERE conv = ? AND seq = ?');
+    const sansSondage = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'sondage'`).get() !== undefined ? d.prepare('DELETE FROM sondage WHERE conv = ? AND seq = ?') : null;
     const retirerPiece = tablePiece ? d.prepare('DELETE FROM piece WHERE id = ?') : null;
     const retirerLiens = d.prepare(`DELETE FROM lien WHERE genre = 'groupe' AND cible = ?`);
     const retirerJournal = d.prepare('DELETE FROM journal WHERE conv = ?');
@@ -4172,6 +4458,7 @@ function rejouerPurge(chemin, registre, opts) {
           if (l && (l.supprime_le === null || l.supprime_le === undefined)) {
             blanchir.run(Number(r.quand) || 0, r.objet);
             sansReactions.run(l.conv, l.seq);
+            if (sansSondage) sansSondage.run(l.conv, l.seq);      // un sondage effacé dans l'archive aussi (migration 17)
             bilan.messagesBlanchis++;
           }
         } else if (/^piece/.test(genre)) {

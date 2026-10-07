@@ -33,6 +33,14 @@ const EVT_OCTETS_MAX = 2048;                                     // « événeme
 const REACTIONS = ['pouce', 'coeur', 'bravo', 'rire'];            // Pouce, Cœur, Bravo, Rire (THEME-OPMESSAGES) : des mots, la page choisit le dessin
 const SONDAGE_CHOIX_MAX = 6, SONDAGE_QUESTION_MAX = 200, SONDAGE_CHOIX_LONG_MAX = 80, MINUTEUR_MAX_S = 3600;
 const SALLES_ETAT_MAX = 2000;
+/* LES ANNOTATIONS (7 octobre 2026 : « partage d'écran, dessiner sur l'écran, ajouter du texte ») : ce qui est dessiné sur l'écran partagé ou le tableau blanc, en MÉMOIRE comme le reste de
+   l'éphémère d'une salle (jamais en base, jamais dans un journal), borné : 400 traits ou textes, 512 Ko par salle et 64 Mo pour tout le service — un poids compté comme la mémoire le tient
+   (8 octets par coordonnée, ~200 par élément : relecture gardien, l'ancien compte disait la moitié) ; un trait arrive en morceaux pendant qu'on dessine (600 points au plus par envoi, 4 000 par
+   trait) ; une forme (flèche, rectangle, cercle) a deux points, pas un de plus. Les coordonnées sont des entiers 0..10 000, relatifs à l'image (l'écran partagé ou le tableau), pas aux pixels d'un appareil. */
+const ANNOT_ITEMS_MAX = 400, ANNOT_OCTETS_MAX = 524288, ANNOT_TOTAL_MAX = 64 * 1048576, ANNOT_POINTS_MAX = 4000, ANNOT_POINTS_ENVOI_MAX = 600, ANNOT_TEXTE_MAX = 200;
+const ANNOT_FORMES = ['fleche', 'rect', 'ellipse'];
+const ANNOT_OUTILS = ['stylo', 'surligneur', 'fleche', 'rect', 'ellipse'], ANNOT_COULEURS = ['rouge', 'orange', 'jaune', 'vert', 'bleu', 'violet', 'noir', 'blanc'];
+const ID_ANNOT = /^[A-Za-z0-9_-]{6,32}$/;
 const ELAGAGE_PERIODE_MS = 3600000;
 const RING_ACK_MS = 1500;                                         // une page sous les yeux acquitte la sonnerie en une seconde : au-delà, personne ne la voit, la notification part (push.js : une charge ne raccourcit l'attente que de celle du service)
 const RING_PUSH_TTL_S = 30;                                       // « urgency high, durée de vie 30 s » (SERVEUR.md § 3.3)
@@ -63,6 +71,9 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   const cfg = config.appels;
   const vus = new Map();                 // "appel|personne" → l'instant du dernier signe de vie de l'appareil lié
   const salles = new Map();              // identifiant d'appel → l'éphémère de la salle (mains, états, sondage, minuteur, épingle) — MÉMOIRE SEULEMENT
+  let annotTotal = 0;                    // le poids de TOUTES les annotations tenues (64 Mo au plus) : chaque salle qu'on oublie le rend
+  /* oublier l'éphémère d'une salle : par cette porte seulement (le poids des annotations revient au total) */
+  function oublierSalle(id) { const e = salles.get(id); if (e && e.annot) annotTotal = Math.max(0, annotTotal - e.annot.octets); salles.delete(id); }
   const etat = { dernierTour: null, echecs: 0, perdus: 0, dernierElagage: 0 };
   let minuteur = null, arrete = true;
   const cle = (id, uid) => id + '|' + uid;
@@ -202,8 +213,14 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   function etatDe(id, creer) {
     let e = salles.get(id);
     if (!e && creer) {
-      while (salles.size >= SALLES_ETAT_MAX) salles.delete(salles.keys().next().value);
-      e = { mains: new Set(), etats: new Map(), sondage: null, minuteur: null, epingle: null };
+      /* plein : on oublie d'abord une salle où plus personne n'est (les 64 plus anciennes regardées) ; à défaut la plus ancienne — et ses présents apprennent que ce qui était dessiné est parti (relecture gardien) */
+      while (salles.size >= SALLES_ETAT_MAX) {
+        let cible = null, n = 0;
+        for (const k of salles.keys()) { if (n++ >= 64) break; if (!stockage.salleSessions(k).length) { cible = k; break; } }
+        if (!cible) { cible = salles.keys().next().value; const v = salles.get(cible); if (v && v.annot && v.annot.support) diffuser(cible, 'salle_evt', { appel: cible, de: null, k: 'annot', op: 'support', support: null, ouvreur: null, permis: v.annot.permis }, null); }
+        oublierSalle(cible);
+      }
+      e = { mains: new Set(), etats: new Map(), sondage: null, minuteur: null, epingle: null, annot: annotVide() };
       salles.set(id, e);
     }
     return e || null;
@@ -221,19 +238,132 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     if (!formule) return true;
     return !!s.organisateur && formule.peutOrganiser(s.organisateur).ok;
   }
+  /* ── les annotations ── */
+  function annotVide() { return { support: null, ouvreur: null, permis: 'tous', items: [], octets: 0 }; }
+  /* quelqu'un d'autre partage encore son écran : quand un support s'en va, les annotations passent sur le sien (jamais sur le tableau, qui ne s'ouvre que d'un geste) — sous « réservées aux hôtes », sur
+     celui d'un HÔTE seulement (un partage s'annonce sans se prouver : il ne donne jamais à lui seul la main sur les annotations) */
+  const partageurDe = (id, e, sauf) => {
+    for (const [u, x] of e.etats) if (u !== sauf && x && x.partage && (!e.annot || e.annot.permis !== 'hotes' || ((stockage.appelAcces(id, u) || {}).grade | 0) >= 1)) return u;
+    return null;
+  };
+  const poidsAnnot = (x) => 200 + x.pts.length * 8 + (x.texte ? x.texte.length * 2 : 0);
+  /* un changement de poids : refusé s'il passe la borne de la salle ou celle du service, compté sinon */
+  function annotPeser(a, delta) { if (delta > 0 && (a.octets + delta > ANNOT_OCTETS_MAX || annotTotal + delta > ANNOT_TOTAL_MAX)) throw erreur('annot_pleine'); }
+  function annotCompter(a, delta) { a.octets = Math.max(0, a.octets + delta); annotTotal = Math.max(0, annotTotal + delta); }
+  const annotVue = (a) => a ? { support: a.support, ouvreur: a.ouvreur, permis: a.permis, items: a.items.map(x => Object.assign({}, x)) } : { support: null, ouvreur: null, permis: 'tous', items: [] };
+  /* le support change (un partage commence ou finit, le tableau s'ouvre ou se ferme) : tout ce qui était dessiné part avec l'ancien, et TOUS les présents le savent */
+  function annotSupport(id, e, support, ouvreur, de) {
+    const a = e.annot || (e.annot = annotVide());
+    annotCompter(a, -a.octets);
+    a.support = support; a.ouvreur = ouvreur || null; a.items = [];
+    diffuser(id, 'salle_evt', { appel: id, de, k: 'annot', op: 'support', support, ouvreur: a.ouvreur, permis: a.permis }, null);
+  }
+  const entiers = (v, max) => Array.isArray(v) && v.length >= 2 && v.length <= max && v.length % 2 === 0 && v.every(n => Number.isInteger(n) && n >= 0 && n <= 10000);
+  /* un geste d'annotation. `d.op` : trait (un morceau de trait — le premier crée, les suivants ajoutent, `fin` le termine), texte, retirer, annuler, effacer (« miens » ou « tous »),
+     tableau (ouvrir/fermer le tableau blanc), permis (l'hôte : « tous » ou « hotes »). Effacer pour tous et fermer le tableau : l'hôte, un co-hôte, celui qui partage ou qui a ouvert le tableau. */
+  function annoter({ moi, acces, d }) {
+    const courant = stockage.appelAcces(acces.id, moi.id) || acces;
+    verifierPresent(courant);
+    const hote = courant.grade >= 1, e = etatDe(acces.id, true), a = e.annot || (e.annot = annotVide());
+    /* « maître » du support : l'hôte, un co-hôte — et, tant que les annotations sont à tous, celui qui partage ou qui a ouvert le tableau. Sous « réservées aux hôtes », les hôtes seuls (relecture gardien B1 :
+       un partage s'ANNONCE, il ne se prouve pas ; il ne donne donc jamais à lui seul de quoi passer outre le choix de l'hôte) */
+    const maitre = hote || (a.permis === 'tous' && (a.support === 'ecran:' + moi.id || (a.support === 'tableau' && a.ouvreur === moi.id)));
+    const op = d && d.op;
+    if (op === 'tableau') {
+      if (typeof d.actif !== 'boolean') throw erreur('champ_invalide');
+      if (d.actif) {
+        if (a.support === 'tableau') return { appel: acces.id, de: moi.id, k: 'annot', op: 'support', support: a.support, ouvreur: a.ouvreur, permis: a.permis };   // déjà ouvert : rien ne s'efface
+        if (a.permis === 'hotes' && !hote) throw erreur('interdit');
+        if (a.support && a.support.startsWith('ecran:') && a.support !== 'ecran:' + moi.id && !hote) throw erreur('annot_occupe');
+        annotSupport(acces.id, e, 'tableau', moi.id, moi.id);
+      } else {
+        if (a.support !== 'tableau') return { appel: acces.id, de: moi.id, k: 'annot', op: 'support', support: a.support, ouvreur: a.ouvreur, permis: a.permis };
+        if (!maitre) throw erreur('interdit');
+        const u = partageurDe(acces.id, e, null);
+        annotSupport(acces.id, e, u ? 'ecran:' + u : null, u, moi.id);
+      }
+      return { appel: acces.id, de: moi.id, k: 'annot', op: 'support', support: a.support, ouvreur: a.ouvreur, permis: a.permis };
+    }
+    if (op === 'permis') {
+      if (!hote) throw erreur('interdit');
+      if (d.qui !== 'tous' && d.qui !== 'hotes') throw erreur('champ_invalide');
+      a.permis = d.qui;
+      const ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'permis', permis: a.permis };
+      diffuser(acces.id, 'salle_evt', ev, moi.id);
+      return ev;
+    }
+    if (!a.support) throw erreur('rien_a_annoter');
+    if (a.permis === 'hotes' && !maitre) throw erreur('interdit');
+    let ev = null;
+    if (op === 'trait') {
+      if (typeof d.id !== 'string' || !ID_ANNOT.test(d.id) || !entiers(d.pts, ANNOT_POINTS_ENVOI_MAX * 2)) throw erreur('champ_invalide');
+      const x = a.items.find(i => i.id === d.id);
+      if (x) {
+        if (x.de !== moi.id || x.fini || x.outil === 'texte') throw erreur('champ_invalide');
+        if (x.pts.length + d.pts.length > ANNOT_POINTS_MAX * 2) throw erreur('annot_pleine');
+        annotPeser(a, d.pts.length * 8);
+        x.pts = x.pts.concat(d.pts); annotCompter(a, d.pts.length * 8); if (d.fin === true) x.fini = true;
+        ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'trait', item: { id: x.id, de: x.de, outil: x.outil, couleur: x.couleur, ep: x.ep, pts: d.pts, fini: x.fini }, suite: true };
+      } else {
+        if (!ANNOT_OUTILS.includes(d.outil) || !ANNOT_COULEURS.includes(d.couleur) || !Number.isInteger(d.ep) || d.ep < 1 || d.ep > 3) throw erreur('champ_invalide');
+        if (ANNOT_FORMES.includes(d.outil) && d.pts.length !== 4) throw erreur('champ_invalide');
+        const item = { id: d.id, de: moi.id, outil: d.outil, couleur: d.couleur, ep: d.ep, pts: d.pts.slice(), fini: d.fin === true || ANNOT_FORMES.includes(d.outil) };
+        if (a.items.length >= ANNOT_ITEMS_MAX) throw erreur('annot_pleine');
+        annotPeser(a, poidsAnnot(item));
+        a.items.push(item); annotCompter(a, poidsAnnot(item));
+        ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'trait', item: Object.assign({}, item), suite: false };
+      }
+    } else if (op === 'texte') {
+      /* les caractères de commande et de renversement bidirectionnel ne passent pas (relecture gardien : sans danger sur le dessin, mais un texte d'annotation peut un jour finir ailleurs) */
+      const t = typeof d.texte === 'string' ? d.texte.replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ').replace(/[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, '').replace(/\s+/g, ' ').trim() : '';
+      if (typeof d.id !== 'string' || !ID_ANNOT.test(d.id) || !t || Array.from(t).length > ANNOT_TEXTE_MAX || !entiers(d.pts, 2) || !ANNOT_COULEURS.includes(d.couleur) || !Number.isInteger(d.ep) || d.ep < 1 || d.ep > 3) throw erreur('champ_invalide');
+      if (a.items.some(i => i.id === d.id)) throw erreur('champ_invalide');
+      const item = { id: d.id, de: moi.id, outil: 'texte', couleur: d.couleur, ep: d.ep, pts: d.pts.slice(), texte: t, fini: true };
+      if (a.items.length >= ANNOT_ITEMS_MAX) throw erreur('annot_pleine');
+      annotPeser(a, poidsAnnot(item));
+      a.items.push(item); annotCompter(a, poidsAnnot(item));
+      ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'trait', item: Object.assign({}, item), suite: false };
+    } else if (op === 'retirer') {
+      const i = typeof d.id === 'string' ? a.items.findIndex(x => x.id === d.id) : -1;
+      if (i < 0) throw erreur('introuvable');
+      if (a.items[i].de !== moi.id && !maitre) throw erreur('interdit');
+      const [x] = a.items.splice(i, 1); annotCompter(a, -poidsAnnot(x));
+      ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'retirer', ids: [x.id] };
+    } else if (op === 'annuler') {
+      let i = -1; for (let j = a.items.length - 1; j >= 0; j--) if (a.items[j].de === moi.id) { i = j; break; }
+      if (i < 0) return { appel: acces.id, de: moi.id, k: 'annot', op: 'retirer', ids: [] };
+      const [x] = a.items.splice(i, 1); annotCompter(a, -poidsAnnot(x));
+      ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'retirer', ids: [x.id] };
+    } else if (op === 'effacer') {
+      if (d.qui !== 'miens' && d.qui !== 'tous') throw erreur('champ_invalide');
+      if (d.qui === 'tous' && !maitre) throw erreur('interdit');
+      const partis = a.items.filter(x => d.qui === 'tous' || x.de === moi.id).map(x => x.id);
+      a.items = a.items.filter(x => !partis.includes(x.id)); annotCompter(a, a.items.reduce((n, x) => n + poidsAnnot(x), 0) - a.octets);
+      ev = { appel: acces.id, de: moi.id, k: 'annot', op: 'retirer', ids: partis };
+    } else throw erreur('champ_invalide');
+    diffuser(acces.id, 'salle_evt', ev, moi.id);
+    return ev;
+  }
   /* Ce qui s'est dit avant l'arrivée de `uid` (ou de la page qui relit) : de quoi dessiner mains levées, états des autres, sondage, minuteur, épingle — et si la salle a ses OUTILS d'organisateur. */
   function etatSalle(id, uid) {
     const e = etatDe(id, false), outils = outilsOuverts(id);
-    if (!e) return { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils };
+    if (!e) return { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils, annot: annotVue(null) };
+    /* ⛔ ce qui est dessiné et le sondage ne se racontent qu'à ceux qui sont DANS la salle : un invité qui sonne, quelqu'un en salle d'attente (un inconnu muni du lien), un parti n'en lisent rien
+       (relecture gardien B2 — la salle d'attente existe pour ça). L'admis relit l'état en entrant (la source, `relire`). */
+    if (((stockage.appelAcces(id, uid) || {}).statut) !== 'present') {
+      const etats0 = {}; for (const [u, x] of e.etats) etats0[u] = x;
+      return { mains: Array.from(e.mains), etats: etats0, sondage: null, minuteur: minuteurVue(e.minuteur), epingle: e.epingle, outils, annot: annotVue(null) };
+    }
     if (e.minuteur && e.minuteur.fin <= horloge()) e.minuteur = null;
     const etats = {}; for (const [u, x] of e.etats) etats[u] = x;
-    return { mains: Array.from(e.mains), etats, sondage: sondageVue(e.sondage, uid), minuteur: minuteurVue(e.minuteur), epingle: e.epingle, outils };
+    return { mains: Array.from(e.mains), etats, sondage: sondageVue(e.sondage, uid), minuteur: minuteurVue(e.minuteur), epingle: e.epingle, outils, annot: annotVue(e.annot) };
   }
   /* Oublier ce qu'une personne avait posé dans la salle quand elle en sort : sa main, ses états, son vote reste (un vote est un vote), l'épingle qui la désignait. */
   function oublier(id, uid) {
     const e = etatDe(id, false); if (!e) return;
     const avait = e.mains.delete(uid); e.etats.delete(uid);
     const epingle = e.epingle === uid; if (epingle) e.epingle = null;
+    if (e.annot && e.annot.support === 'ecran:' + uid) { const u = partageurDe(id, e, uid); annotSupport(id, e, u ? 'ecran:' + u : null, u, uid); }          // celui qui partageait est parti : ce qu'on avait dessiné sur son écran part avec lui
     if (avait) diffuser(id, 'salle_evt', { appel: id, de: uid, k: 'main', actif: false }, uid);
     if (epingle) diffuser(id, 'salle_evt', { appel: id, de: uid, k: 'epingle', uid: null }, uid);
   }
@@ -262,12 +392,20 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   }
   /* L'état de MON appareil dans la salle : caméra, micro, écran partagé (des booléens). Les autres pages en font l'image de ma tuile. */
   function etatMien({ moi, acces, camera, micro, partage }) {
-    verifierPresent(stockage.appelAcces(acces.id, moi.id) || acces);
+    const courant = stockage.appelAcces(acces.id, moi.id) || acces;
+    verifierPresent(courant);
     const e = etatDe(acces.id, true), x = Object.assign({ camera: false, micro: true, partage: false }, e.etats.get(moi.id) || {});
     if (typeof camera === 'boolean') x.camera = camera;
     if (typeof micro === 'boolean') x.micro = micro;
+    const avant = !!(e.etats.get(moi.id) || {}).partage;
     if (typeof partage === 'boolean') x.partage = partage;
     e.etats.set(moi.id, x);
+    /* le partage d'écran devient le SUPPORT des annotations quand il n'y en a pas déjà un ; quand il s'arrête, ce qui était dessiné dessus s'efface (et le support passe à un autre partage en cours).
+       ⛔ PREMIER ARRIVÉ, PREMIER SERVI : un partage s'ANNONCE sans se prouver — il ne vole donc jamais le support d'un autre ni n'efface ce qui y est dessiné (relecture gardien B1 : un participant qui
+       annonçait un faux partage vidait les annotations de tous et prenait la main) ; un tableau ouvert le reste aussi ; sous « réservées aux hôtes », seul un hôte devient support. */
+    const porte = !(e.annot && e.annot.permis === 'hotes') || (courant.grade | 0) >= 1;
+    if (x.partage && !avant && !(e.annot && e.annot.support) && porte) annotSupport(acces.id, e, 'ecran:' + moi.id, moi.id, moi.id);
+    else if (!x.partage && avant && e.annot && e.annot.support === 'ecran:' + moi.id) { const u = partageurDe(acces.id, e, moi.id); annotSupport(acces.id, e, u ? 'ecran:' + u : null, u, moi.id); }
     const ev = { appel: acces.id, de: moi.id, k: 'etat', camera: x.camera, micro: x.micro, partage: x.partage };
     diffuser(acces.id, 'salle_evt', ev, moi.id);
     return ev;
@@ -319,6 +457,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     diffuser(acces.id, 'salle_evt', ev, k === 'sondage' ? null : moi.id);
     return ev;
   }
+  /* ⛔ un geste d'annotation diffuse SANS passer par `evt` : il n'est pas un « événement de 2 Ko » (un trait en cours en fait dix par seconde) — son propre plafond (`routes-salles.js`) */
   /* « Couper le micro » : une DEMANDE, adressée à une personne ou à toutes. Le service la relaie à l'appareil visé ; c'est la page qui l'honore (ou non). */
   function demanderCouperMicro({ moi, acces, cible }) {
     const ev = { appel: acces.id, de: moi.id, k: 'couper_micro', cible: cible === null ? 'tous' : cible };
@@ -345,7 +484,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   function cohote({ moi, id, uid, actif }) { return apres(stockage.salleCohote({ id, par: moi.id, uid, actif })); }
   function terminer({ moi, id }) {
     const r = apres(stockage.salleTerminer({ id, par: moi.id }));
-    if (!r.deja) { manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs); salles.delete(id); }
+    if (!r.deja) { manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs); oublierSalle(id); }
     return r;
   }
 
@@ -430,7 +569,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
         }
       }
       for (const k of Array.from(vus.keys())) if (!vivants.has(k.slice(0, k.indexOf('|')))) vus.delete(k);
-      for (const k of Array.from(salles.keys())) if (!vivants.has(k)) salles.delete(k);          // une salle finie n'a plus d'éphémère
+      for (const k of Array.from(salles.keys())) if (!vivants.has(k)) oublierSalle(k);          // une salle finie n'a plus d'éphémère
       if (t - etat.dernierElagage >= ELAGAGE_PERIODE_MS) {
         stockage.appelsElaguer(t - cfg.historiqueJours * 86400000);
         etat.dernierElagage = t;
@@ -461,7 +600,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   }
 
   return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat,
-    main, reaction, etatMien, evt, demanderCouperMicro, etatSalle, outilsOuverts, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
+    main, reaction, etatMien, evt, annoter, demanderCouperMicro, etatSalle, outilsOuverts, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
     /* pour les bancs : combien de salles ont un éphémère en mémoire (jamais publié) */
     memoireSalles: () => salles.size };
 }

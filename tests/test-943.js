@@ -649,7 +649,7 @@ async function gestionnaireLecture() {
       await lienContact(E, Fr); await lienContact(E, Gi); await lienContact(Fr, Gi);
       const dEF = await directe(E, Fr), gEFG = await groupe(E, 'Trio', [Fr, Gi]);
       const base0 = await E.get('/api/moi/confidentialite');
-      v('par défaut : trouvable « tous », présence et accusés allumés', base0.j, { trouvable: 'tous', presence: true, accuses: true });
+      v('par défaut : trouvable « tous », présence et accusés allumés', base0.j, { trouvable: 'tous', presence: true, accuses: true, position: false });
       for (const [nom, corps] of [['rien du tout', {}], ['un champ inconnu seul', { couleur: 'bleu' }], ['une présence non booléenne', { presence: 'non' }], ['des accusés en nombre', { accuses: 0 }], ['un « trouvable » inventé', { trouvable: 'mes-amis' }]]) {
         const x = await E.post('/api/moi/confidentialite', corps);
         v('⛔ refusé (400 champ_invalide) : ' + nom, [x.code, x.j.error], [400, 'champ_invalide']);
@@ -664,7 +664,7 @@ async function gestionnaireLecture() {
       v('population : Eve voit Fred et Gina en ligne, Fred voit Eve', [(await E.get('/api/contacts')).j.contacts.filter(c => [Fr.moi.id, Gi.moi.id].includes(c.id)).map(c => c.en_ligne), (await Fr.get('/api/contacts')).j.contacts.find(c => c.id === E.moi.id).en_ligne], [[true, true], true]);
       const nPersF0 = fF.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length, nPersE0 = fE.evenements.filter(e => e.event === 'personne' && e.data.uid === E.moi.id).length;
       const off = await E.post('/api/moi/confidentialite', { presence: false });
-      v('Eve coupe « Afficher quand je suis en ligne » : 200, l\'état complet est rendu', [off.code, off.j], [200, { ok: true, trouvable: 'tous', presence: false, accuses: true }]);
+      v('Eve coupe « Afficher quand je suis en ligne » : 200, l\'état complet est rendu', [off.code, off.j], [200, { ok: true, trouvable: 'tous', presence: false, accuses: true, position: false }]);
       v('⛔ elle ne voit plus la présence de PERSONNE (Fred et Gina sont en ligne, la liste dit « hors ligne »)', (await E.get('/api/contacts')).j.contacts.map(c => c.en_ligne), [false, false]);
       const hors = await fF.attendre(e => e.event === 'presence' && e.data.uid === E.moi.id && e.data.en_ligne === false);
       vrai('⛔ Fred est PRÉVENU tout de suite que la présence d\'Eve s\'éteint (« hors ligne »)', !!hors);
@@ -742,9 +742,9 @@ async function gestionnaireLecture() {
       for (const f of [fE, fF]) f.fermer();
       /* trouvable garde son comportement */
       const tr = await E.post('/api/moi/confidentialite', { trouvable: 'personne' });
-      v('« qui peut me trouver » se règle toujours, seul, sans toucher aux deux autres', [tr.code, tr.j], [200, { ok: true, trouvable: 'personne', presence: true, accuses: true }]);
+      v('« qui peut me trouver » se règle toujours, seul, sans toucher aux deux autres', [tr.code, tr.j], [200, { ok: true, trouvable: 'personne', presence: true, accuses: true, position: false }]);
       await E.post('/api/moi/confidentialite', { trouvable: 'tous', presence: false, accuses: false });
-      v('les trois ensemble en une seule demande', (await E.get('/api/moi/confidentialite')).j, { trouvable: 'tous', presence: false, accuses: false });
+      v('les trois ensemble en une seule demande', (await E.get('/api/moi/confidentialite')).j, { trouvable: 'tous', presence: false, accuses: false, position: false });
       await E.post('/api/moi/confidentialite', { presence: true, accuses: true });
     }
 
