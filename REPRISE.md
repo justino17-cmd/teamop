@@ -28,7 +28,18 @@ Trois demandes de Justin, captures à l'appui :
   droite — elle se centre maintenant par inset 0 + margin auto, sans transformation une fois ouverte. ⛔ Le toucher qui referme le menu au dehors ne fait rien d'autre (il
   aurait basculé l'interrupteur voisin). `sonde-opmessages-deroule` (62 ✓ : téléphone au doigt, bureau souris et clavier, jour et nuit), test-857 § 4 ter (série D, 8 mutations
   qui mordent).
-Le menu déroulant est un composant (`ouvrirDeroule(ligne, nom, titre, choix, surChoix)`) : « Confirmer l'envoi » (#37, à faire) le prendra.
+Le menu déroulant est un composant (`ouvrirDeroule(ligne, nom, titre, choix, surChoix)`) : « Ranger dans » et « Confirmer l'envoi » le prennent.
+· **Perso / Pro** (« un bouton pour basculer de perso à pro, et le nom OP MESSAGES PRO quand on est en pro ») : un compte pro (un espace, ou Messages Pro) a un sélecteur
+  « Perso | Pro » — en haut de la barre latérale au bureau, sous le titre de Messages au téléphone — avec une pastille pour les non-lus de l'autre côté. En Pro : « OP MESSAGES
+  PRO » (pastille PRO, titre de l'onglet), le tableau de bord, « Contacts » sur « Entreprise », les conversations de travail. Le côté de chaque conversation vient du SERVICE
+  (migration 20, `membre.cote`) : automatique (canal, réunion, directe avec un collègue, groupe dont TOUS les autres sont collègues : Pro) ou rangé à la main dans les infos
+  (« Ranger dans », pour soi seul). Une recherche cherche des deux côtés ; ouvrir une conversation de l'autre côté y bascule. Le côté où l'on travaille est une préférence du
+  COMPTE (`prefs.mode`), pas de l'appareil. ⛔ Le nom `ranger` existait déjà dans le module de l'appareil (ranger un message) : le mien l'écrasait en silence — test-911 l'a vu,
+  c'est `rangerCote`. `test-929` (26 ✓, dans la porte), `sonde-opmessages-perso-pro` (41 ✓), test-857 § 4 quater (séries P et K).
+· **« Confirmer l'envoi »** (côté pro) : Profil → Jamais / Groupes et canaux / Partout (`prefs.confirmer_envoi`). La flèche pose « Envoyer à « Équipe » — 5 personnes ? »
+  (Annuler / Envoyer ; Entrée une seconde fois, Échap) ; retaper annule ; le texte seul (photo, vocal, carte ont leur propre geste).
+⚠️ Décisions prises sans Justin (il a dit « fais tout ») et à revoir avec lui s'il le veut autrement : le compte démarre du côté Perso tant qu'il n'a rien choisi ; un groupe
+avec un seul membre hors de mes espaces est Perso ; le côté suit le compte d'un appareil à l'autre (au démarrage, pas en direct).
 ⚠️ Sondes en retard sur l'application (d'avant ce soir, pas touchées par ces changements) : `sonde-opmessages-serveur` attend encore « Appels : bientôt », un « + » à deux
 actions et une caméra d'en-tête qui ne lance rien — sa caméra lance désormais un VRAI appel, qui couvre la suite et fait tomber les blocs d'après ; `sonde-opmessages` (l'aperçu)
 s'arrêtait à l'étape photo depuis la légende (corrigé : elle passe par l'aperçu d'envoi).
