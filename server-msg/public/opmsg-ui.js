@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '6ec10e7cc770';
+  const OPMSG_BUILD = 'e6eadb69e031';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 88;
+  const OPMSG_VERSION = 92;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1510,6 +1510,7 @@
   /* la route dit QUELLE feuille : 'chat' (Nouveau groupe), 'appel' (Appel de groupe), 'info:<id d'un appel>' (ses détails) */
   const cleFeuille = f => String(f === true ? 'chat' : f);
   function ouvrirFeuilleDom(f) {
+    fermerDeroule(false);
     const [mode, arg] = cleFeuille(f).split(':');
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
@@ -1572,6 +1573,7 @@
   }
   function fermerFeuille(garderPhoto) { if (!etat.groupe.ouvert) return; etat.garderPhoto = !!garderPhoto; fermerCouche(); }
   function fermerFeuilleDom() {
+    fermerDeroule(false);
     if (etat.groupe.photo && !etat.garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
     etat.garderPhoto = false;
     etat.groupe = groupeVierge();
@@ -1706,6 +1708,7 @@
   $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; effacerRefusFeuille(); g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (etat.deroule) { e.preventDefault(); fermerDeroule(true); return; }
     if (ep.ouvert) { e.preventDefault(); epFermer(); return; }
     if (etat.menu) { e.preventDefault(); fermerMenu(); return; }
     /* dans le champ de recherche de la liste, Échap EFFACE la recherche (puis ne fait rien) : il ne ferme pas la conversation affichée à côté */
@@ -1739,7 +1742,10 @@
   $('g-nom').addEventListener('input', e => { g().nom = e.target.value; });
   $('g-nom').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
   $('g-recherche').addEventListener('input', e => { g().recherche = e.target.value; synchroFeuille(); });
-  $('g-ephemeres').addEventListener('click', () => { const G = g(); const i = EPHEMERES.findIndex(e => e[0] === G.ephemeres); G.ephemeres = EPHEMERES[(i + 1) % EPHEMERES.length][0]; synchroFeuille(); });
+  $('g-ephemeres').addEventListener('click', () => {
+    const avant = g().ephemeres;
+    ouvrirDeroule($('g-ephemeres'), 'Messages éphémères', TITRE_EPHEMERES, EPHEMERES.map(e => ({ valeur: e[0], libelle: e[1], coche: e[0] === avant })), v => { g().ephemeres = +v; synchroFeuille(); });
+  });
   $('g-annonces').addEventListener('click', () => { g().annonces = !g().annonces; synchroFeuille(); });
   /* la photo du groupe : réduite à 512 px par un canvas et VALIDÉE par son décodage — une image illisible laisse la pastille de repli, et le dit */
   $('g-photo-fichier').addEventListener('change', async e => {
@@ -3260,13 +3266,79 @@
   }
   const boiteLien = (id, code) => '<div class="lien-boite"><input id="' + id + '" type="text" readonly value="' + esc(location.origin + '/#lien=' + code) + '" aria-label="Ton lien d\'invitation"><button type="button" class="mini" data-act="copier" data-champ="' + id + '">Copier</button></div>';
 
+  /* ── Le menu déroulant (la feuille de style dit pourquoi : le « pop-up button » d'iOS et du Mac) ──
+     `choix` : des { valeur, libelle, coche } — `coche` booléen : un choix exclusif (`menuitemradio`), absent : une action (`menuitem`) — et '-' pour un séparateur.
+     ⛔ Le toucher qui le referme AU DEHORS ne fait rien d'autre (comme sur iOS) : il aurait basculé l'interrupteur voisin, ou rouvert le menu qu'il fermait. */
+  function ouvrirDeroule(declencheur, nom, titre, choix, surChoix) {
+    fermerDeroule(false);
+    const D = $('deroule'), L = $('deroule-liste'), T = $('deroule-titre');
+    (declencheur.closest('[role="dialog"]') || document.body).appendChild(D);                // DANS la feuille qui l'ouvre : une feuille modale rend tout le reste inerte
+    T.textContent = titre || ''; T.hidden = !titre;
+    L.setAttribute('aria-label', nom);
+    if (titre) L.setAttribute('aria-describedby', 'deroule-titre'); else L.removeAttribute('aria-describedby');
+    L.innerHTML = choix.map(c => c === '-' ? '<hr class="deroule-sep">' : '<button type="button" class="deroule-choix" tabindex="-1" role="' + (typeof c.coche === 'boolean' ? 'menuitemradio" aria-checked="' + c.coche : 'menuitem') +
+      '" data-valeur="' + esc(String(c.valeur)) + '"><span class="deroule-coche" aria-hidden="true">' + (c.coche ? icone('i-coche') : '') + '</span><span>' + esc(c.libelle) + '</span></button>').join('');
+    etat.deroule = { declencheur, surChoix };
+    declencheur.setAttribute('aria-expanded', 'true');
+    D.hidden = false;
+    if (typeof D.showPopover === 'function') D.showPopover();
+    const l = Array.from(L.querySelectorAll('.deroule-choix'));
+    (l.find(b => b.getAttribute('aria-checked') === 'true') || l[0]).focus({ preventScroll: true });
+  }
+  function fermerDeroule(rendreFocus) {
+    const o = etat.deroule; if (!o) return;
+    etat.deroule = null;
+    const D = $('deroule');
+    if (typeof D.hidePopover === 'function') try { D.hidePopover(); } catch (e) { /* déjà fermé */ }
+    D.hidden = true; $('deroule-liste').innerHTML = '';
+    if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocus) o.declencheur.focus({ preventScroll: true }); }
+  }
+  $('deroule-liste').addEventListener('click', e => {
+    const b = e.target.closest('.deroule-choix'), o = etat.deroule; if (!b || !o) return;
+    fermerDeroule(true);
+    o.surChoix(b.dataset.valeur);
+  });
+  /* le clavier d'un menu : ↑ ↓ (en boucle), Début, Fin ; Échap le referme et rend le focus à la ligne ; Tab le referme et continue depuis la ligne */
+  $('deroule').addEventListener('keydown', e => {
+    if (!etat.deroule) return;
+    const l = Array.from($('deroule-liste').querySelectorAll('.deroule-choix')), i = l.indexOf(document.activeElement), n = l.length;
+    if (!n) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const pas = e.key === 'ArrowDown' ? 1 : -1; l[((i < 0 ? (pas > 0 ? -1 : 0) : i) + pas + n) % n].focus(); }
+    else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); l[e.key === 'Home' ? 0 : n - 1].focus(); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermerDeroule(true); }
+    else if (e.key === 'Tab') fermerDeroule(true);
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!etat.deroule || $('deroule').contains(e.target)) return;
+    etat.derouleAvale = Date.now() + 700;                    // le clic qui suit CE toucher ne fait que refermer
+    fermerDeroule(true);
+  }, true);
+  document.addEventListener('pointercancel', () => { etat.derouleAvale = 0; }, true);     // un défilement, pas un toucher : aucun clic ne suivra
+  document.addEventListener('click', e => {
+    if (!(etat.derouleAvale > Date.now())) return;
+    etat.derouleAvale = 0; e.preventDefault(); e.stopPropagation();
+  }, true);
+  /* l'échéance d'une sourdine : COURTE à droite de sa ligne (« Jusqu'à 18:30 », « Jusqu'à demain 18:30 », « Jusqu'au 14 oct. », « Toujours »), ENTIÈRE dans le titre de son
+     menu (« jusqu'au mercredi 14 octobre à 20:58 », « pour toujours ») — jamais l'année : une sourdine dure une semaine au plus, ou toujours */
+  const SOURDINE_TOUJOURS_MS = 5 * 365 * 86400000;
+  function finSourdine(ts, long) {
+    if (ts - Date.now() > SOURDINE_TOUJOURS_MS) return long ? 'pour toujours' : 'Toujours';
+    const d = new Date(ts), j = new Date(), dem = new Date(j.getFullYear(), j.getMonth(), j.getDate() + 1);
+    const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const p = d.toDateString() === j.toDateString() ? 'jusqu\'à ' + h : d.toDateString() === dem.toDateString() ? 'jusqu\'à demain ' + h
+      : 'jusqu\'au ' + (long ? d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + h : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }));
+    return long ? p : p.charAt(0).toUpperCase() + p.slice(1);
+  }
+  const CHEVRON_UD = '<svg class="chev-ud" viewBox="0 0 9 14" aria-hidden="true"><path d="M1.5 5 4.5 2 7.5 5M1.5 9 4.5 12 7.5 9"/></svg>';
+  const TITRE_EPHEMERES = 'Les nouveaux messages disparaissent pour tous après ce délai';
+
   /* ── Les infos d'une conversation : membres, rôles, réglages, lien, sortie. Rien ne se redessine tant que ce que la source dit n'a pas changé (sinon une frappe lointaine ferait perdre le focus). ── */
   async function rendreConvInfo() {
     const id = etat.groupe.convId, corps = $('info-corps');
     let i = null, panne = null;
     try { i = await source.infos(id); } catch (e) { panne = e; }
     if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
-    if (panne) { corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Les infos n\'ont pas pu être chargées.')) + '</p>'; return; }
+    if (panne) { if (etat.deroule && corps.contains(etat.deroule.declencheur)) fermerDeroule(false); corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Les infos n\'ont pas pu être chargées.')) + '</p>'; return; }
     if (!i) { mot('Cette conversation n\'existe plus.'); fermerCouche(); return; }
     /* un canal PRIVÉ que j'administre : les collègues que je peux y ajouter sont ceux de son espace (« Contacts de l'entreprise »), jamais mes seuls contacts */
     let collegues = null;
@@ -3286,12 +3358,11 @@
       '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : canal ? 'Canal ' + (i.prive ? 'privé' : 'public') + ' · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (i.enLigne ? 'En ligne' : 'Conversation à deux')) + '</p></div></div>' +
       (g && i.moiAdmin && CAP.avatars ? '<div class="info-actions info-photo-actions"><button type="button" class="mini" data-act="groupe-photo">' + (blob(i.photo) ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (blob(i.photo) ? '<button type="button" class="mini danger" data-act="groupe-photo-retirer">Retirer la photo</button>' : '') + '</div>' : '') +
       (canal ? '' : '<div class="carte">') + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
-      (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>');
+      (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres" data-valeur="' + esc(String(i.ephemeres || 0)) + '"' + (i.moiAdmin ? ' aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' : ' disabled') + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + (i.moiAdmin ? CHEVRON_UD : '') + '</span></button></div>');
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
     /* le thème : à moi seul (les autres gardent leurs couleurs) */
     if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
-    if (sd > Date.now()) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Notifications coupées<small>' + esc(sd - Date.now() > 5 * 365 * 86400000 ? 'En sourdine pour toujours' : 'En sourdine jusqu\'au ' + dateLongue(sd)) + '</small></span><button type="button" class="mini" data-act="sourdine" data-duree="off">Réactiver</button></div></div>';
-    else if (sd >= 0) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Mettre en sourdine<small>Plus de notification pour cette conversation</small></span></div><div class="carte-pad info-actions"><button type="button" class="mini" data-act="sourdine" data-duree="8h">8 heures</button><button type="button" class="mini" data-act="sourdine" data-duree="1s">1 semaine</button><button type="button" class="mini" data-act="sourdine" data-duree="tj">Toujours</button></div></div>';
+    if (sd >= 0) h += '<div class="carte"><button type="button" class="reglage presse" data-act="sourdine" data-valeur="' + (sd > Date.now() ? sd : 0) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Mettre en sourdine</span><span class="reglage-valeur">' + esc(sd > Date.now() ? finSourdine(sd) : 'Non') + CHEVRON_UD + '</span></button></div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
         '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
@@ -3325,10 +3396,22 @@
       const autre = i.membres.find(m => !m.moi);
       if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
     }
+    const dr = etat.deroule && corps.contains(etat.deroule.declencheur) ? etat.deroule.declencheur : null;
     corps.innerHTML = h;
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
+    if (dr) {
+      const n = corps.querySelector('[data-act="' + dr.dataset.act + '"][aria-haspopup="menu"]');
+      if (n && n.dataset.valeur === dr.dataset.valeur) { n.setAttribute('aria-expanded', 'true'); etat.deroule.declencheur = n; }
+      else { if (n) etat.deroule.declencheur = n; fermerDeroule(true); }
+    }
   }
 
+  /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
+  async function apresChoixInfo(id, geste, motReussi) {
+    erreurInfo('');
+    try { await geste(); if (motReussi) mot(motReussi); } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
+    if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && etat.groupe.convId === id) rendreConvInfo();
+  }
   /* ── Une seule écoute pour les gestes des feuilles « Contacts » et « Infos » (chaque geste efface le refus d'avant avant de travailler) ── */
   $('info-corps').addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -3354,7 +3437,12 @@
       else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(r.deja ? 'Déjà dans tes contacts' : r.genre === 'groupe' ? 'Tu as rejoint le groupe' : 'Contact ajouté'); ouvrirConvId(r.conv); }
       else if (act === 'ecrire') { const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
       else if (act === 'annonces') await source.majConversation(id, { annonces: b.getAttribute('aria-checked') !== 'true' });
-      else if (act === 'ephemeres') { const i = EPHEMERES.findIndex(x => x[1] === b.querySelector('.reglage-valeur').textContent); await source.majConversation(id, { ephemeres: EPHEMERES[(i + 1) % EPHEMERES.length][0] }); }
+      else if (act === 'ephemeres') {
+        const avant = +b.dataset.valeur || 0;
+        ouvrirDeroule(b, 'Messages éphémères', TITRE_EPHEMERES, EPHEMERES.map(e2 => ({ valeur: e2[0], libelle: e2[1], coche: e2[0] === avant })),
+          v => { if (+v !== avant) apresChoixInfo(id, () => source.majConversation(id, { ephemeres: +v })); });
+        return;
+      }
       else if (act === 'admin') await source.nommerAdmin(id, b.dataset.uid, b.dataset.admin === '1');
       else if (act === 'retirer') await source.retirerMembre(id, b.dataset.uid);
       else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);
@@ -3365,7 +3453,13 @@
         await source.bloquer(b.dataset.uid); mot('Contact bloqué');
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
-      else if (act === 'sourdine') { await source.sourdine(id, b.dataset.duree); mot(b.dataset.duree === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'); }
+      else if (act === 'sourdine') {
+        const fin = +b.dataset.valeur || 0, toujours = fin - Date.now() > SOURDINE_TOUJOURS_MS;
+        ouvrirDeroule(b, 'Mettre en sourdine', fin ? 'En sourdine ' + finSourdine(fin, true) : 'Plus de notification de cette conversation',
+          (fin ? [{ valeur: 'off', libelle: 'Réactiver les notifications' }, '-'] : []).concat([['8h', '8 heures', false], ['1s', '1 semaine', false], ['tj', 'Toujours', toujours]].map(x => ({ valeur: x[0], libelle: x[1], coche: x[2] }))),
+          v => apresChoixInfo(id, () => source.sourdine(id, v), v === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'));
+        return;
+      }
       else if (act === 'theme') { ouvrirFeuille('theme:' + id, true); return; }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
       else if (act === 'suppression-confirmer') {

@@ -467,14 +467,17 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
   outline: none;
 }
 .feuille-ouverte .feuille { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s; }
+/* ⛔ au bureau, la fenêtre se centre par `inset: 0` + `margin: auto` + une hauteur à son contenu, JAMAIS par left/top 50 % + translate(-50 %) : OUVERTE, elle ne porte
+   AUCUNE transformation. Un menu déroulant s'accroche à une ligne de la feuille par `anchor-name`, et l'ancrage ignore les transformations — mesuré le 7 octobre 2026 :
+   le menu tombait 260 px à droite et 162 px trop bas, la moitié de la translation. La transformation ne sert plus qu'à l'entrée et à la sortie. */
 @media (min-width: 700px) {
   .feuille {
-    left: 50%; right: auto; top: 50%; bottom: auto; width: 520px; max-width: calc(100vw - 32px); max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
+    inset: 0; margin: auto; width: 520px; max-width: calc(100vw - 32px); height: fit-content; max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
     border-radius: 22px; border-bottom: var(--line);
-    transform: translate(-50%, calc(-50% + 16px)) scale(.97); opacity: 0;
+    transform: translateY(16px) scale(.97); opacity: 0;
     transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s linear .35s;
   }
-  .feuille-ouverte .feuille { transform: translate(-50%, -50%); opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
+  .feuille-ouverte .feuille { transform: none; opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
 }
 .feuille-tete { flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
 .poignee { padding: 8px 0 4px; display: grid; place-items: center; }
@@ -1155,6 +1158,40 @@ html[data-service] .mention-apercu { display: none; }
 }
 @keyframes pj-sort { from { opacity: 0; transform: scale(.92) translateY(6px); } to { opacity: 1; transform: none; } }
 @media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
+
+/* ══ LE MENU DÉROULANT — le « pop-up button » d'iOS et du Mac ═══════════════════════════════════════════════════════════════════════════════════════════
+   Demande du 7 octobre 2026, capture des infos d'une conversation à l'appui : « Messages éphémères » et « Mettre en sourdine » en menu déroulant. La ligne dit sa valeur à l'encre de
+   l'accent, avec ⌃⌄ ; le menu SORT de la ligne, une coche devant le choix en cours. Il vit dans la couche du dessus (`popover`) : ni le défilement ni l'`overflow` de la
+   feuille ne le coupent. Il s'accroche en CSS à la ligne ouverte (`anchor-name`), sans rien mesurer, et se retourne vers le haut s'il manque de place. Un navigateur qui ne
+   sait pas ancrer le pose au milieu de l'écran (la place d'origine d'un `popover`) ; un navigateur sans `popover` le montre au pied de la feuille. */
+.reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
+.reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
+.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
+  background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); color: var(--text);
+  box-shadow: 0 12px 38px rgba(0,0,0,.26), 0 0 0 .5px rgba(0,0,0,.06); }
+.deroule:popover-open { animation: deroule-sort .2s cubic-bezier(.2,.8,.2,1) both; }
+@supports (anchor-name: --deroule) {
+  .deroule { position-anchor: --deroule; inset: auto; top: anchor(bottom); right: anchor(right); margin: 6px 0 0; position-try-fallbacks: flip-block; transform-origin: 85% 0; }
+}
+@keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.deroule-titre { width: 0; min-width: 100%; margin: 0; padding: 7px 14px 7px 38px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `width: 0` + `min-width: 100%` : le titre se replie dans la largeur des choix, il ne l'élargit pas */
+.deroule-liste { display: flex; flex-direction: column; }
+.deroule-choix { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 18px 0 6px; border-radius: 12px; font-size: 17px; line-height: 22px; color: var(--text); text-align: left; }
+.deroule-coche { width: 28px; flex: none; display: grid; place-items: center; }
+.deroule-coche .ic { font-size: 17px; stroke-width: 2.4; }
+.deroule-sep { margin: 5px 10px; border: 0; border-top: var(--sep); }
+.deroule-choix:active { background: var(--field); }
+.deroule-choix:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (hover: hover) { .deroule-choix:hover { background: var(--field); } }
+@media (hover: hover) and (pointer: fine) {
+  .deroule { min-width: 220px; padding: 5px; border-radius: 13px; }
+  .deroule-titre { padding: 5px 12px 5px 32px; }
+  .deroule-choix { min-height: 34px; padding: 0 16px 0 4px; border-radius: 8px; font-size: 15px; line-height: 20px; }
+  .deroule-coche { width: 26px; }
+  .deroule-coche .ic { font-size: 15px; }
+}
 
 /* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
 .carte-pad { padding: 12px 14px; }
@@ -2215,7 +2252,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="rubrique"><span>Contacts de l'entreprise</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
     <div class="carte" id="g-contacts" role="group" aria-label="Contacts de l'entreprise"></div>
     <div class="carte" id="g-reglages">
-      <button type="button" class="reglage presse" id="g-ephemeres"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur" id="g-ephemeres-val">Désactivés</span><svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg></button>
+      <button type="button" class="reglage presse" id="g-ephemeres" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur"><span id="g-ephemeres-val">Désactivés</span><svg class="chev-ud" viewBox="0 0 9 14" aria-hidden="true"><path d="M1.5 5 4.5 2 7.5 5M1.5 9 4.5 12 7.5 9"/></svg></span></button>
       <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>
     </div>
   </div>
@@ -2232,6 +2269,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 <input type="file" id="profil-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <input type="file" id="groupe-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <div class="menu-fond" id="menu-fond" hidden><div class="menu-msg" id="menu-msg" role="dialog" aria-modal="true" aria-label="Actions du message"></div></div>
+<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden></p><div class="deroule-liste" id="deroule-liste" role="menu"></div></div>
 
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
   <button type="button" class="visionneuse-fermer presse" id="visionneuse-fermer" aria-label="Fermer la photo"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
@@ -3796,6 +3834,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* la route dit QUELLE feuille : 'chat' (Nouveau groupe), 'appel' (Appel de groupe), 'info:<id d'un appel>' (ses détails) */
   const cleFeuille = f => String(f === true ? 'chat' : f);
   function ouvrirFeuilleDom(f) {
+    fermerDeroule(false);
     const [mode, arg] = cleFeuille(f).split(':');
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
@@ -3858,6 +3897,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   function fermerFeuille(garderPhoto) { if (!etat.groupe.ouvert) return; etat.garderPhoto = !!garderPhoto; fermerCouche(); }
   function fermerFeuilleDom() {
+    fermerDeroule(false);
     if (etat.groupe.photo && !etat.garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
     etat.garderPhoto = false;
     etat.groupe = groupeVierge();
@@ -3992,6 +4032,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; effacerRefusFeuille(); g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
+    if (etat.deroule) { e.preventDefault(); fermerDeroule(true); return; }
     if (ep.ouvert) { e.preventDefault(); epFermer(); return; }
     if (etat.menu) { e.preventDefault(); fermerMenu(); return; }
     /* dans le champ de recherche de la liste, Échap EFFACE la recherche (puis ne fait rien) : il ne ferme pas la conversation affichée à côté */
@@ -4025,7 +4066,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('g-nom').addEventListener('input', e => { g().nom = e.target.value; });
   $('g-nom').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
   $('g-recherche').addEventListener('input', e => { g().recherche = e.target.value; synchroFeuille(); });
-  $('g-ephemeres').addEventListener('click', () => { const G = g(); const i = EPHEMERES.findIndex(e => e[0] === G.ephemeres); G.ephemeres = EPHEMERES[(i + 1) % EPHEMERES.length][0]; synchroFeuille(); });
+  $('g-ephemeres').addEventListener('click', () => {
+    const avant = g().ephemeres;
+    ouvrirDeroule($('g-ephemeres'), 'Messages éphémères', TITRE_EPHEMERES, EPHEMERES.map(e => ({ valeur: e[0], libelle: e[1], coche: e[0] === avant })), v => { g().ephemeres = +v; synchroFeuille(); });
+  });
   $('g-annonces').addEventListener('click', () => { g().annonces = !g().annonces; synchroFeuille(); });
   /* la photo du groupe : réduite à 512 px par un canvas et VALIDÉE par son décodage — une image illisible laisse la pastille de repli, et le dit */
   $('g-photo-fichier').addEventListener('change', async e => {
@@ -5546,13 +5590,79 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   const boiteLien = (id, code) => '<div class="lien-boite"><input id="' + id + '" type="text" readonly value="' + esc(location.origin + '/#lien=' + code) + '" aria-label="Ton lien d\'invitation"><button type="button" class="mini" data-act="copier" data-champ="' + id + '">Copier</button></div>';
 
+  /* ── Le menu déroulant (la feuille de style dit pourquoi : le « pop-up button » d'iOS et du Mac) ──
+     `choix` : des { valeur, libelle, coche } — `coche` booléen : un choix exclusif (`menuitemradio`), absent : une action (`menuitem`) — et '-' pour un séparateur.
+     ⛔ Le toucher qui le referme AU DEHORS ne fait rien d'autre (comme sur iOS) : il aurait basculé l'interrupteur voisin, ou rouvert le menu qu'il fermait. */
+  function ouvrirDeroule(declencheur, nom, titre, choix, surChoix) {
+    fermerDeroule(false);
+    const D = $('deroule'), L = $('deroule-liste'), T = $('deroule-titre');
+    (declencheur.closest('[role="dialog"]') || document.body).appendChild(D);                // DANS la feuille qui l'ouvre : une feuille modale rend tout le reste inerte
+    T.textContent = titre || ''; T.hidden = !titre;
+    L.setAttribute('aria-label', nom);
+    if (titre) L.setAttribute('aria-describedby', 'deroule-titre'); else L.removeAttribute('aria-describedby');
+    L.innerHTML = choix.map(c => c === '-' ? '<hr class="deroule-sep">' : '<button type="button" class="deroule-choix" tabindex="-1" role="' + (typeof c.coche === 'boolean' ? 'menuitemradio" aria-checked="' + c.coche : 'menuitem') +
+      '" data-valeur="' + esc(String(c.valeur)) + '"><span class="deroule-coche" aria-hidden="true">' + (c.coche ? icone('i-coche') : '') + '</span><span>' + esc(c.libelle) + '</span></button>').join('');
+    etat.deroule = { declencheur, surChoix };
+    declencheur.setAttribute('aria-expanded', 'true');
+    D.hidden = false;
+    if (typeof D.showPopover === 'function') D.showPopover();
+    const l = Array.from(L.querySelectorAll('.deroule-choix'));
+    (l.find(b => b.getAttribute('aria-checked') === 'true') || l[0]).focus({ preventScroll: true });
+  }
+  function fermerDeroule(rendreFocus) {
+    const o = etat.deroule; if (!o) return;
+    etat.deroule = null;
+    const D = $('deroule');
+    if (typeof D.hidePopover === 'function') try { D.hidePopover(); } catch (e) { /* déjà fermé */ }
+    D.hidden = true; $('deroule-liste').innerHTML = '';
+    if (o.declencheur.isConnected) { o.declencheur.setAttribute('aria-expanded', 'false'); if (rendreFocus) o.declencheur.focus({ preventScroll: true }); }
+  }
+  $('deroule-liste').addEventListener('click', e => {
+    const b = e.target.closest('.deroule-choix'), o = etat.deroule; if (!b || !o) return;
+    fermerDeroule(true);
+    o.surChoix(b.dataset.valeur);
+  });
+  /* le clavier d'un menu : ↑ ↓ (en boucle), Début, Fin ; Échap le referme et rend le focus à la ligne ; Tab le referme et continue depuis la ligne */
+  $('deroule').addEventListener('keydown', e => {
+    if (!etat.deroule) return;
+    const l = Array.from($('deroule-liste').querySelectorAll('.deroule-choix')), i = l.indexOf(document.activeElement), n = l.length;
+    if (!n) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); const pas = e.key === 'ArrowDown' ? 1 : -1; l[((i < 0 ? (pas > 0 ? -1 : 0) : i) + pas + n) % n].focus(); }
+    else if (e.key === 'Home' || e.key === 'End') { e.preventDefault(); l[e.key === 'Home' ? 0 : n - 1].focus(); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fermerDeroule(true); }
+    else if (e.key === 'Tab') fermerDeroule(true);
+  });
+  document.addEventListener('pointerdown', e => {
+    if (!etat.deroule || $('deroule').contains(e.target)) return;
+    etat.derouleAvale = Date.now() + 700;                    // le clic qui suit CE toucher ne fait que refermer
+    fermerDeroule(true);
+  }, true);
+  document.addEventListener('pointercancel', () => { etat.derouleAvale = 0; }, true);     // un défilement, pas un toucher : aucun clic ne suivra
+  document.addEventListener('click', e => {
+    if (!(etat.derouleAvale > Date.now())) return;
+    etat.derouleAvale = 0; e.preventDefault(); e.stopPropagation();
+  }, true);
+  /* l'échéance d'une sourdine : COURTE à droite de sa ligne (« Jusqu'à 18:30 », « Jusqu'à demain 18:30 », « Jusqu'au 14 oct. », « Toujours »), ENTIÈRE dans le titre de son
+     menu (« jusqu'au mercredi 14 octobre à 20:58 », « pour toujours ») — jamais l'année : une sourdine dure une semaine au plus, ou toujours */
+  const SOURDINE_TOUJOURS_MS = 5 * 365 * 86400000;
+  function finSourdine(ts, long) {
+    if (ts - Date.now() > SOURDINE_TOUJOURS_MS) return long ? 'pour toujours' : 'Toujours';
+    const d = new Date(ts), j = new Date(), dem = new Date(j.getFullYear(), j.getMonth(), j.getDate() + 1);
+    const h = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const p = d.toDateString() === j.toDateString() ? 'jusqu\'à ' + h : d.toDateString() === dem.toDateString() ? 'jusqu\'à demain ' + h
+      : 'jusqu\'au ' + (long ? d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) + ' à ' + h : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }));
+    return long ? p : p.charAt(0).toUpperCase() + p.slice(1);
+  }
+  const CHEVRON_UD = '<svg class="chev-ud" viewBox="0 0 9 14" aria-hidden="true"><path d="M1.5 5 4.5 2 7.5 5M1.5 9 4.5 12 7.5 9"/></svg>';
+  const TITRE_EPHEMERES = 'Les nouveaux messages disparaissent pour tous après ce délai';
+
   /* ── Les infos d'une conversation : membres, rôles, réglages, lien, sortie. Rien ne se redessine tant que ce que la source dit n'a pas changé (sinon une frappe lointaine ferait perdre le focus). ── */
   async function rendreConvInfo() {
     const id = etat.groupe.convId, corps = $('info-corps');
     let i = null, panne = null;
     try { i = await source.infos(id); } catch (e) { panne = e; }
     if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
-    if (panne) { corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Les infos n\'ont pas pu être chargées.')) + '</p>'; return; }
+    if (panne) { if (etat.deroule && corps.contains(etat.deroule.declencheur)) fermerDeroule(false); corps.dataset.sig = ''; corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Les infos n\'ont pas pu être chargées.')) + '</p>'; return; }
     if (!i) { mot('Cette conversation n\'existe plus.'); fermerCouche(); return; }
     /* un canal PRIVÉ que j'administre : les collègues que je peux y ajouter sont ceux de son espace (« Contacts de l'entreprise »), jamais mes seuls contacts */
     let collegues = null;
@@ -5572,12 +5682,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : canal ? 'Canal ' + (i.prive ? 'privé' : 'public') + ' · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (i.enLigne ? 'En ligne' : 'Conversation à deux')) + '</p></div></div>' +
       (g && i.moiAdmin && CAP.avatars ? '<div class="info-actions info-photo-actions"><button type="button" class="mini" data-act="groupe-photo">' + (blob(i.photo) ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (blob(i.photo) ? '<button type="button" class="mini danger" data-act="groupe-photo-retirer">Retirer la photo</button>' : '') + '</div>' : '') +
       (canal ? '' : '<div class="carte">') + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
-      (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres"' + off + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + '</span>' + (i.moiAdmin ? CHEVRON : '') + '</button></div>');
+      (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres" data-valeur="' + esc(String(i.ephemeres || 0)) + '"' + (i.moiAdmin ? ' aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' : ' disabled') + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + (i.moiAdmin ? CHEVRON_UD : '') + '</span></button></div>');
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
     /* le thème : à moi seul (les autres gardent leurs couleurs) */
     if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
-    if (sd > Date.now()) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Notifications coupées<small>' + esc(sd - Date.now() > 5 * 365 * 86400000 ? 'En sourdine pour toujours' : 'En sourdine jusqu\'au ' + dateLongue(sd)) + '</small></span><button type="button" class="mini" data-act="sourdine" data-duree="off">Réactiver</button></div></div>';
-    else if (sd >= 0) h += '<div class="carte"><div class="reglage"><span class="reglage-texte">Mettre en sourdine<small>Plus de notification pour cette conversation</small></span></div><div class="carte-pad info-actions"><button type="button" class="mini" data-act="sourdine" data-duree="8h">8 heures</button><button type="button" class="mini" data-act="sourdine" data-duree="1s">1 semaine</button><button type="button" class="mini" data-act="sourdine" data-duree="tj">Toujours</button></div></div>';
+    if (sd >= 0) h += '<div class="carte"><button type="button" class="reglage presse" data-act="sourdine" data-valeur="' + (sd > Date.now() ? sd : 0) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Mettre en sourdine</span><span class="reglage-valeur">' + esc(sd > Date.now() ? finSourdine(sd) : 'Non') + CHEVRON_UD + '</span></button></div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
         '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
@@ -5611,10 +5720,22 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       const autre = i.membres.find(m => !m.moi);
       if (autre) h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="bloquer" data-uid="' + esc(autre.id) + '"><span class="reglage-texte">Bloquer ce contact</span></button></div>';
     }
+    const dr = etat.deroule && corps.contains(etat.deroule.declencheur) ? etat.deroule.declencheur : null;
     corps.innerHTML = h;
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
+    if (dr) {
+      const n = corps.querySelector('[data-act="' + dr.dataset.act + '"][aria-haspopup="menu"]');
+      if (n && n.dataset.valeur === dr.dataset.valeur) { n.setAttribute('aria-expanded', 'true'); etat.deroule.declencheur = n; }
+      else { if (n) etat.deroule.declencheur = n; fermerDeroule(true); }
+    }
   }
 
+  /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
+  async function apresChoixInfo(id, geste, motReussi) {
+    erreurInfo('');
+    try { await geste(); if (motReussi) mot(motReussi); } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
+    if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && etat.groupe.convId === id) rendreConvInfo();
+  }
   /* ── Une seule écoute pour les gestes des feuilles « Contacts » et « Infos » (chaque geste efface le refus d'avant avant de travailler) ── */
   $('info-corps').addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -5640,7 +5761,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(r.deja ? 'Déjà dans tes contacts' : r.genre === 'groupe' ? 'Tu as rejoint le groupe' : 'Contact ajouté'); ouvrirConvId(r.conv); }
       else if (act === 'ecrire') { const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
       else if (act === 'annonces') await source.majConversation(id, { annonces: b.getAttribute('aria-checked') !== 'true' });
-      else if (act === 'ephemeres') { const i = EPHEMERES.findIndex(x => x[1] === b.querySelector('.reglage-valeur').textContent); await source.majConversation(id, { ephemeres: EPHEMERES[(i + 1) % EPHEMERES.length][0] }); }
+      else if (act === 'ephemeres') {
+        const avant = +b.dataset.valeur || 0;
+        ouvrirDeroule(b, 'Messages éphémères', TITRE_EPHEMERES, EPHEMERES.map(e2 => ({ valeur: e2[0], libelle: e2[1], coche: e2[0] === avant })),
+          v => { if (+v !== avant) apresChoixInfo(id, () => source.majConversation(id, { ephemeres: +v })); });
+        return;
+      }
       else if (act === 'admin') await source.nommerAdmin(id, b.dataset.uid, b.dataset.admin === '1');
       else if (act === 'retirer') await source.retirerMembre(id, b.dataset.uid);
       else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);
@@ -5651,7 +5777,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         await source.bloquer(b.dataset.uid); mot('Contact bloqué');
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
-      else if (act === 'sourdine') { await source.sourdine(id, b.dataset.duree); mot(b.dataset.duree === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'); }
+      else if (act === 'sourdine') {
+        const fin = +b.dataset.valeur || 0, toujours = fin - Date.now() > SOURDINE_TOUJOURS_MS;
+        ouvrirDeroule(b, 'Mettre en sourdine', fin ? 'En sourdine ' + finSourdine(fin, true) : 'Plus de notification de cette conversation',
+          (fin ? [{ valeur: 'off', libelle: 'Réactiver les notifications' }, '-'] : []).concat([['8h', '8 heures', false], ['1s', '1 semaine', false], ['tj', 'Toujours', toujours]].map(x => ({ valeur: x[0], libelle: x[1], coche: x[2] }))),
+          v => apresChoixInfo(id, () => source.sourdine(id, v), v === 'off' ? 'Notifications réactivées' : 'Conversation en sourdine'));
+        return;
+      }
       else if (act === 'theme') { ouvrirFeuille('theme:' + id, true); return; }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
       else if (act === 'suppression-confirmer') {

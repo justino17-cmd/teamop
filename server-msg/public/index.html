@@ -471,14 +471,17 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
   outline: none;
 }
 .feuille-ouverte .feuille { transform: none; visibility: visible; transition: transform .45s cubic-bezier(.32,.72,0,1), visibility 0s; }
+/* ⛔ au bureau, la fenêtre se centre par `inset: 0` + `margin: auto` + une hauteur à son contenu, JAMAIS par left/top 50 % + translate(-50 %) : OUVERTE, elle ne porte
+   AUCUNE transformation. Un menu déroulant s'accroche à une ligne de la feuille par `anchor-name`, et l'ancrage ignore les transformations — mesuré le 7 octobre 2026 :
+   le menu tombait 260 px à droite et 162 px trop bas, la moitié de la translation. La transformation ne sert plus qu'à l'entrée et à la sortie. */
 @media (min-width: 700px) {
   .feuille {
-    left: 50%; right: auto; top: 50%; bottom: auto; width: 520px; max-width: calc(100vw - 32px); max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
+    inset: 0; margin: auto; width: 520px; max-width: calc(100vw - 32px); height: fit-content; max-height: min(calc(100vh - 48px), 900px); max-height: min(calc(100dvh - 48px), 900px);
     border-radius: 22px; border-bottom: var(--line);
-    transform: translate(-50%, calc(-50% + 16px)) scale(.97); opacity: 0;
+    transform: translateY(16px) scale(.97); opacity: 0;
     transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s linear .35s;
   }
-  .feuille-ouverte .feuille { transform: translate(-50%, -50%); opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
+  .feuille-ouverte .feuille { transform: none; opacity: 1; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s, visibility 0s; }
 }
 .feuille-tete { flex: none; touch-action: none; user-select: none; -webkit-user-select: none; }
 .poignee { padding: 8px 0 4px; display: grid; place-items: center; }
@@ -1159,6 +1162,40 @@ html[data-service] .mention-apercu { display: none; }
 }
 @keyframes pj-sort { from { opacity: 0; transform: scale(.92) translateY(6px); } to { opacity: 1; transform: none; } }
 @media (hover: hover) { .menu-action:hover, .menu-emoji:hover { background: var(--field); } }
+
+/* ══ LE MENU DÉROULANT — le « pop-up button » d'iOS et du Mac ═══════════════════════════════════════════════════════════════════════════════════════════
+   Demande du 7 octobre 2026, capture des infos d'une conversation à l'appui : « Messages éphémères » et « Mettre en sourdine » en menu déroulant. La ligne dit sa valeur à l'encre de
+   l'accent, avec ⌃⌄ ; le menu SORT de la ligne, une coche devant le choix en cours. Il vit dans la couche du dessus (`popover`) : ni le défilement ni l'`overflow` de la
+   feuille ne le coupent. Il s'accroche en CSS à la ligne ouverte (`anchor-name`), sans rien mesurer, et se retourne vers le haut s'il manque de place. Un navigateur qui ne
+   sait pas ancrer le pose au milieu de l'écran (la place d'origine d'un `popover`) ; un navigateur sans `popover` le montre au pied de la feuille. */
+.reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
+.reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
+.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
+  background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); color: var(--text);
+  box-shadow: 0 12px 38px rgba(0,0,0,.26), 0 0 0 .5px rgba(0,0,0,.06); }
+.deroule:popover-open { animation: deroule-sort .2s cubic-bezier(.2,.8,.2,1) both; }
+@supports (anchor-name: --deroule) {
+  .deroule { position-anchor: --deroule; inset: auto; top: anchor(bottom); right: anchor(right); margin: 6px 0 0; position-try-fallbacks: flip-block; transform-origin: 85% 0; }
+}
+@keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+.deroule-titre { width: 0; min-width: 100%; margin: 0; padding: 7px 14px 7px 38px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `width: 0` + `min-width: 100%` : le titre se replie dans la largeur des choix, il ne l'élargit pas */
+.deroule-liste { display: flex; flex-direction: column; }
+.deroule-choix { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 18px 0 6px; border-radius: 12px; font-size: 17px; line-height: 22px; color: var(--text); text-align: left; }
+.deroule-coche { width: 28px; flex: none; display: grid; place-items: center; }
+.deroule-coche .ic { font-size: 17px; stroke-width: 2.4; }
+.deroule-sep { margin: 5px 10px; border: 0; border-top: var(--sep); }
+.deroule-choix:active { background: var(--field); }
+.deroule-choix:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (hover: hover) { .deroule-choix:hover { background: var(--field); } }
+@media (hover: hover) and (pointer: fine) {
+  .deroule { min-width: 220px; padding: 5px; border-radius: 13px; }
+  .deroule-titre { padding: 5px 12px 5px 32px; }
+  .deroule-choix { min-height: 34px; padding: 0 16px 0 4px; border-radius: 8px; font-size: 15px; line-height: 20px; }
+  .deroule-coche { width: 26px; }
+  .deroule-coche .ic { font-size: 15px; }
+}
 
 /* les infos d'une conversation, les contacts et leurs liens : la même feuille, le même cadre */
 .carte-pad { padding: 12px 14px; }
@@ -2219,7 +2256,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="rubrique"><span>Contacts de l'entreprise</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
     <div class="carte" id="g-contacts" role="group" aria-label="Contacts de l'entreprise"></div>
     <div class="carte" id="g-reglages">
-      <button type="button" class="reglage presse" id="g-ephemeres"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur" id="g-ephemeres-val">Désactivés</span><svg class="chev" viewBox="0 0 8 13" aria-hidden="true"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg></button>
+      <button type="button" class="reglage presse" id="g-ephemeres" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur"><span id="g-ephemeres-val">Désactivés</span><svg class="chev-ud" viewBox="0 0 9 14" aria-hidden="true"><path d="M1.5 5 4.5 2 7.5 5M1.5 9 4.5 12 7.5 9"/></svg></span></button>
       <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>
     </div>
   </div>
@@ -2236,6 +2273,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 <input type="file" id="profil-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <input type="file" id="groupe-photo-fichier" class="sr-seul" accept="image/*" tabindex="-1" aria-hidden="true">
 <div class="menu-fond" id="menu-fond" hidden><div class="menu-msg" id="menu-msg" role="dialog" aria-modal="true" aria-label="Actions du message"></div></div>
+<div class="deroule" id="deroule" popover="manual" data-glass="1" hidden><p class="deroule-titre" id="deroule-titre" hidden></p><div class="deroule-liste" id="deroule-liste" role="menu"></div></div>
 
 <div class="visionneuse" id="visionneuse" role="dialog" aria-modal="true" aria-label="Photo agrandie" hidden>
   <button type="button" class="visionneuse-fermer presse" id="visionneuse-fermer" aria-label="Fermer la photo"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button>
