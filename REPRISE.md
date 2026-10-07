@@ -13,6 +13,26 @@ de ligne du tout.
 
 ---
 
+# ⏳ 7 OCTOBRE 2026 (TARD) — L'APPEL QUI CONTINUE, « FOND ET COULEURS » À LA APPLE, LES MENUS DÉROULANTS DES INFOS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Trois demandes de Justin, captures à l'appui :
+· **« Message » pendant un appel raccrochait** : la route qui perd l'appel le RÉDUIT désormais (« Message », un onglet, Échap, le retour système) — il continue, une barre
+  verte en haut y ramène ; seul un raccrochage le termine (`raccrocherCouche` : le bouton rouge, la barre, l'appel fini ailleurs). Un appel ENTRANT qu'on quitte sans l'avoir
+  pris est refusé, comme avant. ⛔ La PR #100 est tombée en CI là-dessus : test-857 et test-859 gardaient encore « Échap raccroche » et « un onglet raccroche » — ils gardent
+  maintenant l'appel réduit (`quitterAppel` : deux appelants, la route et `raccrocherCouche` réduit), mutations A19, A20, A30, M16 revisées.
+· **« Fond et couleurs » à la façon d'Apple** : vignettes en carte, la coche dans la vignette, des ronds de couleur sans libellé (le nom de la teinte choisie dessous).
+· **« Messages éphémères » et « Mettre en sourdine » en menu déroulant** (le premier tournait d'une valeur à l'autre à chaque toucher, la seconde était trois puces) :
+  le « pop-up button » d'iOS et du Mac — la ligne dit sa valeur (⌃⌄), le menu sort d'elle, une coche devant le choix en cours, un titre qui dit ce que fait le réglage ; en
+  sourdine, l'échéance (sans l'année) et « Réactiver les notifications » d'abord. « Nouveau groupe » prend le même menu. Couche du dessus (`popover`), ancré en CSS
+  (`anchor-name`), sans rien mesurer. ⛔ Au bureau, la fenêtre des feuilles se centrait par translate(-50 %) : l'ancrage IGNORE les transformations, le menu tombait 260 px à
+  droite — elle se centre maintenant par inset 0 + margin auto, sans transformation une fois ouverte. ⛔ Le toucher qui referme le menu au dehors ne fait rien d'autre (il
+  aurait basculé l'interrupteur voisin). `sonde-opmessages-deroule` (62 ✓ : téléphone au doigt, bureau souris et clavier, jour et nuit), test-857 § 4 ter (série D, 8 mutations
+  qui mordent).
+Le menu déroulant est un composant (`ouvrirDeroule(ligne, nom, titre, choix, surChoix)`) : « Confirmer l'envoi » (#37, à faire) le prendra.
+⚠️ Sondes en retard sur l'application (d'avant ce soir, pas touchées par ces changements) : `sonde-opmessages-serveur` attend encore « Appels : bientôt », un « + » à deux
+actions et une caméra d'en-tête qui ne lance rien — sa caméra lance désormais un VRAI appel, qui couvre la suite et fait tomber les blocs d'après ; `sonde-opmessages` (l'aperçu)
+s'arrêtait à l'étape photo depuis la légende (corrigé : elle passe par l'aperçu d'envoi).
+
 # ⏳ 7 OCTOBRE 2026 (FIN DE SOIRÉE) — L'INVITATION À ÉCRIRE, LE TABLEAU DE BORD PRO, LES VOTANTS D'UN SONDAGE, « PUBLIER » DANS LA TOUR (OP MESSAGES bêta, Tour v2.86, serveur d'OP GESTION) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Cinq demandes de Justin, captures à l'appui, dans l'ordre :
