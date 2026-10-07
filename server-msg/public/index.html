@@ -1188,6 +1188,12 @@ html[data-service] .mention-apercu { display: none; }
 .cote-seg { margin: 0 0 12px; }
 .side .cote-seg { margin: 0 6px 12px; }
 .cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
+/* « Confirmer l'envoi » (côté pro) : une barre au-dessus du champ — « Envoyer à « Équipe » — 5 personnes ? » — que l'on confirme (Envoyer, ou Entrée une seconde fois) ou qu'on annule */
+.compo-confirme { max-width: 860px; margin: 0 auto 6px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 16px; background: var(--card); border: var(--line); font-size: 15px; line-height: 20px; }
+.compo-confirme-texte { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+.compo-confirme-boutons { display: flex; gap: 8px; margin-left: auto; }      /* les deux gestes restent ENSEMBLE, à droite, même quand la phrase prend la ligne */
+.compo-confirme-texte small { display: block; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
+@media (pointer: coarse) { .compo-confirme-texte small { display: none; } .compo-confirme .mini { min-height: 44px; } }
 .side-marque b { white-space: nowrap; }      /* « OP MESSAGES PRO » tient sur une ligne dans les 236 px de la barre (mesuré : la pastille passait dessous) */
 .marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
 #vue-messages > .entete-vue { position: relative; }
@@ -2120,6 +2126,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <footer class="composer" data-glass="1">
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <p class="compo-note" id="compo-note" hidden></p>
+      <div class="compo-confirme" id="compo-confirme" role="alert" hidden><span class="compo-confirme-texte" id="compo-confirme-texte"></span><span class="compo-confirme-boutons"><button type="button" class="mini" id="compo-confirme-non">Annuler</button><button type="button" class="mini plein" id="compo-confirme-oui">Envoyer</button></span></div>
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">

@@ -2919,6 +2919,14 @@
       moiApi = r; noter(r);
       return modeTravail();
     }
+    /* la confirmation avant d'envoyer (« côté pro », 7 octobre 2026) : 'jamais' | 'groupes' (groupes, canaux, réunions) | 'partout' — une préférence du compte */
+    const confirmerEnvoi = () => { const x = moiApi && moiApi.prefs && moiApi.prefs.confirmer_envoi; return x === 'groupes' || x === 'partout' ? x : 'jamais'; };
+    async function choisirConfirmerEnvoi(x) {
+      if (x !== 'jamais' && x !== 'groupes' && x !== 'partout') throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { confirmer_envoi: x } });
+      moiApi = r; noter(r);
+      return confirmerEnvoi();
+    }
     async function rangerCote(id, cote) {
       if (cote !== null && cote !== 'perso' && cote !== 'pro') throw erreurLocale('invalide');
       await A.prefs(id, { cote });
@@ -3255,7 +3263,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, modes: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement,
@@ -3275,7 +3283,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
-      modeTravail, choisirMode, rangerCote,                                                                            // Perso / Pro
+      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,

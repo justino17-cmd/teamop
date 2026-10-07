@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '0681c917ba90';
+  const OPMSG_BUILD = '60c2688cc9ec';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 98;
+  const OPMSG_VERSION = 101;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -677,6 +677,7 @@
     /* ⛔ passer d'une conversation à l'autre (maître-détail) ne passe PAS par fermerConv : la prise de son et la lecture de l'ancienne se coupent ici,
        sinon le vocal enregistré chez Camille partait chez Hugo (mesuré au bureau, 1er octobre 2026) */
     if (etat.conv && etat.conv !== id) { arreterLecture(); annulerEnregistrement(); }
+    if (etat.conv !== id) fermerConfirmation();                  // la demande « Envoyer à … ? » était pour l'AUTRE conversation
     if (!etat.conv) etat.scrollListe = window.scrollY;
     etat.conv = id; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu();
     document.documentElement.dataset.conv = '1';
@@ -696,6 +697,7 @@
     try { await source.marquerLu(id); } catch (e) { /* la source le dira par ecouter */ }
   }
   function fermerConv() {
+    fermerConfirmation();
     etat.jeton++;
     const id = etat.conv;
     if (id) etat.brouillons[id] = $('saisie').value;
@@ -785,6 +787,26 @@
     try { await source.envoyer(id, brouillon); return true; }
     catch (e) { etat.forcerBas = false; avis(e && e.dit ? phrase(e) : (MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.')); return false; }   // ⛔ un refus du service se dit avec SA phrase (« réessaie dans 40 s ») : seule une erreur de l'aperçu garde les trois phrases d'avant
   }
+  /* ── CONFIRMER L'ENVOI (côté pro, 7 octobre 2026 : « confirmer l'envoi de votre message pour éviter les envois par erreur ») ──
+     Le réglage du compte (Profil) : « Jamais », « Groupes et canaux » (là où une erreur se lit à plusieurs), « Partout ». Il ne vaut que pour un compte pro, et que pour le TEXTE
+     du champ : une photo, un vocal, une carte passent déjà par leur propre geste d'envoi. Ce qu'on retape annule la demande (on ne confirme jamais un texte qu'on n'a pas relu). */
+  const CONFIRMER = [['jamais', 'Jamais'], ['groupes', 'Groupes et canaux'], ['partout', 'Partout']];
+  const confirmerActif = () => !!(etat.pro && CAP.confirmerEnvoi && typeof source.confirmerEnvoi === 'function');
+  function confirmationRequise() {
+    if (!confirmerActif()) return false;
+    const x = source.confirmerEnvoi();
+    return x === 'partout' || (x === 'groupes' && multi(etat.convDonnees));
+  }
+  function demanderConfirmation() {
+    const c = etat.convDonnees || {}, n = Math.max(0, (c.membres || []).length - 1);
+    $('compo-confirme-texte').innerHTML = esc('Envoyer à ' + (multi(c) ? '« ' + nomConv(c) + ' »' + (n ? ' — ' + n + (n > 1 ? ' personnes' : ' personne') : '') : (c.nom || 'ce contact')) + ' ?') + '<small>Entrée pour envoyer, Échap pour annuler</small>';
+    $('compo-confirme').hidden = false; etat.confirmeAttente = etat.conv;
+  }
+  function fermerConfirmation() { if (!etat.confirmeAttente && $('compo-confirme').hidden) return; $('compo-confirme').hidden = true; etat.confirmeAttente = null; }
+  $('compo-confirme-oui').addEventListener('mousedown', e => e.preventDefault());       // le bouton ne vole pas le focus du champ
+  $('compo-confirme-oui').addEventListener('click', () => { if (etat.confirmeAttente === etat.conv) envoyerTexte(); });
+  $('compo-confirme-non').addEventListener('click', () => { fermerConfirmation(); $('saisie').focus({ preventScroll: true }); });
+  $('saisie').addEventListener('input', () => fermerConfirmation());
   async function envoyerTexte() {
     if (etat.envoiEnCours) { etat.envoiSuivant = true; return; }     // deux clics dans le même instant ne postent pas deux messages ; un toucher pendant l'attente n'est pas perdu : le message suivant part ensuite
     const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
@@ -793,6 +815,9 @@
     if (!t.trim() && !(cible && cible.photos)) return;
     const nt = nSignes(t);
     if (nt > TEXTE_MAX) { avis(texteTropLong(nt)); return; }
+    /* « Confirmer l'envoi » : la PREMIÈRE touche demande, la seconde envoie (une modification n'est pas un envoi) */
+    if (!(ctx0 && ctx0.type === 'modif') && confirmationRequise() && etat.confirmeAttente !== etat.conv) { demanderConfirmation(); return; }
+    fermerConfirmation();
     etat.envoiEnCours = true;
     let refuse = false;
     const id = etat.conv, ctx = etat.contexte;
@@ -1766,6 +1791,7 @@
     if (e.key !== 'Escape') return;
     if (etat.deroule) { e.preventDefault(); fermerDeroule(true); return; }
     if (ep.ouvert) { e.preventDefault(); epFermer(); return; }
+    if (etat.confirmeAttente && !etat.photo && !etat.groupe.ouvert && !etat.menu) { e.preventDefault(); fermerConfirmation(); $('saisie').focus({ preventScroll: true }); return; }
     if (etat.menu) { e.preventDefault(); fermerMenu(); return; }
     /* dans le champ de recherche de la liste, Échap EFFACE la recherche (puis ne fait rien) : il ne ferme pas la conversation affichée à côté */
     if (e.target === $('recherche-conv') && !etat.photo && !etat.groupe.ouvert) { if (e.target.value) { e.preventDefault(); e.target.value = ''; etat.recherche = ''; rendreListe(); } return; }
@@ -2736,6 +2762,12 @@
     a.dataset.vue = v; a.setAttribute('href', '#' + v); a.lastElementChild.textContent = VUES[v].titre;
     a.setAttribute('aria-label', 'Retour : ' + VUES[v].titre);
   }
+  function peindreConfirmer() {
+    const b = $('reg-confirmer'); if (!b || !confirmerActif()) return;
+    const x = source.confirmerEnvoi();
+    b.dataset.valeur = x;
+    $('reg-v-confirmer').innerHTML = esc((CONFIRMER.find(y => y[0] === x) || CONFIRMER[0])[1]) + CHEVRON_UD;
+  }
   function rendreReglages() {
     if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Contacts »
     Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
@@ -2753,6 +2785,7 @@
           (CAP.compte ? regLigne('compte', 'bleu', 'i-personne', 'Mes données et mon compte') : '') +
           regLigne('apropos', 'gris', 'i-info', 'À propos', '<span class="reglage-valeur" id="reg-v-apropos"></span>') +
         '</div>' +
+        (confirmerActif() ? '<div class="carte"><button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi<small>Côté pro : éviter un message parti par erreur</small></span><span class="reglage-valeur" id="reg-v-confirmer"></span></button></div>' : '') +
         '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reg-tuile t-rouge" aria-hidden="true">' + icone('i-sortie') + '</span><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '</div><div class="reg-detail">' +
         (CAP.espaces ? regSection('entreprise', 'Entreprise et abonnement', '<div class="rubrique"><span>Mes espaces</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>') : '') +
@@ -2767,7 +2800,7 @@
         regSection('apropos', 'À propos', '<div class="carte carte-pad" id="reg-apropos"></div>') +
       '</div></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
-    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour();
+    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour(); peindreConfirmer();
     if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
@@ -2787,6 +2820,16 @@
     if (bouton.dataset.espOuvrir) { declencheur = bouton; ouvrirFeuille('espace:' + bouton.dataset.espOuvrir); return; }
     if (bouton.dataset.espAbo) { declencheur = bouton; ouvrirFeuille('abo:' + bouton.dataset.espAbo); return; }
     if (bouton.id === 'reg-esp-gerer') { declencheur = bouton; ouvrirFeuille('entreprise'); return; }
+    if (bouton.id === 'reg-confirmer' && confirmerActif()) {
+      const avant = source.confirmerEnvoi();
+      ouvrirDeroule(bouton, 'Confirmer l\'envoi', 'Avant de partir, le message demande une seconde touche — où ?', CONFIRMER.map(x => ({ valeur: x[0], libelle: x[1], coche: x[0] === avant })), async x => {
+        if (x === avant) return;
+        nette();
+        try { await source.choisirConfirmerEnvoi(x); peindreConfirmer(); mot(x === 'jamais' ? 'Les messages partent sans confirmation' : 'Confirmation avant d\'envoyer : ' + CONFIRMER.find(y => y[0] === x)[1].toLowerCase()); }
+        catch (er) { dit(er, 'Le réglage n\'a pas pu être enregistré.'); }
+      });
+      return;
+    }
     if (bouton.id === 'reg-pp') { declencheur = bouton; ouvrirFeuille('perso-plus'); return; }
     if (bouton.dataset.regRelire) { chargerReglages(); return; }
     if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
