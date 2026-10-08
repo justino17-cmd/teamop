@@ -104,7 +104,13 @@ function fausseBibliotheque(nom) {
     const webrtc = { RTCPeerConnection: monde.RTCPeerConnection, MediaStream: Flux };
     const D = { login, nav, monde, requetes: [], evs: [], lib: fausseBibliotheque(login) };
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => true, surMessage: () => {}, abonnementActuel: async () => null, fermerNotifications: async () => {} };
-    const f = async (url, init) => { const u = String(url), m = (init && init.method) || 'GET'; D.requetes.push(m + ' ' + u.replace(svc.base, '').split('?')[0]); return nav.fetch(url, init); };
+    D.lenteur = { ms: 0 };      // la relecture de la salle (GET /api/salles/:id) ralentie à la demande : c'est ce qui sépare « reprendre tout de suite » de « relire d'abord »
+    const f = async (url, init) => {
+      const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0];
+      D.requetes.push(m + ' ' + chemin);
+      if (D.lenteur.ms && m === 'GET' && /^\/api\/salles\/[^/]+$/.test(chemin)) await new Promise(r => setTimeout(r, D.lenteur.ms));
+      return nav.fetch(url, init);
+    };
     D.src = creerSourceServeur({ OPMSG, base: svc.base, fetch: f, EventSource: nav.EventSource, navigateur: faux, webrtc, visio: D.lib, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 20, appelsDelais: DELAIS });
     sources.push(D.src);
     D.src.ecouter(e => { D.evs.push(e); });
@@ -164,6 +170,18 @@ function fausseBibliotheque(nom) {
       const repris = await att(() => A.jetons() > j0 && A.salle() !== sA && A.salle().etat === 'connectee' ? A.salle() : null, 5000);
       vrai('une coupure ordinaire : la page redemande un jeton et rejoint de nouveau', !!repris);
       v('   ses pistes sont publiées de nouveau, sur la nouvelle connexion', repris ? repris.publiees.map(p => p.source) : null, ['microphone', 'camera']);
+    }
+
+    console.log('\n⛔ Une fin définitive (« retiré ») attend la relecture de la salle avant tout jeton');
+    {
+      B.lenteur.ms = 600;
+      const sB = B.salle(), j0 = B.jetons();
+      sB.emettre(B.lib.LK.RoomEvent.Disconnected, B.lib.LK.DisconnectReason.PARTICIPANT_REMOVED);
+      await new Promise(r => setTimeout(r, 400));
+      v('⛔ AUCUN jeton redemandé avant que la salle soit relue (400 ms écoulées, la relecture en prend 600) — une reprise immédiate, c\'était un refus de plus à chaque fin', B.jetons() - j0, 0);
+      B.lenteur.ms = 0;
+      const re = await att(() => B.jetons() > j0 && B.salle() !== sB && B.salle().etat === 'connectee' ? B.salle() : null, 5000);
+      vrai('   puis la salle relue le dit PRÉSENT : il revient (le service a le dernier mot, pas LiveKit)', !!re);
     }
 
     console.log('\nUne connexion qui échoue se réessaie, et ne laisse rien ouvert');

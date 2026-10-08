@@ -204,6 +204,9 @@ function fauxLiveKit(port) {
       v('⛔ sortie 1, et il NOMME ce qui ne va pas : une clé fausse ACCEPTÉE, une signalisation qui ne demande aucun jeton', [r.status, /✗ ⛔ une clé FAUSSE y est refusée/.test(r.stdout), /✗ ⛔ sa signalisation REFUSE qui n'a pas de jeton/.test(r.stdout)], [1, true, true]);
       vrai('   la sonde du faux, elle, répond « OK » (le contrôle ne tombe pas pour une autre raison : population)', /✓ LiveKit répond à sa sonde/.test(r.stdout));
       v('⛔ ni le secret ni un jeton dans sa sortie', [String(r.stdout + r.stderr).includes(SECRET), /eyJ[A-Za-z0-9_-]{10,}/.test(r.stdout + r.stderr)], [false, false]);
+      /* ⛔ ET SES AVIS : ce faux n'en envoie AUCUN — exactement un LiveKit dont l'adresse des avis ne mène pas au service. La salle de contrôle s'ouvre et se ferme, mais rien n'arrive. */
+      const ra = await lancer([path.join(T.SERVICE, 'outils', 'verifier-visio.js'), 'beta', '--avis', String(svc.port)], Object.assign({}, process.env, { OPMSG_CONFIG: cfg }));
+      v('⛔ des avis qui n\'arrivent pas : sortie 1, et il le NOMME (la salle de contrôle, elle, s\'est ouverte et fermée)', [ra.status, /✗ ⛔ ses avis arrivent au service/.test(ra.stdout), /✓ une salle de contrôle s'ouvre/.test(ra.stdout)], [1, true, true]);
       fs.rmSync(d, { recursive: true, force: true });
     }
   } catch (e) {
