@@ -107,20 +107,53 @@ function creerHandlers(ctx) {
     return { conversation, membres, moi: r.moi };
   }
   const nomAffiche = (p) => (p.prenom + ' ' + p.nom).trim() || 'Quelqu\'un';
-  /* ⛔ Ce qui part en notification PUSH, parmi les notifications de l'application : un ajout à un groupe et un nouveau contact. Une mention n'en fait pas : le message qui la porte part déjà. La
-     charge est MINIMALE (« Vous avez été ajouté à un groupe ») ; le nom du groupe et de celui qui l'a ajouté ne partent que pour qui a activé l'aperçu (`push.js`). */
+  /* ⛔ Ce qui part en notification PUSH, parmi les notifications de l'application : un ajout à un groupe, un nouveau contact, une mention. La charge est MINIMALE (« Vous avez été ajouté à
+     un groupe ») ; le nom du groupe et de celui qui l'a ajouté ne partent que pour qui a activé l'aperçu (`push.js`). */
   function chargePush(type, titre, texte, cible) {
     if (type === 'groupe_ajoute') return { type: 'groupe', tag: 'groupe:' + cible, url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', titre: 'OP MESSAGES', corps: 'Vous avez été ajouté à un groupe', detail: { titre, corps: texte } };
     if (type === 'contact_ajoute') return { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texte } };
+    /* ⛔ UNE MENTION (8 octobre 2026 : « la personne citée est prévenue même si le groupe est en sourdine ») : sa push part même en sourdine, sous l'étiquette de la CONVERSATION, et la push
+       du message ne part pas chez elle (`mentionner`) : jamais deux pour un message */
+    if (type === 'mention') return { type: 'mention', tag: ID_CONV.test(String(cible)) ? String(cible) : 'mention', url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', renotify: true, titre: 'OP MESSAGES', corps: 'Nouvelle mention', detail: { titre, corps: texte } };
     return null;
   }
-  function notifier(uid, type, titre, texte, cible, auteur) {
+  /* `valide` (facultatif) : le jugement de l'instant de partir (`push.js`) — une push qui attend l'acquittement d'une page peut ne plus avoir lieu d'être cinq secondes plus tard */
+  function notifier(uid, type, titre, texte, cible, auteur, valide) {
     try {
       const n = stockage.notifCreer({ uid, type, titre, texte, cible, auteur });
       hub.reveiller({ uids: [uid] });
       const c = ctx.push ? chargePush(type, titre, texte, cible) : null;
-      if (c) ctx.push.pousser(uid, c, { gid: n.gid });
+      if (c) ctx.push.pousser(uid, typeof valide === 'function' ? Object.assign(c, { valide }) : c, { gid: n.gid });
     } catch (e) { /* une notification ratée ne défait pas le geste */ }
+  }
+  /* ══ LES MENTIONS (8 octobre 2026 : « @prénom dans un groupe, et la personne est prévenue ») ══
+     Dans un groupe, un canal ou une réunion — jamais une conversation à deux (on y est déjà prévenu de tout, et citer l'autre y contournerait sa sourdine). Une personne citée est MEMBRE, n'est
+     pas l'auteur, vingt au plus par message ; le reste est ignoré sans refuser l'envoi (une liste de la page n'est jamais une raison de perdre un message). Elle reçoit la notification
+     « vous a mentionné » (le tableau de bord la liste) ET une push qui part même si la conversation est en sourdine — à la place de celle du message. ⛔ En sourdine, une push de mention par
+     conversation et par minute au plus : citer quelqu'un en boucle ne fait pas sonner son téléphone en boucle (la notification de l'application, elle, s'écrit à chaque fois). */
+  const MENTION_SOURDINE_MS = 60000, mentionsSourdine = new Map();
+  function citesDe(conv, auteur, liste) {
+    const cites = new Set();
+    if (!Array.isArray(liste) || !conv || conv.type === 'direct') return cites;
+    const membres = new Set(stockage.membresActifs(conv.id));
+    for (const u of liste.slice(0, 20)) if (typeof u === 'string' && ID_PERS.test(u) && u !== auteur && membres.has(u)) cites.add(u);
+    return cites;
+  }
+  function mentionner(conv, auteur, seq, cites) {
+    for (const u of cites) {
+      const valide = () => {
+        const x = stockage.mentionEncore({ uid: u, conv: conv.id, seq });
+        if (!x) return false;
+        if (x.muet) {
+          const k = u + '|' + conv.id, t = horloge(), d = mentionsSourdine.get(k);
+          if (d !== undefined && t - d < MENTION_SOURDINE_MS) return false;
+          if (mentionsSourdine.size > 20000) mentionsSourdine.clear();
+          mentionsSourdine.set(k, t);
+        }
+        return true;
+      };
+      notifier(u, 'mention', conv.nom || nomAffiche(auteur), nomAffiche(auteur) + ' vous a mentionné.', conv.id, auteur.id, valide);
+    }
   }
   const codeLien = () => crypto.randomBytes(16).toString('base64url');
   const bornes = (b, defMax, defJours, maxMax) => {
@@ -596,14 +629,11 @@ function creerHandlers(ctx) {
     const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type: CARTES.includes(type) ? 'texte' : type, texte, meta, sondage, repondA, pieces: pj && pj.pieces, vocal: pj && pj.vocal, garderS });
     if (r.deja) return res.status(200).json({ deja: true, seq: r.seq, ts: r.ts, id: r.id });
     hub.reveiller({ conv: conv.id });
-    /* ⛔ LA NOTIFICATION PUSH suit le message : aux membres qui ont un appareil abonné, sans l'auteur, sans les conversations en sourdine ; elle attend l'acquittement d'une page ouverte (`push.js`) */
-    try { if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type: CARTES.includes(type) ? 'texte' : type, texte }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
-    if (Array.isArray(b.mentions)) {
-      const membres = new Set(stockage.membresActifs(conv.id));
-      for (const u of Array.from(new Set(b.mentions.slice(0, 20)))) {
-        if (typeof u === 'string' && ID_PERS.test(u) && u !== req.moi.id && membres.has(u)) notifier(u, 'mention', conv.nom || nomAffiche(req.moi), nomAffiche(req.moi) + ' vous a mentionné.', conv.id, req.moi.id);
-      }
-    }
+    const cites = citesDe(conv, req.moi.id, b.mentions);
+    /* ⛔ LA NOTIFICATION PUSH suit le message : aux membres qui ont un appareil abonné, sans l'auteur, sans les conversations en sourdine, sans les personnes citées (leur mention les prévient) ;
+       elle attend l'acquittement d'une page ouverte (`push.js`) */
+    try { if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type: CARTES.includes(type) ? 'texte' : type, texte, sauf: cites }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+    mentionner(conv, req.moi, r.seq, cites);
     res.status(201).json({ seq: r.seq, ts: r.ts, id: r.id });
   };
 
@@ -625,7 +655,8 @@ function creerHandlers(ctx) {
     if (ref) return refus(res, ref[0], ref[1]);
     if (stockage.programmesCompter(req.moi.id) >= PROG_MAX) return refus(res, 409, 'programmes_plein');
     if (!plafond(res, 'prog', req.moi.id, { max: 60, fenetreMs: 3600000 })) return;
-    const x = stockage.programmeCreer({ conv: conv.id, auteur: req.moi.id, texte, quand });
+    /* les personnes citées partent avec lui : une liste d'identifiants de membres d'AUJOURD'HUI — leur appartenance se rejuge au départ (`citesDe`, dans `programmesTour`) */
+    const x = stockage.programmeCreer({ conv: conv.id, auteur: req.moi.id, texte, quand, mentions: Array.from(citesDe(conv, req.moi.id, b.mentions)) });
     res.status(201).json({ programme: x });
   };
   H['prog.liste'] = (req, res) => res.json({ programmes: stockage.programmesDe(req.conv.conv.id, req.moi.id) });
@@ -648,8 +679,9 @@ function creerHandlers(ctx) {
         if (r.deja) continue;
         bilan.envoyes++;
         hub.reveiller({ conv: g.conv });
-        const auteur = stockage.personneParId(g.auteur);
-        try { if (ctx.push && auteur) ctx.push.message({ conv: g.conv, seq: r.seq, gid: r.gid, auteur: g.auteur, nomAuteur: nomAffiche(auteur), nomConv: m.conv.nom, groupe: m.conv.type !== 'direct', type: 'texte', texte: g.texte }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+        const auteur = stockage.personneParId(g.auteur), cites = auteur ? citesDe(m.conv, g.auteur, g.mentions) : new Set();
+        try { if (ctx.push && auteur) ctx.push.message({ conv: g.conv, seq: r.seq, gid: r.gid, auteur: g.auteur, nomAuteur: nomAffiche(auteur), nomConv: m.conv.nom, groupe: m.conv.type !== 'direct', type: 'texte', texte: g.texte, sauf: cites }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+        if (auteur) mentionner(m.conv, auteur, r.seq, cites);
       } catch (e) { ctx.journaliser('programme_echec', { nom: (e && (e.code || e.name)) || 'Erreur' }); }
     }
     if (bilan.abandonnes) ctx.journaliser('programme_abandonne', { n: bilan.abandonnes });

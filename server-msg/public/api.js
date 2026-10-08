@@ -305,7 +305,7 @@
       supprimerEvenement: (id) => appel('POST', '/api/agenda/' + e(id) + '/supprimer'),
       /* ⛔ « programmer » est déjà PROGRAMMER UNE RÉUNION (plus bas) : une clé en double remplacerait l'une par l'autre, sans un mot — d'où des noms à part */
       messagesProgrammes: async (conv) => (await appel('GET', '/api/conversations/' + e(conv) + '/programmes')).programmes,
-      programmerMessage: async (conv, texte, quand) => (await appel('POST', '/api/conversations/' + e(conv) + '/programmes', { texte, quand })).programme,
+      programmerMessage: async (conv, texte, quand, mentions) => (await appel('POST', '/api/conversations/' + e(conv) + '/programmes', mentions ? { texte, quand, mentions } : { texte, quand })).programme,
       annulerProgramme: (id) => appel('POST', '/api/programmes/' + e(id) + '/annuler'),
       faitEvenement: async (id, fait) => (await appel('POST', '/api/agenda/' + e(id) + '/fait', { fait })).evenement,
       reporterEvenement: async (id, dans) => (await appel('POST', '/api/agenda/' + e(id) + '/reporter', { dans })).evenement,

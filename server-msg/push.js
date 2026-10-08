@@ -384,10 +384,12 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     return partir(uid, { type: 'essai', tag: 'essai', titre: 'OP MESSAGES', corps: 'Les notifications fonctionnent sur cet appareil.', url: '/', ttl: 120 }).catch(() => ({ envoyes: 0, appareils: 0 }));
   }
 
-  /* Un message neuf : à ceux de la conversation qui ont un appareil abonné, ne l'ont pas coupée, et ne sont pas son auteur. */
-  function message({ conv, seq, gid, auteur, nomAuteur, nomConv, groupe, type, texte }) {
+  /* Un message neuf : à ceux de la conversation qui ont un appareil abonné, ne l'ont pas coupée, et ne sont pas son auteur. `sauf` : les personnes CITÉES — elles reçoivent la notification de
+     leur mention à la place (`routes.js`), jamais deux pour un message. */
+  function message({ conv, seq, gid, auteur, nomAuteur, nomConv, groupe, type, texte, sauf }) {
     let dest = [];
     try { dest = stockage.pushDestinatairesMessage({ conv, seq, auteur }); } catch (e) { return []; }
+    if (sauf && sauf.size) dest = dest.filter(uid => !sauf.has(uid));
     const resume = type === 'photo' ? (texte ? '📷 ' + extrait(texte, 100) : 'Photo') : type === 'vocal' ? 'Message vocal' : type === 'fichier' ? 'Fichier' : extrait(texte, 100);
     const de = extrait(nomAuteur, 60) || 'Quelqu\'un';
     const titreApercu = groupe ? de + ' · ' + extrait(nomConv, 40) : de;

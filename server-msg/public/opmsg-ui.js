@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'd251d789da10';
+  const OPMSG_BUILD = '455e4b1ae9b7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 127;
+  const OPMSG_VERSION = 128;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -445,6 +445,45 @@
   }
   const nomAuteur = id => { const c = contactDe(id); return c ? prenom(c) : '?'; };
 
+  /* ═══ LES MENTIONS (8 octobre 2026 : « @prénom dans un groupe, et la personne est prévenue ») ═══
+     Dans un groupe, un canal ou une réunion, « @ » propose les membres (sans moi) ; choisir écrit « @Prénom ». Un prénom se reconnaît SANS accents ni casse, après une non-lettre.
+     Ce qui part au service, c'est la liste des PERSONNES (`mentionsDe`) : celles choisies dans la liste dont le « @Prénom » est encore dans le texte, plus un « @Prénom » tapé à la main
+     qui ne désigne qu'UN membre — deux Camille et aucun choix : personne n'est prévenu à tort (la liste, elle, les distingue par leur nom). Dans la bulle, le « @Prénom » d'un membre
+     est en gras, et voilé quand c'est le mien. ⛔ Le texte reste ÉCHAPPÉ morceau par morceau : un prénom n'ouvre jamais une balise. */
+  const MENTION_RE = /(^|[^\p{L}\p{N}_])@(\p{L}[\p{L}\p{M}'’-]*)/gu;
+  const nomMention = s => s.replace(/['’-]+$/, '');
+  function mentionnables(c) {
+    if (!multi(c) || !Array.isArray(c.membres)) return [];
+    const out = [];
+    for (const id of c.membres) {
+      if (typeof id !== 'string' || (MOI && id === MOI.id)) continue;
+      const k = contactDe(id);
+      if (k && k.nom && !k.supprime) out.push({ id, nom: k.nom, prenom: prenom(k), cle: norme(prenom(k)) });
+    }
+    return out;
+  }
+  function mentionsDe(t, c, choisis) {
+    const M = mentionnables(c); if (!M.length || String(t).indexOf('@') < 0) return [];
+    const jetons = new Set(Array.from(String(t).matchAll(MENTION_RE), x => norme(nomMention(x[2]))));
+    const ids = new Set();
+    for (const id of choisis || []) { const p = M.find(y => y.id === id); if (p && jetons.has(p.cle)) ids.add(id); }
+    for (const j of jetons) { const l = M.filter(y => y.cle === j); if (l.length === 1) ids.add(l[0].id); }
+    return Array.from(ids).slice(0, 20);
+  }
+  function texteMentions(t, c) {
+    const s = String(t);
+    if (s.indexOf('@') < 0 || !multi(c)) return esc(s);
+    const cles = new Set(mentionnables(c).map(p => p.cle)), moi = MOI && MOI.nom ? norme(prenom(MOI)) : '';
+    let h = '', i = 0;
+    for (const x of s.matchAll(MENTION_RE)) {
+      const nom = nomMention(x[2]), cle = norme(nom), d = x.index + x[1].length, estMoi = !!moi && cle === moi;
+      if (!estMoi && !cles.has(cle)) continue;
+      h += esc(s.slice(i, d)) + '<b class="mention-nom' + (estMoi ? ' moi' : '') + '">' + esc('@' + nom) + '</b>';
+      i = d + 1 + nom.length;
+    }
+    return h + esc(s.slice(i));
+  }
+  const MENTIONS_FIN = true;
   /* un message rend { h, st } : h = son balisage SANS le statut, st = « Lu 14:06 » / « Envoyé » / null. Le statut change seul (la lecture arrive après l'envoi) :
      il se met à jour EN PLACE, sans refaire la bulle ni recréer sa photo (peindreMessages) */
   function htmlMessage(c, m, premier, estDernierEnvoye) {
@@ -482,7 +521,7 @@
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
-      h += '<span class="bulle ' + sens + '" dir="auto">' + esc(m.texte) + '</span>';
+      h += '<span class="bulle ' + sens + '" dir="auto">' + texteMentions(m.texte, c) + '</span>';
     }
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
     if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang' + (etat.menu && etat.menu.mid === m.id ? ' menu-ancre' : '') + '">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
@@ -698,8 +737,9 @@
     if (etat.conv && etat.conv !== id) { arreterLecture(); annulerEnregistrement(); }
     if (etat.conv !== id) fermerConfirmation();                  // la demande « Envoyer à … ? » était pour l'AUTRE conversation
     if (!etat.conv) etat.scrollListe = window.scrollY;
-    etat.conv = id; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu();
+    etat.conv = id; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu(); fermerMentions();
     document.documentElement.dataset.conv = '1';
+    mentionsVues(id);                                              // les mentions de cette conversation sont vues : le tableau de bord ne les dit plus « non lues »
     const resume = etat.conversations.find(c => c.id === id);
     if (resume) rendreEntete(resume);
     $('conv-messages').innerHTML = ''; $('conv-messages').setAttribute('aria-busy', 'true');
@@ -888,7 +928,11 @@
       if (ctx && ctx.type === 'modif') {
         try { await source.modifier(id, ctx.mid, t); ok = true; }
         catch (e) { ok = false; avis(phrase(e, 'La modification n\'a pas pu être enregistrée.')); }
-      } else ok = await envoi(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t });
+      } else {
+        const cites = mentionsDe(t, convCourante(), mentionUI.choisis.get(id));
+        ok = await envoi(Object.assign(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t }, cites.length ? { mentions: cites } : {}));
+        if (ok) mentionUI.choisis.delete(id);
+      }
       if (!ok) {
         refuse = true;
         if (etat.conv === id && !ta.value) { ta.value = t; etat.brouillons[id] = t; ajusterSaisie(); majBoutons(); }
@@ -919,6 +963,60 @@
     if (x && x.type === 'modif') { $('saisie').value = etat.brouillons[etat.conv] || ''; ajusterSaisie(); majBoutons(); }
   }
   $('compo-contexte-x').addEventListener('click', () => { annulerContexte(); $('saisie').focus({ preventScroll: true }); });
+  /* la liste « @ » : quelques lettres après « @ », juste avant le curseur → les membres dont un mot du nom commence ainsi (six au plus). ↑ ↓ choisissent, Entrée ou Tab écrivent,
+     Échap ferme ; au doigt, on touche un nom. Pas dans une modification (elle ne prévient personne). Les personnes choisies sont retenues par conversation, jusqu'à l'envoi. */
+  const mentionUI = { liste: [], i: 0, debut: -1, choisis: new Map() };
+  function mentionCandidat() {
+    const ta = $('saisie'), c = convCourante();
+    if (!multi(c) || ta.selectionStart !== ta.selectionEnd || (etat.contexte && etat.contexte.type === 'modif')) return null;
+    const av = ta.value.slice(0, ta.selectionStart), m = /(^|[^\p{L}\p{N}_])@([\p{L}\p{M}'’-]{0,24})$/u.exec(av);
+    if (!m) return null;
+    const q = norme(m[2]), l = mentionnables(c).filter(p => !q || norme(p.nom).split(/[\s'’-]+/).some(w => w.startsWith(q)));
+    return l.length ? { debut: av.length - m[2].length - 1, liste: l.slice(0, 6) } : null;
+  }
+  function peindreChoixMention() {
+    $('compo-mentions').querySelectorAll('[data-mention]').forEach((b, i) => b.setAttribute('aria-selected', i === mentionUI.i ? 'true' : 'false'));
+    $('saisie').setAttribute('aria-activedescendant', 'mention-choix-' + mentionUI.i);
+  }
+  function majMentions() {
+    const x = mentionCandidat();
+    if (!x) { fermerMentions(); return; }
+    const avant = mentionUI.liste[mentionUI.i], j = avant ? x.liste.findIndex(p => p.id === avant.id) : -1, neuve = $('compo-mentions').hidden;
+    mentionUI.liste = x.liste; mentionUI.debut = x.debut; mentionUI.i = j >= 0 ? j : 0;
+    $('compo-mentions').innerHTML = x.liste.map((p, i) => '<button type="button" class="mention-choix presse" role="option" tabindex="-1" id="mention-choix-' + i + '" data-mention="' + esc(p.id) + '" aria-selected="false">' + avatar(contactDe(p.id) || { initiales: '?' }) + '<span>' + esc(p.nom) + '</span></button>').join('');
+    $('compo-mentions').hidden = false;
+    peindreChoixMention();
+    if (neuve) { const r = $('conv-annonce'), dit = x.liste.length + (x.liste.length > 1 ? ' personnes à mentionner' : ' personne à mentionner') + ' : flèches pour choisir, Entrée pour écrire son nom.'; r.textContent = ''; setTimeout(() => { r.textContent = dit; }, 60); }
+  }
+  function fermerMentions() {
+    if ($('compo-mentions').hidden && !mentionUI.liste.length) return;
+    $('compo-mentions').hidden = true; $('compo-mentions').innerHTML = '';
+    mentionUI.liste = []; mentionUI.i = 0; mentionUI.debut = -1;
+    $('saisie').removeAttribute('aria-activedescendant');
+  }
+  function choisirMention(i) {
+    const p = mentionUI.liste[i], ta = $('saisie');
+    if (!p || mentionUI.debut < 0 || !etat.conv) { fermerMentions(); return; }
+    ta.setRangeText('@' + p.prenom + ' ', mentionUI.debut, ta.selectionStart, 'end');
+    const l = mentionUI.choisis.get(etat.conv) || new Set(); l.add(p.id); mentionUI.choisis.set(etat.conv, l);
+    fermerMentions();
+    ta.dispatchEvent(new Event('input', { bubbles: true }));      // le brouillon, la hauteur du champ, la flèche d'envoi : comme une frappe
+    ta.focus({ preventScroll: true });
+  }
+  $('saisie').addEventListener('input', () => majMentions());
+  $('saisie').addEventListener('keyup', e => { if (/^(ArrowLeft|ArrowRight|Home|End)$/.test(e.key)) majMentions(); });
+  $('saisie').addEventListener('click', () => { if (!$('compo-mentions').hidden || $('saisie').value.indexOf('@') >= 0) majMentions(); });
+  $('saisie').addEventListener('blur', () => setTimeout(() => { if (document.activeElement !== $('saisie')) fermerMentions(); }, 150));
+  /* ⛔ la liste ouverte, Entrée CHOISIT (elle n'envoie pas) : ce gardien passe AVANT celui qui envoie (capture), et Échap ne ferme que la liste */
+  $('saisie').addEventListener('keydown', e => {
+    if ($('compo-mentions').hidden || !mentionUI.liste.length || e.isComposing) return;
+    const n = mentionUI.liste.length;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); e.stopImmediatePropagation(); mentionUI.i = (mentionUI.i + (e.key === 'ArrowDown' ? 1 : -1) + n) % n; peindreChoixMention(); }
+    else if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); choisirMention(mentionUI.i); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); fermerMentions(); }
+  }, true);
+  $('compo-mentions').addEventListener('mousedown', e => e.preventDefault());      // toucher un nom ne ferme pas le clavier
+  $('compo-mentions').addEventListener('click', e => { const b = e.target.closest('[data-mention]'); if (b) choisirMention(mentionUI.liste.findIndex(p => p.id === b.dataset.mention)); });
   /* ⛔ un texte plus long que la limite ne se COUPE pas en silence (le champ garde ce qu'on a collé, la fin comprise) : on le dit tout de suite, et l'envoi attend */
   /* ⛔ des SIGNES, pas des unités UTF-16 : le service compte les points de code (8 000 émojis passent), et la page refusait dès 4 001 en annonçant un chiffre faux */
   const nSignes = t => t.length <= TEXTE_MAX ? t.length : Array.from(t).length;
@@ -1092,7 +1190,8 @@
     if (!texte) { fermerMenu(); return; }
     fermerMenu();
     try {
-      await source.programmerMessage(conv, texte, t);
+      await source.programmerMessage(conv, texte, t, mentionsDe(texte, convCourante(), mentionUI.choisis.get(conv)));
+      mentionUI.choisis.delete(conv);
       if (etat.conv === conv) { $('saisie').value = ''; etat.brouillons[conv] = ''; ajusterSaisie(); majBoutons(); }
       mot('Programmé pour ' + jourEtHeure(t, tz));
       chargerProgrammes(conv);
@@ -1560,7 +1659,7 @@
     $('notif-texte').textContent = texte;
     $('notif-aide').textContent = aide || '';
     /* une demande de contact se TOUCHE : la bannière mène à l'onglet Contacts, où l'on accepte ou refuse */
-    const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : cible === 'invitations' ? 'invitations' : '';
+    const vers = cible === 'contacts' && ORDRE.includes('contacts') ? 'contacts' : cible === 'invitations' ? 'invitations' : /^conv:c_[0-9a-f]{32}$/.test(cible || '') ? cible : '';
     $('notif').dataset.vers = vers; $('notif').classList.toggle('touchable', !!vers);
     $('notif').classList.add('on');
     minNotif = setTimeout(() => $('notif').classList.remove('on'), 3600);   // ~3,5 s : le paquet dit 3,6 dans la maquette
@@ -1651,6 +1750,13 @@
   }
   $('notif').addEventListener('click', () => {
     const vers = $('notif').dataset.vers;
+    /* une MENTION : la bannière ouvre sa conversation */
+    if (/^conv:/.test(vers || '') && $('notif').classList.contains('on')) {
+      clearTimeout(minNotif); $('notif').classList.remove('on', 'touchable');
+      const r = { vue: 'messages', conv: vers.slice(5), feuille: false, photo: null, appel: null };
+      if (etat.conv) remplacer(r); else pousser(r);
+      return;
+    }
     if ((vers !== 'contacts' && vers !== 'invitations') || !$('notif').classList.contains('on')) return;
     clearTimeout(minNotif); $('notif').classList.remove('on', 'touchable');
     if (vers === 'invitations') {                                              // « Invitations » : la liste des messages, ouverte sur les invitations
@@ -4692,7 +4798,7 @@
      mois, mais pas de programmer une réunion à partir d'ici »). Deux portées glissantes depuis maintenant — les 7 ou les 30 prochains jours, jamais « le reste du mois » qui ne
      montrerait qu'un jour le 30 —, le choix retenu par le COMPTE (`prefs.bord_reunions`). Une séance déjà TERMINÉE n'est plus « prévue ». On programme depuis l'Agenda. */
   const BORD_PORTEES = { semaine: 7, mois: 30 }, BORD_MAX = 12;
-  const bord = { charge: false, panne: null, reunions: [], evenements: [], appels: [], collegues: new Set(), espaces: [], colleguesLus: false, jeton: 0, portee: 'semaine' };
+  const bord = { charge: false, panne: null, reunions: [], evenements: [], appels: [], mentions: [], collegues: new Set(), espaces: [], colleguesLus: false, jeton: 0, portee: 'semaine' };
   const bordJours = () => BORD_PORTEES[bord.portee] || BORD_JOURS;
   function libelleJourBord(j) { const n = ecartJours(Date.now(), j); return n === 0 ? 'Aujourd\'hui' : n === 1 ? 'Demain' : maj1(FMT_JOUR_LONG.format(j)); }
   function appelsImportants(liste) {
@@ -4718,6 +4824,7 @@
         '<div class="seg" id="bord-portee" role="group" aria-label="Réunions prévues : la semaine ou le mois"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-bord-portee="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-bord-portee="mois" aria-pressed="false">Mois</button></div>' +
         '<ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
         '<div class="rubrique"><span>Rappels</span><span id="bord-rappels-n"></span></div><ul class="carte-liste" id="bord-rappels" role="list" aria-label="Rappels"></ul>' +
+        (typeof source.mentionsRecentes === 'function' ? '<div class="rubrique"><span>Mentions</span><span id="bord-mentions-n"></span></div><ul class="carte-liste" id="bord-mentions" role="list" aria-label="Mentions"></ul>' : '') +
         '<div class="rubrique"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
       sec.dataset.pret = '1';
       bord.portee = typeof source.bordReunions === 'function' && source.bordReunions() === 'mois' ? 'mois' : 'semaine';
@@ -4743,15 +4850,50 @@
     for (const e of evs) { const j = Math.max(minuitDe(e.debut), auj); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneEvenement(e, j, typeof source.faitEvenement === 'function'); }
     $('bord-rappels').innerHTML = att || h || '<li class="bord-vide"><span>Aucun rappel à venir.</span><button type="button" class="presse" data-bord="evenement">Nouvel événement</button></li>';
     $('bord-rappels-n').textContent = evs.length ? String(evs.length) : '';
+    /* les mentions des sept derniers jours (huit au plus), les non lues d'un point ; toucher ouvre la conversation */
+    if ($('bord-mentions')) {
+      const t7 = now - 7 * 86400000, ms = bord.mentions.filter(x => x.t >= t7).slice(0, 8), nl = ms.filter(x => !x.lue).length;
+      $('bord-mentions').innerHTML = att || (ms.length ? ms.map(ligneMention).join('') : '<li class="bord-vide"><span>Aucune mention ces sept derniers jours.</span></li>');
+      $('bord-mentions-n').textContent = nl ? String(nl) : '';
+    }
     /* les appels manqués IMPORTANTS, avec leur raison */
     const imp = appelsImportants(bord.appels);
     $('bord-appels').innerHTML = att || (imp.length ? imp.map(x => ligneAppel(x.a).replace('<span class="appel-kind">', '<span class="bord-raison">' + esc(x.raisons.join(' · ')) + '</span><span class="appel-kind">')).join('')
       : '<li class="bord-vide"><span>Aucun appel manqué important. Les autres sont dans Appels.</span></li>');
     $('bord-appels-n').textContent = imp.length ? String(imp.length) : '';
   }
+  /* ⛔ UNE MENTION LUE se reconnaît aussi à sa conversation : sans non-lus, on l'a ouverte depuis (dans une autre visite, sur un autre appareil) — elle n'est plus « non lue » ici, et le
+     service l'apprend, en UNE fois */
+  function mentionsSynchro() {
+    const vues = bord.mentions.filter(x => !x.lue && etat.conversations.some(c => c.id === x.conv && !c.nonLu));
+    if (!vues.length || typeof source.mentionsLues !== 'function') return;
+    for (const x of vues) x.lue = true;
+    source.mentionsLues(vues.map(x => x.id)).catch(() => {});
+  }
+  /* la conversation s'ouvre : ses mentions sont vues */
+  function mentionsVues(conv) {
+    const l = bord.mentions.filter(x => x.conv === conv && !x.lue);
+    if (!l.length || typeof source.mentionsLues !== 'function') return;
+    for (const x of l) x.lue = true;
+    source.mentionsLues(l.map(x => x.id)).catch(() => {});
+    if (etat.route && etat.route.vue === 'accueil') rendreAccueil();
+  }
+  function ligneMention(x) {
+    const c = etat.conversations.find(y => y.id === x.conv), nom = c ? nomConv(c) : (x.titre || 'Conversation'), quand = libelleListe(x.t);
+    return '<li class="appel-item"><button type="button" class="appel-ligne bord-mention presse' + (x.lue ? '' : ' non-lue') + '" data-mention-conv="' + esc(x.conv) + '" aria-label="' + esc(x.texte + ' — ' + nom + ', ' + quand + (x.lue ? '' : ', non lue')) + '">' + avatar(c || { initiales: '@' }) +
+      '<span class="appel-corps"><span class="appel-nom-ligne">' + esc(nom) + '</span><span class="appel-kind"><span>' + esc(x.texte) + '</span></span></span><span class="appel-heure">' + esc(quand) + '</span></button></li>';
+  }
+  /* une mention qui arrive : le tableau de bord la relit (s'il a été ouvert), la bannière la dit — sauf si sa conversation est déjà sous les yeux — et la touche ouvre la conversation */
+  async function surMention(ev) {
+    const conv = /^c_[0-9a-f]{32}$/.test(String(ev.cible)) ? String(ev.cible) : null;
+    if (!(conv && etat.conv === conv && document.visibilityState === 'visible')) notifier(ev.titre || 'OP MESSAGES', ev.texte || '', conv ? 'conv:' + conv : '');
+    if (!$('vue-accueil').dataset.pret || typeof source.mentionsRecentes !== 'function') return;
+    try { bord.mentions = await source.mentionsRecentes(); } catch (e) { return; }
+    if (conv && etat.conv === conv) mentionsVues(conv); else if (etat.route && etat.route.vue === 'accueil') rendreAccueil();
+  }
   async function chargerAccueil() {
     const n = ++bord.jeton, now = Date.now(), du = minuitDe(now), au = plusJours(du, BORD_JOURS + 1);
-    const [r1, r2, r3] = await Promise.allSettled([source.reunions(du, plusJours(du, bordJours() + 1)), source.evenements(du, au), source.appels('tous')]);
+    const [r1, r2, r3, r4] = await Promise.allSettled([source.reunions(du, plusJours(du, bordJours() + 1)), source.evenements(du, au), source.appels('tous'), typeof source.mentionsRecentes === 'function' ? source.mentionsRecentes() : Promise.resolve([])]);
     /* les collègues : une fois par séance (les membres de mes espaces), pour juger « important » */
     if (!bord.colleguesLus && Array.isArray(bord.espaces) && typeof source.espaceContacts === 'function') {
       bord.colleguesLus = true;
@@ -4759,10 +4901,11 @@
     }
     if (n !== bord.jeton) return;
     bord.charge = true;
-    bord.panne = [r1, r2, r3].filter(x => x.status === 'rejected').map(x => x.reason)[0] || null;         // une moitié qui manque se DIT (jamais un tableau vide qui ment)
+    bord.panne = [r1, r2, r3, r4].filter(x => x.status === 'rejected').map(x => x.reason)[0] || null;         // une moitié qui manque se DIT (jamais un tableau vide qui ment)
     if (r1.status === 'fulfilled') bord.reunions = r1.value;
     if (r2.status === 'fulfilled') bord.evenements = r2.value;
     if (r3.status === 'fulfilled') bord.appels = r3.value;
+    if (r4.status === 'fulfilled') { bord.mentions = r4.value; mentionsSynchro(); }
     if (etat.route && etat.route.vue === 'accueil') rendreAccueil();
   }
   function entrerAccueil() { if (modesActifs() && etat.mode !== 'pro') changerMode('pro'); rendreAccueil(); chargerAccueil(); }
@@ -4777,6 +4920,8 @@
     if (b) { reu.occurrences[b.dataset.reunion] = +b.dataset.debut || null; declencheur = b; pousser(Object.assign({}, etat.route, { feuille: 'reunion:' + b.dataset.reunion })); return; }
     const r = e.target.closest('[data-rappeler]');
     if (r) { const a = bord.appels.find(x => x.id === r.dataset.rappeler); if (a) rappeler(a, a.type, false, r); return; }
+    const mt = e.target.closest('[data-mention-conv]');
+    if (mt) { pousser({ vue: 'messages', conv: mt.dataset.mentionConv, feuille: false, photo: null, appel: null }); return; }
     const i = e.target.closest('[data-infos]');
     if (i) { const a = bord.appels.find(x => x.id === i.dataset.infos); if (a) { etat.appels = etat.appels.some(x => x.id === a.id) ? etat.appels : etat.appels.concat([a]); declencheur = i; pousser(Object.assign({}, etat.route, { feuille: 'info:' + a.id })); } return; }
     const p = e.target.closest('[data-bord-portee]');
@@ -6894,7 +7039,7 @@
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
-      if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : '');
+      if (ev.type === 'notification') { if (ev.nature === 'mention') surMention(ev); else notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : ''); }
       if (ev.type === 'retire') surRetire(ev.id);
       if (ev.type === 'avis') avis(ev.texte);
       if (ev.type === 'ouvrir') { if (ev.evenement) { if (CAP.agenda && ID_EVT.test(ev.evenement)) remplacer({ vue: 'reunions', conv: null, feuille: 'evenement:' + ev.evenement, photo: null, appel: null }); } else if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else if (ev.contacts && ORDRE.includes('contacts')) remplacer({ vue: 'contacts', conv: null, feuille: false, photo: null, appel: null }); else if (ev.conv) ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation

@@ -631,7 +631,8 @@ const MIGRATIONS = [
   /* ── 22 (8 octobre 2026) : ENVOYER PLUS TARD — « écrire un message maintenant et le programmer pour demain 8 h ». Un message PROGRAMMÉ n'est pas un message : personne d'autre ne le voit
          tant qu'il n'est pas parti (il n'entre ni dans `message`, ni dans une notification, ni dans une liste des autres). Son texte est SCELLÉ comme celui d'un message. À l'heure, le service
          l'envoie par le MÊME chemin qu'un envoi (`routes.js`, mêmes règles d'écriture jugées À CE MOMENT) ; parti ou annulé, sa ligne s'en va et le registre des purges s'en souvient
-         (genre `programme` : une restauration d'une archive d'avant ne le ferait pas repartir). ── */
+         (genre `programme` : une restauration d'une archive d'avant ne le ferait pas repartir). Les personnes CITÉES (`mentions`, des identifiants — la liste que la page a choisie) partent
+         avec lui : leur appartenance se rejuge au départ, comme tout le reste. ── */
   { v: 22, sql: [
     `CREATE TABLE IF NOT EXISTS programme(
        id TEXT PRIMARY KEY,
@@ -639,7 +640,8 @@ const MIGRATIONS = [
        auteur TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
        texte_ch BLOB NOT NULL,
        quand INTEGER NOT NULL,
-       cree INTEGER NOT NULL)`,
+       cree INTEGER NOT NULL,
+       mentions TEXT)`,
     `CREATE INDEX IF NOT EXISTS programme_quand ON programme(quand)`,
     `CREATE INDEX IF NOT EXISTS programme_auteur ON programme(auteur, conv)`,
     `PRAGMA user_version = 22`,
@@ -2263,11 +2265,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function evenementRappelAbandonner(id) { return num(Q('UPDATE evenement SET rappel_a = NULL WHERE id = ? AND rappel_a IS NOT NULL').run(id).changes) > 0; }
   /* ══ ENVOYER PLUS TARD (migration 22) ══ — un message programmé est à SON AUTEUR : lui seul le liste, l'annule ; le service l'envoie à l'heure. */
-  const progRang = (r) => r ? { id: r.id, conv: r.conv, texte: ouvrirOuNull('programme', 'texte_ch', r.id + '|texte', r.texte_ch) || '', quand: num(r.quand), cree: num(r.cree) } : null;
-  function programmeCreer({ conv, auteur, texte, quand }) {
+  /* les personnes citées : une liste d'identifiants (rien d'autre ne se relit — une colonne abîmée rend une liste vide, jamais une erreur au départ du message) */
+  const progCites = (j) => { if (!j) return []; try { const x = JSON.parse(j); return Array.isArray(x) ? x.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)).slice(0, 20) : []; } catch (e) { return []; } };
+  const progRang = (r) => r ? { id: r.id, conv: r.conv, texte: ouvrirOuNull('programme', 'texte_ch', r.id + '|texte', r.texte_ch) || '', quand: num(r.quand), cree: num(r.cree), mentions: progCites(r.mentions) } : null;
+  function programmeCreer({ conv, auteur, texte, quand, mentions }) {
     if (!PROGRAMMES) throw erreur('indisponible');
-    const id = nouvelId('g'), t = horloge();
-    Q('INSERT INTO programme(id, conv, auteur, texte_ch, quand, cree) VALUES(?, ?, ?, ?, ?, ?)').run(id, conv, auteur, sceller('programme', 'texte_ch', id + '|texte', texte), quand, t);
+    const id = nouvelId('g'), t = horloge(), cites = Array.isArray(mentions) && mentions.length ? JSON.stringify(mentions.slice(0, 20)) : null;
+    Q('INSERT INTO programme(id, conv, auteur, texte_ch, quand, cree, mentions) VALUES(?, ?, ?, ?, ?, ?, ?)').run(id, conv, auteur, sceller('programme', 'texte_ch', id + '|texte', texte), quand, t, cites);
     return progRang(Q('SELECT * FROM programme WHERE id = ?').get(id));
   }
   function programmesDe(conv, auteur) { return PROGRAMMES ? Q('SELECT * FROM programme WHERE conv = ? AND auteur = ? ORDER BY quand, id').all(conv, auteur).map(progRang) : []; }
@@ -2544,6 +2548,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;
     const texte = x.corps_ch ? ouvrirOuNull('message', 'corps_ch', aadMsg(conv, seq, x.auteur), x.corps_ch) : null;
     return { type: x.type, texte, expire_ts: x.expire_ts === null ? null : num(x.expire_ts) };
+  }
+  /* ⛔ UNE MENTION SE RE-JUGE COMME UN MESSAGE, SAUF LA SOURDINE (8 octobre 2026 : « la personne citée est prévenue même si le groupe est en sourdine ») : quittée, entrée après le message,
+     message supprimé « pour tous », masqué pour elle, éteint — rien ne part. → null, ou { muet } (la sourdine de CET instant : `routes.js` borne la cadence des mentions en sourdine). */
+  function mentionEncore({ uid, conv, seq }) {
+    const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    if (!m || seq < m.depuis_seq) return null;
+    if (!ecritureAutorisee(conv, uid)) return null;
+    const x = Q('SELECT supprime_le, expire_ts FROM message x WHERE x.conv = ? AND x.seq = ? AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(conv, seq, uid);
+    if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;
+    return { muet: num(m.muet_jusqua) > horloge() };
   }
   /* L'autre d'une conversation directe est-il un compte supprimé ? (pour dire « ce compte a été supprimé » à qui lui écrit, au lieu d'un « introuvable » muet) */
   function autreSupprime(conv, uid) {
@@ -4419,7 +4433,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
     identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler, invitationEtat, invitationMarquer, invitationEnvoyes,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
-    pushDestinatairesMessage, pushMessageEncore, autreSupprime,
+    pushDestinatairesMessage, pushMessageEncore, mentionEncore, autreSupprime,
     evenementFait, evenementReporter, programmeCreer, programmesDe, programmesCompter, programmeAnnuler, programmesEchus, programmeFini,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     presenceSalle, presenceReunion,   // le rapport de présence (migration 16)

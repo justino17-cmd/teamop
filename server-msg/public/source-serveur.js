@@ -2129,7 +2129,7 @@
        était encore dans la file : le vrai message (rangé) ET sa copie « En attente de connexion… » paraissaient ensemble, et rien ne redessinait après le retrait
        (relecture du testeur, D1 : réponse perdue, renvoi réussi, le message resté en double 35 s). */
     async function poster(p, retirer) {
-      const r = await A.envoyer(p.conv, p.texte, { cid: p.cid, reponse_a: p.reponse || undefined });
+      const r = await A.envoyer(p.conv, p.texte, { cid: p.cid, reponse_a: p.reponse || undefined, mentions: p.mentions });
       if (retirer) retirer();
       apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: 'texte', texte: p.texte, repond_a: p.reponse || null, supprime: false, modifie: null, reactions: [] });
       return r;
@@ -2284,7 +2284,9 @@
       const c = convs.get(id);
       let reponse = null;
       if (brouillon.reponse) { const q = c && c.messages.find(x => x.id === brouillon.reponse); if (q) reponse = q.seq; }
-      const p = { cid: OPMSG.nouveauCid(), conv: id, texte, reponse, t: maintenant(), essais: 0 };
+      /* les mentions (@prénom) : des identifiants de personnes, vingt au plus — le service ne prévient que les MEMBRES de la conversation */
+      const mentions = Array.isArray(brouillon.mentions) ? Array.from(new Set(brouillon.mentions.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)))).slice(0, 20) : [];
+      const p = { cid: OPMSG.nouveauCid(), conv: id, texte, reponse, t: maintenant(), essais: 0, mentions: mentions.length ? mentions : undefined };
       /* Tant qu'une file attend pour cette conversation, le suivant la REJOINT : l'ordre d'envoi est l'ordre des messages. */
       if (file.some(x => x.conv === id && !x.echec)) { file.push(p); emettre({ type: 'conversation', id }); planifierFile(0); return vueEnAttente(p); }
       try { await poster(p); return { id: p.cid, auteur: moiApi.id, t: p.t, texte, lu: null }; }
@@ -2713,8 +2715,20 @@
     const vueProgramme = (x) => ({ id: String(x.id), conv: String(x.conv), texte: String(x.texte || ''), quand: +x.quand || 0 });
     /* ⛔ `programmer` est PROGRAMMER UNE RÉUNION : deux fonctions du même nom dans la même portée, la seconde remplace la première partout — d'où des noms à part */
     async function messagesProgrammes(conv) { return (await A.messagesProgrammes(conv) || []).map(vueProgramme); }
-    async function programmerMessage(conv, texte, quand) { return vueProgramme(await A.programmerMessage(conv, texte, quand)); }
+    /* les personnes citées (@prénom) partent avec lui : le service rejuge leur appartenance au moment où il part */
+    async function programmerMessage(conv, texte, quand, mentions) {
+      const m = Array.isArray(mentions) ? Array.from(new Set(mentions.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)))).slice(0, 20) : [];
+      return vueProgramme(await A.programmerMessage(conv, texte, quand, m.length ? m : undefined));
+    }
     async function annulerProgramme(id) { await A.annulerProgramme(id); return true; }
+    /* ── les mentions reçues (8 octobre 2026) : les notifications « vous a mentionné », pour le tableau de bord ; lire = marquer lues ── */
+    async function mentionsRecentes() {
+      const r = await A.notifications();
+      return ((r && r.notifications) || []).filter(n => n && n.type === 'mention' && /^c_[0-9a-f]{32}$/.test(String(n.cible)))
+        .map(n => ({ id: String(n.id), conv: String(n.cible), titre: String(n.titre || ''), texte: String(n.texte || ''), t: +n.ts || 0, lue: !!n.lue }));
+    }
+    /* ⛔ une liste VIDE ne part pas : sans liste, le service marquerait TOUTES les notifications lues */
+    async function mentionsLues(ids) { const l = Array.isArray(ids) ? ids.filter(x => typeof x === 'string' && /^n_[0-9a-f]{32}$/.test(x)).slice(0, 200) : []; if (l.length) await A.notificationsLues(l); return true; }
     async function faitEvenement(id, fait) { return vueEvenement(await A.faitEvenement(id, fait === true)); }
     async function reporterEvenement(id, dans) { return vueEvenement(await A.reporterEvenement(id, dans)); }
     /* ── le compte par adresse e-mail (« comme Discord » : le numéro est facultatif) ──
@@ -3302,7 +3316,7 @@
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
-      messagesProgrammes, programmerMessage, annulerProgramme,
+      messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,

@@ -1214,6 +1214,19 @@ html[data-service] .mention-apercu { display: none; }
 .compo-confirme-texte { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
 .compo-confirme-boutons { display: flex; gap: 8px; margin-left: auto; }      /* les deux gestes restent ENSEMBLE, à droite, même quand la phrase prend la ligne */
 .compo-confirme-texte small { display: block; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
+/* LES MENTIONS (8 octobre 2026) : la liste « @ » se pose au-dessus du champ, comme la bande d'une réponse — un membre par ligne, sa photo et son nom en entier ; dans la bulle, le
+   « @Prénom » d'un membre est en gras, et souligné d'un voile de SA propre encre quand c'est le mien (lisible sur toutes les couleurs de bulles d'une conversation) */
+.compo-mentions { max-width: 860px; margin: 0 auto 6px; display: flex; flex-direction: column; padding: 4px; border-radius: 16px; background: var(--card); border: var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.mention-choix { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; border-radius: 12px; font-size: 16px; line-height: 20px; color: var(--text); text-align: left; }
+.mention-choix .avatar { flex: none; width: 30px; height: 30px; font-size: 12px; }
+.mention-choix > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.mention-choix[aria-selected="true"] { background: var(--field); }
+@media (hover: hover) { .mention-choix:hover { background: var(--field); } }
+.bulle .mention-nom { font-weight: 600; }
+.bulle .mention-nom.moi { padding: 0 3px; border-radius: 6px; background: color-mix(in srgb, currentColor 16%, transparent); }
+.bord-mention .appel-heure { padding-right: 14px; }
+.bord-mention.non-lue .appel-nom-ligne { font-weight: 600; }
+.bord-mention.non-lue .appel-heure::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 @media (pointer: coarse) { .compo-confirme-texte small { display: none; } .compo-confirme .mini { min-height: 44px; } }
 .side-marque b { white-space: nowrap; }      /* « OP MESSAGES PRO » tient sur une ligne dans les 236 px de la barre (mesuré : la pastille passait dessous) */
 .marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
@@ -2250,6 +2263,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <p class="compo-note" id="compo-note" hidden></p>
       <div class="compo-confirme" id="compo-confirme" role="alert" hidden><span class="compo-confirme-texte" id="compo-confirme-texte"></span><span class="compo-confirme-boutons"><button type="button" class="mini" id="compo-confirme-non">Annuler</button><button type="button" class="mini plein" id="compo-confirme-oui">Envoyer</button></span></div>
+      <div class="compo-mentions" id="compo-mentions" role="listbox" aria-label="Mentionner quelqu'un" hidden></div>
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
