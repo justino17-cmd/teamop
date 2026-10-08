@@ -101,7 +101,11 @@ const json = async (base, methode, chemin, corps, entetes) => {
   });
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-911-'));
   const port = await T.portLibre();
-  const optsSvc = { urlGestion: og.url, horloge: true, dossier: racine, port, config: { pulsationMs: 400, presenceGraceMs: 300, balayageMs: 100, beta: { relectureMs: 250, timeoutMs: 800 } } };
+  /* ⛔ LE DÉLAI DE LA PORTE EST LA MARGE DES CONNEXIONS SAINES (même leçon que test-956, 3 octobre 2026). À 800 ms, test-944 (même réglage que celui-ci) est mort en CI le
+     8 octobre 2026 sur « porte_indisponible » à l'entrée d'un appareil neuf, vert ici. Mesuré (scratchpad/sonde-porte-gel.js) : le service
+     gelé 1,2 s pendant qu'il attend OP GESTION rend 503 trois fois sur trois avec 800 ms, 200 trois fois sur trois avec 5 s — la valeur de
+     production. Ce banc ne joue pas le délai lui-même (la panne d'OP GESTION se joue connexion coupée, `og.mode = 'panne'`). */
+  const optsSvc = { urlGestion: og.url, horloge: true, dossier: racine, port, config: { pulsationMs: 400, presenceGraceMs: 300, balayageMs: 100, beta: { relectureMs: 250, timeoutMs: 5000 } } };
   let svc = await T.lancerService(optsSvc);
   const fermes = [];
   try {
