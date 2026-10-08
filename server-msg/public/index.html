@@ -1789,7 +1789,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 }
 .annot-barre[hidden] { display: none; }
 /* la fin d'un enregistrement : une carte au-dessus de tout (la salle peut être déjà fermée), comme une alerte d'iOS — le fichier n'est jamais perdu sans un geste */
-.rec-fin { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); background: rgba(0,0,0,.55); }
+.rec-fin { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 16px); background: rgba(0,0,0,.55); }
 .rec-fin[hidden] { display: none; }
 .rec-fin-carte {
   width: min(420px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 22px; color: #fff;
@@ -1800,6 +1800,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .rec-fin-carte .rec-fin-garde { font-size: 13px; line-height: 17px; text-align: center; }
 .rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
 .rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
+.rec-fin-apercu, .rec-fin-gestes { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* ⛔ UN TÉLÉPHONE EN PAYSAGE (moins de 520 px de haut) : en colonne, la carte ne tenait pas et ses trois gestes passaient SOUS le pli — mesuré à 844 × 390 (8 octobre
+   2026) : la carte 337 px, « Envoyer » à 383 px, « Supprimer » à 585 px. Rien n'était perdu (la carte défile), mais rien ne disait qu'il fallait défiler, et l'appel en
+   vidéo se tient souvent en paysage. L'aperçu à gauche (l'image bornée en hauteur), les gestes à droite : tout se voit d'un coup. L'encoche, sur le côté en paysage, est
+   rendue par le calque. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .rec-fin-carte { width: min(780px, 100%); flex-direction: row; align-items: flex-start; gap: 16px; }
+  .rec-fin-apercu { flex: 1.25 1 0; }
+  .rec-fin-gestes { flex: 1 1 0; }
+  .rec-fin-carte video { max-height: 42dvh; }
+}
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
 @media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
 /* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
@@ -2429,14 +2440,18 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 <p class="sr-seul" id="annonce-appel" role="status" aria-live="polite" aria-atomic="true"></p>
 <div class="rec-fin" id="rec-fin" role="alertdialog" aria-modal="true" aria-labelledby="rec-fin-titre" aria-describedby="rec-fin-info" hidden>
   <div class="rec-fin-carte">
-    <h3 id="rec-fin-titre">Enregistrement terminé</h3>
-    <p id="rec-fin-info"></p>
-    <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
-    <p id="rec-fin-absents" hidden></p>
-    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer à tous les participants</button>
-    <p class="rec-fin-garde" id="rec-fin-garde">Dans la discussion de la réunion, gardé 3 jours puis supprimé automatiquement.</p>
-    <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
-    <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
+    <div class="rec-fin-apercu">
+      <h3 id="rec-fin-titre">Enregistrement terminé</h3>
+      <p id="rec-fin-info"></p>
+      <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
+      <p id="rec-fin-absents" hidden></p>
+    </div>
+    <div class="rec-fin-gestes">
+      <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer à tous les participants</button>
+      <p class="rec-fin-garde" id="rec-fin-garde">Dans la discussion de la réunion, gardé 3 jours puis supprimé automatiquement.</p>
+      <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
+      <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
+    </div>
   </div>
 </div>
 
