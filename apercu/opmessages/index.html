@@ -1804,6 +1804,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .carte-liste > li.bord-jour::after { display: none; }
 .bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
 .bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#vue-accueil > #bord-portee { max-width: 320px; margin-inline: auto; }        /* comme l'Agenda : un petit segmenté centré, jamais une barre de toute la largeur */
+.bord-plus { list-style: none; }
+.bord-plus button { width: 100%; min-height: 44px; padding: 0 14px; font-size: 15px; color: var(--accent); text-align: left; }
 .bord-vide button { min-height: 44px; padding: 0 14px; border-radius: 22px; font-size: 15px; font-weight: 600; background: var(--field); color: var(--accent); }
 #bord-appels { --sep-retrait: 66px; }
 #vue-accueil .carte-liste { margin-bottom: 24px; }          /* trois blocs : l'intertitre du suivant ne colle pas à la carte d'avant */
@@ -7015,7 +7018,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      ⛔ « IMPORTANT » SE DIT : un appel manqué n'entre ici que s'il n'a pas été rendu depuis (aucun appel pris ou passé avec la même personne après lui), et s'il vient de quelqu'un qui a
      insisté (deux appels d'affilée ou plus), d'un favori, ou d'un collègue d'un espace — la raison est écrite sur la ligne. Les autres restent dans « Appels ». */
   const BORD_JOURS = 7;
-  const bord = { charge: false, panne: null, reunions: [], evenements: [], appels: [], collegues: new Set(), espaces: [], colleguesLus: false, jeton: 0 };
+  /* ⛔ LES RÉUNIONS PRÉVUES : LA SEMAINE OU LE MOIS, ET RIEN À PROGRAMMER D'ICI (8 octobre 2026, capture à l'appui : « il faudrait les réunions programmées dans la semaine ou le
+     mois, mais pas de programmer une réunion à partir d'ici »). Deux portées glissantes depuis maintenant — les 7 ou les 30 prochains jours, jamais « le reste du mois » qui ne
+     montrerait qu'un jour le 30 —, le choix retenu par le COMPTE (`prefs.bord_reunions`). Une séance déjà TERMINÉE n'est plus « prévue ». On programme depuis l'Agenda. */
+  const BORD_PORTEES = { semaine: 7, mois: 30 }, BORD_MAX = 12;
+  const bord = { charge: false, panne: null, reunions: [], evenements: [], appels: [], collegues: new Set(), espaces: [], colleguesLus: false, jeton: 0, portee: 'semaine' };
+  const bordJours = () => BORD_PORTEES[bord.portee] || BORD_JOURS;
   function libelleJourBord(j) { const n = ecartJours(Date.now(), j); return n === 0 ? 'Aujourd\'hui' : n === 1 ? 'Demain' : maj1(FMT_JOUR_LONG.format(j)); }
   function appelsImportants(liste) {
     const t0 = Date.now() - BORD_JOURS * 86400000, out = [];
@@ -7036,21 +7044,27 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (!sec.dataset.pret) {
       sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-accueil">Tableau de bord</h1><p class="bord-date" id="bord-date"></p>' +
         '<p class="info-note" id="bord-erreur" role="status" hidden></p>' +
-        '<div class="rubrique"><span>Réunions prévues</span><span id="bord-reunions-n"></span></div><ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
+        '<div class="rubrique"><span>Réunions prévues</span><span id="bord-reunions-n"></span></div>' +
+        '<div class="seg" id="bord-portee" role="group" aria-label="Réunions prévues : la semaine ou le mois"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-bord-portee="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-bord-portee="mois" aria-pressed="false">Mois</button></div>' +
+        '<ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
         '<div class="rubrique"><span>Rappels</span><span id="bord-rappels-n"></span></div><ul class="carte-liste" id="bord-rappels" role="list" aria-label="Rappels"></ul>' +
         '<div class="rubrique"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
       sec.dataset.pret = '1';
+      bord.portee = typeof source.bordReunions === 'function' && source.bordReunions() === 'mois' ? 'mois' : 'semaine';
     }
+    const seg = $('bord-portee'); seg.style.setProperty('--i', bord.portee === 'mois' ? 1 : 0);
+    for (const b of seg.querySelectorAll('[data-bord-portee]')) b.setAttribute('aria-pressed', b.dataset.bordPortee === bord.portee ? 'true' : 'false');
     $('bord-date').textContent = maj1(FMT_JOUR_LONG.format(Date.now()));
     $('bord-erreur').hidden = !bord.panne; if (bord.panne) $('bord-erreur').textContent = phrase(bord.panne, 'Le tableau de bord n\'a pas pu être chargé entièrement.');
-    const att = !bord.charge ? '<li class="vide">Chargement…</li>' : null, now = Date.now(), fin = now + BORD_JOURS * 86400000;
-    /* les réunions des sept prochains jours (en cours comprises), un intertitre par jour */
+    const att = !bord.charge ? '<li class="vide">Chargement…</li>' : null, now = Date.now(), nj = bordJours(), fin = now + nj * 86400000;
+    /* les réunions des 7 ou 30 prochains jours (en cours comprises, terminées exclues), un intertitre par jour */
     const occ = [];
-    for (const r of bord.reunions) if (!r.annulee) for (const o of r.occurrences) if (o.fin > now && o.debut < fin) occ.push({ r, o });
+    for (const r of bord.reunions) if (!r.annulee) for (const o of r.occurrences) if (o.fin > now && o.debut < fin && !(o.seance && !r.salleOuverte)) occ.push({ r, o });
     occ.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
     let h = '', jp = null;
-    for (const x of occ.slice(0, 10)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
-    $('bord-reunions').innerHTML = att || h || '<li class="bord-vide"><span>Aucune réunion dans les sept prochains jours.</span>' + (CAP.reunions ? '<button type="button" class="presse" data-bord="programmer">Programmer</button>' : '') + '</li>';
+    for (const x of occ.slice(0, BORD_MAX)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
+    if (occ.length > BORD_MAX && CAP.reunions) h += '<li class="bord-plus"><button type="button" class="presse" data-bord="agenda">' + esc('Voir les ' + (occ.length - BORD_MAX) + (occ.length - BORD_MAX > 1 ? ' autres' : ' autre') + ' dans l\'Agenda') + '</button></li>';
+    $('bord-reunions').innerHTML = att || h || '<li class="bord-vide"><span>' + esc('Aucune réunion dans les ' + nj + ' prochains jours.') + '</span></li>';
     $('bord-reunions-n').textContent = occ.length ? String(occ.length) : '';
     /* les rappels : les événements d'aujourd'hui, et ceux à venir qui portent un rappel */
     const auj = minuitDe(now), demain = plusJours(auj, 1);
@@ -7067,7 +7081,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   async function chargerAccueil() {
     const n = ++bord.jeton, now = Date.now(), du = minuitDe(now), au = plusJours(du, BORD_JOURS + 1);
-    const [r1, r2, r3] = await Promise.allSettled([source.reunions(du, au), source.evenements(du, au), source.appels('tous')]);
+    const [r1, r2, r3] = await Promise.allSettled([source.reunions(du, plusJours(du, bordJours() + 1)), source.evenements(du, au), source.appels('tous')]);
     /* les collègues : une fois par séance (les membres de mes espaces), pour juger « important » */
     if (!bord.colleguesLus && Array.isArray(bord.espaces) && typeof source.espaceContacts === 'function') {
       bord.colleguesLus = true;
@@ -7093,9 +7107,18 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (r) { const a = bord.appels.find(x => x.id === r.dataset.rappeler); if (a) rappeler(a, a.type, false, r); return; }
     const i = e.target.closest('[data-infos]');
     if (i) { const a = bord.appels.find(x => x.id === i.dataset.infos); if (a) { etat.appels = etat.appels.some(x => x.id === a.id) ? etat.appels : etat.appels.concat([a]); declencheur = i; pousser(Object.assign({}, etat.route, { feuille: 'info:' + a.id })); } return; }
+    const p = e.target.closest('[data-bord-portee]');
+    if (p) { changerPorteeBord(p.dataset.bordPortee); return; }
     const g = e.target.closest('[data-bord]');
-    if (g) { declencheur = g; ouvrirFeuille(g.dataset.bord === 'programmer' ? 'reunion-new' : 'evenement-new'); }
+    if (g && g.dataset.bord === 'agenda') { pousser({ vue: 'reunions', conv: null, feuille: null, photo: null, appel: null }); return; }
+    if (g) { declencheur = g; ouvrirFeuille('evenement-new'); }
   });
+  /* la semaine ou le mois : filtré tout de suite sur ce qu'on a, relu sur la nouvelle fenêtre, retenu par le compte (refusé, le choix vaut pour cette visite) */
+  function changerPorteeBord(v) {
+    if (v !== 'semaine' && v !== 'mois' || v === bord.portee) return;
+    bord.portee = v; rendreAccueil(); chargerAccueil();
+    if (typeof source.choisirBordReunions === 'function') source.choisirBordReunions(v).catch(() => {});
+  }
   /* on arrive sur l'onglet : la semaine du jour, relue (elle a pu changer ailleurs) */
   function entrerReunions() {
     if (!CAP.reunions || !$('vue-reunions').dataset.pret) return;

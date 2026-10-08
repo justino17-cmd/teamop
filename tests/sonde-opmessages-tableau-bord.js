@@ -7,6 +7,9 @@
      4. « Appels manqués importants » : Dan (deux appels d'affilée : « A appelé 2 fois ») et Cléo (collègue de l'espace : « Collègue ») — PAS Ben (un seul appel, ni favori ni
         collègue : il reste dans Appels) ; Ana rappelle Cléo → Cléo QUITTE le tableau (rendu) ;
      5. au bureau (1280 px) : l'onglet s'appelle « Tableau de bord » dans la barre latérale ; aucune erreur JavaScript.
+     6. (8 octobre 2026 : « les réunions programmées dans la semaine ou le mois, mais pas de programmer une réunion à partir d'ici ») « Semaine | Mois » : la réunion dans
+        douze jours ne paraît qu'au MOIS, le choix est retenu par le COMPTE (le bureau s'ouvre dessus) ; une séance TERMINÉE n'est plus « prévue » ; ⛔ aucun « Programmer »
+        — Cléo, Pro et sans réunion, lit « Aucune réunion dans les 7 / 30 prochains jours. » et rien d'autre.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-tableau-bord.js   (CAPTURES=/dossier pour les images)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -51,8 +54,16 @@ function localDans(t, tz) {
     v('population : Ana est Pro (son espace est abonné), Ben est Perso', [(await P.ana.get('/api/espaces')).j.formule, (await P.ben.get('/api/espaces')).j.formule], ['pro', 'perso']);
     /* une réunion aujourd'hui (dans deux heures), un événement demain avec un rappel */
     const t0 = Math.ceil((Date.now() + 2 * H) / (15 * 60000)) * 15 * 60000;
-    const reu = await P.ana.post('/api/reunions', { titre: 'Point chantier WQXZ', lieu: 'Dépôt', debut: localDans(t0, PARIS), fin: localDans(t0 + H, PARIS), tz: PARIS, invites: [P.cleo.moi.id], notifier: false });
+    const reu = await P.ana.post('/api/reunions', { titre: 'Point chantier WQXZ', lieu: 'Dépôt', debut: localDans(t0, PARIS), fin: localDans(t0 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false });
     v('population : la réunion est programmée', reu.code, 201);
+    /* une autre dans douze jours (au MOIS seulement), et une troisième que la salle a déjà vue finir (« terminée pour tous ») : elle n'est plus prévue */
+    const t12 = t0 + 12 * JOUR;
+    const reu12 = await P.ana.post('/api/reunions', { titre: 'Revue mensuelle WQXZ', debut: localDans(t12, PARIS), fin: localDans(t12 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false });
+    const tf = Date.now() + 2 * 60000, reuF = await P.ana.post('/api/reunions', { titre: 'Point fini WQXZ', debut: localDans(tf, PARIS), fin: localDans(tf + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false });
+    const salleF = reuF.code === 201 ? await P.ana.post('/api/reunions/' + reuF.j.reunion.id + '/rejoindre', {}) : { j: {} };
+    const finF = salleF.j && salleF.j.appel ? await P.ana.post('/api/salles/' + salleF.j.appel.id + '/terminer', {}) : { code: 0 };
+    v('population : la réunion dans douze jours, et celle qu\'Ana a ouverte puis TERMINÉE pour tous', [reu12.code, reuF.code, finF.code], [201, 201, 200]);
+    v('population : Cléo est Pro (membre de l\'espace abonné) et n\'est invitée nulle part', (await P.cleo.get('/api/espaces')).j.formule, 'pro');
     /* demain à midi, À PARIS (l'heure locale part telle quelle, avec son fuseau) : pas aujourd'hui — il n'entre au tableau que par son RAPPEL */
     const demainParis = localDans(Date.now() + JOUR, PARIS).slice(0, 10);
     const evt = await P.ana.post('/api/agenda', { titre: 'Rappeler le fournisseur WQXZ', debut: demainParis + 'T12:00', fin: demainParis + 'T12:30', tz: PARIS, rappel: 30 });
@@ -93,6 +104,13 @@ function localDans(t, tz) {
     /* l'intertitre attendu se CALCULE (à Paris) : la réunion, dans deux heures, peut tomber demain si la sonde tourne le soir */
     const jourDe = (t) => localDans(t, PARIS).slice(0, 10), libelle = (t) => jourDe(t) === jourDe(Date.now()) ? 'Aujourd\'hui' : jourDe(t) === jourDe(Date.now() + JOUR) ? 'Demain' : null;
     vrai('la réunion d\'Ana paraît, sous « ' + libelle(t0) + ' »', await att(A, (lb) => { const l = document.getElementById('bord-reunions'); const j = l.querySelector('.bord-jour'); return !!j && j.textContent === lb && /Point chantier WQXZ/.test(l.textContent); }, libelle(t0)));
+    const bordReu = () => A.page.evaluate(() => ({ texte: document.getElementById('bord-reunions').textContent, seg: Array.from(document.querySelectorAll('#bord-portee [data-bord-portee]')).map(x => x.textContent + ':' + x.getAttribute('aria-pressed')), programmer: !!document.querySelector('#vue-accueil [data-bord="programmer"]') || /Programmer/.test(document.getElementById('vue-accueil').textContent) }));
+    v('⛔ « Semaine » (le défaut) : la réunion du jour, PAS celle dans douze jours, PAS la séance terminée ; le segmenté dit « Semaine » ; aucun « Programmer »', await bordReu().then(x => [/Point chantier WQXZ/.test(x.texte), /Revue mensuelle WQXZ/.test(x.texte), /Point fini WQXZ/.test(x.texte), x.seg, x.programmer]), [true, false, false, ['Semaine:true', 'Mois:false'], false]);
+    await A.page.locator('#bord-portee [data-bord-portee="mois"]').tap();
+    vrai('« Mois » : la réunion dans douze jours paraît (relue sur 30 jours), la séance terminée toujours pas', await att(A, () => { const t = document.getElementById('bord-reunions').textContent; return /Revue mensuelle WQXZ/.test(t) && /Point chantier WQXZ/.test(t) && !/Point fini WQXZ/.test(t) && document.querySelector('#bord-portee [data-bord-portee="mois"]').getAttribute('aria-pressed') === 'true'; }), JSON.stringify(await bordReu()));
+    vrai('⛔ le COMPTE retient « Mois » (prefs.bord_reunions), sans toucher la vue de l\'Agenda', await att(A, () => true) && await (async () => { for (let i = 0; i < 30; i++) { const m = (await P.ana.get('/api/moi')).j.moi.prefs || {}; if (m.bord_reunions === 'mois') return m.agenda_vue !== 'mois'; await new Promise(r => setTimeout(r, 100)); } return false; })());
+    await capture(A, 'bord-1b-mois');
+
     console.log('\n3. Les rappels');
     vrai('l\'événement de demain, avec son rappel, sous « Demain »', await att(A, () => { const l = document.getElementById('bord-rappels'); const j = l.querySelector('.bord-jour'); return !!j && j.textContent === 'Demain' && /Rappeler le fournisseur WQXZ/.test(l.textContent) && /Rappel 30 min avant/.test(l.textContent); }));
 
@@ -118,7 +136,19 @@ function localDans(t, tz) {
     await A2.page.locator('#nav-side [data-vue="accueil"]').click();
     vrai('le tableau s\'ouvre, ses trois blocs remplis', await att(A2, () => /Point chantier WQXZ/.test(document.getElementById('bord-reunions').textContent) && /fournisseur/.test(document.getElementById('bord-rappels').textContent) && /Dan Banc/.test(document.getElementById('bord-appels').textContent)));
     await capture(A2, 'bord-2-bureau');
-    v('aucune erreur JavaScript (Ben, Ana au téléphone, Ana au bureau)', [B.erreurs, A.erreurs, A2.erreurs], [[], [], []]);
+    vrai('le bureau s\'ouvre sur « Mois » (le choix du téléphone, retenu par le compte) : la réunion dans douze jours est là', await att(A2, () => document.querySelector('#bord-portee [data-bord-portee="mois"]').getAttribute('aria-pressed') === 'true' && /Revue mensuelle WQXZ/.test(document.getElementById('bord-reunions').textContent)));
+
+    console.log('\n6. Sans réunion : rien à programmer d\'ici');
+    const C = await ouvrir('cleo', TEL);
+    await C.page.locator('.cote-seg-liste [data-cote="pro"]').tap().catch(() => {});
+    await att(C, () => !!document.querySelector('#tabs .tab[data-vue="accueil"]'));
+    await C.page.locator('#tabs .tab[data-vue="accueil"]').tap();
+    const vide = () => C.page.evaluate(() => { const l = document.getElementById('bord-reunions'); return { texte: l.textContent.trim(), boutons: l.querySelectorAll('button').length }; });
+    vrai('⛔ Cléo (Pro, aucune réunion) : « Aucune réunion dans les 7 prochains jours. » et AUCUN bouton', await att(C, () => { const l = document.getElementById('bord-reunions'); return l.textContent.trim() === 'Aucune réunion dans les 7 prochains jours.' && !l.querySelector('button'); }), JSON.stringify(await vide()));
+    await C.page.locator('#bord-portee [data-bord-portee="mois"]').tap();
+    vrai('« Mois » : « Aucune réunion dans les 30 prochains jours. », toujours sans bouton', await att(C, () => { const l = document.getElementById('bord-reunions'); return l.textContent.trim() === 'Aucune réunion dans les 30 prochains jours.' && !l.querySelector('button'); }), JSON.stringify(await vide()));
+    await capture(C, 'bord-3-vide-mois');
+    v('aucune erreur JavaScript (Ben, Ana au téléphone, Ana au bureau, Cléo)', [B.erreurs, A.erreurs, A2.erreurs, C.erreurs], [[], [], [], []]);
   } catch (e) {
     vrai('la sonde est morte : ' + (e && e.stack || e), false);
   } finally {

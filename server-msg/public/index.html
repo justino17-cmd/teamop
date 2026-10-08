@@ -1808,6 +1808,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .carte-liste > li.bord-jour::after { display: none; }
 .bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
 .bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#vue-accueil > #bord-portee { max-width: 320px; margin-inline: auto; }        /* comme l'Agenda : un petit segmenté centré, jamais une barre de toute la largeur */
+.bord-plus { list-style: none; }
+.bord-plus button { width: 100%; min-height: 44px; padding: 0 14px; font-size: 15px; color: var(--accent); text-align: left; }
 .bord-vide button { min-height: 44px; padding: 0 14px; border-radius: 22px; font-size: 15px; font-weight: 600; background: var(--field); color: var(--accent); }
 #bord-appels { --sep-retrait: 66px; }
 #vue-accueil .carte-liste { margin-bottom: 24px; }          /* trois blocs : l'intertitre du suivant ne colle pas à la carte d'avant */

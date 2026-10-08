@@ -2938,6 +2938,14 @@
       moiApi = r; noter(r);
       return agendaVue();
     }
+    /* le tableau de bord : les réunions prévues des 7 ou des 30 prochains jours (8 octobre 2026 : « les réunions programmées dans la semaine ou le mois ») — retenu par le compte */
+    const bordReunions = () => moiApi && moiApi.prefs && moiApi.prefs.bord_reunions === 'mois' ? 'mois' : 'semaine';
+    async function choisirBordReunions(v) {
+      if (v !== 'semaine' && v !== 'mois') throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { bord_reunions: v } });
+      moiApi = r; noter(r);
+      return bordReunions();
+    }
     async function rangerCote(id, cote) {
       if (cote !== null && cote !== 'perso' && cote !== 'pro') throw erreurLocale('invalide');
       await A.prefs(id, { cote });
@@ -3297,7 +3305,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
-      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue,                                                                            // Perso / Pro
+      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
