@@ -192,6 +192,22 @@ const geometrie = (S) => S.page.evaluate(() => {
     const evF = (((await A0.get('/api/agenda?du=' + (avantRep - 3600000) + '&au=' + (avantRep + 2 * 86400000))).j.evenements) || []).find(x => x.id === ev.id);
     vrai('⛔ « Marquer comme fait » : le SERVICE le tient fait, et il ne sonnera plus', !!evF && typeof evF.fait === 'number' && evF.rappelEnAttente === false, evF);
 
+    /* ⛔ 6. LA FICHE OUVERTE PAR UN GESTE (8 octobre 2026, test de A à Z sur la bêta) : « Voir le message » touché depuis l'Agenda ou le tableau de bord fermait la fiche et ne
+       menait NULLE PART — fermer rendait l'entrée par history.back(), dont le popstate réappliquait la vue d'avant par-dessus la conversation. Le § 5 ne pouvait pas le voir : sa
+       fiche est ouverte par un LIEN (rien à rendre). */
+    console.log('\n── 6. Au bureau, la fiche touchée dans l\'Agenda : « Voir le message », puis le retour ──');
+    await A.page.evaluate(() => { location.hash = '#reunions'; });
+    vrai('population : l\'Agenda liste le rappel (fait) du jour', await attendre(A, () => Array.from(document.querySelectorAll('button.evenement-ligne')).some(x => x.offsetWidth > 0 && /Rappel : Peux-tu/.test(x.getAttribute('aria-label') || x.textContent))));
+    await A.page.locator('button.evenement-ligne').filter({ hasText: 'Rappel : Peux-tu' }).filter({ visible: true }).first().click();
+    vrai('la fiche s\'ouvre par le geste (une entrée d\'historique posée)', await attendre(A, () => !!document.querySelector('#info-corps [data-evt="voir"]') && !!(history.state && history.state.opmsg && history.state.n > 0)));
+    await A.page.locator('#info-corps [data-evt="voir"]').click();
+    vrai('⛔ « Voir le message » : la conversation avec Ben S\'OUVRE (la vue Messages, son adresse), et son message est marqué',
+      await attendre(A, (c) => location.hash === '#messages/' + c && !document.getElementById('vue-messages').hidden && Array.from(document.querySelectorAll('#conv-messages .msg')).some(x => x.textContent.includes('Peux-tu rappeler') && x.classList.contains('msg-cible')), AB),
+      await A.page.evaluate(() => ({ hash: location.hash, fiche: !!document.querySelector('#info-corps [data-evt="voir"]') })));
+    await A.page.waitForTimeout(400);
+    await A.page.goBack();
+    vrai('… et le retour ramène à l\'Agenda d\'où la fiche était partie (l\'entrée de la fiche est devenue la conversation)', await attendre(A, () => location.hash === '#reunions' && !document.getElementById('vue-reunions').hidden));
+
     v('aucune erreur JavaScript', [A.erreurs, P.erreurs], [[], []]);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }
   fin();

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '356a30cc91f1';
+  const OPMSG_BUILD = 'ca81a23baa34';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 132;
+  const OPMSG_VERSION = 133;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -799,10 +799,14 @@
   /* ⛔ « VOIR LE MESSAGE » (8 octobre 2026) : un rappel posé sur un message y ramène. La conversation s'ouvre, le message est AMENÉ au centre et marqué un instant ; plus ancien que ce que la
      page a chargé, l'historique se charge jusqu'à lui (vingt pages au plus). Disparu (supprimé, éphémère échu, conversation quittée), on le DIT — jamais un saut silencieux en bas. */
   const cibleMsg = { conv: null, seq: 0, pages: 0 };
-  function voirMessage(conv, seq) {
+  /* `remplacerEntree` : on part d'une FICHE posée par un geste (le rappel, touché dans l'Agenda ou le tableau de bord) — son entrée d'historique devient la conversation, et le
+     retour ramène là d'où la fiche était partie. */
+  function voirMessage(conv, seq, remplacerEntree) {
     cibleMsg.conv = conv; cibleMsg.seq = seq; cibleMsg.pages = 0;
-    if (etat.conv === conv && etat.convDonnees) { allerAuMessage(); return; }
-    pousser({ vue: 'messages', conv, feuille: false, photo: null, appel: null });
+    const ouverte = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages';
+    if (ouverte && !remplacerEntree) { allerAuMessage(); return; }
+    (remplacerEntree ? remplacer : pousser)({ vue: 'messages', conv, feuille: false, photo: null, appel: null });
+    if (ouverte) allerAuMessage();                 // déjà à l'écran derrière la fiche : la route ne la rouvre pas, on va au message
   }
   async function allerAuMessage() {
     const c = etat.convDonnees;
@@ -5084,9 +5088,14 @@
   }
   function evtVoir() {
     const F = reu.formEvt; if (!F || !F.source) return;
-    const cible = F.source;
-    fermerCouche();
-    voirMessage(cible.conv, cible.seq);
+    /* ⛔ JAMAIS fermerCouche() PUIS pousser() quand la fiche a une entrée à rendre : fermer la rend par history.back(), dont le popstate n'arrive qu'APRÈS — et réappliquait la
+       vue d'avant par-dessus la conversation. Vu au test de A à Z sur la bêta (8 octobre 2026) : « Voir le message », touché depuis le tableau de bord ou l'Agenda, fermait la
+       fiche et ne menait nulle part ; seule la fiche ouverte par un LIEN (une notification) marchait — la seule que la sonde jouait. On remplace alors l'entrée de la fiche par
+       la conversation ; arrivé par un lien (rien à rendre), fermerCouche remplace par la vue d'en dessous, sans attendre, puis la conversation se pousse. */
+    const cible = F.source, parent = parentDe(etat.route), h = entree();      // (« cible » : lu à travers « F », le générateur croirait à une méthode de la source)
+    const aRendre = !!(parent && h && h.n > 0 && h.p && memeRoute(h.p, parent));
+    if (!aRendre) fermerCouche();
+    voirMessage(cible.conv, cible.seq, aRendre);
   }
   async function evtSupprimer(b) {
     const F = reu.formEvt; if (!F || !F.id) return;
