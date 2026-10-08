@@ -178,9 +178,15 @@ async function monter(config, env) {
       const q = await a.post('/api/compte/supprimer', { confirmation: 'SUPPRIMER' });
       const ev = await fB.attendre(x => x.event === 'appel' && x.data.id === id && x.data.nb === 2 && !x.data.participants.some(p => p.id === ana.id));
       v('⛔ Ana (l\'hôte) demande la suppression de son compte PENDANT la salle : elle en sort à l\'instant, ses sessions sont coupées (401), Ben et Cleo continuent — Ben, le plus ancien, devient hôte', [q.code, dit(await a.get('/api/appels')), statuts(id, [ana.id, ben.id, cleo.id]), M.S.appelAcces(id, ben.id).grade, etatSalle(id, ben.id), ev.data.nb], [200, [401, 'session_requise'], ['parti', 'present', 'present'], 2, 'en_cours', 2]);
-      M.avancer(14 * JOUR + HEURE);
+      /* ⛔ ON AVANCE L'ÉCHÉANCE, PAS L'HORLOGE (8 octobre 2026, déploiement du 3f4cf467 bloqué : « [0,[],"fini",null] »). Avancer l'horloge de quatorze jours, c'était aussi
+         quatorze jours sans un signe de Ben ni de Cleo : le balayeur des appels (300 ms, pour de vrai) avait le DROIT de les dire « perdus », et la salle finissait — selon qu'il
+         passait avant ou après la lecture. Une course, gagnée presque toujours, perdue une fois en CI. Le délai lui-même (J+14) est gardé par test-950 ; ici, on lit qu'il est
+         POSÉ, puis on le rend échu, et le VRAI service efface le compte à son passage. */
+      const ech = M.S.suppressionLe(ana.id);
+      vrai('population : la demande a posé l\'échéance à J+14', ech !== null && ech > M.maintenant() + 13 * JOUR && ech <= M.maintenant() + 15 * JOUR, String(ech));
+      { const d = new DatabaseSync(M.chemin); try { d.exec('PRAGMA busy_timeout = 5000'); d.prepare('UPDATE personne SET suppression_le = ? WHERE id = ?').run(M.maintenant() - SEC, ana.id); } finally { d.close(); } }
       const efface = await T.attendre(() => M.sql('SELECT etat FROM personne WHERE id = ?', ana.id).etat === 'supprime', 10000, 40);
-      vrai('population : le compte d\'Ana a été effacé par le service (quatorze jours + une heure plus tard)', !!efface);
+      vrai('population : le compte d\'Ana a été effacé par le service, à son échéance', !!efface);
       const lignes = Number(M.sql('SELECT COUNT(*) AS n FROM appel_part WHERE uid = ?', ana.id).n);
       const vb = (await b.get('/api/salles/' + id));
       v('⛔ l\'effacement retire sa ligne de la salle : Ben et Cleo la voient sans elle, sans nom, et la salle COURT toujours', [lignes, vb.j.appel.participants.map(p => p.prenom).sort(), vb.j.appel.etat, vb.j.appel.autre], [0, ['Ben', 'Cleo'], 'en_cours', null]);
