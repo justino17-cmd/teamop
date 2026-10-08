@@ -107,7 +107,8 @@ async function controler(PAGE, SRC, DOC) {
   /* ⛔ ET AUCUN TEXTE VENU D'UNE PERSONNE NE S'ÉCRIT SANS ELLE : on cherche le CODE (une concaténation nue), pas une phrase */
   const nus = [...JS.matchAll(/\+\s*(m\.texte|c\.nom|c\.court|c\.apercu|c\.id|c\.initiales|m\.id|p\.url|m\.vocal\.url|G\.nom|c\.role|nomAuteur\([^)]*\)|prenom\([^)]*\))\s*\+/g)].map(m => m[1]);
   v('(population) ' + (JS.match(/esc\(/g) || []).length + ' appels à esc() dans la page — aucun texte d\'une bulle, d\'un nom ou d\'un aperçu n\'est concaténé SANS esc() (« sans esc »)', nus, []);
-  vrai('le texte d\'une bulle et l\'aperçu de la liste passent par esc()', /'<span class="bulle ' \+ sens \+ '" dir="auto">' \+ esc\(m\.texte\) \+ '<\/span>'/.test(JS) && /esc\(c\.apercu\)/.test(JS) && /esc\(c\.nom\)/.test(JS) && /esc\(m\.texte\)/.test(JS));
+  /* (le texte d'une bulle passe par `texteMentions`, qui l'échappe MORCEAU PAR MORCEAU — exécutée plus bas, § « les mentions ») */
+  vrai('le texte d\'une bulle et l\'aperçu de la liste passent par esc()', /'<span class="bulle ' \+ sens \+ '" dir="auto">' \+ texteMentions\(m\.texte, c\) \+ '<\/span>'/.test(JS) && /if \(s\.indexOf\('@'\) < 0 \|\| !multi\(c\)\) return esc\(s\);/.test(JS) && /esc\(c\.apercu\)/.test(JS) && /esc\(c\.nom\)/.test(JS) && /esc\(m\.texte\)/.test(JS));
   vrai('⛔ ni innerHTML ni insertAdjacentHTML ne reçoit directement la valeur d\'un champ (le texte tapé n\'arrive jamais qu\'en value ou par esc)', !/innerHTML\s*=\s*[^;]*\.value\b/.test(JS) && !/insertAdjacentHTML\([^)]*\.value\b/.test(JS) && !/\$\('saisie'\)\.innerHTML/.test(JS));
   vrai('une adresse d\'image n\'entre dans le balisage que si elle commence par blob: (aucune adresse venue d\'ailleurs), et passe par esc()', /const blob = u => typeof u === 'string' && \/\^blob:https\?:/.test(JS) && /blob\(p\.url\)/.test(JS) && /blob\(c\.photo\)/.test(JS));
   {
@@ -348,8 +349,11 @@ async function controler(PAGE, SRC, DOC) {
   vrai('le menu d\'un message s\'ancre à la rangée du message (dès 700 px, si le navigateur sait l\'ancre) et l\'ancre part avec lui',
     /@supports \(anchor-name: --menu-msg\)/.test(CSS) && /\.menu-fond\.ancre \.menu-msg \{ position: fixed; position-anchor: --menu-msg;/.test(CSS) && /if \(ancre\) \{ ancre\.classList\.add\('menu-ancre'\); \$\('menu-fond'\)\.classList\.add\('ancre'\);/.test(JS)
       && /\$\('conv-messages'\)\.querySelectorAll\('\.menu-ancre'\)\.forEach\(x => x\.classList\.remove\('menu-ancre'\)\);/.test(JS));
-  vrai('« Me le rappeler » pose un ÉVÉNEMENT de l\'agenda, rappel à l\'heure (rien de neuf côté service)',
-    /await source\.creerEvenement\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \}\);/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
+  vrai('« Me le rappeler » pose un ÉVÉNEMENT de l\'agenda, rappel à l\'heure, avec le CHEMIN vers son message (conversation et rang — jamais une copie)',
+    /await source\.creerEvenement\(Object\.assign\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \},\s*Number\.isSafeInteger\(m\.seq\)[^;]*\{ source: \{ conv: c\.id, seq: m\.seq \} \}/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
+  vrai('⛔ un rappel se COCHE (le tableau de bord ne montre plus un rappel fait), se REPORTE (l\'heure calculée par le service), et « Voir le message » va au message — chargé de l\'historique s\'il le faut, et DIT s\'il a disparu',
+    /bord\.evenements\.filter\(e => !e\.fait && /.test(JS) && /source\.reporterEvenement\(F\.id, dans\)/.test(JS) && /source\.faitEvenement\(F\.id, !F\.fait\)/.test(JS)
+      && /await source\.precedents\(c\.id\);[^]*?return allerAuMessage\(\);/.test(JS) && /mot\('Ce message n\\'est plus dans la conversation\.'\)/.test(JS) && /if \(cibleMsg\.conv === id\) allerAuMessage\(\);/.test(JS));
   vrai('l\'Agenda au mois : la fenêtre chargée est celle qu\'on voit (le mois entier en semaines), et le choix va au COMPTE',
     /const n = \+\+reu\.jeton, \[du, au\] = fenetreAgenda\(\);/.test(JS) && /if \(M\) rendreMois\(auj\);/.test(JS) && /source\.choisirAgendaVue\(v\)/.test(JS) && /reu\.vue = typeof source\.agendaVue === 'function' && source\.agendaVue\(\) === 'mois'/.test(JS));
   vrai('⛔ une occurrence TERMINÉE n\'est plus un bouton (8 octobre 2026 : « quand c\'est terminé, il faudrait pas qu\'on puisse cliquer dessus ») : un bloc, sans data-reunion',
@@ -360,6 +364,77 @@ async function controler(PAGE, SRC, DOC) {
   vrai('⛔ un événement modifié ou supprimé se relit PARTOUT où il s\'affiche — l\'Agenda ET le tableau de bord (8 octobre 2026 : « je peux pas supprimer » : le rappel restait au tableau)',
     /function evenementsRelire\(\) \{\s*chargerReunions\(\);\s*if \(\$\('vue-accueil'\)\.dataset\.pret\) \{[^}]*chargerAccueil\(\); \}/.test(JS) && (JS.match(/fermerCouche\(\); evenementsRelire\(\);|evenementsRelire\(\);\n/g) || []).length >= 2
       && /bord\.evenements = bord\.evenements\.filter\(x => x\.id !== F\.id\)/.test(JS));
+  vrai('⛔ envoyer plus tard : la tuile « Plus tard » et l\'appui long sur la flèche mènent aux heures ; le relâcher d\'un appui long n\'ENVOIE pas ; les programmés viennent du SERVICE (jamais de l\'appareil)',
+    /if \(typeof source\.programmerMessage === 'function'\) t\.push\(\['plus-tard'/.test(JS) && /\$\('envoyer'\)\.addEventListener\('click', e => \{ if \(etat\.envoyerLong\) \{ etat\.envoyerLong = false; e\.stopImmediatePropagation\(\); \} \}, true\);/.test(JS)
+      && /await source\.programmerMessage\(conv, texte, t, mentionsDe\(texte, convCourante\(\), mentionUI\.choisis\.get\(conv\)\)\);/.test(JS) && /l = await source\.messagesProgrammes\(conv\);/.test(JS) && /chargerProgrammes\(id\);/.test(JS));
+  /* LES MENTIONS (8 octobre 2026 : « @prénom dans un groupe, et la personne est prévenue ») — les VRAIES fonctions de la page, EXÉCUTÉES : qui est prévenu, ce que la bulle écrit */
+  {
+    const iM = JS.indexOf('const MENTION_RE'), fM = JS.indexOf('const MENTIONS_FIN');
+    vrai('(population) les mentions : le bloc est trouvé dans la page (' + (fM - iM) + ' caractères)', iM > 0 && fM > iM + 600);
+    let T = null;
+    try {
+      const defs = ['const esc = ', 'const norme = ', 'const contactDe = ', 'const prenom = ', 'const multi = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
+      const ctx = { console }; vm.createContext(ctx);
+      vm.runInContext('let MOI = null, CONTACTS = []; const source = {};\n' + defs + '\n' + JS.slice(iM, fM) + '\nthis.T = { mentionnables, mentionsDe, texteMentions, poser: (m, c) => { MOI = m; CONTACTS = c; } };', ctx, { timeout: 2000 });
+      T = ctx.T;
+    } catch (e) { T = null; }
+    vrai('les fonctions des mentions de la page s\'exécutent dans un bac à sable', !!T && typeof T.mentionsDe === 'function' && typeof T.texteMentions === 'function');
+    if (T) {
+      T.poser({ id: 'p_moi', nom: 'Justin Martin' }, [{ id: 'p_a', nom: 'Camille Dupont' }, { id: 'p_b', nom: 'Camille Roux' }, { id: 'p_c', nom: 'Inès Leroy' }, { id: 'p_d', nom: 'Jean-Pierre Noël' }, { id: 'p_x', nom: 'Compte supprimé', supprime: true }]);
+      const g = { type: 'groupe', membres: ['p_moi', 'p_a', 'p_b', 'p_c', 'p_d', 'p_x'] }, d = { type: 'direct', membres: ['p_moi', 'p_c'] };
+      v('qui peut être mentionné : les membres d\'un groupe, sans moi ni un compte supprimé ; personne dans une conversation à deux', [T.mentionnables(g).map(p => p.id), T.mentionnables(d).length], [['p_a', 'p_b', 'p_c', 'p_d'], 0]);
+      v('qui est prévenu : « @ines » trouve Inès (accents et casse ignorés), « @Jean-Pierre, » avec son trait d\'union, une adresse « camille@exemple.fr » n\'est PAS une mention, « @Justin » (moi) non plus',
+        [T.mentionsDe('@ines tu viens ?', g), T.mentionsDe('@Jean-Pierre, ok', g), T.mentionsDe('écris à camille@exemple.fr', g), T.mentionsDe('merci @Justin', g)], [['p_c'], ['p_d'], [], []]);
+      v('⛔ deux Camille : « @Camille » tapé à la main ne prévient PERSONNE ; choisi dans la liste, seulement celle qu\'on a choisie ; un choix dont le nom a été effacé du texte ne part pas ; rien dans une conversation à deux',
+        [T.mentionsDe('Salut @Camille', g), T.mentionsDe('Salut @Camille', g, ['p_b']), T.mentionsDe('plus personne', g, ['p_c']), T.mentionsDe('@Inès', d)], [[], ['p_b'], [], []]);
+      const h1 = T.texteMentions('<img src=x onerror=alert(1)> @Inès & <b>', g), h2 = T.texteMentions('merci @Justin !', g), h3 = T.texteMentions('@Inconnu <i>', g), h4 = T.texteMentions('@Inès', d);
+      vrai('⛔ la bulle : le « @Prénom » d\'un membre est en gras, le mien voilé, un inconnu reste du texte — et TOUT le reste est échappé (aucune balise du texte ne s\'ouvre)',
+        h1 === '&lt;img src=x onerror=alert(1)&gt; <b class="mention-nom">@Inès</b> &amp; &lt;b&gt;' && h2 === 'merci <b class="mention-nom moi">@Justin</b> !' && h3 === '@Inconnu &lt;i&gt;' && h4 === '@Inès',
+        JSON.stringify([h1, h2, h3, h4]));
+    }
+    vrai('les mentions partent avec l\'envoi (et avec un message programmé), la liste « @ » choisit à Entrée SANS envoyer (gardien en capture), Échap ne ferme qu\'elle',
+      /const cites = mentionsDe\(t, convCourante\(\), mentionUI\.choisis\.get\(id\)\);\s*ok = await envoi\(Object\.assign\(/.test(JS) && /cites\.length \? \{ mentions: cites \} : \{\}/.test(JS)
+        && /else if \(\(e\.key === 'Enter' && !e\.shiftKey\) \|\| e\.key === 'Tab'\) \{ e\.preventDefault\(\); e\.stopImmediatePropagation\(\); choisirMention\(mentionUI\.i\); \}/.test(JS)
+        && /else if \(e\.key === 'Escape'\) \{ e\.preventDefault\(\); e\.stopImmediatePropagation\(\); fermerMentions\(\); \}\s*\}, true\);/.test(JS)
+        && /\$\('compo-mentions'\)\.addEventListener\('mousedown', e => e\.preventDefault\(\)\);/.test(JS) && /id="compo-mentions" role="listbox"/.test(HTML));
+    vrai('le tableau de bord : un bloc « Mentions » (sept jours, les non lues comptées) ; une mention se lit en ouvrant sa conversation (ou en l\'ayant lue ailleurs) ; une mention reçue se dit par une bannière qui OUVRE la conversation',
+      /<span>Mentions<\/span><span id="bord-mentions-n">/.test(JS) && /ms\.length \? ms\.map\(ligneMention\)\.join\(''\) : '<li class="bord-vide"><span>Aucune mention ces sept derniers jours\.<\/span><\/li>'/.test(JS)
+        && /mentionsVues\(id\);/.test(JS) && /if \(r4\.status === 'fulfilled'\) \{ bord\.mentions = r4\.value; mentionsSynchro\(\); \}/.test(JS)
+        && /if \(ev\.nature === 'mention'\) surMention\(ev\);/.test(JS) && /if \(etat\.conv\) remplacer\(r\); else pousser\(r\);\s*return;\s*\}/.test(JS));
+  }
+  /* L'ORDRE DU JOUR ET LE COMPTE RENDU (8 octobre 2026) — le service les tient (test-938) ; la page les pose, les coche et dessine la carte. La VRAIE `htmlCompteRendu`, EXÉCUTÉE : ce qu'elle écrit, échappé */
+  {
+    const iC = JS.indexOf('const REPONSE_CR'), fC = JS.indexOf('function htmlSondage(m, sens)');
+    vrai('(population) le compte rendu : sa carte est trouvée dans la page (' + (fC - iC) + ' caractères)', iC > 0 && fC > iC + 800);
+    let cr = null;
+    try {
+      const defs = ['const esc = ', 'const icone = ', 'const maj1 = ', 'const FMT_HEURE = ', 'const FMT_JOUR_LONG = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
+      const ctx = { console }; vm.createContext(ctx);
+      vm.runInContext(defs + '\n' + JS.slice(iC, fC) + '\nthis.f = htmlCompteRendu;', ctx, { timeout: 2000 });
+      cr = ctx.f;
+    } catch (e) { cr = null; }
+    vrai('la fonction `htmlCompteRendu` de la page s\'exécute dans un bac à sable', typeof cr === 'function');
+    if (typeof cr === 'function') {
+      const x = { titre: 'Revue <b>QX</b>', debut: Date.UTC(2026, 9, 8, 8, 0), fin: Date.UTC(2026, 9, 8, 8, 45), dureeS: 2700, presents: [{ id: 'p1', nom: 'Ana <img src=x onerror=alert(1)>', dureeS: 2700 }, { id: 'p2', nom: 'Ben', dureeS: 600 }], presentsN: 3,
+        absents: [{ id: 'p3', nom: 'Cléo', reponse: 'decline' }], absentsN: 1, points: [{ texte: 'Budget & <i>coûts</i>', fait: true }, { texte: 'Planning', fait: false }], documents: 2 };
+      const h = cr({ compteRendu: x }, 'recue');
+      vrai('⛔ la carte : titre, noms et points ÉCHAPPÉS (aucune balise du service ne s\'ouvre) ; « Présents (3) » avec « et 1 autres », le temps de chacun ; l\'absente et sa réponse ; « Ordre du jour · 1 / 2 » ; « 2 documents partagés »',
+        !/<b>QX|<img|<i>coûts/.test(h) && h.includes('Revue &lt;b&gt;QX&lt;/b&gt;') && h.includes('Budget &amp; &lt;i&gt;coûts&lt;/i&gt;') && h.includes('Présents (3)') && h.includes('et 1 autres') && h.includes('45 min') && h.includes('10 min')
+          && h.includes('Cléo') && h.includes('a décliné') && h.includes('Ordre du jour · 1 / 2') && (h.match(/class="evt-rond plein"/g) || []).length === 1 && h.includes('2 documents partagés') && /role="group" aria-label="Compte rendu : Revue &lt;b&gt;QX/.test(h), h.slice(0, 400));
+      const h2 = cr({ compteRendu: Object.assign({}, x, { absents: [], absentsN: 0, points: [], documents: 0 }) }, 'envoyee');
+      vrai('sans absent, sans ordre du jour, sans document : ces rubriques ne paraissent pas (rien de vide n\'est écrit)', !/Absents|Ordre du jour|document/.test(h2) && h2.includes('Présents (3)'));
+    }
+    vrai('l\'ordre du jour se POSE dans le formulaire (une ligne = un point, vingt et 200 signes dits AVANT de partir ; seulement s\'il a changé, en modifiant), se COCHE dans la fiche et dans la salle (le panneau « Ordre du jour » de « Plus »), et la salle le relit quand la réunion change',
+      /<textarea id="rf-odj"/.test(JS) && /if \(odj\.length > 20\) \{ erreurInfo\(/.test(JS) && /ordre_du_jour: odj \};/.test(JS) && /if \(JSON\.stringify\(c\.ordre_du_jour\) !== JSON\.stringify\(I\.odj\)\) ch\.ordre_du_jour = c\.ordre_du_jour;/.test(JS)
+        && /data-reu="odj" data-point="/.test(JS) && /else if \(act === 'odj'\) \{/.test(JS) && /case 'ordre': X\.panneau = 'ordre';/.test(JS) && /case 'odj': \{/.test(JS) && /X\.odj = await source\.cocherPoint\(s\.reunion, p\.id, fait\);/.test(JS)
+        && /if \(enSalle\(A\) && sx\(A\)\.panneau === 'ordre' && A\.snap && \(!ev\.id \|\| ev\.id === A\.snap\.reunion\)\) salleOrdreCharger\(A\);/.test(JS) && /\} else if \(m\.compteRendu && !m\.supprime\) \{\s*h \+= htmlCompteRendu\(m, sens\);/.test(JS));
+  }
+  /* « NE PAS DÉRANGER PENDANT UNE RÉUNION » (8 octobre 2026) — le service retient et résume (test-937) ; la page montre « En réunion » et porte l'interrupteur */
+  vrai('⛔ « Ne pas déranger pendant une réunion » : la pastille « En réunion » (rouge barrée) passe devant « En ligne », les mots aussi (partout par `presenceTexte`) ; l\'interrupteur « Pause pendant les réunions » est un réglage du COMPTE ; pas de bannière sur l\'écran d\'un appel',
+    /\(c\.enReunion \? '<i class="presence reunion" title="En réunion"><\/i>' : c\.enLigne \? '<i class="presence" title="En ligne"><\/i>' : ''\)/.test(JS) && /const presenceTexte = p => p && p\.enReunion \? 'En réunion' : p && p\.enLigne \? 'En ligne' : '';/.test(JS)
+      && (JS.match(/presenceTexte\(/g) || []).length >= 10 && /\.avatar \.presence\.reunion \{ background: var\(--rouge\); \}/.test(CSS) && /id="reg-notif-pause"/.test(JS)
+      && /else if \(quoi === 'pause'\) reg\.notif = await source\.notifPauseReunion\(!reg\.notif\.pauseReunion\);/.test(JS) && /bouton\.id === 'reg-notif-pause'/.test(JS)
+      && /&& !\(etat\.appelId && !etat\.appelReduit\)\) notifier\(/.test(JS));
 
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);

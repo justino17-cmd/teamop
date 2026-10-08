@@ -28,7 +28,7 @@ const EMOJI = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indi
 const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
 /* ⛔ `position` (le bouton « Position » des conversations, COUPÉ par défaut — 7 octobre 2026 : « il faut qu'il l'active dans les paramètres, c'est une sécurité pour eux ») N'EST PAS ICI :
    une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
-const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
+const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses', 'pause_reunion'];      // pause_reunion : « Ne pas déranger pendant une réunion » (absent = allumé, `push.js`)
 /* les préférences à CHOIX (une valeur parmi celles-ci, rien d'autre) : le côté où l'on travaille (« Perso | Pro », 7 octobre 2026) et la confirmation avant d'envoyer */
 const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'], agenda_vue: ['semaine', 'mois'], bord_reunions: ['semaine', 'mois'] };      // agenda_vue : l'Agenda s'ouvre sur la semaine ou sur le mois ; bord_reunions : les réunions prévues du tableau de bord, 7 ou 30 jours (8 octobre 2026)
 const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
@@ -107,20 +107,64 @@ function creerHandlers(ctx) {
     return { conversation, membres, moi: r.moi };
   }
   const nomAffiche = (p) => (p.prenom + ' ' + p.nom).trim() || 'Quelqu\'un';
-  /* ⛔ Ce qui part en notification PUSH, parmi les notifications de l'application : un ajout à un groupe et un nouveau contact. Une mention n'en fait pas : le message qui la porte part déjà. La
-     charge est MINIMALE (« Vous avez été ajouté à un groupe ») ; le nom du groupe et de celui qui l'a ajouté ne partent que pour qui a activé l'aperçu (`push.js`). */
+  /* ⛔ Ce qui part en notification PUSH, parmi les notifications de l'application : un ajout à un groupe, un nouveau contact, une mention. La charge est MINIMALE (« Vous avez été ajouté à
+     un groupe ») ; le nom du groupe et de celui qui l'a ajouté ne partent que pour qui a activé l'aperçu (`push.js`). */
   function chargePush(type, titre, texte, cible) {
     if (type === 'groupe_ajoute') return { type: 'groupe', tag: 'groupe:' + cible, url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', titre: 'OP MESSAGES', corps: 'Vous avez été ajouté à un groupe', detail: { titre, corps: texte } };
     if (type === 'contact_ajoute') return { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texte } };
+    /* ⛔ UNE MENTION (8 octobre 2026 : « la personne citée est prévenue même si le groupe est en sourdine ») : sa push part même en sourdine, sous l'étiquette de la CONVERSATION, et la push
+       du message ne part pas chez elle (`mentionner`) : jamais deux pour un message */
+    if (type === 'mention') return { type: 'mention', tag: ID_CONV.test(String(cible)) ? String(cible) : 'mention', url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', renotify: true, titre: 'OP MESSAGES', corps: 'Nouvelle mention', detail: { titre, corps: texte }, retenable: true };
     return null;
   }
-  function notifier(uid, type, titre, texte, cible, auteur) {
+  /* `valide` (facultatif) : le jugement de l'instant de partir (`push.js`) — une push qui attend l'acquittement d'une page peut ne plus avoir lieu d'être cinq secondes plus tard.
+     `sansPush` : la notification de l'application seule (une mention dans une conversation à deux, plus bas) */
+  function notifier(uid, type, titre, texte, cible, auteur, valide, sansPush) {
     try {
       const n = stockage.notifCreer({ uid, type, titre, texte, cible, auteur });
       hub.reveiller({ uids: [uid] });
-      const c = ctx.push ? chargePush(type, titre, texte, cible) : null;
-      if (c) ctx.push.pousser(uid, c, { gid: n.gid });
+      const c = ctx.push && !sansPush ? chargePush(type, titre, texte, cible) : null;
+      if (c) ctx.push.pousser(uid, typeof valide === 'function' ? Object.assign(c, { valide }) : c, { gid: n.gid });
     } catch (e) { /* une notification ratée ne défait pas le geste */ }
+  }
+  /* ══ LES MENTIONS (8 octobre 2026 : « @prénom dans un groupe, et la personne est prévenue ») ══
+     Une personne citée est MEMBRE, n'est pas l'auteur, vingt au plus par message ; le reste est ignoré sans refuser l'envoi (une liste de la page n'est jamais une raison de perdre un message).
+     Elle reçoit la notification « vous a mentionné » (le tableau de bord la liste). Dans un groupe, un canal ou une réunion, AUSSI une push qui part même si la conversation est en sourdine —
+     à la place de celle du message ; ⛔ en sourdine, une push de mention par conversation et par minute au plus : citer quelqu'un en boucle ne fait pas sonner son téléphone en boucle (la
+     notification de l'application, elle, s'écrit à chaque fois).
+     ⛔ DANS UNE CONVERSATION À DEUX, LA MENTION RESTE CE QU'ELLE ÉTAIT : la notification de l'application, sans push — le message qui la porte prévient déjà (sa push n'écarte donc pas la
+     personne citée), et citer l'autre n'y contourne pas sa sourdine. La page ne la propose pas à deux ; une version d'avant ou un appel direct, si — et son titre est alors le NOM de
+     l'auteur, que l'effacement d'un compte sait taire (test-957). La retirer en silence avait fait tomber ce banc. */
+  const MENTION_SOURDINE_MS = 60000, mentionsSourdine = new Map();
+  const mentionSonne = (conv) => conv.type !== 'direct';
+  function citesDe(conv, auteur, liste) {
+    const cites = new Set();
+    if (!Array.isArray(liste) || !conv) return cites;
+    const membres = new Set(stockage.membresActifs(conv.id));
+    for (const u of liste.slice(0, 20)) if (typeof u === 'string' && ID_PERS.test(u) && u !== auteur && membres.has(u)) cites.add(u);
+    return cites;
+  }
+  /* les personnes que la push du MESSAGE écarte : celles qu'une push de mention préviendra */
+  const sansPushMessage = (conv, cites) => mentionSonne(conv) ? cites : null;
+  function mentionner(conv, auteur, seq, cites) {
+    if (!mentionSonne(conv)) {
+      for (const u of cites) notifier(u, 'mention', conv.nom || nomAffiche(auteur), nomAffiche(auteur) + ' vous a mentionné.', conv.id, auteur.id, null, true);
+      return;
+    }
+    for (const u of cites) {
+      const valide = () => {
+        const x = stockage.mentionEncore({ uid: u, conv: conv.id, seq });
+        if (!x) return false;
+        if (x.muet) {
+          const k = u + '|' + conv.id, t = horloge(), d = mentionsSourdine.get(k);
+          if (d !== undefined && t - d < MENTION_SOURDINE_MS) return false;
+          if (mentionsSourdine.size > 20000) mentionsSourdine.clear();
+          mentionsSourdine.set(k, t);
+        }
+        return true;
+      };
+      notifier(u, 'mention', conv.nom || nomAffiche(auteur), nomAffiche(auteur) + ' vous a mentionné.', conv.id, auteur.id, valide);
+    }
   }
   const codeLien = () => crypto.randomBytes(16).toString('base64url');
   const bornes = (b, defMax, defJours, maxMax) => {
@@ -239,10 +283,12 @@ function creerHandlers(ctx) {
   H['contacts'] = (req, res) => {
     /* ⛔ LA PRÉSENCE EST RÉCIPROQUE : qui a coupé la sienne ne voit celle de personne (et personne ne voit la sienne : `flux.js`) */
     const jeVois = !(req.moi.prefs && req.moi.prefs.presence === false);
+    /* « En réunion » (8 octobre 2026) : DANS une salle — une présence comme les autres, donc soumise à la même règle réciproque ; une requête pour toute la liste */
+    const dansSalle = jeVois ? new Set(stockage.presentsEnSalle()) : new Set();
     const liste = stockage.contactsDe(req.moi.id).map(c => {
       const p = stockage.personneParId(c.id);
       const visible = jeVois && c.mutuel && !c.bloque && p && !(p.prefs && p.prefs.presence === false) && !stockage.contactBloque(req.moi.id, c.id);
-      return Object.assign({}, c, { en_ligne: !!(visible && hub.enLigne(c.id)) });
+      return Object.assign({}, c, { en_ligne: !!(visible && hub.enLigne(c.id)), en_reunion: !!(visible && hub.enLigne(c.id) && dansSalle.has(c.id)) });      // « en réunion » suppose « en ligne » (un appareil perdu dans une salle ne l'est plus)
     });
     res.json({ contacts: liste });
   };
@@ -531,6 +577,22 @@ function creerHandlers(ctx) {
     if (!Array.isArray(b.bars) || b.bars.length < 1 || b.bars.length > BARRES_MAX || !b.bars.every(n => Number.isInteger(n) && n >= 0 && n <= 100)) return null;
     return { pieces: [{ id: b.piece }], vocal: { dur: Math.round(dur * 10) / 10, bars: b.bars.slice() } };
   }
+  /* ⛔ LES RÈGLES D'ÉCRIRE DANS UNE CONVERSATION — UNE définition, lue par l'envoi ET par un message programmé (à sa création, puis À L'HEURE où il part : entre-temps, un contact a pu
+     être retiré, une invitation refusée, un groupe passé « annonces »). → null, ou [statut, code]. */
+  function refusEcriture(conv, uid, role, type) {
+    /* Écrire à un compte SUPPRIMÉ : on le DIT (410), au lieu d'un « introuvable » qui ferait croire à une panne — la page montrait déjà « Compte supprimé » */
+    if (conv.type === 'direct' && stockage.autreSupprime(conv.id, uid)) return [410, 'compte_supprime'];
+    /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage. */
+    if (!stockage.ecritureAutorisee(conv.id, uid)) return [404, 'introuvable'];
+    /* ⛔ UNE INVITATION QUI ATTEND (relecture du gardien, 7 octobre 2026) : du TEXTE seul — ni photo, ni fichier, ni carte — et cinq messages au plus, tant que la personne n'a pas accepté.
+       Sinon son dossier « Invitations » se remplissait de ce que voulait un inconnu, et un refus n'arrêtait rien. */
+    if (conv.type === 'direct' && stockage.invitationEtat(conv.id, uid) === 'envoyee') {
+      if (type !== 'texte') return [403, 'invitation_texte'];
+      if (stockage.invitationEnvoyes(conv.id, uid) >= INVITATION_MAX) return [409, 'invitation_plafond'];
+    }
+    if (conv.type === 'groupe' && conv.annonces_seules && role !== 'admin') return [403, 'annonces_seules'];
+    return null;
+  }
   H['msg.envoyer'] = (req, res) => {
     const b = corps(req), conv = req.conv.conv;
     if (typeof b.cid !== 'string' || !CID.test(b.cid)) return refus(res, 400, 'champ_invalide');
@@ -567,17 +629,8 @@ function creerHandlers(ctx) {
       if (repondA === null || repondA < 1) return refus(res, 400, 'champ_invalide');
       if (repondA < req.conv.moi.depuis_seq || !stockage.messageExiste(conv.id, repondA)) return refus(res, 404, 'message_inconnu');
     }
-    /* Écrire à un compte SUPPRIMÉ : on le DIT (410), au lieu d'un « introuvable » qui ferait croire à une panne — la page montrait déjà « Compte supprimé » */
-    if (conv.type === 'direct' && stockage.autreSupprime(conv.id, req.moi.id)) return refus(res, 410, 'compte_supprime');
-    /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage. */
-    if (!stockage.ecritureAutorisee(conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
-    /* ⛔ UNE INVITATION QUI ATTEND (relecture du gardien, 7 octobre 2026) : du TEXTE seul — ni photo, ni fichier, ni carte — et cinq messages au plus, tant que la personne n'a pas accepté.
-       Sinon son dossier « Invitations » se remplissait de ce que voulait un inconnu, et un refus n'arrêtait rien. */
-    if (conv.type === 'direct' && stockage.invitationEtat(conv.id, req.moi.id) === 'envoyee') {
-      if (type !== 'texte') return refus(res, 403, 'invitation_texte');
-      if (stockage.invitationEnvoyes(conv.id, req.moi.id) >= INVITATION_MAX) return refus(res, 409, 'invitation_plafond');
-    }
-    if (conv.type === 'groupe' && conv.annonces_seules && req.conv.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
+    const ref = refusEcriture(conv, req.moi.id, req.conv.moi.role, type);
+    if (ref) return refus(res, ref[0], ref[1]);
     /* ⛔ GARDER UN FICHIER QUELQUES JOURS SEULEMENT (8 octobre 2026 : « qu'il se supprime 3 jours après pour pas que ça prenne des Go pour rien ») : un FICHIER seul, et une durée parmi trois
        (1, 3 ou 7 jours) — rien d'autre ne passe. L'échéance s'écrit sur le message ; le balayeur des éphémères l'emporte, fichier compris. */
     let garderS = 0;
@@ -589,15 +642,63 @@ function creerHandlers(ctx) {
     const r = stockage.messageEnvoyer({ conv: conv.id, auteur: req.moi.id, cid: b.cid, type: CARTES.includes(type) ? 'texte' : type, texte, meta, sondage, repondA, pieces: pj && pj.pieces, vocal: pj && pj.vocal, garderS });
     if (r.deja) return res.status(200).json({ deja: true, seq: r.seq, ts: r.ts, id: r.id });
     hub.reveiller({ conv: conv.id });
-    /* ⛔ LA NOTIFICATION PUSH suit le message : aux membres qui ont un appareil abonné, sans l'auteur, sans les conversations en sourdine ; elle attend l'acquittement d'une page ouverte (`push.js`) */
-    try { if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type: CARTES.includes(type) ? 'texte' : type, texte }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
-    if (Array.isArray(b.mentions)) {
-      const membres = new Set(stockage.membresActifs(conv.id));
-      for (const u of Array.from(new Set(b.mentions.slice(0, 20)))) {
-        if (typeof u === 'string' && ID_PERS.test(u) && u !== req.moi.id && membres.has(u)) notifier(u, 'mention', conv.nom || nomAffiche(req.moi), nomAffiche(req.moi) + ' vous a mentionné.', conv.id, req.moi.id);
-      }
-    }
+    const cites = citesDe(conv, req.moi.id, b.mentions);
+    /* ⛔ LA NOTIFICATION PUSH suit le message : aux membres qui ont un appareil abonné, sans l'auteur, sans les conversations en sourdine, sans les personnes citées (leur mention les prévient) ;
+       elle attend l'acquittement d'une page ouverte (`push.js`) */
+    try { if (ctx.push) ctx.push.message({ conv: conv.id, seq: r.seq, gid: r.gid, auteur: req.moi.id, nomAuteur: nomAffiche(req.moi), nomConv: conv.nom, groupe: conv.type !== 'direct', type: CARTES.includes(type) ? 'texte' : type, texte, sauf: sansPushMessage(conv, cites) }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+    mentionner(conv, req.moi, r.seq, cites);
     res.status(201).json({ seq: r.seq, ts: r.ts, id: r.id });
+  };
+
+  /* ══ ENVOYER PLUS TARD (8 octobre 2026 : « écrire un message maintenant et le programmer pour demain 8 h ») ══
+     Du TEXTE seul (une pièce déposée attendrait des heures sans être rattachée, une carte dirait une position ou un sondage d'hier). L'heure est un INSTANT (ms) : la page le calcule dans
+     le fuseau de l'appareil ; une minute au plus tôt, un an au plus tard. Cinquante en attente par personne. Personne d'autre ne le voit avant qu'il parte. À l'heure, le balayeur l'envoie
+     par le même chemin qu'un envoi — les règles d'écriture jugées À CE MOMENT ; une conversation quittée, un contact retiré : il ne part pas, et sa ligne s'en va. */
+  const PROG_MIN_MS = 60000, PROG_HORIZON_MS = 366 * JOUR, PROG_MAX = 50, ID_PROG = /^g_[0-9a-f]{32}$/;
+  H['prog.creer'] = (req, res) => {
+    const b = corps(req), conv = req.conv.conv;
+    if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
+    if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
+    const texte = nettoyerTexte(b.texte);
+    if (!texte || INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
+    if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
+    const quand = entier(b.quand), t = horloge();
+    if (quand === null || quand < t + PROG_MIN_MS || quand > t + PROG_HORIZON_MS) return refus(res, 400, 'heure_invalide');
+    const ref = refusEcriture(conv, req.moi.id, req.conv.moi.role, 'texte');
+    if (ref) return refus(res, ref[0], ref[1]);
+    if (stockage.programmesCompter(req.moi.id) >= PROG_MAX) return refus(res, 409, 'programmes_plein');
+    if (!plafond(res, 'prog', req.moi.id, { max: 60, fenetreMs: 3600000 })) return;
+    /* les personnes citées partent avec lui : une liste d'identifiants de membres d'AUJOURD'HUI — leur appartenance se rejuge au départ (`citesDe`, dans `programmesTour`) */
+    const x = stockage.programmeCreer({ conv: conv.id, auteur: req.moi.id, texte, quand, mentions: Array.from(citesDe(conv, req.moi.id, b.mentions)) });
+    res.status(201).json({ programme: x });
+  };
+  H['prog.liste'] = (req, res) => res.json({ programmes: stockage.programmesDe(req.conv.conv.id, req.moi.id) });
+  H['prog.annuler'] = (req, res) => {
+    const id = req.params.id;
+    if (!ID_PROG.test(id) || !stockage.programmeAnnuler(req.moi.id, id)) return refus(res, 404, 'introuvable');
+    res.json({ ok: true });
+  };
+  /* le balayeur (`index.js`) : ceux dont l'heure est venue partent, par petits paquets. Le `cid` du message est celui du programme : un envoi rejoué (une panne entre l'envoi et le
+     retrait de la ligne) rend « déjà là », jamais un doublon. → { envoyes, abandonnes } */
+  ctx.programmesTour = (max = 25) => {
+    const bilan = { envoyes: 0, abandonnes: 0 };
+    for (const g of stockage.programmesEchus(horloge(), max)) {
+      try {
+        const m = stockage.convPourMembre(g.conv, g.auteur);
+        const ref = m ? refusEcriture(m.conv, g.auteur, m.moi.role, 'texte') : [404, 'introuvable'];
+        if (ref) { stockage.programmeFini(g.id); bilan.abandonnes++; continue; }
+        const r = stockage.messageEnvoyer({ conv: g.conv, auteur: g.auteur, cid: 'prog_' + g.id.slice(2), type: 'texte', texte: g.texte });
+        stockage.programmeFini(g.id);
+        if (r.deja) continue;
+        bilan.envoyes++;
+        hub.reveiller({ conv: g.conv });
+        const auteur = stockage.personneParId(g.auteur), cites = auteur ? citesDe(m.conv, g.auteur, g.mentions) : new Set();
+        try { if (ctx.push && auteur) ctx.push.message({ conv: g.conv, seq: r.seq, gid: r.gid, auteur: g.auteur, nomAuteur: nomAffiche(auteur), nomConv: m.conv.nom, groupe: m.conv.type !== 'direct', type: 'texte', texte: g.texte, sauf: sansPushMessage(m.conv, cites) }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+        if (auteur) mentionner(m.conv, auteur, r.seq, cites);
+      } catch (e) { ctx.journaliser('programme_echec', { nom: (e && (e.code || e.name)) || 'Erreur' }); }
+    }
+    if (bilan.abandonnes) ctx.journaliser('programme_abandonne', { n: bilan.abandonnes });
+    return bilan;
   };
 
   /* ── LES CARTES (7 octobre 2026) : une position, la fiche d'un contact, un sondage. Chacune est un TEXTE (son résumé : ce que montre une version d'avant, une notification, l'aperçu de la liste)

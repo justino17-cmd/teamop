@@ -619,6 +619,40 @@ const MIGRATIONS = [
     `ALTER TABLE membre ADD COLUMN cote TEXT`,
     `PRAGMA user_version = 20`,
   ] },
+  /* ── 21 (8 octobre 2026) : LES RAPPELS QU'ON COCHE, ET CEUX QUI VIENNENT D'UN MESSAGE — « cocher un rappel fait », « voir le message ». `fait` : l'instant où la personne l'a coché
+         (un rappel fait ne sonne plus et quitte le tableau de bord ; il reste dans l'agenda, barré). `src_conv` / `src_seq` : le message d'où vient un rappel posé par « Me le rappeler »
+         — un POINTEUR, jamais une copie : lire le message redemande d'être membre de sa conversation. ── */
+  { v: 21, sql: [
+    `ALTER TABLE evenement ADD COLUMN fait INTEGER`,
+    `ALTER TABLE evenement ADD COLUMN src_conv TEXT`,
+    `ALTER TABLE evenement ADD COLUMN src_seq INTEGER`,
+    `PRAGMA user_version = 21`,
+  ] },
+  /* ── 22 (8 octobre 2026) : ENVOYER PLUS TARD — « écrire un message maintenant et le programmer pour demain 8 h ». Un message PROGRAMMÉ n'est pas un message : personne d'autre ne le voit
+         tant qu'il n'est pas parti (il n'entre ni dans `message`, ni dans une notification, ni dans une liste des autres). Son texte est SCELLÉ comme celui d'un message. À l'heure, le service
+         l'envoie par le MÊME chemin qu'un envoi (`routes.js`, mêmes règles d'écriture jugées À CE MOMENT) ; parti ou annulé, sa ligne s'en va et le registre des purges s'en souvient
+         (genre `programme` : une restauration d'une archive d'avant ne le ferait pas repartir). Les personnes CITÉES (`mentions`, des identifiants — la liste que la page a choisie) partent
+         avec lui : leur appartenance se rejuge au départ, comme tout le reste. ── */
+  { v: 22, sql: [
+    `CREATE TABLE IF NOT EXISTS programme(
+       id TEXT PRIMARY KEY,
+       conv TEXT NOT NULL REFERENCES conversation(id) ON DELETE CASCADE,
+       auteur TEXT NOT NULL REFERENCES personne(id) ON DELETE CASCADE,
+       texte_ch BLOB NOT NULL,
+       quand INTEGER NOT NULL,
+       cree INTEGER NOT NULL,
+       mentions TEXT)`,
+    `CREATE INDEX IF NOT EXISTS programme_quand ON programme(quand)`,
+    `CREATE INDEX IF NOT EXISTS programme_auteur ON programme(auteur, conv)`,
+    `PRAGMA user_version = 22`,
+  ] },
+  /* ── 23 (8 octobre 2026) : L'ORDRE DU JOUR D'UNE RÉUNION — « des points posés en programmant, cochés pendant la séance, et un compte rendu à la fin ». Une liste SCELLÉE comme le titre
+         (le texte des points est un contenu), vingt points au plus ; chaque point a un identifiant court (le geste « coché » le vise, pas son rang) et son état. Le compte rendu d'une séance
+         le recopie ; une SÉRIE remet ensuite les coches à zéro (la semaine prochaine repart de rien). ── */
+  { v: 23, sql: [
+    `ALTER TABLE reunion ADD COLUMN odj_ch BLOB`,
+    `PRAGMA user_version = 23`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -703,6 +737,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas
   const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation
   const COTES = versionActuelle() >= 20;          // une base d'avant la migration 20 : aucune conversation rangée à la main (le côté automatique seul)
+  const RAPPELS_FAITS = versionActuelle() >= 21;  // une base d'avant la migration 21 : pas de rappel coché ni de message d'origine
+  const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
+  const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
   const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
 
@@ -2171,13 +2208,29 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     id: r.id, titre: ouvrirOuNull('evenement', 'titre_ch', r.id + '|titre', r.titre_ch) || '', lieu: r.lieu_ch ? (ouvrirOuNull('evenement', 'lieu_ch', r.id + '|lieu', r.lieu_ch) || '') : '',
     note: r.note_ch ? (ouvrirOuNull('evenement', 'note_ch', r.id + '|note', r.note_ch) || '') : '', debut: num(r.debut), fin: num(r.fin), journee: !!r.journee, tz: r.tz,
     rappel: r.rappel === null ? null : num(r.rappel), rappelEnAttente: r.rappel_a !== null, cree: num(r.cree), maj: num(r.maj),
+    fait: r.fait === null || r.fait === undefined ? null : num(r.fait),
+    source: r.src_conv ? { conv: r.src_conv, seq: num(r.src_seq) } : null,
   } : null;
   const scellerEvt = (id, champ, v) => v ? sceller('evenement', champ + '_ch', id + '|' + champ, v) : null;
-  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA }) {
+  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null }) {
     const id = nouvelId('e'), t = horloge();
     Q(`INSERT INTO evenement(id, uid, titre_ch, lieu_ch, note_ch, debut, fin, journee, tz, rappel, rappel_a, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(id, uid, sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
         rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
+    if (source && RAPPELS_FAITS) Q('UPDATE evenement SET src_conv = ?, src_seq = ? WHERE id = ?').run(source.conv, source.seq, id);
+    return evenementLire(uid, id);
+  }
+  /* cocher (`fait` : un instant) ou décocher (null) — l'échéance du rappel suit : `rappelA` null (coché : il ne sonne plus) ou recalculée par la route (décoché) */
+  function evenementFait(uid, id, fait, rappelA) {
+    if (!RAPPELS_FAITS) return null;
+    if (!num(Q('UPDATE evenement SET fait = ?, rappel_a = ?, maj = ? WHERE id = ? AND uid = ?').run(fait, rappelA, horloge(), id, uid).changes)) return null;
+    return evenementLire(uid, id);
+  }
+  /* reporter : un nouvel horaire, l'échéance recalculée par la route, et décoché (un rappel reporté est à refaire) */
+  function evenementReporter(uid, id, { debut, fin, journee, rappel, rappelA }) {
+    const r = Q('UPDATE evenement SET debut = ?, fin = ?, journee = ?, rappel = ?, rappel_a = ?, maj = ? WHERE id = ? AND uid = ?').run(debut, fin, journee ? 1 : 0, rappel, rappelA, horloge(), id, uid);
+    if (!num(r.changes)) return null;
+    if (RAPPELS_FAITS) Q('UPDATE evenement SET fait = NULL WHERE id = ?').run(id);
     return evenementLire(uid, id);
   }
   function evenementLire(uid, id) { return evtRang(Q('SELECT * FROM evenement WHERE id = ? AND uid = ?').get(id, uid)); }
@@ -2219,6 +2272,42 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   function evenementRappelAbandonner(id) { return num(Q('UPDATE evenement SET rappel_a = NULL WHERE id = ? AND rappel_a IS NOT NULL').run(id).changes) > 0; }
+  /* ══ ENVOYER PLUS TARD (migration 22) ══ — un message programmé est à SON AUTEUR : lui seul le liste, l'annule ; le service l'envoie à l'heure. */
+  /* les personnes citées : une liste d'identifiants (rien d'autre ne se relit — une colonne abîmée rend une liste vide, jamais une erreur au départ du message) */
+  const progCites = (j) => { if (!j) return []; try { const x = JSON.parse(j); return Array.isArray(x) ? x.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)).slice(0, 20) : []; } catch (e) { return []; } };
+  const progRang = (r) => r ? { id: r.id, conv: r.conv, texte: ouvrirOuNull('programme', 'texte_ch', r.id + '|texte', r.texte_ch) || '', quand: num(r.quand), cree: num(r.cree), mentions: progCites(r.mentions) } : null;
+  function programmeCreer({ conv, auteur, texte, quand, mentions }) {
+    if (!PROGRAMMES) throw erreur('indisponible');
+    const id = nouvelId('g'), t = horloge(), cites = Array.isArray(mentions) && mentions.length ? JSON.stringify(mentions.slice(0, 20)) : null;
+    Q('INSERT INTO programme(id, conv, auteur, texte_ch, quand, cree, mentions) VALUES(?, ?, ?, ?, ?, ?, ?)').run(id, conv, auteur, sceller('programme', 'texte_ch', id + '|texte', texte), quand, t, cites);
+    return progRang(Q('SELECT * FROM programme WHERE id = ?').get(id));
+  }
+  function programmesDe(conv, auteur) { return PROGRAMMES ? Q('SELECT * FROM programme WHERE conv = ? AND auteur = ? ORDER BY quand, id').all(conv, auteur).map(progRang) : []; }
+  function programmesCompter(auteur) { return PROGRAMMES ? num(Q('SELECT COUNT(*) AS n FROM programme WHERE auteur = ?').get(auteur).n) : 0; }
+  /* annuler (son auteur seul : un autre reçoit « introuvable ») — noté au registre des purges */
+  function programmeAnnuler(auteur, id) {
+    if (!PROGRAMMES) return false;
+    return tx(() => {
+      const ok = num(Q('DELETE FROM programme WHERE id = ? AND auteur = ?').run(id, auteur).changes) > 0;
+      if (ok) Q(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'programme', ?)`).run(id, horloge());
+      return ok;
+    });
+  }
+  /* ceux dont l'heure est venue, les plus anciens d'abord — seulement des personnes actives sans suppression demandée (une demande coupe tout ce qui part en son nom) */
+  function programmesEchus(t, max) {
+    if (!PROGRAMMES) return [];
+    return Q(`SELECT g.* FROM programme g JOIN personne p ON p.id = g.auteur WHERE g.quand <= ? AND p.etat = 'actif' AND p.suppression_le IS NULL ORDER BY g.quand, g.id LIMIT ?`).all(t, Math.max(1, max | 0))
+      .map(r => Object.assign(progRang(r), { auteur: r.auteur }));
+  }
+  /* parti (ou abandonné) : la ligne s'en va, notée au registre — une restauration ne le refait pas partir */
+  function programmeFini(id) {
+    if (!PROGRAMMES) return false;
+    return tx(() => {
+      const ok = num(Q('DELETE FROM programme WHERE id = ?').run(id).changes) > 0;
+      if (ok) Q(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'programme', ?)`).run(id, horloge());
+      return ok;
+    });
+  }
   /* pour l'export de ses données : ses événements, en clair (ce sont les siens) */
   function exportEvenements(uid) { return versionActuelle() >= 13 ? Q('SELECT * FROM evenement WHERE uid = ? ORDER BY debut, id').all(uid).map(evtRang) : []; }
   /* L'âge et les conditions acceptés à l'inscription (colonnes prévues dès la migration 1) : la version des conditions est gardée, pour savoir lesquelles la personne a lues. */
@@ -2468,6 +2557,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const texte = x.corps_ch ? ouvrirOuNull('message', 'corps_ch', aadMsg(conv, seq, x.auteur), x.corps_ch) : null;
     return { type: x.type, texte, expire_ts: x.expire_ts === null ? null : num(x.expire_ts) };
   }
+  /* ⛔ UNE MENTION SE RE-JUGE COMME UN MESSAGE, SAUF LA SOURDINE (8 octobre 2026 : « la personne citée est prévenue même si le groupe est en sourdine ») : quittée, entrée après le message,
+     message supprimé « pour tous », masqué pour elle, éteint — rien ne part. → null, ou { muet } (la sourdine de CET instant : `routes.js` borne la cadence des mentions en sourdine). */
+  function mentionEncore({ uid, conv, seq }) {
+    const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    if (!m || seq < m.depuis_seq) return null;
+    if (!ecritureAutorisee(conv, uid)) return null;
+    const x = Q('SELECT supprime_le, expire_ts FROM message x WHERE x.conv = ? AND x.seq = ? AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(conv, seq, uid);
+    if (!x || x.supprime_le || (x.expire_ts !== null && x.expire_ts <= horloge())) return null;
+    return { muet: num(m.muet_jusqua) > horloge() };
+  }
   /* L'autre d'une conversation directe est-il un compte supprimé ? (pour dire « ce compte a été supprimé » à qui lui écrit, au lieu d'un « introuvable » muet) */
   function autreSupprime(conv, uid) {
     const a = autreDirect(conv, uid);
@@ -2610,6 +2709,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (IDENT) Q('DELETE FROM demande_contact WHERE de = ? OR vers = ?').run(uid, uid);
       if (versionActuelle() >= 12) Q('DELETE FROM appareil_mel WHERE personne = ?').run(uid);
       if (versionActuelle() >= 13) Q('DELETE FROM evenement WHERE uid = ?').run(uid);   // son agenda personnel part avec elle
+      if (PROGRAMMES) Q('DELETE FROM programme WHERE auteur = ?').run(uid);              // ses messages programmés ne partiront pas
       Q('DELETE FROM lien WHERE par = ?').run(uid);
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
       Q('DELETE FROM msg_masque WHERE uid = ?').run(uid);
@@ -2671,6 +2771,56 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (titre === null || lieu === null) o.illisible = true;
     return o;
   };
+  /* ══ L'ORDRE DU JOUR (migration 23) ══ — une liste de { id, texte, fait }, scellée ; illisible (une clé qui a changé), elle se lit VIDE plutôt que de faire tomber la fiche */
+  const ODJ_MAX = 20;
+  function reunionOdj(id) {
+    if (!ODJ) return [];
+    const r = Q('SELECT id, odj_ch FROM reunion WHERE id = ?').get(id);
+    if (!r || !r.odj_ch) return [];
+    const j = ouvrirOuNull('reunion', 'odj_ch', aadReunion(r.id, 'odj'), r.odj_ch); if (j === null) return [];
+    try { const a = JSON.parse(j); return Array.isArray(a) ? a.filter(x => x && typeof x.id === 'string' && typeof x.t === 'string').slice(0, ODJ_MAX).map(x => ({ id: x.id, texte: x.t, fait: x.f === 1 })) : []; } catch (e) { return []; }
+  }
+  const odjEcrire = (id, points) => Q('UPDATE reunion SET odj_ch = ? WHERE id = ?').run(points.length ? sceller('reunion', 'odj_ch', aadReunion(id, 'odj'), JSON.stringify(points.map(x => ({ id: x.id, t: x.texte, f: x.fait ? 1 : 0 })))) : null, id);
+  /* poser la liste (l'organisateur, en programmant ou en modifiant) : un point dont le texte ne change pas GARDE son identifiant et sa coche — retoucher la liste ne décoche rien */
+  function reunionOdjPoser(id, textes) {
+    if (!ODJ) throw erreur('indisponible');
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) return null;
+      const avant = reunionOdj(id), pris = new Set(), points = [];
+      for (const t of textes.slice(0, ODJ_MAX)) {
+        const p = avant.find(x => x.texte === t && !pris.has(x.id));
+        if (p) { pris.add(p.id); points.push({ id: p.id, texte: t, fait: p.fait }); } else points.push({ id: alea(4), texte: t, fait: false });
+      }
+      const change = JSON.stringify(points) !== JSON.stringify(avant);
+      if (!change) return { change: false, points };
+      odjEcrire(id, points);
+      return { change: true, points, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* cocher ou décocher un point (un participant, pendant la séance ou avant) → null si le point n'existe pas */
+  function reunionOdjCocher(id, point, fait) {
+    if (!ODJ) return null;
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) return null;
+      const points = reunionOdj(id), p = points.find(x => x.id === point); if (!p) return null;
+      if (p.fait === !!fait) return { change: false, points };
+      p.fait = !!fait; odjEcrire(id, points);
+      return { change: true, points, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* les pièces (photos, fichiers) partagées dans une conversation entre deux instants — le compte rendu d'une séance les compte (sans les nommer) */
+  function piecesPartagees(conv, du, au) {
+    return num(Q(`SELECT COUNT(*) AS n FROM message WHERE conv = ? AND ts >= ? AND ts <= ? AND type IN ('photo', 'fichier') AND supprime_le IS NULL`).get(conv, du, au).n);
+  }
+  /* une SÉRIE repart de zéro après le compte rendu de sa séance (les points restent, les coches partent) */
+  function reunionOdjRemettre(id) {
+    if (!ODJ) return false;
+    return tx(() => {
+      const points = reunionOdj(id); if (!points.some(x => x.fait)) return false;
+      odjEcrire(id, points.map(x => Object.assign({}, x, { fait: false })));
+      return true;
+    });
+  }
   const personneCourte = (viewer, id) => { const p = personneParId(id); return p ? { id: p.id, prenom: p.prenom, nom: p.nom, avatar: avatarPour(viewer, p.id, p.avatar) } : null; };
 
   /* La réunion « pour un participant » : `null` pour inexistante COMME pour « tu n'es pas invité » (404 dans les deux cas, jamais 403). */
@@ -2684,6 +2834,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       .map(x => ({ id: x.id, prenom: x.prenom, nom: x.nom, avatar: avatarPour(uid, x.id, x.avatar_piece), statut: x.statut, hote: x.id === r.hote }));
     rang.hote = personneCourte(uid, r.hote);
     const perso = moi.rappels !== null && moi.rappels !== undefined;
+    rang.ordre_du_jour = reunionOdj(id);
     return { reunion: rang, invites, moi: { hote: uid === r.hote, statut: moi.statut, rappels: perso ? listeEntiers(moi.rappels) : rang.rappels, rappels_perso: perso } };
   }
   /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
@@ -3061,7 +3212,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion WHERE i.uid = ? ORDER BY r.debut, r.id`).all(uid).map(x => {
       const titre = reunionTitre(x), lieu = reunionLieu(x);
       return { id: x.id, titre: titre === null ? '' : titre, lieu: lieu === null ? '' : lieu, debut: num(x.debut), fin: num(x.fin), fuseau: x.tz, repetition: x.rep, n: x.n === null ? null : num(x.n), jusqua: x.jusqua || null,
-        annulee: !!x.annulee, role: x.hote === uid ? 'hote' : 'invite', reponse: x.statut };
+        annulee: !!x.annulee, role: x.hote === uid ? 'hote' : 'invite', reponse: x.statut, ordre_du_jour: reunionOdj(x.id).map(p => ({ texte: p.texte, fait: p.fait })) };
     });
   }
   /* ⛔ L'EFFACEMENT D'UN COMPTE ET SES RÉUNIONS (appelé par `compteEffacer`). Hôte : la réunion passe au plus ancien invité qui n'a pas décliné (celui qui a accepté d'abord ; à égalité, dans l'ORDRE où l'hôte les a invités) — il devient hôte et
@@ -3631,6 +3782,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const appelAutre = (id, uid) => { const r = Q('SELECT uid FROM appel_part WHERE appel = ? AND uid <> ? ORDER BY role, uid').get(id, uid); return r ? r.uid : null; };
   const appelParticipants = (id) => Q('SELECT uid, role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? ORDER BY role, uid').all(id);
   const sallePresents = (id) => num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present'`).get(id).n);
+  /* ⛔ NE PAS DÉRANGER (8 octobre 2026) : être DANS une salle (un appel de groupe ou une réunion qui court, présent — pas à la porte, pas seulement appelé). `enSalle` juge UNE personne
+     (une notification qui part), `presentsEnSalle` rend tout le monde d'un coup (la liste des contacts : une requête, pas une par contact). */
+  function enSalle(uid) {
+    return !!Q(`SELECT 1 AS x FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND p.statut = 'present' AND a.genre <> 'deux' AND a.etat IN ('sonne', 'en_cours') LIMIT 1`).get(uid);
+  }
+  function presentsEnSalle() {
+    return Q(`SELECT DISTINCT p.uid AS uid FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.statut = 'present' AND a.genre <> 'deux' AND a.etat IN ('sonne', 'en_cours') LIMIT 20000`).all().map(r => r.uid);
+  }
   /* L'appel de cette personne qui sonne (sonnerie non échue), qui court, ou dont elle est à la porte — son identifiant, ou null. */
   function appelActifDe(uid) {
     const t = horloge();
@@ -4292,6 +4451,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         sondage: non(() => Q('SELECT 1 FROM sondage LIMIT 1')),
         sondage_choix: non(() => Q('SELECT 1 FROM sondage_choix LIMIT 1')),
         sondage_vote: non(() => Q('SELECT 1 FROM sondage_vote LIMIT 1')),
+        programme: non(() => Q('SELECT 1 FROM programme LIMIT 1')),
       },
     };
   }
@@ -4340,15 +4500,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
     identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler, invitationEtat, invitationMarquer, invitationEnvoyes,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
-    pushDestinatairesMessage, pushMessageEncore, autreSupprime,
+    pushDestinatairesMessage, pushMessageEncore, mentionEncore, autreSupprime,
+    evenementFait, evenementReporter, programmeCreer, programmesDe, programmesCompter, programmeAnnuler, programmesEchus, programmeFini,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     presenceSalle, presenceReunion,   // le rapport de présence (migration 16)
     carteContactLire, sondageVue, sondageVoter, sondageAjouterChoix, sondageClore, exportSondagesVotes,   // les cartes d'un message et les sondages (migration 17)
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
-    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
-    appelVue, appelAcces, appelActifDe, appelActifVue, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
+    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
+    appelVue, appelAcces, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
     appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, seancesFinies, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };
 }
@@ -4361,7 +4522,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote', 'programme'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -4411,6 +4572,7 @@ function lignesDe(d) {
     sondage: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage')),
     sondage_choix: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_choix')),
     sondage_vote: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_vote')),
+    programme: n(() => d.prepare('SELECT COUNT(*) AS n FROM programme')),
   };
 }
 
@@ -4467,6 +4629,7 @@ const GENRES_PURGE = {
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
   suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
   evenement: 'copie',                // un événement de l'agenda personnel SUPPRIMÉ : sa ligne part
+  programme: 'copie',                // un message PROGRAMMÉ parti ou annulé : sa ligne part — une archive d'avant ne le ferait pas repartir
   mdp: 'copie',                      // un mot de passe CHANGÉ (« mot de passe oublié ») : objet `personne|date` — une copie dont le mot de passe est plus ancien le perd (il faudra le réinitialiser), et ses sessions tombent
   suppression_annulee: 'service',    // l'ANNULATION (la personne est revenue) : une copie d'avant ne doit pas ramener l'échéance — idem
 };
@@ -4541,6 +4704,7 @@ function rejouerPurge(chemin, registre, opts) {
     const oublierMdp = colonneMdpLe ? d.prepare('UPDATE personne SET sel = NULL, mdp = NULL, params = NULL WHERE id = ? AND mdp IS NOT NULL AND (mdp_le IS NULL OR mdp_le < ?)') : null;
     const sessionsAvant = d.prepare('DELETE FROM session WHERE personne = ? AND cree <= ?');
     const retirerEvenement = a('evenement') ? d.prepare('DELETE FROM evenement WHERE id = ?') : null;   // (migration 13 : une archive plus ancienne n'a pas la table)
+    const retirerProgramme = a('programme') ? d.prepare('DELETE FROM programme WHERE id = ?') : null;   // (migration 22)
     const pushAvant = a('push') ? d.prepare('DELETE FROM push WHERE uid = ? AND cree <= ?') : null;
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
@@ -4599,6 +4763,8 @@ function rejouerPurge(chemin, registre, opts) {
           if (retirerCode) bilan.liensReunionRetires += Number(retirerCode.run(r.objet).changes);
         } else if (genre === 'evenement') {
           if (retirerEvenement) bilan.evenementsRetires = (bilan.evenementsRetires || 0) + Number(retirerEvenement.run(r.objet).changes);
+        } else if (genre === 'programme') {
+          if (retirerProgramme) bilan.programmesRetires = (bilan.programmesRetires || 0) + Number(retirerProgramme.run(r.objet).changes);
         } else if (genre === 'mdp') {
           const q = Number(r.quand) || 0, uid = String(r.objet).split('|')[0];
           if (oublierMdp) bilan.mdpOublies = (bilan.mdpOublies || 0) + Number(oublierMdp.run(uid, q).changes);

@@ -191,6 +191,11 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     if (!presenceVisible(uid)) return;
     emettre(stockage.contactsActifs(uid).filter(presenceVisible), 'presence', { uid, en_ligne: enLigneMaintenant });
   }
+  /* « En réunion » (8 octobre 2026) : la personne entre dans une salle ou en sort (le balayeur des appels le voit) — ses contacts qui peuvent la voir l'apprennent, avec la même règle réciproque */
+  function reunionChangee(uid, dedans) {
+    if (!presenceVisible(uid)) return;
+    emettre(stockage.contactsActifs(uid).filter(presenceVisible), 'presence', { uid, en_ligne: enLigne(uid), en_reunion: !!dedans });
+  }
   /* Le réglage de présence vient de changer : les contacts qui peuvent me voir l'apprennent TOUT DE SUITE (« hors ligne » si je viens de couper, « en ligne » si je reviens
      et que je suis là) ; mes autres appareils relisent les contacts (leur liste de présences n'est plus la même). */
   function presenceChangee(uid) {
@@ -249,7 +254,7 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
   }
 
   return {
-    ouvrir, reveiller, emettre, emettreSession, sessionOuverte, enLigne, fluxOuverts, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges,
+    ouvrir, reveiller, emettre, emettreSession, sessionOuverte, enLigne, fluxOuverts, fermerSession, fermerPersonne, arreter, presenceChangee, personneChangee, reglagesChanges, reunionChangee,
     stats: () => ({ ouverts: flux.size, personnes: parUid.size, refus }),
     /* ce que le flux RETIENT pour des sessions sans flux : pour les bancs seulement (/health ne le porte pas — une activité, et /health est publique) */
     retenusEtat: () => ({ sessions: retenus.size, octets: retenusOctets, entrees: Array.from(retenus.values()).reduce((a, e) => a + e.l.length, 0) }),

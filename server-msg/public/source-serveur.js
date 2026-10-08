@@ -100,6 +100,7 @@
   const SOURDINES = { '8h': 8 * 3600000, '1s': 7 * 86400000, tj: 9 * 365 * 86400000, off: 0 };   // « toujours » = neuf ans (le service refuse plus de dix)
   const MOTIF_OUVRIR = /^\/#messages\/(c_[0-9a-f]{32})$/;
   const MOTIF_OUVRIR_REUNION = /^\/#reunions\/(r_[0-9a-f]{32})$/;
+  const MOTIF_OUVRIR_EVENEMENT = /^\/#reunions\/(e_[0-9a-f]{32})$/;            // un rappel de l'agenda : sa fiche (« Fait », « Reporter », « Voir le message »)
   const MOTIF_OUVRIR_APPELS = /^\/#appels$/;
   const MOTIF_OUVRIR_CONTACTS = /^\/#contacts$/;          // une demande de contact touchée mène à l'onglet Contacts (accepter, refuser)
   function erreurLocale(code) {
@@ -1670,12 +1671,13 @@
     let suppressionEnCours = false;        // la demande de suppression est partie : le service va fermer notre flux, ce n'est pas une session « morte » à signaler
     const registre = new Map();            // uid → { id, prenom, nom, statut }
     const enLigne = new Set();
+    const enReunion = new Set();           // « En réunion » (8 octobre 2026) : dans une salle — une présence comme « en ligne », soumise à la même règle réciproque
     let contactsApi = [], contactsTous = [], convsApi = [], listeFraiche = false;
     const convs = new Map();               // id → { detail, messages[], aPlus, charge }
     const saisies = new Map();             // conv → Map(uid → minuterie)
     const lecture = new Map();             // conv → Map(uid → { seq, ts })
     const file = [];                       // l'envoi en attente : { cid, conv, texte, reponse, t, essais }
-    let minuterieFile = null, enRelecture = null, derniereSaisie = new Map();
+    let minuterieFile = null, enRelecture = null, derniereSaisie = new Map(), envoiSaisie = new Map(), arretSaisie = new Map();
     const ecouteurs = [];
     const emettre = (ev) => ecouteurs.slice().forEach(f => { try { f(Object.assign({}, ev)); } catch (e) { /* un écouteur fautif n'arrête pas les autres */ } });
 
@@ -1824,12 +1826,12 @@
     const nomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).nom : 'Quelqu\'un');
 
     /* ── les contacts ── */
-    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id), favori: c.favori === true });
+    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enReunion.has(c.id) ? 'En réunion' : enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id), enReunion: enReunion.has(c.id), favori: c.favori === true });
     function installerContacts(liste) {
       contactsTous = liste.slice();
       contactsApi = liste.filter(c => c.mutuel && !c.bloque);
-      enLigne.clear();
-      for (const c of liste) { noter(c); if (c.en_ligne) enLigne.add(c.id); }
+      enLigne.clear(); enReunion.clear();
+      for (const c of liste) { noter(c); if (c.en_ligne) enLigne.add(c.id); if (c.en_reunion) enReunion.add(c.id); }
     }
     async function rafraichirContacts() {
       installerContacts(await A.contacts());
@@ -1859,7 +1861,7 @@
         id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, supprime,
         theme: themeDe(c.theme),
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
-        nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false,
+        nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
         invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
@@ -2014,6 +2016,14 @@
       if (x.k === 'contact' && x.uid === null) return { carteContact: { uid: null, indisponible: true, prenom: 'Contact', identifiant: null, moi: false, contact: false, avatar: 0, initiales: '?' } };
       if (x.k === 'contact' && typeof x.uid === 'string') return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact: contactsApi.some(k => k.id === x.uid), avatar: indexAvatar(x.uid), initiales: initialesDe(x.prenom || '?') } };
       if (x.k === 'sondage') return { sondage: vueSondage(conv, m.seq, x.q) };
+      /* le COMPTE RENDU d'une séance (8 octobre 2026) : rédigé par le service à « Terminer pour tous » — chaque champ relu, rien d'autre ne passe */
+      if (x.k === 'compte_rendu') {
+        const ent = (n) => Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0, txt = (s, max) => typeof s === 'string' ? s.slice(0, max) : '';
+        return { compteRendu: { titre: txt(x.titre, 120) || 'Réunion', debut: ent(x.debut), fin: ent(x.fin), dureeS: ent(x.duree_s),
+          presents: (Array.isArray(x.presents) ? x.presents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', dureeS: ent(p && p.duree_s) })), presentsN: ent(x.presents_n),
+          absents: (Array.isArray(x.absents) ? x.absents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', reponse: STATUTS_INVITE.indexOf(p && p.reponse) >= 0 ? p.reponse : 'attente' })), absentsN: ent(x.absents_n),
+          points: (Array.isArray(x.points) ? x.points : []).slice(0, 20).map(p => ({ texte: txt(p && p.texte, 200), fait: !!(p && p.fait === true) })), documents: ent(x.documents) } };
+      }
       return null;
     }
     function vueMessage(conv, c, m, auto) {
@@ -2080,7 +2090,7 @@
         espace: canalD && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canalD && d.conversation.prive === true,
         reunion: d.conversation.type === 'reunion' && typeof d.conversation.reunion === 'string' ? d.conversation.reunion : null };
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
-      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
+      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), enReunion: enReunion.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
       else if (d.conversation.type === 'groupe' || canalD) { base.nom = base.court = d.conversation.nom || (canalD ? 'Canal' : 'Groupe'); base.photo = photoPiece(d.conversation.avatar); }
       else if (d.conversation.type === 'reunion') { base.nom = base.court = d.conversation.nom || 'Réunion'; base.photo = null; }
       if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
@@ -2128,7 +2138,7 @@
        était encore dans la file : le vrai message (rangé) ET sa copie « En attente de connexion… » paraissaient ensemble, et rien ne redessinait après le retrait
        (relecture du testeur, D1 : réponse perdue, renvoi réussi, le message resté en double 35 s). */
     async function poster(p, retirer) {
-      const r = await A.envoyer(p.conv, p.texte, { cid: p.cid, reponse_a: p.reponse || undefined });
+      const r = await A.envoyer(p.conv, p.texte, { cid: p.cid, reponse_a: p.reponse || undefined, mentions: p.mentions });
       if (retirer) retirer();
       apresEnvoi(p.conv, { seq: r.seq, id: r.id, auteur: moiApi.id, ts: r.ts, type: 'texte', texte: p.texte, repond_a: p.reponse || null, supprime: false, modifie: null, reactions: [] });
       return r;
@@ -2283,7 +2293,9 @@
       const c = convs.get(id);
       let reponse = null;
       if (brouillon.reponse) { const q = c && c.messages.find(x => x.id === brouillon.reponse); if (q) reponse = q.seq; }
-      const p = { cid: OPMSG.nouveauCid(), conv: id, texte, reponse, t: maintenant(), essais: 0 };
+      /* les mentions (@prénom) : des identifiants de personnes, vingt au plus — le service ne prévient que les MEMBRES de la conversation */
+      const mentions = Array.isArray(brouillon.mentions) ? Array.from(new Set(brouillon.mentions.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)))).slice(0, 20) : [];
+      const p = { cid: OPMSG.nouveauCid(), conv: id, texte, reponse, t: maintenant(), essais: 0, mentions: mentions.length ? mentions : undefined };
       /* Tant qu'une file attend pour cette conversation, le suivant la REJOINT : l'ordre d'envoi est l'ordre des messages. */
       if (file.some(x => x.conv === id && !x.echec)) { file.push(p); emettre({ type: 'conversation', id }); planifierFile(0); return vueEnAttente(p); }
       try { await poster(p); return { id: p.cid, auteur: moiApi.id, t: p.t, texte, lu: null }; }
@@ -2314,11 +2326,24 @@
       if (r) { r.lu_seq = dernier; r.non_lus = 0; }
       emettre({ type: 'liste' });
     }
+    /* La frappe (« écrit… ») : le service n'en accepte qu'UNE par 2 s et par conversation — l'arrêt compris. ⛔ Vu au test de A à Z (8 octobre 2026) : taper puis quitter le
+       champ en moins de 2 s envoyait l'arrêt aussitôt, et le service le refusait (429 dans la console, un refus compté) ; quitter le champ sans avoir rien tapé envoyait un
+       arrêt pour rien, qui pouvait faire refuser la frappe suivante. Maintenant : un arrêt ne part que si une frappe a été annoncée ; trop tôt, il part quand la fenêtre se
+       rouvre (l'autre voit « écrit… » s'éteindre un peu plus tard, au lieu de jamais) ; une frappe qui reprend entre-temps l'annule. */
     function saisie(id, actif) {
-      const t = maintenant();
-      if (actif && t - (derniereSaisie.get(id) || 0) < 2500) return Promise.resolve();   // le service n'accepte qu'une frappe par 2 s
-      derniereSaisie.set(id, actif ? t : 0);
-      return A.saisie(id, !!actif).then(() => {}, () => { /* une frappe perdue n'est pas une erreur à montrer */ });
+      const t = maintenant(), envoyer = (a) => { envoiSaisie.set(id, maintenant()); return A.saisie(id, a).then(() => {}, () => { /* une frappe perdue n'est pas une erreur à montrer */ }); };
+      if (actif) {
+        if (arretSaisie.has(id)) { annuler(arretSaisie.get(id)); arretSaisie.delete(id); }          // on tape encore : l'arrêt prévu n'a plus lieu d'être
+        if (t - (derniereSaisie.get(id) || 0) < 2500 || t - (envoiSaisie.get(id) || 0) < 2000) return Promise.resolve();
+        derniereSaisie.set(id, t);
+        return envoyer(true);
+      }
+      if (!derniereSaisie.get(id) || arretSaisie.has(id)) return Promise.resolve();      // rien d'annoncé, ou l'arrêt est déjà prévu
+      const partir = () => { arretSaisie.delete(id); derniereSaisie.set(id, 0); return envoyer(false); };
+      const reste = (envoiSaisie.get(id) || 0) + 2050 - t;
+      if (reste <= 0) return partir();
+      arretSaisie.set(id, planifier(partir, reste));
+      return Promise.resolve();
     }
     function poserSaisie(conv, uid, actif) {
       let S = saisies.get(conv);
@@ -2390,7 +2415,7 @@
       const c = convsApi.find(x => x.id === id);
       return c ? resume(c) : { id };
     }
-    const vueMembre = (c, x) => Object.assign(vuePersonne(x), { role: x.role, moi: estMoi(x.id), enLigne: enLigne.has(x.id), contact: contactsApi.some(k => k.id === x.id) });
+    const vueMembre = (c, x) => Object.assign(vuePersonne(x), { role: x.role, moi: estMoi(x.id), enLigne: enLigne.has(x.id), enReunion: enReunion.has(x.id), contact: contactsApi.some(k => k.id === x.id) });
     async function infos(id) {
       let c = convs.get(id);
       if (!c || !c.detail) { try { const d = await A.conversation(id); for (const m of d.membres) noter(m); c = convs.get(id) || { messages: [], aPlus: false, charge: false }; c.detail = d; convs.set(id, c); } catch (e) { if (e && e.code === 'introuvable') return null; throw e; } }
@@ -2401,7 +2426,7 @@
         id, type: d.conversation.type, nom, initiales: autre ? initialesDe(nom) : (direct ? '?' : '#'), avatar: indexAvatar(autre ? autre.id : id), photo: autre ? photoPiece(autre.avatar) : (direct ? null : photoPiece(d.conversation.avatar)), supprime: direct && !autre,
         sourdine: d.moi && d.moi.muet_jusqua > maintenant() ? d.moi.muet_jusqua : 0,
         membres: d.membres.map(x => vueMembre(c, x)), moiAdmin: d.moi.role === 'admin', annoncesSeulement: !!d.conversation.annonces_seules, ephemeres: d.conversation.ephemere_s || 0,
-        enLigne: autre ? enLigne.has(autre.id) : false,
+        enLigne: autre ? enLigne.has(autre.id) : false, enReunion: autre ? enReunion.has(autre.id) : false,
         /* un canal dit son espace (l'identifiant que les gestes de l'administrateur réclament) et s'il est privé */
         espace: canal && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canal && d.conversation.prive === true,
       };
@@ -2617,6 +2642,7 @@
       },
       presence: (d) => {
         if (d.en_ligne) enLigne.add(d.uid); else enLigne.delete(d.uid);
+        if (d.en_reunion === true && d.en_ligne) enReunion.add(d.uid); else if (d.en_reunion === false || !d.en_ligne) enReunion.delete(d.uid);      // hors ligne : plus « en réunion » non plus
         emettre({ type: 'presence', id: d.uid }); emettre({ type: 'contacts' }); emettre({ type: 'liste' });
         for (const [id, c] of convs) if (c.detail && c.detail.membres.some(m => m.id === d.uid)) emettre({ type: 'conversation', id });
       },
@@ -2655,6 +2681,8 @@
       if (minuterieFile) { annuler(minuterieFile); minuterieFile = null; }
       for (const S of saisies.values()) for (const h of S.values()) annuler(h);
       saisies.clear();
+      for (const h of arretSaisie.values()) annuler(h);                 // un arrêt de frappe prévu ne part pas après la déconnexion
+      arretSaisie.clear(); derniereSaisie.clear();
     }
 
     /* ── la session ── */
@@ -2701,11 +2729,33 @@
     }
     /* ── l'agenda personnel (capacité `agenda`) : ce que le service a retenu, jamais ce que la page croit avoir demandé ── */
     const vueEvenement = (x) => ({ id: String(x.id), titre: String(x.titre || ''), lieu: String(x.lieu || ''), note: String(x.note || ''), debut: +x.debut || 0, fin: +x.fin || 0,
-      journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true });
+      journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true,
+      fait: Number.isFinite(x.fait) && x.fait > 0 ? x.fait : null,                                         // coché (l'instant), ou null
+      source: x.source && /^c_[0-9a-f]{32}$/.test(String(x.source.conv)) && Number.isSafeInteger(x.source.seq) ? { conv: x.source.conv, seq: x.source.seq } : null });   // le message d'origine (« Me le rappeler »)
     async function evenements(du, au) { return (await A.agenda(du, au) || []).map(vueEvenement); }
     async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
     async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
     async function supprimerEvenement(id) { await A.supprimerEvenement(id); return true; }
+    /* ── envoyer plus tard (8 octobre 2026) : ce que le service a retenu — le texte et l'instant ; personne d'autre ne les voit ── */
+    const vueProgramme = (x) => ({ id: String(x.id), conv: String(x.conv), texte: String(x.texte || ''), quand: +x.quand || 0 });
+    /* ⛔ `programmer` est PROGRAMMER UNE RÉUNION : deux fonctions du même nom dans la même portée, la seconde remplace la première partout — d'où des noms à part */
+    async function messagesProgrammes(conv) { return (await A.messagesProgrammes(conv) || []).map(vueProgramme); }
+    /* les personnes citées (@prénom) partent avec lui : le service rejuge leur appartenance au moment où il part */
+    async function programmerMessage(conv, texte, quand, mentions) {
+      const m = Array.isArray(mentions) ? Array.from(new Set(mentions.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)))).slice(0, 20) : [];
+      return vueProgramme(await A.programmerMessage(conv, texte, quand, m.length ? m : undefined));
+    }
+    async function annulerProgramme(id) { await A.annulerProgramme(id); return true; }
+    /* ── les mentions reçues (8 octobre 2026) : les notifications « vous a mentionné », pour le tableau de bord ; lire = marquer lues ── */
+    async function mentionsRecentes() {
+      const r = await A.notifications();
+      return ((r && r.notifications) || []).filter(n => n && n.type === 'mention' && /^c_[0-9a-f]{32}$/.test(String(n.cible)))
+        .map(n => ({ id: String(n.id), conv: String(n.cible), titre: String(n.titre || ''), texte: String(n.texte || ''), t: +n.ts || 0, lue: !!n.lue }));
+    }
+    /* ⛔ une liste VIDE ne part pas : sans liste, le service marquerait TOUTES les notifications lues */
+    async function mentionsLues(ids) { const l = Array.isArray(ids) ? ids.filter(x => typeof x === 'string' && /^n_[0-9a-f]{32}$/.test(x)).slice(0, 200) : []; if (l.length) await A.notificationsLues(l); return true; }
+    async function faitEvenement(id, fait) { return vueEvenement(await A.faitEvenement(id, fait === true)); }
+    async function reporterEvenement(id, dans) { return vueEvenement(await A.reporterEvenement(id, dans)); }
     /* ── le compte par adresse e-mail (« comme Discord » : le numéro est facultatif) ──
        `comptesOuverts()` : ce que le service propose AVANT toute connexion — { courriel, inscription } (deux booléens), ou null quand on n'a pas pu le savoir (la page garde
        alors l'écran d'avant, jamais « pas ouvert » sur une panne). Les autres rendent ce que le service a répondu ; une connexion réussie pose la session (cookie) : la page recharge. */
@@ -2862,6 +2912,7 @@
       return cleVapid;
     }
     const apercuNotif = () => !!(moiApi && moiApi.prefs && moiApi.prefs.apercu_notif === true);
+    const pauseReunion = () => !(moiApi && moiApi.prefs && moiApi.prefs.pause_reunion === false);      // « Ne pas déranger pendant une réunion » : ALLUMÉ tant qu'on ne l'a pas coupé
     /* l'abonnement de ce navigateur, ou null : jamais une erreur (une déconnexion ne dépend pas d'une notification) */
     async function abonnementLocal() {
       try { if (!nav.priseEnCharge().ok || nav.permission() !== 'granted') return null; return await nav.abonnementActuel(); }
@@ -2869,7 +2920,7 @@
     }
     const jsonAbonnement = (sub) => { const j = typeof sub.toJSON === 'function' ? sub.toJSON() : sub; return { endpoint: j.endpoint, keys: { p256dh: j.keys && j.keys.p256dh, auth: j.keys && j.keys.auth } }; };
     async function notifEtat() {
-      const sortie = { possible: false, raison: null, permission: 'default', active: false, apercu: apercuNotif(), phrase: '' };
+      const sortie = { possible: false, raison: null, permission: 'default', active: false, apercu: apercuNotif(), pauseReunion: pauseReunion(), phrase: '' };
       const pc = nav.priseEnCharge();
       if (!pc.ok) return Object.assign(sortie, { raison: pc.raison, phrase: PHRASES_LOCALES['notif_' + pc.raison] });
       if (!(await clePush())) return Object.assign(sortie, { raison: 'service', phrase: PHRASES_LOCALES.notif_service });
@@ -2910,6 +2961,11 @@
     }
     async function notifApercu(actif) {
       const m = await A.majMoi({ prefs: { apercu_notif: !!actif } });
+      moiApi = m; noter(m);
+      return notifEtat();
+    }
+    async function notifPauseReunion(actif) {
+      const m = await A.majMoi({ prefs: { pause_reunion: !!actif } });
       moiApi = m; noter(m);
       return notifEtat();
     }
@@ -2973,6 +3029,8 @@
           if (m && !mort) emettre({ type: 'ouvrir', conv: m[1] });          // seule une adresse de CETTE forme ouvre quelque chose : jamais une adresse venue d'ailleurs
           const r = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR_REUNION.exec(d.url) : null;
           if (r && !mort) emettre({ type: 'ouvrir', reunion: r[1] });
+          const ev = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR_EVENEMENT.exec(d.url) : null;
+          if (ev && !mort) emettre({ type: 'ouvrir', evenement: ev[1] });
           if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_APPELS.test(d.url) && !mort) emettre({ type: 'ouvrir', appels: true });      // la notification d'un appel (sonnerie ou manqué) mène à l'onglet des appels
           if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_CONTACTS.test(d.url) && !mort) emettre({ type: 'ouvrir', contacts: true });
         });
@@ -3159,10 +3217,15 @@
         salle: d.salle ? { rejoignable: d.salle.rejoignable === true, ouverte: d.salle.ouverte === true, occurrence: d.salle.occurrence ? { debut: d.salle.occurrence.debut, fin: d.salle.occurrence.fin } : null } : { rejoignable: false, ouverte: false, occurrence: null },
         moi: vueMoiReunion(d.moi), invites: (d.invites || []).map((p) => ({ id: p.id, statut: statutInvite(p.statut), hote: !!p.hote })), prochaine: d.prochaine ? { debut: d.prochaine.debut, fin: d.prochaine.fin } : null,
         /* le nombre de personnes que CETTE réunion peut compter, organisateur compris : celui du service (`null` quand il ne le dit pas) */
-        plafond: Number.isInteger(d.plafond) && d.plafond >= 2 ? d.plafond : null });
+        plafond: Number.isInteger(d.plafond) && d.plafond >= 2 ? d.plafond : null,
+        /* l'ordre du jour (8 octobre 2026) : des points cochables — identifiant, texte, coché */
+        ordreDuJour: vueOdj(d.reunion && d.reunion.ordre_du_jour) });
     }
+    const vueOdj = (l) => (Array.isArray(l) ? l : []).filter(p => p && typeof p.id === 'string' && /^[0-9a-f]{8}$/.test(p.id) && typeof p.texte === 'string').slice(0, 20).map(p => ({ id: p.id, texte: p.texte, fait: p.fait === true }));
+    /* cocher ou décocher un point de l'ordre du jour → la liste à jour (et l'agenda, la fiche, la salle se relisent) */
+    async function cocherPoint(id, point, fait) { const l = vueOdj(await pourReunion(A.cocherPoint(id, point, fait === true))); reunionChangee(id); return l; }
     /* ce que la page peut dire d'une réunion : rien d'autre ne part (ni hôte, ni identifiant, ni version) */
-    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente'];
+    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente', 'ordre_du_jour'];
     const corpsReunion = (champs) => { const c = {}; for (const k of CHAMPS_REUNION) if (champs && champs[k] !== undefined) c[k] = champs[k]; return c; };
     const reunionChangee = (id, supprime) => { emettre({ type: 'reunions', id: id || null, supprime: !!supprime }); relireListePlusTard(); };
     async function programmer(champs) {
@@ -3288,7 +3351,8 @@
       capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
-      evenements, creerEvenement, majEvenement, supprimerEvenement,
+      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
+      messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
@@ -3308,7 +3372,7 @@
       modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
-      notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
+      notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */
       espaces, espace, espaceCreer, espaceRenommer, espaceTransferer, espaceQuitter, espaceDissoudre, espaceContacts, membreRole, membreRetirer,
       invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter,
@@ -3316,7 +3380,7 @@
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
       persoPlus, persoPlusPayer, persoPlusPortail, persoPlusRelire,   // le forfait d'une PERSONNE (capacité `persoPlus`)
       /* ── les réunions programmées (capacité `reunions`) ── */
-      reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
+      reunions, reunion, programmer, modifierReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */
       appels: listeAppels,
       demarrerAppel,

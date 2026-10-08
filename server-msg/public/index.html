@@ -567,6 +567,9 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .reg-titre { margin: 0 4px 14px; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: .36px; color: var(--text); outline: none; }
 /* au téléphone : la liste OU la rubrique — jamais les deux ; une rubrique ouverte cache le grand titre « Profil » (elle a le sien) */
 #vue-reglages[data-sec]:not([data-sec=""]) .reg-accueil, #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: none; }
+/* ⛔ … ET UN SEUL RETOUR : la rubrique a le sien (« ‹ Profil », dans sa barre). Le retour du Profil vers la vue d'avant (« ‹ Tableau de bord ») s'efface avec la liste — vu sur la bêta
+   le 8 octobre 2026, au téléphone : deux chevrons empilés en haut de Notifications. Au-delà de 900 px, ce retour-là est déjà caché (la barre latérale y suffit) : la règle ne vise que lui. */
+@media (max-width: 899.98px) { #vue-reglages[data-sec]:not([data-sec=""]) > .entete-vue { display: none; } }
 @media (min-width: 1100px) {
   #vue-reglages { max-width: 1120px; }
   .reg-grille { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 28px; align-items: start; }
@@ -639,6 +642,9 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
   transform: translateY(-8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
 }
 .mot.on { transform: none; opacity: 1; }
+/* ⛔ au téléphone, une conversation ouverte a un en-tête HAUT (l'avatar au-dessus du nom, comme Messages) : le petit mot passait SUR le nom de la conversation (vu au test de
+   A à Z, 8 octobre 2026 : « Je te le rappelle à … » posé sur le titre). Il se pose sous l'en-tête. */
+@media (max-width: 1099.98px) { html[data-conv] .mot { top: calc(var(--vvt, 0px) + env(safe-area-inset-top, 0px) + 84px); } }
 
 /* ⚠️ ÉCARTS AU PAQUET, À FAIRE VALIDER PAR JUSTIN (relecture du 1er octobre 2026) : (1) la flèche d'envoi n'est montrée qu'avec du texte, et le micro disparaît alors — le paquet
    dessine la flèche dans la pilule ET le micro à droite en permanence ; (2) le chevron de retour et son badge sont masqués dès 1 100 px (la liste est à côté) — la capture
@@ -1051,6 +1057,9 @@ html[data-service] .mention-apercu { display: none; }
 .avatar.en-ligne { position: relative; }
 .avatar .presence { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--vert); box-shadow: 0 0 0 2px var(--solide); }
 .epingle .avatar .presence, .conv .avatar .presence { width: 13px; height: 13px; }
+/* « En réunion » : la pastille rouge barrée de « Ne pas déranger » — elle dit qu'on ne répondra pas tout de suite, sans un mot */
+.avatar .presence.reunion { background: var(--rouge); }
+.avatar .presence.reunion::after { content: ''; position: absolute; left: 25%; right: 25%; top: 50%; height: 2px; margin-top: -1px; border-radius: 1px; background: #fff; }
 
 .connexion {
   min-height: 100vh; min-height: 100dvh; display: grid; place-items: center;
@@ -1214,6 +1223,19 @@ html[data-service] .mention-apercu { display: none; }
 .compo-confirme-texte { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
 .compo-confirme-boutons { display: flex; gap: 8px; margin-left: auto; }      /* les deux gestes restent ENSEMBLE, à droite, même quand la phrase prend la ligne */
 .compo-confirme-texte small { display: block; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
+/* LES MENTIONS (8 octobre 2026) : la liste « @ » se pose au-dessus du champ, comme la bande d'une réponse — un membre par ligne, sa photo et son nom en entier ; dans la bulle, le
+   « @Prénom » d'un membre est en gras, et souligné d'un voile de SA propre encre quand c'est le mien (lisible sur toutes les couleurs de bulles d'une conversation) */
+.compo-mentions { max-width: 860px; margin: 0 auto 6px; display: flex; flex-direction: column; padding: 4px; border-radius: 16px; background: var(--card); border: var(--line); box-shadow: 0 8px 24px rgba(0,0,0,.12); }
+.mention-choix { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 10px; border-radius: 12px; font-size: 16px; line-height: 20px; color: var(--text); text-align: left; }
+.mention-choix .avatar { flex: none; width: 30px; height: 30px; font-size: 12px; }
+.mention-choix > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.mention-choix[aria-selected="true"] { background: var(--field); }
+@media (hover: hover) { .mention-choix:hover { background: var(--field); } }
+.bulle .mention-nom { font-weight: 600; }
+.bulle .mention-nom.moi { padding: 0 3px; border-radius: 6px; background: color-mix(in srgb, currentColor 16%, transparent); }
+.bord-mention .appel-heure { padding-right: 14px; }
+.bord-mention.non-lue .appel-nom-ligne { font-weight: 600; }
+.bord-mention.non-lue .appel-heure::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }
 @media (pointer: coarse) { .compo-confirme-texte small { display: none; } .compo-confirme .mini { min-height: 44px; } }
 .side-marque b { white-space: nowrap; }      /* « OP MESSAGES PRO » tient sur une ligne dans les 236 px de la barre (mesuré : la pastille passait dessous) */
 .marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
@@ -1815,6 +1837,64 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 #bord-appels { --sep-retrait: 66px; }
 #vue-accueil .carte-liste { margin-bottom: 24px; }          /* trois blocs : l'intertitre du suivant ne colle pas à la carte d'avant */
 .reunion-li { display: flex; align-items: center; }
+/* le rond d'un rappel (tableau de bord) et la ligne faite : comme Rappels d'Apple — un cercle fin, plein et coché quand c'est fait */
+.evt-li { display: flex; align-items: center; }
+.evt-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; padding-left: 4px; }
+.evt-coche { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: 6px; }
+.evt-rond { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--sub-meta); color: transparent; transition: background-color .15s, border-color .15s; }
+.evt-rond .ic { width: 14px; height: 14px; stroke-width: 2.6; opacity: 0; }        /* vide tant que ce n'est pas fait : la coche ne paraît QUE dans le rond plein */
+/* ⛔ la coche prend la couleur du ROND (`color: inherit`) : dans une fiche, `.info-corps .reglage .ic` la peignait en accent — sur un rond plein d'accent, un rond bleu sans coche
+   (vu au test de A à Z, 8 octobre 2026 : l'ordre du jour coché, « Marquer comme fait ») */
+.evt-rond.plein .ic, .evt-coche[aria-pressed="true"] .evt-rond .ic { opacity: 1; color: inherit; }
+.evt-coche[aria-pressed="true"] .evt-rond, .evt-rond.plein { background: var(--accent); border-color: var(--accent); color: #fff; }
+.evenement-ligne.fait .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
+.evt-gestes { margin-bottom: 16px; }
+/* L'ORDRE DU JOUR (8 octobre 2026) : un point = une ligne cochable, le rond des rappels ; un point traité est barré */
+.odj-point .evt-rond { flex: none; }
+.odj-point.fait .reglage-texte { text-decoration: line-through; color: var(--sub-meta); }
+.salle-rang.odj .evt-rond { flex: none; border-color: var(--salle-sub); }
+.salle-rang.odj[aria-checked="true"] .evt-rond { background: #fff; border-color: #fff; color: #111; }
+.salle-rang.odj[aria-checked="true"] .evt-rond .ic { opacity: 1; }
+.salle-rang.odj[aria-checked="true"] .texte { text-decoration: line-through; opacity: .7; }
+/* LE COMPTE RENDU d'une séance : une carte comme un sondage (l'encre et le fond de la bulle) — les rubriques, les listes, l'ordre du jour coché */
+.compte-rendu .cr-tete { display: flex; align-items: center; gap: 10px; }
+.compte-rendu .cr-tete .ic { flex: none; width: 22px; height: 22px; }
+.compte-rendu .cr-tete b { display: block; font-size: 13px; line-height: 17px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+.cr-titre { display: block; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.cr-quand { margin: 0; font-size: 13px; line-height: 17px; opacity: .85; font-variant-numeric: tabular-nums; }
+.cr-rub { margin: 0; font-size: 13px; line-height: 17px; font-weight: 600; opacity: .85; }
+.cr-liste { margin: -4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: 15px; line-height: 20px; }
+.cr-liste li { display: flex; align-items: baseline; gap: 8px; overflow-wrap: anywhere; }
+.cr-liste small { margin-left: auto; font-size: 13px; opacity: .75; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cr-points li { align-items: center; }
+.cr-points .evt-rond { flex: none; width: 18px; height: 18px; border-color: color-mix(in srgb, currentColor 60%, transparent); }
+.cr-points .evt-rond .ic { width: 12px; height: 12px; }
+/* coché : le rond prend l'ENCRE de la bulle et la coche son FOND — lisible sur la bulle reçue comme sur l'envoyée, quel que soit le thème de la conversation */
+.compte-rendu.recue .cr-points .evt-rond.plein { background: var(--bubble-in-fg); border-color: var(--bubble-in-fg); color: var(--bubble-in); }
+.compte-rendu.envoyee .cr-points .evt-rond.plein { background: var(--on-fill); border-color: var(--on-fill); color: var(--fill); }
+.cr-points li.fait { opacity: .8; }
+.cr-docs { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; opacity: .85; }
+.cr-docs .ic { width: 16px; height: 16px; }
+.evt-gestes .reglage .evt-rond { flex: none; }
+.evt-reporter { flex-wrap: wrap; row-gap: 8px; }
+.evt-reporter-choix { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg.msg-cible .bulle { animation: msg-cible 2s ease-out; }
+/* un message PROGRAMMÉ : une bulle en pointillés, à droite, l'heure prévue dessous — il n'est pas encore parti */
+.prog-liste { padding-top: 4px; }
+.prog-msg { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin: 6px 0 2px; }
+.bulle.prog { background: transparent; color: var(--text); border: 1.5px dashed var(--accent); border-radius: 20px 20px 6px 20px; }     /* la forme d'une bulle envoyée, en creux : pas encore partie */
+.prog-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub-meta); }
+.prog-meta .ic { width: 14px; height: 14px; }
+.prog-annuler { min-height: 32px; padding: 0 8px; color: var(--accent-txt); font-size: 12px; font-weight: 600; }
+@media (pointer: coarse) { .prog-annuler { min-height: 44px; } }
+.menu-msg.pj.pt { display: block; padding: 0; }
+.menu-msg.pt .menu-action { justify-content: space-between; gap: 12px; }
+.menu-msg.pt .menu-action small { font-size: 13px; color: var(--sub-meta); }
+@media (min-width: 900px) and (pointer: fine) { .menu-fond.pj .menu-msg.pt { width: 320px; padding: 4px; } .menu-fond.pj .menu-msg.pt .menu-action { min-height: 40px; padding: 0 12px; font-size: 14px; border-radius: 8px; } }
+.menu-champ { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px; }
+.menu-champ label { width: 100%; font-size: 13px; color: var(--sub-meta); }
+.menu-champ input { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border: var(--line); border-radius: 10px; background: var(--input-bg); color: var(--text); font-size: 16px; }
+@keyframes msg-cible { 0%, 35% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
 .salle-attente b { display: block; }
@@ -2195,7 +2275,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <span class="tabs-bulle" aria-hidden="true"></span>
   </nav>
 
-  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisissez une conversation pour la lire et y répondre.</p></div></section>
+  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisis une conversation pour la lire et y répondre.</p></div></section>
 
   <section class="conv-ecran" id="conv-ecran" role="region" aria-label="Conversation" tabindex="-1">
     <header class="conv-nav" data-glass="1">
@@ -2212,6 +2292,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <!-- ⛔ la région annoncée ne reçoit QUE le message neuf d'un autre : si le fil entier était « aria-live », chaque rafraîchissement (« Lu 14:06 ») le relirait en bloc -->
       <button type="button" class="precedents" id="precedents" hidden>Afficher les messages précédents</button>
       <div class="conv-colonne" id="conv-messages" aria-busy="true"></div>
+      <div class="conv-colonne prog-liste" id="conv-programmes" hidden></div>
     </div>
     <p class="sr-seul" id="conv-annonce" role="status" aria-live="polite" aria-atomic="true"></p>
     <p class="avis-saisie" id="avis" role="status" aria-live="polite" hidden></p>
@@ -2219,6 +2300,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <div class="compo-contexte" id="compo-contexte" hidden><span class="compo-contexte-texte" id="compo-contexte-texte"></span><button type="button" id="compo-contexte-x" aria-label="Annuler"><svg class="ic" aria-hidden="true"><use href="#i-croix"/></svg></button></div>
       <p class="compo-note" id="compo-note" hidden></p>
       <div class="compo-confirme" id="compo-confirme" role="alert" hidden><span class="compo-confirme-texte" id="compo-confirme-texte"></span><span class="compo-confirme-boutons"><button type="button" class="mini" id="compo-confirme-non">Annuler</button><button type="button" class="mini plein" id="compo-confirme-oui">Envoyer</button></span></div>
+      <div class="compo-mentions" id="compo-mentions" role="listbox" aria-label="Mentionner quelqu'un" hidden></div>
       <div class="compo-ligne" id="compo">
         <button type="button" class="compo-bouton compo-plus presse" id="compo-plus" aria-label="Joindre : photos, caméra, document…" aria-haspopup="dialog"><span class="disque"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
         <input type="file" id="compo-fichier" class="sr-seul" accept="image/*" multiple tabindex="-1" aria-hidden="true">
@@ -2255,7 +2337,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
     <audio id="appel-audio-distant" class="sr-seul" autoplay playsinline></audio>
     <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
-      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
+      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Ta caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="appel-bas">
       <div class="appel-reponse" id="appel-reponse" role="group" aria-label="Appel entrant">
@@ -2285,7 +2367,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="salle-bandeaux" id="salle-bandeaux"></div>
     <p class="salle-bandeau salle-avis" id="salle-avis" role="status" aria-live="polite" hidden></p>
     <div class="salle-scene" id="salle-scene" role="list" aria-label="Participants" data-vue="galerie" data-n="1" tabindex="0">
-      <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
+      <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Ta caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="annot-barre" id="annot-barre" role="toolbar" aria-label="Annoter" hidden>
       <div class="annot-palette" id="annot-palette" role="group" aria-label="Choix" hidden></div>

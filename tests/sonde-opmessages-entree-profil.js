@@ -67,6 +67,20 @@ const CHROME = '/opt/pw-browsers/chromium';
         await page.goBack();
         vrai('⛔ le retour système ne retombe pas sur le Profil', await attendre(() => location.hash !== '#reglages' && document.getElementById('vue-reglages').hidden));
       } else v('au bureau le retour ne se montre pas (la barre latérale y suffit)', retour, '');
+
+      /* ⛔ 5. UNE RUBRIQUE OUVERTE N'A QU'UN RETOUR (vu sur la bêta le 8 octobre 2026, au téléphone : « ‹ Tableau de bord » ET « ‹ Profil » empilés en haut de Notifications) */
+      console.log('5. Une rubrique du Profil : un seul retour');
+      const retours = () => page.evaluate(() => Array.from(document.querySelectorAll('#vue-reglages .reg-retour')).filter(x => { const r = x.getBoundingClientRect(); return r.width > 0 && r.height > 0; }).map(x => x.textContent.trim()));
+      await page.evaluate(() => { location.hash = '#reglages'; });
+      await attendre(() => !document.getElementById('vue-reglages').hidden && !!document.querySelector('[data-reg-sec="confidentialite"]'));
+      if (mob) v('population : sur la liste du Profil, le retour vers la vue d\'avant est là', (await retours()).length, 1);
+      if (mob) await page.tap('[data-reg-sec="confidentialite"]'); else await page.click('[data-reg-sec="confidentialite"]');
+      vrai('la rubrique « Confidentialité » s\'ouvre', await attendre(() => { const s = document.getElementById('reg-sec-confidentialite'); return !!s && !s.hidden && s.getBoundingClientRect().height > 0; }));
+      if (mob) {
+        v('⛔ au téléphone, UN retour : « ‹ Profil » (celui de la vue d\'avant s\'efface avec la liste)', await retours(), ['Profil']);
+        await page.tap('#reg-sec-confidentialite [data-reg-retour]');
+        vrai('« ‹ Profil » ramène à la liste, où le retour d\'avant revient', await attendre(() => { const a = document.getElementById('profil-retour'); return !!a && a.getBoundingClientRect().width > 0 && document.getElementById('reg-sec-confidentialite').hidden; }));
+      } else v('au bureau, aucun chevron : la liste reste à gauche, la rubrique à droite', await retours(), []);
       v('aucune erreur JavaScript', erreurs, []);
       await ctx.close();
     }

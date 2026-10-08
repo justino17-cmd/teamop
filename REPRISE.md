@@ -13,6 +13,74 @@ de ligne du tout.
 
 ---
 
+# ⏳ 8 OCTOBRE 2026 (APRÈS-MIDI) — LE TEST DE A À Z AVEC LE COMPTE DE TEST, ET CE QU'IL A TROUVÉ (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+« Teste l'application de A à Z » avec le compte que Justin a donné (identifiant « Claude », compte Pro, sans contact ni espace — ⛔ son mot de passe n'est écrit nulle part
+dans le dépôt). Deux passes : la bêta EN LIGNE (`c4e3d906`, avant ce lot) au bureau et au téléphone, en lecture seule, puis le PARCOURS ENTIER des nouveautés joué au navigateur
+contre le vrai service de la branche (une réunion sans invité : ordre du jour coché dans la fiche puis dans la salle, « Me le rappeler », « Voir le message » depuis le
+tableau de bord, « Envoyer plus tard » parti à l'heure, la salle quittée seule, le compte rendu, le ménage) — 29 ✓ au bureau ET au téléphone, aucune erreur JavaScript,
+aucun refus HTTP. Ce qui a été trouvé, corrigé, gardé par un banc ou une sonde (chaque correctif a vu sa mutation tomber) :
+· **la porte des bancs** : la mention dans une conversation à deux avait été retirée en silence (test-957) — elle redevient la notification de l'application, sans push ;
+  trois refus sans phrase (test-906).
+· **au téléphone, deux chevrons empilés** en haut d'une rubrique du Profil (« ‹ Tableau de bord » ET « ‹ Profil ») — un seul (sonde entrée-profil § 5).
+· **« Voir le message » ne menait nulle part** depuis le tableau de bord ou l'Agenda : la fiche se fermait par history.back() (asynchrone) PUIS la conversation se
+  poussait — le popstate réappliquait la vue d'avant. Seule la fiche ouverte par un lien marchait, la seule que la sonde jouait (sonde menu-rappel § 6).
+· **429 sur la frappe** (« écrit… ») : l'arrêt partait aussitôt, refusé par le service (une frappe par 2 s, l'arrêt compris) — il attend la fenêtre, et ne part plus pour
+  rien (test-911).
+· **seul dans la salle, « Quitter » ne donnait pas de compte rendu** (il n'était rédigé qu'à « Terminer pour tous ») — la séance qui finit parce que le dernier s'en va
+  a le sien (test-938 § 4 bis).
+· **un rond bleu sans coche** : l'ordre du jour coché dans une fiche (et « Marquer comme fait ») — la coche prend la couleur du rond (sonde ordre-du-jour, contraste lu).
+· **supprimer une réunion depuis sa conversation** disait « Tu n'es plus dans cette conversation » par-dessus « Réunion supprimée » (sonde ordre-du-jour § 4).
+· **après un appui long, le premier toucher dans le menu était avalé** (« Programmer » ne répondait qu'au second, profil iPhone) : l'heure du relâcher était notée à
+  CHAQUE doigt levé (sonde plus-tard § 2 bis).
+· **au téléphone, le petit mot se posait sur le nom de la conversation** (l'en-tête y est haut) — il se pose dessous (sonde plus-tard).
+· **le tutoiement partout** : « Choisissez une conversation » à côté de « Ajoute un contact », les refus du micro et de la caméra, « Vous organisez cette réunion ».
+Porte des bancs d'OP MESSAGES : 84 suites, 8 829 vérifications (plancher relevé à 8 815).
+⚠️ Ce que le compte de test seul ne peut pas jouer EN LIGNE : tout ce qui demande une deuxième personne (mentions, « En réunion » vu d'un autre, les messages retenus).
+Les bancs et les sondes le jouent à plusieurs, contre le vrai service. L'inscription par adresse est fermée sur la bêta : un second compte d'essai se crée par la Tour.
+⚠️ Toujours rouge EN LOCAL, vert en CI : test-971 (Vancouver à l'heure d'été permanente — la base des fuseaux de ce conteneur est plus vieille que celle de la CI).
+⚠️ `tests/sonde-opmessages.js` (l'aperçu, données de démonstration) avait deux défauts À ELLE : elle lisait le curseur du PREMIER segmenté du document (celui de Perso / Pro,
+caché), et son « toucher sur le fond » de la visionneuse tombait à 6 px sous « Enregistrer » — l'ajustement tactile le rattachait au bouton (Android, sans encoche) et elle
+mourait à la vignette suivante. Corrigés tous deux. Reste une mesure au pixel instable (« contour d'une case décochée », 0 encre peinte une fois sur trois, au jour).
+
+# ⏳ 8 OCTOBRE 2026 (MIDI) — RAPPELS QU'ON COCHE, ENVOYER PLUS TARD, MENTIONS, NE PAS DÉRANGER, ORDRE DU JOUR ET COMPTE RENDU (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Déjà sur la bêta (fusionnées) : justino17-cmd/teamop#102 (une réunion TERMINÉE n'est plus un bouton dans l'Agenda ; le tableau de bord « Semaine | Mois », sans
+« Programmer »), justino17-cmd/teamop#103 (« je peux pas supprimer » : un rappel supprimé depuis le tableau de bord en disparaît — seul l'Agenda se relisait),
+justino17-cmd/teamop#104 (test-989 ne fait plus la course avec le balayeur ; il débloquait le déploiement de #103 — la bêta sert `c4e3d906`, vérifié).
+
+Puis, à « tu aurais des idées ? » → « ok fais tout ça » (tout sur la bêta, chacun avec son banc, ses mutations et sa sonde) :
+· **un rappel se coche, se reporte, ramène à son message** (migration 21) : le rond « fait » dans l'Agenda et le tableau de bord ; « Reporter » 10 min / 1 h / demain 9:00 (le
+  service calcule l'heure) ; « Voir le message » ouvre la conversation sur le message d'origine (relu dans l'historique s'il le faut ; « n'est plus dans la conversation »
+  sinon). test-998, test-857, sondes menu-rappel et tableau-bord.
+· **envoyer plus tard** (migration 22) : la tuile « Plus tard » du « + », l'appui long (ou clic droit) sur la flèche — dans 1 h, ce soir, demain matin, lundi, une date ;
+  une bulle en pointillés sous le fil, « Annuler » ; le service l'envoie à l'heure par le chemin d'un envoi (règles jugées À CE MOMENT). test-935, sonde plus-tard.
+  ⚠️ **Décidé sans Justin : ouvert à tous** (pas une fonction Pro). À lui dire.
+· **les mentions @prénom** : dans un groupe, un canal, une réunion — « @ » propose les membres, le prénom s'écrit, la bulle le met en gras (voilé quand c'est moi) ; la
+  personne citée reçoit « vous a mentionné » et une push qui passe la sourdine À LA PLACE de celle du message (jamais deux) ; un bloc « Mentions » au tableau de bord, une
+  bannière qui ouvre la conversation. Un message programmé emporte ses personnes citées (rejugées à l'heure). test-936 (charges push déchiffrées), test-857 (fonctions
+  exécutées), sonde mentions. ⚠️ **Choix faits sans Justin** : dans une conversation à deux, la page ne propose pas « @ », et une mention qui y arrive (version d'avant,
+  appel direct) reste ce qu'elle était — la notification de l'application, SANS push (le message prévient déjà ; la sourdine n'est pas contournée). ⛔ Le premier jet
+  l'avait retirée en silence : la porte l'a vu (test-957, l'effacement d'un compte tait le titre de cette mention), elle est revenue, test-936 § 4 la garde.
+  En sourdine, UNE push de mention par conversation et par minute (anti-harcèlement) ; deux Camille et « @Camille » tapé sans choisir dans la liste : personne n'est prévenu.
+· **ne pas déranger pendant une réunion** : DANS une salle (appel de groupe ou réunion), un message ou une mention ne fait sonner AUCUN appareil ; à la sortie, UNE
+  notification résume (« Pendant la réunion : nouveaux messages dans 2 conversations, dont une mention » — ni nom ni texte) ; les contacts voient « En réunion » (pastille
+  rouge barrée, règle réciproque de la présence, seulement si la personne est en ligne). Réglages › Notifications : « Pause pendant les réunions », ALLUMÉ par défaut.
+  test-937, sonde reunion-pause. ⚠️ Les appels, rappels d'agenda, ajouts à un groupe passent quand même (seuls messages et mentions sont retenus) ; le compte des
+  retenus vit en mémoire (un redémarrage oublie le résumé, pas les messages).
+· **l'ordre du jour et le compte rendu** (migration 23) : l'organisateur pose l'ordre du jour en programmant (une ligne = un point, vingt au plus) ; chacun le coche dans
+  la fiche ou dans la salle (« Plus › Ordre du jour », relu en direct) ; à « Terminer pour tous », la conversation de la réunion reçoit un COMPTE RENDU (une carte : jour,
+  durée, présents et leur temps, absents et leur réponse, points cochés ou non, documents partagés pendant la séance) ; une série repart décochée ; l'export l'emporte.
+  test-938, test-905 (la route), test-857 (la carte exécutée, échappée), sonde ordre-du-jour. Le compte rendu part à « Terminer pour tous » ET quand la séance finit parce
+  que le dernier s'en va (il quitte, ou son appareil se tait) — corrigé au test de A à Z, voir plus haut ; il ne dit rien de l'enregistrement (le fichier arrive lui-même
+  dans la conversation).
+⛔ **Pas fait, en attente de Justin** :
+· **le résumé de réunion par IA** — il enverrait le contenu d'une réunion à Anthropic : c'est une question de `sous-traitance.html`, pas une ligne de code ;
+· **le relais vidéo (SFU)** pour plus de 4 en vidéo — la conception existe (`design/opmessages/SERVEUR.md`, étape 10 : LiveKit auto-hébergé, « seulement sur mesures »).
+  Rien d'utile ne peut partir d'ici sans trois décisions : (1) accepter une dépendance lourde (un binaire LiveKit, ou mediasoup et son worker C++, plus la bibliothèque
+  du navigateur) contre la règle « fait main » ; (2) des gestes sur le VPS — une plage de ports UDP ouverte, un sous-domaine en TLS pour la signalisation, le service à
+  installer comme coturn l'a été ; (3) une mesure sur de vrais téléphones en 4G avant de promettre. La maille actuelle (4 en vidéo, 6 en audio, coturn) reste en place.
+
 # ⏳ 8 OCTOBRE 2026 (NUIT) — LA VÉRIFICATION DE A À Z, LE MENU D'UN MESSAGE CONTRE SA BULLE, « ME LE RAPPELER », L'AGENDA AU MOIS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 « Vérifie toute l'application et teste tout de A à Z » : 35 sondes de la vraie page + les 80 suites de la porte (deux moitiés, 40 suites et 5 820 vérifications

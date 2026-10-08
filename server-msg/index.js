@@ -104,6 +104,7 @@ function demarrer(env = process.env) {
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
   const appels = creerAppels({ stockage, hub, push, config, formule, horloge: Date.now, journaliser });
+  push.brancherSalles((uid) => stockage.enSalle(uid));                   // « Ne pas déranger pendant une réunion » : le push demande au magasin si la personne est DANS une salle
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now, fermerSessions: hs => { for (const h of hs) hub.fermerSession(h); } }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
      refusent le démarrage plutôt que de tourner de travers), puis la garde (budgets, emballement, bouclier) et l'envoi par OVH. */
@@ -207,6 +208,8 @@ function demarrer(env = process.env) {
       effacerPieces(stockage.piecesOrphelinesPurger(500));                // une pièce jamais envoyée (24 h), une photo de profil jamais posée
       /* ⛔ LES COMPTES DONT LA SUPPRESSION EST ÉCHUE (J+14) : l'identité, les contacts, les notifications, les appareils partent ; les messages restent chez les autres, signés « Compte supprimé ».
          Par petits paquets (un effacement est une transaction) ; ce que la personne a vu s'en aller (groupes quittés, contacts) est dit aux autres tout de suite. */
+      /* ⛔ ENVOYER PLUS TARD (8 octobre 2026) : les messages programmés dont l'heure est venue partent, par le MÊME chemin qu'un envoi (`routes.js`, `ctx.programmesTour`) */
+      if (ctx.programmesTour) { const g = ctx.programmesTour(25); if (g.envoyes) journaliser('programme_envoye', { n: g.envoyes }); }
       for (const id of stockage.comptesEchus(5)) {
         const e = stockage.compteEffacer(id);
         if (!e.effacee) continue;
@@ -256,6 +259,8 @@ function demarrer(env = process.env) {
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau
   facturation.demarrer();  // inerte sans clé Stripe : sinon une relecture au démarrage, puis toutes les dix minutes pour les espaces abonnés
+  /* la séance d'une réunion qui finit parce que le dernier s'en va : son compte rendu (`routes-reunions.js`, monté plus haut, a posé `ctx.compteRenduSeance`) — branché AVANT le balayeur */
+  appels.brancherFinReunion((x) => (typeof ctx.compteRenduSeance === 'function' ? ctx.compteRenduSeance(x) : null));
   appels.demarrer();       // le balayeur d'appels : un premier passage une seconde après le démarrage (les sonneries échues pendant l'arrêt), puis toutes les deux secondes
   if (appelsReveil.length) hub.reveiller({ uids: appelsReveil });
   planificateur.demarrer(); // un premier tour une seconde après le démarrage (un redémarrage rattrape ce qu'un arrêt a laissé), puis un tour toutes les 10 à 15 secondes

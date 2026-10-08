@@ -430,8 +430,8 @@ async function parcoursA(b, ctx) {
 
   console.log('\n── La fiche de l\'organisateur (Alice) ──');
   const fa = await lireFiche(A);
-  v('la fiche : le titre, « Vous organisez cette réunion », le jour et l\'horaire, la répétition, le lieu', [fa.nom, fa.sous, fa.infos.length, /Lundi/.test(fa.infos[0]) && fa.infos[0].includes(libJour(DST.avant).split(' ').slice(1).join(' ')) && /14:00 – 15:00/.test(fa.infos[0]), fa.infos[1], fa.infos[2]],
-    [TITRE, 'Vous organisez cette réunion', 3, true, 'Se répète toutes les semaines, 3 fois', LIEU]);
+  v('la fiche : le titre, « Tu organises cette réunion », le jour et l\'horaire, la répétition, le lieu', [fa.nom, fa.sous, fa.infos.length, /Lundi/.test(fa.infos[0]) && fa.infos[0].includes(libJour(DST.avant).split(' ').slice(1).join(' ')) && /14:00 – 15:00/.test(fa.infos[0]), fa.infos[1], fa.infos[2]],
+    [TITRE, 'Tu organises cette réunion', 3, true, 'Se répète toutes les semaines, 3 fois', LIEU]);
   v('… les deux participants : elle (organisatrice, « vous ») et Bruno (en attente)', fa.participants.map(p => p.replace(/\s+/g, ' ')), ['Alice Martin (vous)Organisateur', 'Bruno PetitEn attente']);
   const attendusHote = ['rappel:5', 'rappel:15', 'rappel:60', 'rappel:1440', 'retirer', 'inviter', 'conversation', 'modifier', 'courriel-ouvrir', 'annuler-demander', 'supprimer-demander'];
   v('⛔ ses gestes d\'organisatrice : modifier, envoyer par courriel, annuler, supprimer, inviter, retirer — et AUCUNE réponse à donner à sa propre réunion', [attendusHote.filter(g => !fa.gestes.includes(g)), fa.gestes.filter(g => /^reponse/.test(g))], [[], []]);

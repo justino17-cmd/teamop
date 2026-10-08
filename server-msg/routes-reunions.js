@@ -33,13 +33,14 @@
 'use strict';
 const cal = require('./calendrier');
 const ics = require('./ics');
-const { nettoyerNom, ID_PERS } = require('./routes');
+const { nettoyerNom, ID_PERS } = require('./routes');      // (l'ordre du jour : un point est une ligne, nettoyée comme un nom)
 const { serieDe, nomAffiche, texteInvitation, texteModification, texteAnnulation, creerNotifieur } = require('./reunions-outils');
 const { adresseValide } = require('./courriel');
 const { cleReseau } = require('./quotas');
 
 const JOUR = 86400000;
 const TITRE_MAX = 120, LIEU_MAX = 300, INVITES_MAX = 100, UIDS_PAR_APPEL = 50, RAPPELS_MAX = 4;
+const ODJ_MAX = 20, POINT_MAX = 200, ID_POINT = /^[0-9a-f]{8}$/;      // l'ordre du jour : vingt points de 200 signes au plus (migration 23)
 const N_MAX = 1000, DUREE_MAX = 30 * JOUR, FENETRE_MAX = 62 * JOUR, OCCURRENCES_MAX = 1000;
 const STATUTS = ['accepte', 'decline', 'peutetre'];
 const FUSEAU_DEFAUT = 'Europe/Paris';
@@ -169,6 +170,14 @@ function installerReunions(H, ctx) {
     return r;
   }
   const personne = (uid) => stockage.personneParId(uid);
+  /* L'ORDRE DU JOUR envoyé par la page : une liste de textes d'UNE ligne, vingt au plus, chacun de 1 à 200 signes ; les points vides partent (une ligne laissée blanche dans le formulaire n'est pas
+     un refus). → la liste, ou null (refus). */
+  function odjDe(v) {
+    if (!Array.isArray(v) || v.length > ODJ_MAX) return null;
+    const l = [];
+    for (const x of v) { if (typeof x !== 'string' || x.length > POINT_MAX * 4) return null; const t = nettoyerNom(x); if (!t) continue; if (Array.from(t).length > POINT_MAX) return null; l.push(t); }
+    return l;
+  }
   /* « Notifier les invités » : un booléen, vrai par défaut. */
   const notifierVoulu = (b) => b.notifier === undefined ? true : b.notifier === true;
   const listeUids = (v, max) => Array.isArray(v) && v.length >= 1 && v.length <= max && v.every(x => typeof x === 'string' && ID_PERS.test(x)) ? Array.from(new Set(v)) : null;
@@ -230,6 +239,8 @@ function installerReunions(H, ctx) {
   H['reunions.creer'] = garder((req, res) => {
     const b = corps(req), hote = req.moi;
     if (b.notifier !== undefined && typeof b.notifier !== 'boolean') return refus(res, 400, 'champ_invalide');
+    const odj = b.ordre_du_jour === undefined ? null : odjDe(b.ordre_du_jour);
+    if (b.ordre_du_jour !== undefined && !odj) return refus(res, 400, 'ordre_du_jour_invalide');
     if (b.salle_attente !== undefined && typeof b.salle_attente !== 'boolean') return refus(res, 400, 'champ_invalide');
     const v = valider(b, null, hote.tz);
     if (v.erreur) return refus(res, 400, v.erreur);
@@ -244,6 +255,7 @@ function installerReunions(H, ctx) {
     const prochain = prochainDe(v.serie, horloge());
     const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie), attente: b.salle_attente === true,
       plafond: ctx.formule.plafondReunion(hote.id) });          // ⛔ dix personnes au plus, organisateur compris : UNE fonction (`formule.js`) le dit
+    if (odj && odj.length) stockage.reunionOdjPoser(r.id, odj);
     hub.reveiller({ conv: r.conv });
     if (notifierVoulu(b)) {
       const quand = prochain !== null ? prochain : v.serie.debut, desc = { titre: v.titre, tz: v.serie.tz, repetition: v.serie.rep };
@@ -254,6 +266,58 @@ function installerReunions(H, ctx) {
 
   H['reunions.lire'] = garder((req, res) => res.json(vue(req.moi.id, req.reunion.id)));
 
+  /* ── L'ORDRE DU JOUR : cocher un point (8 octobre 2026) ── un PARTICIPANT de la réunion (l'organisateur ou un invité) : c'est la liste de la séance, comme un tableau partagé. Chacun le voit
+     tout de suite (l'événement `reunion` de la conversation). Cent vingt gestes par minute et par réunion : assez pour cocher en direct, pas pour faire tourner le service en boucle. */
+  H['reunions.odj_cocher'] = garder((req, res) => {
+    const b = corps(req), id = req.reunion.id;
+    if (typeof b.point !== 'string' || !ID_POINT.test(b.point) || typeof b.fait !== 'boolean') return refus(res, 400, 'champ_invalide');
+    if (!plafond(res, 'odj', id, { max: 120, fenetreMs: 60000 })) return;
+    const r = stockage.reunionOdjCocher(id, b.point, b.fait);
+    if (!r) return refus(res, 404, 'point_introuvable');
+    if (r.change) hub.reveiller({ conv: req.reunion.conv });
+    res.json({ ordre_du_jour: r.points });
+  });
+
+  /* ══ LE COMPTE RENDU D'UNE SÉANCE (8 octobre 2026 : « à la fin de la réunion, un compte rendu automatique ») ══
+     Quand l'hôte termine la séance POUR TOUS (`routes-salles.js`) — ou que le DERNIER s'en va (il quitte, son appareil se tait : `appels.js`) —, la conversation de la réunion reçoit un
+     message de celui qui l'a fermée, rédigé par le service : le titre et le jour, la
+     durée, qui est venu (et combien de temps), qui n'est pas venu (avec sa réponse à l'invitation), l'ordre du jour (coché ou non) et les documents partagés pendant la séance. Une CARTE
+     (`meta.k: 'compte_rendu'`) que la page dessine ; son TEXTE dit la même chose (une version d'avant, une notification, l'export). Une seule fois par séance : son `cid` est celui de la salle.
+     ⛔ Rien que la salle n'ait déjà montré à ses participants — des noms, des durées, des coches. Une SÉRIE repart ensuite avec un ordre du jour décoché. → { seq } ou null */
+  const LISTE_CR_MAX = 30;
+  const dureeTexte = (s) => { const m = Math.max(1, Math.round(s / 60)); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : ''); };
+  const REPONSES = { accepte: 'a accepté', decline: 'a décliné', peutetre: 'peut-être', attente: 'sans réponse' };
+  ctx.compteRenduSeance = ({ salle, reunion, par }) => {
+    try {
+      const R = reunion ? stockage.reunionPourMembre(reunion, par.id) : null; if (!R) return null;
+      const conv = R.reunion.conv;
+      if (!stockage.convPourMembre(conv, par.id)) return null;
+      const p = stockage.presenceSalle(salle, horloge()); if (!p || p.en_cours) return null;
+      const fin = p.fin || horloge(), duree_s = Math.max(0, Math.round((fin - p.debut) / 1000));
+      const nom = (x) => ((x.prenom || '') + ' ' + (x.nom || '')).trim() || 'Compte supprimé';
+      const venus = p.venus.slice(0, LISTE_CR_MAX).map(x => ({ id: x.id, nom: nom(x), duree_s: x.duree_s }));
+      const dejaVenus = new Set(p.venus.map(x => x.id));
+      const absentsTous = R.invites.filter(i => !dejaVenus.has(i.id));
+      const absents = absentsTous.slice(0, LISTE_CR_MAX).map(i => ({ id: i.id, nom: nom(i), reponse: i.statut }));
+      const points = stockage.reunionOdj(reunion).map(x => ({ texte: x.texte, fait: x.fait }));
+      const docs = stockage.piecesPartagees(conv, p.debut, fin);
+      const titre = R.reunion.titre || 'Réunion', tz = R.reunion.tz;
+      const lignes = ['📝 Compte rendu — ' + titre, cal.dire(p.debut, tz) + ' · ' + dureeTexte(duree_s)];
+      lignes.push('Présents (' + p.venus.length + ') : ' + (venus.map(x => x.nom + ' (' + dureeTexte(x.duree_s) + ')').join(', ') || 'personne') + (p.venus.length > venus.length ? ' et ' + (p.venus.length - venus.length) + ' autres' : ''));
+      if (absentsTous.length) lignes.push('Absents (' + absentsTous.length + ') : ' + absents.map(x => x.nom + ' (' + (REPONSES[x.reponse] || 'sans réponse') + ')').join(', ') + (absentsTous.length > absents.length ? ' et ' + (absentsTous.length - absents.length) + ' autres' : ''));
+      if (points.length) { lignes.push('Ordre du jour :'); for (const x of points) lignes.push((x.fait ? '✓ ' : '○ ') + x.texte); }
+      if (docs) lignes.push('Documents partagés : ' + docs);
+      const texte = lignes.join('\n').slice(0, 7900);
+      const meta = { k: 'compte_rendu', titre, debut: p.debut, fin, duree_s, presents: venus, presents_n: p.venus.length, absents, absents_n: absentsTous.length, points, documents: docs };
+      const m = stockage.messageEnvoyer({ conv, auteur: par.id, cid: 'cr_' + salle.slice(2), type: 'texte', texte, meta });
+      if (m.deja) return { seq: m.seq };
+      hub.reveiller({ conv });
+      try { if (ctx.push) ctx.push.message({ conv, seq: m.seq, gid: m.gid, auteur: par.id, nomAuteur: nomAffiche(par), nomConv: titre, groupe: true, type: 'texte', texte }); } catch (e) { /* une notification ratée ne défait pas le compte rendu */ }
+      if (R.reunion.repetition !== 'aucune') stockage.reunionOdjRemettre(reunion);
+      return { seq: m.seq };
+    } catch (e) { ctx.journaliser('compte_rendu_echec', { nom: (e && (e.code || e.name)) || 'Erreur' }); return null; }
+  };
+
   /* ── modifier, annuler, supprimer ── */
   H['reunions.modifier'] = garder((req, res) => {
     const b = corps(req), id = req.reunion.id, hote = req.moi;
@@ -262,12 +326,15 @@ function installerReunions(H, ctx) {
     const courant = stockage.reunionPourMembre(id, hote.id).reunion;
     const v = valider(b, courant, courant.tz);
     if (v.erreur) return refus(res, 400, v.erreur);
+    const odj = b.ordre_du_jour === undefined ? null : odjDe(b.ordre_du_jour);
+    if (b.ordre_du_jour !== undefined && !odj) return refus(res, 400, 'ordre_du_jour_invalide');
     /* ⛔ VINGT MODIFICATIONS PAR RÉUNION ET PAR HEURE : chaque modification écrit, date, remet les réponses en attente, ajoute une ligne à la conversation et prévient les invités — sans plafond, un hôte
        (ou un script) en faisait deux cents d'un trait. Le refus est DIT (`trop_de_modifications`, avec le délai) ; la clé est la réunion, pas l'hôte (elle passe à un successeur). */
     if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;
     const prochain = v.horaire ? prochainDe(v.serie, horloge()) : undefined;
     const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain, finSerie: cal.finDeSerie(v.serie) } : {}, b.salle_attente === undefined ? {} : { attente: b.salle_attente }));
-    if (r.gid) hub.reveiller({ conv: courant.conv });
+    const o = odj ? stockage.reunionOdjPoser(id, odj) : null;
+    if (r.gid || (o && o.change)) hub.reveiller({ conv: courant.conv });
     /* on prévient quand quelque chose que les invités VOIENT a changé : l'horaire, le titre, le lieu — pas un simple réglage de rappel */
     if (r.change && (r.horaire || r.titre || r.lieu) && notifierVoulu(b)) {
       const apres = stockage.reunionPourMembre(id, hote.id).reunion, quand = prochainDe(serieDe(apres), horloge());

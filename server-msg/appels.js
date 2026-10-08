@@ -172,6 +172,15 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     if (!r.deja) { vivre(id, uid); reveiller(Object.keys(r.gids)); }
     r.salle = etatSalle(id, uid);
   }
+  /* ⛔ UNE RÉUNION QUI FINIT SANS « TERMINER POUR TOUS » A AUSSI SON COMPTE RENDU (8 octobre 2026, test de A à Z) : la séance finit aussi quand le DERNIER s'en va — il quitte, ou son
+     appareil se tait (`perduMs`). Sans ça, l'hôte seul qui touchait « Quitter » (seul, la salle ne demande rien) n'avait jamais le compte rendu promis « à la fin de la réunion ».
+     Le crochet (`index.js`) le rédige comme à « Terminer pour tous » (`ctx.compteRenduSeance` : un seul par salle, au nom de celui qui l'a fermée). Pas pour un compte qui s'efface. */
+  let finReunion = null;
+  function brancherFinReunion(f) { finReunion = typeof f === 'function' ? f : null; }
+  function reunionFinie(id, par) {
+    if (!finReunion || !par) return;
+    try { const a = stockage.appelAcces(id, par.id); if (a && a.genre === 'reunion' && a.reunion) finReunion({ salle: id, reunion: a.reunion, par }); } catch (e) { /* un compte rendu raté ne défait pas la sortie */ }
+  }
   function quitter({ moi, id, sessionH }) {
     echoir();
     const r = stockage.appelQuitter({ id, uid: moi.id, session: sessionH });
@@ -180,6 +189,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
       if (r.notif) pousserManque(r.notif, { id, type: r.vue ? r.vue.type : 'audio', appelant: moi });
       if (r.notifs && r.notifs.length) manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs);
       oublier(id, moi.id);
+      if (r.fini) reunionFinie(id, moi);
     }
     vus.delete(cle(id, moi.id));
     return r;
@@ -536,14 +546,18 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     }
     return faits.length;
   }
+  /* ⛔ « EN RÉUNION » (8 octobre 2026) : qui est DANS une salle, vu à chaque passage — une entrée ou une sortie se dit aux contacts (`hub.reunionChangee`), et une sortie libère le résumé des
+     notifications retenues (`push.relacherSorties`). En mémoire : un redémarrage repart vide, le premier passage redit qui est dedans. */
+  let dansSalles = new Set();
   /* UN PASSAGE. Synchrone, ne lève jamais. → { echus, perdus } */
   function balayer() {
     const t = horloge(), bilan = { echus: 0, perdus: 0 };
     try {
       bilan.echus = echoir();
-      const vivants = new Set();
+      const vivants = new Set(), presents = new Set();
       for (const a of stockage.appelsActifs()) {
         vivants.add(a.id);
+        if (a.genre !== 'deux') for (const p of a.parts) if (p.statut === 'present') presents.add(p.uid);
         if (a.genre !== 'deux') {
           /* une SALLE : celui dont l'appareil ne donne plus signe de vie SORT (présent ou à la porte) — la salle continue pour les autres, ou finit si c'était le dernier */
           for (const p of a.parts) {
@@ -559,6 +573,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
             reveiller(Object.keys(f.gids));
             manquesDe(a.id, a.type, f.notifs);
             vus.delete(k); oublier(a.id, p.uid);
+            if (f.fini) reunionFinie(a.id, personne(p.uid));
           }
           continue;
         }
@@ -577,6 +592,10 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
           break;
         }
       }
+      for (const u of presents) if (!dansSalles.has(u) && hub && typeof hub.reunionChangee === 'function') hub.reunionChangee(u, true);
+      for (const u of dansSalles) if (!presents.has(u) && hub && typeof hub.reunionChangee === 'function') hub.reunionChangee(u, false);
+      dansSalles = presents;
+      if (push && typeof push.relacherSorties === 'function') push.relacherSorties();
       for (const k of Array.from(vus.keys())) if (!vivants.has(k.slice(0, k.indexOf('|')))) vus.delete(k);
       for (const k of Array.from(salles.keys())) if (!vivants.has(k)) oublierSalle(k);          // une salle finie n'a plus d'éphémère
       if (t - etat.dernierElagage >= ELAGAGE_PERIODE_MS) {
@@ -608,7 +627,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     return { turn: relaisPose(), ageS: etat.dernierTour === null ? null : Math.max(0, Math.round((horloge() - etat.dernierTour) / 1000)), echecs: etat.echecs };
   }
 
-  return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat,
+  return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat, brancherFinReunion,
     main, reaction, etatMien, evt, annoter, demanderCouperMicro, etatSalle, outilsOuverts, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
     /* pour les bancs : combien de salles ont un éphémère en mémoire (jamais publié) */
     memoireSalles: () => salles.size };

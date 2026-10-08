@@ -126,6 +126,10 @@
     /* l'agenda personnel (heure_invalide, fin_avant_debut, rappel_invalide, fenetre_invalide : les phrases des réunions, plus haut, servent aussi — une clé en double remplacerait la première) */
     evenement_trop_long: 'Un événement dure 31 jours au plus.',
     agenda_plein: 'Ton agenda est plein (2 000 événements) : supprime d\'anciens événements.',
+    /* envoyer plus tard, et l'ordre du jour d'une réunion (8 octobre 2026) */
+    programmes_plein: 'Tu as déjà cinquante messages programmés : annule-en un pour en programmer un autre.',
+    ordre_du_jour_invalide: 'L\'ordre du jour compte vingt points au plus, de 200 signes chacun.',
+    point_introuvable: 'Ce point n\'est plus dans l\'ordre du jour : il vient d\'être modifié.',
     /* le compte par adresse e-mail (« comme Discord ») */
     inscription_fermee: 'La création de compte n\'est pas encore ouverte.',
     mdp_faible: 'Ce mot de passe se devine trop facilement. Choisis-en un d\'au moins 10 caractères, sans ton prénom, ton adresse ni une suite comme « azerty » ou « 123456 ».',
@@ -303,6 +307,12 @@
       creerEvenement: async (champs) => (await appel('POST', '/api/agenda', champs)).evenement,
       majEvenement: async (id, champs) => (await appel('POST', '/api/agenda/' + e(id) + '/maj', champs)).evenement,
       supprimerEvenement: (id) => appel('POST', '/api/agenda/' + e(id) + '/supprimer'),
+      /* ⛔ « programmer » est déjà PROGRAMMER UNE RÉUNION (plus bas) : une clé en double remplacerait l'une par l'autre, sans un mot — d'où des noms à part */
+      messagesProgrammes: async (conv) => (await appel('GET', '/api/conversations/' + e(conv) + '/programmes')).programmes,
+      programmerMessage: async (conv, texte, quand, mentions) => (await appel('POST', '/api/conversations/' + e(conv) + '/programmes', mentions ? { texte, quand, mentions } : { texte, quand })).programme,
+      annulerProgramme: (id) => appel('POST', '/api/programmes/' + e(id) + '/annuler'),
+      faitEvenement: async (id, fait) => (await appel('POST', '/api/agenda/' + e(id) + '/fait', { fait })).evenement,
+      reporterEvenement: async (id, dans) => (await appel('POST', '/api/agenda/' + e(id) + '/reporter', { dans })).evenement,
       /* le compte par adresse e-mail (« comme Discord ») — routes publiques : la session est posée par la réponse (cookie) */
       melInscrire: (champs) => appel('POST', '/api/mel/inscrire', champs),
       melConfirmer: (courriel, code) => appel('POST', '/api/mel/confirmer', { courriel, code }),
@@ -556,6 +566,8 @@
       programmer: (champs) => appel('POST', '/api/reunions', champs),
       reunion: (id) => appel('GET', '/api/reunions/' + e(id)),
       modifierReunion: (id, champs) => appel('POST', '/api/reunions/' + e(id) + '/modifier', champs),
+      /* l'ordre du jour : cocher ou décocher un point (un participant, 8 octobre 2026) → la liste à jour */
+      cocherPoint: async (id, point, fait) => (await appel('POST', '/api/reunions/' + e(id) + '/ordre-du-jour', { point, fait })).ordre_du_jour,
       annulerReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/annuler'),
       supprimerReunion: (id, o2) => appel('POST', '/api/reunions/' + e(id) + '/supprimer', o2 || {}),
       inviterReunion: (id, uids, o2) => appel('POST', '/api/reunions/' + e(id) + '/inviter', Object.assign({ uids }, o2 || {})),

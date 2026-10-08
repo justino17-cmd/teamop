@@ -33,7 +33,7 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 /* Un « appareil » : un navigateur de poche (cookie, Origin) dont on peut COUPER le réseau, PERDRE une réponse, et dont on compte les requêtes. */
 function monter(svc, opts = {}) {
   const nav = T.navigateur(svc.base);
-  const reseau = { coupe: false, perdre: null, forcer: null, requetes: [], instances: [], fluxBloque: false };
+  const reseau = { coupe: false, perdre: null, forcer: null, requetes: [], statuts: [], instances: [], fluxBloque: false };
   const f = async (url, init) => {
     const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0];
     reseau.requetes.push(m + ' ' + chemin);
@@ -41,6 +41,7 @@ function monter(svc, opts = {}) {
     if (reseau.fluxBloque && chemin === '/api/flux') throw new TypeError('flux coupé');   // seul le flux est injoignable : les écritures passent
     if (reseau.forcer && reseau.forcer.test(m + ' ' + chemin)) { const [code, corps, entetes] = reseau.forcerReponse || [429, { error: 'quota_atteint' }, { 'Retry-After': '40' }]; return new Response(JSON.stringify(corps), { status: code, headers: Object.assign({ 'Content-Type': 'application/json' }, entetes || {}) }); }
     const r = await nav.fetch(url, init);
+    reseau.statuts.push(m + ' ' + chemin + ' ' + r.status);
     if (reseau.perdre && reseau.perdre.test(m + ' ' + chemin)) { reseau.perdre = null; throw new TypeError('réponse perdue'); }
     return r;
   };
@@ -182,6 +183,29 @@ const json = async (base, methode, chemin, corps, entetes) => {
       v('⛔ la frappe part UNE fois par 2,5 s (trois appels, une requête) : le service refuserait les autres', B.reseau.requetes.slice(avant).filter(r => /saisie/.test(r)).length, 1);
       vrai('⛔ Alice voit « écrit… » : ouvrir() rend { saisie: { contact: Bruno } }', await att(async () => { const o = await A.src.ouvrir(conv); return o.saisie && o.saisie.contact === mb.id; }));
       vrai('⛔ la frappe S\'ÉTEINT SEULE (aucune nouvelle) et la page en est prévenue', await att(async () => { const o = await A.src.ouvrir(conv); return o.saisie === null; }, 4000));
+      /* ⛔ L'ARRÊT (8 octobre 2026, test de A à Z sur la bêta) : taper puis quitter le champ en moins de 2 s envoyait l'arrêt AUSSITÔT — refusé (429) par le service, qui n'accepte
+         qu'une frappe par 2 s, l'arrêt compris ; quitter le champ sans avoir rien tapé envoyait un arrêt pour rien. */
+      const sa = () => B.reseau.requetes.filter(r => /\/saisie$/.test(r)).length, refusSaisie = () => B.reseau.statuts.filter(r => /\/saisie 429$/.test(r)).length;
+      const nAvant = sa();
+      await B.src.saisie(conv, false);
+      vrai('population : l\'arrêt de la frappe d\'avant part (aussitôt, ou à la réouverture de sa fenêtre)', await att(() => sa() === nAvant + 1, 4000));
+      await T.dort(2100);          // la fenêtre du service se rouvre : c'est SA règle (une par 2 s), elle se mesure en temps
+      const n0 = sa(), r0 = refusSaisie();
+      await B.src.saisie(conv, false);
+      v('⛔ un arrêt sans frappe annoncée ne part PAS (rien à arrêter)', sa() - n0, 0);
+      await B.src.saisie(conv, true);
+      vrai('population : la frappe part, et Alice voit « écrit… »', sa() - n0 === 1 && await att(async () => { const o = await A.src.ouvrir(conv); return !!(o.saisie && o.saisie.contact === mb.id); }));
+      await B.src.saisie(conv, false);
+      v('⛔ quitter le champ aussitôt : l\'arrêt ATTEND la réouverture de la fenêtre (le service le refuserait)', sa() - n0, 1);
+      vrai('⛔ … puis il part, ACCEPTÉ — aucun 429 de frappe', await att(async () => sa() - n0 === 2 && B.reseau.statuts.filter(r => /\/saisie /.test(r)).length >= n0 + 2) && refusSaisie() === r0,
+        B.reseau.statuts.filter(r => /\/saisie /.test(r)).slice(-4));
+      await B.src.saisie(conv, true);
+      v('⛔ une frappe JUSTE APRÈS l\'arrêt attend elle aussi (la fenêtre ne s\'est pas rouverte) : rien ne part, rien n\'est refusé', [sa() - n0, refusSaisie() - r0], [2, 0]);
+      vrai('« écrit… » s\'est éteint chez Alice', await att(async () => { const o = await A.src.ouvrir(conv); return o.saisie === null; }, 1500));
+      await T.dort(2100);
+      await B.src.saisie(conv, true); await B.src.saisie(conv, false); await B.src.saisie(conv, true);
+      await T.dort(2300);
+      v('⛔ une frappe qui reprend avant l\'arrêt prévu l\'ANNULE : rien ne part de plus que la frappe', [sa() - n0, refusSaisie() - r0], [3, 0]);
       await B.src.saisie(conv, false);
       vrai('présence : Bruno apparaît « en ligne » chez Alice (contact et liste)', await att(() => A.src.contacts().find(c => c.id === mb.id).enLigne === true) && (await A.src.lister()).find(c => c.id === conv).enLigne === true);
       B.src.arreter();

@@ -78,6 +78,10 @@ const MATRICE = {
   'conv.saisie':        { ok: (F) => ['POST', '/api/conversations/' + F.G + '/saisie', { actif: true }], codes: [200] },
   'msg.liste':          { ok: (F) => ['GET', '/api/conversations/' + F.G + '/messages'], codes: [200] },
   'msg.envoyer':        { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages', { cid: 'cid-' + crypto.randomBytes(6).toString('hex'), texte: 'bonjour' }], codes: [201] },
+  /* envoyer plus tard (8 octobre 2026) : M pour lister et programmer ; annuler un programme qui n'est pas le sien (ici : qui n'existe pas) répond 404 — la garde S a passé */
+  'prog.liste':         { ok: (F) => ['GET', '/api/conversations/' + F.G + '/programmes'], codes: [200] },
+  'prog.creer':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/programmes', { texte: 'plus tard', quand: Date.now() + 3600000 }], codes: [201] },
+  'prog.annuler':       { ok: () => ['POST', '/api/programmes/g_' + '0'.repeat(32) + '/annuler', {}], codes: [404] },
   'msg.modifier':       { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/modifier', { seq: F.seqDe(a), texte: 'modifié' }], codes: [200] },
   'msg.supprimer':      { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/supprimer', { seq: F.seqDe(a), pour: 'tous' }], codes: [200] },
   'msg.reagir':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/reagir', { seq: 1, emoji: '👍' }], codes: [200] },
@@ -99,6 +103,8 @@ const MATRICE = {
   'agenda.creer':       { ok: () => ['POST', '/api/agenda', { titre: 'Banc', debut: '2026-10-26T14:00', tz: 'Europe/Paris' }], codes: [201] },
   'agenda.maj':         { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/maj', { titre: 'x' }], codes: [404] },
   'agenda.supprimer':   { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/supprimer', {}], codes: [404] },
+  'agenda.fait':        { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/fait', { fait: true }], codes: [404] },
+  'agenda.reporter':    { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/reporter', { dans: 10 }], codes: [404] },
   'mel.inscrire':       { ok: () => ['POST', '/api/mel/inscrire', { courriel: 'quelquun@exemple.invalid', mdp: 'un-mot-de-passe-long', prenom: 'Zoé', conditions: true }], codes: [503] },
   'mel.confirmer':      { ok: () => ['POST', '/api/mel/confirmer', { courriel: 'quelquun@exemple.invalid', code: '000000' }], codes: [503] },
   'mel.connexion':      { ok: () => ['POST', '/api/mel/connexion', { courriel: 'quelquun@exemple.invalid', mdp: 'un-mot-de-passe-long' }], codes: [401] },
@@ -189,6 +195,7 @@ const MATRICE = {
                           exactes: { membre: [200, null], admin: [409, 'hote_non_quittable'] } },   // l'invité (Ben) sort : 200 ; l'hôte (Ana) ne quitte pas : 409 `hote_non_quittable` — la garde a passé, le geste dit non
   'reunions.reponse':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/reponse', { statut: 'accepte' }], codes: [200, 409] },
   'reunions.rappels':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/rappels', { rappels: [5] }], codes: [200] },
+  'reunions.odj_cocher': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/ordre-du-jour', { point: '00000000', fait: true }], codes: [404] },      // (le banc de matrice ne pose pas d'ordre du jour : le point n'existe pas — la porte, elle, s'est ouverte ; test-938 joue le reste)
   'reunions.ics':       { ok: (F) => ['GET', '/api/reunions/' + F.R + '/ics'], codes: [200] },
   'reunions.courriel':  { ok: (F) => ['POST', '/api/reunions/' + F.R + '/courriel', { destinataire: 'banc.invite@exemple.invalid' }], codes: [503] },   // sans relais SMTP : la garde a passé, le courriel est INERTE et le dit (test-975 joue le relais)
   /* Les APPELS À DEUX (étape 7). Lancer est V (agir au nom d'une adresse) : chacun appelle SON contact, un appel par acteur (la route précédente a libéré les lignes). Les trois gestes d'un appel sont AP : la

@@ -5,6 +5,9 @@
    Joué contre le VRAI service :
      1. au bureau (1440), le menu d'un message REÇU s'ouvre contre sa bulle, aligné à sa gauche ; celui d'un message ENVOYÉ, aligné à sa droite (mesuré, pas lu dans la feuille) ;
      2. « Me le rappeler » propose des heures ; « Dans 1 heure » pose un ÉVÉNEMENT dans l'agenda (le service le dit : titre, lieu, rappel à l'heure) ;
+     2 bis. (8 octobre 2026 : « cocher fait », « reporter », « voir le message ») le rappel garde le CHEMIN vers son message ; ouvert par l'adresse d'une notification
+        (`#reunions/<événement>`, page rechargée), sa fiche dit « Marquer comme fait », « Reporter », « Voir le message » — qui ouvre la conversation et marque le message ;
+        « Reporter 10 min » et « Marquer comme fait » : le SERVICE le dit ;
      3. l'Agenda passe au MOIS : la grille entière, aujourd'hui marqué une fois, le rappel dans sa case ; le choix est retenu par le COMPTE et survit au rechargement ;
      4. au téléphone (393), le mois en points (cases de 44 px au moins), le jour touché liste ses rendez-vous ; le menu d'un message y reste la feuille du bas.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.
@@ -99,6 +102,9 @@ const geometrie = (S) => S.page.evaluate(() => {
     const ev = evs.find(e => /^Rappel : Peux-tu rappeler/.test(e.titre));
     v('⛔ le service tient l\'événement : le titre du message, la conversation pour lieu, le rappel À L\'HEURE, dans une heure (à la minute près)', ev ? [ev.titre, ev.lieu, ev.rappel, Math.abs(ev.debut - (t0 + 3600000)) < 120000, /^Rappel sur le message de Ben, dans « Ben Banc »\.\n\nPeux-tu rappeler/.test(ev.note)] : null, ['Rappel : ' + TEXTE_BEN, 'Ben Banc', 0, true, true]);
 
+    const seqBen = await (async () => { const l = (await A0.get('/api/conversations/' + AB + '/messages')).j.messages || []; const m = l.find(x => x.texte === TEXTE_BEN); return m ? m.seq : null; })();
+    v('⛔ … et il garde le CHEMIN vers le message (sa conversation, son rang) — jamais une copie', ev ? ev.source : null, { conv: AB, seq: seqBen });
+
     console.log('\n── 3. L\'Agenda au mois ──');
     await toucher(A, '#nav-side a[data-vue="reunions"]');
     vrai('population : l\'Agenda s\'ouvre sur la SEMAINE (le défaut du compte), avec « Semaine | Mois »', await attendre(A, () => !document.getElementById('vue-reunions').hidden && !document.getElementById('sem-jours').hidden && document.getElementById('mois').hidden && document.querySelector('[data-reu-vue="semaine"]').getAttribute('aria-pressed') === 'true'));
@@ -163,6 +169,44 @@ const geometrie = (S) => S.page.evaluate(() => {
     vrai('population : au téléphone, le menu s\'ouvre', await attendre(P, () => !document.getElementById('menu-fond').hidden && !!document.querySelector('#menu-msg [data-menu="rappel"]')));
     g = await geometrie(P);
     vrai('…et c\'est la feuille du bas (le pouce l\'atteint), pas un menu ancré', g.menu.b > g.vh - 60 && g.menu.w > g.vw - 40, JSON.stringify(g));
+
+
+    console.log('\n── 5. La fiche d\'un rappel, ouverte par l\'adresse de sa notification ──');
+    const ouvrirRappel = async () => { await P.page.goto(svc.base + '/#reunions/' + ev.id); return attendre(P, () => !!document.querySelector('#info-corps [data-evt="fait"]'), null, 12000); };
+    vrai('la page rechargée sur « #reunions/<événement> » ouvre SA fiche (chargée du service), les gestes en tête : « Marquer comme fait », « Reporter » (10 min · 1 h · Demain 9 h), « Voir le message »',
+      await ouvrirRappel() && await P.page.evaluate((t) => { const c = document.getElementById('info-corps'); return /Marquer comme fait/.test(c.textContent) && Array.from(c.querySelectorAll('[data-evt="reporter"]')).map(x => x.textContent).join('|') === '10 min|1 h|Demain 9 h' && !!c.querySelector('[data-evt="voir"]') && document.getElementById('ev-titre').value === 'Rappel : ' + t; }, TEXTE_BEN),
+      await P.page.evaluate(() => document.getElementById('info-corps').textContent.slice(0, 200)));
+    await capture(P, '5-fiche-rappel');
+    await toucher(P, '#info-corps [data-evt="voir"]');
+    vrai('⛔ « Voir le message » : la conversation avec Ben s\'ouvre, et SON message est marqué (amené à l\'écran)', await attendre(P, (t) => { const m = Array.from(document.querySelectorAll('#conv-messages .msg')).find(x => x.textContent.includes(t)); return !!m && m.classList.contains('msg-cible') && location.hash.includes('messages'); }, TEXTE_BEN, 8000));
+    await capture(P, '5b-voir-le-message');
+    await ouvrirRappel();
+    const avantRep = Date.now();
+    await toucher(P, '#info-corps [data-evt="reporter"][data-dans="10"]');
+    vrai('« Reporter » 10 min : la page dit l\'heure retenue (« Reporté à … ») et la fiche se ferme', await attendre(P, () => /Reporté à \d\d:\d\d/.test(document.getElementById('mot').textContent)));
+    const evR = (((await A0.get('/api/agenda?du=' + (avantRep - 3600000) + '&au=' + (avantRep + 2 * 86400000))).j.evenements) || []).find(x => x.id === ev.id);
+    vrai('⛔ … et le SERVICE l\'a reporté : dans 10 à 11 minutes, et il sonnera', !!evR && evR.debut - avantRep >= 9 * 60000 && evR.debut - avantRep <= 12 * 60000 && evR.rappelEnAttente === true, evR);
+    await ouvrirRappel();
+    await toucher(P, '#info-corps [data-evt="fait"]');
+    await attendre(P, () => /: fait$/.test(document.getElementById('mot').textContent));
+    const evF = (((await A0.get('/api/agenda?du=' + (avantRep - 3600000) + '&au=' + (avantRep + 2 * 86400000))).j.evenements) || []).find(x => x.id === ev.id);
+    vrai('⛔ « Marquer comme fait » : le SERVICE le tient fait, et il ne sonnera plus', !!evF && typeof evF.fait === 'number' && evF.rappelEnAttente === false, evF);
+
+    /* ⛔ 6. LA FICHE OUVERTE PAR UN GESTE (8 octobre 2026, test de A à Z sur la bêta) : « Voir le message » touché depuis l'Agenda ou le tableau de bord fermait la fiche et ne
+       menait NULLE PART — fermer rendait l'entrée par history.back(), dont le popstate réappliquait la vue d'avant par-dessus la conversation. Le § 5 ne pouvait pas le voir : sa
+       fiche est ouverte par un LIEN (rien à rendre). */
+    console.log('\n── 6. Au bureau, la fiche touchée dans l\'Agenda : « Voir le message », puis le retour ──');
+    await A.page.evaluate(() => { location.hash = '#reunions'; });
+    vrai('population : l\'Agenda liste le rappel (fait) du jour', await attendre(A, () => Array.from(document.querySelectorAll('button.evenement-ligne')).some(x => x.offsetWidth > 0 && /Rappel : Peux-tu/.test(x.getAttribute('aria-label') || x.textContent))));
+    await A.page.locator('button.evenement-ligne').filter({ hasText: 'Rappel : Peux-tu' }).filter({ visible: true }).first().click();
+    vrai('la fiche s\'ouvre par le geste (une entrée d\'historique posée)', await attendre(A, () => !!document.querySelector('#info-corps [data-evt="voir"]') && !!(history.state && history.state.opmsg && history.state.n > 0)));
+    await A.page.locator('#info-corps [data-evt="voir"]').click();
+    vrai('⛔ « Voir le message » : la conversation avec Ben S\'OUVRE (la vue Messages, son adresse), et son message est marqué',
+      await attendre(A, (c) => location.hash === '#messages/' + c && !document.getElementById('vue-messages').hidden && Array.from(document.querySelectorAll('#conv-messages .msg')).some(x => x.textContent.includes('Peux-tu rappeler') && x.classList.contains('msg-cible')), AB),
+      await A.page.evaluate(() => ({ hash: location.hash, fiche: !!document.querySelector('#info-corps [data-evt="voir"]') })));
+    await A.page.waitForTimeout(400);
+    await A.page.goBack();
+    vrai('… et le retour ramène à l\'Agenda d\'où la fiche était partie (l\'entrée de la fiche est devenue la conversation)', await attendre(A, () => location.hash === '#reunions' && !document.getElementById('vue-reunions').hidden));
 
     v('aucune erreur JavaScript', [A.erreurs, P.erreurs], [[], []]);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }
