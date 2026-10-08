@@ -329,7 +329,9 @@ const json = async (base, methode, chemin, corps, entetes) => {
          « conversation » du réglage, arrivées après la marque et avant le « retire », comptées comme une fuite. */
       const convDe = x => { try { return JSON.parse(x.data).conv || null; } catch (e) { return null; } };
       const iRetire = C.reseau.flux.findIndex(x => x.t === 'retire' && convDe(x) === G);
-      const jRetire = C.evs.findIndex((e, i) => i >= nC && e.type === 'retire' && e.id === G);
+      /* le DERNIER « retire » de la source : celui du flux. Une relecture de la liste peut en dire un PLUS TÔT (le groupe n'y est plus) pendant que les échos arrivent encore ;
+         celui du flux, lui, vient toujours après eux, et rien n'en redit un après lui (la conversation est oubliée). */
+      let jRetire = -1; C.evs.forEach((e, i) => { if (i >= nC && e.type === 'retire' && e.id === G) jRetire = i; });
       vrai('population : le « retire » est passé par le flux de Chloé, et sa source l\'a redit', iRetire >= 0 && jRetire >= nC);
       v('⛔ Chloé ne reçoit AUCUN événement de ce groupe après son retrait (ni message, ni arrivée, ni bannière)', C.evs.slice(jRetire + 1).filter(e => (e.conv === G || e.id === G) && e.type !== 'retire' && e.type !== 'liste').map(e => e.type), []);
       v('⛔ … et le service ne lui en ENVOIE aucun : rien de ce groupe dans son flux après le « retire »', C.reseau.flux.slice(iRetire + 1).filter(x => convDe(x) === G && x.t !== 'retire').map(x => x.t), []);
