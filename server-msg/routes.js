@@ -513,10 +513,11 @@ function creerHandlers(ctx) {
     if (b.muet_jusqua !== undefined) { const v = entier(b.muet_jusqua); if (v === null || v < 0 || v > horloge() + 10 * 365 * JOUR) return refus(res, 400, 'champ_invalide'); o.muet_jusqua = v; }
     if (b.epingle !== undefined) { if (typeof b.epingle !== 'boolean') return refus(res, 400, 'champ_invalide'); o.epingle = b.epingle; }
     if (b.archive !== undefined) { if (typeof b.archive !== 'boolean') return refus(res, 400, 'champ_invalide'); o.archive = b.archive; }
-    /* Perso / Pro rangé à la main : une directe ou un groupe (un canal, une réunion sont Pro par nature) ; `null` rend le côté automatique */
+    /* Perso / Pro rangé à la main : une directe, un groupe ou une RÉUNION (8 octobre 2026 : l'agenda Perso et l'agenda Pro se départagent sur le côté de sa conversation) — un canal est Pro
+       par nature ; `null` rend le côté automatique */
     if (b.cote !== undefined) {
       if (b.cote !== null && b.cote !== 'perso' && b.cote !== 'pro') return refus(res, 400, 'champ_invalide');
-      if (req.conv.conv.type !== 'direct' && req.conv.conv.type !== 'groupe') return refus(res, 400, 'champ_invalide');
+      if (req.conv.conv.type !== 'direct' && req.conv.conv.type !== 'groupe' && req.conv.conv.type !== 'reunion') return refus(res, 400, 'champ_invalide');
       o.cote = b.cote;
     }
     if (!Object.keys(o).length) return refus(res, 400, 'champ_invalide');

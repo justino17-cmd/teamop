@@ -35,6 +35,7 @@ const CHROME = '/opt/pw-browsers/chromium';
       vrai('l\'application s\'ouvre', await attendre(() => { const a = document.getElementById('app'); return a && !a.hidden && document.getElementById('moi-nom').textContent.trim().length > 0; }));
 
       console.log('1. Le menu');
+      await attendre(() => document.querySelectorAll('#nav-side a').length >= 4 && document.querySelectorAll('#tabs a').length >= 4);     // le menu se bâtit après l'entrée : on l'ATTEND (lu trop tôt sur une machine chargée, il était vide)
       const menu = await page.evaluate(() => [[...document.querySelectorAll('#nav-side a')].map(a => a.dataset.vue).join(','), [...document.querySelectorAll('#tabs a')].map(a => a.dataset.vue).join(',')]);
       v('⛔ la barre latérale et la barre d\'onglets : Messages · Contacts · Appels · Agenda, sans « Profil »', menu, ['messages,contacts,appels,reunions', 'messages,contacts,appels,reunions']);
 

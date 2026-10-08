@@ -33,7 +33,9 @@ const attrape = async (p) => { try { await p; return null; } catch (e) { return 
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: 'pw-alice-1234', nom: 'Alice', actif: true }, bob: { pass: 'pw-bob-12345', nom: 'Bob', actif: true }, coupe: { pass: 'pw-coupe-123', nom: 'Coupé', actif: false }, dora: { pass: 'pw-dora-12345', nom: 'Dora', actif: true }, eve: { pass: 'pw-eve-123456', nom: 'Eve', actif: true }, fay: { pass: 'pw-fay-123456', nom: 'Fay', actif: true } });
-  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { beta: { timeoutMs: 400 }, quotas: { msg: { max: 6, fenetreMs: 60000 }, saisie: { max: 1, fenetreMs: 2000 } }, balayageMs: 150 } });
+  /* ⛔ 5 s, la valeur de production : le délai de la porte est la marge des connexions SAINES (voir test-944, 8 octobre 2026 — un service gelé 1,2 s rend 503 avec un
+     budget court). La panne d'OP GESTION se joue connexion coupée (`og.mode = 'panne'`), pas au délai. */
+  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { beta: { timeoutMs: 5000 }, quotas: { msg: { max: 6, fenetreMs: 60000 }, saisie: { max: 1, fenetreMs: 2000 } }, balayageMs: 150 } });
   try {
     console.log('api.js : la connexion et les refus de la porte sont DITS, jamais avalés');
     const nav = T.navigateur(svc.base);

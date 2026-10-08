@@ -65,7 +65,8 @@ async function categorie(S, cat) { await toucher(S, '#vc-seg [data-cat="' + cat 
     console.log('\n── 1. le segmenté, et « Tous » de A à Z ──');
     await toucher(A, '#tabs a[data-vue="contacts"]');
     vrai('l\'onglet Contacts s\'ouvre, les deux contacts y sont', await attendre(A, () => { const t = document.getElementById('vc-corps'); return t && t.innerText.includes('Bruno Petit') && t.innerText.includes('Chloé Garnier'); }));
-    v('le segmenté porte quatre catégories, « Tous » choisi', await A.page.evaluate(() => Array.from(document.querySelectorAll('#vc-seg [data-cat]')).map(b => b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : ''))), ['Tous*', 'Favoris', 'Groupes', 'Entreprise']);
+    /* (8 octobre 2026, « que tout soit à part ») « Entreprise » est du côté Pro : côté Perso (le côté d'un compte qui n'a rien choisi), trois catégories — la quatrième se lit en section 4 */
+    v('le segmenté porte trois catégories côté Perso (« Entreprise » est du côté Pro), « Tous » choisi', await A.page.evaluate(() => Array.from(document.querySelectorAll('#vc-seg [data-cat]')).map(b => b.textContent + (b.getAttribute('aria-pressed') === 'true' ? '*' : ''))), ['Tous*', 'Favoris', 'Groupes']);
     const tient = await A.page.evaluate(() => { const s = document.getElementById('vc-seg').getBoundingClientRect(); return { dedans: s.left >= 0 && s.right <= innerWidth, coupe: Array.from(document.querySelectorAll('#vc-seg .seg-bouton')).filter(b => b.scrollWidth > b.clientWidth + 1).length, page: document.documentElement.scrollWidth <= innerWidth }; });
     v('iPhone 393 : le segmenté tient, aucun libellé coupé, la page ne défile pas de côté', [tient.dedans, tient.coupe, tient.page], [true, 0, true]);
     v('« Tous » range de A à Z : une lettre par carte (B, puis C)', await A.page.evaluate(() => Array.from(document.querySelectorAll('#vc-corps .vc-lettre')).map(h => h.textContent)), ['B', 'C']);
@@ -98,7 +99,10 @@ async function categorie(S, cat) { await toucher(S, '#vc-seg [data-cat="' + cat 
     console.log('\n── 4. « Entreprise », la recherche, retirer l\'étoile ──');
     await A.page.evaluate(() => { location.hash = '#contacts'; });
     await attendre(A, () => !document.getElementById('vue-contacts').hidden);
+    const cote = async (c) => { await A.page.evaluate(x => { const b = document.querySelector('[data-cote-seg] [data-cote="' + x + '"]'); if (b) b.click(); }, c); return attendre(A, x => document.documentElement.dataset.cote === x, c); };
+    vrai('côté Pro, le segmenté porte les QUATRE catégories et s\'ouvre sur « Entreprise »', (await cote('pro')) && await attendre(A, () => Array.from(document.querySelectorAll('#vc-seg [data-cat]')).map(b => b.dataset.cat + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join() === 'tous,favoris,groupes,entreprise*'));
     vrai('« Entreprise » dit, après lecture, qu\'Alice n\'a aucun espace', (await categorie(A, 'entreprise')) && await attendre(A, () => document.getElementById('vc-corps').innerText.includes('aucun espace d\'entreprise')));
+    vrai('retour côté Perso : « Entreprise » n\'est plus proposée, « Tous » reprend', (await cote('perso')) && await attendre(A, () => !document.querySelector('#vc-seg [data-cat="entreprise"]') && (document.querySelector('#vc-seg [aria-pressed="true"]') || { dataset: {} }).dataset.cat === 'tous'));
     await categorie(A, 'favoris');
     await A.page.locator('#vc-recherche').fill('zzz');
     vrai('dans « Favoris », chercher « zzz » dit que rien ne correspond', await attendre(A, () => document.getElementById('vc-corps').innerText.includes('Rien ne correspond')));

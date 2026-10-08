@@ -159,7 +159,13 @@ async function toucher(S, sel, o) {
   catch (e) {
     /* UNE MESURE QUI ÉCHOUE DIT CE QU'ELLE A LU : qui recouvre l'élément, au point que le doigt toucherait ? */
     const vu = await S.page.evaluate((s) => { const e = Array.from(document.querySelectorAll(s)).find(x => x.getClientRects().length > 0); if (!e) return 'introuvable ou invisible'; const r = e.getBoundingClientRect(), t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return JSON.stringify({ r: [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height)], dessus: t ? (t.tagName + '#' + t.id + '.' + String(t.className).slice(0, 40)) : null }); }, sel).catch(() => '?');
-    throw new Error(String(e.message).split('\n')[0] + ' — ' + sel.slice(0, 90) + ' — ' + vu);
+    const diag = await S.page.evaluate(async (s) => { const e = Array.from(document.querySelectorAll(s)).find(x => x.getClientRects().length > 0); if (!e) return null; const rs = []; for (let i = 0; i < 12; i++) { const r = e.getBoundingClientRect(); rs.push([Math.round(r.x*10)/10, Math.round(r.y*10)/10, Math.round(r.width*10)/10]); await new Promise(f => requestAnimationFrame(f)); }
+      const anims = document.getAnimations().filter(a => a.playState === 'running').map(a => { const t = a.effect && a.effect.target; return (t ? (t.id || t.className || t.tagName) : '?') + ':' + (a.animationName || a.transitionProperty || 'anim'); }).slice(0, 12);
+      const r = e.getBoundingClientRect(), pile = document.elementsFromPoint(r.left + r.width / 2, r.top + r.height / 2).slice(0, 5).map(x => x.tagName + (x.id ? '#' + x.id : '') + (x.className && typeof x.className === 'string' ? '.' + x.className.split(' ')[0] : ''));
+      return { rs: Array.from(new Set(rs.map(x => x.join(',')))).slice(0, 6), bas: Math.round(r.bottom), ecran: [innerWidth, innerHeight], pile, anims, disabled: e.disabled, pe: getComputedStyle(e).pointerEvents, inert: !!e.closest('[inert]') }; }, sel).catch(x => String(x));
+    /* … et SI elle bouge (douze trames), quelles animations tournent, si elle est désactivée ou inerte : un toucher qui n'aboutit pas sur un bouton bien au-dessus (8 octobre 2026) se lisait sans ça */
+    const journal = String(e.message).split('\n').map(x => x.replace(/\u001b\[[0-9;]*m/g, '').trim()).filter(Boolean).slice(1, 9).join(' | ');      // le journal de Playwright : « intercepts pointer events », « outside of the viewport »…
+    throw new Error(String(e.message).split('\n')[0] + ' — ' + sel.slice(0, 90) + ' — ' + vu + ' — ' + JSON.stringify(diag) + ' — ' + journal.slice(0, 700));
   }
 }
 async function saisir(S, sel, texte) { await S.page.locator(sel).fill(texte); S.gestes++; }
@@ -671,7 +677,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       /* depuis le 7 octobre 2026, l'arrêt ouvre la carte « Enregistrement terminé » (l'envoyer aux absents, le garder, le supprimer) : le fichier se range par « Enregistrer sur cet appareil » */
       await toucher(A, '#salle-rec-btn');
       await verifier('Ana : l\'arrêt ouvre la carte « Enregistrement terminé »', A, () => !document.getElementById('rec-fin').hidden, null, 15000);
-      const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 30000 }), A.page.locator('#rec-fin-garder').click()]);
+      const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 30000 }), toucher(A, '#rec-fin-garder')]);      // le geste d'un iPhone (et son diagnostic s'il n'aboutit pas)
       await verifier('… « Enregistrer sur cet appareil » ferme la carte (elle ne couvre plus les commandes de la salle)', A, () => document.getElementById('rec-fin').hidden, null, 6000);
       const fichier = path.join(dir, 'enregistrement.webm'); await dl.saveAs(fichier);
       const J = jugerFichier(fichier);

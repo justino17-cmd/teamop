@@ -1241,8 +1241,8 @@ html[data-service] .mention-apercu { display: none; }
 .marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
 #vue-messages > .entete-vue { position: relative; }
 .marque-tel { position: absolute; left: 96px; right: 96px; margin: 0 auto; width: max-content; max-width: calc(100% - 192px); display: flex; align-items: center; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; pointer-events: none; }
-@media (min-width: 900px) { .cote-seg-liste, .marque-tel { display: none !important; } }
-@media (min-width: 781px) and (max-width: 899.98px) { html[data-kind="tablette"] .cote-seg-liste, html[data-kind="tablette"] .marque-tel { display: none !important; } }
+@media (min-width: 900px) { .cote-seg-liste, .cote-seg-agenda, .marque-tel { display: none !important; } }
+@media (min-width: 781px) and (max-width: 899.98px) { html[data-kind="tablette"] .cote-seg-liste, html[data-kind="tablette"] .cote-seg-agenda, html[data-kind="tablette"] .marque-tel { display: none !important; } }
 .deroule-titre { width: 0; min-width: 100%; margin: 0; padding: 7px 14px 7px 38px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `width: 0` + `min-width: 100%` : le titre se replie dans la largeur des choix, il ne l'élargit pas */
 .deroule-liste { display: flex; flex-direction: column; }
 .deroule-choix { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 18px 0 6px; border-radius: 12px; font-size: 17px; line-height: 22px; color: var(--text); text-align: left; }
@@ -1531,7 +1531,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 a.mini { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 a.mini .ic { font-size: 16px; }
 .champ { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
-.champ > label { padding: 0 4px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
+.champ > label, .champ > .champ-titre { padding: 0 4px; font-size: 13px; color: var(--sub-meta); text-transform: uppercase; }
 .champ input, .champ select { width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; caret-color: var(--accent); }
 /* la note d'un événement de l'agenda : la même matière que les champs, sur plusieurs lignes */
 .champ textarea { width: 100%; min-width: 0; min-height: 88px; padding: 10px 12px; border: var(--line); border-radius: 12px; background: var(--input-bg); color: var(--text); font: inherit; font-size: 16px; line-height: 22px; caret-color: var(--accent); resize: vertical; }
@@ -1789,7 +1789,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 }
 .annot-barre[hidden] { display: none; }
 /* la fin d'un enregistrement : une carte au-dessus de tout (la salle peut être déjà fermée), comme une alerte d'iOS — le fichier n'est jamais perdu sans un geste */
-.rec-fin { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px); background: rgba(0,0,0,.55); }
+.rec-fin { position: fixed; inset: 0; z-index: 66; display: grid; place-items: center; padding: calc(env(safe-area-inset-top, 0px) + 16px) calc(env(safe-area-inset-right, 0px) + 16px) calc(env(safe-area-inset-bottom, 0px) + 16px) calc(env(safe-area-inset-left, 0px) + 16px); background: rgba(0,0,0,.55); }
 .rec-fin[hidden] { display: none; }
 .rec-fin-carte {
   width: min(420px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding: 20px; border-radius: 22px; color: #fff;
@@ -1800,6 +1800,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .rec-fin-carte .rec-fin-garde { font-size: 13px; line-height: 17px; text-align: center; }
 .rec-fin-carte video { width: 100%; aspect-ratio: 16 / 9; border-radius: 12px; background: #000; }
 .rec-fin-carte .salle-btn { min-height: 44px; width: 100%; font-size: 17px; }
+.rec-fin-apercu, .rec-fin-gestes { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+/* ⛔ UN TÉLÉPHONE EN PAYSAGE (moins de 520 px de haut) : en colonne, la carte ne tenait pas et ses trois gestes passaient SOUS le pli — mesuré à 844 × 390 (8 octobre
+   2026) : la carte 337 px, « Envoyer » à 383 px, « Supprimer » à 585 px. Rien n'était perdu (la carte défile), mais rien ne disait qu'il fallait défiler, et l'appel en
+   vidéo se tient souvent en paysage. L'aperçu à gauche (l'image bornée en hauteur), les gestes à droite : tout se voit d'un coup. L'encoche, sur le côté en paysage, est
+   rendue par le calque. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .rec-fin-carte { width: min(780px, 100%); flex-direction: row; align-items: flex-start; gap: 16px; }
+  .rec-fin-apercu { flex: 1.25 1 0; }
+  .rec-fin-gestes { flex: 1 1 0; }
+  .rec-fin-carte video { max-height: 42dvh; }
+}
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
 @media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
 /* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
@@ -2429,14 +2440,18 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 <p class="sr-seul" id="annonce-appel" role="status" aria-live="polite" aria-atomic="true"></p>
 <div class="rec-fin" id="rec-fin" role="alertdialog" aria-modal="true" aria-labelledby="rec-fin-titre" aria-describedby="rec-fin-info" hidden>
   <div class="rec-fin-carte">
-    <h3 id="rec-fin-titre">Enregistrement terminé</h3>
-    <p id="rec-fin-info"></p>
-    <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
-    <p id="rec-fin-absents" hidden></p>
-    <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer à tous les participants</button>
-    <p class="rec-fin-garde" id="rec-fin-garde">Dans la discussion de la réunion, gardé 3 jours puis supprimé automatiquement.</p>
-    <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
-    <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
+    <div class="rec-fin-apercu">
+      <h3 id="rec-fin-titre">Enregistrement terminé</h3>
+      <p id="rec-fin-info"></p>
+      <video id="rec-fin-video" controls playsinline preload="metadata" aria-label="Aperçu de l'enregistrement"></video>
+      <p id="rec-fin-absents" hidden></p>
+    </div>
+    <div class="rec-fin-gestes">
+      <button type="button" class="salle-btn plein presse" id="rec-fin-envoyer">Envoyer à tous les participants</button>
+      <p class="rec-fin-garde" id="rec-fin-garde">Dans la discussion de la réunion, gardé 3 jours puis supprimé automatiquement.</p>
+      <button type="button" class="salle-btn presse" id="rec-fin-garder">Enregistrer sur cet appareil</button>
+      <button type="button" class="salle-btn danger presse" id="rec-fin-jeter">Supprimer</button>
+    </div>
   </div>
 </div>
 

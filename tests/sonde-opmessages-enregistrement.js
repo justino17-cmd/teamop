@@ -123,6 +123,25 @@ const ECRAN = () => {
     await capture(A, 'rec-fin');
     v('le focus est sur « Envoyer dans la discussion », et Échap ne ferme PAS la carte (le fichier ne part pas en fumée)', await (async () => { const f = await A.page.evaluate(() => document.activeElement.id); await A.page.keyboard.press('Escape'); return [f, await A.page.evaluate(() => !document.getElementById('rec-fin').hidden), await A.page.evaluate(() => document.documentElement.dataset.salle === '1')]; })(), ['rec-fin-envoyer', true, true]);
 
+    /* ⛔ LA CARTE TIENT SUR TOUT ÉCRAN : en paysage, sur un téléphone, ses trois gestes passaient SOUS le pli — mesuré à 844 × 390 (8 octobre 2026) : la carte 337 px,
+       « Envoyer » à 383 px. La fenêtre tourne, la carte reste ouverte : chaque geste DANS l'écran et SOUS le doigt, à 44 px, sans défiler la carte. */
+    const gestesVus = () => A.page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)))).then(() => A.page.evaluate(() => {
+      const c = document.querySelector('.rec-fin-carte').getBoundingClientRect();
+      return ['rec-fin-envoyer', 'rec-fin-garder', 'rec-fin-jeter'].map(id => {
+        const e = document.getElementById(id), q = e.getBoundingClientRect();
+        const dedans = q.top >= Math.max(0, c.top) && q.bottom <= Math.min(innerHeight, c.bottom) && q.left >= 0 && q.right <= innerWidth;
+        const t = dedans ? document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2) : null;
+        return id + (dedans && !!t && (t === e || e.contains(t)) && q.height >= 44 ? ' sous le doigt' : ' hors de portée (' + Math.round(q.top) + '–' + Math.round(q.bottom) + ' pour un écran de ' + innerHeight + ')');
+      });
+    }));
+    const attendus = ['rec-fin-envoyer sous le doigt', 'rec-fin-garder sous le doigt', 'rec-fin-jeter sous le doigt'];
+    v('la carte au bureau (1280 × 860) : ses trois gestes dans l\'écran et sous le doigt', await gestesVus(), attendus);
+    for (const [w, h] of [[844, 390], [667, 375]]) {
+      await A.page.setViewportSize({ width: w, height: h });
+      v('⛔ … la fenêtre en paysage (' + w + ' × ' + h + ') : toujours dans l\'écran et sous le doigt, sans défiler', await gestesVus(), attendus);
+    }
+    await A.page.setViewportSize({ width: 1280, height: 860 });
+
     console.log('\n2. Envoyer à tous les participants, gardé trois jours');
     v('la carte dit « Envoyer à tous les participants » et « gardé 3 jours puis supprimé automatiquement »', await A.page.evaluate(() => [document.getElementById('rec-fin-envoyer').textContent, !document.getElementById('rec-fin-garde').hidden && /gardé 3 jours puis supprimé/.test(document.getElementById('rec-fin-garde').textContent)]), ['Envoyer à tous les participants', true]);
     await A.page.locator('#rec-fin-envoyer').click();

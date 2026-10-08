@@ -12,6 +12,8 @@
         — Cléo, Pro et sans réunion, lit « Aucune réunion dans les 7 / 30 prochains jours. » et rien d'autre.
      7. (8 octobre 2026, capture à l'appui : « je peux pas supprimer ») un rappel ouvert DEPUIS LE TABLEAU, modifié puis supprimé : le tableau le dit aussitôt — le service
         l'avait bien supprimé, mais seul l'Agenda se relisait.
+     8. (8 octobre 2026, « il faudrait bien séparer l'agenda perso et pro ») le tableau est le côté PRO : les réunions et le rappel d'Ana y sont rangés Pro (comme la page les
+        range quand on les programme côté Pro) ; ⛔ « Dîner WQXZ » et « Dentiste WQXZ », rangés Perso, n'y paraissent JAMAIS — ni en semaine, ni au mois, ni dans le compteur.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-tableau-bord.js   (CAPTURES=/dossier pour les images)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -56,24 +58,33 @@ function localDans(t, tz) {
     v('population : Ana est Pro (son espace est abonné), Ben est Perso', [(await P.ana.get('/api/espaces')).j.formule, (await P.ben.get('/api/espaces')).j.formule], ['pro', 'perso']);
     /* une réunion aujourd'hui (dans deux heures), un événement demain avec un rappel */
     const t0 = Math.ceil((Date.now() + 2 * H) / (15 * 60000)) * 15 * 60000;
-    const reu = await P.ana.post('/api/reunions', { titre: 'Point chantier WQXZ', lieu: 'Dépôt', debut: localDans(t0, PARIS), fin: localDans(t0 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false });
+    const reu = await P.ana.post('/api/reunions', { titre: 'Point chantier WQXZ', lieu: 'Dépôt', debut: localDans(t0, PARIS), fin: localDans(t0 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' });
     v('population : la réunion est programmée', reu.code, 201);
     /* une autre dans douze jours (au MOIS seulement), et une troisième que la salle a déjà vue finir (« terminée pour tous ») : elle n'est plus prévue */
     const t12 = t0 + 12 * JOUR;
-    const reu12 = await P.ana.post('/api/reunions', { titre: 'Revue mensuelle WQXZ', debut: localDans(t12, PARIS), fin: localDans(t12 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false });
-    const tf = Date.now() + 2 * 60000, reuF = await P.ana.post('/api/reunions', { titre: 'Point fini WQXZ', debut: localDans(tf, PARIS), fin: localDans(tf + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false });
+    const reu12 = await P.ana.post('/api/reunions', { titre: 'Revue mensuelle WQXZ', debut: localDans(t12, PARIS), fin: localDans(t12 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' });
+    const tf = Date.now() + 2 * 60000, reuF = await P.ana.post('/api/reunions', { titre: 'Point fini WQXZ', debut: localDans(tf, PARIS), fin: localDans(tf + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' });
     const salleF = reuF.code === 201 ? await P.ana.post('/api/reunions/' + reuF.j.reunion.id + '/rejoindre', {}) : { j: {} };
     const finF = salleF.j && salleF.j.appel ? await P.ana.post('/api/salles/' + salleF.j.appel.id + '/terminer', {}) : { code: 0 };
     v('population : la réunion dans douze jours, et celle qu\'Ana a ouverte puis TERMINÉE pour tous', [reu12.code, reuF.code, finF.code], [201, 201, 200]);
     /* onze de plus, du 3ᵉ au 13ᵉ jour : au MOIS, treize réunions — douze lignes, puis « Voir l'autre dans l'Agenda » */
-    const plus = []; for (let i = 3; i <= 13; i++) plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(t0 + i * JOUR, PARIS), fin: localDans(t0 + i * JOUR + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false })).code);
+    const plus = []; for (let i = 3; i <= 13; i++) plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(t0 + i * JOUR, PARIS), fin: localDans(t0 + i * JOUR + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' })).code);
     v('population : onze réunions de suivi, du 3ᵉ au 13ᵉ jour', plus, Array(11).fill(201));
     v('population : Cléo est Pro (membre de l\'espace abonné) et n\'est invitée nulle part', (await P.cleo.get('/api/espaces')).j.formule, 'pro');
     /* demain à midi, À PARIS (l'heure locale part telle quelle, avec son fuseau) : pas aujourd'hui — il n'entre au tableau que par son RAPPEL */
     const demainParis = localDans(Date.now() + JOUR, PARIS).slice(0, 10);
-    const evt = await P.ana.post('/api/agenda', { titre: 'Rappeler le fournisseur WQXZ', debut: demainParis + 'T12:00', fin: demainParis + 'T12:30', tz: PARIS, rappel: 30 });
+    const evt = await P.ana.post('/api/agenda', { titre: 'Rappeler le fournisseur WQXZ', debut: demainParis + 'T12:00', fin: demainParis + 'T12:30', tz: PARIS, rappel: 30, cote: 'pro' });
     v('population : l\'événement de demain, avec un rappel', evt.code, 201);
+    /* (8 octobre 2026) le côté Perso d'Ana : un dîner aujourd'hui et un dentiste demain, AVEC un rappel — tout ce qu'il faut pour entrer au tableau, sauf le côté */
+    const diner = await P.ana.post('/api/reunions', { titre: 'Dîner WQXZ', debut: localDans(t0 + 30 * 60000, PARIS), fin: localDans(t0 + 90 * 60000, PARIS), tz: PARIS, invites: [P.ben.moi.id], notifier: false, cote: 'perso' });
+    const dentiste = await P.ana.post('/api/agenda', { titre: 'Dentiste WQXZ', debut: demainParis + 'T09:00', fin: demainParis + 'T09:30', tz: PARIS, rappel: 30, cote: 'perso' });
+    v('population : le dîner (dans la semaine) et le dentiste (demain, avec un rappel) sont rangés PERSO au service ; le point de chantier, PRO', [diner.code, diner.j.reunion && diner.j.reunion.cote, dentiste.code, dentiste.j.evenement && dentiste.j.evenement.cote, reu.j.reunion && reu.j.reunion.cote],
+      [201, 'perso', 201, 'perso', 'pro']);
     /* des appels manqués : Ben une fois, Cléo une fois, Dan deux fois d'affilée — chacun raccroche avant qu'Ana réponde */
+    /* (8 octobre 2026, « que tout soit à part ») le tableau de bord est le côté Pro : un appel y entre s'il est du côté Pro. Dan n'est pas un collègue — Ana range leur
+       conversation dans Pro, comme on le fait pour un client ; Ben, lui, reste Perso (et n'aurait de toute façon rien d'important). */
+    { const d = await P.ana.post('/api/conversations/directe', { uid: P.dan.moi.id }); const r = await P.ana.post('/api/conversations/' + d.j.conversation.id + '/prefs', { cote: 'pro' });
+      v('population : Ana range sa conversation avec Dan (un client, pas un collègue) dans Pro', [d.code < 300, r.code], [true, 200]); }
     const manquer = async (X) => { const r = await X.post('/api/appels', { uid: P.ana.moi.id, type: 'audio' }); if (r.code !== 201) return r.code; return (await X.post('/api/appels/' + r.j.appel.id + '/quitter', {})).code; };
     v('population : quatre appels manqués partent (Ben, Cléo, Dan, Dan)', [await manquer(P.ben), await manquer(P.cleo), await manquer(P.dan), await manquer(P.dan)], [200, 200, 200, 200]);
     const lm = (await P.ana.get('/api/appels?filtre=manques')).j.appels || [];
@@ -111,6 +122,7 @@ function localDans(t, tz) {
     vrai('la réunion d\'Ana paraît, sous « ' + libelle(t0) + ' »', await att(A, (lb) => { const l = document.getElementById('bord-reunions'); const j = l.querySelector('.bord-jour'); return !!j && j.textContent === lb && /Point chantier WQXZ/.test(l.textContent); }, libelle(t0)));
     const bordReu = () => A.page.evaluate(() => ({ texte: document.getElementById('bord-reunions').textContent, seg: Array.from(document.querySelectorAll('#bord-portee [data-bord-portee]')).map(x => x.textContent + ':' + x.getAttribute('aria-pressed')), programmer: !!document.querySelector('#vue-accueil [data-bord="programmer"]') || /Programmer/.test(document.getElementById('vue-accueil').textContent) }));
     v('⛔ « Semaine » (le défaut) : la réunion du jour, PAS celle dans douze jours, PAS la séance terminée ; le segmenté dit « Semaine » ; aucun « Programmer »', await bordReu().then(x => [/Point chantier WQXZ/.test(x.texte), /Revue mensuelle WQXZ/.test(x.texte), /Point fini WQXZ/.test(x.texte), x.seg, x.programmer]), [true, false, false, ['Semaine:true', 'Mois:false'], false]);
+    v('⛔ le dîner (Perso, dans la semaine) n\'est PAS au tableau de bord (population : le point de chantier, Pro, l\'est)', await bordReu().then(x => [/Point chantier WQXZ/.test(x.texte), /Dîner WQXZ/.test(x.texte)]), [true, false]);
     await A.page.locator('#bord-portee [data-bord-portee="mois"]').tap();
     vrai('« Mois » : la réunion dans douze jours paraît (relue sur 30 jours), la séance terminée toujours pas', await att(A, () => { const t = document.getElementById('bord-reunions').textContent; return /Revue mensuelle WQXZ/.test(t) && /Point chantier WQXZ/.test(t) && !/Point fini WQXZ/.test(t) && document.querySelector('#bord-portee [data-bord-portee="mois"]').getAttribute('aria-pressed') === 'true'; }), JSON.stringify(await bordReu()));
     vrai('⛔ le COMPTE retient « Mois » (prefs.bord_reunions), sans toucher la vue de l\'Agenda', await att(A, () => true) && await (async () => { for (let i = 0; i < 30; i++) { const m = (await P.ana.get('/api/moi')).j.moi.prefs || {}; if (m.bord_reunions === 'mois') return m.agenda_vue !== 'mois'; await new Promise(r => setTimeout(r, 100)); } return false; })());
@@ -124,6 +136,7 @@ function localDans(t, tz) {
 
     console.log('\n3. Les rappels');
     vrai('l\'événement de demain, avec son rappel, sous « Demain »', await att(A, () => { const l = document.getElementById('bord-rappels'); const j = l.querySelector('.bord-jour'); return !!j && j.textContent === 'Demain' && /Rappeler le fournisseur WQXZ/.test(l.textContent) && /Rappel 30 min avant/.test(l.textContent); }));
+    v('⛔ le dentiste (Perso, demain, avec un rappel) n\'est PAS dans les rappels du tableau (population : le fournisseur, Pro, y est)', await A.page.evaluate(() => { const t = document.getElementById('bord-rappels').textContent; return [/Rappeler le fournisseur WQXZ/.test(t), /Dentiste WQXZ/.test(t)]; }), [true, false]);
 
     console.log('\n4. Les appels manqués IMPORTANTS');
     vrai('population : la liste des appels est lue', await att(A, () => !/Chargement/.test(document.getElementById('bord-appels').textContent)));
@@ -186,7 +199,7 @@ function localDans(t, tz) {
     await A.page.locator('#info-corps [data-evt="supprimer"]').tap();
     vrai('⛔ supprimé : le tableau dit « Aucun rappel à venir. » aussitôt (avant : le rappel restait affiché)', await att(A, () => /^Aucun rappel à venir\./.test(document.getElementById('bord-rappels').textContent.trim()) && document.getElementById('bord-rappels-n').textContent === ''), await A.page.evaluate(() => document.getElementById('bord-rappels').textContent));
     const reste = (await P.ana.get('/api/agenda?du=' + (Date.now() - JOUR) + '&au=' + (Date.now() + 3 * JOUR))).j.evenements || [];
-    v('… et le service ne l\'a plus', reste.map(x => x.titre), []);
+    v('… et le service ne l\'a plus (reste le dentiste, rangé Perso, que personne n\'a touché)', reste.map(x => x.titre), ['Dentiste WQXZ']);
 
     v('aucune erreur JavaScript (Ben, Ana au téléphone, Ana au bureau, Cléo)', [B.erreurs, A.erreurs, A2.erreurs, C.erreurs], [[], [], [], []]);
   } catch (e) {

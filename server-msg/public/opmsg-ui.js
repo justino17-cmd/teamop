@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'b98d82de5839';
+  const OPMSG_BUILD = '07695da967c9';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 139;
+  const OPMSG_VERSION = 140;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -233,10 +233,43 @@
     if (etat.route && etat.route.vue === 'accueil' && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
     else if (!depuisOuverture && c0 && coteDe(c0) !== m && etat.route && etat.route.vue === 'messages' && !etat.route.feuille) remplacer(Object.assign({}, etat.route, { conv: null }));   // la conversation ouverte est de l'autre côté : on la ferme (sauf quand c'est elle qu'on ouvre)
     if (etat.route && etat.route.vue === 'contacts') rendreVueContacts();
+    if ($('vue-reunions') && $('vue-reunions').dataset.pret && reu.charge) rendreReunions();      // l'Agenda ne montre que le côté où l'on est
+    if (etat.route && etat.route.vue === 'appels') rendreAppels();                                   // les Appels aussi
     if (!muet) annonceMode(m);                                   // muet : le geste qui y mène a déjà sa phrase (« Tu as rejoint… »)
     try { await source.choisirMode(m); } catch (e) { mot(phrase(e, 'Le côté choisi n\'a pas pu être enregistré : il vaut pour cette visite.')); }
   }
   const annonceMode = m => mot(m === 'pro' ? 'OP MESSAGES PRO' : 'OP MESSAGES · Perso');
+  /* ══ L'AGENDA PERSO ET L'AGENDA PRO (8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ») ══
+     Chaque élément de l'agenda est d'UN côté. Un événement porte le sien (posé à sa création : le côté où l'on est — changé dans sa fiche) ; un événement d'avant n'en a pas : celui de sa
+     conversation d'origine (« Me le rappeler »), sinon Perso. Une réunion a celui de SA conversation pour moi (rangée par l'organisateur à la création, la règle d'un groupe pour les
+     invités, ou « Ranger dans »). En Perso, l'Agenda ne montre que le perso ; en Pro, que le pro — le tableau de bord aussi (il est Pro). Un compte sans les deux côtés voit tout. */
+  const coteEvt = e => {
+    if (e && (e.cote === 'perso' || e.cote === 'pro')) return e.cote;
+    const origine = e && e.source;
+    return origine && origine.conv ? coteDe(etat.conversations.find(c => c.id === origine.conv)) : 'perso';
+  };
+  /* une réunion : le côté de SA conversation dans la liste — à jour dès qu'on la range (« Ranger dans », ici ou dans ses infos) —, sinon celui que l'agenda a lu au service, sinon Pro
+     (un service d'avant ne le dit pas : une réunion y était Pro) */
+  const coteReu = r => { const c = r && etat.conversations.find(x => x.id === r.conv); return c ? coteDe(c) : r && (r.cote === 'perso' || r.cote === 'pro') ? r.cote : 'pro'; };
+  const sigCotesReunions = () => etat.conversations.filter(c => c.type === 'reunion').map(c => c.id + ':' + coteDe(c)).join();
+  /* (8 octobre 2026, « que tout soit à part ») UNE PERSONNE est du côté de sa conversation à deux (rangée à la main ou automatique) ; sans conversation, Pro si c'est un collègue d'un de
+     mes espaces (lus avec les contacts « Entreprise »), sinon Perso. UN APPEL est du côté de SA conversation (un appel de groupe, une salle de réunion), sinon de la personne appelée. */
+  const estCollegue = id => !!(etat.vcEsp && etat.vcEsp.membres && Object.keys(etat.vcEsp.membres).some(k => (etat.vcEsp.membres[k] || []).some(p => p && p.id === id)));
+  const coteDePersonne = id => { const d = etat.conversations.find(x => x.type === 'direct' && x.autre === id); return d ? coteDe(d) : estCollegue(id) ? 'pro' : 'perso'; };
+  const coteAppel = a => { const c = a && a.conv ? etat.conversations.find(x => x.id === a.conv) : null; return c ? coteDe(c) : a && a.membres && a.membres.length === 1 ? coteDePersonne(a.membres[0]) : 'perso'; };
+  /* les collègues se lisent une fois, dès qu'un écran en a besoin pour ranger (Appels, Contacts, le tableau de bord) — rien n'est rangé sur l'appareil */
+  const colleguesLus = () => { if (modesActifs() && !etat.vcEsp && CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function') chargerVcEspaces(); };
+  const duCote = cote => !modesActifs() || cote === etat.mode;
+  /* le choix du côté dans une fiche (un événement, une réunion qu'on programme) : un segmenté Perso | Pro, sur le côté où l'on est — seulement pour un compte qui a les deux */
+  const choixCote = (id, cote) => modesActifs() ? '<div class="champ champ-cote"><span class="champ-titre" id="' + id + '-l">Agenda</span><div class="seg" id="' + id + '" role="group" aria-labelledby="' + id + '-l" style="--i:' + (cote === 'pro' ? 1 : 0) + '"><span class="seg-knob" aria-hidden="true"></span>' +
+    ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-choix-cote="' + k + '" aria-pressed="' + (k === cote ? 'true' : 'false') + '">' + NOM_COTE[k] + '</button>').join('') + '</div></div>' : '';
+  const coteChoisi = id => { const b = document.querySelector('#' + id + ' [data-choix-cote][aria-pressed="true"]'); return b ? b.dataset.choixCote : etat.mode; };
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-choix-cote]'); if (!b) return;
+    const seg = b.closest('.seg'); if (!seg) return;
+    for (const x of seg.querySelectorAll('[data-choix-cote]')) x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+    seg.style.setProperty('--i', b.dataset.choixCote === 'pro' ? 1 : 0);
+  });
   document.addEventListener('click', e => { const b = e.target.closest('[data-cote-seg] [data-cote]'); if (b) changerMode(b.dataset.cote); });
   /* ⛔ UN ÉCHEC DE CHARGEMENT SE DIT. Un 429 ou un 503 sur la liste faisait retomber la page de l'étape 1 sur son écran de connexion, sans un mot (relecture du gardien,
      remarque 2) : la liste reste celle d'avant, une phrase explique pourquoi elle n'est pas à jour et « Réessayer » la relit. Une réussite efface le refus d'avant. */
@@ -244,8 +277,13 @@
   function masquerErreurListe() { $('liste-erreur').hidden = true; $('liste-erreur-texte').textContent = ''; }
   async function rafraichirListe(forcer) {
     let l; try { l = await source.lister(forcer === true); } catch (e) { montrerErreurListe(e); return; }
+    const cotesAvant = sigCotesReunions();
     etat.conversations = l; masquerErreurListe();
     rendreListe();
+    if (sigCotesReunions() !== cotesAvant) {           // une réunion rangée de l'autre côté (ici ou sur un autre appareil) : l'Agenda Perso / Pro la suit
+      if ($('vue-reunions') && $('vue-reunions').dataset.pret && reu.charge) rendreReunions();
+      if (etat.route && etat.route.vue === 'accueil') rendreAccueil();
+    }
     if (etat.route && etat.route.vue === 'contacts' && etat.vcCat === 'groupes') rendreVueContacts();   // « Groupes » suit la liste (un groupe créé, renommé, quitté)
     if (etat.groupe.ouvert && etat.groupe.mode === 'nouvelle') rendreNouvelle();       // « Contacts fréquents » suit la liste
   }
@@ -427,7 +465,7 @@
 
   /* ═══ 7. LA CONVERSATION ════════════════════════════════════════════════════════════════════════════════════════════════════ */
   function majBadge() {
-    const n = etat.conversations.filter(c => c.id !== etat.conv && c.nonLu).length;
+    const n = etat.conversations.filter(c => c.id !== etat.conv && c.nonLu && dansMode(c)).length;      // le côté où l'on est : l'autre a sa pastille sur le sélecteur Perso | Pro
     const b = $('conv-badge');
     b.hidden = n === 0; b.textContent = n;
     $('conv-retour').setAttribute('aria-label', n ? 'Retour aux conversations, ' + n + (n === 1 ? ' autre conversation non lue' : ' autres conversations non lues') : 'Retour aux conversations');
@@ -2178,7 +2216,9 @@
   }
   function rendreAppels() {
     const actif = document.activeElement, cle = actif && actif.closest && actif.closest('#liste-appels') ? (actif.dataset.rappeler ? 'rappeler' : actif.dataset.infos ? 'infos' : null) : null, val = cle ? actif.dataset[cle] : null;
-    $('liste-appels').innerHTML = etat.appels.length ? etat.appels.map(ligneAppel).join('') : '<li class="vide">' + (etat.filtreAppels === 'manques' ? 'Aucun appel manqué' : 'Aucun appel') + '</li>';
+    colleguesLus();
+    const L = etat.appels.filter(a => duCote(coteAppel(a)));          // (8 octobre 2026) l'historique du côté où l'on est
+    $('liste-appels').innerHTML = L.length ? L.map(ligneAppel).join('') : '<li class="vide">' + (etat.filtreAppels === 'manques' ? 'Aucun appel manqué' : 'Aucun appel') + (modesActifs() ? ' côté ' + NOM_COTE[etat.mode] : '') + '</li>';
     document.querySelectorAll('#seg-appels [data-filtre]').forEach(b => b.setAttribute('aria-pressed', b.dataset.filtre === etat.filtreAppels ? 'true' : 'false'));
     $('seg-appels').style.setProperty('--i', etat.filtreAppels === 'manques' ? 1 : 0);
     if (cle) { const b = $('liste-appels').querySelector('[data-' + cle + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
@@ -3299,7 +3339,8 @@
     }
     if (D && !(D.erreur && !D.recues) && E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
           '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
-    const tous = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })), C = tous.filter(garder);
+    colleguesLus();
+    const tous = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })), C = tous.filter(garder).filter(c => q || duCote(coteDePersonne(c.id)));      // (8 octobre 2026) le côté où l'on est — une recherche cherche partout
     if (!q || C.length) h += '<div class="rubrique"><span>Mes contacts</span><span>' + (C.length || '') + '</span></div>';
     if (C.length) h += vcParLettre(C);
     else if (!q) h += '<div class="carte carte-pad"><p class="info-note">Pas encore de contact. Ajoute quelqu\'un par son identifiant (Camille#4821), son numéro ou un lien.</p><button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button></div>';
@@ -3470,7 +3511,7 @@
     const L = [['tous', 'Tous']];
     if (CAP.favoris && typeof source.favori === 'function') L.push(['favoris', 'Favoris']);
     L.push(['groupes', 'Groupes']);
-    if (CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function') L.push(['entreprise', 'Entreprise']);
+    if (CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function' && (!modesActifs() || etat.mode === 'pro')) L.push(['entreprise', 'Entreprise']);      // les collègues : le côté Pro
     return L;
   }
   function vcCat() {
@@ -3486,6 +3527,12 @@
   function peindreVcSegment() {
     const seg = $('vc-seg'); if (!seg) return;
     const cat = vcCat(), L = vcCats();
+    /* ⛔ les catégories changent avec le côté (« Entreprise » est du côté Pro) : le segment, bâti une fois, se REFAIT quand elles changent — sinon, passé côté Pro, « Entreprise »
+       était choisie sans bouton (aucun segment pressé), et revenu côté Perso elle restait proposée. L'écoute est sur le segment lui-même : refaire ses boutons la garde. */
+    if (Array.from(seg.querySelectorAll('[data-cat]')).map(b => b.dataset.cat).join() !== L.map(c => c[0]).join()) {
+      seg.style.setProperty('--n', L.length);
+      seg.innerHTML = '<span class="seg-knob" aria-hidden="true"></span>' + L.map(c => '<button type="button" class="seg-bouton" data-cat="' + c[0] + '" aria-pressed="false">' + esc(c[1]) + '</button>').join('');
+    }
     seg.querySelectorAll('[data-cat]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === cat ? 'true' : 'false'));
     seg.style.setProperty('--i', Math.max(0, L.findIndex(c => c[0] === cat)));
   }
@@ -3506,12 +3553,12 @@
   function rendreVcCategorie(cat, brut, q) {
     const garderNom = x => !q || vcNorm(x.nom).includes(q);
     if (cat === 'favoris') {
-      const F = (CONTACTS || []).filter(c => c.favori).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })).filter(garderNom);
+      const F = (CONTACTS || []).filter(c => c.favori && (q || duCote(coteDePersonne(c.id)))).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })).filter(garderNom);
       if (F.length) return '<div class="rubrique"><span>Favoris</span><span>' + F.length + '</span></div><div class="carte">' + F.map(vcLigneContact).join('') + '</div>';
       return q ? vcAucun(brut) : '<div class="carte carte-pad"><p class="info-note">Aucun favori pour l\'instant. Touche l\'étoile à côté d\'un contact, dans « Tous », pour le retrouver ici.</p></div>';
     }
     if (cat === 'groupes') {
-      const G = (etat.conversations || []).filter(c => c.type === 'groupe').filter(garderNom).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' }));
+      const G = (etat.conversations || []).filter(c => c.type === 'groupe' && (q || dansMode(c))).filter(garderNom).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' }));
       let h = '<div class="carte"><button type="button" class="contact presse" data-act="vc-nouveau-groupe">' + avatar({ initiales: '+', avatar: 0 }) +
         '<span class="contact-texte"><span class="contact-nom">Nouveau groupe</span><span class="contact-role">Choisis des contacts et donne-lui un nom</span></span></button></div>';
       if (G.length) h += '<div class="rubrique"><span>Mes groupes</span><span>' + G.length + '</span></div><div class="carte">' + G.map(g => '<button type="button" class="contact presse" data-act="vc-groupe" data-id="' + esc(g.id) + '">' +
@@ -3547,11 +3594,13 @@
     if (jeton !== etat.vcEspJeton) return;
     etat.vcEsp = { charge: false, espaces: r ? (r.espaces || []) : [], membres: {}, panne: {}, erreur: r ? '' : panne };
     rendreVueContacts();
+    const rangerApres = () => { if (etat.route && etat.route.vue === 'appels') rendreAppels(); if (etat.route && etat.route.vue === 'accueil' && $('vue-accueil').dataset.pret) rendreAccueil(); };
     await Promise.all(etat.vcEsp.espaces.map(async e => {
       try { const c = await source.espaceContacts(e.id); if (jeton === etat.vcEspJeton) etat.vcEsp.membres[e.id] = c.contacts || []; }
       catch (x) { if (jeton === etat.vcEspJeton) etat.vcEsp.panne[e.id] = phrase(x, 'Les membres de cet espace n\'ont pas pu être lus.'); }
       if (jeton === etat.vcEspJeton) rendreVueContacts();
     }));
+    if (jeton === etat.vcEspJeton) rangerApres();
   }
   $('vue-contacts').addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -3735,8 +3784,9 @@
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
     /* le thème : à moi seul (les autres gardent leurs couleurs) */
     if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
-    /* Perso / Pro : où cette conversation paraît, pour moi seul — l'automatique, ou un côté choisi (une directe, un groupe : un canal et une réunion sont Pro par nature) */
-    if (modesActifs() && (i.type === 'direct' || g) && !i.supprime && lc) h += '<div class="carte"><button type="button" class="reglage presse" data-act="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>';
+    /* Perso / Pro : où cette conversation paraît, pour moi seul — l'automatique, ou un côté choisi (une directe, un groupe, une RÉUNION — elle range aussi la réunion dans l'agenda Perso ou Pro ;
+       un canal est Pro par nature) */
+    if (modesActifs() && (i.type === 'direct' || g || i.type === 'reunion') && !i.supprime && lc) h += '<div class="carte"><button type="button" class="reglage presse" data-act="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>';
     if (sd >= 0) h += '<div class="carte"><button type="button" class="reglage presse" data-act="sourdine" data-valeur="' + (sd > Date.now() ? sd : 0) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Mettre en sourdine</span><span class="reglage-valeur">' + esc(sd > Date.now() ? finSourdine(sd) : 'Non') + CHEVRON_UD + '</span></button></div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
@@ -4314,7 +4364,8 @@
     const note = Array.from('Rappel sur ' + de + ', dans « ' + nomConv(c) + ' ».' + (m.texte ? '\n\n' + m.texte : '')).slice(0, 2000).join('');
     try {
       await source.creerEvenement(Object.assign({ titre, lieu: Array.from(nomConv(c)).slice(0, 300).join(''), note, journee: false, debut: localDans(x.t, x.tz), fin: localDans(x.t + 15 * 60000, x.tz), rappel: 0, tz: x.tz },
-        Number.isSafeInteger(m.seq) && m.seq > 0 && /^c_[0-9a-f]{32}$/.test(c.id) ? { source: { conv: c.id, seq: m.seq } } : {}));      // « Voir le message » : le chemin vers lui, pas une copie
+        Number.isSafeInteger(m.seq) && m.seq > 0 && /^c_[0-9a-f]{32}$/.test(c.id) ? { source: { conv: c.id, seq: m.seq } } : {},      // « Voir le message » : le chemin vers lui, pas une copie
+        modesActifs() ? { cote: coteDe(etat.conversations.find(x => x.id === c.id) || c) } : {}));      // l'agenda du côté de sa conversation
       mot('Je te le rappelle ' + (x.cle === 'demain' ? 'demain à ' : x.cle === 'lundi' ? 'lundi à ' : 'à ') + heureDans(x.t, x.tz) + ' — c\'est dans ton agenda');
       if (etat.route && etat.route.vue === 'reunions') chargerReunions();
     } catch (er) { avis(phrase(er, 'Le rappel n\'a pas pu être posé.')); }
@@ -4658,6 +4709,7 @@
       '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
         '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
       pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
+      '<div class="seg cote-seg cote-seg-agenda" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-cote="perso" aria-pressed="true">Perso<b class="cote-n" hidden></b></button><button type="button" class="seg-bouton" data-cote="pro" aria-pressed="false">Pro<b class="cote-n" hidden></b></button></div>' +
       '<div class="seg" id="reu-vue-seg" role="group" aria-label="Afficher"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-reu-vue="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-reu-vue="mois" aria-pressed="false">Mois</button></div>' +
       '<div class="sem-nav" role="group" aria-label="Période affichée">' +
         '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
@@ -4671,6 +4723,7 @@
       '<div class="rubrique"><span id="reu-jour-titre"></span><span id="reu-jour-n"></span></div>' +
       '<ul class="carte-liste" id="liste-reunions" role="list" aria-label="Réunions du jour"></ul>';
     sec.dataset.pret = '1';
+    peindreMode();                                    // le sélecteur Perso / Pro qu'on vient de poser prend l'état du compte
     const auj = minuitDe(Date.now());
     reu.semaine = lundiDe(auj); reu.jour = auj; reu.mois = premierDuMois(auj);
     reu.vue = typeof source.agendaVue === 'function' && source.agendaVue() === 'mois' ? 'mois' : 'semaine';
@@ -4734,9 +4787,9 @@
   /* les occurrences de la semaine, rangées par jour (le jour où elles COMMENCENT, à l'heure de l'appareil) */
   function occurrencesDuJour(jour) {
     const fin = plusJours(jour, 1), sortie = [];
-    for (const r of reu.liste) for (const o of r.occurrences) if (o.debut >= jour && o.debut < fin) sortie.push({ r, o });
+    for (const r of reu.liste) if (duCote(coteReu(r))) for (const o of r.occurrences) if (o.debut >= jour && o.debut < fin) sortie.push({ r, o });
     /* les événements de l'agenda personnel : ceux qui TOUCHENT le jour (une journée entière, ou qui déborde de la veille), rangés avec les réunions — les journées entières d'abord */
-    for (const e of (CAP.agenda ? reu.evenements : [])) if (e.debut < fin && e.fin > jour) sortie.push({ e, o: { debut: e.journee || e.debut < jour ? jour - 1 : e.debut, fin: e.fin } });
+    for (const e of (CAP.agenda ? reu.evenements : [])) if (e.debut < fin && e.fin > jour && duCote(coteEvt(e))) sortie.push({ e, o: { debut: e.journee || e.debut < jour ? jour - 1 : e.debut, fin: e.fin } });
     return sortie.sort((a, b) => a.o.debut - b.o.debut || (a.r ? a.r.id : a.e.id).localeCompare(b.r ? b.r.id : b.e.id));
   }
   function ligneEvenement(e, jour, coche) {
@@ -4872,7 +4925,8 @@
     const att = !bord.charge ? '<li class="vide">Chargement…</li>' : null, now = Date.now(), nj = bordJours(), fin = now + nj * 86400000;
     /* les réunions des 7 ou 30 prochains jours (en cours comprises, terminées exclues), un intertitre par jour */
     const occ = [];
-    for (const r of bord.reunions) if (!r.annulee) for (const o of r.occurrences) if (o.fin > now && o.debut < fin && !(o.seance && !r.salleOuverte)) occ.push({ r, o });
+    const pourBord = cote => !modesActifs() || cote === 'pro';          // le tableau de bord est le côté Pro : ni le dîner d'anniversaire, ni le dentiste
+    for (const r of bord.reunions) if (!r.annulee && pourBord(coteReu(r))) for (const o of r.occurrences) if (o.fin > now && o.debut < fin && !(o.seance && !r.salleOuverte)) occ.push({ r, o });
     occ.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
     let h = '', jp = null;
     for (const x of occ.slice(0, BORD_MAX)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
@@ -4881,19 +4935,19 @@
     $('bord-reunions-n').textContent = occ.length ? String(occ.length) : '';
     /* les rappels : les événements d'aujourd'hui, et ceux à venir qui portent un rappel */
     const auj = minuitDe(now), demain = plusJours(auj, 1);
-    const evs = bord.evenements.filter(e => !e.fait && e.fin > now && (e.debut < demain || e.rappel !== null)).sort((x, y) => x.debut - y.debut).slice(0, 10);
+    const evs = bord.evenements.filter(e => !e.fait && e.fin > now && (e.debut < demain || e.rappel !== null) && pourBord(coteEvt(e))).sort((x, y) => x.debut - y.debut).slice(0, 10);
     h = ''; jp = null;
     for (const e of evs) { const j = Math.max(minuitDe(e.debut), auj); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneEvenement(e, j, typeof source.faitEvenement === 'function'); }
     $('bord-rappels').innerHTML = att || h || '<li class="bord-vide"><span>Aucun rappel à venir.</span><button type="button" class="presse" data-bord="evenement">Nouvel événement</button></li>';
     $('bord-rappels-n').textContent = evs.length ? String(evs.length) : '';
     /* les mentions des sept derniers jours (huit au plus), les non lues d'un point ; toucher ouvre la conversation */
     if ($('bord-mentions')) {
-      const t7 = now - 7 * 86400000, ms = bord.mentions.filter(x => x.t >= t7).slice(0, 8), nl = ms.filter(x => !x.lue).length;
+      const t7 = now - 7 * 86400000, ms = bord.mentions.filter(x => x.t >= t7 && pourBord(coteDe(etat.conversations.find(c => c.id === x.conv)))).slice(0, 8), nl = ms.filter(x => !x.lue).length;
       $('bord-mentions').innerHTML = att || (ms.length ? ms.map(ligneMention).join('') : '<li class="bord-vide"><span>Aucune mention ces sept derniers jours.</span></li>');
       $('bord-mentions-n').textContent = nl ? String(nl) : '';
     }
     /* les appels manqués IMPORTANTS, avec leur raison */
-    const imp = appelsImportants(bord.appels);
+    const imp = appelsImportants(bord.appels.filter(a => pourBord(coteAppel(a))));      // (8 octobre 2026) un appel manqué d'un ami n'est pas au tableau de bord (le côté Pro)
     $('bord-appels').innerHTML = att || (imp.length ? imp.map(x => ligneAppel(x.a).replace('<span class="appel-kind">', '<span class="bord-raison">' + esc(x.raisons.join(' · ')) + '</span><span class="appel-kind">')).join('')
       : '<li class="bord-vide"><span>Aucun appel manqué important. Les autres sont dans Appels.</span></li>');
     $('bord-appels-n').textContent = imp.length ? String(imp.length) : '';
@@ -5043,6 +5097,7 @@
       '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
       '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="Facultatif"></div>' +
       '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>' +
+      choixCote('ev-cote', e ? coteEvt(e) : etat.mode) +
       '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
       '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
     reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '' };
@@ -5062,10 +5117,12 @@
     const r = $('ev-rappel').value;
     const champs = { titre, lieu: $('ev-lieu').value.trim() || null, note: $('ev-note').value.trim() || null, journee, debut, fin: fin || null, rappel: r === '' ? null : Number(r) };
     if (!F.id) champs.tz = F.tz;
+    const cote = modesActifs() ? coteChoisi('ev-cote') : null;
+    if (cote) champs.cote = cote;                     // le côté choisi (un compte sans les deux côtés n'en dit rien : Perso)
     b.disabled = true;
     try {
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
-      mot(F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
+      mot(cote && cote !== etat.mode ? 'Événement rangé dans l\'agenda ' + NOM_COTE[cote] : F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
       fermerCouche(); evenementsRelire();
     } catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être enregistré.')); }
   }
@@ -5420,7 +5477,12 @@
     }
     /* le fichier pour l'agenda, la conversation */
     const ics = (occ) => source.adresseIcs(d.id, occ ? { occurrence: occ } : {});
-    s += '<div class="rubrique"><span>Agenda</span></div><div class="carte carte-pad"><div class="info-actions">' +
+    /* (8 octobre 2026) l'agenda où elle paraît — Perso ou Pro —, pour moi seul : celui de SA conversation (« Ranger dans », le même menu que ses infos) */
+    const lc = modesActifs() ? etat.conversations.find(x => x.id === d.conv) : null;
+    s += '<div class="rubrique"><span>Agenda</span></div>' + (lc ? '<div class="carte"><button type="button" class="reglage presse" data-reu="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') +
+      '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans<small>Pour toi seul</small></span><span class="reglage-valeur">' +
+      esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>' : '') +
+      '<div class="carte carte-pad"><div class="info-actions">' +
       (serie ? '<a class="mini" href="' + esc(ics(o.debut)) + '" download>' + icone('i-telecharger') + ' Cette date (.ics)</a><a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Toute la série (.ics)</a>'
         : '<a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Ajouter à mon agenda (.ics)</a>') + '</div></div>';
     s += '<div class="carte"><button type="button" class="reglage presse" data-reu="conversation">' + icone('i-chat') + '<span class="reglage-texte">Ouvrir la conversation de la réunion</span>' + CHEVRON + '</button></div>';
@@ -5495,7 +5557,8 @@
       F.occVersion = d.version;
     }
     if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
-    const sig = JSON.stringify([d, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; })]);
+    const sig = JSON.stringify([d, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; }),
+      modesActifs() ? ((x) => x ? [x.coteChoisi, x.coteAuto] : null)(etat.conversations.find(x => x.id === d.conv)) : null]);
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || actif.dataset.point || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
     const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;
@@ -5534,6 +5597,22 @@
         else if (act === 'inviter') { b.setAttribute('aria-disabled', 'true'); const r = await source.inviterReunion(id, [b.dataset.uid], { notifier: true }); mot(r.ajoutes ? 'Invitation envoyée' : 'Cette personne ne peut pas être invitée'); await relire(); }
         else if (act === 'retirer') { b.setAttribute('aria-disabled', 'true'); await source.retirerInviteReunion(id, b.dataset.uid); mot('Personne retirée de la réunion'); await relire(); }
         else if (act === 'conversation') ouvrirConvId(d.conv);
+        else if (act === 'cote') {
+          const avant = b.dataset.valeur, auto = b.dataset.auto === 'pro' ? 'pro' : 'perso';
+          ouvrirDeroule(b, 'Ranger dans', 'L\'agenda où cette réunion paraît, avec sa conversation. Pour toi seul : les autres gardent leur rangement.',
+            [{ valeur: 'auto', libelle: 'Automatique (' + NOM_COTE[auto] + ')', coche: avant === 'auto' }, '-', { valeur: 'perso', libelle: 'Perso', coche: avant === 'perso' }, { valeur: 'pro', libelle: 'Pro', coche: avant === 'pro' }],
+            async v => {
+              if (v === avant) return;
+              erreurInfo('');
+              try {
+                await source.rangerCote(d.conv, v === 'auto' ? null : v);
+                if (typeof source.lister === 'function') await rafraichirListe();       // la liste porte le côté : l'Agenda et la fiche le lisent là
+                mot('Réunion rangée dans l\'agenda ' + NOM_COTE[v === 'auto' ? auto : v]);
+              } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
+              if (ouvertePour(id)) relire();
+            });
+          return;
+        }
         else if (act === 'rejoindre') { b.setAttribute('aria-disabled', 'true'); await rejoindreReunionUI(id, b.dataset.type, b, true); b.removeAttribute('aria-disabled'); }
         else if (act === 'attente') { b.setAttribute('aria-disabled', 'true'); await source.modifierReunion(id, { salle_attente: !d.attente, notifier: false }); mot(d.attente ? 'Salle d\'attente retirée' : 'Salle d\'attente activée'); await relire(); }
         else if (act === 'lien-copier' || act === 'lien-renouveler') {
@@ -5655,6 +5734,7 @@
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="champ"><label for="rf-titre">Titre</label><input id="rf-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(initial.titre) + '" placeholder="Point d\'équipe"></div>' +
       '<div class="champ"><label for="rf-lieu">Lieu ou lien</label><input id="rf-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(initial.lieu) + '" placeholder="Salle, adresse ou lien"></div>' +
+      (id ? '' : choixCote('rf-cote', etat.mode)) +      // le côté où je la range (à la création : ensuite, c'est sa conversation qui se range — « Ranger dans »)
       /* l'ordre du jour (8 octobre 2026) : un point par ligne — les participants les cochent pendant la séance, et le compte rendu les reprend */
       '<div class="champ"><label for="rf-odj">Ordre du jour</label><textarea id="rf-odj" rows="3" maxlength="4300" placeholder="Un point par ligne (facultatif)">' + esc(initial.odj.join('\n')) + '</textarea></div>' +
       '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
@@ -5719,6 +5799,7 @@
     if (odj.some(x => Array.from(x).length > 200)) { erreurInfo('Un point de l\'ordre du jour dépasse 200 signes.'); $('rf-odj').focus(); return null; }
     const c = { titre, lieu, debut, fin, tz, repetition: rep, rappels: F.rappels.slice().sort((a, b) => a - b), notifier: F.notifier, ordre_du_jour: odj };
     if (CAP.salles) c.salle_attente = !!F.attente;
+    if (!F.id && modesActifs()) c.cote = coteChoisi('rf-cote');
     if (rep !== 'aucune') {
       const type = $('rf-fin-type').value;
       c.jusqua = null; c.n = null;

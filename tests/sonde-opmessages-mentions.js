@@ -49,6 +49,10 @@ const TEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: t
     const G = (await P.ana.post('/api/conversations/groupe', { nom: 'Chantier', membres: [P.ben.moi.id, P.cleo.moi.id, P.camr.moi.id, P.camp.moi.id] })).j.conversation.id;
     const AB = (await P.ana.post('/api/conversations/directe', { uid: P.ben.moi.id })).j.conversation.id;
     v('population : un groupe à cinq (deux Camille), une directe Ana ↔ Ben, Ben est Pro', [!!G, !!AB, (await P.ben.get('/api/espaces')).j.formule], [true, true, 'pro']);
+    /* (8 octobre 2026, « que tout soit à part ») le tableau de bord est le côté PRO : « Chantier » (Ana, collègue, et trois contacts qui ne le sont pas) est Perso par la règle — ses
+       mentions n'y entreraient pas. Ben le range Pro, comme on range un groupe de travail où il y a des gens de dehors. */
+    v('population : Ben range « Chantier » dans Pro (il ne l\'est pas d\'office : trois de ses membres ne sont pas ses collègues)', [(await P.ben.post('/api/conversations/' + G + '/prefs', { cote: 'pro' })).code,
+      (((await P.ben.get('/api/conversations')).j.conversations || []).find(c => c.id === G) || {}).cote], [200, 'pro']);
     const cid = () => 'cid-' + crypto.randomBytes(6).toString('hex');
     await P.ben.post('/api/conversations/' + G + '/messages', { cid: cid(), texte: 'Bonjour à tous' });
     const mentionsDe = async (X) => ((await X.get('/api/notifications')).j.notifications || []).filter(n => n.type === 'mention');

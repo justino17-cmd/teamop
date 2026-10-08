@@ -13,6 +13,45 @@ de ligne du tout.
 
 ---
 
+# ⏳ 8 OCTOBRE 2026 (SOIR) — PERSO ET PRO À PART PARTOUT : L'AGENDA, LES APPELS, LES CONTACTS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin, 8 octobre : « il faudrait bien séparer l'agenda perso et pro », puis « il faut bien différencier le pro et le perso, que tout soit à part ». Avant : l'Agenda montrait tout, quel que soit le côté où l'on était, et une réunion était Pro d'office
+(décidé sans lui le 7). Maintenant chaque élément de l'agenda est d'UN côté :
+· **un événement** porte le sien (migration 25, `evenement.cote`) : le côté où l'on est quand on le crée — sa fiche le propose (« Agenda : Perso | Pro ») et on le change là ;
+  « Me le rappeler » prend le côté de la conversation ; un événement d'avant n'en a pas → celui de sa conversation d'origine, sinon Perso ;
+· **une réunion** a le côté de SA conversation, pour chacun : l'organisateur la range à sa création (le côté où il est), les invités par la règle d'un groupe (Pro quand tous
+  les autres sont des collègues), et chacun peut la ranger — dans sa fiche (« Ranger dans », rubrique Agenda) ou dans les infos de sa conversation ;
+· **la page** : l'Agenda (jour, semaine, mois) ne montre que le côté où l'on est — son sélecteur Perso | Pro sous le titre au téléphone, celui de la barre latérale au bureau ;
+  le tableau de bord, qui est le côté Pro, n'a plus rien du Perso (ni réunion, ni rappel, ni mention) ; un compte sans les deux côtés voit tout, comme avant ;
+· l'export des données porte le côté de chaque événement.
+· **les Appels** : l'historique du côté où l'on est — un appel est du côté de sa conversation (un groupe, une salle de réunion), sinon de la personne (sa conversation à deux, sinon Pro
+  si c'est un collègue, sinon Perso) ; le tableau de bord n'a plus l'appel manqué d'un ami ; **les Contacts** : Tous, Favoris, Groupes du côté où l'on est (une recherche cherche
+  partout), « Entreprise » côté Pro seulement ; **le retour** d'une conversation compte les non-lues du côté où l'on est. Trouvé en jouant la sonde : le segment des catégories
+  de Contacts ne suivait pas le changement de côté (passé Pro, « Entreprise » choisie sans bouton) — il se refait.
+· **le test de A à Z** (45 sondes au navigateur — iPhone, Android, iPad, Mac, Windows, `sonde-opmessages-appareils.js` en tête) : quatre tombaient, aucune sur un défaut de l'application
+  — trois sondes en retard sur elle (la grille « + » porte « Plus tard » ; le menu lu avant d'être bâti ; « Chantier », groupe mêlé, est Perso par la règle) et une photo chargée en
+  plus de 12 s sous la charge (seule : 23 ✓) ; test-981 exigeait 600 s pile quand la vraie seconde passe aussi (600 à 603).
+· **trouvé en poussant plus loin, et corrigé** : la carte « Enregistrement terminé » ne tenait pas sur un téléphone en PAYSAGE — ses trois gestes passaient sous le pli
+  (iPhone 844 × 390 : la carte 337 px, « Envoyer » à 383 px ; pareil sur un iPhone SE, un Android, une fenêtre de bureau basse). Sous 520 px de haut, en paysage, l'aperçu va à
+  gauche et les gestes à droite, l'encoche latérale est rendue (`scratchpad/mesure-rec-fin.js` : 7 formats sur 7, la page d'avant en ratait 4).
+· **la CI de #107 est tombée une fois sur deux suites vertes ici** (Vérification des pages, b989b8d9) — deux défauts de BANC, établis par leur reproduction :
+  test-911 prenait sa marque « après le retrait » à l'horloge, et un flux un peu en retard y faisait entrer les échos du réglage d'avant (rejoué : flux de Chloé retardé de 400 ms,
+  la même chute) — il lit désormais l'ORDRE du flux, et une vraie fuite (les deux gardes du service mutées) le fait tomber ; test-944 ne laissait que 800 ms à la porte bêta, et un
+  service gelé 1,2 s rendait 503 trois fois sur trois (`scratchpad/sonde-porte-gel.js`) — 5 s, comme en production (906 et 911 portaient le même réglage).
+⚠️ Les deux règles de rangement d'une PERSONNE et d'un APPEL sont décidées sans Justin (elles suivent celle des conversations).
+⚠️ **Décidé sans Justin — à lui dire :**
+· **une réunion n'est plus Pro d'office** (le dîner entre amis allait dans l'agenda Pro). Conséquence visible sur la bêta : une réunion d'AVANT avec quelqu'un qui n'est pas un
+  collègue (un client, un ami) passe côté Perso — elle se range en deux touchers (sa fiche, « Ranger dans ») ;
+· les événements d'avant sans conversation d'origine vont côté **Perso** (c'était « l'agenda personnel ») : ils quittent le tableau de bord ;
+· ce qu'un organisateur range ne change rien chez ses invités (la règle des conversations). L'autre choix — l'invité reçoit le côté choisi par l'organisateur (une réunion « de
+  travail » le serait pour tous, même avec un client extérieur) — attend sa phrase.
+Les preuves : test-998 § 8 (l'événement : créer, refuser, modifier, garder, effacer, la base, « Me le rappeler », l'export — 51 ✓), test-929 § 6 (la réunion, pour chacun : la
+règle, le choix de l'organisateur, la fiche, l'agenda et la liste qui disent le même côté, ranger à la main, les refus, la base — 40 ✓), test-976 § 13 (le module de la page
+contre le service — 63 ✓), test-857 (sept gardes de la page ; ses 13 mutations G01–G13 tombent — 304 ✓), la sonde `sonde-opmessages-agenda-cote.js` (au téléphone et au bureau,
+contre le vrai service, un compte sans les deux côtés — 37 ✓) ; les sondes du tableau de bord et des réunions suivent la règle (un dîner et un dentiste rangés Perso n'entrent
+jamais au tableau). **33 mutations sur 33 tombent** : 14 du service (la règle, les refus, la base, l'export, le module), 6 de la page contre la sonde
+(`scratchpad/mutations-agenda-cote.py`), 13 de la page dans test-857 (G01–G13).
+
 # ⏳ 8 OCTOBRE 2026 (SOIR) — LE SERVEUR DE VISIO (LiveKit) : PLUS DE 4 EN VIDÉO ET DE 6 EN AUDIO (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin, 8 octobre : « oui plus en vidéo et audio », après « sur notre serveur : la voix ne sort pas de chez nous ». (Le résumé de réunion par IA attend : « tant qu'on rentre pas

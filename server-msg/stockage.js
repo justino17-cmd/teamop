@@ -659,6 +659,13 @@ const MIGRATIONS = [
     `ALTER TABLE appel ADD COLUMN visio INTEGER NOT NULL DEFAULT 0`,
     `PRAGMA user_version = 24`,
   ] },
+  /* ── 25 (8 octobre 2026) : L'AGENDA PERSO ET L'AGENDA PRO — « il faudrait bien séparer l'agenda perso et pro ». Chaque événement dit de quel côté il est (`cote` : 'perso' | 'pro'),
+         posé à sa création (le côté où l'on est) et changé à la main. NULL pour tout événement d'avant : la page le range du côté de sa conversation d'origine (« Me le rappeler »), sinon
+         en Perso. Une réunion n'a pas de colonne à elle : son côté est celui de SA conversation, propre à chaque membre (migration 20). ── */
+  { v: 25, sql: [
+    `ALTER TABLE evenement ADD COLUMN cote TEXT`,
+    `PRAGMA user_version = 25`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -744,6 +751,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation
   const COTES = versionActuelle() >= 20;          // une base d'avant la migration 20 : aucune conversation rangée à la main (le côté automatique seul)
   const RAPPELS_FAITS = versionActuelle() >= 21;  // une base d'avant la migration 21 : pas de rappel coché ni de message d'origine
+  const COTES_AGENDA = versionActuelle() >= 25;   // une base d'avant la migration 25 : aucun événement n'a de côté (la page les range d'elle-même)
   const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
   const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
@@ -1570,14 +1578,24 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     }).filter(o => o.invitation !== 'refusee');     // ⛔ une invitation refusée disparaît de MA liste, sans un mot à son auteur (il la voit toujours « envoyée »)
   }
 
-  /* ⛔ LE CÔTÉ AUTOMATIQUE D'UNE CONVERSATION, VU PAR `uid` : un canal (il appartient à un espace) et une réunion sont Pro ; une directe ou un groupe est Pro quand TOUS les autres
+  /* ⛔ LE CÔTÉ AUTOMATIQUE D'UNE CONVERSATION, VU PAR `uid` : un canal (il appartient à un espace) est Pro ; une directe, un groupe ou une RÉUNION est Pro quand TOUS les autres
      membres actifs sont des collègues (un espace en commun avec moi) — et qu'il y en a au moins un. Le reste est Perso : un ami qui n'est pas collègue, un groupe où il y a un
-     inconnu de mes espaces. Rien ne se décide sur un nom ou un texte. */
+     inconnu de mes espaces. Rien ne se décide sur un nom ou un texte.
+     ⛔ LA RÉUNION SUIT LA RÈGLE D'UN GROUPE depuis le 8 octobre 2026 (« il faudrait bien séparer l'agenda perso et pro ») : « une réunion est toujours Pro » (décidé sans Justin le 7)
+     mettait le dîner entre amis dans l'agenda Pro. Celui qui l'ORGANISE la range lui-même à sa création (le côté où il est : `reunionCreer`), chacun peut la ranger à la main. */
   function coteAuto(type, compte) {
-    if (type === 'canal' || type === 'reunion') return 'pro';
+    if (type === 'canal') return 'pro';
     return compte && num(compte.n) > 0 && num(compte.c) === num(compte.n) ? 'pro' : 'perso';      // `compte` : { n : les autres membres actifs, c : combien sont des collègues } (convListe)
   }
 
+  /* Le côté d'UNE conversation pour `uid` (celui qu'il a choisi, sinon l'automatique) — la même règle que la liste, pour une conversation à la fois : l'agenda en a besoin pour ses réunions. */
+  function coteDe(uid, conv, type) {
+    const choisi = COTES ? (Q('SELECT cote FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid) || {}).cote : null;
+    if (choisi === 'perso' || choisi === 'pro') return choisi;
+    const compte = Q(`SELECT COUNT(*) AS n, SUM(CASE WHEN y.uid IN (SELECT b.uid FROM espace_membre a JOIN espace_membre b ON a.espace = b.espace WHERE a.uid = ?) THEN 1 ELSE 0 END) AS c
+                      FROM membre y WHERE y.conv = ? AND y.quitte_le IS NULL AND y.uid <> ?`).get(uid, conv, uid);
+    return coteAuto(type, compte);
+  }
   /* L'autre participant d'une conversation directe (pour savoir si on peut encore lui écrire). */
   function autreDirect(conv, uid) {
     const r = Q(`SELECT m.uid FROM membre m JOIN conversation c ON c.id = m.conv WHERE m.conv = ? AND c.type = 'direct' AND m.uid <> ?`).get(conv, uid);
@@ -2216,14 +2234,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     rappel: r.rappel === null ? null : num(r.rappel), rappelEnAttente: r.rappel_a !== null, cree: num(r.cree), maj: num(r.maj),
     fait: r.fait === null || r.fait === undefined ? null : num(r.fait),
     source: r.src_conv ? { conv: r.src_conv, seq: num(r.src_seq) } : null,
+    cote: r.cote === 'perso' || r.cote === 'pro' ? r.cote : null,
   } : null;
   const scellerEvt = (id, champ, v) => v ? sceller('evenement', champ + '_ch', id + '|' + champ, v) : null;
-  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null }) {
+  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null, cote = null }) {
     const id = nouvelId('e'), t = horloge();
     Q(`INSERT INTO evenement(id, uid, titre_ch, lieu_ch, note_ch, debut, fin, journee, tz, rappel, rappel_a, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(id, uid, sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
         rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
     if (source && RAPPELS_FAITS) Q('UPDATE evenement SET src_conv = ?, src_seq = ? WHERE id = ?').run(source.conv, source.seq, id);
+    if ((cote === 'perso' || cote === 'pro') && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ?').run(cote, id);
     return evenementLire(uid, id);
   }
   /* cocher (`fait` : un instant) ou décocher (null) — l'échéance du rappel suit : `rappelA` null (coché : il ne sonne plus) ou recalculée par la route (décoché) */
@@ -2241,7 +2261,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function evenementLire(uid, id) { return evtRang(Q('SELECT * FROM evenement WHERE id = ? AND uid = ?').get(id, uid)); }
   /* `rappelA` : undefined garde l'échéance telle quelle (un rappel déjà parti ne repart pas), null l'efface, un nombre la pose. */
-  function evenementMaj(uid, id, { titre, lieu, note, debut, fin, journee, tz, rappel, rappelA }) {
+  function evenementMaj(uid, id, { titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, cote }) {
     const r = Q('SELECT id FROM evenement WHERE id = ? AND uid = ?').get(id, uid);
     if (!r) return null;
     return tx(() => {
@@ -2249,6 +2269,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         .run(sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
           rappel === null || rappel === undefined ? null : rappel, horloge(), id, uid);
       if (rappelA !== undefined) Q('UPDATE evenement SET rappel_a = ? WHERE id = ? AND uid = ?').run(rappelA === null ? null : rappelA, id, uid);
+      if (cote !== undefined && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ? AND uid = ?').run(cote === 'perso' || cote === 'pro' ? cote : null, id, uid);     // `cote` : undefined garde, null rend le côté déduit
       return evenementLire(uid, id);
     });
   }
@@ -2841,6 +2862,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     rang.hote = personneCourte(uid, r.hote);
     const perso = moi.rappels !== null && moi.rappels !== undefined;
     rang.ordre_du_jour = reunionOdj(id);
+    rang.cote = coteDe(uid, r.conv, 'reunion');
     return { reunion: rang, invites, moi: { hote: uid === r.hote, statut: moi.statut, rappels: perso ? listeEntiers(moi.rappels) : rang.rappels, rappels_perso: perso } };
   }
   /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
@@ -2862,6 +2884,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         .map(x => ({ id: x.id, prenom: x.prenom, nom: x.nom, avatar: avatarPour(uid, x.id, x.avatar_piece) }));
       const perso = r.mes_rappels !== null && r.mes_rappels !== undefined;
       rang.moi = { hote: uid === r.hote, statut: r.mon_statut, rappels: perso ? listeEntiers(r.mes_rappels) : rang.rappels, rappels_perso: perso };
+      rang.cote = coteDe(uid, r.conv, 'reunion');      // le côté de SA conversation pour moi : l'agenda Perso et l'agenda Pro se départagent là-dessus
       return rang;
     });
   }
@@ -2896,7 +2919,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* ⛔ `plafond` : le nombre de PERSONNES d'une réunion, organisateur compris — la route le demande à `formule.plafondReunion(organisateur)` (une seule constante, `formule.js`) ; le stockage ne connaît ni les forfaits
      ni les entreprises. Refusé : `reunion_pleine`, qui porte le plafond (`max`) que la page écrit. Une réunion déjà plus grande (d'avant la règle) n'est pas rognée : on n'y AJOUTE seulement plus personne. */
   const pleine = (plafond) => Object.assign(erreur('reunion_pleine'), { max: plafond });
-  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie, attente, plafond = INVITES_MAX + 1 }) {
+  function reunionCreer({ hote, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, invites, prochain, finSerie, attente, plafond = INVITES_MAX + 1, cote = null }) {
     return tx(() => {
       if (num(Q('SELECT COUNT(*) AS n FROM reunion WHERE hote = ? AND annulee = 0 AND prochain IS NOT NULL').get(hote).n) >= REUNIONS_HOTE_MAX) throw erreur('trop_de_reunions');
       const uids = Array.from(new Set(invites)).filter(u => u !== hote);
@@ -2905,6 +2928,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const id = nouvelId('r'), conv = nouvelId('c'), t = horloge();
       Q(`INSERT INTO conversation(id, type, nom_ch, dernier_ts, cree_par, cree) VALUES(?, 'reunion', ?, ?, ?, ?)`).run(conv, sceller('conversation', 'nom_ch', conv + '|nom', titre), t, hote, t);
       Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'admin', 1, ?)`).run(conv, hote, t);
+      if ((cote === 'perso' || cote === 'pro') && COTES) Q('UPDATE membre SET cote = ? WHERE conv = ? AND uid = ?').run(cote, conv, hote);      // l'organisateur la range du côté où il l'a programmée ; les invités, chacun par la règle
       for (const u of uids) Q(`INSERT INTO membre(conv, uid, role, depuis_seq, rejoint) VALUES(?, ?, 'membre', 1, ?)`).run(conv, u, t);
       Q('INSERT INTO reunion(id, conv, hote, titre_ch, lieu_ch, debut, fin, tz, rep, n, jusqua, fin_serie, rappels, annulee, version, horaire_le, prochain, attente, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?)')
         .run(id, conv, hote, sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), titre), lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), lieu) : null,

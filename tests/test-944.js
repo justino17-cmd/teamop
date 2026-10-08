@@ -87,8 +87,12 @@ const octets = async (S, url) => Buffer.from(await S.urls.creees.get(url).arrayB
     dora: { pass: 'pw-dora-12345', nom: 'Dora Étrangère', actif: true }, eve: { pass: 'pw-eve-123456', nom: 'Eve Quota', actif: true },
   });
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-944-'));
+  /* ⛔ LE DÉLAI DE LA PORTE EST LA MARGE DES CONNEXIONS SAINES (même leçon que test-956, 3 octobre 2026). À 800 ms, test-944 est mort en CI le
+     8 octobre 2026 sur « porte_indisponible » à l'entrée d'un appareil neuf, vert ici. Mesuré (scratchpad/sonde-porte-gel.js) : le service
+     gelé 1,2 s pendant qu'il attend OP GESTION rend 503 trois fois sur trois avec 800 ms, 200 trois fois sur trois avec 5 s — la valeur de
+     production. Ce banc ne joue pas le délai lui-même (la panne d'OP GESTION se joue connexion coupée, `og.mode = 'panne'`). */
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, dossier: racine, config: {
-    pulsationMs: 400, presenceGraceMs: 300, balayageMs: 150, beta: { relectureMs: 250, timeoutMs: 800 },
+    pulsationMs: 400, presenceGraceMs: 300, balayageMs: 150, beta: { relectureMs: 250, timeoutMs: 5000 },
     pieces: { photoMax: PHOTO_MAX, vocalMax: VOCAL_MAX, fichierMax: FICHIER_MAX, avatarMax: AVATAR_MAX, bloc: 4096 },
     quotas: { piece: { max: 1000, fenetreMs: 3600000 }, moi_avatar: { max: 1000, fenetreMs: 3600000 } } } });
   const A = monter(svc), B = monter(svc), C = monter(svc), D = monter(svc);

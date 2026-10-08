@@ -577,8 +577,13 @@ async function parcoursA2(E) {
   const brut = await P.alice.get('/api/reunions?du=' + (OCC[0] - JOUR) + '&au=' + (OCC[2] + JOUR));
   v('… le service le dit en UTC : 12:00 puis 13:00 puis 13:00 (population : une réunion, trois occurrences)', [brut.j.reunions.length, brut.j.reunions[0].occurrences.map(o => o.debut)], [1, OCC]);
   await onglet(A, 'messages');
-  /* Perso / Pro (7 octobre 2026) : une réunion se range côté Pro — Alice, qui a un espace, a les deux côtés ; on passe en Pro (sans les deux côtés, la liste montre tout) */
-  await A.page.evaluate(() => { const b = Array.from(document.querySelectorAll('[data-cote-seg] [data-cote="pro"]')).find(x => x.getClientRects().length); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+  /* Perso / Pro (8 octobre 2026, « il faudrait bien séparer l'agenda perso et pro ») : une réunion se range du côté où on l'a PROGRAMMÉE — Alice était côté Perso (le côté d'un
+     compte qui n'a rien choisi), la page l'a dit au service ; sa conversation est donc côté Perso, comme son agenda. (Avant ce jour, toute réunion était Pro.) */
+  {
+    const l = ((await P.alice.get('/api/conversations')).j.conversations || []).find(c => c.reunion === R);
+    v('la réunion programmée côté Perso est rangée Perso (le choix d\'Alice à la création ; l\'automatique, lui, dit Perso aussi — Bruno et Dora ne sont pas ses collègues)', l && [l.cote_choisi, l.cote], ['perso', 'perso']);
+  }
+  await A.page.evaluate(() => { const b = Array.from(document.querySelectorAll('[data-cote-seg] [data-cote="perso"]')).find(x => x.getClientRects().length); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
   await verifier('la conversation de la réunion est dans la liste d\'Alice : le titre pour nom, une icône d\'agenda, et — le dernier message étant une phrase système (Dora retirée) — « Activité de la réunion » (jamais « du groupe »)', A, (a) => {
     const c = Array.from(document.querySelectorAll('#liste-conv .conv')).find(e => e.querySelector('.conv-nom').textContent === a);
     return !!c && c.querySelector('.conv-apercu').textContent === 'Activité de la réunion' && !!c.querySelector('.avatar svg');

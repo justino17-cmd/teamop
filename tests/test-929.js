@@ -8,7 +8,11 @@
      · `cote_choisi` — rangé à la main par moi ('perso' | 'pro'), une directe ou un groupe seulement ; `null` rend l'automatique ; ⛔ ce que je range ne change rien chez les autres ;
      · `cote` — celui qui vaut ;
    et le côté où l'on travaille est une préférence du COMPTE (`prefs.mode`), une valeur parmi 'perso' | 'pro', rien d'autre — comme `confirmer_envoi` ('jamais' | 'groupes' |
-   'partout'). ⛔ Une préférence ne se lit pas chez les autres (la fiche d'une personne n'en dit rien). */
+   'partout'). ⛔ Une préférence ne se lit pas chez les autres (la fiche d'une personne n'en dit rien).
+
+   8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ». Une RÉUNION a un côté comme un groupe (section 6) — elle n'est plus Pro d'office : un dîner entre amis
+   allait dans l'agenda Pro. Celle qui l'ORGANISE la range à sa création (`cote` du corps, le côté où elle est), chacun peut la ranger ensuite ; l'agenda (`/api/reunions`), la fiche
+   et la liste des conversations disent le MÊME côté, celui de chacun. */
 'use strict';
 const path = require('path');
 const crypto = require('crypto');
@@ -99,6 +103,41 @@ const JOUR = 86400000;
     console.log('\n5. La base');
     const db = new (require('node:sqlite').DatabaseSync)(path.join(svc.data, 'msg.db'));
     try { v('le schéma est à jour (migration 20 au moins), la colonne `membre.cote` porte le rangement d\'Ana', [db.prepare('PRAGMA user_version').get().user_version >= 20, db.prepare('SELECT cote FROM membre WHERE conv = ? AND uid = ?').get(AC, ana.id).cote], [true, 'pro']); } finally { db.close(); }
+
+    console.log('\n6. Une réunion : la règle d\'un groupe, rangée par celle qui l\'organise — et l\'agenda, la fiche, la liste disent le même côté');
+    /* à ce point : Dan est le seul collègue d'Ana (Ben a quitté l'espace), Cléo une amie */
+    const local = (ms) => new Date(ms).toISOString().slice(0, 16);
+    const h0 = Math.ceil((Date.now() + 10 * JOUR) / 3600000) * 3600000;
+    const programmer = (P, titre, invites, extra) => P.post('/api/reunions', Object.assign({ titre, debut: local(h0), fin: local(h0 + 3600000), tz: 'UTC', invites }, extra || {}));
+    const R1 = await programmer(a, 'Point équipe', [dan.id]), R2 = await programmer(a, 'Dîner du samedi', [cleo.id]);
+    const R3 = await programmer(a, 'Point rangé en Perso', [dan.id], { cote: 'perso' }), R4 = await programmer(a, 'Atelier rangé en Pro', [cleo.id], { cote: 'pro' });
+    vrai('population : quatre réunions programmées par Ana (201)', [R1, R2, R3, R4].every(x => x.code === 201), [R1, R2, R3, R4].map(x => x.code + ' ' + (x.j && x.j.error)));
+    v('la fiche rendue à Ana : « Point équipe » (Dan, collègue) Pro ; ⛔ « Dîner du samedi » (Cléo, amie) PERSO — une réunion n\'est plus Pro d\'office ; les deux autres, du côté qu\'elle a choisi',
+      [R1.j.reunion.cote, R2.j.reunion.cote, R3.j.reunion.cote, R4.j.reunion.cote], ['pro', 'perso', 'perso', 'pro']);
+    const fen = '?du=' + (h0 - JOUR) + '&au=' + (h0 + JOUR);
+    const trie = (o) => Object.fromEntries(Object.entries(o).sort(([x], [y]) => x.localeCompare(y)));      // l'agenda rend les réunions dans l'ordre des heures : ici elles sont toutes à la même
+    const agenda = async (P) => trie(Object.fromEntries((((await P.get('/api/reunions' + fen)).j || {}).reunions || []).map(x => [x.titre, x.cote])));
+    v('l\'agenda d\'Ana range chacune de son côté', await agenda(a), trie({ 'Point équipe': 'pro', 'Dîner du samedi': 'perso', 'Point rangé en Perso': 'perso', 'Atelier rangé en Pro': 'pro' }));
+    v('⛔ le choix d\'Ana est le sien : chez Dan, les deux réunions avec Ana (sa collègue) sont Pro', await agenda(d), trie({ 'Point équipe': 'pro', 'Point rangé en Perso': 'pro' }));
+    v('⛔ chez Cléo, les deux sont Perso (Ana n\'est pas sa collègue) — même celle qu\'Ana a rangée en Pro chez elle', await agenda(c), trie({ 'Dîner du samedi': 'perso', 'Atelier rangé en Pro': 'perso' }));
+    v('la fiche lue par Dan dit SON côté (Pro), celle lue par Cléo le sien (Perso)', [(await d.get('/api/reunions/' + R3.j.reunion.id)).j.reunion.cote, (await c.get('/api/reunions/' + R4.j.reunion.id)).j.reunion.cote], ['pro', 'perso']);
+    const convCote = async (P, R) => { const x = (await liste(P)).find(y => y.id === R.j.reunion.conv); return x ? [x.cote_auto, x.cote_choisi, x.cote] : null; };
+    v('la liste des conversations dit le MÊME côté que l\'agenda (une seule règle) : chez Ana, chez Dan', [await convCote(a, R1), await convCote(a, R2), await convCote(a, R3), await convCote(d, R3)],
+      [['pro', null, 'pro'], ['perso', null, 'perso'], ['pro', 'perso', 'perso'], ['pro', null, 'pro']]);
+    r = await prefs(d, R3.j.reunion.conv, { cote: 'perso' });
+    v('Dan range la conversation d\'une réunion à la main (elle se range, comme un groupe) : 200, et SON agenda la met en Perso', [r.code, (await agenda(d))['Point rangé en Perso']], [200, 'perso']);
+    v('…chez Ana, la même réunion n\'a pas bougé (son choix à elle, Perso) ; « Point équipe » reste Pro chez Dan', [(await agenda(a))['Point rangé en Perso'], (await agenda(d))['Point équipe']], ['perso', 'pro']);
+    r = await prefs(d, R3.j.reunion.conv, { cote: null });
+    v('`null` rend l\'automatique : Pro chez Dan', [r.code, (await agenda(d))['Point rangé en Perso']], [200, 'pro']);
+    const n0 = Object.keys(await agenda(a)).length;
+    const refusR = await Promise.all([{ cote: 'travail' }, { cote: 'Pro' }, { cote: true }, { cote: 1 }].map(x => programmer(a, 'Refusée', [dan.id], x)));
+    v('⛔ un côté hors de « perso » | « pro » à la création (« travail », une majuscule, un booléen, un nombre) : 400, et AUCUNE réunion n\'est créée',
+      [refusR.map(x => x.code + ' ' + (x.j && x.j.error)), Object.keys(await agenda(a)).length], [Array(4).fill('400 champ_invalide'), n0]);
+    const db6 = new (require('node:sqlite').DatabaseSync)(path.join(svc.data, 'msg.db'));
+    try {
+      const mb = (R, p) => (db6.prepare('SELECT cote FROM membre WHERE conv = ? AND uid = ?').get(R.j.reunion.conv, p.id) || {}).cote;
+      v('la base : le choix de l\'organisatrice est posé sur SA ligne de membre, celles des invités restent vides (la règle) ; sans choix, rien n\'est posé', [mb(R3, ana), mb(R3, dan), mb(R4, ana), mb(R4, cleo), mb(R1, ana)], ['perso', null, 'pro', null, null]);
+    } finally { db6.close(); }
   } catch (e) {
     vrai('le banc est mort : ' + (e && e.stack || e), false);
   } finally {

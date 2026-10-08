@@ -57,11 +57,14 @@ async function ouvrir(b, base, pf, o) {
   });
   const page = await ctx.newPage();
   page.setDefaultTimeout(12000);
-  /* ⛔ LA MÉTA DE LA PAGE permet `wss:` et `https:` (la visio de production) ; cette sonde sert LiveKit en `ws://` sur la boucle locale (pas de certificat ici) : elle n'élargit QUE la méta, à l'adresse exacte de
-     son LiveKit. L'EN-TÊTE que pose le service, lui, est celui de la production — il nomme l'adresse de la visio et rien d'autre (vérifié au bloc 1). */
+  /* ⛔ LA MÉTA DE LA PAGE permet `wss:` (la visio de production ; `https:` en est sorti le 8 octobre — la lecture de `/rtc/validate` est sur l'origine du service) ; cette sonde sert LiveKit en `ws://` sur la
+     boucle locale (pas de certificat ici) : elle n'élargit QUE la méta, à l'adresse exacte de son LiveKit. L'EN-TÊTE que pose le service, lui, est celui de la production — il nomme l'adresse de la visio et rien
+     d'autre (vérifié au bloc 1). ⛔ Le remplacement doit TROUVER sa cible : quand la méta a changé, il ne trouvait plus rien, la page refusait LiveKit et la sonde accusait la visio (8 octobre 2026). */
   if (o.visioLocale) await page.route((u) => u.pathname === '/' || u.pathname === '/index.html', async (route) => {
     const r = await route.fetch(); let html = await r.text();
-    html = html.replace("connect-src 'self' wss: https:", "connect-src 'self' wss: https: " + o.visioLocale + ' ' + o.visioLocale.replace(/^ws/, 'http'));
+    const cible = "connect-src 'self' wss:;";
+    if (!html.includes(cible)) throw new Error('la méta de la page a changé : « ' + cible + ' » introuvable — la sonde ne peut pas y ajouter son LiveKit local');
+    html = html.replace(cible, "connect-src 'self' wss: " + o.visioLocale + ' ' + o.visioLocale.replace(/^ws/, 'http') + ';');
     await route.fulfill({ response: r, body: html });
   });
   const S = { ctx, page, pf, nom: o.nom, login: o.login, base, erreurs: [], console: [] };
@@ -229,6 +232,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (900 s
     await toucher(A, '#salle-participants');
     await toucher(A, '#salle-panneau-corps button.salle-rang[data-sa="ligne"][data-uid="' + id.fay + '"]');
     await toucher(A, geste('retirer-demander', id.fay));
+    const fayAvantRetrait = F.console.length;                 // ce que la page de Fay écrit APRÈS son retrait se lit à partir d'ici (§ 6)
     await toucher(A, geste('retirer-confirmer', id.fay));
     await verifier('⛔ la page de Fay quitte la salle et dit qu\'elle a été retirée', F, () => !document.documentElement.dataset.salle && /retiré/.test(document.getElementById('mot').textContent + ' ' + ((document.getElementById('appel-avis') || {}).textContent || '')), null, 15000, async () => 'salle=' + await F.page.evaluate(() => document.documentElement.dataset.salle) + ' mot=' + await lire(F, '#mot'));
     await verifier('⛔ et sa connexion au serveur de visio est FERMÉE (plus aucune liaison vivante : elle ne reçoit plus rien)', F, () => !window.__pcs.some(window.__vivante), null, 15000, async () => JSON.stringify(await bilan(F)));
@@ -244,7 +248,12 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (900 s
     /* le POULS d'une page (« je suis toujours là », toutes les 15 s) peut croiser « Terminer pour tous » : il revient 409 et la page relit la salle — un refus NOMMÉ, pas une erreur (la sonde de la maille l'admet aussi) */
     const pouls = (x) => /status of 409\b.*\[\/api\/appels\/[^\]]*\/signal\]/.test(x);
     console.log('  (refus nommés : ' + tous.reduce((n, S) => n + S.console.filter(pouls).length, 0) + ' pouls croisés avec la fin de la salle)');
-    v('aucune autre erreur dans la console', tous.map(S => [S.login, S.console.filter(x => !pouls(x) && !/Failed to load resource.*401/.test(x))]), tous.map(S => [S.login, []]));
+    /* ⛔ LA PERSONNE RETIRÉE : c'est le serveur de visio qui la coupe (voulu — elle ne doit plus rien recevoir, et on n'attend pas qu'une page se déconnecte poliment),
+       et livekit-client écrit en partant que ses canaux de données se sont fermés (« DataChannel error on lossy: User-Initiated Abort », « publisher data channel 'LOSSY'
+       closed unexpectedly »). Ce n'est pas une panne de la page : nommés, comptés, chez FAY seule et APRÈS son retrait seulement — ailleurs ou avant, ils comptent. */
+    const fermeture = (S, x, i) => S === F && i >= fayAvantRetrait && /^(DataChannel error on (lossy|reliable): User-Initiated Abort|publisher data channel '(LOSSY|RELIABLE)' closed unexpectedly)/.test(x);
+    console.log('  (fermeture nommée : ' + F.console.filter((x, i) => fermeture(F, x, i)).length + ' message(s) de livekit-client chez Fay, coupée par le serveur de visio à son retrait)');
+    v('aucune autre erreur dans la console', tous.map(S => [S.login, S.console.filter((x, i) => !pouls(x) && !/Failed to load resource.*401/.test(x) && !fermeture(S, x, i))]), tous.map(S => [S.login, []]));
     const textes = await Promise.all(tous.map(S => S.page.evaluate(() => document.body.innerText)));
     vrai('aucun « undefined » ni « NaN » à l\'écran', textes.every(t => !/\bundefined\b|\bNaN\b/.test(t)));
     const s = (await (await fetch(base + '/health')).json()).visio;
