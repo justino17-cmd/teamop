@@ -33,7 +33,7 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 /* Un « appareil » : un navigateur de poche (cookie, Origin) dont on peut COUPER le réseau, PERDRE une réponse, et dont on compte les requêtes. */
 function monter(svc, opts = {}) {
   const nav = T.navigateur(svc.base);
-  const reseau = { coupe: false, perdre: null, forcer: null, requetes: [], statuts: [], instances: [], fluxBloque: false };
+  const reseau = { coupe: false, perdre: null, forcer: null, requetes: [], statuts: [], instances: [], fluxBloque: false, flux: [] };
   const f = async (url, init) => {
     const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0];
     reseau.requetes.push(m + ' ' + chemin);
@@ -49,7 +49,8 @@ function monter(svc, opts = {}) {
     constructor(u) { super(u); reseau.instances.push(this); }
     /* `_muet` : la connexion est « à moitié morte » — elle reste ouverte et ne livre plus RIEN (ni message, ni pulsation), sans jamais dire une erreur. C'est CETTE connexion-là : une
        connexion neuve (la reprise de la page) est une autre socket, et elle marche. */
-    _emettre(t, ev) { if (this._muet && t !== 'error') return; return super._emettre(t, ev); }
+    /* `reseau.flux` : ce que le FLUX a livré, dans son ordre (un contrôle « après tel événement » se lit là, jamais à partir d'une marque prise au chronomètre) */
+    _emettre(t, ev) { if (this._muet && t !== 'error') return; if (t !== 'open' && t !== 'error') reseau.flux.push({ t, data: ev && ev.data }); return super._emettre(t, ev); }
     async _connecter() {
       if (reseau.coupe || reseau.fluxBloque) { if (this._ferme) return; this.readyState = 0; this._emettre('error', { type: 'error' }); setTimeout(() => this._connecter(), 60); return; }
       return super._connecter();
@@ -318,7 +319,16 @@ const json = async (base, methode, chemin, corps, entetes) => {
       await A.src.envoyer(G, { texte: 'Chloé ne doit pas voir ceci' });
       await att(async () => ids((await B.src.ouvrir(G)).messages).includes('Chloé ne doit pas voir ceci'));
       await T.dort(250);
-      v('⛔ Chloé ne reçoit AUCUN événement de ce groupe après son retrait (ni message, ni arrivée, ni bannière)', C.evs.slice(nC).filter(e => (e.conv === G || e.id === G) && e.type !== 'retire' && e.type !== 'liste').length, 0);
+      /* ⛔ « APRÈS SON RETRAIT » SE LIT DANS L'ORDRE DU FLUX, PAS À PARTIR DE `nC`. Le flux de Chloé est UNE connexion ordonnée : ce qui y suit son « retire » a été
+         envoyé après le retrait, et sa source le redit dans le même ordre. La marque `nC`, prise juste après le réglage des éphémères, comptait les ÉCHOS de ce réglage
+         dès que le flux avait un peu de retard : la CI du 8 octobre 2026 est tombée là (153 ✓ 1 ✗), rejoué ici en retardant le flux de Chloé de 400 ms — deux
+         « conversation » du réglage, arrivées après la marque et avant le « retire », comptées comme une fuite. */
+      const convDe = x => { try { return JSON.parse(x.data).conv || null; } catch (e) { return null; } };
+      const iRetire = C.reseau.flux.findIndex(x => x.t === 'retire' && convDe(x) === G);
+      const jRetire = C.evs.findIndex((e, i) => i >= nC && e.type === 'retire' && e.id === G);
+      vrai('population : le « retire » est passé par le flux de Chloé, et sa source l\'a redit', iRetire >= 0 && jRetire >= nC);
+      v('⛔ Chloé ne reçoit AUCUN événement de ce groupe après son retrait (ni message, ni arrivée, ni bannière)', C.evs.slice(jRetire + 1).filter(e => (e.conv === G || e.id === G) && e.type !== 'retire' && e.type !== 'liste').map(e => e.type), []);
+      v('⛔ … et le service ne lui en ENVOIE aucun : rien de ce groupe dans son flux après le « retire »', C.reseau.flux.slice(iRetire + 1).filter(x => convDe(x) === G && x.t !== 'retire').map(x => x.t), []);
       vrai('⛔ et elle ne peut plus l\'ouvrir : ouvrir() rend null (« n\'existe plus »), aucune lecture', (await C.src.ouvrir(G)) === null);
       const eC = await attrape(C.src.envoyer(G, { texte: 'je peux encore écrire ?' }));
       vrai('⛔ ni y écrire : « introuvable » dit (404 — on ne dit pas que le groupe existe)', eC && eC.code === 'introuvable');
