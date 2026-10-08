@@ -20,6 +20,7 @@ const { cleReseau } = require('./quotas');
 const { ID_PIECE } = require('./pieces');
 const { SUPPRESSION_DELAI_MS } = require('./compte');
 const { REUNION_PERSONNES_MAX } = require('./formule');
+const heuresPro = require('./heures-pro');
 
 const ID_CONV = /^c_[0-9a-f]{32}$/, ID_PERS = /^p_[0-9a-f]{32}$/, CID = /^[A-Za-z0-9_-]{8,64}$/, CODE = /^[A-Za-z0-9_-]{20,64}$/;
 const EPHEMERES = [0, 86400, 604800, 7776000];
@@ -244,6 +245,12 @@ function creerHandlers(ctx) {
       const p = Object.assign({}, req.moi.prefs);
       for (const k of PREFS_PERSONNE) if (b.prefs[k] !== undefined) { if (typeof b.prefs[k] !== 'boolean') return refus(res, 400, 'champ_invalide'); p[k] = b.prefs[k]; }
       for (const k of Object.keys(PREFS_CHOIX)) if (b.prefs[k] !== undefined) { if (!PREFS_CHOIX[k].includes(b.prefs[k])) return refus(res, 400, 'champ_invalide'); p[k] = b.prefs[k]; }
+      /* les heures de travail côté Pro (`heures-pro.js`) : `null` les coupe ; sinon { jours, debut, fin } exactement, en minutes — rien d'autre ne s'écrit (`push.js` le relit à chaque message) */
+      if (b.prefs.heures_pro !== undefined) {
+        if (b.prefs.heures_pro === null) delete p.heures_pro;
+        else if (heuresPro.reglageValide(b.prefs.heures_pro)) p.heures_pro = { jours: b.prefs.heures_pro.jours.slice().sort((x, y) => x - y), debut: b.prefs.heures_pro.debut, fin: b.prefs.heures_pro.fin };
+        else return refus(res, 400, 'champ_invalide');
+      }
       c.prefs = p;
     }
     const moi = stockage.personneMaj(req.moi.id, c);

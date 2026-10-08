@@ -3141,7 +3141,7 @@
     }
     const jsonAbonnement = (sub) => { const j = typeof sub.toJSON === 'function' ? sub.toJSON() : sub; return { endpoint: j.endpoint, keys: { p256dh: j.keys && j.keys.p256dh, auth: j.keys && j.keys.auth } }; };
     async function notifEtat() {
-      const sortie = { possible: false, raison: null, permission: 'default', active: false, apercu: apercuNotif(), pauseReunion: pauseReunion(), phrase: '' };
+      const sortie = { possible: false, raison: null, permission: 'default', active: false, apercu: apercuNotif(), pauseReunion: pauseReunion(), heuresPro: heuresPro(), phrase: '' };
       const pc = nav.priseEnCharge();
       if (!pc.ok) return Object.assign(sortie, { raison: pc.raison, phrase: PHRASES_LOCALES['notif_' + pc.raison] });
       if (!(await clePush())) return Object.assign(sortie, { raison: 'service', phrase: PHRASES_LOCALES.notif_service });
@@ -3182,6 +3182,18 @@
     }
     async function notifApercu(actif) {
       const m = await A.majMoi({ prefs: { apercu_notif: !!actif } });
+      moiApi = m; noter(m);
+      return notifEtat();
+    }
+    /* LES HEURES DE TRAVAIL CÔTÉ PRO (8 octobre 2026) : { jours: [1..7] (lundi = 1), debut, fin } en minutes, dans le fuseau du compte — ou null (coupé). Hors des heures, le
+       service retient les messages et les mentions des conversations Pro, et un seul résumé part à la reprise (`heures-pro.js`, `push.js`). Les appels sonnent toujours. */
+    const heuresPro = () => {
+      const r = moiApi && moiApi.prefs && moiApi.prefs.heures_pro;
+      return r && Array.isArray(r.jours) && Number.isInteger(r.debut) && Number.isInteger(r.fin) ? { jours: r.jours.slice(), debut: r.debut, fin: r.fin } : null;
+    };
+    async function notifHeuresPro(reglage) {
+      const r = reglage ? { jours: Array.from(new Set((reglage.jours || []).map(Number))).sort((x, y) => x - y), debut: reglage.debut | 0, fin: reglage.fin | 0 } : null;
+      const m = await A.majMoi({ prefs: { heures_pro: r } });
       moiApi = m; noter(m);
       return notifEtat();
     }
@@ -3594,7 +3606,7 @@
       modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
-      notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifEssai, sourdine, exporterDonnees, supprimerCompte,
+      notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifHeuresPro, heuresPro, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */
       espaces, espace, espaceCreer, espaceRenommer, espaceTransferer, espaceQuitter, espaceDissoudre, espaceContacts, membreRole, membreRetirer,
       invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter,

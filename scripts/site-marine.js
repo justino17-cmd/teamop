@@ -50,6 +50,7 @@ const TRACE = {
   tool: 'M4 9h16v10a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 19V9Zm4 0V6.5A1.5 1.5 0 0 1 9.5 5h5A1.5 1.5 0 0 1 16 6.5V9M4 13h16',
   box: 'M3.5 8 12 3.5 20.5 8v8L12 20.5 3.5 16V8Zm0 0L12 12.5 20.5 8M12 12.5v8',
   euro: 'M17 6.5A6.5 6.5 0 1 0 17 17.5M4 10.5h9M4 13.5h9',
+  clock: 'M20.5 12a8.5 8.5 0 1 1-17 0 8.5 8.5 0 0 1 17 0ZM12 7.5V12l3 2',
   doc: 'M7 3h7l5 5v12a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 6 20V4.5A1.5 1.5 0 0 1 7.5 3ZM14 3v5h5M9 13h6M9 17h6',
   file: 'M7 3h7l5 5v12a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 6 20V4.5A1.5 1.5 0 0 1 7.5 3ZM14 3v5h5M9 12h6',
   users: 'M8.5 11a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Zm8 .4a2.6 2.6 0 1 0 0-5.2 2.6 2.6 0 0 0 0 5.2ZM3 19.4c0-3 2.5-5 5.5-5s5.5 2 5.5 5m3-6.4c2.4.2 4 2 4 4.4',
@@ -146,12 +147,17 @@ function entete(section, sousnav) {
   </header><div class="voile" aria-hidden="true"></div>${sn}`;
 }
 
+const CONTACTS = [['contact@teamop.fr', 'Une question, une demande'], ['support@teamop.fr', 'Un problème sur une application']];
 function pied() {
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
-    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`;
+    + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
+    /* ⛔ DEUX ADRESSES, CHACUNE SON RÔLE (Justin, 8 octobre 2026, capture du pied de page à l'appui : « il faudrait mettre le mail de
+       contact@teamop.fr, le mail de support et pour les problèmes sur les applications ou autres ») : contact@ pour une question ou une
+       demande, support@ pour un problème sur une application. `test-835` § 4 n'admet que ces deux-là, et les exige au pied de chaque page. */
+    + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
     <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix TTC, sans engagement.</p>
-    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a><a href="mailto:support@teamop.fr">support@teamop.fr</a><span class="fin">France</span></div>
+    <div class="ligne"><span>Copyright © 2026 TEAM OP. Tous droits réservés.</span><a href="${hors('/confidentialite.html')}">Confidentialité</a><a href="${hors('/mentions-legales.html')}">Mentions légales et CGV</a>${CONTACTS.map(([m]) => `<a href="mailto:${m}">${m}</a>`).join('')}<span class="fin">France</span></div>
   </div></footer>`;
 }
 
@@ -465,8 +471,25 @@ const FONCTIONS = {
       "L'écran Registre sanitaire, qui réunit les passages et les produits appliqués, le stock et les box, les bons de commande aux fournisseurs."] },
 };
 
+/* ══ L'ACCUEIL DIT, EN MOTS, CE QUE FAIT L'APPLICATION — Justin, 8 octobre 2026, avec l'analyse de site d'IONOS à l'appui
+   (« votre page d'accueil dispose de peu de contenu avec 414 mots ; 500 mots au moins sont recommandés ») : « pour le site
+   teamop tu peux voir pour améliorer ça ». Deux rangées de cartes vers les pages par fonction et par métier, dont les phrases
+   SONT les descriptions de ces pages (FONCTIONS, METIERS — chaque phrase relue dans app.html le 29 septembre) : aucune phrase
+   neuve à vérifier, et une description corrigée là-bas l'est ici. Les noms sont ceux du menu (VOLETS), dans son ordre ; le
+   prix reste au bandeau et à la page Tarifs (`sansPrix`). La carte « Tous les métiers » dit le compte des packs comme la page
+   Métiers, par la MÊME expression (PACKS_APP, lu dans app.html). */
+const ICONE_FONCTION = { 'logiciel-planning-interventions': 'cal', 'logiciel-gestion-de-stock': 'box', 'logiciel-devis-factures': 'euro',
+  'logiciel-bons-de-commande': 'file', 'logiciel-pointage': 'clock', 'logiciel-registre-sanitaire': 'doc' };
+const sansPrix = d => d.split(' ' + DES_PRO).join('');
+const packsPhrase = () => PACKS_APP.includes('autre') ? PACKS_APP.filter(k => k !== 'autre').length + ' packs préconfigurés, et un réglage général pour tous les autres métiers de terrain.' : PACKS_APP.length + ' packs préconfigurés déjà disponibles, d\'autres en préparation.';
+const carteLien = (href, i, titre, texte) => `<a class="teaser" href="${href}"><span class="tuile">${ic(i)}</span><b>${fr(titre)}</b><span class="t">${fr(texte)}</span></a>`;
+function liensAccueil(liens, fiches, icone) {
+  return liens.filter(l => fiches[l.href.replace(/\.html$/, '')])
+    .map(l => { const k = l.href.replace(/\.html$/, ''); return carteLien(l.href, icone(k), l.label, sansPrix(fiches[k].desc)); }).join('');
+}
+
 const PAGES = {
-  index: { titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
+  index: { maj: '2026-10-08', titre: 'TEAM OP — Logiciel de gestion pour entreprises de terrain', desc: 'Logiciel français pour entreprises de terrain : interventions, planning, stock, devis et factures. Anti-nuisibles, artisans. ' + DES_PRO,
     ogDesc: 'Interventions, stock, registre sanitaire, encaissements et équipe, sur mobile, tablette et ordinateur.',
     corps: () => `<section class="accueil"><p class="surtitre">TEAM OP</p><h1>Toutes vos applications métier. Au même endroit.</h1>
       <p class="chapeau">${fr('Interventions, stock, encaissements et communication d\'équipe — sur iPhone, Android, Mac et PC, à jour en quelques secondes.')}</p>
@@ -480,6 +503,10 @@ const PAGES = {
         <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock, à jour.</h3><p>${fr('Avec la formule Business : arrivage, sortie, relevé — chaque mouvement est tracé et met le stock à jour.')}</p></div>
           <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div></div></div>
       </section>
+      <section class="page" style="padding-top:90px;padding-bottom:0"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">${fr('Une seule application pour le bureau et le terrain. Chaque fonction a sa page : ce qu\'elle fait, et la formule qui l\'ouvre.')}</p>
+        <div class="teasers compacts">${liensAccueil(VOLETS.applications.petits, FONCTIONS, k => ICONE_FONCTION[k])}</div></section>
+      <section class="page" style="padding-top:90px;padding-bottom:0"><h2 class="h2">${fr('Pensé pour votre métier.')}</h2><p class="intro">${fr('Types d\'intervention, fiche de rapport et modules utiles sont réglés sur votre métier dès l\'ouverture de votre espace.')}</p>
+        <div class="teasers compacts">${liensAccueil(VOLETS.metiers.grands, METIERS, k => METIERS[k].icone)}${carteLien('metiers.html', 'grid', 'Tous les métiers', packsPhrase())}</div></section>
       <section class="page" style="padding-top:90px;padding-bottom:40px"><h2 class="h2">${fr('Tout TEAM OP, en un coup d\'œil.')}</h2><div class="teasers">`
       + [['tool', 'Adapté à votre métier', 'Anti-nuisibles, plomberie, électricité, chauffage… TEAM OP se règle sur le métier que vous indiquez à votre demande d\'accès.', 'Page Métiers ›', 'metiers.html'],
         ['euro', 'Des tarifs clairs', 'Sans engagement, dès ' + prixDe('pro') + ' € TTC par mois. Les places s\'additionnent quand l\'équipe grandit.', 'Page Tarifs ›', 'tarifs.html'],
@@ -543,7 +570,7 @@ const PAGES = {
       + `<section class="page" style="padding-top:10px;padding-bottom:20px"><div class="cartes-3">`
       + [['1', 'Renseignez votre entreprise', 'Nom, coordonnées… et surtout votre métier, dans votre demande d\'accès.'], ['2', 'Tout se met en place', 'Types d\'intervention, fiche de rapport et modules de votre métier sont réglés pour vous à l\'ouverture de votre espace. Vos produits et fournisseurs, vous les ajoutez à votre rythme.'], ['3', 'Vous travaillez', 'Planning, rapports, devis et factures : votre équipe est opérationnelle dès le premier jour.']]
         .map(([n, t, d]) => `<div class="etape-carte"><b class="n">${n}</b><b class="t">${fr(t)}</b><span>${fr(d)}</span></div>`).join('')
-      + `</div></section><section class="page" style="padding-top:60px;padding-bottom:20px"><h2 class="h2">Les métiers couverts.</h2><p class="intro">${fr(PACKS_APP.includes('autre') ? PACKS_APP.filter(k => k !== 'autre').length + ' packs préconfigurés, et un réglage général pour tous les autres métiers de terrain.' : PACKS_APP.length + ' packs préconfigurés déjà disponibles, d\'autres en préparation.')}</p><div class="packs">`
+      + `</div></section><section class="page" style="padding-top:60px;padding-bottom:20px"><h2 class="h2">Les métiers couverts.</h2><p class="intro">${fr(packsPhrase())}</p><div class="packs">`
       + [['m-3d', 'PACK COMPLET', 'bug', '3D — Hygiène anti-nuisibles', 'Dératisation · désinsectisation · désinfection', ['Registre sanitaire et biocides (AMM, Certibiocide)', 'Fiches de traitement par nuisible', 'Plans d\'appâtage et postes par site', 'Courbe d\'évolution de l\'infestation'], 1],
         ['m-plomberie', 'PACK DISPONIBLE', 'pipe', 'Plomberie', 'Dépannage · sanitaire · réseaux', ['Interventions type : fuite, chauffe-eau, débouchage…', 'Stock de pièces et consommables', 'Devis-factures et photos avant/après'], 1],
         ['m-electricite', 'PACK DISPONIBLE', 'bolt', 'Électricité', 'Installation · mise aux normes · dépannage', ['Interventions type : tableau, mise aux normes, contrôle…', 'Matériel électrique en stock avec seuils', 'Rapports signés sur place'], 1],
@@ -629,7 +656,8 @@ const IMAGE_PARTAGE = { url: SITE_URL + 'vitrine/v2/captures/partage-tableau-jou
   alt: 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration' };
 const JSONLD = () => JSON.stringify({ '@context': 'https://schema.org', '@graph': [
   { '@type': 'Organization', '@id': SITE_URL + '#organisation', name: 'TEAM OP', url: SITE_URL, logo: SITE_URL + 'icons/teamop-192.png',
-    founder: { '@type': 'Person', name: 'Justin Biret' }, email: 'support@teamop.fr', areaServed: 'FR' },
+    founder: { '@type': 'Person', name: 'Justin Biret' }, email: CONTACTS[0][0], areaServed: 'FR',
+    contactPoint: [{ '@type': 'ContactPoint', contactType: 'customer support', email: CONTACTS[1][0], availableLanguage: 'French' }] },
   { '@type': 'WebSite', '@id': SITE_URL + '#site', url: SITE_URL, name: 'TEAM OP', inLanguage: 'fr-FR', publisher: { '@id': SITE_URL + '#organisation' } },
   { '@type': 'SoftwareApplication', name: 'OP GESTION', applicationCategory: 'BusinessApplication', operatingSystem: 'iOS, Android, macOS, Windows, Web',
     description: 'Gestion tout-en-un pour entreprises de terrain : interventions, stock, encaissements, comptabilité.', url: SITE_URL + 'elan.html',
@@ -656,9 +684,9 @@ function teteSeo(cle) {
 const PRIORITE = { index: '1.0', elan: '0.9', applications: '0.8', metiers: '0.8', tarifs: '0.8', opmessages: '0.6', creer: '0.6', pourquoi: '0.6' };
 const HORS_GENERATEUR = [['confidentialite.html', '0.2'], ['mentions-legales.html', '0.2']];
 function sitemap() {
-  const u = (loc, pr) => `  <url><loc>${loc}</loc><lastmod>${MAJ}</lastmod><priority>${pr}</priority></url>`;
+  const u = (loc, pr, maj) => `  <url><loc>${loc}</loc><lastmod>${maj || MAJ}</lastmod><priority>${pr}</priority></url>`;
   return '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-    + Object.keys(PAGES).map(c => u(urlDe(c), PAGES[c].priorite || PRIORITE[c] || '0.6')).concat(HORS_GENERATEUR.map(([f, pr]) => u(SITE_URL + f, pr))).join('\n')
+    + Object.keys(PAGES).map(c => u(urlDe(c), PAGES[c].priorite || PRIORITE[c] || '0.6', PAGES[c].maj)).concat(HORS_GENERATEUR.map(([f, pr]) => u(SITE_URL + f, pr))).join('\n')
     + '\n</urlset>\n';
 }
 
