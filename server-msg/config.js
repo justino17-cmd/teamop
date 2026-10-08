@@ -30,10 +30,12 @@
  *                                Voir `piecesConfig` pour les valeurs de départ.
  *   compte        {exportOctetsMax, exportAttenteMs, exportMaxMs}   Le plafond de taille de l'export des données d'une personne (64 Mo par défaut ; au-delà, le fichier se termine proprement et dit où il s'est arrêté),
  *                                l'attente maximale d'un lecteur qui ne lit plus (30 s : la réponse est alors COUPÉE) et la durée maximale d'un export (15 min : le fichier se termine proprement, `tronque_cause: "duree"`).
- *   push          {contact, ackMs, echecsMax, etalementMs, simultanes, fileMax, timeoutMs, ttlS, ttlApercuS}   Les notifications push. `contact` : le sujet VAPID (`mailto:` ou une adresse
+ *   push          {contact, ackMs, echecsMax, etalementMs, simultanes, fileMax, retenusConvsMax, retenusPersonnesMax, timeoutMs, ttlS, ttlApercuS}   Les notifications push. `contact` : le sujet VAPID (`mailto:` ou une adresse
  *                                https) ; absent, c'est le `contactEmail` de l'installation, à défaut l'origine https du service. Les autres : délai d'acquittement (5 s), refus du service de suite avant le retrait d'un
  *                                abonnement (5) et durée minimale de la série (1 h : cinq refus en cinq minutes sont une panne), envois en même temps (16), file d'attente (2 000), délai d'un envoi (8 s), durée de vie d'un message poussé (24 h) et, quand l'APERÇU part, d'un message dont le texte voyage (1 h : il
  *                                n'attend pas un jour entier sur la machine d'un tiers parce qu'un téléphone était éteint ; un message éphémère ne survit jamais à ce qui lui reste à vivre).
+ *                                `retenusConvsMax` (100) et `retenusPersonnesMax` (20 000) : la mémoire de ce qui est RETENU (pendant une réunion, hors des heures pro) — pleine, la notification
+ *                                SONNE au lieu d'être retenue (on entend ses messages plutôt que de les perdre en silence) ; les bancs les abaissent.
  *   vapidPublicKey, vapidPrivateKey   La paire VAPID que l'installation écrit (`install-msg.sh`) : le service l'ADOPTE à son premier démarrage (elle est alors rangée dans la
  *                                base, privée scellée, et la base fait foi ensuite : une paire DIFFÉRENTE posée plus tard ne la remplace pas, et le journal le dit à chaque démarrage).
  *                                Absente, le service en fabrique une. L'une sans l'autre, ou deux clés qui ne vont pas ensemble, REFUSENT le démarrage.
@@ -149,14 +151,14 @@ function piecesConfig(c) {
 
 /* ⛔ LES NOTIFICATIONS PUSH. Une valeur qui n'a pas de sens REFUSE le démarrage (comme les pièces). La paire VAPID de l'installation est contrôlée ICI : une clé privée qui n'est pas celle de la
    publique ferait refuser TOUS les envois par les services push, sans une ligne d'erreur côté serveur — on la refuse au démarrage plutôt qu'en production. */
-const PUSH_DEFAUT = { ackMs: 5000, echecsMax: 5, etalementMs: 3600000, simultanes: 16, fileMax: 2000, timeoutMs: 8000, ttlS: 86400, ttlApercuS: 3600 };
+const PUSH_DEFAUT = { ackMs: 5000, echecsMax: 5, etalementMs: 3600000, simultanes: 16, fileMax: 2000, retenusConvsMax: 100, retenusPersonnesMax: 20000, timeoutMs: 8000, ttlS: 86400, ttlApercuS: 3600 };
 const SUJET_MAILTO = /^mailto:[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/;
 const SUJET_HTTPS = new RegExp('^https:' + '//[A-Za-z0-9.-]+(:\\d{1,5})?$');
 function pushConfig(cfg, env, instance) {
   const brut = cfg.push && typeof cfg.push === 'object' && !Array.isArray(cfg.push) ? cfg.push : {};
   const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
   const o = {};
-  const bornes = { ackMs: [100, 60000], echecsMax: [1, 100], etalementMs: [0, 7 * 86400000], simultanes: [1, 256], fileMax: [10, 100000], timeoutMs: [500, 60000], ttlS: [60, 4 * 7 * 86400], ttlApercuS: [60, 4 * 7 * 86400] };
+  const bornes = { ackMs: [100, 60000], echecsMax: [1, 100], etalementMs: [0, 7 * 86400000], simultanes: [1, 256], fileMax: [10, 100000], retenusConvsMax: [1, 1000], retenusPersonnesMax: [1, 1000000], timeoutMs: [500, 60000], ttlS: [60, 4 * 7 * 86400], ttlApercuS: [60, 4 * 7 * 86400] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     const v = brut[k] === undefined ? PUSH_DEFAUT[k] : brut[k];
     if (!Number.isInteger(v) || v < min || v > max) throw err('push.' + k + ' doit être un entier entre ' + min + ' et ' + max);

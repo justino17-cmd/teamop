@@ -290,12 +290,20 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
      appels le voit, `relacherSorties`), UNE notification résume : « Pendant la réunion : nouveaux messages dans 3 conversations, dont une mention ». Coupé dans ses réglages
      (`prefs.pause_reunion === false`) : rien n'est retenu. Un redémarrage oublie le compte (le résumé ne part pas ; les messages, eux, sont là). */
   let enSalle = () => false;
+  /* ⛔ LA MÉMOIRE DE CE QUI EST RETENU EST BORNÉE (`retenusConvsMax` conversations par personne, `retenusPersonnesMax` personnes — config.js), et PLEINE ELLE LAISSE
+     SONNER : la charge de trop n'est pas retenue, elle part comme si rien ne la retenait. La première version VIDAIT tout à 20 000 personnes (les résumés de tout le monde
+     perdus d'un coup) ; et à la 101e conversation, la retenue des heures ne la comptait plus — ni sonnée, ni résumée (relecture du gardien, 8 octobre 2026). */
+  const CONVS_MAX = Number.isInteger(pc.retenusConvsMax) ? pc.retenusConvsMax : 100, PERSONNES_MAX = Number.isInteger(pc.retenusPersonnesMax) ? pc.retenusPersonnesMax : 20000;
   const retenus = new Map();
+  /* → vrai si la charge est RETENUE ; faux quand la mémoire est pleine (elle sonne alors) */
   function retenir(uid, charge) {
     let r = retenus.get(uid);
-    if (!r) { if (retenus.size >= 20000) retenus.clear(); r = { convs: new Set(), mentions: 0 }; retenus.set(uid, r); }
-    if (typeof charge.tag === 'string' && /^c_[0-9a-f]{32}$/.test(charge.tag) && r.convs.size < 100) r.convs.add(charge.tag);
+    if (!r) { if (retenus.size >= PERSONNES_MAX) return false; r = { convs: new Set(), mentions: 0 }; retenus.set(uid, r); }
+    const conv = typeof charge.tag === 'string' && /^c_[0-9a-f]{32}$/.test(charge.tag) ? charge.tag : null;
+    if (conv && !r.convs.has(conv) && r.convs.size >= CONVS_MAX) return false;
+    if (conv) r.convs.add(conv);
     if (charge.type === 'mention') r.mentions++;
+    return true;
   }
   function relacherSorties() {
     for (const [uid, r] of Array.from(retenus)) {
@@ -314,19 +322,22 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
      balayeur passe chaque minute : `relacherHeures`), UNE notification résume — et seulement ce qui n'a pas été lu entre-temps. Le Perso n'est jamais retenu ;
      les appels ne passent pas par ici (ils sonnent toujours). Un redémarrage oublie le compte : le résumé ne part pas, les messages sont là. */
   const retenusPro = new Map();
+  /* → vrai si la charge est RETENUE ; faux quand la mémoire est pleine — et alors elle SONNE (la même règle que la réunion, plus haut) */
   function retenirPro(uid, charge) {
     let r = retenusPro.get(uid);
-    if (!r) { if (retenusPro.size >= 20000) retenusPro.clear(); r = new Map(); retenusPro.set(uid, r); }      // conversation → combien de mentions y attendent
-    if (!r.has(charge.tag) && r.size >= 100) return;
+    if (!r) { if (retenusPro.size >= PERSONNES_MAX) return false; r = new Map(); retenusPro.set(uid, r); }      // conversation → combien de mentions y attendent
+    if (!r.has(charge.tag) && r.size >= CONVS_MAX) return false;
     r.set(charge.tag, (r.get(charge.tag) || 0) + (charge.type === 'mention' ? 1 : 0));
+    return true;
   }
   /* → vrai si cette charge est d'une conversation PRO pour `uid` et que l'instant tombe hors de ses heures. Dans le doute (une conversation illisible), faux : on
      ne retient pas ce qu'on ne sait pas ranger. */
   function horsHeuresPro(moi, charge) {
     const r = moi.prefs && moi.prefs.heures_pro;
     if (!r || typeof charge.tag !== 'string' || !/^c_[0-9a-f]{32}$/.test(charge.tag)) return false;
-    let pro = false; try { pro = stockage.coteDe(moi.id, charge.tag) === 'pro'; } catch (e) { pro = false; }
-    return pro && heuresPro.horsHeures(r, moi.tz, horloge());
+    /* l'heure d'abord (quelques microsecondes), le côté ensuite (des requêtes) : dans ses heures, personne ne paie le côté — un message à un groupe de mille membres le demandait mille fois */
+    if (!heuresPro.horsHeures(r, moi.tz, horloge())) return false;
+    try { return stockage.coteDe(moi.id, charge.tag) === 'pro'; } catch (e) { return false; }
   }
   function relacherHeures() {
     for (const [uid, r] of Array.from(retenusPro)) {
@@ -361,11 +372,13 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     if (!stockage.pushJoignable(uid, appareilAbsMs)) return { envoyes: 0, appareils: 0, raison: 'non_joignable' };
     const abos = stockage.pushListe(uid);
     if (!abos.length) return { envoyes: 0, appareils: 0, raison: 'aucun_appareil' };
+    /* ⛔ LES HEURES AVANT LA RÉUNION : un message pro reçu pendant une réunion tenue HORS des heures attend la reprise des heures — retenu par la réunion, il partait dans
+       son résumé à la sortie, à 3 h du matin (relecture du gardien, 8 octobre 2026). Ce que la réunion retient (le Perso, et le Pro dans les heures) n'a pas changé. */
+    if (charge.retenable === true && horsHeuresPro(moi, charge) && retenirPro(uid, charge)) return { envoyes: 0, appareils: abos.length, raison: 'hors_heures' };
     if (charge.retenable === true && !(moi.prefs && moi.prefs.pause_reunion === false)) {
       let dedans = false; try { dedans = enSalle(uid); } catch (e) { dedans = false; }
-      if (dedans) { retenir(uid, charge); return { envoyes: 0, appareils: abos.length, raison: 'retenue' }; }
+      if (dedans && retenir(uid, charge)) return { envoyes: 0, appareils: abos.length, raison: 'retenue' };
     }
-    if (charge.retenable === true && horsHeuresPro(moi, charge)) { retenirPro(uid, charge); return { envoyes: 0, appareils: abos.length, raison: 'hors_heures' }; }
     const t = textesPour(moi, charge);
     const payload = JSON.stringify({ type: charge.type, titre: t.titre, corps: t.corps, tag: charge.tag || charge.type, url: charge.url || '/', renotify: charge.renotify === true });
     /* ⛔ la durée de vie chez le service push : au plus `ttlS` (24 h), au plus ce qui reste à vivre à un message éphémère, et — quand l'APERÇU part — au plus `ttlApercuS` (1 h) : le texte d'un message
