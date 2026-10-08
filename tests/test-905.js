@@ -234,6 +234,10 @@ const MATRICE = {
                           exactes: { membre: [403, 'interdit'], admin: [200, null] } },
   /* les annotations (dessiner sur l'écran partagé, le tableau blanc) : « fermer le tableau » quand rien n'est ouvert répond 200 à tout présent — la garde est ce qui est éprouvé ici, test-924 le reste */
   'salles.annot':       { ok: (F) => ['POST', '/api/salles/' + F.SA + '/annot', { op: 'tableau', actif: false }], codes: [200] },
+  /* le SERVEUR DE VISIO : le service des bancs n'en a pas — le participant reçoit « pas_de_visio » (409), et l'avis de LiveKit, faute de serveur de visio configuré, le 404 d'une route qui n'existe pas.
+     Le chemin du jeton et celui de l'avis signé se jouent contre un faux LiveKit dans test-954, et contre le vrai dans test-953. */
+  'salles.visio':       { ok: (F) => ['POST', '/api/salles/' + F.SA + '/visio', {}], codes: [409] },
+  'visio.avis':         { ok: () => ['POST', '/api/visio/avis', {}], codes: [404] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
      renouvelle par H. Les deux routes qui ENTRENT jouent une réunion dont la fenêtre est ouverte (elle commence dans deux minutes) : une réunion dans trois jours refuse, et le refus est joué plus bas. */
   'reunions.apercu':    { ok: (F) => ['POST', '/api/reunions/apercu', { code: F.codeR }], codes: [200] },
@@ -270,6 +274,9 @@ const ATTENDU = {
   SH: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: [403, 'interdit'], admin: 'passe' },
   SO: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: [403, 'interdit'], admin: 'passe' },
   SJ: { anonyme: [401, 'session_requise'], invalide: [401, 'session_requise'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: 'passe', admin: 'passe' },
+  /* l'AVIS DU SERVEUR DE VISIO (LV) : la garde ne lit AUCUNE session — seulement la socket (la boucle locale) et l'absence des en-têtes que pose nginx ; ici (le banc parle au service en direct) elle laisse
+     passer tout le monde, et c'est la ROUTE qui répond (sans serveur de visio : 404). Le refus de ce qui passe par nginx est joué par test-954. */
+  LV: { anonyme: 'passe', invalide: 'passe', nonconfirme: 'passe', nonmembre: 'passe', membre: 'passe', admin: 'passe' },
 };
 
 (async () => {
@@ -534,7 +541,7 @@ const ATTENDU = {
     vrai('population : le 404 « espace inexistant » a été comparé pour toutes les routes d\'espace (' + espacesVerifies + ')', espacesVerifies >= 18);
     vrai('population : le 404 « réunion inexistante » a été comparé pour toutes les routes de réunion à garde R ou H (' + reunionsVerifiees + ')', reunionsVerifiees === MANIFESTE.filter(r => ['R', 'H'].includes(r.garde)).length && reunionsVerifiees >= 8);
     vrai('population : le 404 « appel inexistant » a été comparé pour les trois routes à garde AP (' + appelsVerifies + ')', appelsVerifies === MANIFESTE.filter(r => r.garde === 'AP').length && appelsVerifies === 3);
-    vrai('population : le 404 « salle inexistante » a été comparé pour les dix-huit routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 18);
+    vrai('population : le 404 « salle inexistante » a été comparé pour les dix-neuf routes à garde SP, SH, SO ou SJ (' + sallesVerifiees + ')', sallesVerifiees === MANIFESTE.filter(r => ['SP', 'SH', 'SO', 'SJ'].includes(r.garde)).length && sallesVerifiees === 19);
     vrai('population : des refus ont bien été relevés avant/après (' + refusSansEffet + ')', refusSansEffet >= 60);
     v('⛔ AUCUN refus n\'a écrit quoi que ce soit (instantané de la base identique avant/après)', refusAvecEffet, []);
 

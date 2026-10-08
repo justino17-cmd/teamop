@@ -213,4 +213,4 @@ const index = (journal, re) => journal.findIndex(l => re.test(l));
 const compte = (journal, re) => journal.filter(l => re.test(l)).length;
 const dernier = (journal, re) => { for (let i = journal.length - 1; i >= 0; i--) if (re.test(journal[i])) return i; return -1; };
 
-module.exports = { bac, reel, SCRIPT, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_SECRET, secretDe, lignesConf, modeDe, index, compte, dernier, lire };
+module.exports = { bac, reel, SCRIPT, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_SECRET, secretDe, lignesConf, modeDe, index, compte, dernier, lire, PROLOGUE, IPTABLES_FAUX };   // PROLOGUE et IPTABLES_FAUX : repris par bac-visio.js (le serveur de visio a le même genre de pare-feu sortant)

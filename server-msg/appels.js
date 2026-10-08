@@ -67,7 +67,7 @@ function tailleEvt(d) {
   try { return Buffer.byteLength(JSON.stringify(d), 'utf8'); } catch (e) { return Infinity; }
 }
 
-function creerAppels({ stockage, hub, push, config, formule = null, horloge = Date.now, journaliser = () => {} }) {
+function creerAppels({ stockage, hub, push, config, formule = null, visio = null, horloge = Date.now, journaliser = () => {} }) {
   const cfg = config.appels;
   const vus = new Map();                 // "appel|personne" → l'instant du dernier signe de vie de l'appareil lié
   const salles = new Map();              // identifiant d'appel → l'éphémère de la salle (mains, états, sondage, minuteur, épingle) — MÉMOIRE SEULEMENT
@@ -80,7 +80,40 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   const vivre = (id, uid) => { vus.set(cle(id, uid), horloge()); };
   const reveiller = (uids) => { try { hub.reveiller({ uids: Array.from(new Set(uids)).filter(Boolean) }); } catch (e) { /* un flux qui échoue ne défait rien */ } };
   const pousser = (uid, charge, gid) => { try { if (push) push.pousser(uid, charge, { gid }); } catch (e) { /* un push raté ne défait rien */ } };
-  const capaciteDe = (type) => type === 'video' ? cfg.maxVideo : cfg.maxAudio;
+  /* ⛔ LA CAPACITÉ D'UNE SALLE dépend de son CHEMIN, décidé à l'ouverture : la maille (4 en vidéo, 6 en audio — ce que des téléphones tiennent quand chacun envoie à chacun) ou le serveur de visio (`appels.visio` :
+     12 et 25 par défaut — chacun n'envoie qu'une copie). Un appel à deux ne passe jamais par la visio : direct, il est meilleur et ne coûte rien au serveur. */
+  const capaciteDe = (type, parVisio) => parVisio && cfg.visio ? (type === 'video' ? cfg.visio.maxVideo : cfg.visio.maxAudio) : (type === 'video' ? cfg.maxVideo : cfg.maxAudio);
+
+  /* ── le serveur de visio (`visio.js`) ── */
+  /* Une salle NEUVE passe par la visio quand elle est configurée ET répond (la dernière sonde) : sinon la maille, et ses capacités — une panne de LiveKit ne ferme aucune salle. */
+  const parVisio = () => !!(visio && visio.actif());
+  /* Le nom de la salle chez LiveKit : l'instance devant l'identifiant (`beta-a…`) — la bêta et la production ne partagent jamais une salle, même sur une seule installation. */
+  const prefixeVisio = String(config.instance || 'beta') + '-';
+  const nomVisio = (id) => prefixeVisio + id;
+  /* Ce que le service dit à LiveKit quand quelqu'un sort (il part, on le retire, son appareil se tait) ou quand la salle finit. Sans attendre : la base a déjà décidé ; une commande ratée est comptée
+     (`visio.sante().commandesEchouees`) et l'AVIS d'une entrée non admise rattrape le reste (`admiseVisio`). */
+  function visioSortir(id, uid) { if (visio && visio.configure && stockage.appelEstVisio(id)) visio.retirer(nomVisio(id), uid).catch(() => {}); }
+  function visioFermer(id) { if (visio && visio.configure && stockage.appelEstVisio(id)) visio.fermer(nomVisio(id)).catch(() => {}); }
+  /* ⛔ LA PORTE DE LA VISIO : quelqu'un vient d'ENTRER chez LiveKit (l'avis `participant_joined`) — est-il PRÉSENT dans cette salle, maintenant, pour le service ? Un jeton rejoué après un retrait, une salle finie,
+     une salle d'une autre instance, un nom que le service n'a jamais donné : non, et `visio.avisRecu` le retire aussitôt. */
+  function admiseVisio(nom, identite) {
+    if (typeof nom !== 'string' || !nom.startsWith(prefixeVisio)) return false;
+    const id = nom.slice(prefixeVisio.length);
+    if (!ID_APPEL.test(id) || typeof identite !== 'string') return false;
+    const a = stockage.appelAcces(id, identite);
+    return !!(a && a.visio && a.genre !== 'deux' && (a.etat === 'sonne' || a.etat === 'en_cours') && a.statut === 'present');
+  }
+  /* Le jeton d'entrée chez LiveKit : à qui est PRÉSENT dans une salle par la visio, depuis l'appareil LIÉ — une personne à la porte, un autre appareil du même compte, une salle en maille n'en reçoivent pas. */
+  function jetonVisio({ moi, acces, sessionH }) {
+    if (!acces || !acces.visio) throw erreur('pas_de_visio');
+    if (!visio || !visio.configure) throw erreur('visio_indisponible');
+    if (acces.etat !== 'sonne' && acces.etat !== 'en_cours') throw erreur('appel_fini');
+    if (acces.statut !== 'present') throw erreur('appel_pas_en_cours');
+    if (!acces.session || acces.session !== sessionH) throw erreur('appareil_non_lie');
+    const p = personne(moi.id);
+    const nom = p ? ((p.prenom || '') + ' ' + (p.nom || '')).trim() : '';
+    return { url: visio.url(), jeton: visio.jetonEntree({ salle: nomVisio(acces.id), identite: moi.id, nom, audioSeul: acces.type !== 'video', maxParticipants: acces.capacite || undefined }) };
+  }
 
   /* ── le relais ── */
   const relaisPose = () => !!cfg.relais;
@@ -141,7 +174,8 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   /* ⛔ UN APPEL À PLUSIEURS : `invites` sont déjà jugés par la route (le droit de les joindre, les plafonds). Chaque invité qui peut sonner reçoit sa sonnerie ET son push ; celui qui est déjà dans un appel
      lit « Manqué ». → { vue, occupe } */
   function creerGroupe({ moi, invites, type, sessionH, conv }) {
-    const r = stockage.appelCreerGroupe({ appelant: moi.id, invites, type, session: sessionH, sonnerieMs: cfg.sonnerieMs, capacite: capaciteDe(type), conv });
+    const v = parVisio();
+    const r = stockage.appelCreerGroupe({ appelant: moi.id, invites, type, session: sessionH, sonnerieMs: cfg.sonnerieMs, capacite: capaciteDe(type, v), conv, visio: v });
     vivre(r.id, moi.id);
     reveiller(Object.keys(r.gids));
     for (const n of r.notifs) pousserManque(n, { id: r.id, type, appelant: moi });
@@ -164,7 +198,8 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   }
   /* ENTRER dans la salle d'une réunion programmée (la première personne qui entre l'ouvre). */
   function rejoindreReunion({ moi, reunion, sessionH, type }) {
-    const r = stockage.salleReunionRejoindre({ reunion, uid: moi.id, session: sessionH, type, capacite: capaciteDe(type) });
+    const v = parVisio();
+    const r = stockage.salleReunionRejoindre({ reunion, uid: moi.id, session: sessionH, type, capacite: capaciteDe(type, v), visio: v });
     suite(r.id, moi.id, r);
     return r;
   }
@@ -189,7 +224,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
       if (r.notif) pousserManque(r.notif, { id, type: r.vue ? r.vue.type : 'audio', appelant: moi });
       if (r.notifs && r.notifs.length) manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs);
       oublier(id, moi.id);
-      if (r.fini) reunionFinie(id, moi);
+      if (r.fini) { reunionFinie(id, moi); visioFermer(id); } else visioSortir(id, moi.id);
     }
     vus.delete(cle(id, moi.id));
     return r;
@@ -493,7 +528,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   function refuser({ moi, id, uid }) { return apres(stockage.salleRefuser({ id, par: moi.id, uid })); }
   function exclure({ moi, id, uid }) {
     const r = apres(stockage.salleExclure({ id, par: moi.id, uid }));
-    if (!r.deja) { oublier(id, uid); vus.delete(cle(id, uid)); }
+    if (!r.deja) { oublier(id, uid); vus.delete(cle(id, uid)); visioSortir(id, uid); }      // ⛔ retiré chez LiveKit aussi : sa connexion se coupe, il ne reçoit plus rien
     return r;
   }
   function verrouiller({ moi, id, actif }) { return apres(stockage.salleVerrou(id, moi.id, actif)); }
@@ -503,7 +538,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
   function cohote({ moi, id, uid, actif }) { return apres(stockage.salleCohote({ id, par: moi.id, uid, actif })); }
   function terminer({ moi, id }) {
     const r = apres(stockage.salleTerminer({ id, par: moi.id }));
-    if (!r.deja) { manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs); oublierSalle(id); }
+    if (!r.deja) { manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs); oublierSalle(id); visioFermer(id); }
     return r;
   }
 
@@ -526,6 +561,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
       reveiller(Object.keys(f.gids));
       manquesDe(id, acces.type, f.notifs);
       vus.delete(cle(id, uid)); oublier(id, uid);
+      if (f.fini) visioFermer(id); else visioSortir(id, uid);
       return true;
     }
     const f = stockage.appelFinir({ id, motif: 'compte' });
@@ -573,7 +609,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
             reveiller(Object.keys(f.gids));
             manquesDe(a.id, a.type, f.notifs);
             vus.delete(k); oublier(a.id, p.uid);
-            if (f.fini) reunionFinie(a.id, personne(p.uid));
+            if (f.fini) { reunionFinie(a.id, personne(p.uid)); visioFermer(a.id); } else visioSortir(a.id, p.uid);
           }
           continue;
         }
@@ -627,7 +663,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     return { turn: relaisPose(), ageS: etat.dernierTour === null ? null : Math.max(0, Math.round((horloge() - etat.dernierTour) / 1000)), echecs: etat.echecs };
   }
 
-  return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat, brancherFinReunion,
+  return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat, brancherFinReunion, jetonVisio, admiseVisio,
     main, reaction, etatMien, evt, annoter, demanderCouperMicro, etatSalle, outilsOuverts, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
     /* pour les bancs : combien de salles ont un éphémère en mémoire (jamais publié) */
     memoireSalles: () => salles.size };

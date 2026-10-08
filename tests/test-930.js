@@ -20,7 +20,7 @@ const t = banc();
 const { v, vrai } = t;
 
 const SM = path.join(RACINE, 'server-msg');
-const SCRIPTS = ['install-msg.sh', 'deployer.sh', 'install-turn.sh'];   // install-turn.sh : le relais d'appels (étape 7) — mêmes interdits, joué par test-982
+const SCRIPTS = ['install-msg.sh', 'deployer.sh', 'install-turn.sh', 'install-sfu.sh'];   // install-turn.sh : le relais d'appels (étape 7) — mêmes interdits, joué par test-982 ; install-sfu.sh : le serveur de visio (8 octobre 2026), joué par test-959
 const lire = (p) => fs.readFileSync(p, 'utf8');
 console.log('\n── 930 · les scripts d\'installation d\'OP MESSAGES, lus ──');
 

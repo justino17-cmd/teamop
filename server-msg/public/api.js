@@ -151,7 +151,10 @@
     occupe: 'Cette personne est déjà dans un appel. Réessaie dans un moment.',
     appel_a_deux: 'Cette conversation n\'a pas d\'appel : une réunion a sa salle (« Rejoindre »), un canal n\'appelle personne.',
     /* les appels à plusieurs et les salles (étape 8) : chaque refus a sa phrase. ⛔ Aucune promesse que le service ne tient pas (couper le micro d'un autre n'est qu'une DEMANDE). */
-    appel_complet: 'La salle est pleine : quatre personnes au plus en vidéo, six en audio.',
+    /* combien la salle porte dépend de son chemin (la maille : 4 en vidéo, 6 en audio ; le serveur de visio : davantage) : le service le DIT (`max`, voir `ErreurApi.phrase`) ; ceci n'est que le repli */
+    appel_complet: 'La salle est pleine.',
+    pas_de_visio: 'Cette salle ne passe pas par le serveur de visio.',
+    visio_indisponible: 'Le serveur de visio ne répond pas. Réessaie dans un moment.',
     verrouillee: 'L\'hôte a verrouillé la salle : personne ne peut plus y entrer.',
     exclu: 'L\'hôte t\'a retiré de cette salle : tu ne peux pas y revenir.',
     groupe_trop_grand: 'Ce groupe compte trop de monde pour un appel (douze personnes au plus avec toi). Programme une réunion, ou choisis les personnes à appeler.',
@@ -220,6 +223,7 @@
       if (this.code === 'occupe' && this.moi) return 'Tu es déjà dans un appel (peut-être sur un autre de tes appareils).';
       if (this.code === 'piece_trop_lourde' && this.max > 0) return this.message.replace(/\.$/, '') + ' (' + tailleLisible(this.max) + ' au plus).';
       if (this.code === 'reunion_pleine' && this.max > 0) return 'Une réunion compte ' + this.max + ' personnes au plus, organisateur compris : celle-ci est complète.';
+      if (this.code === 'appel_complet' && this.max > 0) return 'La salle est pleine : ' + this.max + ' personnes au plus.';
       if (this.code === 'formule_requise' && this.offre === 'perso_plus') return this.raison === 'organisateur' ? 'Cet outil est réservé aux réunions : l\'organisateur de cet appel n\'a pas de forfait pour les organiser.'
         : this.raison === 'impaye' ? 'Ton paiement n\'est pas passé : mets ta carte à jour (Réglages › Abonnement) pour organiser des réunions. Rejoindre une réunion où tu es invité reste gratuit.'
         : 'Les réunions s\'organisent avec un forfait (Réglages › Abonnement). Rejoindre une réunion où tu es invité reste gratuit.';
@@ -552,6 +556,7 @@
       salleEtat: (id, champs) => appel('POST', '/api/salles/' + e(id) + '/etat', champs),
       salleEvt: (id, k, donnees) => appel('POST', '/api/salles/' + e(id) + '/evt', { k, donnees }),
       salleAnnot: (id, d) => appel('POST', '/api/salles/' + e(id) + '/annot', d),
+      salleVisio: (id) => appel('POST', '/api/salles/' + e(id) + '/visio', {}),   // le jeton d'entrée au serveur de visio (`visio.js`) : présent, depuis l'appareil lié
       /* la salle d'une réunion programmée, et son lien d'invité (le code va dans le FRAGMENT de l'adresse : il ne passe jamais dans les journaux du proxy) */
       rejoindreReunion: (id, type) => appel('POST', '/api/reunions/' + e(id) + '/rejoindre', type ? { type } : {}),
       lienReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/lien'),

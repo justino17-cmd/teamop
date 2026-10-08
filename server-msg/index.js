@@ -41,6 +41,7 @@ const { creerPlanificateur } = require('./planificateur');
 const { creerCourriel } = require('./courriel');
 const { creerAgenda } = require('./routes-agenda');
 const { creerAppels } = require('./appels');
+const { creerVisio } = require('./visio');
 
 const VERSION = '1.9.0-mise-a-jour';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays', 'gabarit']);   // `gabarit` : le NOM d'un gabarit fixe de courriel de compte (inscription, existe, reinit, change), jamais une adresse   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -103,7 +104,10 @@ function demarrer(env = process.env) {
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
   /* ⛔ LES APPELS À DEUX : le relais (identifiants éphémères, jamais de STUN d'un tiers), les signaux relayés à la seule session liée, le balayeur (sonneries échues, appareils perdus), les pushs. L'horloge est injectée. Voir `appels.js`. */
-  const appels = creerAppels({ stockage, hub, push, config, formule, horloge: Date.now, journaliser });
+  /* le SERVEUR DE VISIO (LiveKit) : absent de la configuration, il n'existe pas et les salles restent en maille (`visio.js`). Le journal ne reçoit que des lignes sans donnée personnelle. */
+  const visio = creerVisio({ visio: config.appels.visio, journal: (ligne) => journaliser('visio', { etat: ligne }) });
+  const appels = creerAppels({ stockage, hub, push, config, formule, visio, horloge: Date.now, journaliser });
+  visio.brancherAdmission((salle, identite) => appels.admiseVisio(salle, identite));
   push.brancherSalles((uid) => stockage.enSalle(uid));                   // « Ne pas déranger pendant une réunion » : le push demande au magasin si la personne est DANS une salle
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now, fermerSessions: hs => { for (const h of hs) hub.fermerSession(h); } }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
@@ -139,7 +143,7 @@ function demarrer(env = process.env) {
   const versionClient = creerVersionClient({ config, versionPage, journaliser });
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, versionPage, versionClient, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda, visio,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -167,6 +171,9 @@ function demarrer(env = process.env) {
       /* ⛔ LES APPELS : un booléen (le relais est-il installé ?) et des NOMBRES — l'âge du dernier passage du balayeur et ses échecs de suite sont surveillés (un balayeur mort laisserait des gens « occupés » pour toujours). JAMAIS le nombre d'appels
          en cours, ni un appel, ni une personne : c'est une activité, et /health est publique. */
       appels: appels.sante(),
+      /* ⛔ LE SERVEUR DE VISIO : configuré ou non ; s'il l'est, répond-il (la sonde), depuis quand, et des COMPTEURS (avis refusés, entrées non admises retirées, commandes ratées). Jamais une salle, une personne, une
+         adresse ni une clé. La surveillance crie s'il est configuré et ne répond plus : les salles neuves repartent alors en maille, à quatre en vidéo. */
+      visio: visio.sante(),
       /* ⛔ `persoAnnulationMin` : l'AGE, en minutes, du plus ancien geste d'abonnement Perso+ d'une personne qui s'en va que Stripe n'a pas confirmé — l'arrêt du renouvellement (suppression DEMANDÉE), son rétablissement (demande
          ANNULÉE) ou la résiliation (compte EFFACÉ) ; 0 : aucun. Un âge, jamais un nombre, ni un genre, ni un identifiant : /health est PUBLIQUE, et « combien d'abonnés » est un chiffre commercial. La surveillance crie
          au-delà d'un jour : une carte prélevée pour quelqu'un qui est parti ne se laisse pas dormir. */
@@ -261,7 +268,8 @@ function demarrer(env = process.env) {
   facturation.demarrer();  // inerte sans clé Stripe : sinon une relecture au démarrage, puis toutes les dix minutes pour les espaces abonnés
   /* la séance d'une réunion qui finit parce que le dernier s'en va : son compte rendu (`routes-reunions.js`, monté plus haut, a posé `ctx.compteRenduSeance`) — branché AVANT le balayeur */
   appels.brancherFinReunion((x) => (typeof ctx.compteRenduSeance === 'function' ? ctx.compteRenduSeance(x) : null));
-  appels.demarrer();       // le balayeur d'appels : un premier passage une seconde après le démarrage (les sonneries échues pendant l'arrêt), puis toutes les deux secondes
+  appels.demarrer();
+  visio.demarrer();        // la sonde du serveur de visio (s'il est configuré) : une salle neuve n'y part que s'il répond       // le balayeur d'appels : un premier passage une seconde après le démarrage (les sonneries échues pendant l'arrêt), puis toutes les deux secondes
   if (appelsReveil.length) hub.reveiller({ uids: appelsReveil });
   planificateur.demarrer(); // un premier tour une seconde après le démarrage (un redémarrage rattrape ce qu'un arrêt a laissé), puis un tour toutes les 10 à 15 secondes
 
@@ -271,6 +279,7 @@ function demarrer(env = process.env) {
     push.arreter();
     facturation.arreter();
     appels.arreter();
+    visio.arreter();
     planificateur.arreter();   // REND le bail : la prochaine instance n'attend pas son échéance
     courriel.arreter();        // ferme la connexion au relais, s'il y en a une
     boucle.disable();

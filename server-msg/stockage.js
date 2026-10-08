@@ -653,6 +653,12 @@ const MIGRATIONS = [
     `ALTER TABLE reunion ADD COLUMN odj_ch BLOB`,
     `PRAGMA user_version = 23`,
   ] },
+  /* ── 24 (8 octobre 2026) : LA SALLE QUI PASSE PAR LE SERVEUR DE VISIO (LiveKit, `visio.js`) — « oui plus en vidéo et audio ». Décidé à l'OUVERTURE de la salle, comme sa capacité, et ne change plus : tous
+         ses participants passent par le même chemin (la maille OU la visio), sinon deux moitiés de salle ne se verraient pas. 0 pour toute salle d'avant, et pour les appels à deux (toujours directs). ── */
+  { v: 24, sql: [
+    `ALTER TABLE appel ADD COLUMN visio INTEGER NOT NULL DEFAULT 0`,
+    `PRAGMA user_version = 24`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -3777,7 +3783,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      relayé (seulement entre participants PRÉSENTS — le serveur cesse de relayer celui d'un exclu). Ce qu'il ne peut pas imposer (couper le micro d'autrui, empêcher un navigateur modifié de garder une liaison
      déjà ouverte) reste une DEMANDE que les pages honorent, et l'écran le dit. */
   const GRADE_HOTE = 2, GRADE_COHOTE = 1;
-  function appelBrut(id) { return Q('SELECT id, type, etat, cree, sonne_jusqua, repondu, fin, motif, genre, conv, reunion, capacite, verrou, attente, partage_ok, rec_par FROM appel WHERE id = ?').get(id) || null; }
+  function appelBrut(id) { return Q('SELECT id, type, etat, cree, sonne_jusqua, repondu, fin, motif, genre, conv, reunion, capacite, verrou, attente, partage_ok, rec_par, visio FROM appel WHERE id = ?').get(id) || null; }
   const appelPart = (id, uid) => Q('SELECT role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? AND uid = ?').get(id, uid) || null;
   const appelAutre = (id, uid) => { const r = Q('SELECT uid FROM appel_part WHERE appel = ? AND uid <> ? ORDER BY role, uid').get(id, uid); return r ? r.uid : null; };
   const appelParticipants = (id) => Q('SELECT uid, role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? ORDER BY role, uid').all(id);
@@ -3833,11 +3839,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       autre: appelant && appelant.uid !== uid ? court(appelant) : null, membres: lignes.filter(r => r.uid !== uid).slice(0, 5).map(court),
       debut: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: abouti ? num(a.repondu) : null, fin,
       duree_s: abouti && fin !== null ? Math.max(0, Math.round((fin - num(a.repondu)) / 1000)) : 0, motif: a.motif || null, lie: !!me.session,
-      capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, rec: a.rec_par && me.statut !== 'exclu' ? { par: a.rec_par } : null,
+      capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), visio: !!num(a.visio), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, rec: a.rec_par && me.statut !== 'exclu' ? { par: a.rec_par } : null,
       nb: lignes.filter(r => r.statut === 'present').length, en_attente: hote ? lignes.filter(r => r.statut === 'attente').length : 0,
       moi: { statut: me.statut, grade: num(me.grade), gen: num(me.gen) }, participants: roster,
     };
   }
+  /* La salle passe-t-elle par le serveur de visio ? (`appels.js` : retirer, fermer, l'avis d'une entrée) — un booléen, rien d'autre ne sort. */
+  function appelEstVisio(id) { const a = appelBrut(id); return !!(a && a.genre !== 'deux' && num(a.visio)); }
   function appelVue(uid, id) {
     const me = appelPart(id, uid); if (!me) return null;
     const a = appelBrut(id); if (!a) return null;
@@ -3850,7 +3858,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const a = appelBrut(id); if (!a) return null;
     if (a.genre !== 'deux' && me.statut === 'exclu') return null;
     return { id: a.id, etat: a.etat, type: a.type, role: me.role, session: me.session || null, autre: a.genre === 'deux' ? appelAutre(id, uid) : null, sonne_jusqua: num(a.sonne_jusqua), cree: num(a.cree),
-      genre: a.genre, statut: me.statut, grade: num(me.grade), conv: a.conv || null, reunion: a.reunion || null, capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok };
+      genre: a.genre, statut: me.statut, grade: num(me.grade), conv: a.conv || null, reunion: a.reunion || null, capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, visio: !!num(a.visio) };
   }
   /* Les appels REÇUS par cette personne depuis `depuis` — tous, quelle qu'en soit l'issue (un appel « occupé » ou refusé a fait sonner ou noté un manqué tout de même) → { n, plusAncien }. C'est ce que le
      plafond « par personne appelée » compte : un appelant qui se heurte à un plafond bas ne dit rien des autres. */
@@ -3899,16 +3907,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* ⛔ LANCER UN APPEL À PLUSIEURS (groupe ou personnes choisies) : TOUT dans une transaction. L'appelant entre, HÔTE, appareil lié d'emblée ; chaque invité dont la ligne est libre SONNE (`invite`), celui qui est
      déjà dans un appel est écrit « manqué » tout de suite (et reçoit la notification d'un manqué : il saura qu'on l'a appelé) ; si PERSONNE ne peut sonner, l'appel est écrit « occupé » et ne démarre pas.
-     `invites` : déjà jugés par l'appelant (le droit de les joindre, les plafonds). `capacite` : quatre en vidéo, six en audio, posé ici et NE CHANGE PLUS pour cet appel.
+     `invites` : déjà jugés par l'appelant (le droit de les joindre, les plafonds). `capacite` : quatre en vidéo, six en audio (douze et vingt-cinq par le serveur de visio, `visio`), posés ici et NE CHANGENT PLUS pour cet appel.
      → { id, occupe, gids, notifs, sonnent, occupes, vue } */
-  function appelCreerGroupe({ appelant, invites, type, session, sonnerieMs, capacite, conv, attente }) {
+  function appelCreerGroupe({ appelant, invites, type, session, sonnerieMs, capacite, conv, attente, visio }) {
     return tx(() => {
       if (appelActifDe(appelant)) throw erreur('occupe_moi');
       const t = horloge(), id = nouvelId('a'), dispo = [], occupes = [];
       for (const u of Array.from(new Set(invites)).filter(x => x !== appelant)) (appelActifDe(u) ? occupes : dispo).push(u);
       const occupe = dispo.length === 0;
-      Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin, genre, conv, capacite, attente) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null, 'groupe', conv || null, capacite, attente ? 1 : 0);
+      Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin, genre, conv, capacite, attente, visio) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null, 'groupe', conv || null, capacite, attente ? 1 : 0, visio ? 1 : 0);
       Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, appelant, 'appelant', occupe ? null : (session || null), occupe ? 'parti' : 'present', GRADE_HOTE, t, 1);
       if (!occupe) presenceEntrer(id, appelant, t);                        // celui qui lance l'appel est dedans dès le départ
       for (const u of dispo) Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, gen) VALUES(?, ?, ?, ?, ?, ?, ?)').run(id, u, 'appele', null, 'invite', 0, 0);
@@ -4060,7 +4068,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const grade = (hoteReunion || !detenteur) ? GRADE_HOTE : (p ? num(p.grade) : 0), pouvoir = grade >= GRADE_COHOTE;
       if (a.verrou && !pouvoir) throw erreur('verrouillee');
       const attend = !!a.attente && !pouvoir;
-      if (!attend && sallePresents(id) >= num(a.capacite)) throw erreur('appel_complet');
+      if (!attend && sallePresents(id) >= num(a.capacite)) throw Object.assign(erreur('appel_complet'), { max: num(a.capacite) });   // la page DIT combien la salle porte (4, 6, 12, 25…)
       const statut = attend ? 'attente' : 'present';
       if (p) Q('UPDATE appel_part SET statut = ?, session = ?, grade = ?, entre = ?, gen = gen + ? WHERE appel = ? AND uid = ?').run(statut, session, grade, t, attend ? 0 : 1, id, uid);
       else Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, uid, 'appele', session, statut, grade, t, attend ? 0 : 1);
@@ -4200,7 +4208,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         presenceEntrer(id, u, t);
         admis.push(u);
       }
-      if (!admis.length) throw erreur('appel_complet');
+      if (!admis.length) throw Object.assign(erreur('appel_complet'), { max: num(a.capacite) });
       salleDemarrerSiDeux(id, t);
       return { admis, restent: attendent.filter(u => !admis.includes(u)), gids: appelEvenements(id, admis) };
     });
@@ -4284,7 +4292,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const salleDeReunion = (reunion) => { const r = Q(`SELECT id FROM appel WHERE reunion = ? AND genre = 'reunion' AND etat IN ('sonne', 'en_cours') ORDER BY cree DESC, id DESC LIMIT 1`).get(reunion); return r ? r.id : null; };
   /* ⛔ ENTRER DANS LA SALLE D'UNE RÉUNION PROGRAMMÉE : la salle est ouverte par le PREMIER qui entre (elle naît « en cours », personne n'y sonne) ; les suivants rejoignent celle qui est ouverte. Il faut être invité (l'hôte
      l'est toujours). La capacité vient du type demandé par celui qui ouvre : quatre en vidéo, six en audio. → comme `appelRejoindre`, plus { cree, id } */
-  function salleReunionRejoindre({ reunion, uid, session, type, capacite }) {
+  function salleReunionRejoindre({ reunion, uid, session, type, capacite, visio }) {
     return tx(() => {
       const r = reunionBrute(reunion); if (!r) throw erreur('introuvable');
       if (!Q('SELECT 1 AS x FROM reunion_invite WHERE reunion = ? AND uid = ?').get(reunion, uid)) throw erreur('introuvable');
@@ -4294,7 +4302,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (appelActifDe(uid)) throw erreur('occupe_moi');
         const t = horloge();
         id = nouvelId('a'); cree = true;
-        Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, repondu, genre, conv, reunion, capacite, attente) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(id, type, 'en_cours', t, t, t, 'reunion', r.conv, reunion, capacite, r.attente ? 1 : 0);
+        Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, repondu, genre, conv, reunion, capacite, attente, visio) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(id, type, 'en_cours', t, t, t, 'reunion', r.conv, reunion, capacite, r.attente ? 1 : 0, visio ? 1 : 0);
         Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, NULL, ?, 0, NULL, 0)').run(id, uid, 'appelant', 'parti');
       }
       const j = appelRejoindre({ id, uid, session });
@@ -4509,7 +4517,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
-    appelVue, appelAcces, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
+    appelVue, appelAcces, appelEstVisio, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
     appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, seancesFinies, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };
 }

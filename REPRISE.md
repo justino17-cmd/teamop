@@ -13,6 +13,43 @@ de ligne du tout.
 
 ---
 
+# ⏳ 8 OCTOBRE 2026 (SOIR) — LE SERVEUR DE VISIO (LiveKit) : PLUS DE 4 EN VIDÉO ET DE 6 EN AUDIO (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin, 8 octobre : « oui plus en vidéo et audio », après « sur notre serveur : la voix ne sort pas de chez nous ». (Le résumé de réunion par IA attend : « tant qu'on rentre pas
+d'argent, on le fait pas ».) **Tout est inerte sur la bêta tant que `install-sfu.sh` n'a pas été lancé** : sans `appels.visio` dans la configuration, les salles restent en maille.
+· **le service** (`visio.js`, `appels.js`, `routes-salles.js`) : une salle NEUVE passe par la visio quand elle répond — 12 en vidéo, 25 en audio (valeurs de départ, À MESURER) ;
+  un jeton d'entrée signé à la main (2 min) pour la seule personne présente, depuis l'appareil lié ; les avis de LiveKit acceptés de la boucle locale seulement (garde LV), signés
+  sur le corps exact ; une ENTRÉE non admise remise dehors (LiveKit rafraîchit seul les jetons : sans cette garde, une personne retirée revenait) ; sortie, exclusion et fin dites
+  à LiveKit ; `/health.visio` en agrégats (dont `avisRecus`, la preuve que les avis arrivent).
+· **la page** (`source-serveur.js`) : la bibliothèque LiveKit (copie épinglée servie par le service, jamais un CDN) chargée à la demande, UNE connexion au lieu d'une maille, la
+  qualité reçue qui suit le nombre, les reprises (une fin définitive ne redemande aucun jeton), la caméra refusée dans une salle audio, la grille au-delà de 4.
+· **`install-sfu.sh <beta|prod> [retirer]`** + `visio-pare-feu.sh` + `outils/verifier-visio.js` ; la fiche (`INSTALLER-LE-SERVEUR.md` § 10 octies) ; l'essai (`ESSAI-VISIO.md`) ;
+  la surveillance (`surveillance-messages.js`) : visio configurée et hors service, avis tous refusés, port TCP fermé de l'extérieur.
+Trouvé en chemin, et corrigé :
+· ⛔ **LiveKit donne aux pages, par défaut, les serveurs STUN de GOOGLE et de TWILIO** (lu dans son code, `roommanager.go`) : chaque participant leur aurait donné son adresse IP.
+  La page passe sa propre liste (nos STUN, ou aucune), la configuration de LiveKit n'en nomme aucun d'eux (test-939, test-959, sonde).
+· ⛔ **LiveKit ne filtre pas les adresses qu'annonce un participant** (sa copie de pion/ice) — le trou fermé pour le relais, par un autre chemin : un pare-feu sortant propre à son
+  compte (pas d'UDP vers la machine elle-même ni vers un réseau privé), posé par systemd avant chaque démarrage ; sans lui, LiveKit ne démarre pas.
+· l'admission d'une entrée était OUVERTE tant que rien n'était branché → fermée ; le script relisait son pare-feu sans lui dire quel compte (le banc l'a vu au premier essai).
+⚠️ **Décidé sans Justin — à lui dire :**
+· la signalisation passe par le domaine de l'instance (`msg-beta.teamop.fr/rtc`) : **ni DNS ni certificat neuf** ; deux ports à ouvrir chez IONOS (bêta : TCP 7881, UDP 7882 ;
+  production : 7891, 7892) ; une instance, un LiveKit, un compte, une paire de clés ;
+· 12 en vidéo et 25 en audio par salle ; la sonnerie d'un groupe (12) et l'invitation d'une réunion (10) gardent leurs plafonds ; une salle AUDIO par la visio n'ouvre pas la caméra ;
+· la visio ne passe PAS par le relais (coturn) : son pare-feu l'interdit exprès — un réseau qui n'ouvre que le 443 ne rejoint pas une salle par la visio ;
+· ⛔ **chiffré en transit, PAS de bout en bout** pour ces salles : le serveur déchiffre en mémoire pour renvoyer (`SERVEUR.md` question 62). Les textes ne promettent rien d'autre.
+Ce qui attend Justin : (1) la fusion (faite pour la bêta) ; (2) chez IONOS, **TCP 7881 et UDP 7882 en entrée** — AVANT le script ; (3) sur le VPS, `curl -fsSL
+https://raw.githubusercontent.com/justino17-cmd/teamop/main/server-msg/install-sfu.sh -o /root/install-sfu.sh` puis `bash /root/install-sfu.sh beta`, et recoller la sortie ;
+(4) **l'essai sur de vrais téléphones** (`ESSAI-VISIO.md`) — le site ne promet rien au-delà de 4 en vidéo avant lui.
+Les preuves : test-959 (le script joué dans un bac à sable : première installation, rejeu au disque identique, échec FERMÉ à chacune des huit étapes, archive à la mauvaise empreinte,
+route privée, deux instances, retrait — 126 ✓), test-939 (le moteur réel de la page contre le vrai service : aucune liaison pair à pair en visio, la liste STUN de la page, les reprises —
+22 ✓), test-954 (le service et un faux LiveKit, le contrôle qui refuse un LiveKit qui ne vérifie rien ou dont les avis n'arrivent pas — 37 ✓), test-952 (le module — 48 ✓), test-953
+(contre le VRAI LiveKit 1.13.7, le binaire PUBLIÉ dont l'empreinte est épinglée : nos jetons, ses avis, le contrôle de l'installation contre lui et le vrai service — 25 ✓),
+test-934 (la surveillance, la sonde TCP), test-930 (le script lu), test-900 (la bibliothèque épinglée et ses adresses nommées). **29 mutations sur 29 font tomber leur banc**
+(deux ne mordaient pas au premier tour — la reprise après une fin définitive, les avis qui n'arrivent pas : deux angles morts, comblés).
+Dettes : test-953 (le module et le contrôle contre le VRAI LiveKit) et la sonde au navigateur (`tests/sonde-opmessages-visio.js`, six pages, 40 ✓) ne tournent pas en CI (il
+leur faut le binaire) — test-939, test-954 et test-959 si ; la surveillance n'est branchée sur aucun workflow (comme pour le relais) ; `ufw reload` et la chaîne du pare-feu de
+la visio (non constaté) ; test-971 rouge EN LOCAL seulement (les fuseaux de ce conteneur).
+
 # ⏳ 8 OCTOBRE 2026 (APRÈS-MIDI) — LE TEST DE A À Z AVEC LE COMPTE DE TEST, ET CE QU'IL A TROUVÉ (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 « Teste l'application de A à Z » avec le compte que Justin a donné (identifiant « Claude », compte Pro, sans contact ni espace — ⛔ son mot de passe n'est écrit nulle part
@@ -36,6 +73,16 @@ aucun refus HTTP. Ce qui a été trouvé, corrigé, gardé par un banc ou une so
 · **au téléphone, le petit mot se posait sur le nom de la conversation** (l'en-tête y est haut) — il se pose dessous (sonde plus-tard).
 · **le tutoiement partout** : « Choisissez une conversation » à côté de « Ajoute un contact », les refus du micro et de la caméra, « Vous organisez cette réunion ».
 Porte des bancs d'OP MESSAGES : 84 suites, 8 829 vérifications (plancher relevé à 8 815).
+✅ **Rejoué EN LIGNE après la fusion** (justino17-cmd/teamop#105 — la bêta sert `8d9e343c`, lu dans `/health`, et le `opmsg-ui.js` servi est celui du dépôt) :
+la reconnaissance des cinq profils (bureau 1440 et 1024, Android 360, iPad, iPhone : aucune erreur JavaScript, aucun débordement, un seul chevron par écran), le parcours
+de base 38 ✓ au bureau et à l'iPhone (Perso / Pro, l'Agenda en semaine et en mois, un événement créé, reporté, coché, supprimé, le formulaire de réunion fermé par Échap),
+les nouveautés 29 ✓ au bureau ET 29 ✓ à l'iPhone (le programmé parti à l'heure, le compte rendu lu à l'écran) — aucun refus HTTP. Tout ce que les essais ont créé a été
+supprimé (événements, rappels, réunions et leurs conversations).
+⚠️ À travers le proxy de ce conteneur, le flux d'une page FERMÉE reste ouvert côté service (la fermeture ne lui parvient pas) : après une quinzaine d'essais sans « Se
+déconnecter », la reconnaissance iPhone a reçu le 429 `trop_de_flux` — et l'écran l'a dit (« Trop d'onglets ouverts sur ce compte »), comme prévu (test-907, test-911).
+« Déconnecter les autres appareils » en a libéré neuf. Les scripts d'essai se déconnectent désormais en fin de parcours et ne laissent rien (relu : « Aucun autre appareil
+n'était connecté »). Pas un défaut du produit : chez un client, la fermeture d'un onglet arrive au service ; seul un téléphone qui perd le réseau laisse un flux à moitié
+mort, jusqu'à ce que TCP abandonne la connexion (durée pas mesurée ici).
 ⚠️ Ce que le compte de test seul ne peut pas jouer EN LIGNE : tout ce qui demande une deuxième personne (mentions, « En réunion » vu d'un autre, les messages retenus).
 Les bancs et les sondes le jouent à plusieurs, contre le vrai service. L'inscription par adresse est fermée sur la bêta : un second compte d'essai se crée par la Tour.
 ⚠️ Toujours rouge EN LOCAL, vert en CI : test-971 (Vancouver à l'heure d'été permanente — la base des fuseaux de ce conteneur est plus vieille que celle de la CI).
@@ -74,7 +121,7 @@ Puis, à « tu aurais des idées ? » → « ok fais tout ça » (tout sur la b�
   test-938, test-905 (la route), test-857 (la carte exécutée, échappée), sonde ordre-du-jour. Le compte rendu part à « Terminer pour tous » ET quand la séance finit parce
   que le dernier s'en va (il quitte, ou son appareil se tait) — corrigé au test de A à Z, voir plus haut ; il ne dit rien de l'enregistrement (le fichier arrive lui-même
   dans la conversation).
-⛔ **Pas fait, en attente de Justin** :
+⛔ **Pas fait, en attente de Justin** (✅ le relais vidéo : fait le soir même, voir l'entrée du SOIR) :
 · **le résumé de réunion par IA** — il enverrait le contenu d'une réunion à Anthropic : c'est une question de `sous-traitance.html`, pas une ligne de code ;
 · **le relais vidéo (SFU)** pour plus de 4 en vidéo — la conception existe (`design/opmessages/SERVEUR.md`, étape 10 : LiveKit auto-hébergé, « seulement sur mesures »).
   Rien d'utile ne peut partir d'ici sans trois décisions : (1) accepter une dépendance lourde (un binaire LiveKit, ou mediasoup et son worker C++, plus la bibliothèque

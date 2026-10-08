@@ -43,7 +43,8 @@ const nb = (svc, table) => { const d = lireDb(svc); try { return d.prepare('SELE
       const c = T.client(svc.base);
       const h = await c.get('/health');
       v('/health répond 200 {ok:true, instance, sha}', [h.code, h.j.ok, h.j.instance, h.j.sha], [200, true, 'beta', 'banc0000']);
-      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['appels', 'base', 'boucle', 'disque', 'facturation', 'flux', 'instance', 'ok', 'pieces', 'porte', 'push', 'quotasRefus', 'reunions', 'sauvegarde', 'sha', 'sms', 'stripeEchecMin', 'uptimeS', 'version']);
+      v('⛔ /health n\'a QUE des champs agrégés (la liste exacte — en ajouter un oblige à trancher ici)', Object.keys(h.j).sort(), ['appels', 'base', 'boucle', 'disque', 'facturation', 'flux', 'instance', 'ok', 'pieces', 'porte', 'push', 'quotasRefus', 'reunions', 'sauvegarde', 'sha', 'sms', 'stripeEchecMin', 'uptimeS', 'version', 'visio']);
+      v('⛔ /health publie le SERVEUR DE VISIO en agrégat — sans bloc de configuration, il se dit ABSENT et rien d\'autre (jamais une adresse, une clé, une salle ni une personne)', h.j.visio, { configuree: false });
       v('⛔ /health publie la FACTURATION en agrégat — le mode et le drapeau de la bêta SEULEMENT ; jamais un espace, une personne, une clé, un tarif, ni un chiffre COMMERCIAL (espaces, abonnés, impayés : /health est public, relecture du gardien du 3 octobre 2026) — et `stripeEchecMin` (les minutes depuis lesquelles Stripe est illisible) que lit la surveillance',
         [Object.keys(h.j.facturation).sort(), h.j.facturation.mode, h.j.facturation.toutOuvert, h.j.stripeEchecMin, /\b(rk|sk)_|price_|\be_[0-9a-f]{32}\b/.test(JSON.stringify(h.j.facturation))],
         [['mode', 'persoAnnulationMin', 'toutOuvert'], 'inerte', true, 0, false]);   // Perso+ : l'AGE (minutes) de la plus ancienne résiliation en attente — jamais un nombre d'abonnés

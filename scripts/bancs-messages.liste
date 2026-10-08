@@ -56,7 +56,10 @@
 # 8 octobre 2026, après-midi : rappels cochés, envoyer plus tard, mentions (936), ne pas déranger (937), ordre du jour et compte rendu (938), puis ce que le test de A à Z a
 # trouvé — 84 suites, 8 829 vérifications mesurées par la commande de la porte (test-971 tombe en local sur la base de fuseaux du conteneur ; la CI en compte 2 de plus) —
 # plancher 8815 (le total moins 14).
-#plancher 8815
+# 8 octobre 2026, soir : le serveur de visio (LiveKit) — 952 à 954 (son contrôle contre un VRAI LiveKit, et ce qu'il refuse), 959 (l'installation, jouée dans un bac à sable),
+# 939 (la page et le service par le serveur de visio, dans Node) — 89 suites, 9 123 vérifications mesurées par la commande de la porte (test-971 tombe en local sur la base de
+# fuseaux du conteneur ; la CI en compte 2 de plus) — plancher 9109 (le total moins 14).
+#plancher 9109
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -100,6 +103,14 @@ tests/test-944.js
 # ── La sauvegarde hors site (étape 3, 2 octobre 2026) : le module seul (950), puis le VRAI service, un faux coffre S3 qui recalcule les signatures et les deux outils de Justin (951) ──
 tests/test-950.js
 tests/test-951.js
+# le serveur de visio (LiveKit, 8 octobre 2026) : 952 le module, 953 le module contre le VRAI LiveKit (sauté sans `LIVEKIT_SERVER_BIN`), 954 le service et un faux LiveKit
+tests/test-952.js
+tests/test-953.js
+tests/test-954.js
+# le script d'installation du serveur de visio (install-sfu.sh), joué dans un bac à sable — comme test-982 pour le relais
+tests/test-959.js
+# la page et le service, par le serveur de visio (le moteur réel de la page, une fausse bibliothèque LiveKit) : aucune liaison pair à pair, les STUN de la page, les reprises
+tests/test-939.js
 # ── Les notifications push, l'export et la suppression de compte (3 octobre 2026) : le module push (955), le vrai service contre un faux service push (956), l'export et la suppression (957), l'appareil et le service (958) ──
 tests/test-955.js
 tests/test-956.js

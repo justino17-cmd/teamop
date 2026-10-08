@@ -53,7 +53,7 @@ function installerAppels(H, ctx) {
     /* les salles : ENTRER (verrou, capacité, exclusion, un autre appel) et les gestes de l'hôte */
     occupe_moi: [409, 'occupe', { moi: true }], appel_complet: [409, 'appel_complet'], verrouillee: [423, 'verrouillee'], exclu: [403, 'exclu'], reunion_annulee: [409, 'reunion_annulee'], champ_invalide: [400, 'champ_invalide'], trop_d_invites: [409, 'trop_d_invites'] };
   const garder = (f) => (req, res, next) => {
-    const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], c[2]); return next(e); };
+    const traduire = (e) => { const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], e.code === 'appel_complet' && Number.isInteger(e.max) ? Object.assign({ max: e.max }, c[2] || {}) : c[2]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };

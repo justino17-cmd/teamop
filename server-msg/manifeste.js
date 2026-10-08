@@ -23,6 +23,7 @@
  *      ligne. Pro comprend Perso+, Perso+ ne comprend rien d'une entreprise : les routes d'espace restent `pro`.
  *   SP, SH, SO, SJ  une SALLE (étape 8) : participant · hôte ou co-hôte PRÉSENT (un participant voit 403) · l'hôte seul · quelqu'un qui veut ENTRER (le droit se juge dans la transaction). Tous bâtis sur S ; un non-participant, un
  *      exclu et un appel à deux reçoivent le même 404 qu'une salle qui n'existe pas.
+ *   LV le SERVEUR DE VISIO (LiveKit) sur la même machine : la boucle locale, sans passer par nginx (aucun `X-Forwarded-For`) — sinon 404 ; la route vérifie ensuite la signature sur le corps (`visio.js`).
  *   AP participant d'un APPEL (S d'abord : répondre, raccrocher et signaler ne demandent pas d'adresse confirmée — lancer l'appel, lui, exige V) — l'appel se lit dans le chemin (`:id`) ; un non-participant reçoit le
  *      même 404 qu'un appel qui n'existe pas. « L'appareil lié » (la session qui a lancé l'appel ou qui y a répondu) se juge dans la route, pas dans la garde : un autre appareil du même compte voit 403.
  *
@@ -205,6 +206,8 @@ const MANIFESTE = [
   { id: 'salles.evt',        m: 'POST', p: '/api/salles/:id/evt',                    garde: 'SP' },
   { id: 'salles.presence',   m: 'GET',  p: '/api/salles/:id/presence',               garde: 'SH' },   // le rapport de présence (l'hôte et les co-hôtes)
   { id: 'salles.annot',      m: 'POST', p: '/api/salles/:id/annot',                  garde: 'SP' },   // dessiner et écrire sur l'écran partagé ou le tableau blanc
+  { id: 'salles.visio',      m: 'POST', p: '/api/salles/:id/visio',                  garde: 'SP' },   // le jeton d'entrée au serveur de visio (présent, appareil lié, salle par la visio : jugés dans la route)
+  { id: 'visio.avis',        m: 'POST', p: '/api/visio/avis',                        garde: 'LV' },   // les avis de LiveKit (une entrée non admise en ressort aussitôt)
   /* Le lien d'invité d'une réunion et sa salle. L'aperçu est PUBLIC et limité (il ne dit que de quoi décider de rejoindre, jamais un participant) ; rejoindre par le lien exige un compte (S, v1) ; la salle d'une
      réunion où l'on est invité s'ouvre par R (l'hôte en est un) ; le lien se lit et se renouvelle par H (l'ancien meurt). */
   { id: 'reunions.apercu',   m: 'POST', p: '/api/reunions/apercu',                   garde: 'P' },

@@ -129,6 +129,26 @@ v('instanceDe : msg-beta → beta, msg → prod, un autre domaine → rien',
   Object.assign(SAIN, { appels: A_SAIN });
 }
 
+/* ══ 1 quinquies (avant). LE SERVEUR DE VISIO (/health.visio, 8 octobre 2026) : hors service, ports fermés de l'extérieur, avis tous refusés ══════════════════════════════ */
+{
+  const V_SAIN = { configuree: true, ok: true, ageS: 4, echecs: 0, avisRecus: 12, avisRefuses: 0, retraitsForces: 1, commandesEchouees: 0 };
+  const avec = (o, sonde) => S.evaluer(Object.assign({}, SAIN, { visio: Object.assign({}, V_SAIN, o) }), 'beta', sonde);
+  v('un serveur de visio sain ne fait rien crier (sans sonde : on ne conclut rien des ports)', avec({}), []);
+  v('   un service SANS visio (« configuree: false ») ou d\'avant (sans la clé) ne crie pas, même si une sonde dit faux : avant install-sfu.sh, « pas de visio » n\'est pas une panne', [S.evaluer(Object.assign({}, SAIN, { visio: { configuree: false } }), 'beta', { visio: false }), S.evaluer(Object.assign({}, SAIN, { visio: undefined }), 'beta')], [[], []]);
+  vrai('⛔ configuré et HORS SERVICE (deux sondes ratées) : crie — les salles neuves repartent en maille, celles en cours sont coupées', avec({ ok: false, echecs: 2, ageS: 40 }).some(p => /serveur de visio ne répond plus au service/.test(p) && /opmsg-visio-beta/.test(p)));
+  vrai('⛔ configuré, en service, mais son port TCP public MUET de l\'extérieur : crie — les pare-feu ne laissent pas passer l\'image', avec({}, { visio: false }).some(p => /ne se joint pas de l'extérieur/.test(p)));
+  v('   sondé et joignable : rien', avec({}, { visio: true }), []);
+  vrai('⛔ des avis REFUSÉS et AUCUN accepté : crie — la clé du service et celle de LiveKit ne sont plus la même paire, plus aucune entrée n\'est vérifiée', avec({ avisRecus: 0, avisRefuses: 7 }).some(p => /tous les avis du serveur de visio sont refusés/.test(p) && /7 refus/.test(p)));
+  v('   un refus isolé parmi des avis acceptés ne crie pas (une requête locale malformée n\'est pas une panne) ; aucun avis du tout non plus (une heure sans salle)', [avec({ avisRefuses: 1 }), avec({ avisRecus: 0, avisRefuses: 0 })], [[], []]);
+  v('   les compteurs cumulés ne crient pas (ils ne redescendent qu\'au redémarrage : une alarme dessus crierait chaque heure après une seule panne)', avec({ commandesEchouees: 9, retraitsForces: 40 }), []);
+  vrai('⛔ aucun problème ne contient d\'identifiant : seulement des nombres', avec({ ok: false, avisRecus: 0, avisRefuses: 3, salle: 'beta-a_deadbeef' }, { visio: false }).every(p => !/deadbeef/.test(p)));
+  /* ⛔ les ports de la sonde sont CEUX qu'install-sfu.sh ouvre (relus dans le script : deux copies d'un même chiffre divergent toujours) */
+  const script = fs.readFileSync(path.join(RACINE, 'server-msg', 'install-sfu.sh'), 'utf8');
+  const ports = {}; for (const m of script.matchAll(/^\s*(beta|prod)\) PORT_HTTP=(\d+); PORT_TCP=(\d+); PORT_UDP=(\d+) ;;/gm)) ports[m[1]] = Number(m[3]);
+  v('les ports TCP sondés sont ceux qu\'install-sfu.sh ouvre, instance par instance', S.VISIO_PORTS_TCP, ports);
+  Object.assign(SAIN, { visio: V_SAIN });
+}
+
 /* ══ 2. CHAQUE CHAMP EST LU PAR LE CODE (ou nommé) — sur le CHEMIN COMPLET, dans le CODE ═══════════════ */
 const lecture = (chemin) => 'j.' + chemin;
 vrai('la liste des champs surveillés est peuplée (population avant verdict)', S.CHAMPS_SURVEILLES.length >= 5);
@@ -186,6 +206,16 @@ const T = require('./outils-msg');
       v('   un paquet perdu n\'est pas une panne : la réponse au SECOND essai suffit', [await sonder(tardif), tardif.vus], [true, 2]);
       v('   un nom qui ne se résout pas : FAUX, sans lever', await S.sonderRelais('relais.invalid', 3478, 150, 2), false);
     } finally { for (const s of serveurs) { try { s.close(); } catch (e) { /* fermé */ } } }
+  }
+  /* ══ LA SONDE TCP DU SERVEUR DE VISIO : une connexion acceptée, ou rien. Prouvée dans les deux sens (une sonde qui rend toujours faux, ou toujours vrai, ne se verrait pas). ══ */
+  {
+    const netm = require('net');
+    const ouvert = await new Promise((ok) => { const srv = netm.createServer((c) => { srv.vus = (srv.vus || 0) + 1; c.destroy(); }); srv.listen(0, '127.0.0.1', () => ok(srv)); });
+    const ferme = await new Promise((ok) => { const srv = netm.createServer(); srv.listen(0, '127.0.0.1', () => { const port = srv.address().port; srv.close(() => ok(port)); }); });
+    try {
+      v('⛔ un port qui ACCEPTE : VRAI — et il a bien reçu une connexion', [await S.sonderVisioTcp('127.0.0.1', ouvert.address().port, 300, 3), !!(await T.attendre(() => ouvert.vus >= 1, 2000, 20))], [true, true]);
+      v('⛔ un port FERMÉ : FAUX (trois essais) ; un nom qui ne se résout pas : FAUX, sans lever', [await S.sonderVisioTcp('127.0.0.1', ferme, 300, 3), await S.sonderVisioTcp('visio.invalid', 7881, 300, 2)], [false, false]);
+    } finally { ouvert.close(); }
   }
   if (!fs.existsSync(path.join(T.SERVICE, 'node_modules'))) {
     console.log('  — server-msg/node_modules absent : le /health vivant n\'est pas joué (npm ci dans server-msg/)');

@@ -54,6 +54,8 @@
  *   appels        {sonnerieMs, perduMs, balayageMs, historiqueJours, listeMax, parHeure, parPaireHeure, entrantsParHeure, signalMax, signalFenetreMs, iceParHeure, relais:{secret, hote, port, portTls, ttlS}}   Les appels à deux (étape 7) :
  *                                sonnerie (45 s, puis « manqué »), temps sans signe d'un appareil lié avant de finir l'appel (45 s), rythme du balayeur, plafonds par heure et par personne (30) ou vers la même personne (6),
  *                                signaux par appel, et le RELAIS (coturn) : sans `relais`, pas de relais et la page le dit (jamais de serveur STUN tiers) ; son `secret`, posé par `install-turn.sh`, ne s'affiche ni ne se copie.
+ *                                `visio` {url, interne, cle, secret, maxVideo, maxAudio, ttlS, sondeMs, delaiMs} : le SERVEUR DE VISIO (LiveKit) qui porte une salle au-delà de la maille — voir `visioConfig`.
+ *                                Sans ce bloc, les salles restent en maille ; son `secret`, posé par `install-sfu.sh`, ne s'affiche ni ne se copie.
  *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
@@ -406,6 +408,48 @@ function appelsConfig(cfg, instance) {
     Object.defineProperty(relais, 'secret', { value: r.secret, enumerable: false, writable: false, configurable: false });
     o.relais = relais;
   }
+  o.visio = visioConfig(brut.visio, o, prod, err);
+  return o;
+}
+
+/* ⛔ LE SERVEUR DE VISIO (LiveKit, `visio.js`) — décision de Justin du 8 octobre 2026 (« oui plus en vidéo et audio »). SANS ce bloc, il n'y en a pas : les salles restent en
+   maille (4 en vidéo, 6 en audio) et rien ne change. `install-sfu.sh` l'écrit sur le VPS ; ses valeurs :
+   · `url` : l'adresse que les PAGES joignent (`wss://msg-beta.teamop.fr` : la signalisation passe par le nginx du service, chemin `/rtc` — pas de nouvelle adresse ni de
+     certificat). EN PRODUCTION, `wss://` seulement ; la bêta et les bancs acceptent `ws://` vers la boucle locale.
+   · `interne` : l'adresse où le SERVICE parle à LiveKit (`http://127.0.0.1:7880`) — `http://` vers la boucle locale seulement, `https://` sinon (une machine à part, le jour venu).
+   · `cle` et `secret` : la paire d'API de LiveKit. Le `secret` se lit (`visio.secret`) mais ne se COPIE ni ne se SÉRIALISE (non énumérable) et aucune erreur ne le cite.
+   · `maxVideo` (12) et `maxAudio` (25) : ce qu'une salle porte quand elle passe par la visio — jamais moins que la maille. Valeurs de départ, À MESURER sur de vrais téléphones
+     (la fiche d'essai, `design/opmessages/ESSAI-VISIO.md`) ; le site ne promet rien au-delà de 4 en vidéo avant cette mesure.
+   · `ttlS` (120) : la vie d'un jeton d'ENTRÉE (LiveKit le rafraîchit ensuite lui-même ; c'est pourquoi le service relit chaque entrée, voir `visio.js`) ; `sondeMs` (10 000) :
+     le rythme de la sonde ; `delaiMs` (3 000) : le délai d'une commande ou d'une sonde. */
+const VISIO_DEFAUT = { maxVideo: 12, maxAudio: 25, ttlS: 120, sondeMs: 10000, delaiMs: 3000 };
+const RE_CLE_VISIO = /^[A-Za-z0-9_-]{6,64}$/;
+const RE_URL_VISIO = /^(wss?):\/\/([A-Za-z0-9.-]+|\[::1\])(:\d{1,5})?\/?$/;
+const RE_URL_INTERNE = /^(https?):\/\/([A-Za-z0-9.-]+|\[::1\])(:\d{1,5})?\/?$/;
+const BOUCLE = (h) => h === '127.0.0.1' || h === 'localhost' || h === '[::1]';
+function visioConfig(vi, appels, prod, err) {
+  if (vi === undefined || vi === null) return null;
+  if (typeof vi !== 'object' || Array.isArray(vi)) throw err('appels.visio doit être un objet { url, interne, cle, secret }');
+  const u = typeof vi.url === 'string' ? RE_URL_VISIO.exec(vi.url) : null;
+  if (!u) throw err('appels.visio.url doit être une adresse wss://<hôte> (ou ws://127.0.0.1:<port> hors production)');
+  if (u[1] === 'ws' && (prod || !BOUCLE(u[2]))) throw err('appels.visio.url en ws:// n\'est permise que vers la boucle locale, hors production : les pages joignent la visio en wss://');
+  const i = typeof vi.interne === 'string' ? RE_URL_INTERNE.exec(vi.interne) : null;
+  if (!i) throw err('appels.visio.interne doit être une adresse http://127.0.0.1:<port> (ou https://<hôte>)');
+  if (i[1] === 'http' && !BOUCLE(i[2])) throw err('appels.visio.interne en http:// n\'est permise que vers la boucle locale : le jeton d\'administration ne traverse pas un réseau en clair');
+  if (typeof vi.cle !== 'string' || !RE_CLE_VISIO.test(vi.cle)) throw err('appels.visio.cle doit faire de 6 à 64 caractères (lettres, chiffres, tiret, soulignement) — elle se pose par install-sfu.sh');
+  /* ⛔ jamais la valeur dans le message : une erreur de configuration finit dans le journal du démarrage, que Justin recolle dans la conversation */
+  if (typeof vi.secret !== 'string' || !RE_SECRET_RELAIS.test(vi.secret)) throw err('appels.visio.secret doit être un secret de 32 à 128 caractères (lettres, chiffres, tiret, soulignement) — il se pose par install-sfu.sh');
+  const o = { url: vi.url.replace(/\/$/, ''), interne: vi.interne.replace(/\/$/, ''), cle: vi.cle };
+  const bornes = { maxVideo: [2, 25], maxAudio: [2, 50], ttlS: [30, 900], sondeMs: prod ? [2000, 60000] : [50, 60000], delaiMs: [100, 10000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const x = vi[k] === undefined ? VISIO_DEFAUT[k] : vi[k];
+    if (!Number.isInteger(x) || x < min || x > max) throw err('appels.visio.' + k + ' doit être un entier entre ' + min + ' et ' + max);
+    o[k] = x;
+  }
+  /* la visio PORTE plus que la maille, jamais moins : sinon passer par elle retirerait des places */
+  if (o.maxVideo < appels.maxVideo) throw err('appels.visio.maxVideo (' + o.maxVideo + ') ne peut pas être plus petit que appels.maxVideo (' + appels.maxVideo + ')');
+  if (o.maxAudio < appels.maxAudio) throw err('appels.visio.maxAudio (' + o.maxAudio + ') ne peut pas être plus petit que appels.maxAudio (' + appels.maxAudio + ')');
+  Object.defineProperty(o, 'secret', { value: vi.secret, enumerable: false, writable: false, configurable: false });
   return o;
 }
 
