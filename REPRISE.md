@@ -36,6 +36,16 @@ aucun refus HTTP. Ce qui a été trouvé, corrigé, gardé par un banc ou une so
 · **au téléphone, le petit mot se posait sur le nom de la conversation** (l'en-tête y est haut) — il se pose dessous (sonde plus-tard).
 · **le tutoiement partout** : « Choisissez une conversation » à côté de « Ajoute un contact », les refus du micro et de la caméra, « Vous organisez cette réunion ».
 Porte des bancs d'OP MESSAGES : 84 suites, 8 829 vérifications (plancher relevé à 8 815).
+✅ **Rejoué EN LIGNE après la fusion** (justino17-cmd/teamop#105 — la bêta sert `8d9e343c`, lu dans `/health`, et le `opmsg-ui.js` servi est celui du dépôt) :
+la reconnaissance des cinq profils (bureau 1440 et 1024, Android 360, iPad, iPhone : aucune erreur JavaScript, aucun débordement, un seul chevron par écran), le parcours
+de base 38 ✓ au bureau et à l'iPhone (Perso / Pro, l'Agenda en semaine et en mois, un événement créé, reporté, coché, supprimé, le formulaire de réunion fermé par Échap),
+les nouveautés 29 ✓ au bureau ET 29 ✓ à l'iPhone (le programmé parti à l'heure, le compte rendu lu à l'écran) — aucun refus HTTP. Tout ce que les essais ont créé a été
+supprimé (événements, rappels, réunions et leurs conversations).
+⚠️ À travers le proxy de ce conteneur, le flux d'une page FERMÉE reste ouvert côté service (la fermeture ne lui parvient pas) : après une quinzaine d'essais sans « Se
+déconnecter », la reconnaissance iPhone a reçu le 429 `trop_de_flux` — et l'écran l'a dit (« Trop d'onglets ouverts sur ce compte »), comme prévu (test-907, test-911).
+« Déconnecter les autres appareils » en a libéré neuf. Les scripts d'essai se déconnectent désormais en fin de parcours et ne laissent rien (relu : « Aucun autre appareil
+n'était connecté »). Pas un défaut du produit : chez un client, la fermeture d'un onglet arrive au service ; seul un téléphone qui perd le réseau laisse un flux à moitié
+mort, jusqu'à ce que TCP abandonne la connexion (durée pas mesurée ici).
 ⚠️ Ce que le compte de test seul ne peut pas jouer EN LIGNE : tout ce qui demande une deuxième personne (mentions, « En réunion » vu d'un autre, les messages retenus).
 Les bancs et les sondes le jouent à plusieurs, contre le vrai service. L'inscription par adresse est fermée sur la bêta : un second compte d'essai se crée par la Tour.
 ⚠️ Toujours rouge EN LOCAL, vert en CI : test-971 (Vancouver à l'heure d'été permanente — la base des fuseaux de ce conteneur est plus vieille que celle de la CI).
