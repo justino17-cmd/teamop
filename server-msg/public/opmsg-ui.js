@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5b6db4ce2263';
+  const OPMSG_BUILD = '356a30cc91f1';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 131;
+  const OPMSG_VERSION = 132;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1585,9 +1585,9 @@
   }
   function messageMicro(e) {
     const n = e && e.name;
-    if (n === 'NotAllowedError' || n === 'SecurityError') return 'Le micro est refusé : autorisez-le dans les réglages de votre navigateur, puis réessayez.';
+    if (n === 'NotAllowedError' || n === 'SecurityError') return 'Le micro est refusé : autorise-le dans les réglages de ton navigateur, puis réessaie.';
     if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'Aucun micro n\'a été trouvé sur cet appareil.';
-    if (n === 'NotReadableError' || n === 'AbortError') return 'Le micro est utilisé par une autre application : fermez-la, puis réessayez.';
+    if (n === 'NotReadableError' || n === 'AbortError') return 'Le micro est utilisé par une autre application : ferme-la, puis réessaie.';
     return 'Le micro n\'a pas pu démarrer.';
   }
   async function demarrerEnregistrement() {
@@ -1938,7 +1938,7 @@
   /* « Appeler » : l'appel part avec les contacts choisis, et la feuille cède la place à l'écran d'appel (son entrée d'historique est REMPLACÉE : raccrocher revient à la liste) */
   async function appelerDepuisFeuille() {
     const G = g();
-    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
+    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisis au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
     if (etat.creation) return;
     etat.creation = true;
     effacerRefusFeuille();
@@ -1946,7 +1946,7 @@
   }
   async function creerGroupe() {
     const G = g();
-    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
+    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisis au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
     if (etat.creation) return;
     etat.creation = true;
     const prenoms = G.choisis.map(id => prenom(contactDe(id)));
@@ -2254,9 +2254,9 @@
   const annonceAppel = t => { const r = $('annonce-appel'); r.textContent = ''; setTimeout(() => { r.textContent = t; }, 60); };
   function messageMedia(e, quoi) {
     const n = e && e.name, cam = quoi === 'camera';
-    if (n === 'NotAllowedError' || n === 'SecurityError') return cam ? 'La caméra est refusée : autorisez-la dans les réglages de votre navigateur, puis touchez Caméra.' : 'Le micro est refusé : autorisez-le dans les réglages de votre navigateur, puis touchez Micro.';
+    if (n === 'NotAllowedError' || n === 'SecurityError') return cam ? 'La caméra est refusée : autorise-la dans les réglages de ton navigateur, puis touche Caméra.' : 'Le micro est refusé : autorise-le dans les réglages de ton navigateur, puis touche Micro.';
     if (n === 'NotFoundError' || n === 'OverconstrainedError') return cam ? 'Aucune caméra n\'a été trouvée sur cet appareil.' : 'Aucun micro n\'a été trouvé sur cet appareil.';
-    if (n === 'NotReadableError' || n === 'AbortError') return (cam ? 'La caméra' : 'Le micro') + ' est utilisé' + (cam ? 'e' : '') + ' par une autre application : fermez-la, puis réessayez.';
+    if (n === 'NotReadableError' || n === 'AbortError') return (cam ? 'La caméra' : 'Le micro') + ' est utilisé' + (cam ? 'e' : '') + ' par une autre application : ferme-la, puis réessaie.';
     return cam ? 'La caméra n\'a pas pu démarrer.' : 'Le micro n\'a pas pu démarrer.';
   }
   let minAvisAppel = 0;
@@ -5373,7 +5373,7 @@
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d), serie = d.repetition !== 'aucune';
     const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
     let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
-      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Vous organisez cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
+      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
       (d.annulee ? '<p class="info-erreur">Cette réunion est annulée.</p>' : '') +
       '<div class="carte">' +
         '<div class="reglage">' + icone('i-agenda') + '<span class="reglage-texte">' + esc(maj1(FMT_JOUR_LONG.format(o.debut))) + '<small>' + esc(h + (note ? ' (' + note + ')' : '')) + '</small></span></div>' +

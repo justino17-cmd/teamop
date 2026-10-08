@@ -427,7 +427,7 @@ async function etapeListe(S) {
   v(nom + ' : 6 conversations, chacune est un BOUTON (clavier, doigt, lecteur d\'écran) ; 4 épinglés qui en sont aussi', u.nbConv === 6 && u.pins === 4 && u.h1 === 'Messages', u);
   const nav = S.pf.w < 900 ? (u.tabs && !u.side) : (!u.tabs && u.side);
   v(nom + ' : navigation = ' + (S.pf.w < 900 ? 'barre d\'onglets seule' : 'barre latérale seule') + ' (jamais les deux)', nav, u);
-  v(nom + ' : aucune conversation ouverte au départ' + (S.pf.w >= 1100 ? ' — le détail dit « Choisissez une conversation »' : ''), u.conv === 'none' && (S.pf.w >= 1100 ? u.vide !== 'none' : u.vide === 'none'), u);
+  v(nom + ' : aucune conversation ouverte au départ' + (S.pf.w >= 1100 ? ' — le détail dit « Choisis une conversation »' : ''), u.conv === 'none' && (S.pf.w >= 1100 ? u.vide !== 'none' : u.vide === 'none'), u);
   await mesurerLargeur(S, nom + ' · liste'); await mesurerTextes(S, nom + ' · liste'); await mesurerCibles(S, nom + ' · liste'); await mesurerChamps(S, nom + ' · liste');
   await contraste(S, '#liste-conv li:first-child .conv-heure', { nom: 'heure de liste (15 px, --sub sur la carte)' });
   await contraste(S, '#liste-conv li:first-child .conv-apercu', { nom: 'aperçu de liste (15 px, --sub sur la carte)' });
@@ -1078,7 +1078,7 @@ async function etapeLarge(b, base) {
   const pf = { nom: 'bureau 2560', w: 2560, h: 1300, dpr: 1, mobile: false, insets: null };
   const S = await ouvrirPage(b, pf, { base }); S.nom = pf.nom;
   const l = await S.page.evaluate(() => { const r = e => e.getBoundingClientRect(); const row = document.querySelector('#liste-conv .conv'); return { ligne: Math.round(r(row).width), colonne: Math.round(r(document.getElementById('contenu')).width), vide: getComputedStyle(document.getElementById('conv-vide')).display !== 'none' }; });
-  v('2 560 px : la liste est une COLONNE (' + l.colonne + ' px, lignes de ' + l.ligne + ' px — plus les 2 268 px d\'avant), le détail attend « Choisissez une conversation »', l.ligne <= 460 && l.colonne <= 460 && l.vide, l);
+  v('2 560 px : la liste est une COLONNE (' + l.colonne + ' px, lignes de ' + l.ligne + ' px — plus les 2 268 px d\'avant), le détail attend « Choisis une conversation »', l.ligne <= 460 && l.colonne <= 460 && l.vide, l);
   await ouvrirConv(S, 'v1', 'Équipe dépôt');
   const c = await S.page.evaluate(() => { const r = e => e.getBoundingClientRect(); const col = r(document.getElementById('conv-messages')), b = [...document.querySelectorAll('.bulle')].map(e => r(e).width); return { col: Math.round(col.width), plus: Math.round(Math.max(...b)), conv: Math.round(r(document.getElementById('conv-ecran')).width), composer: Math.round(r(document.querySelector('.compo-ligne')).width) }; });
   v('2 560 px : la conversation fait ' + c.conv + ' px mais sa colonne de messages est bornée à ' + c.col + ' px (plus large bulle ' + c.plus + ' px), la barre de saisie aussi (' + c.composer + ' px)', c.col <= 860 && c.plus <= 0.781 * c.col && c.composer <= 860, c);

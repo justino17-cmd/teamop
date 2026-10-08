@@ -567,6 +567,9 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .reg-titre { margin: 0 4px 14px; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: .36px; color: var(--text); outline: none; }
 /* au téléphone : la liste OU la rubrique — jamais les deux ; une rubrique ouverte cache le grand titre « Profil » (elle a le sien) */
 #vue-reglages[data-sec]:not([data-sec=""]) .reg-accueil, #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: none; }
+/* ⛔ … ET UN SEUL RETOUR : la rubrique a le sien (« ‹ Profil », dans sa barre). Le retour du Profil vers la vue d'avant (« ‹ Tableau de bord ») s'efface avec la liste — vu sur la bêta
+   le 8 octobre 2026, au téléphone : deux chevrons empilés en haut de Notifications. Au-delà de 900 px, ce retour-là est déjà caché (la barre latérale y suffit) : la règle ne vise que lui. */
+@media (max-width: 899.98px) { #vue-reglages[data-sec]:not([data-sec=""]) > .entete-vue { display: none; } }
 @media (min-width: 1100px) {
   #vue-reglages { max-width: 1120px; }
   .reg-grille { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 28px; align-items: start; }
@@ -2267,7 +2270,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <span class="tabs-bulle" aria-hidden="true"></span>
   </nav>
 
-  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisissez une conversation pour la lire et y répondre.</p></div></section>
+  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisis une conversation pour la lire et y répondre.</p></div></section>
 
   <section class="conv-ecran" id="conv-ecran" role="region" aria-label="Conversation" tabindex="-1">
     <header class="conv-nav" data-glass="1">
@@ -2329,7 +2332,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
     <audio id="appel-audio-distant" class="sr-seul" autoplay playsinline></audio>
     <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
-      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
+      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Ta caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="appel-bas">
       <div class="appel-reponse" id="appel-reponse" role="group" aria-label="Appel entrant">
@@ -2359,7 +2362,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="salle-bandeaux" id="salle-bandeaux"></div>
     <p class="salle-bandeau salle-avis" id="salle-avis" role="status" aria-live="polite" hidden></p>
     <div class="salle-scene" id="salle-scene" role="list" aria-label="Participants" data-vue="galerie" data-n="1" tabindex="0">
-      <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
+      <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Ta caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="annot-barre" id="annot-barre" role="toolbar" aria-label="Annoter" hidden>
       <div class="annot-palette" id="annot-palette" role="group" aria-label="Choix" hidden></div>

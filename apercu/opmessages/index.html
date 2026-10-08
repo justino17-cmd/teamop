@@ -563,6 +563,9 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .reg-titre { margin: 0 4px 14px; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: .36px; color: var(--text); outline: none; }
 /* au téléphone : la liste OU la rubrique — jamais les deux ; une rubrique ouverte cache le grand titre « Profil » (elle a le sien) */
 #vue-reglages[data-sec]:not([data-sec=""]) .reg-accueil, #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: none; }
+/* ⛔ … ET UN SEUL RETOUR : la rubrique a le sien (« ‹ Profil », dans sa barre). Le retour du Profil vers la vue d'avant (« ‹ Tableau de bord ») s'efface avec la liste — vu sur la bêta
+   le 8 octobre 2026, au téléphone : deux chevrons empilés en haut de Notifications. Au-delà de 900 px, ce retour-là est déjà caché (la barre latérale y suffit) : la règle ne vise que lui. */
+@media (max-width: 899.98px) { #vue-reglages[data-sec]:not([data-sec=""]) > .entete-vue { display: none; } }
 @media (min-width: 1100px) {
   #vue-reglages { max-width: 1120px; }
   .reg-grille { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 28px; align-items: start; }
@@ -2263,7 +2266,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <span class="tabs-bulle" aria-hidden="true"></span>
   </nav>
 
-  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisissez une conversation pour la lire et y répondre.</p></div></section>
+  <section class="conv-vide" id="conv-vide"><div><span class="coquille-icone" aria-hidden="true"><svg class="ic"><use href="#i-chat"/></svg></span><p>Choisis une conversation pour la lire et y répondre.</p></div></section>
 
   <section class="conv-ecran" id="conv-ecran" role="region" aria-label="Conversation" tabindex="-1">
     <header class="conv-nav" data-glass="1">
@@ -2325,7 +2328,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <p class="appel-avis" id="appel-avis" role="status" aria-live="polite" hidden></p>
     <audio id="appel-audio-distant" class="sr-seul" autoplay playsinline></audio>
     <div class="appel-scene" id="appel-scene" role="list" aria-label="Participants">
-      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
+      <div class="tuile vous" id="appel-vous" role="listitem" data-camera="off"><video id="appel-video-local" muted playsinline autoplay aria-label="Ta caméra"></video><span class="tuile-av" aria-hidden="true" id="appel-vous-av"></span><span class="tuile-nom">Vous</span><button type="button" class="vous-retourner presse" id="appel-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="appel-bas">
       <div class="appel-reponse" id="appel-reponse" role="group" aria-label="Appel entrant">
@@ -2355,7 +2358,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     <div class="salle-bandeaux" id="salle-bandeaux"></div>
     <p class="salle-bandeau salle-avis" id="salle-avis" role="status" aria-live="polite" hidden></p>
     <div class="salle-scene" id="salle-scene" role="list" aria-label="Participants" data-vue="galerie" data-n="1" tabindex="0">
-      <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Votre caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
+      <div class="tuile salle-tuile vous" id="salle-vous" role="listitem" data-camera="off"><video id="salle-video-local" muted playsinline autoplay aria-label="Ta caméra"></video><span class="tuile-av" aria-hidden="true" id="salle-vous-av"></span><span class="tuile-nom" id="salle-vous-nom">Vous</span><span class="salle-badges" id="salle-vous-badges"></span><button type="button" class="vous-retourner presse" id="salle-flip" aria-label="Retourner la caméra" hidden><svg class="ic" aria-hidden="true"><use href="#i-retourner"/></svg></button></div>
     </div>
     <div class="annot-barre" id="annot-barre" role="toolbar" aria-label="Annoter" hidden>
       <div class="annot-palette" id="annot-palette" role="group" aria-label="Choix" hidden></div>
@@ -4102,9 +4105,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   function messageMicro(e) {
     const n = e && e.name;
-    if (n === 'NotAllowedError' || n === 'SecurityError') return 'Le micro est refusé : autorisez-le dans les réglages de votre navigateur, puis réessayez.';
+    if (n === 'NotAllowedError' || n === 'SecurityError') return 'Le micro est refusé : autorise-le dans les réglages de ton navigateur, puis réessaie.';
     if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'Aucun micro n\'a été trouvé sur cet appareil.';
-    if (n === 'NotReadableError' || n === 'AbortError') return 'Le micro est utilisé par une autre application : fermez-la, puis réessayez.';
+    if (n === 'NotReadableError' || n === 'AbortError') return 'Le micro est utilisé par une autre application : ferme-la, puis réessaie.';
     return 'Le micro n\'a pas pu démarrer.';
   }
   async function demarrerEnregistrement() {
@@ -4455,7 +4458,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* « Appeler » : l'appel part avec les contacts choisis, et la feuille cède la place à l'écran d'appel (son entrée d'historique est REMPLACÉE : raccrocher revient à la liste) */
   async function appelerDepuisFeuille() {
     const G = g();
-    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
+    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisis au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
     if (etat.creation) return;
     etat.creation = true;
     effacerRefusFeuille();
@@ -4463,7 +4466,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   async function creerGroupe() {
     const G = g();
-    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisissez au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
+    if (!G.choisis.length) { $('g-compteur').textContent = 'Choisis au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
     if (etat.creation) return;
     etat.creation = true;
     const prenoms = G.choisis.map(id => prenom(contactDe(id)));
@@ -4771,9 +4774,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   const annonceAppel = t => { const r = $('annonce-appel'); r.textContent = ''; setTimeout(() => { r.textContent = t; }, 60); };
   function messageMedia(e, quoi) {
     const n = e && e.name, cam = quoi === 'camera';
-    if (n === 'NotAllowedError' || n === 'SecurityError') return cam ? 'La caméra est refusée : autorisez-la dans les réglages de votre navigateur, puis touchez Caméra.' : 'Le micro est refusé : autorisez-le dans les réglages de votre navigateur, puis touchez Micro.';
+    if (n === 'NotAllowedError' || n === 'SecurityError') return cam ? 'La caméra est refusée : autorise-la dans les réglages de ton navigateur, puis touche Caméra.' : 'Le micro est refusé : autorise-le dans les réglages de ton navigateur, puis touche Micro.';
     if (n === 'NotFoundError' || n === 'OverconstrainedError') return cam ? 'Aucune caméra n\'a été trouvée sur cet appareil.' : 'Aucun micro n\'a été trouvé sur cet appareil.';
-    if (n === 'NotReadableError' || n === 'AbortError') return (cam ? 'La caméra' : 'Le micro') + ' est utilisé' + (cam ? 'e' : '') + ' par une autre application : fermez-la, puis réessayez.';
+    if (n === 'NotReadableError' || n === 'AbortError') return (cam ? 'La caméra' : 'Le micro') + ' est utilisé' + (cam ? 'e' : '') + ' par une autre application : ferme-la, puis réessaie.';
     return cam ? 'La caméra n\'a pas pu démarrer.' : 'Le micro n\'a pas pu démarrer.';
   }
   let minAvisAppel = 0;
@@ -7890,7 +7893,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d), serie = d.repetition !== 'aucune';
     const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
     let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
-      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Vous organisez cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
+      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
       (d.annulee ? '<p class="info-erreur">Cette réunion est annulée.</p>' : '') +
       '<div class="carte">' +
         '<div class="reglage">' + icone('i-agenda') + '<span class="reglage-texte">' + esc(maj1(FMT_JOUR_LONG.format(o.debut))) + '<small>' + esc(h + (note ? ' (' + note + ')' : '')) + '</small></span></div>' +
