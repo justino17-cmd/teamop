@@ -102,7 +102,7 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
   for (const brut of m[1].split(',').map(x => x.trim().split(/\s+/)[0])) {
     liens++;
     const u = brut;
-    if (/^mailto:/.test(u)) { if (u !== 'mailto:support@teamop.fr' && u !== 'mailto:contact@teamop.fr') morts.push(c + ' → ' + u); continue; }
+    if (/^mailto:/.test(u)) { if (u !== 'mailto:contact@teamop.fr') morts.push(c + ' → ' + u); continue; }
     if (/^https?:/.test(u)) { morts.push(c + ' → adresse externe ' + u); continue; }
     const [chemin, ancre] = u.split('#');
     const sansQ = chemin.split('?')[0];
@@ -115,15 +115,16 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
 }
 vrai('population : ' + liens + ' liens et sources relus', liens > 300);
 v('aucun lien mort', morts, []);
-/* ⛔ LES DEUX ADRESSES, CHACUNE SON RÔLE — Justin, 8 octobre 2026, capture du pied de page à l'appui : « il faudrait mettre le mail de
-   contact@teamop.fr, le mail de support et pour les problèmes sur les applications ou autres ». Au pied de CHAQUE page : la colonne
-   « Contact » (l'adresse, puis ce à quoi elle sert) et la ligne du bas, qui porte les deux. */
+/* ⛔ SUR LE SITE, contact@ — ET SEULEMENT LUI. Justin, 8 octobre 2026 : « sur le site c'est toujours contact, les gens ils sont là pour nous contacter ; le
+   support, c'est là pour les applications et les problèmes qui peuvent être liés aux applications ou à la connexion de compte » — puis, capture du pied à l'appui :
+   « pourquoi tu as laissé support ». Au pied de CHAQUE page : la colonne « Contact » et la ligne du bas portent contact@ ; l'adresse du support ne paraît sur aucune. */
 {
   const piedDe = h => h.slice(h.indexOf('<footer class="pied">'), h.indexOf('</footer>'));
   const sans = CLES.filter(c => { const p = piedDe(PAGES[c]);
-    return !/<div class="contact"><b>Contact<\/b><a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><small>Une question, une demande<\/small><a href="mailto:support@teamop\.fr">support@teamop\.fr<\/a><small>Un problème d'application ou de connexion au compte<\/small><\/div>/.test(p)
-      || !/<div class="ligne">[\s\S]*<a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><a href="mailto:support@teamop\.fr">support@teamop\.fr<\/a>/.test(p); });
-  v('⛔ le pied des ' + CLES.length + ' pages : contact@ (une question, une demande) et support@ (un problème d\'application ou de connexion au compte), dans la colonne « Contact » et sur la ligne du bas', sans, []);
+    return !/<div class="contact"><b>Contact<\/b><a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><small>Une question, une demande<\/small><\/div>/.test(p)
+      || !/<div class="ligne">[\s\S]*<a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><span class="fin">/.test(p); });
+  v('⛔ le pied des ' + CLES.length + ' pages : contact@ (une question, une demande), dans la colonne « Contact » et sur la ligne du bas', sans, []);
+  v('⛔ l\'adresse du support ne paraît sur AUCUNE page du site, aperçu ou racine (ni lien, ni texte, ni JSON-LD)', CLES.filter(c => /support@/.test(PAGES[c]) || /support@/.test(GEN.page(c, { racine: true }))), []);
 }
 /* ⛔ PLUS DE FORMULE GRATUITE D'OP GESTION SUR LE SITE — Justin, 29 septembre 2026 : « je veux que l'application soit
    payante directement ». Trois formules, Pro, Business, Business Premium ; aucune carte ne mène à `?formule=gratuit`. */

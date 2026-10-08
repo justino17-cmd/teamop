@@ -28,9 +28,10 @@ mail de contact@teamop.fr, le mail de support et pour les problèmes sur les app
 · **les adresses** — au pied des 19 pages, une colonne « Contact » : contact@teamop.fr (« Une question, une demande ») et support@teamop.fr (« Un problème sur une
   application ») ; la ligne du bas porte les deux ; le JSON-LD prend contact@ pour l'organisation, support@ comme point de contact. `test-835` n'admet que ces deux `mailto`.
   ⛔ **LA RÈGLE (Justin, le même soir)** : « sur le site c'est toujours contact, les gens ils sont là pour nous contacter ; le support, c'est là pour les applications et
-  les problèmes qui peuvent être liés aux applications ou à la connexion de compte ». Donc contact@ partout sur le site — le formulaire « Créer » (`site.js`), « un contact
-  humain » de la page Pourquoi, la page de confidentialité ; support@ n'y paraît qu'avec son rôle (« Un problème d'application ou de connexion au compte », au pied ; le point
-  de contact du JSON-LD). Le portail, la connexion et la page de paiement — qui SONT le compte — gardent support@.
+  les problèmes qui peuvent être liés aux applications ou à la connexion de compte » — puis, capture du pied à l'appui : « pourquoi tu as laissé support », et, capture du
+  portail : « ici tu la laisses, et dans les profils compte aussi ». Donc : **SUR LE SITE, contact@ SEUL** — pied des 19 pages, formulaire « Créer » (`site.js`), page
+  Pourquoi, page de confidentialité, JSON-LD (`test-835` refuse tout autre `mailto` et toute mention de support@ sur les pages du site) ; **support@ RESTE** sur l'espace
+  client (portail), la connexion, la page de paiement et dans les profils de compte des applications.
 · **« Ajouter du contenu aux pages » (414 mots, 500 recommandés)** — l'accueil a deux rangées de cartes, « Ce que fait OP GESTION. » et « Pensé pour votre métier. », vers
   chaque page par fonction et par métier ; leurs phrases SONT les descriptions de ces pages (relues dans app.html le 29 septembre), aucune promesse neuve. Contenu de
   l'accueil : 181 → 493 mots (`test-846`, ≥ 450) ; la page entière : 502 → 827 à notre compte (IONOS en comptait 414 quand nous en comptions 502).

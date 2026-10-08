@@ -99,9 +99,8 @@ console.log('\n══ 3. LE JSON-LD DE L\'ACCUEIL ══\n');
   v('   l\'organisation : TEAM OP, son adresse, son logo (qui existe), son fondateur, son courriel',
     [de('Organization').name, de('Organization').url, existe(fichierDe(de('Organization').logo || '') || '-'), (de('Organization').founder || {}).name, de('Organization').email],
     ['TEAM OP', SITE, true, 'Justin Biret', 'contact@teamop.fr']);
-  /* Justin, 8 octobre 2026 : contact@ pour une question ou une demande, support@ pour un problème sur une application */
-  v('   ⛔ son adresse est celle du CONTACT, et le support est un point de contact à part', (de('Organization').contactPoint || []).map(p => [p['@type'], p.contactType, p.email]),
-    [['ContactPoint', 'customer support', 'support@teamop.fr']]);
+  /* Justin, 8 octobre 2026 : « sur le site c'est toujours contact » — le support vit dans les applications, pas sur le site */
+  v('   ⛔ son adresse est celle du CONTACT, sans autre point de contact (le support vit dans les applications)', de('Organization').contactPoint, undefined);
   v('   le site : en français, publié par l\'organisation', [de('WebSite').inLanguage, (de('WebSite').publisher || {})['@id']], ['fr-FR', de('Organization')['@id']]);
   const app = de('SoftwareApplication');
   v('   l\'application : OP GESTION, sa page (qui existe)', [app.name, existe(fichierDe(app.url || '') || '-')], ['OP GESTION', true]);

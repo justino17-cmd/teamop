@@ -147,16 +147,15 @@ function entete(section, sousnav) {
   </header><div class="voile" aria-hidden="true"></div>${sn}`;
 }
 
-/* ⛔ SUR LE SITE, C'EST TOUJOURS contact@ (Justin, 8 octobre 2026 : « sur le site c'est toujours contact, les gens ils sont là pour nous contacter ; le support,
-   c'est là pour les applications et les problèmes qui peuvent être liés aux applications ou à la connexion de compte »). support@ ne paraît qu'avec ce rôle-là
-   (le pied de page, le point de contact du JSON-LD) ; le portail, la connexion et la page de paiement, qui SONT le compte, gardent le leur. */
-const CONTACTS = [['contact@teamop.fr', 'Une question, une demande'], ['support@teamop.fr', 'Un problème d\'application ou de connexion au compte']];
+/* ⛔ SUR LE SITE, C'EST TOUJOURS contact@ — ET SEULEMENT LUI (Justin, 8 octobre 2026 : « sur le site c'est toujours contact, les gens ils sont là pour nous contacter ;
+   le support, c'est là pour les applications et les problèmes qui peuvent être liés aux applications ou à la connexion de compte » ; puis, capture du pied à l'appui :
+   « pourquoi tu as laissé support »). L'adresse du support ne paraît sur AUCUNE page du site, ni au pied, ni dans le JSON-LD ; elle vit dans les applications, le
+   portail, la connexion et la page de paiement — qui SONT le compte. `test-835` refuse tout autre `mailto` que contact@ sur les pages du site. */
+const CONTACTS = [['contact@teamop.fr', 'Une question, une demande']];
 function pied() {
   const cols = [['Applications', VOLETS.applications], ['Métiers', VOLETS.metiers], ['Tarifs', VOLETS.tarifs]].map(([t, v]) => `<div><b>${t}</b>` + v.grands.concat(v.petits).map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + '</div>').join('')
     + '<div><b>TEAM OP</b>' + VOLETS.pourquoi.grands.map(l => `<a href="${l.href}">${esc(l.label)}</a>`).join('') + `<a href="${ESPACE()}">Espace client</a><a href="${CONNEXION()}">Se connecter</a></div>`
-    /* ⛔ DEUX ADRESSES, CHACUNE SON RÔLE (Justin, 8 octobre 2026, capture du pied de page à l'appui : « il faudrait mettre le mail de
-       contact@teamop.fr, le mail de support et pour les problèmes sur les applications ou autres ») : contact@ pour une question ou une
-       demande, support@ pour un problème sur une application. `test-835` § 4 n'admet que ces deux-là, et les exige au pied de chaque page. */
+    /* ⛔ LA COLONNE « Contact » : contact@ seul (voir `CONTACTS`) — `test-835` § 4 l'exige au pied de chaque page, et rien d'autre. */
     + `<div class="contact"><b>Contact</b>${CONTACTS.map(([m, r]) => `<a href="mailto:${m}">${m}</a><small>${fr(r)}</small>`).join('')}</div>`;
   return `<footer class="pied"><div class="pied-in"><div class="cols">${cols}</div>
     <p>TEAM OP est une plateforme française d'applications métier pour les entreprises de terrain. Fondée et développée par Justin Biret. Prix TTC, sans engagement.</p>
@@ -659,8 +658,7 @@ const IMAGE_PARTAGE = { url: SITE_URL + 'vitrine/v2/captures/partage-tableau-jou
   alt: 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration' };
 const JSONLD = () => JSON.stringify({ '@context': 'https://schema.org', '@graph': [
   { '@type': 'Organization', '@id': SITE_URL + '#organisation', name: 'TEAM OP', url: SITE_URL, logo: SITE_URL + 'icons/teamop-192.png',
-    founder: { '@type': 'Person', name: 'Justin Biret' }, email: CONTACTS[0][0], areaServed: 'FR',
-    contactPoint: [{ '@type': 'ContactPoint', contactType: 'customer support', email: CONTACTS[1][0], availableLanguage: 'French' }] },
+    founder: { '@type': 'Person', name: 'Justin Biret' }, email: CONTACTS[0][0], areaServed: 'FR' },
   { '@type': 'WebSite', '@id': SITE_URL + '#site', url: SITE_URL, name: 'TEAM OP', inLanguage: 'fr-FR', publisher: { '@id': SITE_URL + '#organisation' } },
   { '@type': 'SoftwareApplication', name: 'OP GESTION', applicationCategory: 'BusinessApplication', operatingSystem: 'iOS, Android, macOS, Windows, Web',
     description: 'Gestion tout-en-un pour entreprises de terrain : interventions, stock, encaissements, comptabilité.', url: SITE_URL + 'elan.html',
