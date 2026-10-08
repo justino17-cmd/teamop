@@ -9,7 +9,8 @@
    3. les places et les prix sont ceux de l'APPLICATION (`PLANS` d'app.html) — la FAQ d'avant disait
       « 3 en Business, 5 en Business Premium » pendant que les cartes disaient 2 et 3 ;
    4. chaque lien mène quelque part (fichier du dépôt, ancre présente) ; aucun `mailto` ailleurs que
-      support@ ; aucune adresse externe ;
+      contact@ et support@ — et le pied de CHAQUE page porte les deux, chacune avec son rôle (Justin, 8 octobre 2026) ;
+      aucune adresse externe ;
    5. chaque écran d'appareil a sa version jour ET nuit, et l'image existe ;
    6. aucun bouton de mode (le site suit le système, sans bouton — THEME.md § 0, et Justin le 29 septembre 2026) ;
    7. OP MESSAGES : « Bientôt disponible », aucune formule ne se choisit ;
@@ -101,7 +102,7 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
   for (const brut of m[1].split(',').map(x => x.trim().split(/\s+/)[0])) {
     liens++;
     const u = brut;
-    if (/^mailto:/.test(u)) { if (u !== 'mailto:support@teamop.fr') morts.push(c + ' → ' + u); continue; }
+    if (/^mailto:/.test(u)) { if (u !== 'mailto:support@teamop.fr' && u !== 'mailto:contact@teamop.fr') morts.push(c + ' → ' + u); continue; }
     if (/^https?:/.test(u)) { morts.push(c + ' → adresse externe ' + u); continue; }
     const [chemin, ancre] = u.split('#');
     const sansQ = chemin.split('?')[0];
@@ -114,6 +115,16 @@ for (const c of CLES) for (const m of PAGES[c].matchAll(/\s(?:href|src|srcset)="
 }
 vrai('population : ' + liens + ' liens et sources relus', liens > 300);
 v('aucun lien mort', morts, []);
+/* ⛔ LES DEUX ADRESSES, CHACUNE SON RÔLE — Justin, 8 octobre 2026, capture du pied de page à l'appui : « il faudrait mettre le mail de
+   contact@teamop.fr, le mail de support et pour les problèmes sur les applications ou autres ». Au pied de CHAQUE page : la colonne
+   « Contact » (l'adresse, puis ce à quoi elle sert) et la ligne du bas, qui porte les deux. */
+{
+  const piedDe = h => h.slice(h.indexOf('<footer class="pied">'), h.indexOf('</footer>'));
+  const sans = CLES.filter(c => { const p = piedDe(PAGES[c]);
+    return !/<div class="contact"><b>Contact<\/b><a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><small>Une question, une demande<\/small><a href="mailto:support@teamop\.fr">support@teamop\.fr<\/a><small>Un problème sur une application<\/small><\/div>/.test(p)
+      || !/<div class="ligne">[\s\S]*<a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><a href="mailto:support@teamop\.fr">support@teamop\.fr<\/a>/.test(p); });
+  v('⛔ le pied des ' + CLES.length + ' pages : contact@ (une question, une demande) et support@ (un problème sur une application), dans la colonne « Contact » et sur la ligne du bas', sans, []);
+}
 /* ⛔ PLUS DE FORMULE GRATUITE D'OP GESTION SUR LE SITE — Justin, 29 septembre 2026 : « je veux que l'application soit
    payante directement ». Trois formules, Pro, Business, Business Premium ; aucune carte ne mène à `?formule=gratuit`. */
 v('⛔ les formules d\'OP GESTION du site : Pro, Business, Business Premium — aucune gratuite', [GEN.FORMULES_GESTION.map(f => f.cle), GEN.FORMULES_GESTION.filter(f => +f.prix === 0).length], [['pro', 'business', 'premium'], 0]);

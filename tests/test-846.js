@@ -98,13 +98,27 @@ console.log('\n══ 3. LE JSON-LD DE L\'ACCUEIL ══\n');
   const g = (j && j['@graph']) || [], de = t => g.find(x => x['@type'] === t) || {};
   v('   l\'organisation : TEAM OP, son adresse, son logo (qui existe), son fondateur, son courriel',
     [de('Organization').name, de('Organization').url, existe(fichierDe(de('Organization').logo || '') || '-'), (de('Organization').founder || {}).name, de('Organization').email],
-    ['TEAM OP', SITE, true, 'Justin Biret', 'support@teamop.fr']);
+    ['TEAM OP', SITE, true, 'Justin Biret', 'contact@teamop.fr']);
+  /* Justin, 8 octobre 2026 : contact@ pour une question ou une demande, support@ pour un problème sur une application */
+  v('   ⛔ son adresse est celle du CONTACT, et le support est un point de contact à part', (de('Organization').contactPoint || []).map(p => [p['@type'], p.contactType, p.email]),
+    [['ContactPoint', 'customer support', 'support@teamop.fr']]);
   v('   le site : en français, publié par l\'organisation', [de('WebSite').inLanguage, (de('WebSite').publisher || {})['@id']], ['fr-FR', de('Organization')['@id']]);
   const app = de('SoftwareApplication');
   v('   l\'application : OP GESTION, sa page (qui existe)', [app.name, existe(fichierDe(app.url || '') || '-')], ['OP GESTION', true]);
   v('   ⛔ ses offres sont celles de la page Tarifs (FORMULES_GESTION) — noms et prix, en euros',
     (app.offers || []).map(o => [o['@type'], o.name, o.price, o.priceCurrency]), GEN.FORMULES_GESTION.map(f => ['Offer', f.nom, f.prix, 'EUR']));
   v('   (population) trois formules, aucune gratuite (Justin, 29 septembre 2026 : « je veux que l\'application soit payante directement »)', [(app.offers || []).length, (app.offers || []).filter(o => +o.price === 0).length], [3, 0]);
+}
+
+/* ⛔ L'ACCUEIL A DE QUOI ÊTRE LU — Justin, 8 octobre 2026, avec l'analyse de site d'IONOS (« votre page d'accueil dispose de peu de contenu
+   avec 414 mots ; 500 mots au moins sont recommandés »). Compté comme les pages métier (le seul `<main>`) : 181 mots avant les cartes
+   des fonctions et des métiers, dont les liens mènent chacun à sa page. */
+{
+  const s = lire('index.html'), main = s.slice(s.indexOf('<main>'), s.indexOf('</main>'));
+  const mots = main.replace(/<script[\s\S]*?<\/script>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/&[a-z#0-9]+;/gi, ' ').split(/\s+/).filter(w => /[a-zà-ÿ0-9]/i.test(w)).length;
+  vrai('l\'accueil : 450 mots au moins dans son contenu, menus et pied à part (' + mots + ') — l\'outil d\'IONOS, qui compte la page entière, en demande 500', mots >= 450);
+  const vers = [...main.matchAll(/<a class="teaser" href="(logiciel-[a-z-]+)\.html">/g)].map(m => m[1]);
+  v('   il mène à CHAQUE page par fonction et par métier (une carte chacune)', vers.slice().sort(), CLES.filter(c => c.startsWith('logiciel-')).sort());
 }
 
 console.log('\n══ 4. LES CINQ PAGES MÉTIER ══\n');

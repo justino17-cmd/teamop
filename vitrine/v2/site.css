@@ -168,6 +168,11 @@ h1, h2, h3 { text-wrap: balance; }
 .teaser b { font-size: 21px; font-weight: 600; letter-spacing: -.018em; }
 .teaser span.t { font-size: 15px; line-height: 1.5; color: var(--sub); flex: 1; }
 .teaser span.l { font-size: 15px; color: var(--link); }
+/* l'accueil : les fonctions et les métiers — la carte des teasers, plus serrée et sans hauteur imposée ; le chevron dit « c'est un lien » */
+.teasers.compacts { margin-top: 0; }
+.teasers.compacts .teaser { min-height: 0; padding: 22px 22px 24px; gap: 9px; }
+.teasers.compacts .teaser b { font-size: 18px; letter-spacing: -.014em; }
+.teasers.compacts .teaser b::after { content: " ›"; color: var(--link); font-weight: 500; }
 @media (max-width: 900px) { .teasers { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media (max-width: 560px) { .teasers { grid-template-columns: minmax(0,1fr); } }
 
@@ -426,6 +431,8 @@ h1, h2, h3 { text-wrap: balance; }
 .pied .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px,1fr)); gap: 24px; padding: 14px 0 18px; border-bottom: 1px solid var(--line); }
 .pied .cols div { display: flex; flex-direction: column; gap: 9px; }
 .pied .cols b { font-size: 12px; font-weight: 600; color: var(--text); }
+.pied .cols .contact small { margin-top: -6px; font-size: 12px; line-height: 1.35; color: var(--sub); }
+.pied .cols .contact a { overflow-wrap: anywhere; }
 .pied .cols a { font-size: 12px; color: var(--sub); padding: 2px 0; }
 .pied p { margin: 0; line-height: 1.5; max-width: 720px; }
 .pied .ligne { border-top: 1px solid var(--line); padding-top: 12px; display: flex; flex-wrap: wrap; gap: 8px 0; align-items: center; }
@@ -444,6 +451,7 @@ h1, h2, h3 { text-wrap: balance; }
   .besoin, .segment button { min-height: 44px; }
   .formule .cta { padding: 12px 0; }
   .pied .cols div { gap: 0; }
+  .pied .cols .contact small { margin: -8px 0 4px; }
   .pied .cols a, .pied .ligne a { display: flex; align-items: center; min-height: 44px; padding: 0; }
   .pied .ligne a { padding: 0 12px; }
   .menu-mobile a { padding: 8px 0; }
