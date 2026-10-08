@@ -51,7 +51,7 @@
 # 7 octobre 2026, fin de soirée : l'invitation à écrire (928), le tableau de bord, les votants — 79 suites, 8 613 vérifications mesurées par la commande de la porte (test-971 tombe
 # en local sur la base de fuseaux 2025b, avec son total complet) — plancher 8599 (le total moins 14).
 # 7 octobre 2026, tard : Perso / Pro (929 : le côté de chaque conversation, rangé à la main ou automatique, et la préférence du compte) — 80 suites, plancher relevé de 26.
-#plancher 8625
+#plancher 8650
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
