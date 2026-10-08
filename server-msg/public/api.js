@@ -562,6 +562,8 @@
       programmer: (champs) => appel('POST', '/api/reunions', champs),
       reunion: (id) => appel('GET', '/api/reunions/' + e(id)),
       modifierReunion: (id, champs) => appel('POST', '/api/reunions/' + e(id) + '/modifier', champs),
+      /* l'ordre du jour : cocher ou décocher un point (un participant, 8 octobre 2026) → la liste à jour */
+      cocherPoint: async (id, point, fait) => (await appel('POST', '/api/reunions/' + e(id) + '/ordre-du-jour', { point, fait })).ordre_du_jour,
       annulerReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/annuler'),
       supprimerReunion: (id, o2) => appel('POST', '/api/reunions/' + e(id) + '/supprimer', o2 || {}),
       inviterReunion: (id, uids, o2) => appel('POST', '/api/reunions/' + e(id) + '/inviter', Object.assign({ uids }, o2 || {})),

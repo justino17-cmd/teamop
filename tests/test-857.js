@@ -402,6 +402,33 @@ async function controler(PAGE, SRC, DOC) {
         && /mentionsVues\(id\);/.test(JS) && /if \(r4\.status === 'fulfilled'\) \{ bord\.mentions = r4\.value; mentionsSynchro\(\); \}/.test(JS)
         && /if \(ev\.nature === 'mention'\) surMention\(ev\);/.test(JS) && /if \(etat\.conv\) remplacer\(r\); else pousser\(r\);\s*return;\s*\}/.test(JS));
   }
+  /* L'ORDRE DU JOUR ET LE COMPTE RENDU (8 octobre 2026) — le service les tient (test-938) ; la page les pose, les coche et dessine la carte. La VRAIE `htmlCompteRendu`, EXÉCUTÉE : ce qu'elle écrit, échappé */
+  {
+    const iC = JS.indexOf('const REPONSE_CR'), fC = JS.indexOf('function htmlSondage(m, sens)');
+    vrai('(population) le compte rendu : sa carte est trouvée dans la page (' + (fC - iC) + ' caractères)', iC > 0 && fC > iC + 800);
+    let cr = null;
+    try {
+      const defs = ['const esc = ', 'const icone = ', 'const maj1 = ', 'const FMT_HEURE = ', 'const FMT_JOUR_LONG = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
+      const ctx = { console }; vm.createContext(ctx);
+      vm.runInContext(defs + '\n' + JS.slice(iC, fC) + '\nthis.f = htmlCompteRendu;', ctx, { timeout: 2000 });
+      cr = ctx.f;
+    } catch (e) { cr = null; }
+    vrai('la fonction `htmlCompteRendu` de la page s\'exécute dans un bac à sable', typeof cr === 'function');
+    if (typeof cr === 'function') {
+      const x = { titre: 'Revue <b>QX</b>', debut: Date.UTC(2026, 9, 8, 8, 0), fin: Date.UTC(2026, 9, 8, 8, 45), dureeS: 2700, presents: [{ id: 'p1', nom: 'Ana <img src=x onerror=alert(1)>', dureeS: 2700 }, { id: 'p2', nom: 'Ben', dureeS: 600 }], presentsN: 3,
+        absents: [{ id: 'p3', nom: 'Cléo', reponse: 'decline' }], absentsN: 1, points: [{ texte: 'Budget & <i>coûts</i>', fait: true }, { texte: 'Planning', fait: false }], documents: 2 };
+      const h = cr({ compteRendu: x }, 'recue');
+      vrai('⛔ la carte : titre, noms et points ÉCHAPPÉS (aucune balise du service ne s\'ouvre) ; « Présents (3) » avec « et 1 autres », le temps de chacun ; l\'absente et sa réponse ; « Ordre du jour · 1 / 2 » ; « 2 documents partagés »',
+        !/<b>QX|<img|<i>coûts/.test(h) && h.includes('Revue &lt;b&gt;QX&lt;/b&gt;') && h.includes('Budget &amp; &lt;i&gt;coûts&lt;/i&gt;') && h.includes('Présents (3)') && h.includes('et 1 autres') && h.includes('45 min') && h.includes('10 min')
+          && h.includes('Cléo') && h.includes('a décliné') && h.includes('Ordre du jour · 1 / 2') && (h.match(/class="evt-rond plein"/g) || []).length === 1 && h.includes('2 documents partagés') && /role="group" aria-label="Compte rendu : Revue &lt;b&gt;QX/.test(h), h.slice(0, 400));
+      const h2 = cr({ compteRendu: Object.assign({}, x, { absents: [], absentsN: 0, points: [], documents: 0 }) }, 'envoyee');
+      vrai('sans absent, sans ordre du jour, sans document : ces rubriques ne paraissent pas (rien de vide n\'est écrit)', !/Absents|Ordre du jour|document/.test(h2) && h2.includes('Présents (3)'));
+    }
+    vrai('l\'ordre du jour se POSE dans le formulaire (une ligne = un point, vingt et 200 signes dits AVANT de partir ; seulement s\'il a changé, en modifiant), se COCHE dans la fiche et dans la salle (le panneau « Ordre du jour » de « Plus »), et la salle le relit quand la réunion change',
+      /<textarea id="rf-odj"/.test(JS) && /if \(odj\.length > 20\) \{ erreurInfo\(/.test(JS) && /ordre_du_jour: odj \};/.test(JS) && /if \(JSON\.stringify\(c\.ordre_du_jour\) !== JSON\.stringify\(I\.odj\)\) ch\.ordre_du_jour = c\.ordre_du_jour;/.test(JS)
+        && /data-reu="odj" data-point="/.test(JS) && /else if \(act === 'odj'\) \{/.test(JS) && /case 'ordre': X\.panneau = 'ordre';/.test(JS) && /case 'odj': \{/.test(JS) && /X\.odj = await source\.cocherPoint\(s\.reunion, p\.id, fait\);/.test(JS)
+        && /if \(enSalle\(A\) && sx\(A\)\.panneau === 'ordre' && A\.snap && \(!ev\.id \|\| ev\.id === A\.snap\.reunion\)\) salleOrdreCharger\(A\);/.test(JS) && /\} else if \(m\.compteRendu && !m\.supprime\) \{\s*h \+= htmlCompteRendu\(m, sens\);/.test(JS));
+  }
   /* « NE PAS DÉRANGER PENDANT UNE RÉUNION » (8 octobre 2026) — le service retient et résume (test-937) ; la page montre « En réunion » et porte l'interrupteur */
   vrai('⛔ « Ne pas déranger pendant une réunion » : la pastille « En réunion » (rouge barrée) passe devant « En ligne », les mots aussi (partout par `presenceTexte`) ; l\'interrupteur « Pause pendant les réunions » est un réglage du COMPTE ; pas de bannière sur l\'écran d\'un appel',
     /\(c\.enReunion \? '<i class="presence reunion" title="En réunion"><\/i>' : c\.enLigne \? '<i class="presence" title="En ligne"><\/i>' : ''\)/.test(JS) && /const presenceTexte = p => p && p\.enReunion \? 'En réunion' : p && p\.enLigne \? 'En ligne' : '';/.test(JS)

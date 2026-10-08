@@ -2016,6 +2016,14 @@
       if (x.k === 'contact' && x.uid === null) return { carteContact: { uid: null, indisponible: true, prenom: 'Contact', identifiant: null, moi: false, contact: false, avatar: 0, initiales: '?' } };
       if (x.k === 'contact' && typeof x.uid === 'string') return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact: contactsApi.some(k => k.id === x.uid), avatar: indexAvatar(x.uid), initiales: initialesDe(x.prenom || '?') } };
       if (x.k === 'sondage') return { sondage: vueSondage(conv, m.seq, x.q) };
+      /* le COMPTE RENDU d'une séance (8 octobre 2026) : rédigé par le service à « Terminer pour tous » — chaque champ relu, rien d'autre ne passe */
+      if (x.k === 'compte_rendu') {
+        const ent = (n) => Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0, txt = (s, max) => typeof s === 'string' ? s.slice(0, max) : '';
+        return { compteRendu: { titre: txt(x.titre, 120) || 'Réunion', debut: ent(x.debut), fin: ent(x.fin), dureeS: ent(x.duree_s),
+          presents: (Array.isArray(x.presents) ? x.presents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', dureeS: ent(p && p.duree_s) })), presentsN: ent(x.presents_n),
+          absents: (Array.isArray(x.absents) ? x.absents : []).slice(0, 30).map(p => ({ id: txt(p && p.id, 40), nom: txt(p && p.nom, 120) || 'Compte supprimé', reponse: STATUTS_INVITE.indexOf(p && p.reponse) >= 0 ? p.reponse : 'attente' })), absentsN: ent(x.absents_n),
+          points: (Array.isArray(x.points) ? x.points : []).slice(0, 20).map(p => ({ texte: txt(p && p.texte, 200), fait: !!(p && p.fait === true) })), documents: ent(x.documents) } };
+      }
       return null;
     }
     function vueMessage(conv, c, m, auto) {
@@ -3194,10 +3202,15 @@
         salle: d.salle ? { rejoignable: d.salle.rejoignable === true, ouverte: d.salle.ouverte === true, occurrence: d.salle.occurrence ? { debut: d.salle.occurrence.debut, fin: d.salle.occurrence.fin } : null } : { rejoignable: false, ouverte: false, occurrence: null },
         moi: vueMoiReunion(d.moi), invites: (d.invites || []).map((p) => ({ id: p.id, statut: statutInvite(p.statut), hote: !!p.hote })), prochaine: d.prochaine ? { debut: d.prochaine.debut, fin: d.prochaine.fin } : null,
         /* le nombre de personnes que CETTE réunion peut compter, organisateur compris : celui du service (`null` quand il ne le dit pas) */
-        plafond: Number.isInteger(d.plafond) && d.plafond >= 2 ? d.plafond : null });
+        plafond: Number.isInteger(d.plafond) && d.plafond >= 2 ? d.plafond : null,
+        /* l'ordre du jour (8 octobre 2026) : des points cochables — identifiant, texte, coché */
+        ordreDuJour: vueOdj(d.reunion && d.reunion.ordre_du_jour) });
     }
+    const vueOdj = (l) => (Array.isArray(l) ? l : []).filter(p => p && typeof p.id === 'string' && /^[0-9a-f]{8}$/.test(p.id) && typeof p.texte === 'string').slice(0, 20).map(p => ({ id: p.id, texte: p.texte, fait: p.fait === true }));
+    /* cocher ou décocher un point de l'ordre du jour → la liste à jour (et l'agenda, la fiche, la salle se relisent) */
+    async function cocherPoint(id, point, fait) { const l = vueOdj(await pourReunion(A.cocherPoint(id, point, fait === true))); reunionChangee(id); return l; }
     /* ce que la page peut dire d'une réunion : rien d'autre ne part (ni hôte, ni identifiant, ni version) */
-    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente'];
+    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente', 'ordre_du_jour'];
     const corpsReunion = (champs) => { const c = {}; for (const k of CHAMPS_REUNION) if (champs && champs[k] !== undefined) c[k] = champs[k]; return c; };
     const reunionChangee = (id, supprime) => { emettre({ type: 'reunions', id: id || null, supprime: !!supprime }); relireListePlusTard(); };
     async function programmer(champs) {
@@ -3352,7 +3365,7 @@
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
       persoPlus, persoPlusPayer, persoPlusPortail, persoPlusRelire,   // le forfait d'une PERSONNE (capacité `persoPlus`)
       /* ── les réunions programmées (capacité `reunions`) ── */
-      reunions, reunion, programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
+      reunions, reunion, programmer, modifierReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */
       appels: listeAppels,
       demarrerAppel,

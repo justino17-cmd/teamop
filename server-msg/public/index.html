@@ -1841,6 +1841,31 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .evt-coche[aria-pressed="true"] .evt-rond, .evt-rond.plein { background: var(--accent); border-color: var(--accent); color: #fff; }
 .evenement-ligne.fait .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
 .evt-gestes { margin-bottom: 16px; }
+/* L'ORDRE DU JOUR (8 octobre 2026) : un point = une ligne cochable, le rond des rappels ; un point traité est barré */
+.odj-point .evt-rond { flex: none; }
+.odj-point.fait .reglage-texte { text-decoration: line-through; color: var(--sub-meta); }
+.salle-rang.odj .evt-rond { flex: none; border-color: var(--salle-sub); }
+.salle-rang.odj[aria-checked="true"] .evt-rond { background: #fff; border-color: #fff; color: #111; }
+.salle-rang.odj[aria-checked="true"] .evt-rond .ic { opacity: 1; }
+.salle-rang.odj[aria-checked="true"] .texte { text-decoration: line-through; opacity: .7; }
+/* LE COMPTE RENDU d'une séance : une carte comme un sondage (l'encre et le fond de la bulle) — les rubriques, les listes, l'ordre du jour coché */
+.compte-rendu .cr-tete { display: flex; align-items: center; gap: 10px; }
+.compte-rendu .cr-tete .ic { flex: none; width: 22px; height: 22px; }
+.compte-rendu .cr-tete b { display: block; font-size: 13px; line-height: 17px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; opacity: .8; }
+.cr-titre { display: block; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.cr-quand { margin: 0; font-size: 13px; line-height: 17px; opacity: .85; font-variant-numeric: tabular-nums; }
+.cr-rub { margin: 0; font-size: 13px; line-height: 17px; font-weight: 600; opacity: .85; }
+.cr-liste { margin: -4px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; font-size: 15px; line-height: 20px; }
+.cr-liste li { display: flex; align-items: baseline; gap: 8px; overflow-wrap: anywhere; }
+.cr-liste small { margin-left: auto; font-size: 13px; opacity: .75; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.cr-points li { align-items: center; }
+.cr-points .evt-rond { flex: none; width: 18px; height: 18px; border-color: currentColor; }
+.cr-points .evt-rond .ic { width: 12px; height: 12px; }
+.cr-points .evt-rond.plein { background: currentColor; border-color: currentColor; }
+.cr-points .evt-rond.plein .ic { color: var(--solide); }
+.cr-points li.fait { opacity: .8; }
+.cr-docs { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; opacity: .85; }
+.cr-docs .ic { width: 16px; height: 16px; }
 .evt-gestes .reglage .evt-rond { flex: none; }
 .evt-reporter { flex-wrap: wrap; row-gap: 8px; }
 .evt-reporter-choix { display: flex; flex-wrap: wrap; gap: 8px; }

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3367554f0f1c';
+  const OPMSG_BUILD = 'e643ff10f7d6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 129;
+  const OPMSG_VERSION = 130;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -520,6 +520,8 @@
       h += htmlCarteFiche(m, sens);
     } else if (m.sondage && !m.supprime) {
       h += htmlSondage(m, sens);
+    } else if (m.compteRendu && !m.supprime) {
+      h += htmlCompteRendu(m, sens);
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
@@ -586,6 +588,23 @@
   const avatarVotant = (uid, court) => { const c = (uid === (MOI && MOI.id) ? MOI : contactDe(uid)) || { initiales: '?', avatar: 0 }; return avatar(court ? Object.assign({}, c, { initiales: Array.from(c.initiales || '?')[0] }) : c); };   // `court` : une seule initiale, pour les bulles empilées de 24 px
   const nomVotant = (uid, repli) => uid === (MOI && MOI.id) ? 'Vous' : ((contactDe(uid) || {}).nom || repli || 'Quelqu\'un');
   function quiTexte(l) { const n = l.filter(Boolean); return n.length > 3 ? n.slice(0, 3).join(', ') + ' et ' + (n.length - 3) + ' autre' + (n.length - 3 > 1 ? 's' : '') : n.join(', '); }
+  /* LE COMPTE RENDU d'une séance (8 octobre 2026 : « un compte rendu automatique à la fin de la réunion ») : rédigé par le service à « Terminer pour tous » — le jour, la durée, les présents (et leur
+     temps), les absents (et leur réponse), l'ordre du jour coché ou non, les documents partagés. Une carte, comme un sondage ; tout y est échappé. */
+  const REPONSE_CR = { accepte: 'a accepté', decline: 'a décliné', peutetre: 'peut-être', attente: 'sans réponse' };
+  const dureeCr = s => { const mn = Math.max(1, Math.round(s / 60)); return mn < 60 ? mn + ' min' : Math.floor(mn / 60) + ' h' + (mn % 60 ? ' ' + String(mn % 60).padStart(2, '0') : ''); };
+  function htmlCompteRendu(m, sens) {
+    const x = m.compteRendu, quand = x.debut ? maj1(FMT_JOUR_LONG.format(x.debut)) + ' · ' + FMT_HEURE.format(x.debut) + (x.fin ? '–' + FMT_HEURE.format(x.fin) : '') + (x.dureeS ? ' · ' + dureeCr(x.dureeS) : '') : '';
+    const liste = (l, n, droite) => '<ul class="cr-liste">' + l.map(p => '<li><span dir="auto">' + esc(p.nom) + '</span><small>' + esc(droite(p)) + '</small></li>').join('') + (n > l.length ? '<li>et ' + (n - l.length) + ' autres</li>' : '') + '</ul>';
+    let h = '<span class="carte-msg compte-rendu ' + sens + '" role="group" aria-label="' + esc('Compte rendu : ' + x.titre) + '">' +
+      '<span class="cr-tete">' + icone('i-agenda') + '<span><b>Compte rendu</b><span class="cr-titre" dir="auto">' + esc(x.titre) + '</span></span></span>' +
+      (quand ? '<span class="cr-quand">' + esc(quand) + '</span>' : '') +
+      '<span class="cr-rub">Présents (' + x.presentsN + ')</span>' + liste(x.presents, x.presentsN, p => dureeCr(p.dureeS));
+    if (x.absentsN) h += '<span class="cr-rub">Absents (' + x.absentsN + ')</span>' + liste(x.absents, x.absentsN, p => REPONSE_CR[p.reponse] || 'sans réponse');
+    if (x.points.length) h += '<span class="cr-rub">Ordre du jour · ' + x.points.filter(p => p.fait).length + ' / ' + x.points.length + '</span><ul class="cr-liste cr-points">' +
+      x.points.map(p => '<li' + (p.fait ? ' class="fait"' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span dir="auto">' + esc(p.texte) + '</span><span class="sr-seul">' + (p.fait ? ', traité' : ', pas traité') + '</span></li>').join('') + '</ul>';
+    if (x.documents) h += '<span class="cr-docs">' + icone('i-fichier') + esc(x.documents > 1 ? x.documents + ' documents partagés' : 'Un document partagé') + '</span>';
+    return h + '</span>';
+  }
   function htmlSondage(m, sens) {
     const s = m.sondage;
     let h = '<span class="carte-msg sondage ' + sens + '" role="group" aria-label="Sondage : ' + esc(s.q) + '"' + (s.regles && s.regles.multiple ? ' data-multiple="1"' : '') + '>' +
@@ -4958,6 +4977,7 @@
   /* un changement venu du service (ici ou sur un autre appareil) : l'agenda se relit, la fiche ouverte aussi — une réunion supprimée ferme sa fiche */
   function surReunions(ev) {
     if (!CAP.reunions) return;
+    { const A = etat.appelUI; if (enSalle(A) && sx(A).panneau === 'ordre' && A.snap && (!ev.id || ev.id === A.snap.reunion)) salleOrdreCharger(A); }
     if (etat.route && etat.route.vue === 'reunions') chargerReunions(); else reu.charge = false;
     const G = etat.groupe;
     if (G.ouvert && G.mode === 'reunion' && (!ev.id || ev.id === G.reunionId)) {
@@ -5365,6 +5385,9 @@
       if (d.salle.rejoignable) s += '<div class="carte carte-pad"><div class="info-actions"><button type="button" class="mini" data-reu="rejoindre" data-type="video">' + icone('i-video') + ' Rejoindre</button><button type="button" class="mini" data-reu="rejoindre" data-type="audio">' + icone('i-phone') + ' Rejoindre en audio</button></div>' + (d.salle.ouverte ? '<p class="info-note">La salle est ouverte.</p>' : '') + '</div>';
       else s += '<div class="carte carte-pad"><p class="info-note">La salle s\'ouvre peu avant le début de la réunion.</p></div>';
     }
+    /* l'ordre du jour (8 octobre 2026) : chacun le coche ; l'organisateur le pose dans « Modifier la réunion » */
+    if (d.ordreDuJour && d.ordreDuJour.length) s += '<div class="rubrique"><span>Ordre du jour</span><span>' + d.ordreDuJour.filter(p => p.fait).length + ' / ' + d.ordreDuJour.length + '</span></div><div class="carte" role="group" aria-label="Ordre du jour">' +
+      d.ordreDuJour.map(p => '<button type="button" class="reglage presse odj-point' + (p.fait ? ' fait' : '') + '" role="checkbox" aria-checked="' + (p.fait ? 'true' : 'false') + '" data-reu="odj" data-point="' + esc(p.id) + '"' + (d.annulee ? ' disabled' : '') + '><span class="evt-rond' + (p.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span class="reglage-texte" dir="auto">' + esc(p.texte) + '</span></button>').join('') + '</div>';
     /* ma réponse (un invité, une réunion qui vit encore) */
     if (!hote && !d.annulee) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
       STATUTS_REPONSE.map(x => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (d.moi.statut === x[0] ? 'true' : 'false') + '" data-reu="reponse" data-statut="' + x[0] + '">' + esc(x[1]) + '</button>').join('') + '</div>';
@@ -5457,7 +5480,7 @@
     }
     if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
     const sig = JSON.stringify([d, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; })]);
-    const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || '') : null;
+    const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || actif.dataset.point || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
     const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;
     if (corps.dataset.sig === sig && corps.children.length) return;
@@ -5465,7 +5488,7 @@
     corps.innerHTML = htmlFiche(d);
     if (champ && $('rc-adresse')) $('rc-adresse').value = champ.v;
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
-    else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || '') === u); if (b) b.focus({ preventScroll: true }); }
+    else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || x.dataset.point || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
   function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
@@ -5491,6 +5514,7 @@
           await source.rappelsReunion(id, actuels.sort((x, y) => x - y)); await relire();
         }
         else if (act === 'rappels-defaut') { await source.rappelsReunion(id, null); mot('Rappels de la réunion rétablis'); await relire(); }
+        else if (act === 'odj') { b.setAttribute('aria-disabled', 'true'); const fait = b.getAttribute('aria-checked') !== 'true'; await source.cocherPoint(id, b.dataset.point, fait); await relire(); }
         else if (act === 'inviter') { b.setAttribute('aria-disabled', 'true'); const r = await source.inviterReunion(id, [b.dataset.uid], { notifier: true }); mot(r.ajoutes ? 'Invitation envoyée' : 'Cette personne ne peut pas être invitée'); await relire(); }
         else if (act === 'retirer') { b.setAttribute('aria-disabled', 'true'); await source.retirerInviteReunion(id, b.dataset.uid); mot('Personne retirée de la réunion'); await relire(); }
         else if (act === 'conversation') ouvrirConvId(d.conv);
@@ -5600,7 +5624,7 @@
     const tz = d ? d.tz : (fuseauAppareil() || 'Europe/Paris');
     const maintenant = Date.now(), debut0 = d ? d.debut : Math.ceil((maintenant + 60000) / 3600000) * 3600000;
     const fin0 = d ? d.fin : debut0 + 3600000;
-    const initial = { titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
+    const initial = { odj: d ? (d.ordreDuJour || []).map(p => p.texte) : [], titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
     /* « Programmer une réunion avec … » depuis la fiche d'une personne : elle est déjà invitée (une fois — le formulaire suivant repart vide) */
     const avec = !id && reu.prechoisis ? [reu.prechoisis] : []; reu.prechoisis = null;
     reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut };
@@ -5609,6 +5633,8 @@
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="champ"><label for="rf-titre">Titre</label><input id="rf-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(initial.titre) + '" placeholder="Point d\'équipe"></div>' +
       '<div class="champ"><label for="rf-lieu">Lieu ou lien</label><input id="rf-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(initial.lieu) + '" placeholder="Salle, adresse ou lien"></div>' +
+      /* l'ordre du jour (8 octobre 2026) : un point par ligne — les participants les cochent pendant la séance, et le compte rendu les reprend */
+      '<div class="champ"><label for="rf-odj">Ordre du jour</label><textarea id="rf-odj" rows="3" maxlength="4300" placeholder="Un point par ligne (facultatif)">' + esc(initial.odj.join('\n')) + '</textarea></div>' +
       '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
       '<div class="champ"><label for="rf-fin">Fin</label><input id="rf-fin" type="datetime-local" step="60" value="' + esc(initial.fin) + '"></div>' +
       '<input type="hidden" id="rf-tz" value="' + esc(tz) + '">' +
@@ -5665,7 +5691,11 @@
     if (!titre) { erreurInfo('Donne un titre à la réunion.'); $('rf-titre').focus(); return null; }
     if (!debut || !fin) { erreurInfo('Choisis le début et la fin de la réunion.'); (debut ? $('rf-fin') : $('rf-debut')).focus(); return null; }
     if (fin <= debut) { erreurInfo('La fin de la réunion doit tomber après son début.'); $('rf-fin').focus(); return null; }
-    const c = { titre, lieu, debut, fin, tz, repetition: rep, rappels: F.rappels.slice().sort((a, b) => a - b), notifier: F.notifier };
+    /* l'ordre du jour : une ligne = un point ; vingt au plus, 200 signes chacun — dit ici, avant de partir */
+    const odj = (($('rf-odj') || {}).value || '').split('\n').map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    if (odj.length > 20) { erreurInfo('L\'ordre du jour compte vingt points au plus (' + odj.length + ' lignes).'); $('rf-odj').focus(); return null; }
+    if (odj.some(x => Array.from(x).length > 200)) { erreurInfo('Un point de l\'ordre du jour dépasse 200 signes.'); $('rf-odj').focus(); return null; }
+    const c = { titre, lieu, debut, fin, tz, repetition: rep, rappels: F.rappels.slice().sort((a, b) => a - b), notifier: F.notifier, ordre_du_jour: odj };
     if (CAP.salles) c.salle_attente = !!F.attente;
     if (rep !== 'aucune') {
       const type = $('rf-fin-type').value;
@@ -5698,6 +5728,7 @@
         const horaire = c.debut !== I.debut || c.fin !== I.fin || c.tz !== I.tz || c.repetition !== I.repetition || (c.repetition !== 'aucune' && ((c.jusqua || null) !== (I.jusqua || null) || (c.n || null) !== (I.n || null)));
         if (c.titre !== I.titre) ch.titre = c.titre;
         if (c.lieu !== I.lieu) ch.lieu = c.lieu;
+        if (JSON.stringify(c.ordre_du_jour) !== JSON.stringify(I.odj)) ch.ordre_du_jour = c.ordre_du_jour;
         if (CAP.salles && c.salle_attente !== I.attente) ch.salle_attente = c.salle_attente;
         if (horaire) Object.assign(ch, { debut: c.debut, fin: c.fin, tz: c.tz, repetition: c.repetition, jusqua: c.repetition === 'aucune' ? null : c.jusqua, n: c.repetition === 'aucune' ? null : c.n });
         if (JSON.stringify(c.rappels) !== JSON.stringify(I.rappels.slice().sort((x, y) => x - y))) ch.rappels = c.rappels;
@@ -5998,7 +6029,21 @@
   }
 
   /* ── les panneaux : Participants, Discussion, Plus, Quitter (l'hôte qui part) ── */
-  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document', presence: 'Rapport de présence' };
+  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document', presence: 'Rapport de présence', ordre: 'Ordre du jour' };
+  /* L'ORDRE DU JOUR dans la salle d'une réunion (8 octobre 2026) : chacun coche ce qui est traité, tous le voient (relu à chaque changement de la réunion) */
+  function htmlOrdreSalle(A) {
+    const X = sx(A), l = X.odj;
+    if (!l) return '<p class="salle-note">' + (X.odjPanne ? esc(X.odjPanne) : 'Chargement…') + '</p>';
+    if (!l.length) return '<p class="salle-note">Pas d\'ordre du jour pour cette réunion. L\'organisateur l\'ajoute dans « Modifier la réunion ».</p>';
+    return '<p class="salle-note">' + l.filter(p => p.fait).length + ' sur ' + l.length + ' traité' + (l.filter(p => p.fait).length > 1 ? 's' : '') + '</p><div class="salle-liste">' +
+      l.map(p => '<button type="button" class="salle-rang odj" role="checkbox" aria-checked="' + (p.fait ? 'true' : 'false') + '" data-sa="odj" data-s="' + esc(p.id) + '"><span class="evt-rond" aria-hidden="true">' + icone('i-coche') + '</span><span class="texte" dir="auto">' + esc(p.texte) + '</span></button>').join('') + '</div>';
+  }
+  async function salleOrdreCharger(A) {
+    const s = A.snap; if (!s || s.genre !== 'reunion' || !ID_REUNION.test(s.reunion || '') || typeof source.reunion !== 'function') return;
+    const X = sx(A);
+    try { X.odj = (await source.reunion(s.reunion)).ordreDuJour || []; X.odjPanne = ''; } catch (e) { if (!X.odj) X.odjPanne = phrase(e, 'L\'ordre du jour n\'a pas pu être lu.'); }
+    if (!perime(A) && sx(A).panneau === 'ordre') sallePanneauRendre(A, true);
+  }
   /* le rapport de présence, en direct (l'hôte et les co-hôtes) : relu toutes les 15 s tant qu'il est ouvert */
   function htmlPresenceSalle(A) {
     const X = sx(A), d = X.presenceDonnees;
@@ -6112,6 +6157,7 @@
       h += '<div class="salle-rang libre"><span class="texte">Minuteur<small>' + (s.minuteur ? 'En cours' : 'Visible de tous') + '</small></span>' +
         (s.minuteur ? '<button type="button" class="salle-btn presse" data-sa="minuteur-arreter">Arrêter</button>' : MINUTEURS.map(x => '<button type="button" class="salle-btn presse" data-sa="minuteur" data-s="' + x[0] + '">' + x[1] + '</button>').join('')) + '</div></div>';
     }
+    if (s.genre === 'reunion' && ID_REUNION.test(s.reunion || '') && typeof source.cocherPoint === 'function') h += '<div class="salle-rub"><span>Réunion</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="ordre"><span class="texte">Ordre du jour<small>Cocher ce qui est traité — le compte rendu le reprend</small></span></button></div>';
     if (hote && CAP.presenceRapport) h += '<div class="salle-rub"><span>Présence</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="presence"><span class="texte">Rapport de présence<small>Qui est venu, à quelle heure, combien de temps — et qui manque</small></span></button></div>';
     if (hote) {
       /* la salle d'attente et le verrou sont des OUTILS d'organisateur (dans un appel gratuit, ils ne sont pas proposés) ; le partage d'écran des participants reste un réglage de la salle, pour tous */
@@ -6183,14 +6229,14 @@
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom]);
-    const sig = JSON.stringify([X.panneau, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null]);
+    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
     const actif = document.activeElement, dans = actif && corps.contains(actif), cle = dans ? (actif.dataset.sa || '') + '|' + (actif.dataset.uid || actif.dataset.s || '') : null;
     const champs = {}; corps.querySelectorAll('input[id]').forEach(i => { champs[i.id] = { v: i.value, focus: i === actif, a: i.selectionStart }; });
     const bas = (() => { const f = $('salle-fil'); return !f || f.scrollHeight - f.scrollTop - f.clientHeight < 40; })();
-    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : htmlDiscussion(A);
+    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : X.panneau === 'ordre' ? htmlOrdreSalle(A) : htmlDiscussion(A);
     for (const id of Object.keys(champs)) { const i = $(id); if (i && corps.contains(i)) { i.value = champs[id].v; if (champs[id].focus) { i.focus({ preventScroll: true }); try { i.setSelectionRange(champs[id].a, champs[id].a); } catch (e) { /* un champ sans curseur */ } } } }
     if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); }
     const f = $('salle-fil'); if (f && bas) f.scrollTop = f.scrollHeight;
@@ -6237,6 +6283,15 @@
         try { X.suiviDonnees = await source.suiviPiece(el.dataset.s); } catch (e) { X.suiviPanne = phrase(e, 'Le suivi n\'a pas pu être lu.'); }
         if (!perime(A) && sx(A).panneau === 'suivi') sallePanneauRendre(A, true);
         return;
+      case 'ordre': X.panneau = 'ordre'; sallePanneauRendre(A, true); salleOrdreCharger(A); return;
+      case 'odj': {
+        if (!X.odj || typeof source.cocherPoint !== 'function') return;
+        const p = X.odj.find(x => x.id === el.dataset.s); if (!p) return;
+        const fait = !p.fait; p.fait = fait; sallePanneauRendre(A, true);             // tout de suite à l'écran ; le service a le dernier mot
+        try { X.odj = await source.cocherPoint(s.reunion, p.id, fait); } catch (e) { p.fait = !fait; mot(phrase(e, 'Le point n\'a pas pu être coché.')); }
+        if (!perime(A)) sallePanneauRendre(A, true);
+        return;
+      }
       case 'presence': X.panneau = 'presence'; X.presenceDonnees = null; X.presencePanne = ''; sallePanneauRendre(A, true); sallePresenceCharger(A);
         clearInterval(X.minuteriePresence); X.minuteriePresence = setInterval(() => { const Y = sx(A); if (perime(A) || Y.panneau !== 'presence') { clearInterval(Y.minuteriePresence); return; } sallePresenceCharger(A); }, 15000);
         return;
