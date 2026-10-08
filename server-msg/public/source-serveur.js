@@ -204,6 +204,27 @@
   }
   /* la connexion pair à pair du navigateur — null quand il n'en a pas (le moteur le dit : `appel_navigateur`) */
   function webrtcReel(w) { return { RTCPeerConnection: w.RTCPeerConnection || w.webkitRTCPeerConnection || null, MediaStream: w.MediaStream || null }; }
+  /* ⛔ LE SERVEUR DE VISIO (LiveKit) : sa bibliothèque — ÉPINGLÉE (`vendor/livekit-client-2.22.3.umd.js`, 590 Ko, servie par le service lui-même, jamais par un tiers) — n'est chargée QU'À l'entrée dans une
+     salle qui passe par la visio : la page de tous les jours n'en paie pas le poids. Un échec de chargement se rejoue à la prochaine entrée (la promesse est oubliée). */
+  const VISIO_BIBLIOTHEQUE = '/vendor/livekit-client-2.22.3.umd.js';
+  function visioReel(w) {
+    let promesse = null;
+    return {
+      charger() {
+        if (w.LivekitClient) return Promise.resolve(w.LivekitClient);
+        if (promesse) return promesse;
+        if (!w.document || typeof w.document.createElement !== 'function') return Promise.reject(new Error('visio_absente'));
+        promesse = new Promise((ok, ko) => {
+          const s = w.document.createElement('script');
+          s.src = VISIO_BIBLIOTHEQUE; s.async = true;
+          s.addEventListener('load', () => { if (w.LivekitClient) ok(w.LivekitClient); else { promesse = null; ko(new Error('visio_absente')); } });
+          s.addEventListener('error', () => { promesse = null; ko(new Error('visio_absente')); });
+          (w.document.head || w.document.documentElement).appendChild(s);
+        });
+        return promesse;
+      },
+    };
+  }
   const CODES_APPEL_FINI = ['appel_fini', 'introuvable', 'appareil_non_lie', 'appel_pas_en_cours'];
   const CODES_RESEAU = ['reseau', 'serveur', 'erreur_interne'];
 
@@ -771,7 +792,7 @@
   const CODES_SALLE_FINIE = ['appel_fini', 'introuvable', 'appareil_non_lie', 'appel_pas_en_cours'];
   function creerMoteurSalle(d) {
     const T = Object.assign({ pouls: 15000, candidats: 60, veille: 30000, deconnecte: 6000, reessai: [600, 1800], iceMax: 4000, renouv: 0.75, renouvMin: 30000, quitter: [500, 1500], marge: 3000, nettoyage: 60000,
-      relaisApres: 4000, toutApres: 5000, reoffre: 4000, reoffresMax: 3, reprise: 10000, repriseMax: 3, niveau: 300, seuilParle: 0.02, tenuParle: 700, etat: 150 }, d.delais || {});
+      relaisApres: 4000, toutApres: 5000, reoffre: 4000, reoffresMax: 3, reprise: 10000, repriseMax: 3, niveau: 300, seuilParle: 0.02, tenuParle: 700, etat: 150, visioReessai: [1000, 3000, 6000], visioAttente: 15000 }, d.delais || {});
     const planifier = d.planifier, annuler = d.annuler, maintenant = d.maintenant;
     const pause = (ms) => new Promise((ok) => planifier(ok, ms));
     const alea = d.alea || (() => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
@@ -844,7 +865,10 @@
       const ordre = { present: 0, attente: 1, invite: 2 };
       const membres = tous.slice().sort((a, b) => (ordre[a.statut] - ordre[b.statut]) || ((b.grade || 0) - (a.grade || 0))).map(p => membreVue(c, p));
       const pr = Array.from(c.pairs.values());
-      const liaison = fini ? 'fini' : st === 'attente' ? 'attente' : !pr.length ? 'attente' : pr.every(x => x.etat === 'connecte') ? 'connecte' : pr.some(x => x.etat === 'connecte') ? 'connecte' : pr.some(x => x.etat === 'reconnexion') ? 'reconnexion' : 'etablissement';
+      const Vz = c.visio;
+      const liaison = fini ? 'fini' : st === 'attente' ? 'attente'
+        : estVisio(c) ? (Vz && Vz.etat === 'connecte' ? 'connecte' : Vz && (Vz.etat === 'reconnexion' || Vz.etat === 'echec') ? 'reconnexion' : 'etablissement')
+        : !pr.length ? 'attente' : pr.every(x => x.etat === 'connecte') ? 'connecte' : pr.some(x => x.etat === 'connecte') ? 'connecte' : pr.some(x => x.etat === 'reconnexion') ? 'reconnexion' : 'etablissement';
       return {
         id: c.id, etat, type: v.type, groupe: true, salle: true, genre: v.genre, conv: v.conv || null, reunion: v.reunion || null, nom: nomSalle(c), court: nomSalle(c),
         initiales: personneDe(v.autre && v.autre.id).initiales || '?', avatar: personneDe(v.autre && v.autre.id).avatar || 0, photo: null,
@@ -856,7 +880,7 @@
         minuteur: c.salle.minuteur ? { fin: c.salle.minuteur.fin, secondes: c.salle.minuteur.secondes } : null, demandeMicro: c.demandeMicro,
         annot: { support: c.salle.annot.support, ouvreur: c.salle.annot.ouvreur, permis: c.salle.annot.permis, n: c.salle.annot.items.length },
         debut: c.debut, fin: fini ? c.fini.t : null, duree: fini ? dureeFinale(c) : (c.debut ? Math.max(0, Math.round((maintenant() - c.debut) / 1000)) : 0),
-        sens: v.sens, liaison, issue: fini ? c.fini.issue : null, avis: fini ? c.fini.avis : null, relais: c.relais,
+        sens: v.sens, liaison, issue: fini ? c.fini.issue : null, avis: fini ? c.fini.avis : null, relais: c.relais, visio: !!v.visio,
       };
     }
     function enregistrement(c) {
@@ -897,6 +921,7 @@
     }
     function liberer(c) {
       for (const k of ['minPouls', 'minSonnerie', 'minRenouv', 'minNiveau', 'minEtat']) if (c[k]) { annuler(c[k]); c[k] = null; }
+      visioFermer(c);
       for (const pr of c.pairs.values()) fermerPair(c, pr);
       c.pairs.clear();
     }
@@ -1227,9 +1252,196 @@
       finally { pr.demarrage = false; }
     }
 
+    /* ══ LA SALLE PAR LE SERVEUR DE VISIO (`vue.visio`, décidé par le service à l'ouverture) ══════════════════════════════════════════════════════════════════════════════════════
+       Au lieu d'une liaison par personne (la maille), UNE connexion à LiveKit : chaque appareil n'y envoie qu'une copie de son micro, de sa caméra ou de son écran, et reçoit celles des autres. Tout le reste
+       de la salle ne change pas — qui est dedans, les gestes, l'éphémère, le pouls, la sortie : c'est le SERVICE qui le dit, exactement comme pour la maille. Ce que la page lit ne change pas non plus : chaque
+       personne présente a sa « paire » (virtuelle : aucune liaison), avec son état et SON flux (`pr.flux` : sa voix, et son écran s'il le partage, sinon sa caméra) — les tuiles, l'enregistrement, les annotations
+       et l'image dans l'image le lisent comme avant.
+       ⛔ LE SERVICE DÉCIDE QUI EST DANS LA SALLE, PAS LIVEKIT : une personne que LiveKit montre mais que le service ne dit pas présente n'a pas de tuile (le service la fait d'ailleurs retirer, `visio.js`).
+       ⛔ LES PISTES SONT CELLES DE LA PAGE : publiées telles quelles (`publishTrack`), remplacées sans renégocier (`replaceTrack` : retourner la caméra, changer la fenêtre partagée), jamais ARRÊTÉES par LiveKit
+       (`stopLocalTrackOnUnpublish: false`, `disconnect(false)`) — c'est la page qui éteint sa caméra.
+       ⛔ UNE COUPURE SE REPREND : LiveKit se reconnecte seul ; s'il abandonne, la page redemande un jeton au service (trois essais rapprochés, puis toutes les `visioAttente` ms tant que le service la dit présente). */
+    const QUALITE = { haute: 2, moyenne: 1, basse: 0 };
+    function visioDe(c) { if (!c.visio) c.visio = { room: null, connexion: null, etat: 'attente', pubs: { audio: null, audioPiste: null, video: null, videoPiste: null, source: null }, chaine: Promise.resolve(), essais: 0, minEssai: null, ferme: false, attente: new Map(), LK: null }; return c.visio; }
+    const estVisio = (c) => !!(c && c.vue && c.vue.visio);
+    /* le flux d'une personne : sa voix, et UNE image — son écran s'il le partage, sinon sa caméra (comme la maille, où l'écran remplace la caméra sur le même émetteur) */
+    function recomposerFlux(c, pr) {
+      if (!pr.flux) return;
+      const p = pr.pistesVisio || {};
+      const voulues = [p.microphone, p.screen_share || p.camera].filter(Boolean).map(t => t.mediaStreamTrack).filter(Boolean);
+      let change = false;
+      for (const t of pr.flux.getTracks()) if (!voulues.includes(t)) { pr.flux.removeTrack(t); change = true; }
+      for (const t of voulues) if (!pr.flux.getTracks().includes(t)) { pr.flux.addTrack(t); change = true; }
+      if (change) d.emettre({ type: 'appel-flux', id: c.id, uid: pr.uid });
+    }
+    function participantVisio(c, uid) { const V = c.visio; return V && V.room && V.room.remoteParticipants && typeof V.room.remoteParticipants.get === 'function' ? V.room.remoteParticipants.get(uid) || null : null; }
+    function syncVisio(c) {
+      if (c.fini) return;
+      const V = visioDe(c);
+      if (statutDe(c) !== 'present') { visioFermer(c); c.pairs.clear(); return; }
+      if (!V.room && !V.connexion && !V.minEssai) V.connexion = visioConnecter(c).finally(() => { V.connexion = null; });
+      const presents = new Map(presentsAutres(c).map(p => [p.id, p]));
+      let change = false;
+      for (const uid of Array.from(c.pairs.keys())) if (!presents.has(uid)) { c.pairs.delete(uid); change = true; }
+      for (const uid of presents.keys()) {
+        if (c.pairs.has(uid)) continue;
+        const pr = Object.assign(pairNeuve(uid, 0), { virtuelle: true, pistesVisio: {} });
+        pr.flux = d.webrtc && typeof d.webrtc.MediaStream === 'function' ? new d.webrtc.MediaStream() : null;
+        const enAttente = V.attente.get(uid);                         // ce que LiveKit a déjà donné AVANT que le service ne dise la personne présente
+        if (enAttente) { Object.assign(pr.pistesVisio, enAttente); V.attente.delete(uid); }
+        c.pairs.set(uid, pr); change = true;
+        recomposerFlux(c, pr);
+      }
+      for (const pr of c.pairs.values()) {
+        const e = V.etat === 'reconnexion' ? 'reconnexion' : (V.room && participantVisio(c, pr.uid) ? 'connecte' : (V.room ? 'etablissement' : (V.etat === 'echec' ? 'echec' : 'etablissement')));
+        if (pr.etat !== e) { pr.etat = e; change = true; }
+      }
+      if (change) { qualiteVisio(c); emettreAppel(c); }
+    }
+    function visioFermer(c) {
+      const V = c.visio; if (!V) return;
+      V.ferme = true;
+      if (V.minEssai) { annuler(V.minEssai); V.minEssai = null; }
+      const room = V.room; V.room = null; V.etat = 'attente';
+      V.pubs = { audio: null, audioPiste: null, video: null, videoPiste: null, source: null };
+      if (room) { try { room.removeAllListeners && room.removeAllListeners(); } catch (e) { /* rien */ } try { Promise.resolve(room.disconnect(false)).catch(() => {}); } catch (e) { /* déjà fermée */ } }
+    }
+    function visioReessayer(c) {
+      const V = visioDe(c);
+      if (c.fini || V.ferme || V.minEssai || statutDe(c) !== 'present') return;
+      V.essais++;
+      const ms = V.essais <= T.visioReessai.length ? T.visioReessai[V.essais - 1] : T.visioAttente;
+      V.minEssai = planifier(() => { V.minEssai = null; if (!c.fini && !V.ferme) syncVisio(c); }, ms);
+    }
+    async function visioConnecter(c) {
+      const V = visioDe(c);
+      V.ferme = false; V.etat = V.essais ? 'reconnexion' : 'etablissement';
+      emettreAppel(c);
+      let LK, acces;
+      try {
+        if (!d.visio || typeof d.visio.charger !== 'function') throw new Error('visio_absente');
+        LK = await d.visio.charger();
+        if (c.fini || V.ferme) return;
+        acces = await d.api.salleVisio(c.id);
+      } catch (e) {
+        if (c.fini || V.ferme) return;
+        if (e && (e.code === 'pas_de_visio' || CODES_SALLE_FINIE.includes(e.code))) { relire(c); return; }       // le service a le dernier mot : on relit la salle
+        V.etat = 'echec'; syncVisio(c); visioReessayer(c); return;
+      }
+      if (c.fini || V.ferme || !acces || typeof acces.url !== 'string' || typeof acces.jeton !== 'string') return;
+      V.LK = LK;
+      const E = LK.RoomEvent;
+      const room = new LK.Room({ adaptiveStream: false, dynacast: true, stopLocalTrackOnUnpublish: false, disconnectOnPageLeave: false, publishDefaults: { simulcast: true, dtx: true, red: true } });
+      const pisteVue = (track, pub, part) => {
+        if (V.room !== room || !part || typeof part.identity !== 'string' || !track) return;
+        const src = pub && pub.source ? pub.source : track.source;
+        if (src !== 'microphone' && src !== 'camera' && src !== 'screen_share') return;     // le son d'un écran partagé n'a pas d'élément dans la page : il n'est pas mélangé à la voix
+        const pr = c.pairs.get(part.identity);
+        if (!pr) { const a = V.attente.get(part.identity) || {}; a[src] = track; V.attente.set(part.identity, a); return; }
+        pr.pistesVisio[src] = track; recomposerFlux(c, pr); qualiteVisio(c);
+      };
+      const pisteOtee = (track, pub, part) => {
+        if (V.room !== room || !part) return;
+        const src = pub && pub.source ? pub.source : (track && track.source);
+        const a = V.attente.get(part.identity); if (a && a[src] === track) delete a[src];
+        const pr = c.pairs.get(part.identity);
+        if (pr && pr.pistesVisio && pr.pistesVisio[src] === track) { delete pr.pistesVisio[src]; recomposerFlux(c, pr); }
+      };
+      room.on(E.TrackSubscribed, pisteVue);
+      room.on(E.TrackUnsubscribed, pisteOtee);
+      room.on(E.ParticipantConnected, () => { if (V.room === room) syncVisio(c); });
+      room.on(E.ParticipantDisconnected, (part) => { if (V.room !== room) return; V.attente.delete(part && part.identity); syncVisio(c); });
+      room.on(E.Reconnecting, () => { if (V.room !== room) return; V.etat = 'reconnexion'; syncVisio(c); emettreAppel(c); });
+      room.on(E.Reconnected, () => { if (V.room !== room) return; V.etat = 'connecte'; syncVisio(c); emettreAppel(c); });
+      room.on(E.Disconnected, (raison) => {
+        if (V.room !== room) return;
+        V.room = null; V.etat = 'reconnexion';
+        V.pubs = { audio: null, audioPiste: null, video: null, videoPiste: null, source: null };
+        for (const pr of c.pairs.values()) { pr.pistesVisio = {}; recomposerFlux(c, pr); }
+        if (c.fini || V.ferme) return;
+        /* ⛔ LE SERVICE A LE DERNIER MOT : on relit la salle. LiveKit dit-il que la salle est FERMÉE, que l'on a été RETIRÉ ou que l'on est entré ailleurs ? On ne redemande alors AUCUN jeton : la relecture
+           conclura (fin de la salle, retrait, autre appareil) — redemander tout de suite, c'était un refus (409) de plus à chaque « Terminer pour tous » (mesuré : la sonde). Une coupure de réseau, elle, se reprend. */
+        const R = (V.LK && V.LK.DisconnectReason) || {};
+        const definitif = raison !== undefined && (raison === R.ROOM_DELETED || raison === R.PARTICIPANT_REMOVED || raison === R.DUPLICATE_IDENTITY);
+        relire(c);
+        if (!definitif) visioReessayer(c);
+        emettreAppel(c);
+      });
+      try {
+        V.room = room;
+        await room.connect(acces.url, acces.jeton, { autoSubscribe: true });
+      } catch (e) {
+        if (V.room === room) V.room = null;
+        try { room.removeAllListeners && room.removeAllListeners(); } catch (e2) { /* rien */ }
+        try { Promise.resolve(room.disconnect(false)).catch(() => {}); } catch (e2) { /* rien */ }      // ⛔ une connexion ratée ne laisse pas ses liaisons ouvertes derrière elle (mesuré : vingt en une minute de reprises)
+        if (c.fini || V.ferme) return;
+        V.etat = 'echec'; syncVisio(c); visioReessayer(c); return;
+      }
+      if (c.fini || V.ferme || V.room !== room) { try { room.disconnect(false); } catch (e) { /* rien */ } return; }
+      V.etat = 'connecte'; V.essais = 0;
+      /* ce que les autres publiaient AVANT mon arrivée : `TrackSubscribed` a pu partir pendant `connect` ; on relit les abonnements en place */
+      for (const part of room.remoteParticipants.values()) for (const pub of part.trackPublications.values()) if (pub.track && pub.isSubscribed !== false) pisteVue(pub.track, pub, part);
+      syncVisio(c);
+      await appliquerPistesVisio(c);
+      declarerEtat(c, true);
+      emettreAppel(c);
+    }
+    /* mes pistes, publiées sur la connexion de visio : la voix ; UNE image (l'écran s'il est partagé, publié comme écran — sinon la caméra). Une piste qui change de nature (caméra → écran) est dépubliée puis publiée
+       sous sa nouvelle source ; une piste de même nature est REMPLACÉE (aucune coupure chez les autres). Un refus de LiveKit (une caméra dans une salle audio : le jeton ne la permet pas) ne défait pas la salle. */
+    function appliquerPistesVisio(c) {
+      const V = visioDe(c);
+      const tache = async () => {
+        const room = V.room, LK = V.LK;
+        if (!room || !LK || c.fini || V.ferme) return;
+        const lp = room.localParticipant, P = V.pubs;
+        const audio = c.pistes.audio || null;
+        if (audio !== P.audioPiste) {
+          try {
+            if (P.audio && audio && P.audio.track && typeof P.audio.track.replaceTrack === 'function') await P.audio.track.replaceTrack(audio, true);
+            else {
+              if (P.audio && P.audio.track) await lp.unpublishTrack(P.audio.track, false);
+              P.audio = audio ? await lp.publishTrack(audio, { source: LK.Track.Source.Microphone, name: 'micro' }) : null;
+            }
+            P.audioPiste = audio;
+          } catch (e) { P.audioPiste = null; }
+        }
+        const video = c.pistes.video && c.pistes.video.readyState !== 'ended' ? c.pistes.video : null;
+        const source = video ? (c.pistes.ecran ? LK.Track.Source.ScreenShare : LK.Track.Source.Camera) : null;
+        if (video !== P.videoPiste || source !== P.source) {
+          try {
+            if (P.video && video && source === P.source && P.video.track && typeof P.video.track.replaceTrack === 'function') await P.video.track.replaceTrack(video, true);
+            else {
+              if (P.video && P.video.track) await lp.unpublishTrack(P.video.track, false);
+              P.video = null;
+              if (video) P.video = await lp.publishTrack(video, { source, name: source === LK.Track.Source.ScreenShare ? 'ecran' : 'camera', simulcast: true });
+            }
+            P.videoPiste = video; P.source = source;
+          } catch (e) { P.video = null; P.videoPiste = null; P.source = null; }
+        }
+      };
+      V.chaine = V.chaine.then(tache, tache);
+      return V.chaine;
+    }
+    /* ⛔ LA QUALITÉ REÇUE SUIT LE NOMBRE : à quatre, l'image haute de chacun ; jusqu'à neuf, la moyenne ; au-delà, la basse — sauf pour qui parle et l'image épinglée ou partagée (haute). Un téléphone en 4G
+       reçoit ainsi quelques centaines de kbit/s par vignette au lieu de deux Mbit/s chacune (simulcast : chaque appareil publie trois tailles, le serveur choisit). */
+    function qualiteVisio(c) {
+      const V = c.visio, LK = V && V.LK;
+      if (!V || !V.room || !LK || !LK.VideoQuality) return;
+      const n = 1 + presentsAutres(c).length;
+      const base = n <= 4 ? LK.VideoQuality.HIGH : n <= 9 ? LK.VideoQuality.MEDIUM : LK.VideoQuality.LOW;
+      for (const part of V.room.remoteParticipants.values()) {
+        const vedette = c.parlent.has(part.identity) || c.salle.epingle === part.identity;
+        for (const pub of part.trackPublications.values()) {
+          if (pub.kind !== 'video' || typeof pub.setVideoQuality !== 'function') continue;
+          try { pub.setVideoQuality(pub.source === 'screen_share' || vedette ? LK.VideoQuality.HIGH : base); } catch (e) { /* la qualité reste celle du serveur */ }
+        }
+      }
+    }
+
     /* ── la liste des présents décide des paires ── */
     function syncPairs(c) {
       if (c.fini) return;
+      if (estVisio(c)) { syncVisio(c); return; }
       if (statutDe(c) !== 'present') { for (const pr of c.pairs.values()) fermerPair(c, pr); c.pairs.clear(); return; }
       const presents = new Map(presentsAutres(c).map(p => [p.id, p]));
       for (const [uid, pr] of Array.from(c.pairs)) {
@@ -1456,7 +1668,10 @@
     /* ── les niveaux de voix : qui parle (le contour vert) ── */
     async function lireNiveaux(c) {
       const t = maintenant();
-      for (const pr of c.pairs.values()) {
+      if (estVisio(c)) {
+        /* par la visio : le niveau que LiveKit mesure pour chaque personne (`audioLevel`, `isSpeaking`), avec le même seuil et le même maintien que la maille */
+        for (const pr of c.pairs.values()) { const p = participantVisio(c, pr.uid); if (p && (p.isSpeaking || (typeof p.audioLevel === 'number' && p.audioLevel > T.seuilParle))) c.tenus.set(pr.uid, t + T.tenuParle); }
+      } else for (const pr of c.pairs.values()) {
         if (!pr.pc || typeof pr.pc.getReceivers !== 'function') continue;
         let niveau = 0;
         try {
@@ -1472,7 +1687,7 @@
       for (const [uid, fin] of c.tenus) { if (fin > t && c.pairs.has(uid)) parlent.add(uid); else c.tenus.delete(uid); }
       const change = parlent.size !== c.parlent.size || Array.from(parlent).some(u => !c.parlent.has(u));
       c.parlent = parlent;
-      if (change) d.emettre({ type: 'salle-parle', id: c.id });
+      if (change) { if (estVisio(c)) qualiteVisio(c); d.emettre({ type: 'salle-parle', id: c.id }); }
     }
     function armerNiveaux(c) {
       if (c.minNiveau || c.fini || !d.niveaux) return;
@@ -1497,7 +1712,7 @@
       const c = nouvelle(vue, Object.assign({ local: true }, extra || {}));
       courant = c;
       if (salle) poserSalle(c, salle);
-      c.promesseIce = lireIce();
+      if (!vue.visio) c.promesseIce = lireIce();          // par la visio, aucune liaison directe : pas d'identifiants de relais à demander
       armerPouls(c);
       const tard = dernieres.get(vue.id);
       appliquer(c, tard && tard !== vue && tard.moi && tard.moi.statut === 'present' ? tard : vue);
@@ -1539,7 +1754,7 @@
       c.reponse = true;
       try {
         if (!accepte) { finir(c, 'refuse_moi', { avis: null }); await informer(c); return instantane(c); }
-        c.promesseIce = lireIce();
+        if (!estVisio(c)) c.promesseIce = lireIce();
         let r;
         try { r = await d.api.repondreAppel(id, true); }
         catch (e) {
@@ -1590,7 +1805,8 @@
       c.pistes.video = p && p.video ? p.video : null;
       c.pistes.ecran = !!(p && p.ecran);
       c.pistes.micro = !(p && p.micro === false);
-      Promise.all(Array.from(c.pairs.values()).map(pr => pr.pc ? appliquerPistes(c, pr) : null)).then(() => { declarerEtat(c, false); plafonner(c); }, () => {});
+      if (estVisio(c)) appliquerPistesVisio(c).then(() => declarerEtat(c, false), () => {});
+      else Promise.all(Array.from(c.pairs.values()).map(pr => pr.pc ? appliquerPistes(c, pr) : null)).then(() => { declarerEtat(c, false); plafonner(c); }, () => {});
       declarerEtat(c, false);
       return true;
     }
@@ -1642,7 +1858,8 @@
       lancer, rejoindre, rejoindreReunion, rejoindreParCode, repondre, terminer, fermeture, pistes, flux, instantane: instantaneDe, actif, action, accuserMicro, possede, vueHistorique, annotations,
       surAppel, surSignal, surSalleEvt, surResync: () => { if (courant && !courant.fini) relire(courant); else relireActif(); }, surReseau: (etat) => { if (etat === 'ok' && courant && !courant.fini) relire(courant); },
       reprendre, arreter,
-      etat: () => courant ? { id: courant.id, fini: !!courant.fini, local: courant.local, relais: courant.relais, paires: Array.from(courant.pairs.values()).map(p => ({ uid: p.uid, etat: p.etat, relais: p.relais, offrant: p.offrant, gen: p.gen, lien: p.lien, pc: !!p.pc, reprises: p.reprises })) } : null,
+      etat: () => courant ? { id: courant.id, fini: !!courant.fini, local: courant.local, relais: courant.relais, visio: courant.visio ? { etat: courant.visio.etat, connectee: !!courant.visio.room, essais: courant.visio.essais, pubs: { audio: !!courant.visio.pubs.audio, video: !!courant.visio.pubs.video, source: courant.visio.pubs.source } } : null,
+        paires: Array.from(courant.pairs.values()).map(p => ({ uid: p.uid, etat: p.etat, relais: p.relais, offrant: p.offrant, gen: p.gen, lien: p.lien, pc: !!p.pc, reprises: p.reprises, virtuelle: !!p.virtuelle })) } : null,
     };
   }
 
@@ -3279,7 +3496,7 @@
     };
     const moteurDeux = creerMoteurAppels(Object.assign({ delais: o.appelsDelais }, depsMoteur));
     /* ── les salles (capacité `appelsGroupe`, étape 8) : le moteur en maille, pour les appels à plusieurs et la salle d'une réunion ── */
-    const moteurSalle = creerMoteurSalle(Object.assign({ delais: o.sallesDelais || o.appelsDelais, moi: () => moiApi ? moiApi.id : null, alea: o.alea, niveaux: o.niveaux !== false }, depsMoteur));
+    const moteurSalle = creerMoteurSalle(Object.assign({ delais: o.sallesDelais || o.appelsDelais, moi: () => moiApi ? moiApi.id : null, alea: o.alea, niveaux: o.niveaux !== false, visio: o.visio || visioReel(racine) }, depsMoteur));
     /* ⛔ UN ONGLET, UN APPEL : les deux moteurs se refusent mutuellement (un appel à deux en cours interdit d'entrer dans une salle, et réciproquement) */
     const autreOccupe = (moteur) => (moteur === moteurDeux ? moteurSalle : moteurDeux).actif() !== null;
     const refusOccupe = () => Promise.reject(new OPMSG.ErreurApi('occupe', 409, 0, { moi: true }));

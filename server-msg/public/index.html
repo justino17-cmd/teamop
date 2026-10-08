@@ -7,7 +7,7 @@
 <!-- ⛔ FICHIER GÉNÉRÉ par scripts/opmsg-public.js depuis apercu/opmessages/index.html — NE PAS LE MODIFIER À LA MAIN (tests/test-941.js compare).
      La politique ci-dessous est celle du SERVICE : seul `connect-src 'self'` rouvre le réseau (vers le service lui-même, jamais un autre domaine), les scripts viennent tous de
      cette origine (le script en ligne de l'aperçu est extrait dans opmsg-ui.js), les images et les médias ne sortent pas de la page. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss: https:; base-uri 'none'; form-action 'self'">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1633" media="(prefers-color-scheme: dark)">
@@ -1618,6 +1618,16 @@ html[data-salle] .appel-ecran { display: none; }
 }
 .salle-scene[data-n="1"] { grid-template-columns: minmax(0, 520px); justify-content: center; }
 .salle-scene[data-n="2"] { grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); }
+/* neuf personnes et plus (le serveur de visio en porte jusqu'à douze en vidéo) : trois colonnes au téléphone, des vignettes plus basses — la salle se lit d'un regard au lieu de défiler sur six écrans */
+.salle-scene[data-n="9"] { grid-template-columns: repeat(auto-fit, minmax(min(140px, 31%), 1fr)); gap: 6px; }
+.salle-scene[data-n="9"] .salle-tuile { min-height: 84px; border-radius: 12px; }
+/* au bureau, à partir de cinq (la salle par le serveur de visio) : une GRILLE, pas une rangée — six vignettes de 160 px alignées laissaient tout l'écran vide autour d'elles (mesuré : 163 × 122 px chacune sur
+   un écran de 1280). Trois colonnes jusqu'à six, quatre au-delà ; les salles de quatre gardent leur mise en page. */
+@media (min-width: 700px) {
+  .salle-scene[data-n="5"], .salle-scene[data-n="6"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .salle-scene[data-n="7"], .salle-scene[data-n="8"], .salle-scene[data-n="9"] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .salle-scene[data-n="9"] .salle-tuile { min-height: 110px; border-radius: 16px; }
+}
 .salle-scene:focus-visible { outline-offset: -3px; }
 .salle-tuile { aspect-ratio: 4 / 3; min-height: 110px; border-radius: 16px; outline: 3px solid transparent; outline-offset: -3px; transition: outline-color .15s; }
 .salle-tuile.parle { outline-color: var(--vert); }

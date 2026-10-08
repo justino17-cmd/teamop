@@ -556,6 +556,7 @@
       salleEtat: (id, champs) => appel('POST', '/api/salles/' + e(id) + '/etat', champs),
       salleEvt: (id, k, donnees) => appel('POST', '/api/salles/' + e(id) + '/evt', { k, donnees }),
       salleAnnot: (id, d) => appel('POST', '/api/salles/' + e(id) + '/annot', d),
+      salleVisio: (id) => appel('POST', '/api/salles/' + e(id) + '/visio', {}),   // le jeton d'entrée au serveur de visio (`visio.js`) : présent, depuis l'appareil lié
       /* la salle d'une réunion programmée, et son lien d'invité (le code va dans le FRAGMENT de l'adresse : il ne passe jamais dans les journaux du proxy) */
       rejoindreReunion: (id, type) => appel('POST', '/api/reunions/' + e(id) + '/rejoindre', type ? { type } : {}),
       lienReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/lien'),
