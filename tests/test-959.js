@@ -151,6 +151,8 @@ const sansVisio = (b, nom) => { const c = b.config(nom); return c && c.appels ? 
   console.log('\nÉchec = fermé, à chaque étape');
   for (const [cas, drapeau, attendu] of [
     ['LiveKit ne démarre pas', 'visio-refuse', /LiveKit n'a pas démarré/],
+    ['⛔ le pare-feu ne se pose pas (le noyau refuse une règle) : systemd ne démarre pas LiveKit', 'iptables-refuse-v4', /LiveKit n'a pas démarré/],
+    ['⛔ le pare-feu se dit posé mais n\'est pas dans le noyau', 'iptables-oublie-v4', /pare-feu sortant de la visio n'est pas dans le noyau/],
     ['le contrôle local échoue', 'verifier-refuse-local', /LiveKit ne fait pas ce qu'il doit/],
     ['nginx refuse le chemin /rtc', 'nginx-refuse', /nginx refuse/],
     ['le contrôle public échoue', 'verifier-refuse-public', /ne mène pas à LiveKit/],

@@ -187,6 +187,25 @@ function fauxLiveKit(port) {
       v('trente jetons par dix minutes et par personne : le trente-et-unième est refusé (429)', [codes.filter(c => c === 200).length, codes[codes.length - 1]], [30, 429]);
       await libere(d1);
     }
+
+    /* ⛔ LE CONTRÔLE DE L'INSTALLATION (`outils/verifier-visio.js`) CONTRE UN LIVEKIT QUI NE VÉRIFIE RIEN : le faux de ce banc répond 200 à toute commande, quelle que soit sa signature, et ne
+       connaît pas la signalisation. C'est exactement le serveur que le contrôle doit REFUSER d'exposer — un contrôle qui rendrait toujours ✓ ne se verrait pas autrement (le vrai LiveKit, lui, est joué
+       par test-953, qui ne tourne pas sans son binaire). */
+    console.log('\nLe contrôle de l\'installation refuse un LiveKit qui ne vérifie rien');
+    {
+      const os = require('os'), fs = require('fs'), { spawn } = require('child_process');
+      /* ⛔ un processus ENFANT asynchrone : le faux LiveKit vit dans CE processus — `spawnSync` le figerait, et le contrôle ne lirait que des délais dépassés */
+      const lancer = (args, env) => new Promise((ok) => { const p = spawn(process.execPath, args, { env }); let out = '', err = ''; p.stdout.on('data', x => { out += x; }); p.stderr.on('data', x => { err += x; }); p.on('close', (status) => ok({ status, stdout: out, stderr: err })); });
+      const d = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-verif-visio-'));
+      const cfg = path.join(d, 'beta.json');
+      fs.writeFileSync(cfg, JSON.stringify({ appels: { visio: { url: URL_VISIO, interne: 'http://127.0.0.1:' + portLk, cle: CLE, secret: SECRET } } }), { mode: 0o600 });
+      LK.sondeOk = true;
+      const r = await lancer([path.join(T.SERVICE, 'outils', 'verifier-visio.js'), 'beta'], Object.assign({}, process.env, { OPMSG_CONFIG: cfg }));
+      v('⛔ sortie 1, et il NOMME ce qui ne va pas : une clé fausse ACCEPTÉE, une signalisation qui ne demande aucun jeton', [r.status, /✗ ⛔ une clé FAUSSE y est refusée/.test(r.stdout), /✗ ⛔ sa signalisation REFUSE qui n'a pas de jeton/.test(r.stdout)], [1, true, true]);
+      vrai('   la sonde du faux, elle, répond « OK » (le contrôle ne tombe pas pour une autre raison : population)', /✓ LiveKit répond à sa sonde/.test(r.stdout));
+      v('⛔ ni le secret ni un jeton dans sa sortie', [String(r.stdout + r.stderr).includes(SECRET), /eyJ[A-Za-z0-9_-]{10,}/.test(r.stdout + r.stderr)], [false, false]);
+      fs.rmSync(d, { recursive: true, force: true });
+    }
   } catch (e) {
     console.error(e); process.exitCode = 1;
   } finally {
