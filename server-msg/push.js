@@ -284,6 +284,29 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     return { titre: extrait(t.titre, 80) || 'OP MESSAGES', corps: extrait(t.corps, 200), apercu: !!apercu };
   }
 
+  /* ⛔ NE PAS DÉRANGER PENDANT UNE RÉUNION (8 octobre 2026 : « que la réunion ne soit pas interrompue par les messages ») : un message ou une mention (`retenable`) qui part pendant que la personne
+     est DANS une salle ne fait sonner aucun de ses appareils — il est COMPTÉ (les conversations, les mentions ; rien du texte, rien des noms), en mémoire. Quand elle n'y est plus (le balayeur des
+     appels le voit, `relacherSorties`), UNE notification résume : « Pendant la réunion : nouveaux messages dans 3 conversations, dont une mention ». Coupé dans ses réglages
+     (`prefs.pause_reunion === false`) : rien n'est retenu. Un redémarrage oublie le compte (le résumé ne part pas ; les messages, eux, sont là). */
+  let enSalle = () => false;
+  const retenus = new Map();
+  function retenir(uid, charge) {
+    let r = retenus.get(uid);
+    if (!r) { if (retenus.size >= 20000) retenus.clear(); r = { convs: new Set(), mentions: 0 }; retenus.set(uid, r); }
+    if (typeof charge.tag === 'string' && /^c_[0-9a-f]{32}$/.test(charge.tag) && r.convs.size < 100) r.convs.add(charge.tag);
+    if (charge.type === 'mention') r.mentions++;
+  }
+  function relacherSorties() {
+    for (const [uid, r] of Array.from(retenus)) {
+      let dedans = true; try { dedans = enSalle(uid); } catch (e) { dedans = true; }      // dans le doute, on attend le passage suivant
+      if (dedans) continue;
+      retenus.delete(uid);
+      const n = r.convs.size; if (!n) continue;
+      const corps = 'Pendant la réunion : ' + (n > 1 ? 'nouveaux messages dans ' + n + ' conversations' : 'nouveaux messages dans une conversation') + (r.mentions > 1 ? ', dont ' + r.mentions + ' mentions' : r.mentions === 1 ? ', dont une mention' : '');
+      partir(uid, { type: 'resume', tag: 'resume-reunion', url: n === 1 ? '/#messages/' + Array.from(r.convs)[0] : '/', renotify: true, titre: 'OP MESSAGES', corps }).catch(() => {});
+    }
+  }
+
   /* Envoie maintenant à TOUS les appareils de la personne. → { envoyes, appareils } */
   async function partir(uid, charge0) {
     if (!actif) return { envoyes: 0, appareils: 0, raison: 'inactif' };
@@ -301,6 +324,10 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     if (!stockage.pushJoignable(uid, appareilAbsMs)) return { envoyes: 0, appareils: 0, raison: 'non_joignable' };
     const abos = stockage.pushListe(uid);
     if (!abos.length) return { envoyes: 0, appareils: 0, raison: 'aucun_appareil' };
+    if (charge.retenable === true && !(moi.prefs && moi.prefs.pause_reunion === false)) {
+      let dedans = false; try { dedans = enSalle(uid); } catch (e) { dedans = false; }
+      if (dedans) { retenir(uid, charge); return { envoyes: 0, appareils: abos.length, raison: 'retenue' }; }
+    }
     const t = textesPour(moi, charge);
     const payload = JSON.stringify({ type: charge.type, titre: t.titre, corps: t.corps, tag: charge.tag || charge.type, url: charge.url || '/', renotify: charge.renotify === true });
     /* ⛔ la durée de vie chez le service push : au plus `ttlS` (24 h), au plus ce qui reste à vivre à un message éphémère, et — quand l'APERÇU part — au plus `ttlApercuS` (1 h) : le texte d'un message
@@ -394,7 +421,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     const de = extrait(nomAuteur, 60) || 'Quelqu\'un';
     const titreApercu = groupe ? de + ' · ' + extrait(nomConv, 40) : de;
     return dest.map(uid => pousser(uid, {
-      type: 'message', tag: conv, url: '/#messages/' + conv, renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message',
+      type: 'message', tag: conv, url: '/#messages/' + conv, renotify: true, titre: 'OP MESSAGES', corps: 'Nouveau message', retenable: true,
       detail: { titre: titreApercu, corps: resume },
       /* le jugement de l'instant de partir : null → rien ne part ; sinon le texte ACTUEL du message (corrigé pendant l'attente) et ce qui lui reste à vivre s'il est éphémère */
       valide: () => {
@@ -409,7 +436,9 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   }
 
   return {
-    pousser, acquitter, abonner, desabonner, essai, message,
+    pousser, acquitter, abonner, desabonner, essai, message, relacherSorties,
+    /* qui est dans une salle (branché par `index.js` : les appels sont créés après le push) */
+    brancherSalles: (f) => { if (typeof f === 'function') enSalle = f; },
     cle: () => vapid ? vapid.publique : null,
     actif: () => actif,
     origineVapid: () => origineVapid,

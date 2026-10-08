@@ -536,14 +536,18 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     }
     return faits.length;
   }
+  /* ⛔ « EN RÉUNION » (8 octobre 2026) : qui est DANS une salle, vu à chaque passage — une entrée ou une sortie se dit aux contacts (`hub.reunionChangee`), et une sortie libère le résumé des
+     notifications retenues (`push.relacherSorties`). En mémoire : un redémarrage repart vide, le premier passage redit qui est dedans. */
+  let dansSalles = new Set();
   /* UN PASSAGE. Synchrone, ne lève jamais. → { echus, perdus } */
   function balayer() {
     const t = horloge(), bilan = { echus: 0, perdus: 0 };
     try {
       bilan.echus = echoir();
-      const vivants = new Set();
+      const vivants = new Set(), presents = new Set();
       for (const a of stockage.appelsActifs()) {
         vivants.add(a.id);
+        if (a.genre !== 'deux') for (const p of a.parts) if (p.statut === 'present') presents.add(p.uid);
         if (a.genre !== 'deux') {
           /* une SALLE : celui dont l'appareil ne donne plus signe de vie SORT (présent ou à la porte) — la salle continue pour les autres, ou finit si c'était le dernier */
           for (const p of a.parts) {
@@ -577,6 +581,10 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
           break;
         }
       }
+      for (const u of presents) if (!dansSalles.has(u) && hub && typeof hub.reunionChangee === 'function') hub.reunionChangee(u, true);
+      for (const u of dansSalles) if (!presents.has(u) && hub && typeof hub.reunionChangee === 'function') hub.reunionChangee(u, false);
+      dansSalles = presents;
+      if (push && typeof push.relacherSorties === 'function') push.relacherSorties();
       for (const k of Array.from(vus.keys())) if (!vivants.has(k.slice(0, k.indexOf('|')))) vus.delete(k);
       for (const k of Array.from(salles.keys())) if (!vivants.has(k)) oublierSalle(k);          // une salle finie n'a plus d'éphémère
       if (t - etat.dernierElagage >= ELAGAGE_PERIODE_MS) {

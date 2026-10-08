@@ -402,6 +402,12 @@ async function controler(PAGE, SRC, DOC) {
         && /mentionsVues\(id\);/.test(JS) && /if \(r4\.status === 'fulfilled'\) \{ bord\.mentions = r4\.value; mentionsSynchro\(\); \}/.test(JS)
         && /if \(ev\.nature === 'mention'\) surMention\(ev\);/.test(JS) && /if \(etat\.conv\) remplacer\(r\); else pousser\(r\);\s*return;\s*\}/.test(JS));
   }
+  /* « NE PAS DÉRANGER PENDANT UNE RÉUNION » (8 octobre 2026) — le service retient et résume (test-937) ; la page montre « En réunion » et porte l'interrupteur */
+  vrai('⛔ « Ne pas déranger pendant une réunion » : la pastille « En réunion » (rouge barrée) passe devant « En ligne », les mots aussi (partout par `presenceTexte`) ; l\'interrupteur « Pause pendant les réunions » est un réglage du COMPTE ; pas de bannière sur l\'écran d\'un appel',
+    /\(c\.enReunion \? '<i class="presence reunion" title="En réunion"><\/i>' : c\.enLigne \? '<i class="presence" title="En ligne"><\/i>' : ''\)/.test(JS) && /const presenceTexte = p => p && p\.enReunion \? 'En réunion' : p && p\.enLigne \? 'En ligne' : '';/.test(JS)
+      && (JS.match(/presenceTexte\(/g) || []).length >= 10 && /\.avatar \.presence\.reunion \{ background: var\(--rouge\); \}/.test(CSS) && /id="reg-notif-pause"/.test(JS)
+      && /else if \(quoi === 'pause'\) reg\.notif = await source\.notifPauseReunion\(!reg\.notif\.pauseReunion\);/.test(JS) && /bouton\.id === 'reg-notif-pause'/.test(JS)
+      && /&& !\(etat\.appelId && !etat\.appelReduit\)\) notifier\(/.test(JS));
 
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);

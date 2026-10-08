@@ -178,3 +178,6 @@ tests/test-935.js
 #    et les sections 5 de sonde-opmessages-menu-rappel.js, 6 bis de sonde-opmessages-tableau-bord.js.
 # ── Les mentions @prénom (8 octobre 2026) : le vrai service et un faux service push dont chaque charge est déchiffrée (936) ; la vraie page : test-857 (fonctions exécutées) et tests/sonde-opmessages-mentions.js
 tests/test-936.js
+# ── « Ne pas déranger pendant une réunion » (8 octobre 2026) : les messages retenus pendant une salle, le résumé à la sortie, « En réunion » vu des contacts (règle réciproque) — le vrai service,
+#    son balayeur d'appels et un faux service push (937) ; la vraie page : test-857 et tests/sonde-opmessages-reunion-pause.js
+tests/test-937.js

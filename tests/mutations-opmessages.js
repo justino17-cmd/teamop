@@ -169,6 +169,8 @@ const MUTATIONS = [
   { id: 'N17', nom: 'la bulle n\'échappe plus le texte qui précède une mention (une balise tapée avant « @Inès » s\'ouvre)', cible: 'page', f: sub("h += esc(s.slice(i, d)) + '<b class=\"mention-nom'", "h += s.slice(i, d) + '<b class=\"mention-nom'"), banc: /la bulle : le « @Prénom »/ },
   { id: 'N18', nom: 'deux Camille : « @Camille » tapé à la main prévient les DEUX (dont une qu\'on ne visait pas)', cible: 'page', f: sub('if (l.length === 1) ids.add(l[0].id);', 'for (const p of l) ids.add(p.id);'), banc: /deux Camille/ },
   { id: 'N19', nom: 'la liste « @ » ouverte, Entrée ENVOIE le message au lieu d\'écrire le nom choisi', cible: 'page', f: sub("else if ((e.key === 'Enter' && !e.shiftKey) || e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); choisirMention(mentionUI.i); }", "else if (e.key === 'Tab') { e.preventDefault(); e.stopImmediatePropagation(); choisirMention(mentionUI.i); }"), banc: /choisit à Entrée SANS envoyer/ },
+  { id: 'N20', nom: 'la pastille « En réunion » disparaît : une personne en réunion paraît seulement « en ligne »', cible: 'page', f: sub("(c.enReunion ? '<i class=\"presence reunion\" title=\"En réunion\"></i>' : c.enLigne ?", "(c.enLigne ?"), banc: /Ne pas déranger pendant une réunion/ },
+  { id: 'N21', nom: 'une mention fait sa bannière PAR-DESSUS l\'écran d\'une réunion', cible: 'page', f: sub(" && !(etat.appelId && !etat.appelReduit)) notifier(", ") notifier("), banc: /Ne pas déranger pendant une réunion/ },
 ];
 
 function appliquer(m, PAGE, SRC) {

@@ -1051,6 +1051,9 @@ html[data-service] .mention-apercu { display: none; }
 .avatar.en-ligne { position: relative; }
 .avatar .presence { position: absolute; right: -1px; bottom: -1px; width: 12px; height: 12px; border-radius: 50%; background: var(--vert); box-shadow: 0 0 0 2px var(--solide); }
 .epingle .avatar .presence, .conv .avatar .presence { width: 13px; height: 13px; }
+/* « En réunion » : la pastille rouge barrée de « Ne pas déranger » — elle dit qu'on ne répondra pas tout de suite, sans un mot */
+.avatar .presence.reunion { background: var(--rouge); }
+.avatar .presence.reunion::after { content: ''; position: absolute; left: 25%; right: 25%; top: 50%; height: 2px; margin-top: -1px; border-radius: 1px; background: #fff; }
 
 .connexion {
   min-height: 100vh; min-height: 100dvh; display: grid; place-items: center;

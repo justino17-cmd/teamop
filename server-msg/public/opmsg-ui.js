@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '455e4b1ae9b7';
+  const OPMSG_BUILD = '3367554f0f1c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 128;
+  const OPMSG_VERSION = 129;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -109,6 +109,8 @@
   const norme = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
   const contactDe = id => CONTACTS.find(c => c.id === id) || (typeof source.personne === 'function' ? source.personne(id) : null) || null;      // un auteur peut n'être le contact de personne : la source connaît ceux qu'elle a vus
   const prenom = c => c.nom.split(' ')[0];
+  /* la présence en mots : « En réunion » (dans une salle — 8 octobre 2026, « Ne pas déranger ») passe devant « En ligne » ; rien sinon */
+  const presenceTexte = p => p && p.enReunion ? 'En réunion' : p && p.enLigne ? 'En ligne' : '';
   /* une conversation à plusieurs : un groupe, ou un CANAL d'espace (mêmes messages, même fil : le nom de l'auteur se montre) ; un canal se nomme « # nom » */
   const multi = c => !!c && (c.type === 'groupe' || c.type === 'canal' || c.type === 'reunion');
   const nomConv = c => (c.type === 'canal' ? '# ' : '') + c.nom;
@@ -121,7 +123,7 @@
   /* une erreur DIT quelque chose : la phrase française du service si l'erreur en porte une, sinon la phrase de l'écran — jamais un message technique */
   const phrase = (e, defaut) => e && e.dit ? (typeof e.phrase === 'function' ? e.phrase() : e.message) : (defaut || 'Une erreur est survenue.');
   /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, vérifié, puis échappé */
-  const avatar = c => '<span class="avatar av' + (((c.avatar | 0) % 6 + 6) % 6) + (c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
+  const avatar = c => '<span class="avatar av' + (((c.avatar | 0) % 6 + 6) % 6) + (c.enReunion ? ' en-ligne en-reunion' : c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enReunion ? '<i class="presence reunion" title="En réunion"></i>' : c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
 
   /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
   const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -2894,6 +2896,9 @@
       esc(!n.possible ? n.phrase : n.active ? 'Activées : tu reçois une notification quand un message arrive et que cette page n\'est pas sous tes yeux.' : 'Désactivées sur cet appareil. Le navigateur te demandera ton autorisation.') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
     if (n.raison !== 'service') h += '<button type="button" class="reglage presse" role="switch" id="reg-notif-apercu" aria-checked="' + (n.apercu ? 'true' : 'false') + '"' + occ + '><span class="reglage-texte">Aperçu du message<small>' +
       esc(n.apercu ? 'La notification montre le nom et le début du message (tous tes appareils).' : 'La notification dit seulement « Nouveau message » : ni nom ni texte, même écran verrouillé (tous tes appareils).') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+    /* « Ne pas déranger pendant une réunion » (8 octobre 2026) : ALLUMÉ par défaut ; le service retient, la sortie résume */
+    if (n.raison !== 'service' && typeof source.notifPauseReunion === 'function') h += '<button type="button" class="reglage presse" role="switch" id="reg-notif-pause" aria-checked="' + (n.pauseReunion ? 'true' : 'false') + '"' + occ + '><span class="reglage-texte">Pause pendant les réunions<small>' +
+      esc(n.pauseReunion ? 'Pendant une réunion ou un appel de groupe, les messages et les mentions ne font pas sonner tes appareils : une seule notification les résume à la sortie.' : 'Coupé : les messages font sonner tes appareils même pendant une réunion.') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
     if (n.possible && n.active) h += '<button type="button" class="reglage presse" id="reg-notif-essai"' + occ + '><span class="reglage-texte">Envoyer une notification d\'essai<small>Elle part vers tous tes appareils abonnés.</small></span></button>';
     if (reg.notifMsg) h += '<div class="carte-pad"><p class="info-note" role="status">' + esc(reg.notifMsg) + '</p></div>';
     if (reg.notifErreur) h += '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.notifErreur) + '</p></div>';
@@ -2907,6 +2912,7 @@
     try {
       if (quoi === 'sw') reg.notif = reg.notif.active ? await source.notifDesactiver() : await source.notifActiver();
       else if (quoi === 'apercu') reg.notif = await source.notifApercu(!reg.notif.apercu);
+      else if (quoi === 'pause') reg.notif = await source.notifPauseReunion(!reg.notif.pauseReunion);
       else if (quoi === 'essai') {
         const r = await source.notifEssai();
         reg.notifMsg = r.appareils === 0 ? 'Aucun appareil n\'est abonné : active d\'abord les notifications.'
@@ -3075,7 +3081,7 @@
     }
     if (bouton.id === 'reg-pp') { declencheur = bouton; ouvrirFeuille('perso-plus'); return; }
     if (bouton.dataset.regRelire) { chargerReglages(); return; }
-    if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
+    if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-pause' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
     if (bouton.id === 'reg-export') { exporterDonnees(); return; }
     if (bouton.id === 'reg-supprimer') { declencheur = bouton; ouvrirFeuille('suppression'); return; }
     if (bouton.dataset.regCle) {
@@ -3302,7 +3308,7 @@
     const estContact = (CONTACTS || []).some(x => x.id === p.id), uid = esc(p.id);
     const geste = (fiche, ic, txt, extra) => '<button type="button" class="vc-action presse" data-fiche="' + fiche + '" data-uid="' + uid + '"' + (extra || '') + '><span class="vc-action-rond">' + ic + '</span><span>' + txt + '</span></button>';
     return '<div class="vc-fiche-tete">' + avatar(p) + '<h2 class="vc-fiche-nom">' + esc(p.nom) + '</h2>' +
-      (p.enLigne || p.statut || p.role ? '<p class="vc-fiche-statut">' + esc(p.enLigne ? 'En ligne' : (p.statut || p.role)) + '</p>' : '') + '</div>' +
+      (presenceTexte(p) || p.statut || p.role ? '<p class="vc-fiche-statut">' + esc(presenceTexte(p) || p.statut || p.role) + '</p>' : '') + '</div>' +
       '<div class="vc-fiche-actions">' + geste('ecrire', icone('i-chat'), 'Message') +
         (CAP.appels ? geste('appel', icone('i-phone'), 'Appeler', ' data-video="0"') + geste('appel', icone('i-video'), 'Vidéo', ' data-video="1"') : '') +
         (CAP.reunions ? geste('programmer', icone('i-agenda'), 'Réunion') : '') +
@@ -3503,7 +3509,7 @@
       if (!L) h += '<p class="vide">' + (S.panne[e.id] ? esc(S.panne[e.id]) : 'Chargement…') + '</p>';
       else if (!L.length) h += '<div class="carte carte-pad"><p class="info-note">Personne d\'autre dans cet espace pour l\'instant.</p></div>';
       else h += '<div class="carte">' + L.map(p => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '">' + avatar(p) +
-        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (p.enLigne || p.statut ? '<span class="contact-role">' + esc(p.enLigne ? 'En ligne' : p.statut) + '</span>' : '') + '</span>' +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (presenceTexte(p) || p.statut ? '<span class="contact-role">' + esc(presenceTexte(p) || p.statut) + '</span>' : '') + '</span>' +
         '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
     }
     return vus ? h : vcAucun(brut);
@@ -3689,7 +3695,7 @@
       if (!etat.groupe.ouvert || etat.groupe.convId !== id) return;                // la feuille s'est fermée pendant l'attente
     }
     const lc = etat.conversations.find(x => x.id === id) || null, thC = (lc || {}).theme || { fond: 'aucun', bulle: 'defaut' };
-    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.sourdine || 0, thC.fond, thC.bulle, lc && lc.coteAuto, lc && lc.coteChoisi, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
+    const sig = JSON.stringify([i.nom, !!i.photo, i.moiAdmin, i.annoncesSeulement, i.ephemeres, i.enLigne, i.enReunion, i.sourdine || 0, thC.fond, thC.bulle, lc && lc.coteAuto, lc && lc.coteChoisi, i.membres.map(m => [m.id, m.nom, m.role, m.enLigne])]) + '|' + CONTACTS.map(c => c.id).join(',') + '|' + (collegues ? collegues.map(c => c.id).join(',') : '');
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
@@ -3697,7 +3703,7 @@
     corps.dataset.espace = canal && i.espace ? i.espace : '';
     const sd = CAP.notifications && !i.supprime ? (Number(i.sourdine) || 0) : -1;           // -1 : pas de sourdine à proposer ; 0 : pas en sourdine ; sinon l'échéance
     let h = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
-      '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : canal ? 'Canal ' + (i.prive ? 'privé' : 'public') + ' · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (i.enLigne ? 'En ligne' : 'Conversation à deux')) + '</p></div></div>' +
+      '<div class="info-tete">' + avatar(i) + '<div><h3 class="info-nom">' + esc(i.nom) + '</h3><p class="info-sous">' + (g ? 'Groupe · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : canal ? 'Canal ' + (i.prive ? 'privé' : 'public') + ' · ' + i.membres.length + (i.membres.length > 1 ? ' membres' : ' membre') : (presenceTexte(i) || 'Conversation à deux')) + '</p></div></div>' +
       (g && i.moiAdmin && CAP.avatars ? '<div class="info-actions info-photo-actions"><button type="button" class="mini" data-act="groupe-photo">' + (blob(i.photo) ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (blob(i.photo) ? '<button type="button" class="mini danger" data-act="groupe-photo-retirer">Retirer la photo</button>' : '') + '</div>' : '') +
       (canal ? '' : '<div class="carte">') + (g ? '<button type="button" class="reglage presse" data-act="annonces" role="switch" aria-checked="' + (i.annoncesSeulement ? 'true' : 'false') + '"' + off + '><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d\'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
       (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres" data-valeur="' + esc(String(i.ephemeres || 0)) + '"' + (i.moiAdmin ? ' aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' : ' disabled') + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + (i.moiAdmin ? CHEVRON_UD : '') + '</span></button></div>');
@@ -3709,7 +3715,7 @@
     if (sd >= 0) h += '<div class="carte"><button type="button" class="reglage presse" data-act="sourdine" data-valeur="' + (sd > Date.now() ? sd : 0) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Mettre en sourdine</span><span class="reglage-valeur">' + esc(sd > Date.now() ? finSourdine(sd) : 'Non') + CHEVRON_UD + '</span></button></div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
-        '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
+        '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (presenceTexte(m) && !m.moi ? '<span class="contact-role">' + presenceTexte(m) + '</span>' : '') + '</span>' +
         (i.moiAdmin && !m.moi ? '<span class="contact-actions"><button type="button" class="mini" data-act="admin" data-uid="' + esc(m.id) + '" data-admin="' + (m.role === 'admin' ? '0' : '1') + '">' + (m.role === 'admin' ? 'Retirer l\'admin' : 'Nommer admin') +
           '</button><button type="button" class="mini danger" data-act="retirer" data-uid="' + esc(m.id) + '">Retirer</button></span>' : '') + '</div>').join('') + '</div>';
       if (i.moiAdmin) {
@@ -3726,7 +3732,7 @@
       const moiProprio = !!(esp.liste || []).find(x => x.id === i.espace && x.proprio);
       const retirable = m => modifiable && i.prive && !m.moi && (m.role !== 'admin' || moiProprio);
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
-        '<div class="contact' + (retirable(m) ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (m.enLigne && !m.moi ? '<span class="contact-role">En ligne</span>' : '') + '</span>' +
+        '<div class="contact' + (retirable(m) ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (presenceTexte(m) && !m.moi ? '<span class="contact-role">' + presenceTexte(m) + '</span>' : '') + '</span>' +
         (retirable(m) ? '<span class="contact-actions"><button type="button" class="mini danger" data-act="can-retirer-membre" data-uid="' + esc(m.id) + '">Retirer</button></span>' : '') + '</div>').join('') + '</div>';
       if (!i.prive) h += '<p class="info-note">Un canal public réunit tous les membres de l\'espace : on y entre et on en sort avec l\'espace.</p>';
       if (modifiable && i.prive) {
@@ -3961,7 +3967,7 @@
     if (agit) act.push('<button type="button" class="mini danger" data-act="esp-retirer" data-uid="' + esc(p.id) + '">Retirer</button>');
     if (d.proprio && !p.moi) act.push('<button type="button" class="mini danger" data-act="esp-transferer" data-uid="' + esc(p.id) + '">Passer la propriété</button>');
     return '<div class="contact' + (act.length ? ' avec-actions' : '') + '" data-nom="' + esc(norme(p.nom)) + '">' + avatar(p) + '<span class="contact-texte"><span class="contact-nom">' + esc(p.moi ? 'Vous' : p.nom) +
-      (p.proprio ? '<span class="badge-admin">Propriétaire</span>' : p.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (p.enLigne || p.statut ? '<span class="contact-role">' + esc(p.enLigne ? 'En ligne' : p.statut) + '</span>' : '') + '</span>' +
+      (p.proprio ? '<span class="badge-admin">Propriétaire</span>' : p.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (presenceTexte(p) || p.statut ? '<span class="contact-role">' + esc(presenceTexte(p) || p.statut) + '</span>' : '') + '</span>' +
       (act.length ? '<span class="contact-actions">' + act.join('') + '</span>' : '') + '</div>';
   }
   /* le champ de la feuille FILTRE la liste reçue (accents et casse ignorés) ; il ne cherche nulle part ailleurs */
@@ -3982,7 +3988,7 @@
     if (!corps.children.length) { esp.forme = { prive: false, choisis: [] }; esp.lien = null; }   // une feuille neuve repart d'un formulaire vierge, sans le lien de la feuille d'avant
     const lien = esp.lien && esp.lien.espace === id ? esp.lien : null;
     /* rien ne se redessine tant que ce que la source dit n'a pas changé (sinon un événement lointain ferait perdre le focus) ; ce que la personne a TAPÉ et le champ actif survivent au redessin */
-    const sig = JSON.stringify([d, c.contacts.map(p => [p.id, p.nom, p.role, p.proprio, p.enLigne, p.statut, !!p.photo]), esp.forme, lien]);
+    const sig = JSON.stringify([d, c.contacts.map(p => [p.id, p.nom, p.role, p.proprio, p.enLigne, p.enReunion, p.statut, !!p.photo]), esp.forme, lien]);
     if (corps.dataset.sig === sig && corps.children.length) return;
     const champs = {}; corps.querySelectorAll('input[id]').forEach(x => { champs[x.id] = x.value; });
     const actif = document.activeElement, cle = actif && corps.contains(actif) ? (actif.id ? '#' + actif.id : actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || actif.dataset.id || '') : null) : null;
@@ -4886,7 +4892,8 @@
   /* une mention qui arrive : le tableau de bord la relit (s'il a été ouvert), la bannière la dit — sauf si sa conversation est déjà sous les yeux — et la touche ouvre la conversation */
   async function surMention(ev) {
     const conv = /^c_[0-9a-f]{32}$/.test(String(ev.cible)) ? String(ev.cible) : null;
-    if (!(conv && etat.conv === conv && document.visibilityState === 'visible')) notifier(ev.titre || 'OP MESSAGES', ev.texte || '', conv ? 'conv:' + conv : '');
+    /* ⛔ pas de bannière sur l'écran d'un appel ou d'une salle (« Ne pas déranger ») : le tableau de bord la garde, la notification de sortie la résume */
+    if (!(conv && etat.conv === conv && document.visibilityState === 'visible') && !(etat.appelId && !etat.appelReduit)) notifier(ev.titre || 'OP MESSAGES', ev.texte || '', conv ? 'conv:' + conv : '');
     if (!$('vue-accueil').dataset.pret || typeof source.mentionsRecentes !== 'function') return;
     try { bord.mentions = await source.mentionsRecentes(); } catch (e) { return; }
     if (conv && etat.conv === conv) mentionsVues(conv); else if (etat.route && etat.route.vue === 'accueil') rendreAccueil();

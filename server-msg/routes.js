@@ -28,7 +28,7 @@ const EMOJI = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indi
 const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
 /* ⛔ `position` (le bouton « Position » des conversations, COUPÉ par défaut — 7 octobre 2026 : « il faut qu'il l'active dans les paramètres, c'est une sécurité pour eux ») N'EST PAS ICI :
    une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
-const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
+const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses', 'pause_reunion'];      // pause_reunion : « Ne pas déranger pendant une réunion » (absent = allumé, `push.js`)
 /* les préférences à CHOIX (une valeur parmi celles-ci, rien d'autre) : le côté où l'on travaille (« Perso | Pro », 7 octobre 2026) et la confirmation avant d'envoyer */
 const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'], agenda_vue: ['semaine', 'mois'], bord_reunions: ['semaine', 'mois'] };      // agenda_vue : l'Agenda s'ouvre sur la semaine ou sur le mois ; bord_reunions : les réunions prévues du tableau de bord, 7 ou 30 jours (8 octobre 2026)
 const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
@@ -114,7 +114,7 @@ function creerHandlers(ctx) {
     if (type === 'contact_ajoute') return { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texte } };
     /* ⛔ UNE MENTION (8 octobre 2026 : « la personne citée est prévenue même si le groupe est en sourdine ») : sa push part même en sourdine, sous l'étiquette de la CONVERSATION, et la push
        du message ne part pas chez elle (`mentionner`) : jamais deux pour un message */
-    if (type === 'mention') return { type: 'mention', tag: ID_CONV.test(String(cible)) ? String(cible) : 'mention', url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', renotify: true, titre: 'OP MESSAGES', corps: 'Nouvelle mention', detail: { titre, corps: texte } };
+    if (type === 'mention') return { type: 'mention', tag: ID_CONV.test(String(cible)) ? String(cible) : 'mention', url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', renotify: true, titre: 'OP MESSAGES', corps: 'Nouvelle mention', detail: { titre, corps: texte }, retenable: true };
     return null;
   }
   /* `valide` (facultatif) : le jugement de l'instant de partir (`push.js`) — une push qui attend l'acquittement d'une page peut ne plus avoir lieu d'être cinq secondes plus tard */
@@ -272,10 +272,12 @@ function creerHandlers(ctx) {
   H['contacts'] = (req, res) => {
     /* ⛔ LA PRÉSENCE EST RÉCIPROQUE : qui a coupé la sienne ne voit celle de personne (et personne ne voit la sienne : `flux.js`) */
     const jeVois = !(req.moi.prefs && req.moi.prefs.presence === false);
+    /* « En réunion » (8 octobre 2026) : DANS une salle — une présence comme les autres, donc soumise à la même règle réciproque ; une requête pour toute la liste */
+    const dansSalle = jeVois ? new Set(stockage.presentsEnSalle()) : new Set();
     const liste = stockage.contactsDe(req.moi.id).map(c => {
       const p = stockage.personneParId(c.id);
       const visible = jeVois && c.mutuel && !c.bloque && p && !(p.prefs && p.prefs.presence === false) && !stockage.contactBloque(req.moi.id, c.id);
-      return Object.assign({}, c, { en_ligne: !!(visible && hub.enLigne(c.id)) });
+      return Object.assign({}, c, { en_ligne: !!(visible && hub.enLigne(c.id)), en_reunion: !!(visible && hub.enLigne(c.id) && dansSalle.has(c.id)) });      // « en réunion » suppose « en ligne » (un appareil perdu dans une salle ne l'est plus)
     });
     res.json({ contacts: liste });
   };

@@ -1671,6 +1671,7 @@
     let suppressionEnCours = false;        // la demande de suppression est partie : le service va fermer notre flux, ce n'est pas une session « morte » à signaler
     const registre = new Map();            // uid → { id, prenom, nom, statut }
     const enLigne = new Set();
+    const enReunion = new Set();           // « En réunion » (8 octobre 2026) : dans une salle — une présence comme « en ligne », soumise à la même règle réciproque
     let contactsApi = [], contactsTous = [], convsApi = [], listeFraiche = false;
     const convs = new Map();               // id → { detail, messages[], aPlus, charge }
     const saisies = new Map();             // conv → Map(uid → minuterie)
@@ -1825,12 +1826,12 @@
     const nomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).nom : 'Quelqu\'un');
 
     /* ── les contacts ── */
-    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id), favori: c.favori === true });
+    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enReunion.has(c.id) ? 'En réunion' : enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id), enReunion: enReunion.has(c.id), favori: c.favori === true });
     function installerContacts(liste) {
       contactsTous = liste.slice();
       contactsApi = liste.filter(c => c.mutuel && !c.bloque);
-      enLigne.clear();
-      for (const c of liste) { noter(c); if (c.en_ligne) enLigne.add(c.id); }
+      enLigne.clear(); enReunion.clear();
+      for (const c of liste) { noter(c); if (c.en_ligne) enLigne.add(c.id); if (c.en_reunion) enReunion.add(c.id); }
     }
     async function rafraichirContacts() {
       installerContacts(await A.contacts());
@@ -1860,7 +1861,7 @@
         id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, supprime,
         theme: themeDe(c.theme),
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
-        nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false,
+        nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
         invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
@@ -2081,7 +2082,7 @@
         espace: canalD && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canalD && d.conversation.prive === true,
         reunion: d.conversation.type === 'reunion' && typeof d.conversation.reunion === 'string' ? d.conversation.reunion : null };
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
-      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
+      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), enReunion: enReunion.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
       else if (d.conversation.type === 'groupe' || canalD) { base.nom = base.court = d.conversation.nom || (canalD ? 'Canal' : 'Groupe'); base.photo = photoPiece(d.conversation.avatar); }
       else if (d.conversation.type === 'reunion') { base.nom = base.court = d.conversation.nom || 'Réunion'; base.photo = null; }
       if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
@@ -2393,7 +2394,7 @@
       const c = convsApi.find(x => x.id === id);
       return c ? resume(c) : { id };
     }
-    const vueMembre = (c, x) => Object.assign(vuePersonne(x), { role: x.role, moi: estMoi(x.id), enLigne: enLigne.has(x.id), contact: contactsApi.some(k => k.id === x.id) });
+    const vueMembre = (c, x) => Object.assign(vuePersonne(x), { role: x.role, moi: estMoi(x.id), enLigne: enLigne.has(x.id), enReunion: enReunion.has(x.id), contact: contactsApi.some(k => k.id === x.id) });
     async function infos(id) {
       let c = convs.get(id);
       if (!c || !c.detail) { try { const d = await A.conversation(id); for (const m of d.membres) noter(m); c = convs.get(id) || { messages: [], aPlus: false, charge: false }; c.detail = d; convs.set(id, c); } catch (e) { if (e && e.code === 'introuvable') return null; throw e; } }
@@ -2404,7 +2405,7 @@
         id, type: d.conversation.type, nom, initiales: autre ? initialesDe(nom) : (direct ? '?' : '#'), avatar: indexAvatar(autre ? autre.id : id), photo: autre ? photoPiece(autre.avatar) : (direct ? null : photoPiece(d.conversation.avatar)), supprime: direct && !autre,
         sourdine: d.moi && d.moi.muet_jusqua > maintenant() ? d.moi.muet_jusqua : 0,
         membres: d.membres.map(x => vueMembre(c, x)), moiAdmin: d.moi.role === 'admin', annoncesSeulement: !!d.conversation.annonces_seules, ephemeres: d.conversation.ephemere_s || 0,
-        enLigne: autre ? enLigne.has(autre.id) : false,
+        enLigne: autre ? enLigne.has(autre.id) : false, enReunion: autre ? enReunion.has(autre.id) : false,
         /* un canal dit son espace (l'identifiant que les gestes de l'administrateur réclament) et s'il est privé */
         espace: canal && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canal && d.conversation.prive === true,
       };
@@ -2620,6 +2621,7 @@
       },
       presence: (d) => {
         if (d.en_ligne) enLigne.add(d.uid); else enLigne.delete(d.uid);
+        if (d.en_reunion === true && d.en_ligne) enReunion.add(d.uid); else if (d.en_reunion === false || !d.en_ligne) enReunion.delete(d.uid);      // hors ligne : plus « en réunion » non plus
         emettre({ type: 'presence', id: d.uid }); emettre({ type: 'contacts' }); emettre({ type: 'liste' });
         for (const [id, c] of convs) if (c.detail && c.detail.membres.some(m => m.id === d.uid)) emettre({ type: 'conversation', id });
       },
@@ -2887,6 +2889,7 @@
       return cleVapid;
     }
     const apercuNotif = () => !!(moiApi && moiApi.prefs && moiApi.prefs.apercu_notif === true);
+    const pauseReunion = () => !(moiApi && moiApi.prefs && moiApi.prefs.pause_reunion === false);      // « Ne pas déranger pendant une réunion » : ALLUMÉ tant qu'on ne l'a pas coupé
     /* l'abonnement de ce navigateur, ou null : jamais une erreur (une déconnexion ne dépend pas d'une notification) */
     async function abonnementLocal() {
       try { if (!nav.priseEnCharge().ok || nav.permission() !== 'granted') return null; return await nav.abonnementActuel(); }
@@ -2894,7 +2897,7 @@
     }
     const jsonAbonnement = (sub) => { const j = typeof sub.toJSON === 'function' ? sub.toJSON() : sub; return { endpoint: j.endpoint, keys: { p256dh: j.keys && j.keys.p256dh, auth: j.keys && j.keys.auth } }; };
     async function notifEtat() {
-      const sortie = { possible: false, raison: null, permission: 'default', active: false, apercu: apercuNotif(), phrase: '' };
+      const sortie = { possible: false, raison: null, permission: 'default', active: false, apercu: apercuNotif(), pauseReunion: pauseReunion(), phrase: '' };
       const pc = nav.priseEnCharge();
       if (!pc.ok) return Object.assign(sortie, { raison: pc.raison, phrase: PHRASES_LOCALES['notif_' + pc.raison] });
       if (!(await clePush())) return Object.assign(sortie, { raison: 'service', phrase: PHRASES_LOCALES.notif_service });
@@ -2935,6 +2938,11 @@
     }
     async function notifApercu(actif) {
       const m = await A.majMoi({ prefs: { apercu_notif: !!actif } });
+      moiApi = m; noter(m);
+      return notifEtat();
+    }
+    async function notifPauseReunion(actif) {
+      const m = await A.majMoi({ prefs: { pause_reunion: !!actif } });
       moiApi = m; noter(m);
       return notifEtat();
     }
@@ -3336,7 +3344,7 @@
       modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
-      notifEtat, notifActiver, notifDesactiver, notifApercu, notifEssai, sourdine, exporterDonnees, supprimerCompte,
+      notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifEssai, sourdine, exporterDonnees, supprimerCompte,
       /* ── les espaces professionnels, leurs canaux, Messages Pro (capacité `espaces`) ── */
       espaces, espace, espaceCreer, espaceRenommer, espaceTransferer, espaceQuitter, espaceDissoudre, espaceContacts, membreRole, membreRetirer,
       invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter,

@@ -3723,6 +3723,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const appelAutre = (id, uid) => { const r = Q('SELECT uid FROM appel_part WHERE appel = ? AND uid <> ? ORDER BY role, uid').get(id, uid); return r ? r.uid : null; };
   const appelParticipants = (id) => Q('SELECT uid, role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? ORDER BY role, uid').all(id);
   const sallePresents = (id) => num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present'`).get(id).n);
+  /* ⛔ NE PAS DÉRANGER (8 octobre 2026) : être DANS une salle (un appel de groupe ou une réunion qui court, présent — pas à la porte, pas seulement appelé). `enSalle` juge UNE personne
+     (une notification qui part), `presentsEnSalle` rend tout le monde d'un coup (la liste des contacts : une requête, pas une par contact). */
+  function enSalle(uid) {
+    return !!Q(`SELECT 1 AS x FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.uid = ? AND p.statut = 'present' AND a.genre <> 'deux' AND a.etat IN ('sonne', 'en_cours') LIMIT 1`).get(uid);
+  }
+  function presentsEnSalle() {
+    return Q(`SELECT DISTINCT p.uid AS uid FROM appel_part p JOIN appel a ON a.id = p.appel WHERE p.statut = 'present' AND a.genre <> 'deux' AND a.etat IN ('sonne', 'en_cours') LIMIT 20000`).all().map(r => r.uid);
+  }
   /* L'appel de cette personne qui sonne (sonnerie non échue), qui court, ou dont elle est à la porte — son identifiant, ou null. */
   function appelActifDe(uid) {
     const t = horloge();
@@ -4442,7 +4450,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
-    appelVue, appelAcces, appelActifDe, appelActifVue, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
+    appelVue, appelAcces, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
     appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, seancesFinies, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };
 }
