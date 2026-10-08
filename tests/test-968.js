@@ -237,15 +237,19 @@ else (async () => {
     /* ⛔ L'ORDRE COMPTE, ET CE N'EST PAS CELUI DES ENVOIS : la page ouverte de Ben retarde chacune de SES charges de `ackMs`, celles de Cléo (sans page) partent tout de suite.
        Ben doit entrer le PREMIER dans la mémoire de la réunion (une personne au plus) : on attend que ses trois charges soient jugées (« Voisins » sonne), PUIS Ana écrit
        dans « Chantier », dont Cléo est membre depuis l'étape 8. (Une première version envoyait tout d'un trait : Cléo occupait la mémoire avant que Ben y arrive.) */
+    /* ⛔ ET LE PRO PART LE PREMIER, mémoire de la réunion encore VIDE, dans « Devis » (Cléo n'en est pas) : retenu par la réunion (l'ancien ordre), il
+       y prendrait une place et « Famille » sonnerait aussi — une première version l'envoyait en dernier, mémoire déjà pleine : il retombait dans les heures
+       PAR la mémoire pleine, et l'ancien ordre passait inaperçu (mutation G06). */
+    await envoyer(a, PRO2, 'Point du soir');
     await envoyer(c, PERSO, 'Ciné dimanche ?');
     await envoyer(c, FAM, 'Repas de famille');
     await envoyer(c, VOI, 'Fête des voisins');
     await attendreHA(dB, n8, 1);
-    await envoyer(a, PRO1, 'Point du soir');
+    await envoyer(a, PRO1, 'Un dernier mot');
     await sentinelle();
     await attendreHA(dB, n8, 2);
     const s8 = sansAppels(recus(dB).slice(n8));
-    v('⛔ pendant la réunion : le Pro est tenu par les HEURES, « Week-end » et « Famille » par la réunion — sa mémoire est pleine (2), « Voisins » SONNE ; puis la sentinelle',
+    v('⛔ pendant la réunion : le Pro (« Devis », « Chantier ») est tenu par les HEURES, « Week-end » et « Famille » par la réunion — sa mémoire est pleine (2), « Voisins » SONNE ; puis la sentinelle',
       [s8.map(x => x.type), (s8[0] || {}).tag], [['message', 'groupe'], VOI]);
     vrai('⛔ Cléo, dans la même réunion : la mémoire des personnes est pleine (Ben l\'occupe) — le message de « Chantier » SONNE chez elle au lieu d\'être retenu',
       await attendreHA(dC, nC8, 1) && (sansAppels(recus(dC).slice(nC8))[0] || {}).tag === PRO1);
@@ -267,8 +271,8 @@ else (async () => {
     const n11 = recus(dB).length;
     vrai('à la reprise, le résumé des HEURES arrive', await attendreHA(dB, n11, 1));
     const rh = sansAppels(recus(dB).slice(n11))[0] || {};
-    v('« En dehors de tes heures : nouveaux messages pro dans une conversation » — il ouvre « Chantier » (le message pro tenu pendant la réunion de la veille)',
-      [rh.type, rh.tag, rh.corps, rh.url], ['resume', 'resume-heures', 'En dehors de tes heures : nouveaux messages pro dans une conversation', '/#messages/' + PRO1]);
+    v('« En dehors de tes heures : nouveaux messages pro dans 2 conversations » — « Devis » et « Chantier », tenus pendant la réunion de la veille ; l\'application s\'ouvre sur la liste',
+      [rh.type, rh.tag, rh.corps, rh.url], ['resume', 'resume-heures', 'En dehors de tes heures : nouveaux messages pro dans 2 conversations', '/']);
 
     console.log('\n10. La mémoire des heures, pleine, laisse SONNER (le banc la règle à 2 conversations et 1 personne)');
     const nP = recus(dB).length;
