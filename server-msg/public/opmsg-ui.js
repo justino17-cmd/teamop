@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '07695da967c9';
+  const OPMSG_BUILD = '743b36f710b0';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 140;
+  const OPMSG_VERSION = 141;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2964,13 +2964,33 @@
     /* « Ne pas déranger pendant une réunion » (8 octobre 2026) : ALLUMÉ par défaut ; le service retient, la sortie résume */
     if (n.raison !== 'service' && typeof source.notifPauseReunion === 'function') h += '<button type="button" class="reglage presse" role="switch" id="reg-notif-pause" aria-checked="' + (n.pauseReunion ? 'true' : 'false') + '"' + occ + '><span class="reglage-texte">Pause pendant les réunions<small>' +
       esc(n.pauseReunion ? 'Pendant une réunion ou un appel de groupe, les messages et les mentions ne font pas sonner tes appareils : une seule notification les résume à la sortie.' : 'Coupé : les messages font sonner tes appareils même pendant une réunion.') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+    /* « Heures de travail (Pro) » (8 octobre 2026 : « que tout soit à part ») : seulement pour un compte qui a les deux côtés — sans Pro, rien à couper. Allumé, l'éditeur suit. */
+    if (n.raison !== 'service' && typeof source.notifHeuresPro === 'function' && modesActifs()) {
+      const hp = n.heuresPro, dis = reg.notifOccupe ? ' disabled' : '';
+      h += '<button type="button" class="reglage presse" role="switch" id="reg-notif-heures" aria-checked="' + (hp ? 'true' : 'false') + '"' + occ + '><span class="reglage-texte">Heures de travail (Pro)<small>' +
+        esc(hp ? 'En dehors de ' + heuresTexte(hp) + ', les messages et les mentions Pro ne font pas sonner tes appareils : un seul résumé arrive à la reprise. Les appels sonnent toujours, le Perso n\'est jamais coupé.' : 'Coupé : le Pro sonne à toute heure.') +
+        '</small></span><span class="interrupteur" aria-hidden="true"></span></button>';
+      if (hp) h += '<div class="hp-editeur"><div class="hp-jours" role="group" aria-label="Jours de travail">' +
+        JOURS_HP.map((j, i) => '<button type="button" class="hp-jour presse" data-hp-jour="' + (i + 1) + '" aria-pressed="' + (hp.jours.includes(i + 1) ? 'true' : 'false') + '" aria-label="' + j[1] + '"' + occ + '>' + j[0] + '</button>').join('') +
+        '</div><div class="hp-heures"><label>Début<input type="time" id="reg-hp-debut" step="300" value="' + hhmm(hp.debut) + '"' + dis + '></label><label>Fin<input type="time" id="reg-hp-fin" step="300" value="' + hhmm(hp.fin) + '"' + dis + '></label></div></div>';
+    }
     if (n.possible && n.active) h += '<button type="button" class="reglage presse" id="reg-notif-essai"' + occ + '><span class="reglage-texte">Envoyer une notification d\'essai<small>Elle part vers tous tes appareils abonnés.</small></span></button>';
     if (reg.notifMsg) h += '<div class="carte-pad"><p class="info-note" role="status">' + esc(reg.notifMsg) + '</p></div>';
     if (reg.notifErreur) h += '<div class="carte-pad"><p class="info-erreur" role="alert">' + esc(reg.notifErreur) + '</p></div>';
     c.innerHTML = h;
   }
   const dirAppareils = k => k + (k > 1 ? ' appareils' : ' appareil');
-  async function actionNotif(quoi) {
+  /* les heures de travail : lundi = 1 (comme le service) ; une heure en minutes ↔ « HH:MM » (le champ) ↔ « 9 h », « 9 h 30 » (la phrase) */
+  const JOURS_HP = [['L', 'lundi'], ['M', 'mardi'], ['M', 'mercredi'], ['J', 'jeudi'], ['V', 'vendredi'], ['S', 'samedi'], ['D', 'dimanche']];
+  const hhmm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const heureDite = m => Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : '');
+  function heuresTexte(hp) {
+    const j = hp.jours.slice().sort((x, y) => x - y), noms = j.map(x => JOURS_HP[x - 1][1]);
+    const suite = j.length > 2 && j.every((x, i) => i === 0 || x === j[i - 1] + 1);
+    const jours = j.length === 7 ? 'tous les jours' : suite ? 'du ' + noms[0] + ' au ' + noms[noms.length - 1] : j.length === 1 ? 'le ' + noms[0] : 'le ' + noms.slice(0, -1).join(', le ') + ' et le ' + noms[noms.length - 1];
+    return heureDite(hp.debut) + ' – ' + heureDite(hp.fin) + (hp.fin < hp.debut ? ' (le lendemain)' : '') + ', ' + jours;
+  }
+  async function actionNotif(quoi, valeur) {
     if (reg.notifOccupe || !reg.notif) return;
     if (quoi === 'sw' && !reg.notif.possible) return;                          // l'état dit déjà pourquoi, à côté de l'interrupteur
     reg.notifOccupe = true; reg.notifErreur = ''; reg.notifMsg = ''; peindreNotif();           // ⛔ chaque essai écrit SON verdict
@@ -2978,6 +2998,8 @@
       if (quoi === 'sw') reg.notif = reg.notif.active ? await source.notifDesactiver() : await source.notifActiver();
       else if (quoi === 'apercu') reg.notif = await source.notifApercu(!reg.notif.apercu);
       else if (quoi === 'pause') reg.notif = await source.notifPauseReunion(!reg.notif.pauseReunion);
+      else if (quoi === 'heures') reg.notif = await source.notifHeuresPro(reg.notif.heuresPro ? null : { jours: [1, 2, 3, 4, 5], debut: 540, fin: 1080 });      // allumé : du lundi au vendredi, 9 h – 18 h ; on règle ensuite
+      else if (quoi === 'heures-maj') reg.notif = await source.notifHeuresPro(valeur);
       else if (quoi === 'essai') {
         const r = await source.notifEssai();
         reg.notifMsg = r.appareils === 0 ? 'Aucun appareil n\'est abonné : active d\'abord les notifications.'
@@ -3123,6 +3145,14 @@
   }
   /* revenir sur la page (après avoir autorisé les notifications dans les réglages du navigateur, par exemple) relit l'état affiché dans Réglages */
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && CAP.notifications && etat.route && etat.route.vue === 'reglages' && !reg.notifOccupe && $('reg-notif')) chargerReglages(); });
+  /* les deux heures de travail : une heure se règle à la molette ou au clavier, elle s'enregistre quand on la lâche (« change ») ; début = fin n'est pas une plage */
+  $('vue-reglages').addEventListener('change', e => {
+    const x = e.target; if (!x || (x.id !== 'reg-hp-debut' && x.id !== 'reg-hp-fin') || !reg.notif || !reg.notif.heuresPro || reg.notifOccupe) return;
+    const lire = id => { const m = /^(\d{2}):(\d{2})/.exec($(id).value || ''); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
+    const debut = lire('reg-hp-debut'), fin = lire('reg-hp-fin');
+    if (debut === null || fin === null || debut === fin) { reg.notifErreur = debut !== null && debut === fin ? 'Le début et la fin ne peuvent pas être à la même heure.' : 'Choisis une heure.'; peindreNotif(); return; }
+    actionNotif('heures-maj', { jours: reg.notif.heuresPro.jours, debut, fin }).then(() => { const y = $(x.id); if (y) y.focus({ preventScroll: true }); });
+  });
   $('vue-reglages').addEventListener('click', async e => {
     const er = $('reg-erreur'), nette = () => { er.hidden = true; er.textContent = ''; }, dit = (x, defaut) => { er.textContent = phrase(x, defaut); er.hidden = false; };
     const bouton = e.target.closest('button'); if (!bouton) return;
@@ -3146,7 +3176,15 @@
     }
     if (bouton.id === 'reg-pp') { declencheur = bouton; ouvrirFeuille('perso-plus'); return; }
     if (bouton.dataset.regRelire) { chargerReglages(); return; }
-    if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-pause' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
+    if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-pause' || bouton.id === 'reg-notif-heures' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
+    if (bouton.dataset.hpJour && reg.notif && reg.notif.heuresPro) {
+      if (reg.notifOccupe) return;
+      const j = Number(bouton.dataset.hpJour), hp = reg.notif.heuresPro;
+      const jours = hp.jours.includes(j) ? hp.jours.filter(x => x !== j) : hp.jours.concat(j);
+      if (!jours.length) { reg.notifErreur = 'Garde au moins un jour — ou coupe les heures de travail.'; peindreNotif(); const b = document.querySelector('[data-hp-jour="' + j + '"]'); if (b) b.focus({ preventScroll: true }); return; }
+      actionNotif('heures-maj', { jours, debut: hp.debut, fin: hp.fin }).then(() => { const b = document.querySelector('[data-hp-jour="' + j + '"]'); if (b) b.focus({ preventScroll: true }); });
+      return;
+    }
     if (bouton.id === 'reg-export') { exporterDonnees(); return; }
     if (bouton.id === 'reg-supprimer') { declencheur = bouton; ouvrirFeuille('suppression'); return; }
     if (bouton.dataset.regCle) {
@@ -4448,8 +4486,23 @@
   });
 
   /* ── les bannières du temps réel ── */
+  /* ⛔ LES HEURES DE TRAVAIL (côté Pro, 8 octobre 2026) : hors des heures, l'arrivée d'une conversation PRO ne surgit pas tant qu'on est côté Perso — le service, lui, ne
+     fait sonner aucun appareil. Côté Pro, on a choisi de travailler : elle surgit. La liste et la pastille du côté Pro comptent toujours. La règle est celle du service
+     (`heures-pro.js`) : une plage qui passe minuit appartient au jour où elle commence ; l'heure est celle de l'appareil (c'est lui qui donne son fuseau au compte). */
+  function dansHeuresPro(hp, d) {
+    const jour = d.getDay() === 0 ? 7 : d.getDay(), minute = d.getHours() * 60 + d.getMinutes(), veille = jour === 1 ? 7 : jour - 1;
+    if (hp.debut < hp.fin) return hp.jours.includes(jour) && minute >= hp.debut && minute < hp.fin;
+    return (hp.jours.includes(jour) && minute >= hp.debut) || (hp.jours.includes(veille) && minute < hp.fin);
+  }
+  function arriveeRetenue(ev) {
+    if (!modesActifs() || etat.mode === 'pro' || typeof source.heuresPro !== 'function') return false;
+    const hp = source.heuresPro(); if (!hp) return false;
+    const c = etat.conversations.find(x => x.id === ev.conv);
+    return !!c && coteDe(c) === 'pro' && !dansHeuresPro(hp, new Date());
+  }
   function surArrivee(ev) {
     if (ev.conv === etat.conv && document.visibilityState === 'visible') return;      // la conversation est sous les yeux : le message y paraît, pas de bannière
+    if (arriveeRetenue(ev)) return;
     if (ev.invitation) { notifier('Invitation · ' + ev.de, 'Quelqu\'un qui n\'est pas dans tes contacts souhaite t\'écrire. Touche pour voir tes invitations.', 'invitations'); return; }
     notifier(ev.groupe && ev.convNom ? ev.de + ' · ' + ev.convNom : ev.de, ev.texte || 'Nouveau message');
   }

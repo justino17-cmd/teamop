@@ -173,13 +173,24 @@ async function mesurerCibles(S, etiquette, extra) {
   }, seuil);
   v(etiquette + ' : cibles ≥ ' + seuil + ' px (' + R.n + ' cibles examinées, plus petite ' + R.mw + '×' + R.mh + ')', R.n >= 3 && R.petites.length === 0, R);
 }
-/* un champ de saisie fait 16 px au moins : en dessous, Safari zoome la page au focus et elle reste zoomée */
+/* un champ de saisie fait 16 px au moins : en dessous, Safari zoome la page au focus et elle reste zoomée.
+   ⛔ SAUF la couche du bureau (≥ 900 px, souris : 15 px, la densité voulue par Justin le 7 octobre 2026) — là, aucun Safari d'iPhone ne passe, et un iPad au
+   trackpad qui s'y glisserait est rattrapé par la GARDE D'iOS (`@supports (-webkit-touch-callout: none)` : 16 px aux deux champs de la couche), dont on exige la
+   règle. (Jusqu'au 8 octobre 2026 la sonde exigeait 16 px partout : ses profils de bureau tombaient depuis la couche — personne ne l'avait relancée en entier.) */
+const coucheBureau = (S) => !S.pf.mobile && S.pf.w >= 900;
 async function mesurerChamps(S, etiquette) {
   const R = await S.page.evaluate(() => {
     const champs = [...document.querySelectorAll('input[type=text], input[type=search], textarea')].filter(e => !e.closest('[hidden]') && !e.closest('[inert]') && e.getClientRects().length);
-    return { n: champs.length, tailles: champs.map(e => (e.id || e.tagName) + ' ' + parseFloat(getComputedStyle(e).fontSize)) };
+    let garde = false;
+    const parcourir = (regles) => { for (const r of regles) { if (!r.cssRules) continue;
+      if (/-webkit-touch-callout/.test(r.conditionText || '')) { const t = [...r.cssRules].map(x => x.cssText).join(' '); if (/\.recherche input/.test(t) && /\.pilule-saisie textarea/.test(t) && /font-size: 16px/.test(t)) garde = true; }
+      parcourir(r.cssRules); } };
+    for (const f of document.styleSheets) { try { parcourir(f.cssRules); } catch (e) { /* une feuille d'ailleurs */ } }
+    return { n: champs.length, tailles: champs.map(e => (e.id || e.tagName) + ' ' + parseFloat(getComputedStyle(e).fontSize)), garde };
   });
-  v(etiquette + ' : tout champ de saisie fait ≥ 16 px (' + R.n + ' champs : ' + R.tailles.join(', ') + ')', R.n >= 1 && R.tailles.every(t => parseFloat(t.split(' ').pop()) >= 16), R);
+  const souris = coucheBureau(S), plancher = souris ? 15 : 16;
+  v(etiquette + ' : tout champ de saisie fait ≥ ' + plancher + ' px (' + R.n + ' champs : ' + R.tailles.join(', ') + ')' + (souris ? ' — à la souris ; la garde d\'iOS (16 px) est dans la feuille' : ''),
+    R.n >= 1 && R.tailles.every(t => parseFloat(t.split(' ').pop()) >= plancher) && (!souris || R.garde), R);
 }
 
 /* le contraste AU PIXEL. Trois choses sont lues, aucune n'est recalculée à la main : la capture du texte tel qu'il est peint, la capture du
@@ -526,7 +537,7 @@ async function etapeSaisie(S) {
   await ouvrirConv(S, 'v3', 'Chantier Les Tilleuls');
   const ta = S.page.locator('#saisie');
   const e0 = await S.page.evaluate(() => ({ envoyerCache: document.getElementById('envoyer').hidden, microVu: !document.getElementById('compo-micro').hidden, h1: document.getElementById('saisie').offsetHeight, lh: parseFloat(getComputedStyle(document.getElementById('saisie')).fontSize) }));
-  v(nom + ' : vide → le micro, pas de flèche ; champ à ' + e0.lh + ' px de police (≥ 16 : iOS ne zoome pas)', e0.envoyerCache && e0.microVu && e0.lh >= 16, e0);
+  v(nom + ' : vide → le micro, pas de flèche ; champ à ' + e0.lh + ' px de police' + (coucheBureau(S) ? ' (≥ 15 à la souris, la garde d\'iOS rend 16)' : ' (≥ 16 : iOS ne zoome pas)'), e0.envoyerCache && e0.microVu && e0.lh >= (coucheBureau(S) ? 15 : 16), e0);
   /* un vrai clavier : on pose le focus par un geste puis on frappe */
   await geste(S, '#saisie'); await taper(S, 'Bonjour à tous');
   const e1 = await S.page.evaluate(() => ({ envoyerVu: !document.getElementById('envoyer').hidden, microCache: document.getElementById('compo-micro').hidden, val: document.getElementById('saisie').value }));
@@ -555,10 +566,11 @@ async function etapeSaisie(S) {
   await attendre(S, n => document.querySelectorAll('#conv-messages .msg').length > n, n0 + 1); await dormir(150);
   const m2 = await S.page.evaluate(() => { const b = [...document.querySelectorAll('#conv-messages .bulle')].pop(); return { t: b.innerText, h: b.getBoundingClientRect().height, ws: getComputedStyle(b).whiteSpace }; });
   v(nom + ' : la bulle garde le retour à la ligne (« ligne un⏎ligne deux », ' + Math.round(m2.h) + ' px de haut pour deux lignes)', m2.t === 'ligne un\nligne deux' && m2.h >= 44 && m2.ws === 'pre-wrap', m2);
-  /* le champ grandit jusqu'à ~5 lignes puis défile */
-  await ta.fill('1\n2\n3\n4\n5\n6\n7\n8'); S.gestes++;
+  /* le champ grandit jusqu'à ~5 lignes puis défile — 8 au bureau (la saisie de Messages sur Mac grandit davantage : couche du bureau, `max-height`) */
+  const plafond = coucheBureau(S) ? 8 : 5;
+  await ta.fill(Array.from({ length: plafond + 3 }, (x, i) => String(i + 1)).join('\n')); S.gestes++;
   const m3 = await S.page.evaluate(() => { const t = document.getElementById('saisie'), cs = getComputedStyle(t); const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom); return { h: t.offsetHeight, lignes: (t.offsetHeight - pad) / 22, defile: t.scrollHeight > t.clientHeight, ov: cs.overflowY }; });
-  v(nom + ' : huit lignes saisies → le champ plafonne à 5 lignes (' + m3.lignes.toFixed(1) + ') et défile (' + m3.h + ' px)', m3.lignes > 4.8 && m3.lignes <= 5.05 && m3.defile, m3);
+  v(nom + ' : ' + (plafond + 3) + ' lignes saisies → le champ plafonne à ' + plafond + ' lignes (' + m3.lignes.toFixed(1) + ') et défile (' + m3.h + ' px)', m3.lignes > plafond - 0.2 && m3.lignes <= plafond + 0.05 && m3.defile, m3);
   await ta.fill(''); S.gestes++;
   /* un mot interminable se coupe dans la bulle */
   const long = 'W'.repeat(180) + ' fin';

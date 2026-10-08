@@ -539,6 +539,19 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .reglage:last-child { border-bottom: 0; }
 .reglage-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: 17px; }
 .reglage-texte small { font-size: 13px; color: var(--sub-meta); }
+/* ⛔ LES HEURES DE TRAVAIL (côté Pro, 8 octobre 2026) : sept jours en pastilles rondes (pressée = remplie), deux heures. Les pastilles RÉTRÉCISSENT plutôt que de
+   déborder (sept fois 44 px ne tiennent pas dans un téléphone de 320 px) ; 44 px dès qu'il y a la place. */
+.hp-editeur { padding: 6px 10px 14px; border-bottom: var(--sep); display: flex; flex-direction: column; gap: 12px; }
+.hp-editeur:last-child { border-bottom: 0; }
+.hp-jours { display: flex; gap: 2px; justify-content: space-between; }      /* mesuré : à 360 px, 4 px d'écart et 14 de marge laissaient des pastilles de 39 px */
+@media (min-width: 700px) { .hp-jours { justify-content: flex-start; gap: 8px; } }      /* au large, les sept pastilles restent groupées, pas étalées sur toute la ligne */
+.hp-jour { flex: 1 1 0; min-width: 0; max-width: 44px; aspect-ratio: 1 / 1; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 600; color: var(--text); background: var(--field); transition: background-color .2s, transform .12s ease-out; }
+.hp-jour[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
+.hp-jour:active { transform: scale(.94); }
+.hp-heures { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hp-heures label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--sub-meta); }
+.hp-heures input { width: 100%; min-width: 0; height: 44px; padding: 0 10px; border: var(--line); border-radius: 10px; background: var(--input-bg); font-size: 17px; color: var(--text); font-variant-numeric: tabular-nums; }
+.hp-heures input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 .presence-seance, .presence-ligne { color: var(--text); }
 .presence-seance .reglage-texte { font-weight: 600; }
 .presence-ligne { min-height: 44px; padding-left: 30px; }
@@ -1979,7 +1992,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* le segmenté du Mac : 24 px, 12 px, compact */
   .seg { margin-bottom: 14px; border-radius: 7px; }
   .seg-knob { border-radius: 5px; }
-  .seg-bouton { min-height: 30px; font-size: 14px; }
+  .seg-bouton { min-height: 32px; font-size: 14px; }      /* 32, comme les boutons de la barre d'outils (30 passait sous le plancher de la souris, mesuré le 8 octobre 2026) */
 
   /* les LISTES : nues sur le fond, la ligne choisie en aplat d'accent, un fond au survol — plus de carte, plus de chevron */
   .carte-liste { background: transparent; border-radius: 0; overflow: visible; }
@@ -1993,7 +2006,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .conv-heure { font-size: 13px; }
   .conv-apercu { font-size: 14px; line-height: 19px; }
   .conv .chev, .appel-ligne .chev { display: none; }
-  .conv[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
+  /* ⛔ 90 %, pas 78 : de nuit, sur le bleu de la ligne choisie, l'heure et l'aperçu tombaient à 4,08:1 (la sonde au pixel, bureau 1440, 8 octobre 2026) ; 90 % rend 4,84 de nuit, 7,0 de jour */
+  .conv[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 90%, transparent); }
   .vide { font-size: 15px; }
 
   /* la conversation : l'en-tête de Messages sur Mac (la photo et le nom sur une ligne, à gauche), des bulles de bureau, la saisie compacte */
@@ -2008,6 +2022,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .composer { padding: 8px 14px 12px; }
   .pilule-saisie { min-height: 36px; border-radius: 18px; --pad-y: 7px; }
   .pilule-saisie textarea { height: 36px; font-size: 15px; line-height: 22px; letter-spacing: 0; padding-left: 14px; max-height: calc(8 * 22px + 2 * var(--pad-y)); }
+  /* ⛔ LA GARDE D'iOS : un iPad au trackpad peut se dire « souris » et prendre cette couche — Safari y zoomerait au focus d'un champ de moins de 16 px, et la page
+     resterait zoomée. `-webkit-touch-callout` n'existe que sur iOS : là seulement, les deux champs de la couche reprennent 16 px (la sonde en exige la règle). */
+  @supports (-webkit-touch-callout: none) { .vue .recherche input, .pilule-saisie textarea { font-size: 16px; } }
   .compo-bouton { width: 36px; height: 36px; font-size: 20px; }
   .compo-plus .disque { width: 30px; height: 30px; font-size: 15px; }
 
