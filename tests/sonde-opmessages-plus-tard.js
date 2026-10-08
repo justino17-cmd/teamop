@@ -78,6 +78,19 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     v('⛔ … et Ben ne voit RIEN (population : le message qu\'il a lui-même écrit)', [(await chezBen()).includes(TEXTE_BEN), (await chezBen()).includes(T1)], [true, false]);
     void t0;
 
+    console.log('\n── 1 bis. Au bureau : l\'appui long À LA SOURIS sur la flèche (le relâcher y produit un clic) ──');
+    const T3 = 'Appui long souris QXPT3';
+    await A.page.locator('#saisie').fill(T3);
+    await attendre(A, () => !document.getElementById('envoyer').hidden);
+    const rf = await A.page.locator('#envoyer').boundingBox();
+    await A.page.mouse.move(rf.x + rf.width / 2, rf.y + rf.height / 2);
+    await A.page.mouse.down(); await A.page.waitForTimeout(800); await A.page.mouse.up();
+    vrai('l\'appui long (souris) ouvre « Envoyer plus tard »', await attendre(A, () => !document.getElementById('menu-fond').hidden && /Envoyer plus tard/.test(document.getElementById('menu-msg').textContent)));
+    await A.page.waitForTimeout(500);
+    v('⛔ … et le CLIC du relâcher n\'a PAS envoyé le message (le champ le garde, Ben n\'a rien)', [await A.page.evaluate(() => document.getElementById('saisie').value), (await chezBen()).includes(T3)], [T3, false]);
+    await A.page.keyboard.press('Escape');
+    await A.page.locator('#saisie').fill('');
+
     console.log('\n── 2. Au téléphone : l\'appui long sur la flèche ──');
     const P = await ouvrir(b, svc.base, IPHONE, '#messages/' + AB);
     await attendre(P, () => document.querySelectorAll('#conv-messages .msg').length >= 1);

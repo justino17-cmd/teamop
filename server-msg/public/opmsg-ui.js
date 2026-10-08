@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'd5f35c21823c';
+  const OPMSG_BUILD = 'd251d789da10';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 126;
+  const OPMSG_VERSION = 127;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -944,7 +944,10 @@
     if ((matchMedia('(pointer: fine)').matches && !e.shiftKey && !e.altKey) || e.ctrlKey || e.metaKey) { e.preventDefault(); if (e.repeat || confirmeTropTot()) return; envoyerTexte(); }   // une touche TENUE n'envoie pas : sa répétition confirmerait ce que la première vient de demander
   });
   $('envoyer').addEventListener('mousedown', e => e.preventDefault());        // la flèche ne vole pas le focus (le clavier reste ouvert)
-  $('envoyer').addEventListener('click', e => { if (etat.envoyerLong) { etat.envoyerLong = false; e.stopImmediatePropagation(); } }, true);   // le relâcher d'un appui long (« Envoyer plus tard ») n'envoie PAS
+  /* le relâcher d'un appui long (« Envoyer plus tard ») n'envoie PAS. ⚠️ Mesuré le 8 octobre 2026 : aujourd'hui ce clic n'atteint même pas la flèche — le voile du menu, ouvert pendant
+     l'appui, le reçoit (Chromium à la souris et au doigt) — la mutation qui retire cette garde ne fait tomber AUCUNE sonde. Elle reste en précaution ; c'est la sonde qui garde le
+     COMPORTEMENT (« le champ garde le texte, rien n'est parti »), aux deux. */
+  $('envoyer').addEventListener('click', e => { if (etat.envoyerLong) { etat.envoyerLong = false; e.stopImmediatePropagation(); } }, true);
   $('envoyer').addEventListener('click', () => { armerRetap(); if (confirmeTropTot()) return; envoyerTexte(); });
   /* ⛔ ENVOYER PLUS TARD (8 octobre 2026 : « écrire un message maintenant et le programmer pour demain 8 h ») — un appui long sur la flèche, ou le clic droit, comme dans Messages d'Apple ;
      la tuile « Plus tard » de la feuille « + » y mène aussi (au clavier, par exemple). Le clic que produit le relâcher d'un appui long n'envoie PAS le message. */
