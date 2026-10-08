@@ -110,6 +110,9 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     await toucher(P, '#menu-msg [data-plus-tard="matin"]');
     vrai('« Demain matin » : programmé (la page dit « demain à 08:00 »), deux bulles en pointillés', await attendre(P, () => /^Programmé pour demain à 08:00/.test(document.getElementById('mot').textContent) && document.querySelectorAll('#conv-programmes .prog-msg').length === 2));
     v('   le service les tient tous les deux', (await programmes()).sort(), [T1, T2].sort());
+    /* ⛔ le petit mot ne se pose pas sur l'en-tête de la conversation (vu au test de A à Z : il couvrait le nom, au téléphone) */
+    const posMot = await P.page.evaluate(() => { const m = document.getElementById('mot').getBoundingClientRect(), n = document.querySelector('.conv-nav').getBoundingClientRect(); return { haut: Math.round(m.top), basEntete: Math.round(n.bottom), visible: m.height > 0 }; });
+    vrai('⛔ « Programmé pour … » se pose SOUS l\'en-tête de la conversation, pas sur son nom', posMot.visible && posMot.haut >= posMot.basEntete, posMot);
 
     /* ⛔ 2 bis. UN APPUI LONG DONT LE RELÂCHER NE PRODUIT PAS DE CLIC (8 octobre 2026, test de A à Z, profil iPhone) : la page notait l'heure du relâcher à CHAQUE doigt levé ;
        sans clic du relâcher à avaler, elle avalait le PREMIER toucher dans le menu — « Programmer » ne répondait qu'au second. Le système qui reprend le doigt (touchcancel) le joue. */

@@ -1536,7 +1536,7 @@ async function etapeAppelsListe(S) {
     const sonde = document.createElement('i'); sonde.style.color = 'var(--rouge-txt)'; document.body.appendChild(sonde); const rouge = getComputedStyle(sonde).color; sonde.remove();
     const lignes = q('#liste-appels .appel-item').map(li => ({ nom: li.querySelector('.appel-nom-ligne').textContent, manque: li.querySelector('.appel-nom-ligne').classList.contains('manque'), couleur: getComputedStyle(li.querySelector('.appel-nom-ligne')).color, kind: li.querySelector('.appel-kind span').textContent,
       icone: li.querySelector('.appel-kind use').getAttribute('href'), heure: li.querySelector('.appel-heure').textContent, rappeler: !!li.querySelector('[data-rappeler]'), info: !!li.querySelector('[data-infos]') }));
-    const knob = document.querySelector('.seg-knob').getBoundingClientRect(), seg = q('#seg-appels [data-filtre]').map(b => ({ f: b.dataset.filtre, t: b.textContent, p: b.getAttribute('aria-pressed'), x: b.getBoundingClientRect().left }));
+    const knob = document.querySelector('#seg-appels .seg-knob').getBoundingClientRect(), seg = q('#seg-appels [data-filtre]').map(b => ({ f: b.dataset.filtre, t: b.textContent, p: b.getAttribute('aria-pressed'), x: b.getBoundingClientRect().left }));
     return { src: src.map(a => ({ nom: a.nom, sens: a.sens, type: a.type })), lignes, rouge, seg, knobX: knob.left, h1: document.querySelector('#vue-appels h1').textContent, courant: (document.querySelector('[data-vue][aria-current=page]') || {}).dataset.vue,
       pasCoquille: !document.querySelector('#vue-appels .coquille'), titre: document.title };
   });
@@ -1561,7 +1561,7 @@ async function etapeAppelsSegmente(S) {
   titre(nom + ' — le segmenté Tous / Manqués');
   const lire = () => S.page.evaluate(async () => ({ noms: [...document.querySelectorAll('#liste-appels .appel-nom-ligne')].map(e => e.textContent), manques: [...document.querySelectorAll('#liste-appels .appel-nom-ligne')].map(e => e.classList.contains('manque')),
     src: (await window.OPMSG_SOURCE.appels('manques')).map(a => a.nom), tous: (await window.OPMSG_SOURCE.appels()).length,
-    p: [...document.querySelectorAll('#seg-appels [data-filtre]')].map(b => b.getAttribute('aria-pressed')).join(), knob: Math.round(document.querySelector('.seg-knob').getBoundingClientRect().left), x1: Math.round(document.querySelectorAll('#seg-appels [data-filtre]')[1].getBoundingClientRect().left), x0: Math.round(document.querySelectorAll('#seg-appels [data-filtre]')[0].getBoundingClientRect().left),
+    p: [...document.querySelectorAll('#seg-appels [data-filtre]')].map(b => b.getAttribute('aria-pressed')).join(), knob: Math.round(document.querySelector('#seg-appels .seg-knob').getBoundingClientRect().left), x1: Math.round(document.querySelectorAll('#seg-appels [data-filtre]')[1].getBoundingClientRect().left), x0: Math.round(document.querySelectorAll('#seg-appels [data-filtre]')[0].getBoundingClientRect().left),
     vide: (document.querySelector('#liste-appels .vide') || {}).textContent || null }));
   const t0 = await lire();
   await geste(S, '#seg-appels [data-filtre="manques"]'); await dormir(600);

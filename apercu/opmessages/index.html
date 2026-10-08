@@ -638,6 +638,9 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
   transform: translateY(-8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
 }
 .mot.on { transform: none; opacity: 1; }
+/* ⛔ au téléphone, une conversation ouverte a un en-tête HAUT (l'avatar au-dessus du nom, comme Messages) : le petit mot passait SUR le nom de la conversation (vu au test de
+   A à Z, 8 octobre 2026 : « Je te le rappelle à … » posé sur le titre). Il se pose sous l'en-tête. */
+@media (max-width: 1099.98px) { html[data-conv] .mot { top: calc(var(--vvt, 0px) + env(safe-area-inset-top, 0px) + 84px); } }
 
 /* ⚠️ ÉCARTS AU PAQUET, À FAIRE VALIDER PAR JUSTIN (relecture du 1er octobre 2026) : (1) la flèche d'envoi n'est montrée qu'avec du texte, et le micro disparaît alors — le paquet
    dessine la flèche dans la pilule ET le micro à droite en permanence ; (2) le chevron de retour et son badge sont masqués dès 1 100 px (la liste est à côté) — la capture
