@@ -124,6 +124,20 @@ function localDans(t, tz) {
     }, null, 20000), await B.page.evaluate(() => { const c = document.querySelector('#conv-messages .compte-rendu'); return c ? c.textContent.slice(0, 300) : (document.getElementById('conv-messages') || {}).textContent.slice(0, 300); }));
     await capture(B, 'o3-compte-rendu');
 
+    /* ⛔ 4. SUPPRIMÉE DEPUIS SA CONVERSATION (8 octobre 2026, test de A à Z) : la séance terminée n'est plus un bouton de l'Agenda — l'organisatrice passe par la conversation, dont le titre
+       mène à la fiche. La conversation s'en allant avec la réunion, la page disait « Tu n'es plus dans cette conversation » par-dessus « Réunion supprimée ». */
+    console.log('\n── 4. Ana supprime la réunion depuis sa conversation ──');
+    await A.page.evaluate((c) => { location.hash = '#messages/' + c; }, R.conv);
+    vrai('population : la conversation de la réunion s\'ouvre chez Ana, son compte rendu dedans', await att(A, () => !!document.querySelector('#conv-messages .compte-rendu') && document.getElementById('conv-titre').offsetWidth > 0, null, 15000));
+    await toucher(A, '#conv-titre');
+    vrai('son titre mène à la fiche, qui propose « Supprimer la réunion »', await att(A, () => !!document.querySelector('#info-corps [data-reu="supprimer-demander"]')));
+    await toucher(A, '#info-corps [data-reu="supprimer-demander"]');
+    await att(A, () => !!document.querySelector('#info-corps [data-reu="supprimer-confirmer"]'));
+    await toucher(A, '#info-corps [data-reu="supprimer-confirmer"]');
+    vrai('la conversation s\'en va (le flux du service l\'a retirée de la liste)', await att(A, (c) => !document.querySelector('[data-ouvrir="' + c + '"]') && !document.documentElement.dataset.conv, R.conv, 15000));
+    await A.page.waitForTimeout(300);
+    v('⛔ … et la page dit « Réunion supprimée » — pas « Tu n\'es plus dans cette conversation »', await A.page.evaluate(() => document.getElementById('mot').textContent), 'Réunion supprimée');
+
     v('aucune erreur JavaScript, ni chez Ana (bureau) ni chez Ben (téléphone)', [A.erreurs, B.erreurs], [[], []]);
   } catch (e) {
     vrai('la sonde s\'est déroulée sans exception (' + String(e && e.stack || e).split('\n').slice(0, 3).join(' | ') + ')', false);

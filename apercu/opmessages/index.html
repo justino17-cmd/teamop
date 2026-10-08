@@ -6920,9 +6920,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (ev.invitation) { notifier('Invitation · ' + ev.de, 'Quelqu\'un qui n\'est pas dans tes contacts souhaite t\'écrire. Touche pour voir tes invitations.', 'invitations'); return; }
     notifier(ev.groupe && ev.convNom ? ev.de + ' · ' + ev.convNom : ev.de, ev.texte || 'Nouveau message');
   }
+  /* les conversations que JE viens de faire disparaître (une réunion supprimée) : leur retrait ne se dit pas « Tu n'es plus dans cette conversation » — le geste a déjà son avis */
+  const convQuittees = new Map();
   function surRetire(id) {
+    const voulu = Date.now() - (convQuittees.get(id) || 0) < 30000; convQuittees.delete(id);
     if (etat.groupe.ouvert && etat.groupe.convId === id) remplacer(Object.assign({}, etat.route, { feuille: false }));
-    if (etat.conv === id) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot('Tu n\'es plus dans cette conversation.'); }
+    if (etat.conv === id) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (!voulu) mot('Tu n\'es plus dans cette conversation.'); }
     rafraichirListe();
   }
 
@@ -8084,7 +8087,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         else if (act === 'confirmation-retour') { F.confirme = null; await relire(); }
         else if (act === 'prevenir') { F.prevenir = !F.prevenir; await relire(); }
         else if (act === 'annuler-confirmer') { b.setAttribute('aria-disabled', 'true'); await source.annulerReunion(id); F.confirme = null; mot('Réunion annulée : les invités sont prévenus'); await relire(); }
-        else if (act === 'supprimer-confirmer') { b.setAttribute('aria-disabled', 'true'); F.sortie = 'Réunion supprimée'; await source.supprimerReunion(id, { notifier: F.prevenir }); reunionDisparue(F); return; }
+        else if (act === 'supprimer-confirmer') {
+          b.setAttribute('aria-disabled', 'true'); F.sortie = 'Réunion supprimée';
+          /* sa conversation s'en va avec elle : l'avis « Tu n'es plus dans cette conversation » (`surRetire`) ne recouvre pas « Réunion supprimée » chez celui qui vient de la supprimer
+             (vu au test de A à Z, 8 octobre 2026 : supprimée depuis sa conversation, la page disait qu'on en avait été retiré) */
+          if (F.donnees && F.donnees.conv) convQuittees.set(F.donnees.conv, Date.now());
+          await source.supprimerReunion(id, { notifier: F.prevenir }); reunionDisparue(F); return;
+        }
       }
       /* ── le formulaire ── */
       else if (G.mode === 'invite-reunion') {
