@@ -6,6 +6,7 @@
      · un PARTICIPANT coche ou décoche un point (l'organisateur ou un invité) ; un point inconnu se dit (404), un non-invité reçoit le même 404 qu'une réunion qui n'existe pas ;
      · ⛔ quand l'hôte TERMINE la séance pour tous, la conversation de la réunion reçoit UN compte rendu, de celui qui l'a terminée : le jour, la durée, les présents (et leur temps), les absents
        (avec leur réponse), l'ordre du jour (coché ou non), les documents partagés PENDANT la séance — une carte (`meta.k`) et le même texte ; terminer deux fois n'en fait pas deux ;
+     · ⛔ et AUSSI quand la séance finit parce que le DERNIER s'en va — il quitte, ou son appareil se tait et le balayeur le sort (§ 4 bis : seul, « Quitter » ne demande rien) ;
      · un appel de GROUPE (pas une réunion) terminé n'en fait pas ;
      · une SÉRIE repart avec un ordre du jour décoché ; une réunion unique garde ses coches.
    ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : chaque « rien » est précédé de ce qu'il aurait pu compter. */
@@ -105,6 +106,37 @@ const PNG = F.png();
     v('⛔ terminer une seconde fois n\'en fait pas un second', (await crs(a1)).length, 1);
     v('⛔ Eve (pas invitée) ne lit pas la conversation de la réunion', (await e1.get('/api/conversations/' + CONV + '/messages')).code, 404);
     v('une réunion UNIQUE garde ses coches après la séance', (await odjDe(a1, R)).map(p => p.fait), [true, false, true, false]);
+
+    /* ⛔ 4 bis (8 octobre 2026, test de A à Z sur la bêta) : la séance finit AUSSI quand le dernier s'en va — seul dans la salle, « Quitter » ne demande rien, et le compte rendu promis « à la fin
+       de la réunion » ne venait jamais. */
+    console.log('\n4 bis. La séance finie parce que le DERNIER s\'en va : son compte rendu aussi');
+    const crsDe = async (conv) => ((await a1.get('/api/conversations/' + conv + '/messages')).j.messages || []).filter(mm => mm.meta && mm.meta.k === 'compte_rendu');
+    const d3 = maintenant() + 2 * MIN;
+    const r3 = await a1.post('/api/reunions', { titre: 'Point rapide', debut: d3, fin: d3 + HEURE, invites: [ben.id], notifier: false, ordre_du_jour: ['Un seul point'] });
+    const R3 = r3.j.reunion.id, CONV3 = r3.j.reunion.conv;
+    const S3 = (await a1.post('/api/reunions/' + R3 + '/rejoindre', {})).j.appel.id;
+    await b1.post('/api/reunions/' + R3 + '/rejoindre', {});
+    avancer(4 * MIN);
+    const q1 = await b1.post('/api/appels/' + S3 + '/quitter', {});
+    v('population : Ben s\'en va (la salle continue avec Ana) — aucun compte rendu encore', [q1.code, (await crsDe(CONV3)).length], [200, 0]);
+    avancer(MIN);
+    const q2 = await a1.post('/api/appels/' + S3 + '/quitter', {});
+    const l3 = await crsDe(CONV3);
+    v('⛔ Ana, la DERNIÈRE, s\'en va sans « Terminer pour tous » : UN compte rendu, à son nom — deux présents, la séance de 5 min',
+      [q2.code, l3.length, l3[0] && l3[0].auteur, l3[0] && l3[0].meta.presents_n, l3[0] && Math.round(l3[0].meta.duree_s / 60)], [200, 1, ana.id, 2, 5]);
+    const d4 = maintenant() + 2 * MIN;
+    const r4 = await a1.post('/api/reunions', { titre: 'Point muet', debut: d4, fin: d4 + HEURE, notifier: false });
+    const CONV4 = r4.j.reunion.conv;
+    v('population : Ana ouvre seule la salle d\'une seconde réunion', (await a1.post('/api/reunions/' + r4.j.reunion.id + '/rejoindre', {})).code, 200);
+    avancer(11 * MIN);                  // perduMs = 10 min : son appareil s'est tu, le balayeur la sort
+    vrai('⛔ … et quand l\'appareil du dernier se TAIT (le balayeur le sort) : le compte rendu part aussi', await T.attendre(async () => (await crsDe(CONV4)).length === 1, 10000));
+    const G2 = S.convCreerGroupe({ createur: ana.id, nom: 'Équipe 2', membres: [ben.id], annonces_seules: false, ephemere_s: 0 }).id;
+    const ag2 = (await a1.post('/api/appels', { conv: G2, type: 'audio' })).j.appel.id;
+    await b1.post('/api/appels/' + ag2 + '/repondre', { accepte: true });
+    avancer(MIN);
+    await b1.post('/api/appels/' + ag2 + '/quitter', {}); await a1.post('/api/appels/' + ag2 + '/quitter', {});
+    const dansG2 = ((await a1.get('/api/conversations/' + G2 + '/messages')).j.messages || []);
+    v('⛔ un appel de GROUPE que tout le monde quitte n\'en fait pas (population : la conversation est lue, l\'appel y est dit)', [dansG2.length > 0, dansG2.filter(mm => mm.meta && mm.meta.k === 'compte_rendu').length], [true, 0]);
 
     console.log('\n5. Un appel de groupe terminé n\'en fait pas ; une série repart décochée');
     const G = S.convCreerGroupe({ createur: ana.id, nom: 'Équipe', membres: [ben.id], annonces_seules: false, ephemere_s: 0 }).id;

@@ -279,7 +279,8 @@ function installerReunions(H, ctx) {
   });
 
   /* ══ LE COMPTE RENDU D'UNE SÉANCE (8 octobre 2026 : « à la fin de la réunion, un compte rendu automatique ») ══
-     Quand l'hôte termine la séance POUR TOUS (`routes-salles.js`), la conversation de la réunion reçoit un message de celui qui l'a terminée, rédigé par le service : le titre et le jour, la
+     Quand l'hôte termine la séance POUR TOUS (`routes-salles.js`) — ou que le DERNIER s'en va (il quitte, son appareil se tait : `appels.js`) —, la conversation de la réunion reçoit un
+     message de celui qui l'a fermée, rédigé par le service : le titre et le jour, la
      durée, qui est venu (et combien de temps), qui n'est pas venu (avec sa réponse à l'invitation), l'ordre du jour (coché ou non) et les documents partagés pendant la séance. Une CARTE
      (`meta.k: 'compte_rendu'`) que la page dessine ; son TEXTE dit la même chose (une version d'avant, une notification, l'export). Une seule fois par séance : son `cid` est celui de la salle.
      ⛔ Rien que la salle n'ait déjà montré à ses participants — des noms, des durées, des coches. Une SÉRIE repart ensuite avec un ordre du jour décoché. → { seq } ou null */

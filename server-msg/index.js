@@ -259,6 +259,8 @@ function demarrer(env = process.env) {
   for (const m of minuteurs) m.unref();
   sauvegarde.demarrer();   // inerte sans configuration : aucune minuterie, aucun réseau
   facturation.demarrer();  // inerte sans clé Stripe : sinon une relecture au démarrage, puis toutes les dix minutes pour les espaces abonnés
+  /* la séance d'une réunion qui finit parce que le dernier s'en va : son compte rendu (`routes-reunions.js`, monté plus haut, a posé `ctx.compteRenduSeance`) — branché AVANT le balayeur */
+  appels.brancherFinReunion((x) => (typeof ctx.compteRenduSeance === 'function' ? ctx.compteRenduSeance(x) : null));
   appels.demarrer();       // le balayeur d'appels : un premier passage une seconde après le démarrage (les sonneries échues pendant l'arrêt), puis toutes les deux secondes
   if (appelsReveil.length) hub.reveiller({ uids: appelsReveil });
   planificateur.demarrer(); // un premier tour une seconde après le démarrage (un redémarrage rattrape ce qu'un arrêt a laissé), puis un tour toutes les 10 à 15 secondes

@@ -172,6 +172,15 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     if (!r.deja) { vivre(id, uid); reveiller(Object.keys(r.gids)); }
     r.salle = etatSalle(id, uid);
   }
+  /* ⛔ UNE RÉUNION QUI FINIT SANS « TERMINER POUR TOUS » A AUSSI SON COMPTE RENDU (8 octobre 2026, test de A à Z) : la séance finit aussi quand le DERNIER s'en va — il quitte, ou son
+     appareil se tait (`perduMs`). Sans ça, l'hôte seul qui touchait « Quitter » (seul, la salle ne demande rien) n'avait jamais le compte rendu promis « à la fin de la réunion ».
+     Le crochet (`index.js`) le rédige comme à « Terminer pour tous » (`ctx.compteRenduSeance` : un seul par salle, au nom de celui qui l'a fermée). Pas pour un compte qui s'efface. */
+  let finReunion = null;
+  function brancherFinReunion(f) { finReunion = typeof f === 'function' ? f : null; }
+  function reunionFinie(id, par) {
+    if (!finReunion || !par) return;
+    try { const a = stockage.appelAcces(id, par.id); if (a && a.genre === 'reunion' && a.reunion) finReunion({ salle: id, reunion: a.reunion, par }); } catch (e) { /* un compte rendu raté ne défait pas la sortie */ }
+  }
   function quitter({ moi, id, sessionH }) {
     echoir();
     const r = stockage.appelQuitter({ id, uid: moi.id, session: sessionH });
@@ -180,6 +189,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
       if (r.notif) pousserManque(r.notif, { id, type: r.vue ? r.vue.type : 'audio', appelant: moi });
       if (r.notifs && r.notifs.length) manquesDe(id, r.vue ? r.vue.type : 'audio', r.notifs);
       oublier(id, moi.id);
+      if (r.fini) reunionFinie(id, moi);
     }
     vus.delete(cle(id, moi.id));
     return r;
@@ -563,6 +573,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
             reveiller(Object.keys(f.gids));
             manquesDe(a.id, a.type, f.notifs);
             vus.delete(k); oublier(a.id, p.uid);
+            if (f.fini) reunionFinie(a.id, personne(p.uid));
           }
           continue;
         }
@@ -616,7 +627,7 @@ function creerAppels({ stockage, hub, push, config, formule = null, horloge = Da
     return { turn: relaisPose(), ageS: etat.dernierTour === null ? null : Math.max(0, Math.round((horloge() - etat.dernierTour) / 1000)), echecs: etat.echecs };
   }
 
-  return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat,
+  return { ice, creer, creerGroupe, repondre, rejoindre, rejoindreReunion, quitter, signal, bloquer, terminerDe, balayer, echoir, demarrer, arreter, sante, relais: relaisPose, etat, brancherFinReunion,
     main, reaction, etatMien, evt, annoter, demanderCouperMicro, etatSalle, outilsOuverts, admettre, refuser, exclure, verrouiller, salleAttente, partage, rec, cohote, terminer, capaciteDe,
     /* pour les bancs : combien de salles ont un éphémère en mémoire (jamais publié) */
     memoireSalles: () => salles.size };
