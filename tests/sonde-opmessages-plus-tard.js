@@ -111,6 +111,24 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     vrai('« Demain matin » : programmé (la page dit « demain à 08:00 »), deux bulles en pointillés', await attendre(P, () => /^Programmé pour demain à 08:00/.test(document.getElementById('mot').textContent) && document.querySelectorAll('#conv-programmes .prog-msg').length === 2));
     v('   le service les tient tous les deux', (await programmes()).sort(), [T1, T2].sort());
 
+    /* ⛔ 2 bis. UN APPUI LONG DONT LE RELÂCHER NE PRODUIT PAS DE CLIC (8 octobre 2026, test de A à Z, profil iPhone) : la page notait l'heure du relâcher à CHAQUE doigt levé ;
+       sans clic du relâcher à avaler, elle avalait le PREMIER toucher dans le menu — « Programmer » ne répondait qu'au second. Le système qui reprend le doigt (touchcancel) le joue. */
+    console.log('\n── 2 bis. L\'appui long relâché sans clic : le premier toucher dans le menu répond ──');
+    const T2B = 'Le premier toucher QXPT2B';
+    await P.page.locator('#saisie').fill(T2B);
+    await attendre(P, () => !document.getElementById('envoyer').hidden);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [pt] });
+    await P.page.waitForTimeout(800);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    vrai('population : l\'appui long (le doigt repris par le système, aucun clic) ouvre les heures', await attendre(P, () => !document.getElementById('menu-fond').hidden && !!document.querySelector('#menu-msg [data-plus-tard="1h"]')));
+    await P.page.waitForTimeout(600);
+    await toucher(P, '#menu-msg [data-plus-tard="1h"]');
+    vrai('⛔ le PREMIER toucher dans le menu répond : « Dans 1 heure » est programmé', await attendre(P, () => /^Programmé pour /.test(document.getElementById('mot').textContent) && document.getElementById('menu-fond').hidden, null, 3000),
+      await P.page.evaluate(() => ({ mot: document.getElementById('mot').textContent, menu: !document.getElementById('menu-fond').hidden })));
+    await P.page.evaluate((t) => { const x = Array.from(document.querySelectorAll('#conv-programmes .prog-msg')).find(y => y.textContent.includes(t)); if (x) x.querySelector('[data-prog-annuler]').scrollIntoView({ block: 'center' }); }, T2B);
+    await P.page.locator('#conv-programmes .prog-msg', { hasText: T2B }).locator('[data-prog-annuler]').tap().catch(() => {});
+    v('   (le ménage : il est annulé — la suite en compte deux)', await attendre(P, (t) => !document.getElementById('conv-programmes').textContent.includes(t), T2B) && (await programmes()).sort().join('|'), [T1, T2].sort().join('|'));
+
     console.log('\n── 3. Annuler ──');
     await P.page.evaluate((t) => { const p = Array.from(document.querySelectorAll('#conv-programmes .prog-msg')).find(x => x.textContent.includes(t)); p.querySelector('[data-prog-annuler]').scrollIntoView({ block: 'center' }); }, T2);
     await P.page.locator('#conv-programmes .prog-msg', { hasText: T2 }).locator('[data-prog-annuler]').tap();

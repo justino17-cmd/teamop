@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '82e29e223d06';
+  const OPMSG_BUILD = 'db4d3cfb397e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 136;
+  const OPMSG_VERSION = 137;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1077,7 +1077,7 @@
   { let minuteur = null;
     const lancer = () => { if (typeof source.programmerMessage !== 'function' || !$('saisie').value.trim() || etat.menu) return; etat.envoyerLong = true; etat.menu = { plus: true, declencheur: $('envoyer'), t: Date.now(), appuiLong: true }; plusTardMenu(true); };
     $('envoyer').addEventListener('pointerdown', () => { clearTimeout(minuteur); etat.envoyerLong = false; minuteur = setTimeout(lancer, 550); });
-    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('envoyer').addEventListener(ev, () => { clearTimeout(minuteur); if (etat.menu && etat.menu.appuiLong) etat.menu.relache = Date.now(); });
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('envoyer').addEventListener(ev, () => { clearTimeout(minuteur); if (etat.menu && etat.menu.appuiLong && !etat.menu.relache) etat.menu.relache = Date.now(); });
     $('envoyer').addEventListener('contextmenu', e => { e.preventDefault(); clearTimeout(minuteur); lancer(); }); }
 
   /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ──
@@ -4380,8 +4380,10 @@
     });
     $('conv-messages').addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) annule(); });
     $('conv-messages').addEventListener('pointerup', annule); $('conv-messages').addEventListener('pointercancel', annule);
-    /* le doigt qui se lève APRÈS l'ouverture du menu : on note l'heure, le clic qui suit est avalé (voir le menu) */
-    document.addEventListener('pointerup', e => { if (etat.menu && etat.menu.appuiLong && e.pointerType !== 'mouse') etat.menu.relache = Date.now(); }, true);
+    /* le doigt qui se lève APRÈS l'ouverture du menu : on note l'heure, le clic qui suit est avalé (voir le menu).
+       ⛔ LE PREMIER relâcher seulement — celui de l'appui long. Noté à CHAQUE doigt levé, il faisait avaler le premier toucher DANS le menu quand l'appui long n'avait pas produit de clic
+       (« un appui long n'en produit pas toujours ») : vu au test de A à Z (8 octobre 2026, profil iPhone), « Programmer » d'« Envoyer plus tard » ne répondait qu'au second toucher. */
+    document.addEventListener('pointerup', e => { if (etat.menu && etat.menu.appuiLong && !etat.menu.relache && e.pointerType !== 'mouse') etat.menu.relache = Date.now(); }, true);
     $('conv-fil').addEventListener('scroll', annule, { passive: true });
   })();
   $('precedents').addEventListener('click', async () => {
