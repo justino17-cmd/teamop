@@ -53,7 +53,10 @@
 # 7 octobre 2026, tard : Perso / Pro (929 : le côté de chaque conversation, rangé à la main ou automatique, et la préférence du compte) — 80 suites, plancher relevé de 26.
 # 8 octobre 2026 : la CI en compte 8 653 au déploiement du 3f4cf467 (#103), 8 654 avec test-989 corrigé (l'effacement d'un compte en salle ne fait plus la course avec le
 # balayeur) — plancher 8640 (le total moins 14).
-#plancher 8640
+# 8 octobre 2026, après-midi : rappels cochés, envoyer plus tard, mentions (936), ne pas déranger (937), ordre du jour et compte rendu (938), puis ce que le test de A à Z a
+# trouvé — 84 suites, 8 829 vérifications mesurées par la commande de la porte (test-971 tombe en local sur la base de fuseaux du conteneur ; la CI en compte 2 de plus) —
+# plancher 8815 (le total moins 14).
+#plancher 8815
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -181,6 +184,6 @@ tests/test-936.js
 # ── « Ne pas déranger pendant une réunion » (8 octobre 2026) : les messages retenus pendant une salle, le résumé à la sortie, « En réunion » vu des contacts (règle réciproque) — le vrai service,
 #    son balayeur d'appels et un faux service push (937) ; la vraie page : test-857 et tests/sonde-opmessages-reunion-pause.js
 tests/test-937.js
-# ── L'ordre du jour d'une réunion et le compte rendu de sa séance (8 octobre 2026) : migration 23, cocher, retoucher, le compte rendu à « Terminer pour tous », la série décochée (938) ;
+# ── L'ordre du jour d'une réunion et le compte rendu de sa séance (8 octobre 2026) : migration 23, cocher, retoucher, le compte rendu à « Terminer pour tous » ET quand le dernier s'en va, la série décochée (938) ;
 #    la vraie page : test-857 et tests/sonde-opmessages-ordre-du-jour.js
 tests/test-938.js
