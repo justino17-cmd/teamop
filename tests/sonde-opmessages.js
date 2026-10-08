@@ -649,7 +649,15 @@ async function etapePhotos(S, F) {
     ['la croix ✕', async () => { await geste(S, '#visionneuse-fermer'); }],
     ['Échap', async () => { await S.page.keyboard.press('Escape'); S.gestes++; }],
     ['le retour système (page.goBack)', async () => { await S.page.goBack(); S.gestes++; }],
-    ['un toucher sur le fond', async () => { if (S.pf.mobile) await S.page.touchscreen.tap(S.pf.w / 2, S.pf.h - 6); else await S.page.mouse.click(8, S.pf.h - 6); S.gestes++; }]
+    ['un toucher sur le fond', async () => {
+      /* ⛔ une mesure qui échoue dit pourquoi : ce qui est SOUS le point touché, la visionneuse ouverte.
+         ⛔ AU DOIGT, PAS À 6 PX SOUS LA BARRE : sans encoche (Android), « Enregistrer » finit à 12 px du bas — et l'AJUSTEMENT TACTILE de Chromium (comme celui d'un vrai téléphone)
+         rattache le toucher au bouton le plus proche. Mesuré le 8 octobre 2026 : le « toucher sur le fond » enregistrait la photo, et la visionneuse restait ouverte. Le doigt se pose
+         dans la marge de GAUCHE, à mi-hauteur : loin de la croix (en haut) et de la barre (en bas). */
+      const x = S.pf.mobile ? 6 : 8, y = S.pf.mobile ? Math.round(S.pf.h / 2) : S.pf.h - 6;
+      S.sousLeDoigt = await S.page.evaluate(([px, py]) => { const e = document.elementFromPoint(px, py); return e ? (e.id ? '#' + e.id : e.tagName.toLowerCase() + (e.className && typeof e.className === 'string' ? '.' + e.className.split(' ').join('.') : '')) : null; }, [x, y]);
+      if (S.pf.mobile) await S.page.touchscreen.tap(x, y); else await S.page.mouse.click(x, y); S.gestes++;
+    }]
   ];
   let fermees = 0;
   for (const [nomF, f] of ferm) {
@@ -664,7 +672,7 @@ async function etapePhotos(S, F) {
     const hFerme = await hist(S);
     const bon = bonO && !fe.vis && !fe.inert && fe.conv === '1' && hFerme.n === hAvant.n && fe.foyer;
     if (bon) fermees++;
-    v(nom + ' : photo agrandie (pleine fenêtre ' + o.plein + ', focus sur ✕, fond inerte, +1 entrée) puis fermée par ' + nomF + ' (entrée rendue, la conversation reste, focus rendu à la vignette)', bon, { o, fe, hAvant, hOuvert, hFerme });
+    v(nom + ' : photo agrandie (pleine fenêtre ' + o.plein + ', focus sur ✕, fond inerte, +1 entrée) puis fermée par ' + nomF + ' (entrée rendue, la conversation reste, focus rendu à la vignette)', bon, { o, fe, hAvant, hOuvert, hFerme, sousLeDoigt: S.sousLeDoigt });
   }
   v(nom + ' : (population) 4 façons de fermer jouées, ' + fermees + ' sans défaut', fermees === 4);
   /* deux couches empilées : le retour ferme la photo, puis la conversation */
