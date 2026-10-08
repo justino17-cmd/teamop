@@ -75,6 +75,19 @@ function localDans(t, tz) {
     await capture(A, 'o1-fiche');
     await toucher(A, '#info-corps [data-reu="odj"]');
     vrai('cocher « Budget » dans la fiche : coché, barré, « 1 / 3 »', await att(A, () => { const b = document.querySelector('#info-corps [data-reu="odj"]'); return !!b && b.getAttribute('aria-checked') === 'true' && b.classList.contains('fait') && Array.from(document.querySelectorAll('#info-corps .rubrique')).some(r => /1 \/ 3/.test(r.textContent)); }));
+    /* ⛔ la COCHE se voit (8 octobre 2026, test de A à Z) : dans la fiche, `.info-corps .reglage .ic` peignait la coche en couleur d'accent — sur le rond plein, lui-même d'accent : un rond
+       bleu sans coche. On lit les couleurs CALCULÉES et on reconnaît leur forme (`rgb()` ou `color(srgb …)`, CLAUDE.md) avant de comparer. */
+    const coche = await A.page.evaluate(() => {
+      const b = document.querySelector('#info-corps [data-reu="odj"][aria-checked="true"]'), r = b && b.querySelector('.evt-rond'), ic = r && r.querySelector('.ic');
+      if (!ic) return null;
+      const lire = (s) => { let m = /^rgba?\(([^)]+)\)$/.exec(s); if (m) return m[1].split(',').slice(0, 3).map(Number); m = /^color\(srgb ([^)]+)\)$/.exec(s); return m ? m[1].trim().split(/\s+/).slice(0, 3).map(x => Number(x) * 255) : null; };
+      const lum = (c) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]); };
+      const fs = getComputedStyle(r).backgroundColor, ts = getComputedStyle(ic).color, fond = lire(fs), trait = lire(ts);
+      if (!fond || !trait) return { illisible: [fs, ts] };
+      const a = lum(fond), z = lum(trait);
+      return { ratio: Math.round((Math.max(a, z) + 0.05) / (Math.min(a, z) + 0.05) * 100) / 100, opacite: +getComputedStyle(ic).opacity, fond: fs, trait: ts };
+    });
+    vrai('⛔ … et sa COCHE se voit dans le rond plein (contraste ≥ 3:1 entre le trait et le rond)', !!coche && coche.opacite === 1 && coche.ratio >= 3, coche);
     let lu = []; for (let i = 0; i < 40; i++) { lu = await odj(); if (lu[0] === 'Budget ✓') break; await new Promise(r => setTimeout(r, 100)); }
     v('… et le SERVICE le sait', lu, ['Budget ✓', 'Planning', 'Sécurité']);
 

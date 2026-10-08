@@ -1840,7 +1840,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .evt-coche { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: 6px; }
 .evt-rond { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--sub-meta); color: transparent; transition: background-color .15s, border-color .15s; }
 .evt-rond .ic { width: 14px; height: 14px; stroke-width: 2.6; opacity: 0; }        /* vide tant que ce n'est pas fait : la coche ne paraît QUE dans le rond plein */
-.evt-rond.plein .ic, .evt-coche[aria-pressed="true"] .evt-rond .ic { opacity: 1; }
+/* ⛔ la coche prend la couleur du ROND (`color: inherit`) : dans une fiche, `.info-corps .reglage .ic` la peignait en accent — sur un rond plein d'accent, un rond bleu sans coche
+   (vu au test de A à Z, 8 octobre 2026 : l'ordre du jour coché, « Marquer comme fait ») */
+.evt-rond.plein .ic, .evt-coche[aria-pressed="true"] .evt-rond .ic { opacity: 1; color: inherit; }
 .evt-coche[aria-pressed="true"] .evt-rond, .evt-rond.plein { background: var(--accent); border-color: var(--accent); color: #fff; }
 .evenement-ligne.fait .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
 .evt-gestes { margin-bottom: 16px; }
