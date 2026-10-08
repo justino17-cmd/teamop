@@ -15,6 +15,8 @@ de ligne du tout.
 
 # ✅ 8 OCTOBRE 2026 (NUIT) — LE SITE : contact@ ET support@ AU PIED DE CHAQUE PAGE ; L'ACCUEIL PLUS FOURNI ; LE « CDN » D'IONOS
 
+✅ **EN LIGNE DEPUIS LE 8 OCTOBRE, 21 H 45 (UTC)** — #108 (`0d27fcd`) ; relu sur teamop.fr (« Ce que fait OP GESTION », contact@ au pied).
+
 Justin, 8 octobre, deux captures de l'analyse de site d'IONOS (« pour le site teamop tu peux voir pour améliorer ça »), puis le pied de page (« il faudrait mettre le
 mail de contact@teamop.fr, le mail de support et pour les problèmes sur les applications ou autres — règle-moi ça très vite ») :
 · **les adresses** — au pied des 19 pages, une colonne « Contact » : contact@teamop.fr (« Une question, une demande ») et support@teamop.fr (« Un problème sur une
@@ -30,9 +32,9 @@ mail de contact@teamop.fr, le mail de support et pour les problèmes sur les app
 
 # ⏳ 8 OCTOBRE 2026 (SOIR) — LES HEURES DE TRAVAIL CÔTÉ PRO (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
-⛔ **ÉTAT AU SOIR DU 8 : LE SERVICE EST SUR LA BRANCHE, LA PAGE PAS ENCORE.** Le réglage n'a donc encore aucun écran : rien ne change pour personne tant que la page ne part
-pas. Elle est écrite et éprouvée (sonde 29 ✓) dans un arbre à part ; son correctif est rangé dans `scratchpad/heures-pro-page.patch` (les fichiers de `server-msg/public/`
-s'y régénèrent : `node scripts/opmsg-public.js`, après avoir repris ceux de `main`). Elle part dans la PR suivante.
+✅ **EN LIGNE SUR LA BÊTA DEPUIS LE 8 OCTOBRE, 21 H 55 (UTC)** — #108 (`0d27fcd`), page 141 : le service ET l'écran, déployés par `deploiement-messages.yml` ; relu sur
+msg-beta.teamop.fr (`/health` : sha `0d27fcd`, `OPMSG_VERSION = 141`, l'éditeur des heures présent). La même PR a corrigé trois écarts du bureau relevés par la sonde complète
+(contraste de nuit de la conversation choisie, segmenté à 32 px, garde d'iOS sur les champs à 15 px) : `sonde-opmessages.js --profil=bureau`, 976 ✓ 0 ✗.
 La relecture du gardien (cinq points, corrigés et prouvés — `e45b454`, `71ce1b8`) : le résumé compte le non-lu comme la PASTILLE (système, supprimé, masqué) ; une réunion tenue
 hors des heures laisse le Pro aux heures (il partait dans le résumé de la réunion, à 3 h du matin) ; la mémoire retenue, bornée et réglable (`push.retenusConvsMax`,
 `push.retenusPersonnesMax`), LAISSE SONNER quand elle est pleine — la réunion aussi (elle vidait tout à 20 000 personnes) ; l'heure se teste avant le côté ; un filet au
