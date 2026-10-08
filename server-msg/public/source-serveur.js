@@ -1677,7 +1677,7 @@
     const saisies = new Map();             // conv → Map(uid → minuterie)
     const lecture = new Map();             // conv → Map(uid → { seq, ts })
     const file = [];                       // l'envoi en attente : { cid, conv, texte, reponse, t, essais }
-    let minuterieFile = null, enRelecture = null, derniereSaisie = new Map();
+    let minuterieFile = null, enRelecture = null, derniereSaisie = new Map(), envoiSaisie = new Map(), arretSaisie = new Map();
     const ecouteurs = [];
     const emettre = (ev) => ecouteurs.slice().forEach(f => { try { f(Object.assign({}, ev)); } catch (e) { /* un écouteur fautif n'arrête pas les autres */ } });
 
@@ -2326,11 +2326,24 @@
       if (r) { r.lu_seq = dernier; r.non_lus = 0; }
       emettre({ type: 'liste' });
     }
+    /* La frappe (« écrit… ») : le service n'en accepte qu'UNE par 2 s et par conversation — l'arrêt compris. ⛔ Vu au test de A à Z (8 octobre 2026) : taper puis quitter le
+       champ en moins de 2 s envoyait l'arrêt aussitôt, et le service le refusait (429 dans la console, un refus compté) ; quitter le champ sans avoir rien tapé envoyait un
+       arrêt pour rien, qui pouvait faire refuser la frappe suivante. Maintenant : un arrêt ne part que si une frappe a été annoncée ; trop tôt, il part quand la fenêtre se
+       rouvre (l'autre voit « écrit… » s'éteindre un peu plus tard, au lieu de jamais) ; une frappe qui reprend entre-temps l'annule. */
     function saisie(id, actif) {
-      const t = maintenant();
-      if (actif && t - (derniereSaisie.get(id) || 0) < 2500) return Promise.resolve();   // le service n'accepte qu'une frappe par 2 s
-      derniereSaisie.set(id, actif ? t : 0);
-      return A.saisie(id, !!actif).then(() => {}, () => { /* une frappe perdue n'est pas une erreur à montrer */ });
+      const t = maintenant(), envoyer = (a) => { envoiSaisie.set(id, maintenant()); return A.saisie(id, a).then(() => {}, () => { /* une frappe perdue n'est pas une erreur à montrer */ }); };
+      if (actif) {
+        if (arretSaisie.has(id)) { annuler(arretSaisie.get(id)); arretSaisie.delete(id); }          // on tape encore : l'arrêt prévu n'a plus lieu d'être
+        if (t - (derniereSaisie.get(id) || 0) < 2500 || t - (envoiSaisie.get(id) || 0) < 2000) return Promise.resolve();
+        derniereSaisie.set(id, t);
+        return envoyer(true);
+      }
+      if (!derniereSaisie.get(id) || arretSaisie.has(id)) return Promise.resolve();      // rien d'annoncé, ou l'arrêt est déjà prévu
+      const partir = () => { arretSaisie.delete(id); derniereSaisie.set(id, 0); return envoyer(false); };
+      const reste = (envoiSaisie.get(id) || 0) + 2050 - t;
+      if (reste <= 0) return partir();
+      arretSaisie.set(id, planifier(partir, reste));
+      return Promise.resolve();
     }
     function poserSaisie(conv, uid, actif) {
       let S = saisies.get(conv);
@@ -2668,6 +2681,8 @@
       if (minuterieFile) { annuler(minuterieFile); minuterieFile = null; }
       for (const S of saisies.values()) for (const h of S.values()) annuler(h);
       saisies.clear();
+      for (const h of arretSaisie.values()) annuler(h);                 // un arrêt de frappe prévu ne part pas après la déconnexion
+      arretSaisie.clear(); derniereSaisie.clear();
     }
 
     /* ── la session ── */
