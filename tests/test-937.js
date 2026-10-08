@@ -40,6 +40,7 @@ const JOUR = 86400000;
     const a = cl(ana), b = cl(ben), c = cl(cleo), d = cl(dan);
     const G1 = (await a.post('/api/conversations/groupe', { nom: 'Chantier', membres: [ben.id, cleo.id] })).j.conversation.id;
     const G2 = (await a.post('/api/conversations/groupe', { nom: 'Réunion', membres: [ben.id] })).j.conversation.id;
+    const G3 = (await a.post('/api/conversations/groupe', { nom: 'Dépôt', membres: [ben.id] })).j.conversation.id;      // un message SEUL pendant la réunion (sans mention qui partage son attente)
     const dB = dev('ben');
     const ab = await b.post('/api/push/abonner', { sub: dB.sub });
     await d.post('/api/moi/maj', { prefs: { presence: false } });
@@ -60,6 +61,11 @@ const JOUR = 86400000;
     const fB = await T.flux(b); flux.push(fB);          // la page de Ben est ouverte (on est en ligne quand on est dans une salle) — et elle n'acquitte rien : une push attend puis part
     const appel = await a.post('/api/appels', { conv: G2, type: 'audio' });
     const id = appel.j && appel.j.appel && appel.j.appel.id;
+    /* ⛔ appelé, PAS ENCORE DEDANS (son téléphone sonne) : il n'est pas en réunion — un message sonne encore */
+    const nS = recus(dB).length;
+    await envoyer(a, G3, 'Avant que tu décroches');
+    await T.attendre(() => appelsDe(recus(dB).slice(nS)).length >= 1, 8000, 10);
+    v('⛔ pendant que l\'appel SONNE chez Ben (il n\'a pas répondu), un message sonne : être appelé n\'est pas être en réunion', appelsDe(recus(dB).slice(nS)).map(x => x.type), ['message']);
     const rep = await b.post('/api/appels/' + id + '/repondre', { accepte: true });
     v('population : Ana lance l\'appel du groupe « Réunion », Ben répond', [appel.code, rep.code], [201, 200]);
     const vu = await T.attendre(async () => !!(await contactsDe(a))[ben.id].en_reunion, 8000, 50);
@@ -70,7 +76,7 @@ const JOUR = 86400000;
 
     console.log('\n3. Pendant la réunion : rien ne sonne chez Ben');
     const n0 = recus(dB).length;
-    await envoyer(a, G1, 'Tu as vu le devis ?');
+    await envoyer(a, G3, 'Tu as vu le devis ?');
     await envoyer(a, G1, '@Ben urgent', [ben.id]);
     await sentinelle();
     await attendreN(dB, n0 + 1);
@@ -84,7 +90,7 @@ const JOUR = 86400000;
     v('Ben quitte l\'appel', q.code, 200);
     vrai('le résumé arrive', await attendreN(dB, n1 + 1));
     const r = appelsDe(recus(dB).slice(n1))[0] || {};
-    v('« Pendant la réunion : nouveaux messages dans une conversation, dont une mention » — la conversation pour l\'ouvrir, ni nom ni texte', [r.type, r.corps, r.url, r.tag], ['resume', 'Pendant la réunion : nouveaux messages dans une conversation, dont une mention', '/#messages/' + G1, 'resume-reunion']);
+    v('« Pendant la réunion : nouveaux messages dans 2 conversations, dont une mention » — ni nom ni texte, l\'application s\'ouvre (deux conversations : pas une seule à ouvrir)', [r.type, r.corps, r.url, r.tag], ['resume', 'Pendant la réunion : nouveaux messages dans 2 conversations, dont une mention', '/', 'resume-reunion']);
     v('⛔ le résumé ne porte aucun mot du texte ni aucun nom', /devis|urgent|Ana|Ben/.test(JSON.stringify(r)), false);
     await a.post('/api/appels/' + id + '/quitter', {});          // Ana raccroche aussi (on ne lance pas un second appel en étant encore dans le premier)
     vrai('« en réunion » s\'éteint : la liste d\'Ana ne le dit plus', await T.attendre(async () => !(await contactsDe(a))[ben.id].en_reunion, 8000, 50));
