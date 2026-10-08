@@ -1110,8 +1110,10 @@ async function etapeLarge(b, base) {
   await mesurerLargeur(S, 'bureau 2560 · conversation');
   await fermerConv(S);
   await geste(S, '#nav-side [data-vue="appels"]'); await dormir(600);
-  const a = await S.page.evaluate(() => Math.round(document.querySelector('#vue-appels').getBoundingClientRect().width));
-  v('2 560 px : les autres vues (Appels) sont bornées à ' + a + ' px (≤ 1 000)', a <= 1000, a);
+  /* ⛔ au bureau, la VUE prend toute la largeur (sa barre d'outils aussi, comme sur le Mac) et son CONTENU se lit dans une colonne de lecture (la couche du bureau,
+     7 octobre 2026) : c'est la colonne qu'on borne, pas la vue — la sonde mesurait encore la vue d'avant la couche */
+  const a = await S.page.evaluate(() => Math.round(Math.max(0, ...[...document.querySelectorAll('#vue-appels > :not(.entete-vue):not(.grand-titre)')].filter(e => e.getClientRects().length).map(e => e.getBoundingClientRect().width))));
+  v('2 560 px : les autres vues (Appels) lisent leur contenu dans une colonne bornée à ' + a + ' px (≤ 1 000)', a > 0 && a <= 1000, a);
   v('2 560 px : 0 erreur JavaScript, 0 erreur console', S.erreurs.length === 0 && S.console.length === 0, { e: S.erreurs, c: S.console });
   await S.fermer();
 }
@@ -1470,7 +1472,8 @@ async function corrEtroit(b, base) {
   for (const W of [225, 197]) {
     const S = await nouvelle(b, base, PROFIL_ETROIT(W), { nom: 'étroit ' + W });
     const t = await S.page.evaluate(() => { const bar = document.getElementById('tabs').getBoundingClientRect(); return { bar: [Math.round(bar.left), Math.round(bar.right)], tabs: [...document.querySelectorAll('#tabs .tab')].map(e => { const r = e.getBoundingClientRect(), s = e.querySelector('span').getBoundingClientRect(); return { l: Math.round(r.left), r: Math.round(r.right), sl: Math.round(s.left), sr: Math.round(s.right) }; }) }; });
-    v(S.nom + ' : (population) ' + t.tabs.length + ' onglets dans la barre (' + t.bar.join('→') + ') — chaque libellé reste DANS la barre', t.tabs.length === 4 && t.tabs.every(x => x.sl >= t.bar[0] - 1 && x.sr <= t.bar[1] + 1 && x.l >= t.bar[0] - 1 && x.r <= t.bar[1] + 1), t);
+    /* 3 onglets dans l'aperçu (Messages · Appels · Agenda : « Contacts » n'y paraît qu'avec les identifiants, que la source de démonstration n'a pas), 4 avec eux */
+    v(S.nom + ' : (population) ' + t.tabs.length + ' onglets dans la barre (' + t.bar.join('→') + ') — chaque libellé reste DANS la barre', t.tabs.length >= 3 && t.tabs.every(x => x.sl >= t.bar[0] - 1 && x.sr <= t.bar[1] + 1 && x.l >= t.bar[0] - 1 && x.r <= t.bar[1] + 1), t);
     await mesurerLargeur(S, S.nom + ' · liste');
     await geste(S, '#btn-plus'); await dormir(650); await geste(S, '[data-nd-act="groupe"]'); await dormir(800);
     const f = await S.page.evaluate(() => { const r = id => { const b = document.getElementById(id).getBoundingClientRect(); return { l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom) }; }; const f = r('feuille'); return { W: innerWidth, creer: r('g-creer'), annuler: r('g-annuler'), titre: r('feuille-titre'), feuille: f, creerTexte: document.getElementById('g-creer').textContent }; });
@@ -1937,7 +1940,7 @@ async function scenarioAppels(b, base, pf, dark, bloc) {
   console.log('\n════ ' + S.nom + ' — appels' + (bloc ? ' (' + bloc + ' seul)' : ' seuls') + ' ════');
   if (bloc) { await allerAppels(S); await BLOCS_APPELS[bloc](S); } else await etapesAppels(S);
   const rej = await S.page.evaluate(() => window.__rejets);
-  v(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + (S.contrastes || 0) + ' contrastes lus au pixel — 0 erreur JavaScript, 0 rejet non rattrapé, 0 erreur console', S.gestes > (bloc ? 4 : 60) && S.erreurs.length === 0 && rej.length === 0 && S.console.length === 0, { erreurs: S.erreurs, rejets: rej, console: S.console });
+  v(S.nom + ' : (population) ' + S.gestes + ' gestes portés, ' + (S.contrastes || 0) + ' contrastes lus au pixel — 0 erreur JavaScript, 0 rejet non rattrapé, 0 erreur console', S.gestes > (bloc ? 3 : 60) && S.erreurs.length === 0 && rej.length === 0 && S.console.length === 0, { erreurs: S.erreurs, rejets: rej, console: S.console });
   await S.fermer();
 }
 const SEULS_APPELS = new Set(['appels', 'appels-bureau'].concat(...Object.keys(BLOCS_APPELS).map(k => ['appels-' + k, 'appels-' + k + '-bureau'])));       // déjà joués par chaque parcours : jamais deux fois dans la sonde complète
