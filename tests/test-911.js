@@ -197,8 +197,11 @@ const json = async (base, methode, chemin, corps, entetes) => {
       vrai('population : la frappe part, et Alice voit « écrit… »', sa() - n0 === 1 && await att(async () => { const o = await A.src.ouvrir(conv); return !!(o.saisie && o.saisie.contact === mb.id); }));
       await B.src.saisie(conv, false);
       v('⛔ quitter le champ aussitôt : l\'arrêt ATTEND la réouverture de la fenêtre (le service le refuserait)', sa() - n0, 1);
-      vrai('⛔ … puis il part, ACCEPTÉ — aucun 429 de frappe — et « écrit… » s\'éteint chez Alice avant son délai', await att(async () => sa() - n0 === 2 && B.reseau.statuts.filter(r => /\/saisie /.test(r)).length >= n0 + 2) && refusSaisie() === r0 && await att(async () => { const o = await A.src.ouvrir(conv); return o.saisie === null; }, 1500),
+      vrai('⛔ … puis il part, ACCEPTÉ — aucun 429 de frappe', await att(async () => sa() - n0 === 2 && B.reseau.statuts.filter(r => /\/saisie /.test(r)).length >= n0 + 2) && refusSaisie() === r0,
         B.reseau.statuts.filter(r => /\/saisie /.test(r)).slice(-4));
+      await B.src.saisie(conv, true);
+      v('⛔ une frappe JUSTE APRÈS l\'arrêt attend elle aussi (la fenêtre ne s\'est pas rouverte) : rien ne part, rien n\'est refusé', [sa() - n0, refusSaisie() - r0], [2, 0]);
+      vrai('« écrit… » s\'est éteint chez Alice', await att(async () => { const o = await A.src.ouvrir(conv); return o.saisie === null; }, 1500));
       await T.dort(2100);
       await B.src.saisie(conv, true); await B.src.saisie(conv, false); await B.src.saisie(conv, true);
       await T.dort(2300);
