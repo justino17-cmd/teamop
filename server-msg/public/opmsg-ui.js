@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '041b4d4f22b5';
+  const OPMSG_BUILD = '3ec8936eabec';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 116;
+  const OPMSG_VERSION = 117;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4512,10 +4512,15 @@
       : [r.lieu, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
     const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
     const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
-    return '<li' + (rej ? ' class="reunion-li"' : '') + '><button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note && !se ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '') + (se ? ', durée ' + dureeSeance(se.dureeS) + ', ' + se.n + (se.n > 1 ? ' présents' : ' présent') + (qui ? ' : ' + qui : '') : '')) + '">' +
+    /* ⛔ ET UNE OCCURRENCE TERMINÉE NE S'OUVRE PLUS (8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : la fiche proposait encore
+       « Accepter / Peut-être / Refuser » et « Me rappeler » pour une réunion finie. La ligne n'est plus un bouton — un simple bloc de texte, lu tel quel. L'organisateur garde le rapport de
+       présence par la conversation de la réunion (son titre mène à la fiche) ; les autres occurrences d'une série, elles, restent des boutons. */
+    const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
+      : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
+    return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
       '<span class="reunion-heure">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>' +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
-      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + '</button>' + rej + '</li>';
+      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
   }
   /* la grille du mois : une case par jour, les rendez-vous qui y COMMENCENT (et les journées entières), dans l'ordre de la journée */
   function rendreMois(auj) {

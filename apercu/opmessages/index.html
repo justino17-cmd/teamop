@@ -1488,6 +1488,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 }
 .reunion-ligne { width: 100%; display: flex; align-items: stretch; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-align: left; transition: background-color .15s; }
 .reunion-ligne:active { transform: scale(.985); }
+.reunion-ligne.terminee:active { transform: none; }      /* une réunion terminée n'est plus un bouton : rien ne s'enfonce sous le doigt */
 .carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
 .reunion-heure { flex: none; width: 48px; display: flex; flex-direction: column; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums; }
 .reunion-heure small { font-size: 13px; color: var(--sub-meta); }
@@ -6951,10 +6952,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       : [r.lieu, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
     const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
     const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
-    return '<li' + (rej ? ' class="reunion-li"' : '') + '><button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note && !se ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '') + (se ? ', durée ' + dureeSeance(se.dureeS) + ', ' + se.n + (se.n > 1 ? ' présents' : ' présent') + (qui ? ' : ' + qui : '') : '')) + '">' +
+    /* ⛔ ET UNE OCCURRENCE TERMINÉE NE S'OUVRE PLUS (8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : la fiche proposait encore
+       « Accepter / Peut-être / Refuser » et « Me rappeler » pour une réunion finie. La ligne n'est plus un bouton — un simple bloc de texte, lu tel quel. L'organisateur garde le rapport de
+       présence par la conversation de la réunion (son titre mène à la fiche) ; les autres occurrences d'une série, elles, restent des boutons. */
+    const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
+      : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
+    return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
       '<span class="reunion-heure">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>' +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
-      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + '</button>' + rej + '</li>';
+      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
   }
   /* la grille du mois : une case par jour, les rendez-vous qui y COMMENCENT (et les journées entières), dans l'ordre de la journée */
   function rendreMois(auj) {
