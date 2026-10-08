@@ -102,7 +102,9 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       v('⛔ UNE SONNERIE ÉCHUE (dix minutes plus tard) : plus d\'identifiants non plus', [l1b.code, dit(await g1.get('/api/ice'))], [201, [404, 'introuvable']]);
       const l2 = await sonnerie(g1, hana.id);
       const r2 = await g1.get('/api/ice'), r3 = await h1.get('/api/ice');
-      v('⛔ SECOND PASSAGE, dix minutes plus tard, dans un appel neuf : une autre échéance, un autre mot de passe, toujours juste ; et pour Hana, SON identifiant', [Number(r2.j.serveurs[1].username.split(':')[0]) - Number(exp), r2.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r2.j.serveurs[1].username), r3.j.serveurs[1].username.split(':')[1], r3.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r3.j.serveurs[1].username)], [600, true, hana.id, true]);
+      /* l'échéance suit l'horloge du service : avancée de dix minutes PAR LE BANC, et de la vraie seconde qui passe entre les deux lectures — 600 à 603 s d'écart. Exiger 600 pile faisait
+         tomber le banc sur une machine chargée (8 octobre 2026 : 601, trois sondes au navigateur tournant à côté). */
+      v('⛔ SECOND PASSAGE, dix minutes plus tard, dans un appel neuf : une autre échéance, un autre mot de passe, toujours juste ; et pour Hana, SON identifiant', [(d => d >= 600 && d <= 603 ? 600 : d)(Number(r2.j.serveurs[1].username.split(':')[0]) - Number(exp)), r2.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r2.j.serveurs[1].username), r3.j.serveurs[1].username.split(':')[1], r3.j.serveurs[1].credential === hmac64(SECRET_RELAIS, r3.j.serveurs[1].username)], [600, true, hana.id, true]);
       const r4 = await g1.get('/api/ice'), r5 = await g1.get('/api/ice');
       v('⛔ le plafond : trois lectures par heure (réglage du banc) — Gil en a fait trois (la troisième passe), la quatrième est refusée (429 quota_atteint, Retry-After) ; Hana, lui, a le sien', [r4.code, dit(r5), Number(r5.h.get('retry-after')) > 0, r3.code], [200, [429, 'quota_atteint'], true, 200]);
       await raccroche(g1, l2);

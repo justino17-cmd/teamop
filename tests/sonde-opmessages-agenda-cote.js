@@ -8,7 +8,9 @@
      5. côté Perso, l'Agenda montre ce qu'on vient d'y ranger ; une réunion programmée côté Perso naît Perso (le formulaire le propose) ;
      6. au bureau : pas de sélecteur sous le titre de l'Agenda (il est en haut de la barre latérale), et l'Agenda suit le côté choisi là ;
      7. Cléo (aucun espace, formule Perso) n'a pas de sélecteur, et voit tout son agenda ;
-     8. aucune erreur JavaScript.
+     8. aucune erreur JavaScript ;
+     9. (« que tout soit à part ») les APPELS et les CONTACTS aussi : côté Pro, l'appel manqué de Ben (collègue) et Ben dans « Tous » ; côté Perso, celui de Cléo, Cléo — et
+        « Entreprise » n'est proposée que côté Pro.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-agenda-cote.js   (CAPTURES=/dossier pour les images)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -63,6 +65,9 @@ function localDans(t, tz) {
     const r4 = await reu('Point équipe QZK', '15:00', [B0.moi.id]), r5 = await reu('Dîner QZK', '19:00', [C0.moi.id]);
     v('population : les cinq sont posés au service, chacun de son côté (événements : perso, pro, aucun ; réunions par la règle : Ben collègue → Pro, Cléo amie → Perso)',
       [[r1, r2, r3].map(x => x.code + ':' + x.j.evenement.cote), [r4, r5].map(x => x.code + ':' + x.j.reunion.cote)], [['201:perso', '201:pro', '201:null'], ['201:pro', '201:perso']]);
+    /* deux appels manqués : Ben (collègue) et Cléo (amie) appellent Ana et raccrochent avant qu'elle réponde */
+    const manquer = async (X) => { const r = await X.post('/api/appels', { uid: A0.moi.id, type: 'audio' }); if (r.code !== 201) return r.code; return (await X.post('/api/appels/' + r.j.appel.id + '/quitter', {})).code; };
+    v('population : Ben puis Cléo ont appelé Ana (deux appels manqués)', [await manquer(B0), await manquer(C0)], [200, 200]);
     v('⛔ chez Ben, « Point équipe » est Pro aussi (Ana est sa collègue)', ((await B0.get('/api/reunions?du=' + (Date.now() - JOUR) + '&au=' + (Date.now() + 3 * JOUR))).j.reunions || []).filter(x => x.titre === 'Point équipe QZK').map(x => x.cote), ['pro']);
 
     const ouvrirPage = async (login, bureau) => {
@@ -149,6 +154,21 @@ function localDans(t, tz) {
     await A.page.keyboard.press('Escape');
     vrai('la fiche fermée, la réunion a quitté l\'agenda Pro (il reste la revue client)', await att(A, () => !document.documentElement.classList.contains('feuille-ouverte')) && await montre(A, T5, ['Revue client QZK']), await vus(A, T5));
 
+    /* ═══ 4 bis. CÔTÉ PRO : LES APPELS ET LES CONTACTS ═══ */
+    console.log('\n4 bis. Côté Pro : les Appels et les Contacts');
+    const nomsAppels = (P) => P.page.evaluate(() => Array.from(document.querySelectorAll('#liste-appels .appel-nom-ligne')).map(x => x.textContent.trim()));
+    const nomsContacts = (P) => P.page.evaluate(() => Array.from(document.querySelectorAll('#vc-corps .contact-nom')).map(x => x.textContent.trim()));
+    const cats = (P) => P.page.evaluate(() => Array.from(document.querySelectorAll('#vc-seg [data-cat]')).map(x => x.dataset.cat));
+    await toucher(A, '#tabs a.tab[data-vue="appels"]');
+    vrai('côté Pro, les Appels : l\'appel de Ben (collègue), PAS celui de Cléo', await att(A, () => { const n = Array.from(document.querySelectorAll('#liste-appels .appel-nom-ligne')).map(x => x.textContent.trim()); return n.length === 1 && /^Ben/.test(n[0]); }), await nomsAppels(A));
+    await toucher(A, '#tabs a.tab[data-vue="contacts"]');
+    const etatCats = (P) => P.page.evaluate(() => { const s = document.getElementById('vc-seg'); return s ? [(s.querySelector('[aria-pressed="true"]') || { dataset: {} }).dataset.cat || null].concat(Array.from(s.querySelectorAll('[data-cat]')).map(x => x.dataset.cat)) : null; });
+    vrai('côté Pro, les Contacts s\'ouvrent sur « Entreprise », proposée avec Tous, Favoris, Groupes', await att(A, () => { const s = document.getElementById('vc-seg'); return !!s && (s.querySelector('[aria-pressed="true"]') || { dataset: {} }).dataset.cat === 'entreprise'; }), await etatCats(A));
+    await toucher(A, '#vc-seg [data-cat="tous"]');
+    vrai('« Tous » côté Pro : Ben, PAS Cléo', await att(A, () => { const n = Array.from(document.querySelectorAll('#vc-corps .contact-nom')).map(x => x.textContent.trim()); return n.some(x => /^Ben/.test(x)) && !n.some(x => /^Cléo/.test(x)); }), await nomsContacts(A));
+    await capture(A, 'ac-4b-contacts-pro');
+    vrai('retour à l\'Agenda, demain', await versAgenda(A));
+
     /* ═══ 5. CÔTÉ PERSO ═══ */
     console.log('\n5. Côté Perso : ce qu\'on vient d\'y ranger, et une réunion programmée d\'ici');
     await toucher(A, '.cote-seg-agenda [data-cote="perso"]');
@@ -164,6 +184,16 @@ function localDans(t, tz) {
     v('la demande portait le côté (Perso), et le service l\'a rangée Perso pour Ana', [postes.map(p => { try { return JSON.parse(p).cote; } catch (e) { return '?'; } }), await (async () => { const l = ((await A0.get('/api/conversations')).j.conversations || []).find(c => c.type === 'reunion' && c.nom === 'Anniversaire QZK'); return l ? [l.cote_choisi, l.cote] : null; })()],
       [['perso'], ['perso', 'perso']]);
     await capture(A, 'ac-5-perso');
+    for (let i = 0; i < 3 && await A.page.evaluate(() => document.documentElement.classList.contains('feuille-ouverte')); i++) { await A.page.keyboard.press('Escape'); await A.page.waitForTimeout(300); }      // la fiche de la réunion programmée
+    await toucher(A, '#tabs a.tab[data-vue="appels"]');
+    vrai('côté Perso, les Appels : l\'appel de Cléo, PAS celui de Ben', await att(A, () => { const n = Array.from(document.querySelectorAll('#liste-appels .appel-nom-ligne')).map(x => x.textContent.trim()); return n.length === 1 && /^Cléo/.test(n[0]); }), await nomsAppels(A));
+    await toucher(A, '#tabs a.tab[data-vue="contacts"]');
+    vrai('côté Perso, les Contacts : « Tous », sans « Entreprise » (les collègues sont du côté Pro)', await att(A, () => { const s = document.getElementById('vc-seg'); return !!s && (s.querySelector('[aria-pressed="true"]') || { dataset: {} }).dataset.cat === 'tous' && !s.querySelector('[data-cat="entreprise"]'); }), await cats(A));
+    vrai('« Tous » côté Perso : Cléo, PAS Ben', await att(A, () => { const n = Array.from(document.querySelectorAll('#vc-corps .contact-nom')).map(x => x.textContent.trim()); return n.some(x => /^Cléo/.test(x)) && !n.some(x => /^Ben/.test(x)); }), await nomsContacts(A));
+    await A.page.locator('#vc-recherche').fill('Ben');
+    vrai('une recherche cherche des deux côtés : « Ben » le trouve, même côté Perso', await att(A, () => Array.from(document.querySelectorAll('#vc-corps .contact-nom')).some(x => /^Ben/.test(x.textContent.trim()))), await nomsContacts(A));
+    await A.page.locator('#vc-recherche').fill('');
+    await capture(A, 'ac-5b-contacts-perso');
 
     /* ═══ 6. AU BUREAU ═══ */
     console.log('\n6. Au bureau : le sélecteur est dans la barre latérale, l\'Agenda le suit');

@@ -60,8 +60,8 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', dan: 'Dan Banc' };
 
     console.log('\n1. La grille du « + »');
     await plus(A);
-    v('« + » ouvre la grille : Photos, Caméra (au doigt), Position, Contact, Document, Sondage', await A.page.evaluate(() => Array.from(document.querySelectorAll('#menu-msg [data-plus]')).map(x => x.textContent.trim())),
-      ['Photos', 'Caméra', 'Position', 'Contact', 'Document', 'Sondage']);
+    v('« + » ouvre la grille : Photos, Caméra (au doigt), Position, Contact, Document, Sondage, Plus tard (envoyer plus tard, 8 octobre 2026)', await A.page.evaluate(() => Array.from(document.querySelectorAll('#menu-msg [data-plus]')).map(x => x.textContent.trim())),
+      ['Photos', 'Caméra', 'Position', 'Contact', 'Document', 'Sondage', 'Plus tard']);
     await capture(A, 'cartes-1-plus');
     await A.page.locator('[data-plus="position"]').click();
 

@@ -2769,6 +2769,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     else if (!depuisOuverture && c0 && coteDe(c0) !== m && etat.route && etat.route.vue === 'messages' && !etat.route.feuille) remplacer(Object.assign({}, etat.route, { conv: null }));   // la conversation ouverte est de l'autre côté : on la ferme (sauf quand c'est elle qu'on ouvre)
     if (etat.route && etat.route.vue === 'contacts') rendreVueContacts();
     if ($('vue-reunions') && $('vue-reunions').dataset.pret && reu.charge) rendreReunions();      // l'Agenda ne montre que le côté où l'on est
+    if (etat.route && etat.route.vue === 'appels') rendreAppels();                                   // les Appels aussi
     if (!muet) annonceMode(m);                                   // muet : le geste qui y mène a déjà sa phrase (« Tu as rejoint… »)
     try { await source.choisirMode(m); } catch (e) { mot(phrase(e, 'Le côté choisi n\'a pas pu être enregistré : il vaut pour cette visite.')); }
   }
@@ -2786,6 +2787,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      (un service d'avant ne le dit pas : une réunion y était Pro) */
   const coteReu = r => { const c = r && etat.conversations.find(x => x.id === r.conv); return c ? coteDe(c) : r && (r.cote === 'perso' || r.cote === 'pro') ? r.cote : 'pro'; };
   const sigCotesReunions = () => etat.conversations.filter(c => c.type === 'reunion').map(c => c.id + ':' + coteDe(c)).join();
+  /* (8 octobre 2026, « que tout soit à part ») UNE PERSONNE est du côté de sa conversation à deux (rangée à la main ou automatique) ; sans conversation, Pro si c'est un collègue d'un de
+     mes espaces (lus avec les contacts « Entreprise »), sinon Perso. UN APPEL est du côté de SA conversation (un appel de groupe, une salle de réunion), sinon de la personne appelée. */
+  const estCollegue = id => !!(etat.vcEsp && etat.vcEsp.membres && Object.keys(etat.vcEsp.membres).some(k => (etat.vcEsp.membres[k] || []).some(p => p && p.id === id)));
+  const coteDePersonne = id => { const d = etat.conversations.find(x => x.type === 'direct' && x.autre === id); return d ? coteDe(d) : estCollegue(id) ? 'pro' : 'perso'; };
+  const coteAppel = a => { const c = a && a.conv ? etat.conversations.find(x => x.id === a.conv) : null; return c ? coteDe(c) : a && a.membres && a.membres.length === 1 ? coteDePersonne(a.membres[0]) : 'perso'; };
+  /* les collègues se lisent une fois, dès qu'un écran en a besoin pour ranger (Appels, Contacts, le tableau de bord) — rien n'est rangé sur l'appareil */
+  const colleguesLus = () => { if (modesActifs() && !etat.vcEsp && CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function') chargerVcEspaces(); };
   const duCote = cote => !modesActifs() || cote === etat.mode;
   /* le choix du côté dans une fiche (un événement, une réunion qu'on programme) : un segmenté Perso | Pro, sur le côté où l'on est — seulement pour un compte qui a les deux */
   const choixCote = (id, cote) => modesActifs() ? '<div class="champ champ-cote"><span class="champ-titre" id="' + id + '-l">Agenda</span><div class="seg" id="' + id + '" role="group" aria-labelledby="' + id + '-l" style="--i:' + (cote === 'pro' ? 1 : 0) + '"><span class="seg-knob" aria-hidden="true"></span>' +
@@ -2992,7 +3000,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 
   /* ═══ 7. LA CONVERSATION ════════════════════════════════════════════════════════════════════════════════════════════════════ */
   function majBadge() {
-    const n = etat.conversations.filter(c => c.id !== etat.conv && c.nonLu).length;
+    const n = etat.conversations.filter(c => c.id !== etat.conv && c.nonLu && dansMode(c)).length;      // le côté où l'on est : l'autre a sa pastille sur le sélecteur Perso | Pro
     const b = $('conv-badge');
     b.hidden = n === 0; b.textContent = n;
     $('conv-retour').setAttribute('aria-label', n ? 'Retour aux conversations, ' + n + (n === 1 ? ' autre conversation non lue' : ' autres conversations non lues') : 'Retour aux conversations');
@@ -4743,7 +4751,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   function rendreAppels() {
     const actif = document.activeElement, cle = actif && actif.closest && actif.closest('#liste-appels') ? (actif.dataset.rappeler ? 'rappeler' : actif.dataset.infos ? 'infos' : null) : null, val = cle ? actif.dataset[cle] : null;
-    $('liste-appels').innerHTML = etat.appels.length ? etat.appels.map(ligneAppel).join('') : '<li class="vide">' + (etat.filtreAppels === 'manques' ? 'Aucun appel manqué' : 'Aucun appel') + '</li>';
+    colleguesLus();
+    const L = etat.appels.filter(a => duCote(coteAppel(a)));          // (8 octobre 2026) l'historique du côté où l'on est
+    $('liste-appels').innerHTML = L.length ? L.map(ligneAppel).join('') : '<li class="vide">' + (etat.filtreAppels === 'manques' ? 'Aucun appel manqué' : 'Aucun appel') + (modesActifs() ? ' côté ' + NOM_COTE[etat.mode] : '') + '</li>';
     document.querySelectorAll('#seg-appels [data-filtre]').forEach(b => b.setAttribute('aria-pressed', b.dataset.filtre === etat.filtreAppels ? 'true' : 'false'));
     $('seg-appels').style.setProperty('--i', etat.filtreAppels === 'manques' ? 1 : 0);
     if (cle) { const b = $('liste-appels').querySelector('[data-' + cle + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
@@ -5864,7 +5874,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     }
     if (D && !(D.erreur && !D.recues) && E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
           '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
-    const tous = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })), C = tous.filter(garder);
+    colleguesLus();
+    const tous = (CONTACTS || []).slice().sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })), C = tous.filter(garder).filter(c => q || duCote(coteDePersonne(c.id)));      // (8 octobre 2026) le côté où l'on est — une recherche cherche partout
     if (!q || C.length) h += '<div class="rubrique"><span>Mes contacts</span><span>' + (C.length || '') + '</span></div>';
     if (C.length) h += vcParLettre(C);
     else if (!q) h += '<div class="carte carte-pad"><p class="info-note">Pas encore de contact. Ajoute quelqu\'un par son identifiant (Camille#4821), son numéro ou un lien.</p><button type="button" class="mini plein" data-act="vc-ajouter">Ajouter un contact</button></div>';
@@ -6035,7 +6046,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const L = [['tous', 'Tous']];
     if (CAP.favoris && typeof source.favori === 'function') L.push(['favoris', 'Favoris']);
     L.push(['groupes', 'Groupes']);
-    if (CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function') L.push(['entreprise', 'Entreprise']);
+    if (CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function' && (!modesActifs() || etat.mode === 'pro')) L.push(['entreprise', 'Entreprise']);      // les collègues : le côté Pro
     return L;
   }
   function vcCat() {
@@ -6051,6 +6062,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function peindreVcSegment() {
     const seg = $('vc-seg'); if (!seg) return;
     const cat = vcCat(), L = vcCats();
+    /* ⛔ les catégories changent avec le côté (« Entreprise » est du côté Pro) : le segment, bâti une fois, se REFAIT quand elles changent — sinon, passé côté Pro, « Entreprise »
+       était choisie sans bouton (aucun segment pressé), et revenu côté Perso elle restait proposée. L'écoute est sur le segment lui-même : refaire ses boutons la garde. */
+    if (Array.from(seg.querySelectorAll('[data-cat]')).map(b => b.dataset.cat).join() !== L.map(c => c[0]).join()) {
+      seg.style.setProperty('--n', L.length);
+      seg.innerHTML = '<span class="seg-knob" aria-hidden="true"></span>' + L.map(c => '<button type="button" class="seg-bouton" data-cat="' + c[0] + '" aria-pressed="false">' + esc(c[1]) + '</button>').join('');
+    }
     seg.querySelectorAll('[data-cat]').forEach(b => b.setAttribute('aria-pressed', b.dataset.cat === cat ? 'true' : 'false'));
     seg.style.setProperty('--i', Math.max(0, L.findIndex(c => c[0] === cat)));
   }
@@ -6071,12 +6088,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function rendreVcCategorie(cat, brut, q) {
     const garderNom = x => !q || vcNorm(x.nom).includes(q);
     if (cat === 'favoris') {
-      const F = (CONTACTS || []).filter(c => c.favori).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })).filter(garderNom);
+      const F = (CONTACTS || []).filter(c => c.favori && (q || duCote(coteDePersonne(c.id)))).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' })).filter(garderNom);
       if (F.length) return '<div class="rubrique"><span>Favoris</span><span>' + F.length + '</span></div><div class="carte">' + F.map(vcLigneContact).join('') + '</div>';
       return q ? vcAucun(brut) : '<div class="carte carte-pad"><p class="info-note">Aucun favori pour l\'instant. Touche l\'étoile à côté d\'un contact, dans « Tous », pour le retrouver ici.</p></div>';
     }
     if (cat === 'groupes') {
-      const G = (etat.conversations || []).filter(c => c.type === 'groupe').filter(garderNom).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' }));
+      const G = (etat.conversations || []).filter(c => c.type === 'groupe' && (q || dansMode(c))).filter(garderNom).sort((a, b) => String(a.nom).localeCompare(String(b.nom), 'fr', { sensitivity: 'base' }));
       let h = '<div class="carte"><button type="button" class="contact presse" data-act="vc-nouveau-groupe">' + avatar({ initiales: '+', avatar: 0 }) +
         '<span class="contact-texte"><span class="contact-nom">Nouveau groupe</span><span class="contact-role">Choisis des contacts et donne-lui un nom</span></span></button></div>';
       if (G.length) h += '<div class="rubrique"><span>Mes groupes</span><span>' + G.length + '</span></div><div class="carte">' + G.map(g => '<button type="button" class="contact presse" data-act="vc-groupe" data-id="' + esc(g.id) + '">' +
@@ -6112,11 +6129,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (jeton !== etat.vcEspJeton) return;
     etat.vcEsp = { charge: false, espaces: r ? (r.espaces || []) : [], membres: {}, panne: {}, erreur: r ? '' : panne };
     rendreVueContacts();
+    const rangerApres = () => { if (etat.route && etat.route.vue === 'appels') rendreAppels(); if (etat.route && etat.route.vue === 'accueil' && $('vue-accueil').dataset.pret) rendreAccueil(); };
     await Promise.all(etat.vcEsp.espaces.map(async e => {
       try { const c = await source.espaceContacts(e.id); if (jeton === etat.vcEspJeton) etat.vcEsp.membres[e.id] = c.contacts || []; }
       catch (x) { if (jeton === etat.vcEspJeton) etat.vcEsp.panne[e.id] = phrase(x, 'Les membres de cet espace n\'ont pas pu être lus.'); }
       if (jeton === etat.vcEspJeton) rendreVueContacts();
     }));
+    if (jeton === etat.vcEspJeton) rangerApres();
   }
   $('vue-contacts').addEventListener('click', async e => {
     const b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
@@ -7463,7 +7482,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       $('bord-mentions-n').textContent = nl ? String(nl) : '';
     }
     /* les appels manqués IMPORTANTS, avec leur raison */
-    const imp = appelsImportants(bord.appels);
+    const imp = appelsImportants(bord.appels.filter(a => pourBord(coteAppel(a))));      // (8 octobre 2026) un appel manqué d'un ami n'est pas au tableau de bord (le côté Pro)
     $('bord-appels').innerHTML = att || (imp.length ? imp.map(x => ligneAppel(x.a).replace('<span class="appel-kind">', '<span class="bord-raison">' + esc(x.raisons.join(' · ')) + '</span><span class="appel-kind">')).join('')
       : '<li class="bord-vide"><span>Aucun appel manqué important. Les autres sont dans Appels.</span></li>');
     $('bord-appels-n').textContent = imp.length ? String(imp.length) : '';
