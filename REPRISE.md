@@ -39,8 +39,9 @@ Porte des bancs d'OP MESSAGES : 84 suites, 8 829 vérifications (plancher relev�
 ⚠️ Ce que le compte de test seul ne peut pas jouer EN LIGNE : tout ce qui demande une deuxième personne (mentions, « En réunion » vu d'un autre, les messages retenus).
 Les bancs et les sondes le jouent à plusieurs, contre le vrai service. L'inscription par adresse est fermée sur la bêta : un second compte d'essai se crée par la Tour.
 ⚠️ Toujours rouge EN LOCAL, vert en CI : test-971 (Vancouver à l'heure d'été permanente — la base des fuseaux de ce conteneur est plus vieille que celle de la CI).
-⚠️ `tests/sonde-opmessages.js` (l'aperçu, données de démonstration) lisait le curseur du PREMIER segmenté du document (celui de Perso / Pro, caché) : corrigé. Elle meurt
-encore à l'étape des photos du profil Android 412 (« fermée par un toucher sur le fond » reste ouverte, puis la vignette suivante est couverte) — voir la passe du soir.
+⚠️ `tests/sonde-opmessages.js` (l'aperçu, données de démonstration) avait deux défauts À ELLE : elle lisait le curseur du PREMIER segmenté du document (celui de Perso / Pro,
+caché), et son « toucher sur le fond » de la visionneuse tombait à 6 px sous « Enregistrer » — l'ajustement tactile le rattachait au bouton (Android, sans encoche) et elle
+mourait à la vignette suivante. Corrigés tous deux. Reste une mesure au pixel instable (« contour d'une case décochée », 0 encre peinte une fois sur trois, au jour).
 
 # ⏳ 8 OCTOBRE 2026 (MIDI) — RAPPELS QU'ON COCHE, ENVOYER PLUS TARD, MENTIONS, NE PAS DÉRANGER, ORDRE DU JOUR ET COMPTE RENDU (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
