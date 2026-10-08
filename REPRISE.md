@@ -13,7 +13,30 @@ de ligne du tout.
 
 ---
 
+# ✅ 8 OCTOBRE 2026 (NUIT) — LE SITE : contact@ ET support@ AU PIED DE CHAQUE PAGE ; L'ACCUEIL PLUS FOURNI ; LE « CDN » D'IONOS
+
+Justin, 8 octobre, deux captures de l'analyse de site d'IONOS (« pour le site teamop tu peux voir pour améliorer ça »), puis le pied de page (« il faudrait mettre le
+mail de contact@teamop.fr, le mail de support et pour les problèmes sur les applications ou autres — règle-moi ça très vite ») :
+· **les adresses** — au pied des 19 pages, une colonne « Contact » : contact@teamop.fr (« Une question, une demande ») et support@teamop.fr (« Un problème sur une
+  application ») ; la ligne du bas porte les deux ; le JSON-LD prend contact@ pour l'organisation, support@ comme point de contact. `test-835` n'admet que ces deux `mailto`.
+  ⚠️ **À demander à Justin** : le formulaire « Créer votre application » écrit encore à support@ (c'est une demande, pas un problème : contact@ ?).
+· **« Ajouter du contenu aux pages » (414 mots, 500 recommandés)** — l'accueil a deux rangées de cartes, « Ce que fait OP GESTION. » et « Pensé pour votre métier. », vers
+  chaque page par fonction et par métier ; leurs phrases SONT les descriptions de ces pages (relues dans app.html le 29 septembre), aucune promesse neuve. Contenu de
+  l'accueil : 181 → 493 mots (`test-846`, ≥ 450) ; la page entière : 502 → 827 à notre compte (IONOS en comptait 414 quand nous en comptions 502).
+· **« Activer CDN » (Rapidité 57) est un FAUX NÉGATIF** — teamop.fr est servi par GitHub Pages, derrière Fastly : `via: 1.1 varnish`, `x-served-by: cache-…`,
+  `x-fastly-request-id`, `x-cache` dans chaque réponse (relevé le 8 octobre). L'outil d'IONOS ne le reconnaît pas, et son bouton « Activer CDN » vaut pour un site hébergé
+  CHEZ IONOS. Pour que l'outil le voie, il faudrait mettre Cloudflare devant — déplacer les DNS du domaine, api.teamop.fr et la messagerie comprises — pour un gain nul :
+  déconseillé ; décision de Justin s'il veut le score quand même. La compression (gzip) et la taille, les deux autres points, étaient déjà verts.
+
 # ⏳ 8 OCTOBRE 2026 (SOIR) — LES HEURES DE TRAVAIL CÔTÉ PRO (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+⛔ **ÉTAT AU SOIR DU 8 : LE SERVICE EST SUR LA BRANCHE, LA PAGE PAS ENCORE.** Le réglage n'a donc encore aucun écran : rien ne change pour personne tant que la page ne part
+pas. Elle est écrite et éprouvée (sonde 29 ✓) dans un arbre à part ; son correctif est rangé dans `scratchpad/heures-pro-page.patch` (les fichiers de `server-msg/public/`
+s'y régénèrent : `node scripts/opmsg-public.js`, après avoir repris ceux de `main`). Elle part dans la PR suivante.
+La relecture du gardien (cinq points, corrigés et prouvés — `e45b454`, `71ce1b8`) : le résumé compte le non-lu comme la PASTILLE (système, supprimé, masqué) ; une réunion tenue
+hors des heures laisse le Pro aux heures (il partait dans le résumé de la réunion, à 3 h du matin) ; la mémoire retenue, bornée et réglable (`push.retenusConvsMax`,
+`push.retenusPersonnesMax`), LAISSE SONNER quand elle est pleine — la réunion aussi (elle vidait tout à 20 000 personnes) ; l'heure se teste avant le côté ; un filet au
+balayeur. test-968 : 58 ✓ ; mutations 21 sur 23, les deux autres neutralisées par construction et nommées.
 
 Justin, 8 octobre : « il faut bien différencier le pro et le perso, que tout soit à part », et « ajouter les nouvelles fonctions si tu as des idées ». L'idée ajoutée : le Pro a
 ses heures. (#107, Perso et Pro à part partout, est fusionnée et déployée sur la bêta : la porte a mesuré 89 suites, 9 155 vérifications.)
