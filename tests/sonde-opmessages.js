@@ -74,10 +74,15 @@ async function ouvrirPage(b, pf, o) {
     permissions: o.permissions || []
   });
   const page = await ctx.newPage();
-  const S = { ctx, page, pf, erreurs: [], rejets: [], console: [], reseau: [], gestes: 0 };
+  const S = { ctx, page, pf, erreurs: [], rejets: [], console: [], reseau: [], prechargeur: [], gestes: 0 };
   page.on('pageerror', e => S.erreurs.push(String(e && e.message || e).slice(0, 200)));
-  page.on('console', m => { if (m.type() === 'error') S.console.push(m.text().slice(0, 200)); });
-  page.on('request', r => S.reseau.push(r.url()));
+  /* ⛔ LE PRÉ-CHARGEUR DE CHROMIUM LIT PARFOIS DU CODE COMME DU HTML : l'aperçu porte son script DANS la page (près de 700 Ko) ; quand l'analyseur
+     s'arrête au milieu (une frontière de paquet), le pré-chargeur qui reprend là croit lire du HTML et demande « ' + esc(p.url) + ' » — une
+     fois sur quatre à huit, à toute largeur, et sur `main` aussi (mesuré le 8 octobre 2026, `scratchpad/requetes-frequence.js`). La page
+     SERVIE (server-msg/public/) charge son script à part : elle n'est pas touchée. Ces requêtes, et leurs 404 en console, sont NOMMÉES et
+     écartées (`S.prechargeur`) — sans ça, la population tombait au hasard d'une passe sur quatre. */
+  page.on('console', m => { if (m.type() !== 'error') return; if (fragmentDeCode((m.location() || {}).url || '')) { S.prechargeur.push('console'); return; } S.console.push(m.text().slice(0, 200)); });
+  page.on('request', r => { if (fragmentDeCode(r.url())) { S.prechargeur.push(r.url().replace(/^https?:\/\/[^/]+/, '')); return; } S.reseau.push(r.url()); });
   /* les instruments posés AVANT la page : les rejets non rattrapés, les popstate (une navigation par geste), le micro (qui a demandé quoi, et si la
      piste a été RELÂCHÉE), les lectures audio — des témoins qui enveloppent l'API réelle sans en changer le comportement */
   await page.addInitScript(() => {
@@ -1958,13 +1963,16 @@ const CORRECTIFS = {
 
 /* ══ LA FIN D'UN PARCOURS : les comptes ═══════════════════════════════════════════════════════════════════════════════════════════ */
 const AUTORISES = new Set(['/apercu/opmessages/index.html', '/apercu/opmessages/source.js', '/icons/opmsg-192.png', '/icons/opmsg-favicon-32.png']);
+/* une adresse qui est un morceau de code (« ' + esc(…) + ' ») : le pré-chargeur de Chromium, voir `ouvrirPage` */
+function fragmentDeCode(u) { return /('|%27)(%20| )\+(%20| )/.test(u); }
 async function finParcours(S) {
   const nom = S.nom;
   const rej = await S.page.evaluate(() => window.__rejets);
   v(nom + ' : (population) ' + S.gestes + ' gestes portés, ' + (S.contrastes || 0) + ' contrastes lus au pixel — 0 erreur JavaScript, 0 rejet non rattrapé, 0 erreur console', S.gestes > 40 && S.erreurs.length === 0 && rej.length === 0 && S.console.length === 0, { erreurs: S.erreurs, rejets: rej, console: S.console });
   const dehors = S.reseau.filter(u => !/^http:\/\/127\.0\.0\.1:\d+\//.test(u) && !/^(blob|data):/.test(u));
   const servis = S.reseau.filter(u => /^http:\/\/127\.0\.0\.1:\d+\//.test(u)).map(u => u.replace(/^http:\/\/127\.0\.0\.1:\d+/, ''));
-  v(nom + ' : (population) ' + S.reseau.length + ' requêtes vues — ' + dehors.length + ' hors 127.0.0.1 ; les ' + servis.length + ' servies sont les 4 fichiers permis (' + [...new Set(servis)].join(', ') + ')', S.reseau.length >= 3 && dehors.length === 0 && servis.every(u => AUTORISES.has(u)), { dehors, servis });
+  v(nom + ' : (population) ' + S.reseau.length + ' requêtes vues — ' + dehors.length + ' hors 127.0.0.1 ; les ' + servis.length + ' servies sont les 4 fichiers permis (' + [...new Set(servis)].join(', ') + ')'
+    + (S.prechargeur.length ? ' · nommées et écartées : ' + S.prechargeur.length + ' du pré-chargeur de Chromium (' + [...new Set(S.prechargeur)].join(', ') + ')' : ''), S.reseau.length >= 3 && dehors.length === 0 && servis.every(u => AUTORISES.has(u)), { dehors, servis });
   await S.fermer();
 }
 
