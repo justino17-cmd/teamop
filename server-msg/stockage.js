@@ -1591,6 +1591,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Le côté d'UNE conversation pour `uid` (celui qu'il a choisi, sinon l'automatique) — la même règle que la liste, pour une conversation à la fois : l'agenda en a besoin pour ses réunions. */
   function coteDe(uid, conv, type) {
     const choisi = COTES ? (Q('SELECT cote FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid) || {}).cote : null;
+    if (type === undefined) type = (Q('SELECT type FROM conversation WHERE id = ?').get(conv) || {}).type;      // les notifications ne connaissent que l'identifiant : un canal reste Pro
     if (choisi === 'perso' || choisi === 'pro') return choisi;
     const compte = Q(`SELECT COUNT(*) AS n, SUM(CASE WHEN y.uid IN (SELECT b.uid FROM espace_membre a JOIN espace_membre b ON a.espace = b.espace WHERE a.uid = ?) THEN 1 ELSE 0 END) AS c
                       FROM membre y WHERE y.conv = ? AND y.quitte_le IS NULL AND y.uid <> ?`).get(uid, conv, uid);
@@ -2575,6 +2576,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      conversation directe, ou l'auteur a pu supprimer le message « pour tous » — rien de tout cela ne doit partir quand même. Et le message a pu être MODIFIÉ : on rend son état ACTUEL, pas
      celui du moment de l'envoi (un aperçu qui part avec l'ancien texte montre sur un écran verrouillé ce que l'auteur a corrigé — relevé par le gardien, 3 octobre 2026).
      → null (ne part pas) ou { type, texte (null si illisible), expire_ts (null si le message n'est pas éphémère) }. */
+  /* Le résumé des heures de travail (`push.js`, `relacherHeures`) ne redit pas une conversation LUE entre-temps : `uid` y a-t-il encore un message d'un AUTRE après ce
+     qu'il a lu ? (un membre parti : non ; ses propres messages ne comptent pas.) */
+  function pushConvNonLue(uid, conv) {
+    const r = Q(`SELECT 1 AS x FROM membre m JOIN message x ON x.conv = m.conv AND x.seq > m.lu_seq AND x.auteur <> m.uid AND x.supprime_le IS NULL
+                 WHERE m.conv = ? AND m.uid = ? AND m.quitte_le IS NULL LIMIT 1`).get(conv, uid);
+    return !!r;
+  }
   function pushMessageEncore({ uid, conv, seq }) {
     const m = Q('SELECT depuis_seq, muet_jusqua FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
     if (!m || m.muet_jusqua > horloge() || seq < m.depuis_seq) return null;
@@ -4532,7 +4540,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
     identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler, invitationEtat, invitationMarquer, invitationEnvoyes,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
-    pushDestinatairesMessage, pushMessageEncore, mentionEncore, autreSupprime,
+    pushDestinatairesMessage, pushMessageEncore, pushConvNonLue, coteDe, mentionEncore, autreSupprime,
     evenementFait, evenementReporter, programmeCreer, programmesDe, programmesCompter, programmeAnnuler, programmesEchus, programmeFini,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     presenceSalle, presenceReunion,   // le rapport de présence (migration 16)

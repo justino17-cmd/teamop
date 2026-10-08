@@ -38,6 +38,7 @@
 const crypto = require('crypto'), https = require('https'), http = require('http'), dns = require('dns');
 const webpush = require('web-push');
 const { APPAREIL_ABS_MS } = require('./telephone');   // le plafond absolu d'un jeton d'appareil : une personne qui n'a que lui reste JOIGNABLE
+const heuresPro = require('./heures-pro');            // les heures de travail côté Pro : hors d'elles, le Pro ne sonne pas (retenu, résumé à la reprise)
 
 /* ── La liste blanche ───────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 const HOTES_EXACTS = ['fcm.googleapis.com'];
@@ -307,6 +308,42 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
     }
   }
 
+  /* ⛔ LES HEURES DE TRAVAIL CÔTÉ PRO (8 octobre 2026 : « il faut bien différencier le pro et le perso, que tout soit à part ») : un message ou une mention (`retenable`)
+     d'une conversation que la personne range côté PRO, quand l'instant tombe hors de SES heures (`prefs.heures_pro`, dans SON fuseau — `heures-pro.js`), ne fait
+     sonner aucun de ses appareils : il est COMPTÉ (les conversations, les mentions ; rien du texte, rien des noms), en mémoire. Quand ses heures reprennent (le
+     balayeur passe chaque minute : `relacherHeures`), UNE notification résume — et seulement ce qui n'a pas été lu entre-temps. Le Perso n'est jamais retenu ;
+     les appels ne passent pas par ici (ils sonnent toujours). Un redémarrage oublie le compte : le résumé ne part pas, les messages sont là. */
+  const retenusPro = new Map();
+  function retenirPro(uid, charge) {
+    let r = retenusPro.get(uid);
+    if (!r) { if (retenusPro.size >= 20000) retenusPro.clear(); r = new Map(); retenusPro.set(uid, r); }      // conversation → combien de mentions y attendent
+    if (!r.has(charge.tag) && r.size >= 100) return;
+    r.set(charge.tag, (r.get(charge.tag) || 0) + (charge.type === 'mention' ? 1 : 0));
+  }
+  /* → vrai si cette charge est d'une conversation PRO pour `uid` et que l'instant tombe hors de ses heures. Dans le doute (une conversation illisible), faux : on
+     ne retient pas ce qu'on ne sait pas ranger. */
+  function horsHeuresPro(moi, charge) {
+    const r = moi.prefs && moi.prefs.heures_pro;
+    if (!r || typeof charge.tag !== 'string' || !/^c_[0-9a-f]{32}$/.test(charge.tag)) return false;
+    let pro = false; try { pro = stockage.coteDe(moi.id, charge.tag) === 'pro'; } catch (e) { pro = false; }
+    return pro && heuresPro.horsHeures(r, moi.tz, horloge());
+  }
+  function relacherHeures() {
+    for (const [uid, r] of Array.from(retenusPro)) {
+      let moi = null; try { moi = stockage.personneParId(uid); } catch (e) { moi = null; }
+      if (moi && moi.prefs && moi.prefs.heures_pro && heuresPro.horsHeures(moi.prefs.heures_pro, moi.tz, horloge())) continue;      // toujours hors des heures : on attend
+      retenusPro.delete(uid);
+      if (!moi) continue;
+      /* ce qui a été LU entre-temps (sur un autre appareil, page ouverte) ne se résume pas */
+      let convs = Array.from(r.keys());
+      try { convs = convs.filter(c => stockage.pushConvNonLue(uid, c)); } catch (e) { /* sans la lecture, on résume tout ce qui a été retenu */ }
+      const n = convs.length; if (!n) continue;
+      const mentions = convs.reduce((k, c) => k + r.get(c), 0);
+      const corps = 'En dehors de tes heures : ' + (n > 1 ? 'nouveaux messages pro dans ' + n + ' conversations' : 'nouveaux messages pro dans une conversation') + (mentions > 1 ? ', dont ' + mentions + ' mentions' : mentions === 1 ? ', dont une mention' : '');
+      partir(uid, { type: 'resume', tag: 'resume-heures', url: n === 1 ? '/#messages/' + convs[0] : '/', renotify: true, titre: 'OP MESSAGES', corps }).catch(() => {});
+    }
+  }
+
   /* Envoie maintenant à TOUS les appareils de la personne. → { envoyes, appareils } */
   async function partir(uid, charge0) {
     if (!actif) return { envoyes: 0, appareils: 0, raison: 'inactif' };
@@ -328,6 +365,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
       let dedans = false; try { dedans = enSalle(uid); } catch (e) { dedans = false; }
       if (dedans) { retenir(uid, charge); return { envoyes: 0, appareils: abos.length, raison: 'retenue' }; }
     }
+    if (charge.retenable === true && horsHeuresPro(moi, charge)) { retenirPro(uid, charge); return { envoyes: 0, appareils: abos.length, raison: 'hors_heures' }; }
     const t = textesPour(moi, charge);
     const payload = JSON.stringify({ type: charge.type, titre: t.titre, corps: t.corps, tag: charge.tag || charge.type, url: charge.url || '/', renotify: charge.renotify === true });
     /* ⛔ la durée de vie chez le service push : au plus `ttlS` (24 h), au plus ce qui reste à vivre à un message éphémère, et — quand l'APERÇU part — au plus `ttlApercuS` (1 h) : le texte d'un message
@@ -436,7 +474,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
   }
 
   return {
-    pousser, acquitter, abonner, desabonner, essai, message, relacherSorties,
+    pousser, acquitter, abonner, desabonner, essai, message, relacherSorties, relacherHeures,
     /* qui est dans une salle (branché par `index.js` : les appels sont créés après le push) */
     brancherSalles: (f) => { if (typeof f === 'function') enSalle = f; },
     cle: () => vapid ? vapid.publique : null,

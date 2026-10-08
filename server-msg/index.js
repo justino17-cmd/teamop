@@ -217,6 +217,8 @@ function demarrer(env = process.env) {
          Par petits paquets (un effacement est une transaction) ; ce que la personne a vu s'en aller (groupes quittés, contacts) est dit aux autres tout de suite. */
       /* ⛔ ENVOYER PLUS TARD (8 octobre 2026) : les messages programmés dont l'heure est venue partent, par le MÊME chemin qu'un envoi (`routes.js`, `ctx.programmesTour`) */
       if (ctx.programmesTour) { const g = ctx.programmesTour(25); if (g.envoyes) journaliser('programme_envoye', { n: g.envoyes }); }
+      /* ⛔ LES HEURES DE TRAVAIL CÔTÉ PRO : quand les heures d'une personne reprennent, les messages pro retenus se résument en UNE notification (`push.js`) */
+      push.relacherHeures();
       for (const id of stockage.comptesEchus(5)) {
         const e = stockage.compteEffacer(id);
         if (!e.effacee) continue;
