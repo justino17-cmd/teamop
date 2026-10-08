@@ -1855,10 +1855,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .cr-liste li { display: flex; align-items: baseline; gap: 8px; overflow-wrap: anywhere; }
 .cr-liste small { margin-left: auto; font-size: 13px; opacity: .75; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .cr-points li { align-items: center; }
-.cr-points .evt-rond { flex: none; width: 18px; height: 18px; border-color: currentColor; }
+.cr-points .evt-rond { flex: none; width: 18px; height: 18px; border-color: color-mix(in srgb, currentColor 60%, transparent); }
 .cr-points .evt-rond .ic { width: 12px; height: 12px; }
-.cr-points .evt-rond.plein { background: currentColor; border-color: currentColor; }
-.cr-points .evt-rond.plein .ic { color: var(--solide); }
+/* coché : le rond prend l'ENCRE de la bulle et la coche son FOND — lisible sur la bulle reçue comme sur l'envoyée, quel que soit le thème de la conversation */
+.compte-rendu.recue .cr-points .evt-rond.plein { background: var(--bubble-in-fg); border-color: var(--bubble-in-fg); color: var(--bubble-in); }
+.compte-rendu.envoyee .cr-points .evt-rond.plein { background: var(--on-fill); border-color: var(--on-fill); color: var(--fill); }
 .cr-points li.fait { opacity: .8; }
 .cr-docs { margin: 0; display: flex; align-items: center; gap: 6px; font-size: 14px; opacity: .85; }
 .cr-docs .ic { width: 16px; height: 16px; }
