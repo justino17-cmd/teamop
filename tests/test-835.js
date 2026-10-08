@@ -121,9 +121,9 @@ v('aucun lien mort', morts, []);
 {
   const piedDe = h => h.slice(h.indexOf('<footer class="pied">'), h.indexOf('</footer>'));
   const sans = CLES.filter(c => { const p = piedDe(PAGES[c]);
-    return !/<div class="contact"><b>Contact<\/b><a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><small>Une question, une demande<\/small><a href="mailto:support@teamop\.fr">support@teamop\.fr<\/a><small>Un problème sur une application<\/small><\/div>/.test(p)
+    return !/<div class="contact"><b>Contact<\/b><a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><small>Une question, une demande<\/small><a href="mailto:support@teamop\.fr">support@teamop\.fr<\/a><small>Un problème d'application ou de connexion au compte<\/small><\/div>/.test(p)
       || !/<div class="ligne">[\s\S]*<a href="mailto:contact@teamop\.fr">contact@teamop\.fr<\/a><a href="mailto:support@teamop\.fr">support@teamop\.fr<\/a>/.test(p); });
-  v('⛔ le pied des ' + CLES.length + ' pages : contact@ (une question, une demande) et support@ (un problème sur une application), dans la colonne « Contact » et sur la ligne du bas', sans, []);
+  v('⛔ le pied des ' + CLES.length + ' pages : contact@ (une question, une demande) et support@ (un problème d\'application ou de connexion au compte), dans la colonne « Contact » et sur la ligne du bas', sans, []);
 }
 /* ⛔ PLUS DE FORMULE GRATUITE D'OP GESTION SUR LE SITE — Justin, 29 septembre 2026 : « je veux que l'application soit
    payante directement ». Trois formules, Pro, Business, Business Premium ; aucune carte ne mène à `?formule=gratuit`. */
@@ -275,7 +275,7 @@ console.log('8. « Créer » part par e-mail, et le dit');
 vrai('le formulaire n\'a pas d\'action serveur', /<form class="demande" id="demande" novalidate>/.test(PAGES.creer));
 vrai('jamais « demande envoyée »', !/demande envoy[ée]/i.test(texte(PAGES.creer)));
 const js = fs.readFileSync(path.join(RACINE, 'vitrine', 'v2', 'site.js'), 'utf8').replace(/^\s*\/\*[\s\S]*?\*\//gm, ' ');
-vrai('site.js prépare un mailto vers support@teamop.fr', /location\.href = 'mailto:support@teamop\.fr\?subject='/.test(js));
+vrai('site.js prépare un mailto vers contact@teamop.fr — sur le site, c\'est toujours contact@ (Justin, 8 octobre 2026)', /location\.href = 'mailto:contact@teamop\.fr\?subject='/.test(js));
 vrai('le métier part en tête de la demande', /lignes\.push\('MÉTIER CHOISI : '/.test(js));
 /* v766 (Justin, 30 septembre 2026 : « oui, fais ce qu'il faut ») : chaque métier du site a son pack dans l'application —
    plus aucun « Sur mesure avec vous ». Et chaque puce porte une clé que l'application CONNAÎT (METIERS_ORDRE, lu dans

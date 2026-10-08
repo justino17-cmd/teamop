@@ -237,7 +237,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         const mail = NAVS.find(u => /^mailto:/.test(u)) || '';
         if (mail) {
           const corps = decodeURIComponent((mail.split('body=')[1] || '').replace(/\+/g, ' '));
-          vrai(lbl + ' : le courriel part vers support@teamop.fr', mail.startsWith('mailto:support@teamop.fr?subject='));
+          vrai(lbl + ' : le courriel part vers contact@teamop.fr', mail.startsWith('mailto:contact@teamop.fr?subject='));
           vrai(lbl + ' : le métier en tête, puis les champs et les besoins', /^MÉTIER CHOISI : 3D — Anti-nuisibles  \[pack 3d\]\nPack : prêt/.test(corps) && /E-mail : marie@exemple\.fr/.test(corps) && /Besoins cochés : /.test(corps), corps.slice(0, 200));
         } else vrai(lbl + ' : la navigation mailto est observée', false, 'aucune navigation vue : ' + JSON.stringify(NAVS));
       }

@@ -180,7 +180,7 @@
       });
       var besoins = $$('.besoin[aria-pressed="true"]', demande).map(function (b) { return b.textContent.trim(); });
       if (besoins.length) lignes.push('Besoins cochés : ' + besoins.join(', '));
-      location.href = 'mailto:support@teamop.fr?subject=' + encodeURIComponent('Demande de création d\'application — TEAM OP') +
+      location.href = 'mailto:contact@teamop.fr?subject=' + encodeURIComponent('Demande de création d\'application — TEAM OP') +
         '&body=' + encodeURIComponent(lignes.join('\n'));
       var avis = $('.avis-envoi', demande); if (avis) avis.hidden = false;
     });
