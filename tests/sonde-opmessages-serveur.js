@@ -663,19 +663,20 @@ async function couple(b, env, cfg) {
     await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); });
   });
 
-  await bloc('10. Ce qui est « bientôt » le dit (appels, réunions) — et les pièces, elles, sont là : « + » propose Photo et Fichier, le micro demande le micro', async () => {
+  /* ⛔ (8 octobre 2026) CE BLOC DISAIT « BIENTÔT » : les appels, les réunions, l'appareil photo de l'en-tête et la grille du « + » existent depuis — il les attendait encore, et tombait.
+     Il garde maintenant ce qui est vrai : les deux onglets ouvrent leur écran, « + » ouvre la grille SANS ouvrir de sélecteur, le micro demande le micro. Le détail de chacun vit dans sa sonde
+     (appels, réunions, agenda, cartes, pièces). */
+  await bloc('10. Les Appels et l\'Agenda ouvrent leur écran ; « + » ouvre la grille sans ouvrir de sélecteur ; le micro demande le micro', async () => {
     await onglet(A, 'appels');
-    await verifier('l\'onglet Appels dit « Bientôt disponible »', A, () => /Bientôt disponible/.test(document.getElementById('vue-appels').textContent), null, 4000, () => texteVu(A, '#vue-appels'));
+    await verifier('l\'onglet Appels ouvre l\'historique (plus de « Bientôt disponible »)', A, () => !!document.getElementById('liste-appels') && !/Bientôt disponible/.test(document.getElementById('vue-appels').textContent), null, 6000, () => texteVu(A, '#vue-appels'));
     await onglet(A, 'reunions');
-    await verifier('l\'onglet Réunions dit « Bientôt disponible »', A, () => /Bientôt disponible/.test(document.getElementById('vue-reunions').textContent), null, 4000);
+    await verifier('l\'onglet Agenda ouvre la semaine (plus de « Bientôt disponible »)', A, () => !!document.getElementById('liste-reunions') && !/Bientôt disponible/.test(document.getElementById('vue-reunions').textContent), null, 6000, () => texteVu(A, '#vue-reunions'));
     await ouvrirConvAvec(A, nomB);
     await toucher(A, '#compo-plus');
-    await verifier('« + » ouvre une petite feuille « Photo / Fichier » (le service sait les pièces), et n\'ouvre AUCUN sélecteur tant qu\'on n\'a pas choisi', A, () => !document.getElementById('menu-fond').hidden && document.querySelectorAll('#menu-msg [data-plus]').length === 2, null, 3000, () => texteVu(A, '#menu-msg'));
-    v('population : la feuille « Joindre » porte ses deux actions, nommées, et aucun sélecteur de fichier ne s\'est ouvert', [await A.page.evaluate(() => Array.from(document.querySelectorAll('#menu-msg [data-plus]')).map(b => b.textContent)), A.fichiers], [['Photo', 'Fichier'], 0]);
+    await verifier('« + » ouvre la grille (Photos, Caméra, Document…), et n\'ouvre AUCUN sélecteur tant qu\'on n\'a pas choisi', A, () => !document.getElementById('menu-fond').hidden && ['photo', 'fichier'].every(k => !!document.querySelector('#menu-msg [data-plus="' + k + '"]')), null, 4000, () => texteVu(A, '#menu-msg'));
+    v('population : la grille porte Photos et Document (au moins), et aucun sélecteur de fichier ne s\'est ouvert', [await A.page.evaluate(() => ['Photos', 'Document'].every(t => Array.from(document.querySelectorAll('#menu-msg [data-plus]')).some(b => b.textContent.trim() === t))), A.fichiers], [true, 0]);
     await A.page.keyboard.press('Escape');
-    await verifier('Échap referme la feuille « Joindre »', A, () => document.getElementById('menu-fond').hidden, null, 3000);
-    await toucher(A, '#conv-cam');
-    await attendreTexte('la caméra de l\'en-tête : « Les appels arrivent bientôt »', A, '#mot', 'appels arrivent bientôt', 3000);
+    await verifier('Échap referme la grille', A, () => document.getElementById('menu-fond').hidden, null, 3000);
     await saisir(A, '#saisie', ''); await A.page.evaluate(() => { const m = document.getElementById('compo-micro'); m.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', button: 0 })); });
     await verifier('le micro DEMANDE le micro (ce navigateur n\'en a pas : la phrase le dit, aucune erreur dans la console)', A, () => window.__media >= 1 && /micro/i.test(document.getElementById('avis').textContent), null, 4000, () => texteVu(A, '#avis'));
     await dormir(300);
