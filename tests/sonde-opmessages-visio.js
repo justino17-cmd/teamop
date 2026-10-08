@@ -57,11 +57,14 @@ async function ouvrir(b, base, pf, o) {
   });
   const page = await ctx.newPage();
   page.setDefaultTimeout(12000);
-  /* ⛔ LA MÉTA DE LA PAGE permet `wss:` et `https:` (la visio de production) ; cette sonde sert LiveKit en `ws://` sur la boucle locale (pas de certificat ici) : elle n'élargit QUE la méta, à l'adresse exacte de
-     son LiveKit. L'EN-TÊTE que pose le service, lui, est celui de la production — il nomme l'adresse de la visio et rien d'autre (vérifié au bloc 1). */
+  /* ⛔ LA MÉTA DE LA PAGE permet `wss:` (la visio de production ; `https:` en est sorti le 8 octobre — la lecture de `/rtc/validate` est sur l'origine du service) ; cette sonde sert LiveKit en `ws://` sur la
+     boucle locale (pas de certificat ici) : elle n'élargit QUE la méta, à l'adresse exacte de son LiveKit. L'EN-TÊTE que pose le service, lui, est celui de la production — il nomme l'adresse de la visio et rien
+     d'autre (vérifié au bloc 1). ⛔ Le remplacement doit TROUVER sa cible : quand la méta a changé, il ne trouvait plus rien, la page refusait LiveKit et la sonde accusait la visio (8 octobre 2026). */
   if (o.visioLocale) await page.route((u) => u.pathname === '/' || u.pathname === '/index.html', async (route) => {
     const r = await route.fetch(); let html = await r.text();
-    html = html.replace("connect-src 'self' wss: https:", "connect-src 'self' wss: https: " + o.visioLocale + ' ' + o.visioLocale.replace(/^ws/, 'http'));
+    const cible = "connect-src 'self' wss:;";
+    if (!html.includes(cible)) throw new Error('la méta de la page a changé : « ' + cible + ' » introuvable — la sonde ne peut pas y ajouter son LiveKit local');
+    html = html.replace(cible, "connect-src 'self' wss: " + o.visioLocale + ' ' + o.visioLocale.replace(/^ws/, 'http') + ';');
     await route.fulfill({ response: r, body: html });
   });
   const S = { ctx, page, pf, nom: o.nom, login: o.login, base, erreurs: [], console: [] };
