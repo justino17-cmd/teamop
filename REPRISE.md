@@ -19,6 +19,29 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# ⏳ 9 OCTOBRE 2026 — LE SITE (APERÇU) : LES CAPTURES DÉFILENT, L'iPHONE EN ENTIER ET LE MAC AVEC LUI — ATTEND L'AVIS DE JUSTIN
+
+Justin, 8 octobre au soir, capture d'OP GESTION à l'appui : « là où il y a les captures d'écran […] je voudrais des défilements d'images avec l'iPhone, et qu'on le
+voie bien en entier, et aussi un Mac pour montrer que ça marche bien sur les deux — fais-moi ça en bêta, que je voie ce que ça donne sur tout le site ».
+⛔ **APERÇU SEULEMENT** (`teamop.fr/apercu/site/…`) : la racine en service garde ses écrans fixes (`scripts/site-marine.js` ne pose les carrousels que si
+`POUR_LA_RACINE` est faux ; `vitrine/v2/carrousel.css` et `carrousel.js` ne sont liés qu'aux pages de l'aperçu). **Publier = sa phrase**, puis retirer la condition.
+· **où** : l'accueil (le grand Mac + iPhone devient un carrousel des deux appareils ensemble, quatre paires : tableau de bord, planning / journée, interventions /
+  fiche, équipe / connexion) et ses deux cartes ; OP GESTION (la scène) ; la carte OP GESTION d'« Applications » (le Mac) ; les six pages par fonction et la page
+  anti-nuisibles (une scène Mac + iPhone, et les deux cartes en iPhone) ; les quatre autres pages métier (les deux cartes en iPhone) ; les cases de « Ce que fait
+  OP GESTION » montrent leur appareil EN ENTIER (sans défiler : une case est un bouton, elle montre l'écran de SA fonction).
+· **comment** : les écrans GLISSENT de côté (vers la gauche quand on avance, vers la droite quand on revient ; le Mac et l'iPhone ensemble) ; l'écran suivant
+  se charge invisible avant d'être montré (un écran pas encore montré ne se charge pas du tout) ; la pastille active se remplit pendant 4,6 s, puis l'écran
+  suivant ; ⏸ arrête pour de bon ; il attend sous la souris, au clavier, hors de l'écran, onglet caché ; au doigt on glisse de côté ; « animations réduites »
+  part arrêté. Deux cartes côte à côte ne montrent jamais le même écran au même moment (`suites`). L'horloge est un VRAI élément (`<i>`), pas un `::after` :
+  un événement d'animation venu d'un pseudo-élément n'est pas garanti sur Safari.
+· ⛔ **les pages métier HORS 3D** (plombier, électricien, chauffage, nettoyage) ne font défiler que des écrans NEUTRES (factures, encaissements, connexion) et n'ont
+  **pas de Mac** : toutes les captures de Mac viennent de l'entreprise de démonstration anti-nuisibles, jusqu'au menu (« Registre sanitaire », « Carte des box »).
+  **À décider par Justin** : des captures de Mac neutres (factures, comptabilité, clients, sans les menus du 3D) pour ces quatre pages — `scratchpad/captures-site.js`
+  sait les faire, à condition de masquer les menus du métier dans la bêta (`BETA_ESSAI` les montre tous).
+· **preuves** : `test-835` (838 ✓), `test-836`, `test-846` ; `scratchpad/sonde-carrousel.js` (4 profils × jour / nuit × 14 pages, plus les gestes) ;
+  `scratchpad/sonde-site.js` mise au dessin (appareils entiers dans les cases, écrans en attente hors du compte des images) et deux contrôles figés réparés
+  (le volet compte ses liens dans `VOLETS`, « Pro » se trouve par son rang depuis le retrait de Gratuit).
+
 # ✅ 8 OCTOBRE 2026 (NUIT) — LE SITE : contact@ ET support@ AU PIED DE CHAQUE PAGE ; L'ACCUEIL PLUS FOURNI ; LE « CDN » D'IONOS
 
 ✅ **EN LIGNE DEPUIS LE 8 OCTOBRE, 21 H 45 (UTC)** — #108 (`0d27fcd`) ; relu sur teamop.fr (« Ce que fait OP GESTION », contact@ au pied).

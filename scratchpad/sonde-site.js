@@ -9,6 +9,7 @@
 const fs = require('fs'), path = require('path'), http = require('http'), net = require('net'), os = require('os');
 const { spawn } = require('child_process');
 const RACINE = path.join(__dirname, '..');
+const GEN = require('../scripts/site-marine.js');
 const dormir = ms => new Promise(r => setTimeout(r, ms));
 const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => r(p)); }); });
 let ok = 0, ko = 0; const echecs = [];
@@ -67,10 +68,13 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       EXC.length = 0;
       await cdp('Page.navigate', { url: 'http://127.0.0.1:' + pp + '/apercu/site/' + pg + '.html' }); await dormir(900);
       /* toutes les images : on descend jusqu'à chacune (chargement paresseux), puis on relit */
-      const img = await ev(`const L=[...document.images]; for(const i of L){ i.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,60)); }
+      /* ⚠️ un écran de carrousel pas encore montré (`.c-vue` en display:none) ne se charge pas, EXPRÈS (carrousel.css) :
+         il est hors du compte — scratchpad/sonde-carrousel.js garde son chargement au bon moment */
+      const img = await ev(`const vue=i=>{ const v=i.closest('.c-vue'); return !v||getComputedStyle(v).display!=='none'; };
+        const L=[...document.images].filter(vue); for(const i of L){ i.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,60)); }
         await Promise.all(L.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,4000);}))); scrollTo(0,0);
-        return {n:L.length, ok:L.filter(i=>i.complete&&i.naturalWidth>0).length, ko:L.filter(i=>!(i.complete&&i.naturalWidth>0)).map(i=>i.currentSrc||i.src)};`);
-      vrai(lbl + ' : ' + img.ok + '/' + img.n + ' images chargées', img.n > 0 && img.ok === img.n, img.ko.join(' '));
+        return {n:L.length, ok:L.filter(i=>i.complete&&i.naturalWidth>0).length, ko:L.filter(i=>!(i.complete&&i.naturalWidth>0)).map(i=>i.currentSrc||i.src), attente:document.images.length-L.length};`);
+      vrai(lbl + ' : ' + img.ok + '/' + img.n + ' images chargées' + (img.attente ? ' (' + img.attente + ' écrans de carrousel en attente)' : ''), img.n > 0 && img.ok === img.n, img.ko.join(' '));
       /* la page bouge-t-elle de côté ? on le lui demande, en haut ET en bas */
       const cote = await ev(`const r=[]; for(const y of [0, document.documentElement.scrollHeight]){ scrollTo(9999,y); await new Promise(q=>requestAnimationFrame(()=>requestAnimationFrame(q))); r.push(scrollX); } scrollTo(0,0);
         let pire=null; for(const e of document.querySelectorAll('body *')){ const b=e.getBoundingClientRect(); if(b.width&&b.right>innerWidth+1&&getComputedStyle(e).position!=='fixed'){ let p=e.parentElement, cache=false; while(p){ const s=getComputedStyle(p); if(/hidden|clip|auto|scroll/.test(s.overflowX)){cache=true;break;} p=p.parentElement; } if(!cache){ pire=(e.className||e.tagName)+' '+Math.round(b.right-innerWidth)+' px'; break; } } }
@@ -83,7 +87,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       vrai(lbl + ' : fond ' + fond, mode === 'dark' ? fond === 'rgb(11, 20, 38)' : fond === 'rgb(255, 255, 255)');
       /* au doigt : ce qui se touche fait 44 px de haut au moins */
       if (P.tac) {
-        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a';
+        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a,.c-point,.c-lecture';
           return [...document.querySelectorAll(S)].filter(e=>{ const b=e.getBoundingClientRect(); return b.width>0&&b.height>0&&getComputedStyle(e).visibility!=='hidden'; })
             .map(e=>{ const b=e.getBoundingClientRect(), a=getComputedStyle(e,'::after'); const ext=a.content&&a.content!=='none'&&a.position==='absolute'?Math.max(0,-parseFloat(a.top||0))+Math.max(0,-parseFloat(a.bottom||0)):0;
               return {t:(e.textContent||e.getAttribute('aria-label')||'').trim().slice(0,30), h:Math.round(b.height+ext)}; }).filter(x=>x.h<44);`);
@@ -97,7 +101,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
          DIRECT (on bascule le mode de l'appareil sans recharger : fond et écrans d'appareil suivent). ── */
       if (pg === 'index') {
         const autre = mode === 'dark' ? 'light' : 'dark', FOND = { dark: 'rgb(11, 20, 38)', light: 'rgb(255, 255, 255)' };
-        const lire = `const imgs=[...document.querySelectorAll('.ap-iphone img,.ap-mac img')]; for(const i of imgs){ i.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,40)); }
+        const lire = `const imgs=[...document.querySelectorAll('.ap-iphone img,.ap-mac img')].filter(i=>{ const v=i.closest('.c-vue'); return !v||getComputedStyle(v).display!=='none'; }); for(const i of imgs){ i.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,40)); }
           await Promise.all(imgs.map(i=>i.complete?1:new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,3000);}))); scrollTo(0,0);
           return {theme:document.documentElement.getAttribute('data-theme'), fond:getComputedStyle(document.body).backgroundColor, memo:localStorage.getItem('teamop_site_mode'),
             n:imgs.length, nuit:imgs.filter(i=>/-nuit(-1x)?\.webp$/.test(i.currentSrc)).length, jour:imgs.filter(i=>/-jour(-1x)?\.webp$/.test(i.currentSrc)).length,
@@ -138,14 +142,17 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
          (la boucle des images, plus haut, vient d'appeler scrollIntoView sur chacune : en `overflow:hidden` la case
          défilait et l'iPhone perdait sa tête — c'est ce contrôle-ci qui le voit) */
       if (pg === 'elan') {
-        const vues = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const a=v.querySelector('.ap-iphone,.ap-mac'), i=v.querySelector('img');
-          return {st:v.scrollTop, d:Math.round(a.getBoundingClientRect().top - v.getBoundingClientRect().top), img:!!(i&&i.complete&&i.naturalWidth>0)}; });`);
+        /* depuis le 8 octobre 2026 (Justin : « qu'on le voie bien en entier »), l'appareil d'une case est ENTIER, posé en bas
+           de sa case : ni défilé, ni coupé — haut, bas, gauche, droite (carrousel.css) */
+        const vues = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const i=v.querySelector('img'), V=v.getBoundingClientRect(), T=v.closest('.tuile-f').getBoundingClientRect();
+          const ap=[...v.querySelectorAll('.ap-iphone-corps,.ap-mac')].map(e=>e.getBoundingClientRect());
+          return {st:v.scrollTop, dedans:ap.every(b=>b.top>=V.top-1&&b.bottom<=V.bottom+1&&b.left>=V.left-1&&b.right<=V.right+1&&b.bottom<=T.bottom+1), img:!!(i&&i.complete&&i.naturalWidth>0)}; });`);
         vrai(lbl + ' : les dix cases ont leur appareil, image chargée', vues.length === 10 && vues.every(x => x.img), JSON.stringify(vues));
-        vrai(lbl + ' : aucun appareil n\'a glissé dans sa case (défilement 0, posé en haut)', vues.every(x => x.st === 0 && x.d >= 0 && x.d <= 20), JSON.stringify(vues.filter(x => x.st || x.d < 0 || x.d > 20)));
+        vrai(lbl + ' : chaque appareil est entier dans sa case (ni défilé, ni coupé)', vues.every(x => x.st === 0 && x.dedans), JSON.stringify(vues.filter(x => x.st || !x.dedans)));
       }
       /* ── 27 septembre au soir, les photos de Justin : la carte mise en avant était BLANCHE de nuit (et sombre le jour), et
-         une bande vide restait sous le Mac. La carte suit le mode, teintée et éclairée d'un halo ; une case à Mac
-         prend la hauteur du Mac sur téléphone (24 px sous le socle) et reste coupée par la case au bureau. */
+         une bande vide restait sous le Mac. La carte suit le mode, teintée et éclairée d'un halo. Depuis le 8 octobre 2026
+         (« qu'on le voie bien en entier »), une case à Mac montre le Mac ENTIER, 30 px au-dessus du bas de la case, partout. */
       if (pg === 'elan' || pg === 'opmessages') {
         const inv = await ev(`const t=document.querySelector('.tuile-f.inv'); if(!t) return null; const c=getComputedStyle(t), m=c.backgroundColor.match(/[\\d.]+/g).map(Number);
           const f=x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)}; return {fond:c.backgroundColor, lum:+(.2126*f(m[0])+.7152*f(m[1])+.0722*f(m[2])).toFixed(3), halo:c.backgroundImage.slice(0,40), page:getComputedStyle(document.body).backgroundColor};`);
@@ -154,20 +161,17 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       }
       if (pg === 'elan') {
         const macs = await ev(`return [...document.querySelectorAll('.tuile-f .vue.v-mac')].map(v=>Math.round(v.getBoundingClientRect().bottom - v.querySelector('.ap-mac').getBoundingClientRect().bottom));`);
-        /* au bureau et sur tablette, la case garde EXACTEMENT sa hauteur d'avant (clamp(280px, 29vw, 420px)) : sans ce
-           contrôle, un plafond perdu raccourcissait la case de 418 à 340 px sans que le Mac cesse d'être coupé */
-        const hMacs = await ev(`return [...document.querySelectorAll('.tuile-f .vue.v-mac')].map(v=>Math.round(v.getBoundingClientRect().height));`);
-        const hAvant = Math.round(Math.min(420, Math.max(280, .29 * P.w)));
-        if (P.w >= 500) vrai(lbl + ' : les cases à Mac gardent leur hauteur d\'avant (' + hAvant + ' px)', hMacs.length === 2 && hMacs.every(h => Math.abs(h - hAvant) <= 1), JSON.stringify(hMacs));
         vrai(lbl + ' : population — deux cases à Mac seul', macs.length === 2, JSON.stringify(macs));
-        vrai(lbl + ' : ' + (P.w < 500 ? 'sur téléphone, le Mac entier et 24 px sous son socle (plus de bande vide)' : 'le Mac dépasse et la case le coupe (on voit le haut de l\'écran)'),
-          macs.length === 2 && macs.every(g => P.w < 500 ? g >= 20 && g <= 28 : g < 0), 'vide sous le Mac : ' + JSON.stringify(macs));
+        vrai(lbl + ' : le Mac entier, 30 px sous son socle (ni coupé, ni de bande vide)', macs.length === 2 && macs.every(g => g >= 26 && g <= 34), 'sous le Mac : ' + JSON.stringify(macs));
       }
       if (!P.tac && pg === 'index') {
         const r = await rect('.nav-liens a[data-fly="applications"]');
         await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x, y: r.y }); await dormir(500);
         const o = await ev(`const f=document.getElementById('fly-applications'); return {ouvert:f.classList.contains('ouvert'), op:getComputedStyle(f).opacity, liens:f.querySelectorAll('a').length};`);
-        vrai(lbl + ' : le volet « Applications » s\'ouvre au survol', o.ouvert && o.op === '1' && o.liens === 4, JSON.stringify(o));
+        /* le nombre de liens se LIT dans le générateur (VOLETS) : écrit « 4 » à la main, ce contrôle tombait depuis que le volet
+           porte les pages par fonction (29 septembre 2026) — un chiffre figé garde une croyance, pas un accord */
+        const nVolet = GEN.VOLETS.applications.grands.length + GEN.VOLETS.applications.petits.length;
+        vrai(lbl + ' : le volet « Applications » s\'ouvre au survol (' + nVolet + ' liens)', o.ouvert && o.op === '1' && o.liens === nVolet, JSON.stringify(o));
         await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: P.w / 2, y: 600 }); await dormir(700);
         vrai(lbl + ' : et se referme quand la souris part', await ev(`return !document.querySelector('.fly.ouvert');`));
       }
@@ -213,7 +217,9 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
           const ph=[...document.querySelectorAll('${g} .formule.phare')]; return {noms:ph.map(f=>f.querySelector('.n b').textContent), cta:ph.map(f=>getComputedStyle(f.querySelector('.cta')).backgroundColor), lien, url:location.pathname};`);
         const d0 = await bleues('#formules-gestion');
         vrai(lbl + ' : au départ, la bleue est la recommandée (Business)', d0.noms.join() === 'Business' && d0.cta[0] === d0.lien, JSON.stringify(d0));
-        await toucher(P, '#formules-gestion .formule:nth-child(2) .d');
+        /* « Pro » se trouve par son RANG dans les formules du générateur : depuis le retrait de Gratuit (29 septembre 2026), la
+           deuxième carte est Business — le contrôle touchait la recommandée et attendait qu'elle devienne « Pro » */
+        await toucher(P, '#formules-gestion .formule:nth-child(' + (GEN.FORMULES_GESTION.findIndex(f => f.cle === 'pro') + 1) + ') .d');
         const d1 = await bleues('#formules-gestion');
         vrai(lbl + ' : toucher « Pro » la rend bleue — elle seule, bouton compris, sans quitter la page', d1.noms.join() === 'Pro' && d1.cta[0] === d1.lien && /tarifs\.html$/.test(d1.url), JSON.stringify(d1));
         await toucher(P, '#onglet-msg');
