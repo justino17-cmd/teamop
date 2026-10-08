@@ -136,6 +136,12 @@ const geometrie = (S) => S.page.evaluate(() => {
       const ligne = () => A.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#liste-reunions .reunion-ligne')).find(x => /Point WQXZ fini/.test(x.textContent)); return l ? { etat: (l.querySelector('.reunion-etat') || {}).textContent, sous: Array.from(l.querySelectorAll('.reunion-sous')).map(x => x.textContent), rej: !!l.parentElement.querySelector('.reunion-rejoindre') } : null; });
       vrai('⛔ l\'agenda dit « Terminée », la durée et le nombre de présents ; pour l\'organisatrice, QUI (« Vous, Ben Banc ») ; plus de « Rejoindre »', await attendre(A, () => { const l = Array.from(document.querySelectorAll('#liste-reunions .reunion-ligne')).find(x => /Point WQXZ fini/.test(x.textContent)); if (!l) return false; const sous = Array.from(l.querySelectorAll('.reunion-sous')).map(x => x.textContent); return (l.querySelector('.reunion-etat') || {}).textContent === 'Terminée' && /^Durée 1 min · 2 présents$/.test(sous[0]) && sous[1] === 'Vous, Ben Banc' && !l.parentElement.querySelector('.reunion-rejoindre'); }, null, 12000), JSON.stringify(await ligne()));
       await capture(A, '3b-agenda-reunion-terminee');
+      /* ⛔ 8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus » — la fiche proposait encore Accepter / Peut-être / Refuser.
+         Mesuré au geste : un VRAI clic au centre de la ligne, puis la feuille doit rester fermée (inerte). */
+      const forme = await A.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#liste-reunions .reunion-ligne')).find(x => /Point WQXZ fini/.test(x.textContent)); if (!l) return null; const r = l.getBoundingClientRect(); return { tag: l.tagName, data: l.hasAttribute('data-reunion'), presse: l.classList.contains('presse'), curseur: getComputedStyle(l).cursor, x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+      v('⛔ la ligne terminée n\'est plus un bouton : un bloc, sans identifiant de réunion, sans effet d\'appui, sans curseur de lien', forme && [forme.tag, forme.data, forme.presse, forme.curseur === 'pointer'], ['DIV', false, false, false]);
+      if (forme) { await A.page.mouse.click(forme.x, forme.y); await A.page.waitForTimeout(700); }
+      vrai('⛔ et la toucher n\'ouvre RIEN : la feuille reste fermée', await A.page.evaluate(() => document.getElementById('feuille').hasAttribute('inert')), await A.page.evaluate(() => (document.getElementById('feuille-titre') || {}).textContent));
     }
 
     console.log('\n── 4. Au téléphone ──');

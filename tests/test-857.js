@@ -352,6 +352,11 @@ async function controler(PAGE, SRC, DOC) {
     /await source\.creerEvenement\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \}\);/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
   vrai('l\'Agenda au mois : la fenêtre chargée est celle qu\'on voit (le mois entier en semaines), et le choix va au COMPTE',
     /const n = \+\+reu\.jeton, \[du, au\] = fenetreAgenda\(\);/.test(JS) && /if \(M\) rendreMois\(auj\);/.test(JS) && /source\.choisirAgendaVue\(v\)/.test(JS) && /reu\.vue = typeof source\.agendaVue === 'function' && source\.agendaVue\(\) === 'mois'/.test(JS));
+  vrai('⛔ une occurrence TERMINÉE n\'est plus un bouton (8 octobre 2026 : « quand c\'est terminé, il faudrait pas qu\'on puisse cliquer dessus ») : un bloc, sans data-reunion',
+    /const ouvre = se \? '<div class="reunion-ligne terminee'/.test(JS) && /\(se \? '<\/div>' : '<\/button>'\)/.test(JS) && /\.reunion-ligne\.terminee:active \{ transform: none; \}/.test(CSS));
+  vrai('⛔ le tableau de bord : la semaine ou le MOIS (7 / 30 jours, relus sur la fenêtre, retenus par le compte), une séance terminée n\'y est plus « prévue », et RIEN à programmer d\'ici',
+    /const BORD_PORTEES = \{ semaine: 7, mois: 30 \}/.test(JS) && /o\.debut < fin && !\(o\.seance && !r\.salleOuverte\)\) occ\.push/.test(JS) && !/data-bord="programmer"/.test(JS)
+      && /source\.choisirBordReunions\(v\)/.test(JS) && /source\.reunions\(du, plusJours\(du, bordJours\(\) \+ 1\)\)/.test(JS));
 
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);

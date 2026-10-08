@@ -91,6 +91,8 @@ const JOUR = 86400000;
     v('les trois valeurs de confirmer_envoi passent', [(await maj(a, { confirmer_envoi: 'jamais' })).code, (await maj(a, { confirmer_envoi: 'partout' })).code, (await maj(a, { confirmer_envoi: 'groupes' })).code], [200, 200, 200]);
     /* l'Agenda au mois (8 octobre 2026) : la vue retenue par le compte, deux valeurs et rien d'autre */
     v('agenda_vue : « mois » et « semaine » passent, et le compte les rend ; « annee » est refusée (400)', [(await maj(a, { agenda_vue: 'mois' })).j.moi.prefs.agenda_vue, (await maj(a, { agenda_vue: 'semaine' })).j.moi.prefs.agenda_vue, await refusMoi({ agenda_vue: 'annee' })], ['mois', 'semaine', [400, 'champ_invalide']]);
+    /* le tableau de bord, la semaine ou le mois (8 octobre 2026) : même règle, une préférence À PART (choisir l'un ne change pas l'autre) */
+    v('bord_reunions : « mois » passe sans toucher agenda_vue, « semaine » aussi ; « trimestre » est refusé (400)', [(await maj(a, { bord_reunions: 'mois' })).j.moi.prefs.bord_reunions, (await a.get('/api/moi')).j.moi.prefs.agenda_vue, (await maj(a, { bord_reunions: 'semaine' })).j.moi.prefs.bord_reunions, await refusMoi({ bord_reunions: 'trimestre' })], ['mois', 'semaine', 'semaine', [400, 'champ_invalide']]);
     const fiche = await d.get('/api/personnes/' + ana.id);
     v('⛔ la fiche d\'Ana vue par Dan (un collègue) ne dit rien de ses préférences', [fiche.code, 'prefs' in (fiche.j.personne || {}), JSON.stringify(fiche.j).includes('groupes')], [200, false, false]);
 

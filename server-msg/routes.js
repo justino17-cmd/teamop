@@ -30,7 +30,7 @@ const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
    une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
 const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses'];
 /* les préférences à CHOIX (une valeur parmi celles-ci, rien d'autre) : le côté où l'on travaille (« Perso | Pro », 7 octobre 2026) et la confirmation avant d'envoyer */
-const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'], agenda_vue: ['semaine', 'mois'] };      // agenda_vue : l'Agenda s'ouvre sur la semaine ou sur le mois (8 octobre 2026)
+const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'], agenda_vue: ['semaine', 'mois'], bord_reunions: ['semaine', 'mois'] };      // agenda_vue : l'Agenda s'ouvre sur la semaine ou sur le mois ; bord_reunions : les réunions prévues du tableau de bord, 7 ou 30 jours (8 octobre 2026)
 const TYPES_ENVOI = ['texte', 'photo', 'vocal', 'fichier', 'position', 'contact', 'sondage'];
 const GARDER_S = [86400, 259200, 604800];          // un fichier gardé 1, 3 ou 7 jours (l'enregistrement d'une réunion : 3)
 const CARTES = ['position', 'contact', 'sondage'];

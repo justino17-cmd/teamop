@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '041b4d4f22b5';
+  const OPMSG_BUILD = '1fad3bc3c0c6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 116;
+  const OPMSG_VERSION = 119;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4512,10 +4512,15 @@
       : [r.lieu, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
     const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
     const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
-    return '<li' + (rej ? ' class="reunion-li"' : '') + '><button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note && !se ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '') + (se ? ', durée ' + dureeSeance(se.dureeS) + ', ' + se.n + (se.n > 1 ? ' présents' : ' présent') + (qui ? ' : ' + qui : '') : '')) + '">' +
+    /* ⛔ ET UNE OCCURRENCE TERMINÉE NE S'OUVRE PLUS (8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : la fiche proposait encore
+       « Accepter / Peut-être / Refuser » et « Me rappeler » pour une réunion finie. La ligne n'est plus un bouton — un simple bloc de texte, lu tel quel. L'organisateur garde le rapport de
+       présence par la conversation de la réunion (son titre mène à la fiche) ; les autres occurrences d'une série, elles, restent des boutons. */
+    const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
+      : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
+    return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
       '<span class="reunion-heure">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>' +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
-      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + '</button>' + rej + '</li>';
+      (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
   }
   /* la grille du mois : une case par jour, les rendez-vous qui y COMMENCENT (et les journées entières), dans l'ordre de la journée */
   function rendreMois(auj) {
@@ -4570,7 +4575,12 @@
      ⛔ « IMPORTANT » SE DIT : un appel manqué n'entre ici que s'il n'a pas été rendu depuis (aucun appel pris ou passé avec la même personne après lui), et s'il vient de quelqu'un qui a
      insisté (deux appels d'affilée ou plus), d'un favori, ou d'un collègue d'un espace — la raison est écrite sur la ligne. Les autres restent dans « Appels ». */
   const BORD_JOURS = 7;
-  const bord = { charge: false, panne: null, reunions: [], evenements: [], appels: [], collegues: new Set(), espaces: [], colleguesLus: false, jeton: 0 };
+  /* ⛔ LES RÉUNIONS PRÉVUES : LA SEMAINE OU LE MOIS, ET RIEN À PROGRAMMER D'ICI (8 octobre 2026, capture à l'appui : « il faudrait les réunions programmées dans la semaine ou le
+     mois, mais pas de programmer une réunion à partir d'ici »). Deux portées glissantes depuis maintenant — les 7 ou les 30 prochains jours, jamais « le reste du mois » qui ne
+     montrerait qu'un jour le 30 —, le choix retenu par le COMPTE (`prefs.bord_reunions`). Une séance déjà TERMINÉE n'est plus « prévue ». On programme depuis l'Agenda. */
+  const BORD_PORTEES = { semaine: 7, mois: 30 }, BORD_MAX = 12;
+  const bord = { charge: false, panne: null, reunions: [], evenements: [], appels: [], collegues: new Set(), espaces: [], colleguesLus: false, jeton: 0, portee: 'semaine' };
+  const bordJours = () => BORD_PORTEES[bord.portee] || BORD_JOURS;
   function libelleJourBord(j) { const n = ecartJours(Date.now(), j); return n === 0 ? 'Aujourd\'hui' : n === 1 ? 'Demain' : maj1(FMT_JOUR_LONG.format(j)); }
   function appelsImportants(liste) {
     const t0 = Date.now() - BORD_JOURS * 86400000, out = [];
@@ -4591,21 +4601,27 @@
     if (!sec.dataset.pret) {
       sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-accueil">Tableau de bord</h1><p class="bord-date" id="bord-date"></p>' +
         '<p class="info-note" id="bord-erreur" role="status" hidden></p>' +
-        '<div class="rubrique"><span>Réunions prévues</span><span id="bord-reunions-n"></span></div><ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
+        '<div class="rubrique"><span>Réunions prévues</span><span id="bord-reunions-n"></span></div>' +
+        '<div class="seg" id="bord-portee" role="group" aria-label="Réunions prévues : la semaine ou le mois"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-bord-portee="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-bord-portee="mois" aria-pressed="false">Mois</button></div>' +
+        '<ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
         '<div class="rubrique"><span>Rappels</span><span id="bord-rappels-n"></span></div><ul class="carte-liste" id="bord-rappels" role="list" aria-label="Rappels"></ul>' +
         '<div class="rubrique"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
       sec.dataset.pret = '1';
+      bord.portee = typeof source.bordReunions === 'function' && source.bordReunions() === 'mois' ? 'mois' : 'semaine';
     }
+    const seg = $('bord-portee'); seg.style.setProperty('--i', bord.portee === 'mois' ? 1 : 0);
+    for (const b of seg.querySelectorAll('[data-bord-portee]')) b.setAttribute('aria-pressed', b.dataset.bordPortee === bord.portee ? 'true' : 'false');
     $('bord-date').textContent = maj1(FMT_JOUR_LONG.format(Date.now()));
     $('bord-erreur').hidden = !bord.panne; if (bord.panne) $('bord-erreur').textContent = phrase(bord.panne, 'Le tableau de bord n\'a pas pu être chargé entièrement.');
-    const att = !bord.charge ? '<li class="vide">Chargement…</li>' : null, now = Date.now(), fin = now + BORD_JOURS * 86400000;
-    /* les réunions des sept prochains jours (en cours comprises), un intertitre par jour */
+    const att = !bord.charge ? '<li class="vide">Chargement…</li>' : null, now = Date.now(), nj = bordJours(), fin = now + nj * 86400000;
+    /* les réunions des 7 ou 30 prochains jours (en cours comprises, terminées exclues), un intertitre par jour */
     const occ = [];
-    for (const r of bord.reunions) if (!r.annulee) for (const o of r.occurrences) if (o.fin > now && o.debut < fin) occ.push({ r, o });
+    for (const r of bord.reunions) if (!r.annulee) for (const o of r.occurrences) if (o.fin > now && o.debut < fin && !(o.seance && !r.salleOuverte)) occ.push({ r, o });
     occ.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
     let h = '', jp = null;
-    for (const x of occ.slice(0, 10)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
-    $('bord-reunions').innerHTML = att || h || '<li class="bord-vide"><span>Aucune réunion dans les sept prochains jours.</span>' + (CAP.reunions ? '<button type="button" class="presse" data-bord="programmer">Programmer</button>' : '') + '</li>';
+    for (const x of occ.slice(0, BORD_MAX)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
+    if (occ.length > BORD_MAX && CAP.reunions) h += '<li class="bord-plus"><button type="button" class="presse" data-bord="agenda">' + esc(occ.length - BORD_MAX > 1 ? 'Voir les ' + (occ.length - BORD_MAX) + ' autres dans l\'Agenda' : 'Voir l\'autre dans l\'Agenda') + '</button></li>';
+    $('bord-reunions').innerHTML = att || h || '<li class="bord-vide"><span>' + esc('Aucune réunion dans les ' + nj + ' prochains jours.') + '</span></li>';
     $('bord-reunions-n').textContent = occ.length ? String(occ.length) : '';
     /* les rappels : les événements d'aujourd'hui, et ceux à venir qui portent un rappel */
     const auj = minuitDe(now), demain = plusJours(auj, 1);
@@ -4622,7 +4638,7 @@
   }
   async function chargerAccueil() {
     const n = ++bord.jeton, now = Date.now(), du = minuitDe(now), au = plusJours(du, BORD_JOURS + 1);
-    const [r1, r2, r3] = await Promise.allSettled([source.reunions(du, au), source.evenements(du, au), source.appels('tous')]);
+    const [r1, r2, r3] = await Promise.allSettled([source.reunions(du, plusJours(du, bordJours() + 1)), source.evenements(du, au), source.appels('tous')]);
     /* les collègues : une fois par séance (les membres de mes espaces), pour juger « important » */
     if (!bord.colleguesLus && Array.isArray(bord.espaces) && typeof source.espaceContacts === 'function') {
       bord.colleguesLus = true;
@@ -4648,9 +4664,18 @@
     if (r) { const a = bord.appels.find(x => x.id === r.dataset.rappeler); if (a) rappeler(a, a.type, false, r); return; }
     const i = e.target.closest('[data-infos]');
     if (i) { const a = bord.appels.find(x => x.id === i.dataset.infos); if (a) { etat.appels = etat.appels.some(x => x.id === a.id) ? etat.appels : etat.appels.concat([a]); declencheur = i; pousser(Object.assign({}, etat.route, { feuille: 'info:' + a.id })); } return; }
+    const p = e.target.closest('[data-bord-portee]');
+    if (p) { changerPorteeBord(p.dataset.bordPortee); return; }
     const g = e.target.closest('[data-bord]');
-    if (g) { declencheur = g; ouvrirFeuille(g.dataset.bord === 'programmer' ? 'reunion-new' : 'evenement-new'); }
+    if (g && g.dataset.bord === 'agenda') { pousser({ vue: 'reunions', conv: null, feuille: null, photo: null, appel: null }); return; }
+    if (g) { declencheur = g; ouvrirFeuille('evenement-new'); }
   });
+  /* la semaine ou le mois : filtré tout de suite sur ce qu'on a, relu sur la nouvelle fenêtre, retenu par le compte (refusé, le choix vaut pour cette visite) */
+  function changerPorteeBord(v) {
+    if (v !== 'semaine' && v !== 'mois' || v === bord.portee) return;
+    bord.portee = v; rendreAccueil(); chargerAccueil();
+    if (typeof source.choisirBordReunions === 'function') source.choisirBordReunions(v).catch(() => {});
+  }
   /* on arrive sur l'onglet : la semaine du jour, relue (elle a pu changer ailleurs) */
   function entrerReunions() {
     if (!CAP.reunions || !$('vue-reunions').dataset.pret) return;
