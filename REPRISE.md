@@ -13,6 +13,30 @@ de ligne du tout.
 
 ---
 
+# ⏳ 8 OCTOBRE 2026 (SOIR) — LES HEURES DE TRAVAIL CÔTÉ PRO (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
+
+Justin, 8 octobre : « il faut bien différencier le pro et le perso, que tout soit à part », et « ajouter les nouvelles fonctions si tu as des idées ». L'idée ajoutée : le Pro a
+ses heures. (#107, Perso et Pro à part partout, est fusionnée et déployée sur la bêta : la porte a mesuré 89 suites, 9 155 vérifications.)
+· **le réglage** — Réglages → Notifications → « Heures de travail (Pro) », seulement pour un compte qui a les deux côtés. Coupé par défaut ; allumé : du lundi au vendredi,
+  9 h – 18 h, puis sept pastilles pour les jours et deux heures ; le dernier jour ne se retire pas (la page le dit). Une plage peut passer minuit (une équipe de nuit) : elle
+  appartient au jour où elle COMMENCE. L'heure est celle du fuseau du compte (son appareil le tient à jour) ; un réglage ou un fuseau illisibles ne coupent RIEN.
+· **le service** (`heures-pro.js`, `push.js`) — hors des heures, un message ou une mention d'une conversation rangée côté PRO ne fait sonner aucun appareil ; à la reprise
+  (le balayeur passe chaque minute), UNE notification les résume — « En dehors de tes heures : nouveaux messages pro dans 2 conversations, dont une mention » —, sans nom ni
+  texte, et sans ce qui a été lu entre-temps (rien du tout quand tout l'a été). Le Perso n'est jamais retenu ; les appels sonnent toujours. Comme la pause des réunions, le
+  compte vit en mémoire : un redémarrage l'oublie (le résumé ne part pas, les messages sont là).
+· **la page** — hors des heures, côté Perso, l'arrivée d'un message Pro ne fait pas surgir de bannière ; côté Pro (on a choisi de travailler), elle surgit.
+⚠️ **Décidé sans Justin — à lui dire :** coupé par défaut ; du lundi au vendredi, 9 h – 18 h quand on l'allume ; les appels ne sont jamais retenus ; côté Pro, la bannière
+surgit même hors des heures ; le résumé ne compte que ce qui reste à lire.
+Les preuves : test-968 (le module, la route, la retenue, le résumé, par le vrai service et un faux service push déchiffré — 32 ✓, cinq passages sur cinq ; dix mutations sur
+dix, `scratchpad/mutations-heures-pro.py`) ; la sonde `sonde-opmessages-heures-pro.js` (la vraie page, au téléphone et à 360 px — 29 ✓, trois passages sur trois ; trois
+mutations de la page, six sur six en deux passages, `scratchpad/mutations-heures-pro-page.py`).
+⛔ Trois leçons de banc, payées en l'écrivant :
+· **une bannière unique ne garde que son DERNIER texte** : « aucune bannière de Ben » lu à la fin passait sous la mutation qu'il devait voir (la sentinelle avait tout
+  remplacé). La sonde relève chaque texte affiché ;
+· **après un rechargement, le flux se rebranche après l'écran** : un message parti avant lui ne se dit pas en bannière. On ne mesure qu'une fois le flux PROUVÉ branché ;
+· **une horloge avancée se SUIT** : « +22 h, le lendemain dans la plage » tombait une heure avant elle — le contrôle « aucun résumé » passait à vide, et un « resume »
+  sortait une fois sur trois au passage suivant. Chaque étape prouve maintenant où tombe l'horloge du service.
+
 # ⏳ 8 OCTOBRE 2026 (SOIR) — PERSO ET PRO À PART PARTOUT : L'AGENDA, LES APPELS, LES CONTACTS (OP MESSAGES bêta) — BRANCHE `claude/apple-theme-op-messages-gcb3j9`
 
 Justin, 8 octobre : « il faudrait bien séparer l'agenda perso et pro », puis « il faut bien différencier le pro et le perso, que tout soit à part ». Avant : l'Agenda montrait tout, quel que soit le côté où l'on était, et une réunion était Pro d'office
@@ -31,6 +55,10 @@ Justin, 8 octobre : « il faudrait bien séparer l'agenda perso et pro », puis 
 · **le test de A à Z** (45 sondes au navigateur — iPhone, Android, iPad, Mac, Windows, `sonde-opmessages-appareils.js` en tête) : quatre tombaient, aucune sur un défaut de l'application
   — trois sondes en retard sur elle (la grille « + » porte « Plus tard » ; le menu lu avant d'être bâti ; « Chantier », groupe mêlé, est Perso par la règle) et une photo chargée en
   plus de 12 s sous la charge (seule : 23 ✓) ; test-981 exigeait 600 s pile quand la vraie seconde passe aussi (600 à 603).
+· **la sonde de l'appel de groupe** (blocs 6 et 7) : « Enregistrer sur cet appareil » ne télécharge rien chez Ana, puis la carte couvre « Quitter ». Établi : le toucher
+  a bien porté, en RETARD — la carte s'est fermée une quarantaine de secondes plus tard (vu par le diagnostic de la sonde) ; le même geste, au format iPhone dans un appel à
+  deux, télécharge et ferme la carte aussitôt (rejoué), comme le bouton dans une page minimale (6 contextes sur 6). La sonde fait tourner cinq pages vidéo en maille sur 4
+  cœurs (charge 17 à 22) : la page d'Ana y est affamée juste après l'arrêt. À mesurer pour clore : la latence d'une trame chez Ana à cet instant.
 · **trouvé en poussant plus loin, et corrigé** : la carte « Enregistrement terminé » ne tenait pas sur un téléphone en PAYSAGE — ses trois gestes passaient sous le pli
   (iPhone 844 × 390 : la carte 337 px, « Envoyer » à 383 px ; pareil sur un iPhone SE, un Android, une fenêtre de bureau basse). Sous 520 px de haut, en paysage, l'aperçu va à
   gauche et les gestes à droite, l'encoche latérale est rendue (`scratchpad/mesure-rec-fin.js` : 7 formats sur 7, la page d'avant en ratait 4).

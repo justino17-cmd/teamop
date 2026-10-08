@@ -62,8 +62,9 @@
 # ⚠️ Ce total-là ne comptait PAS test-953 (sans `LIVEKIT_SERVER_BIN`, il dit « banc non exécuté », comme en CI) : la CI a mesuré 9 125 au déploiement du 707d26ac (#106).
 # 8 octobre 2026, soir : Perso et Pro à part (test-998 § 8 : +11 ; test-929 § 6 : +12 ; test-976 § 13 : +5) — 89 suites, 9 153 vérifications attendues en CI — plancher 9139.
 # (⚠️ Mesurer dans un `git worktree` demande AUSSI `server/node_modules` : sans lui, test-904, 911 et 965 perdent 133 contrôles en silence.)
-# 8 octobre 2026, soir : les heures de travail côté Pro (test-968 : +28 ; test-911 en lit l'ordre du flux : +2) — 90 suites, 9 183 vérifications attendues en CI — plancher 9169.
-#plancher 9169
+# La CI a mesuré 9 155 au déploiement de #107 (682e7030 : test-911 lit l'ordre du flux, +2).
+# 8 octobre 2026, soir : les heures de travail côté Pro (test-968 : +32) — 90 suites, 9 187 vérifications attendues en CI — plancher 9173.
+#plancher 9173
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
