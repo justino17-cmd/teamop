@@ -10,6 +10,8 @@
      6. (8 octobre 2026 : « les réunions programmées dans la semaine ou le mois, mais pas de programmer une réunion à partir d'ici ») « Semaine | Mois » : la réunion dans
         douze jours ne paraît qu'au MOIS, le choix est retenu par le COMPTE (le bureau s'ouvre dessus) ; une séance TERMINÉE n'est plus « prévue » ; ⛔ aucun « Programmer »
         — Cléo, Pro et sans réunion, lit « Aucune réunion dans les 7 / 30 prochains jours. » et rien d'autre.
+     7. (8 octobre 2026, capture à l'appui : « je peux pas supprimer ») un rappel ouvert DEPUIS LE TABLEAU, modifié puis supprimé : le tableau le dit aussitôt — le service
+        l'avait bien supprimé, mais seul l'Agenda se relisait.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-tableau-bord.js   (CAPTURES=/dossier pour les images)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -157,6 +159,23 @@ function localDans(t, tz) {
     await C.page.locator('#bord-portee [data-bord-portee="mois"]').tap();
     vrai('« Mois » : « Aucune réunion dans les 30 prochains jours. », toujours sans bouton', await att(C, () => { const l = document.getElementById('bord-reunions'); return l.textContent.trim() === 'Aucune réunion dans les 30 prochains jours.' && !l.querySelector('button'); }), JSON.stringify(await vide()));
     await capture(C, 'bord-3-vide-mois');
+    console.log('\n7. Un rappel modifié puis supprimé DEPUIS le tableau de bord');
+    await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
+    await att(A, () => /Rappeler le fournisseur WQXZ/.test(document.getElementById('bord-rappels').textContent));
+    await A.page.locator('#bord-rappels [data-evenement]').first().tap();
+    vrai('population : toucher le rappel ouvre sa fiche, avec « Supprimer »', await att(A, () => { const t = document.getElementById('ev-titre'); return !!t && t.value === 'Rappeler le fournisseur WQXZ' && !!document.querySelector('#info-corps [data-evt="supprimer"]'); }));
+    await A.page.locator('#ev-titre').fill('Rappeler le transporteur WQXZ');
+    await A.page.locator('#info-corps [data-evt="enregistrer"]').tap();
+    vrai('⛔ modifié : le tableau dit le NOUVEAU titre, sans quitter l\'onglet', await att(A, () => { const t = document.getElementById('bord-rappels').textContent; return /Rappeler le transporteur WQXZ/.test(t) && !/fournisseur/.test(t); }), await A.page.evaluate(() => document.getElementById('bord-rappels').textContent));
+    await A.page.locator('#bord-rappels [data-evenement]').first().tap();
+    await att(A, () => !!document.querySelector('#info-corps [data-evt="supprimer"]'));
+    await A.page.locator('#info-corps [data-evt="supprimer"]').tap();
+    vrai('le premier toucher demande confirmation', await att(A, () => (document.querySelector('#info-corps [data-evt="supprimer"]') || {}).textContent === 'Toucher encore pour supprimer'));
+    await A.page.locator('#info-corps [data-evt="supprimer"]').tap();
+    vrai('⛔ supprimé : le tableau dit « Aucun rappel à venir. » aussitôt (avant : le rappel restait affiché)', await att(A, () => /^Aucun rappel à venir\./.test(document.getElementById('bord-rappels').textContent.trim()) && document.getElementById('bord-rappels-n').textContent === ''), await A.page.evaluate(() => document.getElementById('bord-rappels').textContent));
+    const reste = (await P.ana.get('/api/agenda?du=' + (Date.now() - JOUR) + '&au=' + (Date.now() + 3 * JOUR))).j.evenements || [];
+    v('… et le service ne l\'a plus', reste.map(x => x.titre), []);
+
     v('aucune erreur JavaScript (Ben, Ana au téléphone, Ana au bureau, Cléo)', [B.erreurs, A.erreurs, A2.erreurs, C.erreurs], [[], [], [], []]);
   } catch (e) {
     vrai('la sonde est morte : ' + (e && e.stack || e), false);

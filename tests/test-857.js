@@ -357,6 +357,9 @@ async function controler(PAGE, SRC, DOC) {
   vrai('⛔ le tableau de bord : la semaine ou le MOIS (7 / 30 jours, relus sur la fenêtre, retenus par le compte), une séance terminée n\'y est plus « prévue », et RIEN à programmer d\'ici',
     /const BORD_PORTEES = \{ semaine: 7, mois: 30 \}/.test(JS) && /o\.debut < fin && !\(o\.seance && !r\.salleOuverte\)\) occ\.push/.test(JS) && !/data-bord="programmer"/.test(JS)
       && /source\.choisirBordReunions\(v\)/.test(JS) && /source\.reunions\(du, plusJours\(du, bordJours\(\) \+ 1\)\)/.test(JS));
+  vrai('⛔ un événement modifié ou supprimé se relit PARTOUT où il s\'affiche — l\'Agenda ET le tableau de bord (8 octobre 2026 : « je peux pas supprimer » : le rappel restait au tableau)',
+    /function evenementsRelire\(\) \{\s*chargerReunions\(\);\s*if \(\$\('vue-accueil'\)\.dataset\.pret\) \{[^}]*chargerAccueil\(\); \}/.test(JS) && (JS.match(/fermerCouche\(\); evenementsRelire\(\);|evenementsRelire\(\);\n/g) || []).length >= 2
+      && /bord\.evenements = bord\.evenements\.filter\(x => x\.id !== F\.id\)/.test(JS));
 
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);

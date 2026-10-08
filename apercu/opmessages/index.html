@@ -7189,14 +7189,25 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     try {
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
       mot(F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
-      fermerCouche(); chargerReunions();
+      fermerCouche(); evenementsRelire();
     } catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être enregistré.')); }
+  }
+  /* ⛔ UN ÉVÉNEMENT CHANGÉ ICI SE RELIT PARTOUT OÙ IL S'AFFICHE (8 octobre 2026, capture à l'appui : « je peux pas supprimer ») : un rappel supprimé depuis le TABLEAU DE BORD
+     l'était bien au service, mais seul l'Agenda se relisait — le tableau le montrait encore, comme si le geste avait échoué. Les réunions, elles, reviennent par le flux du service
+     (`reunions`) ; un événement personnel n'y passe pas : c'est le geste qui relit. */
+  function evenementsRelire() {
+    chargerReunions();
+    if ($('vue-accueil').dataset.pret) { if (etat.route && etat.route.vue === 'accueil') rendreAccueil(); chargerAccueil(); }
   }
   async function evtSupprimer(b) {
     const F = reu.formEvt; if (!F || !F.id) return;
     if (b.dataset.pret !== '1') { b.dataset.pret = '1'; b.textContent = 'Toucher encore pour supprimer'; setTimeout(() => { if (b.isConnected) { b.dataset.pret = ''; b.textContent = 'Supprimer'; } }, 4000); return; }
     b.disabled = true;
-    try { await source.supprimerEvenement(F.id); mot('Événement supprimé'); fermerCouche(); chargerReunions(); }
+    try {
+      await source.supprimerEvenement(F.id); mot('Événement supprimé'); fermerCouche();
+      bord.evenements = bord.evenements.filter(x => x.id !== F.id); reu.evenements = (reu.evenements || []).filter(x => x.id !== F.id);     // parti TOUT DE SUITE de l'écran, sans attendre la relecture
+      evenementsRelire();
+    }
     catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être supprimé.')); }
   }
   $('info-corps').addEventListener('click', e => {
