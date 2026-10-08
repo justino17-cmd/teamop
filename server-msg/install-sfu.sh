@@ -12,7 +12,7 @@
 #  Le serveur de visio reçoit UNE image de chacun et la renvoie aux autres : une salle tient alors 12 personnes en vidéo, 25 en audio (valeurs de
 #  départ, À MESURER sur de vrais téléphones avant de rien promettre). ⚠️ Contrairement au relais (coturn), il DÉCHIFFRE les flux pour les renvoyer :
 #  l'image et la voix passent en clair dans sa mémoire, sur NOTRE machine, sans jamais être écrites ni enregistrées — « chiffré en transit », pas de
-#  bout en bout (SERVEUR.md, questions 4 et 40).
+#  bout en bout (SERVEUR.md, questions 4, 40 et 62).
 #
 #  Ce que fait ce script, dans l'ordre :
 #    1. vérifie tout ce dont il a besoin AVANT d'écrire quoi que ce soit (l'instance, sa version, le bloc HTTPS de nginx, l'adresse publique) ;

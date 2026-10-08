@@ -21,6 +21,7 @@ secrets d'OP MESSAGES (la clé maître, la clé SSH de déploiement, la paire VA
 | clé Stripe **restreinte** d'OP MESSAGES (`rk_test_…`, puis `rk_live_…`) | le tableau de bord Stripe | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** (les identifiants de tarif `price_…`, eux, ne sont pas des secrets) |
 | identifiant et **mot de passe d'application** du relais SMTP (courriel d'invitation) | la console de ton fournisseur de messagerie | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** (l'hôte, le port et l'adresse d'expédition, eux, ne sont pas des secrets) |
 | secret partagé du **relais d'appels** (coturn) | **sur le VPS**, tiré au hasard par `install-turn.sh` | `/etc/opmsg/beta.json` (0600) et la configuration de coturn (root et son compte) | **jamais** — tu n'as rien à saisir ni à garder, et le script ne l'affiche pas |
+| paire de clés du **serveur de visio** (LiveKit) | **sur le VPS**, tirée au hasard par `install-sfu.sh` | `/etc/opmsg/beta.json` (0600) et `/etc/opmsg/visio-beta.yaml` (root et son compte) | **jamais** |
 
 ⚠️ **Tant que le code d'OP MESSAGES (`server-msg/`) n'est pas sur `main`, rien de ceci n'est possible** : le
 script d'installation copie le déployeur et la pose de clé depuis `main`. On attend donc le « pousse ».
@@ -902,6 +903,146 @@ Le script est **fermé par défaut** : s'il échoue, rien n'est ouvert et la con
 ### 6. Ce que le relais reçoit (pour les textes légaux)
 
 Il voit passer l'adresse réseau de chaque appareil qui l'utilise, celle de leurs interlocuteurs, l'heure et le volume, et **ne garde rien** (journal coupé). Les médias qu'il transporte sont chiffrés entre les navigateurs : il n'a pas de clé. C'est un relais **à nous**, sur notre serveur — aucun sous-traitant ne voit passer un appel (Let's Encrypt ne connaît que le NOM du relais, pour son certificat). Deux appareils qui se joignent DIRECTEMENT se montrent en revanche leurs adresses (§ 5, question 32 de la conception) : à écrire dans les textes légaux à l'étape 9.
+
+---
+
+## 10 octies. Le serveur de visio (LiveKit) — pour plus de 4 en vidéo et de 6 en audio dans une salle
+
+Décision du 8 octobre 2026 (« oui plus en vidéo et audio »). Aujourd'hui une salle (un appel de groupe, une réunion) passe en **maille** : chaque téléphone envoie son image à **chacun** des autres. Au-delà de 4 en vidéo (6 en audio), un téléphone en 4G ne suit plus — c'est pourquoi la salle s'arrête là. Le **serveur de visio** reçoit UNE image de chacun et la renvoie aux autres : une salle tient alors **12 personnes en vidéo, 25 en audio**. Ces chiffres sont des **valeurs de départ, à mesurer sur de vrais téléphones** avant d'en promettre quoi que ce soit (`design/opmessages/ESSAI-VISIO.md`) : le site ne promet rien au-delà de 4 en vidéo tant que l'essai n'est pas fait.
+
+Tant que ces gestes ne sont pas faits, **rien ne change** : le service n'a pas de serveur de visio, les salles restent en maille. Une fois posé, les salles **neuves** passent par lui ; s'il tombe, les salles neuves repartent en maille toutes seules (et la surveillance le dit).
+
+⛔ **Tu n'as aucun secret à manipuler.** La paire de clés entre LiveKit et OP MESSAGES naît **sur le VPS**, tirée au hasard par le script, et elle est écrite dans les deux configurations **sans jamais s'afficher**. **Tout ce que le script affiche peut se recoller** dans la conversation.
+
+### Ce que le serveur de visio est — et n'est pas
+
+- **LiveKit 1.13.7**, un logiciel libre (licence Apache 2.0), qui tourne **sur notre VPS** : aucune voix, aucune image ne passe par un tiers. Il est téléchargé depuis sa page de publication officielle, et le script **vérifie l'empreinte de l'archive** (épinglée dans le script) avant de l'ouvrir : une archive qui ne correspond pas n'installe rien.
+- ⚠️ **Il voit les flux en clair, dans sa mémoire** — c'est la différence avec le relais (coturn), qui ne fait que transporter des paquets chiffrés. Pour renvoyer l'image de chacun aux autres, un serveur de visio doit la déchiffrer puis la rechiffrer pour chaque destinataire. Il n'écrit et n'enregistre rien (son journal est au niveau « erreur » : ni identité, ni salle, ni adresse en fonctionnement normal). C'est toujours « chiffré en transit » — ce que disent les textes — mais **pas de bout en bout**, pour les salles qui passent par lui (questions 40 et 62 de la conception).
+- **Réservé à qui est dans la salle** : le service ne donne un jeton d'entrée (deux minutes) qu'à une personne présente, depuis l'appareil lié à l'appel ; et quand LiveKit annonce une entrée, le service vérifie qu'elle est admise **à cet instant** — une personne retirée qui reviendrait avec un vieux jeton est remise dehors aussitôt.
+- **Cloisonné** : sa signalisation n'écoute qu'en local (nginx la relaie sur `https://msg-beta.teamop.fr/rtc` : **pas de nouvelle adresse, pas de nouveau certificat, pas de DNS à poser**) ; son API d'administration n'est pas exposée ; un **pare-feu sortant** propre à son compte l'empêche d'envoyer de l'UDP à la machine elle-même ou à un réseau privé (LiveKit ne filtre pas les adresses qu'annonce un participant : sans ce pare-feu, quelqu'un dans une salle pourrait lui faire envoyer des paquets aux services du VPS). Si une règle ne se pose pas, LiveKit ne démarre pas.
+- **Plafonné** : au-delà de 20 Mo/s (160 Mbit/s) reçus et envoyés, il n'admet plus personne de neuf (les salles en cours continuent) ; poids processeur et disque bas, mémoire bornée à 1 Go — si quelque chose doit ploier sur ce VPS, ce n'est pas OP GESTION.
+- **Une instance à part de l'autre** : la bêta et la production ont chacune leur LiveKit, leur compte, leur paire de clés et leurs ports — la bêta ne peut rien sur la production.
+- **Ce qu'il ne fait pas (encore)** : il ne passe pas par le relais (coturn). Un réseau qui bloque l'UDP passe par son port TCP ; un réseau qui n'ouvre QUE le port 443 (certains pare-feu d'entreprise) ne pourra pas rejoindre une salle par la visio.
+
+### 1. Les ports chez l'hébergeur — AVANT le script
+
+Dans le panneau de ton hébergeur (IONOS : la politique de pare-feu du serveur), ouvre **en entrée** :
+
+| protocole | port | pour quoi |
+|---|---|---|
+| TCP | 7881 | l'image et la voix, quand l'UDP ne passe pas |
+| UDP | 7882 | l'image et la voix (le chemin normal) |
+
+⚠️ **Avant** de lancer le script : sans ces deux ports, la signalisation passe (443) mais **aucune image**, et une salle par la visio ne s'établit pas. Le script ne peut pas le voir (il contrôle depuis le VPS lui-même) ; la surveillance horaire, si : elle frappe au port TCP de l'extérieur. Le pare-feu du VPS (`ufw`), lui, est réglé par le script.
+
+⚠️ **Non vérifié** : je n'ai pas ton panneau sous les yeux, le libellé exact des menus d'IONOS est à constater.
+
+### 2. Télécharger et lancer le script
+
+⚠️ **Le code du serveur de visio doit d'abord être déployé** : le script s'appuie sur deux fichiers qui voyagent avec le service (son contrôle, `outils/verifier-visio.js`, et son pare-feu, `visio-pare-feu.sh`). Tant que cette version n'est pas sur `main` et déployée, il s'arrête avec « la version d'OP MESSAGES en service est antérieure au serveur de visio », sans rien écrire.
+
+Sur le VPS (toujours en root) :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/justino17-cmd/teamop/main/server-msg/install-sfu.sh -o /root/install-sfu.sh
+bash /root/install-sfu.sh beta
+```
+
+C'est un **fichier** : lis-le si tu veux avant de le lancer (`less /root/install-sfu.sh`). Il fait, dans l'ordre :
+
+1. vérifie tout ce dont il a besoin **avant d'écrire quoi que ce soit** : l'instance, sa version, nginx et le bloc HTTPS de `msg-beta.teamop.fr`, l'adresse publique du VPS ;
+2. télécharge LiveKit et **vérifie l'empreinte de l'archive** ; crée un compte système à lui (`opmsg-visio-beta`, sans shell ni dossier) ;
+3. tire la paire de clés au hasard, ici, et l'écrit dans les deux configurations ;
+4. démarre LiveKit derrière son **pare-feu sortant** (rejoué par systemd avant chaque démarrage), **relit le pare-feu dans le noyau**, puis le **contrôle** : il répond, notre clé ouvre son API, une fausse est refusée, sa signalisation exige un jeton ;
+5. ajoute le chemin `/rtc` dans le bloc HTTPS de l'instance (trois lignes entre deux marques, **validées par `nginx -t`** avant tout rechargement) et contrôle, **par le nom public**, qu'il mène bien à LiveKit ;
+6. relance l'instance, attend qu'elle voie la visio, puis **prouve que les avis de LiveKit lui arrivent** (une salle de contrôle ouverte puis fermée) ;
+7. **seulement alors**, ouvre les deux ports dans `ufw` (s'il est actif).
+
+Une étape ratée **défait tout** : la visio est retirée, OP MESSAGES continue en maille, et le script dit pourquoi.
+
+Une variable, **facultative** : `OPMSG_VISIO_IP` (l'adresse IPv4 publique du VPS — seulement si le script dit que celle de sa route par défaut n'est pas publique ; un VPS qui porte sa propre adresse publique n'en a pas besoin).
+
+**Ce que tu dois voir** :
+
+```
+── OP MESSAGES · serveur de visio · instance beta
+   adresse publique annoncée : 217.154.6.139 · ports : TCP 7881, UDP 7882 (et 7880 en boucle locale)
+   LiveKit 1.13.7 : téléchargement
+   LiveKit 1.13.7 : installé (empreinte de l'archive vérifiée)
+   compte système opmsg-visio-beta : créé
+   cle=nouvelle instance=change livekit=change
+── Contrôle du serveur de visio (ce serveur contre lui-même)…
+── Le serveur de visio de l'instance beta, en boucle locale
+  ✓ LiveKit répond à sa sonde, en boucle locale
+  ✓ NOTRE paire de clés ouvre son API d'administration
+  ✓ ⛔ une clé FAUSSE y est refusée (401 : il vérifie les signatures)
+  ✓ ⛔ sa signalisation REFUSE qui n'a pas de jeton (401)
+  ✓ et accepte un jeton du service (200)
+✓ Le serveur de visio fait ce qu'il doit.
+   nginx : chemin /rtc posé dans le bloc de msg-beta.teamop.fr
+── Contrôle du chemin /rtc, par le nom public…
+  ✓ msg-beta.teamop.fr/rtc mène à LiveKit (…)
+  …
+   ✓ l'instance voit la visio (/health : visio.ok)
+── Contrôle des avis de LiveKit (une salle de contrôle ouverte puis fermée)…
+  ✓ ⛔ ses avis arrivent au service ET y sont acceptés (signés de notre secret)
+  …
+   pare-feu du VPS (ufw) : TCP 7881 et UDP 7882 ouverts
+
+✓ Le serveur de visio est en place pour beta : …
+```
+
+(`cle=nouvelle` la première fois, `cle=reprise` à chaque relance.)
+
+Les sorties d'erreur possibles — **colle toute la sortie** dans la conversation :
+
+- **`antérieure au serveur de visio`** → la version n'est pas encore déployée. Rien n'est écrit.
+- **`l'archive de LiveKit n'a PAS l'empreinte attendue`** → l'archive téléchargée n'est pas celle qu'on a éprouvée : elle n'est pas ouverte, rien n'est installé. Colle les deux empreintes affichées.
+- **`le téléchargement de LiveKit a échoué`** → le VPS n'atteint pas GitHub. Rien n'est installé.
+- **`l'adresse de la route par défaut … n'est pas publique`** → relance avec `OPMSG_VISIO_IP=<l'adresse publique du VPS> bash /root/install-sfu.sh beta`.
+- **`LiveKit n'a pas démarré`**, **`le pare-feu sortant de la visio n'est pas dans le noyau`**, **`LiveKit ne fait pas ce qu'il doit`**, **`ne mène pas à LiveKit`**, **`ne voit pas la visio`**, **`les avis de LiveKit n'arrivent pas`** → tout est défait, OP MESSAGES continue en maille. `systemctl status opmsg-visio-beta --no-pager | head -5` dit souvent pourquoi : colle-le.
+
+### 3. Vérifier — de l'extérieur
+
+Sur ton Mac :
+
+```bash
+curl -s https://msg-beta.teamop.fr/health
+nc -vz msg-beta.teamop.fr 7881
+```
+
+**À voir** : dans `/health`, `"visio":{"configuree":true,"ok":true,` ; pour `nc`, `succeeded` (ou `open`). Rien de secret ne s'affiche. ⚠️ `nc` ne prouve que le TCP ; **la preuve de l'UDP est une salle** (l'essai de la fiche `ESSAI-VISIO.md`).
+
+Pour rejouer les contrôles sur le VPS, à tout moment, sans rien changer :
+
+```bash
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/outils/verifier-visio.js beta
+OPMSG_CONFIG=/etc/opmsg/beta.json node /opt/opmsg/beta/current/outils/verifier-visio.js beta --public
+OPMSG_VISIO_UTILISATEUR=opmsg-visio-beta OPMSG_VISIO_CHAINE=OPMSG-VISIO-BETA /usr/local/sbin/opmsg-visio-pare-feu verifier
+```
+
+**À voir** : des `✓`, puis `pare-feu de la visio : en place`. S'il dit `ABSENT`, `systemctl restart opmsg-visio-beta` le repose.
+
+### 4. Ce qui se passe seul, ce qui crie
+
+- **Les salles neuves** passent par la visio tant qu'elle répond ; si elle tombe (deux sondes ratées), elles repartent en maille toutes seules, et celles qui passaient par elle sont coupées.
+- **La surveillance** (le script de surveillance d'OP MESSAGES — pas encore branché sur un workflow, comme pour le relais) crie si la visio est configurée et hors service, si ses avis sont tous refusés (la paire de clés ne correspond plus), ou si son port TCP ne se joint pas de l'extérieur (le pare-feu de l'hébergeur).
+- **Le pare-feu de la visio** se repose à chaque démarrage de LiveKit et se retire à son arrêt. Comme pour le relais, on ne sait pas encore si `ufw reload` retire sa chaîne du noyau : `opmsg-visio-pare-feu verifier` le dit.
+- **Rien d'autre** : pas de tâche planifiée, pas de journal à lire.
+
+### 5. Revenir en arrière
+
+Une commande retire tout (la configuration de l'instance d'abord — plus aucune salle neuve ne part en visio —, puis le chemin `/rtc`, LiveKit, ses fichiers et ses ports dans `ufw`) :
+
+```bash
+bash /root/install-sfu.sh beta retirer
+```
+
+Les salles repassent en maille (4 en vidéo, 6 en audio). Tu peux ensuite refermer les deux ports dans le panneau de l'hébergeur.
+
+### 6. Ce que le serveur de visio reçoit (pour les textes légaux)
+
+L'adresse réseau de chaque appareil qui rejoint une salle par lui, l'heure, le volume, et — en mémoire seulement, le temps de les renvoyer — **la voix et l'image en clair**. Il ne garde rien. C'est un serveur **à nous** : aucun sous-traitant ne voit passer une salle. Ce qui change pour les textes légaux (à l'étape 9) : les salles par la visio sont chiffrées en transit, **pas de bout en bout**.
 
 ---
 
