@@ -646,6 +646,13 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS programme_auteur ON programme(auteur, conv)`,
     `PRAGMA user_version = 22`,
   ] },
+  /* ── 23 (8 octobre 2026) : L'ORDRE DU JOUR D'UNE RÉUNION — « des points posés en programmant, cochés pendant la séance, et un compte rendu à la fin ». Une liste SCELLÉE comme le titre
+         (le texte des points est un contenu), vingt points au plus ; chaque point a un identifiant court (le geste « coché » le vise, pas son rang) et son état. Le compte rendu d'une séance
+         le recopie ; une SÉRIE remet ensuite les coches à zéro (la semaine prochaine repart de rien). ── */
+  { v: 23, sql: [
+    `ALTER TABLE reunion ADD COLUMN odj_ch BLOB`,
+    `PRAGMA user_version = 23`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -732,6 +739,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const COTES = versionActuelle() >= 20;          // une base d'avant la migration 20 : aucune conversation rangée à la main (le côté automatique seul)
   const RAPPELS_FAITS = versionActuelle() >= 21;  // une base d'avant la migration 21 : pas de rappel coché ni de message d'origine
   const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
+  const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
   const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
 
@@ -2763,6 +2771,56 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (titre === null || lieu === null) o.illisible = true;
     return o;
   };
+  /* ══ L'ORDRE DU JOUR (migration 23) ══ — une liste de { id, texte, fait }, scellée ; illisible (une clé qui a changé), elle se lit VIDE plutôt que de faire tomber la fiche */
+  const ODJ_MAX = 20;
+  function reunionOdj(id) {
+    if (!ODJ) return [];
+    const r = Q('SELECT id, odj_ch FROM reunion WHERE id = ?').get(id);
+    if (!r || !r.odj_ch) return [];
+    const j = ouvrirOuNull('reunion', 'odj_ch', aadReunion(r.id, 'odj'), r.odj_ch); if (j === null) return [];
+    try { const a = JSON.parse(j); return Array.isArray(a) ? a.filter(x => x && typeof x.id === 'string' && typeof x.t === 'string').slice(0, ODJ_MAX).map(x => ({ id: x.id, texte: x.t, fait: x.f === 1 })) : []; } catch (e) { return []; }
+  }
+  const odjEcrire = (id, points) => Q('UPDATE reunion SET odj_ch = ? WHERE id = ?').run(points.length ? sceller('reunion', 'odj_ch', aadReunion(id, 'odj'), JSON.stringify(points.map(x => ({ id: x.id, t: x.texte, f: x.fait ? 1 : 0 })))) : null, id);
+  /* poser la liste (l'organisateur, en programmant ou en modifiant) : un point dont le texte ne change pas GARDE son identifiant et sa coche — retoucher la liste ne décoche rien */
+  function reunionOdjPoser(id, textes) {
+    if (!ODJ) throw erreur('indisponible');
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) return null;
+      const avant = reunionOdj(id), pris = new Set(), points = [];
+      for (const t of textes.slice(0, ODJ_MAX)) {
+        const p = avant.find(x => x.texte === t && !pris.has(x.id));
+        if (p) { pris.add(p.id); points.push({ id: p.id, texte: t, fait: p.fait }); } else points.push({ id: alea(4), texte: t, fait: false });
+      }
+      const change = JSON.stringify(points) !== JSON.stringify(avant);
+      if (!change) return { change: false, points };
+      odjEcrire(id, points);
+      return { change: true, points, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* cocher ou décocher un point (un participant, pendant la séance ou avant) → null si le point n'existe pas */
+  function reunionOdjCocher(id, point, fait) {
+    if (!ODJ) return null;
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) return null;
+      const points = reunionOdj(id), p = points.find(x => x.id === point); if (!p) return null;
+      if (p.fait === !!fait) return { change: false, points };
+      p.fait = !!fait; odjEcrire(id, points);
+      return { change: true, points, gid: journalAjouter('reunion', r.conv, null, id) };
+    });
+  }
+  /* les pièces (photos, fichiers) partagées dans une conversation entre deux instants — le compte rendu d'une séance les compte (sans les nommer) */
+  function piecesPartagees(conv, du, au) {
+    return num(Q(`SELECT COUNT(*) AS n FROM message WHERE conv = ? AND ts >= ? AND ts <= ? AND type IN ('photo', 'fichier') AND supprime_le IS NULL`).get(conv, du, au).n);
+  }
+  /* une SÉRIE repart de zéro après le compte rendu de sa séance (les points restent, les coches partent) */
+  function reunionOdjRemettre(id) {
+    if (!ODJ) return false;
+    return tx(() => {
+      const points = reunionOdj(id); if (!points.some(x => x.fait)) return false;
+      odjEcrire(id, points.map(x => Object.assign({}, x, { fait: false })));
+      return true;
+    });
+  }
   const personneCourte = (viewer, id) => { const p = personneParId(id); return p ? { id: p.id, prenom: p.prenom, nom: p.nom, avatar: avatarPour(viewer, p.id, p.avatar) } : null; };
 
   /* La réunion « pour un participant » : `null` pour inexistante COMME pour « tu n'es pas invité » (404 dans les deux cas, jamais 403). */
@@ -2776,6 +2834,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       .map(x => ({ id: x.id, prenom: x.prenom, nom: x.nom, avatar: avatarPour(uid, x.id, x.avatar_piece), statut: x.statut, hote: x.id === r.hote }));
     rang.hote = personneCourte(uid, r.hote);
     const perso = moi.rappels !== null && moi.rappels !== undefined;
+    rang.ordre_du_jour = reunionOdj(id);
     return { reunion: rang, invites, moi: { hote: uid === r.hote, statut: moi.statut, rappels: perso ? listeEntiers(moi.rappels) : rang.rappels, rappels_perso: perso } };
   }
   /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
@@ -3153,7 +3212,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion WHERE i.uid = ? ORDER BY r.debut, r.id`).all(uid).map(x => {
       const titre = reunionTitre(x), lieu = reunionLieu(x);
       return { id: x.id, titre: titre === null ? '' : titre, lieu: lieu === null ? '' : lieu, debut: num(x.debut), fin: num(x.fin), fuseau: x.tz, repetition: x.rep, n: x.n === null ? null : num(x.n), jusqua: x.jusqua || null,
-        annulee: !!x.annulee, role: x.hote === uid ? 'hote' : 'invite', reponse: x.statut };
+        annulee: !!x.annulee, role: x.hote === uid ? 'hote' : 'invite', reponse: x.statut, ordre_du_jour: reunionOdj(x.id).map(p => ({ texte: p.texte, fait: p.fait })) };
     });
   }
   /* ⛔ L'EFFACEMENT D'UN COMPTE ET SES RÉUNIONS (appelé par `compteEffacer`). Hôte : la réunion passe au plus ancien invité qui n'a pas décliné (celui qui a accepté d'abord ; à égalité, dans l'ORDRE où l'hôte les a invités) — il devient hôte et
@@ -4449,7 +4508,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
-    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions,                                                                                                                  // …et le courriel d'invitation
+    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
     appelVue, appelAcces, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
     appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, seancesFinies, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };

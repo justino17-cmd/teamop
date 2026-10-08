@@ -162,6 +162,7 @@ const MANIFESTE = [
   { id: 'reunions.liste',    m: 'GET',  p: '/api/reunions',                          garde: 'S' },
   { id: 'reunions.creer',    m: 'POST', p: '/api/reunions',                          garde: 'V', organiser: true },
   { id: 'reunions.lire',     m: 'GET',  p: '/api/reunions/:id',                      garde: 'R' },
+  { id: 'reunions.odj_cocher', m: 'POST', p: '/api/reunions/:id/ordre-du-jour',      garde: 'R' },   // cocher un point de l'ordre du jour : un participant (8 octobre 2026)
   { id: 'reunions.modifier', m: 'POST', p: '/api/reunions/:id/modifier',             garde: 'H' },
   { id: 'reunions.annuler',  m: 'POST', p: '/api/reunions/:id/annuler',              garde: 'H' },
   { id: 'reunions.supprimer', m: 'POST', p: '/api/reunions/:id/supprimer',           garde: 'H' },

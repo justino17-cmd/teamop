@@ -181,3 +181,6 @@ tests/test-936.js
 # ── « Ne pas déranger pendant une réunion » (8 octobre 2026) : les messages retenus pendant une salle, le résumé à la sortie, « En réunion » vu des contacts (règle réciproque) — le vrai service,
 #    son balayeur d'appels et un faux service push (937) ; la vraie page : test-857 et tests/sonde-opmessages-reunion-pause.js
 tests/test-937.js
+# ── L'ordre du jour d'une réunion et le compte rendu de sa séance (8 octobre 2026) : migration 23, cocher, retoucher, le compte rendu à « Terminer pour tous », la série décochée (938) ;
+#    la vraie page : test-857 et tests/sonde-opmessages-ordre-du-jour.js
+tests/test-938.js

@@ -195,6 +195,7 @@ const MATRICE = {
                           exactes: { membre: [200, null], admin: [409, 'hote_non_quittable'] } },   // l'invité (Ben) sort : 200 ; l'hôte (Ana) ne quitte pas : 409 `hote_non_quittable` — la garde a passé, le geste dit non
   'reunions.reponse':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/reponse', { statut: 'accepte' }], codes: [200, 409] },
   'reunions.rappels':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/rappels', { rappels: [5] }], codes: [200] },
+  'reunions.odj_cocher': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/ordre-du-jour', { point: '00000000', fait: true }], codes: [404] },      // (le banc de matrice ne pose pas d'ordre du jour : le point n'existe pas — la porte, elle, s'est ouverte ; test-938 joue le reste)
   'reunions.ics':       { ok: (F) => ['GET', '/api/reunions/' + F.R + '/ics'], codes: [200] },
   'reunions.courriel':  { ok: (F) => ['POST', '/api/reunions/' + F.R + '/courriel', { destinataire: 'banc.invite@exemple.invalid' }], codes: [503] },   // sans relais SMTP : la garde a passé, le courriel est INERTE et le dit (test-975 joue le relais)
   /* Les APPELS À DEUX (étape 7). Lancer est V (agir au nom d'une adresse) : chacun appelle SON contact, un appel par acteur (la route précédente a libéré les lignes). Les trois gestes d'un appel sont AP : la

@@ -135,6 +135,8 @@ function installerSalles(H, ctx) {
   H['salles.terminer'] = garder((req, res) => {
     if (!gesteHote(req, res)) return;
     const r = appels.terminer({ moi: req.moi, id: req.appel.id });
+    /* la séance d'une RÉUNION terminée pour tous : son compte rendu part dans la conversation de la réunion (`routes-reunions.js`) */
+    if (!r.deja && req.appel.genre === 'reunion' && req.appel.reunion && typeof ctx.compteRenduSeance === 'function') ctx.compteRenduSeance({ salle: req.appel.id, reunion: req.appel.reunion, par: req.moi });
     res.json({ ok: true, deja: !!r.deja });
   });
 
