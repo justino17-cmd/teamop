@@ -166,6 +166,13 @@ console.log('\nLes commandes : retirer, fermer — un jeton d\'administration bo
       vi.avisLire(V.signer({ iss: CLE, exp: t + 300 }, SECRET), corps), vi.avisLire(jeton, corps.toString()), vi.avisLire('', corps)
     ], Array(6).fill(null));
     v('six refus comptés', vi.sante().avisRefuses, 6);
+    v('⛔ les avis SIGNÉS sont comptés à part (deux lus plus haut) : c\'est ce que relit `install-sfu.sh` pour prouver que LiveKit joint le service', vi.sante().avisRecus, 2);
+
+    /* ⛔ ÉCHEC = FERMÉ : avant tout branchement (ou un branchement qui n'est pas une fonction), une entrée n'est PAS admise — elle est retirée, ce qui se voit, au lieu d'être admise en silence */
+    v('⛔ RIEN de branché : une entrée est retirée', (await vi.avisRecu(lu)).suite, 'retiree');
+    vi.brancherAdmission('pas une fonction');
+    v('⛔ un branchement qui n\'est pas une fonction : retirée aussi', (await vi.avisRecu(lu)).suite, 'retiree');
+    lk.appels.length = 0;
 
     const admises = new Set(['S-abc|u42']);
     vi.brancherAdmission((s, i) => admises.has(s + '|' + i));
@@ -175,7 +182,7 @@ console.log('\nLes commandes : retirer, fermer — un jeton d\'administration bo
     vi.brancherAdmission(() => { throw new Error('base indisponible'); });
     v('⛔ la question « admise ? » qui JETTE : retirée (dans le doute, la porte reste fermée)', (await vi.avisRecu(lu)).suite, 'retiree');
     v('les autres avis ne décident de rien', [await vi.avisRecu({ event: 'participant_left', room: { name: 'S-abc' }, participant: { identity: 'x' } }), await vi.avisRecu({ event: 'room_finished', room: { name: 'S-abc' } }), await vi.avisRecu(null), await vi.avisRecu({ event: 'participant_joined', room: {}, participant: {} })], Array(4).fill({ suite: 'rien' }));
-    v('deux retraits forcés comptés', vi.sante().retraitsForces, 2);
+    v('quatre retraits forcés comptés (deux sans branchement, deux branchés)', vi.sante().retraitsForces, 4);
   }
 
   console.log('\nLe code vise du code : la sonde lit la réponse « OK », un jeton ne part jamais sans échéance');

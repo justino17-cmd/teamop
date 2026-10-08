@@ -40,10 +40,11 @@ const OBLIGATOIRES = ['moi', 'contacts', 'lister', 'ouvrir', 'envoyer', 'marquer
 const MARQUES_DEMO = ['simulerRecu', 'creerSourceApercu', 'OPMSG_creerSourceApercu', 'Camille Roux', 'Mathis Lambert', 'Inès Garnier', 'Hugo Perrin', 'Lina Fabre', 'Noé Carpentier', 'Équipe dépôt', 'Chantier Les Tilleuls'];
 /* `worker-src` et `manifest-src` sont DITS : le manifeste ne retombe que sur `default-src 'none'` (le navigateur refuserait de le lire, sans erreur visible), et le service worker
    retomberait sur `script-src` — une règle qu'on n'écrit pas est une règle qu'un resserrement futur retire sans le vouloir. Tous deux `'self'`. */
-/* ⛔ `connect-src 'self' wss: https:` : la page se relie AUSSI au serveur de visio (LiveKit, `server-msg/visio.js`), dont l'adresse dépend de l'instance — elle ne peut pas s'écrire ici. Cette méta n'est qu'une
-   copie de défense : l'EN-TÊTE que le service pose sur la page (`app.js`) nomme l'adresse EXACTE (`appels.visio.url`), et un navigateur applique les DEUX politiques — la connexion permise est celle que les deux
-   permettent : le service lui-même et la visio, rien d'autre. */
-const CSP_SERVICE = "default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss: https:; base-uri 'none'; form-action 'self'";
+/* ⛔ `connect-src 'self' wss:` : la page se relie AUSSI au serveur de visio (LiveKit, `server-msg/visio.js`), en WebSocket sur l'adresse de l'instance (`wss://` + son domaine, chemin `/rtc`, par le nginx
+   du service). « 'self' » la couvre déjà dans les navigateurs qui suivent CSP 3 (une origine https accepte le wss du même hôte), pas dans tous : `wss:` ne s'ajoute que pour eux. Cette méta n'est qu'une
+   copie de défense : l'EN-TÊTE que le service pose sur la page (`app.js`) nomme l'adresse EXACTE (`appels.visio.url`), et un navigateur applique les DEUX politiques — la connexion permise est celle que les
+   deux permettent : le service lui-même et la visio, rien d'autre. Ni `https:` ni `*` : la lecture de `/rtc/validate` (quand la liaison échoue) est sur l'origine du service, donc dans « 'self' ». */
+const CSP_SERVICE = "default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'self'";
 const ICONES = ['opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png'];
 /* ce que la page déclare pour être installable (et recevoir des notifications sur iPhone) : posé juste après son icône d'onglet */
 const LIGNE_ICONE = '<link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">';

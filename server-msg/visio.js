@@ -65,9 +65,11 @@ const SOURCES_AUDIO = ['microphone'];
  */
 function creerVisio({ visio, horloge = Date.now, appeler = (...a) => fetch(...a), journal = () => {} } = {}) {
   const v = visio || null;
-  const etat = { ok: false, dernierOk: 0, echecs: 0, sondes: 0, avisRefuses: 0, retraitsForces: 0, commandesEchouees: 0 };
+  const etat = { ok: false, dernierOk: 0, echecs: 0, sondes: 0, avisRecus: 0, avisRefuses: 0, retraitsForces: 0, commandesEchouees: 0 };
   let sondeEnCours = null, minuterie = null;
-  let admise = () => true;     // branché par `index.js` : (salle, identite) → la personne est-elle admise MAINTENANT ?
+  /* branché par `index.js` : (salle, identite) → la personne est-elle admise MAINTENANT ? ⛔ PERSONNE tant que rien n'est branché (échec = fermé) : un oubli de branchement retire tout le monde, ce qui se voit,
+     au lieu d'admettre tout le monde, ce qui ne se voit pas. */
+  let admise = () => false;
 
   const configure = !!v;
   const t = () => Math.floor(horloge() / 1000);
@@ -152,7 +154,10 @@ function creerVisio({ visio, horloge = Date.now, appeler = (...a) => fetch(...a)
     const attendu = Buffer.from(crypto.createHash('sha256').update(corpsBrut).digest('base64'));
     const recu = Buffer.from(charge.sha256);
     if (recu.length !== attendu.length || !crypto.timingSafeEqual(recu, attendu)) { etat.avisRefuses++; return null; }
-    try { return JSON.parse(corpsBrut.toString('utf8')); } catch (e) { etat.avisRefuses++; return null; }
+    let evt = null;
+    try { evt = JSON.parse(corpsBrut.toString('utf8')); } catch (e) { etat.avisRefuses++; return null; }
+    etat.avisRecus++;      // ⛔ un avis SIGNÉ de notre secret est arrivé : c'est ce que `install-sfu.sh` relit pour prouver que LiveKit joint le service (sans avis, un retrait ne se rattrape plus)
+    return evt;
   }
 
   /* Ce que le service fait d'un avis : une personne qui ENTRE sans être admise dans la salle à cet instant (retirée, salle finie, jeton rejoué) est retirée aussitôt. Le reste
@@ -177,9 +182,9 @@ function creerVisio({ visio, horloge = Date.now, appeler = (...a) => fetch(...a)
     actif: () => configure && etat.ok,
     url: () => (configure ? v.url : null),
     jetonEntree, retirer, fermer, sonder, demarrer, arreter, avisLire, avisRecu,
-    brancherAdmission(f) { admise = typeof f === 'function' ? f : () => true; },
+    brancherAdmission(f) { admise = typeof f === 'function' ? f : () => false; },
     /* Pour `/health` : aucune salle, aucune personne, aucun secret — des compteurs. */
-    sante: () => configure ? { configuree: true, ok: etat.ok, ageS: etat.dernierOk ? Math.round((horloge() - etat.dernierOk) / 1000) : null, echecs: etat.echecs, avisRefuses: etat.avisRefuses, retraitsForces: etat.retraitsForces, commandesEchouees: etat.commandesEchouees } : { configuree: false }
+    sante: () => configure ? { configuree: true, ok: etat.ok, ageS: etat.dernierOk ? Math.round((horloge() - etat.dernierOk) / 1000) : null, echecs: etat.echecs, avisRecus: etat.avisRecus, avisRefuses: etat.avisRefuses, retraitsForces: etat.retraitsForces, commandesEchouees: etat.commandesEchouees } : { configuree: false }
   };
 }
 

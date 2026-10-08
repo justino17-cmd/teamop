@@ -1369,7 +1369,10 @@
       });
       try {
         V.room = room;
-        await room.connect(acces.url, acces.jeton, { autoSubscribe: true });
+        /* ⛔ LES SERVEURS STUN DE LA LIAISON : les NÔTRES, ou aucun. Sans liste à elle, la bibliothèque prend celle que LiveKit envoie — et LiveKit, sans réglage, envoie ceux de Google et de Twilio : chaque
+           participant leur donnerait son adresse IP (mesuré dans son code, `roommanager.go`). Le serveur de visio a une adresse publique et répond à qui le joint (l'adresse de l'appareil se découvre à sa
+           première vérification) : il n'a besoin d'aucun STUN. Une liste VIDE (et non absente) suffit à ce que la bibliothèque ignore celle du serveur. */
+        await room.connect(acces.url, acces.jeton, { autoSubscribe: true, rtcConfig: { iceServers: (c.ice && Array.isArray(c.ice.serveurs)) ? c.ice.serveurs.filter(estStun) : [] } });
       } catch (e) {
         if (V.room === room) V.room = null;
         try { room.removeAllListeners && room.removeAllListeners(); } catch (e2) { /* rien */ }

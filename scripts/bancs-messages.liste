@@ -104,6 +104,8 @@ tests/test-951.js
 tests/test-952.js
 tests/test-953.js
 tests/test-954.js
+# le script d'installation du serveur de visio (install-sfu.sh), joué dans un bac à sable — comme test-982 pour le relais
+tests/test-959.js
 # ── Les notifications push, l'export et la suppression de compte (3 octobre 2026) : le module push (955), le vrai service contre un faux service push (956), l'export et la suppression (957), l'appareil et le service (958) ──
 tests/test-955.js
 tests/test-956.js

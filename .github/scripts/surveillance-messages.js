@@ -19,7 +19,7 @@
 // ⛔ Il n'écrit JAMAIS ce que /health ne publie pas : pas d'identifiant, pas d'adresse, pas de corps.
 // Le dépôt est public et le journal d'un run lisible par tous pendant 90 jours.
 'use strict';
-const https = require('https'), dgram = require('dgram'), crypto = require('crypto');
+const https = require('https'), dgram = require('dgram'), crypto = require('crypto'), net = require('net');
 
 /* Ce qu'on regarde, et ce que ça veut dire quand ça sort de la norme. Un tableau : le banc le lit. */
 const CHAMPS_SURVEILLES = [
@@ -47,6 +47,12 @@ const CHAMPS_SURVEILLES = [
   'appels.ageS',           // le dernier passage du balayeur d'appels date de plus de cinq minutes : la boucle est morte ou bloquée — plus d'appel manqué, des gens « occupés » sans fin
   'appels.echecs',         // trois passages de suite en échec : une erreur qui dure empêche d'écrire les appels manqués et de finir les appels perdus
   'appels.turn',           // le service annonce un relais d'appels : on lui envoie une VRAIE requête STUN en UDP (`sonderRelais`) et on exige la réponse — le service ne voit pas son propre coturn, personne d'autre ne regarde
+  /* ⛔ LE SERVEUR DE VISIO (LiveKit, 8 octobre 2026) : au-delà de 4 en vidéo, une salle passe par lui. Hors service, les salles NEUVES repartent en maille (4 en vidéo, 6 en audio) et celles en cours sont coupées ;
+     ses ports fermés de l'extérieur, plus personne n'y fait passer son image ; ses avis refusés, plus personne ne vérifie qui entre (le retrait d'une personne ne se rattrape plus). */
+  'visio.configuree',      // le service annonce un serveur de visio : on frappe à son port TCP PUBLIC depuis l'extérieur (`sonderVisioTcp`) — le service le sonde de l'intérieur, il ne voit pas les pare-feu
+  'visio.ok',              // configuré et hors service (deux sondes ratées de suite) : LiveKit est arrêté ou ne répond plus
+  'visio.avisRefuses',     // des avis de LiveKit refusés ET aucun accepté : la clé du service et celle de LiveKit ne sont plus la même paire — plus aucune entrée n'est vérifiée
+  'visio.avisRecus',       // le dénominateur de l'alarme ci-dessus : un refus isolé parmi des avis acceptés n'est pas une panne
   /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
      « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
   'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
@@ -63,6 +69,11 @@ const CHAMPS_SURVEILLES = [
 const CHAMPS_VUS = {
   'sms.envoyes24h': 'le nombre de SMS est une information ; ce qui compte est l\'ARGENT (sms.coutJourEur et les budgets), qui est surveillé',
   'push.abonnements': 'le nombre d\'appareils abonnés aux notifications est une information de croissance : le service borne lui-même chaque personne (dix appareils) et retire un abonnement après cinq refus du service de suite, étalés sur une heure — aucune alarme horaire n\'ajouterait une décision',
+  /* ⛔ LE SERVEUR DE VISIO : ce qui dit la PANNE est surveillé (`visio.ok`, la sonde TCP, les avis tous refusés) ; le reste est un compteur ou un état intermédiaire. */
+  'visio.ageS': 'l\'âge de la dernière sonde réussie : la panne se dit par visio.ok (deux sondes ratées de suite), surveillé ; l\'âge ne dirait que depuis quand',
+  'visio.echecs': 'les sondes ratées de suite : visio.ok passe à faux à la deuxième, c\'est lui qui est surveillé — une sonde ratée isolée est un hoquet',
+  'visio.retraitsForces': 'un retrait forcé est la garde qui MARCHE (une personne retirée qui revient avec un jeton rafraîchi par LiveKit est mise dehors) ; chaque retrait est journalisé — aucune alarme horaire n\'ajouterait une décision',
+  'visio.commandesEchouees': 'un compteur CUMULÉ depuis le démarrage (seul un redémarrage le remet à zéro) : une alarme dessus crierait toutes les heures après une seule panne de LiveKit, déjà dite par visio.ok ; chaque échec est journalisé',
   'pieces.n': 'le nombre de pièces est une information de croissance : le service borne lui-même chaque personne (quota de stockage) et refuse d\'écrire sous son plancher de disque (503), aucune alarme horaire n\'ajouterait une décision',
   'pieces.octets': 'l\'espace pris par les pièces grandit avec l\'usage : il est borné par personne (quota) et par le plancher de disque du service, qui refuse d\'écrire plutôt que de priver OP GESTION — un total n\'a pas de seuil qui ait un sens',
   /* ⛔ LES RÉUNIONS PROGRAMMÉES (étape 6). Ce qui est une PANNE du planificateur est surveillé (`reunions.ageS`, `reunions.echecs`, plus haut) ; le reste est un état normal. */
@@ -115,6 +126,27 @@ function sonderRelais(hote, port, delaiMs, essais) {
 }
 
 /* beta ou prod, d'après le domaine interrogé — pour comparer à ce que le service dit de lui-même. */
+/* ⛔ LE SERVEUR DE VISIO NE SE VOIT PAS NON PLUS DE /health POUR CE QUI EST DE SES PORTS : le service le sonde par la boucle locale, qui ne traverse aucun pare-feu. On frappe donc, de l'EXTÉRIEUR, à son port
+   ICE-TCP (le second chemin de l'image quand l'UDP ne passe pas) : une connexion acceptée prouve que les deux pare-feu (l'hébergeur, ufw) le laissent passer. L'UDP ne se sonde pas ainsi (LiveKit ne répond qu'à une
+   liaison qu'il attend) : il est ouvert DANS LE MÊME GESTE que le TCP, par install-sfu.sh et dans le panneau de l'hébergeur. Rien n'est envoyé : on ouvre, on referme. Les ports sont ceux d'install-sfu.sh
+   (le banc compare les deux fichiers). */
+const VISIO_PORTS_TCP = { beta: 7881, prod: 7891 };
+function sonderVisioTcp(hote, port, delaiMs, essais) {
+  return new Promise((resolve) => {
+    let n = 0;
+    const tour = () => {
+      n++;
+      let fini = false;
+      const s = net.connect({ host: hote, port: port });
+      const clore = (ok) => { if (fini) return; fini = true; clearTimeout(minuteur); try { s.destroy(); } catch (e) { /* déjà fermée */ } if (ok || n >= essais) resolve(ok); else tour(); };
+      const minuteur = setTimeout(() => clore(false), delaiMs);
+      s.on('connect', () => clore(true));
+      s.on('error', () => clore(false));
+    };
+    tour();
+  });
+}
+
 function instanceDe(url) {
   const h = new URL(url).hostname;
   if (h.startsWith('msg-beta.')) return 'beta';
@@ -211,6 +243,13 @@ function evaluer(j, instanceAttendue, sondes) {
       p.push(Math.round(j.appels.echecs) + ' passages de suite du balayeur d\'appels ont échoué — les appels manqués ne s\'écrivent plus');
     }
   }
+  /* le serveur de visio. Un /health d'avant (sans la clé) ou un service sans visio (« configuree: false ») ne crie pas : avant l'installation, « pas de visio » n'est pas une panne. */
+  if (j.visio && typeof j.visio === 'object' && j.visio.configuree === true) {
+    if (j.visio.ok !== true) p.push('le serveur de visio ne répond plus au service — les salles neuves repartent en maille (4 en vidéo, 6 en audio) et celles qui passaient par lui sont coupées (systemctl status opmsg-visio-' + (j.instance === 'prod' ? 'prod' : 'beta') + ')');
+    /* `sondes.visio` vaut faux seulement si la sonde a été jouée ET que personne n'a répondu (absente : on ne conclut rien) */
+    if (sondes && sondes.visio === false) p.push('le serveur de visio ne se joint pas de l\'extérieur : son port TCP public ne répond pas — le pare-feu de l\'hébergeur ou celui du VPS (ufw) ne laisse pas passer ses ports (TCP et UDP, posés ensemble par install-sfu.sh) : plus personne n\'y fait passer son image');
+    if (typeof j.visio.avisRefuses === 'number' && j.visio.avisRefuses > 0 && j.visio.avisRecus === 0) p.push('tous les avis du serveur de visio sont refusés (' + Math.round(j.visio.avisRefuses) + ' refus, aucun accepté) : la clé du service et celle de LiveKit ne sont plus la même paire — plus aucune entrée dans une salle n\'est vérifiée (relancer install-sfu.sh)');
+  }
   if (j.sms && typeof j.sms === 'object') {
     const seuilEur = Number.isFinite(parseFloat(process.env.OPMSG_SMS_SEUIL_EUR)) ? parseFloat(process.env.OPMSG_SMS_SEUIL_EUR) : SEUIL_SMS_EUR;
     if (j.instance === 'prod' && j.sms.mode !== 'ovh') p.push('les SMS sont éteints en production (mode « ' + String(j.sms.mode).replace(/[^a-z]/g, '') + ' ») — plus personne ne peut s\'inscrire');
@@ -268,6 +307,11 @@ async function main() {
         /* le relais n'est sondé que si le service en annonce un : avant l'installation de coturn, « pas de relais » n'est pas une panne */
         const sondes = {};
         if (j.appels && j.appels.turn === true) sondes.relais = await sonderRelais(process.env.OPMSG_TURN_HOTE || RELAIS_HOTE_DEFAUT, RELAIS_PORT, 3000, 3);
+        /* le serveur de visio n'est sondé que si le service en annonce un — sur le domaine du service (même machine, `install-sfu.sh`) et au port de SON instance */
+        if (j.visio && j.visio.configuree === true) {
+          const portV = parseInt(process.env.OPMSG_VISIO_PORT_TCP || '', 10) || VISIO_PORTS_TCP[j.instance === 'prod' ? 'prod' : 'beta'];
+          sondes.visio = await sonderVisioTcp(new URL(url).hostname, portV, 3000, 3);
+        }
         problems.push(...evaluer(j, instanceDe(url), sondes));
         // Un champ neuf ne fait pas crier : on le NOMME, pour que quelqu'un tranche une fois (surveillé ou vu).
         for (const c of nonClasses(j)) console.log('::notice::champ de /health ni surveillé ni nommé : ' + c);
@@ -283,4 +327,4 @@ async function main() {
 }
 
 if (require.main === module) main();
-module.exports = { CHAMPS_SURVEILLES, CHAMPS_VUS, evaluer, nonClasses, chemins, instanceDe, sonderRelais };
+module.exports = { CHAMPS_SURVEILLES, CHAMPS_VUS, evaluer, nonClasses, chemins, instanceDe, sonderRelais, sonderVisioTcp, VISIO_PORTS_TCP };

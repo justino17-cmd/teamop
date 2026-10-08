@@ -36,6 +36,7 @@ const code = (p) => {
 };
 const tous = fichiers(MSG);
 const sources = tous.filter(p => /\.(js|html)$/.test(p));
+const VENDOR_LIVEKIT = { nom: 'livekit-client-2.22.3.umd.js', sha256: '7fa17e37af5e996d8a25f15a637dcc0620215bc01b394e5d209f726afe7dc04d' };   // ⛔ épinglée : voir « la cinquième exception »
 vrai('population : des fichiers de code à examiner (un zéro sur du vide ne prouve rien)', sources.length >= 10);
 
 console.log('Aucun code partagé à l\'exécution avec server/');
@@ -62,6 +63,7 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
   const permis = new Set(['config.js', 'poser-cle.js']);   // la garde de séparation les NOMME — pour les refuser
   for (const p of sources) {
     const c = code(p), nom = path.basename(p);
+    if (nom === VENDOR_LIVEKIT.nom) continue;   // la bibliothèque du serveur de visio : épinglée et recensée à part, juste en dessous
     if (/\/(opt|etc)\/teamop/.test(c) && !permis.has(nom)) interdits.push(nom + ' : chemin /opt|/etc/teamop');
     /* ⛔ UNE SECONDE EXCEPTION, NOMMÉE : `push.js` porte la LISTE BLANCHE des services push des navigateurs — celui de Chrome s'appelle `fcm.googleapis.com`. Ce n'est pas Firebase (le produit) : c'est la
        boîte aux lettres que le navigateur d'une personne impose pour la réveiller. On retire de ce fichier les noms exacts de la liste (et rien d'autre : toute autre trace de Firebase y reste interdite). */
@@ -87,6 +89,22 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
     if (/teamop\.fr/i.test(c)) interdits.push(nom + ' : domaine teamop.fr en dur');
   }
   v('⛔ ni /opt/teamop (hors la garde), ni Firebase, ni domaine, ni IP autre que la boucle locale', interdits, []);
+  /* ⛔ LA CINQUIÈME EXCEPTION, NOMMÉE ET ÉPINGLÉE : `public/vendor/livekit-client-2.22.3.umd.js`, la bibliothèque du SERVEUR DE VISIO (LiveKit, licence Apache 2.0, servie par le service lui-même — jamais un CDN,
+     chargée seulement quand une salle passe par la visio). C'est le fichier PUBLIÉ, octet pour octet : son empreinte est épinglée ici, et une mise à jour oblige à trancher de nouveau. Ce qu'il porte et qui
+     ressemble à une destination n'en est pas une : l'identifiant d'une extension RTP (`aomediacodec.github.io/av1-rtp-spec/…`, une URI de spécification comparée comme une chaîne), la base du « bac à sable »
+     de LiveKit Cloud (`cloud-api.livekit.io`, une classe que la page n'appelle jamais — et que sa politique bloquerait : `connect-src` ne nomme que le service et SA visio) et les adresses d'une description
+     SDP (« 0.0.0.0 », l'adresse vide ; « 127.0.0.1 », l'origine « o= » d'une session). Rien d'autre : ni Firebase, ni Google (les serveurs STUN par défaut de LiveKit sont ceux du SERVEUR — la page les refuse, `source-serveur.js`). */
+  {
+    const p = sources.find(x => path.basename(x) === VENDOR_LIVEKIT.nom);
+    vrai('la bibliothèque du serveur de visio est là où la page la charge (public/vendor/)', !!p && /server-msg\/public\/vendor\//.test(rel(p)));
+    const brut = p ? fs.readFileSync(p) : Buffer.alloc(0);
+    v('⛔ c\'est le fichier PUBLIÉ de livekit-client 2.22.3, octet pour octet (empreinte épinglée)', require('crypto').createHash('sha256').update(brut).digest('hex'), VENDOR_LIVEKIT.sha256);
+    const c = brut.toString('utf8');
+    v('ses adresses : l\'URI d\'une spécification et la base du bac à sable de LiveKit Cloud, et RIEN d\'autre', [...new Set(Array.from(c.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)).map(m => m[1]))].sort(), ['aomediacodec.github.io', 'cloud-api.livekit.io']);
+    v('ses adresses IP : celles d\'une description SDP (l\'adresse vide et l\'origine « o= » d\'une session), et RIEN d\'autre', [...new Set(Array.from(c.matchAll(/\b(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})\b/g)).map(m => m[1]))].sort(), ['0.0.0.0', '127.0.0.1']);
+    v('ni Firebase, ni Google, ni /opt/teamop, ni teamop.fr', [/firebase|firestore|googleapis|gstatic|google\.com|fcm\./i.test(c), /\/(opt|etc)\/teamop/.test(c), /teamop\.fr/i.test(c)], [false, false, false]);
+    vrai('sa licence l\'accompagne (Apache 2.0)', fs.existsSync(path.join(MSG, 'public', 'vendor', 'LICENSE-livekit-client.txt')) && /Apache License/.test(fs.readFileSync(path.join(MSG, 'public', 'vendor', 'LICENSE-livekit-client.txt'), 'utf8')));
+  }
   const cfg = fs.readFileSync(path.join(MSG, 'config.js'), 'utf8');
   vrai('la garde nomme bien les deux arbres refusés (elle existe, elle n\'est pas qu\'une phrase)', /INTERDITS = \['\/opt\/teamop', '\/etc\/teamop'\]/.test(code(path.join(MSG, 'config.js'))) && cfg.length > 0);
 }

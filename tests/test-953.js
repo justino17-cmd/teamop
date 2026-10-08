@@ -13,7 +13,7 @@
      · la sonde voit LiveKit tomber (deux ratées) et revenir. */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), http = require('http'), crypto = require('crypto');
-const { spawn, execFileSync } = require('child_process');
+const { spawn, spawnSync, execFileSync } = require('child_process');
 const T = require('./outils-msg');
 const { v, vrai, fin } = T.compteur();
 const V = require(path.join(T.SERVICE, 'visio.js'));
@@ -34,8 +34,10 @@ if (!BIN) { console.log('  — livekit-server absent (LIVEKIT_SERVER_BIN, ou dan
   const avis = [];
   const recepteur = http.createServer((q, r) => { const m = []; q.on('data', c => m.push(c)); q.on('end', () => { avis.push({ auth: q.headers.authorization, type: q.headers['content-type'], corps: Buffer.concat(m) }); r.end('ok'); }); });
   await new Promise(r => recepteur.listen(portAvis, '127.0.0.1', r));
+  /* Le VRAI service, branché sur ce LiveKit : c'est lui que le contrôle de l'installation interroge (ses avis, son /health). LiveKit envoie ses avis aux DEUX adresses. */
+  const svc = await T.lancerService({ config: { appels: { visio: { url: 'ws://127.0.0.1:' + port, interne: 'http://127.0.0.1:' + port, cle: CLE, secret: SECRET, sondeMs: 500, delaiMs: 2000 } } } });
   const conf = ['port: ' + port, 'bind_addresses: ["127.0.0.1"]', 'rtc:', '  tcp_port: ' + portTcp, '  udp_port: ' + portUdp, '  use_external_ip: false', '  node_ip: 127.0.0.1',
-    'keys:', '  ' + CLE + ': ' + SECRET, 'webhook:', '  api_key: ' + CLE, '  urls:', '    - http://127.0.0.1:' + portAvis + '/avis', 'room:', '  empty_timeout: 30', 'logging:', '  level: warn'].join('\n');
+    'keys:', '  ' + CLE + ': ' + SECRET, 'webhook:', '  api_key: ' + CLE, '  urls:', '    - http://127.0.0.1:' + portAvis + '/avis', '    - http://127.0.0.1:' + svc.port + '/api/visio/avis', 'room:', '  empty_timeout: 30', 'logging:', '  level: warn'].join('\n');
   fs.writeFileSync(path.join(dossier, 'livekit.yaml'), conf, { mode: 0o600 });
   let lk = null;
   const lancer = () => { lk = spawn(BIN, ['--config', path.join(dossier, 'livekit.yaml')], { stdio: ['ignore', 'ignore', 'pipe'] }); lk.stderr.on('data', () => { }); };
@@ -98,6 +100,34 @@ if (!BIN) { console.log('  — livekit-server absent (LIVEKIT_SERVER_BIN, ou dan
     const revenu = await T.attendre(async () => { await vi.sonder(); return vi.actif(); }, 20000, 200);
     vrai('relancé : de retour en service', !!revenu);
   }
+  console.log('\nLe CONTRÔLE de l\'installation (outils/verifier-visio.js), contre le VRAI LiveKit et le VRAI service');
+  {
+    const OUTIL = path.join(T.SERVICE, 'outils', 'verifier-visio.js');
+    const jouer = (args, cfg) => spawnSync(process.execPath, [OUTIL, 'beta'].concat(args), { encoding: 'utf8', env: Object.assign({}, process.env, { OPMSG_CONFIG: cfg || svc.cfgPath }), timeout: 60000 });
+    const vu = await T.attendre(async () => { try { const j = await (await fetch(svc.base + '/health')).json(); return j.visio && j.visio.ok ? j.visio : null; } catch (e) { return null; } }, 20000, 100);
+    vrai('le service voit LiveKit (/health : visio.ok)', !!vu);
+    const r1 = jouer([]);
+    v('en boucle locale : sortie 0, cinq ✓ (sonde, notre clé, une fausse refusée, la signalisation sans jeton refusée puis avec jeton acceptée), aucun ✗', [r1.status, (r1.stdout.match(/  ✓ /g) || []).length, /  ✗ /.test(r1.stdout)], [0, 5, false]);
+    const r2 = jouer(['--avis', String(svc.port)]);
+    v('⛔ les avis : sortie 0 — une salle de contrôle ouverte puis fermée, LiveKit joint le service et le service ACCEPTE ses avis', [r2.status, /  ✗ /.test(r2.stdout), /⛔ ses avis arrivent au service/.test(r2.stdout)], [0, false, true]);
+    const j2 = await (await fetch(svc.base + '/health')).json();
+    vrai('   et /health le compte (visio.avisRecus ≥ 2 : la salle de contrôle ouverte, puis fermée), sans un refus', j2.visio.avisRecus >= 2 && j2.visio.avisRefuses === 0);
+    /* CONTRE-ÉPREUVES : un contrôle qui rend toujours 0 ne se verrait pas */
+    const faux = JSON.parse(fs.readFileSync(svc.cfgPath, 'utf8'));
+    faux.appels.visio.secret = crypto.randomBytes(48).toString('base64url');
+    const cfgFaux = path.join(dossier, 'faux.json'); fs.writeFileSync(cfgFaux, JSON.stringify(faux), { mode: 0o600 });
+    const r3 = jouer([], cfgFaux);
+    v('⛔ contre-épreuve : un AUTRE secret que celui de LiveKit — sortie 1, et le contrôle le NOMME', [r3.status, /✗ NOTRE paire de clés ouvre son API/.test(r3.stdout)], [1, true]);
+    const r4 = jouer(['--avis', String(svc.port)], cfgFaux);
+    v('⛔ contre-épreuve : les avis, avec la mauvaise paire — sortie 1 (la salle de contrôle ne s\'ouvre même pas)', r4.status, 1);
+    const r5 = jouer(['--public']);
+    v('« --public » refuse une adresse de visio qui n\'est pas en https (la page la joint en wss://)', [r5.status, /✗ l'adresse publique de la visio est en https/.test(r5.stdout)], [1, true]);
+    const r6 = jouer([], path.join(dossier, 'absent.json'));
+    v('une configuration absente : sortie 1, et le DIT', [r6.status, /illisible \(absente\)/.test(r6.stdout)], [1, true]);
+    const sorties = [r1, r2, r3, r4, r5, r6].map(r => String(r.stdout) + String(r.stderr)).join('\n');
+    v('⛔ aucune sortie ne porte le secret (ni le vrai, ni le faux), ni un jeton', [sorties.includes(SECRET), sorties.includes(faux.appels.visio.secret), /eyJ[A-Za-z0-9_-]{10,}/.test(sorties)], [false, false, false]);
+  }
+  await svc.arreter();
   await arreter();
   recepteur.close();
   fs.rmSync(dossier, { recursive: true, force: true });

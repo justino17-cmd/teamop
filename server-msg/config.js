@@ -431,10 +431,10 @@ function visioConfig(vi, appels, prod, err) {
   if (vi === undefined || vi === null) return null;
   if (typeof vi !== 'object' || Array.isArray(vi)) throw err('appels.visio doit être un objet { url, interne, cle, secret }');
   const u = typeof vi.url === 'string' ? RE_URL_VISIO.exec(vi.url) : null;
-  if (!u) throw err('appels.visio.url doit être une adresse wss://hote (ou ws://127.0.0.1:port hors production)');
+  if (!u) throw err('appels.visio.url doit être une adresse wss://<hôte> (ou ws://127.0.0.1:<port> hors production)');
   if (u[1] === 'ws' && (prod || !BOUCLE(u[2]))) throw err('appels.visio.url en ws:// n\'est permise que vers la boucle locale, hors production : les pages joignent la visio en wss://');
   const i = typeof vi.interne === 'string' ? RE_URL_INTERNE.exec(vi.interne) : null;
-  if (!i) throw err('appels.visio.interne doit être une adresse http://127.0.0.1:port (ou https://hote)');
+  if (!i) throw err('appels.visio.interne doit être une adresse http://127.0.0.1:<port> (ou https://<hôte>)');
   if (i[1] === 'http' && !BOUCLE(i[2])) throw err('appels.visio.interne en http:// n\'est permise que vers la boucle locale : le jeton d\'administration ne traverse pas un réseau en clair');
   if (typeof vi.cle !== 'string' || !RE_CLE_VISIO.test(vi.cle)) throw err('appels.visio.cle doit faire de 6 à 64 caractères (lettres, chiffres, tiret, soulignement) — elle se pose par install-sfu.sh');
   /* ⛔ jamais la valeur dans le message : une erreur de configuration finit dans le journal du démarrage, que Justin recolle dans la conversation */

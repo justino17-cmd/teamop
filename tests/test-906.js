@@ -175,7 +175,8 @@ const attrape = async (p) => { try { await p; return null; } catch (e) { return 
       v('⛔ la page n\'utilise ni document.write, ni eval, ni new Function (un HTML venu d\'un tiers ne devient jamais du code)', /document\.write|\beval\(|new Function\(/.test(code), false);
       v('index.html n\'a ni script en ligne, ni gestionnaire onclick/onerror en attribut', /<script(?![^>]*\bsrc=)[^>]*>|\son[a-z]+\s*=/i.test(html.replace(/<!--[\s\S]*?-->/g, '')), false);
       v('et aucun script ni feuille d\'un autre domaine', /(src|href)="https?:\/\//i.test(html), false);
-      v('⛔ la politique de la page rouvre le réseau vers le service SEUL (connect-src \'self\') et ne rend rien d\'autre', /Content-Security-Policy" content="[^"]*connect-src 'self'[;"]/.test(html) && !/connect-src [^;"]*(https?:|\*)/.test(html), true);
+      /* ⛔ `wss:` (8 octobre 2026) : le WebSocket du serveur de visio, sur l'origine de l'instance — « 'self' » le couvre en CSP 3, pas dans tous les navigateurs. L'EN-TÊTE du service, lui, nomme l'adresse exacte. */
+      v('⛔ la politique de la page rouvre le réseau vers le service SEUL (connect-src \'self\', plus le WebSocket de la visio) et ne rend rien d\'autre — ni https:, ni *', /Content-Security-Policy" content="[^"]*connect-src 'self' wss:[;"]/.test(html) && !/connect-src [^;"]*(https?:|\*|ws:(?!s))/.test(html.replace(/wss:/g, '')), true);
       v('⛔ les données de DÉMONSTRATION de l\'aperçu n\'atteignent jamais la page servie (le service servirait de fausses conversations)', ['simulerRecu', 'creerSourceApercu', 'Camille Roux', 'Équipe dépôt'].filter(x => (html + ui + fs.readFileSync(path.join(PUB, 'source-serveur.js'), 'utf8')).includes(x)), []);
     }
   } catch (e) {

@@ -215,7 +215,10 @@ const PRIX_PP = { mensuel: 'price_BancHttpPersoMensuelC3', annuel: 'price_BancHt
       await ch1.post('/api/appels/' + lance.j.appel.id + '/quitter', {});
       /* — le supplément n'existe pas — */
       const offres = (await T.client(svc.base).get('/api/facturation/offres')).txt;
-      vrai('⛔ le supplément « Grandes réunions » ne se VEND PAS : aucune route du manifeste (identifiant ou chemin), aucune offre publique, aucune clé de configuration publiée n\'en parle', !MANIFESTE.some(r => /supplement|grandes|webinaire|visio/i.test(r.id + ' ' + r.p)) && !/supplement|grandes|webinaire/i.test(offres) && !/supplement|grandes|webinaire/i.test(JSON.stringify(cfg)));
+      /* ⛔ LE SERVEUR DE VISIO EXISTE DEPUIS LE 8 OCTOBRE 2026 (`visio.js`) : deux routes TECHNIQUES le nomment — le jeton d'une personne présente (`salles.visio`) et l'avis de LiveKit (`visio.avis`). Elles ne vendent
+         rien. Ce qui reste interdit : une route qui VEND (facturation, Perso+, abonnement) et parle de visio ou de grandes réunions, une offre publique qui en parle, une clé de configuration publiée. */
+      v('les routes qui nomment la visio sont les DEUX routes techniques, et rien d\'autre', MANIFESTE.filter(r => /visio/i.test(r.id + ' ' + r.p)).map(r => r.id + ' ' + r.garde).sort(), ['salles.visio SP', 'visio.avis LV']);
+      vrai('⛔ le supplément « Grandes réunions » ne se VEND PAS : aucune route du manifeste (identifiant ou chemin) n\'en parle, aucune route de facturation ne parle de visio, aucune offre publique ni clé de configuration publiée n\'en parle', !MANIFESTE.some(r => /supplement|grandes|webinaire/i.test(r.id + ' ' + r.p)) && !MANIFESTE.some(r => /^(facturation|perso|abonnement)\./.test(r.id) && /visio/i.test(r.id + ' ' + r.p)) && !/supplement|grandes|webinaire|visio/i.test(offres) && !/supplement|grandes|webinaire/i.test(JSON.stringify(cfg)));
     }
 
     /* ═══ 4. LES OUTILS DE L'ORGANISATEUR D'UNE SALLE ════════════════════════════════════════════════════════════════════════════════════════════ */
