@@ -6,7 +6,9 @@
      · ⛔ JAMAIS DEUX PUSHS POUR UN MESSAGE : la push du message ne part pas chez une personne citée (sa mention la prévient) ; les autres reçoivent « Nouveau message » comme avant ;
      · ⛔ la mention passe la SOURDINE (c'est ce qu'on attend d'elle) — mais en sourdine, une push de mention par conversation et par minute au plus : citer quelqu'un en boucle ne fait pas
        sonner son téléphone en boucle (la notification de l'application, elle, s'écrit à chaque fois) ;
-     · ⛔ PAS dans une conversation à deux : on y est déjà prévenu de tout, et citer l'autre y contournerait sa sourdine ;
+     · ⛔ DANS UNE CONVERSATION À DEUX, LA MENTION RESTE CE QU'ELLE ÉTAIT : la notification de l'application (au NOM de l'auteur), SANS push — on y est déjà prévenu par le message
+       (sa push n'écarte pas la personne citée), et citer l'autre n'y contourne pas sa sourdine. Retirée en silence au premier jet, elle avait fait tomber test-957 (l'effacement d'un
+       compte tait ce titre) ;
      · une liste de la page n'est jamais une raison de perdre un message : un non-membre, l'auteur, un identifiant mal formé sont IGNORÉS, l'envoi passe ;
      · la push d'une mention se RE-JUGE au moment de partir (elle attend qu'une page ouverte l'acquitte) : message supprimé « pour tous » entre-temps → rien ne part ;
      · ⛔ un message PROGRAMMÉ emporte ses personnes citées (des membres d'aujourd'hui) — leur appartenance se rejuge à l'heure : partie du groupe entre-temps, rien pour elle.
@@ -100,17 +102,20 @@ const MIN = 60000, JOUR = 86400000;
       v('⛔ vingt au plus : cité en vingt-et-unième position, Dan n\'est pas prévenu d\'une mention (« Nouveau message »)', [recus(dD)[nD] && recus(dD)[nD].type, (await mentionsDe(d)).length - avantD], ['message', 0]);
     }
 
-    console.log('\n4. Pas dans une conversation à deux');
+    console.log('\n4. Dans une conversation à deux : la notification de l\'application, sans push');
     {
       const nB = recus(dB).length, avant = (await mentionsDe(b)).length;
       await envoyer(a, AB, '@Ben tu me rappelles ?', [ben.id]);
       await attendreN(dB, nB + 1);
-      v('dans la directe, Ben reçoit « Nouveau message », et aucune mention n\'est écrite', [recus(dB)[nB] && recus(dB)[nB].type, (await mentionsDe(b)).length - avant], ['message', 0]);
+      const m1 = (await mentionsDe(b)).filter(n => n.cible === AB);     // la liste vient la plus récente d'abord : on la prend par sa conversation, pas par sa place
+      v('dans la directe, Ben reçoit « Nouveau message » (la push du message ne l\'écarte pas), et la mention s\'écrit comme avant — au NOM d\'Ana, sur la directe',
+        [recus(dB)[nB] && recus(dB)[nB].type, m1.length, m1[0] && m1[0].titre, m1[0] && m1[0].texte, m1[0] && m1[0].cible], ['message', 1, 'Ana Banc', 'Ana Banc vous a mentionné.', AB]);
       await b.post('/api/conversations/' + AB + '/prefs', { muet_jusqua: maintenant() + 365 * JOUR });
       await envoyer(a, AB, '@Ben en sourdine', [ben.id]);
       await envoyer(a, G, 'sentinelle 2');
       await attendreN(dB, nB + 2);
-      v('⛔ la directe en sourdine : citer Ben ne la contourne PAS — sa push suivante est la sentinelle du groupe', [recus(dB).length, recus(dB)[nB + 1] && recus(dB)[nB + 1].tag], [nB + 2, G]);
+      v('⛔ la directe en sourdine : citer Ben ne la contourne PAS — sa push suivante est la sentinelle du groupe (la notification de l\'application, elle, s\'écrit)',
+        [recus(dB).length, recus(dB)[nB + 1] && recus(dB)[nB + 1].tag, (await mentionsDe(b)).length - avant], [nB + 2, G, 2]);
     }
 
     console.log('\n5. En sourdine : une push de mention par conversation et par minute');

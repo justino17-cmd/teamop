@@ -126,6 +126,10 @@
     /* l'agenda personnel (heure_invalide, fin_avant_debut, rappel_invalide, fenetre_invalide : les phrases des réunions, plus haut, servent aussi — une clé en double remplacerait la première) */
     evenement_trop_long: 'Un événement dure 31 jours au plus.',
     agenda_plein: 'Ton agenda est plein (2 000 événements) : supprime d\'anciens événements.',
+    /* envoyer plus tard, et l'ordre du jour d'une réunion (8 octobre 2026) */
+    programmes_plein: 'Tu as déjà cinquante messages programmés : annule-en un pour en programmer un autre.',
+    ordre_du_jour_invalide: 'L\'ordre du jour compte vingt points au plus, de 200 signes chacun.',
+    point_introuvable: 'Ce point n\'est plus dans l\'ordre du jour : il vient d\'être modifié.',
     /* le compte par adresse e-mail (« comme Discord ») */
     inscription_fermee: 'La création de compte n\'est pas encore ouverte.',
     mdp_faible: 'Ce mot de passe se devine trop facilement. Choisis-en un d\'au moins 10 caractères, sans ton prénom, ton adresse ni une suite comme « azerty » ou « 123456 ».',
