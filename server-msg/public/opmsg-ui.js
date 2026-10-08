@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e232d13681c9';
+  const OPMSG_BUILD = 'd5f35c21823c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 122;
+  const OPMSG_VERSION = 126;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -703,6 +703,7 @@
     const resume = etat.conversations.find(c => c.id === id);
     if (resume) rendreEntete(resume);
     $('conv-messages').innerHTML = ''; $('conv-messages').setAttribute('aria-busy', 'true');
+    if (progs.conv !== id) { $('conv-programmes').hidden = true; $('conv-programmes').innerHTML = ''; }
     $('saisie').value = etat.brouillons[id] || ''; ajusterSaisie(); majBoutons(); masquerAvis();
     rendreListe();
     let c = null, panne = null; try { c = await source.ouvrir(id); } catch (e) { panne = e; }
@@ -714,6 +715,7 @@
     synchroInert();
     if (matchMedia('(pointer: fine)').matches) $('saisie').focus({ preventScroll: true }); else $('conv-ecran').focus({ preventScroll: true });
     if (cibleMsg.conv === id) allerAuMessage();                // « Voir le message » : la conversation est ouverte, on va au message
+    chargerProgrammes(id);
     try { await source.marquerLu(id); } catch (e) { /* la source le dira par ecouter */ }
   }
   function fermerConv() {
@@ -765,6 +767,7 @@
   }
   async function rafraichirConv() {
     const id = etat.conv; if (!id) return;
+    if (progs.liste.length && progs.conv === id) chargerProgrammes(id);       // un programmé parti devient un message : il quitte les pointillés
     const jeton = etat.jeton;
     let c; try { c = await source.ouvrir(id); } catch (e) { if (jeton === etat.jeton) avis(phrase(e, 'La conversation n\'a pas pu être mise à jour.')); return; }
     if (jeton !== etat.jeton || !c) return;
@@ -941,7 +944,15 @@
     if ((matchMedia('(pointer: fine)').matches && !e.shiftKey && !e.altKey) || e.ctrlKey || e.metaKey) { e.preventDefault(); if (e.repeat || confirmeTropTot()) return; envoyerTexte(); }   // une touche TENUE n'envoie pas : sa répétition confirmerait ce que la première vient de demander
   });
   $('envoyer').addEventListener('mousedown', e => e.preventDefault());        // la flèche ne vole pas le focus (le clavier reste ouvert)
+  $('envoyer').addEventListener('click', e => { if (etat.envoyerLong) { etat.envoyerLong = false; e.stopImmediatePropagation(); } }, true);   // le relâcher d'un appui long (« Envoyer plus tard ») n'envoie PAS
   $('envoyer').addEventListener('click', () => { armerRetap(); if (confirmeTropTot()) return; envoyerTexte(); });
+  /* ⛔ ENVOYER PLUS TARD (8 octobre 2026 : « écrire un message maintenant et le programmer pour demain 8 h ») — un appui long sur la flèche, ou le clic droit, comme dans Messages d'Apple ;
+     la tuile « Plus tard » de la feuille « + » y mène aussi (au clavier, par exemple). Le clic que produit le relâcher d'un appui long n'envoie PAS le message. */
+  { let minuteur = null;
+    const lancer = () => { if (typeof source.programmerMessage !== 'function' || !$('saisie').value.trim() || etat.menu) return; etat.envoyerLong = true; etat.menu = { plus: true, declencheur: $('envoyer'), t: Date.now(), appuiLong: true }; plusTardMenu(true); };
+    $('envoyer').addEventListener('pointerdown', () => { clearTimeout(minuteur); etat.envoyerLong = false; minuteur = setTimeout(lancer, 550); });
+    for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('envoyer').addEventListener(ev, () => { clearTimeout(minuteur); if (etat.menu && etat.menu.appuiLong) etat.menu.relache = Date.now(); });
+    $('envoyer').addEventListener('contextmenu', e => { e.preventDefault(); clearTimeout(minuteur); lancer(); }); }
 
   /* ── une photo : réduite par un canvas (le fichier d'origine ne part nulle part), validée par son décodage ──
      ⛔ SAUF UN GIF (relecture du testeur : un GIF animé devenait une image fixe, sans que rien ne le dise) : jusqu'au poids maximum d'une photo, il part TEL QUEL — le service en retire les
@@ -1032,6 +1043,7 @@
     if (CAP.cartesContact) t.push(['contact', 'Contact', 'i-personne']);
     if (CAP.fichiers) t.push(['fichier', 'Document', 'i-fichier']);
     if (CAP.sondagesConv) t.push(['sondage', 'Sondage', 'i-sondage']);
+    if (typeof source.programmerMessage === 'function') t.push(['plus-tard', 'Plus tard', 'i-agenda']);       // envoyer plus tard (8 octobre 2026)
     return t;
   }
   function ouvrirMenuPlus() {
@@ -1044,6 +1056,65 @@
     synchroInert();
     M.querySelector('button').focus({ preventScroll: true });
   }
+  /* ══ ENVOYER PLUS TARD ══ — les heures proposées (dans le fuseau de l'APPAREIL), « Choisir… » pour une date à soi. Le texte est celui du champ : programmé, il le quitte. */
+  function plusTardChoix() {
+    const tz = fuseauAppareil() || 'Europe/Paris', t0 = Date.now(), J = 86400000, a = (d, h) => instantDans(localDans(t0 + d * J, tz).slice(0, 10) + 'T' + h, tz);
+    const l = [['1h', 'Dans 1 heure', t0 + 3600000], ['soir', 'Ce soir', a(0, '18:00')], ['matin', 'Demain matin', a(1, '08:00')], ['aprem', 'Demain après-midi', a(1, '14:00')]];
+    for (let d = 2; d <= 7; d++) { if (new Date(localDans(t0 + d * J, tz).slice(0, 10) + 'T12:00Z').getUTCDay() === 1) { l.push(['lundi', 'Lundi matin', a(d, '08:00')]); break; } }
+    return l.filter(x => Number.isFinite(x[2]) && x[2] > t0 + 5 * 60000).map(x => ({ cle: x[0], nom: x[1], t: Math.ceil(x[2] / 60000) * 60000, tz }));
+  }
+  function jourEtHeure(t, tz) {
+    const n = Math.round((minuitDe(t) - minuitDe(Date.now())) / 86400000);
+    return (n === 0 ? 'aujourd\'hui' : n === 1 ? 'demain' : new Intl.DateTimeFormat('fr-FR', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' }).format(t)) + ' à ' + heureDans(t, tz);
+  }
+  function plusTardMenu(depuisFleche) {
+    const M = $('menu-msg');
+    if (!$('saisie').value.trim()) { fermerMenu(); mot('Écris d\'abord ton message, puis choisis « Plus tard ».'); return; }
+    if (depuisFleche) { M.setAttribute('aria-label', 'Envoyer plus tard'); M.classList.add('pj'); $('menu-fond').classList.add('pj'); $('menu-fond').hidden = false; synchroInert(); }
+    M.classList.add('pt');                              // une liste, pas la grille des tuiles
+    const tz = fuseauAppareil() || 'Europe/Paris';
+    M.innerHTML = '<p class="menu-question">Envoyer plus tard</p>' + plusTardChoix().map(x => '<button type="button" class="menu-action" data-plus-tard="' + x.cle + '" aria-label="' + esc(x.nom + ', ' + jourEtHeure(x.t, x.tz)) + '"><span>' + esc(x.nom) + '</span><small>' + esc(jourEtHeure(x.t, x.tz)) + '</small></button>').join('') +
+      '<div class="menu-champ"><label for="pt-quand">Choisir une date</label><input type="datetime-local" id="pt-quand" step="60" min="' + esc(localDans(Date.now() + 2 * 60000, tz)) + '"><button type="button" class="mini" data-plus-tard="choisi">Programmer</button></div>' +
+      '<button type="button" class="menu-action" data-plus-tard="annuler">Annuler</button>';
+    M.querySelector('button').focus({ preventScroll: true });
+  }
+  async function plusTardChoisir(b) {
+    const cle = b.dataset.plusTard, tz = fuseauAppareil() || 'Europe/Paris';
+    if (cle === 'annuler') { fermerMenu(); return; }
+    let t = null;
+    if (cle === 'choisi') { const v = ($('pt-quand') || {}).value || ''; t = v ? instantDans(v.slice(0, 16), tz) : null; if (!Number.isFinite(t) || t < Date.now() + 60000) { mot('Choisis une date dans le futur.'); return; } }
+    else { const x = plusTardChoix().find(y => y.cle === cle); t = x ? x.t : null; }
+    if (!t || !etat.conv) return;
+    const conv = etat.conv, texte = $('saisie').value.trim();
+    if (!texte) { fermerMenu(); return; }
+    fermerMenu();
+    try {
+      await source.programmerMessage(conv, texte, t);
+      if (etat.conv === conv) { $('saisie').value = ''; etat.brouillons[conv] = ''; ajusterSaisie(); majBoutons(); }
+      mot('Programmé pour ' + jourEtHeure(t, tz));
+      chargerProgrammes(conv);
+    } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être programmé.')); }
+  }
+  /* les messages programmés de CETTE conversation, sous le fil : une bulle en pointillés, l'heure prévue, « Annuler l'envoi ». Ils ne sont qu'à moi : personne d'autre ne les voit. */
+  const progs = { conv: null, liste: [], jeton: 0 };
+  async function chargerProgrammes(conv) {
+    const boite = $('conv-programmes');
+    if (typeof source.messagesProgrammes !== 'function' || !conv) { boite.hidden = true; boite.innerHTML = ''; return; }
+    const n = ++progs.jeton;
+    let l = []; try { l = await source.messagesProgrammes(conv); } catch (e) { l = progs.conv === conv ? progs.liste : []; }
+    if (n !== progs.jeton || etat.conv !== conv) return;
+    progs.conv = conv; progs.liste = l;
+    const tz = fuseauAppareil() || 'Europe/Paris';
+    boite.hidden = !l.length;
+    boite.innerHTML = l.map(g => '<div class="prog-msg"><span class="bulle de-moi prog" dir="auto">' + esc(g.texte) + '</span><span class="prog-meta">' + icone('i-agenda') + '<span>' + esc('Envoi prévu ' + jourEtHeure(g.quand, tz)) + '</span>' +
+      '<button type="button" class="prog-annuler" data-prog-annuler="' + esc(g.id) + '" aria-label="' + esc('Annuler l\'envoi prévu ' + jourEtHeure(g.quand, tz)) + '">Annuler</button></span></div>').join('');
+  }
+  $('conv-programmes').addEventListener('click', async e => {
+    const b = e.target.closest('[data-prog-annuler]'); if (!b) return;
+    b.disabled = true;
+    try { await source.annulerProgramme(b.dataset.progAnnuler); mot('Envoi annulé'); } catch (er) { b.disabled = false; avis(phrase(er, 'L\'envoi n\'a pas pu être annulé.')); return; }
+    chargerProgrammes(etat.conv);
+  });
   /* un choix de la feuille : les sélecteurs de l'appareil s'ouvrent DANS le geste ; position, contact et sondage ont leur propre feuille */
   function choixPlus(x) {
     if (x === 'photo') $('compo-fichier').click();
@@ -4050,7 +4121,7 @@
   function fermerMenu() {
     if (!etat.menu) return;
     const d = etat.menu.declencheur; etat.menu = null;
-    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj'); $('menu-fond').classList.remove('pj', 'ancre', 'de-moi');
+    $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj', 'pt'); $('menu-fond').classList.remove('pj', 'ancre', 'de-moi');
     $('conv-messages').querySelectorAll('.menu-ancre').forEach(x => x.classList.remove('menu-ancre'));
     synchroInert();
     rendreFocus(d);
@@ -4116,7 +4187,10 @@
     const m0 = etat.menu;
     if (Date.now() - m0.t < 350 || (m0.appuiLong && !m0.avale && m0.relache && Date.now() - m0.relache < 500)) { m0.avale = true; return; }
     if (m0.plus) {                                  // « + » : Photo ou Fichier — le choix ouvre le sélecteur de l'appareil (le clic en cours est encore le geste de la personne)
+      const pt = e.target.closest('[data-plus-tard]');
+      if (pt) { plusTardChoisir(pt); return; }
       const x = e.target.closest('[data-plus]');
+      if (x && x.dataset.plus === 'plus-tard') { plusTardMenu(); return; }
       if (e.target === $('menu-fond') || x) { fermerMenu(); if (x) choixPlus(x.dataset.plus); }
       return;
     }

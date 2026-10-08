@@ -1829,6 +1829,21 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .evt-reporter { flex-wrap: wrap; row-gap: 8px; }
 .evt-reporter-choix { display: flex; flex-wrap: wrap; gap: 8px; }
 .msg.msg-cible .bulle { animation: msg-cible 2s ease-out; }
+/* un message PROGRAMMÉ : une bulle en pointillés, à droite, l'heure prévue dessous — il n'est pas encore parti */
+.prog-liste { padding-top: 4px; }
+.prog-msg { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin: 6px 0 2px; }
+.bulle.prog { background: transparent; color: var(--text); border: 1.5px dashed var(--accent); border-radius: 20px 20px 6px 20px; }     /* la forme d'une bulle envoyée, en creux : pas encore partie */
+.prog-meta { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--sub-meta); }
+.prog-meta .ic { width: 14px; height: 14px; }
+.prog-annuler { min-height: 32px; padding: 0 8px; color: var(--accent-txt); font-size: 12px; font-weight: 600; }
+@media (pointer: coarse) { .prog-annuler { min-height: 44px; } }
+.menu-msg.pj.pt { display: block; padding: 0; }
+.menu-msg.pt .menu-action { justify-content: space-between; gap: 12px; }
+.menu-msg.pt .menu-action small { font-size: 13px; color: var(--sub-meta); }
+@media (min-width: 900px) and (pointer: fine) { .menu-fond.pj .menu-msg.pt { width: 320px; padding: 4px; } .menu-fond.pj .menu-msg.pt .menu-action { min-height: 40px; padding: 0 12px; font-size: 14px; border-radius: 8px; } }
+.menu-champ { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 14px; }
+.menu-champ label { width: 100%; font-size: 13px; color: var(--sub-meta); }
+.menu-champ input { flex: 1; min-width: 0; height: 40px; padding: 0 10px; border: var(--line); border-radius: 10px; background: var(--input-bg); color: var(--text); font-size: 16px; }
 @keyframes msg-cible { 0%, 35% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
@@ -2227,6 +2242,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <!-- ⛔ la région annoncée ne reçoit QUE le message neuf d'un autre : si le fil entier était « aria-live », chaque rafraîchissement (« Lu 14:06 ») le relirait en bloc -->
       <button type="button" class="precedents" id="precedents" hidden>Afficher les messages précédents</button>
       <div class="conv-colonne" id="conv-messages" aria-busy="true"></div>
+      <div class="conv-colonne prog-liste" id="conv-programmes" hidden></div>
     </div>
     <p class="sr-seul" id="conv-annonce" role="status" aria-live="polite" aria-atomic="true"></p>
     <p class="avis-saisie" id="avis" role="status" aria-live="polite" hidden></p>

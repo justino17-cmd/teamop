@@ -78,6 +78,10 @@ const MATRICE = {
   'conv.saisie':        { ok: (F) => ['POST', '/api/conversations/' + F.G + '/saisie', { actif: true }], codes: [200] },
   'msg.liste':          { ok: (F) => ['GET', '/api/conversations/' + F.G + '/messages'], codes: [200] },
   'msg.envoyer':        { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages', { cid: 'cid-' + crypto.randomBytes(6).toString('hex'), texte: 'bonjour' }], codes: [201] },
+  /* envoyer plus tard (8 octobre 2026) : M pour lister et programmer ; annuler un programme qui n'est pas le sien (ici : qui n'existe pas) répond 404 — la garde S a passé */
+  'prog.liste':         { ok: (F) => ['GET', '/api/conversations/' + F.G + '/programmes'], codes: [200] },
+  'prog.creer':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/programmes', { texte: 'plus tard', quand: Date.now() + 3600000 }], codes: [201] },
+  'prog.annuler':       { ok: () => ['POST', '/api/programmes/g_' + '0'.repeat(32) + '/annuler', {}], codes: [404] },
   'msg.modifier':       { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/modifier', { seq: F.seqDe(a), texte: 'modifié' }], codes: [200] },
   'msg.supprimer':      { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/supprimer', { seq: F.seqDe(a), pour: 'tous' }], codes: [200] },
   'msg.reagir':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/reagir', { seq: 1, emoji: '👍' }], codes: [200] },

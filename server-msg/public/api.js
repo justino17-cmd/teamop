@@ -303,6 +303,10 @@
       creerEvenement: async (champs) => (await appel('POST', '/api/agenda', champs)).evenement,
       majEvenement: async (id, champs) => (await appel('POST', '/api/agenda/' + e(id) + '/maj', champs)).evenement,
       supprimerEvenement: (id) => appel('POST', '/api/agenda/' + e(id) + '/supprimer'),
+      /* ⛔ « programmer » est déjà PROGRAMMER UNE RÉUNION (plus bas) : une clé en double remplacerait l'une par l'autre, sans un mot — d'où des noms à part */
+      messagesProgrammes: async (conv) => (await appel('GET', '/api/conversations/' + e(conv) + '/programmes')).programmes,
+      programmerMessage: async (conv, texte, quand) => (await appel('POST', '/api/conversations/' + e(conv) + '/programmes', { texte, quand })).programme,
+      annulerProgramme: (id) => appel('POST', '/api/programmes/' + e(id) + '/annuler'),
       faitEvenement: async (id, fait) => (await appel('POST', '/api/agenda/' + e(id) + '/fait', { fait })).evenement,
       reporterEvenement: async (id, dans) => (await appel('POST', '/api/agenda/' + e(id) + '/reporter', { dans })).evenement,
       /* le compte par adresse e-mail (« comme Discord ») — routes publiques : la session est posée par la réponse (cookie) */

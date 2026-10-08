@@ -363,6 +363,9 @@ async function controler(PAGE, SRC, DOC) {
   vrai('⛔ un événement modifié ou supprimé se relit PARTOUT où il s\'affiche — l\'Agenda ET le tableau de bord (8 octobre 2026 : « je peux pas supprimer » : le rappel restait au tableau)',
     /function evenementsRelire\(\) \{\s*chargerReunions\(\);\s*if \(\$\('vue-accueil'\)\.dataset\.pret\) \{[^}]*chargerAccueil\(\); \}/.test(JS) && (JS.match(/fermerCouche\(\); evenementsRelire\(\);|evenementsRelire\(\);\n/g) || []).length >= 2
       && /bord\.evenements = bord\.evenements\.filter\(x => x\.id !== F\.id\)/.test(JS));
+  vrai('⛔ envoyer plus tard : la tuile « Plus tard » et l\'appui long sur la flèche mènent aux heures ; le relâcher d\'un appui long n\'ENVOIE pas ; les programmés viennent du SERVICE (jamais de l\'appareil)',
+    /if \(typeof source\.programmerMessage === 'function'\) t\.push\(\['plus-tard'/.test(JS) && /\$\('envoyer'\)\.addEventListener\('click', e => \{ if \(etat\.envoyerLong\) \{ etat\.envoyerLong = false; e\.stopImmediatePropagation\(\); \} \}, true\);/.test(JS)
+      && /await source\.programmerMessage\(conv, texte, t\);/.test(JS) && /l = await source\.messagesProgrammes\(conv\);/.test(JS) && /chargerProgrammes\(id\);/.test(JS));
 
   /* 5. LES REPÈRES PHYSIQUES ───────────────────────────────────────────────────────────────────────────────────────────────── */
   const sansNom = [...HTML.matchAll(/<button\b([^>]*)>([\s\S]*?)<\/button>/g)].filter(m => !/aria-label=/.test(m[1]) && !m[2].replace(/<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '').trim()).map(m => (/id="([^"]+)"/.exec(m[1]) || [, '?'])[1]);

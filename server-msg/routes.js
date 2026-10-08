@@ -531,6 +531,22 @@ function creerHandlers(ctx) {
     if (!Array.isArray(b.bars) || b.bars.length < 1 || b.bars.length > BARRES_MAX || !b.bars.every(n => Number.isInteger(n) && n >= 0 && n <= 100)) return null;
     return { pieces: [{ id: b.piece }], vocal: { dur: Math.round(dur * 10) / 10, bars: b.bars.slice() } };
   }
+  /* ⛔ LES RÈGLES D'ÉCRIRE DANS UNE CONVERSATION — UNE définition, lue par l'envoi ET par un message programmé (à sa création, puis À L'HEURE où il part : entre-temps, un contact a pu
+     être retiré, une invitation refusée, un groupe passé « annonces »). → null, ou [statut, code]. */
+  function refusEcriture(conv, uid, role, type) {
+    /* Écrire à un compte SUPPRIMÉ : on le DIT (410), au lieu d'un « introuvable » qui ferait croire à une panne — la page montrait déjà « Compte supprimé » */
+    if (conv.type === 'direct' && stockage.autreSupprime(conv.id, uid)) return [410, 'compte_supprime'];
+    /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage. */
+    if (!stockage.ecritureAutorisee(conv.id, uid)) return [404, 'introuvable'];
+    /* ⛔ UNE INVITATION QUI ATTEND (relecture du gardien, 7 octobre 2026) : du TEXTE seul — ni photo, ni fichier, ni carte — et cinq messages au plus, tant que la personne n'a pas accepté.
+       Sinon son dossier « Invitations » se remplissait de ce que voulait un inconnu, et un refus n'arrêtait rien. */
+    if (conv.type === 'direct' && stockage.invitationEtat(conv.id, uid) === 'envoyee') {
+      if (type !== 'texte') return [403, 'invitation_texte'];
+      if (stockage.invitationEnvoyes(conv.id, uid) >= INVITATION_MAX) return [409, 'invitation_plafond'];
+    }
+    if (conv.type === 'groupe' && conv.annonces_seules && role !== 'admin') return [403, 'annonces_seules'];
+    return null;
+  }
   H['msg.envoyer'] = (req, res) => {
     const b = corps(req), conv = req.conv.conv;
     if (typeof b.cid !== 'string' || !CID.test(b.cid)) return refus(res, 400, 'champ_invalide');
@@ -567,17 +583,8 @@ function creerHandlers(ctx) {
       if (repondA === null || repondA < 1) return refus(res, 400, 'champ_invalide');
       if (repondA < req.conv.moi.depuis_seq || !stockage.messageExiste(conv.id, repondA)) return refus(res, 404, 'message_inconnu');
     }
-    /* Écrire à un compte SUPPRIMÉ : on le DIT (410), au lieu d'un « introuvable » qui ferait croire à une panne — la page montrait déjà « Compte supprimé » */
-    if (conv.type === 'direct' && stockage.autreSupprime(conv.id, req.moi.id)) return refus(res, 410, 'compte_supprime');
-    /* Une directe n'accepte plus d'écriture sans contact mutuel ni dans un blocage. */
-    if (!stockage.ecritureAutorisee(conv.id, req.moi.id)) return refus(res, 404, 'introuvable');
-    /* ⛔ UNE INVITATION QUI ATTEND (relecture du gardien, 7 octobre 2026) : du TEXTE seul — ni photo, ni fichier, ni carte — et cinq messages au plus, tant que la personne n'a pas accepté.
-       Sinon son dossier « Invitations » se remplissait de ce que voulait un inconnu, et un refus n'arrêtait rien. */
-    if (conv.type === 'direct' && stockage.invitationEtat(conv.id, req.moi.id) === 'envoyee') {
-      if (type !== 'texte') return refus(res, 403, 'invitation_texte');
-      if (stockage.invitationEnvoyes(conv.id, req.moi.id) >= INVITATION_MAX) return refus(res, 409, 'invitation_plafond');
-    }
-    if (conv.type === 'groupe' && conv.annonces_seules && req.conv.moi.role !== 'admin') return refus(res, 403, 'annonces_seules');
+    const ref = refusEcriture(conv, req.moi.id, req.conv.moi.role, type);
+    if (ref) return refus(res, ref[0], ref[1]);
     /* ⛔ GARDER UN FICHIER QUELQUES JOURS SEULEMENT (8 octobre 2026 : « qu'il se supprime 3 jours après pour pas que ça prenne des Go pour rien ») : un FICHIER seul, et une durée parmi trois
        (1, 3 ou 7 jours) — rien d'autre ne passe. L'échéance s'écrit sur le message ; le balayeur des éphémères l'emporte, fichier compris. */
     let garderS = 0;
@@ -598,6 +605,55 @@ function creerHandlers(ctx) {
       }
     }
     res.status(201).json({ seq: r.seq, ts: r.ts, id: r.id });
+  };
+
+  /* ══ ENVOYER PLUS TARD (8 octobre 2026 : « écrire un message maintenant et le programmer pour demain 8 h ») ══
+     Du TEXTE seul (une pièce déposée attendrait des heures sans être rattachée, une carte dirait une position ou un sondage d'hier). L'heure est un INSTANT (ms) : la page le calcule dans
+     le fuseau de l'appareil ; une minute au plus tôt, un an au plus tard. Cinquante en attente par personne. Personne d'autre ne le voit avant qu'il parte. À l'heure, le balayeur l'envoie
+     par le même chemin qu'un envoi — les règles d'écriture jugées À CE MOMENT ; une conversation quittée, un contact retiré : il ne part pas, et sa ligne s'en va. */
+  const PROG_MIN_MS = 60000, PROG_HORIZON_MS = 366 * JOUR, PROG_MAX = 50, ID_PROG = /^g_[0-9a-f]{32}$/;
+  H['prog.creer'] = (req, res) => {
+    const b = corps(req), conv = req.conv.conv;
+    if (typeof b.texte !== 'string') return refus(res, 400, 'champ_invalide');
+    if (b.texte.length > MSG_MAX * 2) return refus(res, 413, 'trop_long');
+    const texte = nettoyerTexte(b.texte);
+    if (!texte || INVISIBLE.test(texte)) return refus(res, 400, 'champ_invalide');
+    if (Array.from(texte).length > MSG_MAX) return refus(res, 413, 'trop_long');
+    const quand = entier(b.quand), t = horloge();
+    if (quand === null || quand < t + PROG_MIN_MS || quand > t + PROG_HORIZON_MS) return refus(res, 400, 'heure_invalide');
+    const ref = refusEcriture(conv, req.moi.id, req.conv.moi.role, 'texte');
+    if (ref) return refus(res, ref[0], ref[1]);
+    if (stockage.programmesCompter(req.moi.id) >= PROG_MAX) return refus(res, 409, 'programmes_plein');
+    if (!plafond(res, 'prog', req.moi.id, { max: 60, fenetreMs: 3600000 })) return;
+    const x = stockage.programmeCreer({ conv: conv.id, auteur: req.moi.id, texte, quand });
+    res.status(201).json({ programme: x });
+  };
+  H['prog.liste'] = (req, res) => res.json({ programmes: stockage.programmesDe(req.conv.conv.id, req.moi.id) });
+  H['prog.annuler'] = (req, res) => {
+    const id = req.params.id;
+    if (!ID_PROG.test(id) || !stockage.programmeAnnuler(req.moi.id, id)) return refus(res, 404, 'introuvable');
+    res.json({ ok: true });
+  };
+  /* le balayeur (`index.js`) : ceux dont l'heure est venue partent, par petits paquets. Le `cid` du message est celui du programme : un envoi rejoué (une panne entre l'envoi et le
+     retrait de la ligne) rend « déjà là », jamais un doublon. → { envoyes, abandonnes } */
+  ctx.programmesTour = (max = 25) => {
+    const bilan = { envoyes: 0, abandonnes: 0 };
+    for (const g of stockage.programmesEchus(horloge(), max)) {
+      try {
+        const m = stockage.convPourMembre(g.conv, g.auteur);
+        const ref = m ? refusEcriture(m.conv, g.auteur, m.moi.role, 'texte') : [404, 'introuvable'];
+        if (ref) { stockage.programmeFini(g.id); bilan.abandonnes++; continue; }
+        const r = stockage.messageEnvoyer({ conv: g.conv, auteur: g.auteur, cid: 'prog_' + g.id.slice(2), type: 'texte', texte: g.texte });
+        stockage.programmeFini(g.id);
+        if (r.deja) continue;
+        bilan.envoyes++;
+        hub.reveiller({ conv: g.conv });
+        const auteur = stockage.personneParId(g.auteur);
+        try { if (ctx.push && auteur) ctx.push.message({ conv: g.conv, seq: r.seq, gid: r.gid, auteur: g.auteur, nomAuteur: nomAffiche(auteur), nomConv: m.conv.nom, groupe: m.conv.type !== 'direct', type: 'texte', texte: g.texte }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+      } catch (e) { ctx.journaliser('programme_echec', { nom: (e && (e.code || e.name)) || 'Erreur' }); }
+    }
+    if (bilan.abandonnes) ctx.journaliser('programme_abandonne', { n: bilan.abandonnes });
+    return bilan;
   };
 
   /* ── LES CARTES (7 octobre 2026) : une position, la fiche d'un contact, un sondage. Chacune est un TEXTE (son résumé : ce que montre une version d'avant, une notification, l'aperçu de la liste)

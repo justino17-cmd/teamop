@@ -2709,6 +2709,12 @@
     async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
     async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
     async function supprimerEvenement(id) { await A.supprimerEvenement(id); return true; }
+    /* ── envoyer plus tard (8 octobre 2026) : ce que le service a retenu — le texte et l'instant ; personne d'autre ne les voit ── */
+    const vueProgramme = (x) => ({ id: String(x.id), conv: String(x.conv), texte: String(x.texte || ''), quand: +x.quand || 0 });
+    /* ⛔ `programmer` est PROGRAMMER UNE RÉUNION : deux fonctions du même nom dans la même portée, la seconde remplace la première partout — d'où des noms à part */
+    async function messagesProgrammes(conv) { return (await A.messagesProgrammes(conv) || []).map(vueProgramme); }
+    async function programmerMessage(conv, texte, quand) { return vueProgramme(await A.programmerMessage(conv, texte, quand)); }
+    async function annulerProgramme(id) { await A.annulerProgramme(id); return true; }
     async function faitEvenement(id, fait) { return vueEvenement(await A.faitEvenement(id, fait === true)); }
     async function reporterEvenement(id, dans) { return vueEvenement(await A.reporterEvenement(id, dans)); }
     /* ── le compte par adresse e-mail (« comme Discord » : le numéro est facultatif) ──
@@ -3296,6 +3302,7 @@
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
+      messagesProgrammes, programmerMessage, annulerProgramme,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,

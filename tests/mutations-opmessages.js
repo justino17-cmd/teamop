@@ -163,7 +163,8 @@ const MUTATIONS = [
   { id: 'N12', nom: 'une réunion terminée redevient un bouton : la toucher rouvre la fiche (Accepter / Peut-être / Refuser pour une réunion finie)', cible: 'page', f: sub("const ouvre = se ? '<div class=\"reunion-ligne terminee'", "const ouvre = false ? '<div class=\"reunion-ligne terminee'"), banc: /TERMINÉE n'est plus un bouton/ },
   { id: 'N13', nom: 'le tableau de bord compte encore une séance terminée parmi les réunions « prévues »', cible: 'page', f: sub(" && !(o.seance && !r.salleOuverte)) occ.push", ") occ.push"), banc: /RIEN à programmer d'ici/ },
   { id: 'N14', nom: '« Programmer » revient dans le tableau de bord vide', cible: 'page', f: sub("'Aucune réunion dans les ' + nj + ' prochains jours.') + '</span></li>'", "'Aucune réunion dans les ' + nj + ' prochains jours.') + '</span><button type=\"button\" class=\"presse\" data-bord=\"programmer\">Programmer</button></li>'"), banc: /RIEN à programmer d'ici/ },
-  { id: 'N15', nom: 'un événement supprimé depuis le tableau de bord y reste affiché (seul l\'Agenda se relit)', cible: 'page', f: sub("    if ($('vue-accueil').dataset.pret) { if (etat.route && etat.route.vue === 'accueil') rendreAccueil(); chargerAccueil(); }\n", ""), banc: /se relit PARTOUT/ }
+  { id: 'N15', nom: 'un événement supprimé depuis le tableau de bord y reste affiché (seul l\'Agenda se relit)', cible: 'page', f: sub("    if ($('vue-accueil').dataset.pret) { if (etat.route && etat.route.vue === 'accueil') rendreAccueil(); chargerAccueil(); }\n", ""), banc: /se relit PARTOUT/ },
+  { id: 'N16', nom: 'le relâcher d\'un appui long sur la flèche ENVOIE le message (au lieu d\'ouvrir « Envoyer plus tard » seulement)', cible: 'page', f: sub("if (etat.envoyerLong) { etat.envoyerLong = false; e.stopImmediatePropagation(); }", "if (etat.envoyerLong) { etat.envoyerLong = false; }"), banc: /envoyer plus tard/ }
 ];
 
 function appliquer(m, PAGE, SRC) {

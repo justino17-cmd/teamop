@@ -207,6 +207,8 @@ function demarrer(env = process.env) {
       effacerPieces(stockage.piecesOrphelinesPurger(500));                // une pièce jamais envoyée (24 h), une photo de profil jamais posée
       /* ⛔ LES COMPTES DONT LA SUPPRESSION EST ÉCHUE (J+14) : l'identité, les contacts, les notifications, les appareils partent ; les messages restent chez les autres, signés « Compte supprimé ».
          Par petits paquets (un effacement est une transaction) ; ce que la personne a vu s'en aller (groupes quittés, contacts) est dit aux autres tout de suite. */
+      /* ⛔ ENVOYER PLUS TARD (8 octobre 2026) : les messages programmés dont l'heure est venue partent, par le MÊME chemin qu'un envoi (`routes.js`, `ctx.programmesTour`) */
+      if (ctx.programmesTour) { const g = ctx.programmesTour(25); if (g.envoyes) journaliser('programme_envoye', { n: g.envoyes }); }
       for (const id of stockage.comptesEchus(5)) {
         const e = stockage.compteEffacer(id);
         if (!e.effacee) continue;

@@ -172,4 +172,7 @@ tests/test-926.js
 tests/test-927.js
 tests/test-928.js
 tests/test-929.js
+tests/test-935.js
 # ── Le menu d'un message contre sa bulle, « Me le rappeler », l'Agenda au mois (8 octobre 2026) : la préférence du compte (929) ; la vraie page est la sonde tests/sonde-opmessages-menu-rappel.js
+# ── Les rappels qu'on coche, qu'on reporte, qui ramènent à leur message, et ENVOYER PLUS TARD (8 octobre 2026) : 998 et 935 ; la vraie page : tests/sonde-opmessages-plus-tard.js
+#    et les sections 5 de sonde-opmessages-menu-rappel.js, 6 bis de sonde-opmessages-tableau-bord.js.
