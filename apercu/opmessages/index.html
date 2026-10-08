@@ -7063,7 +7063,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     occ.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
     let h = '', jp = null;
     for (const x of occ.slice(0, BORD_MAX)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
-    if (occ.length > BORD_MAX && CAP.reunions) h += '<li class="bord-plus"><button type="button" class="presse" data-bord="agenda">' + esc('Voir les ' + (occ.length - BORD_MAX) + (occ.length - BORD_MAX > 1 ? ' autres' : ' autre') + ' dans l\'Agenda') + '</button></li>';
+    if (occ.length > BORD_MAX && CAP.reunions) h += '<li class="bord-plus"><button type="button" class="presse" data-bord="agenda">' + esc(occ.length - BORD_MAX > 1 ? 'Voir les ' + (occ.length - BORD_MAX) + ' autres dans l\'Agenda' : 'Voir l\'autre dans l\'Agenda') + '</button></li>';
     $('bord-reunions').innerHTML = att || h || '<li class="bord-vide"><span>' + esc('Aucune réunion dans les ' + nj + ' prochains jours.') + '</span></li>';
     $('bord-reunions-n').textContent = occ.length ? String(occ.length) : '';
     /* les rappels : les événements d'aujourd'hui, et ceux à venir qui portent un rappel */

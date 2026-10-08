@@ -63,6 +63,9 @@ function localDans(t, tz) {
     const salleF = reuF.code === 201 ? await P.ana.post('/api/reunions/' + reuF.j.reunion.id + '/rejoindre', {}) : { j: {} };
     const finF = salleF.j && salleF.j.appel ? await P.ana.post('/api/salles/' + salleF.j.appel.id + '/terminer', {}) : { code: 0 };
     v('population : la réunion dans douze jours, et celle qu\'Ana a ouverte puis TERMINÉE pour tous', [reu12.code, reuF.code, finF.code], [201, 201, 200]);
+    /* onze de plus, du 3ᵉ au 13ᵉ jour : au MOIS, treize réunions — douze lignes, puis « Voir l'autre dans l'Agenda » */
+    const plus = []; for (let i = 3; i <= 13; i++) plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(t0 + i * JOUR, PARIS), fin: localDans(t0 + i * JOUR + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false })).code);
+    v('population : onze réunions de suivi, du 3ᵉ au 13ᵉ jour', plus, Array(11).fill(201));
     v('population : Cléo est Pro (membre de l\'espace abonné) et n\'est invitée nulle part', (await P.cleo.get('/api/espaces')).j.formule, 'pro');
     /* demain à midi, À PARIS (l'heure locale part telle quelle, avec son fuseau) : pas aujourd'hui — il n'entre au tableau que par son RAPPEL */
     const demainParis = localDans(Date.now() + JOUR, PARIS).slice(0, 10);
@@ -110,6 +113,12 @@ function localDans(t, tz) {
     vrai('« Mois » : la réunion dans douze jours paraît (relue sur 30 jours), la séance terminée toujours pas', await att(A, () => { const t = document.getElementById('bord-reunions').textContent; return /Revue mensuelle WQXZ/.test(t) && /Point chantier WQXZ/.test(t) && !/Point fini WQXZ/.test(t) && document.querySelector('#bord-portee [data-bord-portee="mois"]').getAttribute('aria-pressed') === 'true'; }), JSON.stringify(await bordReu()));
     vrai('⛔ le COMPTE retient « Mois » (prefs.bord_reunions), sans toucher la vue de l\'Agenda', await att(A, () => true) && await (async () => { for (let i = 0; i < 30; i++) { const m = (await P.ana.get('/api/moi')).j.moi.prefs || {}; if (m.bord_reunions === 'mois') return m.agenda_vue !== 'mois'; await new Promise(r => setTimeout(r, 100)); } return false; })());
     await capture(A, 'bord-1b-mois');
+    const plusLu = await A.page.evaluate(() => ({ lignes: document.querySelectorAll('#bord-reunions .reunion-ligne').length, plus: (document.querySelector('#bord-reunions [data-bord="agenda"]') || {}).textContent || '', n: document.getElementById('bord-reunions-n').textContent }));
+    v('au MOIS, treize réunions : douze lignes, le compteur dit 13, puis « Voir l\'autre dans l\'Agenda » (au singulier)', plusLu, { lignes: 12, plus: 'Voir l\'autre dans l\'Agenda', n: '13' });
+    await A.page.locator('#bord-reunions [data-bord="agenda"]').tap();
+    vrai('le toucher ouvre l\'Agenda', await att(A, () => !document.getElementById('vue-reunions').hidden && document.getElementById('vue-accueil').hidden));
+    await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
+    await att(A, () => !document.getElementById('vue-accueil').hidden);
 
     console.log('\n3. Les rappels');
     vrai('l\'événement de demain, avec son rappel, sous « Demain »', await att(A, () => { const l = document.getElementById('bord-rappels'); const j = l.querySelector('.bord-jour'); return !!j && j.textContent === 'Demain' && /Rappeler le fournisseur WQXZ/.test(l.textContent) && /Rappel 30 min avant/.test(l.textContent); }));

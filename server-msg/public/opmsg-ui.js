@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c264442dc1d8';
+  const OPMSG_BUILD = '1fad3bc3c0c6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 118;
+  const OPMSG_VERSION = 119;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4620,7 +4620,7 @@
     occ.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
     let h = '', jp = null;
     for (const x of occ.slice(0, BORD_MAX)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
-    if (occ.length > BORD_MAX && CAP.reunions) h += '<li class="bord-plus"><button type="button" class="presse" data-bord="agenda">' + esc('Voir les ' + (occ.length - BORD_MAX) + (occ.length - BORD_MAX > 1 ? ' autres' : ' autre') + ' dans l\'Agenda') + '</button></li>';
+    if (occ.length > BORD_MAX && CAP.reunions) h += '<li class="bord-plus"><button type="button" class="presse" data-bord="agenda">' + esc(occ.length - BORD_MAX > 1 ? 'Voir les ' + (occ.length - BORD_MAX) + ' autres dans l\'Agenda' : 'Voir l\'autre dans l\'Agenda') + '</button></li>';
     $('bord-reunions').innerHTML = att || h || '<li class="bord-vide"><span>' + esc('Aucune réunion dans les ' + nj + ' prochains jours.') + '</span></li>';
     $('bord-reunions-n').textContent = occ.length ? String(occ.length) : '';
     /* les rappels : les événements d'aujourd'hui, et ceux à venir qui portent un rappel */
