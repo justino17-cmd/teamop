@@ -60,7 +60,7 @@ function installerReunions(H, ctx) {
     lien_invalide: [410, 'lien_invalide'], occupe_moi: [409, 'occupe', { moi: true }], exclu: [403, 'exclu'], verrouillee: [423, 'verrouillee'], appel_complet: [409, 'appel_complet'], appel_pris: [409, 'appel_pris'], appel_fini: [409, 'appel_fini'] };
   const garder = (f) => (req, res, next) => {
     /* `reunion_pleine` porte le PLAFOND (`max`) que le stockage a appliqué : la page l'écrit (« dix personnes au plus »), elle ne le recopie pas */
-    const traduire = (e) => { if (e && e.code === 'reunion_pleine') return refus(res, 409, 'reunion_pleine', { max: e.max }); const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], c[2]); return next(e); };
+    const traduire = (e) => { if (e && e.code === 'reunion_pleine') return refus(res, 409, 'reunion_pleine', { max: e.max }); const c = e && CODES[e.code]; if (c) return refus(res, c[0], c[1], e.code === 'appel_complet' && Number.isInteger(e.max) ? Object.assign({ max: e.max }, c[2] || {}) : c[2]); return next(e); };
     try { const r = f(req, res, next); if (r && typeof r.catch === 'function') r.catch(traduire); }
     catch (e) { traduire(e); }
   };

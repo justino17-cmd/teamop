@@ -58,7 +58,11 @@ function construireApp(ctx) {
      le push quand la page est fermée) — `worker-src` retombe sur `child-src`, puis sur `script-src 'self'`, donc il passerait, mais une règle qu'on n'écrit pas est une règle qu'un
      resserrement futur de `script-src` retirera sans le vouloir ; et le MANIFESTE (`/manifest.webmanifest`, sans lequel un iPhone n'accorde pas les notifications à une page « ajoutée à l'écran
      d'accueil ») — `manifest-src` ne retombe QUE sur `default-src 'none'` : sans cette ligne le navigateur refuse de le lire, sans une erreur visible. Les deux sont `'self'` : jamais un autre domaine. */
-  const CSP_PAGE = "default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+  /* ⛔ LE SERVEUR DE VISIO, S'IL EST CONFIGURÉ (`appels.visio.url`, `visio.js`) : la page s'y relie en `wss://` (sa signalisation) et lit `https://…/rtc/validate` quand la liaison échoue — ces DEUX adresses, et
+     aucune autre, rejoignent `connect-src`. Sans visio, la politique est exactement celle d'avant. */
+  const visioCfg = config.appels && config.appels.visio;
+  const connectVisio = visioCfg ? ' ' + visioCfg.url + ' ' + visioCfg.url.replace(/^ws/, 'http') : '';
+  const CSP_PAGE = "default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'" + connectVisio + "; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
   const CSP_PIECE = "sandbox; default-src 'none'";
   app.use((req, res, next) => {
     res.set({
@@ -108,7 +112,9 @@ function construireApp(ctx) {
     next();
   });
   const lecteurJson = express.json({ limit: '64kb', strict: true });
-  app.use((req, res, next) => (req.method === 'POST' && /^\/api\/pieces\/?$/i.test(req.path)) ? next() : lecteurJson(req, res, next));
+  /* ⛔ ni le dépôt d'une pièce, ni l'AVIS du serveur de visio (`/api/visio/avis`) : leur corps se lit BRUT par leur route — l'avis se vérifie sur l'empreinte de ses octets exacts (`visio.js`). */
+  const AVIS_VISIO = /^\/api\/visio\/avis\/?$/i;
+  app.use((req, res, next) => (req.method === 'POST' && (/^\/api\/pieces\/?$/i.test(req.path) || AVIS_VISIO.test(req.path))) ? next() : lecteurJson(req, res, next));
 
   /* ── Une écriture : l'origine de l'application ET l'en-tête maison ────────────────────── */
   function origineOk(req) {
@@ -121,6 +127,8 @@ function construireApp(ctx) {
   }
   app.use((req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD') return next();
+    /* ⛔ L'AVIS DU SERVEUR DE VISIO n'est pas une écriture d'une page (pas d'Origin, pas d'en-tête maison) : sa garde est AILLEURS et plus stricte — la boucle locale sans proxy (LV), puis la signature sur le corps. */
+    if (req.method === 'POST' && AVIS_VISIO.test(req.path)) return next();
     if (!origineOk(req)) return refus(res, 403, 'origine_refusee');
     if (req.headers[NOM_ENTETE] !== '1') return refus(res, 403, 'entete_requis');
     next();
@@ -139,7 +147,7 @@ function construireApp(ctx) {
   app.use((req, res, next) => {
     if (req.method === 'GET' || req.method === 'HEAD' || !ctx.versionClient) return next();
     const exige = ctx.versionClient.exige();
-    if (exige < 2 || SANS_VERSION.test(req.path)) return next();
+    if (exige < 2 || SANS_VERSION.test(req.path) || AVIS_VISIO.test(req.path)) return next();
     const brut = String(req.headers['x-opm-version'] || '');
     const v = /^[0-9]{1,5}$/.test(brut) ? parseInt(brut, 10) : 0;
     if (v >= exige) return next();
@@ -150,7 +158,7 @@ function construireApp(ctx) {
   app.use((req, res, next) => {
     /* ⛔ quatre gestes passent sous le plancher : se déconnecter, supprimer son compte (il LIBÈRE de la place, et c'est un droit), exporter ses données (un droit aussi, et rien n'est écrit sur le disque :
        le fichier part au fil de l'eau, le quota « un par jour » vit en mémoire — relevé par le gardien, 3 octobre 2026) et acquitter un événement (rien n'est écrit : la mémoire seulement) */
-    if (req.method !== 'GET' && req.method !== 'HEAD' && ctx.disque.bas() && !/^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack)\/?$/i.test(req.path)) return refus(res, 503, 'disque_plein');
+    if (req.method !== 'GET' && req.method !== 'HEAD' && ctx.disque.bas() && !/^\/api\/(compte\/(deconnexion|supprimer|export)|flux\/ack|visio\/avis)\/?$/i.test(req.path)) return refus(res, 503, 'disque_plein');
     next();
   });
 
@@ -166,6 +174,10 @@ function construireApp(ctx) {
   const garde = {};
   garde.P = [];
   garde.B = [(req, res, next) => config.instance === 'beta' ? next() : refus(res, 404, 'introuvable')];
+  /* ⛔ LV : LiveKit, sur LA MÊME MACHINE — la connexion vient de la boucle locale ET ne passe pas par nginx (nginx est local lui aussi : c'est son en-tête `X-Forwarded-For`, posé sur TOUT ce qu'il relaie, qui
+     trahit une requête venue d'Internet). Sinon, le même 404 qu'une route qui n'existe pas. La signature se vérifie ensuite, dans la route (`visio.avisLire`). */
+  const BOUCLE = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
+  garde.LV = [(req, res, next) => (BOUCLE.has(req.socket && req.socket.remoteAddress) && req.headers['x-forwarded-for'] === undefined && req.headers['x-real-ip'] === undefined) ? next() : refus(res, 404, 'introuvable')];
   garde.S = [(req, res, next) => {
     const j = lireCookie(req);
     if (!j || !JETON.test(j)) return refus(res, 401, 'session_requise');
@@ -294,7 +306,7 @@ function construireApp(ctx) {
     if (r.pro === true) chaine.push(...garde.PRO);     // ⛔ la route le DÉCLARE (manifeste) ; après sa garde d'appartenance, jamais avant (un non-membre reçoit 404, pas 402)
     if (r.organiser === true) chaine.push(...garde.ORGANISER);     // idem : Pro OU Perso+ (le forfait d'une personne)
     /* ⛔ les annotations d'une salle ont LEUR plafond, par compte, en gestes et en points (`routes-salles.js`) : un trait part en morceaux pendant qu'on dessine, et les 300 écritures par minute le coupaient */
-    if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B' && r.id !== 'salles.annot') chaine.push(limiteEcriture);
+    if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B' && r.garde !== 'LV' && r.id !== 'salles.annot') chaine.push(limiteEcriture);
     app[r.m.toLowerCase()](r.p, ...chaine, h);
   }
 
