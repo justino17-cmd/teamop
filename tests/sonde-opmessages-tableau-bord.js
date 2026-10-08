@@ -81,6 +81,10 @@ function localDans(t, tz) {
     v('population : le dîner (dans la semaine) et le dentiste (demain, avec un rappel) sont rangés PERSO au service ; le point de chantier, PRO', [diner.code, diner.j.reunion && diner.j.reunion.cote, dentiste.code, dentiste.j.evenement && dentiste.j.evenement.cote, reu.j.reunion && reu.j.reunion.cote],
       [201, 'perso', 201, 'perso', 'pro']);
     /* des appels manqués : Ben une fois, Cléo une fois, Dan deux fois d'affilée — chacun raccroche avant qu'Ana réponde */
+    /* (8 octobre 2026, « que tout soit à part ») le tableau de bord est le côté Pro : un appel y entre s'il est du côté Pro. Dan n'est pas un collègue — Ana range leur
+       conversation dans Pro, comme on le fait pour un client ; Ben, lui, reste Perso (et n'aurait de toute façon rien d'important). */
+    { const d = await P.ana.post('/api/conversations/directe', { uid: P.dan.moi.id }); const r = await P.ana.post('/api/conversations/' + d.j.conversation.id + '/prefs', { cote: 'pro' });
+      v('population : Ana range sa conversation avec Dan (un client, pas un collègue) dans Pro', [d.code < 300, r.code], [true, 200]); }
     const manquer = async (X) => { const r = await X.post('/api/appels', { uid: P.ana.moi.id, type: 'audio' }); if (r.code !== 201) return r.code; return (await X.post('/api/appels/' + r.j.appel.id + '/quitter', {})).code; };
     v('population : quatre appels manqués partent (Ben, Cléo, Dan, Dan)', [await manquer(P.ben), await manquer(P.cleo), await manquer(P.dan), await manquer(P.dan)], [200, 200, 200, 200]);
     const lm = (await P.ana.get('/api/appels?filtre=manques')).j.appels || [];
