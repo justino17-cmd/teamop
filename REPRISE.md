@@ -13,6 +13,12 @@ de ligne du tout.
 
 ---
 
+# ⛔ DÉCISION DE JUSTIN, 8 OCTOBRE 2026 (NUIT) — OP MESSAGES RESTE EN BÊTA
+
+« Aucun [OP] message pour l'instant, c'est que de la bêta : on publiera quand l'application sera stable et utilisable par tout le monde. » La version publique
+d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
+de se publier à chaque fusion, comme avant.
+
 # ✅ 8 OCTOBRE 2026 (NUIT) — LE SITE : contact@ ET support@ AU PIED DE CHAQUE PAGE ; L'ACCUEIL PLUS FOURNI ; LE « CDN » D'IONOS
 
 ✅ **EN LIGNE DEPUIS LE 8 OCTOBRE, 21 H 45 (UTC)** — #108 (`0d27fcd`) ; relu sur teamop.fr (« Ce que fait OP GESTION », contact@ au pied).
