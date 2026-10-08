@@ -13,11 +13,11 @@ const T = require('./outils-msg');
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
 
-const MDP = { alice: 'pw-alice-agenda1', bob: 'pw-bob-agenda12' };
+const MDP = { alice: 'pw-alice-agenda1', bob: 'pw-bob-agenda12', carla: 'pw-carla-agenda1' };
 const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter la carte QXW';
 
 (async () => {
-  const og = await T.fauxOpGestion({ alice: { pass: MDP.alice, nom: 'Alice Martin', actif: true }, bob: { pass: MDP.bob, nom: 'Bob Petit', actif: true } });
+  const og = await T.fauxOpGestion({ alice: { pass: MDP.alice, nom: 'Alice Martin', actif: true }, bob: { pass: MDP.bob, nom: 'Bob Petit', actif: true }, carla: { pass: MDP.carla, nom: 'Carla Roux', actif: true } });
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { reunions: { planificateurMs: 150, bailMs: 2000 } } });
   const BASE = path.join(svc.data, 'msg.db');
   const sql = (req, ...a) => { const d = T.lireBase(BASE); try { return d.prepare(req).get(...a); } finally { d.close(); } };
@@ -107,6 +107,51 @@ const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter l
     v('supprimer : 200, puis 404 (déjà parti)', [s1.code, (await A.post('/api/agenda/' + E.id + '/supprimer')).code], [200, 404]);
     v('il est noté au registre des purges (une restauration ne le ramène pas)', Number(sql("SELECT COUNT(*) AS n FROM purge WHERE genre = 'evenement' AND objet = ?", E.id).n), 1);
     v('un identifiant mal formé : 404', (await A.post('/api/agenda/e_pasunid/maj', { titre: 'x' })).code, 404);
+
+    /* ═══ 7. (8 octobre 2026) COCHER, REPORTER, LE MESSAGE D'ORIGINE — « cocher un rappel fait », « voir le message », « reporter » ═══ */
+    console.log('\n7. ⛔ Cocher, reporter, et le message d\'où vient un rappel');
+    { const l = await A.post('/api/contacts/lien', {}); await B.post('/api/liens/accepter', { code: l.j.code }); }
+    const AB = (await A.post('/api/conversations/directe', { uid: B.moi.id })).j.conversation.id;
+    const env = await B.post('/api/conversations/' + AB + '/messages', { cid: 'cid-agenda-' + Date.now().toString(36), texte: 'Rappelle le client QXW demain' });
+    const seq = env.j && env.j.seq;
+    vrai('population : une directe Alice ↔ Bob, et le message de Bob (son rang)', Number.isSafeInteger(seq) && seq > 0, env.j);
+    const bientot2 = Math.ceil((Date.now() + 3 * 3600000) / 60000) * 60000;
+    const rs = await A.post('/api/agenda', { titre: 'Rappel : Rappelle le client QXW', debut: debutLocal(bientot2), tz: 'UTC', rappel: 0, source: { conv: AB, seq } });
+    v('« Me le rappeler » : l\'événement garde le CHEMIN vers le message (conversation, rang) — pas une copie', [rs.code, rs.j.evenement && rs.j.evenement.source, rs.j.evenement && rs.j.evenement.fait], [201, { conv: AB, seq }, null]);
+    const RS = rs.j.evenement;
+    /* ⛔ un pointeur ne se pose QUE sur un message qu'on peut lire */
+    const C0 = await T.connecter(svc, og, 'carla', MDP.carla);
+    const autre = await C0.post('/api/agenda', { titre: 'Espion', debut: debutLocal(bientot2), tz: 'UTC', source: { conv: AB, seq } });
+    v('⛔ Carla, qui n\'est pas de la conversation, ne peut pas y pointer (400 source_invalide) — même réponse qu\'un message qui n\'existe pas', [autre.code, autre.j.error, (await A.post('/api/agenda', { titre: 'x', debut: debutLocal(bientot2), tz: 'UTC', source: { conv: AB, seq: seq + 999 } })).j.error],
+      [400, 'source_invalide', 'source_invalide']);
+    v('   une source mal formée : 400', [(await A.post('/api/agenda', { titre: 'x', debut: debutLocal(bientot2), tz: 'UTC', source: { conv: 'c_x', seq: 1 } })).code, (await A.post('/api/agenda', { titre: 'x', debut: debutLocal(bientot2), tz: 'UTC', source: 'AB' })).code], [400, 400]);
+    v('⛔ la source ne s\'écrit JAMAIS par « maj » (posée à la création seulement)', (await A.post('/api/agenda/' + RS.id + '/maj', { titre: 'Rappel : renommé', source: { conv: AB, seq: 1 } })).j.evenement.source, { conv: AB, seq });
+    /* cocher */
+    const f1 = await A.post('/api/agenda/' + RS.id + '/fait', { fait: true });
+    v('cocher : fait (l\'instant), et il ne sonnera plus (plus d\'échéance en attente)', [f1.code, typeof f1.j.evenement.fait, f1.j.evenement.rappelEnAttente], [200, 'number', false]);
+    v('   noté en base (`fait`), l\'échéance effacée', [Number(sql('SELECT fait IS NOT NULL AS f FROM evenement WHERE id = ?', RS.id).f), sql('SELECT rappel_a FROM evenement WHERE id = ?', RS.id).rappel_a], [1, null]);
+    const f2 = await A.post('/api/agenda/' + RS.id + '/fait', { fait: false });
+    v('décocher : à faire, et son rappel (à l\'heure, dans 3 h) se repose', [f2.j.evenement.fait, f2.j.evenement.rappelEnAttente], [null, true]);
+    v('⛔ cocher celui d\'un autre : 404 ; un corps sans booléen : 400', [(await B.post('/api/agenda/' + RS.id + '/fait', { fait: true })).code, (await A.post('/api/agenda/' + RS.id + '/fait', { fait: 'oui' })).code], [404, 400]);
+    /* reporter */
+    await A.post('/api/agenda/' + RS.id + '/fait', { fait: true });
+    const t2 = Date.now() + 16 * 60000 + 60 * 60000;          // l'horloge du SERVICE : la section 5 l'a avancée de 16 puis de 60 minutes
+    const p1 = await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 10 });
+    const d1 = p1.j.evenement.debut - t2;
+    v('reporter de 10 min : l\'heure est CALCULÉE par le service (dans 10 à 11 min, à la minute), la durée gardée, décoché, et il sonnera', [p1.code, d1 >= 10 * 60000 && d1 <= 11 * 60000 + 2000, p1.j.evenement.debut % 60000, p1.j.evenement.fin - p1.j.evenement.debut, p1.j.evenement.fait, p1.j.evenement.rappelEnAttente],
+      [200, true, 0, RS.fin - RS.debut, null, true]);
+    const p2 = await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 'demain' });
+    const loc = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(p2.j.evenement.debut);
+    v('reporter à demain : 9 h dans SON fuseau (UTC ici), le jour suivant', [p2.code, loc, Math.round((p2.j.evenement.debut - t2) / 86400000) <= 1 && p2.j.evenement.debut > t2], [200, '09:00', true]);
+    const sansRappel = (await A.post('/api/agenda', { titre: 'Sans rappel', debut: debutLocal(bientot2), tz: 'UTC' })).j.evenement;
+    v('   un événement SANS rappel en reçoit un « à l\'heure » quand on le reporte (on reporte pour qu\'il sonne)', [(await A.post('/api/agenda/' + sansRappel.id + '/reporter', { dans: 60 })).j.evenement.rappel], [0]);
+    const jour = (await A.post('/api/agenda', { titre: 'Journée', debut: '2026-12-01', journee: true, tz: 'UTC' })).j.evenement;
+    v('   une journée entière ne se reporte que d\'un jour (10 min : 400 ; demain : 200, toujours une journée)', [(await A.post('/api/agenda/' + jour.id + '/reporter', { dans: 10 })).code, (await A.post('/api/agenda/' + jour.id + '/reporter', { dans: 'demain' })).j.evenement.journee],
+      [400, true]);
+    v('⛔ des valeurs hors liste : 400 (« 5 », « lundi », un nombre en texte) ; celui d\'un autre : 404', [(await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 5 })).code, (await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 'lundi' })).code,
+      (await A.post('/api/agenda/' + RS.id + '/reporter', { dans: '10' })).code, (await B.post('/api/agenda/' + RS.id + '/reporter', { dans: 10 })).code], [400, 400, 400, 404]);
+    /* la notification d'un rappel ouvre SA fiche : l'adresse porte l'identifiant de l'événement */
+    v('   la liste rend la source et l\'état « fait » (ce que la page lit)', ((await A.get('/api/agenda?du=' + (t2 - 86400000) + '&au=' + (t2 + 5 * 86400000))).j.evenements || []).filter(x => x.id === RS.id).map(x => [x.source && x.source.seq, x.fait]), [[seq, null]]);
   } finally { await svc.arreter(); await og.fermer(); }
   fin();
 })().catch(e => { console.error(e); process.exit(1); });

@@ -100,6 +100,7 @@
   const SOURDINES = { '8h': 8 * 3600000, '1s': 7 * 86400000, tj: 9 * 365 * 86400000, off: 0 };   // « toujours » = neuf ans (le service refuse plus de dix)
   const MOTIF_OUVRIR = /^\/#messages\/(c_[0-9a-f]{32})$/;
   const MOTIF_OUVRIR_REUNION = /^\/#reunions\/(r_[0-9a-f]{32})$/;
+  const MOTIF_OUVRIR_EVENEMENT = /^\/#reunions\/(e_[0-9a-f]{32})$/;            // un rappel de l'agenda : sa fiche (« Fait », « Reporter », « Voir le message »)
   const MOTIF_OUVRIR_APPELS = /^\/#appels$/;
   const MOTIF_OUVRIR_CONTACTS = /^\/#contacts$/;          // une demande de contact touchée mène à l'onglet Contacts (accepter, refuser)
   function erreurLocale(code) {
@@ -2701,11 +2702,15 @@
     }
     /* ── l'agenda personnel (capacité `agenda`) : ce que le service a retenu, jamais ce que la page croit avoir demandé ── */
     const vueEvenement = (x) => ({ id: String(x.id), titre: String(x.titre || ''), lieu: String(x.lieu || ''), note: String(x.note || ''), debut: +x.debut || 0, fin: +x.fin || 0,
-      journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true });
+      journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true,
+      fait: Number.isFinite(x.fait) && x.fait > 0 ? x.fait : null,                                         // coché (l'instant), ou null
+      source: x.source && /^c_[0-9a-f]{32}$/.test(String(x.source.conv)) && Number.isSafeInteger(x.source.seq) ? { conv: x.source.conv, seq: x.source.seq } : null });   // le message d'origine (« Me le rappeler »)
     async function evenements(du, au) { return (await A.agenda(du, au) || []).map(vueEvenement); }
     async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
     async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
     async function supprimerEvenement(id) { await A.supprimerEvenement(id); return true; }
+    async function faitEvenement(id, fait) { return vueEvenement(await A.faitEvenement(id, fait === true)); }
+    async function reporterEvenement(id, dans) { return vueEvenement(await A.reporterEvenement(id, dans)); }
     /* ── le compte par adresse e-mail (« comme Discord » : le numéro est facultatif) ──
        `comptesOuverts()` : ce que le service propose AVANT toute connexion — { courriel, inscription } (deux booléens), ou null quand on n'a pas pu le savoir (la page garde
        alors l'écran d'avant, jamais « pas ouvert » sur une panne). Les autres rendent ce que le service a répondu ; une connexion réussie pose la session (cookie) : la page recharge. */
@@ -2973,6 +2978,8 @@
           if (m && !mort) emettre({ type: 'ouvrir', conv: m[1] });          // seule une adresse de CETTE forme ouvre quelque chose : jamais une adresse venue d'ailleurs
           const r = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR_REUNION.exec(d.url) : null;
           if (r && !mort) emettre({ type: 'ouvrir', reunion: r[1] });
+          const ev = d && d.type === 'ouvrir' && typeof d.url === 'string' ? MOTIF_OUVRIR_EVENEMENT.exec(d.url) : null;
+          if (ev && !mort) emettre({ type: 'ouvrir', evenement: ev[1] });
           if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_APPELS.test(d.url) && !mort) emettre({ type: 'ouvrir', appels: true });      // la notification d'un appel (sonnerie ou manqué) mène à l'onglet des appels
           if (d && d.type === 'ouvrir' && typeof d.url === 'string' && MOTIF_OUVRIR_CONTACTS.test(d.url) && !mort) emettre({ type: 'ouvrir', contacts: true });
         });
@@ -3288,7 +3295,7 @@
       capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
-      evenements, creerEvenement, majEvenement, supprimerEvenement,
+      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,

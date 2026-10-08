@@ -348,8 +348,11 @@ async function controler(PAGE, SRC, DOC) {
   vrai('le menu d\'un message s\'ancre à la rangée du message (dès 700 px, si le navigateur sait l\'ancre) et l\'ancre part avec lui',
     /@supports \(anchor-name: --menu-msg\)/.test(CSS) && /\.menu-fond\.ancre \.menu-msg \{ position: fixed; position-anchor: --menu-msg;/.test(CSS) && /if \(ancre\) \{ ancre\.classList\.add\('menu-ancre'\); \$\('menu-fond'\)\.classList\.add\('ancre'\);/.test(JS)
       && /\$\('conv-messages'\)\.querySelectorAll\('\.menu-ancre'\)\.forEach\(x => x\.classList\.remove\('menu-ancre'\)\);/.test(JS));
-  vrai('« Me le rappeler » pose un ÉVÉNEMENT de l\'agenda, rappel à l\'heure (rien de neuf côté service)',
-    /await source\.creerEvenement\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \}\);/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
+  vrai('« Me le rappeler » pose un ÉVÉNEMENT de l\'agenda, rappel à l\'heure, avec le CHEMIN vers son message (conversation et rang — jamais une copie)',
+    /await source\.creerEvenement\(Object\.assign\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \},\s*Number\.isSafeInteger\(m\.seq\)[^;]*\{ source: \{ conv: c\.id, seq: m\.seq \} \}/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
+  vrai('⛔ un rappel se COCHE (le tableau de bord ne montre plus un rappel fait), se REPORTE (l\'heure calculée par le service), et « Voir le message » va au message — chargé de l\'historique s\'il le faut, et DIT s\'il a disparu',
+    /bord\.evenements\.filter\(e => !e\.fait && /.test(JS) && /source\.reporterEvenement\(F\.id, dans\)/.test(JS) && /source\.faitEvenement\(F\.id, !F\.fait\)/.test(JS)
+      && /await source\.precedents\(c\.id\);[^]*?return allerAuMessage\(\);/.test(JS) && /mot\('Ce message n\\'est plus dans la conversation\.'\)/.test(JS) && /if \(cibleMsg\.conv === id\) allerAuMessage\(\);/.test(JS));
   vrai('l\'Agenda au mois : la fenêtre chargée est celle qu\'on voit (le mois entier en semaines), et le choix va au COMPTE',
     /const n = \+\+reu\.jeton, \[du, au\] = fenetreAgenda\(\);/.test(JS) && /if \(M\) rendreMois\(auj\);/.test(JS) && /source\.choisirAgendaVue\(v\)/.test(JS) && /reu\.vue = typeof source\.agendaVue === 'function' && source\.agendaVue\(\) === 'mois'/.test(JS));
   vrai('⛔ une occurrence TERMINÉE n\'est plus un bouton (8 octobre 2026 : « quand c\'est terminé, il faudrait pas qu\'on puisse cliquer dessus ») : un bloc, sans data-reunion',

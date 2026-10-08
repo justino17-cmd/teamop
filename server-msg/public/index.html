@@ -1815,6 +1815,21 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 #bord-appels { --sep-retrait: 66px; }
 #vue-accueil .carte-liste { margin-bottom: 24px; }          /* trois blocs : l'intertitre du suivant ne colle pas à la carte d'avant */
 .reunion-li { display: flex; align-items: center; }
+/* le rond d'un rappel (tableau de bord) et la ligne faite : comme Rappels d'Apple — un cercle fin, plein et coché quand c'est fait */
+.evt-li { display: flex; align-items: center; }
+.evt-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; padding-left: 4px; }
+.evt-coche { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: 6px; }
+.evt-rond { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--sub-meta); color: transparent; transition: background-color .15s, border-color .15s; }
+.evt-rond .ic { width: 14px; height: 14px; stroke-width: 2.6; opacity: 0; }        /* vide tant que ce n'est pas fait : la coche ne paraît QUE dans le rond plein */
+.evt-rond.plein .ic, .evt-coche[aria-pressed="true"] .evt-rond .ic { opacity: 1; }
+.evt-coche[aria-pressed="true"] .evt-rond, .evt-rond.plein { background: var(--accent); border-color: var(--accent); color: #fff; }
+.evenement-ligne.fait .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
+.evt-gestes { margin-bottom: 16px; }
+.evt-gestes .reglage .evt-rond { flex: none; }
+.evt-reporter { flex-wrap: wrap; row-gap: 8px; }
+.evt-reporter-choix { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg.msg-cible .bulle { animation: msg-cible 2s ease-out; }
+@keyframes msg-cible { 0%, 35% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
 .salle-attente b { display: block; }

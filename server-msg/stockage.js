@@ -619,6 +619,15 @@ const MIGRATIONS = [
     `ALTER TABLE membre ADD COLUMN cote TEXT`,
     `PRAGMA user_version = 20`,
   ] },
+  /* ── 21 (8 octobre 2026) : LES RAPPELS QU'ON COCHE, ET CEUX QUI VIENNENT D'UN MESSAGE — « cocher un rappel fait », « voir le message ». `fait` : l'instant où la personne l'a coché
+         (un rappel fait ne sonne plus et quitte le tableau de bord ; il reste dans l'agenda, barré). `src_conv` / `src_seq` : le message d'où vient un rappel posé par « Me le rappeler »
+         — un POINTEUR, jamais une copie : lire le message redemande d'être membre de sa conversation. ── */
+  { v: 21, sql: [
+    `ALTER TABLE evenement ADD COLUMN fait INTEGER`,
+    `ALTER TABLE evenement ADD COLUMN src_conv TEXT`,
+    `ALTER TABLE evenement ADD COLUMN src_seq INTEGER`,
+    `PRAGMA user_version = 21`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -703,6 +712,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const PRESENCE = versionActuelle() >= 16;       // une base d'avant la migration 16 (bancs de migration) : rien n'est noté, le rapport de présence n'existe pas
   const SONDAGES = versionActuelle() >= 17;       // une base d'avant la migration 17 : pas de sondage de conversation
   const COTES = versionActuelle() >= 20;          // une base d'avant la migration 20 : aucune conversation rangée à la main (le côté automatique seul)
+  const RAPPELS_FAITS = versionActuelle() >= 21;  // une base d'avant la migration 21 : pas de rappel coché ni de message d'origine
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
   const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
 
@@ -2171,13 +2181,29 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     id: r.id, titre: ouvrirOuNull('evenement', 'titre_ch', r.id + '|titre', r.titre_ch) || '', lieu: r.lieu_ch ? (ouvrirOuNull('evenement', 'lieu_ch', r.id + '|lieu', r.lieu_ch) || '') : '',
     note: r.note_ch ? (ouvrirOuNull('evenement', 'note_ch', r.id + '|note', r.note_ch) || '') : '', debut: num(r.debut), fin: num(r.fin), journee: !!r.journee, tz: r.tz,
     rappel: r.rappel === null ? null : num(r.rappel), rappelEnAttente: r.rappel_a !== null, cree: num(r.cree), maj: num(r.maj),
+    fait: r.fait === null || r.fait === undefined ? null : num(r.fait),
+    source: r.src_conv ? { conv: r.src_conv, seq: num(r.src_seq) } : null,
   } : null;
   const scellerEvt = (id, champ, v) => v ? sceller('evenement', champ + '_ch', id + '|' + champ, v) : null;
-  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA }) {
+  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null }) {
     const id = nouvelId('e'), t = horloge();
     Q(`INSERT INTO evenement(id, uid, titre_ch, lieu_ch, note_ch, debut, fin, journee, tz, rappel, rappel_a, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(id, uid, sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
         rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
+    if (source && RAPPELS_FAITS) Q('UPDATE evenement SET src_conv = ?, src_seq = ? WHERE id = ?').run(source.conv, source.seq, id);
+    return evenementLire(uid, id);
+  }
+  /* cocher (`fait` : un instant) ou décocher (null) — l'échéance du rappel suit : `rappelA` null (coché : il ne sonne plus) ou recalculée par la route (décoché) */
+  function evenementFait(uid, id, fait, rappelA) {
+    if (!RAPPELS_FAITS) return null;
+    if (!num(Q('UPDATE evenement SET fait = ?, rappel_a = ?, maj = ? WHERE id = ? AND uid = ?').run(fait, rappelA, horloge(), id, uid).changes)) return null;
+    return evenementLire(uid, id);
+  }
+  /* reporter : un nouvel horaire, l'échéance recalculée par la route, et décoché (un rappel reporté est à refaire) */
+  function evenementReporter(uid, id, { debut, fin, journee, rappel, rappelA }) {
+    const r = Q('UPDATE evenement SET debut = ?, fin = ?, journee = ?, rappel = ?, rappel_a = ?, maj = ? WHERE id = ? AND uid = ?').run(debut, fin, journee ? 1 : 0, rappel, rappelA, horloge(), id, uid);
+    if (!num(r.changes)) return null;
+    if (RAPPELS_FAITS) Q('UPDATE evenement SET fait = NULL WHERE id = ?').run(id);
     return evenementLire(uid, id);
   }
   function evenementLire(uid, id) { return evtRang(Q('SELECT * FROM evenement WHERE id = ? AND uid = ?').get(id, uid)); }
@@ -4341,6 +4367,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler, invitationEtat, invitationMarquer, invitationEnvoyes,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, autreSupprime,
+    evenementFait, evenementReporter,
     suppressionProgrammer, suppressionAnnuler, suppressionLe, comptesEchus, compteEffacer, exportProfil, exportConversationsIds, exportPieces,
     presenceSalle, presenceReunion,   // le rapport de présence (migration 16)
     carteContactLire, sondageVue, sondageVoter, sondageAjouterChoix, sondageClore, exportSondagesVotes,   // les cartes d'un message et les sondages (migration 17)

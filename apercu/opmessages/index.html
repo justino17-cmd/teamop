@@ -1811,6 +1811,21 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 #bord-appels { --sep-retrait: 66px; }
 #vue-accueil .carte-liste { margin-bottom: 24px; }          /* trois blocs : l'intertitre du suivant ne colle pas à la carte d'avant */
 .reunion-li { display: flex; align-items: center; }
+/* le rond d'un rappel (tableau de bord) et la ligne faite : comme Rappels d'Apple — un cercle fin, plein et coché quand c'est fait */
+.evt-li { display: flex; align-items: center; }
+.evt-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; padding-left: 4px; }
+.evt-coche { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin-left: 6px; }
+.evt-rond { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--sub-meta); color: transparent; transition: background-color .15s, border-color .15s; }
+.evt-rond .ic { width: 14px; height: 14px; stroke-width: 2.6; opacity: 0; }        /* vide tant que ce n'est pas fait : la coche ne paraît QUE dans le rond plein */
+.evt-rond.plein .ic, .evt-coche[aria-pressed="true"] .evt-rond .ic { opacity: 1; }
+.evt-coche[aria-pressed="true"] .evt-rond, .evt-rond.plein { background: var(--accent); border-color: var(--accent); color: #fff; }
+.evenement-ligne.fait .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
+.evt-gestes { margin-bottom: 16px; }
+.evt-gestes .reglage .evt-rond { flex: none; }
+.evt-reporter { flex-wrap: wrap; row-gap: 8px; }
+.evt-reporter-choix { display: flex; flex-wrap: wrap; gap: 8px; }
+.msg.msg-cible .bulle { animation: msg-cible 2s ease-out; }
+@keyframes msg-cible { 0%, 35% { box-shadow: 0 0 0 3px var(--accent); } 100% { box-shadow: 0 0 0 3px transparent; } }
 .reunion-li > .reunion-ligne { flex: 1; min-width: 0; width: auto; }
 .reunion-li > .reunion-rejoindre { margin-right: 12px; }
 .salle-attente b { display: block; }
@@ -2747,7 +2762,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     /* ⛔ `VUES[p[0]]` lit aussi la chaîne de prototypes : « #constructor » ou « #__proto__ » passaient pour des vues et laissaient les quatre masquées */
     const vue = Object.prototype.hasOwnProperty.call(VUES, p[0]) && ORDRE.includes(p[0]) ? p[0] : 'messages';
     /* une adresse « #reunions/<identifiant> » (le toucher d'une notification quand la page était fermée) ouvre la fiche de CETTE réunion — l'identifiant est vérifié avant de servir */
-    const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv : false;
+    const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv
+      : vue === 'reunions' && CAP.agenda && ID_EVT.test(conv || '') ? 'evenement:' + conv : false;       // un RAPPEL de l'agenda (sa notification touchée) : sa fiche
     const sec = vue === 'reglages' && REG_SECTIONS.includes(p[1]) ? p[1] : null;
     return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, sec, feuille, photo: null, appel: null };
   }
@@ -3155,6 +3171,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     rendreConv(c, true);
     synchroInert();
     if (matchMedia('(pointer: fine)').matches) $('saisie').focus({ preventScroll: true }); else $('conv-ecran').focus({ preventScroll: true });
+    if (cibleMsg.conv === id) allerAuMessage();                // « Voir le message » : la conversation est ouverte, on va au message
     try { await source.marquerLu(id); } catch (e) { /* la source le dira par ecouter */ }
   }
   function fermerConv() {
@@ -3173,6 +3190,36 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       const ligne = id && document.querySelector('[data-ouvrir="' + id.replace(/"/g, '') + '"]');
       if (ligne) rendreFocus(ligne); else rendreFocus(dec);
     });
+  }
+  /* ⛔ « VOIR LE MESSAGE » (8 octobre 2026) : un rappel posé sur un message y ramène. La conversation s'ouvre, le message est AMENÉ au centre et marqué un instant ; plus ancien que ce que la
+     page a chargé, l'historique se charge jusqu'à lui (vingt pages au plus). Disparu (supprimé, éphémère échu, conversation quittée), on le DIT — jamais un saut silencieux en bas. */
+  const cibleMsg = { conv: null, seq: 0, pages: 0 };
+  function voirMessage(conv, seq) {
+    cibleMsg.conv = conv; cibleMsg.seq = seq; cibleMsg.pages = 0;
+    if (etat.conv === conv && etat.convDonnees) { allerAuMessage(); return; }
+    pousser({ vue: 'messages', conv, feuille: false, photo: null, appel: null });
+  }
+  async function allerAuMessage() {
+    const c = etat.convDonnees;
+    if (!cibleMsg.conv || !c || cibleMsg.conv !== etat.conv) return;
+    const m = (c.messages || []).find(x => x.seq === cibleMsg.seq && !x.supprime);
+    if (!m) {
+      if (CAP.historique && c.aPlus && typeof source.precedents === 'function' && cibleMsg.pages < 20 && !(c.messages || []).some(x => x.seq < cibleMsg.seq)) {
+        cibleMsg.pages++;
+        try { await source.precedents(c.id); } catch (e) { cibleMsg.conv = null; avis(phrase(e, 'Le message n\'a pas pu être retrouvé.')); return; }
+        await rafraichirConv();
+        return allerAuMessage();
+      }
+      cibleMsg.conv = null;
+      mot('Ce message n\'est plus dans la conversation.');
+      return;
+    }
+    cibleMsg.conv = null;
+    const el = document.querySelector('#conv-messages [data-mid="' + String(m.id).replace(/["\\]/g, '') + '"]');
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    el.classList.remove('msg-cible');
+    requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.add('msg-cible'); setTimeout(() => el.classList.remove('msg-cible'), 2200); }));
   }
   async function rafraichirConv() {
     const id = etat.conv; if (!id) return;
@@ -6513,7 +6560,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const titre = Array.from('Rappel : ' + quoi).slice(0, 118).join('') + (Array.from('Rappel : ' + quoi).length > 118 ? '…' : '');
     const note = Array.from('Rappel sur ' + de + ', dans « ' + nomConv(c) + ' ».' + (m.texte ? '\n\n' + m.texte : '')).slice(0, 2000).join('');
     try {
-      await source.creerEvenement({ titre, lieu: Array.from(nomConv(c)).slice(0, 300).join(''), note, journee: false, debut: localDans(x.t, x.tz), fin: localDans(x.t + 15 * 60000, x.tz), rappel: 0, tz: x.tz });
+      await source.creerEvenement(Object.assign({ titre, lieu: Array.from(nomConv(c)).slice(0, 300).join(''), note, journee: false, debut: localDans(x.t, x.tz), fin: localDans(x.t + 15 * 60000, x.tz), rappel: 0, tz: x.tz },
+        Number.isSafeInteger(m.seq) && m.seq > 0 && /^c_[0-9a-f]{32}$/.test(c.id) ? { source: { conv: c.id, seq: m.seq } } : {}));      // « Voir le message » : le chemin vers lui, pas une copie
       mot('Je te le rappelle ' + (x.cle === 'demain' ? 'demain à ' : x.cle === 'lundi' ? 'lundi à ' : 'à ') + heureDans(x.t, x.tz) + ' — c\'est dans ton agenda');
       if (etat.route && etat.route.vue === 'reunions') chargerReunions();
     } catch (er) { avis(phrase(er, 'Le rappel n\'a pas pu être posé.')); }
@@ -6930,12 +6978,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     for (const e of (CAP.agenda ? reu.evenements : [])) if (e.debut < fin && e.fin > jour) sortie.push({ e, o: { debut: e.journee || e.debut < jour ? jour - 1 : e.debut, fin: e.fin } });
     return sortie.sort((a, b) => a.o.debut - b.o.debut || (a.r ? a.r.id : a.e.id).localeCompare(b.r ? b.r.id : b.e.id));
   }
-  function ligneEvenement(e, jour) {
+  function ligneEvenement(e, jour, coche) {
     const continu = !e.journee && e.debut < jour;
     const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : '<span class="reunion-heure">' + esc(continu ? 'Suite' : FMT_HEURE.format(e.debut)) + '<small>' + esc(FMT_HEURE.format(e.fin)) + '</small></span>';
     const rappel = e.rappel === null ? '' : e.rappel === 0 ? 'Rappel à l\'heure' : e.rappel === 1440 ? 'Rappel la veille' : 'Rappel ' + (e.rappel >= 60 ? (e.rappel / 60) + ' h' : e.rappel + ' min') + ' avant';
     const sous = [e.lieu, rappel].filter(Boolean).join(' · ');
-    return '<li><button type="button" class="reunion-ligne evenement-ligne presse" data-evenement="' + esc(e.id) + '" aria-label="' + esc(e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + FMT_HEURE.format(e.debut) + ' à ') + FMT_HEURE.format(e.fin)) + (sous ? ', ' + sous : '')) + '">' + heure +
+    /* ⛔ COCHER UN RAPPEL (8 octobre 2026 : « cocher un rappel fait » — la seule façon de s'en défaire était de le supprimer) : au tableau de bord, un rond devant la ligne, comme dans
+       Rappels d'Apple ; fait, il quitte le tableau et reste dans l'agenda, barré. Le rond est un bouton à part : la ligne, elle, ouvre la fiche. */
+    const rond = coche ? '<button type="button" class="evt-coche presse" data-evt-fait="' + esc(e.id) + '" aria-pressed="' + (e.fait ? 'true' : 'false') + '" aria-label="' + esc((e.fait ? 'Remettre « ' : 'Marquer « ') + e.titre + (e.fait ? ' » à faire' : ' » comme fait')) + '"><span class="evt-rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : '';
+    return '<li' + (coche ? ' class="evt-li"' : '') + '>' + rond + '<button type="button" class="reunion-ligne evenement-ligne presse' + (e.fait ? ' fait' : '') + '" data-evenement="' + esc(e.id) + '" aria-label="' + esc((e.fait ? 'Fait : ' : '') + e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + FMT_HEURE.format(e.debut) + ' à ') + FMT_HEURE.format(e.fin)) + (sous ? ', ' + sous : '')) + '">' + heure +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(e.titre) + '</span>' + (sous ? '<span class="reunion-sous">' + esc(sous) + '</span>' : '') + '</span></button></li>';
   }
   function libelleEtat(r) {
@@ -7068,9 +7119,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     $('bord-reunions-n').textContent = occ.length ? String(occ.length) : '';
     /* les rappels : les événements d'aujourd'hui, et ceux à venir qui portent un rappel */
     const auj = minuitDe(now), demain = plusJours(auj, 1);
-    const evs = bord.evenements.filter(e => e.fin > now && (e.debut < demain || e.rappel !== null)).sort((x, y) => x.debut - y.debut).slice(0, 10);
+    const evs = bord.evenements.filter(e => !e.fait && e.fin > now && (e.debut < demain || e.rappel !== null)).sort((x, y) => x.debut - y.debut).slice(0, 10);
     h = ''; jp = null;
-    for (const e of evs) { const j = Math.max(minuitDe(e.debut), auj); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneEvenement(e, j); }
+    for (const e of evs) { const j = Math.max(minuitDe(e.debut), auj); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneEvenement(e, j, typeof source.faitEvenement === 'function'); }
     $('bord-rappels').innerHTML = att || h || '<li class="bord-vide"><span>Aucun rappel à venir.</span><button type="button" class="presse" data-bord="evenement">Nouvel événement</button></li>';
     $('bord-rappels-n').textContent = evs.length ? String(evs.length) : '';
     /* les appels manqués IMPORTANTS, avec leur raison */
@@ -7097,6 +7148,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   function entrerAccueil() { if (modesActifs() && etat.mode !== 'pro') changerMode('pro'); rendreAccueil(); chargerAccueil(); }
   $('vue-accueil').addEventListener('click', e => {
+    const fa = e.target.closest('[data-evt-fait]');
+    if (fa) { cocherRappel(fa.dataset.evtFait); return; }
     const j = e.target.closest('[data-rejoindre]');
     if (j) { rejoindreReunionUI(j.dataset.rejoindre, undefined, j, false); return; }
     const ev = e.target.closest('[data-evenement]');
@@ -7113,6 +7166,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (g && g.dataset.bord === 'agenda') { pousser({ vue: 'reunions', conv: null, feuille: null, photo: null, appel: null }); return; }
     if (g) { declencheur = g; ouvrirFeuille('evenement-new'); }
   });
+  async function cocherRappel(id) {
+    const x = bord.evenements.find(y => y.id === id); if (!x || typeof source.faitEvenement !== 'function') return;
+    const avant = x.fait; x.fait = Date.now(); rendreAccueil();
+    mot('« ' + x.titre + ' » : fait');
+    try { const e = await source.faitEvenement(id, true); Object.assign(x, e); reu.evenements = (reu.evenements || []).map(y => y.id === id ? e : y); chargerReunions(); }
+    catch (er) { x.fait = avant; rendreAccueil(); avis(phrase(er, 'Le rappel n\'a pas pu être coché.')); }
+  }
   /* la semaine ou le mois : filtré tout de suite sur ce qu'on a, relu sur la nouvelle fenêtre, retenu par le compte (refusé, le choix vaut pour cette visite) */
   function changerPorteeBord(v) {
     if (v !== 'semaine' && v !== 'mois' || v === bord.portee) return;
@@ -7151,15 +7211,30 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   async function rendreFormEvenement(id) {
     const corps = $('info-corps');
     let e = null;
+    reu.formEvtDemande = id || null;
     if (id) {
-      try { e = (reu.evenements || []).find(x => x.id === id) || null; } catch (er) { e = null; }
+      try { e = (reu.evenements || []).find(x => x.id === id) || bord.evenements.find(x => x.id === id) || null; } catch (er) { e = null; }
+      /* ⛔ ouverte par une NOTIFICATION, la page n'a pas encore lu l'agenda : on cherche le rappel autour de maintenant avant de dire qu'il n'existe plus */
+      if (!e && typeof source.evenements === 'function') {
+        corps.innerHTML = '<p class="info-note" role="status">Chargement…</p>';
+        try { const t = Date.now(), l = await source.evenements(t - 2 * 86400000, t + 32 * 86400000); e = l.find(x => x.id === id) || null; } catch (er) { e = null; }
+        if (reu.formEvtDemande !== id || !etat.groupe.ouvert || etat.groupe.mode !== 'evenement') return;      // la fiche a été fermée ou remplacée pendant l'attente
+        if (e) reu.evenements = (reu.evenements || []).filter(x => x.id !== id).concat([e]);
+      }
       if (!e) { corps.innerHTML = '<p class="info-erreur" role="alert">Cet événement n\'existe plus.</p>'; return; }
     }
     const tz = e ? e.tz : (fuseauAppareil() || 'Europe/Paris');
     const d0 = e ? e.debut : (reu.jour && reu.jour > Date.now() ? reu.jour + 9 * 3600000 : Math.ceil((Date.now() + 60000) / 3600000) * 3600000);
     const f0 = e ? e.fin : d0 + 3600000;
     const journee = !!(e && e.journee);
-    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+    /* ⛔ LES GESTES D'UN RAPPEL, EN TÊTE (8 octobre 2026 : « cocher fait », « reporter », « voir le message ») — c'est ce qu'on vient chercher en touchant sa notification */
+    const gestes = e && typeof source.faitEvenement === 'function' ? '<div class="carte evt-gestes">' +
+      '<button type="button" class="reglage presse" data-evt="fait" aria-pressed="' + (e.fait ? 'true' : 'false') + '"><span class="evt-rond' + (e.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span class="reglage-texte">' + (e.fait ? 'Remettre à faire' : 'Marquer comme fait') + '<small>' + (e.fait ? 'Fait — il ne sonnera plus' : 'Il quitte le tableau de bord et ne sonne plus') + '</small></span></button>' +
+      (typeof source.reporterEvenement === 'function' ? '<div class="reglage evt-reporter" role="group" aria-label="Reporter"><span class="reglage-texte">Reporter</span><span class="evt-reporter-choix">' +
+        (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
+      (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
+      '</div>' : '';
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + gestes +
       '<div class="champ"><label for="ev-titre">Titre</label><input id="ev-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.titre : '') + '" placeholder="Dentiste, anniversaire, rendez-vous…"></div>' +
       '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (journee ? 'true' : 'false') + '" id="ev-journee"><span class="reglage-texte">Toute la journée</span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
       '<div class="champ"><label for="ev-debut">Début</label><input id="ev-debut" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(d0, tz).slice(0, 10) : localDans(d0, tz)) + '"></div>' +
@@ -7168,7 +7243,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>' +
       '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
       '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
-    reu.formEvt = { id: id || null, tz };
+    reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '' };
   }
   function evtBasculerJournee() {
     const b = $('ev-journee'); if (!b) return;
@@ -7199,6 +7274,29 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     chargerReunions();
     if ($('vue-accueil').dataset.pret) { if (etat.route && etat.route.vue === 'accueil') rendreAccueil(); chargerAccueil(); }
   }
+  async function evtFait(b) {
+    const F = reu.formEvt; if (!F || !F.id) return;
+    b.disabled = true;
+    try { await source.faitEvenement(F.id, !F.fait); mot(F.fait ? '« ' + F.titre + ' » : à faire' : '« ' + F.titre + ' » : fait'); fermerCouche(); evenementsRelire(); }
+    catch (er) { b.disabled = false; erreurInfo(phrase(er, 'Le rappel n\'a pas pu être coché.')); }
+  }
+  /* reporter : l'heure se calcule au SERVICE (dans 10 min, 1 h, demain 9 h dans le fuseau du rappel) — la page dit celle qu'il a retenue */
+  async function evtReporter(b) {
+    const F = reu.formEvt; if (!F || !F.id) return;
+    const dans = b.dataset.dans === 'demain' ? 'demain' : Number(b.dataset.dans);
+    for (const x of document.querySelectorAll('#info-corps [data-evt="reporter"]')) x.disabled = true;
+    try {
+      const e = await source.reporterEvenement(F.id, dans);
+      mot('Reporté ' + (dans === 'demain' ? 'à demain' + (e.journee ? '' : ' ' + FMT_HEURE.format(e.debut)) : 'à ' + FMT_HEURE.format(e.debut)));
+      fermerCouche(); evenementsRelire();
+    } catch (er) { for (const x of document.querySelectorAll('#info-corps [data-evt="reporter"]')) x.disabled = false; erreurInfo(phrase(er, 'Le rappel n\'a pas pu être reporté.')); }
+  }
+  function evtVoir() {
+    const F = reu.formEvt; if (!F || !F.source) return;
+    const cible = F.source;
+    fermerCouche();
+    voirMessage(cible.conv, cible.seq);
+  }
   async function evtSupprimer(b) {
     const F = reu.formEvt; if (!F || !F.id) return;
     if (b.dataset.pret !== '1') { b.dataset.pret = '1'; b.textContent = 'Toucher encore pour supprimer'; setTimeout(() => { if (b.isConnected) { b.dataset.pret = ''; b.textContent = 'Supprimer'; } }, 4000); return; }
@@ -7216,6 +7314,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const b = e.target.closest('[data-evt]'); if (!b || b.disabled) return;
     erreurInfo('');
     if (b.dataset.evt === 'enregistrer') evtEnregistrer(b); else if (b.dataset.evt === 'supprimer') evtSupprimer(b);
+    else if (b.dataset.evt === 'fait') evtFait(b); else if (b.dataset.evt === 'reporter') evtReporter(b); else if (b.dataset.evt === 'voir') evtVoir();
   });
   /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
   $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
@@ -9179,7 +9278,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       if (ev.type === 'notification') notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : '');
       if (ev.type === 'retire') surRetire(ev.id);
       if (ev.type === 'avis') avis(ev.texte);
-      if (ev.type === 'ouvrir') { if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else if (ev.contacts && ORDRE.includes('contacts')) remplacer({ vue: 'contacts', conv: null, feuille: false, photo: null, appel: null }); else if (ev.conv) ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
+      if (ev.type === 'ouvrir') { if (ev.evenement) { if (CAP.agenda && ID_EVT.test(ev.evenement)) remplacer({ vue: 'reunions', conv: null, feuille: 'evenement:' + ev.evenement, photo: null, appel: null }); } else if (ev.reunion) ouvrirReunionId(ev.reunion); else if (ev.appels) ouvrirAppels(); else if (ev.contacts && ORDRE.includes('contacts')) remplacer({ vue: 'contacts', conv: null, feuille: false, photo: null, appel: null }); else if (ev.conv) ouvrirConvId(ev.conv); }                                                // une notification touchée : la source n'a laissé passer qu'une conversation
     });
     if (CAP.appelsMedias && typeof source.appelActif === 'function') { const a = source.appelActif(); if (a && a.entrant) surAppelEntrant(a.id); }       // une sonnerie vue avant que la page écoute (la liste des appels l'a lue) sonne quand même
     if (codeLien) { etat.codeLien = codeLien; declencheur = null; ouvrirFeuille('contact'); }

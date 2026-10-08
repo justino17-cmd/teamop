@@ -159,6 +159,18 @@ function localDans(t, tz) {
     await C.page.locator('#bord-portee [data-bord-portee="mois"]').tap();
     vrai('« Mois » : « Aucune réunion dans les 30 prochains jours. », toujours sans bouton', await att(C, () => { const l = document.getElementById('bord-reunions'); return l.textContent.trim() === 'Aucune réunion dans les 30 prochains jours.' && !l.querySelector('button'); }), JSON.stringify(await vide()));
     await capture(C, 'bord-3-vide-mois');
+    console.log('\n6 bis. Le rond d\'un rappel : coché au doigt, il quitte le tableau');
+    await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
+    await att(A, () => /Rappeler le fournisseur WQXZ/.test(document.getElementById('bord-rappels').textContent));
+    const rond = await A.page.evaluate(() => { const b = document.querySelector('#bord-rappels [data-evt-fait]'); if (!b) return null; const r = b.getBoundingClientRect(), i = getComputedStyle(b.querySelector('.ic')).opacity; return { w: Math.round(r.width), h: Math.round(r.height), label: b.getAttribute('aria-label'), coche: i }; });
+    v('population : la ligne du rappel porte son rond (44 × 44, vide, nommé « Marquer … comme fait »)', rond && [rond.w >= 44, rond.h >= 44, rond.coche, rond.label], [true, true, '0', 'Marquer « Rappeler le fournisseur WQXZ » comme fait']);
+    await A.page.locator('#bord-rappels [data-evt-fait]').first().tap();
+    vrai('⛔ coché : la ligne QUITTE le tableau aussitôt (« Aucun rappel à venir. »), la page le dit', await att(A, () => /^Aucun rappel à venir\./.test(document.getElementById('bord-rappels').textContent.trim()) && /: fait$/.test(document.getElementById('mot').textContent)));
+    const evFait = ((await P.ana.get('/api/agenda?du=' + (Date.now() - JOUR) + '&au=' + (Date.now() + 3 * JOUR))).j.evenements || []).find(x => x.titre === 'Rappeler le fournisseur WQXZ');
+    vrai('⛔ … et le SERVICE le tient fait (il ne sonnera plus)', !!evFait && typeof evFait.fait === 'number' && evFait.rappelEnAttente === false, evFait);
+    await P.ana.post('/api/agenda/' + evFait.id + '/fait', { fait: false });          // remis à faire : la section suivante le modifie puis le supprime depuis le tableau
+    await A.page.locator('#tabs .tab[data-vue="messages"]').tap();
+
     console.log('\n7. Un rappel modifié puis supprimé DEPUIS le tableau de bord');
     await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
     await att(A, () => /Rappeler le fournisseur WQXZ/.test(document.getElementById('bord-rappels').textContent));

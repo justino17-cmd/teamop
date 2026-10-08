@@ -303,6 +303,8 @@
       creerEvenement: async (champs) => (await appel('POST', '/api/agenda', champs)).evenement,
       majEvenement: async (id, champs) => (await appel('POST', '/api/agenda/' + e(id) + '/maj', champs)).evenement,
       supprimerEvenement: (id) => appel('POST', '/api/agenda/' + e(id) + '/supprimer'),
+      faitEvenement: async (id, fait) => (await appel('POST', '/api/agenda/' + e(id) + '/fait', { fait })).evenement,
+      reporterEvenement: async (id, dans) => (await appel('POST', '/api/agenda/' + e(id) + '/reporter', { dans })).evenement,
       /* le compte par adresse e-mail (« comme Discord ») — routes publiques : la session est posée par la réponse (cookie) */
       melInscrire: (champs) => appel('POST', '/api/mel/inscrire', champs),
       melConfirmer: (courriel, code) => appel('POST', '/api/mel/confirmer', { courriel, code }),
