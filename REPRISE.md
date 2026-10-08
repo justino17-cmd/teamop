@@ -31,6 +31,13 @@ Justin, 8 octobre : « il faudrait bien séparer l'agenda perso et pro », puis 
 · **le test de A à Z** (45 sondes au navigateur — iPhone, Android, iPad, Mac, Windows, `sonde-opmessages-appareils.js` en tête) : quatre tombaient, aucune sur un défaut de l'application
   — trois sondes en retard sur elle (la grille « + » porte « Plus tard » ; le menu lu avant d'être bâti ; « Chantier », groupe mêlé, est Perso par la règle) et une photo chargée en
   plus de 12 s sous la charge (seule : 23 ✓) ; test-981 exigeait 600 s pile quand la vraie seconde passe aussi (600 à 603).
+· **trouvé en poussant plus loin, et corrigé** : la carte « Enregistrement terminé » ne tenait pas sur un téléphone en PAYSAGE — ses trois gestes passaient sous le pli
+  (iPhone 844 × 390 : la carte 337 px, « Envoyer » à 383 px ; pareil sur un iPhone SE, un Android, une fenêtre de bureau basse). Sous 520 px de haut, en paysage, l'aperçu va à
+  gauche et les gestes à droite, l'encoche latérale est rendue (`scratchpad/mesure-rec-fin.js` : 7 formats sur 7, la page d'avant en ratait 4).
+· **la CI de #107 est tombée une fois sur deux suites vertes ici** (Vérification des pages, b989b8d9) — deux défauts de BANC, établis par leur reproduction :
+  test-911 prenait sa marque « après le retrait » à l'horloge, et un flux un peu en retard y faisait entrer les échos du réglage d'avant (rejoué : flux de Chloé retardé de 400 ms,
+  la même chute) — il lit désormais l'ORDRE du flux, et une vraie fuite (les deux gardes du service mutées) le fait tomber ; test-944 ne laissait que 800 ms à la porte bêta, et un
+  service gelé 1,2 s rendait 503 trois fois sur trois (`scratchpad/sonde-porte-gel.js`) — 5 s, comme en production (906 et 911 portaient le même réglage).
 ⚠️ Les deux règles de rangement d'une PERSONNE et d'un APPEL sont décidées sans Justin (elles suivent celle des conversations).
 ⚠️ **Décidé sans Justin — à lui dire :**
 · **une réunion n'est plus Pro d'office** (le dîner entre amis allait dans l'agenda Pro). Conséquence visible sur la bêta : une réunion d'AVANT avec quelqu'un qui n'est pas un
