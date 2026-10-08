@@ -110,6 +110,12 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       if (b.rappel !== null && !RAPPELS.includes(b.rappel)) return { erreur: 'rappel_invalide' };
       v.rappel = b.rappel;
     } else v.rappel = base ? base.rappel : null;
+    /* le côté (8 octobre 2026, « bien séparer l'agenda perso et pro ») : 'perso' ou 'pro' ; null rend le côté déduit (celui de la conversation d'origine, sinon Perso). Absent à la création : déduit ;
+       absent à une modification : inchangé. Rien d'autre n'est accepté. */
+    if (present('cote')) {
+      if (b.cote !== null && b.cote !== 'perso' && b.cote !== 'pro') return { erreur: 'champ_invalide' };
+      v.cote = b.cote;
+    }
     return { champs: v, horaire };
   }
 
@@ -135,7 +141,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       source = { conv: sb.conv, seq: sb.seq };
     }
     const e = stockage.evenementCreer({ uid: req.moi.id, titre: c.titre, lieu: c.lieu, note: c.note, debut: c.debut, fin: c.fin, journee: c.journee, tz: c.tz, rappel: c.rappel,
-      rappelA: echeance(c.debut, c.rappel, c.tz, horloge()), source });
+      rappelA: echeance(c.debut, c.rappel, c.tz, horloge()), source, cote: c.cote === undefined ? null : c.cote });
     res.status(201).json({ evenement: e });
   };
   H['agenda.maj'] = (req, res) => {
@@ -150,7 +156,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     /* le rappel se recalcule quand l'horaire ou le rappel changent ; sinon il garde son état (déjà parti : il ne repart pas) */
     const recalcul = r.horaire || corps(req).rappel !== undefined;
     const e = stockage.evenementMaj(req.moi.id, id, { titre: c.titre, lieu: c.lieu, note: c.note, debut: c.debut, fin: c.fin, journee: c.journee, tz: c.tz, rappel: c.rappel,
-      rappelA: recalcul ? echeance(c.debut, c.rappel, c.tz, horloge()) : undefined });
+      rappelA: recalcul ? echeance(c.debut, c.rappel, c.tz, horloge()) : undefined, cote: c.cote });
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
   };

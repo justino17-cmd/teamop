@@ -364,6 +364,27 @@ async function controler(PAGE, SRC, DOC) {
   vrai('⛔ un événement modifié ou supprimé se relit PARTOUT où il s\'affiche — l\'Agenda ET le tableau de bord (8 octobre 2026 : « je peux pas supprimer » : le rappel restait au tableau)',
     /function evenementsRelire\(\) \{\s*chargerReunions\(\);\s*if \(\$\('vue-accueil'\)\.dataset\.pret\) \{[^}]*chargerAccueil\(\); \}/.test(JS) && (JS.match(/fermerCouche\(\); evenementsRelire\(\);|evenementsRelire\(\);\n/g) || []).length >= 2
       && /bord\.evenements = bord\.evenements\.filter\(x => x\.id !== F\.id\)/.test(JS));
+
+  /* 4 quinquies. L'AGENDA PERSO ET L'AGENDA PRO (8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ») — tests/sonde-opmessages-agenda-cote.js les joue au doigt
+     contre le vrai service, au téléphone et au bureau ; le banc garde les décisions sur le CODE */
+  vrai('⛔ Agenda Perso / Pro : la journée ne montre que le côté où l\'on est — les réunions ET les événements (la semaine et le mois comptent par la même fonction)',
+    /const duCote = cote => !modesActifs\(\) \|\| cote === etat\.mode;/.test(JS) && /for \(const r of reu\.liste\) if \(duCote\(coteReu\(r\)\)\)/.test(corps('function occurrencesDuJour'))
+      && /e\.fin > jour && duCote\(coteEvt\(e\)\)\)/.test(corps('function occurrencesDuJour')) && (JS.match(/occurrencesDuJour\(/g) || []).length >= 4);
+  vrai('⛔ le tableau de bord est le côté Pro : ni une réunion, ni un rappel, ni une mention du côté Perso',
+    /const pourBord = cote => !modesActifs\(\) \|\| cote === 'pro';/.test(JS) && /if \(!r\.annulee && pourBord\(coteReu\(r\)\)\)/.test(JS) && /\(e\.debut < demain \|\| e\.rappel !== null\) && pourBord\(coteEvt\(e\)\)\)/.test(JS)
+      && /x\.t >= t7 && pourBord\(coteDe\(etat\.conversations\.find\(c => c\.id === x\.conv\)\)\)/.test(JS));
+  vrai('un événement et une réunion naissent du côté où l\'on est — la fiche le propose, le côté part au service ; un événement se range ensuite dans sa fiche',
+    /choixCote\('ev-cote', e \? coteEvt\(e\) : etat\.mode\)/.test(JS) && /const cote = modesActifs\(\) \? coteChoisi\('ev-cote'\) : null;\s*if \(cote\) champs\.cote = cote;/.test(JS)
+      && /\(id \? '' : choixCote\('rf-cote', etat\.mode\)\)/.test(JS) && /if \(!F\.id && modesActifs\(\)\) c\.cote = coteChoisi\('rf-cote'\);/.test(JS));
+  vrai('⛔ une réunion a le côté de SA conversation — celui de la liste d\'abord (à jour dès qu\'on la range), puis celui que l\'agenda a lu au service',
+    /const coteReu = r => \{ const c = r && etat\.conversations\.find\(x => x\.id === r\.conv\); return c \? coteDe\(c\) : r && \(r\.cote === 'perso' \|\| r\.cote === 'pro'\) \? r\.cote : 'pro'; \};/.test(JS));
+  vrai('changer de côté redessine l\'Agenda ; une liste relue où une réunion a changé de côté aussi (rangée ici, ou sur un autre appareil)',
+    /if \(\$\('vue-reunions'\) && \$\('vue-reunions'\)\.dataset\.pret && reu\.charge\) rendreReunions\(\);/.test(corps('async function changerMode'))
+      && /const cotesAvant = sigCotesReunions\(\);[\s\S]*if \(sigCotesReunions\(\) !== cotesAvant\) \{/.test(corps('async function rafraichirListe')));
+  vrai('⛔ la fiche d\'une réunion la range (« Ranger dans ») : sa conversation, pour soi seul — la liste relue AVANT de redessiner (sinon l\'Agenda lirait l\'ancien côté)',
+    /await source\.rangerCote\(d\.conv, v === 'auto' \? null : v\);\s*if \(typeof source\.lister === 'function'\) await rafraichirListe\(\);/.test(JS) && /data-reu="cote"/.test(JS));
+  vrai('« Me le rappeler » : le rappel prend le côté de sa conversation',
+    /modesActifs\(\) \? \{ cote: coteDe\(etat\.conversations\.find\(x => x\.id === c\.id\) \|\| c\) \} : \{\}/.test(JS));
   vrai('⛔ envoyer plus tard : la tuile « Plus tard » et l\'appui long sur la flèche mènent aux heures ; le relâcher d\'un appui long n\'ENVOIE pas ; les programmés viennent du SERVICE (jamais de l\'appareil)',
     /if \(typeof source\.programmerMessage === 'function'\) t\.push\(\['plus-tard'/.test(JS) && /\$\('envoyer'\)\.addEventListener\('click', e => \{ if \(etat\.envoyerLong\) \{ etat\.envoyerLong = false; e\.stopImmediatePropagation\(\); \} \}, true\);/.test(JS)
       && /await source\.programmerMessage\(conv, texte, t, mentionsDe\(texte, convCourante\(\), mentionUI\.choisis\.get\(conv\)\)\);/.test(JS) && /l = await source\.messagesProgrammes\(conv\);/.test(JS) && /chargerProgrammes\(id\);/.test(JS));

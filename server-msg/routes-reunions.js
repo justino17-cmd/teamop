@@ -242,6 +242,8 @@ function installerReunions(H, ctx) {
     const odj = b.ordre_du_jour === undefined ? null : odjDe(b.ordre_du_jour);
     if (b.ordre_du_jour !== undefined && !odj) return refus(res, 400, 'ordre_du_jour_invalide');
     if (b.salle_attente !== undefined && typeof b.salle_attente !== 'boolean') return refus(res, 400, 'champ_invalide');
+    /* le côté où l'organisateur la range (8 octobre 2026, « bien séparer l'agenda perso et pro ») : 'perso' ou 'pro' — absent, la règle automatique (celle d'un groupe) */
+    if (b.cote !== undefined && b.cote !== null && b.cote !== 'perso' && b.cote !== 'pro') return refus(res, 400, 'champ_invalide');
     const v = valider(b, null, hote.tz);
     if (v.erreur) return refus(res, 400, v.erreur);
     let voulus = [];
@@ -254,7 +256,7 @@ function installerReunions(H, ctx) {
     const ok = voulus.filter(u => stockage.peutEcrire(hote.id, u)), non_invites = voulus.filter(u => !ok.includes(u));
     const prochain = prochainDe(v.serie, horloge());
     const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie), attente: b.salle_attente === true,
-      plafond: ctx.formule.plafondReunion(hote.id) });          // ⛔ dix personnes au plus, organisateur compris : UNE fonction (`formule.js`) le dit
+      plafond: ctx.formule.plafondReunion(hote.id), cote: b.cote === undefined ? null : b.cote });          // ⛔ dix personnes au plus, organisateur compris : UNE fonction (`formule.js`) le dit
     if (odj && odj.length) stockage.reunionOdjPoser(r.id, odj);
     hub.reveiller({ conv: r.conv });
     if (notifierVoulu(b)) {

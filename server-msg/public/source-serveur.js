@@ -2951,7 +2951,8 @@
     const vueEvenement = (x) => ({ id: String(x.id), titre: String(x.titre || ''), lieu: String(x.lieu || ''), note: String(x.note || ''), debut: +x.debut || 0, fin: +x.fin || 0,
       journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true,
       fait: Number.isFinite(x.fait) && x.fait > 0 ? x.fait : null,                                         // coché (l'instant), ou null
-      source: x.source && /^c_[0-9a-f]{32}$/.test(String(x.source.conv)) && Number.isSafeInteger(x.source.seq) ? { conv: x.source.conv, seq: x.source.seq } : null });   // le message d'origine (« Me le rappeler »)
+      source: x.source && /^c_[0-9a-f]{32}$/.test(String(x.source.conv)) && Number.isSafeInteger(x.source.seq) ? { conv: x.source.conv, seq: x.source.seq } : null,   // le message d'origine (« Me le rappeler »)
+      cote: x.cote === 'perso' || x.cote === 'pro' ? x.cote : null });     // son côté (Perso / Pro), ou null : la page le déduit (sa conversation d'origine, sinon Perso)
     async function evenements(du, au) { return (await A.agenda(du, au) || []).map(vueEvenement); }
     async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
     async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
@@ -3406,7 +3407,8 @@
       if (r.hote) noter(r.hote);
       return { id: r.id, conv: r.conv, titre: String(r.titre || ''), lieu: String(r.lieu || ''), debut: r.debut, fin: r.fin, tz: String(r.tz || ''), repetition: String(r.repetition || 'aucune'),
         n: Number.isInteger(r.n) ? r.n : null, jusqua: typeof r.jusqua === 'string' ? r.jusqua : null, annulee: r.annulee === true, version: r.version | 0, rappels: listeRappels(r.rappels),
-        hote: r.hote && typeof r.hote.id === 'string' ? r.hote.id : null, illisible: r.illisible === true, attente: r.attente === true };
+        hote: r.hote && typeof r.hote.id === 'string' ? r.hote.id : null, illisible: r.illisible === true, attente: r.attente === true,
+        cote: r.cote === 'perso' || r.cote === 'pro' ? r.cote : null };     // le côté de SA conversation pour moi (un service d'avant ne le dit pas : la page le déduit)
     }
     /* le fuseau de CET appareil est dit au service une fois par séance : les notifications de la personne se composent dans SON fuseau (sans lui, dans celui de la réunion) */
     let fuseauDit = false;
@@ -3445,7 +3447,7 @@
     /* cocher ou décocher un point de l'ordre du jour → la liste à jour (et l'agenda, la fiche, la salle se relisent) */
     async function cocherPoint(id, point, fait) { const l = vueOdj(await pourReunion(A.cocherPoint(id, point, fait === true))); reunionChangee(id); return l; }
     /* ce que la page peut dire d'une réunion : rien d'autre ne part (ni hôte, ni identifiant, ni version) */
-    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente', 'ordre_du_jour'];
+    const CHAMPS_REUNION = ['titre', 'lieu', 'debut', 'fin', 'tz', 'repetition', 'jusqua', 'n', 'invites', 'rappels', 'notifier', 'salle_attente', 'ordre_du_jour', 'cote'];   // `cote` : à la CRÉATION seulement (le service l'ignore à une modification : la réunion se range par sa conversation)
     const corpsReunion = (champs) => { const c = {}; for (const k of CHAMPS_REUNION) if (champs && champs[k] !== undefined) c[k] = champs[k]; return c; };
     const reunionChangee = (id, supprime) => { emettre({ type: 'reunions', id: id || null, supprime: !!supprime }); relireListePlusTard(); };
     async function programmer(champs) {

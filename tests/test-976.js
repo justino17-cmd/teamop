@@ -308,6 +308,28 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
       vrai('population : la page a envoyé UNE demande de programmation', posts.length === 1);
       v('⛔ elle ne porte que les champs que la page a le droit de dire : ni hôte, ni identifiant, ni conversation, ni version, ni état, ni participants', posts.length ? Object.keys(JSON.parse(posts[0].corps)).sort() : null, ['debut', 'fin', 'titre', 'tz']);
     }
+
+    /* ═══ 13. L'AGENDA PERSO ET L'AGENDA PRO (8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ») ═══════════════════════════════════════════════
+       La page dit le côté à la CRÉATION (celui où l'on est) ; le module le laisse partir (liste blanche) et le rend dans l'agenda — pour une réunion (le côté de SA conversation, propre à chacun)
+       comme pour un événement. Alice et Bob sont des contacts, d'AUCUN espace : sans choix, une réunion entre eux est Perso pour chacun. */
+    console.log('\nLe côté d\'une réunion et d\'un événement : dit par la page à la création, rendu par l\'agenda');
+    {
+      const j = jourParis(Date.now() + 50 * JOUR), d0 = instantParis(j, 9, 0);
+      const avant = A.reseau.requetes.length;
+      const rPro = await A.src.programmer({ titre: 'Rangée en Pro', debut: j + 'T10:00', fin: j + 'T11:00', tz: 'Europe/Paris', invites: [bob.id], cote: 'pro' });
+      const rSans = await A.src.programmer({ titre: 'Sans côté dit', debut: j + 'T14:00', fin: j + 'T15:00', tz: 'Europe/Paris', invites: [bob.id] });
+      const posts = A.reseau.requetes.slice(avant).filter(r => r.m === 'POST' && r.chemin === '/api/reunions').map(r => { const c = JSON.parse(r.corps); return 'cote' in c ? c.cote : '(absent)'; });
+      v('le côté choisi PART avec la programmation (la liste blanche le laisse passer) ; sans choix, le champ ne part pas du tout', posts, ['pro', '(absent)']);
+      const cotes = async (P) => Object.fromEntries((await P.src.reunions(d0, d0 + 12 * 3600000)).filter(x => x.id === rPro.id || x.id === rSans.id).map(x => [x.titre, x.cote]));
+      v('l\'agenda d\'Alice : la réunion rangée en Pro, l\'autre Perso (Bob n\'est pas un collègue)', await cotes(A), { 'Rangée en Pro': 'pro', 'Sans côté dit': 'perso' });
+      v('⛔ l\'agenda de Bob : les DEUX Perso — le choix d\'Alice est le sien', await cotes(B), { 'Rangée en Pro': 'perso', 'Sans côté dit': 'perso' });
+      const e1 = await A.src.creerEvenement({ titre: 'Revue Pro', debut: j + 'T16:00', tz: 'Europe/Paris', cote: 'pro' });
+      const e2 = await A.src.creerEvenement({ titre: 'Sans côté', debut: j + 'T17:00', tz: 'Europe/Paris' });
+      v('un événement : le module rend son côté (Pro), ou null quand il n\'en a pas (la page le déduit)', [e1.cote, e2.cote], ['pro', null]);
+      const e3 = await A.src.majEvenement(e1.id, { cote: 'perso' });
+      v('…le changer de côté passe par le module, et la liste de l\'agenda le relit', [e3.cote, (await A.src.evenements(d0, d0 + 12 * 3600000)).filter(x => x.id === e1.id || x.id === e2.id).map(x => [x.titre, x.cote])],
+        ['perso', [['Revue Pro', 'perso'], ['Sans côté', null]]]);
+    }
   } finally {
     for (const s of sources) { try { s.arreter(); } catch (e) { /* déjà arrêté */ } }
     await svcA.arreter(); await svcB.arreter(); await svcC.arreter(); await og.fermer();

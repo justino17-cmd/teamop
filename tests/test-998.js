@@ -152,6 +152,38 @@ const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter l
       (await A.post('/api/agenda/' + RS.id + '/reporter', { dans: '10' })).code, (await B.post('/api/agenda/' + RS.id + '/reporter', { dans: 10 })).code], [400, 400, 400, 404]);
     /* la notification d'un rappel ouvre SA fiche : l'adresse porte l'identifiant de l'événement */
     v('   la liste rend la source et l\'état « fait » (ce que la page lit)', ((await A.get('/api/agenda?du=' + (t2 - 86400000) + '&au=' + (t2 + 5 * 86400000))).j.evenements || []).filter(x => x.id === RS.id).map(x => [x.source && x.source.seq, x.fait]), [[seq, null]]);
+
+    /* ═══ 8. (8 octobre 2026) L'AGENDA PERSO ET L'AGENDA PRO — « il faudrait bien séparer l'agenda perso et pro » (migration 25, `evenement.cote`) ═══ */
+    console.log('\n8. ⛔ L\'agenda Perso et l\'agenda Pro : chaque événement dit de quel côté il est');
+    const jourC = '2026-11-20', fenC = '?du=' + Date.UTC(2026, 10, 19) + '&au=' + Date.UTC(2026, 10, 22);
+    const cPro = await A.post('/api/agenda', { titre: 'Revue client', debut: jourC + 'T10:00', tz: 'Europe/Paris', cote: 'pro' });
+    const cPerso = await A.post('/api/agenda', { titre: 'Piscine', debut: jourC + 'T18:00', tz: 'Europe/Paris', cote: 'perso' });
+    const cSans = await A.post('/api/agenda', { titre: 'Sans côté', debut: jourC + 'T12:00', tz: 'Europe/Paris' });
+    v('créé du côté où l\'on est : Pro, Perso ; ⛔ sans côté, rien n\'est inventé (null : la page le déduit)', [cPro.code, cPro.j.evenement.cote, cPerso.code, cPerso.j.evenement.cote, cSans.code, cSans.j.evenement.cote],
+      [201, 'pro', 201, 'perso', 201, null]);
+    const refusC = [];
+    for (const c of ['travail', 'Pro', '', true, 1, ['pro'], { pro: 1 }]) { const r = await A.post('/api/agenda', { titre: 'Refusé', debut: jourC + 'T09:00', tz: 'Europe/Paris', cote: c }); refusC.push(r.code + ' ' + (r.j && r.j.error)); }
+    v('⛔ un côté hors de « perso » | « pro » : 400 champ_invalide (« travail », une majuscule, vide, un booléen, un nombre, une liste, un objet)', refusC, Array(7).fill('400 champ_invalide'));
+    const cotes = async () => Object.fromEntries(((await A.get('/api/agenda' + fenC)).j.evenements || []).map(e => [e.titre, e.cote]));
+    v('la liste rend le côté de chacun, dans l\'ordre des heures (et aucun refusé n\'a été créé)', await cotes(), { 'Revue client': 'pro', 'Sans côté': null, 'Piscine': 'perso' });
+    const mC1 = await A.post('/api/agenda/' + cPro.j.evenement.id + '/maj', { cote: 'perso' });
+    v('le changer de côté : 200, Perso — le reste ne bouge pas (titre, heure)', [mC1.code, mC1.j.evenement.cote, mC1.j.evenement.titre, mC1.j.evenement.debut], [200, 'perso', 'Revue client', cPro.j.evenement.debut]);
+    const mC2 = await A.post('/api/agenda/' + cPro.j.evenement.id + '/maj', { titre: 'Revue client (déplacée)' });
+    v('⛔ une modification SANS côté le garde (Perso)', [mC2.code, mC2.j.evenement.cote], [200, 'perso']);
+    const mC3 = await A.post('/api/agenda/' + cPro.j.evenement.id + '/maj', { cote: 'travail' });
+    v('⛔ un côté invalide à la modification : 400, et rien n\'a bougé', [mC3.code, mC3.j.error, (await cotes())['Revue client (déplacée)']], [400, 'champ_invalide', 'perso']);
+    const mC4 = await A.post('/api/agenda/' + cPro.j.evenement.id + '/maj', { cote: null });
+    v('« cote: null » rend le côté déduit (null)', [mC4.code, mC4.j.evenement.cote], [200, null]);
+    v('⛔ Bob ne range pas l\'événement d\'Alice (404), et rien n\'a bougé', [(await B.post('/api/agenda/' + cPerso.j.evenement.id + '/maj', { cote: 'pro' })).code, (await cotes()).Piscine], [404, 'perso']);
+    const colC = (e) => sql('SELECT cote FROM evenement WHERE id = ?', e.j.evenement.id).cote;
+    v('la base : la colonne `cote` porte le côté posé, NULL ailleurs (jamais une valeur inventée)', [colC(cPerso), colC(cSans), colC(cPro)], ['perso', null, null]);
+    const cSrc = await A.post('/api/agenda', { titre: 'Rappel rangé Pro', debut: jourC + 'T15:00', tz: 'Europe/Paris', source: { conv: AB, seq }, cote: 'pro' });
+    v('« Me le rappeler » : le côté de la conversation d\'origine voyage avec la source (la page l\'envoie)', [cSrc.code, cSrc.j.evenement.cote, cSrc.j.evenement.source && cSrc.j.evenement.source.seq], [201, 'pro', seq]);
+    /* l'export : UN par jour et par personne (Alice a eu le sien en section 6) — c'est Bob qui exporte ici */
+    await B.post('/api/agenda', { titre: 'Bob Pro', debut: jourC + 'T08:00', tz: 'Europe/Paris', cote: 'pro' }); await B.post('/api/agenda', { titre: 'Bob Perso', debut: jourC + 'T20:00', tz: 'Europe/Paris', cote: 'perso' });
+    const ex2 = await B.post('/api/compte/export', {});
+    const ag2 = ex2.code === 200 ? (JSON.parse(ex2.txt).agenda || []).map(e => [e.titre, e.cote]) : ex2.code;
+    v('l\'export porte le côté de chaque événement (c\'est une donnée de la personne)', ag2, [['Bob Pro', 'pro'], ['Bob Perso', 'perso']]);
   } finally { await svc.arreter(); await og.fermer(); }
   fin();
 })().catch(e => { console.error(e); process.exit(1); });
