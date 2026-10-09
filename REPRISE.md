@@ -38,7 +38,10 @@ voie bien en entier, et aussi un Mac pour montrer que ça marche bien sur les de
   **pas de Mac** : toutes les captures de Mac viennent de l'entreprise de démonstration anti-nuisibles, jusqu'au menu (« Registre sanitaire », « Carte des box »).
   **À décider par Justin** : des captures de Mac neutres (factures, comptabilité, clients, sans les menus du 3D) pour ces quatre pages — `scratchpad/captures-site.js`
   sait les faire, à condition de masquer les menus du métier dans la bêta (`BETA_ESSAI` les montre tous).
-· **preuves** : `test-835` (838 ✓), `test-836`, `test-846` ; `scratchpad/sonde-carrousel.js` (4 profils × jour / nuit × 14 pages, plus les gestes) ;
+· **preuves** : `test-835` (838 ✓), `test-836`, `test-846` ; `scratchpad/sonde-carrousel.js` (4 profils × jour / nuit × 14 pages, plus les gestes : 2 148 ✓
+  après correction de deux seuils de la sonde) ; `scratchpad/mutations-carrousel.py` : 17 défauts remis un par un (horloge, ⏸, souris, hors de l'écran, doigt,
+  clavier, animations réduites, écrans cachés chargés, iPhone et cases recoupés, légende, Mac et iPhone désaccordés, 3D chez le plombier, préparation, commandes,
+  nuit, sens du défilement) — 17 mordent ;
   `scratchpad/sonde-site.js` mise au dessin (appareils entiers dans les cases, écrans en attente hors du compte des images) et deux contrôles figés réparés
   (le volet compte ses liens dans `VOLETS`, « Pro » se trouve par son rang depuis le retrait de Gratuit).
 
