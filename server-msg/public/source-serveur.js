@@ -797,8 +797,15 @@
     const pause = (ms) => new Promise((ok) => planifier(ok, ms));
     const alea = d.alea || (() => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
     let courant = null, lancement = false;
+    /* ⛔ UNE VUE PLUS VIEILLE NE REMPLACE PAS LA PLUS RÉCENTE (9 octobre 2026, sonde de groupe, bloc 6). Une vue de la salle arrive par le flux, par la réponse d'un geste, par une relecture (la salle, la liste des
+       appels) — et rien ne garantit l'ordre d'arrivée de trois chemins. Une vue d'AVANT le geste « Enregistrer » (sans « REC »), arrivée après la sienne, arrêtait l'enregistrement de l'hôte sur son appareil
+       (`rendreSalle` : le service dit que c'est fini) pendant que le bandeau restait allumé chez tous. Le service date chaque vue (`rev`, `stockage.js`, `appelRev`) : une vue plus petite que celle qu'on tient
+       est ignorée, partout où une vue entre (`appliquer`, `memoriser`, `surAppel`). Sans date (0 : un service d'avant, un journal élagué, un appel fini), elle s'applique comme avant. */
+    const revDe = (v) => v && Number.isInteger(v.rev) && v.rev > 0 ? v.rev : 0;
+    const plusVieille = (v, tenue) => revDe(v) > 0 && revDe(v) < revDe(tenue);
+    const perimee = (c, v) => revDe(v) > 0 && revDe(v) < (c.rev || 0);
     const dernieres = new Map();
-    const memoriser = (v) => { dernieres.delete(v.id); dernieres.set(v.id, v); while (dernieres.size > 8) dernieres.delete(dernieres.keys().next().value); };
+    const memoriser = (v) => { if (plusVieille(v, dernieres.get(v.id))) return; dernieres.delete(v.id); dernieres.set(v.id, v); while (dernieres.size > 8) dernieres.delete(dernieres.keys().next().value); };
     const finis = new Set();
     const noterFini = (id) => { finis.delete(id); finis.add(id); while (finis.size > 16) finis.delete(finis.values().next().value); };
     const emettreAppel = (c) => d.emettre({ type: 'appel', id: c.id });
@@ -806,7 +813,7 @@
 
     function nouvelle(v, extra) {
       return Object.assign({
-        id: v.id, vue: v, salle: { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: false, annot: normAnnot(null) },
+        id: v.id, vue: v, rev: revDe(v), salle: { mains: [], etats: {}, sondage: null, minuteur: null, epingle: null, outils: false, annot: normAnnot(null) },
         local: false, entrant: false, reponse: false, attente: false,
         pairs: new Map(), pistes: { audio: null, video: null, ecran: false, micro: true }, etatDit: null,
         ice: null, promesseIce: null, relais: false, sansRelais: false, ttl: 0,
@@ -1624,9 +1631,10 @@
       emettreAppel(c);
     }
     function appliquer(c, v) {
-      if (c.fini) return;
+      if (c.fini || perimee(c, v)) return;
       const avant = c.vue;
       c.vue = v; noterVue(v);
+      if (revDe(v) > c.rev) c.rev = revDe(v);
       if (v.etat !== 'sonne' && v.etat !== 'en_cours') { finir(c, c.entrant && !c.local ? (v.moi && v.moi.statut === 'manque' ? 'manque' : issueDe(v)) : issueDe(v), { vue: v, service: true }); return; }
       const st = statutDe(c);
       if (c.entrant && !c.local) {
@@ -1654,6 +1662,7 @@
     }
     function surAppel(v, gid) {
       if (!v || typeof v !== 'object' || typeof v.id !== 'string' || !v.groupe) return false;
+      if (plusVieille(v, dernieres.get(v.id))) return true;          // une vue d'avant celle qu'on a déjà lue : rien n'en sort (ni état, ni sonnerie)
       memoriser(v);
       const c = courant && courant.id === v.id ? courant : null;
       if (c) appliquer(c, v);
@@ -1663,6 +1672,7 @@
     }
     function reprendre(actif) {
       if (!actif || typeof actif !== 'object' || typeof actif.id !== 'string' || !actif.groupe) return;
+      if (plusVieille(actif, dernieres.get(actif.id))) return;       // la liste des appels lue AVANT un événement qui l'a doublée
       memoriser(actif);
       if (courant && !courant.fini) { if (courant.id === actif.id) appliquer(courant, actif); return; }
       if (actif.moi && actif.moi.statut === 'invite' && actif.sens === 'entrant' && !actif.lie && (actif.etat === 'sonne' || actif.etat === 'en_cours')) sonner(actif, null);
@@ -1717,8 +1727,10 @@
       if (salle) poserSalle(c, salle);
       if (!vue.visio) c.promesseIce = lireIce();          // par la visio, aucune liaison directe : pas d'identifiants de relais à demander
       armerPouls(c);
+      /* l'événement qui a doublé la réponse (la vue d'après mon entrée) : daté, il passe s'il est plus récent ; sans date, la règle d'avant (il me dit « présent ») */
       const tard = dernieres.get(vue.id);
-      appliquer(c, tard && tard !== vue && tard.moi && tard.moi.statut === 'present' ? tard : vue);
+      const doublee = tard && tard !== vue && (revDe(tard) && revDe(vue) ? revDe(tard) > revDe(vue) : !!(tard.moi && tard.moi.statut === 'present'));
+      appliquer(c, doublee ? tard : vue);
       return c;
     }
     async function lancer(spec) {

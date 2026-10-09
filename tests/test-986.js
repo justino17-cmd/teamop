@@ -154,8 +154,24 @@ console.log('\nLancer une salle : l\'hôte entre d\'emblée, chaque invité sonn
   v('⛔ UN événement durable par personne concernée (l\'hôte, les deux qui sonnent, celui qui est occupé), et Eve, qui n\'y est pas, ne reçoit RIEN', [evenementsAppel(S, a.ana.id).length, evenementsAppel(S, a.ben.id).length, evenementsAppel(S, a.cleo.id).length, evenementsAppel(S, a.dan.id).length - evenementsAppel(S, a.dan.id).filter(e => e.data.id === ailleurs.id).length, evenementsAppel(S, a.eve.id).filter(e => e.data.id === r.id).length], [1, 1, 1, 1, 0]);
   v('⛔ la salle de l\'hôte est « active » pour elle, pour les invités qui sonnent ; pas pour Dan (il est ailleurs), pas pour Eve', [S.appelActifDe(a.ana.id) === r.id, S.appelActifDe(a.ben.id) === r.id, S.appelActifDe(a.cleo.id) === r.id, S.appelActifDe(a.dan.id) === ailleurs.id, S.appelActifDe(a.eve.id) === ailleurs.id], [true, true, true, true, true]);
   v('⛔ occupe_moi : celle qui est déjà dans un appel n\'en lance pas un second (rien n\'est écrit)', [lance(() => salle(a)), compte(a.brut(), 'SELECT COUNT(*) AS n FROM appel')], ['occupe_moi', 2]);
-  v('une vue de salle ne porte QUE ces champs (jamais une adresse réseau ni l\'empreinte d\'une session)', Object.keys(vueA).sort(), ['attente', 'autre', 'capacite', 'conv', 'debut', 'duree_s', 'en_attente', 'etat', 'fin', 'genre', 'groupe', 'id', 'lie', 'manque', 'membres', 'moi', 'motif', 'nb', 'partage_ok', 'participants', 'rec', 'repondu', 'reunion', 'sens', 'sonne_jusqua', 'titre', 'type', 'verrou', 'visio']);
+  v('une vue de salle ne porte QUE ces champs (jamais une adresse réseau ni l\'empreinte d\'une session)', Object.keys(vueA).sort(), ['attente', 'autre', 'capacite', 'conv', 'debut', 'duree_s', 'en_attente', 'etat', 'fin', 'genre', 'groupe', 'id', 'lie', 'manque', 'membres', 'moi', 'motif', 'nb', 'partage_ok', 'participants', 'rec', 'repondu', 'reunion', 'rev', 'sens', 'sonne_jusqua', 'titre', 'type', 'verrou', 'visio']);
   v('⛔ « visio » dit seulement si la salle passe par le serveur de visio — un booléen, jamais une adresse ni un jeton (le jeton se demande à part, par la personne présente : `salles.visio`)', typeof vueA.visio, 'boolean');
+  /* ⛔ `rev`, la VERSION de la vue (9 octobre 2026, sonde de groupe : une vue d'avant le geste « Enregistrer », arrivée après la sienne, arrêtait l'enregistrement de l'hôte) : le dernier événement `appel` du
+     journal adressé à CETTE personne pour CETTE salle — un identifiant qu'elle reçoit déjà dans son flux, jamais le compteur global. */
+  {
+    const dernierA = evenementsAppel(S, a.ana.id).slice(-1)[0], dernierB = evenementsAppel(S, a.ben.id).slice(-1)[0];
+    v('population : Ana et Ben ont chacun reçu au moins un événement de la salle', [!!dernierA, !!dernierB], [true, true]);
+    v('⛔ « rev » est l\'identifiant du DERNIER événement de la salle adressé à cette personne (Ana, Ben : chacun le sien)', [vueA.rev, vueB.rev], [dernierA.gid, dernierB.gid]);
+    vrai('⛔ … jamais le compteur global du journal : celui de Ben n\'est pas celui d\'Ana, et aucun ne dépasse ce que la personne a le droit de connaître (`gidVisible`)', vueA.rev !== vueB.rev && vueA.rev <= S.gidVisible(a.ana.id) && vueB.rev <= S.gidVisible(a.ben.id) && S.journalMax() > Math.max(vueA.rev, vueB.rev));
+    const avant = S.appelVue(a.ben.id, r.id);
+    a.h.t += SEC;
+    S.appelRepondre({ id: r.id, uid: a.ben.id, session: a.sb, accepte: true });
+    S.salleRec(r.id, a.ana.id, true);
+    const apres = S.appelVue(a.ben.id, r.id), apresA = S.appelVue(a.ana.id, r.id);
+    v('⛔ une vue lue APRÈS un changement a un « rev » plus grand (la page ne remplace jamais une vue par une plus petite) : Ben avant / après qu\'Ana enregistre', [avant.rev < apres.rev, !!apres.rec, !!avant.rec], [true, true, false]);
+    v('… et c\'est l\'événement que son flux lui apporte pour ce geste (le même identifiant)', [apres.rev, apresA.rev], [evenementsAppel(S, a.ben.id).slice(-1)[0].gid, evenementsAppel(S, a.ana.id).slice(-1)[0].gid]);
+    vrai('… et un événement LU dans le flux porte la vue du moment où on le lit : son « rev » vaut au moins son identifiant', evenementsAppel(S, a.ben.id).every(e => e.data.rev >= e.gid || e.data.rev === 0));
+  }
   /* tous occupés : personne ne peut sonner, l'appel est écrit « occupé » et ne démarre pas */
   const b = atelier(), S2 = b.S;
   const e1 = S2.appelCreer({ appelant: b.eve.id, appele: b.ben.id, type: 'audio', session: b.se, sonnerieMs: SONNERIE });

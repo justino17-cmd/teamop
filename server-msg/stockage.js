@@ -3878,8 +3878,18 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       duree_s: abouti && fin !== null ? Math.max(0, Math.round((fin - num(a.repondu)) / 1000)) : 0, motif: a.motif || null, lie: !!me.session,
       capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), visio: !!num(a.visio), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, rec: a.rec_par && me.statut !== 'exclu' ? { par: a.rec_par } : null,
       nb: lignes.filter(r => r.statut === 'present').length, en_attente: hote ? lignes.filter(r => r.statut === 'attente').length : 0,
-      moi: { statut: me.statut, grade: num(me.grade), gen: num(me.gen) }, participants: roster,
+      moi: { statut: me.statut, grade: num(me.grade), gen: num(me.gen) }, participants: roster, rev: termine ? 0 : appelRev(uid, a.id),
     };
+  }
+  /* ⛔ LA VERSION D'UNE VUE DE SALLE (`rev`) — 9 octobre 2026, sonde de groupe : une vue arrive par TROIS chemins (le flux, la réponse d'un geste, une relecture — celle de la salle ou de la liste des appels), et
+     rien ne garantit qu'elles arrivent dans l'ordre où le service les a écrites. Une vue d'AVANT (sans « REC ») arrivée APRÈS celle du geste « Enregistrer » arrêtait l'enregistrement de l'hôte sur son
+     appareil, pendant que le bandeau restait allumé chez tous : le fichier s'arrêtait à la seconde du geste. `rev` est le DERNIER événement `appel` du journal adressé à CETTE personne pour CETTE salle au
+     moment où la vue est lue : chaque changement de la salle en écrit un pour chacun de ceux qui y sont (`appelEvenements`), donc une vue lue plus tard a un `rev` plus grand ou égal — la page ne remplace
+     pas une vue par une plus petite (`source-serveur.js`, `perimee`). C'est un identifiant que la personne reçoit déjà dans son flux (l'`id` de cet événement) : jamais le compteur global du journal
+     (`gidVisible`). 0 = inconnu (journal élagué, appel terminé — une fin ne se périme pas) : la page l'applique, comme avant. */
+  function appelRev(uid, id) {
+    const r = Q(`SELECT gid FROM journal WHERE uid = ? AND genre = 'appel' AND ref = ? ORDER BY gid DESC LIMIT 1`).get(uid, id);
+    return r ? num(r.gid) : 0;
   }
   /* La salle passe-t-elle par le serveur de visio ? (`appels.js` : retirer, fermer, l'avis d'une entrée) — un booléen, rien d'autre ne sort. */
   function appelEstVisio(id) { const a = appelBrut(id); return !!(a && a.genre !== 'deux' && num(a.visio)); }
