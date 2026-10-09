@@ -19,11 +19,12 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# ⏳ 9 OCTOBRE 2026 (MATIN) — LE MAC ET L'iPHONE ENSEMBLE, SUR LE MÊME ÉCRAN, PARTOUT — MONTRÉ À JUSTIN, PAS ENCORE PUBLIÉ
+# ⏳ 9 OCTOBRE 2026 (MATIN) — LE MAC ET L'iPHONE ENSEMBLE, SUR LE MÊME ÉCRAN, PARTOUT — SUR L'APERÇU ; LA RACINE ATTEND SA PHRASE
 
 Justin, capture de la case « Encaissements et compta » (un iPhone seul) : « tu n'as pas compris, je voudrais que l'iPhone et le Mac
-soient sur les mêmes, pas un coup l'iPhone et un coup le Mac — montre-moi avant ». ⛔ **Montré en images, PAS publié** (ni l'aperçu,
-ni la racine) : la branche porte le travail, `main` n'en reçoit rien avant son oui.
+soient sur les mêmes, pas un coup l'iPhone et un coup le Mac — montre-moi avant ». Montré d'abord en images ; puis, à sa question
+« je peux voir », mis sur l'APERÇU (`teamop.fr/apercu/site/`) pour qu'il le voie sur ses appareils. ⛔ La racine en service garde ses
+écrans d'avant : elle attend « publie les carrousels ».
 · **les paires** (`PAIRES` de `scripts/site-marine.js`) : le même écran de l'application, sur le Mac ET sur l'iPhone — tableau de bord,
   planning / journée, interventions / fiche, stock, encaissements, factures, rapports, équipe, notifications, connexion. Chaque case de
   « Ce que fait OP GESTION » montre SA paire (fixe), chaque carte et chaque scène fait défiler des paires.
@@ -36,7 +37,8 @@ ni la racine) : la branche porte le travail, `main` n'en reçoit rien avant son 
 · **preuves** : `test-835` 1 193 ✓ (les paires dans l'aperçu, les cases d'avant à la racine) ; `sonde-carrousel.js` 2 380 ✓ 0 ✗
   (4 profils × jour / nuit × 14 pages, gestes compris) ; `mutations-carrousel.py` : 20 défauts remis, **20 mordent** — dont la sonde
   elle-même prise en défaut (son `scrollIntoView` faisait défiler la carte qui coupait l'iPhone : elle fait défiler la fenêtre).
-· **à faire sur son oui** : « publie l'aperçu » → PR vers `main` (l'aperçu seul change) ; puis « publie les carrousels » pour la racine.
+· **à faire sur son oui** : « publie les carrousels » → retirer la condition `POUR_LA_RACINE` des carrousels et lier `carrousel.css` /
+  `carrousel.js` à la racine, régénérer avec `--racine` (test-835 § 10 et § 5 bis changent avec elle).
 
 # ✅ 9 OCTOBRE 2026 — LE SITE (APERÇU) : LES CAPTURES DÉFILENT, L'iPHONE EN ENTIER ET LE MAC AVEC LUI — EN LIGNE SUR L'APERÇU (#112)
 
