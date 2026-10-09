@@ -21,6 +21,12 @@ de se publier à chaque fusion, comme avant.
 
 # ⏳ 9 OCTOBRE 2026 (APRÈS-MIDI) — LE MAC, PUIS LE TÉLÉPHONE, ET C'EST TOUT — SUR L'APERÇU (#114) ; LA RACINE ATTEND SA PHRASE
 
+⛔ **EN PAUSE — Justin, le même soir : « laisse tomber le site pour l'instant ».** Ne pas reprendre le site sans qu'il le demande. État laissé :
+l'aperçu sert la version « le Mac, puis le téléphone » (#114 fusionnée, relue sur teamop.fr : les 19 pages de l'aperçu ET les 19 de la racine
+= le dépôt ; la racine n'a pas bougé). Justin ne l'a PAS validée. Les 28 mutations de `mutations-carrousel.py` n'ont pas été rejouées jusqu'au
+bout sur cette version (M1 et M3 mordaient quand la série a été arrêtée) : à relancer avant toute suite — dans un `git worktree` à part, pour
+que le dépôt reste propre pendant qu'elles tournent.
+
 Troisième essai du jour, et la règle de Justin, capture des commandes à l'appui (légende, ⏸, pastilles) : « je ne veux pas ça, et ça commence
 à me saouler parce que tu ne comprends pas : je veux, une fois qu'on voit le Mac, ça change de page, on voit le téléphone, et c'est tout, et ça
 ne fait que ça ». Les deux essais refusés avant : les deux appareils posés l'un sur l'autre (#113), puis une suite de huit écrans — iPhone, Mac,
