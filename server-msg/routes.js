@@ -829,6 +829,79 @@ function creerHandlers(ctx) {
     res.json({ ok: true, reactions: r.reactions });
   };
 
+  /* ══ TRANSFÉRER UN MESSAGE (9 octobre 2026 — l'inventaire d'OP MESSAGES : « Transférer » manquait) ══
+     POST /api/conversations/:id/messages/transferer  M  { seq, vers: [1 à 5 conversations, sans doublon], cid }
+     Le message est relu tel que JE le vois (`messageATransferer` : ni masqué pour moi, ni supprimé, ni échu, ni d'avant mon arrivée) ; chaque destination est jugée SEULE, avec les MÊMES
+     règles qu'un envoi (`refusEcriture` : membre, contact, invitation qui attend — du texte seul —, groupe d'annonces) et le même plafond de messages (un transfert vers trois
+     conversations en compte trois). ⛔ CE QUI NE SE TRANSFÈRE PAS : un message système, un sondage (ses votes appartiennent à sa conversation), un compte rendu de réunion, et une
+     POSITION (c'est la position de quelqu'un, à un moment : la faire circuler ailleurs ne se décide pas à sa place). ⛔ UNE PIÈCE SE RECOPIE, ELLE NE SE PARTAGE PAS : une photo, un vocal
+     ou un fichier appartiennent à UNE conversation (le droit de les lire en dépend) — le service les relit et les re-scelle sous un nouvel identifiant dans la conversation d'arrivée,
+     comptés dans le quota de celui qui transfère, avec les gardes d'un dépôt (`copierPiece`, `routes-pieces.js`). Le même `cid` sert pour chaque destination : un renvoi (réponse perdue)
+     ne double rien et ne recopie rien. Le message arrive marqué « Transféré » (`meta.tr`), sans le nom de l'auteur d'origine. → 200 { resultats: [{ conv, ok, seq | error }] } dès qu'une
+     destination a réussi ; sinon le refus de la première, avec la liste.
+     ⛔ (relecture adverse, 9 octobre 2026) · un RENVOI pendant que le premier recopie encore (une copie de plusieurs Go dépasse le délai du relais : la page reçoit un 504 et réessaie) est
+     refusé (409 `transfert_en_cours`) — sinon il recopiait tout une seconde fois ; · un message déjà parti chez une destination se dit parti AVANT que les règles d'écriture la rejugent
+     (un plafond d'invitation atteint par CE message le disait refusé) ; · une copie qui arrive en double (`deja`) ou une destination qui lève une erreur efface ses copies, et la
+     boucle continue (la réponse des autres ne se perd plus) ; · la copie n'est jamais gardée plus longtemps que l'original (un enregistrement « gardé 3 jours », un message éphémère). */
+  const TRANSFERT_MAX = 5, TYPES_TRANSFERT = ['texte', 'photo', 'vocal', 'fichier'];
+  const STATUT_REFUS = { introuvable: 404, compte_supprime: 410, invitation_texte: 403, invitation_plafond: 409, annonces_seules: 403, quota_atteint: 429, quota_stockage: 402, disque_plein: 503, piece_trop_lourde: 413, message_inconnu: 404 };
+  const transfertsEnCours = new Set();          // `uid|cid` : un transfert qui recopie encore ses pièces
+  H['msg.transferer'] = async (req, res) => {
+    const b = corps(req), src = req.conv.conv, uid = req.moi.id;
+    if (typeof b.cid !== 'string' || !CID.test(b.cid)) return refus(res, 400, 'champ_invalide');
+    const seq = entier(b.seq);
+    if (seq === null || seq < 1) return refus(res, 400, 'champ_invalide');
+    if (!Array.isArray(b.vers) || b.vers.length < 1 || b.vers.length > TRANSFERT_MAX || !b.vers.every(x => typeof x === 'string' && ID_CONV.test(x)) || new Set(b.vers).size !== b.vers.length) return refus(res, 400, 'champ_invalide');
+    const m = stockage.messageATransferer(src.id, seq, uid);
+    if (!m) return refus(res, 404, 'message_inconnu');
+    const k = m.meta && typeof m.meta.k === 'string' ? m.meta.k : null;
+    if (!TYPES_TRANSFERT.includes(m.type) || (m.type === 'texte' && k !== null && k !== 'contact') || (m.type !== 'texte' && k !== null)) return refus(res, 403, 'transfert_refuse');
+    /* les pièces du message, chacune relue avec MES droits (la garde de lecture d'une pièce, `pieceVisible`) */
+    const sources = m.type === 'photo' ? (Array.isArray(m.meta && m.meta.pieces) ? m.meta.pieces : []) : m.type === 'vocal' || m.type === 'fichier' ? [{ id: m.meta && m.meta.piece }] : [];
+    const lignes = sources.map(p => p && typeof p.id === 'string' ? stockage.pieceVisible(uid, p.id) : null);
+    if (lignes.some(x => !x)) return refus(res, 404, 'message_inconnu');
+    if ((m.type === 'photo' && !lignes.length) || (m.type === 'vocal' && !(m.meta && Number.isFinite(m.meta.dur) && Array.isArray(m.meta.bars)))) return refus(res, 403, 'transfert_refuse');
+    const typeRegle = k === 'contact' ? 'contact' : m.type;             // une fiche de contact : une « carte », pas du texte, pour une invitation qui attend
+    const cle = uid + '|' + b.cid;
+    if (transfertsEnCours.has(cle)) return refus(res, 409, 'transfert_en_cours');
+    transfertsEnCours.add(cle);                     // ⛔ posé AVANT le premier `await` : tout ce qui précède est synchrone, deux requêtes ne peuvent pas passer ensemble
+    try {
+    const resultats = [];
+    for (const t of b.vers) {
+      const r = stockage.convPourMembre(t, uid);
+      if (!r) { resultats.push({ conv: t, ok: false, error: 'introuvable' }); continue; }
+      if (stockage.messageDejaEnvoye(t, uid, b.cid)) { resultats.push({ conv: t, ok: true, deja: true }); continue; }      // déjà parti : ni règle rejugée, ni pièce recopiée
+      const ref = refusEcriture(r.conv, uid, r.moi.role, typeRegle);
+      if (ref) { resultats.push({ conv: t, ok: false, error: ref[1] }); continue; }
+      const q = Object.assign({ max: 60, fenetreMs: 60000 }, config.quotas.msg || {});
+      if (!quotas.essai('msg:' + uid, Math.max(1, Math.floor(q.max * facteurJeune(req.moi))), q.fenetreMs).ok) { resultats.push({ conv: t, ok: false, error: 'quota_atteint' }); continue; }
+      const copies = [];
+      let echec = null;
+      for (const l of lignes) {
+        try { copies.push(await ctx.copierPiece({ moi: req.moi, source: l, conv: t })); }
+        catch (e) { echec = (e && e.code) || 'erreur'; break; }
+      }
+      if (echec) { for (const c of copies) effacer(stockage.pieceEffacerLigne(c.id)); resultats.push({ conv: t, ok: false, error: STATUT_REFUS[echec] ? echec : 'erreur' }); continue; }
+      const pieces = copies.length ? copies.map((c, i) => m.type === 'photo' ? { id: c.id, w: sources[i].w, h: sources[i].h } : { id: c.id }) : null;
+      let s2;
+      try {
+        s2 = stockage.messageEnvoyer({ conv: t, auteur: uid, cid: b.cid, type: m.type, texte: m.texte, meta: k === 'contact' ? { k: 'contact', uid: m.meta.uid } : null,
+          pieces, vocal: m.type === 'vocal' ? { dur: m.meta.dur, bars: m.meta.bars } : null, transfere: true, expireMax: m.expire });
+      } catch (e) {
+        for (const c of copies) effacer(stockage.pieceEffacerLigne(c.id));
+        resultats.push({ conv: t, ok: false, error: e && typeof e.code === 'string' && STATUT_REFUS[e.code] ? e.code : 'erreur' }); continue;
+      }
+      if (s2.deja) { for (const c of copies) effacer(stockage.pieceEffacerLigne(c.id)); resultats.push({ conv: t, ok: true, deja: true, seq: s2.seq }); continue; }
+      hub.reveiller({ conv: t });
+      try { if (ctx.push) ctx.push.message({ conv: t, seq: s2.seq, gid: s2.gid, auteur: uid, nomAuteur: nomAffiche(req.moi), nomConv: r.conv.nom, groupe: r.conv.type !== 'direct', type: m.type, texte: m.texte, sauf: sansPushMessage(r.conv, []) }); } catch (e) { /* une notification ratée ne défait pas l'envoi */ }
+      resultats.push({ conv: t, ok: true, seq: s2.seq });
+    }
+    if (resultats.some(x => x.ok)) return res.json({ resultats });
+    const e0 = resultats[0].error;
+    return refus(res, STATUT_REFUS[e0] || 409, e0 === 'erreur' ? 'transfert_impossible' : e0, { resultats });
+    } finally { transfertsEnCours.delete(cle); }
+  };
+
   /* Tout ce qui touche la base peut lever un code de stockage : on le traduit en réponse. Un
      code inconnu (une vraie panne) part à `next` — le gestionnaire d'erreurs d'`app.js` répond
      500 sans rien dire de l'intérieur. Les gestionnaires asynchrones (la porte bêta) passent

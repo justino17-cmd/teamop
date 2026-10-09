@@ -330,6 +330,77 @@ async function controler(PAGE, SRC, DOC) {
   vrai('« Modifier » : en mode sélection une ligne se COCHE (data-choisir, aria-pressed) au lieu de s\'ouvrir ; on en sort en changeant de vue ou de côté',
     /'<button type="button" class="conv presse conv-choix" data-choisir="' \+ esc\(c\.id\) \+ '" aria-pressed="' \+ pris \+ '">/.test(JS)
       && /if \(r\.vue !== 'messages' && etat\.selection\) quitterSelection\(\);/.test(JS) && /etat\.mode = m; etat\.vcCat = null; etat\.selection = null; etat\.listeArchives = false;/.test(JS));
+  /* ⛔ TRANSFÉRER (9 octobre 2026) : ce qui se transfère, l'aperçu, les destinations, l'envoi — les VRAIES fonctions de la page, exécutées dans un bac à sable ;
+     la couture avec le vrai service est dans tests/test-945.js, les gestes au doigt dans tests/sonde-opmessages-transfert.js */
+  {
+    const iT = JS.indexOf('const TR_MAX'), fT = JS.indexOf('function rendreTransfert'), iE = JS.indexOf('const nomConvId'), fE = JS.indexOf('const SOND_FINS');
+    const ligneEsc = (/const esc = s => [^\n]*/.exec(JS) || [''])[0];
+    let T = null, ctx = null;
+    try {
+      ctx = { MOI: { id: 'p_moi' }, icone: () => '<svg></svg>', duree: s => s + ' s', nomAuteur: id => id === 'p_ana' ? 'Ana <b>' : 'Quelqu\'un', norme: x => String(x).toLowerCase(),
+        modesActifs: () => true, NOM_COTE: { perso: 'Perso', pro: 'Pro' }, coteDe: c => c && c.cote === 'pro' ? 'pro' : 'perso', nomConv: c => c.nom, mots: [], avis0: [], erreurs: [] };
+      ctx.etat = { mode: 'perso', groupe: { mode: 'transferer', ouvert: true, tRecherche: '', tVers: [], tCid: '', tEnvoi: false }, conversations: [], convDonnees: { id: 'c_src', messages: [{ id: 'm1', seq: 7, auteur: 'p_ana', t: 1, texte: 'Salut' }] } };
+      ctx.$ = () => null;
+      ctx.dansMode = c => ctx.coteDe(c) === ctx.etat.mode;
+      vm.createContext(ctx);
+      vm.runInContext(ligneEsc + '\n' + JS.slice(iT, fT) + '\n' + JS.slice(iE, fE) + `
+        var erreurInfo = t => erreurs.push(t || ''), synchroFeuille = () => {}, peindreTransfert = () => {}, fermerFeuille = () => { etat.groupe.ouvert = false; }, mot = t => mots.push(t), avis = t => avis0.push(t),
+          phrase = (e, d) => e && e.dit ? e.message : d;
+        this.T = { TR_MAX, transferable, apercuTransfert, convsTransfert, cidNeuf, envoyerTransfert };`, ctx, { timeout: 2000 });
+      T = ctx.T;
+    } catch (e) { T = null; }
+    const routes = (() => { try { return lire('server-msg/routes.js'); } catch (e) { return ''; } })();
+    const maxServeur = (/const TRANSFERT_MAX = (\d+)/.exec(routes) || [])[1];
+    vrai('(population) les fonctions de « Transférer » s\'exécutent dans un bac à sable (' + (fT - iT) + ' + ' + (fE - iE) + ' caractères), et la page plafonne comme le service (' + (T && T.TR_MAX) + ' = ' + maxServeur + ')',
+      iT > 0 && fT > iT && iE > 0 && fE > iE && !!T && typeof T.envoyerTransfert === 'function' && String(T.TR_MAX) === maxServeur);
+    if (T) {
+      const M = o => Object.assign({ id: 'm1', seq: 7, auteur: 'p_ana', t: 1 }, o);
+      v('ce qui se transfère : un texte, une photo, un vocal, un fichier ENCORE LÀ, une fiche — pas une position, un sondage, un compte rendu, un message supprimé, en attente, du système, sans numéro, ni un texte vide ni une fiche indisponible',
+        [M({ texte: 'Salut' }), M({ photos: [{ url: 'x' }], texte: '' }), M({ vocal: { dur: 3 } }), M({ fichier: { nom: 'a.pdf', piece: 'f_1' } }), M({ carteContact: { prenom: 'Léo' }, texte: 'Léo' }),
+         M({ position: { lat: 1, lng: 2 }, texte: '📍 Position partagée' }), M({ sondage: {}, texte: '📊 Sondage : Quand ?' }), M({ compteRendu: {}, texte: 'Compte rendu' }), M({ texte: 'x', supprime: true }), M({ texte: 'x', attente: true }), M({ texte: 'x', systeme: true }),
+         M({ texte: 'x', seq: 0 }), M({ texte: '  ' }), M({ fichier: { nom: 'a.pdf', piece: null } }), M({ carteContact: { indisponible: true }, texte: '👤 Fiche de contact' }), M({ photos: [], texte: 'légende' }),
+         M({ texte: 'Message illisible', illisible: true })].map(T.transferable),
+        [true, true, true, true, true, false, false, false, false, false, false, false, false, false, false, false, false]);
+      const a1 = T.apercuTransfert(M({ texte: 'é'.repeat(200) })), a2 = T.apercuTransfert(M({ auteur: 'p_moi', fichier: { nom: '<x>.pdf' } })), a3 = T.apercuTransfert(M({ carteContact: { prenom: 'Léo' }, texte: 'secret' }));
+      vrai('l\'aperçu du message : qui l\'a écrit (échappé), le texte coupé à 140 signes avec « … », « Ton message » pour le mien, un nom de fichier échappé — et la fiche ne montre pas son texte',
+        a1.includes('Message de Ana &lt;b&gt;') && a1.includes('é'.repeat(140) + '…') && !a1.includes('é'.repeat(141)) && a2.includes('Ton message') && a2.includes('Fichier « &lt;x&gt;.pdf »') && a3.includes('Fiche de Léo') && !a3.includes('secret'),
+        JSON.stringify([a1.slice(0, 160), a2, a3]));
+      ctx.etat.conversations = [{ id: 'c_a', nom: 'Équipe', cote: 'perso' }, { id: 'c_b', nom: 'Bureau', cote: 'pro' }, { id: 'c_c', nom: 'Inconnu', cote: 'perso', invitation: 'recue' }, { id: 'c_d', nom: 'Vieux', cote: 'perso', archive: true }];
+      const sans = T.convsTransfert().map(c => c.id); ctx.etat.groupe.tRecherche = 'u'; const avec = T.convsTransfert().map(c => c.id); ctx.etat.groupe.tRecherche = '';
+      v('les destinations : mes conversations du côté en cours (archivées comprises), jamais une invitation pas encore acceptée — une recherche cherche des deux côtés',
+        [sans, avec], [['c_a', 'c_d'], ['c_a', 'c_b', 'c_d']]);
+      ctx.etat.groupe.tVers = ['c_d']; ctx.etat.groupe.tRecherche = 'bur'; const cachee = T.convsTransfert().map(c => c.id); ctx.etat.groupe.tRecherche = ''; ctx.etat.groupe.tVers = [];
+      v('⛔ une ligne COCHÉE reste à l\'écran pendant une recherche qui ne la trouve pas (elle partira : elle ne se cache pas)', cachee, ['c_b', 'c_d']);
+      vrai('un identifiant d\'envoi neuf a la forme qu\'attend le service (32 signes hexadécimaux), et deux feuilles n\'ont pas le même', /^[0-9a-f]{32}$/.test(T.cidNeuf()) && T.cidNeuf() !== T.cidNeuf());
+      /* l'envoi : un échec PARTIEL garde la feuille ouverte sur ce qui a échoué, et le nouvel essai repart avec le MÊME identifiant d'envoi (le service ne recrée rien de ce qui est parti) */
+      const appels = [];
+      ctx.source = { transferer: async (conv, mid, vers, cid) => { appels.push({ conv, mid, vers: vers.slice(), cid }); return appels.length === 1 ? [{ conv: 'c_a', ok: true }, { conv: 'c_b', ok: false, error: 'annonces_seules', phrase: 'Seuls les administrateurs peuvent écrire dans ce groupe.' }] : [{ conv: 'c_b', ok: true }]; } };
+      Object.assign(ctx.etat.groupe, { tConv: 'c_src', tMid: 'm1', tCid: 'a'.repeat(32), tVers: ['c_a', 'c_b'], ouvert: true });
+      await T.envoyerTransfert();
+      const apres1 = { echecs: Object.assign({}, ctx.etat.groupe.tEchecs), vers: ctx.etat.groupe.tVers.slice(), ouvert: ctx.etat.groupe.ouvert, err: ctx.erreurs[ctx.erreurs.length - 1], mots: ctx.mots.slice() };
+      await T.envoyerTransfert();
+      v('⛔ l\'envoi : un échec PARTIEL laisse la feuille ouverte, ne garde cochées que les destinations refusées (avec leur raison, nommées — et sous leur ligne), et le nouvel essai repart avec le MÊME identifiant d\'envoi',
+        [apres1.echecs, apres1.vers, apres1.ouvert, /« Bureau » : Seuls les administrateurs/.test(apres1.err || ''), apres1.mots, appels.map(x => x.vers), appels.map(x => x.cid === 'a'.repeat(32)), ctx.etat.groupe.ouvert, ctx.mots[ctx.mots.length - 1]],
+        [{ c_b: 'Seuls les administrateurs peuvent écrire dans ce groupe.' }, ['c_b'], true, true, ['Transféré à 1 conversation'], [['c_a', 'c_b'], ['c_b']], [true, true], false, 'Transféré']);
+      ctx.etat.groupe = { mode: 'transferer', ouvert: true, tVers: ['c_a'], tCid: 'b'.repeat(32), tConv: 'c_src', tMid: 'm1', tEnvoi: false };
+      let n2 = 0; ctx.source = { transferer: () => { n2++; return new Promise(r => setTimeout(() => r([{ conv: 'c_a', ok: true }]), 20)); } };
+      const p1 = T.envoyerTransfert(), p2 = T.envoyerTransfert(); await Promise.all([p1, p2]);
+      vrai('⛔ deux touches sur « Envoyer » ne transfèrent qu\'une fois (la feuille est « en envoi » jusqu\'à la réponse)', n2 === 1, 'appels : ' + n2);
+      /* le message a disparu de la conversation ouverte depuis l'ouverture de la feuille : la page le dit, et ne demande rien au service */
+      ctx.etat.groupe = { mode: 'transferer', ouvert: true, tVers: ['c_a'], tCid: 'c'.repeat(32), tConv: 'c_src', tMid: 'm_parti', tEnvoi: false };
+      let n3 = 0; ctx.source = { transferer: async () => { n3++; return [{ conv: 'c_a', ok: true }]; } }; ctx.erreurs.length = 0;
+      await T.envoyerTransfert();
+      v('⛔ un message qui n\'est plus dans la conversation : « Ce message n\'est plus là », sans rien demander au service (pas « Introuvable (la conversation…) »)', [n3, ctx.erreurs[ctx.erreurs.length - 1], ctx.etat.groupe.ouvert], [0, 'Ce message n\'est plus là : il a peut-être été supprimé.', true]);
+    }
+    vrai('⛔ le menu d\'un message ne propose « Transférer » qu\'à ce qui se transfère, et la feuille ne s\'ouvre que sur un message de la conversation ouverte qui se transfère (sinon elle rend la route d\'en dessous)',
+      /if \(CAP\.transferts && transferable\(m\)\) h \+= '<button type="button" class="menu-action" data-menu="transferer" aria-haspopup="dialog">Transférer<\/button>';/.test(JS)
+      && /\(CAP\.transferts && mode === 'transferer' && \/\^\\d\{1,12\}\$\/\.test\(arg \|\| ''\)\)/.test(JS)
+      && /const m = etat\.convDonnees && etat\.convDonnees\.id === etat\.conv \? etat\.convDonnees\.messages\.find\(x => x\.seq === \+arg\) : null;\s*if \(!m \|\| !transferable\(m\)\) \{ declencheur = null; setTimeout\(\(\) => \{ if \(etat\.route && etat\.route\.feuille\) remplacer\(parentDe\(etat\.route\)\); \}, 0\); return; \}/.test(JS));
+    vrai('⛔ un message TRANSFÉRÉ ne propose pas « Modifier » (le service le refuse : il porte les mots de quelqu\'un d\'autre)', /if \(moi && !m\.supprime && !m\.vocal && !m\.fichier && !estCarte\(m\) && !m\.transfere && Date\.now\(\) - m\.t < DELAI_MODIF_MS\) h \+=/.test(JS));
+    vrai('« Transféré » au-dessus de la bulle d\'un message transféré (jamais d\'un message supprimé), avant la citation ; cinq conversations au plus, dit à qui en coche une sixième',
+      /if \(m\.transfere && !m\.supprime\) h \+= '<span class="msg-transfere">' \+ icone\('i-transferer'\) \+ 'Transféré<\/span>';\s*if \(m\.reponse && !m\.supprime\)/.test(JS)
+      && /else if \(G\.tVers\.length >= TR_MAX\) \{ erreurInfo\('Cinq conversations au plus à la fois\.'\); return; \}/.test(JS) && /<symbol id="i-transferer"/.test(PAGE));
+  }
   vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
     /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
   vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',

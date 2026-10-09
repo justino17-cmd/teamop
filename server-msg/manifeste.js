@@ -78,6 +78,7 @@ const MANIFESTE = [
   { id: 'msg.modifier',      m: 'POST', p: '/api/conversations/:id/messages/modifier', garde: 'M' },
   { id: 'msg.supprimer',     m: 'POST', p: '/api/conversations/:id/messages/supprimer', garde: 'M' },
   { id: 'msg.reagir',        m: 'POST', p: '/api/conversations/:id/messages/reagir', garde: 'M' },
+  { id: 'msg.transferer',    m: 'POST', p: '/api/conversations/:id/messages/transferer', garde: 'M' },
   /* les sondages d'une conversation (7 octobre 2026) : lire, voter, ajouter un choix, clore — un membre */
   { id: 'sondage.lire',      m: 'GET',  p: '/api/conversations/:id/sondages/:seq',   garde: 'M' },
   { id: 'sondage.voter',     m: 'POST', p: '/api/conversations/:id/sondages/:seq/voter', garde: 'M' },

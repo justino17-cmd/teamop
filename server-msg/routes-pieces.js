@@ -65,6 +65,35 @@ function installerPieces(H, ctx) {
     return () => { if (sorti) return; sorti = true; enCours--; octetsAnnonces -= taille; const n = (parPers.get(uid) || 1) - 1; if (n > 0) parPers.set(uid, n); else parPers.delete(uid); };
   }
 
+  /* ══ RECOPIER UNE PIÈCE (TRANSFÉRER, 9 octobre 2026) ═════════════════════════════════
+     Une photo, un vocal ou un fichier transférés ne se PARTAGENT pas : le droit de les lire dépend de leur conversation. On relit la pièce (déchiffrée bloc à bloc, `pieces.lire`)
+     et on la redépose sous un NOUVEL identifiant, scellée avec SA clé, dans la conversation d'arrivée — avec TOUTES les gardes d'un dépôt, dans le même ordre : le plafond de
+     dépôts par heure, le maximum du genre, le plancher de disque (envois en cours compris), les envois simultanés, le quota de stockage de celui qui transfère. Le type est rejugé
+     aux octets et les métadonnées retirées une seconde fois (`pieces.deposer`) : une recopie n'est pas une porte de côté. `source` : la ligne que `pieceVisible` a rendue pour CETTE
+     personne (la route l'a déjà jugée lisible). → { id, taille } ; lève une erreur portant `code` (quota_atteint, quota_stockage, piece_trop_lourde, disque_plein) sinon. */
+  ctx.copierPiece = async ({ moi, source, conv }) => {
+    const uid = moi.id, genre = source.genre, taille = source.taille;
+    const err = (code) => Object.assign(new Error(code), { code });
+    if (!GENRES_CONV.includes(genre) || !(taille > 0)) throw err('transfert_refuse');
+    const plafond = Object.assign({ max: pc.depotsHeure, fenetreMs: 3600000 }, config.quotas.piece || {});
+    if (!quotas.essai('piece:' + uid, Math.max(1, Math.floor(plafond.max * jeune(moi))), plafond.fenetreMs).ok) throw err('quota_atteint');
+    if (taille > maxDe[genre]) throw err('piece_trop_lourde');
+    if (ctx.disque.libreMo() - (octetsAnnonces + taille) / Mo < config.disqueMinMo) throw err('disque_plein');
+    const sortir = entrerDepot(uid, taille);
+    if (!sortir) throw err('quota_atteint');
+    const place = reservations.essayer(uid, taille);
+    if (!place.ok) { sortir(); throw err('quota_stockage'); }        // l'espace de celui qui transfère est plein (le dépôt dit 402 quota_atteint, portée « stockage »)
+    const id = stockage.nouvelId('f');
+    try {
+      let r;
+      try { r = await pieces.deposer({ id, genre, flux: pieces.lire(source.id), max: maxDe[genre], attendu: taille }); }
+      catch (e) { await pieces.effacer(id).catch(() => {}); throw e && e.code === 'trop_gros' ? err('piece_trop_lourde') : e; }
+      try { stockage.pieceCreer({ id, proprio: uid, conv, genre, taille: r.taille, mime: r.mime, nom: source.nom || null, ttlMs: pc.orphelineMs }); }
+      catch (e) { await pieces.effacer(id).catch(() => {}); throw e; }
+      return { id, taille: r.taille };
+    } finally { place.liberer(); sortir(); }
+  };
+
   /* ══ DÉPOSER ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   H['pieces.deposer'] = garder(async (req, res) => {
     const uid = req.moi.id, q = req.query;

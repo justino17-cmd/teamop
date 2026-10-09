@@ -1196,7 +1196,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return { piece: lignes[0].id, nom: nom || 'fichier', taille: lignes[0].taille };
   }
 
-  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS }) {
+  function envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS, transfere, expireMax }) {
     const dej = Q('SELECT seq, ts, id FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid);
     if (dej) return { deja: true, seq: dej.seq, ts: dej.ts, id: dej.id };
     const c = Q('SELECT dernier_seq, ephemere_s FROM conversation WHERE id = ?').get(conv);
@@ -1206,11 +1206,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const seq = c.dernier_seq + 1, ts = horloge(), id = nouvelId('m');
     /* ⛔ APRÈS le contrôle du `cid` : un renvoi (réponse perdue) ne rejoue pas l'attachement des pièces, déjà fait par le premier envoi */
     if (pieces && pieces.length) meta = piecesAttacher({ conv, auteur, seq, ts, type, pieces, vocal });
+    if (transfere) meta = Object.assign({}, meta || {}, { tr: 1 });          // « Transféré » : la page le dit au-dessus de la bulle (9 octobre 2026)
     const corps = texte != null ? sceller('message', 'corps_ch', aadMsg(conv, seq, auteur), texte) : null;
     const metaCh = meta != null ? sceller('message', 'meta_ch', aadMsg(conv, seq, auteur), JSON.stringify(meta)) : null;
     /* ⛔ l'échéance : celle de la conversation (messages éphémères) ou celle que l'envoi demande (`garderS` — un enregistrement de réunion gardé trois jours, 8 octobre 2026), la PLUS PROCHE ;
        à l'échéance le balayeur emporte la ligne ET ses pièces (`purgerExpires`) : un fichier de plusieurs Go ne dort pas sur le disque pour rien */
-    const echeances = [c.ephemere_s > 0 ? ts + c.ephemere_s * 1000 : null, garderS > 0 ? ts + garderS * 1000 : null].filter(x => x !== null);
+    /* `expireMax` : un message TRANSFÉRÉ ne vit pas plus longtemps que l'original (son échéance, s'il en a une) */
+    const echeances = [c.ephemere_s > 0 ? ts + c.ephemere_s * 1000 : null, garderS > 0 ? ts + garderS * 1000 : null, Number.isSafeInteger(expireMax) && expireMax > 0 ? expireMax : null].filter(x => x !== null);
     const expire = echeances.length ? Math.min(...echeances) : null;
     Q('INSERT INTO message(conv, seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, expire_ts) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(conv, seq, id, auteur, cid, ts, type, corps, metaCh, repondA == null ? null : repondA, expire);
@@ -1643,10 +1645,27 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
 
   /* ══ MESSAGES ════════════════════════════════════════════════════════════════════════════ */
-  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null, garderS = 0 }) {
+  function messageEnvoyer({ conv, auteur, cid, type = 'texte', texte = null, meta = null, repondA = null, pieces = null, vocal = null, sondage = null, garderS = 0, transfere = false, expireMax = null }) {
     if (sondage && !SONDAGES) throw erreur('type');
-    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS }));
+    return tx(() => envoyerDansTx({ conv, auteur, cid, type, texte, meta, repondA, pieces, vocal, sondage, garderS, transfere, expireMax }));
   }
+  /* ── TRANSFÉRER (9 octobre 2026) : le message tel que `uid` le VOIT — membre depuis, ni masqué pour lui, ni supprimé, ni échu —, son texte et sa méta ouverts ; null sinon
+     (la route répond 404, comme pour un message qui n'existe pas). La méta est relue telle qu'elle est rangée (pas `metaLue` : une fiche de contact garde son identifiant, elle se relira
+     chez les destinataires, avec LEURS droits). */
+  function messageATransferer(conv, seq, uid) {
+    const m = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    if (!m || seq < m.depuis_seq) return null;
+    const r = Q(`SELECT x.auteur AS auteur, x.type AS type, x.corps_ch AS corps_ch, x.meta_ch AS meta_ch, x.supprime_le AS supprime_le, x.expire_ts AS expire_ts FROM message x
+                 WHERE x.conv = ? AND x.seq = ? AND (x.expire_ts IS NULL OR x.expire_ts > ?) AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)`).get(conv, seq, horloge(), uid);
+    if (!r || r.supprime_le) return null;
+    const texte = r.corps_ch ? ouvrirOuNull('message', 'corps_ch', aadMsg(conv, seq, r.auteur), r.corps_ch) : null;
+    if (r.corps_ch && texte === null) return null;                          // un texte illisible ne se recopie pas en « vide »
+    let meta = null;
+    if (r.meta_ch) { try { meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), r.meta_ch)); } catch (e) { return null; } }
+    return { auteur: r.auteur, type: r.type, texte, meta, expire: Number.isSafeInteger(r.expire_ts) ? r.expire_ts : null };
+  }
+  /* un renvoi du même geste (réponse perdue) : le message est-il déjà parti dans cette conversation ? — avant de recopier des pièces pour rien */
+  function messageDejaEnvoye(conv, auteur, cid) { return !!Q('SELECT 1 AS x FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid); }
   /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. ── */
   /* un message que `uid` voit (membre depuis, ni masqué, ni effacé, ni expiré) → son auteur et sa méta, ou null */
   function messageVuPar(conv, seq, uid) {
@@ -1666,8 +1685,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const id = typeof meta.uid === 'string' ? meta.uid : null, p = id ? personneParId(id) : null;
     /* ⛔ la fiche d'une personne qui M'A bloqué se lit comme celle d'une personne introuvable (relecture du gardien) : sinon « fiche lisible, mais Écrire et Ajouter refusés » disait le blocage */
     const bloqueMoi = !!(id && viewer && (contactLigne(id, viewer) || {}).etat === 'bloque');
-    if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous' || bloqueMoi) return { k: 'contact', uid: null, prenom: null, identifiant: null };
-    return { k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) };
+    const tr = meta.tr ? { tr: 1 } : {};                 // « Transféré » se garde à la relecture (9 octobre 2026)
+    if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous' || bloqueMoi) return Object.assign({ k: 'contact', uid: null, prenom: null, identifiant: null }, tr);
+    return Object.assign({ k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) }, tr);
   }
   /* la fiche de contact d'un message (`meta.k = 'contact'`) que `uid` voit, ou null */
   function carteContactLire(conv, seq, uid) { const v = messageVuPar(conv, seq, uid); return v && v.meta && v.meta.k === 'contact' && typeof v.meta.uid === 'string' ? v.meta : null; }
@@ -1805,7 +1825,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (!r || r.supprime_le) throw erreur('introuvable');
       if (r.auteur !== auteur) throw erreur('interdit');
       if (r.type !== 'texte' && r.type !== 'photo') throw erreur('type');   // la légende d'une photo se modifie comme un message
-      if (r.type === 'texte' && Q('SELECT meta_ch FROM message WHERE conv = ? AND seq = ?').get(conv, seq).meta_ch) throw erreur('type');   // une position, une fiche, un sondage : leur texte est leur résumé, il ne se modifie pas
+      const metaCh = Q('SELECT meta_ch FROM message WHERE conv = ? AND seq = ?').get(conv, seq).meta_ch;
+      if (r.type === 'texte' && metaCh) throw erreur('type');   // une position, une fiche, un sondage : leur texte est leur résumé, il ne se modifie pas — ni un texte TRANSFÉRÉ (`meta.tr`)
+      /* ⛔ un message TRANSFÉRÉ ne se modifie pas, sa légende non plus (relecture adverse, 9 octobre 2026) : il porte les mots de quelqu'un d'autre sous « Transféré » */
+      if (r.type === 'photo' && metaCh) { let mt = null; try { mt = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), metaCh)); } catch (e) { mt = null; } if (mt && mt.tr === 1) throw erreur('type'); }
       if (texte === null && r.type !== 'photo') throw erreur('vide');   // un message texte ne se vide pas ; une photo, si : sa légende est retirée
       if (horloge() - r.ts > DELAI_MODIF_MS) throw erreur('delai');
       const t = horloge();
@@ -4548,7 +4571,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     persoAjuster, annulationAjouter, annulationsDues, annulationLire, annulationEncore, annulationMemoriser, annulationFaite, annulationEchec, annulationPlusAncienne,   // …et ce qu'il reste à faire chez Stripe quand la personne s'en va (arrêt du renouvellement, rétablissement, résiliation)
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
-    messageEnvoyer, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
+    messageEnvoyer, messageATransferer, messageDejaEnvoye, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,

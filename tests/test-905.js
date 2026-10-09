@@ -85,6 +85,8 @@ const MATRICE = {
   'msg.modifier':       { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/modifier', { seq: F.seqDe(a), texte: 'modifié' }], codes: [200] },
   'msg.supprimer':      { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/supprimer', { seq: F.seqDe(a), pour: 'tous' }], codes: [200] },
   'msg.reagir':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/reagir', { seq: 1, emoji: '👍' }], codes: [200] },
+  /* transférer (9 octobre 2026) : la garde M passée, un numéro de message illisible rend le 400 du gestionnaire — jamais le 404 de la garde (le transfert réel : `test-945`) */
+  'msg.transferer':     { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/transferer', { seq: 'x', vers: [F.G], cid: 'cid-' + crypto.randomBytes(6).toString('hex') }], codes: [400] },
   /* les sondages d'une conversation : la garde M passée, un numéro de message illisible rend le 400 du gestionnaire — jamais le 404 de la garde */
   'sondage.lire':       { ok: (F) => ['GET', '/api/conversations/' + F.G + '/sondages/x'], codes: [400] },
   'sondage.voter':      { ok: (F) => ['POST', '/api/conversations/' + F.G + '/sondages/x/voter', { choix: [0] }], codes: [400] },
