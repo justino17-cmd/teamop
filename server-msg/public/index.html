@@ -1171,12 +1171,16 @@ html[data-service] .mention-apercu { display: none; }
 .md-photo { position: relative; aspect-ratio: 1; background: var(--field); overflow: hidden; }
 .md-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .md-photo.md-indispo { opacity: .5; }
-.md-ligne { display: flex; align-items: center; gap: 8px; padding-right: 12px; }
+.md-ligne { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-bottom: var(--sep); }
+.md-ligne:last-child { border-bottom: 0; }
+/* le filet est porté par la RANGÉE : le bouton du fichier y est seul (donc `:last-child`), il n'en dessinait aucun, et les liens n'en avaient pas */
+.md-ligne > .contact { border-bottom: 0; }
 .md-ligne .md-fichier { flex: 1; min-width: 0; }
 .md-ligne .contact-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .md-liens { padding: 10px 12px 10px 16px; }
 .md-liens .contact-texte { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.md-lien { font-size: 15px; overflow-wrap: anywhere; }
+.md-lien { font-size: 15px; line-height: 20px; color: var(--accent-txt); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; -webkit-touch-callout: none; }
+.md-lien:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 3px; }
 .md-voir { flex: none; }
 /* « Transféré » (9 octobre 2026) : au-dessus de la bulle, à la taille d'un nom d'auteur — une flèche et un mot, jamais le nom de qui l'avait écrit */
 .msg-transfere { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; font-size: 11px; line-height: 14px; font-style: italic; color: var(--sub-meta); }

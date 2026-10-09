@@ -566,24 +566,34 @@ function creerHandlers(ctx) {
   /* ══ RETROUVER (9 octobre 2026) ══ — un membre (garde M) cherche dans les messages de SA conversation, ou en liste les photos, les fichiers, les liens.
      GET /api/conversations/:id/messages/chercher?q=…[&avant_seq=N]  → { resultats: [{ seq, auteur, ts, type, texte (un extrait) }], suite: N | null }
      GET /api/conversations/:id/medias?genre=photo|fichier|lien[&avant_seq=N] → { medias: [...], suite: N | null }
-     ⛔ Chaque appel OUVRE des messages scellés (`messagesChercher`, borné à 2 000 par appel) : un plafond PAR COMPTE (un GET n'a sinon que le plafond par réseau), plus bas pour un
-     compte de moins de 24 h. La requête cherchée ne va dans aucun journal. */
+     ⛔ Chaque appel OUVRE des messages scellés (`messagesChercher`, borné par `config.recherche` : messages ET signes déchiffrés) : un plafond PAR COMPTE (un GET n'a sinon que le
+     plafond par réseau), plus bas pour un compte de moins de 24 h. DEUX plafonds : `chercher` (le texte, et les liens — qui le déchiffrent aussi) et `medias` (photos et fichiers :
+     une requête sur le lien en clair pièce → message, et la seule méta des messages rendus) — feuilleter la galerie ne mange pas la recherche qu'on tape. La requête cherchée ne va
+     dans aucun journal. */
   const RECH_MIN = 2, RECH_MAX = 100;
   const seqDe = (v) => v === undefined ? null : (/^\d{1,15}$/.test(String(v)) ? parseInt(v, 10) : NaN);
   const LIEN_TEXTE = /https?:\/\/|www\./i;
+  const R = () => config.recherche;                                         // ses défauts et ses bornes : `rechercheConfig` (config.js), une seule définition
+  const bornesRech = () => { const r = R(); return { max: r.resultatsMax, plafondLignes: r.lignesMax, plafondSignes: r.signesMax }; };
   H['msg.chercher'] = (req, res) => {
     const q = typeof req.query.q === 'string' ? req.query.q.normalize('NFC').replace(/\s+/g, ' ').trim() : null, n = q === null ? 0 : Array.from(q).length;
     const av = seqDe(req.query.avant_seq);
-    if (q === null || n < RECH_MIN || n > RECH_MAX || Number.isNaN(av)) return refus(res, 400, 'champ_invalide');
+    /* ⛔ la longueur se compte AUSSI sur la requête telle qu'elle se compare : deux signes combinants seuls font deux caractères, et une requête VIDE une fois normalisée */
+    if (q === null || n < RECH_MIN || n > RECH_MAX || Array.from(stockage.requeteRech(q)).length < RECH_MIN || Number.isNaN(av)) return refus(res, 400, 'champ_invalide');
     if (!plafond(res, 'chercher', req.moi.id, { max: 30, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
-    res.json(stockage.messagesChercher(req.conv.conv.id, req.moi.id, { q, avantSeq: av }));
+    res.json(stockage.messagesChercher(req.conv.conv.id, req.moi.id, Object.assign({ q, avantSeq: av }, bornesRech())));
   };
   H['msg.medias'] = (req, res) => {
     const genre = req.query.genre, av = seqDe(req.query.avant_seq);
     if (!['photo', 'fichier', 'lien'].includes(genre) || Number.isNaN(av)) return refus(res, 400, 'champ_invalide');
-    if (!plafond(res, 'chercher', req.moi.id, { max: 30, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
-    if (genre === 'lien') { const r = stockage.messagesChercher(req.conv.conv.id, req.moi.id, { avantSeq: av, filtre: (t) => LIEN_TEXTE.test(t), texteMax: 2000 }); return res.json({ medias: r.resultats, suite: r.suite }); }
-    res.json(stockage.mediasDe(req.conv.conv.id, req.moi.id, { genre, avantSeq: av }));
+    if (genre === 'lien') {
+      if (!plafond(res, 'chercher', req.moi.id, { max: 30, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
+      /* le texte ENTIER de chaque message à lien (au plus MSG_MAX signes) : la page y relit tous les liens, un lien au-delà d'une coupe serait perdu */
+      const r = stockage.messagesChercher(req.conv.conv.id, req.moi.id, Object.assign({ avantSeq: av, filtre: (t) => LIEN_TEXTE.test(t), entier: true }, bornesRech()));
+      return res.json({ medias: r.resultats, suite: r.suite });
+    }
+    if (!plafond(res, 'medias', req.moi.id, { max: 60, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
+    res.json(stockage.mediasDe(req.conv.conv.id, req.moi.id, { genre, avantSeq: av, max: R().mediasMax }));
   };
 
   /* ⛔ LES PIÈCES D'UN MESSAGE se lisent ici, bornées, et jamais crues sur parole : la route ne sait que des identifiants (le stockage vérifie qu'ils sont à l'envoyeur, du bon

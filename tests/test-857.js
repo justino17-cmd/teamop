@@ -402,20 +402,27 @@ async function controler(PAGE, SRC, DOC) {
       && /else if \(G\.tVers\.length >= TR_MAX\) \{ erreurInfo\('Cinq conversations au plus à la fois\.'\); return; \}/.test(JS) && /<symbol id="i-transferer"/.test(PAGE));
   }
   /* ⛔ RETROUVER (9 octobre 2026) : l'occurrence surlignée (échappée), les liens de la galerie (les règles de la bulle), seule la DERNIÈRE réponse s'affiche, « Chercher plus loin »
-     ajoute — les VRAIES fonctions de la page, exécutées ; le service est gardé par tests/test-946.js, les gestes par tests/sonde-opmessages-retrouver.js */
+     ajoute, un échec se dit et se réessaie, la galerie se pagine, un texte piégé (message, nom de fichier, nom d'auteur, identifiant de pièce) s'écrit échappé, un résultat mène AU
+     message sans doubler l'historique, avec le focus — les VRAIES fonctions de la page, exécutées ; le service est gardé par tests/test-946.js, les gestes par
+     tests/sonde-opmessages-retrouver.js */
   {
-    const iL = JS.indexOf('const LIEN_RE'), fL = JS.indexOf('function texteRiche'), iR = JS.indexOf('const normeCar'), fR = JS.indexOf('const MD_GENRES'), iK = JS.indexOf('function liensDe'), fK = JS.indexOf('let mdObservateur');
+    const iL = JS.indexOf('const LIEN_RE'), fL = JS.indexOf('function texteRiche'), iR = JS.indexOf('const normeCar'), fR = JS.indexOf("$('info-corps').addEventListener('input'", iR);
     const ligneEsc = (/const esc = s => [^\n]*/.exec(JS) || [''])[0];
+    const tic = () => new Promise(r => setImmediate(r));
     let R = null, ctx = null;
+    const els = {}, boutons = {}, el = () => ({ innerHTML: '', hidden: false, textContent: '', setAttribute(k, x) { this['@' + k] = x; }, style: { setProperty() {} } });
     try {
-      const els = {}, el = () => ({ innerHTML: '', hidden: false, textContent: '', setAttribute() {}, style: { setProperty() {} } });
-      ctx = { icone: () => '', libelleListe: () => 'hier', nomAuteur: () => 'Ben', phrase: (e, d) => d, etat: { groupe: { mode: 'chercher', convId: 'c_x' } }, document: { querySelector: () => null }, setTimeout, clearTimeout };
+      ctx = { icone: () => '', libelleListe: () => 'hier', nomAuteur: () => 'Ben', tailleTexte: n => n + ' o', phrase: (e, d) => d, etat: { groupe: { mode: 'chercher', convId: 'c_x' } },
+        cibleMsg: { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false }, nav: [],
+        document: { querySelector: s => boutons[s] || null, querySelectorAll: () => [] }, setTimeout, clearTimeout };
+      ctx.voirMessage = (c, s, r) => { ctx.nav.push(['voir', c, s, r]); Object.assign(ctx.cibleMsg, { conv: c, seq: s, pages: 0, max: 20, retrouver: false, apresFeuille: false }); };
+      ctx.fermerFeuille = () => ctx.nav.push(['fermer']);
       ctx.$ = id => (els[id] = els[id] || el());
       vm.createContext(ctx);
-      vm.runInContext(ligneEsc + '\n' + JS.slice(iL, fL) + '\n' + JS.slice(iR, fR) + '\n' + JS.slice(iK, fK) + '\nthis.R = { surligner, liensDe, rendreRecherche, lancerRecherche };', ctx, { timeout: 2000 });
+      vm.runInContext(ligneEsc + '\n' + JS.slice(iL, fL) + '\n' + JS.slice(iR, fR) + '\nthis.R = { surligner, liensDe, rendreRecherche, lancerRecherche, peindreRecherche, rendreMedias, chargerMedias, allerDepuisFeuille };', ctx, { timeout: 2000 });
       R = ctx.R;
     } catch (e) { R = null; }
-    vrai('(population) les fonctions de « Retrouver » s\'exécutent dans un bac à sable (' + (fR - iR) + ' + ' + (fK - iK) + ' caractères)', iL > 0 && fL > iL && iR > 0 && fR > iR && iK > 0 && fK > iK && !!R && typeof R.lancerRecherche === 'function');
+    vrai('(population) les fonctions de « Retrouver » s\'exécutent dans un bac à sable (' + (fR - iR) + ' caractères)', iL > 0 && fL > iL && iR > 0 && fR > iR && !!R && typeof R.allerDepuisFeuille === 'function');
     if (R) {
       v('⛔ l\'occurrence est SURLIGNÉE telle qu\'elle est écrite, sans accents ni casse, et tout le reste est ÉCHAPPÉ',
         [R.surligner('Le chantier de Rochefort démarre', 'rochefort'), R.surligner('Réunion à l\'école', ' ECOLE '), R.surligner('<b>x</b> <i>rochefort</i>', 'rochefort'), R.surligner('voir <b>ici', '<B>'), R.surligner('rien <ici>', 'zz')],
@@ -433,12 +440,102 @@ async function controler(PAGE, SRC, DOC) {
       await R.lancerRecherche(true);
       v('« Chercher plus loin » reprend à la `suite` et AJOUTE (rien ne disparaît)', [G.rc.resultats.map(x => x.seq), G.rc.suite, appels[appels.length - 1]], [[2, 1], null, ['c_x', 'second', 5]]);
       const n0 = appels.length; G.rc.q = 'a'; await R.lancerRecherche(false);
-      v('une requête d\'un seul signe ne part pas au service, et vide la liste', [appels.length - n0, G.rc.resultats.length], [0, 0]);
+      const n1 = appels.length; G.rc.q = '\u0301\u0301'; await R.lancerRecherche(false);
+      G.rc.q = 'e\u0301'; await R.lancerRecherche(false);
+      v('⛔ une requête d\'un seul signe ne part pas au service (ni deux ACCENTS seuls : vides sans leurs signes combinants — une chaîne vide se trouve partout), et vide la liste',
+        [n1 - n0, appels.length - n1, G.rc.resultats.length], [0, 0, 0]);
+      /* un échec : il se DIT, la liste reste, « Réessayer » paraît (« Chercher plus loin » se cache) ; le réessai rejoue le MÊME geste */
+      G.rc.q = 'chantier'; G.rc.resultats = [{ seq: 9, auteur: 'p_b', moi: false, t: 1, type: 'texte', texte: 'chantier' }]; G.rc.suite = 8;
+      ctx.source = { chercher: () => Promise.reject(new Error('reseau')) };
+      await R.lancerRecherche(true);
+      const echec = [G.rc.erreur, G.rc.echecPlus, G.rc.resultats.length, els['rc-etat'].textContent, els['rc-reessayer-zone'].hidden, els['rc-plus-zone'].hidden];
+      ctx.source = { chercher: (conv, q, avant) => Promise.resolve({ resultats: [{ seq: 7, auteur: 'p_b', moi: false, t: 1, type: 'texte', texte: 'chantier ' + avant }], suite: null }) };
+      await R.lancerRecherche(G.rc.echecPlus && G.rc.suite !== null);
+      v('⛔ une recherche qui échoue le DIT, garde ce qui était trouvé, propose « Réessayer » ; le réessai reprend la même suite et efface l\'erreur',
+        [echec, G.rc.erreur, G.rc.resultats.map(x => x.texte), els['rc-reessayer-zone'].hidden],
+        [['La recherche n\'a pas pu aboutir.', true, 1, 'La recherche n\'a pas pu aboutir.', false, true], '', ['chantier', 'chantier 8'], true]);
+      vrai('« Réessayer » (toucher) rejoue la première page, ou la suite si c\'est elle qui avait échoué',
+        /if \(e\.target\.closest\('\[data-rc-reessayer\]'\)\) \{ if \(G\.rc && !G\.rc\.enCours\) lancerRecherche\(G\.rc\.echecPlus && G\.rc\.suite !== null\); return; \}/.test(JS)
+        && /if \(e\.target\.closest\('\[data-md-reessayer\]'\)\) \{ if \(G\.md && !G\.md\.enCours\) chargerMedias\(G\.md\.echecPlus && G\.md\.suite !== null\); return; \}/.test(JS));
+      /* un texte PIÉGÉ et un auteur dont la source a résolu le nom (« Compte supprimé ») */
+      R.rendreRecherche(); G.rc.q = 'chantier';
+      G.rc.resultats = [{ seq: 3, auteur: 'p_z', moi: false, nom: '<svg onload=1>', t: 1, type: 'fichier', texte: '<img src=x onerror=alert(1)> chantier' }, { seq: 2, auteur: 'p_y', moi: false, nom: 'Compte supprimé', t: 1, type: 'texte', texte: 'chantier' }];
+      R.peindreRecherche(); const hR = els['rc-liste'].innerHTML;
+      v('⛔ un résultat PIÉGÉ (texte, nom d\'auteur) s\'écrit échappé ; le nom que la source a résolu passe (« Compte supprimé », jamais « ? » ni le nom d\'un contact homonyme)',
+        [/<img|<svg/.test(hR), hR.includes('&lt;img src=x onerror=alert(1)&gt;'), hR.includes('&lt;svg onload=1&gt;'), hR.includes('Compte supprimé'), hR.includes('Ben')], [false, true, true, true, false]);
+      /* la galerie */
+      ctx.etat.groupe = { mode: 'medias', convId: 'c_x' }; const M = ctx.etat.groupe; boutons['[data-md-plus]'] = el();
+      const mAppels = [];
+      ctx.source = { medias: (conv, genre, avant) => { mAppels.push([genre, avant]); return Promise.resolve(avant ? { medias: [{ seq: 1, auteur: 'p_b', moi: false, nom: 'Ben', t: 1, pieces: [{ id: 'p2', w: 1, h: 1 }] }], suite: null }
+        : { medias: [{ seq: 4, auteur: 'p_b', moi: false, nom: 'Ben', t: 1, pieces: [{ id: '"><img src=x>', w: 1, h: 1 }] }], suite: 7 }); }, pieceUrl: () => new Promise(() => {}) };
+      R.rendreMedias(); await tic();
+      const hP = els['md-corps'].innerHTML, plus1 = [els['md-plus-zone'].hidden, boutons['[data-md-plus]'].textContent];
+      await R.chargerMedias(true);
+      v('la galerie (photos) : une page, « Plus » ; la suite reprend à `suite` et AJOUTE ; l\'identifiant d\'une pièce s\'écrit échappé',
+        [hP.includes('"><img src=x>'), hP.includes('&quot;&gt;&lt;img src=x&gt;'), plus1, mAppels, M.md.items.map(x => x.seq), els['md-plus-zone'].hidden], [false, true, [false, 'Plus'], [['photo', null], ['photo', 7]], [4, 1], true]);
+      M.md.genre = 'fichier';
+      ctx.source.medias = () => Promise.resolve({ medias: [{ seq: 5, auteur: 'p_b', moi: false, nom: '"><svg onload=1>', t: 1, fichier: { piece: 'x', nom: '<img src=x onerror=1>.pdf', taille: 10 } }], suite: null });
+      await R.chargerMedias(false); const hF = els['md-corps'].innerHTML;
+      v('⛔ la galerie (fichiers) : le NOM du fichier et celui de l\'auteur s\'écrivent échappés ; « Voir » dit QUEL message (auteur, date) à qui ne voit pas la ligne',
+        [/<img|<svg/.test(hF), hF.includes('&lt;img src=x onerror=1&gt;.pdf'), hF.includes('aria-label="Voir le message de &quot;&gt;&lt;svg onload=1&gt;, hier"')], [false, true, true]);
+      M.md.genre = 'lien';
+      ctx.source.medias = () => Promise.resolve({ medias: [{ seq: 6, auteur: 'p_b', moi: false, nom: 'Ana', t: 1, texte: 'voir https://a.fr/x"><img src=x> et <b>gras</b>' }], suite: null });
+      await R.chargerMedias(false); const hK = els['md-corps'].innerHTML;
+      ctx.source.medias = () => Promise.resolve({ medias: [], suite: 12 });
+      await R.chargerMedias(false); const videSuite = [els['md-etat'].textContent, els['md-plus-zone'].hidden, boutons['[data-md-plus]'].textContent];
+      ctx.source.medias = () => Promise.resolve({ medias: [], suite: null });
+      await R.chargerMedias(false); const videFin = [els['md-etat'].textContent, els['md-plus-zone'].hidden];
+      v('⛔ la galerie (liens) : un message piégé n\'écrit rien dans la page ; aucun lien dans un lot qui n\'a pas tout relu dit « parmi les messages récents » et propose « Chercher plus loin » — pas « aucun dans la conversation »',
+        [/<img|<b>/.test(hK), hK.includes('href="https://a.fr/x"'), videSuite, videFin],
+        [false, true, ['Aucun lien parmi les messages récents.', false, 'Chercher plus loin'], ['Aucun lien dans cette conversation.', true]]);
+      ctx.source.medias = () => Promise.reject(new Error('reseau'));
+      await R.chargerMedias(false);
+      v('une galerie qui ne se charge pas le DIT et propose « Réessayer »', [els['md-etat'].textContent, els['md-reessayer-zone'].hidden, els['md-plus-zone'].hidden], ['La liste n\'a pas pu être chargée.', false, true]);
+      /* aller au message */
+      ctx.etat = { groupe: { mode: 'chercher', convId: 'c_x' }, conv: 'c_x', convDonnees: { id: 'c_x' }, route: { vue: 'messages', conv: 'c_x', feuille: 'chercher:c_x' } };
+      ctx.nav.length = 0; R.allerDepuisFeuille(42); const dessous = [ctx.nav.slice(), Object.assign({}, ctx.cibleMsg)];
+      ctx.etat = { groupe: { mode: 'chercher', convId: 'c_x' }, conv: 'c_autre', convDonnees: { id: 'c_autre' }, route: { vue: 'messages', conv: 'c_autre', feuille: 'chercher:c_x' } };
+      ctx.nav.length = 0; R.allerDepuisFeuille(43); const ailleurs = [ctx.nav.slice(), ctx.cibleMsg.max, ctx.cibleMsg.retrouver, ctx.cibleMsg.apresFeuille];
+      v('⛔ un résultat touché, la conversation SOUS la feuille : la feuille se REFERME (on revient à l\'entrée de la conversation — remplacer celle de la feuille en faisait DEUX), le message attend sa fermeture, 60 pages ; sans conversation dessous, la feuille devient la conversation',
+        [dessous, ailleurs],
+        [[[['fermer']], { conv: 'c_x', seq: 42, pages: 0, max: 60, retrouver: true, apresFeuille: true }], [[['voir', 'c_x', 43, true]], 60, true, false]]);
     }
-    vrai('⛔ les deux lignes des Infos n\'existent que si la source sait chercher (CAP.retrouver) ; un résultat mène au message en remontant jusqu\'à 60 pages',
-      /if \(CAP\.retrouver && !i\.supprime\) h \+= '<div class="carte"><button type="button" class="reglage presse" data-act="chercher">/.test(JS)
-      && /function allerDepuisFeuille\(seq\) \{ const conv = etat\.groupe\.convId; if \(!conv \|\| !Number\.isSafeInteger\(seq\)\) return; voirMessage\(conv, seq, true\); cibleMsg\.max = 60; \}/.test(JS)
-      && /cibleMsg\.pages < \(cibleMsg\.max \|\| 20\)/.test(JS));
+    vrai('⛔ la feuille refermée montre le message attendu (`apresFeuille`), après avoir rendu le focus — et seulement s\'il est de la conversation ouverte',
+      /rendreFocus\(d\);\s*(?:\/\*[^]*?\*\/\s*)?if \(cibleMsg\.apresFeuille\) \{ cibleMsg\.apresFeuille = false; if \(cibleMsg\.conv && cibleMsg\.conv === etat\.conv\) allerAuMessage\(\); \}/.test(corps('function fermerFeuilleDom')));
+    vrai('⛔ les deux lignes des Infos n\'existent que si la source sait chercher (CAP.retrouver)',
+      /if \(CAP\.retrouver && !i\.supprime\) h \+= '<div class="carte"><button type="button" class="reglage presse" data-act="chercher">/.test(JS));
+    /* aller au message (`allerAuMessage`), exécuté : le focus, l'attente dite, « très ancien » ≠ « disparu », le chemin des rappels inchangé */
+    const iA = JS.indexOf('const cibleMsg = {'), fA = JS.indexOf('async function rafraichirConv', iA);
+    let A = null, cA = null;
+    const elMsg = { tabIndex: 0, scrollIntoView() {}, classList: { add() {}, remove() {} }, hasAttribute() { return false; }, addEventListener() {} };
+    try {
+      cA = { etat: null, CAP: { historique: true }, mots: [], focus: [], pages: 0, phrase: (e, d) => d, avis() {}, rafraichirConv: async () => {}, remplacer() {}, pousser() {}, setTimeout,
+        document: { querySelector: () => elMsg }, matchMedia: () => ({ matches: true }), requestAnimationFrame: f => f() };
+      cA.mot = t => cA.mots.push(t); cA.rendreFocus = e => cA.focus.push(e); cA.source = { precedents: async () => { cA.pages++; } };
+      vm.createContext(cA);
+      vm.runInContext(JS.slice(iA, fA) + '\nthis.A = { cibleMsg, voirMessage, allerAuMessage };', cA, { timeout: 2000 });
+      A = cA.A;
+    } catch (e) { A = null; }
+    vrai('(population) `allerAuMessage` s\'exécute dans un bac à sable (' + (fA - iA) + ' caractères)', iA > 0 && fA > iA && !!A);
+    if (A) {
+      const conv = (aPlus, msgs) => ({ conv: 'c_x', convDonnees: { id: 'c_x', aPlus, messages: msgs }, route: { vue: 'messages' } });
+      cA.etat = conv(true, [{ id: 'm50', seq: 50 }]);
+      Object.assign(A.cibleMsg, { conv: 'c_x', seq: 50, pages: 0, max: 60, retrouver: true }); await A.allerAuMessage();
+      const atteint = [cA.focus.length === 1 && cA.focus[0] === elMsg, elMsg.tabIndex, A.cibleMsg.retrouver];
+      A.voirMessage('c_x', 50); await tic();
+      v('⛔ depuis « Rechercher », le message atteint prend le FOCUS (tabindex -1 posé) — il restait sur le bouton d\'en-tête ; un rappel (« Voir le message ») ne le déplace pas',
+        [atteint, cA.focus.length], [[true, -1, false], 1]);
+      cA.etat = conv(true, [{ id: 'm50', seq: 50 }]); cA.mots.length = 0; cA.pages = 0;
+      Object.assign(A.cibleMsg, { conv: 'c_x', seq: 10, pages: 0, max: 2, retrouver: true }); await A.allerAuMessage();
+      const loin = [cA.mots.slice(), cA.pages];
+      cA.mots.length = 0; cA.pages = 0; A.voirMessage('c_x', 10); A.cibleMsg.max = 2; await tic(); await tic(); await tic();
+      const rappel = [cA.mots.slice(), cA.pages];
+      cA.etat = conv(false, [{ id: 'm50', seq: 50 }]); cA.mots.length = 0;
+      Object.assign(A.cibleMsg, { conv: 'c_x', seq: 10, pages: 0, max: 60, retrouver: true }); await A.allerAuMessage();
+      v('⛔ un message au-delà des pages qu\'on remonte : l\'attente se DIT, `max` pages et pas une de plus, puis « très ancien » — pas « n\'est plus dans la conversation » ; le rappel garde son chemin ; un message disparu reste « disparu »',
+        [loin, rappel, cA.mots],
+        [[['Recherche du message dans l\'historique…', 'Ce message est très ancien : remontez la conversation pour le retrouver.'], 2], [['Ce message n\'est plus dans la conversation.'], 2], ['Ce message n\'est plus dans la conversation.']]);
+    }
   }
   vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
     /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
@@ -473,7 +570,7 @@ async function controler(PAGE, SRC, DOC) {
     /await source\.creerEvenement\(Object\.assign\(\{ titre, lieu: [^}]*rappel: 0, tz: x\.tz \},\s*Number\.isSafeInteger\(m\.seq\)[^;]*\{ source: \{ conv: c\.id, seq: m\.seq \} \}/.test(JS) && /if \(act === 'rappel'\) \{ rappelMenu\(\); return; \}/.test(JS));
   vrai('⛔ un rappel se COCHE (le tableau de bord ne montre plus un rappel fait), se REPORTE (l\'heure calculée par le service), et « Voir le message » va au message — chargé de l\'historique s\'il le faut, et DIT s\'il a disparu',
     /bord\.evenements\.filter\(e => !e\.fait && /.test(JS) && /source\.reporterEvenement\(F\.id, dans\)/.test(JS) && /source\.faitEvenement\(F\.id, !F\.fait\)/.test(JS)
-      && /await source\.precedents\(c\.id\);[^]*?return allerAuMessage\(\);/.test(JS) && /mot\('Ce message n\\'est plus dans la conversation\.'\)/.test(JS) && /if \(cibleMsg\.conv === id\) allerAuMessage\(\);/.test(JS));
+      && /await source\.precedents\(c\.id\);[^]*?return allerAuMessage\(\);/.test(JS) && /mot\(plusAncien && cibleMsg\.retrouver \? 'Ce message est très ancien : remontez la conversation pour le retrouver\.' : 'Ce message n\\'est plus dans la conversation\.'\)/.test(JS) && /if \(cibleMsg\.conv === id\) allerAuMessage\(\);/.test(JS));
   vrai('l\'Agenda au mois : la fenêtre chargée est celle qu\'on voit (le mois entier en semaines), et le choix va au COMPTE',
     /const n = \+\+reu\.jeton, \[du, au\] = fenetreAgenda\(\);/.test(JS) && /if \(M\) rendreMois\(auj\);/.test(JS) && /source\.choisirAgendaVue\(v\)/.test(JS) && /reu\.vue = typeof source\.agendaVue === 'function' && source\.agendaVue\(\) === 'mois'/.test(JS));
   vrai('⛔ une occurrence TERMINÉE n\'est plus un bouton (8 octobre 2026 : « quand c\'est terminé, il faudrait pas qu\'on puisse cliquer dessus ») : un bloc, sans data-reunion',

@@ -212,6 +212,22 @@ function compteConfig(c) {
   return o;
 }
 
+/* ⛔ RETROUVER (9 octobre 2026) : ce qu'un appel de recherche peut OUVRIR. Le texte est scellé au repos : chercher, c'est déchiffrer puis comparer, dans le fil du serveur — un appel
+   ne doit donc jamais déchiffrer plus que `lignesMax` messages ni plus que `signesMax` signes (relecture : 2 000 messages de 8 000 signes, c'était 0,3 à 0,75 s de fil bloqué par
+   appel). Au-delà, la réponse dit où reprendre. `resultatsMax` : les résultats d'une page ; `mediasMax` : les photos ou les fichiers d'une page de la galerie. */
+const RECHERCHE_DEFAUT = { lignesMax: 2000, signesMax: 1000000, resultatsMax: 30, mediasMax: 60 };
+function rechercheConfig(c) {
+  const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
+  const bornes = { lignesMax: [1, 100000], signesMax: [1000, 50000000], resultatsMax: [1, 200], mediasMax: [1, 500] };
+  const o = {};
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const v = brut[k] === undefined ? RECHERCHE_DEFAUT[k] : brut[k];
+    if (!Number.isInteger(v) || v < min || v > max) { const e = new Error('config: recherche.' + k + ' doit être un entier entre ' + min + ' et ' + max); e.code = 'CONFIG'; throw e; }
+    o[k] = v;
+  }
+  return o;
+}
+
 /* ⛔ LA FORMULE : le drapeau de la bêta. Par défaut vrai sur la bêta (tout est ouvert pour qu'on puisse tout éprouver), faux ailleurs ; la production refuse `true` — une
    configuration copiée de la bêta ne doit pas offrir Messages Pro à tout le monde. */
 function formuleConfig(cfg, instance) {
@@ -493,6 +509,7 @@ function charger(env = process.env) {
     pieces: piecesConfig(cfg.pieces),
     push: pushConfig(cfg, env, instance),
     compte: compteConfig(cfg.compte),
+    recherche: rechercheConfig(cfg.recherche),
     formule: formuleConfig(cfg, instance),
     facturation: facturationConfig(cfg, env, instance),
     reunions: reunionsConfig(cfg, instance),
@@ -516,4 +533,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };

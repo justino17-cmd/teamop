@@ -1668,9 +1668,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      Chercher dans les messages d'UNE conversation, et lister ses photos, ses fichiers, ses liens. ⛔ LE TEXTE EST SCELLÉ AU REPOS (`sceller`) : SQLite n'en voit que des octets, aucun
      LIKE ni index plein texte n'est possible — et on n'en construit pas (un index en clair défairait le scellement). La recherche relit donc les messages que `uid` VOIT (les filtres
      de `messagesDe` : membre depuis, ni masqué, ni échu — ni supprimé, ni système), du plus récent au plus ancien, par lots, les ouvre ICI et compare sans accents ni casse.
-     ⛔ BORNÉE : au plus `plafondLignes` messages ouverts par appel (quelques dizaines de millisecondes au pire) ; au-delà, `suite` dit où reprendre — la page propose « Chercher plus
-     loin ». Rien n'est retenu : ni index, ni cache, ni trace de ce qui a été cherché. */
-  const normeRech = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+     ⛔ BORNÉE : au plus `plafondLignes` messages ET `plafondSignes` signes déchiffrés par appel (`config.recherche` : la relecture a mesuré 0,3 à 0,75 s de fil bloqué pour
+     2 000 messages pleins, borné au seul nombre de lignes) ; au-delà, `suite` dit où reprendre — la page propose « Chercher plus loin ». Rien n'est retenu : ni index, ni cache, ni
+     trace de ce qui a été cherché. */
+  /* sans accents ni casse ; le texte tout ASCII (le cas ordinaire) ne passe pas par la décomposition, qui coûte plusieurs fois une mise en minuscules sur un message plein */
+  const ASCII_SEUL = /^[\x00-\x7f]*$/;
+  const normeRech = s => { const t = String(s); return ASCII_SEUL.test(t) ? t.toLowerCase() : t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+  /* la requête telle qu'elle se compare : normalisée, espaces resserrés — une requête faite de seuls signes combinants y devient VIDE (et une chaîne vide se trouve partout) */
+  const requeteRech = q => normeRech(q).replace(/\s+/g, ' ').trim();
   /* l'extrait autour de la première occurrence, dans le texte tel qu'il est écrit (accents compris) : chaque caractère est normalisé SEUL, ce qui garde la correspondance des positions */
   function extraitAutour(t, qn, large) {
     const cars = Array.from(t), debuts = [];
@@ -1682,13 +1687,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const a = Math.max(0, i0 - large), b = Math.min(cars.length, i0 + Array.from(qn || '').length + large);
     return (a > 0 ? '…' : '') + cars.slice(a, b).join('').replace(/\s+/g, ' ') + (b < cars.length ? '…' : '');
   }
-  /* `filtre` (les liens) remplace la comparaison ; `texteMax` : ce que rend un résultat (un extrait autour de l'occurrence, ou le texte coupé — la page y relit les liens) */
-  function messagesChercher(conv, uid, { q = '', avantSeq = null, max = 30, plafondLignes = 2000, filtre = null, texteMax = 0 } = {}) {
+  /* `filtre` (les liens) remplace la comparaison ; `entier` : un résultat rend le texte entier (sinon un extrait autour de l'occurrence) */
+  function messagesChercher(conv, uid, { q = '', avantSeq = null, max = 30, plafondLignes = 2000, plafondSignes = 1000000, filtre = null, entier = false } = {}) {
     const m = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
     if (!m) return null;
-    const qn = filtre ? '' : normeRech(q), t0 = horloge(), resultats = [];
-    let borne = avantSeq === null ? 9007199254740991 : avantSeq, lus = 0, fini = false;
-    while (resultats.length < max && lus < plafondLignes) {
+    const qn = filtre ? '' : requeteRech(q), t0 = horloge(), resultats = [];
+    if (!filtre && !qn) return { resultats, suite: null };                  // ⛔ une requête vide ne « trouve » pas tout
+    let borne = avantSeq === null ? 9007199254740991 : avantSeq, lus = 0, signes = 0, fini = false;
+    while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {
       const demande = Math.min(200, plafondLignes - lus);
       const lot = Q(`SELECT seq, auteur, ts, type, corps_ch, meta_ch FROM message x
                      WHERE x.conv = ? AND x.seq >= ? AND x.seq < ? AND x.type != 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)
@@ -1701,9 +1707,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         let nom = null;
         if (r.type === 'fichier' && r.meta_ch) { try { const mt = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)); if (typeof mt.nom === 'string') nom = mt.nom; } catch (e) { nom = null; } }
         const source = [texte, nom].filter(x => typeof x === 'string' && x).join(' — ');
-        if (!source || (filtre ? !filtre(source) : !normeRech(source).includes(qn))) continue;
-        resultats.push({ seq: r.seq, auteur: r.auteur, ts: r.ts, type: r.type, texte: texteMax ? Array.from(source).slice(0, texteMax).join('') : extraitAutour(source, qn, 60) });
-        if (resultats.length >= max) { coupe = true; break; }
+        signes += source.length;
+        if (source && (filtre ? filtre(source) : normeRech(source).includes(qn))) {
+          /* `entier` (les liens) : le texte entier — la page y relit TOUS les liens, un lien au-delà d'une coupe serait perdu ; sinon un extrait autour de l'occurrence */
+          resultats.push({ seq: r.seq, auteur: r.auteur, ts: r.ts, type: r.type, texte: entier ? source : extraitAutour(source, qn, 60) });
+          if (resultats.length >= max) { coupe = true; break; }
+        }
+        if (signes >= plafondSignes) { coupe = true; break; }
       }
       if (!coupe && lot.length < demande) { fini = true; break; }
     }
@@ -4637,7 +4647,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     persoAjuster, annulationAjouter, annulationsDues, annulationLire, annulationEncore, annulationMemoriser, annulationFaite, annulationEchec, annulationPlusAncienne,   // …et ce qu'il reste à faire chez Stripe quand la personne s'en va (arrêt du renouvellement, rétablissement, résiliation)
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
-    messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
+    messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, requeteRech, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,

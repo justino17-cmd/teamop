@@ -9,7 +9,12 @@
      · les PHOTOS : un rang par message (ses images dans l'ordre, avec leurs dimensions), lisibles par la route des pièces ; les FICHIERS : pièce, nom, taille ; les LIENS : le texte
        des messages qui en portent ; rien de supprimé, ni le vocal dans les photos ou les fichiers ;
      · le corps piégé (requête trop courte, trop longue, absente ou répétée, `avant_seq` qui n'en est pas un, genre inconnu) → 400 ;
-     · ⛔ un PLAFOND par compte (30 appels par minute) : le 31ᵉ → 429.
+     · ⛔ DEUX plafonds par compte : `chercher` (30 par minute — le texte, et les LIENS qui le déchiffrent aussi) et `medias` (60 — photos et fichiers) ; épuiser l'un laisse
+       l'autre ; un compte public de moins de 24 h en a le tiers (10 et 20) ;
+     · ⛔ deux ACCENTS seuls (vides sans leurs signes combinants — une chaîne vide se trouve partout) → 400, sur la route comme dans la vraie source ;
+     · ⛔ les LIENS rendent le texte ENTIER (un lien au-delà de 2 000 signes se perdait) ; la galerie ne montre ni le masqué « pour moi » ni l'échu ;
+     · ⛔ BORNÉE PAR `config.recherche` (un second service, réglé petit) : au plus `lignesMax` messages et `signesMax` signes déchiffrés par appel, `resultatsMax` résultats,
+       `mediasMax` photos par page — chaque borne rend une `suite`, la suite reprend sans rien répéter ni oublier, la dernière page dit `suite: null`.
    ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : chaque « absent » est précédé de ce qu'il aurait pu compter. */
 'use strict';
 const path = require('path'), crypto = require('crypto');
@@ -20,6 +25,9 @@ const { v, vrai, fin } = T.compteur();
 let ipN = 80; const ip = () => '198.51.100.' + (ipN++);
 const cid = (p) => 'cid-' + p + '-' + crypto.randomBytes(5).toString('hex');
 const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
+const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
+const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
+const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-serveur.js'));
 
 (async () => {
@@ -114,6 +122,22 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
       const avantSup = (await medias(P.ana, G, 'photo')).j.medias.length;
       await P.ben.post('/api/conversations/' + G + '/messages/supprimer', { seq: sPhSup, pour: 'tous' });
       v('⛔ une photo SUPPRIMÉE pour tous sort de la galerie — population : elle y était', [avantSup, (await medias(P.ana, G, 'photo')).j.medias.map(x => x.seq)], [2, [sPh]]);
+      const pMq = await F.deposer(P.ben, { conv: G, genre: 'photo', corps: F.png({ w: 5, h: 5 }) });
+      const sPhMq = (await envoyer(P.ben, G, { type: 'photo', pieces: [{ id: pMq.j.id, w: 5, h: 5 }] })).j.seq;
+      const avantMq = (await medias(P.ana, G, 'photo')).j.medias.map(x => x.seq);
+      await P.ana.post('/api/conversations/' + G + '/messages/supprimer', { seq: sPhMq, pour: 'moi' });
+      v('⛔ une photo MASQUÉE pour moi sort de MA galerie — population : elle y était ; Ben la voit toujours',
+        [avantMq, (await medias(P.ana, G, 'photo')).j.medias.map(x => x.seq), (await medias(P.ben, G, 'photo')).j.medias.map(x => x.seq)], [[sPhMq, sPh], [sPh], [sPhMq, sPh]]);
+      const pfE = await F.deposer(P.cleo, { conv: G, genre: 'fichier', corps: F.pdf(2000), nom: 'Échu.pdf' });
+      const sFE = (await envoyer(P.cleo, G, { type: 'fichier', piece: pfE.j.id })).j.seq;
+      const avantE = (await medias(P.ana, G, 'fichier')).j.medias.map(x => x.seq);
+      ecrireBase('UPDATE message SET expire_ts = 1 WHERE conv = ? AND seq = ?', G, sFE);
+      v('⛔ un fichier ÉCHU sort de la galerie — population : il y était', [avantE, (await medias(P.ana, G, 'fichier')).j.medias.map(x => x.seq)], [[sFE, sF], [sF]]);
+      const L = (await P.ana.post('/api/conversations/groupe', { nom: 'Liens longs', membres: [P.ben.moi.id] })).j.conversation.id;
+      const sLong = (await envoyer(P.ben, L, { texte: 'b'.repeat(3000) + ' https://loin.exemple.fr/plan' })).j.seq;
+      const ll = await medias(P.ana, L, 'lien');
+      v('⛔ un lien au-delà de 2 000 signes : le texte ENTIER revient (la page y relit TOUS les liens — coupé, celui-ci se perdait)',
+        [ll.code, ll.j.medias.map(x => x.seq), ll.j.medias[0] && ll.j.medias[0].texte.endsWith('https://loin.exemple.fr/plan'), ll.j.medias[0] && ll.j.medias[0].texte.length], [200, [sLong], true, 3029]);
     }
 
     console.log('\nLa COUTURE : les VRAIES api.js et source-serveur.js (celles de la page) contre ce service');
@@ -129,7 +153,8 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
         v('⛔ la vraie source cherche (requête nettoyée, casse ignorée) : les MÊMES résultats que la route, dans le même ordre, « moi » posé sur les miens seulement — population : il y en a des deux auteurs',
           [r.resultats.map(x => x.seq), r.resultats.map(x => x.moi), rr.some(x => x.auteur === P.ana.moi.id) && rr.some(x => x.auteur !== P.ana.moi.id)], [rr.map(x => x.seq), rr.map(x => x.auteur === P.ana.moi.id), true]);
         let e1 = null; try { await sa.chercher(G, 'a'); } catch (e) { e1 = e && e.code; }
-        v('une requête d\'un seul signe est refusée sur l\'appareil, sans requête', e1, 'invalide');
+        let e3 = null; try { await sa.chercher(G, '\u0301\u0301'); } catch (e) { e3 = e && e.code; }
+        v('une requête d\'un seul signe, ou de deux ACCENTS seuls, est refusée sur l\'appareil, sans requête', [e1, e3], ['invalide', 'invalide']);
         const ph = await sa.medias(G, 'photo'), fi = await sa.medias(G, 'fichier'), li = await sa.medias(G, 'lien');
         v('⛔ les photos, les fichiers, les liens par la vraie source', [ph.medias.map(x => [x.seq, x.pieces.length]), fi.medias.map(x => [x.seq, x.fichier.nom]), li.medias.map(x => x.seq), li.medias[0].texte.includes('www.mairie-rochefort.fr')],
           [[[sPh, 2]], [[sF, 'Plan ROCHEFORT.pdf']], [sL], true]);
@@ -146,13 +171,85 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
         k + '/messages/chercher?q=abc&avant_seq=x', k + '/messages/chercher?q=abc&avant_seq=-1', k + '/medias?genre=video', k + '/medias', k + '/medias?genre=photo&avant_seq=1.5']) codes.push((await P.ana.get(u)).code);
       v('⛔ neuf requêtes piégées (trop courte, trop longue, absente, répétée, avant_seq invalide ×3, genre inconnu ou absent) → 400', codes, codes.map(() => 400));
       v('« trois espaces » ne cherche pas tout : 400', (await P.ana.get(k + '/messages/chercher?q=' + encodeURIComponent('   '))).code, 400);
-      let dernier = 0; for (let i = 0; i < 31; i++) dernier = (await chercher(P.cleo, G, 'mardi')).code;
-      v('⛔ le 31ᵉ appel de la minute (Cléo) : 429 — le plafond est PAR COMPTE (Ana cherche encore)', [dernier, (await chercher(P.ana, G, 'mardi')).code], [429, 200]);
+      v('⛔ deux ACCENTS seuls (vides sans leurs signes combinants : ils trouveraient TOUT), ou « é » seul : 400 — population : « ée » cherche (200)',
+        [(await P.ana.get(k + '/messages/chercher?q=' + encodeURIComponent('\u0301\u0301'))).code, (await P.ana.get(k + '/messages/chercher?q=' + encodeURIComponent('e\u0301'))).code,
+          (await P.ana.get(k + '/messages/chercher?q=' + encodeURIComponent(' \u0301 \u0301 '))).code, (await P.ana.get(k + '/messages/chercher?q=' + encodeURIComponent('e\u0301e'))).code], [400, 400, 400, 200]);
+      let okC = 0, dernier = 0; for (let i = 0; i < 31; i++) { dernier = (await chercher(P.cleo, G, 'mardi')).code; if (dernier === 200) okC++; }
+      v('⛔ « chercher » : 30 appels dans la minute, le 31ᵉ → 429 — PAR COMPTE (Ana cherche encore)', [okC, dernier, (await chercher(P.ana, G, 'mardi')).code], [30, 429, 200]);
+      v('⛔ deux plafonds : Cléo, recherche épuisée, feuillette encore photos et fichiers (200) — mais pas les LIENS, qui déchiffrent le texte comme la recherche (429)',
+        [(await medias(P.cleo, G, 'photo')).code, (await medias(P.cleo, G, 'fichier')).code, (await medias(P.cleo, G, 'lien')).code], [200, 200, 429]);
+      /* Eve n'a encore rien demandé à la galerie (son 404 de non-membre est rendu par la garde, AVANT le plafond) : on la fait entrer */
+      await relier('ana', 'eve');                                              // un membre s'ajoute parmi ses contacts
+      const ajE = await P.ana.post('/api/conversations/' + G + '/membres/ajouter', { uids: [P.eve.moi.id] });
+      let okM = 0, dernierM = 0; for (let i = 0; i < 61; i++) { dernierM = (await medias(P.eve, G, i % 2 ? 'fichier' : 'photo')).code; if (dernierM === 200) okM++; }
+      v('⛔ « medias » : 60 appels dans la minute (photos et fichiers ensemble), le 61ᵉ → 429 ; la recherche d\'Eve reste ouverte', [ajE.code, okM, dernierM, (await chercher(P.eve, G, 'mardi')).code], [200, 60, 429, 200]);
+    }
+
+    console.log('\nUn compte public de moins de 24 h : le TIERS des deux plafonds');
+    {
+      const S = ouvrir({ chemin: path.join(svc.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')) });
+      const jeune = S.personneCreer({ identifiant: 'compte:jeune' + crypto.randomBytes(3).toString('hex') + '@exemple.invalide', prenom: 'Jeune', nom: 'Compte', origine: 'compte', verifie: true });
+      const j = 'opm_' + crypto.randomBytes(32).toString('base64url'); S.sessionAjouter({ h: sha(j), personne: jeune.id, appareil: null, ttlMs: 86400000 });
+      const cj = T.client(svc.base, { xff: ip() }); cj.poserCookie(j);
+      const J = (await cj.post('/api/conversations/groupe', { nom: 'Jeune', membres: [] })).j.conversation.id;
+      let okJ = 0, dJ = 0; for (let i = 0; i < 11; i++) { dJ = (await chercher(cj, J, 'rien')).code; if (dJ === 200) okJ++; }
+      let okJm = 0, dJm = 0; for (let i = 0; i < 21; i++) { dJm = (await medias(cj, J, 'photo')).code; if (dJm === 200) okJm++; }
+      v('⛔ population : le compte public existe (sa conversation est née) ; « chercher » : 10 puis 429 ; « medias » : 20 puis 429 (un tiers de 30 et de 60)', [typeof J, okJ, dJ, okJm, dJm], ['string', 10, 429, 20, 429]);
     }
   } catch (e) {
     vrai('le banc s\'est déroulé sans exception (' + String(e && e.stack || e).split('\n').slice(0, 3).join(' | ') + ')', false);
   } finally {
-    await svc.arreter(); await og.fermer();
+    await svc.arreter();
+  }
+
+  /* ── LES BORNES (`config.recherche`), sur un second service réglé petit : chaque borne doit rendre une suite, et la suite doit tout reprendre ── */
+  console.log('\nLes BORNES d\'un appel (config.recherche, réglée petite) : chacune rend une `suite`, la suite reprend sans rien répéter ni oublier');
+  const svc2 = await T.lancerService({ urlGestion: og.url, config: { recherche: { lignesMax: 5, signesMax: 1000, resultatsMax: 3, mediasMax: 2 } } });
+  try {
+    const A = await T.connecter(svc2, og, 'ana', 'pw-ana-12345', ip()), B = await T.connecter(svc2, og, 'ben', 'pw-ben-12345', ip());
+    const l = await A.post('/api/contacts/lien', {}); await B.post('/api/liens/accepter', { code: l.j.code });
+    const groupe = async (nom) => (await A.post('/api/conversations/groupe', { nom, membres: [B.moi.id] })).j.conversation.id;
+    const envoyer = (conv, corps) => B.post('/api/conversations/' + conv + '/messages', Object.assign({ cid: cid('b') }, corps));
+    /* toutes les pages d'une recherche (ou d'une galerie), jusqu'à `suite: null` — au plus 20 */
+    const pages = async (url, cle) => { const out = []; let av; for (let i = 0; i < 20; i++) { const r = await A.get(url + (av !== undefined ? '&avant_seq=' + av : '')); out.push({ code: r.code, n: (r.j[cle] || []).map(x => x.seq), suite: r.j.suite }); if (r.j.suite === null || r.code !== 200) break; av = r.j.suite; } return out; };
+    const base = (conv) => '/api/conversations/' + conv;
+
+    const C1 = await groupe('Lignes');
+    const aig = (await envoyer(C1, { texte: 'une aiguille au fond' })).j.seq;
+    for (let i = 0; i < 11; i++) await envoyer(C1, { texte: 'paille ' + i });
+    const p1 = await pages(base(C1) + '/messages/chercher?q=aiguille', 'resultats');
+    v('⛔ `lignesMax` 5, douze messages, l\'aiguille au plus ancien : trois appels (5 + 5 + 2 ouverts), les deux premiers VIDES mais avec une suite — rien ne prétend « aucun »',
+      [p1.map(x => x.code), p1.map(x => x.n), p1.map(x => x.suite === null)], [[200, 200, 200], [[], [], [aig]], [false, false, true]]);
+
+    const C2 = await groupe('Signes');
+    const aig2 = (await envoyer(C2, { texte: 'aiguille' })).j.seq;
+    const gros = []; for (let i = 0; i < 4; i++) gros.push((await envoyer(C2, { texte: 'p'.repeat(600) })).j.seq);
+    const p2 = await pages(base(C2) + '/messages/chercher?q=aiguille', 'resultats');
+    v('⛔ `signesMax` 1 000, des messages de 600 signes : l\'appel s\'arrête au DEUXIÈME (1 200 déchiffrés) — trois appels, les suites tombent sur les messages lus',
+      [p2.map(x => x.n), p2.map(x => x.suite)], [[[], [], [aig2]], [gros[2], gros[0], null]]);
+
+    const C3 = await groupe('Résultats');
+    const tr = []; for (let i = 0; i < 7; i++) tr.push((await envoyer(C3, { texte: 'trouvé ' + i })).j.seq);
+    const p3 = await pages(base(C3) + '/messages/chercher?q=trouve', 'resultats');
+    const tous3 = p3.flatMap(x => x.n);
+    v('⛔ `resultatsMax` 3, sept occurrences : 3 + 3 + 1, du plus récent au plus ancien, aucune répétée, aucune oubliée', [p3.map(x => x.n.length), tous3.join()], [[3, 3, 1], tr.slice().reverse().join()]);
+
+    const C4 = await groupe('Galerie');
+    const phs = [];
+    for (let i = 0; i < 5; i++) { const d = await F.deposer(B, { conv: C4, genre: 'photo', corps: F.png({ w: 6 + i, h: 6 }) }); phs.push((await envoyer(C4, { type: 'photo', pieces: [{ id: d.j.id, w: 6 + i, h: 6 }] })).j.seq); }
+    const p4 = await pages(base(C4) + '/medias?genre=photo', 'medias');
+    v('⛔ `mediasMax` 2, cinq photos : 2 + 2 + 1, la suite reprend après la dernière rendue, rien de répété', [p4.map(x => x.n.length), p4.flatMap(x => x.n).join(), p4[p4.length - 1].suite], [[2, 2, 1], phs.slice().reverse().join(), null]);
+
+    const C5 = await groupe('Liens rares');
+    const lien = (await envoyer(C5, { texte: 'le plan : https://exemple.fr/plan' })).j.seq;
+    for (let i = 0; i < 7; i++) await envoyer(C5, { texte: 'rien ' + i });
+    const p5 = await pages(base(C5) + '/medias?genre=lien', 'medias');
+    v('⛔ les LIENS aussi sont bornés : huit messages, le seul lien au plus ancien — un premier lot VIDE avec une suite (« aucun parmi les récents »), puis le lien',
+      [p5.map(x => x.n), p5[0].suite !== null], [[[], [lien]], true]);
+  } catch (e) {
+    vrai('le second service s\'est déroulé sans exception (' + String(e && e.stack || e).split('\n').slice(0, 3).join(' | ') + ')', false);
+  } finally {
+    await svc2.arreter(); await og.fermer();
   }
   fin();
 })();

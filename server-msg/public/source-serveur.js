@@ -2359,16 +2359,19 @@
     const avantDe = (a) => Number.isSafeInteger(a) && a > 0 ? a : undefined;
     async function chercher(id, q, avant) {
       const t = typeof q === 'string' ? q.normalize('NFC').replace(/\s+/g, ' ').trim() : '', n = Array.from(t).length;
-      if (n < 2 || n > 100) throw erreurLocale('invalide');
+      /* comme le service : la longueur compte aussi SANS les signes combinants — deux accents seuls ne sont pas une requête */
+      const nn = Array.from(t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, ' ').trim()).length;
+      if (n < 2 || n > 100 || nn < 2) throw erreurLocale('invalide');
       const r = await A.chercher(id, t, avantDe(avant));
-      return { resultats: (Array.isArray(r.resultats) ? r.resultats : []).filter(x => x && Number.isSafeInteger(x.seq)).map(x => ({ seq: x.seq, auteur: x.auteur, moi: estMoi(x.auteur), t: x.ts, type: x.type, texte: String(x.texte || '') })),
+      return { resultats: (Array.isArray(r.resultats) ? r.resultats : []).filter(x => x && Number.isSafeInteger(x.seq)).map(x => ({ seq: x.seq, auteur: x.auteur, moi: estMoi(x.auteur), nom: prenomDe(x.auteur), t: x.ts, type: x.type, texte: String(x.texte || '') })),
         suite: Number.isSafeInteger(r.suite) ? r.suite : null };
     }
     async function medias(id, genre, avant) {
       if (!['photo', 'fichier', 'lien'].includes(genre)) throw erreurLocale('invalide');
       const r = await A.medias(id, genre, avantDe(avant));
       const l = (Array.isArray(r.medias) ? r.medias : []).filter(x => x && Number.isSafeInteger(x.seq)).map(x => {
-        const base = { seq: x.seq, auteur: x.auteur, moi: estMoi(x.auteur), t: x.ts };
+        /* `nom` : le prénom tel que la conversation le dit — « Compte supprimé », ou « Quelqu'un » pour un ancien membre que je ne connais plus (jamais « ? ») */
+        const base = { seq: x.seq, auteur: x.auteur, moi: estMoi(x.auteur), nom: prenomDe(x.auteur), t: x.ts };
         if (genre === 'photo') return Object.assign(base, { pieces: (Array.isArray(x.pieces) ? x.pieces : []).filter(p => p && typeof p.id === 'string').map(p => ({ id: p.id, w: p.w | 0, h: p.h | 0 })) });
         if (genre === 'fichier') return Object.assign(base, { fichier: { piece: String(x.piece || ''), nom: typeof x.nom === 'string' ? x.nom : 'fichier', taille: Number(x.taille) || 0 } });
         return Object.assign(base, { texte: String(x.texte || '') });

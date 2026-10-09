@@ -1167,12 +1167,16 @@ html[data-service] .mention-apercu { display: none; }
 .md-photo { position: relative; aspect-ratio: 1; background: var(--field); overflow: hidden; }
 .md-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .md-photo.md-indispo { opacity: .5; }
-.md-ligne { display: flex; align-items: center; gap: 8px; padding-right: 12px; }
+.md-ligne { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-bottom: var(--sep); }
+.md-ligne:last-child { border-bottom: 0; }
+/* le filet est porté par la RANGÉE : le bouton du fichier y est seul (donc `:last-child`), il n'en dessinait aucun, et les liens n'en avaient pas */
+.md-ligne > .contact { border-bottom: 0; }
 .md-ligne .md-fichier { flex: 1; min-width: 0; }
 .md-ligne .contact-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .md-liens { padding: 10px 12px 10px 16px; }
 .md-liens .contact-texte { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
-.md-lien { font-size: 15px; overflow-wrap: anywhere; }
+.md-lien { font-size: 15px; line-height: 20px; color: var(--accent-txt); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; -webkit-touch-callout: none; }
+.md-lien:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 3px; }
 .md-voir { flex: none; }
 /* « Transféré » (9 octobre 2026) : au-dessus de la bulle, à la taille d'un nom d'auteur — une flèche et un mot, jamais le nom de qui l'avait écrit */
 .msg-transfere { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; font-size: 11px; line-height: 14px; font-style: italic; color: var(--sub-meta); }
@@ -3572,11 +3576,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   /* ⛔ « VOIR LE MESSAGE » (8 octobre 2026) : un rappel posé sur un message y ramène. La conversation s'ouvre, le message est AMENÉ au centre et marqué un instant ; plus ancien que ce que la
      page a chargé, l'historique se charge jusqu'à lui (vingt pages au plus). Disparu (supprimé, éphémère échu, conversation quittée), on le DIT — jamais un saut silencieux en bas. */
-  const cibleMsg = { conv: null, seq: 0, pages: 0, max: 20 };
+  /* `retrouver` : on vient de « Rechercher » ou de la galerie — le focus va AU message (sinon il restait sur le bouton d'en-tête qui avait ouvert les Infos), l'attente se dit, et
+     « trop loin » ne se confond pas avec « disparu ». `apresFeuille` : le message se montre quand la feuille posée sur la conversation s'est refermée (`fermerFeuilleDom`). */
+  const cibleMsg = { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false };
   /* `remplacerEntree` : on part d'une FICHE posée par un geste (le rappel, touché dans l'Agenda ou le tableau de bord) — son entrée d'historique devient la conversation, et le
      retour ramène là d'où la fiche était partie. */
   function voirMessage(conv, seq, remplacerEntree) {
-    cibleMsg.conv = conv; cibleMsg.seq = seq; cibleMsg.pages = 0; cibleMsg.max = 20;
+    Object.assign(cibleMsg, { conv, seq, pages: 0, max: 20, retrouver: false, apresFeuille: false });
     const ouverte = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages';
     if (ouverte && !remplacerEntree) { allerAuMessage(); return; }
     (remplacerEntree ? remplacer : pousser)({ vue: 'messages', conv, feuille: false, photo: null, appel: null });
@@ -3587,20 +3593,25 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (!cibleMsg.conv || !c || cibleMsg.conv !== etat.conv) return;
     const m = (c.messages || []).find(x => x.seq === cibleMsg.seq && !x.supprime);
     if (!m) {
-      if (CAP.historique && c.aPlus && typeof source.precedents === 'function' && cibleMsg.pages < (cibleMsg.max || 20) && !(c.messages || []).some(x => x.seq < cibleMsg.seq)) {
+      const plusAncien = CAP.historique && c.aPlus && typeof source.precedents === 'function' && !(c.messages || []).some(x => x.seq < cibleMsg.seq);
+      if (plusAncien && cibleMsg.pages < (cibleMsg.max || 20)) {
+        if (cibleMsg.retrouver && cibleMsg.pages === 0) mot('Recherche du message dans l\'historique…');
         cibleMsg.pages++;
         try { await source.precedents(c.id); } catch (e) { cibleMsg.conv = null; avis(phrase(e, 'Le message n\'a pas pu être retrouvé.')); return; }
         await rafraichirConv();
         return allerAuMessage();
       }
       cibleMsg.conv = null;
-      mot('Ce message n\'est plus dans la conversation.');
+      /* l'historique va plus loin que ce qu'on remonte d'un geste (`max` pages) : le message est TROP LOIN, il n'a pas disparu */
+      mot(plusAncien && cibleMsg.retrouver ? 'Ce message est très ancien : remontez la conversation pour le retrouver.' : 'Ce message n\'est plus dans la conversation.');
       return;
     }
     cibleMsg.conv = null;
+    const focus = cibleMsg.retrouver; cibleMsg.retrouver = false;
     const el = document.querySelector('#conv-messages [data-mid="' + String(m.id).replace(/["\\]/g, '') + '"]');
     if (!el) return;
     el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    if (focus) { if (!el.hasAttribute('tabindex')) { el.tabIndex = -1; el.addEventListener('blur', () => el.removeAttribute('tabindex'), { once: true }); } rendreFocus(el); }
     el.classList.remove('msg-cible');
     requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.add('msg-cible'); setTimeout(() => el.classList.remove('msg-cible'), 2200); }));
   }
@@ -4716,6 +4727,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     synchroInert();
     const d = declencheur; declencheur = null;
     rendreFocus(d);
+    /* un résultat de « Rechercher » (ou de la galerie) touché : la feuille s'est refermée sur la conversation — le message se montre maintenant (il prend le focus) */
+    if (cibleMsg.apresFeuille) { cibleMsg.apresFeuille = false; if (cibleMsg.conv && cibleMsg.conv === etat.conv) allerAuMessage(); }
   }
   function montrerRefusFeuille(texte) { const e = $('g-erreur'); e.textContent = texte; e.hidden = false; }
   function effacerRefusFeuille() { const e = $('g-erreur'); e.textContent = ''; e.hidden = true; }
@@ -8079,9 +8092,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* ══ RETROUVER (9 octobre 2026 — l'inventaire : « pas de recherche dans les messages ») ══
      Deux feuilles, ouvertes depuis les Infos d'une conversation : « Rechercher » (le texte, la légende d'une photo, le nom d'un fichier — sans accents ni casse) et « Photos, fichiers
      et liens ». Le SERVICE cherche (le texte est scellé chez lui) ; la page ne garde rien après la feuille. Un résultat mène AU message (`voirMessage`, qui remonte l'historique
-     au besoin) ; « Chercher plus loin » reprend là où le service s'est arrêté. ⛔ Les requêtes qui se croisent : seule la DERNIÈRE réponse s'affiche (un jeton). */
+     au besoin) ; « Chercher plus loin » reprend là où le service s'est arrêté. ⛔ Les requêtes qui se croisent : seule la DERNIÈRE réponse s'affiche (un jeton). Un échec se DIT
+     et se RÉESSAIE (le même geste : la première page, ou la suite). */
   const normeCar = ch => ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const normeRecherche = q => String(q || '').normalize('NFC').replace(/\s+/g, ' ').trim();
+  /* ⛔ comme le service : une requête se compte AUSSI sans ses signes combinants — deux accents seuls ne cherchent rien */
+  const assezLongue = q => Array.from(q).length >= 2 && Array.from(q).map(normeCar).join('').replace(/\s+/g, ' ').trim().length >= 2;
   /* l'occurrence surlignée, dans le texte tel qu'il est écrit : chaque caractère normalisé SEUL garde la correspondance des positions (comme le service pour l'extrait) */
   function surligner(t, q) {
     const cars = Array.from(String(t)), qn = Array.from(normeRecherche(q)).map(normeCar).join('');
@@ -8093,13 +8109,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     let i1 = i0 + 1; while (i1 < cars.length && debuts[i1] < k + qn.length) i1++;
     return esc(cars.slice(0, i0).join('')) + '<mark>' + esc(cars.slice(i0, i1).join('')) + '</mark>' + esc(cars.slice(i1).join(''));
   }
-  const auteurDe = x => x.moi ? 'Vous' : nomAuteur(x.auteur);
+  /* le nom que la SOURCE a résolu (« Compte supprimé », « Quelqu'un » pour un ancien membre) ; à défaut, le contact */
+  const auteurDe = x => x.moi ? 'Vous' : (typeof x.nom === 'string' && x.nom ? x.nom : nomAuteur(x.auteur));
   let rcMinuterie = null;
   function rendreRecherche() {
-    const G = etat.groupe; G.rc = { q: '', resultats: [], suite: null, enCours: false, jeton: 0, erreur: '' };
+    const G = etat.groupe; G.rc = { q: '', resultats: [], suite: null, enCours: false, jeton: 0, erreur: '', echecPlus: false };
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="info-champ"><input id="rc-q" type="search" autocomplete="off" enterkeyhint="search" maxlength="100" placeholder="Rechercher dans la conversation" aria-label="Rechercher dans la conversation" aria-describedby="rc-etat"></div>' +
-      '<p class="info-note rc-etat" id="rc-etat" role="status">Le texte des messages, les légendes des photos et les noms des fichiers.</p><div class="carte" id="rc-liste" hidden></div><div class="info-actions" id="rc-plus-zone" hidden><button type="button" class="mini" data-rc-plus>Chercher plus loin</button></div>';
+      '<p class="info-note rc-etat" id="rc-etat" role="status">Le texte des messages, les légendes des photos et les noms des fichiers.</p><div class="carte" id="rc-liste" hidden></div><div class="info-actions" id="rc-plus-zone" hidden><button type="button" class="mini" data-rc-plus>Chercher plus loin</button></div>' +
+      '<div class="info-actions" id="rc-reessayer-zone" hidden><button type="button" class="mini" data-rc-reessayer>Réessayer</button></div>';
   }
   function peindreRecherche() {
     const G = etat.groupe, R = G.rc, l = $('rc-liste'); if (G.mode !== 'chercher' || !R || !l) return;
@@ -8112,28 +8130,30 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       : n ? (n > 1 ? n + ' messages' : 'Un message') + (R.suite ? ' — il peut y en avoir d\'autres plus anciens' : '')
       : R.suite ? 'Aucun message récent ne contient « ' + R.q + ' ».' : 'Aucun message ne contient « ' + R.q + ' ».';
     $('rc-plus-zone').hidden = !R.suite || !!R.erreur;
+    $('rc-reessayer-zone').hidden = !R.erreur;
     const b = document.querySelector('[data-rc-plus]'); if (b) b.setAttribute('aria-disabled', R.enCours ? 'true' : 'false');
   }
   async function lancerRecherche(plusLoin) {
     const G = etat.groupe, R = G.rc; if (G.mode !== 'chercher' || !R) return;
-    if (Array.from(R.q).length < 2) { R.resultats = []; R.suite = null; R.erreur = ''; R.enCours = false; R.jeton++; peindreRecherche(); return; }
+    if (!assezLongue(R.q)) { R.resultats = []; R.suite = null; R.erreur = ''; R.enCours = false; R.jeton++; peindreRecherche(); return; }
     const jeton = ++R.jeton, avant = plusLoin ? R.suite : null;
     R.enCours = true; R.erreur = ''; if (!plusLoin) { R.resultats = []; R.suite = null; } peindreRecherche();
     try {
       const r = await source.chercher(G.convId, R.q, avant);
       if (etat.groupe !== G || R.jeton !== jeton) return;                     // une autre requête est partie depuis, ou la feuille s'est fermée
       R.resultats = plusLoin ? R.resultats.concat(r.resultats) : r.resultats; R.suite = r.suite;
-    } catch (e) { if (etat.groupe !== G || R.jeton !== jeton) return; R.erreur = phrase(e, 'La recherche n\'a pas pu aboutir.'); }
+    } catch (e) { if (etat.groupe !== G || R.jeton !== jeton) return; R.erreur = phrase(e, 'La recherche n\'a pas pu aboutir.'); R.echecPlus = !!plusLoin; }
     R.enCours = false; peindreRecherche();
   }
   /* la galerie : Photos | Fichiers | Liens, du plus récent au plus ancien, « Plus » pour la suite */
   const MD_GENRES = [['photo', 'Photos'], ['fichier', 'Fichiers'], ['lien', 'Liens']];
   function rendreMedias() {
-    const G = etat.groupe; G.md = { genre: 'photo', items: [], suite: null, enCours: false, jeton: 0, erreur: '' };
+    const G = etat.groupe; G.md = { genre: 'photo', items: [], suite: null, enCours: false, jeton: 0, erreur: '', echecPlus: false };
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="seg" id="md-seg" role="group" aria-label="Afficher" style="--n:3;--i:0"><span class="seg-knob" aria-hidden="true"></span>' +
       MD_GENRES.map(([g, n], i) => '<button type="button" class="seg-bouton" data-md-genre="' + g + '" aria-pressed="' + (i === 0) + '">' + n + '</button>').join('') + '</div>' +
-      '<div id="md-corps"></div><p class="info-note md-etat" id="md-etat" role="status"></p><div class="info-actions" id="md-plus-zone" hidden><button type="button" class="mini" data-md-plus>Plus</button></div>';
+      '<div id="md-corps"></div><p class="info-note md-etat" id="md-etat" role="status"></p><div class="info-actions" id="md-plus-zone" hidden><button type="button" class="mini" data-md-plus>Plus</button></div>' +
+      '<div class="info-actions" id="md-reessayer-zone" hidden><button type="button" class="mini" data-md-reessayer>Réessayer</button></div>';
     chargerMedias(false);
   }
   /* les liens d'un texte, avec les règles de la bulle (`LIEN_RE`, `lienNettoye`, `LIEN_SUR`) : ce que la bulle rend touchable, et rien d'autre */
@@ -8155,16 +8175,19 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     } else if (M.genre === 'fichier') {
       c.innerHTML = M.items.length ? '<div class="carte">' + M.items.map(x => '<div class="md-ligne"><button type="button" class="contact presse md-fichier" data-md-fichier="' + x.seq + '" aria-label="' + esc('Télécharger ' + x.fichier.nom + ', ' + tailleTexte(x.fichier.taille)) + '">' +
         '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="contact-texte"><span class="contact-nom" dir="auto">' + esc(x.fichier.nom) + '</span><span class="contact-role">' + esc([tailleTexte(x.fichier.taille), auteurDe(x), libelleListe(x.t)].join(' · ')) + '</span></span></button>' +
-        '<button type="button" class="mini md-voir" data-md-voir="' + x.seq + '">Voir</button></div>').join('') + '</div>' : '';
+        '<button type="button" class="mini md-voir" data-md-voir="' + x.seq + '" aria-label="' + esc(voirNom(x)) + '">Voir</button></div>').join('') + '</div>' : '';
     } else {
       const rangs = M.items.map(x => ({ x, liens: liensDe(x.texte) })).filter(r => r.liens.length);
       c.innerHTML = rangs.length ? '<div class="carte">' + rangs.map(({ x, liens }) => '<div class="md-ligne md-liens"><span class="contact-texte">' + liens.map(l => '<a class="lien-msg md-lien" href="' + esc(l.href) + '" target="_blank" rel="noopener noreferrer nofollow" dir="auto">' + esc(l.u) + '</a>').join('') +
-        '<span class="contact-role">' + esc(auteurDe(x) + ' · ' + libelleListe(x.t)) + '</span></span><button type="button" class="mini md-voir" data-md-voir="' + x.seq + '">Voir</button></div>').join('') + '</div>' : '';
+        '<span class="contact-role">' + esc(auteurDe(x) + ' · ' + libelleListe(x.t)) + '</span></span><button type="button" class="mini md-voir" data-md-voir="' + x.seq + '" aria-label="' + esc(voirNom(x)) + '">Voir</button></div>').join('') + '</div>' : '';
     }
     const vide = !c.innerHTML;
-    $('md-etat').textContent = M.erreur ? M.erreur : M.enCours && vide ? 'Chargement…' : vide ? (M.genre === 'photo' ? 'Aucune photo dans cette conversation.' : M.genre === 'fichier' ? 'Aucun fichier dans cette conversation.' : 'Aucun lien dans cette conversation.') + (M.suite ? ' (plus récents)' : '') : '';
+    /* vide AVEC une suite : le service s'est arrêté à son plafond sans en trouver (les liens relisent les textes) — rien dans les messages RÉCENTS, pas « aucun dans la conversation » */
+    const nom = M.genre === 'photo' ? 'Aucune photo' : M.genre === 'fichier' ? 'Aucun fichier' : 'Aucun lien';
+    $('md-etat').textContent = M.erreur ? M.erreur : M.enCours && vide ? 'Chargement…' : vide ? nom + (M.suite ? ' parmi les messages récents.' : ' dans cette conversation.') : '';
     $('md-plus-zone').hidden = !M.suite || !!M.erreur;
-    const b = document.querySelector('[data-md-plus]'); if (b) b.setAttribute('aria-disabled', M.enCours ? 'true' : 'false');
+    $('md-reessayer-zone').hidden = !M.erreur;
+    const b = document.querySelector('[data-md-plus]'); if (b) { b.setAttribute('aria-disabled', M.enCours ? 'true' : 'false'); b.textContent = vide ? 'Chercher plus loin' : 'Plus'; }
   }
   /* les vignettes se chargent quand elles PARAISSENT (une galerie peut porter des centaines d'images : la source garde un cache borné) */
   function chargerVignettes() {
@@ -8183,11 +8206,21 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       const r = await source.medias(G.convId, genre, avant);
       if (etat.groupe !== G || M.jeton !== jeton) return;
       M.items = plus ? M.items.concat(r.medias) : r.medias; M.suite = r.suite;
-    } catch (e) { if (etat.groupe !== G || M.jeton !== jeton) return; M.erreur = phrase(e, 'La liste n\'a pas pu être chargée.'); }
+    } catch (e) { if (etat.groupe !== G || M.jeton !== jeton) return; M.erreur = phrase(e, 'La liste n\'a pas pu être chargée.'); M.echecPlus = !!plus; }
     M.enCours = false; peindreMedias();
   }
-  /* aller au message : la feuille cède la place à la conversation (la même entrée d'historique), puis le message se montre — plus loin que d'habitude dans l'historique (60 pages) */
-  function allerDepuisFeuille(seq) { const conv = etat.groupe.convId; if (!conv || !Number.isSafeInteger(seq)) return; voirMessage(conv, seq, true); cibleMsg.max = 60; }
+  const voirNom = x => 'Voir le message de ' + auteurDe(x) + ', ' + libelleListe(x.t);
+  /* aller au message — plus loin que d'habitude dans l'historique (60 pages ; au-delà, `allerAuMessage` dit « très ancien »).
+     ⛔ La conversation est SOUS la feuille (le cas ordinaire : la feuille vient de ses Infos) : la feuille se REFERME — l'entrée d'historique de la conversation est celle d'en dessous,
+     on y revient — puis le message se montre (`fermerFeuilleDom`). Remplacer l'entrée de la feuille par la conversation laissait DEUX entrées de la même conversation : « retour »
+     ramenait… à elle (relecture). Sans conversation dessous, la feuille devient la conversation. */
+  function allerDepuisFeuille(seq) {
+    const conv = etat.groupe.convId; if (!conv || !Number.isSafeInteger(seq)) return;
+    const dessous = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages' && etat.route.conv === conv;
+    if (!dessous) { voirMessage(conv, seq, true); cibleMsg.max = 60; cibleMsg.retrouver = true; return; }
+    Object.assign(cibleMsg, { conv, seq, pages: 0, max: 60, retrouver: true, apresFeuille: true });
+    fermerFeuille();
+  }
   $('info-corps').addEventListener('input', e => {
     const G = etat.groupe;
     if (!G.ouvert || G.mode !== 'chercher' || e.target.id !== 'rc-q' || !G.rc) return;
@@ -8204,12 +8237,14 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (!G.ouvert || (G.mode !== 'chercher' && G.mode !== 'medias')) return;
     if (G.mode === 'chercher') {
       const p = e.target.closest('[data-rc-plus]'); if (p) { if (p.getAttribute('aria-disabled') !== 'true') lancerRecherche(true); return; }
+      if (e.target.closest('[data-rc-reessayer]')) { if (G.rc && !G.rc.enCours) lancerRecherche(G.rc.echecPlus && G.rc.suite !== null); return; }
       const r = e.target.closest('[data-rc-seq]'); if (r) allerDepuisFeuille(+r.dataset.rcSeq);
       return;
     }
     const g = e.target.closest('[data-md-genre]');
     if (g) { if (G.md && G.md.genre !== g.dataset.mdGenre) { G.md.genre = g.dataset.mdGenre; chargerMedias(false); } return; }
     const p = e.target.closest('[data-md-plus]'); if (p) { if (p.getAttribute('aria-disabled') !== 'true') chargerMedias(true); return; }
+    if (e.target.closest('[data-md-reessayer]')) { if (G.md && !G.md.enCours) chargerMedias(G.md.echecPlus && G.md.suite !== null); return; }
     const f = e.target.closest('[data-md-fichier]');
     if (f && G.md) { const x = G.md.items.find(y => y.seq === +f.dataset.mdFichier); if (x) telechargerPiece(x.fichier, f); return; }
     const v = e.target.closest('[data-md-voir], [data-md-seq]'); if (v) allerDepuisFeuille(+(v.dataset.mdVoir || v.dataset.mdSeq));
