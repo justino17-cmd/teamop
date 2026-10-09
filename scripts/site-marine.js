@@ -152,9 +152,12 @@ const ECRANS = {
 /* ⛔ LES PAIRES : LE MÊME ÉCRAN DE L'APPLICATION, SUR LE MAC ET SUR L'iPHONE. Justin, 9 octobre 2026, capture de la case
    « Encaissements et compta » (un iPhone seul) : « je voudrais que l'iPhone et le Mac soient sur les mêmes, pas un coup l'iPhone
    et un coup le Mac ». Partout où l'aperçu montre l'application — case, carte, scène —, c'est une PAIRE.
-   ⛔ ET LA PAIRE DÉFILE, UN APPAREIL À LA FOIS : posés l'un sur l'autre (l'iPhone devant le Mac), Justin, le même jour, capture
-   de « Le stock, à jour. » : « non, je ne veux pas ça, je veux une fois le téléphone, une fois le Mac, et que ça défile ». Chaque
-   paire donne DEUX écrans du carrousel — l'iPhone, puis le Mac —, chacun entier et seul dans la scène (`carAlterne`). */
+   ⛔⛔ UN CARROUSEL = UNE PAIRE, ET RIEN D'AUTRE. Le même jour, deux essais refusés : les deux appareils posés l'un sur l'autre
+   (« non, je ne veux pas ça, je veux une fois le téléphone, une fois le Mac, et que ça défile »), puis une suite de huit écrans
+   — iPhone, Mac, écran suivant… — avec sa légende, ses pastilles et son ⏸ (capture des commandes à l'appui : « je ne veux pas ça
+   […] je veux : une fois qu'on voit le Mac, ça change de page, on voit le téléphone, et c'est tout, et ça ne fait que ça »).
+   Chaque place montre SA paire : le Mac, puis le téléphone, qui se remplacent en glissant — ni légende, ni pastille, ni bouton
+   (`carPaire`, et les cases : `vue`). */
 const PAIRES = {
   tableau: ['mac-tableau', 'iphone-tableau', 'Le tableau de bord'],
   planning: ['mac-planning', 'iphone-journee', 'Le planning, et la journée du technicien'],
@@ -169,62 +172,26 @@ const PAIRES = {
   facturesNeutre: ['mac-factures-neutre', 'iphone-factures-neutre', 'Les factures'],
   comptaNeutre: ['mac-compta-neutre', 'iphone-compta-neutre', 'Les encaissements du jour'],
 };
-const troisD = k => !!(ECRANS[PAIRES[k][0]][1] || ECRANS[PAIRES[k][1]][1]);
-/* les grandes scènes (accueil, OP GESTION, pages par fonction) : QUATRE paires, en commençant par celle de la page — huit écrans,
-   l'iPhone puis le Mac de chacune : huit points tiennent sur le plus petit téléphone (360 px), dix ne tenaient plus */
-const SCENE_TOUT = ['tableau', 'planning', 'interventions', 'stock', 'factures'];
-const SCENE = SCENE_TOUT.slice(0, 4);
-const sceneDepuis = k => { const i = Math.max(0, SCENE_TOUT.indexOf(k)); return SCENE_TOUT.slice(i).concat(SCENE_TOUT.slice(0, i)).slice(0, 4); };
 /* l'écran qu'une carte ou une case montrait seul dit sa paire ; une page hors 3D prend la variante neutre */
 const PAIRE_DE = { 'iphone-intervention': 'interventions', 'iphone-journee': 'planning', 'iphone-rapports': 'rapports', 'iphone-box': 'stock',
   'iphone-tableau': 'tableau', 'iphone-factures': 'factures', 'iphone-compta': 'compta', 'iphone-notifs': 'notifs', 'iphone-connexion': 'connexion',
   'mac-interventions': 'interventions', 'mac-planning': 'planning', 'mac-utilisateurs': 'equipe', 'mac-tableau': 'tableau' };
 const NEUTRE_DE = { factures: 'facturesNeutre', compta: 'comptaNeutre' };
-/* les paires qui suivent celle d'une carte : du même côté du travail (terrain, dépôt, bureau) */
-const COMPAGNONS = {
-  interventions: ['rapports', 'planning'], planning: ['interventions', 'rapports'], rapports: ['interventions', 'planning'],
-  stock: ['notifs', 'tableau'], tableau: ['notifs', 'factures'], factures: ['compta', 'connexion'], compta: ['factures', 'connexion'],
-  facturesNeutre: ['comptaNeutre', 'connexion'], comptaNeutre: ['facturesNeutre', 'connexion'],
-};
-/* Les deux cartes d'une rangée défilent côte à côte : elles ne montrent jamais la même paire au même moment. Des suites
-   DISJOINTES quand il y a de quoi ; sinon un même cycle décalé d'un cran (au même rythme, jamais la même paire). */
-function suites(s1, s2, permis) {
-  const comp = s => (COMPAGNONS[s] || []).filter(permis);
-  const a = [s1, ...comp(s1).filter(n => n !== s2)];
-  const b = [s2, ...comp(s2).filter(n => n !== s1 && !a.includes(n))];
-  if (a.length > 1 && b.length > 1) return [a, b];
-  const cycle = [...new Set([s1, s2, ...comp(s1), ...comp(s2)])];
-  const depuis = s => { const i = cycle.indexOf(s); return cycle.slice(i).concat(cycle.slice(0, i)); };
-  return [depuis(s1), depuis(s2)];
-}
-const PAUSE = '<svg class="c-ic-pause" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.5 4.5h3.6v15H6.5zM13.9 4.5h3.6v15h-3.6z"/></svg>';
-const LECTURE = '<svg class="c-ic-lecture" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 4.9v14.2c0 .7.8 1.1 1.4.7l10.6-7.1a.85.85 0 0 0 0-1.4L9.4 4.2C8.8 3.8 8 4.2 8 4.9Z"/></svg>';
-/* une piste : les écrans empilés dans l'écran de l'appareil, le premier affiché */
-const piste = (vues, titres) => `<div class="c-piste">` + vues.map((v, k) => `<div class="c-vue${k ? '' : ' c-on'}" data-titre="${fr(titres[k])}"${k ? ' aria-hidden="true"' : ''}>${v}</div>`).join('') + '</div>';
-/* La légende dit ce que montre l'écran ; les commandes (pause, un point par écran) n'apparaissent qu'avec le script. */
-function carrousel(classes, scene, titres, label) {
-  return `<section class="carrousel ${classes}" data-carrousel aria-roledescription="carrousel" aria-label="${esc(label)}"><div class="c-scene">${scene}</div>`
-    + `<div class="c-pied"><p class="c-legende">${fr(titres[0])}</p><div class="c-commandes" hidden>`
-    + `<button type="button" class="c-lecture" aria-label="Mettre en pause le défilement">${PAUSE}${LECTURE}</button><div class="c-points">`
-    + titres.map((t, k) => `<button type="button" class="c-point" aria-label="${esc('Écran ' + (k + 1) + ' sur ' + titres.length + ' : ' + t)}"${k ? '' : ' aria-current="true"'}><span><i></i></span></button>`).join('')
-    + '</div></div></div></section>';
-}
 const altIphone = n => 'OP GESTION sur un iPhone : ' + ECRANS[n][0], altMac = n => 'OP GESTION sur un Mac : ' + ECRANS[n][0];
-/* UN APPAREIL À LA FOIS (voir PAIRES) : chaque paire donne l'iPhone, puis le Mac, sur le même écran de l'application. Chaque écran
-   du carrousel est un appareil ENTIER — le cadre glisse avec son écran ; `carte` : la scène tient dans une carte. */
-const LEGENDE_APPAREIL = { iphone: ', sur iPhone', mac: ', sur Mac' };
-function carAlterne(cles, o) {
+/* l'horloge d'un carrousel : une pastille par écran, INVISIBLES (`c-horloge`). L'animation de la pastille active donne le temps
+   d'un écran et sa fin fait passer au suivant (carrousel.js) : mettre le carrousel en pause, c'est suspendre cette animation. */
+const horloge = n => '<span class="c-horloge" aria-hidden="true">' + Array.from({ length: n }, (x, j) => `<span class="c-point"${j ? '' : ' aria-current="true"'}><span><i></i></span></span>`).join('') + '</span>';
+/* une paire : le Mac (affiché sans le script), puis le téléphone ; `carte` : la scène tient dans une carte ; `tot` : le Mac du
+   haut de l'accueil se charge en premier (c'est l'image que la page montre d'abord) */
+function carPaire(k, o) {
   o = o || {};
-  const tailles = o.carte ? '(max-width: 700px) 84vw, 540px' : '(max-width: 700px) 86vw, 920px';
-  const vues = [], titres = [];
-  cles.forEach((k, j) => {
-    const [m, i, t] = PAIRES[k];
-    vues.push(cadreIphone(ecranIphone(i, altIphone(i), { tot: j === 0 && o.tot }))); titres.push(t + LEGENDE_APPAREIL.iphone);
-    vues.push(cadreMac(ecranMac(m, altMac(m), { tailles }))); titres.push(t + LEGENDE_APPAREIL.mac);
-  });
-  return carrousel('c-alterne' + (o.carte ? ' c-carte' : ''), piste(vues, titres), titres, 'OP GESTION sur un iPhone, puis sur un Mac');
+  const [m, i, t] = PAIRES[k];
+  const tailles = o.carte ? '(max-width: 700px) 84vw, 600px' : '(max-width: 700px) 86vw, 920px';
+  const ecrans = [cadreMac(ecranMac(m, altMac(m), { tot: o.tot, tailles })), cadreIphone(ecranIphone(i, altIphone(i)))];
+  return `<div class="carrousel c-paire${o.carte ? ' c-carte' : ''}" data-carrousel role="group" aria-label="${esc('OP GESTION — ' + t + ' : sur un Mac, puis sur un iPhone')}">`
+    + '<div class="c-scene"><div class="c-piste">' + ecrans.map((x, j) => `<div class="c-vue${j ? '' : ' c-on'}"${j ? ' aria-hidden="true"' : ''}>${x}</div>`).join('') + '</div></div>'
+    + horloge(ecrans.length) + '</div>';
 }
-const SUITES_ACCUEIL = suites('interventions', 'stock', () => true);
 
 /* ── la navigation : un seul endroit pour les liens, le volet, le menu du téléphone et le pied ── */
 const L = (label, href, sous) => ({ label, href, sous });
@@ -304,15 +271,13 @@ const VUE_TAILLES = { mac: '(max-width: 820px) 92vw, 640px' };
 function vue(v, titre, n) {
   if (!v) return '';
   const alt = 'OP GESTION — ' + titre;
-  /* l'aperçu : CHAQUE case montre l'iPhone, puis le Mac, sur l'écran de sa fonction — ils défilent dans la case (Justin, 9 octobre
-     2026 — voir PAIRES). Une case reste UN bouton : pas de commande dedans ; l'horloge (`c-horloge`) est faite des mêmes pastilles
-     que celles d'un carrousel, invisibles — elles donnent le temps de chaque écran et suivent les mêmes pauses. `--i` décale la
-     glissade de chaque case : la rangée défile en vague, pas d'un bloc. */
+  /* l'aperçu : CHAQUE case montre le Mac, puis le téléphone, sur l'écran de sa fonction — ils se remplacent en glissant (Justin,
+     9 octobre 2026 — voir PAIRES). Une case reste UN bouton : rien à toucher dedans. `--i` décale la glissade de chaque case : la
+     rangée change en vague, pas d'un bloc. */
   if (!POUR_LA_RACINE) { const k = PAIRE_DE[v.mac || v.iphone || v.duo[0]];
-    const ecrans = [cadreIphone(ecranIphone(PAIRES[k][1], alt)), cadreMac(ecranMac(PAIRES[k][0], alt, { tailles: VUE_TAILLES.mac }))];
+    const ecrans = [cadreMac(ecranMac(PAIRES[k][0], alt, { tailles: VUE_TAILLES.mac })), cadreIphone(ecranIphone(PAIRES[k][1], alt))];
     return `<span class="vue alterne" aria-hidden="true" data-carrousel style="--i:${n || 0}"><span class="c-scene"><span class="c-piste">`
-      + ecrans.map((x, j) => `<span class="c-vue${j ? '' : ' c-on'}">${x}</span>`).join('') + '</span></span><span class="c-horloge">'
-      + ecrans.map((x, j) => `<span class="c-point"${j ? '' : ' aria-current="true"'}><span><i></i></span></span>`).join('') + '</span></span>'; }
+      + ecrans.map((x, j) => `<span class="c-vue${j ? '' : ' c-on'}">${x}</span>`).join('') + '</span></span>' + horloge(ecrans.length) + '</span>'; }
   if (v.duo) return `<span class="vue duo" aria-hidden="true">${mac(v.duo[0], alt, { tailles: VUE_TAILLES.mac })}${iphone(v.duo[1], alt)}</span>`;
   if (v.mac) return `<span class="vue v-mac">${mac(v.mac, alt, { tailles: VUE_TAILLES.mac })}</span>`;
   return `<span class="vue v-iphone">${iphone(v.iphone, alt)}</span>`;
@@ -321,10 +286,7 @@ function tuiles(k, app, liste) {
   const html = liste.map(([i, t, s, , v], n) => { const span = LARGEURS[k][n] || 1, large = span > 1, inv = large && n === 0;
     return `<button type="button" class="tuile-f${large ? ' large' : ''}${inv ? ' inv' : ''}${v ? ' avec-vue' : ''}" style="--span:${span}" data-i="${n}" aria-haspopup="dialog"><span class="ic">${ic(i, 26)}</span>${v ? '' : '<span class="esp"></span>'}<b>${fr(t)}</b><span class="t">${fr(s)}</span>${vue(v, t, n)}<span class="plus">${PLUS}</span></button>`; }).join('');
   const donnees = { app, coche: COCHE(16), liste: liste.map(([i, t, s, p]) => ({ ic: ic(i, 28), titre: t, sous: s, points: p })) };
-  /* les cases qui défilent (l'aperçu) : UN bouton ⏸ pour toutes — une case est un bouton, elle ne peut pas porter le sien, et ce
-     qui bouge plus de 5 s doit pouvoir s'arrêter (WCAG 2.2.2, comme les carrousels) ; il n'apparaît qu'avec le script */
-  const pause = !POUR_LA_RACINE && liste.some(x => x[4]) ? `<div class="c-groupe" hidden><button type="button" class="c-lecture" data-c-groupe aria-label="Mettre en pause le défilement des cases">${PAUSE}${LECTURE}</button></div>` : '';
-  return `${pause}<div class="bento">${html}</div><script type="application/json" id="fonctions-donnees">${JSON.stringify(donnees).replace(/</g, '\\u003c')}</script>`;
+  return `<div class="bento">${html}</div><script type="application/json" id="fonctions-donnees">${JSON.stringify(donnees).replace(/</g, '\\u003c')}</script>`;
 }
 const FENETRE = `<div class="fenetre" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="fenetre-titre"><div class="fenetre-in">
   <button type="button" class="fermer" aria-label="Fermer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
@@ -471,12 +433,11 @@ const METIERS = {
 };
 function pageMetier(m, cle) {
   /* une page métier hors 3D (pas de `trois: 1`) ne montre que des paires NEUTRES — les menus du 3D masqués, comme l'application
-     les masque à ces métiers (voir ECRANS) — et pas de grande scène : ses deux cartes portent déjà le Mac et l'iPhone */
-  const neutre = !!METIERS[cle] && !m.trois, permis = k => !neutre || !troisD(k);
+     les masque à ces métiers (voir ECRANS) — et pas de grande scène : ses deux cartes portent déjà le Mac et le téléphone */
+  const neutre = !!METIERS[cle] && !m.trois;
   const paireDe = n => { const k = PAIRE_DE[n]; return neutre && NEUTRE_DE[k] ? NEUTRE_DE[k] : k; };
-  const seq = POUR_LA_RACINE ? null : suites(paireDe(m.duo[0][3]), paireDe(m.duo[1][3]), permis);
-  const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt], k) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
-          <div class="bas">${seq ? carAlterne(seq[k], { carte: true }) : `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div>`}</div></div>`).join('') + '</section>';
+  const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt]) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
+          <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div>` : carPaire(paireDe(nom), { carte: true })}</div></div>`).join('') + '</section>';
   const bloc = ([h2, ps], i) => `<section class="bloc${i % 2 ? ' teinte' : ''}"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr(h2)}</h2>` + ps.map(t => `<p>${fr(t)}</p>`).join('') + '</div></section>';
   const f = [['Pro', prixDe('pro') + ' € TTC par mois et par utilisateur', m.formules[0]], ['Business', prixDe('business') + ' € TTC par mois et par utilisateur', m.formules[1]],
     ['Business Premium', prixDe('premium') + ' € TTC par mois et par utilisateur', m.formules[2] || PREMIUM_METIER]];
@@ -486,7 +447,7 @@ function pageMetier(m, cle) {
     + `<div class="actions" style="margin-top:28px"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a></div></div></section>`;
   return scene(m.surtitre, m.h1, m.chapeau, `<a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a>`)
     + (POUR_LA_RACINE ? (m.mac ? `<section class="scene-mac">${mac(m.mac[0], m.mac[1], { tot: false })}</section>` : '')
-      : neutre ? '' : `<section class="scene-mac">${carAlterne(sceneDepuis(m.mac ? PAIRE_DE[m.mac[0]] : 'tableau'))}</section>`)
+      : neutre ? '' : `<section class="scene-mac">${carPaire(m.mac ? PAIRE_DE[m.mac[0]] : 'tableau')}</section>`)
     + bloc(m.blocs[0], 0) + duo + m.blocs.slice(1).map((b, i) => bloc(b, i + 1)).join('') + formules;
 }
 
@@ -639,13 +600,13 @@ const PAGES = {
       <p class="chapeau">${fr('Interventions, stock, encaissements et communication d\'équipe — sur iPhone, Android, Mac et PC, à jour en quelques secondes.')}</p>
       <div class="actions"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
       <div class="gages"><span>Chiffré AES-256</span><span>Sur tous vos appareils</span><span>Sans installation</span></div>
-      <div class="appareils">${POUR_LA_RACINE ? `<div class="ap-duo">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration', { tot: true })}${iphone('iphone-tableau', 'OP GESTION sur un iPhone : le tableau de bord', { tot: true })}</div>` : carAlterne(SCENE, { tot: true })}</div></section>
+      <div class="appareils">${POUR_LA_RACINE ? `<div class="ap-duo">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration', { tot: true })}${iphone('iphone-tableau', 'OP GESTION sur un iPhone : le tableau de bord', { tot: true })}</div>` : carPaire('tableau', { tot: true })}</div></section>
       <div class="plateformes"><span>Mac · Windows</span><span>iPhone · Android</span><span>Navigateur</span></div>
       <section class="duo">
         <div class="grande-carte"><div class="haut"><div class="petit-titre">Sur le terrain</div><h3>${fr('La fiche d\'intervention, dans la poche.')}</h3><p>${fr('Client, adresse, produits, photos et signature : tout est sur la fiche.')}</p></div>
-          <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-intervention', 'OP GESTION sur un iPhone : une fiche d\'intervention en cours')}</div>` : carAlterne(SUITES_ACCUEIL[0], { carte: true })}</div></div>
+          <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-intervention', 'OP GESTION sur un iPhone : une fiche d\'intervention en cours')}</div>` : carPaire('interventions', { carte: true })}</div></div>
         <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock, à jour.</h3><p>${fr('Avec la formule Business : arrivage, sortie, relevé — chaque mouvement est tracé et met le stock à jour.')}</p></div>
-          <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div>` : carAlterne(SUITES_ACCUEIL[1], { carte: true })}</div></div>
+          <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div>` : carPaire('stock', { carte: true })}</div></div>
       </section>
       <section class="page" style="padding-top:90px;padding-bottom:0"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">${fr('Une seule application pour le bureau et le terrain. Chaque fonction a sa page : ce qu\'elle fait, et la formule qui l\'ouvre.')}</p>
         <div class="teasers compacts">${liensAccueil(VOLETS.applications.petits, FONCTIONS, k => ICONE_FONCTION[k])}</div></section>
@@ -662,7 +623,7 @@ const PAGES = {
     corps: () => scene('Applications', 'Nos applications.', 'Toutes les applications de la plateforme TEAM OP. Ouvrez-en une pour voir tout ce qu\'elle fait.')
       + `<section class="page" id="applications" style="padding-top:20px;padding-bottom:20px"><h2 class="h2 moyen">Deux applications, chacune à sa place.</h2><p class="intro">${fr('OP GESTION pour gérer votre activité. OP MESSAGES, bientôt disponible, pour échanger — avec son propre compte.')}</p><div class="apps">
         <article class="app-carte"><img class="ico" src="/icons/opgestion-512.png" width="64" height="64" alt=""><div><div class="nom">OP GESTION</div><div class="desc">${fr('Interventions avec rapports signés, planning et tournées, stock et box, devis-factures, encaissements, équipe.')}</div></div><a href="elan.html">Découvrir OP GESTION ›</a>
-          ${POUR_LA_RACINE ? `<div class="rogne-mac">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord', { tailles: '(max-width: 700px) 90vw, 620px' })}</div>` : carAlterne(SCENE.slice(0, 3), { carte: true })}</article>
+          ${POUR_LA_RACINE ? `<div class="rogne-mac">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord', { tailles: '(max-width: 700px) 90vw, 620px' })}</div>` : carPaire('tableau', { carte: true })}</article>
         <article class="app-carte"><img class="ico" src="/icons/opmsg-512.png" width="64" height="64" alt=""><div><div class="nom">OP MESSAGES</div><div class="desc">${fr('Toute votre équipe, une seule conversation : chat en temps réel, groupes, photos, vocaux, sondages — réservé à votre entreprise. Bientôt disponible.')}</div></div><a href="opmessages.html">Découvrir OP MESSAGES ›</a>
           <div class="sondage" aria-hidden="true"><b>Quel créneau pour la réunion d'équipe ?</b>
             <div class="l"><span>Mardi 14 h</span><span class="barre"><i class="v1" style="width:70%"></i></span><span>4 votes</span></div>
@@ -674,7 +635,7 @@ const PAGES = {
     sousnav: { titre: 'OP GESTION', href: 'elan.html', liens: [L('Vue d\'ensemble', 'elan.html#apercu'), L('Fonctions', 'elan.html#fonctions'), L('Tarifs', 'tarifs.html#elan')], cta: () => `<a class="pilule" href="${ESPACE()}">Demander un accès</a>` },
     corps: () => scene('Application de gestion tout-en-un', 'Pilotez votre activité terrain en un seul endroit.', 'Interventions, planning et tournées, stock et box, encaissements, devis-factures et équipe : OP GESTION réunit tout votre quotidien dans une application simple, rapide et accessible partout.',
         `<a class="bouton" href="${ESPACE()}">Demander un accès</a><a class="lien-suite" href="tarifs.html#elan">Voir les tarifs ›</a>`)
-      + `<section class="scene-mac">${POUR_LA_RACINE ? mac('mac-planning', 'OP GESTION sur un Mac : le planning de la semaine, technicien par technicien', { tot: false }) : carAlterne(sceneDepuis('planning'))}</section>
+      + `<section class="scene-mac">${POUR_LA_RACINE ? mac('mac-planning', 'OP GESTION sur un Mac : le planning de la semaine, technicien par technicien', { tot: false }) : carPaire('planning')}</section>
       <section id="fonctions" style="padding:clamp(70px,9vw,120px) 12px 12px"><div class="page" style="padding:0 10px"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">Ouvrez une carte pour tout voir.</p></div>${tuiles('elan', 'OP GESTION', F_GESTION)}</section>${FENETRE}` },
 
   opmessages: { section: 'applications', titre: 'OP MESSAGES — La messagerie de votre équipe | TEAM OP', desc: 'OP MESSAGES : chat temps réel, groupes, photos, messages vocaux et notifications — une messagerie réservée à votre entreprise.',

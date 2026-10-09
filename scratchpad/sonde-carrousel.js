@@ -1,21 +1,19 @@
 /* Sonde des CARROUSELS d'écrans du site (aperçu, apercu/site/) — Justin, 8 octobre 2026 : « des défilements d'images avec
    l'iPhone, et qu'on le voie bien en entier, et aussi un Mac pour montrer que ça marche bien sur les deux ».
-   Puis le 9 octobre : « non, je ne veux pas ça, je veux une fois le téléphone, une fois le Mac, et que ça défile » — UN appareil
-   à la fois : l'iPhone, puis le Mac du même écran.
+   Puis le 9 octobre, deux essais refusés, et sa règle : « une fois qu'on voit le Mac, ça change de page, on voit le téléphone, et
+   c'est tout, et ça ne fait que ça ». Chaque carrousel et chaque case : UNE paire — le Mac, puis le téléphone du même écran —, sans
+   légende, sans pastille, sans bouton.
    Chaque geste est JOUÉ dans un vrai Chromium (127.0.0.1 seulement, rien ne sort d'ici) :
-   · partout (4 profils × jour / nuit × les pages à carrousel) : aucune exception ; chaque carrousel branché (commandes
-     visibles, un point par écran, une piste) ; au repos, UN SEUL appareil se voit, dans chaque carrousel et chaque case ;
-     CHAQUE écran (montré tour à tour) porte son appareil ENTIER, dans sa scène (aucun ancêtre qui le coupe, rien hors de
-     la largeur posée) ; pendant la glissade, l'appareil qui part et celui qui arrive ne se chevauchent JAMAIS, et la page
-     ne déborde pas de côté ; la page ne bouge pas de côté ; les écrans pas encore montrés NE SE CHARGENT PAS avant qu'on
-     voie le carrousel, le suivant se prépare quand on le voit ; l'écran affiché suit le mode (jour / nuit) ; commandes à
-     44 px de haut ; chaque case passe d'elle-même de l'iPhone au Mac, en vague, et le ⏸ des cases les arrête toutes ; une
-     page métier hors 3D ne montre que des écrans neutres, le Mac et l'iPhone ;
-   · les gestes (bureau et téléphone) : il défile seul, la pastille dit où l'on est, la légende suit, après l'iPhone vient
-     le Mac du même écran ; ⏸ arrête pour de bon et ▶ reprend ; la souris posée dessus le fait attendre ; hors de l'écran
-     il attend ; un point touché y va ; des touches rapprochées finissent sur la dernière ; au doigt, glisser à gauche / à
-     droite change d'écran et un geste vertical non ; ← → au clavier, et le clavier dans le carrousel le fait attendre ;
-     « animations réduites » : arrêté au départ, les points marchent, et l'écran change SANS glisser.
+   · partout (4 profils × jour / nuit × les pages à carrousel) : aucune exception ; chaque carrousel branché, DEUX écrans — le Mac
+     puis le téléphone —, et rien à voir ni à toucher que les appareils (l'horloge est invisible) ; au repos, UN SEUL appareil se
+     voit, dans chaque carrousel et chaque case ; CHAQUE écran (montré tour à tour) porte son appareil ENTIER, dans sa scène ;
+     pendant la glissade, l'appareil qui part et celui qui arrive ne se chevauchent JAMAIS, rien ne se voit hors de la scène et la
+     page ne déborde pas ; la page ne bouge pas de côté ; l'écran pas encore montré NE SE CHARGE PAS avant qu'on voie le carrousel,
+     il se prépare quand on le voit ; l'écran affiché suit le mode (jour / nuit) ; chaque case passe d'elle-même du Mac au
+     téléphone, en vague ; une page métier hors 3D ne montre que des écrans neutres ;
+   · les gestes (bureau et téléphone) : il passe seul du Mac au téléphone, puis revient au Mac ; la souris posée dessus le fait
+     attendre ; hors de l'écran il attend ; au doigt, glisser à gauche / à droite change d'appareil et un geste vertical non ;
+     « animations réduites » : rien ne bouge seul, et au doigt l'appareil change SANS glisser.
    Usage : node scratchpad/sonde-carrousel.js      PAGES=index,elan PROFILS=bureau MODES=light node scratchpad/sonde-carrousel.js */
 const fs = require('fs'), path = require('path'), http = require('http'), net = require('net'), os = require('os');
 const { spawn } = require('child_process');
@@ -72,12 +70,12 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
   const ETAT = `const etat=k=>{ const c=document.querySelectorAll('.carrousel')[k]; const pts=[...c.querySelectorAll('.c-point')];
       const pistes=[...c.querySelectorAll('.c-piste')].map(p=>[...p.children].map((v,j)=>v.classList.contains('c-on')?j:-1).filter(j=>j>=0));
       return { i:pts.findIndex(p=>p.getAttribute('aria-current')==='true'), n:pts.length, pistes, sort:c.querySelectorAll('.c-sort').length,
-        legende:(c.querySelector('.c-legende')||{}).textContent, titres:[...c.querySelectorAll('.c-piste')[0].children].map(v=>v.getAttribute('data-titre')),
         pause:c.classList.contains('c-pause'), arrete:c.classList.contains('c-arrete'), pret:c.classList.contains('c-pret'),
         sens:c.classList.contains('c-avant')?'avant':c.classList.contains('c-arriere')?'arriere':'',
         cachees:[...c.querySelectorAll('.c-vue')].filter(v=>!v.classList.contains('c-on')).every(v=>v.getAttribute('aria-hidden')==='true'),
-        bouton:(c.querySelector('.c-lecture')||{getAttribute:()=>null}).getAttribute('aria-label'),
-        app:(()=>{ const v=c.querySelector('.c-vue.c-on'); return !v?'':v.querySelector('.ap-iphone')&&!v.querySelector('.ap-mac')?'iphone':v.querySelector('.ap-mac')&&!v.querySelector('.ap-iphone')?'mac':'?'; })() }; };`;
+        app:(()=>{ const v=c.querySelector('.c-vue.c-on'); return !v?'':v.querySelector('.ap-iphone')&&!v.querySelector('.ap-mac')?'iphone':v.querySelector('.ap-mac')&&!v.querySelector('.ap-iphone')?'mac':'?'; })() }; };
+    /* faire avancer un carrousel comme il le fait lui-même : la fin de l'animation de sa pastille active (invisible) */
+    const avance=c=>{ const p=c.querySelector('.c-point[aria-current="true"] i'); if(p) p.dispatchEvent(new AnimationEvent('animationend',{animationName:'c-progres',bubbles:true})); };`;
   const etat = k => ev(ETAT + ` return etat(${k});`);
   const centre = (sel, k) => ev(`const e=document.querySelectorAll(${JSON.stringify(sel)})[${k || 0}]; if(!e) return null; voir(e); ${deuxImages}
     const b=e.getBoundingClientRect(); return {x:b.left+b.width/2, y:b.top+b.height/2, w:b.width, h:b.height};`);
@@ -92,7 +90,7 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
     await cdp('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   };
   const attendre = async (k, cond, ms) => { const t = Date.now(); let e; while (Date.now() - t < ms) { e = await etat(k); if (cond(e)) return e; await dormir(80); } return e; };
-  const coherent = e => e.pistes.every(p => p.length === 1 && p[0] === e.i) && e.legende === e.titres[e.i];
+  const coherent = e => e.pistes.length === 1 && e.pistes.every(p => p.length === 1 && p[0] === e.i);
 
   for (const P of PROFILS) for (const mode of MODES) {
     console.log('— ' + P.nom + ' · ' + (mode === 'light' ? 'jour' : 'nuit'));
@@ -126,19 +124,22 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
           for(let k=0;k<cs.length;k++){ const c=cs[k]; voir(c); await new Promise(r=>setTimeout(r,1500));
             const vs=[...c.querySelectorAll('.c-piste')].map(p=>[...p.children]); const e=etat(k);
             const im=v=>v.querySelector('img'); const charge=v=>{ const i=im(v); return !!(i&&i.complete&&i.naturalWidth>0); };
-            L.push({ genre:c.className.replace('carrousel','').trim(), n:e.n, longueurs:vs.map(x=>x.length), pret:e.pret, commandes:!c.querySelector('.c-commandes').hidden,
+            L.push({ genre:c.className.replace('carrousel','').trim(), n:e.n, longueurs:vs.map(x=>x.length), pret:e.pret,
+              ordre:vs[0].map(v=>v.querySelector('.ap-mac')&&!v.querySelector('.ap-iphone')?'mac':v.querySelector('.ap-iphone')&&!v.querySelector('.ap-mac')?'iphone':'?').join('+'),
               courant:vs.every(x=>charge(x[e.i])), suivant:vs.every(x=>charge(x[(e.i+1)%x.length])),
-              autres:vs.every(x=>x.filter((v,j)=>j!==e.i&&j!==(e.i+1)%x.length&&j!==(e.i+x.length-1)%x.length).every(v=>!charge(v)||montree().has(im(v).currentSrc))),
               mode:vs.map(x=>(im(x[e.i]).currentSrc||'').split('/').pop()), cachees:e.cachees, coherent:(${coherent.toString()})(e),
-              cibles:[...c.querySelectorAll('.c-point,.c-lecture')].map(b=>Math.round(b.getBoundingClientRect().height)) }); }
+              /* rien à voir ni à toucher que les appareils : aucun bouton, aucun texte ; l'horloge, invisible */
+              touches:c.querySelectorAll('button,a,[tabindex],input').length, texte:[...c.childNodes].filter(x=>x.nodeType===3&&x.textContent.trim()).length+[...c.querySelectorAll('p,figcaption,.c-legende')].length,
+              horloge:(()=>{ const h=c.querySelector('.c-horloge'); if(!h) return 'absente'; const r=h.getBoundingClientRect(), st=getComputedStyle(h); return st.display==='none'?'display:none':(+st.opacity===0&&r.width<=1&&r.height<=1)?'invisible':'visible'; })() }); }
           return L;`);
         for (const [k, b] of branche.entries()) {
           const t = lbl + ' · carrousel ' + (k + 1) + ' (' + b.genre + ')';
-          vrai(t + ' : branché (' + b.n + ' écrans, commandes visibles)', b.pret && b.commandes && b.n >= 2 && b.longueurs.every(x => x === b.n) && b.longueurs.length === 1 && b.genre.includes('c-alterne'), JSON.stringify(b));
-          vrai(t + ' : l\'écran montré et le suivant sont chargés, les autres attendent', b.courant && b.suivant && b.autres, JSON.stringify(b));
+          vrai(t + ' : branché — DEUX écrans, le Mac puis le téléphone (' + b.ordre + ')', b.pret && b.n === 2 && b.longueurs.length === 1 && b.longueurs[0] === 2 && b.ordre === 'mac+iphone' && b.genre.includes('c-paire'), JSON.stringify(b));
+          vrai(t + ' : ⛔ rien à voir ni à toucher que les appareils (ni bouton, ni texte ; horloge ' + b.horloge + ')', b.touches === 0 && b.texte === 0 && b.horloge === 'invisible', JSON.stringify(b));
+          /* (deux écrans : l'autre se prépare quand on voit le carrousel — il n'y a pas d'« autres » qui attendraient) */
+          vrai(t + ' : l\'écran montré et l\'autre sont chargés, une fois le carrousel vu', b.courant && b.suivant, JSON.stringify(b));
           vrai(t + ' : l\'écran suit le mode (' + (mode === 'dark' ? 'nuit' : 'jour') + ')', b.mode.every(s => (mode === 'dark' ? /-nuit(-1x)?\.webp$/ : /-jour(-1x)?\.webp$/).test(s)), b.mode.join(' '));
-          vrai(t + ' : un seul écran affiché par piste, la légende le nomme, les autres cachés aux lecteurs d\'écran', b.coherent && b.cachees, JSON.stringify(b));
-          vrai(t + ' : commandes à 44 px de haut au moins', b.cibles.length === b.n + 1 && b.cibles.every(h => h >= 44), JSON.stringify(b.cibles));
+          vrai(t + ' : un seul écran affiché, l\'autre caché aux lecteurs d\'écran', b.coherent && b.cachees, JSON.stringify(b));
         }
         /* ⛔ UN SEUL APPAREIL À LA FOIS (Justin, 9 octobre 2026 : « une fois le téléphone, une fois le Mac ») : au repos, dans chaque
            carrousel et chaque case, UN écran se voit, et il porte UN appareil — l'écran sorti, s'il reste un instant, est hors de la
@@ -177,17 +178,17 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
            Relevé à chaque image, sur le premier carrousel de la page et sur une case. */
         /* ⚠️ la PREMIÈRE glissade vers un écran le dessine pour la première fois : ce Chromium sans carte graphique met alors ~0,5 s
            à peindre la grande image du Mac, et pendant ce temps aucune image ne sort — on ne voit pas la glissade. On montre donc
-           l'écran suivant une fois (à blanc), puis on relève la glissade du RETOUR et celle de l'aller, entre deux écrans déjà peints. */
+           l'autre appareil une fois (à blanc), puis on relève les deux glissades suivantes, entre deux écrans déjà peints. */
         /* (trois cibles : le premier carrousel, la première carte — elle a de la page À CÔTÉ d'elle, là où une grande scène occupe
            toute la largeur d'un téléphone et ne laisse rien où fuir — et la première case) */
         const glisse = await ev(`const R=[]; const cibles=[document.querySelector('.carrousel'), document.querySelector('.carrousel.c-carte'), document.querySelector('.vue.alterne')].filter((x,k,a)=>x&&a.indexOf(x)===k);
-          const aller=(c,d)=>{ const pts=[...c.querySelectorAll('.c-point')]; const i=pts.findIndex(p=>p.getAttribute('aria-current')==='true'); pts[(i+d+pts.length)%pts.length].dispatchEvent(new MouseEvent('click',{bubbles:false})); };
+          const aller=c=>{ const p=c.querySelector('.c-point[aria-current="true"] i'); p.dispatchEvent(new AnimationEvent('animationend',{animationName:'c-progres',bubbles:true})); };
           for(const c of cibles){ voir(c); await new Promise(r=>setTimeout(r,1200)); c.style.setProperty('--c-duree','9999s');
             /* (une case ne capte pas le toucher — pointer-events:none : on le lui rend le temps de la mesure, pour savoir ce qui se VOIT) */
             const pe=c.style.pointerEvents; c.style.pointerEvents='auto';
-            aller(c,1); await new Promise(r=>setTimeout(r,1600));
+            aller(c); await new Promise(r=>setTimeout(r,1600));
             let images=0, glissade=0, deuxVus=0, chevauche=0, deborde=0, essais=0, fuites=0;
-            for(const d of [-1,1]){ aller(c,d); const t0=performance.now();
+            for(const d of [1,2]){ aller(c); const t0=performance.now();
               while(performance.now()-t0<1300){ await new Promise(r=>requestAnimationFrame(r)); images++;
                 if([...c.querySelectorAll('.c-vue.c-on,.c-vue.c-sort')].some(v=>v.getAnimations().some(a=>/^c-(entre|sort)/.test(a.animationName)&&a.playState==='running'))) glissade++;
                 const aps=[...c.querySelectorAll('.c-vue.c-on .ap-iphone-corps,.c-vue.c-on .ap-mac,.c-vue.c-sort .ap-iphone-corps,.c-vue.c-sort .ap-mac')].map(e=>e.getBoundingClientRect());
@@ -215,9 +216,10 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
         vrai(lbl + ' : population — au moins une glissade relevée avec de la page à côté de sa scène', glisse.some(g => g.place && g.essais >= 5), JSON.stringify(glisse.map(g => [g.quoi.split(' ').slice(0, 2).join(' '), g.place, g.essais])));
         /* ⛔ LES CASES : chacune passe d'elle-même de l'iPhone au Mac du même écran, en vague (`--i`) ; le ⏸ des cases les arrête toutes */
         const cases = await ev(`const v=[...document.querySelectorAll('.tuile-f .vue')]; return {n:v.length, alterne:v.filter(x=>x.matches('.alterne[data-carrousel].c-pret')
-          &&x.querySelectorAll('.c-vue').length===2&&x.querySelectorAll('.c-vue')[0].querySelector('.ap-iphone')&&x.querySelectorAll('.c-vue')[1].querySelector('.ap-mac')).length};`);
+          &&x.querySelectorAll('.c-vue').length===2&&x.querySelectorAll('.c-vue')[0].querySelector('.ap-mac')&&x.querySelectorAll('.c-vue')[1].querySelector('.ap-iphone')).length,
+          boutons:document.querySelectorAll('[data-c-groupe],.c-groupe').length};`);
         if (cases.n) {
-          vrai(lbl + ' : ⛔ chaque case porte l\'iPhone, puis le Mac (' + cases.alterne + '/' + cases.n + ')', cases.alterne === cases.n, JSON.stringify(cases));
+          vrai(lbl + ' : ⛔ chaque case porte le Mac, puis le téléphone (' + cases.alterne + '/' + cases.n + '), et aucun bouton au-dessus', cases.alterne === cases.n && cases.boutons === 0, JSON.stringify(cases));
           /* chaque case visible doit MONTRER le Mac, puis l'iPhone de nouveau (relevé toutes les 50 ms pendant 4 s, horloge à 1,2 s) */
           const bascule = await ev(`const g=document.querySelector('.bento'); voir(g.querySelector('.tuile-f')); await new Promise(r=>setTimeout(r,700));
             const vis=[...document.querySelectorAll('.vue.alterne')].filter(v=>{ const r=v.getBoundingClientRect(); return r.top>=0&&r.bottom<=innerHeight; });
@@ -227,131 +229,88 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
             const R={visibles:vis.length, mac:vus.filter(x=>x.has('mac')&&x.has('iphone')&&x.size===2).length, vus:vus.map(x=>[...x].join('+')), arrets,
               retards:vis.map(v=>getComputedStyle(v.querySelector('.c-vue.c-on')).animationDelay), rangs:vis.map(v=>+getComputedStyle(v).getPropertyValue('--i'))};
             vis.forEach(v=>v.style.setProperty('--c-duree','9999s')); return R;`);
-          vrai(lbl + ' : ⛔ les cases à l\'écran passent d\'elles-mêmes au Mac, puis reviennent à l\'iPhone (' + bascule.mac + '/' + bascule.visibles + ')', bascule.visibles >= 1 && bascule.mac === bascule.visibles, JSON.stringify(bascule));
+          vrai(lbl + ' : ⛔ les cases à l\'écran passent d\'elles-mêmes du Mac au téléphone, puis reviennent (' + bascule.mac + '/' + bascule.visibles + ')', bascule.visibles >= 1 && bascule.mac === bascule.visibles, JSON.stringify(bascule));
           vrai(lbl + ' : en vague — chaque case glisse 70 ms après la précédente (' + bascule.retards.join(' ') + ')', bascule.retards.every((d, k) => Math.abs(parseFloat(d) - bascule.rangs[k] * 0.07) < 0.001), JSON.stringify(bascule));
-          const pause = await ev(`const b=document.querySelector('[data-c-groupe]'); if(!b) return null; const r=b.getBoundingClientRect();
-            const vs=[...document.querySelectorAll('.vue.alterne')]; voir(b); await new Promise(r=>setTimeout(r,200)); b.click(); await new Promise(r=>setTimeout(r,100));
-            const arretees=vs.filter(v=>v.classList.contains('c-pause')).length, label1=b.getAttribute('aria-label');
-            vs.forEach(v=>v.style.setProperty('--c-duree','1.2s')); const avant=vs.map(v=>[...v.querySelectorAll('.c-vue')].findIndex(x=>x.classList.contains('c-on')));
-            voir(document.querySelector('.bento .tuile-f')); await new Promise(r=>setTimeout(r,2800));
-            const apres=vs.map(v=>[...v.querySelectorAll('.c-vue')].findIndex(x=>x.classList.contains('c-on')));
-            b.click(); const label2=b.getAttribute('aria-label'), reprises=vs.filter(v=>!v.classList.contains('c-pause')).length;
-            vs.forEach(v=>v.style.removeProperty('--c-duree'));
-            return {h:Math.round(r.height), w:Math.round(r.width), visible:getComputedStyle(b.parentNode).display!=='none', arretees, n:vs.length, label1, figees:avant.every((x,k)=>x===apres[k]), label2, reprises};`);
-          vrai(lbl + ' : ⛔ le ⏸ des cases se voit (44 px) et les arrête TOUTES (« ' + (pause && pause.label1) + ' »)', pause && pause.visible && pause.h >= 44 && pause.w >= 44 && pause.arretees === pause.n && pause.figees && pause.label1 === 'Lancer le défilement des cases', JSON.stringify(pause));
-          vrai(lbl + ' : ▶ les relance toutes', pause && pause.reprises === pause.n && pause.label2 === 'Mettre en pause le défilement des cases', JSON.stringify(pause));
         }
         const cote = await ev(`const r=[]; for(const y of [0, document.documentElement.scrollHeight]){ scrollTo(9999,y); ${deuxImages} r.push(scrollX); } scrollTo(0,0);
           return {r, large:document.documentElement.scrollWidth, fen:innerWidth};`);
         vrai(lbl + ' : aucun défilement de côté', cote.r.every(x => x === 0) && cote.large <= P.w && cote.fen === P.w, JSON.stringify(cote));
         if (NEUTRES.includes(pg)) {
-          const n = await ev(`return { cartes:document.querySelectorAll('.grande-carte .c-alterne').length, macs:[...document.querySelectorAll('.grande-carte .c-alterne')].filter(c=>c.querySelector('.ap-mac')&&c.querySelector('.ap-iphone')).length,
+          const n = await ev(`return { cartes:document.querySelectorAll('.grande-carte .c-paire').length, macs:[...document.querySelectorAll('.grande-carte .c-paire')].filter(c=>c.querySelector('.ap-mac')&&c.querySelector('.ap-iphone')).length,
             ecrans:[...new Set([...document.querySelectorAll('main img')].filter(i=>/captures\\//.test(i.getAttribute('src'))).map(i=>i.getAttribute('src').split('/').pop().replace(/-(jour|nuit)(-1x)?\\.webp$/,'')))] };`);
           vrai(lbl + ' : ⛔ page métier hors 3D — l\'iPhone ET le Mac dans chaque carte, et rien que des écrans neutres (menus du 3D masqués)', n.cartes === 2 && n.macs === 2
             && n.ecrans.length >= 4 && n.ecrans.every(e => ['mac-factures-neutre', 'mac-compta-neutre', 'mac-connexion', 'iphone-factures-neutre', 'iphone-compta-neutre', 'iphone-connexion'].includes(e)), JSON.stringify(n));
         }
 
-        /* ── les gestes ── */
+        /* ── les gestes : il passe seul du Mac au téléphone et revient ; la souris le fait attendre ; hors de l'écran il attend ; au
+           doigt, glisser change d'appareil ; « animations réduites » : rien ne bouge seul, et au doigt ça change SANS glisser ── */
         if (mode === 'light' && GESTES.includes(pg) && (P.nom === 'bureau' || P.nom === 'téléphone')) {
           await ev(`document.querySelectorAll('.carrousel').forEach(c=>c.style.setProperty('--c-duree','1.2s')); return 1;`);
           const k = 0;
           await centre('.carrousel', k);
           let e0 = await etat(k);
           let e = await attendre(k, x => x.i !== e0.i, 2600);
-          vrai(lbl + ' : il défile seul (' + e0.i + ' → ' + e.i + '), en avançant : l\'écran sort vers la gauche', e.i === (e0.i + 1) % e0.n && e.sens === 'avant', JSON.stringify(e));
-          vrai(lbl + ' : ⛔ l\'iPhone, puis le Mac (' + e0.app + ' → ' + e.app + ') : les écrans pairs sont des iPhone, les impairs des Mac', e0.app === (e0.i % 2 ? 'mac' : 'iphone') && e.app === (e.i % 2 ? 'mac' : 'iphone') && e0.app !== e.app, JSON.stringify({ e0, e }));
+          vrai(lbl + ' : il passe seul à l\'autre appareil (' + e0.app + ' → ' + e.app + '), qui arrive par la droite', e.i === (e0.i + 1) % 2 && e.sens === 'avant' && e0.app !== e.app && ['mac', 'iphone'].includes(e.app), JSON.stringify({ e0, e }));
+          const e1 = await attendre(k, x => x.i !== e.i, 2600);
+          vrai(lbl + ' : puis revient au premier, en avançant encore (' + e.app + ' → ' + e1.app + ')', e1.i === e0.i && e1.app === e0.app && e1.sens === 'avant', JSON.stringify(e1));
           await dormir(1000);
           e = await etat(k);
-          vrai(lbl + ' : la pastille, la légende et ' + (e.pistes.length === 2 ? 'les deux appareils' : 'l\'appareil') + ' disent le même écran, plus rien en sortie', coherent(e) && e.sort === 0, JSON.stringify(e));
-          /* ⏸ */
-          let b = await centre('.carrousel .c-lecture', k);
-          await toucher(P, b.x, b.y); await dormir(1000);
-          e0 = await etat(k);
-          await dormir(2800);
-          e = await etat(k);
-          vrai(lbl + ' : ⏸ arrête pour de bon (' + e0.i + ' puis ' + e.i + ', « ' + e.bouton + ' »)', e0.pause && e.i === e0.i && e.bouton === 'Lancer le défilement', JSON.stringify(e));
-          b = await centre('.carrousel .c-lecture', k);
-          await toucher(P, b.x, b.y);
-          if (!P.tac) { await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 3, y: 3 }); }
-          e = await attendre(k, x => x.i !== e0.i, 2600);
-          vrai(lbl + ' : ▶ reprend', !e.pause && e.i === (e0.i + 1) % e.n, JSON.stringify(e));
-          /* un point touché y va ; des touches rapprochées finissent sur la dernière */
-          const cible = (e.i + 2) % e.n;
-          b = await centre('.carrousel .c-point', cible + e.n * k);
-          await toucher(P, b.x, b.y);
-          e = await attendre(k, x => x.i === cible && coherent(x), 1500);
-          vrai(lbl + ' : un point touché y va (écran ' + (cible + 1) + ')', e.i === cible && coherent(e), JSON.stringify(e));
-          const pts = await ev(`return [...document.querySelectorAll('.carrousel')[${k}].querySelectorAll('.c-point')].map(p=>{ const r=p.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; });`);
-          for (const j of [1, 0, pts.length - 1, 1]) { await toucher(P, pts[j].x, pts[j].y); await dormir(40); }
-          await dormir(1100);
-          e = await etat(k);
-          vrai(lbl + ' : quatre touches rapprochées : on finit sur la dernière, un seul écran par piste', e.i === 1 && coherent(e) && e.sort === 0, JSON.stringify(e));
+          vrai(lbl + ' : un seul écran affiché, plus rien en sortie', coherent(e) && e.sort === 0, JSON.stringify(e));
           if (!P.tac) {
             /* la souris posée dessus : il attend ; elle part : il reprend */
-            b = await centre('.carrousel .c-scene', k);
+            const b = await centre('.carrousel .c-scene', k);
             await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: b.x, y: b.y });
             e0 = await etat(k); await dormir(2800); e = await etat(k);
             vrai(lbl + ' : la souris posée dessus le fait attendre', e0.arrete && e.i === e0.i, JSON.stringify(e));
             await cdp('Input.dispatchMouseEvent', { type: 'mouseMoved', x: 3, y: 3 });
             e = await attendre(k, x => x.i !== e0.i, 2600);
-            vrai(lbl + ' : la souris partie, il reprend', e.i === (e0.i + 1) % e.n && !e.arrete, JSON.stringify(e));
-            /* le clavier : ← → sur les points, et le clavier dans le carrousel le fait attendre */
-            await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16 }); await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Shift', code: 'ShiftLeft', windowsVirtualKeyCode: 16 });
-            e0 = await etat(k);
-            await ev(`document.querySelectorAll('.carrousel')[${k}].querySelectorAll('.c-point')[${e0.i}].focus(); return 1;`);
-            await cdp('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 }); await cdp('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowRight', code: 'ArrowRight', windowsVirtualKeyCode: 39 });
-            e = await attendre(k, x => x.i === (e0.i + 1) % x.n, 1500);
-            const foc = await ev(`const c=document.querySelectorAll('.carrousel')[${k}]; return [...c.querySelectorAll('.c-point')].indexOf(document.activeElement);`);
-            vrai(lbl + ' : → au clavier passe à l\'écran suivant, le focus suit', e.i === (e0.i + 1) % e.n && foc === e.i, JSON.stringify({ e, foc }));
-            await dormir(2800); const e2 = await etat(k);
-            vrai(lbl + ' : le clavier dans le carrousel le fait attendre', e2.arrete && e2.i === e.i, JSON.stringify(e2));
-            await ev(`document.activeElement.blur(); return 1;`);
-            e = await attendre(k, x => !x.arrete, 1000);
-            vrai(lbl + ' : le clavier parti, il ne l\'attend plus', !e.arrete, JSON.stringify(e));
+            vrai(lbl + ' : la souris partie, il reprend', e.i === (e0.i + 1) % 2 && !e.arrete, JSON.stringify(e));
           } else {
-            /* au doigt : glisser à gauche, à droite ; un geste vertical ne change rien */
-            await ev(`document.querySelectorAll('.carrousel')[${k}].querySelector('.c-lecture').click(); return 1;`);
-            b = await centre('.carrousel .c-scene', k);
+            /* au doigt : glisser à gauche, à droite ; un geste vertical ne change rien (l'horloge figée, seul le doigt décide) */
+            await ev(`document.querySelectorAll('.carrousel')[${k}].style.setProperty('--c-duree','9999s'); return 1;`);
+            const b = await centre('.carrousel .c-scene', k);
+            await dormir(1000);
             e0 = await etat(k);
             await glisser(b.x + 60, b.y, -150, 6); e = await attendre(k, x => x.i !== e0.i, 1500);
-            vrai(lbl + ' : glisser à gauche → l\'écran suivant, qui arrive par la droite', e.i === (e0.i + 1) % e.n && e.sens === 'avant', JSON.stringify(e));
-            await dormir(900);
+            vrai(lbl + ' : glisser à gauche → l\'autre appareil, qui arrive par la droite', e.i === (e0.i + 1) % 2 && e.sens === 'avant', JSON.stringify(e));
+            await dormir(1000);
             await glisser(b.x - 60, b.y, 150, -6); e = await attendre(k, x => x.i === e0.i, 1500);
-            vrai(lbl + ' : glisser à droite → l\'écran d\'avant, qui revient par la gauche', e.i === e0.i && e.sens === 'arriere', JSON.stringify(e));
-            await dormir(900);
-            await glisser(b.x, b.y - 60, 20, 150); await dormir(900); e = await etat(k);
-            vrai(lbl + ' : un geste vertical ne change pas d\'écran', e.i === e0.i, JSON.stringify(e));
-            await ev(`document.querySelectorAll('.carrousel')[${k}].querySelector('.c-lecture').click(); return 1;`);
+            vrai(lbl + ' : glisser à droite → le premier, qui revient par la gauche', e.i === e0.i && e.sens === 'arriere', JSON.stringify(e));
+            await dormir(1000);
+            await glisser(b.x, b.y - 60, 20, 150); await dormir(1000); e = await etat(k);
+            vrai(lbl + ' : un geste vertical ne change pas d\'appareil', e.i === e0.i, JSON.stringify(e));
+            await ev(`document.querySelectorAll('.carrousel')[${k}].style.setProperty('--c-duree','1.2s'); return 1;`);
           }
           /* hors de l'écran : il attend */
-          e0 = await etat(k);
           await ev(`scrollTo(0, document.documentElement.scrollHeight); return 1;`); await dormir(400);
           const loin = await etat(k); await dormir(2600);
           e = await etat(k);
           vrai(lbl + ' : hors de l\'écran, il attend', loin.arrete && e.i === loin.i, JSON.stringify({ loin, e }));
           await centre('.carrousel', k);
           e = await attendre(k, x => x.i !== loin.i, 3000);
-          vrai(lbl + ' : revenu à l\'écran, il reprend', e.i === (loin.i + 1) % e.n, JSON.stringify(e));
-          /* « animations réduites » : arrêté au départ, les points marchent */
+          vrai(lbl + ' : revenu à l\'écran, il reprend', e.i === (loin.i + 1) % 2, JSON.stringify(e));
+          /* « animations réduites » : rien ne bouge seul ; au doigt, l'appareil change SANS glisser */
           await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mode }, { name: 'prefers-reduced-motion', value: 'reduce' }] });
           await cdp('Page.reload', {}); await dormir(900);
           await ev(`document.querySelectorAll('.carrousel').forEach(c=>c.style.setProperty('--c-duree','1.2s')); return 1;`);
           await centre('.carrousel', k);
           e0 = await etat(k); await dormir(2800); e = await etat(k);
-          vrai(lbl + ' : « animations réduites » : arrêté au départ (« ' + e.bouton + ' »)', e0.pause && e.i === e0.i && e.bouton === 'Lancer le défilement', JSON.stringify(e));
-          b = await centre('.carrousel .c-point', 2 + e.n * k);
-          await toucher(P, b.x, b.y);
-          /* relevé à chaque image jusqu'à 700 ms APRÈS la bascule (l'écran attend que son image soit prête : relever trop tôt
-             verrait zéro glissade sur un écran qui n'a pas encore changé) */
-          const anime = await ev(`const c=document.querySelectorAll('.carrousel')[${k}]; const t0=performance.now(); let vu=0, n=0, bascule=0;
-            while(performance.now()-t0<3500&&!(bascule&&performance.now()-bascule>700)){ await new Promise(r=>requestAnimationFrame(r));
-              if(!bascule&&c.querySelectorAll('.c-point')[2].getAttribute('aria-current')==='true') bascule=performance.now();
-              if(!bascule) continue; n++;
-              if([...c.querySelectorAll('.c-vue.c-on,.c-vue.c-sort')].some(v=>v.getAnimations().some(a=>/^c-(entre|sort)/.test(a.animationName)&&a.playState==='running'))) vu++; }
-            return {vu, n, bascule:!!bascule};`);
-          e = await attendre(k, x => x.i === 2, 1500);
-          vrai(lbl + ' : « animations réduites » : les points marchent', e.i === 2 && coherent(e), JSON.stringify(e));
-          vrai(lbl + ' : ⛔ « animations réduites » : l\'écran change SANS glisser (' + anime.vu + ' images en glissade sur ' + anime.n + ')', anime.bascule && anime.n >= 5 && anime.vu === 0, JSON.stringify(anime));
+          vrai(lbl + ' : « animations réduites » : rien ne bouge seul, le Mac reste', e0.pause && e.i === e0.i && e.app === 'mac', JSON.stringify(e));
+          if (P.tac) {
+            const b = await centre('.carrousel .c-scene', k);
+            await glisser(b.x + 60, b.y, -150, 6);
+            /* relevé à chaque image jusqu'à 700 ms APRÈS la bascule (l'écran attend que son image soit prête) */
+            const anime = await ev(`const c=document.querySelectorAll('.carrousel')[${k}]; const t0=performance.now(); let vu=0, n=0, bascule=0;
+              while(performance.now()-t0<3500&&!(bascule&&performance.now()-bascule>700)){ await new Promise(r=>requestAnimationFrame(r));
+                if(!bascule&&c.querySelectorAll('.c-point')[1].getAttribute('aria-current')==='true') bascule=performance.now();
+                if(!bascule) continue; n++;
+                if([...c.querySelectorAll('.c-vue.c-on,.c-vue.c-sort')].some(v=>v.getAnimations().some(a=>/^c-(entre|sort)/.test(a.animationName)&&a.playState==='running'))) vu++; }
+              return {vu, n, bascule:!!bascule};`);
+            e = await etat(k);
+            vrai(lbl + ' : « animations réduites » : au doigt, l\'autre appareil vient', e.i === 1 && coherent(e), JSON.stringify(e));
+            vrai(lbl + ' : ⛔ « animations réduites » : il change SANS glisser (' + anime.vu + ' images en glissade sur ' + anime.n + ')', anime.bascule && anime.n >= 5 && anime.vu === 0, JSON.stringify(anime));
+          }
+          await cdp('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: mode }, { name: 'prefers-reduced-motion', value: 'no-preference' }] });
         }
         vrai(lbl + ' : aucune exception', EXC.length === 0, EXC.slice(0, 3).join(' | '));
       } catch (err) { vrai(lbl + ' : la sonde a planté', false, err.message); }

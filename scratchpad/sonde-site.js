@@ -87,7 +87,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       vrai(lbl + ' : fond ' + fond, mode === 'dark' ? fond === 'rgb(11, 20, 38)' : fond === 'rgb(255, 255, 255)');
       /* au doigt : ce qui se touche fait 44 px de haut au moins */
       if (P.tac) {
-        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a,.c-point,.c-lecture';
+        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a';
           return [...document.querySelectorAll(S)].filter(e=>{ const b=e.getBoundingClientRect(); return b.width>0&&b.height>0&&getComputedStyle(e).visibility!=='hidden'; })
             .map(e=>{ const b=e.getBoundingClientRect(), a=getComputedStyle(e,'::after'); const ext=a.content&&a.content!=='none'&&a.position==='absolute'?Math.max(0,-parseFloat(a.top||0))+Math.max(0,-parseFloat(a.bottom||0)):0;
               return {t:(e.textContent||e.getAttribute('aria-label')||'').trim().slice(0,30), h:Math.round(b.height+ext)}; }).filter(x=>x.h<44);`);
@@ -160,15 +160,15 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         vrai(lbl + ' : ⛔ la carte mise en avant suit le mode (' + (mode === 'dark' ? 'sombre la nuit' : 'claire le jour') + ')', inv && (mode === 'dark' ? inv.lum < .06 : inv.lum > .6), JSON.stringify(inv));
         if (inv) vrai(lbl + ' : et se détache de la page (teinte + halo)', inv.fond !== inv.page && /radial-gradient/.test(inv.halo), JSON.stringify(inv));
       }
-      /* depuis le 9 octobre 2026 (Justin : « que l'iPhone et le Mac soient sur les mêmes », puis « une fois le téléphone, une fois le Mac,
-         et que ça défile »), chaque case fait défiler l'iPhone, puis le Mac du même écran : un seul appareil à la fois, jamais l'un sur
-         l'autre (scratchpad/sonde-carrousel.js joue la bascule elle-même) */
+      /* depuis le 9 octobre 2026 (Justin : « une fois qu'on voit le Mac, ça change de page, on voit le téléphone, et c'est tout »),
+         chaque case montre le Mac, puis le téléphone du même écran : un seul appareil à la fois, jamais l'un sur l'autre
+         (scratchpad/sonde-carrousel.js joue la bascule elle-même) */
       if (pg === 'elan') {
         const paires = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const vs=[...v.querySelectorAll('.c-vue')];
           const app=x=>x.querySelector('.ap-iphone')&&!x.querySelector('.ap-mac')?'iphone':x.querySelector('.ap-mac')&&!x.querySelector('.ap-iphone')?'mac':'?';
           const vus=vs.filter(x=>{ const st=getComputedStyle(x); return st.display!=='none'&&+st.opacity>.01; });
           return {ordre:vs.map(app).join('+'), vus:vus.length}; });`);
-        vrai(lbl + ' : les dix cases font défiler l\'iPhone, puis le Mac', paires.length === 10 && paires.every(x => x.ordre === 'iphone+mac'), JSON.stringify(paires));
+        vrai(lbl + ' : les dix cases montrent le Mac, puis le téléphone', paires.length === 10 && paires.every(x => x.ordre === 'mac+iphone'), JSON.stringify(paires));
         vrai(lbl + ' : ⛔ un seul appareil se voit dans chaque case', paires.every(x => x.vus === 1), JSON.stringify(paires.filter(x => x.vus !== 1)));
       }
       if (!P.tac && pg === 'index') {

@@ -19,30 +19,30 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# ⏳ 9 OCTOBRE 2026 (MIDI) — UN APPAREIL À LA FOIS : L'iPHONE, PUIS LE MAC, QUI DÉFILENT — SUR L'APERÇU ; LA RACINE ATTEND SA PHRASE
+# ⏳ 9 OCTOBRE 2026 (APRÈS-MIDI) — LE MAC, PUIS LE TÉLÉPHONE, ET C'EST TOUT — SUR L'APERÇU (#114) ; LA RACINE ATTEND SA PHRASE
 
-Justin, capture de « Le stock, à jour. » (le Mac et l'iPhone posés l'un sur l'autre, l'entrée du dessous) : « non, je ne veux pas ça, je veux une
-fois le téléphone, une fois le Mac, et que ça défile ». Remplace la composition de #113 PARTOUT dans l'aperçu (cartes, scènes, cases).
-· **chaque carrousel** (`carAlterne` de `scripts/site-marine.js`) : l'iPhone (écran X), puis le Mac (le même écran X), puis l'écran suivant —
-  chacun ENTIER et SEUL, posé sur le bas d'une scène de taille fixe (elle ne saute pas entre l'iPhone, haut, et le Mac, large) ; la légende
-  dit l'appareil (« …, sur iPhone » / « …, sur Mac ») ; l'appareil glisse d'une largeur de scène, coupé au bord (`overflow-x: clip`) : celui
-  qui part et celui qui arrive ne se chevauchent jamais, la page ne déborde pas. Huit écrans au plus (les grandes scènes : quatre paires).
-· **chaque case** de « Ce que fait OP GESTION » : l'iPhone puis le Mac de sa fonction, qui défilent en vague (`--i`) ; l'horloge est faite des
-  mêmes pastilles, invisibles (`c-horloge`) ; un seul ⏸ pour les cases (`data-c-groupe` : une case est un bouton, elle ne peut pas porter le sien).
-· « animations réduites » : l'écran change sans glisser — `site.css` éteint toute animation de la page (`* { animation: none !important }`),
-  la règle de `carrousel.css` le redit pour la feuille seule. ⚠️ Écrit d'abord ici comme « un défaut d'avant corrigé » : FAUX — la mutation
-  M24 (retirer la règle locale) ne changeait rien, la règle de la page la couvrait. La mutation retire désormais les DEUX.
-· **preuves** : `test-835` 1 323 ✓ (cases et 34 carrousels de l'aperçu : iPhone puis Mac, même écran, légende, huit points au plus, pages hors 3D
-  neutres) ; `sonde-carrousel.js` 2 664 ✓ 0 ✗ (4 profils × jour / nuit × 14 pages : un seul appareil au repos, chaque écran entier, aucun
-  chevauchement ni débordement pendant la glissade, les cases qui passent d'elles-mêmes au Mac, le ⏸ des cases, gestes) ; mutations : voir
-  `scratchpad/mutations-carrousel.py` (le résultat s'écrit ici à la fusion).
-· ⚠️ **piège de mesure** : la PREMIÈRE glissade vers un écran le peint pour la première fois, et ce Chromium sans carte graphique met ~0,5 s à
-  peindre la grande image du Mac — aucune image ne sort pendant ce temps, la sonde ne voyait pas la glissade. Elle relève donc le retour et
-  l'aller entre deux écrans déjà peints.
+Troisième essai du jour, et la règle de Justin, capture des commandes à l'appui (légende, ⏸, pastilles) : « je ne veux pas ça, et ça commence
+à me saouler parce que tu ne comprends pas : je veux, une fois qu'on voit le Mac, ça change de page, on voit le téléphone, et c'est tout, et ça
+ne fait que ça ». Les deux essais refusés avant : les deux appareils posés l'un sur l'autre (#113), puis une suite de huit écrans — iPhone, Mac,
+écran suivant… — avec légende, pastilles et ⏸ (jamais fusionnée).
+· **chaque carrousel ET chaque case** (`carPaire`, `vue` de `scripts/site-marine.js`) : UNE paire — le Mac (affiché d'abord, et sans le script),
+  puis le téléphone du même écran de l'application —, chacun ENTIER et seul, posé sur le bas d'une scène de taille fixe, qui se remplacent en
+  glissant d'une largeur de scène (coupés au bord : ils ne se chevauchent jamais). **Ni légende, ni pastille, ni bouton.** Chaque place a sa
+  paire : accueil (tableau de bord ; cartes : interventions, stock), OP GESTION (planning), Applications (tableau de bord), chaque page par
+  fonction (sa paire en scène, et une par carte), pages hors 3D (factures et encaissements neutres, pas de scène).
+· l'horloge est faite de pastilles INVISIBLES (`c-horloge`) : leur animation donne le temps d'un écran (4,6 s), sa fin fait passer à l'autre ;
+  il attend sous la souris, hors de l'écran, onglet caché ; au doigt, on glisse ; « animations réduites » : le Mac reste, rien ne bouge seul.
+· ⚠️ **sans bouton ⏸, la règle WCAG 2.2.2** (ce qui bouge plus de 5 s doit pouvoir s'arrêter) **n'est plus tenue par un bouton** — décision de
+  Justin, à rappeler avant de publier à la racine : ce qui reste, c'est l'arrêt sous la souris, hors de l'écran, et « animations réduites ».
+· « animations réduites » : `site.css` éteint déjà toute animation de la page (`* { animation: none !important }`) ; la règle de
+  `carrousel.css` le redit pour la feuille seule. (Écrit un moment ici comme « un défaut d'avant corrigé » : FAUX — la mutation M24 l'a montré.)
+· **preuves** : `test-835` 839 ✓ (cases et 34 carrousels : une paire, Mac puis téléphone, même écran, horloge invisible, ni légende ni bouton,
+  cartes d'une page sur des écrans différents, pages hors 3D neutres) ; `sonde-carrousel.js` (pages, profils et gestes : voir la PR) ;
+  `mutations-carrousel.py` (28 défauts remis, le résultat dans la PR).
 · **à faire sur son oui** : « publie les carrousels » → retirer la condition `POUR_LA_RACINE` des carrousels et des cases, lier `carrousel.css` /
   `carrousel.js` à la racine, régénérer avec `--racine` (`test-835` § 10, § 5 bis et § 5 ter changent avec elle).
 
-# ✅ 9 OCTOBRE 2026 (MATIN) — LE MAC ET L'iPHONE ENSEMBLE, SUR LE MÊME ÉCRAN, PARTOUT — EN LIGNE SUR L'APERÇU (#113) — REMPLACÉ LE MIDI (au-dessus)
+# ✅ 9 OCTOBRE 2026 (MATIN) — LE MAC ET L'iPHONE ENSEMBLE, SUR LE MÊME ÉCRAN, PARTOUT — EN LIGNE SUR L'APERÇU (#113) — REMPLACÉ L'APRÈS-MIDI (au-dessus)
 
 Justin, capture de la case « Encaissements et compta » (un iPhone seul) : « tu n'as pas compris, je voudrais que l'iPhone et le Mac
 soient sur les mêmes, pas un coup l'iPhone et un coup le Mac — montre-moi avant ». Montré d'abord en images ; puis, à sa question
@@ -63,8 +63,8 @@ soient sur les mêmes, pas un coup l'iPhone et un coup le Mac — montre-moi ava
 · **servi** (#113 fusionnée, relu sur teamop.fr vers 9 h 40 UTC) : les 19 pages de l'aperçu ET les 19 de la racine sont, octet pour
   octet, celles du dépôt ; aucune page de la racine ne porte de carrousel ; `carrousel.css` / `.js` servis = dépôt ; les 72 captures que
   l'aperçu cite sont toutes au dépôt (un échantillon d'une sur cinq rend 200).
-· remplacé le midi même : Justin ne voulait pas les deux appareils posés l'un sur l'autre, mais l'un PUIS l'autre (l'entrée du dessus, qui
-  porte aussi ce qui reste à faire sur son oui).
+· remplacé le jour même : Justin ne voulait pas les deux appareils posés l'un sur l'autre, mais le Mac PUIS le téléphone, et rien d'autre
+  (l'entrée du dessus, qui porte aussi ce qui reste à faire sur son oui).
 
 # ✅ 9 OCTOBRE 2026 — LE SITE (APERÇU) : LES CAPTURES DÉFILENT, L'iPHONE EN ENTIER ET LE MAC AVEC LUI — EN LIGNE SUR L'APERÇU (#112)
 
