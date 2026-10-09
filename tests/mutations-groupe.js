@@ -21,7 +21,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 900000;
 const F = { page: 'apercu/opmessages/index.html' };
-const BANCS = ['905', '986', '987', '988', '989', '990', 'sonde'];
+const BANCS = ['905', '909', '986', '987', '988', '989', '990', 'sonde'];
 const SONDE_FICHIER = 'sonde-opmessages-groupe.js';
 const MUTATIONS = [];
 /* [id, nom, [[fichier, ancien, nouveau], …], suites, option] — `ancien` : une chaîne (une seule occurrence). */
@@ -51,6 +51,9 @@ const CATALOGUE = [
   ["S21", "⛔ la vue d'une salle ne porte plus sa version (`rev` toujours 0 : la page reprend la règle d'avant, et une vue d'avant remplace la plus récente)", [["server-msg/stockage.js", "rev: termine ? 0 : appelRev(uid, a.id),", "rev: 0,"]], ["986", "990"]],
   ["S22", "⛔ la version d'une vue est le compteur GLOBAL du journal (ce que la personne n'a pas le droit de connaître : combien d'événements le service a écrits)", [["server-msg/stockage.js", "rev: termine ? 0 : appelRev(uid, a.id),", "rev: termine ? 0 : journalMax(),"]], ["986"]],
   ["S23", "la version d'une vue est le dernier événement de la salle adressé à N'IMPORTE QUI (un identifiant qu'elle ne reçoit pas)", [["server-msg/stockage.js", "SELECT gid FROM journal WHERE uid = ? AND genre = 'appel' AND ref = ? ORDER BY gid DESC LIMIT 1`).get(uid, id);", "SELECT gid FROM journal WHERE (uid = ? OR 1) AND genre = 'appel' AND ref = ? ORDER BY gid DESC LIMIT 1`).get(uid, id);"]], ["986"]],
+  ["AR1", "⛔ une conversation archivée ne revient plus quand on y écrit (un message de travail dormirait aux Archivées)", [["server-msg/stockage.js", "    if (type !== 'systeme') Q('UPDATE membre SET archive = 0 WHERE conv = ? AND archive = 1 AND quitte_le IS NULL AND (uid = ? OR muet_jusqua <= ?)').run(conv, auteur, ts);\n", ""]], ["909"]],
+  ["AR2", "une conversation archivée ET en sourdine revient quand même (la sourdine ne compte plus)", [["server-msg/stockage.js", "AND (uid = ? OR muet_jusqua <= ?)').run(conv, auteur, ts);", "AND (uid = ? OR ? > 0)').run(conv, auteur, ts);"]], ["909"]],
+  ["AR3", "un message SYSTÈME (un nom qui change) ressort une conversation archivée", [["server-msg/stockage.js", "    if (type !== 'systeme') Q('UPDATE membre SET archive = 0", "    if (true) Q('UPDATE membre SET archive = 0"]], ["909"]],
   /* ── T. LE SIGNAL ET L'ÉPHÉMÈRE D'UNE SALLE ── */
   ["T01", "le signal d'une salle est relayé à la session de CELUI QUI L'ENVOIE", [["server-msg/appels.js", "      hub.emettreSession(t.session, 'signal', { appel: a.id, de: moi.id, type, donnees: donnees === undefined ? null : donnees });\n      return { relaye: true };\n    }\n    if (a.etat !== 'en_cours')", "      hub.emettreSession(a.session, 'signal', { appel: a.id, de: moi.id, type, donnees: donnees === undefined ? null : donnees });\n      return { relaye: true };\n    }\n    if (a.etat !== 'en_cours')"]], ["987", "988", "990"]],
   ["T02", "un exclu, un parti ou un participant à la porte peut ENVOYER un signal (le relais ne se limite plus aux présents)", [["server-msg/appels.js", "if (a.statut !== 'present' || typeof cible !== 'string' || cible === moi.id) throw erreur('appel_pas_en_cours');", "if (typeof cible !== 'string' || cible === moi.id) throw erreur('appel_pas_en_cours');"]], ["987", "988"]],

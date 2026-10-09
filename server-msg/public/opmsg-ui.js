@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '18d230d8e02f';
+  const OPMSG_BUILD = '38d160f5ba56';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 145;
+  const OPMSG_VERSION = 149;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -94,6 +94,7 @@
     conv: null, convDonnees: null, jeton: 0,
     recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, posVues: {}, forcerBas: false, envoiEnCours: false,
     groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false,
+    selection: null, listeArchives: false, rangement: false,  // « Modifier » de la liste : les conversations cochées (un Set), ou null hors du mode ; la liste des Archivées ouverte
     appels: [], filtreAppels: 'tous', jetonAppels: 0,        // l'historique tel que la source l'a rendu pour le filtre choisi
     contexte: null, menu: null, codeLien: null,     // une réponse ou une modification en cours de composition ; le menu d'un message ouvert ; le lien lu dans l'adresse
     appelId: null, appelUI: null, jetonAppel: 0, appelDemarre: false, declencheurAppel: null     // l'appel en cours : son identifiant (celui de la route), l'état local (médias, minuterie), un jeton qui périme les attentes
@@ -151,11 +152,15 @@
 
   /* ═══ 4. LA LISTE MESSAGES ════════════════════════════════════════════════════════════════════════════════════════════════ */
   function ligneConv(c, neuve) {
-    const sel = etat.conv === c.id;
-    return '<li' + (neuve ? ' class="conv-neuve"' : '') + '><button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
-      '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>' + avatar(c) +
+    const sel = etat.conv === c.id, pris = !!(etat.selection && etat.selection.has(c.id));
+    /* en mode « Modifier » : la ligne se COCHE au lieu de s'ouvrir (`aria-pressed` le dit à l'oreille) ; le point « non lu » reste dit, après la coche */
+    return '<li' + (neuve ? ' class="conv-neuve"' : '') + '>' + (etat.selection
+      ? '<button type="button" class="conv presse conv-choix" data-choisir="' + esc(c.id) + '" aria-pressed="' + pris + '"><span class="conv-coche' + (pris ? ' prise' : '') + '" aria-hidden="true">' + (pris ? icone('i-coche') : '') + '</span>' +
+        (c.nonLu ? '<span class="sr-seul">Non lu, </span>' : '')
+      : '<button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
+        '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
       '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
-      '<span class="conv-apercu" dir="auto">' + esc(c.apercu) + '</span></span></button></li>';
+      '<span class="conv-apercu" dir="auto">' + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
   }
   /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
      la liste les rassemble (comme « Archivées » chez WhatsApp, « Invitations » chez Instagram) ; on y entre, on ouvre, on accepte ou on refuse. */
@@ -167,28 +172,85 @@
       '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">Invitations<span class="invit-n">' + invits.length + '</span></span>' + CHEVRON + '</span>' +
       '<span class="conv-apercu" dir="auto">' + esc(ap) + '</span></span></button></li>';
   }
+  /* ⛔ LES ARCHIVÉES (9 octobre 2026) : le geste « Modifier » range une conversation hors de la liste ; une ligne « Archivées » en BAS de la liste les rassemble (le compte, et un point
+     si l'une attend). Une conversation archivée REVIENT quand on y écrit, sauf si elle est en sourdine — c'est le service qui le décide (`envoyerDansTx`), la page ne fait que la relire. */
+  function ligneArchives(arch) {
+    const nl = arch.filter(c => c.nonLu).length;
+    return '<li class="liste-archives"><button type="button" class="conv presse conv-invit" data-archives aria-label="Archivées, ' + arch.length + (nl ? ', dont ' + nl + ' non lue' + (nl > 1 ? 's' : '') : '') + '">' +
+      '<span class="conv-point">' + (nl ? '<i class="point"></i>' : '') + '</span><span class="avatar av-invit" aria-hidden="true">' + icone('i-archive') + '</span>' +
+      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">Archivées<span class="invit-n">' + arch.length + '</span></span>' + CHEVRON + '</span></span></button></li>';
+  }
+  /* la barre du mode « Modifier » : combien sont cochées, et les trois gestes — Épingler (Désépingler quand toutes le sont), Archiver (Désarchiver dans les Archivées), Lu */
+  const RANGE_DIT = { epingler: ['Conversation épinglée', 'conversations épinglées'], desepingler: ['Épingle retirée', 'épingles retirées'], archiver: ['Conversation archivée', 'conversations archivées'],
+    desarchiver: ['Conversation désarchivée', 'conversations désarchivées'], lu: ['Conversation marquée comme lue', 'conversations marquées comme lues'] };
+  /* (relecture adverse, 9 octobre 2026) : le geste se décide sur les COCHÉES, pas sur la sous-liste ouverte — une recherche mêle archivées et non archivées ; une invitation reçue
+     ne s'épingle ni ne s'archive (elle n'est pas encore une conversation : acceptée, elle aurait surgi aux Archivées) ; pendant qu'un geste part, rien ne se rallume.
+     Le compte se dit dans une région `role="status"` qui EXISTE déjà (on n'en change que le texte : une région créée avec son texte n'est pas annoncée). */
+  function peindreSelection() {
+    const S = etat.selection, barre = $('liste-actions'), b = $('btn-modifier'), actif = !!S;
+    b.textContent = actif ? 'OK' : 'Modifier';
+    if (actif) document.documentElement.dataset.selection = '1'; else delete document.documentElement.dataset.selection;
+    barre.hidden = !actif;
+    if (!actif) { $('liste-actions-n').textContent = ''; $('liste-actions-boutons').innerHTML = ''; return; }
+    const choisies = etat.conversations.filter(c => S.has(c.id)), n = choisies.length, vol = !!etat.rangement;
+    const invit = choisies.some(c => c.invitation === 'recue'), toutesArch = n > 0 && choisies.every(c => c.archive), uneArch = choisies.some(c => c.archive);
+    const toutes = n > 0 && choisies.every(c => c.epingle), arch = etat.listeArchives || toutesArch;
+    const dis = ok => ok && !vol ? '' : ' disabled';
+    const t = n ? n + (n > 1 ? ' sélectionnées' : ' sélectionnée') : 'Touche des conversations';
+    if ($('liste-actions-n').textContent !== t) $('liste-actions-n').textContent = t;
+    $('liste-actions-boutons').innerHTML =
+      (etat.listeArchives ? '' : '<button type="button" class="presse" data-ranger="' + (toutes ? 'desepingler' : 'epingler') + '"' + dis(n && !invit && !uneArch) + '>' + icone('i-epingle') + '<span>' + (toutes ? 'Désépingler' : 'Épingler') + '</span></button>') +
+      '<button type="button" class="presse" data-ranger="' + (arch ? 'desarchiver' : 'archiver') + '"' + dis(n && !invit) + '>' + icone('i-archive') + '<span>' + (arch ? 'Désarchiver' : 'Archiver') + '</span></button>' +
+      '<button type="button" class="presse" data-ranger="lu"' + dis(n && choisies.some(c => c.nonLu)) + '>' + icone('i-coche') + '<span>Lu</span></button>';
+  }
+  function quitterSelection() { if (!etat.selection) return; etat.selection = null; rendreListe(); }
+  async function rangerSelection(geste) {
+    const S = etat.selection, ids = Array.from(S || []);
+    if (!ids.length || etat.rangement || typeof source.rangerConvs !== 'function') return;
+    etat.rangement = true; peindreSelection();
+    let ok = false;
+    try {
+      const r = await source.rangerConvs(ids, geste), d = RANGE_DIT[geste];
+      mot(r.faits < r.total ? r.faits + ' sur ' + r.total + ' : les autres n\'ont pas pu l\'être.' : r.faits > 1 ? r.faits + ' ' + d[1] : d[0]);
+      if (etat.selection === S) etat.selection = null;      // on n'efface pas une sélection neuve, commencée pendant le geste
+      ok = true;
+    } catch (er) { avis(phrase(er, 'Ces conversations n\'ont pas pu être rangées.')); }
+    finally { etat.rangement = false; }
+    rendreListe();
+    /* le focus ne tombe pas sur la page : sur « Modifier » quand la barre s'en va, sur le premier geste quand elle reste (un refus) */
+    const f = ok && !etat.selection ? $('btn-modifier') : $('liste-actions').querySelector('button:not([disabled])') || $('btn-modifier');
+    f.focus({ preventScroll: true });
+  }
   function rendreListe() {
     const q = norme(etat.recherche);
     const invits = etat.conversations.filter(c => c.invitation === 'recue' && dansMode(c));
     if (!invits.length) etat.listeInvit = false;
-    const base = etat.listeInvit ? invits : etat.conversations.filter(c => c.invitation !== 'recue' && (q || dansMode(c)));     // ⛔ une RECHERCHE cherche des deux côtés : on ne perd pas une conversation parce qu'on est du mauvais
+    const archivees = etat.conversations.filter(c => c.archive && c.invitation !== 'recue' && dansMode(c));
+    if (!archivees.length) etat.listeArchives = false;
+    /* ⛔ une RECHERCHE cherche partout : des deux côtés, et dans les Archivées */
+    const base = etat.listeInvit ? invits : etat.listeArchives ? archivees : etat.conversations.filter(c => c.invitation !== 'recue' && (q || (dansMode(c) && !c.archive)));     // ⛔ une RECHERCHE cherche des deux côtés : on ne perd pas une conversation parce qu'on est du mauvais
     const vues = base.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
-    const tete = etat.listeInvit ? '<li class="liste-invit-tete"><button type="button" class="presse" data-invit-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Invitations</h2></li>' +
+    /* une conversation PARTIE (quittée, passée de l'autre côté) ne reste pas cochée — une conversation que la recherche cache, si : effacer la recherche la rend cochée */
+    if (etat.selection) for (const id of Array.from(etat.selection)) if (!etat.conversations.some(c => c.id === id && dansMode(c))) etat.selection.delete(id);
+    const tete = etat.listeArchives ? '<li class="liste-invit-tete"><button type="button" class="presse" data-archives-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Archivées</h2></li>' +
+      '<li class="liste-invit-note">Une conversation archivée revient dans la liste quand on y écrit, sauf si elle est en sourdine.</li>'
+      : etat.listeInvit ? '<li class="liste-invit-tete"><button type="button" class="presse" data-invit-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Invitations</h2></li>' +
       '<li class="liste-invit-note">Des personnes qui ne sont pas dans tes contacts t\'ont écrit. Tant que tu n\'as pas accepté, elles ne savent pas que tu as lu leur message.</li>'
       : invits.length && !q ? ligneInvitations(invits) : '';
     /* ⛔ une conversation neuve s'anime UNE fois : le drapeau est consommé par ce rendu, pas gardé — sinon chaque frappe dans la
        recherche (qui refait toute la liste) rejouerait l'entrée de chaque groupe créé depuis le début */
     const neuves = new Set(etat.neuves); etat.neuves.clear();
-    $('liste-conv').innerHTML = tete + (vues.length || tete ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') :
+    const pied = !etat.listeInvit && !etat.listeArchives && !q && !etat.selection && archivees.length ? ligneArchives(archivees) : '';
+    $('liste-conv').innerHTML = tete + (vues.length || tete || pied ? vues.map(c => ligneConv(c, neuves.has(c.id))).join('') + pied :
       (!q && !etat.conversations.length && CAP.service ? '<li class="vide">Aucune conversation pour l\'instant. Ajoute un contact (' + (CAP.identifiants ? 'Contacts' : 'Réglages') + '), puis écris-lui ou crée un groupe.</li>'
         : !q && modesActifs() ? '<li class="vide">' + (etat.mode === 'pro' ? 'Aucune conversation Pro pour l\'instant : les canaux de ton entreprise, tes réunions et tes échanges avec tes collègues viennent ici.' : 'Aucune conversation Perso pour l\'instant.') + '</li>'
         : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
-    const pins = etat.listeInvit ? [] : etat.conversations.filter(c => c.epingle && c.invitation !== 'recue' && dansMode(c));
+    const pins = etat.listeInvit || etat.listeArchives || etat.selection ? [] : etat.conversations.filter(c => c.epingle && !c.archive && c.invitation !== 'recue' && dansMode(c));
     $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
       avatar(c) + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>').join('');
     $('epingles').hidden = !pins.length;
-    majBadge(); peindreMode();
+    peindreSelection(); majBadge(); peindreMode();
   }
   /* ══ PERSO / PRO (la feuille de style dit le pourquoi) ══
      Le côté d'une conversation vient du service (`cote` : le côté rangé à la main, sinon l'automatique — un canal, une réunion, un collègue, un groupe de collègues : Pro). Le côté où
@@ -227,7 +289,7 @@
   }
   async function changerMode(m, depuisOuverture, muet) {
     if (!modesActifs() || (m !== 'perso' && m !== 'pro') || m === etat.mode) return;
-    etat.mode = m; etat.vcCat = null;                            // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro)
+    etat.mode = m; etat.vcCat = null; etat.selection = null; etat.listeArchives = false;      // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro) ; on ne range pas d'un côté à l'autre
     const c0 = etat.conv ? etat.conversations.find(x => x.id === etat.conv) : null;
     rendreListe();
     if (etat.route && etat.route.vue === 'accueil' && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
@@ -399,6 +461,7 @@
     if (!prec || prec.vue !== r.vue) {
       /* ⛔ la position se LIT avant de masquer la vue : une fois masquée, le document raccourcit et la fenêtre est ramenée à la hauteur de la vue d'arrivée (mesuré : 500 px lus 106) */
       if (prec) etat.posVues[prec.vue] = prec.vue === 'messages' && etat.conv ? etat.scrollListe : window.scrollY;
+      if (r.vue !== 'messages' && etat.selection) quitterSelection();
       ORDRE.forEach(k => { $('vue-' + k).hidden = k !== r.vue; });
       marquerNav(r.vue);
       /* le retour du Profil (téléphone) ramène à la vue d'où l'on venait — « ‹ Messages », « ‹ Agenda »… */
@@ -457,7 +520,16 @@
       if (memeRoute(etat.route, r)) window.scrollTo(0, 0); else if (etat.appelId && !etat.appelReduit) remplacer(r); else pousser(r);
       return;
     }
-    if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
+    const ch = e.target.closest('[data-choisir]');
+    if (ch && etat.selection && !etat.rangement) {
+      const id = ch.dataset.choisir; if (etat.selection.has(id)) etat.selection.delete(id); else etat.selection.add(id);
+      rendreListe(); const r = document.querySelector('[data-choisir="' + CSS.escape(id) + '"]'); if (r) r.focus({ preventScroll: true }); return;
+    }
+    const rg = e.target.closest('[data-ranger]');
+    if (rg) { rangerSelection(rg.dataset.ranger); return; }
+    if (e.target.closest('[data-archives]')) { etat.listeArchives = true; etat.listeInvit = false; etat.selection = null; rendreListe(); const r = document.querySelector('[data-archives-retour]'); if (r) r.focus({ preventScroll: true }); return; }
+    if (e.target.closest('[data-archives-retour]')) { etat.listeArchives = false; etat.selection = null; rendreListe(); const r = document.querySelector('[data-archives]'); if (r) r.focus({ preventScroll: true }); return; }
+    if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; etat.selection = null; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
     if (e.target.closest('[data-invit-retour]')) { etat.listeInvit = false; rendreListe(); const r = document.querySelector('[data-invitations]'); if (r) r.focus({ preventScroll: true }); return; }
     const o = e.target.closest('[data-ouvrir]');
     if (o) ouvrirDepuisListe(o.dataset.ouvrir, o);
@@ -523,6 +595,44 @@
     }
     return h + esc(s.slice(i));
   }
+  /* ── LES LIENS D'UN MESSAGE (9 octobre 2026) : une adresse web (avec son schéma http ou https, ou commençant par « www. ») tapée dans un texte devient un lien qu'on touche.
+     ⛔ Rien d'autre ne devient un lien : ni « javascript: », ni « data: », ni « mailto: » — seuls http et https, et le texte du lien est échappé comme le reste.
+     ⛔ AUCUN APERÇU : la page ne va jamais chercher la page visée (ni titre, ni image) — ce serait dire à un site tiers qui lit quoi, et quand. Le lien s'ouvre
+     dans le navigateur (`target="_blank"`), sans référent (`noreferrer`, et la page entière est en `Referrer-Policy: no-referrer`), sans accès à cette page (`noopener`).
+     La ponctuation qui FINIT une phrase (« … voir x.fr. », écrit avec son schéma) n'appartient pas au lien ; une parenthèse fermante n'en fait partie que si le lien en a ouvert une
+     (les adresses de Wikipédia). Un « @Prénom » DANS une adresse n'est pas une mention. */
+  const LIEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'«»]+/giu;
+  const LIEN_SUR = /^https?:\/\/[\p{L}\p{N}][\p{L}\p{N}.-]*(?::\d{1,5})?(?:[/?#]|$)/iu;
+  /* ⛔ EN UN SEUL PASSAGE (relecture adverse, 9 octobre 2026) : la première version recomptait les parenthèses du jeton à chaque caractère retiré — une adresse courte (« a.fr/ » avec son schéma)
+     suivi de 7 980 « ) » (un message permis) gelait l'écran de CHAQUE lecteur ~0,5 s à chaque rendu du fil. Les ouvrantes et fermantes se comptent une fois, puis se
+     décomptent. Et une adresse de plus de 2 000 signes n'en est pas une : elle reste du texte. */
+  const LIEN_PAIRES = { ')': '(', ']': '[', '}': '{' };
+  function lienNettoye(u) {
+    if (u.length > 2000) return '';
+    const n = { '(': 0, ')': 0, '[': 0, ']': 0, '{': 0, '}': 0 };
+    for (const ch of u) if (n[ch] !== undefined) n[ch]++;
+    let fin = u.length;
+    while (fin > 0) {
+      const ch = u[fin - 1];
+      if ('.,;:!?\'"’”»…*_~'.includes(ch)) { fin--; continue; }
+      const o = LIEN_PAIRES[ch];
+      if (o && n[o] < n[ch]) { n[ch]--; fin--; continue; }
+      break;
+    }
+    return u.slice(0, fin);
+  }
+  function texteRiche(t, c) {
+    const s = String(t);
+    if (!/https?:\/\/|www\./i.test(s)) return texteMentions(s, c);
+    let h = '', i = 0;
+    for (const x of s.matchAll(LIEN_RE)) {
+      const u = lienNettoye(x[0]), href = /^www\./i.test(u) ? 'https://' + u : u;
+      if (!u || !LIEN_SUR.test(href)) continue;
+      h += texteMentions(s.slice(i, x.index), c) + '<a class="lien-msg" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(u) + '</a>';
+      i = x.index + u.length;
+    }
+    return h + texteMentions(s.slice(i), c);
+  }
   const MENTIONS_FIN = true;
   /* un message rend { h, st } : h = son balisage SANS le statut, st = « Lu 14:06 » / « Envoyé » / null. Le statut change seul (la lecture arrive après l'envoi) :
      il se met à jour EN PLACE, sans refaire la bulle ni recréer sa photo (peindreMessages) */
@@ -541,7 +651,7 @@
         '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '"' + (une ? styleUne(p) : '') + ' aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
         photoAttente(p, i, m.photos.length, une)).join('') + '</span>';
       /* la LÉGENDE, dessous, dans une bulle de l'envoyeur */
-      if (m.texte) h += '<span class="bulle legende ' + sens + '" dir="auto">' + esc(m.texte) + '</span></span>';
+      if (m.texte) h += '<span class="bulle legende ' + sens + '" dir="auto">' + texteRiche(m.texte, c) + '</span></span>';
     } else if (m.vocal) {
       h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
         '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
@@ -563,7 +673,7 @@
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
-      h += '<span class="bulle ' + sens + '" dir="auto">' + texteMentions(m.texte, c) + '</span>';
+      h += '<span class="bulle ' + sens + '" dir="auto">' + texteRiche(m.texte, c) + '</span>';
     }
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
     if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang' + (etat.menu && etat.menu.mid === m.id ? ' menu-ancre' : '') + '">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
@@ -2103,6 +2213,7 @@
     else if (etat.appelId && !etat.appelReduit) { e.preventDefault(); fermerCouche(); }      // Échap RÉDUIT l'appel (il continue) ; réduit, c'est la couche d'en dessous qui se ferme
     else if (enr.etat === 'enregistre' || enr.etat === 'demande') { e.preventDefault(); annulerEnregistrement(); }
     else if (etat.contexte) { e.preventDefault(); annulerContexte(); }
+    else if (etat.selection) { e.preventDefault(); quitterSelection(); $('btn-modifier').focus({ preventScroll: true }); }      // « Modifier » d'abord, la conversation ouverte à côté ensuite
     else if (etat.conv) { e.preventDefault(); fermerCouche(); }
   });
   /* la feuille est modale : Tab tourne DANS la feuille (le fond est inerte, le focus ne passerait sinon que par l'interface du navigateur) */
@@ -2143,7 +2254,12 @@
     g().photo = URL.createObjectURL(r.blob); g().photoBlob = r.blob; synchroFeuille();
   });
   $('recherche-conv').addEventListener('input', e => { etat.recherche = e.target.value; rendreListe(); });
-  $('btn-modifier').addEventListener('click', () => mot('« Modifier » arrive bientôt'));
+  /* « Modifier » (9 octobre 2026) : le mode qui coche des conversations pour les ranger — « OK » en sort. L'aperçu, sans source qui range, garde son mot. */
+  $('btn-modifier').addEventListener('click', () => {
+    if (typeof source.rangerConvs !== 'function') { mot('« Modifier » arrive bientôt'); return; }
+    etat.selection = etat.selection ? null : new Set();
+    rendreListe();
+  });
 
   /* ── glisser la feuille vers le bas (téléphone) : elle suit le doigt 1:1, et à la fin on PROJETTE où le geste allait
         (apple-design §6) au lieu de juger la seule position de relâchement. Le relâchement rend la main au CSS, qui repart

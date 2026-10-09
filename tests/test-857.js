@@ -108,7 +108,7 @@ async function controler(PAGE, SRC, DOC) {
   const nus = [...JS.matchAll(/\+\s*(m\.texte|c\.nom|c\.court|c\.apercu|c\.id|c\.initiales|m\.id|p\.url|m\.vocal\.url|G\.nom|c\.role|nomAuteur\([^)]*\)|prenom\([^)]*\))\s*\+/g)].map(m => m[1]);
   v('(population) ' + (JS.match(/esc\(/g) || []).length + ' appels à esc() dans la page — aucun texte d\'une bulle, d\'un nom ou d\'un aperçu n\'est concaténé SANS esc() (« sans esc »)', nus, []);
   /* (le texte d'une bulle passe par `texteMentions`, qui l'échappe MORCEAU PAR MORCEAU — exécutée plus bas, § « les mentions ») */
-  vrai('le texte d\'une bulle et l\'aperçu de la liste passent par esc()', /'<span class="bulle ' \+ sens \+ '" dir="auto">' \+ texteMentions\(m\.texte, c\) \+ '<\/span>'/.test(JS) && /if \(s\.indexOf\('@'\) < 0 \|\| !multi\(c\)\) return esc\(s\);/.test(JS) && /esc\(c\.apercu\)/.test(JS) && /esc\(c\.nom\)/.test(JS) && /esc\(m\.texte\)/.test(JS));
+  vrai('le texte d\'une bulle et l\'aperçu de la liste passent par esc() (la bulle par `texteRiche` → `texteMentions` → esc, ses liens compris — section des mentions)', /'<span class="bulle ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\) \+ '<\/span>'/.test(JS) && /return h \+ texteMentions\(s\.slice\(i\), c\);/.test(JS) && /if \(s\.indexOf\('@'\) < 0 \|\| !multi\(c\)\) return esc\(s\);/.test(JS) && /esc\(c\.apercu\)/.test(JS) && /esc\(c\.nom\)/.test(JS) && /esc\(m\.texte\)/.test(JS));
   vrai('⛔ ni innerHTML ni insertAdjacentHTML ne reçoit directement la valeur d\'un champ (le texte tapé n\'arrive jamais qu\'en value ou par esc)', !/innerHTML\s*=\s*[^;]*\.value\b/.test(JS) && !/insertAdjacentHTML\([^)]*\.value\b/.test(JS) && !/\$\('saisie'\)\.innerHTML/.test(JS));
   vrai('une adresse d\'image n\'entre dans le balisage que si elle commence par blob: (aucune adresse venue d\'ailleurs), et passe par esc()', /const blob = u => typeof u === 'string' && \/\^blob:https\?:/.test(JS) && /blob\(p\.url\)/.test(JS) && /blob\(c\.photo\)/.test(JS));
   {
@@ -212,7 +212,8 @@ async function controler(PAGE, SRC, DOC) {
   vrai('le retour système (popstate) rejoue la route de l\'entrée — il ne ferme rien lui-même', /window\.addEventListener\('popstate', e => appliquer\(/.test(JS));
   vrai('⛔ « UN GESTE, UNE NAVIGATION » : aucun écouteur de balayage à la page (touchmove, touchend, swipe) — le navigateur n\'a pas de second retour à jouer ; le seul touchstart est le vide qui réveille :active sur iOS', !/addEventListener\('touch(?:move|end|cancel)'|swipe|overscroll-behavior-x/.test(JS + CSS) && (JS.match(/addEventListener\('touchstart'/g) || []).length === 1 && /addEventListener\('touchstart', function \(\) \{\}, \{ passive: true \}\)/.test(JS));
   /* (7 octobre 2026) le menu déroulant et la demande « Envoyer à … ? » se ferment AVANT toute couche : la fenêtre du motif s'élargit, l'ORDRE des couches reste gardé */
-  vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, la conversation (dans cet ordre)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,800}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}etat\.conv/.test(JS));
+  vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, le mode « Modifier », la conversation (dans cet ordre — UNE couche par Échap)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,800}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}else if \(etat\.selection\) \{ e\.preventDefault\(\); quitterSelection\(\);[\s\S]{0,200}else if \(etat\.conv\)/.test(JS)
+    && (JS.match(/quitterSelection\(\); \$\('btn-modifier'\)\.focus/g) || []).length === 1);
   vrai('la liste recouverte devient inerte (inert) — sous la conversation ou sous un appel AFFICHÉ (réduit, il ne recouvre plus rien) — et la photo, la feuille ou l\'aperçu d\'envoi de photos rendent tout le fond inerte',
     /const couvre = !!etat\.appelId && !etat\.appelReduit;/.test(JS) && /\$\('contenu'\)\.inert = !!\(couvre \|\| \(etat\.conv && !largeBureau\.matches\)\)/.test(JS) && /\$\('app'\)\.inert = !!\(etat\.groupe\.ouvert \|\| etat\.photo \|\| etat\.menu \|\| ep\.ouvert\)/.test(JS));
   vrai('la liste revient à sa position : elle est notée à l\'ouverture et rendue à la fermeture', /etat\.scrollListe = window\.scrollY/.test(JS) && /window\.scrollTo\(0, etat\.scrollListe\)/.test(JS));
@@ -319,7 +320,16 @@ async function controler(PAGE, SRC, DOC) {
   /* 4 quater. PERSO / PRO ET « CONFIRMER L'ENVOI » (7 octobre 2026, « côté pro ») — la sonde tests/sonde-opmessages-perso-pro.js les joue au doigt contre le vrai service ;
      le banc garde les décisions : la liste du côté en cours (une recherche cherche partout), ouvrir de l'autre côté y bascule, le nom PRO, la seconde touche avant d'envoyer */
   vrai('Perso / Pro : la liste montre le côté en cours — mais une RECHERCHE cherche des deux côtés (on ne perd pas une conversation parce qu\'on est du mauvais)',
-    /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| dansMode\(c\)\)\)/.test(JS) && /const dansMode = c => !modesActifs\(\) \|\| coteDe\(c\) === etat\.mode;/.test(JS));
+    /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| \(dansMode\(c\) && !c\.archive\)\)\)/.test(JS) && /const dansMode = c => !modesActifs\(\) \|\| coteDe\(c\) === etat\.mode;/.test(JS));
+  /* ⛔ LES ARCHIVÉES ET « MODIFIER » (9 octobre 2026) : le comportement se joue au navigateur (sonde-opmessages-ranger) ; ici, la forme qui le porte */
+  vrai('Archivées : une conversation archivée sort de la liste (la recherche la retrouve), une ligne « Archivées » en bas les rassemble, et une épinglée archivée n\'est plus en tête',
+    /const archivees = etat\.conversations\.filter\(c => c\.archive && c\.invitation !== 'recue' && dansMode\(c\)\);/.test(JS) && /: etat\.listeArchives \? archivees :/.test(JS)
+      && /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| \(dansMode\(c\) && !c\.archive\)\)\)/.test(JS)
+      && /const pied = !etat\.listeInvit && !etat\.listeArchives && !q && !etat\.selection && archivees\.length \? ligneArchives\(archivees\) : '';/.test(JS)
+      && /etat\.conversations\.filter\(c => c\.epingle && !c\.archive && c\.invitation !== 'recue' && dansMode\(c\)\)/.test(JS));
+  vrai('« Modifier » : en mode sélection une ligne se COCHE (data-choisir, aria-pressed) au lieu de s\'ouvrir ; on en sort en changeant de vue ou de côté',
+    /'<button type="button" class="conv presse conv-choix" data-choisir="' \+ esc\(c\.id\) \+ '" aria-pressed="' \+ pris \+ '">/.test(JS)
+      && /if \(r\.vue !== 'messages' && etat\.selection\) quitterSelection\(\);/.test(JS) && /etat\.mode = m; etat\.vcCat = null; etat\.selection = null; etat\.listeArchives = false;/.test(JS));
   vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
     /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
   vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',
@@ -396,7 +406,7 @@ async function controler(PAGE, SRC, DOC) {
     try {
       const defs = ['const esc = ', 'const norme = ', 'const contactDe = ', 'const prenom = ', 'const multi = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
       const ctx = { console }; vm.createContext(ctx);
-      vm.runInContext('let MOI = null, CONTACTS = []; const source = {};\n' + defs + '\n' + JS.slice(iM, fM) + '\nthis.T = { mentionnables, mentionsDe, texteMentions, poser: (m, c) => { MOI = m; CONTACTS = c; } };', ctx, { timeout: 2000 });
+      vm.runInContext('let MOI = null, CONTACTS = []; const source = {};\n' + defs + '\n' + JS.slice(iM, fM) + '\nthis.T = { mentionnables, mentionsDe, texteMentions, texteRiche, poser: (m, c) => { MOI = m; CONTACTS = c; } };', ctx, { timeout: 2000 });
       T = ctx.T;
     } catch (e) { T = null; }
     vrai('les fonctions des mentions de la page s\'exécutent dans un bac à sable', !!T && typeof T.mentionsDe === 'function' && typeof T.texteMentions === 'function');
@@ -412,7 +422,38 @@ async function controler(PAGE, SRC, DOC) {
       vrai('⛔ la bulle : le « @Prénom » d\'un membre est en gras, le mien voilé, un inconnu reste du texte — et TOUT le reste est échappé (aucune balise du texte ne s\'ouvre)',
         h1 === '&lt;img src=x onerror=alert(1)&gt; <b class="mention-nom">@Inès</b> &amp; &lt;b&gt;' && h2 === 'merci <b class="mention-nom mention-moi">@Justin</b> !' && h3 === '@Inconnu &lt;i&gt;' && h4 === '@Inès',
         JSON.stringify([h1, h2, h3, h4]));
+      /* ── LES LIENS (9 octobre 2026) : une adresse tapée devient un lien qu'on touche — http et https SEULEMENT, échappée, sans aperçu, sans référent ── */
+      const L = (t, conv) => T.texteRiche(t, conv || g);
+      const A = (href, txt) => '<a class="lien-msg" href="' + href + '" target="_blank" rel="noopener noreferrer nofollow">' + (txt === undefined ? href : txt) + '</a>';
+      v('une adresse dans un texte devient un lien (http, https, « www. » complété en https), le reste reste du texte échappé',
+        [L('voir https://exemple.fr/a?b=1&c=2 merci'), L('http://exemple.fr'), L('www.exemple.fr/x')],
+        ['voir ' + A('https://exemple.fr/a?b=1&amp;c=2') + ' merci', A('http://exemple.fr'), A('https://www.exemple.fr/x', 'www.exemple.fr/x')]);
+      v('⛔ la ponctuation qui FINIT la phrase n\'est pas au lien ; une parenthèse n\'y est que si le lien l\'a ouverte (Wikipédia) ; « (https://x.fr) » laisse la sienne dehors',
+        [L('lis https://exemple.fr/page. Ensuite'), L('https://fr.wikipedia.org/wiki/Paris_(France), ok'), L('(https://exemple.fr)'), L('« https://exemple.fr »')],
+        ['lis ' + A('https://exemple.fr/page') + '. Ensuite', A('https://fr.wikipedia.org/wiki/Paris_(France)') + ', ok', '(' + A('https://exemple.fr') + ')', '« ' + A('https://exemple.fr') + ' »']);
+      v('⛔ RIEN d\'autre ne devient un lien : javascript:, data:, mailto:, un « https:// » sans hôte, un hôte qui commence par un signe ; et un « <script> » collé à l\'adresse est coupé et échappé',
+        [L('javascript:alert(1)'), L('data:text/html,<b>x</b>'), L('mailto:a@b.fr'), L('https:// rien'), L('https://.exemple.fr'), L('https://exemple.fr<script>alert(1)</script>')],
+        ['javascript:alert(1)', 'data:text/html,&lt;b&gt;x&lt;/b&gt;', 'mailto:a@b.fr', 'https:// rien', 'https://.exemple.fr', A('https://exemple.fr') + '&lt;script&gt;alert(1)&lt;/script&gt;']);
+      v('⛔ un guillemet ou une apostrophe ne sort pas de l\'attribut : ils arrêtent l\'adresse (« \" onmouseover=… » reste du texte échappé)',
+        [L('https://exemple.fr/"onmouseover="alert(1)'), L("https://exemple.fr/'x")],
+        [A('https://exemple.fr/') + '&quot;onmouseover=&quot;alert(1)', A('https://exemple.fr/') + '&#39;x']);
+      v('⛔ un « @Prénom » DANS une adresse n\'est pas une mention ; à côté d\'une adresse, une mention reste une mention ; dans une conversation à deux, les liens aussi',
+        [L('https://exemple.fr/@Inès'), L('@Inès regarde https://exemple.fr'), L('https://exemple.fr', d)],
+        [A('https://exemple.fr/@Inès'), '<b class="mention-nom">@Inès</b> regarde ' + A('https://exemple.fr'), A('https://exemple.fr')]);
+      v('un texte sans adresse se rend EXACTEMENT comme avant (la mention, l\'échappement)', [L('<img src=x onerror=alert(1)> @Inès & <b>'), L('merci @Justin !')], [h1, h2]);
+      v('les crochets et accolades s\'apparient comme les parenthèses ; « * », « _ », « ~ » en fin d\'adresse (le gras, l\'italique d\'un texte) restent dehors',
+        [L('[voir https://exemple.fr]'), L('*https://exemple.fr*'), L('https://exemple.fr/a[1]'), L('{https://exemple.fr/x}')],
+        ['[voir ' + A('https://exemple.fr') + ']', '*' + A('https://exemple.fr') + '*', A('https://exemple.fr/a[1]'), '{' + A('https://exemple.fr/x') + '}']);
+      /* ⛔ (relecture adverse, 9 octobre 2026) : le nettoyage recomptait les parenthèses à chaque caractère retiré — un message permis gelait l'écran de chaque lecteur */
+      const chrono = (t) => { const t0 = process.hrtime.bigint(), h = L(t); return [Number(process.hrtime.bigint() - t0) / 1e6, h]; };
+      const [ms1, hl1] = chrono('https://a.fr/' + ')'.repeat(7980)), [ms2, hl2] = chrono('https://a.fr/' + ')'.repeat(1980));
+      v('⛔ « https://a.fr/ » suivi de 7 980 « ) » (un message permis) se rend en moins de 30 ms (trop long pour une adresse : du texte) ; suivi de 1 980, le lien s\'arrête avant les parenthèses, en moins de 30 ms aussi',
+        [ms1 < 30, hl1.indexOf('<a ') < 0, ms2 < 30, hl2.startsWith(A('https://a.fr/'))], [true, true, true, true]);
+      v('une « adresse » de plus de 2 000 signes n\'en est pas une : elle reste du texte', L('https://exemple.fr/' + 'a'.repeat(2100)).indexOf('<a ') < 0, true);
     }
+    vrai('les liens des bulles : le texte d\'un message ET la légende d\'une photo passent par `texteRiche` (plus par `texteMentions` ni `esc` seuls)',
+      /class="bulle ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\)/.test(JS) && /class="bulle legende ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\)/.test(JS)
+        && !/dir="auto">' \+ texteMentions\(m\.texte/.test(JS) && !/class="bulle legende ' \+ sens \+ '" dir="auto">' \+ esc\(m\.texte\)/.test(JS));
     vrai('les mentions partent avec l\'envoi (et avec un message programmé), la liste « @ » choisit à Entrée SANS envoyer (gardien en capture), Échap ne ferme qu\'elle',
       /const cites = mentionsDe\(t, convCourante\(\), mentionUI\.choisis\.get\(id\)\);\s*ok = await envoi\(Object\.assign\(/.test(JS) && /cites\.length \? \{ mentions: cites \} : \{\}/.test(JS)
         && /else if \(\(e\.key === 'Enter' && !e\.shiftKey\) \|\| e\.key === 'Tab'\) \{ e\.preventDefault\(\); e\.stopImmediatePropagation\(\); choisirMention\(mentionUI\.i\); \}/.test(JS)

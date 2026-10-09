@@ -140,6 +140,23 @@ const TEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: t
     vrai('⛔ toucher le nom l\'écrit, et le CLAVIER reste (le champ garde le focus)', await att(B, () => document.getElementById('saisie').value === 'Oui @Ana ' && document.activeElement === document.getElementById('saisie') && document.getElementById('compo-mentions').hidden), JSON.stringify([await champ(B), await B.page.evaluate(() => document.activeElement && document.activeElement.id)]));
     await B.page.locator('#saisie').fill('');
 
+    console.log('\n── 3 bis. Les liens d\'un message (9 octobre 2026) : une adresse se touche, s\'ouvre ailleurs, sans référent ──');
+    const LIEN = 'https://exemple.invalid/devis?id=42&v=2';
+    const ouverts = [];
+    await B.ctx.route('https://exemple.invalid/**', r => { ouverts.push({ url: r.request().url(), referent: r.request().headers().referer || null }); return r.fulfill({ status: 200, contentType: 'text/html', body: '<title>ok</title>ok' }); });
+    await P.ana.post('/api/conversations/' + G + '/messages', { cid: cid(), texte: 'Le devis : ' + LIEN + '. Merci @Cléo' });
+    await att(B, (u) => Array.from(document.querySelectorAll('#conv-messages .bulle a.lien-msg')).some(x => x.getAttribute('href') === u), LIEN);
+    const lien = await B.page.evaluate((u) => { const a = Array.from(document.querySelectorAll('#conv-messages .bulle a.lien-msg')).find(x => x.getAttribute('href') === u); return a ? [a.textContent, a.target, a.rel, getComputedStyle(a).color === getComputedStyle(a.closest('.bulle')).color, getComputedStyle(a).textDecorationLine, a.closest('.bulle').textContent] : null; }, LIEN);
+    v('l\'adresse devient un lien : son texte (sans le point de la phrase), un nouvel onglet, sans référent ni accès à la page, la couleur de la bulle, souligné ; la mention (une autre personne) reste à côté',
+      lien, [LIEN, '_blank', 'noopener noreferrer nofollow', true, 'underline', 'Le devis : ' + LIEN + '. Merci @Cléo']);
+    await capture(B, 'm3c-lien');
+    const [onglet] = await Promise.all([B.ctx.waitForEvent('page', { timeout: 8000 }), B.page.locator('#conv-messages a.lien-msg').last().tap()]);
+    await onglet.waitForLoadState('domcontentloaded').catch(() => {});
+    v('⛔ le toucher ouvre l\'adresse dans un AUTRE onglet — sans référent — et la conversation reste où elle était, sans menu ouvert',
+      [onglet.url(), ouverts.length >= 1 && ouverts.every(o => o.referent === null), await B.page.evaluate(() => document.documentElement.dataset.conv === '1' && document.getElementById('menu-fond').hidden)],
+      [LIEN, true, true]);
+    await onglet.close();
+
     console.log('\n── 4. Le tableau de bord : le bloc « Mentions » ──');
     await B.page.evaluate(() => { location.hash = '#messages'; });
     await att(B, () => document.documentElement.dataset.conv !== '1');

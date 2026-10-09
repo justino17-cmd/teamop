@@ -2104,7 +2104,7 @@
       const loc = convs.get(c.id);
       const nonLus = loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq ? 0 : c.non_lus;
       return {
-        id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, supprime,
+        id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, archive: !!c.archive, supprime,
         theme: themeDe(c.theme),
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
@@ -3312,6 +3312,23 @@
       }, delaiAckMs);
     }
 
+    /* ═══ RANGER LA LISTE (9 octobre 2026) : épingler, archiver, marquer lu — le geste « Modifier » de la liste, sur une ou plusieurs conversations ═══
+       Une préférence PAR MEMBRE (`conv.prefs`) : les autres ne voient rien. Archiver retire l'épingle (une conversation rangée n'est pas en tête). Une conversation sur
+       laquelle le service dit non (quittée entre-temps, refus) n'arrête pas les autres : on rend combien ont été rangées, et la liste relue dit la vérité. */
+    const RANGEMENTS = { epingler: { epingle: true }, desepingler: { epingle: false }, archiver: { archive: true, epingle: false }, desarchiver: { archive: false } };
+    async function rangerConvs(ids, geste) {
+      if (!Array.isArray(ids) || !ids.length || ids.length > 200 || !ids.every(x => typeof x === 'string') || (geste !== 'lu' && !Object.prototype.hasOwnProperty.call(RANGEMENTS, geste))) throw erreurLocale('invalide');
+      let faits = 0, derniere = null;
+      for (const id of Array.from(new Set(ids))) {
+        try { if (geste === 'lu') await marquerLu(id); else await A.prefs(id, RANGEMENTS[geste]); faits++; }
+        catch (e) { derniere = e; if (e && (e.code === 'session_requise' || e.code === 'reseau')) break; }
+      }
+      /* la liste relue dit la vérité ; si la relecture échoue, la relecture PLUS TARD le dira (son erreur s'affiche) — jamais un succès sur une liste périmée */
+      try { await relireListe(); emettre({ type: 'liste' }); } catch (e) { relireListePlusTard(); }
+      if (!faits && derniere) throw derniere;
+      return { faits, total: new Set(ids).size };
+    }
+
     /* ═══ SOURDINE, EXPORT, SUPPRESSION (capacité `compte`) ═══════════════════════════════════════════════════════════════════════════════════════ */
     async function sourdine(id, duree) {
       if (!Object.prototype.hasOwnProperty.call(SOURDINES, duree)) throw erreurLocale('invalide');
@@ -3618,7 +3635,7 @@
       moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),
       personne, rafraichirContacts,
-      lister, ouvrir, precedents, envoyer, marquerLu, saisie,
+      lister, ouvrir, precedents, envoyer, marquerLu, saisie, rangerConvs,
       modifier, supprimer, reagir,
       creerGroupe, ouvrirDirecte, conversationPour, infos, majConversation, retirerMembre, nommerAdmin, ajouterMembres, quitter, lienGroupe,
       lienContact, revoquerLiens, lireLien, accepterLien,
