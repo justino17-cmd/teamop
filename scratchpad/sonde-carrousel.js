@@ -96,12 +96,18 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
         await cdp('Page.navigate', { url: 'http://127.0.0.1:' + pp + '/apercu/site/' + pg + '.html' }); await dormir(900);
         await ev(`const r=document.querySelector('.ruban-apercu'); if(r) r.remove(); return 1;`);
         /* AVANT de faire défiler : les écrans pas encore montrés ne sont ni affichés ni chargés */
-        const avant = await ev(`return [...document.querySelectorAll('.c-vue:not(.c-on)')].map(v=>({ aff:getComputedStyle(v).display, w:(v.querySelector('img')||{}).naturalWidth||0 }));`);
-        const nC = await ev(`return document.querySelectorAll('.carrousel').length;`);
+        /* (une capture déjà AFFICHÉE ailleurs dans la page — la même dans le grand carrousel et dans une carte — arrive du cache
+           dans l'écran caché, sans requête : elle n'est pas un chargement en avance, on la reconnaît à son adresse) */
+        const avant = await ev(`const vue=i=>{ const v=i.closest('.c-vue'); return !v||getComputedStyle(v).display!=='none'; };
+          const montree=new Set([...document.images].filter(i=>vue(i)&&i.currentSrc).map(i=>i.currentSrc));
+          return [...document.querySelectorAll('.c-vue:not(.c-on)')].map(v=>{ const i=v.querySelector('img')||{};
+            return { aff:getComputedStyle(v).display, w:(i.naturalWidth||0)&&!montree.has(i.currentSrc)?i.naturalWidth:0, src:(i.currentSrc||'').split('/').pop() }; });`);
+        const nC = await ev(`return document.querySelectorAll('.carrousel').length;`), nP = await ev(`return document.querySelectorAll('.c-piste').length;`);
         vrai(lbl + ' : population — ' + nC + ' carrousel(s), ' + avant.length + ' écrans en attente', nC >= 1 && avant.length >= nC);
-        /* (au chargement, un carrousel déjà à l'écran peut avoir préparé son suivant : on compte ce qui reste non chargé) */
+        /* (au chargement, un carrousel déjà à l'écran peut avoir préparé son suivant — dans CHACUN de ses appareils : le Mac + iPhone
+           en prépare deux ; on tolère donc un écran préparé par piste, pas par carrousel) */
         const nonCharges = avant.filter(x => x.aff === 'none' && x.w === 0).length;
-        vrai(lbl + ' : les écrans pas encore montrés ne se chargent pas (' + nonCharges + '/' + avant.length + ' en attente, non chargés)', nonCharges >= avant.length - nC, JSON.stringify(avant.filter(x => x.w > 0).length));
+        vrai(lbl + ' : les écrans pas encore montrés ne se chargent pas (' + nonCharges + '/' + avant.length + ' en attente, non chargés)', nonCharges >= avant.length - nP, JSON.stringify(avant.filter(x => x.w > 0 || x.aff !== 'none').map(x => x.aff + ' ' + (x.w ? 'chargé ' : '') + x.src)));
         /* chaque carrousel branché, puis vu : son écran suivant se prépare (chargé), les autres attendent toujours */
         /* ⚠️ un écran caché dont l'image est AUSSI celle d'un écran affiché ailleurs dans la page (la même capture dans le
            grand carrousel et dans une carte) la reçoit du cache sans requête : ce n'est pas un chargement en avance */
