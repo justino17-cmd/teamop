@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e9f805142f8d';
+  const OPMSG_BUILD = 'e67ec9759709';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 153;
+  const OPMSG_VERSION = 154;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5455,7 +5455,7 @@
      Deux feuilles, ouvertes depuis les Infos d'une conversation : « Rechercher » (le texte, la légende d'une photo, le nom d'un fichier — sans accents ni casse) et « Photos, fichiers
      et liens ». Le SERVICE cherche (le texte est scellé chez lui) ; la page ne garde rien après la feuille. Un résultat mène AU message (`voirMessage`, qui remonte l'historique
      au besoin) ; « Chercher plus loin » reprend là où le service s'est arrêté. ⛔ Les requêtes qui se croisent : seule la DERNIÈRE réponse s'affiche (un jeton). */
-  const normeCar = ch => ch.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const normeCar = ch => ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const normeRecherche = q => String(q || '').normalize('NFC').replace(/\s+/g, ' ').trim();
   /* l'occurrence surlignée, dans le texte tel qu'il est écrit : chaque caractère normalisé SEUL garde la correspondance des positions (comme le service pour l'extrait) */
   function surligner(t, q) {

@@ -8080,7 +8080,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      Deux feuilles, ouvertes depuis les Infos d'une conversation : « Rechercher » (le texte, la légende d'une photo, le nom d'un fichier — sans accents ni casse) et « Photos, fichiers
      et liens ». Le SERVICE cherche (le texte est scellé chez lui) ; la page ne garde rien après la feuille. Un résultat mène AU message (`voirMessage`, qui remonte l'historique
      au besoin) ; « Chercher plus loin » reprend là où le service s'est arrêté. ⛔ Les requêtes qui se croisent : seule la DERNIÈRE réponse s'affiche (un jeton). */
-  const normeCar = ch => ch.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const normeCar = ch => ch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const normeRecherche = q => String(q || '').normalize('NFC').replace(/\s+/g, ' ').trim();
   /* l'occurrence surlignée, dans le texte tel qu'il est écrit : chaque caractère normalisé SEUL garde la correspondance des positions (comme le service pour l'extrait) */
   function surligner(t, q) {

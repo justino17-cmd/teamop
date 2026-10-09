@@ -21,7 +21,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 900000;
 const F = { page: 'apercu/opmessages/index.html' };
-const BANCS = ['905', '909', '945', '986', '987', '988', '989', '990', 'sonde'];
+const BANCS = ['905', '909', '945', '946', '986', '987', '988', '989', '990', 'sonde'];
 const SONDE_FICHIER = 'sonde-opmessages-groupe.js';
 const MUTATIONS = [];
 /* [id, nom, [[fichier, ancien, nouveau], …], suites, option] — `ancien` : une chaîne (une seule occurrence). */
@@ -54,6 +54,18 @@ const CATALOGUE = [
   ["AR1", "⛔ une conversation archivée ne revient plus quand on y écrit (un message de travail dormirait aux Archivées)", [["server-msg/stockage.js", "    if (type !== 'systeme') Q('UPDATE membre SET archive = 0 WHERE conv = ? AND archive = 1 AND quitte_le IS NULL AND (uid = ? OR muet_jusqua <= ?)').run(conv, auteur, ts);\n", ""]], ["909"]],
   ["AR2", "une conversation archivée ET en sourdine revient quand même (la sourdine ne compte plus)", [["server-msg/stockage.js", "AND (uid = ? OR muet_jusqua <= ?)').run(conv, auteur, ts);", "AND (uid = ? OR ? > 0)').run(conv, auteur, ts);"]], ["909"]],
   ["AR3", "un message SYSTÈME (un nom qui change) ressort une conversation archivée", [["server-msg/stockage.js", "    if (type !== 'systeme') Q('UPDATE membre SET archive = 0", "    if (true) Q('UPDATE membre SET archive = 0"]], ["909"]],
+  /* ── RT. « RETROUVER » (9 octobre 2026) : chercher dans les messages, la galerie — ce que je ne vois pas reste caché, la reprise avance, le plafond — test-946 ── */
+  ["RT1", "⛔ la recherche voit un message MASQUÉ « pour moi »", [["server-msg/stockage.js", "x.type != 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)\n                       AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)", "x.type != 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)\n                       AND ? IS NOT NULL"]], ["946"]],
+  ["RT2", "⛔ la recherche voit un message SUPPRIMÉ pour tous", [["server-msg/stockage.js", "x.type != 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts", "x.type != 'systeme' AND (x.expire_ts"]], ["946"]],
+  ["RT3", "⛔ la recherche voit les messages d'AVANT mon arrivée", [["server-msg/stockage.js", ".all(conv, m.depuis_seq, borne, t0, uid, demande);", ".all(conv, 0, borne, t0, uid, demande);"]], ["946"]],
+  ["RT4", "la recherche tient compte des accents (« ecole » ne trouve plus « école »)", [["server-msg/stockage.js", "const normeRech = s => String(s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();", "const normeRech = s => String(s).toLowerCase();"]], ["946"]],
+  ["RT5", "le NOM d'un fichier n'est plus cherché", [["server-msg/stockage.js", "if (r.type === 'fichier' && r.meta_ch) { try { const mt", "if (false) { try { const mt"]], ["946"]],
+  ["RT6", "⛔ la page suivante repart du début (la reprise n'avance plus) : des résultats répétés", [["server-msg/stockage.js", "        lus++; borne = r.seq;\n", "        lus++;\n"]], ["946"]],
+  ["RT7", "⛔ plus de plafond par compte sur la recherche", [["server-msg/routes.js", "    if (!plafond(res, 'chercher', req.moi.id, { max: 30, fenetreMs: 60000 }, facteurJeune(req.moi))) return;\n    res.json(stockage.messagesChercher(", "    res.json(stockage.messagesChercher("]], ["946"]],
+  ["RT8", "⛔ une photo SUPPRIMÉE pour tous reste dans la galerie", [["server-msg/stockage.js", "AND p.attachee < ? AND x.supprime_le IS NULL AND", "AND p.attachee < ? AND"]], ["946"]],
+  ["RT9", "⛔ la galerie montre les photos d'AVANT mon arrivée", [["server-msg/stockage.js", ".all(conv, genre, m.depuis_seq, avantSeq === null", ".all(conv, genre, 0, avantSeq === null"]], ["946"]],
+  ["RT10", "une requête d'un seul signe passe", [["server-msg/routes.js", "if (q === null || n < RECH_MIN || n > RECH_MAX || Number.isNaN(av))", "if (q === null || n > RECH_MAX || Number.isNaN(av))"]], ["946"]],
+  ["RT11", "un résultat rend le texte ENTIER au lieu d'un extrait autour de l'occurrence", [["server-msg/stockage.js", "texteMax ? Array.from(source).slice(0, texteMax).join('') : extraitAutour(source, qn, 60)", "texteMax ? Array.from(source).slice(0, texteMax).join('') : source"]], ["946"]],
   /* ── TR. « TRANSFÉRER » (9 octobre 2026, relecture adverse) : le service, la couture par les vraies api.js et source-serveur.js — test-945 ── */
   /* TR1 : le verrou SEUL retiré survit, et c'est juste — le nettoyage d'une copie arrivée en double (`s2.deja`) rend le même état final (un message, une copie) ; le verrou n'épargne que le TRAVAIL
      (ne pas recopier 5 Go une seconde fois). La mutation retire donc les deux gardes ensemble : sans elles, deux envois simultanés laissent une copie orpheline. */

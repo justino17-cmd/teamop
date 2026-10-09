@@ -1670,7 +1670,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      de `messagesDe` : membre depuis, ni masqué, ni échu — ni supprimé, ni système), du plus récent au plus ancien, par lots, les ouvre ICI et compare sans accents ni casse.
      ⛔ BORNÉE : au plus `plafondLignes` messages ouverts par appel (quelques dizaines de millisecondes au pire) ; au-delà, `suite` dit où reprendre — la page propose « Chercher plus
      loin ». Rien n'est retenu : ni index, ni cache, ni trace de ce qui a été cherché. */
-  const normeRech = s => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const normeRech = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   /* l'extrait autour de la première occurrence, dans le texte tel qu'il est écrit (accents compris) : chaque caractère est normalisé SEUL, ce qui garde la correspondance des positions */
   function extraitAutour(t, qn, large) {
     const cars = Array.from(t), debuts = [];
