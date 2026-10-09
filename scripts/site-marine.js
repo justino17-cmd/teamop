@@ -82,24 +82,123 @@ const PLUS = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke
 /* ── les appareils : le cadre (vitrine/appareils.css) et l'écran jour/nuit ── */
 const RES = '/vitrine/v2/';
 const CAP = RES + 'captures/';
-function mac(nom, alt, o) {
+/* l'ÉCRAN (une <picture> jour / nuit) et le CADRE (le matériel) s'écrivent à part : l'appareil fixe et le carrousel les
+   partagent — un seul endroit pour chacun */
+function ecranMac(nom, alt, o) {
   o = o || {};
   const tailles = o.tailles || '(max-width: 700px) 94vw, 1120px';
   const charge = o.tot ? 'eager" fetchpriority="high' : 'lazy';
-  return `<figure class="ap-mac" style="margin:0"><div class="ap-mac-couvercle"><div class="ap-mac-ecran"><picture>`
+  return `<picture>`
     + `<source data-nuit media="(prefers-color-scheme: dark)" srcset="${CAP}${nom}-nuit.webp 3024w, ${CAP}${nom}-nuit-1x.webp 1512w" sizes="${tailles}">`
     + `<img src="${CAP}${nom}-jour-1x.webp" srcset="${CAP}${nom}-jour.webp 3024w, ${CAP}${nom}-jour-1x.webp 1512w" sizes="${tailles}" width="1512" height="982" alt="${esc(alt)}" loading="${charge}" decoding="async">`
-    + `</picture><span class="ap-mac-encoche"></span></div></div><div class="ap-mac-socle"></div></figure>`;
+    + `</picture>`;
 }
-function iphone(nom, alt, o) {
+const cadreMac = dedans => `<figure class="ap-mac" style="margin:0"><div class="ap-mac-couvercle"><div class="ap-mac-ecran">${dedans}<span class="ap-mac-encoche"></span></div></div><div class="ap-mac-socle"></div></figure>`;
+function mac(nom, alt, o) { return cadreMac(ecranMac(nom, alt, o)); }
+function ecranIphone(nom, alt, o) {
   o = o || {};
   const charge = o.tot ? 'eager' : 'lazy';
-  return `<figure class="ap-iphone" style="margin:0${o.largeur ? ';--ap-l:' + o.largeur : ''}">`
-    + '<span class="ap-iphone-bouton g action"></span><span class="ap-iphone-bouton g vol1"></span><span class="ap-iphone-bouton g vol2"></span><span class="ap-iphone-bouton d marche"></span><span class="ap-iphone-bouton d photo"></span>'
-    + `<div class="ap-iphone-corps"><div class="ap-iphone-bord"><div class="ap-iphone-ecran"><picture>`
+  return `<picture>`
     + `<source data-nuit media="(prefers-color-scheme: dark)" srcset="${CAP}${nom}-nuit.webp">`
     + `<img src="${CAP}${nom}-jour.webp" width="804" height="1748" alt="${esc(alt)}" loading="${charge}" decoding="async">`
-    + `</picture></div></div></div></figure>`;
+    + `</picture>`;
+}
+function cadreIphone(dedans, o) {
+  o = o || {};
+  return `<figure class="ap-iphone" style="margin:0${o.largeur ? ';--ap-l:' + o.largeur : ''}">`
+    + '<span class="ap-iphone-bouton g action"></span><span class="ap-iphone-bouton g vol1"></span><span class="ap-iphone-bouton g vol2"></span><span class="ap-iphone-bouton d marche"></span><span class="ap-iphone-bouton d photo"></span>'
+    + `<div class="ap-iphone-corps"><div class="ap-iphone-bord"><div class="ap-iphone-ecran">${dedans}</div></div></div></figure>`;
+}
+function iphone(nom, alt, o) { return cadreIphone(ecranIphone(nom, alt, o), o); }
+
+/* ══ LES CARROUSELS D'ÉCRANS — Justin, 8 octobre 2026, capture d'OP GESTION à l'appui : « là où il y a les captures
+   d'écran […] je voudrais des défilements d'images avec l'iPhone, et qu'on le voie bien en entier, et aussi un Mac pour
+   montrer que ça marche bien sur les deux — fais-moi ça en bêta, que je voie ce que ça donne sur tout le site ».
+   ⛔ L'APERÇU SEULEMENT (`POUR_LA_RACINE` faux) : la racine en service garde ses écrans fixes jusqu'à ce que Justin dise
+   de publier, et `vitrine/v2/carrousel.css` / `carrousel.js` ne sont lus que par l'aperçu (`page()`).
+   ⛔ L'appareil se voit EN ENTIER (plus d'iPhone coupé par le bas de sa carte), et chaque écran garde sa version jour ET
+   nuit (`test-835` § 5 relit chaque <picture>). Sans JavaScript, le premier écran reste, comme avant.
+   ⛔ Les captures sont celles d'une entreprise de DÉMONSTRATION anti-nuisibles (la règle de METIERS) : une page métier
+   hors 3D ne fait défiler que des écrans NEUTRES (dernier champ à 0), et n'a pas encore de Mac — toutes les captures de
+   Mac montrent du 3D, jusqu'au menu (« Registre sanitaire », « Carte des box »). */
+const ECRANS = {
+  /* nom : [ce que dit la légende, ce que dit le texte de remplacement, 1 = montre du contenu du métier 3D] */
+  'iphone-tableau': ['Le tableau de bord', "le tableau de bord de l'entreprise", 1],
+  'iphone-journee': ['La journée du technicien', "la journée de travail d'un technicien", 1],
+  'iphone-intervention': ["La fiche d'intervention", "une intervention de dératisation en cours", 1],
+  'iphone-box': ['Un point de stock', "la fiche d'un point de stock et ses gestes", 1],
+  'iphone-notifs': ['Les notifications', 'les notifications : les produits à réapprovisionner', 1],
+  'iphone-rapports': ['Les rapports', "les comptes rendus d'intervention", 1],
+  'iphone-factures': ['Les factures', 'les factures, ce qui est encaissé et ce qui reste à encaisser', 0],
+  'iphone-compta': ['Les encaissements du jour', 'le contrôle des encaissements du jour', 0],
+  'iphone-connexion': ['La connexion', 'la connexion, un identifiant et un mot de passe par personne', 0],
+  'mac-tableau': ['Le tableau de bord', "le tableau de bord d'une entreprise de démonstration", 1],
+  'mac-planning': ['Le planning de la semaine', 'le planning de la semaine, technicien par technicien', 1],
+  'mac-interventions': ['Les interventions du jour', 'les interventions du jour, à l\'heure près', 1],
+  'mac-utilisateurs': ["L'équipe et ses droits", "l'équipe, ses comptes et ses droits", 1],
+};
+/* le Mac et l'iPhone défilent ENSEMBLE : chaque paire montre la même chose au bureau et sur le terrain */
+const PAIRES = [
+  ['mac-tableau', 'iphone-tableau', 'Le tableau de bord, au bureau comme dans la poche'],
+  ['mac-planning', 'iphone-journee', 'Le planning au bureau, la journée sur le terrain'],
+  ['mac-interventions', 'iphone-intervention', 'Les interventions, et leur fiche sur place'],
+  ['mac-utilisateurs', 'iphone-connexion', "Toute l'équipe, chacun son compte"],
+];
+const pairesDepuis = m => { const i = Math.max(0, PAIRES.findIndex(p => p[0] === m)); return PAIRES.slice(i).concat(PAIRES.slice(0, i)); };
+/* les écrans qui suivent celui d'une carte : du même côté du travail (terrain, dépôt, bureau) */
+const COMPAGNONS = {
+  'iphone-intervention': ['iphone-rapports', 'iphone-journee'],
+  'iphone-journee': ['iphone-intervention', 'iphone-rapports'],
+  'iphone-rapports': ['iphone-intervention', 'iphone-journee'],
+  'iphone-box': ['iphone-notifs', 'iphone-tableau'],
+  'iphone-tableau': ['iphone-notifs', 'iphone-factures'],
+  'iphone-factures': ['iphone-compta', 'iphone-connexion'],
+  'iphone-compta': ['iphone-factures', 'iphone-connexion'],
+};
+/* Les deux cartes d'une rangée défilent côte à côte : elles ne montrent jamais le même écran au même moment. Des suites
+   DISJOINTES quand il y a de quoi ; sinon un même cycle décalé d'un cran (au même rythme, jamais le même écran). */
+function suites(s1, s2, permis) {
+  const comp = s => (COMPAGNONS[s] || []).filter(permis);
+  const a = [s1, ...comp(s1).filter(n => n !== s2)];
+  const b = [s2, ...comp(s2).filter(n => n !== s1 && !a.includes(n))];
+  if (a.length > 1 && b.length > 1) return [a, b];
+  const cycle = [...new Set([s1, s2, ...comp(s1), ...comp(s2)])];
+  const depuis = s => { const i = cycle.indexOf(s); return cycle.slice(i).concat(cycle.slice(0, i)); };
+  return [depuis(s1), depuis(s2)];
+}
+const PAUSE = '<svg class="c-ic-pause" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6.5 4.5h3.6v15H6.5zM13.9 4.5h3.6v15h-3.6z"/></svg>';
+const LECTURE = '<svg class="c-ic-lecture" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 4.9v14.2c0 .7.8 1.1 1.4.7l10.6-7.1a.85.85 0 0 0 0-1.4L9.4 4.2C8.8 3.8 8 4.2 8 4.9Z"/></svg>';
+/* une piste : les écrans empilés dans l'écran de l'appareil, le premier affiché */
+const piste = (vues, titres) => `<div class="c-piste">` + vues.map((v, k) => `<div class="c-vue${k ? '' : ' c-on'}" data-titre="${fr(titres[k])}"${k ? ' aria-hidden="true"' : ''}>${v}</div>`).join('') + '</div>';
+/* La légende dit ce que montre l'écran ; les commandes (pause, un point par écran) n'apparaissent qu'avec le script. */
+function carrousel(genre, scene, titres, label) {
+  return `<section class="carrousel c-${genre}" data-carrousel aria-roledescription="carrousel" aria-label="${esc(label)}"><div class="c-scene">${scene}</div>`
+    + `<div class="c-pied"><p class="c-legende">${fr(titres[0])}</p><div class="c-commandes" hidden>`
+    + `<button type="button" class="c-lecture" aria-label="Mettre en pause le défilement">${PAUSE}${LECTURE}</button><div class="c-points">`
+    + titres.map((t, k) => `<button type="button" class="c-point" aria-label="${esc('Écran ' + (k + 1) + ' sur ' + titres.length + ' : ' + t)}"${k ? '' : ' aria-current="true"'}><span><i></i></span></button>`).join('')
+    + '</div></div></div></section>';
+}
+const LARGEUR_CARTE = 'clamp(210px,18vw,260px)';
+const SUITES_ACCUEIL = suites('iphone-intervention', 'iphone-box', () => true);
+const altIphone = n => 'OP GESTION sur un iPhone : ' + ECRANS[n][1], altMac = n => 'OP GESTION sur un Mac : ' + ECRANS[n][1];
+function carIphone(noms, o) {
+  o = o || {};
+  const titres = noms.map(n => ECRANS[n][0]);
+  const vues = noms.map((n, k) => ecranIphone(n, k === 0 && o.alt0 ? o.alt0 : altIphone(n), { tot: k === 0 && o.tot }));
+  return carrousel('iphone', cadreIphone(piste(vues, titres), { largeur: o.largeur }), titres, "Les écrans d'OP GESTION sur un iPhone");
+}
+function carMac(noms, o) {
+  o = o || {};
+  const titres = noms.map(n => ECRANS[n][0]);
+  const vues = noms.map((n, k) => ecranMac(n, altMac(n), { tot: k === 0 && o.tot, tailles: o.tailles }));
+  return carrousel('mac', cadreMac(piste(vues, titres)), titres, "Les écrans d'OP GESTION sur un Mac");
+}
+function carDuo(paires, o) {
+  o = o || {};
+  const titres = paires.map(p => p[2]);
+  const macs = paires.map((p, k) => ecranMac(p[0], altMac(p[0]), { tot: k === 0 && o.tot }));
+  const tels = paires.map((p, k) => ecranIphone(p[1], altIphone(p[1]), { tot: k === 0 && o.tot }));
+  return carrousel('duo', cadreMac(piste(macs, titres)) + cadreIphone(piste(tels, titres)), titres, 'OP GESTION sur un Mac et sur un iPhone');
 }
 
 /* ── la navigation : un seul endroit pour les liens, le volet, le menu du téléphone et le pied ── */
@@ -258,7 +357,7 @@ const prixDe = cle => (FORMULES_GESTION.find(f => f.cle === cle) || {}).prix;
 const PREMIUM_METIER = "Tout Business, plus la couleur de votre entreprise dans l'application, OP MESSAGES dès sa réouverture et le service 24h/24.";
 const DES_PRO = 'Dès ' + prixDe('pro') + ' € TTC par mois.';
 const METIERS = {
-  'logiciel-anti-nuisibles': { priorite: '0.9', icone: 'bug',
+  'logiciel-anti-nuisibles': { priorite: '0.9', icone: 'bug', trois: 1,
     titre: "Logiciel anti-nuisibles 3D : registre sanitaire | TEAM OP",
     desc: "Logiciel pour entreprises 3D : fiches d'intervention, registre sanitaire, suivi des biocides, stock par box et signature client. " + DES_PRO,
     surtitre: 'Logiciel anti-nuisibles (3D)', h1: "Le logiciel de gestion pensé pour les entreprises anti-nuisibles (3D)",
@@ -333,9 +432,12 @@ const METIERS = {
     formules: ["Les fiches d'intervention avec photos et signatures, les tournées du jour, les contrats et les récurrences, les devis et les factures, le pointage des agents.",
       "Tout Pro, plus le stock de consommables avec ses seuils d'alerte, les bons de commande et la commande suggérée, la télécollecte des encaissements et la comptabilité."] },
 };
-function pageMetier(m) {
-  const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt]) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
-          <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div></div></div>`).join('') + '</section>';
+function pageMetier(m, cle) {
+  /* une page métier hors 3D (pas de `trois: 1`) ne fait défiler que des écrans neutres, et n'a pas de Mac (voir ECRANS) */
+  const neutre = !!METIERS[cle] && !m.trois, permis = n => !neutre || !ECRANS[n][2];
+  const seq = POUR_LA_RACINE ? null : suites(m.duo[0][3], m.duo[1][3], permis);
+  const duo = `<section class="duo">` + m.duo.map(([pt, h3, p, nom, alt], k) => `<div class="grande-carte"><div class="haut"><div class="petit-titre">${fr(pt)}</div><h3>${fr(h3)}</h3><p>${fr(p)}</p></div>
+          <div class="bas">${seq ? carIphone(seq[k], { alt0: alt, largeur: LARGEUR_CARTE }) : `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone(nom, alt)}</div>`}</div></div>`).join('') + '</section>';
   const bloc = ([h2, ps], i) => `<section class="bloc${i % 2 ? ' teinte' : ''}"><div class="bloc-in texte-metier"><h2 class="h2 moyen">${fr(h2)}</h2>` + ps.map(t => `<p>${fr(t)}</p>`).join('') + '</div></section>';
   const f = [['Pro', prixDe('pro') + ' € TTC par mois et par utilisateur', m.formules[0]], ['Business', prixDe('business') + ' € TTC par mois et par utilisateur', m.formules[1]],
     ['Business Premium', prixDe('premium') + ' € TTC par mois et par utilisateur', m.formules[2] || PREMIUM_METIER]];
@@ -344,7 +446,8 @@ function pageMetier(m) {
     + '<div class="cartes-3">' + f.map(([n, pr, t]) => `<div class="carte-v"><b>${fr(n)}</b><span class="prix-metier">${fr(pr)}</span><span class="t">${fr(t)}</span></div>`).join('') + '</div>'
     + `<div class="actions" style="margin-top:28px"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a></div></div></section>`;
   return scene(m.surtitre, m.h1, m.chapeau, `<a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="tarifs.html">Voir les tarifs ›</a>`)
-    + (m.mac ? `<section class="scene-mac">${mac(m.mac[0], m.mac[1], { tot: false })}</section>` : '')
+    + (POUR_LA_RACINE ? (m.mac ? `<section class="scene-mac">${mac(m.mac[0], m.mac[1], { tot: false })}</section>` : '')
+      : neutre ? '' : `<section class="scene-mac">${carDuo(pairesDepuis(m.mac ? m.mac[0] : 'mac-tableau'))}</section>`)
     + bloc(m.blocs[0], 0) + duo + m.blocs.slice(1).map((b, i) => bloc(b, i + 1)).join('') + formules;
 }
 
@@ -497,13 +600,13 @@ const PAGES = {
       <p class="chapeau">${fr('Interventions, stock, encaissements et communication d\'équipe — sur iPhone, Android, Mac et PC, à jour en quelques secondes.')}</p>
       <div class="actions"><a class="bouton" href="${ESPACE()}">Créer mon compte</a><a class="lien-suite" href="applications.html">Découvrir les applications ›</a></div>
       <div class="gages"><span>Chiffré AES-256</span><span>Sur tous vos appareils</span><span>Sans installation</span></div>
-      <div class="appareils"><div class="ap-duo">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration', { tot: true })}${iphone('iphone-tableau', 'OP GESTION sur un iPhone : le tableau de bord', { tot: true })}</div></div></section>
+      <div class="appareils">${POUR_LA_RACINE ? `<div class="ap-duo">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord d\'une entreprise de démonstration', { tot: true })}${iphone('iphone-tableau', 'OP GESTION sur un iPhone : le tableau de bord', { tot: true })}</div>` : carDuo(PAIRES, { tot: true })}</div></section>
       <div class="plateformes"><span>Mac · Windows</span><span>iPhone · Android</span><span>Navigateur</span></div>
       <section class="duo">
         <div class="grande-carte"><div class="haut"><div class="petit-titre">Sur le terrain</div><h3>${fr('La fiche d\'intervention, dans la poche.')}</h3><p>${fr('Client, adresse, produits, photos et signature : tout est sur la fiche.')}</p></div>
-          <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-intervention', 'OP GESTION sur un iPhone : une fiche d\'intervention en cours')}</div></div></div>
+          <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-intervention', 'OP GESTION sur un iPhone : une fiche d\'intervention en cours')}</div>` : carIphone(SUITES_ACCUEIL[0], { alt0: 'OP GESTION sur un iPhone : une fiche d\'intervention en cours', largeur: LARGEUR_CARTE })}</div></div>
         <div class="grande-carte"><div class="haut"><div class="petit-titre">Au dépôt</div><h3>Le stock, à jour.</h3><p>${fr('Avec la formule Business : arrivage, sortie, relevé — chaque mouvement est tracé et met le stock à jour.')}</p></div>
-          <div class="bas"><div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div></div></div>
+          <div class="bas">${POUR_LA_RACINE ? `<div class="rogne-tel" style="--ap-l:clamp(230px,22vw,330px)">${iphone('iphone-box', 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes')}</div>` : carIphone(SUITES_ACCUEIL[1], { alt0: 'OP GESTION sur un iPhone : la fiche d\'une box et ses gestes', largeur: LARGEUR_CARTE })}</div></div>
       </section>
       <section class="page" style="padding-top:90px;padding-bottom:0"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">${fr('Une seule application pour le bureau et le terrain. Chaque fonction a sa page : ce qu\'elle fait, et la formule qui l\'ouvre.')}</p>
         <div class="teasers compacts">${liensAccueil(VOLETS.applications.petits, FONCTIONS, k => ICONE_FONCTION[k])}</div></section>
@@ -520,7 +623,7 @@ const PAGES = {
     corps: () => scene('Applications', 'Nos applications.', 'Toutes les applications de la plateforme TEAM OP. Ouvrez-en une pour voir tout ce qu\'elle fait.')
       + `<section class="page" id="applications" style="padding-top:20px;padding-bottom:20px"><h2 class="h2 moyen">Deux applications, chacune à sa place.</h2><p class="intro">${fr('OP GESTION pour gérer votre activité. OP MESSAGES, bientôt disponible, pour échanger — avec son propre compte.')}</p><div class="apps">
         <article class="app-carte"><img class="ico" src="/icons/opgestion-512.png" width="64" height="64" alt=""><div><div class="nom">OP GESTION</div><div class="desc">${fr('Interventions avec rapports signés, planning et tournées, stock et box, devis-factures, encaissements, équipe.')}</div></div><a href="elan.html">Découvrir OP GESTION ›</a>
-          <div class="rogne-mac">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord', { tailles: '(max-width: 700px) 90vw, 620px' })}</div></article>
+          ${POUR_LA_RACINE ? `<div class="rogne-mac">${mac('mac-tableau', 'OP GESTION sur un Mac : le tableau de bord', { tailles: '(max-width: 700px) 90vw, 620px' })}</div>` : carMac(PAIRES.map(p => p[0]), { tailles: '(max-width: 700px) 90vw, 620px' })}</article>
         <article class="app-carte"><img class="ico" src="/icons/opmsg-512.png" width="64" height="64" alt=""><div><div class="nom">OP MESSAGES</div><div class="desc">${fr('Toute votre équipe, une seule conversation : chat en temps réel, groupes, photos, vocaux, sondages — réservé à votre entreprise. Bientôt disponible.')}</div></div><a href="opmessages.html">Découvrir OP MESSAGES ›</a>
           <div class="sondage" aria-hidden="true"><b>Quel créneau pour la réunion d'équipe ?</b>
             <div class="l"><span>Mardi 14 h</span><span class="barre"><i class="v1" style="width:70%"></i></span><span>4 votes</span></div>
@@ -532,7 +635,7 @@ const PAGES = {
     sousnav: { titre: 'OP GESTION', href: 'elan.html', liens: [L('Vue d\'ensemble', 'elan.html#apercu'), L('Fonctions', 'elan.html#fonctions'), L('Tarifs', 'tarifs.html#elan')], cta: () => `<a class="pilule" href="${ESPACE()}">Demander un accès</a>` },
     corps: () => scene('Application de gestion tout-en-un', 'Pilotez votre activité terrain en un seul endroit.', 'Interventions, planning et tournées, stock et box, encaissements, devis-factures et équipe : OP GESTION réunit tout votre quotidien dans une application simple, rapide et accessible partout.',
         `<a class="bouton" href="${ESPACE()}">Demander un accès</a><a class="lien-suite" href="tarifs.html#elan">Voir les tarifs ›</a>`)
-      + `<section class="scene-mac">${mac('mac-planning', 'OP GESTION sur un Mac : le planning de la semaine, technicien par technicien', { tot: false })}</section>
+      + `<section class="scene-mac">${POUR_LA_RACINE ? mac('mac-planning', 'OP GESTION sur un Mac : le planning de la semaine, technicien par technicien', { tot: false }) : carDuo(pairesDepuis('mac-planning'))}</section>
       <section id="fonctions" style="padding:clamp(70px,9vw,120px) 12px 12px"><div class="page" style="padding:0 10px"><h2 class="h2">Ce que fait OP GESTION.</h2><p class="intro">Ouvrez une carte pour tout voir.</p></div>${tuiles('elan', 'OP GESTION', F_GESTION)}</section>${FENETRE}` },
 
   opmessages: { section: 'applications', titre: 'OP MESSAGES — La messagerie de votre équipe | TEAM OP', desc: 'OP MESSAGES : chat temps réel, groupes, photos, messages vocaux et notifications — une messagerie réservée à votre entreprise.',
@@ -596,8 +699,8 @@ const PAGES = {
           + (pret ? `<a href="${ESPACE()}">Démarrer avec ce pack ›</a>` : '<a href="creer.html">En parler avec nous ›</a>') + '</article>').join('')
       + '</div></section>' },
 
-  ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m) }])),
-  ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m) }])),
+  ...Object.fromEntries(Object.entries(METIERS).map(([k, m]) => [k, { section: 'metiers', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
+  ...Object.fromEntries(Object.entries(FONCTIONS).map(([k, m]) => [k, { section: 'applications', titre: m.titre, desc: m.desc, priorite: m.priorite, corps: () => pageMetier(m, k) }])),
 
   tarifs: { section: 'tarifs', titre: 'Tarifs — TEAM OP', desc: 'Tarifs TEAM OP : Pro ' + prixDe('pro') + ' €, Business ' + prixDe('business') + ' €, Business Premium ' + prixDe('premium') + ' €, par mois et par utilisateur, TTC et sans engagement.',
     corps: () => scene('Tarifs', 'Des tarifs simples et clairs.', 'Choisissez votre formule, et changez-en quand votre équipe grandit. Sans engagement, sans frais cachés.', '', { courte: true })
@@ -719,7 +822,7 @@ ${racine ? teteSeo(cle) : ''}${ICONES(cle)}
 <link rel="manifest" href="/manifest-teamop.webmanifest">
 ${cle === 'index' ? LANCEUR + '\n' : ''}<link rel="stylesheet" href="${RES}site.css">
 <link rel="stylesheet" href="${RES}appareils.css">
-</head>
+${racine ? '' : `<link rel="stylesheet" href="${RES}carrousel.css">\n`}</head>
 <body>
 ${entete(P.section, P.sousnav)}
 <main>
@@ -728,7 +831,7 @@ ${P.cta === false ? '' : commencer()}
 </main>
 ${pied()}
 <script src="${RES}site.js" defer></script>
-</body>
+${racine ? '' : `<script src="${RES}carrousel.js" defer></script>\n`}</body>
 </html>
 `;
 }
