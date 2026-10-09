@@ -19,6 +19,8 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 let ipN = 80; const ip = () => '198.51.100.' + (ipN++);
 const cid = (p) => 'cid-' + p + '-' + crypto.randomBytes(5).toString('hex');
+const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
+const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-serveur.js'));
 
 (async () => {
   const noms = ['ana', 'ben', 'cleo', 'dan', 'eve'];
@@ -112,6 +114,28 @@ const cid = (p) => 'cid-' + p + '-' + crypto.randomBytes(5).toString('hex');
       const avantSup = (await medias(P.ana, G, 'photo')).j.medias.length;
       await P.ben.post('/api/conversations/' + G + '/messages/supprimer', { seq: sPhSup, pour: 'tous' });
       v('⛔ une photo SUPPRIMÉE pour tous sort de la galerie — population : elle y était', [avantSup, (await medias(P.ana, G, 'photo')).j.medias.map(x => x.seq)], [2, [sPh]]);
+    }
+
+    console.log('\nLa COUTURE : les VRAIES api.js et source-serveur.js (celles de la page) contre ce service');
+    {
+      const nav = T.navigateur(svc.base);
+      const sa = creerSourceServeur({ OPMSG, base: svc.base, fetch: nav.fetch, EventSource: nav.EventSource, attente: () => 60, delaiRelireMs: 5 });
+      await sa.connexion('ana', 'pw-ana-12345');
+      const d = await sa.demarrer();
+      try {
+        v('population : la vraie source démarre et annonce « retrouver »', [d.connecte, sa.capacites.retrouver], [true, true]);
+        const r = await sa.chercher(G, '  RocheFort  ');
+        const rr = (await chercher(P.ana, G, 'rochefort')).j.resultats;
+        v('⛔ la vraie source cherche (requête nettoyée, casse ignorée) : les MÊMES résultats que la route, dans le même ordre, « moi » posé sur les miens seulement — population : il y en a des deux auteurs',
+          [r.resultats.map(x => x.seq), r.resultats.map(x => x.moi), rr.some(x => x.auteur === P.ana.moi.id) && rr.some(x => x.auteur !== P.ana.moi.id)], [rr.map(x => x.seq), rr.map(x => x.auteur === P.ana.moi.id), true]);
+        let e1 = null; try { await sa.chercher(G, 'a'); } catch (e) { e1 = e && e.code; }
+        v('une requête d\'un seul signe est refusée sur l\'appareil, sans requête', e1, 'invalide');
+        const ph = await sa.medias(G, 'photo'), fi = await sa.medias(G, 'fichier'), li = await sa.medias(G, 'lien');
+        v('⛔ les photos, les fichiers, les liens par la vraie source', [ph.medias.map(x => [x.seq, x.pieces.length]), fi.medias.map(x => [x.seq, x.fichier.nom]), li.medias.map(x => x.seq), li.medias[0].texte.includes('www.mairie-rochefort.fr')],
+          [[[sPh, 2]], [[sF, 'Plan ROCHEFORT.pdf']], [sL], true]);
+        let e2 = null; try { await sa.medias(G, 'video'); } catch (e) { e2 = e && e.code; }
+        v('un genre inconnu est refusé sur l\'appareil', e2, 'invalide');
+      } finally { try { sa.arreter(); } catch (e) { /* rien */ } }
     }
 
     console.log('\nLe corps piégé ; le plafond par compte');
