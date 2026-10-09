@@ -318,13 +318,22 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
   const bloc = async (titre, fn) => {
     if (SEUL.length && !SEUL.includes(titre.split('.')[0])) return;
     console.log('\n' + titre);
-    try { await fn(); } catch (e) { v(titre + ' : le bloc est allé jusqu\'au bout', 'EXCEPTION : ' + String(e && e.message || e).split('\n').filter(Boolean).slice(0, 4).join(' | ').slice(0, 520), 'sans exception'); }
+    /* le DÉBUT et la FIN du message : le journal de Playwright dit POURQUOI un geste n'aboutit pas (« element is not enabled », « not stable »…) dans ses DERNIÈRES lignes — coupé
+       aux quatre premières, le bloc 6 du 9 octobre 2026 tombait sans dire pourquoi */
+    try { await fn(); } catch (e) { const L = String(e && e.message || e).split('\n').filter(Boolean); v(titre + ' : le bloc est allé jusqu\'au bout', 'EXCEPTION : ' + (L.length > 7 ? L.slice(0, 3).concat(['…'], L.slice(-4)) : L).join(' | ').slice(0, 1400), 'sans exception'); }
   };
   try {
     const tonalite = ecrireTonalite(dir);
-    const ARGS = ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--mute-audio',
+    /* ⛔ PAS DE GPU ÉMULÉ PAR DÉFAUT (9 octobre 2026). Sous SwiftShader, dès qu'un encodeur lit la toile capturée (l'enregistrement de l'hôte), la page
+       tombe à 0,1-2 images par seconde — mesuré sur une page ISOLÉE, sans la maille (`scratchpad/mesure-cout-rec.js`) : 30 im/s au dessin seul, 19 avec
+       la capture, 0,3 avec l'encodeur VP9 en 1280×720 ; par le processeur (`--disable-gpu`, le chemin d'ici), 30,4 im/s dans TOUS les cas. Aucun
+       appareil réel ne passe par là (un vrai GPU, ou le processeur), et Playwright attend des images pour juger un bouton « stable » : le bloc 6
+       restait bloqué sur « Arrêter l'enregistrement », puis tout ce qui suivait. Cette sonde ne mesure aucune couleur sous le verre (ses captures ne
+       sont que des images de contrôle) : `SWIFTSHADER=1` remet le GPU émulé pour des captures fidèles au verre. */
+    const GPU_EMULE = process.env.SWIFTSHADER === '1' ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-gpu-rasterization', '--ignore-gpu-blocklist'] : ['--disable-gpu'];
+    const ARGS = ['--no-sandbox', '--disable-dev-shm-usage'].concat(GPU_EMULE, ['--mute-audio',
       '--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', '--use-file-for-fake-audio-capture=' + tonalite, '--autoplay-policy=no-user-gesture-required',
-      '--disable-features=WebRtcHideLocalIpsWithMdns'];
+      '--disable-features=WebRtcHideLocalIpsWithMdns']);
     /* ⛔ le bouclage compte pour un SECOND réseau : Chromium ouvre une allocation chez coturn PAR RÉSEAU et par adresse de relais, donc deux avec lui (mesuré : 2 par liaison pour UNE adresse). Un téléphone n'a qu'un réseau actif : `SANS_BOUCLE=1` retire le bouclage pour mesurer le relais comme un appareil ordinaire le voit (les trajets directs passent alors par l'adresse de la machine). */
     if (!process.env.SANS_BOUCLE && !AVEC_RELAIS) ARGS.push('--allow-loopback-in-peer-connection');          // avec `--relais`, le bouclage est retiré d'office : les blocs 10 et 11 comptent des allocations
     coturn = AVEC_RELAIS ? await demarrerCoturn(dir, SECRET, adresseLocale()) : null;
