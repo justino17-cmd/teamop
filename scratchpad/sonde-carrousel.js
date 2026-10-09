@@ -178,7 +178,9 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
         /* ⚠️ la PREMIÈRE glissade vers un écran le dessine pour la première fois : ce Chromium sans carte graphique met alors ~0,5 s
            à peindre la grande image du Mac, et pendant ce temps aucune image ne sort — on ne voit pas la glissade. On montre donc
            l'écran suivant une fois (à blanc), puis on relève la glissade du RETOUR et celle de l'aller, entre deux écrans déjà peints. */
-        const glisse = await ev(`const R=[]; const cibles=[document.querySelector('.carrousel'), document.querySelector('.vue.alterne')].filter(Boolean);
+        /* (trois cibles : le premier carrousel, la première carte — elle a de la page À CÔTÉ d'elle, là où une grande scène occupe
+           toute la largeur d'un téléphone et ne laisse rien où fuir — et la première case) */
+        const glisse = await ev(`const R=[]; const cibles=[document.querySelector('.carrousel'), document.querySelector('.carrousel.c-carte'), document.querySelector('.vue.alterne')].filter((x,k,a)=>x&&a.indexOf(x)===k);
           const aller=(c,d)=>{ const pts=[...c.querySelectorAll('.c-point')]; const i=pts.findIndex(p=>p.getAttribute('aria-current')==='true'); pts[(i+d+pts.length)%pts.length].dispatchEvent(new MouseEvent('click',{bubbles:false})); };
           for(const c of cibles){ voir(c); await new Promise(r=>setTimeout(r,1200)); c.style.setProperty('--c-duree','9999s');
             /* (une case ne capte pas le toucher — pointer-events:none : on le lui rend le temps de la mesure, pour savoir ce qui se VOIT) */
@@ -198,15 +200,19 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
                 for(const e of c.querySelectorAll('.c-vue.c-on .ap-iphone-corps,.c-vue.c-on .ap-mac,.c-vue.c-sort .ap-iphone-corps,.c-vue.c-sort .ap-mac')){ const b=e.getBoundingClientRect(), y=(Math.max(b.top,0)+Math.min(b.bottom,innerHeight))/2;
                   for(const x of [b.left<sc.left-6?sc.left-4:null, b.right>sc.right+6?sc.right+4:null]){ if(x===null||x<0||x>=innerWidth||y<0||y>=innerHeight) continue; essais++;
                     const h=document.elementFromPoint(x,y); if(h&&h.closest('.c-vue')&&c.contains(h)) fuites++; } } } }
-            c.style.pointerEvents=pe; c.style.removeProperty('--c-duree'); R.push({quoi:c.className, images, glissade, deuxVus, chevauche, deborde, essais, fuites}); }
+            const sc=c.querySelector('.c-scene').getBoundingClientRect(), place=sc.left>=8||innerWidth-sc.right>=8;
+            c.style.pointerEvents=pe; c.style.removeProperty('--c-duree'); R.push({quoi:c.className, images, glissade, deuxVus, chevauche, deborde, essais, fuites, place}); }
           scrollTo(0,0); return R;`);
         for (const g of glisse) {
           /* (la glissade part vite — la courbe « ressort » d'Apple : l'appareil qui part quitte la scène en ~150 ms ; on exige donc
              d'avoir VU la glissade, et au moins une image où les deux appareils sont dans la scène) */
           vrai(lbl + ' · ' + g.quoi + ' : population — la glissade a été vue (' + g.glissade + ' images en glissade, ' + g.deuxVus + ' à deux appareils, sur ' + g.images + ')', g.glissade >= 10 && g.deuxVus >= 1, JSON.stringify(g));
           vrai(lbl + ' · ' + g.quoi + ' : ⛔ pendant la glissade, les deux appareils ne se chevauchent jamais, et la page ne déborde pas de côté', g.chevauche === 0 && g.deborde === 0, JSON.stringify(g));
-          vrai(lbl + ' · ' + g.quoi + ' : ⛔ l\'appareil qui glisse ne se voit jamais hors de sa scène (' + g.fuites + ' fuites sur ' + g.essais + ' essais)', g.essais >= 5 && g.fuites === 0, JSON.stringify(g));
+          /* une scène qui occupe toute la largeur de l'écran n'a rien à côté d'elle : rien à essayer, et ce n'est pas un ✓ */
+          if (g.place) vrai(lbl + ' · ' + g.quoi + ' : ⛔ l\'appareil qui glisse ne se voit jamais hors de sa scène (' + g.fuites + ' fuites sur ' + g.essais + ' essais)', g.essais >= 5 && g.fuites === 0, JSON.stringify(g));
+          else vrai(lbl + ' · ' + g.quoi + ' : (pleine largeur) aucun appareil ne se voit hors de sa scène', g.fuites === 0, JSON.stringify(g));
         }
+        vrai(lbl + ' : population — au moins une glissade relevée avec de la page à côté de sa scène', glisse.some(g => g.place && g.essais >= 5), JSON.stringify(glisse.map(g => [g.quoi.split(' ').slice(0, 2).join(' '), g.place, g.essais])));
         /* ⛔ LES CASES : chacune passe d'elle-même de l'iPhone au Mac du même écran, en vague (`--i`) ; le ⏸ des cases les arrête toutes */
         const cases = await ev(`const v=[...document.querySelectorAll('.tuile-f .vue')]; return {n:v.length, alterne:v.filter(x=>x.matches('.alterne[data-carrousel].c-pret')
           &&x.querySelectorAll('.c-vue').length===2&&x.querySelectorAll('.c-vue')[0].querySelector('.ap-iphone')&&x.querySelectorAll('.c-vue')[1].querySelector('.ap-mac')).length};`);
