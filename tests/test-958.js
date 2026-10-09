@@ -82,8 +82,8 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
       return r;
     };
     class ES extends nav.EventSource {
-      /* `retenu` : le flux est TENU (les évènements s'empilent) jusqu'à ce que le banc le relâche d'un bloc — une rafale qui arrive ensemble, au geste et non au chronomètre */
-      _emettre(t, ev) { if (t === 'message' && reseau.retenu) { reseau.retenu.push([this, ev]); return; } if (t === 'message' && ev && ev.lastEventId) { reseau.gids.push(parseInt(ev.lastEventId, 10)); reseau.dernier = { es: this, ev }; } return super._emettre(t, ev); }
+      /* `retenu` : le flux est TENU (tout évènement daté s'empile, de quelque type qu'il soit) jusqu'à ce que le banc le relâche d'un bloc — une rafale qui arrive ensemble, au geste et non au chronomètre */
+      _emettre(t, ev) { if (reseau.retenu && ev && ev.lastEventId) { reseau.retenu.push([this, t, ev]); return; } if (t === 'message' && ev && ev.lastEventId) { reseau.gids.push(parseInt(ev.lastEventId, 10)); reseau.dernier = { es: this, ev }; } return super._emettre(t, ev); }
     }
     const src = creerSourceServeur(Object.assign({ OPMSG, base: svc.base, fetch: f, EventSource: ES, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60 }, opts));
     const evs = [], morts = [];
@@ -266,6 +266,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
     /* ═══ 5. L'ACQUITTEMENT : UNE PAGE VISIBLE ACQUITTE CE QU'ELLE MONTRE, UNE PAGE CACHÉE NON ═════════════════════════════════════════════ */
     console.log('\nL\'acquittement : visible, elle acquitte (une rafale = une requête) ; cachée, elle laisse partir la notification');
     const fm = faux({ permission: 'granted' });
+    fm.visible = false;                 // ⛔ CACHÉE pendant la mise en place : rien de ce qui la précède (mises en relation, conversations créées) n'a d'acquittement en attente quand la rafale commence
     const M = monter({ navigateur: fm.nav, delaiAckMs: 120 });
     await M.entrer('alice');
     await M.src.notifActiver();
@@ -275,23 +276,25 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
       const AB = (await alice.post('/api/conversations/directe', { uid: Bob.moi.id })).j.conversation.id;
       const AC = (await alice.post('/api/conversations/directe', { uid: Cleo.moi.id })).j.conversation.id;
       await att(() => M.evs.some(e => e.type === 'liste'));
+      /* ⛔ LE FLUX EST TENU AVANT QUE LA PAGE DEVIENNE VISIBLE (9 octobre 2026, run 632 de « Vérification des pages », sur main : 65 ✓ 1 ✗, vert ici cinq fois sur cinq). Un évènement
+         d'AVANT la rafale (gid 2, la mise en place) avait encore sa minuterie d'acquittement en route quand le compteur repartait de zéro : la page l'acquittait seul, à juste titre, puis la
+         rafale — deux requêtes (rejoué en étalant les écritures : 65 ✓ 1 ✗, la même ligne). La page reste donc CACHÉE pendant la mise en place (`fm.visible = false` plus haut). Et le banc
+         pariait que huit écritures l'une après l'autre tiennent dans la minuterie de groupement (120 ms) : sur une machine chargée, elles s'étalent. Tout évènement daté est donc TENU pendant
+         les écritures, puis relâché d'un bloc : ce qui traînait d'avant et les huit messages arrivent ensemble, ce que le contrôle suppose. La mutation C18 (huit minuteries au lieu d'une)
+         reste visible : neuf évènements livrés d'un coup, une minuterie chacun, qui partent pendant que la première requête vole. */
+      M.reseau.retenu = [];
       fm.visible = true;
       M.reseau.requetes.length = 0;
       /* ⛔ LA RÉPONSE DE L'ACQUITTEMENT EST RETENUE (450 ms) : la requête reste « en vol » — `ackEnvoye` n'est posé qu'à son retour. C'est ce qui sépare UNE minuterie de groupement de huit : avec huit minuteries,
          chacune qui se déclenche pendant que la première requête vole voit `g > ackEnvoye` (rien n'est encore « envoyé ») et part à son tour — plusieurs requêtes. Sans cette rétention, la garde du départ rattrapait
          la mutation C18 une fois sur deux sur une machine chargée (vu une fois sur six, 3 octobre 2026) : elle n'était « équivalente » que si la réponse revenait avant la minuterie suivante. */
       M.reseau.retarder = /POST \/api\/flux\/ack/;
-      /* ⛔ LA RAFALE ARRIVE D'UN BLOC (9 octobre 2026, run 632 de « Vérification des pages », sur main : 65 ✓ 1 ✗, vert ici cinq fois sur cinq). Le banc pariait que huit écritures
-         l'une après l'autre tiennent dans la minuterie de groupement (60 ms) : sur une machine chargée, elles s'étalent, et la page acquittait — à juste titre — en DEUX requêtes.
-         Le flux est TENU pendant les écritures, puis relâché d'un bloc : les huit évènements arrivent ensemble, ce que le contrôle suppose. La mutation C18 (huit minuteries au lieu
-         d'une) reste visible : huit évènements livrés d'un coup, huit minuteries qui partent pendant que la première requête vole. */
-      M.reseau.retenu = [];
       const tRafale = Date.now();
       for (let i = 0; i < 8; i++) await ecrire(Bob, AB, 'rafale ' + i);
-      const tenus = await att(() => M.reseau.retenu && M.reseau.retenu.length >= 8 && M.reseau.retenu.length);
+      const tenus = await att(() => M.reseau.retenu && M.reseau.retenu.filter(x => x[1] === 'message').length >= 8 && M.reseau.retenu.length);
       const lot = M.reseau.retenu || []; M.reseau.retenu = null;
-      for (const [es, ev] of lot) es._emettre('message', ev);
-      vrai('population : le flux a tenu les huit évènements de la rafale (' + tenus + '), puis les a livrés d\'un bloc', tenus >= 8);
+      for (const [es, t, ev] of lot) es._emettre(t, ev);
+      vrai('population : le flux a tenu les huit messages de la rafale (' + tenus + ' évènements datés en tout), puis les a livrés d\'un bloc', tenus >= 8);
       const dernier = await att(() => M.reseau.gids.length >= 8 && M.reseau.gids[M.reseau.gids.length - 1]);
       const acks = await att(() => M.requetes(/POST \/api\/flux\/ack/).length >= 1 && M.requetes(/POST \/api\/flux\/ack/));
       vrai('population : la page a reçu les huit messages de la rafale', !!dernier && M.reseau.gids.length >= 8);
