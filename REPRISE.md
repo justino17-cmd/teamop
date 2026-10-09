@@ -29,8 +29,9 @@ fois le téléphone, une fois le Mac, et que ça défile ». Remplace la composi
   qui part et celui qui arrive ne se chevauchent jamais, la page ne déborde pas. Huit écrans au plus (les grandes scènes : quatre paires).
 · **chaque case** de « Ce que fait OP GESTION » : l'iPhone puis le Mac de sa fonction, qui défilent en vague (`--i`) ; l'horloge est faite des
   mêmes pastilles, invisibles (`c-horloge`) ; un seul ⏸ pour les cases (`data-c-groupe` : une case est un bouton, elle ne peut pas porter le sien).
-· ⚠️ **défaut d'avant corrigé en passant** : « animations réduites » n'éteignait PAS la glissade au toucher d'un point — la règle pesait moins
-  lourd que celle qu'elle devait éteindre (spécificité). Elle porte le sens (`c-avant` / `c-arriere`) et gagne ; la sonde le mesure.
+· « animations réduites » : l'écran change sans glisser — `site.css` éteint toute animation de la page (`* { animation: none !important }`),
+  la règle de `carrousel.css` le redit pour la feuille seule. ⚠️ Écrit d'abord ici comme « un défaut d'avant corrigé » : FAUX — la mutation
+  M24 (retirer la règle locale) ne changeait rien, la règle de la page la couvrait. La mutation retire désormais les DEUX.
 · **preuves** : `test-835` 1 323 ✓ (cases et 34 carrousels de l'aperçu : iPhone puis Mac, même écran, légende, huit points au plus, pages hors 3D
   neutres) ; `sonde-carrousel.js` 2 664 ✓ 0 ✗ (4 profils × jour / nuit × 14 pages : un seul appareil au repos, chaque écran entier, aucun
   chevauchement ni débordement pendant la glissade, les cases qui passent d'elles-mêmes au Mac, le ⏸ des cases, gestes) ; mutations : voir

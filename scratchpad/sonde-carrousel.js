@@ -181,22 +181,31 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
         const glisse = await ev(`const R=[]; const cibles=[document.querySelector('.carrousel'), document.querySelector('.vue.alterne')].filter(Boolean);
           const aller=(c,d)=>{ const pts=[...c.querySelectorAll('.c-point')]; const i=pts.findIndex(p=>p.getAttribute('aria-current')==='true'); pts[(i+d+pts.length)%pts.length].dispatchEvent(new MouseEvent('click',{bubbles:false})); };
           for(const c of cibles){ voir(c); await new Promise(r=>setTimeout(r,1200)); c.style.setProperty('--c-duree','9999s');
+            /* (une case ne capte pas le toucher — pointer-events:none : on le lui rend le temps de la mesure, pour savoir ce qui se VOIT) */
+            const pe=c.style.pointerEvents; c.style.pointerEvents='auto';
             aller(c,1); await new Promise(r=>setTimeout(r,1600));
-            let images=0, glissade=0, deuxVus=0, chevauche=0, deborde=0;
+            let images=0, glissade=0, deuxVus=0, chevauche=0, deborde=0, essais=0, fuites=0;
             for(const d of [-1,1]){ aller(c,d); const t0=performance.now();
               while(performance.now()-t0<1300){ await new Promise(r=>requestAnimationFrame(r)); images++;
                 if([...c.querySelectorAll('.c-vue.c-on,.c-vue.c-sort')].some(v=>v.getAnimations().some(a=>/^c-(entre|sort)/.test(a.animationName)&&a.playState==='running'))) glissade++;
                 const aps=[...c.querySelectorAll('.c-vue.c-on .ap-iphone-corps,.c-vue.c-on .ap-mac,.c-vue.c-sort .ap-iphone-corps,.c-vue.c-sort .ap-mac')].map(e=>e.getBoundingClientRect());
                 const sc=c.querySelector('.c-scene').getBoundingClientRect(); const dans=aps.filter(b=>Math.min(b.right,sc.right)-Math.max(b.left,sc.left)>1);
                 if(dans.length===2){ deuxVus++; const [a,b]=dans; if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1) chevauche++; }
-                if(document.documentElement.scrollWidth>innerWidth) deborde++; } }
-            c.style.removeProperty('--c-duree'); R.push({quoi:c.className, images, glissade, deuxVus, chevauche, deborde}); }
+                if(document.documentElement.scrollWidth>innerWidth) deborde++;
+                /* ⛔ hors de la scène, rien ne se voit : là où un appareil dépasse le bord, on touche juste à côté — c'est la page qui
+                   doit répondre, pas l'appareil (sans la coupe, il glisserait par-dessus la page : la page, elle, ne débordait pas,
+                   site.css la coupe — c'est la mutation M12 qui l'a montré) */
+                for(const e of c.querySelectorAll('.c-vue.c-on .ap-iphone-corps,.c-vue.c-on .ap-mac,.c-vue.c-sort .ap-iphone-corps,.c-vue.c-sort .ap-mac')){ const b=e.getBoundingClientRect(), y=(Math.max(b.top,0)+Math.min(b.bottom,innerHeight))/2;
+                  for(const x of [b.left<sc.left-6?sc.left-4:null, b.right>sc.right+6?sc.right+4:null]){ if(x===null||x<0||x>=innerWidth||y<0||y>=innerHeight) continue; essais++;
+                    const h=document.elementFromPoint(x,y); if(h&&h.closest('.c-vue')&&c.contains(h)) fuites++; } } } }
+            c.style.pointerEvents=pe; c.style.removeProperty('--c-duree'); R.push({quoi:c.className, images, glissade, deuxVus, chevauche, deborde, essais, fuites}); }
           scrollTo(0,0); return R;`);
         for (const g of glisse) {
           /* (la glissade part vite — la courbe « ressort » d'Apple : l'appareil qui part quitte la scène en ~150 ms ; on exige donc
              d'avoir VU la glissade, et au moins une image où les deux appareils sont dans la scène) */
           vrai(lbl + ' · ' + g.quoi + ' : population — la glissade a été vue (' + g.glissade + ' images en glissade, ' + g.deuxVus + ' à deux appareils, sur ' + g.images + ')', g.glissade >= 10 && g.deuxVus >= 1, JSON.stringify(g));
           vrai(lbl + ' · ' + g.quoi + ' : ⛔ pendant la glissade, les deux appareils ne se chevauchent jamais, et la page ne déborde pas de côté', g.chevauche === 0 && g.deborde === 0, JSON.stringify(g));
+          vrai(lbl + ' · ' + g.quoi + ' : ⛔ l\'appareil qui glisse ne se voit jamais hors de sa scène (' + g.fuites + ' fuites sur ' + g.essais + ' essais)', g.essais >= 5 && g.fuites === 0, JSON.stringify(g));
         }
         /* ⛔ LES CASES : chacune passe d'elle-même de l'iPhone au Mac du même écran, en vague (`--i`) ; le ⏸ des cases les arrête toutes */
         const cases = await ev(`const v=[...document.querySelectorAll('.tuile-f .vue')]; return {n:v.length, alterne:v.filter(x=>x.matches('.alterne[data-carrousel].c-pret')

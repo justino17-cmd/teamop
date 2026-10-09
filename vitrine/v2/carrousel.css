@@ -115,8 +115,9 @@
 .c-groupe { display: flex; justify-content: flex-end; padding: 0 0 12px; }
 .c-groupe[hidden] { display: none; }
 
-/* « animations réduites » : l'écran change sans glisser. ⚠️ La règle porte le SENS (`c-avant` / `c-arriere`) : sans lui, elle
-   pesait moins lourd que la glissade qu'elle devait éteindre, et l'écran glissait quand même au toucher d'un point. */
+/* « animations réduites » : l'écran change sans glisser. `site.css` l'assure déjà pour toute la page (`* { animation: none !important }`) ;
+   cette règle le redit pour la feuille seule — et elle porte le SENS (`c-avant` / `c-arriere`) : sans lui, elle pèserait moins lourd que
+   la glissade qu'elle doit éteindre, et ne garderait plus rien le jour où la règle de la page changerait. */
 @media (prefers-reduced-motion: reduce) {
   [data-carrousel].c-anime.c-avant .c-vue.c-on, [data-carrousel].c-anime.c-avant .c-vue.c-sort,
   [data-carrousel].c-anime.c-arriere .c-vue.c-on, [data-carrousel].c-anime.c-arriere .c-vue.c-sort { animation: none; }

@@ -6,7 +6,7 @@ Usage : python3 scratchpad/mutations-carrousel.py            (toutes)      SEULE
 import os, subprocess, sys
 
 RACINE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..')
-JS, CSS, GEN = 'vitrine/v2/carrousel.js', 'vitrine/v2/carrousel.css', 'scripts/site-marine.js'
+JS, CSS, GEN, SITE = 'vitrine/v2/carrousel.js', 'vitrine/v2/carrousel.css', 'scripts/site-marine.js', 'vitrine/v2/site.css'
 
 # (nom, fichier, avant, après, ce qui doit tomber, environnement de la sonde)
 MUTATIONS = [
@@ -34,7 +34,7 @@ MUTATIONS = [
     ('M11 la légende ne suit plus', JS, "if (legende) legende.textContent = titres[j];", "/* muté */",
      'disent le même écran', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
     ('M12 la scène ne coupe plus l\'appareil qui glisse', CSS, "container-type: size; overflow: hidden; overflow-x: clip; overflow-y: visible;", "container-type: size; overflow: visible;",
-     'ne déborde pas de côté', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+     'ne se voit jamais hors de sa scène', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     # (rendre seulement `permis` toujours vrai ne changerait rien : le cycle factures / encaissements / connexion est neutre de lui-même —
     #  c'est la scène Mac + iPhone, tout en 3D, qui arriverait chez le plombier)
     ('M13 une page hors 3D montre du 3D', GEN, "const neutre = !!METIERS[cle] && !m.trois, permis = k => !neutre || !troisD(k);",
@@ -62,8 +62,12 @@ MUTATIONS = [
      'en vague', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     ('M23 le ⏸ des cases ne fait rien', JS, "b.addEventListener('click', function () { arrete = !arrete; membres.forEach(function (x) { x.pause(arrete); }); maj(); });", "/* muté */",
      'le ⏸ des cases', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
-    ('M24 « animations réduites » : la glissade reprend le dessus', CSS, "[data-carrousel].c-anime.c-avant .c-vue.c-on, [data-carrousel].c-anime.c-avant .c-vue.c-sort,\n  [data-carrousel].c-anime.c-arriere .c-vue.c-on, [data-carrousel].c-anime.c-arriere .c-vue.c-sort { animation: none; }",
-     "[data-carrousel].c-anime .c-vue.c-on, [data-carrousel].c-anime .c-vue.c-sort { animation: none; }",
+    # ⚠️ retirer la seule règle de carrousel.css ne change RIEN : site.css éteint toute animation de la page (`* { animation: none
+    #  !important }`) — essayé le 9 octobre 2026, la mutation passait. Il faut retirer les DEUX gardes (fichiers et cibles en listes).
+    ('M24 « animations réduites » : la glissade reprend le dessus', [CSS, SITE],
+     ["[data-carrousel].c-anime.c-avant .c-vue.c-on, [data-carrousel].c-anime.c-avant .c-vue.c-sort,\n  [data-carrousel].c-anime.c-arriere .c-vue.c-on, [data-carrousel].c-anime.c-arriere .c-vue.c-sort { animation: none; }",
+      "*, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }"],
+     ["/* muté */", "*, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }"],
      'SANS glisser', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
     ('M25 le Mac avant l\'iPhone', GEN, "    vues.push(cadreIphone(ecranIphone(i, altIphone(i), { tot: j === 0 && o.tot }))); titres.push(t + LEGENDE_APPAREIL.iphone);\n    vues.push(cadreMac(ecranMac(m, altMac(m), { tailles }))); titres.push(t + LEGENDE_APPAREIL.mac);",
      "    vues.push(cadreMac(ecranMac(m, altMac(m), { tailles }))); titres.push(t + LEGENDE_APPAREIL.mac);\n    vues.push(cadreIphone(ecranIphone(i, altIphone(i), { tot: j === 0 && o.tot }))); titres.push(t + LEGENDE_APPAREIL.iphone);",
@@ -91,19 +95,22 @@ def sh(c, **kw):
 
 def main():
     seules = os.environ.get('SEULES', '').split(',') if os.environ.get('SEULES') else None
-    sales = sh('git status --porcelain -- ' + ' '.join([JS, CSS, GEN, 'apercu/site'])).stdout.strip()
+    sales = sh('git status --porcelain -- ' + ' '.join([JS, CSS, GEN, SITE, 'apercu/site'])).stdout.strip()
     if sales:
         print('⛔ arbre non propre pour les fichiers mutés — committer avant de muter :\n' + sales); sys.exit(2)
     mord, rate = [], []
     for nom, f, avant, apres, attendu, env in MUTATIONS:
         if seules and nom.split()[0] not in seules: continue
-        chemin = os.path.join(RACINE, f)
-        s = open(chemin, encoding='utf-8').read()
-        if s.count(avant) != 1:
-            print('✗ ' + nom + ' : la cible est introuvable (' + str(s.count(avant)) + ' fois) — mutation mal visée'); rate.append(nom); continue
-        open(chemin, 'w', encoding='utf-8').write(s.replace(avant, apres))
+        # une mutation peut toucher PLUSIEURS fichiers (deux gardes qui se couvrent l'une l'autre se retirent ensemble)
+        fs_, av_, ap_ = (f, avant, apres) if isinstance(f, list) else ([f], [avant], [apres])
+        textes = [open(os.path.join(RACINE, x), encoding='utf-8').read() for x in fs_]
+        manque = [x + ' (' + str(t.count(a)) + ' fois)' for x, t, a in zip(fs_, textes, av_) if t.count(a) != 1]
+        if manque:
+            print('✗ ' + nom + ' : la cible est introuvable — ' + ', '.join(manque) + ' — mutation mal visée'); rate.append(nom); continue
+        for x, t, a, b in zip(fs_, textes, av_, ap_): open(os.path.join(RACINE, x), 'w', encoding='utf-8').write(t.replace(a, b))
+        f = ' '.join(fs_)
         try:
-            if f == GEN: sh('node scripts/site-marine.js', timeout=120)
+            if GEN in fs_: sh('node scripts/site-marine.js', timeout=120)
             # la mutation a bien touché le fichier SERVI (règle du dépôt : vérifier que la mutation a frappé le bon endroit)
             d = sh('git diff --stat').stdout.strip()
             e = dict(os.environ); e.update(env)
@@ -117,7 +124,7 @@ def main():
         finally:
             sh('git checkout -- ' + f + ' apercu/site')
     print('\n' + str(len(mord)) + ' mordent, ' + str(len(rate)) + ' ratent')
-    reste = sh('git status --porcelain -- ' + ' '.join([JS, CSS, GEN, 'apercu/site'])).stdout.strip()
+    reste = sh('git status --porcelain -- ' + ' '.join([JS, CSS, GEN, SITE, 'apercu/site'])).stdout.strip()
     print('arbre après les mutations : ' + ('PROPRE' if not reste else 'SALE ⛔\n' + reste))
     sys.exit(1 if rate or reste else 0)
 
