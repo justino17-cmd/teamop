@@ -401,6 +401,45 @@ async function controler(PAGE, SRC, DOC) {
       /if \(m\.transfere && !m\.supprime\) h \+= '<span class="msg-transfere">' \+ icone\('i-transferer'\) \+ 'Transféré<\/span>';\s*if \(m\.reponse && !m\.supprime\)/.test(JS)
       && /else if \(G\.tVers\.length >= TR_MAX\) \{ erreurInfo\('Cinq conversations au plus à la fois\.'\); return; \}/.test(JS) && /<symbol id="i-transferer"/.test(PAGE));
   }
+  /* ⛔ RETROUVER (9 octobre 2026) : l'occurrence surlignée (échappée), les liens de la galerie (les règles de la bulle), seule la DERNIÈRE réponse s'affiche, « Chercher plus loin »
+     ajoute — les VRAIES fonctions de la page, exécutées ; le service est gardé par tests/test-946.js, les gestes par tests/sonde-opmessages-retrouver.js */
+  {
+    const iL = JS.indexOf('const LIEN_RE'), fL = JS.indexOf('function texteRiche'), iR = JS.indexOf('const normeCar'), fR = JS.indexOf('const MD_GENRES'), iK = JS.indexOf('function liensDe'), fK = JS.indexOf('let mdObservateur');
+    const ligneEsc = (/const esc = s => [^\n]*/.exec(JS) || [''])[0];
+    let R = null, ctx = null;
+    try {
+      const els = {}, el = () => ({ innerHTML: '', hidden: false, textContent: '', setAttribute() {}, style: { setProperty() {} } });
+      ctx = { icone: () => '', libelleListe: () => 'hier', nomAuteur: () => 'Ben', phrase: (e, d) => d, etat: { groupe: { mode: 'chercher', convId: 'c_x' } }, document: { querySelector: () => null }, setTimeout, clearTimeout };
+      ctx.$ = id => (els[id] = els[id] || el());
+      vm.createContext(ctx);
+      vm.runInContext(ligneEsc + '\n' + JS.slice(iL, fL) + '\n' + JS.slice(iR, fR) + '\n' + JS.slice(iK, fK) + '\nthis.R = { surligner, liensDe, rendreRecherche, lancerRecherche };', ctx, { timeout: 2000 });
+      R = ctx.R;
+    } catch (e) { R = null; }
+    vrai('(population) les fonctions de « Retrouver » s\'exécutent dans un bac à sable (' + (fR - iR) + ' + ' + (fK - iK) + ' caractères)', iL > 0 && fL > iL && iR > 0 && fR > iR && iK > 0 && fK > iK && !!R && typeof R.lancerRecherche === 'function');
+    if (R) {
+      v('⛔ l\'occurrence est SURLIGNÉE telle qu\'elle est écrite, sans accents ni casse, et tout le reste est ÉCHAPPÉ',
+        [R.surligner('Le chantier de Rochefort démarre', 'rochefort'), R.surligner('Réunion à l\'école', ' ECOLE '), R.surligner('<b>x</b> <i>rochefort</i>', 'rochefort'), R.surligner('voir <b>ici', '<B>'), R.surligner('rien <ici>', 'zz')],
+        ['Le chantier de <mark>Rochefort</mark> démarre', 'Réunion à l&#39;<mark>école</mark>', '&lt;b&gt;x&lt;/b&gt; &lt;i&gt;<mark>rochefort</mark>&lt;/i&gt;', 'voir <mark>&lt;b&gt;</mark>ici', 'rien &lt;ici&gt;']);
+      v('⛔ les liens de la galerie suivent les règles de la bulle : http, https, « www. » (rendu en https), la ponctuation dehors, sans doublon, jamais un hôte qui n\'en est pas un',
+        R.liensDe('Voir https://a.fr/x. et www.b.fr, puis https://a.fr/x encore ; https://_x.fr et javascript:alert(1)').map(l => [l.u, l.href]), [['https://a.fr/x', 'https://a.fr/x'], ['www.b.fr', 'https://www.b.fr']]);
+      const G = ctx.etat.groupe; R.rendreRecherche();
+      let lent = null, appels = [];
+      ctx.source = { chercher: (conv, q, avant) => { appels.push([conv, q, avant]); return q === 'premier' ? new Promise(r => { lent = r; }) : Promise.resolve({ resultats: [{ seq: 2, auteur: 'p_b', moi: false, t: 1, type: 'texte', texte: 'second' }], suite: 5 }); } };
+      G.rc.q = 'premier'; const p1 = R.lancerRecherche(false);
+      G.rc.q = 'second'; const p2 = R.lancerRecherche(false);
+      await p2; lent({ resultats: [{ seq: 1, auteur: 'p_b', moi: false, t: 1, type: 'texte', texte: 'premier' }], suite: null }); await p1;
+      v('⛔ deux recherches qui se croisent : seule la DERNIÈRE réponse s\'affiche (la lente, arrivée après, est ignorée)', [G.rc.resultats.map(x => x.seq), G.rc.suite, appels.map(x => x[1])], [[2], 5, ['premier', 'second']]);
+      ctx.source = { chercher: (conv, q, avant) => { appels.push([conv, q, avant]); return Promise.resolve({ resultats: [{ seq: 1, auteur: 'p_b', moi: false, t: 1, type: 'texte', texte: 'plus loin' }], suite: null }); } };
+      await R.lancerRecherche(true);
+      v('« Chercher plus loin » reprend à la `suite` et AJOUTE (rien ne disparaît)', [G.rc.resultats.map(x => x.seq), G.rc.suite, appels[appels.length - 1]], [[2, 1], null, ['c_x', 'second', 5]]);
+      const n0 = appels.length; G.rc.q = 'a'; await R.lancerRecherche(false);
+      v('une requête d\'un seul signe ne part pas au service, et vide la liste', [appels.length - n0, G.rc.resultats.length], [0, 0]);
+    }
+    vrai('⛔ les deux lignes des Infos n\'existent que si la source sait chercher (CAP.retrouver) ; un résultat mène au message en remontant jusqu\'à 60 pages',
+      /if \(CAP\.retrouver && !i\.supprime\) h \+= '<div class="carte"><button type="button" class="reglage presse" data-act="chercher">/.test(JS)
+      && /function allerDepuisFeuille\(seq\) \{ const conv = etat\.groupe\.convId; if \(!conv \|\| !Number\.isSafeInteger\(seq\)\) return; voirMessage\(conv, seq, true\); cibleMsg\.max = 60; \}/.test(JS)
+      && /cibleMsg\.pages < \(cibleMsg\.max \|\| 20\)/.test(JS));
+  }
   vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
     /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
   vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',
