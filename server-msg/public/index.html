@@ -1248,6 +1248,9 @@ html[data-service] .mention-apercu { display: none; }
 .mention-choix[aria-selected="true"] { background: var(--field); }
 @media (hover: hover) { .mention-choix:hover { background: var(--field); } }
 .bulle .mention-nom { font-weight: 600; }
+/* un lien dans une bulle : la couleur de la bulle (lisible sur les deux fonds, de jour comme de nuit), souligné ; une adresse longue se coupe n'importe où ;
+   l'appui long ouvre le menu du message, pas la fiche du lien du système (les deux se marcheraient dessus) */
+.bulle .lien-msg { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; -webkit-touch-callout: none; }
 /* « mention-moi », pas « moi » : `.moi` est la carte du compte dans la barre latérale (flex, 44 px de haut, fond de champ) — la mention en héritait
    et devenait un bloc gris sur sa propre ligne (capture du 9 octobre 2026). */
 .bulle .mention-nom.mention-moi { padding: 0 3px; border-radius: 6px; background: color-mix(in srgb, currentColor 16%, transparent); }

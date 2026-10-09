@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '18d230d8e02f';
+  const OPMSG_BUILD = '7b76aaea191e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 145;
+  const OPMSG_VERSION = 146;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -523,6 +523,36 @@
     }
     return h + esc(s.slice(i));
   }
+  /* ── LES LIENS D'UN MESSAGE (9 octobre 2026) : une adresse « https://… », « http://… » ou « www.… » tapée dans un texte devient un lien qu'on touche.
+     ⛔ Rien d'autre ne devient un lien : ni « javascript: », ni « data: », ni « mailto: » — seuls http et https, et le texte du lien est échappé comme le reste.
+     ⛔ AUCUN APERÇU : la page ne va jamais chercher la page visée (ni titre, ni image) — ce serait dire à un site tiers qui lit quoi, et quand. Le lien s'ouvre
+     dans le navigateur (`target="_blank"`), sans référent (`noreferrer`, et la page entière est en `Referrer-Policy: no-referrer`), sans accès à cette page (`noopener`).
+     La ponctuation qui FINIT une phrase (« … voir https://x.fr. ») n'appartient pas au lien ; une parenthèse fermante n'en fait partie que si le lien en a ouvert une
+     (les adresses de Wikipédia). Un « @Prénom » DANS une adresse n'est pas une mention. */
+  const LIEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'«»]+/giu;
+  const LIEN_SUR = /^https?:\/\/[\p{L}\p{N}][\p{L}\p{N}.-]*(?::\d{1,5})?(?:[/?#]|$)/iu;
+  function lienNettoye(u) {
+    let fin = u.length;
+    while (fin > 0) {
+      const ch = u[fin - 1], t = u.slice(0, fin);
+      if ('.,;:!?\'"’”»…'.includes(ch)) { fin--; continue; }
+      if (ch === ')' && t.split('(').length < t.split(')').length) { fin--; continue; }
+      break;
+    }
+    return u.slice(0, fin);
+  }
+  function texteRiche(t, c) {
+    const s = String(t);
+    if (!/https?:\/\/|www\./i.test(s)) return texteMentions(s, c);
+    let h = '', i = 0;
+    for (const x of s.matchAll(LIEN_RE)) {
+      const u = lienNettoye(x[0]), href = /^www\./i.test(u) ? 'https://' + u : u;
+      if (!u || !LIEN_SUR.test(href)) continue;
+      h += texteMentions(s.slice(i, x.index), c) + '<a class="lien-msg" href="' + esc(href) + '" target="_blank" rel="noopener noreferrer nofollow">' + esc(u) + '</a>';
+      i = x.index + u.length;
+    }
+    return h + texteMentions(s.slice(i), c);
+  }
   const MENTIONS_FIN = true;
   /* un message rend { h, st } : h = son balisage SANS le statut, st = « Lu 14:06 » / « Envoyé » / null. Le statut change seul (la lecture arrive après l'envoi) :
      il se met à jour EN PLACE, sans refaire la bulle ni recréer sa photo (peindreMessages) */
@@ -541,7 +571,7 @@
         '<button type="button" class="photo presse" data-photo="' + esc(m.id) + '|' + i + '"' + (une ? styleUne(p) : '') + ' aria-label="Agrandir la photo ' + (i + 1) + ' sur ' + m.photos.length + '"><img src="' + esc(p.url) + '" alt="Photo envoyée par ' + esc(moi ? 'vous' : nomAuteur(m.auteur)) + '"></button>' :
         photoAttente(p, i, m.photos.length, une)).join('') + '</span>';
       /* la LÉGENDE, dessous, dans une bulle de l'envoyeur */
-      if (m.texte) h += '<span class="bulle legende ' + sens + '" dir="auto">' + esc(m.texte) + '</span></span>';
+      if (m.texte) h += '<span class="bulle legende ' + sens + '" dir="auto">' + texteRiche(m.texte, c) + '</span></span>';
     } else if (m.vocal) {
       h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
         '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
@@ -563,7 +593,7 @@
     } else if (m.supprime) {
       h += '<span class="bulle supprimee ' + sens + '" dir="auto">Message supprimé</span>';
     } else {
-      h += '<span class="bulle ' + sens + '" dir="auto">' + texteMentions(m.texte, c) + '</span>';
+      h += '<span class="bulle ' + sens + '" dir="auto">' + texteRiche(m.texte, c) + '</span>';
     }
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
     if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang' + (etat.menu && etat.menu.mid === m.id ? ' menu-ancre' : '') + '">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';

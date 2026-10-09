@@ -108,7 +108,7 @@ async function controler(PAGE, SRC, DOC) {
   const nus = [...JS.matchAll(/\+\s*(m\.texte|c\.nom|c\.court|c\.apercu|c\.id|c\.initiales|m\.id|p\.url|m\.vocal\.url|G\.nom|c\.role|nomAuteur\([^)]*\)|prenom\([^)]*\))\s*\+/g)].map(m => m[1]);
   v('(population) ' + (JS.match(/esc\(/g) || []).length + ' appels à esc() dans la page — aucun texte d\'une bulle, d\'un nom ou d\'un aperçu n\'est concaténé SANS esc() (« sans esc »)', nus, []);
   /* (le texte d'une bulle passe par `texteMentions`, qui l'échappe MORCEAU PAR MORCEAU — exécutée plus bas, § « les mentions ») */
-  vrai('le texte d\'une bulle et l\'aperçu de la liste passent par esc()', /'<span class="bulle ' \+ sens \+ '" dir="auto">' \+ texteMentions\(m\.texte, c\) \+ '<\/span>'/.test(JS) && /if \(s\.indexOf\('@'\) < 0 \|\| !multi\(c\)\) return esc\(s\);/.test(JS) && /esc\(c\.apercu\)/.test(JS) && /esc\(c\.nom\)/.test(JS) && /esc\(m\.texte\)/.test(JS));
+  vrai('le texte d\'une bulle et l\'aperçu de la liste passent par esc() (la bulle par `texteRiche` → `texteMentions` → esc, ses liens compris — section des mentions)', /'<span class="bulle ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\) \+ '<\/span>'/.test(JS) && /return h \+ texteMentions\(s\.slice\(i\), c\);/.test(JS) && /if \(s\.indexOf\('@'\) < 0 \|\| !multi\(c\)\) return esc\(s\);/.test(JS) && /esc\(c\.apercu\)/.test(JS) && /esc\(c\.nom\)/.test(JS) && /esc\(m\.texte\)/.test(JS));
   vrai('⛔ ni innerHTML ni insertAdjacentHTML ne reçoit directement la valeur d\'un champ (le texte tapé n\'arrive jamais qu\'en value ou par esc)', !/innerHTML\s*=\s*[^;]*\.value\b/.test(JS) && !/insertAdjacentHTML\([^)]*\.value\b/.test(JS) && !/\$\('saisie'\)\.innerHTML/.test(JS));
   vrai('une adresse d\'image n\'entre dans le balisage que si elle commence par blob: (aucune adresse venue d\'ailleurs), et passe par esc()', /const blob = u => typeof u === 'string' && \/\^blob:https\?:/.test(JS) && /blob\(p\.url\)/.test(JS) && /blob\(c\.photo\)/.test(JS));
   {
@@ -396,7 +396,7 @@ async function controler(PAGE, SRC, DOC) {
     try {
       const defs = ['const esc = ', 'const norme = ', 'const contactDe = ', 'const prenom = ', 'const multi = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
       const ctx = { console }; vm.createContext(ctx);
-      vm.runInContext('let MOI = null, CONTACTS = []; const source = {};\n' + defs + '\n' + JS.slice(iM, fM) + '\nthis.T = { mentionnables, mentionsDe, texteMentions, poser: (m, c) => { MOI = m; CONTACTS = c; } };', ctx, { timeout: 2000 });
+      vm.runInContext('let MOI = null, CONTACTS = []; const source = {};\n' + defs + '\n' + JS.slice(iM, fM) + '\nthis.T = { mentionnables, mentionsDe, texteMentions, texteRiche, poser: (m, c) => { MOI = m; CONTACTS = c; } };', ctx, { timeout: 2000 });
       T = ctx.T;
     } catch (e) { T = null; }
     vrai('les fonctions des mentions de la page s\'exécutent dans un bac à sable', !!T && typeof T.mentionsDe === 'function' && typeof T.texteMentions === 'function');
@@ -412,7 +412,29 @@ async function controler(PAGE, SRC, DOC) {
       vrai('⛔ la bulle : le « @Prénom » d\'un membre est en gras, le mien voilé, un inconnu reste du texte — et TOUT le reste est échappé (aucune balise du texte ne s\'ouvre)',
         h1 === '&lt;img src=x onerror=alert(1)&gt; <b class="mention-nom">@Inès</b> &amp; &lt;b&gt;' && h2 === 'merci <b class="mention-nom mention-moi">@Justin</b> !' && h3 === '@Inconnu &lt;i&gt;' && h4 === '@Inès',
         JSON.stringify([h1, h2, h3, h4]));
+      /* ── LES LIENS (9 octobre 2026) : une adresse tapée devient un lien qu'on touche — http et https SEULEMENT, échappée, sans aperçu, sans référent ── */
+      const L = (t, conv) => T.texteRiche(t, conv || g);
+      const A = (href, txt) => '<a class="lien-msg" href="' + href + '" target="_blank" rel="noopener noreferrer nofollow">' + (txt === undefined ? href : txt) + '</a>';
+      v('une adresse dans un texte devient un lien (http, https, « www. » complété en https), le reste reste du texte échappé',
+        [L('voir https://exemple.fr/a?b=1&c=2 merci'), L('http://exemple.fr'), L('www.exemple.fr/x')],
+        ['voir ' + A('https://exemple.fr/a?b=1&amp;c=2') + ' merci', A('http://exemple.fr'), A('https://www.exemple.fr/x', 'www.exemple.fr/x')]);
+      v('⛔ la ponctuation qui FINIT la phrase n\'est pas au lien ; une parenthèse n\'y est que si le lien l\'a ouverte (Wikipédia) ; « (https://x.fr) » laisse la sienne dehors',
+        [L('lis https://exemple.fr/page. Ensuite'), L('https://fr.wikipedia.org/wiki/Paris_(France), ok'), L('(https://exemple.fr)'), L('« https://exemple.fr »')],
+        ['lis ' + A('https://exemple.fr/page') + '. Ensuite', A('https://fr.wikipedia.org/wiki/Paris_(France)') + ', ok', '(' + A('https://exemple.fr') + ')', '« ' + A('https://exemple.fr') + ' »']);
+      v('⛔ RIEN d\'autre ne devient un lien : javascript:, data:, mailto:, un « https:// » sans hôte, un hôte qui commence par un signe ; et un « <script> » collé à l\'adresse est coupé et échappé',
+        [L('javascript:alert(1)'), L('data:text/html,<b>x</b>'), L('mailto:a@b.fr'), L('https:// rien'), L('https://.exemple.fr'), L('https://exemple.fr<script>alert(1)</script>')],
+        ['javascript:alert(1)', 'data:text/html,&lt;b&gt;x&lt;/b&gt;', 'mailto:a@b.fr', 'https:// rien', 'https://.exemple.fr', A('https://exemple.fr') + '&lt;script&gt;alert(1)&lt;/script&gt;']);
+      v('⛔ un guillemet ou une apostrophe ne sort pas de l\'attribut : ils arrêtent l\'adresse (« \" onmouseover=… » reste du texte échappé)',
+        [L('https://exemple.fr/"onmouseover="alert(1)'), L("https://exemple.fr/'x")],
+        [A('https://exemple.fr/') + '&quot;onmouseover=&quot;alert(1)', A('https://exemple.fr/') + '&#39;x']);
+      v('⛔ un « @Prénom » DANS une adresse n\'est pas une mention ; à côté d\'une adresse, une mention reste une mention ; dans une conversation à deux, les liens aussi',
+        [L('https://exemple.fr/@Inès'), L('@Inès regarde https://exemple.fr'), L('https://exemple.fr', d)],
+        [A('https://exemple.fr/@Inès'), '<b class="mention-nom">@Inès</b> regarde ' + A('https://exemple.fr'), A('https://exemple.fr')]);
+      v('un texte sans adresse se rend EXACTEMENT comme avant (la mention, l\'échappement)', [L('<img src=x onerror=alert(1)> @Inès & <b>'), L('merci @Justin !')], [h1, h2]);
     }
+    vrai('les liens des bulles : le texte d\'un message ET la légende d\'une photo passent par `texteRiche` (plus par `texteMentions` ni `esc` seuls)',
+      /class="bulle ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\)/.test(JS) && /class="bulle legende ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\)/.test(JS)
+        && !/dir="auto">' \+ texteMentions\(m\.texte/.test(JS) && !/class="bulle legende ' \+ sens \+ '" dir="auto">' \+ esc\(m\.texte\)/.test(JS));
     vrai('les mentions partent avec l\'envoi (et avec un message programmé), la liste « @ » choisit à Entrée SANS envoyer (gardien en capture), Échap ne ferme qu\'elle',
       /const cites = mentionsDe\(t, convCourante\(\), mentionUI\.choisis\.get\(id\)\);\s*ok = await envoi\(Object\.assign\(/.test(JS) && /cites\.length \? \{ mentions: cites \} : \{\}/.test(JS)
         && /else if \(\(e\.key === 'Enter' && !e\.shiftKey\) \|\| e\.key === 'Tab'\) \{ e\.preventDefault\(\); e\.stopImmediatePropagation\(\); choisirMention\(mentionUI\.i\); \}/.test(JS)
