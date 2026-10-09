@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'ba50d0638867';
+  const OPMSG_BUILD = '6d2441dc244f';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 143;
+  const OPMSG_VERSION = 144;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -518,7 +518,7 @@
     for (const x of s.matchAll(MENTION_RE)) {
       const nom = nomMention(x[2]), cle = norme(nom), d = x.index + x[1].length, estMoi = !!moi && cle === moi;
       if (!estMoi && !cles.has(cle)) continue;
-      h += esc(s.slice(i, d)) + '<b class="mention-nom' + (estMoi ? ' moi' : '') + '">' + esc('@' + nom) + '</b>';
+      h += esc(s.slice(i, d)) + '<b class="mention-nom' + (estMoi ? ' mention-moi' : '') + '">' + esc('@' + nom) + '</b>';
       i = d + 1 + nom.length;
     }
     return h + esc(s.slice(i));
