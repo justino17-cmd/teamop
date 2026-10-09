@@ -319,7 +319,16 @@ async function controler(PAGE, SRC, DOC) {
   /* 4 quater. PERSO / PRO ET « CONFIRMER L'ENVOI » (7 octobre 2026, « côté pro ») — la sonde tests/sonde-opmessages-perso-pro.js les joue au doigt contre le vrai service ;
      le banc garde les décisions : la liste du côté en cours (une recherche cherche partout), ouvrir de l'autre côté y bascule, le nom PRO, la seconde touche avant d'envoyer */
   vrai('Perso / Pro : la liste montre le côté en cours — mais une RECHERCHE cherche des deux côtés (on ne perd pas une conversation parce qu\'on est du mauvais)',
-    /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| dansMode\(c\)\)\)/.test(JS) && /const dansMode = c => !modesActifs\(\) \|\| coteDe\(c\) === etat\.mode;/.test(JS));
+    /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| \(dansMode\(c\) && !c\.archive\)\)\)/.test(JS) && /const dansMode = c => !modesActifs\(\) \|\| coteDe\(c\) === etat\.mode;/.test(JS));
+  /* ⛔ LES ARCHIVÉES ET « MODIFIER » (9 octobre 2026) : le comportement se joue au navigateur (sonde-opmessages-ranger) ; ici, la forme qui le porte */
+  vrai('Archivées : une conversation archivée sort de la liste (la recherche la retrouve), une ligne « Archivées » en bas les rassemble, et une épinglée archivée n\'est plus en tête',
+    /const archivees = etat\.conversations\.filter\(c => c\.archive && c\.invitation !== 'recue' && dansMode\(c\)\);/.test(JS) && /: etat\.listeArchives \? archivees :/.test(JS)
+      && /etat\.conversations\.filter\(c => c\.invitation !== 'recue' && \(q \|\| \(dansMode\(c\) && !c\.archive\)\)\)/.test(JS)
+      && /const pied = !etat\.listeInvit && !etat\.listeArchives && !q && !etat\.selection && archivees\.length \? ligneArchives\(archivees\) : '';/.test(JS)
+      && /etat\.conversations\.filter\(c => c\.epingle && !c\.archive && c\.invitation !== 'recue' && dansMode\(c\)\)/.test(JS));
+  vrai('« Modifier » : en mode sélection une ligne se COCHE (data-choisir, aria-pressed) au lieu de s\'ouvrir ; on en sort en changeant de vue ou de côté',
+    /'<button type="button" class="conv presse conv-choix" data-choisir="' \+ esc\(c\.id\) \+ '" aria-pressed="' \+ pris \+ '">/.test(JS)
+      && /if \(r\.vue !== 'messages' && etat\.selection\) quitterSelection\(\);/.test(JS) && /etat\.mode = m; etat\.vcCat = null; etat\.selection = null; etat\.listeArchives = false;/.test(JS));
   vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
     /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
   vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',

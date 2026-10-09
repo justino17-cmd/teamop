@@ -275,6 +275,19 @@ const cid = (p) => 'cid-' + p + '-' + hex() + hex();
       v('« prefs » vide ou piégé est refusé', [(await P.bob.post('/api/conversations/' + Gn + '/prefs', {})).code, (await P.bob.post('/api/conversations/' + Gn + '/prefs', { epingle: 'oui' })).code, (await P.bob.post('/api/conversations/' + Gn + '/prefs', { muet_jusqua: -5 })).code], [400, 400, 400]);
       v('la conversation épinglée passe en tête de SA liste', (await P.bob.get('/api/conversations')).j.conversations[0].id, Gn);
       v('et Alice ne la voit pas épinglée (la préférence est par membre)', (await P.alice.get('/api/conversations')).j.conversations.find(c => c.id === Gn).epingle, false);
+      /* ⛔ ARCHIVER (9 octobre 2026, le geste « Modifier » de la liste) : la préférence est par membre, et une conversation archivée REVIENT quand on y écrit — sauf en sourdine */
+      const arch = async (X) => (await X.get('/api/conversations')).j.conversations.find(c => c.id === Gn).archive;
+      v('Bob archive (il est en sourdine, posée juste au-dessus) : archivée pour lui, pas pour Alice', [(await P.bob.post('/api/conversations/' + Gn + '/prefs', { archive: true })).code, await arch(P.bob), await arch(P.alice)], [200, true, false]);
+      await envoyer(P.alice, Gn, 'pendant la sourdine');
+      v('⛔ Alice écrit pendant la sourdine de Bob : la conversation RESTE archivée chez lui (archivée + en sourdine = « ne m\'en parle plus »)', await arch(P.bob), true);
+      await P.bob.post('/api/conversations/' + Gn + '/prefs', { muet_jusqua: 0 });
+      await P.alice.post('/api/conversations/' + Gn + '/maj', { nom: 'Non lus bis' });
+      v('un message SYSTÈME (le groupe renommé) ne la ressort pas — population : le renommage a bien écrit un message système', [await arch(P.bob), (await P.bob.get('/api/conversations/' + Gn + '/messages')).j.messages.some(m => m.type === 'systeme')], [true, true]);
+      await envoyer(P.alice, Gn, 'tu es là ?');
+      v('⛔ sans sourdine, Alice écrit : la conversation REVIENT dans la liste de Bob', await arch(P.bob), false);
+      await P.bob.post('/api/conversations/' + Gn + '/prefs', { archive: true });
+      await envoyer(P.bob, Gn, 'je reviens');
+      v('… et celui qui écrit dans SA conversation archivée la ressort lui aussi', await arch(P.bob), false);
     }
 
     console.log('\nQuitter un groupe : le dernier administrateur passe la main, le dernier membre le ferme');

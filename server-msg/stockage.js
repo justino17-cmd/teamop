@@ -1215,6 +1215,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     Q('INSERT INTO message(conv, seq, id, auteur, cid, ts, type, corps_ch, meta_ch, repond_a, expire_ts) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
       .run(conv, seq, id, auteur, cid, ts, type, corps, metaCh, repondA == null ? null : repondA, expire);
     Q('UPDATE conversation SET dernier_seq = ?, dernier_ts = ? WHERE id = ?').run(seq, ts, conv);
+    /* ⛔ UNE CONVERSATION ARCHIVÉE REVIENT QUAND ON Y ÉCRIT (9 octobre 2026, le geste « Archiver » de la liste) — sauf chez qui l'a mise en SOURDINE : archiver range, la sourdine
+       fait taire ; les deux ensemble disent « ne m'en parle plus » (la règle de Telegram). Sans elle, un message de travail dormirait dans les Archivées sans que personne le voie.
+       Celui qui écrit la ressort aussi (il s'en sert) ; un message SYSTÈME (quelqu'un arrive, un nom change) ne ressort rien. */
+    if (type !== 'systeme') Q('UPDATE membre SET archive = 0 WHERE conv = ? AND archive = 1 AND quitte_le IS NULL AND (uid = ? OR muet_jusqua <= ?)').run(conv, auteur, ts);
     if (sondage) sondageCreerDansTx({ conv, seq, auteur, choix: sondage.choix, regles: sondage.regles, t: ts });       // dans la MÊME transaction : jamais un « 📊 » sans ses choix
     /* ⛔ ENVOYER N'EST PAS LIRE. Celui qui écrit a lu son propre message, pas ce qui précède : `lu_seq` ne suit son
        message que si RIEN n'attendait d'être lu (`lu_seq = seq - 1`). L'ancienne version le portait à `seq` quoi qu'il
