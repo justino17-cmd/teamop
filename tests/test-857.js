@@ -212,7 +212,8 @@ async function controler(PAGE, SRC, DOC) {
   vrai('le retour système (popstate) rejoue la route de l\'entrée — il ne ferme rien lui-même', /window\.addEventListener\('popstate', e => appliquer\(/.test(JS));
   vrai('⛔ « UN GESTE, UNE NAVIGATION » : aucun écouteur de balayage à la page (touchmove, touchend, swipe) — le navigateur n\'a pas de second retour à jouer ; le seul touchstart est le vide qui réveille :active sur iOS', !/addEventListener\('touch(?:move|end|cancel)'|swipe|overscroll-behavior-x/.test(JS + CSS) && (JS.match(/addEventListener\('touchstart'/g) || []).length === 1 && /addEventListener\('touchstart', function \(\) \{\}, \{ passive: true \}\)/.test(JS));
   /* (7 octobre 2026) le menu déroulant et la demande « Envoyer à … ? » se ferment AVANT toute couche : la fenêtre du motif s'élargit, l'ORDRE des couches reste gardé */
-  vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, la conversation (dans cet ordre)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,800}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}etat\.conv/.test(JS));
+  vrai('Échap ferme la couche du dessus : la photo, la feuille, un enregistrement, le mode « Modifier », la conversation (dans cet ordre — UNE couche par Échap)', /if \(e\.key !== 'Escape'\) return;[\s\S]{0,800}etat\.photo \|\| etat\.groupe\.ouvert[\s\S]{0,260}enr\.etat === 'enregistre'[\s\S]{0,200}else if \(etat\.selection\) \{ e\.preventDefault\(\); quitterSelection\(\);[\s\S]{0,200}else if \(etat\.conv\)/.test(JS)
+    && (JS.match(/quitterSelection\(\); \$\('btn-modifier'\)\.focus/g) || []).length === 1);
   vrai('la liste recouverte devient inerte (inert) — sous la conversation ou sous un appel AFFICHÉ (réduit, il ne recouvre plus rien) — et la photo, la feuille ou l\'aperçu d\'envoi de photos rendent tout le fond inerte',
     /const couvre = !!etat\.appelId && !etat\.appelReduit;/.test(JS) && /\$\('contenu'\)\.inert = !!\(couvre \|\| \(etat\.conv && !largeBureau\.matches\)\)/.test(JS) && /\$\('app'\)\.inert = !!\(etat\.groupe\.ouvert \|\| etat\.photo \|\| etat\.menu \|\| ep\.ouvert\)/.test(JS));
   vrai('la liste revient à sa position : elle est notée à l\'ouverture et rendue à la fermeture', /etat\.scrollListe = window\.scrollY/.test(JS) && /window\.scrollTo\(0, etat\.scrollListe\)/.test(JS));
@@ -440,6 +441,15 @@ async function controler(PAGE, SRC, DOC) {
         [L('https://exemple.fr/@Inès'), L('@Inès regarde https://exemple.fr'), L('https://exemple.fr', d)],
         [A('https://exemple.fr/@Inès'), '<b class="mention-nom">@Inès</b> regarde ' + A('https://exemple.fr'), A('https://exemple.fr')]);
       v('un texte sans adresse se rend EXACTEMENT comme avant (la mention, l\'échappement)', [L('<img src=x onerror=alert(1)> @Inès & <b>'), L('merci @Justin !')], [h1, h2]);
+      v('les crochets et accolades s\'apparient comme les parenthèses ; « * », « _ », « ~ » en fin d\'adresse (le gras, l\'italique d\'un texte) restent dehors',
+        [L('[voir https://exemple.fr]'), L('*https://exemple.fr*'), L('https://exemple.fr/a[1]'), L('{https://exemple.fr/x}')],
+        ['[voir ' + A('https://exemple.fr') + ']', '*' + A('https://exemple.fr') + '*', A('https://exemple.fr/a[1]'), '{' + A('https://exemple.fr/x') + '}']);
+      /* ⛔ (relecture adverse, 9 octobre 2026) : le nettoyage recomptait les parenthèses à chaque caractère retiré — un message permis gelait l'écran de chaque lecteur */
+      const chrono = (t) => { const t0 = process.hrtime.bigint(), h = L(t); return [Number(process.hrtime.bigint() - t0) / 1e6, h]; };
+      const [ms1, hl1] = chrono('https://a.fr/' + ')'.repeat(7980)), [ms2, hl2] = chrono('https://a.fr/' + ')'.repeat(1980));
+      v('⛔ « https://a.fr/ » suivi de 7 980 « ) » (un message permis) se rend en moins de 30 ms (trop long pour une adresse : du texte) ; suivi de 1 980, le lien s\'arrête avant les parenthèses, en moins de 30 ms aussi',
+        [ms1 < 30, hl1.indexOf('<a ') < 0, ms2 < 30, hl2.startsWith(A('https://a.fr/'))], [true, true, true, true]);
+      v('une « adresse » de plus de 2 000 signes n\'en est pas une : elle reste du texte', L('https://exemple.fr/' + 'a'.repeat(2100)).indexOf('<a ') < 0, true);
     }
     vrai('les liens des bulles : le texte d\'un message ET la légende d\'une photo passent par `texteRiche` (plus par `texteMentions` ni `esc` seuls)',
       /class="bulle ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\)/.test(JS) && /class="bulle legende ' \+ sens \+ '" dir="auto">' \+ texteRiche\(m\.texte, c\)/.test(JS)

@@ -3323,8 +3323,8 @@
         try { if (geste === 'lu') await marquerLu(id); else await A.prefs(id, RANGEMENTS[geste]); faits++; }
         catch (e) { derniere = e; if (e && (e.code === 'session_requise' || e.code === 'reseau')) break; }
       }
-      await relireListe().catch(() => {});
-      emettre({ type: 'liste' });
+      /* la liste relue dit la vérité ; si la relecture échoue, la relecture PLUS TARD le dira (son erreur s'affiche) — jamais un succès sur une liste périmée */
+      try { await relireListe(); emettre({ type: 'liste' }); } catch (e) { relireListePlusTard(); }
       if (!faits && derniere) throw derniere;
       return { faits, total: new Set(ids).size };
     }

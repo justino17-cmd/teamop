@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c1f600dff4ff';
+  const OPMSG_BUILD = '5724eda52c79';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 147;
+  const OPMSG_VERSION = 148;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -94,7 +94,7 @@
     conv: null, convDonnees: null, jeton: 0,
     recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, posVues: {}, forcerBas: false, envoiEnCours: false,
     groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false,
-    selection: null, listeArchives: false,  // « Modifier » de la liste : les conversations cochées (un Set), ou null hors du mode ; la liste des Archivées ouverte
+    selection: null, listeArchives: false, rangement: false,  // « Modifier » de la liste : les conversations cochées (un Set), ou null hors du mode ; la liste des Archivées ouverte
     appels: [], filtreAppels: 'tous', jetonAppels: 0,        // l'historique tel que la source l'a rendu pour le filtre choisi
     contexte: null, menu: null, codeLien: null,     // une réponse ou une modification en cours de composition ; le menu d'un message ouvert ; le lien lu dans l'adresse
     appelId: null, appelUI: null, jetonAppel: 0, appelDemarre: false, declencheurAppel: null     // l'appel en cours : son identifiant (celui de la route), l'état local (médias, minuterie), un jeton qui périme les attentes
@@ -160,7 +160,7 @@
       : '<button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
         '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
       '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
-      '<span class="conv-apercu" dir="auto">' + esc(c.apercu) + '</span></span></button></li>';
+      '<span class="conv-apercu" dir="auto">' + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
   }
   /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
      la liste les rassemble (comme « Archivées » chez WhatsApp, « Invitations » chez Instagram) ; on y entre, on ouvre, on accepte ou on refuse. */
@@ -183,30 +183,43 @@
   /* la barre du mode « Modifier » : combien sont cochées, et les trois gestes — Épingler (Désépingler quand toutes le sont), Archiver (Désarchiver dans les Archivées), Lu */
   const RANGE_DIT = { epingler: ['Conversation épinglée', 'conversations épinglées'], desepingler: ['Épingle retirée', 'épingles retirées'], archiver: ['Conversation archivée', 'conversations archivées'],
     desarchiver: ['Conversation désarchivée', 'conversations désarchivées'], lu: ['Conversation marquée comme lue', 'conversations marquées comme lues'] };
+  /* (relecture adverse, 9 octobre 2026) : le geste se décide sur les COCHÉES, pas sur la sous-liste ouverte — une recherche mêle archivées et non archivées ; une invitation reçue
+     ne s'épingle ni ne s'archive (elle n'est pas encore une conversation : acceptée, elle aurait surgi aux Archivées) ; pendant qu'un geste part, rien ne se rallume.
+     Le compte se dit dans une région `role="status"` qui EXISTE déjà (on n'en change que le texte : une région créée avec son texte n'est pas annoncée). */
   function peindreSelection() {
     const S = etat.selection, barre = $('liste-actions'), b = $('btn-modifier'), actif = !!S;
-    b.textContent = actif ? 'OK' : 'Modifier'; b.setAttribute('aria-pressed', actif ? 'true' : 'false');
+    b.textContent = actif ? 'OK' : 'Modifier';
     if (actif) document.documentElement.dataset.selection = '1'; else delete document.documentElement.dataset.selection;
     barre.hidden = !actif;
-    if (!actif) { barre.innerHTML = ''; return; }
-    const choisies = etat.conversations.filter(c => S.has(c.id)), n = choisies.length, toutes = n > 0 && choisies.every(c => c.epingle), arch = etat.listeArchives;
-    const dis = ok => ok ? '' : ' disabled';
-    barre.innerHTML = '<span class="liste-actions-n" role="status">' + (n ? n + (n > 1 ? ' sélectionnées' : ' sélectionnée') : 'Touche des conversations') + '</span><span class="liste-actions-boutons">' +
-      (arch ? '' : '<button type="button" class="presse" data-ranger="' + (toutes ? 'desepingler' : 'epingler') + '"' + dis(n) + '>' + icone('i-epingle') + '<span>' + (toutes ? 'Désépingler' : 'Épingler') + '</span></button>') +
-      '<button type="button" class="presse" data-ranger="' + (arch ? 'desarchiver' : 'archiver') + '"' + dis(n) + '>' + icone('i-archive') + '<span>' + (arch ? 'Désarchiver' : 'Archiver') + '</span></button>' +
-      '<button type="button" class="presse" data-ranger="lu"' + dis(n && choisies.some(c => c.nonLu)) + '>' + icone('i-coche') + '<span>Lu</span></button></span>';
+    if (!actif) { $('liste-actions-n').textContent = ''; $('liste-actions-boutons').innerHTML = ''; return; }
+    const choisies = etat.conversations.filter(c => S.has(c.id)), n = choisies.length, vol = !!etat.rangement;
+    const invit = choisies.some(c => c.invitation === 'recue'), toutesArch = n > 0 && choisies.every(c => c.archive), uneArch = choisies.some(c => c.archive);
+    const toutes = n > 0 && choisies.every(c => c.epingle), arch = etat.listeArchives || toutesArch;
+    const dis = ok => ok && !vol ? '' : ' disabled';
+    const t = n ? n + (n > 1 ? ' sélectionnées' : ' sélectionnée') : 'Touche des conversations';
+    if ($('liste-actions-n').textContent !== t) $('liste-actions-n').textContent = t;
+    $('liste-actions-boutons').innerHTML =
+      (etat.listeArchives ? '' : '<button type="button" class="presse" data-ranger="' + (toutes ? 'desepingler' : 'epingler') + '"' + dis(n && !invit && !uneArch) + '>' + icone('i-epingle') + '<span>' + (toutes ? 'Désépingler' : 'Épingler') + '</span></button>') +
+      '<button type="button" class="presse" data-ranger="' + (arch ? 'desarchiver' : 'archiver') + '"' + dis(n && !invit) + '>' + icone('i-archive') + '<span>' + (arch ? 'Désarchiver' : 'Archiver') + '</span></button>' +
+      '<button type="button" class="presse" data-ranger="lu"' + dis(n && choisies.some(c => c.nonLu)) + '>' + icone('i-coche') + '<span>Lu</span></button>';
   }
   function quitterSelection() { if (!etat.selection) return; etat.selection = null; rendreListe(); }
   async function rangerSelection(geste) {
-    const ids = Array.from(etat.selection || []);
-    if (!ids.length || typeof source.rangerConvs !== 'function') return;
-    $('liste-actions').querySelectorAll('button').forEach(x => { x.disabled = true; });
+    const S = etat.selection, ids = Array.from(S || []);
+    if (!ids.length || etat.rangement || typeof source.rangerConvs !== 'function') return;
+    etat.rangement = true; peindreSelection();
+    let ok = false;
     try {
       const r = await source.rangerConvs(ids, geste), d = RANGE_DIT[geste];
       mot(r.faits < r.total ? r.faits + ' sur ' + r.total + ' : les autres n\'ont pas pu l\'être.' : r.faits > 1 ? r.faits + ' ' + d[1] : d[0]);
-      etat.selection = null;
+      if (etat.selection === S) etat.selection = null;      // on n'efface pas une sélection neuve, commencée pendant le geste
+      ok = true;
     } catch (er) { avis(phrase(er, 'Ces conversations n\'ont pas pu être rangées.')); }
+    finally { etat.rangement = false; }
     rendreListe();
+    /* le focus ne tombe pas sur la page : sur « Modifier » quand la barre s'en va, sur le premier geste quand elle reste (un refus) */
+    const f = ok && !etat.selection ? $('btn-modifier') : $('liste-actions').querySelector('button:not([disabled])') || $('btn-modifier');
+    f.focus({ preventScroll: true });
   }
   function rendreListe() {
     const q = norme(etat.recherche);
@@ -217,7 +230,8 @@
     /* ⛔ une RECHERCHE cherche partout : des deux côtés, et dans les Archivées */
     const base = etat.listeInvit ? invits : etat.listeArchives ? archivees : etat.conversations.filter(c => c.invitation !== 'recue' && (q || (dansMode(c) && !c.archive)));     // ⛔ une RECHERCHE cherche des deux côtés : on ne perd pas une conversation parce qu'on est du mauvais
     const vues = base.filter(c => !q || norme(c.nom).includes(q) || norme(c.apercu).includes(q));
-    if (etat.selection) for (const id of Array.from(etat.selection)) if (!vues.some(c => c.id === id)) etat.selection.delete(id);      // une conversation partie (quittée, autre côté) ne reste pas cochée
+    /* une conversation PARTIE (quittée, passée de l'autre côté) ne reste pas cochée — une conversation que la recherche cache, si : effacer la recherche la rend cochée */
+    if (etat.selection) for (const id of Array.from(etat.selection)) if (!etat.conversations.some(c => c.id === id && dansMode(c))) etat.selection.delete(id);
     const tete = etat.listeArchives ? '<li class="liste-invit-tete"><button type="button" class="presse" data-archives-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Archivées</h2></li>' +
       '<li class="liste-invit-note">Une conversation archivée revient dans la liste quand on y écrit, sauf si elle est en sourdine.</li>'
       : etat.listeInvit ? '<li class="liste-invit-tete"><button type="button" class="presse" data-invit-retour>' + icone('i-gauche') + '<span>Messages</span></button><h2>Invitations</h2></li>' +
@@ -507,15 +521,15 @@
       return;
     }
     const ch = e.target.closest('[data-choisir]');
-    if (ch && etat.selection) {
+    if (ch && etat.selection && !etat.rangement) {
       const id = ch.dataset.choisir; if (etat.selection.has(id)) etat.selection.delete(id); else etat.selection.add(id);
       rendreListe(); const r = document.querySelector('[data-choisir="' + CSS.escape(id) + '"]'); if (r) r.focus({ preventScroll: true }); return;
     }
     const rg = e.target.closest('[data-ranger]');
     if (rg) { rangerSelection(rg.dataset.ranger); return; }
-    if (e.target.closest('[data-archives]')) { etat.listeArchives = true; etat.listeInvit = false; rendreListe(); const r = document.querySelector('[data-archives-retour]'); if (r) r.focus({ preventScroll: true }); return; }
+    if (e.target.closest('[data-archives]')) { etat.listeArchives = true; etat.listeInvit = false; etat.selection = null; rendreListe(); const r = document.querySelector('[data-archives-retour]'); if (r) r.focus({ preventScroll: true }); return; }
     if (e.target.closest('[data-archives-retour]')) { etat.listeArchives = false; etat.selection = null; rendreListe(); const r = document.querySelector('[data-archives]'); if (r) r.focus({ preventScroll: true }); return; }
-    if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
+    if (e.target.closest('[data-invitations]')) { etat.listeInvit = true; etat.selection = null; rendreListe(); const r = document.querySelector('[data-invit-retour]'); if (r) r.focus({ preventScroll: true }); return; }
     if (e.target.closest('[data-invit-retour]')) { etat.listeInvit = false; rendreListe(); const r = document.querySelector('[data-invitations]'); if (r) r.focus({ preventScroll: true }); return; }
     const o = e.target.closest('[data-ouvrir]');
     if (o) ouvrirDepuisListe(o.dataset.ouvrir, o);
@@ -589,12 +603,20 @@
      (les adresses de Wikipédia). Un « @Prénom » DANS une adresse n'est pas une mention. */
   const LIEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'«»]+/giu;
   const LIEN_SUR = /^https?:\/\/[\p{L}\p{N}][\p{L}\p{N}.-]*(?::\d{1,5})?(?:[/?#]|$)/iu;
+  /* ⛔ EN UN SEUL PASSAGE (relecture adverse, 9 octobre 2026) : la première version recomptait les parenthèses du jeton à chaque caractère retiré — « https://a.fr/ »
+     suivi de 7 980 « ) » (un message permis) gelait l'écran de CHAQUE lecteur ~0,5 s à chaque rendu du fil. Les ouvrantes et fermantes se comptent une fois, puis se
+     décomptent. Et une adresse de plus de 2 000 signes n'en est pas une : elle reste du texte. */
+  const LIEN_PAIRES = { ')': '(', ']': '[', '}': '{' };
   function lienNettoye(u) {
+    if (u.length > 2000) return '';
+    const n = { '(': 0, ')': 0, '[': 0, ']': 0, '{': 0, '}': 0 };
+    for (const ch of u) if (n[ch] !== undefined) n[ch]++;
     let fin = u.length;
     while (fin > 0) {
-      const ch = u[fin - 1], t = u.slice(0, fin);
-      if ('.,;:!?\'"’”»…'.includes(ch)) { fin--; continue; }
-      if (ch === ')' && t.split('(').length < t.split(')').length) { fin--; continue; }
+      const ch = u[fin - 1];
+      if ('.,;:!?\'"’”»…*_~'.includes(ch)) { fin--; continue; }
+      const o = LIEN_PAIRES[ch];
+      if (o && n[o] < n[ch]) { n[ch]--; fin--; continue; }
       break;
     }
     return u.slice(0, fin);
@@ -2191,6 +2213,7 @@
     else if (etat.appelId && !etat.appelReduit) { e.preventDefault(); fermerCouche(); }      // Échap RÉDUIT l'appel (il continue) ; réduit, c'est la couche d'en dessous qui se ferme
     else if (enr.etat === 'enregistre' || enr.etat === 'demande') { e.preventDefault(); annulerEnregistrement(); }
     else if (etat.contexte) { e.preventDefault(); annulerContexte(); }
+    else if (etat.selection) { e.preventDefault(); quitterSelection(); $('btn-modifier').focus({ preventScroll: true }); }      // « Modifier » d'abord, la conversation ouverte à côté ensuite
     else if (etat.conv) { e.preventDefault(); fermerCouche(); }
   });
   /* la feuille est modale : Tab tourne DANS la feuille (le fond est inerte, le focus ne passerait sinon que par l'interface du navigateur) */
@@ -2237,7 +2260,6 @@
     etat.selection = etat.selection ? null : new Set();
     rendreListe();
   });
-  document.addEventListener('keydown', e => { if (e.key === 'Escape' && etat.selection && !etat.menu && $('menu-fond').hidden) { e.preventDefault(); quitterSelection(); $('btn-modifier').focus(); } });
 
   /* ── glisser la feuille vers le bas (téléphone) : elle suit le doigt 1:1, et à la fin on PROJETTE où le geste allait
         (apple-design §6) au lieu de juger la seule position de relâchement. Le relâchement rend la main au CSS, qui repart

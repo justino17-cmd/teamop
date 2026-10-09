@@ -65,7 +65,7 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
       choisir: Array.from(document.querySelectorAll('#liste-conv [data-choisir]')).map(x => x.dataset.choisir + (x.getAttribute('aria-pressed') === 'true' ? '*' : '')),
       archives: (() => { const a = document.querySelector('#liste-conv [data-archives]'); return a ? a.getAttribute('aria-label') : null; })(),
       epingles: document.getElementById('epingles').hidden ? [] : Array.from(document.querySelectorAll('#epingles [data-ouvrir]')).map(x => x.dataset.ouvrir),
-      modifier: [document.getElementById('btn-modifier').textContent, document.getElementById('btn-modifier').getAttribute('aria-pressed')],
+      modifier: document.getElementById('btn-modifier').textContent,
       barre: document.getElementById('liste-actions').hidden ? null : { n: document.querySelector('.liste-actions-n').textContent, gestes: Array.from(document.querySelectorAll('#liste-actions [data-ranger]')).map(x => x.dataset.ranger + (x.disabled ? '-' : '')) },
     }));
     const tri = a => a.slice().sort();
@@ -73,17 +73,22 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
     console.log('\n── 1. Au téléphone (360 px) : « Modifier » coche au lieu d\'ouvrir ──');
     const A = await ouvrir('ana', TEL, '#messages');
     await att(A, () => document.querySelectorAll('#liste-conv [data-ouvrir]').length === 4);
-    v('population : la liste d\'Ana montre ses quatre conversations, « Modifier » au repos', [tri((await ecran(A)).ouvrir), (await ecran(A)).modifier], [tri([D.ben, D.cleo, D.dan, FOOT]), ['Modifier', 'false']]);
+    v('population : la liste d\'Ana montre ses quatre conversations, « Modifier » au repos', [tri((await ecran(A)).ouvrir), (await ecran(A)).modifier], [tri([D.ben, D.cleo, D.dan, FOOT]), 'Modifier']);
     await A.page.locator('#btn-modifier').tap();
     await att(A, () => document.querySelectorAll('#liste-conv [data-choisir]').length === 4);
     const e1 = await ecran(A);
     v('« Modifier » : quatre lignes à cocher (aucune ouvrable), le bouton dit « OK », la barre dit « Touche des conversations » et ses trois gestes sont éteints',
-      [e1.ouvrir.length, e1.choisir.length, e1.modifier, e1.barre], [0, 4, ['OK', 'true'], { n: 'Touche des conversations', gestes: ['epingler-', 'archiver-', 'lu-'] }]);
+      [e1.ouvrir.length, e1.choisir.length, e1.modifier, e1.barre], [0, 4, 'OK', { n: 'Touche des conversations', gestes: ['epingler-', 'archiver-', 'lu-'] }]);
     v('⛔ la barre d\'onglets cède la place (comme dans Mail) — population : elle était visible avant', await A.page.evaluate(() => getComputedStyle(document.querySelector('.tabs')).display), 'none');
     await A.page.locator('[data-choisir="' + D.ben + '"]').tap();
     await A.page.locator('[data-choisir="' + D.cleo + '"]').tap();
+    /* ⛔ (relecture adverse) une recherche qui CACHE une cochée ne la décoche pas : effacer la recherche la rend cochée */
+    await A.page.locator('#recherche-conv').fill('Foot');
+    await att(A, () => document.querySelectorAll('#liste-conv [data-choisir]').length === 1);
+    await A.page.locator('#recherche-conv').fill('');
+    await att(A, () => document.querySelectorAll('#liste-conv [data-choisir]').length === 4);
     const e2 = await ecran(A);
-    v('deux lignes cochées (aria-pressed), la barre dit « 2 sélectionnées » et ses gestes s\'allument', [e2.choisir.filter(x => x.endsWith('*')).length, e2.barre.n, e2.barre.gestes], [2, '2 sélectionnées', ['epingler', 'archiver', 'lu']]);
+    v('deux lignes cochées (aria-pressed) — ⛔ toujours cochées après une recherche qui les cachait — la barre dit « 2 sélectionnées » et ses gestes s\'allument', [e2.choisir.filter(x => x.endsWith('*')).length, e2.barre.n, e2.barre.gestes], [2, '2 sélectionnées', ['epingler', 'archiver', 'lu']]);
     const geo = await A.page.evaluate(() => { const r = document.getElementById('liste-actions').getBoundingClientRect(); return { dans: r.left >= 0 && r.right <= innerWidth + 0.5 && r.bottom <= innerHeight + 0.5 && r.height > 40, large: document.documentElement.scrollWidth <= innerWidth, boutons: Array.from(document.querySelectorAll('#liste-actions button')).every(x => { const q = x.getBoundingClientRect(); return q.height >= 44 && q.width >= 44 && x.scrollWidth <= x.clientWidth + 1; }) }; });
     v('⛔ à 360 px : la barre tient dans l\'écran, rien ne défile de côté, chaque geste fait au moins 44 × 44 et son mot n\'est pas coupé', geo, { dans: true, large: true, boutons: true });
     await capture(A, 'r1-selection');
@@ -93,6 +98,7 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
     vrai('elles sortent de la liste, la ligne « Archivées, 2 » paraît en bas, et le mode « Modifier » est fini (la barre d\'onglets revient)',
       await att(A, (ids) => { const o = Array.from(document.querySelectorAll('#liste-conv [data-ouvrir]')).map(x => x.dataset.ouvrir); const a = document.querySelector('#liste-conv [data-archives]'); return o.length === 2 && !o.includes(ids[0]) && !o.includes(ids[1]) && a && /^Archivées, 2/.test(a.getAttribute('aria-label')) && document.querySelector('#liste-conv li:last-child [data-archives]') && document.getElementById('btn-modifier').textContent === 'Modifier' && getComputedStyle(document.querySelector('.tabs')).display !== 'none'; }, [D.ben, D.cleo]),
       JSON.stringify(await ecran(A)));
+    v('⛔ (relecture adverse) le focus ne tombe pas sur la page : il revient sur « Modifier »', await A.page.evaluate(() => document.activeElement && document.activeElement.id), 'btn-modifier');
     v('⛔ le SERVICE les dit archivées — pour Ana seulement (Ben ne voit rien changer)', [(await de(D.ben)).archive, (await de(D.cleo)).archive, (await de(D.dan)).archive, ((await P.ben.get('/api/conversations')).j.conversations.find(c => c.id === D.ben) || {}).archive], [true, true, false, false]);
     await capture(A, 'r2-archivees-ligne');
     await A.page.locator('#liste-conv [data-archives]').tap();
@@ -143,15 +149,22 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
 
     console.log('\n── 6. La recherche, le bureau, Échap ──');
     await A.page.locator('#recherche-conv').fill('Cléo');
-    vrai('⛔ une recherche retrouve une conversation archivée (Cléo)', await att(A, (id) => Array.from(document.querySelectorAll('#liste-conv [data-ouvrir]')).some(x => x.dataset.ouvrir === id), D.cleo));
+    vrai('⛔ une recherche retrouve une conversation archivée (Cléo) — et la ligne dit « Archivée »', await att(A, (id) => { const x = document.querySelector('#liste-conv [data-ouvrir="' + id + '"]'); return !!x && /Archivée/.test(x.querySelector('.conv-etiquette') ? x.querySelector('.conv-etiquette').textContent : ''); }, D.cleo));
+    await A.page.locator('#btn-modifier').tap(); await A.page.locator('[data-choisir="' + D.cleo + '"]').tap();
+    v('⛔ (relecture adverse) cochée depuis la recherche, l\'archivée propose « Désarchiver » (pas « Archiver ») et ne s\'épingle pas', (await ecran(A)).barre.gestes, ['epingler-', 'desarchiver', 'lu']);
+    await A.page.locator('#btn-modifier').tap();
     await A.page.locator('#recherche-conv').fill('');
     const M = await ouvrir('ana', BUREAU, '#messages');
     await att(M, () => document.querySelectorAll('#liste-conv [data-ouvrir]').length >= 2);
+    await M.page.locator('#liste-conv [data-ouvrir="' + FOOT + '"]').click();
+    await att(M, () => document.documentElement.dataset.conv === '1');
     await M.page.locator('#btn-modifier').click();
-    vrai('au bureau, « Modifier » coche aussi', await att(M, () => document.querySelectorAll('#liste-conv [data-choisir]').length >= 2));
+    vrai('au bureau, « Modifier » coche aussi (une conversation ouverte à côté)', await att(M, () => document.querySelectorAll('#liste-conv [data-choisir]').length >= 2));
     await capture(M, 'r6-bureau');
     await M.page.keyboard.press('Escape');
-    vrai('⛔ Échap sort du mode (le bouton redit « Modifier »)', await att(M, () => document.getElementById('btn-modifier').textContent === 'Modifier' && !document.querySelector('#liste-conv [data-choisir]')));
+    vrai('⛔ (relecture adverse) UN Échap sort du mode — et SEULEMENT du mode : la conversation ouverte à côté reste', await att(M, () => document.getElementById('btn-modifier').textContent === 'Modifier' && !document.querySelector('#liste-conv [data-choisir]')) && await M.page.evaluate(() => document.documentElement.dataset.conv === '1'));
+    await M.page.keyboard.press('Escape');
+    vrai('… le second Échap ferme la conversation', await att(M, () => document.documentElement.dataset.conv !== '1'));
 
     v('aucune erreur JavaScript, au téléphone comme au bureau', [A.erreurs, M.erreurs], [[], []]);
   } catch (e) {

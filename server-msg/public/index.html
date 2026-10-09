@@ -815,12 +815,13 @@ button.photo:active { transform: scale(.97); }
 .liste-invit-note { list-style: none; padding: 0 16px 10px; font-size: 13px; line-height: 18px; color: var(--sub-meta); }
 /* « MODIFIER » DE LA LISTE (9 octobre 2026) : la coche (un rond vide, plein de l'accent une fois prise) remplace le point « non lu » ; la barre des trois gestes colle au bas de
    la liste — sur téléphone la barre d'onglets lui cède la place, comme dans Mail. Les boutons portent l'icône AU-DESSUS du mot : trois gestes tiennent sur un écran de 320 px. */
-.conv-coche { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--faint); color: var(--on-fill); transition: background-color .15s, border-color .15s; }
+.conv-coche { flex: none; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--rond-bord); color: var(--on-fill); transition: background-color .15s, border-color .15s; }
 .conv-coche.prise { background: var(--fill); border-color: var(--fill); }
 .conv-coche .ic { width: 14px; height: 14px; }
 .liste-actions { position: sticky; bottom: 0; z-index: 5; display: grid; gap: 2px; margin: 10px 0 0; padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
   background: var(--tab-bar); -webkit-backdrop-filter: blur(24px) saturate(200%); backdrop-filter: blur(24px) saturate(200%); border-radius: 22px; box-shadow: var(--shadow-bar), var(--verre-reflet); }
 .liste-actions[hidden] { display: none; }
+.conv-etiquette { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 6px; font-size: 12px; line-height: 18px; color: var(--sub-meta); background: var(--fill-soft); }
 .liste-actions-n { text-align: center; font-size: 13px; line-height: 18px; color: var(--sub-meta); }
 .liste-actions-boutons { display: flex; gap: 4px; }
 .liste-actions button { flex: 1; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; border-radius: 14px; font-size: 13px; color: var(--accent-txt); background: none; }
@@ -1266,6 +1267,7 @@ html[data-service] .mention-apercu { display: none; }
 .bulle .mention-nom { font-weight: 600; }
 /* un lien dans une bulle : la couleur de la bulle (lisible sur les deux fonds, de jour comme de nuit), souligné ; une adresse longue se coupe n'importe où ;
    l'appui long ouvre le menu du message, pas la fiche du lien du système (les deux se marcheraient dessus) */
+.bulle .lien-msg:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 3px; }
 .bulle .lien-msg { color: inherit; text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; -webkit-touch-callout: none; }
 /* « mention-moi », pas « moi » : `.moi` est la carte du compte dans la barre latérale (flex, 44 px de haut, fond de champ) — la mention en héritait
    et devenait un bloc gris sur sa propre ligne (capture du 9 octobre 2026). */
@@ -2313,7 +2315,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       <p class="liste-erreur" id="liste-erreur" role="alert" hidden><span id="liste-erreur-texte"></span><button type="button" id="liste-erreur-bouton">Réessayer</button></p>
       <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>
       <ul class="carte-liste" id="liste-conv" role="list" aria-label="Conversations"></ul>
-      <div class="liste-actions" id="liste-actions" role="toolbar" aria-label="Ranger les conversations choisies" hidden></div>
+      <div class="liste-actions" id="liste-actions" role="toolbar" aria-label="Ranger les conversations choisies" hidden><span class="liste-actions-n" id="liste-actions-n" role="status"></span><span class="liste-actions-boutons" id="liste-actions-boutons"></span></div>
     </section>
     <section class="vue" id="vue-contacts" aria-labelledby="titre-contacts" hidden></section>
     <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
