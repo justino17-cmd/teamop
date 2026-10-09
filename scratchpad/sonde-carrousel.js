@@ -56,7 +56,11 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
     if (m.method === 'Runtime.exceptionThrown') EXC.push((m.params.exceptionDetails.exception || {}).description || m.params.exceptionDetails.text); });
   const cdp = (me, pa) => new Promise((res, rej) => { const i = ++id; A.set(i, { res, rej }); ws.send(JSON.stringify({ id: i, method: me, params: pa || {} })); });
   await cdp('Page.enable'); await cdp('Runtime.enable');
-  const ev = async e => { const r = await cdp('Runtime.evaluate', { expression: '(async()=>{' + e + '})()', awaitPromise: true, returnByValue: true });
+  /* ⛔ AMENER UN ÉLÉMENT AU MILIEU EN FAISANT DÉFILER LA FENÊTRE, JAMAIS PAR scrollIntoView : celui-ci fait défiler AUSSI un
+     conteneur en `overflow: hidden` (il reste défilable par programme), ramène dans le champ l'appareil que ce conteneur coupait, et
+     la mesure « entier » passait sur un iPhone coupé (mutation M9, 9 octobre 2026 — le piège que site.css décrit déjà). */
+  const VOIR = `const voir=x=>{ const r=x.getBoundingClientRect(); scrollTo(scrollX, scrollY + r.top + r.height/2 - innerHeight/2); };`;
+  const ev = async e => { const r = await cdp('Runtime.evaluate', { expression: '(async()=>{' + VOIR + e + '})()', awaitPromise: true, returnByValue: true });
     if (r.exceptionDetails) throw new Error(e.slice(0, 80) + ' : ' + ((r.exceptionDetails.exception || {}).description || r.exceptionDetails.text)); return r.result.value; };
   const deuxImages = `await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));`;
   /* l'état d'un carrousel, lu dans le DOM : l'écran courant (la pastille), et ce que montre CHAQUE piste */
@@ -69,7 +73,7 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
         cachees:[...c.querySelectorAll('.c-vue')].filter(v=>!v.classList.contains('c-on')).every(v=>v.getAttribute('aria-hidden')==='true'),
         bouton:(c.querySelector('.c-lecture')||{getAttribute:()=>null}).getAttribute('aria-label') }; };`;
   const etat = k => ev(ETAT + ` return etat(${k});`);
-  const centre = (sel, k) => ev(`const e=document.querySelectorAll(${JSON.stringify(sel)})[${k || 0}]; if(!e) return null; e.scrollIntoView({block:'center'}); ${deuxImages}
+  const centre = (sel, k) => ev(`const e=document.querySelectorAll(${JSON.stringify(sel)})[${k || 0}]; if(!e) return null; voir(e); ${deuxImages}
     const b=e.getBoundingClientRect(); return {x:b.left+b.width/2, y:b.top+b.height/2, w:b.width, h:b.height};`);
   const toucher = async (P, x, y) => {
     if (P.tac) { await cdp('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] }); await dormir(50); await cdp('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); }
@@ -113,7 +117,7 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
            grand carrousel et dans une carte) la reçoit du cache sans requête : ce n'est pas un chargement en avance */
         const branche = await ev(ETAT + `const L=[]; const cs=[...document.querySelectorAll('.carrousel')];
           const montree=()=>new Set([...document.images].filter(i=>{ const v=i.closest('.c-vue'); return (!v||getComputedStyle(v).display!=='none')&&i.currentSrc; }).map(i=>i.currentSrc));
-          for(let k=0;k<cs.length;k++){ const c=cs[k]; c.scrollIntoView({block:'center'}); await new Promise(r=>setTimeout(r,1500));
+          for(let k=0;k<cs.length;k++){ const c=cs[k]; voir(c); await new Promise(r=>setTimeout(r,1500));
             const vs=[...c.querySelectorAll('.c-piste')].map(p=>[...p.children]); const e=etat(k);
             const im=v=>v.querySelector('img'); const charge=v=>{ const i=im(v); return !!(i&&i.complete&&i.naturalWidth>0); };
             L.push({ genre:c.className.replace('carrousel','').trim(), n:e.n, longueurs:vs.map(x=>x.length), pret:e.pret, commandes:!c.querySelector('.c-commandes').hidden,
@@ -133,21 +137,40 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
         /* ⛔ L'APPAREIL EN ENTIER : aucun ancêtre qui le coupe, rien hors de la largeur posée de l'appareil (iPhone : le corps ;
            Mac : tout, socle compris). Recensés depuis le DOM : carrousels ET cases. */
         const entiers = await ev(`const L=[]; for(const a of document.querySelectorAll('.ap-iphone,.ap-mac')){ const el=a.classList.contains('ap-iphone')?a.querySelector('.ap-iphone-corps'):a;
-            a.scrollIntoView({block:'center'}); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+            voir(a); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
             const b=el.getBoundingClientRect(); let coupe=null;
             if(b.left<-1||b.right>${P.w}+1) coupe='hors largeur '+Math.round(b.left)+'→'+Math.round(b.right);
             for(let p=a.parentElement;p&&!coupe&&p!==document.body;p=p.parentElement){ const s=getComputedStyle(p); if(!/hidden|clip|auto|scroll/.test(s.overflow+s.overflowX+s.overflowY)) continue;
+              if(p.scrollTop||p.scrollLeft){ coupe=(p.className||p.tagName)+' défilé de '+p.scrollLeft+'/'+p.scrollTop+' px : il ne montre plus ce que montre la page en arrivant'; break; }
               const r=p.getBoundingClientRect(); if(b.left<r.left-1||b.right>r.right+1||b.top<r.top-1||b.bottom>r.bottom+1) coupe=(p.className||p.tagName)+' coupe : '+[Math.round(r.left-b.left),Math.round(b.right-r.right),Math.round(r.top-b.top),Math.round(b.bottom-r.bottom)].join('/'); }
             L.push({quoi:(a.closest('.carrousel')?'carrousel ':'')+(a.closest('.tuile-f')?'case ':'')+a.className, w:Math.round(b.width), coupe}); }
           scrollTo(0,0); return L;`);
         vrai(lbl + ' : population — ' + entiers.length + ' appareils', entiers.length >= 1);
+        /* ⛔ l'iPhone DEVANT le Mac : on touche le milieu de leur chevauchement, et c'est l'iPhone qui doit répondre (9 octobre
+           2026 : l'écran du Mac passait devant, depuis le premier carrousel — aucune photo ne l'avait montré) */
+        const devant = await ev(`const L=[]; for(const ip of document.querySelectorAll('.ap-iphone')){ const sc=ip.closest('.c-scene,.vue'); const m=sc&&sc.querySelector('.ap-mac'); if(!m) continue;
+            voir(ip); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+            const a=ip.querySelector('.ap-iphone-ecran').getBoundingClientRect(), b=m.querySelector('.ap-mac-ecran').getBoundingClientRect();
+            const x0=Math.max(a.left,b.left), x1=Math.min(a.right,b.right), y0=Math.max(a.top,b.top), y1=Math.min(a.bottom,b.bottom);
+            if(x1-x0<6||y1-y0<6){ L.push({quoi:sc.className, chevauche:false}); continue; }
+            const v=sc.classList.contains('vue'); if(v) sc.style.pointerEvents='auto';
+            const e=document.elementFromPoint((x0+x1)/2,(y0+y1)/2); if(v) sc.style.pointerEvents='';
+            L.push({quoi:sc.className, chevauche:true, iphone:!!(e&&e.closest('.ap-iphone')), touche:e?(e.className||e.tagName):null}); }
+          scrollTo(0,0); return L;`);
+        const cases = await ev(`const v=[...document.querySelectorAll('.tuile-f .vue')]; return {n:v.length, duo:v.filter(x=>x.querySelector('.ap-mac')&&x.querySelector('.ap-iphone')).length};`);
+        if (cases.n) vrai(lbl + ' : ⛔ chaque case montre le Mac ET l\'iPhone (' + cases.duo + '/' + cases.n + ')', cases.duo === cases.n, JSON.stringify(cases));
+        const chevauchent = devant.filter(x => x.chevauche);
+        vrai(lbl + ' : population — ' + chevauchent.length + ' paires où l\'iPhone chevauche le Mac', chevauchent.length >= 1, JSON.stringify(devant.slice(0, 3)));
+        vrai(lbl + ' : ⛔ l\'iPhone passe DEVANT le Mac, partout', chevauchent.every(x => x.iphone), JSON.stringify(chevauchent.filter(x => !x.iphone).slice(0, 3)));
         vrai(lbl + ' : chaque appareil se voit EN ENTIER', entiers.every(x => !x.coupe), JSON.stringify(entiers.filter(x => x.coupe).slice(0, 4)));
         const cote = await ev(`const r=[]; for(const y of [0, document.documentElement.scrollHeight]){ scrollTo(9999,y); ${deuxImages} r.push(scrollX); } scrollTo(0,0);
           return {r, large:document.documentElement.scrollWidth, fen:innerWidth};`);
         vrai(lbl + ' : aucun défilement de côté', cote.r.every(x => x === 0) && cote.large <= P.w && cote.fen === P.w, JSON.stringify(cote));
         if (NEUTRES.includes(pg)) {
-          const n = await ev(`return { duo:document.querySelectorAll('.c-duo,.ap-mac').length, ecrans:[...new Set([...document.querySelectorAll('.carrousel img')].map(i=>i.getAttribute('src').split('/').pop().replace(/-(jour|nuit)(-1x)?\\.webp$/,'')))] };`);
-          vrai(lbl + ' : ⛔ page métier hors 3D — que des écrans neutres, aucun Mac', n.duo === 0 && n.ecrans.length >= 2 && n.ecrans.every(e => ['iphone-factures', 'iphone-compta', 'iphone-connexion'].includes(e)), JSON.stringify(n));
+          const n = await ev(`return { cartes:document.querySelectorAll('.grande-carte .c-duo').length, macs:document.querySelectorAll('.carrousel .ap-mac').length,
+            ecrans:[...new Set([...document.querySelectorAll('main img')].filter(i=>/captures\\//.test(i.getAttribute('src'))).map(i=>i.getAttribute('src').split('/').pop().replace(/-(jour|nuit)(-1x)?\\.webp$/,'')))] };`);
+          vrai(lbl + ' : ⛔ page métier hors 3D — le Mac ET l\'iPhone dans chaque carte, et rien que des écrans neutres (menus du 3D masqués)', n.cartes === 2 && n.macs === 2
+            && n.ecrans.length >= 4 && n.ecrans.every(e => ['mac-factures-neutre', 'mac-compta-neutre', 'mac-connexion', 'iphone-factures-neutre', 'iphone-compta-neutre', 'iphone-connexion'].includes(e)), JSON.stringify(n));
         }
 
         /* ── les gestes ── */

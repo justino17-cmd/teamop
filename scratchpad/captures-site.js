@@ -140,6 +140,9 @@ const PROPRE = `let st=document.getElementById('cap-propre'); if(!st){ st=docume
   /* les barres de défilement : macOS et iOS les cachent tant qu'on ne défile pas */
   st.textContent='#toast{display:none!important} #fdr-banner{display:none!important} *{caret-color:transparent!important;scrollbar-width:none!important} *::-webkit-scrollbar{display:none!important}';
   try{ closeModal(); }catch(e){}
+  /* le panneau des notifications : ouvert pour SON écran (« Notifications »), il restait ouvert sur les écrans suivants
+     (9 octobre 2026 : l'équipe sur l'iPhone et les factures « hors 3D » sont sortis avec lui par-dessus) */
+  try{ if(typeof closeNotif==='function') closeNotif(); }catch(e){}
   /* aucun brouillon du multitâche (« Reprendre ») : rien n'a été commencé dans cette démonstration */
   try{ localStorage.removeItem(multiCle()); multiPastilles(); }catch(e){}
   document.querySelectorAll('.multi-bar').forEach(x=>x.style.display='none');
@@ -184,10 +187,30 @@ const ECRANS = [
   { nom: 'iphone-rapports',      app: 'iphone', geste: `go('rapports');` },
   { nom: 'mac-utilisateurs',     app: 'mac',    geste: `go('utilisateurs');` },
   { nom: 'iphone-notifs',        app: 'iphone', geste: `go('dashboard');`, apres: `try{ openNotif(); }catch(e){}` },
+  /* ── LE MAC ET L'iPHONE SUR CHAQUE ÉCRAN — Justin, 9 octobre 2026, capture de la case « Encaissements et compta » (un iPhone
+     seul) : « je voudrais que l'iPhone et le Mac soient sur les mêmes, pas un coup l'iPhone et un coup le Mac ». Chaque case
+     du site a donc ses DEUX appareils, sur le même écran de l'application. ── */
+  { nom: 'mac-compta',           app: 'mac',    geste: `go('comptabilite');` },
+  { nom: 'mac-factures',         app: 'mac',    geste: `go('factures');` },
+  { nom: 'mac-box',              app: 'mac',    geste: `go('boxes'); await new Promise(r=>setTimeout(r,500)); openBox('demo-b-1');` },
+  { nom: 'mac-rapports',         app: 'mac',    geste: `go('rapports');` },
+  { nom: 'mac-notifs',           app: 'mac',    geste: `go('dashboard');`, apres: `try{ openNotif(); }catch(e){}` },
+  { nom: 'iphone-utilisateurs',  app: 'iphone', geste: `go('utilisateurs');` },
+  /* ── LES PAGES MÉTIER HORS 3D (plombier, électricien, chauffage, nettoyage) : les mêmes écrans, SANS les menus du métier 3D
+     (« Registre sanitaire », « Carte des box », « Boxes »), que l'application masque à ces métiers (le `masque` de leur pack).
+     La bêta les montre tous (BETA_ESSAI) : on lui fait masquer ce que l'application en service masquerait. ⚠️ Ce réglage reste
+     posé pour la suite de la séance : ces écrans passent APRÈS les autres, et avant la connexion (qui n'a pas de menus). ── */
+  { nom: 'mac-factures-neutre',    app: 'mac',    neutre: true, geste: `go('factures');` },
+  { nom: 'mac-compta-neutre',      app: 'mac',    neutre: true, geste: `go('comptabilite');` },
+  { nom: 'iphone-factures-neutre', app: 'iphone', neutre: true, geste: `go('factures');` },
+  { nom: 'iphone-compta-neutre',   app: 'iphone', neutre: true, geste: `go('comptabilite');` },
   /* la case « Sécurisé » : l'écran de connexion, tel qu'une personne le voit en ouvrant l'application.
      ⚠️ EN DERNIER : il cache l'application, les écrans suivants n'auraient plus rien à montrer. */
   { nom: 'iphone-connexion',     app: 'iphone', geste: `renderLogin();`, ecranConnexion: true, texteMin: 40,
     /* la pastille « BÊTA » est celle de la bêta, pas de l'application qu'on montre : masquée, pas retirée */
+    apres: `const lg=document.getElementById('login'); let n=0; lg.querySelectorAll('*').forEach(e=>{ if(/^\\W*BÊTA$/.test(e.textContent.trim()) && !e.querySelector('input')){ e.style.visibility='hidden'; n++; } }); if(!n) throw new Error('pastille BÊTA introuvable');` },
+  /* la même, sur le Mac (la case « Sécurisé » a ses deux appareils) */
+  { nom: 'mac-connexion',        app: 'mac',    geste: `renderLogin();`, ecranConnexion: true, texteMin: 40,
     apres: `const lg=document.getElementById('login'); let n=0; lg.querySelectorAll('*').forEach(e=>{ if(/^\\W*BÊTA$/.test(e.textContent.trim()) && !e.querySelector('input')){ e.style.visibility='hidden'; n++; } }); if(!n) throw new Error('pastille BÊTA introuvable');` },
 ];
 
@@ -310,6 +333,12 @@ function htmlMac(src, nuit) {
         /* chaque écran s'ouvre comme depuis le menu : pas de « ‹ Planning » hérité de la capture d'avant */
         await S.ev(`window._viewStack=[]; current=''; return 1;`);   // `go()` empile la vue courante : sans vue courante, rien ne s'empile
         await S.ev(`currentUser=db.users.find(u=>u.id===${JSON.stringify(E.qui || 'demo-admin')}); return 1;`);
+        if (E.neutre) {
+          const m = await S.ev(`if(!window.__horsTroisD){ window.__horsTroisD=1; const M=(METIERS.plomberie||{}).masque||['registre','carteBox','devisXylo','boxes'];
+              window.metierBloque=k=>M.indexOf(k)>=0; }
+            renderNav(); renderOnglets(); return {menu:document.getElementById('nav').innerText, onglets:(document.getElementById('tabbar')||{}).innerText||''};`);
+          if (/Registre sanitaire|Carte des box|Boxes/.test(m.menu + ' ' + m.onglets)) throw new Error(E.nom + ' : un menu du métier 3D reste visible — ' + JSON.stringify(m).slice(0, 300));
+        }
         await S.ev(E.geste + ' return 1;');
         await dormir(1400);
         await S.ev(PROPRE);

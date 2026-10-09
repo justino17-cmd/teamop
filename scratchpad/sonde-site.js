@@ -159,10 +159,19 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         vrai(lbl + ' : ⛔ la carte mise en avant suit le mode (' + (mode === 'dark' ? 'sombre la nuit' : 'claire le jour') + ')', inv && (mode === 'dark' ? inv.lum < .06 : inv.lum > .6), JSON.stringify(inv));
         if (inv) vrai(lbl + ' : et se détache de la page (teinte + halo)', inv.fond !== inv.page && /radial-gradient/.test(inv.halo), JSON.stringify(inv));
       }
+      /* depuis le 9 octobre 2026 (Justin : « que l'iPhone et le Mac soient sur les mêmes »), chaque case montre le Mac ET l'iPhone,
+         l'iPhone posé devant ; la photo ne dit pas lequel passe devant : on touche leur chevauchement */
       if (pg === 'elan') {
-        const macs = await ev(`return [...document.querySelectorAll('.tuile-f .vue.v-mac')].map(v=>Math.round(v.getBoundingClientRect().bottom - v.querySelector('.ap-mac').getBoundingClientRect().bottom));`);
-        vrai(lbl + ' : population — deux cases à Mac seul', macs.length === 2, JSON.stringify(macs));
-        vrai(lbl + ' : le Mac entier, 30 px sous son socle (ni coupé, ni de bande vide)', macs.length === 2 && macs.every(g => g >= 26 && g <= 34), 'sous le Mac : ' + JSON.stringify(macs));
+        const paires = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const m=v.querySelector('.ap-mac'), i=v.querySelector('.ap-iphone'); if(!m||!i) return {duo:false};
+          v.scrollIntoView({block:'center'}); const a=i.querySelector('.ap-iphone-ecran').getBoundingClientRect(), b=m.querySelector('.ap-mac-ecran').getBoundingClientRect();
+          const x0=Math.max(a.left,b.left), x1=Math.min(a.right,b.right), y0=Math.max(a.top,b.top), y1=Math.min(a.bottom,b.bottom);
+          /* une grande case pose l'iPhone À CÔTÉ du Mac (ils se touchent à peine) : rien à départager */
+          if(x1-x0<6||y1-y0<6) return {duo:true, devant:true, cote:true};
+          v.style.pointerEvents='auto'; const e=document.elementFromPoint((x0+x1)/2,(y0+y1)/2); v.style.pointerEvents='';
+          return {duo:true, devant:!!(e&&e.closest('.ap-iphone'))}; });`);
+        vrai(lbl + ' : les dix cases montrent le Mac ET l\'iPhone', paires.length === 10 && paires.every(x => x.duo), JSON.stringify(paires));
+        vrai(lbl + ' : population — ' + paires.filter(x => !x.cote).length + ' cases où l\'iPhone chevauche le Mac', paires.filter(x => !x.cote).length >= 6, JSON.stringify(paires));
+        vrai(lbl + ' : dans chaque case, l\'iPhone passe devant le Mac', paires.every(x => x.devant), JSON.stringify(paires.filter(x => !x.devant)));
       }
       if (!P.tac && pg === 'index') {
         const r = await rect('.nav-liens a[data-fly="applications"]');

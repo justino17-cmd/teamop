@@ -23,6 +23,12 @@
 }
 /* le doigt glisse de côté pour changer d'écran ; de haut en bas, la page défile comme partout */
 .c-scene { position: relative; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+/* ⛔ L'iPHONE DEVANT LE MAC. Les écrans empilés portent un `z-index` (celui qui arrive par-dessus celui qui part) ; sans pile à
+   lui, l'appareil n'en a pas — `container-type` n'en crée PAS —, et l'écran du Mac passait DEVANT l'iPhone partout où ils se
+   chevauchent (vu le 9 octobre 2026 sur les cartes, présent depuis le premier carrousel, accueil compris : aucune photo ne
+   l'avait montré). Chaque appareil isole sa pile, et l'iPhone se pose au-dessus. `scratchpad/sonde-carrousel.js` le vérifie. */
+.c-scene .ap-mac { isolation: isolate; }
+.c-scene .ap-iphone { isolation: isolate; z-index: 1; }
 
 /* ── la piste : les écrans empilés dans l'écran de l'appareil ── */
 .c-piste { position: absolute; inset: 0; }
@@ -68,47 +74,50 @@
 .carrousel.c-pause .c-lecture .c-ic-lecture { display: block; }
 @media (hover: hover) { .c-point:hover span { background: var(--c-plein); } .c-lecture:hover { background: color-mix(in srgb, var(--text) 12%, transparent); } }
 
-/* ── le Mac et l'iPhone ensemble : l'iPhone posé devant le Mac, en bas à droite ── */
-.carrousel.c-duo { width: 100%; }
-.c-duo .c-scene { width: min(1120px, 92vw); }
+/* ── le Mac et l'iPhone ensemble : l'iPhone posé devant le Mac, en bas à droite. Partout la même paire (Justin, 9 octobre
+   2026 : « que l'iPhone et le Mac soient sur les mêmes ») ; `--c-l` est la largeur de la scène : la page entière pour les
+   grandes scènes, la carte pour une carte (`c-carte`). ── */
+.carrousel.c-duo { width: 100%; --c-l: min(1120px, 92vw); }
+.carrousel.c-duo.c-carte { --c-l: min(100%, 640px); }
+.c-duo .c-scene { width: var(--c-l); }
 .carrousel.c-duo .ap-mac { --ap-l: 100%; }
 .carrousel.c-duo .ap-iphone { --ap-l: 22%; position: absolute; right: -1%; bottom: -2%; }
+.carrousel.c-duo.c-carte .ap-iphone { --ap-l: 28%; right: 0; }
 .c-duo .c-legende { font-size: clamp(16px, 1.5vw, 19px); }
 /* Sur un téléphone, un iPhone à l'échelle du Mac (22 %) ferait 80 px : il grandit et descend sous le Mac, qu'il ne
    cache qu'à droite — les deux appareils restent entiers. */
 @media (max-width: 700px) {
-  .c-duo .c-scene { width: min(560px, 94vw); padding-bottom: 36%; }
+  .carrousel.c-duo { --c-l: min(560px, 94vw); }
+  .carrousel.c-duo.c-carte { --c-l: 100%; }
+  .c-duo .c-scene { padding-bottom: 36%; }
   .carrousel.c-duo .ap-mac { --ap-l: 84%; }
-  .carrousel.c-duo .ap-iphone { --ap-l: 32%; right: 0; bottom: 0; }
+  .carrousel.c-duo .ap-iphone, .carrousel.c-duo.c-carte .ap-iphone { --ap-l: 32%; right: 0; bottom: 0; }
 }
 
-/* ── l'iPhone d'une grande carte : entier, la légende et les commandes dessous — posé en BAS de la carte, pour que les
-   deux cartes d'une rangée alignent leurs iPhone même quand leurs textes n'ont pas la même hauteur ── */
+/* ── la paire d'une grande carte : entière, la légende et les commandes dessous — posée en BAS de la carte, pour que les
+   deux cartes d'une rangée alignent leurs appareils même quand leurs textes n'ont pas la même hauteur ── */
 .grande-carte .bas { align-items: flex-end; padding: 30px 20px 40px; }
+@media (max-width: 700px) { .grande-carte .bas { padding: 26px 14px 34px; } }
 
-/* ── le Mac de la carte OP GESTION (Applications) : entier ── */
-.app-carte .c-mac { width: 100%; padding: 2px 0 30px; }
-.app-carte .c-mac .c-scene { width: 100%; }
-.app-carte .c-mac .ap-mac { --ap-l: 100%; }
+/* ── la paire de la carte OP GESTION (Applications) : entière ── */
+.app-carte .c-duo { padding: 2px 0 30px; }
 
-/* ── les cases de « Ce que fait OP GESTION » : l'appareil EN ENTIER, plus coupé par le bas de la case ──
-   (une case reste UN bouton : son appareil ne défile pas — il montre l'écran de SA fonction) */
-/* la vue prend la place qui reste et pose l'appareil en bas : dans une rangée, les appareils s'alignent */
-.tuile-f .vue { flex: 1 0 auto; height: auto; max-height: none; align-items: flex-end; padding: 8px 0 30px; }
-.tuile-f .vue .ap-iphone { --ap-l: clamp(160px, 14vw, 200px); margin-top: 0; }
-.tuile-f .vue.v-mac { height: auto; max-height: none; padding-bottom: 30px; }
-.tuile-f .vue.v-mac .ap-mac { --ap-l: min(600px, 88%); margin-top: 0; }
-.tuile-f.large .vue.v-mac { max-height: none; }
-/* « Partout » : le Mac entier en haut à gauche, l'iPhone entier posé devant lui en bas à droite */
-/* elle ne GRANDIT pas avec la rangée (ses appareils sont placés en % de sa hauteur : étirée, l'iPhone quitterait le Mac) —
-   elle descend en bas de la case, comme les autres appareils */
-.tuile-f .vue.duo { display: block; flex: 0 0 auto; margin-top: auto; height: auto; aspect-ratio: 1 / .74; padding: 0; }
+/* ── les cases de « Ce que fait OP GESTION » : le Mac ET l'iPhone, EN ENTIER, sur l'écran de leur fonction ──
+   (une case reste UN bouton : ses appareils ne défilent pas). Le Mac en haut à gauche, l'iPhone posé devant lui en bas à
+   droite. La vue ne GRANDIT pas avec la rangée (les appareils sont placés en % de sa hauteur : étirée, l'iPhone quitterait le
+   Mac) : elle descend en bas de la case — dans une rangée, les appareils s'alignent. */
+.tuile-f .vue.duo { display: block; flex: 0 0 auto; margin-top: auto; height: auto; max-height: none; aspect-ratio: 1 / .74; padding: 0; }
 .tuile-f .vue.duo .ap-mac { position: absolute; left: 6%; top: 5%; --ap-l: 78%; margin: 0; }
 .tuile-f .vue.duo .ap-iphone { position: absolute; right: 7%; top: auto; bottom: 7%; --ap-l: 25%; margin: 0; }
+/* une GRANDE case (deux colonnes) : plus large que haute — le Mac à gauche, l'iPhone à sa droite, qui le touche à peine */
+.tuile-f.large .vue.duo { aspect-ratio: 1 / .5; }
+.tuile-f.large .vue.duo .ap-mac { left: 8%; top: 6%; --ap-l: 62%; }
+.tuile-f.large .vue.duo .ap-iphone { right: 12%; bottom: 6%; --ap-l: 19%; }
 @media (max-width: 820px) {
-  .tuile-f .vue { height: auto; }
-  .tuile-f .vue .ap-iphone { --ap-l: min(190px, 48%); }
-  .tuile-f .vue.v-mac { max-height: none; }
+  /* une seule colonne : la grande case redevient une case comme les autres */
+  .tuile-f.large .vue.duo { aspect-ratio: 1 / .74; }
+  .tuile-f.large .vue.duo .ap-mac { left: 6%; top: 5%; --ap-l: 78%; }
+  .tuile-f.large .vue.duo .ap-iphone { right: 7%; bottom: 7%; --ap-l: 25%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
