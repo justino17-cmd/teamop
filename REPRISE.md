@@ -19,7 +19,29 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# ⏳ 9 OCTOBRE 2026 (MATIN) — LE MAC ET L'iPHONE ENSEMBLE, SUR LE MÊME ÉCRAN, PARTOUT — EN LIGNE SUR L'APERÇU (#113) ; LA RACINE ATTEND SA PHRASE
+# ⏳ 9 OCTOBRE 2026 (MIDI) — UN APPAREIL À LA FOIS : L'iPHONE, PUIS LE MAC, QUI DÉFILENT — SUR L'APERÇU ; LA RACINE ATTEND SA PHRASE
+
+Justin, capture de « Le stock, à jour. » (le Mac et l'iPhone posés l'un sur l'autre, l'entrée du dessous) : « non, je ne veux pas ça, je veux une
+fois le téléphone, une fois le Mac, et que ça défile ». Remplace la composition de #113 PARTOUT dans l'aperçu (cartes, scènes, cases).
+· **chaque carrousel** (`carAlterne` de `scripts/site-marine.js`) : l'iPhone (écran X), puis le Mac (le même écran X), puis l'écran suivant —
+  chacun ENTIER et SEUL, posé sur le bas d'une scène de taille fixe (elle ne saute pas entre l'iPhone, haut, et le Mac, large) ; la légende
+  dit l'appareil (« …, sur iPhone » / « …, sur Mac ») ; l'appareil glisse d'une largeur de scène, coupé au bord (`overflow-x: clip`) : celui
+  qui part et celui qui arrive ne se chevauchent jamais, la page ne déborde pas. Huit écrans au plus (les grandes scènes : quatre paires).
+· **chaque case** de « Ce que fait OP GESTION » : l'iPhone puis le Mac de sa fonction, qui défilent en vague (`--i`) ; l'horloge est faite des
+  mêmes pastilles, invisibles (`c-horloge`) ; un seul ⏸ pour les cases (`data-c-groupe` : une case est un bouton, elle ne peut pas porter le sien).
+· ⚠️ **défaut d'avant corrigé en passant** : « animations réduites » n'éteignait PAS la glissade au toucher d'un point — la règle pesait moins
+  lourd que celle qu'elle devait éteindre (spécificité). Elle porte le sens (`c-avant` / `c-arriere`) et gagne ; la sonde le mesure.
+· **preuves** : `test-835` 1 323 ✓ (cases et 34 carrousels de l'aperçu : iPhone puis Mac, même écran, légende, huit points au plus, pages hors 3D
+  neutres) ; `sonde-carrousel.js` 2 664 ✓ 0 ✗ (4 profils × jour / nuit × 14 pages : un seul appareil au repos, chaque écran entier, aucun
+  chevauchement ni débordement pendant la glissade, les cases qui passent d'elles-mêmes au Mac, le ⏸ des cases, gestes) ; mutations : voir
+  `scratchpad/mutations-carrousel.py` (le résultat s'écrit ici à la fusion).
+· ⚠️ **piège de mesure** : la PREMIÈRE glissade vers un écran le peint pour la première fois, et ce Chromium sans carte graphique met ~0,5 s à
+  peindre la grande image du Mac — aucune image ne sort pendant ce temps, la sonde ne voyait pas la glissade. Elle relève donc le retour et
+  l'aller entre deux écrans déjà peints.
+· **à faire sur son oui** : « publie les carrousels » → retirer la condition `POUR_LA_RACINE` des carrousels et des cases, lier `carrousel.css` /
+  `carrousel.js` à la racine, régénérer avec `--racine` (`test-835` § 10, § 5 bis et § 5 ter changent avec elle).
+
+# ✅ 9 OCTOBRE 2026 (MATIN) — LE MAC ET L'iPHONE ENSEMBLE, SUR LE MÊME ÉCRAN, PARTOUT — EN LIGNE SUR L'APERÇU (#113) — REMPLACÉ LE MIDI (au-dessus)
 
 Justin, capture de la case « Encaissements et compta » (un iPhone seul) : « tu n'as pas compris, je voudrais que l'iPhone et le Mac
 soient sur les mêmes, pas un coup l'iPhone et un coup le Mac — montre-moi avant ». Montré d'abord en images ; puis, à sa question
@@ -40,8 +62,8 @@ soient sur les mêmes, pas un coup l'iPhone et un coup le Mac — montre-moi ava
 · **servi** (#113 fusionnée, relu sur teamop.fr vers 9 h 40 UTC) : les 19 pages de l'aperçu ET les 19 de la racine sont, octet pour
   octet, celles du dépôt ; aucune page de la racine ne porte de carrousel ; `carrousel.css` / `.js` servis = dépôt ; les 72 captures que
   l'aperçu cite sont toutes au dépôt (un échantillon d'une sur cinq rend 200).
-· **à faire sur son oui** : « publie les carrousels » → retirer la condition `POUR_LA_RACINE` des carrousels et lier `carrousel.css` /
-  `carrousel.js` à la racine, régénérer avec `--racine` (test-835 § 10 et § 5 bis changent avec elle).
+· remplacé le midi même : Justin ne voulait pas les deux appareils posés l'un sur l'autre, mais l'un PUIS l'autre (l'entrée du dessus, qui
+  porte aussi ce qui reste à faire sur son oui).
 
 # ✅ 9 OCTOBRE 2026 — LE SITE (APERÇU) : LES CAPTURES DÉFILENT, L'iPHONE EN ENTIER ET LE MAC AVEC LUI — EN LIGNE SUR L'APERÇU (#112)
 
