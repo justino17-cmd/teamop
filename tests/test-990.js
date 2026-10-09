@@ -51,6 +51,8 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => true, surMessage: () => {}, abonnementActuel: async () => null, fermerNotifications: async (tag) => { D.fermees.push(tag); } };
     const f = async (url, init) => {
       const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0]; D.requetes.push({ m, chemin, corps: init && typeof init.body === 'string' ? init.body : null });
+      /* `D.retenir` : la réponse est LUE par le service tout de suite, mais RENDUE à la page seulement quand le banc la relâche — une lecture partie avant un geste et revenue après lui (section 4 ter) */
+      if (D.retenir && D.retenir.re.test(m + ' ' + chemin)) { const x = D.retenir; D.retenir = null; const r = await nav.fetch(url, init); try { x.corps = await r.clone().json(); } catch (e) { x.corps = null; } x.vu = true; await x.apres; return r; }
       /* `D.devancer` : la réponse du service à « Répondre » n'est RENDUE qu'APRÈS l'événement que le service pousse à tout le monde dès que la personne est admise ET après les premières offres des autres — l'ordre qu'un vrai
          navigateur a eu (mesuré : le flux gagne la course) */
       if (D.devancer && m === 'POST' && /\/repondre$/.test(chemin)) {
@@ -64,7 +66,8 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       return nav.fetch(url, init);
     };
     const ES = class extends nav.EventSource {
-      addEventListener(t, g) { super.addEventListener(t, (ev) => { D.recus[t] = (D.recus[t] || 0) + 1; g(ev); }); }
+      /* `D.fluxRetenu` : les événements `appel` attendent dans une file que le banc relâche — un flux en retard sur la réponse d'un geste (section 4 ter) */
+      addEventListener(t, g) { super.addEventListener(t, (ev) => { D.recus[t] = (D.recus[t] || 0) + 1; if (t === 'appel' && D.fluxRetenu) { D.fluxRetenu.push(() => g(ev)); return; } g(ev); }); }
     };
     D.src = creerSourceServeur({ OPMSG, base: svc.base, fetch: f, EventSource: ES, navigateur: faux, webrtc: monde, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 20, appelsDelais: Object.assign({}, DELAIS, o.delais || {}), alea: o.alea });
     sources.push(D.src);
@@ -213,6 +216,66 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       await A.src.salleAction(id, 'evt', { k: 'minuteur', donnees: { op: 'arreter' } });
       const sb = await A.src.appel(id);
       v('⛔ il les RETIRE : son cliché ne les porte plus (l\'ordre est suivi dans les deux sens), et Ben le sait', [sb.epingle, sb.minuteur, !!(await B.attendreSnap(id, s => s.epingle === null && s.minuteur === null, 6000))], [null, null, true]);
+    }
+
+    /* ═══ 4 ter. UNE VUE D'AVANT, ARRIVÉE APRÈS LA SIENNE, NE LA REMPLACE PAS ═══
+       La sonde de groupe (9 octobre 2026, bloc 6) : l'hôte touche « Enregistrer », le bandeau « REC » s'allume chez tous — et son enregistrement s'arrêtait sur son appareil quelques secondes plus tard, le fichier
+       coupé à la seconde du geste, le bandeau toujours allumé chez les autres. Une vue de la salle lue AVANT le geste (sans « REC ») arrivait APRÈS sa réponse : la page la prenait pour la plus récente, et
+       l'écran de la salle arrête l'enregistrement quand le service dit qu'il est fini. Les deux chemins sont joués, avec les vraies fonctions et le vrai service : une lecture (la liste des appels) partie avant
+       le geste et rendue après lui ; le flux en retard sur la réponse du geste. */
+    console.log('\n⛔ Une vue d\'avant, arrivée après celle du geste, ne la remplace pas : l\'enregistrement de l\'hôte ne s\'éteint pas tout seul');
+    {
+      /* le relevé : chaque fois que la page d'Ana dit « l'appel a changé », ce que son cliché dit de l'enregistrement à cet instant */
+      const releve = [];
+      A.src.ecouter(e => { if (e.type === 'appel' && e.id === id) A.src.appel(id).then(s => releve.push(s && s.rec ? s.rec.par : null)); });
+      /* 1. la liste des appels, lue par le service AVANT le geste, rendue à la page APRÈS */
+      let relacher = null;
+      A.retenir = { re: /^GET \/api\/appels$/, apres: new Promise(ok => { relacher = ok; }), vu: false };
+      const x1 = A.retenir;
+      const pListe = A.src.appels('tous');
+      vrai('population : la liste des appels est lue par le service AVANT le geste, et retenue en route', !!(await att(() => x1.vu, 4000)));
+      v('… et ce qu\'elle porte est bien une vue d\'AVANT : l\'appel en cours, sans « REC »', [x1.corps && x1.corps.actif && x1.corps.actif.id === id, x1.corps && x1.corps.actif && x1.corps.actif.rec], [true, null]);
+      await A.src.salleAction(id, 'rec', { actif: true });
+      const s1 = await A.src.appel(id);
+      v('Ana touche « Enregistrer » : son cliché le dit aussitôt (la réponse du geste)', s1.rec && s1.rec.par, ana.id);
+      vrai('… et Ben le lit par le flux', !!(await B.attendreSnap(id, s => !!(s.rec && s.rec.par === ana.id), 6000)));
+      relacher();
+      const liste = await pListe;
+      vrai('population : la liste est bien arrivée à la page (après le geste)', Array.isArray(liste));
+      v('⛔ la liste lue AVANT le geste, arrivée APRÈS lui, ne l\'efface pas : le cliché d\'Ana dit toujours qu\'elle enregistre', ((await A.src.appel(id)).rec || {}).par, ana.id);
+      /* 2. le flux en retard : l'événement d'un geste d'AVANT (le partage d'écran retiré aux participants) arrive après la réponse de « Enregistrer » */
+      await A.src.salleAction(id, 'rec', { actif: false });
+      vrai('population : l\'enregistrement est arrêté chez Ana et chez Ben', !(await A.src.appel(id)).rec && !!(await B.attendreSnap(id, s => !s.rec, 6000)));
+      A.fluxRetenu = [];
+      await A.src.salleAction(id, 'partage', { actif: false });
+      await A.src.salleAction(id, 'rec', { actif: true });
+      const s3 = await A.src.appel(id);
+      v('Ana a retiré le partage aux participants, puis touche « Enregistrer » : son cliché dit les deux (les réponses des gestes)', [s3.partageOk, s3.rec && s3.rec.par], [false, ana.id]);
+      vrai('population : les deux événements du flux attendent en route (le partage, puis l\'enregistrement)', !!(await att(() => A.fluxRetenu.length >= 2, 4000)));
+      const file = A.fluxRetenu; A.fluxRetenu = null;
+      const avant = releve.length, apres = [];
+      for (const g of file) { g(); apres.push(((await A.src.appel(id)).rec || {}).par || null); }
+      v('⛔ l\'événement d\'AVANT, arrivé après la réponse du geste, ne l\'efface pas : après chaque événement relâché, le cliché d\'Ana dit toujours qu\'elle enregistre', apres, file.map(() => ana.id));
+      await att(() => releve.length > avant || null, 500);
+      v('… et aucun changement annoncé à l\'écran ne l\'a dit fini entre-temps', releve.slice(avant).filter(x => x !== ana.id), []);
+      await A.src.salleAction(id, 'rec', { actif: false });
+      await A.src.salleAction(id, 'partage', { actif: true });
+      vrai('population : la salle est revenue comme avant (rien n\'enregistre, le partage est permis)', !(await A.src.appel(id)).rec && (await A.src.appel(id)).partageOk === true);
+      /* 3. la réponse d'un geste rendue APRÈS celle du geste suivant : Ana retire le partage, et pendant que la réponse est en route, touche « Enregistrer » */
+      let relacher3 = null;
+      A.retenir = { re: /^POST \/api\/salles\/[^/]+\/partage$/, apres: new Promise(ok => { relacher3 = ok; }), vu: false };
+      const x3 = A.retenir;
+      const pPartage = A.src.salleAction(id, 'partage', { actif: false });
+      vrai('population : le service a fait le geste « retirer le partage » et sa réponse est retenue en route — une vue sans « REC »', !!(await att(() => x3.vu, 4000)) && !!(x3.corps && x3.corps.appel && x3.corps.appel.rec === null && x3.corps.appel.partage_ok === false));
+      await A.src.salleAction(id, 'rec', { actif: true });
+      v('Ana touche « Enregistrer » pendant ce temps : son cliché le dit', ((await A.src.appel(id)).rec || {}).par, ana.id);
+      relacher3();
+      await pPartage;
+      const s4 = await A.src.appel(id);
+      v('⛔ la réponse du premier geste, arrivée après celle du second, ne l\'efface pas : Ana enregistre toujours, et le partage est bien retiré', [(s4.rec || {}).par, s4.partageOk], [ana.id, false]);
+      await A.src.salleAction(id, 'rec', { actif: false });
+      await A.src.salleAction(id, 'partage', { actif: true });
+      vrai('on remet la salle comme elle était (rien n\'enregistre, le partage est permis) — chez Ana et chez Ben', !(await A.src.appel(id)).rec && (await A.src.appel(id)).partageOk === true && !!(await B.attendreSnap(id, s => !s.rec && s.partageOk === true, 6000)));
     }
 
     /* ═══ 5. LA SALLE D'ATTENTE, L'EXCLUSION, LE DÉPART DE L'HÔTE ═══ */

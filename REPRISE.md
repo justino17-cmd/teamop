@@ -19,7 +19,57 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# ✅ 9 OCTOBRE 2026 (SOIR) — OP MESSAGES DE A À Z : LES 47 SONDES AU NAVIGATEUR, ET UN VRAI DÉFAUT CORRIGÉ (L'ENREGISTREMENT DE L'HÔTE) — PART SUR LA BÊTA PAR #115
+
+Justin : « laisse le site comme il est, et on continue OP MESSAGES ». Les 47 sondes `tests/sonde-opmessages*.js`, l'une après l'autre (jamais deux
+navigateurs de front), dans le conteneur : **43 vertes au premier passage** ; `visio` ne se lance pas ici (pas de binaire LiveKit), `relais` non plus
+(pas de coturn) ; la grande `sonde-opmessages` a été coupée par le délai de 1 200 s à 1 427 ✓ 0 ✗ — elle est longue, pas cassée : relancée avec 3 600 s,
+**3 172 ✓ 0 ✗ en 45 minutes** (iPhone, Android 360 et 412, iPad, bureau 1024 et 1440, de jour et de nuit ; lui donner une heure) ;
+**`groupe` : 132 ✓ 4 ✗ — un vrai défaut.** Au bout du compte, **les 45 sondes qu'on peut lancer ici sont vertes** (groupe : 201 ✓ 0 ✗,
+après les deux causes ci-dessous).
+
+⛔ **Le défaut** : l'hôte touche « Enregistrer », le bandeau « REC » s'allume chez tous — et son enregistrement s'arrêtait sur SON appareil quelques
+secondes plus tard (la carte « Enregistrement terminé » s'ouvrait seule, le fichier coupé à la seconde du geste), pendant que le bandeau restait
+allumé chez les autres. La cause : une vue de la salle lue AVANT le geste (sans « REC ») arrivait APRÈS sa réponse, par un autre chemin — le flux en
+retard sur la réponse HTTP, la liste des appels relue juste avant, ou la réponse d'un geste précédent ; la page prenait la dernière arrivée pour la
+plus récente, et l'écran de la salle arrête l'enregistrement quand le service le dit fini (`rendreSalle`). Les blocs 7 et 8 tombaient derrière (la
+carte couvrait « Quitter »).
+
+✅ **Le correctif** (`762402f3`, interface régénérée en version 143) : la vue d'une salle porte `rev`, le dernier événement `appel` du journal adressé
+à CETTE personne pour CETTE salle (un identifiant qu'elle reçoit déjà dans son flux — jamais le compteur global, règle de `gidVisible`) ; le moteur
+des salles de la page retient la plus grande version appliquée et ignore une vue plus petite (`appliquer`, `memoriser`, `surAppel`, `reprendre`).
+Sans version (0 : un appel fini, un journal élagué, un service d'avant), la règle d'avant. Coût mesuré : 0,33 ms par vue au pire (journal plein).
+Preuves : `test-986` (le sens de `rev` : le sien, croissant, jamais le compteur global), `test-990` § 4 ter (les TROIS chemins rejoués, vraies
+fonctions de la page contre le vrai service : une lecture retenue en route, le flux mis en file, la réponse d'un geste rendue après la suivante) ;
+mutations S21 à S23 et P18 à P22 de `tests/mutations-groupe.js` : 10/10 tombent (S01 et P09, « mal visées » depuis que le code avait bougé, ré-ancrées).
+⚠️ Les gardes de `surAppel`, `reprendre` et `memoriser` se COUVRENT avec celle d'`appliquer` : retirées seules, rien ne tombe ; avec elle, si (P19,
+P20) — ce n'est pas un banc aveugle.
+
+⛔ **Puis une deuxième cause, celle du conteneur** : correctif posé, le bloc 6 tombait encore — la page de l'hôte ne produisait plus qu'**une image par
+seconde** pendant l'enregistrement (un aller-retour du pilote jusqu'à 146 s ; la page de Ben, elle, restait à 12-17 im/s), et Playwright attend des images
+pour juger un bouton « stable ». Mesuré sur une page ISOLÉE, sans la maille (`scratchpad/mesure-cout-rec.js`) : sous SwiftShader (le GPU émulé),
+30 im/s au dessin seul, 19 avec la capture de la toile, **0,1 à 2 im/s dès qu'un encodeur la lit** (VP8 comme VP9, 1280×720 comme 960×540) ; par le
+processeur (`--disable-gpu`), **30,4 im/s dans tous les cas**, ~9 ms par dessin. Ce n'est donc pas le produit : aucun appareil réel ne passe par
+le GPU émulé. La sonde de groupe ne mesure aucune couleur sous le verre : elle se lance désormais sans GPU émulé (`SWIFTSHADER=1` le remet pour des
+captures fidèles au verre), et un bloc qui tombe garde la FIN du journal de Playwright (c'est là qu'il dit pourquoi). C'était, avec la vue d'avant,
+la « cause pas encore établie » du 8 octobre. **Sonde de groupe : 201 ✓ 0 ✗** (fichier VP9 + Opus de 7,7 s, la tonalité retrouvée, l'image non noire).
+⚠️ Des 20 autres sondes d'OP MESSAGES qui allument SwiftShader, une seule fait lire une toile capturée par un encodeur : `visio` (un faux partage
+d'écran, encodé par WebRTC) — si elle traîne le jour où elle tourne contre le vrai LiveKit, c'est la même cause ; les autres gardent leurs options.
+
+⚠️ **Reste ouvert, jamais observé** : le moteur des appels À DEUX a les mêmes trois chemins, sans version — une vue d'avant pourrait y remettre un appel
+en « sonne » pendant qu'il court (la sonde des appels à deux est verte : 120 ✓). Même remède le jour où ça se voit (`rev` dans `appelRangDe`,
+la garde dans `creerMoteurAppels`) ; pas fait ici pour ne pas élargir le correctif.
+
+⏳ **Ce qui attend Justin** (inchangé) : LiveKit sur le VPS (ports IONOS TCP 7881 et UDP 7882, puis `install-sfu.sh beta`) — c'est ce qui permettra de
+jouer `sonde-opmessages-visio` contre le vrai serveur de visio.
+
 # ⏳ 9 OCTOBRE 2026 (APRÈS-MIDI) — LE MAC, PUIS LE TÉLÉPHONE, ET C'EST TOUT — SUR L'APERÇU (#114) ; LA RACINE ATTEND SA PHRASE
+
+⛔ **EN PAUSE — Justin, le même soir : « laisse tomber le site pour l'instant », puis « laisse le site comme il est, et on continue OP MESSAGES ».** Ne pas reprendre le site sans qu'il le demande. État laissé :
+l'aperçu sert la version « le Mac, puis le téléphone » (#114 fusionnée, relue sur teamop.fr : les 19 pages de l'aperçu ET les 19 de la racine
+= le dépôt ; la racine n'a pas bougé). Justin ne l'a PAS validée. Les 28 mutations de `mutations-carrousel.py` n'ont pas été rejouées jusqu'au
+bout sur cette version (M1 et M3 mordaient quand la série a été arrêtée) : à relancer avant toute suite — dans un `git worktree` à part, pour
+que le dépôt reste propre pendant qu'elles tournent.
 
 Troisième essai du jour, et la règle de Justin, capture des commandes à l'appui (légende, ⏸, pastilles) : « je ne veux pas ça, et ça commence
 à me saouler parce que tu ne comprends pas : je veux, une fois qu'on voit le Mac, ça change de page, on voit le téléphone, et c'est tout, et ça

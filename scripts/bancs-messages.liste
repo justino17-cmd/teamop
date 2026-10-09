@@ -64,7 +64,9 @@
 # (⚠️ Mesurer dans un `git worktree` demande AUSSI `server/node_modules` : sans lui, test-904, 911 et 965 perdent 133 contrôles en silence.)
 # La CI a mesuré 9 155 au déploiement de #107 (682e7030 : test-911 lit l'ordre du flux, +2).
 # 8 octobre 2026, soir : les heures de travail côté Pro (test-968 : +32) — 90 suites, 9 187 vérifications attendues en CI — plancher 9173.
-#plancher 9173
+# 9 octobre 2026 : la version d'une vue de salle (test-986 : +6 ; test-990 : +14 — une vue d'avant ne remplace plus la plus récente) — 90 suites, 9 233 vérifications
+# mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur ; la CI en compte 2 de plus) — plancher 9219 (le total local moins 14).
+#plancher 9219
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
