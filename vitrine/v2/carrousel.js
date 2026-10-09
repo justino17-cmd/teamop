@@ -70,10 +70,14 @@
             else if (v.classList.contains('c-on')) { v.classList.remove('c-on'); v.classList.add('c-sort'); v.setAttribute('aria-hidden', 'true'); }
           });
         });
+        /* l'écran sorti se range quand sa glissade est finie : 0,9 s (la glissade dure 0,62 s), plus le retard que la feuille donne
+           à cette glissade — celui d'une case dans sa vague (carrousel.css) ; rangé plus tôt, il disparaîtrait en pleine glissade */
+        var retard = 0;
+        try { retard = (parseFloat(getComputedStyle(vues[0][j]).animationDelay) || 0) * 1000; } catch (x) {}
         clearTimeout(sortie);
         sortie = setTimeout(function () {
           vues.forEach(function (L) { L.forEach(function (v) { if (v.classList.contains('c-sort')) { v.classList.remove('c-sort'); v.classList.add('c-prete'); } }); });
-        }, 900);
+        }, 900 + retard);
         points.forEach(function (p, k) { if (k === j) p.setAttribute('aria-current', 'true'); else p.removeAttribute('aria-current'); });
         if (legende) legende.textContent = titres[j];
         prets((j + 1) % n);
@@ -101,18 +105,20 @@
     var auClavier = function (t) { try { return !!(t && t.matches && t.matches(':focus-visible')); } catch (x) { return true; } };
     c.addEventListener('focusin', function (e) { arret('clavier', auClavier(e.target)); });
     c.addEventListener('focusout', function (e) { if (!c.contains(e.relatedTarget)) arret('clavier', false); });
-    /* au doigt : glisser de côté */
+    /* au doigt : glisser de côté — pas dans une case (elle n'a pas de commandes : c'est un bouton, toucher l'ouvre) */
     var x0 = null, y0 = 0;
-    scene.addEventListener('touchstart', function (e) {
-      if (e.touches.length !== 1) { x0 = null; return; }
-      x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
-    }, { passive: true });
-    scene.addEventListener('touchend', function (e) {
-      if (x0 === null) return;
-      var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) montrer(i + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
-    }, { passive: true });
-    scene.addEventListener('touchcancel', function () { x0 = null; }, { passive: true });
+    if (scene && commandes) {
+      scene.addEventListener('touchstart', function (e) {
+        if (e.touches.length !== 1) { x0 = null; return; }
+        x0 = e.touches[0].clientX; y0 = e.touches[0].clientY;
+      }, { passive: true });
+      scene.addEventListener('touchend', function (e) {
+        if (x0 === null) return;
+        var t = e.changedTouches[0], dx = t.clientX - x0, dy = t.clientY - y0; x0 = null;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.3) montrer(i + (dx < 0 ? 1 : -1), dx < 0 ? 1 : -1);
+      }, { passive: true });
+      scene.addEventListener('touchcancel', function () { x0 = null; }, { passive: true });
+    }
 
     var vu = false;
     function visible(oui) {
@@ -127,13 +133,31 @@
     if (commandes) commandes.hidden = false;
     c.classList.add('c-pret');
     etat();
-    return { arret: arret, pause: function (oui) { enPause = !!oui; etat(); } };
+    return { el: c, arret: arret, pause: function (oui) { enPause = !!oui; etat(); } };
   }
 
   liste(document.querySelectorAll('[data-carrousel]')).forEach(function (c) { var x = brancher(c); if (x) tous.push(x); });
   document.addEventListener('visibilitychange', function () { tous.forEach(function (x) { x.arret('cache', document.hidden); }); });
+
+  /* le ⏸ des cases (`data-c-groupe`) : il arrête et relance toutes celles de sa section — une case est un bouton, elle ne peut pas
+     porter le sien */
+  var groupes = liste(document.querySelectorAll('[data-c-groupe]')).map(function (b) {
+    var zone = b.closest('section') || document.body;
+    var membres = tous.filter(function (x) { return zone.contains(x.el); });
+    if (!membres.length) return null;
+    var arrete = !!(reduit && reduit.matches);
+    var maj = function () {
+      b.classList.toggle('c-pause', arrete);
+      b.setAttribute('aria-label', arrete ? 'Lancer le défilement des cases' : 'Mettre en pause le défilement des cases');
+    };
+    b.addEventListener('click', function () { arrete = !arrete; membres.forEach(function (x) { x.pause(arrete); }); maj(); });
+    if (b.parentNode && b.parentNode.classList.contains('c-groupe')) b.parentNode.hidden = false;
+    maj();
+    return { arreter: function () { arrete = true; maj(); } };
+  }).filter(Boolean);
+
   if (reduit) {
-    var suivre = function () { if (reduit.matches) tous.forEach(function (x) { x.pause(true); }); };
+    var suivre = function () { if (reduit.matches) { tous.forEach(function (x) { x.pause(true); }); groupes.forEach(function (g) { g.arreter(); }); } };
     if (reduit.addEventListener) reduit.addEventListener('change', suivre); else if (reduit.addListener) reduit.addListener(suivre);
   }
 })();

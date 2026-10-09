@@ -29,14 +29,12 @@ MUTATIONS = [
     ('M9 l\'iPhone des cartes coupé par le bas', CSS, ".grande-carte .bas { align-items: flex-end; padding: 30px 20px 40px; }",
      ".grande-carte .bas { align-items: flex-start; padding: 30px 20px 0; max-height: 420px; overflow: hidden; }",
      'EN ENTIER', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
-    ('M10 les cases recoupent leurs appareils', CSS, ".tuile-f .vue.duo { display: block; flex: 0 0 auto; margin-top: auto; height: auto; max-height: none; aspect-ratio: 1 / .74; padding: 0; }",
-     ".tuile-f .vue.duo { display: block; flex: 0 0 auto; margin-top: auto; height: auto; max-height: none; aspect-ratio: 1 / .3; padding: 0; }",
+    ('M10 l\'iPhone plus haut que sa scène', CSS, "--ap-l: calc(var(--c-h) * 430 / 902); margin: 0; }", "--ap-l: calc(var(--c-h) * 430 / 600); margin: 0; }",
      'EN ENTIER', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     ('M11 la légende ne suit plus', JS, "if (legende) legende.textContent = titres[j];", "/* muté */",
      'disent le même écran', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
-    ('M12 le Mac et l\'iPhone se désaccordent', JS, "vues.forEach(function (L) {\n          L.forEach(function (v) { if (v.classList.contains('c-sort'))",
-     "vues.slice(0, 1).forEach(function (L) {\n          L.forEach(function (v) { if (v.classList.contains('c-sort'))",
-     'disent le même écran', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
+    ('M12 la scène ne coupe plus l\'appareil qui glisse', CSS, "container-type: size; overflow: hidden; overflow-x: clip; overflow-y: visible;", "container-type: size; overflow: visible;",
+     'ne déborde pas de côté', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     # (rendre seulement `permis` toujours vrai ne changerait rien : le cycle factures / encaissements / connexion est neutre de lui-même —
     #  c'est la scène Mac + iPhone, tout en 3D, qui arriverait chez le plombier)
     ('M13 une page hors 3D montre du 3D', GEN, "const neutre = !!METIERS[cle] && !m.trois, permis = k => !neutre || !troisD(k);",
@@ -52,12 +50,40 @@ MUTATIONS = [
     ('M17 les écrans défilent à l\'envers', JS, "c.classList.toggle('c-avant', vers > 0); c.classList.toggle('c-arriere', vers < 0);",
      "c.classList.toggle('c-avant', vers < 0); c.classList.toggle('c-arriere', vers > 0);",
      "il défile seul", {'PAGES': 'index', 'PROFILS': 'téléphone', 'MODES': 'light', 'GESTES': 'index'}),
-    ('M18 l\'iPhone repasse derrière le Mac', CSS, ".c-scene .ap-mac { isolation: isolate; }\n.c-scene .ap-iphone { isolation: isolate; z-index: 1; }", "/* muté */",
-     "passe DEVANT le Mac", {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    ('M18 l\'écran préparé se voit déjà (deux appareils à l\'écran)', CSS, ".c-vue.c-prete { opacity: 0; }", ".c-vue.c-prete { opacity: 1; }",
+     'UN seul appareil', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     ('M19 la page hors 3D prend les captures du 3D', GEN, "const NEUTRE_DE = { factures: 'facturesNeutre', compta: 'comptaNeutre' };", "const NEUTRE_DE = {};",
      'rien que des écrans neutres', {'PAGES': 'logiciel-plombier', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     ('M20 une case revient à un seul appareil', GEN, "  if (!POUR_LA_RACINE) { const k = PAIRE_DE[v.mac || v.iphone || v.duo[0]];", "  if (false) { const k = PAIRE_DE[v.mac || v.iphone || v.duo[0]];",
-     'chaque case montre le Mac ET', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+     "chaque case porte l'iPhone, puis le Mac", {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    ('M21 l\'horloge des cases ne tourne plus', CSS, ".c-horloge { position: absolute; left: 0; top: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }",
+     ".c-horloge { display: none; }", "passent d'elles-mêmes au Mac", {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    ('M22 plus de vague : la grille bascule d\'un bloc', CSS, ".vue.alterne.c-anime .c-vue.c-on, .vue.alterne.c-anime .c-vue.c-sort { animation-delay: calc(var(--i, 0) * 70ms); }", "/* muté */",
+     'en vague', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    ('M23 le ⏸ des cases ne fait rien', JS, "b.addEventListener('click', function () { arrete = !arrete; membres.forEach(function (x) { x.pause(arrete); }); maj(); });", "/* muté */",
+     'le ⏸ des cases', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    ('M24 « animations réduites » : la glissade reprend le dessus', CSS, "[data-carrousel].c-anime.c-avant .c-vue.c-on, [data-carrousel].c-anime.c-avant .c-vue.c-sort,\n  [data-carrousel].c-anime.c-arriere .c-vue.c-on, [data-carrousel].c-anime.c-arriere .c-vue.c-sort { animation: none; }",
+     "[data-carrousel].c-anime .c-vue.c-on, [data-carrousel].c-anime .c-vue.c-sort { animation: none; }",
+     'SANS glisser', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
+    ('M25 le Mac avant l\'iPhone', GEN, "    vues.push(cadreIphone(ecranIphone(i, altIphone(i), { tot: j === 0 && o.tot }))); titres.push(t + LEGENDE_APPAREIL.iphone);\n    vues.push(cadreMac(ecranMac(m, altMac(m), { tailles }))); titres.push(t + LEGENDE_APPAREIL.mac);",
+     "    vues.push(cadreMac(ecranMac(m, altMac(m), { tailles }))); titres.push(t + LEGENDE_APPAREIL.mac);\n    vues.push(cadreIphone(ecranIphone(i, altIphone(i), { tot: j === 0 && o.tot }))); titres.push(t + LEGENDE_APPAREIL.iphone);",
+     "l'iPhone, puis le Mac (", {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
+    ('M26 les appareils se chevauchent en glissant', CSS, "@keyframes c-entre-avant { from { transform: translateX(100%); } to { transform: none; } }",
+     "@keyframes c-entre-avant { from { transform: translateX(30%); } to { transform: none; } }",
+     'ne se chevauchent jamais', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    # — le banc (tests/test-835.js) : ses gardes de l'aperçu, remises en défaut par le générateur —
+    ('B1 (banc) le Mac avant l\'iPhone', GEN, "    vues.push(cadreIphone(ecranIphone(i, altIphone(i), { tot: j === 0 && o.tot }))); titres.push(t + LEGENDE_APPAREIL.iphone);\n    vues.push(cadreMac(ecranMac(m, altMac(m), { tailles }))); titres.push(t + LEGENDE_APPAREIL.mac);",
+     "    vues.push(cadreMac(ecranMac(m, altMac(m), { tailles }))); titres.push(t + LEGENDE_APPAREIL.mac);\n    vues.push(cadreIphone(ecranIphone(i, altIphone(i), { tot: j === 0 && o.tot }))); titres.push(t + LEGENDE_APPAREIL.iphone);",
+     "l'iPhone, puis le Mac du même écran", {'BANC': 'tests/test-835.js'}),
+    ('B2 (banc) dix écrans par grande scène', GEN, "const SCENE = SCENE_TOUT.slice(0, 4);", "const SCENE = SCENE_TOUT.slice(0, 5);",
+     'huit au plus', {'BANC': 'tests/test-835.js'}),
+    ('B3 (banc) la légende tait l\'appareil', GEN, "const LEGENDE_APPAREIL = { iphone: ', sur iPhone', mac: ', sur Mac' };", "const LEGENDE_APPAREIL = { iphone: '', mac: '' };",
+     "la légende dit l'appareil", {'BANC': 'tests/test-835.js'}),
+    ('B4 (banc) une case, le Mac d\'un autre écran', GEN, "    const ecrans = [cadreIphone(ecranIphone(PAIRES[k][1], alt)), cadreMac(ecranMac(PAIRES[k][0], alt, { tailles: VUE_TAILLES.mac }))];",
+     "    const ecrans = [cadreIphone(ecranIphone(PAIRES[k][1], alt)), cadreMac(ecranMac(PAIRES.tableau[0], alt, { tailles: VUE_TAILLES.mac }))];",
+     'sur le MÊME écran', {'BANC': 'tests/test-835.js'}),
+    ('B5 (banc) le ⏸ des cases disparaît', GEN, "  const pause = !POUR_LA_RACINE && liste.some(x => x[4]) ?", "  const pause = false ?",
+     'un seul ⏸ pour les cases', {'BANC': 'tests/test-835.js'}),
 ]
 
 def sh(c, **kw):
@@ -81,7 +107,7 @@ def main():
             # la mutation a bien touché le fichier SERVI (règle du dépôt : vérifier que la mutation a frappé le bon endroit)
             d = sh('git diff --stat').stdout.strip()
             e = dict(os.environ); e.update(env)
-            r = subprocess.run('node scratchpad/sonde-carrousel.js', shell=True, cwd=RACINE, capture_output=True, text=True, env=e, timeout=900)
+            r = subprocess.run('node ' + (env.get('BANC') or 'scratchpad/sonde-carrousel.js'), shell=True, cwd=RACINE, capture_output=True, text=True, env=e, timeout=900)
             sortie = r.stdout + r.stderr
             tombe = r.returncode != 0 and any(attendu in l for l in sortie.splitlines() if l.strip().startswith('✗'))
             (mord if tombe else rate).append(nom)

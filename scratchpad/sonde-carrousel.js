@@ -1,16 +1,21 @@
 /* Sonde des CARROUSELS d'écrans du site (aperçu, apercu/site/) — Justin, 8 octobre 2026 : « des défilements d'images avec
    l'iPhone, et qu'on le voie bien en entier, et aussi un Mac pour montrer que ça marche bien sur les deux ».
+   Puis le 9 octobre : « non, je ne veux pas ça, je veux une fois le téléphone, une fois le Mac, et que ça défile » — UN appareil
+   à la fois : l'iPhone, puis le Mac du même écran.
    Chaque geste est JOUÉ dans un vrai Chromium (127.0.0.1 seulement, rien ne sort d'ici) :
    · partout (4 profils × jour / nuit × les pages à carrousel) : aucune exception ; chaque carrousel branché (commandes
-     visibles, un point par écran, deux pistes de même longueur pour le Mac + iPhone) ; CHAQUE appareil de la page entier
-     (aucun ancêtre qui le coupe, rien hors de la largeur posée) ; la page ne bouge pas de côté ; les écrans pas encore
-     montrés NE SE CHARGENT PAS avant qu'on voie le carrousel, le suivant se prépare quand on le voit ; l'écran affiché suit
-     le mode (jour / nuit) ; commandes à 44 px de haut ; une page métier hors 3D ne montre que des écrans neutres, sans Mac ;
-   · les gestes (bureau et téléphone) : il défile seul, la pastille dit où l'on est, la légende suit, le Mac et l'iPhone
-     restent ensemble ; ⏸ arrête pour de bon et ▶ reprend ; la souris posée dessus le fait attendre ; hors de l'écran il
-     attend ; un point touché y va ; des touches rapprochées finissent sur la dernière ; au doigt, glisser à gauche / à
+     visibles, un point par écran, une piste) ; au repos, UN SEUL appareil se voit, dans chaque carrousel et chaque case ;
+     CHAQUE écran (montré tour à tour) porte son appareil ENTIER, dans sa scène (aucun ancêtre qui le coupe, rien hors de
+     la largeur posée) ; pendant la glissade, l'appareil qui part et celui qui arrive ne se chevauchent JAMAIS, et la page
+     ne déborde pas de côté ; la page ne bouge pas de côté ; les écrans pas encore montrés NE SE CHARGENT PAS avant qu'on
+     voie le carrousel, le suivant se prépare quand on le voit ; l'écran affiché suit le mode (jour / nuit) ; commandes à
+     44 px de haut ; chaque case passe d'elle-même de l'iPhone au Mac, en vague, et le ⏸ des cases les arrête toutes ; une
+     page métier hors 3D ne montre que des écrans neutres, le Mac et l'iPhone ;
+   · les gestes (bureau et téléphone) : il défile seul, la pastille dit où l'on est, la légende suit, après l'iPhone vient
+     le Mac du même écran ; ⏸ arrête pour de bon et ▶ reprend ; la souris posée dessus le fait attendre ; hors de l'écran
+     il attend ; un point touché y va ; des touches rapprochées finissent sur la dernière ; au doigt, glisser à gauche / à
      droite change d'écran et un geste vertical non ; ← → au clavier, et le clavier dans le carrousel le fait attendre ;
-     « animations réduites » : arrêté au départ, les points marchent.
+     « animations réduites » : arrêté au départ, les points marchent, et l'écran change SANS glisser.
    Usage : node scratchpad/sonde-carrousel.js      PAGES=index,elan PROFILS=bureau MODES=light node scratchpad/sonde-carrousel.js */
 const fs = require('fs'), path = require('path'), http = require('http'), net = require('net'), os = require('os');
 const { spawn } = require('child_process');
@@ -71,7 +76,8 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
         pause:c.classList.contains('c-pause'), arrete:c.classList.contains('c-arrete'), pret:c.classList.contains('c-pret'),
         sens:c.classList.contains('c-avant')?'avant':c.classList.contains('c-arriere')?'arriere':'',
         cachees:[...c.querySelectorAll('.c-vue')].filter(v=>!v.classList.contains('c-on')).every(v=>v.getAttribute('aria-hidden')==='true'),
-        bouton:(c.querySelector('.c-lecture')||{getAttribute:()=>null}).getAttribute('aria-label') }; };`;
+        bouton:(c.querySelector('.c-lecture')||{getAttribute:()=>null}).getAttribute('aria-label'),
+        app:(()=>{ const v=c.querySelector('.c-vue.c-on'); return !v?'':v.querySelector('.ap-iphone')&&!v.querySelector('.ap-mac')?'iphone':v.querySelector('.ap-mac')&&!v.querySelector('.ap-iphone')?'mac':'?'; })() }; };`;
   const etat = k => ev(ETAT + ` return etat(${k});`);
   const centre = (sel, k) => ev(`const e=document.querySelectorAll(${JSON.stringify(sel)})[${k || 0}]; if(!e) return null; voir(e); ${deuxImages}
     const b=e.getBoundingClientRect(); return {x:b.left+b.width/2, y:b.top+b.height/2, w:b.width, h:b.height};`);
@@ -128,48 +134,105 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
           return L;`);
         for (const [k, b] of branche.entries()) {
           const t = lbl + ' · carrousel ' + (k + 1) + ' (' + b.genre + ')';
-          vrai(t + ' : branché (' + b.n + ' écrans, commandes visibles)', b.pret && b.commandes && b.n >= 2 && b.longueurs.every(x => x === b.n) && (b.genre.includes('c-duo') ? b.longueurs.length === 2 : b.longueurs.length === 1), JSON.stringify(b));
+          vrai(t + ' : branché (' + b.n + ' écrans, commandes visibles)', b.pret && b.commandes && b.n >= 2 && b.longueurs.every(x => x === b.n) && b.longueurs.length === 1 && b.genre.includes('c-alterne'), JSON.stringify(b));
           vrai(t + ' : l\'écran montré et le suivant sont chargés, les autres attendent', b.courant && b.suivant && b.autres, JSON.stringify(b));
           vrai(t + ' : l\'écran suit le mode (' + (mode === 'dark' ? 'nuit' : 'jour') + ')', b.mode.every(s => (mode === 'dark' ? /-nuit(-1x)?\.webp$/ : /-jour(-1x)?\.webp$/).test(s)), b.mode.join(' '));
           vrai(t + ' : un seul écran affiché par piste, la légende le nomme, les autres cachés aux lecteurs d\'écran', b.coherent && b.cachees, JSON.stringify(b));
           vrai(t + ' : commandes à 44 px de haut au moins', b.cibles.length === b.n + 1 && b.cibles.every(h => h >= 44), JSON.stringify(b.cibles));
         }
-        /* ⛔ L'APPAREIL EN ENTIER : aucun ancêtre qui le coupe, rien hors de la largeur posée de l'appareil (iPhone : le corps ;
-           Mac : tout, socle compris). Recensés depuis le DOM : carrousels ET cases. */
-        const entiers = await ev(`const L=[]; for(const a of document.querySelectorAll('.ap-iphone,.ap-mac')){ const el=a.classList.contains('ap-iphone')?a.querySelector('.ap-iphone-corps'):a;
-            voir(a); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-            const b=el.getBoundingClientRect(); let coupe=null;
-            if(b.left<-1||b.right>${P.w}+1) coupe='hors largeur '+Math.round(b.left)+'→'+Math.round(b.right);
+        /* ⛔ UN SEUL APPAREIL À LA FOIS (Justin, 9 octobre 2026 : « une fois le téléphone, une fois le Mac ») : au repos, dans chaque
+           carrousel et chaque case, UN écran se voit, et il porte UN appareil — l'écran sorti, s'il reste un instant, est hors de la
+           scène. Recensés depuis le DOM (`[data-carrousel]`) : carrousels ET cases. */
+        const seul = await ev(`const L=[]; for(const c of document.querySelectorAll('[data-carrousel]')){ const sc=c.querySelector('.c-scene').getBoundingClientRect();
+            const vus=[...c.querySelectorAll('.c-vue')].filter(v=>{ const s=getComputedStyle(v), r=v.getBoundingClientRect();
+              return s.display!=='none'&&+s.opacity>.01&&Math.min(r.right,sc.right)-Math.max(r.left,sc.left)>1&&Math.min(r.bottom,sc.bottom)-Math.max(r.top,sc.top)>1; });
+            L.push({quoi:c.className, vus:vus.length, appareils:vus.map(v=>v.querySelectorAll('.ap-iphone,.ap-mac').length).join('+')}); }
+          return L;`);
+        vrai(lbl + ' : population — ' + seul.length + ' carrousels et cases', seul.length >= 1);
+        vrai(lbl + ' : ⛔ au repos, UN seul appareil se voit, partout', seul.every(x => x.vus === 1 && x.appareils === '1'), JSON.stringify(seul.filter(x => !(x.vus === 1 && x.appareils === '1')).slice(0, 4)));
+        /* ⛔ L'APPAREIL EN ENTIER, À CHAQUE ÉCRAN : chaque écran est montré tour à tour (les autres masqués, l'horloge figée), et son
+           appareil ne doit être coupé par aucun ancêtre ni sortir de la largeur posée (iPhone : le corps ; Mac : tout, socle compris) */
+        const entiers = await ev(`const deux=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+          const cs=[...document.querySelectorAll('[data-carrousel]')]; cs.forEach(c=>c.style.setProperty('--c-duree','9999s')); await new Promise(r=>setTimeout(r,1500));
+          const mesurer=(a,ou)=>{ const el=a.classList.contains('ap-iphone')?a.querySelector('.ap-iphone-corps'):a; const b=el.getBoundingClientRect(); let coupe=null;
+            if(b.width<20) coupe='invisible ('+Math.round(b.width)+' px)';
+            if(!coupe&&(b.left<-1||b.right>${P.w}+1)) coupe='hors largeur '+Math.round(b.left)+'→'+Math.round(b.right);
             for(let p=a.parentElement;p&&!coupe&&p!==document.body;p=p.parentElement){ const s=getComputedStyle(p); if(!/hidden|clip|auto|scroll/.test(s.overflow+s.overflowX+s.overflowY)) continue;
               if(p.scrollTop||p.scrollLeft){ coupe=(p.className||p.tagName)+' défilé de '+p.scrollLeft+'/'+p.scrollTop+' px : il ne montre plus ce que montre la page en arrivant'; break; }
               const r=p.getBoundingClientRect(); if(b.left<r.left-1||b.right>r.right+1||b.top<r.top-1||b.bottom>r.bottom+1) coupe=(p.className||p.tagName)+' coupe : '+[Math.round(r.left-b.left),Math.round(b.right-r.right),Math.round(r.top-b.top),Math.round(b.bottom-r.bottom)].join('/'); }
-            L.push({quoi:(a.closest('.carrousel')?'carrousel ':'')+(a.closest('.tuile-f')?'case ':'')+a.className, w:Math.round(b.width), coupe}); }
-          scrollTo(0,0); return L;`);
-        vrai(lbl + ' : population — ' + entiers.length + ' appareils', entiers.length >= 1);
-        /* ⛔ l'iPhone DEVANT le Mac : on touche le milieu de leur chevauchement, et c'est l'iPhone qui doit répondre (9 octobre
-           2026 : l'écran du Mac passait devant, depuis le premier carrousel — aucune photo ne l'avait montré) */
-        const devant = await ev(`const L=[]; for(const ip of document.querySelectorAll('.ap-iphone')){ const sc=ip.closest('.c-scene,.vue'); const m=sc&&sc.querySelector('.ap-mac'); if(!m) continue;
-            voir(ip); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
-            const a=ip.querySelector('.ap-iphone-ecran').getBoundingClientRect(), b=m.querySelector('.ap-mac-ecran').getBoundingClientRect();
-            const x0=Math.max(a.left,b.left), x1=Math.min(a.right,b.right), y0=Math.max(a.top,b.top), y1=Math.min(a.bottom,b.bottom);
-            if(x1-x0<6||y1-y0<6){ L.push({quoi:sc.className, chevauche:false}); continue; }
-            const v=sc.classList.contains('vue'); if(v) sc.style.pointerEvents='auto';
-            const e=document.elementFromPoint((x0+x1)/2,(y0+y1)/2); if(v) sc.style.pointerEvents='';
-            L.push({quoi:sc.className, chevauche:true, iphone:!!(e&&e.closest('.ap-iphone')), touche:e?(e.className||e.tagName):null}); }
-          scrollTo(0,0); return L;`);
-        const cases = await ev(`const v=[...document.querySelectorAll('.tuile-f .vue')]; return {n:v.length, duo:v.filter(x=>x.querySelector('.ap-mac')&&x.querySelector('.ap-iphone')).length};`);
-        if (cases.n) vrai(lbl + ' : ⛔ chaque case montre le Mac ET l\'iPhone (' + cases.duo + '/' + cases.n + ')', cases.duo === cases.n, JSON.stringify(cases));
-        const chevauchent = devant.filter(x => x.chevauche);
-        vrai(lbl + ' : population — ' + chevauchent.length + ' paires où l\'iPhone chevauche le Mac', chevauchent.length >= 1, JSON.stringify(devant.slice(0, 3)));
-        vrai(lbl + ' : ⛔ l\'iPhone passe DEVANT le Mac, partout', chevauchent.every(x => x.iphone), JSON.stringify(chevauchent.filter(x => !x.iphone).slice(0, 3)));
-        vrai(lbl + ' : chaque appareil se voit EN ENTIER', entiers.every(x => !x.coupe), JSON.stringify(entiers.filter(x => x.coupe).slice(0, 4)));
+            return {quoi:ou+a.className, w:Math.round(b.width), coupe}; };
+          const L=[];
+          for(const c of cs){ const vs=[...c.querySelectorAll('.c-vue')];
+            for(let j=0;j<vs.length;j++){ vs.forEach((v,k)=>{ v.style.display=k===j?'flex':'none'; if(k===j){ v.style.opacity='1'; v.style.animation='none'; } });
+              const a=vs[j].querySelector('.ap-iphone,.ap-mac'); if(!a){ L.push({quoi:c.className+' écran '+j, coupe:'aucun appareil'}); continue; }
+              voir(a); await deux(); L.push(mesurer(a,(c.closest('.tuile-f')?'case ':'carrousel ')+'écran '+(j+1)+' : ')); }
+            vs.forEach(v=>{ v.style.display=''; v.style.opacity=''; v.style.animation=''; }); }
+          /* les appareils hors carrousel (la racine en a ; l'aperçu, plus) */
+          for(const a of document.querySelectorAll('.ap-iphone,.ap-mac')) if(!a.closest('[data-carrousel]')){ voir(a); await deux(); L.push(mesurer(a,'fixe ')); }
+          cs.forEach(c=>c.style.removeProperty('--c-duree')); scrollTo(0,0); return L;`);
+        vrai(lbl + ' : population — ' + entiers.length + ' écrans d\'appareil montrés tour à tour', entiers.length >= 2);
+        vrai(lbl + ' : chaque appareil se voit EN ENTIER, à chaque écran', entiers.every(x => !x.coupe), JSON.stringify(entiers.filter(x => x.coupe).slice(0, 4)));
+        /* ⛔ PENDANT LA GLISSADE : l'appareil qui part et celui qui arrive restent bord à bord — ils ne se chevauchent JAMAIS — et la
+           page ne déborde pas de côté (l'appareil qui arrive vient de la droite : sans la coupe de la scène, il pousserait la page).
+           Relevé à chaque image, sur le premier carrousel de la page et sur une case. */
+        /* ⚠️ la PREMIÈRE glissade vers un écran le dessine pour la première fois : ce Chromium sans carte graphique met alors ~0,5 s
+           à peindre la grande image du Mac, et pendant ce temps aucune image ne sort — on ne voit pas la glissade. On montre donc
+           l'écran suivant une fois (à blanc), puis on relève la glissade du RETOUR et celle de l'aller, entre deux écrans déjà peints. */
+        const glisse = await ev(`const R=[]; const cibles=[document.querySelector('.carrousel'), document.querySelector('.vue.alterne')].filter(Boolean);
+          const aller=(c,d)=>{ const pts=[...c.querySelectorAll('.c-point')]; const i=pts.findIndex(p=>p.getAttribute('aria-current')==='true'); pts[(i+d+pts.length)%pts.length].dispatchEvent(new MouseEvent('click',{bubbles:false})); };
+          for(const c of cibles){ voir(c); await new Promise(r=>setTimeout(r,1200)); c.style.setProperty('--c-duree','9999s');
+            aller(c,1); await new Promise(r=>setTimeout(r,1600));
+            let images=0, glissade=0, deuxVus=0, chevauche=0, deborde=0;
+            for(const d of [-1,1]){ aller(c,d); const t0=performance.now();
+              while(performance.now()-t0<1300){ await new Promise(r=>requestAnimationFrame(r)); images++;
+                if([...c.querySelectorAll('.c-vue.c-on,.c-vue.c-sort')].some(v=>v.getAnimations().some(a=>/^c-(entre|sort)/.test(a.animationName)&&a.playState==='running'))) glissade++;
+                const aps=[...c.querySelectorAll('.c-vue.c-on .ap-iphone-corps,.c-vue.c-on .ap-mac,.c-vue.c-sort .ap-iphone-corps,.c-vue.c-sort .ap-mac')].map(e=>e.getBoundingClientRect());
+                const sc=c.querySelector('.c-scene').getBoundingClientRect(); const dans=aps.filter(b=>Math.min(b.right,sc.right)-Math.max(b.left,sc.left)>1);
+                if(dans.length===2){ deuxVus++; const [a,b]=dans; if(Math.min(a.right,b.right)-Math.max(a.left,b.left)>1&&Math.min(a.bottom,b.bottom)-Math.max(a.top,b.top)>1) chevauche++; }
+                if(document.documentElement.scrollWidth>innerWidth) deborde++; } }
+            c.style.removeProperty('--c-duree'); R.push({quoi:c.className, images, glissade, deuxVus, chevauche, deborde}); }
+          scrollTo(0,0); return R;`);
+        for (const g of glisse) {
+          /* (la glissade part vite — la courbe « ressort » d'Apple : l'appareil qui part quitte la scène en ~150 ms ; on exige donc
+             d'avoir VU la glissade, et au moins une image où les deux appareils sont dans la scène) */
+          vrai(lbl + ' · ' + g.quoi + ' : population — la glissade a été vue (' + g.glissade + ' images en glissade, ' + g.deuxVus + ' à deux appareils, sur ' + g.images + ')', g.glissade >= 10 && g.deuxVus >= 1, JSON.stringify(g));
+          vrai(lbl + ' · ' + g.quoi + ' : ⛔ pendant la glissade, les deux appareils ne se chevauchent jamais, et la page ne déborde pas de côté', g.chevauche === 0 && g.deborde === 0, JSON.stringify(g));
+        }
+        /* ⛔ LES CASES : chacune passe d'elle-même de l'iPhone au Mac du même écran, en vague (`--i`) ; le ⏸ des cases les arrête toutes */
+        const cases = await ev(`const v=[...document.querySelectorAll('.tuile-f .vue')]; return {n:v.length, alterne:v.filter(x=>x.matches('.alterne[data-carrousel].c-pret')
+          &&x.querySelectorAll('.c-vue').length===2&&x.querySelectorAll('.c-vue')[0].querySelector('.ap-iphone')&&x.querySelectorAll('.c-vue')[1].querySelector('.ap-mac')).length};`);
+        if (cases.n) {
+          vrai(lbl + ' : ⛔ chaque case porte l\'iPhone, puis le Mac (' + cases.alterne + '/' + cases.n + ')', cases.alterne === cases.n, JSON.stringify(cases));
+          /* chaque case visible doit MONTRER le Mac, puis l'iPhone de nouveau (relevé toutes les 50 ms pendant 4 s, horloge à 1,2 s) */
+          const bascule = await ev(`const g=document.querySelector('.bento'); voir(g.querySelector('.tuile-f')); await new Promise(r=>setTimeout(r,700));
+            const vis=[...document.querySelectorAll('.vue.alterne')].filter(v=>{ const r=v.getBoundingClientRect(); return r.top>=0&&r.bottom<=innerHeight; });
+            vis.forEach(v=>v.style.setProperty('--c-duree','1.2s')); const vus=vis.map(()=>new Set()), arrets=vis.map(()=>0);
+            const t0=performance.now(); while(performance.now()-t0<4000){ await new Promise(r=>setTimeout(r,50));
+              vis.forEach((v,k)=>{ const on=v.querySelector('.c-vue.c-on'); if(on) vus[k].add(on.querySelector('.ap-mac')?'mac':on.querySelector('.ap-iphone')?'iphone':'?'); if(v.classList.contains('c-arrete')) arrets[k]++; }); }
+            const R={visibles:vis.length, mac:vus.filter(x=>x.has('mac')&&x.has('iphone')&&x.size===2).length, vus:vus.map(x=>[...x].join('+')), arrets,
+              retards:vis.map(v=>getComputedStyle(v.querySelector('.c-vue.c-on')).animationDelay), rangs:vis.map(v=>+getComputedStyle(v).getPropertyValue('--i'))};
+            vis.forEach(v=>v.style.setProperty('--c-duree','9999s')); return R;`);
+          vrai(lbl + ' : ⛔ les cases à l\'écran passent d\'elles-mêmes au Mac, puis reviennent à l\'iPhone (' + bascule.mac + '/' + bascule.visibles + ')', bascule.visibles >= 1 && bascule.mac === bascule.visibles, JSON.stringify(bascule));
+          vrai(lbl + ' : en vague — chaque case glisse 70 ms après la précédente (' + bascule.retards.join(' ') + ')', bascule.retards.every((d, k) => Math.abs(parseFloat(d) - bascule.rangs[k] * 0.07) < 0.001), JSON.stringify(bascule));
+          const pause = await ev(`const b=document.querySelector('[data-c-groupe]'); if(!b) return null; const r=b.getBoundingClientRect();
+            const vs=[...document.querySelectorAll('.vue.alterne')]; voir(b); await new Promise(r=>setTimeout(r,200)); b.click(); await new Promise(r=>setTimeout(r,100));
+            const arretees=vs.filter(v=>v.classList.contains('c-pause')).length, label1=b.getAttribute('aria-label');
+            vs.forEach(v=>v.style.setProperty('--c-duree','1.2s')); const avant=vs.map(v=>[...v.querySelectorAll('.c-vue')].findIndex(x=>x.classList.contains('c-on')));
+            voir(document.querySelector('.bento .tuile-f')); await new Promise(r=>setTimeout(r,2800));
+            const apres=vs.map(v=>[...v.querySelectorAll('.c-vue')].findIndex(x=>x.classList.contains('c-on')));
+            b.click(); const label2=b.getAttribute('aria-label'), reprises=vs.filter(v=>!v.classList.contains('c-pause')).length;
+            vs.forEach(v=>v.style.removeProperty('--c-duree'));
+            return {h:Math.round(r.height), w:Math.round(r.width), visible:getComputedStyle(b.parentNode).display!=='none', arretees, n:vs.length, label1, figees:avant.every((x,k)=>x===apres[k]), label2, reprises};`);
+          vrai(lbl + ' : ⛔ le ⏸ des cases se voit (44 px) et les arrête TOUTES (« ' + (pause && pause.label1) + ' »)', pause && pause.visible && pause.h >= 44 && pause.w >= 44 && pause.arretees === pause.n && pause.figees && pause.label1 === 'Lancer le défilement des cases', JSON.stringify(pause));
+          vrai(lbl + ' : ▶ les relance toutes', pause && pause.reprises === pause.n && pause.label2 === 'Mettre en pause le défilement des cases', JSON.stringify(pause));
+        }
         const cote = await ev(`const r=[]; for(const y of [0, document.documentElement.scrollHeight]){ scrollTo(9999,y); ${deuxImages} r.push(scrollX); } scrollTo(0,0);
           return {r, large:document.documentElement.scrollWidth, fen:innerWidth};`);
         vrai(lbl + ' : aucun défilement de côté', cote.r.every(x => x === 0) && cote.large <= P.w && cote.fen === P.w, JSON.stringify(cote));
         if (NEUTRES.includes(pg)) {
-          const n = await ev(`return { cartes:document.querySelectorAll('.grande-carte .c-duo').length, macs:document.querySelectorAll('.carrousel .ap-mac').length,
+          const n = await ev(`return { cartes:document.querySelectorAll('.grande-carte .c-alterne').length, macs:[...document.querySelectorAll('.grande-carte .c-alterne')].filter(c=>c.querySelector('.ap-mac')&&c.querySelector('.ap-iphone')).length,
             ecrans:[...new Set([...document.querySelectorAll('main img')].filter(i=>/captures\\//.test(i.getAttribute('src'))).map(i=>i.getAttribute('src').split('/').pop().replace(/-(jour|nuit)(-1x)?\\.webp$/,'')))] };`);
-          vrai(lbl + ' : ⛔ page métier hors 3D — le Mac ET l\'iPhone dans chaque carte, et rien que des écrans neutres (menus du 3D masqués)', n.cartes === 2 && n.macs === 2
+          vrai(lbl + ' : ⛔ page métier hors 3D — l\'iPhone ET le Mac dans chaque carte, et rien que des écrans neutres (menus du 3D masqués)', n.cartes === 2 && n.macs === 2
             && n.ecrans.length >= 4 && n.ecrans.every(e => ['mac-factures-neutre', 'mac-compta-neutre', 'mac-connexion', 'iphone-factures-neutre', 'iphone-compta-neutre', 'iphone-connexion'].includes(e)), JSON.stringify(n));
         }
 
@@ -181,7 +244,8 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
           let e0 = await etat(k);
           let e = await attendre(k, x => x.i !== e0.i, 2600);
           vrai(lbl + ' : il défile seul (' + e0.i + ' → ' + e.i + '), en avançant : l\'écran sort vers la gauche', e.i === (e0.i + 1) % e0.n && e.sens === 'avant', JSON.stringify(e));
-          await dormir(950);
+          vrai(lbl + ' : ⛔ l\'iPhone, puis le Mac (' + e0.app + ' → ' + e.app + ') : les écrans pairs sont des iPhone, les impairs des Mac', e0.app === (e0.i % 2 ? 'mac' : 'iphone') && e.app === (e.i % 2 ? 'mac' : 'iphone') && e0.app !== e.app, JSON.stringify({ e0, e }));
+          await dormir(1000);
           e = await etat(k);
           vrai(lbl + ' : la pastille, la légende et ' + (e.pistes.length === 2 ? 'les deux appareils' : 'l\'appareil') + ' disent le même écran, plus rien en sortie', coherent(e) && e.sort === 0, JSON.stringify(e));
           /* ⏸ */
@@ -262,8 +326,17 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
           vrai(lbl + ' : « animations réduites » : arrêté au départ (« ' + e.bouton + ' »)', e0.pause && e.i === e0.i && e.bouton === 'Lancer le défilement', JSON.stringify(e));
           b = await centre('.carrousel .c-point', 2 + e.n * k);
           await toucher(P, b.x, b.y);
+          /* relevé à chaque image jusqu'à 700 ms APRÈS la bascule (l'écran attend que son image soit prête : relever trop tôt
+             verrait zéro glissade sur un écran qui n'a pas encore changé) */
+          const anime = await ev(`const c=document.querySelectorAll('.carrousel')[${k}]; const t0=performance.now(); let vu=0, n=0, bascule=0;
+            while(performance.now()-t0<3500&&!(bascule&&performance.now()-bascule>700)){ await new Promise(r=>requestAnimationFrame(r));
+              if(!bascule&&c.querySelectorAll('.c-point')[2].getAttribute('aria-current')==='true') bascule=performance.now();
+              if(!bascule) continue; n++;
+              if([...c.querySelectorAll('.c-vue.c-on,.c-vue.c-sort')].some(v=>v.getAnimations().some(a=>/^c-(entre|sort)/.test(a.animationName)&&a.playState==='running'))) vu++; }
+            return {vu, n, bascule:!!bascule};`);
           e = await attendre(k, x => x.i === 2, 1500);
           vrai(lbl + ' : « animations réduites » : les points marchent', e.i === 2 && coherent(e), JSON.stringify(e));
+          vrai(lbl + ' : ⛔ « animations réduites » : l\'écran change SANS glisser (' + anime.vu + ' images en glissade sur ' + anime.n + ')', anime.bascule && anime.n >= 5 && anime.vu === 0, JSON.stringify(anime));
         }
         vrai(lbl + ' : aucune exception', EXC.length === 0, EXC.slice(0, 3).join(' | '));
       } catch (err) { vrai(lbl + ' : la sonde a planté', false, err.message); }
