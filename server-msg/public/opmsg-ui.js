@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3816424b1ca6';
+  const OPMSG_BUILD = 'e9f805142f8d';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 151;
+  const OPMSG_VERSION = 153;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -947,11 +947,11 @@
   }
   /* ⛔ « VOIR LE MESSAGE » (8 octobre 2026) : un rappel posé sur un message y ramène. La conversation s'ouvre, le message est AMENÉ au centre et marqué un instant ; plus ancien que ce que la
      page a chargé, l'historique se charge jusqu'à lui (vingt pages au plus). Disparu (supprimé, éphémère échu, conversation quittée), on le DIT — jamais un saut silencieux en bas. */
-  const cibleMsg = { conv: null, seq: 0, pages: 0 };
+  const cibleMsg = { conv: null, seq: 0, pages: 0, max: 20 };
   /* `remplacerEntree` : on part d'une FICHE posée par un geste (le rappel, touché dans l'Agenda ou le tableau de bord) — son entrée d'historique devient la conversation, et le
      retour ramène là d'où la fiche était partie. */
   function voirMessage(conv, seq, remplacerEntree) {
-    cibleMsg.conv = conv; cibleMsg.seq = seq; cibleMsg.pages = 0;
+    cibleMsg.conv = conv; cibleMsg.seq = seq; cibleMsg.pages = 0; cibleMsg.max = 20;
     const ouverte = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages';
     if (ouverte && !remplacerEntree) { allerAuMessage(); return; }
     (remplacerEntree ? remplacer : pousser)({ vue: 'messages', conv, feuille: false, photo: null, appel: null });
@@ -962,7 +962,7 @@
     if (!cibleMsg.conv || !c || cibleMsg.conv !== etat.conv) return;
     const m = (c.messages || []).find(x => x.seq === cibleMsg.seq && !x.supprime);
     if (!m) {
-      if (CAP.historique && c.aPlus && typeof source.precedents === 'function' && cibleMsg.pages < 20 && !(c.messages || []).some(x => x.seq < cibleMsg.seq)) {
+      if (CAP.historique && c.aPlus && typeof source.precedents === 'function' && cibleMsg.pages < (cibleMsg.max || 20) && !(c.messages || []).some(x => x.seq < cibleMsg.seq)) {
         cibleMsg.pages++;
         try { await source.precedents(c.id); } catch (e) { cibleMsg.conv = null; avis(phrase(e, 'Le message n\'a pas pu être retrouvé.')); return; }
         await rafraichirConv();
@@ -1980,10 +1980,10 @@
     const transf = G.mode === 'transferer';
     $('g-creer').setAttribute('aria-disabled', (transf ? G.tVers.length && !G.tEnvoi : G.choisis.length) ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || transf || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || transf || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || G.mode === 'chercher' || G.mode === 'medias' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = transf ? 'Transférer' : G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = transf ? 'Transférer' : G.mode === 'chercher' ? 'Rechercher' : G.mode === 'medias' ? 'Photos, fichiers et liens' : G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion && !transf ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : transf ? (G.tEnvoi ? 'Envoi…' : 'Envoyer') : 'Créer';
     const sansCreer = corpsInfo && !transf;      // « Transférer » garde son bouton d'envoi en haut à droite, comme « Nouveau groupe »
@@ -2019,11 +2019,12 @@
       || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
       || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
+      || (CAP.retrouver && (mode === 'chercher' || mode === 'medias') && /^c_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.sondagesConv && mode === 'sondage-votes' && /^\d{1,12}$/.test(arg || ''))
       || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || ''))))
       || (CAP.transferts && mode === 'transferer' && /^\d{1,12}$/.test(arg || '')) ? mode : 'chat';
     if (etat.groupe.mode === 'sondage-choix' || etat.groupe.mode === 'sondage-votes') etat.groupe.sondSeq = +arg;
-    if (etat.groupe.mode === 'theme') etat.groupe.convId = arg;
+    if (etat.groupe.mode === 'theme' || etat.groupe.mode === 'chercher' || etat.groupe.mode === 'medias') etat.groupe.convId = arg;
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
     if (etat.groupe.mode === 'personne') etat.groupe.personneId = arg;
     if (etat.groupe.mode === 'suivi') etat.groupe.pieceId = arg;
@@ -2062,6 +2063,8 @@
     if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
     if (etat.groupe.mode === 'position') rendrePosition();
     if (etat.groupe.mode === 'theme') rendreTheme();
+    if (etat.groupe.mode === 'chercher') rendreRecherche();
+    if (etat.groupe.mode === 'medias') rendreMedias();
     if (etat.groupe.mode === 'carte-contact') rendreCarteContact();
     if (etat.groupe.mode === 'transferer') rendreTransfert();
     if (etat.groupe.mode === 'sondage-nouveau') rendreSondageNouveau();
@@ -2073,8 +2076,8 @@
     /* le focus va à la feuille, pas au champ : sur un téléphone, un champ focalisé ouvre le clavier et cache la moitié du
        contenu avant que la personne ait rien vu */
     /* « Nouveau contact » au BUREAU (une souris, pas de clavier qui surgit) : le focus va droit au champ de l'identifiant — c'est ce qu'on vient faire */
-    const versChamp = etat.contactSaisie && etat.groupe.mode === 'contact' && matchMedia('(pointer: fine)').matches; etat.contactSaisie = false;
-    requestAnimationFrame(() => { const c = versChamp && $('ct-ident'); if (c) c.focus({ preventScroll: true }); else $('feuille').focus({ preventScroll: true }); });
+    const versChamp = ((etat.contactSaisie && etat.groupe.mode === 'contact') || etat.groupe.mode === 'chercher') && matchMedia('(pointer: fine)').matches; etat.contactSaisie = false;
+    requestAnimationFrame(() => { const c = versChamp && $(etat.groupe.mode === 'chercher' ? 'rc-q' : 'ct-ident'); if (c) c.focus({ preventScroll: true }); else $('feuille').focus({ preventScroll: true }); });
   }
   function fermerFeuille(garderPhoto) { if (!etat.groupe.ouvert) return; etat.garderPhoto = !!garderPhoto; fermerCouche(); }
   function fermerFeuilleDom() {
@@ -3948,6 +3951,9 @@
       (canal ? '' : '<button type="button" class="reglage presse" data-act="ephemeres" data-valeur="' + esc(String(i.ephemeres || 0)) + '"' + (i.moiAdmin ? ' aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"' : ' disabled') + '><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur">' + esc(eph[1]) + (i.moiAdmin ? CHEVRON_UD : '') + '</span></button></div>');
     /* la sourdine : plus de notification pour CETTE conversation (8 heures, une semaine, toujours) — le service ne l'envoie pas, la page continue de recevoir */
     /* le thème : à moi seul (les autres gardent leurs couleurs) */
+    /* RETROUVER : chercher dans les messages, voir les photos, les fichiers et les liens (9 octobre 2026) */
+    if (CAP.retrouver && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="chercher"><span class="reglage-texte">Rechercher dans la conversation</span>' + CHEVRON + '</button>' +
+      '<button type="button" class="reglage presse" data-act="medias"><span class="reglage-texte">Photos, fichiers et liens</span>' + CHEVRON + '</button></div>';
     if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
     /* Perso / Pro : où cette conversation paraît, pour moi seul — l'automatique, ou un côté choisi (une directe, un groupe, une RÉUNION — elle range aussi la réunion dans l'agenda Perso ou Pro ;
        un canal est Pro par nature) */
@@ -4051,6 +4057,7 @@
         return;
       }
       else if (act === 'theme') { ouvrirFeuille('theme:' + id, true); return; }
+      else if (act === 'chercher' || act === 'medias') { ouvrirFeuille(act + ':' + id, true); return; }
       else if (act === 'cote') {
         const avant = b.dataset.valeur, auto = b.dataset.auto === 'pro' ? 'pro' : 'perso';
         ouvrirDeroule(b, 'Ranger dans', 'Le côté où cette conversation paraît. Pour toi seul : les autres gardent leur rangement.',
@@ -5444,6 +5451,145 @@
           '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span></button>').join('') + '</div>' +
         '<p class="vide" id="cc-aucun" hidden>Aucun contact ne correspond.</p>' : '<p class="vide">Tu n\'as pas encore de contact à partager.</p>');
   }
+  /* ══ RETROUVER (9 octobre 2026 — l'inventaire : « pas de recherche dans les messages ») ══
+     Deux feuilles, ouvertes depuis les Infos d'une conversation : « Rechercher » (le texte, la légende d'une photo, le nom d'un fichier — sans accents ni casse) et « Photos, fichiers
+     et liens ». Le SERVICE cherche (le texte est scellé chez lui) ; la page ne garde rien après la feuille. Un résultat mène AU message (`voirMessage`, qui remonte l'historique
+     au besoin) ; « Chercher plus loin » reprend là où le service s'est arrêté. ⛔ Les requêtes qui se croisent : seule la DERNIÈRE réponse s'affiche (un jeton). */
+  const normeCar = ch => ch.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const normeRecherche = q => String(q || '').normalize('NFC').replace(/\s+/g, ' ').trim();
+  /* l'occurrence surlignée, dans le texte tel qu'il est écrit : chaque caractère normalisé SEUL garde la correspondance des positions (comme le service pour l'extrait) */
+  function surligner(t, q) {
+    const cars = Array.from(String(t)), qn = Array.from(normeRecherche(q)).map(normeCar).join('');
+    if (!qn) return esc(t);
+    const debuts = []; let acc = '';
+    for (const ch of cars) { debuts.push(acc.length); acc += normeCar(ch); }
+    const k = acc.indexOf(qn); if (k < 0) return esc(t);
+    let i0 = 0; while (i0 + 1 < cars.length && debuts[i0 + 1] <= k) i0++;
+    let i1 = i0 + 1; while (i1 < cars.length && debuts[i1] < k + qn.length) i1++;
+    return esc(cars.slice(0, i0).join('')) + '<mark>' + esc(cars.slice(i0, i1).join('')) + '</mark>' + esc(cars.slice(i1).join(''));
+  }
+  const auteurDe = x => x.moi ? 'Vous' : nomAuteur(x.auteur);
+  let rcMinuterie = null;
+  function rendreRecherche() {
+    const G = etat.groupe; G.rc = { q: '', resultats: [], suite: null, enCours: false, jeton: 0, erreur: '' };
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="info-champ"><input id="rc-q" type="search" autocomplete="off" enterkeyhint="search" maxlength="100" placeholder="Rechercher dans la conversation" aria-label="Rechercher dans la conversation" aria-describedby="rc-etat"></div>' +
+      '<p class="info-note rc-etat" id="rc-etat" role="status">Le texte des messages, les légendes des photos et les noms des fichiers.</p><div class="carte" id="rc-liste" hidden></div><div class="info-actions" id="rc-plus-zone" hidden><button type="button" class="mini" data-rc-plus>Chercher plus loin</button></div>';
+  }
+  function peindreRecherche() {
+    const G = etat.groupe, R = G.rc, l = $('rc-liste'); if (G.mode !== 'chercher' || !R || !l) return;
+    l.innerHTML = R.resultats.map(x => '<button type="button" class="contact presse rc-res" data-rc-seq="' + x.seq + '">' +
+      '<span class="contact-texte"><span class="rc-tete"><span class="rc-nom">' + esc(auteurDe(x)) + '</span><span class="rc-date">' + esc(libelleListe(x.t)) + '</span></span>' +
+      '<span class="rc-extrait" dir="auto">' + (x.type === 'fichier' ? icone('i-fichier') : x.type === 'photo' ? icone('i-photo') : '') + surligner(x.texte, R.q) + '</span></span></button>').join('');
+    l.hidden = !R.resultats.length;
+    const n = R.resultats.length;
+    $('rc-etat').textContent = R.erreur ? R.erreur : R.enCours && !n ? 'Recherche…' : !R.q ? 'Le texte des messages, les légendes des photos et les noms des fichiers.'
+      : n ? (n > 1 ? n + ' messages' : 'Un message') + (R.suite ? ' — il peut y en avoir d\'autres plus anciens' : '')
+      : R.suite ? 'Aucun message récent ne contient « ' + R.q + ' ».' : 'Aucun message ne contient « ' + R.q + ' ».';
+    $('rc-plus-zone').hidden = !R.suite || !!R.erreur;
+    const b = document.querySelector('[data-rc-plus]'); if (b) b.setAttribute('aria-disabled', R.enCours ? 'true' : 'false');
+  }
+  async function lancerRecherche(plusLoin) {
+    const G = etat.groupe, R = G.rc; if (G.mode !== 'chercher' || !R) return;
+    if (Array.from(R.q).length < 2) { R.resultats = []; R.suite = null; R.erreur = ''; R.enCours = false; R.jeton++; peindreRecherche(); return; }
+    const jeton = ++R.jeton, avant = plusLoin ? R.suite : null;
+    R.enCours = true; R.erreur = ''; if (!plusLoin) { R.resultats = []; R.suite = null; } peindreRecherche();
+    try {
+      const r = await source.chercher(G.convId, R.q, avant);
+      if (etat.groupe !== G || R.jeton !== jeton) return;                     // une autre requête est partie depuis, ou la feuille s'est fermée
+      R.resultats = plusLoin ? R.resultats.concat(r.resultats) : r.resultats; R.suite = r.suite;
+    } catch (e) { if (etat.groupe !== G || R.jeton !== jeton) return; R.erreur = phrase(e, 'La recherche n\'a pas pu aboutir.'); }
+    R.enCours = false; peindreRecherche();
+  }
+  /* la galerie : Photos | Fichiers | Liens, du plus récent au plus ancien, « Plus » pour la suite */
+  const MD_GENRES = [['photo', 'Photos'], ['fichier', 'Fichiers'], ['lien', 'Liens']];
+  function rendreMedias() {
+    const G = etat.groupe; G.md = { genre: 'photo', items: [], suite: null, enCours: false, jeton: 0, erreur: '' };
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="seg" id="md-seg" role="group" aria-label="Afficher" style="--n:3;--i:0"><span class="seg-knob" aria-hidden="true"></span>' +
+      MD_GENRES.map(([g, n], i) => '<button type="button" class="seg-bouton" data-md-genre="' + g + '" aria-pressed="' + (i === 0) + '">' + n + '</button>').join('') + '</div>' +
+      '<div id="md-corps"></div><p class="info-note md-etat" id="md-etat" role="status"></p><div class="info-actions" id="md-plus-zone" hidden><button type="button" class="mini" data-md-plus>Plus</button></div>';
+    chargerMedias(false);
+  }
+  /* les liens d'un texte, avec les règles de la bulle (`LIEN_RE`, `lienNettoye`, `LIEN_SUR`) : ce que la bulle rend touchable, et rien d'autre */
+  function liensDe(t) {
+    const s = String(t), l = [];
+    for (const x of s.matchAll(LIEN_RE)) { const u = lienNettoye(x[0]), href = /^www\./i.test(u) ? 'https://' + u : u; if (u && LIEN_SUR.test(href) && !l.some(y => y.href === href)) l.push({ u, href }); }
+    return l;
+  }
+  let mdObservateur = null;
+  function peindreMedias() {
+    const G = etat.groupe, M = G.md, c = $('md-corps'); if (G.mode !== 'medias' || !M || !c) return;
+    const i = MD_GENRES.findIndex(x => x[0] === M.genre);
+    $('md-seg').style.setProperty('--i', String(i));
+    document.querySelectorAll('#md-seg [data-md-genre]').forEach(b => b.setAttribute('aria-pressed', b.dataset.mdGenre === M.genre ? 'true' : 'false'));
+    if (M.genre === 'photo') {
+      const cases = M.items.flatMap(x => x.pieces.map((p, k) => ({ x, p, k, n: x.pieces.length })));
+      c.innerHTML = cases.length ? '<div class="md-grille">' + cases.map(({ x, p, k, n }) => '<button type="button" class="md-photo presse" data-md-seq="' + x.seq + '" aria-label="' + esc('Photo ' + (n > 1 ? (k + 1) + ' sur ' + n + ' ' : '') + 'de ' + auteurDe(x) + ', ' + libelleListe(x.t) + ' — voir le message') + '"><img alt="" data-md-piece="' + esc(p.id) + '"></button>').join('') + '</div>' : '';
+      chargerVignettes();
+    } else if (M.genre === 'fichier') {
+      c.innerHTML = M.items.length ? '<div class="carte">' + M.items.map(x => '<div class="md-ligne"><button type="button" class="contact presse md-fichier" data-md-fichier="' + x.seq + '" aria-label="' + esc('Télécharger ' + x.fichier.nom + ', ' + tailleTexte(x.fichier.taille)) + '">' +
+        '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="contact-texte"><span class="contact-nom" dir="auto">' + esc(x.fichier.nom) + '</span><span class="contact-role">' + esc([tailleTexte(x.fichier.taille), auteurDe(x), libelleListe(x.t)].join(' · ')) + '</span></span></button>' +
+        '<button type="button" class="mini md-voir" data-md-voir="' + x.seq + '">Voir</button></div>').join('') + '</div>' : '';
+    } else {
+      const rangs = M.items.map(x => ({ x, liens: liensDe(x.texte) })).filter(r => r.liens.length);
+      c.innerHTML = rangs.length ? '<div class="carte">' + rangs.map(({ x, liens }) => '<div class="md-ligne md-liens"><span class="contact-texte">' + liens.map(l => '<a class="lien-msg md-lien" href="' + esc(l.href) + '" target="_blank" rel="noopener noreferrer nofollow" dir="auto">' + esc(l.u) + '</a>').join('') +
+        '<span class="contact-role">' + esc(auteurDe(x) + ' · ' + libelleListe(x.t)) + '</span></span><button type="button" class="mini md-voir" data-md-voir="' + x.seq + '">Voir</button></div>').join('') + '</div>' : '';
+    }
+    const vide = !c.innerHTML;
+    $('md-etat').textContent = M.erreur ? M.erreur : M.enCours && vide ? 'Chargement…' : vide ? (M.genre === 'photo' ? 'Aucune photo dans cette conversation.' : M.genre === 'fichier' ? 'Aucun fichier dans cette conversation.' : 'Aucun lien dans cette conversation.') + (M.suite ? ' (plus récents)' : '') : '';
+    $('md-plus-zone').hidden = !M.suite || !!M.erreur;
+    const b = document.querySelector('[data-md-plus]'); if (b) b.setAttribute('aria-disabled', M.enCours ? 'true' : 'false');
+  }
+  /* les vignettes se chargent quand elles PARAISSENT (une galerie peut porter des centaines d'images : la source garde un cache borné) */
+  function chargerVignettes() {
+    const imgs = Array.from(document.querySelectorAll('#md-corps img[data-md-piece]:not([src])'));
+    const charger = img => { if (img.dataset.charge) return; img.dataset.charge = '1'; source.pieceUrl(img.dataset.mdPiece).then(u => { if (img.isConnected) img.src = u; }, () => { img.closest('.md-photo').classList.add('md-indispo'); }); };
+    if (mdObservateur) mdObservateur.disconnect();
+    if (typeof IntersectionObserver !== 'function') { imgs.forEach(charger); return; }
+    mdObservateur = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { mdObservateur.unobserve(e.target); charger(e.target); } }), { root: $('info-corps'), rootMargin: '200px' });
+    imgs.forEach(img => mdObservateur.observe(img));
+  }
+  async function chargerMedias(plus) {
+    const G = etat.groupe, M = G.md; if (G.mode !== 'medias' || !M) return;
+    const jeton = ++M.jeton, genre = M.genre, avant = plus ? M.suite : null;
+    M.enCours = true; M.erreur = ''; if (!plus) { M.items = []; M.suite = null; } peindreMedias();
+    try {
+      const r = await source.medias(G.convId, genre, avant);
+      if (etat.groupe !== G || M.jeton !== jeton) return;
+      M.items = plus ? M.items.concat(r.medias) : r.medias; M.suite = r.suite;
+    } catch (e) { if (etat.groupe !== G || M.jeton !== jeton) return; M.erreur = phrase(e, 'La liste n\'a pas pu être chargée.'); }
+    M.enCours = false; peindreMedias();
+  }
+  /* aller au message : la feuille cède la place à la conversation (la même entrée d'historique), puis le message se montre — plus loin que d'habitude dans l'historique (60 pages) */
+  function allerDepuisFeuille(seq) { const conv = etat.groupe.convId; if (!conv || !Number.isSafeInteger(seq)) return; voirMessage(conv, seq, true); cibleMsg.max = 60; }
+  $('info-corps').addEventListener('input', e => {
+    const G = etat.groupe;
+    if (!G.ouvert || G.mode !== 'chercher' || e.target.id !== 'rc-q' || !G.rc) return;
+    G.rc.q = normeRecherche(e.target.value);
+    clearTimeout(rcMinuterie); rcMinuterie = setTimeout(() => lancerRecherche(false), 350);
+  });
+  $('info-corps').addEventListener('keydown', e => {
+    const G = etat.groupe;
+    if (!G.ouvert || G.mode !== 'chercher' || e.target.id !== 'rc-q' || e.key !== 'Enter' || e.isComposing || !G.rc) return;
+    e.preventDefault(); clearTimeout(rcMinuterie); G.rc.q = normeRecherche(e.target.value); lancerRecherche(false);
+  });
+  $('info-corps').addEventListener('click', e => {
+    const G = etat.groupe;
+    if (!G.ouvert || (G.mode !== 'chercher' && G.mode !== 'medias')) return;
+    if (G.mode === 'chercher') {
+      const p = e.target.closest('[data-rc-plus]'); if (p) { if (p.getAttribute('aria-disabled') !== 'true') lancerRecherche(true); return; }
+      const r = e.target.closest('[data-rc-seq]'); if (r) allerDepuisFeuille(+r.dataset.rcSeq);
+      return;
+    }
+    const g = e.target.closest('[data-md-genre]');
+    if (g) { if (G.md && G.md.genre !== g.dataset.mdGenre) { G.md.genre = g.dataset.mdGenre; chargerMedias(false); } return; }
+    const p = e.target.closest('[data-md-plus]'); if (p) { if (p.getAttribute('aria-disabled') !== 'true') chargerMedias(true); return; }
+    const f = e.target.closest('[data-md-fichier]');
+    if (f && G.md) { const x = G.md.items.find(y => y.seq === +f.dataset.mdFichier); if (x) telechargerPiece(x.fichier, f); return; }
+    const v = e.target.closest('[data-md-voir], [data-md-seq]'); if (v) allerDepuisFeuille(+(v.dataset.mdVoir || v.dataset.mdSeq));
+  });
+
   /* ── TRANSFÉRER (9 octobre 2026, l'idée retenue) : un message vers une à cinq conversations, en mon nom, marqué « Transféré » — le nom de qui l'avait écrit ne part pas.
      Le SERVICE juge chaque destination seule (membre, invitation qui attend, groupe d'annonces, stockage) : une partie peut partir, l'autre pas — la feuille reste ouverte
      sur ce qui a échoué, avec la raison, et un nouvel essai garde le MÊME identifiant d'envoi (le service ne recrée rien de ce qui est déjà parti). ── */

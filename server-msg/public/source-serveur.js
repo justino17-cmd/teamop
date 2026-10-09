@@ -2354,6 +2354,28 @@
       if (S) for (const u of S.keys()) { if (!estMoi(u)) { qui = u; break; } }
       return Object.assign(base, { messages: vues, saisie: qui ? { contact: qui } : null, aPlus: c.aPlus });
     }
+    /* ── RETROUVER (9 octobre 2026) : chercher dans les messages d'une conversation, en lister les photos, les fichiers, les liens. Le SERVICE ouvre les messages scellés
+       (le texte n'est lisible que de lui) ; la source ne garde RIEN — ni la requête, ni les résultats : la page les tient le temps de la feuille. `avant` : la `suite` rendue. ── */
+    const avantDe = (a) => Number.isSafeInteger(a) && a > 0 ? a : undefined;
+    async function chercher(id, q, avant) {
+      const t = typeof q === 'string' ? q.normalize('NFC').replace(/\s+/g, ' ').trim() : '', n = Array.from(t).length;
+      if (n < 2 || n > 100) throw erreurLocale('invalide');
+      const r = await A.chercher(id, t, avantDe(avant));
+      return { resultats: (Array.isArray(r.resultats) ? r.resultats : []).filter(x => x && Number.isSafeInteger(x.seq)).map(x => ({ seq: x.seq, auteur: x.auteur, moi: estMoi(x.auteur), t: x.ts, type: x.type, texte: String(x.texte || '') })),
+        suite: Number.isSafeInteger(r.suite) ? r.suite : null };
+    }
+    async function medias(id, genre, avant) {
+      if (!['photo', 'fichier', 'lien'].includes(genre)) throw erreurLocale('invalide');
+      const r = await A.medias(id, genre, avantDe(avant));
+      const l = (Array.isArray(r.medias) ? r.medias : []).filter(x => x && Number.isSafeInteger(x.seq)).map(x => {
+        const base = { seq: x.seq, auteur: x.auteur, moi: estMoi(x.auteur), t: x.ts };
+        if (genre === 'photo') return Object.assign(base, { pieces: (Array.isArray(x.pieces) ? x.pieces : []).filter(p => p && typeof p.id === 'string').map(p => ({ id: p.id, w: p.w | 0, h: p.h | 0 })) });
+        if (genre === 'fichier') return Object.assign(base, { fichier: { piece: String(x.piece || ''), nom: typeof x.nom === 'string' ? x.nom : 'fichier', taille: Number(x.taille) || 0 } });
+        return Object.assign(base, { texte: String(x.texte || '') });
+      });
+      return { medias: l, suite: Number.isSafeInteger(r.suite) ? r.suite : null };
+    }
+
     async function precedents(id) {
       const c = convs.get(id); if (!c || !c.charge || !c.aPlus || !c.messages.length) return false;
       const r = await A.messages(id, { avant_seq: c.messages[0].seq, limite: 100 });
@@ -3639,7 +3661,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
@@ -3650,7 +3672,7 @@
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),
       personne, rafraichirContacts,
       lister, ouvrir, precedents, envoyer, marquerLu, saisie, rangerConvs,
-      modifier, supprimer, reagir, transferer,
+      modifier, supprimer, reagir, transferer, chercher, medias,
       creerGroupe, ouvrirDirecte, conversationPour, infos, majConversation, retirerMembre, nommerAdmin, ajouterMembres, quitter, lienGroupe,
       lienContact, revoquerLiens, lireLien, accepterLien,
       /* ── l'identifiant « Prénom#1234 » et les demandes de contact (capacité `identifiants`) ── */
