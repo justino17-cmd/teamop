@@ -56,7 +56,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     const o = opts || {};
     const nav = o.nav || T.navigateur(service.base);
     const monde = creerMonde(login);
-    const D = { login, service, nav, monde, reseau: { requetes: [] }, recus: {}, gids: {}, fermees: [], sw: null, visible: true, panne: null, retenir: null, perdre: null, evs: [], ordre: [] };
+    const D = { login, service, nav, monde, reseau: { requetes: [] }, recus: {}, gids: {}, fermees: [], sw: null, visible: true, panne: null, retenir: null, perdre: null, fluxRetenu: null, es: null, evs: [], ordre: [] };
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => D.visible, surMessage: (cb) => { D.sw = cb; }, abonnementActuel: async () => null, fermerNotifications: async (tag) => { D.fermees.push(tag); } };
     const f = async (url, init) => {
       const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(service.base, '').split('?')[0];
@@ -69,11 +69,14 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       return r;
     };
     /* le flux, vu AVANT le module : on compte ce qui arrive et on peut en laisser perdre */
+    /* `fluxRetenu` : les événements `appel` attendent dans une file que le banc relâche — un flux en retard sur une relecture (section 9 ter) · `es` : le flux ouvert, que le banc peut COUPER (la reprise dit « réseau revenu ») */
     const ES = class extends nav.EventSource {
+      constructor(u) { super(u); D.es = this; }
       addEventListener(t, g) {
         super.addEventListener(t, (ev) => {
           D.recus[t] = (D.recus[t] || 0) + 1; if (ev && ev.lastEventId) D.gids[t] = parseInt(ev.lastEventId, 10);
           if (D.perdre && D.perdre(t, ev)) return;
+          if (D.fluxRetenu && t === 'appel') { D.fluxRetenu.push(() => g(ev)); return; }
           g(ev);
         });
       }
@@ -549,6 +552,73 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       v('⛔ une AUTRE page de la session d\'Ana, chargée pendant son appel sortant, ne s\'en empare pas (aucun appel actif, aucune connexion)', [A2.src.appelActif(), A2.monde.pcs.length, A.src.appelActif().id === s.id], [null, 0, true]);
       A2.src.arreter();
       await A.src.terminerAppel(s.id); await B.attendreSnap(s.id, x => x.etat === 'termine'); await B.src.terminerAppel(s.id);
+    }
+
+    /* ═══ 9 ter. UNE VUE D'AVANT, ARRIVÉE APRÈS LA SIENNE, NE LA REMPLACE PAS ═══
+       Le défaut corrigé dans les salles le 9 octobre 2026 (`test-990` § 4 ter : l'enregistrement de l'hôte s'arrêtait seul) était ouvert ici aussi, jamais observé : une vue arrive par TROIS chemins (le flux,
+       la réponse d'un geste, une relecture de la liste), sans ordre garanti. Une vue « sonne » lue avant la réponse et rendue après elle remettait à l'écran en sonnerie un appel qui court — et le raccrochage
+       suivant était dit « annulé ». Et une relecture partie pendant un appel, revenue après qu'on a raccroché et rappelé, faisait finir le NOUVEL appel. Les trois chemins sont joués ici, vraies fonctions
+       contre le vrai service. */
+    console.log('\n⛔ Une vue d\'avant, arrivée après la sienne, ne la remplace pas : un appel qui court ne se remet pas à sonner, un nouvel appel ne finit pas sur une liste d\'avant lui');
+    {
+      /* 1. la liste des appels, lue par le service pendant la sonnerie, rendue à la page APRÈS la réponse */
+      const s1 = await A.src.demarrerAppel({ membres: [ben.id], video: false });
+      await B.attendreEv(e => e.type === 'appel-entrant' && e.id === s1.id);
+      let lacher1; A.retenir = { re: /GET \/api\/appels$/, porte: new Promise((ok) => { lacher1 = ok; }), faite: false };
+      const lecture1 = A.src.appels('tous');
+      vrai('population : la liste est partie pendant la sonnerie, le service a répondu, la réponse est retenue', !!(await att(() => A.retenir.corps !== undefined && A.retenir.corps !== null)));
+      const ancienne1 = JSON.parse(A.retenir.corps);
+      await B.src.repondreAppel(s1.id, true);
+      const enCours1 = await A.attendreSnap(s1.id, x => x.etat === 'en-cours');
+      vrai('Ben répond : Ana le lit (« en cours ») et la liaison s\'établit', !!enCours1 && !!(await liees(A, B)));
+      lacher1(); await lecture1; A.retenir = null;                          // la liste d'AVANT arrive maintenant
+      await dort(80);
+      const apres1 = await A.src.appel(s1.id);
+      v('⛔ la liste lue pendant la sonnerie, arrivée après la réponse, ne remet PAS l\'appel en sonnerie (le cliché d\'Ana dit « en cours », Ben « connecté ») — population : cette liste disait bien « sonne », plus ancienne',
+        [ancienne1.actif && ancienne1.actif.id === s1.id && ancienne1.actif.etat, Number.isInteger(ancienne1.actif && ancienne1.actif.rev) && ancienne1.actif.rev > 0, apres1.etat, apres1.membres[0].etat], ['sonne', true, 'en-cours', 'connecte']);
+      /* l'issue que l'écran d'Ana affiche au raccrochage : relevée au moment où son moteur dit « l'appel a changé » (après `terminer`, l'onglet ne tient plus l'appel) */
+      const issues1 = []; let suivre1 = true;
+      A.src.ecouter(e => { if (suivre1 && e.type === 'appel' && e.id === s1.id) A.src.appel(s1.id).then(x => { if (x) issues1.push(x.issue); }); });
+      await A.src.terminerAppel(s1.id);
+      await att(() => issues1.length > 0 || null, 2000); suivre1 = false;
+      v('… et le raccrochage qui suit est un appel FINI, pas « annulé » (l\'issue que l\'écran d\'Ana affiche ; Ben l\'apprend fini) — population : l\'écran l\'a relevée',
+        [issues1.length > 0, issues1.filter(x => x !== null && x !== 'fini'), (await B.attendreSnap(s1.id, x => x.etat === 'termine')).issue], [true, [], 'fini']);
+      await B.src.terminerAppel(s1.id);
+
+      /* 2. le flux en retard : l'événement « il sonne » d'Ana attend en route pendant que la liste lui apprend la réponse de Ben */
+      A.fluxRetenu = [];
+      const s2 = await A.src.demarrerAppel({ membres: [ben.id], video: false });
+      await B.attendreEv(e => e.type === 'appel-entrant' && e.id === s2.id);
+      await B.src.repondreAppel(s2.id, true);
+      vrai('population : les événements du flux d\'Ana attendent en route (le lancement, la réponse)', !!(await att(() => A.fluxRetenu.length >= 2)));
+      await A.src.appels('tous');                                           // Ana relit la liste : elle y apprend la réponse
+      vrai('Ana apprend la réponse par la liste : « en cours », la liaison s\'établit', (await A.src.appel(s2.id)).etat === 'en-cours' && !!(await liees(A, B)));
+      const file2 = A.fluxRetenu; A.fluxRetenu = null;
+      const etats2 = [];
+      for (const g of file2) { g(); etats2.push((await A.src.appel(s2.id)).etat); }
+      v('⛔ les événements d\'AVANT, relâchés après la liste, ne remettent pas l\'appel en sonnerie : après chacun, le cliché d\'Ana dit toujours « en cours »', etats2, file2.map(() => 'en-cours'));
+      await A.src.terminerAppel(s2.id); await B.attendreSnap(s2.id, x => x.etat === 'termine'); await B.src.terminerAppel(s2.id);
+
+      /* 3. une relecture partie PENDANT un appel (le réseau revient), revenue après qu'Ana a raccroché et rappelé : elle ne connaît pas le nouvel appel */
+      const s3 = await A.src.demarrerAppel({ membres: [ben.id], video: false });
+      await B.attendreEv(e => e.type === 'appel-entrant' && e.id === s3.id);
+      await B.src.repondreAppel(s3.id, true);
+      await A.attendreSnap(s3.id, x => x.etat === 'en-cours'); await liees(A, B);
+      let lacher3; A.retenir = { re: /GET \/api\/appels$/, porte: new Promise((ok) => { lacher3 = ok; }), faite: false };
+      const avantCoupure = A.requetes(/GET \/api\/appels$/).length;
+      A.es._ctrl.abort();                                                   // le flux tombe ; il revient seul — et le moteur relit la liste (« réseau revenu »)
+      vrai('population : le flux est revenu, la relecture du moteur est partie, le service a répondu (l\'appel en cours), la réponse est retenue',
+        !!(await att(() => A.requetes(/GET \/api\/appels$/).length > avantCoupure && A.retenir.corps !== undefined && A.retenir.corps !== null)) && JSON.parse(A.retenir.corps).actif.id === s3.id);
+      await A.src.terminerAppel(s3.id); await B.attendreSnap(s3.id, x => x.etat === 'termine'); await B.src.terminerAppel(s3.id);
+      const s4 = await A.src.demarrerAppel({ membres: [ben.id], video: false });
+      await B.attendreEv(e => e.type === 'appel-entrant' && e.id === s4.id);
+      const quitter4 = () => A.requetes(new RegExp('POST /api/appels/' + s4.id + '/quitter$')).length;
+      lacher3(); A.retenir = null;                                          // la liste d'AVANT le nouvel appel arrive maintenant
+      await dort(150);
+      const x4 = await A.src.appel(s4.id), b4 = B.src.appelActif();
+      v('⛔ la relecture d\'avant le nouvel appel ne le fait pas finir : il sonne toujours chez Ana et chez Ben, et aucun raccrochage n\'est parti',
+        [x4.etat, x4.issue, b4 && b4.id === s4.id && b4.entrant, quitter4()], ['sonne', null, true, 0]);
+      await A.src.terminerAppel(s4.id); await B.attendreSnap(s4.id, x => x.etat === 'termine'); await B.src.terminerAppel(s4.id);
     }
 
     /* ═══ 9 bis. ARRÊTER LA SOURCE EN PLEIN APPEL ════════════════════════════════════════════════════════════════ */

@@ -107,7 +107,7 @@ const TEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: t
     vrai('Entrée (la liste fermée) envoie le message', parti);
     const [mC, mP, mR, mB] = [await mentionsDe(P.cleo), await mentionsDe(P.camp), await mentionsDe(P.camr), await mentionsDe(P.ben)];
     v('⛔ le SERVICE a prévenu Cléo et Camille PETIT (choisie) — pas Camille Roux (l\'homonyme), pas Ben', [mC.length, mP.length, mR.length, mB.length, mC[0] && mC[0].texte], [1, 1, 0, 0, 'Ana Banc vous a mentionné.']);
-    const gras = await A.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#conv-messages .bulle')).find(x => /Bonjour @Cléo/.test(x.textContent)); return l ? Array.from(l.querySelectorAll('b.mention-nom')).map(x => x.textContent + (x.classList.contains('moi') ? '*' : '')) : null; });
+    const gras = await A.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#conv-messages .bulle')).find(x => /Bonjour @Cléo/.test(x.textContent)); return l ? Array.from(l.querySelectorAll('b.mention-nom')).map(x => x.textContent + (x.classList.contains('mention-moi') ? '*' : '')) : null; });
     v('la bulle met « @Cléo » et « @Camille » en gras (pas voilés : ce n\'est pas Ana)', gras, ['@Cléo', '@Camille']);
     await capture(A, 'm1b-bulle-mentions');
 
@@ -129,7 +129,9 @@ const TEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: t
     await capture(B, 'm3-banniere');
     await B.page.locator('#notif').tap();
     vrai('la toucher OUVRE le groupe', await att(B, (g) => document.documentElement.dataset.conv === '1' && /Chantier/.test(document.getElementById('conv-titre').textContent) && location.hash.includes(g), G));
-    vrai('« @Ben » y est voilé (c\'est lui)', await att(B, () => Array.from(document.querySelectorAll('#conv-messages b.mention-nom.moi')).some(x => x.textContent === '@Ben')));
+    vrai('« @Ben » y est voilé (c\'est lui)', await att(B, () => Array.from(document.querySelectorAll('#conv-messages b.mention-nom.mention-moi')).some(x => x.textContent === '@Ben')));
+    // ⛔ et voilé DANS la ligne : la classe « moi » faisait hériter la mention de la carte du compte (flex, 44 px, fond) — un bloc gris sur sa propre ligne
+    vrai('« @Ben » reste dans la ligne (ni bloc, ni 44 px de haut)', await B.page.evaluate(() => { const x = Array.from(document.querySelectorAll('#conv-messages b.mention-nom.mention-moi')).find(y => y.textContent === '@Ben'); if (!x) return false; const c = getComputedStyle(x); return c.display === 'inline' && x.getBoundingClientRect().height < 40; }));
     await capture(B, 'm3b-bulle-moi');
     await B.page.locator('#saisie').tap();
     await B.page.keyboard.type('Oui @an');

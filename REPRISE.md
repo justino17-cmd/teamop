@@ -19,6 +19,26 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# ✅ 9 OCTOBRE 2026 (NUIT) — OP MESSAGES : LA MENTION « @MOI » ET LES APPELS À DEUX DATÉS (`rev`)
+
+Justin : « continue le développement d'OP MESSAGES et dis-moi si tu as de nouvelles idées ». Deux correctifs, une liste d'idées à lui présenter.
+
+✅ **La mention de soi dans une bulle** (vue sur une capture d'iPhone) : « @Julie » sortait en BLOC GRIS sur sa propre ligne, au-dessus du texte. Elle portait la
+classe `moi` — celle de la carte du compte dans la barre latérale (flex, 44 px de haut, fond de champ). Elle s'appelle `mention-moi` ; `sonde-opmessages-mentions`
+vérifie au navigateur qu'elle reste DANS la ligne (29 ✓ 0 ✗), `test-857` lit la classe.
+
+✅ **Les appels À DEUX portent `rev`, comme les salles** — le « reste ouvert » de l'entrée d'en dessous est fermé. `appelRangDe` (stockage) date la vue d'un appel qui
+sonne ou court (0 pour une fin) ; `creerMoteurAppels` (page) ignore une vue plus petite que celle qu'il tient (`appliquer`, `surAppel`, `reprendre`, `memoriser`).
+Et en le faisant, un SECOND défaut du même genre, jamais observé non plus : `relireActif` lisait la liste, puis jugeait l'appel COURANT à son retour — raccrocher puis
+rappeler pendant qu'une relecture était en route (le réseau revient, par exemple) faisait finir le NOUVEL appel (« Pas de réponse. »), raccrochage envoyé au service
+compris. Il ne conclut plus rien si l'appel tenu a changé pendant la lecture. Preuves : `test-980` (le sens de `rev` : le sien, croissant, jamais le compteur global,
+0 pour une fin), `test-984` § 9 ter (les TROIS chemins rejoués, vraies fonctions contre le vrai service : une liste retenue en route, le flux en retard, une relecture
+qui croise un nouvel appel — le flux coupé par le banc, `D.es`) ; mutations C45 à C51 de `tests/mutations-appels.js` : C49 (les quatre gardes ensemble), C50 (la
+relecture) et C51 (le service sans `rev`) tombent ; C45 à C48 (une garde seule) survivent, déclarées équivalentes — elles se couvrent, comme dans les salles.
+⚠️ La garde de `repondre` (la réponse du geste « Répondre » ne remplace pas une vue plus récente) est une défense en profondeur qu'aucun banc ne joue : entre la
+réponse et son retour, rien d'autre qu'une fin ne change l'appel, et une fin passe par `c.fini`. Au passage, D13 et D15 du même catalogue (des mutations jouées par la
+sonde) étaient « mal visées » depuis que la page dit `raccrocherCouche` : ré-ancrées (`--verifier` : 164/164).
+
 # ✅ 9 OCTOBRE 2026 (SOIR) — OP MESSAGES DE A À Z : LES 47 SONDES AU NAVIGATEUR, ET UN VRAI DÉFAUT CORRIGÉ (L'ENREGISTREMENT DE L'HÔTE) — PART SUR LA BÊTA PAR #115
 
 Justin : « laisse le site comme il est, et on continue OP MESSAGES ». Les 47 sondes `tests/sonde-opmessages*.js`, l'une après l'autre (jamais deux
@@ -56,9 +76,8 @@ la « cause pas encore établie » du 8 octobre. **Sonde de groupe : 201 ✓ 0 �
 ⚠️ Des 20 autres sondes d'OP MESSAGES qui allument SwiftShader, une seule fait lire une toile capturée par un encodeur : `visio` (un faux partage
 d'écran, encodé par WebRTC) — si elle traîne le jour où elle tourne contre le vrai LiveKit, c'est la même cause ; les autres gardent leurs options.
 
-⚠️ **Reste ouvert, jamais observé** : le moteur des appels À DEUX a les mêmes trois chemins, sans version — une vue d'avant pourrait y remettre un appel
-en « sonne » pendant qu'il court (la sonde des appels à deux est verte : 120 ✓). Même remède le jour où ça se voit (`rev` dans `appelRangDe`,
-la garde dans `creerMoteurAppels`) ; pas fait ici pour ne pas élargir le correctif.
+✅ ~~Reste ouvert, jamais observé : le moteur des appels À DEUX a les mêmes trois chemins, sans version~~ — fermé le 9 octobre 2026 dans la nuit (entrée
+au-dessus : `rev` dans `appelRangDe`, la garde dans `creerMoteurAppels`, et la relecture qui croisait un nouvel appel).
 
 ⏳ **Ce qui attend Justin** (inchangé) : LiveKit sur le VPS (ports IONOS TCP 7881 et UDP 7882, puis `install-sfu.sh beta`) — c'est ce qui permettra de
 jouer `sonde-opmessages-visio` contre le vrai serveur de visio.

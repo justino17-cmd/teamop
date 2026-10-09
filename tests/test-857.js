@@ -410,7 +410,7 @@ async function controler(PAGE, SRC, DOC) {
         [T.mentionsDe('Salut @Camille', g), T.mentionsDe('Salut @Camille', g, ['p_b']), T.mentionsDe('plus personne', g, ['p_c']), T.mentionsDe('@Inès', d)], [[], ['p_b'], [], []]);
       const h1 = T.texteMentions('<img src=x onerror=alert(1)> @Inès & <b>', g), h2 = T.texteMentions('merci @Justin !', g), h3 = T.texteMentions('@Inconnu <i>', g), h4 = T.texteMentions('@Inès', d);
       vrai('⛔ la bulle : le « @Prénom » d\'un membre est en gras, le mien voilé, un inconnu reste du texte — et TOUT le reste est échappé (aucune balise du texte ne s\'ouvre)',
-        h1 === '&lt;img src=x onerror=alert(1)&gt; <b class="mention-nom">@Inès</b> &amp; &lt;b&gt;' && h2 === 'merci <b class="mention-nom moi">@Justin</b> !' && h3 === '@Inconnu &lt;i&gt;' && h4 === '@Inès',
+        h1 === '&lt;img src=x onerror=alert(1)&gt; <b class="mention-nom">@Inès</b> &amp; &lt;b&gt;' && h2 === 'merci <b class="mention-nom mention-moi">@Justin</b> !' && h3 === '@Inconnu &lt;i&gt;' && h4 === '@Inès',
         JSON.stringify([h1, h2, h3, h4]));
     }
     vrai('les mentions partent avec l\'envoi (et avec un message programmé), la liste « @ » choisit à Entrée SANS envoyer (gardien en capture), Échap ne ferme qu\'elle',

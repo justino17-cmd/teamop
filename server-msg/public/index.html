@@ -1248,7 +1248,9 @@ html[data-service] .mention-apercu { display: none; }
 .mention-choix[aria-selected="true"] { background: var(--field); }
 @media (hover: hover) { .mention-choix:hover { background: var(--field); } }
 .bulle .mention-nom { font-weight: 600; }
-.bulle .mention-nom.moi { padding: 0 3px; border-radius: 6px; background: color-mix(in srgb, currentColor 16%, transparent); }
+/* « mention-moi », pas « moi » : `.moi` est la carte du compte dans la barre latérale (flex, 44 px de haut, fond de champ) — la mention en héritait
+   et devenait un bloc gris sur sa propre ligne (capture du 9 octobre 2026). */
+.bulle .mention-nom.mention-moi { padding: 0 3px; border-radius: 6px; background: color-mix(in srgb, currentColor 16%, transparent); }
 .bord-mention .appel-heure { padding-right: 14px; }
 .bord-mention.non-lue .appel-nom-ligne { font-weight: 600; }
 .bord-mention.non-lue .appel-heure::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: 1px; }

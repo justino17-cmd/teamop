@@ -3857,6 +3857,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       id: a.id, type: a.type, etat: a.etat, genre: 'deux', sens: sortant ? 'sortant' : 'entrant', manque: !sortant && (a.etat === 'manque' || a.etat === 'annule' || a.etat === 'occupe'),
       autre: autre ? personneCourte(uid, autre) : null, debut: num(a.cree), sonne_jusqua: num(a.sonne_jusqua), repondu: abouti ? num(a.repondu) : null, fin,
       duree_s: abouti && fin !== null ? Math.max(0, Math.round((fin - num(a.repondu)) / 1000)) : 0, motif: a.motif || null, lie: !!me.session,
+      rev: a.etat === 'sonne' || a.etat === 'en_cours' ? appelRev(uid, a.id) : 0,
     };
   }
   /* La vue d'une SALLE. Le roster (`participants`) n'est lu que par qui est DANS la salle : une personne à la porte, ou qu'on appelle encore, ne voit ni qui est dedans ni qui attend — seulement combien ils
@@ -3881,12 +3882,14 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       moi: { statut: me.statut, grade: num(me.grade), gen: num(me.gen) }, participants: roster, rev: termine ? 0 : appelRev(uid, a.id),
     };
   }
-  /* ⛔ LA VERSION D'UNE VUE DE SALLE (`rev`) — 9 octobre 2026, sonde de groupe : une vue arrive par TROIS chemins (le flux, la réponse d'un geste, une relecture — celle de la salle ou de la liste des appels), et
+  /* ⛔ LA VERSION D'UNE VUE D'APPEL (`rev`), SALLE COMME APPEL À DEUX — 9 octobre 2026, sonde de groupe : une vue arrive par TROIS chemins (le flux, la réponse d'un geste, une relecture — celle de la salle ou de la liste des appels), et
      rien ne garantit qu'elles arrivent dans l'ordre où le service les a écrites. Une vue d'AVANT (sans « REC ») arrivée APRÈS celle du geste « Enregistrer » arrêtait l'enregistrement de l'hôte sur son
      appareil, pendant que le bandeau restait allumé chez tous : le fichier s'arrêtait à la seconde du geste. `rev` est le DERNIER événement `appel` du journal adressé à CETTE personne pour CETTE salle au
      moment où la vue est lue : chaque changement de la salle en écrit un pour chacun de ceux qui y sont (`appelEvenements`), donc une vue lue plus tard a un `rev` plus grand ou égal — la page ne remplace
      pas une vue par une plus petite (`source-serveur.js`, `perimee`). C'est un identifiant que la personne reçoit déjà dans son flux (l'`id` de cet événement) : jamais le compteur global du journal
-     (`gidVisible`). 0 = inconnu (journal élagué, appel terminé — une fin ne se périme pas) : la page l'applique, comme avant. */
+     (`gidVisible`). 0 = inconnu (journal élagué, appel terminé — une fin ne se périme pas) : la page l'applique, comme avant.
+     ⚠️ L'appel À DEUX la porte aussi depuis le 9 octobre 2026 au soir (`appelRangDe`) : le même défaut y était ouvert, jamais observé — une vue « sonne » lue avant la réponse, arrivée après elle,
+     remettait un appel qui court en sonnerie à l'écran, et un raccrochage aurait alors été dit « annulé » (`creerMoteurAppels`, `perimee`). */
   function appelRev(uid, id) {
     const r = Q(`SELECT gid FROM journal WHERE uid = ? AND genre = 'appel' AND ref = ? ORDER BY gid DESC LIMIT 1`).get(uid, id);
     return r ? num(r.gid) : 0;

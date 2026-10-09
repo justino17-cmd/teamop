@@ -110,7 +110,7 @@ console.log('\nLancer un appel : deux participants, un appareil lié (celui de l
   const vueA = S.appelVue(a.ana.id, r.id), vueB = S.appelVue(a.ben.id, r.id);
   v('la vue de l\'appelante : sortante, vidéo, Ben en face, échéance à +45 s, appareil lié, pas de réponse, pas de fin', [vueA.sens, vueA.type, vueA.autre.prenom, vueA.sonne_jusqua - vueA.debut, vueA.lie, vueA.repondu, vueA.fin, vueA.manque], ['sortant', 'video', 'Ben', SONNERIE, true, null, null, false]);
   v('la vue de l\'appelé : entrante, Ana en face, AUCUN appareil lié (il n\'a pas répondu)', [vueB.sens, vueB.autre.prenom, vueB.lie, vueB.manque], ['entrant', 'Ana', false, false]);
-  v('une vue ne porte QUE ces champs (jamais une adresse réseau, une empreinte de session ni une conversation)', Object.keys(vueA).sort(), ['autre', 'debut', 'duree_s', 'etat', 'fin', 'genre', 'id', 'lie', 'manque', 'motif', 'repondu', 'sens', 'sonne_jusqua', 'type']);
+  v('une vue ne porte QUE ces champs (jamais une adresse réseau, une empreinte de session ni une conversation)', Object.keys(vueA).sort(), ['autre', 'debut', 'duree_s', 'etat', 'fin', 'genre', 'id', 'lie', 'manque', 'motif', 'repondu', 'rev', 'sens', 'sonne_jusqua', 'type']);
   v('   et c\'est « deux » : le genre d\'un appel à deux ne change pas avec l\'étape 8 (les appels à plusieurs et les salles ont `test-986` à `test-989`)', vueA.genre, 'deux');
   v('⛔ la personne qui n\'y est pas ne la voit pas : vue nulle, laissez-passer nul (la garde répondra 404, comme pour un appel qui n\'existe pas)', [S.appelVue(a.cleo.id, r.id), S.appelAcces(r.id, a.cleo.id), S.appelAcces('a_' + '0'.repeat(32), a.ana.id)], [null, null, null]);
   const acces = S.appelAcces(r.id, a.ana.id);
@@ -150,8 +150,17 @@ console.log('\nRépondre : l\'appareil qui répond est LIÉ, le second reçoit a
   const a = atelier(), S = a.S;
   const r = lancer(a, a.ana, a.ben);
   v('⛔ l\'appelante ne répond pas à son propre appel (interdit) ; un étranger non plus (introuvable)', [lance(() => S.appelRepondre({ id: r.id, uid: a.ana.id, session: a.sa, accepte: true })), lance(() => S.appelRepondre({ id: r.id, uid: a.cleo.id, session: a.sc, accepte: true }))], ['interdit', 'introuvable']);
+  /* ⛔ `rev`, la VERSION de la vue — l'appel à deux la porte depuis le 9 octobre 2026 au soir, comme la salle (`test-986`) : une vue « sonne » lue avant la réponse et rendue après elle remettait à l'écran
+     en sonnerie un appel qui court. C'est le DERNIER événement `appel` de CETTE personne pour CET appel — jamais le compteur global (`gidVisible`) ; une fin vaut 0 (elle ne se périme pas). */
+  const derA = () => evenementsAppel(S, a.ana.id).filter(e => e.data.id === r.id).slice(-1)[0], derB = () => evenementsAppel(S, a.ben.id).filter(e => e.data.id === r.id).slice(-1)[0];
+  const sonneA = S.appelVue(a.ana.id, r.id), sonneB = S.appelVue(a.ben.id, r.id);
+  v('⛔ « rev » d\'un appel qui sonne : l\'identifiant du dernier événement de CET appel adressé à CETTE personne (Ana, Ben : chacun le sien)', [sonneA.rev, sonneB.rev, sonneA.rev !== sonneB.rev], [derA().gid, derB().gid, true]);
+  vrai('… jamais le compteur global du journal : aucun ne dépasse ce que la personne a le droit de connaître', sonneA.rev > 0 && sonneA.rev <= S.gidVisible(a.ana.id) && sonneB.rev <= S.gidVisible(a.ben.id));
   a.h.t += 7 * SEC;
   const rep = S.appelRepondre({ id: r.id, uid: a.ben.id, session: a.sb, accepte: true });
+  const coursA = S.appelVue(a.ana.id, r.id);
+  v('⛔ la vue lue APRÈS la réponse a un « rev » plus grand (la page ne remplace jamais une vue par une plus petite), et c\'est l\'événement que le flux d\'Ana lui apporte pour ce geste',
+    [coursA.etat, coursA.rev > sonneA.rev, coursA.rev, rep.vue.rev === derB().gid], ['en_cours', true, derA().gid, true]);
   v('Ben répond depuis son téléphone : « en cours », l\'appareil est LIÉ, l\'heure de réponse est maintenant', [rep.etat, rep.deja, rep.vue.lie, rep.vue.repondu === a.h.t, S.appelAcces(r.id, a.ben.id).session], ['en_cours', false, true, true, a.sb]);
   v('chacun reçoit un événement de plus (deux au total : lancé, répondu)', [evenementsAppel(S, a.ana.id).length, evenementsAppel(S, a.ben.id).length], [2, 2]);
   const avant = evenementsAppel(S, a.ben.id).length;
@@ -178,6 +187,7 @@ console.log('\nRaccrocher, annuler, refuser : l\'état qui convient à l\'état 
   a.h.t += 9 * SEC;
   const q = S.appelQuitter({ id: r.id, uid: a.ana.id, session: a.sa });
   v('Ana annule avant la réponse : « annulé » ; Ben l\'a manqué (entrant, non pris) et en est prévenu UNE fois', [q.etat, S.appelVue(a.ben.id, r.id).etat, S.appelVue(a.ben.id, r.id).manque, manques(S, a.ben.id).length, manques(S, a.ben.id)[0].texte, !!q.notif], ['annule', 'annule', true, 1, 'Ana Test vous a appelé en vidéo.', true]);
+  v('⛔ une vue d\'appel FINI vaut « rev » 0 (une fin ne se périme pas : la page l\'applique toujours) — population : la vue existe, des deux côtés', [S.appelVue(a.ana.id, r.id).rev, S.appelVue(a.ben.id, r.id).rev, S.appelVue(a.ben.id, r.id).etat], [0, 0, 'annule']);
   v('   la notification vise l\'appel (cible), et Ana n\'en reçoit aucune', [manques(S, a.ben.id)[0].cible === r.id, S.notifListe(a.ben.id, 5)[0].type, manques(S, a.ana.id).length], [true, 'appel_manque', 0]);
   const avant = [evenementsAppel(S, a.ben.id).length, manques(S, a.ben.id).length];
   const q2 = S.appelQuitter({ id: r.id, uid: a.ana.id, session: a.sa });
