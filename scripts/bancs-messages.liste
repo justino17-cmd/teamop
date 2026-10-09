@@ -68,7 +68,7 @@
 # mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur ; la CI en compte 2 de plus) — plancher 9219 (le total local moins 14).
 # 9 octobre 2026, soir : un port déjà pris ne fait plus mourir les bacs du relais et de la visio (test-959 : +2 ; test-982 : +1 — le déploiement de #115 était
 # tombé sur EADDRINUSE dans test-959) — 90 suites, 9 236 vérifications mesurées en local (test-971 tombe sur les fuseaux 2025b du conteneur) — plancher 9222.
-#plancher 9222
+#plancher 9290
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
