@@ -216,7 +216,9 @@ function controler(PAGE, DOC, SRC) {
 
   /* 5. RIEN DE L'EXTÉRIEUR ── */
   const entier = PAGE.replace(/<!--[\s\S]*?-->/g, ' ');
-  v('⛔ aucune adresse http(s):// dans la page (feuille, police, script, image, lien)', [...new Set(entier.match(/https?:\/\/[^\s"'<>)]*/g) || [])], []);
+  /* ⛔ une ADRESSE porte un hôte après « // » (9 octobre 2026, run 633) : le schéma seul, `'https://' + u` — le préfixe qu'un lien « www. » écrit par quelqu'un reçoit
+     dans une bulle (`texteRiche`) —, ne charge rien et ne mène nulle part par lui-même. Le motif exige donc au moins un caractère d'hôte ; une vraie adresse le porte toujours. */
+  v('⛔ aucune adresse http(s):// dans la page (feuille, police, script, image, lien)', [...new Set(entier.match(/https?:\/\/[^\s"'<>)]+/g) || [])], []);
   v('⛔ aucun <script src> autre que source.js, <link> autre que l\'icône locale, <iframe>, <img> distant, @import, url(http)',
     [(entier.match(/<script[^>]*\ssrc="(?!source\.js")/g) || []).length, (entier.match(/<link\b(?![^>]*rel="icon"[^>]*href="\.\.\/\.\.\/icons\/opmsg-favicon-32\.png")[^>]*>/g) || []).length, (entier.match(/<iframe|@import|url\(\s*["']?https?:/g) || []).length], [0, 0, 0]);
   v('⛔ aucune image écrite dans le balisage qui ne soit le logo du dépôt (icons/opmsg-192.png) ; les photos et vocaux de la personne ne naissent que de blob:', [...new Set((HTML.match(/<img[^>]*\ssrc="[^"]*"/g) || []).map(s => /src="([^"]*)"/.exec(s)[1]))], ['../../icons/opmsg-192.png']);

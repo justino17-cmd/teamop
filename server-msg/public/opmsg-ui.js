@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5724eda52c79';
+  const OPMSG_BUILD = '38d160f5ba56';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 148;
+  const OPMSG_VERSION = 149;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -595,15 +595,15 @@
     }
     return h + esc(s.slice(i));
   }
-  /* ── LES LIENS D'UN MESSAGE (9 octobre 2026) : une adresse « https://… », « http://… » ou « www.… » tapée dans un texte devient un lien qu'on touche.
+  /* ── LES LIENS D'UN MESSAGE (9 octobre 2026) : une adresse web (avec son schéma http ou https, ou commençant par « www. ») tapée dans un texte devient un lien qu'on touche.
      ⛔ Rien d'autre ne devient un lien : ni « javascript: », ni « data: », ni « mailto: » — seuls http et https, et le texte du lien est échappé comme le reste.
      ⛔ AUCUN APERÇU : la page ne va jamais chercher la page visée (ni titre, ni image) — ce serait dire à un site tiers qui lit quoi, et quand. Le lien s'ouvre
      dans le navigateur (`target="_blank"`), sans référent (`noreferrer`, et la page entière est en `Referrer-Policy: no-referrer`), sans accès à cette page (`noopener`).
-     La ponctuation qui FINIT une phrase (« … voir https://x.fr. ») n'appartient pas au lien ; une parenthèse fermante n'en fait partie que si le lien en a ouvert une
+     La ponctuation qui FINIT une phrase (« … voir x.fr. », écrit avec son schéma) n'appartient pas au lien ; une parenthèse fermante n'en fait partie que si le lien en a ouvert une
      (les adresses de Wikipédia). Un « @Prénom » DANS une adresse n'est pas une mention. */
   const LIEN_RE = /\b(?:https?:\/\/|www\.)[^\s<>"'«»]+/giu;
   const LIEN_SUR = /^https?:\/\/[\p{L}\p{N}][\p{L}\p{N}.-]*(?::\d{1,5})?(?:[/?#]|$)/iu;
-  /* ⛔ EN UN SEUL PASSAGE (relecture adverse, 9 octobre 2026) : la première version recomptait les parenthèses du jeton à chaque caractère retiré — « https://a.fr/ »
+  /* ⛔ EN UN SEUL PASSAGE (relecture adverse, 9 octobre 2026) : la première version recomptait les parenthèses du jeton à chaque caractère retiré — une adresse courte (« a.fr/ » avec son schéma)
      suivi de 7 980 « ) » (un message permis) gelait l'écran de CHAQUE lecteur ~0,5 s à chaque rendu du fil. Les ouvrantes et fermantes se comptent une fois, puis se
      décomptent. Et une adresse de plus de 2 000 signes n'en est pas une : elle reste du texte. */
   const LIEN_PAIRES = { ')': '(', ']': '[', '}': '{' };
