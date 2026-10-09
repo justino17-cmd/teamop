@@ -155,15 +155,56 @@ const bento = (PAGES.elan.match(/<div class="bento">[\s\S]*?<\/div><script type=
 const cases = bento.split('<button type="button" class="tuile-f').slice(1);
 v('dix cases', cases.length, 10);
 v('les dix ont leur appareil', cases.filter(x => /class="vue /.test(x) && /<picture>/.test(x)).length, 10);
-/* ⛔ DANS L'APERÇU, CHAQUE CASE MONTRE LE MAC ET L'iPHONE, SUR LE MÊME ÉCRAN — Justin, 9 octobre 2026, capture de la case
-   « Encaissements et compta » (un iPhone seul) : « je voudrais que l'iPhone et le Mac soient sur les mêmes, pas un coup l'iPhone
-   et un coup le Mac ». La racine en service garde ses cases d'avant (une grande montre un Mac, une petite un iPhone) jusqu'à ce
-   qu'il dise de publier : publier sera un geste, pas une dérive. */
+/* ⛔ DANS L'APERÇU, CHAQUE CASE MONTRE LE MAC, PUIS LE TÉLÉPHONE, SUR LE MÊME ÉCRAN, ET C'EST TOUT — Justin, 9 octobre 2026. D'abord,
+   capture de la case « Encaissements et compta » (un iPhone seul) : « je voudrais que l'iPhone et le Mac soient sur les mêmes » ; puis,
+   devant les deux appareils posés l'un sur l'autre : « non, je ne veux pas ça […] une fois le téléphone, une fois le Mac, et que ça
+   défile » ; puis, devant une suite d'écrans avec légende, pastilles et ⏸ : « je ne veux pas ça […] je veux : une fois qu'on voit le
+   Mac, ça change de page, on voit le téléphone, et c'est tout, et ça ne fait que ça ». La racine en service garde ses cases d'avant
+   (une grande montre un Mac, une petite un iPhone) jusqu'à ce qu'il dise de publier : publier sera un geste, pas une dérive. */
 const ecranDe = (x, app) => ((x.match(new RegExp('src="/vitrine/v2/captures/(' + app + '-[a-z-]+?)-jour(?:-1x)?\\.webp"')) || [])[1] || '');
 const memeEcran = (m, i) => m.replace(/^mac-/, '') === i.replace(/^iphone-/, '') || ({ 'mac-planning': 'iphone-journee', 'mac-interventions': 'iphone-intervention', 'mac-box': 'iphone-box' })[m] === i;
-v('⛔ aperçu : les dix cases montrent le Mac ET l\'iPhone', cases.filter(x => /class="vue duo"/.test(x) && ecranDe(x, 'mac') && ecranDe(x, 'iphone')).length, 10);
-v('⛔ aperçu : dans chaque case, le Mac et l\'iPhone montrent le MÊME écran de l\'application', cases.filter(x => !memeEcran(ecranDe(x, 'mac'), ecranDe(x, 'iphone'))).map(x => ecranDe(x, 'mac') + ' / ' + ecranDe(x, 'iphone')), []);
-v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases), sur le Mac comme sur l\'iPhone', [new Set(cases.map(x => ecranDe(x, 'mac'))).size, new Set(cases.map(x => ecranDe(x, 'iphone'))).size], [10, 10]);
+/* les écrans d'un carrousel (ou d'une case), dans l'ordre : l'appareil de chacun ('iphone' / 'mac', '?' s'il n'en porte pas un
+   et un seul) et sa capture */
+const ecransDe = (x, balise) => x.split('<' + balise + ' class="c-vue').slice(1).map(e => { const ip = (e.match(/class="ap-iphone"/g) || []).length, ma = (e.match(/class="ap-mac"/g) || []).length;
+  const app = ip === 1 && ma === 0 ? 'iphone' : ma === 1 && ip === 0 ? 'mac' : '?'; return { app, ecran: app === '?' ? '' : ecranDe(e, app), on: /^ c-on"/.test(e) }; });
+/* UNE paire, et rien d'autre : le Mac (affiché d'abord), puis le téléphone du MÊME écran de l'application */
+const paire = L => L.length === 2 && L[0].app === 'mac' && L[1].app === 'iphone' && memeEcran(L[0].ecran, L[1].ecran) && L[0].on && !L[1].on;
+/* l'horloge : deux pastilles invisibles, la première active, rien à toucher */
+const HORLOGE = '<span class="c-horloge" aria-hidden="true"><span class="c-point" aria-current="true"><span><i></i></span></span><span class="c-point"><span><i></i></span></span></span>';
+const casesA = cases.map(x => ({ x, L: ecransDe(x, 'span') }));
+v('⛔ aperçu : les dix cases défilent (`vue alterne`, branchées au script)', cases.filter(x => /<span class="vue alterne" aria-hidden="true" data-carrousel style="--i:\d+">/.test(x)).length, 10);
+v('⛔ aperçu : dans chaque case, le Mac PUIS le téléphone, sur le MÊME écran de l\'application, et rien d\'autre', casesA.filter(c => !paire(c.L)).map(c => c.L.map(e => e.app + ':' + e.ecran).join(' / ')), []);
+v('⛔ aperçu : chaque case a son horloge invisible (deux pastilles), et rien à toucher', casesA.filter(c => !c.x.includes(HORLOGE) || /<button|c-lecture|c-legende/.test(c.x.slice(0, c.x.indexOf('<span class="plus">')))).length, 0);
+v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases), sur le Mac comme sur le téléphone', [new Set(casesA.map(c => (c.L.find(e => e.app === 'mac') || {}).ecran)).size, new Set(casesA.map(c => (c.L.find(e => e.app === 'iphone') || {}).ecran)).size], [10, 10]);
+vrai('⛔ aperçu : aucun ⏸ au-dessus des cases (« ça ne fait que ça »)', !/c-groupe|data-c-groupe/.test(PAGES.elan));
+console.log('5 ter. les carrousels de l\'aperçu : le Mac, puis le téléphone, et c\'est tout');
+{
+  let n = 0;
+  const RX = /<div class="carrousel ([^"]*)" data-carrousel role="group" aria-label="([^"]*)">([\s\S]*?)(<span class="c-horloge"[\s\S]*?<\/span><\/span><\/span>)<\/div>/g;
+  for (const c of CLES) {
+    const s = PAGES[c];
+    vrai(c + ' : ⛔ ni légende, ni pastille, ni bouton de carrousel, ni appareil posé sur un autre', !/c-legende|c-commandes|c-lecture|c-points|<button type="button" class="c-point|c-duo|class="vue duo"|class="ap-duo"|c-alterne/.test(s));
+    const ecransCartes = [];
+    for (const m of s.matchAll(RX)) {
+      n++;
+      const L = ecransDe(m[3], 'div'), lbl = c + ' · carrousel ' + m[1] + ' (' + L.map(e => e.ecran).join(' / ') + ')';
+      vrai(lbl + ' : « c-paire »', /^c-paire( c-carte)?$/.test(m[1]));
+      vrai(lbl + ' : ⛔ UNE paire — le Mac, puis le téléphone du même écran, et rien d\'autre', paire(L));
+      vrai(lbl + ' : son horloge invisible, deux pastilles', m[4] === HORLOGE);
+      vrai(lbl + ' : il se nomme (« OP GESTION — … : sur un Mac, puis sur un iPhone »)', /^OP GESTION — .+ : sur un Mac, puis sur un iPhone$/.test(m[2]));
+      if (/c-carte/.test(m[1])) ecransCartes.push(L[0].ecran);
+    }
+    /* les deux cartes d'une rangée ne montrent pas le même écran */
+    if (ecransCartes.length > 1) vrai(c + ' : les cartes montrent des écrans différents (' + ecransCartes.join(', ') + ')', new Set(ecransCartes).size === ecransCartes.length);
+  }
+  vrai('population : ' + n + ' carrousels dans l\'aperçu', n >= 30);
+  /* une page métier hors 3D ne montre que des écrans NEUTRES (menus du 3D masqués, comme l'application les masque à ces métiers) */
+  const NEUTRES = ['mac-factures-neutre', 'mac-compta-neutre', 'iphone-factures-neutre', 'iphone-compta-neutre'];
+  for (const c of ['logiciel-plombier', 'logiciel-electricien', 'logiciel-chauffage-climatisation', 'logiciel-nettoyage']) {
+    const caps = [...new Set([...PAGES[c].matchAll(/captures\/((?:mac|iphone)-[a-z-]+?)-(?:jour|nuit)(?:-1x)?\.webp/g)].map(x => x[1]))];
+    vrai(c + ' : ⛔ rien que des écrans neutres, le Mac et le téléphone (' + caps.join(', ') + ')', caps.length >= 4 && caps.every(x => NEUTRES.includes(x)) && caps.some(x => /^mac-/.test(x)) && caps.some(x => /^iphone-/.test(x)));
+  }
+}
 {
   const casesR = ((GEN.page('elan', { racine: true }).match(/<div class="bento">[\s\S]*?<\/div><script type="application\/json"/) || [''])[0]).split('<button type="button" class="tuile-f').slice(1);
   vrai('la racine en service garde ses cases d\'avant (les grandes un Mac, les petites un iPhone, « Partout » les deux)', casesR.length === 10

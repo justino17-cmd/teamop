@@ -87,7 +87,7 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
       vrai(lbl + ' : fond ' + fond, mode === 'dark' ? fond === 'rgb(11, 20, 38)' : fond === 'rgb(255, 255, 255)');
       /* au doigt : ce qui se touche fait 44 px de haut au moins */
       if (P.tac) {
-        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a,.c-point,.c-lecture';
+        const petites = await ev(`const S='.pilule,.burger,.bouton,.lien-suite,.segment button,.metier-puce,.besoin,.faq .q button,.tuile-f,.teaser,.pack>a,.formule .cta,.menu-mobile a,.pied .cols a,.pied .ligne a,.bandeau-creer,.app-carte>a,.commencer .boutons a';
           return [...document.querySelectorAll(S)].filter(e=>{ const b=e.getBoundingClientRect(); return b.width>0&&b.height>0&&getComputedStyle(e).visibility!=='hidden'; })
             .map(e=>{ const b=e.getBoundingClientRect(), a=getComputedStyle(e,'::after'); const ext=a.content&&a.content!=='none'&&a.position==='absolute'?Math.max(0,-parseFloat(a.top||0))+Math.max(0,-parseFloat(a.bottom||0)):0;
               return {t:(e.textContent||e.getAttribute('aria-label')||'').trim().slice(0,30), h:Math.round(b.height+ext)}; }).filter(x=>x.h<44);`);
@@ -145,8 +145,9 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         /* depuis le 8 octobre 2026 (Justin : « qu'on le voie bien en entier »), l'appareil d'une case est ENTIER, posé en bas
            de sa case : ni défilé, ni coupé — haut, bas, gauche, droite (carrousel.css) */
         const vues = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const i=v.querySelector('img'), V=v.getBoundingClientRect(), T=v.closest('.tuile-f').getBoundingClientRect();
-          const ap=[...v.querySelectorAll('.ap-iphone-corps,.ap-mac')].map(e=>e.getBoundingClientRect());
-          return {st:v.scrollTop, dedans:ap.every(b=>b.top>=V.top-1&&b.bottom<=V.bottom+1&&b.left>=V.left-1&&b.right<=V.right+1&&b.bottom<=T.bottom+1), img:!!(i&&i.complete&&i.naturalWidth>0)}; });`);
+          /* (une case fait défiler l'iPhone, puis le Mac : seul l'appareil de l'écran affiché se mesure — l'autre attend en display:none) */
+          const ap=[...v.querySelectorAll('.ap-iphone-corps,.ap-mac')].filter(e=>{ const c=e.closest('.c-vue'); if(!c) return true; const st=getComputedStyle(c); return st.display!=='none'&&+st.opacity>.01; }).map(e=>e.getBoundingClientRect());
+          return {st:v.scrollTop, n:ap.length, dedans:ap.length===1&&ap.every(b=>b.top>=V.top-1&&b.bottom<=V.bottom+1&&b.left>=V.left-1&&b.right<=V.right+1&&b.bottom<=T.bottom+1), img:!!(i&&i.complete&&i.naturalWidth>0)}; });`);
         vrai(lbl + ' : les dix cases ont leur appareil, image chargée', vues.length === 10 && vues.every(x => x.img), JSON.stringify(vues));
         vrai(lbl + ' : chaque appareil est entier dans sa case (ni défilé, ni coupé)', vues.every(x => x.st === 0 && x.dedans), JSON.stringify(vues.filter(x => x.st || !x.dedans)));
       }
@@ -159,19 +160,16 @@ const MODES = (process.env.MODES || 'light,dark').split(',');
         vrai(lbl + ' : ⛔ la carte mise en avant suit le mode (' + (mode === 'dark' ? 'sombre la nuit' : 'claire le jour') + ')', inv && (mode === 'dark' ? inv.lum < .06 : inv.lum > .6), JSON.stringify(inv));
         if (inv) vrai(lbl + ' : et se détache de la page (teinte + halo)', inv.fond !== inv.page && /radial-gradient/.test(inv.halo), JSON.stringify(inv));
       }
-      /* depuis le 9 octobre 2026 (Justin : « que l'iPhone et le Mac soient sur les mêmes »), chaque case montre le Mac ET l'iPhone,
-         l'iPhone posé devant ; la photo ne dit pas lequel passe devant : on touche leur chevauchement */
+      /* depuis le 9 octobre 2026 (Justin : « une fois qu'on voit le Mac, ça change de page, on voit le téléphone, et c'est tout »),
+         chaque case montre le Mac, puis le téléphone du même écran : un seul appareil à la fois, jamais l'un sur l'autre
+         (scratchpad/sonde-carrousel.js joue la bascule elle-même) */
       if (pg === 'elan') {
-        const paires = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const m=v.querySelector('.ap-mac'), i=v.querySelector('.ap-iphone'); if(!m||!i) return {duo:false};
-          v.scrollIntoView({block:'center'}); const a=i.querySelector('.ap-iphone-ecran').getBoundingClientRect(), b=m.querySelector('.ap-mac-ecran').getBoundingClientRect();
-          const x0=Math.max(a.left,b.left), x1=Math.min(a.right,b.right), y0=Math.max(a.top,b.top), y1=Math.min(a.bottom,b.bottom);
-          /* une grande case pose l'iPhone À CÔTÉ du Mac (ils se touchent à peine) : rien à départager */
-          if(x1-x0<6||y1-y0<6) return {duo:true, devant:true, cote:true};
-          v.style.pointerEvents='auto'; const e=document.elementFromPoint((x0+x1)/2,(y0+y1)/2); v.style.pointerEvents='';
-          return {duo:true, devant:!!(e&&e.closest('.ap-iphone'))}; });`);
-        vrai(lbl + ' : les dix cases montrent le Mac ET l\'iPhone', paires.length === 10 && paires.every(x => x.duo), JSON.stringify(paires));
-        vrai(lbl + ' : population — ' + paires.filter(x => !x.cote).length + ' cases où l\'iPhone chevauche le Mac', paires.filter(x => !x.cote).length >= 6, JSON.stringify(paires));
-        vrai(lbl + ' : dans chaque case, l\'iPhone passe devant le Mac', paires.every(x => x.devant), JSON.stringify(paires.filter(x => !x.devant)));
+        const paires = await ev(`return [...document.querySelectorAll('.tuile-f .vue')].map(v=>{ const vs=[...v.querySelectorAll('.c-vue')];
+          const app=x=>x.querySelector('.ap-iphone')&&!x.querySelector('.ap-mac')?'iphone':x.querySelector('.ap-mac')&&!x.querySelector('.ap-iphone')?'mac':'?';
+          const vus=vs.filter(x=>{ const st=getComputedStyle(x); return st.display!=='none'&&+st.opacity>.01; });
+          return {ordre:vs.map(app).join('+'), vus:vus.length}; });`);
+        vrai(lbl + ' : les dix cases montrent le Mac, puis le téléphone', paires.length === 10 && paires.every(x => x.ordre === 'mac+iphone'), JSON.stringify(paires));
+        vrai(lbl + ' : ⛔ un seul appareil se voit dans chaque case', paires.every(x => x.vus === 1), JSON.stringify(paires.filter(x => x.vus !== 1)));
       }
       if (!P.tac && pg === 'index') {
         const r = await rect('.nav-liens a[data-fly="applications"]');
