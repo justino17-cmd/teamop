@@ -19,12 +19,14 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# ⏳ 9 OCTOBRE 2026 (SOIR) — OP MESSAGES DE A À Z : LES 47 SONDES AU NAVIGATEUR, ET UN VRAI DÉFAUT CORRIGÉ (L'ENREGISTREMENT DE L'HÔTE)
+# ✅ 9 OCTOBRE 2026 (SOIR) — OP MESSAGES DE A À Z : LES 47 SONDES AU NAVIGATEUR, ET UN VRAI DÉFAUT CORRIGÉ (L'ENREGISTREMENT DE L'HÔTE) — PART SUR LA BÊTA PAR #115
 
 Justin : « laisse le site comme il est, et on continue OP MESSAGES ». Les 47 sondes `tests/sonde-opmessages*.js`, l'une après l'autre (jamais deux
 navigateurs de front), dans le conteneur : **43 vertes au premier passage** ; `visio` ne se lance pas ici (pas de binaire LiveKit), `relais` non plus
-(pas de coturn) ; la grande `sonde-opmessages` a été coupée par le délai de 1 200 s à 1 427 ✓ 0 ✗ (elle est longue, pas cassée — RESULTAT_GRANDE) ;
-**`groupe` : 132 ✓ 4 ✗ — un vrai défaut.**
+(pas de coturn) ; la grande `sonde-opmessages` a été coupée par le délai de 1 200 s à 1 427 ✓ 0 ✗ — elle est longue, pas cassée : relancée avec 3 600 s,
+**3 172 ✓ 0 ✗ en 45 minutes** (iPhone, Android 360 et 412, iPad, bureau 1024 et 1440, de jour et de nuit ; lui donner une heure) ;
+**`groupe` : 132 ✓ 4 ✗ — un vrai défaut.** Au bout du compte, **les 45 sondes qu'on peut lancer ici sont vertes** (groupe : 201 ✓ 0 ✗,
+après les deux causes ci-dessous).
 
 ⛔ **Le défaut** : l'hôte touche « Enregistrer », le bandeau « REC » s'allume chez tous — et son enregistrement s'arrêtait sur SON appareil quelques
 secondes plus tard (la carte « Enregistrement terminé » s'ouvrait seule, le fichier coupé à la seconde du geste), pendant que le bandeau restait
