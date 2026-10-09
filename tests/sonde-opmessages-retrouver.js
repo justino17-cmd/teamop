@@ -69,6 +69,8 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
     console.log('\n── 1. Au téléphone : les Infos proposent les deux feuilles ──');
     const A = await ouvrir('ana', TEL, '#messages/' + G);
     vrai('population : la conversation est ouverte', await att(A, () => document.getElementById('conv-messages').textContent.includes('rochefort encore')));
+    /* la profondeur de l'entrée d'historique de la conversation : un résultat touché doit y RAMENER (pas en pousser une seconde de la même conversation) */
+    const nConv = await A.page.evaluate(() => history.state && history.state.opmsg ? history.state.n : null);
     vrai('les Infos proposent « Rechercher dans la conversation » et « Photos, fichiers et liens »', await ouvrirInfos(A) && await A.page.evaluate(() => /Rechercher dans la conversation/.test(document.querySelector('#info-corps [data-act="chercher"]').textContent) && /Photos, fichiers et liens/.test(document.querySelector('#info-corps [data-act="medias"]').textContent)));
     await A.page.waitForTimeout(400);
     await A.page.locator('#info-corps [data-act="chercher"]').tap();
@@ -84,13 +86,21 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
     await capture(A, 'r1-recherche');
     await A.page.locator('#rc-q').fill('zzqx');
     vrai('une recherche sans résultat le dit', await att(A, () => /Aucun message ne contient « zzqx »/.test(document.getElementById('rc-etat').textContent) && document.getElementById('rc-liste').hidden));
+    /* le réseau coupé pendant une recherche : l'échec se DIT et « Réessayer » le rejoue */
+    await A.page.route('**/messages/chercher**', r => r.abort());
     await A.page.locator('#rc-q').fill('rochefort');
-    await att(A, () => document.querySelectorAll('#rc-liste [data-rc-seq]').length === 4);
+    vrai('⛔ une recherche qui échoue le dit et propose « Réessayer » (la liste ne fait pas semblant d\'être vide)', await att(A, () => !document.getElementById('rc-reessayer-zone').hidden && document.getElementById('rc-liste').hidden && !/Aucun message/.test(document.getElementById('rc-etat').textContent)));
+    await capture(A, 'r1b-echec');
+    await A.page.unroute('**/messages/chercher**');
+    await A.page.locator('[data-rc-reessayer]').tap();
+    vrai('« Réessayer » : les quatre résultats, « Réessayer » s\'efface', await att(A, () => document.querySelectorAll('#rc-liste [data-rc-seq]').length === 4 && document.getElementById('rc-reessayer-zone').hidden));
 
     console.log('\n── 3. ⛔ Le plus ancien : la feuille se ferme, l\'historique remonte, le message se montre ──');
     v('population : le message de Ben n\'est PAS dans ce que la page a chargé', await A.page.evaluate((s) => !Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).some(x => x.textContent.includes('Rochefort démarre')), sVieux), true);
     await A.page.locator('#rc-liste [data-rc-seq="' + sVieux + '"]').tap();
     vrai('la feuille se ferme, le message de Ben est à l\'écran et marqué', await att(A, () => { const m = Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).find(x => x.textContent.includes('Rochefort démarre')); if (!m || document.documentElement.classList.contains('feuille-ouverte')) return false; const r = m.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight && m.classList.contains('msg-cible'); }, null, 20000));
+    v('⛔ … sans doubler l\'historique : on est revenu à l\'entrée de la conversation (même profondeur qu\'avant les Infos)', await A.page.evaluate(() => history.state && history.state.opmsg ? history.state.n : null), nConv);
+    vrai('⛔ … et le FOCUS est sur le message atteint (plus sur le bouton d\'en-tête qui avait ouvert les Infos)', await att(A, () => { const a = document.activeElement; return !!a && a.matches('#conv-messages .msg[data-mid]') && a.textContent.includes('Rochefort démarre'); }));
     await capture(A, 'r2-au-message');
 
     console.log('\n── 4. La galerie : photos, fichiers, liens ──');
@@ -110,6 +120,7 @@ const TEL = { viewport: { width: 360, height: 780 }, isMobile: true, hasTouch: t
     await att(A, () => document.querySelectorAll('#md-corps .md-photo').length === 2);
     await A.page.locator('#md-corps .md-photo').first().tap();
     vrai('une vignette mène à SA photo dans la conversation', await att(A, (s) => { const m = Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).find(x => x.textContent.includes('Façade côté rue')); return !!m && !document.documentElement.classList.contains('feuille-ouverte') && m.classList.contains('msg-cible'); }, sPh, 15000));
+    v('⛔ … là encore, à l\'entrée de la conversation (pas une de plus)', await A.page.evaluate(() => history.state && history.state.opmsg ? history.state.n : null), nConv);
 
     console.log('\n── 5. Au bureau : le champ prend le focus, Échap ferme ──');
     const B = await ouvrir('ana', BUREAU, '#messages/' + G);
