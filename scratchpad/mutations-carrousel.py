@@ -29,8 +29,8 @@ MUTATIONS = [
     ('M9 l\'iPhone des cartes coupé par le bas', CSS, ".grande-carte .bas { align-items: flex-end; padding: 30px 20px 40px; }",
      ".grande-carte .bas { align-items: flex-start; padding: 30px 20px 0; max-height: 420px; overflow: hidden; }",
      'EN ENTIER', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
-    ('M10 les cases recoupent leur appareil', CSS, ".tuile-f .vue { flex: 1 0 auto; height: auto; max-height: none; align-items: flex-end; padding: 8px 0 30px; }",
-     ".tuile-f .vue { flex: 1 0 auto; height: 260px; max-height: none; align-items: flex-start; padding: 8px 0 30px; }",
+    ('M10 les cases recoupent leurs appareils', CSS, ".tuile-f .vue.duo { display: block; flex: 0 0 auto; margin-top: auto; height: auto; max-height: none; aspect-ratio: 1 / .74; padding: 0; }",
+     ".tuile-f .vue.duo { display: block; flex: 0 0 auto; margin-top: auto; height: auto; max-height: none; aspect-ratio: 1 / .3; padding: 0; }",
      'EN ENTIER', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     ('M11 la légende ne suit plus', JS, "if (legende) legende.textContent = titres[j];", "/* muté */",
      'disent le même écran', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
@@ -39,8 +39,8 @@ MUTATIONS = [
      'disent le même écran', {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'index'}),
     # (rendre seulement `permis` toujours vrai ne changerait rien : le cycle factures / encaissements / connexion est neutre de lui-même —
     #  c'est la scène Mac + iPhone, tout en 3D, qui arriverait chez le plombier)
-    ('M13 une page hors 3D montre du 3D', GEN, "const neutre = !!METIERS[cle] && !m.trois, permis = n => !neutre || !ECRANS[n][2];",
-     "const neutre = false, permis = n => true;",
+    ('M13 une page hors 3D montre du 3D', GEN, "const neutre = !!METIERS[cle] && !m.trois, permis = k => !neutre || !troisD(k);",
+     "const neutre = false, permis = k => true;",
      'que des écrans neutres', {'PAGES': 'logiciel-plombier', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
     ('M14 le suivant ne se prépare plus', JS, "if (oui && !vu) { vu = true; setTimeout(function () { prets((i + 1) % n); }, 700); }", "/* muté */",
      'le suivant sont chargés', {'PAGES': 'applications', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
@@ -52,6 +52,12 @@ MUTATIONS = [
     ('M17 les écrans défilent à l\'envers', JS, "c.classList.toggle('c-avant', vers > 0); c.classList.toggle('c-arriere', vers < 0);",
      "c.classList.toggle('c-avant', vers < 0); c.classList.toggle('c-arriere', vers > 0);",
      "il défile seul", {'PAGES': 'index', 'PROFILS': 'téléphone', 'MODES': 'light', 'GESTES': 'index'}),
+    ('M18 l\'iPhone repasse derrière le Mac', CSS, ".c-scene .ap-mac { isolation: isolate; }\n.c-scene .ap-iphone { isolation: isolate; z-index: 1; }", "/* muté */",
+     "passe DEVANT le Mac", {'PAGES': 'index', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    ('M19 la page hors 3D prend les captures du 3D', GEN, "const NEUTRE_DE = { factures: 'facturesNeutre', compta: 'comptaNeutre' };", "const NEUTRE_DE = {};",
+     'rien que des écrans neutres', {'PAGES': 'logiciel-plombier', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
+    ('M20 une case revient à un seul appareil', GEN, "  if (!POUR_LA_RACINE) { const k = PAIRE_DE[v.mac || v.iphone || v.duo[0]];", "  if (false) { const k = PAIRE_DE[v.mac || v.iphone || v.duo[0]];",
+     'chaque case montre le Mac ET', {'PAGES': 'elan', 'PROFILS': 'bureau', 'MODES': 'light', 'GESTES': 'aucune'}),
 ]
 
 def sh(c, **kw):

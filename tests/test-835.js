@@ -155,8 +155,20 @@ const bento = (PAGES.elan.match(/<div class="bento">[\s\S]*?<\/div><script type=
 const cases = bento.split('<button type="button" class="tuile-f').slice(1);
 v('dix cases', cases.length, 10);
 v('les dix ont leur appareil', cases.filter(x => /class="vue /.test(x) && /<picture>/.test(x)).length, 10);
-vrai('les grandes montrent un Mac, les petites un iPhone', cases.every(x => /^[^"]*large/.test(x) ? /class="vue v-mac"/.test(x) : /class="vue (v-iphone|duo)"/.test(x)));
-v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases)', new Set(cases.map(x => (x.match(/src="([^"]+)"/) || [])[1])).size, 10);
+/* ⛔ DANS L'APERÇU, CHAQUE CASE MONTRE LE MAC ET L'iPHONE, SUR LE MÊME ÉCRAN — Justin, 9 octobre 2026, capture de la case
+   « Encaissements et compta » (un iPhone seul) : « je voudrais que l'iPhone et le Mac soient sur les mêmes, pas un coup l'iPhone
+   et un coup le Mac ». La racine en service garde ses cases d'avant (une grande montre un Mac, une petite un iPhone) jusqu'à ce
+   qu'il dise de publier : publier sera un geste, pas une dérive. */
+const ecranDe = (x, app) => ((x.match(new RegExp('src="/vitrine/v2/captures/(' + app + '-[a-z-]+?)-jour(?:-1x)?\\.webp"')) || [])[1] || '');
+const memeEcran = (m, i) => m.replace(/^mac-/, '') === i.replace(/^iphone-/, '') || ({ 'mac-planning': 'iphone-journee', 'mac-interventions': 'iphone-intervention', 'mac-box': 'iphone-box' })[m] === i;
+v('⛔ aperçu : les dix cases montrent le Mac ET l\'iPhone', cases.filter(x => /class="vue duo"/.test(x) && ecranDe(x, 'mac') && ecranDe(x, 'iphone')).length, 10);
+v('⛔ aperçu : dans chaque case, le Mac et l\'iPhone montrent le MÊME écran de l\'application', cases.filter(x => !memeEcran(ecranDe(x, 'mac'), ecranDe(x, 'iphone'))).map(x => ecranDe(x, 'mac') + ' / ' + ecranDe(x, 'iphone')), []);
+v('dix écrans DIFFÉRENTS (une capture ne sert pas deux cases), sur le Mac comme sur l\'iPhone', [new Set(cases.map(x => ecranDe(x, 'mac'))).size, new Set(cases.map(x => ecranDe(x, 'iphone'))).size], [10, 10]);
+{
+  const casesR = ((GEN.page('elan', { racine: true }).match(/<div class="bento">[\s\S]*?<\/div><script type="application\/json"/) || [''])[0]).split('<button type="button" class="tuile-f').slice(1);
+  vrai('la racine en service garde ses cases d\'avant (les grandes un Mac, les petites un iPhone, « Partout » les deux)', casesR.length === 10
+    && casesR.every(x => /^[^"]*large/.test(x) ? /class="vue v-mac"/.test(x) : /class="vue (v-iphone|duo)"/.test(x)));
+}
 vrai('plus de « Code PIN » (l\'application est au mot de passe depuis septembre)', !/code PIN/i.test(PAGES.elan));
 
 /* 27 septembre au soir, Justin : « je veux vraiment un mode jour et un mode nuit » — un bouton ☀︎/☾ forçait l'autre

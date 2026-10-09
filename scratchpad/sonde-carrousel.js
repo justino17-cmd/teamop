@@ -141,13 +141,31 @@ const GESTES = (process.env.GESTES || 'index,applications,logiciel-plombier').sp
             L.push({quoi:(a.closest('.carrousel')?'carrousel ':'')+(a.closest('.tuile-f')?'case ':'')+a.className, w:Math.round(b.width), coupe}); }
           scrollTo(0,0); return L;`);
         vrai(lbl + ' : population — ' + entiers.length + ' appareils', entiers.length >= 1);
+        /* ⛔ l'iPhone DEVANT le Mac : on touche le milieu de leur chevauchement, et c'est l'iPhone qui doit répondre (9 octobre
+           2026 : l'écran du Mac passait devant, depuis le premier carrousel — aucune photo ne l'avait montré) */
+        const devant = await ev(`const L=[]; for(const ip of document.querySelectorAll('.ap-iphone')){ const sc=ip.closest('.c-scene,.vue'); const m=sc&&sc.querySelector('.ap-mac'); if(!m) continue;
+            ip.scrollIntoView({block:'center'}); await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+            const a=ip.querySelector('.ap-iphone-ecran').getBoundingClientRect(), b=m.querySelector('.ap-mac-ecran').getBoundingClientRect();
+            const x0=Math.max(a.left,b.left), x1=Math.min(a.right,b.right), y0=Math.max(a.top,b.top), y1=Math.min(a.bottom,b.bottom);
+            if(x1-x0<6||y1-y0<6){ L.push({quoi:sc.className, chevauche:false}); continue; }
+            const v=sc.classList.contains('vue'); if(v) sc.style.pointerEvents='auto';
+            const e=document.elementFromPoint((x0+x1)/2,(y0+y1)/2); if(v) sc.style.pointerEvents='';
+            L.push({quoi:sc.className, chevauche:true, iphone:!!(e&&e.closest('.ap-iphone')), touche:e?(e.className||e.tagName):null}); }
+          scrollTo(0,0); return L;`);
+        const cases = await ev(`const v=[...document.querySelectorAll('.tuile-f .vue')]; return {n:v.length, duo:v.filter(x=>x.querySelector('.ap-mac')&&x.querySelector('.ap-iphone')).length};`);
+        if (cases.n) vrai(lbl + ' : ⛔ chaque case montre le Mac ET l\'iPhone (' + cases.duo + '/' + cases.n + ')', cases.duo === cases.n, JSON.stringify(cases));
+        const chevauchent = devant.filter(x => x.chevauche);
+        vrai(lbl + ' : population — ' + chevauchent.length + ' paires où l\'iPhone chevauche le Mac', chevauchent.length >= 1, JSON.stringify(devant.slice(0, 3)));
+        vrai(lbl + ' : ⛔ l\'iPhone passe DEVANT le Mac, partout', chevauchent.every(x => x.iphone), JSON.stringify(chevauchent.filter(x => !x.iphone).slice(0, 3)));
         vrai(lbl + ' : chaque appareil se voit EN ENTIER', entiers.every(x => !x.coupe), JSON.stringify(entiers.filter(x => x.coupe).slice(0, 4)));
         const cote = await ev(`const r=[]; for(const y of [0, document.documentElement.scrollHeight]){ scrollTo(9999,y); ${deuxImages} r.push(scrollX); } scrollTo(0,0);
           return {r, large:document.documentElement.scrollWidth, fen:innerWidth};`);
         vrai(lbl + ' : aucun défilement de côté', cote.r.every(x => x === 0) && cote.large <= P.w && cote.fen === P.w, JSON.stringify(cote));
         if (NEUTRES.includes(pg)) {
-          const n = await ev(`return { duo:document.querySelectorAll('.c-duo,.ap-mac').length, ecrans:[...new Set([...document.querySelectorAll('.carrousel img')].map(i=>i.getAttribute('src').split('/').pop().replace(/-(jour|nuit)(-1x)?\\.webp$/,'')))] };`);
-          vrai(lbl + ' : ⛔ page métier hors 3D — que des écrans neutres, aucun Mac', n.duo === 0 && n.ecrans.length >= 2 && n.ecrans.every(e => ['iphone-factures', 'iphone-compta', 'iphone-connexion'].includes(e)), JSON.stringify(n));
+          const n = await ev(`return { cartes:document.querySelectorAll('.grande-carte .c-duo').length, macs:document.querySelectorAll('.carrousel .ap-mac').length,
+            ecrans:[...new Set([...document.querySelectorAll('main img')].filter(i=>/captures\\//.test(i.getAttribute('src'))).map(i=>i.getAttribute('src').split('/').pop().replace(/-(jour|nuit)(-1x)?\\.webp$/,'')))] };`);
+          vrai(lbl + ' : ⛔ page métier hors 3D — le Mac ET l\'iPhone dans chaque carte, et rien que des écrans neutres (menus du 3D masqués)', n.cartes === 2 && n.macs === 2
+            && n.ecrans.length >= 4 && n.ecrans.every(e => ['mac-factures-neutre', 'mac-compta-neutre', 'mac-connexion', 'iphone-factures-neutre', 'iphone-compta-neutre', 'iphone-connexion'].includes(e)), JSON.stringify(n));
         }
 
         /* ── les gestes ── */

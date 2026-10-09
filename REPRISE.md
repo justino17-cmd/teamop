@@ -19,7 +19,22 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# ⏳ 9 OCTOBRE 2026 — LE SITE (APERÇU) : LES CAPTURES DÉFILENT, L'iPHONE EN ENTIER ET LE MAC AVEC LUI — ATTEND L'AVIS DE JUSTIN
+# ⏳ 9 OCTOBRE 2026 (MATIN) — LE MAC ET L'iPHONE ENSEMBLE, SUR LE MÊME ÉCRAN, PARTOUT — MONTRÉ À JUSTIN, PAS ENCORE PUBLIÉ
+
+Justin, capture de la case « Encaissements et compta » (un iPhone seul) : « tu n'as pas compris, je voudrais que l'iPhone et le Mac
+soient sur les mêmes, pas un coup l'iPhone et un coup le Mac — montre-moi avant ». ⛔ **Montré en images, PAS publié** (ni l'aperçu,
+ni la racine) : la branche porte le travail, `main` n'en reçoit rien avant son oui.
+· **les paires** (`PAIRES` de `scripts/site-marine.js`) : le même écran de l'application, sur le Mac ET sur l'iPhone — tableau de bord,
+  planning / journée, interventions / fiche, stock, encaissements, factures, rapports, équipe, notifications, connexion. Chaque case de
+  « Ce que fait OP GESTION » montre SA paire (fixe), chaque carte et chaque scène fait défiler des paires.
+· **onze captures neuves** (`scratchpad/captures-site.js`) : Mac — encaissements, factures, stock, rapports, notifications, connexion ;
+  iPhone — équipe ; et les variantes **« neutres »** (factures et encaissements, Mac et iPhone) prises les menus du 3D masqués comme
+  l'application les masque à ces métiers : les pages plombier, électricien, chauffage, nettoyage ont enfin leur Mac.
+· ⛔ **l'iPhone passait DERRIÈRE le Mac** dans tous les carrousels depuis le premier jour (le `z-index` des écrans empilés, sans pile à
+  l'appareil — `container-type` n'en crée pas) : aucune photo ne l'avait montré, c'est une mesure (`elementFromPoint` au milieu du
+  chevauchement) qui l'a vu. Corrigé, et gardé par `sonde-carrousel.js` et `sonde-site.js`.
+
+# ✅ 9 OCTOBRE 2026 — LE SITE (APERÇU) : LES CAPTURES DÉFILENT, L'iPHONE EN ENTIER ET LE MAC AVEC LUI — EN LIGNE SUR L'APERÇU (#112)
 
 Justin, 8 octobre au soir, capture d'OP GESTION à l'appui : « là où il y a les captures d'écran […] je voudrais des défilements d'images avec l'iPhone, et qu'on le
 voie bien en entier, et aussi un Mac pour montrer que ça marche bien sur les deux — fais-moi ça en bêta, que je voie ce que ça donne sur tout le site ».
