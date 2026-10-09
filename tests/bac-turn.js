@@ -148,14 +148,24 @@ function bac(opts = {}) {
   fs.mkdirSync(path.join(b.R, 'etc', 'nginx', 'sites-available'), { recursive: true });
   fs.writeFileSync(path.join(b.E, 'appels.log'), ''); fs.writeFileSync(path.join(b.E, 'env.log'), '');
   b.ports = {};
-  /* installe une instance : sa configuration (celle qu'`install-msg.sh` écrit), son port, un contrôle simulé, et un service qui tourne déjà avec cette configuration */
-  b.instance = (nom, extra) => {
-    b.ports[nom] = 20000 + crypto.randomInt(0, 10000);       // ⛔ SOUS la plage des ports éphémères (32768-60999) : un port tiré dedans tombait quelquefois sur le port source d'une connexion sortante en cours — EADDRINUSE, un banc « mort » qui avait l'air de tomber (pris deux fois par le lanceur de mutations)
-    const cfg = Object.assign({ instance: nom, domaine: 'msg-' + nom + '.teamop.fr', origine: 'https://msg-' + nom + '.teamop.fr', port: b.ports[nom], contactEmail: 'contact@teamop.fr', vapidPublicKey: 'BANC-PUBLIQUE', vapidPrivateKey: 'BANC-PRIVEE' }, extra || {});
+  /* LE PORT D'UNE INSTANCE, et tout ce qui le cite (sa configuration, sa copie « lue », son .env) :       // ⛔ SOUS la plage des ports éphémères (32768-60999) : un port tiré dedans tombait quelquefois sur le port source d'une connexion sortante en cours — EADDRINUSE, un banc « mort » qui avait l'air de tomber (pris deux fois par le lanceur de mutations)
+     ⛔ ET RE-TIRÉ par `b.serveur` si quelqu'un l'occupe quand même (9 octobre 2026 : 25525 était pris sur la machine de GitHub — test-959, le bac jumeau, est mort
+     avant son total et le déploiement de la bêta est tombé avec lui). */
+  const poserPort = (nom) => {
+    b.ports[nom] = 20000 + crypto.randomInt(0, 10000);
     const f = path.join(b.R, 'etc', 'opmsg', nom + '.json');
+    const cfg = JSON.parse(fs.readFileSync(f, 'utf8')); cfg.port = b.ports[nom];
     fs.writeFileSync(f, JSON.stringify(cfg, null, 2) + '\n', { mode: 0o600 });
     fs.writeFileSync(path.join(b.R, 'etc', 'opmsg', nom + '.env'), 'PORT=' + b.ports[nom] + '\n');
     fs.copyFileSync(f, path.join(b.E, 'config-lue-' + nom + '.json'));
+  };
+  b.reposerPort = poserPort;
+  /* installe une instance : sa configuration (celle qu'`install-msg.sh` écrit), son port, un contrôle simulé, et un service qui tourne déjà avec cette configuration */
+  b.instance = (nom, extra) => {
+    const cfg = Object.assign({ instance: nom, domaine: 'msg-' + nom + '.teamop.fr', origine: 'https://msg-' + nom + '.teamop.fr', port: 0, contactEmail: 'contact@teamop.fr', vapidPublicKey: 'BANC-PUBLIQUE', vapidPrivateKey: 'BANC-PRIVEE' }, extra || {});
+    const f = path.join(b.R, 'etc', 'opmsg', nom + '.json');
+    fs.writeFileSync(f, JSON.stringify(cfg, null, 2) + '\n', { mode: 0o600 });
+    poserPort(nom);
     if (opts.unite !== false) fs.writeFileSync(path.join(b.E, 'unite-actif'), '');
     if (opts.verifieur !== false) {
       const o = path.join(b.R, 'opt', 'opmsg', nom, 'current', 'outils');
@@ -178,7 +188,9 @@ function bac(opts = {}) {
       const sans = fs.existsSync(path.join(b.E, 'health-sans-relais'));
       r.setHeader('content-type', 'application/json'); r.end(JSON.stringify({ ok: true, instance: nom, appels: { turn: !sans && !!(cfg.appels && cfg.appels.relais) } }));
     });
-    s.listen(b.ports[nom], '127.0.0.1', () => { b.serveurs.push(s); ok(); });
+    let essais = 0;
+    s.on('error', (e) => { if (e && e.code === 'EADDRINUSE' && ++essais < 20) { poserPort(nom); s.listen(b.ports[nom], '127.0.0.1'); } else throw e; });
+    s.listen(b.ports[nom], '127.0.0.1', () => { b.serveurs.push(s); b.portsRetires = (b.portsRetires || 0) + essais; ok(); });
   });
   /* joue le script : → { status, out, err } */
   b.lancer = (args, env) => new Promise((ok) => {

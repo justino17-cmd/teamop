@@ -47,6 +47,21 @@ const { bac, reel, OPTIONS_COTURN, enBigInt, cidr, A_REFUSER, RE_SECRET, LIGNE_S
   }
 
   /* ═══════ 1. LA PREMIÈRE INSTALLATION (beta), TLS possible, pare-feu actif ═══════ */
+  /* ═══════ ⛔ LE BAC LUI-MÊME : un port déjà pris ne le fait pas mourir ═══════
+     9 octobre 2026 : 25525 était pris sur la machine de GitHub, test-959 est mort avant son total, et la porte a refusé le déploiement de la bêta — sans
+     rien dire du script éprouvé. On occupe EXPRÈS le port tiré : le bac doit en tirer un autre, et tout ce qui le cite doit citer le nouveau. */
+  console.log('\nLe bac : un port déjà pris');
+  {
+    const b = bac();
+    try {
+      b.instance('beta');
+      const pris = b.ports.beta;
+      const occupant = await new Promise((ok, ko) => { const s = require('net').createServer().once('error', ko).listen(pris, '127.0.0.1', () => ok(s)); });
+      try { await b.serveur('beta'); } finally { occupant.close(); }
+      v('⛔ le port tiré était pris : le bac en a tiré un autre (au moins un refus compté), et la configuration, sa copie « lue » et le .env citent le NOUVEAU', [b.ports.beta !== pris, (b.portsRetires || 0) >= 1, b.config('beta').port, JSON.parse(lire(path.join(b.E, 'config-lue-beta.json'))).port, (b.octets('etc/opmsg/beta.env') || '').trim()], [true, true, b.ports.beta, b.ports.beta, 'PORT=' + b.ports.beta]);
+    } finally { b.fin(); }
+  }
+
   console.log('\nLa première installation : coturn absent, certificat obtenu, pare-feu actif');
   {
     const b = bac();
