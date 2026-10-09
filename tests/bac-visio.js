@@ -134,16 +134,26 @@ function bac(opts = {}) {
     b.empreinte = crypto.createHash('sha256').update(fs.readFileSync(path.join(b.E, 'archive.tar.gz'))).digest('hex');
   }
   b.ports = {};
-  /* installe une instance : sa configuration (celle qu'install-msg.sh écrit), son port, son bloc nginx, la version du service qui connaît la visio, et un service qui tourne */
-  b.instance = (nom, extra) => {
-    b.ports[nom] = 20000 + crypto.randomInt(0, 10000);       // sous la plage des ports éphémères (voir bac-turn.js)
-    const dom = 'msg-' + nom + '.teamop.fr';
-    const cfg = Object.assign({ instance: nom, domaine: dom, origine: 'https://' + dom, port: b.ports[nom], contactEmail: 'contact@teamop.fr', vapidPublicKey: 'BANC-PUBLIQUE', vapidPrivateKey: 'BANC-PRIVEE' }, extra || {});
-    const f = path.join(b.R, 'etc', 'opmsg', nom + '.json');
+  /* ⛔ LE PORT D'UNE INSTANCE, et tout ce qui le cite (sa configuration, sa copie « lue », son .env, son bloc nginx) : tiré SOUS la plage des ports éphémères (voir
+     bac-turn.js), et RE-TIRÉ par `b.serveur` si quelqu'un l'occupe déjà. Le 9 octobre 2026, le déploiement de la bêta est tombé sur test-959 : 25525 était pris
+     sur la machine de GitHub, `listen` a jeté EADDRINUSE et le banc est mort avant son total — sans rien dire du script qu'il éprouve. */
+  const poserPort = (nom) => {
+    b.ports[nom] = 20000 + crypto.randomInt(0, 10000);
+    const dom = 'msg-' + nom + '.teamop.fr', f = path.join(b.R, 'etc', 'opmsg', nom + '.json');
+    const cfg = JSON.parse(fs.readFileSync(f, 'utf8')); cfg.port = b.ports[nom];
     fs.writeFileSync(f, JSON.stringify(cfg, null, 2) + '\n', { mode: 0o600 });
     fs.writeFileSync(path.join(b.R, 'etc', 'opmsg', nom + '.env'), 'PORT=' + b.ports[nom] + '\n');
     fs.writeFileSync(path.join(b.R, 'etc', 'nginx', 'sites-available', 'opmsg-' + nom + '.conf'), BLOC_NGINX(dom, b.ports[nom]));
     fs.copyFileSync(f, path.join(b.E, 'config-lue-' + nom + '.json'));
+  };
+  b.reposerPort = poserPort;
+  /* installe une instance : sa configuration (celle qu'install-msg.sh écrit), son port, son bloc nginx, la version du service qui connaît la visio, et un service qui tourne */
+  b.instance = (nom, extra) => {
+    const dom = 'msg-' + nom + '.teamop.fr';
+    const cfg = Object.assign({ instance: nom, domaine: dom, origine: 'https://' + dom, port: 0, contactEmail: 'contact@teamop.fr', vapidPublicKey: 'BANC-PUBLIQUE', vapidPrivateKey: 'BANC-PRIVEE' }, extra || {});
+    const f = path.join(b.R, 'etc', 'opmsg', nom + '.json');
+    fs.writeFileSync(f, JSON.stringify(cfg, null, 2) + '\n', { mode: 0o600 });
+    poserPort(nom);
     if (opts.unite !== false) fs.writeFileSync(path.join(b.E, 'unite-actif'), '');
     if (opts.version_service !== 'ancienne') {
       const o = path.join(b.R, 'opt', 'opmsg', nom, 'current', 'outils');
@@ -169,7 +179,9 @@ function bac(opts = {}) {
       const visio = configuree ? { configuree: true, ok: !fs.existsSync(path.join(b.E, 'health-visio-ko')), ageS: 1, echecs: 0, avisRecus: 0, avisRefuses: 0, retraitsForces: 0, commandesEchouees: 0 } : { configuree: false };
       r.setHeader('content-type', 'application/json'); r.end(JSON.stringify({ ok: true, instance: nom, visio }));
     });
-    s.listen(b.ports[nom], '127.0.0.1', () => { b.serveurs.push(s); ok(); });
+    let essais = 0;
+    s.on('error', (e) => { if (e && e.code === 'EADDRINUSE' && ++essais < 20) { poserPort(nom); s.listen(b.ports[nom], '127.0.0.1'); } else throw e; });
+    s.listen(b.ports[nom], '127.0.0.1', () => { b.serveurs.push(s); b.portsRetires = (b.portsRetires || 0) + essais; ok(); });
   });
   /* joue le script : → { status, out, err } */
   b.lancer = (args, env) => new Promise((ok) => {
