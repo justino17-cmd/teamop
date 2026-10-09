@@ -563,6 +563,29 @@ function creerHandlers(ctx) {
     res.json(stockage.messagesDe(req.conv.conv.id, req.moi.id, o));
   };
 
+  /* ══ RETROUVER (9 octobre 2026) ══ — un membre (garde M) cherche dans les messages de SA conversation, ou en liste les photos, les fichiers, les liens.
+     GET /api/conversations/:id/messages/chercher?q=…[&avant_seq=N]  → { resultats: [{ seq, auteur, ts, type, texte (un extrait) }], suite: N | null }
+     GET /api/conversations/:id/medias?genre=photo|fichier|lien[&avant_seq=N] → { medias: [...], suite: N | null }
+     ⛔ Chaque appel OUVRE des messages scellés (`messagesChercher`, borné à 2 000 par appel) : un plafond PAR COMPTE (un GET n'a sinon que le plafond par réseau), plus bas pour un
+     compte de moins de 24 h. La requête cherchée ne va dans aucun journal. */
+  const RECH_MIN = 2, RECH_MAX = 100;
+  const seqDe = (v) => v === undefined ? null : (/^\d{1,15}$/.test(String(v)) ? parseInt(v, 10) : NaN);
+  const LIEN_TEXTE = /https?:\/\/|www\./i;
+  H['msg.chercher'] = (req, res) => {
+    const q = typeof req.query.q === 'string' ? req.query.q.normalize('NFC').replace(/\s+/g, ' ').trim() : null, n = q === null ? 0 : Array.from(q).length;
+    const av = seqDe(req.query.avant_seq);
+    if (q === null || n < RECH_MIN || n > RECH_MAX || Number.isNaN(av)) return refus(res, 400, 'champ_invalide');
+    if (!plafond(res, 'chercher', req.moi.id, { max: 30, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
+    res.json(stockage.messagesChercher(req.conv.conv.id, req.moi.id, { q, avantSeq: av }));
+  };
+  H['msg.medias'] = (req, res) => {
+    const genre = req.query.genre, av = seqDe(req.query.avant_seq);
+    if (!['photo', 'fichier', 'lien'].includes(genre) || Number.isNaN(av)) return refus(res, 400, 'champ_invalide');
+    if (!plafond(res, 'chercher', req.moi.id, { max: 30, fenetreMs: 60000 }, facteurJeune(req.moi))) return;
+    if (genre === 'lien') { const r = stockage.messagesChercher(req.conv.conv.id, req.moi.id, { avantSeq: av, filtre: (t) => LIEN_TEXTE.test(t), texteMax: 2000 }); return res.json({ medias: r.resultats, suite: r.suite }); }
+    res.json(stockage.mediasDe(req.conv.conv.id, req.moi.id, { genre, avantSeq: av }));
+  };
+
   /* ⛔ LES PIÈCES D'UN MESSAGE se lisent ici, bornées, et jamais crues sur parole : la route ne sait que des identifiants (le stockage vérifie qu'ils sont à l'envoyeur, du bon
      genre, de la bonne conversation, non attachés), des dimensions (entiers bornés), une durée et des barres de forme d'onde (calculées sur l'appareil : leur nombre et leurs valeurs
      sont bornés — une onde de dix mille barres ne se range pas). Le NOM et la TAILLE d'un fichier ne viennent pas du corps : ils viennent de la pièce. → { pieces, vocal } ou null. */

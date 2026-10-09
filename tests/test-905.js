@@ -77,6 +77,8 @@ const MATRICE = {
   'conv.lu':            { ok: (F) => ['POST', '/api/conversations/' + F.G + '/lu', { seq: 1 }], codes: [200] },
   'conv.saisie':        { ok: (F) => ['POST', '/api/conversations/' + F.G + '/saisie', { actif: true }], codes: [200] },
   'msg.liste':          { ok: (F) => ['GET', '/api/conversations/' + F.G + '/messages'], codes: [200] },
+  'msg.chercher':       { ok: (F) => ['GET', '/api/conversations/' + F.G + '/messages/chercher?q=bonjour'], codes: [200] },
+  'msg.medias':         { ok: (F) => ['GET', '/api/conversations/' + F.G + '/medias?genre=photo'], codes: [200] },
   'msg.envoyer':        { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages', { cid: 'cid-' + crypto.randomBytes(6).toString('hex'), texte: 'bonjour' }], codes: [201] },
   /* envoyer plus tard (8 octobre 2026) : M pour lister et programmer ; annuler un programme qui n'est pas le sien (ici : qui n'existe pas) répond 404 — la garde S a passé */
   'prog.liste':         { ok: (F) => ['GET', '/api/conversations/' + F.G + '/programmes'], codes: [200] },

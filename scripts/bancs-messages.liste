@@ -109,6 +109,7 @@ tests/test-942.js
 tests/test-943.js
 tests/test-944.js
 tests/test-945.js
+tests/test-946.js
 #
 # ── La sauvegarde hors site (étape 3, 2 octobre 2026) : le module seul (950), puis le VRAI service, un faux coffre S3 qui recalcule les signatures et les deux outils de Justin (951) ──
 tests/test-950.js
