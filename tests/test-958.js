@@ -72,7 +72,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
   /* ── un « appareil » : un navigateur de poche (cookie, Origin) dont on note les requêtes, qu'on peut faire refuser ou RETARDER, et dont le flux dit les identifiants d'événement ── */
   function monter(opts) {
     const nav = T.navigateur(svc.base);
-    const reseau = { requetes: [], forcer: null, retarder: null, gids: [], dernier: null };
+    const reseau = { requetes: [], forcer: null, retarder: null, gids: [], dernier: null, retenu: null };
     const f = async (url, init) => {
       const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0];
       reseau.requetes.push({ m, chemin, corps: init && init.body });
@@ -82,7 +82,8 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
       return r;
     };
     class ES extends nav.EventSource {
-      _emettre(t, ev) { if (t === 'message' && ev && ev.lastEventId) { reseau.gids.push(parseInt(ev.lastEventId, 10)); reseau.dernier = { es: this, ev }; } return super._emettre(t, ev); }
+      /* `retenu` : le flux est TENU (les évènements s'empilent) jusqu'à ce que le banc le relâche d'un bloc — une rafale qui arrive ensemble, au geste et non au chronomètre */
+      _emettre(t, ev) { if (t === 'message' && reseau.retenu) { reseau.retenu.push([this, ev]); return; } if (t === 'message' && ev && ev.lastEventId) { reseau.gids.push(parseInt(ev.lastEventId, 10)); reseau.dernier = { es: this, ev }; } return super._emettre(t, ev); }
     }
     const src = creerSourceServeur(Object.assign({ OPMSG, base: svc.base, fetch: f, EventSource: ES, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60 }, opts));
     const evs = [], morts = [];
@@ -280,8 +281,17 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (180 s)');
          chacune qui se déclenche pendant que la première requête vole voit `g > ackEnvoye` (rien n'est encore « envoyé ») et part à son tour — plusieurs requêtes. Sans cette rétention, la garde du départ rattrapait
          la mutation C18 une fois sur deux sur une machine chargée (vu une fois sur six, 3 octobre 2026) : elle n'était « équivalente » que si la réponse revenait avant la minuterie suivante. */
       M.reseau.retarder = /POST \/api\/flux\/ack/;
+      /* ⛔ LA RAFALE ARRIVE D'UN BLOC (9 octobre 2026, run 632 de « Vérification des pages », sur main : 65 ✓ 1 ✗, vert ici cinq fois sur cinq). Le banc pariait que huit écritures
+         l'une après l'autre tiennent dans la minuterie de groupement (60 ms) : sur une machine chargée, elles s'étalent, et la page acquittait — à juste titre — en DEUX requêtes.
+         Le flux est TENU pendant les écritures, puis relâché d'un bloc : les huit évènements arrivent ensemble, ce que le contrôle suppose. La mutation C18 (huit minuteries au lieu
+         d'une) reste visible : huit évènements livrés d'un coup, huit minuteries qui partent pendant que la première requête vole. */
+      M.reseau.retenu = [];
       const tRafale = Date.now();
       for (let i = 0; i < 8; i++) await ecrire(Bob, AB, 'rafale ' + i);
+      const tenus = await att(() => M.reseau.retenu && M.reseau.retenu.length >= 8 && M.reseau.retenu.length);
+      const lot = M.reseau.retenu || []; M.reseau.retenu = null;
+      for (const [es, ev] of lot) es._emettre('message', ev);
+      vrai('population : le flux a tenu les huit évènements de la rafale (' + tenus + '), puis les a livrés d\'un bloc', tenus >= 8);
       const dernier = await att(() => M.reseau.gids.length >= 8 && M.reseau.gids[M.reseau.gids.length - 1]);
       const acks = await att(() => M.requetes(/POST \/api\/flux\/ack/).length >= 1 && M.requetes(/POST \/api\/flux\/ack/));
       vrai('population : la page a reçu les huit messages de la rafale', !!dernier && M.reseau.gids.length >= 8);
