@@ -19,6 +19,37 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 9 OCTOBRE 2026 (NUIT) — OP MESSAGES : LES LIENS SE TOUCHENT, « MODIFIER » RANGE LA LISTE — ET LES IDÉES PROPOSÉES À JUSTIN
+
+Suite de « continue le développement d'OP MESSAGES et dis-moi si tu as de nouvelles idées ». Un inventaire (workflow, 11 agents) a relevé ce qui est
+à moitié fait ; deux finitions en sortent, sur la branche, pour la bêta :
+
+✅ **Les liens d'un message se touchent** (`texteRiche`, la bulle ET la légende d'une photo) : http, https et « www. » seulement, échappés, nouvel onglet
+sans référent ni `opener`, ⛔ JAMAIS d'aperçu (la page ne va pas chercher le site visé : ce serait dire à un tiers qui lit quoi). La ponctuation de fin
+de phrase reste dehors ; une parenthèse n'y est que si le lien l'a ouverte. `test-857` (rendu exact, XSS), mutations N24 à N28, sonde des mentions § 3 bis.
+
+✅ **« Modifier » range la liste** (il disait « arrive bientôt » ; le service savait déjà épingler et archiver) : mode qui COCHE, barre « Épingler /
+Archiver / Lu » (la barre d'onglets lui cède la place au téléphone), ligne « Archivées » en bas, recherche qui les retrouve, archiver retire l'épingle.
+⛔ **Une conversation archivée REVIENT quand on y écrit, sauf en sourdine** (la règle de Telegram : archivée + sourdine = « ne m'en parle plus ») — le
+service le décide dans la transaction de l'envoi (`envoyerDansTx`) ; un message système ne ressort rien. C'est un CHOIX (WhatsApp, lui, garde
+archivé par défaut) : le demander à Justin s'il préfère l'autre. `test-909`, mutations AR1 à AR3 (`mutations-groupe.js`), `test-857` (N29 à N31),
+`sonde-opmessages-ranger` (téléphone 360 px et bureau, 30 ✓).
+
+⏳ **« Transférer » attend sa propre demande de fusion** : une photo, un vocal ou un fichier sont rattachés à UNE conversation (`piecesAttacher`, scellés
+par pièce sur le disque) — transférer veut dire recopier le contenu côté service, compter le quota de celui qui transfère, et le faire relire par
+`gardien`. Le texte, la position et la fiche d'un contact, eux, se transfèrent sans recopie.
+
+⚠️ **Trouvés par l'inventaire, à dire à Justin** : dans la salle, « Sous-titres en direct », « Arrière-plan flou » et « Salles de sous-groupes » sont des
+lignes « Bientôt » (`apercu/opmessages/index.html`, panneau « Plus ») — les sous-titres étaient dans une tâche marquée faite (« rapport de présence, notes,
+sous-titres ») : ils ne le sont pas. Pas de recherche dans les messages, pas de « Signaler » (à faire avant le public), pas de double authentification.
+
+⏳ **Les idées proposées à Justin le 9 octobre au soir** (chacune vérifiée absente du code ; détail, effort et risques dans le résultat du workflow
+`idees-op-messages`) — il choisit : Retrouver (recherche + galerie « Photos, fichiers, liens ») ; Transférer / Enregistrer / conversation « Moi » ;
+vocaux (vitesse, reprise, écoute unique) ; Signaler ; vrai hors-ligne ; Pro : alerte urgente qui passe le ne-pas-déranger, consigne « Lu et compris »,
+fils de discussion, message → tâche et demande de validation, statut avec remplaçant ; terrain : photo preuve (datée par le service, géolocalisée,
+avant/après), travailleur isolé, arrivé/parti par QR code, talkie-walkie, modèles de compte rendu, « Qui peut prendre ? » ; réunions : invité sans compte,
+écran de préparation, trouver un créneau, sous-titres sur l'appareil.
+
 # ✅ 9 OCTOBRE 2026 (NUIT) — OP MESSAGES : LA MENTION « @MOI » ET LES APPELS À DEUX DATÉS (`rev`)
 
 Justin : « continue le développement d'OP MESSAGES et dis-moi si tu as de nouvelles idées ». Deux correctifs, une liste d'idées à lui présenter.
