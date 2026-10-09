@@ -238,7 +238,14 @@
     const pause = (ms) => new Promise((ok) => planifier(ok, ms));
     let courant = null, lancement = false;
     const dernieres = new Map();           // id d'appel → la dernière vue lue sur le flux : un événement qui devance la réponse de la route n'est pas perdu
-    const memoriser = (v) => { dernieres.delete(v.id); dernieres.set(v.id, v); while (dernieres.size > 8) dernieres.delete(dernieres.keys().next().value); };
+    /* ⛔ UNE VUE D'AVANT, ARRIVÉE APRÈS LA SIENNE, NE LA REMPLACE PAS (9 octobre 2026 au soir — le défaut corrigé dans les salles, `creerMoteurSalle`, était ouvert ici aussi, jamais observé) : une vue
+       arrive par TROIS chemins (le flux, la réponse d'un geste, une relecture de la liste), sans ordre garanti. Une vue « sonne » lue avant la réponse et rendue après elle remettait à l'écran en
+       sonnerie un appel qui court, et le raccrochage suivant était dit « annulé ». Le service date chaque vue (`rev` : le dernier événement `appel` de CETTE personne pour CET appel) ; une vue
+       plus petite que celle qu'on tient est ignorée. Sans version (0 : une fin, un journal élagué, un service d'avant), la règle d'avant : la dernière arrivée. */
+    const revDe = (v) => v && Number.isInteger(v.rev) && v.rev > 0 ? v.rev : 0;
+    const plusVieille = (v, tenue) => revDe(v) > 0 && revDe(v) < revDe(tenue);
+    const perimee = (c, v) => revDe(v) > 0 && revDe(v) < (c.rev || 0);
+    const memoriser = (v) => { if (plusVieille(v, dernieres.get(v.id))) return; dernieres.delete(v.id); dernieres.set(v.id, v); while (dernieres.size > 8) dernieres.delete(dernieres.keys().next().value); };
     const emettreAppel = (c) => d.emettre({ type: 'appel', id: c.id });
     /* ⛔ LES APPELS QUE CET ONGLET A FINIS : une vue plus ancienne ne les fait pas sonner de nouveau. L'historique se relit AU MOMENT où le raccrochage part (`finir` le dit), et le service peut répondre
        « il sonne encore » avant d'avoir reçu le refus : sans cette mémoire, la liste lue (`reprendre`) refaisait sonner un appel qu'on venait de refuser — l'écran d'appel revenait, et la sonnerie suivante,
@@ -251,7 +258,7 @@
 
     function entree(v, extra) {
       return Object.assign({
-        id: v.id, vue: v, role: v.sens === 'sortant' ? 'appelant' : 'appele',
+        id: v.id, vue: v, rev: revDe(v), role: v.sens === 'sortant' ? 'appelant' : 'appele',
         local: false, accepte: false, reponse: false, demarrage: false, relance: false, etablie: false,
         pc: null, pret: false, conf: null, serveurs: [], relais: false, sansRelais: false, ttl: 0, promesseIce: null,
         file: [], candDistants: [], candLocaux: [], chaineIn: Promise.resolve(), chaineOut: Promise.resolve(),
@@ -404,8 +411,12 @@
     /* ce que le service dit de l'appel qui sonne ou court : relu quand un événement a pu se perdre (la sonnerie devrait être finie, le flux est revenu, le service a demandé de tout relire) */
     async function relireActif() {
       let r;
+      const tenu = courant;
       try { r = await d.api.appels('manques'); } catch (e) { return; }      // le réseau est coupé : on ne sait pas, on ne conclut rien
       if (!r || typeof r !== 'object') return;
+      /* ⛔ un appel a commencé (ou celui qu'on tenait a laissé la place) PENDANT la lecture : cette liste est d'avant lui. Sans cette garde, raccrocher puis rappeler aussitôt, pendant qu'une relecture
+         était en route, faisait finir le NOUVEL appel (« Pas de réponse. ») sur la foi d'une liste qui ne le connaissait pas encore. */
+      if (courant !== tenu) return;
       const c = courant;
       if (c && !c.fini) {
         if (r.actif && r.actif.id === c.id) { memoriser(r.actif); appliquer(c, r.actif); }
@@ -622,8 +633,9 @@
       emettreAppel(c);
     }
     function appliquer(c, v) {
-      if (c.fini) return;
+      if (c.fini || perimee(c, v)) return;
       c.vue = v;
+      if (revDe(v) > c.rev) c.rev = revDe(v);
       noterAutre(v);
       if (v.etat === 'sonne') { emettreAppel(c); return; }
       if (v.etat === 'en_cours') {
@@ -641,6 +653,7 @@
     }
     function surAppel(v, gid) {
       if (!v || typeof v !== 'object' || typeof v.id !== 'string') return;
+      if (plusVieille(v, dernieres.get(v.id))) return;                // une vue d'avant celle qu'on a déjà lue : ni appliquée, ni sonnée de nouveau
       memoriser(v);
       const c = courant && courant.id === v.id ? courant : null;
       if (c) appliquer(c, v);
@@ -650,6 +663,7 @@
     }
     function reprendre(actif) {
       if (!actif || typeof actif !== 'object' || typeof actif.id !== 'string' || actif.groupe) return;           // une salle n'est pas un appel à deux : son moteur la reprend
+      if (plusVieille(actif, dernieres.get(actif.id))) return;
       memoriser(actif);
       if (courant && !courant.fini) { if (courant.id === actif.id) appliquer(courant, actif); return; }
       if (actif.etat === 'sonne' && actif.sens === 'entrant' && !actif.lie) sonner(actif, null);
@@ -703,7 +717,7 @@
         }
         if (c.fini) return instantane(c);
         c.local = true;
-        if (r && r.appel) { c.vue = r.appel; memoriser(r.appel); }
+        if (r && r.appel) { if (!perimee(c, r.appel)) { c.vue = r.appel; if (revDe(r.appel) > c.rev) c.rev = revDe(r.appel); } memoriser(r.appel); }
         if (!c.debut) c.debut = maintenant();
         if (c.minSonnerie) { annuler(c.minSonnerie); c.minSonnerie = null; }
         if (d.fermerNotif) { try { d.fermerNotif('appel:' + id); } catch (e) { /* rien */ } }
