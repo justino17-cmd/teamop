@@ -1155,6 +1155,16 @@ html[data-service] .mention-apercu { display: none; }
 .citation b { display: block; font-weight: 600; color: var(--text); }
 .bulle.supprimee { background: transparent; border: 1px solid var(--faint); color: var(--sub-meta); font-style: italic; }
 .mention-modifie { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+/* « Transféré » (9 octobre 2026) : au-dessus de la bulle, à la taille d'un nom d'auteur — une flèche et un mot, jamais le nom de qui l'avait écrit */
+.msg-transfere { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; font-size: 11px; line-height: 14px; font-style: italic; color: var(--sub-meta); }
+.msg-transfere .ic { width: 12px; height: 12px; flex: none; }
+.tr-apercu { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; border-left: 3px solid var(--accent); background: var(--field); }
+.tr-apercu .ic { width: 18px; height: 18px; flex: none; margin-top: 1px; color: var(--sub-meta); }
+.tr-apercu-texte { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 14px; line-height: 19px; overflow-wrap: anywhere; }
+.tr-apercu-de { font-size: 12px; line-height: 16px; color: var(--sub-meta); }
+.tr-ligne .conv-coche { margin-right: 2px; }
+.tr-ligne[aria-disabled="true"] { opacity: .45; }
+.tr-ligne .contact-role.tr-echec { color: var(--rouge-txt); white-space: normal; overflow-wrap: anywhere; }
 .reactions { display: flex; flex-wrap: wrap; gap: 4px; max-width: 82%; }
 .msg.de-moi .reactions { justify-content: flex-end; }
 .reac { min-height: 28px; min-width: 28px; padding: 2px 8px; border-radius: 999px; background: var(--card); border: var(--line); font-size: 14px; line-height: 20px; color: var(--text); font-variant-numeric: tabular-nums; }
@@ -2184,6 +2194,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-ecran" viewBox="0 0 24 24"><path d="M3.5 5h17v11h-17ZM8 20h8M12 16v4M12 13V8.5m-2.4 2.4L12 8.5l2.4 2.4"/></symbol>
   <symbol id="i-main" viewBox="0 0 24 24"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-4.5V5a1.5 1.5 0 0 1 3 0v6m0-4a1.5 1.5 0 0 1 3 0v6.5c0 3.5-2 6-5.5 6S7.5 18 6 15.2L4.5 12.3a1.4 1.4 0 0 1 2.4-1.4L8 13"/></symbol>
   <symbol id="i-epingle" viewBox="0 0 24 24"><path d="M9 4h6l-1 5 3 3H7l3-3-1-5ZM12 12v8"/></symbol>
+  <symbol id="i-transferer" viewBox="0 0 24 24"><path d="M14 5l7 7-7 7M21 12H11a7 7 0 0 0-7 7"/></symbol>
   <symbol id="i-archive" viewBox="0 0 24 24"><path d="M3.5 5h17v4h-17zM5 9v10h14V9M10 13h4"/></symbol>
   <symbol id="i-grille" viewBox="0 0 24 24"><path d="M4 4h7v7H4ZM13 4h7v7h-7ZM4 13h7v7H4ZM13 13h7v7h-7Z"/></symbol>
   <symbol id="i-intervenant" viewBox="0 0 24 24"><path d="M4 4h16v10H4ZM4 17h4v3H4ZM10 17h4v3h-4ZM16 17h4v3h-4Z"/></symbol>
@@ -2697,7 +2708,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* `mode` : ce que la feuille est en train d'être — 'chat' (Nouveau groupe), 'appel' (Appel de groupe : audio ou vidéo), 'info' (les détails d'un appel de l'historique),
      'contact' (mes contacts et leurs liens), 'convinfo' (les infos d'une conversation), 'profil' (mon profil : photo, nom, statut), et — capacité `espaces` — 'entreprise' (mes espaces :
      créer, rejoindre par un lien), 'espace' (UN espace : contacts de l'entreprise, canaux, invitations) ou 'abo' (l'abonnement Messages Pro de cet espace) */
-  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, espaceId: null, reunionId: null, nom: '', photo: null, photoBlob: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null }; }
+  function groupeVierge() { return { ouvert: false, mode: 'chat', cle: null, convId: null, espaceId: null, reunionId: null, nom: '', photo: null, photoBlob: null, choisis: [], recherche: '', ephemeres: 0, annonces: false, video: false, info: null, tConv: null, tMid: null, tVers: [], tCid: '', tEnvoi: false, tRecherche: '', tEchecs: {} }; }
 
   /* ═══ 3. OUTILS ═══════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -3236,6 +3247,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const sens = moi ? 'envoyee' : 'recue';
     let h = '<div class="msg ' + (moi ? 'de-moi' : 'de-autre') + (premier ? '' : ' suite') + '" data-mid="' + esc(m.id) + '">';
     if (!moi && multi(c) && premier) h += '<span class="msg-nom">' + esc(nomAuteur(m.auteur)) + '</span>';
+    if (m.transfere && !m.supprime) h += '<span class="msg-transfere">' + icone('i-transferer') + 'Transféré</span>';
     if (m.reponse && !m.supprime) h += citationHtml(m.reponse);
     const debutCorps = h.length;
     if (m.photos) {
@@ -4571,16 +4583,18 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + (G.mode === 'appel' ? ' de l\'appel' : ' du groupe') + '">' + avatar(c) +
         '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
     $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
-    $('g-creer').setAttribute('aria-disabled', G.choisis.length ? 'false' : 'true');
+    const transf = G.mode === 'transferer';
+    $('g-creer').setAttribute('aria-disabled', (transf ? G.tVers.length && !G.tEnvoi : G.choisis.length) ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || transf || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
-    $('g-annuler').textContent = corpsInfo && !formReunion ? 'Fermer' : 'Annuler';
-    $('g-creer').textContent = appel ? 'Appeler' : 'Créer';
-    $('g-creer').style.visibility = corpsInfo ? 'hidden' : '';
-    $('g-creer').tabIndex = corpsInfo ? -1 : 0; if (corpsInfo) $('g-creer').setAttribute('aria-hidden', 'true'); else $('g-creer').removeAttribute('aria-hidden');
+    $('feuille-titre').textContent = transf ? 'Transférer' : G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('g-annuler').textContent = corpsInfo && !formReunion && !transf ? 'Fermer' : 'Annuler';
+    $('g-creer').textContent = appel ? 'Appeler' : transf ? (G.tEnvoi ? 'Envoi…' : 'Envoyer') : 'Créer';
+    const sansCreer = corpsInfo && !transf;      // « Transférer » garde son bouton d'envoi en haut à droite, comme « Nouveau groupe »
+    $('g-creer').style.visibility = sansCreer ? 'hidden' : '';
+    $('g-creer').tabIndex = sansCreer ? -1 : 0; if (sansCreer) $('g-creer').setAttribute('aria-hidden', 'true'); else $('g-creer').removeAttribute('aria-hidden');
     $('feuille-corps').hidden = corpsInfo || nouv; $('info-corps').hidden = !corpsInfo; $('nd-corps').hidden = !nouv;
     /* « Nouvelle discussion » : pas de « Annuler » ni de « Créer » — un ✕ rond à droite (l'« Annuler » invisible garde la place, le titre reste centré) */
     $('g-annuler').style.visibility = nouv ? 'hidden' : ''; $('g-annuler').tabIndex = nouv ? -1 : 0; if (nouv) $('g-annuler').setAttribute('aria-hidden', 'true'); else $('g-annuler').removeAttribute('aria-hidden');
@@ -4612,7 +4626,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
       || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.sondagesConv && mode === 'sondage-votes' && /^\d{1,12}$/.test(arg || ''))
-      || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || '')))) ? mode : 'chat';
+      || (CAP.positions && mode === 'position') || (CAP.cartesContact && mode === 'carte-contact') || (CAP.sondagesConv && (mode === 'sondage-nouveau' || (mode === 'sondage-choix' && /^\d{1,12}$/.test(arg || ''))))
+      || (CAP.transferts && mode === 'transferer' && /^\d{1,12}$/.test(arg || '')) ? mode : 'chat';
     if (etat.groupe.mode === 'sondage-choix' || etat.groupe.mode === 'sondage-votes') etat.groupe.sondSeq = +arg;
     if (etat.groupe.mode === 'theme') etat.groupe.convId = arg;
     if (etat.groupe.mode === 'convinfo') etat.groupe.convId = arg || null;
@@ -4622,6 +4637,12 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
     if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
     if (etat.groupe.mode === 'nouvelle') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; $('nd-defile').scrollTop = 0; rendreNouvelle(); }
+    if (etat.groupe.mode === 'transferer') {
+      /* la route dit QUEL message (son numéro dans la conversation ouverte) : un message qui n'est plus là, ou qui ne se transfère pas, ne laisse pas une feuille vide */
+      const m = etat.convDonnees && etat.convDonnees.id === etat.conv ? etat.convDonnees.messages.find(x => x.seq === +arg) : null;
+      if (!m || !transferable(m)) { declencheur = null; setTimeout(() => { if (etat.route && etat.route.feuille) remplacer(parentDe(etat.route)); }, 0); return; }
+      Object.assign(etat.groupe, { tConv: etat.conv, tMid: m.id, tCid: cidNeuf() });
+    }
     if (etat.groupe.mode === 'info') {
       etat.groupe.info = etat.appels.find(x => x.id === arg) || null;
       /* un appel qui n'est plus dans la liste (lien d'historique ancien, filtre changé) : pas de feuille vide, on rend la route d'en dessous */
@@ -4648,6 +4669,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'position') rendrePosition();
     if (etat.groupe.mode === 'theme') rendreTheme();
     if (etat.groupe.mode === 'carte-contact') rendreCarteContact();
+    if (etat.groupe.mode === 'transferer') rendreTransfert();
     if (etat.groupe.mode === 'sondage-nouveau') rendreSondageNouveau();
     if (etat.groupe.mode === 'sondage-choix') rendreSondageChoix();
     if (etat.groupe.mode === 'sondage-votes') rendreSondageVotes();
@@ -4793,7 +4815,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('nd-fermer').addEventListener('click', () => fermerFeuille(false));
   $('g-annuler').addEventListener('click', () => fermerFeuille(false));
   $('voile').addEventListener('click', () => fermerFeuille(false));
-  $('g-creer').addEventListener('click', () => { if (g().mode === 'appel') appelerDepuisFeuille(); else if (g().mode === 'chat') creerGroupe(); });
+  $('g-creer').addEventListener('click', () => { if (g().mode === 'appel') appelerDepuisFeuille(); else if (g().mode === 'chat') creerGroupe(); else if (g().mode === 'transferer') envoyerTransfert(); });
   $('g-choix').addEventListener('click', e => { const b = e.target.closest('.g-pilule'); if (!b) return; effacerRefusFeuille(); g().video = b.dataset.type === 'video'; synchroFeuille(); });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -7073,9 +7095,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
+    if (CAP.transferts && transferable(m)) h += '<button type="button" class="menu-action" data-menu="transferer" aria-haspopup="dialog">Transférer</button>';
     if (!m.supprime && m.texte && !estCarte(m)) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
     /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
-    if (moi && !m.supprime && !m.vocal && !m.fichier && !estCarte(m) && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
+    if (moi && !m.supprime && !m.vocal && !m.fichier && !estCarte(m) && !m.transfere && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
     if (!m.supprime && m.photos && m.photos.length) h += '<button type="button" class="menu-action" data-menu="enregistrer">' + (m.photos.length > 1 ? 'Enregistrer les ' + m.photos.length + ' photos' : 'Enregistrer la photo') + '</button>';
     if (!m.supprime && rappelPossible()) h += '<button type="button" class="menu-action" data-menu="rappel" aria-haspopup="menu">Me le rappeler</button>';
     const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
@@ -7151,6 +7174,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
     else if (act === 'enregistrer') { for (let i = 0; i < (m.photos || []).length; i++) await enregistrerPhoto(m, i); }
     else if (act === 'suivi') { const pc = pieceDe(m); if (pc) { declencheur = null; ouvrirFeuille('suivi:' + pc); } }
+    else if (act === 'transferer') { if (transferable(m)) { declencheur = null; ouvrirFeuille('transferer:' + m.seq); } }
     else if (act === 'modifier') { etat.contexte = { type: 'modif', mid, nom: '', texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').value = m.texte || ''; ajusterSaisie(); majBoutons(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }
   });
@@ -8026,6 +8050,72 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
           '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span></button>').join('') + '</div>' +
         '<p class="vide" id="cc-aucun" hidden>Aucun contact ne correspond.</p>' : '<p class="vide">Tu n\'as pas encore de contact à partager.</p>');
   }
+  /* ── TRANSFÉRER (9 octobre 2026, l'idée retenue) : un message vers une à cinq conversations, en mon nom, marqué « Transféré » — le nom de qui l'avait écrit ne part pas.
+     Le SERVICE juge chaque destination seule (membre, invitation qui attend, groupe d'annonces, stockage) : une partie peut partir, l'autre pas — la feuille reste ouverte
+     sur ce qui a échoué, avec la raison, et un nouvel essai garde le MÊME identifiant d'envoi (le service ne recrée rien de ce qui est déjà parti). ── */
+  const TR_MAX = 5;
+  const cidNeuf = () => (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') ? crypto.randomUUID().replace(/-/g, '') : Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+  /* ce qui se transfère : un texte, une photo (et sa légende), un vocal, un fichier encore là, une fiche de contact — pas une position (elle date), pas un sondage ni un compte rendu (ils vivent dans leur conversation) */
+  const transferable = m => !!(m && !m.supprime && !m.attente && !m.systeme && !m.illisible && Number.isSafeInteger(m.seq) && m.seq > 0 && !m.position && !m.sondage && !m.compteRendu &&
+    (m.photos ? m.photos.length > 0 : m.vocal ? true : m.fichier ? !!m.fichier.piece : m.carteContact ? !m.carteContact.indisponible : typeof m.texte === 'string' && !!m.texte.trim()));
+  function apercuTransfert(m) {
+    const court = t => { const a = Array.from(String(t).replace(/\s+/g, ' ').trim()); return a.slice(0, 140).join('') + (a.length > 140 ? '…' : ''); };
+    const quoi = m.photos ? (m.photos.length > 1 ? m.photos.length + ' photos' : 'Photo') : m.vocal ? 'Message vocal · ' + duree(m.vocal.dur) : m.fichier ? 'Fichier « ' + m.fichier.nom + ' »' : m.carteContact ? 'Fiche de ' + m.carteContact.prenom : '';
+    const texte = m.carteContact ? '' : m.texte ? court(m.texte) : '';
+    return '<div class="tr-apercu">' + icone('i-transferer') + '<span class="tr-apercu-texte"><span class="tr-apercu-de">' + esc(m.auteur === MOI.id ? 'Ton message' : 'Message de ' + nomAuteur(m.auteur)) + '</span>' +
+      '<span dir="auto">' + esc([quoi, texte].filter(Boolean).join(' — ')) + '</span></span></div>';
+  }
+  /* les destinations : mes conversations (pas une invitation que je n'ai pas acceptée), du côté où l'on travaille — une RECHERCHE cherche des deux côtés, comme la liste */
+  /* ⛔ une ligne COCHÉE reste à l'écran pendant une recherche (relecture adverse) : elle part à l'envoi, elle ne se cache pas */
+  const convsTransfert = () => { const G = etat.groupe, q = norme((G.tRecherche || '').trim()); return etat.conversations.filter(c => c.invitation !== 'recue' && ((G.tVers || []).includes(c.id) || (q ? norme(c.nom).includes(q) : dansMode(c)))); };
+  function rendreTransfert() {
+    const G = etat.groupe, m = etat.convDonnees && etat.convDonnees.messages.find(x => x.id === G.tMid);
+    $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + (m ? apercuTransfert(m) : '') +
+      '<p class="info-note">Le message part en ton nom, marqué « Transféré » : le nom de qui l\'a écrit ne part pas. Cinq conversations au plus.</p>' +
+      '<div class="info-champ"><input id="tr-recherche" type="search" autocomplete="off" enterkeyhint="search" placeholder="Rechercher" aria-label="Rechercher une conversation"></div>' +
+      '<div class="rubrique"><span>Envoyer à</span><span id="tr-n" aria-live="polite"></span></div><div class="carte" id="tr-liste"></div><p class="vide" id="tr-aucun" hidden></p>';
+    peindreTransfert();
+  }
+  function peindreTransfert(focusId) {
+    const G = etat.groupe, l = $('tr-liste'); if (G.mode !== 'transferer' || !l) return;
+    const q = (G.tRecherche || '').trim(), plein = G.tVers.length >= TR_MAX, vues = convsTransfert();
+    l.innerHTML = vues.map(c => { const pris = G.tVers.includes(c.id), echec = G.tEchecs && G.tEchecs[c.id], sous = echec || (c.archive ? 'Archivée' : q && modesActifs() && !dansMode(c) ? NOM_COTE[coteDe(c)] : '');
+      return '<button type="button" class="contact presse tr-ligne" data-tr="' + esc(c.id) + '" role="checkbox" aria-checked="' + pris + '"' + (plein && !pris ? ' aria-disabled="true"' : '') + '>' +
+        '<span class="conv-coche' + (pris ? ' prise' : '') + '" aria-hidden="true">' + (pris ? icone('i-coche') : '') + '</span>' + avatar(c) +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(nomConv(c)) + '</span>' + (sous ? '<span class="contact-role' + (echec ? ' tr-echec' : '') + '">' + esc(sous) + '</span>' : '') + '</span></button>'; }).join('');
+    l.hidden = !vues.length;
+    const a = $('tr-aucun'); a.hidden = !!vues.length; a.textContent = q ? 'Aucune conversation ne correspond à « ' + q + ' ».' : 'Aucune conversation où l\'envoyer.';
+    $('tr-n').textContent = G.tVers.length + ' / ' + TR_MAX;
+    if (focusId) { const b = Array.from(l.querySelectorAll('[data-tr]')).find(x => x.dataset.tr === focusId); if (b) b.focus({ preventScroll: true }); }
+  }
+  const nomConvId = id => { const c = etat.conversations.find(x => x.id === id); return c ? nomConv(c) : 'une conversation'; };
+  async function envoyerTransfert() {
+    const G = etat.groupe;
+    if (G.mode !== 'transferer' || G.tEnvoi || !G.tVers.length) return;
+    /* le message a disparu de la conversation depuis l'ouverture (supprimé pour tous, masqué) : on le dit, sans aller demander au service */
+    if (!(etat.convDonnees && etat.convDonnees.id === G.tConv && etat.convDonnees.messages.some(x => x.id === G.tMid && transferable(x)))) { montrerErreurTransfert('Ce message n\'est plus là : il a peut-être été supprimé.'); return; }
+    G.tEnvoi = true; G.tEchecs = {}; erreurInfo(''); synchroFeuille();
+    const vers = G.tVers.slice();
+    let r = null, err = null;
+    try { r = await source.transferer(G.tConv, G.tMid, vers, G.tCid); } catch (x) { err = x; }
+    G.tEnvoi = false;
+    const ouverte = etat.groupe === G && G.ouvert;
+    if (err || !Array.isArray(r) || !r.length) {
+      const t = err && err.code === 'message_inconnu' ? 'Ce message n\'est plus là : il a peut-être été supprimé.' : phrase(err, 'Le message n\'a pas pu être transféré.');
+      if (ouverte) { montrerErreurTransfert(t); synchroFeuille(); } else avis(t);
+      return;
+    }
+    const ok = r.filter(x => x.ok), ko = r.filter(x => !x.ok);
+    if (!ko.length) { if (ouverte) fermerFeuille(); mot(ok.length > 1 ? 'Transféré à ' + ok.length + ' conversations' : 'Transféré'); return; }
+    if (ok.length) mot('Transféré à ' + ok.length + (ok.length > 1 ? ' conversations' : ' conversation'));
+    const t = ko.map(x => '« ' + nomConvId(x.conv) + ' » : ' + x.phrase).join(' ');
+    if (!ouverte) { avis(t); return; }
+    G.tVers = G.tVers.filter(id => ko.some(x => x.conv === id));       // ce qui est parti se décoche ; ce qui a échoué reste choisi, prêt pour un nouvel essai
+    G.tEchecs = Object.fromEntries(ko.map(x => [x.conv, x.phrase]));    // la raison se lit AUSSI sous sa ligne : en bas d'une longue liste, la phrase du haut est hors de vue
+    montrerErreurTransfert(t); peindreTransfert(); synchroFeuille();
+  }
+  /* la phrase d'échec en haut de la feuille, ramenée À LA VUE (relecture adverse : après avoir fait défiler la liste, elle tombait hors de l'écran) */
+  function montrerErreurTransfert(t) { erreurInfo(t); const e = $('info-erreur'); if (e && t) e.scrollIntoView({ block: 'nearest' }); }
   /* ── le sondage : la question, de deux à douze choix, ses RÈGLES ── */
   const SOND_FINS = [['', 'Quand je le clos'], ['3600000', 'Dans 1 heure'], ['86400000', 'Dans 1 jour'], ['259200000', 'Dans 3 jours'], ['604800000', 'Dans 1 semaine'], ['date', 'Choisir une date…']];
   const SOND_RESULTATS = [['toujours', 'Tout de suite'], ['apres_vote', 'Après avoir voté'], ['apres_cloture', 'À la clôture']];
@@ -8113,7 +8203,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     try { await source.sondageAjouter(conv, etat.groupe.sondSeq, t); fermerFeuille(); mot('Choix ajouté'); }
     catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le choix n\'a pas pu être ajouté.')); }
   }
-  const modeCarte = () => etat.groupe.ouvert && ['position', 'carte-contact', 'sondage-nouveau', 'sondage-choix'].includes(etat.groupe.mode);
+  const modeCarte = () => etat.groupe.ouvert && ['position', 'carte-contact', 'transferer', 'sondage-nouveau', 'sondage-choix'].includes(etat.groupe.mode);
   $('info-corps').addEventListener('click', async e => {
     if (!modeCarte()) return;
     const G = etat.groupe;
@@ -8126,6 +8216,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         try { await source.envoyerPosition(etat.conv, { lat: G.pos.lat, lng: G.pos.lng, precision: G.pos.prec }); fermerFeuille(); mot('Position envoyée'); }
         catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Ta position n\'a pas pu partir.')); if (x && x.code === 'position_desactivee') reg.conf = null; }
       }
+      return;
+    }
+    if (G.mode === 'transferer') {
+      const b = e.target.closest('[data-tr]'); if (!b || G.tEnvoi) return;
+      const i = G.tVers.indexOf(b.dataset.tr);
+      if (i >= 0) G.tVers.splice(i, 1);
+      else if (G.tVers.length >= TR_MAX) { erreurInfo('Cinq conversations au plus à la fois.'); return; }
+      else G.tVers.push(b.dataset.tr);
+      erreurInfo(''); peindreTransfert(b.dataset.tr); synchroFeuille();
       return;
     }
     if (G.mode === 'carte-contact') {
@@ -8151,6 +8250,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   $('info-corps').addEventListener('input', e => {
     if (!modeCarte()) return;
     const t = e.target;
+    if (t.id === 'tr-recherche') { etat.groupe.tRecherche = t.value; peindreTransfert(); return; }
     if (t.id === 'cc-recherche') {
       const q = norme(t.value.trim()); let vus = 0;
       document.querySelectorAll('#cc-liste [data-cc]').forEach(b => { b.hidden = !!q && !b.dataset.cherche.includes(q); if (!b.hidden) vus++; });

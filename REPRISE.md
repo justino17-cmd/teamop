@@ -19,6 +19,47 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 9 OCTOBRE 2026 (NUIT, SUITE) — OP MESSAGES : « TRANSFÉRER » ; main REDEVENU VERT ; LE CDN ET LE SIRET
+
+⏳ **« Transférer » (bêta, sa propre demande de fusion)** — le menu d'un message propose « Transférer » (après « Répondre ») ; une feuille montre l'aperçu (« Message
+de Ben »), la recherche, la liste des conversations du côté en cours, de 1 à 5 cochées, « Envoyer » en haut à droite. Le message part AU NOM de qui transfère, marqué
+« Transféré » (en italique au-dessus de la bulle) — ⛔ le nom de son auteur d'origine ne part pas. Ce qui se transfère : texte, photo et sa légende, vocal, fichier encore
+là, fiche de contact ; jamais une position, un sondage, un compte rendu, un message système, supprimé, illisible, d'avant mon arrivée ou échu.
+· le SERVICE (`H['msg.transferer']`, `routes.js`) juge chaque destination SEULE avec les règles d'un envoi (`refusEcriture` : annonces, invitation qui attend — du texte
+  seul, une fiche est une carte —, plafond de messages), RECOPIE chaque pièce (`ctx.copierPiece`, `routes-pieces.js` : nouvel identifiant, re-scellée, comptée dans le
+  quota de qui transfère, gardes d'un dépôt), et rend `{ resultats }` (une partie peut échouer : la feuille reste ouverte sur ce qui a échoué, la raison sous la ligne) ;
+· ⛔ la relecture adverse (workflow, 30 agents Sonnet, 21 constats confirmés sur 26) a fait corriger : un renvoi PENDANT la copie d'un gros fichier (le relais coupe à
+  90 s, la page réessaie) est refusé 409 `transfert_en_cours` au lieu de tout recopier ; « déjà parti » se dit AVANT que les règles d'écriture rejugent la destination ;
+  une copie en double ou une destination qui lève une erreur efface ses copies et la boucle continue ; ⛔ une copie ne vit jamais plus longtemps que l'original (un
+  enregistrement « gardé 3 jours », un éphémère — `expireMax`) ; ⛔ un message transféré ne se MODIFIE pas, ni sa légende (il porte les mots de quelqu'un d'autre) ; un refus
+  de TOUTES les destinations rend la raison de chacune (`ErreurApi.resultats`) ; la page ne propose plus un « Message illisible », garde à l'écran une ligne cochée qu'une
+  recherche ne trouve pas, et dit « Ce message n'est plus là » sans appeler le service.
+  ⚠️ **Deux choix à confirmer par Justin** : la copie d'un message à échéance garde l'échéance de l'original (WhatsApp, lui, applique celle de la destination) ; et
+  « Transférer » d'un fichier de plusieurs Go se fait en UNE requête — au-delà de 90 s le relais coupe, la page dit « réessaie », le service finit quand même (le message
+  arrive) : un `proxy_read_timeout` plus long pour cette route, ou un plafond, se décidera à l'usage.
+· preuves : `test-945` (46 ✓ : la vraie route ET la couture par les vraies `api.js` / `source-serveur.js` — échec partiel avec la phrase du service, même `cid` d'un essai
+  à l'autre, refus total qui rend chaque raison, « Transféré » lu chez qui reçoit ; deux envois SIMULTANÉS du même geste → un message, une copie) ; série TR de
+  `mutations-groupe.js` (14/14 tombent — TR1 retire le verrou ET le nettoyage : le verrou seul n'épargne que le travail, son retrait laisse le même état final) ; `test-857`
+  (352 ✓ : les vraies fonctions de la feuille exécutées, mutations N32 à N47) ; `sonde-opmessages-transfert` au navigateur (26 ✓, 360 px et bureau) ; `test-905` (la matrice).
+
+✅ **main est redevenu vert** (#118, `21a8b9e`). Le rouge de la fusion de #117 (run 632) était `test-958` : un acquittement d'AVANT la rafale (sa minuterie encore en
+route quand le compteur repartait de zéro) comptait dans « une rafale = une requête ». Reproduit à l'identique (65 ✓ 1 ✗) en étalant les écritures ; la page reste CACHÉE
+pendant la mise en place, et le flux est tenu puis relâché d'un bloc — au geste, plus au chronomètre ; C18 et C12 tombent toujours. Et #118 lui-même était rouge sur
+`test-856` (« aucune adresse dans la page ») : le schéma seul `'https://' + u` du lien « www. » et trois exemples dans des commentaires — une adresse exige désormais un
+hôte (une vraie adresse remise dans la page fait toujours tomber le contrôle).
+⚠️ Leçon payée ce soir-là : j'ai annoncé à Justin une CI « bloquée depuis plus de deux heures » — elle avait duré 21 minutes ; j'avais lu l'heure de Paris d'une capture
+comme de l'UTC. Une durée se calcule sur l'horloge de la machine (`date -u`), jamais sur une heure lue dans une image.
+
+⏳ **Le « CDN » de l'analyse IONOS — Justin, 9 octobre : « tu l'as pas fait, fais-le »** (capture : Rapidité 57, « Activer CDN »). Ça ne se fait pas dans le dépôt : les
+DNS et la messagerie de teamop.fr sont chez **OVH** (`dns200.anycast.me`, MX `mx*.mail.ovh.net`), le site chez GitHub Pages derrière Fastly (que l'outil ne reconnaît pas).
+Procédure donnée à Justin : Cloudflare gratuit, importer la ZONE OVH ENTIÈRE (le scan de Cloudflare ne voit pas les deux DKIM `ovhmo-selector-1/2._domainkey`, `autodiscover`,
+`mail`, le SRV `_autodiscover._tcp`), nuage orange pour `teamop.fr` et `www` SEULS, ⛔ gris pour `api` et `msg-beta` (217.154.6.139 : sinon les flux en direct et les appels
+coupent à 100 s et le serveur ne voit plus l'adresse des gens — l'anti-abus) et pour tout le mail, SSL « Full » (pas « Flexible » : boucle avec GitHub Pages), puis les deux
+serveurs DNS de Cloudflare chez OVH. ⏳ Quand il le dit : vérifier `cf-ray` sur teamop.fr, `api.teamop.fr/health`, msg-beta, MX et DKIM, puis relancer l'analyse.
+
+ℹ️ **Le SIRET est attribué** : 107 995 011 00015 (actif, relevé dans l'annuaire public data.gouv le 9 octobre). `mentions-legales.html` dit encore « SIRET en cours
+d'attribution » — à corriger sur SA phrase (le site est en pause, et une page du site part en ligne à la fusion).
+
 # 🟡 9 OCTOBRE 2026 (NUIT) — OP MESSAGES : LES LIENS SE TOUCHENT, « MODIFIER » RANGE LA LISTE — ET LES IDÉES PROPOSÉES À JUSTIN
 
 Suite de « continue le développement d'OP MESSAGES et dis-moi si tu as de nouvelles idées ». Un inventaire (workflow, 11 agents) a relevé ce qui est
@@ -35,7 +76,7 @@ service le décide dans la transaction de l'envoi (`envoyerDansTx`) ; un message
 archivé par défaut) : le demander à Justin s'il préfère l'autre. `test-909`, mutations AR1 à AR3 (`mutations-groupe.js`), `test-857` (N29 à N31),
 `sonde-opmessages-ranger` (téléphone 360 px et bureau, 30 ✓).
 
-⏳ **« Transférer » attend sa propre demande de fusion** : une photo, un vocal ou un fichier sont rattachés à UNE conversation (`piecesAttacher`, scellés
+✅ (fait le soir même, voir l'entrée au-dessus) **« Transférer » attendait sa propre demande de fusion** : une photo, un vocal ou un fichier sont rattachés à UNE conversation (`piecesAttacher`, scellés
 par pièce sur le disque) — transférer veut dire recopier le contenu côté service, compter le quota de celui qui transfère, et le faire relire par
 `gardien`. Le texte, la position et la fiche d'un contact, eux, se transfèrent sans recopie.
 

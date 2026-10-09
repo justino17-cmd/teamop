@@ -162,6 +162,9 @@
     evt_trop_gros: 'Ce message est trop gros pour la salle (2 Ko au plus).',
     annot_pleine: 'Le dessin est plein : efface des annotations pour continuer.',
     invitation_texte: 'Tant que ton invitation n\'est pas acceptée, tu ne peux envoyer que du texte.',
+    transfert_refuse: 'Ce message ne peut pas être transféré.',
+    transfert_impossible: 'Le message n\'a pas pu être transféré. Réessaie.',
+    transfert_en_cours: 'Le transfert précédent n\'est pas encore fini (un gros fichier se recopie) : patiente un instant, puis réessaie.',
     invitation_plafond: 'Ton invitation attend une réponse : tu pourras écrire davantage quand elle l\'aura acceptée.',
     reunion_introuvable: 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.',
     position_desactivee: 'Le partage de position est coupé : allume-le dans Profil › Confidentialité.',
@@ -212,6 +215,8 @@
       this.min = extra && Number.isInteger(extra.min) ? extra.min : 0;
       /* `occupe` : vrai quand c'est MOI qui suis déjà dans un appel (peut-être sur un autre appareil), faux quand c'est l'autre — la phrase n'est pas la même */
       this.moi = !!(extra && extra.moi === true);
+      /* `resultats` (« Transférer ») : quand AUCUNE destination n'a reçu le message, le refus porte quand même la raison de CHACUNE — lue avec sa forme, cinq au plus */
+      this.resultats = extra && Array.isArray(extra.resultats) ? extra.resultats.filter(x => x && typeof x.conv === 'string').slice(0, 5).map(x => ({ conv: x.conv, ok: x.ok === true, error: typeof x.error === 'string' ? x.error : 'erreur' })) : null;
       /* ⛔ `dit` : cette erreur a une phrase FRANÇAISE que l'écran peut montrer telle quelle. Une erreur d'ailleurs (une exception de la page
          elle-même) ne porte pas ce drapeau : l'écran n'affiche alors qu'une phrase générique, jamais le message technique. */
       this.dit = true;
@@ -413,6 +418,8 @@
       modifier: (id, seq, texte) => appel('POST', '/api/conversations/' + e(id) + '/messages/modifier', { seq, texte }),
       supprimer: (id, seq, pour) => appel('POST', '/api/conversations/' + e(id) + '/messages/supprimer', { seq, pour: pour || 'tous' }),
       reagir: (id, seq, emoji) => appel('POST', '/api/conversations/' + e(id) + '/messages/reagir', { seq, emoji }),
+      /* transférer un message vers 1 à 5 conversations (le même `cid` pour toutes : un renvoi ne double rien) → { resultats: [{ conv, ok, seq | error }] } */
+      transferer: (id, seq, vers, cid) => appel('POST', '/api/conversations/' + e(id) + '/messages/transferer', { seq, vers, cid }),
       /* les sondages d'une conversation : la vue de chacun (ses votes, les décomptes selon les règles), voter (remplace mes votes), ajouter un choix, clore */
       sondageLire: (id, seq) => appel('GET', '/api/conversations/' + e(id) + '/sondages/' + e(seq)),
       sondageVoter: (id, seq, choix) => appel('POST', '/api/conversations/' + e(id) + '/sondages/' + e(seq) + '/voter', { choix }),

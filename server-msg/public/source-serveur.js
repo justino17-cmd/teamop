@@ -2280,9 +2280,11 @@
       /* une photo garde sa LÉGENDE (le seul média qui en porte une) ; les autres pièces n'ont pas de texte */
       const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? (m.type === 'photo' && typeof m.texte === 'string' ? m.texte : '') : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
       if (m.supprime) v.supprime = true;
-      else if (media && !m.illisible) Object.assign(v, vuePieces(m, auto));
+      else if (m.illisible) v.illisible = true;                                       // « Message illisible » : la page ne le propose pas au transfert (le service le refuserait)
+      else if (media) Object.assign(v, vuePieces(m, auto));
       else if (m.type === 'texte' && !m.illisible && m.meta && typeof m.meta === 'object' && typeof m.meta.k === 'string') { const k = vueCarte(conv, m); if (k) Object.assign(v, k); }
       if (m.modifie) v.modifie = m.modifie;
+      if (!m.supprime && m.meta && typeof m.meta === 'object' && m.meta.tr === 1) v.transfere = true;      // « Transféré » (9 octobre 2026) : la page le dit au-dessus de la bulle
       if (m.repond_a) v.reponse = citation(c, m.repond_a);
       if (m.reactions && m.reactions.length) {
         const par = new Map();
@@ -2617,6 +2619,18 @@
       if (pour === 'moi') c.messages = c.messages.filter(x => x.seq !== m.seq);
       else ranger(c, { seq: m.seq, supprime: true, texte: null, meta: null, reactions: [], modifie: null });
       emettre({ type: 'conversation', id }); relireListePlusTard();
+    }
+    /* TRANSFÉRER (9 octobre 2026) : le message `mid` de la conversation `id` vers 1 à 5 conversations — le service recopie les pièces et juge chaque destination seule ;
+       rend la liste { conv, ok, error } (une partie peut échouer : la page le dit). Un refus de TOUTES lève l'erreur de la première. */
+    /* `cid` : l'identifiant d'envoi de la FEUILLE (un nouvel essai le garde : ce qui est déjà parti ne repart pas) ; sans lui, un neuf. Chaque échec porte sa phrase. */
+    async function transferer(id, mid, vers, cid) {
+      const { m } = trouver(id, mid);
+      if (!Array.isArray(vers) || !vers.length || vers.length > 5 || !vers.every(x => typeof x === 'string') || !Number.isInteger(m.seq)) throw erreurLocale('invalide');
+      let r;
+      try { r = await A.transferer(id, m.seq, Array.from(new Set(vers)), typeof cid === 'string' && /^[0-9a-f]{32}$/.test(cid) ? cid : OPMSG.nouveauCid()); }
+      catch (e) { if (e && Array.isArray(e.resultats) && e.resultats.length) r = { resultats: e.resultats }; else throw e; }      // toutes refusées : la raison de CHACUNE, pas celle de la première seule
+      relireListePlusTard();
+      return Array.isArray(r && r.resultats) ? r.resultats.map(x => { const error = x.ok ? null : (typeof x.error === 'string' ? x.error : 'erreur'); return { conv: x.conv, ok: !!x.ok, error, phrase: error ? OPMSG.dire(error) : null }; }) : [];
     }
     async function reagir(id, mid, emoji) {
       const { c, m } = trouver(id, mid);
@@ -3625,7 +3639,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
@@ -3636,7 +3650,7 @@
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),
       personne, rafraichirContacts,
       lister, ouvrir, precedents, envoyer, marquerLu, saisie, rangerConvs,
-      modifier, supprimer, reagir,
+      modifier, supprimer, reagir, transferer,
       creerGroupe, ouvrirDirecte, conversationPour, infos, majConversation, retirerMembre, nommerAdmin, ajouterMembres, quitter, lienGroupe,
       lienContact, revoquerLiens, lireLien, accepterLien,
       /* ── l'identifiant « Prénom#1234 » et les demandes de contact (capacité `identifiants`) ── */
