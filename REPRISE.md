@@ -33,6 +33,10 @@ ni la racine) : la branche porte le travail, `main` n'en reçoit rien avant son 
 · ⛔ **l'iPhone passait DERRIÈRE le Mac** dans tous les carrousels depuis le premier jour (le `z-index` des écrans empilés, sans pile à
   l'appareil — `container-type` n'en crée pas) : aucune photo ne l'avait montré, c'est une mesure (`elementFromPoint` au milieu du
   chevauchement) qui l'a vu. Corrigé, et gardé par `sonde-carrousel.js` et `sonde-site.js`.
+· **preuves** : `test-835` 1 193 ✓ (les paires dans l'aperçu, les cases d'avant à la racine) ; `sonde-carrousel.js` 2 380 ✓ 0 ✗
+  (4 profils × jour / nuit × 14 pages, gestes compris) ; `mutations-carrousel.py` : 20 défauts remis, **20 mordent** — dont la sonde
+  elle-même prise en défaut (son `scrollIntoView` faisait défiler la carte qui coupait l'iPhone : elle fait défiler la fenêtre).
+· **à faire sur son oui** : « publie l'aperçu » → PR vers `main` (l'aperçu seul change) ; puis « publie les carrousels » pour la racine.
 
 # ✅ 9 OCTOBRE 2026 — LE SITE (APERÇU) : LES CAPTURES DÉFILENT, L'iPHONE EN ENTIER ET LE MAC AVEC LUI — EN LIGNE SUR L'APERÇU (#112)
 
