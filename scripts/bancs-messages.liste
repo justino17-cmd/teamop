@@ -66,7 +66,9 @@
 # 8 octobre 2026, soir : les heures de travail côté Pro (test-968 : +32) — 90 suites, 9 187 vérifications attendues en CI — plancher 9173.
 # 9 octobre 2026 : la version d'une vue de salle (test-986 : +6 ; test-990 : +14 — une vue d'avant ne remplace plus la plus récente) — 90 suites, 9 233 vérifications
 # mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur ; la CI en compte 2 de plus) — plancher 9219 (le total local moins 14).
-#plancher 9219
+# 9 octobre 2026, soir : un port déjà pris ne fait plus mourir les bacs du relais et de la visio (test-959 : +2 ; test-982 : +1 — le déploiement de #115 était
+# tombé sur EADDRINUSE dans test-959) — 90 suites, 9 236 vérifications mesurées en local (test-971 tombe sur les fuseaux 2025b du conteneur) — plancher 9222.
+#plancher 9222
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
