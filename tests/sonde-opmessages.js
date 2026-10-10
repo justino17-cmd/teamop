@@ -706,12 +706,31 @@ async function etapeVocal(S) {
   const nom = S.nom, bureau = !S.pf.mobile;
   titre(nom + ' — le vocal');
   await ouvrirConv(S, 'v4', 'Mathis Lambert');
-  await geste(S, '.vocal[data-lire]'); await dormir(1400);
-  const e1 = await S.page.evaluate(() => { const b = document.querySelector('.vocal[data-lire]'); return { lecture: b.hasAttribute('data-lecture'), joue: b.querySelectorAll('.onde i.joue').length, pause: getComputedStyle(b.querySelector('.pause')).display, play: getComputedStyle(b.querySelector('.play')).display, label: b.getAttribute('aria-label') }; });
-  v(nom + ' : un vocal d\'exemple se « lit » : le bouton passe en pause, ' + e1.joue + ' barre(s) sur 10 déjà jouée(s) après 1,4 s (sans son : aucun fichier dans l\'aperçu)', e1.lecture && e1.joue >= 1 && e1.joue < 10 && e1.pause !== 'none' && e1.play === 'none' && /pause/.test(e1.label), e1);
-  await geste(S, '.vocal[data-lire]'); await dormir(250);
-  const e2 = await S.page.evaluate(() => ({ lecture: !!document.querySelector('[data-lecture]'), joue: document.querySelectorAll('.onde i.joue').length }));
-  v(nom + ' : un second toucher le met en pause (aucune barre jouée, plus de lecture)', !e2.lecture && e2.joue === 0, e2);
+  await geste(S, '.vocal [data-lire]'); await dormir(1400);
+  const etatVocal = () => S.page.evaluate(() => { const b = document.querySelector('.vocal'), x = b.querySelector('[data-lire]'), vv = b.querySelector('[data-vitesse]');
+    return { lecture: b.hasAttribute('data-lecture'), pause: b.hasAttribute('data-pause'), joue: b.querySelectorAll('.onde i.joue').length, pauseIc: getComputedStyle(b.querySelector('.pause')).display, playIc: getComputedStyle(b.querySelector('.play')).display,
+      label: x.getAttribute('aria-label'), vitesse: getComputedStyle(vv).display === 'none' ? null : vv.textContent, vitesseLabel: vv.getAttribute('aria-label'), temps: b.querySelector('.vocal-duree').textContent, onde: b.querySelector('.onde').getAttribute('aria-valuenow') }; });
+  const e1 = await etatVocal();
+  v(nom + ' : un vocal d\'exemple se « lit » : le bouton passe en pause, ' + e1.joue + ' barre(s) sur 10 déjà jouée(s) après 1,4 s (sans son : aucun fichier dans l\'aperçu), la pastille de VITESSE paraît (« ' + e1.vitesse + ' »), le temps écoulé s\'affiche (« ' + e1.temps + ' »)',
+    e1.lecture && e1.joue >= 1 && e1.joue < 10 && e1.pauseIc !== 'none' && e1.playIc === 'none' && /pause/.test(e1.label) && e1.vitesse === '1×' && /^0:0[1-2]$/.test(e1.temps), e1);
+  await geste(S, '.vocal [data-lire]'); await dormir(250);
+  const e2 = await etatVocal();
+  v(nom + ' : ⛔ un second toucher met en PAUSE et GARDE la position : la bulle montre les ' + e2.joue + ' barre(s) écoutée(s), « Reprendre », la pastille reste', !e2.lecture && e2.pause && e2.joue >= 1 && e2.joue === e1.joue && /^Reprendre/.test(e2.label) && e2.vitesse === '1×', e2);
+  await geste(S, '.vocal .onde'); await dormir(150);
+  const e3 = await etatVocal();
+  v(nom + ' : ⛔ toucher le MILIEU de l\'onde y va, sans lancer la lecture (5 barres sur 10, l\'onde dit ' + e3.onde + ' s, toujours en pause)', !e3.lecture && e3.pause && e3.joue === 5 && Number(e3.onde) > 0, e3);
+  await geste(S, '.vocal [data-lire]'); await dormir(300);
+  const e4 = await etatVocal();
+  v(nom + ' : ⛔ relire REPREND là (≥ 5 barres, jamais repartie de zéro)', e4.lecture && e4.joue >= 5, e4);
+  await geste(S, '.vocal [data-vitesse]'); await dormir(120);
+  const e5 = await etatVocal();
+  await geste(S, '.vocal [data-vitesse]'); await dormir(120);
+  const e6 = await etatVocal();
+  await geste(S, '.vocal [data-vitesse]'); await dormir(120);
+  const e7 = await etatVocal();
+  v(nom + ' : la pastille fait le tour des vitesses — 1× → 1,5× → 2× → 1× (dit au lecteur d\'écran) — sans arrêter l\'écoute', [e5.vitesse, e6.vitesse, e7.vitesse, e5.vitesseLabel, e5.lecture && e6.lecture && e7.lecture], ['1,5×', '2×', '1×', 'Vitesse de lecture : 1,5×', true], { e5, e6, e7 });
+  await geste(S, '.vocal [data-vitesse]'); await dormir(80);                       // 1,5× pour la suite (le vocal enregistré la reprend)
+  await geste(S, '.vocal [data-lire]'); await dormir(150);
 
   /* enregistrer : toucher démarre, la flèche envoie */
   const nMsg = () => nb(S, '#conv-messages .msg');
@@ -731,8 +750,9 @@ async function etapeVocal(S) {
   v(nom + ' : la flèche envoie le vocal (« ' + r2.duree + ' », ' + r2.barres + ' barres), le micro est RELÂCHÉ (piste ' + r2.pistes.join() + '), le champ revient ; la liste dit « ' + r2.apercu + ' » et remonte la conversation',
     n0 + 1 === await nMsg() && r2.vocal && r2.moi && /^0:\d\d$/.test(r2.duree) && r2.duree !== '0:00' && r2.barres === 10 && !r2.enreg && r2.compo && r2.pistes.join() === 'ended' && /^Vous : Message vocal · 0:\d\d$/.test(r2.apercu) && r2.nom === 'Mathis Lambert', r2);
   /* le réécouter : un vrai Audio */
-  await geste(S, '.vocal.envoyee >> nth=-1'); await dormir(500);
-  const l1 = await S.page.evaluate(() => ({ lectures: window.__audios.length, src: window.__audios[0] && window.__audios[0].src.slice(0, 5), lecture: !!document.querySelector('.vocal.envoyee[data-lecture]') }));
+  await geste(S, '.vocal.envoyee >> nth=-1 >> [data-lire]'); await dormir(500);
+  const l1 = await S.page.evaluate(() => ({ lectures: window.__audios.length, src: window.__audios[0] && window.__audios[0].src.slice(0, 5), lecture: !!document.querySelector('.vocal.envoyee[data-lecture]'), vitesse: window.__audios[0] && window.__audios[0].playbackRate, hauteur: window.__audios[0] && window.__audios[0].preservesPitch }));
+  v(nom + ' : ⛔ la vitesse choisie vaut pour le VRAI lecteur (playbackRate ' + l1.vitesse + ') et la voix garde sa hauteur (preservesPitch ' + l1.hauteur + ')', l1.vitesse === 1.5 && l1.hauteur === true, l1);
   await attendre(S, () => !document.querySelector('[data-lecture]'), null, 15000); await dormir(200);
   const l2 = await S.page.evaluate(() => ({ lecture: !!document.querySelector('[data-lecture]'), t: window.__audios[0] ? window.__audios[0].currentTime : -1, fini: window.__audios[0] ? window.__audios[0].ended : null, erreur: window.__audios[0] && window.__audios[0].error && window.__audios[0].error.code }));
   v(nom + ' : un vocal enregistré se RELIT par un vrai Audio (' + l1.lectures + ' lecture, source ' + l1.src + ', temps ' + l2.t.toFixed(2) + ' s, terminé : ' + l2.fini + '), puis le bouton revient seul', l1.lectures === 1 && l1.src === 'blob:' && l1.lecture && !l2.lecture && (l2.fini || l2.t > 0.5) && !l2.erreur, { l1, l2 });
@@ -1166,7 +1186,7 @@ async function corrVocalChangeConv(b, base) {
   const apres = { v1: await compteMsg(S, 'v1'), v3: await compteMsg(S, 'v3') };
   v(S.nom + ' : aucun vocal n\'est posté, ni chez Camille-le-départ ni dans la conversation d\'arrivée (messages ' + JSON.stringify(avant) + ' → ' + JSON.stringify(apres) + ')', apres.v1 === avant.v1 && apres.v3 === avant.v3, { avant, apres });
   /* et la lecture d'un vocal s'arrête aussi quand on change de conversation */
-  await ouvrirConv(S, 'v4', 'Mathis Lambert'); await geste(S, '.vocal[data-lire]'); await dormir(400);
+  await ouvrirConv(S, 'v4', 'Mathis Lambert'); await geste(S, '.vocal [data-lire]'); await dormir(400);
   const lit = await S.page.evaluate(() => !!document.querySelector('[data-lecture]'));
   await geste(S, '#liste-conv [data-ouvrir="v2"]'); await attendreConv(S, 'Camille Roux'); await dormir(500);
   const l2 = await S.page.evaluate(() => ({ lecture: !!document.querySelector('[data-lecture]'), audios: window.__audios.filter(a => !a.paused).length }));

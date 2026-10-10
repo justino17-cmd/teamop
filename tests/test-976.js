@@ -330,6 +330,14 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
       v('…le changer de côté passe par le module, et la liste de l\'agenda le relit', [e3.cote, (await A.src.evenements(d0, d0 + 12 * 3600000)).filter(x => x.id === e1.id || x.id === e2.id).map(x => [x.titre, x.cote])],
         ['perso', [['Revue Pro', 'perso'], ['Sans côté', null]]]);
     }
+    {
+      /* (en dernier : le banc compte plus haut les appels à /api/moi/maj — le fuseau dit UNE fois) */
+      /* la vitesse des vocaux (10 octobre 2026) : la VRAIE source contre le VRAI service — 1 par défaut, retenue par le compte, refusée sur l'appareil hors des trois valeurs */
+      const v0 = A.src.vitesseVocal(), v1 = await A.src.choisirVitesseVocal('1.5'), v1b = A.src.vitesseVocal();
+      const ev = await attrape(A.src.choisirVitesseVocal('3')), v2 = await A.src.choisirVitesseVocal(2);
+      v('la vitesse des vocaux : 1 par défaut, « 1.5 » retenue par le compte (rendue en nombre), « 3 » refusée sur l\'appareil, le nombre 2 accepté (le module le dit en chaîne)', [v0, v1, v1b, ev && ev.code, v2], [1, 1.5, 1.5, 'invalide', 2]);
+      await A.src.choisirVitesseVocal('1');
+    }
   } finally {
     for (const s of sources) { try { s.arreter(); } catch (e) { /* déjà arrêté */ } }
     await svcA.arreter(); await svcB.arreter(); await svcC.arreter(); await og.fermer();

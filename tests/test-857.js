@@ -537,6 +537,49 @@ async function controler(PAGE, SRC, DOC) {
         [[['Recherche du message dans l\'historique…', 'Ce message est très ancien : remontez la conversation pour le retrouver.'], 2], [['Ce message n\'est plus dans la conversation.'], 2], ['Ce message n\'est plus dans la conversation.']]);
     }
   }
+  /* ⛔ LES VOCAUX : VITESSE, REPRISE, ONDE (10 octobre 2026 : « qu'on puisse accélérer les vocaux ») — les VRAIES fonctions exécutées (le tour des vitesses, l'enchaînement),
+     la structure de la bulle et du lecteur lue dans le code ; le geste (pause qui garde la position, toucher sur l'onde, reprise, playbackRate du vrai lecteur) est gardé par
+     tests/sonde-opmessages.js (étape vocal) */
+  {
+    const iV = JS.indexOf('const VITESSES = [1, 1.5, 2];'), fV = JS.indexOf('function peindrePosition(', iV);
+    const iE = JS.indexOf('function enchainer(mid)'), fE = JS.indexOf('function changerVitesse()', iE), fC = JS.indexOf('(function () {', fE);
+    let V = null, cV = null;
+    try {
+      cV = { source: {}, appels: [], lus: [], etat: { convDonnees: null }, MOI: { id: 'p_moi' }, document: { querySelectorAll: () => [] }, lect: null };
+      cV.trouverMessage = id => cV.etat.convDonnees && cV.etat.convDonnees.messages.find(m => m.id === id);
+      cV.bulleVocal = id => ({ id }); cV.lireVocal = (id, s) => cV.lus.push([id, s]); cV.peindreVitesse = () => {};
+      vm.createContext(cV);
+      vm.runInContext(JS.slice(iV, fV).replace(/const lect = [^\n]*\n/, '').replace(/const positions = [^\n]*\n/, '').replace(/const dureeVocal = [^\n]*\n/, '').replace(/const bulleVocal = [^\n]*\n/, '') + '\nconst lect = { audio: null };\n' + JS.slice(iE, fC) +
+        '\nthis.V = { vitesse, libVitesse, changerVitesse, enchainer };', cV, { timeout: 2000 });
+      V = cV.V;
+    } catch (e) { V = null; }
+    vrai('(population) les fonctions du lecteur de vocaux s\'exécutent dans un bac à sable (' + (fV - iV) + ' + ' + (fC - iE) + ' caractères)', iV > 0 && fV > iV && iE > 0 && fE > iE && fC > fE && !!V);
+    if (V) try {
+      const sans = V.vitesse();
+      cV.source = { vitesseVocal: () => 1.5, choisirVitesseVocal: (x) => { cV.appels.push(x); return Promise.resolve(Number(x)); } };
+      const compte = V.vitesse();
+      V.changerVitesse(); const a = V.vitesse(); V.changerVitesse(); const b = V.vitesse(); V.changerVitesse(); const c = V.vitesse();
+      v('⛔ la vitesse : 1 sans réglage, celle du COMPTE sinon (1,5) ; la pastille fait le tour 1,5 → 2 → 1 → 1,5 et chaque choix part au compte, en chaîne ; libellé « 1,5× »',
+        [sans, compte, a, b, c, cV.appels, V.libVitesse(1.5), V.libVitesse(2)], [1, 1.5, 2, 1, 1.5, ['2', '1', '1.5'], '1,5×', '2×']);
+      const M = (id, auteur, extra) => Object.assign({ id, auteur, t: 1 }, extra || {});
+      cV.etat.convDonnees = { messages: [M('m1', 'p_ben', { vocal: { dur: 3 } }), M('m2', 'p_ben', { vocal: { dur: 4 } }), M('m3', 'p_ana', { vocal: { dur: 2 } }), M('m4', 'p_ana', { texte: 'ok' }), M('m5', 'p_moi', { vocal: { dur: 2 } }), M('m6', 'p_moi', { vocal: { dur: 2 } }), M('m7', 'p_ben', { vocal: { dur: 2 } }), M('m8', 'p_ben', { vocal: { dur: 2 }, supprime: true })] };
+      for (const id of ['m1', 'm2', 'm3', 'm5', 'm7']) V.enchainer(id);
+      v('⛔ un vocal écouté jusqu\'au bout enchaîne le vocal SUIVANT de la même personne (depuis le début) — pas celui d\'une autre, pas après un texte, jamais les miens, jamais un vocal supprimé',
+        cV.lus, [['m2', 0]]);
+    } catch (e) { vrai('le lecteur de vocaux s\'exécute sans jeter (' + String(e && e.message || e).slice(0, 160) + ')', false); }
+    vrai('⛔ la bulle vocale n\'est plus UN bouton : un conteneur, un bouton de lecture (44 px, le disque de 28 dedans), l\'onde en CURSEUR (role slider, focusable), la pastille de vitesse',
+      /h \+= '<div class="vocal ' \+ sens \+ ' presse" data-vocal="' \+ esc\(m\.id\) \+ '">' \+\s*'<button type="button" class="vocal-lire" data-lire="/.test(JS) && /'<span class="onde" data-onde="' \+ esc\(m\.id\) \+ '" role="slider" tabindex="0" aria-label="Position dans le message vocal"/.test(JS)
+      && /'<button type="button" class="vocal-vitesse" data-vitesse="' \+ esc\(m\.id\) \+ '"/.test(JS) && /\.vocal-lire \{ width: 44px; height: 44px; margin: -8px;/.test(CSS));
+    vrai('⛔ le vrai lecteur prend la vitesse choisie, la voix garde sa HAUTEUR, et une vitesse changée en cours d\'écoute vaut tout de suite',
+      /a\.preservesPitch = true; a\.mozPreservesPitch = true; a\.webkitPreservesPitch = true;/.test(JS) && /const regler = \(\) => \{ a\.defaultPlaybackRate = vitesse\(\); a\.playbackRate = vitesse\(\); \};\s*regler\(\);/.test(JS)
+      && /if \(lect\.audio\) \{ lect\.audio\.defaultPlaybackRate = v; lect\.audio\.playbackRate = v; \}/.test(JS));
+    vrai('⛔ une PAUSE garde la position (un vocal écouté jusqu\'au bout repart de zéro) ; relire part de la position gardée ; le vocal d\'exemple avance à la vitesse choisie',
+      /if \(!fin && s > 0\.3 && s < d - 0\.3\) positions\.set\(mid, s\); else positions\.delete\(mid\);/.test(JS) && /let s0 = depuis !== undefined \? depuis : \(positions\.get\(mid\) \|\| 0\);/.test(JS)
+      && /lect\.pos \+= \(t - lect\.dernier\) \/ 1000 \* vitesse\(\);/.test(JS) && (JS.match(/arreterLecture\(true\); enchainer\(mid\);/g) || []).length === 2);
+    vrai('⛔ toucher l\'onde y VA sans lancer la lecture (le clic qui suit ne relit pas), la pastille passe avant la lecture, et l\'appui long (menu du message) ne part pas de l\'onde',
+      /if \(e\.target\.closest\('\[data-vitesse\]'\)\) \{ changerVitesse\(\); return; \}\s*if \(e\.target\.closest\('\.vocal \.onde'\)\) return;/.test(JS) && /if \(!msg \|\| e\.target\.closest\('button, \.onde'\)\) return;/.test(JS)
+      && /\.vocal \.onde \{ cursor: pointer; touch-action: pan-y;/.test(CSS));
+  }
   vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
     /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
   vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',

@@ -743,14 +743,24 @@ html:not([data-vue="messages"]) .conv-ecran { display: none; }
 .photos.une .photo img { object-fit: contain; }
 button.photo { transition: transform .12s ease-out; }
 button.photo:active { transform: scale(.97); }
-.vocal { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; max-width: 78%; text-align: left; }
+.vocal { min-height: 48px; display: flex; align-items: center; gap: 10px; padding: 10px 14px; max-width: 78%; text-align: left; cursor: pointer; }
+/* le bouton de lecture et la pastille de vitesse : 44 px sous le doigt (la boîte du bouton), 28 à l'œil (le disque, la pastille) — les marges négatives gardent la bulle à sa taille */
+.vocal-lire { width: 44px; height: 44px; margin: -8px; flex: none; display: grid; place-items: center; border-radius: 50%; color: inherit; }
 .vocal-disque { width: 28px; height: 28px; flex: none; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, currentColor 18%, transparent); font-size: 12px; }
+/* l'onde se touche et se glisse (à l'horizontale : à la verticale, le fil défile) ; sa zone dépasse ses barres de 12 px en haut et en bas */
+.vocal .onde { cursor: pointer; touch-action: pan-y; padding: 12px 0; margin: -12px 0; border-radius: 6px; }
+.vocal .onde:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+/* la vitesse : une pastille pendant l'écoute (et sur un vocal en pause), jamais au repos */
+.vocal-vitesse { display: none; flex: none; min-width: 48px; height: 44px; margin: -8px -4px; align-items: center; justify-content: center; color: inherit; border-radius: 14px; }
+.vocal-pastille { min-width: 40px; height: 28px; padding: 0 8px; box-sizing: border-box; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; background: color-mix(in srgb, currentColor 18%, transparent); }
+.vocal[data-lecture] .vocal-vitesse, .vocal[data-pause] .vocal-vitesse { display: inline-flex; }
+.vocal-vitesse:focus-visible, .vocal-lire:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
 .vocal-disque .pause, .vocal[data-lecture] .vocal-disque .play { display: none; }
 .vocal[data-lecture] .vocal-disque .pause { display: block; }
 .onde { display: flex; align-items: center; gap: 2px; height: 20px; }
 .onde i { width: 3px; border-radius: 2px; background: currentColor; opacity: .9; }
-.vocal[data-lecture] .onde i { opacity: .45; }
-.vocal[data-lecture] .onde i.joue { opacity: 1; }
+.vocal[data-lecture] .onde i, .vocal[data-pause] .onde i { opacity: .45; }
+.vocal[data-lecture] .onde i.joue, .vocal[data-pause] .onde i.joue { opacity: 1; }
 .vocal-duree { font-size: 13px; font-variant-numeric: tabular-nums; }
 .statut { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
 .saisie-ind { align-self: flex-start; display: flex; align-items: center; gap: 4px; padding: 10px 14px; margin-top: 8px; border-radius: 20px 20px 20px 6px; background: var(--bubble-in); }
