@@ -120,6 +120,13 @@ async function tirer(S, de, vers) {
     vrai('(population) un clic droit HORS d\'un rendez-vous n\'ouvre rien (le menu du navigateur reste le sien)', await A.page.evaluate(() => document.getElementById('menu-fond').hidden));
 
     console.log('\n── 3. Glisser sur un autre jour : « Décaler le rendez-vous » ──');
+    /* tirer, puis revenir lâcher SUR le rendez-vous lui-même : on a renoncé — rien ne s'ouvre (le clic que le navigateur produit au relâcher est avalé) */
+    const d0 = await centre(A, selR);
+    await A.page.mouse.move(d0.x, d0.y); await A.page.mouse.down();
+    for (let i = 1; i <= 8; i++) { await A.page.mouse.move(d0.x + 10 * i, d0.y + 6 * i); await A.page.waitForTimeout(16); }
+    for (let i = 7; i >= 0; i--) { await A.page.mouse.move(d0.x + 10 * i, d0.y + 6 * i); await A.page.waitForTimeout(16); }
+    await A.page.mouse.up(); await A.page.waitForTimeout(500);
+    v('tirer puis revenir lâcher sur le rendez-vous lui-même : rien ne s\'ouvre (ni sa fiche ni la feuille), le fantôme est parti', await A.page.evaluate(() => [document.documentElement.classList.contains('feuille-ouverte'), !!document.querySelector('.mjour-elt.fantome'), document.documentElement.classList.contains('ag-tire')]), [false, false, false]);
     await A.page.mouse.move(10, 10);
     const pc = await A.page.evaluate(([j]) => { const [y, m, d] = j.split('-').map(Number), t = new Date(y, m - 1, d).getTime(), c = document.querySelector('#sem-grille .mjour[data-case="' + t + '"]'), r = c.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.7 }; }, [CIBLE]);
     const pendant = await tirer(A, await centre(A, selR), pc);
@@ -225,6 +232,9 @@ async function tirer(S, de, vers) {
     vrai('le même horaire est refusé, et l\'écran le DIT (« C\'est déjà son horaire »)', await attendre(A, () => { const e = document.getElementById('info-erreur'); return e && !e.hidden && /déjà son horaire/.test(e.textContent); }));
 
     v('aucune erreur JavaScript', [A.erreurs, B.erreurs, P.erreurs], [[], [], []]);
+  } catch (e) {
+    /* ⛔ un geste qui n'aboutit pas (un élément jamais visible, une feuille jamais ouverte) est un CONSTAT, pas une mort : la sonde le dit, imprime son total et sort en 1 */
+    vrai('la sonde va au bout de son parcours (arrêtée par : ' + String(e && e.message || e).split('\n')[0].slice(0, 200) + ')', false);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }
   fin();
 })().catch(e => { console.error(e); process.exit(2); });
