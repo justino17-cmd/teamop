@@ -2787,6 +2787,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     for (const r of Q('SELECT id, type, titre_ch FROM notification WHERE auteur = ?').all(uid)) {
       const texte = r.type === 'contact_ajoute' ? 'Un compte supprimé était dans vos contacts.' : r.type === 'contact_demande' ? 'Un compte supprimé voulait vous ajouter à ses contacts.' : r.type === 'mention' ? 'Un compte supprimé vous a mentionné.' : r.type === 'espace' ? 'Un compte supprimé a rejoint l\'espace.'
         : r.type === 'appel_manque' ? 'Un compte supprimé vous a appelé.' : r.type === 'reunion_invitation' ? 'Un compte supprimé vous a invité à une réunion.' : r.type === 'reunion_modifiee' ? 'Un compte supprimé a modifié une réunion.' : r.type === 'reunion_annulee' ? 'Un compte supprimé a annulé une réunion.'
+        : r.type === 'reunion_decalee' ? 'Un compte supprimé a décalé une réunion.'
         : 'Un compte supprimé vous a ajouté au groupe.';
       let titre = ouvrirOuNull('notification', 'titre_ch', r.id + '|titre', r.titre_ch);
       if (titre === null) titre = '';

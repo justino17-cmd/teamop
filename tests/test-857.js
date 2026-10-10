@@ -580,7 +580,9 @@ async function controler(PAGE, SRC, DOC) {
         modesActifs: () => cA.modes === true, coteReu: () => 'pro', coteEvt: () => 'perso', nomPersonne: id => ({ p_bob: 'Bob Martin', p_cleo: 'Cléo Durand', p_dan: 'Dan', p_eve: 'Eve' })[id] || 'Quelqu\'un',
         occurrencesDuJour: () => cA.duJour || [] };
       vm.createContext(cA);
-      vm.runInContext(JS.slice(iA, fA) + '\nthis.G = { peutDecaler, raisonNonDecalable, htmlMenuAgenda, conflitsAgenda, caseJour, elementAgenda, phrasePrevenus };', cA, { timeout: 2000 });
+      const iL = JS.indexOf('function localDans(t, tz) {'), fL = JS.indexOf('const PAYS_FUSEAUX = [', iL), ligne = d => { const i = JS.indexOf(d); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
+      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + JS.slice(iA, fA) +
+        '\nthis.G = { peutDecaler, raisonNonDecalable, htmlMenuAgenda, conflitsAgenda, caseJour, elementAgenda, phrasePrevenus, modeleDecalage, snapDecalage, debutDecale, jourDans, joursEntre, cleAgenda };', cA, { timeout: 2000 });
       G = cA.G;
     } catch (e) { G = null; }
     vrai('(population) les fonctions de l\'agenda de pro s\'exécutent dans un bac à sable (' + (fA - iA) + ' caractères)', iA > 0 && fFin > iA && fA > iA && !!G);
@@ -607,6 +609,23 @@ async function controler(PAGE, SRC, DOC) {
         G.conflitsAgenda(maintenant + 26 * H, maintenant + 27 * H, 'r1').map(y => y.r ? y.r.id : y.e.id).sort(), ['e1', 'r2']);
       v('l\'occurrence d\'une série se retrouve par son début ; une réunion d\'une seule date, même sans début dit', [G.elementAgenda('r', 'r1', maintenant + 26 * H).o.debut, G.elementAgenda('r', 'r5', null).o.debut, G.elementAgenda('r', 'r1', 1), G.elementAgenda('e', 'e1').e.titre], [maintenant + 26 * H, maintenant + 30 * H, cA.reu.liste[0].occurrences.length === 1 ? G.elementAgenda('r', 'r1', 1) : null, 'A']);
       v('qui sera prévenu : les noms (trois au plus, puis « et N autres »), ou que rien n\'est envoyé', [G.phrasePrevenus(['p_bob']).slice(0, 29), /Bob Martin, Cléo Durand, Dan et 1 autre —/.test(G.phrasePrevenus(['p_bob', 'p_cleo', 'p_dan', 'p_eve'])), G.phrasePrevenus([])], ['Seront prévenus : Bob Martin ', true, 'Personne d\'autre n\'est invité : rien n\'est envoyé.']);
+      /* ⛔ (relecture, I1) la liste de l'agenda ne porte que QUATRE participants : « qui sera prévenu » compte avec `participantsN` (organisateur compris), jamais avec la liste tronquée */
+      cA.reu.liste = [R({ id: 'r6', titre: 'Six invités', participants: ['p_moi', 'p_bob', 'p_cleo', 'p_dan'], participantsN: 7, occurrences: [futur] })];
+      const m6 = G.modeleDecalage({ type: 'r', id: 'r6', debut: futur.debut });
+      v('⛔ six invités dont trois nommés dans la liste : le modèle en compte SIX, et la phrase dit « et 3 autres » ; sans un nom, la phrase compte encore',
+        [m6 && m6.prevenusN, m6 && /Bob Martin, Cléo Durand, Dan et 3 autres —/.test(G.phrasePrevenus(m6.prevenus, m6.prevenusN)), /^Seront prévenus : 2 participants —/.test(G.phrasePrevenus([], 2))], [6, true, true]);
+      /* ⛔ (relecture, I5) l'heure gardée est celle du FUSEAU de la réunion : 9 h à New York le mercredi 28 octobre (heure d'été là-bas) → 9 h à New York le mercredi 4 novembre (heure
+         d'hiver là-bas) — un calcul à l'heure de l'appareil (Paris, ou UTC) donnerait 8 h à New York */
+      const ny28 = Date.UTC(2026, 9, 28, 13, 0), ny4 = Date.UTC(2026, 10, 4, 14, 0);
+      v('⛔ décaler de sept jours garde 9 h À NEW YORK (14:00 UTC le 4 novembre, pas 13:00) ; zéro jour ne change rien ; un fuseau illisible retombe sur l\'appareil',
+        [G.debutDecale(ny28, 7, 'America/New_York'), G.debutDecale(ny28, 0, 'America/New_York'), G.debutDecale(ny28, 1, 'Pas/UnFuseau') - ny28], [ny4, ny28, 86400000]);
+      v('les jours tirés se comptent d\'une case à l\'autre (un minuit de 23 ou 25 h compte un jour) ; une journée entière a la date de SON fuseau',
+        [G.joursEntre(1000, 1000 + 2 * 86400000 - 3600000), G.joursEntre(1000, 1000 - 86400000), (d => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate())(new Date(G.jourDans(Date.UTC(2026, 9, 13, 22), 'Europe/Paris')))], [2, -1, 20261014]);
+      /* la FICHE d'une réunion (hors de la fenêtre chargée) dit la même chose que l'agenda : qui peut, qui sera prévenu */
+      const fiche = (o) => Object.assign({ titre: 'Hors semaine', debut: futur.debut, fin: futur.fin, tz: 'Europe/Paris', annulee: false, repetition: 'aucune', moi: { hote: true }, invites: [{ id: 'p_moi', hote: true }, { id: 'p_bob' }, { id: 'p_cleo' }] }, o || {});
+      v('⛔ la fiche : l\'organisateur peut (deux prévenus, pas lui) ; l\'invité, une série, une annulée, une passée ne peuvent pas — et la phrase dit pourquoi',
+        [(s => [s.peut, s.prevenusN, s.prevenus.join()])(G.snapDecalage('r_f', fiche())), G.snapDecalage('r_f', fiche({ moi: { hote: false } })).raison, G.snapDecalage('r_f', fiche({ repetition: 'hebdomadaire' })).peut, G.snapDecalage('r_f', fiche({ annulee: true })).raison, G.snapDecalage('r_f', fiche({ debut: maintenant - 3 * H, fin: maintenant - 2 * H })).raison, G.snapDecalage('r_f', null)],
+        [[true, 2, 'p_bob,p_cleo'], 'Seul l\'organisateur peut décaler cette réunion.', false, 'Cette réunion est annulée.', 'Cette réunion est passée.', null]);
       /* la case : un conteneur, le numéro en bouton, chaque rendez-vous un bouton (sauf une séance terminée), « +N » au-delà */
       const t = Date.UTC(2026, 9, 12, 22);
       cA.reu.jour = t; cA.duJour = [x(R({ id: 'r1' })), x(R({ id: 'r9', titre: 'Finie' }), { debut: maintenant - 3 * H, fin: maintenant - 2 * H, seance: { dureeS: 600, n: 2 } }), { e: { id: 'e1', titre: 'Dentiste', debut: futur.debut, fin: futur.fin }, o: futur }, x(R({ id: 'r7', titre: 'Quatre' }))];
@@ -622,8 +641,18 @@ async function controler(PAGE, SRC, DOC) {
     vrai('⛔ annuler une réunion ou supprimer un événement depuis le menu demande une SECONDE touche, dite',
       /if \(act === 'annuler' && b\.dataset\.pret !== '1'\) \{/.test(JS) && /if \(act === 'supprimer' && b\.dataset\.pret !== '1'\) \{/.test(JS));
     vrai('⛔ RIEN NE PART AU LÂCHER : un rendez-vous tiré sur un autre jour ouvre la feuille « Décaler », l\'heure gardée ; la grille ne se redessine pas sous un rendez-vous qu\'on tire',
-      /if \(jour !== null\) ouvrirDecaler\(T\.el\.dataset\.ag, T\.el\.dataset\.id, \+T\.el\.dataset\.debut \|\| null, jour, T\.el\);/.test(JS) && /if \(ag\.tire && ag\.tire\.actif\) \{ ag\.aRendre = true; return; \}/.test(JS)
-      && /n\.setHours\(a\.getHours\(\), a\.getMinutes\(\), 0, 0\);/.test(JS) && /\(CAP\.reunions && mode === 'decaler' && \(ID_REUNION\.test\(arg \|\| ''\) \|\| \(CAP\.agenda && ID_EVT\.test\(arg \|\| ''\)\)\)\)/.test(JS));
+      /if \(jour !== null\) ouvrirDecaler\(T\.el\.dataset\.ag, T\.el\.dataset\.id, \+T\.el\.dataset\.debut \|\| null, retrouverAgenda\(T\.el, cle\), \{ jour, depart \}\);/.test(JS) && /if \(ag\.tire && ag\.tire\.actif\) \{ ag\.aRendre = true; return; \}/.test(JS)
+      && /if \(D\.jour !== null && D\.depart !== null\) \{ const n = joursEntre\(D\.depart, D\.jour\); nd = X\.journee \? plusJours\(base, n\) : debutDecale\(X\.debut, n, X\.tz\); \}/.test(JS) && /\(CAP\.reunions && mode === 'decaler' && \(ID_REUNION\.test\(arg \|\| ''\) \|\| \(CAP\.agenda && ID_EVT\.test\(arg \|\| ''\)\)\)\)/.test(JS));
+    vrai('⛔ (relecture) la case ENTIÈRE choisit le jour ; le focus d\'un rendez-vous de plusieurs jours revient sur SA case ; le bouton du menu se retrouve après un rafraîchissement ; Échap pendant un glisser avale le clic JUSQU\'AU relâcher ; un bouton relâché hors de la fenêtre arrête le glisser',
+      /const b = e\.target\.closest\('\[data-jour\]'\) \|\| e\.target\.closest\('\.mjour\[data-case\]'\); if \(!b\) return;/.test(JS) && /return c \? \['\[data-case="' \+ p\(c\.dataset\.case\) \+ '"\] ' \+ base, base\] : \[base\];/.test(JS)
+      && /const m0 = etat\.menu, d = m0\.agenda \? retrouverAgenda\(m0\.declencheur, m0\.cle\) : m0\.declencheur; etat\.menu = null;/.test(JS) && /declencheur: el, cle: cleAgenda\(el\),/.test(JS)
+      && /if \(ag\.avale === e\.pointerId\) \{ ag\.avale = null; ag\.clicAvale = Date\.now\(\) \+ 500; \}/.test(JS) && /ag\.tire = null; ag\.avale = T\.id; finTirer\(T, false\);/.test(JS)
+      && /if \(!\(e\.buttons & 1\)\) \{ ag\.tire = null; if \(T\.actif\) finTirer\(T, false\); return; \}/.test(JS));
+    vrai('⛔ (relecture) une réunion absente de la fenêtre chargée se RELIT avant de dire « n\'existe plus » ; une réussite ne ferme que SA feuille ; une heure qui n\'existe pas et l\'heure du fuseau de la réunion se disent',
+      /if \(type === 'r' && !D\.lu && typeof source\.reunion === 'function'\) \{/.test(JS) && (JS.match(/if \(reu\.decalageForm === F\) \{ reu\.decalage = null; reu\.decalageForm = null; if \(etat\.groupe\.ouvert && etat\.groupe\.mode === 'decaler'\) fermerCouche\(\); \}/g) || []).length === 2
+      && /n\\'existe pas ce jour-là \(changement d\\'heure\) : ce sera '/.test(JS) && /'Heure de ' \+ villeDe\(F\.tz\)/.test(JS) && /if \(t === F\.base\)/.test(JS));
+    vrai('⛔ (relecture) au doigt sur tablette : 44 px aux rendez-vous, au numéro et à « +N » de la semaine ; au mois, la case entière choisit le jour (les puces ne volent pas le toucher)',
+      /@media \(min-width: 700px\) and \(pointer: coarse\) \{\s*\.sem-grille \.mjour-num \{ min-height: 44px; \}\s*\.sem-grille \.mjour-elt \{ min-height: 44px;[^}]*\}\s*\.sem-grille \.mjour-plus \{ min-height: 44px; min-width: 44px;[^}]*\}\s*#mois-jours \.mjour-elt, #mois-jours \.mjour-plus \{ pointer-events: none; \}/.test(CSS));
     vrai('⛔ la feuille envoie l\'heure LOCALE de la réunion dans SON fuseau, avec le motif ; un événement garde sa durée (et ses jours)',
       /source\.decalerReunion\(F\.id, \{ debut: localDans\(t, F\.tz\), fin: localDans\(t \+ F\.duree, F\.tz\), motif \}\)/.test(JS) && /\{ journee: true, debut: ymdDe\(t\), fin: ymdDe\(plusJours\(t, F\.jours - 1\)\) \} : \{ debut: localDans\(t, F\.tz\), fin: localDans\(t \+ F\.duree, F\.tz\) \}/.test(JS));
     vrai('la semaine est une grille dès 700 px (la bande des jours au téléphone) ; un rendez-vous ne garde pas le menu du système au doigt (pas de bulle d\'iOS)',

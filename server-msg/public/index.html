@@ -1603,6 +1603,14 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   .mjour-elt time { font-variant-numeric: tabular-nums; color: var(--sub); margin-right: 4px; }
   .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub); }
 }
+/* ⛔ AU DOIGT, SUR TABLETTE (relecture du 10 octobre 2026 : une puce de 19 px entre deux voisines à 2 px se rate) : la SEMAINE donne 44 px à chaque rendez-vous, au numéro et à « +N » ;
+   le MOIS garde ses puces comme une vue d'ensemble — la case ENTIÈRE choisit le jour, et la liste du jour, juste dessous (44 px par ligne), ouvre, décale, répond (appui long). */
+@media (min-width: 700px) and (pointer: coarse) {
+  .sem-grille .mjour-num { min-height: 44px; }
+  .sem-grille .mjour-elt { min-height: 44px; padding-top: 13px; padding-bottom: 13px; line-height: 18px; }
+  .sem-grille .mjour-plus { min-height: 44px; min-width: 44px; display: inline-flex; align-items: center; justify-content: center; }
+  #mois-jours .mjour-elt, #mois-jours .mjour-plus { pointer-events: none; }
+}
 @media (min-width: 700px) and (hover: hover) and (pointer: fine) {
   .mjour-elt.bouge { cursor: grab; }
   .mjour-elt:hover { background: color-mix(in srgb, var(--accent) 30%, transparent); }
@@ -1629,6 +1637,8 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .dc-motifs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
 .dc-motifs .mini[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
 .dc-conflit { color: var(--rouge-txt); font-weight: 600; }
+/* une région qui se DIT reste dans l'arbre, vide : un lecteur d'écran n'annonce pas une région qui apparaît déjà remplie */
+.dc-conflit:empty, .dc-note:empty { margin: 0; }
 .reunion-ligne { width: 100%; display: flex; align-items: stretch; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-align: left; transition: background-color .15s; }
 .reunion-ligne:active { transform: scale(.985); }
 .reunion-ligne.terminee:active { transform: none; }      /* une réunion terminée n'est plus un bouton : rien ne s'enfonce sous le doigt */

@@ -752,6 +752,8 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
     const apresRefus = (await hu.get('/api/reunions/' + RM)).j;
     v('… et le refus n\'a RIEN écrit : même version, même lieu, même notification, une conversation qui compte vingt modifications et pas vingt et une',
       [apresRefus.reunion.version, apresRefus.reunion.lieu, (await notifsGil()).length, (await hu.get('/api/conversations/' + apresRefus.reunion.conv + '/messages')).j.messages.filter(x => x.type === 'systeme' && x.meta.k === 'reunion_modifiee').length], [version20, 'Salle 19', 1, 20]);
+    const decaleTrop = await hu.post('/api/reunions/' + RM + '/decaler', { debut: '2026-10-29T09:00', fin: '2026-10-29T10:00', motif: 'Imprévu' });
+    v('⛔ « décaler » partage CE plafond : après vingt modifications, un décalage est refusé (429 `trop_de_modifications`), la réunion n\'a pas bougé', [decaleTrop.code, decaleTrop.j.error, (await hu.get('/api/reunions/' + RM)).j.reunion.version], [429, 'trop_de_modifications', version20]);
     v('… le plafond est PAR RÉUNION : une autre réunion du même hôte se modifie encore (200),', [(await hu.post('/api/reunions/' + RS + '/modifier', { lieu: 'Ailleurs' })).code], [200]);
     avancer(61 * MIN);
     v('une heure plus tard la réunion se modifie de nouveau (200)', (await hu.post('/api/reunions/' + RM + '/modifier', { lieu: 'Salle 21' })).code, 200);
