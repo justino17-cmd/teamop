@@ -164,6 +164,12 @@ else (async () => {
     const ap = sansAppels(recus(dB).slice(n2b)).map(x => x.titre);
     v('⛔ aperçu activé : « Pro · Ana Banc · Chantier » pour le Pro, « Cleo Banc · Week-end » pour le Perso', ap, ['Pro · Ana Banc · Chantier', 'Cleo Banc · Week-end']);
     await b.post('/api/moi/maj', { prefs: { apercu_notif: false } });
+    /* ⛔ ce qui n'est d'AUCUNE conversation (la notification d'essai) ne se devine pas Pro : « OP MESSAGES », jamais un faux « PRO » */
+    const n2c = recus(dB).length;
+    const es = await b.post('/api/push/essai', {});
+    await attendreN(dB, n2c + 1);
+    const ess = sansAppels(recus(dB).slice(n2c)).find(x => x.type === 'essai') || {};
+    v('⛔ la notification d\'essai (d\'aucune conversation) s\'intitule « OP MESSAGES » — rien n\'est deviné', [es.code, ess.titre], [200, 'OP MESSAGES']);
 
     console.log('\n6. De nouveau hors des heures, tout lu avant la reprise : aucun résumé');
     avancer(60 * 60000 + 60000);                                // la fin de la plage est passée : dehors
