@@ -1560,30 +1560,74 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .mois { margin: 0 0 16px; }
 .mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub); text-align: center; }
 .mois-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
-.mjour { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; border-radius: 12px; color: var(--text); }
-.mjour > b { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mjour { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: stretch; border-radius: 12px; color: var(--text); }
+/* (10 octobre 2026) la case n'est plus UN bouton : au téléphone, son NUMÉRO la remplit (toucher la case choisit le jour) ; au large, il se range en haut et les rendez-vous sont des boutons dessous */
+.mjour-num { flex: 1; min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 2px; border-radius: 12px; color: inherit; }
+.mjour-num > b { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.mjour-nom { display: none; }
 .mjour.hors { color: var(--sub); }
-.mjour.hors > b { font-weight: 400; }
-.mjour[aria-current="date"] > b { color: var(--accent-txt); }
-.mjour[aria-pressed="true"] > b { background: var(--fill); color: var(--on-fill); }
+.mjour.hors .mjour-num > b { font-weight: 400; }
+.mjour-num[aria-current="date"] > b { color: var(--accent-txt); }
+.mjour-num[aria-pressed="true"] > b { background: var(--fill); color: var(--on-fill); }
 .mjour-points { display: flex; gap: 3px; height: 5px; }
 .mjour-points i { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .8; }
 .mjour-elts { display: none; }
-.mjour:focus-visible { outline-offset: -2px; }
+.mjour-num:focus-visible { outline-offset: -2px; }
+.sem-grille { display: none; }
 @media (min-width: 700px) {
   .mois-jours { gap: 4px; }
-  .mjour { min-height: 108px; align-items: stretch; gap: 2px; padding: 4px 4px 6px; border-radius: 10px; background: var(--card); text-align: left; }
+  .mjour { min-height: 108px; gap: 2px; padding: 4px 4px 6px; border-radius: 10px; background: var(--card); text-align: left; }
   .mjour.hors { background: transparent; box-shadow: inset 0 0 0 1px var(--fill-soft); }
-  .mjour > b { align-self: flex-end; width: 28px; height: 28px; font-size: 14px; }
-  .mjour[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accent); }
+  .mjour-num { flex: none; min-height: 0; flex-direction: row; align-items: center; justify-content: flex-end; gap: 4px; padding: 0; border-radius: 8px; }
+  .mjour-num > b { width: 28px; height: 28px; font-size: 14px; }
+  .mjour.choisi { box-shadow: inset 0 0 0 2px var(--accent); }
   .mjour-points { display: none; }
   .mjour-elts { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .mjour-elt { display: block; min-width: 0; padding: 1px 6px; border-radius: 5px; font-size: 12px; line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); }
+  .mjour-elt { display: block; width: 100%; min-width: 0; padding: 1px 6px; border-radius: 5px; font-size: 12px; line-height: 17px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .mjour-elt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .mjour-elt.fait { text-decoration: line-through; opacity: .7; }
+  .mjour-elt.terminee { opacity: .6; }
+  /* la SEMAINE en grille : les sept cases du mois, plus hautes, le nom du jour devant son numéro */
+  .sem-jours { display: none; }
+  .sem-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
+  .sem-grille .mjour { min-height: 220px; }
+  .sem-grille .mjour-num { justify-content: space-between; padding-left: 4px; }
+  .sem-grille .mjour-nom { display: block; font-size: 12px; line-height: 16px; color: var(--sub); }
+  /* le glisser (souris) : la main, la case visée, le fantôme qui suit */
+  .mjour-elt.tire { opacity: .35; }
+  .mjour.cible { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
+  .mjour-elt.fantome { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); background: var(--sheet-bg); }
   .mjour-elt.journee { background: color-mix(in srgb, var(--accent) 34%, transparent); }
   .mjour-elt.annulee { text-decoration: line-through; opacity: .7; }
   .mjour-elt time { font-variant-numeric: tabular-nums; color: var(--sub); margin-right: 4px; }
-  .mjour-plus { padding: 0 6px; font-size: 12px; line-height: 16px; color: var(--sub); }
+  .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub); }
 }
+@media (min-width: 700px) and (hover: hover) and (pointer: fine) {
+  .mjour-elt.bouge { cursor: grab; }
+  .mjour-elt:hover { background: color-mix(in srgb, var(--accent) 30%, transparent); }
+  html.ag-tire, html.ag-tire * { cursor: grabbing !important; -webkit-user-select: none; user-select: none; }
+  /* le menu d'un rendez-vous, À L'ENDROIT du clic droit, comme un menu du système */
+  .menu-fond.ag { display: block; padding: 0; background: transparent; }
+  .menu-fond.ag .menu-msg { position: fixed; left: var(--ag-x, 24px); top: var(--ag-y, 24px); width: 264px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto; border-radius: 12px; padding: 4px; }
+  .menu-fond.ag .menu-action { min-height: 34px; padding: 0 10px; border-bottom: 0; border-radius: 7px; font-size: 14px; }
+  .menu-fond.ag .menu-question { padding: 6px 10px 4px; font-size: 13px; text-align: left; }
+}
+.menu-titre { display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.menu-titre b { font-weight: 600; overflow-wrap: anywhere; }
+.menu-titre small, .menu-question small { display: block; font-size: 13px; color: var(--sub); }
+.menu-reponses { display: flex; border-bottom: var(--sep); }
+.menu-reponses .menu-reponse { flex: 1; justify-content: center; padding: 0 6px; border-bottom: 0; font-size: 15px; }
+.menu-reponses .menu-reponse[aria-pressed="true"] { color: var(--accent-txt); font-weight: 600; }
+.reunion-ligne { -webkit-touch-callout: none; }
+/* la feuille « Décaler le rendez-vous » */
+.dc-tete { display: grid; gap: 4px; }
+.dc-titre { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
+.dc-ligne { display: flex; gap: 8px; font-size: 15px; line-height: 20px; }
+.dc-ligne span { flex: none; width: 72px; color: var(--sub); }
+.dc-nouveau b { font-weight: 600; }
+.dc-motifs { display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 8px; }
+.dc-motifs .mini[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
+.dc-conflit { color: var(--rouge-txt); font-weight: 600; }
 .reunion-ligne { width: 100%; display: flex; align-items: stretch; gap: 12px; min-height: 64px; padding: 10px 14px; color: var(--text); text-align: left; transition: background-color .15s; }
 .reunion-ligne:active { transform: scale(.985); }
 .reunion-ligne.terminee:active { transform: none; }      /* une réunion terminée n'est plus un bouton : rien ne s'enfonce sous le doigt */

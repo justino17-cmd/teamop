@@ -85,6 +85,7 @@
     introuvable: 'Introuvable (la conversation a peut-être été supprimée ou tu n\'y es plus).',
     reunion_introuvable: 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.',
     invalide: 'La demande est incorrecte.',
+    motif_invalide: 'Le motif tient en une ligne de 200 caractères au plus.',      // (« décaler » : refusé ICI, avant le service — la même phrase que la sienne, api.js)
     appel_vide: 'Choisis un contact à appeler.',
     appel_navigateur: 'Ce navigateur ne sait pas passer d\'appels. Essaie avec une version récente de Chrome, Firefox, Edge ou Safari.',
     /* les notifications : chaque état où l'interrupteur ne peut pas tourner DIT pourquoi, et comment en sortir */

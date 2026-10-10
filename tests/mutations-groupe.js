@@ -21,8 +21,11 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 900000;
 const F = { page: 'apercu/opmessages/index.html' };
-const BANCS = ['905', '909', '945', '946', '986', '987', '988', '989', '990', 'sonde'];
+const BANCS = ['905', '909', '945', '946', '976', '986', '987', '988', '989', '990', 'sonde', 'sonde-agenda'];
 const SONDE_FICHIER = 'sonde-opmessages-groupe.js';
+/* (10 octobre 2026) une seconde sonde : l'agenda de pro (la semaine en grille, le clic droit, glisser pour décaler) — « sonde-agenda » dans les bancs d'une mutation */
+const SONDES = { sonde: SONDE_FICHIER, 'sonde-agenda': 'sonde-opmessages-agenda-decaler.js' };
+const fichierSonde = (s) => SONDES[s.split(':')[0]] || SONDE_FICHIER;
 const MUTATIONS = [];
 /* [id, nom, [[fichier, ancien, nouveau], …], suites, option] — `ancien` : une chaîne (une seule occurrence). */
 const CATALOGUE = [
@@ -66,6 +69,19 @@ const CATALOGUE = [
   ["RT9", "⛔ la galerie montre les photos d'AVANT mon arrivée", [["server-msg/stockage.js", ".all(conv, genre, m.depuis_seq, avantSeq === null", ".all(conv, genre, 0, avantSeq === null"]], ["946"]],
   ["RT10", "une requête d'un seul signe passe", [["server-msg/routes.js", "if (q === null || n < RECH_MIN || n > RECH_MAX || Array.from(stockage.requeteRech(q)).length < RECH_MIN || Number.isNaN(av))", "if (q === null || n > RECH_MAX || Number.isNaN(av))"]], ["946"]],
   ["RT11", "un résultat rend le texte ENTIER au lieu d'un extrait autour de l'occurrence", [["server-msg/stockage.js", "texte: entier ? source : extraitAutour(source, qn, 60)", "texte: entier ? source : source"]], ["946"]],
+  /* ── A. L'AGENDA DE PRO (10 octobre 2026) : la semaine en grille, le clic droit, glisser pour décaler — joués par la sonde de l'agenda contre le vrai service ── */
+  ["AG1", "⛔ un rendez-vous lâché sur un autre jour n'ouvre plus la feuille « Décaler » (le glisser ne mène nulle part)", [["apercu/opmessages/index.html", "if (jour !== null) ouvrirDecaler(", "if (false) ouvrirDecaler("]], ["sonde-agenda"]],
+  ["AG2", "⛔ le délai de l'appui long avale le premier choix d'un menu ouvert au clic droit", [["apercu/opmessages/index.html", "t: sansDelai ? 0 : Date.now()", "t: Date.now()"]], ["sonde-agenda"]],
+  ["AG3", "Maj+F10 ouvre le menu au point que donne le navigateur, plus sous le rendez-vous", [["apercu/opmessages/index.html", "const souris = Date.now() - ag.droit < 1500;", "const souris = true;"]], ["sonde-agenda"]],
+  ["AG4", "⛔ la feuille « Décaler » envoie sans le motif (Bruno ne sait pas pourquoi)", [["apercu/opmessages/index.html", "fin: localDans(t + F.duree, F.tz), motif })", "fin: localDans(t + F.duree, F.tz) })"]], ["sonde-agenda"]],
+  ["AG5", "⛔ lâché sur un autre jour, le rendez-vous perd son heure (9 h au lieu de 14 h)", [["apercu/opmessages/index.html", "n.setHours(a.getHours(), a.getMinutes(), 0, 0);", "n.setHours(9, 0, 0, 0);"]], ["sonde-agenda"]],
+  ["AG6", "⛔ un chevauchement n'est plus dit dans la feuille", [["apercu/opmessages/index.html", "conf.hidden = !c.length;", "conf.hidden = true;"]], ["sonde-agenda"]],
+  ["AG7", "⛔ chez l'invité, le menu propose « Décaler » et la réunion se tire (l'organisateur seul décale)", [["apercu/opmessages/index.html", "return typeof source.decalerReunion === 'function' && !!x.r.moi.hote && !x.r.annulee", "return typeof source.decalerReunion === 'function' && !x.r.annulee"]], ["sonde-agenda"]],
+  ["AG8", "au bureau, la semaine redevient la bande des pastilles (plus de grille)", [["apercu/opmessages/index.html", "  .sem-jours { display: none; }\n  .sem-grille { display: grid;", "  .sem-grille { display: none;"]], ["sonde-agenda"]],
+  ["AG9", "⛔ le relâcher d'un glisser ouvre le rendez-vous qu'on vient de lâcher (le clic qui suit n'est plus avalé)", [["apercu/opmessages/index.html", "if (Date.now() < ag.clicAvale) return;", ""]], ["sonde-agenda"]],
+  ["AG10", "⛔ l'appui long sur une ligne de l'agenda n'ouvre plus le menu (le doigt n'a pas de clic droit)", [["apercu/opmessages/index.html", "h: setTimeout(() => { lp = null; ouvrirMenuAgenda(el, null); if (etat.menu) etat.menu.appuiLong = true; }, 480)", "h: setTimeout(() => { lp = null; }, 480)"]], ["sonde-agenda"]],
+  ["AG11", "un motif trop long, refusé par le module, se dit « La demande est incorrecte. »", [["server-msg/public/source-serveur.js", "    motif_invalide: 'Le motif tient en une ligne de 200 caractères au plus.',      // (« décaler » : refusé ICI, avant le service — la même phrase que la sienne, api.js)\n", ""]], ["976"]],
+  ["AG12", "⛔ le module n'envoie plus le motif au service", [["server-msg/public/source-serveur.js", "motif: motif || null }));", "motif: null }));"]], ["976"]],
   ["RT12", "⛔ deux accents seuls passent la route (vides une fois normalisés)", [["server-msg/routes.js", " || Array.from(stockage.requeteRech(q)).length < RECH_MIN", ""]], ["946"]],
   ["RT13", "⛔ plus de budget de SIGNES : un appel déchiffre autant de texte que ses lignes en portent", [["server-msg/stockage.js", "        if (signes >= plafondSignes) { coupe = true; break; }\n", ""], ["server-msg/stockage.js", "while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {", "while (resultats.length < max && lus < plafondLignes) {"]], ["946"]],
   ["RT14", "⛔ plus de borne de LIGNES par appel (un lot de 200 d'un coup)", [["server-msg/stockage.js", "const demande = Math.min(200, plafondLignes - lus);", "const demande = 200;"], ["server-msg/stockage.js", "while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {", "while (resultats.length < max && signes < plafondSignes) {"]], ["946"]],
@@ -146,7 +162,7 @@ const CATALOGUE = [
   ["U04", "⛔ la pastille « nouveau message » du bouton Discussion n'a plus de point de départ (le fil à l'entrée)", [["apercu/opmessages/index.html", "    if (s.conv && !s.attente && !X.discutee) { X.discutee = true; salleDiscussionCharger(A, true); }", "    if (false) { X.discutee = true; }"]], ["sonde:1,2"]],
   ["U05", "⛔ le refus d'une sonnerie (salle pleine) ne dit plus pourquoi : « Appel manqué. »", [["server-msg/public/source-serveur.js", "finir(c, 'manque', { avis: e.dit && typeof e.phrase === 'function' ? e.phrase() : undefined, service: false });", "finir(c, 'manque', { avis: undefined, service: false });"]], ["sonde:1"]],
 ];
-for (const [id, nom, edits, suites, o] of CATALOGUE) MUTATIONS.push(Object.assign({ id, nom, edits, suites, sonde: suites.some((s) => s === 'sonde' || s.startsWith('sonde:')) }, o || {}));
+for (const [id, nom, edits, suites, o] of CATALOGUE) MUTATIONS.push(Object.assign({ id, nom, edits, suites, sonde: suites.some((s) => s === 'sonde' || s.startsWith('sonde:') || Object.prototype.hasOwnProperty.call(SONDES, s)) }, o || {}));
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const PREMIERE = new Set([]);          // propre aux mutations des appels à deux : ici chaque motif est unique
@@ -168,12 +184,12 @@ function fabriquerCopie() {
   fs.symlinkSync(path.join(RACINE, 'server', 'node_modules'), path.join(dir, 'server', 'node_modules'));
   return dir;
 }
-const estSonde = (s) => s === 'sonde' || s.startsWith('sonde:');          // « sonde:1,5 » : la sonde, qui ne joue que ces blocs (SEULEMENT) — les blocs 1 à 7 forment UNE réunion, mais 1 et 5 se jouent seuls
-const nomBanc = (s) => estSonde(s) ? 'la sonde (blocs ' + (s.split(':')[1] || 'tous') + ')' : 'test-' + s;
+const estSonde = (s) => s === 'sonde' || s.startsWith('sonde:') || Object.prototype.hasOwnProperty.call(SONDES, s);          // « sonde:1,5 » : la sonde, qui ne joue que ces blocs (SEULEMENT) — les blocs 1 à 7 forment UNE réunion, mais 1 et 5 se jouent seuls
+const nomBanc = (s) => s === 'sonde-agenda' ? 'la sonde de l\'agenda' : estSonde(s) ? 'la sonde (blocs ' + (s.split(':')[1] || 'tous') + ')' : 'test-' + s;
 function lancer(dir, suite) {
   return new Promise((resolve) => {
     const sonde = estSonde(suite);
-    const f = sonde ? SONDE_FICHIER : fs.readdirSync(path.join(dir, 'tests')).find(x => x.startsWith('test-' + suite) && x.endsWith('.js'));
+    const f = sonde ? fichierSonde(suite) : fs.readdirSync(path.join(dir, 'tests')).find(x => x.startsWith('test-' + suite) && x.endsWith('.js'));
     /* ⛔ la sonde lance un VRAI Chromium, dont le dossier de profil porte une prise Unix (`SingletonSocket`, 107 octets de chemin au plus) : sous un TMPDIR long (le brouillon d'une session distante),
        « le navigateur ne démarre pas ». La sonde garde donc un TMPDIR COURT (`TMPDIR_SONDE`, par défaut /tmp), les copies, elles, restent où on les met. */
     const env = Object.assign({}, process.env, sonde ? { NODE_PATH: process.env.NODE_PATH || '/opt/node22/lib/node_modules/playwright/node_modules', TMPDIR: process.env.TMPDIR_SONDE || '/tmp', SEULEMENT: suite.split(':')[1] || '' } : {});
@@ -261,8 +277,8 @@ async function jouer(mut, dir) {
       if (vus.has(mut.id)) { mal++; console.log('  ✗ ' + mut.id + ' : identifiant en double'); }
       vus.add(mut.id);
       for (const s of mut.suites) {
-        const ok = estSonde(s) ? fs.existsSync(path.join(RACINE, 'tests', SONDE_FICHIER)) : fs.readdirSync(path.join(RACINE, 'tests')).some(x => x.startsWith('test-' + s) && x.endsWith('.js'));
-        if (!BANCS.includes(estSonde(s) ? 'sonde' : s) || !ok) { mal++; console.log('  ✗ ' + mut.id + ' : le banc « ' + s + ' » n\'existe pas'); }
+        const ok = estSonde(s) ? fs.existsSync(path.join(RACINE, 'tests', fichierSonde(s))) : fs.readdirSync(path.join(RACINE, 'tests')).some(x => x.startsWith('test-' + s) && x.endsWith('.js'));
+        if (!BANCS.includes(estSonde(s) ? s.split(':')[0] : s) || !ok) { mal++; console.log('  ✗ ' + mut.id + ' : le banc « ' + s + ' » n\'existe pas'); }
       }
       if (!!mut.sonde !== mut.suites.some(estSonde)) { mal++; console.log('  ✗ ' + mut.id + ' : ses bancs et son drapeau `sonde` ne disent pas la même chose'); }
       /* les motifs d'une mutation à plusieurs modifications du MÊME fichier se jugent l'un après l'autre sur le texte déjà modifié : on rejoue le chemin du lanceur sur un texte en mémoire */
