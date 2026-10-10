@@ -818,6 +818,8 @@ async function controler(PAGE, SRC, DOC) {
   console.log('\n══ 2. LA CONTRE-ÉPREUVE : ON REMET LE DÉFAUT SUR UNE COPIE EN MÉMOIRE, LE BANC DOIT TOMBER (ou l\'indiquer à la sonde) ══\n');
   const neutre = (await controler(PAGE, SRC, DOC)).filter(r => !r[1]).length;
   dire('copie INTACTE : 0 constat rouge (le banc ne crie pas au loup)', neutre === 0, ' — ' + neutre + ' rouge(s)');
+  const ids = MUTATIONS.map(m => m.id), doublons = ids.filter((x, i) => ids.indexOf(x) !== i);
+  dire('chaque mutation porte un identifiant UNIQUE (deux « A01 » rendent un verdict ambigu, et le lanceur n\'en jouerait qu\'un)', doublons.length === 0, doublons.length ? ' — ' + Array.from(new Set(doublons)).join(', ') : '');
   let mordent = 0, banc = 0, sondeSeule = 0, malVisees = 0;
   const SERIE = MUTATIONS.filter(m => !m.suite);                // la série A (étape 3) est éprouvée par tests/test-859.js
   for (const m of SERIE) {
