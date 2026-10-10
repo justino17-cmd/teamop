@@ -179,7 +179,7 @@ function fabriquerCopie() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mut-grp-'));
   for (const d of DOSSIERS_COPIE) copier(path.join(RACINE, d), path.join(dir, d));
   fs.mkdirSync(path.join(dir, 'tests'));
-  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|test-859|mutations-opmessages|outils-[\w-]+|bac-messages|bac-turn|bac-webrtc|lib-horloge-msg|mode-site|sonde-opmessages-groupe)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
+  for (const f of fs.readdirSync(path.join(RACINE, 'tests'))) if (/^(test-9\d\d|test-859|mutations-opmessages|outils-[\w-]+|bac-messages|bac-turn|bac-webrtc|lib-horloge-msg|mode-site|sonde-opmessages-groupe|sonde-opmessages-agenda-decaler)\.js$/.test(f)) fs.copyFileSync(path.join(RACINE, 'tests', f), path.join(dir, 'tests', f));
   fs.symlinkSync(path.join(RACINE, 'server-msg', 'node_modules'), path.join(dir, 'server-msg', 'node_modules'));
   fs.symlinkSync(path.join(RACINE, 'server', 'node_modules'), path.join(dir, 'server', 'node_modules'));
   return dir;
