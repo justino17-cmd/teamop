@@ -78,7 +78,13 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
     {
       v('le module annonce la capacité `espaces`', A.src.capacites.espaces, true);
       v('chaque méthode que la page appelle existe', METHODES.filter(k => typeof A.src[k] !== 'function'), []);
-      v('⛔ « Contacts de l\'entreprise » n\'est pas un annuaire : aucune méthode ne cherche quelqu\'un par son nom (ni « rechercher », ni « annuaire », ni « trouver »)', Object.keys(A.src).filter(k => /recherch|annuaire|trouver|chercher/i.test(k)), []);
+      /* ⛔ UNE exception déclarée : `chercher` (« Retrouver », 9 octobre 2026) cherche dans les MESSAGES d'UNE conversation dont on est membre (garde M), jamais une personne —
+         lu dans le CODE : la source passe un identifiant de conversation, l'API vise `/api/conversations/:id/messages/chercher`. Une autre méthode qui cherche fait tomber ce contrôle. */
+      const SRC_TXT = require('fs').readFileSync(path.join(T.SERVICE, 'public', 'source-serveur.js'), 'utf8'), API_TXT = require('fs').readFileSync(path.join(T.SERVICE, 'public', 'api.js'), 'utf8');
+      const chercherMessages = /async function chercher\(id, q, avant\) \{[^]*?await A\.chercher\(id, t, avantDe\(avant\)\)/.test(SRC_TXT)
+        && /chercher: \(id, q, avant\) => appel\('GET', '\/api\/conversations\/' \+ e\(id\) \+ '\/messages\/chercher' \+ rq\(\{ q, avant_seq: avant \}\)\)/.test(API_TXT);
+      v('⛔ « Contacts de l\'entreprise » n\'est pas un annuaire : aucune méthode ne cherche quelqu\'un par son nom (ni « rechercher », ni « annuaire », ni « trouver ») — seule `chercher`, qui vise les messages d\'UNE conversation',
+        [Object.keys(A.src).filter(k => /recherch|annuaire|trouver|chercher/i.test(k) && k !== 'chercher'), chercherMessages], [[], true]);
       vrai('population : trois personnes sont entrées par la porte bêta', !!alice.id && !!bob.id && !!cleo.id && new Set([alice.id, bob.id, cleo.id]).size === 3);
     }
 
