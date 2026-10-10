@@ -3057,7 +3057,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* Modifier : seuls les champs PASSÉS changent. Un changement d'HORAIRE (début, fin, fuseau, répétition, fin de répétition) date `horaire_le`, remet la réponse des invités « en attente » et
      pose le nouveau `prochain` (calculé par l'appelant). → { change, horaire, titre, lieu, gid } */
-  function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain, finSerie, attente }) {
+  /* `motif` (une chaîne, vide permise) : le geste est un DÉCALAGE (`reunions.decaler`) — la ligne de la conversation garde l'ancien horaire, le nouveau et le motif (scellés comme toute méta) ; le
+     résultat rend l'ancien horaire (`avant`), que la route met dans chaque notification */
+  function reunionModifier({ id, par, titre, lieu, debut, fin, tz, rep, n, jusqua, rappels, prochain, finSerie, attente, motif }) {
     return tx(() => {
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
       if (r.hote !== par) throw erreur('interdit');
@@ -3074,7 +3076,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const titreChange = nouveau.titre !== ancienTitre, lieuChange = nouveau.lieu !== ancienLieu;
       const rappelsChange = nouveau.rappels !== r.rappels;
       const attenteVoulue = attente === undefined ? (r.attente ? 1 : 0) : (attente ? 1 : 0), attenteChange = attenteVoulue !== (r.attente ? 1 : 0);
-      if (!horaire && !titreChange && !lieuChange && !rappelsChange && !attenteChange) return { change: false, horaire: false, titre: false, lieu: false, gid: 0 };
+      const avant = { debut: num(r.debut), fin: num(r.fin) };
+      if (!horaire && !titreChange && !lieuChange && !rappelsChange && !attenteChange) return { change: false, horaire: false, titre: false, lieu: false, gid: 0, avant };
       Q('UPDATE reunion SET titre_ch = ?, lieu_ch = ?, debut = ?, fin = ?, tz = ?, rep = ?, n = ?, jusqua = ?, fin_serie = ?, rappels = ?, attente = ?, version = version + 1, maj = ?, horaire_le = ?, prochain = ? WHERE id = ?')
         .run(titreChange ? sceller('reunion', 'titre_ch', aadReunion(id, 'titre'), nouveau.titre) : r.titre_ch,
           lieuChange ? (nouveau.lieu ? sceller('reunion', 'lieu_ch', aadReunion(id, 'lieu'), nouveau.lieu) : null) : r.lieu_ch,
@@ -3083,8 +3086,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           horaire ? (prochain === undefined ? null : prochain) : (r.prochain === null ? null : num(r.prochain)), id);
       if (titreChange) Q('UPDATE conversation SET nom_ch = ? WHERE id = ?').run(sceller('conversation', 'nom_ch', r.conv + '|nom', nouveau.titre), r.conv);
       if (horaire) Q(`UPDATE reunion_invite SET statut = 'attente', repondu = NULL WHERE reunion = ? AND uid <> ?`).run(id, r.hote);
-      if (horaire || titreChange || lieuChange) messageSysteme(r.conv, par, { k: 'reunion_modifiee', horaire });
-      return { change: true, horaire, titre: titreChange, lieu: lieuChange, gid: journalAjouter('reunion', r.conv, null, id) };
+      if (horaire && motif !== undefined) messageSysteme(r.conv, par, { k: 'reunion_decalee', avant, apres: { debut: nouveau.debut, fin: nouveau.fin }, motif: motif || null });
+      else if (horaire || titreChange || lieuChange) messageSysteme(r.conv, par, { k: 'reunion_modifiee', horaire });
+      return { change: true, horaire, titre: titreChange, lieu: lieuChange, gid: journalAjouter('reunion', r.conv, null, id), avant };
     });
   }
   /* Annuler : la réunion reste (les invités la voient « annulée », son chat aussi), plus aucun rappel ne part. Se note (`reunion_annulee`) : une archive d'avant la rendrait active. */

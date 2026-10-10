@@ -118,6 +118,10 @@
     hote_non_retirable: 'L\'organisateur ne se retire pas de sa réunion : annule-la ou supprime-la.',
     hote_non_quittable: 'L\'organisateur ne quitte pas sa réunion : annule-la ou supprime-la.',
     trop_de_modifications: 'Cette réunion vient d\'être modifiée vingt fois en une heure. Réessaie dans quelques minutes.',
+    serie_non_decalable: 'Cette réunion se répète : on ne décale pas une seule date d\'une série. Modifie la série depuis sa fiche.',
+    horaire_passe: 'Ce créneau est déjà passé : choisis un horaire à venir.',
+    horaire_identique: 'C\'est déjà l\'horaire de ce rendez-vous.',
+    motif_invalide: 'Le motif tient en une ligne de 200 caractères au plus.',
     hote_reponse: 'Tu organises cette réunion : tu n\'as pas à y répondre.',
     reunion_quitter: 'On ne quitte pas la conversation d\'une réunion toute seule : ouvre la réunion et choisis « Quitter la réunion ».',
     occurrence_inconnue: 'Cette date ne fait pas partie de la réunion.',
@@ -581,6 +585,8 @@
       programmer: (champs) => appel('POST', '/api/reunions', champs),
       reunion: (id) => appel('GET', '/api/reunions/' + e(id)),
       modifierReunion: (id, champs) => appel('POST', '/api/reunions/' + e(id) + '/modifier', champs),
+      /* DÉCALER (le glisser de l'agenda, 10 octobre 2026) : le nouvel horaire et un motif — le service prévient chaque participant */
+      decalerReunion: (id, b) => appel('POST', '/api/reunions/' + e(id) + '/decaler', b),
       /* l'ordre du jour : cocher ou décocher un point (un participant, 8 octobre 2026) → la liste à jour */
       cocherPoint: async (id, point, fait) => (await appel('POST', '/api/reunions/' + e(id) + '/ordre-du-jour', { point, fait })).ordre_du_jour,
       annulerReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/annuler'),

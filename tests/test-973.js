@@ -340,6 +340,46 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('… et Ben est toujours invité (population : la fiche garde ses deux participants)', statuts(sm.j), 'Ana:accepte Ben:attente');
     }
 
+    /* ═══ 8 bis. DÉCALER (10 octobre 2026 : « on glisse le rendez-vous… voulez-vous décaler ? problème de déplacement… ça envoie aux personnes concernées ») ═══ */
+    console.log('\nDécaler : l\'hôte seul, une réunion unique, un motif — chaque participant prévenu (ancien → nouvel horaire, motif) dans SON fuseau, jamais fusionné');
+    {
+      const rd = await mk(a, { titre: 'Visite chantier', invites: [ben.id, cleo.id, dan.id] });
+      const RD = rd.reunion.id, CONVD = rd.reunion.conv, verD = async () => (await fiche(a, RD)).j.reunion.version;
+      await b.post('/api/reunions/' + RD + '/reponse', { statut: 'accepte' }); await d.post('/api/reunions/' + RD + '/reponse', { statut: 'decline' });
+      v('Ben, invité, ne décale pas : 403 `interdit` ; une étrangère : 404 (la réunion n\'existe pas pour elle)', [(await b.post('/api/reunions/' + RD + '/decaler', { debut: '2026-10-27T09:00', fin: '2026-10-27T10:00' })).code, (await e.post('/api/reunions/' + RD + '/decaler', { debut: '2026-10-27T09:00', fin: '2026-10-27T10:00' })).code], [403, 404]);
+      const d1 = await a.post('/api/reunions/' + RD + '/decaler', { debut: '2026-10-27T09:00', fin: '2026-10-27T10:00', motif: '  Problème   de déplacement ', hote: eve.id, notifier: false });
+      v('⛔ Ana décale : 200, le nouvel horaire, l\'ANCIEN rendu (`avant`), les réponses repartent « en attente » (Dan avait décliné l\'ancienne heure)', [d1.code, d1.j.reunion.debut, d1.j.avant, statuts(d1.j)],
+        [200, Date.UTC(2026, 9, 27, 8, 0), { debut: L26, fin: L26 + HEURE }, 'Ana:accepte Ben:attente Cleo:attente Dan:attente']);
+      const tb = (await nots(b, RD)).filter(n => n.type === 'reunion_decalee'), tc = (await nots(c, RD)).filter(n => n.type === 'reunion_decalee');
+      v('⛔ « notifier: false » ne coupe pas un décalage : Ben, Cleo et Dan sont prévenus — l\'ancien horaire, le nouveau, le motif NETTOYÉ, dans le fuseau de chacun (Cleo à New York)', [tb.map(n => n.texte), tc.map(n => n.texte), (await nots(d, RD)).filter(n => n.type === 'reunion_decalee').length, tb[0] && tb[0].titre],
+        [['Ana Banc a décalé la réunion du lundi 26 octobre à 14:00 au mardi 27 octobre à 09:00. Motif : Problème de déplacement. Merci de confirmer votre présence.'],
+          ['Ana Banc a décalé la réunion du lundi 26 octobre à 09:00 au mardi 27 octobre à 04:00. Motif : Problème de déplacement. Merci de confirmer votre présence.'], 1, 'Visite chantier']);
+      v('⛔ l\'hôte n\'est pas notifié de son propre geste (population : trois invités l\'ont été)', (await nots(a, RD)).filter(n => n.type === 'reunion_decalee').length, 0);
+      const sys = (await a.get('/api/conversations/' + CONVD + '/messages')).j.messages.filter(x => x.type === 'systeme').map(x => x.meta);
+      v('⛔ la conversation de la réunion GARDE le décalage : l\'ancien et le nouvel horaire, le motif (une ligne `reunion_decalee`, pas une « modification »)', sys[sys.length - 1],
+        { k: 'reunion_decalee', avant: { debut: L26, fin: L26 + HEURE }, apres: { debut: Date.UTC(2026, 9, 27, 8, 0), fin: Date.UTC(2026, 9, 27, 9, 0) }, motif: 'Problème de déplacement' });
+      const d2 = await a.post('/api/reunions/' + RD + '/decaler', { debut: '2026-10-27T11:00', fin: '2026-10-27T12:30' });
+      const tb2 = (await nots(b, RD)).filter(n => n.type === 'reunion_decalee');
+      v('⛔ un second décalage, sans motif (et une autre durée) : une SECONDE notification — la première, qui dit d\'où l\'on venait, reste ; le texte n\'invente pas de motif', [d2.code, d2.j.reunion.fin - d2.j.reunion.debut, tb2.length, tb2.map(n => n.texte).includes('Ana Banc a décalé la réunion du mardi 27 octobre à 09:00 au mardi 27 octobre à 11:00. Merci de confirmer votre présence.')], [200, 90 * MIN, 2, true]);
+      const sys2 = (await a.get('/api/conversations/' + CONVD + '/messages')).j.messages.filter(x => x.type === 'systeme').map(x => x.meta);
+      v('… sa ligne dit « sans motif » par un null (jamais une chaîne vide)', sys2[sys2.length - 1].motif, null);
+      const v0 = await verD();
+      const REFUS = [
+        ['le même horaire', { debut: '2026-10-27T11:00', fin: '2026-10-27T12:30' }, 400, 'horaire_identique'], ['un horaire passé', { debut: '2025-01-06T10:00', fin: '2025-01-06T11:00' }, 400, 'horaire_passe'],
+        ['un début sans fin', { debut: '2026-10-28T10:00' }, 400, 'heure_invalide'], ['une fin avant le début', { debut: '2026-10-28T10:00', fin: '2026-10-28T09:00' }, 400, 'fin_avant_debut'],
+        ['une heure du trou de printemps', { debut: '2027-03-28T02:30', fin: '2027-03-28T03:30' }, 400, 'heure_inexistante'], ['un motif de 201 signes', { debut: '2026-10-28T10:00', fin: '2026-10-28T11:00', motif: 'm'.repeat(201) }, 400, 'motif_invalide'],
+        ['un motif qui n\'est pas une chaîne', { debut: '2026-10-28T10:00', fin: '2026-10-28T11:00', motif: 7 }, 400, 'motif_invalide'], ['plus de trente jours', { debut: '2026-10-28T10:00', fin: '2026-12-28T10:00' }, 400, 'reunion_trop_longue'],
+      ];
+      for (const [nom, corps2, code, err] of REFUS) { const x = await a.post('/api/reunions/' + RD + '/decaler', corps2); v('refus : ' + nom + ' → ' + code + ' ' + err, [x.code, x.j.error], [code, err]); }
+      v('⛔ aucun refus n\'a rien changé (version), ni prévenu personne (Ben : toujours deux avis)', [await verD(), (await nots(b, RD)).filter(n => n.type === 'reunion_decalee').length], [v0, 2]);
+      const se2 = await mk(a, { repetition: 'hebdomadaire', n: 4, invites: [ben.id] });
+      const xs = await a.post('/api/reunions/' + se2.reunion.id + '/decaler', { debut: '2026-10-27T09:00', fin: '2026-10-27T10:00' });
+      v('⛔ une réunion qui se RÉPÈTE ne se décale pas (une occurrence déplacerait toute la série) : 409 `serie_non_decalable`, la série n\'a pas bougé', [xs.code, xs.j.error, (await fiche(a, se2.reunion.id)).j.reunion.debut], [409, 'serie_non_decalable', L26]);
+      const ra = await mk(a, { invites: [ben.id] }); await a.post('/api/reunions/' + ra.reunion.id + '/annuler', {});
+      const xa = await a.post('/api/reunions/' + ra.reunion.id + '/decaler', { debut: '2026-10-27T09:00', fin: '2026-10-27T10:00' });
+      v('une réunion ANNULÉE ne se décale pas : 409 `reunion_annulee`', [xa.code, xa.j.error], [409, 'reunion_annulee']);
+    }
+
     /* ═══ 9. INVITER, RETIRER ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nInviter après coup, retirer : l\'hôte seul, les mêmes règles que la création');
     {
@@ -555,10 +595,14 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       const pcm = await suivant(C1);
       v('Cleo reçoit la modification (aperçu activé : le titre et la phrase)', [pcm.titre, pcm.corps, pcm.tag], [T7, 'Ana Banc a modifié la réunion.', 'reunion:' + R7]);
       v('⛔ Ben a mis la conversation en SOURDINE : la modification ne lui arrive pas en push — mais la notification dans l\'application, si (population : Cleo l\'a reçue)', [recus(B1).length, (await nots(b, R7)).length - nBavant], [1, 1]);
+      await a.post('/api/reunions/' + R7 + '/decaler', { debut: '2026-10-27T11:00', fin: '2026-10-27T12:00', motif: 'Imprévu' });
+      const pbd = await suivant(B1), pcd = await suivant(C1);
+      v('⛔ un DÉCALAGE part même en sourdine (Ben : charge minimale « Réunion décalée ») — aller à l\'ancienne heure coûte plus cher que d\'être dérangé', [pbd && pbd.corps, pbd && pbd.tag, recus(B1).length], ['Réunion décalée', 'reunion:' + R7, 2]);
+      v('… Cleo (aperçu activé) lit l\'ancien et le nouvel horaire DANS SON FUSEAU, et le motif', [pcd && pcd.titre, pcd && pcd.corps], [T7, 'Ana Banc a décalé la réunion du mardi 27 octobre à 05:00 au mardi 27 octobre à 06:00. Motif : Imprévu. Merci de confirmer votre présence.']);
       await a.post('/api/reunions/' + R7 + '/annuler', {});
       const pba = await suivant(B1), pca = await suivant(C1);
-      v('⛔ l\'ANNULATION part même en sourdine (Ben : charge minimale « Réunion annulée ») — c\'est la seconde chose qu\'il reçoit, la modification n\'a pas été retenue pour plus tard', [pba.corps, recus(B1).length], ['Réunion annulée', 2]);
-      v('… Cleo reçoit l\'annulation avec le titre et l\'heure dans son fuseau', [pca.titre, pca.corps], [T7, 'Ana Banc a annulé la réunion du mardi 27 octobre à 05:00.']);
+      v('⛔ l\'ANNULATION part même en sourdine (Ben : charge minimale « Réunion annulée ») — après l\'invitation et le décalage, la modification n\'a pas été retenue pour plus tard', [pba.corps, recus(B1).length], ['Réunion annulée', 3]);
+      v('… Cleo reçoit l\'annulation avec le titre et l\'heure dans son fuseau — l\'heure DÉCALÉE (11:00 à Paris = 06:00 à New York)', [pca.titre, pca.corps], [T7, 'Ana Banc a annulé la réunion du mardi 27 octobre à 06:00.']);
       v('l\'hôte n\'a toujours rien reçu', recus(A1).length, 0);
       const r8 = await mk(a, { titre: 'Atelier supprimé', debut: '2026-10-28T10:00', fin: '2026-10-28T11:00', invites: [ben.id] });
       const pi8 = await suivant(B1);
