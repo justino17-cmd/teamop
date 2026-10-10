@@ -1159,6 +1159,29 @@ html[data-service] .mention-apercu { display: none; }
 .citation b { display: block; font-weight: 600; color: var(--text); }
 .bulle.supprimee { background: transparent; border: 1px solid var(--faint); color: var(--sub-meta); font-style: italic; }
 .mention-modifie { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+/* RETROUVER (9 octobre 2026) : les résultats d'une recherche, la galerie d'une conversation */
+.rc-res .contact-texte { gap: 2px; }
+.rc-tete { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.rc-nom { font-size: 15px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-date { margin-left: auto; flex: none; font-size: 12px; color: var(--sub-meta); }
+.rc-extrait { font-size: 14px; line-height: 19px; color: var(--sub); overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.rc-extrait .ic { width: 14px; height: 14px; vertical-align: -2px; margin-right: 4px; }
+.rc-extrait mark { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text); border-radius: 3px; padding: 0 1px; }
+.md-grille { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; border-radius: 12px; overflow: hidden; }
+.md-photo { position: relative; aspect-ratio: 1; background: var(--field); overflow: hidden; }
+.md-photo img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.md-photo.md-indispo { opacity: .5; }
+.md-ligne { display: flex; align-items: center; gap: 8px; padding-right: 12px; border-bottom: var(--sep); }
+.md-ligne:last-child { border-bottom: 0; }
+/* le filet est porté par la RANGÉE : le bouton du fichier y est seul (donc `:last-child`), il n'en dessinait aucun, et les liens n'en avaient pas */
+.md-ligne > .contact { border-bottom: 0; }
+.md-ligne .md-fichier { flex: 1; min-width: 0; }
+.md-ligne .contact-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-liens { padding: 10px 12px 10px 16px; }
+.md-liens .contact-texte { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.md-lien { font-size: 15px; line-height: 20px; color: var(--accent-txt); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; -webkit-touch-callout: none; }
+.md-lien:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; border-radius: 3px; }
+.md-voir { flex: none; }
 /* « Transféré » (9 octobre 2026) : au-dessus de la bulle, à la taille d'un nom d'auteur — une flèche et un mot, jamais le nom de qui l'avait écrit */
 .msg-transfere { display: inline-flex; align-items: center; gap: 4px; padding: 0 12px; font-size: 11px; line-height: 14px; font-style: italic; color: var(--sub-meta); }
 .msg-transfere .ic { width: 12px; height: 12px; flex: none; }

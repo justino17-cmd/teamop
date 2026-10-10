@@ -1664,6 +1664,82 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (r.meta_ch) { try { meta = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), r.meta_ch)); } catch (e) { return null; } }
     return { auteur: r.auteur, type: r.type, texte, meta, expire: Number.isSafeInteger(r.expire_ts) ? r.expire_ts : null };
   }
+  /* ══ RETROUVER (9 octobre 2026 — l'inventaire d'OP MESSAGES : « pas de recherche dans les messages ») ══
+     Chercher dans les messages d'UNE conversation, et lister ses photos, ses fichiers, ses liens. ⛔ LE TEXTE EST SCELLÉ AU REPOS (`sceller`) : SQLite n'en voit que des octets, aucun
+     LIKE ni index plein texte n'est possible — et on n'en construit pas (un index en clair défairait le scellement). La recherche relit donc les messages que `uid` VOIT (les filtres
+     de `messagesDe` : membre depuis, ni masqué, ni échu — ni supprimé, ni système), du plus récent au plus ancien, par lots, les ouvre ICI et compare sans accents ni casse.
+     ⛔ BORNÉE : au plus `plafondLignes` messages ET `plafondSignes` signes déchiffrés par appel (`config.recherche` : la relecture a mesuré 0,3 à 0,75 s de fil bloqué pour
+     2 000 messages pleins, borné au seul nombre de lignes) ; au-delà, `suite` dit où reprendre — la page propose « Chercher plus loin ». Rien n'est retenu : ni index, ni cache, ni
+     trace de ce qui a été cherché. */
+  /* sans accents ni casse ; le texte tout ASCII (le cas ordinaire) ne passe pas par la décomposition, qui coûte plusieurs fois une mise en minuscules sur un message plein */
+  const ASCII_SEUL = /^[\x00-\x7f]*$/;
+  const normeRech = s => { const t = String(s); return ASCII_SEUL.test(t) ? t.toLowerCase() : t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); };
+  /* la requête telle qu'elle se compare : normalisée, espaces resserrés — une requête faite de seuls signes combinants y devient VIDE (et une chaîne vide se trouve partout) */
+  const requeteRech = q => normeRech(q).replace(/\s+/g, ' ').trim();
+  /* l'extrait autour de la première occurrence, dans le texte tel qu'il est écrit (accents compris) : chaque caractère est normalisé SEUL, ce qui garde la correspondance des positions */
+  function extraitAutour(t, qn, large) {
+    const cars = Array.from(t), debuts = [];
+    let acc = '';
+    for (const ch of cars) { debuts.push(acc.length); acc += normeRech(ch); }
+    const k = qn ? acc.indexOf(qn) : -1;
+    let i0 = 0;
+    if (k > 0) { while (i0 + 1 < cars.length && debuts[i0 + 1] <= k) i0++; }
+    const a = Math.max(0, i0 - large), b = Math.min(cars.length, i0 + Array.from(qn || '').length + large);
+    return (a > 0 ? '…' : '') + cars.slice(a, b).join('').replace(/\s+/g, ' ') + (b < cars.length ? '…' : '');
+  }
+  /* `filtre` (les liens) remplace la comparaison ; `entier` : un résultat rend le texte entier (sinon un extrait autour de l'occurrence) */
+  function messagesChercher(conv, uid, { q = '', avantSeq = null, max = 30, plafondLignes = 2000, plafondSignes = 1000000, filtre = null, entier = false } = {}) {
+    const m = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    if (!m) return null;
+    const qn = filtre ? '' : requeteRech(q), t0 = horloge(), resultats = [];
+    if (!filtre && !qn) return { resultats, suite: null };                  // ⛔ une requête vide ne « trouve » pas tout
+    let borne = avantSeq === null ? 9007199254740991 : avantSeq, lus = 0, signes = 0, fini = false;
+    while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {
+      const demande = Math.min(200, plafondLignes - lus);
+      const lot = Q(`SELECT seq, auteur, ts, type, corps_ch, meta_ch FROM message x
+                     WHERE x.conv = ? AND x.seq >= ? AND x.seq < ? AND x.type != 'systeme' AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)
+                       AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)
+                     ORDER BY x.seq DESC LIMIT ?`).all(conv, m.depuis_seq, borne, t0, uid, demande);
+      let coupe = false;
+      for (const r of lot) {
+        lus++; borne = r.seq;
+        const texte = r.corps_ch ? ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch) : null;
+        let nom = null;
+        if (r.type === 'fichier' && r.meta_ch) { try { const mt = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)); if (typeof mt.nom === 'string') nom = mt.nom; } catch (e) { nom = null; } }
+        const source = [texte, nom].filter(x => typeof x === 'string' && x).join(' — ');
+        signes += source.length;
+        if (source && (filtre ? filtre(source) : normeRech(source).includes(qn))) {
+          /* `entier` (les liens) : le texte entier — la page y relit TOUS les liens, un lien au-delà d'une coupe serait perdu ; sinon un extrait autour de l'occurrence */
+          resultats.push({ seq: r.seq, auteur: r.auteur, ts: r.ts, type: r.type, texte: entier ? source : extraitAutour(source, qn, 60) });
+          if (resultats.length >= max) { coupe = true; break; }
+        }
+        if (signes >= plafondSignes) { coupe = true; break; }
+      }
+      if (!coupe && lot.length < demande) { fini = true; break; }
+    }
+    return { resultats, suite: fini ? null : borne };
+  }
+  /* les PHOTOS ou les FICHIERS d'une conversation, du plus récent au plus ancien : un rang par MESSAGE (une photo à plusieurs images reste entière), lu par le lien en clair
+     pièce → message (`attachee`), avec les mêmes filtres de visibilité ; la méta scellée du message dit l'ordre des images, leurs dimensions, le nom du fichier */
+  function mediasDe(conv, uid, { genre, avantSeq = null, max = 60 } = {}) {
+    const m = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+    if (!m) return null;
+    const seqs = Q(`SELECT DISTINCT p.attachee AS seq FROM piece p JOIN message x ON x.conv = p.conv AND x.seq = p.attachee
+                    WHERE p.conv = ? AND p.genre = ? AND p.attachee IS NOT NULL AND p.attachee >= ? AND p.attachee < ? AND x.supprime_le IS NULL AND (x.expire_ts IS NULL OR x.expire_ts > ?)
+                      AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)
+                    ORDER BY p.attachee DESC LIMIT ?`).all(conv, genre, m.depuis_seq, avantSeq === null ? 9007199254740991 : avantSeq, horloge(), uid, max + 1).map(r => r.seq);
+    const aPlus = seqs.length > max;
+    if (aPlus) seqs.pop();
+    const medias = [];
+    for (const seq of seqs) {
+      const x = Q('SELECT auteur, ts, meta_ch FROM message WHERE conv = ? AND seq = ?').get(conv, seq);
+      let mt = null; try { mt = x && x.meta_ch ? JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, x.auteur), x.meta_ch)) : null; } catch (e) { mt = null; }
+      if (!mt) continue;
+      if (genre === 'photo' && Array.isArray(mt.pieces) && mt.pieces.length) medias.push({ seq, auteur: x.auteur, ts: x.ts, pieces: mt.pieces.filter(p => p && typeof p.id === 'string').map(p => ({ id: p.id, w: p.w | 0, h: p.h | 0 })) });
+      else if (genre === 'fichier' && typeof mt.piece === 'string') medias.push({ seq, auteur: x.auteur, ts: x.ts, piece: mt.piece, nom: typeof mt.nom === 'string' ? mt.nom : 'fichier', taille: Number.isSafeInteger(mt.taille) ? mt.taille : 0 });
+    }
+    return { medias, suite: aPlus ? seqs[seqs.length - 1] : null };
+  }
   /* un renvoi du même geste (réponse perdue) : le message est-il déjà parti dans cette conversation ? — avant de recopier des pièces pour rien */
   function messageDejaEnvoye(conv, auteur, cid) { return !!Q('SELECT 1 AS x FROM message WHERE conv = ? AND auteur = ? AND cid = ?').get(conv, auteur, cid); }
   /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. ── */
@@ -4571,7 +4647,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     persoAjuster, annulationAjouter, annulationsDues, annulationLire, annulationEncore, annulationMemoriser, annulationFaite, annulationEchec, annulationPlusAncienne,   // …et ce qu'il reste à faire chez Stripe quand la personne s'en va (arrêt du renouvellement, rétablissement, résiliation)
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
-    messageEnvoyer, messageATransferer, messageDejaEnvoye, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
+    messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, requeteRech, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,

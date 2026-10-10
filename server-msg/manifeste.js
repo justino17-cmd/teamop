@@ -71,6 +71,9 @@ const MANIFESTE = [
   { id: 'conv.lu',           m: 'POST', p: '/api/conversations/:id/lu',              garde: 'M' },
   { id: 'conv.saisie',       m: 'POST', p: '/api/conversations/:id/saisie',          garde: 'M' },
   { id: 'msg.liste',         m: 'GET',  p: '/api/conversations/:id/messages',        garde: 'M' },
+  /* RETROUVER (9 octobre 2026) : chercher dans les messages, lister photos, fichiers et liens — un membre, plafonné par compte (routes.js) */
+  { id: 'msg.chercher',      m: 'GET',  p: '/api/conversations/:id/messages/chercher', garde: 'M' },
+  { id: 'msg.medias',        m: 'GET',  p: '/api/conversations/:id/medias',          garde: 'M' },
   { id: 'msg.envoyer',       m: 'POST', p: '/api/conversations/:id/messages',        garde: 'M' },
   { id: 'prog.liste',        m: 'GET',  p: '/api/conversations/:id/programmes',      garde: 'M' },
   { id: 'prog.creer',        m: 'POST', p: '/api/conversations/:id/programmes',      garde: 'M' },

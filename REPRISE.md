@@ -19,6 +19,29 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 9 OCTOBRE 2026 (NUIT, FIN) — OP MESSAGES : « RETROUVER » — CHERCHER DANS UNE CONVERSATION, SES PHOTOS, FICHIERS ET LIENS
+
+⏳ **« Retrouver » (bêta, sa propre demande de fusion)** — l'écart de l'inventaire « pas de recherche dans les messages ». Deux lignes dans les Infos d'une
+conversation : « Rechercher dans la conversation » (le texte, la légende d'une photo, le NOM d'un fichier — sans accents ni casse, l'occurrence surlignée telle
+qu'elle est écrite) et « Photos, fichiers et liens » (trois segments ; les vignettes se chargent quand elles paraissent ; « Voir » mène au message). Un résultat
+touché referme la feuille sur la conversation et AMÈNE le message (l'historique se charge jusqu'à 60 pages ; au-delà : « très ancien », jamais « disparu »).
+· ⛔ LE TEXTE EST SCELLÉ AU REPOS : aucun index plein texte (il défairait le scellement). Le SERVICE relit, déchiffre et compare ce que la personne VOIT (membre
+  depuis, ni masqué, ni supprimé, ni échu, ni système), du plus récent au plus ancien, par lots — `messagesChercher` / `mediasDe` (`stockage.js`), routes
+  `msg.chercher` et `msg.medias` (garde M). Rien n'est retenu : ni index, ni cache, ni la requête dans un journal.
+· ⛔ BORNÉ (`config.recherche` : `lignesMax` 2 000, `signesMax` 1 000 000, `resultatsMax` 30, `mediasMax` 60 — un nombre absurde refuse le démarrage) : chaque
+  borne rend une `suite`, la page propose « Chercher plus loin ». Deux plafonds par compte : `chercher` (30/min — le texte, et les LIENS qui le déchiffrent
+  aussi) et `medias` (60/min — photos et fichiers) ; le tiers pour un compte public de moins de 24 h.
+· la relecture adverse (workflow, agents Sonnet, 19 constats confirmés) a fait corriger : le budget de SIGNES (2 000 messages pleins, c'était 0,3 à 0,75 s de fil
+  bloqué par appel), une normalisation qui saute la décomposition pour un texte tout ASCII, ⛔ deux accents seuls (vides une fois normalisés : ils trouvaient TOUT)
+  refusés partout, les liens rendus ENTIERS (un lien au-delà de 2 000 signes se perdait), ⛔ un résultat qui doublait l'entrée d'historique de la conversation
+  (« retour » ramenait à elle-même), le focus resté sur le bouton d'en-tête, « Réessayer » après un échec, « aucun lien parmi les messages récents » quand le lot n'a
+  pas tout relu, le nom d'un compte supprimé (« Compte supprimé », plus « ? »), « Voir » sans nom pour un lecteur d'écran, les filets et le style des liens.
+· preuves : `test-946` (39 ✓ : la vraie route, la couture par les vraies `api.js` / `source-serveur.js`, et un SECOND service réglé petit pour jouer chaque borne) ;
+  série RT de `mutations-groupe.js` (22/22 tombent ; RT2 et RT8 retirées, équivalentes — dit dans le catalogue) ; `test-857` (388 ✓ : les vraies fonctions de la page
+  exécutées, dont le retour au message et le texte piégé ; mutations N48 à N64) ; `sonde-opmessages-retrouver` au navigateur (27 ✓ : 360 px et bureau, l'échec et
+  « Réessayer », la profondeur d'historique inchangée, le focus) ; `test-905` (la matrice d'accès).
+· ✅ « Transférer » (l'entrée d'en dessous) est sur la bêta depuis #119 (`8af0189`).
+
 # 🟡 9 OCTOBRE 2026 (NUIT, SUITE) — OP MESSAGES : « TRANSFÉRER » ; main REDEVENU VERT ; LE CDN ET LE SIRET
 
 ⏳ **« Transférer » (bêta, sa propre demande de fusion)** — le menu d'un message propose « Transférer » (après « Répondre ») ; une feuille montre l'aperçu (« Message

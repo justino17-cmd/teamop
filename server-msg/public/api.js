@@ -401,6 +401,9 @@
       quitter: (id) => appel('POST', '/api/conversations/' + e(id) + '/quitter'),
       prefs: (id, champs) => appel('POST', '/api/conversations/' + e(id) + '/prefs', champs),
       messages: (id, q) => appel('GET', '/api/conversations/' + e(id) + '/messages' + rq(q)),
+      /* RETROUVER (9 octobre 2026) : chercher dans les messages, lister photos, fichiers et liens — `avant` : où reprendre (la `suite` de la page d'avant) */
+      chercher: (id, q, avant) => appel('GET', '/api/conversations/' + e(id) + '/messages/chercher' + rq({ q, avant_seq: avant })),
+      medias: (id, genre, avant) => appel('GET', '/api/conversations/' + e(id) + '/medias' + rq({ genre, avant_seq: avant })),
       /* Un envoi porte un `cid` : si la réponse se perd, `envoyer(id, texte, {cid})` avec le MÊME cid
          rend `deja:true` et ne crée rien de plus. */
       envoyer: async (id, texte, o2) => {
