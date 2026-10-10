@@ -17,6 +17,7 @@
 process.env.TZ = 'America/New_York';
 const fs = require('fs'), path = require('path');
 const T = require('./outils-msg');
+const F = require('./outils-pieces');
 T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
@@ -329,6 +330,17 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
       const e3 = await A.src.majEvenement(e1.id, { cote: 'perso' });
       v('…le changer de côté passe par le module, et la liste de l\'agenda le relit', [e3.cote, (await A.src.evenements(d0, d0 + 12 * 3600000)).filter(x => x.id === e1.id || x.id === e2.id).map(x => [x.titre, x.cote])],
         ['perso', [['Revue Pro', 'perso'], ['Sans côté', null]]]);
+    }
+    {
+      /* ⛔ un vocal à MOI garde son identifiant d'envoi dans la vue (la page y rattache une écoute commencée pendant « Envoi… » : `p:<cid>` → le vrai) ; chez l'autre, rien — le service ne le lui
+         donne pas, et la vue ne l'invente pas */
+      const conv = await A.src.ouvrirDirecte(bob.id), cid = 'c0ffee'.padEnd(32, '7');
+      const dv = await F.deposer(A.nav.client, { conv, genre: 'vocal', corps: F.webm(2000) });
+      const r = await A.nav.fetch(svcA.base + '/api/conversations/' + conv + '/messages', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-OPM': '1' }, body: JSON.stringify({ type: 'vocal', piece: dv.j && dv.j.id, dur: 2, bars: [5, 9], cid }) });
+      const vu = async (S) => { const c = await S.src.ouvrir(conv); return c && c.messages.find(m => m.vocal); };
+      await att(async () => !!(await vu(A)) && !!(await vu(B)));
+      const ma = await vu(A), mb = await vu(B);
+      v('⛔ un vocal à moi porte son `cid` dans MA vue (le même que celui de l\'envoi), pas dans celle de Bob', [dv.code, r.status, ma && ma.cid, mb ? ('cid' in mb) : null], [201, 201, cid, false]);
     }
     {
       /* (en dernier : le banc compte plus haut les appels à /api/moi/maj — le fuseau dit UNE fois) */

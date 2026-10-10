@@ -751,15 +751,17 @@ button.photo:active { transform: scale(.97); }
 .vocal .onde { cursor: pointer; touch-action: pan-y; padding: 12px 0; margin: -12px 0; border-radius: 6px; }
 .vocal .onde:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 /* la vitesse : une pastille pendant l'écoute (et sur un vocal en pause), jamais au repos */
-.vocal-vitesse { display: none; flex: none; min-width: 48px; height: 44px; margin: -8px -4px; align-items: center; justify-content: center; color: inherit; border-radius: 14px; }
-.vocal-pastille { min-width: 40px; height: 28px; padding: 0 8px; box-sizing: border-box; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; background: color-mix(in srgb, currentColor 18%, transparent); }
-.vocal[data-lecture] .vocal-vitesse, .vocal[data-pause] .vocal-vitesse { display: inline-flex; }
+.vocal-vitesse { display: none; visibility: hidden; flex: none; min-width: 48px; height: 44px; margin: -8px -4px; align-items: center; justify-content: center; color: inherit; border-radius: 14px; }
+.vocal-pastille { min-width: 40px; height: 28px; padding: 0 8px; box-sizing: border-box; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; box-shadow: inset 0 0 0 1.5px currentColor; }
+/* ⛔ sur MES vocaux (alignés à droite), la place de la pastille est GARDÉE au repos : sinon la bulle grandit vers la gauche à la lecture, et le bouton ou l'onde fuient sous le doigt (relecture) */
+.vocal.envoyee .vocal-vitesse { display: inline-flex; }
+.vocal[data-lecture] .vocal-vitesse, .vocal[data-pause] .vocal-vitesse { display: inline-flex; visibility: visible; }
 .vocal-vitesse:focus-visible, .vocal-lire:focus-visible { outline: 2px solid currentColor; outline-offset: -4px; }
 .vocal-disque .pause, .vocal[data-lecture] .vocal-disque .play { display: none; }
 .vocal[data-lecture] .vocal-disque .pause { display: block; }
 .onde { display: flex; align-items: center; gap: 2px; height: 20px; }
 .onde i { width: 3px; border-radius: 2px; background: currentColor; opacity: .9; }
-.vocal[data-lecture] .onde i, .vocal[data-pause] .onde i { opacity: .45; }
+.vocal[data-lecture] .onde i, .vocal[data-pause] .onde i { opacity: .65; }             /* le reste à écouter : ≥ 3:1 sur la bulle, dans les deux thèmes */
 .vocal[data-lecture] .onde i.joue, .vocal[data-pause] .onde i.joue { opacity: 1; }
 .vocal-duree { font-size: 13px; font-variant-numeric: tabular-nums; }
 .statut { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }

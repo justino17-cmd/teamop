@@ -21,7 +21,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 900000;
 const F = { page: 'apercu/opmessages/index.html' };
-const BANCS = ['905', '909', '945', '946', '986', '987', '988', '989', '990', 'sonde'];
+const BANCS = ['905', '909', '945', '946', '976', '986', '987', '988', '989', '990', 'sonde'];
 const SONDE_FICHIER = 'sonde-opmessages-groupe.js';
 const MUTATIONS = [];
 /* [id, nom, [[fichier, ancien, nouveau], …], suites, option] — `ancien` : une chaîne (une seule occurrence). */
@@ -66,6 +66,9 @@ const CATALOGUE = [
   ["RT9", "⛔ la galerie montre les photos d'AVANT mon arrivée", [["server-msg/stockage.js", ".all(conv, genre, m.depuis_seq, avantSeq === null", ".all(conv, genre, 0, avantSeq === null"]], ["946"]],
   ["RT10", "une requête d'un seul signe passe", [["server-msg/routes.js", "if (q === null || n < RECH_MIN || n > RECH_MAX || Array.from(stockage.requeteRech(q)).length < RECH_MIN || Number.isNaN(av))", "if (q === null || n > RECH_MAX || Number.isNaN(av))"]], ["946"]],
   ["RT11", "un résultat rend le texte ENTIER au lieu d'un extrait autour de l'occurrence", [["server-msg/stockage.js", "texte: entier ? source : extraitAutour(source, qn, 60)", "texte: entier ? source : source"]], ["946"]],
+  /* ── V. LES VOCAUX (10 octobre 2026) : l'écoute d'un vocal à moi commencée pendant « Envoi… » se rattache à son vrai identifiant par le `cid` de la vue ── */
+  ["VC1", "⛔ la vue d'un vocal à moi perd son identifiant d'envoi (l'écoute commencée pendant « Envoi… » s'arrête net quand il part)", [["server-msg/public/source-serveur.js", "if (m.type === 'vocal' && typeof m.cid === 'string' && /^[0-9a-f]{32}$/.test(m.cid) && estMoi(m.auteur)) v.cid = m.cid;", "if (false) v.cid = m.cid;"]], ["976"]],
+  ["VC2", "⛔ la vue d'un vocal donne son `cid` à tout le monde, pas seulement à son auteur", [["server-msg/public/source-serveur.js", "if (m.type === 'vocal' && typeof m.cid === 'string' && /^[0-9a-f]{32}$/.test(m.cid) && estMoi(m.auteur)) v.cid = m.cid;", "if (m.type === 'vocal') v.cid = m.cid || 'x';"]], ["976"]],
   ["RT12", "⛔ deux accents seuls passent la route (vides une fois normalisés)", [["server-msg/routes.js", " || Array.from(stockage.requeteRech(q)).length < RECH_MIN", ""]], ["946"]],
   ["RT13", "⛔ plus de budget de SIGNES : un appel déchiffre autant de texte que ses lignes en portent", [["server-msg/stockage.js", "        if (signes >= plafondSignes) { coupe = true; break; }\n", ""], ["server-msg/stockage.js", "while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {", "while (resultats.length < max && lus < plafondLignes) {"]], ["946"]],
   ["RT14", "⛔ plus de borne de LIGNES par appel (un lot de 200 d'un coup)", [["server-msg/stockage.js", "const demande = Math.min(200, plafondLignes - lus);", "const demande = 200;"], ["server-msg/stockage.js", "while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {", "while (resultats.length < max && signes < plafondSignes) {"]], ["946"]],

@@ -2279,6 +2279,8 @@
       const media = MEDIAS.includes(m.type);
       /* une photo garde sa LÉGENDE (le seul média qui en porte une) ; les autres pièces n'ont pas de texte */
       const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? (m.type === 'photo' && typeof m.texte === 'string' ? m.texte : '') : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
+      /* un vocal à MOI garde son identifiant d'envoi (le service ne le rend qu'à son auteur) : la page y rattache l'écoute commencée pendant « Envoi… » (`p:<cid>` → le vrai) */
+      if (m.type === 'vocal' && typeof m.cid === 'string' && /^[0-9a-f]{32}$/.test(m.cid) && estMoi(m.auteur)) v.cid = m.cid;
       if (m.supprime) v.supprime = true;
       else if (m.illisible) v.illisible = true;                                       // « Message illisible » : la page ne le propose pas au transfert (le service le refuserait)
       else if (media) Object.assign(v, vuePieces(m, auto));

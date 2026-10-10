@@ -95,6 +95,9 @@ async function ouvrirPage(b, pf, o) {
       navigator.mediaDevices.getUserMedia = async c => { window.__micro.demandes++; if (window.__micro.delai) await new Promise(r => setTimeout(r, window.__micro.delai)); const f = await orig(c); f.getTracks().forEach(t => window.__micro.pistes.push(t)); return f; };
     }
     window.__audios = []; const play = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__audios.push(this); return play.apply(this, arguments); };
+    /* ⛔ `preservesPitch` vaut VRAI par défaut : lire sa valeur ne prouve rien (relecture) — on note ce que la page Y ÉCRIT */
+    window.__hauteur = []; const dh = Object.getOwnPropertyDescriptor(HTMLMediaElement.prototype, 'preservesPitch');
+    if (dh && dh.set) Object.defineProperty(HTMLMediaElement.prototype, 'preservesPitch', { configurable: true, enumerable: dh.enumerable, get() { return dh.get.call(this); }, set(x) { window.__hauteur.push(x); dh.set.call(this, x); } });
   });
   S.cdp = await ctx.newCDPSession(page);
   if (pf.insets) await S.cdp.send('Emulation.setSafeAreaInsetsOverride', { insets: { top: pf.insets.top || 0, bottom: pf.insets.bottom || 0, left: pf.insets.left || 0, right: pf.insets.right || 0 } });
@@ -709,13 +712,15 @@ async function etapeVocal(S) {
   await geste(S, '.vocal [data-lire]'); await dormir(1400);
   const etatVocal = () => S.page.evaluate(() => { const b = document.querySelector('.vocal'), x = b.querySelector('[data-lire]'), vv = b.querySelector('[data-vitesse]');
     return { lecture: b.hasAttribute('data-lecture'), pause: b.hasAttribute('data-pause'), joue: b.querySelectorAll('.onde i.joue').length, pauseIc: getComputedStyle(b.querySelector('.pause')).display, playIc: getComputedStyle(b.querySelector('.play')).display,
-      label: x.getAttribute('aria-label'), vitesse: getComputedStyle(vv).display === 'none' ? null : vv.textContent, vitesseLabel: vv.getAttribute('aria-label'), temps: b.querySelector('.vocal-duree').textContent, onde: b.querySelector('.onde').getAttribute('aria-valuenow') }; });
+      label: x.getAttribute('aria-label'), vitesse: getComputedStyle(vv).display === 'none' || getComputedStyle(vv).visibility === 'hidden' ? null : vv.textContent, vitesseLabel: vv.getAttribute('aria-label'), temps: b.querySelector('.vocal-duree').textContent, onde: b.querySelector('.onde').getAttribute('aria-valuenow') }; });
   const e1 = await etatVocal();
   v(nom + ' : un vocal d\'exemple se « lit » : le bouton passe en pause, ' + e1.joue + ' barre(s) sur 10 déjà jouée(s) après 1,4 s (sans son : aucun fichier dans l\'aperçu), la pastille de VITESSE paraît (« ' + e1.vitesse + ' »), le temps écoulé s\'affiche (« ' + e1.temps + ' »)',
     e1.lecture && e1.joue >= 1 && e1.joue < 10 && e1.pauseIc !== 'none' && e1.playIc === 'none' && /pause/.test(e1.label) && e1.vitesse === '1×' && /^0:0[1-2]$/.test(e1.temps), e1);
   await geste(S, '.vocal [data-lire]'); await dormir(250);
-  const e2 = await etatVocal();
-  v(nom + ' : ⛔ un second toucher met en PAUSE et GARDE la position : la bulle montre les ' + e2.joue + ' barre(s) écoutée(s), « Reprendre », la pastille reste', !e2.lecture && e2.pause && e2.joue >= 1 && e2.joue === e1.joue && /^Reprendre/.test(e2.label) && e2.vitesse === '1×', e2);
+  const e2 = await etatVocal(); await dormir(600);
+  const e2b = await etatVocal();
+  v(nom + ' : ⛔ un second toucher met en PAUSE et GARDE la position : la bulle montre les ' + e2.joue + ' barre(s) écoutée(s), « Reprendre », la pastille reste — et 0,6 s plus tard rien n\'a bougé (' + e2.onde + ' s → ' + e2b.onde + ' s)',
+    !e2.lecture && e2.pause && e2.joue >= 1 && e2.joue >= e1.joue && /^Reprendre/.test(e2.label) && e2.vitesse === '1×' && e2b.onde === e2.onde && e2b.joue === e2.joue && e2b.pause, { e2, e2b });
   await geste(S, '.vocal .onde'); await dormir(150);
   const e3 = await etatVocal();
   v(nom + ' : ⛔ toucher le MILIEU de l\'onde y va, sans lancer la lecture (5 barres sur 10, l\'onde dit ' + e3.onde + ' s, toujours en pause)', !e3.lecture && e3.pause && e3.joue === 5 && Number(e3.onde) > 0, e3);
@@ -731,6 +736,16 @@ async function etapeVocal(S) {
   v(nom + ' : la pastille fait le tour des vitesses — 1× → 1,5× → 2× → 1× (dit au lecteur d\'écran) — sans arrêter l\'écoute', [e5.vitesse, e6.vitesse, e7.vitesse, e5.vitesseLabel, e5.lecture && e6.lecture && e7.lecture], ['1,5×', '2×', '1×', 'Vitesse de lecture : 1,5×', true], { e5, e6, e7 });
   await geste(S, '.vocal [data-vitesse]'); await dormir(80);                       // 1,5× pour la suite (le vocal enregistré la reprend)
   await geste(S, '.vocal [data-lire]'); await dormir(150);
+  /* le CLAVIER sur l'onde (vrai focus, vraies touches) : Fin montre la fin sans la perdre, Ctrl + flèche reste au système (⌥ + ← serait « page précédente » pour le navigateur), la flèche recule de 5 s */
+  await S.page.focus('.vocal .onde'); await S.page.keyboard.press('End'); await dormir(80);
+  const k1 = await etatVocal();
+  await S.page.keyboard.down('Control'); await S.page.keyboard.press('ArrowLeft'); await S.page.keyboard.up('Control'); await dormir(80);
+  const k2 = await etatVocal();
+  await S.page.keyboard.press('ArrowLeft'); await dormir(80);
+  const k3 = await etatVocal(), dur0 = await S.page.evaluate(() => Number(document.querySelector('.vocal .onde').getAttribute('aria-valuemax')));
+  v(nom + ' : ⛔ au clavier sur l\'onde : Fin MONTRE la fin (' + k1.joue + ' barres sur 10, l\'onde dit ' + k1.onde + ' s sur ' + dur0 + ', en pause), Ctrl + ← n\'y touche pas (' + k2.onde + '), ← recule de 5 s (' + k3.onde + ')',
+    k1.pause && k1.joue === 10 && Number(k1.onde) === dur0 && k2.onde === k1.onde && Number(k3.onde) === dur0 - 5 && k3.pause, { k1, k2, k3, dur0 });
+  await S.page.keyboard.press('Home'); await dormir(80);
 
   /* enregistrer : toucher démarre, la flèche envoie */
   const nMsg = () => nb(S, '#conv-messages .msg');
@@ -749,10 +764,14 @@ async function etapeVocal(S) {
     pistes: window.__micro.pistes.map(t => t.readyState), apercu: document.querySelector('#liste-conv li:first-child .conv-apercu').textContent, nom: document.querySelector('#liste-conv li:first-child .conv-nom').textContent }; });
   v(nom + ' : la flèche envoie le vocal (« ' + r2.duree + ' », ' + r2.barres + ' barres), le micro est RELÂCHÉ (piste ' + r2.pistes.join() + '), le champ revient ; la liste dit « ' + r2.apercu + ' » et remonte la conversation',
     n0 + 1 === await nMsg() && r2.vocal && r2.moi && /^0:\d\d$/.test(r2.duree) && r2.duree !== '0:00' && r2.barres === 10 && !r2.enreg && r2.compo && r2.pistes.join() === 'ended' && /^Vous : Message vocal · 0:\d\d$/.test(r2.apercu) && r2.nom === 'Mathis Lambert', r2);
-  /* le réécouter : un vrai Audio */
+  /* le réécouter : un vrai Audio — et la bulle ne bouge pas sous le doigt (la place de la pastille est gardée sur mes vocaux) */
+  const bord = () => S.page.evaluate(() => { const b = [...document.querySelectorAll('.vocal.envoyee')].pop(), r = b.getBoundingClientRect(), x = b.querySelector('[data-lire]').getBoundingClientRect(); return { g: Math.round(r.left * 10) / 10, d: Math.round(r.right * 10) / 10, bouton: Math.round(x.left * 10) / 10 }; });
+  const bo0 = await bord();
   await geste(S, '.vocal.envoyee >> nth=-1 >> [data-lire]'); await dormir(500);
-  const l1 = await S.page.evaluate(() => ({ lectures: window.__audios.length, src: window.__audios[0] && window.__audios[0].src.slice(0, 5), lecture: !!document.querySelector('.vocal.envoyee[data-lecture]'), vitesse: window.__audios[0] && window.__audios[0].playbackRate, hauteur: window.__audios[0] && window.__audios[0].preservesPitch }));
-  v(nom + ' : ⛔ la vitesse choisie vaut pour le VRAI lecteur (playbackRate ' + l1.vitesse + ') et la voix garde sa hauteur (preservesPitch ' + l1.hauteur + ')', l1.vitesse === 1.5 && l1.hauteur === true, l1);
+  const bo1 = await bord();
+  const l1 = await S.page.evaluate(() => ({ lectures: window.__audios.length, src: window.__audios[0] && window.__audios[0].src.slice(0, 5), lecture: !!document.querySelector('.vocal.envoyee[data-lecture]'), vitesse: window.__audios[0] && window.__audios[0].playbackRate, hauteur: window.__hauteur.slice() }));
+  v(nom + ' : ⛔ la vitesse choisie vaut pour le VRAI lecteur (playbackRate ' + l1.vitesse + ') et la page DEMANDE que la voix garde sa hauteur (preservesPitch écrit : ' + JSON.stringify(l1.hauteur) + ')', l1.vitesse === 1.5 && l1.hauteur.length >= 1 && l1.hauteur.every(x => x === true), l1);
+  v(nom + ' : ⛔ sur MON vocal, lancer la lecture ne déplace ni la bulle ni le bouton (bord gauche ' + bo0.g + ' → ' + bo1.g + ', bouton ' + bo0.bouton + ' → ' + bo1.bouton + ')', l1.lecture && Math.abs(bo0.g - bo1.g) < 0.5 && Math.abs(bo0.bouton - bo1.bouton) < 0.5 && Math.abs(bo0.d - bo1.d) < 0.5, { bo0, bo1 });
   await attendre(S, () => !document.querySelector('[data-lecture]'), null, 15000); await dormir(200);
   const l2 = await S.page.evaluate(() => ({ lecture: !!document.querySelector('[data-lecture]'), t: window.__audios[0] ? window.__audios[0].currentTime : -1, fini: window.__audios[0] ? window.__audios[0].ended : null, erreur: window.__audios[0] && window.__audios[0].error && window.__audios[0].error.code }));
   v(nom + ' : un vocal enregistré se RELIT par un vrai Audio (' + l1.lectures + ' lecture, source ' + l1.src + ', temps ' + l2.t.toFixed(2) + ' s, terminé : ' + l2.fini + '), puis le bouton revient seul', l1.lectures === 1 && l1.src === 'blob:' && l1.lecture && !l2.lecture && (l2.fini || l2.t > 0.5) && !l2.erreur, { l1, l2 });
