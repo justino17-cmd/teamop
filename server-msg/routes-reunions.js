@@ -42,6 +42,7 @@ const { cleReseau } = require('./quotas');
 const JOUR = 86400000;
 const TITRE_MAX = 120, LIEU_MAX = 300, INVITES_MAX = 100, UIDS_PAR_APPEL = 50, RAPPELS_MAX = 4;
 const MOTIF_MAX = 200;                                                     // le motif d'un décalage : une ligne (« Problème de déplacement — le camion est en panne »)
+const PLAFOND_MODIF = { max: 20, fenetreMs: 3600000 };                    // vingt modifications par réunion et par heure — « modifier » et « décaler » partagent CE compteur (une seule définition)
 const ODJ_MAX = 20, POINT_MAX = 200, ID_POINT = /^[0-9a-f]{8}$/;      // l'ordre du jour : vingt points de 200 signes au plus (migration 23)
 const N_MAX = 1000, DUREE_MAX = 30 * JOUR, FENETRE_MAX = 62 * JOUR, OCCURRENCES_MAX = 1000;
 const STATUTS = ['accepte', 'decline', 'peutetre'];
@@ -334,7 +335,7 @@ function installerReunions(H, ctx) {
     if (b.ordre_du_jour !== undefined && !odj) return refus(res, 400, 'ordre_du_jour_invalide');
     /* ⛔ VINGT MODIFICATIONS PAR RÉUNION ET PAR HEURE : chaque modification écrit, date, remet les réponses en attente, ajoute une ligne à la conversation et prévient les invités — sans plafond, un hôte
        (ou un script) en faisait deux cents d'un trait. Le refus est DIT (`trop_de_modifications`, avec le délai) ; la clé est la réunion, pas l'hôte (elle passe à un successeur). */
-    if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;
+    if (!plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;
     const prochain = v.horaire ? prochainDe(v.serie, horloge()) : undefined;
     const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain, finSerie: cal.finDeSerie(v.serie) } : {}, b.salle_attente === undefined ? {} : { attente: b.salle_attente }));
     const o = odj ? stockage.reunionOdjPoser(id, odj) : null;
@@ -372,7 +373,7 @@ function installerReunions(H, ctx) {
     if (v.erreur) return refus(res, 400, v.erreur);
     if (v.serie.debut === courant.debut && v.serie.fin === courant.fin) return refus(res, 400, 'horaire_identique');
     if (v.serie.debut < horloge()) return refus(res, 400, 'horaire_passe');
-    if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;
+    if (!plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;
     const r = stockage.reunionModifier(Object.assign({ id, par: hote.id, motif }, v.champs, { prochain: prochainDe(v.serie, horloge()), finSerie: cal.finDeSerie(v.serie) }));
     if (r.gid) hub.reveiller({ conv: courant.conv });
     if (r.change && r.horaire) {

@@ -859,13 +859,13 @@ m("X53", "le remplacement ne regarde plus de QUELLE réunion il s'agit : la modi
 m("X54", "le remplacement n'a jamais lieu", F.stock,
   "if (remplacer === true && cible) Q('DELETE FROM notification", "if (false && cible) Q('DELETE FROM notification", ["972", "973"]);
 m("X55", "les modifications d'une réunion ne sont plus plafonnées", F.reu,
-  "    if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;\n", "", ["973", "976"]);
+  "    if (!plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;\n    const prochain = v.horaire", "    const prochain = v.horaire", ["973", "976"]);
 m("X56", "le plafond des modifications est compté par HÔTE : modifier une réunion en bloque toutes les autres", F.reu,
-  "plafond(res, 'reunion_modif', id, {", "plafond(res, 'reunion_modif', hote.id, {", ["973"]);
+  "plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;\n    const prochain = v.horaire", "plafond(res, 'reunion_modif', hote.id, PLAFOND_MODIF, 'trop_de_modifications')) return;\n    const prochain = v.horaire", ["973"]);
 m("X57", "le refus du plafond dit « trop de demandes » au lieu de « trop de modifications » : l'écran ne sait plus dire pourquoi", F.reu,
   "refus(res, 429, code || 'quota_atteint', { retry: r.retry });", "refus(res, 429, 'quota_atteint', { retry: r.retry });", ["973", "976"]);
 m("X58", "vingt modifications par heure deviennent vingt et une", F.reu,
-  "{ max: 20, fenetreMs: 3600000 }, 'trop_de_modifications'", "{ max: 21, fenetreMs: 3600000 }, 'trop_de_modifications'", ["973", "976"]);
+  "const PLAFOND_MODIF = { max: 20,", "const PLAFOND_MODIF = { max: 21,", ["973", "976"]);
 m("X60", "les points de la partie locale d'une adresse Gmail comptent : « j.dupont » et « jdupont » sont deux boîtes pour le plafond de deux par semaine", F.mail,
   "l = l.replace(/\\./g, '') || l;", "l = l;", ["975"]);
 m("X61", "googlemail.com n'est pas ramené à gmail.com : la même boîte écrite autrement échappe au plafond", F.mail,
@@ -915,6 +915,12 @@ m("Y08", "la relecture d'une fiche qui se ferme n'est plus évitée (`rendreFich
 m("Y09", "`reunionDisparue` ferme la couche d'en dessous quand la feuille n'est plus la fiche (fermée à la main pendant l'attente du geste)", F.page,
   "    if (ouvertePour(F.id) && reu.fiche === F) fermerCouche();\n", "    fermerCouche();\n", ["sonde"],
   Object.assign({}, SONDE, EQ('NON JOUÉE par la sonde, qui ouvre la fiche depuis l\'agenda : il n\'y a aucune couche dessous, `fermerCouche()` n\'y fait rien. La garde protège la conversation d\'une réunion ouverte DERRIÈRE la fiche ; la réunion disparue emporte sa conversation (le service la retire), donc le cas n\'a pas d\'effet visible — dit, pas prouvé')));
+m("Z01", "l'effacement du compte de l'organisateur réécrit l'avis de décalage en « … vous a ajouté au groupe » (la branche `reunion_decalee` de `notifsAnonymiser` retirée)", F.stock,
+  "        : r.type === 'reunion_decalee' ? 'Un compte supprimé a décalé une réunion.'\n", "", ['972']);
+m("Z02", "« décaler » n'est plus plafonné : vingt modifications en une heure, puis des décalages sans fin (chacun prévient tous les invités)", F.reu,
+  "    if (!plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;\n    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id, motif }", "    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id, motif }", ['973']);
+m("Z03", "« décaler » a son PROPRE compteur : vingt modifications, puis encore vingt décalages dans l'heure", F.reu,
+  "plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;\n    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id, motif }", "plafond(res, 'reunion_decaler', id, PLAFOND_MODIF, 'trop_de_modifications')) return;\n    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id, motif }", ['973']);
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 const DOSSIERS_COPIE = ['server-msg', 'server', 'design/opmessages', '.github', 'apercu/opmessages', 'icons', 'scripts'];   // `.github` ENTIER : test-934 lit les workflows autant que les scripts de surveillance
 function copier(src, dst) {

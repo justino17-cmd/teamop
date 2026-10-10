@@ -26,7 +26,7 @@ const CHROME = '/opt/pw-browsers/chromium';
 const DOSSIER = process.env.CAPTURES || null;
 const ARGS = ['--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--mute-audio'];
 const MOTS = { alice: 'pw-alice-1234', bruno: 'pw-bruno-1234' };
-const IPHONE = { w: 393, h: 852, dpr: 2, mobile: true }, BUREAU = { w: 1440, h: 900, dpr: 1, mobile: false };
+const IPHONE = { w: 393, h: 852, dpr: 2, mobile: true }, BUREAU = { w: 1440, h: 900, dpr: 1, mobile: false }, IPAD = { w: 820, h: 1180, dpr: 2, mobile: true };
 const PARIS = 'Europe/Paris', JOUR = 86400000;
 const TITRE = 'Visite chantier WQXZ', EVT = 'Appel fournisseur WQXZ', GENE = 'Dentiste WQXZ';
 
@@ -177,6 +177,41 @@ async function tirer(S, de, vers) {
     const evs = (await a.get('/api/agenda?du=' + (t0 - JOUR) + '&au=' + (t0 + 9 * JOUR))).j;
     vrai('au service, l\'événement est le ' + CIBLE + ' à 09:00 (une demi-heure, comme avant)', !!evs && Array.isArray(evs.evenements) && evs.evenements.some(e => e.titre === EVT && ymd(e.debut) === CIBLE && e.fin - e.debut === 1800000), evs && evs.evenements && evs.evenements.map(e => [e.titre, ymd(e.debut)]));
 
+    console.log('\n── 5 bis. La relecture : plusieurs jours, la case entière, Échap pendant un glisser ──');
+    /* un SALON sur deux jours (journée entière) : saisi par son 2e jour et lâché un jour plus loin, il glisse d'UN jour — le 1er jour devient le 2e (avant : il sautait de deux) */
+    const jours = await A.page.evaluate(() => { const a = new Date(); a.setHours(0, 0, 0, 0); return { cases: Array.from(document.querySelectorAll('#sem-grille .mjour')).map(c => +c.dataset.case), auj: a.getTime() }; });
+    const iX = jours.cases.findIndex((t, i) => t >= jours.auj && i + 2 < jours.cases.length);
+    vrai('(population) trois jours à venir de suite dans la semaine affichée', iX >= 0, jours);
+    const X = ymd(jours.cases[iX]), X1 = ymd(jours.cases[iX + 1]), X2 = ymd(jours.cases[iX + 2]);
+    const salon = await a.post('/api/agenda', { titre: 'Salon WQXZ', debut: X, fin: X1, journee: true, tz: PARIS, rappel: null });
+    await A.page.evaluate(() => document.getElementById('sem-titre').click());
+    if (semaineSuivante) { await toucher(A, '#sem-suiv'); }
+    const vuSalon = await attendre(A, ([j]) => { const [y, m, d] = j.split('-').map(Number), t = new Date(y, m - 1, d).getTime(), c = document.querySelector('#sem-grille .mjour[data-case="' + t + '"]'); return !!c && c.textContent.includes('Salon WQXZ'); }, [X1], 12000);
+    vrai('(population) le salon (' + X + ' → ' + X1 + ') est créé et paraît aussi dans la case de son 2e jour', salon.code === 201 && vuSalon, salon.code);
+    const deSalon = await A.page.evaluate(([j]) => { const [y, m, d] = j.split('-').map(Number), t = new Date(y, m - 1, d).getTime(), e = Array.from(document.querySelectorAll('#sem-grille .mjour[data-case="' + t + '"] [data-ag="e"]')).find(x => x.textContent.includes('Salon WQXZ')); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, [X1]);
+    const versSalon = await A.page.evaluate(([j]) => { const [y, m, d] = j.split('-').map(Number), t = new Date(y, m - 1, d).getTime(), c = document.querySelector('#sem-grille .mjour[data-case="' + t + '"]'), r = c.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height * 0.85 }; }, [X2]);
+    await tirer(A, deSalon, versSalon);
+    await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Décaler le rendez-vous' && !!document.getElementById('dc-date'));
+    const fs1 = await feuille(A);
+    v('⛔ le salon saisi par son 2e jour (' + X1 + ') et lâché sur le ' + X2 + ' : la feuille propose de le commencer le ' + X1 + ' (UN jour plus tard), sur deux jours', [fs1.date, /2 jours/.test(fs1.apres), fs1.notes.some(n => /Sur 2 jours, comme avant/.test(n))], [X1, true, true], fs1);
+    await toucher(A, '#info-corps [data-dc="non"]');
+    await attendre(A, () => !document.documentElement.classList.contains('feuille-ouverte'));
+    /* la case ENTIÈRE choisit le jour : un clic dans le bas vide d'une case (pas seulement la bande de son numéro) */
+    const basCase = await A.page.evaluate(([j]) => { const [y, m, d] = j.split('-').map(Number), t = new Date(y, m - 1, d).getTime(), c = document.querySelector('#sem-grille .mjour[data-case="' + t + '"]'), r = c.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.bottom - 6, t }; }, [X2]);
+    const sous = await A.page.evaluate(([x, y]) => { const e = document.elementFromPoint(x, y); return e ? e.className : null; }, [basCase.x, basCase.y]);
+    await A.page.mouse.click(basCase.x, basCase.y);
+    vrai('⛔ un clic dans le BAS VIDE de la case du ' + X2 + ' (sous le pointeur : « ' + sous + ' ») choisit ce jour', await attendre(A, ([t]) => { const c = document.querySelector('#sem-grille .mjour.choisi'); return !!c && +c.dataset.case === t; }, [basCase.t], 4000), sous);
+    /* Échap pendant un glisser, puis relâcher bien plus tard SUR le rendez-vous : rien ne s'ouvre (le clic est avalé jusqu'au relâcher, pas pendant une durée) */
+    const e0 = await centre(A, selR);
+    await A.page.mouse.move(e0.x, e0.y); await A.page.mouse.down();
+    for (let i = 1; i <= 6; i++) { await A.page.mouse.move(e0.x + 12 * i, e0.y + 4 * i); await A.page.waitForTimeout(16); }
+    const tireAvant = await A.page.evaluate(() => !!document.querySelector('.mjour-elt.fantome'));
+    await A.page.keyboard.press('Escape');
+    await A.page.waitForTimeout(900);
+    await A.page.mouse.move(e0.x, e0.y); await A.page.mouse.up(); await A.page.waitForTimeout(500);
+    v('⛔ Échap pendant un glisser (le fantôme était là), puis relâcher 0,9 s plus tard sur le rendez-vous : ni fiche ni feuille, plus de fantôme', [tireAvant, await A.page.evaluate(() => [document.documentElement.classList.contains('feuille-ouverte'), !!document.querySelector('.mjour-elt.fantome')])], [true, [false, false]]);
+    await A.page.mouse.move(10, 10);
+
     console.log('\n── 6. Chez Bruno, l\'invité ──');
     const B = await ouvrir(b, svc.base, BUREAU, 'bruno');
     await agenda(B);
@@ -216,6 +251,26 @@ async function tirer(S, de, vers) {
     const tailles = await P.page.evaluate(() => Array.from(document.querySelectorAll('#info-corps input')).filter(x => x.getClientRects().length).map(x => parseFloat(getComputedStyle(x).fontSize)));
     v('iPhone : chaque champ de la feuille à 16 px au moins (Safari zoomerait)', [tailles.length >= 3, tailles.every(t => t >= 16)], [true, true], tailles);
     await toucher(P, '#info-corps [data-dc="non"]');
+
+    console.log('\n── 7 bis. Sur iPad, au doigt : 44 px dans la semaine, la case entière au mois ──');
+    const I = await ouvrir(b, svc.base, IPAD, 'alice');
+    await agenda(I);
+    if (semaineSuivante) { await toucher(I, '#sem-suiv'); await attendre(I, () => document.getElementById('liste-reunions').getAttribute('aria-busy') === 'false'); }
+    await attendre(I, ([t]) => document.getElementById('sem-grille').textContent.includes(t), [TITRE], 8000);
+    const ti = await I.page.evaluate(() => { const h = s => Array.from(document.querySelectorAll(s)).filter(e => e.getClientRects().length).map(e => Math.round(e.getBoundingClientRect().height));
+      return { grille: getComputedStyle(document.getElementById('sem-grille')).display, doigt: matchMedia('(pointer: coarse)').matches, puces: h('#sem-grille .mjour-elt'), nums: h('#sem-grille .mjour-num') }; });
+    v('iPad (820 px, au doigt) : la semaine en grille, et chaque rendez-vous et chaque numéro de jour répond sur 44 px au moins (population : des puces)', [ti.grille, ti.doigt, ti.puces.length > 0, ti.puces.every(x => x >= 44), ti.nums.length === 7 && ti.nums.every(x => x >= 44)], ['grid', true, true, true, true], ti);
+    await toucher(I, '[data-reu-vue="mois"]');
+    await attendre(I, () => !document.getElementById('mois').hidden && document.getElementById('liste-reunions').getAttribute('aria-busy') === 'false', null, 12000);
+    let iMois = await attendre(I, ([t]) => document.getElementById('mois-jours').textContent.includes(t), [TITRE], 5000);
+    if (!iMois) { await toucher(I, '#sem-suiv'); iMois = await attendre(I, ([t]) => document.getElementById('mois-jours').textContent.includes(t), [TITRE], 8000); }
+    const pi = await I.page.evaluate(([t]) => { const e = Array.from(document.querySelectorAll('#mois-jours [data-ag="r"]')).find(x => x.textContent.includes(t)); if (!e) return null; const r = e.getBoundingClientRect(), c = e.closest('.mjour'); return { x: r.left + r.width / 2, y: r.top + r.height / 2, h: Math.round(r.height), t: +c.dataset.case, pe: getComputedStyle(e).pointerEvents }; }, [TITRE]);
+    vrai('(population) au mois, la réunion est une puce de la case', iMois && !!pi, pi);
+    await I.page.touchscreen.tap(pi.x, pi.y);
+    vrai('⛔ au mois, au doigt, toucher la petite puce (' + (pi && pi.h) + ' px) choisit le JOUR (la case entière répond) et la liste du jour, dessous, porte la réunion — aucune fiche ne s\'ouvre par erreur',
+      await attendre(I, ([t, ti2]) => { const c = document.querySelector('#mois-jours .mjour.choisi'); return !!c && +c.dataset.case === t && document.getElementById('liste-reunions').textContent.includes(ti2) && !document.documentElement.classList.contains('feuille-ouverte'); }, [pi.t, TITRE], 4000), pi);
+    await I.page.evaluate(() => document.querySelector('[data-reu-vue="semaine"]').click());
+    v('aucune erreur JavaScript sur iPad', I.erreurs, []);
 
     console.log('\n── 8. Le mois ; la fiche de l\'organisateur ──');
     await toucher(A, '[data-reu-vue="mois"]');

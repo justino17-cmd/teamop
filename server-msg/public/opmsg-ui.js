@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '51d19901a33a';
+  const OPMSG_BUILD = '14b6a675868c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 158;
+  const OPMSG_VERSION = 160;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4493,7 +4493,7 @@
   const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'], DELAI_MODIF_MS = 15 * 60000;
   function fermerMenu() {
     if (!etat.menu) return;
-    const d = etat.menu.declencheur; etat.menu = null;
+    const m0 = etat.menu, d = m0.agenda ? retrouverAgenda(m0.declencheur, m0.cle) : m0.declencheur; etat.menu = null;
     $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj', 'pt', 'ag'); $('menu-fond').classList.remove('pj', 'ancre', 'de-moi', 'ag');
     $('conv-messages').querySelectorAll('.menu-ancre').forEach(x => x.classList.remove('menu-ancre'));
     synchroInert();
@@ -5063,12 +5063,15 @@
         (reste > 0 ? '<button type="button" class="mjour-plus presse" data-jour="' + t + '" aria-label="' + esc('Voir les ' + l.length + ' éléments du ' + FMT_JOUR_LONG.format(t)) + '">+' + reste + '</button>' : '') + '</div></div>';
   }
   /* le focus survit au rendu d'une grille : le même rendez-vous (même occurrence), ou le même jour */
+  /* (un rendez-vous de plusieurs jours a une puce par jour, toutes avec le même identifiant et le même début : la CASE fait la différence) */
   function cleFocusAgenda(zone) {
     const a = document.activeElement; if (!a || !a.closest || !a.closest('#' + zone)) return null;
-    const p = s => String(s || '').replace(/["\\]/g, '');
-    return a.dataset.ag ? '[data-ag][data-id="' + p(a.dataset.id) + '"][data-debut="' + p(a.dataset.debut) + '"]' : a.dataset.jour ? (a.classList.contains('mjour-plus') ? '.mjour-plus' : '.mjour-num') + '[data-jour="' + p(a.dataset.jour) + '"]' : null;
+    const p = s => String(s || '').replace(/["\\]/g, ''), c = a.closest('[data-case]');
+    if (!a.dataset.ag) return a.dataset.jour ? [(a.classList.contains('mjour-plus') ? '.mjour-plus' : '.mjour-num') + '[data-jour="' + p(a.dataset.jour) + '"]'] : null;
+    const base = '[data-ag][data-id="' + p(a.dataset.id) + '"][data-debut="' + p(a.dataset.debut) + '"]';
+    return c ? ['[data-case="' + p(c.dataset.case) + '"] ' + base, base] : [base];
   }
-  function rendreFocusAgenda(zone, cle) { if (!cle) return; const b = $(zone).querySelector(cle) || $(zone).querySelector('.mjour-num[data-jour="' + reu.jour + '"]'); if (b) b.focus({ preventScroll: true }); }
+  function rendreFocusAgenda(zone, cle) { if (!cle) return; const b = cle.map(k => $(zone).querySelector(k)).find(Boolean) || $(zone).querySelector('.mjour-num[data-jour="' + reu.jour + '"]'); if (b) b.focus({ preventScroll: true }); }
   /* la grille du mois : une case par jour, les rendez-vous qui y COMMENCENT (et les journées entières), dans l'ordre de la journée */
   function rendreMois(auj) {
     const [du, au] = fenetreAgenda(), cle = cleFocusAgenda('mois-jours');
@@ -5087,11 +5090,11 @@
   }
   /* un clic dans une grille : un rendez-vous s'ouvre, un jour se choisit (un jour d'un autre mois charge ce mois) */
   function clicCaseAgenda(e, mois) {
-    if (Date.now() < ag.clicAvale) return;                                       // le relâcher d'un glisser n'ouvre pas le rendez-vous qu'on vient de lâcher
+    if (Date.now() < ag.clicAvale) { ag.clicAvale = 0; return; }                 // le relâcher d'un glisser n'ouvre pas le rendez-vous qu'on vient de lâcher — UN clic avalé, pas tous ceux d'une demi-seconde
     const p = e.target.closest('[data-ag]');
     if (p) { declencheur = p; ouvrirRendezVous(p.dataset.ag, p.dataset.id, +p.dataset.debut || null); return; }
-    const b = e.target.closest('[data-jour]'); if (!b) return;
-    const t = +b.dataset.jour;
+    const b = e.target.closest('[data-jour]') || e.target.closest('.mjour[data-case]'); if (!b) return;     // la case ENTIÈRE choisit le jour, pas seulement la bande de son numéro
+    const t = +(b.dataset.jour || b.dataset.case);
     if (mois && premierDuMois(t) !== reu.mois) allerAuJour(t); else { reu.jour = t; reu.semaine = lundiDe(t); rendreReunions(); }
   }
   function ouvrirRendezVous(type, id, debut) {
@@ -5106,7 +5109,7 @@
      problème de déplacement, ça envoie aux deux personnes concernées » (10 octobre 2026). Le menu s'ouvre au clic droit (souris : à l'endroit du clic, comme un menu du système), à
      l'appui long (doigt : la feuille du bas), à la touche Menu ou Maj+F10 (clavier : sous le rendez-vous). Le glisser se fait à la SOURIS ; au doigt, « Décaler… » est dans le menu.
      ⛔ RIEN NE PART SANS LA FEUILLE : lâcher un rendez-vous sur un autre jour ouvre « Décaler le rendez-vous », l'heure gardée, avec le motif ; c'est elle qui envoie. */
-  const ag = { tire: null, clicAvale: 0, aRendre: false, droit: 0 };
+  const ag = { tire: null, clicAvale: 0, aRendre: false, droit: 0, avale: null };
   const MOTIFS_DECALAGE = ['Problème de déplacement', 'Imprévu', 'Retard', 'Demande du client', 'Indisponible', 'Météo'];
   /* un rendez-vous de la fenêtre chargée, d'après ce que porte son bouton (puce d'une case, ligne de la liste du jour) */
   function elementAgenda(type, id, debut) {
@@ -5119,6 +5122,20 @@
     if (!el || !el.dataset) return null;
     const type = el.dataset.ag || (el.dataset.evenement ? 'e' : el.dataset.reunion ? 'r' : null), id = el.dataset.id || el.dataset.evenement || el.dataset.reunion;
     return type && id ? elementAgenda(type, id, +el.dataset.debut || null) : null;
+  }
+  /* ⛔ LE BOUTON D'UN RENDEZ-VOUS SE RETROUVE APRÈS UN RAFRAÎCHISSEMENT (relecture : un collègue crée une réunion pendant que le menu est ouvert, la grille se redessine, et Échap rendait le
+     focus à la page entière) : sa clé — la zone, la case, l'identifiant, le début — le retrouve dans la grille neuve ; sinon le jour choisi. */
+  function cleAgenda(el) {
+    if (!el || !el.dataset || !el.closest) return null;
+    const p = s => String(s || '').replace(/["\\]/g, ''), z = el.closest('#mois-jours, #sem-grille, #liste-reunions'), c = el.closest('[data-case]');
+    const base = el.dataset.ag ? '[data-ag][data-id="' + p(el.dataset.id) + '"][data-debut="' + p(el.dataset.debut) + '"]'
+      : el.dataset.reunion ? '[data-reunion="' + p(el.dataset.reunion) + '"]' + (el.dataset.debut ? '[data-debut="' + p(el.dataset.debut) + '"]' : '') : el.dataset.evenement ? '[data-evenement="' + p(el.dataset.evenement) + '"]' : '';
+    return z && base ? '#' + z.id + ' ' + (c ? '[data-case="' + p(c.dataset.case) + '"] ' : '') + base : null;
+  }
+  function retrouverAgenda(el, cle) {
+    if (el && el.isConnected) return el;
+    const n = (cle && document.querySelector(cle)) || document.querySelector((vueMois() ? '#mois-jours' : '#sem-grille') + ' .mjour-num[data-jour="' + reu.jour + '"]');
+    return n || el || null;
   }
   /* ce qu'on peut décaler : un événement à soi ; une réunion qu'on ORGANISE, à venir, ni annulée ni en série (le service ne décale pas encore UNE date d'une série — refusé, 409) */
   function peutDecaler(x) {
@@ -5160,7 +5177,7 @@
   /* `sansDelai` : ouvert au clic droit ou au clavier, aucun clic fantôme ne suit — le premier choix se prend tout de suite (le délai de 350 ms du cadre protège le relâcher d'un appui long) */
   function ouvrirMenuAgenda(el, ou, sansDelai) {
     const x = elementDe(el); if (!x || etat.menu) return;
-    etat.menu = { agenda: { type: x.e ? 'e' : 'r', id: x.e ? x.e.id : x.r.id, debut: x.e ? x.e.debut : x.o.debut }, declencheur: el, t: sansDelai ? 0 : Date.now(), ou: ou || null };
+    etat.menu = { agenda: { type: x.e ? 'e' : 'r', id: x.e ? x.e.id : x.r.id, debut: x.e ? x.e.debut : x.o.debut }, declencheur: el, cle: cleAgenda(el), t: sansDelai ? 0 : Date.now(), ou: ou || null };
     const M = $('menu-msg');
     M.setAttribute('aria-label', 'Actions de « ' + titreElt(x) + ' »');
     M.innerHTML = htmlMenuAgenda(x);
@@ -5174,7 +5191,7 @@
   function placerMenuAgenda() {
     const M = $('menu-msg'), F = $('menu-fond'), m0 = etat.menu; if (!m0 || !m0.agenda) return;
     if (!matchMedia('(min-width: 700px) and (hover: hover) and (pointer: fine)').matches) return;
-    const el = m0.declencheur, r = el && el.isConnected ? el.getBoundingClientRect() : null, m = M.getBoundingClientRect();
+    const el = retrouverAgenda(m0.declencheur, m0.cle), r = el && el.isConnected ? el.getBoundingClientRect() : null, m = M.getBoundingClientRect();
     let x = m0.ou ? m0.ou.x : r ? r.left : 24, y = m0.ou ? m0.ou.y : r ? r.bottom + 4 : 24;
     x = Math.max(8, Math.min(x, innerWidth - m.width - 8)); y = Math.max(8, Math.min(y, innerHeight - m.height - 8));
     F.style.setProperty('--ag-x', Math.round(x) + 'px'); F.style.setProperty('--ag-y', Math.round(y) + 'px');
@@ -5182,7 +5199,7 @@
   function sousMenuAgenda(html) { $('menu-msg').innerHTML = html; placerMenuAgenda(); const b = $('menu-msg').querySelector('button'); if (b) b.focus({ preventScroll: true }); }
   async function clicMenuAgenda(e) {
     const b = e.target.closest('[data-ag-menu]'); if (!b || !etat.menu || !etat.menu.agenda) return;
-    const A = etat.menu.agenda, el = etat.menu.declencheur, act = b.dataset.agMenu, x = elementAgenda(A.type, A.id, A.debut);
+    const A = etat.menu.agenda, el = retrouverAgenda(etat.menu.declencheur, etat.menu.cle), act = b.dataset.agMenu, x = elementAgenda(A.type, A.id, A.debut);
     if (act === 'garder') { fermerMenu(); return; }
     if (!x) { fermerMenu(); avis(A.type === 'e' ? 'Cet événement n\'existe plus.' : PHRASE_REUNION_PERDUE); return; }
     const titre = titreElt(x);
@@ -5205,7 +5222,7 @@
     fermerMenu();
     try {
       if (act === 'ouvrir') { declencheur = el && el.isConnected ? el : null; ouvrirRendezVous(A.type, A.id, A.debut); }
-      else if (act === 'decaler') ouvrirDecaler(A.type, A.id, A.debut, null, el);
+      else if (act === 'decaler') ouvrirDecaler(A.type, A.id, A.debut, el);
       else if (act === 'modifier') { declencheur = el && el.isConnected ? el : null; pousser(Object.assign({}, etat.route, { feuille: 'reunion-edit:' + A.id })); }
       else if (act === 'rejoindre') rejoindreReunionUI(A.id, undefined, el && el.isConnected ? el : null, false);
       else if (act === 'reponse') { await source.repondreReunion(A.id, b.dataset.statut); mot(b.dataset.statut === 'accepte' ? 'Tu as accepté la réunion' : b.dataset.statut === 'decline' ? 'Tu as refusé la réunion' : 'Réponse enregistrée : peut-être'); chargerReunions(); }
@@ -5249,6 +5266,7 @@
     /* le glisser : au-delà de 6 px, un fantôme suit la souris, la case survolée s'allume ; lâché sur un AUTRE jour, la feuille « Décaler » s'ouvre ; Échap annule */
     window.addEventListener('pointermove', e => {
       const T = ag.tire; if (!T || e.pointerId !== T.id) return;
+      if (!(e.buttons & 1)) { ag.tire = null; if (T.actif) finTirer(T, false); return; }      // le bouton a été relâché HORS de la fenêtre (le relâcher n'est jamais arrivé) : le glisser s'arrête, rien ne part
       if (!T.actif) {
         if (Math.hypot(e.clientX - T.x0, e.clientY - T.y0) < 6) return;
         if (!T.el.isConnected) { ag.tire = null; return; }
@@ -5262,23 +5280,30 @@
       const sous = document.elementFromPoint(e.clientX, e.clientY), c = sous && sous.closest ? sous.closest('#mois-jours .mjour[data-case], #sem-grille .mjour[data-case]') : null, n = c && c !== T.depart ? c : null;
       if (n !== T.cible) { if (T.cible) T.cible.classList.remove('cible'); T.cible = n; if (n) n.classList.add('cible'); }
     });
-    window.addEventListener('pointerup', e => { const T = ag.tire; if (!T || e.pointerId !== T.id) return; ag.tire = null; if (T.actif) finTirer(T, true); });
-    window.addEventListener('pointercancel', e => { const T = ag.tire; if (!T || e.pointerId !== T.id) return; ag.tire = null; if (T.actif) finTirer(T, false); });
-    document.addEventListener('keydown', e => { const T = ag.tire; if (e.key !== 'Escape' || !T || !T.actif) return; e.preventDefault(); e.stopImmediatePropagation(); ag.tire = null; finTirer(T, false); }, true);
+    /* ⛔ Échap pendant un glisser : le bouton est encore enfoncé — son relâcher, même une seconde plus tard, ne doit pas ouvrir le rendez-vous (on avale le clic jusqu'au relâcher, pas une durée) */
+    window.addEventListener('pointerup', e => {
+      if (ag.avale === e.pointerId) { ag.avale = null; ag.clicAvale = Date.now() + 500; }
+      const T = ag.tire; if (!T || e.pointerId !== T.id) return; ag.tire = null; if (T.actif) finTirer(T, true);
+    });
+    window.addEventListener('pointercancel', e => { if (ag.avale === e.pointerId) ag.avale = null; const T = ag.tire; if (!T || e.pointerId !== T.id) return; ag.tire = null; if (T.actif) finTirer(T, false); });
+    document.addEventListener('keydown', e => { const T = ag.tire; if (e.key !== 'Escape' || !T || !T.actif) return; e.preventDefault(); e.stopImmediatePropagation(); ag.tire = null; ag.avale = T.id; finTirer(T, false); }, true);
   }
   function finTirer(T, lacher) {
     ag.clicAvale = Date.now() + 500;
     if (T.fantome) T.fantome.remove();
     document.documentElement.classList.remove('ag-tire');
     document.querySelectorAll('#vue-reunions .tire, #vue-reunions .cible').forEach(x => x.classList.remove('tire', 'cible'));
-    const jour = lacher && T.cible && T.cible.isConnected ? +T.cible.dataset.case : null;
+    const jour = lacher && T.cible && T.cible.isConnected ? +T.cible.dataset.case : null, depart = T.depart ? +T.depart.dataset.case : null, cle = cleAgenda(T.el);
     if (ag.aRendre) { ag.aRendre = false; rendreReunions(); }
-    if (jour !== null) ouvrirDecaler(T.el.dataset.ag, T.el.dataset.id, +T.el.dataset.debut || null, jour, T.el);
+    if (jour !== null) ouvrirDecaler(T.el.dataset.ag, T.el.dataset.id, +T.el.dataset.debut || null, retrouverAgenda(T.el, cle), { jour, depart });
   }
 
   /* ── la feuille « Décaler le rendez-vous » (route `decaler:<id>`) : le nouveau jour et la nouvelle heure (la durée gardée), un MOTIF, qui sera prévenu — et un chevauchement se dit ── */
-  function ouvrirDecaler(type, id, debut, jour, el, snap) {
-    reu.decalage = { type, id, debut: debut || null, jour: Number.isFinite(jour) ? jour : null, snap: snap || null };
+  /* `o.jour` et `o.depart` : la case où l'on a LÂCHÉ et celle d'où l'on a SAISI (un glisser) ; `o.snap` : ce que la fiche d'une réunion en a dit */
+  function ouvrirDecaler(type, id, debut, el, o) {
+    o = o || {};
+    const jour = Number.isFinite(o.jour) ? o.jour : null, depart = Number.isFinite(o.depart) ? o.depart : null;
+    reu.decalage = { type, id, debut: debut || null, jour, depart: jour !== null ? depart : null, snap: o.snap || null };
     if (type === 'r') reu.occurrences[id] = debut || null;
     declencheur = el && el.isConnected ? el : document.activeElement;
     pousser(Object.assign({}, etat.route, { feuille: 'decaler:' + id }));
@@ -5288,17 +5313,39 @@
     const x = elementAgenda(D.type, D.id, D.debut);
     if (x) {
       const jours = x.e && x.e.journee ? Math.max(1, Math.round((x.e.fin - x.e.debut) / JOUR_MS)) : 1;
-      return { type: D.type, id: D.id, titre: titreElt(x), debut: x.o.debut, fin: x.o.fin, journee: !!(x.e && x.e.journee), jours, tz: x.e ? x.e.tz : x.r.tz, prevenus: x.r ? (x.r.participants || []).filter(p => p !== MOI.id) : null, peut: peutDecaler(x), raison: peutDecaler(x) ? '' : raisonNonDecalable(x) };
+      /* ⛔ la liste de l'agenda ne porte que QUATRE participants (les premiers) ; `participantsN` les compte tous, organisateur compris : c'est lui qui dit combien seront prévenus */
+      return { type: D.type, id: D.id, titre: titreElt(x), debut: x.o.debut, fin: x.o.fin, journee: !!(x.e && x.e.journee), jours, tz: x.e ? x.e.tz : x.r.tz,
+        prevenus: x.r ? (x.r.participants || []).filter(p => p !== MOI.id) : null, prevenusN: x.r ? Math.max(0, (x.r.participantsN || 1) - 1) : 0, peut: peutDecaler(x), raison: peutDecaler(x) ? '' : raisonNonDecalable(x) };
     }
     return D.snap || null;
   }
+  /* ce que la FICHE d'une réunion (`source.reunion`) dit pour « Décaler » — la fiche elle-même, ou une feuille ouverte sur une réunion hors de la fenêtre chargée */
+  function snapDecalage(id, d) {
+    if (!d) return null;
+    const hote = !!(d.moi && d.moi.hote), prevenus = (d.invites || []).filter(p => !p.hote).map(p => p.id);
+    const peut = typeof source.decalerReunion === 'function' && hote && !d.annulee && d.repetition === 'aucune' && Number.isFinite(d.fin) && d.fin > Date.now();
+    return { type: 'r', id, titre: d.titre || 'Réunion', debut: d.debut, fin: d.fin, journee: false, jours: 1, tz: d.tz, prevenus, prevenusN: prevenus.length, peut,
+      raison: peut ? '' : !hote ? 'Seul l\'organisateur peut décaler cette réunion.' : d.annulee ? 'Cette réunion est annulée.' : d.repetition !== 'aucune' ? 'Une réunion qui se répète se modifie en entier : « Modifier la réunion », dans sa fiche.' : 'Cette réunion est passée.' };
+  }
+  /* ⛔ LÂCHER DÉCALE DU NOMBRE DE JOURS TIRÉS (relecture : un salon du mardi au mercredi, saisi par son mercredi et lâché sur le jeudi, partait au jeudi-vendredi) — de la case saisie à la case
+     lâchée ; et l'HEURE GARDÉE est celle du FUSEAU du rendez-vous : une réunion à 9 h à New York reste à 9 h à New York, même la semaine où Paris a changé d'heure et pas New York. */
+  const joursEntre = (a, b) => Math.round((b - a) / JOUR_MS);           // des minuits de l'appareil : 23 ou 25 h un jour de changement d'heure, d'où l'arrondi
+  function debutDecale(debut, n, tz) {
+    if (!n) return debut;
+    const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}:\d{2})$/.exec(tz ? localDans(debut, tz) : '');
+    if (m) { const t = instantDans(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3] + n)).toISOString().slice(0, 10) + 'T' + m[4], tz); if (t !== null) return t; }
+    const d = new Date(debut); d.setDate(d.getDate() + n); return d.getTime();
+  }
+  /* le JOUR d'une journée entière, à minuit de l'appareil : la date qu'elle porte dans SON fuseau (minuit à Paris n'est pas le même jour partout) */
+  function jourDans(t, tz) { const j = tz ? dateDeChaine(localDans(t, tz)) : null; return j !== null ? j : minuitDe(t); }
   const ymdDe = t => { const d = new Date(t); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
   const hmDe = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
   const dureeTexte = ms => { const m = Math.round(ms / 60000); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : ''); };
-  function phrasePrevenus(ids) {
-    if (!ids || !ids.length) return 'Personne d\'autre n\'est invité : rien n\'est envoyé.';
-    const noms = ids.slice(0, 3).map(nomPersonne), reste = ids.length - noms.length;
-    return 'Seront prévenus : ' + noms.join(', ') + (reste > 0 ? ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') : '') + ' — une notification avec l\'ancien et le nouvel horaire, le motif, et un message dans la conversation de la réunion.';
+  function phrasePrevenus(ids, total) {
+    const l = ids || [], n = Math.max(Number.isFinite(total) ? total : 0, l.length);
+    if (!n) return 'Personne d\'autre n\'est invité : rien n\'est envoyé.';
+    const noms = l.slice(0, 3).map(nomPersonne), reste = n - noms.length;
+    return 'Seront prévenus : ' + (noms.length ? noms.join(', ') + (reste > 0 ? ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') : '') : n + ' participant' + (n > 1 ? 's' : '')) + ' — une notification avec l\'ancien et le nouvel horaire, le motif, et un message dans la conversation de la réunion.';
   }
   function rendreDecaler(id) {
     const corps = $('info-corps'), type = ID_EVT.test(id) ? 'e' : 'r';
@@ -5306,27 +5353,35 @@
     const X = modeleDecalage(D);
     if (!X) {
       if (!reu.charge) { reu.decalerEnAttente = id; corps.innerHTML = '<p class="info-note" role="status">Chargement…</p>'; return; }       // ouverte par un lien : l'agenda arrive
-      corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(type === 'e' ? 'Cet événement n\'existe plus.' : PHRASE_REUNION_PERDUE) + '</p>'; return;
+      /* ⛔ ABSENTE DE LA FENÊTRE CHARGÉE N'EST PAS « N'EXISTE PLUS » (relecture) : une réunion d'une autre semaine, ou un agenda en panne — on relit SA fiche avant de rien affirmer */
+      if (type === 'r' && !D.lu && typeof source.reunion === 'function') {
+        D.lu = true; corps.innerHTML = '<p class="info-note" role="status">Chargement…</p>';
+        const encore = () => reu.decalage === D && etat.groupe.ouvert && etat.groupe.mode === 'decaler';
+        source.reunion(id).then(d => { if (!encore()) return; D.snap = snapDecalage(id, d); rendreDecaler(id); }, er => { if (!encore()) return; D.panne = er; rendreDecaler(id); });
+        return;
+      }
+      const perdue = type === 'e' ? 'Cet événement n\'existe plus.' : PHRASE_REUNION_PERDUE;
+      corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(D.panne && D.panne.code !== 'reunion_introuvable' ? phrase(D.panne, 'La réunion n\'a pas pu être lue.') : type === 'e' && reu.panne ? phrase(reu.panne, 'L\'agenda n\'a pas pu être chargé.') : perdue) + '</p>'; return;
     }
     reu.decalerEnAttente = null;
     if (!X.peut) { corps.innerHTML = '<p class="info-erreur" role="alert">' + esc(X.raison) + '</p>'; return; }
-    const duree = Math.max(60000, X.fin - X.debut);
-    let nd = X.debut;
-    if (D.jour !== null) { const a = new Date(X.debut), n = new Date(D.jour); n.setHours(a.getHours(), a.getMinutes(), 0, 0); nd = n.getTime(); }
+    const duree = Math.max(60000, X.fin - X.debut), base = X.journee ? jourDans(X.debut, X.tz) : X.debut;
+    let nd = base;
+    if (D.jour !== null && D.depart !== null) { const n = joursEntre(D.depart, D.jour); nd = X.journee ? plusJours(base, n) : debutDecale(X.debut, n, X.tz); }
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
-      '<div class="carte carte-pad dc-tete"><p class="dc-titre">' + esc(X.titre) + '</p><p class="dc-ligne"><span>Prévu</span>' + esc(quandRdv(X.debut, X.fin, X.journee, X.jours)) + '</p>' +
+      '<div class="carte carte-pad dc-tete"><p class="dc-titre">' + esc(X.titre) + '</p><p class="dc-ligne"><span>Prévu</span>' + esc(quandRdv(base, X.fin, X.journee, X.jours)) + '</p>' +
         '<p class="dc-ligne dc-nouveau" id="dc-apres" aria-live="polite"><span>Nouveau</span><b></b></p></div>' +
       '<div class="champ"><label for="dc-date">Jour</label><input id="dc-date" type="date" value="' + ymdDe(nd) + '"></div>' +
       (X.journee ? '' : '<div class="champ"><label for="dc-heure">Heure de début</label><input id="dc-heure" type="time" step="300" value="' + hmDe(nd) + '"></div>') +
       '<p class="info-note">' + esc(X.journee ? (X.jours > 1 ? 'Sur ' + X.jours + ' jours, comme avant.' : 'Toute la journée, comme avant.') : 'La durée est gardée : ' + dureeTexte(duree) + '.') + '</p>' +
-      '<p class="info-note dc-conflit" id="dc-conflit" role="status" hidden></p>' +
+      '<p class="info-note dc-note" id="dc-note" role="status"></p><p class="info-note dc-conflit" id="dc-conflit" role="status"></p>' +
       (X.type === 'r' ? '<div class="champ"><label for="dc-motif">Motif <small>— facultatif, envoyé avec l\'avis</small></label><div class="dc-motifs" role="group" aria-label="Motifs courants">' +
           MOTIFS_DECALAGE.map(m => '<button type="button" class="mini" data-dc-motif="' + esc(m) + '" aria-pressed="false">' + esc(m) + '</button>').join('') + '</div>' +
           '<input id="dc-motif" type="text" maxlength="200" autocomplete="off" enterkeyhint="done" placeholder="Ou en quelques mots"></div>' +
-        '<p class="info-note">' + esc(phrasePrevenus(X.prevenus)) + '</p>'
+        '<p class="info-note">' + esc(phrasePrevenus(X.prevenus, X.prevenusN)) + '</p>'
         : '<p class="info-note">C\'est ton agenda : personne n\'est prévenu.</p>') +
-      '<div class="info-actions"><button type="button" class="mini plein" data-dc="ok">' + (X.type === 'r' && X.prevenus && X.prevenus.length ? 'Décaler et prévenir' : 'Décaler') + '</button><button type="button" class="mini" data-dc="non">Annuler</button></div>';
-    reu.decalageForm = Object.assign({}, X, { duree });
+      '<div class="info-actions"><button type="button" class="mini plein" data-dc="ok">' + (X.type === 'r' && X.prevenusN > 0 ? 'Décaler et prévenir' + (X.prevenusN > 1 ? ' (' + X.prevenusN + ')' : '') : 'Décaler') + '</button><button type="button" class="mini" data-dc="non">Annuler</button></div>';
+    reu.decalageForm = Object.assign({}, X, { duree, base });
     decalerApercu();
   }
   function decalerNouveau() {
@@ -5348,9 +5403,14 @@
     const F = reu.decalageForm; if (!F) return;
     const t = decalerNouveau(), b = $('dc-apres') && $('dc-apres').querySelector('b'), conf = $('dc-conflit');
     if (b) b.textContent = t === null ? '—' : quandRdv(t, t + F.duree, F.journee, F.jours);
-    const c = t === null || F.journee ? [] : conflitsAgenda(t, t + F.duree, F.id);
+    const c = t === null || F.journee ? [] : conflitsAgenda(t, t + F.duree, F.id), note = $('dc-note');
+    if (note) {
+      /* ⛔ une heure que le jour n'a pas (le trou du changement d'heure de l'appareil) se DIT, avec celle qui sera prise ; et l'heure CHEZ la réunion quand son fuseau n'est pas celui de l'appareil */
+      const saisie = !F.journee && $('dc-heure') ? $('dc-heure').value : '', ici = t === null || F.journee ? '' : hmDe(t);
+      const loin = ici && F.tz && F.tz !== fuseauAppareil() ? heureDans(t, F.tz) : '';
+      note.textContent = (saisie && ici && saisie !== ici ? saisie + ' n\'existe pas ce jour-là (changement d\'heure) : ce sera ' + ici + '. ' : '') + (loin && loin !== ici ? 'Heure de ' + villeDe(F.tz) + ' : ' + loin + ' – ' + heureDans(t + F.duree, F.tz) + '.' : '');
+    }
     if (conf) {
-      conf.hidden = !c.length;
       conf.textContent = c.length ? 'Attention, ce créneau chevauche ' + c.slice(0, 2).map(y => '« ' + titreElt(y) + ' » (' + FMT_HEURE.format(y.o.debut) + ' – ' + FMT_HEURE.format(y.o.fin) + ')').join(' et ') + (c.length > 2 ? ' et ' + (c.length - 2) + ' autre' + (c.length > 3 ? 's' : '') : '') + '.' : '';
     }
   }
@@ -5358,7 +5418,7 @@
     const F = reu.decalageForm; if (!F || b.getAttribute('aria-disabled') === 'true') return;
     const t = decalerNouveau();
     if (t === null) { erreurInfo(F.journee ? 'Choisis le jour.' : 'Choisis le jour et l\'heure.'); return; }
-    if (t === F.debut) { erreurInfo('C\'est déjà son horaire : choisis un autre jour ou une autre heure.'); return; }
+    if (t === F.base) { erreurInfo('C\'est déjà son horaire : choisis un autre jour ou une autre heure.'); return; }
     if (F.type === 'r' && t <= Date.now()) { erreurInfo('Choisis un horaire à venir.'); return; }
     const motif = F.type === 'r' && $('dc-motif') ? $('dc-motif').value.replace(/\s+/g, ' ').trim() : '';
     b.setAttribute('aria-disabled', 'true');
@@ -5368,12 +5428,14 @@
         const r = await source.decalerReunion(F.id, { debut: localDans(t, F.tz), fin: localDans(t + F.duree, F.tz), motif });
         const n = r && Number.isFinite(r.prevenus) ? r.prevenus : 0;
         mot('Réunion décalée au ' + FMT_JOUR_LONG.format(t) + ' à ' + FMT_HEURE.format(t) + (n ? ' — ' + (n > 1 ? n + ' participants prévenus' : 'l\'autre participant est prévenu') : ''));
-        reu.decalage = null; reu.decalageForm = null; fermerCouche(); chargerReunions();
+        if (reu.decalageForm === F) { reu.decalage = null; reu.decalageForm = null; if (etat.groupe.ouvert && etat.groupe.mode === 'decaler') fermerCouche(); }
+        chargerReunions();
       } else {
         const champs = F.journee ? { journee: true, debut: ymdDe(t), fin: ymdDe(plusJours(t, F.jours - 1)) } : { debut: localDans(t, F.tz), fin: localDans(t + F.duree, F.tz) };
         await source.majEvenement(F.id, champs);
         mot('Événement décalé au ' + FMT_JOUR_LONG.format(t) + (F.journee ? '' : ' à ' + FMT_HEURE.format(t)));
-        reu.decalage = null; reu.decalageForm = null; fermerCouche(); evenementsRelire();
+        if (reu.decalageForm === F) { reu.decalage = null; reu.decalageForm = null; if (etat.groupe.ouvert && etat.groupe.mode === 'decaler') fermerCouche(); }
+        evenementsRelire();
       }
     } catch (er) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'Le rendez-vous n\'a pas pu être décalé.')); }
   }
@@ -6276,8 +6338,8 @@
     /* les gestes de l'hôte */
     if (hote) {
       s += '<div class="rubrique"><span>Organisateur</span></div>';
-      const decalable = typeof source.decalerReunion === 'function' && !d.annulee && d.repetition === 'aucune' && Number.isFinite(d.fin) && d.fin > Date.now();
-      F.decalable = decalable ? { titre: d.titre || 'Réunion', debut: d.debut, fin: d.fin, tz: d.tz, prevenus: (d.invites || []).filter(p => !p.hote).map(p => p.id) } : null;
+      const sd = snapDecalage(F.id, d), decalable = !!(sd && sd.peut);
+      F.decalable = decalable ? sd : null;
       if (!d.annulee) s += '<div class="carte">' + (decalable ? '<button type="button" class="reglage presse" data-reu="decaler" aria-haspopup="dialog">' + icone('i-agenda') + '<span class="reglage-texte">Décaler<small>Un autre jour ou une autre heure, avec un motif — chacun est prévenu</small></span>' + CHEVRON + '</button>' : '') +
         '<button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
@@ -6386,8 +6448,7 @@
         else if (act === 'retirer') { b.setAttribute('aria-disabled', 'true'); await source.retirerInviteReunion(id, b.dataset.uid); mot('Personne retirée de la réunion'); await relire(); }
         else if (act === 'conversation') ouvrirConvId(d.conv);
         else if (act === 'decaler' && F.decalable) {
-          const X = F.decalable;
-          ouvrirDecaler('r', id, X.debut, null, b, { type: 'r', id, titre: X.titre, debut: X.debut, fin: X.fin, journee: false, jours: 1, tz: X.tz, prevenus: X.prevenus, peut: true, raison: '' });
+          ouvrirDecaler('r', id, F.decalable.debut, b, { snap: F.decalable });
         }
         else if (act === 'cote') {
           const avant = b.dataset.valeur, auto = b.dataset.auto === 'pro' ? 'pro' : 'perso';
