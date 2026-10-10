@@ -324,7 +324,7 @@ async function jouer(mut, dir) {
   /* ⛔ LE TÉMOIN. Une suite qui MEURT dans la copie (un fichier que la copie n'emporte pas, un `require` qui échoue) a l'air de « tomber » à chaque mutation, sans rien prouver. Chaque banc visé
      tourne donc d'abord, UNE fois, sur une copie INTACTE : s'il n'y est pas vert, rien n'est joué et la sortie dit pourquoi. */
   if (!args.includes('--sans-temoin')) {
-    const visees = Array.from(new Set(liste.flatMap(x => x.suites.map(s => estSonde(s) ? 'sonde:1,2,4,5' : s))));          // un seul témoin pour la sonde : le plus large des blocs joués
+    const visees = Array.from(new Set(liste.flatMap(x => x.suites.map(s => s === 'sonde' || s.startsWith('sonde:') ? 'sonde:1,2,4,5' : s))));          // un seul témoin pour la sonde des salles : le plus large des blocs joués ; la sonde de l'agenda, entière
     for (const sv of visees) {
       const r = await lancer(copies[0], sv);
       if (r.code !== 0 || r.ko === null || r.ko > 0) {
