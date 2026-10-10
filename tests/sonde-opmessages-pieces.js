@@ -255,7 +255,7 @@ async function parcours(b, ctx) {
       v('⛔ la durée de la bulle est EXACTEMENT celle que le compteur montrait à l\'envoi — ni arrondie vers le haut (1:05 devenait 1:06, 0:01 devenait 0:02), ni celle, un instant plus tard, de l\'arrêt du micro — chez Alice comme chez Bruno', [await dureeDe(A, 'de-moi'), await dureeDe(B, 'de-autre')], [compteur, compteur]);
     }
     const lecturesAvant = await B.page.evaluate(() => window.__plays.length);
-    await toucher(B, '#conv-messages .msg.de-autre .vocal');
+    await toucher(B, '#conv-messages .msg.de-autre .vocal [data-lire]');
     await verifier('⛔ Bruno LIT le vocal : un élément audio démarre sur une adresse blob:, le bouton passe en « lecture »', B, n => window.__plays.length > n && window.__plays[window.__plays.length - 1] === 'blob:' && !!document.querySelector('#conv-messages .vocal[data-lecture]'), lecturesAvant, 12000, () => B.page.evaluate(() => JSON.stringify({ plays: window.__plays, lecture: !!document.querySelector('.vocal[data-lecture]'), avis: (document.getElementById('avis') || {}).textContent })));
     await verifier('…et la lecture se termine toute seule (le bouton reprend sa forme de repos)', B, () => !document.querySelector('#conv-messages .vocal[data-lecture]'), null, 15000);
     await largeur(B, 'conversation avec vocal et fichier');

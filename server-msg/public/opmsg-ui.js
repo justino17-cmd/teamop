@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'd2e85cb55863';
+  const OPMSG_BUILD = 'bbe6ad8287f8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 161;
+  const OPMSG_VERSION = 159;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -657,10 +657,14 @@
       /* la LÉGENDE, dessous, dans une bulle de l'envoyeur */
       if (m.texte) h += '<span class="bulle legende ' + sens + '" dir="auto">' + texteRiche(m.texte, c) + '</span></span>';
     } else if (m.vocal) {
-      h += '<button type="button" class="vocal ' + sens + ' presse" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '">' +
-        '<span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span>' +
-        '<span class="onde" aria-hidden="true">' + (m.vocal.bars && m.vocal.bars.length ? m.vocal.bars : [8, 14, 18, 10, 16, 6, 12, 18, 9, 14]).map(n => '<i style="height:' + Math.max(4, Math.min(20, n | 0)) + 'px"></i>').join('') + '</span>' +
-        '<span class="vocal-duree">' + duree(m.vocal.dur) + '</span></button>';
+      /* ⛔ la bulle n'est plus UN bouton (10 octobre 2026) : un bouton ne contient pas d'autre bouton, et elle en porte trois commandes — lire (le disque), aller à un moment (l'onde,
+         un curseur), la vitesse (la pastille, pendant l'écoute). Toucher ailleurs sur la bulle lit, comme avant. */
+      h += '<div class="vocal ' + sens + ' presse" data-vocal="' + esc(m.id) + '">' +
+        '<button type="button" class="vocal-lire" data-lire="' + esc(m.id) + '" aria-label="Lire le message vocal de ' + duree(m.vocal.dur) + '"><span class="vocal-disque">' + icone('i-play', 'plein play') + icone('i-pause', 'plein pause') + '</span></button>' +
+        '<span class="onde" data-onde="' + esc(m.id) + '" role="slider" tabindex="0" aria-label="Position dans le message vocal" aria-valuemin="0" aria-valuemax="' + Math.round(m.vocal.dur || 0) + '" aria-valuenow="0" aria-valuetext="' + duree(0) + ' sur ' + duree(m.vocal.dur) + '">' +
+          (m.vocal.bars && m.vocal.bars.length ? m.vocal.bars : [8, 14, 18, 10, 16, 6, 12, 18, 9, 14]).map(n => '<i style="height:' + Math.max(4, Math.min(20, n | 0)) + 'px"></i>').join('') + '</span>' +
+        '<span class="vocal-duree">' + duree(m.vocal.dur) + '</span>' +
+        '<button type="button" class="vocal-vitesse" data-vitesse="' + esc(m.id) + '" aria-label="Vitesse de lecture"><span class="vocal-pastille"></span></button></div>';
     } else if (m.fichier) {
       h += '<button type="button" class="fichier ' + sens + ' presse" data-fichier="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="Télécharger le fichier ' + esc(m.fichier.nom) + ', ' + esc(tailleTexte(m.fichier.taille)) + '">' +
         '<span class="fichier-icone">' + icone('i-fichier') + '</span><span class="fichier-texte"><span class="fichier-nom" dir="auto">' + esc(m.fichier.nom) + '</span><span class="fichier-taille">' + esc([tailleTexte(m.fichier.taille), echeanceTexte(m.expire)].filter(Boolean).join(' · ')) + '</span></span></button>';
@@ -840,7 +844,7 @@
      texte. Chaque morceau garde le balisage qui l'a produit (`__h`) ; seul ce qui a CHANGÉ est remplacé, le reste est le même nœud. */
   function peindreMessages(parts) {
     const col = $('conv-messages'), tpl = document.createElement('template');
-    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : null) : null, val = cle ? actif.dataset[cle] : null;
+    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.onde ? 'onde' : actif.dataset.vitesse ? 'vitesse' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : null) : null, val = cle ? actif.dataset[cle] : null;
     for (let i = 0; i < parts.length; i++) {
       const vieux = col.children[i];
       if (vieux && vieux.__h === parts[i].h) { majStatut(vieux, parts[i].st); continue; }
@@ -848,7 +852,8 @@
       if (vieux) col.replaceChild(neuf, vieux); else col.appendChild(neuf);
     }
     while (col.children.length > parts.length) col.removeChild(col.lastChild);
-    if (cle && !col.contains(document.activeElement)) { const b = col.querySelector('[data-' + cle.replace(/[A-Z]/g, x => '-' + x.toLowerCase()) + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
+    /* la pastille de vitesse n'est visible (donc focalisable) qu'une fois la lecture repeinte sur la bulle neuve */
+    if (cle && !col.contains(document.activeElement)) { if (cle === 'vitesse') appliquerLecture(); const b = col.querySelector('[data-' + cle.replace(/[A-Z]/g, x => '-' + x.toLowerCase()) + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
   }
   /* pourquoi on ne peut pas écrire ici (le texte), ou '' : un groupe d'annonces dont on n'est pas admin, un compte supprimé */
   const compoFerme = c => !c ? '' : c.supprime ? 'Ce compte a été supprimé : tu ne peux plus lui écrire.' : (c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0 ? 'Seuls les admins peuvent écrire dans ce groupe.' : '');
@@ -936,9 +941,10 @@
     etat.jeton++;
     const id = etat.conv;
     if (id) etat.brouillons[id] = $('saisie').value;
+    arreterLecture();                                           // ⛔ AVANT de vider la conversation : la durée du vocal s'y lit, la position d'une pause se garde (relecture)
     etat.conv = null; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu();
     delete document.documentElement.dataset.conv;
-    arreterLecture(); annulerEnregistrement();
+    annulerEnregistrement();
     rendreListe();
     synchroInert();
     const dec = etat.declencheurConv; etat.declencheurConv = null;
@@ -1544,8 +1550,10 @@
   $('conv-messages').addEventListener('click', e => {
     const p = e.target.closest('[data-photo]');
     if (p) { etat.declencheurPhoto = p; pousser(Object.assign({}, etat.route, { photo: p.dataset.photo })); return; }
-    const v = e.target.closest('[data-lire]');
-    if (v) { lireVocal(v.dataset.lire); return; }
+    if (e.target.closest('[data-vitesse]')) { changerVitesse(); return; }
+    if (e.target.closest('.vocal .onde')) return;                             // l'onde : la position (au toucher, `pointerdown`), pas la lecture
+    const v = e.target.closest('[data-lire]') || e.target.closest('.vocal[data-vocal]');
+    if (v) { lireVocal(v.dataset.lire || v.dataset.vocal); return; }
     const re = e.target.closest('[data-reessayer]');
     if (re) { if (typeof source.reessayer === 'function' && source.reessayer(re.dataset.reessayer)) masquerAvis(); return; }
     const an = e.target.closest('[data-annuler]');
@@ -1684,52 +1692,195 @@
 
   /* ── le vocal : lecture ──
      Un vocal ENREGISTRÉ ici se relit par `Audio`. Un vocal d'EXEMPLE (aucun fichier sonore dans l'aperçu) rejoue sa durée sans son :
-     la barre avance, le bouton passe en pause — c'est ce que verra la personne avec un vrai fichier. */
-  const lect = { mid: null, audio: null, minut: null, t0: 0 };
-  function progres(p) {
-    const b = document.querySelector('[data-lire="' + (lect.mid || '').replace(/"/g, '') + '"]'); if (!b) return;
-    const barres = b.querySelectorAll('.onde i'), n = Math.round(p * barres.length);
+     la barre avance, le bouton passe en pause — c'est ce que verra la personne avec un vrai fichier.
+     ⛔ LA VITESSE, LA REPRISE, L'ONDE (10 octobre 2026 : « qu'on puisse accélérer les vocaux ») : une pastille « 1× · 1,5× · 2× » sur la bulle pendant l'écoute (retenue par le
+     compte, `source.vitesseVocal` — refusée, elle vaut pour la visite) ; une PAUSE garde sa position (la bulle la montre, le même vocal repart de là) ; toucher ou glisser sur l'onde
+     y va (au clavier : les flèches, Début, Fin) ; un vocal écouté jusqu'au bout enchaîne le vocal SUIVANT de la même personne (un seul élément `Audio` : iOS l'accepte). La hauteur de la voix ne change pas (`preservesPitch`).
+     La position se rapporte à la durée ANNONCÉE (`m.vocal.dur`) : celle d'un enregistrement webm est souvent `Infinity` pour le navigateur. */
+  const VITESSES = [1, 1.5, 2];
+  let vitesseVisite = null;                                                   // le choix de cette visite, tant que le compte ne l'a pas retenu (ou l'a refusé)
+  const vitesse = () => { const v = vitesseVisite !== null ? vitesseVisite : typeof source.vitesseVocal === 'function' ? source.vitesseVocal() : 1; return VITESSES.includes(v) ? v : 1; };
+  const libVitesse = v => String(v).replace('.', ',') + '×';
+  /* `cid` : l'identifiant d'ENVOI d'un vocal à moi — il ne change pas quand le message en file prend son vrai identifiant (l'écoute continue, rattachée) ; `dur` : la durée, gardée pour la fin
+     de l'écoute (la conversation peut être fermée entre-temps) ; `pret` : le fichier est chargé — avant, un déplacement se garde dans `pos` et s'applique à l'arrivée ; `jeton` : une écoute
+     (un refus de `play()` d'une écoute remplacée ne coupe pas la suivante). */
+  const lect = { mid: null, cid: null, dur: 1, audio: null, pret: false, minut: null, pos: 0, dernier: 0, jeton: 0 };
+  const positions = new Map();                                                // mid → secondes : là où une écoute s'est arrêtée (le temps de la visite)
+  const bulleVocal = mid => mid ? document.querySelector('#conv-messages .vocal[data-vocal="' + String(mid).replace(/["\\]/g, '') + '"]') : null;
+  const dureeVocal = mid => {
+    const m = trouverMessage(mid); if (m && m.vocal) return Math.max(1, m.vocal.dur || 1);
+    if (mid && mid === lect.mid) return lect.dur;
+    const b = bulleVocal(mid), o = b && b.querySelector('.onde'); return o ? Math.max(1, Number(o.getAttribute('aria-valuemax')) || 1) : 1;
+  };
+  const positionCourante = () => lect.audio && lect.pret ? (lect.audio.currentTime || 0) : lect.pos;
+  /* un vocal à moi parti pendant qu'on l'écoute (ou qu'il était en pause) : son identifiant `p:<cid>` devient le vrai — on le retrouve par son `cid` */
+  const rattacher = mid => { if (!mid || bulleVocal(mid)) return mid; const cid = mid === lect.mid ? lect.cid : (String(mid).indexOf('p:') === 0 ? String(mid).slice(2) : null), c = etat.convDonnees;
+    const n = cid && c && c.messages.find(x => x.cid === cid && x.vocal && x.id !== mid && bulleVocal(x.id)); return n ? n.id : mid; };
+  /* la bulle dit où on en est : les barres écoutées, le temps écoulé (la durée totale au repos), la valeur de l'onde pour un lecteur d'écran */
+  function peindrePosition(b, s, dur, ecoute) {
+    const p = dur > 0 ? Math.max(0, Math.min(1, s / dur)) : 0, barres = b.querySelectorAll('.onde i'), n = Math.round(p * barres.length);
     barres.forEach((x, i) => x.classList.toggle('joue', i < n));
+    const d = b.querySelector('.vocal-duree'), t = duree(ecoute || s > 0 ? Math.min(s, dur) : dur); if (d && d.textContent !== t) d.textContent = t;
+    const o = b.querySelector('.onde'), v = String(Math.round(Math.min(s, dur)));
+    if (o && o.getAttribute('aria-valuenow') !== v) { o.setAttribute('aria-valuenow', v); o.setAttribute('aria-valuetext', duree(Math.min(s, dur)) + ' sur ' + duree(dur)); }
   }
+  /* ⛔ le libellé de vitesse n'est PAS dans le balisage mémorisé de la bulle (relecture : changer de vitesse aurait remplacé toutes les bulles vocales au rendu suivant, focus compris) — il se pose ici */
+  function peindreVitesse(b) { const x = b.querySelector('[data-vitesse]'), p = x && x.querySelector('.vocal-pastille'), l = libVitesse(vitesse()); if (p && p.textContent !== l) { p.textContent = l; x.setAttribute('aria-label', 'Vitesse de lecture : ' + l); } }
   function appliquerLecture() {
+    /* les vocaux EN PAUSE : la bulle, redessinée ou non, garde la position (un vocal à moi parti entre-temps la retrouve sous son vrai identifiant) */
+    for (const [mid0, s] of Array.from(positions)) {
+      if (mid0 === lect.mid) continue;
+      const mid = rattacher(mid0); if (mid !== mid0) { positions.delete(mid0); positions.set(mid, s); }
+      const b = bulleVocal(mid); if (!b) continue;
+      b.setAttribute('data-pause', '1'); peindreVitesse(b); peindrePosition(b, s, dureeVocal(mid), false);
+      const x = b.querySelector('[data-lire]'); if (x) x.setAttribute('aria-label', 'Reprendre le message vocal de ' + duree(dureeVocal(mid)));
+    }
     if (!lect.mid) return;
-    const b = document.querySelector('[data-lire="' + lect.mid.replace(/"/g, '') + '"]');
+    lect.mid = rattacher(lect.mid);
+    const b = bulleVocal(lect.mid);
     if (!b) { arreterLecture(); return; }
-    b.setAttribute('data-lecture', '1'); b.setAttribute('aria-label', 'Mettre en pause le message vocal');
-    progres(lect.audio && lect.audio.duration > 0 && isFinite(lect.audio.duration) ? lect.audio.currentTime / lect.audio.duration : (Date.now() - lect.t0) / 1000 / Math.max(1, dureeVocal(lect.mid)));
+    b.setAttribute('data-lecture', '1'); b.removeAttribute('data-pause');
+    const x = b.querySelector('[data-lire]'); if (x) x.setAttribute('aria-label', 'Mettre en pause le message vocal');
+    peindreVitesse(b); peindrePosition(b, positionCourante(), lect.dur, true);
   }
-  const dureeVocal = mid => { const m = trouverMessage(mid); return m && m.vocal ? m.vocal.dur : 1; };
-  function arreterLecture() {
-    clearInterval(lect.minut);
+  /* `fin` : l'écoute est allée au bout — la position repart de zéro ; sinon (une pause, un autre vocal, une autre conversation) elle est gardée */
+  function arreterLecture(fin) {
+    clearInterval(lect.minut); lect.minut = null;
+    const mid = lect.mid;
+    if (mid) { const s = positionCourante(), d = lect.dur; if (!fin && s > 0.3 && s < d - 0.3) positions.set(mid, s); else positions.delete(mid); }
     if (lect.audio) { try { lect.audio.pause(); } catch (e) { /* rien */ } lect.audio = null; }
-    const mid = lect.mid; lect.mid = null;
-    document.querySelectorAll('[data-lecture]').forEach(b => { b.removeAttribute('data-lecture'); b.setAttribute('aria-label', 'Lire le message vocal de ' + duree(dureeVocal(b.dataset.lire))); b.querySelectorAll('.onde i.joue').forEach(x => x.classList.remove('joue')); });
+    lect.mid = null; lect.cid = null; lect.pret = false; lect.jeton++;
+    document.querySelectorAll('#conv-messages .vocal[data-lecture], #conv-messages .vocal[data-pause]').forEach(b => {
+      const m2 = b.dataset.vocal, s = positions.get(m2), d = m2 === mid ? lect.dur : dureeVocal(m2), x = b.querySelector('[data-lire]');
+      /* la pastille va disparaître sous le focus (fin de l'écoute) : le focus revient au bouton de lecture de la même bulle, jamais sur `body` */
+      if (!s && x && document.activeElement && document.activeElement.closest && document.activeElement.closest('.vocal') === b && document.activeElement.closest('[data-vitesse]')) x.focus();
+      b.removeAttribute('data-lecture');
+      if (s) b.setAttribute('data-pause', '1'); else b.removeAttribute('data-pause');
+      if (x) x.setAttribute('aria-label', (s ? 'Reprendre' : 'Lire') + ' le message vocal de ' + duree(d));
+      peindrePosition(b, s || 0, d, false);
+    });
     return mid;
   }
-  function lireVocal(mid) {
+  /* ⛔ UN SEUL élément `Audio` pour la visite (relecture : iOS ne lance un son hors d'un geste — l'enchaînement — que sur un élément qui a déjà joué dans un geste). L'écoute suivante change sa
+     SOURCE, elle n'en crée pas un autre. Ses écouteurs sont posés une fois, et chacun vérifie qu'il sert encore une écoute (`lect.audio === a`). */
+  let lecteur = null;
+  const regler = a => { a.defaultPlaybackRate = vitesse(); a.playbackRate = vitesse(); };
+  function lecteurAudio() {
+    if (lecteur) return lecteur;
+    const a = lecteur = new Audio();
+    a.preload = 'auto'; a.preservesPitch = true; a.mozPreservesPitch = true; a.webkitPreservesPitch = true;
+    a.addEventListener('loadedmetadata', () => { if (lect.audio !== a || lect.pret) return; regler(a); if (lect.pos > 0) { try { a.currentTime = lect.pos; } catch (e) { /* rien */ } } lect.pret = true; });
+    a.addEventListener('timeupdate', () => { if (lect.audio === a && lect.pret) { const b = bulleVocal(lect.mid); if (b) peindrePosition(b, a.currentTime, lect.dur, true); } });
+    a.addEventListener('ended', () => { if (lect.audio === a) { const mid = lect.mid; arreterLecture(true); enchainer(mid); } });
+    a.addEventListener('error', () => { if (lect.audio === a) { arreterLecture(); avis('Ce message vocal n\'a pas pu être lu.'); } });
+    return a;
+  }
+  /* `depuis` : un endroit choisi (secondes) ; sinon la position gardée, ou le début. `chaine` : l'écoute suit la précédente (aucun geste) — un refus du navigateur s'y tait. */
+  function lireVocal(mid, depuis, chaine) {
     const dejaCe = lect.mid === mid;
     arreterLecture();
-    if (dejaCe) return;
+    if (dejaCe && depuis === undefined) return;                               // toucher le vocal qui joue : pause (la position est gardée)
     const m = trouverMessage(mid); if (!m || !m.vocal) return;
-    lect.mid = mid; lect.t0 = Date.now();
+    const dur = dureeVocal(mid);
+    let s0 = depuis !== undefined ? depuis : (positions.get(mid) || 0); if (!(s0 >= 0) || s0 >= dur - 0.3) s0 = 0;
+    positions.delete(mid);
+    const jeton = ++lect.jeton;
+    lect.mid = mid; lect.cid = typeof m.cid === 'string' && m.cid ? m.cid : null; lect.dur = dur; lect.pos = s0; lect.dernier = Date.now(); lect.pret = false;
     const jouer = url => {
-      const a = new Audio(url); lect.audio = a;
-      a.addEventListener('timeupdate', () => { if (lect.audio === a) progres(m.vocal.dur ? a.currentTime / m.vocal.dur : 0); });
-      a.addEventListener('ended', () => { if (lect.audio === a) arreterLecture(); });
-      a.addEventListener('error', () => { if (lect.audio === a) { arreterLecture(); avis('Ce message vocal n\'a pas pu être lu.'); } });
+      const a = lecteurAudio(); lect.audio = a;
+      if (a.getAttribute('src') === url && a.readyState >= 1) { lect.pret = true; try { a.currentTime = lect.pos; } catch (e) { /* rien */ } }   // le même vocal, déjà chargé : il repart de la position
+      else a.src = url;
+      regler(a);
       /* ⛔ un navigateur peut refuser de démarrer un son qui n'a pas été lancé dans le geste (iOS, quand le vocal vient d'être téléchargé) : il est alors EN MÉMOIRE, un second toucher le lit */
-      const p = a.play(); if (p && p.catch) p.catch(er => { if (lect.audio === a) { arreterLecture(); avis(er && er.name === 'NotAllowedError' ? 'Touche encore le message vocal pour le lire.' : 'Ce message vocal n\'a pas pu être lu.'); } });
+      const p = a.play(); if (p && p.catch) p.catch(er => {
+        if (lect.jeton !== jeton || lect.audio !== a || (er && er.name === 'AbortError')) return;
+        const refus = er && er.name === 'NotAllowedError'; arreterLecture();
+        if (!(refus && chaine)) avis(refus ? 'Touche encore le message vocal pour le lire.' : 'Ce message vocal n\'a pas pu être lu.');
+      });
     };
     if (blob(m.vocal.url)) jouer(m.vocal.url);
     else if (m.vocal.piece && typeof source.pieceUrl === 'function') {
       /* un vocal du service qui n'est pas encore arrivé (seuls les derniers sont lus d'avance) : on le lit maintenant, le bouton passe en « lecture » tout de suite */
-      source.pieceUrl(m.vocal.piece).then(url => { if (lect.mid === mid && !lect.audio) { if (blob(url)) jouer(url); else arreterLecture(); } },
-        er => { if (lect.mid === mid) { arreterLecture(); avis(phrase(er, 'Ce message vocal n\'a pas pu être lu.')); } });
+      source.pieceUrl(m.vocal.piece).then(url => { if (lect.jeton === jeton && !lect.audio) { if (blob(url)) jouer(url); else arreterLecture(); } },
+        er => { if (lect.jeton === jeton) { arreterLecture(); if (!chaine) avis(phrase(er, 'Ce message vocal n\'a pas pu être lu.')); } });
     } else {
-      lect.minut = setInterval(() => { const x = (Date.now() - lect.t0) / 1000 / m.vocal.dur; if (x >= 1) arreterLecture(); else progres(x); }, 100);
+      /* le vocal d'EXEMPLE : le temps avance à la vitesse choisie (changée en cours d'écoute, elle vaut dès le tic suivant) */
+      lect.minut = setInterval(() => {
+        const t = Date.now(); lect.pos += (t - lect.dernier) / 1000 * vitesse(); lect.dernier = t;
+        if (lect.pos >= lect.dur) { const fini = lect.mid; arreterLecture(true); enchainer(fini); } else { const b = bulleVocal(lect.mid); if (b) peindrePosition(b, lect.pos, lect.dur, true); }
+      }, 100);
     }
     appliquerLecture();
   }
+  /* aller à un endroit du vocal : celui qui joue y saute ; un autre y est posé EN PAUSE (on le lance d'un toucher sur le bouton, comme WhatsApp). La FIN se montre (toutes les barres), mais
+     ne se garde pas : relire repart du début. */
+  function allerA(mid, s) {
+    const dur = dureeVocal(mid), t = Math.max(0, Math.min(dur, s));
+    if (lect.mid === mid) {
+      if (lect.audio && lect.pret) { try { lect.audio.currentTime = t; } catch (e) { /* rien */ } } else { lect.pos = t; lect.dernier = Date.now(); }
+      const b = bulleVocal(mid); if (b) peindrePosition(b, t, dur, true);
+      return;
+    }
+    if (t > 0.3) positions.set(mid, t); else positions.delete(mid);
+    const b = bulleVocal(mid); if (!b) return;
+    if (positions.has(mid)) { b.setAttribute('data-pause', '1'); peindreVitesse(b); } else b.removeAttribute('data-pause');
+    peindrePosition(b, positions.get(mid) || 0, dur, false);
+    const x = b.querySelector('[data-lire]'); if (x) x.setAttribute('aria-label', (positions.has(mid) ? 'Reprendre' : 'Lire') + ' le message vocal de ' + duree(dur));
+  }
+  /* un vocal écouté jusqu'au bout : le message qui le SUIT, s'il est un vocal de la même personne (et pas de moi), se lit à son tour — trois vocaux d'affilée s'écoutent d'un toucher
+     (sur iPhone aussi : le même élément `Audio` ; si le navigateur refuse quand même, l'enchaînement s'arrête sans un mot — la bulle suivante reste à lire d'un toucher) */
+  function enchainer(mid) {
+    const m = trouverMessage(mid), c = etat.convDonnees; if (!m || !c || m.auteur === MOI.id) return;
+    const i = c.messages.indexOf(m), n = i >= 0 ? c.messages[i + 1] : null;
+    if (n && n.vocal && !n.supprime && n.auteur === m.auteur && bulleVocal(n.id)) lireVocal(n.id, 0, true);
+  }
+  function changerVitesse() {
+    const v = VITESSES[(VITESSES.indexOf(vitesse()) + 1) % VITESSES.length];
+    vitesseVisite = v;
+    if (lect.audio) { lect.audio.defaultPlaybackRate = v; lect.audio.playbackRate = v; }
+    document.querySelectorAll('#conv-messages .vocal').forEach(peindreVitesse);
+    /* un lecteur d'écran ne relit pas l'étiquette changée du bouton qui a le focus : la région polie de la conversation le dit */
+    const an = $('conv-annonce'); if (an) an.textContent = 'Vitesse ' + libVitesse(v);
+    if (typeof source.choisirVitesseVocal === 'function') source.choisirVitesseVocal(String(v)).then(() => { if (vitesseVisite === v) vitesseVisite = null; }, () => { /* refusé : le choix vaut pour cette visite */ });
+  }
+  /* l'onde : toucher ou glisser pour aller à un moment. À la SOURIS, dès l'appui. Au DOIGT, seulement quand le geste est sûr — un glissé horizontal de plus de 8 px, ou un toucher simple au
+     relâcher (relecture : un pouce qui fait défiler le fil passe sur l'onde, `touch-action: pan-y` rend alors le geste au navigateur, et un appui visé tout de suite aurait déplacé le vocal) ;
+     un geste repris par le navigateur (`pointercancel`) remet la position d'avant. */
+  (function () {
+    let tient = null;
+    const ondeDe = (o, mid) => { if (o && o.isConnected) return o; const b = bulleVocal(mid); return b ? b.querySelector('.onde[data-onde]') : null; };
+    const viser = x => {
+      const o = ondeDe(tient.o, tient.mid); if (!o) { tient = null; return; }            // la bulle a été redessinée pendant le glissé : on suit la nouvelle, jamais une onde détachée
+      tient.o = o; const r = o.getBoundingClientRect(); let p = r.width > 0 ? (x - r.left) / r.width : 0; if (getComputedStyle(o).direction === 'rtl') p = 1 - p;
+      tient.vise = true; allerA(tient.mid, Math.max(0, Math.min(1, p)) * dureeVocal(tient.mid));
+    };
+    $('conv-messages').addEventListener('pointerdown', e => {
+      const o = e.target.closest('.vocal .onde[data-onde]'); if (!o || e.button) return;
+      const mid = o.dataset.onde;
+      tient = { o, mid, id: e.pointerId, x0: e.clientX, doigt: e.pointerType !== 'mouse', vise: false, avant: lect.mid === mid ? { joue: true, s: positionCourante() } : { joue: false, s: positions.get(mid) } };
+      if (!tient.doigt) { try { o.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } viser(e.clientX); }
+    });
+    $('conv-messages').addEventListener('pointermove', e => {
+      if (!tient || e.pointerId !== tient.id) return;
+      if (tient.doigt && !tient.vise) { if (Math.abs(e.clientX - tient.x0) <= 8) return; try { tient.o.setPointerCapture(e.pointerId); } catch (er) { /* rien */ } }
+      viser(e.clientX);
+    });
+    $('conv-messages').addEventListener('pointerup', e => { if (!tient || e.pointerId !== tient.id) return; if (!tient.vise) viser(e.clientX); tient = null; });
+    $('conv-messages').addEventListener('pointercancel', e => {
+      if (!tient || e.pointerId !== tient.id) return;
+      const t = tient; tient = null; if (!t.vise) return;
+      if (t.avant.joue) { if (lect.mid === t.mid) allerA(t.mid, t.avant.s); }
+      else if (t.avant.s) allerA(t.mid, t.avant.s);
+      else { positions.delete(t.mid); allerA(t.mid, 0); }
+    });
+    $('conv-messages').addEventListener('keydown', e => {
+      const o = e.target.closest && e.target.closest('.vocal .onde[data-onde]'); if (!o || e.altKey || e.ctrlKey || e.metaKey) return;   // ⌥/Ctrl/⌘ + flèche : le raccourci du système
+      const mid = o.dataset.onde, dur = dureeVocal(mid), s = lect.mid === mid ? positionCourante() : (positions.get(mid) || 0);
+      const vers = { ArrowRight: s + 5, ArrowUp: s + 5, ArrowLeft: s - 5, ArrowDown: s - 5, PageUp: s + 15, PageDown: s - 15, Home: 0, End: dur }[e.key];
+      if (vers === undefined) return;
+      e.preventDefault(); allerA(mid, vers);
+    });
+  })();
 
   /* ── le vocal : enregistrement (MediaRecorder) ──
      Toucher le micro démarre un enregistrement qui DURE (la flèche l'envoie, la corbeille l'annule) ; le MAINTENIR plus d'une
@@ -4618,7 +4769,7 @@
     const annule = () => { if (lp) { clearTimeout(lp.h); lp = null; } };
     $('conv-messages').addEventListener('pointerdown', e => {
       if (!CAP.actionsMessage || e.pointerType === 'mouse' || e.button) return;
-      const msg = e.target.closest('.msg[data-mid]'); if (!msg || e.target.closest('button')) return;
+      const msg = e.target.closest('.msg[data-mid]'); if (!msg || e.target.closest('button, .onde')) return;
       annule(); lp = { x: e.clientX, y: e.clientY, h: setTimeout(() => { lp = null; ouvrirMenuMessage(msg.dataset.mid, msg.querySelector('.msg-plus') || msg); if (etat.menu) etat.menu.appuiLong = true; }, 480) };
     });
     $('conv-messages').addEventListener('pointermove', e => { if (lp && Math.hypot(e.clientX - lp.x, e.clientY - lp.y) > 10) annule(); });

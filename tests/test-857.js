@@ -537,6 +537,162 @@ async function controler(PAGE, SRC, DOC) {
         [[['Recherche du message dans l\'historique…', 'Ce message est très ancien : remontez la conversation pour le retrouver.'], 2], [['Ce message n\'est plus dans la conversation.'], 2], ['Ce message n\'est plus dans la conversation.']]);
     }
   }
+  /* ⛔ LES VOCAUX : VITESSE, REPRISE, ONDE (10 octobre 2026 : « qu'on puisse accélérer les vocaux ») — les VRAIES fonctions exécutées (le tour des vitesses, l'enchaînement),
+     la structure de la bulle et du lecteur lue dans le code ; le geste (pause qui garde la position, toucher sur l'onde, reprise, playbackRate du vrai lecteur) est gardé par
+     tests/sonde-opmessages.js (étape vocal) */
+  {
+    /* le lecteur ENTIER (de `const VITESSES` jusqu'à l'onde) dans un bac à sable : un faux document (les bulles d'un fil), un faux `Audio` dont `preservesPitch` vaut FAUX tant
+       qu'on ne l'écrit pas (le vrai vaut vrai par défaut : un contrôle sur lui serait creux), une fausse horloge pour le vocal d'exemple */
+    const iV = JS.indexOf('const VITESSES = [1, 1.5, 2];'), fV = JS.lastIndexOf('(function () {', JS.indexOf('let tient = null;', iV)), fI = JS.indexOf('})();', fV) + 5;
+    let V = null, cV = null;
+    const el = (attrs) => { const e = { a: Object.assign({}, attrs || {}), setAttribute(k, x) { e.a[k] = String(x); }, getAttribute(k) { return k in e.a ? e.a[k] : null; }, removeAttribute(k) { delete e.a[k]; }, hasAttribute(k) { return k in e.a; },
+      focus() { cV.document.activeElement = e; }, closest(s) { return e.bulle ? (s === '.vocal' ? e.bulle : (s === '[data-vitesse]' && e.role === 'vitesse' ? e : null)) : null; } }; return e; };
+    const bulle = (id, dur) => {
+      const b = el({ 'data-vocal': id }); b.dataset = { vocal: id };
+      const lire = el({ 'aria-label': 'Lire' }), onde = el({ 'aria-valuemax': String(dur), 'aria-valuenow': '0' }), vit = el({ 'aria-label': 'Vitesse de lecture' }), past = { textContent: '' }, d = { textContent: '' };
+      vit.role = 'vitesse'; vit.querySelector = s => s === '.vocal-pastille' ? past : null; [lire, onde, vit].forEach(x => { x.bulle = b; });
+      const barres = Array.from({ length: 10 }, () => { const x = { on: false }; x.classList = { toggle: (c, on) => { x.on = !!on; } }; return x; });
+      b.querySelector = s => ({ '[data-lire]': lire, '.vocal-duree': d, '.onde': onde, '[data-vitesse]': vit, '.onde[data-onde]': onde })[s] || null;
+      b.querySelectorAll = s => s === '.onde i' ? barres : [];
+      b.joue = () => barres.filter(x => x.on).length; b.vit = vit; b.past = past; b.lire = lire; b.duree = d;
+      return b;
+    };
+    class FauxAudio {
+      constructor() { cV.audios.push(this); this.l = {}; this.pp = false; this.playbackRate = 1; this.defaultPlaybackRate = 1; this.readyState = 0; this.currentTime = 0; this.paused = true; this.s = null; this.refus = null; }
+      set preservesPitch(x) { this.pp = x; } get preservesPitch() { return this.pp; }
+      addEventListener(t, f) { (this.l[t] = this.l[t] || []).push(f); }
+      emettre(t) { (this.l[t] || []).forEach(f => f()); }
+      set src(u) { this.s = u; this.readyState = 0; this.currentTime = 0; } get src() { return this.s; }
+      getAttribute(k) { return k === 'src' ? this.s : null; }
+      play() { this.paused = false; cV.joues.push(this.s); const r = this.refus; this.refus = null; return r ? Promise.reject(r) : Promise.resolve(); }
+      pause() { this.paused = true; }
+    }
+    try {
+      cV = { source: {}, appels: [], audios: [], joues: [], avis: [], horloge: 1000, tic: null, etat: { convDonnees: null }, MOI: { id: 'p_moi' }, bulles: new Map(), annonce: { textContent: '' }, Audio: FauxAudio };
+      cV.document = { activeElement: null,
+        querySelector: s => { const m = /data-vocal="([^"]*)"/.exec(s); return m ? cV.bulles.get(m[1]) || null : null; },
+        querySelectorAll: s => Array.from(cV.bulles.values()).filter(b => /data-lecture|data-pause/.test(s) ? b.hasAttribute('data-lecture') || b.hasAttribute('data-pause') : true) };
+      cV.trouverMessage = id => cV.etat.convDonnees && cV.etat.convDonnees.messages.find(m => m.id === id);
+      cV.duree = s => Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0');
+      cV.blob = u => typeof u === 'string' && u.indexOf('blob:') === 0; cV.avis = t => cV.avis.liste.push(t); cV.avis.liste = []; cV.phrase = (e, d) => d;
+      cV.cm = { l: {}, addEventListener(t, f) { (cV.cm.l[t] = cV.cm.l[t] || []).push(f); } };
+      cV.$ = id => id === 'conv-annonce' ? cV.annonce : id === 'conv-messages' ? cV.cm : null; cV.getComputedStyle = () => ({ direction: 'ltr' });
+      cV.setInterval = f => { cV.tic = f; return 1; }; cV.clearInterval = () => { cV.tic = null; }; cV.Date = { now: () => cV.horloge };
+      vm.createContext(cV);
+      vm.runInContext(JS.slice(iV, fI) + '\nthis.V = { vitesse, libVitesse, changerVitesse, enchainer, lireVocal, arreterLecture, allerA, appliquerLecture, positionCourante, lect, positions };', cV, { timeout: 2000 });
+      V = cV.V;
+    } catch (e) { V = null; }
+    vrai('(population) le lecteur de vocaux ENTIER (et les gestes de l\'onde) s\'exécute dans un bac à sable (' + (fI - iV) + ' caractères)', iV > 0 && fV > iV && fI > fV && !!V && ['pointerdown', 'pointermove', 'pointerup', 'pointercancel', 'keydown'].every(t => (cV.cm.l[t] || []).length === 1));
+    if (V) try {
+      const sans = V.vitesse();
+      cV.source = { vitesseVocal: () => 1.5, choisirVitesseVocal: (x) => { cV.appels.push(x); return Promise.resolve(Number(x)); } };
+      const compte = V.vitesse();
+      V.changerVitesse(); const a = V.vitesse(), an = cV.annonce.textContent; V.changerVitesse(); const b = V.vitesse(); V.changerVitesse(); const c = V.vitesse();
+      v('⛔ la vitesse : 1 sans réglage, celle du COMPTE sinon (1,5) ; la pastille fait le tour 1,5 → 2 → 1 → 1,5 et chaque choix part au compte, en chaîne ; libellé « 1,5× » ; le changement est ANNONCÉ (« ' + an + ' »)',
+        [sans, compte, a, b, c, cV.appels, V.libVitesse(1.5), V.libVitesse(2), an], [1, 1.5, 2, 1, 1.5, ['2', '1', '1.5'], '1,5×', '2×', 'Vitesse 2×']);
+      await new Promise(r => setTimeout(r, 0));
+      /* le compte REFUSE : le choix vaut pour la visite (la source, elle, dit toujours 1) */
+      cV.source = { vitesseVocal: () => 1.5, choisirVitesseVocal: () => Promise.reject(new Error('refus')) };
+      V.changerVitesse(); await new Promise(r => setTimeout(r, 0));
+      v('⛔ le compte REFUSE le choix : il vaut quand même pour la visite (2×, pas le 1,5× que le compte garde)', V.vitesse(), 2);
+      let compteV = 1.5;                                                                            // un compte qui RETIENT ce qu'on lui confie
+      cV.source = { vitesseVocal: () => compteV, choisirVitesseVocal: (x) => { compteV = Number(x); return Promise.resolve(compteV); } };
+      V.changerVitesse(); V.changerVitesse(); await new Promise(r => setTimeout(r, 0));          // 2 → 1 → 1,5 : retenu par le compte, la visite rend la main
+      const M = (id, auteur, extra) => Object.assign({ id, auteur, t: 1 }, extra || {});
+      const fil = (msgs, sansBulle) => { cV.etat.convDonnees = { messages: msgs }; cV.bulles = new Map(msgs.filter(m => m.vocal && !(sansBulle || []).includes(m.id)).map(m => [m.id, bulle(m.id, m.vocal.dur)])); };
+      /* — l'enchaînement — */
+      fil([M('m1', 'p_ben', { vocal: { dur: 3 } }), M('m2', 'p_ben', { vocal: { dur: 4 } }), M('m3', 'p_ana', { vocal: { dur: 2 } }), M('m4', 'p_ana', { texte: 'ok' }), M('m5', 'p_moi', { vocal: { dur: 2 } }), M('m6', 'p_moi', { vocal: { dur: 2 } }), M('m7', 'p_ben', { vocal: { dur: 2 } }), M('m8', 'p_ben', { vocal: { dur: 2 }, supprime: true }), M('m9', 'p_ben', { vocal: { dur: 2 } }), M('m10', 'p_ben', { vocal: { dur: 2 } })], ['m10']);
+      const lus = []; for (const id of ['m1', 'm2', 'm3', 'm5', 'm7', 'm9']) { V.enchainer(id); lus.push(V.lect.mid); V.arreterLecture(true); }
+      v('⛔ un vocal écouté jusqu\'au bout enchaîne le vocal SUIVANT de la même personne — pas celui d\'une autre, pas après un texte, jamais les miens, jamais un vocal supprimé, jamais une bulle absente du fil',
+        lus, ['m2', null, null, null, null, null]);
+      /* — le vrai lecteur — */
+      fil([M('w1', 'p_ben', { vocal: { dur: 10, url: 'blob:w1' } }), M('w2', 'p_ben', { vocal: { dur: 6, url: 'blob:w2' } }), M('w3', 'p_ana', { vocal: { dur: 5, url: 'blob:w3' } })]);
+      V.lireVocal('w1'); const A1 = cV.audios[0];
+      const l1 = { n: cV.audios.length, vit: A1 && A1.playbackRate, def: A1 && A1.defaultPlaybackRate, hauteur: A1 && A1.preservesPitch, src: A1 && A1.src, lecture: cV.bulles.get('w1').hasAttribute('data-lecture'), pastille: cV.bulles.get('w1').past.textContent };
+      V.changerVitesse(); const enCours = A1.playbackRate; V.changerVitesse(); V.changerVitesse();     // 2×, puis retour à 1,5×
+      v('⛔ le vrai lecteur prend la vitesse choisie, la voix garde sa HAUTEUR, et une vitesse changée en cours d\'écoute vaut tout de suite',
+        [l1.n, l1.vit, l1.def, l1.hauteur, l1.src, l1.lecture, l1.pastille, enCours], [1, 1.5, 1.5, true, 'blob:w1', true, '1,5×', 2]);
+      A1.readyState = 1; A1.emettre('loadedmetadata'); A1.currentTime = 4;
+      V.lireVocal('w1');                                                                            // toucher le vocal qui joue : pause
+      const p1 = { pos: V.positions.get('w1'), pause: cV.bulles.get('w1').hasAttribute('data-pause'), barres: cV.bulles.get('w1').joue(), lab: cV.bulles.get('w1').lire.getAttribute('aria-label'), arret: A1.paused };
+      V.lireVocal('w1'); const p2 = { t: A1.currentTime, src: A1.src, n: cV.audios.length, joue: !A1.paused };
+      A1.currentTime = 10; A1.emettre('ended');
+      const p3 = { pos: V.positions.has('w1'), chaine: V.lect.mid, meme: cV.audios.length, src: A1.src };
+      v('⛔ une PAUSE garde la position (4 s : 4 barres, « Reprendre ») ; relire repart de LÀ, sur le MÊME élément Audio ; écouté jusqu\'au bout, il repart de zéro et ENCHAÎNE le suivant de la même personne — toujours le même élément (iOS)',
+        [p1.pos, p1.pause, p1.barres, /^Reprendre/.test(p1.lab), p1.arret, p2.t, p2.n, p2.joue, p3.pos, p3.chaine, p3.meme, p3.src], [4, true, 4, true, true, 4, 1, true, false, 'w2', 1, 'blob:w2']);
+      /* l'enchaînement refusé par le navigateur (aucun geste) : il s'arrête SANS avis ; un refus au toucher, lui, se dit */
+      A1.readyState = 1; A1.emettre('loadedmetadata'); A1.currentTime = 6; A1.refus = Object.assign(new Error('x'), { name: 'NotAllowedError' });
+      cV.etat.convDonnees.messages.splice(2, 0, M('w2b', 'p_ben', { vocal: { dur: 3, url: 'blob:w2b' } })); cV.bulles.set('w2b', bulle('w2b', 3));
+      A1.emettre('ended'); await new Promise(r => setTimeout(r, 0));
+      const r1 = { avis: cV.avis.liste.length, mid: V.lect.mid };
+      A1.refus = Object.assign(new Error('x'), { name: 'NotAllowedError' }); V.lireVocal('w3'); await new Promise(r => setTimeout(r, 0));
+      v('⛔ un enchaînement refusé (iOS, sans geste) s\'arrête sans un mot ; un refus au TOUCHER dit « Touche encore… »', [r1.avis, r1.mid, cV.avis.liste.length, /Touche encore/.test(cV.avis.liste[0] || '')], [0, null, 1, true]);
+      /* — l'onde et le clavier — */
+      V.allerA('w3', 99);
+      const f1 = { pos: V.positions.get('w3'), barres: cV.bulles.get('w3').joue(), pause: cV.bulles.get('w3').hasAttribute('data-pause') };
+      V.lireVocal('w3'); const f2 = A1.currentTime; V.arreterLecture();
+      V.allerA('w2', 0.1); const f3 = { pos: V.positions.has('w2'), pause: cV.bulles.get('w2').hasAttribute('data-pause') };
+      v('⛔ l\'onde : « Fin » sur un vocal au repos MONTRE la fin (10 barres sur 10, en pause) au lieu de revenir à zéro, et relire repart du début ; tout au début, rien n\'est gardé',
+        [f1.pos, f1.barres, f1.pause, f2, f3.pos, f3.pause], [5, 10, true, 0, false, false]);
+      fil([M('u1', 'p_ben', { vocal: { dur: 5, url: 'blob:u1' } }), M('u2', 'p_ana', { vocal: { dur: 5, url: 'blob:u2' } })]); cV.avis.liste.length = 0;
+      A1.refus = Object.assign(new Error('x'), { name: 'AbortError' }); V.lireVocal('u1'); V.lireVocal('u2'); await new Promise(r => setTimeout(r, 0));
+      v('⛔ une écoute REMPLACÉE avant d\'avoir démarré (même élément Audio : son play() est abandonné) ne coupe pas la suivante, et ne dit rien', [V.lect.mid, A1.paused, cV.avis.liste.length], ['u2', false, 0]);
+      V.arreterLecture();
+      /* — les GESTES de l'onde (les vrais écouteurs) : au doigt, rien à l'appui ; un glissé de plus de 8 px vise ; un geste repris par le navigateur rend la position d'avant ; un toucher simple
+         vise au relâcher ; à la souris, dès l'appui ; ⌥ + flèche n'est pas à l'onde — */
+      fil([M('g1', 'p_ben', { vocal: { dur: 10, url: 'blob:g1' } })]);
+      const og = cV.bulles.get('g1').querySelector('.onde'); og.dataset = { onde: 'g1' }; og.isConnected = true; og.closest = sel => sel === '.vocal .onde[data-onde]' ? og : null;
+      og.getBoundingClientRect = () => ({ left: 100, width: 100 }); og.setPointerCapture = () => {};
+      const ev = (t, o) => (cV.cm.l[t] || []).forEach(f => f(Object.assign({ target: og, pointerId: 7, button: 0, pointerType: 'touch', clientX: 150, preventDefault() {} }, o || {})));
+      const kd = (key, o) => (cV.cm.l.keydown || []).forEach(f => f(Object.assign({ target: og, key, preventDefault() {} }, o || {})));
+      const pg = () => V.positions.get('g1');
+      V.allerA('g1', 3); const g = [pg()];
+      ev('pointerdown', { clientX: 150 }); g.push(pg()); ev('pointermove', { clientX: 154 }); g.push(pg()); ev('pointercancel'); g.push(pg());
+      ev('pointerdown', { clientX: 150 }); ev('pointermove', { clientX: 170 }); g.push(pg()); ev('pointercancel'); g.push(pg());
+      ev('pointerdown', { clientX: 120 }); ev('pointerup', { clientX: 120 }); g.push(pg());
+      ev('pointerdown', { clientX: 180, pointerType: 'mouse' }); g.push(pg()); ev('pointerup', { clientX: 180, pointerType: 'mouse' });
+      kd('ArrowLeft', { altKey: true }); g.push(pg()); kd('ArrowLeft', { metaKey: true }); g.push(pg()); kd('ArrowLeft'); g.push(pg()); kd('End'); g.push(pg());
+      v('⛔ l\'onde, par ses VRAIS écouteurs : au doigt, l\'appui et un frémissement (4 px) ne bougent rien ; un glissé de 20 px vise (7 s), et repris par le navigateur rend 3 s ; un toucher simple vise au relâcher (2 s) ; la souris vise dès l\'appui (8 s) ; ⌥/⌘ + flèche restent au système, la flèche recule de 5 s, Fin montre la fin',
+        g, [3, 3, 3, 3, 7, 3, 2, 8, 8, 8, 3, 10]);
+      /* — le vocal d'EXEMPLE (sans fichier) : il avance à la vitesse choisie, changée en cours d'écoute — */
+      fil([M('x1', 'p_ben', { vocal: { dur: 20 } })]);
+      V.changerVitesse(); await new Promise(r => setTimeout(r, 0));                                 // 1,5 → 2
+      V.lireVocal('x1'); cV.horloge += 1000; cV.tic(); const e1 = V.positionCourante();
+      V.changerVitesse(); cV.horloge += 1000; cV.tic(); const e2 = V.positionCourante();            // 2 → 1
+      v('⛔ le vocal d\'exemple avance à la vitesse choisie (1 s à 2× = 2 s), et une vitesse changée en cours d\'écoute vaut dès le tic suivant (+1 s à 1×)', [e1, e2], [2, 3]);
+      /* — un vocal à moi parti pendant qu'on l'écoute : l'écoute suit le vrai identifiant — */
+      const cid = 'a'.repeat(32);
+      fil([M('p:' + cid, 'p_moi', { vocal: { dur: 8, url: 'blob:moi' }, cid, attente: true })]);
+      V.lireVocal('p:' + cid);
+      cV.etat.convDonnees = { messages: [M('vrai1', 'p_moi', { vocal: { dur: 8, url: 'blob:moi' }, cid })] }; cV.bulles = new Map([['vrai1', bulle('vrai1', 8)]]);
+      V.appliquerLecture();
+      v('⛔ un vocal à moi qui part pendant qu\'on l\'écoute : l\'écoute continue sous son VRAI identifiant (rattachée par le `cid`), sans s\'arrêter', [V.lect.mid, A1.paused, cV.bulles.get('vrai1').hasAttribute('data-lecture')], ['vrai1', false, true]);
+      V.arreterLecture();
+      /* — la conversation fermée pendant l'écoute : la position est gardée (la durée ne vient plus du fil) — */
+      fil([M('y1', 'p_ben', { vocal: { dur: 30, url: 'blob:y1' } })]);
+      V.lireVocal('y1'); A1.readyState = 1; A1.emettre('loadedmetadata'); A1.currentTime = 12;
+      cV.etat.convDonnees = null; V.arreterLecture();
+      v('⛔ fermer la conversation pendant une écoute GARDE la position (même si le fil n\'est plus là)', V.positions.get('y1'), 12);
+      /* — la pastille sous le focus quand l'écoute finit : le focus revient au bouton de lecture — */
+      fil([M('z1', 'p_ben', { vocal: { dur: 4, url: 'blob:z1' } })]);
+      V.lireVocal('z1'); cV.bulles.get('z1').vit.focus(); A1.currentTime = 4; A1.emettre('ended');
+      v('⛔ la pastille avait le focus quand l\'écoute finit : il revient au bouton de lecture de la même bulle (jamais sur la page)', cV.document.activeElement === cV.bulles.get('z1').lire, true);
+    } catch (e) { vrai('le lecteur de vocaux s\'exécute sans jeter (' + String(e && e.message || e).slice(0, 160) + ')', false); }
+    vrai('⛔ la bulle vocale n\'est plus UN bouton : un conteneur, un bouton de lecture (44 px, le disque de 28 dedans), l\'onde en CURSEUR (role slider, focusable), la pastille de vitesse SANS libellé dans le balisage mémorisé',
+      /h \+= '<div class="vocal ' \+ sens \+ ' presse" data-vocal="' \+ esc\(m\.id\) \+ '">' \+\s*'<button type="button" class="vocal-lire" data-lire="/.test(JS) && /'<span class="onde" data-onde="' \+ esc\(m\.id\) \+ '" role="slider" tabindex="0" aria-label="Position dans le message vocal"/.test(JS)
+      && /'<button type="button" class="vocal-vitesse" data-vitesse="' \+ esc\(m\.id\) \+ '" aria-label="Vitesse de lecture"><span class="vocal-pastille"><\/span><\/button><\/div>';/.test(JS) && /\.vocal-lire \{ width: 44px; height: 44px; margin: -8px;/.test(CSS));
+    vrai('⛔ sur MES vocaux, la place de la pastille est gardée au repos (la bulle ne grandit pas vers la gauche sous le doigt) ; l\'onde qui reste à écouter se voit (opacité .65)',
+      /\.vocal-vitesse \{ display: none; visibility: hidden;/.test(CSS) && /\.vocal\.envoyee \.vocal-vitesse \{ display: inline-flex; \}\s*\.vocal\[data-lecture\] \.vocal-vitesse, \.vocal\[data-pause\] \.vocal-vitesse \{ display: inline-flex; visibility: visible; \}/.test(CSS)
+      && /\.vocal\[data-lecture\] \.onde i, \.vocal\[data-pause\] \.onde i \{ opacity: \.65; \}/.test(CSS));
+    vrai('⛔ fermer la conversation arrête l\'écoute AVANT de vider le fil ; le focus sur l\'onde ou la pastille survit au rendu d\'une bulle',
+      /arreterLecture\(\);[^\n]*\n\s*etat\.conv = null; etat\.convDonnees = null;/.test(corps('function fermerConv')) && /actif\.dataset\.onde \? 'onde' : actif\.dataset\.vitesse \? 'vitesse'/.test(JS) && /if \(cle === 'vitesse'\) appliquerLecture\(\);/.test(JS));
+    vrai('⛔ toucher l\'onde y VA sans lancer la lecture (le clic qui suit ne relit pas), la pastille passe avant la lecture, et l\'appui long (menu du message) ne part pas de l\'onde',
+      /if \(e\.target\.closest\('\[data-vitesse\]'\)\) \{ changerVitesse\(\); return; \}\s*if \(e\.target\.closest\('\.vocal \.onde'\)\) return;/.test(JS) && /if \(!msg \|\| e\.target\.closest\('button, \.onde'\)\) return;/.test(JS)
+      && /\.vocal \.onde \{ cursor: pointer; touch-action: pan-y;/.test(CSS));
+    vrai('⛔ au DOIGT, l\'onde ne vise qu\'un geste sûr (glissé horizontal de plus de 8 px, ou toucher au relâcher), et un geste repris par le navigateur rend la position d\'avant ; ⌥/Ctrl/⌘ + flèche reste au système',
+      /if \(!tient\.doigt\) \{ try \{ o\.setPointerCapture\(e\.pointerId\); \} catch \(er\) \{ \/\* rien \*\/ \} viser\(e\.clientX\); \}/.test(JS) && /if \(Math\.abs\(e\.clientX - tient\.x0\) <= 8\) return;/.test(JS)
+      && /if \(!tient\.vise\) viser\(e\.clientX\); tient = null;/.test(JS) && /if \(t\.avant\.joue\) \{ if \(lect\.mid === t\.mid\) allerA\(t\.mid, t\.avant\.s\); \}/.test(JS) && /if \(!o \|\| e\.altKey \|\| e\.ctrlKey \|\| e\.metaKey\) return;/.test(JS));
+  }
   vrai('⛔ Perso / Pro : ouvrir une conversation de l\'autre côté (recherche, bannière, lien) y bascule — la conversation ouverte est toujours dans la liste qu\'on voit',
     /if \(modesActifs\(\)\) \{ const c0 = etat\.conversations\.find\(x => x\.id === id\); if \(c0 && coteDe\(c0\) !== etat\.mode\) changerMode\(coteDe\(c0\), true\); \}/.test(corps('async function ouvrirConv')));
   vrai('Perso / Pro : du côté Pro, le titre de l\'onglet dit « OP MESSAGES PRO » et la marque porte la pastille PRO (lue en trois mots)',

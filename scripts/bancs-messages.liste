@@ -70,7 +70,11 @@
 # tombé sur EADDRINUSE dans test-959) — 90 suites, 9 236 vérifications mesurées en local (test-971 tombe sur les fuseaux 2025b du conteneur) — plancher 9222.
 # 10 octobre 2026, « Retrouver » et sa relecture (test-946 : +39, test-964 : l'exception déclarée) — 92 suites, 9 360 vérifications mesurées en local par la commande de la porte
 # (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9346 (le total moins 14).
-#plancher 9346
+# 10 octobre 2026, les vocaux (vitesse, reprise, onde ; test-929 la préférence, test-976 la vitesse et l'identifiant d'envoi d'un vocal à moi) : 92 suites, 9 364 vérifications
+# mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9350 (le total moins 14).
+# 10 octobre 2026, l'agenda de pro (décaler ; test-972 l'avis anonymisé, test-973 le plafond partagé, test-976 « Décaler » par le module) : 92 suites, 9 400 vérifications
+# mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9386 (le total moins 14).
+#plancher 9386
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

@@ -19,6 +19,54 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 10 OCTOBRE 2026 — OP MESSAGES : LES VOCAUX S'ACCÉLÈRENT, L'AGENDA DE PRO, PERSO ET PRO SE DISENT
+
+La demande de Justin, mot pour mot : « je veux que tu fasses un système de vocales, qu'on puisse accélérer les vocaux […] je veux que tout soit bien différencié entre
+perso et pro […] l'agenda du mois, sur la semaine, j'aimerais bien un petit truc pareil […] qu'on puisse faire un clic droit […] rester cliqué sur le rendez-vous,
+glisser, et ça envoie une notif à l'autre personne […] voulez-vous décaler ce rendez-vous, on note, problème de déplacement […] ça envoie aux deux personnes concernées.
+Il faut penser à tout pour les professionnels. »
+
+✅ **Les vocaux** (demande de fusion #122) — 1×, 1,5×, 2× (retenu par le compte, `prefs.vitesse_vocal`), la voix garde sa hauteur ; la PAUSE garde la position (fermer
+la conversation aussi) ; l'onde se touche (souris dès l'appui ; au doigt seulement après 8 px à l'horizontale ou un toucher simple ; clavier) ; un vocal écouté jusqu'au
+bout ENCHAÎNE le suivant de la même personne, sur UN SEUL élément `Audio` (la condition d'iOS) ; un vocal à moi écouté pendant « Envoi… » continue sous son vrai
+identifiant (rattaché par son `cid`, que la vue ne garde que pour son auteur). Relecture adverse : 21 défauts confirmés, tous corrigés.
+
+🟡 **L'agenda de pro** (sa propre demande de fusion, après #122) — la SEMAINE est une grille de sept cases comme le mois (dès 700 px ; au téléphone la bande des jours
+reste) ; une case n'est plus UN bouton (son numéro choisit le jour, chaque rendez-vous est un bouton) ; le MENU d'un rendez-vous au clic droit (à l'endroit du clic),
+à l'appui long (feuille du bas), à Maj+F10 (sous le rendez-vous) — l'organisateur décale, écrit aux participants, exporte le .ics, annule (seconde touche) ; l'invité
+répond ; un événement se décale, se coche, se reporte, se supprime ; GLISSER à la souris un rendez-vous sur un autre jour ouvre « Décaler le rendez-vous » (l'heure
+gardée, six motifs courants ou un motif libre, qui sera prévenu, un CHEVAUCHEMENT se dit — des deux côtés). ⛔ Rien ne part sans la feuille. Le service :
+`POST /api/reunions/:id/decaler` (hôte seul ; pas une série, pas annulée, pas passée, pas le même horaire ; 20/h) — chaque participant reçoit « X a décalé la réunion
+du … au … Motif : … Merci de confirmer votre présence. » dans SON fuseau, sa réponse repart en attente, et la conversation de la réunion le dit.
+Relecture adverse (`scratchpad/relecture-agenda.md`) : cinq défauts importants et sept mineurs, corrigés — « Seront prévenus » comptait les QUATRE noms de la liste
+de l'agenda (six invités : « Carla, Farid, Bruno » sans « et 3 autres ») ; un salon de deux jours saisi par son 2e jour sautait de DEUX jours au lâcher ; l'heure
+« gardée » l'était à l'heure de l'APPAREIL (9 h à New York devenait 10 h la semaine où Paris change d'heure et pas New York) ; la case n'était plus cliquable que par
+sa bande du haut, et au doigt sur tablette tout était sous 44 px ; effacer le compte de l'organisateur réécrivait l'avis de décalage en « … vous a ajouté au groupe » ;
+le focus perdu au rafraîchissement, Échap pendant un glisser puis relâcher ouvrait la fiche, une réussite fermait la couche du dessus, un « n'existe plus » à tort.
+La sonde en a trouvé un de plus : après un lâcher, TOUS les clics d'une demi-seconde étaient avalés — c'est maintenant UN clic.
+Preuves : `test-973` § 8 bis (et « décaler » partage le plafond de « modifier » : une seule définition, `PLAFOND_MODIF`), `test-976` § 6 bis, `test-972` (l'avis de
+décalage anonymisé), `test-857` (W01–W24), `sonde-opmessages-agenda-decaler.js` (42 ✓ : vrai service, deux personnes, bureau, iPhone ET iPad au doigt),
+`mutations-groupe.js` AG1–AG18, `mutations-reunions.js` Z01–Z03.
+⚠️ `mutations-reunions.js --verifier` : 17 motifs MAL VISÉS sur `main`, d'avant ce chantier (S08, S21, S29, L01, R01, R47, E25–E29, E91, S41, X30, X32, X40, Y05) —
+le code a bougé sous eux sans qu'on les réécrive. À reprendre : un motif mal visé ne prouve rien.
+⚠️ `test-856` (le thème de la page) n'est PAS dans la porte OP MESSAGES (`bancs-messages.liste`) : c'est le « verifier » de la CI qui l'a vu tomber sur les vocaux.
+Il interdisait toute mesure en JavaScript ; chaque mesure est désormais DÉCLARÉE avec sa raison (`MESURES_PERMISES`), la bulle d'onglet n'en fait jamais. Avant de
+pousser une modification de la page : `test-836`, `test-856`, `test-857`, `test-859` en plus de la porte.
+
+🟡 **Perso et Pro se disent** (sa propre demande de fusion, après l'agenda) — les notifications push de ce qui vient du côté PRO de celui qui reçoit s'intitulent
+« OP MESSAGES PRO » (avec l'aperçu : « Pro · … ») : message, mention, réunion, ajout à un groupe, rappel de l'agenda Pro, résumé des heures de travail ; dans le doute,
+rien n'est dit. La page : l'étiquette « Pro » / « Perso » sur une conversation de l'autre côté (une recherche cherche des deux) ; la bannière d'un message ou d'une
+mention de l'autre côté commence par « Pro · » / « Perso · » et s'ouvre d'un toucher ; « Confirmer l'envoi » ne retient plus une conversation Perso.
+Preuves : `test-968`, `test-973`, `test-998` (faux service push), `test-857` ; mutations PP1–PP6, Q01–Q05.
+
+## Ce qui reste ouvert, à proposer à Justin (rien n'est commencé)
+Perso / Pro : un STATUT et une présence par côté (un collègue ne voit pas « En ligne » le dimanche) ; les demandes de contact rangées par côté ; une sonnerie Pro
+distincte ; une pastille d'icône du côté actif ; le nom du calendrier (Pro / Perso) dans le .ics ; les heures de travail appliquées aux invitations et appels manqués
+Pro (aujourd'hui : messages et mentions seulement).
+Agenda : « Proposer un autre horaire » pour l'invité (l'organisateur accepte d'un geste) ; décaler UNE date d'une série (exceptions de série : migration, calendrier,
+.ics) ; l'historique des décalages par rendez-vous ; l'adresse qui ouvre la carte / l'itinéraire ; les heures de travail grisées et l'alerte « hors de tes heures » ;
+la confirmation automatique la veille ; un créneau commun (libre/occupé seulement, avec consentement) ; une page de prise de rendez-vous pour les clients.
+
 # 🟡 9 OCTOBRE 2026 (NUIT, FIN) — OP MESSAGES : « RETROUVER » — CHERCHER DANS UNE CONVERSATION, SES PHOTOS, FICHIERS ET LIENS
 
 ⏳ **« Retrouver » (bêta, sa propre demande de fusion)** — l'écart de l'inventaire « pas de recherche dans les messages ». Deux lignes dans les Infos d'une
