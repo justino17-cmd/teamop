@@ -111,7 +111,7 @@ function creerHandlers(ctx) {
   /* ⛔ Ce qui part en notification PUSH, parmi les notifications de l'application : un ajout à un groupe, un nouveau contact, une mention. La charge est MINIMALE (« Vous avez été ajouté à
      un groupe ») ; le nom du groupe et de celui qui l'a ajouté ne partent que pour qui a activé l'aperçu (`push.js`). */
   function chargePush(type, titre, texte, cible) {
-    if (type === 'groupe_ajoute') return { type: 'groupe', tag: 'groupe:' + cible, url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', titre: 'OP MESSAGES', corps: 'Vous avez été ajouté à un groupe', detail: { titre, corps: texte } };
+    if (type === 'groupe_ajoute') return Object.assign({ type: 'groupe', tag: 'groupe:' + cible, url: ID_CONV.test(String(cible)) ? '/#messages/' + cible : '/', titre: 'OP MESSAGES', corps: 'Vous avez été ajouté à un groupe', detail: { titre, corps: texte } }, ID_CONV.test(String(cible)) ? { conv: String(cible) } : {});
     if (type === 'contact_ajoute') return { type: 'contact', tag: 'contact', url: '/', titre: 'OP MESSAGES', corps: 'Nouveau contact', detail: { titre: 'Nouveau contact', corps: texte } };
     /* ⛔ UNE MENTION (8 octobre 2026 : « la personne citée est prévenue même si le groupe est en sourdine ») : sa push part même en sourdine, sous l'étiquette de la CONVERSATION, et la push
        du message ne part pas chez elle (`mentionner`) : jamais deux pour un message */

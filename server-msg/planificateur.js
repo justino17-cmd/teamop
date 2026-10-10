@@ -155,10 +155,12 @@ function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push,
         /* les rappels de l'AGENDA PERSONNEL (`routes-agenda.js`) : sous le même bail (une instance), avec ce qui reste du budget de rappels du tour */
         if (agenda && !plein()) {
           try {
-            const a = agenda.rappelsTour(t, Math.max(1, budget - bilan.envoyes), (uid, n, titre, quand, id) => {
+            const a = agenda.rappelsTour(t, Math.max(1, budget - bilan.envoyes), (uid, n, titre, quand, id, cote) => {
               hub.reveiller({ uids: [uid] });
               /* le toucher ouvre LE RAPPEL (« Fait », « Reporter », « Voir le message ») — l'identifiant seul voyage, jamais son titre dans l'adresse */
-              if (push) push.pousser(uid, { type: 'agenda', tag: 'agenda', url: id ? '/#reunions/' + id : '/#reunions', renotify: true, titre: 'OP MESSAGES', corps: 'Rappel', detail: { titre, corps: quand } }, { gid: n.gid });
+              const c = cote || {};
+              if (push) push.pousser(uid, Object.assign({ type: 'agenda', tag: 'agenda', url: id ? '/#reunions/' + id : '/#reunions', renotify: true, titre: 'OP MESSAGES', corps: 'Rappel', detail: { titre, corps: quand } },
+                c.cote ? { cote: c.cote } : c.conv ? { conv: c.conv } : { cote: 'perso' }), { gid: n.gid });
             });
             bilan.envoyes += a.envoyes; bilan.abandonnes += a.abandonnes;
           } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }

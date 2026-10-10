@@ -351,9 +351,22 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
       const n = convs.length; if (!n) continue;
       const mentions = convs.reduce((k, c) => k + r.get(c), 0);
       const corps = 'En dehors de tes heures : ' + (n > 1 ? 'nouveaux messages pro dans ' + n + ' conversations' : 'nouveaux messages pro dans une conversation') + (mentions > 1 ? ', dont ' + mentions + ' mentions' : mentions === 1 ? ', dont une mention' : '');
-      partir(uid, { type: 'resume', tag: 'resume-heures', url: n === 1 ? '/#messages/' + convs[0] : '/', renotify: true, titre: 'OP MESSAGES', corps }).catch(() => {});
+      partir(uid, { type: 'resume', tag: 'resume-heures', url: n === 1 ? '/#messages/' + convs[0] : '/', renotify: true, titre: 'OP MESSAGES', corps, cote: 'pro' }).catch(() => {});
     }
   }
+
+  /* ⛔ LE CÔTÉ SE DIT DANS LA NOTIFICATION (10 octobre 2026 : « je veux que tout soit bien différencié entre perso et pro ») : ce qui vient du côté PRO de CELUI QUI REÇOIT — un message, une
+     mention, une réunion, un ajout à un groupe, un rappel de l'agenda Pro, le résumé des heures de travail — s'intitule « OP MESSAGES PRO » ; avec l'aperçu, son titre commence par « Pro · ».
+     Le côté est celui du destinataire (une même conversation peut être Pro pour l'un, Perso pour l'autre) : dit par la charge (`cote`), sinon celui de sa conversation (`conv`, ou l'étiquette
+     d'un message). Dans le doute (une conversation illisible), rien n'est dit : le titre reste « OP MESSAGES » — jamais un faux « Pro ». */
+  const ID_CONV_PUSH = /^c_[0-9a-f]{32}$/;
+  function coteCharge(uid, charge) {
+    if (charge.cote === 'pro' || charge.cote === 'perso') return charge.cote;
+    const conv = typeof charge.conv === 'string' ? charge.conv : typeof charge.tag === 'string' ? charge.tag : '';
+    if (!ID_CONV_PUSH.test(conv)) return null;
+    try { return stockage.coteDe(uid, conv); } catch (e) { return null; }
+  }
+  const titrePro = (titre) => titre === 'OP MESSAGES' ? 'OP MESSAGES PRO' : extrait('Pro · ' + titre, 80);
 
   /* Envoie maintenant à TOUS les appareils de la personne. → { envoyes, appareils } */
   async function partir(uid, charge0) {
@@ -380,6 +393,7 @@ function creerPush({ stockage, hub, config, horloge = Date.now, journaliser = ()
       if (dedans && retenir(uid, charge)) return { envoyes: 0, appareils: abos.length, raison: 'retenue' };
     }
     const t = textesPour(moi, charge);
+    if (coteCharge(uid, charge) === 'pro') t.titre = titrePro(t.titre);
     const payload = JSON.stringify({ type: charge.type, titre: t.titre, corps: t.corps, tag: charge.tag || charge.type, url: charge.url || '/', renotify: charge.renotify === true });
     /* ⛔ la durée de vie chez le service push : au plus `ttlS` (24 h), au plus ce qui reste à vivre à un message éphémère, et — quand l'APERÇU part — au plus `ttlApercuS` (1 h) : le texte d'un message
        ne doit pas attendre un jour entier sur la machine d'un tiers parce que le téléphone était éteint */
