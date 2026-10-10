@@ -2279,6 +2279,8 @@
       const media = MEDIAS.includes(m.type);
       /* une photo garde sa LÉGENDE (le seul média qui en porte une) ; les autres pièces n'ont pas de texte */
       const v = Object.assign(base, { texte: m.supprime ? '' : (m.illisible ? 'Message illisible' : (media ? (m.type === 'photo' && typeof m.texte === 'string' ? m.texte : '') : (m.texte === null || m.texte === undefined ? '…' : m.texte))) });
+      /* un vocal à MOI garde son identifiant d'envoi (le service ne le rend qu'à son auteur) : la page y rattache l'écoute commencée pendant « Envoi… » (`p:<cid>` → le vrai) */
+      if (m.type === 'vocal' && typeof m.cid === 'string' && /^[0-9a-f]{32}$/.test(m.cid) && estMoi(m.auteur)) v.cid = m.cid;
       if (m.supprime) v.supprime = true;
       else if (m.illisible) v.illisible = true;                                       // « Message illisible » : la page ne le propose pas au transfert (le service le refuserait)
       else if (media) Object.assign(v, vuePieces(m, auto));
@@ -3292,6 +3294,15 @@
       moiApi = r; noter(r);
       return agendaVue();
     }
+    /* la vitesse de lecture des vocaux (10 octobre 2026 : « qu'on puisse accélérer les vocaux ») : 1×, 1,5×, 2× — retenue par le compte (le service ne connaît que ces trois-là) */
+    const VITESSES_VOCAL = ['1', '1.5', '2'];
+    const vitesseVocal = () => { const v = moiApi && moiApi.prefs && moiApi.prefs.vitesse_vocal; return VITESSES_VOCAL.includes(v) ? Number(v) : 1; };
+    async function choisirVitesseVocal(v) {
+      const t = String(v); if (!VITESSES_VOCAL.includes(t)) throw erreurLocale('invalide');
+      const r = await A.majMoi({ prefs: { vitesse_vocal: t } });
+      moiApi = r; noter(r);
+      return vitesseVocal();
+    }
     /* le tableau de bord : les réunions prévues des 7 ou des 30 prochains jours (8 octobre 2026 : « les réunions programmées dans la semaine ou le mois ») — retenu par le compte */
     const bordReunions = () => moiApi && moiApi.prefs && moiApi.prefs.bord_reunions === 'mois' ? 'mois' : 'semaine';
     async function choisirBordReunions(v) {
@@ -3685,7 +3696,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
-      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions,                                                                            // Perso / Pro
+      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions, vitesseVocal, choisirVitesseVocal,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifHeuresPro, heuresPro, notifEssai, sourdine, exporterDonnees, supprimerCompte,

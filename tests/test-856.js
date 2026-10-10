@@ -203,7 +203,17 @@ function controler(PAGE, DOC, SRC) {
   /* (l'onglet des réunions s'appelle « Agenda » là où l'agenda personnel existe — CAP.agenda, le service — et garde « Réunions » dans l'aperçu) */
   v('   et leurs titres', ['Messages', 'Contacts', 'Appels', 'Profil'].filter(t => !new RegExp("titre: '" + t + "'").test(JS)).concat(/titre: CAP\.agenda \? 'Agenda' : 'Réunions'/.test(JS) ? [] : ['Agenda | Réunions']), []);
   vrai('la barre latérale porte le statut « Disponible »', />Disponible</.test(HTML) || /<i><\/i>Disponible/.test(HTML));
-  vrai('la bulle de l\'onglet actif se place par UN numéro (--i) et le CSS : aucune largeur recopiée en JavaScript', /translate:\s*calc\(var\(--i\)/.test(CSS) && /setProperty\('--i'/.test(JS) && !/offsetWidth|getBoundingClientRect/.test(JS.replace(/function ndLettreSous\([\s\S]*?\n  \}\n/, '')));       // (hors `ndLettreSous` : l'index de « Nouvelle discussion » cherche quelle lettre est SOUS le doigt, il ne recopie la géométrie d'aucun onglet)
+  /* ⛔ UNE MESURE EN JAVASCRIPT SE DÉCLARE, une à une, avec sa raison — et la bulle d'onglet n'en fait JAMAIS (sa place se déduit d'un numéro : « une géométrie recopiée en JavaScript
+     dépend du moment où on la copie », CLAUDE.md). Une mesure neuve qui n'est pas ici fait tomber le banc ; une entrée qui ne trouve plus sa ligne aussi (une décision prise pour du vide). */
+  const MESURES_PERMISES = [
+    [/const r = b\.getBoundingClientRect\(\), e = y < r\.top \? r\.top - y/, 'l\'index de « Nouvelle discussion » : quelle lettre est SOUS le doigt'],
+    [/tient\.o = o; const r = o\.getBoundingClientRect\(\); let p = r\.width > 0 \? \(x - r\.left\) \/ r\.width : 0;/, 'l\'onde d\'un vocal : où est le pointeur DANS l\'onde à l\'instant du geste (un rapport lu et jeté, jamais une largeur recopiée)'],
+  ];
+  const lignesMesure = JS.split('\n').filter(l => /offsetWidth|getBoundingClientRect/.test(l));
+  const mesuresNonDites = lignesMesure.filter(l => !MESURES_PERMISES.some(([re]) => re.test(l))).map(l => l.trim().slice(0, 110));
+  vrai('la bulle de l\'onglet actif se place par UN numéro (--i) et le CSS : aucune largeur recopiée en JavaScript' + (mesuresNonDites.length ? ' — mesures non déclarées : ' + mesuresNonDites.join(' | ') : ''),
+    /translate:\s*calc\(var\(--i\)/.test(CSS) && /setProperty\('--i'/.test(JS) && !JS.split('\n').some(l => /setProperty\('--i'/.test(l) && /offsetWidth|getBoundingClientRect/.test(l)) && !mesuresNonDites.length);
+  v('chaque mesure déclarée trouve encore sa ligne (une entrée périmée se retire)', MESURES_PERMISES.filter(([re]) => !lignesMesure.some(l => re.test(l))).map(x => x[1]), []);
   /* les données d'exemple vivent dans un MODULE à part (apercu/opmessages/source.js) : la page ne contient aucun nom, aucun message — elle parle à
      window.OPMSG_SOURCE. Le jour où le serveur d'OP MESSAGES arrive, c'est ce fichier-là qui est remplacé, rien d'autre. */
   const noms = [...SRCJS.matchAll(/nom: '([^']+)'/g)].map(m => m[1]);
@@ -309,6 +319,8 @@ const MUTATIONS = [
   ['un nom d\'exemple écrit dans le RENDU', 'page', p => p.replace('function rendreCoquille', "function rendreCoquille_x() { return 'Camille Roux'; }\n  function rendreCoquille"), /aucun de ces noms/],
   ['le titre grand format change (34 → 32 px)', 'page', p => p.replace('font-size: 34px; line-height: 41px', 'font-size: 32px; line-height: 41px'), /Large Title/],
   ['la bulle d\'onglet se mesure en JavaScript', 'page', p => p.replace("$('tabs').style.setProperty('--i'", "$('tabs').offsetWidth; $('tabs').style.setProperty('--i'"), /bulle de l'onglet actif/],
+  ['une mesure neuve, non déclarée, entre dans la page', 'page', p => p.replace("function changerVitesse() {", "function changerVitesse() { void document.body.offsetWidth;"), /bulle de l'onglet actif/],
+  ['une mesure déclarée disparaît et son entrée reste (une décision prise pour du vide)', 'page', p => p.replace("tient.o = o; const r = o.getBoundingClientRect();", "tient.o = o; const r = o.getClientRects()[0];"), /chaque mesure déclarée/],
   ['une cible tactile rétrécie (Modifier à 30 px)', 'page', p => p.replace('.lien-texte { min-height: 44px;', '.lien-texte { min-height: 30px;'), /cibles tactiles/],
   ['le document change (la valeur du texte de jour)', 'doc', d => d.replace('| texte | #000000 |', '| texte | #000001 |'), /« texte » .* jour/],
   ['le document change (l\'accent de nuit)', 'doc', d => d.replace('#7ea2f0', '#7ea2f1'), /« accent » .* nuit/]

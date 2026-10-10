@@ -97,6 +97,12 @@ const JOUR = 86400000;
     v('agenda_vue : « mois » et « semaine » passent, et le compte les rend ; « annee » est refusée (400)', [(await maj(a, { agenda_vue: 'mois' })).j.moi.prefs.agenda_vue, (await maj(a, { agenda_vue: 'semaine' })).j.moi.prefs.agenda_vue, await refusMoi({ agenda_vue: 'annee' })], ['mois', 'semaine', [400, 'champ_invalide']]);
     /* le tableau de bord, la semaine ou le mois (8 octobre 2026) : même règle, une préférence À PART (choisir l'un ne change pas l'autre) */
     v('bord_reunions : « mois » passe sans toucher agenda_vue, « semaine » aussi ; « trimestre » est refusé (400)', [(await maj(a, { bord_reunions: 'mois' })).j.moi.prefs.bord_reunions, (await a.get('/api/moi')).j.moi.prefs.agenda_vue, (await maj(a, { bord_reunions: 'semaine' })).j.moi.prefs.bord_reunions, await refusMoi({ bord_reunions: 'trimestre' })], ['mois', 'semaine', 'semaine', [400, 'champ_invalide']]);
+    /* la vitesse de lecture des vocaux (10 octobre 2026 : « qu'on puisse accélérer les vocaux ») : trois valeurs, en CHAÎNES — ni une autre vitesse, ni un nombre libre */
+    v('vitesse_vocal : « 1.5 », « 2 », « 1 » passent et le compte les rend ; « 3 », « 0.5 », le NOMBRE 2 et « 2× » sont refusés (400) — la préférence voisine ne bouge pas',
+      [(await maj(a, { vitesse_vocal: '1.5' })).j.moi.prefs.vitesse_vocal, (await maj(a, { vitesse_vocal: '2' })).j.moi.prefs.vitesse_vocal, (await maj(a, { vitesse_vocal: '1' })).j.moi.prefs.vitesse_vocal,
+        await refusMoi({ vitesse_vocal: '3' }), await refusMoi({ vitesse_vocal: '0.5' }), await refusMoi({ vitesse_vocal: 2 }), await refusMoi({ vitesse_vocal: '2×' }), (await a.get('/api/moi')).j.moi.prefs.agenda_vue],
+      ['1.5', '2', '1', [400, 'champ_invalide'], [400, 'champ_invalide'], [400, 'champ_invalide'], [400, 'champ_invalide'], 'semaine']);
+    await maj(a, { vitesse_vocal: '1.5' });
     const fiche = await d.get('/api/personnes/' + ana.id);
     v('⛔ la fiche d\'Ana vue par Dan (un collègue) ne dit rien de ses préférences', [fiche.code, 'prefs' in (fiche.j.personne || {}), JSON.stringify(fiche.j).includes('groupes')], [200, false, false]);
 
