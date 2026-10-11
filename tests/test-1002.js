@@ -56,11 +56,16 @@ case "$cmd" in
         p=$(cat "$E/pid-$unite" 2>/dev/null); [ -n "$p" ] && kill "$p" 2>/dev/null; rm -f "$E/pid-$unite"
         [ -f "$BAC_R/etc/systemd/system/opmsg-transcrire@.service" ] || exit 1
         [ -f "$E/ouvrier-refuse" ] && exit 1
+        # « ouvrier-meurt » : il démarre, puis sort (une configuration refusée, un appel système filtré) ; « ouvrier-muet » : il tourne sans jamais ouvrir sa socket
+        if [ -f "$E/ouvrier-meurt" ]; then setsid bash -c '"$0" -e "setTimeout(()=>{},400)"; exit 3' "${NODE}" < /dev/null > /dev/null 2>&1 & echo $! > "$E/pid-$unite"; exit 0; fi
+        if [ -f "$E/ouvrier-muet" ]; then setsid "${NODE}" -e 'setTimeout(()=>{},60000)' < /dev/null > /dev/null 2>&1 & echo $! > "$E/pid-$unite"; exit 0; fi
         "${NODE}" -e 'const fs=require("fs"),[f,r,o]=process.argv.slice(1);const c=JSON.parse(fs.readFileSync(f,"utf8"));for(const k of ["whisper","modele","vad","ffmpeg"]) if(c[k]) c[k]=r+c[k];fs.writeFileSync(o,JSON.stringify(c));' "$BAC_R/etc/opmsg/transcrire-$i.json" "$BAC_R" "$E/ouvrier-$i.json" || exit 1
         mkdir -p "$E/run-$i"
-        OPMSG_TRANSCRIRE_CONFIG="$E/ouvrier-$i.json" RUNTIME_DIRECTORY="$E/run-$i" setsid "${NODE}" "$BAC_R/opt/opmsg/$i/current/transcripteur.js" >> "$E/ouvrier-$i.log" 2>&1 < /dev/null &
-        echo $! > "$E/pid-$unite"
-        for _ in $(seq 1 100); do grep -q '"demarre":true' "$E/ouvrier-$i.log" 2>/dev/null && break; grep -q 'impossible\\|illisible\\|obligatoire' "$E/ouvrier-$i.log" 2>/dev/null && break; "${NODE}" -e 'setTimeout(()=>{},30)'; done ;;
+        # ⛔ COMME LE VRAI systemd (Type=simple) : « restart » rend la main dès le LANCEMENT, avant que l'ouvrier ait chargé et ouvert sa socket — et le lancement
+        # est retardé (BAC_DEMARRAGE_MS, 1,2 s par défaut), comme un Node à froid sur un VPS chargé. Jusqu'au 11 octobre 2026, ce faux systemctl ATTENDAIT
+        # « "demarre":true » avant de rendre la main : il cachait la course que le vrai VPS a montrée (« socket … absente » au contrôle)
+        OPMSG_TRANSCRIRE_CONFIG="$E/ouvrier-$i.json" RUNTIME_DIRECTORY="$E/run-$i" setsid bash -c '"$0" -e "setTimeout(()=>{},$2)"; exec "$0" "$1"' "${NODE}" "$BAC_R/opt/opmsg/$i/current/transcripteur.js" "\${BAC_DEMARRAGE_MS:-1200}" >> "$E/ouvrier-$i.log" 2>&1 < /dev/null &
+        echo $! > "$E/pid-$unite" ;;
       teamop-msg@*) i="\${unite#teamop-msg@}"; : > "$E/unite-actif"; cp "$BAC_R/etc/opmsg/$i.json" "$E/config-lue-$i.json" ;;
     esac ;;
   stop)
@@ -102,7 +107,8 @@ exit 0
     /* chown : « chown-refuse » — une commande qui échoue APRÈS l'écriture des configurations (le piège ERR doit tout défaire) */
     chown: PROLOGUE + `[ -f "$E/chown-refuse" ] && [ "$1" = "opmsg:opmsg" ] && exit 1
 exit 0
-`, sleep: PROLOGUE,
+`, sleep: PROLOGUE + `"${NODE}" -e 'setTimeout(()=>{},200)'
+`,      // une vraie (courte) attente : les boucles d'attente de l'installeur attendent pour de vrai
     /* getent : aucun groupe de la machine n'est connu du bac à sable (le programme Node ne fait pas de chown — il ne tourne pas en root ici) */
     getent: PROLOGUE + 'exit 2\n',
     nproc: PROLOGUE + 'echo 4\n',
@@ -345,6 +351,9 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     { nom: 'un disque presque plein', avant: (b) => b.ecrireEtat('disque-libre', '300'), rien: true, dit: /il en faut au moins 1500/ },
     { nom: 'une version du service d\'avant la transcription', version: 'ancienne', rien: true, dit: /antérieure à la transcription/ },
     { nom: 'l\'ouvrier ne démarre pas', drapeau: 'ouvrier-refuse', dit: /l'ouvrier de transcription n'a pas démarré/ },
+    /* ⛔ « actif » n'est pas « prêt » (11 octobre 2026, le vrai VPS) : l'installeur attend la socket, et dit pourquoi elle ne vient pas */
+    { nom: 'l\'ouvrier démarre puis meurt (une configuration refusée, un appel système filtré)', drapeau: 'ouvrier-meurt', dit: /s'est arrêté au démarrage\. Voir :  journalctl -u opmsg-transcrire@beta -n 30 --no-pager/ },
+    { nom: 'l\'ouvrier tourne mais n\'ouvre jamais sa socket', drapeau: 'ouvrier-muet', dit: /tourne mais n'a pas ouvert sa socket en 20 s\. Voir :  journalctl -u opmsg-transcrire@beta/ },
     { nom: 'l\'ouvrier ne transcrit pas l\'échantillon (le contrôle échoue)', avant: (b) => b.ecrireEtat('whisper-texte', 'un texte sans le mot attendu'), dit: /l'ouvrier ne fait pas ce qu'il doit/ },
     { nom: 'l\'instance relancée ne voit pas l\'ouvrier', drapeau: 'health-ko', dit: /ne voit pas l'ouvrier/ },
     { nom: 'une commande échoue APRÈS l\'écriture des configurations (le piège ERR)', drapeau: 'chown-refuse', dit: /une étape a échoué \(ligne \d+\)/ },
