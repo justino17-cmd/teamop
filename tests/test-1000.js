@@ -22,6 +22,8 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
 const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-serveur.js'));
+const { ouvrir: ouvrirStockage } = require(path.join(T.SERVICE, 'stockage.js'));
+const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 const attrape = async (p) => { try { await p; return null; } catch (e) { return e; } };
 const blobDe = (buf, type) => new Blob([buf], { type: type || 'application/octet-stream' });
@@ -327,6 +329,41 @@ function fauxOuvrier() {
       ['transcription_indisponible', 60, 'La transcription est momentanément indisponible (réessaie dans 60 s).', undefined]);
     W.panne = false;
     vrai('l\'ouvrier revient : /health redit « ok »', await att(async () => (await sante(svc)).transcription.ok === true, 5000));
+
+    /* ═══ 9. CE QUE PLUS AUCUN TRAVAIL NE PORTE (relectures du gardien et du relecteur, 11 octobre 2026) ═════════════════════════════════
+       · un vocal supprimé pendant qu'il attend son tour : sa pièce n'est pas lue, l'ouvrier ne le reçoit pas (`transcriptionEnAttente`, le VRAI stockage) ;
+       · une ligne « en attente » que plus aucun travail ne porte devient un échec DIT, journalisé — sinon « Transcription en cours… » pour toujours (`transcriptionsEchues`). */
+    console.log('\n── 1000 · ce que plus aucun travail ne porte');
+    {
+      const seqAvant9 = Math.max(...(await vues(B, conv)).map(x => x.seq || 0));
+      await vocal(A, conv, 2); await vocal(A, conv, 3);
+      let v9a = null, v9b = null;
+      await att(async () => { const l = (await vues(B, conv)).filter(x => x.vocal && !x.supprime && x.seq > seqAvant9); v9a = l.find(x => x.vocal.dur === 2) || null; v9b = l.find(x => x.vocal.dur === 3) || null; return !!(v9a && v9b); });
+      const n9 = W.travaux.length;
+      await B.src.transcrire(conv, v9a.id); await att(() => W.enAttente.length === 1);
+      v('le second attend son tour', (await B.src.transcrire(conv, v9b.id)).etat, 'attente');
+      await A.src.supprimer(conv, (await trouve(A, conv, x => x.seq === v9b.seq)).id, 'tous');
+      await att(async () => !!(await vues(B, conv)).find(x => x.seq === v9b.seq && x.supprime));
+      W.relacher(200, { ok: true, texte: 'le premier', langue: 'fr' });
+      await trouve(B, conv, x => x.seq === v9a.seq && x.transcription && x.transcription.etat === 'prete');
+      await T.dort(300);
+      v('⛔ supprimé pendant qu\'il attendait : l\'ouvrier ne le reçoit JAMAIS (un seul travail est parti)', [W.travaux.length - n9, W.enAttente.length], [1, 0]);
+
+      await vocal(A, conv, 2);
+      const v9c = await trouve(B, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > v9b.seq);
+      await B.src.transcrire(conv, v9c.id); await att(() => W.enAttente.length === 1);
+      await svc.arreter(false); W.enAttente.length = 0;                 // le service s'arrête en plein calcul : la ligne reste « en attente », plus rien ne la porte
+      const S = ouvrirStockage({ chemin: path.join(svc.data, 'msg.db'), scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')) });
+      try {
+        const avant = [S.transcriptionEnAttente(conv, v9c.seq), S.transcriptionsEchues(Date.now() - 3600000), S.transcriptionEnAttente(conv, v9c.seq)];
+        const gid0 = S.journalMax();
+        const n = S.transcriptionsEchues(Date.now() + 1000);
+        const vue = S.transcriptionVue(conv, v9c.seq, alice.id);          // l'auteur du vocal (le texte est scellé à son nom)
+        v('⛔ une ligne « en attente » plus jeune que le seuil reste ; plus vieille, elle devient un échec, journalisé (la page l\'apprend par le flux)',
+          [avant, n, S.transcriptionEnAttente(conv, v9c.seq), vue && vue.etat, S.journalMax() > gid0], [[true, 0, true], 1, false, 'echec', true]);
+        v('… et un vocal supprimé n\'a plus de ligne du tout', S.transcriptionEnAttente(conv, v9b.seq), false);
+      } finally { S.fermer(); }
+    }
     void alice; void cleo;
   } catch (e) {
     console.log('  ✗ le banc a jeté : ' + (e && e.stack || e));
