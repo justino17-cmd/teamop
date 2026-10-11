@@ -222,7 +222,7 @@ tout_retirer() {
   fi
   systemctl stop "$UNITE_TR" >/dev/null 2>&1 || true
   systemctl disable "$UNITE_TR" >/dev/null 2>&1 || true
-  rm -f "$TR_CONF" "$TR_CONF.nouveau"
+  rm -f "$TR_CONF" "$TR_CONF.nouveau" "$TR_CONF.avant"
 }
 
 if [ "$GESTE" = "retirer" ]; then
@@ -353,6 +353,24 @@ annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : tout ce que la transc
   set +e
   echo ""
   echo "$1"
+  # ⛔ UNE RÉINSTALLATION QUI ÉCHOUE REMET CELLE D'AVANT (relecture du gardien, 11 octobre 2026 : passer de « small » à « large-v3-turbo » puis rater le contrôle
+  # retirait TOUTE la transcription, alors qu'elle marchait). Les copies gardées avant l'écriture (REPRISE_AVANT) reviennent, et l'ouvrier d'avant repart.
+  if [ "${REPRISE_AVANT:-non}" = "oui" ] && [ -f "$CONFIG.avant-transcription" ] && [ -f "$TR_CONF.avant" ] && [ -f "$SYSD/opmsg-transcrire@.service.avant" ]; then
+    echo "── Retour en arrière : l'installation d'avant revient (sa configuration, son modèle) — la transcription continue comme avant."
+    mv "$CONFIG.avant-transcription" "$CONFIG"; chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
+    mv "$TR_CONF.avant" "$TR_CONF"; chown "root:$COMPTE" "$TR_CONF" 2>/dev/null || true; chmod 640 "$TR_CONF"
+    mv "$SYSD/opmsg-transcrire@.service.avant" "$SYSD/opmsg-transcrire@.service"; chmod 644 "$SYSD/opmsg-transcrire@.service"
+    rm -f "$TR_CONF.nouveau" "$SYSD/opmsg-transcrire@.service.nouveau"
+    systemctl daemon-reload || true
+    systemctl restart "$UNITE_TR" || true
+    # l'instance n'est relancée que si cette installation a pu lui faire charger autre chose (sa configuration ou son complément ont changé, ou on ne le sait pas)
+    [ "${CHANGE_INSTANCE:-?}" = "non" ] || systemctl restart "$UNITE" || true
+    for _ in $(seq 1 40); do [ -S "$SOCKET" ] && break; sleep 0.5; done
+    if [ -S "$SOCKET" ] && attendre_sante oui; then echo "   ✓ l'ouvrier d'avant tourne de nouveau, et l'instance le voit (/health : transcription.ok)"
+    else echo "   ⚠️ l'ouvrier d'avant ne répond pas encore. Voir :  systemctl status $UNITE_TR --no-pager | head -5"; fi
+    exit 1
+  fi
+  rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
   echo "── Retour en arrière : la transcription est retirée, OP MESSAGES continue comme avant."
   # Une PREMIÈRE installation (la configuration d'avant n'avait pas de transcription) : elle revient OCTET POUR OCTET. Une réinstallation : la transcription en est retirée.
   if [ -f "$CONFIG.avant-transcription" ] && ! avait_transcription "$CONFIG.avant-transcription"; then
@@ -370,9 +388,20 @@ if ! id -u "$COMPTE" >/dev/null 2>&1; then
 fi
 [ ! -f "$CONFIG.avant-transcription" ] || rm -f "$CONFIG.avant-transcription"
 cp -p "$CONFIG" "$CONFIG.avant-transcription"; chmod 600 "$CONFIG.avant-transcription"
+# une instance qui TRANSCRIVAIT déjà (sa configuration le dit, l'ouvrier a la sienne, l'unité existe) : leurs copies sont gardées le temps de l'installation,
+# pour qu'un échec remette celle d'avant (`annuler`) — elles portent le secret partagé : mêmes droits que l'original, effacées à la fin, réussite comme échec
+REPRISE_AVANT=non
+rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
+if avait_transcription "$CONFIG" && [ -f "$TR_CONF" ] && [ -f "$SYSD/opmsg-transcrire@.service" ]; then
+  cp -p "$TR_CONF" "$TR_CONF.avant"; chmod 640 "$TR_CONF.avant"
+  cp -p "$SYSD/opmsg-transcrire@.service" "$SYSD/opmsg-transcrire@.service.avant"
+  REPRISE_AVANT=oui
+fi
 if ! ETAT="$(THREADS="$THREADS" configurer poser)"; then
   mv "$CONFIG.avant-transcription" "$CONFIG" 2>/dev/null || true
   chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
+  if [ "$REPRISE_AVANT" = "oui" ]; then mv "$TR_CONF.avant" "$TR_CONF" 2>/dev/null || true; chown "root:$COMPTE" "$TR_CONF" 2>/dev/null || true; chmod 640 "$TR_CONF" 2>/dev/null || true; fi
+  rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
   echo "⛔ la configuration n'a pas pu être écrite ($(printf '%s' "$ETAT" | masquer)) — rien n'est changé, le service n'est pas touché."
   exit 1
 fi
@@ -400,7 +429,8 @@ mkdir -p "$SYSD"
 #    (un appel refusé rend EPERM ; le CONTRÔLE ci-dessous transcrit pour de vrai sous ce filtre, et un filtre trop strict défait l'installation) ;
 #  · ProtectProc=invisible : les processus d'OP GESTION et du service lui sont cachés ;
 #  · MemoryMax=1800M sans échange, OOMScoreAdjust=500, CPUQuota=200 %, CPUWeight/IOWeight bas, Nice=10 : si une transcription s'emballe, c'est elle qui ploie
-#    (et c'est elle que la mémoire épuisée tue en premier), pas OP GESTION ;
+#    (et c'est elle que la mémoire épuisée tue en premier), pas OP GESTION ; OOMPolicy=continue : le plafond tue le CALCUL (whisper-cli, le plus gros),
+#    l'ouvrier reste — seul ce vocal échoue (« Réessayer »), la file n'échoue pas en cascade pendant un redémarrage (relecture du gardien, 11 octobre 2026) ;
 #  · les données des deux instances sont INACCESSIBLES (en plus de leurs droits) ; pas de MemoryDenyWriteExecute : V8 compile à chaud, il en mourrait.
 printf '%s\n' "# Posé par server-msg/install-transcription.sh — réécrit à chaque installation, ne pas éditer à la main." \
   '[Unit]' 'Description=OP MESSAGES — transcription des vocaux (instance %i)' '' \
@@ -416,7 +446,7 @@ printf '%s\n' "# Posé par server-msg/install-transcription.sh — réécrit à 
   'IPAddressDeny=any' \
   'TemporaryFileSystem=/etc/opmsg:ro' 'BindReadOnlyPaths=/etc/opmsg/transcrire-%i.json' \
   'InaccessiblePaths=-/opt/opmsg/beta/data -/opt/opmsg/prod/data' \
-  'LimitCORE=0' 'OOMScoreAdjust=500' \
+  'LimitCORE=0' 'OOMScoreAdjust=500' 'OOMPolicy=continue' \
   'MemoryMax=1800M' 'MemorySwapMax=0' 'CPUQuota=200%' 'CPUWeight=10' 'IOWeight=10' 'Nice=10' 'TasksMax=32' 'LimitNOFILE=256' '' \
   '[Install]' 'WantedBy=multi-user.target' > "$SYSD/opmsg-transcrire@.service.nouveau"
 if [ -f "$SYSD/opmsg-transcrire@.service" ] && cmp -s "$SYSD/opmsg-transcrire@.service.nouveau" "$SYSD/opmsg-transcrire@.service"; then
@@ -465,7 +495,7 @@ fi
 attendre_sante oui || annuler "⛔ l'instance a redémarré mais ne voit pas l'ouvrier (/health : transcription.ok). Voir :  systemctl status $UNITE --no-pager | head -5"
 echo "   ✓ l'instance voit l'ouvrier (/health : transcription.ok)"
 
-rm -f "$CONFIG.avant-transcription"
+rm -f "$CONFIG.avant-transcription" "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
 echo ""
 echo "✓ La transcription des vocaux est en place pour $INSTANCE : sous chaque vocal, « Voir la transcription » (recharger la page)."
 echo "   Un vocal se transcrit une fois, sur cette machine, et le texte est partagé par tous ceux qui peuvent l'écouter. Aucune voix ne sort du serveur."
