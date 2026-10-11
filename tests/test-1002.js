@@ -143,7 +143,7 @@ t="And so, my fellow Americans, ask not what your country can do for you"
 `, { mode: 0o755 });
   fs.writeFileSync(path.join(b.E, 'jfk.wav'), 'RIFF-faux-echantillon');
   b.modeles = { small: Buffer.from('modele-small-factice-' + crypto.randomBytes(8).toString('hex')), vad: Buffer.from('vad-factice-' + crypto.randomBytes(8).toString('hex')) };
-  fs.writeFileSync(path.join(b.E, 'modeles', 'ggml-small-q5_1.bin'), b.modeles.small);
+  fs.writeFileSync(path.join(b.E, 'modeles', 'ggml-large-v3-turbo-q8_0.bin'), b.modeles.small);
   fs.writeFileSync(path.join(b.E, 'modeles', 'ggml-silero-v6.2.0.bin'), b.modeles.vad);
   b.emp = { small: crypto.createHash('sha256').update(b.modeles.small).digest('hex'), vad: crypto.createHash('sha256').update(b.modeles.vad).digest('hex') };
   fs.writeFileSync(path.join(b.E, 'meminfo'), 'MemTotal:        4000000 kB\nMemFree:          900000 kB\nMemAvailable:    2500000 kB\n');
@@ -225,7 +225,11 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     const code = sansCommentaires(lire(SCRIPT));
     vrai('population : le code du script n\'est pas vide une fois les commentaires retirés', code.split('\n').filter(l => l.trim()).length > 120);
     vrai('⛔ le commit de whisper.cpp est ÉPINGLÉ (celui de la v1.9.5), et le commit récupéré lui est COMPARÉ avant toute compilation', code.includes('WHISPER_COMMIT="' + COMMIT + '"') && /\[ "\$RECU" = "\$WHISPER_COMMIT" \] \|\|/.test(code));
-    vrai('⛔ les empreintes des deux modèles sont ÉPINGLÉES', code.includes('MODELE_EMPREINTE="ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"') && code.includes('VAD_EMPREINTE="2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987"'));
+    /* le modèle choisi par la mesure du 11 octobre 2026 (large-v3-turbo-q8_0 : 11,0 % de mots faux contre 19,1 % pour small, en faisceau de 5) — son empreinte relevée sur le
+       fichier téléchargé de huggingface.co/ggerganov/whisper.cpp */
+    vrai('⛔ les empreintes des deux modèles sont ÉPINGLÉES (large-v3-turbo-q8_0, le VAD Silero), et le faisceau de 5 part dans la configuration de l\'ouvrier',
+      code.includes('MODELE_NOM="ggml-large-v3-turbo-q8_0.bin"') && code.includes('MODELE_EMPREINTE="317eb69c11673c9de1e1f0d459b253999804ec71ac4c23c17ecf5fbe24e259a1"')
+      && code.includes('VAD_EMPREINTE="2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987"') && /^FAISCEAU=5\b/m.test(code) && code.includes('FAISCEAU="$FAISCEAU"'));
     vrai('⛔ les portes des bancs (empreintes, socket, mémoire) ne s\'ouvrent QU\'AVEC une racine factice', ['OPMSG_TRANSCRIPTION_EMPREINTE_MODELE_BANC', 'OPMSG_TRANSCRIPTION_EMPREINTE_VAD_BANC', 'OPMSG_TRANSCRIPTION_SOCKET_BANC', 'OPMSG_MEMINFO_BANC']
       .every(n => new RegExp('if \\[ -n "\\$R" \\] && \\[ -n "\\$\\{' + n + ':-\\}" \\]').test(code) && code.split(n).length - 1 === 2));
     vrai('⛔ le téléchargement : https seulement, redirections comprises, vers un FICHIER vérifié — jamais un tuyau vers un interpréteur', /curl --fail[^\n]*--proto '=https' --proto-redir '=https' --tlsv1\.2[^\n]*-o "\$tmp"/.test(code) && !/curl[^\n|]*\|\s*(ba)?sh/.test(code));
@@ -235,7 +239,7 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     /* (relecture du gardien, 11 octobre 2026) : aucun réseau du tout, pas de vidage mémoire, /etc/opmsg vidé sauf SA configuration, le filtre d'appels système,
        les processus voisins cachés, l'ouvrier tué en premier quand la mémoire manque */
     for (const l of ['PrivateNetwork=true', 'RestrictAddressFamilies=AF_UNIX', 'IPAddressDeny=any', 'NoNewPrivileges=true', 'ProtectSystem=strict', 'CapabilityBoundingSet=', 'RuntimeDirectory=opmsg-transcrire-%i',
-      'RuntimeDirectoryMode=0750', 'UMask=0077', 'MemoryMax=1200M', 'MemorySwapMax=0', 'PrivateTmp=true', 'ProtectHome=true', 'User=opmsg-transcrire-%i', 'LimitCORE=0', 'OOMScoreAdjust=500',
+      'RuntimeDirectoryMode=0750', 'UMask=0077', 'MemoryMax=1800M', 'MemorySwapMax=0', 'PrivateTmp=true', 'ProtectHome=true', 'User=opmsg-transcrire-%i', 'LimitCORE=0', 'OOMScoreAdjust=500',
       'SystemCallFilter=@system-service', 'SystemCallErrorNumber=EPERM', 'ProtectProc=invisible', 'TemporaryFileSystem=/etc/opmsg:ro', 'BindReadOnlyPaths=/etc/opmsg/transcrire-%i.json'])
       vrai('⛔ l\'unité porte « ' + l + ' »', unite.includes("'" + l + "'"));
     vrai('⛔ … et ne garde AUCUNE porte réseau (ni IPAddressAllow, ni AF_INET)', !/IPAddressAllow|AF_INET/.test(unite));
@@ -286,9 +290,9 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     const c = b.config('beta'), w = b.trConf('beta'), sec = c && c.transcription && c.transcription.secret;
     v('la configuration de l\'instance porte l\'ouvrier : sa socket et un secret', [c && c.transcription && c.transcription.url, RE_SECRET.test(sec || '')], ['unix:' + b.socket('beta'), true]);
     vrai('le reste de la configuration de l\'instance est intact', JSON.stringify(Object.assign({}, c, { transcription: undefined })) === JSON.stringify(Object.assign(JSON.parse(avant), { transcription: undefined })));
-    v('⛔ la configuration de l\'ouvrier : le MÊME secret, sa socket (aucun port), les chemins RÉELS du VPS, 2 cœurs, un faisceau de 1, la durée maximale du service',
+    v('⛔ la configuration de l\'ouvrier : le MÊME secret, sa socket (aucun port), les chemins RÉELS du VPS, 2 cœurs, un faisceau de 5 (le modèle large-v3-turbo choisi par la mesure du 11 octobre 2026), la durée maximale du service',
       w && [w.secret === sec, w.socket, w.port, w.whisper, w.modele, w.vad, w.ffmpeg, w.threads, w.faisceau, w.dureeMaxS],
-      [true, b.socket('beta'), undefined, '/' + W_REL + '/whisper-cli', '/opt/opmsg/whisper/modeles/ggml-small-q5_1.bin', '/opt/opmsg/whisper/modeles/ggml-silero-v6.2.0.bin', '/usr/bin/ffmpeg', 2, 1, 300]);
+      [true, b.socket('beta'), undefined, '/' + W_REL + '/whisper-cli', '/opt/opmsg/whisper/modeles/ggml-large-v3-turbo-q8_0.bin', '/opt/opmsg/whisper/modeles/ggml-silero-v6.2.0.bin', '/usr/bin/ffmpeg', 2, 5, 300]);
     v('⛔ la socket : vivante, et joignable par son seul groupe (0660)', [(() => { try { return fs.statSync(b.socket('beta')).isSocket(); } catch (e) { return false; } })(), (() => { try { return (fs.statSync(b.socket('beta')).mode & 0o777).toString(8); } catch (e) { return null; } })()], [true, '660']);
     vrai('⛔ le contrôle a vérifié les droits de la socket', /✓ sa socket n'est joignable que par son groupe \(0660\)/.test(r.out));
     v('⛔ le complément d\'unité de l\'INSTANCE : le groupe de SON ouvrier, et rien d\'autre', (b.octets('etc/systemd/system/teamop-msg@beta.service.d/transcription.conf') || '').split('\n').filter(l => l && !l.startsWith('#')), ['[Service]', 'SupplementaryGroups=opmsg-transcrire-beta']);
@@ -297,7 +301,7 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     const tout = r.out + r.err, env = b.env(), args = b.journal().join('\n');
     vrai('⛔ le secret n\'est NI dans la sortie du script, NI dans un argument, NI dans l\'environnement d\'un programme lancé', !!sec && !tout.includes(sec) && !args.includes(sec) && !env.includes(sec));
     vrai('whisper.cpp est posé : le programme, son empreinte, le commit, l\'échantillon', b.existe(W_REL + '/whisper-cli') && b.existe(W_REL + '/whisper-cli.sha256') && (b.octets(W_REL + '/commit') || '').trim() === COMMIT && b.existe(W_REL + '/jfk.wav'));
-    vrai('les deux modèles sont posés, intacts', b.octets('opt/opmsg/whisper/modeles/ggml-small-q5_1.bin') === b.modeles.small.toString() && b.octets('opt/opmsg/whisper/modeles/ggml-silero-v6.2.0.bin') === b.modeles.vad.toString());
+    vrai('les deux modèles sont posés, intacts', b.octets('opt/opmsg/whisper/modeles/ggml-large-v3-turbo-q8_0.bin') === b.modeles.small.toString() && b.octets('opt/opmsg/whisper/modeles/ggml-silero-v6.2.0.bin') === b.modeles.vad.toString());
     const J = b.journal();
     vrai('la compilation : le commit demandé par son empreinte, une construction statique, sans serveur ni tests', J.some(l => /^git -C \S+ fetch -q --depth 1 origin d1be6fde11ac6e0407606b4e42fe72d34add8037$/.test(l)) && J.some(l => /^cmake -S .* -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF /.test(l)));
     vrai('⛔ le téléchargement des modèles : en https, redirections comprises', compte(J, /^curl --fail .*--proto =https --proto-redir =https --tlsv1\.2 .*huggingface\.co/) === 2);
@@ -339,7 +343,7 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     v('⛔ la configuration de l\'instance revient OCTET POUR OCTET à celle d\'avant, celle de l\'ouvrier est effacée, le complément d\'unité aussi', [b.octets('etc/opmsg/beta.json') === avant, b.existe('etc/opmsg/transcrire-beta.json'), b.existe('etc/systemd/system/teamop-msg@beta.service.d')], [true, false, false]);
     vrai('⛔ … et systemd l\'a relu AVANT de relancer l\'instance (elle perd le groupe de l\'ouvrier avec la transcription)', index(J3, /^systemctl daemon-reload$/) >= 0 && index(J3, /^systemctl daemon-reload$/) < index(J3, /^systemctl restart teamop-msg@beta$/));
     vrai('l\'ouvrier est arrêté et désactivé, l\'instance relancée pour oublier la transcription', !b.ouvrierVivant('beta') && J3.includes('systemctl stop opmsg-transcrire@beta') && J3.includes('systemctl disable opmsg-transcrire@beta') && J3.includes('systemctl restart teamop-msg@beta'));
-    vrai('le programme et les modèles restent (l\'autre instance s\'en sert peut-être)', b.existe(W_REL + '/whisper-cli') && b.existe('opt/opmsg/whisper/modeles/ggml-small-q5_1.bin'));
+    vrai('le programme et les modèles restent (l\'autre instance s\'en sert peut-être)', b.existe(W_REL + '/whisper-cli') && b.existe('opt/opmsg/whisper/modeles/ggml-large-v3-turbo-q8_0.bin'));
   } finally { b.fin(); }
 
   /* ═══════ 4. ÉCHEC = FERMÉ ═══════ */
@@ -349,10 +353,10 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     { nom: 'GitHub injoignable', drapeau: 'git-refuse', rien: true, dit: /n'a pas pu être récupéré/ },
     { nom: 'la compilation échoue', drapeau: 'build-refuse', rien: true, dit: /la compilation a échoué/ },
     { nom: 'huggingface injoignable', drapeau: 'curl-refuse', rien: true, dit: /n'a pas pu être téléchargé/ },
-    { nom: 'un modèle qui ne porte pas son empreinte', avant: (b) => fs.writeFileSync(path.join(b.E, 'modeles', 'ggml-small-q5_1.bin'), 'modele-trafique'), rien: true, dit: /ne porte pas l'empreinte attendue/ },
+    { nom: 'un modèle qui ne porte pas son empreinte', avant: (b) => fs.writeFileSync(path.join(b.E, 'modeles', 'ggml-large-v3-turbo-q8_0.bin'), 'modele-trafique'), rien: true, dit: /ne porte pas l'empreinte attendue/ },
     { nom: 'ffmpeg ne s\'installe pas', drapeau: 'apt-refuse', rien: true, dit: /ffmpeg n'est pas installé/ },
-    { nom: 'une machine à 1 Go de mémoire', avant: (b) => b.ecrireEtat('meminfo', 'MemTotal:        1000000 kB\nMemAvailable:     600000 kB\n'), rien: true, dit: /il en faut au moins 1800/ },
-    { nom: 'un disque presque plein', avant: (b) => b.ecrireEtat('disque-libre', '300'), rien: true, dit: /il en faut au moins 1500/ },
+    { nom: 'une machine à 1 Go de mémoire', avant: (b) => b.ecrireEtat('meminfo', 'MemTotal:        1000000 kB\nMemAvailable:     600000 kB\n'), rien: true, dit: /il en faut au moins 2800/ },
+    { nom: 'un disque presque plein', avant: (b) => b.ecrireEtat('disque-libre', '300'), rien: true, dit: /il en faut au moins 2500/ },
     { nom: 'une version du service d\'avant la transcription', version: 'ancienne', rien: true, dit: /antérieure à la transcription/ },
     { nom: 'l\'ouvrier ne démarre pas', drapeau: 'ouvrier-refuse', dit: /l'ouvrier de transcription n'a pas démarré/ },
     /* ⛔ « actif » n'est pas « prêt » (11 octobre 2026, le vrai VPS) : l'installeur attend la socket, et dit pourquoi elle ne vient pas */
@@ -378,7 +382,7 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
       if (k.rien) vrai('   … rien n\'est écrit avant la cause (ni unité, ni compte, ni configuration de l\'ouvrier), et l\'instance n\'est pas touchée', !b.existe('etc/systemd/system/opmsg-transcrire@.service') && compte(J, /^useradd /) === 0 && compte(J, /^systemctl restart teamop-msg@/) === 0);
       else vrai('   … l\'ouvrier est arrêté et désactivé, rien n\'est laissé à moitié', J.includes('systemctl stop opmsg-transcrire@beta') && J.includes('systemctl disable opmsg-transcrire@beta'));
       if (k.drapeau === 'git-autre-commit' || k.drapeau === 'build-refuse') vrai('   … et aucun programme n\'est posé', !b.existe(W_REL + '/whisper-cli'));
-      if (k.nom.startsWith('un modèle')) vrai('   … et le modèle faux n\'est pas gardé', !b.existe('opt/opmsg/whisper/modeles/ggml-small-q5_1.bin') && !fs.readdirSync(path.join(b.R, 'opt/opmsg/whisper/modeles')).some(n => n.startsWith('.')));
+      if (k.nom.startsWith('un modèle')) vrai('   … et le modèle faux n\'est pas gardé', !b.existe('opt/opmsg/whisper/modeles/ggml-large-v3-turbo-q8_0.bin') && !fs.readdirSync(path.join(b.R, 'opt/opmsg/whisper/modeles')).some(n => n.startsWith('.')));
     } finally { b.fin(); }
   }
 

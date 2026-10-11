@@ -1057,10 +1057,10 @@ Tant que ces gestes ne sont pas faits, **rien ne change** : le service n'a pas d
 
 ### Ce que l'ouvrier de transcription est — et n'est pas
 
-- **whisper.cpp 1.9.5**, un logiciel libre (licence MIT), **compilé sur le VPS depuis ses sources**, au commit épinglé dans le script (le commit récupéré lui est comparé : un autre n'est pas compilé), avec le modèle **« small »** (190 Mo, empreinte épinglée et vérifiée) et la détection de parole Silero (qui évite qu'un silence devienne un texte inventé). **ffmpeg** (paquet Ubuntu) convertit le vocal avant.
+- **whisper.cpp 1.9.5**, un logiciel libre (licence MIT), **compilé sur le VPS depuis ses sources**, au commit épinglé dans le script (le commit récupéré lui est comparé : un autre n'est pas compilé), avec le modèle **« large-v3-turbo » (q8_0, 874 Mo, empreinte épinglée et vérifiée)**, en recherche en faisceau (5 hypothèses), et la détection de parole Silero (qui évite qu'un silence devienne un texte inventé). Le modèle a été **choisi sur une mesure** le 11 octobre 2026 (Justin, au premier essai avec « small » : « des mots mal compris ») — 36 vocaux français, appels téléphoniques et parole lue : **11,0 % de mots faux, contre 19,1 % pour « small »**. **ffmpeg** (paquet Ubuntu) convertit le vocal avant.
 - **Un processus à part**, dans **son** unité (`opmsg-transcrire@beta`), sous **son** compte (`opmsg-transcrire-beta`) : il ne peut rien lire du service (ni sa base, ni sa clé maître, ni les configurations des instances — `/etc/opmsg` est vide pour lui, sauf la sienne), **n'a aucun réseau** (pas même la boucle locale : il n'écoute qu'une **socket Unix**, `/run/opmsg-transcrire-beta/ouvrier.sock`, que seule l'unité de l'instance peut joindre), garde ses fichiers de travail **en mémoire vive** (effacés après chaque vocal, et avec l'unité ; aucun vidage mémoire sur le disque), ses appels au système sont **filtrés**, et il est **borné** : 1 200 Mo de mémoire, deux cœurs, priorité basse, le premier tué si la mémoire manque — si quelque chose doit ploier sur ce VPS, ce n'est pas OP GESTION.
 - **Pourquoi une socket et pas un port** (relecture du gardien, 11 octobre 2026) : un port de la boucle locale se *squatte* — un processus de la machine qui le prenait pendant un redémarrage de l'ouvrier aurait reçu le secret et les octets des vocaux. La socket vit dans le dossier de l'unité (droits 0750, groupe de l'ouvrier) ; seule l'unité de l'instance reçoit ce groupe, par un petit complément (`/etc/systemd/system/teamop-msg@beta.service.d/transcription.conf`, posé et retiré par le script).
-- **Un vocal à la fois.** Mesuré dans le conteneur de développement : ~9 s de calcul pour 7 s de parole, ~10 s pour 15 s, sur deux cœurs ; ~470 Mo de mémoire pendant le calcul. **À remesurer sur le VPS** (il est partagé avec OP GESTION) : la première fois, regarde combien de temps met « Voir la transcription ».
+- **Un vocal à la fois.** Mesuré sur deux cœurs d'une machine qui transcrit l'échantillon jfk.wav en 8,3 s, comme le VPS : ~12 s fixes (même un vocal de 3 s), un vocal d'**1 min en ~35 s**, de 2 min en ~65 s ; **~1 300 Mo de mémoire** pendant le calcul (l'unité est plafonnée à 1 800 Mo). Avec « small », c'était ~25 s pour 1 min et ~470 Mo, avec presque deux fois plus de mots faux.
 - **Le texte est rangé avec le message**, scellé comme lui ; il se lit comme lui (qui ne voit pas le vocal ne voit pas son texte) et part avec lui (un vocal supprimé emporte sa transcription). Ce qu'un vocal a dit se retrouve dans « Retrouver ».
 - **Plafonné, et partagé équitablement** : 30 transcriptions *calculées* par personne et par heure (relire une transcription déjà là ne compte pas), **2 vocaux en file par personne** et 8 en tout, **15 minutes de vocal par personne et par heure**, 5 minutes au plus par vocal — durée **mesurée** par l'ouvrier, jamais celle annoncée par l'appareil —, trois essais par vocal. Chaque refus dit le vrai : la file pleine, ses propres vocaux encore en calcul, le budget de l'heure, ou l'ouvrier indisponible.
 - **Une instance à part de l'autre** : la bêta et la production ont chacune leur ouvrier, leur compte, leur secret et leur socket. **Aucun port à ouvrir chez l'hébergeur**, aucun port du tout. Le programme et les modèles sont partagés, en lecture seule.
@@ -1073,7 +1073,7 @@ Sur le VPS :
 nproc && free -m && df -h /opt
 ```
 
-**À voir** (colle la sortie) : de préférence **2 cœurs** (sur un seul, le calcul prend deux fois plus de temps), au moins **1 800 Mo** de mémoire au total dont **800 disponibles**, et **1,5 Go** libres sur `/opt` (la compilation, ffmpeg et le modèle). En dessous, le script s'arrête sans rien poser et dit ce qui manque.
+**À voir** (colle la sortie) : de préférence **2 cœurs** (sur un seul, le calcul prend deux fois plus de temps), au moins **2 800 Mo** de mémoire au total dont **1 600 disponibles**, et **2,5 Go** libres sur `/opt` (la compilation, ffmpeg et le modèle de 874 Mo). En dessous, le script s'arrête sans rien poser et dit ce qui manque.
 
 ### 2. Télécharger et lancer le script
 
@@ -1106,7 +1106,7 @@ Une variable, **facultative** : `OPMSG_TRANSCRIPTION_THREADS` (le nombre de cœu
    machine : 4 cœur(s), 7940 Mo de mémoire (5210 disponibles), 61000 Mo libres sur /opt · l'ouvrier calculera sur 2 cœur(s)
    ffmpeg : installation (paquet Ubuntu)
    whisper.cpp 1.9.5 : compilation depuis les sources (quelques minutes)
-   modèle ggml-small-q5_1.bin : téléchargement
+   modèle ggml-large-v3-turbo-q8_0.bin : téléchargement (874 Mo)
    modèle ggml-silero-v6.2.0.bin : téléchargement
    secret=nouveau instance=change ouvrier=change
 ── Contrôle de l'ouvrier (il refuse qui n'a pas le secret, et transcrit l'échantillon de whisper.cpp)…
@@ -1123,6 +1123,8 @@ Une variable, **facultative** : `OPMSG_TRANSCRIPTION_THREADS` (le nombre de cœu
 ```
 
 (Les chiffres de la machine et la durée de l'échantillon seront les tiens ; `secret=nouveau` la première fois, `secret=repris` à chaque relance — qui ne recompile ni ne retélécharge rien.)
+
+**Passer de « small » à « large-v3-turbo »** (une bêta installée avant le 11 octobre au soir) : relancer `bash install-transcription.sh beta`, rien d'autre. Le script télécharge le nouveau modèle (874 Mo, son empreinte vérifiée), récrit la configuration de l'ouvrier (`ouvrier=change`), relève le plafond de mémoire de l'unité et refait tout le contrôle ; l'ancien modèle reste sur le disque (190 Mo), sans servir. Un texte déjà transcrit avec « small » le reste (un vocal se transcrit une fois).
 
 Les sorties d'erreur possibles — **colle toute la sortie** dans la conversation :
 

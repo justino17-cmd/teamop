@@ -54,22 +54,30 @@ esac
 case "$GESTE" in installer|retirer) ;; *) echo "usage : bash install-transcription.sh <beta|prod> [retirer]"; exit 2 ;; esac
 
 # ── whisper.cpp et ses modèles : la version, le commit, les empreintes ───────────────────────────────────────────────────────────────────────────
-# ⛔ Relevés le 11 octobre 2026 : le commit de la publication v1.9.5, compilé dans le conteneur de développement, et les deux modèles retéléchargés, leur
-# empreinte recalculée, puis ÉPROUVÉS sur de vrais vocaux en français (7 et 15 secondes de parole : ~9 et ~10 s de calcul sur 2 cœurs, ~470 Mo de mémoire).
-# Changer de version ou de modèle, c'est changer ces lignes ET remesurer (temps, mémoire, qualité du français) avant de rien promettre.
+# ⛔ Relevés le 11 octobre 2026 : le commit de la publication v1.9.5, compilé dans le conteneur de développement, et les modèles retéléchargés, leur empreinte
+# recalculée. Le MODÈLE a été CHOISI le même soir, sur une mesure (Justin, au premier essai : « des mots mal compris ») : 36 vocaux français (des appels
+# téléphoniques, PolyAI/minds14, et de la parole lue, google/fleurs), sur 2 cœurs d'une machine qui transcrit jfk.wav en 8,3 s comme le VPS :
+#   · small-q5_1, glouton (le premier choix)       : 19,1 % de mots faux · 1 min de vocal en ~25 s ·   454 Mo ;
+#   · medium-q5_0, faisceau 5                       : 12,4 %              ·                  ~85 s · 1 218 Mo ;
+#   · large-v3-turbo-q5_0, faisceau 5               : 11,2 %              ·                 ~100 s ·   904 Mo (le q5 est LENT sur ces processeurs) ;
+#   · large-v3-turbo-q8_0, faisceau 5 (CELUI-CI)    : 11,0 %              ·                  ~35 s · 1 280 Mo (2 min : ~65 s ; ~12 s fixes d'encodeur).
+# Le français était déjà forcé (la langue du profil de l'auteur) ; un prompt initial n'apportait rien ; sans la détection de parole, le silence devenait
+# « Sous-titrage Société Radio-Canada » — elle reste. Changer de version ou de modèle, c'est changer ces lignes ET remesurer (temps, mémoire, qualité du
+# français) avant de rien promettre.
 WHISPER_VERSION="1.9.5"
 WHISPER_COMMIT="d1be6fde11ac6e0407606b4e42fe72d34add8037"
 WHISPER_DEPOT="https://github.com/ggml-org/whisper.cpp"
-MODELE_NOM="ggml-small-q5_1.bin"
-MODELE_EMPREINTE="ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"
+MODELE_NOM="ggml-large-v3-turbo-q8_0.bin"
+MODELE_EMPREINTE="317eb69c11673c9de1e1f0d459b253999804ec71ac4c23c17ecf5fbe24e259a1"
+FAISCEAU=5          # la recherche en faisceau (5 hypothèses) : sur un vocal d'1 minute, le glouton du même modèle sautait une phrase entière
 MODELE_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$MODELE_NOM"
 VAD_NOM="ggml-silero-v6.2.0.bin"
 VAD_EMPREINTE="2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987"
 VAD_URL="https://huggingface.co/ggml-org/whisper-vad/resolve/main/$VAD_NOM"
-# ⛔ La machine porte aussi OP GESTION : en dessous, on ne pose rien. La mémoire de l'unité est plafonnée à 1 200 Mo (le modèle en prend ~470 en calcul).
-MEMOIRE_TOTALE_MIN_MO=1800
-MEMOIRE_LIBRE_MIN_MO=800
-DISQUE_LIBRE_MIN_MO=1500
+# ⛔ La machine porte aussi OP GESTION : en dessous, on ne pose rien. La mémoire de l'unité est plafonnée à 1 800 Mo (le modèle en prend ~1 300 en calcul).
+MEMOIRE_TOTALE_MIN_MO=2800
+MEMOIRE_LIBRE_MIN_MO=1600
+DISQUE_LIBRE_MIN_MO=2500
 
 R="${OPMSG_RACINE:-}"
 # (les bancs seuls — une racine factice — posent la socket dans leur bac à sable : sur le VPS, OPMSG_RACINE est vide et cette ligne ne fait rien)
@@ -113,7 +121,7 @@ PORT_SERVICE="$(sed -n 's/^PORT=//p' "$ETC/$INSTANCE.env" 2>/dev/null || true)"
 # (1) les deux configurations : poser ou retirer `transcription` dans celle de l'instance, et écrire celle de l'ouvrier. Un seul programme Node, qui ne
 #     reçoit que des chemins, des identifiants de compte et des nombres : le secret n'en sort jamais. Ce qu'il imprime : des mots d'état.
 configurer() {   # $1 = poser | retirer → imprime l'état ; sort ≠ 0 si une configuration n'a pas pu être écrite
-  MODE="$1" CONFIG_INSTANCE="$CONFIG" TR_CONF="$TR_CONF" SOCKET="$SOCKET" THREADS="${THREADS:-1}" \
+  MODE="$1" CONFIG_INSTANCE="$CONFIG" TR_CONF="$TR_CONF" SOCKET="$SOCKET" THREADS="${THREADS:-1}" FAISCEAU="$FAISCEAU" \
   PROPRIO="$(id -u opmsg 2>/dev/null || true):$(id -g opmsg 2>/dev/null || true)" GROUPE_OUVRIER="$(getent group "$COMPTE" 2>/dev/null | cut -d: -f3 || true)" \
   WHISPER="$W_DIR_REEL/whisper-cli" MODELE="$M_DIR_REEL/$MODELE_NOM" VAD="$M_DIR_REEL/$VAD_NOM" FFMPEG="$FFMPEG_REEL" \
   node - <<'PROGRAMME'
@@ -158,7 +166,7 @@ try {
      vingt minutes) ; 300, le défaut du service (`TRANSCRIPTION_DEFAUT`, config.js — test-1002 compare les deux) */
   const dureeMaxS = Number.isInteger(garde.dureeMaxS) ? garde.dureeMaxS : 300;
   const ouvrierTxt = JSON.stringify({ secret: secret, socket: e.SOCKET, whisper: e.WHISPER, modele: e.MODELE, vad: e.VAD, ffmpeg: e.FFMPEG,
-    threads: Math.max(1, Math.min(8, Number(e.THREADS) || 1)), faisceau: 1, dureeMaxS: dureeMaxS }, null, 2) + "\n";
+    threads: Math.max(1, Math.min(8, Number(e.THREADS) || 1)), faisceau: Math.max(1, Math.min(8, Number(e.FAISCEAU) || 1)), dureeMaxS: dureeMaxS }, null, 2) + "\n";
   let existant = null;
   try { existant = fs.readFileSync(e.TR_CONF, "utf8"); } catch (x) { existant = null; }
   const changeOuvrier = existant !== ouvrierTxt;
@@ -241,7 +249,7 @@ MEM_LIBRE="$(awk '/^MemAvailable:/ { print int($2 / 1024) }' "$MEMINFO" 2>/dev/n
 [[ "$MEM_TOTALE" =~ ^[0-9]+$ ]] || MEM_TOTALE=0
 [[ "$MEM_LIBRE" =~ ^[0-9]+$ ]] || MEM_LIBRE=0
 if [ "$MEM_TOTALE" -lt "$MEMOIRE_TOTALE_MIN_MO" ]; then
-  echo "✗ la machine a $MEM_TOTALE Mo de mémoire : il en faut au moins $MEMOIRE_TOTALE_MIN_MO (elle porte aussi OP GESTION, et le modèle en prend ~470 en calcul) — rien n'est posé"
+  echo "✗ la machine a $MEM_TOTALE Mo de mémoire : il en faut au moins $MEMOIRE_TOTALE_MIN_MO (elle porte aussi OP GESTION, et le modèle en prend ~1 300 en calcul) — rien n'est posé"
   exit 1
 fi
 if [ "$MEM_LIBRE" -lt "$MEMOIRE_LIBRE_MIN_MO" ]; then
@@ -391,7 +399,7 @@ mkdir -p "$SYSD"
 #  · SystemCallFilter : les appels d'un service ordinaire, sans les privilégiés — la couche principale contre une faille d'un décodeur sur un fichier hostile
 #    (un appel refusé rend EPERM ; le CONTRÔLE ci-dessous transcrit pour de vrai sous ce filtre, et un filtre trop strict défait l'installation) ;
 #  · ProtectProc=invisible : les processus d'OP GESTION et du service lui sont cachés ;
-#  · MemoryMax=1200M sans échange, OOMScoreAdjust=500, CPUQuota=200 %, CPUWeight/IOWeight bas, Nice=10 : si une transcription s'emballe, c'est elle qui ploie
+#  · MemoryMax=1800M sans échange, OOMScoreAdjust=500, CPUQuota=200 %, CPUWeight/IOWeight bas, Nice=10 : si une transcription s'emballe, c'est elle qui ploie
 #    (et c'est elle que la mémoire épuisée tue en premier), pas OP GESTION ;
 #  · les données des deux instances sont INACCESSIBLES (en plus de leurs droits) ; pas de MemoryDenyWriteExecute : V8 compile à chaud, il en mourrait.
 printf '%s\n' "# Posé par server-msg/install-transcription.sh — réécrit à chaque installation, ne pas éditer à la main." \
@@ -409,7 +417,7 @@ printf '%s\n' "# Posé par server-msg/install-transcription.sh — réécrit à 
   'TemporaryFileSystem=/etc/opmsg:ro' 'BindReadOnlyPaths=/etc/opmsg/transcrire-%i.json' \
   'InaccessiblePaths=-/opt/opmsg/beta/data -/opt/opmsg/prod/data' \
   'LimitCORE=0' 'OOMScoreAdjust=500' \
-  'MemoryMax=1200M' 'MemorySwapMax=0' 'CPUQuota=200%' 'CPUWeight=10' 'IOWeight=10' 'Nice=10' 'TasksMax=32' 'LimitNOFILE=256' '' \
+  'MemoryMax=1800M' 'MemorySwapMax=0' 'CPUQuota=200%' 'CPUWeight=10' 'IOWeight=10' 'Nice=10' 'TasksMax=32' 'LimitNOFILE=256' '' \
   '[Install]' 'WantedBy=multi-user.target' > "$SYSD/opmsg-transcrire@.service.nouveau"
 if [ -f "$SYSD/opmsg-transcrire@.service" ] && cmp -s "$SYSD/opmsg-transcrire@.service.nouveau" "$SYSD/opmsg-transcrire@.service"; then
   rm -f "$SYSD/opmsg-transcrire@.service.nouveau"

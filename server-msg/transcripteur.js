@@ -55,8 +55,11 @@ const PHRASES_FANTOMES = [
 ];
 const ANNOTATIONS = /\[(?:blank_audio|silence|musique|music|bruit|applaudissements|rires|inaudible|son|sound)\]|\((?:musique|music|silence|rires|applaudissements|inaudible)\)|[♪♫]+/gi;
 const norme = (t) => t.normalize('NFC').toLowerCase().replace(/[’]/g, '\'').replace(/[\s.!?…,;:«»"-]+$/g, '').replace(/^[\s.!?…,;:«»"-]+/g, '').replace(/\s+/g, ' ').trim();
+/* « >> » : la marque d'un changement de locuteur que whisper recopie des sous-titres (mesuré le 11 octobre 2026 : en tête de 4 vocaux sur 38 avec « small ») — ce n'est pas
+   un mot qu'on a dit */
+const LOCUTEUR = /(^|\s)>>+(?=\s|$)/g;
 function nettoyerTexte(brut) {
-  const t = String(brut || '').replace(ANNOTATIONS, ' ').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+  const t = String(brut || '').replace(ANNOTATIONS, ' ').replace(LOCUTEUR, ' ').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
   if (!t) return '';
   const n = norme(t);
   if (!n || PHRASES_FANTOMES.some(p => norme(p) === n)) return '';

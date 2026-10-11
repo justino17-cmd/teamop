@@ -98,6 +98,8 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
     v('⛔ un vrai vocal d\'un mot reste : « Merci ! », « Merci à tous », « Thank you. », « You »', ['Merci !', 'Merci à tous', 'Thank you.', 'You', 'Merci.'].map(nettoyerTexte), ['Merci !', 'Merci à tous', 'Thank you.', 'You', 'Merci.']);
     v('le même mot au milieu d\'un vrai message reste', nettoyerTexte('Merci d\'avoir regardé le devis, je passe demain'), 'Merci d\'avoir regardé le devis, je passe demain');
     v('les annotations et les caractères de contrôle partent, les espaces se resserrent', nettoyerTexte('  Bonjour\u0007 [silence]  à   demain  '), 'Bonjour à demain');
+    v('« >> » (la marque d\'un changement de locuteur recopiée des sous-titres) part, en tête comme au milieu ; une flèche dans un mot reste',
+      [nettoyerTexte('>> Bonjour, je viens de recevoir une facture'), nettoyerTexte('Oui. >> Non, demain.'), nettoyerTexte('a>>b reste')], ['Bonjour, je viens de recevoir une facture', 'Oui. Non, demain.', 'a>>b reste']);
 
     /* ═══ 3. L'OUVRIER, VRAIMENT LANCÉ ═══════════════════════════════════════════════════════════════════════ */
     console.log('\n── 1001 · l\'ouvrier sur la boucle locale (faux ffmpeg, faux whisper-cli)');
