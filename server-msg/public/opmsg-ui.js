@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'fe08315dd688';
+  const OPMSG_BUILD = '3e4ceac27349';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 158;
+  const OPMSG_VERSION = 160;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -151,6 +151,9 @@
   const tailleTexte = o => { o = +o || 0; return o >= 1073741824 ? (Math.round(o / 107374182.4) / 10).toString().replace('.', ',') + ' Go' : o >= 1048576 ? (Math.round(o / 104857.6) / 10).toString().replace('.', ',') + ' Mo' : o >= 1024 ? Math.round(o / 1024) + ' Ko' : o + ' o'; };
 
   /* ═══ 4. LA LISTE MESSAGES ════════════════════════════════════════════════════════════════════════════════════════════════ */
+  /* ⛔ (10 octobre 2026 : « que tout soit bien différencié entre perso et pro ») une conversation de l'AUTRE côté — une recherche cherche des deux — porte une étiquette « Pro » ou « Perso » :
+     l'ouvrir bascule de côté, on le sait avant de toucher */
+  const autreCote = c => !!(c && modesActifs() && coteDe(c) !== etat.mode);
   function ligneConv(c, neuve) {
     const sel = etat.conv === c.id, pris = !!(etat.selection && etat.selection.has(c.id));
     /* en mode « Modifier » : la ligne se COCHE au lieu de s'ouvrir (`aria-pressed` le dit à l'oreille) ; le point « non lu » reste dit, après la coche */
@@ -160,7 +163,7 @@
       : '<button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
         '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
       '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
-      '<span class="conv-apercu" dir="auto">' + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
+      '<span class="conv-apercu" dir="auto">' + (autreCote(c) ? '<span class="conv-etiquette cote-' + coteDe(c) + '">' + NOM_COTE[coteDe(c)] + '</span>' : '') + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
   }
   /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
      la liste les rassemble (comme « Archivées » chez WhatsApp, « Invitations » chez Instagram) ; on y entre, on ouvre, on accepte ou on refuse. */
@@ -1077,6 +1080,7 @@
   const convCourante = () => (etat.convDonnees && etat.convDonnees.id === etat.conv ? etat.convDonnees : null) || etat.conversations.find(x => x.id === etat.conv) || null;
   function confirmationRequise() {
     if (!confirmerActif()) return false;
+    const cc = convCourante(); if (modesActifs() && cc && coteDe(cc) !== 'pro') return false;       // ⛔ le Perso n'est jamais retenu par un réglage du Pro (10 octobre 2026)
     const x = source.confirmerEnvoi();
     return x === 'partout' || (x === 'groupes' && multi(convCourante()));
   }
@@ -4803,8 +4807,10 @@
     if (ev.conv === etat.conv && document.visibilityState === 'visible') return;      // la conversation est sous les yeux : le message y paraît, pas de bannière
     if (arriveeRetenue(ev)) return;
     if (ev.invitation) { notifier('Invitation · ' + ev.de, 'Quelqu\'un qui n\'est pas dans tes contacts souhaite t\'écrire. Touche pour voir tes invitations.', 'invitations'); return; }
-    notifier(ev.groupe && ev.convNom ? ev.de + ' · ' + ev.convNom : ev.de, ev.texte || 'Nouveau message');
+    notifier(prefixeCote(ev.conv) + (ev.groupe && ev.convNom ? ev.de + ' · ' + ev.convNom : ev.de), ev.texte || 'Nouveau message', /^c_[0-9a-f]{32}$/.test(String(ev.conv || '')) ? 'conv:' + ev.conv : '');
   }
+  /* « Pro · » ou « Perso · » devant la bannière d'une conversation de l'AUTRE côté que celui où l'on est (rien quand c'est le même, ni sans les deux côtés) */
+  function prefixeCote(conv) { const c = conv && etat.conversations.find(x => x.id === conv); return autreCote(c) ? NOM_COTE[coteDe(c)] + ' · ' : ''; }
   /* les conversations que JE viens de faire disparaître (une réunion supprimée) : leur retrait ne se dit pas « Tu n'es plus dans cette conversation » — le geste a déjà son avis */
   const convQuittees = new Map();
   function surRetire(id) {
@@ -5738,7 +5744,7 @@
   async function surMention(ev) {
     const conv = /^c_[0-9a-f]{32}$/.test(String(ev.cible)) ? String(ev.cible) : null;
     /* ⛔ pas de bannière sur l'écran d'un appel ou d'une salle (« Ne pas déranger ») : le tableau de bord la garde, la notification de sortie la résume */
-    if (!(conv && etat.conv === conv && document.visibilityState === 'visible') && !(etat.appelId && !etat.appelReduit)) notifier(ev.titre || 'OP MESSAGES', ev.texte || '', conv ? 'conv:' + conv : '');
+    if (!(conv && etat.conv === conv && document.visibilityState === 'visible') && !(etat.appelId && !etat.appelReduit)) notifier(prefixeCote(conv) + (ev.titre || 'OP MESSAGES'), ev.texte || '', conv ? 'conv:' + conv : '');
     if (!$('vue-accueil').dataset.pret || typeof source.mentionsRecentes !== 'function') return;
     try { bord.mentions = await source.mentionsRecentes(); } catch (e) { return; }
     if (conv && etat.conv === conv) mentionsVues(conv); else if (etat.route && etat.route.vue === 'accueil') rendreAccueil();

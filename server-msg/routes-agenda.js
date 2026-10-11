@@ -212,7 +212,8 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       const demain = cal.numeroJour(c) > cal.numeroJour(cal.champsLocaux(t, x.tz));
       const quand = x.journee ? (demain ? 'Demain, toute la journée' : 'Aujourd\'hui, toute la journée') : reste <= 0 ? 'Maintenant' : reste < 60 ? 'Dans ' + reste + ' minute' + (reste > 1 ? 's' : '') : (demain ? 'Demain à ' : 'Aujourd\'hui à ') + heure;
       const n = stockage.evenementRappelEnvoyer(x.id, { titre: x.titre, texte: quand });
-      if (n) { bilan.envoyes++; try { notifier(x.uid, n, x.titre, quand, x.id); } catch (e) { /* la notification est écrite : le push est un plus */ } }
+      /* le côté du rappel (le sien, sinon celui de la conversation d'où il vient, sinon Perso — la règle de la page) : « OP MESSAGES PRO » pour un rappel de l'agenda Pro */
+      if (n) { bilan.envoyes++; try { notifier(x.uid, n, x.titre, quand, x.id, { cote: x.cote, conv: x.source ? x.source.conv : null }); } catch (e) { /* la notification est écrite : le push est un plus */ } }
     }
     if (bilan.abandonnes) journal('agenda_rappel_abandonne', { n: bilan.abandonnes });
     return bilan;

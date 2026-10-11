@@ -21,7 +21,7 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 900000;
 const F = { page: 'apercu/opmessages/index.html' };
-const BANCS = ['905', '909', '945', '946', '976', '986', '987', '988', '989', '990', 'sonde', 'sonde-agenda'];
+const BANCS = ['905', '909', '945', '946', '968', '973', '976', '986', '987', '988', '989', '990', '998', 'sonde', 'sonde-agenda'];
 const SONDE_FICHIER = 'sonde-opmessages-groupe.js';
 /* (10 octobre 2026) une seconde sonde : l'agenda de pro (la semaine en grille, le clic droit, glisser pour décaler) — « sonde-agenda » dans les bancs d'une mutation */
 const SONDES = { sonde: SONDE_FICHIER, 'sonde-agenda': 'sonde-opmessages-agenda-decaler.js' };
@@ -91,6 +91,13 @@ const CATALOGUE = [
   /* ── V. LES VOCAUX (10 octobre 2026) : l'écoute d'un vocal à moi commencée pendant « Envoi… » se rattache à son vrai identifiant par le `cid` de la vue ── */
   ["VC1", "⛔ la vue d'un vocal à moi perd son identifiant d'envoi (l'écoute commencée pendant « Envoi… » s'arrête net quand il part)", [["server-msg/public/source-serveur.js", "if (m.type === 'vocal' && typeof m.cid === 'string' && /^[0-9a-f]{32}$/.test(m.cid) && estMoi(m.auteur)) v.cid = m.cid;", "if (false) v.cid = m.cid;"]], ["976"]],
   ["VC2", "⛔ la vue d'un vocal donne son `cid` à tout le monde, pas seulement à son auteur", [["server-msg/public/source-serveur.js", "if (m.type === 'vocal' && typeof m.cid === 'string' && /^[0-9a-f]{32}$/.test(m.cid) && estMoi(m.auteur)) v.cid = m.cid;", "if (m.type === 'vocal') v.cid = m.cid || 'x';"]], ["976"]],
+  /* ── P. PERSO / PRO DANS LES NOTIFICATIONS (10 octobre 2026) : « OP MESSAGES PRO » pour ce qui vient du côté Pro de celui qui reçoit ── */
+  ["PP1", "⛔ une notification Pro ne dit plus son côté (titre « OP MESSAGES » partout)", [["server-msg/push.js", "    if (coteCharge(uid, charge) === 'pro') t.titre = titrePro(t.titre);\n", ""]], ["968", "973", "998"]],
+  ["PP2", "le résumé des heures de travail ne dit plus qu'il est Pro", [["server-msg/push.js", "renotify: true, titre: 'OP MESSAGES', corps, cote: 'pro' }).catch(() => {});", "renotify: true, titre: 'OP MESSAGES', corps }).catch(() => {});"]], ["968"]],
+  ["PP3", "une notification de réunion ne connaît plus la conversation de la réunion (jamais « PRO »)", [["server-msg/reunions-outils.js", "        detail: { titre, corps: texte }, valide, conv }, { gid });", "        detail: { titre, corps: texte }, valide }, { gid });"]], ["973"]],
+  ["PP4", "un rappel de l'agenda Pro ne dit plus son côté", [["server-msg/routes-agenda.js", "notifier(x.uid, n, x.titre, quand, x.id, { cote: x.cote, conv: x.source ? x.source.conv : null });", "notifier(x.uid, n, x.titre, quand, x.id);"]], ["998"]],
+  ["PP5", "avec l'aperçu, le titre d'une notification Pro ne commence plus par « Pro · »", [["server-msg/push.js", "const titrePro = (titre) => titre === 'OP MESSAGES' ? 'OP MESSAGES PRO' : extrait('Pro · ' + titre, 80);", "const titrePro = (titre) => titre === 'OP MESSAGES' ? 'OP MESSAGES PRO' : titre;"]], ["968", "973"]],
+  ["PP6", "⛔ le côté d'une conversation inconnue est deviné « Pro » (un faux Pro)", [["server-msg/push.js", "    if (!ID_CONV_PUSH.test(conv)) return null;\n    try { return stockage.coteDe(uid, conv); } catch (e) { return null; }", "    if (!ID_CONV_PUSH.test(conv)) return 'pro';\n    try { return stockage.coteDe(uid, conv); } catch (e) { return 'pro'; }"]], ["968", "998"]],
   ["RT12", "⛔ deux accents seuls passent la route (vides une fois normalisés)", [["server-msg/routes.js", " || Array.from(stockage.requeteRech(q)).length < RECH_MIN", ""]], ["946"]],
   ["RT13", "⛔ plus de budget de SIGNES : un appel déchiffre autant de texte que ses lignes en portent", [["server-msg/stockage.js", "        if (signes >= plafondSignes) { coupe = true; break; }\n", ""], ["server-msg/stockage.js", "while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {", "while (resultats.length < max && lus < plafondLignes) {"]], ["946"]],
   ["RT14", "⛔ plus de borne de LIGNES par appel (un lot de 200 d'un coup)", [["server-msg/stockage.js", "const demande = Math.min(200, plafondLignes - lus);", "const demande = 200;"], ["server-msg/stockage.js", "while (resultats.length < max && lus < plafondLignes && signes < plafondSignes) {", "while (resultats.length < max && signes < plafondSignes) {"]], ["946"]],

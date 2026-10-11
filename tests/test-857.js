@@ -814,6 +814,35 @@ async function controler(PAGE, SRC, DOC) {
     vrai('la semaine est une grille dès 700 px (la bande des jours au téléphone) ; un rendez-vous ne garde pas le menu du système au doigt (pas de bulle d\'iOS)',
       /\.sem-jours \{ display: none; \}\s*\.sem-grille \{ display: grid; grid-template-columns: repeat\(7, minmax\(0, 1fr\)\);/.test(CSS) && /-webkit-touch-callout: none;/.test(CSS) && /\.sem-grille \{ display: none; \}/.test(CSS));
   }
+  /* ⛔ PERSO / PRO, CE QUI SE DIT (10 octobre 2026 : « je veux que tout soit bien différencié entre perso et pro ») — les VRAIES fonctions : l'étiquette d'une conversation de l'autre côté,
+     le « Pro · » d'une bannière, « Confirmer l'envoi » qui ne retient jamais le Perso ; le titre « OP MESSAGES PRO » des notifications est gardé contre le vrai service (test-968, 973, 998) */
+  {
+    let PP = null, cP = null;
+    try {
+      cP = { etat: { mode: 'perso', conversations: [{ id: 'c_a', cote: 'pro' }, { id: 'c_b', cote: 'perso' }] }, NOM_COTE: { perso: 'Perso', pro: 'Pro' }, coteDe: c => c.cote, modesActifs: () => cP.modes !== false,
+        source: { confirmerEnvoi: () => 'partout' }, multi: () => true, convCourante: () => cP.cc, confirmerActif: () => true };
+      vm.createContext(cP);
+      const iA = JS.indexOf('const autreCote = c =>'), fA = JS.indexOf('\n', iA), iP = JS.indexOf('function prefixeCote(conv)'), fP = JS.indexOf('\n', iP), iC = JS.indexOf('function confirmationRequise()'), fC = JS.indexOf('\n  }', iC) + 4;
+      if (iA < 0 || iP < 0 || iC < 0) throw new Error('fonctions introuvables');
+      vm.runInContext(JS.slice(iA, fA) + '\n' + JS.slice(iP, fP) + '\n' + JS.slice(iC, fC) + '\nthis.PP = { autreCote, prefixeCote, confirmationRequise };', cP, { timeout: 2000 });
+      PP = cP.PP;
+    } catch (e) { PP = null; }
+    vrai('(population) les fonctions du Perso / Pro s\'exécutent dans un bac à sable', !!PP);
+    if (PP) {
+      const [ca, cb] = cP.etat.conversations;
+      const perso = [PP.autreCote(ca), PP.autreCote(cb), PP.prefixeCote('c_a'), PP.prefixeCote('c_b'), PP.prefixeCote('c_inconnue'), PP.prefixeCote(null)];
+      cP.etat.mode = 'pro'; const pro = [PP.autreCote(ca), PP.autreCote(cb), PP.prefixeCote('c_a'), PP.prefixeCote('c_b')];
+      cP.modes = false; const sans = [PP.autreCote(cb), PP.prefixeCote('c_b')]; cP.modes = true;
+      v('⛔ côté Perso, une conversation PRO porte l\'étiquette et la bannière « Pro · » ; côté Pro, la Perso « Perso · » ; rien pour le même côté, une conversation inconnue, ni sans les deux côtés',
+        [perso, pro, sans], [[true, false, 'Pro · ', '', '', ''], [false, true, '', 'Perso · '], [false, '']]);
+      const conf = []; for (const [modes, cc] of [[true, ca], [true, cb], [false, cb], [true, null]]) { cP.modes = modes; cP.cc = cc; conf.push(PP.confirmationRequise()); } cP.modes = true;
+      v('⛔ « Confirmer l\'envoi » (réglage du Pro) : une conversation PRO le demande, une conversation PERSO jamais — sans les deux côtés, il vaut partout', conf, [true, false, true, true]);
+    }
+    vrai('la ligne d\'une conversation porte l\'étiquette de son côté quand c\'est l\'autre ; la bannière d\'un message ou d\'une mention commence par « Pro · » / « Perso · », et celle d\'un message se touche (elle ouvre la conversation)',
+      /\(autreCote\(c\) \? '<span class="conv-etiquette cote-' \+ coteDe\(c\) \+ '">' \+ NOM_COTE\[coteDe\(c\)\] \+ '<\/span>' : ''\)/.test(JS)
+      && /notifier\(prefixeCote\(ev\.conv\) \+ \(ev\.groupe && ev\.convNom \? ev\.de \+ ' · ' \+ ev\.convNom : ev\.de\), ev\.texte \|\| 'Nouveau message', \/\^c_\[0-9a-f\]\{32\}\$\/\.test\(String\(ev\.conv \|\| ''\)\) \? 'conv:' \+ ev\.conv : ''\);/.test(JS)
+      && /notifier\(prefixeCote\(conv\) \+ \(ev\.titre \|\| 'OP MESSAGES'\), ev\.texte \|\| '', conv \? 'conv:' \+ conv : ''\);/.test(JS));
+  }
   /* 8 octobre 2026 : le menu d'un message contre sa bulle, « Me le rappeler », l'Agenda au mois — le comportement est mesuré par la sonde tests/sonde-opmessages-menu-rappel.js */
   vrai('le menu d\'un message s\'ancre à la rangée du message (dès 700 px, si le navigateur sait l\'ancre) et l\'ancre part avec lui',
     /@supports \(anchor-name: --menu-msg\)/.test(CSS) && /\.menu-fond\.ancre \.menu-msg \{ position: fixed; position-anchor: --menu-msg;/.test(CSS) && /if \(ancre\) \{ ancre\.classList\.add\('menu-ancre'\); \$\('menu-fond'\)\.classList\.add\('ancre'\);/.test(JS)

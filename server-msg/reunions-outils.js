@@ -60,8 +60,10 @@ function creerNotifieur(ctx) {
         if (!stockage.reunionEncore({ id: reunion, uid, occurrence: type === 'reunion_rappel' ? occurrence : undefined, sourdine: type === 'reunion_modifiee' })) return false;
         return type === 'reunion_rappel' ? { ttl: Math.max(0, Math.floor((occurrence - horloge()) / 1000)) } : true;
       };
+      /* `conv` : la conversation de la réunion — son côté, pour CE destinataire, dit « OP MESSAGES PRO » (push.js) ; une réunion supprimée n'en a plus, rien n'est dit */
+      let conv = null; try { const r = stockage.reunionPourMembre(reunion, uid); conv = r && r.reunion ? r.reunion.conv : null; } catch (e) { conv = null; }
       ctx.push.pousser(uid, { type: 'reunion', tag: 'reunion:' + reunion, url: '/#reunions/' + reunion, renotify: type === 'reunion_rappel', titre: 'OP MESSAGES', corps: PUSH_CORPS[type] || 'Réunion',
-        detail: { titre, corps: texte }, valide }, { gid });
+        detail: { titre, corps: texte }, valide, conv }, { gid });
     } catch (e) { /* un push raté ne défait rien */ }
   }
   /* Une notification dans l'application, puis son push. `auteur` : la personne que le texte NOMME (l'hôte) — l'effacement de son compte réécrit alors la notification. → la notification, ou null

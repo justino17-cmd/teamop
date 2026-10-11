@@ -18,7 +18,11 @@ const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter l
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: MDP.alice, nom: 'Alice Martin', actif: true }, bob: { pass: MDP.bob, nom: 'Bob Petit', actif: true }, carla: { pass: MDP.carla, nom: 'Carla Roux', actif: true } });
-  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { reunions: { planificateurMs: 150, bailMs: 2000 } } });
+  /* un FAUX service push (chaque charge déchiffrée) : le titre d'un rappel dit son côté (10 octobre 2026) */
+  const P = require('./outils-push');
+  const fps = await P.fauxServicePush();
+  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, env: { OPMSG_TEST_PUSH: fps.hote }, config: { reunions: { planificateurMs: 150, bailMs: 2000 }, push: { contact: 'mailto:exploitation@exemple.invalid' } } });
+  let avance = 0; const avancer0 = svc.avancer.bind(svc); svc.avancer = (ms) => { avance += ms; avancer0(ms); };      // l'horloge du service, suivie par le banc
   const BASE = path.join(svc.data, 'msg.db');
   const sql = (req, ...a) => { const d = T.lireBase(BASE); try { return d.prepare(req).get(...a); } finally { d.close(); } };
   try {
@@ -184,6 +188,23 @@ const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter l
     const ex2 = await B.post('/api/compte/export', {});
     const ag2 = ex2.code === 200 ? (JSON.parse(ex2.txt).agenda || []).map(e => [e.titre, e.cote]) : ex2.code;
     v('l\'export porte le côté de chaque événement (c\'est une donnée de la personne)', ag2, [['Bob Pro', 'pro'], ['Bob Perso', 'perso']]);
-  } finally { await svc.arreter(); await og.fermer(); }
+
+    console.log('\n13. ⛔ Le côté se dit dans la notification : un rappel de l\'agenda Pro s\'intitule « OP MESSAGES PRO », un rappel Perso « OP MESSAGES »');
+    {
+      const dB = P.appareil(fps.endpoint('bob')); dB.chemin = '/push/bob';
+      const recus = () => fps.envois.filter(e => e.chemin === dB.chemin).map(e => JSON.parse(P.dechiffrer(dB, e.corps)));
+      v('population : l\'appareil de Bob est abonné', (await B.post('/api/push/abonner', { sub: dB.sub })).code, 200);
+      const dans = (min) => Math.ceil((Date.now() + avance + min * 60000) / 60000) * 60000;
+      const rp = await B.post('/api/agenda', { titre: 'Visite client QXW', debut: debutLocal(dans(30)), tz: 'UTC', rappel: 15, cote: 'pro' });
+      const rs = await B.post('/api/agenda', { titre: 'Cinéma QXW', debut: debutLocal(dans(31)), tz: 'UTC', rappel: 15, cote: 'perso' });
+      const ro = await B.post('/api/agenda', { titre: 'Sans côté QXW', debut: debutLocal(dans(32)), tz: 'UTC', rappel: 15 });
+      vrai('population : trois rappels en attente (Pro, Perso, sans côté)', [rp, rs, ro].every(r => r.code === 201 && r.j.evenement.rappelEnAttente === true));
+      svc.avancer(18 * 60000);
+      vrai('les trois rappels partent en push', await T.attendre(() => recus().filter(x => x.type === 'agenda').length >= 3, 8000, 50));
+      const titres = recus().filter(x => x.type === 'agenda').map(x => x.titre).sort();
+      v('⛔ « OP MESSAGES PRO » pour le rappel Pro ; « OP MESSAGES » pour le Perso et pour celui qui n\'a pas de côté (Perso, comme la page le range) — et rien du titre de l\'événement sans l\'aperçu', titres, ['OP MESSAGES', 'OP MESSAGES', 'OP MESSAGES PRO']);
+      await B.post('/api/push/desabonner', { endpoint: dB.sub.endpoint });
+    }
+  } finally { await svc.arreter(); await og.fermer(); if (fps.fermer) await fps.fermer(); }
   fin();
 })().catch(e => { console.error(e); process.exit(1); });

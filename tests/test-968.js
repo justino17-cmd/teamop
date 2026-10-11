@@ -128,6 +128,7 @@ else (async () => {
     await sentinelle();
     await attendreN(dB, n0 + 2);
     v('⛔ seuls le message PERSO et la sentinelle ont sonné — ni les deux messages pro, ni la mention', sansAppels(recus(dB).slice(n0)).map(x => x.type), ['message', 'groupe']);
+    v('… et ils s\'intitulent « OP MESSAGES » (le côté se DIT : rien de Pro ici)', sansAppels(recus(dB).slice(n0)).map(x => x.titre), ['OP MESSAGES', 'OP MESSAGES']);
     v('la mention est bien écrite dans l\'application (elle attend Ben)', ((await b.get('/api/notifications')).j.notifications || []).filter(x => x.type === 'mention').length, 1);
 
     console.log('\n4. Ben lit « Devis » sur un autre appareil ; ses heures reprennent : UN résumé, de ce qui reste à lire');
@@ -143,6 +144,7 @@ else (async () => {
     v('« En dehors de tes heures : nouveaux messages pro dans une conversation, dont une mention » — « Devis », lu, n\'y est pas ; il ouvre « Chantier »',
       [r.type, r.corps, r.url, r.tag], ['resume', 'En dehors de tes heures : nouveaux messages pro dans une conversation, dont une mention', '/#messages/' + PRO1, 'resume-heures']);
     v('⛔ le résumé ne porte aucun mot du texte ni aucun nom', /chantier|devis|confirmes|Ana|Ben|Cleo/i.test(JSON.stringify(r)), false);
+    v('⛔ le résumé des heures de travail s\'intitule « OP MESSAGES PRO » (10 octobre 2026 : « que tout soit bien différencié entre perso et pro »)', r.titre, 'OP MESSAGES PRO');
 
     console.log('\n5. Dans les heures : le Pro sonne, et aucun second résumé');
     const n2 = recus(dB).length;
@@ -151,6 +153,23 @@ else (async () => {
     await sentinelle();
     await attendreN(dB, n2 + 2);
     v('le message pro SONNE, puis la sentinelle — ⛔ et aucun second résumé entre les deux', sansAppels(recus(dB).slice(n2)).map(x => x.type), ['message', 'groupe']);
+    v('⛔ le message pro s\'intitule « OP MESSAGES PRO » ; la sentinelle (un groupe d\'amis) « OP MESSAGES »', sansAppels(recus(dB).slice(n2)).map(x => x.titre), ['OP MESSAGES PRO', 'OP MESSAGES']);
+    /* avec l'APERÇU : le titre dit qui écrit, précédé de « Pro · » pour le côté Pro — le Perso tel quel */
+    await b.post('/api/moi/maj', { prefs: { apercu_notif: true } });
+    const n2b = recus(dB).length;
+    await envoyer(a, PRO1, 'Avec aperçu');
+    await attendreN(dB, n2b + 1);
+    await envoyer(c, PERSO, 'Avec aperçu aussi');
+    await attendreN(dB, n2b + 2);
+    const ap = sansAppels(recus(dB).slice(n2b)).map(x => x.titre);
+    v('⛔ aperçu activé : « Pro · Ana Banc · Chantier » pour le Pro, « Cleo Banc · Week-end » pour le Perso', ap, ['Pro · Ana Banc · Chantier', 'Cleo Banc · Week-end']);
+    await b.post('/api/moi/maj', { prefs: { apercu_notif: false } });
+    /* ⛔ ce qui n'est d'AUCUNE conversation (la notification d'essai) ne se devine pas Pro : « OP MESSAGES », jamais un faux « PRO » */
+    const n2c = recus(dB).length;
+    const es = await b.post('/api/push/essai', {});
+    await attendreN(dB, n2c + 1);
+    const ess = sansAppels(recus(dB).slice(n2c)).find(x => x.type === 'essai') || {};
+    v('⛔ la notification d\'essai (d\'aucune conversation) s\'intitule « OP MESSAGES » — rien n\'est deviné', [es.code, ess.titre], [200, 'OP MESSAGES']);
 
     console.log('\n6. De nouveau hors des heures, tout lu avant la reprise : aucun résumé');
     avancer(60 * 60000 + 60000);                                // la fin de la plage est passée : dehors
