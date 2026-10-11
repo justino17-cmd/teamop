@@ -53,6 +53,8 @@ case "$cmd" in
     case "$unite" in
       opmsg-transcrire@*)
         i="\${unite#opmsg-transcrire@}"
+        # la copie de la configuration de l'ouvrier (elle porte le secret) n'existe QUE pendant une réinstallation : ses droits sont relevés ici, au moment où l'ouvrier repart
+        c="$BAC_R/etc/opmsg/transcrire-$i.json.avant"; [ -f "$c" ] && "${NODE}" -e 'const fs=require("fs");fs.appendFileSync(process.argv[2],(fs.statSync(process.argv[1]).mode&0o777).toString(8)+"\\n")' "$c" "$E/mode-avant-$i"
         p=$(cat "$E/pid-$unite" 2>/dev/null); [ -n "$p" ] && kill "$p" 2>/dev/null; rm -f "$E/pid-$unite"
         [ -f "$BAC_R/etc/systemd/system/opmsg-transcrire@.service" ] || exit 1
         [ -f "$E/ouvrier-refuse" ] && exit 1
@@ -416,6 +418,7 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
       v('⛔ … la configuration de l\'ouvrier (l\'ancien modèle), son unité et la configuration de l\'instance reviennent OCTET POUR OCTET, avec leurs droits',
         [b.octets('etc/opmsg/transcrire-beta.json') === avantTr, b.octets(UNITE_REL) === avantUnite, b.octets('etc/opmsg/beta.json') === avantCfg, b.mode('etc/opmsg/transcrire-beta.json'), b.mode(UNITE_REL), b.mode('etc/opmsg/beta.json')],
         [true, true, true, '640', '644', '600']);
+      v('⛔ … et PENDANT l\'installation, la copie de la configuration de l\'ouvrier (elle porte le secret) n\'était lisible que de son compte et de son groupe (0640)', (lire(path.join(b.E, 'mode-avant-beta')) || '').split('\n').filter(Boolean), ['640']);
       vrai('⛔ … aucune copie n\'est laissée sur le disque (elles portent le secret)', !b.existe('etc/opmsg/transcrire-beta.json.avant') && !b.existe(UNITE_REL + '.avant') && !b.existe('etc/opmsg/beta.json.avant-transcription')
         && !b.existe('etc/opmsg/transcrire-beta.json.nouveau') && !b.existe(UNITE_REL + '.nouveau'));
       const lu = JSON.parse(lire(path.join(b.E, 'ouvrier-beta.json')) || '{}');
