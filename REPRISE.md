@@ -54,7 +54,8 @@ machine qui transcrit l'échantillon comme le VPS (8,3 s) : « small » glouton,
 vocal en ~35 s au lieu de ~25 s, ~1,3 Go de mémoire pendant le calcul au lieu de ~0,45. Les modèles q5_0 sont 3 à 4 fois plus lents sur ce processeur ; un prompt
 français n'apporte rien ; la détection de parole est nécessaire (sans elle, un silence devient « Sous-titrage Société Radio-Canada »). Le français était déjà forcé (la
 langue du profil). 🟡 **Écrit, éprouvé, à installer** (sa propre demande de fusion, après #127) : l'installeur pose le nouveau modèle (empreinte épinglée), un faisceau de
-5, l'unité plafonnée à 1 800 Mo (`OOMPolicy=continue` : le plafond tue le calcul, pas l'ouvrier — le journal de l'ouvrier dit `echec:whisper:SIGKILL`) ; une
+5, l'unité plafonnée à 1 800 Mo (`OOMPolicy=continue` : le plafond tue le plus gros processus, presque toujours le calcul, pas l'ouvrier — le journal de l'ouvrier dit
+`echec:whisper:SIGKILL`) ; une
 réinstallation qui échoue remet celle d'avant (relecture du gardien : avant, elle retirait toute la transcription). ⏳ Justin relance
 `bash /root/install-transcription.sh beta` (874 Mo téléchargés), puis essaie avec un NOUVEAU vocal : un texte déjà transcrit avec « small » le reste.
 

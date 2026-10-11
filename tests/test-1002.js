@@ -32,7 +32,7 @@ const COMMIT = 'd1be6fde11ac6e0407606b4e42fe72d34add8037';
 const W_REL = 'opt/opmsg/whisper/1.9.5-d1be6fde11ac';
 console.log('\n── 1002 · install-transcription.sh, joué dans un bac à sable ──');
 
-const OUTILS_REELS = ['bash', 'sh', 'sed', 'cp', 'mv', 'rm', 'rmdir', 'mkdir', 'chmod', 'ln', 'cat', 'cmp', 'dirname', 'tr', 'cut', 'head', 'tail', 'grep', 'awk', 'sha256sum', 'mktemp', 'seq', 'printf', 'setsid'];
+const OUTILS_REELS = ['bash', 'sh', 'sed', 'cp', 'rm', 'rmdir', 'mkdir', 'chmod', 'ln', 'cat', 'cmp', 'dirname', 'tr', 'cut', 'head', 'tail', 'grep', 'awk', 'sha256sum', 'mktemp', 'seq', 'printf', 'setsid'];
 const PROLOGUE = '#!/bin/bash\nE="$BAC_ETAT"; echo "${0##*/} $*" >> "$E/appels.log"; export -p >> "$E/env.log"\n';
 function fauxOutils(b) {
   const NODE = process.execPath;
@@ -110,6 +110,13 @@ exit 0
 `,
     useradd: PROLOGUE + `n=""; for a in "$@"; do n="$a"; done; : > "$E/compte-$n"
 `,
+    /* mv : le VRAI, sauf « mv-refuse » — le retour en arrière ne peut pas remettre la configuration de l'ouvrier (un disque passé en lecture seule) ; rien n'est noté
+       (aucun secret n'y passe, et le journal des appels resterait lisible). ⛔ Ce fichier est NEUF dans le dossier du bac : `mv` n'est plus dans OUTILS_REELS, sinon
+       writeFileSync écrirait À TRAVERS le lien, sur le vrai binaire de la machine. */
+    mv: `#!/bin/bash
+if [ -f "$BAC_ETAT/mv-refuse" ]; then for a in "$@"; do case "$a" in *transcrire-*.json.avant) exit 1 ;; esac; done; fi
+exec "${reel('mv') || '/usr/bin/mv'}" "$@"
+`,
     /* chown : « chown-refuse » — une commande qui échoue APRÈS l'écriture des configurations (le piège ERR doit tout défaire) */
     chown: PROLOGUE + `[ -f "$E/chown-refuse" ] && [ "$1" = "opmsg:opmsg" ] && exit 1
 exit 0
@@ -134,7 +141,12 @@ function bac() {
   for (const x of [b.R, b.E, b.bin, path.join(b.E, 'modeles')]) fs.mkdirSync(x, { recursive: true });
   for (const o of OUTILS_REELS) { const p = reel(o); if (p) fs.symlinkSync(p, path.join(b.bin, o)); }
   fs.symlinkSync(process.execPath, path.join(b.bin, 'node'));
-  for (const [nom, txt] of Object.entries(fauxOutils(b))) fs.writeFileSync(path.join(b.bin, nom), txt, { mode: 0o755 });
+  /* ⛔ un faux outil ne s'écrit JAMAIS sur un lien vers un vrai : writeFileSync suivrait le lien et écraserait le binaire de la machine (le banc tourne souvent en root) */
+  for (const [nom, txt] of Object.entries(fauxOutils(b))) {
+    const cible = path.join(b.bin, nom);
+    if (fs.existsSync(cible) || (() => { try { fs.lstatSync(cible); return true; } catch (e) { return false; } })()) throw new Error('faux outil « ' + nom + ' » posé sur un outil réel du bac : retirer « ' + nom + ' » de OUTILS_REELS');
+    fs.writeFileSync(cible, txt, { mode: 0o755 });
+  }
   /* le faux ffmpeg (il écrit un WAV de 2 s) et le faux whisper-cli (il rend la phrase de l'échantillon — ou celle de « whisper-texte ») : ceux que le VRAI ouvrier lancera */
   fs.writeFileSync(path.join(b.E, 'ffmpeg'), `#!/bin/bash\nout=""; for a in "$@"; do out="$a"; done; head -c 64044 /dev/zero > "$out"\n`, { mode: 0o755 });
   fs.writeFileSync(path.join(b.E, 'whisper-cli'), `#!/bin/bash
@@ -256,6 +268,7 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
       const defService = /const TRANSCRIPTION_DEFAUT = \{ dureeMaxS: (\d+),/.exec(lire(path.join(RACINE, 'server-msg', 'config.js')) || '');
       vrai('⛔ la durée maximale posée chez l\'ouvrier, par défaut, est celle du service (TRANSCRIPTION_DEFAUT de config.js)', !!defService && code.includes(': ' + defService[1] + ';') && /dureeMaxS: dureeMaxS/.test(code));
     }
+    vrai('⛔ le retour lui-même va jusqu\'au bout : une coupure pendant `annuler` est ignorée (relecture du gardien, M1 — sinon une moitié d\'installation)', /annuler\(\) \{[^}]*trap '' HUP INT TERM/.test(code));
     vrai('⛔ une coupure ou une commande qui échoue APRÈS l\'écriture des configurations défait tout (pièges HUP/INT/TERM et ERR, posés après l\'écriture)',
       /trap 'annuler [^\n]*' HUP INT TERM/.test(code) && /trap 'annuler [^\n]*' ERR/.test(code) && code.indexOf("' ERR") > code.indexOf('configurer poser') && /annuler\(\) \{[^}]*trap - HUP INT TERM ERR/.test(code));
     const r = spawnSync('bash', ['-n', SCRIPT], { encoding: 'utf8' });
@@ -393,43 +406,64 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
   /* ═══════ 4 bis. UNE RÉINSTALLATION QUI ÉCHOUE REMET CELLE D'AVANT ═══════
      ⛔ (relecture du gardien, 11 octobre 2026) : passer d'un modèle à l'autre (« small » → « large-v3-turbo ») puis rater le contrôle retirait TOUTE la transcription, alors
      qu'elle marchait. On pose une installation « d'avant » (l'ancien modèle encore sur le disque, un faisceau de 1, l'ancienne unité), puis on rejoue celle d'aujourd'hui en
-     la faisant échouer : ce qui revient doit être CELLE D'AVANT, octet pour octet, et son ouvrier doit tourner de nouveau. */
+     la faisant échouer : ce qui revient doit être CELLE D'AVANT, octet pour octet, et son ouvrier doit tourner de nouveau. Seconde relecture : le retour ne démarre pas une
+     instance arrêtée (M3), ne relance pas un ouvrier que rien n'a changé (M6), lève la limite de démarrages de systemd avant de relancer (M5), et un fichier qu'il ne
+     peut pas remettre se DIT, sans « ✓ » (M2). */
   console.log('\nUne réinstallation qui échoue : l\'installation d\'avant revient');
-  const ANCIEN = 'opt/opmsg/whisper/modeles/ggml-small-q5_1.bin', UNITE_REL = 'etc/systemd/system/opmsg-transcrire@.service';
+  const ANCIEN = 'opt/opmsg/whisper/modeles/ggml-small-q5_1.bin', UNITE_REL = 'etc/systemd/system/opmsg-transcrire@.service', COMPL_REL = 'etc/systemd/system/teamop-msg@beta.service.d/transcription.conf';
   for (const k of [
-    { nom: 'le contrôle échoue', avant: (b) => b.ecrireEtat('whisper-texte', 'un texte sans le mot attendu'), dit: /l'ouvrier ne fait pas ce qu'il doit/, voit: true },
-    { nom: 'l\'instance relancée ne voit pas l\'ouvrier', avant: (b) => b.drapeau('health-ko'), dit: /ne voit pas l'ouvrier/, voit: false },
+    { nom: 'le contrôle échoue', modele: true, avant: (b) => b.ecrireEtat('whisper-texte', 'un texte sans le mot attendu'), dit: /l'ouvrier ne fait pas ce qu'il doit/, fin: 'voit' },
+    { nom: 'l\'instance relancée ne voit pas l\'ouvrier', modele: true, avant: (b) => b.drapeau('health-ko'), dit: /ne voit pas l'ouvrier/, fin: 'aveugle' },
+    /* une réinstallation À L'IDENTIQUE, l'instance ARRÊTÉE (son complément d'unité effacé : il est reposé, donc CHANGE_INSTANCE=oui) */
+    { nom: 'l\'instance est arrêtée (réinstallation à l\'identique)', modele: false, avant: (b) => { fs.rmSync(path.join(b.R, COMPL_REL)); fs.rmSync(path.join(b.E, 'unite-actif')); }, dit: /ne tourne pas/, fin: 'arretee' },
+    { nom: 'le retour ne peut pas remettre la configuration de l\'ouvrier', modele: true, avant: (b) => { b.ecrireEtat('whisper-texte', 'un texte sans le mot attendu'); b.drapeau('mv-refuse'); }, dit: /l'ouvrier ne fait pas ce qu'il doit/, fin: 'ko' },
   ]) {
     b = bac();
     try {
       b.instance('beta'); await b.serveur('beta');
       const r0 = await b.lancer(['beta']);
-      fs.copyFileSync(path.join(b.R, 'opt/opmsg/whisper/modeles/ggml-large-v3-turbo-q8_0.bin'), path.join(b.R, ANCIEN));
-      fs.writeFileSync(path.join(b.R, 'etc/opmsg/transcrire-beta.json'), JSON.stringify(Object.assign(b.trConf('beta') || {}, { modele: '/' + ANCIEN, faisceau: 1 }), null, 2) + '\n');
-      fs.writeFileSync(path.join(b.R, UNITE_REL), (b.octets(UNITE_REL) || '').replace('MemoryMax=1800M', 'MemoryMax=1200M').replace('OOMPolicy=continue\n', ''));
+      if (k.modele) {
+        fs.copyFileSync(path.join(b.R, 'opt/opmsg/whisper/modeles/ggml-large-v3-turbo-q8_0.bin'), path.join(b.R, ANCIEN));
+        fs.writeFileSync(path.join(b.R, 'etc/opmsg/transcrire-beta.json'), JSON.stringify(Object.assign(b.trConf('beta') || {}, { modele: '/' + ANCIEN, faisceau: 1 }), null, 2) + '\n');
+        fs.writeFileSync(path.join(b.R, UNITE_REL), (b.octets(UNITE_REL) || '').replace('MemoryMax=1800M', 'MemoryMax=1200M').replace('OOMPolicy=continue\n', ''));
+      }
       const avantTr = b.octets('etc/opmsg/transcrire-beta.json'), avantUnite = b.octets(UNITE_REL), avantCfg = b.octets('etc/opmsg/beta.json');
-      vrai('(population) l\'installation d\'avant est en place : réussie, l\'ancien modèle et l\'ancienne unité posés', r0.status === 0 && /ggml-small-q5_1/.test(avantTr || '') && /MemoryMax=1200M/.test(avantUnite || '') && !/OOMPolicy/.test(avantUnite || ''));
+      vrai('(population) l\'installation d\'avant est en place' + (k.modele ? ' : réussie, l\'ancien modèle et l\'ancienne unité posés' : ' : réussie, à l\'identique de celle d\'aujourd\'hui'),
+        r0.status === 0 && (!k.modele || (/ggml-small-q5_1/.test(avantTr || '') && /MemoryMax=1200M/.test(avantUnite || '') && !/OOMPolicy/.test(avantUnite || ''))));
       k.avant(b);
       const n = b.journal().length;
       const r = await b.lancer(['beta']);
       const J = b.journal().slice(n);
+      const relances = compte(J, /^systemctl restart opmsg-transcrire@beta$/);
       v('⛔ ' + k.nom + ' : le script s\'arrête, le DIT, et dit que l\'installation d\'avant revient', [r.status, k.dit.test(r.out), /l'installation d'avant revient/.test(r.out), /la transcription est retirée/.test(r.out)], [1, true, true, false]);
       if (r.status !== 1 || !/l'installation d'avant revient/.test(r.out)) console.log(r.out.split('\n').slice(-10).join('\n'));
-      v('⛔ … la configuration de l\'ouvrier (l\'ancien modèle), son unité et la configuration de l\'instance reviennent OCTET POUR OCTET, avec leurs droits',
+      vrai('⛔ … et la transcription n\'est PAS retirée : l\'ouvrier ni arrêté ni désactivé', !J.includes('systemctl stop opmsg-transcrire@beta') && !J.includes('systemctl disable opmsg-transcrire@beta'));
+      if (k.fin === 'ko') {
+        v('⛔ … le fichier qu\'il n\'a pas pu remettre est NOMMÉ, rien d\'autre n\'est tenté (ni daemon-reload, ni relance), et il ne dit jamais « ✓ »',
+          [/⚠️ pas remis : \S*\/etc\/opmsg\/transcrire-beta\.json — rien d'autre n'est tenté/.test(r.out), /✓ l'ouvrier d'avant/.test(r.out), relances,
+            J.lastIndexOf('systemctl daemon-reload') < J.indexOf('systemctl restart opmsg-transcrire@beta'), compte(J, /^systemctl reset-failed /)], [true, false, 1, true, 0]);
+        v('   … la copie qu\'il n\'a pas pu remettre reste à côté, avec ses droits (0640) ; les deux autres fichiers, eux, sont revenus',
+          [b.mode('etc/opmsg/transcrire-beta.json.avant'), b.octets(UNITE_REL) === avantUnite, b.octets('etc/opmsg/beta.json') === avantCfg], ['640', true, true]);
+        continue;
+      }
+      v('⛔ … la configuration de l\'ouvrier, son unité et la configuration de l\'instance reviennent OCTET POUR OCTET, avec leurs droits',
         [b.octets('etc/opmsg/transcrire-beta.json') === avantTr, b.octets(UNITE_REL) === avantUnite, b.octets('etc/opmsg/beta.json') === avantCfg, b.mode('etc/opmsg/transcrire-beta.json'), b.mode(UNITE_REL), b.mode('etc/opmsg/beta.json')],
         [true, true, true, '640', '644', '600']);
-      v('⛔ … et PENDANT l\'installation, la copie de la configuration de l\'ouvrier (elle porte le secret) n\'était lisible que de son compte et de son groupe (0640)', (lire(path.join(b.E, 'mode-avant-beta')) || '').split('\n').filter(Boolean), ['640']);
       vrai('⛔ … aucune copie n\'est laissée sur le disque (elles portent le secret)', !b.existe('etc/opmsg/transcrire-beta.json.avant') && !b.existe(UNITE_REL + '.avant') && !b.existe('etc/opmsg/beta.json.avant-transcription')
         && !b.existe('etc/opmsg/transcrire-beta.json.nouveau') && !b.existe(UNITE_REL + '.nouveau'));
-      const lu = JSON.parse(lire(path.join(b.E, 'ouvrier-beta.json')) || '{}');
-      v('⛔ … l\'ouvrier d\'avant TOURNE, relancé sur SA configuration (l\'ancien modèle, un faisceau de 1) systemd ayant relu l\'unité d\'avant ENTRE la relance de l\'installation ratée et la sienne',
-        [b.ouvrierVivant('beta'), String(lu.modele || '').endsWith('/' + ANCIEN), lu.faisceau, compte(J, /^systemctl restart opmsg-transcrire@beta$/),
-          J.lastIndexOf('systemctl daemon-reload') > J.indexOf('systemctl restart opmsg-transcrire@beta') && J.lastIndexOf('systemctl daemon-reload') < J.lastIndexOf('systemctl restart opmsg-transcrire@beta')],
-        [true, true, 1, 2, true]);
-      vrai('⛔ … et la transcription n\'est PAS retirée : l\'ouvrier ni arrêté ni désactivé, le groupe de l\'instance gardé', !J.includes('systemctl stop opmsg-transcrire@beta') && !J.includes('systemctl disable opmsg-transcrire@beta')
-        && b.existe('etc/systemd/system/teamop-msg@beta.service.d/transcription.conf'));
-      if (k.voit) vrai('   … l\'instance voit l\'ouvrier d\'avant, sans avoir été relancée (sa configuration n\'avait pas changé)', /✓ l'ouvrier d'avant tourne de nouveau/.test(r.out) && compte(J, /^systemctl restart teamop-msg@beta$/) === 0);
-      else vrai('   … et quand l\'instance ne le voit toujours pas, le script le DIT, sans faire croire que tout va bien', /⚠️ l'ouvrier d'avant ne répond pas encore/.test(r.out) && !/✓ l'ouvrier d'avant/.test(r.out));
+      if (k.modele) {
+        const lu = JSON.parse(lire(path.join(b.E, 'ouvrier-beta.json')) || '{}');
+        const r1 = J.indexOf('systemctl restart opmsg-transcrire@beta'), r2 = J.lastIndexOf('systemctl restart opmsg-transcrire@beta');
+        v('⛔ … l\'ouvrier d\'avant TOURNE, relancé sur SA configuration (l\'ancien modèle, un faisceau de 1) ; ENTRE la relance de l\'installation ratée et la sienne, systemd a relu l\'unité d\'avant et levé sa limite de démarrages',
+          [b.ouvrierVivant('beta'), String(lu.modele || '').endsWith('/' + ANCIEN), lu.faisceau, relances, J.lastIndexOf('systemctl daemon-reload') > r1 && J.lastIndexOf('systemctl daemon-reload') < r2,
+            J.lastIndexOf('systemctl reset-failed opmsg-transcrire@beta') > r1 && J.lastIndexOf('systemctl reset-failed opmsg-transcrire@beta') < r2],
+          [true, true, 1, 2, true, true]);
+        v('⛔ … et PENDANT l\'installation, la copie de la configuration de l\'ouvrier (elle porte le secret) n\'était lisible que de son compte et de son groupe (0640)', (lire(path.join(b.E, 'mode-avant-beta')) || '').split('\n').filter(Boolean), ['640']);
+      }
+      if (k.fin === 'voit') vrai('   … l\'instance voit l\'ouvrier d\'avant, sans avoir été relancée (sa configuration n\'avait pas changé)', /✓ l'ouvrier d'avant tourne de nouveau/.test(r.out) && compte(J, /^systemctl restart teamop-msg@beta$/) === 0);
+      if (k.fin === 'aveugle') vrai('   … et quand l\'instance ne le voit toujours pas, le script le DIT, sans faire croire que tout va bien', /⚠️ l'instance ne voit pas encore l'ouvrier d'avant/.test(r.out) && !/✓ l'ouvrier d'avant/.test(r.out));
+      if (k.fin === 'arretee') v('⛔ … l\'ouvrier, que rien n\'a changé, n\'est PAS relancé (une transcription en cours continue) ; l\'instance arrêtée n\'est PAS démarrée, et le script le dit',
+        [relances, compte(J, /^systemctl restart teamop-msg@beta$/), fs.existsSync(path.join(b.E, 'unite-actif')), b.ouvrierVivant('beta'), /l'instance est arrêtée \(elle n'est pas démarrée ici\)/.test(r.out)], [0, 0, false, true, true]);
     } finally { b.fin(); }
   }
 

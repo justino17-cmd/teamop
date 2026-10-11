@@ -22,7 +22,8 @@
 #       mémoire et calcul bornés, ses fichiers de travail en mémoire vive — puis le CONTRÔLE (outils/verifier-transcription.js : il refuse qui n'a pas le secret, et transcrit pour de vrai l'échantillon
 #       de whisper.cpp, un discours public de 1961) ;
 #    6. relance l'instance et attend qu'elle voie l'ouvrier (/health : transcription.ok).
-#  Une étape ratée défait TOUT (ÉCHEC = FERMÉ) : la transcription est retirée, OP MESSAGES continue comme avant — et le script dit pourquoi.
+#  Une étape ratée défait TOUT (ÉCHEC = FERMÉ), et le script dit pourquoi : à une PREMIÈRE installation, la transcription est retirée et OP MESSAGES continue
+#  comme avant ; à une RÉINSTALLATION (un modèle changé, une unité récrite), l'installation d'avant revient et continue de transcrire.
 #
 #  ⛔ CE SCRIPT NE TOUCHE JAMAIS À OP GESTION : ni ses dossiers, ni son unité, ni nginx (l'ouvrier n'écoute qu'une socket Unix, aucun port).
 #  ⛔ IL N'AFFICHE JAMAIS UN SECRET (règle du 24 septembre 2026 : Justin recolle toutes ses sorties dans la conversation). Le secret naît dans un
@@ -348,8 +349,10 @@ poser_modele "$MODELE_NOM" "$MODELE_URL" "$MODELE_EMPREINTE" || exit 1
 poser_modele "$VAD_NOM" "$VAD_URL" "$VAD_EMPREINTE" || exit 1
 
 # ÉCHEC = FERMÉ — défini AVANT d'écrire quoi que ce soit : les pièges posés après l'écriture des configurations l'appellent.
-annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : tout ce que la transcription a posé est défait.
+annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : ce que cette installation a posé est défait (l'installation d'avant revient, s'il y en avait une).
   trap - HUP INT TERM ERR
+  # le retour va jusqu'au bout : une coupure (session SSH perdue, Ctrl-C) au milieu laisserait une moitié d'installation (relecture du gardien, M1)
+  trap '' HUP INT TERM
   set +e
   echo ""
   echo "$1"
@@ -357,22 +360,44 @@ annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : tout ce que la transc
   # retirait TOUTE la transcription, alors qu'elle marchait). Les copies gardées avant l'écriture (REPRISE_AVANT) reviennent, et l'ouvrier d'avant repart.
   if [ "${REPRISE_AVANT:-non}" = "oui" ] && [ -f "$CONFIG.avant-transcription" ] && [ -f "$TR_CONF.avant" ] && [ -f "$SYSD/opmsg-transcrire@.service.avant" ]; then
     echo "── Retour en arrière : l'installation d'avant revient (sa configuration, son modèle) — la transcription continue comme avant."
-    mv "$CONFIG.avant-transcription" "$CONFIG"; chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
-    mv "$TR_CONF.avant" "$TR_CONF"; chown "root:$COMPTE" "$TR_CONF" 2>/dev/null || true; chmod 640 "$TR_CONF"
-    mv "$SYSD/opmsg-transcrire@.service.avant" "$SYSD/opmsg-transcrire@.service"; chmod 644 "$SYSD/opmsg-transcrire@.service"
-    rm -f "$TR_CONF.nouveau" "$SYSD/opmsg-transcrire@.service.nouveau"
+    # chaque fichier remis est vérifié : un `mv` raté ne doit pas laisser dire « ✓ » sur une installation à moitié remise (M2)
+    RETOUR_KO=""
+    mv "$CONFIG.avant-transcription" "$CONFIG" || RETOUR_KO="$RETOUR_KO $CONFIG"
+    chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG" 2>/dev/null || true
+    mv "$TR_CONF.avant" "$TR_CONF" || RETOUR_KO="$RETOUR_KO $TR_CONF"
+    chown "root:$COMPTE" "$TR_CONF" 2>/dev/null || true; chmod 640 "$TR_CONF" 2>/dev/null || true
+    mv "$SYSD/opmsg-transcrire@.service.avant" "$SYSD/opmsg-transcrire@.service" || RETOUR_KO="$RETOUR_KO $SYSD/opmsg-transcrire@.service"
+    chmod 644 "$SYSD/opmsg-transcrire@.service" 2>/dev/null || true
+    rm -f "$TR_CONF.nouveau" "$CONFIG.nouveau" "$SYSD/opmsg-transcrire@.service.nouveau"
+    if [ -n "$RETOUR_KO" ]; then
+      echo "   ⚠️ pas remis :$RETOUR_KO — rien d'autre n'est tenté ; les copies d'avant restent à côté (« .avant », mêmes droits). Colle toute cette sortie dans la conversation."
+      exit 1
+    fi
     systemctl daemon-reload || true
-    systemctl restart "$UNITE_TR" || true
-    # l'instance n'est relancée que si cette installation a pu lui faire charger autre chose (sa configuration ou son complément ont changé, ou on ne le sait pas)
-    [ "${CHANGE_INSTANCE:-?}" = "non" ] || systemctl restart "$UNITE" || true
-    for _ in $(seq 1 40); do [ -S "$SOCKET" ] && break; sleep 0.5; done
-    if [ -S "$SOCKET" ] && attendre_sante oui; then echo "   ✓ l'ouvrier d'avant tourne de nouveau, et l'instance le voit (/health : transcription.ok)"
-    else echo "   ⚠️ l'ouvrier d'avant ne répond pas encore. Voir :  systemctl status $UNITE_TR --no-pager | head -5"; fi
+    # l'ouvrier n'est relancé que s'il a pu charger autre chose (sa configuration ou son unité ont changé, ou on ne le sait pas) : une réinstallation à l'identique
+    # ne coupe pas une transcription en cours (M6). `reset-failed` d'abord : une unité neuve qui plantait au démarrage a pu atteindre la limite de démarrages de
+    # systemd, qui refuserait le `restart` (M5).
+    if [ "${CHANGE_OUVRIER:-?}" != "non" ] || ! actif "$UNITE_TR"; then
+      systemctl reset-failed "$UNITE_TR" >/dev/null 2>&1 || true
+      systemctl restart "$UNITE_TR" || true
+      for _ in $(seq 1 40); do [ -S "$SOCKET" ] && break; sleep 0.5; done
+    fi
+    # une instance ARRÊTÉE n'est pas démarrée ici (M3, comme `relancer_sans_transcription`) ; sinon elle n'est relancée que si cette installation a pu lui faire
+    # charger autre chose (sa configuration ou son complément ont changé, ou on ne le sait pas) — et c'est elle qui dit si elle voit l'ouvrier d'avant (M4 : pas le
+    # chemin de la socket, qu'une installation plus ancienne pouvait placer ailleurs)
+    if ! actif "$UNITE"; then
+      echo "   l'instance est arrêtée (elle n'est pas démarrée ici) : à son prochain démarrage, elle retrouvera l'ouvrier d'avant."
+    else
+      [ "${CHANGE_INSTANCE:-?}" = "non" ] || systemctl restart "$UNITE" || true
+      if attendre_sante oui; then echo "   ✓ l'ouvrier d'avant tourne de nouveau, et l'instance le voit (/health : transcription.ok)"
+      else echo "   ⚠️ l'instance ne voit pas encore l'ouvrier d'avant. Voir :  systemctl status $UNITE_TR --no-pager | head -5"; fi
+    fi
     exit 1
   fi
   rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
   echo "── Retour en arrière : la transcription est retirée, OP MESSAGES continue comme avant."
-  # Une PREMIÈRE installation (la configuration d'avant n'avait pas de transcription) : elle revient OCTET POUR OCTET. Une réinstallation : la transcription en est retirée.
+  # Une PREMIÈRE installation (la configuration d'avant n'avait pas de transcription) : elle revient OCTET POUR OCTET. Une réinstallation dont les copies manquent
+  # (une instance d'avant sans configuration d'ouvrier ou sans unité) : la transcription en est retirée.
   if [ -f "$CONFIG.avant-transcription" ] && ! avait_transcription "$CONFIG.avant-transcription"; then
     mv "$CONFIG.avant-transcription" "$CONFIG"; chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
   fi
@@ -401,7 +426,7 @@ if ! ETAT="$(THREADS="$THREADS" configurer poser)"; then
   mv "$CONFIG.avant-transcription" "$CONFIG" 2>/dev/null || true
   chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
   if [ "$REPRISE_AVANT" = "oui" ]; then mv "$TR_CONF.avant" "$TR_CONF" 2>/dev/null || true; chown "root:$COMPTE" "$TR_CONF" 2>/dev/null || true; chmod 640 "$TR_CONF" 2>/dev/null || true; fi
-  rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
+  rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant" "$TR_CONF.nouveau" "$CONFIG.nouveau"
   echo "⛔ la configuration n'a pas pu être écrite ($(printf '%s' "$ETAT" | masquer)) — rien n'est changé, le service n'est pas touché."
   exit 1
 fi
