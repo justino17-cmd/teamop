@@ -2010,6 +2010,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const o = { etat: r.etat };
     if (r.etat === 'prete' && r.texte_ch) { const t = ouvrirOuNull('transcription', 'texte_ch', aadMsg(conv, seq, auteur), r.texte_ch); if (t === null) o.illisible = true; else o.texte = t; }
     if (r.langue) o.langue = r.langue;
+    o.maj = num(r.maj);      // ⛔ l'heure du dernier changement : la page ne remplace jamais un état par un plus ANCIEN (une réponse « en cours » arrivée après le texte)
     return o;
   }
   function transcriptionTexte(conv, seq, auteur) { const v = transcriptionVue(conv, seq, auteur); return v && v.etat === 'prete' && typeof v.texte === 'string' ? v.texte : null; }
@@ -2027,9 +2028,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (r.type !== 'vocal' || !r.meta_ch) throw erreur('type');
       let mt = null; try { mt = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), r.meta_ch)); } catch (e) { mt = null; }
       if (!mt || typeof mt.piece !== 'string' || !Q('SELECT 1 AS x FROM piece WHERE id = ?').get(mt.piece)) throw erreur('introuvable');
-      const t = horloge(), l = Q('SELECT etat, essais FROM transcription WHERE conv = ? AND seq = ?').get(conv, seq);
+      const t = horloge(), l = Q('SELECT etat, essais, maj FROM transcription WHERE conv = ? AND seq = ?').get(conv, seq);
       if (l && l.etat !== 'echec') return { etat: l.etat, nouveau: false, vue: transcriptionVue(conv, seq, r.auteur) };
-      if (l && l.essais >= essaisMax) return { etat: 'echec', nouveau: false, definitif: true };
+      if (l && l.essais >= essaisMax) return { etat: 'echec', nouveau: false, definitif: true, maj: num(l.maj) };
       /* ⛔ un vocal trop long ne se transcrit pas (le calcul croît avec la durée), et rien ne s'écrit quand l'ouvrier ne peut pas le prendre (absent ou file pleine) : la ligne
          « en attente » ne naît que pour un travail qui part vraiment */
       if (Number.isFinite(mt.dur) && mt.dur > dureeMaxS) throw erreur('trop_long');
@@ -2037,7 +2038,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (l) Q(`UPDATE transcription SET etat = 'attente', texte_ch = NULL, langue = NULL, essais = essais + 1, maj = ? WHERE conv = ? AND seq = ?`).run(t, conv, seq);
       else Q(`INSERT INTO transcription(conv, seq, etat, essais, cree, maj) VALUES(?, ?, 'attente', 1, ?, ?)`).run(conv, seq, t, t);
       const a = Q('SELECT langue FROM personne WHERE id = ?').get(r.auteur);
-      return { etat: 'attente', nouveau: true, travail: { conv, seq, piece: mt.piece, dur: Number.isFinite(mt.dur) ? mt.dur : 0, langue: a && typeof a.langue === 'string' ? a.langue : null } };
+      return { etat: 'attente', nouveau: true, maj: t, travail: { conv, seq, piece: mt.piece, dur: Number.isFinite(mt.dur) ? mt.dur : 0, langue: a && typeof a.langue === 'string' ? a.langue : null } };
     });
   }
   /* Poser le résultat : seulement sur une ligne encore 'attente' d'un vocal toujours là (supprimé pendant le calcul : rien n'est écrit, `gid` 0). Le journal prévient les membres
@@ -2334,6 +2335,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (tr.illisible) d.illisible = true;
         else if (typeof tr.texte === 'string') { if (Buffer.byteLength(tr.texte, 'utf8') <= TAILLE_PORTEE) d.texte = tr.texte; else d.relis = true; }
         if (tr.langue) d.langue = tr.langue;
+        d.maj = tr.maj;
         return { gid, event: 'transcription', data: d };
       }
       case 'sondage': return { gid, event: 'sondage', data: { conv: j.conv, seq: parseInt(j.ref, 10) } };      // « relis-le » : chacun le relit avec SES droits (anonyme, résultats cachés)

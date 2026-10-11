@@ -870,7 +870,7 @@ function creerHandlers(ctx) {
     const conv = req.conv.conv.id;
     const r = stockage.transcriptionDemander({ conv, seq: s, uid: req.moi.id, essaisMax: tr.essais(), dureeMaxS: tr.dureeMaxS(), accepter: tr.actif() && tr.placeLibre() });
     if (r.nouveau && r.travail) tr.mettreEnFile(r.travail);
-    const vue = r.vue || { etat: r.etat };
+    const vue = r.vue || Object.assign({ etat: r.etat }, Number.isFinite(r.maj) ? { maj: r.maj } : {});
     if (r.definitif) vue.definitif = true;
     res.json({ transcription: vue });
   };

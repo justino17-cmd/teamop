@@ -62,9 +62,9 @@ function fauxOuvrier() {
   let svc = await T.lancerService({ urlGestion: og.url, config: { transcription: trCfg } });
   const sans = await T.lancerService({ urlGestion: og.url });
   const sources = [], dossiers = [];
-  function monter(s) {
-    const nav = T.navigateur(s.base);
-    const src = creerSourceServeur({ OPMSG, base: s.base, fetch: (u, i) => nav.fetch(u, i), EventSource: nav.EventSource, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60 });
+  function monter(s, opts) {
+    const nav = T.navigateur(s.base), o = opts || {};
+    const src = creerSourceServeur({ OPMSG, base: s.base, fetch: async (u, i) => { const r = await nav.fetch(u, i); if (o.retenir && /\/messages\/transcrire$/.test(String(u))) await o.retenir(); return r; }, EventSource: nav.EventSource, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60 });
     const evs = []; src.ecouter(e => evs.push(e)); sources.push(src);
     return { src, evs, nav,
       async entrer(login) { await src.connexion(login, MDP[login]); const d = await src.demarrer(); if (!d.connecte) throw new Error('démarrage refusé : ' + JSON.stringify(d)); return src.moi(); },
@@ -224,16 +224,39 @@ function fauxOuvrier() {
     svc = await T.lancerService({ urlGestion: og.url, config: { transcription: trCfg }, dossier, cle, port });
     vrai('⛔ le calcul perdu devient un échec, et la page qui l\'attendait l\'apprend par le flux (elle n\'affiche pas « en cours » pour toujours)',
       await att(async () => { const m = (await vues(B, conv)).find(x => x.id === mR.id); return !!(m && m.transcription && m.transcription.etat === 'echec'); }, 15000));
+    /* au redémarrage, l'ouvrier n'est « actif » qu'après la première sonde réussie : on l'attend (au geste : /health ne dit « ok » qu'après elle) */
+    await att(async () => (await sante(svc)).transcription.ok === true, 5000);
     v('et il se retente', (await B.src.transcrire(conv, mR.id)).etat, 'attente');
     await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: 'après le redémarrage', langue: 'fr' });
     v('le texte arrive', (await trouve(B, conv, x => x.id === mR.id && x.transcription && x.transcription.etat === 'prete')).transcription.texte, 'après le redémarrage');
+
+    /* ═══ 7 bis. LA RÉPONSE ARRIVE APRÈS LE TEXTE ═══════════════════════════════════════════════════════════
+       ⛔ Mesuré au navigateur le 11 octobre 2026 : la réponse à la demande (« en cours ») arrivée APRÈS le texte venu par le flux remettait « en cours » — pour toujours, jusqu'à la
+       relecture suivante. Ici on RETIENT la réponse jusqu'à ce que le texte soit arrivé : l'état ne doit pas reculer. */
+    console.log('\n── 1000 · la réponse à la demande arrive après le texte');
+    {
+      let liberer = null;
+      const B3 = monter(svc, { retenir: () => new Promise(ok => { liberer = ok; }) }); await B3.entrer('bob');
+      await vocal(A, conv, 2);
+      const mL = await trouve(B3, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > mR.seq);
+      B3.evs.length = 0;
+      const p = B3.src.transcrire(conv, mL.id);
+      await att(() => W.enAttente.length === 1 && !!liberer);
+      W.relacher(200, { ok: true, texte: 'Arrivé par le flux AVANT la réponse', langue: 'fr' });
+      vrai('le texte arrive par le flux pendant que la réponse est retenue', await att(async () => { const m = (await vues(B3, conv)).find(x => x.id === mL.id); return !!(m && m.transcription && m.transcription.etat === 'prete'); }));
+      liberer();
+      const rendu = await p;
+      await T.dort(100);
+      v('⛔ la réponse (« en cours ») arrivée APRÈS ne fait pas reculer l\'état : le texte reste, et la méthode rend ce qui est vrai', [(await vues(B3, conv)).find(x => x.id === mL.id).transcription, rendu],
+        [{ etat: 'prete', texte: 'Arrivé par le flux AVANT la réponse', langue: 'fr' }, { etat: 'prete', texte: 'Arrivé par le flux AVANT la réponse', langue: 'fr' }]);
+    }
 
     /* ═══ 8. L'OUVRIER TOMBE ═════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── 1000 · l\'ouvrier ne répond plus');
     W.panne = true;
     vrai('/health finit par dire « pas ok » (deux sondes ratées de suite)', await att(async () => (await sante(svc)).transcription.ok === false, 5000));
     await vocal(A, conv, 2);
-    const mP = await trouve(B, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > mR.seq);
+    const mP = await trouve(B, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > mR.seq + 1);
     const eP = await attrape(B.src.transcrire(conv, mP.id));
     v('une demande pendant la panne : refusée avec son attente, et rien ne s\'écrit', [eP && eP.code, (await vues(B, conv)).find(x => x.id === mP.id).transcription], ['transcription_occupee', undefined]);
     W.panne = false;

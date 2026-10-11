@@ -2677,12 +2677,17 @@
       if (t.definitif === true) o.definitif = true;
       return o;
     }
+    /* ⛔ UN ÉTAT NE RECULE PAS : la réponse à la demande (« en cours ») peut arriver APRÈS le texte, venu par le flux (un réseau lent, un vocal court) — elle remettait alors « en cours »
+       pour toujours (mesuré au navigateur, 11 octobre 2026). Chaque état porte l'heure de son dernier changement (`maj`) : le plus récent gagne, un état sans heure (un service d'avant) passe. */
+    const trNeuve = (actuel, neuve) => !actuel || !Number.isFinite(actuel.maj) || !Number.isFinite(neuve && neuve.maj) || neuve.maj >= actuel.maj;
     async function transcrire(id, mid) {
       const { c, m } = trouver(id, mid);
       if (!Number.isInteger(m.seq)) throw erreurLocale('invalide');
       const r = await A.transcrire(id, m.seq);
       const t = vueTranscription(r && r.transcription);
       if (!t) throw erreurLocale('invalide');
+      const ici = c.messages.find(x => x.seq === m.seq), actuel = ici && ici.transcription;
+      if (!trNeuve(actuel, r.transcription)) return vueTranscription(actuel) || t;
       ranger(c, { seq: m.seq, transcription: Object.assign({}, r.transcription) });
       emettre({ type: 'conversation', id });
       return t;
@@ -2936,7 +2941,9 @@
       transcription: (d) => {
         const c = convs.get(d.conv); if (!c || !c.charge || !Number.isInteger(d.seq)) return;
         if (d.relis) { A.messages(d.conv, { apres_seq: d.seq - 1, limite: 1 }).then(r => { r.messages.forEach(m => ranger(c, m)); emettre({ type: 'conversation', id: d.conv }); }, () => {}); return; }
-        ranger(c, { seq: d.seq, transcription: { etat: d.etat, texte: d.texte, langue: d.langue, illisible: d.illisible === true } });
+        const ici = c.messages.find(x => x.seq === d.seq);
+        if (ici && !trNeuve(ici.transcription, d)) return;
+        ranger(c, { seq: d.seq, transcription: { etat: d.etat, texte: d.texte, langue: d.langue, illisible: d.illisible === true, maj: d.maj } });
         emettre({ type: 'conversation', id: d.conv });
       },
       /* un sondage a changé (un vote, un choix, la clôture) : « relis-le » — chacun avec SES droits ; une conversation qu'on n'a pas ouverte le relira en s'ouvrant */
