@@ -49,25 +49,32 @@ désormais le numéro de la case du jour, et vérifie que la case porte la réun
 
 ✅ **Installé sur la bêta le 11 octobre au soir** (#126 d'abord : l'installeur attendait mal la socket de l'ouvrier — `Type=simple`, « actif » n'est pas « prêt » — et ses
 messages d'échec renvoyaient au journal, que test-930 interdit). Le contrôle de l'installation a transcrit l'échantillon en 8,3 s ; `/health` dit `transcription.ok`.
-⏳ **Justin, au premier essai : « des mots mal compris »** — l'étude de la précision est en cours (modèle « small » glouton contre medium / large-v3-turbo, français forcé,
-recherche en faisceau, mesurés sur de vrais enregistrements français à 2 cœurs) ; le changement passera par l'installeur (un nouveau modèle téléchargé, épinglé).
+✅ **Justin, au premier essai : « des mots mal compris »** — mesuré le 11 octobre au soir sur 36 vocaux français (appels téléphoniques et parole lue), à 2 cœurs, sur une
+machine qui transcrit l'échantillon comme le VPS (8,3 s) : « small » glouton, **19,1 %** de mots faux ; **« large-v3-turbo » q8_0 en faisceau de 5, 11,0 %** — 1 min de
+vocal en ~35 s au lieu de ~25 s, ~1,3 Go de mémoire pendant le calcul au lieu de ~0,45. Les modèles q5_0 sont 3 à 4 fois plus lents sur ce processeur ; un prompt
+français n'apporte rien ; la détection de parole est nécessaire (sans elle, un silence devient « Sous-titrage Société Radio-Canada »). Le français était déjà forcé (la
+langue du profil). 🟡 **Écrit, éprouvé, à installer** (sa propre demande de fusion, après #127) : l'installeur pose le nouveau modèle (empreinte épinglée), un faisceau de
+5, l'unité plafonnée à 1 800 Mo (`OOMPolicy=continue` : le plafond tue le plus gros processus, presque toujours le calcul, pas l'ouvrier — le journal de l'ouvrier dit
+`echec:whisper:SIGKILL`) ; une
+réinstallation qui échoue remet celle d'avant (relecture du gardien : avant, elle retirait toute la transcription). ⏳ Justin relance
+`bash /root/install-transcription.sh beta` (874 Mo téléchargés), puis essaie avec un NOUVEAU vocal : un texte déjà transcrit avec « small » le reste.
 
 La demande de Justin : « Possible de faire une transcription écrite. Comme sur Instagram. » Ses trois réponses : le calcul **sur notre serveur** (aucune voix ne sort,
 pas de sous-traitant), **ouvert à tous en bêta**, **à la demande**. Un vocal se transcrit UNE fois ; le texte est scellé avec le message, se lit comme lui (qui ne voit
 pas le vocal ne voit pas son texte), part avec lui, se retrouve dans « Retrouver » et dans l'export.
 
-🟡 **Écrit, éprouvé, pas encore installé** (sa propre demande de fusion, après Perso/Pro #124) — l'ouvrier (`server-msg/transcripteur.js`, whisper.cpp 1.9.5 au commit
-épinglé, modèle « small », détection de parole Silero) dans SA unité systemd, sur une SOCKET UNIX, sans aucun réseau ; le service (`transcription.js`) : une file, une
+✅ **Écrit, éprouvé, installé** (fusionné après Perso/Pro #124, installé le 11 octobre au soir) — l'ouvrier (`server-msg/transcripteur.js`, whisper.cpp 1.9.5 au commit
+épinglé, modèle « small » puis « large-v3-turbo » (ci-dessus), détection de parole Silero) dans SA unité systemd, sur une SOCKET UNIX, sans aucun réseau ; le service (`transcription.js`) : une file, une
 sonde, deux vocaux en file par personne, 15 min de vocal par personne et par heure, 30 calculs par heure (relire ne compte pas) ; l'installeur
 `install-transcription.sh` (ÉCHEC = FERMÉ, compilation sous `nobody`, recompile si le processeur change) ; la page : le lien sous chaque vocal (32 px, 44 sous le
 doigt), « Transcription en cours… », « Voir plus » au-delà de 600 signes, le menu (« Voir », « Copier la transcription »), « Retrouver » sur un vocal ouvre sa
 transcription. Deux relectures adverses (gardien : 6 importants, 7 mineurs ; relecteur : 6 importants, 9 mineurs), toutes corrigées sauf M5 (accepté : `/health`
 dit des compteurs, comme le reste).
-Preuves : `test-1000` (64 ✓, le vrai service et la vraie source), `test-1001` (85 ✓, le vrai ouvrier, sur un port ET une socket), `test-1002` (104 ✓, l'installeur dans
-un bac à sable), `test-857` (T01–T23), `sonde-opmessages-transcription.js` (40 ✓ : téléphone au doigt, bureau au clavier, presse-papiers, Retrouver).
+Preuves : `test-1000` (68 ✓, le vrai service et la vraie source), `test-1001` (88 ✓, le vrai ouvrier, sur un port ET une socket, whisper tué par SIGKILL), `test-1002`
+(140 ✓, l'installeur dans un bac à sable, dont quatre réinstallations ratées qui remettent celle d'avant ; 18 mutations du retour en arrière, toutes attrapées), `test-857` (T01–T23), `sonde-opmessages-transcription.js` (40 ✓ : téléphone au doigt, bureau au clavier, presse-papiers, Retrouver).
 
-⏳ **Ce qui attend Justin**, dans cet ordre : la fusion (la CI déploie la bêta) ; puis sur le VPS `nproc && free -m && df -h /opt` (colle la sortie) ; puis
-`bash install-transcription.sh beta` (design/opmessages/INSTALLER-LE-SERVEUR.md § 10 nonies — rien à saisir, aucun secret affiché).
+✅ **Fait par Justin le 11 octobre au soir** : la fusion, puis sur le VPS `nproc && free -m && df -h /opt`, puis `bash install-transcription.sh beta`
+(design/opmessages/INSTALLER-LE-SERVEUR.md § 10 nonies — rien à saisir, aucun secret affiché). Le nouveau modèle se pose de la même façon (voir plus haut).
 
 ⚠️ **Dettes connues, aucune ne bloque la bêta :**
 - **Le texte légal** (la page de confidentialité d'OP MESSAGES) ne dit pas encore la transcription : une donnée DÉRIVÉE de la voix, demandée par n'importe quel membre
@@ -75,6 +82,10 @@ un bac à sable), `test-857` (T01–T23), `sonde-opmessages-transcription.js` (4
   valider par un juriste, avant la version publique.
 - **Avant la version publique** : décider si la transcription reste ouverte à tous ou passe côté Pro (le calcul coûte ; le budget par personne borne, il ne facture pas).
 - **Un transfert ne recopie pas la transcription** : le vocal transféré se retranscrit (une fois) dans sa nouvelle conversation. Voulu — elle appartient à sa conversation.
+- **La mémoire d'un vocal de 5 minutes n'est pas mesurée** (2 min au plus, ~1,3 Go) : après un long vocal sur la bêta, `systemctl show opmsg-transcrire@beta -p MemoryPeak
+  -p OOMPolicy` (aucun secret). S'il approche 1 800 Mo, baisser le faisceau ou relever le plafond — avant qu'un vocal long échoue chez quelqu'un.
+- **Avant la production** : deux ouvriers (bêta et production) peuvent calculer EN MÊME TEMPS sur le même VPS (2 × ~1,3 Go) ; les seuils de l'installeur (2 800 Mo au
+  total, 1 600 disponibles) ne regardent qu'un ouvrier. À mesurer et décider avant d'installer la transcription en production (une file commune, ou un seul ouvrier).
 - **La langue** est celle du profil de l'AUTEUR (« fr » pour presque tout le monde) : un vocal en anglais d'un profil français est transcrit en français. `auto`
   (la détection de whisper) se trompe sur les vocaux courts — à reconsidérer avec de vrais vocaux.
 - **Le filtre des appels système** de l'unité n'a pas pu être éprouvé ici (pas de systemd dans le conteneur) : le contrôle de l'installation transcrit SOUS lui ; s'il

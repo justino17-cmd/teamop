@@ -49,6 +49,7 @@ base=""; prev=""; for a in "$@"; do [ "$prev" = "-of" ] && base="$a"; prev="$a";
 mode=$(cat "${ctl}/mode" 2>/dev/null)
 case "$mode" in
   ECHEC) exit 1 ;;
+  TUE) kill -9 $$ ;;
   LENT) sleep 300 & echo $! > "${ctl}/enfant.pid"; sleep 300 ;;
   JSON-KO) echo "pas du json" > "$base.json"; exit 0 ;;
 esac
@@ -98,6 +99,8 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
     v('⛔ un vrai vocal d\'un mot reste : « Merci ! », « Merci à tous », « Thank you. », « You »', ['Merci !', 'Merci à tous', 'Thank you.', 'You', 'Merci.'].map(nettoyerTexte), ['Merci !', 'Merci à tous', 'Thank you.', 'You', 'Merci.']);
     v('le même mot au milieu d\'un vrai message reste', nettoyerTexte('Merci d\'avoir regardé le devis, je passe demain'), 'Merci d\'avoir regardé le devis, je passe demain');
     v('les annotations et les caractères de contrôle partent, les espaces se resserrent', nettoyerTexte('  Bonjour\u0007 [silence]  à   demain  '), 'Bonjour à demain');
+    v('« >> » (la marque d\'un changement de locuteur recopiée des sous-titres) part, en tête comme au milieu ; une flèche dans un mot reste',
+      [nettoyerTexte('>> Bonjour, je viens de recevoir une facture'), nettoyerTexte('Oui. >> Non, demain.'), nettoyerTexte('a>>b reste')], ['Bonjour, je viens de recevoir une facture', 'Oui. Non, demain.', 'a>>b reste']);
 
     /* ═══ 3. L'OUVRIER, VRAIMENT LANCÉ ═══════════════════════════════════════════════════════════════════════ */
     console.log('\n── 1001 · l\'ouvrier sur la boucle locale (faux ffmpeg, faux whisper-cli)');
@@ -159,6 +162,12 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
     v('⛔ un corps plus lourd que le plafond : 413, annoncé ou non', [(await requete(port, 'POST', '/transcrire', { corps: Buffer.alloc(70000, 65), entetes: AUTH })).statut], [413]);
     viderCtl(); ecrireCtl('mode', 'ECHEC');
     v('whisper qui échoue : 500, et l\'étape est nommée', (await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=1'), entetes: AUTH })).json, { error: 'echec', etape: 'whisper' });
+    /* ⛔ (relecture du gardien, 11 octobre 2026) : le plafond de mémoire de l'unité (MemoryMax) tue whisper-cli par SIGKILL — le JOURNAL le dit, sinon rien ne distinguait un
+       débordement de mémoire d'un plantage ; la réponse au service ne change pas (il n'a rien à en faire) */
+    v('… et son journal dit « echec:whisper », sans signal', JSON.parse(journalOuvrier[journalOuvrier.length - 1] || '{}').issue, 'echec:whisper');
+    viderCtl(); ecrireCtl('mode', 'TUE');
+    const rTue = await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=1'), entetes: AUTH });
+    v('⛔ whisper TUÉ par un signal (le plafond de mémoire) : la même réponse au service, et le journal nomme le signal', [rTue.json, JSON.parse(journalOuvrier[journalOuvrier.length - 1] || '{}').issue], [{ error: 'echec', etape: 'whisper' }, 'echec:whisper:SIGKILL']);
     viderCtl(); ecrireCtl('mode', 'JSON-KO');
     v('une sortie illisible : 500 « sortie »', (await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=1'), entetes: AUTH })).json, { error: 'echec', etape: 'sortie' });
 

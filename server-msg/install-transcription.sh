@@ -22,7 +22,8 @@
 #       mémoire et calcul bornés, ses fichiers de travail en mémoire vive — puis le CONTRÔLE (outils/verifier-transcription.js : il refuse qui n'a pas le secret, et transcrit pour de vrai l'échantillon
 #       de whisper.cpp, un discours public de 1961) ;
 #    6. relance l'instance et attend qu'elle voie l'ouvrier (/health : transcription.ok).
-#  Une étape ratée défait TOUT (ÉCHEC = FERMÉ) : la transcription est retirée, OP MESSAGES continue comme avant — et le script dit pourquoi.
+#  Une étape ratée défait TOUT (ÉCHEC = FERMÉ), et le script dit pourquoi : à une PREMIÈRE installation, la transcription est retirée et OP MESSAGES continue
+#  comme avant ; à une RÉINSTALLATION (un modèle changé, une unité récrite), l'installation d'avant revient et continue de transcrire.
 #
 #  ⛔ CE SCRIPT NE TOUCHE JAMAIS À OP GESTION : ni ses dossiers, ni son unité, ni nginx (l'ouvrier n'écoute qu'une socket Unix, aucun port).
 #  ⛔ IL N'AFFICHE JAMAIS UN SECRET (règle du 24 septembre 2026 : Justin recolle toutes ses sorties dans la conversation). Le secret naît dans un
@@ -54,22 +55,30 @@ esac
 case "$GESTE" in installer|retirer) ;; *) echo "usage : bash install-transcription.sh <beta|prod> [retirer]"; exit 2 ;; esac
 
 # ── whisper.cpp et ses modèles : la version, le commit, les empreintes ───────────────────────────────────────────────────────────────────────────
-# ⛔ Relevés le 11 octobre 2026 : le commit de la publication v1.9.5, compilé dans le conteneur de développement, et les deux modèles retéléchargés, leur
-# empreinte recalculée, puis ÉPROUVÉS sur de vrais vocaux en français (7 et 15 secondes de parole : ~9 et ~10 s de calcul sur 2 cœurs, ~470 Mo de mémoire).
-# Changer de version ou de modèle, c'est changer ces lignes ET remesurer (temps, mémoire, qualité du français) avant de rien promettre.
+# ⛔ Relevés le 11 octobre 2026 : le commit de la publication v1.9.5, compilé dans le conteneur de développement, et les modèles retéléchargés, leur empreinte
+# recalculée. Le MODÈLE a été CHOISI le même soir, sur une mesure (Justin, au premier essai : « des mots mal compris ») : 36 vocaux français (des appels
+# téléphoniques, PolyAI/minds14, et de la parole lue, google/fleurs), sur 2 cœurs d'une machine qui transcrit jfk.wav en 8,3 s comme le VPS :
+#   · small-q5_1, glouton (le premier choix)       : 19,1 % de mots faux · 1 min de vocal en ~25 s ·   454 Mo ;
+#   · medium-q5_0, faisceau 5                       : 12,4 %              ·                  ~85 s · 1 218 Mo ;
+#   · large-v3-turbo-q5_0, faisceau 5               : 11,2 %              ·                 ~100 s ·   904 Mo (le q5 est LENT sur ces processeurs) ;
+#   · large-v3-turbo-q8_0, faisceau 5 (CELUI-CI)    : 11,0 %              ·                  ~35 s · 1 280 Mo (2 min : ~65 s ; ~12 s fixes d'encodeur).
+# Le français était déjà forcé (la langue du profil de l'auteur) ; un prompt initial n'apportait rien ; sans la détection de parole, le silence devenait
+# « Sous-titrage Société Radio-Canada » — elle reste. Changer de version ou de modèle, c'est changer ces lignes ET remesurer (temps, mémoire, qualité du
+# français) avant de rien promettre.
 WHISPER_VERSION="1.9.5"
 WHISPER_COMMIT="d1be6fde11ac6e0407606b4e42fe72d34add8037"
 WHISPER_DEPOT="https://github.com/ggml-org/whisper.cpp"
-MODELE_NOM="ggml-small-q5_1.bin"
-MODELE_EMPREINTE="ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"
+MODELE_NOM="ggml-large-v3-turbo-q8_0.bin"
+MODELE_EMPREINTE="317eb69c11673c9de1e1f0d459b253999804ec71ac4c23c17ecf5fbe24e259a1"
+FAISCEAU=5          # la recherche en faisceau (5 hypothèses) : sur un vocal d'1 minute, le glouton du même modèle sautait une phrase entière
 MODELE_URL="https://huggingface.co/ggerganov/whisper.cpp/resolve/main/$MODELE_NOM"
 VAD_NOM="ggml-silero-v6.2.0.bin"
 VAD_EMPREINTE="2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987"
 VAD_URL="https://huggingface.co/ggml-org/whisper-vad/resolve/main/$VAD_NOM"
-# ⛔ La machine porte aussi OP GESTION : en dessous, on ne pose rien. La mémoire de l'unité est plafonnée à 1 200 Mo (le modèle en prend ~470 en calcul).
-MEMOIRE_TOTALE_MIN_MO=1800
-MEMOIRE_LIBRE_MIN_MO=800
-DISQUE_LIBRE_MIN_MO=1500
+# ⛔ La machine porte aussi OP GESTION : en dessous, on ne pose rien. La mémoire de l'unité est plafonnée à 1 800 Mo (le modèle en prend ~1 300 en calcul).
+MEMOIRE_TOTALE_MIN_MO=2800
+MEMOIRE_LIBRE_MIN_MO=1600
+DISQUE_LIBRE_MIN_MO=2500
 
 R="${OPMSG_RACINE:-}"
 # (les bancs seuls — une racine factice — posent la socket dans leur bac à sable : sur le VPS, OPMSG_RACINE est vide et cette ligne ne fait rien)
@@ -113,7 +122,7 @@ PORT_SERVICE="$(sed -n 's/^PORT=//p' "$ETC/$INSTANCE.env" 2>/dev/null || true)"
 # (1) les deux configurations : poser ou retirer `transcription` dans celle de l'instance, et écrire celle de l'ouvrier. Un seul programme Node, qui ne
 #     reçoit que des chemins, des identifiants de compte et des nombres : le secret n'en sort jamais. Ce qu'il imprime : des mots d'état.
 configurer() {   # $1 = poser | retirer → imprime l'état ; sort ≠ 0 si une configuration n'a pas pu être écrite
-  MODE="$1" CONFIG_INSTANCE="$CONFIG" TR_CONF="$TR_CONF" SOCKET="$SOCKET" THREADS="${THREADS:-1}" \
+  MODE="$1" CONFIG_INSTANCE="$CONFIG" TR_CONF="$TR_CONF" SOCKET="$SOCKET" THREADS="${THREADS:-1}" FAISCEAU="$FAISCEAU" \
   PROPRIO="$(id -u opmsg 2>/dev/null || true):$(id -g opmsg 2>/dev/null || true)" GROUPE_OUVRIER="$(getent group "$COMPTE" 2>/dev/null | cut -d: -f3 || true)" \
   WHISPER="$W_DIR_REEL/whisper-cli" MODELE="$M_DIR_REEL/$MODELE_NOM" VAD="$M_DIR_REEL/$VAD_NOM" FFMPEG="$FFMPEG_REEL" \
   node - <<'PROGRAMME'
@@ -158,7 +167,7 @@ try {
      vingt minutes) ; 300, le défaut du service (`TRANSCRIPTION_DEFAUT`, config.js — test-1002 compare les deux) */
   const dureeMaxS = Number.isInteger(garde.dureeMaxS) ? garde.dureeMaxS : 300;
   const ouvrierTxt = JSON.stringify({ secret: secret, socket: e.SOCKET, whisper: e.WHISPER, modele: e.MODELE, vad: e.VAD, ffmpeg: e.FFMPEG,
-    threads: Math.max(1, Math.min(8, Number(e.THREADS) || 1)), faisceau: 1, dureeMaxS: dureeMaxS }, null, 2) + "\n";
+    threads: Math.max(1, Math.min(8, Number(e.THREADS) || 1)), faisceau: Math.max(1, Math.min(8, Number(e.FAISCEAU) || 1)), dureeMaxS: dureeMaxS }, null, 2) + "\n";
   let existant = null;
   try { existant = fs.readFileSync(e.TR_CONF, "utf8"); } catch (x) { existant = null; }
   const changeOuvrier = existant !== ouvrierTxt;
@@ -214,7 +223,7 @@ tout_retirer() {
   fi
   systemctl stop "$UNITE_TR" >/dev/null 2>&1 || true
   systemctl disable "$UNITE_TR" >/dev/null 2>&1 || true
-  rm -f "$TR_CONF" "$TR_CONF.nouveau"
+  rm -f "$TR_CONF" "$TR_CONF.nouveau" "$TR_CONF.avant"
 }
 
 if [ "$GESTE" = "retirer" ]; then
@@ -241,7 +250,7 @@ MEM_LIBRE="$(awk '/^MemAvailable:/ { print int($2 / 1024) }' "$MEMINFO" 2>/dev/n
 [[ "$MEM_TOTALE" =~ ^[0-9]+$ ]] || MEM_TOTALE=0
 [[ "$MEM_LIBRE" =~ ^[0-9]+$ ]] || MEM_LIBRE=0
 if [ "$MEM_TOTALE" -lt "$MEMOIRE_TOTALE_MIN_MO" ]; then
-  echo "✗ la machine a $MEM_TOTALE Mo de mémoire : il en faut au moins $MEMOIRE_TOTALE_MIN_MO (elle porte aussi OP GESTION, et le modèle en prend ~470 en calcul) — rien n'est posé"
+  echo "✗ la machine a $MEM_TOTALE Mo de mémoire : il en faut au moins $MEMOIRE_TOTALE_MIN_MO (elle porte aussi OP GESTION, et le modèle en prend ~1 300 en calcul) — rien n'est posé"
   exit 1
 fi
 if [ "$MEM_LIBRE" -lt "$MEMOIRE_LIBRE_MIN_MO" ]; then
@@ -340,13 +349,55 @@ poser_modele "$MODELE_NOM" "$MODELE_URL" "$MODELE_EMPREINTE" || exit 1
 poser_modele "$VAD_NOM" "$VAD_URL" "$VAD_EMPREINTE" || exit 1
 
 # ÉCHEC = FERMÉ — défini AVANT d'écrire quoi que ce soit : les pièges posés après l'écriture des configurations l'appellent.
-annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : tout ce que la transcription a posé est défait.
+annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : ce que cette installation a posé est défait (l'installation d'avant revient, s'il y en avait une).
   trap - HUP INT TERM ERR
+  # le retour va jusqu'au bout : une coupure (session SSH perdue, Ctrl-C) au milieu laisserait une moitié d'installation (relecture du gardien, M1)
+  trap '' HUP INT TERM
   set +e
   echo ""
   echo "$1"
+  # ⛔ UNE RÉINSTALLATION QUI ÉCHOUE REMET CELLE D'AVANT (relecture du gardien, 11 octobre 2026 : passer de « small » à « large-v3-turbo » puis rater le contrôle
+  # retirait TOUTE la transcription, alors qu'elle marchait). Les copies gardées avant l'écriture (REPRISE_AVANT) reviennent, et l'ouvrier d'avant repart.
+  if [ "${REPRISE_AVANT:-non}" = "oui" ] && [ -f "$CONFIG.avant-transcription" ] && [ -f "$TR_CONF.avant" ] && [ -f "$SYSD/opmsg-transcrire@.service.avant" ]; then
+    echo "── Retour en arrière : l'installation d'avant revient (sa configuration, son modèle) — la transcription continue comme avant."
+    # chaque fichier remis est vérifié : un `mv` raté ne doit pas laisser dire « ✓ » sur une installation à moitié remise (M2)
+    RETOUR_KO=""
+    mv "$CONFIG.avant-transcription" "$CONFIG" || RETOUR_KO="$RETOUR_KO $CONFIG"
+    chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG" 2>/dev/null || true
+    mv "$TR_CONF.avant" "$TR_CONF" || RETOUR_KO="$RETOUR_KO $TR_CONF"
+    chown "root:$COMPTE" "$TR_CONF" 2>/dev/null || true; chmod 640 "$TR_CONF" 2>/dev/null || true
+    mv "$SYSD/opmsg-transcrire@.service.avant" "$SYSD/opmsg-transcrire@.service" || RETOUR_KO="$RETOUR_KO $SYSD/opmsg-transcrire@.service"
+    chmod 644 "$SYSD/opmsg-transcrire@.service" 2>/dev/null || true
+    rm -f "$TR_CONF.nouveau" "$CONFIG.nouveau" "$SYSD/opmsg-transcrire@.service.nouveau"
+    if [ -n "$RETOUR_KO" ]; then
+      echo "   ⚠️ pas remis :$RETOUR_KO — rien d'autre n'est tenté ; les copies d'avant restent à côté (« .avant », mêmes droits). Colle toute cette sortie dans la conversation."
+      exit 1
+    fi
+    systemctl daemon-reload || true
+    # l'ouvrier n'est relancé que s'il a pu charger autre chose (sa configuration ou son unité ont changé, ou on ne le sait pas) : une réinstallation à l'identique
+    # ne coupe pas une transcription en cours (M6). `reset-failed` d'abord : une unité neuve qui plantait au démarrage a pu atteindre la limite de démarrages de
+    # systemd, qui refuserait le `restart` (M5).
+    if [ "${CHANGE_OUVRIER:-?}" != "non" ] || ! actif "$UNITE_TR"; then
+      systemctl reset-failed "$UNITE_TR" >/dev/null 2>&1 || true
+      systemctl restart "$UNITE_TR" || true
+      for _ in $(seq 1 40); do [ -S "$SOCKET" ] && break; sleep 0.5; done
+    fi
+    # une instance ARRÊTÉE n'est pas démarrée ici (M3, comme `relancer_sans_transcription`) ; sinon elle n'est relancée que si cette installation a pu lui faire
+    # charger autre chose (sa configuration ou son complément ont changé, ou on ne le sait pas) — et c'est elle qui dit si elle voit l'ouvrier d'avant (M4 : pas le
+    # chemin de la socket, qu'une installation plus ancienne pouvait placer ailleurs)
+    if ! actif "$UNITE"; then
+      echo "   l'instance est arrêtée (elle n'est pas démarrée ici) : à son prochain démarrage, elle retrouvera l'ouvrier d'avant."
+    else
+      [ "${CHANGE_INSTANCE:-?}" = "non" ] || systemctl restart "$UNITE" || true
+      if attendre_sante oui; then echo "   ✓ l'ouvrier d'avant tourne de nouveau, et l'instance le voit (/health : transcription.ok)"
+      else echo "   ⚠️ l'instance ne voit pas encore l'ouvrier d'avant. Voir :  systemctl status $UNITE_TR --no-pager | head -5"; fi
+    fi
+    exit 1
+  fi
+  rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
   echo "── Retour en arrière : la transcription est retirée, OP MESSAGES continue comme avant."
-  # Une PREMIÈRE installation (la configuration d'avant n'avait pas de transcription) : elle revient OCTET POUR OCTET. Une réinstallation : la transcription en est retirée.
+  # Une PREMIÈRE installation (la configuration d'avant n'avait pas de transcription) : elle revient OCTET POUR OCTET. Une réinstallation dont les copies manquent
+  # (une instance d'avant sans configuration d'ouvrier ou sans unité) : la transcription en est retirée.
   if [ -f "$CONFIG.avant-transcription" ] && ! avait_transcription "$CONFIG.avant-transcription"; then
     mv "$CONFIG.avant-transcription" "$CONFIG"; chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
   fi
@@ -362,9 +413,20 @@ if ! id -u "$COMPTE" >/dev/null 2>&1; then
 fi
 [ ! -f "$CONFIG.avant-transcription" ] || rm -f "$CONFIG.avant-transcription"
 cp -p "$CONFIG" "$CONFIG.avant-transcription"; chmod 600 "$CONFIG.avant-transcription"
+# une instance qui TRANSCRIVAIT déjà (sa configuration le dit, l'ouvrier a la sienne, l'unité existe) : leurs copies sont gardées le temps de l'installation,
+# pour qu'un échec remette celle d'avant (`annuler`) — elles portent le secret partagé : mêmes droits que l'original, effacées à la fin, réussite comme échec
+REPRISE_AVANT=non
+rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
+if avait_transcription "$CONFIG" && [ -f "$TR_CONF" ] && [ -f "$SYSD/opmsg-transcrire@.service" ]; then
+  cp -p "$TR_CONF" "$TR_CONF.avant"; chmod 640 "$TR_CONF.avant"
+  cp -p "$SYSD/opmsg-transcrire@.service" "$SYSD/opmsg-transcrire@.service.avant"
+  REPRISE_AVANT=oui
+fi
 if ! ETAT="$(THREADS="$THREADS" configurer poser)"; then
   mv "$CONFIG.avant-transcription" "$CONFIG" 2>/dev/null || true
   chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
+  if [ "$REPRISE_AVANT" = "oui" ]; then mv "$TR_CONF.avant" "$TR_CONF" 2>/dev/null || true; chown "root:$COMPTE" "$TR_CONF" 2>/dev/null || true; chmod 640 "$TR_CONF" 2>/dev/null || true; fi
+  rm -f "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant" "$TR_CONF.nouveau" "$CONFIG.nouveau"
   echo "⛔ la configuration n'a pas pu être écrite ($(printf '%s' "$ETAT" | masquer)) — rien n'est changé, le service n'est pas touché."
   exit 1
 fi
@@ -391,8 +453,9 @@ mkdir -p "$SYSD"
 #  · SystemCallFilter : les appels d'un service ordinaire, sans les privilégiés — la couche principale contre une faille d'un décodeur sur un fichier hostile
 #    (un appel refusé rend EPERM ; le CONTRÔLE ci-dessous transcrit pour de vrai sous ce filtre, et un filtre trop strict défait l'installation) ;
 #  · ProtectProc=invisible : les processus d'OP GESTION et du service lui sont cachés ;
-#  · MemoryMax=1200M sans échange, OOMScoreAdjust=500, CPUQuota=200 %, CPUWeight/IOWeight bas, Nice=10 : si une transcription s'emballe, c'est elle qui ploie
-#    (et c'est elle que la mémoire épuisée tue en premier), pas OP GESTION ;
+#  · MemoryMax=1800M sans échange, OOMScoreAdjust=500, CPUQuota=200 %, CPUWeight/IOWeight bas, Nice=10 : si une transcription s'emballe, c'est elle qui ploie
+#    (et c'est elle que la mémoire épuisée tue en premier), pas OP GESTION ; OOMPolicy=continue : le plafond tue le CALCUL (whisper-cli, le plus gros),
+#    l'ouvrier reste — seul ce vocal échoue (« Réessayer »), la file n'échoue pas en cascade pendant un redémarrage (relecture du gardien, 11 octobre 2026) ;
 #  · les données des deux instances sont INACCESSIBLES (en plus de leurs droits) ; pas de MemoryDenyWriteExecute : V8 compile à chaud, il en mourrait.
 printf '%s\n' "# Posé par server-msg/install-transcription.sh — réécrit à chaque installation, ne pas éditer à la main." \
   '[Unit]' 'Description=OP MESSAGES — transcription des vocaux (instance %i)' '' \
@@ -408,8 +471,8 @@ printf '%s\n' "# Posé par server-msg/install-transcription.sh — réécrit à 
   'IPAddressDeny=any' \
   'TemporaryFileSystem=/etc/opmsg:ro' 'BindReadOnlyPaths=/etc/opmsg/transcrire-%i.json' \
   'InaccessiblePaths=-/opt/opmsg/beta/data -/opt/opmsg/prod/data' \
-  'LimitCORE=0' 'OOMScoreAdjust=500' \
-  'MemoryMax=1200M' 'MemorySwapMax=0' 'CPUQuota=200%' 'CPUWeight=10' 'IOWeight=10' 'Nice=10' 'TasksMax=32' 'LimitNOFILE=256' '' \
+  'LimitCORE=0' 'OOMScoreAdjust=500' 'OOMPolicy=continue' \
+  'MemoryMax=1800M' 'MemorySwapMax=0' 'CPUQuota=200%' 'CPUWeight=10' 'IOWeight=10' 'Nice=10' 'TasksMax=32' 'LimitNOFILE=256' '' \
   '[Install]' 'WantedBy=multi-user.target' > "$SYSD/opmsg-transcrire@.service.nouveau"
 if [ -f "$SYSD/opmsg-transcrire@.service" ] && cmp -s "$SYSD/opmsg-transcrire@.service.nouveau" "$SYSD/opmsg-transcrire@.service"; then
   rm -f "$SYSD/opmsg-transcrire@.service.nouveau"
@@ -457,7 +520,7 @@ fi
 attendre_sante oui || annuler "⛔ l'instance a redémarré mais ne voit pas l'ouvrier (/health : transcription.ok). Voir :  systemctl status $UNITE --no-pager | head -5"
 echo "   ✓ l'instance voit l'ouvrier (/health : transcription.ok)"
 
-rm -f "$CONFIG.avant-transcription"
+rm -f "$CONFIG.avant-transcription" "$TR_CONF.avant" "$SYSD/opmsg-transcrire@.service.avant"
 echo ""
 echo "✓ La transcription des vocaux est en place pour $INSTANCE : sous chaque vocal, « Voir la transcription » (recharger la page)."
 echo "   Un vocal se transcrit une fois, sur cette machine, et le texte est partagé par tous ceux qui peuvent l'écouter. Aucune voix ne sort du serveur."

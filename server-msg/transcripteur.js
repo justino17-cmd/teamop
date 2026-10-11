@@ -55,8 +55,11 @@ const PHRASES_FANTOMES = [
 ];
 const ANNOTATIONS = /\[(?:blank_audio|silence|musique|music|bruit|applaudissements|rires|inaudible|son|sound)\]|\((?:musique|music|silence|rires|applaudissements|inaudible)\)|[♪♫]+/gi;
 const norme = (t) => t.normalize('NFC').toLowerCase().replace(/[’]/g, '\'').replace(/[\s.!?…,;:«»"-]+$/g, '').replace(/^[\s.!?…,;:«»"-]+/g, '').replace(/\s+/g, ' ').trim();
+/* « >> » : la marque d'un changement de locuteur que whisper recopie des sous-titres (mesuré le 11 octobre 2026 : en tête de 4 vocaux sur 38 avec « small ») — ce n'est pas
+   un mot qu'on a dit */
+const LOCUTEUR = /(^|\s)>>+(?=\s|$)/g;
 function nettoyerTexte(brut) {
-  const t = String(brut || '').replace(ANNOTATIONS, ' ').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
+  const t = String(brut || '').replace(ANNOTATIONS, ' ').replace(LOCUTEUR, ' ').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, '').replace(/\s+/g, ' ').trim();
   if (!t) return '';
   const n = norme(t);
   if (!n || PHRASES_FANTOMES.some(p => norme(p) === n)) return '';
@@ -82,8 +85,8 @@ function lireConfig(chemin) {
     whisper: c.whisper, modele: c.modele, ffmpeg: c.ffmpeg, vad: c.vad || null,
     threads: ent('threads', 2, 1, 32), faisceau: ent('faisceau', 1, 1, 8),
     octetsMax: ent('octetsMax', OCTETS_MAX_DEFAUT, 1024, 268435456), dureeMaxS: ent('dureeMaxS', DUREE_MAX_DEFAUT, 1, 3600),
-    /* les délais : ffmpeg (un décodage de vocal prend une fraction de seconde) et whisper (une base fixe, plus un temps par seconde d'audio — mesuré : « small » sur 2 cœurs
-       transcrit 15 s de parole en 10 s, chaque fenêtre de 30 s coûte ~8 s) */
+    /* les délais : ffmpeg (un décodage de vocal prend une fraction de seconde) et whisper (une base fixe, plus un temps par seconde d'audio — mesuré le 11 octobre 2026 :
+       « large-v3-turbo-q8_0 » en faisceau de 5 sur 2 cœurs, ~12 s fixes puis ~0,45 s par seconde d'audio ; 1 min en ~35 s, 2 min en ~65 s — le délai en laisse ~4 fois) */
     delaiFfmpegMs: ent('delaiFfmpegMs', 30000, 1000, 600000), delaiWhisperBaseMs: ent('delaiWhisperBaseMs', 60000, 1000, 1800000), delaiWhisperParSMs: ent('delaiWhisperParSMs', 2000, 0, 60000),
     sortieMax: ent('sortieMax', 1048576, 4096, 16777216),
   };
@@ -99,7 +102,7 @@ function lancer(cmd, args, { delaiMs, entree = null, sortieMax = 1048576, cwd } 
     p.stdout.on('data', (d) => { taille += d.length; if (taille <= sortieMax) sortie.push(d); else if (!fini) { fini = true; clearTimeout(minuteur); tuer(); resolve({ code: null, tropLong: true, sortie: Buffer.alloc(0), erreur: '' }); } });
     p.stderr.on('data', (d) => { if (erreur.length < 4000) erreur += d.toString('utf8').slice(0, 4000 - erreur.length); });
     p.on('error', (e) => { if (!fini) { fini = true; clearTimeout(minuteur); resolve({ code: null, absent: e && e.code === 'ENOENT', sortie: Buffer.alloc(0), erreur: '' }); } });
-    p.on('close', (code) => { if (!fini) { fini = true; clearTimeout(minuteur); resolve({ code, sortie: Buffer.concat(sortie), erreur }); } });
+    p.on('close', (code, signal) => { if (!fini) { fini = true; clearTimeout(minuteur); resolve({ code, signal: signal || null, sortie: Buffer.concat(sortie), erreur }); } });
     if (entree !== null) { p.stdin.on('error', () => { /* le programme a fermé son entrée : son code le dira */ }); p.stdin.end(entree); }
   });
 }
@@ -145,7 +148,9 @@ function creerOuvrier(cfg, { journal = () => {}, horloge = Date.now, dossierTrav
       const w = await lancer(cfg.whisper, args, { delaiMs: cfg.delaiWhisperBaseMs + duree * cfg.delaiWhisperParSMs, sortieMax: cfg.sortieMax, cwd: dossier });
       if (w.absent) return { statut: 500, corps: { error: 'echec', etape: 'whisper_absent' } };
       if (w.delai) return { statut: 504, corps: { error: 'delai', etape: 'whisper' } };
-      if (w.code !== 0) return { statut: 500, corps: { error: 'echec', etape: 'whisper' } };
+      /* tué par un signal (SIGKILL : le plafond de mémoire de l'unité) : le JOURNAL le dit (relecture du gardien, 11 octobre 2026 — sinon rien ne distinguait un débordement
+         de mémoire d'un plantage) ; la réponse au service, elle, ne change pas */
+      if (w.code !== 0) return { statut: 500, corps: { error: 'echec', etape: 'whisper' }, signal: w.signal };
       let j = null;
       try { const brut = fs.readFileSync(base + '.json'); if (brut.length <= cfg.sortieMax) j = JSON.parse(brut.toString('utf8')); } catch (e) { j = null; }
       if (!j || !Array.isArray(j.transcription)) return { statut: 500, corps: { error: 'echec', etape: 'sortie' } };
@@ -184,7 +189,7 @@ function creerOuvrier(cfg, { journal = () => {}, horloge = Date.now, dossierTrav
       try { r = await transcrire(Buffer.concat(morceaux), langue); }
       catch (e) { r = { statut: 500, corps: { error: 'echec', etape: 'interne' } }; }
       finally { occupe = false; }
-      journal(r.statut === 200 ? (r.corps.texte ? 'ok' : 'vide') : r.corps.error + (r.corps.etape ? ':' + r.corps.etape : ''), Math.round((r.corps.ms || 0) / 1000));      // des SECONDES : le temps de calcul suit la durée du vocal, le journal n'en dit pas plus
+      journal(r.statut === 200 ? (r.corps.texte ? 'ok' : 'vide') : r.corps.error + (r.corps.etape ? ':' + r.corps.etape : '') + (r.signal && /^SIG[A-Z0-9]+$/.test(r.signal) ? ':' + r.signal : ''), Math.round((r.corps.ms || 0) / 1000));      // des SECONDES : le temps de calcul suit la durée du vocal, le journal n'en dit pas plus
       repondre(res, r.statut, r.corps);
     });
   });
