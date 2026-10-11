@@ -212,6 +212,11 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     const pres = (p) => !(p && p.presence === false), acc = (p) => !(p && p.accuses === false);
     if (pres(avant) !== pres(apres)) presenceChangee(uid);
     if (acc(avant) !== acc(apres)) personneChangee(uid);
+    /* Perso / Pro (11 octobre 2026 : « quand on bascule, c'est tout qui bascule ») : le côté choisi, le passage automatique ou les heures de travail ont changé — mes AUTRES
+       appareils l'apprennent tout de suite et relisent mon compte. À moi SEUL : le côté où je travaille ne regarde personne (ni contacts ni co-membres), et rien n'est dans
+       l'enveloppe — la page relit ce qu'elle a le droit de voir. */
+    const cote = (p) => JSON.stringify([p && p.mode === 'pro', !!(p && p.mode_auto), (p && p.heures_pro) || null]);
+    if (cote(avant) !== cote(apres)) emettre([uid], 'prefs', {});
   }
   /* Mon profil (photo, nom, statut) vient de changer : mes contacts, ceux qui partagent une conversation avec moi, et mes autres appareils. Éphémère, comme la présence :
      l'identifiant seul voyage, la page relit ce qu'elle a le droit de voir. */

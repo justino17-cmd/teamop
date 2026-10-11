@@ -2990,6 +2990,8 @@
         if (d.type === 'appel_manque') emettre({ type: 'appels' });          // un appel manqué entre dans l'historique
       },
       saisie: (d) => { if (!estMoi(d.uid)) poserSaisie(d.conv, d.uid, !!d.actif); },
+      /* Perso / Pro (11 octobre 2026) : mon côté, le passage automatique ou mes heures de travail ont changé sur un autre appareil (ou ici) — la page relit et suit */
+      prefs: () => relireCote(),
       personne: (d) => {
         if (estMoi(d.uid)) api0.moi().then(m => { moiApi = m; noter(m); emettre({ type: 'moi' }); }, () => {});
         rafraichirContacts().catch(() => {});
@@ -3014,6 +3016,7 @@
       resync: () => {
         moteur.surResync();
         marquerTout();
+        relireCote();                 // un côté choisi sur un autre appareil pendant que celui-ci dormait (le flux était fermé)
         Promise.all([relireListe(), rafraichirContacts()]).then(() => { emettre({ type: 'liste' }); emettre({ type: 'espaces', id: null }); for (const id of convs.keys()) emettre({ type: 'conversation', id }); }, () => {});
       },
       reseau: (etat) => {
@@ -3347,6 +3350,17 @@
       moiApi = r; noter(r);
       return modeTravail();
     }
+    /* LE PASSAGE AUTOMATIQUE EN PRO (11 octobre 2026 : « basculer automatiquement l'application en mode pro de 8 h à 17 h ») : allumé, la page passe en Pro au début des
+       heures de travail et revient en Perso à la fin. `modeChoisiLe` : l'heure (celle du SERVICE) du dernier choix de côté, ici ou sur un autre appareil — un geste fait APRÈS
+       le début ou la fin des heures l'emporte sur l'automatique jusqu'à la prochaine. 0 : jamais choisi. */
+    const modeAuto = () => !!(moiApi && moiApi.prefs && moiApi.prefs.mode_auto === true);
+    const modeChoisiLe = () => { const t = moiApi && moiApi.prefs && moiApi.prefs.mode_le; return Number.isFinite(t) && t > 0 ? t : 0; };
+    async function choisirModeAuto(actif) {
+      const r = await A.majMoi({ prefs: { mode_auto: !!actif } });
+      moiApi = r; noter(r);
+      return modeAuto();
+    }
+    function relireCote() { api0.moi().then(m => { moiApi = m; noter(m); emettre({ type: 'prefs' }); }, () => {}); }
     /* la confirmation avant d'envoyer (« côté pro », 7 octobre 2026) : 'jamais' | 'groupes' (groupes, canaux, réunions) | 'partout' — une préférence du compte */
     const confirmerEnvoi = () => { const x = moiApi && moiApi.prefs && moiApi.prefs.confirmer_envoi; return x === 'groupes' || x === 'partout' ? x : 'jamais'; };
     async function choisirConfirmerEnvoi(x) {
@@ -3775,7 +3789,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
-      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions, vitesseVocal, choisirVitesseVocal,                                                                            // Perso / Pro
+      modeTravail, choisirMode, modeAuto, modeChoisiLe, choisirModeAuto, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions, vitesseVocal, choisirVitesseVocal,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifHeuresPro, heuresPro, notifEssai, sourdine, exporterDonnees, supprimerCompte,
