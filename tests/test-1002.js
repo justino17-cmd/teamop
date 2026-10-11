@@ -246,6 +246,24 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     v('bash -n', [r.status, String(r.stderr).trim()], [0, '']);
   }
 
+  /* ═══════ 0 bis. LE CONTRÔLE REFUSE UNE SOCKET AUX MAUVAIS DROITS ═══════
+     ⛔ La socket en 0660 est ce qui la réserve à l'unité de l'instance : le contrôle de l'installation la vérifie — joué ici sur une socket en 0666, puis en 0660 */
+  console.log('\nLe contrôle de l\'installation : les droits de la socket');
+  {
+    const { verifier } = require(path.join(RACINE, 'server-msg', 'outils', 'verifier-transcription.js'));
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'tr-verif-')), sock = path.join(d, 'ouvrier.sock');
+    const srv = http.createServer((q, r) => { q.resume(); r.writeHead(401, { 'content-type': 'application/json' }); r.end('{"error":"non_autorise"}'); });
+    await new Promise(ok => srv.listen(sock, ok));
+    try {
+      fs.chmodSync(sock, 0o666);
+      const ouverte = await verifier({ socket: sock, secret: 'S'.repeat(48) }, '/nulle/part.wav');
+      fs.chmodSync(sock, 0o660);
+      const fermee = await verifier({ socket: sock, secret: 'S'.repeat(48) }, '/nulle/part.wav');
+      v('⛔ une socket joignable par tous (0666) : le contrôle échoue, et s\'arrête là ; en 0660, il passe à la suite (« refuse sans secret »)',
+        [ouverte.length, ouverte[0] && ouverte[0].ok, ouverte[0] && ouverte[0].detail, fermee[0] && fermee[0].ok, fermee[1] && fermee[1].ok], [1, false, 'droits 666', true, true]);
+    } finally { srv.close(); fs.rmSync(d, { recursive: true, force: true }); }
+  }
+
   /* ═══════ 1. UNE PREMIÈRE INSTALLATION ═══════ */
   console.log('\nUne première installation');
   let b = bac();

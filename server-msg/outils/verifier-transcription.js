@@ -50,7 +50,7 @@ async function verifier(cfg, echantillon) {
   if (cfg.socket) {
     let m = null; try { const st = fs.statSync(cfg.socket); m = st.isSocket() ? (st.mode & 0o777) : -1; } catch (e) { m = null; }
     res.push({ nom: 'sa socket n\'est joignable que par son groupe (0660)', ok: m === 0o660, detail: m === null ? 'absente' : m === -1 ? 'ce n\'est pas une socket' : 'droits ' + m.toString(8) });
-    if (m === null || m === -1) return res;
+    if (m !== 0o660) return res;           // ⛔ une socket qui n'est pas la sienne (ou ouverte à tous) ne reçoit pas le secret
   }
   const sans = await requete(cfg, '/sante');
   res.push({ nom: 'l\'ouvrier refuse qui ne présente pas le secret', ok: sans.statut === 401, detail: ditStatut(sans) });
