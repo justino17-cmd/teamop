@@ -58,7 +58,7 @@
  *                                signaux par appel, et le RELAIS (coturn) : sans `relais`, pas de relais et la page le dit (jamais de serveur STUN tiers) ; son `secret`, posé par `install-turn.sh`, ne s'affiche ni ne se copie.
  *                                `visio` {url, interne, cle, secret, maxVideo, maxAudio, ttlS, sondeMs, delaiMs} : le SERVEUR DE VISIO (LiveKit) qui porte une salle au-delà de la maille — voir `visioConfig`.
  *                                Sans ce bloc, les salles restent en maille ; son `secret`, posé par `install-sfu.sh`, ne s'affiche ni ne se copie.
- *   transcription {url, secret, dureeMaxS, file, essais, parHeure, sondeMs, delaiSondeMs, delaiBaseMs, delaiParSMs}   La TRANSCRIPTION des vocaux (11 octobre 2026) : l'ouvrier whisper.cpp
+ *   transcription {url, secret, dureeMaxS, file, parPersonne, budgetHeureS, essais, parHeure, sondeMs, delaiSondeMs, delaiBaseMs, delaiParSMs}   La TRANSCRIPTION des vocaux (11 octobre 2026) : l'ouvrier whisper.cpp
  *                                posé par `install-transcription.sh` (sa propre unité, sur la boucle locale) — voir `transcriptionConfig`. SANS ce bloc, pas de transcription : la page ne la propose pas.
  *                                Son `secret` ne s'affiche ni ne se copie.
  *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
@@ -476,26 +476,29 @@ function visioConfig(vi, appels, prod, err) {
 
 /* ⛔ LA TRANSCRIPTION DES VOCAUX (`transcription.js`, l'ouvrier `transcripteur.js`) — décisions de Justin du 11 octobre 2026 : sur NOTRE serveur, ouverte à tous en bêta, à la demande.
    SANS ce bloc, il n'y en a pas (`configure` faux, la page ne propose rien). `install-transcription.sh` l'écrit sur le VPS ; ses valeurs :
-   · `url` : l'ouvrier, `http://127.0.0.1:<port>` — la boucle locale SEULEMENT (les octets d'un vocal et le secret ne traversent jamais un réseau).
+   · `url` : l'ouvrier — `unix:/run/opmsg-transcrire-<instance>/ouvrier.sock` sur le VPS (une socket que seuls le service et l'ouvrier joignent : un port de la boucle locale
+     se squatte, relecture du gardien), ou `http://127.0.0.1:<port>` pour les bancs. Jamais un réseau : les octets d'un vocal et le secret n'en traversent aucun.
    · `secret` : partagé avec l'ouvrier ; se lit (`transcription.secret`) mais ne se COPIE ni ne se SÉRIALISE (non énumérable) et aucune erreur ne le cite.
    · `dureeMaxS` (300) : un vocal plus long n'est pas transcrit (413 `vocal_trop_long`) — la page enregistre 3 minutes au plus, le service en accepte 10.
-   · `file` (8) : les travaux en attente au plus (le travail en cours compris) ; au-delà, 503 `transcription_occupee` avec une attente.
+   · `file` (8) : les travaux en attente au plus (le travail en cours compris) ; au-delà, 503 `transcription_occupee` avec une attente. `parPersonne` (2) : la part d'UNE personne
+     dans cette file ; `budgetHeureS` (900) : les secondes de vocal qu'une personne fait transcrire par heure (au-delà, 429 `transcription_budget`) — personne ne prend tout l'ouvrier.
    · `essais` (3) : un vocal dont la transcription a échoué se retente jusqu'à ce nombre ; `parHeure` (30) : les demandes d'une personne par heure (le tiers pour un compte de moins d'un jour).
    · `sondeMs` (30 000) et `delaiSondeMs` (3 000) : la sonde de l'ouvrier ; `delaiBaseMs` (90 000) + `delaiParSMs` (3 000) par seconde de vocal : l'attente d'un travail. */
-const TRANSCRIPTION_DEFAUT = { dureeMaxS: 300, file: 8, essais: 3, parHeure: 30, sondeMs: 30000, delaiSondeMs: 3000, delaiBaseMs: 90000, delaiParSMs: 3000 };
+const TRANSCRIPTION_DEFAUT = { dureeMaxS: 300, file: 8, parPersonne: 2, budgetHeureS: 900, essais: 3, parHeure: 30, sondeMs: 30000, delaiSondeMs: 3000, delaiBaseMs: 90000, delaiParSMs: 3000 };
 const RE_URL_OUVRIER = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):(\d{2,5})\/?$/;
+const RE_SOCKET_OUVRIER = /^unix:(\/[A-Za-z0-9._\/-]{1,100})$/;
 function transcriptionConfig(cfg, instance) {
   const t = cfg.transcription;
   if (t === undefined || t === null) return null;
   const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
   if (typeof t !== 'object' || Array.isArray(t)) throw err('transcription doit être un objet { url, secret }');
-  const u = typeof t.url === 'string' ? RE_URL_OUVRIER.exec(t.url) : null;
-  if (!u || Number(u[2]) < 1024 || Number(u[2]) > 65535) throw err('transcription.url doit être http://127.0.0.1:<port> (la boucle locale seulement : un vocal et le secret ne traversent pas un réseau)');
+  const u = typeof t.url === 'string' ? RE_URL_OUVRIER.exec(t.url) : null, so = typeof t.url === 'string' ? RE_SOCKET_OUVRIER.exec(t.url) : null;
+  if (!(so && !/\.\./.test(so[1])) && (!u || Number(u[2]) < 1024 || Number(u[2]) > 65535)) throw err('transcription.url doit être unix:/chemin/de/la/socket (ou http://127.0.0.1:<port> pour un banc) : un vocal et le secret ne traversent pas un réseau');
   /* ⛔ jamais la valeur dans le message : une erreur de configuration finit dans le journal du démarrage, que Justin recolle dans la conversation */
   if (typeof t.secret !== 'string' || !RE_SECRET_RELAIS.test(t.secret)) throw err('transcription.secret doit être un secret de 32 à 128 caractères (lettres, chiffres, tiret, soulignement) — il se pose par install-transcription.sh');
   const prod = instance === 'prod';
   const o = { url: t.url.replace(/\/$/, '') };
-  const bornes = { dureeMaxS: [5, 600], file: [1, 100], essais: [1, 10], parHeure: [1, 1000], sondeMs: prod ? [5000, 600000] : [50, 600000], delaiSondeMs: [100, 30000], delaiBaseMs: prod ? [10000, 1800000] : [100, 1800000], delaiParSMs: [0, 60000] };
+  const bornes = { dureeMaxS: [5, 600], file: [1, 100], parPersonne: [1, 20], budgetHeureS: [10, 36000], essais: [1, 10], parHeure: [1, 1000], sondeMs: prod ? [5000, 600000] : [50, 600000], delaiSondeMs: [100, 30000], delaiBaseMs: prod ? [10000, 1800000] : [100, 1800000], delaiParSMs: [0, 60000] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     const x = t[k] === undefined ? TRANSCRIPTION_DEFAUT[k] : t[k];
     if (!Number.isInteger(x) || x < min || x > max) throw err('transcription.' + k + ' doit être un entier entre ' + min + ' et ' + max);

@@ -2692,6 +2692,22 @@
       emettre({ type: 'conversation', id });
       return t;
     }
+    /* ⛔ une relecture qui échoue ne laisse pas « Transcription en cours… » pour toujours (relecture du relecteur, 11 octobre 2026) : trois essais espacés, puis l'état DIT
+       « prête, texte pas chargé » (`relis`) — la page propose alors « Réessayer », et la demande rend le texte (une transcription déjà là ne recalcule rien ni ne coûte rien) */
+    const TR_RELIRE_MS = Array.isArray(o.relireTranscriptionMs) ? o.relireTranscriptionMs : [1000, 5000, 20000];      // (un banc les raccourcit)
+    function relireTranscription(c, d, n) {
+      A.messages(d.conv, { apres_seq: d.seq - 1, limite: 1 }).then(r => {
+        if (convs.get(d.conv) !== c) return;
+        r.messages.forEach(m => ranger(c, m)); emettre({ type: 'conversation', id: d.conv });
+      }, () => {
+        if (convs.get(d.conv) !== c) return;
+        if (n < TR_RELIRE_MS.length) { setTimeout(() => relireTranscription(c, d, n + 1), TR_RELIRE_MS[n]); return; }
+        const ici = c.messages.find(x => x.seq === d.seq);
+        if (ici && !trNeuve(ici.transcription, d)) return;
+        ranger(c, { seq: d.seq, transcription: { etat: 'prete', relis: true, maj: d.maj } });
+        emettre({ type: 'conversation', id: d.conv });
+      });
+    }
     let transcriptionCfg = null;
     async function transcriptionOuverte() {
       if (transcriptionCfg) return transcriptionCfg;
@@ -2940,8 +2956,8 @@
       /* la transcription d'un vocal est prête, vide ou ratée (11 octobre 2026) : un texte trop long pour l'événement se relit (`relis`) */
       transcription: (d) => {
         const c = convs.get(d.conv); if (!c || !c.charge || !Number.isInteger(d.seq)) return;
-        if (d.relis) { A.messages(d.conv, { apres_seq: d.seq - 1, limite: 1 }).then(r => { r.messages.forEach(m => ranger(c, m)); emettre({ type: 'conversation', id: d.conv }); }, () => {}); return; }
         const ici = c.messages.find(x => x.seq === d.seq);
+        if (d.relis) { relireTranscription(c, d, 0); return; }
         if (ici && !trNeuve(ici.transcription, d)) return;
         ranger(c, { seq: d.seq, transcription: { etat: d.etat, texte: d.texte, langue: d.langue, illisible: d.illisible === true, maj: d.maj } });
         emettre({ type: 'conversation', id: d.conv });

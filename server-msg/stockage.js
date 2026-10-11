@@ -2018,6 +2018,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      · une transcription prête, vide ou en attente se rend telle quelle (deux personnes, deux appareils : UN seul calcul) ;
      · un échec se retente, `essaisMax` fois au plus (ensuite : `definitif`) ;
      · sinon une ligne 'attente' naît, et `travail` dit au module quoi transcrire (la pièce, la durée, la langue de l'AUTEUR — c'est sa voix). */
+  /* `accepter` : vrai, faux, ou une fonction (le travail qu'on créerait → null s'il part, sinon le CODE du refus : la file, le budget, le plafond de la personne) — appelée
+     seulement quand un calcul naîtrait vraiment : relire un texte déjà là ne coûte rien à personne */
   function transcriptionDemander({ conv, seq, uid, essaisMax = 3, dureeMaxS = Infinity, accepter = true }) {
     if (!TRANSCRIPTIONS) throw erreur('indisponible');
     return tx(() => {
@@ -2034,11 +2036,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       /* ⛔ un vocal trop long ne se transcrit pas (le calcul croît avec la durée), et rien ne s'écrit quand l'ouvrier ne peut pas le prendre (absent ou file pleine) : la ligne
          « en attente » ne naît que pour un travail qui part vraiment */
       if (Number.isFinite(mt.dur) && mt.dur > dureeMaxS) throw erreur('trop_long');
-      if (!accepter) throw erreur('occupe');
+      const pr = Q('SELECT langue FROM personne WHERE id = ?').get(r.auteur);
+      const travail = { conv, seq, uid, piece: mt.piece, dur: Number.isFinite(mt.dur) ? mt.dur : 0, langue: pr && typeof pr.langue === 'string' ? pr.langue : null };
+      const refus = typeof accepter === 'function' ? accepter(travail) : (accepter ? null : 'occupe');
+      if (refus) throw erreur(refus);
       if (l) Q(`UPDATE transcription SET etat = 'attente', texte_ch = NULL, langue = NULL, essais = essais + 1, maj = ? WHERE conv = ? AND seq = ?`).run(t, conv, seq);
       else Q(`INSERT INTO transcription(conv, seq, etat, essais, cree, maj) VALUES(?, ?, 'attente', 1, ?, ?)`).run(conv, seq, t, t);
-      const a = Q('SELECT langue FROM personne WHERE id = ?').get(r.auteur);
-      return { etat: 'attente', nouveau: true, maj: t, travail: { conv, seq, piece: mt.piece, dur: Number.isFinite(mt.dur) ? mt.dur : 0, langue: a && typeof a.langue === 'string' ? a.langue : null } };
+      return { etat: 'attente', nouveau: true, maj: t, travail };
     });
   }
   /* Poser le résultat : seulement sur une ligne encore 'attente' d'un vocal toujours là (supprimé pendant le calcul : rien n'est écrit, `gid` 0). Le journal prévient les membres
@@ -2056,6 +2060,26 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('UPDATE transcription SET etat = ?, texte_ch = ?, langue = ?, maj = ? WHERE conv = ? AND seq = ?')
         .run(e, clair ? sceller('transcription', 'texte_ch', aadMsg(conv, seq, r.auteur), clair) : null, e === 'echec' ? null : lg, horloge(), conv, seq);
       return { gid: journalAjouter('msg_transcrit', conv, null, seq), etat: e };
+    });
+  }
+  /* Le travail est-il toujours à faire ? Une ligne « en attente » d'un vocal toujours là — supprimé, échu pendant l'attente : non, et l'ouvrier ne lit même pas sa pièce. */
+  function transcriptionEnAttente(conv, seq) {
+    if (!TRANSCRIPTIONS) return false;
+    return !!Q(`SELECT 1 AS x FROM transcription t JOIN message m ON m.conv = t.conv AND m.seq = t.seq
+                WHERE t.conv = ? AND t.seq = ? AND t.etat = 'attente' AND m.supprime_le IS NULL AND (m.expire_ts IS NULL OR m.expire_ts > ?)`).get(conv, seq, horloge());
+  }
+  /* Le filet : une ligne « en attente » plus vieille que `avant` (aucun travail ne la porte plus : une pose ratée, une file perdue) devient un échec DIT, journalisé — sinon
+     « Transcription en cours… » pour toujours, sans « Réessayer » (relectures du gardien et du relecteur). Rend le nombre de lignes. */
+  function transcriptionsEchues(avant) {
+    if (!TRANSCRIPTIONS) return 0;
+    return tx(() => {
+      const l = Q(`SELECT conv, seq FROM transcription WHERE etat = 'attente' AND maj < ?`).all(avant);
+      if (!l.length) return 0;
+      for (const r of l) {
+        Q(`UPDATE transcription SET etat = 'echec', maj = ? WHERE conv = ? AND seq = ? AND etat = 'attente'`).run(horloge(), r.conv, r.seq);
+        journalAjouter('msg_transcrit', r.conv, null, r.seq);
+      }
+      return l.length;
     });
   }
   /* Au démarrage : un calcul en cours au moment d'un arrêt est perdu (le module ne garde rien sur disque). La ligne passe en ÉCHEC — dite, retentable — plutôt que de rester
@@ -4768,6 +4792,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
     messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, requeteRech, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
     transcriptionDemander, transcriptionPoser, transcriptionsInterrompues, transcriptionVue,
+    transcriptionEnAttente, transcriptionsEchues,
     pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,

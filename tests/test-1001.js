@@ -20,7 +20,7 @@
 const fs = require('fs'), os = require('os'), path = require('path'), http = require('http');
 const T = require('./outils-msg');
 const { v, vrai, fin } = T.compteur();
-const { creerOuvrier, lireConfig, nettoyerTexte } = require(path.join(T.SERVICE, 'transcripteur.js'));
+const { creerOuvrier, lireConfig, nettoyerTexte, langueOuvrier } = require(path.join(T.SERVICE, 'transcripteur.js'));
 const { creerTranscription } = require(path.join(T.SERVICE, 'transcription.js'));
 const { transcriptionConfig } = require(path.join(T.SERVICE, 'config.js'));
 const dort = (ms) => new Promise(r => setTimeout(r, ms));
@@ -62,9 +62,10 @@ const ecrireCtl = (n, t) => fs.writeFileSync(path.join(ctl, n), t);
 const lireCtl = (n) => { try { return fs.readFileSync(path.join(ctl, n), 'utf8'); } catch (e) { return ''; } };
 const viderCtl = () => { for (const f of fs.readdirSync(ctl)) fs.rmSync(path.join(ctl, f), { force: true }); };
 
+/* `port` : un nombre (la boucle locale) ou un chemin (une socket Unix) */
 function requete(port, methode, chemin, { corps, entetes } = {}) {
   return new Promise((ok) => {
-    const q = http.request({ host: '127.0.0.1', port, method: methode, path: chemin, headers: Object.assign({}, entetes || {}, corps ? { 'content-length': corps.length } : {}) }, (r) => {
+    const q = http.request({ ...(typeof port === 'string' ? { socketPath: port } : { host: '127.0.0.1', port }), method: methode, path: chemin, headers: Object.assign({}, entetes || {}, corps ? { 'content-length': corps.length } : {}) }, (r) => {
       let b = ''; r.on('data', d => { b += d; }); r.on('end', () => { let j = null; try { j = JSON.parse(b); } catch (e) { j = null; } ok({ statut: r.statusCode, json: j }); });
     });
     q.on('error', (e) => ok({ statut: 0, erreur: e.code }));
@@ -91,7 +92,10 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
 
     /* ═══ 2. CE QUE WHISPER « ENTEND » DANS LE SILENCE ═════════════════════════════════════════════════════════ */
     console.log('\n── 1001 · le nettoyage du texte');
-    v('⛔ un générique de vidéo appris par le modèle, seul, ne devient pas un texte', ['Sous-titres réalisés par la communauté d\'Amara.org', 'Merci d\'avoir regardé !', ' [BLANK_AUDIO] ', '♪♪', 'Thank you.', '(Musique)'].map(nettoyerTexte), ['', '', '', '', '', '']);
+    v('⛔ un générique de vidéo appris par le modèle, seul, ne devient pas un texte', ['Sous-titres réalisés par la communauté d\'Amara.org', 'Merci d\'avoir regardé !', ' [BLANK_AUDIO] ', '♪♪', 'Thanks for watching!', '(Musique)', 'Abonnez-vous.'].map(nettoyerTexte), ['', '', '', '', '', '', '']);
+    /* ⛔ (relectures du gardien et du relecteur, 11 octobre 2026) : « Merci ! » est un VRAI vocal, très courant — le filtre ne retient que les génériques de vidéo ; le silence, c'est la
+       détection de parole (`--vad`) qui le juge */
+    v('⛔ un vrai vocal d\'un mot reste : « Merci ! », « Merci à tous », « Thank you. », « You »', ['Merci !', 'Merci à tous', 'Thank you.', 'You', 'Merci.'].map(nettoyerTexte), ['Merci !', 'Merci à tous', 'Thank you.', 'You', 'Merci.']);
     v('le même mot au milieu d\'un vrai message reste', nettoyerTexte('Merci d\'avoir regardé le devis, je passe demain'), 'Merci d\'avoir regardé le devis, je passe demain');
     v('les annotations et les caractères de contrôle partent, les espaces se resserrent', nettoyerTexte('  Bonjour\u0007 [silence]  à   demain  '), 'Bonjour à demain');
 
@@ -100,7 +104,7 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
     const port = await T.portLibre();
     const journalOuvrier = [];
     const cfg = lireConfig(fcfg(Object.assign({}, cfgOk, { port, delaiWhisperBaseMs: 1500, delaiWhisperParSMs: 0, octetsMax: 65536, dureeMaxS: 60 })));
-    const o = creerOuvrier(cfg, { journal: (issue, ms) => journalOuvrier.push(JSON.stringify({ issue, ms })), dossierTravail: travail });
+    const o = creerOuvrier(cfg, { journal: (issue, s) => journalOuvrier.push(JSON.stringify({ issue, s })), dossierTravail: travail });
     let quitte = 0; o.surQuitter(() => { quitte++; });
     await o.ecouter();
 
@@ -119,13 +123,29 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
     v('un vocal se transcrit : le texte, la langue', [r1.statut, r1.json && r1.json.ok, r1.json && r1.json.texte, r1.json && r1.json.langue], [200, true, TEXTE, 'fr']);
     const aF = lireCtl('ffmpeg.args'), aW = lireCtl('whisper.args');
     vrai('⛔ ffmpeg ne lit que des fichiers locaux (`-protocol_whitelist file`), sans vidéo, sans métadonnées, en 16 kHz mono', /-protocol_whitelist file /.test(aF) && /-vn -sn -dn -map_metadata -1 -ar 16000 -ac 1 /.test(aF) && /-nostdin/.test(aF));
+    /* (relecture du gardien) : les seuls conteneurs d'un vocal (un « concat » déguisé derrière un en-tête ID3 n'est pas ouvert), un seul fil (la limite de tâches de l'unité),
+       une seconde de plus que le plafond AVANT l'entrée (pour savoir qu'il est dépassé), et la sortie bornée à cette durée */
+    vrai('⛔ ffmpeg : la liste blanche des conteneurs, un fil, la durée bornée avant l\'entrée, la sortie bornée', /-threads 1 -protocol_whitelist file -format_whitelist matroska,webm,ogg,mov,mp4,m4a,mp3,aac,wav -t 61 -i /.test(aF) && / -fs 1956096 /.test(aF));
     vrai('whisper reçoit la langue, 2 cœurs, un faisceau de 1, la détection de parole, et rend du JSON', / -l fr /.test(aW) && / -t 2 /.test(aW) && / -bs 1 -bo 1 /.test(aW) && /--vad --vad-model /.test(aW) && / -oj /.test(aW));
     v('⛔ aucun fichier de travail ne reste (une voix en clair sur le disque)', fs.readdirSync(travail), []);
     vrai('⛔ le journal dit l\'issue et le temps — jamais le texte ni la langue', journalOuvrier.length === 1 && /"issue":"ok"/.test(journalOuvrier[0]) && !journalOuvrier.join().includes('JETON-QWZK') && !/"fr"/.test(journalOuvrier.join()));
+    v('⛔ … et le temps en SECONDES arrondies, jamais en millisecondes (il suit la durée du vocal)', JSON.parse(journalOuvrier[0]).s, 0);
 
     viderCtl(); ecrireCtl('texte', TEXTE);
     await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=1'), entetes: Object.assign({ 'x-langue': 'fr;rm -rf /' }, AUTH) });
-    vrai('une langue illisible devient « fr » (rien d\'autre n\'atteint les arguments de whisper)', / -l fr /.test(lireCtl('whisper.args')) && !/rm -rf/.test(lireCtl('whisper.args')));
+    vrai('une langue illisible devient « auto » (rien d\'autre n\'atteint les arguments de whisper)', / -l auto /.test(lireCtl('whisper.args')) && !/rm -rf/.test(lireCtl('whisper.args')));
+    /* ⛔ (relecture du gardien) : une langue BIEN FORMÉE que whisper ne connaît pas (« zz », posée dans un profil) le faisait sortir en erreur — et le service croyait l'ouvrier en panne */
+    viderCtl(); ecrireCtl('texte', TEXTE);
+    await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=1'), entetes: Object.assign({ 'x-langue': 'zz' }, AUTH) });
+    vrai('⛔ une langue que whisper ne connaît pas devient « auto »', / -l auto /.test(lireCtl('whisper.args')));
+    v('les langues de whisper passent, « auto » aussi', ['fr', 'EN', 'yue', 'auto', 'zz', 'fr-FR', ''].map(langueOuvrier), ['fr', 'en', 'yue', 'auto', 'auto', 'auto', 'auto']);
+
+    /* ⛔ LA DURÉE MESURÉE, JAMAIS CELLE ANNONCÉE (relecture du gardien) : un vocal annoncé d'une seconde qui en dure dix minutes tenait l'ouvrier vingt minutes */
+    viderCtl(); ecrireCtl('texte', TEXTE);
+    const rLong = await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=62'), entetes: AUTH });
+    v('⛔ un vocal plus long que le plafond (mesuré sur ce que ffmpeg décode) : 413 « trop_long », et whisper n\'est pas lancé', [rLong.statut, rLong.json, lireCtl('whisper.args')], [413, { error: 'trop_long' }, '']);
+    viderCtl(); ecrireCtl('texte', TEXTE);
+    v('… un vocal pile au plafond passe', (await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=60'), entetes: AUTH })).statut, 200);
 
     viderCtl(); ecrireCtl('texte', '[BLANK_AUDIO]');
     const rv = await requete(port, 'POST', '/transcrire', { corps: Buffer.from('DUREE=2'), entetes: AUTH });
@@ -160,6 +180,30 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
     v('« quitter » répond, puis l\'ouvrier sort (le service le demande quand il tourne sur un code d\'avant)', [(await requete(port, 'POST', '/quitter', { entetes: AUTH })).statut, await T.attendre(() => quitte === 1, 2000, 10)], [200, true]);
     await o.fermer();
 
+    /* ═══ 3 bis. SUR UNE SOCKET UNIX (le VPS) ═══════════════════════════════════════════════════════════════
+       ⛔ (relecture du gardien, 11 octobre 2026) : un port de la boucle locale se SQUATTE — un processus de la machine qui le prenait pendant un redémarrage recevait le secret et
+       les octets des vocaux. Sur le VPS, l'ouvrier n'écoute qu'une socket, en 0660 (son groupe : l'unité de l'instance), dans le dossier d'exécution de son unité. */
+    console.log('\n── 1001 · l\'ouvrier sur une socket Unix');
+    const dSock = fs.mkdtempSync(path.join(os.tmpdir(), 'tr-sock-')), sock = path.join(dSock, 'ouvrier.sock');
+    const cfgSock = Object.assign({}, cfgOk, { port: undefined, socket: sock });
+    const refusSock = [];
+    for (const [nom, o2] of [['les deux', Object.assign({}, cfgOk, { socket: sock })], ['aucun', Object.assign({}, cfgOk, { port: undefined })], ['relatif', Object.assign({}, cfgSock, { socket: 'ouvrier.sock' })],
+      ['remonte', Object.assign({}, cfgSock, { socket: dSock + '/../ouvrier.sock' })], ['trop long', Object.assign({}, cfgSock, { socket: '/' + 'x'.repeat(120) })]]) {
+      try { lireConfig(fcfg(o2)); refusSock.push(nom + ':acceptee'); } catch (e) { refusSock.push(e.code === 'CONFIG' ? 'refusee' : nom + ':' + e.code); }
+    }
+    v('⛔ une socket OU un port, jamais les deux ni aucun ; un chemin absolu, court, sans « .. »', refusSock, Array(5).fill('refusee'));
+    fs.writeFileSync(sock, 'reste d\'un arrêt brutal');
+    const oS = creerOuvrier(lireConfig(fcfg(Object.assign({}, cfgSock, { delaiWhisperBaseMs: 1500, delaiWhisperParSMs: 0, octetsMax: 65536, dureeMaxS: 60 }))), { journal: () => {}, dossierTravail: travail });
+    await oS.ecouter();
+    const st = fs.statSync(sock);
+    v('⛔ la socket remplace le reste d\'un arrêt brutal, et n\'est joignable que par son groupe (0660)', [st.isSocket(), (st.mode & 0o777).toString(8)], [true, '660']);
+    v('⛔ par la socket aussi : sans secret, 401', (await requete(sock, 'GET', '/sante')).statut, 401);
+    viderCtl(); ecrireCtl('texte', TEXTE); ecrireCtl('langue', 'fr');
+    const rS = await requete(sock, 'POST', '/transcrire', { corps: Buffer.from('DUREE=2'), entetes: Object.assign({ 'x-langue': 'fr' }, AUTH) });
+    v('par la socket, un vocal se transcrit', [rS.statut, rS.json && rS.json.texte], [200, TEXTE]);
+    await oS.fermer();
+    fs.rmSync(dSock, { recursive: true, force: true });
+
     /* ═══ 4. LA CONFIGURATION CÔTÉ SERVICE ═══════════════════════════════════════════════════════════════════ */
     console.log('\n── 1001 · la configuration du service (`transcription`)');
     v('sans bloc : pas de transcription', transcriptionConfig({}, 'beta'), null);
@@ -172,6 +216,13 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
       try { transcriptionConfig({ transcription: t }, 'prod'); refus.push('acceptee'); } catch (e) { refus.push(String(e.message).includes(SECRET) ? 'FUITE' : 'refusee'); }
     }
     v('⛔ une adresse hors de la boucle locale, un secret faux, une borne dépassée : refusés, sans citer le secret', refus, Array(6).fill('refusee'));
+    const tu = transcriptionConfig({ transcription: { url: 'unix:/run/opmsg-transcrire-prod/ouvrier.sock', secret: SECRET } }, 'prod');
+    v('la socket de l\'ouvrier (le VPS), et les défauts du partage : 2 vocaux en file par personne, 15 minutes de vocal par heure', [tu.url, tu.parPersonne, tu.budgetHeureS], ['unix:/run/opmsg-transcrire-prod/ouvrier.sock', 2, 900]);
+    const refusU = [];
+    for (const u of ['unix:ouvrier.sock', 'unix:/run/../etc/ouvrier.sock', 'unix:/run/a b.sock', 'unix:/' + 'x'.repeat(120)]) {
+      try { transcriptionConfig({ transcription: { url: u, secret: SECRET } }, 'prod'); refusU.push('acceptee'); } catch (e) { refusU.push('refusee'); }
+    }
+    v('⛔ une socket relative, qui remonte, aux caractères douteux ou trop longue : refusée', refusU, Array(4).fill('refusee'));
 
     /* ═══ 5. LE MODULE DU SERVICE ═══════════════════════════════════════════════════════════════════════════ */
     console.log('\n── 1001 · le module du service : sa sonde, sa file, son appel');
@@ -272,6 +323,71 @@ const AUTH = { authorization: 'Bearer ' + SECRET };
     v('au démarrage : les calculs interrompus par un arrêt passent en échec (dits, retentables)', stockage.repris, 1);
     M.arreter();
     v('arrêté : plus rien ne se met en file', M.mettreEnFile({ conv: 'c_d', seq: 7, piece: 'f_sept', dur: 1 }), false);
+
+    /* ═══ 5 bis. UN VOCAL NE DIT RIEN DE LA SANTÉ DE L'OUVRIER, ET PERSONNE NE PREND TOUTE LA FILE (relectures du gardien et du relecteur, 11 octobre 2026) ═══ */
+    console.log('\n── 1001 · le module : ce qui éteint l\'ouvrier (et ce qui ne l\'éteint pas), la part de chacun');
+    const tenus2 = [], appels2 = [], poses2 = [], echues = [];
+    let transport = null;
+    const appeler2 = async (url, init) => {
+      const chemin = url.replace('http://127.0.0.1:7860', '');
+      appels2.push({ chemin, corps: init.body ? Buffer.from(init.body).toString() : null });
+      if (chemin === '/sante') return new Response(JSON.stringify({ ok: true, sha: 'abc1234', occupe: false }), { status: 200 });
+      if (transport) { const e = transport; transport = null; throw e; }
+      return new Promise((ok) => tenus2.push(ok));
+    };
+    const enAttente = new Set();
+    const stockage2 = { transcriptionPoser: (x) => { poses2.push(x); enAttente.delete(x.conv + '|' + x.seq); return { gid: 1 }; }, transcriptionsInterrompues: () => 0,
+      transcriptionEnAttente: (conv, seq) => enAttente.has(conv + '|' + seq), transcriptionsEchues: (avant) => { echues.push(avant); return 0; } };
+    const pieces2 = { lire: async function* (id) { if (id === 'f_illisible') throw Object.assign(new Error('introuvable'), { code: 'introuvable' }); yield Buffer.from('OCTETS-' + id); } };
+    let maintenant2 = 5000000;
+    const M2 = creerTranscription({ cfg: { url: 'http://127.0.0.1:7860', secret: SECRET, dureeMaxS: 300, file: 5, parPersonne: 2, budgetHeureS: 10, essais: 3, parHeure: 30, sondeMs: 3600000, delaiSondeMs: 1000, delaiBaseMs: 1000, delaiParSMs: 10 },
+      stockage: stockage2, pieces: pieces2, hub: { reveiller: () => {} }, octetsMax: 1000, sha: 'abc1234', horloge: () => maintenant2, appeler: appeler2, journal: () => {} });
+    await M2.sonder();
+    v('⛔ la sonde ramasse les lignes « en attente » trop vieilles : au-delà du temps qu\'une file PLEINE met à se vider (6 × 4 s — le délai d\'un travail est celui du PLUS LONG vocal)', echues, [5000000 - 6 * (1000 + 300 * 10)]);
+    const mettre = (seq, piece, uid, dur) => { enAttente.add('c_x|' + seq); return M2.mettreEnFile({ conv: 'c_x', seq, piece, dur: dur || 2, uid }); };
+
+    mettre(1, 'f_un', 'u_ana');
+    await T.attendre(() => tenus2.length === 1, 2000, 5);
+    tenus2.shift()(new Response(JSON.stringify({ error: 'echec', etape: 'sortie' }), { status: 500 }));
+    await T.attendre(() => poses2.length === 1, 2000, 5);
+    v('⛔ un vocal que whisper rate (500 « sortie ») : CE vocal en échec, l\'ouvrier reste actif (sinon n\'importe qui coupait la transcription de tous)', [poses2[0].etat, M2.actif()], ['echec', true]);
+    mettre(2, 'f_illisible', 'u_ana');
+    await T.attendre(() => poses2.length === 2, 2000, 5);
+    v('⛔ une pièce qui ne se lit plus (supprimée entre-temps) : échec du vocal, l\'ouvrier n\'est ni appelé ni éteint', [poses2[1].etat, M2.actif(), appels2.filter(a => a.corps === 'OCTETS-f_illisible').length], ['echec', true, 0]);
+    M2.mettreEnFile({ conv: 'c_x', seq: 3, piece: 'f_trois', dur: 2, uid: 'u_ana' });      // sa ligne n'est plus « en attente » (supprimé, masqué, échu)
+    await dort(60);
+    v('⛔ un travail dont la ligne n\'est plus « en attente » : abandonné — ni pièce lue, ni ouvrier appelé, rien posé', [appels2.filter(a => a.corps === 'OCTETS-f_trois').length, poses2.length, tenus2.length], [0, 2, 0]);
+
+    mettre(4, 'f_quatre', 'u_ana');
+    await T.attendre(() => tenus2.length === 1, 2000, 5);
+    tenus2.shift()(new Response(JSON.stringify({ error: 'occupe' }), { status: 503 }));
+    await dort(200);
+    v('⛔ l\'ouvrier « occupé » (un calcul d\'avant qu\'il finit) : rien n\'est posé, ce n\'est pas un essai raté', poses2.length, 2);
+    vrai('… et le travail repart tout seul, deux secondes plus tard', await T.attendre(() => tenus2.length === 1, 4000, 20));
+    tenus2.shift()(new Response(JSON.stringify({ ok: true, texte: 'quatre', langue: 'fr' }), { status: 200 }));
+    await T.attendre(() => poses2.length === 3, 2000, 5);
+    v('… et son texte est posé', [poses2[2].seq, poses2[2].etat], [4, 'prete']);
+
+    transport = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+    mettre(5, 'f_cinq', 'u_ana');
+    await T.attendre(() => poses2.length === 4, 2000, 5);
+    v('⛔ la socket muette : le vocal en échec, ET l\'ouvrier n\'est plus actif jusqu\'à la prochaine sonde', [poses2[3].etat, M2.actif()], ['echec', false]);
+    await M2.sonder();
+
+    /* la part de chacun : deux travaux par personne au plus (en attente et en cours), et un budget de secondes de vocal par heure */
+    maintenant2 += 3600001;                                         // une heure plus tard : les budgets d'avant sont tombés
+    v('une personne qui n\'a rien en file a sa place', M2.placeLibre('u_ben'), true);
+    mettre(10, 'f_dix', 'u_ben', 3); mettre(11, 'f_onze', 'u_ben', 3);
+    await T.attendre(() => tenus2.length === 1, 2000, 5);
+    v('⛔ deux travaux à elle (un en cours, un en attente) : plus de place POUR ELLE — une autre en a encore', [M2.placeLibre('u_ben'), M2.placeLibre('u_cle'), M2.placeLibre()], [false, true, true]);
+    v('⛔ son budget : 6 s de vocal demandées sur 10 — un vocal de 4 s passe, un de 5 s attend que l\'heure fasse tomber les premiers', [M2.budgetAttente('u_ben', 4), M2.budgetAttente('u_ben', 5)], [0, 3600]);
+    v('… et le budget d\'une autre personne est entier', M2.budgetAttente('u_cle', 10), 0);
+    tenus2.shift()(new Response(JSON.stringify({ ok: true, texte: 'dix', langue: 'fr' }), { status: 200 }));
+    await T.attendre(() => tenus2.length === 1, 2000, 5);
+    v('un travail fini rend sa place (pas son budget)', [M2.placeLibre('u_ben'), M2.budgetAttente('u_ben', 5)], [true, 3600]);
+    tenus2.shift()(new Response(JSON.stringify({ ok: true, texte: 'onze', langue: 'fr' }), { status: 200 }));
+    await T.attendre(() => poses2.length === 6, 2000, 5);
+    M2.arreter();
   } catch (e) {
     console.log('  ✗ le banc a jeté : ' + (e && e.stack || e));
     process.exitCode = 1;

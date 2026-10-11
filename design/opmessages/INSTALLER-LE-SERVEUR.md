@@ -1051,18 +1051,19 @@ L'adresse réseau de chaque appareil qui rejoint une salle par lui, l'heure, le 
 
 Décisions du 11 octobre 2026 : le calcul se fait **sur notre serveur** (aucune voix ne sort de la machine, aucun sous-traitant), il est **ouvert à tous en bêta** (avec un plafond), et il se fait **à la demande** : sous chaque vocal, « Voir la transcription ». Un vocal se transcrit **une seule fois**, et le texte est partagé par tous ceux qui peuvent écouter ce vocal.
 
-Tant que ces gestes ne sont pas faits, **rien ne change** : le service n'a pas d'ouvrier, la page ne propose rien. Une fois posé, « Voir la transcription » paraît sous les vocaux (après un rechargement de la page) ; si l'ouvrier tombe, les demandes sont refusées avec « réessaie dans une minute », et la surveillance le dit.
+Tant que ces gestes ne sont pas faits, **rien ne change** : le service n'a pas d'ouvrier, la page ne propose rien. Une fois posé, « Voir la transcription » paraît sous les vocaux (après un rechargement de la page) ; si l'ouvrier tombe, les demandes sont refusées avec « momentanément indisponible, réessaie dans 1 min », et la surveillance le dit.
 
 ⛔ **Tu n'as aucun secret à manipuler.** Le secret entre l'ouvrier et OP MESSAGES naît **sur le VPS**, tiré au hasard par le script, et il est écrit dans les deux configurations **sans jamais s'afficher**. **Tout ce que le script affiche peut se recoller** dans la conversation.
 
 ### Ce que l'ouvrier de transcription est — et n'est pas
 
 - **whisper.cpp 1.9.5**, un logiciel libre (licence MIT), **compilé sur le VPS depuis ses sources**, au commit épinglé dans le script (le commit récupéré lui est comparé : un autre n'est pas compilé), avec le modèle **« small »** (190 Mo, empreinte épinglée et vérifiée) et la détection de parole Silero (qui évite qu'un silence devienne un texte inventé). **ffmpeg** (paquet Ubuntu) convertit le vocal avant.
-- **Un processus à part**, dans **son** unité (`opmsg-transcrire@beta`), sous **son** compte (`opmsg-transcrire-beta`) : il ne peut rien lire du service (ni sa base, ni sa clé maître), **n'a aucune sortie réseau** (l'unité le refuse : il n'écoute que la boucle locale), garde ses fichiers de travail **en mémoire vive** (effacés après chaque vocal, et avec l'unité), et il est **borné** : 1 200 Mo de mémoire, deux cœurs, priorité basse — si quelque chose doit ploier sur ce VPS, ce n'est pas OP GESTION.
+- **Un processus à part**, dans **son** unité (`opmsg-transcrire@beta`), sous **son** compte (`opmsg-transcrire-beta`) : il ne peut rien lire du service (ni sa base, ni sa clé maître, ni les configurations des instances — `/etc/opmsg` est vide pour lui, sauf la sienne), **n'a aucun réseau** (pas même la boucle locale : il n'écoute qu'une **socket Unix**, `/run/opmsg-transcrire-beta/ouvrier.sock`, que seule l'unité de l'instance peut joindre), garde ses fichiers de travail **en mémoire vive** (effacés après chaque vocal, et avec l'unité ; aucun vidage mémoire sur le disque), ses appels au système sont **filtrés**, et il est **borné** : 1 200 Mo de mémoire, deux cœurs, priorité basse, le premier tué si la mémoire manque — si quelque chose doit ploier sur ce VPS, ce n'est pas OP GESTION.
+- **Pourquoi une socket et pas un port** (relecture du gardien, 11 octobre 2026) : un port de la boucle locale se *squatte* — un processus de la machine qui le prenait pendant un redémarrage de l'ouvrier aurait reçu le secret et les octets des vocaux. La socket vit dans le dossier de l'unité (droits 0750, groupe de l'ouvrier) ; seule l'unité de l'instance reçoit ce groupe, par un petit complément (`/etc/systemd/system/teamop-msg@beta.service.d/transcription.conf`, posé et retiré par le script).
 - **Un vocal à la fois.** Mesuré dans le conteneur de développement : ~9 s de calcul pour 7 s de parole, ~10 s pour 15 s, sur deux cœurs ; ~470 Mo de mémoire pendant le calcul. **À remesurer sur le VPS** (il est partagé avec OP GESTION) : la première fois, regarde combien de temps met « Voir la transcription ».
 - **Le texte est rangé avec le message**, scellé comme lui ; il se lit comme lui (qui ne voit pas le vocal ne voit pas son texte) et part avec lui (un vocal supprimé emporte sa transcription). Ce qu'un vocal a dit se retrouve dans « Retrouver ».
-- **Plafonné** : 30 demandes par personne et par heure, 8 vocaux en file au plus, 5 minutes de vocal au plus, trois essais par vocal.
-- **Une instance à part de l'autre** : la bêta et la production ont chacune leur ouvrier, leur compte, leur secret et leur port (7860 pour la bêta, 7861 pour la production, en boucle locale seulement : **aucun port à ouvrir chez l'hébergeur**). Le programme et les modèles sont partagés, en lecture seule.
+- **Plafonné, et partagé équitablement** : 30 transcriptions *calculées* par personne et par heure (relire une transcription déjà là ne compte pas), **2 vocaux en file par personne** et 8 en tout, **15 minutes de vocal par personne et par heure**, 5 minutes au plus par vocal — durée **mesurée** par l'ouvrier, jamais celle annoncée par l'appareil —, trois essais par vocal. Chaque refus dit le vrai : la file pleine, ses propres vocaux encore en calcul, le budget de l'heure, ou l'ouvrier indisponible.
+- **Une instance à part de l'autre** : la bêta et la production ont chacune leur ouvrier, leur compte, leur secret et leur socket. **Aucun port à ouvrir chez l'hébergeur**, aucun port du tout. Le programme et les modèles sont partagés, en lecture seule.
 
 ### 1. Ce qu'il faut à la machine — à regarder AVANT
 
@@ -1088,13 +1089,13 @@ bash /root/install-transcription.sh beta
 C'est un **fichier** : lis-le si tu veux avant de le lancer (`less /root/install-transcription.sh`). Il fait, dans l'ordre :
 
 1. vérifie tout ce dont il a besoin **avant d'écrire quoi que ce soit** : l'instance, sa version, la mémoire et le disque ;
-2. installe ffmpeg, puis récupère whisper.cpp **au commit épinglé**, le compare, et le **compile** (quelques minutes : c'est l'étape longue) ;
+2. installe ffmpeg, puis récupère whisper.cpp **au commit épinglé**, le compare, et le **compile** — sous le compte `nobody`, jamais en root (quelques minutes : c'est l'étape longue). Il est compilé pour **ce** processeur : si le VPS change de machine, relancer le script le recompile ;
 3. télécharge les deux modèles et **vérifie leur empreinte** ;
 4. crée le compte de l'ouvrier, tire le secret au hasard, ici, et l'écrit dans les deux configurations ;
-5. démarre l'ouvrier, puis le **contrôle** : il refuse qui n'a pas le secret, et il **transcrit pour de vrai** l'échantillon de whisper.cpp (un discours public de 1961, en anglais) ;
-6. relance l'instance et attend qu'elle voie l'ouvrier.
+5. démarre l'ouvrier, puis le **contrôle** : sa socket n'est joignable que par son groupe, il refuse qui n'a pas le secret, et il **transcrit pour de vrai** l'échantillon de whisper.cpp (un discours public de 1961, en anglais) — **sous le bac à sable de l'unité** : si le filtre des appels système gênait ffmpeg ou whisper, c'est ici qu'on le verrait, et tout serait défait ;
+6. relance l'instance (avec le groupe de son ouvrier) et attend qu'elle voie l'ouvrier.
 
-Une étape ratée **défait tout** : la transcription est retirée, OP MESSAGES continue comme avant, et le script dit pourquoi.
+Une étape ratée **défait tout** — y compris une coupure de ta session SSH ou un Ctrl-C une fois les configurations écrites : la transcription est retirée, OP MESSAGES continue comme avant, et le script dit pourquoi.
 
 Une variable, **facultative** : `OPMSG_TRANSCRIPTION_THREADS` (le nombre de cœurs de calcul, de 1 à 8 ; défaut 2).
 
@@ -1109,6 +1110,7 @@ Une variable, **facultative** : `OPMSG_TRANSCRIPTION_THREADS` (le nombre de cœu
    modèle ggml-silero-v6.2.0.bin : téléchargement
    secret=nouveau instance=change ouvrier=change
 ── Contrôle de l'ouvrier (il refuse qui n'a pas le secret, et transcrit l'échantillon de whisper.cpp)…
+  ✓ sa socket n'est joignable que par son groupe (0660) · droits 660
   ✓ l'ouvrier refuse qui ne présente pas le secret · HTTP 401
   ✓ l'ouvrier refuse un secret faux · HTTP 401
   ✓ avec le secret, sa sonde répond et dit ses programmes et son modèle en place · HTTP 200
@@ -1128,7 +1130,8 @@ Les sorties d'erreur possibles — **colle toute la sortie** dans la conversatio
 - **`il en faut au moins`** (mémoire ou disque) → la machine est trop juste. Rien n'est écrit.
 - **`n'est pas celui qui est épinglé`**, **`n'a pas pu être récupéré`**, **`la compilation a échoué`** → whisper.cpp n'est pas posé. Rien d'autre n'est écrit.
 - **`ne porte pas l'empreinte attendue`**, **`n'a pas pu être téléchargé`** → le modèle n'est pas gardé. Rien d'autre n'est écrit.
-- **`l'ouvrier de transcription n'a pas démarré`**, **`l'ouvrier ne fait pas ce qu'il doit`**, **`ne voit pas l'ouvrier`** → tout est défait. `systemctl status opmsg-transcrire@beta --no-pager | head -5` dit souvent pourquoi : colle-le.
+- **`l'ouvrier de transcription n'a pas démarré`**, **`l'ouvrier ne fait pas ce qu'il doit`**, **`ne voit pas l'ouvrier`**, **`une étape a échoué`**, **`installation interrompue`** → tout est défait. `systemctl status opmsg-transcrire@beta --no-pager | head -5` dit souvent pourquoi : colle-le.
+- **`setpriv est absent`** → le paquet `util-linux` manque (il est toujours là sur Ubuntu) : rien n'est écrit.
 
 ### 3. Vérifier
 

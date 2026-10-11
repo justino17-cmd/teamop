@@ -12,10 +12,14 @@
  * ⛔ UN TRAVAIL À LA FOIS : un deuxième reçoit 503 `occupe` (le service tient la file). Chaque programme a son délai (SIGKILL au groupe de processus) ; aucun ne passe par un shell.
  * ⛔ RIEN DU CONTENU DANS LE JOURNAL : ni le texte, ni la langue, ni la taille exacte — une ligne dit l'issue (`ok`, `vide`, `echec` et le NOM de l'étape), et le temps.
  *
- * Le protocole (HTTP sur 127.0.0.1, chaque requête porte `Authorization: Bearer <secret>`) :
+ * ⛔ UNE SOCKET UNIX, PAS UN PORT (relecture du gardien, 11 octobre 2026) : un port de la boucle locale se SQUATTE — un processus de la machine qui le prend pendant un redémarrage
+ *    recevait le secret et les octets des vocaux. La socket vit dans le dossier d'exécution de l'unité (0750, groupe de l'ouvrier, dont le compte du service est membre) : seul le
+ *    service la joint, et l'unité n'a plus AUCUN réseau (`PrivateNetwork`). Un port reste possible pour les bancs.
+ *
+ * Le protocole (HTTP sur la socket, chaque requête porte `Authorization: Bearer <secret>`) :
  *   GET  /sante        → 200 { ok, sha, occupe }          `ok` : les trois programmes et le modèle sont là, exécutables / lisibles
  *   POST /transcrire   → 200 { ok:true, texte, langue }   corps : les octets du vocal ; en-tête `X-Langue` (fr, en, … ou auto)
- *                        → 503 occupe · 413 trop_lourd · 400 format (ffmpeg n'a rien su lire) · 504 delai · 500 echec
+ *                        → 503 occupe · 413 trop_lourd (octets) ou trop_long (durée MESURÉE, jamais celle annoncée) · 400 format (ffmpeg n'a rien su lire) · 504 delai · 500 echec
  *   POST /quitter      → 200 puis sortie : le service le demande quand l'ouvrier tourne sur un code d'AVANT le sien (l'unité le relance aussitôt sur le code déployé)
  *
  * La configuration : un fichier JSON (`OPMSG_TRANSCRIRE_CONFIG`, posé par l'installation, lisible de ce compte seul) — voir `lireConfig`. Lancer à la main (essai) :
@@ -30,15 +34,24 @@ const { spawn } = require('child_process');
 
 const OCTETS_MAX_DEFAUT = 10485760;                 // 10 Mo : le plafond d'un vocal côté service (`pieces.vocalMax`)
 const DUREE_MAX_DEFAUT = 600;                       // le plafond d'un vocal côté service (`DUREE_VOCAL_MAX`)
-const RE_LANGUE = /^([a-z]{2,3}|auto)$/;
+/* ⛔ LES LANGUES QUE WHISPER CONNAÎT (sa table `g_lang`) : une autre (« zz » d'un profil) le faisait sortir en erreur — et le service prenait cette erreur pour une panne de
+   l'ouvrier, coupant la transcription de tout le monde (relecture du gardien). Une langue inconnue devient « auto » (whisper la détecte). */
+const LANGUES = new Set(('en zh de es ru ko fr ja pt tr pl ca nl ar sv it id hi fi vi he uk el ms cs ro da hu ta no th ur hr bg lt la mi ml cy sk te fa lv bn sr az sl kn et mk br eu is hy ' +
+  'ne mn bs kk sq sw gl mr pa si km sn yo so af oc ka be tg sd gu am yi lo uz fo ht ps tk nn mt sa lb my bo tl mg as tt haw ln ha ba jw su yue').split(' '));
+const langueOuvrier = (x) => { const l = String(x || '').toLowerCase().trim(); return l === 'auto' || LANGUES.has(l) ? l : 'auto'; };
+/* ⛔ ce que ffmpeg a le droit de lire : les conteneurs d'un vocal (WebM/Matroska de Chrome, MP4 de Safari, Ogg de Firefox, MP3, AAC, WAV) — un fichier qui se déguise (un
+   « concat » derrière un en-tête ID3) n'est pas ouvert du tout, au lieu de compter sur `safe=1` (relecture du gardien, essayé avec ffmpeg 6.1) */
+const FORMATS = 'matroska,webm,ogg,mov,mp4,m4a,mp3,aac,wav';
 
 /* ⛔ CE QUE WHISPER « ENTEND » DANS LE SILENCE : des génériques de vidéos appris à l'entraînement. La détection de parole (VAD, Silero) en retire presque tout ; ce qui passe encore se
    reconnaît ici — UNIQUEMENT quand c'est TOUT le texte (« merci d'avoir regardé » au milieu d'un vrai message reste). Un vocal sans parole rend un texte VIDE, que la page dit
    « Aucune parole reconnue » : un texte inventé serait pire qu'une absence de texte. */
+/* ⛔ SEULEMENT LES GÉNÉRIQUES DE VIDÉOS : « Merci ! », « Thank you », « merci à tous » sont de VRAIS vocaux, très courants — les écarter disait « Aucune parole reconnue »
+   pour un message qu'on venait d'entendre (relectures du gardien et du relecteur). Le silence, lui, est l'affaire de la détection de parole (`--vad`). */
 const PHRASES_FANTOMES = [
   'sous-titres réalisés par la communauté d\'amara.org', 'sous-titres réalisés para la communauté d\'amara.org', 'sous-titrage st\' 501', 'sous-titrage société radio-canada',
-  'sous-titrage fr', 'sous-titres par', 'merci d\'avoir regardé', 'merci d\'avoir regardé cette vidéo', 'merci de votre attention', 'merci à tous', 'abonnez-vous',
-  'thank you for watching', 'thanks for watching', 'thank you', 'thank you.', 'you', 'merci', 'merci.',
+  'sous-titrage fr', 'sous-titres par', 'merci d\'avoir regardé', 'merci d\'avoir regardé cette vidéo', 'abonnez-vous', 'abonnez-vous à la chaîne',
+  'thank you for watching', 'thanks for watching', 'please subscribe',
 ];
 const ANNOTATIONS = /\[(?:blank_audio|silence|musique|music|bruit|applaudissements|rires|inaudible|son|sound)\]|\((?:musique|music|silence|rires|applaudissements|inaudible)\)|[♪♫]+/gi;
 const norme = (t) => t.normalize('NFC').toLowerCase().replace(/[’]/g, '\'').replace(/[\s.!?…,;:«»"-]+$/g, '').replace(/^[\s.!?…,;:«»"-]+/g, '').replace(/\s+/g, ' ').trim();
@@ -56,13 +69,16 @@ function lireConfig(chemin) {
   const err = (m) => Object.assign(new Error('configuration : ' + m), { code: 'CONFIG' });
   if (!c || typeof c !== 'object' || Array.isArray(c)) throw err('un objet JSON est attendu');
   if (typeof c.secret !== 'string' || !/^[A-Za-z0-9_-]{32,128}$/.test(c.secret)) throw err('secret absent ou mal formé (32 à 128 caractères)');   // ⛔ jamais la valeur dans le message
-  const port = c.port;
-  if (!Number.isInteger(port) || port < 1024 || port > 65535) throw err('port : un entier entre 1024 et 65535');
+  /* une SOCKET (le VPS) ou un port de la boucle locale (les bancs) — l'un des deux, jamais les deux */
+  const port = c.port === undefined || c.port === null ? null : c.port, socket = c.socket === undefined || c.socket === null ? null : c.socket;
+  if ((port === null) === (socket === null)) throw err('une socket (chemin absolu) OU un port, l\'un des deux');
+  if (port !== null && (!Number.isInteger(port) || port < 1024 || port > 65535)) throw err('port : un entier entre 1024 et 65535');
+  if (socket !== null && (typeof socket !== 'string' || !path.isAbsolute(socket) || socket.length > 100 || /\.\.|[^A-Za-z0-9/._-]/.test(socket))) throw err('socket : un chemin absolu court, sans « .. »');
   for (const k of ['whisper', 'modele', 'ffmpeg']) if (typeof c[k] !== 'string' || !path.isAbsolute(c[k])) throw err(k + ' : un chemin absolu');
   if (c.vad !== undefined && c.vad !== null && (typeof c.vad !== 'string' || !path.isAbsolute(c.vad))) throw err('vad : un chemin absolu, ou absent');
   const ent = (k, def, min, max) => { const v = c[k] === undefined ? def : c[k]; if (!Number.isInteger(v) || v < min || v > max) throw err(k + ' : un entier entre ' + min + ' et ' + max); return v; };
   return {
-    secret: c.secret, port, hote: '127.0.0.1',
+    secret: c.secret, port, socket, hote: '127.0.0.1',
     whisper: c.whisper, modele: c.modele, ffmpeg: c.ffmpeg, vad: c.vad || null,
     threads: ent('threads', 2, 1, 32), faisceau: ent('faisceau', 1, 1, 8),
     octetsMax: ent('octetsMax', OCTETS_MAX_DEFAUT, 1024, 268435456), dureeMaxS: ent('dureeMaxS', DUREE_MAX_DEFAUT, 1, 3600),
@@ -114,12 +130,15 @@ function creerOuvrier(cfg, { journal = () => {}, horloge = Date.now, dossierTrav
       const entree = path.join(dossier, 'entree'), wav = path.join(dossier, 'audio.wav'), base = path.join(dossier, 'texte');
       fs.writeFileSync(entree, octets, { mode: 0o600 });
       /* ffmpeg : seulement des fichiers locaux (`-protocol_whitelist`), pas de vidéo ni de sous-titres ni de données, ni les métadonnées ; la durée et la taille de SORTIE bornées */
-      const f = await lancer(cfg.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-protocol_whitelist', 'file', '-t', String(cfg.dureeMaxS), '-i', entree,
-        '-vn', '-sn', '-dn', '-map_metadata', '-1', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', '-fs', String(cfg.dureeMaxS * 32000 + 4096), '-f', 'wav', wav], { delaiMs: cfg.delaiFfmpegMs, sortieMax: 65536, cwd: dossier });
+      /* ⛔ on décode UNE seconde de plus que le plafond : un vocal plus long que lui est REFUSÉ (413 trop_long), jamais tronqué en silence — sa durée annoncée par l'appareil
+         ne compte pas (relecture du gardien : un vocal de dix minutes annoncé « 1 s » occupait l'ouvrier bien au-delà de ce que le service attendait) */
+      const f = await lancer(cfg.ffmpeg, ['-hide_banner', '-nostdin', '-loglevel', 'error', '-threads', '1', '-protocol_whitelist', 'file', '-format_whitelist', FORMATS, '-t', String(cfg.dureeMaxS + 1), '-i', entree,
+        '-vn', '-sn', '-dn', '-map_metadata', '-1', '-ar', '16000', '-ac', '1', '-c:a', 'pcm_s16le', '-fs', String((cfg.dureeMaxS + 1) * 32000 + 4096), '-f', 'wav', wav], { delaiMs: cfg.delaiFfmpegMs, sortieMax: 65536, cwd: dossier });
       if (f.absent) return { statut: 500, corps: { error: 'echec', etape: 'ffmpeg_absent' } };
       if (f.delai) return { statut: 504, corps: { error: 'delai', etape: 'ffmpeg' } };
       let tailleWav = 0; try { tailleWav = fs.statSync(wav).size; } catch (e) { tailleWav = 0; }
       if (f.code !== 0 || tailleWav <= 44) return { statut: 400, corps: { error: 'format' } };
+      if ((tailleWav - 44) / 32000 > cfg.dureeMaxS + 0.5) return { statut: 413, corps: { error: 'trop_long' } };
       const duree = Math.min(cfg.dureeMaxS, Math.max(1, Math.ceil((tailleWav - 44) / 32000)));      // la durée RÉELLE (le WAV que ffmpeg a écrit), jamais celle que l'appareil a annoncée
       const args = ['-m', cfg.modele, '-f', wav, '-l', langue, '-t', String(cfg.threads), '-bs', String(cfg.faisceau), '-bo', String(cfg.faisceau), '-nt', '-np', '-oj', '-of', base];
       if (cfg.vad) args.push('--vad', '--vad-model', cfg.vad);
@@ -132,7 +151,7 @@ function creerOuvrier(cfg, { journal = () => {}, horloge = Date.now, dossierTrav
       if (!j || !Array.isArray(j.transcription)) return { statut: 500, corps: { error: 'echec', etape: 'sortie' } };
       const texte = nettoyerTexte(j.transcription.map(s => (s && typeof s.text === 'string' ? s.text : '')).join(' '));
       const lg = !texte ? null : j.result && typeof j.result.language === 'string' && /^[a-z]{2,3}$/.test(j.result.language) ? j.result.language : (langue !== 'auto' ? langue : null);      // un vocal sans parole n'a pas de langue
-      return { statut: 200, corps: { ok: true, texte, langue: lg, ms: horloge() - t0 } };
+      return { statut: 200, corps: { ok: true, texte, langue: lg, ms: horloge() - t0 } };      // `ms` : pour le service ; le JOURNAL n'en garde que des secondes
     } finally {
       try { fs.rmSync(dossier, { recursive: true, force: true }); } catch (e) { /* le tmpfs de l'unité part avec elle */ }
     }
@@ -150,8 +169,7 @@ function creerOuvrier(cfg, { journal = () => {}, horloge = Date.now, dossierTrav
     if (req.method === 'GET' && url === '/sante') { req.resume(); return repondre(res, 200, { ok: pret(), sha, occupe }); }
     if (req.method === 'POST' && url === '/quitter') { req.resume(); repondre(res, 200, { ok: true }); if (quitter) setImmediate(quitter); return; }
     if (req.method !== 'POST' || url !== '/transcrire') { req.resume(); return repondre(res, 404, { error: 'introuvable' }); }
-    const lg = String(req.headers['x-langue'] || 'fr').toLowerCase();
-    const langue = RE_LANGUE.test(lg) ? lg : 'fr';
+    const langue = langueOuvrier(req.headers['x-langue'] || 'fr');
     const annonce = Number(req.headers['content-length']);
     if (Number.isFinite(annonce) && annonce > cfg.octetsMax) { req.resume(); return repondre(res, 413, { error: 'trop_lourd' }); }
     if (occupe) { req.resume(); return repondre(res, 503, { error: 'occupe' }); }
@@ -166,7 +184,7 @@ function creerOuvrier(cfg, { journal = () => {}, horloge = Date.now, dossierTrav
       try { r = await transcrire(Buffer.concat(morceaux), langue); }
       catch (e) { r = { statut: 500, corps: { error: 'echec', etape: 'interne' } }; }
       finally { occupe = false; }
-      journal(r.statut === 200 ? (r.corps.texte ? 'ok' : 'vide') : r.corps.error + (r.corps.etape ? ':' + r.corps.etape : ''), r.corps.ms || 0);
+      journal(r.statut === 200 ? (r.corps.texte ? 'ok' : 'vide') : r.corps.error + (r.corps.etape ? ':' + r.corps.etape : ''), Math.round((r.corps.ms || 0) / 1000));      // des SECONDES : le temps de calcul suit la durée du vocal, le journal n'en dit pas plus
       repondre(res, r.statut, r.corps);
     });
   });
@@ -174,23 +192,30 @@ function creerOuvrier(cfg, { journal = () => {}, horloge = Date.now, dossierTrav
   serveur.headersTimeout = 10000;
   return {
     serveur, transcrire, pret, nettoyerTexte,
-    ecouter: () => new Promise((resolve, reject) => { serveur.once('error', reject); serveur.listen(cfg.port, cfg.hote, () => resolve(serveur.address())); }),
+    /* la socket : une ancienne (un arrêt brutal) est retirée avant d'écouter ; la neuve est en 0660 — le groupe de l'ouvrier, dont le service est membre, et personne d'autre */
+    ecouter: () => new Promise((resolve, reject) => {
+      serveur.once('error', reject);
+      if (cfg.socket) {
+        try { fs.unlinkSync(cfg.socket); } catch (e) { if (e.code !== 'ENOENT') return reject(e); }
+        serveur.listen(cfg.socket, () => { try { fs.chmodSync(cfg.socket, 0o660); } catch (e) { return reject(e); } resolve(serveur.address()); });
+      } else serveur.listen(cfg.port, cfg.hote, () => resolve(serveur.address()));
+    }),
     fermer: () => new Promise((resolve) => serveur.close(() => resolve())),
     surQuitter: (f) => { quitter = f; },
   };
 }
 
-module.exports = { creerOuvrier, lireConfig, nettoyerTexte, PHRASES_FANTOMES };
+module.exports = { creerOuvrier, lireConfig, nettoyerTexte, langueOuvrier, PHRASES_FANTOMES, FORMATS };
 
 if (require.main === module) {
   const chemin = process.env.OPMSG_TRANSCRIRE_CONFIG;
   if (!chemin) { process.stderr.write('OPMSG_TRANSCRIRE_CONFIG est obligatoire\n'); process.exit(2); }
   let cfg;
   try { cfg = lireConfig(chemin); } catch (e) { process.stderr.write(String(e.message) + '\n'); process.exit(2); }
-  const journal = (issue, ms) => process.stdout.write(JSON.stringify({ t: new Date().toISOString(), transcription: issue, ms }) + '\n');
+  const journal = (issue, s) => process.stdout.write(JSON.stringify({ t: new Date().toISOString(), transcription: issue, s }) + '\n');
   const o = creerOuvrier(cfg, { journal });
   o.surQuitter(() => { o.fermer().then(() => process.exit(0)); setTimeout(() => process.exit(0), 3000).unref(); });
-  o.ecouter().then((a) => process.stdout.write(JSON.stringify({ t: new Date().toISOString(), demarre: true, port: a.port, pret: o.pret() }) + '\n'),
+  o.ecouter().then((a) => process.stdout.write(JSON.stringify({ t: new Date().toISOString(), demarre: true, socket: !!cfg.socket, pret: o.pret() }) + '\n'),
     (e) => { process.stderr.write('écoute impossible : ' + (e && e.code) + '\n'); process.exit(1); });
   for (const s of ['SIGTERM', 'SIGINT']) process.on(s, () => { o.fermer().then(() => process.exit(0)); setTimeout(() => process.exit(0), 3000).unref(); });
 }

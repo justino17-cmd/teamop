@@ -88,7 +88,6 @@ function creerHandlers(ctx) {
       case 'sondage_plein': return refus(res, 409, 'sondage_plein');
       case 'sondage_doublon': return refus(res, 409, 'sondage_doublon');
       case 'trop_long': return refus(res, 413, 'vocal_trop_long');
-      case 'occupe': res.set('Retry-After', '60'); return refus(res, 503, 'transcription_occupee', { retry: 60 });
       case 'indisponible': return refus(res, 503, 'transcription_absente');
       default: throw e;
     }
@@ -860,15 +859,39 @@ function creerHandlers(ctx) {
   };
   /* ── TRANSCRIRE UN VOCAL (11 octobre 2026 : « comme sur Instagram ») ── POST /api/conversations/:id/messages/transcrire  M  { seq }
      À la DEMANDE, une seule fois par vocal, partagée par tous ceux qui peuvent l'écouter : `transcriptionDemander` juge les droits (les filtres de la lecture : arrivé après, masqué pour
-     moi, échu, supprimé → 404 uniforme), rend une transcription déjà là telle quelle, et ne crée un travail que si l'ouvrier peut le prendre. → { transcription: { etat, texte?, langue? } }
-     ⛔ Le texte arrive par le flux (`transcription`) quand le calcul finit : la réponse dit « attente », jamais un texte inventé. Plafonné par personne et par heure. */
+     moi, échu, supprimé → 404 uniforme), rend une transcription déjà là telle quelle, et ne crée un travail que si `accepter` le permet. → { transcription: { etat, texte?, langue? } }
+     ⛔ Le texte arrive par le flux (`transcription`) quand le calcul finit : la réponse dit « attente », jamais un texte inventé.
+     ⛔ (relectures du gardien et du relecteur, 11 octobre 2026) · relire une transcription déjà là ne coûte RIEN : le plafond horaire ne se consomme que pour un travail qui part
+     (sinon dix relectures d'un vocal déjà transcrit épuisaient la journée) ; · chaque refus dit le vrai : l'ouvrier en panne n'est pas « beaucoup de vocaux » (`transcription_indisponible`),
+     la file pleine, si (`transcription_occupee`), ses propres vocaux encore en calcul se disent à part (`transcription_en_cours`), le budget de secondes de l'heure se dit avec son attente (`transcription_budget`) ; · le budget se
+     compte sur la durée du vocal, une personne ne monopolise pas l'ouvrier par des vocaux de dix minutes. */
+  const REFUS_TRANSCRIPTION = { ouvrier_absent: [503, 'transcription_indisponible', 60], occupe: [503, 'transcription_occupee', 60], mes_vocaux: [429, 'transcription_en_cours', 30], budget: [429, 'transcription_budget'], quota: [429, 'quota_atteint'] };
   H['msg.transcrire'] = (req, res) => {
     const tr = ctx.transcription;
     if (!tr || !tr.configure) return refus(res, 503, 'transcription_absente');
     const s = seqCorps(req, res); if (s === null) return;
-    if (!plafond(res, 'transcrire', req.moi.id, { max: tr.parHeure(), fenetreMs: 3600000 }, facteurJeune(req.moi))) return;
-    const conv = req.conv.conv.id;
-    const r = stockage.transcriptionDemander({ conv, seq: s, uid: req.moi.id, essaisMax: tr.essais(), dureeMaxS: tr.dureeMaxS(), accepter: tr.actif() && tr.placeLibre() });
+    const conv = req.conv.conv.id, uid = req.moi.id;
+    let attente = 0;
+    const accepter = (travail) => {
+      if (!tr.actif()) return 'ouvrier_absent';
+      if (!tr.placeLibre()) return 'occupe';
+      if (!tr.placeLibre(uid)) return 'mes_vocaux';
+      attente = tr.budgetAttente(uid, travail.dur);
+      if (attente > 0) return 'budget';
+      const q = Object.assign({ max: tr.parHeure(), fenetreMs: 3600000 }, config.quotas.transcrire || {});
+      const r = quotas.essai('transcrire:' + uid, Math.max(1, Math.floor(q.max * facteurJeune(req.moi))), q.fenetreMs);
+      if (!r.ok) { attente = r.retry; return 'quota'; }
+      return null;
+    };
+    let r;
+    try { r = stockage.transcriptionDemander({ conv, seq: s, uid, essaisMax: tr.essais(), dureeMaxS: tr.dureeMaxS(), accepter }); }
+    catch (e) {
+      const d = e && REFUS_TRANSCRIPTION[e.code];
+      if (!d) throw e;
+      const retry = d[2] || attente || 60;
+      res.set('Retry-After', String(retry));
+      return refus(res, d[0], d[1], { retry });
+    }
     if (r.nouveau && r.travail) tr.mettreEnFile(r.travail);
     const vue = r.vue || Object.assign({ etat: r.etat }, Number.isFinite(r.maj) ? { maj: r.maj } : {});
     if (r.definitif) vue.definitif = true;

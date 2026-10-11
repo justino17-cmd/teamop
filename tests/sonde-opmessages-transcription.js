@@ -1,12 +1,15 @@
 /* ══ SONDE — « VOIR LA TRANSCRIPTION » SOUS UN VOCAL, DANS LA VRAIE PAGE SERVIE (11 octobre 2026, « comme sur Instagram ») ══════════════════════════════════════════════
    Contre le VRAI service, deux personnes, et un FAUX ouvrier de transcription sur la boucle locale (il répond quand la sonde le décide ; le vrai est joué par test-1001
    et par le contrôle de l'installation). Ana au téléphone (390 px, au doigt), Ben au bureau :
-     1. sous chaque vocal de Ben, « Voir la transcription » — 44 px sous le doigt, dans l'écran, du côté de la bulle ; RIEN sous un vocal trop long, rien sous un texte ;
-     2. toucher : « Masquer la transcription », « Transcription en cours… », UN travail chez l'ouvrier, le focus reste sur le lien ;
+     1. sous chaque vocal de Ben, « Voir la transcription » — 32 px dans la mise en page, 44 px sous le doigt (zone étendue), dans l'écran, du côté de la bulle ; RIEN sous un
+        vocal trop long, rien sous un texte ;
+     2. toucher : « Masquer la transcription » (le lien ne bouge pas : le texte vient APRÈS lui), « Transcription en cours… » annoncé, UN travail chez l'ouvrier, le focus reste
+        sur le lien ;
      3. le texte arrive (par le flux) : dans une bulle de l'auteur, ÉCHAPPÉ, qui passe à la ligne et tient dans l'écran ; le lecteur d'écran l'apprend ;
      4. Ben, au bureau, sur SON vocal : le texte est déjà là — aucun nouveau calcul —, à droite ;
-     5. un échec : la phrase et « Réessayer » (44 px) ; réessayer rend le focus au lien et le texte finit par arriver ;
-     6. le menu d'un vocal : « Voir la transcription », puis « Copier la transcription » ;
+     5. un échec : la phrase et « Réessayer » (44 px) ; réessayer rend le focus au lien et un LONG texte finit par arriver, coupé, avec « Voir plus » ;
+     6. le menu d'un vocal : « Voir la transcription » (au clavier : le focus va au lien), puis « Copier la transcription » (le texte part au presse-papiers) ;
+     6 bis. « Retrouver » : un vocal trouvé par ce qu'il dit porte le micro, et le toucher ouvre sa transcription en arrivant ;
      7. les deux thèmes (contraste du texte ≥ 4,5:1), les couleurs forcées (un contour), le mouvement réduit (la roue ne tourne pas) ; aucune erreur JavaScript.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-transcription.js   (CAPTURES=/dossier pour les images)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
@@ -83,8 +86,13 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
     const etatN = async (X, n) => { const ids = await vocaux(X); return X.page.evaluate(({ mid }) => {
       const m = Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).find(x => x.dataset.mid === mid);
       const lien = m && m.querySelector('.transcrire-lien'), p = m && m.querySelector('p.transcription'), vo = m && m.querySelector('.vocal');
-      const R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { g: Math.round(r.left), d: Math.round(r.right), h: Math.round(r.height), l: Math.round(r.width) }; };
-      return { mid, lien: lien ? { mot: lien.textContent, exp: lien.getAttribute('aria-expanded'), ctrl: lien.getAttribute('aria-controls'), r: R(lien) } : null,
+      const R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return { g: Math.round(r.left), d: Math.round(r.right), h: Math.round(r.height), l: Math.round(r.width), t: Math.round(r.top), b: Math.round(r.bottom) }; };
+      /* la zone qui RÉPOND au doigt : ce que le point touché déclenche, 5 px au-dessus et au-dessous du lien (sa zone étendue) */
+      const repond = (x, y) => { const e = document.elementFromPoint(x, y); return !!e && !!lien && (e === lien || lien.contains(e)); };
+      const rl = lien && lien.getBoundingClientRect();
+      return { mid, lien: lien ? { mot: lien.textContent, exp: lien.getAttribute('aria-expanded'), ctrl: lien.getAttribute('aria-controls'), r: R(lien),
+        zone: [repond(rl.left + rl.width / 2, rl.top - 5), repond(rl.left + rl.width / 2, rl.bottom + 5)], avantTexte: !!p && !!(lien.compareDocumentPosition(p) & Node.DOCUMENT_POSITION_FOLLOWING) } : null,
+        bloc: m ? Math.round(m.getBoundingClientRect().height) : 0,
         texte: p ? { t: p.textContent, id: p.id, html: p.innerHTML, cls: p.className, lang: p.getAttribute('lang'), r: R(p), btn: p.querySelector('.tr-reessayer') ? R(p.querySelector('.tr-reessayer')) : null } : null,
         vocal: R(vo), vue: { l: innerWidth }, large: document.documentElement.scrollWidth <= innerWidth + 1, focus: document.activeElement && document.activeElement.dataset ? (document.activeElement.dataset.transcrire || null) : null };
     }, { mid: ids[n] }); };
@@ -95,18 +103,23 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
     vrai('population : trois vocaux de Ben dans le fil', await att(A, () => Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).filter(m => m.querySelector('.vocal')).length === 3));
     vrai('le lien paraît sous les vocaux (la page a demandé au service si la transcription est installée)', await att(A, () => document.querySelectorAll('#conv-messages .transcrire-lien').length >= 1));
     const e0 = await etatN(A, 0), eLong = await etatN(A, 2);
-    v('« Voir la transcription », fermé (aria-expanded="false")', e0.lien && [e0.lien.mot, e0.lien.exp], ['Voir la transcription', 'false']);
-    v('⛔ 44 px sous le doigt, dans l\'écran, du côté de la bulle reçue (à gauche), et rien ne défile de côté', [e0.lien.r.h >= 44, e0.lien.r.g >= 0 && e0.lien.r.d <= e0.vue.l, Math.abs(e0.lien.r.g - e0.vocal.g) <= 12, e0.large], [true, true, true, true]);
+    v('« Voir la transcription », fermé (son nom dit l\'état : pas d\'`aria-expanded` en double)', e0.lien && [e0.lien.mot, e0.lien.exp], ['Voir la transcription', null]);
+    /* ⛔ (relecture du relecteur, mesuré) : le lien de 44 px grandissait CHAQUE vocal de 44 px — 32 px dans la mise en page, 44 sous le doigt */
+    v('⛔ 32 px dans la mise en page, mais 44 px qui RÉPONDENT au doigt (5 px au-dessus et au-dessous) ; dans l\'écran, du côté de la bulle reçue ; rien ne défile de côté',
+      [e0.lien.r.h, e0.lien.zone, e0.lien.r.g >= 0 && e0.lien.r.d <= e0.vue.l, Math.abs(e0.lien.r.g - e0.vocal.g) <= 12, e0.large], [32, [true, true], true, true, true]);
+    vrai('⛔ le vocal ne grandit que de son lien (32 px), pas de 44 (' + e0.bloc + ' px pour un vocal de ' + e0.vocal.h + ')', e0.bloc - e0.vocal.h <= 40);
     v('⛔ RIEN sous un vocal plus long que ce que le service transcrit (400 s > 300)', eLong.lien, null);
     v('   ni sous un texte', await A.page.evaluate(() => Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).filter(m => !m.querySelector('.vocal') && m.querySelector('.transcrire-lien')).length), 0);
     await capture(A, 'tr1-lien');
 
     console.log('\n── 2. Toucher : « Transcription en cours… », un seul calcul ──');
     await A.page.locator('#conv-messages .transcrire-lien').first().tap();
-    vrai('« Masquer la transcription », et « Transcription en cours… » dans une bulle reliée au lien', await att(A, () => { const l = document.querySelector('#conv-messages .transcrire-lien[aria-expanded="true"]'); const p = l && document.getElementById(l.getAttribute('aria-controls')); return !!l && l.textContent === 'Masquer la transcription' && !!p && /Transcription en cours…/.test(p.textContent); }));
+    vrai('« Masquer la transcription », et « Transcription en cours… » dans une bulle reliée au lien', await att(A, () => { const l = document.querySelector('#conv-messages .transcrire-lien[aria-controls]'); const p = l && document.getElementById(l.getAttribute('aria-controls')); return !!l && l.textContent === 'Masquer la transcription' && !!p && /Transcription en cours…/.test(p.textContent); }));
+    vrai('⛔ l\'ouverture s\'annonce au lecteur d\'écran (« Transcription en cours »)', await att(A, () => document.getElementById('conv-annonce').textContent === 'Transcription en cours'), await annonce(A));
     vrai('⛔ UN travail chez l\'ouvrier, avec les octets du vocal', await T.attendre(() => W.travaux.length === 1 && W.travaux[0].n > 4000, 5000, 20));
     const e1 = await etatN(A, 0);
     v('le focus reste sur le lien (le fil s\'est redessiné)', e1.focus, e1.mid);
+    v('⛔ le lien ne bouge pas quand le texte s\'ouvre : le texte vient APRÈS lui (un second toucher au même endroit le referme)', [e1.lien.r.t, e1.lien.avantTexte], [e0.lien.r.t, true]);
     v('la roue ne tourne pas en mouvement réduit', await A.page.evaluate(() => getComputedStyle(document.querySelector('.tr-roue')).animationName), 'none');
     await capture(A, 'tr2-en-cours');
 
@@ -130,7 +143,7 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
     await capture(B, 'tr4-bureau');
 
     console.log('\n── 5. Un échec, puis « Réessayer » ──');
-    await A.page.locator('#conv-messages .transcrire-lien:not([aria-expanded="true"])').first().tap();
+    await A.page.locator('#conv-messages .transcrire-lien:not([aria-controls])').first().tap();
     await T.attendre(() => W.enAttente.length === 1, 5000, 20);
     W.relacher(500, { error: 'echec', etape: 'whisper' });
     vrai('la phrase, et « Réessayer »', await att(A, () => Array.from(document.querySelectorAll('#conv-messages p.transcription')).some(p => /La transcription n'a pas pu se faire\./.test(p.textContent) && p.querySelector('.tr-reessayer'))));
@@ -142,11 +155,16 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
     await A.page.locator('#conv-messages .tr-reessayer').first().tap();
     vrai('⛔ « Réessayer » disparu, le focus passe au lien du même vocal', await att(A, (mid) => document.activeElement && document.activeElement.dataset && document.activeElement.dataset.transcrire === mid, e3.mid));
     vrai('un nouveau travail part', await T.attendre(() => W.enAttente.length === 1, 5000, 20));
-    W.relacher(200, { ok: true, texte: 'Deuxième vocal transcrit', langue: 'fr' });
-    vrai('le texte finit par arriver', await att(A, () => Array.from(document.querySelectorAll('#conv-messages p.transcription')).some(p => p.textContent === 'Deuxième vocal transcrit')));
+    const LONG = ('Deuxième vocal transcrit : on reprend le chantier lundi, il faudra prévoir la nacelle et les deux échafaudages. ').repeat(8).trim();
+    W.relacher(200, { ok: true, texte: LONG, langue: 'fr' });
+    vrai('un LONG texte finit par arriver, coupé, avec « Voir plus »', await att(A, () => Array.from(document.querySelectorAll('#conv-messages p.transcription')).some(p => /^Deuxième vocal transcrit/.test(p.textContent) && !!p.querySelector('.tr-plus'))));
+    const hCoupe = await A.page.evaluate(() => { const p = Array.from(document.querySelectorAll('#conv-messages p.transcription')).find(x => x.querySelector('.tr-plus')); const b = p.querySelector('.tr-plus').getBoundingClientRect(); return { n: p.textContent.length, h: Math.round(p.getBoundingClientRect().height), b: Math.round(b.height) }; });
+    v('⛔ coupé à ~600 signes (pas une bulle sans fin), « Voir plus » à 44 px sous le doigt', [hCoupe.n < 640, hCoupe.b >= 44], [true, true]);
+    await A.page.locator('#conv-messages .tr-plus').first().tap();
+    vrai('« Voir plus » : le texte entier, et le focus passe au lien du même vocal', await att(A, ({ t, mid }) => Array.from(document.querySelectorAll('#conv-messages p.transcription')).some(p => p.textContent === t) && document.activeElement && document.activeElement.dataset && document.activeElement.dataset.transcrire === mid, { t: LONG, mid: e3.mid }));
 
     console.log('\n── 6. Le menu d\'un vocal ──');
-    await A.page.locator('#conv-messages .transcrire-lien[aria-expanded="true"]').first().tap();     // refermer le premier
+    await A.page.locator('#conv-messages .transcrire-lien[aria-controls]').first().tap();     // refermer le premier
     const menuDe = async (n) => {
       const ids = await vocaux(A);
       await A.page.evaluate((mid) => { const m = Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).find(x => x.dataset.mid === mid); m.querySelector('.msg-plus').click(); }, ids[n]);
@@ -158,6 +176,40 @@ const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
     };
     const mFerme = await menuDe(0), mOuvert = await menuDe(1);
     v('fermée : le menu propose « Voir la transcription » ; ouverte et prête : « Copier la transcription »', [mFerme.includes('Voir la transcription'), mOuvert.includes('Copier la transcription'), mOuvert.includes('Voir la transcription')], [true, true, false]);
+    /* ⛔ (relecture du relecteur, mesuré) : « Voir la transcription » choisie au clavier laissait le focus sur <body> (le repeint détruisait le déclencheur du menu) —
+       joué au BUREAU, au clavier, sur le deuxième vocal (fermé chez Ben) */
+    {
+      const ids = await vocaux(B);
+      await B.page.evaluate((mid) => { const m = Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).find(x => x.dataset.mid === mid); m.querySelector('.msg-plus').focus(); }, ids[1]);
+      vrai('population : le bouton du menu du vocal a le focus', await B.page.evaluate(() => !!document.activeElement && document.activeElement.classList.contains('msg-plus')));
+      await B.page.keyboard.press('Enter');
+      vrai('population : le menu propose « Voir la transcription »', await att(B, () => !document.getElementById('menu-fond').hidden && !!document.querySelector('#menu-msg [data-menu="transcrire"]')));
+      await B.page.waitForTimeout(500);              // le menu avale un clic dans ses 350 premières millisecondes (le relâcher de l'appui qui l'a ouvert)
+      await B.page.locator('#menu-msg [data-menu="transcrire"]').focus(); await B.page.keyboard.press('Enter');
+      vrai('⛔ « Voir la transcription » choisie au CLAVIER : le texte s\'ouvre, et le focus est sur le lien du vocal (pas sur la page)',
+        await att(B, (mid) => { const a = document.activeElement; return !!a && a.dataset && a.dataset.transcrire === mid && a.textContent === 'Masquer la transcription'; }, ids[1]),
+        await B.page.evaluate(() => document.activeElement ? document.activeElement.tagName + '.' + document.activeElement.className : 'rien'));
+      /* « Copier la transcription » : le presse-papiers reçoit le TEXTE (pas autre chose) — exécuté, pas lu */
+      await B.page.evaluate(() => { window.__copie = null; Object.defineProperty(navigator, 'clipboard', { configurable: true, value: { writeText: async (t) => { window.__copie = t; } } }); });
+      await B.page.evaluate((mid) => { const m = Array.from(document.querySelectorAll('#conv-messages .msg[data-mid]')).find(x => x.dataset.mid === mid); m.querySelector('.msg-plus').click(); }, ids[1]);
+      await att(B, () => !!document.querySelector('#menu-msg [data-menu="copier-transcription"]'));
+      await B.page.waitForTimeout(500);
+      await B.page.locator('#menu-msg [data-menu="copier-transcription"]').click();
+      vrai('⛔ « Copier la transcription » met le texte transcrit (entier) au presse-papiers, et le dit', await att(B, (t) => window.__copie === t && /Transcription copiée/.test(document.body.textContent), LONG), await B.page.evaluate(() => String(window.__copie).slice(0, 60)));
+    }
+
+    console.log('\n── 6 bis. « Retrouver » : un vocal trouvé par ce qu\'il dit ──');
+    await A.page.locator('#conv-messages .transcrire-lien[aria-controls]').first().tap();     // refermer : la recherche doit la rouvrir en arrivant
+    await att(A, () => !document.querySelector('#conv-messages .transcrire-lien[aria-controls]'));
+    await A.page.locator('#conv-titre').click();
+    await att(A, () => !!document.querySelector('#info-corps [data-act="chercher"]')); await A.page.waitForTimeout(400);
+    await A.page.locator('#info-corps [data-act="chercher"]').tap();
+    await att(A, () => !!document.getElementById('rc-q'));
+    vrai('la note dit qu\'on cherche aussi dans les vocaux transcrits', await att(A, () => /ce que disent les vocaux déjà transcrits/.test(document.getElementById('rc-etat').textContent)));
+    await A.page.locator('#rc-q').fill('clés du local');
+    vrai('le vocal est trouvé : le micro, et « Vocal : » pour le lecteur d\'écran', await att(A, () => { const r = document.querySelector('#rc-liste [data-rc-vocal="1"]'); return !!r && !!r.querySelector('svg') && /Vocal :/.test(r.textContent); }));
+    await A.page.locator('#rc-liste [data-rc-vocal="1"]').first().tap();
+    vrai('⛔ le toucher mène au vocal ET ouvre sa transcription — on voit pourquoi il correspond', await att(A, (t) => Array.from(document.querySelectorAll('#conv-messages p.transcription')).some(p => p.textContent === t) && !!document.querySelector('#conv-messages .transcrire-lien[aria-controls]'), TEXTE));
 
     console.log('\n── 7. Les deux thèmes, les couleurs forcées ──');
     const contrastes = [];

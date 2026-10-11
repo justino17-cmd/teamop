@@ -18,21 +18,21 @@
 #       pas gardé) ;
 #    4. un compte système à l'ouvrier, sans shell ni dossier ; tire le SECRET partagé au hasard, ICI, et l'écrit dans la configuration de l'ouvrier ET
 #       dans celle de l'instance (jamais affiché) ;
-#    5. démarre l'ouvrier dans son unité (`opmsg-transcrire@<instance>`) — aucune sortie réseau, mémoire et calcul bornés, ses fichiers de travail en
-#       mémoire vive — puis le CONTRÔLE (outils/verifier-transcription.js : il refuse qui n'a pas le secret, et transcrit pour de vrai l'échantillon
+#    5. démarre l'ouvrier dans son unité (`opmsg-transcrire@<instance>`) — AUCUN réseau (il n'écoute qu'une socket Unix, que seule l'instance joint),
+#       mémoire et calcul bornés, ses fichiers de travail en mémoire vive — puis le CONTRÔLE (outils/verifier-transcription.js : il refuse qui n'a pas le secret, et transcrit pour de vrai l'échantillon
 #       de whisper.cpp, un discours public de 1961) ;
 #    6. relance l'instance et attend qu'elle voie l'ouvrier (/health : transcription.ok).
 #  Une étape ratée défait TOUT (ÉCHEC = FERMÉ) : la transcription est retirée, OP MESSAGES continue comme avant — et le script dit pourquoi.
 #
-#  ⛔ CE SCRIPT NE TOUCHE JAMAIS À OP GESTION : ni ses dossiers, ni son unité, ni nginx (l'ouvrier n'écoute que sur la boucle locale).
+#  ⛔ CE SCRIPT NE TOUCHE JAMAIS À OP GESTION : ni ses dossiers, ni son unité, ni nginx (l'ouvrier n'écoute qu'une socket Unix, aucun port).
 #  ⛔ IL N'AFFICHE JAMAIS UN SECRET (règle du 24 septembre 2026 : Justin recolle toutes ses sorties dans la conversation). Le secret naît dans un
 #  processus Node, passe d'un fichier à l'autre sans traverser le shell, et ne figure ni dans un argument, ni dans l'environnement, ni dans une
 #  variable de ce script.
 #  ⛔ IL EST REJOUABLE : whisper.cpp et les modèles déjà là et intacts ne sont ni recompilés ni retéléchargés ; le secret existant est REPRIS ; une
 #  configuration identique n'est pas réécrite ; l'ouvrier et l'instance ne sont relancés que si quelque chose a changé.
 #
-#  Une instance à part de l'autre : deux ouvriers, deux comptes, deux secrets, deux ports — la bêta ne peut rien sur la production. Le programme et
-#  les modèles sont partagés (en lecture seule, possédés par root).
+#  Une instance à part de l'autre : deux ouvriers, deux comptes, deux secrets, deux sockets — la bêta ne peut rien sur la production (seule l'unité de
+#  l'instance reçoit le groupe de SON ouvrier, par un complément d'unité). Le programme et les modèles sont partagés (en lecture seule, possédés par root).
 #
 #  Variables (toutes facultatives) :
 #    OPMSG_RACINE                 préfixe de tous les chemins — UNIQUEMENT pour les bancs (bac à sable)
@@ -44,10 +44,11 @@ export DEBIAN_FRONTEND=noninteractive
 
 INSTANCE="${1:-}"
 GESTE="${2:-installer}"
-# ⛔ LE PORT DE L'OUVRIER, instance par instance — la boucle locale seulement (l'unité refuse toute autre adresse). tests/test-1002.js relit cette table.
+# ⛔ UNE SOCKET UNIX, PAS UN PORT (relecture du gardien, 11 octobre 2026) : un port de la boucle locale se SQUATTE — un processus de la machine qui le prenait
+# pendant un redémarrage de l'ouvrier recevait le secret et les octets des vocaux. La socket vit dans le dossier d'exécution de l'unité (0750, groupe de
+# l'ouvrier) ; seule l'unité de l'instance reçoit ce groupe. tests/test-1002.js relit ce chemin.
 case "$INSTANCE" in
-  beta) PORT_OUVRIER=7860 ;;
-  prod) PORT_OUVRIER=7861 ;;
+  beta|prod) SOCKET_REEL="/run/opmsg-transcrire-$INSTANCE/ouvrier.sock" ;;
   *) echo "usage : bash install-transcription.sh <beta|prod> [retirer]"; exit 2 ;;
 esac
 case "$GESTE" in installer|retirer) ;; *) echo "usage : bash install-transcription.sh <beta|prod> [retirer]"; exit 2 ;; esac
@@ -71,8 +72,9 @@ MEMOIRE_LIBRE_MIN_MO=800
 DISQUE_LIBRE_MIN_MO=1500
 
 R="${OPMSG_RACINE:-}"
-# (les bancs seuls — une racine factice — prennent un port libre de leur machine : sur le VPS, OPMSG_RACINE est vide et cette ligne ne fait rien)
-if [ -n "$R" ] && [ -n "${OPMSG_TRANSCRIPTION_PORT_BANC:-}" ]; then PORT_OUVRIER="$OPMSG_TRANSCRIPTION_PORT_BANC"; fi
+# (les bancs seuls — une racine factice — posent la socket dans leur bac à sable : sur le VPS, OPMSG_RACINE est vide et cette ligne ne fait rien)
+SOCKET="$SOCKET_REEL"
+if [ -n "$R" ] && [ -n "${OPMSG_TRANSCRIPTION_SOCKET_BANC:-}" ]; then SOCKET="$OPMSG_TRANSCRIPTION_SOCKET_BANC"; fi
 OPT="$R/opt/opmsg"
 ETC="$R/etc/opmsg"
 CONFIG="$ETC/$INSTANCE.json"
@@ -89,6 +91,8 @@ SYSD="$R/etc/systemd/system"
 OUVRIER="$OPT/$INSTANCE/current/transcripteur.js"
 VERIF="$OPT/$INSTANCE/current/outils/verifier-transcription.js"
 UNITE="teamop-msg@$INSTANCE"
+# le complément d'unité de l'INSTANCE : le groupe de son ouvrier, et seulement le sien (l'unité elle-même appartient à install-msg.sh, qui la réécrit)
+COMPLEMENT="$SYSD/teamop-msg@$INSTANCE.service.d/transcription.conf"
 
 if [ -z "$R" ] && [ "$(id -u)" != "0" ]; then echo "✗ à lancer en root"; exit 1; fi
 [ -f "$CONFIG" ] || { echo "✗ l'instance $INSTANCE n'est pas installée ($CONFIG est absent) : lancer d'abord install-msg.sh $INSTANCE"; exit 1; }
@@ -104,16 +108,22 @@ PORT_SERVICE="$(sed -n 's/^PORT=//p' "$ETC/$INSTANCE.env" 2>/dev/null || true)"
 
 # ── Les gestes que le script sait faire, utilisés par l'installation, par l'échec (qui défait tout) et par « retirer » ──────────────────────────────
 # (1) les deux configurations : poser ou retirer `transcription` dans celle de l'instance, et écrire celle de l'ouvrier. Un seul programme Node, qui ne
-#     reçoit que des chemins, des ports et des nombres : le secret n'en sort jamais. Ce qu'il imprime : des mots d'état.
+#     reçoit que des chemins, des identifiants de compte et des nombres : le secret n'en sort jamais. Ce qu'il imprime : des mots d'état.
 configurer() {   # $1 = poser | retirer → imprime l'état ; sort ≠ 0 si une configuration n'a pas pu être écrite
-  MODE="$1" CONFIG_INSTANCE="$CONFIG" TR_CONF="$TR_CONF" PORT_OUVRIER="$PORT_OUVRIER" THREADS="${THREADS:-1}" \
+  MODE="$1" CONFIG_INSTANCE="$CONFIG" TR_CONF="$TR_CONF" SOCKET="$SOCKET" THREADS="${THREADS:-1}" \
+  PROPRIO="$(id -u opmsg 2>/dev/null || true):$(id -g opmsg 2>/dev/null || true)" GROUPE_OUVRIER="$(getent group "$COMPTE" 2>/dev/null | cut -d: -f3 || true)" \
   WHISPER="$W_DIR_REEL/whisper-cli" MODELE="$M_DIR_REEL/$MODELE_NOM" VAD="$M_DIR_REEL/$VAD_NOM" FFMPEG="$FFMPEG_REEL" \
   node - <<'PROGRAMME'
 "use strict";
 const fs = require("fs"), crypto = require("crypto"), e = process.env;
 const RE_SECRET = /^[A-Za-z0-9_-]{32,128}$/;
 const lire = (p) => { try { const j = JSON.parse(fs.readFileSync(p, "utf8")); return j && typeof j === "object" && !Array.isArray(j) ? j : null; } catch (x) { return null; } };
-const ecrire = (p, texte, mode) => { const t = p + ".nouveau"; fs.writeFileSync(t, texte, { mode: mode }); fs.renameSync(t, p); };
+/* ⛔ le fichier temporaire a son propriétaire AVANT le renommage (relecture du gardien) : sinon la configuration de l'instance restait à root le temps du
+   `chown` du shell, et une instance relancée dans cette fenêtre ne pouvait plus la lire */
+const [pu, pg] = String(e.PROPRIO || "").split(":").map((x) => (/^\d+$/.test(x) ? Number(x) : null));
+const go = /^\d+$/.test(e.GROUPE_OUVRIER || "") ? Number(e.GROUPE_OUVRIER) : null;
+const root = typeof process.getuid === "function" && process.getuid() === 0;
+const ecrire = (p, texte, mode, uid, gid) => { const t = p + ".nouveau"; fs.writeFileSync(t, texte, { mode: mode }); if (root && uid !== null && gid !== null) fs.chownSync(t, uid, gid); fs.renameSync(t, p); };
 try {
   const cfg = lire(e.CONFIG_INSTANCE);
   if (!cfg) { console.log("configuration-illisible"); process.exit(3); }
@@ -122,7 +132,7 @@ try {
     let etat = "instance=inchange";
     if ("transcription" in cfg) {
       const sans = Object.assign({}, cfg); delete sans.transcription;
-      ecrire(e.CONFIG_INSTANCE, JSON.stringify(sans, null, 2) + "\n", 0o600);
+      ecrire(e.CONFIG_INSTANCE, JSON.stringify(sans, null, 2) + "\n", 0o600, pu, pg);
       etat = "instance=change";
     }
     let ouvrier = "inchange";
@@ -135,18 +145,21 @@ try {
   const secret = repris ? ancien.secret : crypto.randomBytes(48).toString("base64url");
   /* les réglages posés à la main (dureeMaxS, file, essais, parHeure…) sont GARDÉS : le script ne pose que l'adresse et le secret */
   const garde = {};
-  for (const k of ["dureeMaxS", "file", "essais", "parHeure", "sondeMs", "delaiSondeMs", "delaiBaseMs", "delaiParSMs"]) if (Number.isInteger(ancien[k])) garde[k] = ancien[k];
-  const tr = Object.assign({ url: "http://127.0.0.1:" + Number(e.PORT_OUVRIER), secret: secret }, garde);
+  for (const k of ["dureeMaxS", "file", "parPersonne", "budgetHeureS", "essais", "parHeure", "sondeMs", "delaiSondeMs", "delaiBaseMs", "delaiParSMs"]) if (Number.isInteger(ancien[k])) garde[k] = ancien[k];
+  const tr = Object.assign({ url: "unix:" + e.SOCKET, secret: secret }, garde);
   const texte = JSON.stringify(Object.assign({}, cfg, { transcription: tr }), null, 2) + "\n";
   const changeInstance = avant !== texte;
-  if (changeInstance) ecrire(e.CONFIG_INSTANCE, texte, 0o600);
-  /* la configuration de l'ouvrier : ses programmes, ses modèles, son port, son nombre de cœurs — et le MÊME secret */
-  const ouvrierTxt = JSON.stringify({ secret: secret, port: Number(e.PORT_OUVRIER), whisper: e.WHISPER, modele: e.MODELE, vad: e.VAD, ffmpeg: e.FFMPEG,
-    threads: Math.max(1, Math.min(8, Number(e.THREADS) || 1)), faisceau: 1 }, null, 2) + "\n";
+  if (changeInstance) ecrire(e.CONFIG_INSTANCE, texte, 0o600, pu, pg);
+  /* la configuration de l'ouvrier : ses programmes, ses modèles, sa socket, son nombre de cœurs — et le MÊME secret. ⛔ Sa durée maximale est CELLE DU SERVICE
+     (relecture du gardien : sans elle, l'ouvrier acceptait 600 s pendant que le service en promettait 300 — un vocal à durée déclarée fausse tenait l'ouvrier
+     vingt minutes) ; 300, le défaut du service (`TRANSCRIPTION_DEFAUT`, config.js — test-1002 compare les deux) */
+  const dureeMaxS = Number.isInteger(garde.dureeMaxS) ? garde.dureeMaxS : 300;
+  const ouvrierTxt = JSON.stringify({ secret: secret, socket: e.SOCKET, whisper: e.WHISPER, modele: e.MODELE, vad: e.VAD, ffmpeg: e.FFMPEG,
+    threads: Math.max(1, Math.min(8, Number(e.THREADS) || 1)), faisceau: 1, dureeMaxS: dureeMaxS }, null, 2) + "\n";
   let existant = null;
   try { existant = fs.readFileSync(e.TR_CONF, "utf8"); } catch (x) { existant = null; }
   const changeOuvrier = existant !== ouvrierTxt;
-  if (changeOuvrier) ecrire(e.TR_CONF, ouvrierTxt, 0o640);
+  if (changeOuvrier) ecrire(e.TR_CONF, ouvrierTxt, 0o640, go === null ? null : 0, go);
   console.log("secret=" + (repris ? "repris" : "nouveau") + " instance=" + (changeInstance ? "change" : "inchange") + " ouvrier=" + (changeOuvrier ? "change" : "inchange"));
 } catch (x) {
   console.log("erreur-" + (x && x.code ? String(x.code).replace(/[^A-Z_]/g, "") : "inconnue"));
@@ -186,6 +199,8 @@ relancer_sans_transcription() {
 # « retirer » ET par l'échec d'une installation (ÉCHEC = FERMÉ). Le programme et les modèles restent (ils ne font rien seuls, et l'autre instance s'en sert peut-être).
 tout_retirer() {
   local etat
+  # le groupe de l'ouvrier quitte l'instance d'abord : sa relance (ci-dessous) l'oublie avec la transcription
+  if [ -f "$COMPLEMENT" ]; then rm -f "$COMPLEMENT"; rmdir "$(dirname "$COMPLEMENT")" 2>/dev/null || true; systemctl daemon-reload || true; fi
   if etat="$(configurer retirer)"; then
     case "$etat" in *"instance=change"*) chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG" ;; esac
     relancer_sans_transcription
@@ -249,29 +264,38 @@ if [ ! -x "$R$FFMPEG_REEL" ]; then
 fi
 [ -x "$R$FFMPEG_REEL" ] || { echo "✗ ffmpeg n'est pas installé après apt-get : on s'arrête avant de rien écrire"; exit 1; }
 
+# ⛔ whisper.cpp est compilé pour CE processeur (GGML_NATIVE : sans lui, le calcul est plusieurs fois plus lent) — un VPS migré vers un processeur plus ancien
+# ferait « instruction illégale » (relecture du gardien). Les capacités du processeur sont donc relevées à la compilation : si elles changent, on recompile.
+CPU_EMPREINTE="$( (grep -m1 -E '^(flags|Features)' /proc/cpuinfo 2>/dev/null || echo inconnu) | sha256sum | cut -c1-16)"
 programme_intact() {
   [ -x "$W_DIR/whisper-cli" ] && [ -f "$W_DIR/whisper-cli.sha256" ] && [ "$(cat "$W_DIR/commit" 2>/dev/null)" = "$WHISPER_COMMIT" ] && [ -f "$W_DIR/jfk.wav" ] \
+    && [ "$(cat "$W_DIR/cpu" 2>/dev/null)" = "$CPU_EMPREINTE" ] \
     && [ "$(sha256sum "$W_DIR/whisper-cli" | cut -d' ' -f1)" = "$(cat "$W_DIR/whisper-cli.sha256")" ]
 }
+# ⛔ la récupération et la compilation tournent SANS privilège (relecture du gardien : même au commit épinglé, un script de construction n'a pas à tourner en root) —
+# le compte `nobody`, dans un dossier qui lui appartient ; seule la copie du résultat se fait en root. (Les bancs, racine factice, lancent leurs faux outils tels quels.)
+sans_privilege() { if [ -z "$R" ]; then setpriv --reuid=nobody --regid=nogroup --clear-groups -- env HOME="$TMPD" "$@"; else "$@"; fi; }
 if programme_intact; then
   echo "   whisper.cpp $WHISPER_VERSION : déjà là, intact"
 else
   echo "   whisper.cpp $WHISPER_VERSION : compilation depuis les sources (quelques minutes)"
   for p in git cmake g++ make; do command -v "$p" >/dev/null 2>&1 || { apt-get install -y -qq --no-install-recommends git cmake build-essential ca-certificates >/dev/null || true; break; }; done
   for p in git cmake g++ make; do command -v "$p" >/dev/null 2>&1 || { echo "✗ $p n'est pas installé après apt-get : whisper.cpp ne peut pas se compiler — rien n'est posé"; exit 1; }; done
+  [ -n "$R" ] || command -v setpriv >/dev/null 2>&1 || { echo "✗ setpriv est absent (paquet util-linux) : la compilation ne tournera pas en root — rien n'est posé"; exit 1; }
   TMPD="$(mktemp -d)"
   trap 'rm -rf "$TMPD"' EXIT
-  git init -q "$TMPD/src"
-  git -C "$TMPD/src" remote add origin "$WHISPER_DEPOT"
-  git -C "$TMPD/src" fetch -q --depth 1 origin "$WHISPER_COMMIT" 2>"$TMPD/git.log" || { echo "✗ le commit $WHISPER_COMMIT de whisper.cpp n'a pas pu être récupéré (réseau ?) :"; tail -3 "$TMPD/git.log"; exit 1; }
-  git -C "$TMPD/src" checkout -q FETCH_HEAD
-  RECU="$(git -C "$TMPD/src" rev-parse HEAD)"
+  [ -n "$R" ] || chown nobody:nogroup "$TMPD"
+  sans_privilege git init -q "$TMPD/src"
+  sans_privilege git -C "$TMPD/src" remote add origin "$WHISPER_DEPOT"
+  sans_privilege git -C "$TMPD/src" fetch -q --depth 1 origin "$WHISPER_COMMIT" 2>"$TMPD/git.log" || { echo "✗ le commit $WHISPER_COMMIT de whisper.cpp n'a pas pu être récupéré (réseau ?) :"; tail -3 "$TMPD/git.log"; exit 1; }
+  sans_privilege git -C "$TMPD/src" checkout -q FETCH_HEAD
+  RECU="$(sans_privilege git -C "$TMPD/src" rev-parse HEAD)"
   [ "$RECU" = "$WHISPER_COMMIT" ] || { echo "✗ le commit récupéré ($RECU) n'est pas celui qui est épinglé ($WHISPER_COMMIT) : rien n'est compilé"; exit 1; }
-  if ! cmake -S "$TMPD/src" -B "$TMPD/build" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF \
+  if ! sans_privilege cmake -S "$TMPD/src" -B "$TMPD/build" -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_TESTS=OFF -DWHISPER_BUILD_SERVER=OFF \
        -DWHISPER_SDL2=OFF -DWHISPER_CURL=OFF -DGGML_NATIVE=ON >"$TMPD/cmake.log" 2>&1; then
     echo "✗ la configuration de la compilation a échoué :"; tail -5 "$TMPD/cmake.log"; exit 1
   fi
-  if ! cmake --build "$TMPD/build" -j "$NPROC" --target whisper-cli >"$TMPD/build.log" 2>&1; then
+  if ! sans_privilege cmake --build "$TMPD/build" -j "$NPROC" --target whisper-cli >"$TMPD/build.log" 2>&1; then
     echo "✗ la compilation a échoué :"; tail -5 "$TMPD/build.log"; exit 1
   fi
   [ -x "$TMPD/build/bin/whisper-cli" ] || { echo "✗ la compilation n'a pas produit whisper-cli"; exit 1; }
@@ -281,10 +305,11 @@ else
   cp "$TMPD/src/LICENSE" "$W_DIR.nouveau/LICENSE"
   sha256sum "$W_DIR.nouveau/whisper-cli" | cut -d' ' -f1 > "$W_DIR.nouveau/whisper-cli.sha256"
   printf '%s\n' "$WHISPER_COMMIT" > "$W_DIR.nouveau/commit"
+  printf '%s\n' "$CPU_EMPREINTE" > "$W_DIR.nouveau/cpu"
   rm -rf "$W_DIR"; mv "$W_DIR.nouveau" "$W_DIR"
   rm -rf "$TMPD"; trap - EXIT
 fi
-chown -R root:root "$W_DIR"; chmod 755 "$W_DIR" "$W_DIR/whisper-cli"; chmod 644 "$W_DIR/jfk.wav" "$W_DIR/LICENSE" "$W_DIR/whisper-cli.sha256" "$W_DIR/commit"
+chown -R root:root "$W_DIR"; chmod 755 "$W_DIR" "$W_DIR/whisper-cli"; chmod 644 "$W_DIR/jfk.wav" "$W_DIR/LICENSE" "$W_DIR/whisper-cli.sha256" "$W_DIR/commit" "$W_DIR/cpu"
 programme_intact || { echo "✗ whisper.cpp n'est pas intact après son installation : rien n'est posé"; exit 1; }
 
 # ── 3. LES MODÈLES, leur empreinte VÉRIFIÉE ──────────────────────────────────────────────────────────────────────────────────────────────────────
@@ -309,6 +334,23 @@ poser_modele() {   # $1 = nom, $2 = adresse, $3 = empreinte attendue
 poser_modele "$MODELE_NOM" "$MODELE_URL" "$MODELE_EMPREINTE" || exit 1
 poser_modele "$VAD_NOM" "$VAD_URL" "$VAD_EMPREINTE" || exit 1
 
+# ÉCHEC = FERMÉ — défini AVANT d'écrire quoi que ce soit : les pièges posés après l'écriture des configurations l'appellent.
+annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : tout ce que la transcription a posé est défait.
+  trap - HUP INT TERM ERR
+  set +e
+  echo ""
+  echo "$1"
+  echo "── Retour en arrière : la transcription est retirée, OP MESSAGES continue comme avant."
+  # Une PREMIÈRE installation (la configuration d'avant n'avait pas de transcription) : elle revient OCTET POUR OCTET. Une réinstallation : la transcription en est retirée.
+  if [ -f "$CONFIG.avant-transcription" ] && ! avait_transcription "$CONFIG.avant-transcription"; then
+    mv "$CONFIG.avant-transcription" "$CONFIG"; chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
+  fi
+  rm -f "$CONFIG.avant-transcription"
+  tout_retirer
+  exit 1
+}
+avait_transcription() { node -e 'try { const c = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.exit(c && c.transcription ? 0 : 1); } catch (e) { process.exit(2); }' "$1"; }
+
 # ── 4. LE COMPTE DE L'OUVRIER, LES DEUX CONFIGURATIONS (le secret partagé) ───────────────────────────────────────────────────────────────────────
 if ! id -u "$COMPTE" >/dev/null 2>&1; then
   useradd --system --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin --user-group "$COMPTE"
@@ -322,44 +364,46 @@ if ! ETAT="$(THREADS="$THREADS" configurer poser)"; then
   exit 1
 fi
 echo "   $(printf '%s' "$ETAT" | masquer)"
+# ⛔ À PARTIR D'ICI, LES CONFIGURATIONS SONT ÉCRITES : une coupure (session SSH perdue, Ctrl-C) ou une commande qui échoue défait TOUT (relecture du gardien) —
+# sinon l'instance chargeait la transcription à son prochain redémarrage sans ouvrier prouvé, et la copie `.avant-transcription` (tous les secrets de
+# l'instance) restait sur le disque.
+trap 'annuler "⛔ installation interrompue : rien n'"'"'est laissé à moitié."' HUP INT TERM
+trap 'annuler "⛔ une étape a échoué (ligne $LINENO) : rien n'"'"'est laissé à moitié."' ERR
 chown opmsg:opmsg "$CONFIG"; chmod 600 "$CONFIG"
 chown "root:$COMPTE" "$TR_CONF"; chmod 640 "$TR_CONF"
 case "$ETAT" in *"ouvrier=change"*) CHANGE_OUVRIER=oui ;; *) CHANGE_OUVRIER=non ;; esac
 case "$ETAT" in *"instance=change"*) CHANGE_INSTANCE=oui ;; *) CHANGE_INSTANCE=non ;; esac
 
 # ── 5. L'UNITÉ, LE DÉMARRAGE — puis le CONTRÔLE ─────────────────────────────────────────────────────────────────────────────────────────────────
-annuler() {   # $1 = ce qu'il faut dire. ÉCHEC = FERMÉ : tout ce que la transcription a posé est défait.
-  echo ""
-  echo "$1"
-  echo "── Retour en arrière : la transcription est retirée, OP MESSAGES continue comme avant."
-  # Une PREMIÈRE installation (la configuration d'avant n'avait pas de transcription) : elle revient OCTET POUR OCTET. Une réinstallation : la transcription en est retirée.
-  if [ -f "$CONFIG.avant-transcription" ] && ! avait_transcription "$CONFIG.avant-transcription"; then
-    mv "$CONFIG.avant-transcription" "$CONFIG"; chown opmsg:opmsg "$CONFIG" 2>/dev/null || true; chmod 600 "$CONFIG"
-  fi
-  rm -f "$CONFIG.avant-transcription"
-  tout_retirer
-  exit 1
-}
-avait_transcription() { node -e 'try { const c = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); process.exit(c && c.transcription ? 0 : 1); } catch (e) { process.exit(2); }' "$1"; }
 mkdir -p "$SYSD"
 # Le bac à sable de l'unité, et pourquoi chaque ligne :
 #  · un compte à lui, aucun privilège (CapabilityBoundingSet vide), NoNewPrivileges ; le disque en lecture seule (ProtectSystem=strict), sauf son dossier d'exécution ;
-#  · IPAddressDeny=any + IPAddressAllow=localhost : AUCUNE sortie réseau — un vocal forgé qui ferait déraper ffmpeg ne pourrait rien envoyer nulle part ;
-#  · RuntimeDirectory : les fichiers de travail en mémoire vive (/run), effacés avec l'unité — aucune voix en clair sur le disque ;
-#  · MemoryMax=1200M sans échange, CPUQuota=200 %, CPUWeight/IOWeight bas, Nice=10 : si une transcription s'emballe, c'est elle qui ploie, pas OP GESTION ;
+#  · PrivateNetwork + RestrictAddressFamilies=AF_UNIX : AUCUN réseau, pas même la boucle locale — il n'écoute que sa socket Unix (un vocal forgé qui ferait
+#    déraper ffmpeg ne pourrait rien envoyer nulle part, ni joindre l'API d'OP GESTION ou l'autre instance) ;
+#  · RuntimeDirectory (0750, groupe de l'ouvrier) : la socket, et les fichiers de travail en mémoire vive, chacun dans un dossier 0700, effacés avec l'unité —
+#    aucune voix en clair sur le disque ; LimitCORE=0 pour la même raison (un plantage de ffmpeg écrirait l'audio déchiffré dans un vidage mémoire) ;
+#  · /etc/opmsg remplacé par un dossier vide où seule SA configuration est montée : les configurations des instances (leurs secrets) n'existent pas pour lui ;
+#  · SystemCallFilter : les appels d'un service ordinaire, sans les privilégiés — la couche principale contre une faille d'un décodeur sur un fichier hostile
+#    (un appel refusé rend EPERM ; le CONTRÔLE ci-dessous transcrit pour de vrai sous ce filtre, et un filtre trop strict défait l'installation) ;
+#  · ProtectProc=invisible : les processus d'OP GESTION et du service lui sont cachés ;
+#  · MemoryMax=1200M sans échange, OOMScoreAdjust=500, CPUQuota=200 %, CPUWeight/IOWeight bas, Nice=10 : si une transcription s'emballe, c'est elle qui ploie
+#    (et c'est elle que la mémoire épuisée tue en premier), pas OP GESTION ;
 #  · les données des deux instances sont INACCESSIBLES (en plus de leurs droits) ; pas de MemoryDenyWriteExecute : V8 compile à chaud, il en mourrait.
 printf '%s\n' "# Posé par server-msg/install-transcription.sh — réécrit à chaque installation, ne pas éditer à la main." \
-  '[Unit]' 'Description=OP MESSAGES — transcription des vocaux (instance %i)' 'After=network.target' '' \
+  '[Unit]' 'Description=OP MESSAGES — transcription des vocaux (instance %i)' '' \
   '[Service]' 'Type=simple' 'User=opmsg-transcrire-%i' 'Group=opmsg-transcrire-%i' 'WorkingDirectory=/' \
   'Environment=NODE_ENV=production' 'Environment=OPMSG_TRANSCRIRE_CONFIG=/etc/opmsg/transcrire-%i.json' \
   'ExecStart=/usr/bin/node /opt/opmsg/%i/current/transcripteur.js' 'Restart=always' 'RestartSec=2' 'UMask=0077' \
-  'RuntimeDirectory=opmsg-transcrire-%i' 'RuntimeDirectoryMode=0700' \
-  'NoNewPrivileges=true' 'ProtectSystem=strict' 'PrivateTmp=true' 'ProtectHome=true' 'PrivateDevices=true' \
-  'ProtectKernelTunables=true' 'ProtectKernelModules=true' 'ProtectKernelLogs=true' 'ProtectControlGroups=true' 'ProtectClock=true' 'ProtectHostname=true' \
-  'RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX' 'RestrictNamespaces=true' 'RestrictRealtime=true' 'RestrictSUIDSGID=true' 'LockPersonality=true' \
-  'SystemCallArchitectures=native' 'CapabilityBoundingSet=' 'AmbientCapabilities=' \
-  'IPAddressDeny=any' 'IPAddressAllow=localhost' \
+  'RuntimeDirectory=opmsg-transcrire-%i' 'RuntimeDirectoryMode=0750' \
+  'NoNewPrivileges=true' 'ProtectSystem=strict' 'PrivateTmp=true' 'ProtectHome=true' 'PrivateDevices=true' 'PrivateNetwork=true' \
+  'ProtectKernelTunables=true' 'ProtectKernelModules=true' 'ProtectKernelLogs=true' 'ProtectControlGroups=true' 'ProtectClock=true' 'ProtectHostname=true' 'ProtectProc=invisible' \
+  'RestrictAddressFamilies=AF_UNIX' 'RestrictNamespaces=true' 'RestrictRealtime=true' 'RestrictSUIDSGID=true' 'LockPersonality=true' \
+  'SystemCallArchitectures=native' 'SystemCallFilter=@system-service' 'SystemCallFilter=~@privileged @mount @swap @reboot @raw-io @obsolete @debug @cpu-emulation @module @clock' 'SystemCallErrorNumber=EPERM' \
+  'CapabilityBoundingSet=' 'AmbientCapabilities=' \
+  'IPAddressDeny=any' \
+  'TemporaryFileSystem=/etc/opmsg:ro' 'BindReadOnlyPaths=/etc/opmsg/transcrire-%i.json' \
   'InaccessiblePaths=-/opt/opmsg/beta/data -/opt/opmsg/prod/data' \
+  'LimitCORE=0' 'OOMScoreAdjust=500' \
   'MemoryMax=1200M' 'MemorySwapMax=0' 'CPUQuota=200%' 'CPUWeight=10' 'IOWeight=10' 'Nice=10' 'TasksMax=32' 'LimitNOFILE=256' '' \
   '[Install]' 'WantedBy=multi-user.target' > "$SYSD/opmsg-transcrire@.service.nouveau"
 if [ -f "$SYSD/opmsg-transcrire@.service" ] && cmp -s "$SYSD/opmsg-transcrire@.service.nouveau" "$SYSD/opmsg-transcrire@.service"; then
@@ -368,6 +412,16 @@ else
   mv "$SYSD/opmsg-transcrire@.service.nouveau" "$SYSD/opmsg-transcrire@.service"; chmod 644 "$SYSD/opmsg-transcrire@.service"
   systemctl daemon-reload
   CHANGE_OUVRIER=oui
+fi
+# Le complément de l'unité de l'INSTANCE : le groupe de son ouvrier (pour joindre la socket), et seulement le sien — l'autre instance ne le reçoit pas.
+mkdir -p "$(dirname "$COMPLEMENT")"
+printf '%s\n' "# Posé par server-msg/install-transcription.sh — retiré par « retirer ». Ne pas éditer à la main." '[Service]' "SupplementaryGroups=$COMPTE" > "$COMPLEMENT.nouveau"
+if [ -f "$COMPLEMENT" ] && cmp -s "$COMPLEMENT.nouveau" "$COMPLEMENT"; then
+  rm -f "$COMPLEMENT.nouveau"
+else
+  mv "$COMPLEMENT.nouveau" "$COMPLEMENT"; chmod 644 "$COMPLEMENT"
+  systemctl daemon-reload
+  CHANGE_INSTANCE=oui
 fi
 systemctl enable "$UNITE_TR" >/dev/null 2>&1 || true
 if [ "$CHANGE_OUVRIER" = "oui" ] || ! actif "$UNITE_TR"; then systemctl restart "$UNITE_TR" || true; fi

@@ -32,7 +32,7 @@ const COMMIT = 'd1be6fde11ac6e0407606b4e42fe72d34add8037';
 const W_REL = 'opt/opmsg/whisper/1.9.5-d1be6fde11ac';
 console.log('\n── 1002 · install-transcription.sh, joué dans un bac à sable ──');
 
-const OUTILS_REELS = ['bash', 'sh', 'sed', 'cp', 'mv', 'rm', 'mkdir', 'chmod', 'ln', 'cat', 'cmp', 'dirname', 'tr', 'cut', 'head', 'tail', 'grep', 'awk', 'sha256sum', 'mktemp', 'seq', 'printf', 'setsid'];
+const OUTILS_REELS = ['bash', 'sh', 'sed', 'cp', 'mv', 'rm', 'rmdir', 'mkdir', 'chmod', 'ln', 'cat', 'cmp', 'dirname', 'tr', 'cut', 'head', 'tail', 'grep', 'awk', 'sha256sum', 'mktemp', 'seq', 'printf', 'setsid'];
 const PROLOGUE = '#!/bin/bash\nE="$BAC_ETAT"; echo "${0##*/} $*" >> "$E/appels.log"; export -p >> "$E/env.log"\n';
 function fauxOutils(b) {
   const NODE = process.execPath;
@@ -99,7 +99,12 @@ exit 0
 `,
     useradd: PROLOGUE + `n=""; for a in "$@"; do n="$a"; done; : > "$E/compte-$n"
 `,
-    chown: PROLOGUE, sleep: PROLOGUE,
+    /* chown : « chown-refuse » — une commande qui échoue APRÈS l'écriture des configurations (le piège ERR doit tout défaire) */
+    chown: PROLOGUE + `[ -f "$E/chown-refuse" ] && [ "$1" = "opmsg:opmsg" ] && exit 1
+exit 0
+`, sleep: PROLOGUE,
+    /* getent : aucun groupe de la machine n'est connu du bac à sable (le programme Node ne fait pas de chown — il ne tourne pas en root ici) */
+    getent: PROLOGUE + 'exit 2\n',
     nproc: PROLOGUE + 'echo 4\n',
     df: PROLOGUE + `echo "Filesystem 1048576-blocks Used Available Capacity Mounted on"; echo "/dev/vda1 80000 10000 $(cat "$E/disque-libre" 2>/dev/null || echo 50000) 20% /"
 `,
@@ -170,10 +175,11 @@ t="And so, my fellow Americans, ask not what your country can do for you"
     });
     s.listen(b.ports[nom], '127.0.0.1', () => { b.serveurs.push(s); ok(); });
   });
-  b.portLibre = () => new Promise((ok) => { const s = net.createServer().listen(0, '127.0.0.1', () => { const p = s.address().port; s.close(() => ok(p)); }); });
+  /* la socket de l'ouvrier, dans le dossier d'exécution que le faux systemctl lui donne (sur le VPS : /run/opmsg-transcrire-<instance>/ouvrier.sock) */
+  b.socket = (nom) => path.join(b.E, 'run-' + nom, 'ouvrier.sock');
   b.lancer = (args, env) => new Promise((ok) => {
     const e = Object.assign({ PATH: b.bin, LC_ALL: 'C.UTF-8', HOME: b.d, TMPDIR: b.d, BAC_ETAT: b.E, BAC_R: b.R, OPMSG_RACINE: b.R, OPMSG_MEMINFO_BANC: path.join(b.E, 'meminfo'),
-      OPMSG_TRANSCRIPTION_EMPREINTE_MODELE_BANC: b.emp.small, OPMSG_TRANSCRIPTION_EMPREINTE_VAD_BANC: b.emp.vad, OPMSG_TRANSCRIPTION_PORT_BANC: String(b.portOuvrier) }, env || {});
+      OPMSG_TRANSCRIPTION_EMPREINTE_MODELE_BANC: b.emp.small, OPMSG_TRANSCRIPTION_EMPREINTE_VAD_BANC: b.emp.vad, OPMSG_TRANSCRIPTION_SOCKET_BANC: b.socket(args[0]) }, env || {});
     const p = spawn(reel('bash'), [SCRIPT].concat(args), { env: e, stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '', err = '';
     p.stdout.on('data', (x) => { out += x; }); p.stderr.on('data', (x) => { err += x; });
@@ -210,16 +216,32 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     vrai('population : le code du script n\'est pas vide une fois les commentaires retirés', code.split('\n').filter(l => l.trim()).length > 120);
     vrai('⛔ le commit de whisper.cpp est ÉPINGLÉ (celui de la v1.9.5), et le commit récupéré lui est COMPARÉ avant toute compilation', code.includes('WHISPER_COMMIT="' + COMMIT + '"') && /\[ "\$RECU" = "\$WHISPER_COMMIT" \] \|\|/.test(code));
     vrai('⛔ les empreintes des deux modèles sont ÉPINGLÉES', code.includes('MODELE_EMPREINTE="ae85e4a935d7a567bd102fe55afc16bb595bdb618e11b2fc7591bc08120411bb"') && code.includes('VAD_EMPREINTE="2aa269b785eeb53a82983a20501ddf7c1d9c48e33ab63a41391ac6c9f7fb6987"'));
-    vrai('⛔ les portes des bancs (empreintes, port, mémoire) ne s\'ouvrent QU\'AVEC une racine factice', ['OPMSG_TRANSCRIPTION_EMPREINTE_MODELE_BANC', 'OPMSG_TRANSCRIPTION_EMPREINTE_VAD_BANC', 'OPMSG_TRANSCRIPTION_PORT_BANC', 'OPMSG_MEMINFO_BANC']
+    vrai('⛔ les portes des bancs (empreintes, socket, mémoire) ne s\'ouvrent QU\'AVEC une racine factice', ['OPMSG_TRANSCRIPTION_EMPREINTE_MODELE_BANC', 'OPMSG_TRANSCRIPTION_EMPREINTE_VAD_BANC', 'OPMSG_TRANSCRIPTION_SOCKET_BANC', 'OPMSG_MEMINFO_BANC']
       .every(n => new RegExp('if \\[ -n "\\$R" \\] && \\[ -n "\\$\\{' + n + ':-\\}" \\]').test(code) && code.split(n).length - 1 === 2));
     vrai('⛔ le téléchargement : https seulement, redirections comprises, vers un FICHIER vérifié — jamais un tuyau vers un interpréteur', /curl --fail[^\n]*--proto '=https' --proto-redir '=https' --tlsv1\.2[^\n]*-o "\$tmp"/.test(code) && !/curl[^\n|]*\|\s*(ba)?sh/.test(code));
-    vrai('⛔ le secret n\'est jamais dans un argument ni dans l\'environnement : le programme Node ne reçoit que des chemins, des ports et un mode', !/SECRET\s*=/.test(code.replace(/RE_SECRET\s*=/g, '')) && !/--secret/.test(code));
-    vrai('⛔ rien ne touche à OP GESTION ni à nginx (l\'ouvrier n\'écoute que la boucle locale)', !/teamop-api|\/opt\/teamop|\/etc\/teamop|nginx|ufw/.test(code));
+    vrai('⛔ le secret n\'est jamais dans un argument ni dans l\'environnement : le programme Node ne reçoit que des chemins, des comptes et un mode', !/SECRET\s*=/.test(code.replace(/RE_SECRET\s*=/g, '')) && !/--secret/.test(code));
+    vrai('⛔ rien ne touche à OP GESTION ni à nginx (l\'ouvrier n\'écoute qu\'une socket Unix)', !/teamop-api|\/opt\/teamop|\/etc\/teamop|nginx|ufw/.test(code));
     const unite = (code.match(/'\[Service\]'[\s\S]*?'\[Install\]'/) || [''])[0];
-    for (const l of ['IPAddressDeny=any', 'IPAddressAllow=localhost', 'NoNewPrivileges=true', 'ProtectSystem=strict', 'CapabilityBoundingSet=', 'RuntimeDirectory=opmsg-transcrire-%i', 'MemoryMax=1200M', 'MemorySwapMax=0', 'PrivateTmp=true', 'ProtectHome=true', 'RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX', 'User=opmsg-transcrire-%i'])
+    /* (relecture du gardien, 11 octobre 2026) : aucun réseau du tout, pas de vidage mémoire, /etc/opmsg vidé sauf SA configuration, le filtre d'appels système,
+       les processus voisins cachés, l'ouvrier tué en premier quand la mémoire manque */
+    for (const l of ['PrivateNetwork=true', 'RestrictAddressFamilies=AF_UNIX', 'IPAddressDeny=any', 'NoNewPrivileges=true', 'ProtectSystem=strict', 'CapabilityBoundingSet=', 'RuntimeDirectory=opmsg-transcrire-%i',
+      'RuntimeDirectoryMode=0750', 'UMask=0077', 'MemoryMax=1200M', 'MemorySwapMax=0', 'PrivateTmp=true', 'ProtectHome=true', 'User=opmsg-transcrire-%i', 'LimitCORE=0', 'OOMScoreAdjust=500',
+      'SystemCallFilter=@system-service', 'SystemCallErrorNumber=EPERM', 'ProtectProc=invisible', 'TemporaryFileSystem=/etc/opmsg:ro', 'BindReadOnlyPaths=/etc/opmsg/transcrire-%i.json'])
       vrai('⛔ l\'unité porte « ' + l + ' »', unite.includes("'" + l + "'"));
+    vrai('⛔ … et ne garde AUCUNE porte réseau (ni IPAddressAllow, ni AF_INET)', !/IPAddressAllow|AF_INET/.test(unite));
+    vrai('⛔ le filtre d\'appels système retire les privilégiés', /'SystemCallFilter=~@privileged @mount @swap @reboot @raw-io @obsolete[^']*'/.test(unite));
     vrai('⛔ et les données des deux instances lui sont inaccessibles', unite.includes('-/opt/opmsg/beta/data -/opt/opmsg/prod/data'));
-    v('les ports de l\'ouvrier, instance par instance (la boucle locale seulement)', [/beta\) PORT_OUVRIER=7860 ;;/.test(code), /prod\) PORT_OUVRIER=7861 ;;/.test(code)], [true, true]);
+    vrai('⛔ une socket Unix par instance, dans le dossier d\'exécution de son unité — plus aucun port', /beta\|prod\) SOCKET_REEL="\/run\/opmsg-transcrire-\$INSTANCE\/ouvrier\.sock" ;;/.test(code) && !/PORT_OUVRIER|127\.0\.0\.1:/.test(code));
+    vrai('⛔ la récupération et la compilation tournent SANS privilège (nobody), seule la copie se fait en root', /setpriv --reuid=nobody --regid=nogroup --clear-groups/.test(code)
+      && ['git init', 'git -C "$TMPD/src" remote', 'git -C "$TMPD/src" fetch', 'git -C "$TMPD/src" checkout', 'git -C "$TMPD/src" rev-parse', 'cmake -S', 'cmake --build'].every(c => code.includes('sans_privilege ' + c))
+      && !/^\s*(git|cmake) /m.test(code));
+    {
+      /* la durée maximale de l'ouvrier, par défaut, est CELLE DU SERVICE : un ouvrier qui accepterait plus longtemps se ferait tenir par une durée déclarée fausse */
+      const defService = /const TRANSCRIPTION_DEFAUT = \{ dureeMaxS: (\d+),/.exec(lire(path.join(RACINE, 'server-msg', 'config.js')) || '');
+      vrai('⛔ la durée maximale posée chez l\'ouvrier, par défaut, est celle du service (TRANSCRIPTION_DEFAUT de config.js)', !!defService && code.includes(': ' + defService[1] + ';') && /dureeMaxS: dureeMaxS/.test(code));
+    }
+    vrai('⛔ une coupure ou une commande qui échoue APRÈS l\'écriture des configurations défait tout (pièges HUP/INT/TERM et ERR, posés après l\'écriture)',
+      /trap 'annuler [^\n]*' HUP INT TERM/.test(code) && /trap 'annuler [^\n]*' ERR/.test(code) && code.indexOf("' ERR") > code.indexOf('configurer poser') && /annuler\(\) \{[^}]*trap - HUP INT TERM ERR/.test(code));
     const r = spawnSync('bash', ['-n', SCRIPT], { encoding: 'utf8' });
     v('bash -n', [r.status, String(r.stderr).trim()], [0, '']);
   }
@@ -228,17 +250,21 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
   console.log('\nUne première installation');
   let b = bac();
   try {
-    b.instance('beta'); await b.serveur('beta'); b.portOuvrier = await b.portLibre();
+    b.instance('beta'); await b.serveur('beta');
     const avant = b.octets('etc/opmsg/beta.json');
     const r = await b.lancer(['beta']);
     v('le script réussit', [r.status, /✓ La transcription des vocaux est en place pour beta/.test(r.out)], [0, true]);
     if (r.status !== 0) console.log(r.out.split('\n').slice(-15).join('\n') + '\n' + r.err.slice(-800));
     const c = b.config('beta'), w = b.trConf('beta'), sec = c && c.transcription && c.transcription.secret;
-    v('la configuration de l\'instance porte l\'ouvrier : la boucle locale et un secret', [c && c.transcription && c.transcription.url, RE_SECRET.test(sec || '')], ['http://127.0.0.1:' + b.portOuvrier, true]);
+    v('la configuration de l\'instance porte l\'ouvrier : sa socket et un secret', [c && c.transcription && c.transcription.url, RE_SECRET.test(sec || '')], ['unix:' + b.socket('beta'), true]);
     vrai('le reste de la configuration de l\'instance est intact', JSON.stringify(Object.assign({}, c, { transcription: undefined })) === JSON.stringify(Object.assign(JSON.parse(avant), { transcription: undefined })));
-    v('⛔ la configuration de l\'ouvrier : le MÊME secret, son port, les chemins RÉELS du VPS, 2 cœurs, un faisceau de 1',
-      w && [w.secret === sec, w.port, w.whisper, w.modele, w.vad, w.ffmpeg, w.threads, w.faisceau],
-      [true, b.portOuvrier, '/' + W_REL + '/whisper-cli', '/opt/opmsg/whisper/modeles/ggml-small-q5_1.bin', '/opt/opmsg/whisper/modeles/ggml-silero-v6.2.0.bin', '/usr/bin/ffmpeg', 2, 1]);
+    v('⛔ la configuration de l\'ouvrier : le MÊME secret, sa socket (aucun port), les chemins RÉELS du VPS, 2 cœurs, un faisceau de 1, la durée maximale du service',
+      w && [w.secret === sec, w.socket, w.port, w.whisper, w.modele, w.vad, w.ffmpeg, w.threads, w.faisceau, w.dureeMaxS],
+      [true, b.socket('beta'), undefined, '/' + W_REL + '/whisper-cli', '/opt/opmsg/whisper/modeles/ggml-small-q5_1.bin', '/opt/opmsg/whisper/modeles/ggml-silero-v6.2.0.bin', '/usr/bin/ffmpeg', 2, 1, 300]);
+    v('⛔ la socket : vivante, et joignable par son seul groupe (0660)', [(() => { try { return fs.statSync(b.socket('beta')).isSocket(); } catch (e) { return false; } })(), (() => { try { return (fs.statSync(b.socket('beta')).mode & 0o777).toString(8); } catch (e) { return null; } })()], [true, '660']);
+    vrai('⛔ le contrôle a vérifié les droits de la socket', /✓ sa socket n'est joignable que par son groupe \(0660\)/.test(r.out));
+    v('⛔ le complément d\'unité de l\'INSTANCE : le groupe de SON ouvrier, et rien d\'autre', (b.octets('etc/systemd/system/teamop-msg@beta.service.d/transcription.conf') || '').split('\n').filter(l => l && !l.startsWith('#')), ['[Service]', 'SupplementaryGroups=opmsg-transcrire-beta']);
+    vrai('les capacités du processeur sont relevées à la compilation (un processeur changé fait recompiler)', /^[0-9a-f]{16}$/.test((b.octets(W_REL + '/cpu') || '').trim()));
     v('⛔ les droits : l\'instance 0600, l\'ouvrier 0640 (lisible de son compte seul, par son groupe)', [b.mode('etc/opmsg/beta.json'), b.mode('etc/opmsg/transcrire-beta.json')], ['600', '640']);
     const tout = r.out + r.err, env = b.env(), args = b.journal().join('\n');
     vrai('⛔ le secret n\'est NI dans la sortie du script, NI dans un argument, NI dans l\'environnement d\'un programme lancé', !!sec && !tout.includes(sec) && !args.includes(sec) && !env.includes(sec));
@@ -253,7 +279,7 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     const iOuvrier = index(J, /^systemctl restart opmsg-transcrire@beta$/), iInstance = index(J, /^systemctl restart teamop-msg@beta$/);
     vrai('⛔ L\'ORDRE : l\'ouvrier démarré et contrôlé AVANT de relancer l\'instance', iOuvrier >= 0 && iInstance > iOuvrier && r.out.indexOf('Contrôle de l\'ouvrier') < r.out.indexOf('l\'instance voit l\'ouvrier'));
     vrai('l\'instance a relu sa configuration (elle porte la transcription)', !!JSON.parse(lire(path.join(b.E, 'config-lue-beta.json'))).transcription);
-    vrai('aucun fichier de travail laissé dans le dossier d\'exécution de l\'ouvrier', fs.readdirSync(path.join(b.E, 'run-beta')).length === 0);
+    v('aucun fichier de travail laissé dans le dossier d\'exécution de l\'ouvrier (seule sa socket y vit)', fs.readdirSync(path.join(b.E, 'run-beta')), ['ouvrier.sock']);
     const unite = b.octets('etc/systemd/system/opmsg-transcrire@.service') || '';
     vrai('l\'unité posée : le vrai transcripteur.js, par /usr/bin/node, depuis le code déployé', /^ExecStart=\/usr\/bin\/node \/opt\/opmsg\/%i\/current\/transcripteur\.js$/m.test(unite) && /^Environment=OPMSG_TRANSCRIRE_CONFIG=\/etc\/opmsg\/transcrire-%i\.json$/m.test(unite));
 
@@ -268,13 +294,22 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     v('⛔ rien n\'est recompilé, retéléchargé, ni relancé', [compte(J2, /^git |^cmake |^curl /), compte(J2, /^systemctl restart/)], [0, 0]);
     vrai('… et elle le dit', /déjà là, intact/.test(r2.out) && /secret=repris instance=inchange ouvrier=inchange/.test(r2.out));
 
+    console.log('\nUn processeur changé (un VPS migré) : whisper.cpp est recompilé');
+    fs.writeFileSync(path.join(b.R, W_REL, 'cpu'), '0000000000000000\n');
+    const n15 = b.journal().length;
+    const r15 = await b.lancer(['beta']);
+    const J15 = b.journal().slice(n15);
+    v('elle réussit, recompile, et ne retélécharge pas les modèles', [r15.status, compte(J15, /^cmake --build /), compte(J15, /^curl /)], [0, 1, 0]);
+    vrai('… et les capacités relevées sont celles du processeur d\'aujourd\'hui', (b.octets(W_REL + '/cpu') || '').trim() !== '0000000000000000');
+
     /* ═══════ 3. RETIRER ═══════ */
     console.log('\n« retirer »');
     const n2 = b.journal().length;
     const r3 = await b.lancer(['beta', 'retirer']);
     const J3 = b.journal().slice(n2);
     v('il réussit', r3.status, 0);
-    v('⛔ la configuration de l\'instance revient OCTET POUR OCTET à celle d\'avant, celle de l\'ouvrier est effacée', [b.octets('etc/opmsg/beta.json') === avant, b.existe('etc/opmsg/transcrire-beta.json')], [true, false]);
+    v('⛔ la configuration de l\'instance revient OCTET POUR OCTET à celle d\'avant, celle de l\'ouvrier est effacée, le complément d\'unité aussi', [b.octets('etc/opmsg/beta.json') === avant, b.existe('etc/opmsg/transcrire-beta.json'), b.existe('etc/systemd/system/teamop-msg@beta.service.d')], [true, false, false]);
+    vrai('⛔ … et systemd l\'a relu AVANT de relancer l\'instance (elle perd le groupe de l\'ouvrier avec la transcription)', index(J3, /^systemctl daemon-reload$/) >= 0 && index(J3, /^systemctl daemon-reload$/) < index(J3, /^systemctl restart teamop-msg@beta$/));
     vrai('l\'ouvrier est arrêté et désactivé, l\'instance relancée pour oublier la transcription', !b.ouvrierVivant('beta') && J3.includes('systemctl stop opmsg-transcrire@beta') && J3.includes('systemctl disable opmsg-transcrire@beta') && J3.includes('systemctl restart teamop-msg@beta'));
     vrai('le programme et les modèles restent (l\'autre instance s\'en sert peut-être)', b.existe(W_REL + '/whisper-cli') && b.existe('opt/opmsg/whisper/modeles/ggml-small-q5_1.bin'));
   } finally { b.fin(); }
@@ -294,17 +329,19 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     { nom: 'l\'ouvrier ne démarre pas', drapeau: 'ouvrier-refuse', dit: /l'ouvrier de transcription n'a pas démarré/ },
     { nom: 'l\'ouvrier ne transcrit pas l\'échantillon (le contrôle échoue)', avant: (b) => b.ecrireEtat('whisper-texte', 'un texte sans le mot attendu'), dit: /l'ouvrier ne fait pas ce qu'il doit/ },
     { nom: 'l\'instance relancée ne voit pas l\'ouvrier', drapeau: 'health-ko', dit: /ne voit pas l'ouvrier/ },
+    { nom: 'une commande échoue APRÈS l\'écriture des configurations (le piège ERR)', drapeau: 'chown-refuse', dit: /une étape a échoué \(ligne \d+\)/ },
   ];
   for (const k of cas) {
     b = bac();
     try {
-      b.instance('beta', { version: k.version }); await b.serveur('beta'); b.portOuvrier = await b.portLibre();
+      b.instance('beta', { version: k.version }); await b.serveur('beta');
       if (k.drapeau) b.drapeau(k.drapeau);
       if (k.avant) k.avant(b);
       const avant = b.octets('etc/opmsg/beta.json');
       const r = await b.lancer(['beta']);
       const J = b.journal();
-      const ferme = r.status === 1 && b.octets('etc/opmsg/beta.json') === avant && !b.existe('etc/opmsg/transcrire-beta.json') && !b.ouvrierVivant('beta') && !b.existe('etc/opmsg/beta.json.avant-transcription');
+      const ferme = r.status === 1 && b.octets('etc/opmsg/beta.json') === avant && !b.existe('etc/opmsg/transcrire-beta.json') && !b.ouvrierVivant('beta') && !b.existe('etc/opmsg/beta.json.avant-transcription')
+        && !b.existe('etc/systemd/system/teamop-msg@beta.service.d/transcription.conf');
       v('⛔ ' + k.nom + ' : le script s\'arrête, le DIT, et la configuration de l\'instance reste OCTET POUR OCTET', [ferme, k.dit.test(r.out)], [true, true]);
       if (!ferme || !k.dit.test(r.out)) console.log(r.out.split('\n').slice(-8).join('\n'));
       if (k.rien) vrai('   … rien n\'est écrit avant la cause (ni unité, ni compte, ni configuration de l\'ouvrier), et l\'instance n\'est pas touchée', !b.existe('etc/systemd/system/opmsg-transcrire@.service') && compte(J, /^useradd /) === 0 && compte(J, /^systemctl restart teamop-msg@/) === 0);
@@ -319,13 +356,16 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
   b = bac();
   try {
     b.instance('beta'); b.instance('prod'); await b.serveur('beta'); await b.serveur('prod');
-    b.portOuvrier = await b.portLibre(); const rb = await b.lancer(['beta']);
-    b.portOuvrier = await b.portLibre(); const n = b.journal().length; const rp = await b.lancer(['prod']);
+    const rb = await b.lancer(['beta']);
+    const n = b.journal().length; const rp = await b.lancer(['prod']);
     const Jp = b.journal().slice(n);
     v('les deux installations réussissent', [rb.status, rp.status], [0, 0]);
     const sb = b.config('beta').transcription.secret, sp = b.config('prod').transcription.secret;
     vrai('⛔ deux secrets différents, chacun dans SA configuration d\'ouvrier', sb !== sp && b.trConf('beta').secret === sb && b.trConf('prod').secret === sp);
     vrai('deux comptes', fs.existsSync(path.join(b.E, 'compte-opmsg-transcrire-beta')) && fs.existsSync(path.join(b.E, 'compte-opmsg-transcrire-prod')));
+    v('⛔ deux sockets, et chaque instance ne reçoit que le groupe de SON ouvrier', [b.config('beta').transcription.url, b.config('prod').transcription.url,
+      /SupplementaryGroups=opmsg-transcrire-beta$/m.test(b.octets('etc/systemd/system/teamop-msg@beta.service.d/transcription.conf') || ''), /SupplementaryGroups=opmsg-transcrire-prod$/m.test(b.octets('etc/systemd/system/teamop-msg@prod.service.d/transcription.conf') || ''),
+      /opmsg-transcrire-prod/.test(b.octets('etc/systemd/system/teamop-msg@beta.service.d/transcription.conf') || '')], ['unix:' + b.socket('beta'), 'unix:' + b.socket('prod'), true, true, false]);
     vrai('la seconde ne recompile ni ne retélécharge (le programme et les modèles sont partagés)', compte(Jp, /^git |^cmake |^curl /) === 0);
   } finally { b.fin(); }
 })().then(() => t.fin(), (e) => { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; });

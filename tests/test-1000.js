@@ -58,13 +58,13 @@ function fauxOuvrier() {
   const MDP = { alice: 'pw-alice-1234', bob: 'pw-bob-123456', cleo: 'pw-cleo-12345', dan: 'pw-dan-123456' };
   const og = await T.fauxOpGestion(Object.fromEntries(Object.keys(MDP).map(k => [k, { pass: MDP[k], nom: k[0].toUpperCase() + k.slice(1) + ' Banc', actif: true }])));
   const W = fauxOuvrier(); await W.ecouter();
-  const trCfg = { url: 'http://127.0.0.1:' + W.port, secret: SECRET, sondeMs: 60, delaiSondeMs: 1000, delaiBaseMs: 5000, delaiParSMs: 100, file: 3, essais: 2, parHeure: 20, dureeMaxS: 60 };
+  const trCfg = { url: 'http://127.0.0.1:' + W.port, secret: SECRET, sondeMs: 60, delaiSondeMs: 1000, delaiBaseMs: 5000, delaiParSMs: 100, file: 3, parPersonne: 2, budgetHeureS: 50, essais: 2, parHeure: 20, dureeMaxS: 60 };
   let svc = await T.lancerService({ urlGestion: og.url, config: { transcription: trCfg } });
   const sans = await T.lancerService({ urlGestion: og.url });
   const sources = [], dossiers = [];
   function monter(s, opts) {
     const nav = T.navigateur(s.base), o = opts || {};
-    const src = creerSourceServeur({ OPMSG, base: s.base, fetch: async (u, i) => { const r = await nav.fetch(u, i); if (o.retenir && /\/messages\/transcrire$/.test(String(u))) await o.retenir(); return r; }, EventSource: nav.EventSource, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60 });
+    const src = creerSourceServeur({ OPMSG, base: s.base, fetch: async (u, i) => { if (o.couper && o.couper(String(u))) throw new TypeError('Failed to fetch'); const r = await nav.fetch(u, i); if (o.retenir && /\/messages\/transcrire$/.test(String(u))) await o.retenir(); return r; }, EventSource: nav.EventSource, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60, relireTranscriptionMs: [40, 40, 40] });
     const evs = []; src.ecouter(e => evs.push(e)); sources.push(src);
     return { src, evs, nav,
       async entrer(login) { await src.connexion(login, MDP[login]); const d = await src.demarrer(); if (!d.connecte) throw new Error('démarrage refusé : ' + JSON.stringify(d)); return src.moi(); },
@@ -114,6 +114,9 @@ function fauxOuvrier() {
     v('redemander ne recalcule rien : le texte revient tout de suite', [await B.src.transcrire(conv, mB.id), W.travaux.length], [{ etat: 'prete', texte: TEXTE, langue: 'fr' }, 1]);
     const B2 = monter(svc); await B2.entrer('bob');
     v('un autre appareil de Bruno, ouvert après : le texte est là au chargement', (await trouve(B2, conv, x => x.vocal)).transcription, { etat: 'prete', texte: TEXTE, langue: 'fr' });
+    /* (relecture du relecteur) : l'export de ses données porte ce qu'un vocal a dit — `compte.js` ; sans ce contrôle, la ligne pouvait partir sans qu'aucun banc tombe */
+    const exB = await B.api('POST', '/api/compte/export', {});
+    vrai('⛔ l\'export de Bruno porte la transcription du vocal', exB.statut === 200 && JSON.stringify(exB.json).includes('"transcription":"' + TEXTE + '"'));
     const rech = await B.src.chercher(conv, 'jeton-qwzk');
     vrai('⛔ ce qu\'un vocal a dit se retrouve dans « Retrouver »', rech.resultats.length === 1 && rech.resultats[0].seq > 0);
 
@@ -167,22 +170,48 @@ function fauxOuvrier() {
     v('un message qui n\'est pas un vocal : 409', (await B.api('POST', '/api/conversations/' + conv + '/messages/transcrire', { seq: mTxt.seq })).json.error, 'type_invalide');
     v('un numéro de message illisible : 400', (await B.api('POST', '/api/conversations/' + conv + '/messages/transcrire', { seq: 'x' })).statut, 400);
 
-    /* la file : 3 travaux au plus (le calcul en cours compris), le 4e est refusé AVEC son attente — et rien ne s'écrit pour lui */
+    /* la file : 3 travaux au plus (le calcul en cours compris), DEUX par personne — un refus dit le vrai (la file pleine, ou ses propres vocaux en calcul), AVEC son attente,
+       et rien ne s'écrit pour lui. Dans le groupe : Alice, Bruno et Cléo y sont (Cléo, ajoutée avant ces vocaux, les voit) */
     const ids = [];
-    for (let i = 0; i < 4; i++) { await vocal(A, conv, 1.5); }
-    const vocs = (await vues(B, conv)).filter(x => x.vocal && !x.supprime && !x.transcription && x.vocal.dur !== 75);
-    for (const m of vocs.slice(-4)) ids.push(m.id);
+    for (let i = 0; i < 5; i++) { await vocal(A, g.id, 4); }
+    let vocsG = [];
+    await att(async () => { vocsG = (await vues(B, g.id)).filter(x => x.vocal && !x.supprime && !x.transcription && x.vocal.dur === 4).slice(-5); return vocsG.length === 5; });
+    const seqs = vocsG.map(x => x.seq);
+    const idDe = async (S, seq) => (await trouve(S, g.id, x => x.seq === seq)).id;
     const nT = W.travaux.length;
-    for (let i = 0; i < 3; i++) v('travail ' + (i + 1) + ' accepté : « en cours »', (await B.src.transcrire(conv, ids[i])).etat, 'attente');
-    const ePlein = await attrape(B.src.transcrire(conv, ids[3]));
+    v('Bruno : un premier travail accepté', (await B.src.transcrire(g.id, vocsG[0].id)).etat, 'attente');
+    v('Bruno : un deuxième', (await B.src.transcrire(g.id, vocsG[1].id)).etat, 'attente');
+    const eMoi = await attrape(B.src.transcrire(g.id, vocsG[2].id));
+    v('⛔ un troisième de Bruno pendant que ses deux premiers calculent : 429 « tes vocaux sont encore en cours », avec son attente — personne ne prend toute la file',
+      [eMoi && eMoi.code, eMoi && eMoi.statut, eMoi && eMoi.retry, eMoi && eMoi.phrase()], ['transcription_en_cours', 429, 30, 'Tes vocaux précédents sont encore en cours de transcription : attends qu\'ils finissent (réessaie dans 30 s).']);
+    v('Cléo, elle, a sa place : la file est pleine (3, le calcul en cours compris)', (await C.src.transcrire(g.id, await idDe(C, seqs[3]))).etat, 'attente');
+    const idA4 = await idDe(A, seqs[4]);
+    const ePlein = await attrape(A.src.transcrire(g.id, idA4));
     v('⛔ la file pleine : 503 « occupée », avec son attente, et UNE seule invitation à réessayer', [ePlein && ePlein.code, ePlein && ePlein.retry, ePlein && ePlein.phrase()], ['transcription_occupee', 60, 'Beaucoup de vocaux sont en cours de transcription (réessaie dans 60 s).']);
+    v('⛔ … et rien ne s\'est écrit pour les deux refusés', [(await vues(B, g.id)).find(x => x.seq === seqs[2]).transcription, (await vues(A, g.id)).find(x => x.seq === seqs[4]).transcription], [undefined, undefined]);
     await att(() => W.travaux.length === nT + 1); await T.dort(100);
     v('⛔ un seul calcul à la fois chez l\'ouvrier (les deux autres attendent leur tour)', W.travaux.length, nT + 1);
     for (let i = 0; i < 3; i++) { await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: 'texte ' + i, langue: 'fr' }); }
-    vrai('les trois passent, chacun son tour', await att(async () => (await vues(B, conv)).filter(x => ids.slice(0, 3).includes(x.id) && x.transcription && x.transcription.etat === 'prete').length === 3));
-    v('le 4e, refusé, n\'a rien laissé : il se redemande', (await B.src.transcrire(conv, ids[3])).etat, 'attente');
+    vrai('les trois passent, chacun son tour', await att(async () => (await vues(B, g.id)).filter(x => [seqs[0], seqs[1], seqs[3]].includes(x.seq) && x.transcription && x.transcription.etat === 'prete').length === 3));
+    v('le refusé de Bruno n\'a rien laissé : il se redemande', (await B.src.transcrire(g.id, vocsG[2].id)).etat, 'attente');
+    await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: 'texte 3', langue: 'fr' });
+    v('celui d\'Alice aussi', (await A.src.transcrire(g.id, idA4)).etat, 'attente');
     await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: '', langue: null });
-    v('un vocal sans parole : « vide » (la page dira « Aucune parole reconnue »)', (await trouve(B, conv, x => x.id === ids[3] && x.transcription && x.transcription.etat !== 'attente')).transcription, { etat: 'vide' });
+    v('un vocal sans parole : « vide » (la page dira « Aucune parole reconnue »)', (await trouve(A, g.id, x => x.seq === seqs[4] && x.transcription && x.transcription.etat !== 'attente')).transcription, { etat: 'vide' });
+
+    /* le BUDGET : des secondes de vocal par personne et par heure (50 dans ce banc) — Cléo en a pris 4 ; un vocal de 30 s passe, le suivant attend que l'heure tourne */
+    await vocal(A, g.id, 30); await vocal(A, g.id, 31);
+    const v30 = await trouve(C, g.id, x => x.vocal && x.vocal.dur === 30), v31 = await trouve(C, g.id, x => x.vocal && x.vocal.dur === 31);
+    v('Cléo : un vocal de 30 s passe (4 + 30 sur 50)', (await C.src.transcrire(g.id, v30.id)).etat, 'attente');
+    const eBud = await attrape(C.src.transcrire(g.id, v31.id));
+    v('⛔ le suivant (31 s de plus) : 429 « budget », avec l\'attente jusqu\'à ce que les premiers sortent de l\'heure — et rien ne s\'écrit',
+      [eBud && eBud.code, eBud && eBud.statut, eBud && eBud.retry > 3500 && eBud.retry <= 3600, (await vues(C, g.id)).find(x => x.id === v31.id).transcription], ['transcription_budget', 429, true, undefined]);
+    vrai('… dit en français, avec son attente', !!eBud && /^Tu as déjà fait transcrire beaucoup de vocaux cette heure-ci \(réessaie dans .+\)\.$/.test(eBud.phrase()));
+    v('… et le budget est À ELLE : Alice fait transcrire le même vocal', (await A.src.transcrire(g.id, await idDe(A, v31.seq))).etat, 'attente');
+    await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: 'trente', langue: 'fr' });
+    await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: 'trente et une', langue: 'fr' });
+    await trouve(B, g.id, x => x.seq === v31.seq && x.transcription && x.transcription.etat === 'prete');
+    v('⛔ une transcription déjà là se LIT, même budget épuisé (relire ne coûte rien)', (await C.src.transcrire(g.id, v31.id)).etat, 'prete');
 
     /* ═══ 5. UN ÉCHEC SE RETENTE, PUIS SE DIT DÉFINITIF ═════════════════════════════════════════════════════ */
     console.log('\n── 1000 · un échec, un nouvel essai, puis « définitif »');
@@ -207,8 +236,19 @@ function fauxOuvrier() {
     const mD = await trouve(D, convD, x => x.vocal);
     W.auto = [200, { ok: true, texte: 'pour Dan', langue: 'fr' }];
     const res = [];
-    for (let i = 0; i < 21; i++) { const e = await attrape(D.src.transcrire(convD, mD.id)); res.push(e ? e.code : 'ok'); }
-    v('⛔ vingt demandes par heure (réglage du banc), la vingt et unième : 429 — même sur un texte déjà prêt (le plafond passe AVANT le stockage)', res, Array(20).fill('ok').concat(['quota_atteint']));
+    for (let i = 0; i < 25; i++) { const e = await attrape(D.src.transcrire(convD, mD.id)); res.push(e ? e.code : 'ok'); }
+    /* ⛔ (relectures du gardien et du relecteur, 11 octobre 2026) : le plafond passait AVANT le stockage — relire un texte déjà prêt le consommait, et chaque « Réessayer »
+       pendant une panne aussi. Il ne se consomme plus que pour un travail QUI PART */
+    v('⛔ relire un texte déjà prêt ne consomme pas le plafond : vingt-cinq relectures, toutes servies', res, Array(25).fill('ok'));
+    const resN = [];
+    for (let i = 0; i < 20; i++) {
+      await vocal(A, convD, 1);
+      let m = null;
+      await att(async () => { m = (await vues(D, convD)).filter(x => x.vocal && !x.transcription).pop() || null; return !!m; });
+      const e = await attrape(D.src.transcrire(convD, m.id)); resN.push(e ? e.code : 'ok');
+      if (!e) await att(async () => { const x = (await vues(D, convD)).find(y => y.id === m.id); return !!(x && x.transcription && x.transcription.etat === 'prete'); });
+    }
+    v('⛔ vingt travaux par heure (réglage du banc ; le premier vocal de Dan en était un) : le vingt et unième travail est refusé, 429', resN, Array(19).fill('ok').concat(['quota_atteint']));
     W.auto = null;
 
     /* ═══ 7. UN CALCUL INTERROMPU PAR UN REDÉMARRAGE ════════════════════════════════════════════════════════ */
@@ -251,14 +291,40 @@ function fauxOuvrier() {
         [{ etat: 'prete', texte: 'Arrivé par le flux AVANT la réponse', langue: 'fr' }, { etat: 'prete', texte: 'Arrivé par le flux AVANT la réponse', langue: 'fr' }]);
     }
 
+    /* ═══ 7 ter. UN TEXTE LONG SE RELIT — ET SA RELECTURE PEUT ÉCHOUER ═══════════════════════════════════════
+       Un texte trop long pour l'événement arrive en « relis-le » (`relis`). ⛔ (relecture du relecteur) : une relecture ratée laissait « Transcription en cours… » pour toujours,
+       sans « Réessayer ». Elle se retente (trois fois), puis l'état DIT « prête, texte pas chargé » — et la demande rend alors le texte. */
+    console.log('\n── 1000 · un texte long, et sa relecture qui échoue');
+    {
+      const LONG = ('Un long vocal de chantier JETON-LONG-QWZK ' + 'avec beaucoup de détails sur les travaux à faire. ').repeat(60);
+      await vocal(A, conv, 2);
+      const mLo = await trouve(B, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > mR.seq + 1);
+      await B.src.transcrire(conv, mLo.id);
+      await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: LONG, langue: 'fr' });
+      v('un texte long arrive par une relecture : il est là, entier', (await trouve(B, conv, x => x.id === mLo.id && x.transcription && x.transcription.etat === 'prete')).transcription.texte, LONG.trim());
+      let coupees = 0;
+      const B4 = monter(svc, { couper: (u) => { const c = /\/messages\?apres_seq=/.test(u); if (c) coupees++; return c; } }); await B4.entrer('bob');
+      await vocal(A, conv, 2);
+      const mLo2 = await trouve(B4, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > mLo.seq);
+      await B4.src.transcrire(conv, mLo2.id);
+      await att(() => W.enAttente.length === 1); W.relacher(200, { ok: true, texte: LONG + ' deux', langue: 'fr' });
+      vrai('⛔ la relecture qui échoue se RETENTE (trois fois après la première)', await att(() => coupees >= 4, 4000));
+      const tLo = (await trouve(B4, conv, x => x.id === mLo2.id && x.transcription && x.transcription.etat === 'prete')).transcription;
+      v('⛔ puis l\'état DIT « prête, texte pas chargé » — jamais « en cours » pour toujours', tLo, { etat: 'prete', relis: true });
+      v('⛔ … et la demande rend le texte (une transcription déjà là ne recalcule rien)', [(await B4.src.transcrire(conv, mLo2.id)).texte, W.enAttente.length], [(LONG + ' deux').trim(), 0]);
+    }
+
     /* ═══ 8. L'OUVRIER TOMBE ═════════════════════════════════════════════════════════════════════════════ */
     console.log('\n── 1000 · l\'ouvrier ne répond plus');
     W.panne = true;
     vrai('/health finit par dire « pas ok » (deux sondes ratées de suite)', await att(async () => (await sante(svc)).transcription.ok === false, 5000));
+    const seqAvantP = Math.max(...(await vues(B, conv)).map(x => x.seq || 0));
     await vocal(A, conv, 2);
-    const mP = await trouve(B, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > mR.seq + 1);
+    const mP = await trouve(B, conv, x => x.vocal && !x.transcription && !x.supprime && x.seq > seqAvantP);
     const eP = await attrape(B.src.transcrire(conv, mP.id));
-    v('une demande pendant la panne : refusée avec son attente, et rien ne s\'écrit', [eP && eP.code, (await vues(B, conv)).find(x => x.id === mP.id).transcription], ['transcription_occupee', undefined]);
+    /* ⛔ (relectures) : une panne n'est pas « beaucoup de vocaux » — elle se dit pour ce qu'elle est */
+    v('une demande pendant la panne : « momentanément indisponible », avec son attente, et rien ne s\'écrit', [eP && eP.code, eP && eP.retry, eP && eP.phrase(), (await vues(B, conv)).find(x => x.id === mP.id).transcription],
+      ['transcription_indisponible', 60, 'La transcription est momentanément indisponible (réessaie dans 60 s).', undefined]);
     W.panne = false;
     vrai('l\'ouvrier revient : /health redit « ok »', await att(async () => (await sante(svc)).transcription.ok === true, 5000));
     void alice; void cleo;
