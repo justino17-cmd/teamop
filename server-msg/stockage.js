@@ -42,7 +42,7 @@ const MAX_MEMBRES = 1024;
 const DELAI_MODIF_MS = 15 * 60 * 1000;
 const JOURNAL_JOURS = 7, JOURNAL_LIGNES = 10000;
 const TAILLE_PORTEE = 2048;   // un texte de 2 Ko ou moins est porté dans l'événement
-const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage'];
+const GENRES_SEQ = ['msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage', 'msg_transcrit'];
 const PUSH_MAX = 10;   // dix appareils au plus par personne : le plus ancien part au onzième
 const DEMANDES_MAX = 50;   // demandes de contact qu'une personne voit « en attente » à la fois (relecture du gardien, A2)
 
@@ -666,6 +666,27 @@ const MIGRATIONS = [
     `ALTER TABLE evenement ADD COLUMN cote TEXT`,
     `PRAGMA user_version = 25`,
   ] },
+  /* ── 26 (11 octobre 2026) : LA TRANSCRIPTION D'UN VOCAL — « possible de faire une transcription écrite, comme sur Instagram » (Justin). À la DEMANDE (« Voir la transcription »),
+         calculée UNE fois par NOTRE serveur (whisper.cpp dans son unité à part, `transcription.js` — jamais un tiers), puis partagée par tous ceux qui peuvent écouter ce vocal.
+         Une ligne par vocal demandé : l'état ('attente' → 'prete' | 'vide' | 'echec'), le texte SCELLÉ avec l'AAD du message (une ligne recopiée ailleurs ne s'ouvre pas), la langue
+         reconnue, le nombre d'essais. Aucune trace de QUI a demandé : elle ne servirait à rien et dirait qui écoute quoi.
+         ⛔ La clé étrangère suit l'éphémère échu et la conversation supprimée (le message part, la ligne avec) ; « supprimer pour tous » laisse une pierre tombale (un UPDATE) : la ligne
+         s'efface À LA MAIN dans la même transaction, et la restauration d'une archive le rejoue (`rejouerPurge`, genre `message_supprime`). ── */
+  { v: 26, sql: [
+    `CREATE TABLE IF NOT EXISTS transcription (
+       conv TEXT NOT NULL,
+       seq INTEGER NOT NULL,
+       etat TEXT NOT NULL CHECK (etat IN ('attente', 'prete', 'vide', 'echec')),
+       texte_ch BLOB,
+       langue TEXT,
+       essais INTEGER NOT NULL DEFAULT 1,
+       cree INTEGER NOT NULL,
+       maj INTEGER NOT NULL,
+       PRIMARY KEY (conv, seq),
+       FOREIGN KEY (conv, seq) REFERENCES message(conv, seq) ON DELETE CASCADE)`,
+    `CREATE INDEX IF NOT EXISTS transcription_etat ON transcription(etat, maj)`,
+    `PRAGMA user_version = 26`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -756,6 +777,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
   const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
+  const TRANSCRIPTIONS = versionActuelle() >= 26; // une base d'avant la migration 26 : aucune transcription (la page ne propose rien de plus)
 
   /* ── Le témoin de clé : un démarrage avec une MAUVAISE clé est refusé net ──────────── */
   const metaLire = (k) => { const r = Q('SELECT v FROM meta WHERE k = ?').get(k); return r ? r.v : null; };
@@ -1706,7 +1728,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         const texte = r.corps_ch ? ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch) : null;
         let nom = null;
         if (r.type === 'fichier' && r.meta_ch) { try { const mt = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)); if (typeof mt.nom === 'string') nom = mt.nom; } catch (e) { nom = null; } }
-        const source = [texte, nom].filter(x => typeof x === 'string' && x).join(' — ');
+        /* ⛔ ce qu'un vocal a DIT se retrouve, une fois transcrit (11 octobre 2026) — et seulement alors : un vocal jamais transcrit ne se cherche pas */
+        const dit = r.type === 'vocal' ? transcriptionTexte(conv, r.seq, r.auteur) : null;
+        const source = [texte, nom, dit].filter(x => typeof x === 'string' && x).join(' — ');
         signes += source.length;
         if (source && (filtre ? filtre(source) : normeRech(source).includes(qn))) {
           /* `entier` (les liens) : le texte entier — la page y relit TOUS les liens, un lien au-delà d'une coupe serait perdu ; sinon un extrait autour de l'occurrence */
@@ -1855,6 +1879,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if (!r.supprime_le) {
       if (r.corps_ch) { o.texte = ouvrirOuNull('message', 'corps_ch', aadMsg(conv, r.seq, r.auteur), r.corps_ch); if (o.texte === null) o.illisible = true; }
       if (r.meta_ch) { try { o.meta = metaLue(JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, r.seq, r.auteur), r.meta_ch)), moi); } catch (e) { o.meta = null; } }
+      if (r.type === 'vocal') { const tr = transcriptionVue(conv, r.seq, r.auteur); if (tr) o.transcription = tr; }
     }
     return o;
   }
@@ -1931,6 +1956,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       Q('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE conv = ? AND seq = ?').run(horloge(), conv, seq);
       Q('DELETE FROM reaction WHERE conv = ? AND seq = ?').run(conv, seq);
       if (SONDAGES) Q('DELETE FROM sondage WHERE conv = ? AND seq = ?').run(conv, seq);    // ⛔ un sondage effacé emporte ses choix (scellés, mais écrits) et ses votes — la clé étrangère les suit
+      if (TRANSCRIPTIONS) Q('DELETE FROM transcription WHERE conv = ? AND seq = ?').run(conv, seq);    // ⛔ le texte d'un vocal « supprimé pour tous » ne reste pas dans la base (la pierre tombale est un UPDATE : aucune clé étrangère ne l'emporte)
       /* ⛔ « supprimer pour tous » EFFACE LES PIÈCES (la ligne ici, le fichier par l'appelant) : un message supprimé ne doit pas rester lisible dans le fichier d'une photo */
       const pieces = piecesDuMessageEffacer(conv, seq);
       /* ⛔ NOTÉ DANS `purge` : une sauvegarde prise AVANT ce geste porte encore le texte ; la restauration rejoue le registre
@@ -1969,6 +1995,104 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         convs.add(d.conv);
       }
       return { n: dus.length, convs: Array.from(convs), pieces };
+    });
+  }
+
+  /* ══ TRANSCRIPTIONS DES VOCAUX (migration 26) ════════════════════════════════════════════════════════════
+     ⛔ UNE TRANSCRIPTION SE LIT COMME SON MESSAGE : qui ne voit pas le vocal (arrivé après, masqué « pour moi », échu, supprimé) ne voit pas son texte — `transcriptionDemander`
+     refait exactement les filtres de `messagesDe`, l'événement du flux ceux de `materialiser`. Le texte est scellé avec l'AAD du message : `table` 'transcription', champ 'texte_ch'. */
+  const TRANSCRIPTION_SIGNES_MAX = 20000;    // un vocal de dix minutes en dit environ 9 000 : au-delà, le texte est coupé (un modèle qui boucle ne remplit pas la base)
+  function transcriptionLigne(conv, seq) { return TRANSCRIPTIONS ? Q('SELECT etat, texte_ch, langue, essais, maj FROM transcription WHERE conv = ? AND seq = ?').get(conv, seq) : undefined; }
+  /* ce que la page reçoit : l'état, et le texte quand elle est prête ({ illisible } si le scellé ne s'ouvre plus) */
+  function transcriptionVue(conv, seq, auteur) {
+    const r = transcriptionLigne(conv, seq);
+    if (!r) return null;
+    const o = { etat: r.etat };
+    if (r.etat === 'prete' && r.texte_ch) { const t = ouvrirOuNull('transcription', 'texte_ch', aadMsg(conv, seq, auteur), r.texte_ch); if (t === null) o.illisible = true; else o.texte = t; }
+    if (r.langue) o.langue = r.langue;
+    o.maj = num(r.maj);      // ⛔ l'heure du dernier changement : la page ne remplace jamais un état par un plus ANCIEN (une réponse « en cours » arrivée après le texte)
+    return o;
+  }
+  function transcriptionTexte(conv, seq, auteur) { const v = transcriptionVue(conv, seq, auteur); return v && v.etat === 'prete' && typeof v.texte === 'string' ? v.texte : null; }
+  /* Demander : le vocal doit être VISIBLE de cette personne (les filtres de `messagesDe`) et toujours là. Rend { etat, nouveau, travail? } :
+     · une transcription prête, vide ou en attente se rend telle quelle (deux personnes, deux appareils : UN seul calcul) ;
+     · un échec se retente, `essaisMax` fois au plus (ensuite : `definitif`) ;
+     · sinon une ligne 'attente' naît, et `travail` dit au module quoi transcrire (la pièce, la durée, la langue de l'AUTEUR — c'est sa voix). */
+  /* `accepter` : vrai, faux, ou une fonction (le travail qu'on créerait → null s'il part, sinon le CODE du refus : la file, le budget, le plafond de la personne) — appelée
+     seulement quand un calcul naîtrait vraiment : relire un texte déjà là ne coûte rien à personne */
+  function transcriptionDemander({ conv, seq, uid, essaisMax = 3, dureeMaxS = Infinity, accepter = true }) {
+    if (!TRANSCRIPTIONS) throw erreur('indisponible');
+    return tx(() => {
+      const m = Q('SELECT depuis_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
+      const r = Q(`SELECT auteur, type, meta_ch, supprime_le, expire_ts FROM message x WHERE x.conv = ? AND x.seq = ?
+                     AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)`).get(conv, seq, uid);
+      if (!m || !r || seq < m.depuis_seq || r.supprime_le || (r.expire_ts !== null && r.expire_ts !== undefined && r.expire_ts <= horloge())) throw erreur('introuvable');
+      if (r.type !== 'vocal' || !r.meta_ch) throw erreur('type');
+      let mt = null; try { mt = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(conv, seq, r.auteur), r.meta_ch)); } catch (e) { mt = null; }
+      if (!mt || typeof mt.piece !== 'string' || !Q('SELECT 1 AS x FROM piece WHERE id = ?').get(mt.piece)) throw erreur('introuvable');
+      const t = horloge(), l = Q('SELECT etat, essais, maj FROM transcription WHERE conv = ? AND seq = ?').get(conv, seq);
+      if (l && l.etat !== 'echec') return { etat: l.etat, nouveau: false, vue: transcriptionVue(conv, seq, r.auteur) };
+      if (l && l.essais >= essaisMax) return { etat: 'echec', nouveau: false, definitif: true, maj: num(l.maj) };
+      /* ⛔ un vocal trop long ne se transcrit pas (le calcul croît avec la durée), et rien ne s'écrit quand l'ouvrier ne peut pas le prendre (absent ou file pleine) : la ligne
+         « en attente » ne naît que pour un travail qui part vraiment */
+      if (Number.isFinite(mt.dur) && mt.dur > dureeMaxS) throw erreur('trop_long');
+      const pr = Q('SELECT langue FROM personne WHERE id = ?').get(r.auteur);
+      const travail = { conv, seq, uid, piece: mt.piece, dur: Number.isFinite(mt.dur) ? mt.dur : 0, langue: pr && typeof pr.langue === 'string' ? pr.langue : null };
+      const refus = typeof accepter === 'function' ? accepter(travail) : (accepter ? null : 'occupe');
+      if (refus) throw erreur(refus);
+      if (l) Q(`UPDATE transcription SET etat = 'attente', texte_ch = NULL, langue = NULL, essais = essais + 1, maj = ? WHERE conv = ? AND seq = ?`).run(t, conv, seq);
+      else Q(`INSERT INTO transcription(conv, seq, etat, essais, cree, maj) VALUES(?, ?, 'attente', 1, ?, ?)`).run(conv, seq, t, t);
+      return { etat: 'attente', nouveau: true, maj: t, travail };
+    });
+  }
+  /* Poser le résultat : seulement sur une ligne encore 'attente' d'un vocal toujours là (supprimé pendant le calcul : rien n'est écrit, `gid` 0). Le journal prévient les membres
+     qui voient le message (`msg_transcrit`, filtré par `depuis_seq` comme une réaction). */
+  function transcriptionPoser({ conv, seq, etat, texte, langue }) {
+    if (!TRANSCRIPTIONS) return { gid: 0 };
+    if (etat !== 'prete' && etat !== 'vide' && etat !== 'echec') throw erreur('etat');
+    return tx(() => {
+      const r = Q('SELECT auteur, supprime_le FROM message WHERE conv = ? AND seq = ?').get(conv, seq);
+      const l = Q('SELECT etat FROM transcription WHERE conv = ? AND seq = ?').get(conv, seq);
+      if (!r || r.supprime_le || !l || l.etat !== 'attente') return { gid: 0 };
+      const clair = etat === 'prete' && typeof texte === 'string' && texte ? debut(texte, TRANSCRIPTION_SIGNES_MAX) : null;
+      const e = etat === 'prete' && !clair ? 'vide' : etat;
+      const lg = typeof langue === 'string' && /^[a-z]{2,3}$/.test(langue) ? langue : null;
+      Q('UPDATE transcription SET etat = ?, texte_ch = ?, langue = ?, maj = ? WHERE conv = ? AND seq = ?')
+        .run(e, clair ? sceller('transcription', 'texte_ch', aadMsg(conv, seq, r.auteur), clair) : null, e === 'echec' ? null : lg, horloge(), conv, seq);
+      return { gid: journalAjouter('msg_transcrit', conv, null, seq), etat: e };
+    });
+  }
+  /* Le travail est-il toujours à faire ? Une ligne « en attente » d'un vocal toujours là — supprimé, échu pendant l'attente : non, et l'ouvrier ne lit même pas sa pièce. */
+  function transcriptionEnAttente(conv, seq) {
+    if (!TRANSCRIPTIONS) return false;
+    return !!Q(`SELECT 1 AS x FROM transcription t JOIN message m ON m.conv = t.conv AND m.seq = t.seq
+                WHERE t.conv = ? AND t.seq = ? AND t.etat = 'attente' AND m.supprime_le IS NULL AND (m.expire_ts IS NULL OR m.expire_ts > ?)`).get(conv, seq, horloge());
+  }
+  /* Le filet : une ligne « en attente » plus vieille que `avant` (aucun travail ne la porte plus : une pose ratée, une file perdue) devient un échec DIT, journalisé — sinon
+     « Transcription en cours… » pour toujours, sans « Réessayer » (relectures du gardien et du relecteur). Rend le nombre de lignes. */
+  function transcriptionsEchues(avant) {
+    if (!TRANSCRIPTIONS) return 0;
+    return tx(() => {
+      const l = Q(`SELECT conv, seq FROM transcription WHERE etat = 'attente' AND maj < ?`).all(avant);
+      if (!l.length) return 0;
+      for (const r of l) {
+        Q(`UPDATE transcription SET etat = 'echec', maj = ? WHERE conv = ? AND seq = ? AND etat = 'attente'`).run(horloge(), r.conv, r.seq);
+        journalAjouter('msg_transcrit', r.conv, null, r.seq);
+      }
+      return l.length;
+    });
+  }
+  /* Au démarrage : un calcul en cours au moment d'un arrêt est perdu (le module ne garde rien sur disque). La ligne passe en ÉCHEC — dite, retentable — plutôt que de rester
+     « en cours » pour toujours. ⛔ Et le JOURNAL le dit : sans lui, une page qui attendait ce texte afficherait « Transcription en cours… » jusqu'à son prochain chargement.
+     Rend le nombre de lignes reprises. */
+  function transcriptionsInterrompues() {
+    if (!TRANSCRIPTIONS) return 0;
+    return tx(() => {
+      const l = Q(`SELECT conv, seq FROM transcription WHERE etat = 'attente'`).all();
+      if (!l.length) return 0;
+      Q(`UPDATE transcription SET etat = 'echec', maj = ? WHERE etat = 'attente'`).run(horloge());
+      for (const r of l) journalAjouter('msg_transcrit', r.conv, null, r.seq);
+      return l.length;
     });
   }
 
@@ -2164,7 +2288,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         AND ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage', 'msg_transcrit') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
                        AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )
       ORDER BY j.gid LIMIT ?`).all(apresGid, uid, uid, limite);
     const evenements = [];
@@ -2187,7 +2311,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       WHERE ( j.uid = ?
               OR ( j.uid IS NULL AND j.conv IS NOT NULL AND EXISTS (
                      SELECT 1 FROM membre m WHERE m.conv = j.conv AND m.uid = ? AND m.quitte_le IS NULL
-                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
+                       AND ( j.genre NOT IN ('msg_nouveau', 'msg_modifie', 'msg_supprime', 'msg_expire', 'msg_reaction', 'sondage', 'msg_transcrit') OR CAST(j.ref AS INTEGER) >= m.depuis_seq )
                        AND ( j.genre <> 'lu' OR j.ts > m.rejoint ) ) ) )`).get(uid, uid);
     return r && r.g !== null && r.g !== undefined ? num(r.g) : 0;
   }
@@ -2225,6 +2349,19 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       case 'msg_supprime': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: j.uid ? 'moi' : 'tous' } };
       case 'msg_expire': return { gid, event: 'message_supprime', data: { conv: j.conv, seq: parseInt(j.ref, 10), pour: 'expire' } };
       case 'msg_reaction': return { gid, event: 'reaction', data: { conv: j.conv, seq: parseInt(j.ref, 10), reactions: reactionsDe(j.conv, parseInt(j.ref, 10)) } };
+      case 'msg_transcrit': {
+        const seq = parseInt(j.ref, 10);
+        const r = Q('SELECT auteur, type, supprime_le FROM message x WHERE x.conv = ? AND x.seq = ? AND (x.expire_ts IS NULL OR x.expire_ts > ?) AND NOT EXISTS (SELECT 1 FROM msg_masque k WHERE k.conv = x.conv AND k.seq = x.seq AND k.uid = ?)').get(j.conv, seq, horloge(), uid);
+        if (!r || r.supprime_le || r.type !== 'vocal') return null;
+        const tr = transcriptionVue(j.conv, seq, r.auteur);
+        if (!tr) return null;
+        const d = { conv: j.conv, seq, etat: tr.etat };
+        if (tr.illisible) d.illisible = true;
+        else if (typeof tr.texte === 'string') { if (Buffer.byteLength(tr.texte, 'utf8') <= TAILLE_PORTEE) d.texte = tr.texte; else d.relis = true; }
+        if (tr.langue) d.langue = tr.langue;
+        d.maj = tr.maj;
+        return { gid, event: 'transcription', data: d };
+      }
       case 'sondage': return { gid, event: 'sondage', data: { conv: j.conv, seq: parseInt(j.ref, 10) } };      // « relis-le » : chacun le relit avec SES droits (anonyme, résultats cachés)
       case 'conv_maj': return { gid, event: 'conversation', data: { conv: j.conv } };
       case 'retire': return { gid, event: 'retire', data: { conv: j.conv } };
@@ -4618,6 +4755,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         sondage_choix: non(() => Q('SELECT 1 FROM sondage_choix LIMIT 1')),
         sondage_vote: non(() => Q('SELECT 1 FROM sondage_vote LIMIT 1')),
         programme: non(() => Q('SELECT 1 FROM programme LIMIT 1')),
+        transcription: non(() => Q('SELECT 1 FROM transcription LIMIT 1')),
       },
     };
   }
@@ -4653,6 +4791,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     convDirecteObtenir, convCreerGroupe, convSupprimer, convPourMembre, convListe, convMaj, membresActifs, membresDetail, nbAdmins,
     membresAjouter, membreRetirer, membreQuitter, membreRole, membrePrefs, membreLu, autreDirect, ecritureAutorisee,
     messageEnvoyer, messageATransferer, messageDejaEnvoye, messagesChercher, requeteRech, mediasDe, messageExiste, messagesDe, messageModifier, messageSupprimer, messageReagir, reactionsDe, purgerExpires,
+    transcriptionDemander, transcriptionPoser, transcriptionsInterrompues, transcriptionVue,
+    transcriptionEnAttente, transcriptionsEchues,
     pieceCreer, pieceVisible, pieceUtilise, pieceExiste, pieceStats, pieceEffacerLigne, avatarPersonnePoser, piecesOrphelinesPurger, audiencePersonne,
     notifCreer, notifListe, notifLues, notifNonLues,
     journalMax, journalMin, journalElaguer, evenementsPour, gidVisible,
@@ -4688,7 +4828,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote', 'programme'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote', 'programme', 'transcription'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -4739,6 +4879,7 @@ function lignesDe(d) {
     sondage_choix: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_choix')),
     sondage_vote: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_vote')),
     programme: n(() => d.prepare('SELECT COUNT(*) AS n FROM programme')),
+    transcription: n(() => d.prepare('SELECT COUNT(*) AS n FROM transcription')),
   };
 }
 
@@ -4834,6 +4975,7 @@ function rejouerPurge(chemin, registre, opts) {
     const blanchir = d.prepare('UPDATE message SET corps_ch = NULL, meta_ch = NULL, supprime_le = ?, modifie = NULL WHERE id = ?');
     const sansReactions = d.prepare('DELETE FROM reaction WHERE conv = ? AND seq = ?');
     const sansSondage = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'sondage'`).get() !== undefined ? d.prepare('DELETE FROM sondage WHERE conv = ? AND seq = ?') : null;
+    const sansTranscription = d.prepare(`SELECT 1 AS n FROM sqlite_master WHERE type = 'table' AND name = 'transcription'`).get() !== undefined ? d.prepare('DELETE FROM transcription WHERE conv = ? AND seq = ?') : null;
     const retirerPiece = tablePiece ? d.prepare('DELETE FROM piece WHERE id = ?') : null;
     const retirerLiens = d.prepare(`DELETE FROM lien WHERE genre = 'groupe' AND cible = ?`);
     const retirerJournal = d.prepare('DELETE FROM journal WHERE conv = ?');
@@ -4886,6 +5028,7 @@ function rejouerPurge(chemin, registre, opts) {
             blanchir.run(Number(r.quand) || 0, r.objet);
             sansReactions.run(l.conv, l.seq);
             if (sansSondage) sansSondage.run(l.conv, l.seq);      // un sondage effacé dans l'archive aussi (migration 17)
+            if (sansTranscription) sansTranscription.run(l.conv, l.seq);      // ⛔ et le texte d'un vocal supprimé pour tous (migration 26) : sinon l'archive d'avant le rendrait
             bilan.messagesBlanchis++;
           }
         } else if (/^piece/.test(genre)) {

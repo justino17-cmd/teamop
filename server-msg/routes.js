@@ -87,6 +87,8 @@ function creerHandlers(ctx) {
       case 'sondage_clos': return refus(res, 409, 'sondage_clos');
       case 'sondage_plein': return refus(res, 409, 'sondage_plein');
       case 'sondage_doublon': return refus(res, 409, 'sondage_doublon');
+      case 'trop_long': return refus(res, 413, 'vocal_trop_long');
+      case 'indisponible': return refus(res, 503, 'transcription_absente');
       default: throw e;
     }
   }
@@ -201,6 +203,8 @@ function creerHandlers(ctx) {
     /* les appels à deux : le relais est-il installé (un booléen — jamais son adresse, ni son secret) ? la page dit alors, en cas d'échec, que l'appel ne passe que si les deux appareils se joignent directement.
        `sonnerie_s` : combien de temps un appel sonne avant d'être « manqué » (la page l'écrit à l'appelant, elle ne le recopie pas). */
     appels: { relais: !!(ctx.appels && ctx.appels.relais()), sonnerie_s: Math.round(config.appels.sonnerieMs / 1000) },
+    /* la transcription des vocaux : installée ou non (un booléen — jamais l'adresse de l'ouvrier, son secret ni son modèle), et la durée au-delà de laquelle un vocal ne se transcrit pas */
+    transcription: { ouverte: !!(ctx.transcription && ctx.transcription.configure), duree_max_s: ctx.transcription && ctx.transcription.configure ? ctx.transcription.dureeMaxS() : 0 },
   });
 
   H['beta.entrer'] = async (req, res) => {
@@ -852,6 +856,46 @@ function creerHandlers(ctx) {
     effacer(r.pieces);   // ⛔ « pour tous » efface aussi les pièces du message, fichier compris
     if (r.gid) hub.reveiller(pour === 'moi' ? { uids: [req.moi.id] } : { conv: req.conv.conv.id });
     res.json({ ok: true });
+  };
+  /* ── TRANSCRIRE UN VOCAL (11 octobre 2026 : « comme sur Instagram ») ── POST /api/conversations/:id/messages/transcrire  M  { seq }
+     À la DEMANDE, une seule fois par vocal, partagée par tous ceux qui peuvent l'écouter : `transcriptionDemander` juge les droits (les filtres de la lecture : arrivé après, masqué pour
+     moi, échu, supprimé → 404 uniforme), rend une transcription déjà là telle quelle, et ne crée un travail que si `accepter` le permet. → { transcription: { etat, texte?, langue? } }
+     ⛔ Le texte arrive par le flux (`transcription`) quand le calcul finit : la réponse dit « attente », jamais un texte inventé.
+     ⛔ (relectures du gardien et du relecteur, 11 octobre 2026) · relire une transcription déjà là ne coûte RIEN : le plafond horaire ne se consomme que pour un travail qui part
+     (sinon dix relectures d'un vocal déjà transcrit épuisaient la journée) ; · chaque refus dit le vrai : l'ouvrier en panne n'est pas « beaucoup de vocaux » (`transcription_indisponible`),
+     la file pleine, si (`transcription_occupee`), ses propres vocaux encore en calcul se disent à part (`transcription_en_cours`), le budget de secondes de l'heure se dit avec son attente (`transcription_budget`) ; · le budget se
+     compte sur la durée du vocal, une personne ne monopolise pas l'ouvrier par des vocaux de dix minutes. */
+  const REFUS_TRANSCRIPTION = { ouvrier_absent: [503, 'transcription_indisponible', 60], occupe: [503, 'transcription_occupee', 60], mes_vocaux: [429, 'transcription_en_cours', 30], budget: [429, 'transcription_budget'], quota: [429, 'quota_atteint'] };
+  H['msg.transcrire'] = (req, res) => {
+    const tr = ctx.transcription;
+    if (!tr || !tr.configure) return refus(res, 503, 'transcription_absente');
+    const s = seqCorps(req, res); if (s === null) return;
+    const conv = req.conv.conv.id, uid = req.moi.id;
+    let attente = 0;
+    const accepter = (travail) => {
+      if (!tr.actif()) return 'ouvrier_absent';
+      if (!tr.placeLibre()) return 'occupe';
+      if (!tr.placeLibre(uid)) return 'mes_vocaux';
+      attente = tr.budgetAttente(uid, travail.dur);
+      if (attente > 0) return 'budget';
+      const q = Object.assign({ max: tr.parHeure(), fenetreMs: 3600000 }, config.quotas.transcrire || {});
+      const r = quotas.essai('transcrire:' + uid, Math.max(1, Math.floor(q.max * facteurJeune(req.moi))), q.fenetreMs);
+      if (!r.ok) { attente = r.retry; return 'quota'; }
+      return null;
+    };
+    let r;
+    try { r = stockage.transcriptionDemander({ conv, seq: s, uid, essaisMax: tr.essais(), dureeMaxS: tr.dureeMaxS(), accepter }); }
+    catch (e) {
+      const d = e && REFUS_TRANSCRIPTION[e.code];
+      if (!d) throw e;
+      const retry = d[2] || attente || 60;
+      res.set('Retry-After', String(retry));
+      return refus(res, d[0], d[1], { retry });
+    }
+    if (r.nouveau && r.travail) tr.mettreEnFile(r.travail);
+    const vue = r.vue || Object.assign({ etat: r.etat }, Number.isFinite(r.maj) ? { maj: r.maj } : {});
+    if (r.definitif) vue.definitif = true;
+    res.json({ transcription: vue });
   };
   H['msg.reagir'] = (req, res) => {
     const s = seqCorps(req, res); if (s === null) return;

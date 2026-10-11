@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3e4ceac27349';
+  const OPMSG_BUILD = '4525d6ec4b5d';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 160;
+  const OPMSG_VERSION = 162;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -50,7 +50,7 @@
   if (!source) { $('contenu').innerHTML = '<p class="vide">Les données n\'ont pas pu être chargées.</p>'; return; }
   /* ⛔ CE QUE LA SOURCE SAIT FAIRE. La source de l'aperçu n'annonce rien : photos, vocaux et appels y sont SIMULÉS, aucun service, aucune action sur un message. Celle du
      service annonce ses capacités (`source.capacites`) : ce qu'elle ne sait pas encore dit « bientôt » au lieu de faire semblant. */
-  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, comptesCourriel: false, agenda: false, texteMax: 4000 }, source.capacites || {});
+  const CAP = Object.assign({ service: false, connexion: false, photos: true, vocaux: true, fichiers: false, avatars: false, reglages: false, appels: true, appelsMedias: false, appelsGroupe: true, salles: false, reunions: false, actionsMessage: false, groupeInfos: false, liens: false, presence: false, saisie: false, historique: false, notifications: false, compte: false, espaces: false, persoPlus: false, reunionPlafond: false, identifiants: false, miseAJour: false, comptesCourriel: false, agenda: false, transcription: false, texteMax: 4000 }, source.capacites || {});
   /* la personne et ses contacts : posés au démarrage (une source de service ne sait qui est connecté qu'après avoir lu la session), relus quand elle le dit */
   let MOI = null, CONTACTS = [];
   const SUFFIXE_TITRE = CAP.service ? ' — OP MESSAGES' : ' — OP MESSAGES, aperçu';
@@ -685,6 +685,7 @@
     }
     /* version servie : le corps du message et son bouton d'actions vont dans UNE rangée (le bouton se pose à côté de la bulle) ; l'aperçu garde son balisage d'origine, octet pour octet */
     if (CAP.actionsMessage && !m.attente) h = h.slice(0, debutCorps) + '<span class="msg-rang' + (etat.menu && etat.menu.mid === m.id ? ' menu-ancre' : '') + '">' + h.slice(debutCorps) + '<button type="button" class="msg-plus presse" data-actions="' + esc(m.id) + '" aria-haspopup="dialog" aria-label="Actions du message">' + icone('i-points') + '</button></span>';
+    if (m.vocal && transcriptionPossible(m)) h += htmlTranscription(m, sens);      // « Voir la transcription », et le texte quand on l'a ouvert (11 octobre 2026)
     if (m.attente && m.echec && typeof source.reessayer === 'function') h += echecHtml(m);
     if (m.reactions && m.reactions.length) h += reactionsHtml(m);
     if (m.modifie && !m.supprime) h += '<span class="mention-modifie">Modifié</span>';
@@ -844,7 +845,7 @@
      texte. Chaque morceau garde le balisage qui l'a produit (`__h`) ; seul ce qui a CHANGÉ est remplacé, le reste est le même nœud. */
   function peindreMessages(parts) {
     const col = $('conv-messages'), tpl = document.createElement('template');
-    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.onde ? 'onde' : actif.dataset.vitesse ? 'vitesse' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : null) : null, val = cle ? actif.dataset[cle] : null;
+    const actif = document.activeElement, cle = actif && col.contains(actif) ? (actif.dataset.lire ? 'lire' : actif.dataset.onde ? 'onde' : actif.dataset.vitesse ? 'vitesse' : actif.dataset.photo ? 'photo' : actif.dataset.sond ? 'sond' : actif.dataset.sondClore ? 'sondClore' : actif.dataset.ficheAjouter ? 'ficheAjouter' : actif.dataset.transcrire ? 'transcrire' : actif.dataset.transcrireReessayer ? 'transcrireReessayer' : actif.dataset.transcrirePlus ? 'transcrirePlus' : null) : null, val = cle ? actif.dataset[cle] : null;
     for (let i = 0; i < parts.length; i++) {
       const vieux = col.children[i];
       if (vieux && vieux.__h === parts[i].h) { majStatut(vieux, parts[i].st); continue; }
@@ -853,7 +854,7 @@
     }
     while (col.children.length > parts.length) col.removeChild(col.lastChild);
     /* la pastille de vitesse n'est visible (donc focalisable) qu'une fois la lecture repeinte sur la bulle neuve */
-    if (cle && !col.contains(document.activeElement)) { if (cle === 'vitesse') appliquerLecture(); const b = col.querySelector('[data-' + cle.replace(/[A-Z]/g, x => '-' + x.toLowerCase()) + '="' + val.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
+    if (cle && !col.contains(document.activeElement)) { if (cle === 'vitesse') appliquerLecture(); const b = col.querySelector('[data-' + cle.replace(/[A-Z]/g, x => '-' + x.toLowerCase()) + '="' + val.replace(/"/g, '') + '"]') || (cle === 'transcrireReessayer' || cle === 'transcrirePlus' ? col.querySelector('[data-transcrire="' + val.replace(/"/g, '') + '"]') : null); if (b) b.focus({ preventScroll: true }); }
   }
   /* pourquoi on ne peut pas écrire ici (le texte), ou '' : un groupe d'annonces dont on n'est pas admin, un compte supprimé */
   const compoFerme = c => !c ? '' : c.supprime ? 'Ce compte a été supprimé : tu ne peux plus lui écrire.' : (c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0 ? 'Seuls les admins peuvent écrire dans ce groupe.' : '');
@@ -865,6 +866,7 @@
     rendreEntete(c);
     if (etat.groupe.ouvert && etat.groupe.mode === 'sondage-votes' && typeof rendreSondageVotes === 'function') rendreSondageVotes();   // « Voir les votes » suit les votes qui arrivent
     peindreMessages(partiesMessages(c));
+    annoncerTranscriptions(c);
     $('conv-messages').setAttribute('aria-busy', 'false');
     $('precedents').hidden = !(CAP.historique && c.aPlus);
     /* « Seuls les admins écrivent » : une personne qui n'est pas admin lit, elle n'écrit pas */
@@ -906,6 +908,91 @@
     finally { document.querySelectorAll('#compo-invit [data-invit]').forEach(x => { x.removeAttribute('aria-disabled'); if (x.dataset.invit === 'bloquer') x.textContent = 'Bloquer'; }); }
   });
   const trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);
+  /* ── LA TRANSCRIPTION D'UN VOCAL (11 octobre 2026 : « une transcription écrite, comme sur Instagram ») ──
+     « Voir la transcription » sous un vocal : la demande part au service, qui la calcule UNE fois (sur notre serveur — aucune voix ne sort) et la partage avec tous ceux qui
+     peuvent écouter ce vocal. Le texte arrive par le flux ; d'ici là, « Transcription en cours… ». Ce qu'on a ouvert ne vaut que pour cette visite : rien n'est rangé sur l'appareil.
+     ⛔ Rien ne se propose quand le service ne l'a pas installée (`/api/config` → `transcription.ouverte`, lu au démarrage), ni sur un vocal plus long que ce qu'il transcrit,
+     ni sur un vocal qui part encore. ⛔ Le texte s'écrit par `esc()` : c'est la sortie d'un modèle, donc un texte comme un autre, jamais du balisage. */
+  let TR = null, trLu = 0;                          // { ouverte, dureeMaxS } — null tant qu'on ne sait pas : rien ne se propose
+  /* ce qu'on a ouvert (identifiant → sa conversation : changer de conversation ne referme rien ailleurs), les demandes en vol ou refusées, le dernier état vu (pour l'annoncer), les longs textes dépliés */
+  const trOuvertes = new Map(), trLocal = new Map(), trEtats = new Map(), trEntieres = new Set();
+  const TR_COURT = 600;                             // au-delà, « Voir plus »
+  const transcriptionPossible = m => !!(CAP.transcription && TR && TR.ouverte && typeof source.transcrire === 'function' && m && m.vocal && !m.supprime && !m.attente && Number.isInteger(m.seq) && !(TR.dureeMaxS > 0 && Number(m.vocal.dur) > TR.dureeMaxS));
+  const trId = mid => 'tr-' + String(mid).replace(/[^A-Za-z0-9_-]/g, '_');
+  /* (relecture du relecteur) : `/api/config` raté au démarrage cachait la fonction jusqu'au rechargement — on la redemande à l'ouverture d'une conversation, une fois par minute au plus */
+  function trRelire() {
+    if (TR || !CAP.transcription || typeof source.transcriptionOuverte !== 'function' || Date.now() - trLu < 60000) return;
+    trLu = Date.now();
+    source.transcriptionOuverte().then(t => { if (t && !TR) { TR = t; if (TR.ouverte) rendreIci(); } }, () => {});
+  }
+  /* ce qu'on montre : la demande en vol, puis ce que dit le service ; une demande refusée garde sa phrase jusqu'au prochain essai */
+  function trEtat(m) {
+    const loc = trLocal.get(m.id), t = m.transcription;
+    if (loc && loc.envoi) return { etat: 'attente' };
+    if (t && t.etat !== 'echec') return t;
+    if (loc && loc.phrase) return { etat: 'refus', phrase: loc.phrase, reessayer: loc.reessayer };
+    return t || { etat: 'attente' };
+  }
+  const trLongVocal = m => Number(m.vocal && m.vocal.dur) > 60;
+  /* un long texte se coupe à un mot, jamais au milieu */
+  function trCoupe(t, n) { const c = t.slice(0, n), i = c.lastIndexOf(' '); return (i > n * .6 ? c.slice(0, i) : c).replace(/[\s.,;:!?…]+$/, ''); }
+  function htmlTranscription(m, sens) {
+    const ouverte = trOuvertes.has(m.id), id = trId(m.id);
+    /* ⛔ le lien d'abord (relecture du relecteur) ; son nom change avec l'état (« Voir » / « Masquer ») — un seul signal, pas `aria-expanded` en plus */
+    let h = '<button type="button" class="transcrire-lien presse" data-transcrire="' + esc(m.id) + '"' + (ouverte ? ' aria-controls="' + id + '"' : '') + '>' + (ouverte ? 'Masquer la transcription' : 'Voir la transcription') + '</button>';
+    if (!ouverte) return h;
+    const t = trEtat(m), reessayer = ' <button type="button" class="tr-reessayer" data-transcrire-reessayer="' + esc(m.id) + '">Réessayer</button>';
+    const pret = t.etat === 'prete' && typeof t.texte === 'string';
+    let corps;
+    if (pret) corps = t.texte.length > TR_COURT && !trEntieres.has(m.id) ? esc(trCoupe(t.texte, TR_COURT)) + '… <button type="button" class="tr-plus" data-transcrire-plus="' + esc(m.id) + '">Voir plus</button>' : esc(t.texte);
+    else if (t.etat === 'prete' && t.illisible) corps = 'Ce texte ne peut plus être lu.';
+    else if (t.etat === 'prete') corps = 'Le texte n\'a pas pu se charger.' + reessayer;          // `relis` raté trois fois : la demande le rend (rien ne se recalcule)
+    else if (t.etat === 'attente') corps = '<span class="tr-roue" aria-hidden="true"></span>Transcription en cours…' + (trLongVocal(m) ? ' Un long vocal peut prendre une minute ou deux.' : '');
+    else if (t.etat === 'vide') corps = 'Aucune parole reconnue.';
+    else if (t.etat === 'refus') corps = esc(t.phrase) + (t.reessayer ? reessayer : '');
+    else corps = 'La transcription n\'a pas pu se faire.' + (t.definitif ? '' : reessayer);
+    return h + '<p class="bulle transcription ' + sens + (pret ? '' : ' tr-note') + '" id="' + id + '" dir="auto"' + (pret && t.langue ? ' lang="' + esc(t.langue) + '"' : '') + '>' + corps + '</p>';
+  }
+  const rendreIci = () => { if (etat.convDonnees) rendreConv(etat.convDonnees, false); };
+  /* le lecteur d'écran apprend ce qui change (la même région que les messages qui arrivent) */
+  function annoncerTr(dit) { const r = $('conv-annonce'); r.textContent = ''; setTimeout(() => { r.textContent = dit; }, 60); }
+  /* ouvrir ou fermer ; à la première ouverture d'un vocal jamais transcrit, la demande part */
+  function basculerTranscription(mid) {
+    const m = trouverMessage(mid); if (!m || !transcriptionPossible(m)) return;
+    /* ⛔ fermer pendant la demande ne l'oublie pas : rouvrir ne la relance pas (deux demandes pour un vocal, deux fois le plafond de la personne) */
+    if (trOuvertes.has(mid)) { trOuvertes.delete(mid); const l = trLocal.get(mid); if (!(l && l.envoi)) trLocal.delete(mid); trEtats.delete(mid); trEntieres.delete(mid); rendreIci(); return; }
+    trOuvertes.set(mid, etat.conv);
+    if (!m.transcription && !trLocal.has(mid)) { demanderTranscription(mid); return; }
+    const e = trEtat(m).etat; trEtats.set(mid, e); rendreIci();
+    if (e === 'attente') annoncerTr('Transcription en cours');
+  }
+  /* ⛔ (relecture du relecteur) : « Réessayer » ne se propose que pour un refus qui se réessaie — une attente (429), le service ou l'ouvrier indisponible (503), le réseau ;
+     jamais pour un vocal parti, trop long ou qui n'en est pas un */
+  const trReessayable = er => !!er && (er.code === 'reseau' || er.statut === 429 || er.statut >= 500);
+  const trPhrase = er => er && (er.code === 'introuvable' || er.code === 'message_inconnu') ? 'Ce vocal n\'est plus disponible.' : phrase(er, 'La transcription n\'a pas pu être demandée.');
+  async function demanderTranscription(mid) {
+    const id = etat.conv, m = trouverMessage(mid); if (!id || !m || !transcriptionPossible(m)) return;
+    const loc = trLocal.get(mid); if (loc && loc.envoi) return;
+    trOuvertes.set(mid, id); trLocal.set(mid, { envoi: true }); trEtats.set(mid, 'attente'); rendreIci();
+    annoncerTr('Transcription en cours' + (trLongVocal(m) ? ' — un long vocal peut prendre une minute ou deux' : ''));
+    try { await source.transcrire(id, mid); trLocal.delete(mid); }
+    catch (er) { trLocal.set(mid, { phrase: trPhrase(er), reessayer: trReessayable(er) }); }
+    if (etat.conv === id) rendreIci();
+  }
+  /* le texte arrive par le flux, souvent plusieurs secondes après : le lecteur d'écran l'apprend (« Transcription prête »), sans qu'on lui lise tout le vocal d'office.
+     ⛔ (relecture du relecteur) : seulement ce qui est ouvert DANS CETTE conversation — passer chez quelqu'un d'autre ne referme rien ici, ni n'oublie une demande en vol */
+  function annoncerTranscriptions(c) {
+    for (const [mid, conv] of trOuvertes) {
+      if (conv !== c.id) continue;
+      const m = c.messages.find(x => x.id === mid);
+      if (!m || !transcriptionPossible(m)) { trOuvertes.delete(mid); trLocal.delete(mid); trEtats.delete(mid); trEntieres.delete(mid); continue; }
+      const t = trEtat(m), avant = trEtats.get(mid);
+      trEtats.set(mid, t.etat);
+      if (avant !== 'attente' || t.etat === 'attente') continue;
+      annoncerTr(t.etat === 'prete' ? (typeof t.texte === 'string' ? 'Transcription prête' : t.illisible ? 'Ce texte ne peut plus être lu' : 'Le texte de la transcription n\'a pas pu se charger')
+        : t.etat === 'vide' ? 'Aucune parole reconnue' : t.etat === 'refus' ? t.phrase : 'La transcription n\'a pas pu se faire');
+    }
+  }
 
   async function ouvrirConv(id) {
     const jeton = ++etat.jeton;
@@ -915,7 +1002,7 @@
     if (etat.conv && etat.conv !== id) { arreterLecture(); annulerEnregistrement(); }
     if (etat.conv !== id) fermerConfirmation();                  // la demande « Envoyer à … ? » était pour l'AUTRE conversation
     if (!etat.conv) etat.scrollListe = window.scrollY;
-    etat.conv = id; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu(); fermerMentions();
+    etat.conv = id; etat.convDonnees = null; etat.contexte = null; majContexte(); fermerMenu(); fermerMentions(); trRelire();
     document.documentElement.dataset.conv = '1';
     mentionsVues(id);                                              // les mentions de cette conversation sont vues : le tableau de bord ne les dit plus « non lues »
     const resume = etat.conversations.find(c => c.id === id);
@@ -958,11 +1045,11 @@
      page a chargé, l'historique se charge jusqu'à lui (vingt pages au plus). Disparu (supprimé, éphémère échu, conversation quittée), on le DIT — jamais un saut silencieux en bas. */
   /* `retrouver` : on vient de « Rechercher » ou de la galerie — le focus va AU message (sinon il restait sur le bouton d'en-tête qui avait ouvert les Infos), l'attente se dit, et
      « trop loin » ne se confond pas avec « disparu ». `apresFeuille` : le message se montre quand la feuille posée sur la conversation s'est refermée (`fermerFeuilleDom`). */
-  const cibleMsg = { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false };
+  const cibleMsg = { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false };
   /* `remplacerEntree` : on part d'une FICHE posée par un geste (le rappel, touché dans l'Agenda ou le tableau de bord) — son entrée d'historique devient la conversation, et le
      retour ramène là d'où la fiche était partie. */
   function voirMessage(conv, seq, remplacerEntree) {
-    Object.assign(cibleMsg, { conv, seq, pages: 0, max: 20, retrouver: false, apresFeuille: false });
+    Object.assign(cibleMsg, { conv, seq, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false });
     const ouverte = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages';
     if (ouverte && !remplacerEntree) { allerAuMessage(); return; }
     (remplacerEntree ? remplacer : pousser)({ vue: 'messages', conv, feuille: false, photo: null, appel: null });
@@ -988,6 +1075,9 @@
     }
     cibleMsg.conv = null;
     const focus = cibleMsg.retrouver; cibleMsg.retrouver = false;
+    /* un vocal trouvé par ce qu'il dit : sa transcription s'ouvre en arrivant — on voit POURQUOI il correspond */
+    const ouvrirTr = cibleMsg.transcription; cibleMsg.transcription = false;
+    if (ouvrirTr && m.vocal && transcriptionPossible(m) && !trOuvertes.has(m.id)) { trOuvertes.set(m.id, c.id); trEtats.set(m.id, trEtat(m).etat); rendreIci(); }
     const el = document.querySelector('#conv-messages [data-mid="' + String(m.id).replace(/["\\]/g, '') + '"]');
     if (!el) return;
     el.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -1550,6 +1640,12 @@
   $('conv-messages').addEventListener('click', e => {
     const p = e.target.closest('[data-photo]');
     if (p) { etat.declencheurPhoto = p; pousser(Object.assign({}, etat.route, { photo: p.dataset.photo })); return; }
+    const tl = e.target.closest('[data-transcrire]');
+    if (tl) { basculerTranscription(tl.dataset.transcrire); return; }
+    const tr = e.target.closest('[data-transcrire-reessayer]');
+    if (tr) { demanderTranscription(tr.dataset.transcrireReessayer); return; }
+    const tp = e.target.closest('[data-transcrire-plus]');
+    if (tp) { trEntieres.add(tp.dataset.transcrirePlus); rendreIci(); return; }
     if (e.target.closest('[data-vitesse]')) { changerVitesse(); return; }
     if (e.target.closest('.vocal .onde')) return;                             // l'onde : la position (au toucher, `pointerdown`), pas la lecture
     const v = e.target.closest('[data-lire]') || e.target.closest('.vocal[data-vocal]');
@@ -4664,6 +4760,11 @@
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
     if (CAP.transferts && transferable(m)) h += '<button type="button" class="menu-action" data-menu="transferer" aria-haspopup="dialog">Transférer</button>';
     if (!m.supprime && m.texte && !estCarte(m)) h += '<button type="button" class="menu-action" data-menu="copier">Copier le texte</button>';
+    if (transcriptionPossible(m)) {                 // un vocal : voir sa transcription, ou la copier une fois là
+      const t = m.transcription;
+      if (trOuvertes.has(m.id) && t && t.etat === 'prete' && typeof t.texte === 'string') h += '<button type="button" class="menu-action" data-menu="copier-transcription">Copier la transcription</button>';
+      else if (!trOuvertes.has(m.id)) h += '<button type="button" class="menu-action" data-menu="transcrire">Voir la transcription</button>';
+    }
     /* un texte se modifie ; une photo, sa LÉGENDE (le service le permet aux deux) ; un vocal ou un fichier, rien — le service le refusait, le bouton ne le promet plus */
     if (moi && !m.supprime && !m.vocal && !m.fichier && !estCarte(m) && !m.transfere && Date.now() - m.t < DELAI_MODIF_MS) h += '<button type="button" class="menu-action" data-menu="modifier">' + (m.photos ? (m.texte ? 'Modifier la légende' : 'Ajouter une légende') : 'Modifier') + '</button>';
     if (!m.supprime && m.photos && m.photos.length) h += '<button type="button" class="menu-action" data-menu="enregistrer">' + (m.photos.length > 1 ? 'Enregistrer les ' + m.photos.length + ' photos' : 'Enregistrer la photo') + '</button>';
@@ -4740,6 +4841,9 @@
     if (act === 'rappel-choix') { rappelPoser(m, a.dataset.quand); return; }
     if (act === 'repondre') { etat.contexte = { type: 'reponse', mid, nom: nomAuteur(m.auteur), texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').focus({ preventScroll: true }); }
     else if (act === 'copier') mot(await copier(m.texte || '') ? 'Texte copié' : 'Copie impossible');
+    /* ⛔ (relecture du relecteur, mesuré) : le menu rend le focus à son déclencheur, que le repeint détruit — il tombait sur <body> ; il va au lien de la transcription */
+    else if (act === 'transcrire') { basculerTranscription(mid); const l = document.querySelector('#conv-messages [data-transcrire="' + String(mid).replace(/["\\]/g, '') + '"]'); if (l) l.focus({ preventScroll: true }); }
+    else if (act === 'copier-transcription') { const t = m.transcription; mot(t && typeof t.texte === 'string' && await copier(t.texte) ? 'Transcription copiée' : 'Copie impossible'); }
     else if (act === 'enregistrer') { for (let i = 0; i < (m.photos || []).length; i++) await enregistrerPhoto(m, i); }
     else if (act === 'suivi') { const pc = pieceDe(m); if (pc) { declencheur = null; ouvrirFeuille('suivi:' + pc); } }
     else if (act === 'transferer') { if (transferable(m)) { declencheur = null; ouvrirFeuille('transferer:' + m.seq); } }
@@ -6052,21 +6156,27 @@
   /* le nom que la SOURCE a résolu (« Compte supprimé », « Quelqu'un » pour un ancien membre) ; à défaut, le contact */
   const auteurDe = x => x.moi ? 'Vous' : (typeof x.nom === 'string' && x.nom ? x.nom : nomAuteur(x.auteur));
   let rcMinuterie = null;
+  /* ce que la recherche lit — ⛔ et un vocal, s'il a été transcrit (relecture du relecteur : rien ne le disait) */
+  const RC_NOTE_BASE = 'Le texte des messages, les légendes des photos et les noms des fichiers.';
+  const rcNote = () => CAP.transcription && TR && TR.ouverte ? 'Le texte des messages, les légendes des photos, les noms des fichiers, et ce que disent les vocaux déjà transcrits.' : RC_NOTE_BASE;
   function rendreRecherche() {
+    const RC_NOTE = rcNote();
     const G = etat.groupe; G.rc = { q: '', resultats: [], suite: null, enCours: false, jeton: 0, erreur: '', echecPlus: false };
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="info-champ"><input id="rc-q" type="search" autocomplete="off" enterkeyhint="search" maxlength="100" placeholder="Rechercher dans la conversation" aria-label="Rechercher dans la conversation" aria-describedby="rc-etat"></div>' +
-      '<p class="info-note rc-etat" id="rc-etat" role="status">Le texte des messages, les légendes des photos et les noms des fichiers.</p><div class="carte" id="rc-liste" hidden></div><div class="info-actions" id="rc-plus-zone" hidden><button type="button" class="mini" data-rc-plus>Chercher plus loin</button></div>' +
+      '<p class="info-note rc-etat" id="rc-etat" role="status">' + RC_NOTE + '</p><div class="carte" id="rc-liste" hidden></div><div class="info-actions" id="rc-plus-zone" hidden><button type="button" class="mini" data-rc-plus>Chercher plus loin</button></div>' +
       '<div class="info-actions" id="rc-reessayer-zone" hidden><button type="button" class="mini" data-rc-reessayer>Réessayer</button></div>';
   }
   function peindreRecherche() {
     const G = etat.groupe, R = G.rc, l = $('rc-liste'); if (G.mode !== 'chercher' || !R || !l) return;
-    l.innerHTML = R.resultats.map(x => '<button type="button" class="contact presse rc-res" data-rc-seq="' + x.seq + '">' +
+    const RC_NOTE = rcNote();
+    /* un vocal trouvé par ce qu'il dit se reconnaît comme un vocal (le micro, et « Vocal » pour le lecteur d'écran) ; le toucher ouvre sa transcription en arrivant */
+    l.innerHTML = R.resultats.map(x => '<button type="button" class="contact presse rc-res" data-rc-seq="' + x.seq + '"' + (x.type === 'vocal' ? ' data-rc-vocal="1"' : '') + '>' +
       '<span class="contact-texte"><span class="rc-tete"><span class="rc-nom">' + esc(auteurDe(x)) + '</span><span class="rc-date">' + esc(libelleListe(x.t)) + '</span></span>' +
-      '<span class="rc-extrait" dir="auto">' + (x.type === 'fichier' ? icone('i-fichier') : x.type === 'photo' ? icone('i-photo') : '') + surligner(x.texte, R.q) + '</span></span></button>').join('');
+      '<span class="rc-extrait" dir="auto">' + (x.type === 'fichier' ? icone('i-fichier') : x.type === 'photo' ? icone('i-photo') : x.type === 'vocal' ? icone('i-mic') + '<span class="sr-seul">Vocal : </span>' : '') + surligner(x.texte, R.q) + '</span></span></button>').join('');
     l.hidden = !R.resultats.length;
     const n = R.resultats.length;
-    $('rc-etat').textContent = R.erreur ? R.erreur : R.enCours && !n ? 'Recherche…' : !R.q ? 'Le texte des messages, les légendes des photos et les noms des fichiers.'
+    $('rc-etat').textContent = R.erreur ? R.erreur : R.enCours && !n ? 'Recherche…' : !R.q ? RC_NOTE
       : n ? (n > 1 ? n + ' messages' : 'Un message') + (R.suite ? ' — il peut y en avoir d\'autres plus anciens' : '')
       : R.suite ? 'Aucun message récent ne contient « ' + R.q + ' ».' : 'Aucun message ne contient « ' + R.q + ' ».';
     $('rc-plus-zone').hidden = !R.suite || !!R.erreur;
@@ -6154,11 +6264,11 @@
      ⛔ La conversation est SOUS la feuille (le cas ordinaire : la feuille vient de ses Infos) : la feuille se REFERME — l'entrée d'historique de la conversation est celle d'en dessous,
      on y revient — puis le message se montre (`fermerFeuilleDom`). Remplacer l'entrée de la feuille par la conversation laissait DEUX entrées de la même conversation : « retour »
      ramenait… à elle (relecture). Sans conversation dessous, la feuille devient la conversation. */
-  function allerDepuisFeuille(seq) {
+  function allerDepuisFeuille(seq, vocal) {
     const conv = etat.groupe.convId; if (!conv || !Number.isSafeInteger(seq)) return;
     const dessous = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages' && etat.route.conv === conv;
-    if (!dessous) { voirMessage(conv, seq, true); cibleMsg.max = 60; cibleMsg.retrouver = true; return; }
-    Object.assign(cibleMsg, { conv, seq, pages: 0, max: 60, retrouver: true, apresFeuille: true });
+    if (!dessous) { voirMessage(conv, seq, true); cibleMsg.max = 60; cibleMsg.retrouver = true; cibleMsg.transcription = !!vocal; return; }
+    Object.assign(cibleMsg, { conv, seq, pages: 0, max: 60, retrouver: true, apresFeuille: true, transcription: !!vocal });
     fermerFeuille();
   }
   $('info-corps').addEventListener('input', e => {
@@ -6178,7 +6288,7 @@
     if (G.mode === 'chercher') {
       const p = e.target.closest('[data-rc-plus]'); if (p) { if (p.getAttribute('aria-disabled') !== 'true') lancerRecherche(true); return; }
       if (e.target.closest('[data-rc-reessayer]')) { if (G.rc && !G.rc.enCours) lancerRecherche(G.rc.echecPlus && G.rc.suite !== null); return; }
-      const r = e.target.closest('[data-rc-seq]'); if (r) allerDepuisFeuille(+r.dataset.rcSeq);
+      const r = e.target.closest('[data-rc-seq]'); if (r) allerDepuisFeuille(+r.dataset.rcSeq, r.dataset.rcVocal === '1');
       return;
     }
     const g = e.target.closest('[data-md-genre]');
@@ -8170,6 +8280,7 @@
     }
     MOI = source.moi(); CONTACTS = source.contacts();
     peindreMoi();
+    trRelire();                                    // la transcription des vocaux est-elle installée ? (redemandée à l'ouverture d'une conversation si on n'a pas pu savoir)
     if (CAP.fichiers) $('compo-plus').setAttribute('aria-label', 'Joindre une photo ou un fichier');
     const codeLien = CAP.liens ? lienDansAdresse() : null;       // lu AVANT que la route ne réécrive l'adresse
     const codeInvitation = CAP.espaces ? invitationDansAdresse() : null;

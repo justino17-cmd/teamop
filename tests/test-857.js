@@ -412,10 +412,11 @@ async function controler(PAGE, SRC, DOC) {
     let R = null, ctx = null;
     const els = {}, boutons = {}, el = () => ({ innerHTML: '', hidden: false, textContent: '', setAttribute(k, x) { this['@' + k] = x; }, style: { setProperty() {} } });
     try {
-      ctx = { icone: () => '', libelleListe: () => 'hier', nomAuteur: () => 'Ben', tailleTexte: n => n + ' o', phrase: (e, d) => d, etat: { groupe: { mode: 'chercher', convId: 'c_x' } },
-        cibleMsg: { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false }, nav: [],
+      ctx = { icone: n => '[' + n + ']', libelleListe: () => 'hier', nomAuteur: () => 'Ben', tailleTexte: n => n + ' o', phrase: (e, d) => d, etat: { groupe: { mode: 'chercher', convId: 'c_x' } },
+        CAP: { transcription: true }, TR: null,
+        cibleMsg: { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false }, nav: [],
         document: { querySelector: s => boutons[s] || null, querySelectorAll: () => [] }, setTimeout, clearTimeout };
-      ctx.voirMessage = (c, s, r) => { ctx.nav.push(['voir', c, s, r]); Object.assign(ctx.cibleMsg, { conv: c, seq: s, pages: 0, max: 20, retrouver: false, apresFeuille: false }); };
+      ctx.voirMessage = (c, s, r) => { ctx.nav.push(['voir', c, s, r]); Object.assign(ctx.cibleMsg, { conv: c, seq: s, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false }); };
       ctx.fermerFeuille = () => ctx.nav.push(['fermer']);
       ctx.$ = id => (els[id] = els[id] || el());
       vm.createContext(ctx);
@@ -463,6 +464,16 @@ async function controler(PAGE, SRC, DOC) {
       R.peindreRecherche(); const hR = els['rc-liste'].innerHTML;
       v('⛔ un résultat PIÉGÉ (texte, nom d\'auteur) s\'écrit échappé ; le nom que la source a résolu passe (« Compte supprimé », jamais « ? » ni le nom d\'un contact homonyme)',
         [/<img|<svg/.test(hR), hR.includes('&lt;img src=x onerror=alert(1)&gt;'), hR.includes('&lt;svg onload=1&gt;'), hR.includes('Compte supprimé'), hR.includes('Ben')], [false, true, true, true, false]);
+      /* ⛔ (relecture du relecteur, 11 octobre 2026) : un vocal trouvé par ce qu'il dit se reconnaît comme un vocal, et la note dit qu'on cherche dans les vocaux transcrits */
+      G.rc.resultats = [{ seq: 6, auteur: 'p_b', moi: false, nom: 'Ben', t: 1, type: 'vocal', texte: 'on se voit au chantier' }, { seq: 5, auteur: 'p_b', moi: false, nom: 'Ben', t: 1, type: 'texte', texte: 'chantier' }];
+      R.peindreRecherche(); const hV = els['rc-liste'].innerHTML;
+      v('⛔ un vocal trouvé : le micro, « Vocal : » pour le lecteur d\'écran, et la marque qui ouvrira sa transcription — pas sur un texte',
+        [/data-rc-seq="6" data-rc-vocal="1">/.test(hV), /\[i-mic\]<span class="sr-seul">Vocal : <\/span>on se voit au/.test(hV), /data-rc-seq="5" data-rc-vocal/.test(hV)], [true, true, false]);
+      G.rc.q = ''; R.peindreRecherche(); const noteSans = els['rc-etat'].textContent;
+      ctx.TR = { ouverte: true, dureeMaxS: 300 }; vm.runInContext('TR = this.TR', ctx); R.peindreRecherche(); const noteAvec = els['rc-etat'].textContent;
+      v('la note dit ce qu\'on cherche — les vocaux transcrits, seulement quand la transcription est installée', [noteSans, noteAvec],
+        ['Le texte des messages, les légendes des photos et les noms des fichiers.', 'Le texte des messages, les légendes des photos, les noms des fichiers, et ce que disent les vocaux déjà transcrits.']);
+      vm.runInContext('TR = null', ctx);
       /* la galerie */
       ctx.etat.groupe = { mode: 'medias', convId: 'c_x' }; const M = ctx.etat.groupe; boutons['[data-md-plus]'] = el();
       const mAppels = [];
@@ -498,8 +509,16 @@ async function controler(PAGE, SRC, DOC) {
       ctx.nav.length = 0; R.allerDepuisFeuille(43); const ailleurs = [ctx.nav.slice(), ctx.cibleMsg.max, ctx.cibleMsg.retrouver, ctx.cibleMsg.apresFeuille];
       v('⛔ un résultat touché, la conversation SOUS la feuille : la feuille se REFERME (on revient à l\'entrée de la conversation — remplacer celle de la feuille en faisait DEUX), le message attend sa fermeture, 60 pages ; sans conversation dessous, la feuille devient la conversation',
         [dessous, ailleurs],
-        [[[['fermer']], { conv: 'c_x', seq: 42, pages: 0, max: 60, retrouver: true, apresFeuille: true }], [[['voir', 'c_x', 43, true]], 60, true, false]]);
+        [[[['fermer']], { conv: 'c_x', seq: 42, pages: 0, max: 60, retrouver: true, apresFeuille: true, transcription: false }], [[['voir', 'c_x', 43, true]], 60, true, false]]);
+      ctx.etat = { groupe: { mode: 'chercher', convId: 'c_x' }, conv: 'c_x', convDonnees: { id: 'c_x' }, route: { vue: 'messages', conv: 'c_x', feuille: 'chercher:c_x' } };
+      R.allerDepuisFeuille(44, true); const tDessous = ctx.cibleMsg.transcription;
+      ctx.etat = { groupe: { mode: 'chercher', convId: 'c_x' }, conv: 'c_autre', convDonnees: { id: 'c_autre' }, route: { vue: 'messages', conv: 'c_autre', feuille: 'chercher:c_x' } };
+      R.allerDepuisFeuille(45, true); const tAilleurs = ctx.cibleMsg.transcription;
+      R.allerDepuisFeuille(46); const tTexte = ctx.cibleMsg.transcription;
+      v('⛔ un VOCAL trouvé : sa transcription s\'ouvrira en arrivant (conversation dessous ou non) ; un texte, non', [tDessous, tAilleurs, tTexte], [true, true, false]);
     }
+    vrai('⛔ … et en arrivant, la transcription du vocal visé s\'ouvre AVANT qu\'on cherche son élément (le repeint le remplacerait)',
+      /const ouvrirTr = cibleMsg\.transcription; cibleMsg\.transcription = false;\s*(?:\/\*[^]*?\*\/\s*)?if \(ouvrirTr && m\.vocal && transcriptionPossible\(m\) && !trOuvertes\.has\(m\.id\)\) \{ trOuvertes\.set\(m\.id, c\.id\); trEtats\.set\(m\.id, trEtat\(m\)\.etat\); rendreIci\(\); \}\s*const el = document\.querySelector/.test(corps('async function allerAuMessage')));
     vrai('⛔ la feuille refermée montre le message attendu (`apresFeuille`), après avoir rendu le focus — et seulement s\'il est de la conversation ouverte',
       /rendreFocus\(d\);\s*(?:\/\*[^]*?\*\/\s*)?if \(cibleMsg\.apresFeuille\) \{ cibleMsg\.apresFeuille = false; if \(cibleMsg\.conv && cibleMsg\.conv === etat\.conv\) allerAuMessage\(\); \}/.test(corps('function fermerFeuilleDom')));
     vrai('⛔ les deux lignes des Infos n\'existent que si la source sait chercher (CAP.retrouver)',
@@ -1015,6 +1034,143 @@ async function controler(PAGE, SRC, DOC) {
   vrai('collage : le champ ne coupe pas en silence (plus de maxlength à 4 000), la limite se DIT dès la frappe ; Échap dans la recherche l\'efface sans fermer la conversation [sonde : collage]', /const texteTropLong = n =>/.test(JS) && /if \(n > TEXTE_MAX\) avis\(texteTropLong\(n\)\)/.test(JS) && /if \(e\.target === \$\('recherche-conv'\) && !etat\.photo && !etat\.groupe\.ouvert\)/.test(JS));
   vrai('images : une image dont l\'en-tête est bon et le corps abîmé est refusée (decode() + preuve qu\'un point a été dessiné), un fichier tronqué aussi (PNG, GIF, WebP) [sonde : images]', /i\.decode\(\)\.then\(\(\) => fini\(true\), \(\) => fini\(false\)\)/.test(JS) && /if \(!dessine\) throw new Error\('illisible'\);/.test(JS) && /if \(await fichierTronque\(fichier\)\) throw new Error\('illisible'\);/.test(JS) && /async function fichierTronque\(f\)/.test(JS));
   vrai('couleurs forcées : une bulle, une photo, un vocal et le champ gardent un contour ; l\'onde garde une couleur [sonde : couleurs-forcees]', /@media \(forced-colors: active\) \{[\s\S]*?\.bulle, \.photo, \.vocal, \.saisie-ind, \.pilule-saisie, \.avis-saisie(?:, [.\w-]+)* \{ border: 1px solid CanvasText; \}[\s\S]*?\.onde i, \.enreg-onde i \{ background: CanvasText; \}/.test(CSS));
+  /* ⛔ LA TRANSCRIPTION D'UN VOCAL (11 octobre 2026, « comme sur Instagram ») : les VRAIES fonctions de la page, exécutées dans un bac à sable — ce qui se propose, ce qui
+     s'affiche à chaque état, la demande qui part une fois, le texte échappé, l'annonce au lecteur d'écran ; la couture avec le vrai service est dans tests/test-1000.js,
+     les gestes au doigt dans tests/sonde-opmessages-transcription.js */
+  {
+    const iT = JS.indexOf('let TR = null, trLu = 0;'), iA = JS.indexOf('function annoncerTranscriptions(c)', iT), fT = iA > 0 ? JS.indexOf('\n  }\n', iA) + 5 : -1;   // jusqu'à la fin d'annoncerTranscriptions
+    const ligneEsc = (/const esc = s => [^\n]*/.exec(JS) || [''])[0];
+    let K = null, cx = null;
+    try {
+      cx = { CAP: { transcription: true }, appels: [], rendus: 0, annonce: { textContent: '' }, attente: null, horloge: 1000000, ouvertes: 0, reponseOuverte: null };
+      cx.etat = { conv: 'c_a', convDonnees: { id: 'c_a', messages: [] } };
+      cx.source = { transcrire: (conv, mid) => { cx.appels.push(conv + '|' + mid); return cx.attente || Promise.resolve({ etat: 'attente' }); },
+        transcriptionOuverte: () => { cx.ouvertes++; return Promise.resolve(cx.reponseOuverte); } };
+      cx.$ = id => id === 'conv-annonce' ? cx.annonce : null;
+      cx.setTimeout = f => { f(); return 1; };
+      cx.Date = { now: () => cx.horloge };
+      vm.createContext(cx);
+      vm.runInContext(ligneEsc + '\nconst trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);\n' + JS.slice(iT, fT) +
+        '\nvar phrase = (e, d) => e && e.dit ? e.message : d, rendreConv = () => { rendus++; };\nthis.K = { get TR() { return TR; }, set TR(x) { TR = x; }, trOuvertes, trLocal, trEntieres, trRelire, transcriptionPossible, htmlTranscription, basculerTranscription, demanderTranscription, annoncerTranscriptions };', cx, { timeout: 2000 });
+      K = cx.K;
+    } catch (e) { K = null; }
+    vrai('(population) le bloc de la transcription s\'exécute dans un bac à sable (' + (fT - iT) + ' caractères)', iT > 0 && fT > iT && !!K);
+    if (K) try {
+      /* ⛔ (relecture du relecteur) : `/api/config` raté au démarrage cachait la fonction jusqu'au rechargement — elle se redemande, une fois par minute au plus */
+      K.trRelire(); await new Promise(r => setTimeout(r, 0));
+      const apresEchec = [cx.ouvertes, K.TR];
+      K.trRelire(); await new Promise(r => setTimeout(r, 0));
+      const tropTot = cx.ouvertes;
+      cx.horloge += 61000; cx.reponseOuverte = { ouverte: true, dureeMaxS: 300 }; const r0 = cx.rendus;
+      K.trRelire(); await new Promise(r => setTimeout(r, 0));
+      const lu = [cx.ouvertes, K.TR, cx.rendus > r0];
+      cx.horloge += 61000; K.trRelire(); await new Promise(r => setTimeout(r, 0));
+      v('⛔ « est-elle installée ? » : une réponse ratée se redemande — pas deux fois dans la minute, et plus du tout une fois sue (la conversation se repeint alors)',
+        [apresEchec, tropTot, lu, cx.ouvertes], [[1, null], 1, [2, { ouverte: true, dureeMaxS: 300 }, true], 2]);
+      K.TR = null;
+      const V = (id, x) => Object.assign({ id, seq: 3, auteur: 'p_ana', t: 1, vocal: { dur: 4, url: 'blob:x' } }, x || {});
+      const m1 = V('m1');
+      const possible = [];
+      possible.push(K.transcriptionPossible(m1));                                              // TR inconnu : rien
+      K.TR = { ouverte: false, dureeMaxS: 300 }; possible.push(K.transcriptionPossible(m1));
+      K.TR = { ouverte: true, dureeMaxS: 300 };
+      possible.push(K.transcriptionPossible(m1), K.transcriptionPossible(V('m2', { supprime: true })), K.transcriptionPossible(V('m3', { attente: true })), K.transcriptionPossible(Object.assign(V('m4'), { vocal: undefined, texte: 'x' })),
+        K.transcriptionPossible(V('m5', { seq: undefined })), K.transcriptionPossible(V('m6', { vocal: { dur: 301 } })));
+      cx.CAP.transcription = false; possible.push(K.transcriptionPossible(m1)); cx.CAP.transcription = true;
+      v('⛔ « Voir la transcription » ne se propose que si le service l\'a installée, sur un vocal arrivé, pas supprimé, pas plus long que ce qu\'il transcrit — et jamais sans la capacité',
+        possible, [false, false, true, false, false, false, false, false, false]);
+      const ferme = K.htmlTranscription(m1, 'recue');
+      vrai('fermée : un lien « Voir la transcription » (un bouton : son nom dit l\'état, sans `aria-expanded` en double), et aucun texte', /^<button type="button" class="transcrire-lien presse" data-transcrire="m1">Voir la transcription<\/button>$/.test(ferme));
+      cx.etat.convDonnees.messages = [m1];
+      let relacher; cx.attente = new Promise(r => { relacher = r; });
+      K.basculerTranscription('m1');
+      const annonceOuverture = cx.annonce.textContent;
+      K.demanderTranscription('m1'); K.basculerTranscription('m1'); K.basculerTranscription('m1');
+      const enVol = K.htmlTranscription(m1, 'recue');
+      v('⛔ ouvrir demande UNE fois (un second essai, puis fermer et rouvrir pendant la demande : toujours un appel) — le LIEN D\'ABORD (il ne bouge pas quand le texte s\'ouvre), puis « Transcription en cours… », relié au lien',
+        [cx.appels, /^<button type="button" class="transcrire-lien presse" data-transcrire="m1" aria-controls="tr-m1">Masquer la transcription<\/button><p class="bulle transcription recue tr-note" id="tr-m1" dir="auto"><span class="tr-roue" aria-hidden="true"><\/span>Transcription en cours…<\/p>$/.test(enVol)],
+        [['c_a|m1'], true]);
+      v('⛔ l\'ouverture s\'annonce au lecteur d\'écran (« Transcription en cours »)', annonceOuverture, 'Transcription en cours');
+      relacher({ etat: 'attente' }); await new Promise(r => setTimeout(r, 0));
+      cx.annonce.textContent = '';
+      K.annoncerTranscriptions(cx.etat.convDonnees); K.annoncerTranscriptions(cx.etat.convDonnees);
+      v('⛔ tant que ça attend, des rendus de plus n\'annoncent RIEN (ni un échec, ni une redite)', cx.annonce.textContent, '');
+      m1.transcription = { etat: 'prete', texte: 'Viens <img src=x onerror=alert(1)> & « ok »', langue: 'fr' };
+      K.annoncerTranscriptions(cx.etat.convDonnees);
+      const pret = K.htmlTranscription(m1, 'envoyee');
+      v('⛔ le texte arrive : ÉCHAPPÉ (la sortie d\'un modèle est un texte, jamais du balisage), dans une bulle de l\'auteur, avec sa langue ; et le lecteur d\'écran l\'apprend (« Transcription prête »)',
+        [/<p class="bulle transcription envoyee" id="tr-m1" dir="auto" lang="fr">Viens &lt;img src=x onerror=alert\(1\)&gt; &amp; « ok »<\/p>$/.test(pret), /<img/.test(pret), cx.annonce.textContent], [true, false, 'Transcription prête']);
+      cx.annonce.textContent = ''; K.annoncerTranscriptions(cx.etat.convDonnees);
+      v('   un rendu de plus ne la redit pas', cx.annonce.textContent, '');
+      const m7 = V('m7', { transcription: { etat: 'vide' } }), m8 = V('m8', { transcription: { etat: 'echec' } }), m9 = V('m9', { transcription: { etat: 'echec', definitif: true } }), m10 = V('m10', { transcription: { etat: 'prete', illisible: true } }),
+        m11 = V('m11', { transcription: { etat: 'prete', relis: true } });
+      cx.etat.convDonnees.messages = [m1, m7, m8, m9, m10, m11];
+      for (const m of [m7, m8, m9, m10, m11]) K.basculerTranscription(m.id);
+      const h7 = K.htmlTranscription(m7, 'recue'), h8 = K.htmlTranscription(m8, 'recue'), h9 = K.htmlTranscription(m9, 'recue'), h10 = K.htmlTranscription(m10, 'recue'), h11 = K.htmlTranscription(m11, 'recue');
+      v('chaque état se dit : sans parole, échec (et « Réessayer »), échec définitif (sans « Réessayer »), texte illisible, texte pas chargé (et « Réessayer ») — sans redemander ce qui est déjà connu',
+        [/>Aucune parole reconnue\.<\/p>/.test(h7), /La transcription n'a pas pu se faire\. <button type="button" class="tr-reessayer" data-transcrire-reessayer="m8">Réessayer<\/button><\/p>/.test(h8),
+          /La transcription n'a pas pu se faire\.<\/p>/.test(h9) && !/tr-reessayer/.test(h9), />Ce texte ne peut plus être lu\.<\/p>/.test(h10),
+          /Le texte n'a pas pu se charger\. <button type="button" class="tr-reessayer" data-transcrire-reessayer="m11">Réessayer<\/button><\/p>/.test(h11), cx.appels.length], [true, true, true, true, true, 1]);
+      cx.attente = Promise.reject(Object.assign(new Error('Beaucoup de vocaux sont en cours de transcription (réessaie dans 60 s).'), { dit: true, statut: 503, code: 'transcription_occupee' }));
+      cx.attente.catch(() => {});
+      cx.annonce.textContent = '';
+      await K.demanderTranscription('m8');
+      K.annoncerTranscriptions(cx.etat.convDonnees);
+      const h8b = K.htmlTranscription(m8, 'recue');
+      v('⛔ « Réessayer » refusé par le service (503) : sa PHRASE s\'affiche, « Réessayer » reste, et le lecteur d\'écran l\'entend',
+        [cx.appels.length, /Beaucoup de vocaux sont en cours de transcription \(réessaie dans 60 s\)\. <button type="button" class="tr-reessayer" data-transcrire-reessayer="m8">/.test(h8b), cx.annonce.textContent],
+        [2, true, 'Beaucoup de vocaux sont en cours de transcription (réessaie dans 60 s).']);
+      /* ⛔ (relecture du relecteur) : « Réessayer » ne se propose que pour ce qui se réessaie — pas un vocal parti, trop long, ou qui n'en est pas un */
+      const refus = async (mid, er) => { cx.attente = Promise.reject(er); cx.attente.catch(() => {}); await K.demanderTranscription(mid); return K.htmlTranscription(cx.etat.convDonnees.messages.find(x => x.id === mid), 'recue'); };
+      const m12 = V('m12'), m13 = V('m13'), m14 = V('m14');
+      cx.etat.convDonnees.messages.push(m12, m13, m14);
+      const h12 = await refus('m12', Object.assign(new Error('introuvable'), { statut: 404, code: 'introuvable' }));
+      const h13 = await refus('m13', Object.assign(new Error('Ce vocal est trop long pour être transcrit.'), { dit: true, statut: 413, code: 'vocal_trop_long' }));
+      const h14 = await refus('m14', Object.assign(new Error('Le réseau ne répond pas.'), { dit: true, statut: 0, code: 'reseau' }));
+      v('⛔ un vocal parti : « plus disponible », sans « Réessayer » ; trop long : sa phrase, sans « Réessayer » ; le réseau : « Réessayer »',
+        [/>Ce vocal n&#39;est plus disponible\.<\/p>$/.test(h12), /Ce vocal est trop long pour être transcrit\.<\/p>$/.test(h13), /Le réseau ne répond pas\. <button type="button" class="tr-reessayer"/.test(h14)], [true, true, true]);
+      /* un LONG vocal : on dit que ça peut prendre du temps ; un long TEXTE : « Voir plus » */
+      const mLong = V('m15', { vocal: { dur: 95, url: 'blob:x' } }); cx.etat.convDonnees.messages.push(mLong);
+      cx.attente = new Promise(() => {}); cx.annonce.textContent = '';
+      K.demanderTranscription('m15');
+      v('⛔ un vocal de plus d\'une minute : « peut prendre une minute ou deux », à l\'écran et au lecteur d\'écran',
+        [/Transcription en cours… Un long vocal peut prendre une minute ou deux\.<\/p>$/.test(K.htmlTranscription(mLong, 'recue')), cx.annonce.textContent], [true, 'Transcription en cours — un long vocal peut prendre une minute ou deux']);
+      const LONG = ('Le chantier de la rue des Lilas avance bien, ' + 'on attaque la toiture demain matin. ').repeat(12);
+      const mTexte = V('m16', { transcription: { etat: 'prete', texte: LONG, langue: 'fr' } }); cx.etat.convDonnees.messages.push(mTexte);
+      K.basculerTranscription('m16');
+      const hc = K.htmlTranscription(mTexte, 'recue');
+      const coupe = (/id="tr-m16" dir="auto" lang="fr">([^<]*)… <button type="button" class="tr-plus" data-transcrire-plus="m16">Voir plus<\/button><\/p>$/.exec(hc) || [])[1] || '';
+      K.trEntieres.add('m16');
+      const hEntier = K.htmlTranscription(mTexte, 'recue');
+      v('⛔ un texte de plus de 600 signes se coupe à un MOT, avec « Voir plus » ; déplié, il est entier',
+        [coupe.length > 360 && coupe.length <= 600, LONG.startsWith(coupe), /[a-zé]$/.test(coupe), hEntier.includes('>' + esc(LONG) + '</p>') && !/tr-plus/.test(hEntier)], [true, true, true, true]);
+      K.basculerTranscription('m1');
+      vrai('fermer : le lien revient à « Voir la transcription », et rien ne repart', /^<button type="button" class="transcrire-lien presse" data-transcrire="m1">Voir la transcription<\/button>$/.test(K.htmlTranscription(m1, 'recue')) && cx.appels.length === 6);
+      /* ⛔ (relecture du relecteur) : changer de conversation ne referme rien ailleurs — et n'oublie pas une demande en vol */
+      K.annoncerTranscriptions({ id: 'c_b', messages: [] });
+      const apresAutre = K.trOuvertes.has('m7') && K.trOuvertes.has('m15');
+      cx.etat.convDonnees.messages = [m7];
+      K.annoncerTranscriptions(cx.etat.convDonnees);
+      v('⛔ une AUTRE conversation rendue ne touche pas à ce qui est ouvert ici ; ici, un vocal qui a quitté le fil (supprimé) sort de ce qu\'on a ouvert', [apresAutre, Array.from(K.trOuvertes.keys())], [true, ['m7']]);
+      const idPiege = K.htmlTranscription(V('a"b<c'), 'recue');
+      vrai('⛔ un identifiant de message piégé ne sort pas de son attribut', /data-transcrire="a&quot;b&lt;c"/.test(idPiege) && !/"b</.test(idPiege));
+    } catch (e) { vrai('le bloc de la transcription a jeté : ' + e.message, false); }
+    vrai('le message : la transcription se rend SOUS la rangée du vocal (hors de .msg-rang : la bulle garde la largeur de son texte), seulement quand elle est possible',
+      /h = h\.slice\(0, debutCorps\) \+ '<span class="msg-rang'[^\n]*\n\s*if \(m\.vocal && transcriptionPossible\(m\)\) h \+= htmlTranscription\(m, sens\);/.test(JS));
+    vrai('les gestes : le lien ouvre ou ferme, « Réessayer » redemande, « Voir plus » déplie ; le focus survit au rendu, et passe au lien quand « Réessayer » ou « Voir plus » disparaît',
+      /const tl = e\.target\.closest\('\[data-transcrire\]'\);\s*if \(tl\) \{ basculerTranscription\(tl\.dataset\.transcrire\); return; \}/.test(JS) && /const tr = e\.target\.closest\('\[data-transcrire-reessayer\]'\);\s*if \(tr\) \{ demanderTranscription\(tr\.dataset\.transcrireReessayer\); return; \}/.test(JS)
+        && /const tp = e\.target\.closest\('\[data-transcrire-plus\]'\);\s*if \(tp\) \{ trEntieres\.add\(tp\.dataset\.transcrirePlus\); rendreIci\(\); return; \}/.test(JS)
+        && /actif\.dataset\.transcrire \? 'transcrire' : actif\.dataset\.transcrireReessayer \? 'transcrireReessayer' : actif\.dataset\.transcrirePlus \? 'transcrirePlus'/.test(JS) && /\(cle === 'transcrireReessayer' \|\| cle === 'transcrirePlus' \? col\.querySelector\('\[data-transcrire="'/.test(JS));
+    vrai('⛔ le menu d\'un vocal : « Voir la transcription » tant qu\'elle est fermée, « Copier la transcription » une fois là ; après « Voir », le focus va au LIEN (le repeint détruisait le déclencheur du menu : il tombait sur <body>)',
+      /if \(transcriptionPossible\(m\)\) \{[^}]*data-menu="copier-transcription">Copier la transcription<\/button>'[^}]*data-menu="transcrire">Voir la transcription<\/button>';/.test(JS)
+        && /else if \(act === 'transcrire'\) \{ basculerTranscription\(mid\); const l = document\.querySelector\('#conv-messages \[data-transcrire="' \+ String\(mid\)\.replace\(\/\["\\\\\]\/g, ''\) \+ '"\]'\); if \(l\) l\.focus\(\{ preventScroll: true \}\); \}/.test(JS));
+    vrai('⛔ au démarrage ET à l\'ouverture d\'une conversation : la page demande si la transcription est installée (trRelire), sans rien bloquer',
+      /\n\s*trRelire\(\);/.test(corps('async function demarrer()')) && /fermerMenu\(\); fermerMentions\(\); trRelire\(\);/.test(corps('async function ouvrirConv')));
+    vrai('le lien : 32 px dans la mise en page, 44 px sous le doigt (zone étendue, le vocal ne grandit pas) ; « Réessayer » et « Voir plus » : 44 px ; la roue s\'arrête en mouvement réduit ; un contour en couleurs forcées (le texte est une .bulle : la règle de toutes les bulles)',
+      /\.transcrire-lien \{ position: relative;[^}]*min-height: 32px;/.test(CSS) && /@media \(pointer: coarse\) \{ \.transcrire-lien::before \{ content: ''; position: absolute; inset: -6px 0; \} \}/.test(CSS) && !/\.transcrire-lien \{[^}]*min-height: 44px/.test(CSS)
+        && /@media \(pointer: coarse\) \{ \.tr-reessayer \{ min-height: 44px;/.test(CSS) && /@media \(pointer: coarse\) \{ \.tr-plus \{ min-height: 44px;/.test(CSS)
+        && /@media \(prefers-reduced-motion: reduce\) \{\s*\*, \*::before, \*::after \{ animation: none !important;/.test(CSS) && !/@media \(prefers-reduced-motion: reduce\) \{ \.tr-roue/.test(CSS) && /@media \(forced-colors: active\) \{[^@]*\.bulle, \.photo, \.vocal[^{]*\{ border: 1px solid CanvasText; \}/.test(CSS));
+  }
   vrai('écrans étroits : la barre de la feuille et celle des onglets peuvent RÉTRÉCIR (min-width 0, libellé coupé par une ellipse), plus de 64 px de plancher par bouton [sonde : etroit]', /\.feuille-barre h2 \{[^}]*min-width: 0[^}]*text-overflow: ellipsis/.test(CSS) && /\.feuille-bouton \{[^}]*min-width: 44px/.test(CSS) && /\.tab \{[^}]*min-width: 0/.test(CSS) && /\.tab span \{[^}]*text-overflow: ellipsis/.test(CSS));
   return R;
 }

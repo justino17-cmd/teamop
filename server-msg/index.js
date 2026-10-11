@@ -42,6 +42,7 @@ const { creerCourriel } = require('./courriel');
 const { creerAgenda } = require('./routes-agenda');
 const { creerAppels } = require('./appels');
 const { creerVisio } = require('./visio');
+const { creerTranscription } = require('./transcription');
 
 const VERSION = '1.9.0-mise-a-jour';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays', 'gabarit']);   // `gabarit` : le NOM d'un gabarit fixe de courriel de compte (inscription, existe, reinit, change), jamais une adresse   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -108,6 +109,9 @@ function demarrer(env = process.env) {
   const visio = creerVisio({ visio: config.appels.visio, journal: (ligne) => journaliser('visio', { etat: ligne }) });
   const appels = creerAppels({ stockage, hub, push, config, formule, visio, horloge: Date.now, journaliser });
   visio.brancherAdmission((salle, identite) => appels.admiseVisio(salle, identite));
+  /* LA TRANSCRIPTION DES VOCAUX (11 octobre 2026) : l'ouvrier whisper.cpp dans son unité à part (`transcripteur.js`). Absent de la configuration, il n'existe pas : la page ne propose
+     rien. Le journal ne reçoit que des issues (`prete`, `vide`, `echec`) — jamais un texte, une langue ni une personne. */
+  const transcription = creerTranscription({ cfg: config.transcription, stockage, pieces, hub, octetsMax: config.pieces.vocalMax, sha: config.sha, journal: (issue) => journaliser('transcription', { etat: issue }) });   // `etat` : un des champs que le journal accepte (CHAMPS_JOURNAL)
   push.brancherSalles((uid) => stockage.enSalle(uid));                   // « Ne pas déranger pendant une réunion » : le push demande au magasin si la personne est DANS une salle
   const porte = config.instance === 'beta' ? creerPorteBeta({ config, quotas, stockage, horloge: Date.now, fermerSessions: hs => { for (const h of hs) hub.fermerSession(h); } }) : null;
   /* Les SMS : la configuration est VALIDÉE ici (un budget négatif, des identifiants à moitié posés, une URL d'OVH étrangère en production
@@ -143,7 +147,7 @@ function demarrer(env = process.env) {
   const versionClient = creerVersionClient({ config, versionPage, journaliser });
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, versionPage, versionClient, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda, visio,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda, visio, transcription,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un
@@ -174,6 +178,9 @@ function demarrer(env = process.env) {
       /* ⛔ LE SERVEUR DE VISIO : configuré ou non ; s'il l'est, répond-il (la sonde), depuis quand, et des COMPTEURS (avis refusés, entrées non admises retirées, commandes ratées). Jamais une salle, une personne, une
          adresse ni une clé. La surveillance crie s'il est configuré et ne répond plus : les salles neuves repartent alors en maille, à quatre en vidéo. */
       visio: visio.sante(),
+      /* ⛔ LA TRANSCRIPTION : installée ou non ; si elle l'est, l'ouvrier répond-il (la sonde), et des COMPTEURS depuis le démarrage (faites, sans parole, ratées) et la file. Jamais un texte,
+         une conversation, une personne, ni le chemin d'un programme. La surveillance crie si elle est installée et ne répond plus : les demandes partent alors en échec. */
+      transcription: transcription.sante(),
       /* ⛔ `persoAnnulationMin` : l'AGE, en minutes, du plus ancien geste d'abonnement Perso+ d'une personne qui s'en va que Stripe n'a pas confirmé — l'arrêt du renouvellement (suppression DEMANDÉE), son rétablissement (demande
          ANNULÉE) ou la résiliation (compte EFFACÉ) ; 0 : aucun. Un âge, jamais un nombre, ni un genre, ni un identifiant : /health est PUBLIQUE, et « combien d'abonnés » est un chiffre commercial. La surveillance crie
          au-delà d'un jour : une carte prélevée pour quelqu'un qui est parti ne se laisse pas dormir. */
@@ -271,6 +278,7 @@ function demarrer(env = process.env) {
   /* la séance d'une réunion qui finit parce que le dernier s'en va : son compte rendu (`routes-reunions.js`, monté plus haut, a posé `ctx.compteRenduSeance`) — branché AVANT le balayeur */
   appels.brancherFinReunion((x) => (typeof ctx.compteRenduSeance === 'function' ? ctx.compteRenduSeance(x) : null));
   appels.demarrer();
+  transcription.demarrer(); // inerte sans configuration ; sinon les transcriptions interrompues par l'arrêt passent en échec, puis la sonde de l'ouvrier
   visio.demarrer();        // la sonde du serveur de visio (s'il est configuré) : une salle neuve n'y part que s'il répond       // le balayeur d'appels : un premier passage une seconde après le démarrage (les sonneries échues pendant l'arrêt), puis toutes les deux secondes
   if (appelsReveil.length) hub.reveiller({ uids: appelsReveil });
   planificateur.demarrer(); // un premier tour une seconde après le démarrage (un redémarrage rattrape ce qu'un arrêt a laissé), puis un tour toutes les 10 à 15 secondes
@@ -282,6 +290,7 @@ function demarrer(env = process.env) {
     facturation.arreter();
     appels.arreter();
     visio.arreter();
+    transcription.arreter();
     planificateur.arreter();   // REND le bail : la prochaine instance n'attend pas son échéance
     courriel.arreter();        // ferme la connexion au relais, s'il y en a une
     boucle.disable();

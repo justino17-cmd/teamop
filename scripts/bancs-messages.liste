@@ -74,7 +74,10 @@
 # mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9350 (le total moins 14).
 # 10 octobre 2026, l'agenda de pro (décaler ; test-972 l'avis anonymisé, test-973 le plafond partagé, test-976 « Décaler » par le module) : 92 suites, 9 400 vérifications
 # mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9386 (le total moins 14).
-#plancher 9386
+# 11 octobre 2026, la transcription des vocaux et ses deux relectures (test-1000 le service, test-1001 l'ouvrier, test-1002 l'installeur), réunie à Perso/Pro (#124) :
+# 95 suites, 9 714 vérifications mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9700
+# (le total moins 14).
+#plancher 9700
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -217,3 +220,9 @@ tests/test-937.js
 # ── L'ordre du jour d'une réunion et le compte rendu de sa séance (8 octobre 2026) : migration 23, cocher, retoucher, le compte rendu à « Terminer pour tous » ET quand le dernier s'en va, la série décochée (938) ;
 #    la vraie page : test-857 et tests/sonde-opmessages-ordre-du-jour.js
 tests/test-938.js
+# ── La transcription des vocaux (11 octobre 2026, « une transcription écrite, comme sur Instagram ») : la VRAIE page (son module) contre le VRAI service et un faux ouvrier (1000) ;
+#    l'ouvrier lancé pour de vrai avec de faux ffmpeg et whisper-cli, le module du service et sa configuration (1001) ; le script d'installation dans un bac à sable (1002) ;
+#    la vraie page : test-857 et tests/sonde-opmessages-transcription.js
+tests/test-1000.js
+tests/test-1001.js
+tests/test-1002.js
