@@ -1169,7 +1169,7 @@ async function controler(PAGE, SRC, DOC) {
     vrai('le lien : 32 px dans la mise en page, 44 px sous le doigt (zone étendue, le vocal ne grandit pas) ; « Réessayer » et « Voir plus » : 44 px ; la roue s\'arrête en mouvement réduit ; un contour en couleurs forcées (le texte est une .bulle : la règle de toutes les bulles)',
       /\.transcrire-lien \{ position: relative;[^}]*min-height: 32px;/.test(CSS) && /@media \(pointer: coarse\) \{ \.transcrire-lien::before \{ content: ''; position: absolute; inset: -6px 0; \} \}/.test(CSS) && !/\.transcrire-lien \{[^}]*min-height: 44px/.test(CSS)
         && /@media \(pointer: coarse\) \{ \.tr-reessayer \{ min-height: 44px;/.test(CSS) && /@media \(pointer: coarse\) \{ \.tr-plus \{ min-height: 44px;/.test(CSS)
-        && /@media \(prefers-reduced-motion: reduce\) \{ \.tr-roue \{ animation: none; \} \}/.test(CSS) && /@media \(forced-colors: active\) \{[^@]*\.bulle, \.photo, \.vocal[^{]*\{ border: 1px solid CanvasText; \}/.test(CSS));
+        && /@media \(prefers-reduced-motion: reduce\) \{\s*\*, \*::before, \*::after \{ animation: none !important;/.test(CSS) && !/@media \(prefers-reduced-motion: reduce\) \{ \.tr-roue/.test(CSS) && /@media \(forced-colors: active\) \{[^@]*\.bulle, \.photo, \.vocal[^{]*\{ border: 1px solid CanvasText; \}/.test(CSS));
   }
   vrai('écrans étroits : la barre de la feuille et celle des onglets peuvent RÉTRÉCIR (min-width 0, libellé coupé par une ellipse), plus de 64 px de plancher par bouton [sonde : etroit]', /\.feuille-barre h2 \{[^}]*min-width: 0[^}]*text-overflow: ellipsis/.test(CSS) && /\.feuille-bouton \{[^}]*min-width: 44px/.test(CSS) && /\.tab \{[^}]*min-width: 0/.test(CSS) && /\.tab span \{[^}]*text-overflow: ellipsis/.test(CSS));
   return R;

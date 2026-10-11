@@ -74,7 +74,10 @@
 # mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9350 (le total moins 14).
 # 10 octobre 2026, l'agenda de pro (décaler ; test-972 l'avis anonymisé, test-973 le plafond partagé, test-976 « Décaler » par le module) : 92 suites, 9 400 vérifications
 # mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9386 (le total moins 14).
-#plancher 9386
+# 11 octobre 2026, la transcription des vocaux et ses deux relectures (test-1000 le service, test-1001 l'ouvrier, test-1002 l'installeur), réunie à Perso/Pro (#124) :
+# 95 suites, 9 714 vérifications mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9700
+# (le total moins 14).
+#plancher 9700
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

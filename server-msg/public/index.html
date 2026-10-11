@@ -368,8 +368,7 @@ p.transcription { margin: 0; font-size: 15px; line-height: 20px; letter-spacing:
 @media (pointer: coarse) { .tr-reessayer { min-height: 44px; margin: -12px 0; } }
 .tr-reessayer:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
 .tr-roue { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: tr-tourne 1s linear infinite; }
-@keyframes tr-tourne { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .tr-roue { animation: none; } }
+@keyframes tr-tourne { to { transform: rotate(360deg); } }      /* (mouvement réduit : la règle de toute la page la coupe — une seconde règle placée avant elle faussait test-856) */
 /* « Voir plus » : un long vocal (trois minutes, c'est ~2 500 signes) ne fait pas une bulle sans fin — la même pièce que « Réessayer » */
 .tr-plus { display: inline-flex; align-items: center; min-height: 32px; margin: -6px 0; padding: 0 4px; font: inherit; font-weight: 600; color: inherit; text-decoration: underline; text-underline-offset: 2px; border-radius: 6px; }
 @media (pointer: coarse) { .tr-plus { min-height: 44px; margin: -12px 0; } }
