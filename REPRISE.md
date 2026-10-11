@@ -42,7 +42,8 @@ Preuves : `test-1003` (neuf, 72 ✓ — les vraies fonctions de la page sous une
 une conversation Pro depuis le Perso) ; les sondes perso-pro, agenda-cote, tableau-bord, mentions, categories mises à la bascule unique ; 27 mutations sur 28 attrapées au
 premier tour (la 28e, le resync, a son contrôle depuis) ; relectures `relecteur` (4 importants : appareil réveillé, focus du clavier, choix hors ligne, sondes à commiter —
 corrigés) et `gardien` (aucun bloquant ni important ; `mode_le` seulement au changement, relecture périmée ignorée — corrigés).
-⚠️ `sonde-opmessages-reunions` tombe au bureau sur la bande des jours cachée depuis la semaine en grille (#123) — défaut de la SONDE, d'avant ce chantier.
+`sonde-opmessages-reunions` remise au goût du jour (294 ✓) : au bureau, elle touchait la bande des sept jours, cachée depuis la semaine en grille (#123) ; elle touche
+désormais le numéro de la case du jour, et vérifie que la case porte la réunion à l'heure de New York de Bruno. Ses 33 mutations (`tests/mutations-reunions.js`) n'ont pas été rejouées.
 
 # ✅ 11 OCTOBRE 2026 — OP MESSAGES : « VOIR LA TRANSCRIPTION » SOUS UN VOCAL (whisper.cpp, sur notre serveur) — EN SERVICE SUR LA BÊTA
 
@@ -834,7 +835,8 @@ trouve tout ce que tu peux et on le fait ».
      compte** (invité par lien — sensible, relecture `gardien` obligatoire) ; flou d'arrière-plan ; sous-titres et compte rendu (seulement sur nos machines, jamais
      l'API vocale de Chrome qui envoie l'audio à un tiers).
 5. **Dettes trouvées en route (anciennes, pas de ce soir)** : `tests/sonde-opmessages-serveur.js` attend encore « Bientôt disponible » sur Appels et Réunions (359 ✓ 11 ✗, identique
-   avant ces changements) ; `tests/sonde-opmessages-reunions.js` meurt à la connexion (`#c-login` jamais visible, identique avant) — à remettre au goût du jour.
+   avant ces changements) ; `tests/sonde-opmessages-reunions.js` meurt à la connexion (`#c-login` jamais visible, identique avant) — à remettre au goût du jour. ✅ Remise au goût du jour le
+   11 octobre 2026 au soir (294 ✓, bascule Perso / Pro).
    « Les catégories Contacts qui manquent » : demandé, pas encore précisé — à demander à Justin.
 
 ---
