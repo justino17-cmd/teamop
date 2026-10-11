@@ -77,7 +77,9 @@
 # 11 octobre 2026, la transcription des vocaux et ses deux relectures (test-1000 le service, test-1001 l'ouvrier, test-1002 l'installeur), réunie à Perso/Pro (#124) :
 # 95 suites, 9 714 vérifications mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9700
 # (le total moins 14).
-#plancher 9700
+# 11 octobre 2026 (soir), une seule bascule Perso / Pro et le passage automatique en Pro aux heures de travail (test-1003) : 96 suites, 9 790 vérifications
+# mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9776 (le total moins 14).
+#plancher 9776
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

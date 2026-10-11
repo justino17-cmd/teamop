@@ -70,7 +70,10 @@ function localDans(t, tz) {
     const finF = salleF.j && salleF.j.appel ? await P.ana.post('/api/salles/' + salleF.j.appel.id + '/terminer', {}) : { code: 0 };
     v('population : la réunion dans douze jours, et celle qu\'Ana a ouverte puis TERMINÉE pour tous', [reu12.code, reuF.code, finF.code], [201, 201, 200]);
     /* onze de plus, du 3ᵉ au 13ᵉ jour : au MOIS, treize réunions — douze lignes, puis « Voir l'autre dans l'Agenda » */
-    const plus = []; for (let i = 3; i <= 13; i++) plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(t0 + i * JOUR, PARIS), fin: localDans(t0 + i * JOUR + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' })).code);
+    /* ⛔ l'heure répétée du passage à l'heure d'hiver : lancée à 22 h 13 UTC le 11 octobre 2026, la 13ᵉ réunion tombait le 25 à 2 h 15, et sa fin une heure plus tard
+       s'écrivait AUSSI « 02:15 » (heure d'hiver) — le service refuse à bon droit une réunion qui finit à l'heure où elle commence. La sonde choisit une heure qui existe. */
+    const heureNette = (d) => { while (localDans(d + H, PARIS) <= localDans(d, PARIS)) d += H; return d; };
+    const plus = []; for (let i = 3; i <= 13; i++) { const d = heureNette(t0 + i * JOUR); plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(d, PARIS), fin: localDans(d + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' })).code); }
     v('population : onze réunions de suivi, du 3ᵉ au 13ᵉ jour', plus, Array(11).fill(201));
     v('population : Cléo est Pro (membre de l\'espace abonné) et n\'est invitée nulle part', (await P.cleo.get('/api/espaces')).j.formule, 'pro');
     /* demain à midi, À PARIS (l'heure locale part telle quelle, avec son fuseau) : pas aujourd'hui — il n'entre au tableau que par son RAPPEL */
