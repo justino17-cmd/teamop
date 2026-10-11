@@ -419,9 +419,10 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
       vrai('⛔ … aucune copie n\'est laissée sur le disque (elles portent le secret)', !b.existe('etc/opmsg/transcrire-beta.json.avant') && !b.existe(UNITE_REL + '.avant') && !b.existe('etc/opmsg/beta.json.avant-transcription')
         && !b.existe('etc/opmsg/transcrire-beta.json.nouveau') && !b.existe(UNITE_REL + '.nouveau'));
       const lu = JSON.parse(lire(path.join(b.E, 'ouvrier-beta.json')) || '{}');
-      v('⛔ … l\'ouvrier d\'avant TOURNE, relancé sur SA configuration (l\'ancien modèle, un faisceau de 1) après que systemd a relu l\'unité d\'avant',
-        [b.ouvrierVivant('beta'), String(lu.modele || '').endsWith('/' + ANCIEN), lu.faisceau, J.lastIndexOf('systemctl daemon-reload') >= 0 && J.lastIndexOf('systemctl daemon-reload') < J.lastIndexOf('systemctl restart opmsg-transcrire@beta')],
-        [true, true, 1, true]);
+      v('⛔ … l\'ouvrier d\'avant TOURNE, relancé sur SA configuration (l\'ancien modèle, un faisceau de 1) systemd ayant relu l\'unité d\'avant ENTRE la relance de l\'installation ratée et la sienne',
+        [b.ouvrierVivant('beta'), String(lu.modele || '').endsWith('/' + ANCIEN), lu.faisceau, compte(J, /^systemctl restart opmsg-transcrire@beta$/),
+          J.lastIndexOf('systemctl daemon-reload') > J.indexOf('systemctl restart opmsg-transcrire@beta') && J.lastIndexOf('systemctl daemon-reload') < J.lastIndexOf('systemctl restart opmsg-transcrire@beta')],
+        [true, true, 1, 2, true]);
       vrai('⛔ … et la transcription n\'est PAS retirée : l\'ouvrier ni arrêté ni désactivé, le groupe de l\'instance gardé', !J.includes('systemctl stop opmsg-transcrire@beta') && !J.includes('systemctl disable opmsg-transcrire@beta')
         && b.existe('etc/systemd/system/teamop-msg@beta.service.d/transcription.conf'));
       if (k.voit) vrai('   … l\'instance voit l\'ouvrier d\'avant, sans avoir été relancée (sa configuration n\'avait pas changé)', /✓ l'ouvrier d'avant tourne de nouveau/.test(r.out) && compte(J, /^systemctl restart teamop-msg@beta$/) === 0);
