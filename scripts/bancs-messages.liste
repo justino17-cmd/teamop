@@ -81,8 +81,8 @@
 # mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du conteneur, avec son total complet) — plancher 9776 (le total moins 14).
 # 11 octobre 2026, nuit : la transcription passe à large-v3-turbo, puis la relecture du gardien (une réinstallation ratée remet celle d'avant, le signal au journal ;
 # test-1001 85 → 88, test-1002 109 → 127) — 96 suites, 9 811 vérifications mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du
-# conteneur, avec son total complet) — plancher 9797 (le total moins 14).
-#plancher 9797
+# conteneur, avec son total complet) ; puis la seconde relecture du gardien (test-1002 127 → 140, seule suite changée) — 9 824 — plancher 9810 (le total moins 14).
+#plancher 9810
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

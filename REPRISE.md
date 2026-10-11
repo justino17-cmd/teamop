@@ -71,7 +71,7 @@ doigt), « Transcription en cours… », « Voir plus » au-delà de 600 signes,
 transcription. Deux relectures adverses (gardien : 6 importants, 7 mineurs ; relecteur : 6 importants, 9 mineurs), toutes corrigées sauf M5 (accepté : `/health`
 dit des compteurs, comme le reste).
 Preuves : `test-1000` (68 ✓, le vrai service et la vraie source), `test-1001` (88 ✓, le vrai ouvrier, sur un port ET une socket, whisper tué par SIGKILL), `test-1002`
-(127 ✓, l'installeur dans un bac à sable, dont deux réinstallations ratées qui remettent celle d'avant ; 12 mutations du retour en arrière, toutes attrapées), `test-857` (T01–T23), `sonde-opmessages-transcription.js` (40 ✓ : téléphone au doigt, bureau au clavier, presse-papiers, Retrouver).
+(140 ✓, l'installeur dans un bac à sable, dont quatre réinstallations ratées qui remettent celle d'avant ; 18 mutations du retour en arrière, toutes attrapées), `test-857` (T01–T23), `sonde-opmessages-transcription.js` (40 ✓ : téléphone au doigt, bureau au clavier, presse-papiers, Retrouver).
 
 ✅ **Fait par Justin le 11 octobre au soir** : la fusion, puis sur le VPS `nproc && free -m && df -h /opt`, puis `bash install-transcription.sh beta`
 (design/opmessages/INSTALLER-LE-SERVEUR.md § 10 nonies — rien à saisir, aucun secret affiché). Le nouveau modèle se pose de la même façon (voir plus haut).
