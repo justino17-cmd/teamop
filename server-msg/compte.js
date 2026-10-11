@@ -116,6 +116,8 @@ function installerCompte(H, ctx) {
               reactions: (m.reactions || []).map(x => ({ emoji: x.emoji, par: x.uid === uid ? 'moi' : (noms.get(x.uid) || null) })),
             };
             if (metaPieces) o.pieces = metaPieces;
+            /* ce qu'un vocal a dit, s'il a été transcrit (11 octobre 2026) : la personne le voit dans l'application, son export le porte — le texte seul, ni l'état ni qui l'a demandé */
+            if (m.type === 'vocal' && m.transcription && m.transcription.etat === 'prete' && typeof m.transcription.texte === 'string') o.transcription = m.transcription.texte;
             /* un message d'ACTIVITÉ du groupe (« Bob a ajouté Dan », « Alice a renommé le groupe ») n'a pas de texte : sans son évènement, l'export le montrerait comme un message vide */
             if (m.type === 'systeme' && m.meta && typeof m.meta.k === 'string') {
               o.evenement = { type: m.meta.k };

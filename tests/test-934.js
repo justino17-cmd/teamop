@@ -149,6 +149,20 @@ v('instanceDe : msg-beta → beta, msg → prod, un autre domaine → rien',
   Object.assign(SAIN, { visio: V_SAIN });
 }
 
+/* ══ 1 quinquies (bis). LA TRANSCRIPTION DES VOCAUX (/health.transcription, 11 octobre 2026) : installée et muette ════════════════════════════════════════════════════════ */
+{
+  const T_SAIN = { configuree: true, ok: true, file: 1, faites: 14, vides: 2, echecs: 1, echecsSonde: 0 };
+  const avec = (o, inst) => S.evaluer(Object.assign({}, SAIN, inst ? { instance: inst } : {}, { transcription: Object.assign({}, T_SAIN, o) }), inst || 'beta');
+  v('une transcription saine ne fait rien crier', avec({}), []);
+  v('   un service SANS ouvrier (« configuree: false ») ou d\'avant (sans la clé) ne crie pas : avant install-transcription.sh, « pas de transcription » n\'est pas une panne',
+    [S.evaluer(Object.assign({}, SAIN, { transcription: { configuree: false, ok: false, file: 0, faites: 0, vides: 0, echecs: 0, echecsSonde: 0 } }), 'beta'), S.evaluer(Object.assign({}, SAIN, { transcription: undefined }), 'beta')], [[], []]);
+  vrai('⛔ installée et MUETTE (deux sondes ratées) : crie, et nomme l\'unité à regarder', avec({ ok: false, echecsSonde: 2 }).some(p => /ouvrier de transcription ne répond plus/.test(p) && /opmsg-transcrire@beta/.test(p)));
+  vrai('   … en production, l\'unité de la production', avec({ ok: false, echecsSonde: 3 }, 'prod').some(p => /opmsg-transcrire@prod/.test(p)));
+  v('   les compteurs cumulés et une file pleine ne crient pas (ils ne redescendent qu\'au redémarrage, et la file pleine est dite à la personne)', avec({ echecs: 40, faites: 900, file: 8 }), []);
+  vrai('⛔ aucun problème ne contient de texte ni d\'identifiant : seulement l\'unité', avec({ ok: false, texte: 'Bonjour JETON-QWZK', conv: 'c_deadbeef' }).every(p => !/deadbeef|JETON/.test(p)));
+  Object.assign(SAIN, { transcription: T_SAIN });
+}
+
 /* ══ 2. CHAQUE CHAMP EST LU PAR LE CODE (ou nommé) — sur le CHEMIN COMPLET, dans le CODE ═══════════════ */
 const lecture = (chemin) => 'j.' + chemin;
 vrai('la liste des champs surveillés est peuplée (population avant verdict)', S.CHAMPS_SURVEILLES.length >= 5);

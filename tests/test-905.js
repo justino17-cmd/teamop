@@ -87,6 +87,8 @@ const MATRICE = {
   'msg.modifier':       { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/modifier', { seq: F.seqDe(a), texte: 'modifié' }], codes: [200] },
   'msg.supprimer':      { ok: (F, a) => ['POST', '/api/conversations/' + F.G + '/messages/supprimer', { seq: F.seqDe(a), pour: 'tous' }], codes: [200] },
   'msg.reagir':         { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/reagir', { seq: 1, emoji: '👍' }], codes: [200] },
+  /* la transcription d'un vocal (11 octobre 2026) : la garde M passée, un service SANS ouvrier rend le 503 du gestionnaire — jamais le 404 de la garde (la transcription réelle : `test-1000`) */
+  'msg.transcrire':     { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/transcrire', { seq: 1 }], codes: [503] },
   /* transférer (9 octobre 2026) : la garde M passée, un numéro de message illisible rend le 400 du gestionnaire — jamais le 404 de la garde (le transfert réel : `test-945`) */
   'msg.transferer':     { ok: (F) => ['POST', '/api/conversations/' + F.G + '/messages/transferer', { seq: 'x', vers: [F.G], cid: 'cid-' + crypto.randomBytes(6).toString('hex') }], codes: [400] },
   /* les sondages d'une conversation : la garde M passée, un numéro de message illisible rend le 400 du gestionnaire — jamais le 404 de la garde */

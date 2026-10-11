@@ -176,6 +176,9 @@
     sondage_clos: 'Ce sondage est clos.',
     sondage_plein: 'Douze choix au plus.',
     sondage_doublon: 'Ce choix existe déjà.',
+    transcription_absente: 'La transcription des vocaux n\'est pas encore installée sur ce serveur.',
+    transcription_occupee: 'Beaucoup de vocaux sont en cours de transcription. Réessaie dans une minute.',
+    vocal_trop_long: 'Ce vocal est trop long pour être transcrit.',
     rien_a_annoter: 'Il n\'y a plus rien à annoter : le partage s\'est arrêté.',
     annot_occupe: 'Quelqu\'un partage son écran : seul un hôte peut ouvrir le tableau blanc par-dessus.',
     reunion_hors_horaire: 'Cette réunion n\'est pas ouverte : on y entre de quinze minutes avant son début à trois heures après sa fin.',
@@ -261,7 +264,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'sondage', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'salle_evt', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'sondage', 'transcription', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'salle_evt', 'resync'];
 
   function creer(opts) {
     const o = opts || {};
@@ -425,6 +428,7 @@
       modifier: (id, seq, texte) => appel('POST', '/api/conversations/' + e(id) + '/messages/modifier', { seq, texte }),
       supprimer: (id, seq, pour) => appel('POST', '/api/conversations/' + e(id) + '/messages/supprimer', { seq, pour: pour || 'tous' }),
       reagir: (id, seq, emoji) => appel('POST', '/api/conversations/' + e(id) + '/messages/reagir', { seq, emoji }),
+      transcrire: (id, seq) => appel('POST', '/api/conversations/' + e(id) + '/messages/transcrire', { seq }),
       /* transférer un message vers 1 à 5 conversations (le même `cid` pour toutes : un renvoi ne double rien) → { resultats: [{ conv, ok, seq | error }] } */
       transferer: (id, seq, vers, cid) => appel('POST', '/api/conversations/' + e(id) + '/messages/transferer', { seq, vers, cid }),
       /* les sondages d'une conversation : la vue de chacun (ses votes, les décomptes selon les règles), voter (remplace mes votes), ajouter un choix, clore */

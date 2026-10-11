@@ -15,6 +15,8 @@
                                historique, texteMax } : ce que le service SAIT faire. Ce qu'il ne sait pas encore dit « bientôt » (les appels à plusieurs : `appelsGroupe`).
      personne(id)          → { id, nom, prenom, initiales, avatar, photo } d'une personne déjà vue (contact, membre, auteur), sinon null.
      répondre, modifier, supprimer, réagir, saisie, infos de groupe, liens de contact : voir plus bas.
+     transcrire(id, mid)   → { etat: 'attente'|'prete'|'vide'|'echec', texte?, langue?, definitif? } : demande la transcription d'un VOCAL (11 octobre 2026, « comme sur Instagram ») — calculée par
+                             le serveur, une fois, partagée ; le texte arrive par le flux (événement `conversation`, le message porte `transcription`). transcriptionOuverte() → { ouverte, dureeMaxS } ou null.
    LES PIÈCES (étape 4). `envoyer(id, brouillon)` accepte aussi `{ photos:[{blob,url,w,h}] }`, `{ vocal:{blob,url,dur,bars} }` et `{ fichier:{blob,nom,taille} }` : chaque pièce est
    DÉPOSÉE (`POST /api/pieces`, corps binaire) puis le message la cite ; un envoi lent est dans la file locale, affiché « Envoi… », et un renvoi ne redépose pas ce qui l'est
    déjà. Un message rendu porte `photos:[{url,w,h,piece,etat}]`, `vocal:{url,dur,bars,piece}` ou `fichier:{nom,taille,piece}` : `url` est une adresse `blob:` FABRIQUÉE ICI
@@ -2293,6 +2295,7 @@
       else if (m.type === 'texte' && !m.illisible && m.meta && typeof m.meta === 'object' && typeof m.meta.k === 'string') { const k = vueCarte(conv, m); if (k) Object.assign(v, k); }
       if (m.modifie) v.modifie = m.modifie;
       if (!m.supprime && m.meta && typeof m.meta === 'object' && m.meta.tr === 1) v.transfere = true;      // « Transféré » (9 octobre 2026) : la page le dit au-dessus de la bulle
+      if (m.type === 'vocal' && !m.supprime && m.transcription) { const t = vueTranscription(m.transcription); if (t) v.transcription = t; }      // ce qu'un vocal a dit, s'il a été transcrit (11 octobre 2026)
       if (m.repond_a) v.reponse = citation(c, m.repond_a);
       if (m.reactions && m.reactions.length) {
         const par = new Map();
@@ -2665,6 +2668,31 @@
       relireListePlusTard();
       return Array.isArray(r && r.resultats) ? r.resultats.map(x => { const error = x.ok ? null : (typeof x.error === 'string' ? x.error : 'erreur'); return { conv: x.conv, ok: !!x.ok, error, phrase: error ? OPMSG.dire(error) : null }; }) : [];
     }
+    /* ── la transcription d'un vocal (11 octobre 2026) : la forme que la page lit, jamais autre chose (un état inconnu n'existe pas, un texte est une chaîne bornée) ── */
+    function vueTranscription(t) {
+      if (!t || typeof t !== 'object' || !['attente', 'prete', 'vide', 'echec'].includes(t.etat)) return null;
+      const o = { etat: t.etat };
+      if (t.etat === 'prete') { if (t.illisible === true) o.illisible = true; else if (typeof t.texte === 'string') o.texte = t.texte.slice(0, 20000); else o.relis = true; }
+      if (typeof t.langue === 'string' && /^[a-z]{2,3}$/.test(t.langue)) o.langue = t.langue;
+      if (t.definitif === true) o.definitif = true;
+      return o;
+    }
+    async function transcrire(id, mid) {
+      const { c, m } = trouver(id, mid);
+      if (!Number.isInteger(m.seq)) throw erreurLocale('invalide');
+      const r = await A.transcrire(id, m.seq);
+      const t = vueTranscription(r && r.transcription);
+      if (!t) throw erreurLocale('invalide');
+      ranger(c, { seq: m.seq, transcription: Object.assign({}, r.transcription) });
+      emettre({ type: 'conversation', id });
+      return t;
+    }
+    let transcriptionCfg = null;
+    async function transcriptionOuverte() {
+      if (transcriptionCfg) return transcriptionCfg;
+      try { const k = await A.config(); const t = k && k.transcription; if (t && typeof t.ouverte === 'boolean') transcriptionCfg = { ouverte: t.ouverte, dureeMaxS: Number.isInteger(t.duree_max_s) ? t.duree_max_s : 0 }; } catch (e) { /* on n'a pas pu savoir : null, et la page ne propose rien */ }
+      return transcriptionCfg;
+    }
     async function reagir(id, mid, emoji) {
       const { c, m } = trouver(id, mid);
       const r = await A.reagir(id, m.seq, emoji || '');
@@ -2898,12 +2926,19 @@
           const m = c.messages.find(x => x.seq === d.seq); if (m) oublierMeta(m.meta);
           sondages.delete(d.conv + '|' + d.seq);
           if (d.pour === 'moi' || d.pour === 'expire') c.messages = c.messages.filter(x => x.seq !== d.seq);
-          else ranger(c, { seq: d.seq, supprime: true, texte: null, meta: null, reactions: [], modifie: null });
+          else ranger(c, { seq: d.seq, supprime: true, texte: null, meta: null, reactions: [], modifie: null, transcription: null });
           emettre({ type: 'conversation', id: d.conv });
         }
         relireListePlusTard();
       },
       reaction: (d) => { const c = convs.get(d.conv); if (!c || !c.charge) return; ranger(c, { seq: d.seq, reactions: d.reactions || [] }); emettre({ type: 'conversation', id: d.conv }); },
+      /* la transcription d'un vocal est prête, vide ou ratée (11 octobre 2026) : un texte trop long pour l'événement se relit (`relis`) */
+      transcription: (d) => {
+        const c = convs.get(d.conv); if (!c || !c.charge || !Number.isInteger(d.seq)) return;
+        if (d.relis) { A.messages(d.conv, { apres_seq: d.seq - 1, limite: 1 }).then(r => { r.messages.forEach(m => ranger(c, m)); emettre({ type: 'conversation', id: d.conv }); }, () => {}); return; }
+        ranger(c, { seq: d.seq, transcription: { etat: d.etat, texte: d.texte, langue: d.langue, illisible: d.illisible === true } });
+        emettre({ type: 'conversation', id: d.conv });
+      },
       /* un sondage a changé (un vote, un choix, la clôture) : « relis-le » — chacun avec SES droits ; une conversation qu'on n'a pas ouverte le relira en s'ouvrant */
       sondage: (d) => { if (!Number.isInteger(d.seq)) return; const k = d.conv + '|' + d.seq; if (sondages.has(k)) relireSondage(d.conv, d.seq); },
       conversation: (d) => {
@@ -3691,7 +3726,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
@@ -3702,7 +3737,7 @@
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),
       personne, rafraichirContacts,
       lister, ouvrir, precedents, envoyer, marquerLu, saisie, rangerConvs,
-      modifier, supprimer, reagir, transferer, chercher, medias,
+      modifier, supprimer, reagir, transferer, chercher, medias, transcrire, transcriptionOuverte,
       creerGroupe, ouvrirDirecte, conversationPour, infos, majConversation, retirerMembre, nommerAdmin, ajouterMembres, quitter, lienGroupe,
       lienContact, revoquerLiens, lireLien, accepterLien,
       /* ── l'identifiant « Prénom#1234 » et les demandes de contact (capacité `identifiants`) ── */

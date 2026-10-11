@@ -53,6 +53,9 @@ const CHAMPS_SURVEILLES = [
   'visio.ok',              // configuré et hors service (deux sondes ratées de suite) : LiveKit est arrêté ou ne répond plus
   'visio.avisRefuses',     // des avis de LiveKit refusés ET aucun accepté : la clé du service et celle de LiveKit ne sont plus la même paire — plus aucune entrée n'est vérifiée
   'visio.avisRecus',       // le dénominateur de l'alarme ci-dessus : un refus isolé parmi des avis acceptés n'est pas une panne
+  /* ⛔ LA TRANSCRIPTION DES VOCAUX (11 octobre 2026) : l'ouvrier whisper.cpp dans son unité à part. Installé et hors service, chaque « Voir la transcription » repart en échec. */
+  'transcription.configuree', // le service annonce un ouvrier de transcription : alors seulement son silence est une panne (avant l'installation, « pas de transcription » n'en est pas une)
+  'transcription.ok',         // installé et muet (deux sondes ratées de suite) : l'unité opmsg-transcrire est arrêtée, ou son modèle a disparu
   /* ⛔ LES SMS (compte Perso par numéro) : « le but c'est qu'on gagne de l'argent » — chaque SMS est un coût, et la fraude au
      « SMS pumping » vise justement les destinations chères. Ces cinq champs sont l'alarme d'argent ; la garde vit dans `sms-garde.js`. */
   'sms.mode',              // en production, tout autre mode que « ovh » veut dire : plus aucun code ne part, personne ne peut s'inscrire
@@ -71,6 +74,12 @@ const CHAMPS_VUS = {
   'push.abonnements': 'le nombre d\'appareils abonnés aux notifications est une information de croissance : le service borne lui-même chaque personne (dix appareils) et retire un abonnement après cinq refus du service de suite, étalés sur une heure — aucune alarme horaire n\'ajouterait une décision',
   /* ⛔ LE SERVEUR DE VISIO : ce qui dit la PANNE est surveillé (`visio.ok`, la sonde TCP, les avis tous refusés) ; le reste est un compteur ou un état intermédiaire. */
   'visio.ageS': 'l\'âge de la dernière sonde réussie : la panne se dit par visio.ok (deux sondes ratées de suite), surveillé ; l\'âge ne dirait que depuis quand',
+  /* ⛔ LA TRANSCRIPTION : ce qui dit la PANNE est surveillé (`transcription.ok`) ; le reste est un compteur depuis le démarrage, ou un état passager. */
+  'transcription.file': 'les travaux en attente : la file est bornée par le service (au-delà, 503 transcription_occupee, dit à la personne) — une file pleine est un pic, pas une panne',
+  'transcription.faites': 'un compteur CUMULÉ depuis le démarrage (transcriptions rendues) : une information d\'usage, sans seuil qui ait un sens',
+  'transcription.vides': 'un compteur CUMULÉ (vocaux sans parole reconnue) : la page le dit à la personne (« Aucune parole reconnue ») ; aucune alarme horaire n\'ajouterait une décision',
+  'transcription.echecs': 'un compteur CUMULÉ depuis le démarrage : une alarme dessus crierait toutes les heures après une seule panne, déjà dite par transcription.ok ; un vocal illisible est aussi un échec, et la page le dit',
+  'transcription.echecsSonde': 'les sondes ratées de suite : transcription.ok passe à faux à la deuxième, c\'est lui qui est surveillé — une sonde ratée isolée est un redémarrage de l\'ouvrier (après un déploiement)',
   'visio.echecs': 'les sondes ratées de suite : visio.ok passe à faux à la deuxième, c\'est lui qui est surveillé — une sonde ratée isolée est un hoquet',
   'visio.retraitsForces': 'un retrait forcé est la garde qui MARCHE (une personne retirée qui revient avec un jeton rafraîchi par LiveKit est mise dehors) ; chaque retrait est journalisé — aucune alarme horaire n\'ajouterait une décision',
   'visio.commandesEchouees': 'un compteur CUMULÉ depuis le démarrage (seul un redémarrage le remet à zéro) : une alarme dessus crierait toutes les heures après une seule panne de LiveKit, déjà dite par visio.ok ; chaque échec est journalisé',
@@ -249,6 +258,10 @@ function evaluer(j, instanceAttendue, sondes) {
     /* `sondes.visio` vaut faux seulement si la sonde a été jouée ET que personne n'a répondu (absente : on ne conclut rien) */
     if (sondes && sondes.visio === false) p.push('le serveur de visio ne se joint pas de l\'extérieur : son port TCP public ne répond pas — le pare-feu de l\'hébergeur ou celui du VPS (ufw) ne laisse pas passer ses ports (TCP et UDP, posés ensemble par install-sfu.sh) : plus personne n\'y fait passer son image');
     if (typeof j.visio.avisRefuses === 'number' && j.visio.avisRefuses > 0 && j.visio.avisRecus === 0) p.push('tous les avis du serveur de visio sont refusés (' + Math.round(j.visio.avisRefuses) + ' refus, aucun accepté) : la clé du service et celle de LiveKit ne sont plus la même paire — plus aucune entrée dans une salle n\'est vérifiée (relancer install-sfu.sh)');
+  }
+  /* la transcription des vocaux. Un /health d'avant (sans la clé) ou un service sans ouvrier (« configuree: false ») ne crie pas. */
+  if (j.transcription && typeof j.transcription === 'object' && j.transcription.configuree === true && j.transcription.ok !== true) {
+    p.push('l\'ouvrier de transcription ne répond plus au service — chaque « Voir la transcription » repart en échec (systemctl status opmsg-transcrire@' + (j.instance === 'prod' ? 'prod' : 'beta') + ')');
   }
   if (j.sms && typeof j.sms === 'object') {
     const seuilEur = Number.isFinite(parseFloat(process.env.OPMSG_SMS_SEUIL_EUR)) ? parseFloat(process.env.OPMSG_SMS_SEUIL_EUR) : SEUIL_SMS_EUR;

@@ -22,6 +22,7 @@ secrets d'OP MESSAGES (la clé maître, la clé SSH de déploiement, la paire VA
 | identifiant et **mot de passe d'application** du relais SMTP (courriel d'invitation) | la console de ton fournisseur de messagerie | ton gestionnaire de mots de passe, puis `/etc/opmsg/beta.json` (saisie masquée) | **jamais** (l'hôte, le port et l'adresse d'expédition, eux, ne sont pas des secrets) |
 | secret partagé du **relais d'appels** (coturn) | **sur le VPS**, tiré au hasard par `install-turn.sh` | `/etc/opmsg/beta.json` (0600) et la configuration de coturn (root et son compte) | **jamais** — tu n'as rien à saisir ni à garder, et le script ne l'affiche pas |
 | paire de clés du **serveur de visio** (LiveKit) | **sur le VPS**, tirée au hasard par `install-sfu.sh` | `/etc/opmsg/beta.json` (0600) et `/etc/opmsg/visio-beta.yaml` (root et son compte) | **jamais** |
+| secret partagé de l'**ouvrier de transcription** (whisper.cpp) | **sur le VPS**, tiré au hasard par `install-transcription.sh` | `/etc/opmsg/beta.json` (0600) et `/etc/opmsg/transcrire-beta.json` (root et son compte) | **jamais** |
 
 ⚠️ **Tant que le code d'OP MESSAGES (`server-msg/`) n'est pas sur `main`, rien de ceci n'est possible** : le
 script d'installation copie le déployeur et la pose de clé depuis `main`. On attend donc le « pousse ».
@@ -1043,6 +1044,126 @@ Les salles repassent en maille (4 en vidéo, 6 en audio). Tu peux ensuite referm
 ### 6. Ce que le serveur de visio reçoit (pour les textes légaux)
 
 L'adresse réseau de chaque appareil qui rejoint une salle par lui, l'heure, le volume, et — en mémoire seulement, le temps de les renvoyer — **la voix et l'image en clair**. Il ne garde rien. C'est un serveur **à nous** : aucun sous-traitant ne voit passer une salle. Ce qui change pour les textes légaux (à l'étape 9) : les salles par la visio sont chiffrées en transit, **pas de bout en bout**.
+
+---
+
+## 10 nonies. La transcription des vocaux (whisper.cpp) — « Voir la transcription », comme sur Instagram
+
+Décisions du 11 octobre 2026 : le calcul se fait **sur notre serveur** (aucune voix ne sort de la machine, aucun sous-traitant), il est **ouvert à tous en bêta** (avec un plafond), et il se fait **à la demande** : sous chaque vocal, « Voir la transcription ». Un vocal se transcrit **une seule fois**, et le texte est partagé par tous ceux qui peuvent écouter ce vocal.
+
+Tant que ces gestes ne sont pas faits, **rien ne change** : le service n'a pas d'ouvrier, la page ne propose rien. Une fois posé, « Voir la transcription » paraît sous les vocaux (après un rechargement de la page) ; si l'ouvrier tombe, les demandes sont refusées avec « réessaie dans une minute », et la surveillance le dit.
+
+⛔ **Tu n'as aucun secret à manipuler.** Le secret entre l'ouvrier et OP MESSAGES naît **sur le VPS**, tiré au hasard par le script, et il est écrit dans les deux configurations **sans jamais s'afficher**. **Tout ce que le script affiche peut se recoller** dans la conversation.
+
+### Ce que l'ouvrier de transcription est — et n'est pas
+
+- **whisper.cpp 1.9.5**, un logiciel libre (licence MIT), **compilé sur le VPS depuis ses sources**, au commit épinglé dans le script (le commit récupéré lui est comparé : un autre n'est pas compilé), avec le modèle **« small »** (190 Mo, empreinte épinglée et vérifiée) et la détection de parole Silero (qui évite qu'un silence devienne un texte inventé). **ffmpeg** (paquet Ubuntu) convertit le vocal avant.
+- **Un processus à part**, dans **son** unité (`opmsg-transcrire@beta`), sous **son** compte (`opmsg-transcrire-beta`) : il ne peut rien lire du service (ni sa base, ni sa clé maître), **n'a aucune sortie réseau** (l'unité le refuse : il n'écoute que la boucle locale), garde ses fichiers de travail **en mémoire vive** (effacés après chaque vocal, et avec l'unité), et il est **borné** : 1 200 Mo de mémoire, deux cœurs, priorité basse — si quelque chose doit ploier sur ce VPS, ce n'est pas OP GESTION.
+- **Un vocal à la fois.** Mesuré dans le conteneur de développement : ~9 s de calcul pour 7 s de parole, ~10 s pour 15 s, sur deux cœurs ; ~470 Mo de mémoire pendant le calcul. **À remesurer sur le VPS** (il est partagé avec OP GESTION) : la première fois, regarde combien de temps met « Voir la transcription ».
+- **Le texte est rangé avec le message**, scellé comme lui ; il se lit comme lui (qui ne voit pas le vocal ne voit pas son texte) et part avec lui (un vocal supprimé emporte sa transcription). Ce qu'un vocal a dit se retrouve dans « Retrouver ».
+- **Plafonné** : 30 demandes par personne et par heure, 8 vocaux en file au plus, 5 minutes de vocal au plus, trois essais par vocal.
+- **Une instance à part de l'autre** : la bêta et la production ont chacune leur ouvrier, leur compte, leur secret et leur port (7860 pour la bêta, 7861 pour la production, en boucle locale seulement : **aucun port à ouvrir chez l'hébergeur**). Le programme et les modèles sont partagés, en lecture seule.
+
+### 1. Ce qu'il faut à la machine — à regarder AVANT
+
+Sur le VPS :
+
+```bash
+nproc && free -m && df -h /opt
+```
+
+**À voir** (colle la sortie) : de préférence **2 cœurs** (sur un seul, le calcul prend deux fois plus de temps), au moins **1 800 Mo** de mémoire au total dont **800 disponibles**, et **1,5 Go** libres sur `/opt` (la compilation, ffmpeg et le modèle). En dessous, le script s'arrête sans rien poser et dit ce qui manque.
+
+### 2. Télécharger et lancer le script
+
+⚠️ **Le code de la transcription doit d'abord être déployé** : le script s'appuie sur deux fichiers qui voyagent avec le service (l'ouvrier, `transcripteur.js`, et son contrôle, `outils/verifier-transcription.js`). Tant que cette version n'est pas sur `main` et déployée, il s'arrête avec « la version d'OP MESSAGES en service est antérieure à la transcription », sans rien écrire.
+
+Sur le VPS (toujours en root) :
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/justino17-cmd/teamop/main/server-msg/install-transcription.sh -o /root/install-transcription.sh
+bash /root/install-transcription.sh beta
+```
+
+C'est un **fichier** : lis-le si tu veux avant de le lancer (`less /root/install-transcription.sh`). Il fait, dans l'ordre :
+
+1. vérifie tout ce dont il a besoin **avant d'écrire quoi que ce soit** : l'instance, sa version, la mémoire et le disque ;
+2. installe ffmpeg, puis récupère whisper.cpp **au commit épinglé**, le compare, et le **compile** (quelques minutes : c'est l'étape longue) ;
+3. télécharge les deux modèles et **vérifie leur empreinte** ;
+4. crée le compte de l'ouvrier, tire le secret au hasard, ici, et l'écrit dans les deux configurations ;
+5. démarre l'ouvrier, puis le **contrôle** : il refuse qui n'a pas le secret, et il **transcrit pour de vrai** l'échantillon de whisper.cpp (un discours public de 1961, en anglais) ;
+6. relance l'instance et attend qu'elle voie l'ouvrier.
+
+Une étape ratée **défait tout** : la transcription est retirée, OP MESSAGES continue comme avant, et le script dit pourquoi.
+
+Une variable, **facultative** : `OPMSG_TRANSCRIPTION_THREADS` (le nombre de cœurs de calcul, de 1 à 8 ; défaut 2).
+
+**Ce que tu dois voir** :
+
+```
+── OP MESSAGES · transcription des vocaux · instance beta
+   machine : 4 cœur(s), 7940 Mo de mémoire (5210 disponibles), 61000 Mo libres sur /opt · l'ouvrier calculera sur 2 cœur(s)
+   ffmpeg : installation (paquet Ubuntu)
+   whisper.cpp 1.9.5 : compilation depuis les sources (quelques minutes)
+   modèle ggml-small-q5_1.bin : téléchargement
+   modèle ggml-silero-v6.2.0.bin : téléchargement
+   secret=nouveau instance=change ouvrier=change
+── Contrôle de l'ouvrier (il refuse qui n'a pas le secret, et transcrit l'échantillon de whisper.cpp)…
+  ✓ l'ouvrier refuse qui ne présente pas le secret · HTTP 401
+  ✓ l'ouvrier refuse un secret faux · HTTP 401
+  ✓ avec le secret, sa sonde répond et dit ses programmes et son modèle en place · HTTP 200
+  ✓ il transcrit l'échantillon de whisper.cpp (le mot « country » y est reconnu) · HTTP 200 en 14,2 s
+
+✓ L'ouvrier de transcription (beta) fait ce qu'il doit.
+   ✓ l'instance voit l'ouvrier (/health : transcription.ok)
+
+✓ La transcription des vocaux est en place pour beta : …
+```
+
+(Les chiffres de la machine et la durée de l'échantillon seront les tiens ; `secret=nouveau` la première fois, `secret=repris` à chaque relance — qui ne recompile ni ne retélécharge rien.)
+
+Les sorties d'erreur possibles — **colle toute la sortie** dans la conversation :
+
+- **`antérieure à la transcription`** → la version n'est pas encore déployée. Rien n'est écrit.
+- **`il en faut au moins`** (mémoire ou disque) → la machine est trop juste. Rien n'est écrit.
+- **`n'est pas celui qui est épinglé`**, **`n'a pas pu être récupéré`**, **`la compilation a échoué`** → whisper.cpp n'est pas posé. Rien d'autre n'est écrit.
+- **`ne porte pas l'empreinte attendue`**, **`n'a pas pu être téléchargé`** → le modèle n'est pas gardé. Rien d'autre n'est écrit.
+- **`l'ouvrier de transcription n'a pas démarré`**, **`l'ouvrier ne fait pas ce qu'il doit`**, **`ne voit pas l'ouvrier`** → tout est défait. `systemctl status opmsg-transcrire@beta --no-pager | head -5` dit souvent pourquoi : colle-le.
+
+### 3. Vérifier
+
+Sur ton Mac :
+
+```bash
+curl -s https://msg-beta.teamop.fr/health
+```
+
+**À voir** : `"transcription":{"configuree":true,"ok":true,`. Rien de secret ne s'affiche. Puis, dans l'application (après un rechargement) : un vocal, « Voir la transcription », et le texte quelques secondes plus tard.
+
+Pour rejouer le contrôle de l'ouvrier sur le VPS, à tout moment, sans rien changer :
+
+```bash
+OPMSG_TRANSCRIRE_CONFIG=/etc/opmsg/transcrire-beta.json node /opt/opmsg/beta/current/outils/verifier-transcription.js beta /opt/opmsg/whisper/1.9.5-d1be6fde11ac/jfk.wav
+```
+
+### 4. Ce qui se passe seul, ce qui crie
+
+- **L'ouvrier suit le code déployé** : il tourne depuis le dossier de la version en service ; après un déploiement, le service lui demande de sortir s'il tourne encore sur l'ancien code, et systemd le relance aussitôt.
+- **Un calcul interrompu** (un redémarrage) devient un échec **dit** : « La transcription n'a pas pu se faire. Réessayer ».
+- **La surveillance** (le script de surveillance d'OP MESSAGES) crie si la transcription est installée et que l'ouvrier ne répond plus.
+- **Son journal** ne contient ni texte ni voix : une ligne par vocal, l'issue et le temps.
+
+### 5. Revenir en arrière
+
+```bash
+bash /root/install-transcription.sh beta retirer
+```
+
+« Voir la transcription » disparaît ; les textes déjà transcrits restent avec leur vocal. Le programme et les modèles restent dans `/opt/opmsg/whisper` (l'autre instance s'en sert peut-être) : quand plus aucune ne s'en sert, `rm -rf /opt/opmsg/whisper`.
+
+### 6. Ce que l'ouvrier reçoit (pour les textes légaux)
+
+Les octets d'un vocal **que quelqu'un a demandé à transcrire**, déchiffrés par le service, en mémoire, le temps du calcul ; il rend le texte, que le service range scellé avec le message. C'est un logiciel **à nous, sur notre machine** : aucun sous-traitant ne reçoit une voix. Ce qui change pour les textes légaux : un vocal transcrit a désormais **un texte**, gardé aussi longtemps que le vocal (la politique de confidentialité doit le dire — à faire relire avant toute ouverture publique).
 
 ---
 

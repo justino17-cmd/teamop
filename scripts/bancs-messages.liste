@@ -217,3 +217,9 @@ tests/test-937.js
 # ── L'ordre du jour d'une réunion et le compte rendu de sa séance (8 octobre 2026) : migration 23, cocher, retoucher, le compte rendu à « Terminer pour tous » ET quand le dernier s'en va, la série décochée (938) ;
 #    la vraie page : test-857 et tests/sonde-opmessages-ordre-du-jour.js
 tests/test-938.js
+# ── La transcription des vocaux (11 octobre 2026, « une transcription écrite, comme sur Instagram ») : la VRAIE page (son module) contre le VRAI service et un faux ouvrier (1000) ;
+#    l'ouvrier lancé pour de vrai avec de faux ffmpeg et whisper-cli, le module du service et sa configuration (1001) ; le script d'installation dans un bac à sable (1002) ;
+#    la vraie page : test-857 et tests/sonde-opmessages-transcription.js
+tests/test-1000.js
+tests/test-1001.js
+tests/test-1002.js

@@ -354,6 +354,21 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .suivi-lien { display: flex; align-items: center; gap: 5px; align-self: flex-end; min-height: 32px; margin: 2px 2px 0; padding: 4px 8px; border-radius: 8px; font-size: 13px; color: var(--accent-txt); }
 .suivi-lien .ic { font-size: 14px; }
 @media (pointer: coarse) { .suivi-lien { min-height: 44px; } }
+/* la TRANSCRIPTION d'un vocal (11 octobre 2026, « comme sur Instagram ») : un lien sous la bulle, et le texte dans une bulle de l'auteur, plus petit — une légende du vocal */
+.transcrire-lien { display: flex; align-items: center; min-height: 32px; margin: 0 4px; padding: 4px 8px; border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--accent-txt); }
+@media (pointer: coarse) { .transcrire-lien { min-height: 44px; } }
+p.transcription { margin: 0; font-size: 15px; line-height: 20px; letter-spacing: -.01em; }
+.recue.transcription { border-radius: 6px 20px 20px 20px; }
+.envoyee.transcription { border-radius: 20px 6px 20px 20px; }
+.transcription.tr-note { font-style: italic; }
+/* « Réessayer » DANS la bulle : la couleur de la bulle, souligné ; 44 px sous le doigt sans grandir la ligne (marges négatives) */
+.tr-reessayer { display: inline-flex; align-items: center; min-height: 32px; margin: -6px 0; padding: 0 4px; font: inherit; font-style: normal; font-weight: 600; color: inherit; text-decoration: underline; text-underline-offset: 2px; border-radius: 6px; }
+@media (pointer: coarse) { .tr-reessayer { min-height: 44px; margin: -12px 0; } }
+.tr-reessayer:focus-visible { outline: 2px solid currentColor; outline-offset: 1px; }
+.tr-roue { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; box-sizing: border-box; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: tr-tourne 1s linear infinite; }
+@keyframes tr-tourne { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .tr-roue { animation: none; } }
+@media (forced-colors: active) { .transcription { border: 1px solid CanvasText; } }
 .suivi-tete { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 0 20px; text-align: center; }
 .suivi-compte { font-size: 15px; color: var(--sub-meta); font-variant-numeric: tabular-nums; }
 .suivi-compte b { font-size: 34px; line-height: 41px; font-weight: 700; color: var(--text); }

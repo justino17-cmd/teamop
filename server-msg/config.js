@@ -58,6 +58,9 @@
  *                                signaux par appel, et le RELAIS (coturn) : sans `relais`, pas de relais et la page le dit (jamais de serveur STUN tiers) ; son `secret`, posé par `install-turn.sh`, ne s'affiche ni ne se copie.
  *                                `visio` {url, interne, cle, secret, maxVideo, maxAudio, ttlS, sondeMs, delaiMs} : le SERVEUR DE VISIO (LiveKit) qui porte une salle au-delà de la maille — voir `visioConfig`.
  *                                Sans ce bloc, les salles restent en maille ; son `secret`, posé par `install-sfu.sh`, ne s'affiche ni ne se copie.
+ *   transcription {url, secret, dureeMaxS, file, essais, parHeure, sondeMs, delaiSondeMs, delaiBaseMs, delaiParSMs}   La TRANSCRIPTION des vocaux (11 octobre 2026) : l'ouvrier whisper.cpp
+ *                                posé par `install-transcription.sh` (sa propre unité, sur la boucle locale) — voir `transcriptionConfig`. SANS ce bloc, pas de transcription : la page ne la propose pas.
+ *                                Son `secret` ne s'affiche ni ne se copie.
  *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
@@ -471,6 +474,37 @@ function visioConfig(vi, appels, prod, err) {
   return o;
 }
 
+/* ⛔ LA TRANSCRIPTION DES VOCAUX (`transcription.js`, l'ouvrier `transcripteur.js`) — décisions de Justin du 11 octobre 2026 : sur NOTRE serveur, ouverte à tous en bêta, à la demande.
+   SANS ce bloc, il n'y en a pas (`configure` faux, la page ne propose rien). `install-transcription.sh` l'écrit sur le VPS ; ses valeurs :
+   · `url` : l'ouvrier, `http://127.0.0.1:<port>` — la boucle locale SEULEMENT (les octets d'un vocal et le secret ne traversent jamais un réseau).
+   · `secret` : partagé avec l'ouvrier ; se lit (`transcription.secret`) mais ne se COPIE ni ne se SÉRIALISE (non énumérable) et aucune erreur ne le cite.
+   · `dureeMaxS` (300) : un vocal plus long n'est pas transcrit (413 `vocal_trop_long`) — la page enregistre 3 minutes au plus, le service en accepte 10.
+   · `file` (8) : les travaux en attente au plus (le travail en cours compris) ; au-delà, 503 `transcription_occupee` avec une attente.
+   · `essais` (3) : un vocal dont la transcription a échoué se retente jusqu'à ce nombre ; `parHeure` (30) : les demandes d'une personne par heure (le tiers pour un compte de moins d'un jour).
+   · `sondeMs` (30 000) et `delaiSondeMs` (3 000) : la sonde de l'ouvrier ; `delaiBaseMs` (90 000) + `delaiParSMs` (3 000) par seconde de vocal : l'attente d'un travail. */
+const TRANSCRIPTION_DEFAUT = { dureeMaxS: 300, file: 8, essais: 3, parHeure: 30, sondeMs: 30000, delaiSondeMs: 3000, delaiBaseMs: 90000, delaiParSMs: 3000 };
+const RE_URL_OUVRIER = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):(\d{2,5})\/?$/;
+function transcriptionConfig(cfg, instance) {
+  const t = cfg.transcription;
+  if (t === undefined || t === null) return null;
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  if (typeof t !== 'object' || Array.isArray(t)) throw err('transcription doit être un objet { url, secret }');
+  const u = typeof t.url === 'string' ? RE_URL_OUVRIER.exec(t.url) : null;
+  if (!u || Number(u[2]) < 1024 || Number(u[2]) > 65535) throw err('transcription.url doit être http://127.0.0.1:<port> (la boucle locale seulement : un vocal et le secret ne traversent pas un réseau)');
+  /* ⛔ jamais la valeur dans le message : une erreur de configuration finit dans le journal du démarrage, que Justin recolle dans la conversation */
+  if (typeof t.secret !== 'string' || !RE_SECRET_RELAIS.test(t.secret)) throw err('transcription.secret doit être un secret de 32 à 128 caractères (lettres, chiffres, tiret, soulignement) — il se pose par install-transcription.sh');
+  const prod = instance === 'prod';
+  const o = { url: t.url.replace(/\/$/, '') };
+  const bornes = { dureeMaxS: [5, 600], file: [1, 100], essais: [1, 10], parHeure: [1, 1000], sondeMs: prod ? [5000, 600000] : [50, 600000], delaiSondeMs: [100, 30000], delaiBaseMs: prod ? [10000, 1800000] : [100, 1800000], delaiParSMs: [0, 60000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const x = t[k] === undefined ? TRANSCRIPTION_DEFAUT[k] : t[k];
+    if (!Number.isInteger(x) || x < min || x > max) throw err('transcription.' + k + ' doit être un entier entre ' + min + ' et ' + max);
+    o[k] = x;
+  }
+  Object.defineProperty(o, 'secret', { value: t.secret, enumerable: false, writable: false, configurable: false });
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -514,6 +548,7 @@ function charger(env = process.env) {
     facturation: facturationConfig(cfg, env, instance),
     reunions: reunionsConfig(cfg, instance),
     appels: appelsConfig(cfg, instance),
+    transcription: transcriptionConfig(cfg, instance),
     courriel: courrielConfig(cfg, instance),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
@@ -533,4 +568,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };

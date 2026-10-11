@@ -1015,6 +1015,94 @@ async function controler(PAGE, SRC, DOC) {
   vrai('collage : le champ ne coupe pas en silence (plus de maxlength à 4 000), la limite se DIT dès la frappe ; Échap dans la recherche l\'efface sans fermer la conversation [sonde : collage]', /const texteTropLong = n =>/.test(JS) && /if \(n > TEXTE_MAX\) avis\(texteTropLong\(n\)\)/.test(JS) && /if \(e\.target === \$\('recherche-conv'\) && !etat\.photo && !etat\.groupe\.ouvert\)/.test(JS));
   vrai('images : une image dont l\'en-tête est bon et le corps abîmé est refusée (decode() + preuve qu\'un point a été dessiné), un fichier tronqué aussi (PNG, GIF, WebP) [sonde : images]', /i\.decode\(\)\.then\(\(\) => fini\(true\), \(\) => fini\(false\)\)/.test(JS) && /if \(!dessine\) throw new Error\('illisible'\);/.test(JS) && /if \(await fichierTronque\(fichier\)\) throw new Error\('illisible'\);/.test(JS) && /async function fichierTronque\(f\)/.test(JS));
   vrai('couleurs forcées : une bulle, une photo, un vocal et le champ gardent un contour ; l\'onde garde une couleur [sonde : couleurs-forcees]', /@media \(forced-colors: active\) \{[\s\S]*?\.bulle, \.photo, \.vocal, \.saisie-ind, \.pilule-saisie, \.avis-saisie(?:, [.\w-]+)* \{ border: 1px solid CanvasText; \}[\s\S]*?\.onde i, \.enreg-onde i \{ background: CanvasText; \}/.test(CSS));
+  /* ⛔ LA TRANSCRIPTION D'UN VOCAL (11 octobre 2026, « comme sur Instagram ») : les VRAIES fonctions de la page, exécutées dans un bac à sable — ce qui se propose, ce qui
+     s'affiche à chaque état, la demande qui part une fois, le texte échappé, l'annonce au lecteur d'écran ; la couture avec le vrai service est dans tests/test-1000.js,
+     les gestes au doigt dans tests/sonde-opmessages-transcription.js */
+  {
+    const iT = JS.indexOf('let TR = null;'), iA = JS.indexOf('function annoncerTranscriptions(c)', iT), fT = iA > 0 ? JS.indexOf('\n  }\n', iA) + 5 : -1;   // jusqu'à la fin d'annoncerTranscriptions
+    const ligneEsc = (/const esc = s => [^\n]*/.exec(JS) || [''])[0];
+    let K = null, cx = null;
+    try {
+      cx = { CAP: { transcription: true }, appels: [], rendus: 0, annonce: { textContent: '' }, attente: null };
+      cx.etat = { conv: 'c_a', convDonnees: { id: 'c_a', messages: [] } };
+      cx.source = { transcrire: (conv, mid) => { cx.appels.push(conv + '|' + mid); return cx.attente || Promise.resolve({ etat: 'attente' }); } };
+      cx.$ = id => id === 'conv-annonce' ? cx.annonce : null;
+      cx.setTimeout = f => { f(); return 1; };
+      vm.createContext(cx);
+      vm.runInContext(ligneEsc + '\nconst trouverMessage = mid => etat.convDonnees && etat.convDonnees.messages.find(m => m.id === mid);\n' + JS.slice(iT, fT) +
+        '\nvar phrase = (e, d) => e && e.dit ? e.message : d, rendreConv = () => { rendus++; };\nthis.K = { get TR() { return TR; }, set TR(x) { TR = x; }, trOuvertes, trLocal, transcriptionPossible, htmlTranscription, basculerTranscription, demanderTranscription, annoncerTranscriptions };', cx, { timeout: 2000 });
+      K = cx.K;
+    } catch (e) { K = null; }
+    vrai('(population) le bloc de la transcription s\'exécute dans un bac à sable (' + (fT - iT) + ' caractères)', iT > 0 && fT > iT && !!K);
+    if (K) try {
+      const V = (id, x) => Object.assign({ id, seq: 3, auteur: 'p_ana', t: 1, vocal: { dur: 4, url: 'blob:x' } }, x || {});
+      const m1 = V('m1');
+      const possible = [];
+      possible.push(K.transcriptionPossible(m1));                                              // TR inconnu : rien
+      K.TR = { ouverte: false, dureeMaxS: 300 }; possible.push(K.transcriptionPossible(m1));
+      K.TR = { ouverte: true, dureeMaxS: 300 };
+      possible.push(K.transcriptionPossible(m1), K.transcriptionPossible(V('m2', { supprime: true })), K.transcriptionPossible(V('m3', { attente: true })), K.transcriptionPossible(Object.assign(V('m4'), { vocal: undefined, texte: 'x' })),
+        K.transcriptionPossible(V('m5', { seq: undefined })), K.transcriptionPossible(V('m6', { vocal: { dur: 301 } })));
+      cx.CAP.transcription = false; possible.push(K.transcriptionPossible(m1)); cx.CAP.transcription = true;
+      v('⛔ « Voir la transcription » ne se propose que si le service l\'a installée, sur un vocal arrivé, pas supprimé, pas plus long que ce qu\'il transcrit — et jamais sans la capacité',
+        possible, [false, false, true, false, false, false, false, false, false]);
+      const ferme = K.htmlTranscription(m1, 'recue');
+      vrai('fermée : un lien « Voir la transcription » (un bouton, aria-expanded="false"), et aucun texte', /^<button type="button" class="transcrire-lien presse" data-transcrire="m1" aria-expanded="false">Voir la transcription<\/button>$/.test(ferme));
+      cx.etat.convDonnees.messages = [m1];
+      let relacher; cx.attente = new Promise(r => { relacher = r; });
+      K.basculerTranscription('m1'); K.demanderTranscription('m1'); K.basculerTranscription('m1'); K.basculerTranscription('m1');
+      const enVol = K.htmlTranscription(m1, 'recue');
+      v('⛔ ouvrir demande UNE fois (un second essai, puis fermer et rouvrir pendant la demande : toujours un appel) — puis « Transcription en cours… », relié au lien (aria-controls = id du texte)',
+        [cx.appels, /<p class="bulle transcription recue tr-note" id="tr-m1" dir="auto"><span class="tr-roue" aria-hidden="true"><\/span>Transcription en cours…<\/p>/.test(enVol), /aria-expanded="true" aria-controls="tr-m1">Masquer la transcription</.test(enVol)],
+        [['c_a|m1'], true, true]);
+      void K.trOuvertes;
+      relacher({ etat: 'attente' }); await new Promise(r => setTimeout(r, 0));
+      K.annoncerTranscriptions(cx.etat.convDonnees);
+      m1.transcription = { etat: 'prete', texte: 'Viens <img src=x onerror=alert(1)> & « ok »', langue: 'fr' };
+      cx.annonce.textContent = '';
+      K.annoncerTranscriptions(cx.etat.convDonnees);
+      const pret = K.htmlTranscription(m1, 'envoyee');
+      v('⛔ le texte arrive : ÉCHAPPÉ (la sortie d\'un modèle est un texte, jamais du balisage), dans une bulle de l\'auteur, avec sa langue ; et le lecteur d\'écran l\'apprend (« Transcription prête »)',
+        [/<p class="bulle transcription envoyee" id="tr-m1" dir="auto" lang="fr">Viens &lt;img src=x onerror=alert\(1\)&gt; &amp; « ok »<\/p>/.test(pret), /<img/.test(pret), cx.annonce.textContent], [true, false, 'Transcription prête']);
+      cx.annonce.textContent = ''; K.annoncerTranscriptions(cx.etat.convDonnees);
+      v('   un rendu de plus ne la redit pas', cx.annonce.textContent, '');
+      const m7 = V('m7', { transcription: { etat: 'vide' } }), m8 = V('m8', { transcription: { etat: 'echec' } }), m9 = V('m9', { transcription: { etat: 'echec', definitif: true } }), m10 = V('m10', { transcription: { etat: 'prete', illisible: true } });
+      cx.etat.convDonnees.messages = [m1, m7, m8, m9, m10];
+      for (const m of [m7, m8, m9, m10]) K.basculerTranscription(m.id);
+      const h7 = K.htmlTranscription(m7, 'recue'), h8 = K.htmlTranscription(m8, 'recue'), h9 = K.htmlTranscription(m9, 'recue'), h10 = K.htmlTranscription(m10, 'recue');
+      v('chaque état se dit : sans parole, échec (et « Réessayer »), échec définitif (sans « Réessayer »), texte illisible — sans redemander ce qui est déjà connu',
+        [/>Aucune parole reconnue\.<\/p>/.test(h7), /La transcription n'a pas pu se faire\. <button type="button" class="tr-reessayer" data-transcrire-reessayer="m8">Réessayer<\/button><\/p>/.test(h8),
+          /La transcription n'a pas pu se faire\.<\/p>/.test(h9) && !/tr-reessayer/.test(h9), />Ce texte ne peut plus être lu\.<\/p>/.test(h10), cx.appels.length], [true, true, true, true, 1]);
+      cx.attente = Promise.reject(Object.assign(new Error('Beaucoup de vocaux sont en cours de transcription (réessaie dans 60 s).'), { dit: true }));
+      cx.attente.catch(() => {});
+      cx.annonce.textContent = '';
+      await K.demanderTranscription('m8');
+      K.annoncerTranscriptions(cx.etat.convDonnees);
+      const h8b = K.htmlTranscription(m8, 'recue');
+      v('⛔ « Réessayer » refusé par le service : sa PHRASE s\'affiche (et « Réessayer » reste), et le lecteur d\'écran l\'entend',
+        [cx.appels.length, /Beaucoup de vocaux sont en cours de transcription \(réessaie dans 60 s\)\. <button type="button" class="tr-reessayer" data-transcrire-reessayer="m8">/.test(h8b), cx.annonce.textContent],
+        [2, true, 'Beaucoup de vocaux sont en cours de transcription (réessaie dans 60 s).']);
+      K.basculerTranscription('m1');
+      vrai('fermer : le lien revient à « Voir la transcription », et rien ne repart', /aria-expanded="false">Voir la transcription</.test(K.htmlTranscription(m1, 'recue')) && cx.appels.length === 2);
+      cx.etat.convDonnees.messages = [m7];
+      K.annoncerTranscriptions(cx.etat.convDonnees);
+      v('un vocal qui a quitté le fil (supprimé, autre conversation) sort de ce qu\'on a ouvert', Array.from(K.trOuvertes), ['m7']);
+      const idPiege = K.htmlTranscription(V('a"b<c'), 'recue');
+      vrai('⛔ un identifiant de message piégé ne sort pas de son attribut', /data-transcrire="a&quot;b&lt;c"/.test(idPiege) && !/"b</.test(idPiege));
+    } catch (e) { vrai('le bloc de la transcription a jeté : ' + e.message, false); }
+    vrai('le message : la transcription se rend SOUS la rangée du vocal (hors de .msg-rang : la bulle garde la largeur de son texte), seulement quand elle est possible',
+      /h = h\.slice\(0, debutCorps\) \+ '<span class="msg-rang'[^\n]*\n\s*if \(m\.vocal && transcriptionPossible\(m\)\) h \+= htmlTranscription\(m, sens\);/.test(JS));
+    vrai('les gestes : le lien ouvre ou ferme, « Réessayer » redemande ; le focus survit au rendu, et passe au lien quand « Réessayer » disparaît',
+      /const tl = e\.target\.closest\('\[data-transcrire\]'\);\s*if \(tl\) \{ basculerTranscription\(tl\.dataset\.transcrire\); return; \}/.test(JS) && /const tr = e\.target\.closest\('\[data-transcrire-reessayer\]'\);\s*if \(tr\) \{ demanderTranscription\(tr\.dataset\.transcrireReessayer\); return; \}/.test(JS)
+        && /actif\.dataset\.transcrire \? 'transcrire' : actif\.dataset\.transcrireReessayer \? 'transcrireReessayer'/.test(JS) && /\(cle === 'transcrireReessayer' \? col\.querySelector\('\[data-transcrire="'/.test(JS));
+    vrai('le menu d\'un vocal : « Voir la transcription » tant qu\'elle est fermée, « Copier la transcription » une fois là',
+      /if \(transcriptionPossible\(m\)\) \{[^}]*data-menu="copier-transcription">Copier la transcription<\/button>'[^}]*data-menu="transcrire">Voir la transcription<\/button>';/.test(JS) && /else if \(act === 'transcrire'\) basculerTranscription\(mid\);/.test(JS));
+    vrai('au démarrage : la page demande si la transcription est installée — seulement si la source sait le dire — et ne bloque rien en attendant',
+      /if \(CAP\.transcription && typeof source\.transcriptionOuverte === 'function'\) source\.transcriptionOuverte\(\)\.then\(t => \{ TR = t;/.test(JS) && /rendreConv\(c, false\)|annoncerTranscriptions\(c\);/.test(JS));
+    vrai('le lien et « Réessayer » : 44 px sous le doigt ; la roue s\'arrête en mouvement réduit ; un contour en couleurs forcées',
+      /@media \(pointer: coarse\) \{ \.transcrire-lien \{ min-height: 44px; \} \}/.test(CSS) && /@media \(pointer: coarse\) \{ \.tr-reessayer \{ min-height: 44px;/.test(CSS)
+        && /@media \(prefers-reduced-motion: reduce\) \{ \.tr-roue \{ animation: none; \} \}/.test(CSS) && /@media \(forced-colors: active\) \{ \.transcription \{ border: 1px solid CanvasText; \} \}/.test(CSS));
+  }
   vrai('écrans étroits : la barre de la feuille et celle des onglets peuvent RÉTRÉCIR (min-width 0, libellé coupé par une ellipse), plus de 64 px de plancher par bouton [sonde : etroit]', /\.feuille-barre h2 \{[^}]*min-width: 0[^}]*text-overflow: ellipsis/.test(CSS) && /\.feuille-bouton \{[^}]*min-width: 44px/.test(CSS) && /\.tab \{[^}]*min-width: 0/.test(CSS) && /\.tab span \{[^}]*text-overflow: ellipsis/.test(CSS));
   return R;
 }
