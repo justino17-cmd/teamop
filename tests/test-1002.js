@@ -403,6 +403,20 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     } finally { b.fin(); }
   }
 
+  /* (relecture du gardien, M8) : la configuration de l'ouvrier ne peut pas s'écrire (ici, un dossier à sa place : le renommage du fichier temporaire échoue) —
+     l'écriture laisse alors son fichier temporaire, qui PORTE LE SECRET : l'échec doit l'emporter */
+  b = bac();
+  try {
+    b.instance('beta'); await b.serveur('beta');
+    fs.mkdirSync(path.join(b.R, 'etc/opmsg/transcrire-beta.json'));
+    const avant = b.octets('etc/opmsg/beta.json');
+    const r = await b.lancer(['beta']);
+    v('⛔ la configuration de l\'ouvrier ne peut pas s\'écrire : le script s\'arrête et le DIT, celle de l\'instance revient octet pour octet, et AUCUN fichier temporaire ne reste (il porte le secret)',
+      [r.status, /la configuration n'a pas pu être écrite/.test(r.out), b.octets('etc/opmsg/beta.json') === avant, b.existe('etc/opmsg/transcrire-beta.json.nouveau'), b.existe('etc/opmsg/beta.json.nouveau'), b.existe('etc/opmsg/beta.json.avant-transcription')],
+      [1, true, true, false, false, false]);
+    if (r.status !== 1) console.log(r.out.split('\n').slice(-6).join('\n'));
+  } finally { b.fin(); }
+
   /* ═══════ 4 bis. UNE RÉINSTALLATION QUI ÉCHOUE REMET CELLE D'AVANT ═══════
      ⛔ (relecture du gardien, 11 octobre 2026) : passer d'un modèle à l'autre (« small » → « large-v3-turbo ») puis rater le contrôle retirait TOUTE la transcription, alors
      qu'elle marchait. On pose une installation « d'avant » (l'ancien modèle encore sur le disque, un faisceau de 1, l'ancienne unité), puis on rejoue celle d'aujourd'hui en
