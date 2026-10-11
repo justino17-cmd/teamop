@@ -3,7 +3,7 @@
      1. le segmenté porte quatre catégories et tient dans l'écran ; « Tous » range les contacts de A à Z (une lettre par carte) ;
      2. l'étoile se TOUCHE : Bruno devient favori, et l'étoile survit à un rechargement (elle vit chez le service) ; « Favoris » ne montre que lui ;
      3. « Groupes » montre le groupe d'Alice, et le toucher ouvre sa conversation ; « Nouveau groupe » ouvre la feuille ;
-     4. « Entreprise » dit qu'Alice n'a pas d'espace (après l'avoir LU) ; la recherche filtre la catégorie choisie ; retirer l'étoile vide « Favoris » ;
+     4. « Entreprise » dit qu'Alice n'a pas d'espace (après l'avoir LU) — Pro se choisit par le PROFIL (la photo, la carte « Perso et Pro »), seul endroit de bascule au téléphone ; la recherche filtre la catégorie choisie ; retirer l'étoile vide « Favoris » ;
      5. au bureau, la même page, la même étoile (posée sur l'iPhone) — et aucune erreur JavaScript.
    ⛔ ON ATTEND AU GESTE, JAMAIS AU CHRONOMÈTRE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.
    Lancer :   node tests/sonde-opmessages-categories.js        CAPTURES=/dossier pour les images.   Code 1 si un contrôle tombe, 2 si elle ne peut pas tourner. */
@@ -99,7 +99,19 @@ async function categorie(S, cat) { await toucher(S, '#vc-seg [data-cat="' + cat 
     console.log('\n── 4. « Entreprise », la recherche, retirer l\'étoile ──');
     await A.page.evaluate(() => { location.hash = '#contacts'; });
     await attendre(A, () => !document.getElementById('vue-contacts').hidden);
-    const cote = async (c) => { await A.page.evaluate(x => { const b = document.querySelector('[data-cote-seg] [data-cote="' + x + '"]'); if (b) b.click(); }, c); return attendre(A, x => document.documentElement.dataset.cote === x, c); };
+    /* (11 octobre 2026, « une seule bascule ») au téléphone, Perso | Pro se règle dans le PROFIL — la photo, le segment de la carte « Perso et Pro », ‹ Retour › — et nulle part ailleurs.
+       ⛔ L'ancien geste cliquait en JavaScript le premier « [data-cote-seg] [data-cote] » du document : celui de la barre latérale, CACHÉ sur un iPhone — il passait sans qu'une
+       personne puisse le faire. Chaque marche attend son effet, et la population (l'onglet Contacts, aucun sélecteur sous son titre) est prouvée d'abord. */
+    vrai('(population) Contacts est à l\'écran, sa photo de profil visible', await attendre(A, () => !document.getElementById('vue-contacts').hidden && Array.from(document.querySelectorAll('#vue-contacts .moi-pastille')).some(x => x.getClientRects().length)));
+    v('⛔ aucun sélecteur « Perso | Pro » visible dans Contacts (il n\'est plus que dans le Profil)', await A.page.evaluate(() => Array.from(document.querySelectorAll('[data-cote-seg]')).filter(x => x.getClientRects().length).length), 0);
+    const cote = async (c) => {
+      await toucher(A, '#vue-contacts .moi-pastille');
+      if (!(await attendre(A, () => !document.getElementById('vue-reglages').hidden && Array.from(document.querySelectorAll('.cote-seg-profil')).some(x => x.getClientRects().length)))) return false;
+      await toucher(A, '.cote-seg-profil [data-cote="' + c + '"]');
+      if (!(await attendre(A, x => document.documentElement.dataset.cote === x && Array.from(document.querySelectorAll('.cote-seg-profil [data-cote="' + x + '"]')).some(b => b.getAttribute('aria-pressed') === 'true'), c))) return false;
+      await toucher(A, '.profil-retour');
+      return attendre(A, () => document.getElementById('vue-reglages').hidden && !document.getElementById('vue-contacts').hidden);
+    };
     vrai('côté Pro, le segmenté porte les QUATRE catégories et s\'ouvre sur « Entreprise »', (await cote('pro')) && await attendre(A, () => Array.from(document.querySelectorAll('#vc-seg [data-cat]')).map(b => b.dataset.cat + (b.getAttribute('aria-pressed') === 'true' ? '*' : '')).join() === 'tous,favoris,groupes,entreprise*'));
     vrai('« Entreprise » dit, après lecture, qu\'Alice n\'a aucun espace', (await categorie(A, 'entreprise')) && await attendre(A, () => document.getElementById('vc-corps').innerText.includes('aucun espace d\'entreprise')));
     vrai('retour côté Perso : « Entreprise » n\'est plus proposée, « Tous » reprend', (await cote('perso')) && await attendre(A, () => !document.querySelector('#vc-seg [data-cat="entreprise"]') && (document.querySelector('#vc-seg [aria-pressed="true"]') || { dataset: {} }).dataset.cat === 'tous'));

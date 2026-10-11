@@ -19,7 +19,37 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# 🟡 11 OCTOBRE 2026 — OP MESSAGES : « VOIR LA TRANSCRIPTION » SOUS UN VOCAL (whisper.cpp, sur notre serveur)
+# 🟡 11 OCTOBRE 2026 (SOIR) — OP MESSAGES : UNE SEULE BASCULE PERSO / PRO, ET LE PASSAGE AUTOMATIQUE EN PRO AUX HEURES DE TRAVAIL
+
+Justin : « quand on bascule, c'est TOUT qui bascule. Que dans chaque onglet on ne choisisse pas pro ou perso. Quand on est sur pro, on n'est que sur pro. Je ne veux pas que
+sur téléphone, dans les messages, on puisse basculer. Et même, que les pros puissent régler dans leur espace : basculer automatiquement l'application en mode pro de 8 h à
+17 h. » Ce qui est écrit (choix faits sans lui, à revoir s'il le veut autrement — il ne les a pas encore vus) :
+· **une seule bascule** : la barre latérale au bureau (et en tablette), le **Profil** au téléphone (carte « Perso et Pro », sous la carte du compte) — plus de sélecteur sous
+  le titre de Messages ni sous celui de l'Agenda, plus de choix « Agenda : Perso | Pro » dans les fiches : un élément créé est du côté où l'on était en OUVRANT sa fiche ;
+  « Ranger dans » reste (il range un élément, il ne choisit pas le côté de l'application) ; au téléphone, un point rouge sur la photo du profil dit le non-lu de l'autre côté ;
+· **elle suit la personne en direct** d'un appareil à l'autre : le service émet l'événement de flux `prefs` (vide, à la personne SEULE) quand le côté, le passage automatique ou
+  les heures changent ; la page relit son compte (`source.relireCote`) aussi au retour sur la page, au réseau revenu, à chaque borne — un appareil réveillé ne défait plus un
+  choix fait ailleurs ; un choix fait hors ligne tient sur l'appareil (`etat.modeNonEcrit`) et s'écrit au retour du réseau ;
+· **« Passer en Pro pendant mes heures »** (Profil ; les heures se règlent dans Notifications, celles qui coupaient déjà le Pro hors des heures) : au DÉBUT des heures toute
+  l'application passe en Pro, à la FIN en Perso ; comme les modes de concentration de l'iPhone, il agit aux BORNES — un choix fait à la main après la dernière borne (ici, ou
+  sur un autre appareil : `prefs.mode_le`, l'heure du SERVICE au dernier CHANGEMENT de côté, jamais lue dans le corps) tient jusqu'à la suivante ; allumer le réglage vaut tout
+  de suite ; une fiche ouverte sur l'Accueil fait attendre le retour en Perso ; l'heure est celle de l'appareil (comme les bannières retenues hors des heures).
+⚠️ Choix laissés ouverts : la recherche cherche toujours des deux côtés (avec l'étiquette du côté) et ouvrir une conversation de l'autre côté y bascule (décidé le 7 octobre) ;
+au téléphone, hors de Messages, rien ne dit le côté où l'on est (le nom « OP MESSAGES PRO » n'est que dans l'en-tête de Messages) ; les heures sont celles de chaque personne,
+pas celles de l'entreprise.
+Preuves : `test-1003` (neuf, 72 ✓ — les vraies fonctions de la page sous une horloge posée, le vrai service, deux appareils, un flux « aveugle » qui rattrape au resync) ;
+`sonde-opmessages-bascule` (neuve, 108 ✓ : téléphone au doigt, tablette, bureau, deux appareils en direct, le passage automatique joué avec l'horloge de la page, un lien vers
+une conversation Pro depuis le Perso) ; les sondes perso-pro, agenda-cote, tableau-bord, mentions, categories mises à la bascule unique ; 27 mutations sur 28 attrapées au
+premier tour (la 28e, le resync, a son contrôle depuis) ; relectures `relecteur` (4 importants : appareil réveillé, focus du clavier, choix hors ligne, sondes à commiter —
+corrigés) et `gardien` (aucun bloquant ni important ; `mode_le` seulement au changement, relecture périmée ignorée — corrigés).
+⚠️ `sonde-opmessages-reunions` tombe au bureau sur la bande des jours cachée depuis la semaine en grille (#123) — défaut de la SONDE, d'avant ce chantier.
+
+# ✅ 11 OCTOBRE 2026 — OP MESSAGES : « VOIR LA TRANSCRIPTION » SOUS UN VOCAL (whisper.cpp, sur notre serveur) — EN SERVICE SUR LA BÊTA
+
+✅ **Installé sur la bêta le 11 octobre au soir** (#126 d'abord : l'installeur attendait mal la socket de l'ouvrier — `Type=simple`, « actif » n'est pas « prêt » — et ses
+messages d'échec renvoyaient au journal, que test-930 interdit). Le contrôle de l'installation a transcrit l'échantillon en 8,3 s ; `/health` dit `transcription.ok`.
+⏳ **Justin, au premier essai : « des mots mal compris »** — l'étude de la précision est en cours (modèle « small » glouton contre medium / large-v3-turbo, français forcé,
+recherche en faisceau, mesurés sur de vrais enregistrements français à 2 cœurs) ; le changement passera par l'installeur (un nouveau modèle téléchargé, épinglé).
 
 La demande de Justin : « Possible de faire une transcription écrite. Comme sur Instagram. » Ses trois réponses : le calcul **sur notre serveur** (aucune voix ne sort,
 pas de sous-traitant), **ouvert à tous en bêta**, **à la demande**. Un vocal se transcrit UNE fois ; le texte est scellé avec le message, se lit comme lui (qui ne voit
@@ -391,11 +421,13 @@ mutations de la page, six sur six en deux passages, `scratchpad/mutations-heures
 
 Justin, 8 octobre : « il faudrait bien séparer l'agenda perso et pro », puis « il faut bien différencier le pro et le perso, que tout soit à part ». Avant : l'Agenda montrait tout, quel que soit le côté où l'on était, et une réunion était Pro d'office
 (décidé sans lui le 7). Maintenant chaque élément de l'agenda est d'UN côté :
-· **un événement** porte le sien (migration 25, `evenement.cote`) : le côté où l'on est quand on le crée — sa fiche le propose (« Agenda : Perso | Pro ») et on le change là ;
+· **un événement** porte le sien (migration 25, `evenement.cote`) : le côté où l'on est quand on le crée — sa fiche le propose (« Agenda : Perso | Pro ») et on le change là
+  [→ 11 octobre 2026 : plus de choix dans la fiche, une seule bascule — voir en tête] ;
   « Me le rappeler » prend le côté de la conversation ; un événement d'avant n'en a pas → celui de sa conversation d'origine, sinon Perso ;
 · **une réunion** a le côté de SA conversation, pour chacun : l'organisateur la range à sa création (le côté où il est), les invités par la règle d'un groupe (Pro quand tous
   les autres sont des collègues), et chacun peut la ranger — dans sa fiche (« Ranger dans », rubrique Agenda) ou dans les infos de sa conversation ;
-· **la page** : l'Agenda (jour, semaine, mois) ne montre que le côté où l'on est — son sélecteur Perso | Pro sous le titre au téléphone, celui de la barre latérale au bureau ;
+· **la page** : l'Agenda (jour, semaine, mois) ne montre que le côté où l'on est — son sélecteur Perso | Pro sous le titre au téléphone, celui de la barre latérale au bureau
+  [→ 11 octobre 2026 : le sélecteur du téléphone est dans le Profil, plus sous les titres] ;
   le tableau de bord, qui est le côté Pro, n'a plus rien du Perso (ni réunion, ni rappel, ni mention) ; un compte sans les deux côtés voit tout, comme avant ;
 · l'export des données porte le côté de chaque événement.
 · **les Appels** : l'historique du côté où l'on est — un appel est du côté de sa conversation (un groupe, une salle de réunion), sinon de la personne (sa conversation à deux, sinon Pro
@@ -604,7 +636,7 @@ Trois demandes de Justin, captures à l'appui :
   qui mordent).
 Le menu déroulant est un composant (`ouvrirDeroule(ligne, nom, titre, choix, surChoix)`) : « Ranger dans » et « Confirmer l'envoi » le prennent.
 · **Perso / Pro** (« un bouton pour basculer de perso à pro, et le nom OP MESSAGES PRO quand on est en pro ») : un compte pro (un espace, ou Messages Pro) a un sélecteur
-  « Perso | Pro » — en haut de la barre latérale au bureau, sous le titre de Messages au téléphone — avec une pastille pour les non-lus de l'autre côté. En Pro : « OP MESSAGES
+  « Perso | Pro » — en haut de la barre latérale au bureau, sous le titre de Messages au téléphone [→ 11 octobre 2026 : dans le Profil] — avec une pastille pour les non-lus de l'autre côté. En Pro : « OP MESSAGES
   PRO » (pastille PRO, titre de l'onglet), le tableau de bord, « Contacts » sur « Entreprise », les conversations de travail. Le côté de chaque conversation vient du SERVICE
   (migration 20, `membre.cote`) : automatique (canal, réunion, directe avec un collègue, groupe dont TOUS les autres sont collègues : Pro) ou rangé à la main dans les infos
   (« Ranger dans », pour soi seul). Une recherche cherche des deux côtés ; ouvrir une conversation de l'autre côté y bascule. Le côté où l'on travaille est une préférence du

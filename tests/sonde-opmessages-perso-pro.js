@@ -1,12 +1,15 @@
 /* ══ SONDE — PERSO / PRO, DANS LA VRAIE PAGE SERVIE (formule de PRODUCTION : seul un compte pro a deux côtés) ═══════════════════════════════════════════════
    7 octobre 2026 : « ça serait bien d'avoir un bouton pour basculer de perso à pro, et que le nom soit OP MESSAGES PRO quand on est en pro ». Contre le VRAI service :
-     1. téléphone (390 px) — Ana (un espace : Ben est son collègue ; Cléo, une amie) : le sélecteur « Perso | Pro » sous le titre de Messages, Perso d'abord ; la liste ne
-        montre que Cléo et « Mélange » ; pas de tableau de bord ; un message de Ben (Pro) allume une pastille sur « Pro » ;
-     2. « Pro » : Ben et le canal ; « OP MESSAGES PRO » (la pastille PRO), le titre de l'onglet, l'onglet « Accueil » ; le service a retenu le côté ;
+     1. téléphone (390 px) — Ana (un espace : Ben est son collègue ; Cléo, une amie) : Perso d'abord ; ⛔ AUCUN sélecteur « Perso | Pro » sous le titre de Messages ni sous celui de
+        l'Agenda (11 octobre 2026 : « dans chaque onglet on ne choisit pas pro ou perso ») ; la liste ne montre que Cléo et « Mélange » ; pas de tableau de bord ;
+        un message de Ben (Pro) pose un POINT rouge sur la photo du profil (et une pastille sur « Pro » dans le Profil) ;
+     2. « Pro », AU DOIGT : la photo → le Profil → « Perso et Pro » → « Pro » → « Messages » (le retour) ; Ben et le canal ; « OP MESSAGES PRO » (la pastille PRO), le titre de
+        l'onglet, l'onglet « Accueil » ; le point a disparu (on est du côté qui avait le non-lu) ; le service a retenu le côté ;
      3. une recherche cherche des deux côtés ; ouvrir Cléo y BASCULE (Perso) ;
      4. les infos de Cléo : « Ranger dans » — Perso (auto) ; « Pro » s'enregistre ;
      5. le côté suit le compte : la page rechargée revient du côté choisi ;
-     6. bureau : le sélecteur en haut de la barre latérale (pas sous le titre), la marque « OP MESSAGES PRO », « Tableau de bord » du côté Pro seulement ;
+     6. bureau : le sélecteur en haut de la barre latérale (pas sous le titre), la marque « OP MESSAGES PRO », « Tableau de bord » du côté Pro seulement ; le sélecteur du Profil
+        (téléphone) n'y paraît pas ;
      7. Cléo (aucun espace, formule Perso) ne voit rien de tout ça, et toute sa liste ;
      8. aucune erreur JavaScript.
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-perso-pro.js   (CAPTURES=/dossier pour les images)
@@ -76,27 +79,74 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
       const marque = Array.from(document.querySelectorAll('.side-marque b, #marque-tel')).filter(vis).map(x => x.innerText.replace(/\s+/g, ' ').trim());
       const noms = Array.from(document.querySelectorAll('#liste-conv .conv-nom')).map(x => x.textContent.trim());
       const nav = Array.from(document.querySelectorAll('#tabs a.tab, #nav-side a.side-lien')).filter(vis).map(a => a.dataset.vue);
-      return { segs: segs.map(s => s.classList.contains('cote-seg-side') ? 'barre' : 'liste'), cote: presse ? presse.cote : null, pastilles, marque, noms, nav, titre: document.title };
+      /* le point rouge de la photo du profil (téléphone) : le non-lu de l'AUTRE côté */
+      const photos = Array.from(document.querySelectorAll('.moi-pastille')).filter(vis), points = photos.filter(a => vis(a.querySelector('.moi-point'))).length;
+      const genre = s => s.classList.contains('cote-seg-side') ? 'barre' : s.classList.contains('cote-seg-profil') ? 'profil' : 'sous-titre';
+      return { segs: segs.map(genre), cote: document.documentElement.dataset.cote || null, pastilles, photos: photos.length, points, marque, noms, nav, titre: document.title };
     });
+    /* LE GESTE AU TÉLÉPHONE (11 octobre 2026) : la bascule n'est plus sous le titre — la photo mène au Profil, « Perso et Pro » y est, le lien « retour » ramène */
+    const versProfil = async (P) => {
+      if (await P.page.evaluate(() => document.getElementById('vue-reglages').getClientRects().length === 0)) await P.page.locator('.moi-pastille').filter({ visible: true }).first().tap();     // (déjà dans le Profil : rien à toucher)
+      return att(P, () => !document.getElementById('vue-reglages').hidden && !!document.getElementById('reg-cote') && !document.getElementById('reg-cote').hidden && document.querySelector('.cote-seg-profil').getClientRects().length > 0);
+    };
+    const revenir = async (P) => {
+      await P.page.locator('.profil-retour').filter({ visible: true }).first().tap();
+      return att(P, () => document.getElementById('vue-reglages').hidden && !document.getElementById('vue-messages').hidden);
+    };
+    /* la bascule complète au doigt : au bureau la barre latérale ; au téléphone la photo → le Profil → « Perso et Pro » → le lien « retour » */
+    const basculer = async (P, cote) => {
+      if (P.bureau) { await toucher(P, '.cote-seg-side [data-cote="' + cote + '"]'); return true; }
+      if (!await versProfil(P)) return false;
+      await P.page.locator('.cote-seg-profil [data-cote="' + cote + '"]').tap();
+      if (!await att(P, c => document.documentElement.dataset.cote === c && document.querySelector('.cote-seg-profil [data-cote="' + c + '"]').getAttribute('aria-pressed') === 'true', cote)) return false;
+      return revenir(P);
+    };
+    /* un sélecteur visible dans l'en-tête de la vue montrée (la vue, son titre) — et la preuve que cet en-tête est RENDU avant de compter une absence */
+    const entete = (P, vue) => P.page.evaluate(v => {
+      const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+      const s = document.getElementById('vue-' + v), t = document.getElementById('titre-' + v);
+      return { vue: vis(s), titre: vis(t), texte: t ? t.textContent.trim() : null, segsDansLaVue: s ? s.querySelectorAll('[data-cote-seg]').length : -1, segsVisibles: Array.from(document.querySelectorAll('[data-cote-seg]')).filter(vis).length };
+    }, vue);
 
     /* ═══ 1-5. TÉLÉPHONE ═══ */
     console.log('\n1. Téléphone : Perso d\'abord');
     const A = await ouvrirPage('ana', false);
     let e = await etatPage(A);
-    v('le sélecteur est sous le titre de Messages (un seul visible), côté Perso', [e.segs, e.cote], [['liste'], 'perso']);
+    { const h = await entete(A, 'messages');
+      vrai('population : l\'en-tête de Messages est rendu (la vue, son titre « Messages », la photo du profil) — ' + JSON.stringify(h), h.vue && h.titre && h.texte === 'Messages' && e.photos === 1); }
+    v('⛔ au téléphone, ni sous le titre de Messages ni ailleurs dans l\'écran : AUCUN sélecteur « Perso | Pro » visible ; le côté est Perso', [e.segs, e.cote], [[], 'perso']);
+    v('… et le sélecteur n\'existe plus dans la vue Messages (retiré du HTML, pas seulement caché)', (await entete(A, 'messages')).segsDansLaVue, 0);
+    await toucher(A, '#tabs .tab[data-vue="reunions"]');
+    { const ok = await att(A, () => !document.getElementById('vue-reunions').hidden && document.getElementById('titre-reunions').getClientRects().length > 0 && document.getElementById('titre-reunions').textContent.trim().length > 0);
+      const h = await entete(A, 'reunions');
+      vrai('population : l\'en-tête de l\'Agenda est rendu (la vue, son titre « ' + h.texte + ' ») — ' + JSON.stringify(h), ok && h.vue && h.titre && h.texte === 'Agenda');
+      v('⛔ au téléphone, l\'en-tête de l\'Agenda n\'a AUCUN sélecteur « Perso | Pro » : aucun dans la vue, aucun visible dans l\'écran', [h.segsDansLaVue, h.segsVisibles], [0, 0]); }
+    await capture(A, 'pp-1b-agenda-sans-selecteur');
+    await toucher(A, '#tabs .tab[data-vue="messages"]');
+    vrai('population : retour à Messages (la liste est là)', await att(A, () => !document.getElementById('vue-messages').hidden && document.querySelectorAll('#liste-conv li').length > 0));
     v('la marque en haut dit « OP MESSAGES » (sans PRO)', e.marque, ['OP MESSAGES']);
     v('la liste : Cléo et « Mélange » seulement (population : quatre conversations au service)', e.noms.sort(), ['Cléo Banc', 'Mélange']);
     vrai('pas d\'onglet « Accueil » du côté Perso — ' + e.nav.join(', '), e.nav.length >= 3 && !e.nav.includes('accueil'));
     await capture(A, 'pp-1-perso');
+    { const e0 = await etatPage(A); v('le point de la photo est ÉTEINT tant que l\'autre côté n\'a rien de non lu (population : la photo du profil est là)', [e0.photos, e0.points], [1, 0]); }
     await dire(B0, AB, 'Tu passes au dépôt ?');
-    vrai('un message de Ben (côté Pro) allume la pastille de « Pro » : 1', await att(A, () => { const s = Array.from(document.querySelectorAll('[data-cote-seg]')).find(x => x.getClientRects().length); const n = s && s.querySelector('[data-cote="pro"] .cote-n'); return !!n && !n.hidden && n.textContent === '1'; }));
+    vrai('un message de Ben (côté Pro) pose le POINT rouge sur la photo du profil', await att(A, () => Array.from(document.querySelectorAll('.moi-pastille')).some(a => a.getClientRects().length > 0 && a.querySelector('.moi-point') && a.querySelector('.moi-point').getClientRects().length > 0)));
+    await capture(A, 'pp-1c-point');
+    v('…la photo le dit à qui ne voit pas le point : « 1 conversation non lue côté Pro »', await A.page.locator('.moi-pastille').filter({ visible: true }).first().getAttribute('aria-label'), 'Mon profil et mes réglages — 1 conversation non lue côté Pro');
     v('…et sa ligne ne paraît pas dans la liste Perso', (await etatPage(A)).noms.includes('Ben Banc'), false);
 
     console.log('\n2. « Pro »');
-    await toucher(A, '.cote-seg-liste [data-cote="pro"]');
+    vrai('population : le geste au doigt — la photo mène au Profil, la carte « Perso et Pro » y est', await versProfil(A));
+    e = await etatPage(A);
+    v('le Profil porte LE sélecteur (un seul visible, celui du Profil), côté Perso, et une pastille « 1 » sur « Pro »', [e.segs, e.cote, e.pastilles], [['profil'], 'perso', ['', '1']]);
+    vrai('la carte dit que tout suit (messages, appels, contacts, agenda), et sa ligne « Passer en Pro pendant mes heures » est là', await A.page.evaluate(() => /Tout OP MESSAGES suit : les messages, les appels, les contacts et l'agenda\./.test(document.getElementById('reg-cote').textContent) && (!!document.getElementById('reg-mode-auto') || !!document.getElementById('reg-mode-heures'))));
+    await capture(A, 'pp-1d-profil');
+    await A.page.locator('.cote-seg-profil [data-cote="pro"]').tap();
+    vrai('« Pro » se presse dans le Profil, le côté de la page suit', await att(A, () => document.documentElement.dataset.cote === 'pro' && document.querySelector('.cote-seg-profil [data-cote="pro"]').getAttribute('aria-pressed') === 'true'));
+    vrai('le lien « retour » du Profil ramène à Messages', await revenir(A));
     vrai('côté Pro : Ben et le canal, plus Cléo ni « Mélange »', await att(A, () => { const n = Array.from(document.querySelectorAll('#liste-conv .conv-nom')).map(x => x.textContent.trim()).sort(); return n.join('|') === 'Ben Banc|# général' || n.join('|') === '# général|Ben Banc'; }));
     e = await etatPage(A);
-    v('« OP MESSAGES PRO » en haut, le sélecteur sur Pro, plus de pastille sur Pro (on y est)', [e.marque, e.cote, e.pastilles], [['OP MESSAGES PRO'], 'pro', ['', '']]);
+    v('« OP MESSAGES PRO » en haut, le côté Pro, ⛔ le point de la photo a DISPARU (on est passé du côté de ce non-lu ; population : la photo est là), toujours aucun sélecteur sous le titre', [e.marque, e.cote, e.photos, e.points, e.segs], [['OP MESSAGES PRO'], 'pro', 1, 0, []]);
     vrai('le titre de l\'onglet dit « OP MESSAGES PRO » ; l\'onglet « Accueil » paraît — ' + e.titre + ' ; ' + e.nav.join(', '), / — OP MESSAGES PRO$/.test(e.titre) && e.nav[0] === 'accueil');
     vrai('le service a retenu le côté (Pro)', await (async () => { for (let i = 0; i < 40; i++) { if ((await A0.get('/api/moi')).j.moi.prefs.mode === 'pro') return true; await new Promise(r => setTimeout(r, 100)); } return false; })());
     await capture(A, 'pp-2-pro');
@@ -129,7 +179,15 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
     vrai('« Groupes et canaux » : la ligne le dit, le compte le garde', await att(A, () => document.getElementById('reg-v-confirmer').textContent.trim() === 'Groupes et canaux') && (await A0.get('/api/moi')).j.moi.prefs.confirmer_envoi === 'groupes');
     await capture(A, 'pp-6-confirmer-reglage');
     const nMsg = async (conv) => (((await A0.get('/api/conversations/' + conv + '/messages')).j.messages) || []).length;
-    await A.page.evaluate(g => { location.hash = '#messages/' + g; }, G2);
+    /* ⛔ « le Perso n'est jamais retenu par un réglage du Pro » (10 octobre 2026) : « Mélange » est Perso (une amie y est) et partirait sans demander. Pour éprouver la confirmation
+       d'un GROUPE, Ana le range Pro (la mise en place — le geste « Ranger dans » est joué plus haut) ; on le rend automatique (Perso) juste après */
+    { const r = await A0.post('/api/conversations/' + G2 + '/prefs', { cote: 'pro' });
+      v('population : « Mélange » est rangé Pro pour Ana (la confirmation ne retient que le Pro)', [r.code, (await cotes())[G2]], [200, 'pro']);
+      vrai('… et la page le sait (sa ligne quitte la liste du côté où l\'on est)', await att(A, () => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(x => x.textContent.trim() === 'Mélange'))); }
+    await revenir(A);
+    await A.page.locator('#recherche-conv').fill('');       // (la recherche « Cléo » de l'étape 3 filtre encore la liste)
+    vrai('population : on passe du côté Pro au doigt (le Profil, puis le retour) — « Mélange » est dans la liste Pro', await basculer(A, 'pro') && await att(A, () => Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(x => x.textContent.trim() === 'Mélange')));
+    await A.page.locator('#liste-conv [data-ouvrir]', { hasText: 'Mélange' }).first().tap();
     await att(A, () => document.documentElement.dataset.conv === '1' && /Mélange/.test(document.getElementById('conv-titre').textContent));
     const n0 = await nMsg(G2);
     await A.page.locator('#saisie').fill('Réunion à 9 h demain');
@@ -161,6 +219,8 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
     vrai('dans une conversation à DEUX (« Groupes et canaux »), le message part sans demander', await (async () => { for (let i = 0; i < 40; i++) { if (await nMsg(AB) === n1 + 1) return true; await new Promise(r => setTimeout(r, 100)); } return false; })());
     v('…et aucune barre n\'a paru', await A.page.evaluate(() => document.getElementById('compo-confirme').hidden), true);
     await A0.post('/api/moi/maj', { prefs: { confirmer_envoi: 'jamais' } });
+    await A0.post('/api/conversations/' + G2 + '/prefs', { cote: null });
+    v('« Mélange » est redevenu automatique (Perso) pour la suite', (await cotes())[G2], 'perso');
     v('aucune erreur JavaScript (Ana, téléphone)', A.erreurs, []);
     await A.ctx.close();
 
@@ -186,6 +246,9 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
     vrai('« Perso » : le tableau de bord quitte la barre latérale ET l\'écran (retour à Messages), la marque perd PRO', await att(D, () => !Array.from(document.querySelectorAll('#nav-side a')).some(a => a.dataset.vue === 'accueil') && !document.getElementById('vue-messages').hidden && Array.from(document.querySelectorAll('.marque-pro')).every(x => x.hidden)));
     vrai('la liste : « Mélange » seul (Cléo est rangée Pro)', await att(D, () => Array.from(document.querySelectorAll('#liste-conv .conv-nom')).map(x => x.textContent.trim()).join('|') === 'Mélange'));
     await capture(D, 'pp-5-bureau-perso');
+    await D.page.evaluate(() => { location.hash = '#reglages'; });
+    vrai('population : le Profil est ouvert au bureau, sa carte « Perso et Pro » est rendue', await att(D, () => !document.getElementById('vue-reglages').hidden && !!document.querySelector('#reg-cote .cote-seg-profil')));
+    v('⛔ … mais son sélecteur n\'y paraît pas (la barre latérale le porte) : un seul sélecteur visible, celui de la barre', (await etatPage(D)).segs, ['barre']);
     v('aucune erreur JavaScript (Ana, bureau)', D.erreurs, []);
     await D.ctx.close();
 
@@ -197,6 +260,7 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
     await C.page.evaluate(() => { location.hash = '#reglages'; });
     await att(C, () => !!document.getElementById('reg-sortir'));
     v('…ni « Confirmer l\'envoi » dans son Profil (population : le Profil est ouvert)', [!!(await C.page.$('#reg-sortir')), !!(await C.page.$('#reg-confirmer'))], [true, false]);
+    v('…ni « Perso et Pro » dans son Profil (ni le sélecteur du Profil, ni un autre visible ; la carte est vide)', [await C.page.evaluate(() => document.querySelectorAll('.cote-seg-profil').length + Array.from(document.querySelectorAll('[data-cote-seg]')).filter(x => x.getClientRects().length).length), await C.page.evaluate(() => { const c = document.getElementById('reg-cote'); return !c || c.hidden; })], [0, true]);
     v('aucune erreur JavaScript (Cléo)', C.erreurs, []);
   } catch (x) {
     vrai('la sonde est morte : ' + (x && x.stack || x), false);

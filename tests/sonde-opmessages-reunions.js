@@ -583,7 +583,16 @@ async function parcoursA2(E) {
     const l = ((await P.alice.get('/api/conversations')).j.conversations || []).find(c => c.reunion === R);
     v('la réunion programmée côté Perso est rangée Perso (le choix d\'Alice à la création ; l\'automatique, lui, dit Perso aussi — Bruno et Dora ne sont pas ses collègues)', l && [l.cote_choisi, l.cote], ['perso', 'perso']);
   }
-  await A.page.evaluate(() => { const b = Array.from(document.querySelectorAll('[data-cote-seg] [data-cote="perso"]')).find(x => x.getClientRects().length); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+  /* (11 octobre 2026, « une seule bascule ») au téléphone, on ne règle Perso | Pro que dans le PROFIL (la photo, le segment de la carte « Perso et Pro », ‹ Retour ›) : plus de sélecteur
+     sous le titre de Messages. Alice est déjà Perso (rien à faire) ; si elle ne l'était pas, elle y revient par ce parcours-là — jamais par un clic en JavaScript sur un segment caché. */
+  if (await A.page.evaluate(() => document.documentElement.dataset.cote) === 'pro') {
+    await toucher(A, '.moi-pastille');
+    await A.page.waitForFunction(() => !document.getElementById('vue-reglages').hidden && Array.from(document.querySelectorAll('.cote-seg-profil')).some(x => x.getClientRects().length), null, { timeout: 12000 });
+    await toucher(A, '.cote-seg-profil [data-cote="perso"]');
+    await A.page.waitForFunction(() => document.documentElement.dataset.cote === 'perso', null, { timeout: 12000 });
+    await toucher(A, '.profil-retour');
+    await A.page.waitForFunction(() => document.getElementById('vue-reglages').hidden, null, { timeout: 12000 });
+  }
   await verifier('la conversation de la réunion est dans la liste d\'Alice : le titre pour nom, une icône d\'agenda, et — le dernier message étant une phrase système (Dora retirée) — « Activité de la réunion » (jamais « du groupe »)', A, (a) => {
     const c = Array.from(document.querySelectorAll('#liste-conv .conv')).find(e => e.querySelector('.conv-nom').textContent === a);
     return !!c && c.querySelector('.conv-apercu').textContent === 'Activité de la réunion' && !!c.querySelector('.avatar svg');

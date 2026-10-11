@@ -42,11 +42,13 @@ function decl(debut) {
 const ligne = debut => { const i = JS.indexOf(debut); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
 
 /* ═══ 1. LA PAGE ════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-console.log('\n1. La page : une seule bascule, et le passage automatique joué par ses vraies fonctions');
+async function partie1() {
+  console.log('\n1. La page : une seule bascule, et le passage automatique joué par ses vraies fonctions');
 {
   const morceaux = {
     dansHeuresPro: decl('function dansHeuresPro('), coteHoraire: decl('function coteHoraire('), horaireAttendu: decl('function horaireAttendu('),
     horaireAppliquer: decl('function horaireAppliquer('), surPrefs: decl('function surPrefs('), changerMode: decl('async function changerMode('),
+    ecrireCote: decl('async function ecrireCote('), relireCompte: decl('function relireCompte('), basculeAttend: ligne('const basculeAttend = '), minuteurPrefs: ligne('let minuteurPrefs = '),
     peindreCoteReglage: decl('function peindreCoteReglage('), heuresTexte: decl('function heuresTexte('),
     NOM_COTE: ligne('const NOM_COTE = '), coteDe: ligne('const coteDe = '), segCote: decl('const segCote = ') || '', annonceMode: ligne('const annonceMode = '),
     JOURS_HP: ligne('const JOURS_HP = '), heureDite: ligne('const heureDite = '), minuteur: ligne('let minuteurHoraire = '),
@@ -62,15 +64,18 @@ console.log('\n1. La page : une seule bascule, et le passage automatique joué p
   const PARIS = (a, mo, j, h, mi) => new Date(a, mo - 1, j, h, mi || 0).getTime();       // TZ=Europe/Paris : l'heure locale de l'appareil
   function bac(o) {
     const S = Object.assign({ auto: true, hp: { jours: [1, 2, 3, 4, 5], debut: 480, fin: 1020 }, le: 0, compte: 'perso', actifs: true }, o || {});
-    const notes = { ecrits: [], mots: [], minuteurs: [], annules: 0, rendus: 0, card: { hidden: true, innerHTML: '' }, peints: 0 };
+    const notes = { ecrits: [], mots: [], minuteurs: [], annules: 0, rendus: 0, card: null, peints: 0, ecritures: 0 };
+    /* la carte du Profil : on COMPTE ses réécritures (une réécriture inutile fait tomber le focus du clavier) */
+    { let html = ''; notes.card = { hidden: true, dataset: {}, get innerHTML() { return html; }, set innerHTML(v) { html = v; notes.ecritures++; } }; }
     const ctx = {
       Date: FauxDate, Math, JSON, Number, Array, Object, String, Infinity, console,
-      etat: Object.assign({ mode: 'perso', modeGesteLe: 0, modeEnVol: 0, conv: null, route: { vue: 'messages' }, conversations: [], vcCat: null, selection: null, listeArchives: false }, S.etat || {}),
+      etat: Object.assign({ mode: 'perso', modeGesteLe: 0, modeEnVol: 0, modeNonEcrit: false, conv: null, route: { vue: 'messages' }, conversations: [], vcCat: null, selection: null, listeArchives: false }, S.etat || {}),
       reg: {}, CAP: { notifications: true },
       modesActifs: () => S.actifs,
       source: {
         modeAuto: () => S.auto, heuresPro: () => S.hp, modeChoisiLe: () => S.le, modeTravail: () => S.compte,
-        choisirMode: async m => { notes.ecrits.push(m); return m; }, choisirModeAuto: async b => { S.auto = b; return b; },
+        choisirMode: async m => { notes.ecrits.push(m); if (S.refuse) throw new Error('hors ligne'); return m; }, choisirModeAuto: async b => { S.auto = b; return b; },
+        relireCote: async () => { notes.relectures = (notes.relectures || 0) + 1; return !S.horsLigne; },
       },
       setTimeout: (f, ms) => { notes.minuteurs.push(ms); return notes.minuteurs.length; }, clearTimeout: () => { notes.annules++; },
       rendreListe: () => { notes.rendus++; }, remplacer: () => {}, rendreVueContacts: () => {}, rendreReunions: () => {}, rendreAppels: () => {},
@@ -79,8 +84,9 @@ console.log('\n1. La page : une seule bascule, et le passage automatique joué p
     };
     vm.createContext(ctx);
     vm.runInContext([morceaux.NOM_COTE, morceaux.coteDe, morceaux.segCote, morceaux.annonceMode, morceaux.JOURS_HP, morceaux.heureDite, morceaux.heuresTexte, morceaux.minuteur,
-      morceaux.dansHeuresPro, morceaux.coteHoraire, morceaux.horaireAttendu, morceaux.horaireAppliquer, morceaux.surPrefs, morceaux.changerMode, morceaux.peindreCoteReglage,
-      'this.F = { coteHoraire, horaireAppliquer, surPrefs, changerMode, peindreCoteReglage, horaireAttendu };'].join('\n'), ctx, { timeout: 3000 });
+      morceaux.dansHeuresPro, morceaux.coteHoraire, morceaux.horaireAttendu, morceaux.horaireAppliquer, morceaux.minuteurPrefs, morceaux.surPrefs, morceaux.basculeAttend, morceaux.relireCompte,
+      morceaux.changerMode, morceaux.ecrireCote, morceaux.peindreCoteReglage,
+      'this.F = { coteHoraire, horaireAppliquer, surPrefs, changerMode, ecrireCote, peindreCoteReglage, horaireAttendu, relireCompte };'].join('\n'), ctx, { timeout: 3000 });
     return { F: ctx.F, S, notes, etat: ctx.etat, ctx };
   }
   if (!manquants.length) {
@@ -130,12 +136,37 @@ console.log('\n1. La page : une seule bascule, et le passage automatique joué p
     { H.t = MAR10; const x = bac({ le: MAR930 }); x.F.changerMode('pro');
       v('un geste ici : le côté change, s\'écrit au compte, et l\'heure du geste est notée sur l\'appareil', [x.etat.mode, x.notes.ecrits, x.etat.modeGesteLe], ['pro', ['pro'], MAR10]); }
 
+    /* — la relecture du 11 octobre 2026 — */
+    { const SAM = { jours: [6], debut: 1320, fin: 150 };                         // le samedi, 22 h – 2 h 30 : la nuit du passage à l'heure d'hiver (25 octobre 2026)
+      const t215bis = Date.UTC(2026, 9, 25, 1, 15);                              // 2 h 15 « bis » (heure d'hiver), APRÈS la fin de la nuit (2 h 30 d'été = 0 h 30 UTC)
+      v('⛔ l\'heure répétée du passage à l\'heure d\'hiver : 2 h 15 « bis » est Perso (la nuit a fini à 2 h 30 d\'été) — le côté est celui de la dernière borne, plus celui de l\'horloge',
+        [F.coteHoraire(SAM, t215bis).cote, new Date(F.coteHoraire(SAM, t215bis).depuis).toISOString()], ['perso', '2026-10-25T00:30:00.000Z']); }
+    { H.t = MAR10; const x = bac({ le: MAR930, refuse: true }); await x.F.changerMode('pro');
+      v('⛔ un choix fait HORS LIGNE : le côté tient sur l\'appareil, marqué non écrit, et la page le dit (« s\'enregistrera au retour du réseau »)',
+        [x.etat.mode, x.etat.modeNonEcrit, x.etat.modeEnVol, x.notes.mots.some(m => /s'enregistrera au retour du réseau/.test(m))], ['pro', true, 0, true]);
+      x.S.compte = 'perso'; x.S.refuse = false; x.F.surPrefs(); await new Promise(r => setImmediate(r));
+      v('⛔ l\'événement « prefs » suivant ne le défait PAS : le choix d\'ici s\'écrit, et n\'est plus « non écrit »', [x.etat.mode, x.notes.ecrits, x.etat.modeNonEcrit], ['pro', ['pro', 'pro'], false]); }
+    { H.t = PARIS(2026, 10, 13, 17, 0) + 1000; const x = bac({ le: PARIS(2026, 10, 13, 8, 0) + 1000, etat: { mode: 'pro', route: { vue: 'accueil', feuille: 'reunion' } } }); x.F.horaireAppliquer(false);
+      v('⛔ 17 h avec une fiche ouverte sur l\'Accueil (passer en Perso quitte l\'Accueil, la fiche partirait) : la bascule ATTEND, relue dans 30 s', [x.etat.mode, x.notes.ecrits, x.notes.minuteurs], ['pro', [], [30000]]);
+      x.etat.route = { vue: 'accueil' }; x.F.horaireAppliquer(false);
+      v('   la fiche fermée : elle a lieu', [x.etat.mode, x.notes.ecrits], ['perso', ['perso']]); }
+    { const x = bac({ compte: 'perso', auto: false, etat: { mode: 'pro', route: { vue: 'accueil', feuille: 'evenement' } } }); x.F.surPrefs();
+      v('⛔ de même pour un côté choisi ailleurs : il attend la fiche ouverte sur l\'Accueil', [x.etat.mode, x.notes.minuteurs.includes(30000)], ['pro', true]); }
+    { const x = bac({}); x.F.relireCompte(); await new Promise(r => setImmediate(r));
+      v('relire le compte passe par la source (l\'événement qui en revient rappelle surPrefs) — rien n\'est jugé sur l\'état d\'avant', [x.notes.relectures, x.notes.minuteurs.length], [1, 0]);
+      x.S.horsLigne = true; x.F.relireCompte(); await new Promise(r => setImmediate(r));
+      v('   sans réseau, l\'horaire juge seul (et arme sa borne)', [x.notes.relectures, x.notes.minuteurs.length], [2, 1]); }
+
     /* — la carte « Perso et Pro » du Profil — */
     { const x = bac({ actifs: false }); x.F.peindreCoteReglage();
       v('⛔ un compte sans les deux côtés n\'a pas la carte', [x.notes.card.hidden, x.notes.card.innerHTML], [true, '']); }
     { const x = bac({ auto: true }); x.F.peindreCoteReglage(); const h = x.notes.card.innerHTML;
       vrai('la carte porte LE segment (cote-seg-profil, data-cote-seg) et l\'interrupteur allumé, avec les heures dites', !x.notes.card.hidden && /class="seg cote-seg cote-seg-profil"[^>]*data-cote-seg/.test(h)
-        && /id="reg-mode-auto" aria-checked="true"/.test(h) && h.includes('En Pro 8 h – 17 h, du lundi au vendredi') && x.notes.peints === 1, h.slice(0, 600)); }
+        && /id="reg-mode-auto" aria-checked="true"/.test(h) && h.includes('Pro pendant tes heures (8 h – 17 h, du lundi au vendredi), Perso le reste du temps') && x.notes.peints === 1, h.slice(0, 600));
+      x.F.peindreCoteReglage();
+      v('⛔ repeinte sans rien de changé (le geste revient par l\'événement « prefs ») : la carte n\'est PAS réécrite (le focus du clavier resterait sur l\'interrupteur), le segment se repeint', [x.notes.ecritures, x.notes.peints], [1, 2]);
+      x.S.auto = false; x.F.peindreCoteReglage();
+      v('   …et réécrite quand le réglage change', [x.notes.ecritures, /aria-checked="false"/.test(x.notes.card.innerHTML)], [2, true]); }
     { const x = bac({ auto: false, hp: null }); x.F.peindreCoteReglage(); const h = x.notes.card.innerHTML;
       vrai('⛔ sans heures de travail, la ligne mène à Notifications (où elles se règlent) — pas d\'interrupteur qui ne ferait rien', /id="reg-mode-heures" data-reg-sec="notifications"/.test(h) && !/reg-mode-auto/.test(h), h.slice(0, 600)); }
   }
@@ -148,25 +179,30 @@ console.log('\n1. La page : une seule bascule, et le passage automatique joué p
   vrai('   (dans peindreCoteReglage)', /segCote\('cote-seg-profil'\)/.test(decl('function peindreCoteReglage(')));
   v('⛔ plus de choix « Agenda : Perso | Pro » dans les fiches (choixCote, coteChoisi(), data-choix-cote ont disparu — `lc.coteChoisi` est le côté rangé d\'une conversation, une donnée)',
     JS.match(/choixCote|coteChoisi\(|data-choix-cote/g), null);
-  vrai('⛔ un événement CRÉÉ est du côté où l\'on est ; modifié, il garde le sien', /if \(!F\.id && modesActifs\(\)\) champs\.cote = etat\.mode;/.test(decl('async function evtEnregistrer(')));
-  vrai('⛔ une réunion CRÉÉE est rangée du côté où l\'on est', /if \(!F\.id && modesActifs\(\)\) c\.cote = etat\.mode;/.test(JS));
+  vrai('⛔ un événement CRÉÉ est du côté où l\'on était en OUVRANT sa fiche (une borne passée pendant qu\'on l\'écrivait ne l\'envoie pas dans l\'agenda qu\'on ne voit pas) ; modifié, il garde le sien',
+    /cote: etat\.mode \};/.test(ligne('reu.formEvt = {')) && /if \(!F\.id && modesActifs\(\)\) champs\.cote = F\.cote \|\| etat\.mode;/.test(decl('async function evtEnregistrer(')));
+  vrai('⛔ une réunion CRÉÉE est rangée du côté où l\'on était en ouvrant sa fiche', /cote: etat\.mode \};/.test(ligne('reu.form = { id: id || null')) && /if \(!F\.id && modesActifs\(\)\) c\.cote = F\.cote \|\| etat\.mode;/.test(JS));
   vrai('⛔ le segment du Profil se cache là où la barre latérale paraît (≥ 900 px, et la tablette dès 781 px) — un seul à l\'écran',
     /@media \(min-width: 900px\) \{ \.reg-cote-seg, \.marque-tel \{ display: none !important; \} \}/.test(CSS)
       && /@media \(min-width: 781px\) and \(max-width: 899\.98px\) \{ html\[data-kind="tablette"\] \.reg-cote-seg, html\[data-kind="tablette"\] \.marque-tel \{ display: none !important; \} \}/.test(CSS));
   vrai('⛔ la page suit le compte EN DIRECT (l\'événement prefs mène à surPrefs)', /if \(ev\.type === 'prefs'\) surPrefs\(\);/.test(JS));
-  vrai('⛔ le passage automatique est armé au démarrage (après la route) et relu au retour sur la page', /appliquer\(r0\);\s*horaireAppliquer\(false\);/.test(JS)
-    && /addEventListener\('visibilitychange', \(\) => \{ if \(document\.visibilityState === 'visible'\) horaireAppliquer\(false\); \}\)/.test(JS));
+  vrai('⛔ le passage automatique est armé au démarrage (après la route) ; revenir sur la page et le réseau revenu RELISENT le compte avant l\'horaire',
+    /appliquer\(r0\);\s*horaireAppliquer\(false\);/.test(JS)
+    && /addEventListener\('visibilitychange', \(\) => \{ if \(document\.visibilityState === 'visible'\) relireCompte\(\); \}\)/.test(JS)
+    && /if \(ev\.etat === 'ok'\) \{ verifierVersion\(\); relireCompte\(\); \}/.test(JS));
   vrai('⛔ au démarrage, la borne passée depuis le dernier choix décide du côté où l\'on OUVRE (sans écran qui change sous les yeux)',
-    /const h = horaireAttendu\(\);\s*if \(h && h\.cote !== etat\.mode && \(typeof source\.modeChoisiLe === 'function' \? source\.modeChoisiLe\(\) : 0\) < h\.depuis\) \{\s*etat\.mode = h\.cote;/.test(JS));
+    /const h = horaireAttendu\(\);\s*if \(h && h\.cote !== etat\.mode && \(typeof source\.modeChoisiLe === 'function' \? source\.modeChoisiLe\(\) : 0\) < h\.depuis\) \{\s*etat\.mode = h\.cote; etat\.modeGesteLe = Date\.now\(\); ecrireCote\(h\.cote, false\);/.test(JS));
   vrai('des heures changées (Notifications) recalent la carte et le passage automatique', /if \(quoi === 'heures' \|\| quoi === 'heures-maj'\) \{ peindreCoteReglage\(\); horaireAppliquer\(false\); \}/.test(JS));
   vrai('l\'interrupteur du Profil a son geste', /if \(bouton\.id === 'reg-mode-auto'\) \{ basculerModeAuto\(\); return; \}/.test(JS) && /horaireAppliquer\(vers\)/.test(decl('async function basculerModeAuto(')));
   vrai('au téléphone, la photo du profil porte le point du non-lu de l\'autre côté', /<b class="moi-point" aria-hidden="true" hidden><\/b><\/a>/.test(JS)
     && /querySelectorAll\('\.moi-pastille'\)\.forEach\(a => \{\s*const pt = a\.querySelector\('\.moi-point'\); if \(pt\) pt\.hidden = !n;/.test(decl('function peindreMode(')));
 }
+}
 
 /* ═══ 2 et 3. LE VRAI SERVICE, ET LA COUTURE ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-if (!fs.existsSync(path.join(T.SERVICE, 'node_modules'))) { console.log('\n  ⚠️ dépendances du service absentes : la partie service est sautée'); fin(); }
+if (!fs.existsSync(path.join(T.SERVICE, 'node_modules'))) partie1().then(() => { console.log('\n  ⚠️ dépendances du service absentes : la partie service est sautée'); fin(); });
 else (async () => {
+  await partie1();
   const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
   const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
   const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
@@ -204,7 +240,8 @@ else (async () => {
     v('⛔ mode_le écrit seul dans le corps : ignoré (le service garde le sien)', [r2.code, r2.j && r2.j.moi.prefs.mode_le], [200, le1]);
     await T.dort(120);
     const n1 = prefsDe(fA2).length;
-    await a1.post('/api/moi/maj', { prefs: { mode: 'pro' } });               // le même côté, renvoyé
+    const rMeme = await a1.post('/api/moi/maj', { prefs: { mode: 'pro' } });               // le même côté, renvoyé
+    v('⛔ le même côté renvoyé ne rafraîchit pas mode_le (une page en retard ne suspend pas l\'automatique des autres appareils)', rMeme.j && rMeme.j.moi.prefs.mode_le, le1);
     await a1.post('/api/moi/maj', { prefs: { vitesse_vocal: '1.5' } });     // un réglage sans rapport
     v('mode_auto : seul un booléen passe (« oui », 1, null : 400)', [(await a1.post('/api/moi/maj', { prefs: { mode_auto: 'oui' } })).code, (await a1.post('/api/moi/maj', { prefs: { mode_auto: 1 } })).code, (await a1.post('/api/moi/maj', { prefs: { mode_auto: null } })).code], [400, 400, 400]);
     const r3 = await a1.post('/api/moi/maj', { prefs: { mode_auto: true } });      // SENTINELLE : celui-ci doit partir
@@ -238,6 +275,27 @@ else (async () => {
     vrai('⛔ le passage automatique allumé sur l\'un l\'est sur l\'autre', await T.attendre(() => D2.src.modeAuto() === true, 6000, 10));
     await D2.src.choisirMode('perso');
     vrai('⛔ et dans l\'autre sens : l\'ordinateur revient en Perso, le téléphone le lit', await T.attendre(() => D1.src.modeTravail() === 'perso', 6000, 10));
+    /* — un appareil dont le flux était FERMÉ pendant que l'autre choisissait (veille, coupure) : il manque l'événement « prefs » ; à la réouverture le service dit « resync » (le
+         journal ne remonte pas jusque-là), et la source relit le côté avec le reste — sans quoi il restait de l'ancien côté jusqu'au prochain lancement. La source D3 a son
+         gestionnaire « prefs » coupé (le flux fermé n'a rien reçu), son gestionnaire « resync » est tenu pour être appelé comme le fait api.js. — */
+    {
+      const nav3 = T.navigateur(svc.base);
+      const api3 = OPMSG.creer({ base: svc.base, fetch: (u, i) => nav3.fetch(u, i), EventSource: nav3.EventSource, attente: () => 60 });
+      let tenus = null;
+      const aveugle = Object.assign({}, api3, { ecouter: h => { tenus = h; return api3.ecouter(Object.assign({}, h, { prefs: () => {} })); } });
+      const src3 = creerSourceServeur({ OPMSG, api: aveugle, base: svc.base, fetch: (u, i) => nav3.fetch(u, i), EventSource: nav3.EventSource, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 60 });
+      sources.push(src3); src3.ecouter(() => {});
+      await src3.connexion('dora', MDP.dora); const d3 = await src3.demarrer();
+      v('(population) l\'appareil au flux « aveugle » est connecté, Perso, et tient le gestionnaire resync', [!!d3.connecte, src3.modeTravail(), !!tenus && typeof tenus.resync === 'function'], [true, 'perso', true]);
+      await D1.src.choisirMode('pro');
+      await T.dort(700);
+      v('(sentinelle) l\'événement « prefs » a bien été manqué par D3 : encore Perso', src3.modeTravail(), 'perso');
+      tenus.resync();
+      vrai('⛔ le « resync » (flux rouvert après un trou) relit le côté : D3 passe en Pro', await T.attendre(() => src3.modeTravail() === 'pro', 6000, 10));
+      /* la page, elle, relit par source.relireCote (revenir sur la page, réseau revenu, borne) : vrai quand le service a répondu */
+      await D1.src.choisirMode('perso'); await T.dort(400);
+      v('relireCote() rend vrai et met la source à jour (la page en dépend au réveil)', [await src3.relireCote(), src3.modeTravail()], [true, 'perso']);
+    }
   } catch (e) {
     vrai('le banc a tourné sans exception', false, String(e && e.stack || e));
   } finally {

@@ -1,13 +1,19 @@
 /* ══ SONDE — L'AGENDA PERSO ET L'AGENDA PRO, DANS LA VRAIE PAGE SERVIE (formule de PRODUCTION : seul un compte pro a deux côtés) ═══════════════════════════════════════
-   8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ». Contre le VRAI service, Ana (un espace abonné : Ben est son collègue ; Cléo, une amie) a demain cinq
-   choses — deux événements rangés (Dentiste : Perso, Revue client : Pro), un d'avant sans côté (Perso), une réunion avec Ben (Pro par la règle), un dîner avec Cléo (Perso) :
-     1. téléphone, côté Perso : l'Agenda a son sélecteur « Perso | Pro » sous son titre, et ne montre QUE le perso (trois sur cinq) ;
-     2. « Pro » dans l'Agenda : QUE le pro (deux sur cinq) — c'est le côté du compte, « OP MESSAGES PRO » ; le tableau de bord : la réunion et le rappel Pro, jamais le Perso ;
-     3. un événement créé côté Pro naît Pro (la fiche le propose, le service le garde) ; le ranger Perso dans sa fiche le fait quitter l'agenda Pro, et la page le DIT ;
+   8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ». 11 octobre 2026 : « quand on bascule, c'est TOUT qui bascule ; dans chaque onglet on ne choisit pas pro ou perso ;
+   sur téléphone, dans les messages, on ne peut pas basculer » — UNE SEULE bascule : la barre latérale au bureau, le PROFIL au téléphone (.cote-seg-profil, carte « Perso et Pro »).
+   Plus de sélecteur sous le titre de l'Agenda ni de Messages, plus de choix « Agenda : Perso | Pro » dans les fiches : un élément CRÉÉ prend le côté où l'on est.
+   Contre le VRAI service, Ana (un espace abonné : Ben est son collègue ; Cléo, une amie) a demain cinq choses — deux événements rangés (Dentiste : Perso, Revue client : Pro), un
+   d'avant sans côté (Perso), une réunion avec Ben (Pro par la règle), un dîner avec Cléo (Perso) :
+     1. téléphone, côté Perso : ni l'Agenda ni Messages n'ont de sélecteur sous leur titre (population : titres visibles, anciennes classes absentes du DOM) ; l'Agenda ne montre
+        QUE le perso (trois sur cinq) ;
+     2. le PROFIL (toucher la photo) porte le seul sélecteur ; « Pro » y est touché, ‹ Messages › rend l'Agenda : QUE le pro (deux sur cinq) — c'est le côté du compte,
+        « OP MESSAGES PRO » ; le tableau de bord : la réunion et le rappel Pro, jamais le Perso ;
+     3. la fiche d'un événement et celle d'une réunion n'ont AUCUN segment Perso|Pro ; créés côté Pro, ils naissent Pro (la demande le porte, le service le garde, ils paraissent
+        dans l'agenda Pro) ; le menu d'un élément de l'agenda (« Ranger dans ») range un événement Perso : il quitte l'agenda Pro, et la page le DIT ;
      4. une réunion se range dans SA fiche (« Ranger dans ») : Perso pour Ana seule — Ben la garde Pro ; elle quitte l'agenda Pro ;
-     5. côté Perso, l'Agenda montre ce qu'on vient d'y ranger ; une réunion programmée côté Perso naît Perso (le formulaire le propose) ;
+     5. côté Perso (par le Profil), l'Agenda montre ce qu'on vient d'y ranger — et RIEN de ce qui a été créé côté Pro ; un événement et une réunion créés côté Perso naissent Perso ;
      6. au bureau : pas de sélecteur sous le titre de l'Agenda (il est en haut de la barre latérale), et l'Agenda suit le côté choisi là ;
-     7. Cléo (aucun espace, formule Perso) n'a pas de sélecteur, et voit tout son agenda ;
+     7. Cléo (aucun espace, formule Perso) n'a pas de sélecteur, pas de carte « Perso et Pro » dans le Profil, et voit tout son agenda ;
      8. aucune erreur JavaScript ;
      9. (« que tout soit à part ») les APPELS et les CONTACTS aussi : côté Pro, l'appel manqué de Ben (collègue) et Ben dans « Tous » ; côté Perso, celui de Cléo, Cléo — et
         « Entreprise » n'est proposée que côté Pro.
@@ -33,6 +39,8 @@ const PARIS = 'Europe/Paris', JOUR = 86400000;
 /* les cinq de demain, dans l'ordre des heures — et ce que chaque côté doit montrer */
 const T5 = ['Dentiste QZK', 'Revue client QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'Dîner QZK'];
 const PERSO3 = ['Dentiste QZK', 'Ancien rappel QZK', 'Dîner QZK'], PRO2 = ['Revue client QZK', 'Point équipe QZK'];
+/* ce que la sonde crée elle-même, dans l'ordre des heures : trois créés côté Pro (dont « À ranger », rangé Perso par le menu), trois créés côté Perso */
+const TOUT = ['Dentiste QZK', 'Revue client QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'Créé côté Pro QZK', 'À ranger QZK', 'Réunion Pro QZK', 'Dîner QZK', 'Anniversaire QZK', 'Créé côté Perso QZK', 'Réunion Perso QZK'];
 function localDans(t, tz) {
   const p = {};
   for (const x of new Intl.DateTimeFormat('en-CA', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).formatToParts(t)) p[x.type] = x.value;
@@ -90,14 +98,35 @@ function localDans(t, tz) {
       await toucher(P, P.bureau ? '#nav-side a.side-lien[data-vue="reunions"]' : '#tabs a.tab[data-vue="reunions"]');
       await att(P, () => !document.getElementById('vue-reunions').hidden && document.getElementById('liste-reunions').getAttribute('aria-busy') === 'false');
       const t = await P.page.evaluate(() => { const d = new Date(); d.setHours(24, 0, 0, 0); return d.getTime(); });
+      /* au BUREAU, l'Agenda est la semaine en grille (la bande des jours n'y est plus : display:none dès 700 px) : demain est une CASE de la grille, la semaine suivante s'il n'y est pas */
+      if (P.bureau) {
+        const case_ = (x) => !!document.querySelector('#sem-grille .mjour[data-case="' + x + '"]');
+        if (!(await P.page.evaluate(case_, t))) { await toucher(P, '#sem-suiv'); await att(P, case_, t); }
+        return att(P, (x) => !!document.querySelector('#sem-grille .mjour[data-case="' + x + '"]') && document.getElementById('liste-reunions').getAttribute('aria-busy') === 'false', t);
+      }
       if (!(await P.page.evaluate((x) => !!document.querySelector('#sem-jours [data-jour="' + x + '"]'), t))) { await toucher(P, '#sem-suiv'); await att(P, (x) => !!document.querySelector('#sem-jours [data-jour="' + x + '"]'), t); }
       await toucher(P, '#sem-jours [data-jour="' + t + '"]');
       return att(P, (x) => { const j = document.querySelector('#sem-jours [data-jour="' + x + '"]'); return !!j && j.getAttribute('aria-pressed') === 'true' && document.getElementById('liste-reunions').getAttribute('aria-busy') === 'false'; }, t);
     };
     /* ce que montre la journée : lesquels des titres attendus y sont (dans l'ordre donné) */
-    const vus = (P, titres) => P.page.evaluate((L) => { const t = document.getElementById('liste-reunions').textContent; return L.filter(x => t.includes(x)); }, titres);
-    const montre = (P, titres, attendu) => att(P, ([L, A]) => { const t = document.getElementById('liste-reunions').textContent; return JSON.stringify(L.filter(x => t.includes(x))) === JSON.stringify(A); }, [titres, attendu]);
-    const segVisible = (P) => P.page.evaluate(() => Array.from(document.querySelectorAll('[data-cote-seg]')).filter(x => x.getClientRects().length).map(x => (x.classList.contains('cote-seg-side') ? 'barre' : x.classList.contains('cote-seg-agenda') ? 'agenda' : 'liste') + ':' + ((x.querySelector('[aria-pressed="true"]') || {}).dataset || {}).cote));
+    /* le texte de DEMAIN : la liste du jour au téléphone, la case de demain dans la semaine en grille au bureau (ses rendez-vous, au plus huit par case : le compte reste sous huit) */
+    const texteDemain = (bureau) => { if (!bureau) return document.getElementById('liste-reunions').textContent; const d = new Date(); d.setHours(24, 0, 0, 0); const c = document.querySelector('#sem-grille .mjour[data-case="' + d.getTime() + '"] .mjour-elts'); return c ? c.textContent : ''; };
+    const vus = (P, titres) => P.page.evaluate(([L, f, bureau]) => { const t = new Function('return (' + f + ')')()(bureau); return L.filter(x => t.includes(x)); }, [titres, texteDemain.toString(), !!P.bureau]);
+    const montre = (P, titres, attendu) => att(P, ([L, A, f, bureau]) => { const t = new Function('return (' + f + ')')()(bureau); return JSON.stringify(L.filter(x => t.includes(x))) === JSON.stringify(A); }, [titres, attendu, texteDemain.toString(), !!P.bureau]);
+    /* les sélecteurs VISIBLES : la barre latérale (bureau) et le Profil (téléphone) sont les deux seuls permis ; toute autre classe se nomme « autre » et fait tomber le contrôle */
+    const segVisible = (P) => P.page.evaluate(() => Array.from(document.querySelectorAll('[data-cote-seg]')).filter(x => x.getClientRects().length).map(x => (x.classList.contains('cote-seg-side') ? 'barre' : x.classList.contains('cote-seg-profil') ? 'profil' : 'autre') + ':' + ((x.querySelector('[aria-pressed="true"]') || {}).dataset || {}).cote));
+    /* les anciens sélecteurs (sous le titre de Messages et de l'Agenda) ne sont plus dans la page, ni cachés ni montrés */
+    const anciens = (P) => P.page.evaluate(() => document.querySelectorAll('.cote-seg-liste, .cote-seg-agenda, #ev-cote, #rf-cote, [data-choix-cote]').length);
+    /* LE geste de bascule au téléphone : la photo du profil, le segment du Profil, ‹ Retour › — chaque marche attend son effet, et le service retient le côté */
+    const basculerTel = async (P, cote) => {
+      await toucher(P, '.moi-pastille');
+      if (!(await att(P, () => !document.getElementById('vue-reglages').hidden && Array.from(document.querySelectorAll('.cote-seg-profil')).some(x => x.getClientRects().length)))) return false;
+      await toucher(P, '.cote-seg-profil [data-cote="' + cote + '"]');
+      if (!(await att(P, (c) => document.documentElement.dataset.cote === c && Array.from(document.querySelectorAll('.cote-seg-profil [data-cote="' + c + '"]')).some(x => x.getAttribute('aria-pressed') === 'true'), cote))) return false;
+      for (let i = 0; i < 40; i++) { if ((await A0.get('/api/moi')).j.moi.prefs.mode === cote) break; await new Promise(r => setTimeout(r, 100)); }
+      await toucher(P, '.profil-retour');
+      return att(P, () => document.getElementById('vue-reglages').hidden);
+    };
     const agendaAna = async () => ((await A0.get('/api/agenda?du=' + (Date.now() - JOUR) + '&au=' + (Date.now() + 3 * JOUR))).j.evenements || []);
     const convDe = async (X, rid) => ((await X.get('/api/conversations')).j.conversations || []).find(c => c.reunion === rid);
 
@@ -105,15 +134,26 @@ function localDans(t, tz) {
     console.log('\n1. Téléphone, côté Perso : l\'Agenda ne montre que le perso');
     const A = await ouvrirPage('ana', false);
     vrai('l\'Agenda s\'ouvre sur demain', await versAgenda(A));
-    v('son sélecteur « Perso | Pro » est SOUS SON TITRE (le seul visible), côté Perso', await segVisible(A), ['agenda:perso']);
+    vrai('(population) le titre de l\'Agenda est à l\'écran, avec la photo du profil qui mène à la bascule', await A.page.evaluate(() => Array.from(document.querySelectorAll('#vue-reunions .grand-titre')).some(x => x.getClientRects().length) && Array.from(document.querySelectorAll('.moi-pastille')).some(x => x.getClientRects().length)));
+    v('⛔ AUCUN sélecteur « Perso | Pro » visible sous le titre de l\'Agenda, et les anciens ne sont plus dans la page', [await segVisible(A), await anciens(A)], [[], 0]);
     vrai('demain : Dentiste, l\'événement d\'avant (sans côté : Perso) et le dîner — ni la revue client, ni le point d\'équipe', await montre(A, T5, PERSO3), await vus(A, T5));
     await capture(A, 'ac-1-perso');
+    await toucher(A, '#tabs a.tab[data-vue="messages"]');
+    vrai('(population) Messages est ouvert, son titre à l\'écran', await att(A, () => !document.getElementById('vue-messages').hidden && Array.from(document.querySelectorAll('#vue-messages .grand-titre')).some(x => x.getClientRects().length)));
+    v('⛔ « sur téléphone, dans les messages, on ne peut pas basculer » : aucun sélecteur visible', await segVisible(A), []);
+    vrai('retour à l\'Agenda, demain', await versAgenda(A));
 
     /* ═══ 2. « PRO » DANS L'AGENDA ═══ */
-    console.log('\n2. « Pro » dans l\'Agenda');
-    await toucher(A, '.cote-seg-agenda [data-cote="pro"]');
+    console.log('\n2. « Pro » par le Profil');
+    await toucher(A, '.moi-pastille');
+    vrai('le Profil : sa carte « Perso et Pro » porte le seul sélecteur, sur Perso', await att(A, () => !document.getElementById('vue-reglages').hidden && !document.getElementById('reg-cote').hidden && document.querySelectorAll('.cote-seg-profil').length === 1) && JSON.stringify(await segVisible(A)) === JSON.stringify(['profil:perso']), await segVisible(A));
+    await capture(A, 'ac-2a-profil');
+    await toucher(A, '.profil-retour');
+    vrai('‹ Retour › rend l\'Agenda', await att(A, () => document.getElementById('vue-reglages').hidden && !document.getElementById('vue-reunions').hidden));
+    vrai('(le geste complet) Pro, par le Profil', await basculerTel(A, 'pro'));
+    vrai('retour à l\'Agenda, demain', await versAgenda(A));
     vrai('côté Pro : la revue client et le point d\'équipe, rien d\'autre', await montre(A, T5, PRO2), await vus(A, T5));
-    v('c\'est le côté du COMPTE : « OP MESSAGES PRO », le sélecteur sur Pro', [await A.page.evaluate(() => document.documentElement.dataset.cote), await segVisible(A)], ['pro', ['agenda:pro']]);
+    v('c\'est le côté du COMPTE : « OP MESSAGES PRO », et toujours aucun sélecteur sous le titre de l\'Agenda', [await A.page.evaluate(() => document.documentElement.dataset.cote), await segVisible(A)], ['pro', []]);
     vrai('le service a retenu le côté (Pro)', await (async () => { for (let i = 0; i < 40; i++) { if ((await A0.get('/api/moi')).j.moi.prefs.mode === 'pro') return true; await new Promise(r => setTimeout(r, 100)); } return false; })());
     await capture(A, 'ac-2-pro');
     await toucher(A, '#tabs a.tab[data-vue="accueil"]');
@@ -121,25 +161,43 @@ function localDans(t, tz) {
     v('⛔ …et rien du côté Perso : ni le dîner, ni le dentiste, ni l\'événement d\'avant (tous ont un rappel, tous sont demain)', await A.page.evaluate(() => { const t = document.getElementById('bord-reunions').textContent + document.getElementById('bord-rappels').textContent; return ['Dîner QZK', 'Dentiste QZK', 'Ancien rappel QZK'].filter(x => t.includes(x)); }), []);
     await capture(A, 'ac-2b-bord');
 
-    /* ═══ 3. UN ÉVÉNEMENT CRÉÉ CÔTÉ PRO, PUIS RANGÉ PERSO ═══ */
-    console.log('\n3. Un événement créé côté Pro naît Pro ; rangé Perso, il quitte l\'agenda Pro');
+    /* ═══ 3. ÉVÉNEMENT ET RÉUNION CRÉÉS CÔTÉ PRO, PUIS UN ÉVÉNEMENT RANGÉ PERSO PAR LE MENU ═══ */
+    console.log('\n3. Créés côté Pro, ils naissent Pro (la fiche n\'a aucun choix) ; le menu de l\'agenda range un événement Perso');
+    const postes = [];
+    A.page.on('request', q => { if (q.method() === 'POST' && /\/api\/(reunions|agenda)$/.test(q.url())) postes.push({ u: q.url().replace(/^.*\/api\//, ''), c: (() => { try { return JSON.parse(q.postData()).cote; } catch (e) { return '?'; } })() }); });
+    /* la fiche d'un événement : la population (le formulaire est ouvert), puis l'absence de tout segment Perso|Pro ; il s'enregistre où l'on est */
+    const creerEvenement = async (titre, h1, h2) => {
+      await toucher(A, '#btn-evenement-nouveau');
+      vrai('(population) la fiche d\'un nouvel événement est ouverte : titre, début, fin, bouton Enregistrer', await att(A, () => !!document.getElementById('ev-titre') && !!document.getElementById('ev-debut') && !!document.getElementById('ev-fin') && !!document.querySelector('[data-evt="enregistrer"]')));
+      v('⛔ …et elle n\'a AUCUN segment Perso|Pro (ni #ev-cote, ni choix de côté, ni sélecteur visible)', [await anciens(A), await segVisible(A)], [0, []]);
+      await A.page.locator('#ev-titre').fill(titre);
+      await A.page.locator('#ev-debut').fill(demain + 'T' + h1); await A.page.locator('#ev-fin').fill(demain + 'T' + h2);
+      await toucher(A, '[data-evt="enregistrer"]');
+      return att(A, (t) => !document.documentElement.classList.contains('feuille-ouverte') && /ajouté/.test(document.getElementById('mot').textContent) && document.getElementById('liste-reunions').textContent.includes(t), titre);
+    };
     vrai('retour à l\'Agenda, demain', await versAgenda(A));
-    await toucher(A, '#btn-evenement-nouveau');
-    vrai('le formulaire propose l\'agenda où il ira : Pro (le côté où l\'on est)', await att(A, () => { const s = document.getElementById('ev-cote'); return !!s && (s.querySelector('[aria-pressed="true"]') || {}).dataset.choixCote === 'pro' && s.querySelectorAll('[data-choix-cote]').length === 2; }));
-    await A.page.locator('#ev-titre').fill('Créé côté Pro QZK');
-    await A.page.locator('#ev-debut').fill(demain + 'T16:00'); await A.page.locator('#ev-fin').fill(demain + 'T16:30');
-    await capture(A, 'ac-3-formulaire');
-    await toucher(A, '[data-evt="enregistrer"]');
-    vrai('enregistré : « Événement ajouté à ton agenda », et il paraît dans l\'agenda Pro', await att(A, () => !document.documentElement.classList.contains('feuille-ouverte') && /ajouté/.test(document.getElementById('mot').textContent) && /Créé côté Pro QZK/.test(document.getElementById('liste-reunions').textContent)));
-    v('le service l\'a rangé Pro', (await agendaAna()).filter(e => e.titre === 'Créé côté Pro QZK').map(e => e.cote), ['pro']);
-    await toucher(A, '#liste-reunions [data-evenement]', 'Créé côté Pro QZK');
-    vrai('sa fiche dit Pro', await att(A, () => { const s = document.getElementById('ev-cote'); return !!s && document.getElementById('ev-titre').value === 'Créé côté Pro QZK' && (s.querySelector('[aria-pressed="true"]') || {}).dataset.choixCote === 'pro'; }));
-    await toucher(A, '#ev-cote [data-choix-cote="perso"]');
-    v('toucher « Perso » le choisit (un seul pressé)', await A.page.evaluate(() => Array.from(document.querySelectorAll('#ev-cote [data-choix-cote]')).map(x => x.dataset.choixCote + ':' + x.getAttribute('aria-pressed'))), ['perso:true', 'pro:false']);
-    await toucher(A, '[data-evt="enregistrer"]');
-    vrai('enregistré : la page DIT où il est parti (« Événement rangé dans l\'agenda Perso »)', await att(A, () => !document.documentElement.classList.contains('feuille-ouverte') && /rangé dans l'agenda Perso/.test(document.getElementById('mot').textContent)));
-    vrai('⛔ et il quitte l\'agenda Pro (population : la revue client y est toujours)', await montre(A, ['Revue client QZK', 'Créé côté Pro QZK'], ['Revue client QZK']), await vus(A, ['Revue client QZK', 'Créé côté Pro QZK']));
-    v('le service l\'a rangé Perso', (await agendaAna()).filter(e => e.titre === 'Créé côté Pro QZK').map(e => e.cote), ['perso']);
+    vrai('« Créé côté Pro » : enregistré (« Événement ajouté à ton agenda »), il paraît dans l\'agenda Pro', await creerEvenement('Créé côté Pro QZK', '16:00', '16:30'));
+    vrai('« À ranger » : de même', await creerEvenement('À ranger QZK', '16:30', '17:00'));
+    v('la demande portait le côté (Pro) pour les deux, et le service les a rangés Pro', [postes.filter(x => x.u === 'agenda').map(x => x.c), (await agendaAna()).filter(e => /^(Créé côté Pro|À ranger) QZK$/.test(e.titre)).map(e => e.titre + ':' + e.cote).sort()], [['pro', 'pro'], ['Créé côté Pro QZK:pro', 'À ranger QZK:pro']]);
+    /* la réunion : sa fiche (population : elle est ouverte) n'a aucun segment ; programmée côté Pro, elle naît Pro */
+    await toucher(A, '#btn-reunion-nouvelle');
+    vrai('(population) la fiche d\'une nouvelle réunion est ouverte : titre, début, fin, bouton Programmer', await att(A, () => !!document.getElementById('rf-titre') && !!document.getElementById('rf-debut') && !!document.getElementById('rf-fin') && !!document.querySelector('[data-reu="form-enregistrer"]')));
+    v('⛔ …et elle n\'a AUCUN segment Perso|Pro (ni #rf-cote, ni choix de côté, ni sélecteur visible)', [await anciens(A), await segVisible(A)], [0, []]);
+    await A.page.locator('#rf-titre').fill('Réunion Pro QZK');
+    await A.page.locator('#rf-debut').fill(demain + 'T17:00'); await A.page.locator('#rf-fin').fill(demain + 'T18:00');
+    await toucher(A, '[data-reu="form-enregistrer"]');
+    vrai('programmée : elle paraît dans l\'agenda Pro', await att(A, () => /Réunion Pro QZK/.test(document.getElementById('liste-reunions').textContent)));
+    v('la demande portait le côté (Pro), et le service l\'a rangée Pro pour Ana', [postes.filter(x => x.u === 'reunions').map(x => x.c), await (async () => { const l = ((await A0.get('/api/conversations')).j.conversations || []).find(c => c.type === 'reunion' && c.nom === 'Réunion Pro QZK'); return l ? [l.cote_choisi, l.cote] : null; })()], [['pro'], ['pro', 'pro']]);
+    for (let i = 0; i < 3 && await A.page.evaluate(() => document.documentElement.classList.contains('feuille-ouverte')); i++) { await A.page.keyboard.press('Escape'); await A.page.waitForTimeout(300); }      // la fiche de la réunion programmée
+    vrai('(population) les trois créés côté Pro et la revue client paraissent dans l\'agenda Pro', await montre(A, TOUT, ['Revue client QZK', 'Point équipe QZK', 'Créé côté Pro QZK', 'À ranger QZK', 'Réunion Pro QZK']), await vus(A, TOUT));
+    await capture(A, 'ac-3-pro-crees');
+    /* le menu d'un élément de l'agenda (clic droit / appui long / Maj+F10) : « Ranger dans Perso » */
+    await A.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'À ranger QZK' }).first().click({ button: 'right' });
+    vrai('son menu propose « Ranger dans Perso »', await att(A, () => !document.getElementById('menu-fond').hidden && Array.from(document.querySelectorAll('#menu-msg [data-ag-menu="cote"]')).map(x => x.textContent.trim() + '/' + x.dataset.cote).join('|') === 'Ranger dans Perso/perso'));
+    await toucher(A, '#menu-msg [data-ag-menu="cote"]');
+    vrai('la page DIT où il est parti (« Événement rangé dans l\'agenda Perso »)', await att(A, () => /Événement rangé dans l'agenda Perso/.test(document.getElementById('mot').textContent)));
+    vrai('⛔ et il quitte l\'agenda Pro (population : « Créé côté Pro » y est toujours)', await montre(A, ['Créé côté Pro QZK', 'À ranger QZK'], ['Créé côté Pro QZK']), await vus(A, ['Créé côté Pro QZK', 'À ranger QZK']));
+    v('le service : « À ranger » est Perso, « Créé côté Pro » reste Pro', (await agendaAna()).filter(e => /^(Créé côté Pro|À ranger) QZK$/.test(e.titre)).map(e => e.titre + ':' + e.cote).sort(), ['Créé côté Pro QZK:pro', 'À ranger QZK:perso']);
 
     /* ═══ 4. UNE RÉUNION RANGÉE DANS SA FICHE ═══ */
     console.log('\n4. Une réunion se range dans sa fiche — pour soi seul');
@@ -152,7 +210,7 @@ function localDans(t, tz) {
     vrai('« Perso » : la page le dit, la ligne dit Perso', await att(A, () => /Réunion rangée dans l'agenda Perso/.test(document.getElementById('mot').textContent) && (document.querySelector('#info-corps [data-reu="cote"] .reglage-valeur') || {}).textContent.trim() === 'Perso'));
     v('le service : rangée Perso pour Ana (son choix) ; ⛔ chez Ben, toujours Pro', [((await convDe(A0, r4.j.reunion.id)) || {}).cote_choisi, ((await convDe(B0, r4.j.reunion.id)) || {}).cote], ['perso', 'pro']);
     await A.page.keyboard.press('Escape');
-    vrai('la fiche fermée, la réunion a quitté l\'agenda Pro (il reste la revue client)', await att(A, () => !document.documentElement.classList.contains('feuille-ouverte')) && await montre(A, T5, ['Revue client QZK']), await vus(A, T5));
+    vrai('la fiche fermée, la réunion a quitté l\'agenda Pro (il reste la revue client et les deux créés côté Pro)', await att(A, () => !document.documentElement.classList.contains('feuille-ouverte')) && await montre(A, TOUT, ['Revue client QZK', 'Créé côté Pro QZK', 'Réunion Pro QZK']), await vus(A, TOUT));
 
     /* ═══ 4 bis. CÔTÉ PRO : LES APPELS ET LES CONTACTS ═══ */
     console.log('\n4 bis. Côté Pro : les Appels et les Contacts');
@@ -170,21 +228,24 @@ function localDans(t, tz) {
     vrai('retour à l\'Agenda, demain', await versAgenda(A));
 
     /* ═══ 5. CÔTÉ PERSO ═══ */
-    console.log('\n5. Côté Perso : ce qu\'on vient d\'y ranger, et une réunion programmée d\'ici');
-    await toucher(A, '.cote-seg-agenda [data-cote="perso"]');
-    vrai('côté Perso : le dentiste, l\'événement d\'avant, le point d\'équipe (rangé), le dîner — et l\'événement rangé Perso', await montre(A, T5.concat(['Créé côté Pro QZK']), ['Dentiste QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'Dîner QZK', 'Créé côté Pro QZK']), await vus(A, T5.concat(['Créé côté Pro QZK'])));
+    console.log('\n5. Côté Perso (par le Profil) : ce qu\'on vient d\'y ranger — rien de ce qui est créé côté Pro —, et ce qu\'on y crée');
+    vrai('(le geste complet) Perso, par le Profil', await basculerTel(A, 'perso'));
+    vrai('retour à l\'Agenda, demain', await versAgenda(A));
+    vrai('côté Perso : le dentiste, l\'événement d\'avant, le point d\'équipe (rangé), « À ranger » (rangé) et le dîner — ⛔ ni la revue client, ni les deux créés côté Pro', await montre(A, TOUT, ['Dentiste QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'À ranger QZK', 'Dîner QZK']), await vus(A, TOUT));
+    postes.length = 0;
+    vrai('« Créé côté Perso » : un événement créé d\'ici paraît dans l\'agenda Perso', await creerEvenement('Créé côté Perso QZK', '21:30', '22:00'));
     await toucher(A, '#btn-reunion-nouvelle');
-    vrai('le formulaire d\'une réunion propose l\'agenda : Perso (le côté où l\'on est)', await att(A, () => { const s = document.getElementById('rf-cote'); return !!s && !!document.getElementById('rf-titre') && (s.querySelector('[aria-pressed="true"]') || {}).dataset.choixCote === 'perso'; }));
+    vrai('(population) la fiche d\'une nouvelle réunion est ouverte', await att(A, () => !!document.getElementById('rf-titre') && !!document.getElementById('rf-debut') && !!document.querySelector('[data-reu="form-enregistrer"]')));
+    v('⛔ …et elle n\'a AUCUN segment Perso|Pro', [await anciens(A), await segVisible(A)], [0, []]);
     await A.page.locator('#rf-titre').fill('Anniversaire QZK');
     await A.page.locator('#rf-debut').fill(demain + 'T20:00'); await A.page.locator('#rf-fin').fill(demain + 'T21:00');
-    const postes = [];
-    A.page.on('request', q => { if (q.method() === 'POST' && /\/api\/reunions$/.test(q.url())) postes.push(q.postData()); });
     await toucher(A, '[data-reu="form-enregistrer"]');
     vrai('programmée : elle paraît dans l\'agenda Perso', await att(A, () => /Anniversaire QZK/.test(document.getElementById('liste-reunions').textContent)));
-    v('la demande portait le côté (Perso), et le service l\'a rangée Perso pour Ana', [postes.map(p => { try { return JSON.parse(p).cote; } catch (e) { return '?'; } }), await (async () => { const l = ((await A0.get('/api/conversations')).j.conversations || []).find(c => c.type === 'reunion' && c.nom === 'Anniversaire QZK'); return l ? [l.cote_choisi, l.cote] : null; })()],
-      [['perso'], ['perso', 'perso']]);
+    v('la demande portait le côté (Perso) pour l\'événement et la réunion, et le service les a rangés Perso pour Ana', [postes.map(x => x.u + ':' + x.c), await (async () => { const l = ((await A0.get('/api/conversations')).j.conversations || []).find(c => c.type === 'reunion' && c.nom === 'Anniversaire QZK'); return l ? [l.cote_choisi, l.cote] : null; })(), (await agendaAna()).filter(e => e.titre === 'Créé côté Perso QZK').map(e => e.cote)],
+      [['agenda:perso', 'reunions:perso'], ['perso', 'perso'], ['perso']]);
     await capture(A, 'ac-5-perso');
     for (let i = 0; i < 3 && await A.page.evaluate(() => document.documentElement.classList.contains('feuille-ouverte')); i++) { await A.page.keyboard.press('Escape'); await A.page.waitForTimeout(300); }      // la fiche de la réunion programmée
+    vrai('l\'agenda Perso en entier : tout ce qui y est rangé ou créé, ⛔ rien de ce qui est Pro', await montre(A, TOUT, ['Dentiste QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'À ranger QZK', 'Dîner QZK', 'Anniversaire QZK', 'Créé côté Perso QZK']), await vus(A, TOUT));
     await toucher(A, '#tabs a.tab[data-vue="appels"]');
     vrai('côté Perso, les Appels : l\'appel de Cléo, PAS celui de Ben', await att(A, () => { const n = Array.from(document.querySelectorAll('#liste-appels .appel-nom-ligne')).map(x => x.textContent.trim()); return n.length === 1 && /^Cléo/.test(n[0]); }), await nomsAppels(A));
     await toucher(A, '#tabs a.tab[data-vue="contacts"]');
@@ -199,17 +260,23 @@ function localDans(t, tz) {
     console.log('\n6. Au bureau : le sélecteur est dans la barre latérale, l\'Agenda le suit');
     const A2 = await ouvrirPage('ana', true);
     vrai('l\'Agenda s\'ouvre sur demain', await versAgenda(A2));
-    v('pas de sélecteur sous le titre de l\'Agenda : celui de la barre latérale, côté Perso (le dernier choisi)', await segVisible(A2), ['barre:perso']);
-    vrai('côté Perso : le perso', await montre(A2, T5, ['Dentiste QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'Dîner QZK']), await vus(A2, T5));
+    v('pas de sélecteur sous le titre de l\'Agenda ni dans le Profil : celui de la barre latérale, côté Perso (le dernier choisi) — et c\'est le seul', [await segVisible(A2), await A2.page.evaluate(() => Array.from(document.querySelectorAll('.moi-pastille')).filter(x => x.getClientRects().length).length)], [['barre:perso'], 0]);
+    vrai('côté Perso : le perso', await montre(A2, TOUT, ['Dentiste QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'À ranger QZK', 'Dîner QZK', 'Anniversaire QZK', 'Créé côté Perso QZK']), await vus(A2, TOUT));
     await toucher(A2, '.cote-seg-side [data-cote="pro"]');
-    vrai('« Pro » dans la barre latérale : l\'Agenda ne montre plus que la revue client', await montre(A2, T5, ['Revue client QZK']), await vus(A2, T5));
+    vrai('« Pro » dans la barre latérale : l\'Agenda ne montre plus que la revue client et les deux créés côté Pro', await montre(A2, TOUT, ['Revue client QZK', 'Créé côté Pro QZK', 'Réunion Pro QZK']), await vus(A2, TOUT));
     await capture(A2, 'ac-6-bureau-pro');
 
     /* ═══ 7. UN COMPTE SANS LES DEUX CÔTÉS ═══ */
     console.log('\n7. Cléo (aucun espace) : pas de sélecteur, tout son agenda');
     const C = await ouvrirPage('cleo', false);
     vrai('l\'Agenda s\'ouvre sur demain', await versAgenda(C));
+    vrai('(population) le titre de l\'Agenda et la photo du profil sont à l\'écran', await C.page.evaluate(() => Array.from(document.querySelectorAll('#vue-reunions .grand-titre')).some(x => x.getClientRects().length) && Array.from(document.querySelectorAll('.moi-pastille')).some(x => x.getClientRects().length)));
     v('aucun sélecteur « Perso | Pro » visible', await segVisible(C), []);
+    await toucher(C, '.moi-pastille');
+    vrai('(population) le Profil de Cléo est ouvert, son nom écrit', await att(C, () => !document.getElementById('vue-reglages').hidden && /Cléo/.test(document.getElementById('reg-profil').textContent)));
+    v('⛔ …sans carte « Perso et Pro » : la carte cachée et vide, aucun sélecteur', [await C.page.evaluate(() => { const c = document.getElementById('reg-cote'); return !!c && c.hidden && c.children.length === 0; }), await segVisible(C)], [true, []]);
+    await toucher(C, '.profil-retour');
+    vrai('retour à l\'Agenda', await att(C, () => document.getElementById('vue-reglages').hidden && !document.getElementById('vue-reunions').hidden));
     vrai('le dîner où Ana l\'invite est dans son agenda (population : tout son agenda)', await montre(C, T5, ['Dîner QZK']), await vus(C, T5));
 
     console.log('\n8. Aucune erreur JavaScript');

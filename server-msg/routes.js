@@ -255,8 +255,9 @@ function creerHandlers(ctx) {
       for (const k of Object.keys(PREFS_CHOIX)) if (b.prefs[k] !== undefined) { if (!PREFS_CHOIX[k].includes(b.prefs[k])) return refus(res, 400, 'champ_invalide'); p[k] = b.prefs[k]; }
       /* ⛔ L'HEURE DU DERNIER CHOIX DE CÔTÉ (11 octobre 2026), à l'horloge du SERVICE et jamais lue dans le corps : c'est elle qui départage un geste et le passage
          automatique — à 8 h la page passe en Pro, sauf si la personne a choisi son côté APRÈS 8 h (sur cet appareil ou un autre). Sans elle, un retour en Perso à 10 h sur
-         le téléphone était défait par l'ordinateur au rechargement suivant. */
-      if (b.prefs.mode !== undefined) p.mode_le = horloge();
+         le téléphone était défait par l'ordinateur au rechargement suivant. Seulement quand le côté CHANGE : une page qui renverrait le côté actuel (en retard, ou d'avant) ne
+         suspend pas le passage automatique des autres appareils (relecture du gardien). */
+      if (b.prefs.mode !== undefined && b.prefs.mode !== (req.moi.prefs || {}).mode) p.mode_le = horloge();
       /* les heures de travail côté Pro (`heures-pro.js`) : `null` les coupe ; sinon { jours, debut, fin } exactement, en minutes — rien d'autre ne s'écrit (`push.js` le relit à chaque message) */
       if (b.prefs.heures_pro !== undefined) {
         if (b.prefs.heures_pro === null) delete p.heures_pro;

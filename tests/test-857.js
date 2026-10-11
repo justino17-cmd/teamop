@@ -893,7 +893,7 @@ async function controler(PAGE, SRC, DOC) {
   /* (11 octobre 2026, « que dans chaque onglet on ne choisisse pas pro ou perso ») plus de choix dans la fiche : l'élément créé part au service avec le côté où l'on est ;
      modifié, il garde le sien (« Ranger dans » le change) — tests/test-1003.js garde la bascule unique et le passage automatique */
   vrai('un événement et une réunion naissent du côté où l\'on est — sans choix dans la fiche (une seule bascule) ; ils se rangent ensuite par « Ranger dans »',
-    !/choixCote|coteChoisi\(|data-choix-cote/.test(JS) && /if \(!F\.id && modesActifs\(\)\) champs\.cote = etat\.mode;/.test(JS) && /if \(!F\.id && modesActifs\(\)\) c\.cote = etat\.mode;/.test(JS));
+    !/choixCote|coteChoisi\(|data-choix-cote/.test(JS) && /if \(!F\.id && modesActifs\(\)\) champs\.cote = F\.cote \|\| etat\.mode;/.test(JS) && /if \(!F\.id && modesActifs\(\)\) c\.cote = F\.cote \|\| etat\.mode;/.test(JS));
   vrai('⛔ une réunion a le côté de SA conversation — celui de la liste d\'abord (à jour dès qu\'on la range), puis celui que l\'agenda a lu au service',
     /const coteReu = r => \{ const c = r && etat\.conversations\.find\(x => x\.id === r\.conv\); return c \? coteDe\(c\) : r && \(r\.cote === 'perso' \|\| r\.cote === 'pro'\) \? r\.cote : 'pro'; \};/.test(JS));
   vrai('changer de côté redessine l\'Agenda ; une liste relue où une réunion a changé de côté aussi (rangée ici, ou sur un autre appareil)',
