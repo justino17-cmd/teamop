@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '4525d6ec4b5d';
+  const OPMSG_BUILD = '70121a5c0cb7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 162;
+  const OPMSG_VERSION = 164;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -78,7 +78,7 @@
   let NAV = ORDRE.filter(k => k !== 'reglages');
   /* l'avatar qui mène au Profil, au bout du grand titre de chaque vue (téléphone et tablette en portrait ; au bureau, c'est la carte du bas de la barre latérale) */
   const pastilleMoi = () => '<a href="#reglages" class="moi-pastille presse" data-vue="reglages" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages">' +
-    '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span></a>';
+    '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span><b class="moi-point" aria-hidden="true" hidden></b></a>';
   /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
   const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
@@ -90,7 +90,10 @@
   const etat = {
     route: null,                  // { vue, conv, feuille, photo } — c'est elle qui est écrite dans l'historique
     conversations: [],            // la liste, telle que la source l'a rendue
-    mode: 'perso',                // Perso / Pro : le côté où l'on travaille (un compte pro seulement — la préférence du compte, lue au démarrage)
+    mode: 'perso',                // Perso / Pro : le côté où l'on travaille (un compte pro seulement — la préférence du compte, lue au démarrage, suivie en direct)
+    modeGesteLe: 0,               // l'heure (de cet appareil) du dernier choix de côté fait ICI — le passage automatique ne le défait pas avant l'heure suivante
+    modeEnVol: 0,                 // les écritures du côté pas encore revenues : l'événement `prefs` qui les croise ne remet pas l'ancien côté
+    modeNonEcrit: false,          // le côté choisi ICI n'a pas pu s'écrire (hors ligne) : il tient sur l'appareil et s'écrit au retour du réseau
     conv: null, convDonnees: null, jeton: 0,
     recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, posVues: {}, forcerBas: false, envoiEnCours: false,
     groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false,
@@ -258,12 +261,16 @@
   /* ══ PERSO / PRO (la feuille de style dit le pourquoi) ══
      Le côté d'une conversation vient du service (`cote` : le côté rangé à la main, sinon l'automatique — un canal, une réunion, un collègue, un groupe de collègues : Pro). Le côté où
      l'on travaille est une préférence du COMPTE (`source.modeTravail`, rien n'est rangé sur l'appareil). Ouvrir une conversation de l'autre côté (une recherche, une bannière, un
-     lien) y BASCULE : la conversation ouverte est toujours dans la liste qu'on voit. */
+     lien) y BASCULE : la conversation ouverte est toujours dans la liste qu'on voit.
+     ⛔ (11 octobre 2026) UNE bascule pour TOUTE l'application — la barre latérale au bureau, le Profil au téléphone — et elle suit la personne d'un appareil à l'autre EN DIRECT
+     (l'événement `prefs` du flux) ; plus aucun choix Perso | Pro écran par écran. */
   const NOM_COTE = { perso: 'Perso', pro: 'Pro' };
   const modesActifs = () => !!(etat.pro && CAP.modes && typeof source.choisirMode === 'function');
   const coteDe = c => c && c.cote === 'pro' ? 'pro' : 'perso';
   const dansMode = c => !modesActifs() || coteDe(c) === etat.mode;
   const navPour = () => ORDRE.filter(k => k !== 'reglages' && (k !== 'accueil' || !modesActifs() || etat.mode === 'pro'));
+  const segCote = cls => '<div class="seg cote-seg ' + cls + '" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span>' +
+    ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-cote="' + k + '" aria-pressed="false">' + NOM_COTE[k] + '<b class="cote-n" hidden></b></button>').join('') + '</div>';
   function peindreMode() {
     const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
     if (actif) racine.dataset.cote = etat.mode; else delete racine.dataset.cote;
@@ -280,6 +287,11 @@
         b.setAttribute('aria-label', NOM_COTE[b.dataset.cote] + (k ? ', ' + k + (k > 1 ? ' conversations non lues' : ' conversation non lue') : ''));
       });
     });
+    /* au téléphone, la bascule est dans le Profil : la photo qui y mène porte le point rouge du non-lu de l'autre côté (comme l'autre compte sur Instagram) */
+    document.querySelectorAll('.moi-pastille').forEach(a => {
+      const pt = a.querySelector('.moi-point'); if (pt) pt.hidden = !n;
+      a.setAttribute('aria-label', 'Mon profil et mes réglages' + (n ? ' — ' + n + (n > 1 ? ' conversations non lues' : ' conversation non lue') + ' côté ' + NOM_COTE[autre] : ''));
+    });
     /* le tableau de bord n'est que du côté Pro : la navigation se refait quand elle change */
     const nav = navPour();
     if (nav.join() !== NAV.join()) {
@@ -290,8 +302,10 @@
     }
     if (etat.route && VUES[etat.route.vue]) document.title = VUES[etat.route.vue].titre + suffixeTitre();
   }
-  async function changerMode(m, depuisOuverture, muet) {
+  /* depuisCompte : le côté vient du compte (choisi sur un autre appareil) — on le suit sans le réécrire (une écriture par appareil, et chacune repousserait l'événement) */
+  async function changerMode(m, depuisOuverture, muet, depuisCompte) {
     if (!modesActifs() || (m !== 'perso' && m !== 'pro') || m === etat.mode) return;
+    if (!depuisCompte) etat.modeGesteLe = Date.now();         // l'heure de CET appareil, celle des heures de travail (`horaireAppliquer`), même si l'écriture échoue hors ligne
     etat.mode = m; etat.vcCat = null; etat.selection = null; etat.listeArchives = false;      // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro) ; on ne range pas d'un côté à l'autre
     const c0 = etat.conv ? etat.conversations.find(x => x.id === etat.conv) : null;
     rendreListe();
@@ -301,9 +315,84 @@
     if ($('vue-reunions') && $('vue-reunions').dataset.pret && reu.charge) rendreReunions();      // l'Agenda ne montre que le côté où l'on est
     if (etat.route && etat.route.vue === 'appels') rendreAppels();                                   // les Appels aussi
     if (!muet) annonceMode(m);                                   // muet : le geste qui y mène a déjà sa phrase (« Tu as rejoint… »)
-    try { await source.choisirMode(m); } catch (e) { mot(phrase(e, 'Le côté choisi n\'a pas pu être enregistré : il vaut pour cette visite.')); }
+    if (depuisCompte) return;
+    await ecrireCote(m, true);
+  }
+  /* écrire le côté au compte. ⛔ Un échec (hors ligne, plafond) le GARDE sur cet appareil (`etat.modeNonEcrit`) : l'événement `prefs` suivant ne le défait pas en silence (relecture
+     du 11 octobre 2026 : un choix fait hors ligne repassait de l'autre côté au premier événement), et il s'écrit dès que le compte se relit avec le réseau (`surPrefs`). */
+  async function ecrireCote(m, dire) {
+    etat.modeEnVol++;
+    try { await source.choisirMode(m); if (etat.mode === m) etat.modeNonEcrit = false; }
+    catch (e) { if (etat.mode === m) etat.modeNonEcrit = true; if (dire) mot(phrase(e, 'Le côté choisi n\'a pas pu être enregistré : il vaut sur cet appareil, et s\'enregistrera au retour du réseau.')); }
+    finally { etat.modeEnVol--; }
   }
   const annonceMode = m => mot(m === 'pro' ? 'OP MESSAGES PRO' : 'OP MESSAGES · Perso');
+  /* ══ LE PASSAGE AUTOMATIQUE EN PRO (11 octobre 2026 : « que les pros puissent régler dans leur espace : basculer automatiquement l'application en mode pro de 8 h à 17 h ») ══
+     Allumé dans le Profil (« Passer en Pro pendant mes heures »), il s'appuie sur les heures de travail (Notifications) : au DÉBUT des heures, toute l'application passe en Pro ;
+     à la FIN, en Perso. Comme les modes de concentration de l'iPhone, il agit AUX BORNES : basculer à la main entre-temps l'emporte jusqu'à la borne suivante — un geste fait
+     après la dernière borne (ici, `etat.modeGesteLe`, ou sur un autre appareil, `source.modeChoisiLe()` : l'heure du service) n'est jamais défait. L'heure est celle de
+     l'appareil, comme `dansHeuresPro`. */
+  /* les bornes de la plage autour de `t` : le côté qu'elle donne maintenant, l'instant de la dernière borne passée (`depuis`) et celui de la prochaine (`prochain`) — une plage qui
+     passe minuit finit le lendemain du jour où elle commence (la règle du service) ; `new Date(a, m, j, 0, minutes)` garde l'heure LOCALE, changements d'heure compris */
+  function coteHoraire(hp, t) {
+    const d0 = new Date(t);
+    let depuis = 0, prochain = 0, cote = null;
+    for (let k = -8; k <= 8; k++) {
+      const j0 = new Date(d0.getFullYear(), d0.getMonth(), d0.getDate() + k), jour = j0.getDay() === 0 ? 7 : j0.getDay();
+      if (!hp.jours.includes(jour)) continue;
+      for (const [b, c] of [[new Date(j0.getFullYear(), j0.getMonth(), j0.getDate(), 0, hp.debut).getTime(), 'pro'], [new Date(j0.getFullYear(), j0.getMonth(), j0.getDate() + (hp.fin < hp.debut ? 1 : 0), 0, hp.fin).getTime(), 'perso']]) {
+        if (b <= t && b > depuis) { depuis = b; cote = c; }
+        if (b > t && (!prochain || b < prochain)) prochain = b;
+      }
+    }
+    /* le côté de la DERNIÈRE borne passée — pas celui de l'horloge : à l'heure répétée du passage à l'heure d'hiver, l'horloge redit « 2 h 15 » après la fin d'une nuit
+       finie à 2 h 30, et les deux se contredisaient (Pro, Perso, Pro… — relecture du 11 octobre 2026) */
+    return { cote: cote || (dansHeuresPro(hp, d0) ? 'pro' : 'perso'), depuis, prochain };
+  }
+  /* le côté que donnent mes heures maintenant, quand le passage automatique est allumé et qu'elles sont réglées — null sinon */
+  function horaireAttendu() {
+    if (!modesActifs() || typeof source.modeAuto !== 'function' || !source.modeAuto() || typeof source.heuresPro !== 'function') return null;
+    const hp = source.heuresPro();
+    return hp ? coteHoraire(hp, Date.now()) : null;
+  }
+  let minuteurHoraire = 0;
+  /* force : on vient d'allumer le réglage — il vaut tout de suite, même si on avait choisi son côté depuis la dernière borne */
+  function horaireAppliquer(force) {
+    clearTimeout(minuteurHoraire); minuteurHoraire = 0;
+    const h = horaireAttendu(); if (!h) return;
+    const choisiLe = Math.max(etat.modeGesteLe || 0, typeof source.modeChoisiLe === 'function' ? source.modeChoisiLe() : 0);
+    if (h.cote !== etat.mode && (force || choisiLe < h.depuis)) {
+      if (basculeAttend(h.cote)) { minuteurHoraire = setTimeout(() => horaireAppliquer(force), 30000); return; }
+      changerMode(h.cote, true, true);              // la conversation ouverte reste ouverte (on écrivait peut-être) : la liste, elle, est déjà de l'autre côté
+      mot(h.cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso');
+    }
+    /* la prochaine borne (une seconde après), relue au plus tard toutes les 30 minutes : une horloge changée ou un ordinateur sorti de veille ne la ratent pas. On relit le
+       COMPTE d'abord (un choix fait ailleurs pendant une veille ne doit pas être défait) : l'événement `prefs` qui en revient rappelle `surPrefs`, donc l'horaire */
+    const dans = h.prochain ? h.prochain - Date.now() + 1000 : Infinity;
+    minuteurHoraire = setTimeout(relireCompte, Math.max(1000, Math.min(dans, 30 * 60000)));
+  }
+  /* le côté ou le passage automatique a changé sur un autre appareil (ou ici) : la page suit — sauf pendant qu'un choix fait ICI est encore en route (il est le plus récent) */
+  let minuteurPrefs = 0;
+  function surPrefs() {
+    clearTimeout(minuteurPrefs);
+    if (modesActifs() && !etat.modeEnVol && typeof source.modeTravail === 'function') {
+      const m = source.modeTravail();
+      if (etat.modeNonEcrit) { if (m !== etat.mode) ecrireCote(etat.mode, false); else etat.modeNonEcrit = false; }      // le choix fait ici sans réseau est le plus récent : il s'écrit maintenant
+      else if (m !== etat.mode) { if (basculeAttend(m)) { minuteurPrefs = setTimeout(surPrefs, 30000); return; } changerMode(m, true, false, true); }
+    }
+    peindreCoteReglage();
+    horaireAppliquer(false);
+  }
+  /* une bascule qui ne vient pas d'un geste (l'heure, un autre appareil) attend qu'une fiche ou un menu ouverts sur l'Accueil soient fermés : passer en Perso quitte l'Accueil (il
+     n'est que du côté Pro), et la fiche partirait avec ce qu'on y écrivait */
+  const basculeAttend = m => m === 'perso' && !!etat.route && etat.route.vue === 'accueil' && !!(etat.route.feuille || etat.menu);
+  /* relire le compte, puis l'horaire : revenir sur la page (un téléphone en veille n'a pas fait tourner le minuteur, et son flux a pu manquer un choix fait ailleurs — relecture du
+     11 octobre 2026 : il le défaisait au réveil), le réseau revenu, la borne arrivée. L'événement `prefs` de la relecture rappelle `surPrefs` ; sans réseau, l'horaire juge seul. */
+  function relireCompte() {
+    if (modesActifs() && typeof source.relireCote === 'function') source.relireCote().then(ok => { if (!ok) horaireAppliquer(false); });
+    else horaireAppliquer(false);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') relireCompte(); });
   /* ══ L'AGENDA PERSO ET L'AGENDA PRO (8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ») ══
      Chaque élément de l'agenda est d'UN côté. Un événement porte le sien (posé à sa création : le côté où l'on est — changé dans sa fiche) ; un événement d'avant n'en a pas : celui de sa
      conversation d'origine (« Me le rappeler »), sinon Perso. Une réunion a celui de SA conversation pour moi (rangée par l'organisateur à la création, la règle d'un groupe pour les
@@ -325,16 +414,8 @@
   /* les collègues se lisent une fois, dès qu'un écran en a besoin pour ranger (Appels, Contacts, le tableau de bord) — rien n'est rangé sur l'appareil */
   const colleguesLus = () => { if (modesActifs() && !etat.vcEsp && CAP.espaces && typeof source.espaces === 'function' && typeof source.espaceContacts === 'function') chargerVcEspaces(); };
   const duCote = cote => !modesActifs() || cote === etat.mode;
-  /* le choix du côté dans une fiche (un événement, une réunion qu'on programme) : un segmenté Perso | Pro, sur le côté où l'on est — seulement pour un compte qui a les deux */
-  const choixCote = (id, cote) => modesActifs() ? '<div class="champ champ-cote"><span class="champ-titre" id="' + id + '-l">Agenda</span><div class="seg" id="' + id + '" role="group" aria-labelledby="' + id + '-l" style="--i:' + (cote === 'pro' ? 1 : 0) + '"><span class="seg-knob" aria-hidden="true"></span>' +
-    ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-choix-cote="' + k + '" aria-pressed="' + (k === cote ? 'true' : 'false') + '">' + NOM_COTE[k] + '</button>').join('') + '</div></div>' : '';
-  const coteChoisi = id => { const b = document.querySelector('#' + id + ' [data-choix-cote][aria-pressed="true"]'); return b ? b.dataset.choixCote : etat.mode; };
-  document.addEventListener('click', e => {
-    const b = e.target.closest('[data-choix-cote]'); if (!b) return;
-    const seg = b.closest('.seg'); if (!seg) return;
-    for (const x of seg.querySelectorAll('[data-choix-cote]')) x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
-    seg.style.setProperty('--i', b.dataset.choixCote === 'pro' ? 1 : 0);
-  });
+  /* (11 octobre 2026) plus de choix « Agenda : Perso | Pro » dans les fiches : un événement, une réunion qu'on crée est du côté où l'on est (`etat.mode`) — on le change ensuite par
+     « Ranger dans » (son menu dans l'Agenda, ou les infos de la conversation) */
   document.addEventListener('click', e => { const b = e.target.closest('[data-cote-seg] [data-cote]'); if (b) changerMode(b.dataset.cote); });
   /* ⛔ UN ÉCHEC DE CHARGEMENT SE DIT. Un 429 ou un 503 sur la liste faisait retomber la page de l'étape 1 sur son écran de connexion, sans un mot (relecture du gardien,
      remarque 2) : la liste reste celle d'avant, une phrase explique pourquoi elle n'est pas à jour et « Réessayer » la relit. Une réussite efface le refus d'avant. */
@@ -3330,6 +3411,37 @@
       (MOI.statut ? '<span class="reg-moi-statut">' + esc(MOI.statut) + '</span>' : '') +
       '<span class="reg-moi-modifier">Modifier le profil</span></button>';
   }
+  /* ── PERSO ET PRO (11 octobre 2026) : au TÉLÉPHONE, c'est ICI qu'on bascule — et seulement ici (la barre latérale au bureau) ; partout, le passage automatique aux heures de
+     travail. Sans heures réglées, la ligne mène à Notifications, où elles se règlent. Un compte sans les deux côtés ne voit pas la carte. ── */
+  function peindreCoteReglage() {
+    const c = $('reg-cote'); if (!c) return;
+    if (!modesActifs()) { c.hidden = true; c.innerHTML = ''; c.dataset.sig = ''; return; }
+    const hp = typeof source.heuresPro === 'function' ? source.heuresPro() : null, auto = typeof source.modeAuto === 'function' && source.modeAuto();
+    /* rien de changé (le geste qui vient d'avoir lieu revient par l'événement `prefs`) : on ne réécrit pas la carte — le focus du clavier tombait sur la page après chaque
+       geste (relecture du 11 octobre 2026) ; le segment, lui, se peint par peindreMode */
+    const sig = JSON.stringify([hp, auto, !!reg.autoOccupe, reg.autoErreur || '', typeof source.choisirModeAuto === 'function', !!CAP.notifications]);
+    if (c.dataset.sig === sig && c.innerHTML) { peindreMode(); return; }
+    c.dataset.sig = sig;
+    const ligneAuto = typeof source.choisirModeAuto !== 'function' ? ''
+      : hp ? '<button type="button" class="reglage presse" role="switch" id="reg-mode-auto" aria-checked="' + (auto ? 'true' : 'false') + '"' + (reg.autoOccupe ? ' aria-disabled="true"' : '') + '><span class="reglage-texte">Passer en Pro pendant mes heures<small>' +
+        esc(auto ? 'Pro pendant tes heures (' + heuresTexte(hp) + '), Perso le reste du temps. Tu peux toujours basculer à la main : l\'automatique reprend à l\'heure suivante.' : 'Coupé : tu bascules à la main. Tes heures : ' + heuresTexte(hp) + '.') +
+        '</small></span><span class="interrupteur" aria-hidden="true"></span></button>'
+      : CAP.notifications ? '<button type="button" class="reglage presse" id="reg-mode-heures" data-reg-sec="notifications"><span class="reglage-texte">Passer en Pro pendant mes heures<small>Règle d\'abord tes heures de travail, dans Notifications.</small></span>' + CHEVRON + '</button>' : '';
+    c.hidden = false;
+    c.innerHTML = '<div class="rubrique"><span>Perso et Pro</span></div><div class="carte">' +
+      '<div class="carte-pad reg-cote-seg">' + segCote('cote-seg-profil') + '<p class="reg-cote-aide">Tout OP MESSAGES suit : les messages, les appels, les contacts et l\'agenda.</p></div>' + ligneAuto + '</div>' +
+      (reg.autoErreur ? '<p class="info-erreur" role="alert">' + esc(reg.autoErreur) + '</p>' : '');
+    peindreMode();
+  }
+  async function basculerModeAuto() {
+    if (reg.autoOccupe || typeof source.choisirModeAuto !== 'function' || typeof source.modeAuto !== 'function') return;
+    const vers = !source.modeAuto();
+    reg.autoOccupe = true; reg.autoErreur = ''; peindreCoteReglage();              // ⛔ chaque essai écrit SON verdict
+    try { await source.choisirModeAuto(vers); } catch (x) { reg.autoErreur = phrase(x, 'Ce réglage n\'a pas pu être enregistré.'); }
+    reg.autoOccupe = false; peindreCoteReglage();
+    if (!reg.autoErreur) { if (vers) mot('Passage automatique en Pro allumé'); horaireAppliquer(vers); }      // allumé : il vaut TOUT DE SUITE (dans ses heures : Pro)
+    const b = $('reg-mode-auto'); if (b) b.focus({ preventScroll: true });
+  }
   function peindreConf() {
     const c = $('reg-conf'); if (!c) return;
     if (!reg.conf) { c.innerHTML = reg.confErreur ? '<div class="carte-pad">' + refusBloc(reg.confErreur) + '</div>' : '<p class="vide">Chargement…</p>'; return; }
@@ -3402,6 +3514,7 @@
     } catch (x) { reg.notifErreur = phrase(x, 'Ce réglage n\'a pas pu être enregistré.'); }
     try { reg.notif = await source.notifEtat(); } catch (x) { /* l'état d'avant reste affiché : le geste, lui, a dit son verdict */ }       // ce que l'écran montre est ce qui EST, pas ce qu'on a demandé
     reg.notifOccupe = false; peindreNotif();
+    if (quoi === 'heures' || quoi === 'heures-maj') { peindreCoteReglage(); horaireAppliquer(false); }       // les heures du passage automatique en Pro
     const b = document.getElementById('reg-notif-' + quoi); if (b) b.focus({ preventScroll: true });
   }
   /* ── Compte : exporter mes données (un fichier téléchargé), supprimer mon compte (une feuille qui dit tout) ── */
@@ -3498,10 +3611,11 @@
   }
   function rendreReglages() {
     if (CAP.identifiants) chargerDemandes();   // le compteur des demandes reçues, sur « Contacts »
-    Object.assign(reg, { conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
+    Object.assign(reg, { autoOccupe: false, autoErreur: '', conf: null, confErreur: '', stock: null, stockErreur: '', propos: null, proposErreur: '', occupe: false, notif: null, notifLecture: '', notifErreur: '', notifMsg: '', notifOccupe: false, exportMsg: '', exportErreur: '', exportOccupe: false });
     $('vue-reglages').innerHTML = '<div class="entete-vue"><a href="#messages" class="reg-retour profil-retour presse" data-vue="messages" id="profil-retour"><svg class="chev chev-g" viewBox="0 0 8 13" aria-hidden="true"><path d="M6.5 1.5 1.5 6.5 6.5 11.5"/></svg><span>Messages</span></a></div><h1 class="grand-titre" id="titre-reglages">Profil</h1>' +
       '<div class="reg-grille"><div class="reg-accueil" id="reg-accueil">' +
         '<div id="reg-profil"></div>' +
+        '<div class="reg-cote" id="reg-cote" hidden></div>' +
         '<div class="carte reg-menu">' +
           (CAP.espaces ? regLigne('entreprise', 'indigo', 'i-entreprise', 'Entreprise et abonnement') : '') +
           regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
@@ -3528,7 +3642,7 @@
         regSection('apropos', 'À propos', '<div class="carte carte-pad" id="reg-apropos"></div>') +
       '</div></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
-    peindreProfilReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour(); peindreConfirmer();
+    peindreProfilReglage(); peindreCoteReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour(); peindreConfirmer();
     if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
@@ -3567,6 +3681,7 @@
       return;
     }
     if (bouton.id === 'reg-pp') { declencheur = bouton; ouvrirFeuille('perso-plus'); return; }
+    if (bouton.id === 'reg-mode-auto') { basculerModeAuto(); return; }
     if (bouton.dataset.regRelire) { chargerReglages(); return; }
     if (bouton.id === 'reg-notif-sw' || bouton.id === 'reg-notif-apercu' || bouton.id === 'reg-notif-pause' || bouton.id === 'reg-notif-heures' || bouton.id === 'reg-notif-essai') { actionNotif(bouton.id.slice(10)); return; }
     if (bouton.dataset.hpJour && reg.notif && reg.notif.heuresPro) {
@@ -5171,7 +5286,6 @@
       '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
         '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
       pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
-      '<div class="seg cote-seg cote-seg-agenda" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-cote="perso" aria-pressed="true">Perso<b class="cote-n" hidden></b></button><button type="button" class="seg-bouton" data-cote="pro" aria-pressed="false">Pro<b class="cote-n" hidden></b></button></div>' +
       '<div class="seg" id="reu-vue-seg" role="group" aria-label="Afficher"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-reu-vue="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-reu-vue="mois" aria-pressed="false">Mois</button></div>' +
       '<div class="sem-nav" role="group" aria-label="Période affichée">' +
         '<button type="button" class="sem-fleche prec presse" id="sem-prec" aria-label="Semaine précédente">' + CHEVRON + '</button>' +
@@ -5968,10 +6082,9 @@
       '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
       '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="Facultatif"></div>' +
       '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>' +
-      choixCote('ev-cote', e ? coteEvt(e) : etat.mode) +
       '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
       '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
-    reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '' };
+    reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '', cote: etat.mode };      // le côté où l'on était en ouvrant la fiche
   }
   function evtBasculerJournee() {
     const b = $('ev-journee'); if (!b) return;
@@ -5988,12 +6101,11 @@
     const r = $('ev-rappel').value;
     const champs = { titre, lieu: $('ev-lieu').value.trim() || null, note: $('ev-note').value.trim() || null, journee, debut, fin: fin || null, rappel: r === '' ? null : Number(r) };
     if (!F.id) champs.tz = F.tz;
-    const cote = modesActifs() ? coteChoisi('ev-cote') : null;
-    if (cote) champs.cote = cote;                     // le côté choisi (un compte sans les deux côtés n'en dit rien : Perso)
+    if (!F.id && modesActifs()) champs.cote = F.cote || etat.mode;           // créé du côté où l'on était en ouvrant la fiche (un compte sans les deux côtés n'en dit rien : Perso) ; modifié, il garde le sien
     b.disabled = true;
     try {
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
-      mot(cote && cote !== etat.mode ? 'Événement rangé dans l\'agenda ' + NOM_COTE[cote] : F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
+      mot(F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
       fermerCouche(); evenementsRelire();
     } catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être enregistré.')); }
   }
@@ -6848,13 +6960,12 @@
     const initial = { odj: d ? (d.ordreDuJour || []).map(p => p.texte) : [], titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
     /* « Programmer une réunion avec … » depuis la fiche d'une personne : elle est déjà invitée (une fois — le formulaire suivant repart vide) */
     const avec = !id && reu.prechoisis ? [reu.prechoisis] : []; reu.prechoisis = null;
-    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut };
+    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut, cote: etat.mode };
     const typeFin = initial.n ? 'nombre' : initial.jusqua ? 'date' : 'jamais';
     corps.dataset.sig = '';
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="champ"><label for="rf-titre">Titre</label><input id="rf-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(initial.titre) + '" placeholder="Point d\'équipe"></div>' +
       '<div class="champ"><label for="rf-lieu">Lieu ou lien</label><input id="rf-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(initial.lieu) + '" placeholder="Salle, adresse ou lien"></div>' +
-      (id ? '' : choixCote('rf-cote', etat.mode)) +      // le côté où je la range (à la création : ensuite, c'est sa conversation qui se range — « Ranger dans »)
       /* l'ordre du jour (8 octobre 2026) : un point par ligne — les participants les cochent pendant la séance, et le compte rendu les reprend */
       '<div class="champ"><label for="rf-odj">Ordre du jour</label><textarea id="rf-odj" rows="3" maxlength="4300" placeholder="Un point par ligne (facultatif)">' + esc(initial.odj.join('\n')) + '</textarea></div>' +
       '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
@@ -6919,7 +7030,7 @@
     if (odj.some(x => Array.from(x).length > 200)) { erreurInfo('Un point de l\'ordre du jour dépasse 200 signes.'); $('rf-odj').focus(); return null; }
     const c = { titre, lieu, debut, fin, tz, repetition: rep, rappels: F.rappels.slice().sort((a, b) => a - b), notifier: F.notifier, ordre_du_jour: odj };
     if (CAP.salles) c.salle_attente = !!F.attente;
-    if (!F.id && modesActifs()) c.cote = coteChoisi('rf-cote');
+    if (!F.id && modesActifs()) c.cote = F.cote || etat.mode;          // je la range du côté où j'étais en ouvrant la fiche (ensuite, c'est sa conversation qui se range — « Ranger dans »)
     if (rep !== 'aucune') {
       const type = $('rf-fin-type').value;
       c.jusqua = null; c.n = null;
@@ -8289,7 +8400,16 @@
        démarre sans lui (il reviendra au prochain lancement), jamais l'inverse. */
     if (CAP.agenda && CAP.espaces && CAP.appels && typeof source.espaces === 'function') {
       try { const e0 = await source.espaces(); etat.pro = !!e0 && ((Array.isArray(e0.espaces) && e0.espaces.length > 0) || e0.formule === 'pro'); bord.espaces = e0 && Array.isArray(e0.espaces) ? e0.espaces : []; } catch (e) { etat.pro = false; }
-      if (etat.pro) { ORDRE = ['accueil'].concat(ORDRE); etat.mode = modesActifs() && typeof source.modeTravail === 'function' && source.modeTravail() === 'pro' ? 'pro' : 'perso'; NAV = navPour(); }
+      if (etat.pro) {
+        ORDRE = ['accueil'].concat(ORDRE); etat.mode = modesActifs() && typeof source.modeTravail === 'function' && source.modeTravail() === 'pro' ? 'pro' : 'perso';
+        /* le passage automatique : une borne passée depuis le dernier choix de côté (ici ou ailleurs) décide du côté où l'on ouvre — sans écran qui change sous les yeux */
+        const h = horaireAttendu();
+        if (h && h.cote !== etat.mode && (typeof source.modeChoisiLe === 'function' ? source.modeChoisiLe() : 0) < h.depuis) {
+          etat.mode = h.cote; etat.modeGesteLe = Date.now(); ecrireCote(h.cote, false);
+          etat.horaireAnnonce = h.cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso';
+        }
+        NAV = navPour();
+      }
     }
     construireNavigation();
     construireContacts();
@@ -8303,6 +8423,8 @@
     history.replaceState({ opmsg: 1, n: 0, r: r0, p: null }, '', urlDe(r0));
     rendreListe();
     appliquer(r0);
+    horaireAppliquer(false);                                                  // la prochaine borne des heures de travail (rien si le passage automatique est coupé)
+    if (etat.horaireAnnonce) { mot(etat.horaireAnnonce); etat.horaireAnnonce = ''; }
     /* la source dit quand quelque chose change : la liste et la conversation ouverte se refont, rien d'autre */
     source.ecouter(ev => {
       if (ev.type === 'liste') { if (ev.erreur) montrerErreurListe(ev.erreur); else rafraichirListe(); }   // une relecture refusée par le service se DIT
@@ -8323,7 +8445,8 @@
       if (ev.type === 'espaces') surEspaces(ev);
       if (ev.type === 'reunions') { surReunions(ev); if (etat.route && etat.route.vue === 'accueil') chargerAccueil(); commun.cache.clear(); if (etat.vcSel && auBureau()) chargerCommun(etat.vcSel, true); if (etat.groupe.ouvert && etat.groupe.mode === 'personne') chargerCommun(etat.groupe.personneId, true); }   // une réunion programmée, modifiée, annulée : la fiche ouverte se relit
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
-      if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') verifierVersion(); }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
+      if (ev.type === 'prefs') surPrefs();                       // mon côté, le passage automatique ou mes heures ont changé (ici, ou sur un autre appareil)
+      if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') { verifierVersion(); relireCompte(); } }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') { if (ev.nature === 'mention') surMention(ev); else notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : ''); }
       if (ev.type === 'retire') surRetire(ev.id);

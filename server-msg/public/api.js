@@ -267,7 +267,7 @@
     return liste;
   }
 
-  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'sondage', 'transcription', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'espace', 'reunion', 'appel', 'signal', 'salle_evt', 'resync'];
+  const EVENEMENTS = ['message', 'message_modifie', 'message_supprime', 'reaction', 'sondage', 'transcription', 'conversation', 'retire', 'lu', 'notification', 'saisie', 'presence', 'personne', 'prefs', 'espace', 'reunion', 'appel', 'signal', 'salle_evt', 'resync'];
 
   function creer(opts) {
     const o = opts || {};

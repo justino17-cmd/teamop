@@ -246,6 +246,13 @@ async function ouvrirFicheAuDoigt(S, titre) {
   S.gestes++;
   await ligne.tap();
 }
+/* ⛔ LE JOUR D'UNE DATE SE TOUCHE LÀ OÙ LA PAGE LE MONTRE À CETTE LARGEUR (la semaine en grille, 10 octobre 2026) : dès 700 px, l'Agenda est la SEMAINE EN GRILLE — une case `.mjour` par jour
+   (`data-case` : son minuit local), dont le NUMÉRO est le bouton — et la bande des sept jours (`#sem-jours`) est cachée par `display:none`. Elle reste dans le DOM : un test d'EXISTENCE la
+   trouve, et la toucher attend pour toujours un élément visible (la sonde mourait ici, Bruno au bureau, le 11 octobre). Au téléphone c'est l'inverse : la bande est là, la grille est cachée.
+   Le minuit se lit DANS la page, donc dans SON fuseau (New York pour Bruno), comme le font `sonde-opmessages-agenda-cote.js` et `-agenda-decaler.js`. */
+const grilleAffichee = (S) => S.pf.w >= 700;
+const minuitDuJour = (S, jour) => S.page.evaluate((j) => { const [a, m, d] = j.split('-').map(Number); return new Date(a, m - 1, d).getTime(); }, jour);
+const boutonDuJour = (S, t) => grilleAffichee(S) ? '#sem-grille .mjour[data-case="' + t + '"] .mjour-num' : '#sem-jours .jour[data-jour="' + t + '"]';
 
 /* ═══ LES DATES ET LES CONSTANTES DU BANC ══════════════════════════════════════════════════════════════════════════════════════════════════════
    Les secrets du banc sont fictifs et portent des lettres hors de [0-9a-f] : jamais le hasard d'une empreinte. L'oracle des dates (`Intl`) ne partage rien avec le service. */
@@ -446,18 +453,27 @@ async function parcoursA(b, ctx) {
   await verifier('⛔ la bannière dit l\'invitation, dans le fuseau de Bruno (08:00 à New York, pas 14:00 de Paris) — il n\'avait encore ouvert AUCUN écran d\'agenda', B,
     (arg) => window.__bannieres.some(t => t.includes('Alice Martin vous a invité à une réunion : ' + arg.ny) && !t.includes(arg.paris)), { ny: dit(OCC[0], NY), paris: dit(OCC[0], PARIS) }, 10000, () => bannieres(B).then(l => l.join(' // ')));
   await onglet(B, 'reunions');
+  /* ⛔ à 1440 px l'Agenda est la semaine EN GRILLE : le jour se touche par le numéro de SA CASE (la bande des sept jours est cachée, la toucher attendrait pour toujours). La population d'abord : on
+     prouve ce que la page montre à cette largeur, sinon `boutonDuJour` pourrait viser une bande invisible sans le dire. */
+  const tJour = await minuitDuJour(B, DST.avant), jourB = boutonDuJour(B, tJour);
+  v('(population) au bureau, l\'Agenda est la semaine en GRILLE — sept cases à l\'écran, la bande des sept jours cachée : c\'est la grille que Bruno voit et touche', await B.page.evaluate(() => [getComputedStyle(document.getElementById('sem-jours')).display, getComputedStyle(document.getElementById('sem-grille')).display, Array.from(document.querySelectorAll('#sem-grille .mjour')).filter(c => c.getClientRects().length > 0).length]), ['none', 'grid', 7]);
   for (let i = 0; i < 60; i++) {
-    if (await B.page.evaluate((l) => !!document.querySelector('#sem-jours .jour[aria-label^="' + l + ',"]'), libJour(DST.avant))) break;
+    if (await B.page.evaluate((s) => !!document.querySelector(s), jourB)) break;
     await toucher(B, '#sem-suiv');
     await B.page.waitForFunction(() => document.getElementById('liste-reunions').getAttribute('aria-busy') !== 'true', null, { timeout: 5000 }).catch(() => {});
   }
-  await toucher(B, '#sem-jours .jour[aria-label^="' + libJour(DST.avant) + ',"]');
+  await toucher(B, jourB);
   await verifier('⛔ l\'agenda de Bruno montre la réunion à SON heure (' + heureDans(OCC[0], NY) + '), avec l\'heure de Paris à côté, l\'organisatrice, « À répondre »', B, (a) => {
     const l = document.querySelector('#liste-reunions .reunion-ligne'); if (!l) return false;
     const sous = Array.from(l.querySelectorAll('.reunion-sous')).map(e => e.textContent);
     return l.querySelector('.reunion-titre').textContent === a.titre && l.querySelector('.reunion-heure').textContent === a.h && sous.some(t => /Alice Martin · 2 participants/.test(t)) && sous.some(t => t === 'Heure de Paris : 14:00 – 15:00')
       && /À répondre/.test(l.querySelector('.reunion-etat').textContent) && l.querySelector('.reunion-etat').classList.contains('attention');
   }, { titre: TITRE, h: heureDans(OCC[0], NY) + heureDans(OCC[0] + H, NY) }, 12000, () => lire(B, '#liste-reunions'));
+  /* … la liste du jour dit le détail ; au bureau c'est la CASE du jour qui est l'agenda (la même réunion, à l'heure de Bruno et jamais à celle de Paris) */
+  await verifier('… et, au bureau, la CASE de ce jour dans la grille de la semaine porte la réunion à l\'heure de Bruno (' + heureDans(OCC[0], NY) + ') — pas à celle de Paris', B, (a) => {
+    const c = document.querySelector('#sem-grille .mjour[data-case="' + a.t + '"] .mjour-elts'); if (!c) return false;
+    return c.textContent.includes(a.h) && c.textContent.includes(a.titre) && !c.textContent.includes(a.paris);
+  }, { t: tJour, h: heureDans(OCC[0], NY), titre: TITRE, paris: heureDans(OCC[0], PARIS) }, 12000, () => B.page.evaluate((t) => { const c = document.querySelector('#sem-grille .mjour[data-case="' + t + '"]'); return c ? c.textContent.replace(/\s+/g, ' ').trim() : '(case absente)'; }, tJour));
   await capture(B, 'r4-agenda-bruno');
   await largeur(B, 'Réunions (Bruno, liste)');
   await toucher(B, '#liste-reunions .reunion-ligne');
@@ -583,7 +599,16 @@ async function parcoursA2(E) {
     const l = ((await P.alice.get('/api/conversations')).j.conversations || []).find(c => c.reunion === R);
     v('la réunion programmée côté Perso est rangée Perso (le choix d\'Alice à la création ; l\'automatique, lui, dit Perso aussi — Bruno et Dora ne sont pas ses collègues)', l && [l.cote_choisi, l.cote], ['perso', 'perso']);
   }
-  await A.page.evaluate(() => { const b = Array.from(document.querySelectorAll('[data-cote-seg] [data-cote="perso"]')).find(x => x.getClientRects().length); if (b && b.getAttribute('aria-pressed') !== 'true') b.click(); });
+  /* (11 octobre 2026, « une seule bascule ») au téléphone, on ne règle Perso | Pro que dans le PROFIL (la photo, le segment de la carte « Perso et Pro », ‹ Retour ›) : plus de sélecteur
+     sous le titre de Messages. Alice est déjà Perso (rien à faire) ; si elle ne l'était pas, elle y revient par ce parcours-là — jamais par un clic en JavaScript sur un segment caché. */
+  if (await A.page.evaluate(() => document.documentElement.dataset.cote) === 'pro') {
+    await toucher(A, '.moi-pastille');
+    await A.page.waitForFunction(() => !document.getElementById('vue-reglages').hidden && Array.from(document.querySelectorAll('.cote-seg-profil')).some(x => x.getClientRects().length), null, { timeout: 12000 });
+    await toucher(A, '.cote-seg-profil [data-cote="perso"]');
+    await A.page.waitForFunction(() => document.documentElement.dataset.cote === 'perso', null, { timeout: 12000 });
+    await toucher(A, '.profil-retour');
+    await A.page.waitForFunction(() => document.getElementById('vue-reglages').hidden, null, { timeout: 12000 });
+  }
   await verifier('la conversation de la réunion est dans la liste d\'Alice : le titre pour nom, une icône d\'agenda, et — le dernier message étant une phrase système (Dora retirée) — « Activité de la réunion » (jamais « du groupe »)', A, (a) => {
     const c = Array.from(document.querySelectorAll('#liste-conv .conv')).find(e => e.querySelector('.conv-nom').textContent === a);
     return !!c && c.querySelector('.conv-apercu').textContent === 'Activité de la réunion' && !!c.querySelector('.avatar svg');

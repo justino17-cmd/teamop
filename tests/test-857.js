@@ -890,9 +890,10 @@ async function controler(PAGE, SRC, DOC) {
   vrai('⛔ le tableau de bord est le côté Pro : ni une réunion, ni un rappel, ni une mention du côté Perso',
     /const pourBord = cote => !modesActifs\(\) \|\| cote === 'pro';/.test(JS) && /if \(!r\.annulee && pourBord\(coteReu\(r\)\)\)/.test(JS) && /\(e\.debut < demain \|\| e\.rappel !== null\) && pourBord\(coteEvt\(e\)\)\)/.test(JS)
       && /x\.t >= t7 && pourBord\(coteDe\(etat\.conversations\.find\(c => c\.id === x\.conv\)\)\)/.test(JS));
-  vrai('un événement et une réunion naissent du côté où l\'on est — la fiche le propose, le côté part au service ; un événement se range ensuite dans sa fiche',
-    /choixCote\('ev-cote', e \? coteEvt\(e\) : etat\.mode\)/.test(JS) && /const cote = modesActifs\(\) \? coteChoisi\('ev-cote'\) : null;\s*if \(cote\) champs\.cote = cote;/.test(JS)
-      && /\(id \? '' : choixCote\('rf-cote', etat\.mode\)\)/.test(JS) && /if \(!F\.id && modesActifs\(\)\) c\.cote = coteChoisi\('rf-cote'\);/.test(JS));
+  /* (11 octobre 2026, « que dans chaque onglet on ne choisisse pas pro ou perso ») plus de choix dans la fiche : l'élément créé part au service avec le côté où l'on est ;
+     modifié, il garde le sien (« Ranger dans » le change) — tests/test-1003.js garde la bascule unique et le passage automatique */
+  vrai('un événement et une réunion naissent du côté où l\'on est — sans choix dans la fiche (une seule bascule) ; ils se rangent ensuite par « Ranger dans »',
+    !/choixCote|coteChoisi\(|data-choix-cote/.test(JS) && /if \(!F\.id && modesActifs\(\)\) champs\.cote = F\.cote \|\| etat\.mode;/.test(JS) && /if \(!F\.id && modesActifs\(\)\) c\.cote = F\.cote \|\| etat\.mode;/.test(JS));
   vrai('⛔ une réunion a le côté de SA conversation — celui de la liste d\'abord (à jour dès qu\'on la range), puis celui que l\'agenda a lu au service',
     /const coteReu = r => \{ const c = r && etat\.conversations\.find\(x => x\.id === r\.conv\); return c \? coteDe\(c\) : r && \(r\.cote === 'perso' \|\| r\.cote === 'pro'\) \? r\.cote : 'pro'; \};/.test(JS));
   vrai('changer de côté redessine l\'Agenda ; une liste relue où une réunion a changé de côté aussi (rangée ici, ou sur un autre appareil)',

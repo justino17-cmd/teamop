@@ -2990,6 +2990,8 @@
         if (d.type === 'appel_manque') emettre({ type: 'appels' });          // un appel manqué entre dans l'historique
       },
       saisie: (d) => { if (!estMoi(d.uid)) poserSaisie(d.conv, d.uid, !!d.actif); },
+      /* Perso / Pro (11 octobre 2026) : mon côté, le passage automatique ou mes heures de travail ont changé sur un autre appareil (ou ici) — la page relit et suit */
+      prefs: () => relireCote(),
       personne: (d) => {
         if (estMoi(d.uid)) api0.moi().then(m => { moiApi = m; noter(m); emettre({ type: 'moi' }); }, () => {});
         rafraichirContacts().catch(() => {});
@@ -3014,6 +3016,7 @@
       resync: () => {
         moteur.surResync();
         marquerTout();
+        relireCote();                 // un côté choisi sur un autre appareil pendant que celui-ci dormait (le flux était fermé)
         Promise.all([relireListe(), rafraichirContacts()]).then(() => { emettre({ type: 'liste' }); emettre({ type: 'espaces', id: null }); for (const id of convs.keys()) emettre({ type: 'conversation', id }); }, () => {});
       },
       reseau: (etat) => {
@@ -3329,6 +3332,7 @@
     };
     async function notifHeuresPro(reglage) {
       const r = reglage ? { jours: Array.from(new Set((reglage.jours || []).map(Number))).sort((x, y) => x - y), debut: reglage.debut | 0, fin: reglage.fin | 0 } : null;
+      ecrituresCote++;
       const m = await A.majMoi({ prefs: { heures_pro: r } });
       moiApi = m; noter(m);
       return notifEtat();
@@ -3343,9 +3347,28 @@
     const modeTravail = () => moiApi && moiApi.prefs && moiApi.prefs.mode === 'pro' ? 'pro' : 'perso';
     async function choisirMode(m) {
       if (m !== 'perso' && m !== 'pro') throw erreurLocale('invalide');
+      ecrituresCote++;
       const r = await A.majMoi({ prefs: { mode: m } });
       moiApi = r; noter(r);
       return modeTravail();
+    }
+    /* LE PASSAGE AUTOMATIQUE EN PRO (11 octobre 2026 : « basculer automatiquement l'application en mode pro de 8 h à 17 h ») : allumé, la page passe en Pro au début des
+       heures de travail et revient en Perso à la fin. `modeChoisiLe` : l'heure (celle du SERVICE) du dernier choix de côté, ici ou sur un autre appareil — un geste fait APRÈS
+       le début ou la fin des heures l'emporte sur l'automatique jusqu'à la prochaine. 0 : jamais choisi. */
+    const modeAuto = () => !!(moiApi && moiApi.prefs && moiApi.prefs.mode_auto === true);
+    const modeChoisiLe = () => { const t = moiApi && moiApi.prefs && moiApi.prefs.mode_le; return Number.isFinite(t) && t > 0 ? t : 0; };
+    async function choisirModeAuto(actif) {
+      ecrituresCote++;
+      const r = await A.majMoi({ prefs: { mode_auto: !!actif } });
+      moiApi = r; noter(r);
+      return modeAuto();
+    }
+    /* relire le compte (l'événement `prefs`, le resync, la page qui revient) → vrai si le service a répondu. ⛔ Une relecture partie AVANT une écriture du côté, du passage
+       automatique ou des heures ne remplace pas `moiApi` par l'état d'avant (relecture du gardien, 11 octobre 2026) : l'écriture rend le sien, et l'événement suivant relit. */
+    let ecrituresCote = 0;
+    function relireCote() {
+      const e0 = ecrituresCote;
+      return api0.moi().then(m => { if (ecrituresCote === e0) { moiApi = m; noter(m); emettre({ type: 'prefs' }); } return true; }, () => false);
     }
     /* la confirmation avant d'envoyer (« côté pro », 7 octobre 2026) : 'jamais' | 'groupes' (groupes, canaux, réunions) | 'partout' — une préférence du compte */
     const confirmerEnvoi = () => { const x = moiApi && moiApi.prefs && moiApi.prefs.confirmer_envoi; return x === 'groupes' || x === 'partout' ? x : 'jamais'; };
@@ -3775,7 +3798,7 @@
       pieceUrl, pieceBlob, pieceLien, reessayer, abandonner, limitesPieces: limites,
       envoyerPosition, envoyerFiche, envoyerSondage, sondageVoter, sondageAjouter, sondageClore, demanderCarte, ecrireCarte, repondreInvitation,   // les cartes d'un message
       themeConv,                                                                                                   // le fond et les bulles d'une conversation
-      modeTravail, choisirMode, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions, vitesseVocal, choisirVitesseVocal,                                                                            // Perso / Pro
+      modeTravail, choisirMode, modeAuto, modeChoisiLe, choisirModeAuto, relireCote, rangerCote, confirmerEnvoi, choisirConfirmerEnvoi, agendaVue, choisirAgendaVue, bordReunions, choisirBordReunions, vitesseVocal, choisirVitesseVocal,                                                                            // Perso / Pro
       profil, majProfil, poserPhotoProfil, retirerPhotoProfil, confidentialite, majConfidentialite, bloques, bloquer, debloquer, favori, enCommun, suiviPiece, presenceSalle, presenceReunion, deconnecterAutres, stockage: stockageUtilise, aPropos, versionServie, relireApplication, garderBrouillons, reprendreBrouillons,
       /* ── les notifications, la sourdine, l'export, la suppression ── */
       notifEtat, notifActiver, notifDesactiver, notifApercu, notifPauseReunion, notifHeuresPro, heuresPro, notifEssai, sourdine, exporterDonnees, supprimerCompte,

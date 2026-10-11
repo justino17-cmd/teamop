@@ -1310,9 +1310,12 @@ html[data-service] .mention-apercu { display: none; }
 @keyframes deroule-sort { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
 
 /* ══ PERSO / PRO — « un bouton pour basculer de perso à pro, et le nom OP MESSAGES PRO quand on est en pro » (demande du 7 octobre 2026) ═════════════════════════════
-   Un compte pro (un espace d'entreprise, ou Messages Pro) a deux côtés : le sélecteur « Perso | Pro » (le segmenté de la page) en haut de la barre latérale au bureau, sous
-   le titre de Messages au téléphone. En Pro, le nom devient « OP MESSAGES PRO » (la pastille PRO), le tableau de bord paraît, la liste ne montre que les conversations de
-   travail ; une pastille sur l'autre côté dit ce qui n'y est pas lu. Un compte qui n'est pas pro ne voit rien de tout ça. */
+   Un compte pro (un espace d'entreprise, ou Messages Pro) a deux côtés. En Pro, le nom devient « OP MESSAGES PRO » (la pastille PRO), le tableau de bord paraît, la liste ne
+   montre que les conversations de travail ; une pastille sur l'autre côté dit ce qui n'y est pas lu. Un compte qui n'est pas pro ne voit rien de tout ça.
+   ⛔ UNE SEULE BASCULE (11 octobre 2026 : « quand on bascule, c'est TOUT qui bascule… que dans chaque onglet on ne choisisse pas pro ou perso… je ne veux pas que sur téléphone,
+   dans les messages, on puisse basculer ») : le sélecteur vit en haut de la barre latérale au bureau, et dans le PROFIL au téléphone — plus sous le titre de Messages ni sous
+   celui de l'Agenda, et plus de choix « Agenda : Perso | Pro » dans les fiches (un élément créé est du côté où l'on est). Au téléphone, une pastille rouge sur la photo du
+   profil dit qu'il y a du non-lu de l'autre côté. */
 .cote-seg { margin: 0 0 12px; }
 .side .cote-seg { margin: 0 6px 12px; }
 .cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
@@ -1345,8 +1348,13 @@ html[data-service] .mention-apercu { display: none; }
 .marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
 #vue-messages > .entete-vue { position: relative; }
 .marque-tel { position: absolute; left: 96px; right: 96px; margin: 0 auto; width: max-content; max-width: calc(100% - 192px); display: flex; align-items: center; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; pointer-events: none; }
-@media (min-width: 900px) { .cote-seg-liste, .cote-seg-agenda, .marque-tel { display: none !important; } }
-@media (min-width: 781px) and (max-width: 899.98px) { html[data-kind="tablette"] .cote-seg-liste, html[data-kind="tablette"] .cote-seg-agenda, html[data-kind="tablette"] .marque-tel { display: none !important; } }
+/* le segment du Profil et le nom centré sont ceux du TÉLÉPHONE : là où la barre latérale paraît (bureau, tablette), c'est elle qui porte le sélecteur — un seul à l'écran */
+@media (min-width: 900px) { .reg-cote-seg, .marque-tel { display: none !important; } }
+@media (min-width: 781px) and (max-width: 899.98px) { html[data-kind="tablette"] .reg-cote-seg, html[data-kind="tablette"] .marque-tel { display: none !important; } }
+.reg-cote { margin-bottom: 18px; }
+.reg-cote-seg .cote-seg { margin: 0; }
+.reg-cote-aide { margin: 10px 2px 0; font-size: 13px; line-height: 18px; color: var(--sub-meta); }
+.moi-point { position: absolute; top: 3px; right: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--rouge); border: 2px solid var(--card); pointer-events: none; }
 .deroule-titre { width: 0; min-width: 100%; margin: 0; padding: 7px 14px 7px 38px; font-size: 13px; line-height: 17px; color: var(--sub-meta); }      /* `width: 0` + `min-width: 100%` : le titre se replie dans la largeur des choix, il ne l'élargit pas */
 .deroule-liste { display: flex; flex-direction: column; }
 .deroule-choix { width: 100%; min-height: 44px; display: flex; align-items: center; gap: 4px; padding: 0 18px 0 6px; border-radius: 12px; font-size: 17px; line-height: 22px; color: var(--text); text-align: left; }
@@ -2430,7 +2438,6 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         <button type="button" class="btn-plus" id="btn-plus" aria-haspopup="dialog" aria-label="Nouvelle discussion"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button>
       </div>
       <h1 class="grand-titre" id="titre-messages">Messages</h1>
-      <div class="seg cote-seg cote-seg-liste" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-cote="perso" aria-pressed="true">Perso<b class="cote-n" hidden></b></button><button type="button" class="seg-bouton" data-cote="pro" aria-pressed="false">Pro<b class="cote-n" hidden></b></button></div>
       <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher dans les conversations</span><input type="search" id="recherche-conv" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>
       <p class="liste-erreur" id="liste-erreur" role="alert" hidden><span id="liste-erreur-texte"></span><button type="button" id="liste-erreur-bouton">Réessayer</button></p>
       <ul class="epingles" id="epingles" role="list" aria-label="Conversations épinglées"></ul>

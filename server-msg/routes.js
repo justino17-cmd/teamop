@@ -29,7 +29,10 @@ const EMOJI = /^(?:\p{Extended_Pictographic}|\p{Emoji_Modifier}|\p{Regional_Indi
 const LANGUES = /^[a-z]{2}(-[A-Z]{2})?$/;
 /* ⛔ `position` (le bouton « Position » des conversations, COUPÉ par défaut — 7 octobre 2026 : « il faut qu'il l'active dans les paramètres, c'est une sécurité pour eux ») N'EST PAS ICI :
    une seule porte l'allume, `moi.confidentialite` (telephone.js) — relecture du gardien. */
-const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses', 'pause_reunion'];      // pause_reunion : « Ne pas déranger pendant une réunion » (absent = allumé, `push.js`)
+/* pause_reunion : « Ne pas déranger pendant une réunion » (absent = allumé, `push.js`). mode_auto (11 octobre 2026 : « basculer automatiquement l'application en mode pro de 8 h
+   à 17 h ») : passer en Pro pendant ses heures de travail (`heures_pro`) et revenir en Perso après — c'est la PAGE qui bascule (elle a l'heure de l'appareil, comme
+   `dansHeuresPro`) ; absent = coupé. */
+const PREFS_PERSONNE = ['presence', 'apercu_notif', 'accuses', 'pause_reunion', 'mode_auto'];
 /* les préférences à CHOIX (une valeur parmi celles-ci, rien d'autre) : le côté où l'on travaille (« Perso | Pro », 7 octobre 2026) et la confirmation avant d'envoyer */
 const PREFS_CHOIX = { mode: ['perso', 'pro'], confirmer_envoi: ['jamais', 'groupes', 'partout'], agenda_vue: ['semaine', 'mois'], bord_reunions: ['semaine', 'mois'], vitesse_vocal: ['1', '1.5', '2'] };      // agenda_vue : l'Agenda s'ouvre sur la semaine ou sur le mois ; bord_reunions : les réunions prévues du tableau de bord, 7 ou 30 jours (8 octobre 2026)
 /* vitesse_vocal (10 octobre 2026 : « qu'on puisse accélérer les vocaux ») : la vitesse de lecture des messages vocaux, retenue par le compte — trois valeurs, en CHAÎNES (une valeur du corps n'est jamais un nombre libre) */
@@ -250,6 +253,11 @@ function creerHandlers(ctx) {
       const p = Object.assign({}, req.moi.prefs);
       for (const k of PREFS_PERSONNE) if (b.prefs[k] !== undefined) { if (typeof b.prefs[k] !== 'boolean') return refus(res, 400, 'champ_invalide'); p[k] = b.prefs[k]; }
       for (const k of Object.keys(PREFS_CHOIX)) if (b.prefs[k] !== undefined) { if (!PREFS_CHOIX[k].includes(b.prefs[k])) return refus(res, 400, 'champ_invalide'); p[k] = b.prefs[k]; }
+      /* ⛔ L'HEURE DU DERNIER CHOIX DE CÔTÉ (11 octobre 2026), à l'horloge du SERVICE et jamais lue dans le corps : c'est elle qui départage un geste et le passage
+         automatique — à 8 h la page passe en Pro, sauf si la personne a choisi son côté APRÈS 8 h (sur cet appareil ou un autre). Sans elle, un retour en Perso à 10 h sur
+         le téléphone était défait par l'ordinateur au rechargement suivant. Seulement quand le côté CHANGE : une page qui renverrait le côté actuel (en retard, ou d'avant) ne
+         suspend pas le passage automatique des autres appareils (relecture du gardien). */
+      if (b.prefs.mode !== undefined && b.prefs.mode !== (req.moi.prefs || {}).mode) p.mode_le = horloge();
       /* les heures de travail côté Pro (`heures-pro.js`) : `null` les coupe ; sinon { jours, debut, fin } exactement, en minutes — rien d'autre ne s'écrit (`push.js` le relit à chaque message) */
       if (b.prefs.heures_pro !== undefined) {
         if (b.prefs.heures_pro === null) delete p.heures_pro;

@@ -123,8 +123,13 @@ const TEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: t
     console.log('\n── 3. Au téléphone : Ben reçoit une mention ──');
     const B = await ouvrir('ben', TEL, '#messages');
     await att(B, () => !document.getElementById('vue-messages').hidden && document.documentElement.dataset.conv !== '1');
+    /* ⛔ LE FLUX DE LA PAGE SE BRANCHE APRÈS L'ÉCRAN : une mention partie avant lui ne se dit pas en bannière (une fois sur deux, mesuré). On ne mesure qu'une fois le flux PROUVÉ branché :
+       Ana écrit (sans mentionner) jusqu'à ce qu'une bannière surgisse — au geste, pas au chronomètre */
+    let branche = false;
+    for (let i = 0; i < 4 && !branche; i++) { await P.ana.post('/api/conversations/' + G + '/messages', { cid: cid(), texte: 'Un instant ' + i }); branche = await att(B, () => document.getElementById('notif').classList.contains('on'), null, 4000); }
+    vrai('population : le flux de la page de Ben est branché (une bannière a surgi pour un message ordinaire)', branche);
     await P.ana.post('/api/conversations/' + G + '/messages', { cid: cid(), texte: '@Ben tu peux passer au dépôt ?', mentions: [P.ben.moi.id] });
-    vrai('une bannière la dit : le groupe, et « Ana Banc vous a mentionné. » — elle se touche', await att(B, () => { const n = document.getElementById('notif'); return n.classList.contains('on') && n.classList.contains('touchable') && document.getElementById('notif-texte').textContent === 'Chantier' && document.getElementById('notif-aide').textContent === 'Ana Banc vous a mentionné.'; }),
+    vrai('une bannière la dit : le groupe (Ben est côté Perso, « Chantier » est Pro : le titre le dit, « Pro · Chantier »), et « Ana Banc vous a mentionné. » — elle se touche', await att(B, () => { const n = document.getElementById('notif'); return n.classList.contains('on') && n.classList.contains('touchable') && document.getElementById('notif-texte').textContent === 'Pro · Chantier' && document.getElementById('notif-aide').textContent === 'Ana Banc vous a mentionné.'; }),
       await B.page.evaluate(() => [document.getElementById('notif').className, document.getElementById('notif-texte').textContent, document.getElementById('notif-aide').textContent]));
     await capture(B, 'm3-banniere');
     await B.page.locator('#notif').tap();
@@ -160,7 +165,19 @@ const TEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: t
     console.log('\n── 4. Le tableau de bord : le bloc « Mentions » ──');
     await B.page.evaluate(() => { location.hash = '#messages'; });
     await att(B, () => document.documentElement.dataset.conv !== '1');
-    await B.page.locator('.cote-seg-liste [data-cote="pro"]').tap();
+    /* (11 octobre 2026) plus de sélecteur sous le titre de Messages : au téléphone, la bascule est dans le Profil — la photo, « Perso et Pro », le côté voulu, puis le lien « retour » */
+    const versCote = async (cote) => {
+      await B.page.locator('.moi-pastille').filter({ visible: true }).first().tap();
+      if (!await att(B, () => !document.getElementById('vue-reglages').hidden && !!document.querySelector('.cote-seg-profil') && document.querySelector('.cote-seg-profil').getClientRects().length > 0)) return false;
+      await B.page.locator('.cote-seg-profil [data-cote="' + cote + '"]').tap();
+      if (!await att(B, (c) => document.documentElement.dataset.cote === c && document.querySelector('.cote-seg-profil [data-cote="' + c + '"]').getAttribute('aria-pressed') === 'true', cote)) return false;
+      await B.page.locator('.profil-retour').filter({ visible: true }).first().tap();
+      return att(B, () => document.getElementById('vue-reglages').hidden && !document.getElementById('vue-messages').hidden);
+    };
+    /* la bannière a ouvert « Chantier » (Pro) : la page a suivi la conversation, côté Pro. Pour jouer le geste, on repasse d'abord côté Perso, au doigt */
+    if (await B.page.evaluate(() => document.documentElement.dataset.cote === 'pro')) vrai('population : on repasse côté Perso au doigt (le Profil, puis le retour) — la bannière avait fait suivre la conversation, côté Pro', await versCote('perso') && await B.page.evaluate(() => document.documentElement.dataset.cote === 'perso'));
+    vrai('population : Ben est côté Perso, aucun sélecteur sous le titre de Messages (rien de visible dans l\'écran)', await B.page.evaluate(() => document.documentElement.dataset.cote === 'perso' && Array.from(document.querySelectorAll('[data-cote-seg]')).every(x => !x.getClientRects().length)));
+    vrai('au doigt : la photo → le Profil → « Pro » → le retour — et la page est côté Pro', await versCote('pro') && await B.page.evaluate(() => document.documentElement.dataset.cote === 'pro'));
     await att(B, () => !!document.querySelector('#tabs .tab[data-vue="accueil"]'));
     await B.page.locator('#tabs .tab[data-vue="accueil"]').tap();
     vrai('population : le tableau de bord porte un bloc « Mentions »', await att(B, () => !document.getElementById('vue-accueil').hidden && !!document.getElementById('bord-mentions') && !/Chargement/.test(document.getElementById('bord-mentions').textContent)));

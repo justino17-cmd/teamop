@@ -14,6 +14,8 @@
         l'avait bien supprimé, mais seul l'Agenda se relisait.
      8. (8 octobre 2026, « il faudrait bien séparer l'agenda perso et pro ») le tableau est le côté PRO : les réunions et le rappel d'Ana y sont rangés Pro (comme la page les
         range quand on les programme côté Pro) ; ⛔ « Dîner WQXZ » et « Dentiste WQXZ », rangés Perso, n'y paraissent JAMAIS — ni en semaine, ni au mois, ni dans le compteur.
+   11 octobre 2026 (« quand on bascule, c'est TOUT qui bascule… sur téléphone, dans les messages, on ne peut pas basculer ») : au téléphone, « Pro » se touche dans le PROFIL
+   (la photo, puis le segment de la carte « Perso et Pro », puis ‹ Retour ›) — plus sous le titre de Messages, qui n'a plus de sélecteur (§ 1 le prouve, population à l'appui).
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.   Lancer :   node tests/sonde-opmessages-tableau-bord.js   (CAPTURES=/dossier pour les images)
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
@@ -68,7 +70,10 @@ function localDans(t, tz) {
     const finF = salleF.j && salleF.j.appel ? await P.ana.post('/api/salles/' + salleF.j.appel.id + '/terminer', {}) : { code: 0 };
     v('population : la réunion dans douze jours, et celle qu\'Ana a ouverte puis TERMINÉE pour tous', [reu12.code, reuF.code, finF.code], [201, 201, 200]);
     /* onze de plus, du 3ᵉ au 13ᵉ jour : au MOIS, treize réunions — douze lignes, puis « Voir l'autre dans l'Agenda » */
-    const plus = []; for (let i = 3; i <= 13; i++) plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(t0 + i * JOUR, PARIS), fin: localDans(t0 + i * JOUR + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' })).code);
+    /* ⛔ l'heure répétée du passage à l'heure d'hiver : lancée à 22 h 13 UTC le 11 octobre 2026, la 13ᵉ réunion tombait le 25 à 2 h 15, et sa fin une heure plus tard
+       s'écrivait AUSSI « 02:15 » (heure d'hiver) — le service refuse à bon droit une réunion qui finit à l'heure où elle commence. La sonde choisit une heure qui existe. */
+    const heureNette = (d) => { while (localDans(d + H, PARIS) <= localDans(d, PARIS)) d += H; return d; };
+    const plus = []; for (let i = 3; i <= 13; i++) { const d = heureNette(t0 + i * JOUR); plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(d, PARIS), fin: localDans(d + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' })).code); }
     v('population : onze réunions de suivi, du 3ᵉ au 13ᵉ jour', plus, Array(11).fill(201));
     v('population : Cléo est Pro (membre de l\'espace abonné) et n\'est invitée nulle part', (await P.cleo.get('/api/espaces')).j.formule, 'pro');
     /* demain à midi, À PARIS (l'heure locale part telle quelle, avec son fuseau) : pas aujourd'hui — il n'entre au tableau que par son RAPPEL */
@@ -102,6 +107,15 @@ function localDans(t, tz) {
     };
     const att = (X, fn, arg, ms) => X.page.waitForFunction(fn, arg, { timeout: ms || 15000, polling: 100 }).then(() => true, () => false);
     const capture = async (X, nom) => { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { recursive: true }); await X.page.screenshot({ path: path.join(DOSSIER, nom + '.png'), fullPage: true }); };
+    /* LE geste de bascule au téléphone : la photo du profil, le segment du Profil, ‹ Retour › — chaque marche attend son effet (une frappe prouve qu'elle a porté) */
+    const basculerTel = async (X, cote) => {
+      await X.page.locator('.moi-pastille').filter({ visible: true }).first().tap();
+      if (!(await att(X, () => !document.getElementById('vue-reglages').hidden && Array.from(document.querySelectorAll('.cote-seg-profil')).some(x => x.getClientRects().length)))) return false;
+      await X.page.locator('.cote-seg-profil [data-cote="' + cote + '"]').filter({ visible: true }).first().tap();
+      if (!(await att(X, (c) => document.documentElement.dataset.cote === c && Array.from(document.querySelectorAll('.cote-seg-profil [data-cote="' + c + '"]')).some(x => x.getAttribute('aria-pressed') === 'true'), cote))) return false;
+      await X.page.locator('.profil-retour').filter({ visible: true }).first().tap();
+      return att(X, () => document.getElementById('vue-reglages').hidden);
+    };
     const TEL = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 
     console.log('\n1. Qui a le tableau de bord');
@@ -109,8 +123,9 @@ function localDans(t, tz) {
     const onglets = (X) => X.page.evaluate(() => Array.from(document.querySelectorAll('#tabs .tab')).map(t => t.querySelector('span').textContent.trim()));      // le libellé seul (pas le compteur caché de Contacts)
     v('⛔ Ben (Perso, aucun espace) : pas d\'« Accueil » (population : ses quatre onglets)', await onglets(B), ['Messages', 'Contacts', 'Appels', 'Agenda']);
     /* (7 octobre 2026, Perso / Pro) le tableau de bord est du côté PRO : un compte pro démarre côté Perso tant qu'il n'a rien choisi — « Pro » le fait paraître, en tête */
-    v('Ana (un espace abonné) côté Perso : ses quatre onglets, et le sélecteur « Perso | Pro »', [await onglets(A), await A.page.evaluate(() => !!Array.from(document.querySelectorAll('[data-cote-seg]')).find(x => x.getClientRects().length))], [['Messages', 'Contacts', 'Appels', 'Agenda'], true]);
-    await A.page.locator('.cote-seg-liste [data-cote="pro"]').tap();
+    vrai('(population) Messages est à l\'écran, son titre et la photo du profil visibles', await att(A, () => !document.getElementById('vue-messages').hidden && Array.from(document.querySelectorAll('#vue-messages .grand-titre')).some(x => x.getClientRects().length) && Array.from(document.querySelectorAll('.moi-pastille')).some(x => x.getClientRects().length)));
+    v('Ana (un espace abonné) côté Perso : ses quatre onglets — ⛔ et AUCUN sélecteur « Perso | Pro » visible dans Messages (ni l\'ancien dans la page)', [await onglets(A), await A.page.evaluate(() => Array.from(document.querySelectorAll('[data-cote-seg]')).filter(x => x.getClientRects().length).length), await A.page.evaluate(() => document.querySelectorAll('.cote-seg-liste, .cote-seg-agenda').length)], [['Messages', 'Contacts', 'Appels', 'Agenda'], 0, 0]);
+    vrai('(le geste complet) Pro, par le Profil', await basculerTel(A, 'pro'));
     await att(A, () => !!document.querySelector('#tabs .tab[data-vue="accueil"]'));
     v('Ana côté Pro : « Accueil » EN TÊTE', await onglets(A), ['Accueil', 'Messages', 'Contacts', 'Appels', 'Agenda']);
     await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
@@ -164,7 +179,7 @@ function localDans(t, tz) {
 
     console.log('\n6. Sans réunion : rien à programmer d\'ici');
     const C = await ouvrir('cleo', TEL);
-    await C.page.locator('.cote-seg-liste [data-cote="pro"]').tap().catch(() => {});
+    vrai('(le geste complet) Cléo passe Pro, par le Profil', await basculerTel(C, 'pro'));
     await att(C, () => !!document.querySelector('#tabs .tab[data-vue="accueil"]'));
     await C.page.locator('#tabs .tab[data-vue="accueil"]').tap();
     const vide = () => C.page.evaluate(() => { const l = document.getElementById('bord-reunions'); return { texte: l.textContent.trim(), boutons: l.querySelectorAll('button').length }; });
