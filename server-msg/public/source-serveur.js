@@ -2776,6 +2776,9 @@
     async function rafraichirDetail(id) {
       const c = convs.get(id); if (!c) return;
       const d = await A.conversation(id);
+      /* ⛔ une relecture partie AVANT un « retire » peut finir APRÈS lui (un réseau lent) : elle ne remet rien, et ceux qui l'attendaient pour dire « conversation » ne le
+         disent pas — sinon la page entendait parler d'un groupe qu'elle venait de fermer (CI de justino17-cmd/teamop#124 ; test-911 retient la réponse pour le rejouer) */
+      if (convs.get(id) !== c) throw erreurLocale('introuvable');
       for (const m of d.membres) noter(m);
       c.detail = d;
     }
@@ -2966,7 +2969,9 @@
       sondage: (d) => { if (!Number.isInteger(d.seq)) return; const k = d.conv + '|' + d.seq; if (sondages.has(k)) relireSondage(d.conv, d.seq); },
       conversation: (d) => {
         const c = convs.get(d.conv);
-        const fin = () => { emettre({ type: 'conversation', id: d.conv }); relireListePlusTard(); };
+        /* ⛔ une relecture partie AVANT un « retire » peut finir APRÈS lui (un réseau lent) : elle ne redit rien d'une conversation que la page vient de fermer
+           (CI de justino17-cmd/teamop#124, rejoué par test-911 en retenant la réponse) */
+        const fin = () => { if (c && convs.get(d.conv) !== c) { relireListePlusTard(); return; } emettre({ type: 'conversation', id: d.conv }); relireListePlusTard(); };
         if (c && c.detail) rafraichirDetail(d.conv).then(fin, fin); else fin();
       },
       retire: (d) => { convs.delete(d.conv); const S = saisies.get(d.conv); if (S) { for (const h of S.values()) annuler(h); saisies.delete(d.conv); } emettre({ type: 'retire', id: d.conv }); relireListePlusTard(); },

@@ -33,7 +33,7 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 /* Un « appareil » : un navigateur de poche (cookie, Origin) dont on peut COUPER le réseau, PERDRE une réponse, et dont on compte les requêtes. */
 function monter(svc, opts = {}) {
   const nav = T.navigateur(svc.base);
-  const reseau = { coupe: false, perdre: null, forcer: null, requetes: [], statuts: [], instances: [], fluxBloque: false, flux: [] };
+  const reseau = { coupe: false, perdre: null, forcer: null, retenir: null, requetes: [], statuts: [], instances: [], fluxBloque: false, flux: [] };
   const f = async (url, init) => {
     const u = String(url), m = (init && init.method) || 'GET', chemin = u.replace(svc.base, '').split('?')[0];
     reseau.requetes.push(m + ' ' + chemin);
@@ -41,6 +41,7 @@ function monter(svc, opts = {}) {
     if (reseau.fluxBloque && chemin === '/api/flux') throw new TypeError('flux coupé');   // seul le flux est injoignable : les écritures passent
     if (reseau.forcer && reseau.forcer.test(m + ' ' + chemin)) { const [code, corps, entetes] = reseau.forcerReponse || [429, { error: 'quota_atteint' }, { 'Retry-After': '40' }]; return new Response(JSON.stringify(corps), { status: code, headers: Object.assign({ 'Content-Type': 'application/json' }, entetes || {}) }); }
     const r = await nav.fetch(url, init);
+    if (reseau.retenir && reseau.retenir.re.test(m + ' ' + chemin)) { const x = reseau.retenir; reseau.retenir = null; x.tenue = true; await x.attente; }   // une réponse RETENUE : elle arrive quand le banc le décide
     reseau.statuts.push(m + ' ' + chemin + ' ' + r.status);
     if (reseau.perdre && reseau.perdre.test(m + ' ' + chemin)) { reseau.perdre = null; throw new TypeError('réponse perdue'); }
     return r;
@@ -343,6 +344,27 @@ const json = async (base, methode, chemin, corps, entetes) => {
       const eQ = await attrape(A.src.quitter(G));
       vrai('un administrateur qui est le seul admin… (Bruno est admin aussi : elle peut partir)', eQ === null);
       v('et une fois partie, le groupe n\'est plus dans sa liste', (await A.src.lister()).some(c => c.id === G), false);
+    }
+    /* ⛔ UNE RELECTURE PARTIE AVANT LE RETRAIT NE FAIT PAS REVIVRE LE GROUPE (CI de justino17-cmd/teamop#124, 11 octobre 2026 : 155 ✓ 1 ✗ sur « aucun événement après son
+       retrait ») : un réglage du groupe juste avant le retrait fait relire son détail ; si cette relecture finit APRÈS le « retire » (un réseau lent), la source disait
+       encore « conversation » pour un groupe que la page venait de fermer. Rejoué ici en RETENANT la réponse de la relecture jusqu'après le retrait. */
+    console.log('\nUne relecture partie avant le retrait, finie après');
+    {
+      const G2 = (await A.src.creerGroupe({ nom: 'Relecture lente', membres: [mb.id, mc.id] })).id;
+      await att(async () => (await C.src.lister()).some(c => c.id === G2));
+      await C.src.ouvrir(G2);
+      let liberer; const attente = new Promise(ok => { liberer = ok; });
+      C.reseau.retenir = { re: new RegExp('^GET /api/conversations/' + G2 + '$'), attente };
+      const tenue = C.reseau.retenir;
+      await A.src.majConversation(G2, { ephemeres: 86400 });
+      vrai('population : la relecture du détail est partie, et elle est retenue', await att(() => tenue.tenue === true));
+      await A.src.retirerMembre(G2, mc.id);
+      vrai('Chloé reçoit « retire »', !!(await C.attendreEv(e => e.type === 'retire' && e.id === G2)));
+      let jR = -1; C.evs.forEach((e, i) => { if (e.type === 'retire' && e.id === G2) jR = i; });
+      liberer();
+      await T.dort(300);
+      v('⛔ la relecture finie APRÈS le retrait ne dit rien de ce groupe (aucun « conversation » après le « retire »)', C.evs.slice(jR + 1).filter(e => (e.conv === G2 || e.id === G2) && e.type !== 'retire' && e.type !== 'liste').map(e => e.type), []);
+      vrai('   et le groupe ne revient pas : ouvrir() rend null', (await C.src.ouvrir(G2)) === null);
     }
 
     /* ══ 7. UN GROUPE PAR LIEN, HISTORIQUE, PIÈGES ════════════════════════════════════════════════════════════════════════ */
