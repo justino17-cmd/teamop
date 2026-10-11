@@ -17,7 +17,7 @@ const cal = require('./calendrier');
 
 const ID_REUNION = /^r_[0-9a-f]{32}$/;
 const PUSH_CORPS = {
-  reunion_invitation: 'Invitation à une réunion', reunion_modifiee: 'Réunion modifiée', reunion_annulee: 'Réunion annulée', reunion_rappel: 'Rappel de réunion',
+  reunion_invitation: 'Invitation à une réunion', reunion_modifiee: 'Réunion modifiée', reunion_decalee: 'Réunion décalée', reunion_annulee: 'Réunion annulée', reunion_rappel: 'Rappel de réunion',
 };
 const REPETE = { quotidienne: 'chaque jour', hebdomadaire: 'chaque semaine', mensuelle: 'chaque mois' };
 
@@ -33,6 +33,8 @@ const texteModification = (hote, r, p, t, horaire) => horaire
   ? nomAffiche(hote) + ' a changé l\'horaire de la réunion : ' + cal.dire(t, fuseauDe(p, r.tz)) + '.'
   : nomAffiche(hote) + ' a modifié la réunion.';
 const texteAnnulation = (hote, r, p, t) => nomAffiche(hote) + ' a annulé la réunion du ' + cal.dire(t, fuseauDe(p, r.tz)) + '.';
+/* un DÉCALAGE (10 octobre 2026) : d'où on venait, où l'on va, pourquoi — l'ancien et le nouvel horaire dans le fuseau de celui qui lit ; les réponses repartent « en attente », on le dit */
+const texteDecalage = (hote, r, p, avant, apres, motif) => { const tz = fuseauDe(p, r.tz); return nomAffiche(hote) + ' a décalé la réunion du ' + cal.dire(avant, tz) + ' au ' + cal.dire(apres, tz) + '.' + (motif ? ' Motif : ' + motif + '.' : '') + ' Merci de confirmer votre présence.'; };
 /* Un rappel dit CE QUI RESTE à courir, d'après l'horloge — pas le délai choisi : un rappel rattrapé après un arrêt dit la vérité (« dans 9 minutes »), et un rappel d'un jour avant dit « demain »
    quand c'est demain, dans le fuseau de celui qui le lit. */
 function texteRappel(r, p, debut, maintenant) {
@@ -54,6 +56,7 @@ function creerNotifieur(ctx) {
       if (!ctx.push) return;
       const valide = () => {
         if (type === 'reunion_annulee') return true;   // une annulation part même si la réunion a été supprimée depuis
+        /* un DÉCALAGE n'est pas coupé par la sourdine (`sourdine` ne vaut que pour une modification) : aller à l'ancienne heure coûte plus cher que d'être dérangé */
         if (!stockage.reunionEncore({ id: reunion, uid, occurrence: type === 'reunion_rappel' ? occurrence : undefined, sourdine: type === 'reunion_modifiee' })) return false;
         return type === 'reunion_rappel' ? { ttl: Math.max(0, Math.floor((occurrence - horloge()) / 1000)) } : true;
       };
@@ -77,4 +80,4 @@ function creerNotifieur(ctx) {
   return { notifier, pousser };
 }
 
-module.exports = { ID_REUNION, PUSH_CORPS, serieDe, nomAffiche, fuseauDe, texteInvitation, texteModification, texteAnnulation, texteRappel, creerNotifieur };
+module.exports = { ID_REUNION, PUSH_CORPS, serieDe, nomAffiche, fuseauDe, texteInvitation, texteModification, texteDecalage, texteAnnulation, texteRappel, creerNotifieur };

@@ -4,6 +4,7 @@
  *   POST /api/reunions   {titre,lieu?,debut,fin,tz?,repetition?,jusqua?,n?,invites?,rappels?,notifier?}   V PRO  programmer — la fonction Pro (la bêta ouvre tout)
  *   GET  /api/reunions/:id                      R   la fiche : l'horaire, la répétition, les invités et leur réponse, MES rappels, la prochaine occurrence
  *   POST /api/reunions/:id/modifier  {…champs…, notifier?}   H   seuls les champs passés changent ; un changement d'HORAIRE remet les réponses « en attente » ; vingt modifications par réunion et par heure
+ *   POST /api/reunions/:id/decaler   {debut,fin,motif?}  H   DÉCALER (le glisser de l'agenda) : l'horaire seul, un motif facultatif ; prévient TOUJOURS chaque participant (ancien → nouvel horaire, motif)
  *   POST /api/reunions/:id/annuler              H   la réunion reste (annulée), plus aucun rappel ; prévient les invités — toujours
  *   POST /api/reunions/:id/supprimer {notifier?} H   la réunion part avec sa conversation ; prévient d'abord les invités d'une réunion à venir
  *   POST /api/reunions/:id/inviter   {uids,notifier?}  H   des contacts ou des membres de MON espace seulement (comme un groupe) ; les autres sont rendus (`non_ajoutes`)
@@ -34,12 +35,14 @@
 const cal = require('./calendrier');
 const ics = require('./ics');
 const { nettoyerNom, ID_PERS } = require('./routes');      // (l'ordre du jour : un point est une ligne, nettoyée comme un nom)
-const { serieDe, nomAffiche, texteInvitation, texteModification, texteAnnulation, creerNotifieur } = require('./reunions-outils');
+const { serieDe, nomAffiche, texteInvitation, texteModification, texteDecalage, texteAnnulation, creerNotifieur } = require('./reunions-outils');
 const { adresseValide } = require('./courriel');
 const { cleReseau } = require('./quotas');
 
 const JOUR = 86400000;
 const TITRE_MAX = 120, LIEU_MAX = 300, INVITES_MAX = 100, UIDS_PAR_APPEL = 50, RAPPELS_MAX = 4;
+const MOTIF_MAX = 200;                                                     // le motif d'un décalage : une ligne (« Problème de déplacement — le camion est en panne »)
+const PLAFOND_MODIF = { max: 20, fenetreMs: 3600000 };                    // vingt modifications par réunion et par heure — « modifier » et « décaler » partagent CE compteur (une seule définition)
 const ODJ_MAX = 20, POINT_MAX = 200, ID_POINT = /^[0-9a-f]{8}$/;      // l'ordre du jour : vingt points de 200 signes au plus (migration 23)
 const N_MAX = 1000, DUREE_MAX = 30 * JOUR, FENETRE_MAX = 62 * JOUR, OCCURRENCES_MAX = 1000;
 const STATUTS = ['accepte', 'decline', 'peutetre'];
@@ -332,7 +335,7 @@ function installerReunions(H, ctx) {
     if (b.ordre_du_jour !== undefined && !odj) return refus(res, 400, 'ordre_du_jour_invalide');
     /* ⛔ VINGT MODIFICATIONS PAR RÉUNION ET PAR HEURE : chaque modification écrit, date, remet les réponses en attente, ajoute une ligne à la conversation et prévient les invités — sans plafond, un hôte
        (ou un script) en faisait deux cents d'un trait. Le refus est DIT (`trop_de_modifications`, avec le délai) ; la clé est la réunion, pas l'hôte (elle passe à un successeur). */
-    if (!plafond(res, 'reunion_modif', id, { max: 20, fenetreMs: 3600000 }, 'trop_de_modifications')) return;
+    if (!plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;
     const prochain = v.horaire ? prochainDe(v.serie, horloge()) : undefined;
     const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain, finSerie: cal.finDeSerie(v.serie) } : {}, b.salle_attente === undefined ? {} : { attente: b.salle_attente }));
     const o = odj ? stockage.reunionOdjPoser(id, odj) : null;
@@ -346,6 +349,41 @@ function installerReunions(H, ctx) {
       }
     }
     res.json(vue(hote.id, id));
+  });
+
+  /* ── DÉCALER (10 octobre 2026 : « on reste cliqué sur le rendez-vous, on le glisse, ça ouvre une page — voulez-vous décaler ce rendez-vous ? On note : problème de déplacement — et ça
+     envoie aux personnes concernées ») : un geste ÉTROIT à côté de « modifier ». Il ne change QUE l'horaire (début et fin envoyés par la page : la durée est la sienne), il porte un MOTIF
+     (facultatif, une ligne de 200 signes au plus) et il prévient TOUJOURS : chaque participant reçoit l'ancien horaire, le nouveau et le motif, dans SON fuseau ; la ligne de la conversation les
+     garde (scellés, comme toute méta). ⛔ Une notification de décalage n'est ni FUSIONNÉE (deux décalages font deux avis : le premier dit d'où l'on venait) ni coupée par la SOURDINE (comme une
+     annulation). ⛔ Pas une réunion qui se RÉPÈTE : le modèle n'a qu'une ligne par série, décaler « cette occurrence » déplacerait toute la série (`serie_non_decalable`, dit — la page ne le propose
+     pas) ; pas un horaire DÉJÀ PASSÉ ; pas le même horaire. Le plafond est celui des modifications (vingt par réunion et par heure). → la fiche, et `avant` (l'ancien horaire). */
+  H['reunions.decaler'] = garder((req, res) => {
+    const b = corps(req), id = req.reunion.id, hote = req.moi;
+    const courant = stockage.reunionPourMembre(id, hote.id).reunion;
+    if (courant.annulee) return refus(res, 409, 'reunion_annulee');
+    if (courant.repetition !== 'aucune') return refus(res, 409, 'serie_non_decalable');
+    if (b.debut === undefined || b.fin === undefined) return refus(res, 400, 'heure_invalide');
+    let motif = '';
+    if (b.motif !== undefined && b.motif !== null) {
+      if (typeof b.motif !== 'string' || b.motif.length > MOTIF_MAX * 4) return refus(res, 400, 'motif_invalide');
+      motif = nettoyerNom(b.motif);
+      if (Array.from(motif).length > MOTIF_MAX) return refus(res, 400, 'motif_invalide');
+    }
+    const v = valider({ debut: b.debut, fin: b.fin }, courant, courant.tz);
+    if (v.erreur) return refus(res, 400, v.erreur);
+    if (v.serie.debut === courant.debut && v.serie.fin === courant.fin) return refus(res, 400, 'horaire_identique');
+    if (v.serie.debut < horloge()) return refus(res, 400, 'horaire_passe');
+    if (!plafond(res, 'reunion_modif', id, PLAFOND_MODIF, 'trop_de_modifications')) return;
+    const r = stockage.reunionModifier(Object.assign({ id, par: hote.id, motif }, v.champs, { prochain: prochainDe(v.serie, horloge()), finSerie: cal.finDeSerie(v.serie) }));
+    if (r.gid) hub.reveiller({ conv: courant.conv });
+    if (r.change && r.horaire) {
+      const apres = stockage.reunionPourMembre(id, hote.id).reunion;
+      for (const u of stockage.reunionParticipants(id)) {
+        if (u === hote.id) continue;
+        notif.notifier({ uid: u, type: 'reunion_decalee', reunion: id, titre: apres.titre, texte: texteDecalage(hote, apres, personne(u), r.avant.debut, apres.debut, motif), auteur: hote.id });
+      }
+    }
+    res.json(Object.assign(vue(hote.id, id), { avant: r.avant }));
   });
 
   /* Prévient les invités (hors l'hôte) qu'une réunion est annulée : le texte dit la prochaine occurrence, ou la première. */

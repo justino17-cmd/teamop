@@ -25,7 +25,7 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
 const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 const attrape = async (p) => { try { await p; return null; } catch (e) { return e; } };
 const JOUR = 86400000;
-const METHODES = ['reunions', 'reunion', 'programmer', 'modifierReunion', 'annulerReunion', 'supprimerReunion', 'inviterReunion', 'retirerInviteReunion', 'quitterReunion', 'repondreReunion', 'rappelsReunion', 'adresseIcs', 'courrielOuvert', 'courrielReunion'];
+const METHODES = ['reunions', 'reunion', 'programmer', 'modifierReunion', 'decalerReunion', 'annulerReunion', 'supprimerReunion', 'inviterReunion', 'retirerInviteReunion', 'quitterReunion', 'repondreReunion', 'rappelsReunion', 'adresseIcs', 'courrielOuvert', 'courrielReunion'];
 const TITRE = 'Point TITRE-WQXZ-CANARI';
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
@@ -223,6 +223,30 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
       for (let i = 0; i < 20; i++) await A.src.modifierReunion(rm.id, { lieu: 'Salle ' + i });
       const e = await attrape(A.src.modifierReunion(rm.id, { lieu: 'Salle 20' }));
       v('⛔ la vingt et unième modification en une heure : refusée, et la phrase de l\'écran dit pourquoi — avec l\'attente que le service a donnée, une seule invitation à réessayer', [codeDe(e), e && e.statut, /^Cette réunion vient d'être modifiée vingt fois en une heure \(réessaie dans (59|60) min\)\.$/.test(phrase(e))], ['trop_de_modifications', 429, true]);
+    }
+
+    /* ═══ 6 bis. DÉCALER (10 octobre 2026 : « glisser, … voulez-vous décaler ce rendez-vous, on note, problème de déplacement, ça envoie aux deux personnes ») ═══════ */
+    console.log('\nDécaler : l\'horaire seul, un motif, chacun prévenu (ancien → nouvel horaire) — et la conversation de la réunion le dit');
+    {
+      const jd = jourParis(Date.now() + 12 * JOUR);
+      const rd = await A.src.programmer({ titre: 'Décalage WQXZ', debut: jd + 'T10:00', fin: jd + 'T11:00', tz: 'Europe/Paris', invites: [bob.id], notifier: false });
+      B.vider();
+      const r1 = await A.src.decalerReunion(rd.id, { debut: jd + 'T14:00', fin: jd + 'T15:00', motif: '  Problème   de déplacement ' });
+      v('le module rend l\'ANCIEN horaire et le nombre de personnes prévenues (Bob, pas l\'organisatrice)', [!!r1.avant && r1.avant.debut === instantParis(jd, 10, 0), r1.prevenus], [true, 1]);
+      const f = await B.src.reunion(rd.id);
+      v('chez Bob : 14:00 à Paris, la durée gardée, sa réponse repart « en attente »', [f.debut === instantParis(jd, 14, 0), f.fin - f.debut, f.moi.statut], [true, 3600000, 'attente']);
+      vrai('Bob est prévenu dans son fuseau, avec le motif NETTOYÉ par le module (« Problème de déplacement »)', !!(await B.attendreEv(e => e.type === 'notification' && e.nature === 'reunion_decalee' && /a décalé la réunion du/.test(e.texte) && /Motif : Problème de déplacement\./.test(e.texte))));
+      const c = (await B.src.lister()).find(x => x.reunion === rd.id), o = c && await B.src.ouvrir(c.id);
+      vrai('la conversation de la réunion le dit : « Alice Banc a décalé la réunion : <avant> → <après> · Motif : Problème de déplacement »', !!o && o.messages.some(m => m.systeme && /^Alice Banc a décalé la réunion : .+ → .+ · Motif : Problème de déplacement$/.test(m.texte)), o && o.messages.filter(m => m.systeme).map(m => m.texte));
+      const n0 = A.reseau.requetes.length;
+      const e1 = await attrape(A.src.decalerReunion(rd.id, { debut: jd + 'T16:00', fin: jd + 'T17:00', motif: 'x'.repeat(201) }));
+      v('⛔ un motif de plus de 200 signes est refusé PAR LE MODULE (aucune requête ne part) et dit', [codeDe(e1), A.reseau.requetes.slice(n0).filter(r => /decaler/.test(r.chemin)).length, phrase(e1)], ['motif_invalide', 0, 'Le motif tient en une ligne de 200 caractères au plus.']);
+      const e2 = await attrape(B.src.decalerReunion(rd.id, { debut: jd + 'T16:00', fin: jd + 'T17:00' }));
+      v('⛔ un INVITÉ ne décale pas : « interdit », dit, et l\'horaire n\'a pas bougé', [codeDe(e2), phrase(e2), (await A.src.reunion(rd.id)).debut === instantParis(jd, 14, 0)], ['interdit', 'Tu n\'as pas le droit de faire cela ici.', true]);
+      const e3 = await attrape(A.src.decalerReunion(R, { debut: j0 + 'T17:00', fin: j0 + 'T18:00' }));
+      v('⛔ une SÉRIE ne se décale pas (pas encore une seule date) : refusé, et la phrase mène à la fiche', [codeDe(e3), phrase(e3)], ['serie_non_decalable', 'Cette réunion se répète : on ne décale pas une seule date d\'une série. Modifie la série depuis sa fiche.']);
+      const e4 = await attrape(A.src.decalerReunion(rd.id, { debut: jd + 'T14:00', fin: jd + 'T15:00' }));
+      v('le même horaire : refusé, et dit', [codeDe(e4), phrase(e4)], ['horaire_identique', 'C\'est déjà l\'horaire de ce rendez-vous.']);
     }
 
     /* ═══ 7. LE FICHIER .ICS ══════════════════════════════════════════════════════════════════════════════════════ */

@@ -690,7 +690,7 @@ function suiteEffacement() {
   console.log('\nLes notifications d\'une réunion qui nomment son hôte s\'écrivent « Un compte supprimé » quand son compte s\'efface');
   {
     const a = atelier(), S = a.S;
-    const types = ['reunion_invitation', 'reunion_modifiee', 'reunion_annulee'];
+    const types = ['reunion_invitation', 'reunion_modifiee', 'reunion_annulee', 'reunion_decalee'];
     for (const t of types) S.notifCreer({ uid: a.ben.id, type: t, titre: 'Point TITRE-DISTINCT', texte: 'Ana Test vous a invité à une réunion : mardi.', cible: 'r_x', auteur: a.ana.id });
     S.notifCreer({ uid: a.ben.id, type: 'reunion_rappel', titre: 'Point rappel', texte: 'Commence dans 15 minutes.', cible: 'r_x' });
     a.h.t += 1000;
@@ -698,7 +698,7 @@ function suiteEffacement() {
     const lues = S.notifListe(a.ben.id);
     v('⛔ chaque notification d\'hôte est réécrite (ni son prénom ni son nom nulle part), le titre de la réunion reste ; le rappel n\'a pas d\'auteur et ne bouge pas',
       [lues.filter(x => types.includes(x.type)).map(x => x.type + ':' + x.texte).sort(), lues.some(x => /Ana/.test(x.texte + x.titre)), lues.find(x => x.type === 'reunion_rappel').texte, lues.filter(x => x.titre === 'Point TITRE-DISTINCT').length],
-      [['reunion_annulee:Un compte supprimé a annulé une réunion.', 'reunion_invitation:Un compte supprimé vous a invité à une réunion.', 'reunion_modifiee:Un compte supprimé a modifié une réunion.'], false, 'Commence dans 15 minutes.', 3]);
+      [['reunion_annulee:Un compte supprimé a annulé une réunion.', 'reunion_decalee:Un compte supprimé a décalé une réunion.', 'reunion_invitation:Un compte supprimé vous a invité à une réunion.', 'reunion_modifiee:Un compte supprimé a modifié une réunion.'], false, 'Commence dans 15 minutes.', 4]);
     S.fermer();
   }
 

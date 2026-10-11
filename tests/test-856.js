@@ -208,6 +208,8 @@ function controler(PAGE, DOC, SRC) {
   const MESURES_PERMISES = [
     [/const r = b\.getBoundingClientRect\(\), e = y < r\.top \? r\.top - y/, 'l\'index de « Nouvelle discussion » : quelle lettre est SOUS le doigt'],
     [/tient\.o = o; const r = o\.getBoundingClientRect\(\); let p = r\.width > 0 \? \(x - r\.left\) \/ r\.width : 0;/, 'l\'onde d\'un vocal : où est le pointeur DANS l\'onde à l\'instant du geste (un rapport lu et jeté, jamais une largeur recopiée)'],
+    [/const el = retrouverAgenda\(m0\.declencheur, m0\.cle\), r = el && el\.isConnected \? el\.getBoundingClientRect\(\) : null, m = M\.getBoundingClientRect\(\);/, 'le menu d\'un rendez-vous de l\'agenda : ouvert au point du clic droit (ou sous le rendez-vous au clavier), gardé dans l\'écran — lu à l\'ouverture, jamais suivi'],
+    [/T\.fantome\.style\.width = Math\.round\(T\.el\.getBoundingClientRect\(\)\.width\) \+ 'px';/, 'le fantôme d\'un rendez-vous qu\'on tire : la largeur de la puce au début du glisser, pour la durée du glisser seulement'],
   ];
   const lignesMesure = JS.split('\n').filter(l => /offsetWidth|getBoundingClientRect/.test(l));
   const mesuresNonDites = lignesMesure.filter(l => !MESURES_PERMISES.some(([re]) => re.test(l))).map(l => l.trim().slice(0, 110));

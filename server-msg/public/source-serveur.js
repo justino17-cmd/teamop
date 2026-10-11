@@ -85,6 +85,7 @@
     introuvable: 'Introuvable (la conversation a peut-être été supprimée ou tu n\'y es plus).',
     reunion_introuvable: 'Cette réunion n\'existe plus, ou tu n\'y es plus invité.',
     invalide: 'La demande est incorrecte.',
+    motif_invalide: 'Le motif tient en une ligne de 200 caractères au plus.',      // (« décaler » : refusé ICI, avant le service — la même phrase que la sienne, api.js)
     appel_vide: 'Choisis un contact à appeler.',
     appel_navigateur: 'Ce navigateur ne sait pas passer d\'appels. Essaie avec une version récente de Chrome, Firefox, Edge ou Safari.',
     /* les notifications : chaque état où l'interrupteur ne peut pas tourner DIT pourquoi, et comment en sortir */
@@ -2163,6 +2164,9 @@
     }
     /* `genre` : 'canal' (un CANAL d'espace) ou 'reunion' (la conversation d'une réunion) — les phrases disent « le canal », « la réunion » là où un groupe dit « le groupe » (le reste est commun :
        mêmes messages système) */
+    /* « mar. 14 oct. 14:00 » : une date de la ligne d'un décalage, à l'heure de l'appareil */
+    const FMT_JOUR_SYS = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }), FMT_HEURE_SYS = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const dateCourte = (t) => FMT_JOUR_SYS.format(t) + ' ' + FMT_HEURE_SYS.format(t);
     function texteSysteme(m, genre) {
       const k = m.meta && m.meta.k, u = m.meta && m.meta.uid, a = m.auteur;
       const canal = genre === 'canal', reunion = genre === 'reunion';
@@ -2171,6 +2175,8 @@
         case 'reunion_creee': return estMoi(a) ? 'Vous avez programmé la réunion' : nomDe(a) + ' a programmé la réunion';
         case 'reunion_modifiee': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + (m.meta.horaire ? ' changé l\'horaire de la réunion' : ' modifié la réunion');
         case 'reunion_annulee': return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' annulé la réunion';
+        /* un DÉCALAGE (10 octobre 2026) : d'où, où, pourquoi — à l'heure de l'appareil qui lit */
+        case 'reunion_decalee': { const av = m.meta.avant || {}, ap = m.meta.apres || {}; return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' décalé la réunion' + (Number.isFinite(av.debut) && Number.isFinite(ap.debut) ? ' : ' + dateCourte(av.debut) + ' → ' + dateCourte(ap.debut) : '') + (typeof m.meta.motif === 'string' && m.meta.motif ? ' · Motif : ' + m.meta.motif : ''); }
         case 'groupe_cree': return estMoi(a) ? 'Vous avez créé le groupe' : nomDe(a) + ' a créé le groupe';
         case 'canal_cree': return estMoi(a) ? 'Vous avez créé le canal' : nomDe(a) + ' a créé le canal';
         case 'membre_ajoute': return estMoi(a) ? 'Vous avez ajouté ' + nomDe(u) : nomDe(a) + ' a ajouté ' + (estMoi(u) ? 'vous' : nomDe(u));
@@ -3563,6 +3569,16 @@
       return { id: d.reunion.id, conv: d.reunion.conv, nonInvites: Array.isArray(d.non_invites) ? d.non_invites.length : 0 };
     }
     async function modifierReunion(id, champs) { await pourReunion(A.modifierReunion(id, corpsReunion(champs))); reunionChangee(id); }
+    /* DÉCALER (10 octobre 2026) : `debut`, `fin` en heure locale du fuseau de la réunion (« 2026-10-26T14:00 ») ou en instants ; `motif` : une ligne, facultative. Le service prévient tout le monde.
+       → l'ancien horaire et le nombre de personnes prévenues (les participants, sans l'organisateur) */
+    async function decalerReunion(id, b) {
+      const motif = b && typeof b.motif === 'string' ? b.motif.replace(/\s+/g, ' ').trim() : '';
+      if (Array.from(motif).length > 200) throw erreurLocale('motif_invalide');
+      const r = await pourReunion(A.decalerReunion(id, { debut: b && b.debut, fin: b && b.fin, motif: motif || null }));
+      reunionChangee(id);
+      const n = r && Array.isArray(r.invites) ? r.invites.filter(x => x && !x.hote).length : null;
+      return { avant: r && r.avant ? { debut: r.avant.debut, fin: r.avant.fin } : null, prevenus: n };
+    }
     async function annulerReunion(id) { await pourReunion(A.annulerReunion(id)); reunionChangee(id); }
     async function supprimerReunion(id, o2) { await pourReunion(A.supprimerReunion(id, { notifier: !(o2 && o2.notifier === false) })); reunionChangee(id, true); }
     async function inviterReunion(id, uids, o2) {
@@ -3707,7 +3723,7 @@
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
       persoPlus, persoPlusPayer, persoPlusPortail, persoPlusRelire,   // le forfait d'une PERSONNE (capacité `persoPlus`)
       /* ── les réunions programmées (capacité `reunions`) ── */
-      reunions, reunion, programmer, modifierReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
+      reunions, reunion, programmer, modifierReunion, decalerReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */
       appels: listeAppels,
       demarrerAppel,

@@ -718,6 +718,102 @@ async function controler(PAGE, SRC, DOC) {
   vrai('⛔ focus : Espace HORS d\'un champ est un geste de clavier (l\'anneau rendu se voit) ; et la règle qui éteint l\'anneau rendu au doigt gagne sur les anneaux écrits plus loin',
     /&& !\(e\.key === ' ' && !champTexte\(e\.target\)\)\) return;/.test(JS) && /\[data-focus-doux\]:focus-visible \{ outline: none !important; \}/.test(CSS));
 
+  /* ⛔ L'AGENDA DE PRO (10 octobre 2026 : « la semaine pareil que le mois », « un clic droit […] des manipulations », « glisser […] voulez-vous décaler ce rendez-vous […] ça envoie
+     aux deux personnes ») — les VRAIES fonctions exécutées : qui peut décaler, ce que le menu propose selon le rôle, les chevauchements, la case du jour ; le geste (clic droit à
+     l'endroit du clic, glisser, la feuille, la notification de l'autre) est joué par tests/sonde-opmessages-agenda-decaler.js contre le vrai service */
+  {
+    const iA = JS.indexOf('const titreElt = x =>'), fFin = JS.indexOf("if (!etat.groupe.ouvert || etat.groupe.mode !== 'decaler') return;", iA), fA = JS.lastIndexOf("$('info-corps').addEventListener", fFin);
+    let G = null, cA = null;
+    const maintenant = Date.now(), H = 3600000;
+    try {
+      cA = { CAP: { agenda: true, salles: true }, source: { decalerReunion() {}, majEvenement() {}, faitEvenement() {}, reporterEvenement() {}, supprimerEvenement() {}, annulerReunion() {}, adresseIcs() {} },
+        MOI: { id: 'p_moi' }, etat: { conversations: [{ id: 'c_r1', cote: 'pro' }] }, reu: { liste: [], evenements: [], charge: true, mois: 0, jour: 0 }, JOUR_MS: 86400000, NOM_COTE: { perso: 'Perso', pro: 'Pro' },
+        STATUTS_REPONSE: [['accepte', 'Accepter'], ['peutetre', 'Peut-être'], ['decline', 'Refuser']], PHRASE_REUNION_PERDUE: 'perdue', ID_EVT: /^e_[0-9a-f]{32}$/,
+        FMT_HEURE: new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }), FMT_JOUR_LONG: new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }),
+        FMT_JOUR_COURT: new Intl.DateTimeFormat('fr-FR', { weekday: 'short', timeZone: 'Europe/Paris' }), maj1: x => x.charAt(0).toUpperCase() + x.slice(1),
+        esc: x => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'),
+        libelleEtat: r => r.annulee ? 'Annulée' : r.moi.hote ? 'Organisateur' : r.moi.statut === 'attente' ? 'À répondre' : '', premierDuMois: () => 0, plusJours: (t, n) => t + n * 86400000,
+        modesActifs: () => cA.modes === true, coteReu: () => 'pro', coteEvt: () => 'perso', nomPersonne: id => ({ p_bob: 'Bob Martin', p_cleo: 'Cléo Durand', p_dan: 'Dan', p_eve: 'Eve' })[id] || 'Quelqu\'un',
+        occurrencesDuJour: () => cA.duJour || [] };
+      vm.createContext(cA);
+      const iL = JS.indexOf('function localDans(t, tz) {'), fL = JS.indexOf('const PAYS_FUSEAUX = [', iL), ligne = d => { const i = JS.indexOf(d); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
+      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + JS.slice(iA, fA) +
+        '\nthis.G = { peutDecaler, raisonNonDecalable, htmlMenuAgenda, conflitsAgenda, caseJour, elementAgenda, phrasePrevenus, modeleDecalage, snapDecalage, debutDecale, jourDans, joursEntre, cleAgenda };', cA, { timeout: 2000 });
+      G = cA.G;
+    } catch (e) { G = null; }
+    vrai('(population) les fonctions de l\'agenda de pro s\'exécutent dans un bac à sable (' + (fA - iA) + ' caractères)', iA > 0 && fFin > iA && fA > iA && !!G);
+    if (G) try {
+      const R = (o) => Object.assign({ id: 'r1', conv: 'c_r1', titre: 'Visite', tz: 'Europe/Paris', annulee: false, repetition: 'aucune', participants: ['p_moi', 'p_bob'], participantsN: 2, rejoignable: false, moi: { hote: true, statut: 'accepte' }, occurrences: [] }, o || {});
+      const futur = { debut: maintenant + 26 * H, fin: maintenant + 27 * H, seance: null };
+      const x = (r, o) => ({ r, o: o || futur });
+      const cas = [x(R()), x(R({ moi: { hote: false, statut: 'attente' } })), x(R({ repetition: 'hebdomadaire' })), x(R({ annulee: true })), x(R(), { debut: maintenant - 3 * H, fin: maintenant - 2 * H, seance: null }), { e: { id: 'e1', titre: 'Dentiste', debut: futur.debut, fin: futur.fin }, o: futur }];
+      v('⛔ qui peut DÉCALER : l\'organisateur, une réunion à venir, ni série, ni annulée, ni passée ; un événement à soi — et une phrase dit pourquoi sinon',
+        [cas.map(G.peutDecaler), G.raisonNonDecalable(cas[1]), G.raisonNonDecalable(cas[2])], [[true, false, false, false, false, true], 'Seul l\'organisateur peut décaler cette réunion.', 'Une réunion qui se répète se modifie en entier : « Modifier la réunion », dans sa fiche.']);
+      const actions = h => Array.from(h.matchAll(/data-ag-menu="([a-z-]+)"(?: data-statut="([a-z]+)" aria-pressed="(true|false)")?/g)).map(m => m[1] + (m[2] ? ':' + m[2] + (m[3] === 'true' ? '*' : '') : ''));
+      v('⛔ le menu de l\'ORGANISATEUR : ouvrir, décaler, écrire aux participants, le .ics, annuler — jamais « répondre »', actions(G.htmlMenuAgenda(cas[0])), ['ouvrir', 'decaler', 'conversation', 'ics', 'annuler']);
+      v('⛔ le menu de l\'INVITÉ : ouvrir, répondre (sa réponse cochée), écrire, le .ics — jamais décaler ni annuler', actions(G.htmlMenuAgenda(x(R({ moi: { hote: false, statut: 'peutetre' } })))), ['ouvrir', 'reponse:accepte', 'reponse:peutetre*', 'reponse:decline', 'conversation', 'ics']);
+      v('une SÉRIE organisée : « Modifier la série… » au lieu de « Décaler… »', actions(G.htmlMenuAgenda(cas[2])).includes('modifier') && !actions(G.htmlMenuAgenda(cas[2])).includes('decaler'), true);
+      v('un événement : ouvrir, décaler, fait, reporter, supprimer ; « Voir le message » seulement s\'il vient d\'un message ; « Ranger dans » seulement avec les deux côtés',
+        [actions(G.htmlMenuAgenda(cas[5])), (() => { cA.modes = true; const a = actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { source: { conv: 'c_x', seq: 3 } }), o: futur })); cA.modes = false; return a; })()],
+        [['ouvrir', 'decaler', 'fait', 'reporter', 'supprimer'], ['ouvrir', 'decaler', 'fait', 'reporter', 'voir', 'cote', 'supprimer']]);
+      vrai('le titre du menu est ÉCHAPPÉ (un titre « <img onerror> » reste du texte)', /&lt;img onerror&gt;/.test(G.htmlMenuAgenda(x(R({ titre: '<img onerror>' })))) && !/<img onerror>/.test(G.htmlMenuAgenda(x(R({ titre: '<img onerror>' })))));
+      /* les chevauchements : des DEUX côtés (on ne peut pas être à deux endroits), jamais soi-même, ni une réunion annulée ou refusée, ni une journée entière, ni un rappel fait */
+      const o = (h1, h2) => ({ debut: maintenant + h1 * H, fin: maintenant + h2 * H, seance: null });
+      cA.reu.liste = [R({ id: 'r1', occurrences: [o(26, 27)] }), R({ id: 'r2', titre: 'Perso', occurrences: [o(26.5, 27.5)] }), R({ id: 'r3', annulee: true, occurrences: [o(26, 27)] }), R({ id: 'r4', moi: { hote: false, statut: 'decline' }, occurrences: [o(26, 27)] }), R({ id: 'r5', occurrences: [o(30, 31)] })];
+      cA.reu.evenements = [{ id: 'e1', titre: 'A', debut: maintenant + 26 * H, fin: maintenant + 26.25 * H }, { id: 'e2', titre: 'J', journee: true, debut: maintenant, fin: maintenant + 48 * H }, { id: 'e3', titre: 'F', fait: true, debut: maintenant + 26 * H, fin: maintenant + 27 * H }];
+      v('⛔ un CHEVAUCHEMENT : r2 et l\'événement e1 — pas la réunion elle-même, ni une annulée, ni une refusée, ni une journée entière, ni un rappel fait, ni ce qui ne touche pas le créneau',
+        G.conflitsAgenda(maintenant + 26 * H, maintenant + 27 * H, 'r1').map(y => y.r ? y.r.id : y.e.id).sort(), ['e1', 'r2']);
+      v('l\'occurrence d\'une série se retrouve par son début ; une réunion d\'une seule date, même sans début dit', [G.elementAgenda('r', 'r1', maintenant + 26 * H).o.debut, G.elementAgenda('r', 'r5', null).o.debut, G.elementAgenda('r', 'r1', 1), G.elementAgenda('e', 'e1').e.titre], [maintenant + 26 * H, maintenant + 30 * H, cA.reu.liste[0].occurrences.length === 1 ? G.elementAgenda('r', 'r1', 1) : null, 'A']);
+      v('qui sera prévenu : les noms (trois au plus, puis « et N autres »), ou que rien n\'est envoyé', [G.phrasePrevenus(['p_bob']).slice(0, 29), /Bob Martin, Cléo Durand, Dan et 1 autre —/.test(G.phrasePrevenus(['p_bob', 'p_cleo', 'p_dan', 'p_eve'])), G.phrasePrevenus([])], ['Seront prévenus : Bob Martin ', true, 'Personne d\'autre n\'est invité : rien n\'est envoyé.']);
+      /* ⛔ (relecture, I1) la liste de l'agenda ne porte que QUATRE participants : « qui sera prévenu » compte avec `participantsN` (organisateur compris), jamais avec la liste tronquée */
+      cA.reu.liste = [R({ id: 'r6', titre: 'Six invités', participants: ['p_moi', 'p_bob', 'p_cleo', 'p_dan'], participantsN: 7, occurrences: [futur] })];
+      const m6 = G.modeleDecalage({ type: 'r', id: 'r6', debut: futur.debut });
+      v('⛔ six invités dont trois nommés dans la liste : le modèle en compte SIX, et la phrase dit « et 3 autres » ; sans un nom, la phrase compte encore',
+        [m6 && m6.prevenusN, m6 && /Bob Martin, Cléo Durand, Dan et 3 autres —/.test(G.phrasePrevenus(m6.prevenus, m6.prevenusN)), /^Seront prévenus : 2 participants —/.test(G.phrasePrevenus([], 2))], [6, true, true]);
+      /* ⛔ (relecture, I5) l'heure gardée est celle du FUSEAU de la réunion : 9 h à New York le mercredi 28 octobre (heure d'été là-bas) → 9 h à New York le mercredi 4 novembre (heure
+         d'hiver là-bas) — un calcul à l'heure de l'appareil (Paris, ou UTC) donnerait 8 h à New York */
+      const ny28 = Date.UTC(2026, 9, 28, 13, 0), ny4 = Date.UTC(2026, 10, 4, 14, 0);
+      v('⛔ décaler de sept jours garde 9 h À NEW YORK (14:00 UTC le 4 novembre, pas 13:00) ; zéro jour ne change rien ; un fuseau illisible retombe sur l\'appareil',
+        [G.debutDecale(ny28, 7, 'America/New_York'), G.debutDecale(ny28, 0, 'America/New_York'), G.debutDecale(ny28, 1, 'Pas/UnFuseau') - ny28], [ny4, ny28, 86400000]);
+      v('les jours tirés se comptent d\'une case à l\'autre (un minuit de 23 ou 25 h compte un jour) ; une journée entière a la date de SON fuseau',
+        [G.joursEntre(1000, 1000 + 2 * 86400000 - 3600000), G.joursEntre(1000, 1000 - 86400000), (d => d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate())(new Date(G.jourDans(Date.UTC(2026, 9, 13, 22), 'Europe/Paris')))], [2, -1, 20261014]);
+      /* la FICHE d'une réunion (hors de la fenêtre chargée) dit la même chose que l'agenda : qui peut, qui sera prévenu */
+      const fiche = (o) => Object.assign({ titre: 'Hors semaine', debut: futur.debut, fin: futur.fin, tz: 'Europe/Paris', annulee: false, repetition: 'aucune', moi: { hote: true }, invites: [{ id: 'p_moi', hote: true }, { id: 'p_bob' }, { id: 'p_cleo' }] }, o || {});
+      v('⛔ la fiche : l\'organisateur peut (deux prévenus, pas lui) ; l\'invité, une série, une annulée, une passée ne peuvent pas — et la phrase dit pourquoi',
+        [(s => [s.peut, s.prevenusN, s.prevenus.join()])(G.snapDecalage('r_f', fiche())), G.snapDecalage('r_f', fiche({ moi: { hote: false } })).raison, G.snapDecalage('r_f', fiche({ repetition: 'hebdomadaire' })).peut, G.snapDecalage('r_f', fiche({ annulee: true })).raison, G.snapDecalage('r_f', fiche({ debut: maintenant - 3 * H, fin: maintenant - 2 * H })).raison, G.snapDecalage('r_f', null)],
+        [[true, 2, 'p_bob,p_cleo'], 'Seul l\'organisateur peut décaler cette réunion.', false, 'Cette réunion est annulée.', 'Cette réunion est passée.', null]);
+      /* la case : un conteneur, le numéro en bouton, chaque rendez-vous un bouton (sauf une séance terminée), « +N » au-delà */
+      const t = Date.UTC(2026, 9, 12, 22);
+      cA.reu.jour = t; cA.duJour = [x(R({ id: 'r1' })), x(R({ id: 'r9', titre: 'Finie' }), { debut: maintenant - 3 * H, fin: maintenant - 2 * H, seance: { dureeS: 600, n: 2 } }), { e: { id: 'e1', titre: 'Dentiste', debut: futur.debut, fin: futur.fin }, o: futur }, x(R({ id: 'r7', titre: 'Quatre' }))];
+      const h = G.caseJour(t, t, 3, true);
+      v('⛔ la case : un CONTENEUR (jamais un bouton qui en contient d\'autres), le numéro-bouton choisi et « aujourd\'hui », le nom du jour (semaine), deux rendez-vous boutons qu\'on peut tirer, la séance finie en simple texte, « +1 »',
+        [/^<div class="mjour avec choisi" data-case="/.test(h), (h.match(/<button type="button" class="mjour-num presse" data-jour="\d+" aria-pressed="true" aria-current="date"/g) || []).length, /class="mjour-nom"/.test(h),
+          (h.match(/<button type="button" class="mjour-elt[^"]* bouge presse" data-ag="[re]"/g) || []).length, /<span class="mjour-elt terminee" aria-hidden="true">/.test(h), /class="mjour-plus presse"[^>]*>\+1</.test(h), /<button[^>]*class="mjour[ "][^>]*>(?:(?!<\/button>).)*<button/.test(h)],
+        [true, 1, true, 2, true, true, false], h.slice(0, 300));
+    } catch (e) { vrai('l\'agenda de pro s\'exécute sans jeter (' + String(e && e.message || e).slice(0, 160) + ')', false); }
+    vrai('⛔ le menu d\'un rendez-vous : un troisième visage du cadre des menus (fermé, il perd ses classes), ouvert au clic droit, à l\'appui long et au clavier, sans le délai de l\'appui long quand aucun clic fantôme ne suit',
+      /\$\('menu-msg'\)\.classList\.remove\('pj', 'pt', 'ag'\); \$\('menu-fond'\)\.classList\.remove\('pj', 'ancre', 'de-moi', 'ag'\);/.test(JS) && /if \(m0\.agenda\) \{ if \(e\.target === \$\('menu-fond'\)\) fermerMenu\(\); else clicMenuAgenda\(e\); return; \}/.test(JS)
+      && /ouvrirMenuAgenda\(el, souris \? \{ x: e\.clientX, y: e\.clientY \} : null, true\);/.test(JS) && /t: sansDelai \? 0 : Date\.now\(\)/.test(JS) && /if \(e\.button === 2\) \{ ag\.droit = Date\.now\(\); return; \}/.test(JS));
+    vrai('⛔ annuler une réunion ou supprimer un événement depuis le menu demande une SECONDE touche, dite',
+      /if \(act === 'annuler' && b\.dataset\.pret !== '1'\) \{/.test(JS) && /if \(act === 'supprimer' && b\.dataset\.pret !== '1'\) \{/.test(JS));
+    vrai('⛔ RIEN NE PART AU LÂCHER : un rendez-vous tiré sur un autre jour ouvre la feuille « Décaler », l\'heure gardée ; la grille ne se redessine pas sous un rendez-vous qu\'on tire',
+      /if \(jour !== null\) ouvrirDecaler\(T\.el\.dataset\.ag, T\.el\.dataset\.id, \+T\.el\.dataset\.debut \|\| null, retrouverAgenda\(T\.el, cle\), \{ jour, depart \}\);/.test(JS) && /if \(ag\.tire && ag\.tire\.actif\) \{ ag\.aRendre = true; return; \}/.test(JS)
+      && /if \(D\.jour !== null && D\.depart !== null\) \{ const n = joursEntre\(D\.depart, D\.jour\); nd = X\.journee \? plusJours\(base, n\) : debutDecale\(X\.debut, n, X\.tz\); \}/.test(JS) && /\(CAP\.reunions && mode === 'decaler' && \(ID_REUNION\.test\(arg \|\| ''\) \|\| \(CAP\.agenda && ID_EVT\.test\(arg \|\| ''\)\)\)\)/.test(JS));
+    vrai('⛔ (relecture) la case ENTIÈRE choisit le jour ; le focus d\'un rendez-vous de plusieurs jours revient sur SA case ; le bouton du menu se retrouve après un rafraîchissement ; Échap pendant un glisser avale le clic JUSQU\'AU relâcher ; un bouton relâché hors de la fenêtre arrête le glisser',
+      /const b = e\.target\.closest\('\[data-jour\]'\) \|\| e\.target\.closest\('\.mjour\[data-case\]'\); if \(!b\) return;/.test(JS) && /return c \? \['\[data-case="' \+ p\(c\.dataset\.case\) \+ '"\] ' \+ base, base\] : \[base\];/.test(JS)
+      && /const m0 = etat\.menu, d = m0\.agenda \? retrouverAgenda\(m0\.declencheur, m0\.cle\) : m0\.declencheur; etat\.menu = null;/.test(JS) && /declencheur: el, cle: cleAgenda\(el\),/.test(JS)
+      && /if \(ag\.avale === e\.pointerId\) \{ ag\.avale = null; ag\.clicAvale = Date\.now\(\) \+ 500; \}/.test(JS) && /ag\.tire = null; ag\.avale = T\.id; finTirer\(T, false\);/.test(JS)
+      && /if \(!\(e\.buttons & 1\)\) \{ ag\.tire = null; if \(T\.actif\) finTirer\(T, false\); return; \}/.test(JS));
+    vrai('⛔ (relecture) une réunion absente de la fenêtre chargée se RELIT avant de dire « n\'existe plus » ; une réussite ne ferme que SA feuille ; une heure qui n\'existe pas et l\'heure du fuseau de la réunion se disent',
+      /if \(type === 'r' && !D\.lu && typeof source\.reunion === 'function'\) \{/.test(JS) && (JS.match(/if \(reu\.decalageForm === F\) \{ reu\.decalage = null; reu\.decalageForm = null; if \(etat\.groupe\.ouvert && etat\.groupe\.mode === 'decaler'\) fermerCouche\(\); \}/g) || []).length === 2
+      && /n\\'existe pas ce jour-là \(changement d\\'heure\) : ce sera '/.test(JS) && /'Heure de ' \+ villeDe\(F\.tz\)/.test(JS) && /if \(t === F\.base\)/.test(JS));
+    vrai('⛔ (relecture) au doigt sur tablette : 44 px aux rendez-vous, au numéro et à « +N » de la semaine ; au mois, la case entière choisit le jour (les puces ne volent pas le toucher)',
+      /@media \(min-width: 700px\) and \(pointer: coarse\) \{\s*\.sem-grille \.mjour-num \{ min-height: 44px; \}\s*\.sem-grille \.mjour-elt \{ min-height: 44px;[^}]*\}\s*\.sem-grille \.mjour-plus \{ min-height: 44px; min-width: 44px;[^}]*\}\s*#mois-jours \.mjour-elt, #mois-jours \.mjour-plus \{ pointer-events: none; \}/.test(CSS));
+    vrai('⛔ la feuille envoie l\'heure LOCALE de la réunion dans SON fuseau, avec le motif ; un événement garde sa durée (et ses jours)',
+      /source\.decalerReunion\(F\.id, \{ debut: localDans\(t, F\.tz\), fin: localDans\(t \+ F\.duree, F\.tz\), motif \}\)/.test(JS) && /\{ journee: true, debut: ymdDe\(t\), fin: ymdDe\(plusJours\(t, F\.jours - 1\)\) \} : \{ debut: localDans\(t, F\.tz\), fin: localDans\(t \+ F\.duree, F\.tz\) \}/.test(JS));
+    vrai('la semaine est une grille dès 700 px (la bande des jours au téléphone) ; un rendez-vous ne garde pas le menu du système au doigt (pas de bulle d\'iOS)',
+      /\.sem-jours \{ display: none; \}\s*\.sem-grille \{ display: grid; grid-template-columns: repeat\(7, minmax\(0, 1fr\)\);/.test(CSS) && /-webkit-touch-callout: none;/.test(CSS) && /\.sem-grille \{ display: none; \}/.test(CSS));
+  }
   /* 8 octobre 2026 : le menu d'un message contre sa bulle, « Me le rappeler », l'Agenda au mois — le comportement est mesuré par la sonde tests/sonde-opmessages-menu-rappel.js */
   vrai('le menu d\'un message s\'ancre à la rangée du message (dès 700 px, si le navigateur sait l\'ancre) et l\'ancre part avec lui',
     /@supports \(anchor-name: --menu-msg\)/.test(CSS) && /\.menu-fond\.ancre \.menu-msg \{ position: fixed; position-anchor: --menu-msg;/.test(CSS) && /if \(ancre\) \{ ancre\.classList\.add\('menu-ancre'\); \$\('menu-fond'\)\.classList\.add\('ancre'\);/.test(JS)
@@ -907,6 +1003,8 @@ async function controler(PAGE, SRC, DOC) {
   console.log('\n══ 2. LA CONTRE-ÉPREUVE : ON REMET LE DÉFAUT SUR UNE COPIE EN MÉMOIRE, LE BANC DOIT TOMBER (ou l\'indiquer à la sonde) ══\n');
   const neutre = (await controler(PAGE, SRC, DOC)).filter(r => !r[1]).length;
   dire('copie INTACTE : 0 constat rouge (le banc ne crie pas au loup)', neutre === 0, ' — ' + neutre + ' rouge(s)');
+  const ids = MUTATIONS.map(m => m.id), doublons = ids.filter((x, i) => ids.indexOf(x) !== i);
+  dire('chaque mutation porte un identifiant UNIQUE (deux « A01 » rendent un verdict ambigu, et le lanceur n\'en jouerait qu\'un)', doublons.length === 0, doublons.length ? ' — ' + Array.from(new Set(doublons)).join(', ') : '');
   let mordent = 0, banc = 0, sondeSeule = 0, malVisees = 0;
   const SERIE = MUTATIONS.filter(m => !m.suite);                // la série A (étape 3) est éprouvée par tests/test-859.js
   for (const m of SERIE) {
