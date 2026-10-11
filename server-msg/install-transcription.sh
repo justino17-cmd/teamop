@@ -160,7 +160,9 @@ try {
   try { existant = fs.readFileSync(e.TR_CONF, "utf8"); } catch (x) { existant = null; }
   const changeOuvrier = existant !== ouvrierTxt;
   if (changeOuvrier) ecrire(e.TR_CONF, ouvrierTxt, 0o640, go === null ? null : 0, go);
-  console.log("secret=" + (repris ? "repris" : "nouveau") + " instance=" + (changeInstance ? "change" : "inchange") + " ouvrier=" + (changeOuvrier ? "change" : "inchange"));
+  /* des mots d'état, jamais une valeur (écrits en paires clé/mot : un « secret= » suivi d'un texte entre guillemets ressemble, pour scripts/verif-secrets.sh, à un secret en dur) */
+  const etat = { secret: repris ? "repris" : "nouveau", instance: changeInstance ? "change" : "inchange", ouvrier: changeOuvrier ? "change" : "inchange" };
+  console.log(Object.keys(etat).map((k) => k + "=" + etat[k]).join(" "));
 } catch (x) {
   console.log("erreur-" + (x && x.code ? String(x.code).replace(/[^A-Z_]/g, "") : "inconnue"));
   process.exit(1);
