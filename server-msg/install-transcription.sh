@@ -102,6 +102,9 @@ command -v node >/dev/null || { echo "✗ node est absent du VPS"; exit 1; }
 # Rien de ce qui touche un secret ne s'affiche tel quel : tout mot de 40 caractères « d'identifiant » ou plus est masqué.
 masquer() { sed -E 's/[A-Za-z0-9_-]{40,}/[masqué]/g'; }
 actif() { systemctl is-active --quiet "$1"; }
+# ce que systemd a retenu de la FIN de l'ouvrier — « Result=signal ExecMainStatus=31 » : un appel système refusé ; « Result=exit-code ExecMainStatus=1 » : il a jeté au
+# démarrage. ⛔ Jamais le journal (test-930) : la sortie de ce script est recollée telle quelle, et le journal du VPS porte des identifiants.
+finOuvrier() { systemctl show -p Result -p ExecMainStatus "$UNITE_TR" 2>/dev/null | tr '\n' ' ' | sed 's/ *$//'; }
 
 PORT_SERVICE="$(sed -n 's/^PORT=//p' "$ETC/$INSTANCE.env" 2>/dev/null || true)"
 [[ "$PORT_SERVICE" =~ ^[0-9]{2,5}$ ]] || PORT_SERVICE=""
@@ -429,6 +432,17 @@ systemctl enable "$UNITE_TR" >/dev/null 2>&1 || true
 if [ "$CHANGE_OUVRIER" = "oui" ] || ! actif "$UNITE_TR"; then systemctl restart "$UNITE_TR" || true; fi
 for _ in $(seq 1 10); do actif "$UNITE_TR" && break; sleep 1; done
 actif "$UNITE_TR" || annuler "⛔ l'ouvrier de transcription n'a pas démarré. Voir :  systemctl status $UNITE_TR --no-pager | head -5"
+# ⛔ « actif » ne veut pas dire « prêt » (11 octobre 2026, sur le VPS : « socket … absente ») : pour un Type=simple, systemd rend la main dès le LANCEMENT
+# du processus, et le contrôle partait avant que Node ait chargé et ouvert sa socket. On attend la socket (20 s au plus) — et un ouvrier qui meurt
+# au démarrage (une configuration refusée, un appel système filtré) se dit ici, avec la commande qui montre pourquoi, au lieu d'un contrôle qui échoue.
+for _ in $(seq 1 40); do [ -S "$SOCKET" ] && break; actif "$UNITE_TR" || break; sleep 0.5; done
+if [ ! -S "$SOCKET" ]; then
+  if actif "$UNITE_TR"; then
+    annuler "⛔ l'ouvrier tourne mais n'a pas ouvert sa socket en 20 s. Voir :  systemctl status $UNITE_TR --no-pager | head -5"
+  else
+    annuler "⛔ l'ouvrier de transcription s'est arrêté au démarrage ($(finOuvrier)). Voir :  systemctl status $UNITE_TR --no-pager | head -5"
+  fi
+fi
 echo "── Contrôle de l'ouvrier (il refuse qui n'a pas le secret, et transcrit l'échantillon de whisper.cpp)…"
 OPMSG_TRANSCRIRE_CONFIG="$TR_CONF" node "$VERIF" "$INSTANCE" "$W_DIR/jfk.wav" 2>&1 | masquer \
   || annuler "⛔ l'ouvrier ne fait pas ce qu'il doit (voir les ✗ ci-dessus) : rien n'est proposé aux personnes."
