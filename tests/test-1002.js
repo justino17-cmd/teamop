@@ -70,6 +70,10 @@ case "$cmd" in
     esac ;;
   stop)
     case "$unite" in opmsg-transcrire@*) p=$(cat "$E/pid-$unite" 2>/dev/null); [ -n "$p" ] && kill "$p" 2>/dev/null; rm -f "$E/pid-$unite" ;; esac ;;
+  show)
+    # ce que le vrai systemd dit d'une unité qui s'est arrêtée (« -p Result -p ExecMainStatus ») : l'installeur le recopie à la place du journal
+    case "$unite" in -p) u="\${@: -1}" ;; *) u="$unite" ;; esac
+    case "$u" in opmsg-transcrire@*) if [ -f "$E/ouvrier-meurt" ]; then printf 'Result=exit-code\nExecMainStatus=3\n'; else printf 'Result=success\nExecMainStatus=0\n'; fi ;; esac ;;
   *) : ;;
 esac
 `,
@@ -352,8 +356,8 @@ const compte = (journal, re) => journal.filter(l => re.test(l)).length;
     { nom: 'une version du service d\'avant la transcription', version: 'ancienne', rien: true, dit: /antérieure à la transcription/ },
     { nom: 'l\'ouvrier ne démarre pas', drapeau: 'ouvrier-refuse', dit: /l'ouvrier de transcription n'a pas démarré/ },
     /* ⛔ « actif » n'est pas « prêt » (11 octobre 2026, le vrai VPS) : l'installeur attend la socket, et dit pourquoi elle ne vient pas */
-    { nom: 'l\'ouvrier démarre puis meurt (une configuration refusée, un appel système filtré)', drapeau: 'ouvrier-meurt', dit: /s'est arrêté au démarrage\. Voir :  journalctl -u opmsg-transcrire@beta -n 30 --no-pager/ },
-    { nom: 'l\'ouvrier tourne mais n\'ouvre jamais sa socket', drapeau: 'ouvrier-muet', dit: /tourne mais n'a pas ouvert sa socket en 20 s\. Voir :  journalctl -u opmsg-transcrire@beta/ },
+    { nom: 'l\'ouvrier démarre puis meurt (une configuration refusée, un appel système filtré)', drapeau: 'ouvrier-meurt', dit: /s'est arrêté au démarrage \(Result=exit-code ExecMainStatus=3\)\. Voir :  systemctl status opmsg-transcrire@beta --no-pager \| head -5/ },
+    { nom: 'l\'ouvrier tourne mais n\'ouvre jamais sa socket', drapeau: 'ouvrier-muet', dit: /tourne mais n'a pas ouvert sa socket en 20 s\. Voir :  systemctl status opmsg-transcrire@beta/ },
     { nom: 'l\'ouvrier ne transcrit pas l\'échantillon (le contrôle échoue)', avant: (b) => b.ecrireEtat('whisper-texte', 'un texte sans le mot attendu'), dit: /l'ouvrier ne fait pas ce qu'il doit/ },
     { nom: 'l\'instance relancée ne voit pas l\'ouvrier', drapeau: 'health-ko', dit: /ne voit pas l'ouvrier/ },
     { nom: 'une commande échoue APRÈS l\'écriture des configurations (le piège ERR)', drapeau: 'chown-refuse', dit: /une étape a échoué \(ligne \d+\)/ },

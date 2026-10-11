@@ -102,6 +102,9 @@ command -v node >/dev/null || { echo "✗ node est absent du VPS"; exit 1; }
 # Rien de ce qui touche un secret ne s'affiche tel quel : tout mot de 40 caractères « d'identifiant » ou plus est masqué.
 masquer() { sed -E 's/[A-Za-z0-9_-]{40,}/[masqué]/g'; }
 actif() { systemctl is-active --quiet "$1"; }
+# ce que systemd a retenu de la FIN de l'ouvrier — « Result=signal ExecMainStatus=31 » : un appel système refusé ; « Result=exit-code ExecMainStatus=1 » : il a jeté au
+# démarrage. ⛔ Jamais le journal (test-930) : la sortie de ce script est recollée telle quelle, et le journal du VPS porte des identifiants.
+finOuvrier() { systemctl show -p Result -p ExecMainStatus "$UNITE_TR" 2>/dev/null | tr '\n' ' ' | sed 's/ *$//'; }
 
 PORT_SERVICE="$(sed -n 's/^PORT=//p' "$ETC/$INSTANCE.env" 2>/dev/null || true)"
 [[ "$PORT_SERVICE" =~ ^[0-9]{2,5}$ ]] || PORT_SERVICE=""
@@ -435,9 +438,9 @@ actif "$UNITE_TR" || annuler "⛔ l'ouvrier de transcription n'a pas démarré. 
 for _ in $(seq 1 40); do [ -S "$SOCKET" ] && break; actif "$UNITE_TR" || break; sleep 0.5; done
 if [ ! -S "$SOCKET" ]; then
   if actif "$UNITE_TR"; then
-    annuler "⛔ l'ouvrier tourne mais n'a pas ouvert sa socket en 20 s. Voir :  journalctl -u $UNITE_TR -n 30 --no-pager"
+    annuler "⛔ l'ouvrier tourne mais n'a pas ouvert sa socket en 20 s. Voir :  systemctl status $UNITE_TR --no-pager | head -5"
   else
-    annuler "⛔ l'ouvrier de transcription s'est arrêté au démarrage. Voir :  journalctl -u $UNITE_TR -n 30 --no-pager"
+    annuler "⛔ l'ouvrier de transcription s'est arrêté au démarrage ($(finOuvrier)). Voir :  systemctl status $UNITE_TR --no-pager | head -5"
   fi
 fi
 echo "── Contrôle de l'ouvrier (il refuse qui n'a pas le secret, et transcrit l'échantillon de whisper.cpp)…"
