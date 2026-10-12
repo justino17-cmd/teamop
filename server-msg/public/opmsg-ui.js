@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'eb374f33c605';
+  const OPMSG_BUILD = '1b3398ad7361';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 176;
+  const OPMSG_VERSION = 177;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5080,7 +5080,7 @@
   }
 
   /* ═══ 13 bis. LES RÉUNIONS SONT À MESSAGES PRO ═══════════════════════════════════════════════════════════════════════════════════════════════
-     Justin, 12 octobre 2026 : « Perso, c'est simple. C'est appel, message, et c'est tout. Créer des groupes d'appels, créer des groupes d'appels vidéo, mais pas de réunion. » Perso+ (le forfait d'une
+     Décision du 12 octobre 2026 : « Perso, c'est simple. C'est appel, message, et c'est tout. Créer des groupes d'appels, créer des groupes d'appels vidéo, mais pas de réunion. » Perso+ (le forfait d'une
      personne, 4 octobre 2026, dont le seul ajout était d'organiser des réunions) est RETIRÉ : ORGANISER une réunion est à Messages Pro. Et « un Pro peut inviter des Persos à des réunions, mais que par
      lien » : un invité sans Pro est rendu par le service (`par_lien`), et la page dit « envoie-lui le lien ».
      ⛔ Le service décide (402 `formule_requise`, `offre` « pro ») ; la page le DEMANDE avant (`espaces().organiser`), pour ne jamais montrer un formulaire qu'elle sait refusé. */
