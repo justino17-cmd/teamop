@@ -8,7 +8,8 @@
      0. PERSO+ N'EXISTE PLUS : ses quatre routes répondent 404 ;
      1. PROGRAMMER EST À PRO : Perso → 402 (`raison` « perso », `offre` « pro ») ; Pro → 201 ; un corps qui ment ne change rien ; une ligne Perso+ restée en base n'ouvre rien ; rien n'est écrit par un refus ;
      2. ÊTRE INVITÉ EN SON NOM EST À PRO : un contact Perso est rendu dans `par_lien` (à la création comme par « Inviter »), sans notification et sans rien voir de la réunion ; un contact Pro est invité ;
-     3. LE LIEN FAIT ENTRER TOUT COMPTE : la personne Perso entre par le lien d'invité, devient invitée (acceptée), répond, lit la fiche et le fichier .ics — et n'organise pas pour autant ;
+     3. LE LIEN FAIT ENTRER TOUT COMPTE : la personne Perso entre par le lien d'invité, devient invitée (acceptée), répond, lit la fiche et le fichier .ics — et n'organise pas pour autant ; arrivée la première, elle
+        n'est jamais l'hôte par intérim (c'est le premier invité NOMMÉ qui prend la porte) et attend à la porte d'une salle d'attente ;
      4. LE PLAFOND DE DIX PERSONNES : la onzième est refusée (création, invitation, lien), avec le plafond dit ; une personne déjà invitée n'est jamais refusée ; un appel de GROUPE n'est pas concerné ; rien ne vend
         le supplément « Grandes réunions » ;
      5. LES OUTILS DE L'ORGANISATEUR D'UNE SALLE : dans un appel de groupe lancé par quelqu'un de Perso, huit gestes refusent (402, `offre` « pro ») et rien n'est écrit, le reste est à tous ; éteindre n'est jamais
@@ -122,7 +123,21 @@ const tri = (l) => (l || []).slice().sort();
       v('⛔ Fred (PERSO) entre PAR LE LIEN d\'Eve : 200, il devient invité (accepté) et entre dans la salle — l\'aperçu public ne dit que de quoi décider', [apercu.code, Object.keys(apercu.j.reunion).sort(), parLien.code, parLien.j.reunion === id, parLien.j.appel && parLien.j.appel.moi && parLien.j.appel.moi.statut], [200, ['attente', 'debut', 'en_cours', 'fin', 'titre'], 200, true, 'present']);
       v('… la fiche, le fichier .ics, répondre : tout lui est ouvert (il est invité, par le lien)', [(await f1.get('/api/reunions/' + id)).code, (await f1.get('/api/reunions/' + id + '/ics')).code, dit(await f1.post('/api/reunions/' + id + '/reponse', { statut: 'peutetre' }))], [200, 200, [200, undefined]]);
       v('mais il n\'organise pas pour autant : Fred ne programme pas (402), n\'invite pas et ne renouvelle pas le lien (403 : il n\'est pas l\'hôte)', [dit(await f1.post('/api/reunions', corpsR())), dit(await f1.post('/api/reunions/' + id + '/inviter', { uids: [gus.id] })), dit(await f1.post('/api/reunions/' + id + '/lien', {}))], [[402, 'formule_requise'], [403, 'interdit'], [403, 'interdit']]);
-      const r = await f1.get('/api/appels'); if (r.j && r.j.actif) await f1.post('/api/appels/' + r.j.actif.id + '/quitter', {});
+      /* ⛔ L'INTÉRIM NE REVIENT QU'À UN INVITÉ NOMMÉ (relecture du gardien, 12 octobre 2026) : Fred, entré le PREMIER par le lien, aurait été l'hôte par intérim — exclure un invité de l'organisatrice, sans retour,
+         verrouiller. Il entre en simple participant ; Ana, invitée NOMMÉE (Pro), prend la porte en arrivant. */
+      const sid = parLien.j.appel && parLien.j.appel.id, moiF = parLien.j.appel && parLien.j.appel.moi;
+      v('⛔ Fred, entré le PREMIER et PAR LE LIEN (personne d\'autre dans la salle) : simple participant — ni hôte, ni grade — et il ne verrouille pas (403)', [moiF && moiF.grade, moiF && !!moiF.hote, dit(await f1.post('/api/salles/' + sid + '/verrouiller', { actif: true }))], [0, false, [403, 'interdit']]);
+      const ajA = await e1.post('/api/reunions/' + id + '/inviter', { uids: [ana.id] });
+      const entreA = await a1.post('/api/reunions/' + id + '/rejoindre', {});
+      v('… Ana, invitée NOMMÉE par Eve (elle est Pro), arrive ensuite : elle devient l\'hôte par intérim (grade 2) — la salle n\'est pas sans maître', [ajA.j.ajoutes, entreA.code, entreA.j.appel && entreA.j.appel.moi.grade, entreA.j.appel && entreA.j.appel.id === sid], [[ana.id], 200, 2, true]);
+      v('… et Fred ne peut pas l\'exclure (403) : elle verrouille, puis déverrouille (200, 200)', [dit(await f1.post('/api/salles/' + sid + '/exclure', { uid: ana.id })), (await a1.post('/api/salles/' + sid + '/verrouiller', { actif: true })).code, (await a1.post('/api/salles/' + sid + '/verrouiller', { actif: false })).code], [[403, 'interdit'], 200, 200]);
+      for (const c of [f1, a1]) { const r = await c.get('/api/appels'); if (r.j && r.j.actif) await c.post('/api/appels/' + r.j.actif.id + '/quitter', {}); }
+      /* … et dans une salle d'ATTENTE, celui qui arrive le premier par le lien attend à la porte : personne ne l'a laissé entrer */
+      const ra = await e1.post('/api/reunions', corpsR({ titre: 'Avec une porte', salle_attente: true }));
+      const codeA = (await e1.post('/api/reunions/' + ra.j.reunion.id + '/lien', {})).j.code;
+      const gusA = await g1.post('/api/reunions/rejoindre', { code: codeA });
+      v('⛔ une salle d\'attente, Gus (Perso) arrive le PREMIER par le lien : il ATTEND à la porte (200, `attente`) — il ne s\'ouvre pas la salle tout seul', [ra.code, gusA.code, gusA.j.attente, gusA.j.appel && gusA.j.appel.moi.statut, gusA.j.appel && gusA.j.appel.moi.grade], [201, 200, true, 'attente', 0]);
+      for (const c of [g1]) { const r = await c.get('/api/appels'); if (r.j && r.j.actif) await c.post('/api/appels/' + r.j.actif.id + '/quitter', {}); }
     }
 
     /* ═══ 4. LE PLAFOND DE DIX PERSONNES ═════════════════════════════════════════════════════════════════════════════════════════════════ */

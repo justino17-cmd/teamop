@@ -4214,7 +4214,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       /* ⛔ UNE SALLE N'EST JAMAIS SANS MAÎTRE : quand personne n'y tient plus la porte (ni hôte ni co-hôte PRÉSENT — la salle d'une réunion qu'un invité ouvre avant l'organisateur), le premier qui entre en devient l'hôte PAR
          INTÉRIM. Il passe la porte sans attendre (personne ne pourrait l'admettre), et l'organisateur qui arrive reprend la main (plus bas). */
       const detenteur = num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND grade >= ?`).get(id, GRADE_COHOTE).n) > 0;
-      const grade = (hoteReunion || !detenteur) ? GRADE_HOTE : (p ? num(p.grade) : 0), pouvoir = grade >= GRADE_COHOTE;
+      /* ⛔ … MAIS L'INTÉRIM NE REVIENT QU'À UN INVITÉ NOMMÉ (relecture du gardien, 12 octobre 2026) : qui est entré PAR LE LIEN (`invite_par` vide, l'organisateur mis à part) n'en devient jamais l'hôte.
+         Le lien se transmet, et depuis que les réunions sont à Pro c'est la porte des Persos : ouvrir la salle avant tout le monde lui donnait les outils — exclure un invité de l'organisateur (sans retour),
+         verrouiller. Arrivé le premier, il entre en simple participant (ou attend à la porte d'une salle d'attente) ; le premier invité nommé, ou l'organisateur, reprend la porte. */
+      const parLien = a.genre === 'reunion' && !!a.reunion && !hoteReunion && !!Q('SELECT 1 FROM reunion_invite WHERE reunion = ? AND uid = ? AND invite_par IS NULL').get(a.reunion, uid);
+      const grade = (hoteReunion || (!detenteur && !parLien)) ? GRADE_HOTE : (p ? num(p.grade) : 0), pouvoir = grade >= GRADE_COHOTE;
       if (a.verrou && !pouvoir) throw erreur('verrouillee');
       const attend = !!a.attente && !pouvoir;
       if (!attend && sallePresents(id) >= num(a.capacite)) throw Object.assign(erreur('appel_complet'), { max: num(a.capacite) });   // la page DIT combien la salle porte (4, 6, 12, 25…)

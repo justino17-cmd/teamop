@@ -19,6 +19,25 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 12 OCTOBRE 2026 (NUIT) — OP MESSAGES : PERSO, CE SONT LES APPELS ET LES MESSAGES — PERSO+ EST RETIRÉ, LES RÉUNIONS SONT À PRO
+
+Justin : « Perso, c'est simple. C'est appel, message, et c'est tout. Créer des groupes d'appels, créer des groupes d'appels vidéo, mais pas de réunion. » ; à « et Perso+ ? » :
+« Le retirer » ; puis « un Pro peut inviter des Persos à des réunions, mais que par lien ». Ce qui est écrit (bêta) :
+· **Organiser une réunion et y être invité EN SON NOM sont à Pro** (`peutOrganiser`, `inviteDirect` — `server-msg/formule.js`, une seule définition chacune). Un Pro qui nomme un
+  contact Perso (à la création ou par « Inviter ») : le service ne l'invite pas et le rend dans `par_lien` — ni invité, ni parmi les refusés (un inconnu ou un interdit reste dans
+  `non_invites`/`non_ajoutes`, indistinctement) ; la page dit « … n'a pas Messages Pro : envoie-lui le lien de la réunion ». Le lien (`POST /api/reunions/rejoindre`) fait entrer
+  tout compte, dans la limite de dix — et SEULEMENT quand la salle est ouverte (quinze minutes avant) : une personne Perso n'a donc pas la réunion dans son agenda avant d'y entrer.
+· **Perso garde** les messages, les appels et les appels de GROUPE en audio comme en vidéo (une salle de groupe lancée par un Perso n'a pas les outils de l'organisateur et le dit).
+· **Perso+ n'existe plus** : `facturation-perso.js` supprimé, routes `/api/moi/perso-plus…` retirées, `facturation.perso` n'est plus lu (une configuration qui le porte démarre
+  quand même), `persoAnnulationMin` a quitté `/health` et la surveillance, `configurer-stripe.js` refuse `--creer-perso-plus`. La page : plus de ligne Perso+ dans Abonnement ;
+  « Programmer » sans Pro ouvre la feuille « Réunions » (la règle, et « Messages Pro » qui mène à « Entreprise ») ; un refus 402 au moment d'enregistrer y mène aussi.
+· ⛔ **Les deux tables de la migration 10 RESTENT** (`abonnement_perso`, `abonnement_a_annuler`), vides et non lues : le code d'avant les lit — un retour en arrière du
+  déploiement reste possible. Aucun Perso+ n'avait été vendu (la bêta n'a pas de Stripe). Si un produit de TEST « OP MESSAGES Perso+ » a été créé chez Stripe, il peut être archivé.
+· La bêta ouvre toujours tout (`toutOuvert`) : une personne sans rien y programme et y invite en son nom — rien ne change à l'essai.
+Preuves : `test-991` (46 ✓, modules), `test-992` (45 ✓, routes), `test-994` (31 ✓, la page et le service), `test-993` supprimé ; sondes `sonde-opmessages-reunions-pro.js`
+(53 ✓, deux fois — remplace celle de Perso+), des réunions (294 ✓), de l'agenda (75 ✓ : Cléo, Perso, n'est plus invitée au dîner en son nom) et du tableau de bord (44 ✓ :
+la réunion « dans douze jours » tombait cette nuit dans le changement d'heure du 25 octobre — elle reçoit la garde `heureNette` de ses voisines).
+
 # 🟡 12 OCTOBRE 2026 (SOIR) — OP MESSAGES : LES RÉUNIONS, LOT 1 (« ENTRER ET ÊTRE À L'AISE »)
 
 Justin, à l'inventaire des réunions (ce qui manque face à Meet, Teams, Zoom, en quatre lots) : « fait dans l'ordre 1 . 2 . 3 . 4 ». Lot 1, écrit et éprouvé :
@@ -59,8 +78,7 @@ impayé. Le total se décide à UN endroit, `formule.stockageMax` (le service : 
 le Profil affiche « 10 Go Perso + 25 Go Pro » sous la jauge. ⛔ **Rien n'est effacé** au-dessus du nouveau maximum (un compte qui avait rempli plus de 10 Go sous les 50 Go
 d'avant, ou Pro qui s'arrête) : les nouveaux envois sont refusés, le Profil dit « Ton espace est plein ». L'ancienne clé `pieces.quotaPersonne` refuse le démarrage (le
 déployeur revient au service d'avant) — la bêta ne la portait pas (`/api/config` rendait la valeur de départ, 50 Go). Sur la bêta, tout le monde est Pro : 35 Go.
-⚠️ **À REDEMANDER À JUSTIN** : « perso n'a pas les réunions, que pro » peut vouloir dire que Perso+ PERD l'organisation des réunions — ce qui défait sa décision du 4 octobre
-(Perso+ organise des réunions jusqu'à 10). Rien n'a été changé là-dessus sans sa phrase.
+✅ **Redemandé à Justin le 12 octobre** : Perso+ est RETIRÉ, les réunions sont à Pro (voir l'entrée du dessus).
 
 # 🟡 11 OCTOBRE 2026 (SOIR) — OP MESSAGES : UNE SEULE BASCULE PERSO / PRO, ET LE PASSAGE AUTOMATIQUE EN PRO AUX HEURES DE TRAVAIL
 
@@ -953,7 +971,7 @@ Justin : « fais les 3 dans l'ordre ». Les trois sont faits, éprouvés, et att
    un /48 les contourne) et 20 demandes par jour et par IP qui peuvent gêner derrière un NAT d'opérateur ; un plafond GLOBAL de courriels de compte avec alerte ; un intrus déjà
    connecté pourrait marquer « Nouvel appareil connecté » comme lu (le push et les autres appareils compensent en partie).
 2. **L'agenda personnel** (`server-msg/routes-agenda.js`, migration 13) : l'onglet s'appelle « Agenda » ; « Événement » (gratuit : titre, journée entière ou heures, lieu, rappel,
-   note) à côté de « Réunion » (Perso+ / Pro). L'heure est locale et son fuseau part avec (le service convertit, changements d'heure compris). Le rappel part UNE fois par le planificateur
+   note) à côté de « Réunion » (Pro — Perso+ retiré le 12 octobre). L'heure est locale et son fuseau part avec (le service convertit, changements d'heure compris). Le rappel part UNE fois par le planificateur
    des réunions (abandonné si l'événement a commencé). Titre, lieu et note scellés ; exportés ; une suppression est notée au registre des purges. `test-998` (25 ✓),
    `tests/sonde-opmessages-agenda.js` (17 ✓). C'est la fondation de l'agent « Pro Assistant » (`OFFRE-PRO.md` § 11 bis).
    ⚠️ Un événement créé sur un appareil ne paraît sur un autre qu'à l'entrée dans l'onglet (pas encore poussé en temps réel).

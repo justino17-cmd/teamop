@@ -174,7 +174,7 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
     {
       const i1 = await A.src.inviterReunion(R, [dan.id], { notifier: true });
       const i2 = await A.src.inviterReunion(R, [cleo.id], { notifier: true });
-      v('inviter un contact : ajouté ; inviter quelqu\'un qui n\'est pas un contact : rendu, pas ajouté', [i1, i2], [{ ajoutes: 1, nonAjoutes: 0 }, { ajoutes: 0, nonAjoutes: 1 }]);
+      v('inviter un contact : ajouté ; inviter quelqu\'un qui n\'est pas un contact : rendu, pas ajouté', [i1, i2], [{ ajoutes: 1, nonAjoutes: 0, parLien: 0 }, { ajoutes: 0, nonAjoutes: 1, parLien: 0 }]);
       vrai('population : Dan voit la réunion dans son agenda, en attente de sa réponse', (await D.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)).some(x => x.id === R && x.moi.statut === 'attente'));
       await A.src.retirerInviteReunion(R, dan.id);
       v('retirer un invité : la réunion disparaît de son agenda (la sentinelle ci-dessus le voyait)', (await D.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)), []);
@@ -304,7 +304,7 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
     {
       const P = monter(svcB); await P.entrer('alice');
       const e = await attrape(P.src.programmer({ titre: 'Réunion Perso', debut: j0 + 'T14:00', fin: j0 + 'T15:00', tz: 'Europe/Paris' }));
-      v('⛔ à la formule de production, une personne sans espace payé ne programme pas : 402, une phrase, rien de créé', [codeDe(e), e && e.statut, phrase(e), (await P.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)).length], ['formule_requise', 402, 'Les réunions s\'organisent avec un forfait (Réglages › Abonnement). Rejoindre une réunion où tu es invité reste gratuit.', 0]);
+      v('⛔ à la formule de production, une personne sans espace payé ne programme pas : 402, une phrase, rien de créé', [codeDe(e), e && e.statut, phrase(e), (await P.src.reunions(OCC[0] - JOUR, OCC[2] + JOUR)).length], ['formule_requise', 402, 'Les réunions sont réservées à Messages Pro. Sans Pro, tu entres dans une réunion par le lien que son organisateur t\'envoie.', 0]);
     }
 
     /* ═══ 11. LE TOUCHER D'UNE NOTIFICATION, LE FUSEAU DE L'APPAREIL ══════════════════════════════════════════════ */
