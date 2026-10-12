@@ -312,7 +312,7 @@ async function parcours(b, ctx) {
       /* changer de rubrique ne relit rien : c'est en REVENANT au Profil que le service est relu — le geste d'une vraie personne */
       await onglet(A, 'messages'); await onglet(A, 'reglages'); await rubrique(A, 'stockage');
       await verifier('⛔ un espace PLEIN (12 Go envoyés quand il n\'en reste que 10 : l\'ancien maximum, ou Pro qui s\'arrête) le DIT — rien n\'est effacé, les nouveaux envois attendent ; sans part Pro, pas de détail', A,
-        () => /utilisés sur 10 Go/.test(document.getElementById('reg-stock').textContent) && /Ton espace est plein\. Rien n'est effacé/.test(document.getElementById('reg-stock').textContent) && !/Go Pro/.test(document.getElementById('reg-stock').textContent),
+        () => /utilisés sur 10 Go/.test(document.getElementById('reg-stock').textContent) && /Ton espace est plein\. Rien n'est effacé/.test(document.getElementById('reg-stock').textContent) && !/Perso \+|\bPro\b/.test(document.getElementById('reg-stock').textContent),
         null, 6000, () => lire(A, '#reg-stock'));
       await A.page.unroute('**/api/moi/stockage');
     }

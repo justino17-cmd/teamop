@@ -132,9 +132,38 @@ async function gestionnaireLecture() {
   v('contre-épreuve : une lecture saine rend 200 et ne compte rien', [c.rep.code, c.compte], [200, 0]);
 }
 
+/* ══ 0 ter. UNE RÉSERVATION QUI LÈVE REND LA PLACE (relecture du gardien, 12 octobre 2026) ══════════════════════════════════════════════════
+   La réservation lit la base et la formule (`formule.stockageMax`) : une erreur de lecture y LÈVE. Un envoi ne tient qu'une des `parPersonne` places de la personne ; si la place n'est
+   pas rendue sur ce chemin, quatre erreurs la bloquent jusqu'au redémarrage. Le VRAI gestionnaire de dépôt et la vraie recopie (transfert), dépendances injectées. */
+async function reservationQuiLeve() {
+  console.log('\nUne réservation qui lève rend la place de l\'envoi (dépôt et transfert), dépendances injectées');
+  const { installerPieces } = require(path.join(T.SERVICE, 'routes-pieces.js'));
+  const H = {}, decor = { leve: true }, ctx = {
+    config: { pieces: piecesConfig({}), quotas: {}, disqueMinMo: 1 }, stockage: {}, quotas: { essai: () => ({ ok: true }) }, hub: {}, horloge: Date.now, disque: { libreMo: () => 1e9 },
+    reservations: { essayer: () => { if (decor.leve) throw Object.assign(new Error('base illisible'), { code: 'SQLITE_IOERR' }); return { ok: false, utilise: 5, max: 4 }; } },
+    pieces: {}, piecesEtat: {}, journaliser: () => {},
+  };
+  installerPieces(H, ctx);
+  const deposer = () => new Promise((ok) => {
+    const rep = { code: null, corps: null, erreur: null };
+    const res = { headersSent: false, status(c) { rep.code = c; return this; }, set() { return this; }, json(o) { rep.corps = o; ok(rep); return this; } };
+    H['pieces.deposer']({ moi: { id: 'u_lev', origine: 'beta', cree: 0 }, query: { genre: 'avatar' }, headers: { 'content-type': 'application/octet-stream', 'content-length': '10' } }, res, (e) => { rep.erreur = e; ok(rep); });
+  });
+  const n = ctx.config.pieces.parPersonne;
+  const depots = []; for (let i = 0; i <= n; i++) depots.push(await deposer());
+  v('population : la personne a ' + n + ' places d\'envoi, et ' + (n + 1) + ' dépôts ont été joués', [n >= 1, depots.length], [true, n + 1]);
+  v('⛔ chaque dépôt dont la réservation LÈVE rend l\'erreur au service (500), y compris le ' + (n + 1) + 'e — jamais « trop d\'envois en même temps » : la place a été rendue', depots.map(r => r.erreur && r.erreur.code), Array(n + 1).fill('SQLITE_IOERR'));
+  const copies = []; for (let i = 0; i <= n; i++) copies.push(await ctx.copierPiece({ moi: { id: 'u_lev2', origine: 'beta', cree: 0 }, source: { id: 'f_' + 'b'.repeat(32), genre: 'fichier', taille: 10 }, conv: 'c' }).then(() => 'copiée', (e) => e && e.code));
+  v('⛔ de même pour la recopie d\'un transfert : ' + (n + 1) + ' recopies, ' + (n + 1) + ' fois l\'erreur — jamais « quota_atteint »', copies, Array(n + 1).fill('SQLITE_IOERR'));
+  decor.leve = false;
+  const apres = await deposer();
+  v('contre-épreuve : la réservation répond « plein » — 402 avec ce qui est utilisé et le maximum (les places rendues n\'ont rien faussé)', [apres.code, apres.corps && apres.corps.portee, apres.corps && apres.corps.max], [402, 'stockage', 4]);
+}
+
 (async () => {
   migration();
   await gestionnaireLecture();
+  await reservationQuiLeve();
   const og = await T.fauxOpGestion(COMPTES());
   const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: {
     balayageMs: 150, presenceGraceMs: 300, pulsationMs: 400,

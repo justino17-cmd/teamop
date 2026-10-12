@@ -83,8 +83,9 @@
 # test-1001 85 → 88, test-1002 109 → 127) — 96 suites, 9 811 vérifications mesurées en local par la commande de la porte (test-971 tombe sur les fuseaux 2025b du
 # conteneur, avec son total complet) ; puis la seconde relecture du gardien (test-1002 127 → 140, seule suite changée) — 9 824 — plancher 9810 (le total moins 14).
 # 12 octobre 2026 : l'espace de stockage, 10 Go pour tous et 25 Go de plus avec Pro (test-943 307 → 308 : l'ancienne clé refuse le démarrage ; test-991 126 → 128 : le
-# maximum de chaque formule ; test-945 et test-967 changent de valeurs, pas de nombre) — 9 827 — plancher 9813 (le total moins 14).
-#plancher 9813
+# maximum de chaque formule ; test-945 et test-967 changent de valeurs, pas de nombre) — 9 827 ; puis la relecture du gardien (test-943 308 → 312 : une réservation qui lève
+# rend la place ; test-967 13 → 21 : l'espace suit la formule par la vraie route ; test-944 garde 141, à 35 Go) — 9 839 — plancher 9825 (le total moins 14).
+#plancher 9825
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

@@ -65,6 +65,10 @@ function installerPieces(H, ctx) {
     return () => { if (sorti) return; sorti = true; enCours--; octetsAnnonces -= taille; const n = (parPers.get(uid) || 1) - 1; if (n > 0) parPers.set(uid, n); else parPers.delete(uid); };
   }
 
+  /* ⛔ LA RÉSERVATION LIT LA BASE ET LA FORMULE (`formule.stockageMax`) : si elle LÈVE, la place prise par `entrerDepot` est rendue. Sans ça, chaque erreur gardait une des
+     `parPersonne` places de la personne — quatre, et elle ne pouvait plus rien envoyer jusqu'au redémarrage (relecture du gardien, 12 octobre 2026). */
+  const reserver = (uid, taille, sortir) => { try { return reservations.essayer(uid, taille); } catch (e) { sortir(); throw e; } };
+
   /* ══ RECOPIER UNE PIÈCE (TRANSFÉRER, 9 octobre 2026) ═════════════════════════════════
      Une photo, un vocal ou un fichier transférés ne se PARTAGENT pas : le droit de les lire dépend de leur conversation. On relit la pièce (déchiffrée bloc à bloc, `pieces.lire`)
      et on la redépose sous un NOUVEL identifiant, scellée avec SA clé, dans la conversation d'arrivée — avec TOUTES les gardes d'un dépôt, dans le même ordre : le plafond de
@@ -81,7 +85,7 @@ function installerPieces(H, ctx) {
     if (ctx.disque.libreMo() - (octetsAnnonces + taille) / Mo < config.disqueMinMo) throw err('disque_plein');
     const sortir = entrerDepot(uid, taille);
     if (!sortir) throw err('quota_atteint');
-    const place = reservations.essayer(uid, taille);
+    const place = reserver(uid, taille, sortir);
     if (!place.ok) { sortir(); throw err('quota_stockage'); }        // l'espace de celui qui transfère est plein (le dépôt dit 402 quota_atteint, portée « stockage »)
     const id = stockage.nouvelId('f');
     try {
@@ -147,7 +151,7 @@ function installerPieces(H, ctx) {
 
     const sortir = entrerDepot(uid, taille);
     if (!sortir) { res.set('Retry-After', '5'); return refus(res, 429, 'quota_atteint', { retry: 5, portee: 'simultane' }); }
-    const place = reservations.essayer(uid, taille);
+    const place = reserver(uid, taille, sortir);
     if (!place.ok) { sortir(); return refus(res, 402, 'quota_atteint', { portee: 'stockage', utilise: place.utilise, max: place.max }); }
 
     const id = stockage.nouvelId('f');
