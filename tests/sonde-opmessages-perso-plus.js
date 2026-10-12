@@ -263,6 +263,8 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     await B.page.goto(B.base + '/#reunions/' + R);
     await verifier('la fiche de la réunion s\'ouvre chez Bruno, avec « Rejoindre » (la salle est ouverte quinze minutes avant le début)', B, () => document.documentElement.classList.contains('feuille-ouverte') && !!document.querySelector('[data-reu="rejoindre"][data-type="audio"]'), null, 15000, () => texteCorps(B));
     await toucher(B, '[data-reu="rejoindre"][data-type="audio"]');
+    await verifier('« Avant d\'entrer » s\'ouvre chez Bruno (réunions lot 1) : il y touche « Rejoindre »', B, () => !!document.getElementById('avant-rejoindre'), null, 12000);
+    await toucher(B, '#avant-rejoindre');
     await verifier('⛔ Bruno (PERSO, invité) ENTRE dans la salle : l\'écran « En réunion » s\'ouvre — aucune feuille de forfait, aucun refus', B, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').getClientRects().length > 0, null, 20000, () => etatPage(B));
     v('… côté service : Bruno est PRÉSENT dans la salle d\'une réunion, et reste Perso (entrer ne lui a rien coûté ni rien donné)', [nb("SELECT COUNT(*) AS n FROM appel_part WHERE uid = '" + P.bruno.moi.id + "' AND statut = 'present'"), (await P.bruno.get('/api/moi/perso-plus')).j.formule], [1, 'perso']);
     vrai('… et sa page n\'a reçu AUCUN refus de forfait (402) : entrer est gratuit', !B.refus.some(x => /^402 /.test(x)));

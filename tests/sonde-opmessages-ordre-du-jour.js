@@ -94,6 +94,8 @@ function localDans(t, tz) {
     console.log('\n── 2. Dans la salle : le panneau « Ordre du jour » ──');
     vrai('population : la fiche propose « Rejoindre en audio » (la salle s\'ouvre avant le début)', await att(A, () => !!document.querySelector('#info-corps [data-reu="rejoindre"][data-type="audio"]')));
     await toucher(A, '#info-corps [data-reu="rejoindre"][data-type="audio"]');
+    vrai('« Avant d\'entrer » s\'ouvre (réunions lot 1) : Ana y touche « Rejoindre »', await att(A, () => !!document.getElementById('avant-rejoindre'), null, 12000));
+    await toucher(A, '#avant-rejoindre');
     vrai('Ana est dans la salle', await att(A, () => document.documentElement.dataset.salle === '1', null, 20000));
     const rb = await B0.post('/api/reunions/' + R.id + '/rejoindre', {});
     vrai('population : Ben entre aussi (par son téléphone)', rb.code === 200);

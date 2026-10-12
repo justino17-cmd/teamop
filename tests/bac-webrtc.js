@@ -54,7 +54,7 @@ function creerMonde(nom) {
 
   class FauxPc {
     constructor(conf) {
-      this.id = ++monde.n; this.conf = conf; this.confs = [conf]; this.origine = 'faux-' + monde.nom + '-' + this.id; this.niveauDistant = 0;
+      this.id = ++monde.n; this.conf = conf; this.confs = [conf]; this.origine = 'faux-' + monde.nom + '-' + this.id; this.niveauDistant = 0; this.reseauFaux = null;
       this.signalingState = 'stable'; this.iceConnectionState = 'new';
       this.localDescription = null; this.remoteDescription = null;
       this.transceivers = []; this.candidatsRecus = []; this.candidatsEmis = []; this.pistesRecues = [];
@@ -86,6 +86,15 @@ function creerMonde(nom) {
       return this._emetteur(kind, (init && init.direction) || 'sendrecv', false);
     }
     getTransceivers() { return this.transceivers.slice(); }
+    /* la qualité de la liaison que la page lit (`getStats`, réunions lot 1) : `reseauFaux` = { rtt (secondes), perdus, recus, gigue } posé par le banc. Rien de posé : aucune paire de candidats
+       choisie, aucun paquet — ce que dit une liaison qui s'établit (la page ne juge rien). */
+    async getStats() {
+      const m = new Map(), r = this.reseauFaux;
+      if (!r) return m;
+      if (typeof r.rtt === 'number') m.set('cp', { type: 'candidate-pair', state: 'succeeded', nominated: true, currentRoundTripTime: r.rtt });
+      m.set('in-audio', { type: 'inbound-rtp', kind: 'audio', packetsLost: r.perdus | 0, packetsReceived: r.recus | 0, jitter: typeof r.gigue === 'number' ? r.gigue : 0.005 });
+      return m;
+    }
     getReceivers() { return this.transceivers.filter(t => t.associe && recoit(t.direction) && this.pistesRecues.includes(t.kind)).map(t => t.receiver); }
     getSenders() { return this.transceivers.filter(t => t.associe && envoie(t.direction)).map(t => t.sender); }
     /* avec QUI cette connexion est réellement liée : l'origine de la description distante (null tant qu'aucune n'est posée) */

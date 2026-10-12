@@ -22,7 +22,7 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { creerMonde } = require('./bac-webrtc');
 const OPMSG = require(path.join(T.SERVICE, 'public', 'api.js'));
-const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-serveur.js'));
+const { creerSourceServeur, qualiteLiaison, qualiteVisioDe } = require(path.join(T.SERVICE, 'public', 'source-serveur.js'));
 const att = (cond, ms = 8000) => T.attendre(cond, ms, 8);
 const attrape = async (p) => { try { await p; return null; } catch (e) { return e; } };
 const codeDe = (e) => e ? e.code : null;
@@ -32,7 +32,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)');
 
 /* les délais du MOTEUR, raccourcis pour le banc */
 const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessai: [40, 80], iceMax: 1500, quitter: [40, 80], marge: 600000, renouvMin: 600000, nettoyage: 600000,
-  relaisApres: 1000, toutApres: 500, reoffre: 2500, reprise: 400, niveau: 40, tenuParle: 150, etat: 20 };
+  relaisApres: 1000, toutApres: 500, reoffre: 2500, reprise: 400, niveau: 40, tenuParle: 150, reseau: 60, etat: 20 };
 
 (async () => {
   const MDP = { ana: 'pw-ana-1234567', ben: 'pw-ben-1234567', cleo: 'pw-cleo-123456', dan: 'pw-dan-1234567', eve: 'pw-eve-1234567' };
@@ -190,6 +190,38 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       v('⛔ une réaction hors liste est REFUSÉE par le service, et la page le dit tel quel', [codeDe(e), phrase(e) !== ''], ['champ_invalide', true]);
       const eInconnu = await attrape(A.src.salleAction(id, 'explosion', {}));
       v('une action inconnue : refus local', codeDe(eInconnu), 'invalide');
+      /* ═══ 4 bis. LA QUALITÉ DU RÉSEAU DE CHAQUE LIAISON (12 octobre 2026, réunions lot 1) ═══ */
+      console.log('\nLa qualité du réseau : ce que chaque liaison mesure, jugé par la page qui la voit — et MA connexion, d\'après la moitié de mes liaisons');
+      v('les seuils : 50 ms sans perte « bonne » ; 250 ms « moyenne » ; 4 % de pertes « moyenne » ; 500 ms, 9 % de pertes ou 120 ms de gigue « faible » ; une mesure absente ne compte pas',
+        [qualiteLiaison({ rtt: 0.05, perte: 0, gigue: 0.01 }), qualiteLiaison({ rtt: 0.25 }), qualiteLiaison({ perte: 0.04 }), qualiteLiaison({ rtt: 0.5 }), qualiteLiaison({ perte: 0.09 }), qualiteLiaison({ gigue: 0.12 }), qualiteLiaison({ rtt: null, perte: undefined, gigue: null })],
+        ['bonne', 'moyenne', 'moyenne', 'faible', 'faible', 'faible', 'bonne']);
+      v('et la visio dit la sienne : excellente ou bonne → « bonne », mauvaise → « faible », perdue → « perdue », inconnue → rien', ['excellent', 'good', 'poor', 'lost', 'unknown', undefined].map(qualiteVisioDe), ['bonne', 'bonne', 'faible', 'perdue', null, null]);
+      const lien = (S, nom) => S.monde.vivants().find(p => p.distantOrigine() && p.distantOrigine().startsWith('faux-' + nom + '-'));
+      const qDe = (s, uid) => (s.membres.find(m => m.id === uid) || {}).reseau;
+      const lBA = lien(B, 'ana'), lBC = lien(B, 'cleo'), lBD = lien(B, 'dan');
+      v('population : Ben tient trois liaisons (Ana, Cleo, Dan), et aucune ne dit encore rien de sa qualité', [!!lBA, !!lBC, !!lBD, qDe(await B.src.appel(id), ana.id)], [true, true, true, null]);
+      lBA.reseauFaux = { rtt: 0.04, perdus: 0, recus: 500 }; lBC.reseauFaux = { rtt: 0.04, perdus: 0, recus: 500 }; lBD.reseauFaux = { rtt: 0.04, perdus: 0, recus: 500 };
+      const saine = await B.attendreSnap(id, s => qDe(s, ana.id) === 'bonne' && s.moi.reseau === 'bonne', 4000);
+      v('trois liaisons saines : la tuile d\'Ana dit « bonne » chez Ben, et sa connexion à lui aussi', [!!saine, saine && qDe(saine, cleo.id)], [true, 'bonne']);
+      lBA.reseauFaux = { rtt: 0.04, perdus: 40, recus: 600 };
+      const faible = await B.attendreSnap(id, s => qDe(s, ana.id) === 'faible', 4000);
+      v('⛔ 40 paquets perdus sur 140 DEPUIS LA DERNIÈRE LECTURE : la liaison avec Ana est « faible » chez Ben', !!faible, true);
+      v('⛔ …une seule liaison faible sur trois : c\'est SON réseau, pas celui de Ben — sa connexion à lui reste « moyenne », pas « faible »', faible && faible.moi.reseau, 'moyenne');
+      v('⛔ et Cleo ne voit RIEN de la liaison Ben–Ana : chaque page juge les liaisons qu\'elle tient', qDe(await C.src.appel(id), ana.id), null);
+      await att(() => lBA.debitMax('video') === 150000);
+      v('⛔ LE REPLI : sur la liaison faible, l\'image de Ben vers Ana descend à 150 kbit/s (la voix garde ses 32) — et les deux autres liaisons gardent leurs 400', [lBA.debitMax('video'), lBA.debitMax('audio'), lBC.debitMax('video'), lBD.debitMax('video')], [150000, 32000, 400000, 400000]);
+      lBA.reseauFaux = { rtt: 0.04, perdus: 40, recus: 900 };
+      const remise = await B.attendreSnap(id, s => qDe(s, ana.id) === 'bonne', 4000);
+      v('⛔ la perte d\'il y a deux secondes ne compte plus : 300 paquets de plus, aucun perdu → « bonne » de nouveau', !!remise, true);
+      await att(() => lBA.debitMax('video') === 400000);
+      v('⛔ …et l\'image REMONTE à ce que la maille permet (400 kbit/s à quatre)', lBA.debitMax('video'), 400000);
+      lBA.reseauFaux = { rtt: 0.3, perdus: 40, recus: 1200 };
+      v('300 ms d\'aller-retour : « moyenne »', !!(await B.attendreSnap(id, s => qDe(s, ana.id) === 'moyenne', 4000)), true);
+      lBA.reseauFaux = { rtt: 0.6, perdus: 40, recus: 1500 }; lBC.reseauFaux = { rtt: 0.6, perdus: 0, recus: 800 };
+      const moiFaible = await B.attendreSnap(id, s => s.moi.reseau === 'faible', 4000);
+      v('⛔ DEUX liaisons faibles sur trois : c\'est la connexion de Ben qui faiblit — `moi.reseau` « faible »', !!moiFaible, true);
+      lBA.reseauFaux = null; lBC.reseauFaux = null; lBD.reseauFaux = null;
+      v('plus aucune mesure : plus rien n\'est dit (ni une qualité inventée, ni une vieille)', !!(await B.attendreSnap(id, s => qDe(s, ana.id) === null && s.moi.reseau === null, 4000)), true);
       /* l'état de MON appareil : la caméra de Ben s'éteint, la tuile de Ben change chez Ana */
       B.src.appelPistes(id, { audio: pisteDe(B, 'audio'), video: null });
       const sansCam = await A.attendreSnap(id, s => s.membres.find(m => m.id === ben.id).camera === false, 4000);

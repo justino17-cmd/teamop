@@ -150,6 +150,13 @@ async function verifier(titre, S, fn, arg, ms, ceQuOnVoit) {
   else { const vu = ceQuOnVoit ? await ceQuOnVoit().catch(() => '?') : ''; v(titre, 'non vu à temps (' + (ms || 10000) + ' ms)' + (vu ? ' ; vu : ' + vu : ''), 'vu'); }
   return ok;
 }
+/* ⛔ AVANT D'ENTRER (12 octobre 2026, réunions lot 1) : entrer dans une salle qui existe passe par une feuille — l'aperçu de la caméra, la jauge du micro, puis « Rejoindre ». L'aperçu
+   ouvre micro et caméra SUR L'APPAREIL (rien ne part) et les lâche avant d'entrer : ce qui compte n'est plus « aucune demande », c'est « aucune piste restée vivante » (`vivantes`). */
+const vivantes = (S) => S.page.evaluate(() => window.__pistes.filter(t => t.readyState === 'live').length);
+async function avantPuisEntrer(S) {
+  await verifier(S.nom + ' : « Avant d\'entrer » s\'ouvre (son image et son micro, avant que personne ne voie rien)', S, () => { const b = document.getElementById('avant-rejoindre'); return !!b && b.getAttribute('aria-disabled') !== 'true' && document.getElementById('feuille-titre').textContent === 'Avant d\'entrer'; }, null, 12000);
+  await toucher(S, '#avant-rejoindre');
+}
 async function toucher(S, sel, o) {
   const loc = S.page.locator(sel).filter({ visible: true }).first();
   await loc.scrollIntoViewIfNeeded().catch(() => {});
@@ -644,16 +651,21 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await verifier('Ana VERROUILLE la salle (l\'interrupteur est allumé)', A, () => document.querySelector('[data-sa="verrou"]').getAttribute('aria-checked') === 'true', null, 8000);
       await fermer(A);
       await toucher(E, '#conv-salle');
+      await avantPuisEntrer(E);
       await verifier('⛔ la salle verrouillée : Eve reçoit la phrase du refus, et n\'entre pas', E, () => /verrouillé la salle/.test(document.getElementById('mot').textContent) && document.documentElement.dataset.salle !== '1', null, 10000, async () => 'mot=«' + (await motVu(E)) + '» salle=' + (await salleOuverte(E)));
-      v('… sans micro ni connexion', [await E.page.evaluate(() => window.__media), await E.page.evaluate(() => window.__pcs.length)], [0, 0]);
+      vrai('… la feuille « Avant d\'entrer » reste ouverte et redit le refus (la phrase ne s\'efface pas avec le mot)', /verrouillé la salle/.test(await lire(E, '#info-erreur') || ''));
+      await toucher(E, '#g-annuler');
+      await verifier('… « Annuler » ferme la feuille', E, () => !document.documentElement.classList.contains('feuille-ouverte'), null, 8000);
+      v('… et Eve n\'a gardé ni micro ni caméra ouverts, ni connexion', [await vivantes(E), await E.page.evaluate(() => window.__pcs.length)], [0, 0]);
       await panneau(A, 'plus');
       await toucher(A, '[data-sa="verrou"]');
       await toucher(A, '[data-sa="attente"]');
       await fermer(A);
       /* la salle d'attente */
       await toucher(E, '#conv-salle');
+      await avantPuisEntrer(E);
       await verifier('⛔ la salle D\'ATTENTE : Eve voit « Salle d\'attente » (pas de grille, pas de commandes), sans micro ni caméra', E, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').hasAttribute('data-attente') && /Salle d'attente/.test(document.getElementById('salle-scene').textContent), null, 12000, async () => 'salle=' + (await salleOuverte(E)) + ' mot=«' + (await motVu(E)) + '» scène=«' + (await lire(E, '#salle-scene')) + '»');
-      v('… population : aucun micro demandé, aucune connexion, les commandes cachées', [await E.page.evaluate(() => window.__media), await E.page.evaluate(() => window.__pcs.length), await visible(E, '#salle-cmds') || await visible(E, '.salle-cmds'), await visible(E, '#salle-micro')], [0, 0, false, false]);
+      v('… population : aucun micro ni caméra restés ouverts (l\'aperçu a tout lâché en entrant), aucune connexion, les commandes cachées', [await vivantes(E), await E.page.evaluate(() => window.__pcs.length), await visible(E, '#salle-cmds') || await visible(E, '.salle-cmds'), await visible(E, '#salle-micro')], [0, 0, false, false]);
       await largeur(E, 'salle d\'attente (bureau)');
       await verifier('Ana : « Eve attend d\'être admis. » (bandeau) et la pastille « 1 » sur Participants', A, () => /Eve attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent) && document.getElementById('salle-participants-n').textContent.trim() === '1', null, 12000, async () => '«' + (await lire(A, '#salle-bandeaux')) + '»');
       await panneau(A, 'participants');
@@ -661,13 +673,15 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await verifier('⛔ Ana REFUSE : Eve est renvoyée avec la phrase de l\'hôte', E, () => document.documentElement.dataset.salle !== '1' && /pas accepté ta demande/.test(document.getElementById('mot').textContent), null, 12000, async () => 'mot=«' + (await motVu(E)) + '» salle=' + (await salleOuverte(E)));
       await fermer(A);
       await toucher(E, '#conv-salle');
+      await avantPuisEntrer(E);
       await verifier('Eve redemande : elle attend de nouveau', E, () => document.getElementById('salle-ecran').hasAttribute('data-attente') && document.documentElement.dataset.salle === '1', null, 12000);
       await verifier('Ana : le bandeau propose « Admettre » (un seul geste)', A, () => !!document.querySelector('#salle-bandeaux [data-sa="admettre"]'), null, 12000);
+      const em0 = await E.page.evaluate(() => window.__media);
       await toucher(A, '#salle-bandeaux [data-sa="admettre"]');
       await dansLaSalle(E, 3);
       await liaisons(E, 3);
       const em = await E.page.evaluate(() => window.__media);
-      vrai('⛔ Eve est ADMISE : le micro et la caméra ne sont demandés qu\'à ce moment-là (avant : zéro), et ses trois liaisons passent', em > 0 && (await croit(E, { ms: 2000 })).audio);
+      vrai('⛔ Eve est ADMISE : le micro et la caméra de la salle ne sont demandés qu\'à ce moment-là (en attente : aucune piste vivante), et ses trois liaisons passent', em > em0 && (await croit(E, { ms: 2000 })).audio);
       await panneau(A, 'plus');
       await toucher(A, '[data-sa="attente"]');
       await fermer(A);
@@ -732,16 +746,18 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await entrerAgenda(B);
       await largeur(B, 'agenda · Rejoindre (bureau)');
       await toucher(B, '#liste-reunions .reunion-rejoindre');
+      await avantPuisEntrer(B);
       await verifier('Ben entre : la salle « Point salle » s\'ouvre, il en est l\'hôte', B, () => document.documentElement.dataset.salle === '1' && /Point salle/.test(document.getElementById('salle-titre').textContent), null, 14000, async () => 'mot=«' + (await motVu(B)) + '» salle=' + (await salleOuverte(B)));
       /* Ana, invitée : la FICHE */
       await entrerAgenda(A);
       await toucher(A, '#liste-reunions [data-reunion]');
       await verifier('Ana ouvre la fiche : « Rejoindre » (vidéo) et « Rejoindre en audio » sont là', A, () => !!document.querySelector('#info-corps [data-reu="rejoindre"][data-type="video"]') && !!document.querySelector('#info-corps [data-reu="rejoindre"][data-type="audio"]'), null, 12000, async () => '«' + (await lire(A, '#info-corps')) + '»');
       await largeur(A, 'fiche d\'une réunion · Rejoindre (téléphone)');
-      const m0 = await A.page.evaluate(() => window.__media);
       await toucher(A, '#info-corps [data-reu="rejoindre"][data-type="video"]');
+      await avantPuisEntrer(A);
+      const m0 = await A.page.evaluate(() => window.__media);
       await verifier('⛔ la salle d\'attente est demandée : Ana attend d\'être admise (pas de grille, pas de commandes)', A, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').hasAttribute('data-attente'), null, 14000, async () => 'mot=«' + (await motVu(A)) + '» salle=' + (await salleOuverte(A)));
-      v('… et elle n\'a demandé NI micro NI caméra pour l\'instant', [await A.page.evaluate(() => window.__media)], [m0]);
+      v('… et elle n\'a demandé NI micro NI caméra pour la salle, et l\'aperçu a tout lâché', [await A.page.evaluate(() => window.__media), await vivantes(A)], [m0, 0]);
       await verifier('Ben : « Ana Banc attend d\'être admis. » — il l\'admet d\'un geste', B, () => /Ana attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent), null, 12000, async () => '«' + (await lire(B, '#salle-bandeaux')) + '»');
       await toucher(B, '#salle-bandeaux [data-sa="admettre"]');
       await dansLaSalle(A, 1);
@@ -750,6 +766,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       /* Cleo, invitée : l'AGENDA */
       await entrerAgenda(C);
       await toucher(C, '#liste-reunions .reunion-rejoindre');
+      await avantPuisEntrer(C);
       await verifier('Cleo, par le « Rejoindre » de l\'agenda : elle attend aussi', C, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').hasAttribute('data-attente'), null, 14000);
       await verifier('Ben : le bandeau de Cleo', B, () => /Cleo attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent), null, 12000);
       await toucher(B, '#salle-bandeaux [data-sa="admettre"]');
@@ -762,6 +779,7 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       vrai('… elle dit que la salle d\'attente existe', /laissera entrer/.test(await lire(D, '#info-corps')));
       await largeur(D, 'lien d\'invité · aperçu (bureau)');
       await toucher(D, '#info-corps [data-reu="invite-rejoindre"][data-type="audio"]');
+      await avantPuisEntrer(D);
       await verifier('Dan rejoint par le lien : il attend lui aussi (salle d\'attente)', D, () => document.documentElement.dataset.salle === '1' && document.getElementById('salle-ecran').hasAttribute('data-attente'), null, 14000, async () => 'mot=«' + (await motVu(D)) + '»');
       await verifier('Ben : le bandeau de Dan', B, () => /Dan attend d'être admis/.test(document.getElementById('salle-bandeaux').textContent), null, 12000);
       await toucher(B, '#salle-bandeaux [data-sa="admettre"]');

@@ -1811,6 +1811,44 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-badge.main { background: #ffcc00; color: #000; }
 .salle-badge.rouge { background: var(--rouge); }
 .salle-badge .ic { width: 15px; height: 15px; stroke-width: 2; }
+/* la qualité du réseau d'une liaison (12 octobre 2026) : des barres — une seule pleine quand la liaison est faible, deux quand elle est moyenne ; la couleur ne fait que doubler la forme,
+   et le texte est dans l'étiquette (la vignette dit « connexion faible » au lecteur d'écran). Rien ne s'affiche quand tout va bien : on ne montre que ce qui demande l'attention. */
+.salle-badge.reseau .ic { width: 18px; height: 18px; stroke-width: 3.2; stroke-linecap: round; }
+.salle-badge.reseau.moyenne { background: #ffcc00; color: #000; }
+.salle-badge.reseau.faible, .salle-badge.reseau.perdue { background: var(--rouge); color: #fff; }
+/* ÉPINGLER POUR MOI : un bouton sur chaque vignette, montré au survol ou au focus (bureau), au toucher pendant quelques secondes (téléphone), et toujours quand l'épingle est posée */
+.salle-tuile-epingle { position: absolute; z-index: 3; top: 4px; left: 4px; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; color: #fff; opacity: 0; pointer-events: none; transition: opacity .15s; }
+.salle-tuile-epingle::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(0,0,0,.6); }
+.salle-tuile-epingle .ic { position: relative; width: 17px; height: 17px; stroke-width: 2; }
+.salle-tuile:hover .salle-tuile-epingle, .salle-tuile:focus-within .salle-tuile-epingle, .salle-tuile.montre .salle-tuile-epingle, .salle-tuile-epingle[aria-pressed="true"] { opacity: 1; pointer-events: auto; }
+.salle-tuile-epingle[aria-pressed="true"]::before { background: #fff; }
+.salle-tuile-epingle[aria-pressed="true"] .ic { color: #000; }
+.salle-scene[data-n="9"] .salle-tuile-epingle { top: 0; left: 0; }
+@media (prefers-reduced-motion: reduce) { .salle-tuile-epingle { transition: none; } }
+/* les raccourcis clavier : une liste, la touche à droite */
+.salle-touche { flex: none; min-width: 30px; height: 28px; padding: 0 8px; border-radius: 7px; display: inline-grid; place-items: center; border: 1px solid rgba(255,255,255,.3); background: rgba(255,255,255,.08); font: 600 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; }
+/* ══ AVANT D'ENTRER (12 octobre 2026, réunions lot 1) — se voir, s'entendre, choisir avant que les autres ne vous voient ══ */
+.avant { display: grid; gap: 14px; padding-bottom: 8px; }
+.avant-apercu { position: relative; width: 100%; max-width: 560px; justify-self: center; aspect-ratio: 4 / 3; max-height: 46vh; border-radius: 18px; overflow: hidden; background: #0b0d12; display: grid; place-items: center; }
+.avant-apercu video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.avant-apercu[data-camera="off"] video { visibility: hidden; }
+.avant-av { width: 88px; height: 88px; border-radius: 50%; display: grid; place-items: center; font-size: 32px; font-weight: 600; color: #fff; background: #3a3a3c; }
+.avant-apercu[data-camera="on"] .avant-av { visibility: hidden; }
+.avant-sans { position: absolute; top: 12px; left: 12px; right: 12px; text-align: center; color: rgba(255,255,255,.78); font-size: 13px; }
+.avant-apercu[data-camera="on"] .avant-sans { visibility: hidden; }
+.avant-niveau { position: absolute; left: 14px; right: 14px; bottom: 14px; height: 6px; border-radius: 3px; background: rgba(255,255,255,.22); overflow: hidden; }
+.avant-niveau i { display: block; width: 100%; height: 100%; background: #30d158; transform-origin: left center; transform: scaleX(0); }
+.avant-apercu[data-micro="off"] .avant-niveau i { background: rgba(255,255,255,.55); }
+.avant-cmds { display: flex; justify-content: center; gap: 22px; }
+.avant-cmd { display: grid; justify-items: center; gap: 6px; min-width: 64px; font-size: 13px; color: var(--text); }
+.avant-cmd .rond-cmd { width: 56px; height: 56px; border-radius: 50%; display: grid; place-items: center; background: var(--fill-soft); color: var(--text); }
+.avant-cmd .rond-cmd .ic { width: 24px; height: 24px; }
+.avant-cmd[aria-pressed="false"] .rond-cmd { background: var(--rouge); color: #fff; }
+.avant-cmd[aria-disabled="true"] { opacity: .45; }
+.avant-rejoindre { width: 100%; max-width: 560px; justify-self: center; min-height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; font-size: 17px; font-weight: 600; }
+.avant-titre { margin: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
+@media (min-width: 700px) { .avant-apercu { max-height: 40vh; } }
+.avant-rejoindre[aria-disabled="true"] { opacity: .5; }
 .salle-sans-camera { position: absolute; z-index: 1; left: 0; right: 0; bottom: 36px; text-align: center; font-size: 12px; line-height: 16px; color: var(--salle-sub); }
 .salle-reaction { position: absolute; z-index: 3; left: 50%; bottom: 36px; margin-left: -18px; font-size: 32px; line-height: 1; animation: salle-monte 2.4s ease-out forwards; pointer-events: none; }
 @keyframes salle-monte { from { transform: translateY(0); opacity: 1; } to { transform: translateY(-70px); opacity: 0; } }
@@ -2315,6 +2353,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   <symbol id="i-ecran" viewBox="0 0 24 24"><path d="M3.5 5h17v11h-17ZM8 20h8M12 16v4M12 13V8.5m-2.4 2.4L12 8.5l2.4 2.4"/></symbol>
   <symbol id="i-main" viewBox="0 0 24 24"><path d="M8 12V6.5a1.5 1.5 0 0 1 3 0V11m0-4.5V5a1.5 1.5 0 0 1 3 0v6m0-4a1.5 1.5 0 0 1 3 0v6.5c0 3.5-2 6-5.5 6S7.5 18 6 15.2L4.5 12.3a1.4 1.4 0 0 1 2.4-1.4L8 13"/></symbol>
   <symbol id="i-epingle" viewBox="0 0 24 24"><path d="M9 4h6l-1 5 3 3H7l3-3-1-5ZM12 12v8"/></symbol>
+  <symbol id="i-reseau-moyen" viewBox="0 0 24 24"><path d="M5 19v-3M12 19v-7"/><path d="M19 19V7" opacity=".3"/></symbol>
+  <symbol id="i-reseau-faible" viewBox="0 0 24 24"><path d="M5 19v-3"/><path d="M12 19v-7M19 19V7" opacity=".3"/></symbol>
+  <symbol id="i-clavier" viewBox="0 0 24 24"><path d="M3 6h18v12H3zM7 10h.01M11 10h.01M15 10h.01M7 14h10"/></symbol>
   <symbol id="i-transferer" viewBox="0 0 24 24"><path d="M14 5l7 7-7 7M21 12H11a7 7 0 0 0-7 7"/></symbol>
   <symbol id="i-archive" viewBox="0 0 24 24"><path d="M3.5 5h17v4h-17zM5 9v10h14V9M10 13h4"/></symbol>
   <symbol id="i-grille" viewBox="0 0 24 24"><path d="M4 4h7v7H4ZM13 4h7v7h-7ZM4 13h7v7H4ZM13 13h7v7h-7Z"/></symbol>
