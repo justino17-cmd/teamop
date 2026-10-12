@@ -30,7 +30,9 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
 (async () => {
   const noms = ['ana', 'ben', 'cleo', 'dan', 'eve'];
   const og = await T.fauxOpGestion(Object.fromEntries(noms.map(n => [n, { pass: 'pw-' + n + '-12345', nom: n[0].toUpperCase() + n.slice(1) + ' Banc', actif: true }])));
-  const svc = await T.lancerService({ urlGestion: og.url, config: { pieces: { quotaPersonne: 3 * 1048576 } } });
+  /* l'espace d'Ana fait 3 Mo : 1 Mo à chacun + 2 Mo avec Pro (la bêta : tout le monde est Pro) — si la RÉSERVATION des envois ne lisait que la part de tous, elle refuserait
+     dès le deuxième Mo, et la copie qui doit passer (plus bas) tomberait : c'est ce qui prouve qu'elle lit le maximum DE LA PERSONNE (`formule.stockageMax`) */
+  const svc = await T.lancerService({ urlGestion: og.url, config: { pieces: { quotaPerso: 1048576, quotaPro: 2 * 1048576 } } });
   const lire = () => T.lireBase(path.join(svc.data, 'msg.db'));
   const compte = (sql, ...p) => { const d = lire(); try { return d.prepare(sql).get(...p).n; } finally { d.close(); } };
   const ligne = (sql, ...p) => { const d = lire(); try { return d.prepare(sql).get(...p); } finally { d.close(); } };

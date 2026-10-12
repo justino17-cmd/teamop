@@ -194,7 +194,7 @@ function creerHandlers(ctx) {
       /* le délai entre la demande de suppression d'un compte et son effacement : la page le DIT avant de demander la confirmation (elle ne le recopie pas) */
       suppression_jours: Math.round(SUPPRESSION_DELAI_MS / JOUR),
       /* les maximums des pièces, en octets : la page les lit pour refuser AVANT d'envoyer (« trop lourd, 12 Mo au plus ») au lieu de laisser le service répondre 413 */
-      pieces: { photo_max: config.pieces.photoMax, vocal_max: config.pieces.vocalMax, fichier_max: config.pieces.fichierMax, avatar_max: config.pieces.avatarMax, par_message: PHOTOS_MAX, quota: config.pieces.quotaPersonne },
+      pieces: { photo_max: config.pieces.photoMax, vocal_max: config.pieces.vocalMax, fichier_max: config.pieces.fichierMax, avatar_max: config.pieces.avatarMax, par_message: PHOTOS_MAX, quota: config.pieces.quotaPerso, quota_pro: config.pieces.quotaPro },
     },
     /* la clé publique VAPID de CETTE instance (la page s'abonne avec elle) ; `null` quand le push est désactivé (paire illisible) — la page dit alors « indisponible » */
     push: { vapid: ctx.push ? ctx.push.cle() : null },

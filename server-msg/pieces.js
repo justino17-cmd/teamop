@@ -278,13 +278,15 @@ function gardeDebit({ debitMin, graceMs, maintenant = Date.now, pas = 250 }) {
 /* ⛔ DEUX ENVOIS EN MÊME TEMPS NE DÉPASSENT PAS LE QUOTA ENSEMBLE : ce que la base dit avoir déjà (`utilise`) ne contient pas les envois
    EN COURS. On réserve donc la taille annoncée dès l'ouverture de l'envoi, on la rend à la fin (réussie ou non). Le processus est
    monothread : la réservation est atomique. */
+/* `max` : un nombre, ou une fonction de la personne (son espace dépend de sa formule — `formule.stockageMax`) */
 function creerReservations({ max, utilise }) {
   const enCours = new Map();
+  const maxDe = typeof max === 'function' ? max : () => max;
   return {
     /* → { ok:true, liberer() } ou { ok:false, utilise, max } */
     essayer(proprio, octetsDemandes) {
-      const deja = utilise(proprio), reserve = enCours.get(proprio) || 0;
-      if (deja + reserve + octetsDemandes > max) return { ok: false, utilise: deja, max };
+      const deja = utilise(proprio), reserve = enCours.get(proprio) || 0, plafond = maxDe(proprio);
+      if (deja + reserve + octetsDemandes > plafond) return { ok: false, utilise: deja, max: plafond };
       enCours.set(proprio, reserve + octetsDemandes);
       let rendu = false;
       return { ok: true, liberer() {

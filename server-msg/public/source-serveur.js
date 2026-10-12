@@ -1955,7 +1955,7 @@
     const attentePieces = [];            // les pièces à lire, la plus récente d'abord
     let lecturesEnCours = 0, tickCache = 0, octetsCache = 0, signalPlanifie = false, generation = 0;
     const PHOTOS_AUTO = 30, VOCAUX_AUTO = 6, PHOTOS_PAR_MESSAGE = 10;   // ce que l'ouverture d'une conversation lit toute seule ; le reste se lit au toucher
-    const LIMITES_DEFAUT = { photo_max: 12582912, vocal_max: 10485760, fichier_max: 5368709120, avatar_max: 2097152, par_message: 10, quota: 53687091200 };
+    const LIMITES_DEFAUT = { photo_max: 12582912, vocal_max: 10485760, fichier_max: 5368709120, avatar_max: 2097152, par_message: 10, quota: 10737418240, quota_pro: 26843545600 };
     let limitesPieces = null;
     /* Les maximums du service (GET /api/config), lus à la première utilisation : la page refuse AVANT d'envoyer un fichier trop lourd, sans lui faire parcourir le réseau pour rien. */
     async function limites() {
@@ -3233,7 +3233,8 @@
     }
     /* ⛔ pas `| 0` : le quota est de 2 Gio (2 147 483 648 octets), un entier signé sur 32 bits le rendrait NÉGATIF */
     const entierPositif = (x) => Number.isFinite(+x) ? Math.max(0, Math.floor(+x)) : 0;
-    async function stockageUtilise() { const r = await A.stockage(); return { utilise: entierPositif(r.utilise), max: entierPositif(r.max) }; }
+    /* `perso` (l'espace de tous) et `pro` (ce que Pro y ajoute) : de quoi le maximum est fait — 0 quand le service ne le dit pas (un service d'avant) */
+    async function stockageUtilise() { const r = await A.stockage(); return { utilise: entierPositif(r.utilise), max: entierPositif(r.max), perso: entierPositif(r.perso), pro: entierPositif(r.pro) }; }
     /* la version que le service sert EN CE MOMENT : la page la compare à la sienne pour proposer « Mettre à jour » */
     /* « Mettre à jour » : la page dit la progression, le module relit les fichiers (la page n'appelle jamais le réseau elle-même) */
     async function relireApplication(surProgres) { return A.relireApplication(surProgres); }

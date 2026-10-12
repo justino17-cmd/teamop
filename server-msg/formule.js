@@ -6,6 +6,8 @@
  *
  *   formuleDe({ espace })    → la formule d'UN espace
  *   formuleDe({ personne })  → la meilleure formule de la personne : ses espaces (administrateur ou non : une place payée vaut Pro pour son titulaire) ET son abonnement PERSONNEL (Perso+)
+ *   stockageMax(uid)         → { max, perso, pro } : l'espace de pièces d'une personne — `perso` pour tout le monde, `pro` EN PLUS si sa formule est Pro (Perso+ et impayé n'en ont pas) ;
+ *                              l'UNIQUE définition, lue par la réservation des envois et par « Mon stockage »
  *   peutOrganiser(uid)       → { ok, formule, raison? } : la personne peut-elle ORGANISER (programmer une réunion, tenir les outils de l'organisateur) ? Pro OU Perso+ — l'UNIQUE définition
  *   → { formule: 'pro' | 'perso_plus' | 'perso' | 'impaye', motif, sursis_jusqua?, origine? }
  *
@@ -126,7 +128,17 @@ function creerFormule({ stockage, config }) {
     return !!(a && STATUTS_VIVANTS.includes(a.statut) && a.places > 0 && membres > a.places);
   }
 
-  return { formuleDe, peutOrganiser, plafondReunion, placesDe, placesDepassees, toutOuvert: () => toutOuvert };
+  /* ⛔ L'ESPACE D'UNE PERSONNE (Justin, 12 octobre 2026 : « perso 10 GB et pro 25 GB », « ça s'ajoute ») : 10 Go à tout le monde, 25 Go DE PLUS avec Pro — 35 Go. Perso+ compte comme
+     Perso, un impayé aussi (« pas de paiement, pas d'accès au service payant ») : RIEN n'est effacé, seuls les NOUVEAUX envois sont refusés tant que la place utilisée dépasse.
+     Sur la bêta tout est Pro (le drapeau), donc 35 Go pour tous. */
+  function stockageMax(uid) {
+    const pc = (config && config.pieces) || {};
+    const perso = Number.isInteger(pc.quotaPerso) ? pc.quotaPerso : 0;
+    const pro = Number.isInteger(pc.quotaPro) && formuleDe({ personne: uid }).formule === 'pro' ? pc.quotaPro : 0;
+    return { max: perso + pro, perso, pro };
+  }
+
+  return { formuleDe, peutOrganiser, plafondReunion, placesDe, placesDepassees, stockageMax, toutOuvert: () => toutOuvert };
 }
 
 module.exports = { creerFormule, SURSIS_MS, STATUTS_PAYES, STATUTS_IMPAYES, STATUTS_VIVANTS, NOM_PERSO_PLUS, FORMULES_ORGANISATEUR, REUNION_PERSONNES_MAX };

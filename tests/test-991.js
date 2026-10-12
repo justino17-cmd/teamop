@@ -33,7 +33,7 @@ const { ouvrir, MIGRATIONS } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 const { creerFormule, NOM_PERSO_PLUS, REUNION_PERSONNES_MAX } = require(path.join(T.SERVICE, 'formule.js'));
 const { creerFacturation } = require(path.join(T.SERVICE, 'facturation.js'));
-const { facturationConfig } = require(path.join(T.SERVICE, 'config.js'));
+const { facturationConfig, piecesConfig } = require(path.join(T.SERVICE, 'config.js'));
 
 /* des valeurs de banc : des lettres hors de [0-9a-f] */
 const CLE = ['rk', 'test', 'BancPersoPlusZzQq9'].join('_');
@@ -78,6 +78,14 @@ const tick = () => new Promise(r => setImmediate(r));
       /* le meilleur des deux mondes */
       const a = pers('A'); proEspace(a.id, 'active'); poserPerso(a.id, 'past_due');
       v('un espace Pro PAYÉ et un Perso+ en retard : Pro gagne, la personne organise (rien n\'est retiré à qui paie ailleurs)', [formuleProd.formuleDe({ personne: a.id }).formule, formuleProd.peutOrganiser(a.id).ok], ['pro', true]);
+      /* ⛔ L'ESPACE DE PIÈCES (Justin, 12 octobre 2026 : « perso 10 GB et pro 25 GB », « ça s'ajoute » ; Perso+ compte comme Perso) : 10 Go à chacun, 25 Go DE PLUS avec Pro.
+         `stockageMax` est la seule définition — la réservation des envois et « Mon stockage » la lisent. Avec les valeurs de départ de la VRAIE configuration (`piecesConfig`). */
+      const pcDep = piecesConfig(undefined), Go = 1073741824;
+      const fStock = creerFormule({ stockage: S, config: { formule: { toutOuvert: false }, pieces: pcDep } });
+      v('⛔ l\'espace de pièces suit la formule : Perso 10 Go, Perso+ 10 Go (comme Perso), impayé 10 Go (rien n\'est effacé, les nouveaux envois attendent), Pro 10 + 25 = 35 Go',
+        [sans, pp, imp, a].map(x => { const m = fStock.stockageMax(x.id); return [m.max / Go, m.perso / Go, m.pro / Go]; }), [[10, 10, 0], [10, 10, 0], [10, 10, 0], [35, 10, 25]]);
+      const fOuvert = creerFormule({ stockage: S, config: { formule: { toutOuvert: true }, pieces: pcDep } });
+      v('… et sur la bêta (le drapeau : tout est Pro), une personne sans rien a 35 Go', fOuvert.stockageMax(sans.id).max / Go, 35);
       const b = pers('B'); const eb = proEspace(b.id, 'past_due'); { const d = raw(); try { d.prepare('UPDATE abonnement SET impaye_depuis = ?, relu_le = ? WHERE espace = ?').run(h.t - 9 * JOUR, h.t, eb); } finally { d.close(); } } poserPerso(b.id, 'active');
       v('un espace Pro IMPAYÉ depuis neuf jours et un Perso+ payé : Perso+ gagne (impayé < Perso+) — la personne organise', [formuleProd.formuleDe({ personne: b.id }).formule, formuleProd.peutOrganiser(b.id).ok], ['perso_plus', true]);
       const c = pers('C'); const ec = proEspace(c.id, 'past_due'); { const d = raw(); try { d.prepare('UPDATE abonnement SET impaye_depuis = ?, relu_le = ? WHERE espace = ?').run(h.t - 3 * JOUR, h.t, ec); } finally { d.close(); } }

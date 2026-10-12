@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '70121a5c0cb7';
+  const OPMSG_BUILD = '452fdc0d1a91';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 164;
+  const OPMSG_VERSION = 168;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3546,6 +3546,10 @@
     { const v = $('reg-v-stock'); if (v) v.textContent = tailleTexte(reg.stock.utilise) + ' sur ' + tailleTexte(reg.stock.max); }
     c.innerHTML = '<p class="reg-ligne"><b>' + esc(tailleTexte(reg.stock.utilise)) + '</b> utilisés sur ' + esc(tailleTexte(reg.stock.max)) + '</p>' +
       '<div class="jauge" role="img" aria-label="' + Math.round(pct) + ' % de ton espace utilisé"><i style="width:' + pct.toFixed(1) + '%"></i></div>' +
+      /* 10 Go à chacun, 25 Go DE PLUS avec Pro (décision du 12 octobre 2026 : les deux s'ajoutent) — le service dit de quoi le maximum est fait (`perso`, `pro`), la page ne recompte rien */
+      (reg.stock.pro > 0 && reg.stock.perso > 0 ? '<p class="reg-ligne">' + esc(tailleTexte(reg.stock.perso)) + ' Perso + ' + esc(tailleTexte(reg.stock.pro)) + ' Pro</p>' : '') +
+      /* l'espace a pu baisser sous ce qui est déjà envoyé (50 Go jusqu'au 12 octobre, ou Pro qui s'arrête) : rien n'est effacé, seuls les NOUVEAUX envois sont refusés — on le dit */
+      (reg.stock.max > 0 && reg.stock.utilise >= reg.stock.max ? '<p class="info-note" role="status"><b>Ton espace est plein.</b> Rien n\'est effacé, mais tes nouveaux envois sont refusés tant que tu n\'as pas libéré de place.</p>' : '') +
       '<p class="info-note">Les photos, vocaux et fichiers que tu envoies comptent ici ; supprimer le message qui les porte rend la place.</p>';
   }
   function peindreApropos() {
