@@ -242,7 +242,6 @@ function creerCompteCourriel(ctx) {
     rendre([q1.cle, q2.cle, q3.cle].filter(Boolean));
     /* ⛔ SE RECONNECTER AVANT L'ÉCHÉANCE ANNULE LA SUPPRESSION du compte (J+14), comme par numéro : la réponse le DIT, la page l'écrit. */
     const annulee = stockage.suppressionLe(p.id) !== null && stockage.suppressionAnnuler(p.id);
-    if (annulee) { try { if (ctx.facturation) ctx.facturation.perso.annulationsTraiter(); } catch (e) { /* noté : la passe des dix minutes le rejoue */ } }
     ouvrirSession(res, p.id, b.appareil);
     stockage.appareilMelNoter(ap_h, p.id);
     /* ⛔ UN APPAREIL INCONNU PRÉVIENT LES AUTRES (relecture du gardien, C6), comme une connexion par numéro : une prise de compte par mot de passe deviné ne reste pas invisible */
@@ -308,7 +307,6 @@ function creerCompteCourriel(ctx) {
     stockage.appareilMelNoter(ap, p.id);
     envoyerPlusTard(adr, 'change', null);
     const annulee = stockage.suppressionLe(p.id) !== null && stockage.suppressionAnnuler(p.id);
-    if (annulee) { try { if (ctx.facturation) ctx.facturation.perso.annulationsTraiter(); } catch (e) { /* rejoué plus tard */ } }
     ouvrirSession(res, p.id, b.appareil);
     journal('compte_courriel', { etat: 'mdp_change', n: hs.length });
     const moi = stockage.personneParId(p.id);

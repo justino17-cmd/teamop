@@ -38,9 +38,8 @@
    canalSupprimer, canalAjouterMembres, canalRetirerMembre ; Messages Pro : abonnementOffres, abonnement (l'état, sans réseau), abonnementPayer et abonnementPortail (rendent l'adresse de Stripe,
    en https seulement), abonnementRelire (« J'ai réglé — vérifier » : relu chez Stripe). Une conversation de type 'canal' porte `espace` et `prive`. Un refus de fonction Pro garde sa forme
    (`ErreurApi.raison` : « impaye » ou « perso », que le seul administrateur reçoit).
-   LE FORFAIT D'UNE PERSONNE (capacité `persoPlus`, Perso+) : persoPlus (l'état : formule, peut-on organiser, abonnement, offres et prix — le NOM du forfait et ses prix viennent du service), persoPlusPayer et
-   persoPlusPortail (rendent l'adresse de Stripe, en https seulement), persoPlusRelire (« J'ai réglé — vérifier »). `espaces()` rend aussi `organiser` (Pro ou Perso+). Un refus d'organiser garde sa forme (`ErreurApi.offre`
-   « perso_plus », `raison` « perso », « impaye » ou « organisateur », `abonnementOuvert`).
+   ORGANISER UNE RÉUNION : Pro seulement (Perso+, le forfait d'une personne, est RETIRÉ depuis le 12 octobre 2026). `espaces()` rend `organiser` (Pro). Un refus d'organiser garde sa forme (`ErreurApi.offre`
+   « pro », `raison` « perso » ou « organisateur », `abonnementOuvert`).
    LE PLAFOND D'UNE RÉUNION (capacité `reunionPlafond`) : plafondReunion() → le nombre de personnes qu'une réunion compte au plus, organisateur compris, tel que le SERVICE le dit (`null` s'il ne l'a pas dit) ; la fiche d'une réunion le porte aussi (`plafond`).
    LES RÉUNIONS PROGRAMMÉES (capacité `reunions`, étape 6) : reunions(du, au) (l'agenda d'une fenêtre : chaque réunion avec ses occurrences), reunion(id) (la fiche : horaire, répétition, invités et
    leur réponse, MES rappels), programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion ; adresseIcs(id, {occurrence}) (l'adresse
@@ -1593,7 +1592,7 @@
       c.salle = {
         mains: Array.isArray(s.mains) ? s.mains.filter(x => typeof x === 'string') : [], etats: s.etats && typeof s.etats === 'object' ? s.etats : {}, sondage: s.sondage || null,
         minuteur: s.minuteur && Number.isFinite(s.minuteur.fin_dans_s) ? { fin: maintenant() + s.minuteur.fin_dans_s * 1000, secondes: s.minuteur.secondes } : null, epingle: s.epingle || null,
-        /* ⛔ les OUTILS de l'organisateur (attente, verrou, retirer, couper les micros, sondage, minuteur, enregistrement) : la salle d'une réunion les a, un appel de groupe les a si celui qui l'a lancé est Pro ou Perso+.
+        /* ⛔ les OUTILS de l'organisateur (attente, verrou, retirer, couper les micros, sondage, minuteur, enregistrement) : la salle d'une réunion les a, un appel de groupe les a si celui qui l'a lancé est Pro.
            Le SERVICE le dit (`outils`) ; tant qu'il ne l'a pas dit (l'instant entre le lancement d'un appel et la première lecture de la salle), ils ne sont pas proposés. */
         outils: s.outils === true,
         annot: normAnnot(s.annot),
@@ -3576,7 +3575,7 @@
        formule, places) : ce module rend ce que le service a dit, jamais ce que la page croit avoir demandé. Un refus garde sa forme (`ErreurApi` : `raison` « impaye » ou « perso » pour
        l'administrateur, `portail`, `places`) ; la page DIT le refus, elle n'en invente pas la cause.
        ⛔ Une adresse de paiement (Stripe) n'est rendue que si elle est en https : la page l'ouvre, elle n'ouvre pas n'importe quoi. */
-    const FORMULES = ['pro', 'perso_plus', 'perso', 'impaye'];
+    const FORMULES = ['pro', 'perso', 'impaye'];
     const formuleDe = (f) => FORMULES.includes(f) ? f : 'perso';
     const ADRESSE_HTTPS = /^https:\/\/[^\s"'<>]{4,2000}$/;
     const vueEspaceListe = (x) => ({ id: x.id, nom: x.nom, role: x.role, proprio: !!x.proprio, moiAdmin: x.role === 'admin', membres: x.membres_n | 0 });
@@ -3590,7 +3589,7 @@
     async function espaces() {
       const r = await A.espaces();
       return { espaces: (r.espaces || []).map(vueEspaceListe), formule: formuleDe(r.formule), abonnementOuvert: r.abonnement_ouvert === true,
-        /* Pro OU Perso+ : peut-on ORGANISER une réunion ? `null` quand le service ne le dit pas (un service d'avant) — la page ne bloque alors rien et laisse le service répondre */
+        /* Pro : peut-on ORGANISER une réunion ? `null` quand le service ne le dit pas (un service d'avant) — la page ne bloque alors rien et laisse le service répondre */
         organiser: typeof r.organiser === 'boolean' ? r.organiser : null };
     }
     async function espace(id) { return vueEspace(await A.espace(id)); }
@@ -3659,17 +3658,6 @@
       places: Number.isInteger(r.places) ? r.places : null, membres: r.membres | 0, placesDepassees: r.places_depassees === true, paiementEnAttente: r.paiement_en_attente === true, stripeMuet: r.stripe_muet === true });
     const adresseDePaiement = (r) => { if (!r || typeof r.url !== 'string' || !ADRESSE_HTTPS.test(r.url)) throw new OPMSG.ErreurApi('reponse_illisible', 200, 0); return { url: r.url, reprise: r.reprise === true }; };
     async function abonnement(id) { return vueAbonnement(await A.etatAbonnement(id)); }
-    /* ── PERSO+ : le forfait d'une PERSONNE (capacité `persoPlus`). Le service décide de tout ; ce module rend ce qu'il a dit. ⛔ Le NOM du forfait et ses prix viennent du service — la page ne les écrit nulle part. ── */
-    const vuePersoPlus = (r) => ({
-      nom: String(r.nom || ''), ouvert: r.ouvert === true, mode: r.mode === 'live' ? 'live' : 'test', toutOuvert: r.tout_ouvert === true,
-      formule: formuleDe(r.formule), organiser: r.organiser === true, inclusParPro: r.inclus_par_pro === true,
-      abonnement: r.abonnement ? { statut: String(r.abonnement.statut || ''), finPeriode: Number(r.abonnement.fin_periode) || 0, annule: r.abonnement.annule === true, reluLe: Number(r.abonnement.relu_le) || 0 } : null,
-      impaye: r.impaye === true, paiementEnAttente: r.paiement_en_attente === true, stripeMuet: r.stripe_muet === true,
-      defaut: typeof r.defaut === 'string' ? r.defaut : '', offres: (r.offres || []).map(o => ({ id: String(o.id), par: o.par === 'an' ? 'an' : 'mois', euros: Number(o.euros) || 0 })) });
-    async function persoPlus() { return vuePersoPlus(await A.persoPlusEtat()); }
-    async function persoPlusPayer(cycle) { return adresseDePaiement(await A.persoPlusPayer({ cycle })); }
-    async function persoPlusPortail() { return adresseDePaiement(await A.persoPlusPortail()); }
-    async function persoPlusRelire() { const r = vuePersoPlus(await A.persoPlusRelire()); espacesChanges(null); return r; }
     async function abonnementPayer(id, spec) { return adresseDePaiement(await A.payerAbonnement(id, { places: spec && spec.places, cycle: spec && spec.cycle })); }
     async function abonnementPortail(id) { return adresseDePaiement(await A.portailAbonnement(id)); }
     async function abonnementRelire(id) { const r = vueAbonnement(await A.relireAbonnement(id)); espacesChanges(id); return r; }
@@ -3733,7 +3721,8 @@
       const d = await A.programmer(corpsReunion(champs));
       for (const p of d.invites || []) noter(p);
       reunionChangee(d.reunion.id);
-      return { id: d.reunion.id, conv: d.reunion.conv, nonInvites: Array.isArray(d.non_invites) ? d.non_invites.length : 0 };
+      /* `parLien` : les contacts sans Messages Pro, que le service n'a PAS invités en leur nom — ils entrent par le lien (Justin, 12 octobre 2026) */
+      return { id: d.reunion.id, conv: d.reunion.conv, nonInvites: Array.isArray(d.non_invites) ? d.non_invites.length : 0, parLien: Array.isArray(d.par_lien) ? d.par_lien.length : 0 };
     }
     async function modifierReunion(id, champs) { await pourReunion(A.modifierReunion(id, corpsReunion(champs))); reunionChangee(id); }
     /* DÉCALER (10 octobre 2026) : `debut`, `fin` en heure locale du fuseau de la réunion (« 2026-10-26T14:00 ») ou en instants ; `motif` : une ligne, facultative. Le service prévient tout le monde.
@@ -3751,7 +3740,7 @@
     async function inviterReunion(id, uids, o2) {
       const r = await pourReunion(A.inviterReunion(id, uids, { notifier: !(o2 && o2.notifier === false) }));
       reunionChangee(id);
-      return { ajoutes: Array.isArray(r.ajoutes) ? r.ajoutes.length : 0, nonAjoutes: Array.isArray(r.non_ajoutes) ? r.non_ajoutes.length : 0 };
+      return { ajoutes: Array.isArray(r.ajoutes) ? r.ajoutes.length : 0, nonAjoutes: Array.isArray(r.non_ajoutes) ? r.non_ajoutes.length : 0, parLien: Array.isArray(r.par_lien) ? r.par_lien.length : 0 };
     }
     async function retirerInviteReunion(id, uid) { await pourReunion(A.retirerInviteReunion(id, uid)); reunionChangee(id); }
     /* la sortie de l'INVITÉ : la réunion disparaît de son agenda et de ses conversations (comme si elle était supprimée, POUR LUI) */
@@ -3858,7 +3847,7 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, persoPlus: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
@@ -3888,7 +3877,6 @@
       invitationCreer, invitationsRevoquer, invitationLire, invitationAccepter,
       canalCreer, canalRenommer, canalSupprimer, canalAjouterMembres, canalRetirerMembre,
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
-      persoPlus, persoPlusPayer, persoPlusPortail, persoPlusRelire,   // le forfait d'une PERSONNE (capacité `persoPlus`)
       /* ── les réunions programmées (capacité `reunions`) ── */
       reunions, reunion, programmer, modifierReunion, decalerReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */

@@ -77,8 +77,6 @@
     /* les espaces professionnels, leurs canaux, Messages Pro et l'abonnement. ⛔ Aucune promesse que le service ne tient pas : « fonction Pro » ne dit pas POURQUOI (seul l'administrateur le lit, dans
        l'état de l'abonnement), et « l'abonnement n'est pas encore ouvert » est la vérité d'un service sans clé de paiement. */
     formule_requise: 'Cette fonction fait partie de Messages Pro.',
-    /* le forfait d'une PERSONNE : les réunions s'organisent avec lui, les rejoindre reste gratuit. ⛔ Le NOM du forfait et son prix viennent du service (l'écran les compose depuis `/api/moi/perso-plus`) : ces phrases ne les écrivent pas. */
-    formule_deja_incluse: 'Ton espace est déjà en Messages Pro, qui comprend les réunions : un forfait personnel ne t\'apporterait rien de plus.',
     trop_d_espaces: 'Limite atteinte : trois espaces dont tu es propriétaire, vingt dont tu es membre.',
     trop_de_canaux: 'Cet espace a atteint son nombre maximal de canaux (100).',
     membre_inconnu: 'Cette personne ne fait pas partie de l\'espace.',
@@ -215,9 +213,10 @@
          administrateur reçoit), le lien du portail de facturation (`abonnement_existant`), les places et les membres (`places_epuisees`), le minimum de places (`places_invalides`). Chacun est lu
          avec son type : un champ qui n'a pas la forme attendue n'existe pas. Le lien du portail n'est gardé que s'il est en https — l'écran l'ouvre, il n'ouvre pas n'importe quoi. */
       this.raison = extra && (extra.raison === 'impaye' || extra.raison === 'perso' || extra.raison === 'organisateur') ? extra.raison : '';
-      /* `offre` : QUEL forfait ouvrirait la fonction refusée (« perso_plus » : celui d'une PERSONNE, pour organiser une réunion ou tenir les outils d'une salle) — l'écran propose alors la feuille de ce forfait au lieu de
-         dire « fonction Pro ». `abonnementOuvert` : un bouton « S'abonner » mènerait-il quelque part ? Lus avec leur type, comme le reste : un champ qui n'a pas la forme attendue n'existe pas. */
-      this.offre = extra && extra.offre === 'perso_plus' ? 'perso_plus' : '';
+      /* `offre` : QUEL forfait ouvrirait la fonction refusée (« pro » : organiser une réunion ou tenir les outils d'une salle — Perso, ce sont les appels et les messages, Justin, 12 octobre 2026) — l'écran dit
+         alors ce que Perso permet au lieu d'un « fonction Pro » sec. `abonnementOuvert` : un bouton « S'abonner » mènerait-il quelque part ? Lus avec leur type, comme le reste : un champ qui n'a pas la forme
+         attendue n'existe pas. */
+      this.offre = extra && extra.offre === 'pro' ? 'pro' : '';
       this.abonnementOuvert = !!(extra && extra.abonnement_ouvert === true);
       this.portail = extra && typeof extra.portail === 'string' && /^https:\/\/[^\s]{4,2000}$/.test(extra.portail) ? extra.portail : '';
       this.places = extra && Number.isInteger(extra.places) ? extra.places : 0;
@@ -239,9 +238,8 @@
       if (this.code === 'piece_trop_lourde' && this.max > 0) return this.message.replace(/\.$/, '') + ' (' + tailleLisible(this.max) + ' au plus).';
       if (this.code === 'reunion_pleine' && this.max > 0) return 'Une réunion compte ' + this.max + ' personnes au plus, organisateur compris : celle-ci est complète.';
       if (this.code === 'appel_complet' && this.max > 0) return 'La salle est pleine : ' + this.max + ' personnes au plus.';
-      if (this.code === 'formule_requise' && this.offre === 'perso_plus') return this.raison === 'organisateur' ? 'Cet outil est réservé aux réunions : l\'organisateur de cet appel n\'a pas de forfait pour les organiser.'
-        : this.raison === 'impaye' ? 'Ton paiement n\'est pas passé : mets ta carte à jour (Réglages › Abonnement) pour organiser des réunions. Rejoindre une réunion où tu es invité reste gratuit.'
-        : 'Les réunions s\'organisent avec un forfait (Réglages › Abonnement). Rejoindre une réunion où tu es invité reste gratuit.';
+      if (this.code === 'formule_requise' && this.offre === 'pro') return this.raison === 'organisateur' ? 'Cet outil est réservé aux réunions : l\'organisateur de cet appel n\'a pas Messages Pro.'
+        : 'Les réunions sont réservées à Messages Pro. Sans Pro, tu entres dans une réunion par le lien que son organisateur t\'envoie.';
       if (!(this.retry > 0)) return this.message;
       const sans = this.message.replace(/\s*R[ée]essaie[^.]*\.$/i, '').replace(/\.$/, '');
       return sans + ' (réessaie dans ' + attenteLisible(this.retry) + ').';
@@ -545,10 +543,6 @@
       portailAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/portail'),
       relireAbonnement: (id) => appel('POST', '/api/espaces/' + e(id) + '/facturation/relire'),
       /* Le forfait d'une PERSONNE : son état (sans réseau), le paiement (le corps ne nomme qu'un rythme), le portail, « J'ai réglé — vérifier ». ⛔ La personne est CELLE DE LA SESSION : aucune de ces routes ne reçoit d'identifiant. */
-      persoPlusEtat: () => appel('GET', '/api/moi/perso-plus'),
-      persoPlusPayer: (champs) => appel('POST', '/api/moi/perso-plus/paiement', champs),
-      persoPlusPortail: () => appel('POST', '/api/moi/perso-plus/portail'),
-      persoPlusRelire: () => appel('POST', '/api/moi/perso-plus/relire'),
 
       /* ── Les appels à deux, audio et vidéo (étape 7) ──
          ⛔ L'appel se dit dans l'ADRESSE, jamais dans le corps ; la personne appelée vient d'une conversation directe (`conv`) ou d'un identifiant (`uid`), jamais des deux. Les identifiants du relais sont

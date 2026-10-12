@@ -189,7 +189,7 @@ function creerHandlers(ctx) {
     min_client: ctx.versionClient ? ctx.versionClient.exige() : config.minClient, version_client: ctx.versionPage || 0,
     limites: {
       message_max: MSG_MAX, membres_max: ctx.maxMembres, nom_groupe_max: 80, modif_ms: ctx.delaiModifMs, ephemeres: EPHEMERES,
-      /* le nombre de PERSONNES d'une réunion (organisateur compris) : Perso+ comme Pro, jamais plus (`formule.js`, une seule constante) — la page l'écrit, elle ne le recopie pas. Un appel de GROUPE n'est pas concerné. */
+      /* le nombre de PERSONNES d'une réunion (organisateur compris), jamais plus (`formule.js`, une seule constante) — la page l'écrit, elle ne le recopie pas. Un appel de GROUPE n'est pas concerné. */
       reunion_personnes: REUNION_PERSONNES_MAX,
       /* le délai entre la demande de suppression d'un compte et son effacement : la page le DIT avant de demander la confirmation (elle ne le recopie pas) */
       suppression_jours: Math.round(SUPPRESSION_DELAI_MS / JOUR),
@@ -217,8 +217,6 @@ function creerHandlers(ctx) {
     if (r.statut !== 200) return res.status(r.statut).json(r.corps);
     /* ⛔ SE RECONNECTER AVANT L'ÉCHÉANCE ANNULE LA SUPPRESSION du compte (décidée par la personne, J+14) : la connexion qui réussit le DIT (`suppression_annulee`), la page l'écrit */
     const annulee = stockage.suppressionAnnuler(r.personne.id);
-    /* … et son abonnement Perso+ se renouvelle de nouveau (sauf s'il avait été arrêté par elle avant sa demande) : le rétablissement est noté dans la transaction de l'annulation, il part chez Stripe sans qu'on l'attende */
-    if (annulee) { try { if (ctx.facturation) ctx.facturation.perso.annulationsTraiter(); } catch (e) { /* noté : la passe des dix minutes le rejoue */ } }
     ouvrirSession(res, r.personne.id, b.appareil);
     res.json(annulee ? { ok: true, moi: r.personne, suppression_annulee: true } : { ok: true, moi: r.personne });
   };

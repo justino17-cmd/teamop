@@ -46,9 +46,7 @@
  *                                (`sk_…`) est refusée. `prix` : la LISTE BLANCHE des tarifs vendus (un identifiant `price_…` par rythme, au moins un) — le corps d'une requête ne
  *                                choisit jamais un tarif. `affichage` : les euros par place que la page DIT (le montant réel est celui de Stripe). Sans `cle`, la facturation est
  *                                INERTE et le dit. La clé s'écrit par `configurer-stripe.js` (saisie masquée), jamais à la main.
- *                                `facturation.perso` {prix:{mensuel, annuel}, affichage:{mensuel, annuel}} : le forfait d'une PERSONNE (Perso+, 5 € par mois, 50 € l'année), SANS espace d'entreprise. Mêmes règles que les
- *                                tarifs d'espace : une liste blanche de `price_…` (le corps d'une requête ne choisit jamais un tarif), des euros que la page DIT (le montant réel est celui de Stripe). Un tarif ne peut pas
- *                                figurer dans les deux listes : un abonnement d'espace ne donnerait pas Perso+, ni l'inverse. Sans tarif Perso+, le forfait est INERTE (503 `abonnement_non_ouvert`) même si Messages Pro est ouvert.
+ *                                (`facturation.perso`, les tarifs de Perso+, n'est plus lu depuis que Perso+ est retiré — 12 octobre 2026 : un bloc resté dans un fichier ne change rien.)
  *   reunions      {planificateurMs, bailMs, rappelsParTour, tourMaxMs, urgentesMax}   Les réunions programmées : le rythme du planificateur de rappels (12 s ; EN PRODUCTION entre 10 et 15 s, les bancs
  *                                et la bêta peuvent le presser jusqu'à 50 ms) et la durée de son bail (60 s ; au moins deux tours : un arrêt brutal le laisse expirer, il ne bloque personne). Le BUDGET d'un tour :
  *                                `rappelsParTour` (2000 rappels envoyés, à une réunion près), `tourMaxMs` (1000 ms de temps réel : passé ce délai le tour s'arrête après la réunion en cours) et
@@ -123,7 +121,7 @@ function origines(cfg) {
 }
 
 /* ⛔ LES PIÈCES : les valeurs de départ sont celles de SERVEUR.md § 5.6 (photo 12 Mo, vocal 10 Mo, fichier 5 Go ; l'espace : 10 Go à chacun, 25 Go DE PLUS à qui a Pro).
-   Justin, 12 octobre 2026 : « on va baisser le stockage perso 10 GB et pro 25 GB », « ça s'ajoute » ; Perso+ compte comme Perso. `quotaPerso` est l'espace de TOUT LE MONDE,
+   Justin, 12 octobre 2026 : « on va baisser le stockage perso 10 GB et pro 25 GB », « ça s'ajoute ». `quotaPerso` est l'espace de TOUT LE MONDE,
    `quotaPro` ce que Pro y AJOUTE — le total d'une personne se décide dans `formule.js` (`stockageMax`), et nulle part ailleurs (il était de 50 Go pour tous jusque-là).
    Justin, 6 octobre 2026 (« je voulais que tout le monde puisse envoyer autant de fichiers, avec les poids qu'ils veulent ») : un fichier va jusqu'à 5 Go (« je veux 5 Go », le même soir) — 25 Mo refusait
    une vidéo de téléphone. Une photo, elle, est réduite par la page avant l'envoi (quelques centaines de Ko) : son maximum ne gêne personne.
@@ -258,7 +256,7 @@ function facturationConfig(cfg, env, instance) {
   const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
   const brut = cfg.facturation === undefined ? {} : cfg.facturation;
   if (!brut || typeof brut !== 'object' || Array.isArray(brut)) throw err('facturation doit être un objet');
-  const o = { cle: null, mode: 'inerte', prix: {}, affichage: { mensuel: 15, annuel: 150 }, perso: { prix: {}, affichage: { mensuel: 5, annuel: 50 } }, relectureMs: FACTURATION_DEFAUT.relectureMs, timeoutMs: FACTURATION_DEFAUT.timeoutMs, testHote: null };
+  const o = { cle: null, mode: 'inerte', prix: {}, affichage: { mensuel: 15, annuel: 150 }, relectureMs: FACTURATION_DEFAUT.relectureMs, timeoutMs: FACTURATION_DEFAUT.timeoutMs, testHote: null };
   const bornes = { relectureMs: [100, 3600000], timeoutMs: [200, 60000] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     if (brut[k] === undefined) continue;
@@ -280,30 +278,6 @@ function facturationConfig(cfg, env, instance) {
       if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0 || v > 10000) throw err('facturation.affichage.' + k + ' doit être un nombre d\'euros entre 0 et 10 000');
       o.affichage[k] = v;
     }
-  }
-  /* ⛔ PERSO+ : le forfait d'une personne. Même validation que les tarifs d'espace, dans un bloc à part — et AUCUN tarif commun aux deux listes (un abonnement d'espace n'ouvrirait pas Perso+, mais deux listes qui
-     partageraient un tarif rendraient la lecture ambiguë le jour où l'une des deux change de règle). */
-  if (brut.perso !== undefined) {
-    if (!brut.perso || typeof brut.perso !== 'object' || Array.isArray(brut.perso)) throw err('facturation.perso doit être un objet { prix, affichage }');
-    for (const k of Object.keys(brut.perso)) if (k !== 'prix' && k !== 'affichage') throw err('facturation.perso : seuls « prix » et « affichage » existent');
-    if (brut.perso.prix !== undefined) {
-      if (!brut.perso.prix || typeof brut.perso.prix !== 'object' || Array.isArray(brut.perso.prix)) throw err('facturation.perso.prix doit être un objet { mensuel, annuel }');
-      for (const [k, v] of Object.entries(brut.perso.prix)) {
-        if (k !== 'mensuel' && k !== 'annuel') throw err('facturation.perso.prix : seuls « mensuel » et « annuel » existent');
-        if (typeof v !== 'string' || !RE_PRIX_STRIPE.test(v)) throw err('facturation.perso.prix.' + k + ' doit être un identifiant de tarif Stripe (price_…)');
-        if (Object.values(o.prix).includes(v)) throw err('facturation.perso.prix.' + k + ' est aussi un tarif de Messages Pro : un tarif ne sert qu\'à un forfait');
-        o.perso.prix[k] = v;
-      }
-    }
-    if (brut.perso.affichage !== undefined) {
-      if (!brut.perso.affichage || typeof brut.perso.affichage !== 'object' || Array.isArray(brut.perso.affichage)) throw err('facturation.perso.affichage doit être un objet { mensuel, annuel }');
-      for (const [k, v] of Object.entries(brut.perso.affichage)) {
-        if (k !== 'mensuel' && k !== 'annuel') throw err('facturation.perso.affichage : seuls « mensuel » et « annuel » existent');
-        if (typeof v !== 'number' || !Number.isFinite(v) || v <= 0 || v > 10000) throw err('facturation.perso.affichage.' + k + ' doit être un nombre d\'euros entre 0 et 10 000');
-        o.perso.affichage[k] = v;
-      }
-    }
-    if (Object.values(o.perso.prix).length === 2 && o.perso.prix.mensuel === o.perso.prix.annuel) throw err('facturation.perso.prix : le tarif mensuel et le tarif annuel sont le même');
   }
   if (brut.cle !== undefined && brut.cle !== null && brut.cle !== '') {
     if (typeof brut.cle !== 'string' || !RE_CLE_STRIPE.test(brut.cle)) throw err('facturation.cle doit être une clé RESTREINTE de Stripe (rk_test_… ou rk_live_…), propre à OP MESSAGES : une clé secrète complète est refusée');

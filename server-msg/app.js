@@ -265,13 +265,13 @@ function construireApp(ctx) {
     if (req.espace && req.espace.moi.role === 'admin') extra.raison = v.formule;
     return refus(res, 402, 'formule_requise', extra);
   }];
-  /* ⛔ ORGANISER : une fonction d'organisateur — Pro OU Perso+ (le forfait d'une PERSONNE). `peutOrganiser` est la SEULE définition (`formule.js`). Le refus porte `raison` (« perso » : pas de forfait ; « impaye » : son abonnement
-     Perso+ est en retard, sans sursis) — la personne est concernée en propre, contrairement à un espace dont seul l'administrateur lit le pourquoi — et `offre` (« perso_plus ») ; `abonnement_ouvert` dit si le bouton
-     « S'abonner » mènerait quelque part (Perso+, pas Messages Pro). 402 `formule_requise`, comme PRO : la page ne distingue pas deux erreurs. Rien n'est retiré : seule la fonction refuse. */
+  /* ⛔ ORGANISER : une fonction d'organisateur — Pro seulement (Perso, ce sont les appels et les messages : Justin, 12 octobre 2026). `peutOrganiser` est la SEULE définition (`formule.js`). Le refus porte
+     `raison` (« perso » : la personne n'a pas Messages Pro) et `offre` (« pro ») ; `abonnement_ouvert` dit si « S'abonner » mènerait quelque part. 402 `formule_requise`, comme PRO : la page ne distingue
+     pas deux erreurs. Rien n'est retiré : seule la fonction refuse. */
   garde.ORGANISER = [(req, res, next) => {
     const o = ctx.formule.peutOrganiser(req.moi.id);
     if (o.ok) return next();
-    return refus(res, 402, 'formule_requise', { abonnement_ouvert: !!(ctx.facturation && ctx.facturation.perso.ouvert()), raison: o.raison, offre: 'perso_plus' });
+    return refus(res, 402, 'formule_requise', { abonnement_ouvert: !!(ctx.facturation && ctx.facturation.ouvert()), raison: o.raison, offre: 'pro' });
   }];
 
   /* ── Les routes : UNIQUEMENT depuis le manifeste ─────────────────────────────────────── */
@@ -304,7 +304,7 @@ function construireApp(ctx) {
     const chaine = g.slice();
     if (r.pro === true && r.organiser === true) throw new Error('route à la fois pro et organiser : ' + r.id);
     if (r.pro === true) chaine.push(...garde.PRO);     // ⛔ la route le DÉCLARE (manifeste) ; après sa garde d'appartenance, jamais avant (un non-membre reçoit 404, pas 402)
-    if (r.organiser === true) chaine.push(...garde.ORGANISER);     // idem : Pro OU Perso+ (le forfait d'une personne)
+    if (r.organiser === true) chaine.push(...garde.ORGANISER);     // idem : Pro (organiser une réunion)
     /* ⛔ les annotations d'une salle ont LEUR plafond, par compte, en gestes et en points (`routes-salles.js`) : un trait part en morceaux pendant qu'on dessine, et les 300 écritures par minute le coupaient */
     if (r.m === 'POST' && r.garde !== 'P' && r.garde !== 'B' && r.garde !== 'LV' && r.id !== 'salles.annot') chaine.push(limiteEcriture);
     app[r.m.toLowerCase()](r.p, ...chaine, h);

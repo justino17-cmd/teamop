@@ -23,8 +23,8 @@
  *
  * Les gardes (`app.js`) : SP participant d'une SALLE (un exclu, un non-participant, un appel à deux : le MÊME 404 qu'une salle qui n'existe pas), SH hôte ou co-hôte PRÉSENT (un participant voit 403), SO hôte seul.
  * ⛔ LES OUTILS DE L'ORGANISATEUR SE PAIENT, LA SALLE NON (Justin, 4 octobre 2026 : « comme WhatsApp » pour le public ; les réunions à ceux qui organisent). Dans la salle d'une RÉUNION, ou dans un appel de groupe lancé par quelqu'un
- * qui est Pro ou Perso+, l'hôte et les co-hôtes ont tous leurs outils. Dans un appel de groupe lancé par quelqu'un qui n'a ni l'un ni l'autre (`appels.outilsOuverts`), CINQ choses refusent — 402 `formule_requise`,
- * `raison: "organisateur"`, `offre: "perso_plus"` — : la salle d'attente et le verrou (les ALLUMER), retirer quelqu'un, demander de couper les micros, le sondage et le minuteur (les OUVRIR, les DÉMARRER), le bandeau
+ * qui est Pro, l'hôte et les co-hôtes ont tous leurs outils. Dans un appel de groupe lancé par quelqu'un qui n'a ni l'un ni l'autre (`appels.outilsOuverts`), CINQ choses refusent — 402 `formule_requise`,
+ * `raison: "organisateur"`, `offre: "pro"` — : la salle d'attente et le verrou (les ALLUMER), retirer quelqu'un, demander de couper les micros, le sondage et le minuteur (les OUVRIR, les DÉMARRER), le bandeau
  * d'enregistrement (l'ALLUMER). Le micro, la caméra, les réactions, la main levée, l'épingle et le partage d'écran restent à tous. ÉTEINDRE un outil (déverrouiller, couper la salle d'attente, arrêter l'enregistrement, fermer un
  * sondage, arrêter un minuteur) n'est JAMAIS refusé : une salle ne reste pas verrouillée, ni « REC », parce que le forfait de celui qui l'a lancé a lâché pendant l'appel.
  * ⛔ CE QUE LE SERVICE IMPOSE ET CE QU'IL NE FAIT QUE DEMANDER : il impose l'admission, le verrou, la capacité, l'exclusion (il cesse de relayer le signal d'un exclu, qui ne revient pas), la hiérarchie (un co-hôte
@@ -64,7 +64,7 @@ function installerSalles(H, ctx) {
      du corps (un 400 reste un 400), AVANT le plafond et le geste. La règle est celle d'`appels.outilsOuverts` — la même qui décide ce que la page propose : l'écran et le refus ne peuvent pas se contredire. */
   function outilRefuse(req, res) {
     if (appels.outilsOuverts(req.appel.id)) return false;
-    refus(res, 402, 'formule_requise', { raison: 'organisateur', offre: 'perso_plus', abonnement_ouvert: !!(ctx.facturation && ctx.facturation.perso.ouvert()) });
+    refus(res, 402, 'formule_requise', { raison: 'organisateur', offre: 'pro', abonnement_ouvert: !!(ctx.facturation && ctx.facturation.ouvert()) });
     return true;
   }
 
