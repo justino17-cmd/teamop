@@ -34,9 +34,16 @@ Justin : « Perso, c'est simple. C'est appel, message, et c'est tout. Créer des
 · ⛔ **Les deux tables de la migration 10 RESTENT** (`abonnement_perso`, `abonnement_a_annuler`), vides et non lues : le code d'avant les lit — un retour en arrière du
   déploiement reste possible. Aucun Perso+ n'avait été vendu (la bêta n'a pas de Stripe). Si un produit de TEST « OP MESSAGES Perso+ » a été créé chez Stripe, il peut être archivé.
 · La bêta ouvre toujours tout (`toutOuvert`) : une personne sans rien y programme et y invite en son nom — rien ne change à l'essai.
-Preuves : `test-991` (46 ✓, modules), `test-992` (45 ✓, routes), `test-994` (31 ✓, la page et le service), `test-993` supprimé ; sondes `sonde-opmessages-reunions-pro.js`
+· Relu par `gardien` (rien de bloquant côté fuite ni cloisonnement). Corrigé : ⛔ **qui entre par le lien n'est jamais l'hôte par intérim** — arrivé le premier, il ouvrait la salle
+  avec les outils (il pouvait exclure un invité de l'organisateur, sans retour, et verrouiller) ; l'intérim ne revient plus qu'à un invité NOMMÉ (`appelRejoindre`, `invite_par`).
+  Gardé tel quel, à dire à Justin : un organisateur qui perd Pro garde ses gestes d'hôte sur ses réunions DÉJÀ programmées (inviter, lien, modifier — décision n° 60 de
+  `SERVEUR.md`, qu'il avait validée le 4 octobre : « ok ça me va pour les 4 ») ; `par_lien` apprend à l'hôte qu'un contact n'a pas Pro (c'est le but : « envoie-lui le lien »).
+  ⚠️ **Avant le prochain déploiement en production d'OP MESSAGES** : vérifier dans le tableau de bord Stripe qu'aucun abonnement Perso+ ne vit (même en mode test) — plus aucun
+  code ne l'arrêterait.
+Preuves : `test-991` (46 ✓, modules), `test-992` (49 ✓, routes, dont l'intérim), `test-994` (31 ✓, la page et le service), `test-993` supprimé ; sondes `sonde-opmessages-reunions-pro.js`
 (53 ✓, deux fois — remplace celle de Perso+), des réunions (294 ✓), de l'agenda (75 ✓ : Cléo, Perso, n'est plus invitée au dîner en son nom) et du tableau de bord (44 ✓ :
-la réunion « dans douze jours » tombait cette nuit dans le changement d'heure du 25 octobre — elle reçoit la garde `heureNette` de ses voisines).
+la réunion « dans douze jours » tombait cette nuit dans le changement d'heure du 25 octobre — elle reçoit la garde `heureNette` de ses voisines). Porte des bancs messages : 95 suites, 9 631 vérifications
+(test-971 tombe en local, fuseaux de la machine) — plancher 9617. Mutations : 26 sur 26 attrapées (14 au service, dont l'intérim ; 12 à la page).
 
 # 🟡 12 OCTOBRE 2026 (SOIR) — OP MESSAGES : LES RÉUNIONS, LOT 1 (« ENTRER ET ÊTRE À L'AISE »)
 

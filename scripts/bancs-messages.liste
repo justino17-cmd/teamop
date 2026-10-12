@@ -89,7 +89,10 @@
 # chaque liaison, jugée par la page qui la voit, et le repli à 150 kbit/s sur une liaison faible) — 9 852 — plancher 9838 (le total moins 14). La page : sonde-opmessages-reunion-confort.js (hors porte).
 # Puis la relecture (« Vous » jugé à partir de trois liaisons, le repli sur ce que l'AUTRE reçoit, avec sa marge, l'aller-retour de la paire choisie) : test-990 115 → 118 — 9 855 —
 # plancher 9841 (le total moins 14).
-#plancher 9841
+# 12 octobre 2026 (nuit) : Perso+ RETIRÉ, les réunions à Pro (« Perso, c'est appel, message, et c'est tout ») : test-993 supprimé (l'outil qui créait les tarifs Perso+) ; test-991 128 → 46,
+# 992 → 49 (dont l'intérim, que seul un invité NOMMÉ reçoit), 994 → 31 ; 961, 962 (/health sans persoAnnulationMin) et 976 (la phrase du refus, `parLien`) suivent — 95 suites, 9 631 vérifications
+# mesurées par la commande de la porte (test-971 tombe en local, fuseaux de la machine, avec son total complet) — plancher 9617 (le total moins 14, jamais une addition).
+#plancher 9617
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
