@@ -1146,9 +1146,10 @@
         for (const k of ['audio', 'video']) {
           const s = pr.emetteurs[k];
           if (!s || typeof s.getParameters !== 'function' || typeof s.setParameters !== 'function') continue;
-          /* ⛔ LE REPLI (12 octobre 2026, réunions lot 1) : sur une liaison FAIBLE, l'image descend à 150 kbit/s — elle ne dispute plus la place à la voix. Le contrôle de congestion du
-             navigateur baisse déjà le débit tout seul ; ce plafond l'empêche de remonter tant que la liaison reste faible. Un écran partagé garde le sien (on le partage pour qu'il se lise). */
-          const replie = (pr.reseau === 'faible' || pr.reseau === 'perdue') && !c.pistes.ecran;
+          /* ⛔ LE REPLI (12 octobre 2026, réunions lot 1) : quand l'autre reçoit MAL ce que je lui envoie (`pr.repli`, voir `lireReseau`), l'image descend à 150 kbit/s — elle ne dispute
+             plus la place à la voix. Le contrôle de congestion du navigateur baisse déjà le débit tout seul ; ce plafond l'empêche de remonter tant que l'envoi reste faible. Un écran
+             partagé garde le sien (on le partage pour qu'il se lise). */
+          const replie = !!pr.repli && !c.pistes.ecran;
           const max = k === 'audio' ? BITRATES.audio : replie ? Math.min(video, BITRATES.repli) : video;
           try {
             const p = s.getParameters();
@@ -1741,8 +1742,11 @@
        Rien n'est envoyé : chaque page juge les liaisons qu'elle voit. → vrai si quelque chose a changé. */
     async function lireReseau(c) {
       let change = false, replis = false;
-      const faible = q => q === 'faible' || q === 'perdue';
-      const poser = (pr, q) => { if (pr.reseau !== q) { if (faible(pr.reseau) !== faible(q)) replis = true; pr.reseau = q; change = true; } };
+      const poser = (pr, q) => { if (pr.reseau !== q) { pr.reseau = q; change = true; } };
+      /* ⛔ LE REPLI suit ce que l'AUTRE reçoit de moi (ses comptes rendus, `remote-inbound-rtp` : la part perdue, l'aller-retour), jamais ce que je reçois de lui — baisser l'image que
+         j'envoie ne soigne pas SON envoi (relecture du 12 octobre 2026). Et il a une marge : il entre à « faible », il ne sort qu'à « bonne » — une liaison qui hésite entre faible et
+         moyenne ne refait pas le plafond toutes les deux secondes. Sans compte rendu, pas de repli. */
+      const replier = (pr, envoi) => { const r = envoi === 'faible' ? true : envoi === 'bonne' || envoi === null ? false : !!pr.repli; if (r !== !!pr.repli) { pr.repli = r; replis = true; } };
       if (estVisio(c)) {
         for (const pr of c.pairs.values()) { const p = participantVisio(c, pr.uid); poser(pr, p ? qualiteVisioDe(p.connectionQuality) : null); }
         const V = c.visio, lp = V && V.room && V.room.localParticipant, q = lp ? qualiteVisioDe(lp.connectionQuality) : null;
@@ -1751,20 +1755,31 @@
       }
       const notes = [];
       for (const pr of c.pairs.values()) {
-        if (!pr.pc || typeof pr.pc.getStats !== 'function' || pr.etat !== 'connecte') { poser(pr, null); continue; }
-        let rtt = null, perdus = 0, recus = 0, gigue = null;
+        if (!pr.pc || typeof pr.pc.getStats !== 'function' || pr.etat !== 'connecte') { poser(pr, null); replier(pr, null); continue; }
+        let rtt = null, choisie = null, perdus = 0, recus = 0, gigue = null, perteEnvoi = null, rttEnvoi = null;
+        const paires = new Map();
         try {
           const rap = await pr.pc.getStats();
           rap.forEach((x) => {
-            if (x.type === 'candidate-pair' && x.state === 'succeeded' && (x.nominated || x.selected) && typeof x.currentRoundTripTime === 'number') rtt = rtt === null ? x.currentRoundTripTime : Math.min(rtt, x.currentRoundTripTime);
+            if (x.type === 'transport' && x.selectedCandidatePairId) choisie = x.selectedCandidatePairId;
+            if (x.type === 'candidate-pair') paires.set(x.id, x);
             if (x.type === 'inbound-rtp') {
               if (typeof x.packetsLost === 'number') perdus += Math.max(0, x.packetsLost);
               if (typeof x.packetsReceived === 'number') recus += x.packetsReceived;
               if (x.kind === 'audio' && typeof x.jitter === 'number') gigue = x.jitter;
             }
+            if (x.type === 'remote-inbound-rtp') {
+              if (typeof x.fractionLost === 'number') perteEnvoi = Math.max(perteEnvoi || 0, x.fractionLost);
+              if (typeof x.roundTripTime === 'number') rttEnvoi = Math.max(rttEnvoi || 0, x.roundTripTime);
+            }
           });
         } catch (e) { continue; }
         if (c.fini) return false;
+        /* l'aller-retour : celui de la paire de candidats que le navigateur a CHOISIE (`transport.selectedCandidatePairId`) — après un passage au relais, l'ancienne paire directe peut
+           rester listée, et la plus courte des deux mentirait ; à défaut (un navigateur qui ne le dit pas), la plus courte des paires établies */
+        const pc0 = choisie ? paires.get(choisie) : null;
+        if (pc0 && typeof pc0.currentRoundTripTime === 'number') rtt = pc0.currentRoundTripTime;
+        else for (const x of paires.values()) if (x.state === 'succeeded' && (x.nominated || x.selected) && typeof x.currentRoundTripTime === 'number') rtt = rtt === null ? x.currentRoundTripTime : Math.min(rtt, x.currentRoundTripTime);
         /* la perte se juge sur ce qui est arrivé DEPUIS la dernière lecture (une perte d'il y a dix minutes ne compte plus), et sur assez de paquets pour dire quelque chose (vingt) */
         const av = pr.reseauAvant || { perdus, recus }, dp = perdus - av.perdus, dr = recus - av.recus;
         let perte = pr.reseauPerte || 0;
@@ -1773,10 +1788,13 @@
         else if (!pr.reseauAvant) pr.reseauAvant = { perdus, recus };
         const q = rtt === null && gigue === null && !(dp + dr >= 20) ? null : qualiteLiaison({ rtt, perte, gigue });
         poser(pr, q);
+        replier(pr, perteEnvoi === null && rttEnvoi === null ? null : qualiteLiaison({ rtt: rttEnvoi, perte: perteEnvoi }));
         if (q) notes.push(q);
       }
+      /* ⛔ MA connexion, par la maille : à une ou deux liaisons, une liaison faible peut être la sienne comme la mienne — on ne conclut RIEN sur moi (sa tuile, elle, le dit) ; à partir
+         de trois, la moitié de mes liaisons faibles au moins, c'est moi (relecture du 12 octobre 2026). Par la visio, le serveur le mesure lui-même (au-dessus). */
       const faibles = notes.filter(q => q === 'faible').length;
-      const m = !notes.length ? null : faibles * 2 >= notes.length && faibles > 0 ? 'faible' : notes.every(q => q === 'bonne') ? 'bonne' : 'moyenne';
+      const m = notes.length < 3 ? null : faibles * 2 >= notes.length ? 'faible' : notes.every(q => q === 'bonne') ? 'bonne' : 'moyenne';
       if (m !== c.reseauMoi) { c.reseauMoi = m; change = true; }
       if (replis) plafonner(c);                                  // une liaison entre dans le repli, ou en sort : le plafond de son image suit
       return change;

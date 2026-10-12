@@ -86,13 +86,15 @@ function creerMonde(nom) {
       return this._emetteur(kind, (init && init.direction) || 'sendrecv', false);
     }
     getTransceivers() { return this.transceivers.slice(); }
-    /* la qualité de la liaison que la page lit (`getStats`, réunions lot 1) : `reseauFaux` = { rtt (secondes), perdus, recus, gigue } posé par le banc. Rien de posé : aucune paire de candidats
+    /* la qualité de la liaison que la page lit (`getStats`, réunions lot 1) : `reseauFaux` = { rtt (secondes), perdus, recus, gigue, envoiPerte, envoiRtt } posé par le banc. Rien de posé : aucune paire de candidats
        choisie, aucun paquet — ce que dit une liaison qui s'établit (la page ne juge rien). */
     async getStats() {
       const m = new Map(), r = this.reseauFaux;
       if (!r) return m;
       if (typeof r.rtt === 'number') m.set('cp', { type: 'candidate-pair', state: 'succeeded', nominated: true, currentRoundTripTime: r.rtt });
       m.set('in-audio', { type: 'inbound-rtp', kind: 'audio', packetsLost: r.perdus | 0, packetsReceived: r.recus | 0, jitter: typeof r.gigue === 'number' ? r.gigue : 0.005 });
+      /* ce que l'AUTRE dit recevoir de moi (`remote-inbound-rtp`) : `envoiPerte` (0 à 1), `envoiRtt` (secondes) — c'est ce qui décide du repli de mon image */
+      if (typeof r.envoiPerte === 'number') m.set('rin-video', { type: 'remote-inbound-rtp', kind: 'video', fractionLost: r.envoiPerte, roundTripTime: typeof r.envoiRtt === 'number' ? r.envoiRtt : 0.05 });
       return m;
     }
     getReceivers() { return this.transceivers.filter(t => t.associe && recoit(t.direction) && this.pistesRecues.includes(t.kind)).map(t => t.receiver); }

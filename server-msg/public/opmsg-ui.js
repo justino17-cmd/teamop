@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '4bbcd2479c9b';
+  const OPMSG_BUILD = 'ce6b39ffed57';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 173;
+  const OPMSG_VERSION = 175;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -530,6 +530,8 @@
   function fermerCouche() {
     const parent = parentDe(etat.route); if (!parent) return;
     const h = entree();
+    /* (avant d'entrer) posée SUR une feuille — la fiche d'une réunion, un lien d'invité : « Annuler » rend cette feuille-là, pas la liste (`memeRoute` ne compare pas QUELLE feuille) */
+    if (h && h.n > 0 && h.p && h.p.feuille && cleFeuille(etat.route.feuille) === 'avant' && memeRoute(Object.assign({}, h.p, { feuille: false }), parent)) { rendreEntree(); return; }
     if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) rendreEntree(); else remplacer(parent);
   }
   /* la position de la liste est rendue PAR LA PAGE (etat.scrollListe, au retour), pas par la restauration native de l'historique : celle-ci diffère d'un
@@ -2344,6 +2346,8 @@
   }
   /* ouvrir = pousser la route ; l'écran suit dans ouvrirFeuilleDom (jouée aussi par le retour système) */
   /* `remplace` : passer D'UNE feuille À UNE AUTRE (« Nouvelle discussion » → « Nouveau groupe ») REMPLACE l'entrée au lieu d'en empiler une — un retour ferme la feuille, il ne rouvre pas celle d'avant ; le foyer à rendre reste le bouton d'origine */
+  /* (avant d'entrer, réunions lot 1) l'aperçu en cours : déclaré ICI, avant les fonctions de feuille qui le lisent — voir « AVANT D'ENTRER » plus bas */
+  const avant = { prete: null, flux: null, ctx: null, raf: 0, jeton: 0, erreur: '', appareils: null };
   function ouvrirFeuille(mode, remplace) { if (!remplace) declencheur = document.activeElement; const r = Object.assign({}, etat.route, { feuille: mode || 'chat' }); if (remplace) remplacer(r); else pousser(r); }
   /* la route dit QUELLE feuille : 'chat' (Nouveau groupe), 'appel' (Appel de groupe), 'info:<id d'un appel>' (ses détails) */
   const cleFeuille = f => String(f === true ? 'chat' : f);
@@ -2352,6 +2356,8 @@
     const [mode, arg] = cleFeuille(f).split(':');
     /* « avant d'entrer » sans entrée préparée (une route rejouée par l'historique, un rechargement) : pas de feuille vide, on rend la route d'en dessous */
     if (mode === 'avant' && !(CAP.salles && avant.prete)) { setTimeout(() => { if (etat.route && cleFeuille(etat.route.feuille) === 'avant') remplacer(parentDe(etat.route)); }, 0); return; }
+    /* ⛔ une AUTRE feuille prend la place de « avant d'entrer » (une notification, un lien, le retour à la fiche) : l'aperçu lâche caméra et micro — `fermerFeuilleDom` ne passe pas par là */
+    if (mode !== 'avant' && (avant.prete || avant.flux)) avantArreter();
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
@@ -7188,7 +7194,7 @@
     if (t.dataset.sig === sig) return;
     t.dataset.sig = sig;
     const be = t.querySelector('.salle-tuile-epingle');
-    if (be) { be.setAttribute('aria-pressed', moi ? 'true' : 'false'); be.setAttribute('aria-label', (moi ? 'Ne plus épingler ' : 'Épingler ') + nomM(m) + ' pour moi'); be.title = moi ? 'Ne plus épingler' : 'Épingler pour moi'; }
+    if (be) { be.setAttribute('aria-pressed', moi ? 'true' : 'false'); be.setAttribute('aria-label', 'Épingler ' + nomM(m) + ' pour moi'); be.title = 'Épingler pour moi'; }
     t.querySelector('.tuile-av').textContent = m.initiales;
     const nom = t.querySelector('.tuile-nom'); nom.classList.toggle('coupe', !m.micro);
     nom.innerHTML = (m.micro ? '' : icone('i-mic-off')) + '<span>' + esc(nomM(m)) + '</span>';
@@ -7523,12 +7529,12 @@
       const detail = etiquettesM(m), ouvert = hote && X.actions === m.id;
       const pourMoi = X.monEpingle === m.id;
       if (hote) h += '<button type="button" class="salle-rang" data-sa="ligne" data-uid="' + esc(m.id) + '" aria-expanded="' + (ouvert ? 'true' : 'false') + '">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (detail || pourMoi ? '<small>' + esc([detail, pourMoi ? 'épinglé pour toi' : ''].filter(Boolean).join(' · ')) + '</small>' : '') + '</span></button>';
-      else h += '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span><button type="button" class="salle-btn presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '" aria-pressed="' + (pourMoi ? 'true' : 'false') + '">' + (pourMoi ? 'Ne plus épingler' : 'Épingler pour moi') + '</button></div>';
+      else h += '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span><button type="button" class="salle-btn presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '">' + (pourMoi ? 'Ne plus épingler' : 'Épingler pour moi') + '</button></div>';
       if (ouvert) {
         if (X.retirer === m.id) h += '<div class="salle-rang actions"><span class="texte"><small>Retirer ' + esc(nomM(m)) + ' de la salle ? Cette personne ne pourra plus y revenir.</small></span><button type="button" class="salle-btn danger presse" data-sa="retirer-confirmer" data-uid="' + esc(m.id) + '">Retirer</button><button type="button" class="salle-btn presse" data-sa="retirer-annuler">Garder</button></div>';
         else {
           h += '<div class="salle-rang actions">' + (s.outils ? '<button type="button" class="salle-btn presse" data-sa="couper" data-uid="' + esc(m.id) + '"' + (m.micro ? '' : ' aria-disabled="true"') + '>Demander de couper le micro</button>' : '') +
-            '<button type="button" class="salle-btn presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '" aria-pressed="' + (X.monEpingle === m.id ? 'true' : 'false') + '">' + (X.monEpingle === m.id ? 'Ne plus épingler pour moi' : 'Épingler pour moi') + '</button>' +
+            '<button type="button" class="salle-btn presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '">' + (X.monEpingle === m.id ? 'Ne plus épingler pour moi' : 'Épingler pour moi') + '</button>' +
             '<button type="button" class="salle-btn presse" data-sa="epingler" data-uid="' + esc(m.id) + '">' + (s.epingle === m.id ? 'Retirer l\'épingle pour tous' : 'Épingler pour tous') + '</button>';
           if (s.moi.proprietaire) h += '<button type="button" class="salle-btn presse" data-sa="cohote" data-uid="' + esc(m.id) + '" data-actif="' + (m.grade >= 1 ? '0' : '1') + '">' + (m.grade >= 1 ? 'Retirer co-hôte' : 'Nommer co-hôte') + '</button>';
           if (s.outils && (m.grade | 0) < 2 && ((m.grade | 0) < 1 || moiGrade >= 2)) h += '<button type="button" class="salle-btn danger presse" data-sa="retirer-demander" data-uid="' + esc(m.id) + '">Retirer de la salle</button>';
@@ -7588,7 +7594,7 @@
       (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
-    if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>M micro · V caméra · H main · espace pour parler</small></span></button></div>';
+    if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
     h += '<div class="salle-rub"><span>Bientôt</span></div><div class="salle-liste salle-bientot">' +
       '<div class="salle-rang libre" aria-disabled="true"><span class="texte">Sous-titres en direct<small>Bientôt</small></span></div><div class="salle-rang libre" aria-disabled="true"><span class="texte">Salles de sous-groupes<small>Bientôt</small></span></div></div>';
     if (s.moi.proprietaire) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
@@ -7596,10 +7602,12 @@
   }
   /* ⛔ LES RACCOURCIS (12 octobre 2026) : des lettres seules, comme Zoom et Teams — pas de Ctrl ni de ⌘, qui sont aux navigateurs (⌘D garde un favori, Ctrl+E cherche). Ils ne jouent
      jamais dans un champ de saisie : taper « m » dans la discussion écrit un « m ». */
+  let raccourcisActifs = true;          // le temps de l'onglet (rien n'est rangé sur l'appareil) : on les coupe dans « Raccourcis clavier »
   const RACCOURCIS_SALLE = [['M', 'Couper ou activer le micro'], ['V', 'Couper ou activer la caméra'], ['H', 'Lever ou baisser la main'], ['G', 'Vue galerie ou intervenant'], ['Espace', 'Maintenir pour parler, micro coupé'], ['?', 'Cette liste'], ['Échap', 'Fermer le panneau']];
   const clavierPresent = () => typeof matchMedia === 'function' && matchMedia('(any-pointer: fine)').matches;
   function htmlRaccourcis() {
-    return '<div class="salle-liste">' + RACCOURCIS_SALLE.map(r => '<div class="salle-rang libre"><span class="texte">' + esc(r[1]) + '</span><kbd class="salle-touche">' + esc(r[0]) + '</kbd></div>').join('') + '</div>' +
+    return '<div class="salle-liste"><button type="button" class="salle-rang" role="switch" aria-checked="' + (raccourcisActifs ? 'true' : 'false') + '" data-sa="raccourcis-basculer"><span class="texte">Raccourcis d\'une lettre<small>Coupe-les si tu utilises un lecteur d\'écran ou la commande vocale</small></span><span class="salle-inter" aria-hidden="true"></span></button></div>' +
+      '<div class="salle-liste">' + RACCOURCIS_SALLE.map(r => '<div class="salle-rang libre"><span class="texte">' + esc(r[1]) + '</span><kbd class="salle-touche">' + esc(r[0]) + '</kbd></div>').join('') + '</div>' +
       '<p class="salle-note">Les raccourcis ne jouent pas quand tu écris dans un champ.</p>';
   }
   function htmlQuitter(A) {
@@ -7637,7 +7645,7 @@
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom, m.reseau]);
-    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A)]);
+    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
@@ -7718,9 +7726,10 @@
       case 'epingler': await salleGeste(A, 'evt', { k: 'epingle', donnees: s.epingle === uid ? { op: 'retirer' } : { op: 'epingler', uid } }); return;
       case 'epingler-moi': epinglerPourMoi(A, uid); return;
       case 'raccourcis': salleOuvrirPanneau(A, 'raccourcis', $('salle-plus')); return;
+      case 'raccourcis-basculer': raccourcisActifs = !raccourcisActifs; sallePanneauRendre(A, true); annonceAppel(raccourcisActifs ? 'Raccourcis activés' : 'Raccourcis coupés'); return;
       case 'flou': await basculerFlou(A); return;
       case 'muet-activer': X.bandeauMuet = false; if (A.audio && !A.micro) { A.micro = true; A.audio.enabled = true; pousserPistes(A); annonceAppel('Micro activé'); } rendreAppel(); return;
-      case 'muet-ok': X.bandeauMuet = false; X.muetDitLe = Date.now(); salleBandeaux(A); return;
+      case 'muet-ok': X.bandeauMuet = false; X.muetDitLe = Date.now(); X.muetPause = Date.now() + 300000; salleBandeaux(A); return;       // « OK » : on se tait exprès — plus d'alerte pendant cinq minutes
       case 'cohote': await salleGeste(A, 'cohote', { uid, actif: el.dataset.actif === '1' }); return;
       case 'retirer-demander': X.retirer = uid; sallePanneauRendre(A, true); return;
       case 'retirer-annuler': X.retirer = null; sallePanneauRendre(A, true); return;
@@ -8417,21 +8426,35 @@
     const veut = enSalle(A) && !s.attente && !A.fini && !!A.audio && A.audio.readyState === 'live' && !A.micro && !X.ptt && typeof Ctx === 'function';
     if (A.muet && (!veut || A.muet.source !== A.audio)) arreterMuet(A);
     if (!veut) { if (A.micro && X.bandeauMuet) X.bandeauMuet = false; return; }
-    if (A.muet) return;
+    if (A.muet || A.muetEchec) return;
+    let ctx = null, copie = null;
     try {
-      const ctx = new Ctx(), copie = A.audio.clone(); copie.enabled = true;
+      ctx = new Ctx(); copie = A.audio.clone(); copie.enabled = true;
       const an = ctx.createAnalyser(); an.fftSize = 1024;
       ctx.createMediaStreamSource(new MediaStream([copie])).connect(an);
       const M = A.muet = { source: A.audio, copie, ctx, fort: 0, minut: 0 }, buf = new Float32Array(an.fftSize);
-      if (ctx.state === 'suspended') ctx.resume().catch(() => { /* la prochaine touche relance */ });
+      relancerAuGeste(ctx);
       M.minut = setInterval(() => {
         if (A.muet !== M || perime(A)) return;
         an.getFloatTimeDomainData(buf);
         let e = 0; for (let i = 0; i < buf.length; i++) e += buf[i] * buf[i];
         M.fort = Math.sqrt(e / buf.length) > SEUIL_MUET ? M.fort + 1 : Math.max(0, M.fort - 1);
-        if (M.fort >= 4 && !X.bandeauMuet && Date.now() - (X.muetDitLe || 0) > 20000) { X.bandeauMuet = true; X.muetDitLe = Date.now(); salleBandeaux(A); annonceAppel('Tu parles ? Ton micro est coupé.'); }
+        if (M.fort >= 4 && !X.bandeauMuet && Date.now() - (X.muetDitLe || 0) > 20000 && Date.now() > (X.muetPause || 0)) { X.bandeauMuet = true; X.muetDitLe = Date.now(); salleBandeaux(A); annonceAppel('Tu parles ? Ton micro est coupé.'); }
       }, 200);
-    } catch (e) { A.muet = null; }
+    } catch (e) {
+      /* ⛔ un échec ne laisse RIEN derrière lui (la copie, le contexte), et ne se retente pas à chaque rendu (une pile de contextes jusqu'à la limite du navigateur) */
+      A.muet = null; A.muetEchec = true;
+      try { if (copie) copie.stop(); } catch (er) { /* rien */ }
+      try { if (ctx) { const p = ctx.close(); if (p && p.catch) p.catch(() => {}); } } catch (er) { /* rien */ }
+    }
+  }
+  /* ⛔ un contexte audio créé hors d'un geste (Safari sur iPhone) reste SUSPENDU : il repart au premier toucher ou à la première touche — sinon « tu parles ? » et la jauge sont muets */
+  function relancerAuGeste(ctx) {
+    if (!ctx || ctx.state !== 'suspended') return;
+    const repartir = () => { if (ctx.state === 'suspended') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); } };
+    repartir();
+    document.addEventListener('pointerdown', repartir, { once: true, capture: true });
+    document.addEventListener('keydown', repartir, { once: true, capture: true });
   }
   function arreterMuet(A) {
     const M = A.muet; if (!M) return;
@@ -8444,7 +8467,10 @@
      Seulement la salle à l'écran (pas réduite), sans feuille, photo ni menu par-dessus, sans touche de modification, et JAMAIS dans un champ. L'espace « appuie » sur le bouton qui a le
      focus : il ne parle que hors d'un bouton. Tenir l'espace ouvre le micro, le lâcher le recoupe — et une fenêtre qui perd le focus en le tenant le recoupe aussi. */
   const champDeSaisie = el => !!(el && el.closest && el.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]'));
-  const salleAuClavier = () => { const A = etat.appelUI; return enSalle(A) && !etat.appelReduit && document.documentElement.dataset.salle === '1' && !etat.photo && !etat.groupe.ouvert && !etat.menu && !sx(A).annoter ? A : null; };
+  const salleAuClavier = () => { const A = etat.appelUI; return raccourcisActifs && enSalle(A) && !A.snap.attente && !etat.appelReduit && document.documentElement.dataset.salle === '1' && !etat.photo && !etat.groupe.ouvert && !etat.menu && !sx(A).annoter ? A : null; };
+  /* l'espace parle seulement quand le foyer est sur la salle ELLE-MÊME (l'écran, la scène, le corps de la page) et qu'aucun panneau n'est ouvert : dans une liste, une discussion, un
+     panneau qui défile, l'espace garde son sens (défiler, appuyer) — un lecteur d'écran n'ouvre pas le micro en lisant (relecture du 12 octobre 2026) */
+  const espaceParle = t => (t === document.body || t === document.documentElement || t === $('salle-ecran') || t === $('salle-scene')) && $('salle-panneau').hidden;
   function parlerMaintenu(A, oui) {
     const X = sx(A);
     if (oui) { if (!A.audio || A.micro || X.ptt) return; X.ptt = true; A.micro = true; A.audio.enabled = true; pousserPistes(A); rendreAppel(); annonceAppel('Micro ouvert tant que tu tiens la barre d\'espace'); return; }
@@ -8455,7 +8481,7 @@
   document.addEventListener('keydown', e => {
     const A = salleAuClavier(); if (!A || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || champDeSaisie(e.target)) return;
     if (e.key === ' ' || e.key === 'Spacebar') {
-      if (e.target && e.target.closest && e.target.closest('button, a, summary, [role="switch"], [role="button"]')) return;
+      if (!espaceParle(e.target)) return;
       e.preventDefault();
       if (!e.repeat) parlerMaintenu(A, true);
       return;
@@ -8476,14 +8502,15 @@
      on choisit micro, caméra et sortie du son, et on entre micro ou caméra coupés. Personne ne voit ni n'entend rien tant qu'on n'est pas entré.
      ⛔ Les pistes de l'aperçu sont ARRÊTÉES avant d'entrer : la salle les redemande (le navigateur se souvient de l'autorisation), et en salle d'attente ni micro ni caméra ne restent
      ouverts. Seuls les CHOIX passent (`etat.choixEntree`, lus par l'appel qui naît). Une page sans médias (l'aperçu de l'interface) entre directement, comme avant. */
-  const avant = { prete: null, flux: null, ctx: null, raf: 0, jeton: 0, erreur: '', appareils: null };
   function avantEntrer(o) {
     if (!CAP.appelsMedias || !mediasDispo()) return lancerAppel(null, o.el, !!o.depuisFeuille, o.entrer);
     if (etat.appelId || etat.appelDemarre) return false;
+    if (etat.groupe.ouvert && etat.groupe.mode === 'avant') return false;           // déjà ouverte (une double activation) : on ne rouvre pas par-dessus
     avantArreter();
     avant.prete = { titre: o.titre || '', type: o.type === 'audio' ? 'audio' : o.type === 'video' ? 'video' : null, entrer: o.entrer, el: o.el || null, micro: true, camera: o.type !== 'audio', entree: false };
-    if (o.el && !(o.depuisFeuille && etat.route.feuille)) o.el.focus({ preventScroll: true });      // ouvrirFeuille retient le foyer à rendre : le bouton touché
-    ouvrirFeuille('avant', !!(o.depuisFeuille && etat.route.feuille));
+    if (o.el && !etat.route.feuille) o.el.focus({ preventScroll: true });      // ouvrirFeuille retient le foyer à rendre : le bouton touché
+    /* EMPILÉE, jamais à la place : depuis la fiche d'une réunion ou un lien d'invité, « Annuler » (ou le retour) y ramène — la remplacer perdait la fiche (relecture du 12 octobre 2026) */
+    ouvrirFeuille('avant', false);
     return true;
   }
   function avantCouper() {
@@ -8502,8 +8529,8 @@
         '<span class="avant-sans" id="avant-sans"></span><span class="avant-niveau" id="avant-niveau" role="meter" aria-label="Niveau de ton micro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="avant-niveau-i"></i></span></div>' +
       '<p class="info-erreur" id="avant-erreur" role="alert" hidden></p><p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="avant-cmds" role="group" aria-label="En entrant">' +
-        '<button type="button" class="avant-cmd presse" id="avant-micro" aria-label="Micro en entrant" aria-pressed="true"><span class="rond-cmd">' + icone('i-mic') + '</span><span>Micro</span></button>' +
-        (P.type === 'audio' ? '' : '<button type="button" class="avant-cmd presse" id="avant-cam" aria-label="Caméra en entrant" aria-pressed="true"><span class="rond-cmd">' + icone('i-video') + '</span><span>Caméra</span></button>') +
+        '<button type="button" class="avant-cmd presse" id="avant-micro" aria-label="Couper le micro" aria-pressed="false"><span class="rond-cmd">' + icone('i-mic') + '</span><span>Micro</span></button>' +
+        (P.type === 'audio' ? '' : '<button type="button" class="avant-cmd presse" id="avant-cam" aria-label="Couper la caméra" aria-pressed="false"><span class="rond-cmd">' + icone('i-video') + '</span><span>Caméra</span></button>') +
       '</div><button type="button" class="avant-rejoindre presse" id="avant-rejoindre">Rejoindre</button>' +
       '<p class="info-note">Personne ne te voit ni ne t\'entend avant que tu entres.</p><div id="avant-reglages"></div></div>';
     avantMaj(); avantApercu();
@@ -8536,7 +8563,7 @@
     try {
       const ctx = avant.ctx = new Ctx(), an = ctx.createAnalyser(); an.fftSize = 512;
       ctx.createMediaStreamSource(new MediaStream([piste])).connect(an);
-      if (ctx.state === 'suspended') ctx.resume().catch(() => { /* rien */ });
+      relancerAuGeste(ctx);
       const buf = new Float32Array(an.fftSize);
       let lisse = 0, dit = 0;
       const tour = () => {
@@ -8556,8 +8583,9 @@
     const vt = avant.flux && avant.flux.getVideoTracks()[0], cam = !!(vt && vt.readyState === 'live' && P.camera);
     ap.dataset.camera = cam ? 'on' : 'off'; ap.dataset.micro = P.micro ? 'on' : 'off';
     $('avant-sans').textContent = P.type === 'audio' ? 'Réunion audio' : !P.camera ? 'Caméra coupée' : !avant.flux ? 'Préparation…' : vt ? '' : 'Caméra indisponible';
-    const bm = $('avant-micro'); bm.setAttribute('aria-pressed', P.micro ? 'true' : 'false'); bm.querySelector('use').setAttribute('href', P.micro ? '#i-mic' : '#i-mic-off'); bm.lastElementChild.textContent = P.micro ? 'Micro' : 'Coupé';
-    const bc = $('avant-cam'); if (bc) { bc.setAttribute('aria-pressed', P.camera ? 'true' : 'false'); bc.querySelector('use').setAttribute('href', P.camera ? '#i-video' : '#i-video-off'); bc.lastElementChild.textContent = P.camera ? 'Caméra' : 'Coupée'; }
+    /* « Couper » pressé = coupé, comme le bouton Micro de la salle ; le nom ne change pas (il contient le mot écrit dessous), l'icône barrée et le rouge disent l'état */
+    const bm = $('avant-micro'); bm.setAttribute('aria-pressed', P.micro ? 'false' : 'true'); bm.querySelector('use').setAttribute('href', P.micro ? '#i-mic' : '#i-mic-off');
+    const bc = $('avant-cam'); if (bc) { bc.setAttribute('aria-pressed', P.camera ? 'false' : 'true'); bc.querySelector('use').setAttribute('href', P.camera ? '#i-video' : '#i-video-off'); }
     const e = $('avant-erreur'); e.textContent = avant.erreur || ''; e.hidden = !avant.erreur;
   }
   function avantReglages() {
