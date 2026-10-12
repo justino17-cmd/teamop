@@ -74,7 +74,6 @@ function demarrer(env = process.env) {
      (message supprimé pour tous, éphémère échu, photo remplacée, conversation disparue) l'est sans attendre et sans jamais faire échouer le geste : s'il résiste, il reste sans
      ligne, et le balayeur l'efface au passage suivant. */
   const pieces = creerPieces({ dossier: path.join(config.dataDir, 'pieces'), cle: (g, id) => scelleur.deriver(g, 'piece', 'bloc', id), generation: scelleur.generation, bloc: config.pieces.bloc, memoireImages: config.pieces.memoireImages });
-  const reservations = creerReservations({ max: config.pieces.quotaPersonne, utilise: (u) => stockage.pieceUtilise(u) });
   const piecesEtat = { illisibles: 0, effacementsRates: 0 };
   const effacerPieces = (ids) => { for (const id of ids || []) pieces.effacer(id).catch(() => { piecesEtat.effacementsRates++; }); };
   /* ⛔ UNE BASE RESTAURÉE REJOUE CE QUI EST À ELLE avant de servir : l'outil de restauration a recopié dans le registre `purge` les effacements qu'il ne sait pas rejouer
@@ -97,6 +96,8 @@ function demarrer(env = process.env) {
   /* ⛔ LA FORMULE ET LA FACTURATION : `formuleDe` est la seule fonction qui décide de Perso, Pro ou impayé (le drapeau de la bêta y est lu, et là seulement) ; la facturation parle à Stripe
      (inerte sans clé, et le dit). Les deux se lisent dans `ctx`, jamais ne se reconstruisent ailleurs. */
   const formule = creerFormule({ stockage, config });
+  /* l'espace de pièces se réserve contre le maximum DE LA PERSONNE (10 Go, 35 Go avec Pro — `formule.stockageMax`) : déclaré APRÈS la formule, qu'il lit */
+  const reservations = creerReservations({ max: (u) => formule.stockageMax(u).max, utilise: (u) => stockage.pieceUtilise(u) });
   const facturation = creerFacturation({ stockage, config, formule, journaliser, horloge: Date.now });
   /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
   /* L'AGENDA PERSONNEL (`routes-agenda.js`) : ses routes, et ses rappels — envoyés par le planificateur des réunions, qui tient le bail (une seule instance envoie) */

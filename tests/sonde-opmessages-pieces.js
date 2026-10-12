@@ -304,7 +304,18 @@ async function parcours(b, ctx) {
     await toucher(A, '[data-reg-cle="presence"]');
     await verifier('elle rallume : Bruno la revoit en ligne', B, nom => { const l = [...document.querySelectorAll('#liste-conv .conv')].find(x => x.querySelector('.conv-nom').textContent === nom); return !!l && !!l.querySelector('.avatar.en-ligne'); }, NOMS.alice, 15000);
     await rubrique(A, 'stockage');
-    await verifier('le stockage dit ce qui est utilisé sur 50 Go, avec sa jauge', A, () => /utilisés sur 50 Go/.test(document.getElementById('reg-stock').textContent) && !!document.querySelector('#reg-stock .jauge i'), null, 8000, () => lire(A, '#reg-stock'));
+    /* l'espace (décision du 12 octobre 2026) : 10 Go à chacun, 25 Go DE PLUS avec Pro — la bêta est toute Pro : 35 Go, et le détail est dit */
+    await verifier('le stockage dit ce qui est utilisé sur 35 Go, le détail « 10 Go Perso + 25 Go Pro », et sa jauge', A, () => /utilisés sur 35 Go/.test(document.getElementById('reg-stock').textContent) && /10 Go Perso \+ 25 Go Pro/.test(document.getElementById('reg-stock').textContent) && !!document.querySelector('#reg-stock .jauge i') && !/espace est plein/.test(document.getElementById('reg-stock').textContent), null, 8000, () => lire(A, '#reg-stock'));
+    {
+      const Go = 1073741824;
+      await A.page.route('**/api/moi/stockage', (route) => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ utilise: 12 * Go, max: 10 * Go, perso: 10 * Go, pro: 0 }) }));
+      /* changer de rubrique ne relit rien : c'est en REVENANT au Profil que le service est relu — le geste d'une vraie personne */
+      await onglet(A, 'messages'); await onglet(A, 'reglages'); await rubrique(A, 'stockage');
+      await verifier('⛔ un espace PLEIN (12 Go envoyés quand il n\'en reste que 10 : l\'ancien maximum, ou Pro qui s\'arrête) le DIT — rien n\'est effacé, les nouveaux envois attendent ; sans part Pro, pas de détail', A,
+        () => /utilisés sur 10 Go/.test(document.getElementById('reg-stock').textContent) && /Ton espace est plein\. Rien n'est effacé/.test(document.getElementById('reg-stock').textContent) && !/Go Pro/.test(document.getElementById('reg-stock').textContent),
+        null, 6000, () => lire(A, '#reg-stock'));
+      await A.page.unroute('**/api/moi/stockage');
+    }
     await rubrique(A, 'apropos');
     await verifier('« À propos » dit la version et les maximums', A, () => /version \d/.test(document.getElementById('reg-apropos').textContent) && /Au plus/.test(document.getElementById('reg-apropos').textContent), null, 8000, () => lire(A, '#reg-apropos'));
     await largeur(A, 'Réglages (rempli)');

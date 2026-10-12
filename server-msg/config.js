@@ -22,7 +22,7 @@
  *                                relâchent l'un ou l'autre.
  *   beta          {urlGestion, relectureMs, timeoutMs}   La porte (instance beta seulement).
  *   quotas        {nom:{max,fenetreMs}}   Surcharge des plafonds de départ (bancs).
- *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPersonne, depotsHeure, orphelineMs, simultanes, parPersonne, bloc, memoireImages,
+ *   pieces        {photoMax, vocalMax, fichierMax, avatarMax, quotaPerso, quotaPro, depotsHeure, orphelineMs, simultanes, parPersonne, bloc, memoireImages,
  *                  depotDebitMin, depotGraceMs, lectureAttenteMs, lectureMaxMs}
  *                                Les pièces (photos, vocaux, fichiers) : tailles maximales en octets, quota par personne, envois par heure,
  *                                durée de vie d'une pièce jamais envoyée, envois en même temps, mémoire que les images en cours de nettoyage se partagent,
@@ -122,7 +122,9 @@ function origines(cfg) {
   return liste && liste.length ? liste : null;
 }
 
-/* ⛔ LES PIÈCES : les valeurs de départ sont celles de SERVEUR.md § 5.6 (photo 12 Mo, vocal 10 Mo, fichier 5 Go, 50 Go par personne en Perso).
+/* ⛔ LES PIÈCES : les valeurs de départ sont celles de SERVEUR.md § 5.6 (photo 12 Mo, vocal 10 Mo, fichier 5 Go ; l'espace : 10 Go à chacun, 25 Go DE PLUS à qui a Pro).
+   Justin, 12 octobre 2026 : « on va baisser le stockage perso 10 GB et pro 25 GB », « ça s'ajoute » ; Perso+ compte comme Perso. `quotaPerso` est l'espace de TOUT LE MONDE,
+   `quotaPro` ce que Pro y AJOUTE — le total d'une personne se décide dans `formule.js` (`stockageMax`), et nulle part ailleurs (il était de 50 Go pour tous jusque-là).
    Justin, 6 octobre 2026 (« je voulais que tout le monde puisse envoyer autant de fichiers, avec les poids qu'ils veulent ») : un fichier va jusqu'à 5 Go (« je veux 5 Go », le même soir) — 25 Mo refusait
    une vidéo de téléphone. Une photo, elle, est réduite par la page avant l'envoi (quelques centaines de Ko) : son maximum ne gêne personne.
    ⚠️ Le proxy suit (`client_max_body_size` du bloc `/api/pieces` d'`install-msg.sh`) — le déploiement ne réécrit PAS le proxy : à relever sur le VPS.
@@ -134,12 +136,15 @@ const Mo = 1048576;
 /* ⛔ UN ENVOI, OU UNE LECTURE, NE TIENT PAS UNE PLACE SANS AVANCER (relecture du gardien, A2 et A4). `depotDebitMin` : un envoi doit avoir reçu au moins ce débit moyen, après `depotGraceMs` de grâce
    (64 Ko/s après 30 s, soit ~0,5 Mbit/s : un « slowloris » qui annonce 25 Mo et envoie un octet par seconde ne tient plus 300 s une des seize places). `lectureAttenteMs` : un lecteur dont la
    connexion reste pleine plus longtemps que cela est coupé (le fichier ouvert est rendu) ; `lectureMaxMs` : plafond d'une lecture entière, pour celui qui lit juste assez vite pour ne jamais s'arrêter. */
-const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 5120 * Mo, avatarMax: 2 * Mo, quotaPersonne: 51200 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536, memoireImages: 96 * Mo,
+const PIECES_DEFAUT = { photoMax: 12 * Mo, vocalMax: 10 * Mo, fichierMax: 5120 * Mo, avatarMax: 2 * Mo, quotaPerso: 10240 * Mo, quotaPro: 25600 * Mo, depotsHeure: 60, orphelineMs: 24 * 3600000, simultanes: 16, parPersonne: 4, bloc: 65536, memoireImages: 96 * Mo,
   depotDebitMin: 64 * 1024, depotGraceMs: 30000, lectureAttenteMs: 30000, lectureMaxMs: 21600000, lectureDebitMin: 16 * 1024 };
 function piecesConfig(c) {
   const brut = c && typeof c === 'object' && !Array.isArray(c) ? c : {};
+  /* ⛔ l'ancienne clé (un seul espace pour tous, jusqu'au 12 octobre 2026) REFUSE le démarrage : ignorée, elle laisserait croire à qui l'a posée que son réglage tient, alors que
+     10 Go + 25 Go s'appliqueraient sans un mot. Le déployeur, lui, revient au service d'avant si celui-ci ne démarre pas. */
+  if (brut.quotaPersonne !== undefined) { const e = new Error('config: pieces.quotaPersonne n\'existe plus — quotaPerso (l\'espace de chacun) et quotaPro (ce que Pro y ajoute)'); e.code = 'CONFIG'; throw e; }
   const o = {};
-  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 8192 * Mo], avatarMax: [1, 64 * Mo], quotaPersonne: [1, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24], memoireImages: [16 * Mo, 8192 * Mo],
+  const bornes = { photoMax: [1, 256 * Mo], vocalMax: [1, 256 * Mo], fichierMax: [1, 8192 * Mo], avatarMax: [1, 64 * Mo], quotaPerso: [1, 1024 * 1024 * Mo], quotaPro: [0, 1024 * 1024 * Mo], depotsHeure: [1, 100000], orphelineMs: [1000, 30 * 86400000], simultanes: [1, 256], parPersonne: [1, 64], bloc: [256, 1 << 24], memoireImages: [16 * Mo, 8192 * Mo],
     depotDebitMin: [1024, 1024 * Mo], depotGraceMs: [200, 600000], lectureAttenteMs: [100, 3600000], lectureMaxMs: [1000, 86400000], lectureDebitMin: [1, 1024 * Mo] };
   for (const [k, [min, max]] of Object.entries(bornes)) {
     const v = brut[k] === undefined ? PIECES_DEFAUT[k] : brut[k];

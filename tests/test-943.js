@@ -753,7 +753,8 @@ async function gestionnaireLecture() {
     {
       const E = await compte('gina');
       const s0 = await E.get('/api/moi/stockage');
-      v('GET /api/moi/stockage : {utilise, max} — rien déposé, le quota de départ (50 Go)', [s0.code, s0.j.utilise, s0.j.max], [200, 0, 53687091200]);
+      /* l'espace de départ (Justin, 12 octobre 2026) : 10 Go à chacun, 25 Go DE PLUS avec Pro — sur la bêta tout est Pro : 35 Go, et le service dit de quoi il est fait */
+      v('GET /api/moi/stockage : {utilise, max, perso, pro} — rien déposé ; sur la bêta (tout est Pro) 10 Go + 25 Go = 35 Go', [s0.code, s0.j.utilise, s0.j.max, s0.j.perso, s0.j.pro], [200, 0, 37580963840, 10737418240, 26843545600]);
       const G2 = await groupe(E, 'Stock', []);
       const d = await deposer(E, { conv: G2, genre: 'fichier', nom: 'a.bin', corps: crypto.randomBytes(30000) });
       v('⛔ l\'espace utilisé compte les octets RANGÉS', (await E.get('/api/moi/stockage')).j.utilise, 30000);
@@ -762,11 +763,12 @@ async function gestionnaireLecture() {
       v('⛔ supprimer le message RENDS l\'espace', await att(async () => (await E.get('/api/moi/stockage')).j.utilise === 0, 6000), true);
       v('sans session : 401', (await T.client(svc.base).get('/api/moi/stockage')).code, 401);
       const cfg = (await T.client(svc.base).get('/api/config')).j;
-      v('GET /api/config annonce les maximums des pièces (la page refuse AVANT d\'envoyer)', cfg.limites.pieces, { photo_max: 200000, vocal_max: 300000, fichier_max: 600000, avatar_max: 100000, par_message: 10, quota: 53687091200 });
+      v('GET /api/config annonce les maximums des pièces (la page refuse AVANT d\'envoyer)', cfg.limites.pieces, { photo_max: 200000, vocal_max: 300000, fichier_max: 600000, avatar_max: 100000, par_message: 10, quota: 10737418240, quota_pro: 26843545600 });
       /* la configuration refuse ce qui n'a pas de sens */
       const refus = (c) => { try { piecesConfig(c); return null; } catch (e) { return e.code; } };
-      v('⛔ une configuration absurde REFUSE le démarrage : maximum négatif, quota nul, fractionnaire, bloc qui n\'est pas une puissance de deux, texte', [refus({ photoMax: -1 }), refus({ quotaPersonne: 0 }), refus({ depotsHeure: 1.5 }), refus({ bloc: 5000 }), refus({ vocalMax: '10' }), refus({ simultanes: 0 })], Array(6).fill('CONFIG'));
-      v('et une configuration juste (ou absente) donne les valeurs de départ de SERVEUR.md § 5.6 : 12 Mo, 10 Mo, 5 Go, 50 Go, 60 envois par heure, 24 h, blocs de 64 Kio', (() => { const c = piecesConfig(undefined); return [c.photoMax, c.vocalMax, c.fichierMax, c.quotaPersonne, c.depotsHeure, c.orphelineMs, c.bloc]; })(), [12582912, 10485760, 5368709120, 53687091200, 60, 86400000, 65536]);
+      v('⛔ une configuration absurde REFUSE le démarrage : maximum négatif, quota nul, fractionnaire, bloc qui n\'est pas une puissance de deux, texte', [refus({ photoMax: -1 }), refus({ quotaPerso: 0 }), refus({ quotaPro: -1 }), refus({ depotsHeure: 1.5 }), refus({ bloc: 5000 }), refus({ vocalMax: '10' }), refus({ simultanes: 0 })], Array(7).fill('CONFIG'));
+      v('⛔ l\'ancienne clé `quotaPersonne` (un espace pour tous, jusqu\'au 12 octobre 2026) REFUSE le démarrage, même à une valeur juste : ignorée, son réglage paraîtrait tenir', [refus({ quotaPersonne: 53687091200 }), refus({ quotaPersonne: 53687091200, quotaPerso: 10737418240 })], ['CONFIG', 'CONFIG']);
+      v('et une configuration juste (ou absente) donne les valeurs de départ de SERVEUR.md § 5.6 : 12 Mo, 10 Mo, 5 Go, 10 Go à chacun et 25 Go de plus avec Pro, 60 envois par heure, 24 h, blocs de 64 Kio', (() => { const c = piecesConfig(undefined); return [c.photoMax, c.vocalMax, c.fichierMax, c.quotaPerso, c.quotaPro, c.depotsHeure, c.orphelineMs, c.bloc]; })(), [12582912, 10485760, 5368709120, 10737418240, 26843545600, 60, 86400000, 65536]);
       v('⛔ les réglages de LENTEUR (A2, A4) ont des valeurs de départ — 64 Ko/s après 30 s pour un envoi, 30 s d\'attente et 6 heures au plus pour une lecture (5 Go à 1 Mo/s en prennent une heure et demie) — et des bornes : un débit nul, une grâce nulle, un plafond de durée d\'une milliseconde refusent le démarrage', [(() => { const c = piecesConfig(undefined); return [c.depotDebitMin, c.depotGraceMs, c.lectureAttenteMs, c.lectureMaxMs]; })(), refus({ depotDebitMin: 0 }), refus({ depotGraceMs: 0 }), refus({ lectureAttenteMs: 1 }), refus({ lectureMaxMs: 10 }), refus({ depotDebitMin: 100000.5 })], [[65536, 30000, 30000, 21600000], 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG', 'CONFIG']);
     }
   } catch (e) {
@@ -777,7 +779,7 @@ async function gestionnaireLecture() {
 
   /* ═══ 14. UN SERVICE AUX PLAFONDS BAS : quota, envois par heure, envois en même temps, disque ═════════════════════════════════════ */
   console.log('\nLes plafonds : le quota par personne (402), les envois par heure (429 + Retry-After), les envois en même temps (429), le plancher de disque (503)');
-  const svc2 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { quotaPersonne: 400000, fichierMax: 300000, photoMax: 300000, bloc: 4096, parPersonne: 2, simultanes: 3 }, quotas: { piece: { max: 12, fenetreMs: 3600000 } } } });
+  const svc2 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { quotaPerso: 400000, quotaPro: 0, fichierMax: 300000, photoMax: 300000, bloc: 4096, parPersonne: 2, simultanes: 3 }, quotas: { piece: { max: 12, fenetreMs: 3600000 } } } });
   try {
     const E = await compte('eve', svc2), Fr = await compte('fred', svc2);
     await lienContact(E, Fr);
@@ -957,7 +959,7 @@ async function gestionnaireLecture() {
   console.log('\nUn envoi qui n\'avance pas rend sa place : 408 « envoi_trop_lent », la place et la réservation de quota rendues, la réponse lue même si le client continue d\'envoyer (A4)');
   /* ⛔ Sans tampon devant le service (Caddy, accès direct), un envoi qui annonce 25 Mo et en envoie un octet par seconde tenait une des places — et une des « par personne » — 300 s. Ici : 64 Ko/s
      après 30 s en production, 100 Ko/s après 0,8 s pour le banc. */
-  const svc6 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { depotGraceMs: 800, depotDebitMin: 100000, parPersonne: 2, simultanes: 4, quotaPersonne: 400000, fichierMax: 300000, bloc: 4096 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
+  const svc6 = await T.lancerService({ urlGestion: og.url, horloge: true, config: { pieces: { depotGraceMs: 800, depotDebitMin: 100000, parPersonne: 2, simultanes: 4, quotaPerso: 400000, quotaPro: 0, fichierMax: 300000, bloc: 4096 }, quotas: { piece: { max: 1000, fenetreMs: 3600000 } } } });
   try {
     const A6 = await compte('alice', svc6), B6 = await compte('bruno', svc6);
     await lienContact(A6, B6);

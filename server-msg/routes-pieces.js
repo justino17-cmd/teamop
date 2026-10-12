@@ -33,7 +33,7 @@ const GENRES_CONV = ['photo', 'vocal', 'fichier'];
 const NOM_MAX = 120;
 
 function installerPieces(H, ctx) {
-  const { config, stockage, quotas, hub, horloge, pieces, reservations } = ctx;
+  const { config, stockage, quotas, hub, horloge, pieces, reservations, formule } = ctx;
   const pc = config.pieces;
   const refus = (res, statut, code, extra) => res.status(statut).json(Object.assign({ error: code }, extra || {}));
   const corps = (req) => (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) ? req.body : {};
@@ -290,7 +290,8 @@ function installerPieces(H, ctx) {
   });
 
   /* ══ L'ESPACE UTILISÉ ═══════════════════════════════════════════════════════════════════════════════════════════════════ */
-  H['moi.stockage'] = garder((req, res) => res.json({ utilise: stockage.pieceUtilise(req.moi.id), max: pc.quotaPersonne }));
+  /* le maximum DE LA PERSONNE, et de quoi il est fait (`perso` pour tous, `pro` en plus avec Pro) : la page le détaille — `formule.stockageMax` est la seule définition */
+  H['moi.stockage'] = garder((req, res) => { const m = formule.stockageMax(req.moi.id); res.json({ utilise: stockage.pieceUtilise(req.moi.id), max: m.max, perso: m.perso, pro: m.pro }); });
 
   return { enCours: () => enCours, octetsAnnonces: () => octetsAnnonces };
 }

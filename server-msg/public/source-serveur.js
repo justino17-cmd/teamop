@@ -3233,7 +3233,8 @@
     }
     /* ⛔ pas `| 0` : le quota est de 2 Gio (2 147 483 648 octets), un entier signé sur 32 bits le rendrait NÉGATIF */
     const entierPositif = (x) => Number.isFinite(+x) ? Math.max(0, Math.floor(+x)) : 0;
-    async function stockageUtilise() { const r = await A.stockage(); return { utilise: entierPositif(r.utilise), max: entierPositif(r.max) }; }
+    /* `perso` (l'espace de tous) et `pro` (ce que Pro y ajoute) : de quoi le maximum est fait — 0 quand le service ne le dit pas (un service d'avant) */
+    async function stockageUtilise() { const r = await A.stockage(); return { utilise: entierPositif(r.utilise), max: entierPositif(r.max), perso: entierPositif(r.perso), pro: entierPositif(r.pro) }; }
     /* la version que le service sert EN CE MOMENT : la page la compare à la sienne pour proposer « Mettre à jour » */
     /* « Mettre à jour » : la page dit la progression, le module relit les fichiers (la page n'appelle jamais le réseau elle-même) */
     async function relireApplication(surProgres) { return A.relireApplication(surProgres); }

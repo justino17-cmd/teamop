@@ -1,11 +1,12 @@
 /* ⛔ CE QUE CE FICHIER GARDE — UN GROS FICHIER PASSE, AVEC LES RÉGLAGES DE DÉPART (famille 3 : le VRAI service, en HTTP).
 
    Justin, 6 octobre 2026, capture à l'appui (« Ce fichier est trop lourd ») : « je voulais que tout le monde puisse envoyer autant de fichiers, avec les poids qu'ils veulent ».
-   Le maximum d'un fichier passe de 25 Mo à 5 Go (« je veux 5 Go », le même soir), l'espace d'une personne de 2 Go à 50 Go, et une lecture entière a six heures.
+   Le maximum d'un fichier passe de 25 Mo à 5 Go (« je veux 5 Go », le même soir), l'espace d'une personne de 2 Go à 50 Go, et une lecture entière a six heures. Le 12 octobre (« perso 10 GB et pro 25 GB », « ça s'ajoute ») : 10 Go à chacun,
+   25 Go DE PLUS avec Pro.
 
    `test-943` joue les pièces avec des maximums RÉDUITS exprès (quelques centaines de Ko) : il ne peut pas voir qu'avec la configuration de départ — celle du VPS — un fichier de
    40 Mo était refusé. Celui-ci lance le service SANS réglage de pièces et vérifie :
-     · `/api/config` annonce 5 Go par fichier et 50 Go d'espace (la page refuse AVANT d'envoyer d'après ces chiffres : un maximum oublié côté service se verrait ici) ;
+     · `/api/config` annonce 5 Go par fichier, 10 Go d'espace à chacun et 25 Go de plus avec Pro (la page refuse AVANT d'envoyer d'après ces chiffres : un maximum oublié côté service se verrait ici) ;
      · un fichier de 40 Mo se dépose (201), part dans une conversation, et l'autre le relit OCTET POUR OCTET ;
      · une annonce au-delà de 5 Go est refusée tout de suite (413 avec le maximum), sans qu'un octet soit lu ;
      · le délai de requête de Node ne coupe plus un envoi long : il se DÉDUIT du maximum et de la garde de débit (lu sur le fichier réel) ;
@@ -28,9 +29,9 @@ const Mo = 1048576;
 
     console.log('\n1. Les maximums de départ, annoncés à la page');
     const cfg = (await A.get('/api/config')).j;
-    v('/api/config : 5 Go par fichier, 50 Go d\'espace par personne (une photo reste à 12 Mo : la page la réduit avant l\'envoi)', [cfg.limites.pieces.fichier_max, cfg.limites.pieces.quota, cfg.limites.pieces.photo_max], [5120 * Mo, 51200 * Mo, 12 * Mo]);
+    v('/api/config : 5 Go par fichier, 10 Go d\'espace à chacun et 25 Go de plus avec Pro (une photo reste à 12 Mo : la page la réduit avant l\'envoi)', [cfg.limites.pieces.fichier_max, cfg.limites.pieces.quota, cfg.limites.pieces.quota_pro, cfg.limites.pieces.photo_max], [5120 * Mo, 10240 * Mo, 25600 * Mo, 12 * Mo]);
     const st = (await A.get('/api/moi/stockage')).j;
-    v('/api/moi/stockage : le maximum de l\'espace est 50 Go', st.max, 51200 * Mo);
+    v('/api/moi/stockage : sur la bêta (tout le monde est Pro) l\'espace est de 35 Go — 10 Go + 25 Go, et le service le dit', [st.max, st.perso, st.pro], [35840 * Mo, 10240 * Mo, 25600 * Mo]);
 
     console.log('\n2. Un fichier de 40 Mo — refusé avant le 6 octobre 2026 (25 Mo au plus)');
     const corps = crypto.randomBytes(40 * Mo);

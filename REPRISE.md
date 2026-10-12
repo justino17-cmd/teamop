@@ -19,6 +19,17 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 12 OCTOBRE 2026 — OP MESSAGES : L'ESPACE DE STOCKAGE, 10 GO POUR TOUS ET 25 GO DE PLUS AVEC PRO
+
+Justin : « on va baisser le stockage perso 10 GB et pro 25 GB » ; à « les deux s'ajoutent-ils ? » : « ça s'ajoute » ; à « et Perso+ ? » : « perso n'a pas les réunions, que pro ».
+Ce qui est écrit : **10 Go pour tout le monde** (`pieces.quotaPerso`), **25 Go de plus avec Pro** (`pieces.quotaPro`) — 35 Go pour un compte Pro, 10 Go pour Perso, Perso+ et un
+impayé. Le total se décide à UN endroit, `formule.stockageMax` (le service : le dépôt, la réservation d'un envoi, `GET /api/moi/stockage` qui rend `max`, `perso` et `pro`) ;
+le Profil affiche « 10 Go Perso + 25 Go Pro » sous la jauge. ⛔ **Rien n'est effacé** au-dessus du nouveau maximum (un compte qui avait rempli plus de 10 Go sous les 50 Go
+d'avant, ou Pro qui s'arrête) : les nouveaux envois sont refusés, le Profil dit « Ton espace est plein ». L'ancienne clé `pieces.quotaPersonne` refuse le démarrage (le
+déployeur revient au service d'avant) — la bêta ne la portait pas (`/api/config` rendait la valeur de départ, 50 Go). Sur la bêta, tout le monde est Pro : 35 Go.
+⚠️ **À REDEMANDER À JUSTIN** : « perso n'a pas les réunions, que pro » peut vouloir dire que Perso+ PERD l'organisation des réunions — ce qui défait sa décision du 4 octobre
+(Perso+ organise des réunions jusqu'à 10). Rien n'a été changé là-dessus sans sa phrase.
+
 # 🟡 11 OCTOBRE 2026 (SOIR) — OP MESSAGES : UNE SEULE BASCULE PERSO / PRO, ET LE PASSAGE AUTOMATIQUE EN PRO AUX HEURES DE TRAVAIL
 
 Justin : « quand on bascule, c'est TOUT qui bascule. Que dans chaque onglet on ne choisisse pas pro ou perso. Quand on est sur pro, on n'est que sur pro. Je ne veux pas que
@@ -811,7 +822,7 @@ Justin, capture à l'appui (« Ce fichier est trop lourd (12 Mo au plus) ») : �
 « je veux que les réglages soient dans le profil, parce que là c'est mal fait… optimise à 100 % comme Apple » ; « toutes les options de toutes les applications de réunion…
 trouve tout ce que tu peux et on le fait ».
 
-1. **Un fichier jusqu'à 5 Go, 50 Go par personne, six heures pour une lecture** (`server-msg/config.js`). ⛔ **nginx ne tamponne plus le dépôt** (`install-msg.sh`,
+1. **Un fichier jusqu'à 5 Go, 50 Go par personne (10 Go + 25 Go avec Pro depuis le 12 octobre, voir en tête), six heures pour une lecture** (`server-msg/config.js`). ⛔ **nginx ne tamponne plus le dépôt** (`install-msg.sh`,
    `proxy_request_buffering off`, `client_max_body_size 5200m`) : tamponnés, 24 envois de 5 Go = 122 Go, plus que le disque (115 Go), et le plancher disque du service ne
    voyait pas le tampon ; sans tampon, le service juge session, maximum, quota et disque AVANT de lire et coupe un envoi trop lent (`depotDebitMin`). Le délai de requête de
    Node se DÉDUIT du maximum et du débit minimal (`server.requestTimeout`, ~22,7 h). Le téléchargement passe par l'adresse du fichier (`pieceLien`, lien `download`) : le
