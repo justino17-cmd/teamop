@@ -53,11 +53,13 @@ messages d'échec renvoyaient au journal, que test-930 interdit). Le contrôle d
 machine qui transcrit l'échantillon comme le VPS (8,3 s) : « small » glouton, **19,1 %** de mots faux ; **« large-v3-turbo » q8_0 en faisceau de 5, 11,0 %** — 1 min de
 vocal en ~35 s au lieu de ~25 s, ~1,3 Go de mémoire pendant le calcul au lieu de ~0,45. Les modèles q5_0 sont 3 à 4 fois plus lents sur ce processeur ; un prompt
 français n'apporte rien ; la détection de parole est nécessaire (sans elle, un silence devient « Sous-titrage Société Radio-Canada »). Le français était déjà forcé (la
-langue du profil). 🟡 **Écrit, éprouvé, à installer** (sa propre demande de fusion, après #127) : l'installeur pose le nouveau modèle (empreinte épinglée), un faisceau de
+langue du profil). ✅ **Installé sur la bêta le 12 octobre** (#128) : l'installeur pose le nouveau modèle (empreinte épinglée), un faisceau de
 5, l'unité plafonnée à 1 800 Mo (`OOMPolicy=continue` : le plafond tue le plus gros processus, presque toujours le calcul, pas l'ouvrier — le journal de l'ouvrier dit
 `echec:whisper:SIGKILL`) ; une
-réinstallation qui échoue remet celle d'avant (relecture du gardien : avant, elle retirait toute la transcription). ⏳ Justin relance
-`bash /root/install-transcription.sh beta` (874 Mo téléchargés), puis essaie avec un NOUVEAU vocal : un texte déjà transcrit avec « small » le reste.
+réinstallation qui échoue remet celle d'avant (relecture du gardien : avant, elle retirait toute la transcription). Justin a relancé
+l'installeur (874 Mo téléchargés, `secret=repris instance=inchange ouvrier=change`) : le contrôle a transcrit l'échantillon en 31,8 s (le premier calcul lit le modèle sur le
+disque), `/health` dit `transcription.ok`. Son premier vocal avec le nouveau modèle : « là ça marche bien » (1 transcription, 0 échec). Un texte déjà transcrit avec
+« small » le reste (un vocal se transcrit une fois).
 
 La demande de Justin : « Possible de faire une transcription écrite. Comme sur Instagram. » Ses trois réponses : le calcul **sur notre serveur** (aucune voix ne sort,
 pas de sous-traitant), **ouvert à tous en bêta**, **à la demande**. Un vocal se transcrit UNE fois ; le texte est scellé avec le message, se lit comme lui (qui ne voit
@@ -82,7 +84,8 @@ Preuves : `test-1000` (68 ✓, le vrai service et la vraie source), `test-1001` 
   valider par un juriste, avant la version publique.
 - **Avant la version publique** : décider si la transcription reste ouverte à tous ou passe côté Pro (le calcul coûte ; le budget par personne borne, il ne facture pas).
 - **Un transfert ne recopie pas la transcription** : le vocal transféré se retranscrit (une fois) dans sa nouvelle conversation. Voulu — elle appartient à sa conversation.
-- **La mémoire d'un vocal de 5 minutes n'est pas mesurée** (2 min au plus, ~1,3 Go) : après un long vocal sur la bêta, `systemctl show opmsg-transcrire@beta -p MemoryPeak
+- **La mémoire d'un vocal de 5 minutes n'est pas mesurée** (2 min au plus, ~1,3 Go ; sur le VPS, `MemoryPeak` = 1,09 Go après le seul contrôle de l'installation, 11 s
+  d'échantillon — `OOMPolicy=continue` confirmé) : après un long vocal sur la bêta, `systemctl show opmsg-transcrire@beta -p MemoryPeak
   -p OOMPolicy` (aucun secret). S'il approche 1 800 Mo, baisser le faisceau ou relever le plafond — avant qu'un vocal long échoue chez quelqu'un.
 - **Avant la production** : deux ouvriers (bêta et production) peuvent calculer EN MÊME TEMPS sur le même VPS (2 × ~1,3 Go) ; les seuils de l'installeur (2 800 Mo au
   total, 1 600 disponibles) ne regardent qu'un ouvrier. À mesurer et décider avant d'installer la transcription en production (une file commune, ou un seul ouvrier).
