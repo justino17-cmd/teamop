@@ -85,7 +85,11 @@
 # 12 octobre 2026 : l'espace de stockage, 10 Go pour tous et 25 Go de plus avec Pro (test-943 307 → 308 : l'ancienne clé refuse le démarrage ; test-991 126 → 128 : le
 # maximum de chaque formule ; test-945 et test-967 changent de valeurs, pas de nombre) — 9 827 ; puis la relecture du gardien (test-943 308 → 312 : une réservation qui lève
 # rend la place ; test-967 13 → 21 : l'espace suit la formule par la vraie route ; test-944 garde 141, à 35 Go) — 9 839 — plancher 9825 (le total moins 14).
-#plancher 9825
+# 12 octobre 2026, réunions lot 1 (avant d'entrer, épingler pour soi, raccourcis, « tu parles ? », la qualité du réseau et le repli de l'image) : test-990 102 → 115 (la qualité de
+# chaque liaison, jugée par la page qui la voit, et le repli à 150 kbit/s sur une liaison faible) — 9 852 — plancher 9838 (le total moins 14). La page : sonde-opmessages-reunion-confort.js (hors porte).
+# Puis la relecture (« Vous » jugé à partir de trois liaisons, le repli sur ce que l'AUTRE reçoit, avec sa marge, l'aller-retour de la paire choisie) : test-990 115 → 118 — 9 855 —
+# plancher 9841 (le total moins 14).
+#plancher 9841
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

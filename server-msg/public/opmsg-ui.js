@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '452fdc0d1a91';
+  const OPMSG_BUILD = 'ce6b39ffed57';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 168;
+  const OPMSG_VERSION = 175;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -530,6 +530,8 @@
   function fermerCouche() {
     const parent = parentDe(etat.route); if (!parent) return;
     const h = entree();
+    /* (avant d'entrer) posée SUR une feuille — la fiche d'une réunion, un lien d'invité : « Annuler » rend cette feuille-là, pas la liste (`memeRoute` ne compare pas QUELLE feuille) */
+    if (h && h.n > 0 && h.p && h.p.feuille && cleFeuille(etat.route.feuille) === 'avant' && memeRoute(Object.assign({}, h.p, { feuille: false }), parent)) { rendreEntree(); return; }
     if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) rendreEntree(); else remplacer(parent);
   }
   /* la position de la liste est rendue PAR LA PAGE (etat.scrollListe, au retour), pas par la restauration native de l'historique : celle-ci diffère d'un
@@ -1204,7 +1206,7 @@
       /* (version servie) l'appel d'un groupe appelle TOUT le groupe ; si une salle est déjà ouverte pour cette conversation, on y ENTRE au lieu d'en ouvrir une seconde */
       const ouverte = await sallesDeConv(c);
       if (etat.conv !== c.id) return;
-      if (ouverte) { lancerAppel(null, $('conv-cam'), false, () => source.rejoindreAppel(ouverte.id)); return; }
+      if (ouverte) { avantEntrer({ titre: ouverte.titre || c.nom || '', type: ouverte.type, entrer: () => source.rejoindreAppel(ouverte.id), el: $('conv-cam') }); return; }
     }
     lancerAppel({ membres: c.membres.filter(x => x !== MOI.id), video: true, conv: c.id }, $('conv-cam'));
   });
@@ -2311,7 +2313,9 @@
       b.setAttribute('role', G.mode === 'appel' && CAP.appelsMedias && !CAP.appelsGroupe ? 'radio' : 'checkbox');
       b.hidden = !!G.recherche && !norme(c.nom + ' ' + c.role).includes(norme(G.recherche));
     });
-    $('g-aucun').hidden = Array.from(document.querySelectorAll('#g-contacts .contact')).some(b => !b.hidden);
+    /* ⛔ « aucun contact » n'existe qu'une fois la liste construite (`construireContacts`, au démarrage, APRÈS la lecture des espaces). Une feuille ouverte par l'adresse pendant ce
+       démarrage (un lien vers une réunion, sous charge) passait ici avant elle : `null.hidden` jetait, et la feuille ne s'ouvrait jamais (mesuré le 12 octobre 2026, sonde Perso+). */
+    { const aucun = $('g-aucun'); if (aucun) aucun.hidden = Array.from(document.querySelectorAll('#g-contacts .contact')).some(b => !b.hidden); }
     $('g-puces').innerHTML = G.choisis.map(id => { const c = contactDe(id);
       return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + (G.mode === 'appel' ? ' de l\'appel' : ' du groupe') + '">' + avatar(c) +
         '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
@@ -2319,11 +2323,11 @@
     const transf = G.mode === 'transferer';
     $('g-creer').setAttribute('aria-disabled', (transf ? G.tVers.length && !G.tEnvoi : G.choisis.length) ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'decaler' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || transf || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || G.mode === 'chercher' || G.mode === 'medias' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'decaler' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || transf || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'perso-plus' || G.mode === 'reunion' || G.mode === 'invite-reunion' || G.mode === 'avant' || G.mode === 'chercher' || G.mode === 'medias' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = transf ? 'Transférer' : G.mode === 'chercher' ? 'Rechercher' : G.mode === 'medias' ? 'Photos, fichiers et liens' : G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : G.mode === 'decaler' ? 'Décaler le rendez-vous' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
-    $('g-annuler').textContent = corpsInfo && !formReunion && !transf ? 'Fermer' : 'Annuler';
+    $('feuille-titre').textContent = transf ? 'Transférer' : G.mode === 'chercher' ? 'Rechercher' : G.mode === 'medias' ? 'Photos, fichiers et liens' : G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : G.mode === 'decaler' ? 'Décaler le rendez-vous' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'perso-plus' ? (nomPP() || 'Abonnement') : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'avant' ? 'Avant d\'entrer' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('g-annuler').textContent = corpsInfo && !formReunion && !transf && G.mode !== 'avant' ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : transf ? (G.tEnvoi ? 'Envoi…' : 'Envoyer') : 'Créer';
     const sansCreer = corpsInfo && !transf;      // « Transférer » garde son bouton d'envoi en haut à droite, comme « Nouveau groupe »
     $('g-creer').style.visibility = sansCreer ? 'hidden' : '';
@@ -2342,12 +2346,18 @@
   }
   /* ouvrir = pousser la route ; l'écran suit dans ouvrirFeuilleDom (jouée aussi par le retour système) */
   /* `remplace` : passer D'UNE feuille À UNE AUTRE (« Nouvelle discussion » → « Nouveau groupe ») REMPLACE l'entrée au lieu d'en empiler une — un retour ferme la feuille, il ne rouvre pas celle d'avant ; le foyer à rendre reste le bouton d'origine */
+  /* (avant d'entrer, réunions lot 1) l'aperçu en cours : déclaré ICI, avant les fonctions de feuille qui le lisent — voir « AVANT D'ENTRER » plus bas */
+  const avant = { prete: null, flux: null, ctx: null, raf: 0, jeton: 0, erreur: '', appareils: null };
   function ouvrirFeuille(mode, remplace) { if (!remplace) declencheur = document.activeElement; const r = Object.assign({}, etat.route, { feuille: mode || 'chat' }); if (remplace) remplacer(r); else pousser(r); }
   /* la route dit QUELLE feuille : 'chat' (Nouveau groupe), 'appel' (Appel de groupe), 'info:<id d'un appel>' (ses détails) */
   const cleFeuille = f => String(f === true ? 'chat' : f);
   function ouvrirFeuilleDom(f) {
     fermerDeroule(false);
     const [mode, arg] = cleFeuille(f).split(':');
+    /* « avant d'entrer » sans entrée préparée (une route rejouée par l'historique, un rechargement) : pas de feuille vide, on rend la route d'en dessous */
+    if (mode === 'avant' && !(CAP.salles && avant.prete)) { setTimeout(() => { if (etat.route && cleFeuille(etat.route.feuille) === 'avant') remplacer(parentDe(etat.route)); }, 0); return; }
+    /* ⛔ une AUTRE feuille prend la place de « avant d'entrer » (une notification, un lien, le retour à la fiche) : l'aperçu lâche caméra et micro — `fermerFeuilleDom` ne passe pas par là */
+    if (mode !== 'avant' && (avant.prete || avant.flux)) avantArreter();
     if (!declencheur) declencheur = document.activeElement;
     etat.groupe = groupeVierge();
     etat.groupe.cle = cleFeuille(f);
@@ -2356,7 +2366,7 @@
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
       || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
       || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
-      || (CAP.salles && mode === 'invite-reunion') || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
+      || (CAP.salles && mode === 'invite-reunion') || (CAP.salles && mode === 'avant' && !!avant.prete) || (CAP.persoPlus && mode === 'perso-plus') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
       || (CAP.reunions && mode === 'decaler' && (ID_REUNION.test(arg || '') || (CAP.agenda && ID_EVT.test(arg || ''))))
       || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.retrouver && (mode === 'chercher' || mode === 'medias') && /^c_[0-9a-f]{32}$/.test(arg || ''))
@@ -2400,6 +2410,7 @@
     if (etat.groupe.mode === 'reunion') { $('info-corps').dataset.sig = ''; $('info-corps').innerHTML = ''; ouvrirFicheEtat(arg); rendreFiche(); }
     if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
+    if (etat.groupe.mode === 'avant') rendreAvant();
     if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
     if (etat.groupe.mode === 'decaler') { $('info-corps').innerHTML = ''; rendreDecaler(arg); }
     if (etat.groupe.mode === 'position') rendrePosition();
@@ -2423,6 +2434,8 @@
   function fermerFeuille(garderPhoto) { if (!etat.groupe.ouvert) return; etat.garderPhoto = !!garderPhoto; fermerCouche(); }
   function fermerFeuilleDom() {
     fermerDeroule(false);
+    if (avant.prete || avant.flux) avantArreter();                // (avant d'entrer) la caméra et le micro de l'aperçu se lâchent avec la feuille, quel que soit le chemin
+
     if (etat.groupe.photo && !etat.garderPhoto) URL.revokeObjectURL(etat.groupe.photo);
     etat.garderPhoto = false;
     etat.groupe = groupeVierge();
@@ -2787,7 +2800,7 @@
      sur l'appareil (rien ne sort de la page). Avant, `{ audio: true }` laissait chaque navigateur choisir : sur certains, l'écho d'un haut-parleur revenait à l'autre.
      ⛔ L'APPAREIL CHOISI (micro, caméra) est demandé EXACTEMENT ; débranché depuis, le navigateur refuse (`OverconstrainedError`) : on oublie le choix et on reprend l'appareil par
      défaut — jamais un appel sans micro parce qu'un casque a été retiré. Le choix vit le temps de l'onglet (rien n'est rangé sur l'appareil). */
-  const prefMedias = { micro: null, camera: null, sortie: null };
+  const prefMedias = { micro: null, camera: null, sortie: null, flou: false };
   const AUDIO_PROPRE = { echoCancellation: true, noiseSuppression: true, autoGainControl: true };
   const cAudio = () => Object.assign({}, AUDIO_PROPRE, prefMedias.micro ? { deviceId: { exact: prefMedias.micro } } : {});
   const cVideo = () => prefMedias.camera ? { deviceId: { exact: prefMedias.camera } } : true;
@@ -2802,7 +2815,7 @@
     flux.getTracks().forEach(t => {
       A.pistes.push(t);
       if (t.kind === 'audio') { A.audio = t; t.enabled = A.micro; }
-      else { A.video = t; t.addEventListener('ended', () => { if (A.video === t && !A.fini) { A.video = null; majCamera(A); pousserPistes(A); rendreAppel(); } }); }
+      else { A.video = t; if (prefMedias.flou) appliquerFlou(t); t.addEventListener('ended', () => { if (A.video === t && !A.fini) { A.video = null; majCamera(A); pousserPistes(A); rendreAppel(); } }); }
     });
     majCamera(A);
     pousserPistes(A);
@@ -2834,6 +2847,8 @@
   const perime = A => A.fini || etat.appelUI !== A;
   async function acquerirMedias(A, veutVideo) {
     A.mediasDemandes = true;
+    /* (avant d'entrer) on entre comme on l'a choisi : micro coupé (la piste est prise, muette — un geste la rouvre sans redemander), caméra coupée (elle n'est même pas demandée) */
+    if (A.choix) { if (A.choix.micro === false) A.micro = false; if (A.choix.camera === false) veutVideo = false; }
     if (!mediasDispo()) { A.mediaPret = true; avisAppel('Le micro et la caméra ne sont pas disponibles sur ce navigateur : l\'appel continue sans eux.'); rendreAppel(); return; }
     let flux = null, errCombine = null, errAudio = null;
     if (veutVideo) { try { flux = await gum({ audio: cAudio(), video: cVideo() }); } catch (e) { errCombine = e; } if (perime(A)) { if (flux) flux.getTracks().forEach(t => t.stop()); return; } }
@@ -2947,6 +2962,31 @@
     A.pistes = A.pistes.filter(t => t !== ancienne); try { ancienne.stop(); } catch (e) { /* déjà arrêtée */ }
     if (quoi === 'micro') A.audio = null; else A.video = null;
     poserPistes(A, f); rendreAppel(); annonceAppel(quoi === 'micro' ? 'Micro changé' : 'Caméra changée');
+  }
+  /* ⛔ L'ARRIÈRE-PLAN FLOU (12 octobre 2026, réunions lot 1) : celui de l'APPAREIL, quand le navigateur le laisse piloter (`backgroundBlur` : Chrome avec les effets vidéo du système, sous
+     Windows et ChromeOS). Aucun modèle d'image chargé par la page : rien ne part vers un tiers, la page ne grossit pas. Sur Mac et iPhone, c'est le système qui le tient (Centre de
+     contrôle, Effets vidéo, Portrait) : on le DIT, au lieu d'un interrupteur qui ne ferait rien. Le navigateur qui ne sait pas : on le dit aussi. */
+  function flouEtat(piste) {
+    let cap; try { cap = piste && typeof piste.getCapabilities === 'function' ? (piste.getCapabilities() || {}).backgroundBlur : undefined; } catch (e) { cap = undefined; }
+    if (Array.isArray(cap) && cap.includes(true) && cap.includes(false)) return 'pilotable';
+    if (Array.isArray(cap) && cap.length === 1 && cap[0] === true) return 'systeme';
+    return 'absent';
+  }
+  const appleAppareil = () => /Macintosh|Mac OS X|iPhone|iPad/.test(navigator.userAgent || '');
+  const phraseFlou = e => e === 'systeme' ? 'Activé par ton appareil.' : appleAppareil() ? 'Sur Mac et iPhone, il se règle dans le Centre de contrôle : Effets vidéo, puis Portrait.' : 'Ton navigateur ne le propose pas sur cet appareil.';
+  async function appliquerFlou(piste) { if (piste && piste.readyState === 'live' && flouEtat(piste) === 'pilotable') { try { await piste.applyConstraints({ backgroundBlur: !!prefMedias.flou }); } catch (e) { /* l'appareil a refusé : l'image reste nette */ } } }
+  /* (salle) la ligne du panneau « Plus » : rien tant que la caméra est éteinte (il n'y a rien à flouter) */
+  const flouSig = A => A && A.video && A.video.readyState === 'live' ? flouEtat(A.video) + (prefMedias.flou ? '1' : '0') : null;
+  function ligneFlou(A) {
+    const p = A.video && A.video.readyState === 'live' ? A.video : null; if (!p) return '';
+    const e = flouEtat(p);
+    if (e === 'pilotable') return '<button type="button" class="salle-rang" role="switch" aria-checked="' + (prefMedias.flou ? 'true' : 'false') + '" data-sa="flou"><span class="texte">Arrière-plan flou<small>Fait par ton appareil : rien ne sort de la page</small></span><span class="salle-inter" aria-hidden="true"></span></button>';
+    return '<div class="salle-rang libre"><span class="texte">Arrière-plan flou<small>' + esc(phraseFlou(e)) + '</small></span></div>';
+  }
+  async function basculerFlou(A) {
+    prefMedias.flou = !prefMedias.flou;
+    await appliquerFlou(A.video);
+    if (!perime(A)) { sallePanneauRendre(A, true); annonceAppel(prefMedias.flou ? 'Arrière-plan flou' : 'Arrière-plan net'); }
   }
   /* la sortie du son (casque, enceinte) : seulement là où le navigateur sait la choisir (`setSinkId`) — ailleurs, la ligne n'est pas proposée */
   const sortieChoisissable = () => typeof HTMLMediaElement !== 'undefined' && typeof HTMLMediaElement.prototype.setSinkId === 'function';
@@ -3065,7 +3105,9 @@
     const jeton = ++etat.jetonAppel;
     etat.appelId = id;
     document.documentElement.dataset.appel = '1';
-    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '', reponse: false, face: 'user', nbCam: 0 };
+    const A = etat.appelUI = { id, jeton, snap: null, micro: true, haut: false, camera: false, pistes: [], audio: null, video: null, minut: 0, fini: false, cameraEnCours: false, mediaPret: false, sig: '', reponse: false, face: 'user', nbCam: 0,
+      choix: etat.choixEntree || null };              // (avant d'entrer) micro ou caméra coupés en entrant : lus UNE fois, par cet appel-là
+    etat.choixEntree = null;
     $('appel-nom').textContent = ''; $('appel-statut').textContent = ''; $('appel-avis').hidden = true;
     $('appel-ecran').dataset.mise = 'audio';
     synchroInert();
@@ -6894,7 +6936,7 @@
       }
       /* ── le formulaire ── */
       else if (G.mode === 'invite-reunion') {
-        if (act === 'invite-rejoindre' && invite.code) { b.setAttribute('aria-disabled', 'true'); await lancerAppel(null, b, true, () => source.rejoindreParCode(invite.code, b.dataset.type)); b.removeAttribute('aria-disabled'); }
+        if (act === 'invite-rejoindre' && invite.code) { const code = invite.code, type = b.dataset.type; avantEntrer({ titre: (invite.apercu && invite.apercu.titre) || '', type, entrer: () => source.rejoindreParCode(code, type), el: b, depuisFeuille: true }); }
       }
       else if (G.mode === 'reunion-new' || G.mode === 'reunion-edit') {
         if (act === 'form-enregistrer') await enregistrerReunion(b);
@@ -7134,29 +7176,37 @@
   function tuileNeuve(m) {
     const t = document.createElement('div');
     t.setAttribute('role', 'listitem'); t.dataset.uid = m.id; t.dataset.camera = 'off';
-    t.innerHTML = '<video muted playsinline autoplay aria-hidden="true"></video><audio class="sr-seul" autoplay playsinline></audio><span class="tuile-av" aria-hidden="true"></span><span class="salle-sans-camera">Caméra désactivée</span><span class="tuile-nom"></span><span class="salle-badges"></span>';
+    t.innerHTML = '<video muted playsinline autoplay aria-hidden="true"></video><audio class="sr-seul" autoplay playsinline></audio><span class="tuile-av" aria-hidden="true"></span><span class="salle-sans-camera">Caméra désactivée</span><span class="tuile-nom"></span><span class="salle-badges"></span>' +
+      '<button type="button" class="salle-tuile-epingle presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '" aria-pressed="false">' + icone('i-epingle') + '</button>';
     return t;
   }
+  /* la qualité du réseau d'une liaison, en badge : rien quand elle est bonne (ou inconnue), des barres sinon — `reseauDit` est ce que la vignette dit au lecteur d'écran */
+  const reseauDit = q => q === 'moyenne' ? 'connexion instable' : q === 'faible' ? 'connexion faible' : q === 'perdue' ? 'connexion perdue' : '';
+  const badgeReseau = q => reseauDit(q) ? '<span class="salle-badge reseau ' + q + '" role="img" aria-label="' + maj1(reseauDit(q)) + '" title="' + maj1(reseauDit(q)) + '">' + icone(q === 'moyenne' ? 'i-reseau-moyen' : 'i-reseau-faible') + '</span>' : '';
   function majTuile(t, m, A, grand) {
-    const s = A.snap, cls = 'tuile salle-tuile av' + (((m.avatar | 0) % 6 + 6) % 6) + (m.parle ? ' parle' : '') + (s.epingle === m.id ? ' epingle' : '') + (grand ? ' grand' : '');
+    const s = A.snap, moi = sx(A).monEpingle === m.id, cls = 'tuile salle-tuile av' + (((m.avatar | 0) % 6 + 6) % 6) + (m.parle ? ' parle' : '') + (s.epingle === m.id && !moi ? ' epingle' : '') + (grand ? ' grand' : '') + (t.classList.contains('montre') ? ' montre' : '');
     if (t.className !== cls) t.className = cls;
     /* ⛔ un écran partagé PASSE PAR LA PISTE DE LA CAMÉRA (même émetteur) : caméra coupée ou non, l'image est là — mesuré le 7 octobre 2026, l'écran de quelqu'un qui partageait caméra coupée
        était CACHÉ derrière son avatar et « Caméra désactivée » (et l'enregistrement ne le prenait pas) */
     const cam = m.camera || m.partage ? 'on' : 'off'; if (t.dataset.camera !== cam) t.dataset.camera = cam;
     const ecr = m.partage ? '1' : '0'; if (t.dataset.ecran !== ecr) t.dataset.ecran = ecr;
-    const sig = [m.initiales, m.nom, m.prenom, m.micro, m.main, m.partage, m.grade, m.camera].join('|');
+    const sig = [m.initiales, m.nom, m.prenom, m.micro, m.main, m.partage, m.grade, m.camera, m.reseau, moi].join('|');
     if (t.dataset.sig === sig) return;
     t.dataset.sig = sig;
+    const be = t.querySelector('.salle-tuile-epingle');
+    if (be) { be.setAttribute('aria-pressed', moi ? 'true' : 'false'); be.setAttribute('aria-label', 'Épingler ' + nomM(m) + ' pour moi'); be.title = 'Épingler pour moi'; }
     t.querySelector('.tuile-av').textContent = m.initiales;
     const nom = t.querySelector('.tuile-nom'); nom.classList.toggle('coupe', !m.micro);
     nom.innerHTML = (m.micro ? '' : icone('i-mic-off')) + '<span>' + esc(nomM(m)) + '</span>';
-    t.querySelector('.salle-badges').innerHTML = (m.main ? '<span class="salle-badge main" title="Main levée">' + icone('i-main') + '</span>' : '') + (m.partage ? '<span class="salle-badge" title="Partage d\'écran">' + icone('i-ecran') + '</span>' : '');
-    t.setAttribute('aria-label', nomM(m) + (m.grade >= 2 ? ', hôte' : m.grade === 1 ? ', co-hôte' : '') + (m.micro ? '' : ', micro coupé') + (m.main ? ', main levée' : '') + (m.partage ? ', partage son écran' : '') + (m.camera ? '' : ', caméra désactivée'));
+    t.querySelector('.salle-badges').innerHTML = badgeReseau(m.reseau) + (m.main ? '<span class="salle-badge main" title="Main levée">' + icone('i-main') + '</span>' : '') + (m.partage ? '<span class="salle-badge" title="Partage d\'écran">' + icone('i-ecran') + '</span>' : '');
+    t.setAttribute('aria-label', nomM(m) + (m.grade >= 2 ? ', hôte' : m.grade === 1 ? ', co-hôte' : '') + (m.micro ? '' : ', micro coupé') + (m.main ? ', main levée' : '') + (m.partage ? ', partage son écran' : '') + (m.camera ? '' : ', caméra désactivée') + (reseauDit(m.reseau) ? ', ' + reseauDit(m.reseau) : '') + (moi ? ', épinglé pour toi' : ''));
   }
-  /* qui est devant en vue « intervenant » : l'épinglé, sinon celui qui partage son écran, sinon celui qui parle (le dernier qui a parlé reste devant), sinon le premier */
+  /* qui est devant en vue « intervenant » : MON épingle (elle n'engage que moi), sinon celle de l'hôte (pour tous), sinon celui qui partage son écran, sinon celui qui parle (le dernier qui a parlé
+     reste devant), sinon le premier */
   function choisirGrand(A, presents) {
     const s = A.snap, X = sx(A);
     if (X.vue !== 'intervenant') return null;
+    if (X.monEpingle && presents.some(m => m.id === X.monEpingle)) return X.monEpingle;
     if (s.epingle === MOI.id) return 'vous';
     if (s.epingle && presents.some(m => m.id === s.epingle)) return s.epingle;
     const sup = s.annot && s.annot.support;
@@ -7217,6 +7267,7 @@
     });
     $('salle-vous').classList.toggle('grand', grand === 'vous');
     const tab = $('salle-tableau'); if (tab) tab.classList.toggle('grand', grand === 'tableau');
+    salleVousBadges(A);
   }
   /* une réaction monte de la vignette de celui qui l'envoie (la mienne comprise) et s'efface ; le lecteur d'écran l'entend */
   function reactionSalle(uid, nom) {
@@ -7259,6 +7310,7 @@
       for (const m of presents) if (mains.has(m.id) && !X.mains.has(m.id)) annonceAppel(nomM(m) + ' lève la main');
     }
     X.ids = ids; X.mains = mains;
+    if (X.monEpingle && !ids.has(X.monEpingle)) X.monEpingle = null;
     if (!s.attente) { X.venus = X.venus || new Set(); for (const m of presents) X.venus.add(m.id); }          // tous ceux qui sont venus, ne serait-ce qu'un instant : la fin d'un enregistrement dit qui n'était PAS là
     annotSynchro(A);                                                         // AVANT les vignettes : un support qui arrive met la vue en « intervenant »
     if (s.attente) { salleTuiles(A, []); const seul = $('salle-seul'); if (seul) { seul.innerHTML = '<b>Salle d\'attente</b>Un hôte va te laisser entrer. Tu peux quitter à tout moment.'; } }
@@ -7267,16 +7319,28 @@
     $('salle-vous-av').textContent = MOI.initiales;
     const muet = A.mediaPret && (!A.micro || !A.audio);
     $('salle-vous-nom').innerHTML = (muet ? icone('i-mic-off') : '') + '<span>Vous</span>'; $('salle-vous-nom').classList.toggle('coupe', !!muet);
-    $('salle-vous-badges').innerHTML = (s.moi.main ? '<span class="salle-badge main" title="Main levée">' + icone('i-main') + '</span>' : '') + (A.ecran ? '<span class="salle-badge" title="Tu partages ton écran">' + icone('i-ecran') + '</span>' : '');
+    salleVousBadges(A);
     $('salle-flip').hidden = !(CAP.appelsMedias && A.camera && A.nbCam > 1 && !A.ecran);
     sallePistesVous(A);
     salleCommandes(A, muet);
+    surveillerMuet(A);
     salleBandeaux(A);
     sallePanneauRendre(A);
     lierFluxSalle(A);
     recSynchro(A);
     majStatutSalle(A);
     annotRendre(A);
+  }
+  /* les badges de « Vous » : la main, le partage, et MA connexion — quand elle devient faible, on le dit une fois (une minute au moins entre deux avis), avec ce qui aide */
+  function salleVousBadges(A) {
+    const s = A.snap, X = sx(A), q = s.moi && s.moi.reseau;
+    const h = badgeReseau(q) + (s.moi.main ? '<span class="salle-badge main" title="Main levée">' + icone('i-main') + '</span>' : '') + (A.ecran ? '<span class="salle-badge" title="Tu partages ton écran">' + icone('i-ecran') + '</span>' : '');
+    const b = $('salle-vous-badges'); if (b.innerHTML !== h) b.innerHTML = h;
+    if ((q === 'faible' || q === 'perdue') && X.reseauDit !== q && Date.now() - (X.reseauAvisLe || 0) > 60000) {
+      X.reseauAvisLe = Date.now();
+      avisAppel('Ta connexion est faible : l\'image peut se figer. ' + (A.camera ? 'Couper ta caméra aide ta voix à passer.' : 'Rapproche-toi du Wi-Fi si tu peux.'));
+    }
+    X.reseauDit = q || null;
   }
   function sallePistesVous(A) {
     const v = $('salle-video-local'), vous = $('salle-vous'), piste = A.ecran && A.ecran.readyState === 'live' ? A.ecran : A.video && A.video.readyState === 'live' ? A.video : null;
@@ -7320,12 +7384,13 @@
     const attendent = hote ? s.membres.filter(m => m.statut === 'attente') : [];
     if (so && X.vote && X.vote.id !== so.id) X.vote = null;
     const mon = so ? (so.mon_vote !== null && so.mon_vote !== undefined ? so.mon_vote : X.vote && X.vote.id === so.id ? X.vote.i : null) : null;
-    const sig = JSON.stringify([X.bandeauMic, attendent.map(m => m.id), so && X.masque !== so.id ? [so.id, so.question, so.choix, so.comptes, so.total, so.ouvert, mon] : null, hote, !!s.minuteur && s.minuteur.fin]);
+    const sig = JSON.stringify([X.bandeauMuet, X.bandeauMic, attendent.map(m => m.id), so && X.masque !== so.id ? [so.id, so.question, so.choix, so.comptes, so.total, so.ouvert, mon] : null, hote, !!s.minuteur && s.minuteur.fin]);
     const zone = $('salle-bandeaux');
     if (zone.dataset.sig === sig) return;
     zone.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && zone.contains(actif) ? (actif.dataset.sa || '') + '|' + (actif.dataset.i || actif.dataset.uid || '') : null;
     let h = '';
+    if (X.bandeauMuet && !X.bandeauMic) h += '<div class="salle-bandeau" role="status"><span class="texte">Tu parles ? Ton micro est coupé.</span><button type="button" class="salle-btn plein presse" data-sa="muet-activer">Activer le micro</button><button type="button" class="salle-btn presse" data-sa="muet-ok">OK</button></div>';
     if (X.bandeauMic) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(X.bandeauMic.tous ? 'L\'hôte a demandé à tous de couper le micro.' : X.bandeauMic.de + ' a coupé ton micro.') + '</span>' +
       '<button type="button" class="salle-btn plein presse" data-sa="micro-rouvrir">Réactiver le micro</button><button type="button" class="salle-btn presse" data-sa="micro-ok">OK</button></div>';
     if (attendent.length) h += '<div class="salle-bandeau" role="status"><span class="texte">' + esc(attendent.length === 1 ? nomM(attendent[0]) + ' attend d\'être admis.' : attendent.length + ' personnes attendent d\'être admises.') + '</span>' +
@@ -7367,7 +7432,7 @@
   }
 
   /* ── les panneaux : Participants, Discussion, Plus, Quitter (l'hôte qui part) ── */
-  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document', presence: 'Rapport de présence', ordre: 'Ordre du jour' };
+  const TITRES_PANNEAU = { participants: 'Participants', discussion: 'Discussion', plus: 'Plus', quitter: 'Quitter la salle', suivi: 'Suivi du document', presence: 'Rapport de présence', ordre: 'Ordre du jour', raccourcis: 'Raccourcis clavier' };
   /* L'ORDRE DU JOUR dans la salle d'une réunion (8 octobre 2026) : chacun coche ce qui est traité, tous le voient (relu à chaque changement de la réunion) */
   function htmlOrdreSalle(A) {
     const X = sx(A), l = X.odj;
@@ -7448,7 +7513,7 @@
     if (rendreFocus !== false && d && d.isConnected) d.focus({ preventScroll: true });
   }
   const rangAvatar = m => '<span class="avatar av' + (((m.avatar | 0) % 6 + 6) % 6) + '"' + (blob(m.photo) ? ' style="background-image:url(' + esc(m.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(m.photo) ? '' : esc(m.initiales || '')) + '</span>';
-  function etiquettesM(m) { return [m.grade >= 2 ? 'Hôte' : m.grade === 1 ? 'Co-hôte' : '', m.micro ? '' : 'micro coupé', m.main ? 'main levée' : '', m.partage ? 'partage son écran' : '', m.relais ? 'par relais' : ''].filter(Boolean).join(' · '); }
+  function etiquettesM(m) { return [m.grade >= 2 ? 'Hôte' : m.grade === 1 ? 'Co-hôte' : '', m.micro ? '' : 'micro coupé', m.main ? 'main levée' : '', m.partage ? 'partage son écran' : '', reseauDit(m.reseau), m.relais ? 'par relais' : ''].filter(Boolean).join(' · '); }
   function htmlParticipants(A) {
     const s = A.snap, X = sx(A), hote = s.moi.hote, moiGrade = s.moi.grade | 0;
     const attendent = hote ? s.membres.filter(m => m.statut === 'attente') : [], presents = s.membres.filter(m => m.statut === 'present'), sonnent = s.membres.filter(m => m.statut === 'invite');
@@ -7462,13 +7527,15 @@
     h += '<div class="salle-rang"><span class="avatar av0" aria-hidden="true">' + esc(MOI.initiales) + '</span><span class="texte">Vous<small>' + esc([s.moi.grade >= 2 ? 'Hôte' : s.moi.grade === 1 ? 'Co-hôte' : '', A.mediaPret && (!A.micro || !A.audio) ? 'micro coupé' : '', s.moi.main ? 'main levée' : ''].filter(Boolean).join(' · ')) + '</small></span></div>';
     for (const m of presents) {
       const detail = etiquettesM(m), ouvert = hote && X.actions === m.id;
-      if (hote) h += '<button type="button" class="salle-rang" data-sa="ligne" data-uid="' + esc(m.id) + '" aria-expanded="' + (ouvert ? 'true' : 'false') + '">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span></button>';
-      else h += '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span></div>';
+      const pourMoi = X.monEpingle === m.id;
+      if (hote) h += '<button type="button" class="salle-rang" data-sa="ligne" data-uid="' + esc(m.id) + '" aria-expanded="' + (ouvert ? 'true' : 'false') + '">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (detail || pourMoi ? '<small>' + esc([detail, pourMoi ? 'épinglé pour toi' : ''].filter(Boolean).join(' · ')) + '</small>' : '') + '</span></button>';
+      else h += '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span><button type="button" class="salle-btn presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '">' + (pourMoi ? 'Ne plus épingler' : 'Épingler pour moi') + '</button></div>';
       if (ouvert) {
         if (X.retirer === m.id) h += '<div class="salle-rang actions"><span class="texte"><small>Retirer ' + esc(nomM(m)) + ' de la salle ? Cette personne ne pourra plus y revenir.</small></span><button type="button" class="salle-btn danger presse" data-sa="retirer-confirmer" data-uid="' + esc(m.id) + '">Retirer</button><button type="button" class="salle-btn presse" data-sa="retirer-annuler">Garder</button></div>';
         else {
           h += '<div class="salle-rang actions">' + (s.outils ? '<button type="button" class="salle-btn presse" data-sa="couper" data-uid="' + esc(m.id) + '"' + (m.micro ? '' : ' aria-disabled="true"') + '>Demander de couper le micro</button>' : '') +
-            '<button type="button" class="salle-btn presse" data-sa="epingler" data-uid="' + esc(m.id) + '">' + (s.epingle === m.id ? 'Retirer l\'épingle' : 'Épingler') + '</button>';
+            '<button type="button" class="salle-btn presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '">' + (X.monEpingle === m.id ? 'Ne plus épingler pour moi' : 'Épingler pour moi') + '</button>' +
+            '<button type="button" class="salle-btn presse" data-sa="epingler" data-uid="' + esc(m.id) + '">' + (s.epingle === m.id ? 'Retirer l\'épingle pour tous' : 'Épingler pour tous') + '</button>';
           if (s.moi.proprietaire) h += '<button type="button" class="salle-btn presse" data-sa="cohote" data-uid="' + esc(m.id) + '" data-actif="' + (m.grade >= 1 ? '0' : '1') + '">' + (m.grade >= 1 ? 'Retirer co-hôte' : 'Nommer co-hôte') + '</button>';
           if (s.outils && (m.grade | 0) < 2 && ((m.grade | 0) < 1 || moiGrade >= 2)) h += '<button type="button" class="salle-btn danger presse" data-sa="retirer-demander" data-uid="' + esc(m.id) + '">Retirer de la salle</button>';
           h += '</div>';
@@ -7522,15 +7589,26 @@
       return '<label class="salle-rang libre salle-appareil"><span class="texte">' + esc(titre) + '</span><select data-appareil="' + quoi + '" aria-label="' + esc(titre) + '"><option value="">Par défaut</option>' +
         l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
     const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
-    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp +
+    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp + ligneFlou(A) +
       '<div class="salle-rang libre"><span class="texte">Son amélioré<small>Réduction du bruit, annulation d\'écho et volume automatique, toujours actifs</small></span></div>' +
       (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
+    if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
     h += '<div class="salle-rub"><span>Bientôt</span></div><div class="salle-liste salle-bientot">' +
-      '<div class="salle-rang libre" aria-disabled="true"><span class="texte">Arrière-plan flou<small>Bientôt</small></span></div><div class="salle-rang libre" aria-disabled="true"><span class="texte">Sous-titres en direct<small>Bientôt</small></span></div><div class="salle-rang libre" aria-disabled="true"><span class="texte">Salles de sous-groupes<small>Bientôt</small></span></div></div>';
+      '<div class="salle-rang libre" aria-disabled="true"><span class="texte">Sous-titres en direct<small>Bientôt</small></span></div><div class="salle-rang libre" aria-disabled="true"><span class="texte">Salles de sous-groupes<small>Bientôt</small></span></div></div>';
     if (s.moi.proprietaire) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
     return h;
+  }
+  /* ⛔ LES RACCOURCIS (12 octobre 2026) : des lettres seules, comme Zoom et Teams — pas de Ctrl ni de ⌘, qui sont aux navigateurs (⌘D garde un favori, Ctrl+E cherche). Ils ne jouent
+     jamais dans un champ de saisie : taper « m » dans la discussion écrit un « m ». */
+  let raccourcisActifs = true;          // le temps de l'onglet (rien n'est rangé sur l'appareil) : on les coupe dans « Raccourcis clavier »
+  const RACCOURCIS_SALLE = [['M', 'Couper ou activer le micro'], ['V', 'Couper ou activer la caméra'], ['H', 'Lever ou baisser la main'], ['G', 'Vue galerie ou intervenant'], ['Espace', 'Maintenir pour parler, micro coupé'], ['?', 'Cette liste'], ['Échap', 'Fermer le panneau']];
+  const clavierPresent = () => typeof matchMedia === 'function' && matchMedia('(any-pointer: fine)').matches;
+  function htmlRaccourcis() {
+    return '<div class="salle-liste"><button type="button" class="salle-rang" role="switch" aria-checked="' + (raccourcisActifs ? 'true' : 'false') + '" data-sa="raccourcis-basculer"><span class="texte">Raccourcis d\'une lettre<small>Coupe-les si tu utilises un lecteur d\'écran ou la commande vocale</small></span><span class="salle-inter" aria-hidden="true"></span></button></div>' +
+      '<div class="salle-liste">' + RACCOURCIS_SALLE.map(r => '<div class="salle-rang libre"><span class="texte">' + esc(r[1]) + '</span><kbd class="salle-touche">' + esc(r[0]) + '</kbd></div>').join('') + '</div>' +
+      '<p class="salle-note">Les raccourcis ne jouent pas quand tu écris dans un champ.</p>';
   }
   function htmlQuitter(A) {
     return '<p class="salle-note">Tu es l\'hôte de cette salle. Si tu pars, le rôle passe à une autre personne ; tu peux aussi mettre fin à la salle pour tout le monde.</p>' +
@@ -7566,15 +7644,15 @@
     const s = A.snap;
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
-    const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom]);
-    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null]);
+    const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom, m.reseau]);
+    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
     const actif = document.activeElement, dans = actif && corps.contains(actif), cle = dans ? (actif.dataset.sa || '') + '|' + (actif.dataset.uid || actif.dataset.s || '') : null;
     const champs = {}; corps.querySelectorAll('input[id]').forEach(i => { champs[i.id] = { v: i.value, focus: i === actif, a: i.selectionStart }; });
     const bas = (() => { const f = $('salle-fil'); return !f || f.scrollHeight - f.scrollTop - f.clientHeight < 40; })();
-    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : X.panneau === 'ordre' ? htmlOrdreSalle(A) : htmlDiscussion(A);
+    corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : X.panneau === 'ordre' ? htmlOrdreSalle(A) : X.panneau === 'raccourcis' ? htmlRaccourcis() : htmlDiscussion(A);
     for (const id of Object.keys(champs)) { const i = $(id); if (i && corps.contains(i)) { i.value = champs[id].v; if (champs[id].focus) { i.focus({ preventScroll: true }); try { i.setSelectionRange(champs[id].a, champs[id].a); } catch (e) { /* un champ sans curseur */ } } } }
     if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); }
     const f = $('salle-fil'); if (f && bas) f.scrollTop = f.scrollHeight;
@@ -7646,6 +7724,12 @@
       case 'couper': if (el.getAttribute('aria-disabled') === 'true') { mot('Son micro est déjà coupé.'); return; } if (await salleGeste(A, 'couperMicro', { uid }, 'La demande n\'est pas partie.')) mot('Demande envoyée'); return;
       case 'couper-tous': if (await salleGeste(A, 'couperMicro', { tous: true }, 'La demande n\'est pas partie.')) mot('Demande envoyée à tous'); return;
       case 'epingler': await salleGeste(A, 'evt', { k: 'epingle', donnees: s.epingle === uid ? { op: 'retirer' } : { op: 'epingler', uid } }); return;
+      case 'epingler-moi': epinglerPourMoi(A, uid); return;
+      case 'raccourcis': salleOuvrirPanneau(A, 'raccourcis', $('salle-plus')); return;
+      case 'raccourcis-basculer': raccourcisActifs = !raccourcisActifs; sallePanneauRendre(A, true); annonceAppel(raccourcisActifs ? 'Raccourcis activés' : 'Raccourcis coupés'); return;
+      case 'flou': await basculerFlou(A); return;
+      case 'muet-activer': X.bandeauMuet = false; if (A.audio && !A.micro) { A.micro = true; A.audio.enabled = true; pousserPistes(A); annonceAppel('Micro activé'); } rendreAppel(); return;
+      case 'muet-ok': X.bandeauMuet = false; X.muetDitLe = Date.now(); X.muetPause = Date.now() + 300000; salleBandeaux(A); return;       // « OK » : on se tait exprès — plus d'alerte pendant cinq minutes
       case 'cohote': await salleGeste(A, 'cohote', { uid, actif: el.dataset.actif === '1' }); return;
       case 'retirer-demander': X.retirer = uid; sallePanneauRendre(A, true); return;
       case 'retirer-annuler': X.retirer = null; sallePanneauRendre(A, true); return;
@@ -7689,6 +7773,21 @@
     }
   }
   $('salle-bandeaux').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b && !b.disabled) salleAgir(b.dataset.sa, b); });
+  /* ── ÉPINGLER POUR MOI : ma vue seulement (rien n'est envoyé) ; la vue passe en « intervenant », comme Meet. Une seconde touche retire l'épingle (et la vue reste où elle est). ── */
+  function epinglerPourMoi(A, uid) {
+    const X = sx(A), m = A.snap.membres.find(x => x.id === uid && x.statut === 'present'); if (!m) return;
+    if (X.monEpingle === uid) { X.monEpingle = null; annonceAppel(nomM(m) + ' n\'est plus épinglé'); }
+    else { X.monEpingle = uid; X.vue = 'intervenant'; annonceAppel(nomM(m) + ' est épinglé pour toi'); }
+    rendreAppel();
+  }
+  /* sur la scène : le bouton d'une vignette, et — au toucher — la vignette qui MONTRE son bouton quelques secondes (un téléphone n'a pas de survol) */
+  $('salle-scene').addEventListener('click', e => {
+    const A = etat.appelUI; if (!enSalle(A)) return;
+    const b = e.target.closest('.salle-tuile-epingle'); if (b) { epinglerPourMoi(A, b.dataset.uid); return; }
+    const t = e.target.closest('.salle-tuile[data-uid]'); if (!t) return;
+    t.classList.add('montre'); clearTimeout(t.minMontre); t.minMontre = setTimeout(() => t.classList.remove('montre'), 3500);
+  });
+  $('salle-scene').addEventListener('dblclick', e => { const A = etat.appelUI, t = e.target.closest('.salle-tuile[data-uid]'); if (t && enSalle(A) && !e.target.closest('button')) epinglerPourMoi(A, t.dataset.uid); });
   $('salle-panneau-corps').addEventListener('click', e => { const b = e.target.closest('[data-sa]'); if (b) salleAgir(b.dataset.sa, b); });
   $('salle-panneau-corps').addEventListener('input', e => { if (e.target.id !== 'salle-saisie') return; const A = etat.appelUI; if (enSalle(A) && sx(A).confirme) { sx(A).confirme = null; sallePanneauRendre(A, true); } });   // retaper annule la demande
   $('salle-panneau-corps').addEventListener('change', e => { const sel = e.target.closest('select[data-appareil]'); if (sel) changerAppareil(sel.dataset.appareil, sel.value); });
@@ -8318,8 +8417,226 @@
     recFinFermer(); mot('Enregistrement supprimé');
   });
 
+  /* ═══ « TU PARLES ? TON MICRO EST COUPÉ » (12 octobre 2026, réunions lot 1 — comme Teams et Zoom) ═══
+     Micro coupé en salle, on écoute une COPIE de la piste du micro, sur l'appareil : la piste envoyée reste muette, rien ne part. Une voix tenue près d'une seconde fait paraître le
+     bandeau, une fois par vingt secondes au plus. La copie est arrêtée dès que le micro s'ouvre, qu'il change d'appareil ou qu'on quitte la salle. */
+  const SEUIL_MUET = 0.02;
+  function surveillerMuet(A) {
+    const X = sx(A), s = A.snap, Ctx = window.AudioContext || window.webkitAudioContext;
+    const veut = enSalle(A) && !s.attente && !A.fini && !!A.audio && A.audio.readyState === 'live' && !A.micro && !X.ptt && typeof Ctx === 'function';
+    if (A.muet && (!veut || A.muet.source !== A.audio)) arreterMuet(A);
+    if (!veut) { if (A.micro && X.bandeauMuet) X.bandeauMuet = false; return; }
+    if (A.muet || A.muetEchec) return;
+    let ctx = null, copie = null;
+    try {
+      ctx = new Ctx(); copie = A.audio.clone(); copie.enabled = true;
+      const an = ctx.createAnalyser(); an.fftSize = 1024;
+      ctx.createMediaStreamSource(new MediaStream([copie])).connect(an);
+      const M = A.muet = { source: A.audio, copie, ctx, fort: 0, minut: 0 }, buf = new Float32Array(an.fftSize);
+      relancerAuGeste(ctx);
+      M.minut = setInterval(() => {
+        if (A.muet !== M || perime(A)) return;
+        an.getFloatTimeDomainData(buf);
+        let e = 0; for (let i = 0; i < buf.length; i++) e += buf[i] * buf[i];
+        M.fort = Math.sqrt(e / buf.length) > SEUIL_MUET ? M.fort + 1 : Math.max(0, M.fort - 1);
+        if (M.fort >= 4 && !X.bandeauMuet && Date.now() - (X.muetDitLe || 0) > 20000 && Date.now() > (X.muetPause || 0)) { X.bandeauMuet = true; X.muetDitLe = Date.now(); salleBandeaux(A); annonceAppel('Tu parles ? Ton micro est coupé.'); }
+      }, 200);
+    } catch (e) {
+      /* ⛔ un échec ne laisse RIEN derrière lui (la copie, le contexte), et ne se retente pas à chaque rendu (une pile de contextes jusqu'à la limite du navigateur) */
+      A.muet = null; A.muetEchec = true;
+      try { if (copie) copie.stop(); } catch (er) { /* rien */ }
+      try { if (ctx) { const p = ctx.close(); if (p && p.catch) p.catch(() => {}); } } catch (er) { /* rien */ }
+    }
+  }
+  /* ⛔ un contexte audio créé hors d'un geste (Safari sur iPhone) reste SUSPENDU : il repart au premier toucher ou à la première touche — sinon « tu parles ? » et la jauge sont muets */
+  function relancerAuGeste(ctx) {
+    if (!ctx || ctx.state !== 'suspended') return;
+    const repartir = () => { if (ctx.state === 'suspended') { const p = ctx.resume(); if (p && p.catch) p.catch(() => {}); } };
+    repartir();
+    document.addEventListener('pointerdown', repartir, { once: true, capture: true });
+    document.addEventListener('keydown', repartir, { once: true, capture: true });
+  }
+  function arreterMuet(A) {
+    const M = A.muet; if (!M) return;
+    A.muet = null; clearInterval(M.minut);
+    try { M.copie.stop(); } catch (e) { /* déjà arrêtée */ }
+    try { const p = M.ctx.close(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* déjà fermé */ }
+  }
+
+  /* ═══ LES RACCOURCIS DE LA SALLE (voir RACCOURCIS_SALLE) ═══
+     Seulement la salle à l'écran (pas réduite), sans feuille, photo ni menu par-dessus, sans touche de modification, et JAMAIS dans un champ. L'espace « appuie » sur le bouton qui a le
+     focus : il ne parle que hors d'un bouton. Tenir l'espace ouvre le micro, le lâcher le recoupe — et une fenêtre qui perd le focus en le tenant le recoupe aussi. */
+  const champDeSaisie = el => !!(el && el.closest && el.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]'));
+  const salleAuClavier = () => { const A = etat.appelUI; return raccourcisActifs && enSalle(A) && !A.snap.attente && !etat.appelReduit && document.documentElement.dataset.salle === '1' && !etat.photo && !etat.groupe.ouvert && !etat.menu && !sx(A).annoter ? A : null; };
+  /* l'espace parle seulement quand le foyer est sur la salle ELLE-MÊME (l'écran, la scène, le corps de la page) et qu'aucun panneau n'est ouvert : dans une liste, une discussion, un
+     panneau qui défile, l'espace garde son sens (défiler, appuyer) — un lecteur d'écran n'ouvre pas le micro en lisant (relecture du 12 octobre 2026) */
+  const espaceParle = t => (t === document.body || t === document.documentElement || t === $('salle-ecran') || t === $('salle-scene')) && $('salle-panneau').hidden;
+  function parlerMaintenu(A, oui) {
+    const X = sx(A);
+    if (oui) { if (!A.audio || A.micro || X.ptt) return; X.ptt = true; A.micro = true; A.audio.enabled = true; pousserPistes(A); rendreAppel(); annonceAppel('Micro ouvert tant que tu tiens la barre d\'espace'); return; }
+    if (!X.ptt) return;
+    X.ptt = false;
+    if (A.audio && !A.fini) { A.micro = false; A.audio.enabled = false; pousserPistes(A); rendreAppel(); }
+  }
+  document.addEventListener('keydown', e => {
+    const A = salleAuClavier(); if (!A || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || champDeSaisie(e.target)) return;
+    if (e.key === ' ' || e.key === 'Spacebar') {
+      if (!espaceParle(e.target)) return;
+      e.preventDefault();
+      if (!e.repeat) parlerMaintenu(A, true);
+      return;
+    }
+    if (e.repeat) return;
+    const l = e.key && e.key.length === 1 ? e.key.toLowerCase() : '';
+    if (l === 'm') { e.preventDefault(); basculerMicro(); }
+    else if (l === 'v') { e.preventDefault(); basculerCamera(); }
+    else if (l === 'h') { e.preventDefault(); $('salle-main').click(); }
+    else if (l === 'g') { e.preventDefault(); $('salle-vue').click(); }
+    else if (e.key === '?') { e.preventDefault(); salleOuvrirPanneau(A, 'raccourcis', document.activeElement); }
+  });
+  document.addEventListener('keyup', e => { if (e.key !== ' ' && e.key !== 'Spacebar') return; const A = etat.appelUI; if (A && A.sx && A.sx.ptt) { e.preventDefault(); parlerMaintenu(A, false); } });
+  window.addEventListener('blur', () => { const A = etat.appelUI; if (A && A.sx && A.sx.ptt) parlerMaintenu(A, false); });
+
+  /* ═══ AVANT D'ENTRER (12 octobre 2026, réunions lot 1 — comme Meet, Teams et Zoom) ═══
+     Entrer dans une salle qui existe déjà (une réunion, la bannière d'une conversation, un lien d'invité) passe par une feuille : on se VOIT (la caméra), on s'ENTEND (la jauge du micro),
+     on choisit micro, caméra et sortie du son, et on entre micro ou caméra coupés. Personne ne voit ni n'entend rien tant qu'on n'est pas entré.
+     ⛔ Les pistes de l'aperçu sont ARRÊTÉES avant d'entrer : la salle les redemande (le navigateur se souvient de l'autorisation), et en salle d'attente ni micro ni caméra ne restent
+     ouverts. Seuls les CHOIX passent (`etat.choixEntree`, lus par l'appel qui naît). Une page sans médias (l'aperçu de l'interface) entre directement, comme avant. */
+  function avantEntrer(o) {
+    if (!CAP.appelsMedias || !mediasDispo()) return lancerAppel(null, o.el, !!o.depuisFeuille, o.entrer);
+    if (etat.appelId || etat.appelDemarre) return false;
+    if (etat.groupe.ouvert && etat.groupe.mode === 'avant') return false;           // déjà ouverte (une double activation) : on ne rouvre pas par-dessus
+    avantArreter();
+    avant.prete = { titre: o.titre || '', type: o.type === 'audio' ? 'audio' : o.type === 'video' ? 'video' : null, entrer: o.entrer, el: o.el || null, micro: true, camera: o.type !== 'audio', entree: false };
+    if (o.el && !etat.route.feuille) o.el.focus({ preventScroll: true });      // ouvrirFeuille retient le foyer à rendre : le bouton touché
+    /* EMPILÉE, jamais à la place : depuis la fiche d'une réunion ou un lien d'invité, « Annuler » (ou le retour) y ramène — la remplacer perdait la fiche (relecture du 12 octobre 2026) */
+    ouvrirFeuille('avant', false);
+    return true;
+  }
+  function avantCouper() {
+    cancelAnimationFrame(avant.raf); avant.raf = 0;
+    if (avant.ctx) { try { const p = avant.ctx.close(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* déjà fermé */ } avant.ctx = null; }
+    if (avant.flux) { avant.flux.getTracks().forEach(t => { try { t.stop(); } catch (e) { /* déjà arrêtée */ } }); avant.flux = null; }
+    const v = $('avant-video'); if (v) { try { v.pause(); } catch (e) { /* rien */ } v.srcObject = null; }
+  }
+  function avantArreter() { avant.jeton++; avantCouper(); avant.prete = null; avant.appareils = null; avant.erreur = ''; }
+  function rendreAvant() {
+    const P = avant.prete, corps = $('info-corps'); if (!P) return;
+    corps.dataset.sig = '';
+    corps.innerHTML = '<div class="avant">' +
+      (P.titre ? '<p class="avant-titre" dir="auto">' + esc(P.titre) + '</p>' : '') +
+      '<div class="avant-apercu" id="avant-apercu" data-camera="off" data-micro="on"><video id="avant-video" muted playsinline autoplay aria-label="Ta caméra"></video><span class="avant-av" aria-hidden="true">' + esc(MOI.initiales || '') + '</span>' +
+        '<span class="avant-sans" id="avant-sans"></span><span class="avant-niveau" id="avant-niveau" role="meter" aria-label="Niveau de ton micro" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="avant-niveau-i"></i></span></div>' +
+      '<p class="info-erreur" id="avant-erreur" role="alert" hidden></p><p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
+      '<div class="avant-cmds" role="group" aria-label="En entrant">' +
+        '<button type="button" class="avant-cmd presse" id="avant-micro" aria-label="Couper le micro" aria-pressed="false"><span class="rond-cmd">' + icone('i-mic') + '</span><span>Micro</span></button>' +
+        (P.type === 'audio' ? '' : '<button type="button" class="avant-cmd presse" id="avant-cam" aria-label="Couper la caméra" aria-pressed="false"><span class="rond-cmd">' + icone('i-video') + '</span><span>Caméra</span></button>') +
+      '</div><button type="button" class="avant-rejoindre presse" id="avant-rejoindre">Rejoindre</button>' +
+      '<p class="info-note">Personne ne te voit ni ne t\'entend avant que tu entres.</p><div id="avant-reglages"></div></div>';
+    avantMaj(); avantApercu();
+  }
+  async function avantApercu() {
+    const P = avant.prete; if (!P) return;
+    const j = ++avant.jeton;
+    avantCouper();
+    const veutCam = P.camera && P.type !== 'audio';
+    let flux = null, err = null, errCam = null;
+    try { flux = await gum({ audio: cAudio(), video: veutCam ? cVideo() : false }); }
+    catch (e) {
+      err = e;
+      if (veutCam) { errCam = e; try { flux = await gum({ audio: cAudio() }); err = null; } catch (e2) { err = e2; flux = null; } }       // la caméra refuse : au moins le micro
+    }
+    if (j !== avant.jeton || avant.prete !== P) { if (flux) flux.getTracks().forEach(t => t.stop()); return; }
+    avant.flux = flux;
+    avant.erreur = !flux ? messageMedia(err, 'micro') + ' Tu peux entrer quand même.' : errCam ? messageMedia(errCam, 'camera') : '';
+    const vt = flux && flux.getVideoTracks()[0], v = $('avant-video');
+    if (v) { v.srcObject = vt ? new MediaStream([vt]) : null; if (vt) lecture(v); }
+    if (vt && prefMedias.flou) appliquerFlou(vt);
+    const at = flux && flux.getAudioTracks()[0]; if (at) avantJauge(at, j);
+    avantMaj();
+    const l = await listeAppareils();
+    if (j === avant.jeton && avant.prete === P) { avant.appareils = l; avantReglages(); }
+  }
+  /* la jauge du micro : ce que le micro entend, À L'ÉCRAN seulement (rien ne part) — la preuve qu'il marche avant d'entrer */
+  function avantJauge(piste, j) {
+    const Ctx = window.AudioContext || window.webkitAudioContext; if (typeof Ctx !== 'function') return;
+    try {
+      const ctx = avant.ctx = new Ctx(), an = ctx.createAnalyser(); an.fftSize = 512;
+      ctx.createMediaStreamSource(new MediaStream([piste])).connect(an);
+      relancerAuGeste(ctx);
+      const buf = new Float32Array(an.fftSize);
+      let lisse = 0, dit = 0;
+      const tour = () => {
+        if (j !== avant.jeton || !avant.prete) return;
+        an.getFloatTimeDomainData(buf);
+        let e = 0; for (let i = 0; i < buf.length; i++) e += buf[i] * buf[i];
+        lisse = Math.max(Math.min(1, Math.sqrt(e / buf.length) * 6), lisse * 0.85);
+        const i = $('avant-niveau-i'); if (i) i.style.transform = 'scaleX(' + lisse.toFixed(3) + ')';
+        const t = performance.now(); if (t - dit > 400) { dit = t; const m = $('avant-niveau'); if (m) m.setAttribute('aria-valuenow', String(Math.round(lisse * 100))); }
+        avant.raf = requestAnimationFrame(tour);
+      };
+      avant.raf = requestAnimationFrame(tour);
+    } catch (e) { /* pas de jauge : l'entrée reste possible */ }
+  }
+  function avantMaj() {
+    const P = avant.prete, ap = $('avant-apercu'); if (!P || !ap) return;
+    const vt = avant.flux && avant.flux.getVideoTracks()[0], cam = !!(vt && vt.readyState === 'live' && P.camera);
+    ap.dataset.camera = cam ? 'on' : 'off'; ap.dataset.micro = P.micro ? 'on' : 'off';
+    $('avant-sans').textContent = P.type === 'audio' ? 'Réunion audio' : !P.camera ? 'Caméra coupée' : !avant.flux ? 'Préparation…' : vt ? '' : 'Caméra indisponible';
+    /* « Couper » pressé = coupé, comme le bouton Micro de la salle ; le nom ne change pas (il contient le mot écrit dessous), l'icône barrée et le rouge disent l'état */
+    const bm = $('avant-micro'); bm.setAttribute('aria-pressed', P.micro ? 'false' : 'true'); bm.querySelector('use').setAttribute('href', P.micro ? '#i-mic' : '#i-mic-off');
+    const bc = $('avant-cam'); if (bc) { bc.setAttribute('aria-pressed', P.camera ? 'false' : 'true'); bc.querySelector('use').setAttribute('href', P.camera ? '#i-video' : '#i-video-off'); }
+    const e = $('avant-erreur'); e.textContent = avant.erreur || ''; e.hidden = !avant.erreur;
+  }
+  function avantReglages() {
+    const z = $('avant-reglages'), P = avant.prete; if (!z || !P) return;
+    const actif = document.activeElement && z.contains(document.activeElement) ? document.activeElement.id : null;
+    const ap = avant.appareils || [], choix = (quoi, kind, titre) => {
+      const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
+      return '<div class="champ"><label for="avant-' + quoi + '">' + esc(titre) + '</label><select id="avant-' + quoi + '" data-avant-appareil="' + quoi + '"><option value="">Par défaut</option>' +
+        l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === (prefMedias[quoi] || '') ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></div>';
+    };
+    const vt = avant.flux && avant.flux.getVideoTracks()[0], fe = vt && vt.readyState === 'live' && P.camera ? flouEtat(vt) : null;
+    const flou = !fe ? '' : fe === 'pilotable'
+      ? '<div class="carte"><button type="button" class="reglage presse" role="switch" id="avant-flou" aria-checked="' + (prefMedias.flou ? 'true' : 'false') + '"><span class="reglage-texte">Arrière-plan flou<small>Fait par ton appareil : rien ne sort de la page</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>'
+      : '<p class="info-note">Arrière-plan flou : ' + esc(phraseFlou(fe)) + '</p>';
+    z.innerHTML = choix('micro', 'audioinput', 'Micro') + (P.type === 'audio' ? '' : choix('camera', 'videoinput', 'Caméra')) + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '') + flou;
+    if (actif) { const x = $(actif); if (x) x.focus({ preventScroll: true }); }
+  }
+  async function avantRejoindre(b) {
+    const P = avant.prete; if (!P || P.entree) return;
+    P.entree = true; b.setAttribute('aria-disabled', 'true'); b.textContent = 'Entrée…'; erreurInfo('');
+    etat.choixEntree = { micro: P.micro, camera: P.camera };
+    avant.jeton++; avantCouper();                                       // ⛔ l'aperçu lâche micro et caméra AVANT d'entrer
+    const ok = await lancerAppel(null, P.el, true, P.entrer);
+    if (ok) return;
+    etat.choixEntree = null;                                            // le refus se lit dans la feuille (lancerAppel l'y écrit) ; l'aperçu reprend
+    if (avant.prete === P) { P.entree = false; b.removeAttribute('aria-disabled'); b.textContent = 'Rejoindre'; avantApercu(); }
+  }
+  $('info-corps').addEventListener('click', e => {
+    if (g().mode !== 'avant' || !avant.prete) return;
+    const b = e.target.closest('button'); if (!b) return;
+    const P = avant.prete;
+    if (b.id === 'avant-micro') { P.micro = !P.micro; avantMaj(); }
+    else if (b.id === 'avant-cam') {
+      P.camera = !P.camera;
+      if (P.camera) avantApercu();
+      else { const vt = avant.flux && avant.flux.getVideoTracks()[0]; if (vt) { try { vt.stop(); } catch (er) { /* rien */ } avant.flux.removeTrack(vt); } const v = $('avant-video'); if (v) v.srcObject = null; avantMaj(); avantReglages(); }
+    }
+    else if (b.id === 'avant-flou') { prefMedias.flou = !prefMedias.flou; b.setAttribute('aria-checked', prefMedias.flou ? 'true' : 'false'); appliquerFlou(avant.flux && avant.flux.getVideoTracks()[0]); }
+    else if (b.id === 'avant-rejoindre') avantRejoindre(b);
+  });
+  $('info-corps').addEventListener('change', e => {
+    const sel = e.target.closest('select[data-avant-appareil]'); if (!sel || g().mode !== 'avant' || !avant.prete) return;
+    const q = sel.dataset.avantAppareil;
+    prefMedias[q] = sel.value || null;
+    if (q !== 'sortie') avantApercu();
+  });
+  const titreReunion = id => { const r = reu.liste.find(x => x.id === id) || (reu.fiche && reu.fiche.id === id ? reu.fiche.donnees : null); return (r && r.titre) || ''; };
+
   /* ── la sortie : tout ce que la salle tenait est lâché d'un coup (quitterAppel) ── */
   function salleNettoyer(A) {
+    if (A) { arreterMuet(A); if (A.sx) A.sx.ptt = false; }
     const scene = $('salle-scene');
     scene.querySelectorAll(':scope > .salle-tuile[data-uid]').forEach(t => { t.querySelectorAll('audio,video').forEach(e => { try { e.pause(); } catch (er) { /* rien */ } e.srcObject = null; }); t.remove(); });
     const seul = $('salle-seul'); if (seul) seul.remove();
@@ -8350,10 +8667,10 @@
     const x = await sallesDeConv(c);
     if (etat.conv !== id) return;
     b.hidden = !x;
-    if (x) { b.dataset.salle = x.id; $('conv-salle-texte').textContent = (x.genre === 'reunion' ? 'Réunion en cours' : 'Appel en cours') + ' · ' + x.nb + (x.nb > 1 ? ' participants' : ' participant'); }
+    if (x) { b.dataset.salle = x.id; b.dataset.type = x.type || ''; b.dataset.titre = x.titre || (c.nom || ''); $('conv-salle-texte').textContent = (x.genre === 'reunion' ? 'Réunion en cours' : 'Appel en cours') + ' · ' + x.nb + (x.nb > 1 ? ' participants' : ' participant'); }
   }
-  $('conv-salle').addEventListener('click', () => { const id = $('conv-salle').dataset.salle; if (id) lancerAppel(null, $('conv-salle'), false, () => source.rejoindreAppel(id)); });
-  const rejoindreReunionUI = (id, type, el, depuisFeuille) => lancerAppel(null, el, !!depuisFeuille, () => source.rejoindreReunion(id, type));
+  $('conv-salle').addEventListener('click', () => { const b = $('conv-salle'), id = b.dataset.salle; if (id) avantEntrer({ titre: b.dataset.titre || '', type: b.dataset.type, entrer: () => source.rejoindreAppel(id), el: b }); });
+  const rejoindreReunionUI = (id, type, el, depuisFeuille) => avantEntrer({ titre: titreReunion(id), type, entrer: () => source.rejoindreReunion(id, type), el, depuisFeuille: !!depuisFeuille });
 
   /* ── le lien d'invité : « #reunion=<code> » — la feuille montre la réunion (l'aperçu public du service) et laisse choisir ── */
   const reunionDansAdresse = () => { const m = /(?:^|[#&])reunion=([A-Za-z0-9_-]{20,64})/.exec(location.hash || ''); return m ? m[1] : null; };

@@ -805,11 +805,22 @@
      ⛔ LE DÉBIT EST PLAFONNÉ PAR FLUX (`RTCRtpSender.setParameters`) : envoyer son image à N − 1 personnes, c'est N − 1 fois le débit d'un appel à deux, sur une 4G. Le plafond suit le nombre de présents.
      ⛔ UNE PAIRE QUI ÉCHOUE N'ARRÊTE PAS LA SALLE : sa tuile le dit, la liaison est reprise (trois fois), les autres continuent. Le service impose qui est dans la salle ; ce moteur ne croit pas pour autant
      un signal sur parole : sa forme, sa taille et son moment sont jugés ici. */
-  const BITRATES = { audio: 32000, video: [0, 0, 800000, 600000, 400000, 300000, 250000], ecran: 1500000 };           // octets/s ÷ 8 non : bit/s ; l'image se partage entre N − 1 liaisons (voir `plafonner`)
+  const BITRATES = { audio: 32000, video: [0, 0, 800000, 600000, 400000, 300000, 250000], ecran: 1500000, repli: 150000 };           // octets/s ÷ 8 non : bit/s ; l'image se partage entre N − 1 liaisons (voir `plafonner`)
   const CODES_SALLE_FINIE = ['appel_fini', 'introuvable', 'appareil_non_lie', 'appel_pas_en_cours'];
+  /* ⛔ LES SEUILS DE LA QUALITÉ D'UNE LIAISON — ceux qu'on lit chez Meet et dans les recommandations de l'UIT pour la voix (G.114 : au-delà de 400 ms d'aller-retour, la conversation se
+     marche dessus ; 3 % de pertes s'entendent, 8 % hachent) : « bonne », « moyenne », « faible ». Une mesure absente ne compte pas : une liaison sans voix n'a pas de gigue. */
+  function qualiteLiaison({ rtt, perte, gigue }) {
+    const r = typeof rtt === 'number' && rtt >= 0 ? rtt : 0, p = typeof perte === 'number' && perte >= 0 ? perte : 0, g = typeof gigue === 'number' && gigue >= 0 ? gigue : 0;
+    if (r > 0.4 || p > 0.08 || g > 0.1) return 'faible';
+    if (r > 0.2 || p > 0.03 || g > 0.05) return 'moyenne';
+    return 'bonne';
+  }
+  /* la visio dit la sienne (`ConnectionQuality` de LiveKit) : excellente ou bonne → « bonne » ; « poor » → « faible » ; « lost » → « perdue » ; inconnue → rien */
+  const qualiteVisioDe = (q) => q === 'excellent' || q === 'good' ? 'bonne' : q === 'poor' ? 'faible' : q === 'lost' ? 'perdue' : null;
+
   function creerMoteurSalle(d) {
     const T = Object.assign({ pouls: 15000, candidats: 60, veille: 30000, deconnecte: 6000, reessai: [600, 1800], iceMax: 4000, renouv: 0.75, renouvMin: 30000, quitter: [500, 1500], marge: 3000, nettoyage: 60000,
-      relaisApres: 4000, toutApres: 5000, reoffre: 4000, reoffresMax: 3, reprise: 10000, repriseMax: 3, niveau: 300, seuilParle: 0.02, tenuParle: 700, etat: 150, visioReessai: [1000, 3000, 6000], visioAttente: 15000 }, d.delais || {});
+      relaisApres: 4000, toutApres: 5000, reoffre: 4000, reoffresMax: 3, reprise: 10000, repriseMax: 3, niveau: 300, seuilParle: 0.02, tenuParle: 700, reseau: 2000, etat: 150, visioReessai: [1000, 3000, 6000], visioAttente: 15000 }, d.delais || {});
     const planifier = d.planifier, annuler = d.annuler, maintenant = d.maintenant;
     const pause = (ms) => new Promise((ok) => planifier(ok, ms));
     const alea = d.alea || (() => Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
@@ -835,7 +846,7 @@
         pairs: new Map(), pistes: { audio: null, video: null, ecran: false, micro: true }, etatDit: null,
         ice: null, promesseIce: null, relais: false, sansRelais: false, ttl: 0,
         debut: null, fini: null, serviceInforme: false, informe: null, terminaison: null, demandeMicro: null,
-        niveaux: new Map(), parlent: new Set(), tenus: new Map(), enAvance: [],
+        niveaux: new Map(), parlent: new Set(), tenus: new Map(), enAvance: [], reseauMoi: null, reseauLu: 0,
         minPouls: null, minSonnerie: null, minNettoyage: null, minRenouv: null, minNiveau: null, minEtat: null,
       }, extra || {});
     }
@@ -876,7 +887,7 @@
       return {
         id: p.id, nom: pers.nom, prenom: pers.prenom, initiales: pers.initiales, avatar: pers.avatar, photo: pers.photo,
         statut: p.statut, grade: p.grade || 0, etat: p.statut === 'invite' ? 'sonne' : p.statut === 'attente' ? 'attente' : (pr && pr.etat === 'connecte' ? 'connecte' : 'connexion'),
-        liaison: pr ? pr.etat : 'attente', relais: !!(pr && pr.relais),
+        liaison: pr ? pr.etat : 'attente', relais: !!(pr && pr.relais), reseau: pr && pr.etat === 'connecte' && p.statut === 'present' ? pr.reseau || null : null,
         camera: !!e.camera && p.statut === 'present', micro: e.micro !== false, partage: !!e.partage, main: c.salle.mains.includes(p.id), parle: c.parlent.has(p.id), epingle: c.salle.epingle === p.id,
       };
     }
@@ -897,7 +908,7 @@
         id: c.id, etat, type: v.type, groupe: true, salle: true, genre: v.genre, conv: v.conv || null, reunion: v.reunion || null, nom: nomSalle(c), court: nomSalle(c),
         initiales: personneDe(v.autre && v.autre.id).initiales || '?', avatar: personneDe(v.autre && v.autre.id).avatar || 0, photo: null,
         membres, nb: v.nb || 0, capacite: v.capacite || null,
-        moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()) },
+        moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()), reseau: st === 'present' ? c.reseauMoi : null },
         entrant: !fini && c.entrant && !c.local, attente: !fini && st === 'attente', exclu: st === 'exclu',
         verrou: !!v.verrou, salleAttente: !!v.attente, partageOk: v.partage_ok !== false, rec: v.rec ? { par: v.rec.par, nom: v.rec.par === moi() ? 'vous' : personneDe(v.rec.par).prenom } : null,
         enAttente: v.en_attente || 0, epingle: c.salle.epingle || null, sondage: c.salle.sondage || null, outils: c.salle.outils === true,
@@ -1135,7 +1146,11 @@
         for (const k of ['audio', 'video']) {
           const s = pr.emetteurs[k];
           if (!s || typeof s.getParameters !== 'function' || typeof s.setParameters !== 'function') continue;
-          const max = k === 'audio' ? BITRATES.audio : video;
+          /* ⛔ LE REPLI (12 octobre 2026, réunions lot 1) : quand l'autre reçoit MAL ce que je lui envoie (`pr.repli`, voir `lireReseau`), l'image descend à 150 kbit/s — elle ne dispute
+             plus la place à la voix. Le contrôle de congestion du navigateur baisse déjà le débit tout seul ; ce plafond l'empêche de remonter tant que l'envoi reste faible. Un écran
+             partagé garde le sien (on le partage pour qu'il se lise). */
+          const replie = !!pr.repli && !c.pistes.ecran;
+          const max = k === 'audio' ? BITRATES.audio : replie ? Math.min(video, BITRATES.repli) : video;
           try {
             const p = s.getParameters();
             if (!p.encodings || !p.encodings.length) p.encodings = [{}];
@@ -1715,9 +1730,74 @@
       }
       const parlent = new Set();
       for (const [uid, fin] of c.tenus) { if (fin > t && c.pairs.has(uid)) parlent.add(uid); else c.tenus.delete(uid); }
-      const change = parlent.size !== c.parlent.size || Array.from(parlent).some(u => !c.parlent.has(u));
+      let change = parlent.size !== c.parlent.size || Array.from(parlent).some(u => !c.parlent.has(u));
       c.parlent = parlent;
-      if (change) { if (estVisio(c)) qualiteVisio(c); d.emettre({ type: 'salle-parle', id: c.id }); }
+      if (change && estVisio(c)) qualiteVisio(c);
+      if (t - c.reseauLu >= T.reseau) { c.reseauLu = t; if (await lireReseau(c)) change = true; }
+      if (change && !c.fini) d.emettre({ type: 'salle-parle', id: c.id });
+    }
+    /* ⛔ LA QUALITÉ DE CHAQUE LIAISON (12 octobre 2026, réunions lot 1 : « la qualité du réseau sur chaque vignette », comme Meet et Zoom). Toutes les deux secondes : par la maille, ce que la
+       liaison mesure elle-même (le temps d'aller-retour de la paire de candidats choisie, la part de paquets perdus depuis la dernière lecture, la gigue de la voix) ; par la visio, ce que le serveur
+       mesure pour chacun (`connectionQuality`). MA connexion : celle que le serveur de visio dit, sinon la moitié de mes liaisons au moins — une seule liaison faible, c'est SON réseau, pas le mien.
+       Rien n'est envoyé : chaque page juge les liaisons qu'elle voit. → vrai si quelque chose a changé. */
+    async function lireReseau(c) {
+      let change = false, replis = false;
+      const poser = (pr, q) => { if (pr.reseau !== q) { pr.reseau = q; change = true; } };
+      /* ⛔ LE REPLI suit ce que l'AUTRE reçoit de moi (ses comptes rendus, `remote-inbound-rtp` : la part perdue, l'aller-retour), jamais ce que je reçois de lui — baisser l'image que
+         j'envoie ne soigne pas SON envoi (relecture du 12 octobre 2026). Et il a une marge : il entre à « faible », il ne sort qu'à « bonne » — une liaison qui hésite entre faible et
+         moyenne ne refait pas le plafond toutes les deux secondes. Sans compte rendu, pas de repli. */
+      const replier = (pr, envoi) => { const r = envoi === 'faible' ? true : envoi === 'bonne' || envoi === null ? false : !!pr.repli; if (r !== !!pr.repli) { pr.repli = r; replis = true; } };
+      if (estVisio(c)) {
+        for (const pr of c.pairs.values()) { const p = participantVisio(c, pr.uid); poser(pr, p ? qualiteVisioDe(p.connectionQuality) : null); }
+        const V = c.visio, lp = V && V.room && V.room.localParticipant, q = lp ? qualiteVisioDe(lp.connectionQuality) : null;
+        if (q !== c.reseauMoi) { c.reseauMoi = q; change = true; }
+        return change;
+      }
+      const notes = [];
+      for (const pr of c.pairs.values()) {
+        if (!pr.pc || typeof pr.pc.getStats !== 'function' || pr.etat !== 'connecte') { poser(pr, null); replier(pr, null); continue; }
+        let rtt = null, choisie = null, perdus = 0, recus = 0, gigue = null, perteEnvoi = null, rttEnvoi = null;
+        const paires = new Map();
+        try {
+          const rap = await pr.pc.getStats();
+          rap.forEach((x) => {
+            if (x.type === 'transport' && x.selectedCandidatePairId) choisie = x.selectedCandidatePairId;
+            if (x.type === 'candidate-pair') paires.set(x.id, x);
+            if (x.type === 'inbound-rtp') {
+              if (typeof x.packetsLost === 'number') perdus += Math.max(0, x.packetsLost);
+              if (typeof x.packetsReceived === 'number') recus += x.packetsReceived;
+              if (x.kind === 'audio' && typeof x.jitter === 'number') gigue = x.jitter;
+            }
+            if (x.type === 'remote-inbound-rtp') {
+              if (typeof x.fractionLost === 'number') perteEnvoi = Math.max(perteEnvoi || 0, x.fractionLost);
+              if (typeof x.roundTripTime === 'number') rttEnvoi = Math.max(rttEnvoi || 0, x.roundTripTime);
+            }
+          });
+        } catch (e) { continue; }
+        if (c.fini) return false;
+        /* l'aller-retour : celui de la paire de candidats que le navigateur a CHOISIE (`transport.selectedCandidatePairId`) — après un passage au relais, l'ancienne paire directe peut
+           rester listée, et la plus courte des deux mentirait ; à défaut (un navigateur qui ne le dit pas), la plus courte des paires établies */
+        const pc0 = choisie ? paires.get(choisie) : null;
+        if (pc0 && typeof pc0.currentRoundTripTime === 'number') rtt = pc0.currentRoundTripTime;
+        else for (const x of paires.values()) if (x.state === 'succeeded' && (x.nominated || x.selected) && typeof x.currentRoundTripTime === 'number') rtt = rtt === null ? x.currentRoundTripTime : Math.min(rtt, x.currentRoundTripTime);
+        /* la perte se juge sur ce qui est arrivé DEPUIS la dernière lecture (une perte d'il y a dix minutes ne compte plus), et sur assez de paquets pour dire quelque chose (vingt) */
+        const av = pr.reseauAvant || { perdus, recus }, dp = perdus - av.perdus, dr = recus - av.recus;
+        let perte = pr.reseauPerte || 0;
+        if (dp >= 0 && dr >= 0 && dp + dr >= 20) { perte = dp / (dp + dr); pr.reseauAvant = { perdus, recus }; pr.reseauPerte = perte; }
+        else if (dp < 0 || dr < 0) pr.reseauAvant = { perdus, recus };
+        else if (!pr.reseauAvant) pr.reseauAvant = { perdus, recus };
+        const q = rtt === null && gigue === null && !(dp + dr >= 20) ? null : qualiteLiaison({ rtt, perte, gigue });
+        poser(pr, q);
+        replier(pr, perteEnvoi === null && rttEnvoi === null ? null : qualiteLiaison({ rtt: rttEnvoi, perte: perteEnvoi }));
+        if (q) notes.push(q);
+      }
+      /* ⛔ MA connexion, par la maille : à une ou deux liaisons, une liaison faible peut être la sienne comme la mienne — on ne conclut RIEN sur moi (sa tuile, elle, le dit) ; à partir
+         de trois, la moitié de mes liaisons faibles au moins, c'est moi (relecture du 12 octobre 2026). Par la visio, le serveur le mesure lui-même (au-dessus). */
+      const faibles = notes.filter(q => q === 'faible').length;
+      const m = notes.length < 3 ? null : faibles * 2 >= notes.length ? 'faible' : notes.every(q => q === 'bonne') ? 'bonne' : 'moyenne';
+      if (m !== c.reseauMoi) { c.reseauMoi = m; change = true; }
+      if (replis) plafonner(c);                                  // une liaison entre dans le repli, ou en sort : le plafond de son image suit
+      return change;
     }
     function armerNiveaux(c) {
       if (c.minNiveau || c.fini || !d.niveaux) return;
@@ -3840,6 +3920,6 @@
     return source;
   }
 
-  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, creerMoteurSalle, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom };
+  if (typeof module !== 'undefined' && module.exports) module.exports = { creerSourceServeur, creerMoteurAppels, creerMoteurSalle, serveursSurs, candidatSur, erreurLocale, initialesDe, couperNom, qualiteLiaison, qualiteVisioDe };
   else { racine.OPMSG_creerSourceServeur = creerSourceServeur; racine.OPMSG_SOURCE = creerSourceServeur(); }
 })(typeof window !== 'undefined' ? window : globalThis);

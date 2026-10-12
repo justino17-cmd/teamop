@@ -19,6 +19,38 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 12 OCTOBRE 2026 (SOIR) — OP MESSAGES : LES RÉUNIONS, LOT 1 (« ENTRER ET ÊTRE À L'AISE »)
+
+Justin, à l'inventaire des réunions (ce qui manque face à Meet, Teams, Zoom, en quatre lots) : « fait dans l'ordre 1 . 2 . 3 . 4 ». Lot 1, écrit et éprouvé :
+· **Avant d'entrer** : entrer dans une salle qui EXISTE (une réunion — agenda, fiche, tableau de bord —, la bannière d'une conversation, la caméra d'un groupe dont la salle est
+  ouverte, un lien d'invité) ouvre la feuille « Avant d'entrer » : l'aperçu de la caméra, la jauge du micro, le choix du micro, de la caméra et de la sortie, le flou ; on entre micro
+  ou caméra coupés. ⛔ L'aperçu LÂCHE micro et caméra avant d'entrer (la salle les redemande, sans nouvelle autorisation) : en salle d'attente, rien ne reste ouvert. Lancer un appel
+  ou répondre à un appel ne passe PAS par là (comme FaceTime). Seuls les choix passent (`etat.choixEntree` → `A.choix`). La feuille se POSE sur la fiche (« Annuler » y ramène —
+  `fermerCouche`, la navigation ne connaît sinon qu'un niveau de feuille) ; ⛔ toute autre feuille qui prend sa place lâche l'aperçu (`ouvrirFeuilleDom`). Ses boutons disent
+  « Couper le micro / la caméra », pressés = coupé, comme dans la salle.
+· **Épingler pour moi** : un bouton sur chaque vignette (au survol, au focus, ou au toucher au téléphone) et dans Participants ; ma vue seulement, rien n'est envoyé. L'hôte garde
+  « Épingler pour tous ». Mon épingle passe avant la sienne, chez moi.
+· **Raccourcis** (au clavier) : M micro, V caméra, H main, G vue, ? la liste, l'espace TENU pour parler ; jamais dans un champ de saisie ni en salle d'attente. ⛔ Des
+  raccourcis d'UNE lettre se coupent (WCAG 2.1.4 : lecteur d'écran, commande vocale) — l'interrupteur est en tête de la liste, « Plus » dit « Coupés » ; le temps de l'onglet.
+  L'espace ne parle que quand le foyer est sur la salle elle-même et qu'aucun panneau n'est ouvert (ailleurs, il garde son sens : défiler, appuyer).
+· **« Tu parles ? Ton micro est coupé »** : micro coupé, la page écoute une COPIE de la piste du micro sur l'appareil (la piste envoyée reste muette) ; le bandeau, une fois par
+  vingt secondes au plus, et « Activer le micro » ; « OK » le fait taire cinq minutes. Un contexte audio suspendu (Safari, hors geste) repart au premier toucher ; un échec ne
+  laisse ni copie ni contexte, et ne se retente pas à chaque rendu.
+· **La qualité du réseau** de chaque liaison, jugée par la page qui la voit (l'aller-retour de la paire CHOISIE, les pertes depuis la dernière lecture, la gigue ; par la visio,
+  ce que LiveKit mesure) : un badge en barres SEULEMENT quand c'est instable ou faible. ⛔ « Vous » (MA connexion) ne se juge qu'à partir de TROIS liaisons (la moitié faibles) :
+  à deux, une liaison faible peut être celle de l'autre — sa tuile le dit, la mienne non ; « Ta connexion est faible » au plus une fois par minute. Le **repli** : quand l'AUTRE dit
+  mal recevoir ce que je lui envoie (`remote-inbound-rtp`), mon image vers lui descend à 150 kbit/s pour ne plus disputer la place à la voix (le partage d'écran garde son débit) ;
+  il entre à « faible », ne sort qu'à « bonne » — ce que JE reçois mal ne replie rien.
+· **Le flou** : celui de l'APPAREIL quand le navigateur le laisse piloter (`backgroundBlur`, Chrome avec les effets vidéo de Windows ou ChromeOS) ; sinon la page DIT où le régler
+  (Mac et iPhone : Centre de contrôle, Effets vidéo, Portrait) — aucun modèle d'image chargé, rien ne part vers un tiers. « Bientôt » ne garde que les sous-titres et les sous-salles.
+· Corrigé en chemin (défaut d'avant, rendu plus fréquent) : une feuille ouverte par l'adresse PENDANT le démarrage (un lien vers une réunion, page chargée) jetait dans
+  `synchroFeuille` (`#g-aucun` pas encore construit) et ne s'ouvrait jamais — la sonde Perso+ tombait sous charge.
+Relu par `relecteur` (trois points importants — « Vous » sur une liaison, l'espace et les raccourcis, l'aperçu qu'une feuille remplaçante gardait ouvert — et des mineurs) :
+tout corrigé. Preuves : `test-990` (118 ✓ : la qualité, « Vous » à trois liaisons, le repli et sa marge, la paire choisie), `sonde-opmessages-reunion-confort.js` (85 ✓, deux
+navigateurs et une troisième personne muette qui rend l'épingle décisive, une vraie salle), les sondes des appels à plusieurs (210 ✓), de l'ordre du jour (23 ✓) et de Perso+
+(80 ✓) remises à l'aperçu, mutations (voir la demande de fusion). Non gardés par une sonde : « OK » cinq minutes, un contexte audio qui échoue, la double activation. À venir : lot 2 (« Réunion maintenant », salle à lien fixe, invité sans compte), lot 3 (notes, actions, transcription
+après coup), lot 4 (sous-salles).
+
 # 🟡 12 OCTOBRE 2026 — OP MESSAGES : L'ESPACE DE STOCKAGE, 10 GO POUR TOUS ET 25 GO DE PLUS AVEC PRO
 
 Justin : « on va baisser le stockage perso 10 GB et pro 25 GB » ; à « les deux s'ajoutent-ils ? » : « ça s'ajoute » ; à « et Perso+ ? » : « perso n'a pas les réunions, que pro ».
@@ -237,7 +269,7 @@ archivé par défaut) : le demander à Justin s'il préfère l'autre. `test-909`
 par pièce sur le disque) — transférer veut dire recopier le contenu côté service, compter le quota de celui qui transfère, et le faire relire par
 `gardien`. Le texte, la position et la fiche d'un contact, eux, se transfèrent sans recopie.
 
-⚠️ **Trouvés par l'inventaire, à dire à Justin** : dans la salle, « Sous-titres en direct », « Arrière-plan flou » et « Salles de sous-groupes » sont des
+⚠️ **Trouvés par l'inventaire, à dire à Justin** (le flou est fait depuis le 12 octobre, lot 1 des réunions) : dans la salle, « Sous-titres en direct », « Arrière-plan flou » et « Salles de sous-groupes » sont des
 lignes « Bientôt » (`apercu/opmessages/index.html`, panneau « Plus ») — les sous-titres étaient dans une tâche marquée faite (« rapport de présence, notes,
 sous-titres ») : ils ne le sont pas. Pas de recherche dans les messages, pas de « Signaler » (à faire avant le public), pas de double authentification.
 
@@ -855,7 +887,7 @@ trouve tout ce que tu peux et on le fait ».
    · ⛔ **le SFU (LiveKit)** : une salle tient aujourd'hui 4 vidéos / 6 audios (maille pair à pair, `config.js` `maxVideo`/`maxAudio`) — Zoom, Teams, Meet : 25 à 100+.
      Il conditionne l'enregistrement serveur, la transcription, les sous-groupes, couper un micro pour de bon. Gros chantier, un processus et un nom de domaine en plus :
      **décision de Justin** ;
-   · écran de préparation avant d'entrer (aperçu caméra, jauge du micro) ; qualité du réseau par tuile et repli automatique en audio ; partage d'écran en appel à deux
+   · ✅ (12 octobre, lot 1 des réunions : écran avant d'entrer, épingle locale, qualité du réseau par tuile et repli de l'image, flou de l'appareil) écran de préparation avant d'entrer (aperçu caméra, jauge du micro) ; qualité du réseau par tuile et repli automatique en audio ; partage d'écran en appel à deux
      (+ son du système) ; épingle LOCALE ; ordre du jour, notes et rapport de présence d'une réunion ; « Réunion maintenant » / salle à adresse fixe ; **rejoindre sans
      compte** (invité par lien — sensible, relecture `gardien` obligatoire) ; flou d'arrière-plan ; sous-titres et compte rendu (seulement sur nos machines, jamais
      l'API vocale de Chrome qui envoie l'audio à un tiers).
