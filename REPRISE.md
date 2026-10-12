@@ -25,21 +25,30 @@ Justin, à l'inventaire des réunions (ce qui manque face à Meet, Teams, Zoom, 
 · **Avant d'entrer** : entrer dans une salle qui EXISTE (une réunion — agenda, fiche, tableau de bord —, la bannière d'une conversation, la caméra d'un groupe dont la salle est
   ouverte, un lien d'invité) ouvre la feuille « Avant d'entrer » : l'aperçu de la caméra, la jauge du micro, le choix du micro, de la caméra et de la sortie, le flou ; on entre micro
   ou caméra coupés. ⛔ L'aperçu LÂCHE micro et caméra avant d'entrer (la salle les redemande, sans nouvelle autorisation) : en salle d'attente, rien ne reste ouvert. Lancer un appel
-  ou répondre à un appel ne passe PAS par là (comme FaceTime). Seuls les choix passent (`etat.choixEntree` → `A.choix`).
+  ou répondre à un appel ne passe PAS par là (comme FaceTime). Seuls les choix passent (`etat.choixEntree` → `A.choix`). La feuille se POSE sur la fiche (« Annuler » y ramène —
+  `fermerCouche`, la navigation ne connaît sinon qu'un niveau de feuille) ; ⛔ toute autre feuille qui prend sa place lâche l'aperçu (`ouvrirFeuilleDom`). Ses boutons disent
+  « Couper le micro / la caméra », pressés = coupé, comme dans la salle.
 · **Épingler pour moi** : un bouton sur chaque vignette (au survol, au focus, ou au toucher au téléphone) et dans Participants ; ma vue seulement, rien n'est envoyé. L'hôte garde
   « Épingler pour tous ». Mon épingle passe avant la sienne, chez moi.
-· **Raccourcis** (au clavier) : M micro, V caméra, H main, G vue, ? la liste, l'espace TENU pour parler ; jamais dans un champ de saisie.
+· **Raccourcis** (au clavier) : M micro, V caméra, H main, G vue, ? la liste, l'espace TENU pour parler ; jamais dans un champ de saisie ni en salle d'attente. ⛔ Des
+  raccourcis d'UNE lettre se coupent (WCAG 2.1.4 : lecteur d'écran, commande vocale) — l'interrupteur est en tête de la liste, « Plus » dit « Coupés » ; le temps de l'onglet.
+  L'espace ne parle que quand le foyer est sur la salle elle-même et qu'aucun panneau n'est ouvert (ailleurs, il garde son sens : défiler, appuyer).
 · **« Tu parles ? Ton micro est coupé »** : micro coupé, la page écoute une COPIE de la piste du micro sur l'appareil (la piste envoyée reste muette) ; le bandeau, une fois par
-  vingt secondes au plus, et « Activer le micro ».
-· **La qualité du réseau** de chaque liaison, jugée par la page qui la voit (aller-retour, pertes depuis la dernière lecture, gigue ; par la visio, ce que LiveKit mesure) : un
-  badge en barres SEULEMENT quand c'est instable ou faible, « Ta connexion est faible » (au plus une fois par minute), et le **repli** : sur une liaison faible, l'image descend à
-  150 kbit/s pour ne plus disputer la place à la voix (le partage d'écran garde son débit).
+  vingt secondes au plus, et « Activer le micro » ; « OK » le fait taire cinq minutes. Un contexte audio suspendu (Safari, hors geste) repart au premier toucher ; un échec ne
+  laisse ni copie ni contexte, et ne se retente pas à chaque rendu.
+· **La qualité du réseau** de chaque liaison, jugée par la page qui la voit (l'aller-retour de la paire CHOISIE, les pertes depuis la dernière lecture, la gigue ; par la visio,
+  ce que LiveKit mesure) : un badge en barres SEULEMENT quand c'est instable ou faible. ⛔ « Vous » (MA connexion) ne se juge qu'à partir de TROIS liaisons (la moitié faibles) :
+  à deux, une liaison faible peut être celle de l'autre — sa tuile le dit, la mienne non ; « Ta connexion est faible » au plus une fois par minute. Le **repli** : quand l'AUTRE dit
+  mal recevoir ce que je lui envoie (`remote-inbound-rtp`), mon image vers lui descend à 150 kbit/s pour ne plus disputer la place à la voix (le partage d'écran garde son débit) ;
+  il entre à « faible », ne sort qu'à « bonne » — ce que JE reçois mal ne replie rien.
 · **Le flou** : celui de l'APPAREIL quand le navigateur le laisse piloter (`backgroundBlur`, Chrome avec les effets vidéo de Windows ou ChromeOS) ; sinon la page DIT où le régler
   (Mac et iPhone : Centre de contrôle, Effets vidéo, Portrait) — aucun modèle d'image chargé, rien ne part vers un tiers. « Bientôt » ne garde que les sous-titres et les sous-salles.
 · Corrigé en chemin (défaut d'avant, rendu plus fréquent) : une feuille ouverte par l'adresse PENDANT le démarrage (un lien vers une réunion, page chargée) jetait dans
   `synchroFeuille` (`#g-aucun` pas encore construit) et ne s'ouvrait jamais — la sonde Perso+ tombait sous charge.
-Preuves : `test-990` (la qualité, le repli, au moteur), `sonde-opmessages-reunion-confort.js` (65 ✓, deux navigateurs, une vraie salle), la sonde des appels à plusieurs remise
-à l'aperçu (210 ✓), mutations (voir la demande de fusion). À venir : lot 2 (« Réunion maintenant », salle à lien fixe, invité sans compte), lot 3 (notes, actions, transcription
+Relu par `relecteur` (trois points importants — « Vous » sur une liaison, l'espace et les raccourcis, l'aperçu qu'une feuille remplaçante gardait ouvert — et des mineurs) :
+tout corrigé. Preuves : `test-990` (118 ✓ : la qualité, « Vous » à trois liaisons, le repli et sa marge, la paire choisie), `sonde-opmessages-reunion-confort.js` (84 ✓, deux
+navigateurs et une troisième personne muette qui rend l'épingle décisive, une vraie salle), les sondes des appels à plusieurs (210 ✓), de l'ordre du jour (23 ✓) et de Perso+
+(80 ✓) remises à l'aperçu, mutations (voir la demande de fusion). Non gardés par une sonde : « OK » cinq minutes, un contexte audio qui échoue, la double activation. À venir : lot 2 (« Réunion maintenant », salle à lien fixe, invité sans compte), lot 3 (notes, actions, transcription
 après coup), lot 4 (sous-salles).
 
 # 🟡 12 OCTOBRE 2026 — OP MESSAGES : L'ESPACE DE STOCKAGE, 10 GO POUR TOUS ET 25 GO DE PLUS AVEC PRO
