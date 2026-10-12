@@ -46,7 +46,7 @@ Justin, à l'inventaire des réunions (ce qui manque face à Meet, Teams, Zoom, 
 · Corrigé en chemin (défaut d'avant, rendu plus fréquent) : une feuille ouverte par l'adresse PENDANT le démarrage (un lien vers une réunion, page chargée) jetait dans
   `synchroFeuille` (`#g-aucun` pas encore construit) et ne s'ouvrait jamais — la sonde Perso+ tombait sous charge.
 Relu par `relecteur` (trois points importants — « Vous » sur une liaison, l'espace et les raccourcis, l'aperçu qu'une feuille remplaçante gardait ouvert — et des mineurs) :
-tout corrigé. Preuves : `test-990` (118 ✓ : la qualité, « Vous » à trois liaisons, le repli et sa marge, la paire choisie), `sonde-opmessages-reunion-confort.js` (84 ✓, deux
+tout corrigé. Preuves : `test-990` (118 ✓ : la qualité, « Vous » à trois liaisons, le repli et sa marge, la paire choisie), `sonde-opmessages-reunion-confort.js` (85 ✓, deux
 navigateurs et une troisième personne muette qui rend l'épingle décisive, une vraie salle), les sondes des appels à plusieurs (210 ✓), de l'ordre du jour (23 ✓) et de Perso+
 (80 ✓) remises à l'aperçu, mutations (voir la demande de fusion). Non gardés par une sonde : « OK » cinq minutes, un contexte audio qui échoue, la double activation. À venir : lot 2 (« Réunion maintenant », salle à lien fixe, invité sans compte), lot 3 (notes, actions, transcription
 après coup), lot 4 (sous-salles).

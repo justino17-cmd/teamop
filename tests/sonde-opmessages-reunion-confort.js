@@ -276,13 +276,15 @@ const INIT = () => {
     await A.page.keyboard.up('Space');
     vrai('⛔ …lâché, il le recoupe', await att(A, () => document.getElementById('salle-micro').getAttribute('aria-pressed') === 'true'));
     await toucher(A, '#salle-participants');
-    await att(A, () => !document.getElementById('salle-panneau').hidden);
-    await A.page.evaluate(() => document.getElementById('salle-ecran').focus({ preventScroll: true }));
+    await att(A, () => { const p = document.getElementById('salle-panneau'); return !p.hidden && p.contains(document.activeElement); });     // le panneau prend le foyer, à l'image suivante
+    await A.page.evaluate(() => document.getElementById('salle-ecran').focus({ preventScroll: true }));                                            // …puis il revient à la salle (un clic sur son fond)
+    v('population : panneau OUVERT, le foyer sur la salle elle-même', await A.page.evaluate(() => [document.getElementById('salle-panneau').hidden, document.activeElement && document.activeElement.id]), [false, 'salle-ecran']);
     await A.page.keyboard.down('Space');
+    /* lu PENDANT que l'espace est tenu (le relâcher recoupe le micro de toute façon) : la touche est traitée quand `down` rend la main */
+    v('⛔ panneau ouvert, l\'espace TENU ne parle PAS (il garde son sens : défiler, appuyer) — le micro reste coupé', await A.page.evaluate(() => document.getElementById('salle-micro').getAttribute('aria-pressed')), 'true');
     await A.page.keyboard.up('Space');
     await toucher(A, '#salle-panneau-fermer');
     await att(A, () => document.getElementById('salle-panneau').hidden);
-    v('⛔ panneau ouvert, l\'espace ne parle PAS (il garde son sens : défiler, appuyer) — le micro est resté coupé', await A.page.evaluate(() => document.getElementById('salle-micro').getAttribute('aria-pressed')), 'true');
     await presse('m');
     await att(A, () => document.getElementById('salle-micro').getAttribute('aria-pressed') === 'false');
 
