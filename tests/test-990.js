@@ -221,6 +221,8 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       await att(() => lBA.debitMax('video') === 400000);
       v('⛔ …et l\'envoi redevient sain : l\'image REMONTE à ce que la maille permet (400 kbit/s à quatre)', lBA.debitMax('video'), 400000);
       v('la perte d\'il y a deux secondes ne compte plus : 300 paquets de plus, aucun perdu → « bonne » de nouveau', !!(await B.attendreSnap(id, s => qDe(s, ana.id) === 'bonne', 4000)), true);
+      lBA.reseauFaux = { rtt: 0.6, ancienneRtt: 0.01, perdus: 40, recus: 1650 };
+      v('⛔ L\'ALLER-RETOUR DE LA PAIRE CHOISIE : l\'ancienne paire directe (10 ms) reste listée après un passage au relais — la liaison se juge sur celle que le navigateur a CHOISIE (600 ms) : « faible »', !!(await B.attendreSnap(id, s => qDe(s, ana.id) === 'faible', 4000)), true);
       lBA.reseauFaux = { rtt: 0.6, perdus: 40, recus: 1800 }; lBC.reseauFaux = { rtt: 0.6, perdus: 0, recus: 800 };
       const moiFaible = await B.attendreSnap(id, s => s.moi.reseau === 'faible', 4000);
       v('⛔ DEUX liaisons faibles sur trois : c\'est la connexion de Ben qui faiblit — `moi.reseau` « faible »', !!moiFaible, true);

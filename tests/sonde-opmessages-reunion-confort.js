@@ -71,8 +71,8 @@ const INIT = () => {
       if (!window.__degrader) return r;
       perdus += 400;
       const m = new Map(); r.forEach((x, k) => m.set(k, x.type === 'transport' ? Object.assign({}, x, { selectedCandidatePairId: 'degrade-cp' }) : x));
-      m.set('degrade-cp', { type: 'candidate-pair', state: 'succeeded', nominated: true, currentRoundTripTime: 0.6 });
-      m.set('degrade-in', { type: 'inbound-rtp', kind: 'audio', packetsLost: perdus, packetsReceived: perdus * 2, jitter: 0.2 });
+      m.set('degrade-cp', { id: 'degrade-cp', type: 'candidate-pair', state: 'succeeded', nominated: true, currentRoundTripTime: 0.6 });
+      m.set('degrade-in', { id: 'degrade-in', type: 'inbound-rtp', kind: 'audio', packetsLost: perdus, packetsReceived: perdus * 2, jitter: 0.2 });
       return m;
     };
   }
