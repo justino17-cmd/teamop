@@ -2,7 +2,7 @@
    8 octobre 2026 : « il faudrait bien séparer l'agenda perso et pro ». 11 octobre 2026 : « quand on bascule, c'est TOUT qui bascule ; dans chaque onglet on ne choisit pas pro ou perso ;
    sur téléphone, dans les messages, on ne peut pas basculer » — UNE SEULE bascule : la barre latérale au bureau, le PROFIL au téléphone (.cote-seg-profil, carte « Perso et Pro »).
    Plus de sélecteur sous le titre de l'Agenda ni de Messages, plus de choix « Agenda : Perso | Pro » dans les fiches : un élément CRÉÉ prend le côté où l'on est.
-   Contre le VRAI service, Ana (un espace abonné : Ben est son collègue ; Cléo, une amie) a demain cinq choses — deux événements rangés (Dentiste : Perso, Revue client : Pro), un
+   Contre le VRAI service, Ana (un espace abonné : Ben est son collègue ; Cléo, une amie — Perso : depuis le 12 octobre, le dîner la rend « par le lien ») a demain cinq choses — deux événements rangés (Dentiste : Perso, Revue client : Pro), un
    d'avant sans côté (Perso), une réunion avec Ben (Pro par la règle), un dîner avec Cléo (Perso) :
      1. téléphone, côté Perso : ni l'Agenda ni Messages n'ont de sélecteur sous leur titre (population : titres visibles, anciennes classes absentes du DOM) ; l'Agenda ne montre
         QUE le perso (trois sur cinq) ;
@@ -73,6 +73,10 @@ function localDans(t, tz) {
     const r4 = await reu('Point équipe QZK', '15:00', [B0.moi.id]), r5 = await reu('Dîner QZK', '19:00', [C0.moi.id]);
     v('population : les cinq sont posés au service, chacun de son côté (événements : perso, pro, aucun ; réunions par la règle : Ben collègue → Pro, Cléo amie → Perso)',
       [[r1, r2, r3].map(x => x.code + ':' + x.j.evenement.cote), [r4, r5].map(x => x.code + ':' + x.j.reunion.cote)], [['201:perso', '201:pro', '201:null'], ['201:pro', '201:perso']]);
+    /* ⛔ depuis le 12 octobre 2026, on n'est invité EN SON NOM à une réunion qu'avec Pro : Cléo (Perso) est rendue « par le lien » — elle y entrera par le lien qu'Ana lui envoie */
+    const piscine = await C0.post('/api/agenda', { titre: 'Piscine QZK', debut: demain + 'T19:30', tz: PARIS, rappel: 15 });
+    v('population : Cléo a son propre événement demain (« Piscine »)', piscine.code, 201);
+    v('⛔ Cléo (Perso) n\'est pas invitée au dîner en son nom : le service la rend « par le lien » ; Ben (collègue, Pro par l\'espace) est invité au point d\'équipe', [r5.j.par_lien, r4.j.par_lien], [[C0.moi.id], []]);
     /* deux appels manqués : Ben (collègue) et Cléo (amie) appellent Ana et raccrochent avant qu'elle réponde */
     const manquer = async (X) => { const r = await X.post('/api/appels', { uid: A0.moi.id, type: 'audio' }); if (r.code !== 201) return r.code; return (await X.post('/api/appels/' + r.j.appel.id + '/quitter', {})).code; };
     v('population : Ben puis Cléo ont appelé Ana (deux appels manqués)', [await manquer(B0), await manquer(C0)], [200, 200]);
@@ -277,7 +281,7 @@ function localDans(t, tz) {
     v('⛔ …sans carte « Perso et Pro » : la carte cachée et vide, aucun sélecteur', [await C.page.evaluate(() => { const c = document.getElementById('reg-cote'); return !!c && c.hidden && c.children.length === 0; }), await segVisible(C)], [true, []]);
     await toucher(C, '.profil-retour');
     vrai('retour à l\'Agenda', await att(C, () => document.getElementById('vue-reglages').hidden && !document.getElementById('vue-reunions').hidden));
-    vrai('le dîner où Ana l\'invite est dans son agenda (population : tout son agenda)', await montre(C, T5, ['Dîner QZK']), await vus(C, T5));
+    vrai('⛔ le dîner n\'est PAS dans son agenda : Ana l\'a nommée, mais sans Pro on n\'est pas invité en son nom — on entre par le lien (population : SA piscine, demain, y est)', await montre(C, T5.concat(['Piscine QZK']), ['Piscine QZK']), await vus(C, T5.concat(['Piscine QZK'])));
 
     console.log('\n8. Aucune erreur JavaScript');
     v('aucune erreur JavaScript, sur aucune page', pages.map(P => P.nom + ':' + P.erreurs.length + (P.erreurs.length ? ' ' + P.erreurs[0] : '')), pages.map(P => P.nom + ':0'));
