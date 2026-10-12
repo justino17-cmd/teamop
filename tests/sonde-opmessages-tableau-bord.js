@@ -63,7 +63,9 @@ function localDans(t, tz) {
     const reu = await P.ana.post('/api/reunions', { titre: 'Point chantier WQXZ', lieu: 'Dépôt', debut: localDans(t0, PARIS), fin: localDans(t0 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' });
     v('population : la réunion est programmée', reu.code, 201);
     /* une autre dans douze jours (au MOIS seulement), et une troisième que la salle a déjà vue finir (« terminée pour tous ») : elle n'est plus prévue */
-    const t12 = t0 + 12 * JOUR;
+    /* ⛔ une heure qui tombe dans le changement d'heure (la nuit du 25 octobre) est refusée par le service : on la décale comme les suivis (`heureNette`) — mesuré le 12 octobre à minuit et quart, t12 tombait à 2 h 30 */
+    const heureNette = (d) => { while (localDans(d + H, PARIS) <= localDans(d, PARIS)) d += H; return d; };
+    const t12 = heureNette(t0 + 12 * JOUR);
     const reu12 = await P.ana.post('/api/reunions', { titre: 'Revue mensuelle WQXZ', debut: localDans(t12, PARIS), fin: localDans(t12 + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' });
     const tf = Date.now() + 2 * 60000, reuF = await P.ana.post('/api/reunions', { titre: 'Point fini WQXZ', debut: localDans(tf, PARIS), fin: localDans(tf + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' });
     const salleF = reuF.code === 201 ? await P.ana.post('/api/reunions/' + reuF.j.reunion.id + '/rejoindre', {}) : { j: {} };
@@ -72,7 +74,6 @@ function localDans(t, tz) {
     /* onze de plus, du 3ᵉ au 13ᵉ jour : au MOIS, treize réunions — douze lignes, puis « Voir l'autre dans l'Agenda » */
     /* ⛔ l'heure répétée du passage à l'heure d'hiver : lancée à 22 h 13 UTC le 11 octobre 2026, la 13ᵉ réunion tombait le 25 à 2 h 15, et sa fin une heure plus tard
        s'écrivait AUSSI « 02:15 » (heure d'hiver) — le service refuse à bon droit une réunion qui finit à l'heure où elle commence. La sonde choisit une heure qui existe. */
-    const heureNette = (d) => { while (localDans(d + H, PARIS) <= localDans(d, PARIS)) d += H; return d; };
     const plus = []; for (let i = 3; i <= 13; i++) { const d = heureNette(t0 + i * JOUR); plus.push((await P.ana.post('/api/reunions', { titre: 'Suivi ' + i + ' WQXZ', debut: localDans(d, PARIS), fin: localDans(d + H, PARIS), tz: PARIS, invites: [P.dan.moi.id], notifier: false, cote: 'pro' })).code); }
     v('population : onze réunions de suivi, du 3ᵉ au 13ᵉ jour', plus, Array(11).fill(201));
     v('population : Cléo est Pro (membre de l\'espace abonné) et n\'est invitée nulle part', (await P.cleo.get('/api/espaces')).j.formule, 'pro');

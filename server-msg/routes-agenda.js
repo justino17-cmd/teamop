@@ -1,7 +1,7 @@
 /* ══ L'AGENDA PERSONNEL — DES ÉVÉNEMENTS À SOI, AVEC UN RAPPEL ═══════════════════════════════════════════════════════════════════════════════════
  *
  * Demandé le 6 octobre 2026 (le chantier qui prépare l'agent « Pro Assistant » : il lui faut un agenda à gérer). Un ÉVÉNEMENT est à une personne seule — « dentiste jeudi 14 h » —, sans
- * invités, sans conversation, sans salle : ce n'est PAS une réunion (`routes-reunions.js`, qui demande Perso+ ou Pro pour programmer). Il est GRATUIT : un agenda qui se paierait ne
+ * invités, sans conversation, sans salle : ce n'est PAS une réunion (`routes-reunions.js`, qui demande Pro pour programmer). Il est GRATUIT : un agenda qui se paierait ne
  * servirait à personne, et c'est l'agent qui s'appuiera dessus qui se vendra.
  *
  *   GET  /api/agenda?du=<ms>&au=<ms>                      S  les événements qui touchent la fenêtre (90 jours au plus, 500 au plus)

@@ -272,8 +272,8 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
   }
   const sondageVue = (s, uid) => s ? { id: s.id, question: s.question, choix: s.choix, comptes: s.choix.map((_, i) => Array.from(s.votes.values()).filter(v => v === i).length), total: s.votes.size, ouvert: s.ouvert, mon_vote: uid && s.votes.has(uid) ? s.votes.get(uid) : null } : null;
   const minuteurVue = (m) => m ? { fin_dans_s: Math.max(0, Math.ceil((m.fin - horloge()) / 1000)), secondes: m.secondes } : null;
-  /* ⛔ LES OUTILS DE L'ORGANISATEUR D'UNE SALLE (Perso+, 4 octobre 2026). Une salle les a si c'est la salle d'une RÉUNION (programmée par quelqu'un qui pouvait l'organiser), ou si celui qui a LANCÉ l'appel de groupe est
-     Pro ou Perso+ (`formule.peutOrganiser` — la seule définition, bêta comprise : tout y est ouvert). Jugé sur celui qui a lancé l'appel, JAMAIS sur l'hôte du moment (un autre l'est devenu depuis, ce n'est pas lui qui
+  /* ⛔ LES OUTILS DE L'ORGANISATEUR D'UNE SALLE (4 octobre 2026 ; Pro seulement depuis le 12 octobre). Une salle les a si c'est la salle d'une RÉUNION (programmée par quelqu'un qui pouvait l'organiser), ou si celui qui a LANCÉ l'appel de groupe est
+     Pro (`formule.peutOrganiser` — la seule définition, bêta comprise : tout y est ouvert). Jugé sur celui qui a lancé l'appel, JAMAIS sur l'hôte du moment (un autre l'est devenu depuis, ce n'est pas lui qui
      paie) ni sur celui qui agit ; un organisateur dont le compte s'est effacé n'en laisse pas : la salle redevient gratuite. Sans formule injectée (les bancs du stockage), tout est ouvert. Une salle qui n'existe pas
      (ou un appel à deux) n'a pas d'outils. LA définition : `routes-salles.js` refuse avec elle, et la page propose avec elle (`etatSalle.outils`). */
   function outilsOuverts(id) {

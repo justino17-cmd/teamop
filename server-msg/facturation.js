@@ -26,12 +26,10 @@
  *   qu'OP GESTION lit pour rattacher un abonnement à une entreprise) — la nôtre s'appelle `opmsg_espace` — et son tarif doit être l'un de ceux qu'OP GESTION classe « OP MESSAGES »
  *   (`design/opmessages/INSTALLER-LE-SERVEUR.md`, § Stripe) : `tests/test-965.js` joue les deux services l'un contre l'autre.
  * Sans clé configurée, tout est INERTE et le dit (`offres().ouvert === false`, 503 `abonnement_non_ouvert`).
- * ⛔ PERSO+ (le forfait d'une PERSONNE, sans espace) est la moitié « personne » de ce fichier : `facturation-perso.js`, qui reçoit d'ici le client Stripe, le verrou, les lecteurs d'identifiants — UN seul client,
- *   donc UN seul compteur de pannes (`stripeEchecMin`), et UNE seule passe de relecture (`relireTous` lit les espaces ET les personnes). Exposé sous `facturation.perso`.
+ * ⛔ PERSO+ (le forfait d'une PERSONNE, 4 octobre 2026) est RETIRÉ depuis le 12 octobre 2026 : on ne vend que Messages Pro, par espace. Les réunions sont à Pro (`formule.js`).
  */
 'use strict';
 const { STATUTS_PAYES, STATUTS_IMPAYES } = require('./formule');
-const { creerPerso } = require('./facturation-perso');
 
 const HOTE_STRIPE = 'https://api.stripe.com';
 const PLACES_MIN = 1, PLACES_MAX = 500;
@@ -122,10 +120,6 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
     return !!l && Array.isArray(l.data) && l.has_more !== true && !l.data.some(x => x && x.id === a.abonnement);
   }
 
-  /* ── Perso+ : l'abonnement d'une PERSONNE (`facturation-perso.js`), sur le MÊME client Stripe ── */
-  const perso = creerPerso({ stockage, cfg, formule, journaliser, stripe, exclusif, id, url, erreur, absenceConfirmee, noterEchec, echecActif: () => echecDepuis !== null,
-    ID_SESSION, ID_ABO, ID_CLIENT, STATUTS_FINAUX, PANNES });
-
   /* ── relire un espace ──
      1. une session de paiement ouverte par NOUS attend-elle ? Terminée, elle désigne l'abonnement (après avoir vérifié qu'elle cite bien CET espace) ; expirée, ou inconnue de Stripe, on l'oublie ;
         ⛔ ELLE SE RELIT TOUJOURS, quel que soit son âge (relecture du gardien : une session de plus de 24 h était oubliée SANS être lue — payée à la 23e heure pendant que Stripe était injoignable,
@@ -178,24 +172,14 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
         faire attendre deux cents espaces dix secondes chacun) ; rien à lire = rien ne dépend de Stripe = plus d'échec en cours. ── */
   async function relireTous() {
     const ids = stockage.abonnementsARelire(200);
-    const idsPerso = perso.ouvert() ? perso.aRelire(200) : [];
     let ok = 0, ko = 0, suite = 0;
     for (const e of ids) {
       if (arrete) break;
       try { await relire(e); ok++; suite = 0; }
       catch (x) { ko++; if (PANNES.includes(x && x.code) && ++suite >= 3) break; }
     }
-    /* les personnes (Perso+) : la même marche, le même arrêt après trois pannes de suite */
-    for (const u of idsPerso) {
-      if (arrete || suite >= 3) break;
-      try { await perso.relire(u); ok++; suite = 0; }
-      catch (x) { ko++; if (PANNES.includes(x && x.code)) suite++; }
-    }
-    /* ⛔ les abonnements des comptes EFFACÉS qu'il reste à résilier chez Stripe : un échec s'est noté, il se rejoue ici (et tout de suite après chaque effacement : `index.js`) */
-    let annulations = 0;
-    if (!arrete && suite < 3) { try { const r = await perso.annulationsTraiter(); annulations = r.faites + r.ratees; } catch (x) { /* la file se relit au passage suivant */ } }
-    if (!ids.length && !idsPerso.length && !annulations && stockage.annulationPlusAncienne() === null) echecDepuis = null;
-    return { ok, ko, total: ids.length + idsPerso.length };
+    if (!ids.length) echecDepuis = null;
+    return { ok, ko, total: ids.length };
   }
   function demarrer() {
     if (!actif() || minuteur) return;
@@ -310,10 +294,7 @@ function creerFacturation({ stockage, config, formule, journaliser = () => {}, h
 
   /* minutes depuis lesquelles Stripe est illisible (0 : il l'est, ou rien n'en dépend) — c'est `stripeEchecMin` de /health, que la surveillance lit */
   const echecMin = () => echecDepuis === null ? 0 : Math.max(0, Math.floor((horloge() - echecDepuis) / 60000));
-  /* minutes depuis lesquelles un geste d'abonnement Perso+ d'une personne qui s'en va attend Stripe (0 : aucun) — `facturation.persoAnnulationMin` de /health */
-  const annulationAttenteMin = () => perso.attenteMin(horloge());
-  return { ouvert: actif, mode: () => cfg.mode, offres, etat, paiement, portail, relire, relireTous, dissoudre, demarrer, arreter, echecMin, derniereLecture: () => derniereLecture, lireAbonnement,
-    perso, annulationAttenteMin };
+  return { ouvert: actif, mode: () => cfg.mode, offres, etat, paiement, portail, relire, relireTous, dissoudre, demarrer, arreter, echecMin, derniereLecture: () => derniereLecture, lireAbonnement };
 }
 
 /* ══ LES ROUTES — `/api/facturation/offres` et `/api/espaces/:id/facturation/*` ═══════════════════════════════════════════════════════════════════
@@ -380,25 +361,6 @@ function installerFacturation(H, ctx) {
     if (!facturation.ouvert()) return refus(res, 503, 'abonnement_non_ouvert');
     if (!plafond(res, 'relire', req.espace.espace.id, { max: 1, fenetreMs: 10000 })) return;
     res.json(await facturation.relire(req.espace.espace.id));
-  });
-
-  /* ── PERSO+ : le forfait d'une PERSONNE (`facturation-perso.js`). La personne est CELLE DE LA SESSION, jamais celle du corps ; le corps ne nomme qu'un rythme. ── */
-  H['perso.etat'] = garder((req, res) => res.json(facturation.perso.etat(req.moi.id)));
-  H['perso.paiement'] = garder(async (req, res) => {
-    const b = corps(req);
-    if (!plafond(res, 'paiement', req.moi.id, { max: 20, fenetreMs: 3600000 })) return;
-    const r = await facturation.perso.paiement({ personne: req.moi.id, cycle: b.cycle, origine: req.headers.origin, adresse: adresseDe(req.moi) });
-    res.status(201).json(r);
-  });
-  H['perso.portail'] = garder(async (req, res) => {
-    if (!plafond(res, 'portail', req.moi.id, { max: 30, fenetreMs: 3600000 })) return;
-    res.json(await facturation.perso.portail({ personne: req.moi.id, origine: req.headers.origin }));
-  });
-  /* « J'ai réglé — vérifier » : un clic relit Stripe pour CETTE personne, une fois toutes les dix secondes au plus */
-  H['perso.relire'] = garder(async (req, res) => {
-    if (!facturation.perso.ouvert()) return refus(res, 503, 'abonnement_non_ouvert');
-    if (!plafond(res, 'relire', req.moi.id, { max: 1, fenetreMs: 10000 })) return;
-    res.json(await facturation.perso.relire(req.moi.id));
   });
 }
 

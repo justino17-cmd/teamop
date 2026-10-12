@@ -74,15 +74,17 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
   const PAIRE = paireVapid();
   const M = await monter({ formule: { toutOuvert: false }, quotas: { reunion: { max: 100000, fenetreMs: HEURE }, ics: { max: 100000, fenetreMs: MIN } }, push: PUSH_CFG, vapidPublicKey: PAIRE.pub, vapidPrivateKey: PAIRE.priv }, { OPMSG_TEST_PUSH: fps.hote });
   const { svc, S, pers, cl, payer, entrer, sql, nReunions, avancer } = M;
-  const ana = pers('Ana'), ben = pers('Ben'), cleo = pers('Cleo'), dan = pers('Dan'), eve = pers('Eve'), fred = pers('Fred'), gus = pers('Gus'), hal = pers('Hal');
-  const a = cl(ana), b = cl(ben), c = cl(cleo), d = cl(dan), e = cl(eve), f = cl(fred), g = cl(gus), h = cl(hal);
+  const ana = pers('Ana'), ben = pers('Ben'), cleo = pers('Cleo'), dan = pers('Dan'), eve = pers('Eve'), fred = pers('Fred'), gus = pers('Gus'), hal = pers('Hal'), ivy = pers('Ivy');
+  const a = cl(ana), b = cl(ben), c = cl(cleo), d = cl(dan), e = cl(eve), f = cl(fred), g = cl(gus), h = cl(hal), iv = cl(ivy);
   const flux = [];
   try {
-    /* L'entreprise payée d'Ana : Ben, Cleo, Gus et Hal y sont ses collègues (donc Pro et invitables) ; Dan n'est qu'un contact (Perso) ; Eve et Fred sont des étrangers ; Ana a bloqué Gus */
+    /* L'entreprise payée d'Ana : Ben, Cleo, Gus et Hal y sont ses collègues (donc Pro et invitables) ; Dan n'est qu'un contact (Perso — il prendra Pro par SA propre entreprise après la partie 1) ;
+       Ivy est un contact qui reste Perso (« un Pro peut inviter des Persos, mais que par lien » : elle est rendue dans `par_lien`) ; Eve et Fred sont des étrangers ; Ana a bloqué Gus */
     const E = S.espaceCreer({ nom: 'ENTREPRISE-WQXZ', proprio: ana.id }).id;
     payer(E);
     for (const p of [ben, cleo, gus, hal]) entrer(E, ana.id, p.id);
     S.contactLier(ana.id, dan.id);
+    S.contactLier(ana.id, ivy.id);
     S.contactBloquer(ana.id, gus.id);
     await a.post('/api/moi/maj', { tz: 'Europe/Paris' }); await c.post('/api/moi/maj', { tz: 'America/New_York' });
     const B0 = { titre: 'Base', debut: '2026-10-26T14:00', fin: '2026-10-26T15:00', tz: 'Europe/Paris' };
@@ -106,6 +108,9 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('population : Ben (une place dans l\'espace payé d\'Ana) programme (201) — le refus de Dan ne vient donc pas d\'une route qui refuse tout', [ok.code, nReunions()], [201, n0 + 1]);
       v('sans session : 401', (await T.client(svc.base).post('/api/reunions', corps())).code, 401);
     }
+
+    /* Dan prend Messages Pro : SA propre entreprise, payée — il reste un CONTACT d'Ana (pas un collègue), et devient invitable en son nom (Justin, 12 octobre 2026 : une réunion est une fonction Pro, des deux côtés) */
+    payer(S.espaceCreer({ nom: 'ENTREPRISE-DAN', proprio: dan.id }).id);
 
     /* ═══ 2. LE CORPS : CHAQUE REFUS DIT POURQUOI ET N'ÉCRIT RIEN ═════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nLe corps d\'une programmation : chaque refus dit pourquoi, un refus n\'écrit rien');
@@ -184,18 +189,20 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
     /* ═══ 3. LES INVITÉS, LES NOTIFICATIONS D'INVITATION ════════════════════════════════════════════════════════════════════════════════════════════ */
     console.log('\nLes invités : des contacts ou des membres de MON espace — un inconnu et un refusé répondent PAREIL');
     const T1 = 'Point d\'équipe ' + CANARI_T, L1 = 'Salle ' + CANARI_L, INC = inconnu();
-    const c1 = await a.post('/api/reunions', { titre: T1, lieu: L1, debut: '2026-10-26T14:00', fin: '2026-10-26T15:00', tz: 'Europe/Paris', invites: [ben.id, cleo.id, dan.id, eve.id, gus.id, INC, ana.id, ben.id], rappels: [15, 60] });
+    const c1 = await a.post('/api/reunions', { titre: T1, lieu: L1, debut: '2026-10-26T14:00', fin: '2026-10-26T15:00', tz: 'Europe/Paris', invites: [ben.id, cleo.id, dan.id, eve.id, gus.id, INC, ana.id, ben.id, ivy.id], rappels: [15, 60] });
     const R1 = c1.j.reunion.id, CONV1 = c1.j.reunion.conv;
     {
       v('programmer : 201', c1.code, 201);
       v('⛔ un collègue (Ben, Cleo), un contact (Dan) sont invités ; un étranger (Eve), un collègue que l\'hôte a BLOQUÉ (Gus) et un identifiant inconnu sont rendus ENSEMBLE dans `non_invites`, sans dire lequel est quoi', [statuts(c1.j), tri(c1.j.non_invites)], ['Ana:accepte Ben:attente Cleo:attente Dan:attente', tri([eve.id, gus.id, INC])]);
+      v('⛔ Ivy, un contact SANS Pro, n\'est PAS invitée en son nom : elle est rendue dans `par_lien` (« envoie-lui le lien »), seule — ni dans les invités, ni parmi les refusés', [tri(c1.j.par_lien), c1.j.invites.some(x => x.id === ivy.id), c1.j.non_invites.includes(ivy.id)], [[ivy.id], false, false]);
       v('l\'hôte s\'invite d\'office (accepté) et ne compte pas deux fois ; un doublon dans la liste est ignoré (4 participants)', [c1.j.invites.length, c1.j.invites.filter(i => i.hote).map(i => i.prenom)], [4, ['Ana']]);
       v('la fiche rendue à l\'hôte : hôte, mes rappels, première occurrence', [c1.j.moi, c1.j.prochaine], [{ hote: true, statut: 'accepte', rappels: [15, 60], rappels_perso: false }, { debut: L26, fin: L26 + HEURE }]);
       v('⛔ chaque invité ne reçoit de l\'hôte que ce que sa fiche dit : identifiant, prénom, nom, photo, réponse — rien d\'autre sur les autres (ni fuseau, ni adresse)', [...new Set(c1.j.invites.map(i => Object.keys(i).sort().join()))], ['avatar,hote,id,nom,prenom,statut']);
       const nb = await nots(b, R1), nc = await nots(c, R1), nd = await nots(d, R1), na = await nots(a, R1);
       v('⛔ chaque invité a UNE notification d\'invitation qui nomme l\'hôte, dit le titre, et l\'heure dans SON fuseau — Ben à Paris : 14:00', [nb.length, nb[0].type, nb[0].titre, nb[0].texte, nb[0].cible], [1, 'reunion_invitation', T1, 'Ana Banc vous a invité à une réunion : lundi 26 octobre à 14:00.', R1]);
       v('… Cleo, à New York : la MÊME réunion se lit 09:00 (13:00 UTC)', [nc.length, nc[0].texte], [1, 'Ana Banc vous a invité à une réunion : lundi 26 octobre à 09:00.']);
-      v('… Dan (un contact, sans Pro) la reçoit aussi', [nd.length, nd[0].type], [1, 'reunion_invitation']);
+      v('… Dan (un contact, Pro par sa propre entreprise) la reçoit aussi', [nd.length, nd[0].type], [1, 'reunion_invitation']);
+      v('⛔ … et Ivy (Perso, rendue « par le lien ») ne reçoit RIEN, et la réunion lui reste inconnue (404)', [(await nots(iv, R1)).length, (await fiche(iv, R1)).code], [0, 404]);
       v('⛔ l\'hôte n\'est pas notifié de son propre geste (zéro, la population étant trois notifications ailleurs)', na.length, 0);
       v('⛔ chaque notification dit QUI elle nomme (`auteur`) : l\'effacement du compte d\'Ana la réécrira « Un compte supprimé » (couture avec le lot 3) — population : trois notifications', [nb, nc, nd].map(l => sql('SELECT auteur FROM notification WHERE id = ?', l[0].id).auteur), [ana.id, ana.id, ana.id]);
       v('les personnes non invitées n\'ont reçu AUCUNE notification de réunion (population : Eve, Fred, Gus)', [(await nots(e)).length, (await nots(f)).length, (await nots(g)).length], [0, 0, 0]);
@@ -258,7 +265,7 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('Ben accepte', statuts((await b.post('/api/reunions/' + R1 + '/reponse', { statut: 'accepte' })).j), 'Ana:accepte Ben:accepte Cleo:attente Dan:attente');
       v('Cleo répond « peut-être »', statuts((await c.post('/api/reunions/' + R1 + '/reponse', { statut: 'peutetre' })).j), 'Ana:accepte Ben:accepte Cleo:peutetre Dan:attente');
       const rd = await d.post('/api/reunions/' + R1 + '/reponse', { statut: 'decline' });
-      v('population : Dan (Perso, sans aucun espace) répond SANS Pro — répondre ne demande pas de formule', [rd.code, statuts(rd.j)], [200, 'Ana:accepte Ben:accepte Cleo:peutetre Dan:decline']);
+      v('population : Dan, un contact (pas un collègue), répond — répondre ne demande que d\'être invité', [rd.code, statuts(rd.j)], [200, 'Ana:accepte Ben:accepte Cleo:peutetre Dan:decline']);
       const usurpe = await b.post('/api/reunions/' + R1 + '/reponse', { statut: 'peutetre', uid: ana.id, par: cleo.id, id: 'r_x' });
       v('⛔ un corps ne répond pas pour un autre : seule la réponse de Ben change (Ana et Cleo gardent la leur)', statuts(usurpe.j), 'Ana:accepte Ben:peutetre Cleo:peutetre Dan:decline');
       await b.post('/api/reunions/' + R1 + '/reponse', { statut: 'accepte' });
@@ -385,8 +392,9 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
     {
       const R4 = (await mk(a, { invites: [ben.id] })).reunion.id;
       const [nc0, nd0] = [(await nots(c, R4)).length, (await nots(d, R4)).length];
-      const inv = await a.post('/api/reunions/' + R4 + '/inviter', { uids: [cleo.id, dan.id, eve.id, gus.id, INC, ben.id] });
+      const inv = await a.post('/api/reunions/' + R4 + '/inviter', { uids: [cleo.id, dan.id, eve.id, gus.id, INC, ben.id, ivy.id] });
       v('⛔ inviter : les collègues et contacts entrent (Cleo, Dan) ; Eve, Gus (bloqué) et l\'inconnu sont rendus ENSEMBLE ; Ben, déjà invité, n\'est ni ajouté ni refusé', [inv.code, tri(inv.j.ajoutes), tri(inv.j.non_ajoutes)], [200, tri([cleo.id, dan.id]), tri([eve.id, gus.id, INC])]);
+      v('⛔ inviter Ivy (Perso) : elle n\'est PAS ajoutée, elle est rendue dans `par_lien` — et ne reçoit rien', [tri(inv.j.par_lien), inv.j.ajoutes.includes(ivy.id), (await nots(iv, R4)).length], [[ivy.id], false, 0]);
       v('… la fiche rendue les compte (4 participants) et Cleo reçoit son invitation dans SON fuseau (09:00 à New York)', [inv.j.invites.length, (await nots(c, R4)).length - nc0, (await nots(c, R4))[0].texte], [4, 1, 'Ana Banc vous a invité à une réunion : lundi 26 octobre à 09:00.']);
       v('… Dan aussi, et Ben (déjà invité) pas une seconde fois', [(await nots(d, R4)).length - nd0, (await nots(b, R4)).filter(n => n.type === 'reunion_invitation').length], [1, 1]);
       const hh = await a.post('/api/reunions/' + R4 + '/inviter', { uids: [hal.id], notifier: false });
@@ -404,10 +412,11 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('Cleo retirée peut être invitée de nouveau (elle a gardé son droit d\'être invitée)', (await a.post('/api/reunions/' + R4 + '/inviter', { uids: [cleo.id] })).j.ajoutes, [cleo.id]);
     }
 
-    console.log('\nDix personnes au plus, l\'hôte compris (Perso+ comme Pro) : le plafond se lit en HTTP, il vient d\'UNE constante');
+    console.log('\nDix personnes au plus, l\'hôte compris : le plafond se lit en HTTP, il vient d\'UNE constante');
     {
       const foule = [];
-      for (let i = 0; i < 12; i++) { const p = pers('M' + String(i).padStart(3, '0')); S.contactLier(ana.id, p.id); foule.push(p.id); }
+      /* des collègues de l'entreprise payée d'Ana (donc Pro) : un contact Perso serait rendu « par le lien », et ne compterait pas (Justin, 12 octobre 2026) */
+      for (let i = 0; i < 12; i++) { const p = pers('M' + String(i).padStart(3, '0')); entrer(E, ana.id, p.id); foule.push(p.id); }
       const n0 = nReunions();
       const tropnombreux = await a.post('/api/reunions', corps({ invites: foule.slice(0, 10) }));
       v('dix invités + l\'hôte = ONZE personnes : 409 `reunion_pleine`, le plafond (10) est dit, rien de créé', [tropnombreux.code, tropnombreux.j.error, tropnombreux.j.max, nReunions()], [409, 'reunion_pleine', 10, n0]);

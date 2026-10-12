@@ -182,10 +182,7 @@ function demarrer(env = process.env) {
       /* ⛔ LA TRANSCRIPTION : installée ou non ; si elle l'est, l'ouvrier répond-il (la sonde), et des COMPTEURS depuis le démarrage (faites, sans parole, ratées) et la file. Jamais un texte,
          une conversation, une personne, ni le chemin d'un programme. La surveillance crie si elle est installée et ne répond plus : les demandes partent alors en échec. */
       transcription: transcription.sante(),
-      /* ⛔ `persoAnnulationMin` : l'AGE, en minutes, du plus ancien geste d'abonnement Perso+ d'une personne qui s'en va que Stripe n'a pas confirmé — l'arrêt du renouvellement (suppression DEMANDÉE), son rétablissement (demande
-         ANNULÉE) ou la résiliation (compte EFFACÉ) ; 0 : aucun. Un âge, jamais un nombre, ni un genre, ni un identifiant : /health est PUBLIQUE, et « combien d'abonnés » est un chiffre commercial. La surveillance crie
-         au-delà d'un jour : une carte prélevée pour quelqu'un qui est parti ne se laisse pas dormir. */
-      facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert(), persoAnnulationMin: facturation.annulationAttenteMin() },
+      facturation: { mode: facturation.mode(), toutOuvert: formule.toutOuvert() },
     }),
   };
 
@@ -236,8 +233,6 @@ function demarrer(env = process.env) {
         if (e.audience.length) hub.emettre(e.audience, 'personne', { uid: id });
         if (e.appels && e.appels.length) hub.reveiller({ uids: e.appels });   // l'autre participant d'un appel que cet effacement a terminé l'apprend tout de suite
         journaliser('compte_efface', { n: e.pieces.length });
-        /* ⛔ son abonnement Perso+ s'annule chez Stripe TOUT DE SUITE (la demande est notée dans la transaction de l'effacement ; un échec se rejoue à la passe des dix minutes) */
-        facturation.perso.annulationsTraiter();
         /* ⛔ un espace PAYANT que cet effacement a laissé sans membre (un autre membre est parti pendant les quatorze jours) n'est pas dissous — Stripe continuerait de prélever sans plus aucun lien : il se règle à la main, et le journal le DIT (un nombre, jamais un espace) */
         if (e.espacesOrphelins && e.espacesOrphelins.length) journaliser('espace_payant_sans_membre', { n: e.espacesOrphelins.length });
       }

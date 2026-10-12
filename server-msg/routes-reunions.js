@@ -1,13 +1,13 @@
 /* ══ LES ROUTES DES RÉUNIONS PROGRAMMÉES — L'AGENDA, PROGRAMMER, INVITER, RÉPONDRE, LES RAPPELS, LE FICHIER .ICS ═══════════════════════════════════════════
  *
  *   GET  /api/reunions?du=&au=                  S   mes réunions qui touchent la fenêtre (62 jours au plus), avec leurs occurrences : de quoi dessiner la semaine
- *   POST /api/reunions   {titre,lieu?,debut,fin,tz?,repetition?,jusqua?,n?,invites?,rappels?,notifier?}   V PRO  programmer — la fonction Pro (la bêta ouvre tout)
+ *   POST /api/reunions   {titre,lieu?,debut,fin,tz?,repetition?,jusqua?,n?,invites?,rappels?,notifier?}   V PRO  programmer — la fonction Pro (la bêta ouvre tout) ; un invité sans Pro est rendu (`par_lien`)
  *   GET  /api/reunions/:id                      R   la fiche : l'horaire, la répétition, les invités et leur réponse, MES rappels, la prochaine occurrence
  *   POST /api/reunions/:id/modifier  {…champs…, notifier?}   H   seuls les champs passés changent ; un changement d'HORAIRE remet les réponses « en attente » ; vingt modifications par réunion et par heure
  *   POST /api/reunions/:id/decaler   {debut,fin,motif?}  H   DÉCALER (le glisser de l'agenda) : l'horaire seul, un motif facultatif ; prévient TOUJOURS chaque participant (ancien → nouvel horaire, motif)
  *   POST /api/reunions/:id/annuler              H   la réunion reste (annulée), plus aucun rappel ; prévient les invités — toujours
  *   POST /api/reunions/:id/supprimer {notifier?} H   la réunion part avec sa conversation ; prévient d'abord les invités d'une réunion à venir
- *   POST /api/reunions/:id/inviter   {uids,notifier?}  H   des contacts ou des membres de MON espace seulement (comme un groupe) ; les autres sont rendus (`non_ajoutes`)
+ *   POST /api/reunions/:id/inviter   {uids,notifier?}  H   des contacts ou des membres de MON espace seulement (comme un groupe) ; les autres sont rendus (`non_ajoutes`), ceux qui n'ont pas Pro aussi (`par_lien`)
  *   POST /api/reunions/:id/retirer   {uid}      H   l'hôte ne se retire pas
  *   POST /api/reunions/:id/quitter              R   la sortie de l'INVITÉ : plus d'invitation, plus de conversation de la réunion, plus de rappel ; l'hôte ne quitte pas (il annule ou supprime) et peut réinviter
  *   POST /api/reunions/:id/reponse   {statut}   R   accepte · decline · peutetre — l'hôte n'a pas à répondre
@@ -27,6 +27,9 @@
  * pas invité répond 404, la MÊME réponse qu'une réunion qui n'existe pas : un non-invité ne voit RIEN (ni le titre, ni les invités, ni l'existence).
  * ⛔ « INVITÉS : DES CONTACTS OU DES MEMBRES DE SON ESPACE » : `peutEcrire` est la SEULE définition (la même que pour un groupe). Jamais une recherche par nom hors de l'espace, jamais un
  * identifiant inconnu qui répondrait autrement qu'un identifiant refusé : les deux sont rendus dans `non_ajoutes`/`non_invites`, indistinctement.
+ * ⛔ « UN PRO PEUT INVITER DES PERSOS À DES RÉUNIONS, MAIS QUE PAR LIEN » (Justin, 12 octobre 2026) : être invité EN SON NOM demande Pro (`formule.inviteDirect`, la seule définition, la bêta
+ * ouvre tout). Un contact sans Pro n'est pas invité : il est rendu dans `par_lien`, pour que la page dise « envoie-lui le lien » — c'est le lien (`/api/reunions/rejoindre`) qui le fait entrer.
+ * `par_lien` ne nomme QUE des personnes à qui l'hôte peut déjà écrire (le filtre `peutEcrire` passe AVANT) : un identifiant inconnu reste dans `non_invites`, il n'apprend rien de plus.
  * ⛔ L'HEURE SE DIT DANS UN FUSEAU, ET C'EST LE SERVICE QUI FAIT AUTORITÉ : la page peut envoyer des instants (millisecondes UTC) ou une heure LOCALE « 2026-10-26T14:00 » avec son fuseau ; une
  * heure locale qui n'existe pas (le trou du changement d'heure) est REFUSÉE (`heure_inexistante`), jamais décalée sans le dire. La série garde son heure locale de part et d'autre d'un
  * changement d'heure (`calendrier.js`).
@@ -256,7 +259,8 @@ function installerReunions(H, ctx) {
       if (voulus.length > INVITES_MAX) return refus(res, 409, 'trop_d_invites');
     }
     if (!plafond(res, 'reunion', hote.id, { max: 30, fenetreMs: 3600000 })) return;
-    const ok = voulus.filter(u => stockage.peutEcrire(hote.id, u)), non_invites = voulus.filter(u => !ok.includes(u));
+    const joignables = voulus.filter(u => stockage.peutEcrire(hote.id, u)), non_invites = voulus.filter(u => !joignables.includes(u));
+    const ok = joignables.filter(u => ctx.formule.inviteDirect(u)), par_lien = joignables.filter(u => !ok.includes(u));     // ⛔ sans Pro : par le lien seulement
     const prochain = prochainDe(v.serie, horloge());
     const r = stockage.reunionCreer({ hote: hote.id, titre: v.titre, lieu: v.lieu, debut: v.serie.debut, fin: v.serie.fin, tz: v.serie.tz, rep: v.serie.rep, n: v.serie.n, jusqua: v.serie.jusqua, rappels: v.rappels, invites: ok, prochain, finSerie: cal.finDeSerie(v.serie), attente: b.salle_attente === true,
       plafond: ctx.formule.plafondReunion(hote.id), cote: b.cote === undefined ? null : b.cote });          // ⛔ dix personnes au plus, organisateur compris : UNE fonction (`formule.js`) le dit
@@ -266,7 +270,7 @@ function installerReunions(H, ctx) {
       const quand = prochain !== null ? prochain : v.serie.debut, desc = { titre: v.titre, tz: v.serie.tz, repetition: v.serie.rep };
       for (const u of r.invites) notif.notifier({ uid: u, type: 'reunion_invitation', reunion: r.id, titre: v.titre, texte: texteInvitation(hote, desc, personne(u), quand), auteur: hote.id });
     }
-    res.status(201).json(Object.assign({ non_invites }, vue(hote.id, r.id)));
+    res.status(201).json(Object.assign({ non_invites, par_lien }, vue(hote.id, r.id)));
   });
 
   H['reunions.lire'] = garder((req, res) => res.json(vue(req.moi.id, req.reunion.id)));
@@ -423,14 +427,15 @@ function installerReunions(H, ctx) {
     const b = corps(req), id = req.reunion.id, hote = req.moi;
     if (b.notifier !== undefined && typeof b.notifier !== 'boolean') return refus(res, 400, 'champ_invalide');
     const u = listeUids(b.uids, UIDS_PAR_APPEL); if (!u) return refus(res, 400, 'champ_invalide');
-    const ok = u.filter(x => stockage.peutEcrire(hote.id, x)), non_ajoutes = u.filter(x => !ok.includes(x));
+    const joignables = u.filter(x => stockage.peutEcrire(hote.id, x)), non_ajoutes = u.filter(x => !joignables.includes(x));
+    const ok = joignables.filter(x => ctx.formule.inviteDirect(x)), par_lien = joignables.filter(x => !ok.includes(x));     // ⛔ sans Pro : par le lien seulement
     const r = ok.length ? stockage.reunionInviter({ id, par: hote.id, uids: ok, plafond: ctx.formule.plafondReunion(hote.id) }) : { ajoutes: [], gid: 0 };
     if (r.gid) hub.reveiller({ conv: req.reunion.conv });
     if (notifierVoulu(b) && r.ajoutes.length) {
       const courante = stockage.reunionPourMembre(id, hote.id).reunion, quand = prochainDe(serieDe(courante), horloge());
       for (const x of r.ajoutes) notif.notifier({ uid: x, type: 'reunion_invitation', reunion: id, titre: courante.titre, texte: texteInvitation(hote, courante, personne(x), quand !== null ? quand : courante.debut), auteur: hote.id });
     }
-    res.json(Object.assign({ ajoutes: r.ajoutes, non_ajoutes }, vue(hote.id, id)));
+    res.json(Object.assign({ ajoutes: r.ajoutes, non_ajoutes, par_lien }, vue(hote.id, id)));
   });
 
   H['reunions.retirer'] = garder((req, res) => {

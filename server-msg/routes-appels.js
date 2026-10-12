@@ -10,7 +10,7 @@
  *
  * Une fonction par ligne du manifeste (`manifeste.js`), branchée par `routes.js`. L'orchestration (relais, signaux, balayeur, pushs) est dans `appels.js`, le SQL dans `stockage.js`.
  * ⛔ LES APPELS SONT GRATUITS, À DEUX COMME À PLUSIEURS (Justin, 4 octobre 2026 : « comme WhatsApp : appel, message, appel vidéo » ; un appel de GROUPE reste gratuit) : aucune de ces routes ne porte `pro: true` ni
- * `organiser: true`, et `formuleDe` n'intervient pas ici. Ce qui se paie est d'ORGANISER (programmer une réunion, tenir les outils de l'organisateur d'une salle : Perso+ ou Pro) — voir `routes-salles.js`, où
+ * `organiser: true`, et `formuleDe` n'intervient pas ici. Ce qui se paie est d'ORGANISER (programmer une réunion, tenir les outils de l'organisateur d'une salle : Pro) — voir `routes-salles.js`, où
  * un appel de groupe lancé par quelqu'un qui n'a ni l'un ni l'autre garde le micro, la caméra, les réactions, la main levée et le partage d'écran, mais pas la salle d'attente, le verrou, le sondage, le minuteur,
  * l'enregistrement, ni le droit de retirer quelqu'un ou de couper les micros. Les gestes de l'hôte et des participants d'une salle sont dans `routes-salles.js`.
  *
@@ -133,8 +133,8 @@ function installerAppels(H, ctx) {
       try { r = appels.creerGroupe({ moi, invites: sonnent, type: b.type, sessionH: req.sessionH, conv }); }
       catch (e) { if (e && e.code === 'occupe_moi') return refus(res, 409, 'occupe', { moi: true }); throw e; }
       if (r.occupe) return refus(res, 409, 'occupe', { moi: false });
-      /* ⛔ la salle avec l'appel, comme à l'entrée (`appels.rejoindre`) : sans elle, la page de CELUI QUI LANCE ignorait si sa salle a les outils de l'organisateur (Pro ou Perso+) tant qu'aucun événement ne le lui
-         disait — la sonde de navigateur l'a vu : Perso+ lançait un appel de groupe et n'y trouvait ni verrou ni salle d'attente. */
+      /* ⛔ la salle avec l'appel, comme à l'entrée (`appels.rejoindre`) : sans elle, la page de CELUI QUI LANCE ignorait si sa salle a les outils de l'organisateur (Pro) tant qu'aucun événement ne le lui
+         disait — la sonde de navigateur l'a vu : un organisateur lançait un appel de groupe et n'y trouvait ni verrou ni salle d'attente. */
       return res.status(201).json({ appel: r.vue, salle: appels.etatSalle(r.vue.id, moi.id) });
     }
     /* ⛔ la règle de la messagerie, et SA réponse : pas de contact, un blocage dans un sens ou dans l'autre, une personne qui n'existe pas — 404, le même */
