@@ -1,5 +1,7 @@
 # OP MESSAGES — l'offre entreprise : pourquoi 15 €
 
+*⛔ Mise à jour du 12 octobre 2026 : **Perso+ est RETIRÉ.** Justin : « Perso, c'est simple. C'est appel, message, et c'est tout. Créer des groupes d'appels, créer des groupes d'appels vidéo, mais pas de réunion. » — Perso+ : « le retirer » — et « un Pro peut inviter des Persos à des réunions, mais que par lien ». Les réunions sont à **Pro** : les organiser, et y être invité en son nom ; une personne Perso y entre par le **lien** que l'organisateur lui envoie. Les lignes sur Perso+ ci-dessous restent pour l'histoire de la décision.*
+
 *Mise à jour du 4 octobre 2026 : le public a désormais DEUX niveaux avant l'entreprise — **Perso** (gratuit) et **Perso+** (5 € par mois, pour une personne) ; une réunion compte au plus **10 personnes** ; le supplément « Grandes réunions » est écrit, pas vendu. Voir la section 2 et son encadré « Perso+ ».*
 
 *Étude du 1er octobre 2026. ✅ DÉCIDÉE : Justin a répondu « Fait tout » le soir même — les 14 recommandations de la section 10 sont ACCEPTÉES telles qu'écrites. Écrite pour être lue sur un téléphone. Tous les prix de concurrents sont des prix de catalogue américains en dollars, hors taxes, par personne et par mois, avec leur source et leur date. Quand je ne sais pas, je l'écris.*
@@ -23,7 +25,7 @@
 
 ## 2. La grille proposée
 
-|  | **Perso** | **Perso+** (nouveau, 4 octobre) | **Essentiel** (proposition en attente) | **Pro** | **Sur mesure** |
+|  | **Perso** | **Perso+** (⛔ RETIRÉ le 12 octobre) | **Essentiel** (proposition en attente) | **Pro** | **Sur mesure** |
 | --- | --- | --- | --- | --- | --- |
 | Prix TTC par personne et par mois | 0 € | **5 €** (50 € l'année), pour UNE personne | **5 €** (50 € l'année) | **15 €** (150 € l'année = 10 mois pour 12) | à partir de 25 €, sur devis |
 | Pour qui | tout le monde | une personne seule, sans espace d'entreprise, qui organise des réunions | petites entreprises de 1 à 5 personnes | entreprises, toutes tailles | 200 personnes et plus, grands comptes |
@@ -31,7 +33,7 @@
 | Messages, groupes, vocaux, fichiers | oui | oui | oui | oui | oui |
 | Place pour les fichiers par personne | 2 Go | 2 Go (comme Perso) | 5 Go | 20 Go | à définir |
 | Appels | audio et vidéo à 2 **et en groupe** (micro, caméra, réactions, main levée, partage d'écran) ; 4 en vidéo, 6 en audio | comme Perso (à deux et en groupe) | audio et vidéo à plusieurs | audio et vidéo à plusieurs | idem |
-| **Réunions** | **rejoindre** une réunion où l'on est invité (invitation ou lien d'invité) — gratuit | rejoindre **et créer**, **10 personnes au plus** (organisateur compris), aucun supplément possible | créer, **durée sans limite**, jusqu'à **10** participants, 6 caméras | créer, **durée sans limite**, **10 personnes au plus** (organisateur compris) aujourd'hui ; plus avec le supplément « Grandes réunions » — **avec le serveur de visio, bientôt** (voir plus bas) | machine de visio réservée |
+| **Réunions** | ⛔ (12 octobre) **entrer par le lien** que l'organisateur (Pro) envoie — gratuit ; ni organiser, ni être invité en son nom | rejoindre **et créer**, **10 personnes au plus** (organisateur compris), aucun supplément possible | créer, **durée sans limite**, jusqu'à **10** participants, 6 caméras | créer, **durée sans limite**, **10 personnes au plus** (organisateur compris) aujourd'hui ; plus avec le supplément « Grandes réunions » — **avec le serveur de visio, bientôt** (voir plus bas) | machine de visio réservée |
 | Invité sans compte ni installation | peut rejoindre | oui | oui | oui | oui |
 | Réunions programmées, salle à adresse fixe | non | oui (ordre du jour, rappels, invitations, fichier .ics, lien d'invité) | oui | oui | oui |
 | Contrôles de l'hôte (attente, verrou, exclusion, coupure des micros) | non (un appel de groupe garde micro, caméra, réactions, main levée, partage d'écran) | oui (en plus : sondage, minuteur, signal d'enregistrement) | oui | oui + co-hôtes + rapport de présence | idem |
@@ -44,7 +46,16 @@
 
 **Important sur les chiffres de participants** : « 100 » (et 25 caméras) est un plafond visé, jamais mesuré — aucune machine n'a été testée —, et il n'est PAS offert aujourd'hui : voir le plafond de dix personnes ci-dessous. Avant le test de charge de LiveKit, on écrit « jusqu'à 4 en vidéo, 6 en audio » sur le site.
 
-### Perso+ : le forfait d'une PERSONNE (décidé le 4 octobre 2026)
+### Perso+ : le forfait d'une PERSONNE (décidé le 4 octobre 2026, ⛔ RETIRÉ le 12 octobre 2026)
+
+**⛔ Ce qui vaut depuis le 12 octobre 2026** (Justin : « Perso, c'est appel, message, et c'est tout… mais pas de réunion » ; Perso+ : « le retirer » ; « un Pro peut inviter des Persos à des réunions, mais que par lien ») :
+
+- **Perso, 0 €** : messages, groupes, vocaux, fichiers, appels audio et vidéo à deux **et en groupe** (créer un groupe d'appel audio ou vidéo, comme sur WhatsApp). **Pas de réunion** : on n'en organise pas, on n'y est pas invité en son nom — on y **entre par le lien** que l'organisateur envoie (le lien fait entrer tout compte, dans la limite de dix personnes).
+- **Pro** : organiser une réunion et en tenir les outils ; être invité en son nom. Un Pro qui invite un contact Perso le voit rendu « par le lien » (le service ne l'invite pas, la page dit « envoie-lui le lien de la réunion »).
+- **Perso+ n'existe plus** : plus de tarif, plus de route, plus d'écran. Aucun Perso+ n'avait été vendu (la bêta n'a pas de Stripe). Ses deux tables (`abonnement_perso`, `abonnement_a_annuler`) restent dans le schéma, vides, pour qu'un retour en arrière du déploiement reste possible. Un produit de TEST « OP MESSAGES Perso+ », s'il a été créé chez Stripe, peut être archivé.
+
+*Ce qu'était Perso+ (4 au 12 octobre 2026), pour l'histoire :*
+
 
 *Le nom « Perso+ » est provisoire : le service l'écrit à un seul endroit (`NOM_PERSO_PLUS`, `server-msg/formule.js`) et la page le lit du service. Le renommer ne touche aucun autre fichier.*
 
@@ -56,7 +67,7 @@
 - **Payé, impayé** : payé = abonnement `active` ou `trialing` chez Stripe, rien d'autre. `past_due` ou `unpaid` = impayé : plus d'organisation, tout de suite, **sans sursis** (la personne n'a pas d'entreprise derrière elle) ; son compte, ses messages, ses appels et ses réunions déjà programmées restent. Le montant et le tarif viennent de la configuration du service, jamais d'une requête. **Qui demande à supprimer son compte n'est plus prélevé** : l'abonnement cesse de se renouveler dès la demande (l'accès reste jusqu'à la fin de la période déjà payée ou jusqu'à l'effacement) ; si la personne se reconnecte et annule sa demande, le renouvellement revient — sauf si elle l'avait elle-même arrêté avant ; au bout des 14 jours, le compte est effacé et l'abonnement **résilié**.
 - **Ce que ça rapporte** : sur 5 € TTC, 4,17 € hors taxes ; Stripe prend environ 0,36 € (1,5 % + 0,25 € + 0,7 %, l'hypothèse de la section 8, non vérifiée sur une vraie facture) ; il reste environ **3,8 € avant l'hébergement et le support**. Un client Perso+ coûte peu (pas de stockage de plus que Perso, pas de visio hébergée) : c'est le prix qui paie le travail de maintien, pas une marge à optimiser.
 
-**Le plafond de dix personnes** (décision du 4 octobre 2026). Une réunion compte au plus **10 personnes, organisateur compris**, pour Perso+ comme pour Pro. Perso+ s'arrête à 10 : **aucun supplément possible**. Le service refuse la onzième entrée (par invitation, par lien) avec une phrase qui nomme le plafond. Il tient en **une constante** (`REUNION_PERSONNES_MAX`, `formule.js`), que la page LIT du service (`/api/config`). ⚠️ Deux précisions : (1) un appel de **groupe** gratuit n'est pas une réunion — il garde la limite de la maille (4 en vidéo, 6 en audio) ; (2) « 10 » compte les personnes **invitées**, pas celles présentes dans la salle en même temps : tant que le serveur de visio n'est pas là, la salle ne tient que 4 en vidéo ou 6 en audio. On ne promet donc pas « 10 en vidéo ».
+**Le plafond de dix personnes** (décision du 4 octobre 2026). Une réunion compte au plus **10 personnes, organisateur compris** (⛔ depuis le 12 octobre, seul Pro organise ; « pour Perso+ comme pour Pro » au 4 octobre). Le service refuse la onzième entrée (par invitation, par lien) avec une phrase qui nomme le plafond. Il tient en **une constante** (`REUNION_PERSONNES_MAX`, `formule.js`), que la page LIT du service (`/api/config`). ⚠️ Deux précisions : (1) un appel de **groupe** gratuit n'est pas une réunion — il garde la limite de la maille (4 en vidéo, 6 en audio) ; (2) « 10 » compte les personnes **invitées**, pas celles présentes dans la salle en même temps : tant que le serveur de visio n'est pas là, la salle ne tient que 4 en vidéo ou 6 en audio. On ne promet donc pas « 10 en vidéo ».
 
 **Le supplément « Grandes réunions »** (Pro seulement, **29 € par ENTREPRISE et par mois**, jusqu'à 300 personnes, 4 grandes réunions par mois — son coût est en section 3) est **ÉCRIT, PAS VENDU** : il demande le serveur de visio (LiveKit), qui n'existe pas encore, et on ne vend pas ce qu'on ne tient pas. Rien dans le service ni dans la page ne le propose : ni tarif Stripe, ni route d'achat, ni bouton ; les pages disent seulement « avec le serveur de visio, bientôt ». Le jour venu, **un seul endroit change** : `plafondReunion(organisateur)` (`formule.js`), qui rend aujourd'hui 10 pour tout le monde.
 

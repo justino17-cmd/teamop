@@ -9,10 +9,10 @@
  *     POST /v1/billing_portal/sessions    le portail de facturation (`customer` exigé)
  *     GET  /v1/prices/:id                 un tarif (avec son produit si `expand[]=product`) — lu par `configurer-stripe.js`
  *     GET  /v1/customers/:id              un client (404 s'il n'existe pas ; `deleted:true` s'il a été supprimé) — lu par le service pour CONFIRMER l'absence d'un abonnement (voir `absenceConfirmee`)
- *     DELETE /v1/subscriptions/:id        RÉSILIER un abonnement (Perso+ : un compte effacé) → l'objet, `status: 'canceled'` ; 404 s'il n'existe pas ; déjà résilié, il le redit (`E.resiliations` garde les identifiants)
- *     POST /v1/subscriptions/:id          MODIFIER un abonnement — le seul paramètre qu'on y envoie : `cancel_at_period_end` (`true` : il cesse de se renouveler, Perso+ d'une personne qui demande à partir ; `false` : le renouvellement
+ *     DELETE /v1/subscriptions/:id        RÉSILIER un abonnement (le service ne le demande plus depuis que Perso+ est retiré, 12 octobre 2026 : `E.resiliations` prouve qu'il ne le fait pas) → l'objet, `status: 'canceled'` ; 404 s'il n'existe pas ; déjà résilié, il le redit (`E.resiliations` garde les identifiants)
+ *     POST /v1/subscriptions/:id          MODIFIER un abonnement — le seul paramètre qu'on y envoie : `cancel_at_period_end` (`true` : il cesse de se renouveler — plus demandé par le service depuis le retrait de Perso+ ; `false` : le renouvellement
  *                                         revient). → l'objet à jour ; 404 s'il n'existe pas ; 400 s'il est résilié (Stripe ne modifie pas un abonnement résilié) ; `E.modifications` garde chaque changement APPLIQUÉ
- *     POST /v1/products, /v1/prices       créer un produit, un tarif (le script `configurer-stripe.js --creer-perso-plus`) — 403 si la clé n'a pas le droit d'écrire (`sansDroits` : « ecriture »)
+ *     POST /v1/products, /v1/prices       créer un produit, un tarif (plus demandé : `configurer-stripe.js` ne crée plus rien depuis le retrait de Perso+) — 403 si la clé n'a pas le droit d'écrire (`sansDroits` : « ecriture »)
  *     GET  /v1/subscriptions?status=all   la LISTE (ce que lit OP GESTION : `status=all`, `limit=100`, `starting_after`, du plus récent au plus ancien, le client et le produit des lignes
  *                                         développés seulement s'ils sont demandés par `expand[]`) — pour le banc de la couture, test-965 ; `listes` garde ce que chaque page a montré
  *
