@@ -7,7 +7,7 @@
  * La page ne parle à AUCUN tiers : c'est le service qui demande à l'IGN (`trajet.js`). ⛔ La position du moment (« Ma position ») sert à CE calcul et n'est rangée nulle part ; Domicile et
  * Travail se rangent scellés (`lieu_perso`), et le point d'un domicile ne revient jamais à la page (elle n'en a pas besoin : elle dit « Domicile », le service sait où c'est).
  * Les refus se disent par leur code : le lieu vide ou illisible, une adresse introuvable (`quoi` dit laquelle : « vers » ou « depart »), Domicile ou Travail pas encore enregistrés, un trajet
- * impossible (hors de France, la mer), le calcul indisponible (l'IGN ne répond pas — 503, réessayer) ou occupé (503, `retry`).
+ * impossible (hors de France, la mer), trop long (plus de 24 heures : `trajet_trop_long`), le calcul indisponible (l'IGN ne répond pas — 503, réessayer) ou occupé (503, `retry`).
  * Trente calculs par heure et par personne (les géocodages de Domicile/Travail comptent aussi) : assez pour régler un agenda, pas pour vider le seau de tout le monde.
  */
 'use strict';
@@ -70,6 +70,8 @@ function installerTrajet(H, ctx) {
         depuis = { lon: dc[0].lon, lat: dc[0].lat, label: dc[0].label };
       }
       const r = await trajet.itineraire(depuis, cands[0], b.mode);
+      /* ⛔ plus de vingt-quatre heures de route (à pied jusqu'à Lyon) : ce n'est pas un trajet de rendez-vous — et l'agenda n'en rangerait pas (`validerTrajet` : 1 440 minutes au plus) */
+      if (r.minutes > 1440) return refus(res, 400, 'trajet_trop_long');
       res.json({ minutes: r.minutes, km: r.km, mode: b.mode, vers: { label: cands[0].label }, depuis: { type: d.type, label: depuis.label }, autres: cands.slice(1, 4).map(c => c.label) });
     } catch (e) { return repondreErreur(res, e, departTexte ? null : 'vers'); }
   };

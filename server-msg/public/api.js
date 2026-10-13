@@ -138,6 +138,7 @@
     mode_invalide: 'Choisis : en voiture ou à pied.',
     trajet_invalide: 'Ce trajet n\'est plus valable : calcule-le à nouveau.',
     trajet_impossible: 'Aucun trajet en voiture ou à pied ne mène là depuis ce départ (en France seulement).',
+    trajet_trop_long: 'Ce trajet dure plus de 24 heures : choisis un autre départ, ou la voiture.',
     trajet_occupe: 'Beaucoup de trajets sont calculés en ce moment. Réessaie dans quelques secondes.',
     trajet_indisponible: 'Le calcul du trajet ne répond pas pour le moment. Réessaie plus tard — le rendez-vous, lui, s\'enregistre sans.',
     trajet_ferme: 'Le calcul du trajet n\'est pas ouvert sur ce serveur.',

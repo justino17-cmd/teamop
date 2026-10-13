@@ -160,6 +160,21 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     await toucher(A, '[data-evt="enregistrer"]');
     vrai('« Rendez-vous modifié »', await attendre(A, () => /Rendez-vous modifié/.test(document.getElementById('mot').textContent)));
     v('le service : le lieu et SON trajet', ((await agendaAlice()).filter(e => e.titre === 'Kiné QXT').map(e => [e.lieu, e.trajet && e.trajet.vers_label, e.trajet && e.trajet.minutes])), [['Tour Eiffel', TE.label, m4]]);
+    /* ⛔ le lieu changé, puis « Enregistrer » AUSSITÔT : quitter le champ lance le recalcul, l'enregistrement l'attend (sinon le rendez-vous partait sans trajet) */
+    await A.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'Kiné QXT' }).first().tap();
+    await attendre(A, () => /Partir à/.test((document.getElementById('ev-tr-res') || {}).textContent || ''));
+    await A.page.locator('#ev-lieu').fill('8 rue de Rivoli');
+    await toucher(A, '[data-evt="enregistrer"]');
+    vrai('lieu changé puis « Enregistrer » tout de suite : « Rendez-vous modifié »', await attendre(A, () => /Rendez-vous modifié/.test(document.getElementById('mot').textContent) && !document.documentElement.classList.contains('feuille-ouverte')));
+    v('   ⛔ le service a le NOUVEAU lieu et le trajet recalculé vers lui (l\'enregistrement a attendu le calcul)', ((await agendaAlice()).filter(e => e.titre === 'Kiné QXT').map(e => [e.lieu, e.trajet && e.trajet.vers_label, e.trajet && e.trajet.minutes])),
+      [['8 rue de Rivoli', R4.label, minutesDe(POS, R4, 'pied')]]);
+    await A.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'Kiné QXT' }).first().tap();
+    await attendre(A, () => /Partir à/.test((document.getElementById('ev-tr-res') || {}).textContent || ''));
+    await A.page.locator('#ev-lieu').fill('Tour Eiffel'); await A.page.locator('#ev-lieu').blur();
+    await attendre(A, () => ((document.getElementById('ev-tr-res') || {}).textContent || '').includes('Vers Tour Eiffel 75007 Paris'));
+    await toucher(A, '[data-evt="enregistrer"]');
+    await attendre(A, () => /Rendez-vous modifié/.test(document.getElementById('mot').textContent) && !document.documentElement.classList.contains('feuille-ouverte'));
+    v('   (remis vers la tour Eiffel pour la suite)', ((await agendaAlice()).filter(e => e.titre === 'Kiné QXT').map(e => e.lieu)), ['Tour Eiffel']);
 
     console.log('\n── 6. Domicile, enregistré depuis la fiche ; « Retirer le trajet » ──');
     await A.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'Kiné QXT' }).first().tap();

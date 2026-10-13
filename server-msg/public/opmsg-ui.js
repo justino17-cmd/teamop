@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'ae93becc7a05';
+  const OPMSG_BUILD = 'eaddf9257aca';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 183;
+  const OPMSG_VERSION = 185;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6131,7 +6131,7 @@
           (retard ? ' En partant maintenant, tu arrives vers ' + heureDans(Date.now() + c.minutes * 60000, F.tz) + '.' : '')) + '</p>' : '') +
         '<p class="info-note">Vers ' + esc(c.vers_label) + '</p>' +
         (possible && T.autres.length ? '<p class="info-note">Pas le bon endroit ? Plutôt :</p><div class="info-actions evt-tr-autres">' + T.autres.map(a => '<button type="button" class="mini" data-evt="trajet-autre" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div>' : '') +
-        '<p class="info-note">Une notification te dira quand partir.</p></div>';
+        '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir.</p></div>';
     }
     h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-evt="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (T.calc ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
       (T.calc ? '<button type="button" class="mini" data-evt="trajet-retirer">Retirer le trajet</button>' : '') + '</div>';
@@ -6168,6 +6168,8 @@
     if ((T.depart === 'adresse' || ranger) && !adresse) { T.erreur = T.depart === 'adresse' ? 'Écris l\'adresse d\'où tu pars.' : 'Écris l\'adresse de ton ' + (T.depart === 'domicile' ? 'domicile' : 'travail') + '.'; peindreTrajet(); const c = $('ev-tr-adresse'); if (c) c.focus(); return; }
     const jeton = ++T.jeton, encore = () => reu.formEvt === F && T.jeton === jeton;
     T.calcul = true; peindreTrajet();
+    /* ⛔ le calcul EN COURS se laisse attendre : « Enregistrer » touché juste après avoir changé le lieu (le champ quitté lance le recalcul) attend sa fin, au lieu d'enregistrer sans trajet */
+    let fini = () => {}; T.enCours = new Promise((ok) => { fini = ok; });
     try {
       let depuis;
       if (T.depart === 'position') { if (!T.position) T.position = await positionDuMoment(); depuis = { type: 'position', lon: T.position.lon, lat: T.position.lat }; }
@@ -6187,7 +6189,7 @@
       if (er && er.code === 'trajet_occupe' && T.essai < 1) { T.essai = 1; setTimeout(() => { if (encore()) trajetCalculer(choisi); }, Math.max(1, er.retry || 2) * 1000); peindreTrajet(); return; }
       if (er && er.code === 'lieu_absent' && (T.depart === 'domicile' || T.depart === 'travail')) TJ.lieux = Object.assign({}, TJ.lieux || {}, { [T.depart]: null });   // retiré ailleurs : on le redemande
       T.essai = 0; T.erreur = phrase(er, 'Le trajet n\'a pas pu être calculé.');
-    }
+    } finally { fini(); }
     T.calcul = false; peindreTrajet();
   }
   /* le départ ou le mode changent : le trajet calculé ne vaut plus — il part, et se recalcule si on en avait un (sauf s'il faut d'abord écrire une adresse) */
@@ -6302,6 +6304,8 @@
     if (!F.id) champs.tz = F.tz;
     if (!F.id && modesActifs()) champs.cote = F.cote || etat.mode;           // créé du côté où l'on était en ouvrant la fiche (un compte sans les deux côtés n'en dit rien : Perso) ; modifié, il garde le sien
     b.disabled = true;
+    /* un trajet en train de se calculer : on attend sa fin (dix secondes au plus), puis on enregistre ce qui est affiché */
+    if (F.rdv && F.tr && F.tr.calcul && F.tr.enCours) { await Promise.race([F.tr.enCours, new Promise((ok) => setTimeout(ok, 10000))]); const t = trajetAEnvoyer(F); if (t !== undefined) champs.trajet = t; else delete champs.trajet; }
     try {
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
       mot(F.rdv ? (F.id ? 'Rendez-vous modifié' : 'Rendez-vous ajouté à ton agenda') : (F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda'));

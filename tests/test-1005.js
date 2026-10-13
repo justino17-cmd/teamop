@@ -146,9 +146,9 @@ function fauxFetch(repondre) {
   tps += 5000; force = (u) => ({ status: 200, corps: Object.assign({ duration: 0.2, distance: 0.04 }, pts(u)) });
   v('   un trajet de quelques secondes : une minute (jamais « 0 min »)', await M.itineraire(ici(20), VERS, 'voiture'), { minutes: 1, km: 0 });
   const jAvant = journal.length;
-  v('les refus de l\'IGN : 429 → occupé, 4xx → impossible, 500 → indisponible ; un réseau coupé, une réponse illisible ou trop lourde → indisponible', [
+  v('les refus de l\'IGN : 429 → occupé, 4xx → impossible, 500 → indisponible ; un réseau coupé, une réponse illisible, ou trop lourde (un VRAI trajet, plus d\'1 Mo) → indisponible', [
     await essai(21, { status: 429, corps: {} }), await essai(22, { status: 404, corps: {} }), await essai(23, { status: 500, corps: {} }),
-    await essai(24, () => { throw new TypeError('fetch failed'); }), await essai(25, { status: 200, corps: '<html>' }), await essai(26, { status: 200, corps: 'x'.repeat(1048577) })],
+    await essai(24, () => { throw new TypeError('fetch failed'); }), await essai(25, { status: 200, corps: '<html>' }), await essai(26, (u) => ({ status: 200, corps: Object.assign({ duration: 12, distance: 8, bourrage: 'x'.repeat(1048577) }, pts(u)) }))],
   ['trajet_occupe', 'trajet_impossible', 'trajet_indisponible', 'trajet_indisponible', 'trajet_indisponible', 'trajet_indisponible']);
   /* un IGN qui ne répond pas : le délai coupe (300 ms ici) — l'horloge du seau est celle du banc, le délai celui du système */
   tps += 5000; force = (url, opts) => new Promise((ok, ko) => opts.signal.addEventListener('abort', () => ko(Object.assign(new Error('abandon'), { name: 'AbortError' }))));
@@ -303,6 +303,9 @@ function fauxFetch(repondre) {
     const rm = await calc(A, { vers: 'Ocean', depuis: P, mode: 'voiture' });
     const rmp = await calc(A, { vers: 'Tour Eiffel', depuis: { type: 'position', lon: -25.5, lat: 44.2 }, mode: 'voiture' });
     v('⛔ la mer (l\'IGN « recolle » le point à la pointe du Finistère) : 400 trajet_impossible — pour le lieu comme pour le départ', [rm.code, rm.j, rmp.code, rmp.j], [400, { error: 'trajet_impossible' }, 400, { error: 'trajet_impossible' }]);
+    const rLong = await calc(A, { vers: 'Clinique du Parc', depuis: { type: 'domicile' }, mode: 'pied' });
+    v('⛔ plus de vingt-quatre heures de route (de Versailles à Lyon, à pied : ' + attendu(LI, CP, 'pied').minutes + ' min) : 400 trajet_trop_long — l\'agenda n\'en rangerait pas',
+      [attendu(LI, CP, 'pied').minutes > 1440, rLong.code, rLong.j], [true, 400, { error: 'trajet_trop_long' }]);
     const anon = T.client(svc.base);
     n = ign.etat.appels.length;
     v('⛔ sans session : 401 partout, et rien ne part chez l\'IGN', [(await anon.post('/api/trajet', { vers: 'Tour Eiffel', depuis: P, mode: 'voiture' })).code, (await anon.get('/api/moi/lieux')).code,
@@ -532,4 +535,4 @@ function fauxFetch(repondre) {
     await og.fermer();
   }
   fin();
-})();
+})().catch((e) => { console.log('  ✗ exception : ' + (e && e.stack || e)); process.exitCode = 1; fin(); });      // ⛔ un banc qui meurt le DIT, avec ses comptes
