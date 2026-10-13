@@ -417,7 +417,6 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
       v('⛔ l\'export d\'une grosse conversation est un JSON VALIDE, complet, dans l\'ordre, sans plafond atteint', [complet.code, lourd && lourd.messages.length, lourd && lourd.messages.every((m, i) => m.seq === i + 1), complet.j && complet.j.tronque], [200, N + 1, true, null]);
       v('il est écrit AU FIL DE L\'EAU : aucune longueur annoncée', complet.h.get('content-length'), null);
       console.log('      (export complet : ' + complet.txt.length + ' octets en ' + duree + ' ms)');
-      vrai('population : l\'export complet dure assez (' + duree + ' ms ≥ 150) pour qu\'un abandon tombe AU MILIEU', duree >= 150);
 
       /* ⛔ un export abandonné en route NE rend PAS son créneau (I3, `gardien3-expconc.js`) : le client est parti, le service a fait le travail. Avant : six exports démarrés puis abandonnés = six fois le travail
          pour un seul « par jour ». Seule une faute DU SERVICE rend le créneau (vu au niveau du module, § 6). */
@@ -428,6 +427,9 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
           let recu = 0;
           res.once('data', async (d) => {
             recu += d.length;
+            /* ⛔ le lecteur s'arrête au PREMIER morceau : le service attend le client (comme pour les lecteurs lents plus bas), l'export reste EN COURS jusqu'à l'abandon — au geste, jamais
+               au chronomètre. Avant (13 octobre 2026), le banc pariait que l'export durerait 150 ms : sur un runner rapide, il en a duré 146, et le déploiement de la bêta est tombé. */
+            res.pause();
             const parallele = await Y.post('/api/compte/export', {});     // pendant que le premier court encore : le créneau est PRIS
             req.destroy(); res.destroy();
             resolve({ premier: res.statusCode, recu, parallele });
@@ -438,9 +440,13 @@ const cookieDe = (c, nom) => { const m = new RegExp('(?:^|; )' + nom + '=([^;]+)
         req.end('{}');
         setTimeout(() => reject(new Error('aucun octet reçu')), 8000).unref();
       });
+      vrai('population : l\'abandon tombe AU MILIEU — le lecteur s\'est arrêté au premier morceau (' + raw.recu + ' octets) d\'un export de ' + complet.txt.length + ' octets, bien plus que les 2 Mo que les tampons du système retiennent pour un lecteur arrêté : l\'export court encore quand le second arrive, quelle que soit la vitesse de la machine',
+        raw.recu > 0 && raw.recu < complet.txt.length / 2 && complet.txt.length > 2 * 1024 * 1024);
       v('⛔ pendant qu\'un export court, un second de la MÊME personne est refusé tout de suite (un export à la fois par compte : 429 quota_atteint, à réessayer dans 30 s)', [raw.premier, raw.parallele.code, raw.parallele.j.error, raw.parallele.h.get('retry-after')], [200, 429, 'quota_atteint', '30']);
-      const consomme = await T.attendre(async () => { const r = await Y.post('/api/compte/export', {}); return !!r.j && r.j.error === 'export_quotidien'; }, 8000, 50);
-      v('⛔ le client a abandonné en route : le service le voit, le compte est libéré (plus de « quota_atteint ») et le créneau du jour est PRIS — 429 export_quotidien, pas un nouvel export', !!consomme, true);
+      /* ⛔ on juge la PREMIÈRE réponse qui n'est plus « quota_atteint » (le compte libéré) : relancer jusqu'à lire « export_quotidien » laissait un créneau RENDU être repris par l'export même
+         de la boucle, qui concluait quand même (vu en mutation, 13 octobre 2026) */
+      const apres = await T.attendre(async () => { const r = await Y.post('/api/compte/export', {}); return r.j && r.j.error === 'quota_atteint' ? null : r; }, 8000, 50);
+      v('⛔ le client a abandonné en route : le service le voit, le compte est libéré (plus de « quota_atteint ») et le créneau du jour est PRIS — 429 export_quotidien, pas un nouvel export', apres && [apres.code, apres.j && apres.j.error], [429, 'export_quotidien']);
 
       /* deux exports EN COURS au plus pour le service : un troisième est refusé tout de suite (429 quota_atteint), même d'une personne dont le quota du jour est intact.
          Deux lecteurs LENTS (la réponse n'est pas lue : le service attend le client, l'export reste en cours) tiennent les deux places. */
