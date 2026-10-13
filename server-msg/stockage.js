@@ -4697,6 +4697,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         sondage_vote: non(() => Q('SELECT 1 FROM sondage_vote LIMIT 1')),
         programme: non(() => Q('SELECT 1 FROM programme LIMIT 1')),
         transcription: non(() => Q('SELECT 1 FROM transcription LIMIT 1')),
+        lieu_perso: non(() => Q('SELECT 1 FROM lieu_perso LIMIT 1')),
       },
     };
   }
@@ -4767,7 +4768,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
    ⚠️ Aucune ne déchiffre quoi que ce soit et aucune n'a besoin de la clé maître : « ce fichier est-il intact » et « sais-je le lire »
    sont deux questions, et seule la première est du ressort d'une sauvegarde.
    Rangées sur `ouvrir.copie` plutôt que dans `module.exports` : le service, lui, n'a pas à les connaître. */
-const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote', 'programme', 'transcription'];
+const TABLES_COMPTEES = ['personne', 'contact', 'lien', 'conversation', 'membre', 'message', 'reaction', 'msg_masque', 'piece', 'journal', 'notification', 'purge', 'appareil_tel', 'sms_envoi', 'push', 'espace', 'espace_membre', 'canal', 'abonnement', 'abonnement_perso', 'abonnement_a_annuler', 'reunion', 'reunion_invite', 'rappel', 'planif_bail', 'courrier_envoi', 'appel', 'appel_part', 'demande_contact', 'evenement', 'piece_acces', 'sondage', 'sondage_choix', 'sondage_vote', 'programme', 'transcription', 'lieu_perso'];
 
 function ouvrirCopie(chemin, { moteur, ecriture = false } = {}) {
   const { DatabaseSync } = moteur || require('node:sqlite');
@@ -4819,6 +4820,7 @@ function lignesDe(d) {
     sondage_vote: n(() => d.prepare('SELECT COUNT(*) AS n FROM sondage_vote')),
     programme: n(() => d.prepare('SELECT COUNT(*) AS n FROM programme')),
     transcription: n(() => d.prepare('SELECT COUNT(*) AS n FROM transcription')),
+    lieu_perso: n(() => d.prepare('SELECT COUNT(*) AS n FROM lieu_perso')),
   };
 }
 
