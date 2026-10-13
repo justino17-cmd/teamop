@@ -5,8 +5,8 @@
        (voiture 40 km/h, à pied 5 km/h), pour que le banc la RECALCULE et ne la recopie pas ; un point « dans la mer » est recollé à la pointe du Finistère, comme le fait l'IGN.
    Comme l'IGN (mesuré le 13 octobre 2026), la réponse part EN MORCEAUX, sans longueur annoncée (« chunked ») : le service la lit en comptant.
    `etat` : `statut` (forcer une réponse : 429, 500…), `statuts` (la forcer sur UN chemin : { '/navigation/itineraire': 500 }), `lentMs` (répondre en retard), `bourrage` (des octets de plus
-   dans chaque réponse réussie : une réponse trop lourde), `annoncer` (annoncer la longueur, `content-length`), `appels` (chaque question reçue — le banc y vérifie ce qui part, et ce qui
-   ne part pas). */
+   dans chaque réponse réussie : une réponse trop lourde), `annoncer` (annoncer la longueur, `content-length`), `retenir` (une promesse : chaque réponse attend qu'elle se résolve — une
+   course se joue au geste, jamais au chronomètre), `appels` (chaque question reçue — le banc y vérifie ce qui part, et ce qui ne part pas). */
 'use strict';
 const http = require('http');
 
@@ -30,11 +30,12 @@ const dureeMinutes = (a, b, profil) => distanceKm(a, b) / (profil === 'pedestria
 const FINISTERE = { lon: -4.719789, lat: 48.033694 };
 
 async function fauxIgn() {
-  const etat = { statut: null, statuts: {}, lentMs: 0, bourrage: 0, annoncer: false, appels: [] };
+  const etat = { statut: null, statuts: {}, lentMs: 0, bourrage: 0, annoncer: false, retenir: null, appels: [] };
   const serveur = http.createServer(async (req, res) => {
     req.on('error', () => {}); res.on('error', () => {});               // le service coupe une réponse trop lourde : le faux ne tombe pas pour autant
     const u = new URL(req.url, 'http://x');
     etat.appels.push({ chemin: u.pathname, params: Object.fromEntries(u.searchParams), entetes: req.headers });
+    if (etat.retenir) await etat.retenir;
     if (etat.lentMs) await new Promise(r => setTimeout(r, etat.lentMs));
     const json = (code, o) => {
       const corps = JSON.stringify(etat.bourrage && code === 200 ? Object.assign({}, o, { bourrage: 'x'.repeat(etat.bourrage) }) : o);

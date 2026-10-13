@@ -101,7 +101,7 @@ function creerTrajet({ cfg, fetch: chercher = globalThis.fetch, horloge = Date.n
     const ctrl = new AbortController(), minuteur = setTimeout(() => ctrl.abort(), cfg.delaiMs);
     try {
       const r = await chercher(cfg.base + chemin + '?' + new URLSearchParams(params).toString(), { signal: ctrl.signal, headers: { Accept: 'application/json' }, redirect: 'error' });
-      if (r.status === 429) { journal('occupe'); throw erreur('trajet_occupe'); }
+      if (r.status === 429) { try { ctrl.abort(); } catch (e) { /* déjà coupée */ } journal('occupe'); throw erreur('trajet_occupe'); }   // le corps n'est pas lu : la demande est coupée (la connexion ne reste pas prise)
       const texte = await lireBorne(r, ctrl, REPONSE_MAX, journal);
       let j = null; try { j = JSON.parse(texte); } catch (e) { j = null; }
       return { statut: r.status, j };

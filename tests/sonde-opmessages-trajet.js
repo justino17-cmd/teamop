@@ -132,6 +132,23 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     await A.page.locator('#ev-debut').fill(D1); await A.page.locator('#ev-fin').fill(demain() + 'T17:15');
     vrai('l\'heure du rendez-vous change (16:30) : « Partir à » suit', await attendre(A, (t) => ((document.getElementById('ev-tr-res') || {}).textContent || '').includes('Partir à ' + t), hmParis(instantParis(D1) - (m3 + 10) * 60000)), await resultat(A));
     await capture(A, 'trajet-2-a-pied-iphone');
+    /* ⛔ un AUTRE onglet calcule déjà (deux calculs en cours : la place de la personne est prise) — la page attend son tour et réessaie, elle ne laisse pas le refus à l'écran.
+       Le faux IGN RETIENT les deux calculs de l'autre onglet jusqu'à ce que la page ait reçu son refus : la course se joue au geste, jamais au chronomètre */
+    let lacher = null; ign.etat.retenir = new Promise(r => { lacher = r; });
+    const nAutre = ign.etat.appels.length;
+    const occupe = A.page.evaluate(() => Promise.all(['Tour Eiffel', 'Clinique du Parc'].map(vers => fetch('/api/trajet', { method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json', 'X-OPM': '1' }, body: JSON.stringify({ vers, mode: 'voiture', depuis: { type: 'position', lon: 2.31, lat: 48.86 } }) }).then(r => r.status))));
+    vrai('   population : les deux calculs de l\'autre onglet sont arrivés chez le faux IGN (et y attendent)', await T.attendre(() => ign.etat.appels.length - nAutre >= 2, 5000, 20));
+    A.requetes.length = 0;
+    const refus = A.page.waitForResponse(r => r.url().endsWith('/api/trajet') && r.status() === 429, { timeout: 5000 }).then(() => true, () => false);
+    await toucher(A, '[data-tr-mode="voiture"]');
+    const refuse = await refus;
+    const montre = await A.page.evaluate(() => /Un calcul de trajet est déjà en cours/.test(document.getElementById('ev-trajet-zone').textContent));
+    ign.etat.retenir = null; lacher();
+    const deux = await occupe;
+    vrai('un autre onglet calcule (deux calculs en cours) : la page attend son tour, réessaie, et « Partir à » revient en voiture', await attendre(A, (m) => ((document.getElementById('ev-tr-res') || {}).textContent || '').includes(m + ' min en voiture'), m2, 9000), await zone(A));
+    const vu = montre || await A.page.evaluate(() => /Un calcul de trajet est déjà en cours/.test(document.getElementById('ev-trajet-zone').textContent));
+    v('   les deux calculs de l\'autre onglet sont passés ; la page a été REFUSÉE (429 trajet_en_cours), puis servie : deux demandes ; le refus n\'a pas été montré', [deux, refuse, A.requetes.filter(u => u.endsWith('/api/trajet')).length, vu], [[200, 200], true, 2, false]);
 
     console.log('\n── 4. Enregistré : « Partir à » dans l\'agenda, la fiche le reprend ──');
     await toucher(A, '[data-evt="enregistrer"]');

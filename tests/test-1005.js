@@ -259,7 +259,8 @@ function fauxFetch(repondre) {
     let lacher = null; const retenu = new Promise((ok) => { lacher = ok; });
     const Hv = monter({ lieuxLire: () => ({ domicile: null, travail: null }), lieuPoser: () => true }, { geocoder: async () => { await retenu; return bien.geocoder(); }, itineraire: bien.itineraire });
     const enVol = Array.from({ length: EN_VOL_MAX + 1 }, (_, i) => jouer(Hv, 'trajet.calcul', { vers: 'Tour Eiffel', mode: 'voiture', depuis: P0 }));
-    const dernier = await enVol[EN_VOL_MAX];
+    /* ⛔ une attente BORNÉE : sans plafond, le dernier attendrait lui aussi l'IGN retenu — et un banc qui attend une promesse jamais tenue sort en silence, sans total */
+    const dernier = await Promise.race([enVol[EN_VOL_MAX], new Promise((ok) => setTimeout(() => ok('il attend lui aussi'), 1500))]);
     lacher();
     const premiers = await Promise.all(enVol.slice(0, EN_VOL_MAX));
     v('⛔ ' + (EN_VOL_MAX + 1) + ' calculs à la fois pour une personne : ' + EN_VOL_MAX + ' partent, le suivant attend son tour (429 trajet_en_cours) — une page ouverte dix fois ne prend pas dix places dans le seau de tous',
