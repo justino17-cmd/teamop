@@ -181,11 +181,17 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
       [['alice', 'perso', false], ['bruno', 'perso', false], ['dora', 'pro', true], ['chloe', 'pro', true]]);
 
     /* ═══ A. UNE PERSONNE PERSO TOUCHE « PROGRAMMER » : LA FEUILLE « RÉUNIONS » ═══════════════════════════════════════════════════════════════════ */
-    console.log('── A. Perso touche « Programmer » : la feuille « Réunions » dit la règle et mène à Messages Pro ──');
+    console.log('── A. Perso : l\'Agenda propose « Rendez-vous » ; « Programmer une réunion » ouvre la feuille « Réunions », qui dit la règle et mène à Messages Pro ──');
     const A = await ouvrir(b, svc.base, PROFILS.iphone); A.nom = 'Alice (iPhone)'; tous.push(A);
     await connecter(A, 'alice');
     await onglet(A, 'reunions');
-    await toucher(A, '#btn-reunion-nouvelle');
+    /* ⛔ 13 octobre 2026 (« dans Perso, à la place de réunion tu mets rendez-vous ») : l'en-tête de l'Agenda d'une personne Perso propose « Rendez-vous », plus « Réunion » */
+    await verifier('⛔ Perso : l\'en-tête de l\'Agenda propose « Rendez-vous » (visible), « Réunion » est caché (population : il existe)', A, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
+      return vu('btn-rdv-nouveau') && !!document.getElementById('btn-reunion-nouvelle') && !vu('btn-reunion-nouvelle'); }, null, 10000, () => etatPage(A));
+    /* la réunion reste joignable — pour apprendre qu'elle est à Pro — par « Nouvelle discussion › Programmer une réunion » */
+    await onglet(A, 'messages'); await toucher(A, '#btn-plus');
+    await verifier('population : « Nouvelle discussion » porte « Programmer une réunion »', A, () => !!document.querySelector('[data-nd-act="reunion"]'), null, 8000, () => texteCorps(A));
+    await toucher(A, '[data-nd-act="reunion"]');
     await verifier('⛔ la page ouvre la feuille « Réunions », pas un formulaire qu\'elle sait refusé', A, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Réunions' && !document.querySelector('[data-reu="form-enregistrer"]'), null, 10000, () => texteCorps(A));
     v('… elle dit EXACTEMENT la règle : les réunions sont à Messages Pro, Perso a les messages et les appels (de groupe aussi, audio et vidéo), on entre par le lien', await A.page.evaluate(() => Array.from(document.querySelectorAll('#info-corps .reg-ligne, #info-corps .info-note')).map(e => e.textContent.trim())),
       ['Les réunions font partie de Messages Pro.', 'Avec Messages Perso : les messages, les appels, et les appels de groupe en audio comme en vidéo.', 'Pour entrer dans une réunion, il te suffit du lien que son organisateur t\'envoie.']);
@@ -204,6 +210,10 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     const D = await ouvrir(b, svc.base, PROFILS.bureau); D.nom = 'Dora (bureau)'; tous.push(D);
     await connecter(D, 'dora');
     await onglet(D, 'reunions');
+    /* ⛔ Dora a les deux côtés : « Réunion » est celui du côté Pro (13 octobre 2026) — elle y passe par la barre latérale, le seul sélecteur du bureau */
+    await toucher(D, '.cote-seg-side [data-cote="pro"]');
+    await verifier('Dora côté Pro : l\'en-tête de l\'Agenda propose « Réunion », plus « Rendez-vous »', D, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
+      return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && !!document.getElementById('btn-rdv-nouveau') && !vu('btn-rdv-nouveau'); }, null, 10000, () => etatPage(D));
     await toucher(D, '#btn-reunion-nouvelle');
     await verifier('Dora (Pro) : le formulaire « Nouvelle réunion » s\'ouvre', D, () => document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre'), null, 10000, () => texteCorps(D));
     await saisir(D, '#rf-titre', 'Point WQXZ-LIEN');
@@ -270,6 +280,7 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
 
     /* ═══ E. LE SERVICE REFUSE AU MOMENT D'ENREGISTRER : LA PAGE OUVRE LA FEUILLE « RÉUNIONS » ═══════════════════════════════════════════════════════ */
     console.log('\n── E. L\'abonnement de l\'espace de Dora est résilié pendant que Chloé remplit le formulaire : refus au moment d\'enregistrer ──');
+    await P.chloe.post('/api/moi/maj', { prefs: { mode: 'pro' } });          // Chloé travaille côté Pro (le côté qu'elle a choisi : la page le relit en se connectant)
     const C = await ouvrir(b, svc.base, PROFILS.iphone); C.nom = 'Chloé (iPhone)'; tous.push(C);
     await connecter(C, 'chloe');
     await onglet(C, 'reunions');

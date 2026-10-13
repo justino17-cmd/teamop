@@ -687,6 +687,17 @@ const MIGRATIONS = [
     `CREATE INDEX IF NOT EXISTS transcription_etat ON transcription(etat, maj)`,
     `PRAGMA user_version = 26`,
   ] },
+  /* ── 27 (13 octobre 2026) : LE RENDEZ-VOUS PERSONNEL — « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des
+         rappels et tout », et « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ». Un rendez-vous est un événement de l'agenda personnel (même table, même personne seule) qui dit
+         SON genre (`genre` : 'rdv' ; NULL pour tout événement d'avant, et pour un événement), AVEC QUI (`avec_ch`, scellé comme le titre) et PLUSIEURS rappels (`rappels` : la liste des minutes,
+         en JSON, la plus éloignée d'abord). ⛔ `rappel` garde le PREMIER de la liste et `rappel_a` l'échéance du PROCHAIN à partir : le code d'avant (un retour en arrière du déploiement) lit
+         encore ces deux colonnes et y trouve un rappel juste — seuls les suivants lui échappent. Aucune colonne d'avant n'est touchée. ── */
+  { v: 27, sql: [
+    `ALTER TABLE evenement ADD COLUMN genre TEXT`,
+    `ALTER TABLE evenement ADD COLUMN avec_ch BLOB`,
+    `ALTER TABLE evenement ADD COLUMN rappels TEXT`,
+    `PRAGMA user_version = 27`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -771,6 +782,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const COTES = versionActuelle() >= 20;          // une base d'avant la migration 20 : aucune conversation rangée à la main (le côté automatique seul)
   const RAPPELS_FAITS = versionActuelle() >= 21;  // une base d'avant la migration 21 : pas de rappel coché ni de message d'origine
   const COTES_AGENDA = versionActuelle() >= 25;   // une base d'avant la migration 25 : aucun événement n'a de côté (la page les range d'elle-même)
+  const RDV_AGENDA = versionActuelle() >= 27;     // une base d'avant la migration 27 : aucun rendez-vous, un seul rappel par événement
   const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
   const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
@@ -2475,16 +2487,37 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     fait: r.fait === null || r.fait === undefined ? null : num(r.fait),
     source: r.src_conv ? { conv: r.src_conv, seq: num(r.src_seq) } : null,
     cote: r.cote === 'perso' || r.cote === 'pro' ? r.cote : null,
+    genre: r.genre === 'rdv' ? 'rdv' : 'evenement',
+    avec: r.avec_ch ? (ouvrirOuNull('evenement', 'avec_ch', r.id + '|avec', r.avec_ch) || '') : '',
+    rappels: evtRappels(r),
   } : null;
+  /* la liste des rappels (migration 27) : celle qui est rangée, sinon le rappel seul d'un événement d'avant — une colonne abîmée rend le rappel seul, jamais une erreur.
+     ⛔ La liste n'est crue que si son PREMIER est `rappel` : le code d'AVANT (un retour en arrière du déploiement, puis la remise du code neuf) récrit `rappel` sans connaître `rappels` —
+     une liste qui ne s'accorde plus avec lui est périmée (un rappel retiré reviendrait, la fiche contredirait l'échéance), et c'est le rappel seul qui dit vrai. */
+  function evtRappels(r) {
+    const seul = r.rappel === null || r.rappel === undefined ? [] : [num(r.rappel)];
+    if (r.rappels) { try { const x = JSON.parse(r.rappels); if (Array.isArray(x) && x.length > 1 && x.every(m => Number.isSafeInteger(m) && m >= 0) && seul.length && x[0] === seul[0]) return x.slice(0, 3); } catch (e) { /* le rappel seul */ } }
+    return seul;
+  }
+  /* ce que la migration 27 ajoute : le genre, « avec qui » (scellé), la liste des rappels quand il y en a plus d'un (un seul se lit dans `rappel`) */
+  function evtPoserRdv(id, { genre, avec, rappels }) {
+    if (!RDV_AGENDA) return;
+    if (genre !== undefined) Q('UPDATE evenement SET genre = ? WHERE id = ?').run(genre === 'rdv' ? 'rdv' : null, id);
+    if (avec !== undefined) Q('UPDATE evenement SET avec_ch = ? WHERE id = ?').run(scellerEvt(id, 'avec', avec), id);
+    if (rappels !== undefined) Q('UPDATE evenement SET rappels = ? WHERE id = ?').run(Array.isArray(rappels) && rappels.length > 1 ? JSON.stringify(rappels) : null, id);
+  }
   const scellerEvt = (id, champ, v) => v ? sceller('evenement', champ + '_ch', id + '|' + champ, v) : null;
-  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null, cote = null }) {
+  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null, cote = null, genre, avec, rappels }) {
     const id = nouvelId('e'), t = horloge();
+    return tx(() => {                                  // ⛔ la ligne ET ses compléments (côté, source, rendez-vous) ensemble : un arrêt entre les deux ne laisse pas un rendez-vous à moitié écrit
     Q(`INSERT INTO evenement(id, uid, titre_ch, lieu_ch, note_ch, debut, fin, journee, tz, rappel, rappel_a, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(id, uid, sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
         rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
     if (source && RAPPELS_FAITS) Q('UPDATE evenement SET src_conv = ?, src_seq = ? WHERE id = ?').run(source.conv, source.seq, id);
     if ((cote === 'perso' || cote === 'pro') && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ?').run(cote, id);
+    evtPoserRdv(id, { genre, avec: avec || '', rappels });
     return evenementLire(uid, id);
+    });
   }
   /* cocher (`fait` : un instant) ou décocher (null) — l'échéance du rappel suit : `rappelA` null (coché : il ne sonne plus) ou recalculée par la route (décoché) */
   function evenementFait(uid, id, fait, rappelA) {
@@ -2493,15 +2526,16 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return evenementLire(uid, id);
   }
   /* reporter : un nouvel horaire, l'échéance recalculée par la route, et décoché (un rappel reporté est à refaire) */
-  function evenementReporter(uid, id, { debut, fin, journee, rappel, rappelA }) {
+  function evenementReporter(uid, id, { debut, fin, journee, rappel, rappelA, rappels }) {
     const r = Q('UPDATE evenement SET debut = ?, fin = ?, journee = ?, rappel = ?, rappel_a = ?, maj = ? WHERE id = ? AND uid = ?').run(debut, fin, journee ? 1 : 0, rappel, rappelA, horloge(), id, uid);
     if (!num(r.changes)) return null;
+    if (rappels !== undefined) evtPoserRdv(id, { rappels });
     if (RAPPELS_FAITS) Q('UPDATE evenement SET fait = NULL WHERE id = ?').run(id);
     return evenementLire(uid, id);
   }
   function evenementLire(uid, id) { return evtRang(Q('SELECT * FROM evenement WHERE id = ? AND uid = ?').get(id, uid)); }
   /* `rappelA` : undefined garde l'échéance telle quelle (un rappel déjà parti ne repart pas), null l'efface, un nombre la pose. */
-  function evenementMaj(uid, id, { titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, cote }) {
+  function evenementMaj(uid, id, { titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, cote, genre, avec, rappels }) {
     const r = Q('SELECT id FROM evenement WHERE id = ? AND uid = ?').get(id, uid);
     if (!r) return null;
     return tx(() => {
@@ -2510,6 +2544,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           rappel === null || rappel === undefined ? null : rappel, horloge(), id, uid);
       if (rappelA !== undefined) Q('UPDATE evenement SET rappel_a = ? WHERE id = ? AND uid = ?').run(rappelA === null ? null : rappelA, id, uid);
       if (cote !== undefined && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ? AND uid = ?').run(cote === 'perso' || cote === 'pro' ? cote : null, id, uid);     // `cote` : undefined garde, null rend le côté déduit
+      evtPoserRdv(id, { genre, avec, rappels });                                                                                  // undefined garde ce qui est rangé
       return evenementLire(uid, id);
     });
   }
@@ -2527,18 +2562,21 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* les rappels DUS (`rappel_a` passé), les plus anciens d'abord — seulement des personnes actives */
   function evenementsRappelsDus(t, max) {
     return Q(`SELECT e.* FROM evenement e JOIN personne p ON p.id = e.uid WHERE e.rappel_a IS NOT NULL AND e.rappel_a <= ? AND p.etat = 'actif' ORDER BY e.rappel_a, e.id LIMIT ?`).all(t, max)
-      .map(r => Object.assign(evtRang(r), { uid: r.uid }));
+      .map(r => Object.assign(evtRang(r), { uid: r.uid, rappelA: num(r.rappel_a) }));
   }
-  /* ⛔ UN RAPPEL PART UNE FOIS : l'échéance s'efface et la notification s'écrit dans la MÊME transaction ; si l'échéance n'est plus là (une autre instance, un geste de la personne), rien ne part. */
-  function evenementRappelEnvoyer(id, { titre, texte }) {
+  /* ⛔ UN RAPPEL PART UNE FOIS : l'échéance s'efface (ou passe au rappel SUIVANT de la liste, `suivant`, calculé par la route) et la notification s'écrit dans la MÊME transaction ; si
+     l'échéance n'est plus là (une autre instance, un geste de la personne), rien ne part. */
+  function evenementRappelEnvoyer(id, { titre, texte, suivant = null }) {
     return tx(() => {
       const r = Q('SELECT uid FROM evenement WHERE id = ? AND rappel_a IS NOT NULL').get(id);
       if (!r) return null;
-      Q('UPDATE evenement SET rappel_a = NULL WHERE id = ?').run(id);
+      Q('UPDATE evenement SET rappel_a = ? WHERE id = ?').run(Number.isSafeInteger(suivant) ? suivant : null, id);
       return notifCreer({ uid: r.uid, type: 'agenda_rappel', titre, texte, cible: id, remplacer: true });
     });
   }
   function evenementRappelAbandonner(id) { return num(Q('UPDATE evenement SET rappel_a = NULL WHERE id = ? AND rappel_a IS NOT NULL').run(id).changes) > 0; }
+  /* passer au rappel suivant SANS rien envoyer (une échéance d'avant la dernière restauration : tenue pour traitée) — `suivant` null : plus rien n'attend */
+  function evenementRappelPasser(id, suivant) { return num(Q('UPDATE evenement SET rappel_a = ? WHERE id = ? AND rappel_a IS NOT NULL').run(Number.isSafeInteger(suivant) ? suivant : null, id).changes) > 0; }
   /* ══ ENVOYER PLUS TARD (migration 22) ══ — un message programmé est à SON AUTEUR : lui seul le liste, l'annule ; le service l'envoie à l'heure. */
   /* les personnes citées : une liste d'identifiants (rien d'autre ne se relit — une colonne abîmée rend une liste vide, jamais une erreur au départ du message) */
   const progCites = (j) => { if (!j) return []; try { const x = JSON.parse(j); return Array.isArray(x) ? x.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)).slice(0, 20) : []; } catch (e) { return []; } };
@@ -4655,7 +4693,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)
     telCodePoser, telCodeEssayer, telCodeSupprimer, telCodeCree,
     melCodePoser, melCodeEssayer, melCodeSupprimer, melCodeCree, melCodesElaguer, mdpLire, mdpPoser, personneConsentir, appareilMelConnu, appareilMelNoter, appareilsMelOublier,
-    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, exportEvenements,
+    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, evenementRappelPasser, exportEvenements,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,

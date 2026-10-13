@@ -56,8 +56,10 @@ function localDans(t, tz) {
     const toucher = async (X, sel) => { const l = X.page.locator(sel).filter({ visible: true }).first(); await l.scrollIntoViewIfNeeded().catch(() => {}); if (X.mobile) await l.tap(); else await l.click(); };
 
     console.log('\n── 1. Ana programme la réunion, avec son ordre du jour ──');
+    /* ⛔ « Réunion » est au côté Pro (13 octobre 2026 : côté Perso, l'Agenda propose « Rendez-vous ») — la bêta ouvre tout, Ana a les deux côtés : elle travaille côté Pro */
+    await A0.post('/api/moi/maj', { prefs: { mode: 'pro' } });
     const A = await ouvrir('ana', BUREAU, '#reunions');
-    await att(A, () => !!document.getElementById('btn-reunion-nouvelle'));
+    await att(A, () => { const x = document.getElementById('btn-reunion-nouvelle'); return !!x && !x.hidden; });
     await toucher(A, '#btn-reunion-nouvelle');
     vrai('population : le formulaire porte le champ « Ordre du jour »', await att(A, () => !!document.getElementById('rf-odj') && document.querySelector('label[for="rf-odj"]').textContent === 'Ordre du jour'));
     const t0 = Math.ceil((Date.now() + 2 * 60000) / 60000) * 60000;

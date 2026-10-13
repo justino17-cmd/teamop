@@ -180,7 +180,7 @@ async function partie1() {
   v('⛔ plus de choix « Agenda : Perso | Pro » dans les fiches (choixCote, coteChoisi(), data-choix-cote ont disparu — `lc.coteChoisi` est le côté rangé d\'une conversation, une donnée)',
     JS.match(/choixCote|coteChoisi\(|data-choix-cote/g), null);
   vrai('⛔ un événement CRÉÉ est du côté où l\'on était en OUVRANT sa fiche (une borne passée pendant qu\'on l\'écrivait ne l\'envoie pas dans l\'agenda qu\'on ne voit pas) ; modifié, il garde le sien',
-    /cote: etat\.mode \};/.test(ligne('reu.formEvt = {')) && /if \(!F\.id && modesActifs\(\)\) champs\.cote = F\.cote \|\| etat\.mode;/.test(decl('async function evtEnregistrer(')));
+    /\bcote: etat\.mode\b/.test(ligne('reu.formEvt = {')) && /if \(!F\.id && modesActifs\(\)\) champs\.cote = F\.cote \|\| etat\.mode;/.test(decl('async function evtEnregistrer(')));
   vrai('⛔ une réunion CRÉÉE est rangée du côté où l\'on était en ouvrant sa fiche', /cote: etat\.mode \};/.test(ligne('reu.form = { id: id || null')) && /if \(!F\.id && modesActifs\(\)\) c\.cote = F\.cote \|\| etat\.mode;/.test(JS));
   vrai('⛔ le segment du Profil se cache là où la barre latérale paraît (≥ 900 px, et la tablette dès 781 px) — un seul à l\'écran',
     /@media \(min-width: 900px\) \{ \.reg-cote-seg, \.marque-tel \{ display: none !important; \} \}/.test(CSS)

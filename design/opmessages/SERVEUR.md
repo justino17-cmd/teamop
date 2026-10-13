@@ -903,6 +903,21 @@ Trois constats, pour Justin :
   · deux remarques en prime : les points d'une adresse Gmail (et `googlemail.com`) ne font plus une autre boîte pour le plafond « deux par semaine » ; et le démarrage RÉPARE ce qu'un retour au code d'avant les réunions a pu laisser (une invitation de compte effacé, une réunion sans hôte : l'effacement de ses réunions est refait, journal `reunions_reparees`, rien d'écrit quand il n'y a rien à réparer).
   · **Ce qu'on ne fait PAS, et que le gardien a nommé** : (1) le texte libre du courriel (le titre et le lieu choisis par l'organisateur) n'est pas filtré — le gabarit est fixe et les longueurs plafonnées (120 et 300 signes), les plafonds par compte et par boîte tiennent le reste ; (2) les plafonds du courriel ne sont pas restaurés depuis une archive plus ancienne : `courrier_envoi` est dans la base, une restauration d'une copie d'avant les remet à ce qu'elle portait — pendant une période, un destinataire peut recevoir plus que ses deux courriels par semaine ; (3) un retour à l'horaire d'origine ne renvoie pas de rappel : le registre (réunion, occurrence, personne, délai) a noté ceux qui sont partis pour cet horaire, et un rappel noté ne repart pas.
 - **Ce que cette étape ne fait PAS** (étape 8) : aucun « Rejoindre », aucune salle « En réunion », aucun lien d'invité, aucun appel. Un invité sans compte reçoit le fichier .ics par courriel, rien de plus.
+- ✅ **LE RENDEZ-VOUS PERSONNEL (13 octobre 2026)** — Justin : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des
+  rappels et tout », puis « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ». Côté Perso, l'en-tête de l'Agenda propose « Rendez-vous » à la place de « Réunion » (qui reste celui du
+  côté Pro). Un rendez-vous est un événement de l'agenda PERSONNEL (`routes-agenda.js`, la table `evenement`, migration 27), rien d'une réunion :
+  · `genre` 'rdv' (choisi à la création, il ne change pas), une heure TOUJOURS (jamais « toute la journée »), `avec` (« avec qui », 120 signes, scellé en base comme le titre ; refusé sur un
+    événement) ;
+  · jusqu'à TROIS rappels (`rappels`, parmi à l'heure, 5, 15, 30 min, 1 h, la veille ; la page coche la veille et 1 h avant), pour tout événement : ils partent DANS L'ORDRE, chacun une fois —
+    l'échéance passe au suivant dans la transaction qui écrit la notification ; si l'horloge saute par-dessus plusieurs, un seul part. ⛔ `rappel` garde le premier et `rappel_a` le prochain : le
+    code d'avant (un retour en arrière) y lit un rappel juste ; `rappel` seul reste accepté (une page d'avant), jamais avec `rappels` ;
+  · « Ajouter à mon calendrier » : `GET /api/agenda/:id/ics` (garde S, 60 par minute, l'événement d'un autre répond 404), le fichier de `ics.js` — l'heure en UTC, une journée entière en DATES,
+    chaque rappel un `VALARM` (« la veille » la durée exacte, 25 h le dimanche du changement d'heure ; `-P1D` pour une journée entière) ; « avec qui » dans la description ;
+  · ⛔ relu par `gardien` (aucun bloquant) : une liste rangée n'est crue que si son premier est `rappel` (le code d'avant récrit `rappel` sans connaître la liste — revenu au code neuf,
+    une liste périmée faisait revenir un rappel retiré) ; `rappel` seul ÉGAL au premier (une page d'avant le renvoie à chaque enregistrement) garde la liste ; modifier un événement coché
+    « fait » ne réarme pas son rappel ; ⛔ une échéance d'avant la dernière RESTAURATION (`rappels_depuis`) est tenue pour traitée, comme celles des réunions — on passe au rappel suivant
+    sans rien envoyer ; la création s'écrit dans une transaction ;
+  · l'export des données porte `genre`, `avec` et `rappels_minutes_avant`. Bancs : `test-1004` (le vrai service), sonde `sonde-opmessages-rendez-vous.js` (la vraie page, au doigt et au bureau).
 
 ### Étape 7 : appels un à un, audio et vidéo
 

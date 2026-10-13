@@ -601,6 +601,8 @@
       courrielReunion: (id, destinataire, o2) => appel('POST', '/api/reunions/' + e(id) + '/courriel', Object.assign({ destinataire }, o2 || {})),
       /* l'adresse du fichier .ics (la page le télécharge par un lien : le cookie de session suit) — une occurrence (son début, en millisecondes), ou toute la série */
       adresseIcs: (id, o2) => base + '/api/reunions/' + e(id) + '/ics' + rq(o2 && o2.occurrence ? { occurrence: o2.occurrence } : { serie: 1 }),
+      /* l'adresse du fichier .ics d'un événement ou d'un rendez-vous de l'agenda personnel (« Ajouter à mon calendrier ») — la page le télécharge par un lien, comme celui d'une réunion */
+      adresseIcsEvenement: (id) => base + '/api/agenda/' + e(id) + '/ics',
 
       /* Le temps réel. `gestionnaires` : une fonction par événement (`message`, `lu`, `saisie`,
          `presence`, `notification`, `conversation`, `retire`, `resync`…) + `ouvert()`, `erreur(e)` et `reseau('perdu'|'ok')`.

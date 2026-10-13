@@ -3170,7 +3170,10 @@
       journee: x.journee === true, tz: String(x.tz || ''), rappel: Number.isInteger(x.rappel) ? x.rappel : null, rappelEnAttente: x.rappelEnAttente === true,
       fait: Number.isFinite(x.fait) && x.fait > 0 ? x.fait : null,                                         // coché (l'instant), ou null
       source: x.source && /^c_[0-9a-f]{32}$/.test(String(x.source.conv)) && Number.isSafeInteger(x.source.seq) ? { conv: x.source.conv, seq: x.source.seq } : null,   // le message d'origine (« Me le rappeler »)
-      cote: x.cote === 'perso' || x.cote === 'pro' ? x.cote : null });     // son côté (Perso / Pro), ou null : la page le déduit (sa conversation d'origine, sinon Perso)
+      cote: x.cote === 'perso' || x.cote === 'pro' ? x.cote : null,      // son côté (Perso / Pro), ou null : la page le déduit (sa conversation d'origine, sinon Perso)
+      /* le rendez-vous (13 octobre 2026) : son genre, « avec qui », et la LISTE de ses rappels (un service d'avant n'en rend qu'un : la liste se lit dans `rappel`) */
+      genre: x.genre === 'rdv' ? 'rdv' : 'evenement', avec: String(x.avec || ''),
+      rappels: Array.isArray(x.rappels) ? x.rappels.filter(m => Number.isInteger(m) && m >= 0).slice(0, 3) : (Number.isInteger(x.rappel) ? [x.rappel] : []) });
     async function evenements(du, au) { return (await A.agenda(du, au) || []).map(vueEvenement); }
     async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
     async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
@@ -3760,6 +3763,7 @@
     }
     /* le fichier .ics : une adresse de CE service (jamais une adresse venue du service), que la page ouvre par un lien — SANS réseau, donc pas par `A`, dont chaque méthode est enveloppée en asynchrone */
     const adresseIcs = (id, o2) => api0.adresseIcs(id, o2 || {});
+    const adresseIcsEvenement = (id) => api0.adresseIcsEvenement(id);
     /* l'envoi par courriel est-il ouvert ? vrai/faux, ou null quand on n'a pas pu le savoir (on ne dit « pas encore ouvert » que quand le service l'a DIT) */
     async function courrielOuvert() { try { const c = await A.config(); return c && c.courriel && typeof c.courriel.ouvert === 'boolean' ? c.courriel.ouvert : null; } catch (e) { return null; } }
     async function courrielReunion(id, adresse, o2) {
@@ -3847,10 +3851,10 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, rendezVous: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
-      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement,
+      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement, adresseIcsEvenement,
       messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */

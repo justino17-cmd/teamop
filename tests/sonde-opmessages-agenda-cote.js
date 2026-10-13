@@ -238,17 +238,19 @@ function localDans(t, tz) {
     vrai('côté Perso : le dentiste, l\'événement d\'avant, le point d\'équipe (rangé), « À ranger » (rangé) et le dîner — ⛔ ni la revue client, ni les deux créés côté Pro', await montre(A, TOUT, ['Dentiste QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'À ranger QZK', 'Dîner QZK']), await vus(A, TOUT));
     postes.length = 0;
     vrai('« Créé côté Perso » : un événement créé d\'ici paraît dans l\'agenda Perso', await creerEvenement('Créé côté Perso QZK', '21:30', '22:00'));
-    await toucher(A, '#btn-reunion-nouvelle');
-    vrai('(population) la fiche d\'une nouvelle réunion est ouverte', await att(A, () => !!document.getElementById('rf-titre') && !!document.getElementById('rf-debut') && !!document.querySelector('[data-reu="form-enregistrer"]')));
+    /* ⛔ côté Perso, l'Agenda propose « Rendez-vous » à la place de « Réunion » (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous ») */
+    v('⛔ côté Perso : « Rendez-vous » en haut de l\'Agenda, « Réunion » caché (population : il existe)', await A.page.evaluate(() => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
+      return [vu('btn-rdv-nouveau'), !!document.getElementById('btn-reunion-nouvelle'), vu('btn-reunion-nouvelle')]; }), [true, true, false]);
+    await toucher(A, '#btn-rdv-nouveau');
+    vrai('(population) la fiche d\'un nouveau rendez-vous est ouverte : titre, « Avec », début, fin, les rappels, bouton Enregistrer', await att(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-titre') && !!document.getElementById('ev-avec') && !!document.getElementById('ev-debut') && !!document.getElementById('ev-rappels') && !!document.querySelector('[data-evt="enregistrer"]')));
     v('⛔ …et elle n\'a AUCUN segment Perso|Pro', [await anciens(A), await segVisible(A)], [0, []]);
-    await A.page.locator('#rf-titre').fill('Anniversaire QZK');
-    await A.page.locator('#rf-debut').fill(demain + 'T20:00'); await A.page.locator('#rf-fin').fill(demain + 'T21:00');
-    await toucher(A, '[data-reu="form-enregistrer"]');
-    vrai('programmée : elle paraît dans l\'agenda Perso', await att(A, () => /Anniversaire QZK/.test(document.getElementById('liste-reunions').textContent)));
-    v('la demande portait le côté (Perso) pour l\'événement et la réunion, et le service les a rangés Perso pour Ana', [postes.map(x => x.u + ':' + x.c), await (async () => { const l = ((await A0.get('/api/conversations')).j.conversations || []).find(c => c.type === 'reunion' && c.nom === 'Anniversaire QZK'); return l ? [l.cote_choisi, l.cote] : null; })(), (await agendaAna()).filter(e => e.titre === 'Créé côté Perso QZK').map(e => e.cote)],
-      [['agenda:perso', 'reunions:perso'], ['perso', 'perso'], ['perso']]);
+    await A.page.locator('#ev-titre').fill('Anniversaire QZK'); await A.page.locator('#ev-avec').fill('Léa');
+    await A.page.locator('#ev-debut').fill(demain + 'T20:00'); await A.page.locator('#ev-fin').fill(demain + 'T21:00');
+    await toucher(A, '[data-evt="enregistrer"]');
+    vrai('enregistré (« Rendez-vous ajouté à ton agenda ») : il paraît dans l\'agenda Perso, « Rendez-vous avec Léa »', await att(A, () => !document.documentElement.classList.contains('feuille-ouverte') && /Rendez-vous ajouté/.test(document.getElementById('mot').textContent) && Array.from(document.querySelectorAll('#liste-reunions [data-evenement]')).some(x => /Anniversaire QZK/.test(x.textContent) && /Rendez-vous avec Léa/.test(x.textContent))));
+    v('la demande portait le côté (Perso) pour l\'événement et le rendez-vous, et le service les a rangés Perso pour Ana — le rendez-vous en est un', [postes.map(x => x.u + ':' + x.c), (await agendaAna()).filter(e => /^(Créé côté Perso|Anniversaire) QZK$/.test(e.titre)).map(e => e.titre + ':' + e.cote + ':' + e.genre).sort()],
+      [['agenda:perso', 'agenda:perso'], ['Anniversaire QZK:perso:rdv', 'Créé côté Perso QZK:perso:evenement']]);
     await capture(A, 'ac-5-perso');
-    for (let i = 0; i < 3 && await A.page.evaluate(() => document.documentElement.classList.contains('feuille-ouverte')); i++) { await A.page.keyboard.press('Escape'); await A.page.waitForTimeout(300); }      // la fiche de la réunion programmée
     vrai('l\'agenda Perso en entier : tout ce qui y est rangé ou créé, ⛔ rien de ce qui est Pro', await montre(A, TOUT, ['Dentiste QZK', 'Ancien rappel QZK', 'Point équipe QZK', 'À ranger QZK', 'Dîner QZK', 'Anniversaire QZK', 'Créé côté Perso QZK']), await vus(A, TOUT));
     await toucher(A, '#tabs a.tab[data-vue="appels"]');
     vrai('côté Perso, les Appels : l\'appel de Cléo, PAS celui de Ben', await att(A, () => { const n = Array.from(document.querySelectorAll('#liste-appels .appel-nom-ligne')).map(x => x.textContent.trim()); return n.length === 1 && /^Cléo/.test(n[0]); }), await nomsAppels(A));
