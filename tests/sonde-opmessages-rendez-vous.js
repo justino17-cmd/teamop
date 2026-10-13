@@ -120,7 +120,9 @@ const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean)
     await toucher(A, '[data-evt="enregistrer"]');
     vrai('population : « Garage QXV » est enregistré (dans 70 minutes, ses rappels par défaut : la veille — déjà passée — et 1 h avant)', await attendre(A, () => /Rendez-vous ajouté/.test(document.getElementById('mot').textContent)));
     v('   le service : 1 h avant attend', (await agendaAlice()).filter(e => e.titre === 'Garage QXV').map(e => [e.rappels, e.rappelEnAttente]), [[[1440, 60], true]]);
-    svc.avancer(11 * 60000);
+    /* ⛔ AU GESTE, jamais au chronomètre : le service avance jusqu'à 59 minutes PILE avant le début. « Onze minutes » laissait au hasard de la seconde (le début est arrondi à la minute
+       au-dessus) un reste de 59,5 min ou plus, que le rappel arrondit à 60 et dit « Aujourd'hui à HH:MM » — un passage sur deux, mesuré le 13 octobre 2026 (59,087 min : vert ; 59,947 : rouge) */
+    svc.avancer(debut - Date.now() - 59 * 60000);
     vrai('le service avance de onze minutes : la bannière arrive (« Garage QXV — Dans 59 minutes · avec M. Blanc »)', await attendre(A, () => { const n = document.getElementById('notif'); return n.classList.contains('on') && /Garage QXV/.test(n.textContent) && /Dans (5[7-9]|60) minutes · avec M\. Blanc/.test(n.textContent); }, null, 12000),
       await A.page.evaluate(() => document.getElementById('notif').textContent));
     await capture(A, 'rdv-3-rappel-iphone');
