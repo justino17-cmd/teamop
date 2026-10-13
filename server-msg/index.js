@@ -103,7 +103,7 @@ function demarrer(env = process.env) {
   /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
   /* L'AGENDA PERSONNEL (`routes-agenda.js`) : ses routes, et ses rappels — envoyés par le planificateur des réunions, qui tient le bail (une seule instance envoie) */
   const agenda = creerAgenda({ stockage, quotas, config, horloge: Date.now, journaliser });
-  /* LE TRAJET (13 octobre 2026) : le calcul de l'heure de départ, chez le service public de l'IGN (`trajet.js`). Fermé par `trajet: false` ; le journal ne reçoit que des issues (`echec`, `occupe`). */
+  /* LE TRAJET (13 octobre 2026) : le calcul de l'heure de départ, chez le service public de l'IGN (`trajet.js`). Fermé par `trajet: false` ; le journal ne reçoit que des issues (`echec`, `occupe`, `hors_reseau`, `invraisemblable`, `trop_lourd`) — jamais une adresse ni un point. */
   const trajet = creerTrajet({ cfg: config.trajet, journal: (issue) => journaliser('trajet', { etat: issue }) });
   const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push, agenda });
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */

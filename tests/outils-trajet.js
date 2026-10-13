@@ -3,8 +3,10 @@
      · GET /geocodage/search?q=…&limit=…  → une FeatureCollection (le carnet d'adresses ci-dessous ; « introuvable » dans la question : aucune) ;
      · GET /navigation/itineraire?start=lon,lat&end=lon,lat&profile=car|pedestrian  → { duration (minutes), distance (km), start, end } — la durée se déduit de la distance à vol d'oiseau
        (voiture 40 km/h, à pied 5 km/h), pour que le banc la RECALCULE et ne la recopie pas ; un point « dans la mer » est recollé à la pointe du Finistère, comme le fait l'IGN.
-   `etat` : `statut` (forcer une réponse : 429, 500…), `statuts` (la forcer sur UN chemin : { '/navigation/itineraire': 500 }), `lentMs` (répondre en retard), `appels` (chaque question
-   reçue — le banc y vérifie ce qui part, et ce qui ne part pas). */
+   Comme l'IGN (mesuré le 13 octobre 2026), la réponse part EN MORCEAUX, sans longueur annoncée (« chunked ») : le service la lit en comptant.
+   `etat` : `statut` (forcer une réponse : 429, 500…), `statuts` (la forcer sur UN chemin : { '/navigation/itineraire': 500 }), `lentMs` (répondre en retard), `bourrage` (des octets de plus
+   dans chaque réponse réussie : une réponse trop lourde), `annoncer` (annoncer la longueur, `content-length`), `appels` (chaque question reçue — le banc y vérifie ce qui part, et ce qui
+   ne part pas). */
 'use strict';
 const http = require('http');
 
@@ -28,12 +30,20 @@ const dureeMinutes = (a, b, profil) => distanceKm(a, b) / (profil === 'pedestria
 const FINISTERE = { lon: -4.719789, lat: 48.033694 };
 
 async function fauxIgn() {
-  const etat = { statut: null, statuts: {}, lentMs: 0, appels: [] };
+  const etat = { statut: null, statuts: {}, lentMs: 0, bourrage: 0, annoncer: false, appels: [] };
   const serveur = http.createServer(async (req, res) => {
+    req.on('error', () => {}); res.on('error', () => {});               // le service coupe une réponse trop lourde : le faux ne tombe pas pour autant
     const u = new URL(req.url, 'http://x');
     etat.appels.push({ chemin: u.pathname, params: Object.fromEntries(u.searchParams), entetes: req.headers });
     if (etat.lentMs) await new Promise(r => setTimeout(r, etat.lentMs));
-    const json = (code, o) => { res.writeHead(code, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(o)); };
+    const json = (code, o) => {
+      const corps = JSON.stringify(etat.bourrage && code === 200 ? Object.assign({}, o, { bourrage: 'x'.repeat(etat.bourrage) }) : o);
+      const entetes = { 'Content-Type': 'application/json' };
+      if (etat.annoncer) entetes['Content-Length'] = String(Buffer.byteLength(corps));
+      res.writeHead(code, entetes);
+      const coupe = Math.floor(corps.length / 2);                            // deux morceaux : sans longueur annoncée, Node répond en « chunked », comme l'IGN
+      res.write(corps.slice(0, coupe)); res.end(corps.slice(coupe));
+    };
     const force = etat.statuts[u.pathname] || etat.statut;
     if (force) return json(force, { code: force, message: 'forcé par le banc' });
     if (u.pathname === '/geocodage/search') {

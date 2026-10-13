@@ -2507,12 +2507,21 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     rappels: evtRappels(r),
     trajet: evtTrajet(r),
   } : null;
-  /* le trajet rangé (migration 28) : un objet, ou null — un sceau illisible ou un JSON abîmé rendent null (le rendez-vous reste, sans heure de départ), jamais une erreur */
+  /* le trajet rangé (migration 28) : un objet, ou null — un sceau illisible ou un JSON abîmé rendent null (le rendez-vous reste, sans heure de départ), jamais une erreur.
+     ⛔ Il porte l'empreinte du LIEU pour lequel il a été calculé (`pour_lieu`, posée à l'écriture) : un lieu changé par un autre chemin (le code d'AVANT, après un retour en arrière du
+     déploiement, ne connaît pas le trajet et le laisse en place) rend un trajet qui n'est plus le sien — il ne compte plus (relecture du gardien, 13 octobre 2026). L'empreinte ne sort pas d'ici. */
+  const empreinteLieu = (lieu) => crypto.createHash('sha256').update(String(lieu || '').normalize('NFC')).digest('base64url').slice(0, 22);
   function evtTrajet(r) {
     if (!r.trajet_ch) return null;
     const x = ouvrirOuNull('evenement', 'trajet_ch', r.id + '|trajet', r.trajet_ch);
     if (!x) return null;
-    try { const t = JSON.parse(x); return t && typeof t === 'object' && Number.isSafeInteger(t.minutes) ? t : null; } catch (e) { return null; }
+    let t = null;
+    try { t = JSON.parse(x); } catch (e) { return null; }
+    if (!t || typeof t !== 'object' || !Number.isSafeInteger(t.minutes)) return null;
+    const lieu = r.lieu_ch ? (ouvrirOuNull('evenement', 'lieu_ch', r.id + '|lieu', r.lieu_ch) || '') : '';
+    if (t.pour_lieu !== empreinteLieu(lieu)) return null;
+    const o = Object.assign({}, t); delete o.pour_lieu;
+    return o;
   }
   /* la liste des rappels (migration 27) : celle qui est rangée, sinon le rappel seul d'un événement d'avant — une colonne abîmée rend le rappel seul, jamais une erreur.
      ⛔ La liste n'est crue que si son PREMIER est `rappel` : le code d'AVANT (un retour en arrière du déploiement, puis la remise du code neuf) récrit `rappel` sans connaître `rappels` —
@@ -2523,8 +2532,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return seul;
   }
   /* ce que la migration 27 ajoute : le genre, « avec qui » (scellé), la liste des rappels quand il y en a plus d'un (un seul se lit dans `rappel`) */
-  function evtPoserRdv(id, { genre, avec, rappels, trajet }) {
-    if (trajet !== undefined && TRAJETS) Q('UPDATE evenement SET trajet_ch = ? WHERE id = ?').run(trajet ? sceller('evenement', 'trajet_ch', id + '|trajet', JSON.stringify(trajet)) : null, id);
+  function evtPoserRdv(id, { genre, avec, rappels, trajet, lieu }) {
+    if (trajet !== undefined && TRAJETS) Q('UPDATE evenement SET trajet_ch = ? WHERE id = ?').run(trajet ? sceller('evenement', 'trajet_ch', id + '|trajet', JSON.stringify(Object.assign({}, trajet, { pour_lieu: empreinteLieu(lieu) }))) : null, id);
     if (!RDV_AGENDA) return;
     if (genre !== undefined) Q('UPDATE evenement SET genre = ? WHERE id = ?').run(genre === 'rdv' ? 'rdv' : null, id);
     if (avec !== undefined) Q('UPDATE evenement SET avec_ch = ? WHERE id = ?').run(scellerEvt(id, 'avec', avec), id);
@@ -2539,7 +2548,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
     if (source && RAPPELS_FAITS) Q('UPDATE evenement SET src_conv = ?, src_seq = ? WHERE id = ?').run(source.conv, source.seq, id);
     if ((cote === 'perso' || cote === 'pro') && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ?').run(cote, id);
-    evtPoserRdv(id, { genre, avec: avec || '', rappels, trajet: trajet || null });
+    evtPoserRdv(id, { genre, avec: avec || '', rappels, trajet: trajet || null, lieu });
     return evenementLire(uid, id);
     });
   }
@@ -2568,7 +2577,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           rappel === null || rappel === undefined ? null : rappel, horloge(), id, uid);
       if (rappelA !== undefined) Q('UPDATE evenement SET rappel_a = ? WHERE id = ? AND uid = ?').run(rappelA === null ? null : rappelA, id, uid);
       if (cote !== undefined && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ? AND uid = ?').run(cote === 'perso' || cote === 'pro' ? cote : null, id, uid);     // `cote` : undefined garde, null rend le côté déduit
-      evtPoserRdv(id, { genre, avec, rappels, trajet });                                                                          // undefined garde ce qui est rangé
+      evtPoserRdv(id, { genre, avec, rappels, trajet, lieu });                                                                    // undefined garde ce qui est rangé
       return evenementLire(uid, id);
     });
   }
@@ -2651,13 +2660,23 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     }
     return o;
   }
-  /* `lieu` : { label, lon, lat } pose (ou remplace) ; null retire */
+  /* `lieu` : { label, lon, lat } pose (ou remplace) ; null retire. Rend false sans rien écrire pour une personne qui n'est plus ACTIVE (un compte effacé pendant que l'IGN répondait).
+     ⛔ Un lieu RETIRÉ ou REMPLACÉ est noté au registre des purges (genre `lieu`, objet `personne|clé|instant`), dans la même transaction : une restauration d'une archive d'avant ne rend
+     pas l'ancienne adresse — un domicile qu'on a retiré ne revient pas (relecture du gardien, 13 octobre 2026). Le remplacé est daté du MÊME instant que le nouveau : le rejeu retire ce qui
+     est plus ancien, et garde ce qui ne l'est pas. */
   function lieuPoser(uid, cle, lieu) {
     if (!TRAJETS || !LIEUX_CLES.includes(cle)) return false;
-    if (lieu === null) { Q('DELETE FROM lieu_perso WHERE uid = ? AND cle = ?').run(uid, cle); return true; }
-    const ch = sceller('lieu_perso', 'donnees_ch', uid + '|' + cle, JSON.stringify({ label: lieu.label, lon: lieu.lon, lat: lieu.lat }));
-    Q('INSERT INTO lieu_perso(uid, cle, donnees_ch, maj) VALUES(?, ?, ?, ?) ON CONFLICT(uid, cle) DO UPDATE SET donnees_ch = excluded.donnees_ch, maj = excluded.maj').run(uid, cle, ch, horloge());
-    return true;
+    return tx(() => {
+      const p = Q('SELECT etat FROM personne WHERE id = ?').get(uid);
+      if (!p || p.etat !== 'actif') return false;
+      const t = horloge();
+      const avait = Q('SELECT 1 AS n FROM lieu_perso WHERE uid = ? AND cle = ?').get(uid, cle) !== undefined;
+      if (avait) Q(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'lieu', ?)`).run(uid + '|' + cle + '|' + t, t);
+      if (lieu === null) { Q('DELETE FROM lieu_perso WHERE uid = ? AND cle = ?').run(uid, cle); return true; }
+      const ch = sceller('lieu_perso', 'donnees_ch', uid + '|' + cle, JSON.stringify({ label: lieu.label, lon: lieu.lon, lat: lieu.lat }));
+      Q('INSERT INTO lieu_perso(uid, cle, donnees_ch, maj) VALUES(?, ?, ?, ?) ON CONFLICT(uid, cle) DO UPDATE SET donnees_ch = excluded.donnees_ch, maj = excluded.maj').run(uid, cle, ch, t);
+      return true;
+    });
   }
   /* L'âge et les conditions acceptés à l'inscription (colonnes prévues dès la migration 1) : la version des conditions est gardée, pour savoir lesquelles la personne a lues. */
   function personneConsentir(id, cguV) { return num(Q('UPDATE personne SET age_ok = 1, cgu_v = ? WHERE id = ?').run(String(cguV).slice(0, 20), id).changes) > 0; }
@@ -4877,6 +4896,7 @@ const GENRES_PURGE = {
   compte: 'service',           // un compte effacé au bout de ses quatorze jours : il touche dix tables et passe par `compteEffacer` — rejoué par le SERVICE (`rejeu.js`)
   suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
   evenement: 'copie',                // un événement de l'agenda personnel SUPPRIMÉ : sa ligne part
+  lieu: 'copie',                     // Domicile ou Travail RETIRÉ ou REMPLACÉ : objet `personne|clé|instant` — la ligne plus ancienne que l'instant part (le domicile retiré ne revient pas)
   programme: 'copie',                // un message PROGRAMMÉ parti ou annulé : sa ligne part — une archive d'avant ne le ferait pas repartir
   mdp: 'copie',                      // un mot de passe CHANGÉ (« mot de passe oublié ») : objet `personne|date` — une copie dont le mot de passe est plus ancien le perd (il faudra le réinitialiser), et ses sessions tombent
   suppression_annulee: 'service',    // l'ANNULATION (la personne est revenue) : une copie d'avant ne doit pas ramener l'échéance — idem
@@ -4954,6 +4974,7 @@ function rejouerPurge(chemin, registre, opts) {
     const sessionsAvant = d.prepare('DELETE FROM session WHERE personne = ? AND cree <= ?');
     const retirerEvenement = a('evenement') ? d.prepare('DELETE FROM evenement WHERE id = ?') : null;   // (migration 13 : une archive plus ancienne n'a pas la table)
     const retirerProgramme = a('programme') ? d.prepare('DELETE FROM programme WHERE id = ?') : null;   // (migration 22)
+    const retirerLieu = a('lieu_perso') ? d.prepare('DELETE FROM lieu_perso WHERE uid = ? AND cle = ? AND maj < ?') : null;   // (migration 28) : seulement ce qui est PLUS ANCIEN que le retrait
     const pushAvant = a('push') ? d.prepare('DELETE FROM push WHERE uid = ? AND cree <= ?') : null;
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
@@ -5015,6 +5036,9 @@ function rejouerPurge(chemin, registre, opts) {
           if (retirerEvenement) bilan.evenementsRetires = (bilan.evenementsRetires || 0) + Number(retirerEvenement.run(r.objet).changes);
         } else if (genre === 'programme') {
           if (retirerProgramme) bilan.programmesRetires = (bilan.programmesRetires || 0) + Number(retirerProgramme.run(r.objet).changes);
+        } else if (genre === 'lieu') {
+          const [uid, cle] = String(r.objet).split('|');
+          if (uid && cle && retirerLieu) bilan.lieuxRetires = (bilan.lieuxRetires || 0) + Number(retirerLieu.run(uid, cle, Number(r.quand) || 0).changes);
         } else if (genre === 'mdp') {
           const q = Number(r.quand) || 0, uid = String(r.objet).split('|')[0];
           if (oublierMdp) bilan.mdpOublies = (bilan.mdpOublies || 0) + Number(oublierMdp.run(uid, q).changes);

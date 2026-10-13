@@ -2,16 +2,21 @@
    13 octobre 2026 : « dans rendez-vous il faudrait pouvoir ajouter une adresse que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit partir s'il veut arriver
    5 ou 10 minutes avant » ; « il accepte de donner sa localisation, on demande s'il part bien de là où il est ou ailleurs […] c'est à nous, l'application, de tout bien calculer » ;
    « sa position, ou changer : domicile, travail, ou une adresse ». Le calcul passe par NOTRE service (`server-msg/trajet.js`), qui demande à l'IGN ; la page n'appelle aucun tiers.
-     · le module seul (une horloge et un `fetch` du banc) : ce qui part (une adresse, des points ARRONDIS), le seau par seconde, la mémoire (24 h, 6 h), les réponses de l'IGN qui ne vont pas
-       (429, 500, trop lourde, illisible, en retard) — toujours un refus qui se DIT, jamais une exception —, et ⛔ un point « recollé » loin (la mer) : refusé ;
-     · la configuration : ouverte par défaut, `false` la ferme, ⛔ en production aucune autre adresse que celle de l'IGN ;
+     · le module seul (une horloge et un `fetch` du banc, qui rend de VRAIES réponses `Response`) : ce qui part (une adresse, des points ARRONDIS), le seau par seconde, la mémoire (24 h, 6 h)
+       — ⛔ celle d'UNE personne —, les réponses de l'IGN qui ne vont pas (429, 500, illisible, en retard, ⛔ trop lourde : la lecture s'ARRÊTE au premier Mo, et une longueur annoncée
+       trop grande n'est pas lue du tout), ⛔ un point « recollé » loin (la mer) et une vitesse qui n'est ni d'une voiture ni d'un piéton : refusés — toujours un refus qui se DIT ;
+     · les routes seules : ⛔ une base qui jette rend 500, jamais un rejet (sur ce service, un rejet ARRÊTE le processus) ; un « occupé » rend son essai au plafond horaire ;
+     · la configuration : ouverte par défaut, `false` la ferme, ⛔ l'adresse est celle de l'IGN — le faux d'un banc passe par la porte de test (`OPMSG_TEST_TRAJET`), en bêta seulement ;
      · le service : le calcul depuis ma position, Domicile, Travail ou une adresse tapée, en voiture ou à pied ; Domicile et Travail SCELLÉS (la page ne reçoit jamais leur point) ;
-       les refus, chacun son code ; trente calculs par heure et par personne ; ⛔ le journal ne dit que des issues ;
-     · le trajet d'un rendez-vous : une échéance de plus — l'heure de PARTIR — et son rappel « Il est temps de partir » ; un lieu qui change sans trajet neuf emporte l'ancien ;
+       les refus, chacun son code ; trente calculs par heure et par personne (⛔ ce qui n'a pas atteint l'IGN ne compte pas) ; deux calculs en cours au plus ; ⛔ le journal ne dit que des issues ;
+     · le trajet d'un rendez-vous : une échéance de plus — l'heure de PARTIR — et son rappel « Il est temps de partir » (⛔ en retard, il le dit : « Il fallait partir à… ») ; un lieu qui
+       change sans trajet neuf emporte l'ancien — ⛔ même changé par un autre chemin que la route (le trajet porte l'empreinte de son lieu) ;
      · « Ajouter à mon calendrier » : le trajet dans la description, une alarme à l'heure de partir ; l'export porte le trajet et les lieux ; l'effacement du compte les emporte ;
+     · ⛔ un Domicile retiré ou remplacé ne revient pas avec une sauvegarde d'avant (le registre des purges, rejoué hors ligne) ;
      · `trajet: false` : tout se ferme, sauf ce qui ne calcule pas (lire, retirer, enregistrer un rendez-vous).
    Code 0 si tout passe, 1 sinon. */
 'use strict';
+const fs = require('fs');
 const path = require('path');
 const T = require('./outils-msg');
 const { fauxIgn } = require('./outils-trajet');
@@ -23,17 +28,19 @@ const { ouvrir: ouvrirBase } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 
 const MIN = 60000, HEURE = 3600000;
-const MDP = { alice: 'pw-alice-trajet01', bob: 'pw-bob-trajet0001', claire: 'pw-claire-trajet1', dora: 'pw-dora-trajet001', eve: 'pw-eve-trajet0001' };
+const MDP = { alice: 'pw-alice-trajet01', bob: 'pw-bob-trajet0001', claire: 'pw-claire-trajet1', dora: 'pw-dora-trajet001', eve: 'pw-eve-trajet0001', raf: 'pw-rafale-trajet1' };
 const arr = (x) => Math.round(x * 1e4) / 1e4;
 const codeDe = async (p) => { try { await p; return 'aucune erreur'; } catch (e) { return e && e.code; } };
 
-/* un `fetch` du banc : il note chaque appel, et répond ce que `repondre` dit ({ status, corps }) */
+/* un `fetch` du banc : il note chaque appel, et répond ce que `repondre` dit — { status, corps } devient une VRAIE `Response` (le service la lit par son flux, comme celle de l'IGN), et une
+   `Response` passe telle quelle (un flux que le banc compte) */
 function fauxFetch(repondre) {
   const appels = [];
   const f = async (url, opts) => {
     appels.push({ url, opts });
     const r = await repondre(url, opts);
-    return { status: r.status, text: async () => typeof r.corps === 'string' ? r.corps : JSON.stringify(r.corps) };
+    if (r instanceof Response) return r;
+    return new Response(typeof r.corps === 'string' ? r.corps : JSON.stringify(r.corps), { status: r.status, headers: { 'Content-Type': 'application/json' } });
   };
   f.appels = appels;
   return f;
@@ -57,6 +64,9 @@ function fauxFetch(repondre) {
   v('   les bornes passent : 1 et 1 440 minutes, 0 et 5 000 km, chaque avance, chaque départ', [validerTrajet(TJ({ minutes: 1, km: 0 })).erreur, validerTrajet(TJ({ minutes: 1440, km: 5000 })).erreur,
     [0, 5, 10, 15].map(a => !!validerTrajet(TJ({ avance: a })).trajet), ['position', 'domicile', 'travail', 'adresse'].map(d => !!validerTrajet(TJ({ depart: d })).trajet), validerTrajet(TJ({ depart_label: '' })).trajet.depart_label],
     [undefined, undefined, [true, true, true, true], [true, true, true, true], '']);
+  const tInv = validerTrajet(TJ({ vers_label: 'Clinique\u202e du\u200bParc\u2066', depart_label: 'Dom\u0007icile\ufeff' })).trajet;
+  v('validerTrajet : les invisibles (bidi, largeur nulle, marque d\'ordre) et les signes de contrôle d\'un libellé deviennent des espaces — un libellé ne retourne pas le texte d\'une notification',
+    [tInv && tInv.vers_label, tInv && tInv.depart_label], ['Clinique du Parc', 'Dom icile']);
   v('avantDepart : le trajet plus l\'avance (null sans trajet)', [avantDepart(TJ()), avantDepart(TJ({ minutes: 12, avance: 0 })), avantDepart(null), avantDepart({})], [50, 12, null, null]);
 
   const ferme = creerTrajet({ cfg: null, fetch: fauxFetch(() => ({ status: 200, corps: {} })) });
@@ -69,7 +79,7 @@ function fauxFetch(repondre) {
   const normale = (url) => {
     const u = new URL(url);
     if (u.pathname === '/geocodage/search') return { status: 200, corps: { type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [2.36, 48.85] }, properties: { label: 'Lieu ' + u.searchParams.get('q') } }] } };
-    return { status: 200, corps: { duration: 12.2, distance: 8.04, start: u.searchParams.get('start'), end: u.searchParams.get('end') } };
+    return { status: 200, corps: { duration: u.searchParams.get('profile') === 'pedestrian' ? 96.5 : 12.2, distance: 8.04, start: u.searchParams.get('start'), end: u.searchParams.get('end') } };
   };
   const f = fauxFetch((url, opts) => force ? (typeof force === 'function' ? force(url, opts) : force) : normale(url));
   const CFG = { base: 'http://ign.invalid', delaiMs: 300, geocodageParSeconde: 2, itineraireParSeconde: 2, cacheMax: 50 };
@@ -105,6 +115,17 @@ function fauxFetch(repondre) {
   const nU = f.appels.length;
   const deux = await Promise.all([M.geocoder('Adresse dix'), M.geocoder('adresse DIX')]);
   v('la même question posée deux fois à la fois ne part qu\'une fois — les deux ont la réponse', [f.appels.length - nU, deux[0] === deux[1], deux[0].length], [1, true, 1]);
+  tps += 5000;
+  const nP = f.appels.length;
+  await M.geocoder('Adresse onze', 'p_ana'); await M.geocoder('Adresse onze', 'p_ana');
+  const nAna = f.appels.length - nP;
+  await M.geocoder('Adresse onze', 'p_ben');
+  v('⛔ la mémoire est celle d\'UNE personne : servie à Ana qui la redemande, la même adresse demandée par Ben repart chez l\'IGN — servie de mémoire (tout de suite, sans toucher au seau), elle lui dirait qu\'on vient de la demander',
+    [nAna, f.appels.length - nP], [1, 2]);
+  tps += 5000;
+  const nP2 = f.appels.length;
+  const ensemble = await Promise.all([M.geocoder('Adresse douze', 'p_ana'), M.geocoder('Adresse douze', 'p_ben')]);
+  v('   deux personnes, la même question au même instant : deux questions (aucune n\'attend la réponse de l\'autre)', [f.appels.length - nP2, ensemble.every(x => x.length === 1)], [2, true]);
 
   const DE = { lon: 2.2384627, lat: 48.8920334 }, VERS = { lon: 2.360909, lat: 48.855372 };
   const n0 = f.appels.length;
@@ -137,6 +158,10 @@ function fauxFetch(repondre) {
   const illisible = await codeDe(M.itineraire(ici(4), VERS, 'voiture'));
   v('⛔ un point « recollé » : à 2,9 km il passe ; à 3,1 km de l\'arrivée ou du départ, ou illisible, c\'est un AUTRE trajet (trajet_hors_reseau)', [RECOLLE_MAX_M, proche, loin, loinDepart, illisible],
     [3000, 'aucune erreur', 'trajet_hors_reseau', 'trajet_hors_reseau', 'trajet_hors_reseau']);
+  tps += 5000; force = null;
+  const nP3 = f.appels.length;
+  await M.itineraire(ici(40), VERS, 'voiture', 'p_ana'); await M.itineraire(ici(40), VERS, 'voiture', 'p_ana'); await M.itineraire(ici(40), VERS, 'voiture', 'p_ben');
+  v('   ⛔ l\'itinéraire aussi : servi de mémoire à la même personne, demandé de nouveau pour l\'autre', f.appels.length - nP3, 2);
   const essai = async (k, rep) => { tps += 5000; force = rep; return codeDe(M.itineraire(ici(10 + k), VERS, 'voiture')); };
   const pts = (url) => { const u = new URL(url); return { start: u.searchParams.get('start'), end: u.searchParams.get('end') }; };
   v('une durée ou une distance absurdes : indisponible (jamais « partir à » sur un chiffre faux)', [
@@ -145,6 +170,22 @@ function fauxFetch(repondre) {
   ['trajet_indisponible', 'trajet_indisponible', 'trajet_indisponible', 'trajet_indisponible']);
   tps += 5000; force = (u) => ({ status: 200, corps: Object.assign({ duration: 0.2, distance: 0.04 }, pts(u)) });
   v('   un trajet de quelques secondes : une minute (jamais « 0 min »)', await M.itineraire(ici(20), VERS, 'voiture'), { minutes: 1, km: 0 });
+  const vit = async (k, mode, duree, km) => { tps += 5000; force = (u) => ({ status: 200, corps: Object.assign({ duration: duree, distance: km }, pts(u)) }); return codeDe(M.itineraire(ici(50 + k), VERS, mode)); };
+  v('⛔ une vitesse qui n\'est ni d\'une voiture ni d\'un piéton (sur plus d\'un km) : indisponible — 50 km en 5 min, 2 km en 3 h, 10 km à pied en 30 min ; 200 km/h, 5 km/h à pied, ou moins d\'un km : ça passe', [
+    await vit(1, 'voiture', 5, 50), await vit(2, 'voiture', 180, 2), await vit(3, 'pied', 30, 10), await vit(4, 'voiture', 15, 50), await vit(5, 'pied', 60, 5), await vit(6, 'pied', 120, 0.9), await vit(7, 'pied', 0.5, 0.9)],
+  ['trajet_indisponible', 'trajet_indisponible', 'trajet_indisponible', 'aucune erreur', 'aucune erreur', 'aucune erreur', 'aucune erreur']);
+  /* ⛔ une réponse se lit EN COMPTANT : un flux sans fin est coupé au premier octet de trop — jamais lu en entier avant d'être jugé */
+  const flux = (n, entetes) => { const o = { tires: 0, annule: false };
+    o.r = new Response(new ReadableStream({ pull(c) { o.tires++; if (o.tires > n) c.close(); else c.enqueue(new Uint8Array(65536).fill(32)); }, cancel() { o.annule = true; } }, { highWaterMark: 0 }),
+      { status: 200, headers: entetes || {} });
+    return o; };
+  const sansFin = flux(1000);
+  tps += 5000; force = () => sansFin.r;
+  v('⛔ une réponse sans fin (64 Mo en morceaux de 64 Ko, sans longueur annoncée, comme l\'IGN répond) : indisponible — la lecture s\'ARRÊTE au premier Mo (dix-sept morceaux tirés sur mille) et le flux est annulé',
+    [await codeDe(M.itineraire(ici(60), VERS, 'voiture')), sansFin.tires, sansFin.annule], ['trajet_indisponible', 17, true]);
+  const annonce = flux(1000, { 'content-length': String(5 * 1048576) });
+  tps += 5000; force = () => annonce.r;
+  v('   une longueur ANNONCÉE au-delà d\'1 Mo : refusée sans rien lire (aucun morceau tiré)', [await codeDe(M.itineraire(ici(61), VERS, 'voiture')), annonce.tires], ['trajet_indisponible', 0]);
   const jAvant = journal.length;
   v('les refus de l\'IGN : 429 → occupé, 4xx → impossible, 500 → indisponible ; un réseau coupé, une réponse illisible, ou trop lourde (un VRAI trajet, plus d\'1 Mo) → indisponible', [
     await essai(21, { status: 429, corps: {} }), await essai(22, { status: 404, corps: {} }), await essai(23, { status: 500, corps: {} }),
@@ -165,7 +206,10 @@ function fauxFetch(repondre) {
   force = { status: 200, corps: { type: 'FeatureCollection', features: [bon(200, 48, 'Hors du monde'), bon(2.3, 48.8, 'Premier'), bon(2.3, 48.8, ''), bon('2.4', '48.9', 'é'.repeat(250)), bon(2.5, 49, 'Cinquième'), bon(2.6, 49, 'Sixième')] } };
   const tri = await M.geocoder('Adresse neuf');
   v('géocoder : les quatre premières réponses seulement, sans point faux ni libellé vide, le libellé borné à 200 signes', tri.map(x => [x.label.length > 20 ? x.label.length : x.label, x.lon, x.lat]), [['Premier', 2.3, 48.8], [200, 2.4, 48.9]]);
-  v('le journal du module : des ISSUES seulement (« occupe », « echec ») — jamais une adresse ni un point', [...new Set(journal)].sort(), ['echec', 'occupe']);
+  tps += 5000; force = { status: 200, corps: { type: 'FeatureCollection', features: [bon(2.3, 48.8, 'Rue\u202e de la\u200b Paix\u2066')] } };
+  v('   le libellé de l\'IGN est nettoyé lui aussi (les invisibles deviennent des espaces) : il est montré à la page, et rangé', (await M.geocoder('Adresse treize')).map(x => x.label), ['Rue de la Paix']);
+  v('le journal du module : des ISSUES seulement (« echec », « hors_reseau », « invraisemblable », « occupe », « trop_lourd ») — jamais une adresse ni un point', [...new Set(journal)].sort(),
+    ['echec', 'hors_reseau', 'invraisemblable', 'occupe', 'trop_lourd']);
   vrai('   population : il a bien écrit (les refus d\'au-dessus)', journal.length > jAvant);
   const nInv = f.appels.length;
   v('   une adresse invalide ne part jamais', [await codeDe(M.geocoder('!!')), await codeDe(M.geocoder(42)), f.appels.length - nInv], ['adresse_invalide', 'adresse_invalide', 0]);
@@ -175,17 +219,62 @@ function fauxFetch(repondre) {
   console.log('\n0 bis. La configuration');
   v('par défaut : OUVERT, chez l\'IGN (sans clé ni compte)', trajetConfig({}, 'prod'), { base: 'https://data.geopf.fr', delaiMs: 6000, geocodageParSeconde: 20, itineraireParSeconde: 4, cacheMax: 2000 });
   v('`false` le ferme ; l\'adresse de l\'IGN écrite (même avec « / ») passe en production', [trajetConfig({ trajet: false }, 'prod'), trajetConfig({ trajet: { base: 'https://data.geopf.fr/' } }, 'prod').base], [null, 'https://data.geopf.fr']);
-  v('un faux IGN de banc, sur la boucle locale, HORS production', trajetConfig({ trajet: { base: 'http://127.0.0.1:8099', delaiMs: 800 } }, 'beta'), { base: 'http://127.0.0.1:8099', delaiMs: 800, geocodageParSeconde: 20, itineraireParSeconde: 4, cacheMax: 2000 });
-  const conf = (t, inst) => { try { trajetConfig({ trajet: t }, inst || 'beta'); return 'accepté'; } catch (e) { return e.code; } };
-  const fautes = [[{ base: 'http://127.0.0.1:8099' }, 'prod'], [{ base: 'https://exemple.invalid' }], [{ base: 'http://localhost:8099' }], [{ base: 'http://127.0.0.1:8099/chemin' }], [{ base: 'https://data.geopf.fr.exemple.invalid' }, 'prod'],
+  v('un faux IGN de banc : par la porte de test (`OPMSG_TEST_TRAJET`), sur la boucle locale, en bêta', trajetConfig({ trajet: { delaiMs: 800 } }, 'beta', { OPMSG_TEST_TRAJET: '127.0.0.1:8099' }), { base: 'http://127.0.0.1:8099', delaiMs: 800, geocodageParSeconde: 20, itineraireParSeconde: 4, cacheMax: 2000 });
+  const conf = (t, inst, env) => { try { trajetConfig({ trajet: t }, inst || 'beta', env); return 'accepté'; } catch (e) { return e.code; } };
+  const fautes = [[{ base: 'http://127.0.0.1:8099' }], [{ base: 'http://127.0.0.1:8099' }, 'prod'], [{ base: 'https://exemple.invalid' }], [{ base: 'https://data.geopf.fr.exemple.invalid' }, 'prod'],
+    [{}, 'prod', { OPMSG_TEST_TRAJET: '127.0.0.1:8099' }], [{}, 'beta', { OPMSG_TEST_TRAJET: 'localhost:8099' }], [{}, 'beta', { OPMSG_TEST_TRAJET: '127.0.0.1:8099/chemin' }], [{}, 'beta', { OPMSG_TEST_TRAJET: 'http://127.0.0.1:8099' }], [{}, 'beta', { OPMSG_TEST_TRAJET: '10.0.0.1:80' }],
     [null], [[]], ['oui'], [{ delaiMs: 100 }], [{ delaiMs: 30001 }], [{ itineraireParSeconde: 5 }], [{ itineraireParSeconde: 0 }], [{ geocodageParSeconde: 41 }], [{ cacheMax: -1 }], [{ cacheMax: 1.5 }], [{ delaiMs: '800' }]];
-  v('⛔ refusé au démarrage : une autre adresse (en production, même la boucle locale), une forme fausse, une borne dépassée (l\'IGN borne à 5 itinéraires par seconde)', fautes.map(([t, i]) => conf(t, i)), fautes.map(() => 'CONFIG'));
+  v('⛔ refusé au démarrage : une autre adresse ÉCRITE dans le fichier (même la boucle locale, même en bêta — seule la porte de test la remplace), la porte de test en production ou d\'une autre forme, une forme fausse, une borne dépassée (l\'IGN borne à 5 itinéraires par seconde)',
+    fautes.map(([t, i, e]) => conf(t, i, e)), fautes.map(() => 'CONFIG'));
+  v('   et le démarrage du service la lit (le fichier ET l\'environnement) : `charger` passe l\'environnement au trajet', /trajet: trajetConfig\(cfg, instance, env\)/.test(fs.readFileSync(path.join(T.SERVICE, 'config.js'), 'utf8')), true);
+
+  /* ══ 0 ter. LES ROUTES, SEULES ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
+  console.log('\n0 ter. Les routes du trajet, seules (une base et un calcul du banc)');
+  {
+    const { installerTrajet, EN_VOL_MAX } = require(path.join(T.SERVICE, 'routes-trajet.js'));
+    const repFausse = () => { const r = { statut: 200, corps: null, entetes: {}, headersSent: false };
+      r.status = (x) => { r.statut = x; return r; }; r.json = (o) => { r.corps = o; r.headersSent = true; return r; }; r.set = (k, x) => { r.entetes[k] = x; return r; }; return r; };
+    const monter = (stockage, calcul, quotas) => { const H = {}; installerTrajet(H, { stockage, trajet: Object.assign({ ouvert: () => true }, calcul), quotas: quotas || { essai: () => ({ ok: true }), rembourser: () => {} } }); return H; };
+    const jouer = async (H, id, body) => { const res = repFausse(); try { await H[id]({ moi: { id: 'p_banc' }, body }, res); return [res.statut, res.corps && res.corps.error]; } catch (e) { return 'REJET ' + (e && (e.code || e.message)); } };
+    const boum = () => { throw Object.assign(new Error('base occupée'), { code: 'SQLITE_BUSY' }); };
+    const bien = { geocoder: async () => [{ label: 'Tour Eiffel 75007 Paris', lon: 2.29, lat: 48.86 }], itineraire: async () => ({ minutes: 5, km: 2 }) };
+    const H1 = monter({ lieuxLire: boum, lieuPoser: boum }, bien);
+    const cinq = [];
+    for (let i = 0; i < 2 * EN_VOL_MAX + 1; i++) cinq.push(await jouer(H1, 'moi.lieux.poser', { cle: 'domicile', texte: '12 rue des lilas' }));
+    v('⛔ la base qui JETTE (lire ses lieux, partir de Domicile, enregistrer un lieu, en retirer un) : 500 erreur_interne — jamais un rejet : sur ce service, un rejet que personne ne rattrape ARRÊTE le processus',
+      [await jouer(H1, 'moi.lieux'), await jouer(H1, 'trajet.calcul', { vers: 'Tour Eiffel', mode: 'voiture', depuis: { type: 'domicile' } }), cinq[0], await jouer(H1, 'moi.lieux.poser', { cle: 'domicile', texte: null })],
+      [[500, 'erreur_interne'], [500, 'erreur_interne'], [500, 'erreur_interne'], [500, 'erreur_interne']]);
+    v('   et la place « en cours » est RENDUE après l\'exception : ' + (2 * EN_VOL_MAX + 1) + ' essais d\'affilée, tous 500 (aucun « déjà en cours »)', cinq.every(x => x[0] === 500 && x[1] === 'erreur_interne'), true, cinq);
+    const rendus = [];
+    const quotasB = { essai: () => ({ ok: true }), rembourser: (k) => rendus.push(k) };
+    const avec = (code) => monter({ lieuxLire: () => ({ domicile: null, travail: null }), lieuPoser: () => true }, { geocoder: async () => { throw Object.assign(new Error(code), { code }); }, itineraire: bien.itineraire }, quotasB);
+    const P0 = { type: 'position', lon: 2.24, lat: 48.89 };
+    const essais = [];
+    for (const code of ['trajet_occupe', 'trajet_ferme', 'trajet_indisponible', 'adresse_invalide']) { rendus.length = 0; const r = await jouer(avec(code), 'trajet.calcul', { vers: 'Tour Eiffel', mode: 'voiture', depuis: P0 }); essais.push([code, r[0], rendus.slice()]); }
+    v('⛔ ce qui n\'a pas ATTEINT l\'IGN (« occupé », fermé) rend son essai au plafond horaire ; ce qui l\'a atteint (en panne, une adresse refusée) le garde', essais,
+      [['trajet_occupe', 503, ['trajet:p_banc']], ['trajet_ferme', 503, ['trajet:p_banc']], ['trajet_indisponible', 503, []], ['adresse_invalide', 400, []]]);
+    rendus.length = 0;
+    const Hp = monter({ lieuxLire: () => ({ domicile: null, travail: null }), lieuPoser: () => true }, { geocoder: async () => { throw Object.assign(new Error('x'), { code: 'trajet_occupe' }); } }, quotasB);
+    v('   enregistrer Domicile pendant un « occupé » aussi', [await jouer(Hp, 'moi.lieux.poser', { cle: 'domicile', texte: '12 rue des lilas' }), rendus], [[503, 'trajet_occupe'], ['trajet:p_banc']]);
+    let lacher = null; const retenu = new Promise((ok) => { lacher = ok; });
+    const Hv = monter({ lieuxLire: () => ({ domicile: null, travail: null }), lieuPoser: () => true }, { geocoder: async () => { await retenu; return bien.geocoder(); }, itineraire: bien.itineraire });
+    const enVol = Array.from({ length: EN_VOL_MAX + 1 }, (_, i) => jouer(Hv, 'trajet.calcul', { vers: 'Tour Eiffel', mode: 'voiture', depuis: P0 }));
+    const dernier = await enVol[EN_VOL_MAX];
+    lacher();
+    const premiers = await Promise.all(enVol.slice(0, EN_VOL_MAX));
+    v('⛔ ' + (EN_VOL_MAX + 1) + ' calculs à la fois pour une personne : ' + EN_VOL_MAX + ' partent, le suivant attend son tour (429 trajet_en_cours) — une page ouverte dix fois ne prend pas dix places dans le seau de tous',
+      [EN_VOL_MAX, dernier, premiers.map(x => x[0])], [2, [429, 'trajet_en_cours'], [200, 200]]);
+    v('   les places reviennent : le calcul suivant passe', await jouer(Hv, 'trajet.calcul', { vers: 'Tour Eiffel', mode: 'voiture', depuis: P0 }), [200, undefined]);
+  }
 
   /* ══ LE SERVICE ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-  const og = await T.fauxOpGestion({ alice: { pass: MDP.alice, nom: 'Alice Martin', actif: true }, bob: { pass: MDP.bob, nom: 'Bob Petit', actif: true }, claire: { pass: MDP.claire, nom: 'Claire Roy', actif: true },
-    dora: { pass: MDP.dora, nom: 'Dora Lenoir', actif: true }, eve: { pass: MDP.eve, nom: 'Eve Blanc', actif: true } });
+  /* dix comptes de plus pour la rafale : une personne n'a que deux calculs en cours à la fois, la rafale vient donc de dix personnes */
+  const RAFALE = Array.from({ length: 10 }, (_, k) => 'raf' + k);
+  const og = await T.fauxOpGestion(Object.assign({ alice: { pass: MDP.alice, nom: 'Alice Martin', actif: true }, bob: { pass: MDP.bob, nom: 'Bob Petit', actif: true }, claire: { pass: MDP.claire, nom: 'Claire Roy', actif: true },
+    dora: { pass: MDP.dora, nom: 'Dora Lenoir', actif: true }, eve: { pass: MDP.eve, nom: 'Eve Blanc', actif: true } }, Object.fromEntries(RAFALE.map(k => [k, { pass: MDP.raf, nom: 'Rafale ' + k.slice(3), actif: true }]))));
   const ign = await fauxIgn();
-  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { reunions: { planificateurMs: 150, bailMs: 2000 }, trajet: { base: ign.url, delaiMs: 800 } } });
+  /* ⛔ le faux IGN par la PORTE DE TEST (une variable d'environnement, en bêta) : le fichier de configuration ne peut pas changer l'adresse de l'IGN */
+  const svc = await T.lancerService({ urlGestion: og.url, horloge: true, config: { reunions: { planificateurMs: 150, bailMs: 2000 }, trajet: { delaiMs: 800 } }, env: { OPMSG_TEST_TRAJET: ign.url.replace('http://', '') } });
   let avance = 0; const avancer0 = svc.avancer.bind(svc); svc.avancer = (ms) => { avance += ms; avancer0(ms); };
   const BASE = path.join(svc.data, 'msg.db');
   const sql = (req, ...a) => { const d = T.lireBase(BASE); try { return d.prepare(req).get(...a); } finally { d.close(); } };
@@ -229,6 +318,10 @@ function fauxFetch(repondre) {
     n = ign.etat.appels.length;
     const r2 = await calc(A, { vers: '8 rue de Rivoli', depuis: P, mode: 'voiture' });
     v('le même calcul une seconde fois : la même réponse, et rien ne repart chez l\'IGN (le service s\'en souvient)', [r2.code, r2.j.minutes, ign.etat.appels.length - n], [200, r1.j.minutes, 0]);
+    n = ign.etat.appels.length;
+    const rB = await calc(B, { vers: '8 rue de Rivoli', depuis: P, mode: 'voiture' });
+    v('⛔ le même calcul par une AUTRE personne repart chez l\'IGN : la mémoire est celle de chacun (servie de mémoire, la réponse immédiate dirait à Bob qu\'Alice vient de le demander)',
+      [rB.code, rB.j.minutes, depuisN(n).map(x => x.chemin)], [200, r1.j.minutes, ['/geocodage/search', '/navigation/itineraire']]);
     const rp = await calc(A, { vers: 'Tour Eiffel', depuis: P, mode: 'pied' });
     v('à pied : le profil « pedestrian », et sa durée (bien plus longue)', [rp.code, rp.j.minutes, rp.j.mode, ign.etat.appels[ign.etat.appels.length - 1].params.profile, rp.j.minutes > attendu(POS, TE).minutes],
       [200, attendu(POS, TE, 'pied').minutes, 'pied', 'pedestrian', true]);
@@ -332,12 +425,21 @@ function fauxFetch(repondre) {
     v('un IGN qui tarde (2,5 s ; le délai du service est de 0,8 s) : 503 trajet_indisponible, sans attendre l\'IGN', [o5.code, o5.j, dt < 2000], [503, { error: 'trajet_indisponible' }, true]);
     const o6 = await calc(A, { vers: '3 avenue de la gare (Lyon)', depuis: P, mode: 'voiture' });
     v('   ⛔ un échec n\'est pas gardé en mémoire : la même demande, l\'IGN revenu, réussit', [o6.code, o6.j.minutes], [200, attendu(POS, GA).minutes]);
+    /* ⛔ une réponse de plus d'1 Mo : en morceaux (comme l'IGN), puis annoncée — le service coupe la lecture, et reste debout */
+    ign.etat.bourrage = 2 * 1048576;
+    const g1 = await calc(A, { vers: '3 avenue de la gare, 69003', depuis: P, mode: 'voiture' });
+    ign.etat.annoncer = true;
+    const g2 = await calc(A, { vers: '3 avenue de la gare 69003 (Lyon)', depuis: P, mode: 'voiture' });
+    ign.etat.bourrage = 0; ign.etat.annoncer = false;
+    v('⛔ une réponse de plus d\'1 Mo — en morceaux sans longueur (comme l\'IGN), ou annoncée : 503 trajet_indisponible, et le service répond toujours', [g1.code, g1.j, g2.code, g2.j, (await A.get('/api/config')).code],
+      [503, { error: 'trajet_indisponible' }, 503, { error: 'trajet_indisponible' }, 200]);
     const E = await T.connecter(svc, og, 'eve', MDP.eve);
+    const RAF = []; for (const k of RAFALE) RAF.push(await T.connecter(svc, og, k, MDP.raf));
     await T.dort(1100);                                                                       // le seau se remplit (quatre itinéraires par seconde)
     n = ign.etat.appels.length;
-    const lots = await Promise.all(Array.from({ length: 20 }, (_, i) => calc(E, { vers: 'Tour Eiffel', depuis: { type: 'position', lon: 2.3 + i * 0.001, lat: 48.85 }, mode: 'voiture' })));
+    const lots = await Promise.all(Array.from({ length: 20 }, (_, i) => calc(RAF[i % RAF.length], { vers: 'Tour Eiffel', depuis: { type: 'position', lon: 2.3 + i * 0.001, lat: 48.85 }, mode: 'voiture' })));
     const occupes = lots.filter(r => r.code === 503 && r.j.error === 'trajet_occupe'), passes = lots.filter(r => r.code === 200);
-    vrai('vingt itinéraires DIFFÉRENTS à la fois, quand le service n\'en demande que quatre par seconde : la rafale se LISSE (bien plus de quatre passent, en attendant leur tour)', passes.length >= 8, lots.map(r => r.code));
+    vrai('vingt itinéraires DIFFÉRENTS à la fois (dix personnes, deux chacune), quand le service n\'en demande que quatre par seconde : la rafale se LISSE (bien plus de quatre passent, en attendant leur tour)', passes.length >= 8, lots.map(r => r.code));
     vrai('   au-delà de deux secondes d\'attente : « occupé » (503, réessayer dans 2 s) — et rien d\'autre', occupes.length >= 1 && passes.length + occupes.length === 20 && occupes.every(r => r.h.get('retry-after') === '2'), lots.map(r => r.code));
     v('   ⛔ ce qui est refusé n\'est pas parti chez l\'IGN (un itinéraire par calcul passé, aucun autre)', depuisN(n).map(x => x.chemin).filter(c => c === '/navigation/itineraire').length, passes.length);
     await T.dort(2600);                                                                       // le seau se vide de ses réservations
@@ -345,9 +447,13 @@ function fauxFetch(repondre) {
     console.log('\n6. Trente calculs par heure et par personne');
     const Cl = await T.connecter(svc, og, 'claire', MDP.claire);
     const cinq = []; for (let i = 0; i < 5; i++) cinq.push((await calc(Cl, { vers: 'Tour Eiffel', depuis: P, mode: 'trottinette' })).code);
+    ign.etat.statut = 429;
+    const occ = []; for (let i = 0; i < 3; i++) occ.push((await calc(Cl, { vers: 'Tour Eiffel', depuis: P, mode: 'voiture' })).code);
+    ign.etat.statut = null;
     const okq = []; for (let i = 0; i < 29; i++) okq.push((await calc(Cl, { vers: 'Tour Eiffel', depuis: P, mode: 'voiture' })).code);
     const lp = await Cl.post('/api/moi/lieux', { cle: 'domicile', texte: '12 rue des lilas' });
-    v('trente gestes (vingt-neuf calculs et un domicile) passent — les cinq refus d\'avant n\'ont rien compté', [cinq, okq.every(c => c === 200), lp.code], [[400, 400, 400, 400, 400], true, 200]);
+    v('trente gestes (vingt-neuf calculs et un domicile) passent — ⛔ les cinq refus d\'avant et les trois « occupé » de l\'IGN (il n\'a rien calculé) n\'ont rien compté', [cinq, occ, okq.every(c => c === 200), lp.code],
+      [[400, 400, 400, 400, 400], [503, 503, 503], true, 200]);
     const q31 = await calc(Cl, { vers: 'Tour Eiffel', depuis: P, mode: 'voiture' });
     const retry = Number(q31.h.get('retry-after'));
     v('le trente et unième : 429 quota_atteint, et le délai (une heure au plus)', [q31.code, q31.j.error, retry > 3500 && retry <= 3600, q31.j.retry === retry], [429, 'quota_atteint', true, true]);
@@ -400,6 +506,19 @@ function fauxFetch(repondre) {
     svc.avancer(26 * MIN);
     vrai('   il part', await T.attendre(async () => (await notifs('Coiffeur QXR')).length === 1, 8000, 100));
     v('   sans avance : « pour » l\'heure du rendez-vous', (await notifs('Coiffeur QXR'))[0].texte, 'Il est temps de partir · 20 min en voiture, pour ' + hm(deb3));
+    await A.post('/api/notifications/lues', { toutes: true });
+
+    const deb7 = dans(60);
+    const c7 = await A.post('/api/agenda', { genre: 'rdv', titre: 'Retard QXR', lieu: 'Tour Eiffel', debut: debutLocal(deb7), tz: 'UTC', trajet: TJ({ minutes: 20, avance: 10, vers_label: TE.label }) });
+    v('population : le départ attend (le début, moins 20 min de trajet, moins 10 d\'avance)', [c7.code, rappelA(c7.j.evenement.id)], [201, deb7 - 30 * MIN]);
+    svc.avancer(36 * MIN);                                                                    // le service est resté arrêté jusqu'à six minutes APRÈS l'heure de partir
+    const tRetard = maintenant();
+    vrai('   le départ sonne EN RETARD', await T.attendre(async () => (await notifs('Retard QXR')).length === 1, 8000, 100));
+    const tVu = maintenant();
+    const nRet = (await notifs('Retard QXR'))[0];
+    const mRet = /^Il fallait partir à (\d\d:\d\d) · 20 min en voiture — en partant maintenant, arrivée vers (\d\d:\d\d)$/.exec((nRet && nRet.texte) || '');
+    v('⛔ en retard, il ne dit pas « il est temps » : l\'heure qu\'il était, et l\'arrivée en partant MAINTENANT', [!!mRet, mRet && mRet[1], !!mRet && [hm(tRetard + 20 * MIN), hm(tVu + 20 * MIN)].includes(mRet[2])],
+      [true, hm(deb7 - 30 * MIN), true], nRet && nRet.texte);
     await A.post('/api/notifications/lues', { toutes: true });
 
     const deb4 = dans(20);
@@ -468,6 +587,20 @@ function fauxFetch(repondre) {
     ecrire('UPDATE evenement SET trajet_ch = (SELECT trajet_ch FROM evenement WHERE id = ?) WHERE id = ?', okb.j.evenement.id, sansTr.j.evenement.id);
     const copie = ((await A.get('/api/agenda?du=' + (dans(0) - HEURE) + '&au=' + (dans(4 * 24 * 60)))).j.evenements || []).find(e => e.id === sansTr.j.evenement.id) || {};
     v('⛔ le trajet scellé d\'un rendez-vous recopié sur un autre ne s\'ouvre pas : l\'autre n\'a PAS de trajet, et reste lisible', [copie.trajet, copie.titre], [null, 'Sans trajet QXR']);
+    /* ⛔ un lieu changé par un AUTRE chemin que la route : le code d'avant (un retour en arrière du déploiement) ne connaît pas le trajet, et le laisse en place */
+    const lireEvt = async (id) => ((await A.get('/api/agenda?du=' + (dans(0) - HEURE) + '&au=' + dans(5 * 24 * 60))).j.evenements || []).find(e => e.id === id) || {};
+    const S3 = ouvrirBase({ chemin: BASE, scelleur: creerScelleur(Buffer.from(svc.cle, 'hex')) });
+    try {
+      const e5 = S3.evenementLire(A.moi.id, id5);
+      const champs = (lieu) => ({ titre: e5.titre, lieu, note: e5.note, debut: e5.debut, fin: e5.fin, journee: e5.journee, tz: e5.tz, rappel: e5.rappel });
+      S3.evenementMaj(A.moi.id, id5, champs(e5.lieu));
+      const garde = (await lireEvt(id5)).trajet;
+      S3.evenementMaj(A.moi.id, id5, champs('Gare de Lyon'));
+      const apres = await lireEvt(id5);
+      v('⛔ le lieu changé par un AUTRE chemin, le trajet laissé en place : il ne compte plus (il porte l\'empreinte du lieu pour lequel il a été calculé) — le même lieu réécrit, lui, le garde',
+        [garde && garde.minutes, apres.lieu, apres.trajet, !!sql('SELECT trajet_ch FROM evenement WHERE id = ?', id5).trajet_ch], [90, 'Gare de Lyon', null, true]);
+      v('   et l\'empreinte ne sort jamais : le trajet rendu porte ses champs, rien d\'autre', Object.keys(garde || {}).sort(), ['avance', 'depart', 'depart_label', 'km', 'minutes', 'mode', 'vers_label']);
+    } finally { S3.fermer(); }
 
     console.log('\n9. « Ajouter à mon calendrier » : le trajet et l\'alarme du départ');
     const ics = async (id) => { const r = await A.get('/api/agenda/' + id + '/ics'); return { code: r.code, lignes: r.txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean) }; };
@@ -507,10 +640,40 @@ function fauxFetch(repondre) {
     v('⛔ l\'effacement du compte emporte son domicile et son travail — et rien de ceux des autres', [eff.effacee, Number(sql('SELECT COUNT(*) AS n FROM lieu_perso WHERE uid = ?', D.moi.id).n), Number(sql('SELECT COUNT(*) AS n FROM lieu_perso WHERE uid = ?', A.moi.id).n)],
       [true, 0, 1]);
 
+    console.log('\n10 bis. Un Domicile retiré ou remplacé ne revient pas avec une sauvegarde d\'avant');
+    {
+      const O = require('./outils-sauvegarde');
+      const bz = O.creerBase();
+      try {
+        const zoe = bz.pers('zoe'), yan = bz.pers('yan');
+        const LZ = (label, lon) => ({ label, lon, lat: 48.8 });
+        const copie = async (nom) => { const x = path.join(bz.dossier, nom); await bz.S.instantane(x); return x; };
+        bz.S.lieuPoser(zoe.id, 'domicile', LZ('Ancien domicile', 2.1)); bz.S.lieuPoser(yan.id, 'domicile', LZ('Domicile de Yan', 2.5));
+        const avant = await copie('avant.db');
+        bz.h.t += 60000; bz.S.lieuPoser(zoe.id, 'domicile', LZ('Nouveau domicile', 2.2));                       // remplacé
+        bz.h.t += 60000; bz.S.lieuPoser(zoe.id, 'travail', LZ('Bureau de Zoé', 2.3));
+        const apres = await copie('apres.db');
+        bz.h.t += 60000; bz.S.lieuPoser(zoe.id, 'travail', null);                                               // retiré
+        const reg = ouvrirBase.copie.purgeLire(bz.chemin).filter(r => r.genre === 'lieu');
+        v('le registre des purges note le domicile REMPLACÉ et le travail RETIRÉ (objet personne|clé|instant) — et rien pour un lieu posé la première fois', reg.map(r => r.objet.split('|').slice(0, 2).join('|')), [zoe.id + '|domicile', zoe.id + '|travail']);
+        const lire = (chemin) => { const S = ouvrirBase({ chemin, scelleur: creerScelleur(bz.kek) }); try { return [S.lieuxLire(zoe.id), S.lieuxLire(yan.id)].map(l => [l.domicile && l.domicile.label, l.travail && l.travail.label]); } finally { S.fermer(); } };
+        const regTout = ouvrirBase.copie.purgeLire(bz.chemin);
+        const b1 = ouvrirBase.copie.rejouerPurge(avant, regTout), b2 = ouvrirBase.copie.rejouerPurge(apres, regTout);
+        v('⛔ restaurer la copie d\'AVANT : l\'ancien domicile de Zoé ne revient pas (celui de Yan, si) ; la copie d\'après : le nouveau domicile reste, le travail retiré ne revient pas',
+          [lire(avant), lire(apres), b1.lieuxRetires, b2.lieuxRetires, b1.ignorees + b2.ignorees], [[[null, null], ['Domicile de Yan', null]], [['Nouveau domicile', null], ['Domicile de Yan', null]], 1, 1, 0]);
+        const encore = ouvrirBase.copie.rejouerPurge(apres, regTout);
+        v('   rejoué deux fois : rien de plus (et le registre est recopié une fois)', [encore.lieuxRetires || 0, encore.ajoutees, lire(apres)], [0, 0, [['Nouveau domicile', null], ['Domicile de Yan', null]]]);
+        bz.S.suppressionProgrammer(yan.id, bz.h.t - 1000);
+        const effY = bz.S.compteEffacer(yan.id);
+        v('⛔ un compte effacé (pendant que l\'IGN répondait) : lieuPoser n\'écrit plus rien pour lui', [effY.effacee, bz.S.lieuPoser(yan.id, 'domicile', LZ('Revenu', 2.6)), bz.S.lieuxLire(yan.id)], [true, false, { domicile: null, travail: null }]);
+      } finally { bz.nettoyer(); }
+    }
+
     console.log('\n11. Le journal du service');
     const sortie = svc.sortie.texte();
     const lj = sortie.split('\n').filter(l => l.includes('"evt":"trajet"')).map(l => { try { return JSON.parse(l); } catch (e) { return null; } }).filter(Boolean);
-    v('il dit les issues du calcul (« occupe », « echec ») — un état, rien d\'autre', [[...new Set(lj.map(l => l.etat))].sort(), [...new Set(lj.map(l => Object.keys(l).sort().join(',')))]], [['echec', 'occupe'], ['etat,evt,t']]);
+    v('il dit les issues du calcul (« echec », « hors_reseau », « occupe », « trop_lourd ») — un état, rien d\'autre', [[...new Set(lj.map(l => l.etat))].sort(), [...new Set(lj.map(l => Object.keys(l).sort().join(',')))]],
+      [['echec', 'hors_reseau', 'occupe', 'trop_lourd'], ['etat,evt,t']]);
     vrai('⛔ aucune adresse, aucun point, aucun titre dans toute la sortie du service', !/Rivoli|Lilas|Clinique|Eiffel|Versailles|Gare|2\.2385|48\.892|2\.1301|QXR|Dr Roux/.test(sortie), (sortie.match(/.{0,60}(Rivoli|Lilas|Clinique|Eiffel|Versailles|Gare|2\.2385|48\.892|2\.1301|QXR|Dr Roux).{0,60}/) || [])[0]);
 
     console.log('\n12. Le calcul fermé (`trajet: false`)');
@@ -526,6 +689,12 @@ function fauxFetch(repondre) {
       v('un rendez-vous s\'enregistre avec son trajet (le service ne recalcule rien)', [rf.code, rf.j.evenement.trajet], [201, TJ({ vers_label: TE.label })]);
       v('⛔ rien n\'est parti chez le faux IGN depuis ce service', ign.etat.appels.length - n, 0);
     } finally { await svc2.arreter(); }
+
+    console.log('\n12 bis. La porte de test en production');
+    let refusProd;
+    try { const sp = await T.lancerService({ instance: 'prod', urlGestion: og.url, env: { OPMSG_TEST_TRAJET: ign.url.replace('http://', '') } }); await sp.arreter(); refusProd = 'démarré'; }
+    catch (e) { refusProd = /OPMSG_TEST_TRAJET/.test(String(e && e.message)) ? 'refusé, et dit pourquoi' : String(e && e.message).slice(0, 160); }
+    v('⛔ la porte de test du trajet en PRODUCTION (même le trajet fermé) : le service refuse de démarrer, et dit pourquoi', refusProd, 'refusé, et dit pourquoi');
   } catch (e) {
     console.log('  ✗ exception : ' + (e && e.stack || e));
     process.exitCode = 1;

@@ -63,7 +63,8 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
   const og = await T.fauxOpGestion({ alice: { pass: MDP, nom: 'Alice Martin', actif: true } });
   const ign = await fauxIgn();
   const port = await T.portLibre();
-  const svc = await T.lancerService({ port, urlGestion: og.url, horloge: true, config: { origines: ['http://127.0.0.1:' + port], reunions: { planificateurMs: 150, bailMs: 2000 }, trajet: { base: ign.url, delaiMs: 2000 } } });
+  const svc = await T.lancerService({ port, urlGestion: og.url, horloge: true, config: { origines: ['http://127.0.0.1:' + port], reunions: { planificateurMs: 150, bailMs: 2000 }, trajet: { delaiMs: 2000 } },
+    env: { OPMSG_TEST_TRAJET: ign.url.replace('http://', '') } });                       // ⛔ le faux IGN par la porte de test (le fichier ne peut pas changer l'adresse de l'IGN)
   const C = (label) => ign.CARNET.find(c => c.label === label);
   const R4 = C('8 Rue de Rivoli 75004 Paris'), R1 = C('8 Rue de Rivoli 75001 Paris'), TE = C('Tour Eiffel 75007 Paris'), LI = C('12 Rue des Lilas 78000 Versailles'), CP = C('Clinique du Parc 69006 Lyon');
   const minutesDe = (de, vers, mode) => Math.max(1, Math.ceil(ign.dureeMinutes({ lon: arr(de.lon), lat: arr(de.lat) }, { lon: arr(vers.lon), lat: arr(vers.lat) }, mode === 'pied' ? 'pedestrian' : 'car')));
