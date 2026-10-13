@@ -223,9 +223,43 @@ function fichier(r, opts) {
 }
 
 /* Un nom de fichier sûr (ASCII, sans guillemet ni séparateur) : « reunion-point-hebdo.ics ». */
+const slug = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
 function nom(r) {
-  const base = String(r.titre || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '');
+  const base = slug(r.titre);
   return 'reunion' + (base ? '-' + base : '') + '.ics';
 }
 
-module.exports = { fichier, nom, texte, plier, vtimezone, transitions, regleAnnuelle, regleRepetition, DOMAINE, PRODID };
+/* ── UN ÉVÉNEMENT DE L'AGENDA PERSONNEL, OU UN RENDEZ-VOUS (13 octobre 2026 : « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ») ──────────────────────────────────────
+   Même fabrique que la réunion : une heure précise s'écrit en UTC (l'agenda la montre dans SON fuseau) ; une JOURNÉE ENTIÈRE s'écrit en DATES (`VALUE=DATE`), la fin étant le lendemain (§ 3.6.1 :
+   la fin d'un `DTEND` de date est exclue) — sans quoi un anniversaire glisserait d'un jour pour qui ouvre le fichier dans un autre fuseau. Chaque rappel devient un `VALARM` : « la veille » est
+   un jour civil (`-P1D`) pour une journée entière, et la durée exacte (changement d'heure compris) pour une heure précise ; « à l'heure » est `PT0S`. « Avec qui » va dans la description, jamais
+   dans le titre (l'agenda de la personne le montre tel qu'elle l'a écrit). */
+const enDate = (t, tz) => { const c = cal.champsLocaux(t, tz); return p2(c.a, 4) + p2(c.m) + p2(c.j); };
+function fichierEvenement(e, opts) {
+  const o = opts || {};
+  if (cal.tzValide(e.tz) === null) return null;
+  const rdv = e.genre === 'rdv';
+  const lignes = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:' + PRODID, 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  const ev = ['BEGIN:VEVENT', 'UID:agenda-' + e.id + '@' + DOMAINE, 'DTSTAMP:' + enUtc(o.maintenant == null ? Date.now() : o.maintenant)];
+  if (e.journee) ev.push('DTSTART;VALUE=DATE:' + enDate(e.debut, e.tz), 'DTEND;VALUE=DATE:' + enDate(e.fin, e.tz));
+  else ev.push('DTSTART:' + enUtc(e.debut), 'DTEND:' + enUtc(e.fin));
+  ev.push('SUMMARY:' + texte(e.titre));
+  if (e.lieu) ev.push('LOCATION:' + texte(e.lieu));
+  const desc = [rdv && e.avec ? 'Avec : ' + e.avec : '', e.note || '', (rdv ? 'Rendez-vous' : 'Événement') + ' ajouté depuis OP MESSAGES.'].filter(Boolean).join('\n\n');
+  ev.push('DESCRIPTION:' + texte(desc), 'STATUS:CONFIRMED', 'TRANSP:' + (e.journee ? 'TRANSPARENT' : 'OPAQUE'));
+  const rappels = (Array.isArray(e.rappels) ? e.rappels : (e.rappel === null || e.rappel === undefined ? [] : [e.rappel])).filter((m) => Number.isSafeInteger(m) && m >= 0 && m <= 1440);
+  for (const m of rappels.slice().sort((a, b) => a - b)) {
+    const declenche = m === 0 ? 'PT0S' : m === 1440 && e.journee ? '-P1D' : declencheur(Math.round((e.debut - cal.echeanceRappel(e.debut, m, e.tz)) / cal.MIN));
+    ev.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + texte('Rappel : ' + e.titre), 'TRIGGER:' + declenche, 'END:VALARM');
+  }
+  ev.push('END:VEVENT');
+  for (const l of ev) lignes.push(l);
+  lignes.push('END:VCALENDAR');
+  return lignes.map(plier).join(CRLF) + CRLF;
+}
+function nomEvenement(e) {
+  const base = slug(e.titre);
+  return (e.genre === 'rdv' ? 'rendez-vous' : 'evenement') + (base ? '-' + base : '') + '.ics';
+}
+
+module.exports = { fichier, nom, fichierEvenement, nomEvenement, texte, plier, vtimezone, transitions, regleAnnuelle, regleRepetition, DOMAINE, PRODID };

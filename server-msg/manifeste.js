@@ -103,6 +103,7 @@ const MANIFESTE = [
   { id: 'agenda.supprimer',  m: 'POST', p: '/api/agenda/:id/supprimer',              garde: 'S' },
   { id: 'agenda.fait',       m: 'POST', p: '/api/agenda/:id/fait',                   garde: 'S' },
   { id: 'agenda.reporter',   m: 'POST', p: '/api/agenda/:id/reporter',               garde: 'S' },
+  { id: 'agenda.ics',        m: 'GET',  p: '/api/agenda/:id/ics',                    garde: 'S' },
   { id: 'mel.inscrire',      m: 'POST', p: '/api/mel/inscrire',                      garde: 'P' },
   { id: 'mel.confirmer',     m: 'POST', p: '/api/mel/confirmer',                     garde: 'P' },
   { id: 'mel.connexion',     m: 'POST', p: '/api/mel/connexion',                     garde: 'P' },

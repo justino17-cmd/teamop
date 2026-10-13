@@ -1,6 +1,6 @@
 /* ══ SONDE — L'AGENDA PERSONNEL DANS LA VRAIE PAGE SERVIE : CRÉER, MODIFIER, JOURNÉE ENTIÈRE, SUPPRIMER, LE RAPPEL ═════════════════════════════════════════════════════════
    Le chantier du 6 octobre 2026 (« fais les 3 dans l'ordre » : l'agenda personnel, qui prépare l'agent « Pro Assistant »). Joué contre le VRAI service, horloge avancée au geste :
-     1. l'onglet s'appelle « Agenda » et propose « Événement » à côté de « Réunion » ;
+     1. l'onglet s'appelle « Agenda » et propose « Événement » à côté de « Rendez-vous » (côté Perso, 13 octobre 2026 — « Réunion » est celui du côté Pro) ;
      2. Alice (iPhone 393, jour) crée « Dîner chez Léa » à 20:00 avec un rappel : il paraît dans la journée, avec son heure et son rappel ;
      3. elle le touche, le renomme, le passe en journée entière ; puis le supprime (deux touchers) ;
      4. un événement à rappel : le service avance l'horloge, la bannière « Rappel » arrive dans la page ;
@@ -51,7 +51,8 @@ const aujourdhui = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
     console.log('\n── 1. L\'onglet « Agenda » ──');
     v('l\'onglet du téléphone dit « Agenda »', await A.page.evaluate(() => document.querySelector('#tabs a[data-vue="reunions"]').textContent.trim()), 'Agenda');
     await toucher(A, '#tabs a[data-vue="reunions"]');
-    vrai('il s\'ouvre, titre « Agenda », avec « Événement » et « Réunion » en haut', await attendre(A, () => { const s = document.getElementById('vue-reunions'); return !s.hidden && document.getElementById('titre-reunions').textContent === 'Agenda' && !!document.getElementById('btn-evenement-nouveau') && document.getElementById('btn-reunion-nouvelle').textContent === 'Réunion'; }));
+    /* ⛔ côté Perso (Alice n'a pas d'espace), « Réunion » devient « Rendez-vous » (13 octobre 2026) : le bouton des réunions est là, caché — le rendez-vous a sa sonde, sonde-opmessages-rendez-vous.js */
+    vrai('il s\'ouvre, titre « Agenda », avec « Événement » et « Rendez-vous » en haut (« Réunion » caché : Perso)', await attendre(A, () => { const s = document.getElementById('vue-reunions'); const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return !s.hidden && document.getElementById('titre-reunions').textContent === 'Agenda' && vu('btn-evenement-nouveau') && vu('btn-rdv-nouveau') && document.getElementById('btn-rdv-nouveau').textContent === 'Rendez-vous' && !!document.getElementById('btn-reunion-nouvelle') && !vu('btn-reunion-nouvelle'); }));
     vrai('population : la journée est chargée et vide (« Rien de prévu ce jour-là »)', await attendre(A, () => /Rien de prévu/.test(document.getElementById('liste-reunions').textContent)));
 
     console.log('\n── 2. Créer un événement ──');

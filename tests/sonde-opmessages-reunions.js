@@ -336,6 +336,8 @@ async function parcoursA(b, ctx) {
   const nb = (req, ...args) => Number(sql(req, ...args).n);
   const P = await personnes(svc, og, ['alice', 'bruno', 'dora', 'chloe']);
   await contacts(P.alice, P.bruno); await contacts(P.alice, P.dora);
+  /* ⛔ la bêta ouvre tout : Alice a les deux côtés, et « Programmer » (« Réunion ») est au côté Pro — côté Perso, l'Agenda propose « Rendez-vous » (13 octobre 2026) */
+  await P.alice.post('/api/moi/maj', { prefs: { mode: 'pro' } });
   const A = await ouvrir(b, svc.base, PROFILS.iphone), B = await ouvrir(b, svc.base, PROFILS.bureau, { tz: NY }), D = await ouvrir(b, svc.base, PROFILS.iphone), Z = await ouvrir(b, svc.base, PROFILS.bureau);
   A.nom = 'Alice'; B.nom = 'Bruno'; D.nom = 'Dora'; Z.nom = 'Chloé';
   const tous = [A, B, D, Z];
@@ -593,19 +595,19 @@ async function parcoursA2(E) {
   const brut = await P.alice.get('/api/reunions?du=' + (OCC[0] - JOUR) + '&au=' + (OCC[2] + JOUR));
   v('… le service le dit en UTC : 12:00 puis 13:00 puis 13:00 (population : une réunion, trois occurrences)', [brut.j.reunions.length, brut.j.reunions[0].occurrences.map(o => o.debut)], [1, OCC]);
   await onglet(A, 'messages');
-  /* Perso / Pro (8 octobre 2026, « il faudrait bien séparer l'agenda perso et pro ») : une réunion se range du côté où on l'a PROGRAMMÉE — Alice était côté Perso (le côté d'un
-     compte qui n'a rien choisi), la page l'a dit au service ; sa conversation est donc côté Perso, comme son agenda. (Avant ce jour, toute réunion était Pro.) */
+  /* Perso / Pro (8 octobre 2026, « il faudrait bien séparer l'agenda perso et pro ») : une réunion se range du côté où on l'a PROGRAMMÉE — Alice était côté Pro (depuis le 13 octobre 2026,
+     « Réunion » est au côté Pro ; côté Perso, l'Agenda propose « Rendez-vous »), la page l'a dit au service ; sa conversation est donc côté Pro, comme son agenda. */
   {
     const l = ((await P.alice.get('/api/conversations')).j.conversations || []).find(c => c.reunion === R);
-    v('la réunion programmée côté Perso est rangée Perso (le choix d\'Alice à la création ; l\'automatique, lui, dit Perso aussi — Bruno et Dora ne sont pas ses collègues)', l && [l.cote_choisi, l.cote], ['perso', 'perso']);
+    v('la réunion programmée côté Pro est rangée Pro (le choix d\'Alice à la création, qui l\'emporte sur l\'automatique)', l && [l.cote_choisi, l.cote], ['pro', 'pro']);
   }
   /* (11 octobre 2026, « une seule bascule ») au téléphone, on ne règle Perso | Pro que dans le PROFIL (la photo, le segment de la carte « Perso et Pro », ‹ Retour ›) : plus de sélecteur
-     sous le titre de Messages. Alice est déjà Perso (rien à faire) ; si elle ne l'était pas, elle y revient par ce parcours-là — jamais par un clic en JavaScript sur un segment caché. */
-  if (await A.page.evaluate(() => document.documentElement.dataset.cote) === 'pro') {
+     sous le titre de Messages. Alice est déjà Pro (rien à faire) ; si elle ne l'était pas, elle y revient par ce parcours-là — jamais par un clic en JavaScript sur un segment caché. */
+  if (await A.page.evaluate(() => document.documentElement.dataset.cote) !== 'pro') {
     await toucher(A, '.moi-pastille');
     await A.page.waitForFunction(() => !document.getElementById('vue-reglages').hidden && Array.from(document.querySelectorAll('.cote-seg-profil')).some(x => x.getClientRects().length), null, { timeout: 12000 });
-    await toucher(A, '.cote-seg-profil [data-cote="perso"]');
-    await A.page.waitForFunction(() => document.documentElement.dataset.cote === 'perso', null, { timeout: 12000 });
+    await toucher(A, '.cote-seg-profil [data-cote="pro"]');
+    await A.page.waitForFunction(() => document.documentElement.dataset.cote === 'pro', null, { timeout: 12000 });
     await toucher(A, '.profil-retour');
     await A.page.waitForFunction(() => document.getElementById('vue-reglages').hidden, null, { timeout: 12000 });
   }
@@ -835,15 +837,21 @@ async function parcoursC(b, ctx) {
   const sql = (req, ...args) => { const d = T.lireBase(path.join(svc.data, 'msg.db')); try { return d.prepare(req).get(...args); } finally { d.close(); } };
   const A = await ouvrir(b, svc.base, PROFILS.iphone); A.nom = 'Alice (formule de production)';
   await connecter(A, 'alice');
-  console.log('\n── À la formule de production : « Programmer » ouvre la feuille « Réunions », qui dit la règle ──');
+  console.log('\n── À la formule de production : l\'Agenda propose « Rendez-vous » ; « Programmer une réunion » ouvre la feuille « Réunions », qui dit la règle ──');
   await onglet(A, 'reunions');
-  await toucher(A, '#btn-reunion-nouvelle');
+  /* ⛔ Perso (13 octobre 2026) : l'en-tête de l'Agenda propose « Rendez-vous » ; la réunion reste joignable — pour apprendre qu'elle est à Pro — par « Nouvelle discussion » */
+  await verifier('⛔ Perso : « Rendez-vous » est dans l\'en-tête de l\'Agenda, « Réunion » y est caché (population : il existe)', A, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
+    return vu('btn-rdv-nouveau') && !!document.getElementById('btn-reunion-nouvelle') && !vu('btn-reunion-nouvelle'); }, null, 10000, () => lire(A, '#vue-reunions'));
+  await onglet(A, 'messages'); await toucher(A, '#btn-plus');
+  await verifier('population : « Nouvelle discussion » porte « Programmer une réunion »', A, () => !!document.querySelector('[data-nd-act="reunion"]'), null, 8000, () => lire(A, '#feuille'));
+  await toucher(A, '[data-nd-act="reunion"]');
   await verifier('⛔ la page ouvre la feuille « Réunions » (pas un formulaire qu\'elle sait refusé) : « Les réunions font partie de Messages Pro. » et « il te suffit du lien que son organisateur t\'envoie »', A, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Réunions' && /Les réunions font partie de Messages Pro\./.test(document.getElementById('info-corps').textContent) && /il te suffit du lien que son organisateur t'envoie/.test(document.getElementById('info-corps').textContent), null, 10000, () => texteCorps(A));
   vrai('… elle ne montre AUCUN prix ni bouton de paiement (un bouton ne mène jamais nulle part), et ne parle d\'aucun forfait de personne', await A.page.evaluate(() => !/\d\s*€|euro|Perso\+|S'abonner/i.test(document.getElementById('info-corps').textContent)));
   v('… et RIEN n\'a été créé ni demandé (population : la page a bien lu la formule, et n\'a envoyé aucune programmation)', [A.requetes.filter(r => r === 'GET /api/espaces').length >= 1, A.postes.filter(p => p.chemin === '/api/reunions').length, Number(sql('SELECT COUNT(*) AS n FROM reunion').n), Number(sql('SELECT COUNT(*) AS n FROM conversation').n)], [true, 0, 0, 0]);
   await capture(A, 'r11-programmer-reunions-pro');
   await largeur(A, 'feuille « Réunions » (Perso)');
   await fermerFeuille(A);
+  await onglet(A, 'reunions');
   await verifier('l\'agenda reste lisible (« Rien de prévu ce jour-là »), la feuille n\'a rien cassé', A, () => /Rien de prévu ce jour-là/.test(document.getElementById('liste-reunions').textContent), null, 8000, () => lire(A, '#vue-reunions'));
   return { tous: [A] };
 }

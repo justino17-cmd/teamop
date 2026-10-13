@@ -10,6 +10,12 @@
  *   POST /api/agenda/:id/supprimer                        S
  *   POST /api/agenda/:id/fait                             S  {fait: true|false} — coché, il ne sonne plus ; décoché, son rappel se recalcule
  *   POST /api/agenda/:id/reporter                         S  {dans: 10 | 60 | 'demain'} — plus tard (10 min, 1 h) ou demain 9 h dans son fuseau, décoché, et il sonnera à l'heure
+ *   GET  /api/agenda/:id/ics                              S  le fichier .ics de l'événement (ses rappels compris) : « Ajouter à mon calendrier »
+ *
+ * ⛔ LE RENDEZ-VOUS (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous… avec des rappels et tout », « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ») est
+ *    un événement de `genre` 'rdv' : il a TOUJOURS une heure (jamais « toute la journée »), un « avec qui » (`avec`, facultatif, scellé comme le titre) et, comme tout événement, une LISTE de
+ *    rappels (`rappels` : trois au plus, parmi ceux de `RAPPELS`). Le genre se choisit à la création et ne change pas. `rappel` (un seul) reste accepté — la page d'avant l'envoie.
+ *    Chaque rappel part une fois, dans l'ordre : quand l'un part, l'échéance passe au SUIVANT (`prochaine`), calculée ici, jamais par la page.
  *
  * ⛔ UN RAPPEL QUI VIENT D'UN MESSAGE (« Me le rappeler », 8 octobre 2026 : « voir le message ») garde un POINTEUR (`source` : {conv, seq}), posé à la création seulement et à une
  *    condition : la personne est membre de la conversation et le message y existe. Lire le message redemande d'en être membre : le pointeur ne donne rien d'autre que le chemin.
@@ -24,11 +30,13 @@
  */
 'use strict';
 const cal = require('./calendrier');
+const ics = require('./ics');
 
 const JOUR = 86400000, MIN = 60000;
 const FENETRE_MAX = 92 * JOUR, LISTE_MAX = 500, EVENEMENTS_MAX = 2000;
 const TITRE_MAX = 120, LIEU_MAX = 300, NOTE_MAX = 2000, DUREE_MAX = 31 * JOUR;
 const RAPPELS = [0, 5, 15, 30, 60, 1440];            // à l'heure, 5 min, 15 min, 30 min, 1 h, la veille (même heure locale)
+const RAPPELS_MAX = 3, AVEC_MAX = 120, GENRES = ['evenement', 'rdv'];
 const ID_EVT = /^e_[0-9a-f]{32}$/, ID_CONV = /^c_[0-9a-f]{32}$/;
 const REPORTS = [10, 60, 'demain'];                 // « Reporter » : dans 10 min, dans 1 h, demain 9 h (heure locale de l'événement)
 const FUSEAU_DEFAUT = 'Europe/Paris';
@@ -43,6 +51,12 @@ function echeance(debut, rappel, tz, maintenant) {
   if (rappel === null || rappel === undefined) return null;
   const e = rappel === 0 ? debut : cal.echeanceRappel(debut, rappel, tz);
   return e > maintenant ? e : null;
+}
+/* La PROCHAINE échéance d'une liste de rappels : la plus proche qui n'est pas passée (null s'il n'y en a plus). Un rappel qui vient de partir est passé : c'est le suivant qui vient. */
+function prochaine(debut, rappels, tz, maintenant) {
+  let p = null;
+  for (const m of rappels || []) { const e = echeance(debut, m, tz, maintenant); if (e !== null && (p === null || e < p)) p = e; }
+  return p;
 }
 
 function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
@@ -106,10 +120,28 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       if (f - d > DUREE_MAX) return { erreur: 'evenement_trop_long' };
       v.debut = d; v.fin = f;
     } else { v.debut = base.debut; v.fin = base.fin; }
-    if (present('rappel')) {
+    /* le genre : choisi à la création (un événement par défaut), il ne change pas ensuite — un rendez-vous n'est jamais « toute la journée » */
+    if (present('genre') && (!GENRES.includes(b.genre) || (base && b.genre !== base.genre))) return { erreur: 'champ_invalide' };
+    v.genre = base ? base.genre : (present('genre') ? b.genre : 'evenement');
+    if (v.genre === 'rdv' && v.journee) return { erreur: 'champ_invalide' };
+    if (present('avec')) {
+      if (b.avec !== null && typeof b.avec !== 'string') return { erreur: 'champ_invalide' };
+      const x = b.avec === null ? '' : ligne(b.avec);
+      if (longueur(x) > AVEC_MAX) return { erreur: 'champ_invalide' };
+      v.avec = x;
+    } else v.avec = base ? base.avec : '';
+    if (v.genre !== 'rdv' && v.avec) return { erreur: 'champ_invalide' };           // « avec qui » est celui d'un rendez-vous : un événement n'en a pas
+    /* les rappels : une LISTE (trois au plus, sans doublon, parmi `RAPPELS`), rangée la plus éloignée d'abord ; ou le rappel seul de la page d'avant. Les deux à la fois : refusé. */
+    if (present('rappels') && present('rappel')) return { erreur: 'champ_invalide' };
+    if (present('rappels')) {
+      const l = b.rappels;
+      if (!Array.isArray(l) || l.length > RAPPELS_MAX || !l.every(m => RAPPELS.includes(m)) || new Set(l).size !== l.length) return { erreur: 'rappel_invalide' };
+      v.rappels = l.slice().sort((x, y) => y - x);
+    } else if (present('rappel')) {
       if (b.rappel !== null && !RAPPELS.includes(b.rappel)) return { erreur: 'rappel_invalide' };
-      v.rappel = b.rappel;
-    } else v.rappel = base ? base.rappel : null;
+      v.rappels = b.rappel === null ? [] : [b.rappel];
+    } else v.rappels = base ? base.rappels : [];
+    v.rappel = v.rappels.length ? v.rappels[0] : null;
     /* le côté (8 octobre 2026, « bien séparer l'agenda perso et pro ») : 'perso' ou 'pro' ; null rend le côté déduit (celui de la conversation d'origine, sinon Perso). Absent à la création : déduit ;
        absent à une modification : inchangé. Rien d'autre n'est accepté. */
     if (present('cote')) {
@@ -141,7 +173,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       source = { conv: sb.conv, seq: sb.seq };
     }
     const e = stockage.evenementCreer({ uid: req.moi.id, titre: c.titre, lieu: c.lieu, note: c.note, debut: c.debut, fin: c.fin, journee: c.journee, tz: c.tz, rappel: c.rappel,
-      rappelA: echeance(c.debut, c.rappel, c.tz, horloge()), source, cote: c.cote === undefined ? null : c.cote });
+      rappelA: prochaine(c.debut, c.rappels, c.tz, horloge()), source, cote: c.cote === undefined ? null : c.cote, genre: c.genre, avec: c.avec, rappels: c.rappels });
     res.status(201).json({ evenement: e });
   };
   H['agenda.maj'] = (req, res) => {
@@ -154,9 +186,9 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     if (r.erreur) return refus(res, 400, r.erreur);
     const c = r.champs;
     /* le rappel se recalcule quand l'horaire ou le rappel changent ; sinon il garde son état (déjà parti : il ne repart pas) */
-    const recalcul = r.horaire || corps(req).rappel !== undefined;
+    const recalcul = r.horaire || corps(req).rappel !== undefined || corps(req).rappels !== undefined;
     const e = stockage.evenementMaj(req.moi.id, id, { titre: c.titre, lieu: c.lieu, note: c.note, debut: c.debut, fin: c.fin, journee: c.journee, tz: c.tz, rappel: c.rappel,
-      rappelA: recalcul ? echeance(c.debut, c.rappel, c.tz, horloge()) : undefined, cote: c.cote });
+      rappelA: recalcul ? prochaine(c.debut, c.rappels, c.tz, horloge()) : undefined, cote: c.cote, avec: c.avec, rappels: c.rappels });
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
   };
@@ -177,7 +209,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     const base = stockage.evenementLire(req.moi.id, id);
     if (!base) return refus(res, 404, 'introuvable');
     const t = horloge();
-    const e = stockage.evenementFait(req.moi.id, id, b.fait ? t : null, b.fait ? null : echeance(base.debut, base.rappel, base.tz, t));
+    const e = stockage.evenementFait(req.moi.id, id, b.fait ? t : null, b.fait ? null : prochaine(base.debut, base.rappels, base.tz, t));
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
   };
@@ -196,10 +228,25 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       const auj = cal.champsLocaux(t, base.tz), dem = cal.ajouterJours({ a: auj.a, m: auj.m, j: auj.j }, 1);
       debut = cal.instantLocal({ a: dem.a, m: dem.m, j: dem.j, h: base.journee ? 0 : 9, mi: 0 }, base.tz);
     } else debut = Math.ceil((t + b.dans * MIN) / MIN) * MIN;
-    const rappel = base.rappel === null ? 0 : base.rappel;
-    const e = stockage.evenementReporter(req.moi.id, id, { debut, fin: debut + duree, journee: base.journee, rappel, rappelA: echeance(debut, rappel, base.tz, t) });
+    const rappels = base.rappels.length ? base.rappels : [0];
+    const e = stockage.evenementReporter(req.moi.id, id, { debut, fin: debut + duree, journee: base.journee, rappel: rappels[0], rappelA: prochaine(debut, rappels, base.tz, t), rappels });
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
+  };
+
+  /* « Ajouter à mon calendrier » : le fichier .ics de l'événement, ses rappels compris (Calendrier d'Apple, Google Agenda, Outlook l'ouvrent). Un événement d'un autre : 404, comme un inconnu.
+     Une lecture : elle ne prend rien au plafond des écritures, mais garde le sien (60 par minute). */
+  H['agenda.ics'] = (req, res) => {
+    const id = req.params.id;
+    if (!ID_EVT.test(id)) return refus(res, 404, 'introuvable');
+    const q = quotas.essai('agenda-ics:' + req.moi.id, 60, 60000);
+    if (!q.ok) { res.set('Retry-After', String(q.retry)); return refus(res, 429, 'quota_atteint', { retry: q.retry }); }
+    const e = stockage.evenementLire(req.moi.id, id);
+    if (!e) return refus(res, 404, 'introuvable');
+    const texte = ics.fichierEvenement(e, { maintenant: horloge() });
+    if (texte === null) return refus(res, 404, 'introuvable');
+    res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + ics.nomEvenement(e) + '"', 'Cache-Control': 'no-store' });
+    res.send(texte);
   };
 
   /* ── Les rappels, appelés par le planificateur (qui tient le bail) : → { envoyes, abandonnes }. `budget` : le nombre de rappels au plus pour ce tour. ── */
@@ -211,9 +258,10 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       const c = cal.champsLocaux(x.debut, x.tz), heure = String(c.h).padStart(2, '0') + ':' + String(c.mi).padStart(2, '0');
       const demain = cal.numeroJour(c) > cal.numeroJour(cal.champsLocaux(t, x.tz));
       const quand = x.journee ? (demain ? 'Demain, toute la journée' : 'Aujourd\'hui, toute la journée') : reste <= 0 ? 'Maintenant' : reste < 60 ? 'Dans ' + reste + ' minute' + (reste > 1 ? 's' : '') : (demain ? 'Demain à ' : 'Aujourd\'hui à ') + heure;
-      const n = stockage.evenementRappelEnvoyer(x.id, { titre: x.titre, texte: quand });
+      const texte = x.genre === 'rdv' && x.avec ? quand + ' · avec ' + x.avec : quand;
+      const n = stockage.evenementRappelEnvoyer(x.id, { titre: x.titre, texte, suivant: prochaine(x.debut, x.rappels, x.tz, t) });
       /* le côté du rappel (le sien, sinon celui de la conversation d'où il vient, sinon Perso — la règle de la page) : « OP MESSAGES PRO » pour un rappel de l'agenda Pro */
-      if (n) { bilan.envoyes++; try { notifier(x.uid, n, x.titre, quand, x.id, { cote: x.cote, conv: x.source ? x.source.conv : null }); } catch (e) { /* la notification est écrite : le push est un plus */ } }
+      if (n) { bilan.envoyes++; try { notifier(x.uid, n, x.titre, texte, x.id, { cote: x.cote, conv: x.source ? x.source.conv : null }); } catch (e) { /* la notification est écrite : le push est un plus */ } }
     }
     if (bilan.abandonnes) journal('agenda_rappel_abandonne', { n: bilan.abandonnes });
     return bilan;
@@ -222,4 +270,4 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
   return { handlers: H, rappelsTour, valider, RAPPELS };
 }
 
-module.exports = { creerAgenda, echeance, RAPPELS, REPORTS, ID_EVT, FENETRE_MAX, LISTE_MAX, EVENEMENTS_MAX, TITRE_MAX, LIEU_MAX, NOTE_MAX, DUREE_MAX };
+module.exports = { creerAgenda, echeance, prochaine, RAPPELS, RAPPELS_MAX, AVEC_MAX, GENRES, REPORTS, ID_EVT, FENETRE_MAX, LISTE_MAX, EVENEMENTS_MAX, TITRE_MAX, LIEU_MAX, NOTE_MAX, DUREE_MAX };

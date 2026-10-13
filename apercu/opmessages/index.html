@@ -3034,8 +3034,17 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   const navPour = () => ORDRE.filter(k => k !== 'reglages' && (k !== 'accueil' || !modesActifs() || etat.mode === 'pro'));
   const segCote = cls => '<div class="seg cote-seg ' + cls + '" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span>' +
     ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-cote="' + k + '" aria-pressed="false">' + NOM_COTE[k] + '<b class="cote-n" hidden></b></button>').join('') + '</div>';
+  /* ⛔ CÔTÉ PERSO, « RÉUNION » DEVIENT « RENDEZ-VOUS » (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous
+     personnels avec des rappels et tout »). Perso, ce sont les appels et les messages, pas les réunions : on y propose un rendez-vous à soi. « Réunion » ne paraît que du côté Pro — ou pour un
+     compte Pro sans les deux côtés (un service d'avant). Sans la capacité (un service qui ne connaît pas le rendez-vous), rien ne change. */
+  function peindreBoutonsAgenda() {
+    const rdv = $('btn-rdv-nouveau'), reu = $('btn-reunion-nouvelle'); if (!rdv || !reu) return;
+    const perso = !etat.pro || (modesActifs() && etat.mode !== 'pro');
+    rdv.hidden = !perso; reu.hidden = perso;
+  }
   function peindreMode() {
     const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
+    peindreBoutonsAgenda();
     if (actif) racine.dataset.cote = etat.mode; else delete racine.dataset.cote;
     document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });       // (son espace caché : « OP MESSAGES PRO » se lit en trois mots, jamais « MESSAGESPRO »)
     $('marque-tel').hidden = !actif;
@@ -5086,10 +5095,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const transf = G.mode === 'transferer';
     $('g-creer').setAttribute('aria-disabled', (transf ? G.tVers.length && !G.tEnvoi : G.choisis.length) ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
-    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'evenement' || G.mode === 'decaler' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || transf || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'reunions-pro' || G.mode === 'reunion' || G.mode === 'invite-reunion' || G.mode === 'avant' || G.mode === 'chercher' || G.mode === 'medias' || formReunion;
+    const appel = G.mode === 'appel', info = G.mode === 'info', formReunion = G.mode === 'reunion-new' || G.mode === 'reunion-edit' || G.mode === 'evenement-new' || G.mode === 'rdv-new' || G.mode === 'evenement' || G.mode === 'decaler' || G.mode === 'sondage-nouveau' || G.mode === 'sondage-choix', corpsInfo = G.mode === 'position' || G.mode === 'carte-contact' || transf || G.mode === 'theme' || G.mode === 'sondage-votes' || info || G.mode === 'contact' || G.mode === 'personne' || G.mode === 'suivi' || G.mode === 'convinfo' || G.mode === 'profil' || G.mode === 'suppression' || G.mode === 'entreprise' || G.mode === 'espace' || G.mode === 'abo' || G.mode === 'reunions-pro' || G.mode === 'reunion' || G.mode === 'invite-reunion' || G.mode === 'avant' || G.mode === 'chercher' || G.mode === 'medias' || formReunion;
     $('feuille').dataset.mode = G.mode;
     const nouv = G.mode === 'nouvelle';
-    $('feuille-titre').textContent = transf ? 'Transférer' : G.mode === 'chercher' ? 'Rechercher' : G.mode === 'medias' ? 'Photos, fichiers et liens' : G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? 'Événement' : G.mode === 'decaler' ? 'Décaler le rendez-vous' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'reunions-pro' ? 'Réunions' : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'avant' ? 'Avant d\'entrer' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
+    $('feuille-titre').textContent = transf ? 'Transférer' : G.mode === 'chercher' ? 'Rechercher' : G.mode === 'medias' ? 'Photos, fichiers et liens' : G.mode === 'sondage-votes' ? 'Votes' : G.mode === 'theme' ? 'Fond et couleurs' : G.mode === 'position' ? 'Position' : G.mode === 'carte-contact' ? 'Partager un contact' : G.mode === 'sondage-nouveau' ? 'Nouveau sondage' : G.mode === 'sondage-choix' ? 'Ajouter un choix' : G.mode === 'rdv-new' ? 'Nouveau rendez-vous' : G.mode === 'evenement-new' ? 'Nouvel événement' : G.mode === 'evenement' ? (ficheEstRdv() ? 'Rendez-vous' : 'Événement') : G.mode === 'decaler' ? 'Décaler le rendez-vous' : nouv ? 'Nouvelle discussion' : info ? 'Détails' : G.mode === 'contact' ? 'Contacts' : G.mode === 'personne' ? 'Contact' : G.mode === 'suivi' ? 'Suivi du document' : G.mode === 'convinfo' ? 'Infos' : G.mode === 'profil' ? 'Profil' : G.mode === 'suppression' ? 'Supprimer mon compte' : G.mode === 'entreprise' ? 'Entreprise' : G.mode === 'espace' ? 'Espace' : G.mode === 'abo' ? 'Abonnement' : G.mode === 'reunions-pro' ? 'Réunions' : G.mode === 'reunion' || G.mode === 'invite-reunion' ? 'Réunion' : G.mode === 'avant' ? 'Avant d\'entrer' : G.mode === 'reunion-new' ? 'Nouvelle réunion' : G.mode === 'reunion-edit' ? 'Modifier la réunion' : appel ? (CAP.appelsMedias ? 'Nouvel appel' : 'Appel de groupe') : 'Nouveau groupe';
     $('g-annuler').textContent = corpsInfo && !formReunion && !transf && G.mode !== 'avant' ? 'Fermer' : 'Annuler';
     $('g-creer').textContent = appel ? 'Appeler' : transf ? (G.tEnvoi ? 'Envoi…' : 'Envoyer') : 'Créer';
     const sansCreer = corpsInfo && !transf;      // « Transférer » garde son bouton d'envoi en haut à droite, comme « Nouveau groupe »
@@ -5129,7 +5138,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       || (CAP.reunions && (mode === 'reunion-new' || ((mode === 'reunion' || mode === 'reunion-edit') && ID_REUNION.test(arg || ''))))
       || (CAP.identifiants && mode === 'personne' && /^[A-Za-z0-9_-]{1,64}$/.test(arg || ''))
       || (CAP.suiviPieces && mode === 'suivi' && /^f_[0-9a-f]{32}$/.test(arg || ''))
-      || (CAP.salles && mode === 'invite-reunion') || (CAP.salles && mode === 'avant' && !!avant.prete) || (CAP.reunions && mode === 'reunions-pro') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || ''))))
+      || (CAP.salles && mode === 'invite-reunion') || (CAP.salles && mode === 'avant' && !!avant.prete) || (CAP.reunions && mode === 'reunions-pro') || (CAP.agenda && (mode === 'evenement-new' || (mode === 'evenement' && ID_EVT.test(arg || '')))) || (CAP.rendezVous && mode === 'rdv-new')
       || (CAP.reunions && mode === 'decaler' && (ID_REUNION.test(arg || '') || (CAP.agenda && ID_EVT.test(arg || ''))))
       || (CAP.themesConv && mode === 'theme' && /^c_[0-9a-f]{32}$/.test(arg || ''))
       || (CAP.retrouver && (mode === 'chercher' || mode === 'medias') && /^c_[0-9a-f]{32}$/.test(arg || ''))
@@ -5174,7 +5183,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     if (etat.groupe.mode === 'reunion-new' || etat.groupe.mode === 'reunion-edit') { $('info-corps').innerHTML = ''; rendreFormReunion(etat.groupe.mode === 'reunion-edit' ? arg : null); }
     if (etat.groupe.mode === 'invite-reunion') rendreInviteReunion();
     if (etat.groupe.mode === 'avant') rendreAvant();
-    if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null); }
+    if (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'rdv-new' || etat.groupe.mode === 'evenement') { $('info-corps').innerHTML = ''; rendreFormEvenement(etat.groupe.mode === 'evenement' ? arg : null, etat.groupe.mode === 'rdv-new'); }
     if (etat.groupe.mode === 'decaler') { $('info-corps').innerHTML = ''; rendreDecaler(arg); }
     if (etat.groupe.mode === 'position') rendrePosition();
     if (etat.groupe.mode === 'theme') rendreTheme();
@@ -7985,7 +7994,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const sec = $('vue-reunions');
     sec.innerHTML =
       '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
-        '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button></div>' +
+        '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button>' +
+        (CAP.rendezVous ? '<button type="button" class="lien-texte presse" id="btn-rdv-nouveau" aria-haspopup="dialog" hidden>Rendez-vous</button>' : '') + '</div>' +
       pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="seg" id="reu-vue-seg" role="group" aria-label="Afficher"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-reu-vue="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-reu-vue="mois" aria-pressed="false">Mois</button></div>' +
       '<div class="sem-nav" role="group" aria-label="Période affichée">' +
@@ -8009,6 +8019,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     for (const z of ['mois-jours', 'sem-grille']) $(z).addEventListener('click', e => clicCaseAgenda(e, z === 'mois-jours'));
     agendaGestes(sec);                                // clic droit, appui long, glisser — sur les cases et la liste du jour
     $('btn-reunion-nouvelle').addEventListener('click', () => programmerReunion());
+    if (CAP.rendezVous) $('btn-rdv-nouveau').addEventListener('click', () => { declencheur = $('btn-rdv-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'rdv-new' })); });
+    peindreBoutonsAgenda();
     if (CAP.agenda) $('btn-evenement-nouveau').addEventListener('click', () => { declencheur = $('btn-evenement-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' })); });
     $('sem-prec').addEventListener('click', () => vueMois() ? changerMois(-1) : changerSemaine(-7));
     $('sem-suiv').addEventListener('click', () => vueMois() ? changerMois(1) : changerSemaine(7));
@@ -8075,8 +8087,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   function ligneEvenement(e, jour, coche) {
     const continu = !e.journee && e.debut < jour;
     const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : '<span class="reunion-heure">' + esc(continu ? 'Suite' : FMT_HEURE.format(e.debut)) + '<small>' + esc(FMT_HEURE.format(e.fin)) + '</small></span>';
-    const rappel = e.rappel === null ? '' : e.rappel === 0 ? 'Rappel à l\'heure' : e.rappel === 1440 ? 'Rappel la veille' : 'Rappel ' + (e.rappel >= 60 ? (e.rappel / 60) + ' h' : e.rappel + ' min') + ' avant';
-    const sous = [e.lieu, rappel].filter(Boolean).join(' · ');
+    const rappel = texteRappels(Array.isArray(e.rappels) ? e.rappels : (e.rappel === null ? [] : [e.rappel]));
+    /* un rendez-vous le dit, et avec qui (13 octobre 2026) */
+    const sous = [e.genre === 'rdv' ? 'Rendez-vous' + (e.avec ? ' avec ' + e.avec : '') : '', e.lieu, rappel].filter(Boolean).join(' · ');
     /* ⛔ COCHER UN RAPPEL (8 octobre 2026 : « cocher un rappel fait » — la seule façon de s'en défaire était de le supprimer) : au tableau de bord, un rond devant la ligne, comme dans
        Rappels d'Apple ; fait, il quitte le tableau et reste dans l'agenda, barré. Le rond est un bouton à part : la ligne, elle, ouvre la fiche. */
     const rond = coche ? '<button type="button" class="evt-coche presse" data-evt-fait="' + esc(e.id) + '" aria-pressed="' + (e.fait ? 'true' : 'false') + '" aria-label="' + esc((e.fait ? 'Remettre « ' : 'Marquer « ') + e.titre + (e.fait ? ' » à faire' : ' » comme fait')) + '"><span class="evt-rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : '';
@@ -8750,7 +8763,25 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
      Un événement à soi : titre, journée entière ou heures, lieu, rappel, note. L'heure est celle de l'APPAREIL (son fuseau part avec), le service convertit. Le geste « Supprimer » se
      confirme en touchant deux fois (comme « Bloquer »). Après un enregistrement, la feuille se ferme et la semaine se relit : l'écran dit ce que le SERVICE a retenu. */
   const RAPPELS_EVT = [['', 'Aucun'], ['0', 'À l\'heure'], ['5', '5 minutes avant'], ['15', '15 minutes avant'], ['30', '30 minutes avant'], ['60', '1 heure avant'], ['1440', 'La veille']];
-  async function rendreFormEvenement(id) {
+  /* les rappels d'un rendez-vous : des cases (trois au plus), comme ceux d'une réunion — la veille et une heure avant par défaut */
+  const RAPPELS_RDV = [[1440, 'La veille'], [60, '1 heure avant'], [30, '30 minutes avant'], [15, '15 minutes avant'], [5, '5 minutes avant'], [0, 'À l\'heure']];
+  function htmlRappelsEvt(liste) { return RAPPELS_RDV.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (liste.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-evt-rappel="' + x[0] + '"><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
+  function evtBasculerRappel(min) {
+    const F = reu.formEvt; if (!F || !F.rdv || !$('ev-rappels')) return;
+    const i = F.rappels.indexOf(min);
+    if (i >= 0) F.rappels.splice(i, 1);
+    else if (F.rappels.length >= 3) { mot('Trois rappels au plus : décoche-en un d\'abord'); return; }
+    else F.rappels.push(min);
+    $('ev-rappels').innerHTML = htmlRappelsEvt(F.rappels);
+    const b = $('ev-rappels').querySelector('[data-evt-rappel="' + min + '"]'); if (b) b.focus({ preventScroll: true });
+  }
+  /* ce qu'on lit d'une liste de rappels : « Rappel la veille », « Rappels la veille et 1 h avant » */
+  const motRappel = m => m === 0 ? 'à l\'heure' : m === 1440 ? 'la veille' : (m >= 60 ? (m / 60) + ' h' : m + ' min') + ' avant';
+  const texteRappels = l => !l.length ? '' : (l.length > 1 ? 'Rappels ' : 'Rappel ') + l.map(motRappel).reduce((a, x, i, t) => a + (i === 0 ? '' : i === t.length - 1 ? ' et ' : ', ') + x, '');
+  /* ⛔ la fiche ouverte est-elle celle d'un rendez-vous ? `synchroFeuille` repasse APRÈS le dessin de la fiche et en réécrit le titre : il le lit ici, sur la fiche DESSINÉE pour l'identifiant
+     demandé (une fiche encore en chargement n'en dit rien — elle posera son titre en arrivant). */
+  const ficheEstRdv = () => !!(reu.formEvt && reu.formEvt.rdv && reu.formEvt.id && reu.formEvt.id === reu.formEvtDemande);
+  async function rendreFormEvenement(id, rdvNeuf) {
     const corps = $('info-corps');
     let e = null;
     reu.formEvtDemande = id || null;
@@ -8765,6 +8796,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       }
       if (!e) { corps.innerHTML = '<p class="info-erreur" role="alert">Cet événement n\'existe plus.</p>'; return; }
     }
+    /* ⛔ LE RENDEZ-VOUS (13 octobre 2026) : la même fiche, avec « Avec », une heure toujours (jamais « toute la journée ») et PLUSIEURS rappels — la veille et une heure avant, par défaut */
+    const rdv = e ? e.genre === 'rdv' : !!rdvNeuf;
+    $('feuille-titre').textContent = rdv ? (e ? 'Rendez-vous' : 'Nouveau rendez-vous') : (e ? 'Événement' : 'Nouvel événement');      // (une fiche lue après une attente dit SON titre)
     const tz = e ? e.tz : (fuseauAppareil() || 'Europe/Paris');
     const d0 = e ? e.debut : (reu.jour && reu.jour > Date.now() ? reu.jour + 9 * 3600000 : Math.ceil((Date.now() + 60000) / 3600000) * 3600000);
     const f0 = e ? e.fin : d0 + 3600000;
@@ -8775,17 +8809,23 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       (typeof source.reporterEvenement === 'function' ? '<div class="reglage evt-reporter" role="group" aria-label="Reporter"><span class="reglage-texte">Reporter</span><span class="evt-reporter-choix">' +
         (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
+      /* « Ajouter à mon calendrier », comme Apple : un lien vers le fichier .ics (rappels compris) — l'iPhone propose de l'ajouter à Calendrier, l'ordinateur le télécharge */
+      (typeof source.adresseIcsEvenement === 'function' ? '<a class="reglage presse" data-evt="ics" download href="' + esc(source.adresseIcsEvenement(e.id)) + '">' + icone('i-telecharger') + '<span class="reglage-texte">Ajouter à mon calendrier<small>Calendrier d\'Apple, Google Agenda, Outlook — avec ses rappels</small></span>' + CHEVRON + '</a>' : '') +
       '</div>' : '';
+    const rappels0 = e ? (Array.isArray(e.rappels) ? e.rappels.slice() : (e.rappel === null ? [] : [e.rappel])) : (rdv ? [1440, 60] : null);
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + gestes +
-      '<div class="champ"><label for="ev-titre">Titre</label><input id="ev-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.titre : '') + '" placeholder="Dentiste, anniversaire, rendez-vous…"></div>' +
-      '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (journee ? 'true' : 'false') + '" id="ev-journee"><span class="reglage-texte">Toute la journée</span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
+      '<div class="champ"><label for="ev-titre">Titre</label><input id="ev-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.titre : '') + '" placeholder="' + (rdv ? 'Médecin, coiffeur, garage…' : 'Dentiste, anniversaire, rendez-vous…') + '"></div>' +
+      (rdv ? '<div class="champ"><label for="ev-avec">Avec</label><input id="ev-avec" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.avec : '') + '" placeholder="Facultatif — Dr Martin, le garage…"></div>'
+        : '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (journee ? 'true' : 'false') + '" id="ev-journee"><span class="reglage-texte">Toute la journée</span><span class="interrupteur" aria-hidden="true"></span></button></div>') +
       '<div class="champ"><label for="ev-debut">Début</label><input id="ev-debut" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(d0, tz).slice(0, 10) : localDans(d0, tz)) + '"></div>' +
       '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
       '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="Facultatif"></div>' +
-      '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>' +
+      (rdv ? '<div class="rubrique"><span>Rappels</span><span>Trois au plus</span></div><div class="carte" id="ev-rappels" role="group" aria-label="Rappels du rendez-vous">' + htmlRappelsEvt(rappels0) + '</div>'
+        : '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>') +
       '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
       '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
-    reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '', cote: etat.mode };      // le côté où l'on était en ouvrant la fiche
+    reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '', cote: etat.mode, rdv, rappels: rdv ? rappels0 : null,
+      rappelsPlus: !!(e && !rdv && Array.isArray(e.rappels) && e.rappels.length > 1), rappelInitial: e ? (e.rappel === null ? '' : String(e.rappel)) : '15' };      // le côté où l'on était en ouvrant la fiche
   }
   function evtBasculerJournee() {
     const b = $('ev-journee'); if (!b) return;
@@ -8795,20 +8835,22 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   }
   async function evtEnregistrer(b) {
     const F = reu.formEvt; if (!F) return;
-    const journee = $('ev-journee').getAttribute('aria-checked') === 'true';
+    const journee = !F.rdv && $('ev-journee').getAttribute('aria-checked') === 'true';
     const titre = $('ev-titre').value.trim(), debut = $('ev-debut').value, fin = $('ev-fin').value;
-    if (!titre) { erreurInfo('Donne un titre à l\'événement.'); $('ev-titre').focus(); return; }
+    if (!titre) { erreurInfo(F.rdv ? 'Donne un titre au rendez-vous.' : 'Donne un titre à l\'événement.'); $('ev-titre').focus(); return; }
     if (!debut) { erreurInfo('Choisis le début.'); $('ev-debut').focus(); return; }
-    const r = $('ev-rappel').value;
-    const champs = { titre, lieu: $('ev-lieu').value.trim() || null, note: $('ev-note').value.trim() || null, journee, debut, fin: fin || null, rappel: r === '' ? null : Number(r) };
+    const champs = { titre, lieu: $('ev-lieu').value.trim() || null, note: $('ev-note').value.trim() || null, journee, debut, fin: fin || null };
+    if (F.rdv) { champs.avec = $('ev-avec').value.trim() || null; champs.rappels = F.rappels.slice(); if (!F.id) champs.genre = 'rdv'; }
+    /* ⛔ un événement à PLUSIEURS rappels (venu d'un autre appareil) : le menu n'en montre qu'un — on ne renvoie le rappel que si la personne l'a changé, sinon la liste serait écrasée */
+    else { const r = $('ev-rappel').value; if (!F.rappelsPlus || r !== F.rappelInitial) champs.rappel = r === '' ? null : Number(r); }
     if (!F.id) champs.tz = F.tz;
     if (!F.id && modesActifs()) champs.cote = F.cote || etat.mode;           // créé du côté où l'on était en ouvrant la fiche (un compte sans les deux côtés n'en dit rien : Perso) ; modifié, il garde le sien
     b.disabled = true;
     try {
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
-      mot(F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda');
+      mot(F.rdv ? (F.id ? 'Rendez-vous modifié' : 'Rendez-vous ajouté à ton agenda') : (F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda'));
       fermerCouche(); evenementsRelire();
-    } catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être enregistré.')); }
+    } catch (er) { b.disabled = false; erreurInfo(phrase(er, F.rdv ? 'Le rendez-vous n\'a pas pu être enregistré.' : 'L\'événement n\'a pas pu être enregistré.')); }
   }
   /* ⛔ UN ÉVÉNEMENT CHANGÉ ICI SE RELIT PARTOUT OÙ IL S'AFFICHE (8 octobre 2026, capture à l'appui : « je peux pas supprimer ») : un rappel supprimé depuis le TABLEAU DE BORD
      l'était bien au service, mais seul l'Agenda se relisait — le tableau le montrait encore, comme si le geste avait échoué. Les réunions, elles, reviennent par le flux du service
@@ -8857,15 +8899,16 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     catch (er) { b.disabled = false; erreurInfo(phrase(er, 'L\'événement n\'a pas pu être supprimé.')); }
   }
   $('info-corps').addEventListener('click', e => {
-    if (!etat.groupe.ouvert || (etat.groupe.mode !== 'evenement-new' && etat.groupe.mode !== 'evenement')) return;
+    if (!etat.groupe.ouvert || (etat.groupe.mode !== 'evenement-new' && etat.groupe.mode !== 'rdv-new' && etat.groupe.mode !== 'evenement')) return;
     if (e.target.closest('#ev-journee')) { evtBasculerJournee(); return; }
+    const rp = e.target.closest('[data-evt-rappel]'); if (rp) { evtBasculerRappel(Number(rp.dataset.evtRappel)); return; }
     const b = e.target.closest('[data-evt]'); if (!b || b.disabled) return;
     erreurInfo('');
     if (b.dataset.evt === 'enregistrer') evtEnregistrer(b); else if (b.dataset.evt === 'supprimer') evtSupprimer(b);
     else if (b.dataset.evt === 'fait') evtFait(b); else if (b.dataset.evt === 'reporter') evtReporter(b); else if (b.dataset.evt === 'voir') evtVoir();
   });
   /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
-  $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
+  $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'rdv-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
   /* ═══ LE THÈME D'UNE CONVERSATION (7 octobre 2026) — un aperçu, les fonds, les couleurs de mes bulles ; chaque touche s'applique tout de suite et s'enregistre ═══ */
   const FONDS_CONV = [['aucun', 'Par défaut'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['lavande', 'Lavande'], ['sable', 'Sable'], ['corail', 'Corail'], ['ardoise', 'Ardoise']];
   const BULLES_CONV = [['defaut', 'Par défaut'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['violet', 'Violet'], ['orange', 'Orange'], ['rose', 'Rose'], ['graphite', 'Graphite'], ['sarcelle', 'Sarcelle'], ['bordeaux', 'Bordeaux']];
