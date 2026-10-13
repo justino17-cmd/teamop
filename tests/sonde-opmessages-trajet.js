@@ -305,6 +305,17 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     await toucher(B, '[data-evt="enregistrer"]');
     vrai('« Rendez-vous ajouté à ton agenda »', await attendre(B, () => /Rendez-vous ajouté/.test(document.getElementById('mot').textContent)));
     v('le service : un rendez-vous PRO, avec son trajet depuis Domicile', ((await agendaAlice()).filter(e => e.titre === 'Client QXT').map(e => [e.genre, e.cote, e.trajet && e.trajet.depart, e.trajet && e.trajet.minutes, e.trajet && e.trajet.vers_label])), [['rdv', 'pro', 'domicile', mP, CP.label]]);
+    /* ⛔ l'IGN est un TIERS : un libellé piégé (du balisage) s'affiche en TEXTE — dans « Vers … » comme dans « Plutôt : … » — et ne crée aucun élément */
+    await toucher(B, '#btn-rdv-nouveau');
+    await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-tr-depart'));
+    await B.page.locator('#ev-titre').fill('Atelier QXT'); await B.page.locator('#ev-debut').fill(demain() + 'T15:00'); await B.page.locator('#ev-fin').fill(demain() + 'T16:00');
+    await B.page.locator('#ev-lieu').fill('Atelier balise');
+    await toucher(B, '[data-evt="trajet-calculer"]');
+    vrai('un libellé piégé de l\'IGN : « Partir à » paraît', await attendre(B, () => /Partir à/.test((document.getElementById('ev-tr-res') || {}).textContent || '')), await zone(B));
+    v('⛔ le balisage s\'affiche en TEXTE (« Vers Rue <img …> & Fils », « Plutôt : Impasse <b …>gras</b> ») : aucune image, aucun gras, rien d\'exécuté', await B.page.evaluate(() => {
+      const z = document.getElementById('ev-trajet-zone'), t = z.textContent;
+      return [t.includes('Vers Rue <img src=x onerror="window.__xss=1"> & Fils 75011 Paris'), t.includes('Impasse <b id="injecte">gras</b> 75011 Paris'), !!z.querySelector('img, b#injecte'), !!document.getElementById('injecte'), window.__xss === 1];
+    }), [true, true, false, false, false]);
     v('⛔ aucune page n\'a parlé à un tiers', [A, N, B].map(S => S.requetes.filter(u => !u.startsWith(svc.base) && !/^(data|blob):/.test(u))), [[], [], []]);
     v('aucune erreur JavaScript', [A.erreurs, N.erreurs, B.erreurs], [[], [], []]);
   } finally { await b.close(); await svc.arreter(); await ign.fermer(); await og.fermer(); }

@@ -18,6 +18,9 @@ const CARNET = [
   { cle: '3 avenue de la gare', label: '3 Avenue de la Gare 69003 Lyon', lon: 4.8597, lat: 45.7606 },
   { cle: 'tour eiffel', label: 'Tour Eiffel 75007 Paris', lon: 2.2945, lat: 48.8584 },
   { cle: 'ocean', label: 'Océan Atlantique', lon: -30, lat: 45 },
+  /* ⛔ l'IGN est un TIERS : un libellé qui porte du balisage (une réponse piégée) doit s'afficher en TEXTE — la sonde le vérifie (aucun élément créé) */
+  { cle: 'balise', label: 'Rue <img src=x onerror="window.__xss=1"> & Fils 75011 Paris', lon: 2.3794, lat: 48.8575 },
+  { cle: 'balise', label: 'Impasse <b id="injecte">gras</b> 75011 Paris', lon: 2.381, lat: 48.8583 },
 ];
 function distanceKm(a, b) {
   const R = 6371, rad = (d) => d * Math.PI / 180;
