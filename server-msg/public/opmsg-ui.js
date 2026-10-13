@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '312ed4763713';
+  const OPMSG_BUILD = 'd42f9760c434';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 186;
+  const OPMSG_VERSION = 187;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6071,7 +6071,7 @@
   const motRappel = m => m === 0 ? 'à l\'heure' : m === 1440 ? 'la veille' : (m >= 60 ? (m / 60) + ' h' : m + ' min') + ' avant';
   const texteRappels = l => !l.length ? '' : (l.length > 1 ? 'Rappels ' : 'Rappel ') + l.map(motRappel).reduce((a, x, i, t) => a + (i === 0 ? '' : i === t.length - 1 ? ' et ' : ', ') + x, '');
   /* ═══ LE TRAJET D'UN RENDEZ-VOUS (13 octobre 2026) — l'heure à laquelle partir ═══════════════════════════════════════════════════════════════════════════
-     Justin : « que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit partir s'il veut arriver 5 ou 10 minutes avant » ; « il accepte de donner sa localisation, on
+     La demande : « que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit partir s'il veut arriver 5 ou 10 minutes avant » ; « il accepte de donner sa localisation, on
      demande s'il part bien de là où il est ou ailleurs […] c'est à nous, l'application, de tout bien calculer » ; « sa position, ou changer : domicile, travail, ou une adresse ».
      Le SERVICE calcule (chez l'IGN) : la page ne parle à aucun tiers. « Ma position » se demande au navigateur — c'est lui qui demande la permission —, sert à CE calcul et ne vit que le temps
      de la fiche : jamais rangée. Domicile et Travail se rangent au service (Profil › Mes lieux, ou ici la première fois) ; la page n'en voit que l'adresse trouvée, jamais le point.
