@@ -149,6 +149,9 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     vrai('un autre onglet calcule (deux calculs en cours) : la page attend son tour, réessaie, et « Partir à » revient en voiture', await attendre(A, (m) => ((document.getElementById('ev-tr-res') || {}).textContent || '').includes(m + ' min en voiture'), m2, 9000), await zone(A));
     const vu = montre || await A.page.evaluate(() => /Un calcul de trajet est déjà en cours/.test(document.getElementById('ev-trajet-zone').textContent));
     v('   les deux calculs de l\'autre onglet sont passés ; la page a été REFUSÉE (429 trajet_en_cours), puis servie : deux demandes ; le refus n\'a pas été montré', [deux, refuse, A.requetes.filter(u => u.endsWith('/api/trajet')).length, vu], [[200, 200], true, 2, false]);
+    /* la fiche revient à pied (la suite de la sonde enregistre le trajet À PIED) */
+    await toucher(A, '[data-tr-mode="pied"]');
+    vrai('   de nouveau à pied : « Partir à » revient, à pied, pour 16:30', await attendre(A, (t) => ((document.getElementById('ev-tr-res') || {}).textContent || '').includes('Partir à ' + t) && /à pied/.test(document.getElementById('ev-tr-res').textContent), hmParis(instantParis(D1) - (m3 + 10) * 60000)), await resultat(A));
 
     console.log('\n── 4. Enregistré : « Partir à » dans l\'agenda, la fiche le reprend ──');
     await toucher(A, '[data-evt="enregistrer"]');
