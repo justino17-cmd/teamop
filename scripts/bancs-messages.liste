@@ -96,6 +96,9 @@
 # test-1004 entre (66 : le vrai service, la restauration jouée par le vrai planificateur) ; 905 (la route .ics au manifeste) et 1003 (le côté d'un événement, lu sur la règle et non plus
 # sur la fin de la ligne) suivent — 96 suites, 9 702 vérifications mesurées par la commande de la porte (test-971 tombe en local, fuseaux de la machine, avec son total complet) —
 # plancher 9688 (le total moins 14, jamais une addition).
+# 13 octobre 2026 (après la fusion de #136) : le déploiement de la bêta est tombé sur test-957 — un export de 12 000 messages devait durer 150 ms pour qu'un abandon tombe
+# au milieu, il en a duré 146 sur le runner. Le banc se joue désormais au geste (le lecteur s'arrête au premier morceau) et le contrôle de l'abandon juge la première réponse
+# libre ; le compte des vérifications ne bouge pas (151) — plancher 9688 inchangé.
 #plancher 9688
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
