@@ -161,7 +161,7 @@ function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push,
               const c = cote || {};
               if (push) push.pousser(uid, Object.assign({ type: 'agenda', tag: 'agenda', url: id ? '/#reunions/' + id : '/#reunions', renotify: true, titre: 'OP MESSAGES', corps: 'Rappel', detail: { titre, corps: quand } },
                 c.cote ? { cote: c.cote } : c.conv ? { conv: c.conv } : { cote: 'perso' }), { gid: n.gid });
-            });
+            }, restauree);                                // ⛔ une échéance d'avant la dernière restauration est tenue pour traitée, comme pour les réunions
             bilan.envoyes += a.envoyes; bilan.abandonnes += a.abandonnes;
           } catch (e) { erreur = true; journal('planif_echec', { nom: nomDe(e) }); }
         }

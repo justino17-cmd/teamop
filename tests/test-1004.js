@@ -76,6 +76,11 @@ const AVEC = 'Dr Lemoine QXR';
     const m1 = await m({ titre: 'Cardiologue (contrôle) QXR' });
     v('le titre seul : la liste, « avec qui », l\'échéance en attente sont gardés', [m1.code, m1.j.evenement.rappels, m1.j.evenement.avec, m1.j.evenement.rappelEnAttente, Number(sql('SELECT rappel_a FROM evenement WHERE id = ?', E.id).rappel_a)],
       [200, [1440, 60], AVEC, true, E.debut - 86400000]);
+    /* ⛔ une page d'AVANT renvoie `rappel` à chaque enregistrement (relecture du gardien) : le même premier rappel garde la liste qu'elle ne voit pas, un autre la remplace */
+    const mr1 = await m({ rappel: 1440, note: 'Corrigée par une page d\'avant' });
+    v('⛔ `rappel` seul ÉGAL au premier (une page d\'avant qui corrige la note) : la liste est GARDÉE, l\'échéance aussi', [mr1.code, mr1.j.evenement.rappels, mr1.j.evenement.note, Number(sql('SELECT rappel_a FROM evenement WHERE id = ?', E.id).rappel_a)],
+      [200, [1440, 60], 'Corrigée par une page d\'avant', E.debut - 86400000]);
+    v('   `rappel` seul DIFFÉRENT : il remplace la liste (puis la liste revient)', [(await m({ rappel: 60 })).j.evenement.rappels, (await m({ rappels: [60, 1440] })).j.evenement.rappels], [[60], [1440, 60]]);
     v('⛔ le genre ne change pas (un événement → 400) ; le redire tel quel passe', [(await m({ genre: 'evenement' })).j.error, (await m({ genre: 'rdv' })).code], ['champ_invalide', 200]);
     v('⛔ un événement ne devient pas un rendez-vous (400)', (await A.post('/api/agenda/' + r2.j.evenement.id + '/maj', { genre: 'rdv' })).j.error, 'champ_invalide');
     v('⛔ un rendez-vous ne passe pas « toute la journée » (400), et rien n\'a bougé', [(await m({ journee: true, debut: d0.slice(0, 10) })).j.error, (await m({})).j.evenement.journee], ['champ_invalide', false]);
@@ -142,6 +147,9 @@ const AVEC = 'Dr Lemoine QXR';
     const rf = (await A.post('/api/agenda', { genre: 'rdv', titre: 'Garage QXR', avec: 'M. Blanc', debut: debutLocal(deb4), tz: 'UTC', rappels: [15, 60] })).j.evenement;
     const f1 = await A.post('/api/agenda/' + rf.id + '/fait', { fait: true });
     v('cocher : plus rien n\'attend, la liste est gardée', [f1.code, f1.j.evenement.rappelEnAttente, f1.j.evenement.rappels], [200, false, [60, 15]]);
+    const fm = await A.post('/api/agenda/' + rf.id + '/maj', { note: 'Pneus avant', debut: debutLocal(deb4), rappels: [60, 15] });
+    v('⛔ modifier un rendez-vous coché « fait » (la fiche renvoie l\'heure et les rappels) ne le RÉARME pas : il ne sonnera pas', [fm.code, fm.j.evenement.note, typeof fm.j.evenement.fait, fm.j.evenement.rappelEnAttente,
+      sql('SELECT rappel_a FROM evenement WHERE id = ?', rf.id).rappel_a], [200, 'Pneus avant', 'number', false, null]);
     const f2 = await A.post('/api/agenda/' + rf.id + '/fait', { fait: false });
     v('décocher : l\'échéance revient au PREMIER rappel encore à venir (1 h avant)', [f2.j.evenement.rappelEnAttente, Number(sql('SELECT rappel_a FROM evenement WHERE id = ?', rf.id).rappel_a)], [true, deb4 - 60 * 60000]);
     const p1 = await A.post('/api/agenda/' + rf.id + '/reporter', { dans: 'demain' });
@@ -198,9 +206,35 @@ const AVEC = 'Dr Lemoine QXR';
     ecrire('UPDATE evenement SET genre = NULL, avec_ch = NULL, rappels = NULL WHERE id = ?', r3.j.evenement.id);
     const vieux = ((await A.get('/api/agenda?du=' + (maintenant() - 86400000) + '&au=' + (maintenant() + 5 * 86400000))).j.evenements || []).find(e => e.id === r3.j.evenement.id) || {};
     v('une ligne d\'avant : un événement, à son rappel seul (30), personne avec qui', [vieux.genre, vieux.rappels, vieux.rappel, vieux.avec], ['evenement', [30], 30, '']);
+    /* ⛔ un retour en arrière du déploiement : le code d'AVANT récrit `rappel` sans connaître `rappels` — revenu au code neuf, la liste ne s'accorde plus avec lui : elle est périmée */
+    const fenRv = '?du=' + Date.UTC(2026, 9, 24) + '&au=' + Date.UTC(2026, 9, 27);
+    ecrire('UPDATE evenement SET rappel = 15 WHERE id = ?', RV.id);
+    v('⛔ le code d\'avant a récrit le rappel (15) d\'un rendez-vous à trois rappels : la liste périmée n\'est plus crue, le rappel seul dit vrai', ((await A.get('/api/agenda' + fenRv)).j.evenements || []).filter(e => e.id === RV.id).map(e => [e.rappels, e.rappel]), [[[15], 15]]);
+    ecrire('UPDATE evenement SET rappel = NULL WHERE id = ?', RV.id);
+    v('   …ou l\'a retiré : plus aucun rappel (le retiré ne revient pas)', ((await A.get('/api/agenda' + fenRv)).j.evenements || []).filter(e => e.id === RV.id).map(e => e.rappels), [[]]);
+    ecrire('UPDATE evenement SET rappels = ? WHERE id = ?', '[]', r2.j.evenement.id);
+    v('   une liste VIDE en base, un rappel posé : c\'est le rappel qui dit vrai', ((await A.get('/api/agenda?du=' + (maintenant() - 86400000) + '&au=' + (maintenant() + 5 * 86400000))).j.evenements || []).filter(e => e.id === r2.j.evenement.id).map(e => e.rappels), [[15]]);
     ecrire('UPDATE evenement SET rappels = ? WHERE id = ?', '{abîmé', E.id);
     const abime = await m({});
     v('⛔ une liste abîmée en base se lit comme le rappel seul — jamais une erreur', [abime.code, abime.j.evenement.rappels], [200, [1440]]);
+
+    console.log('\n8. ⛔ Après une RESTAURATION : une échéance d\'avant la restauration est tenue pour traitée (la règle des réunions)');
+    {
+      const debR1 = dans(3 * 60), debR2 = dans(3 * 60 + 5);
+      const R1 = (await A.post('/api/agenda', { genre: 'rdv', titre: 'Restauré avant QXR', debut: debutLocal(debR1), tz: 'UTC', rappels: [1440, 60] })).j.evenement;
+      const R2 = (await A.post('/api/agenda', { genre: 'rdv', titre: 'Restauré après QXR', debut: debutLocal(debR2), tz: 'UTC', rappels: [1440, 60] })).j.evenement;
+      /* la copie restaurée ramène les échéances de « la veille » : R1 avant l'instant de la restauration (déjà parti avant la panne), R2 après (dû pendant l'arrêt, jamais parti) */
+      const t0 = maintenant();
+      ecrire("INSERT INTO meta(k, v) VALUES('rappels_depuis', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v", String(t0 - 10 * 60000));
+      ecrire('UPDATE evenement SET rappel_a = ? WHERE id = ?', t0 - 20 * 60000, R1.id);
+      ecrire('UPDATE evenement SET rappel_a = ? WHERE id = ?', t0 - 5 * 60000, R2.id);
+      const de = async (titre) => ((await A.get('/api/notifications')).j.notifications || []).filter(n => n.type === 'agenda_rappel' && n.titre === titre);
+      vrai('population : l\'échéance de R2, d\'APRÈS la restauration, est rattrapée (son rappel part)', await T.attendre(async () => (await de('Restauré après QXR')).length === 1, 8000, 100));
+      await T.dort(600);
+      v('⛔ R1, d\'AVANT la restauration : rien ne part, et l\'échéance passe au rappel SUIVANT (1 h avant)', [(await de('Restauré avant QXR')).length, Number(sql('SELECT rappel_a FROM evenement WHERE id = ?', R1.id).rappel_a)], [0, debR1 - 60 * 60000]);
+      svc.avancer(2 * 60 * 60000 + 2 * 60000);
+      vrai('   …et ce rappel suivant, lui, part à son heure', await T.attendre(async () => (await de('Restauré avant QXR')).length === 1, 8000, 100));
+    }
   } finally { await svc.arreter(); await og.fermer(); }
   fin();
 })().catch(e => { console.error(e); process.exit(1); });

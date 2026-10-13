@@ -139,7 +139,8 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       v.rappels = l.slice().sort((x, y) => y - x);
     } else if (present('rappel')) {
       if (b.rappel !== null && !RAPPELS.includes(b.rappel)) return { erreur: 'rappel_invalide' };
-      v.rappels = b.rappel === null ? [] : [b.rappel];
+      /* ⛔ une page d'AVANT renvoie `rappel` à CHAQUE enregistrement (corriger la note d'un rendez-vous suffit) : le MÊME premier rappel garde la liste qu'elle ne voit pas, un autre la remplace */
+      v.rappels = b.rappel === null ? [] : (base && base.rappels.length > 1 && base.rappels[0] === b.rappel ? base.rappels : [b.rappel]);
     } else v.rappels = base ? base.rappels : [];
     v.rappel = v.rappels.length ? v.rappels[0] : null;
     /* le côté (8 octobre 2026, « bien séparer l'agenda perso et pro ») : 'perso' ou 'pro' ; null rend le côté déduit (celui de la conversation d'origine, sinon Perso). Absent à la création : déduit ;
@@ -185,8 +186,9 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     const r = valider(corps(req), base, null);
     if (r.erreur) return refus(res, 400, r.erreur);
     const c = r.champs;
-    /* le rappel se recalcule quand l'horaire ou le rappel changent ; sinon il garde son état (déjà parti : il ne repart pas) */
-    const recalcul = r.horaire || corps(req).rappel !== undefined || corps(req).rappels !== undefined;
+    /* le rappel se recalcule quand l'horaire ou le rappel changent ; sinon il garde son état (déjà parti : il ne repart pas). ⛔ Coché « fait », il ne se réarme pas : corriger la note
+       d'un rendez-vous fait ne le fait pas sonner (le décocher ou le reporter le fait). */
+    const recalcul = !base.fait && (r.horaire || corps(req).rappel !== undefined || corps(req).rappels !== undefined);
     const e = stockage.evenementMaj(req.moi.id, id, { titre: c.titre, lieu: c.lieu, note: c.note, debut: c.debut, fin: c.fin, journee: c.journee, tz: c.tz, rappel: c.rappel,
       rappelA: recalcul ? prochaine(c.debut, c.rappels, c.tz, horloge()) : undefined, cote: c.cote, avec: c.avec, rappels: c.rappels });
     if (!e) return refus(res, 404, 'introuvable');
@@ -249,11 +251,14 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     res.send(texte);
   };
 
-  /* ── Les rappels, appelés par le planificateur (qui tient le bail) : → { envoyes, abandonnes }. `budget` : le nombre de rappels au plus pour ce tour. ── */
-  function rappelsTour(t, budget, notifier) {
-    const bilan = { envoyes: 0, abandonnes: 0 };
+  /* ── Les rappels, appelés par le planificateur (qui tient le bail) : → { envoyes, abandonnes, passes }. `budget` : le nombre de rappels au plus pour ce tour. `depuis` : l'instant de la
+     dernière RESTAURATION (0 : aucune) — ⛔ une échéance qui le précède est tenue pour traitée, comme celles des réunions : la copie restaurée ramène l'échéance d'un rappel déjà parti
+     (avec plusieurs rappels, celle d'un rappel plus ancien) ; on passe au suivant sans rien envoyer, plutôt que de le faire sonner une seconde fois. ── */
+  function rappelsTour(t, budget, notifier, depuis) {
+    const bilan = { envoyes: 0, abandonnes: 0, passes: 0 };
     for (const x of stockage.evenementsRappelsDus(t, Math.max(1, budget))) {
       if (x.debut <= t - MIN) { if (stockage.evenementRappelAbandonner(x.id)) bilan.abandonnes++; continue; }   // il a commencé : un rappel après coup ne sert à rien
+      if (depuis > 0 && Number.isSafeInteger(x.rappelA) && x.rappelA <= depuis) { if (stockage.evenementRappelPasser(x.id, prochaine(x.debut, x.rappels, x.tz, t))) bilan.passes++; continue; }
       const reste = Math.max(0, Math.round((x.debut - t) / MIN));
       const c = cal.champsLocaux(x.debut, x.tz), heure = String(c.h).padStart(2, '0') + ':' + String(c.mi).padStart(2, '0');
       const demain = cal.numeroJour(c) > cal.numeroJour(cal.champsLocaux(t, x.tz));
@@ -264,6 +269,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       if (n) { bilan.envoyes++; try { notifier(x.uid, n, x.titre, texte, x.id, { cote: x.cote, conv: x.source ? x.source.conv : null }); } catch (e) { /* la notification est écrite : le push est un plus */ } }
     }
     if (bilan.abandonnes) journal('agenda_rappel_abandonne', { n: bilan.abandonnes });
+    if (bilan.passes) journal('agenda_rappel_restauration', { n: bilan.passes });      // un nombre, jamais un événement
     return bilan;
   }
 

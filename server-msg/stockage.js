@@ -2491,10 +2491,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     avec: r.avec_ch ? (ouvrirOuNull('evenement', 'avec_ch', r.id + '|avec', r.avec_ch) || '') : '',
     rappels: evtRappels(r),
   } : null;
-  /* la liste des rappels (migration 27) : celle qui est rangée, sinon le rappel seul d'un événement d'avant — une colonne abîmée rend le rappel seul, jamais une erreur */
+  /* la liste des rappels (migration 27) : celle qui est rangée, sinon le rappel seul d'un événement d'avant — une colonne abîmée rend le rappel seul, jamais une erreur.
+     ⛔ La liste n'est crue que si son PREMIER est `rappel` : le code d'AVANT (un retour en arrière du déploiement, puis la remise du code neuf) récrit `rappel` sans connaître `rappels` —
+     une liste qui ne s'accorde plus avec lui est périmée (un rappel retiré reviendrait, la fiche contredirait l'échéance), et c'est le rappel seul qui dit vrai. */
   function evtRappels(r) {
-    if (r.rappels) { try { const x = JSON.parse(r.rappels); if (Array.isArray(x) && x.every(m => Number.isSafeInteger(m) && m >= 0)) return x.slice(0, 3); } catch (e) { /* le rappel seul */ } }
-    return r.rappel === null || r.rappel === undefined ? [] : [num(r.rappel)];
+    const seul = r.rappel === null || r.rappel === undefined ? [] : [num(r.rappel)];
+    if (r.rappels) { try { const x = JSON.parse(r.rappels); if (Array.isArray(x) && x.length > 1 && x.every(m => Number.isSafeInteger(m) && m >= 0) && seul.length && x[0] === seul[0]) return x.slice(0, 3); } catch (e) { /* le rappel seul */ } }
+    return seul;
   }
   /* ce que la migration 27 ajoute : le genre, « avec qui » (scellé), la liste des rappels quand il y en a plus d'un (un seul se lit dans `rappel`) */
   function evtPoserRdv(id, { genre, avec, rappels }) {
@@ -2506,6 +2509,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const scellerEvt = (id, champ, v) => v ? sceller('evenement', champ + '_ch', id + '|' + champ, v) : null;
   function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null, cote = null, genre, avec, rappels }) {
     const id = nouvelId('e'), t = horloge();
+    return tx(() => {                                  // ⛔ la ligne ET ses compléments (côté, source, rendez-vous) ensemble : un arrêt entre les deux ne laisse pas un rendez-vous à moitié écrit
     Q(`INSERT INTO evenement(id, uid, titre_ch, lieu_ch, note_ch, debut, fin, journee, tz, rappel, rappel_a, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
       .run(id, uid, sceller('evenement', 'titre_ch', id + '|titre', titre), scellerEvt(id, 'lieu', lieu), scellerEvt(id, 'note', note), debut, fin, journee ? 1 : 0, tz,
         rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
@@ -2513,6 +2517,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     if ((cote === 'perso' || cote === 'pro') && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ?').run(cote, id);
     evtPoserRdv(id, { genre, avec: avec || '', rappels });
     return evenementLire(uid, id);
+    });
   }
   /* cocher (`fait` : un instant) ou décocher (null) — l'échéance du rappel suit : `rappelA` null (coché : il ne sonne plus) ou recalculée par la route (décoché) */
   function evenementFait(uid, id, fait, rappelA) {
@@ -2557,7 +2562,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* les rappels DUS (`rappel_a` passé), les plus anciens d'abord — seulement des personnes actives */
   function evenementsRappelsDus(t, max) {
     return Q(`SELECT e.* FROM evenement e JOIN personne p ON p.id = e.uid WHERE e.rappel_a IS NOT NULL AND e.rappel_a <= ? AND p.etat = 'actif' ORDER BY e.rappel_a, e.id LIMIT ?`).all(t, max)
-      .map(r => Object.assign(evtRang(r), { uid: r.uid }));
+      .map(r => Object.assign(evtRang(r), { uid: r.uid, rappelA: num(r.rappel_a) }));
   }
   /* ⛔ UN RAPPEL PART UNE FOIS : l'échéance s'efface (ou passe au rappel SUIVANT de la liste, `suivant`, calculé par la route) et la notification s'écrit dans la MÊME transaction ; si
      l'échéance n'est plus là (une autre instance, un geste de la personne), rien ne part. */
@@ -2570,6 +2575,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     });
   }
   function evenementRappelAbandonner(id) { return num(Q('UPDATE evenement SET rappel_a = NULL WHERE id = ? AND rappel_a IS NOT NULL').run(id).changes) > 0; }
+  /* passer au rappel suivant SANS rien envoyer (une échéance d'avant la dernière restauration : tenue pour traitée) — `suivant` null : plus rien n'attend */
+  function evenementRappelPasser(id, suivant) { return num(Q('UPDATE evenement SET rappel_a = ? WHERE id = ? AND rappel_a IS NOT NULL').run(Number.isSafeInteger(suivant) ? suivant : null, id).changes) > 0; }
   /* ══ ENVOYER PLUS TARD (migration 22) ══ — un message programmé est à SON AUTEUR : lui seul le liste, l'annule ; le service l'envoie à l'heure. */
   /* les personnes citées : une liste d'identifiants (rien d'autre ne se relit — une colonne abîmée rend une liste vide, jamais une erreur au départ du message) */
   const progCites = (j) => { if (!j) return []; try { const x = JSON.parse(j); return Array.isArray(x) ? x.filter(u => typeof u === 'string' && /^p_[0-9a-f]{32}$/.test(u)).slice(0, 20) : []; } catch (e) { return []; } };
@@ -4686,7 +4693,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)
     telCodePoser, telCodeEssayer, telCodeSupprimer, telCodeCree,
     melCodePoser, melCodeEssayer, melCodeSupprimer, melCodeCree, melCodesElaguer, mdpLire, mdpPoser, personneConsentir, appareilMelConnu, appareilMelNoter, appareilsMelOublier,
-    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, exportEvenements,
+    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, evenementRappelPasser, exportEvenements,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
