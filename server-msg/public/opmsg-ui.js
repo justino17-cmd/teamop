@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'eaddf9257aca';
+  const OPMSG_BUILD = '312ed4763713';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 185;
+  const OPMSG_VERSION = 186;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6185,8 +6185,8 @@
       T.autres = choisi === true ? [] : r.autres; T.touche = true; T.essai = 0;
     } catch (er) {
       if (!encore()) return;
-      /* « occupé » : le service a déjà attendu son tour ; on réessaie UNE fois, après le délai qu'il donne */
-      if (er && er.code === 'trajet_occupe' && T.essai < 1) { T.essai = 1; setTimeout(() => { if (encore()) trajetCalculer(choisi); }, Math.max(1, er.retry || 2) * 1000); peindreTrajet(); return; }
+      /* « occupé » (le service a déjà attendu son tour) ou « déjà en cours » (un autre onglet calcule) : on réessaie UNE fois, après le délai qu'il donne */
+      if (er && (er.code === 'trajet_occupe' || er.code === 'trajet_en_cours') && T.essai < 1) { T.essai = 1; setTimeout(() => { if (encore()) trajetCalculer(choisi); }, Math.max(1, er.retry || 2) * 1000); peindreTrajet(); return; }
       if (er && er.code === 'lieu_absent' && (T.depart === 'domicile' || T.depart === 'travail')) TJ.lieux = Object.assign({}, TJ.lieux || {}, { [T.depart]: null });   // retiré ailleurs : on le redemande
       T.essai = 0; T.erreur = phrase(er, 'Le trajet n\'a pas pu être calculé.');
     } finally { fini(); }
