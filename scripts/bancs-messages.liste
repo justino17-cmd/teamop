@@ -99,7 +99,11 @@
 # 13 octobre 2026 (après la fusion de #136) : le déploiement de la bêta est tombé sur test-957 — un export de 12 000 messages devait durer 150 ms pour qu'un abandon tombe
 # au milieu, il en a duré 146 sur le runner. Le banc se joue désormais au geste (le lecteur s'arrête au premier morceau) et le contrôle de l'abandon juge la première réponse
 # libre ; le compte des vérifications ne bouge pas (151) — plancher 9688 inchangé.
-#plancher 9688
+# 13 octobre 2026 : le trajet d'un rendez-vous (« Partir à », Domicile et Travail, la migration 28) : test-1005 entre (168 : le module seul, les routes seules, la configuration,
+# puis le vrai service contre un faux IGN) ; 900 (l'adresse de l'IGN, sixième exception nommée), 906 (routes-trajet.js au recensement des phrases), 950 (le genre « lieu » du
+# registre des purges, lieu_perso comptée), 957 (lieuxLire au magasin simulé), 903 et 914 (en production, les bancs ferment le trajet) suivent — 97 suites, 9 889 vérifications
+# mesurées par la commande de la porte (test-971 tombe en local, fuseaux de la machine, avec son total complet) — plancher 9875 (le total moins 14, jamais une addition).
+#plancher 9875
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
