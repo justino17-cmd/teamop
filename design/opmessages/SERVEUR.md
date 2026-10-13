@@ -913,6 +913,10 @@ Trois constats, pour Justin :
     code d'avant (un retour en arrière) y lit un rappel juste ; `rappel` seul reste accepté (une page d'avant), jamais avec `rappels` ;
   · « Ajouter à mon calendrier » : `GET /api/agenda/:id/ics` (garde S, 60 par minute, l'événement d'un autre répond 404), le fichier de `ics.js` — l'heure en UTC, une journée entière en DATES,
     chaque rappel un `VALARM` (« la veille » la durée exacte, 25 h le dimanche du changement d'heure ; `-P1D` pour une journée entière) ; « avec qui » dans la description ;
+  · ⛔ relu par `gardien` (aucun bloquant) : une liste rangée n'est crue que si son premier est `rappel` (le code d'avant récrit `rappel` sans connaître la liste — revenu au code neuf,
+    une liste périmée faisait revenir un rappel retiré) ; `rappel` seul ÉGAL au premier (une page d'avant le renvoie à chaque enregistrement) garde la liste ; modifier un événement coché
+    « fait » ne réarme pas son rappel ; ⛔ une échéance d'avant la dernière RESTAURATION (`rappels_depuis`) est tenue pour traitée, comme celles des réunions — on passe au rappel suivant
+    sans rien envoyer ; la création s'écrit dans une transaction ;
   · l'export des données porte `genre`, `avec` et `rappels_minutes_avant`. Bancs : `test-1004` (le vrai service), sonde `sonde-opmessages-rendez-vous.js` (la vraie page, au doigt et au bureau).
 
 ### Étape 7 : appels un à un, audio et vidéo

@@ -92,7 +92,11 @@
 # 12 octobre 2026 (nuit) : Perso+ RETIRÉ, les réunions à Pro (« Perso, c'est appel, message, et c'est tout ») : test-993 supprimé (l'outil qui créait les tarifs Perso+) ; test-991 128 → 46,
 # 992 → 49 (dont l'intérim, que seul un invité NOMMÉ reçoit), 994 → 31 ; 961, 962 (/health sans persoAnnulationMin) et 976 (la phrase du refus, `parLien`) suivent — 95 suites, 9 631 vérifications
 # mesurées par la commande de la porte (test-971 tombe en local, fuseaux de la machine, avec son total complet) — plancher 9617 (le total moins 14, jamais une addition).
-#plancher 9617
+# 13 octobre 2026 : côté Perso, « Rendez-vous » à la place de « Réunion » (avec qui, jusqu'à trois rappels partis dans l'ordre, « Ajouter à mon calendrier », migration 27) :
+# test-1004 entre (66 : le vrai service, la restauration jouée par le vrai planificateur) ; 905 (la route .ics au manifeste) et 1003 (le côté d'un événement, lu sur la règle et non plus
+# sur la fin de la ligne) suivent — 96 suites, 9 702 vérifications mesurées par la commande de la porte (test-971 tombe en local, fuseaux de la machine, avec son total complet) —
+# plancher 9688 (le total moins 14, jamais une addition).
+#plancher 9688
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

@@ -19,6 +19,29 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 13 OCTOBRE 2026 — OP MESSAGES : CÔTÉ PERSO, « RENDEZ-VOUS » À LA PLACE DE « RÉUNION »
+
+Justin, capture de l'Agenda Perso à l'appui : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des
+rappels et tout » ; puis, sur ce qu'un rendez-vous doit savoir faire : « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ». Ce qui est écrit (bêta) :
+· **L'en-tête de l'Agenda** : côté Perso (ou un compte sans Pro), « Événement » et « Rendez-vous » ; côté Pro, « Événement » et « Réunion », comme avant (`peindreBoutonsAgenda`).
+  Sur la bêta tout le monde a les deux côtés (`toutOuvert`) : « Réunion » ne paraît donc que côté Pro. Une personne Perso apprend toujours que les réunions sont à Pro par
+  « Nouvelle discussion › Programmer une réunion » et par « Réunion » sur la fiche d'un contact (gardés tels quels).
+· **Le rendez-vous** est un événement de l'agenda PERSONNEL (migration 27, `routes-agenda.js`) : une heure toujours, « Avec » (scellé en base), le lieu, la note, et jusqu'à
+  TROIS rappels — la veille et 1 h avant cochés par défaut. Ils partent dans l'ordre, chacun une fois, et le rappel dit « · avec … ». La liste vaut aussi pour un événement
+  (le service l'accepte ; la page garde le menu d'un seul rappel pour un événement et ne l'écrase pas s'il en porte plusieurs).
+· **« Ajouter à mon calendrier »** sur la fiche de tout événement : `GET /api/agenda/:id/ics`, rappels compris (un `VALARM` chacun). L'iPhone propose de l'ajouter à Calendrier,
+  l'ordinateur le télécharge.
+· ⛔ `rappel` garde le PREMIER rappel et `rappel_a` le PROCHAIN : un retour en arrière du code lit encore un rappel juste (seuls les suivants lui échappent).
+· Relu par `gardien` (aucun bloquant ; rien ne fuit — le texte d'un rappel, « avec » compris, ne part dans un push qu'avec l'aperçu des notifications ; le .ics échappe tout).
+  Corrigé : ⛔ une liste n'est crue que si son premier est `rappel` (revenu du code d'avant, une liste périmée faisait revenir un rappel retiré) ; la création s'écrit en une
+  transaction ; `rappel` seul ÉGAL au premier (une page d'avant) garde la liste ; ⛔ modifier un événement coché « fait » ne réarme plus son rappel ; ⛔ une échéance d'avant la
+  dernière restauration est tenue pour traitée, comme pour les réunions (`rappels_depuis`, passé par le planificateur).
+Preuves : `test-1004` (66 ✓, le vrai service) entre dans la porte ; sonde `sonde-opmessages-rendez-vous.js` (33 ✓) ; les sondes qui touchaient « Réunion » côté Perso
+(agenda 17 ✓, côtés 76 ✓, ordre du jour 23 ✓, réunions 296 ✓, réunions Pro 56 ✓) passent par le côté Pro, ou par « Nouvelle discussion » pour un Perso.
+Porte des bancs messages : 96 suites, 9 702 vérifications (test-971 tombe en local, fuseaux de la machine) — plancher 9688 ; test-856 (175 ✓) et test-857 (538 ✓).
+Mutations : 29 sur 29 attrapées (22 au service, dont le câblage de la restauration dans le planificateur ; 7 à la page, par la sonde).
+À proposer à Justin, pas fait : une entrée « Réunions » dans la barre du côté Pro (sa question « pourquoi dans la barre j'ai pas réunion » — les réunions vivent dans l'Agenda).
+
 # 🟡 12 OCTOBRE 2026 (NUIT) — OP MESSAGES : PERSO, CE SONT LES APPELS ET LES MESSAGES — PERSO+ EST RETIRÉ, LES RÉUNIONS SONT À PRO
 
 Justin : « Perso, c'est simple. C'est appel, message, et c'est tout. Créer des groupes d'appels, créer des groupes d'appels vidéo, mais pas de réunion. » ; à « et Perso+ ? » :
