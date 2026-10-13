@@ -128,6 +128,19 @@
     /* l'agenda personnel (heure_invalide, fin_avant_debut, rappel_invalide, fenetre_invalide : les phrases des réunions, plus haut, servent aussi — une clé en double remplacerait la première) */
     evenement_trop_long: 'Un événement dure 31 jours au plus.',
     agenda_plein: 'Ton agenda est plein (2 000 événements) : supprime d\'anciens événements.',
+    /* le trajet d'un rendez-vous (13 octobre 2026) : le calcul se fait chez l'IGN, par le service — chaque refus dit quoi faire, jamais « une erreur est survenue » */
+    lieu_vide: 'Écris d\'abord le lieu du rendez-vous : c\'est là que le trajet mène.',
+    adresse_invalide: 'Cette adresse est trop courte ou illisible : écris une rue et une ville.',
+    adresse_introuvable: 'Cette adresse est introuvable : précise la ville ou le code postal.',
+    lieu_absent: 'Ce lieu n\'est pas encore enregistré : écris son adresse.',
+    position_invalide: 'Ta position n\'a pas pu être lue. Choisis une adresse de départ.',
+    depart_invalide: 'Choisis d\'où tu pars.',
+    mode_invalide: 'Choisis : en voiture ou à pied.',
+    trajet_invalide: 'Ce trajet n\'est plus valable : calcule-le à nouveau.',
+    trajet_impossible: 'Aucun trajet en voiture ou à pied ne mène là depuis ce départ (en France seulement).',
+    trajet_occupe: 'Beaucoup de trajets sont calculés en ce moment. Réessaie dans quelques secondes.',
+    trajet_indisponible: 'Le calcul du trajet ne répond pas pour le moment. Réessaie plus tard — le rendez-vous, lui, s\'enregistre sans.',
+    trajet_ferme: 'Le calcul du trajet n\'est pas ouvert sur ce serveur.',
     /* envoyer plus tard, et l'ordre du jour d'une réunion (8 octobre 2026) */
     programmes_plein: 'Tu as déjà cinquante messages programmés : annule-en un pour en programmer un autre.',
     ordre_du_jour_invalide: 'L\'ordre du jour compte vingt points au plus, de 200 signes chacun.',
@@ -224,6 +237,8 @@
       this.min = extra && Number.isInteger(extra.min) ? extra.min : 0;
       /* `occupe` : vrai quand c'est MOI qui suis déjà dans un appel (peut-être sur un autre appareil), faux quand c'est l'autre — la phrase n'est pas la même */
       this.moi = !!(extra && extra.moi === true);
+      /* `quoi` (le trajet) : QUELLE adresse le service n'a pas su lire ou trouver — le lieu du rendez-vous, le départ, le domicile ou le travail */
+      this.quoi = extra && ['vers', 'depart', 'domicile', 'travail'].includes(extra.quoi) ? extra.quoi : '';
       /* `resultats` (« Transférer ») : quand AUCUNE destination n'a reçu le message, le refus porte quand même la raison de CHACUNE — lue avec sa forme, cinq au plus */
       this.resultats = extra && Array.isArray(extra.resultats) ? extra.resultats.filter(x => x && typeof x.conv === 'string').slice(0, 5).map(x => ({ conv: x.conv, ok: x.ok === true, error: typeof x.error === 'string' ? x.error : 'erreur' })) : null;
       /* ⛔ `dit` : cette erreur a une phrase FRANÇAISE que l'écran peut montrer telle quelle. Une erreur d'ailleurs (une exception de la page
@@ -235,6 +250,11 @@
        contredisait « 20 s » (relecture du testeur). Quand l'attente est connue, elle REMPLACE la clause de la phrase. */
     phrase() {
       if (this.code === 'occupe' && this.moi) return 'Tu es déjà dans un appel (peut-être sur un autre de tes appareils).';
+      if (this.quoi && this.code === 'lieu_absent') return (this.quoi === 'travail' ? 'Ton travail' : 'Ton domicile') + ' n\'est pas encore enregistré : écris son adresse.';
+      if (this.quoi && (this.code === 'adresse_introuvable' || this.code === 'adresse_invalide')) {
+        const [nom, f] = { vers: ['Le lieu du rendez-vous', false], depart: ['L\'adresse de départ', true], domicile: ['L\'adresse de ton domicile', true], travail: ['L\'adresse de ton travail', true] }[this.quoi];
+        return nom + (this.code === 'adresse_introuvable' ? ' est introuvable : précise la ville ou le code postal.' : ' est trop ' + (f ? 'courte' : 'court') + ' ou illisible : écris une rue et une ville.');
+      }
       if (this.code === 'piece_trop_lourde' && this.max > 0) return this.message.replace(/\.$/, '') + ' (' + tailleLisible(this.max) + ' au plus).';
       if (this.code === 'reunion_pleine' && this.max > 0) return 'Une réunion compte ' + this.max + ' personnes au plus, organisateur compris : celle-ci est complète.';
       if (this.code === 'appel_complet' && this.max > 0) return 'La salle est pleine : ' + this.max + ' personnes au plus.';
@@ -330,6 +350,10 @@
       annulerProgramme: (id) => appel('POST', '/api/programmes/' + e(id) + '/annuler'),
       faitEvenement: async (id, fait) => (await appel('POST', '/api/agenda/' + e(id) + '/fait', { fait })).evenement,
       reporterEvenement: async (id, dans) => (await appel('POST', '/api/agenda/' + e(id) + '/reporter', { dans })).evenement,
+      /* le trajet (13 octobre 2026) : le SERVICE calcule (chez l'IGN) — la page ne parle à aucun tiers ; Domicile et Travail se rangent au service, jamais leur point dans la page */
+      calculerTrajet: (corps) => appel('POST', '/api/trajet', corps),
+      lieux: async () => (await appel('GET', '/api/moi/lieux')).lieux,
+      poserLieu: (cle, texte) => appel('POST', '/api/moi/lieux', { cle, texte }),
       /* le compte par adresse e-mail (« comme Discord ») — routes publiques : la session est posée par la réponse (cookie) */
       melInscrire: (champs) => appel('POST', '/api/mel/inscrire', champs),
       melConfirmer: (courriel, code) => appel('POST', '/api/mel/confirmer', { courriel, code }),

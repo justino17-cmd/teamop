@@ -212,8 +212,9 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     await onglet(D, 'reunions');
     /* ⛔ Dora a les deux côtés : « Réunion » est celui du côté Pro (13 octobre 2026) — elle y passe par la barre latérale, le seul sélecteur du bureau */
     await toucher(D, '.cote-seg-side [data-cote="pro"]');
-    await verifier('Dora côté Pro : l\'en-tête de l\'Agenda propose « Réunion », plus « Rendez-vous »', D, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
-      return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && !!document.getElementById('btn-rdv-nouveau') && !vu('btn-rdv-nouveau'); }, null, 10000, () => etatPage(D));
+    /* ⛔ et « Rendez-vous » AUSSI côté Pro (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») */
+    await verifier('Dora côté Pro : l\'en-tête de l\'Agenda propose « Réunion » ET « Rendez-vous »', D, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
+      return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && vu('btn-rdv-nouveau'); }, null, 10000, () => etatPage(D));
     await toucher(D, '#btn-reunion-nouvelle');
     await verifier('Dora (Pro) : le formulaire « Nouvelle réunion » s\'ouvre', D, () => document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre'), null, 10000, () => texteCorps(D));
     await saisir(D, '#rf-titre', 'Point WQXZ-LIEN');

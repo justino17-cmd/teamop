@@ -6,7 +6,7 @@
      3. enregistré, il paraît dans la journée : « Rendez-vous avec … », le lieu, ses rappels ; sa fiche porte « Ajouter à mon calendrier », un VRAI fichier .ics (ses rappels en VALARM) ;
      4. modifié (un rappel décoché), le service retient la nouvelle liste ;
      5. le rappel arrive dans la page et dit avec qui ;
-     6. au bureau, de nuit : le lien du calendrier TÉLÉCHARGE le fichier ; côté Pro, l'en-tête redevient « Réunion », et « Rendez-vous » s'en va.
+     6. au bureau, de nuit : le lien du calendrier TÉLÉCHARGE le fichier ; côté Pro, l'en-tête propose « Réunion » ET « Rendez-vous » (le trajet, 13 octobre 2026 : « pareil pour pro »).
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.
    Lancer :   node tests/sonde-opmessages-rendez-vous.js          CAPTURES=/dossier pour les images.
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
@@ -142,10 +142,11 @@ const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean)
     await attendre(B, () => !document.documentElement.classList.contains('feuille-ouverte'));
     vrai('population : le sélecteur Perso | Pro de la barre latérale est là', await attendre(B, () => Array.from(document.querySelectorAll('.cote-seg-side [data-cote="pro"]')).some(x => x.getClientRects().length)));
     await toucher(B, '.cote-seg-side [data-cote="pro"]');
-    vrai('côté Pro : l\'en-tête propose « Réunion », « Rendez-vous » s\'en va', await attendre(B, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && !vu('btn-rdv-nouveau') && !!document.getElementById('btn-rdv-nouveau'); }));
+    /* ⛔ côté Pro, « Réunion » ET « Rendez-vous » (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») */
+    vrai('côté Pro : l\'en-tête propose « Réunion » ET « Rendez-vous »', await attendre(B, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && vu('btn-rdv-nouveau'); }));
     await capture(B, 'rdv-5-pro-bureau-nuit');
     await toucher(B, '.cote-seg-side [data-cote="perso"]');
-    vrai('de retour côté Perso : « Rendez-vous » revient', await attendre(B, () => { const x = document.getElementById('btn-rdv-nouveau'); return document.documentElement.dataset.cote === 'perso' && !!x && !x.hidden && document.getElementById('btn-reunion-nouvelle').hidden; }));
+    vrai('de retour côté Perso : « Rendez-vous » seul (« Réunion » se cache)', await attendre(B, () => { const x = document.getElementById('btn-rdv-nouveau'); return document.documentElement.dataset.cote === 'perso' && !!x && !x.hidden && document.getElementById('btn-reunion-nouvelle').hidden; }));
 
     v('aucune erreur JavaScript', [A.erreurs, B.erreurs], [[], []]);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }

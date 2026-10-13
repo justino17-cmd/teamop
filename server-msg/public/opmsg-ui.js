@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '168bd2651f24';
+  const OPMSG_BUILD = 'ae93becc7a05';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 180;
+  const OPMSG_VERSION = 183;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -80,7 +80,7 @@
   const pastilleMoi = () => '<a href="#reglages" class="moi-pastille presse" data-vue="reglages" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages">' +
     '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span><b class="moi-point" aria-hidden="true" hidden></b></a>';
   /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
-  const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'appareils', 'stockage', 'compte', 'apropos'];
+  const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'lieux', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
   const VOCAL_MIN_MS = 800, VOCAL_MAX_MS = 180000, TENU_MS = 600, TEXTE_MAX = CAP.texteMax;
 
@@ -273,11 +273,13 @@
     ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-cote="' + k + '" aria-pressed="false">' + NOM_COTE[k] + '<b class="cote-n" hidden></b></button>').join('') + '</div>';
   /* ⛔ CÔTÉ PERSO, « RÉUNION » DEVIENT « RENDEZ-VOUS » (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous
      personnels avec des rappels et tout »). Perso, ce sont les appels et les messages, pas les réunions : on y propose un rendez-vous à soi. « Réunion » ne paraît que du côté Pro — ou pour un
-     compte Pro sans les deux côtés (un service d'avant). Sans la capacité (un service qui ne connaît pas le rendez-vous), rien ne change. */
+     compte Pro sans les deux côtés (un service d'avant). Sans la capacité (un service qui ne connaît pas le rendez-vous), rien ne change.
+     ⛔ CÔTÉ PRO, LES DEUX (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») : une réunion (avec d'autres), ou un rendez-vous (chez un client, un fournisseur) —
+     rangé dans l'agenda Pro, avec son heure de départ. */
   function peindreBoutonsAgenda() {
     const rdv = $('btn-rdv-nouveau'), reu = $('btn-reunion-nouvelle'); if (!rdv || !reu) return;
     const perso = !etat.pro || (modesActifs() && etat.mode !== 'pro');
-    rdv.hidden = !perso; reu.hidden = perso;
+    rdv.hidden = false; reu.hidden = perso;
   }
   function peindreMode() {
     const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
@@ -3626,6 +3628,46 @@
     reg.stock = s2.status === 'fulfilled' ? s2.value : reg.stock; reg.stockErreur = s2.status === 'rejected' ? phrase(s2.reason, 'L\'espace utilisé n\'a pas pu être lu.') : '';
     reg.propos = a.status === 'fulfilled' ? a.value : reg.propos; reg.proposErreur = a.status === 'rejected' ? phrase(a.reason, 'Les informations du service n\'ont pas pu être lues.') : '';
     peindreConf(); peindreStock(); peindreApropos();
+    if (lieuxPossibles()) chargerLieux();
+  }
+  /* ═══ MES LIEUX (13 octobre 2026) — Domicile et Travail, d'où l'on part pour un rendez-vous ═══
+     Rangés au service (scellés) ; la page n'en lit que l'adresse trouvée. Enregistrer cherche l'adresse (le service demande à l'IGN) et dit les autres possibles : « Plutôt : … » les choisit. */
+  const lieuxPossibles = () => !!(CAP.trajet && typeof source.lieux === 'function' && typeof source.poserLieu === 'function');
+  const lieuxReg = { lieux: null, erreur: '', edite: null, occupe: false, autres: { domicile: [], travail: [] } };
+  async function chargerLieux() {
+    try { const l = await source.lieux(); lieuxReg.lieux = l; lieuxReg.erreur = ''; TJ.lieux = l; }
+    catch (er) { lieuxReg.erreur = phrase(er, 'Tes lieux n\'ont pas pu être lus.'); }
+    peindreLieux();
+  }
+  function peindreLieux() {
+    const c = $('reg-lieux'); if (!c) return;
+    const L = lieuxReg.lieux, v = $('reg-v-lieux');
+    if (v) v.textContent = L ? [L.domicile ? 'Domicile' : '', L.travail ? 'Travail' : ''].filter(Boolean).join(', ') : '';
+    if (lieuxReg.erreur && !L) { c.innerHTML = refusBloc(lieuxReg.erreur); return; }
+    if (!L) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
+    c.innerHTML = ['domicile', 'travail'].map(k => {
+      const nom = k === 'domicile' ? 'Domicile' : 'Travail', l = L[k], du = k === 'domicile' ? 'du domicile' : 'du travail';
+      if (lieuxReg.edite === k) return '<div class="carte-pad reg-lieu-edit"><div class="champ"><label for="reg-lieu-' + k + '">Adresse ' + du + '</label><input id="reg-lieu-' + k + '" type="text" maxlength="200" autocomplete="street-address" enterkeyhint="done" value="' + esc(l ? l.label : '') + '" placeholder="Rue, ville"></div>' +
+        '<div class="info-actions"><button type="button" class="mini plein" data-lieu-ok="' + k + '"' + (lieuxReg.occupe ? ' disabled' : '') + '>' + (lieuxReg.occupe ? 'Recherche…' : 'Enregistrer') + '</button>' +
+        (l ? '<button type="button" class="mini danger" data-lieu-retirer="' + k + '"' + (lieuxReg.occupe ? ' disabled' : '') + '>Retirer</button>' : '') + '<button type="button" class="mini" data-lieu-annuler="1">Annuler</button></div></div>';
+      return '<button type="button" class="reglage presse" data-lieu-edit="' + k + '"><span class="reglage-texte">' + nom + '<small>' + esc(l ? l.label : 'Pas encore enregistré') + '</small></span>' + CHEVRON + '</button>' +
+        (lieuxReg.autres[k].length ? '<div class="carte-pad"><p class="info-note">Pas la bonne adresse ? Plutôt :</p><div class="info-actions evt-tr-autres">' + lieuxReg.autres[k].map(a => '<button type="button" class="mini" data-lieu-choix="' + k + '" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div></div>' : '');
+    }).join('');
+  }
+  async function lieuEnregistrer(k, force) {
+    if (lieuxReg.occupe) return;
+    const i = $('reg-lieu-' + k), texte = force !== undefined ? force : (i ? i.value.trim() : '');
+    const er = $('reg-erreur'), dit = t => { if (er) { er.textContent = t; er.hidden = !t; } };
+    dit('');
+    if (texte === '' && force === undefined) { dit('Écris une adresse : une rue et une ville.'); if (i) i.focus(); return; }
+    lieuxReg.occupe = true; peindreLieux();
+    try {
+      const r = await source.poserLieu(k, texte);
+      lieuxReg.lieux = r.lieux; TJ.lieux = r.lieux; lieuxReg.edite = null; lieuxReg.autres[k] = force !== undefined ? [] : r.autres;      // retirer, ou un choix parmi « Plutôt » : rien à reproposer
+      mot(texte === null ? (k === 'domicile' ? 'Domicile retiré' : 'Travail retiré') : (k === 'domicile' ? 'Domicile enregistré' : 'Travail enregistré'));
+    } catch (x) { dit(phrase(x, 'L\'adresse n\'a pas pu être enregistrée.')); }
+    lieuxReg.occupe = false; peindreLieux();
+    const b = document.querySelector(lieuxReg.edite ? '#reg-lieu-' + k : '[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true });
   }
   /* ═══ PROFIL — la page s'ouvre sur MOI, et chaque rubrique est UNE ligne qui ouvre SA page (6 octobre 2026) ═══
      Demandé : « je veux que les réglages soient dans le profil, parce que là c'est mal fait… optimise à 100 % comme Apple ». Avant : neuf rubriques empilées sur une seule page, chacune avec
@@ -3639,7 +3681,7 @@
     '<div class="reg-barre"><button type="button" class="reg-retour presse" data-reg-retour="1" aria-label="Retour au profil"><svg class="chev chev-g" viewBox="0 0 8 13" aria-hidden="true"><path d="M6.5 1.5 1.5 6.5 6.5 11.5"/></svg><span>Profil</span></button></div>' +
     '<h2 class="reg-titre" id="reg-titre-' + sec + '" tabindex="-1">' + esc(titre) + '</h2>' + corps + '</section>';
   /* les rubriques présentes sur CE service, dans l'ordre de REG_SECTIONS */
-  const regPresentes = () => REG_SECTIONS.filter(k => (k !== 'entreprise' || CAP.espaces) && (k !== 'notifications' || CAP.notifications) && (k !== 'compte' || CAP.compte));
+  const regPresentes = () => REG_SECTIONS.filter(k => (k !== 'entreprise' || CAP.espaces) && (k !== 'notifications' || CAP.notifications) && (k !== 'compte' || CAP.compte) && (k !== 'lieux' || lieuxPossibles()));
   function montrerSection(sec) {
     const vue = $('vue-reglages'); if (!vue || !$('reg-accueil')) return;
     const presentes = regPresentes();
@@ -3676,6 +3718,7 @@
           regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
           (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', '<span class="reglage-valeur" id="reg-v-notif"></span>') : '') +
           regLigne('contacts', 'vert', 'i-groupe', 'Contacts', '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>') +
+          (lieuxPossibles() ? regLigne('lieux', 'sarcelle', 'i-lieu', 'Mes lieux', '<span class="reglage-valeur" id="reg-v-lieux"></span>') : '') +
         '</div><div class="carte reg-menu">' +
           regLigne('appareils', 'gris', 'i-appareil', 'Appareils connectés') +
           regLigne('stockage', 'sarcelle', 'i-disque', 'Stockage', '<span class="reglage-valeur" id="reg-v-stock"></span>') +
@@ -3691,13 +3734,15 @@
         regSection('contacts', 'Contacts', '<div class="carte">' +
           '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-contact-plus') + '<span class="reglage-texte">Ajouter un contact<small>' + (CAP.identifiants ? 'Par son identifiant, son numéro ou un lien' : 'Par un lien d\'invitation') + '</small></span>' + CHEVRON + '</button>' +
           '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>') +
+        (lieuxPossibles() ? regSection('lieux', 'Mes lieux', '<div class="carte" id="reg-lieux"></div><p class="info-note reg-note">Pour l\'heure à laquelle partir à un rendez-vous (« Je pars de Domicile »). Ils restent sur ton compte, chiffrés, et seule l\'adresse trouvée s\'affiche. Pour trouver une adresse et calculer un trajet, le service la transmet à l\'IGN, le service public de cartographie — sans ton nom ni rien d\'autre.</p>') : '') +
         regSection('appareils', 'Appareils connectés', '<div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>') +
         regSection('stockage', 'Stockage', '<div class="carte carte-pad" id="reg-stock"></div>') +
         (CAP.compte ? regSection('compte', 'Mes données et mon compte', '<div class="carte" id="reg-compte"></div>') : '') +
         regSection('apropos', 'À propos', '<div class="carte carte-pad" id="reg-apropos"></div>') +
       '</div></div>' +
       '<p class="info-erreur" id="reg-erreur" role="alert" hidden></p>';
-    peindreProfilReglage(); peindreCoteReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour(); peindreConfirmer();
+    Object.assign(lieuxReg, { erreur: '', edite: null, occupe: false, autres: { domicile: [], travail: [] } });
+    peindreProfilReglage(); peindreCoteReglage(); peindreConf(); peindreStock(); peindreApropos(); peindreBloquesN(); peindreProfilRetour(); peindreConfirmer(); peindreLieux();
     if (CAP.espaces) peindreEspaces();
     if (CAP.notifications) peindreNotif();
     if (CAP.compte) peindreCompte();
@@ -3714,12 +3759,20 @@
     if (debut === null || fin === null || debut === fin) { reg.notifErreur = debut !== null && debut === fin ? 'Le début et la fin ne peuvent pas être à la même heure.' : 'Choisis une heure.'; peindreNotif(); return; }
     actionNotif('heures-maj', { jours: reg.notif.heuresPro.jours, debut, fin }).then(() => { const y = $(x.id); if (y) y.focus({ preventScroll: true }); });
   });
+  /* Mes lieux : Entrée enregistre l'adresse qu'on vient de taper */
+  $('vue-reglages').addEventListener('keydown', e => { const t = e.target; if (e.key === 'Enter' && t && /^reg-lieu-(domicile|travail)$/.test(t.id || '')) { e.preventDefault(); lieuEnregistrer(t.id.slice(9)); } });
   $('vue-reglages').addEventListener('click', async e => {
     const er = $('reg-erreur'), nette = () => { er.hidden = true; er.textContent = ''; }, dit = (x, defaut) => { er.textContent = phrase(x, defaut); er.hidden = false; };
     const bouton = e.target.closest('button'); if (!bouton) return;
     /* une rubrique : au téléphone elle POUSSE sa page (le retour la referme) ; au bureau elle REMPLACE celle de droite (comme passer d'une conversation à l'autre) */
     if (bouton.dataset.regSec) { const r = Object.assign({}, etat.route, { sec: bouton.dataset.regSec }); if (largeBureau.matches) remplacer(r); else if (!memeRoute(r, etat.route)) pousser(r); return; }
     if (bouton.dataset.regRetour) { fermerCouche(); return; }
+    /* Mes lieux : ouvrir l'adresse, l'enregistrer, la retirer, choisir une autre trouvée */
+    if (bouton.dataset.lieuEdit) { lieuxReg.edite = bouton.dataset.lieuEdit === 'travail' ? 'travail' : 'domicile'; lieuxReg.autres[lieuxReg.edite] = []; peindreLieux(); const i = $('reg-lieu-' + lieuxReg.edite); if (i) i.focus(); return; }
+    if (bouton.dataset.lieuAnnuler) { const k = lieuxReg.edite; lieuxReg.edite = null; peindreLieux(); const b = k && document.querySelector('[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true }); return; }
+    if (bouton.dataset.lieuOk) { lieuEnregistrer(bouton.dataset.lieuOk === 'travail' ? 'travail' : 'domicile'); return; }
+    if (bouton.dataset.lieuRetirer) { lieuEnregistrer(bouton.dataset.lieuRetirer === 'travail' ? 'travail' : 'domicile', null); return; }
+    if (bouton.dataset.lieuChoix && bouton.dataset.label) { lieuEnregistrer(bouton.dataset.lieuChoix === 'travail' ? 'travail' : 'domicile', bouton.dataset.label); return; }
     if (bouton.id === 'reg-profil-bouton') { declencheur = bouton; ouvrirFeuille('profil'); return; }
     if (bouton.id === 'reg-contact' || bouton.id === 'reg-bloques') { declencheur = bouton; ouvrirFeuille('contact'); return; }
     if (bouton.dataset.espOuvrir) { declencheur = bouton; ouvrirFeuille('espace:' + bouton.dataset.espOuvrir); return; }
@@ -5231,8 +5284,8 @@
     const sec = $('vue-reunions');
     sec.innerHTML =
       '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
-        '<button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button>' +
-        (CAP.rendezVous ? '<button type="button" class="lien-texte presse" id="btn-rdv-nouveau" aria-haspopup="dialog" hidden>Rendez-vous</button>' : '') + '</div>' +
+        '<span class="entete-actions"><button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button>' +
+        (CAP.rendezVous ? '<button type="button" class="lien-texte presse" id="btn-rdv-nouveau" aria-haspopup="dialog" hidden>Rendez-vous</button>' : '') + '</span></div>' +
       pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="seg" id="reu-vue-seg" role="group" aria-label="Afficher"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-reu-vue="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-reu-vue="mois" aria-pressed="false">Mois</button></div>' +
       '<div class="sem-nav" role="group" aria-label="Période affichée">' +
@@ -5326,7 +5379,9 @@
     const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : '<span class="reunion-heure">' + esc(continu ? 'Suite' : FMT_HEURE.format(e.debut)) + '<small>' + esc(FMT_HEURE.format(e.fin)) + '</small></span>';
     const rappel = texteRappels(Array.isArray(e.rappels) ? e.rappels : (e.rappel === null ? [] : [e.rappel]));
     /* un rendez-vous le dit, et avec qui (13 octobre 2026) */
-    const sous = [e.genre === 'rdv' ? 'Rendez-vous' + (e.avec ? ' avec ' + e.avec : '') : '', e.lieu, rappel].filter(Boolean).join(' · ');
+    /* son trajet (13 octobre 2026) : l'heure de PARTIR, tant que le rendez-vous n'est ni fait ni passé */
+    const partir = e.trajet && !e.fait && e.debut > Date.now() ? 'Partir à ' + FMT_HEURE.format(e.debut - (e.trajet.minutes + e.trajet.avance) * 60000) : '';
+    const sous = [e.genre === 'rdv' ? 'Rendez-vous' + (e.avec ? ' avec ' + e.avec : '') : '', e.lieu, partir, rappel].filter(Boolean).join(' · ');
     /* ⛔ COCHER UN RAPPEL (8 octobre 2026 : « cocher un rappel fait » — la seule façon de s'en défaire était de le supprimer) : au tableau de bord, un rond devant la ligne, comme dans
        Rappels d'Apple ; fait, il quitte le tableau et reste dans l'agenda, barré. Le rond est un bouton à part : la ligne, elle, ouvre la fiche. */
     const rond = coche ? '<button type="button" class="evt-coche presse" data-evt-fait="' + esc(e.id) + '" aria-pressed="' + (e.fait ? 'true' : 'false') + '" aria-label="' + esc((e.fait ? 'Remettre « ' : 'Marquer « ') + e.titre + (e.fait ? ' » à faire' : ' » comme fait')) + '"><span class="evt-rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : '';
@@ -6015,6 +6070,167 @@
   /* ce qu'on lit d'une liste de rappels : « Rappel la veille », « Rappels la veille et 1 h avant » */
   const motRappel = m => m === 0 ? 'à l\'heure' : m === 1440 ? 'la veille' : (m >= 60 ? (m / 60) + ' h' : m + ' min') + ' avant';
   const texteRappels = l => !l.length ? '' : (l.length > 1 ? 'Rappels ' : 'Rappel ') + l.map(motRappel).reduce((a, x, i, t) => a + (i === 0 ? '' : i === t.length - 1 ? ' et ' : ', ') + x, '');
+  /* ═══ LE TRAJET D'UN RENDEZ-VOUS (13 octobre 2026) — l'heure à laquelle partir ═══════════════════════════════════════════════════════════════════════════
+     Justin : « que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit partir s'il veut arriver 5 ou 10 minutes avant » ; « il accepte de donner sa localisation, on
+     demande s'il part bien de là où il est ou ailleurs […] c'est à nous, l'application, de tout bien calculer » ; « sa position, ou changer : domicile, travail, ou une adresse ».
+     Le SERVICE calcule (chez l'IGN) : la page ne parle à aucun tiers. « Ma position » se demande au navigateur — c'est lui qui demande la permission —, sert à CE calcul et ne vit que le temps
+     de la fiche : jamais rangée. Domicile et Travail se rangent au service (Profil › Mes lieux, ou ici la première fois) ; la page n'en voit que l'adresse trouvée, jamais le point.
+     ⛔ LE TRAJET AFFICHÉ EST CELUI QUI S'ENREGISTRE : changer le lieu, le départ ou le mode le retire (et le recalcule, quand on en avait un) — jamais un « partir à » compté pour une autre
+     adresse. L'heure de partir suit celle du rendez-vous qu'on règle : la durée ne dépend pas de l'heure (l'IGN calcule sans le trafic). */
+  const TJ = { ouvert: null, lieux: null };
+  const AVANCES_TR = [['0', 'À l\'heure'], ['5', '5 min avant'], ['10', '10 min avant'], ['15', '15 min avant']];
+  const NOM_DEPART = { position: 'Ma position', domicile: 'Domicile', travail: 'Travail', adresse: 'Une autre adresse' };
+  const trajetPossible = () => !!(CAP.trajet && TJ.ouvert === true && typeof source.calculerTrajet === 'function');
+  const dureeTr = m => m < 60 ? m + ' min' : Math.floor(m / 60) + ' h' + (m % 60 ? ' ' + String(m % 60).padStart(2, '0') : '');
+  const kmTr = km => (Math.round(km * 10) / 10).toLocaleString('fr-FR') + ' km';
+  const modeTr = m => m === 'pied' ? 'à pied' : 'en voiture';
+  const lieuARanger = (T, L) => (T.depart === 'domicile' || T.depart === 'travail') && !(L && L[T.depart]);
+  /* l'état du trajet d'une fiche : ce qui est choisi, et le trajet calculé (celui qui s'enregistre) — un rendez-vous qui en a un le reprend tel quel */
+  function trajetEtat(e) {
+    const t = e && e.trajet;
+    return { depart: t ? t.depart : 'position', mode: t ? t.mode : 'voiture', avance: t ? t.avance : 5, adresse: t && t.depart === 'adresse' ? t.depart_label : '', position: null,
+      autres: [], erreur: '', calcul: false, jeton: 0, essai: 0, touche: false, perime: false,
+      calc: t ? Object.assign({}, t, { vers_texte: e.lieu || '', depart_texte: t.depart === 'adresse' ? t.depart_label : '' }) : null };
+  }
+  /* la fiche s'ouvre : le service calcule-t-il ? quels lieux sont enregistrés ? (relus à chaque fiche : ils changent sur un autre appareil) */
+  async function trajetPreparer(F) {
+    if (!CAP.trajet || typeof source.trajetOuvert !== 'function') return;
+    try { TJ.ouvert = await source.trajetOuvert(); } catch (e) { TJ.ouvert = false; }
+    if (TJ.ouvert === true && typeof source.lieux === 'function') { try { TJ.lieux = await source.lieux(); } catch (e) { /* on ne sait pas : le calcul le dira */ } }
+    if (reu.formEvt === F) peindreTrajet();
+  }
+  /* l'heure de partir, d'après l'heure du rendez-vous telle qu'elle est réglée DANS la fiche (pas celle d'avant) */
+  function trajetHeures(F) {
+    const c = F.tr && F.tr.calc; if (!c) return null;
+    const d = instantDans($('ev-debut') ? $('ev-debut').value : '', F.tz);
+    return Number.isFinite(d) ? { debut: d, partir: d - (c.minutes + c.avance) * 60000, arrivee: d - c.avance * 60000 } : null;
+  }
+  function htmlTrajet(F, possible) {
+    const T = F.tr, L = TJ.lieux || { domicile: null, travail: null };
+    let h = '<div class="rubrique"><span>Trajet</span><span>L\'heure à laquelle partir</span></div>';
+    if (possible) {
+      const opt = ['position', 'domicile', 'travail', 'adresse'].map(k => [k, k === 'domicile' || k === 'travail' ? NOM_DEPART[k] + (L[k] ? ' — ' + L[k].label : ' (à enregistrer)') : NOM_DEPART[k]]);
+      h += '<div class="champ"><label for="ev-tr-depart">Je pars de</label><select id="ev-tr-depart">' + optionsDe(opt, T.depart) + '</select>' +
+        (T.depart === 'position' ? '<span class="info-note">Ta position sert à ce calcul, une fois : elle n\'est ni gardée, ni montrée à personne.</span>' : '') + '</div>';
+      if (T.depart === 'adresse' || lieuARanger(T, L)) h += '<div class="champ"><label for="ev-tr-adresse">' + (T.depart === 'adresse' ? 'Adresse de départ' : 'Adresse de ton ' + (T.depart === 'domicile' ? 'domicile' : 'travail')) + '</label>' +
+        '<input id="ev-tr-adresse" type="text" maxlength="200" autocomplete="street-address" enterkeyhint="done" value="' + esc(T.adresse) + '" placeholder="Rue, ville">' +
+        (lieuARanger(T, L) ? '<span class="info-note">Elle sera gardée pour la prochaine fois (Profil › Mes lieux).</span>' : '') + '</div>';
+      h += '<div class="seg evt-tr-seg" role="group" aria-label="Comment j\'y vais" style="--i:' + (T.mode === 'pied' ? 1 : 0) + '"><span class="seg-knob" aria-hidden="true"></span>' +
+        [['voiture', 'Voiture'], ['pied', 'À pied']].map(([k, l]) => '<button type="button" class="seg-bouton" data-tr-mode="' + k + '" aria-pressed="' + (T.mode === k ? 'true' : 'false') + '">' + l + '</button>').join('') + '</div>' +
+        '<div class="champ"><label for="ev-tr-avance">Arriver</label><select id="ev-tr-avance">' + optionsDe(AVANCES_TR, String(T.avance)) + '</select></div>';
+    }
+    if (T.calcul) h += '<p class="info-note evt-tr-res" role="status">' + (T.essai ? 'Beaucoup de trajets sont calculés en ce moment : nouvel essai…' : 'Calcul du trajet…') + '</p>';
+    else if (T.erreur) h += '<p class="info-erreur evt-tr-res" role="alert">' + esc(T.erreur) + '</p>';
+    else if (T.perime) h += '<p class="info-note evt-tr-res" role="status">Le lieu a changé : calcule le trajet à nouveau.</p>';
+    if (T.calc && !T.calcul) {
+      const x = trajetHeures(F), c = T.calc, retard = !!(x && x.partir < Date.now() && x.debut > Date.now());
+      h += '<div class="carte carte-pad evt-tr-res" id="ev-tr-res">' +
+        (x ? '<p class="evt-tr-partir' + (retard ? ' retard' : '') + '">' + (retard ? 'Il fallait partir à ' : 'Partir à ') + esc(heureDans(x.partir, F.tz)) + '</p>' : '') +
+        '<p class="info-note">' + esc(dureeTr(c.minutes) + ' ' + modeTr(c.mode) + (c.km ? ' · ' + kmTr(c.km) : '') + (c.depart_label ? ' — depuis ' + c.depart_label : '')) + '</p>' +
+        (x ? '<p class="info-note">' + esc((c.avance ? 'Pour arriver à ' + heureDans(x.arrivee, F.tz) + ', ' + c.avance + ' min avant le rendez-vous.' : 'Pour arriver à l\'heure du rendez-vous.') +
+          (retard ? ' En partant maintenant, tu arrives vers ' + heureDans(Date.now() + c.minutes * 60000, F.tz) + '.' : '')) + '</p>' : '') +
+        '<p class="info-note">Vers ' + esc(c.vers_label) + '</p>' +
+        (possible && T.autres.length ? '<p class="info-note">Pas le bon endroit ? Plutôt :</p><div class="info-actions evt-tr-autres">' + T.autres.map(a => '<button type="button" class="mini" data-evt="trajet-autre" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div>' : '') +
+        '<p class="info-note">Une notification te dira quand partir.</p></div>';
+    }
+    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-evt="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (T.calc ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
+      (T.calc ? '<button type="button" class="mini" data-evt="trajet-retirer">Retirer le trajet</button>' : '') + '</div>';
+    return h;
+  }
+  /* repeindre sans perdre le doigt : le champ ou le bouton qui avait le focus le retrouve (sauf pendant la frappe : on ne repeint pas un champ qu'on tape) */
+  function peindreTrajet() {
+    const z = $('ev-trajet-zone'), F = reu.formEvt; if (!z || !F || !F.rdv || !F.tr) return;
+    const possible = trajetPossible();
+    if (!possible && !F.tr.calc) { z.innerHTML = ''; return; }
+    const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.trMode ? '[data-tr-mode="' + a.dataset.trMode + '"]' : a.dataset.evt ? '[data-evt="' + a.dataset.evt + '"]' : '') : '';
+    z.innerHTML = htmlTrajet(F, possible);
+    if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
+  }
+  /* « Ma position » : le navigateur la demande (il pose la question de la permission) ; elle ne sert qu'au calcul, et ne quitte la fiche que vers le service */
+  function positionDuMoment() {
+    return new Promise((ok, ko) => {
+      const non = t => ko(Object.assign(new Error(t), { dit: true }));
+      if (!navigator.geolocation) { non('Cet appareil ne sait pas donner sa position : choisis Domicile, Travail ou une adresse de départ.'); return; }
+      navigator.geolocation.getCurrentPosition(p => ok({ lon: p.coords.longitude, lat: p.coords.latitude }),
+        er => non(er && er.code === 1 ? 'Ton navigateur refuse de donner ta position : autorise-la pour ce site, ou choisis Domicile, Travail ou une adresse de départ.'
+          : er && er.code === 3 ? 'Ta position a mis trop de temps à venir : réessaie, ou choisis une adresse de départ.' : 'Ta position n\'a pas pu être trouvée : choisis Domicile, Travail ou une adresse de départ.'),
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 300000 });
+    });
+  }
+  /* `choisi` : la personne vient de choisir le lieu parmi les adresses trouvées (« Plutôt : … ») — on ne lui repropose pas celle qu'elle a écartée */
+  async function trajetCalculer(choisi) {
+    const F = reu.formEvt; if (!F || !F.tr || !trajetPossible()) return;
+    const T = F.tr, vers = ($('ev-lieu') ? $('ev-lieu').value : '').trim();
+    T.erreur = ''; T.perime = false;
+    if (!vers) { T.erreur = 'Écris d\'abord le lieu du rendez-vous : c\'est là que le trajet mène.'; peindreTrajet(); $('ev-lieu').focus(); return; }
+    const L = TJ.lieux || {}, ranger = lieuARanger(T, L);
+    const adresse = ($('ev-tr-adresse') ? $('ev-tr-adresse').value : T.adresse).trim(); T.adresse = adresse;
+    if ((T.depart === 'adresse' || ranger) && !adresse) { T.erreur = T.depart === 'adresse' ? 'Écris l\'adresse d\'où tu pars.' : 'Écris l\'adresse de ton ' + (T.depart === 'domicile' ? 'domicile' : 'travail') + '.'; peindreTrajet(); const c = $('ev-tr-adresse'); if (c) c.focus(); return; }
+    const jeton = ++T.jeton, encore = () => reu.formEvt === F && T.jeton === jeton;
+    T.calcul = true; peindreTrajet();
+    try {
+      let depuis;
+      if (T.depart === 'position') { if (!T.position) T.position = await positionDuMoment(); depuis = { type: 'position', lon: T.position.lon, lat: T.position.lat }; }
+      else if (T.depart === 'adresse') depuis = { type: 'adresse', texte: adresse };
+      else {
+        if (ranger) { const r = await source.poserLieu(T.depart, adresse); TJ.lieux = r.lieux; mot((T.depart === 'domicile' ? 'Domicile' : 'Travail') + ' enregistré'); }
+        depuis = { type: T.depart };
+      }
+      if (!encore()) return;
+      const r = await source.calculerTrajet({ vers, depuis, mode: T.mode });
+      if (!encore()) return;
+      T.calc = { minutes: r.minutes, km: r.km, mode: T.mode, avance: T.avance, depart: T.depart, depart_label: r.depuis.label || NOM_DEPART[T.depart], vers_label: r.vers || vers, vers_texte: vers, depart_texte: T.depart === 'adresse' ? adresse : '' };
+      T.autres = choisi === true ? [] : r.autres; T.touche = true; T.essai = 0;
+    } catch (er) {
+      if (!encore()) return;
+      /* « occupé » : le service a déjà attendu son tour ; on réessaie UNE fois, après le délai qu'il donne */
+      if (er && er.code === 'trajet_occupe' && T.essai < 1) { T.essai = 1; setTimeout(() => { if (encore()) trajetCalculer(choisi); }, Math.max(1, er.retry || 2) * 1000); peindreTrajet(); return; }
+      if (er && er.code === 'lieu_absent' && (T.depart === 'domicile' || T.depart === 'travail')) TJ.lieux = Object.assign({}, TJ.lieux || {}, { [T.depart]: null });   // retiré ailleurs : on le redemande
+      T.essai = 0; T.erreur = phrase(er, 'Le trajet n\'a pas pu être calculé.');
+    }
+    T.calcul = false; peindreTrajet();
+  }
+  /* le départ ou le mode changent : le trajet calculé ne vaut plus — il part, et se recalcule si on en avait un (sauf s'il faut d'abord écrire une adresse) */
+  function trajetChanger(k, v) {
+    const F = reu.formEvt; if (!F || !F.tr || F.tr[k] === v) return;
+    const T = F.tr, avait = !!T.calc;
+    T[k] = v; T.jeton++; T.calcul = false; T.erreur = ''; T.perime = false; T.essai = 0;
+    if (avait) { T.calc = null; T.autres = []; T.touche = true; }
+    peindreTrajet();
+    if (avait && T.depart !== 'adresse' && !lieuARanger(T, TJ.lieux)) trajetCalculer();
+  }
+  function trajetAvance(v) {
+    const F = reu.formEvt; if (!F || !F.tr) return;
+    const T = F.tr; T.avance = v;
+    if (T.calc) { T.calc = Object.assign({}, T.calc, { avance: v }); T.touche = true; }
+    peindreTrajet();
+  }
+  function trajetRetirer() {
+    const F = reu.formEvt; if (!F || !F.tr) return;
+    Object.assign(F.tr, { calc: null, autres: [], erreur: '', perime: false, calcul: false, essai: 0, touche: true }); F.tr.jeton++;
+    peindreTrajet(); mot('Trajet retiré');
+  }
+  /* « Plutôt : … » — l'autre adresse que l'IGN a trouvée devient le lieu, et le trajet se recalcule vers elle */
+  function trajetAutre(label) { const c = $('ev-lieu'); if (!label || !c) return; c.value = label; trajetCalculer(true); }
+  /* on tape le lieu (ou l'adresse de départ) : le trajet calculé menait ailleurs — il part tout de suite ; quitter le champ le recalcule */
+  function trajetTape(champ) {
+    const F = reu.formEvt; if (!F || !F.tr || !F.tr.calc) return;
+    const T = F.tr, v = ($(champ).value || '').trim();
+    const autre = champ === 'ev-lieu' ? v !== T.calc.vers_texte : T.calc.depart === 'adresse' && v !== T.calc.depart_texte;
+    if (!autre) return;
+    T.jeton++; T.calc = null; T.autres = []; T.touche = true; T.perime = true; T.calcul = false; T.erreur = '';
+    if (champ === 'ev-tr-adresse') { T.adresse = v; const z = $('ev-tr-res'); if (z) z.remove(); return; }    // (on ne repeint pas la zone du champ qu'on tape : le curseur partirait)
+    peindreTrajet();
+  }
+  function trajetQuitte(champ) { const F = reu.formEvt; if (F && F.tr && F.tr.perime && ($(champ).value || '').trim()) trajetCalculer(); }
+  /* ce que la fiche enregistre : le trajet tel qu'il est affiché (null : retiré) — rien quand on n'y a pas touché (le service garde le sien) */
+  function trajetAEnvoyer(F) {
+    const T = F && F.tr; if (!T) return undefined;
+    const lieu = ($('ev-lieu') ? $('ev-lieu').value : '').trim();
+    const c = T.calc && lieu === T.calc.vers_texte ? T.calc : null;
+    if (!T.touche && (c || !T.calc)) return undefined;
+    return c ? { minutes: c.minutes, km: c.km, mode: c.mode, avance: c.avance, depart: c.depart, depart_label: c.depart_label, vers_label: c.vers_label } : null;
+  }
   /* ⛔ la fiche ouverte est-elle celle d'un rendez-vous ? `synchroFeuille` repasse APRÈS le dessin de la fiche et en réécrit le titre : il le lit ici, sur la fiche DESSINÉE pour l'identifiant
      demandé (une fiche encore en chargement n'en dit rien — elle posera son titre en arrivant). */
   const ficheEstRdv = () => !!(reu.formEvt && reu.formEvt.rdv && reu.formEvt.id && reu.formEvt.id === reu.formEvtDemande);
@@ -6056,13 +6272,16 @@
         : '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (journee ? 'true' : 'false') + '" id="ev-journee"><span class="reglage-texte">Toute la journée</span><span class="interrupteur" aria-hidden="true"></span></button></div>') +
       '<div class="champ"><label for="ev-debut">Début</label><input id="ev-debut" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(d0, tz).slice(0, 10) : localDans(d0, tz)) + '"></div>' +
       '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
-      '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="Facultatif"></div>' +
+      '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="' + (rdv && CAP.trajet ? 'Adresse — pour savoir quand partir' : 'Facultatif') + '"></div>' +
+      (rdv ? '<div id="ev-trajet-zone"></div>' : '') +
       (rdv ? '<div class="rubrique"><span>Rappels</span><span>Trois au plus</span></div><div class="carte" id="ev-rappels" role="group" aria-label="Rappels du rendez-vous">' + htmlRappelsEvt(rappels0) + '</div>'
         : '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>') +
       '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
       '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
     reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '', cote: etat.mode, rdv, rappels: rdv ? rappels0 : null,
-      rappelsPlus: !!(e && !rdv && Array.isArray(e.rappels) && e.rappels.length > 1), rappelInitial: e ? (e.rappel === null ? '' : String(e.rappel)) : '15' };      // le côté où l'on était en ouvrant la fiche
+      rappelsPlus: !!(e && !rdv && Array.isArray(e.rappels) && e.rappels.length > 1), rappelInitial: e ? (e.rappel === null ? '' : String(e.rappel)) : '15',      // le côté où l'on était en ouvrant la fiche
+      tr: rdv ? trajetEtat(e) : null };
+    if (rdv) { peindreTrajet(); trajetPreparer(reu.formEvt); }      // le trajet repris s'affiche tout de suite ; le calcul se propose quand le service a dit qu'il calcule
   }
   function evtBasculerJournee() {
     const b = $('ev-journee'); if (!b) return;
@@ -6077,7 +6296,7 @@
     if (!titre) { erreurInfo(F.rdv ? 'Donne un titre au rendez-vous.' : 'Donne un titre à l\'événement.'); $('ev-titre').focus(); return; }
     if (!debut) { erreurInfo('Choisis le début.'); $('ev-debut').focus(); return; }
     const champs = { titre, lieu: $('ev-lieu').value.trim() || null, note: $('ev-note').value.trim() || null, journee, debut, fin: fin || null };
-    if (F.rdv) { champs.avec = $('ev-avec').value.trim() || null; champs.rappels = F.rappels.slice(); if (!F.id) champs.genre = 'rdv'; }
+    if (F.rdv) { champs.avec = $('ev-avec').value.trim() || null; champs.rappels = F.rappels.slice(); if (!F.id) champs.genre = 'rdv'; const t = trajetAEnvoyer(F); if (t !== undefined) champs.trajet = t; }
     /* ⛔ un événement à PLUSIEURS rappels (venu d'un autre appareil) : le menu n'en montre qu'un — on ne renvoie le rappel que si la personne l'a changé, sinon la liste serait écrasée */
     else { const r = $('ev-rappel').value; if (!F.rappelsPlus || r !== F.rappelInitial) champs.rappel = r === '' ? null : Number(r); }
     if (!F.id) champs.tz = F.tz;
@@ -6139,13 +6358,31 @@
     if (!etat.groupe.ouvert || (etat.groupe.mode !== 'evenement-new' && etat.groupe.mode !== 'rdv-new' && etat.groupe.mode !== 'evenement')) return;
     if (e.target.closest('#ev-journee')) { evtBasculerJournee(); return; }
     const rp = e.target.closest('[data-evt-rappel]'); if (rp) { evtBasculerRappel(Number(rp.dataset.evtRappel)); return; }
+    const md = e.target.closest('[data-tr-mode]'); if (md) { trajetChanger('mode', md.dataset.trMode === 'pied' ? 'pied' : 'voiture'); return; }
     const b = e.target.closest('[data-evt]'); if (!b || b.disabled) return;
     erreurInfo('');
     if (b.dataset.evt === 'enregistrer') evtEnregistrer(b); else if (b.dataset.evt === 'supprimer') evtSupprimer(b);
     else if (b.dataset.evt === 'fait') evtFait(b); else if (b.dataset.evt === 'reporter') evtReporter(b); else if (b.dataset.evt === 'voir') evtVoir();
+    else if (b.dataset.evt === 'trajet-calculer') trajetCalculer(); else if (b.dataset.evt === 'trajet-retirer') trajetRetirer(); else if (b.dataset.evt === 'trajet-autre') trajetAutre(b.dataset.label);
   });
+  /* le trajet : choisir d'où l'on part, quand arriver ; quitter le lieu (ou l'adresse de départ) après l'avoir changé recalcule */
+  const ficheEvtOuverte = () => etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'rdv-new' || etat.groupe.mode === 'evenement');
+  $('info-corps').addEventListener('change', e => {
+    if (!ficheEvtOuverte() || !e.target) return;
+    const id = e.target.id;
+    if (id === 'ev-tr-depart') trajetChanger('depart', ['position', 'domicile', 'travail', 'adresse'].includes(e.target.value) ? e.target.value : 'position');
+    else if (id === 'ev-tr-avance') trajetAvance([0, 5, 10, 15].includes(Number(e.target.value)) ? Number(e.target.value) : 0);
+    else if (id === 'ev-lieu' || id === 'ev-tr-adresse') trajetQuitte(id);
+  });
+  $('info-corps').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'ev-tr-adresse' && ficheEvtOuverte()) { e.preventDefault(); trajetCalculer(); } });
   /* un refus s'efface dès qu'on corrige (« Donne un titre » ne reste pas affiché sous un titre tapé) */
-  $('info-corps').addEventListener('input', e => { if (etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'rdv-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || '')) erreurInfo(''); });
+  $('info-corps').addEventListener('input', e => {
+    if (!(etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'rdv-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || ''))) return;
+    erreurInfo('');
+    const id = e.target.id;
+    if (id === 'ev-lieu' || id === 'ev-tr-adresse') trajetTape(id);
+    else if (id === 'ev-debut') { const F = reu.formEvt; if (F && F.tr && F.tr.calc) peindreTrajet(); }      // l'heure de partir suit l'heure du rendez-vous
+  });
   /* ═══ LE THÈME D'UNE CONVERSATION (7 octobre 2026) — un aperçu, les fonds, les couleurs de mes bulles ; chaque touche s'applique tout de suite et s'enregistre ═══ */
   const FONDS_CONV = [['aucun', 'Par défaut'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['lavande', 'Lavande'], ['sable', 'Sable'], ['corail', 'Corail'], ['ardoise', 'Ardoise']];
   const BULLES_CONV = [['defaut', 'Par défaut'], ['bleu', 'Bleu'], ['vert', 'Vert'], ['violet', 'Violet'], ['orange', 'Orange'], ['rose', 'Rose'], ['graphite', 'Graphite'], ['sarcelle', 'Sarcelle'], ['bordeaux', 'Bordeaux']];
