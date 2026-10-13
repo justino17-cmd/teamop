@@ -40,6 +40,7 @@ const { creerFacturation } = require('./facturation');
 const { creerPlanificateur } = require('./planificateur');
 const { creerCourriel } = require('./courriel');
 const { creerAgenda } = require('./routes-agenda');
+const { creerTrajet } = require('./trajet');
 const { creerAppels } = require('./appels');
 const { creerVisio } = require('./visio');
 const { creerTranscription } = require('./transcription');
@@ -102,6 +103,8 @@ function demarrer(env = process.env) {
   /* ⛔ LES RAPPELS DES RÉUNIONS : UNE instance planifie (le bail), un rappel part UNE seule fois (le registre), l'horloge est injectée. Voir `planificateur.js`. */
   /* L'AGENDA PERSONNEL (`routes-agenda.js`) : ses routes, et ses rappels — envoyés par le planificateur des réunions, qui tient le bail (une seule instance envoie) */
   const agenda = creerAgenda({ stockage, quotas, config, horloge: Date.now, journaliser });
+  /* LE TRAJET (13 octobre 2026) : le calcul de l'heure de départ, chez le service public de l'IGN (`trajet.js`). Fermé par `trajet: false` ; le journal ne reçoit que des issues (`echec`, `occupe`). */
+  const trajet = creerTrajet({ cfg: config.trajet, journal: (issue) => journaliser('trajet', { etat: issue }) });
   const planificateur = creerPlanificateur({ stockage, hub, config, horloge: Date.now, journaliser, push, agenda });
   /* ⛔ LE COURRIEL D'INVITATION : inerte sans relais SMTP (`config.courriel`), et le DIT. Le mot de passe du relais reste dans `config` ; `/api/config` ne publie que `courriel.ouvert`. */
   const courriel = creerCourriel({ config, stockage, scelleur, horloge: Date.now, journaliser });
@@ -148,7 +151,7 @@ function demarrer(env = process.env) {
   const versionClient = creerVersionClient({ config, versionPage, journaliser });
   const ctx = {
     config, stockage, quotas, hub, porte, journaliser, horloge: Date.now, version: VERSION, build, versionPage, versionClient, scelleur, sms,
-    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda, visio, transcription,
+    pieces, reservations, piecesEtat, effacerPieces, push, formule, facturation, courriel, appels, agenda, trajet, visio, transcription,
     maxMembres: stockageMod.MAX_MEMBRES, delaiModifMs: stockageMod.DELAI_MODIF_MS,
     disque: { bas: () => disqueBas, libreMo },
     /* ⛔ /health est PUBLIQUE et AGRÉGÉE : des nombres et des états, jamais un identifiant, un

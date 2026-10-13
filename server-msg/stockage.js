@@ -698,6 +698,20 @@ const MIGRATIONS = [
     `ALTER TABLE evenement ADD COLUMN rappels TEXT`,
     `PRAGMA user_version = 27`,
   ] },
+  /* ── 28 (13 octobre 2026) : LE TRAJET — « que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit partir s'il veut arriver 5 ou 10 minutes avant ». Un rendez-vous range
+         son trajet (`trajet_ch`, scellé : la durée, le mode, l'avance voulue, d'où l'on part et le lieu trouvé — `trajet.js`) ; une personne range son DOMICILE et son TRAVAIL (`lieu_perso`, scellés :
+         une adresse et son point) pour ne pas les retaper. ⛔ La position du moment, elle, n'est JAMAIS rangée : elle sert au calcul, une fois. Aucune colonne d'avant n'est touchée. ── */
+  { v: 28, sql: [
+    `ALTER TABLE evenement ADD COLUMN trajet_ch BLOB`,
+    `CREATE TABLE IF NOT EXISTS lieu_perso (
+       uid TEXT NOT NULL REFERENCES personne(id),
+       cle TEXT NOT NULL CHECK (cle IN ('domicile','travail')),
+       donnees_ch BLOB NOT NULL,
+       maj INTEGER NOT NULL,
+       PRIMARY KEY (uid, cle)
+     )`,
+    `PRAGMA user_version = 28`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -783,6 +797,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const RAPPELS_FAITS = versionActuelle() >= 21;  // une base d'avant la migration 21 : pas de rappel coché ni de message d'origine
   const COTES_AGENDA = versionActuelle() >= 25;   // une base d'avant la migration 25 : aucun événement n'a de côté (la page les range d'elle-même)
   const RDV_AGENDA = versionActuelle() >= 27;     // une base d'avant la migration 27 : aucun rendez-vous, un seul rappel par événement
+  const TRAJETS = versionActuelle() >= 28;        // une base d'avant la migration 28 : aucun trajet, ni Domicile ni Travail
   const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
   const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
@@ -2490,7 +2505,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     genre: r.genre === 'rdv' ? 'rdv' : 'evenement',
     avec: r.avec_ch ? (ouvrirOuNull('evenement', 'avec_ch', r.id + '|avec', r.avec_ch) || '') : '',
     rappels: evtRappels(r),
+    trajet: evtTrajet(r),
   } : null;
+  /* le trajet rangé (migration 28) : un objet, ou null — un sceau illisible ou un JSON abîmé rendent null (le rendez-vous reste, sans heure de départ), jamais une erreur */
+  function evtTrajet(r) {
+    if (!r.trajet_ch) return null;
+    const x = ouvrirOuNull('evenement', 'trajet_ch', r.id + '|trajet', r.trajet_ch);
+    if (!x) return null;
+    try { const t = JSON.parse(x); return t && typeof t === 'object' && Number.isSafeInteger(t.minutes) ? t : null; } catch (e) { return null; }
+  }
   /* la liste des rappels (migration 27) : celle qui est rangée, sinon le rappel seul d'un événement d'avant — une colonne abîmée rend le rappel seul, jamais une erreur.
      ⛔ La liste n'est crue que si son PREMIER est `rappel` : le code d'AVANT (un retour en arrière du déploiement, puis la remise du code neuf) récrit `rappel` sans connaître `rappels` —
      une liste qui ne s'accorde plus avec lui est périmée (un rappel retiré reviendrait, la fiche contredirait l'échéance), et c'est le rappel seul qui dit vrai. */
@@ -2500,14 +2523,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return seul;
   }
   /* ce que la migration 27 ajoute : le genre, « avec qui » (scellé), la liste des rappels quand il y en a plus d'un (un seul se lit dans `rappel`) */
-  function evtPoserRdv(id, { genre, avec, rappels }) {
+  function evtPoserRdv(id, { genre, avec, rappels, trajet }) {
+    if (trajet !== undefined && TRAJETS) Q('UPDATE evenement SET trajet_ch = ? WHERE id = ?').run(trajet ? sceller('evenement', 'trajet_ch', id + '|trajet', JSON.stringify(trajet)) : null, id);
     if (!RDV_AGENDA) return;
     if (genre !== undefined) Q('UPDATE evenement SET genre = ? WHERE id = ?').run(genre === 'rdv' ? 'rdv' : null, id);
     if (avec !== undefined) Q('UPDATE evenement SET avec_ch = ? WHERE id = ?').run(scellerEvt(id, 'avec', avec), id);
     if (rappels !== undefined) Q('UPDATE evenement SET rappels = ? WHERE id = ?').run(Array.isArray(rappels) && rappels.length > 1 ? JSON.stringify(rappels) : null, id);
   }
   const scellerEvt = (id, champ, v) => v ? sceller('evenement', champ + '_ch', id + '|' + champ, v) : null;
-  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null, cote = null, genre, avec, rappels }) {
+  function evenementCreer({ uid, titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, source = null, cote = null, genre, avec, rappels, trajet }) {
     const id = nouvelId('e'), t = horloge();
     return tx(() => {                                  // ⛔ la ligne ET ses compléments (côté, source, rendez-vous) ensemble : un arrêt entre les deux ne laisse pas un rendez-vous à moitié écrit
     Q(`INSERT INTO evenement(id, uid, titre_ch, lieu_ch, note_ch, debut, fin, journee, tz, rappel, rappel_a, cree, maj) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
@@ -2515,7 +2539,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         rappel === null || rappel === undefined ? null : rappel, rappelA === null || rappelA === undefined ? null : rappelA, t, t);
     if (source && RAPPELS_FAITS) Q('UPDATE evenement SET src_conv = ?, src_seq = ? WHERE id = ?').run(source.conv, source.seq, id);
     if ((cote === 'perso' || cote === 'pro') && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ?').run(cote, id);
-    evtPoserRdv(id, { genre, avec: avec || '', rappels });
+    evtPoserRdv(id, { genre, avec: avec || '', rappels, trajet: trajet || null });
     return evenementLire(uid, id);
     });
   }
@@ -2535,7 +2559,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function evenementLire(uid, id) { return evtRang(Q('SELECT * FROM evenement WHERE id = ? AND uid = ?').get(id, uid)); }
   /* `rappelA` : undefined garde l'échéance telle quelle (un rappel déjà parti ne repart pas), null l'efface, un nombre la pose. */
-  function evenementMaj(uid, id, { titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, cote, genre, avec, rappels }) {
+  function evenementMaj(uid, id, { titre, lieu, note, debut, fin, journee, tz, rappel, rappelA, cote, genre, avec, rappels, trajet }) {
     const r = Q('SELECT id FROM evenement WHERE id = ? AND uid = ?').get(id, uid);
     if (!r) return null;
     return tx(() => {
@@ -2544,7 +2568,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           rappel === null || rappel === undefined ? null : rappel, horloge(), id, uid);
       if (rappelA !== undefined) Q('UPDATE evenement SET rappel_a = ? WHERE id = ? AND uid = ?').run(rappelA === null ? null : rappelA, id, uid);
       if (cote !== undefined && COTES_AGENDA) Q('UPDATE evenement SET cote = ? WHERE id = ? AND uid = ?').run(cote === 'perso' || cote === 'pro' ? cote : null, id, uid);     // `cote` : undefined garde, null rend le côté déduit
-      evtPoserRdv(id, { genre, avec, rappels });                                                                                  // undefined garde ce qui est rangé
+      evtPoserRdv(id, { genre, avec, rappels, trajet });                                                                          // undefined garde ce qui est rangé
       return evenementLire(uid, id);
     });
   }
@@ -2615,6 +2639,26 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   /* pour l'export de ses données : ses événements, en clair (ce sont les siens) */
   function exportEvenements(uid) { return versionActuelle() >= 13 ? Q('SELECT * FROM evenement WHERE uid = ? ORDER BY debut, id').all(uid).map(evtRang) : []; }
+  /* ── DOMICILE ET TRAVAIL (migration 28) : une adresse et son point, scellés ensemble — le point d'un domicile dit où vit la personne, il ne reste pas en clair ── */
+  const LIEUX_CLES = ['domicile', 'travail'];
+  function lieuxLire(uid) {
+    const o = { domicile: null, travail: null };
+    if (!TRAJETS) return o;
+    for (const r of Q('SELECT cle, donnees_ch FROM lieu_perso WHERE uid = ?').all(uid)) {
+      if (!LIEUX_CLES.includes(r.cle)) continue;
+      const x = ouvrirOuNull('lieu_perso', 'donnees_ch', uid + '|' + r.cle, r.donnees_ch);
+      try { const l = x ? JSON.parse(x) : null; if (l && typeof l.label === 'string' && Number.isFinite(l.lon) && Number.isFinite(l.lat)) o[r.cle] = { label: l.label, lon: l.lon, lat: l.lat }; } catch (e) { /* illisible : comme absent */ }
+    }
+    return o;
+  }
+  /* `lieu` : { label, lon, lat } pose (ou remplace) ; null retire */
+  function lieuPoser(uid, cle, lieu) {
+    if (!TRAJETS || !LIEUX_CLES.includes(cle)) return false;
+    if (lieu === null) { Q('DELETE FROM lieu_perso WHERE uid = ? AND cle = ?').run(uid, cle); return true; }
+    const ch = sceller('lieu_perso', 'donnees_ch', uid + '|' + cle, JSON.stringify({ label: lieu.label, lon: lieu.lon, lat: lieu.lat }));
+    Q('INSERT INTO lieu_perso(uid, cle, donnees_ch, maj) VALUES(?, ?, ?, ?) ON CONFLICT(uid, cle) DO UPDATE SET donnees_ch = excluded.donnees_ch, maj = excluded.maj').run(uid, cle, ch, horloge());
+    return true;
+  }
   /* L'âge et les conditions acceptés à l'inscription (colonnes prévues dès la migration 1) : la version des conditions est gardée, pour savoir lesquelles la personne a lues. */
   function personneConsentir(id, cguV) { return num(Q('UPDATE personne SET age_ok = 1, cgu_v = ? WHERE id = ?').run(String(cguV).slice(0, 20), id).changes) > 0; }
   /* `change: true` : un CHANGEMENT (pas la création du compte) — noté au registre des purges dans la même transaction, pour qu'une restauration ne ramène pas l'ancien mot de passe (C5). */
@@ -3015,6 +3059,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (IDENT) Q('DELETE FROM demande_contact WHERE de = ? OR vers = ?').run(uid, uid);
       if (versionActuelle() >= 12) Q('DELETE FROM appareil_mel WHERE personne = ?').run(uid);
       if (versionActuelle() >= 13) Q('DELETE FROM evenement WHERE uid = ?').run(uid);   // son agenda personnel part avec elle
+      if (TRAJETS) Q('DELETE FROM lieu_perso WHERE uid = ?').run(uid);                   // son domicile et son travail aussi
       if (PROGRAMMES) Q('DELETE FROM programme WHERE auteur = ?').run(uid);              // ses messages programmés ne partiront pas
       Q('DELETE FROM lien WHERE par = ?').run(uid);
       Q('DELETE FROM recherche_tel WHERE uid = ?').run(uid);
@@ -4693,7 +4738,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     rejeuAFaire, rejeuTermine, purgeLignes,   // le rejeu des purges par le SERVICE après une restauration (rejeu.js)
     telCodePoser, telCodeEssayer, telCodeSupprimer, telCodeCree,
     melCodePoser, melCodeEssayer, melCodeSupprimer, melCodeCree, melCodesElaguer, mdpLire, mdpPoser, personneConsentir, appareilMelConnu, appareilMelNoter, appareilsMelOublier,
-    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, evenementRappelPasser, exportEvenements,
+    evenementCreer, evenementLire, evenementMaj, evenementSupprimer, evenementsCompter, evenementsDe, evenementsRappelsDus, evenementRappelEnvoyer, evenementRappelAbandonner, evenementRappelPasser, exportEvenements, lieuxLire, lieuPoser,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,

@@ -59,6 +59,8 @@ async function lancerService(opts = {}) {
     quotas: { ip: { max: 100000, fenetreMs: 60000 }, ecriture: { max: 100000, fenetreMs: 60000 }, beta_ip: { max: 100000, fenetreMs: 900000 }, beta_login: { max: 100000, fenetreMs: 900000 }, lien_ip: { max: 100000, fenetreMs: 60000 }, msg: { max: 100000, fenetreMs: 60000 }, groupe: { max: 100000, fenetreMs: 3600000 }, lien: { max: 100000, fenetreMs: 3600000 }, moi_maj: { max: 100000, fenetreMs: 3600000 } },
     beta: { urlGestion: o.urlGestion || 'http://127.0.0.1:1', relectureMs: 3600000, timeoutMs: 2000 },
     pulsationMs: 20000, presenceGraceMs: 400, balayageMs: 3600000, disqueMinMo: 0,
+    /* ⛔ le trajet calcule chez l'IGN (13 octobre 2026) : un banc ne sort JAMAIS sur Internet — par défaut, un port local fermé (le calcul se dit indisponible) ; un banc du trajet pose son faux IGN */
+    trajet: { base: 'http://127.0.0.1:10' },
   };
   /* Fusion à UN niveau : quotas, beta et cookie se complètent, ils ne se remplacent pas. */
   const cfg = Object.assign({}, defauts, o.config);

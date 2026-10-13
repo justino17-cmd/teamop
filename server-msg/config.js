@@ -487,6 +487,30 @@ function transcriptionConfig(cfg, instance) {
   return o;
 }
 
+/* ── LE TRAJET (13 octobre 2026) : l'heure à laquelle partir pour un rendez-vous (`trajet.js`). OUVERT par défaut : le service public de l'IGN ne demande ni clé ni compte. `false` le ferme
+   (la page ne propose plus rien). ⛔ En production, l'adresse est CELLE de l'IGN, rien d'autre : une adresse écrite ici reçoit des adresses de personnes. Un banc la remplace par son faux
+   IGN, sur la boucle locale seulement. ── */
+const TRAJET_BASE = 'https://data.geopf.fr';
+const TRAJET_DEFAUT = { delaiMs: 6000, geocodageParSeconde: 20, itineraireParSeconde: 4, cacheMax: 2000 };
+const RE_TRAJET_LOCAL = /^http:\/\/127\.0\.0\.1:(\d{2,5})$/;
+function trajetConfig(cfg, instance) {
+  const t = cfg.trajet;
+  if (t === false) return null;
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  if (t !== undefined && (t === null || typeof t !== 'object' || Array.isArray(t))) throw err('trajet doit être un objet, ou false pour le fermer');
+  const x = t || {};
+  const base = x.base === undefined ? TRAJET_BASE : String(x.base).replace(/\/$/, '');
+  if (base !== TRAJET_BASE && (instance === 'prod' || !RE_TRAJET_LOCAL.test(base))) throw err('trajet.base doit être ' + TRAJET_BASE + ' (un faux service de banc : http://127.0.0.1:<port>, jamais en production)');
+  const o = { base };
+  const bornes = { delaiMs: [200, 30000], geocodageParSeconde: [1, 40], itineraireParSeconde: [1, 4], cacheMax: [0, 100000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const v = x[k] === undefined ? TRAJET_DEFAUT[k] : x[k];
+    if (!Number.isInteger(v) || v < min || v > max) throw err('trajet.' + k + ' doit être un entier entre ' + min + ' et ' + max);
+    o[k] = v;
+  }
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -531,6 +555,7 @@ function charger(env = process.env) {
     reunions: reunionsConfig(cfg, instance),
     appels: appelsConfig(cfg, instance),
     transcription: transcriptionConfig(cfg, instance),
+    trajet: trajetConfig(cfg, instance),
     courriel: courrielConfig(cfg, instance),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
@@ -550,4 +575,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, trajetConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };

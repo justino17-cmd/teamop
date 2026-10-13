@@ -245,13 +245,22 @@ function fichierEvenement(e, opts) {
   else ev.push('DTSTART:' + enUtc(e.debut), 'DTEND:' + enUtc(e.fin));
   ev.push('SUMMARY:' + texte(e.titre));
   if (e.lieu) ev.push('LOCATION:' + texte(e.lieu));
-  const desc = [rdv && e.avec ? 'Avec : ' + e.avec : '', e.note || '', (rdv ? 'Rendez-vous' : 'Événement') + ' ajouté depuis OP MESSAGES.'].filter(Boolean).join('\n\n');
+  /* le trajet (13 octobre 2026) : la durée et d'où l'on part, dans la description ; et une alarme de plus, à l'heure de PARTIR (le trajet et l'avance voulue avant le début) */
+  const t = rdv && !e.journee && e.trajet && Number.isSafeInteger(e.trajet.minutes) ? e.trajet : null;
+  const dep = t ? t.minutes + (Number.isSafeInteger(t.avance) ? t.avance : 0) : null;
+  const hm = (ms) => { const c = cal.champsLocaux(ms, e.tz); return p2(c.h) + ':' + p2(c.mi); };
+  const trajetTexte = t ? 'Trajet : ' + t.minutes + ' min ' + (t.mode === 'pied' ? 'à pied' : 'en voiture') + (t.depart_label ? ' depuis ' + t.depart_label : '') + ' — partir à ' + hm(e.debut - dep * cal.MIN) +
+    (t.avance ? ' pour arriver à ' + hm(e.debut - t.avance * cal.MIN) : '') + '.' : '';
+  const desc = [rdv && e.avec ? 'Avec : ' + e.avec : '', trajetTexte, e.note || '', (rdv ? 'Rendez-vous' : 'Événement') + ' ajouté depuis OP MESSAGES.'].filter(Boolean).join('\n\n');
   ev.push('DESCRIPTION:' + texte(desc), 'STATUS:CONFIRMED', 'TRANSP:' + (e.journee ? 'TRANSPARENT' : 'OPAQUE'));
   const rappels = (Array.isArray(e.rappels) ? e.rappels : (e.rappel === null || e.rappel === undefined ? [] : [e.rappel])).filter((m) => Number.isSafeInteger(m) && m >= 0 && m <= 1440);
   for (const m of rappels.slice().sort((a, b) => a - b)) {
+    if (dep !== null && m === dep && m !== 1440) continue;                       // le rappel qui tombe à l'heure de partir : l'alarme du départ le porte (une seule sonnerie)
     const declenche = m === 0 ? 'PT0S' : m === 1440 && e.journee ? '-P1D' : declencheur(Math.round((e.debut - cal.echeanceRappel(e.debut, m, e.tz)) / cal.MIN));
     ev.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + texte('Rappel : ' + e.titre), 'TRIGGER:' + declenche, 'END:VALARM');
   }
+  if (dep !== null) ev.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + texte('Il est temps de partir : ' + e.titre + ' (' + t.minutes + ' min ' + (t.mode === 'pied' ? 'à pied' : 'en voiture') + ')'),
+    'TRIGGER:' + declencheur(dep), 'END:VALARM');
   ev.push('END:VEVENT');
   for (const l of ev) lignes.push(l);
   lignes.push('END:VCALENDAR');
