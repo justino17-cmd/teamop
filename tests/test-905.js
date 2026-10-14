@@ -112,6 +112,11 @@ const MATRICE = {
   'agenda.fait':        { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/fait', { fait: true }], codes: [404] },
   'agenda.reporter':    { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/reporter', { dans: 10 }], codes: [404] },
   'agenda.ics':         { ok: () => ['GET', '/api/agenda/e_' + '0'.repeat(32) + '/ics'], codes: [404] },
+  /* le trajet (13 octobre 2026) : S. Le calcul est joué SANS lieu (400 `lieu_vide`, la garde a passé) — jamais chez l'IGN, ni le faux d'un banc (le seau horaire d'une personne n'y est pas
+     touché) ; Domicile et Travail se lisent (200) et se retirent (200, sans calcul). Le calcul lui-même est joué par `test-1005`. */
+  'trajet.calcul':      { ok: () => ['POST', '/api/trajet', { mode: 'voiture', vers: '' }], codes: [400] },
+  'moi.lieux':          { ok: () => ['GET', '/api/moi/lieux'], codes: [200] },
+  'moi.lieux.poser':    { ok: () => ['POST', '/api/moi/lieux', { cle: 'domicile', texte: null }], codes: [200] },
   'mel.inscrire':       { ok: () => ['POST', '/api/mel/inscrire', { courriel: 'quelquun@exemple.invalid', mdp: 'un-mot-de-passe-long', prenom: 'Zoé', conditions: true }], codes: [503] },
   'mel.confirmer':      { ok: () => ['POST', '/api/mel/confirmer', { courriel: 'quelquun@exemple.invalid', code: '000000' }], codes: [503] },
   'mel.connexion':      { ok: () => ['POST', '/api/mel/connexion', { courriel: 'quelquun@exemple.invalid', mdp: 'un-mot-de-passe-long' }], codes: [401] },

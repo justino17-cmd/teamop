@@ -2074,6 +2074,16 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .evt-coche[aria-pressed="true"] .evt-rond, .evt-rond.plein { background: var(--accent); border-color: var(--accent); color: #fff; }
 .evenement-ligne.fait .reunion-titre { text-decoration: line-through; color: var(--sub-meta); }
 .evt-gestes { margin-bottom: 16px; }
+/* LE TRAJET D'UN RENDEZ-VOUS (13 octobre 2026) : l'heure de partir en grand, le détail dessous ; « Il fallait partir » se dit en rouge */
+.evt-tr-res { margin: 0 0 14px; }
+.evt-tr-partir { margin: 0 0 6px; font-size: 22px; line-height: 28px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.evt-tr-partir.retard { color: var(--rouge-txt); }
+.evt-tr-res .info-note:last-child { margin-bottom: 0; }
+.evt-tr-autres { margin: 0 0 10px; }
+.evt-tr-autres .mini { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.evt-tr-gestes { margin: 0 0 18px; }
+/* l'en-tête de l'agenda : « Événement » à gauche, « Réunion » et « Rendez-vous » ensemble à droite (côté Pro, les deux) */
+.entete-actions { display: flex; align-items: center; gap: 16px; }
 /* L'ORDRE DU JOUR (8 octobre 2026) : un point = une ligne cochable, le rond des rappels ; un point traité est barré */
 .odj-point .evt-rond { flex: none; }
 .odj-point.fait .reglage-texte { text-decoration: line-through; color: var(--sub-meta); }
@@ -2168,6 +2178,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   /* les boutons de barre d'outils : du texte (ou une icône) sans cadre, un fond au survol — comme sur le Mac */
   .vue > .entete-vue .lien-texte { min-height: 32px; min-width: 0; padding: 0 12px; border-radius: 8px; font-size: 15px; font-weight: 500; color: var(--text); }
   .vue > .entete-vue .lien-texte:hover { background: var(--field); }
+  .vue > .entete-vue .entete-actions { gap: 4px; }      /* « Réunion » et « Rendez-vous » : le même écart que les autres boutons de la barre */
   .btn-plus { min-height: 32px; min-width: 32px; justify-content: center; border-radius: 8px; }
   .btn-plus:hover { background: var(--field); }
   .btn-plus .pastille { width: 22px; height: 22px; background: transparent; color: var(--text); }

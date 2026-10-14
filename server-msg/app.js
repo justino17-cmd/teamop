@@ -27,6 +27,7 @@ const { cleReseau } = require('./quotas');
 const { installerTelephone, appareilToucherDe, SESSION_TEL_MS } = require('./telephone');
 const { installerCompteCourriel } = require('./compte-courriel');
 const { installerPieces } = require('./routes-pieces');
+const { installerTrajet } = require('./routes-trajet');
 const { installerPush } = require('./routes-push');
 const { installerCompte } = require('./compte');
 const { installerEspaces, ID_ESPACE } = require('./routes-espaces');
@@ -280,6 +281,7 @@ function construireApp(ctx) {
   ctx.compteCourriel = installerCompteCourriel(H, ctx);   // le compte PERSO par adresse e-mail, « comme Discord » (numéro facultatif) — inscriptions fermées par défaut
   installerTelephone(H, ctx);   // le compte PERSO par numéro : ses gestionnaires et la déconnexion qui coupe aussi le jeton d'appareil
   if (ctx.agenda) Object.assign(H, ctx.agenda.handlers);   // l'agenda personnel : des événements à soi, avec un rappel (gratuit)
+  installerTrajet(H, ctx);      // le trajet : l'heure à laquelle partir (le calcul chez l'IGN, par le service), Domicile et Travail
   installerPieces(H, ctx);      // les pièces : déposer, lire, photo de profil, espace utilisé
   installerPush(H, ctx);        // les notifications : abonner, désabonner, essai, acquitter
   installerCompte(H, ctx);      // le compte : exporter ses données, supprimer son compte

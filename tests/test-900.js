@@ -79,6 +79,10 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
          bibliothèque. Le nom d'hôte est une CONSTANTE de ce seul fichier, et la porte de test des bancs (`OPMSG_TEST_STRIPE`) est refusée en production. Tout autre fichier, et tout autre
          hôte dans celui-là, reste interdit. */
       if (nom === 'facturation.js' && m[1] === 'api.stripe.com') continue;
+      /* ⛔ UNE SIXIÈME EXCEPTION, NOMMÉE : `config.js` porte `data.geopf.fr` — la Géoplateforme de l'IGN, le service PUBLIC qui calcule le trajet d'un rendez-vous (13 octobre 2026, `trajet.js`). C'est la
+         SEULE adresse que le trajet accepte : le fichier de configuration ne peut pas la changer, et la porte de test des bancs (`OPMSG_TEST_TRAJET`) est refusée en production. Tout autre fichier, et
+         tout autre hôte dans celui-là, reste interdit. */
+      if (nom === 'config.js' && m[1] === 'data.geopf.fr') continue;
       interdits.push(nom + ' : adresse ' + m[1]);
     }
     /* ⛔ UNE QUATRIÈME EXCEPTION, NOMMÉE ET CHIFFRÉE : `outils/verifier-relais.js` (le contrôle du relais d'appels que lance `install-turn.sh`) porte les adresses de PAIRS que le relais doit REFUSER (un réseau privé, le lien

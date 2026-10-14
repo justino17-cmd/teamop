@@ -19,11 +19,60 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 13 OCTOBRE 2026 — OP MESSAGES : LE TRAJET D'UN RENDEZ-VOUS — « PARTIR À … » (LOT 1 ; LES RÉUNIONS SONT LE LOT 2)
+
+Justin, sur la fiche « Nouveau rendez-vous » : « dans rendez-vous il faudrait pouvoir ajouter une adresse que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit
+partir s'il veut arriver 5 ou 10 minutes avant, et pareil pour pro pour les réunions ou rendez-vous ». Ses réponses : « il accepte de donner sa localisation, on demande s'il part bien de là
+où il est ou ailleurs, et là il met l'adresse de départ, et c'est à nous, l'application, de tout bien calculer » ; « sa position, ou changer : domicile, travail, ou une adresse » ;
+« Réunions + Rendez-vous Pro ». Ce qui est écrit (bêta) — LOT 1, les rendez-vous (Perso ET Pro) :
+· **Le calcul passe par NOTRE service, jamais par la page** (`server-msg/trajet.js`) : il demande au service public de l'IGN (la Géoplateforme, gratuite, sans clé ni compte — géocodage
+  et itinéraire, voiture ou à pied, France, sans le trafic ; contrat vérifié sur le vrai service le 13 octobre : durée en minutes, distance en km, réponse « chunked », un point dans la
+  mer recollé à la pointe du Finistère). ⛔ Ne part chez l'IGN que le texte d'une adresse tel qu'il est tapé et des points ARRONDIS à 4 décimales — jamais un nom ni un identifiant ;
+  le journal ne dit que des issues (`echec`, `occupe`, `hors_reseau`, `invraisemblable`, `trop_lourd`). ⛔ Un point « recollé » à plus de 3 km est refusé, une vitesse qui n'est ni
+  d'une voiture ni d'un piéton aussi. Seaux sous les plafonds de l'IGN (une rafale attend son tour, deux secondes au plus), mémoire 24 h / 6 h PAR PERSONNE. Ouvert par défaut ;
+  `trajet: false` le ferme ; l'adresse de l'IGN et rien d'autre (`trajetConfig`) — un banc pose son faux IGN par la porte de test `OPMSG_TEST_TRAJET` (bêta seulement).
+· **Routes** : `POST /api/trajet` (depuis ma position, Domicile, Travail ou une adresse ; 30 par heure et par personne, deux en cours au plus), `GET/POST /api/moi/lieux`.
+  ⛔ « Ma position » n'est rangée NULLE PART ; Domicile et Travail sont SCELLÉS (`lieu_perso`, migration 28) et la page ne reçoit jamais leur point. Export et effacement du compte.
+· **Le rendez-vous** range son trajet (`evenement.trajet_ch`, scellé) : le départ est une échéance de plus — « Il est temps de partir · 25 min en voiture, arrivée 13:50 » ; un rappel
+  qui tombe à la même minute ne sonne qu'une fois ; en retard (le service arrêté), « Il fallait partir à… — en partant maintenant, arrivée vers… ». ⛔ Un lieu qui change sans trajet
+  neuf emporte l'ancien. Le .ics porte le trajet dans la description et une alarme au départ.
+· **La page** : la fiche d'un rendez-vous porte « Trajet » (je pars de · voiture ou à pied · arriver à l'heure, 5, 10 ou 15 min avant · « Calculer l'heure de départ ») ;
+  « Partir à HH:MM », la durée, d'où, vers où, « Plutôt : … » quand l'adresse est ambiguë ; le trajet affiché est celui qui s'enregistre (changer le lieu, le départ ou le mode le
+  retire et le recalcule) ; la ligne de l'agenda dit « Partir à » ; Profil › Mes lieux ; ⛔ côté Pro, l'en-tête propose « Réunion » ET « Rendez-vous ».
+· **Relu par `gardien`** (aucun bloquant). Corrigé : ⛔ la mémoire du calcul était PARTAGÉE (une réponse immédiate disait qu'un autre venait de demander la même adresse — le domicile
+  d'un collègue se devinait) → une mémoire par personne ; ⛔ une réponse de l'IGN était lue EN ENTIER avant d'être jugée trop lourde → lue en comptant, coupée au premier Mo (annoncé
+  ou lu) ; ⛔ un Domicile retiré ou remplacé revenait avec une sauvegarde d'avant → noté au registre des purges (genre `lieu`, rejoué hors ligne) ; ⛔ une exception de la base dans
+  une route asynchrone ARRÊTAIT le service (`unhandledRejection` → sortie) → chaque route est enveloppée (500) ; deux calculs en cours au plus par personne (`trajet_en_cours`) et
+  un « occupé » rend son essai au plafond ; le trajet scellé porte l'empreinte de son lieu (un lieu changé par le code d'avant ne garde pas un « partir à » faux) ; `lieuPoser`
+  n'écrit rien pour un compte effacé ; les libellés perdent leurs invisibles ; la base locale d'un banc ne passe plus par le fichier de configuration.
+  ⚠️ Pris avant la fusion, et la leçon vaut pour tout défaut de `outils-msg.js` : le premier défaut de banc (`trajet: { base: 'http://127.0.0.1:10' }`) empêchait toute instance de
+  PRODUCTION des bancs de démarrer (test-903 tombait : « trajet.base doit être … ») — un défaut de banc s'applique aux deux instances ; en production, les bancs ferment le trajet.
+· Politique de confidentialité et registre des traitements : ce qui part chez l'IGN (le lieu tel qu'il est écrit, Domicile et Travail situés par l'IGN), ce qui est gardé ; la
+  localisation « ni stockée ni partagée » est dite pour OP GESTION. ⚠️ À faire relire par le juriste avec le reste (l'IGN est inscrit comme sous-traitant ultérieur).
+⚠️ **Limite connue** : le seau de 4 itinéraires par seconde est celui de TOUT le service (l'IGN borne l'adresse IP à 5) — à la bêta, sans effet ; le jour où beaucoup de personnes
+calculent à la même seconde, des « occupé » (la page réessaie une fois). La sortie, ce jour-là : un service d'itinéraire hébergé chez nous (OSRM sur la BD TOPO), pas un second compte.
+Preuves : `test-1005` (168 ✓) entre dans la porte. Il joue le module seul : un `fetch` qui rend de vraies réponses, dont un flux sans fin coupé au dix-septième
+morceau. Puis les routes seules : une base qui jette, le plafond en cours, le remboursement. Puis la configuration (la porte de test), et enfin le vrai service contre un faux IGN —
+aucun banc ne sort sur Internet. Sonde `sonde-opmessages-trajet.js` (69 ✓) : iPhone et bureau de nuit, une position de navigateur, « un autre onglet calcule », un libellé piégé de
+l'IGN qui s'affiche en texte. La sonde des rendez-vous (33 ✓) est rendue déterministe : le rappel d'une heure se joue au geste (« onze minutes » tombait un passage sur deux).
+Bancs voisins : test-903 (132), 914 (69), 950 (522), 957 (151), 905 (1 186), 906 (49), 900 (39). Porte des bancs messages : 97 suites, 9 889 vérifications (test-971 tombe en
+local, fuseaux de la machine) — plancher 9875 ; test-856 (175 ✓) et test-857 (538 ✓). Mutations : 75 sur 75 attrapées. 58 au service : la mémoire partagée entre personnes,
+la lecture non bornée, la place « en cours » non rendue, le remboursement, le rejeu de la purge, l'empreinte du lieu, la porte de test en production… 17 à la page, par la sonde,
+dont le libellé piégé et « déjà en cours ». Une mutation mal visée, neutralisée par l'autre garde de la configuration, a été réécrite et n'est pas comptée.
+⚠️ Deux leçons de méthode :
+(1) Un banc qui attend une promesse qu'une mutation laisse en suspens sort en 0 SANS total (Node n'a plus rien à faire). La porte de la CI le compte « interrompu » ; un lanceur
+de mutations qui ne lit que le code de sortie le compte « survit ». Toute attente qu'une mutation peut suspendre se BORNE.
+(2) Une étape de sonde qui change un état le rend. « Un autre onglet » laissait la voiture, et six contrôles plus loin tombaient. La sonde se rejoue SANS mutation avant toute
+mutation, sinon tout paraît « attrapé ».
+**Lot 2 (#98, pas commencé)** : le trajet pour les RÉUNIONS — chaque invité le sien (rangé sur `reunion_invite`, scellé par personne), son rappel de départ par occurrence. À proposer
+à Justin, pas fait : une entrée « Réunions » dans la barre du côté Pro.
+
 # 🟡 13 OCTOBRE 2026 — OP MESSAGES : CÔTÉ PERSO, « RENDEZ-VOUS » À LA PLACE DE « RÉUNION »
 
 Justin, capture de l'Agenda Perso à l'appui : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des
 rappels et tout » ; puis, sur ce qu'un rendez-vous doit savoir faire : « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ». Ce qui est écrit (bêta) :
-· **L'en-tête de l'Agenda** : côté Perso (ou un compte sans Pro), « Événement » et « Rendez-vous » ; côté Pro, « Événement » et « Réunion », comme avant (`peindreBoutonsAgenda`).
+· **L'en-tête de l'Agenda** : côté Perso (ou un compte sans Pro), « Événement » et « Rendez-vous » ; côté Pro, « Événement » et « Réunion », comme avant (`peindreBoutonsAgenda`) —
+  et, depuis le trajet (le même jour, entrée ci-dessus : « pareil pour pro »), « Rendez-vous » côté Pro aussi.
   Sur la bêta tout le monde a les deux côtés (`toutOuvert`) : « Réunion » ne paraît donc que côté Pro. Une personne Perso apprend toujours que les réunions sont à Pro par
   « Nouvelle discussion › Programmer une réunion » et par « Réunion » sur la fiche d'un contact (gardés tels quels).
 · **Le rendez-vous** est un événement de l'agenda PERSONNEL (migration 27, `routes-agenda.js`) : une heure toujours, « Avec » (scellé en base), le lieu, la note, et jusqu'à

@@ -59,6 +59,9 @@ async function lancerService(opts = {}) {
     quotas: { ip: { max: 100000, fenetreMs: 60000 }, ecriture: { max: 100000, fenetreMs: 60000 }, beta_ip: { max: 100000, fenetreMs: 900000 }, beta_login: { max: 100000, fenetreMs: 900000 }, lien_ip: { max: 100000, fenetreMs: 60000 }, msg: { max: 100000, fenetreMs: 60000 }, groupe: { max: 100000, fenetreMs: 3600000 }, lien: { max: 100000, fenetreMs: 3600000 }, moi_maj: { max: 100000, fenetreMs: 3600000 } },
     beta: { urlGestion: o.urlGestion || 'http://127.0.0.1:1', relectureMs: 3600000, timeoutMs: 2000 },
     pulsationMs: 20000, presenceGraceMs: 400, balayageMs: 3600000, disqueMinMo: 0,
+    /* ⛔ le trajet calcule chez l'IGN (13 octobre 2026) : un banc ne sort JAMAIS sur Internet — en bêta, la porte de test vise un port local fermé (le calcul se dit indisponible) et un
+       banc du trajet y pose son faux IGN (`env: { OPMSG_TEST_TRAJET }`) ; en production, la porte est refusée : le trajet y est FERMÉ, sauf banc qui le règle lui-même */
+    ...(o.instance === 'prod' ? { trajet: false } : {}),
   };
   /* Fusion à UN niveau : quotas, beta et cookie se complètent, ils ne se remplacent pas. */
   const cfg = Object.assign({}, defauts, o.config);
@@ -68,7 +71,7 @@ async function lancerService(opts = {}) {
   const env = Object.assign({}, process.env, {
     OPMSG_CONFIG: cfgPath, OPMSG_DATA: data, OPMSG_INSTANCE: o.instance, PORT: String(port),
     CREDENTIALS_DIRECTORY: cred, OPMSG_SHA: 'banc0000',
-  }, o.env);
+  }, o.instance === 'beta' ? { OPMSG_TEST_TRAJET: '127.0.0.1:10' } : {}, o.env);
   /* Une horloge décalable (voir `lib-horloge-msg.js`) : le banc avance les DATES du processus. */
   let decalage = o.decalageInitial || 0; const fichierDecalage = path.join(racine, 'decalage-horloge');   // `decalageInitial` : un REDÉMARRAGE reprend l'horloge là où le processus d'avant l'avait laissée
   if (o.horloge) {

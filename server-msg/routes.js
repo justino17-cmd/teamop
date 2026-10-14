@@ -208,6 +208,8 @@ function creerHandlers(ctx) {
     appels: { relais: !!(ctx.appels && ctx.appels.relais()), sonnerie_s: Math.round(config.appels.sonnerieMs / 1000) },
     /* la transcription des vocaux : installée ou non (un booléen — jamais l'adresse de l'ouvrier, son secret ni son modèle), et la durée au-delà de laquelle un vocal ne se transcrit pas */
     transcription: { ouverte: !!(ctx.transcription && ctx.transcription.configure), duree_max_s: ctx.transcription && ctx.transcription.configure ? ctx.transcription.dureeMaxS() : 0 },
+    /* le trajet (13 octobre 2026) : le calcul de l'heure de départ est-il ouvert ? (un booléen — jamais l'adresse du service qui calcule) */
+    trajet: { ouvert: !!(ctx.trajet && ctx.trajet.ouvert()) },
   });
 
   H['beta.entrer'] = async (req, res) => {

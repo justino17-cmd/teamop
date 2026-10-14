@@ -3173,7 +3173,31 @@
       cote: x.cote === 'perso' || x.cote === 'pro' ? x.cote : null,      // son côté (Perso / Pro), ou null : la page le déduit (sa conversation d'origine, sinon Perso)
       /* le rendez-vous (13 octobre 2026) : son genre, « avec qui », et la LISTE de ses rappels (un service d'avant n'en rend qu'un : la liste se lit dans `rappel`) */
       genre: x.genre === 'rdv' ? 'rdv' : 'evenement', avec: String(x.avec || ''),
-      rappels: Array.isArray(x.rappels) ? x.rappels.filter(m => Number.isInteger(m) && m >= 0).slice(0, 3) : (Number.isInteger(x.rappel) ? [x.rappel] : []) });
+      rappels: Array.isArray(x.rappels) ? x.rappels.filter(m => Number.isInteger(m) && m >= 0).slice(0, 3) : (Number.isInteger(x.rappel) ? [x.rappel] : []),
+      /* le trajet d'un rendez-vous (13 octobre 2026) : ce que le service a RANGÉ (la durée calculée, le mode, l'avance voulue, d'où l'on part, le lieu trouvé) — ou null */
+      trajet: vueTrajet(x.trajet) });
+    const vueTrajet = (t) => t && Number.isInteger(t.minutes) && t.minutes > 0 && t.minutes <= 1440 ? { minutes: t.minutes, km: Number.isFinite(t.km) && t.km >= 0 ? t.km : 0,
+      mode: t.mode === 'pied' ? 'pied' : 'voiture', avance: [0, 5, 10, 15].includes(t.avance) ? t.avance : 0,
+      depart: ['position', 'domicile', 'travail', 'adresse'].includes(t.depart) ? t.depart : 'adresse', depart_label: String(t.depart_label || '').slice(0, 200), vers_label: String(t.vers_label || '').slice(0, 200) } : null;
+    /* ── le trajet : le SERVICE calcule (chez l'IGN) ; la page ne parle à aucun tiers. Domicile et Travail : leur adresse trouvée, jamais leur point (la page n'en a pas besoin) ── */
+    let trajetCfg = null;
+    async function trajetOuvert() {
+      if (trajetCfg !== null) return trajetCfg;
+      try { const k = await A.config(); trajetCfg = !!(k && k.trajet && k.trajet.ouvert === true); } catch (e) { return false; }   // pas pu savoir : rien n'est proposé (et on relira)
+      return trajetCfg;
+    }
+    const vueLieux = (l) => ({ domicile: l && l.domicile && typeof l.domicile.label === 'string' ? { label: l.domicile.label.slice(0, 200) } : null, travail: l && l.travail && typeof l.travail.label === 'string' ? { label: l.travail.label.slice(0, 200) } : null });
+    const autresDe = (r) => Array.isArray(r && r.autres) ? r.autres.filter(x => typeof x === 'string' && x).slice(0, 3).map(x => x.slice(0, 200)) : [];
+    /* `depuis` : { type: 'position', lon, lat } | { type: 'domicile' } | { type: 'travail' } | { type: 'adresse', texte } — la position du moment part avec la demande, et nulle part ailleurs */
+    async function calculerTrajet({ vers, depuis, mode }) {
+      const r = await A.calculerTrajet({ vers, depuis, mode });
+      if (!r || !Number.isInteger(r.minutes) || r.minutes < 1) throw Object.assign(new Error('Le service a répondu quelque chose d\'inattendu. Réessaie.'), { dit: true });
+      return { minutes: r.minutes, km: Number.isFinite(r.km) ? r.km : 0, mode: r.mode === 'pied' ? 'pied' : 'voiture', vers: String(r.vers && r.vers.label || '').slice(0, 200),
+        depuis: { type: String(r.depuis && r.depuis.type || ''), label: String(r.depuis && r.depuis.label || '').slice(0, 200) }, autres: autresDe(r) };
+    }
+    async function lieux() { return vueLieux(await A.lieux()); }
+    /* `texte` : l'adresse (le service la cherche et range la première trouvée), ou null pour retirer */
+    async function poserLieu(cle, texte) { const r = await A.poserLieu(cle, texte); return { lieux: vueLieux(r && r.lieux), autres: autresDe(r) }; }
     async function evenements(du, au) { return (await A.agenda(du, au) || []).map(vueEvenement); }
     async function creerEvenement(champs) { return vueEvenement(await A.creerEvenement(champs)); }
     async function majEvenement(id, champs) { return vueEvenement(await A.majEvenement(id, champs)); }
@@ -3851,10 +3875,10 @@
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, rendezVous: true, texteMax: 8000 },
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, rendezVous: true, trajet: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
-      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement, adresseIcsEvenement,
+      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement, adresseIcsEvenement, trajetOuvert, calculerTrajet, lieux, poserLieu,
       messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */

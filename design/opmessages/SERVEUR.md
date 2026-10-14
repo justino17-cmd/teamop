@@ -905,7 +905,7 @@ Trois constats, pour Justin :
 - **Ce que cette étape ne fait PAS** (étape 8) : aucun « Rejoindre », aucune salle « En réunion », aucun lien d'invité, aucun appel. Un invité sans compte reçoit le fichier .ics par courriel, rien de plus.
 - ✅ **LE RENDEZ-VOUS PERSONNEL (13 octobre 2026)** — Justin : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des
   rappels et tout », puis « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ». Côté Perso, l'en-tête de l'Agenda propose « Rendez-vous » à la place de « Réunion » (qui reste celui du
-  côté Pro). Un rendez-vous est un événement de l'agenda PERSONNEL (`routes-agenda.js`, la table `evenement`, migration 27), rien d'une réunion :
+  côté Pro — où « Rendez-vous » s'ajoute depuis le trajet, plus bas). Un rendez-vous est un événement de l'agenda PERSONNEL (`routes-agenda.js`, la table `evenement`, migration 27), rien d'une réunion :
   · `genre` 'rdv' (choisi à la création, il ne change pas), une heure TOUJOURS (jamais « toute la journée »), `avec` (« avec qui », 120 signes, scellé en base comme le titre ; refusé sur un
     événement) ;
   · jusqu'à TROIS rappels (`rappels`, parmi à l'heure, 5, 15, 30 min, 1 h, la veille ; la page coche la veille et 1 h avant), pour tout événement : ils partent DANS L'ORDRE, chacun une fois —
@@ -918,6 +918,36 @@ Trois constats, pour Justin :
     « fait » ne réarme pas son rappel ; ⛔ une échéance d'avant la dernière RESTAURATION (`rappels_depuis`) est tenue pour traitée, comme celles des réunions — on passe au rappel suivant
     sans rien envoyer ; la création s'écrit dans une transaction ;
   · l'export des données porte `genre`, `avec` et `rappels_minutes_avant`. Bancs : `test-1004` (le vrai service), sonde `sonde-opmessages-rendez-vous.js` (la vraie page, au doigt et au bureau).
+- ✅ **LE TRAJET D'UN RENDEZ-VOUS — L'HEURE À LAQUELLE PARTIR (13 octobre 2026, lot 1 ; les réunions sont le lot 2)** — Justin : « que ça calcule le temps de trajet pour dire à la personne à
+  quelle heure il doit partir s'il veut arriver 5 ou 10 minutes avant », « c'est à nous, l'application, de tout bien calculer », départ = « sa position, ou domicile, travail, ou une adresse » ;
+  côté Pro aussi (« Réunions + Rendez-vous Pro ») : l'en-tête de l'Agenda Pro propose « Réunion » ET « Rendez-vous ».
+  · ⛔ **le SERVICE calcule, jamais la page** (`trajet.js`) : la Géoplateforme de l'IGN (géocodage `/geocodage/search`, itinéraire `/navigation/itineraire`, ressource `bdtopo-osrm`, voiture ou
+    à pied ; gratuite, sans clé, France, sans trafic). Ne part que le texte d'une adresse TEL QU'IL EST TAPÉ (le lieu, un départ, Domicile ou Travail) et des points ARRONDIS à 4 décimales ;
+    un point « recollé » à plus de `RECOLLE_MAX_M` (3 km) est refusé (`trajet_impossible`), une vitesse qui n'est ni d'une voiture (1–200 km/h) ni d'un piéton (0,5–10 km/h) au-delà d'un km
+    aussi (`trajet_indisponible`) ; seaux sous les plafonds de l'IGN par adresse IP (géocodage 20/s, itinéraire 4/s ; une demande attend son tour 2 s au plus, puis 503 `trajet_occupe`) ;
+    ⛔ mémoire en RAM PAR PERSONNE (24 h pour une adresse, 6 h pour un trajet ; partagée, une réponse immédiate dirait qu'un autre vient de demander la même adresse), une même question de la
+    même personne ne part qu'une fois ; ⛔ réponse lue EN COMPTANT (1 Mo au plus, annoncé ou lu : la lecture s'arrête et la demande est coupée), délai 6 s ; le journal ne reçoit que des issues
+    (`echec`, `occupe`, `hors_reseau`, `invraisemblable`, `trop_lourd`) ;
+  · `trajetConfig` : ouvert par défaut ; `trajet: false` ferme tout (la page ne propose plus rien) ; ⛔ la base est `https://data.geopf.fr` et rien d'autre — le fichier ne peut pas la changer ;
+    la PORTE DE TEST `OPMSG_TEST_TRAJET=127.0.0.1:<port>` (environnement, bêta seulement, refusée en production même trajet fermé) y met le faux IGN des bancs (`tests/outils-trajet.js` —
+    aucun banc ne sort sur Internet : `outils-msg.js` vise par défaut un port fermé en bêta, et ferme le trajet en production) ;
+  · **routes** (garde S) : `POST /api/trajet` `{ vers, depuis: {type:'position',lon,lat} | {type:'domicile'} | {type:'travail'} | {type:'adresse',texte}, mode }` → `{ minutes, km, mode, vers:{label},
+    depuis:{type,label}, autres }` (30 par heure et par personne ; ⛔ ne compte que ce qui a abouti ou atteint l'IGN — un refus de forme, un « occupé », un trajet fermé rendent leur essai ;
+    deux calculs EN COURS au plus par personne, sinon 429 `trajet_en_cours`) ; `GET /api/moi/lieux`, `POST /api/moi/lieux` `{ cle, texte|null }` (Domicile, Travail). ⛔ Chaque gestionnaire
+    est enveloppé : une exception rend 500 `erreur_interne` (sur ce service, un rejet que personne ne rattrape arrête le processus) ;
+  · **migration 28** : `evenement.trajet_ch` (scellé, AAD `id|trajet`) et la table `lieu_perso` (scellée, AAD `uid|cle` : l'adresse ET son point — la page ne reçoit jamais le point) ;
+    ⛔ la position du moment n'est rangée nulle part ; l'export de ses données porte le `trajet` de chaque événement et ses `lieux` AVEC leur point (ce sont les siennes — la page, elle, ne voit
+    que le libellé) ; effacement du compte, sauvegarde (`lieu_perso` dans les trois listes de comptage) ; ⛔ un lieu RETIRÉ ou REMPLACÉ est noté au registre des purges (genre `lieu`, objet
+    `personne|clé|instant`, rejoué hors ligne : la ligne plus ancienne part — un domicile retiré ne revient pas d'une sauvegarde) ; `lieuPoser` n'écrit rien pour un compte qui n'est plus actif ;
+  · **l'agenda** : `trajet` `{ minutes, km, mode, avance (0/5/10/15), depart, depart_label, vers_label }` — un rendez-vous seulement, et seulement avec un lieu ; le service ne recalcule rien à
+    l'enregistrement (un rendez-vous s'enregistre même quand l'IGN ne répond pas). Le départ (début − trajet − avance) est une échéance de plus de la chaîne des rappels : « Il est temps de
+    partir · 25 min en voiture, arrivée 13:50 » — ⛔ en retard de plus de deux minutes (le service arrêté), « Il fallait partir à 13:25 · 25 min en voiture — en partant maintenant, arrivée
+    vers 14:02 » ; un rappel à la même minute ne sonne qu'une fois. ⛔ Un lieu qui CHANGE sans trajet neuf emporte l'ancien (la page d'avant renvoie le lieu corrigé sans le trajet) — et le
+    trajet scellé porte l'empreinte de son lieu (`pour_lieu`, qui ne sort jamais) : un lieu changé par un autre chemin (le code d'avant) rend un trajet qui ne compte plus ; fait / décoché /
+    reporté / déplacé : le départ suit ;
+  · **le .ics** : le trajet dans la description (« Trajet : 25 min en voiture depuis Domicile — partir à 13:10 pour arriver à 13:50. ») et une alarme au départ (`VALARM`, le rappel de la même
+    minute n'est pas répété). Bancs : `test-1005` (le module seul, la configuration, puis le vrai service contre un faux IGN), sonde `sonde-opmessages-trajet.js` (la vraie page, une position
+    de navigateur, au doigt et au bureau de nuit).
 
 ### Étape 7 : appels un à un, audio et vidéo
 

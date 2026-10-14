@@ -6,7 +6,7 @@
      3. enregistré, il paraît dans la journée : « Rendez-vous avec … », le lieu, ses rappels ; sa fiche porte « Ajouter à mon calendrier », un VRAI fichier .ics (ses rappels en VALARM) ;
      4. modifié (un rappel décoché), le service retient la nouvelle liste ;
      5. le rappel arrive dans la page et dit avec qui ;
-     6. au bureau, de nuit : le lien du calendrier TÉLÉCHARGE le fichier ; côté Pro, l'en-tête redevient « Réunion », et « Rendez-vous » s'en va.
+     6. au bureau, de nuit : le lien du calendrier TÉLÉCHARGE le fichier ; côté Pro, l'en-tête propose « Réunion » ET « Rendez-vous » (le trajet, 13 octobre 2026 : « pareil pour pro »).
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.
    Lancer :   node tests/sonde-opmessages-rendez-vous.js          CAPTURES=/dossier pour les images.
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
@@ -120,7 +120,9 @@ const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean)
     await toucher(A, '[data-evt="enregistrer"]');
     vrai('population : « Garage QXV » est enregistré (dans 70 minutes, ses rappels par défaut : la veille — déjà passée — et 1 h avant)', await attendre(A, () => /Rendez-vous ajouté/.test(document.getElementById('mot').textContent)));
     v('   le service : 1 h avant attend', (await agendaAlice()).filter(e => e.titre === 'Garage QXV').map(e => [e.rappels, e.rappelEnAttente]), [[[1440, 60], true]]);
-    svc.avancer(11 * 60000);
+    /* ⛔ AU GESTE, jamais au chronomètre : le service avance jusqu'à 59 minutes PILE avant le début. « Onze minutes » laissait au hasard de la seconde (le début est arrondi à la minute
+       au-dessus) un reste de 59,5 min ou plus, que le rappel arrondit à 60 et dit « Aujourd'hui à HH:MM » — un passage sur deux, mesuré le 13 octobre 2026 (59,087 min : vert ; 59,947 : rouge) */
+    svc.avancer(debut - Date.now() - 59 * 60000);
     vrai('le service avance de onze minutes : la bannière arrive (« Garage QXV — Dans 59 minutes · avec M. Blanc »)', await attendre(A, () => { const n = document.getElementById('notif'); return n.classList.contains('on') && /Garage QXV/.test(n.textContent) && /Dans (5[7-9]|60) minutes · avec M\. Blanc/.test(n.textContent); }, null, 12000),
       await A.page.evaluate(() => document.getElementById('notif').textContent));
     await capture(A, 'rdv-3-rappel-iphone');
@@ -142,10 +144,11 @@ const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean)
     await attendre(B, () => !document.documentElement.classList.contains('feuille-ouverte'));
     vrai('population : le sélecteur Perso | Pro de la barre latérale est là', await attendre(B, () => Array.from(document.querySelectorAll('.cote-seg-side [data-cote="pro"]')).some(x => x.getClientRects().length)));
     await toucher(B, '.cote-seg-side [data-cote="pro"]');
-    vrai('côté Pro : l\'en-tête propose « Réunion », « Rendez-vous » s\'en va', await attendre(B, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && !vu('btn-rdv-nouveau') && !!document.getElementById('btn-rdv-nouveau'); }));
+    /* ⛔ côté Pro, « Réunion » ET « Rendez-vous » (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») */
+    vrai('côté Pro : l\'en-tête propose « Réunion » ET « Rendez-vous »', await attendre(B, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && vu('btn-rdv-nouveau'); }));
     await capture(B, 'rdv-5-pro-bureau-nuit');
     await toucher(B, '.cote-seg-side [data-cote="perso"]');
-    vrai('de retour côté Perso : « Rendez-vous » revient', await attendre(B, () => { const x = document.getElementById('btn-rdv-nouveau'); return document.documentElement.dataset.cote === 'perso' && !!x && !x.hidden && document.getElementById('btn-reunion-nouvelle').hidden; }));
+    vrai('de retour côté Perso : « Rendez-vous » seul (« Réunion » se cache)', await attendre(B, () => { const x = document.getElementById('btn-rdv-nouveau'); return document.documentElement.dataset.cote === 'perso' && !!x && !x.hidden && document.getElementById('btn-reunion-nouvelle').hidden; }));
 
     v('aucune erreur JavaScript', [A.erreurs, B.erreurs], [[], []]);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }

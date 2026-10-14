@@ -104,6 +104,10 @@ const MANIFESTE = [
   { id: 'agenda.fait',       m: 'POST', p: '/api/agenda/:id/fait',                   garde: 'S' },
   { id: 'agenda.reporter',   m: 'POST', p: '/api/agenda/:id/reporter',               garde: 'S' },
   { id: 'agenda.ics',        m: 'GET',  p: '/api/agenda/:id/ics',                    garde: 'S' },
+  /* LE TRAJET (13 octobre 2026, `routes-trajet.js`) : l'heure à laquelle partir. Le calcul passe par le service — la page ne parle à aucun tiers ; Domicile et Travail sont à SOI (S). */
+  { id: 'trajet.calcul',     m: 'POST', p: '/api/trajet',                            garde: 'S' },
+  { id: 'moi.lieux',         m: 'GET',  p: '/api/moi/lieux',                         garde: 'S' },
+  { id: 'moi.lieux.poser',   m: 'POST', p: '/api/moi/lieux',                         garde: 'S' },
   { id: 'mel.inscrire',      m: 'POST', p: '/api/mel/inscrire',                      garde: 'P' },
   { id: 'mel.confirmer',     m: 'POST', p: '/api/mel/confirmer',                     garde: 'P' },
   { id: 'mel.connexion',     m: 'POST', p: '/api/mel/connexion',                     garde: 'P' },

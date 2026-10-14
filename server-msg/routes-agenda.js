@@ -16,6 +16,9 @@
  *    un événement de `genre` 'rdv' : il a TOUJOURS une heure (jamais « toute la journée »), un « avec qui » (`avec`, facultatif, scellé comme le titre) et, comme tout événement, une LISTE de
  *    rappels (`rappels` : trois au plus, parmi ceux de `RAPPELS`). Le genre se choisit à la création et ne change pas. `rappel` (un seul) reste accepté — la page d'avant l'envoie.
  *    Chaque rappel part une fois, dans l'ordre : quand l'un part, l'échéance passe au SUIVANT (`prochaine`), calculée ici, jamais par la page.
+ * ⛔ LE TRAJET D'UN RENDEZ-VOUS (13 octobre 2026 : « à quelle heure il doit partir s'il veut arriver 5 ou 10 minutes avant ») : `trajet` (`trajet.js`, calculé par `POST /api/trajet`, rangé scellé)
+ *    ajoute UNE échéance à la liste — l'heure de partir (le début, moins le trajet, moins l'avance voulue) — et son rappel dit « Il est temps de partir ». Le service ne recalcule rien à
+ *    l'enregistrement : la durée est celle que la personne a fait calculer, et un rendez-vous s'enregistre même quand le calcul est indisponible.
  *
  * ⛔ UN RAPPEL QUI VIENT D'UN MESSAGE (« Me le rappeler », 8 octobre 2026 : « voir le message ») garde un POINTEUR (`source` : {conv, seq}), posé à la création seulement et à une
  *    condition : la personne est membre de la conversation et le message y existe. Lire le message redemande d'en être membre : le pointeur ne donne rien d'autre que le chemin.
@@ -31,6 +34,7 @@
 'use strict';
 const cal = require('./calendrier');
 const ics = require('./ics');
+const { validerTrajet, avantDepart } = require('./trajet');
 
 const JOUR = 86400000, MIN = 60000;
 const FENETRE_MAX = 92 * JOUR, LISTE_MAX = 500, EVENEMENTS_MAX = 2000;
@@ -52,10 +56,12 @@ function echeance(debut, rappel, tz, maintenant) {
   const e = rappel === 0 ? debut : cal.echeanceRappel(debut, rappel, tz);
   return e > maintenant ? e : null;
 }
-/* La PROCHAINE échéance d'une liste de rappels : la plus proche qui n'est pas passée (null s'il n'y en a plus). Un rappel qui vient de partir est passé : c'est le suivant qui vient. */
-function prochaine(debut, rappels, tz, maintenant) {
+/* La PROCHAINE échéance d'une liste de rappels : la plus proche qui n'est pas passée (null s'il n'y en a plus). Un rappel qui vient de partir est passé : c'est le suivant qui vient.
+   `depart` : les minutes avant le début où il faut PARTIR (le trajet et l'avance — `avantDepart`), une échéance de plus ; null sans trajet. */
+function prochaine(debut, rappels, tz, maintenant, depart) {
   let p = null;
   for (const m of rappels || []) { const e = echeance(debut, m, tz, maintenant); if (e !== null && (p === null || e < p)) p = e; }
+  if (Number.isSafeInteger(depart) && depart > 0) { const e = debut - depart * MIN; if (e > maintenant && (p === null || e < p)) p = e; }
   return p;
 }
 
@@ -131,6 +137,18 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       v.avec = x;
     } else v.avec = base ? base.avec : '';
     if (v.genre !== 'rdv' && v.avec) return { erreur: 'champ_invalide' };           // « avec qui » est celui d'un rendez-vous : un événement n'en a pas
+    /* le trajet : celui d'un rendez-vous seulement (un rendez-vous a toujours une heure) ; null le retire, absent le garde */
+    if (present('trajet')) {
+      if (b.trajet !== null && v.genre !== 'rdv') return { erreur: 'champ_invalide' };
+      const t = validerTrajet(b.trajet);
+      if (t.erreur) return { erreur: t.erreur };
+      v.trajet = t.trajet;
+    } else v.trajet = base ? (base.trajet || null) : null;
+    /* ⛔ un trajet va VERS le lieu du rendez-vous : sans lieu, il n'en a pas (refusé s'il arrive, retiré s'il restait) ; et un lieu qui CHANGE sans trajet neuf emporte l'ancien — il menait
+       ailleurs (la page d'avant, qui ne connaît pas le trajet, renvoie le lieu corrigé : « Il est temps de partir » compterait le trajet d'une autre adresse) */
+    if (v.trajet && !v.lieu) { if (present('trajet')) return { erreur: 'trajet_invalide' }; v.trajet = null; }
+    if (base && base.trajet && !present('trajet') && present('lieu') && v.lieu !== base.lieu) v.trajet = null;
+    const trajetChange = present('trajet') || !!(base && base.trajet && !v.trajet);
     /* les rappels : une LISTE (trois au plus, sans doublon, parmi `RAPPELS`), rangée la plus éloignée d'abord ; ou le rappel seul de la page d'avant. Les deux à la fois : refusé. */
     if (present('rappels') && present('rappel')) return { erreur: 'champ_invalide' };
     if (present('rappels')) {
@@ -149,7 +167,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       if (b.cote !== null && b.cote !== 'perso' && b.cote !== 'pro') return { erreur: 'champ_invalide' };
       v.cote = b.cote;
     }
-    return { champs: v, horaire };
+    return { champs: v, horaire, trajetChange };
   }
 
   const H = {};
@@ -174,7 +192,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       source = { conv: sb.conv, seq: sb.seq };
     }
     const e = stockage.evenementCreer({ uid: req.moi.id, titre: c.titre, lieu: c.lieu, note: c.note, debut: c.debut, fin: c.fin, journee: c.journee, tz: c.tz, rappel: c.rappel,
-      rappelA: prochaine(c.debut, c.rappels, c.tz, horloge()), source, cote: c.cote === undefined ? null : c.cote, genre: c.genre, avec: c.avec, rappels: c.rappels });
+      rappelA: prochaine(c.debut, c.rappels, c.tz, horloge(), avantDepart(c.trajet)), source, cote: c.cote === undefined ? null : c.cote, genre: c.genre, avec: c.avec, rappels: c.rappels, trajet: c.trajet });
     res.status(201).json({ evenement: e });
   };
   H['agenda.maj'] = (req, res) => {
@@ -188,9 +206,10 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     const c = r.champs;
     /* le rappel se recalcule quand l'horaire ou le rappel changent ; sinon il garde son état (déjà parti : il ne repart pas). ⛔ Coché « fait », il ne se réarme pas : corriger la note
        d'un rendez-vous fait ne le fait pas sonner (le décocher ou le reporter le fait). */
-    const recalcul = !base.fait && (r.horaire || corps(req).rappel !== undefined || corps(req).rappels !== undefined);
+    const recalcul = !base.fait && (r.horaire || corps(req).rappel !== undefined || corps(req).rappels !== undefined || r.trajetChange);
     const e = stockage.evenementMaj(req.moi.id, id, { titre: c.titre, lieu: c.lieu, note: c.note, debut: c.debut, fin: c.fin, journee: c.journee, tz: c.tz, rappel: c.rappel,
-      rappelA: recalcul ? prochaine(c.debut, c.rappels, c.tz, horloge()) : undefined, cote: c.cote, avec: c.avec, rappels: c.rappels });
+      rappelA: recalcul ? prochaine(c.debut, c.rappels, c.tz, horloge(), avantDepart(c.trajet)) : undefined, cote: c.cote, avec: c.avec, rappels: c.rappels,
+      trajet: r.trajetChange ? c.trajet : undefined });
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
   };
@@ -211,7 +230,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     const base = stockage.evenementLire(req.moi.id, id);
     if (!base) return refus(res, 404, 'introuvable');
     const t = horloge();
-    const e = stockage.evenementFait(req.moi.id, id, b.fait ? t : null, b.fait ? null : prochaine(base.debut, base.rappels, base.tz, t));
+    const e = stockage.evenementFait(req.moi.id, id, b.fait ? t : null, b.fait ? null : prochaine(base.debut, base.rappels, base.tz, t, avantDepart(base.trajet)));
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
   };
@@ -231,7 +250,7 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       debut = cal.instantLocal({ a: dem.a, m: dem.m, j: dem.j, h: base.journee ? 0 : 9, mi: 0 }, base.tz);
     } else debut = Math.ceil((t + b.dans * MIN) / MIN) * MIN;
     const rappels = base.rappels.length ? base.rappels : [0];
-    const e = stockage.evenementReporter(req.moi.id, id, { debut, fin: debut + duree, journee: base.journee, rappel: rappels[0], rappelA: prochaine(debut, rappels, base.tz, t), rappels });
+    const e = stockage.evenementReporter(req.moi.id, id, { debut, fin: debut + duree, journee: base.journee, rappel: rappels[0], rappelA: prochaine(debut, rappels, base.tz, t, avantDepart(base.trajet)), rappels });
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
   };
@@ -258,13 +277,23 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     const bilan = { envoyes: 0, abandonnes: 0, passes: 0 };
     for (const x of stockage.evenementsRappelsDus(t, Math.max(1, budget))) {
       if (x.debut <= t - MIN) { if (stockage.evenementRappelAbandonner(x.id)) bilan.abandonnes++; continue; }   // il a commencé : un rappel après coup ne sert à rien
-      if (depuis > 0 && Number.isSafeInteger(x.rappelA) && x.rappelA <= depuis) { if (stockage.evenementRappelPasser(x.id, prochaine(x.debut, x.rappels, x.tz, t))) bilan.passes++; continue; }
+      const dep = avantDepart(x.trajet);
+      if (depuis > 0 && Number.isSafeInteger(x.rappelA) && x.rappelA <= depuis) { if (stockage.evenementRappelPasser(x.id, prochaine(x.debut, x.rappels, x.tz, t, dep))) bilan.passes++; continue; }
       const reste = Math.max(0, Math.round((x.debut - t) / MIN));
       const c = cal.champsLocaux(x.debut, x.tz), heure = String(c.h).padStart(2, '0') + ':' + String(c.mi).padStart(2, '0');
       const demain = cal.numeroJour(c) > cal.numeroJour(cal.champsLocaux(t, x.tz));
       const quand = x.journee ? (demain ? 'Demain, toute la journée' : 'Aujourd\'hui, toute la journée') : reste <= 0 ? 'Maintenant' : reste < 60 ? 'Dans ' + reste + ' minute' + (reste > 1 ? 's' : '') : (demain ? 'Demain à ' : 'Aujourd\'hui à ') + heure;
-      const texte = x.genre === 'rdv' && x.avec ? quand + ' · avec ' + x.avec : quand;
-      const n = stockage.evenementRappelEnvoyer(x.id, { titre: x.titre, texte, suivant: prochaine(x.debut, x.rappels, x.tz, t) });
+      /* l'échéance qui part est-elle celle du DÉPART ? (le trajet et l'avance avant le début, à la minute) — son rappel le dit, avec le trajet et l'heure d'arrivée voulue */
+      const hm = (ms) => { const c2 = cal.champsLocaux(ms, x.tz); return String(c2.h).padStart(2, '0') + ':' + String(c2.mi).padStart(2, '0'); };
+      const depart = dep !== null && x.rappelA === x.debut - dep * MIN;
+      /* ⛔ un départ qui sonne EN RETARD (le service arrêté, le planificateur en retard — plus de deux minutes) ne dit pas « il est temps » : il dit l'heure qu'il était, et celle à laquelle on
+         arrivera en partant maintenant (relecture du gardien, 13 octobre 2026) */
+      const enRetard = depart && t - x.rappelA > 2 * MIN, moyen = depart ? x.trajet.minutes + ' min ' + (x.trajet.mode === 'pied' ? 'à pied' : 'en voiture') : '';
+      const quand2 = !depart ? quand
+        : enRetard ? 'Il fallait partir à ' + hm(x.rappelA) + ' · ' + moyen + ' — en partant maintenant, arrivée vers ' + hm(t + x.trajet.minutes * MIN)
+        : 'Il est temps de partir · ' + moyen + ', ' + (x.trajet.avance ? 'arrivée ' + hm(x.debut - x.trajet.avance * MIN) : 'pour ' + hm(x.debut));
+      const texte = x.genre === 'rdv' && x.avec ? quand2 + ' · avec ' + x.avec : quand2;
+      const n = stockage.evenementRappelEnvoyer(x.id, { titre: x.titre, texte, suivant: prochaine(x.debut, x.rappels, x.tz, t, dep) });
       /* le côté du rappel (le sien, sinon celui de la conversation d'où il vient, sinon Perso — la règle de la page) : « OP MESSAGES PRO » pour un rappel de l'agenda Pro */
       if (n) { bilan.envoyes++; try { notifier(x.uid, n, x.titre, texte, x.id, { cote: x.cote, conv: x.source ? x.source.conv : null }); } catch (e) { /* la notification est écrite : le push est un plus */ } }
     }

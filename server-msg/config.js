@@ -487,6 +487,33 @@ function transcriptionConfig(cfg, instance) {
   return o;
 }
 
+/* ── LE TRAJET (13 octobre 2026) : l'heure à laquelle partir pour un rendez-vous (`trajet.js`). OUVERT par défaut : le service public de l'IGN ne demande ni clé ni compte. `false` le ferme
+   (la page ne propose plus rien). ⛔ L'adresse est CELLE de l'IGN, rien d'autre — le fichier de configuration ne peut pas la changer : une adresse écrite là recevrait des adresses de personnes.
+   ⛔ LA PORTE DE TEST, comme celle du service push : `OPMSG_TEST_TRAJET=127.0.0.1:<port>` (une variable d'environnement, jamais le fichier) remplace l'IGN par le faux d'un banc, sur la
+   boucle locale et en bêta seulement — une variable oubliée dans une unité de production refuse le démarrage, une ligne de configuration ne fait pas de ce service un client d'un port local. ── */
+const TRAJET_BASE = 'https://data.geopf.fr';
+const TRAJET_DEFAUT = { delaiMs: 6000, geocodageParSeconde: 20, itineraireParSeconde: 4, cacheMax: 2000 };
+function trajetConfig(cfg, instance, env = {}) {
+  const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };
+  /* la porte d'abord, même trajet fermé : une variable oubliée en production refuse le démarrage, quoi que dise le fichier */
+  const porte = env && env.OPMSG_TEST_TRAJET ? String(env.OPMSG_TEST_TRAJET) : null;
+  if (porte && instance !== 'beta') throw err('OPMSG_TEST_TRAJET (porte de test du trajet) est refusée en production');
+  if (porte && !/^127\.0\.0\.1:\d{2,5}$/.test(porte)) throw err('OPMSG_TEST_TRAJET doit valoir 127.0.0.1:<port>');
+  const t = cfg.trajet;
+  if (t === false) return null;
+  if (t !== undefined && (t === null || typeof t !== 'object' || Array.isArray(t))) throw err('trajet doit être un objet, ou false pour le fermer');
+  const x = t || {};
+  if (x.base !== undefined && String(x.base).replace(/\/$/, '') !== TRAJET_BASE) throw err('trajet.base doit être ' + TRAJET_BASE + ' (un banc pose son faux service par OPMSG_TEST_TRAJET, jamais par ce fichier)');
+  const o = { base: porte ? 'http://' + porte : TRAJET_BASE };
+  const bornes = { delaiMs: [200, 30000], geocodageParSeconde: [1, 40], itineraireParSeconde: [1, 4], cacheMax: [0, 100000] };
+  for (const [k, [min, max]] of Object.entries(bornes)) {
+    const v = x[k] === undefined ? TRAJET_DEFAUT[k] : x[k];
+    if (!Number.isInteger(v) || v < min || v > max) throw err('trajet.' + k + ' doit être un entier entre ' + min + ' et ' + max);
+    o[k] = v;
+  }
+  return o;
+}
+
 function charger(env = process.env) {
   const manque = (n) => { const e = new Error('config: ' + n + ' est obligatoire'); e.code = 'CONFIG'; return e; };
   const instance = env.OPMSG_INSTANCE;
@@ -531,6 +558,7 @@ function charger(env = process.env) {
     reunions: reunionsConfig(cfg, instance),
     appels: appelsConfig(cfg, instance),
     transcription: transcriptionConfig(cfg, instance),
+    trajet: trajetConfig(cfg, instance, env),
     courriel: courrielConfig(cfg, instance),
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
@@ -550,4 +578,4 @@ function charger(env = process.env) {
   };
 }
 
-module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };
+module.exports = { charger, verifierSeparation, lireCle, piecesConfig, pushConfig, compteConfig, rechercheConfig, formuleConfig, facturationConfig, reunionsConfig, appelsConfig, transcriptionConfig, trajetConfig, courrielConfig, RE_CLE_STRIPE, RE_ADRESSE_MEL, RE_SECRET_RELAIS, INTERDITS };
