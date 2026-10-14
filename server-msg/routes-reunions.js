@@ -61,7 +61,7 @@ function installerReunions(H, ctx) {
   const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], reunion_annulee: [409, 'reunion_annulee'], trop_d_invites: [409, 'trop_d_invites'], trop_de_reunions: [409, 'trop_de_reunions'],
     hote_non_retirable: [409, 'hote_non_retirable'], hote_non_quittable: [409, 'hote_non_quittable'], hote_reponse: [409, 'hote_reponse'], groupe_plein: [409, 'trop_d_invites'],
     /* le trajet de chacun (migration 29) : le lieu a changé depuis le calcul, ou la réunion n'en a pas */
-    lieu_change: [409, 'lieu_change'], trajet_invalide: [400, 'trajet_invalide'],
+    lieu_change: [409, 'lieu_change'], trajet_invalide: [400, 'trajet_invalide'], indisponible: [503, 'indisponible'],
     /* le courriel (`courriel.js`) : un plafond atteint est un 429 qui dit LEQUEL, un relais qui refuse un 502 — jamais le texte de sa réponse. (Un relais absent et une adresse fausse sont dits par la
        route elle-même, AVANT de toucher au plafond par minute : ils n'arrivent jamais ici.) */
     courriel_quota_compte: [429, 'courriel_quota_compte'], courriel_quota_destinataire: [429, 'courriel_quota_destinataire'], courriel_echec: [502, 'courriel_echec'], occurrence_inconnue: [404, 'occurrence_inconnue'],
@@ -237,7 +237,8 @@ function installerReunions(H, ctx) {
         const duree = r.fin - r.debut;
         const occ = (r.repetition === 'aucune' ? [{ debut: r.debut, fin: r.fin }] : cal.occurrences(serieDe(r), t - duree, au, 3)).filter(o => o.fin > t);
         if (!occ.length) continue;
-        reunions.push(Object.assign({}, r, { occurrences: occ.slice(0, 1).map(o => ({ debut: o.debut, fin: o.fin })), rejoignable: !!fenetreRejoindre(r, t), son_statut: c.reunions.get(r.id) }));
+        const { trajet: _t, ...moiSansTrajet } = r.moi;          // ⛔ MON trajet (et l'adresse d'où je pars) n'a rien à faire dans ce qu'on lit d'un tiers (relecture du gardien)
+        reunions.push(Object.assign({}, r, { moi: moiSansTrajet, occurrences: occ.slice(0, 1).map(o => ({ debut: o.debut, fin: o.fin })), rejoignable: !!fenetreRejoindre(r, t), son_statut: c.reunions.get(r.id) }));
       }
       reunions.sort((x, y) => x.occurrences[0].debut - y.occurrences[0].debut);
     }
@@ -356,7 +357,9 @@ function installerReunions(H, ctx) {
       const ailleurs = new Set(stockage.reunionTrajetsSelon(id, apres.lieu).ailleurs);           // leur trajet ne mène pas (ou plus) au lieu d'APRÈS : l'avis le redit
       for (const u of stockage.reunionParticipants(id)) {
         if (u === hote.id || (!notifierVoulu(b) && !aRefaire.has(u))) continue;
-        const texte = texteModification(hote, apres, personne(u), quand !== null ? quand : apres.debut, r.horaire) + (ailleurs.has(u) ? ' Le lieu a changé : votre trajet est à recalculer.' : '');
+        /* le lieu RETIRÉ (relecture du gardien) : il n'y a plus rien à recalculer — l'heure de départ ne compte plus, et l'avis le dit tel quel */
+        const texte = texteModification(hote, apres, personne(u), quand !== null ? quand : apres.debut, r.horaire) +
+          (!ailleurs.has(u) ? '' : apres.lieu ? ' Le lieu a changé : votre trajet est à recalculer.' : ' Le lieu a été retiré : votre heure de départ ne compte plus.');
         notif.notifier({ uid: u, type: 'reunion_modifiee', reunion: id, titre: apres.titre, texte, auteur: hote.id });
       }
     }
@@ -490,7 +493,9 @@ function installerReunions(H, ctx) {
     const t = validerTrajet(b.trajet);
     if (t.erreur) return refus(res, 400, t.erreur);
     if (t.trajet && (typeof b.lieu !== 'string' || Array.from(b.lieu).length > LIEU_MAX * 4)) return refus(res, 400, 'champ_invalide');
-    if (!plafond(res, 'trajet_reunion', req.moi.id, { max: 60, fenetreMs: 3600000 })) return;
+    /* ⛔ le plafond ne compte que les POSES (relecture du gardien) : il bloquait aussi le retrait — soixante essais, et la personne ne pouvait plus effacer son adresse pendant une heure. Un retrait
+       n'écrit que s'il y a quelque chose à retirer (`reunionTrajetPoser`) : il ne peut pas boucler plus que les poses. */
+    if (t.trajet && !plafond(res, 'trajet_reunion', req.moi.id, { max: 60, fenetreMs: 3600000 })) return;
     stockage.reunionTrajetPoser({ id, uid: req.moi.id, trajet: t.trajet, lieu: t.trajet ? nettoyerNom(b.lieu) : null });
     hub.reveiller({ uids: [req.moi.id] });
     res.json(vue(req.moi.id, id));

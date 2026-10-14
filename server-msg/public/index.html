@@ -2082,6 +2082,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .evt-tr-autres { margin: 0 0 10px; }
 .evt-tr-autres .mini { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .evt-tr-gestes { margin: 0 0 18px; }
+/* (14 octobre 2026) dans la fiche d'une réunion, le trajet est une CARTE : ses gestes la ferment, sans marge de plus en bas */
+.reu-trajet .evt-tr-gestes { margin-bottom: 0; }
 /* l'en-tête de l'agenda : « Événement » à gauche, « Réunion » et « Rendez-vous » ensemble à droite (côté Pro, les deux) */
 .entete-actions { display: flex; align-items: center; gap: 16px; }
 /* L'ORDRE DU JOUR (8 octobre 2026) : un point = une ligne cochable, le rond des rappels ; un point traité est barré */

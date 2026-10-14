@@ -60,6 +60,12 @@ const hmUtc = (ms) => new Date(ms).toISOString().slice(11, 16);
   const f3 = lignes(ics.fichier(Object.assign({}, R0, { rep: 'hebdomadaire' }), { maintenant: deb0, rappels: [], trajet: TJ() }));
   v('une SÉRIE : « partir 50 min avant le début » (chaque date a la sienne), et l\'alarme', [val(f3, 'DESCRIPTION'), trig(f3)],
     ['Trajet : 40 min en voiture depuis Domicile — partir 50 min avant le début.\\n\\nRéunion programmée avec OP MESSAGES.', ['-PT50M']]);
+  const f6 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [], trajet: TJ({ depart: 'adresse', depart_label: '12 Rue des Lilas 78000 Versailles' }), tzLecteur: 'Europe/Paris' }));
+  v('⛔ « Une autre adresse » : le fichier dit « depuis une autre adresse », JAMAIS l\'adresse tapée — il part dans un agenda Google ou Apple, parfois partagé (relecture du gardien)',
+    [val(f6, 'DESCRIPTION').split('\\n')[0], f6.some(x => /Lilas|Versailles/.test(x))], ['Trajet : 40 min en voiture depuis une autre adresse — partir à 13:10 pour arriver à 13:50.', false]);
+  const f7 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [], trajet: TJ({ depart: 'travail', depart_label: 'Bureau, 3 rue Haute' }), tzLecteur: 'Europe/Paris' }));
+  v('   les mots sont ceux du SERVICE, jamais l\'étiquette rangée (que la page écrit) : « depuis Travail »', [val(f7, 'DESCRIPTION').split('\\n')[0], f7.some(x => /rue Haute/.test(x))],
+    ['Trajet : 40 min en voiture depuis Travail — partir à 13:10 pour arriver à 13:50.', false]);
   const f4 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [15] }));
   const f5 = lignes(ics.fichier(Object.assign({}, R0, { lieu: '' }), { maintenant: deb0, rappels: [15], trajet: TJ() }));
   v('⛔ sans trajet (le fichier de quelqu\'un d\'autre, celui que l\'organisateur envoie par courriel) — ou sans lieu : ni « Trajet », ni alarme de départ',
@@ -120,6 +126,9 @@ const hmUtc = (ms) => new Date(ms).toISOString().slice(11, 16);
     const agB = await ag(B), agA = await ag(A), agC = await ag(C);
     v('l\'agenda de Bob le porte (« Partir à … ») ; celui de l\'organisatrice et de Claire, non — et rien de celui de Bob dans leur réponse',
       [agB.x.moi.trajet, agA.x.moi.trajet, agC.x.moi.trajet, agA.r.txt.includes(CP.label), agC.r.txt.includes(CP.label)], [tB, null, null, false, false]);
+    const com = await B.get('/api/personnes/' + A.moi.id + '/commun'), comM1 = (com.j.reunions || []).find(x => x.id === M1);
+    v('⛔ la fiche de l\'organisatrice chez Bob (« en commun ») : la réunion y est, SANS le trajet de Bob — ni l\'adresse trouvée, ni « Ma position » (relecture du gardien)',
+      [com.code, !!comM1, comM1 && 'trajet' in comM1.moi, com.txt.includes(CP.label), com.txt.includes('Ma position')], [200, true, false, false, false]);
     const ligneB = sql('SELECT trajet_ch, trajet_le FROM reunion_invite WHERE reunion = ? AND uid = ?', M1, B.moi.id);
     v('⛔ en base : SCELLÉ (ni le lieu trouvé, ni d\'où l\'on part, ni le mode, ni les km en clair) ; posé à l\'heure du SERVICE', [!!ligneB.trajet_ch,
       enClair('SELECT trajet_ch FROM reunion_invite WHERE reunion = ?', ['Clinique', 'Ma position', 'voiture', String(tB.km)], M1), Number(ligneB.trajet_le) >= avantPose && Number(ligneB.trajet_le) <= maintenant() + 1000],
@@ -152,6 +161,11 @@ const hmUtc = (ms) => new Date(ms).toISOString().slice(11, 16);
     let ok = 0, refus = null;
     for (let i = 0; i < 70 && !refus; i++) { const r = await poser(E, M4q, TJ({ minutes: 20 + (i % 30) })); if (r.code === 200) ok++; else refus = [r.code, r.j.error]; }
     v('soixante écritures par heure et par personne, puis 429 quota_atteint', [ok, refus], [60, [429, 'quota_atteint']]);
+    const rq = await poser(E, M4q, null);
+    v('⛔ au plafond, RETIRER passe encore (son adresse s\'efface quand elle veut — relecture du gardien) ; poser, non', [rq.code, rq.j.moi && rq.j.moi.trajet, (await poser(E, M4q, TJ())).code], [200, null, 429]);
+    const compte = () => [Number(sql('SELECT COUNT(*) AS n FROM journal').n), Number(sql('SELECT COUNT(*) AS n FROM purge').n)];
+    const avantRien = compte(), rien = await poser(E, M4q, null);
+    v('   retirer quand il n\'y a RIEN : 200, et rien ne s\'écrit (ni le journal, ni le registre des purges) — le retrait ne peut pas boucler plus que les poses', [rien.code, compte()], [200, avantRien]);
 
     console.log('\n3. L\'heure de PARTIR, pour chacun la sienne');
     await lues();
@@ -249,6 +263,13 @@ const hmUtc = (ms) => new Date(ms).toISOString().slice(11, 16);
       await T.attendre(async () => { const l = await deM8(B, 'reunion_modifiee'); return l.length === 1 && /a modifié la réunion\.$/.test(l[0].texte); }, 5000, 100), (await deM8(B, 'reunion_modifiee')).map(x => x.texte));
     vrai('   et son départ, passé pendant ce temps, sonne EN RETARD — comme après un arrêt du service',
       await T.attendre(async () => { const l = await deM8(B, 'reunion_rappel'); return l.length === 1 && /^Il fallait partir à /.test(l[0].texte); }, 8000, 100), (await deM8(B, 'reunion_rappel')).map(x => x.texte));
+    await lues();
+    const mod3 = await A.post('/api/reunions/' + M8 + '/modifier', { lieu: '', notifier: false });
+    v('population : l\'organisatrice RETIRE le lieu (sans prévenir)', [mod3.code, mod3.j.reunion.lieu], [200, ''], mod3.txt);
+    vrai('⛔ Bob (son trajet menait au lieu retiré) est prévenu : « Le lieu a été retiré : votre heure de départ ne compte plus. » — jamais « à recalculer », il n\'y a plus rien à recalculer',
+      await T.attendre(async () => { const l = await deM8(B, 'reunion_modifiee'); return l.length > 0 && /a modifié la réunion\. Le lieu a été retiré : votre heure de départ ne compte plus\.$/.test(l[0].texte); }, 5000, 100),
+      (await deM8(B, 'reunion_modifiee')).map(x => x.texte));
+    v('   sa fiche : plus de trajet (il ne mène nulle part), ses réglages gardés (« périmé » : la page lui laisse le retirer)', [(await fiche(B, M8)).moi.trajet, (await fiche(B, M8)).moi.trajet_perime], [null, TJ()]);
     await lues();
 
     console.log('\n9. Refuser : plus de départ');

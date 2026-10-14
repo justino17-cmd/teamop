@@ -623,6 +623,12 @@ function fauxFetch(repondre) {
     const fs2 = await ics(sa.j.evenement.id);
     v('sans avance : « partir à » seul ; sans rappel : l\'alarme du départ seule (1 h 15 avant)', [val(fs2.lignes, 'DESCRIPTION'), trig(fs2.lignes)],
       ['Trajet : 75 min en voiture depuis Domicile — partir à 08:15.\\n\\nRendez-vous ajouté depuis OP MESSAGES.', ['-PT75M']]);
+    const ad = await A.post('/api/agenda', { genre: 'rdv', titre: 'Notaire', lieu: 'Tour Eiffel', debut: '2026-10-26T14:00', tz: 'Europe/Paris',
+      trajet: TJ({ depart: 'adresse', depart_label: '12 Rue des Lilas 78000 Versailles', vers_label: TE.label }) });
+    const fa = await ics(ad.j.evenement.id);
+    v('⛔ parti d\'« Une autre adresse » : le fichier dit « depuis une autre adresse », JAMAIS l\'adresse tapée — il part dans un agenda Google ou Apple, parfois partagé (relecture du gardien, lot 2)',
+      [ad.code, val(fa.lignes, 'DESCRIPTION'), fa.lignes.some(x => /Lilas|Versailles/.test(x))],
+      [201, 'Trajet : 40 min en voiture depuis une autre adresse — partir à 13:10 pour arriver à 13:50.\\n\\nRendez-vous ajouté depuis OP MESSAGES.', false]);
     const st = await ics(sansTr.j.evenement.id);
     v('un rendez-vous sans trajet (ou au trajet illisible) : ni « Trajet », ni alarme de départ', [st.code, st.lignes.some(x => /Trajet :|Il est temps/.test(x)), trig(st.lignes)], [200, false, ['-PT1H']]);
 

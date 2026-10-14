@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'b464dfd1fa46';
+  const OPMSG_BUILD = 'fe455ac898e4';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 189;
+  const OPMSG_VERSION = 190;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6944,22 +6944,38 @@
   function peindreTrajetReu() {
     const z = $('reu-trajet-zone'), F = reu.fiche, d = F && F.donnees; if (!z || !d) return;
     const o = occurrenceTrajetReu(F, d);
-    if (!reuTrajetVoulu(d, o) || (!trajetReuPossible() && !d.moi.trajet)) { z.innerHTML = ''; return; }
+    if (!reuTrajetVoulu(d, o) || (!trajetReuPossible() && !d.moi.trajet)) {
+      /* ⛔ un trajet RANGÉ reste retirable quand la zone n'a plus lieu d'être — la réunion refusée, passée, annulée, sans lieu ou en visio, ou le calcul fermé : ce que la personne ne voit plus servir,
+         elle doit pouvoir l'effacer (relecture du gardien : il restait gardé, sans terme et sans geste). Rien d'autre : ni calcul, ni heure. */
+      const garde = (d.moi.trajet || d.moi.trajetPerime) && CAP.trajet && typeof source.trajetReunion === 'function';
+      if (garde && !F.tr) F.tr = trajetReuEtat(d);
+      const h = !garde ? '' : '<div class="rubrique"><span>Trajet</span><span>Il ne sert plus</span></div><div class="carte carte-pad reu-trajet">' +
+        '<p class="info-note">Ton trajet est encore gardé pour cette réunion, mais il ne sert plus. Toi seul le vois.</p>' + (F.tr.erreur ? '<p class="info-erreur evt-tr-res" role="alert">' + esc(F.tr.erreur) + '</p>' : '') +
+        '<div class="info-actions evt-tr-gestes"><button type="button" class="mini" data-reu="trajet-retirer">Retirer le trajet</button></div></div>';
+      if (z._trajet !== h) { z._trajet = h; z.innerHTML = h; }
+      return;
+    }
     const sig = JSON.stringify(d.moi.trajet || d.moi.trajetPerime || null);
     if (!F.tr) F.tr = trajetReuEtat(d);
     else if (F.tr.sig !== sig && !F.tr.calcul) F.tr = Object.assign(trajetReuEtat(d), { autres: F.tr.autres, erreur: F.tr.erreur });
     const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.mode ? '[data-mode="' + a.dataset.mode + '"]' : a.dataset.reu ? '[data-reu="' + a.dataset.reu + '"]' : '') : '';
     const champ = $('rt-adresse'), saisie = champ && z.contains(champ) ? { v: champ.value, focus: a === champ, pos: champ.selectionStart } : null;
     if (saisie) F.tr.adresse = saisie.v;
-    z.innerHTML = htmlTrajetReu(d, o, F.tr);
+    /* ⛔ on ne repeint que ce qui CHANGE : un toucher qui tombe pendant qu'on remplace la zone se perd (le doigt se pose sur l'ancien bouton, se lève sur le nouveau — pas de clic), et la fiche
+       se relit de plusieurs côtés après un enregistrement (le geste, l'événement de la source, celui du service) */
+    const h = htmlTrajetReu(d, o, F.tr);
+    if (z._trajet === h) return;
+    z._trajet = h; z.innerHTML = h;
     if (saisie && saisie.focus && $('rt-adresse')) { $('rt-adresse').focus({ preventScroll: true }); try { $('rt-adresse').setSelectionRange(saisie.pos, saisie.pos); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
   }
-  const relireFicheTrajet = () => { $('info-corps').dataset.sig = ''; return rendreFiche(); };
-  /* `vers` : une autre adresse que l'IGN a trouvée pour le lieu (« Plutôt : … ») — sinon le lieu de la réunion, tel que l'organisateur l'a écrit. Le trajet s'enregistre aussitôt calculé. */
-  async function trajetReuCalculer(vers) {
+  /* après un enregistrement : la fiche se relit (elle ne se redessine que si elle a changé — l'événement de la source la relit aussi : pas un redessin de plus), puis la zone, qui ne se repeint que si ELLE a changé */
+  const relireFicheTrajet = async () => { await rendreFiche(); peindreTrajetReu(); };
+  /* `choisi` : une autre adresse que l'IGN a trouvée pour le lieu (« Plutôt : … »). Sinon le trajet va là où mène celui qui est rangé (il mène encore au lieu de la réunion : changer de mode ou de
+     départ ne fait pas oublier l'adresse qu'on avait choisie), sinon au lieu de la réunion, tel que l'organisateur l'a écrit. Le trajet s'enregistre aussitôt calculé. */
+  async function trajetReuCalculer(choisi) {
     const F = reu.fiche, d = F && F.donnees; if (!F || !d || !F.tr || !trajetReuPossible()) return;
-    const T = F.tr, id = F.id;
+    const T = F.tr, id = F.id, garde = !choisi && d.moi.trajet ? d.moi.trajet.vers_label : '', vers = choisi || garde || d.lieu;
     T.erreur = '';
     const L = TJ.lieux || {}, ranger = lieuARanger(T, L);
     const champ = $('rt-adresse'), adresse = (champ ? champ.value : T.adresse).trim(); T.adresse = adresse;
@@ -6975,18 +6991,18 @@
         depuis = { type: T.depart };
       }
       if (!encore()) return;
-      const r = await source.calculerTrajet({ vers: vers || d.lieu, depuis, mode: T.mode });
+      const r = await source.calculerTrajet({ vers, depuis, mode: T.mode });
       if (!encore()) return;
-      await source.trajetReunion(id, { minutes: r.minutes, km: r.km, mode: T.mode, avance: T.avance, depart: T.depart, depart_label: r.depuis.label || NOM_DEPART[T.depart], vers_label: r.vers || vers || d.lieu }, d.lieu);
+      await source.trajetReunion(id, { minutes: r.minutes, km: r.km, mode: T.mode, avance: T.avance, depart: T.depart, depart_label: r.depuis.label || NOM_DEPART[T.depart], vers_label: r.vers || vers }, d.lieu);
       if (!encore()) return;
-      T.autres = vers ? [] : r.autres; T.essai = 0; T.calcul = false;
+      T.autres = choisi ? [] : garde ? T.autres : r.autres; T.essai = 0; T.calcul = false;      // (vers l'adresse gardée, les autres possibles restent celles du premier calcul)
       mot('Trajet enregistré');
       await relireFicheTrajet();
       return;
     } catch (er) {
       if (!encore()) return;
       /* « occupé » (le service a déjà attendu son tour) ou « déjà en cours » (un autre onglet calcule) : on réessaie UNE fois, après le délai qu'il donne */
-      if (er && (er.code === 'trajet_occupe' || er.code === 'trajet_en_cours') && T.essai < 1) { T.essai = 1; setTimeout(() => { if (encore()) trajetReuCalculer(vers); }, Math.max(1, er.retry || 2) * 1000); peindreTrajetReu(); return; }
+      if (er && (er.code === 'trajet_occupe' || er.code === 'trajet_en_cours') && T.essai < 1) { T.essai = 1; setTimeout(() => { if (encore()) trajetReuCalculer(choisi); }, Math.max(1, er.retry || 2) * 1000); peindreTrajetReu(); return; }
       if (er && er.code === 'lieu_absent' && (T.depart === 'domicile' || T.depart === 'travail')) TJ.lieux = Object.assign({}, TJ.lieux || {}, { [T.depart]: null });   // retiré ailleurs : on le redemande
       T.essai = 0; T.calcul = false; T.erreur = phrase(er, 'Le trajet n\'a pas pu être calculé.');
       if (er && (er.code === 'lieu_change' || er.code === 'reunion_annulee')) { await relireFicheTrajet(); return; }   // la fiche relue montre le nouveau lieu (ou l'annulation)

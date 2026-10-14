@@ -3463,6 +3463,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return tx(() => {
       const r = reunionBrute(id); if (!r) throw erreur('introuvable');
       const i = Q('SELECT trajet_ch FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid); if (!i) throw erreur('introuvable');
+      if (!trajet && !i.trajet_ch) return { gid: null };                     // rien à retirer : rien ne s'écrit (le retrait n'a pas de plafond — la route)
       const actuel = reunionLieu(r);
       if (trajet) {
         if (r.annulee) throw erreur('reunion_annulee');
@@ -3587,6 +3588,27 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q(`SELECT id, prochain FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ? AND prochain > ? AND (prochain > ? OR (prochain = ? AND id > ?)) ORDER BY prochain, id LIMIT ?`)
       .all(avant, depuis, a.prochain, a.prochain, a.id, Math.max(1, limite | 0)).map(r => ({ id: r.id, prochain: num(r.prochain) }));
   }
+  /* ⛔ LE PLANIFICATEUR RELIT LES TRAJETS À CHAQUE TOUR (les réunions de l'heure qui vient, toutes les dix à quinze secondes). Mesuré le 14 octobre 2026 : ~17 µs pour en ouvrir un (le sceau, le JSON,
+     l'empreinte) — trois cents réunions de cent participants qui en ont tous un, 0,6 s de service immobile par tour, contre 0,1 s sans trajet. Une mémoire garde le trajet OUVERT, sous une clé qui
+     change à chaque écriture (`réunion|personne|` et le vecteur d'initialisation du sceau, tiré au hasard à chaque scellement) : seul ce qui a changé se rouvre. Une entrée d'avant n'est plus jamais
+     lue — sa clé porte l'ancien sceau ; la mémoire est bornée, et vidée au-delà. */
+  const MEM_TRAJETS_MAX = 20000;
+  const memTrajets = new Map();
+  function trajetPlanif(reunion, uid, blob, empreinte) {
+    const b = Buffer.isBuffer(blob) ? blob : Buffer.from(blob.buffer, blob.byteOffset, blob.byteLength), k = reunion + '|' + uid + '|' + b.toString('base64', 1, 13);     // (une vue, pas une copie)
+    let m = memTrajets.get(k);
+    if (!m) {
+      m = { o: null, pour: null };
+      const x = ouvrirOuNull('reunion_invite', 'trajet_ch', aadTrajetReu(reunion, uid), b);
+      try {
+        const t = x ? JSON.parse(x) : null;
+        if (t && typeof t === 'object' && Number.isSafeInteger(t.minutes)) m = { o: { minutes: t.minutes, km: t.km, mode: t.mode, avance: t.avance, depart: t.depart, depart_label: t.depart_label, vers_label: t.vers_label }, pour: t.pour_lieu };
+      } catch (e) { /* illisible : aucun trajet */ }
+      if (memTrajets.size >= MEM_TRAJETS_MAX) memTrajets.clear();
+      memTrajets.set(k, m);
+    }
+    return m.o && m.pour === empreinte ? m.o : null;
+  }
   /* Une réunion et ses participants qui n'ont pas décliné (et dont le compte est vivant), pour juger les rappels. */
   function reunionPlanif(id) {
     const r = reunionBrute(id); if (!r) return null;
@@ -3597,10 +3619,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         trajet: null, trajet_le: 0 }));
     /* les trajets VALABLES (migration 29) : seules les lignes qui en ont un sont ouvertes — un trajet qui menait à un autre lieu ne fait partir personne */
     if (TRAJETS_REUNION && participants.length) {
-      const lieu = reunionLieu(r), parUid = new Map(participants.map(p => [p.uid, p]));
+      const lieu = reunionLieu(r), empreinte = lieu ? empreinteLieu(lieu) : null, parUid = new Map(participants.map(p => [p.uid, p]));
       for (const x of Q('SELECT uid, trajet_ch, trajet_le FROM reunion_invite WHERE reunion = ? AND trajet_ch IS NOT NULL').all(id)) {
         const p = parUid.get(x.uid); if (!p) continue;
-        const t = trajetReunionDe(id, x.uid, x.trajet_ch, lieu).trajet;
+        const t = empreinte ? trajetPlanif(id, x.uid, x.trajet_ch, empreinte) : null;
         if (t) { p.trajet = t; p.trajet_le = x.trajet_le === null || x.trajet_le === undefined ? 0 : num(x.trajet_le); }
       }
     }

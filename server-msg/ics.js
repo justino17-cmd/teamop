@@ -178,6 +178,12 @@ function regleRepetition(r) {
   return parties.join(';');
 }
 
+/* ⛔ D'OÙ L'ON PART, DANS UN FICHIER QUI QUITTE OP MESSAGES (relecture du gardien, 14 octobre 2026). Le .ics part dans un agenda Google ou Apple — parfois partagé avec des collègues, parfois publié —
+   alors que la fiche promet « Toi seul le vois ». Il dit « depuis Domicile », « Travail », « Ma position » (des mots, pas des adresses), et « depuis une autre adresse » quand elle a été tapée : jamais
+   l'adresse elle-même. Les mots sont ceux d'ici, pas l'étiquette rangée — que la page écrit, et qui EST l'adresse pour « Une autre adresse ». Un rendez-vous et une réunion le disent pareil. */
+const DEPART_DIT = new Map([['position', 'Ma position'], ['domicile', 'Domicile'], ['travail', 'Travail'], ['adresse', 'une autre adresse']]);
+const depuisDit = (t) => DEPART_DIT.has(t.depart) ? ' depuis ' + DEPART_DIT.get(t.depart) : '';
+
 /* Le texte du fichier .ics d'une réunion.
    · `r` : { id, titre, lieu, debut, fin, tz, rep, n, jusqua, annulee, version } — `debut` et `fin` : la première occurrence, en instants UTC ;
    · `opts.occurrence` : le début (UTC) d'UNE occurrence de la série — le fichier ne porte alors que celle-là ; sinon toute la série (ou la réunion seule) ;
@@ -216,7 +222,7 @@ function fichier(r, opts) {
   const dep = t ? t.minutes + (Number.isSafeInteger(t.avance) ? t.avance : 0) : null;
   const tzL = cal.tzValide(o.tzLecteur) || r.tz, hm = (ms) => { const c = cal.champsLocaux(ms, tzL); return p2(c.h) + ':' + p2(c.mi); };
   const moyen = t ? t.minutes + ' min ' + (t.mode === 'pied' ? 'à pied' : 'en voiture') : '';
-  const trajetTexte = !t ? '' : 'Trajet : ' + moyen + (t.depart_label ? ' depuis ' + t.depart_label : '') + ' — ' +
+  const trajetTexte = !t ? '' : 'Trajet : ' + moyen + depuisDit(t) + ' — ' +
     (serie ? 'partir ' + dep + ' min avant le début.' : 'partir à ' + hm(debut - dep * cal.MIN) + (t.avance ? ' pour arriver à ' + hm(debut - t.avance * cal.MIN) : '') + '.');
   event.push('DESCRIPTION:' + texte([trajetTexte, 'Réunion programmée avec OP MESSAGES.'].filter(Boolean).join('\n\n')));
   event.push('STATUS:' + (r.annulee ? 'CANCELLED' : 'CONFIRMED'), 'TRANSP:OPAQUE');
@@ -260,7 +266,7 @@ function fichierEvenement(e, opts) {
   const t = rdv && !e.journee && e.trajet && Number.isSafeInteger(e.trajet.minutes) ? e.trajet : null;
   const dep = t ? t.minutes + (Number.isSafeInteger(t.avance) ? t.avance : 0) : null;
   const hm = (ms) => { const c = cal.champsLocaux(ms, e.tz); return p2(c.h) + ':' + p2(c.mi); };
-  const trajetTexte = t ? 'Trajet : ' + t.minutes + ' min ' + (t.mode === 'pied' ? 'à pied' : 'en voiture') + (t.depart_label ? ' depuis ' + t.depart_label : '') + ' — partir à ' + hm(e.debut - dep * cal.MIN) +
+  const trajetTexte = t ? 'Trajet : ' + t.minutes + ' min ' + (t.mode === 'pied' ? 'à pied' : 'en voiture') + depuisDit(t) + ' — partir à ' + hm(e.debut - dep * cal.MIN) +
     (t.avance ? ' pour arriver à ' + hm(e.debut - t.avance * cal.MIN) : '') + '.' : '';
   const desc = [rdv && e.avec ? 'Avec : ' + e.avec : '', trajetTexte, e.note || '', (rdv ? 'Rendez-vous' : 'Événement') + ' ajouté depuis OP MESSAGES.'].filter(Boolean).join('\n\n');
   ev.push('DESCRIPTION:' + texte(desc), 'STATUS:CONFIRMED', 'TRANSP:' + (e.journee ? 'TRANSPARENT' : 'OPAQUE'));
