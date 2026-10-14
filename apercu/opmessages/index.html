@@ -2078,6 +2078,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .evt-tr-autres { margin: 0 0 10px; }
 .evt-tr-autres .mini { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .evt-tr-gestes { margin: 0 0 18px; }
+/* (14 octobre 2026) dans la fiche d'une réunion, le trajet est une CARTE : ses gestes la ferment, sans marge de plus en bas */
+.reu-trajet .evt-tr-gestes { margin-bottom: 0; }
 /* l'en-tête de l'agenda : « Événement » à gauche, « Réunion » et « Rendez-vous » ensemble à droite (côté Pro, les deux) */
 .entete-actions { display: flex; align-items: center; gap: 16px; }
 /* L'ORDRE DU JOUR (8 octobre 2026) : un point = une ligne cochable, le rond des rappels ; un point traité est barré */
@@ -6508,7 +6510,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
         regSection('contacts', 'Contacts', '<div class="carte">' +
           '<button type="button" class="reglage presse" id="reg-contact">' + icone('i-contact-plus') + '<span class="reglage-texte">Ajouter un contact<small>' + (CAP.identifiants ? 'Par son identifiant, son numéro ou un lien' : 'Par un lien d\'invitation') + '</small></span>' + CHEVRON + '</button>' +
           '<button type="button" class="reglage presse" id="reg-bloques"><span class="reglage-texte">Contacts bloqués</span><span class="reglage-valeur" id="reg-bloques-n"></span>' + CHEVRON + '</button></div>') +
-        (lieuxPossibles() ? regSection('lieux', 'Mes lieux', '<div class="carte" id="reg-lieux"></div><p class="info-note reg-note">Pour l\'heure à laquelle partir à un rendez-vous (« Je pars de Domicile »). Ils restent sur ton compte, chiffrés, et seule l\'adresse trouvée s\'affiche. Pour trouver une adresse et calculer un trajet, le service la transmet à l\'IGN, le service public de cartographie — sans ton nom ni rien d\'autre.</p>') : '') +
+        (lieuxPossibles() ? regSection('lieux', 'Mes lieux', '<div class="carte" id="reg-lieux"></div><p class="info-note reg-note">Pour l\'heure à laquelle partir à un rendez-vous ou à une réunion (« Je pars de Domicile »). Ils restent sur ton compte, chiffrés, et seule l\'adresse trouvée s\'affiche. Pour trouver une adresse et calculer un trajet, le service la transmet à l\'IGN, le service public de cartographie — sans ton nom ni rien d\'autre.</p>') : '') +
         regSection('appareils', 'Appareils connectés', '<div class="carte"><button type="button" class="reglage presse" id="reg-autres"><span class="reglage-texte">Déconnecter les autres appareils<small>Ta session reste ouverte ici ; les autres doivent se reconnecter.</small></span></button></div>') +
         regSection('stockage', 'Stockage', '<div class="carte carte-pad" id="reg-stock"></div>') +
         (CAP.compte ? regSection('compte', 'Mes données et mon compte', '<div class="carte" id="reg-compte"></div>') : '') +
@@ -8175,8 +8177,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
        combien sont venus — et, pour l'organisateur, qui (le service ne donne les noms qu'à lui). Plus de « Rejoindre » tant qu'aucune salle n'est rouverte. */
     const se = o.seance && !r.salleOuverte ? o.seance : null;
     const etatTxt = se && !r.annulee ? 'Terminée' : libelleEtat(r);
+    /* MON trajet (14 octobre 2026) : l'heure de PARTIR pour cette date, tant qu'elle est à venir — jamais pour une réunion annulée, refusée ou finie */
+    const tr = r.moi.trajet, partir = tr && !se && !r.annulee && r.moi.statut !== 'decline' && o.debut > Date.now() ? 'Partir à ' + FMT_HEURE.format(o.debut - (tr.minutes + tr.avance) * 60000) : '';
     const sous = se ? [r.lieu, 'Durée ' + dureeSeance(se.dureeS), se.n + (se.n > 1 ? ' présents' : ' présent')].filter(Boolean)
-      : [r.lieu, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
+      : [r.lieu, partir, r.moi.hote ? '' : nomPersonne(r.hote), r.participantsN + (r.participantsN > 1 ? ' participants' : ' participant')].filter(Boolean);
     const qui = se && se.presents && se.presents.length ? se.presents.map(id => id === MOI.id ? 'Vous' : nomPersonne(id)).join(', ') : '';
     const rej = CAP.salles && r.rejoignable && !r.annulee && !se ? '<button type="button" class="reunion-rejoindre presse" data-rejoindre="' + esc(r.id) + '" aria-label="' + esc('Rejoindre ' + (r.titre || 'la réunion')) + '">Rejoindre</button>' : '';
     /* ⛔ ET UNE OCCURRENCE TERMINÉE NE S'OUVRE PLUS (8 octobre 2026, capture à l'appui : « quand c'est terminé, il faudrait pas qu'on puisse cliquer dessus ») : la fiche proposait encore
@@ -9655,6 +9659,154 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     return sortie;
   }
 
+  /* ═══ MON TRAJET POUR UNE RÉUNION (14 octobre 2026 : « et pareil pour pro, pour les réunions ») — chacun le sien ═══════════════════════════════════════════════════════════════
+     Le lieu est celui de l'organisateur : on ne le change pas ici, on calcule l'heure de partir VERS lui (« Plutôt : … » choisit une autre adresse que l'IGN a trouvée pour ce même lieu). Le calcul
+     passe par le service, comme pour un rendez-vous ; le trajet s'ENREGISTRE dès qu'il est calculé (la fiche d'une réunion n'a pas de bouton « Enregistrer »), et l'avance se change d'un geste.
+     Personne d'autre ne le voit — pas même l'organisateur. L'organisateur change le lieu : le trajet ne compte plus, et la fiche le dit, avec les réglages d'avant pour le refaire d'un geste. */
+  const trajetReuPossible = () => !!(CAP.trajet && TJ.ouvert === true && typeof source.calculerTrajet === 'function' && typeof source.trajetReunion === 'function');
+  /* une réunion où l'on se REND : un lieu qui n'est pas un lien de visio, ni annulée ni refusée, et une date à venir */
+  const reuTrajetVoulu = (d, o) => !!(CAP.trajet && typeof source.trajetReunion === 'function' && d.lieu && !estUrl(d.lieu) && !d.annulee && d.moi.statut !== 'decline' && o && o.debut > Date.now());
+  /* les choix de la fiche : ceux du trajet rangé (ou de celui qui menait à l'ancien lieu), sinon « Ma position · Voiture · 5 min avant » */
+  function trajetReuEtat(d) {
+    const t = d.moi.trajet || d.moi.trajetPerime;
+    return { depart: t ? t.depart : 'position', mode: t ? t.mode : 'voiture', avance: t ? t.avance : 5, adresse: t && t.depart === 'adresse' ? t.depart_label : '', position: null,
+      autres: [], erreur: '', calcul: false, jeton: 0, essai: 0, sig: JSON.stringify(t || null) };
+  }
+  /* la fiche s'ouvre : le service calcule-t-il ? quels lieux sont enregistrés ? (relus à chaque fiche : ils changent sur un autre appareil) */
+  async function trajetReuPreparer(F) {
+    if (!CAP.trajet || typeof source.trajetOuvert !== 'function') return;
+    try { TJ.ouvert = await source.trajetOuvert(); } catch (e) { TJ.ouvert = false; }
+    if (TJ.ouvert === true && typeof source.lieux === 'function') { try { TJ.lieux = await source.lieux(); } catch (e) { /* on ne sait pas : le calcul le dira */ } }
+    if (reu.fiche === F) peindreTrajetReu();
+  }
+  function htmlTrajetReu(d, o, T) {
+    const possible = trajetReuPossible(), L = TJ.lieux || { domicile: null, travail: null }, c = d.moi.trajet;
+    let h = '<div class="rubrique"><span>Trajet</span><span>L\'heure à laquelle partir</span></div><div class="carte carte-pad reu-trajet">';
+    if (possible) {
+      const opt = ['position', 'domicile', 'travail', 'adresse'].map(k => [k, k === 'domicile' || k === 'travail' ? NOM_DEPART[k] + (L[k] ? ' — ' + L[k].label : ' (à enregistrer)') : NOM_DEPART[k]]);
+      h += '<div class="champ"><label for="rt-depart">Je pars de</label><select id="rt-depart"' + (T.calcul ? ' disabled' : '') + '>' + optionsDe(opt, T.depart) + '</select>' +
+        (T.depart === 'position' ? '<span class="info-note">Ta position sert à ce calcul, une fois : elle n\'est ni gardée, ni montrée à personne.</span>' : '') + '</div>';
+      if (T.depart === 'adresse' || lieuARanger(T, L)) h += '<div class="champ"><label for="rt-adresse">' + (T.depart === 'adresse' ? 'Adresse de départ' : 'Adresse de ton ' + (T.depart === 'domicile' ? 'domicile' : 'travail')) + '</label>' +
+        '<input id="rt-adresse" type="text" maxlength="200" autocomplete="street-address" enterkeyhint="done" value="' + esc(T.adresse) + '" placeholder="Rue, ville">' +
+        (lieuARanger(T, L) ? '<span class="info-note">Elle sera gardée pour la prochaine fois (Profil › Mes lieux).</span>' : '') + '</div>';
+      h += '<div class="seg evt-tr-seg" role="group" aria-label="Comment j\'y vais" style="--i:' + (T.mode === 'pied' ? 1 : 0) + '"><span class="seg-knob" aria-hidden="true"></span>' +
+        [['voiture', 'Voiture'], ['pied', 'À pied']].map(([k, l]) => '<button type="button" class="seg-bouton" data-reu="trajet-mode" data-mode="' + k + '" aria-pressed="' + (T.mode === k ? 'true' : 'false') + '"' + (T.calcul ? ' disabled' : '') + '>' + l + '</button>').join('') + '</div>' +
+        '<div class="champ"><label for="rt-avance">Arriver</label><select id="rt-avance"' + (T.calcul ? ' disabled' : '') + '>' + optionsDe(AVANCES_TR, String(T.avance)) + '</select></div>';
+    }
+    if (T.calcul) h += '<p class="info-note evt-tr-res" role="status">' + (T.essai ? 'Beaucoup de trajets sont calculés en ce moment : nouvel essai…' : 'Calcul du trajet…') + '</p>';
+    else if (T.erreur) h += '<p class="info-erreur evt-tr-res" role="alert">' + esc(T.erreur) + '</p>';
+    else if (!c && d.moi.trajetPerime) h += '<p class="info-note evt-tr-res" role="status">Le lieu de la réunion a changé depuis ton calcul : calcule le trajet à nouveau.</p>';
+    if (c && !T.calcul) {
+      const partir = o.debut - (c.minutes + c.avance) * 60000, retard = partir < Date.now();
+      h += '<div class="evt-tr-res" id="rt-res">' +
+        '<p class="evt-tr-partir' + (retard ? ' retard' : '') + '">' + (retard ? 'Il fallait partir à ' : 'Partir à ') + esc(FMT_HEURE.format(partir)) + '</p>' +
+        '<p class="info-note">' + esc(dureeTr(c.minutes) + ' ' + modeTr(c.mode) + (c.km ? ' · ' + kmTr(c.km) : '') + (c.depart_label ? ' — depuis ' + c.depart_label : '')) + '</p>' +
+        '<p class="info-note">' + esc((c.avance ? 'Pour arriver à ' + FMT_HEURE.format(o.debut - c.avance * 60000) + ', ' + c.avance + ' min avant la réunion.' : 'Pour arriver à l\'heure de la réunion.') +
+          (retard ? ' En partant maintenant, tu arrives vers ' + FMT_HEURE.format(Date.now() + c.minutes * 60000) + '.' : '')) + '</p>' +
+        '<p class="info-note">Vers ' + esc(c.vers_label) + '</p>' +
+        (possible && T.autres.length ? '<p class="info-note">Pas le bon endroit ? Plutôt :</p><div class="info-actions evt-tr-autres">' + T.autres.map(a => '<button type="button" class="mini" data-reu="trajet-autre" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div>' : '') +
+        '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir' + (d.repetition !== 'aucune' ? ', à chaque date' : '') + '. Toi seul le vois.</p></div>';
+    }
+    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-reu="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (c ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
+      (c ? '<button type="button" class="mini" data-reu="trajet-retirer"' + (T.calcul ? ' disabled' : '') + '>Retirer le trajet</button>' : '') + '</div></div>';
+    return h;
+  }
+  /* la date dont la fiche parle (celle choisie dans l'agenda, sinon la prochaine) — celle dont on calcule l'heure de partir ; une date passée cède la place à la prochaine */
+  function occurrenceTrajetReu(F, d) {
+    const o = F.occurrence && d.repetition !== 'aucune' ? { debut: F.occurrence, fin: F.occurrence + (d.fin - d.debut) } : (d.prochaine || { debut: d.debut, fin: d.fin });
+    return o.debut > Date.now() ? o : d.prochaine;
+  }
+  /* repeindre la zone sans redessiner la fiche (sans perdre le doigt : le champ ou le bouton qui avait le focus le retrouve) — et reprendre les choix du trajet RANGÉ quand il a changé (un autre appareil) */
+  function peindreTrajetReu() {
+    const z = $('reu-trajet-zone'), F = reu.fiche, d = F && F.donnees; if (!z || !d) return;
+    const o = occurrenceTrajetReu(F, d);
+    if (!reuTrajetVoulu(d, o) || (!trajetReuPossible() && !d.moi.trajet)) {
+      /* ⛔ un trajet RANGÉ reste retirable quand la zone n'a plus lieu d'être — la réunion refusée, passée, annulée, sans lieu ou en visio, ou le calcul fermé : ce que la personne ne voit plus servir,
+         elle doit pouvoir l'effacer (relecture du gardien : il restait gardé, sans terme et sans geste). Rien d'autre : ni calcul, ni heure. */
+      const garde = (d.moi.trajet || d.moi.trajetPerime) && CAP.trajet && typeof source.trajetReunion === 'function' && (!reuTrajetVoulu(d, o) || TJ.ouvert === false);   // (le calcul pas encore dit : on attend, rien ne clignote)
+      if (garde && !F.tr) F.tr = trajetReuEtat(d);
+      const h = !garde ? '' : '<div class="rubrique"><span>Trajet</span><span>Il ne sert plus</span></div><div class="carte carte-pad reu-trajet">' +
+        '<p class="info-note">Ton trajet est encore gardé pour cette réunion, mais il ne sert plus. Toi seul le vois.</p>' + (F.tr.erreur ? '<p class="info-erreur evt-tr-res" role="alert">' + esc(F.tr.erreur) + '</p>' : '') +
+        '<div class="info-actions evt-tr-gestes"><button type="button" class="mini" data-reu="trajet-retirer">Retirer le trajet</button></div></div>';
+      if (z._trajet !== h) { z._trajet = h; z.innerHTML = h; }
+      return;
+    }
+    const sig = JSON.stringify(d.moi.trajet || d.moi.trajetPerime || null);
+    if (!F.tr) F.tr = trajetReuEtat(d);
+    else if (F.tr.sig !== sig && !F.tr.calcul) F.tr = Object.assign(trajetReuEtat(d), { autres: F.tr.autres, erreur: F.tr.erreur });
+    const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.mode ? '[data-mode="' + a.dataset.mode + '"]' : a.dataset.reu ? '[data-reu="' + a.dataset.reu + '"]' : '') : '';
+    const champ = $('rt-adresse'), saisie = champ && z.contains(champ) ? { v: champ.value, focus: a === champ, pos: champ.selectionStart } : null;
+    if (saisie) F.tr.adresse = saisie.v;
+    /* ⛔ on ne repeint que ce qui CHANGE : un toucher qui tombe pendant qu'on remplace la zone se perd (le doigt se pose sur l'ancien bouton, se lève sur le nouveau — pas de clic), et la fiche
+       se relit de plusieurs côtés après un enregistrement (le geste, l'événement de la source, celui du service) */
+    const h = htmlTrajetReu(d, o, F.tr);
+    if (z._trajet === h) return;
+    z._trajet = h; z.innerHTML = h;
+    if (saisie && saisie.focus && $('rt-adresse')) { $('rt-adresse').focus({ preventScroll: true }); try { $('rt-adresse').setSelectionRange(saisie.pos, saisie.pos); } catch (e) { /* un champ sans curseur */ } }
+    else if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
+  }
+  /* après un enregistrement : la fiche se relit (elle ne se redessine que si elle a changé — l'événement de la source la relit aussi : pas un redessin de plus), puis la zone, qui ne se repeint que si ELLE a changé */
+  const relireFicheTrajet = async () => { await rendreFiche(); peindreTrajetReu(); };
+  /* `choisi` : une autre adresse que l'IGN a trouvée pour le lieu (« Plutôt : … »). Sinon le trajet va là où mène celui qui est rangé (il mène encore au lieu de la réunion : changer de mode ou de
+     départ ne fait pas oublier l'adresse qu'on avait choisie), sinon au lieu de la réunion, tel que l'organisateur l'a écrit. Le trajet s'enregistre aussitôt calculé. */
+  async function trajetReuCalculer(choisi) {
+    const F = reu.fiche, d = F && F.donnees; if (!F || !d || !F.tr || !trajetReuPossible()) return;
+    const T = F.tr, id = F.id, garde = !choisi && d.moi.trajet ? d.moi.trajet.vers_label : '', vers = choisi || garde || d.lieu;
+    T.erreur = '';
+    const L = TJ.lieux || {}, ranger = lieuARanger(T, L);
+    const champ = $('rt-adresse'), adresse = (champ ? champ.value : T.adresse).trim(); T.adresse = adresse;
+    if ((T.depart === 'adresse' || ranger) && !adresse) { T.erreur = T.depart === 'adresse' ? 'Écris l\'adresse d\'où tu pars.' : 'Écris l\'adresse de ton ' + (T.depart === 'domicile' ? 'domicile' : 'travail') + '.'; peindreTrajetReu(); const c = $('rt-adresse'); if (c) c.focus(); return; }
+    const jeton = ++T.jeton, encore = () => reu.fiche === F && F.tr === T && T.jeton === jeton && ouvertePour(id);
+    T.calcul = true; peindreTrajetReu();
+    try {
+      let depuis;
+      if (T.depart === 'position') { if (!T.position) T.position = await positionDuMoment(); depuis = { type: 'position', lon: T.position.lon, lat: T.position.lat }; }
+      else if (T.depart === 'adresse') depuis = { type: 'adresse', texte: adresse };
+      else {
+        if (ranger) { const r = await source.poserLieu(T.depart, adresse); TJ.lieux = r.lieux; mot((T.depart === 'domicile' ? 'Domicile' : 'Travail') + ' enregistré'); }
+        depuis = { type: T.depart };
+      }
+      if (!encore()) return;
+      const r = await source.calculerTrajet({ vers, depuis, mode: T.mode });
+      if (!encore()) return;
+      await source.trajetReunion(id, { minutes: r.minutes, km: r.km, mode: T.mode, avance: T.avance, depart: T.depart, depart_label: r.depuis.label || NOM_DEPART[T.depart], vers_label: r.vers || vers }, d.lieu);
+      if (!encore()) return;
+      T.autres = choisi ? [] : garde ? T.autres : r.autres; T.essai = 0; T.calcul = false;      // (vers l'adresse gardée, les autres possibles restent celles du premier calcul)
+      mot('Trajet enregistré');
+      await relireFicheTrajet();
+      return;
+    } catch (er) {
+      if (!encore()) return;
+      /* « occupé » (le service a déjà attendu son tour) ou « déjà en cours » (un autre onglet calcule) : on réessaie UNE fois, après le délai qu'il donne */
+      if (er && (er.code === 'trajet_occupe' || er.code === 'trajet_en_cours') && T.essai < 1) { T.essai = 1; setTimeout(() => { if (encore()) trajetReuCalculer(choisi); }, Math.max(1, er.retry || 2) * 1000); peindreTrajetReu(); return; }
+      if (er && er.code === 'lieu_absent' && (T.depart === 'domicile' || T.depart === 'travail')) TJ.lieux = Object.assign({}, TJ.lieux || {}, { [T.depart]: null });   // retiré ailleurs : on le redemande
+      T.essai = 0; T.calcul = false; T.erreur = phrase(er, 'Le trajet n\'a pas pu être calculé.');
+      if (er && (er.code === 'lieu_change' || er.code === 'reunion_annulee')) { await relireFicheTrajet(); return; }   // la fiche relue montre le nouveau lieu (ou l'annulation)
+    }
+    T.calcul = false; peindreTrajetReu();
+  }
+  /* le départ ou le mode changent : le trajet rangé ne vaut plus — il se recalcule (et se range) tout de suite, sauf s'il faut d'abord écrire une adresse */
+  function trajetReuChanger(k, v) {
+    const F = reu.fiche, d = F && F.donnees; if (!F || !d || !F.tr || F.tr[k] === v || F.tr.calcul) return;
+    const T = F.tr; T[k] = v; T.erreur = ''; T.autres = [];
+    peindreTrajetReu();
+    if (d.moi.trajet && T.depart !== 'adresse' && !lieuARanger(T, TJ.lieux)) trajetReuCalculer();
+  }
+  /* l'avance seule change : le trajet rangé garde sa durée, l'heure de partir suit — enregistré tout de suite */
+  async function trajetReuAvance(v) {
+    const F = reu.fiche, d = F && F.donnees; if (!F || !d || !F.tr || F.tr.calcul) return;
+    const T = F.tr; T.avance = v; T.erreur = '';
+    if (!d.moi.trajet) { peindreTrajetReu(); return; }
+    try { await source.trajetReunion(F.id, Object.assign({}, d.moi.trajet, { avance: v }), d.lieu); mot('Heure de départ mise à jour'); await relireFicheTrajet(); }
+    catch (er) { if (reu.fiche !== F) return; T.erreur = phrase(er, 'Le trajet n\'a pas pu être enregistré.'); if (er && er.code === 'lieu_change') await relireFicheTrajet(); else peindreTrajetReu(); }
+  }
+  async function trajetReuRetirer() {
+    const F = reu.fiche; if (!F || !F.tr || F.tr.calcul) return;
+    F.tr.erreur = ''; F.tr.autres = [];
+    try { await source.trajetReunion(F.id, null); mot('Trajet retiré'); await relireFicheTrajet(); }
+    catch (er) { if (reu.fiche !== F) return; F.tr.erreur = phrase(er, 'Le trajet n\'a pas pu être retiré.'); peindreTrajetReu(); }
+  }
+
   /* ── la fiche d'une réunion (la feuille « reunion:<id> ») ── */
   const ouvertePour = id => etat.groupe.ouvert && etat.groupe.mode === 'reunion' && etat.groupe.reunionId === id;
   function htmlParticipant(r, p, moiHote) {
@@ -9689,6 +9841,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     /* mes rappels */
     if (!d.annulee) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml +
       (d.moi.rappelsPerso ? '<button type="button" class="reglage presse" data-reu="rappels-defaut"><span class="reglage-texte">Rétablir les rappels de la réunion<small>Ceux que l\'organisateur a choisis</small></span></button>' : '') + '</div>';
+    /* MON trajet (14 octobre 2026) : sa zone, peinte à part (`peindreTrajetReu`) — un calcul en cours ne redessine pas toute la fiche */
+    s += '<div id="reu-trajet-zone"></div>';
     /* les participants */
     s += '<div class="rubrique"><span>Participants</span><span>' + d.invites.length + (d.plafond ? ' / ' + d.plafond : '') + '</span></div><div class="carte">' + d.invites.map(p => htmlParticipant(d, p, hote)).join('') + '</div>';
     /* inviter d'autres personnes (l'hôte) */
@@ -9787,9 +9941,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || actif.dataset.point || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
     const ch = $('rc-adresse'), champ = ch && corps.contains(ch) ? { v: ch.value, focus: actif === ch, a: ch.selectionStart } : null;
+    if (!F.trPrep) { F.trPrep = true; trajetReuPreparer(F); }               // le calcul du trajet est-il ouvert, quels lieux sont rangés (une fois par fiche)
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
+    /* ⛔ l'adresse de départ tapée se garde, que le champ ait le focus ou non : la fiche se redessine dès qu'un invité répond */
+    const rt = $('rt-adresse'), rtSaisie = rt && corps.contains(rt) ? { v: rt.value, focus: actif === rt, a: rt.selectionStart } : null;
+    if (rtSaisie && F.tr) F.tr.adresse = rtSaisie.v;
     corps.innerHTML = htmlFiche(d);
+    peindreTrajetReu();
+    if (rtSaisie && rtSaisie.focus && $('rt-adresse')) { $('rt-adresse').focus({ preventScroll: true }); try { $('rt-adresse').setSelectionRange(rtSaisie.a, rtSaisie.a); } catch (e) { /* un champ sans curseur */ } }
     if (champ && $('rc-adresse')) $('rc-adresse').value = champ.v;
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || x.dataset.point || '') === u); if (b) b.focus({ preventScroll: true }); }
@@ -9818,6 +9978,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
           await source.rappelsReunion(id, actuels.sort((x, y) => x - y)); await relire();
         }
         else if (act === 'rappels-defaut') { await source.rappelsReunion(id, null); mot('Rappels de la réunion rétablis'); await relire(); }
+        /* MON trajet (14 octobre 2026) : ses erreurs se disent DANS sa zone, pas en tête de fiche */
+        else if (act === 'trajet-mode') trajetReuChanger('mode', b.dataset.mode === 'pied' ? 'pied' : 'voiture');
+        else if (act === 'trajet-calculer') trajetReuCalculer();
+        else if (act === 'trajet-retirer') trajetReuRetirer();
+        else if (act === 'trajet-autre' && b.dataset.label) trajetReuCalculer(b.dataset.label);
         else if (act === 'odj') { b.setAttribute('aria-disabled', 'true'); const fait = b.getAttribute('aria-checked') !== 'true'; await source.cocherPoint(id, b.dataset.point, fait); await relire(); }
         else if (act === 'inviter') { b.setAttribute('aria-disabled', 'true'); const r = await source.inviterReunion(id, [b.dataset.uid], { notifier: true }); mot(r.ajoutes ? 'Invitation envoyée' : r.parLien ? 'Cette personne n\'a pas Messages Pro : envoie-lui le lien de la réunion' : 'Cette personne ne peut pas être invitée'); await relire(); }
         else if (act === 'retirer') { b.setAttribute('aria-disabled', 'true'); await source.retirerInviteReunion(id, b.dataset.uid); mot('Personne retirée de la réunion'); await relire(); }
@@ -9898,6 +10063,15 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
       }
     } catch (er) { if (F) F.sortie = null; b.removeAttribute('aria-disabled'); erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }          // le geste a échoué : la phrase qu'il avait annoncée tombe avec lui
   });
+  /* MON trajet dans la fiche d'une réunion : d'où je pars, quand arriver ; Entrée dans l'adresse de départ calcule ; l'adresse tapée se garde (la fiche se redessine quand un invité répond) */
+  const ficheReuOuverte = () => etat.groupe.ouvert && etat.groupe.mode === 'reunion' && !!(reu.fiche && reu.fiche.donnees);
+  $('info-corps').addEventListener('change', e => {
+    if (!ficheReuOuverte() || !e.target) return;
+    if (e.target.id === 'rt-depart') trajetReuChanger('depart', ['position', 'domicile', 'travail', 'adresse'].includes(e.target.value) ? e.target.value : 'position');
+    else if (e.target.id === 'rt-avance') trajetReuAvance([0, 5, 10, 15].includes(Number(e.target.value)) ? Number(e.target.value) : 0);
+  });
+  $('info-corps').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target && e.target.id === 'rt-adresse' && ficheReuOuverte()) { e.preventDefault(); trajetReuCalculer(); } });
+  $('info-corps').addEventListener('input', e => { if (e.target && e.target.id === 'rt-adresse' && ficheReuOuverte() && reu.fiche.tr) reu.fiche.tr.adresse = e.target.value; });
 
   /* ── « Programmer » et « Modifier » : le formulaire (les feuilles « reunion-new » et « reunion-edit:<id> ») ── */
   const optionsDe = (liste, courant) => liste.map(x => '<option value="' + esc(x[0]) + '"' + (x[0] === courant ? ' selected' : '') + '>' + esc(x[1]) + '</option>').join('');

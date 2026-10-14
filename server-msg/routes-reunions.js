@@ -41,6 +41,7 @@ const { nettoyerNom, ID_PERS } = require('./routes');      // (l'ordre du jour :
 const { serieDe, nomAffiche, texteInvitation, texteModification, texteDecalage, texteAnnulation, creerNotifieur } = require('./reunions-outils');
 const { adresseValide } = require('./courriel');
 const { cleReseau } = require('./quotas');
+const { validerTrajet } = require('./trajet');
 
 const JOUR = 86400000;
 const TITRE_MAX = 120, LIEU_MAX = 300, INVITES_MAX = 100, UIDS_PAR_APPEL = 50, RAPPELS_MAX = 4;
@@ -59,6 +60,8 @@ function installerReunions(H, ctx) {
   /* Les codes de refus du stockage, traduits : tous des chaînes courtes que la page sait dire (`public/api.js`, `MESSAGES`). Un code inconnu est une vraie panne : il part à `next`. */
   const CODES = { introuvable: [404, 'introuvable'], interdit: [403, 'interdit'], reunion_annulee: [409, 'reunion_annulee'], trop_d_invites: [409, 'trop_d_invites'], trop_de_reunions: [409, 'trop_de_reunions'],
     hote_non_retirable: [409, 'hote_non_retirable'], hote_non_quittable: [409, 'hote_non_quittable'], hote_reponse: [409, 'hote_reponse'], groupe_plein: [409, 'trop_d_invites'],
+    /* le trajet de chacun (migration 29) : le lieu a changé depuis le calcul, ou la réunion n'en a pas */
+    lieu_change: [409, 'lieu_change'], trajet_invalide: [400, 'trajet_invalide'], indisponible: [503, 'indisponible'],
     /* le courriel (`courriel.js`) : un plafond atteint est un 429 qui dit LEQUEL, un relais qui refuse un 502 — jamais le texte de sa réponse. (Un relais absent et une adresse fausse sont dits par la
        route elle-même, AVANT de toucher au plafond par minute : ils n'arrivent jamais ici.) */
     courriel_quota_compte: [429, 'courriel_quota_compte'], courriel_quota_destinataire: [429, 'courriel_quota_destinataire'], courriel_echec: [502, 'courriel_echec'], occurrence_inconnue: [404, 'occurrence_inconnue'],
@@ -234,7 +237,8 @@ function installerReunions(H, ctx) {
         const duree = r.fin - r.debut;
         const occ = (r.repetition === 'aucune' ? [{ debut: r.debut, fin: r.fin }] : cal.occurrences(serieDe(r), t - duree, au, 3)).filter(o => o.fin > t);
         if (!occ.length) continue;
-        reunions.push(Object.assign({}, r, { occurrences: occ.slice(0, 1).map(o => ({ debut: o.debut, fin: o.fin })), rejoignable: !!fenetreRejoindre(r, t), son_statut: c.reunions.get(r.id) }));
+        const { trajet: _t, ...moiSansTrajet } = r.moi;          // ⛔ MON trajet (et l'adresse d'où je pars) n'a rien à faire dans ce qu'on lit d'un tiers (relecture du gardien)
+        reunions.push(Object.assign({}, r, { moi: moiSansTrajet, occurrences: occ.slice(0, 1).map(o => ({ debut: o.debut, fin: o.fin })), rejoignable: !!fenetreRejoindre(r, t), son_statut: c.reunions.get(r.id) }));
       }
       reunions.sort((x, y) => x.occurrences[0].debut - y.occurrences[0].debut);
     }
@@ -344,12 +348,19 @@ function installerReunions(H, ctx) {
     const r = stockage.reunionModifier(Object.assign({ id, par: hote.id }, v.champs, v.horaire ? { prochain, finSerie: cal.finDeSerie(v.serie) } : {}, b.salle_attente === undefined ? {} : { attente: b.salle_attente }));
     const o = odj ? stockage.reunionOdjPoser(id, odj) : null;
     if (r.gid || (o && o.change)) hub.reveiller({ conv: courant.conv });
-    /* on prévient quand quelque chose que les invités VOIENT a changé : l'horaire, le titre, le lieu — pas un simple réglage de rappel */
-    if (r.change && (r.horaire || r.titre || r.lieu) && notifierVoulu(b)) {
+    /* on prévient quand quelque chose que les invités VOIENT a changé : l'horaire, le titre, le lieu — pas un simple réglage de rappel.
+       ⛔ LE LIEU CHANGE : le trajet de ceux qui l'avaient calculé vers l'ANCIEN lieu mène ailleurs, il ne compte plus (le stockage le dit périmé) — eux sont prévenus que le leur est à refaire, MÊME quand
+       l'organisateur ne prévient personne : sans ça, leur « Il est temps de partir » se tairait sans un mot. Chacun ne reçoit que la sienne : personne n'apprend qui d'autre avait un trajet. */
+    const aRefaire = r.change && r.lieu ? new Set(stockage.reunionTrajetsSelon(id, courant.lieu).vers.filter(u => u !== hote.id)) : new Set();
+    if (r.change && (r.horaire || r.titre || r.lieu) && (notifierVoulu(b) || aRefaire.size)) {
       const apres = stockage.reunionPourMembre(id, hote.id).reunion, quand = prochainDe(serieDe(apres), horloge());
+      const ailleurs = new Set(stockage.reunionTrajetsSelon(id, apres.lieu).ailleurs);           // leur trajet ne mène pas (ou plus) au lieu d'APRÈS : l'avis le redit
       for (const u of stockage.reunionParticipants(id)) {
-        if (u === hote.id) continue;
-        notif.notifier({ uid: u, type: 'reunion_modifiee', reunion: id, titre: apres.titre, texte: texteModification(hote, apres, personne(u), quand !== null ? quand : apres.debut, r.horaire), auteur: hote.id });
+        if (u === hote.id || (!notifierVoulu(b) && !aRefaire.has(u))) continue;
+        /* le lieu RETIRÉ (relecture du gardien) : il n'y a plus rien à recalculer — l'heure de départ ne compte plus, et l'avis le dit tel quel */
+        const texte = texteModification(hote, apres, personne(u), quand !== null ? quand : apres.debut, r.horaire) +
+          (!ailleurs.has(u) ? '' : apres.lieu ? ' Le lieu a changé : votre trajet est à recalculer.' : ' Le lieu a été retiré : votre heure de départ ne compte plus.');
+        notif.notifier({ uid: u, type: 'reunion_modifiee', reunion: id, titre: apres.titre, texte, auteur: hote.id });
       }
     }
     res.json(vue(hote.id, id));
@@ -473,11 +484,29 @@ function installerReunions(H, ctx) {
     res.json(vue(req.moi.id, id));
   });
 
+  /* ── MON TRAJET (14 octobre 2026 : « et pareil pour pro, pour les réunions ») — chaque participant range le SIEN, calculé par `POST /api/trajet` vers le lieu de la réunion et jugé ici comme celui
+     d'un rendez-vous (`validerTrajet`). `lieu` : le lieu VERS LEQUEL il a été calculé — s'il n'est plus celui de la réunion (l'organisateur vient de le changer), `lieu_change` (409) : la page relit et
+     recalcule. `null` le retire. Soixante écritures par heure et par personne. ⛔ Personne d'autre ne le lit — ni la liste des invités, ni l'organisateur : la fiche ne le rend qu'à SA personne. ── */
+  H['reunions.trajet'] = garder((req, res) => {
+    const b = corps(req), id = req.reunion.id;
+    if (b.trajet === undefined) return refus(res, 400, 'champ_invalide');
+    const t = validerTrajet(b.trajet);
+    if (t.erreur) return refus(res, 400, t.erreur);
+    if (t.trajet && (typeof b.lieu !== 'string' || Array.from(b.lieu).length > LIEU_MAX * 4)) return refus(res, 400, 'champ_invalide');
+    /* ⛔ le plafond ne compte que les POSES (relecture du gardien) : il bloquait aussi le retrait — soixante essais, et la personne ne pouvait plus effacer son adresse pendant une heure. Un retrait
+       n'écrit que s'il y a quelque chose à retirer (`reunionTrajetPoser`) : il ne peut pas boucler plus que les poses. */
+    if (t.trajet && !plafond(res, 'trajet_reunion', req.moi.id, { max: 60, fenetreMs: 3600000 })) return;
+    stockage.reunionTrajetPoser({ id, uid: req.moi.id, trajet: t.trajet, lieu: t.trajet ? nettoyerNom(b.lieu) : null });
+    hub.reveiller({ uids: [req.moi.id] });
+    res.json(vue(req.moi.id, id));
+  });
+
   /* ── le fichier .ics ── */
   H['reunions.ics'] = garder((req, res) => {
     if (!plafond(res, 'ics', req.moi.id, { max: 60, fenetreMs: 60000 })) return;
     const q = req.query || {}, rr = stockage.reunionPourMembre(req.reunion.id, req.moi.id), r = rr.reunion;
-    const opts = { maintenant: horloge(), rappels: rr.moi.rappels };
+    /* MON trajet (migration 29) : une alarme de plus, à l'heure de partir — dans le fichier de SA personne seulement (jamais dans celui que l'organisateur envoie par courriel) */
+    const opts = { maintenant: horloge(), rappels: rr.moi.rappels, trajet: rr.moi.trajet || null, tzLecteur: req.moi.tz };
     if (q.occurrence !== undefined) {
       if (!/^\d{1,15}$/.test(String(q.occurrence))) return refus(res, 400, 'champ_invalide');
       opts.occurrence = parseInt(q.occurrence, 10);

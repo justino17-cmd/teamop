@@ -712,6 +712,15 @@ const MIGRATIONS = [
      )`,
     `PRAGMA user_version = 28`,
   ] },
+  /* ── 29 (14 octobre 2026) : LE TRAJET D'UNE RÉUNION, CHACUN LE SIEN — « et pareil pour pro, pour les réunions » : chaque participant range SON trajet sur SA ligne d'invitation (`trajet_ch`, scellé
+         comme celui d'un rendez-vous, avec l'empreinte du lieu de la réunion pour lequel il a été calculé) et l'instant où il l'a posé (`trajet_le`, en clair : le planificateur s'en sert comme
+         plancher, et la restauration d'une archive retire ce qui est plus ancien qu'un trajet retiré ou remplacé). Personne d'autre ne le lit, pas même l'organisateur. Aucune colonne d'avant n'est
+         touchée. ── */
+  { v: 29, sql: [
+    `ALTER TABLE reunion_invite ADD COLUMN trajet_ch BLOB`,
+    `ALTER TABLE reunion_invite ADD COLUMN trajet_le INTEGER`,
+    `PRAGMA user_version = 29`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -798,6 +807,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const COTES_AGENDA = versionActuelle() >= 25;   // une base d'avant la migration 25 : aucun événement n'a de côté (la page les range d'elle-même)
   const RDV_AGENDA = versionActuelle() >= 27;     // une base d'avant la migration 27 : aucun rendez-vous, un seul rappel par événement
   const TRAJETS = versionActuelle() >= 28;        // une base d'avant la migration 28 : aucun trajet, ni Domicile ni Travail
+  const TRAJETS_REUNION = versionActuelle() >= 29; // une base d'avant la migration 29 : aucun trajet de réunion (celui d'un rendez-vous, oui)
   const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
   const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
@@ -3193,6 +3203,23 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   const personneCourte = (viewer, id) => { const p = personneParId(id); return p ? { id: p.id, prenom: p.prenom, nom: p.nom, avatar: avatarPour(viewer, p.id, p.avatar) } : null; };
 
+  /* ══ LE TRAJET D'UNE RÉUNION (migration 29) ══ — celui d'UN participant, sur SA ligne d'invitation : scellé (lié à `réunion|personne|trajet`), avec l'empreinte du LIEU de la réunion vers lequel
+     il a été calculé (`pour_lieu`). ⛔ Il ne sort que vers SA personne : ni la liste des invités, ni l'organisateur, ni un autre participant ne le lisent. L'organisateur change le lieu : le trajet ne
+     compte plus (`perime` : ses réglages, pour que la personne le recalcule d'un geste) ; le lieu revient à celui du calcul, le trajet revaut. Un sceau illisible ou un JSON abîmé : rien. */
+  const aadTrajetReu = (reunion, uid) => reunion + '|' + uid + '|trajet';
+  const RIEN_TRAJET = { trajet: null, perime: null };
+  function trajetReunionDe(reunion, uid, blob, lieu) {
+    if (!blob || !TRAJETS_REUNION) return RIEN_TRAJET;
+    const x = ouvrirOuNull('reunion_invite', 'trajet_ch', aadTrajetReu(reunion, uid), blob);
+    if (!x) return RIEN_TRAJET;
+    let t = null;
+    try { t = JSON.parse(x); } catch (e) { return RIEN_TRAJET; }
+    if (!t || typeof t !== 'object' || !Number.isSafeInteger(t.minutes)) return RIEN_TRAJET;
+    const o = { minutes: t.minutes, km: t.km, mode: t.mode, avance: t.avance, depart: t.depart, depart_label: t.depart_label, vers_label: t.vers_label };
+    return lieu !== null && t.pour_lieu === empreinteLieu(lieu) ? { trajet: o, perime: null } : { trajet: null, perime: o };
+  }
+  const monTrajet = (r, uid) => TRAJETS_REUNION ? Q('SELECT trajet_ch FROM reunion_invite WHERE reunion = ? AND uid = ?').get(r.id, uid) : null;
+
   /* La réunion « pour un participant » : `null` pour inexistante COMME pour « tu n'es pas invité » (404 dans les deux cas, jamais 403). */
   function reunionPourMembre(id, uid) {
     const moi = Q('SELECT statut, rappels FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid);
@@ -3206,7 +3233,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const perso = moi.rappels !== null && moi.rappels !== undefined;
     rang.ordre_du_jour = reunionOdj(id);
     rang.cote = coteDe(uid, r.conv, 'reunion');
-    return { reunion: rang, invites, moi: { hote: uid === r.hote, statut: moi.statut, rappels: perso ? listeEntiers(moi.rappels) : rang.rappels, rappels_perso: perso } };
+    const m = monTrajet(r, uid), tr = trajetReunionDe(id, uid, m && m.trajet_ch, reunionLieu(r));
+    return { reunion: rang, invites, moi: { hote: uid === r.hote, statut: moi.statut, rappels: perso ? listeEntiers(moi.rappels) : rang.rappels, rappels_perso: perso, trajet: tr.trajet, trajet_perime: tr.perime } };
   }
   /* Les réunions d'une personne qui PEUVENT toucher la fenêtre [du, au) — une présélection : une série commencée avant la fenêtre est gardée, ses occurrences se calculent à l'appelant
      (`calendrier.js`). Une version courte de chaque (pas la liste des invités) : l'agenda en montre beaucoup. */
@@ -3226,7 +3254,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       rang.participants = Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece FROM reunion_invite x JOIN personne p ON p.id = x.uid WHERE x.reunion = ? ORDER BY (x.uid = ?) DESC, x.cree, p.id LIMIT 4`).all(r.id, r.hote)
         .map(x => ({ id: x.id, prenom: x.prenom, nom: x.nom, avatar: avatarPour(uid, x.id, x.avatar_piece) }));
       const perso = r.mes_rappels !== null && r.mes_rappels !== undefined;
-      rang.moi = { hote: uid === r.hote, statut: r.mon_statut, rappels: perso ? listeEntiers(r.mes_rappels) : rang.rappels, rappels_perso: perso };
+      const m = monTrajet(r, uid);                       // MON trajet (migration 29) : l'agenda dit « Partir à … » — jamais celui d'un autre
+      rang.moi = { hote: uid === r.hote, statut: r.mon_statut, rappels: perso ? listeEntiers(r.mes_rappels) : rang.rappels, rappels_perso: perso, trajet: m && m.trajet_ch ? trajetReunionDe(r.id, uid, m.trajet_ch, rang.lieu).trajet : null };
       rang.cote = coteDe(uid, r.conv, 'reunion');      // le côté de SA conversation pour moi : l'agenda Perso et l'agenda Pro se départagent là-dessus
       return rang;
     });
@@ -3424,6 +3453,39 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { gid: journalAjouter('reunion', null, uid, id) };
     });
   }
+  /* MON trajet pour une réunion (migration 29) : `trajet` (validé par la route, `trajet.js`) le pose ou le remplace ; null le retire. ⛔ `lieu` est le lieu VERS LEQUEL la page l'a calculé : s'il n'est
+     plus celui de la réunion (l'organisateur vient de le changer), rien n'est écrit (`lieu_change`) — un trajet calculé vers l'ancienne adresse prendrait sinon l'empreinte de la nouvelle. Une réunion
+     annulée, ou sans lieu, n'en reçoit pas ; le retirer se peut toujours. `trajet_le` est l'heure du SERVICE : un départ dont l'échéance la précède n'a jamais été dû (le planificateur).
+     ⛔ Un trajet RETIRÉ ou REMPLACÉ est noté au registre des purges (genre `reunion_trajet`, objet `réunion|personne|instant`), dans la même transaction et du MÊME instant que le nouveau : une
+     restauration d'une archive d'avant ne rend pas une adresse de départ qu'on a retirée — la règle de Domicile et Travail. → { gid } */
+  function reunionTrajetPoser({ id, uid, trajet, lieu }) {
+    if (!TRAJETS_REUNION) throw erreur('indisponible');
+    return tx(() => {
+      const r = reunionBrute(id); if (!r) throw erreur('introuvable');
+      const i = Q('SELECT trajet_ch FROM reunion_invite WHERE reunion = ? AND uid = ?').get(id, uid); if (!i) throw erreur('introuvable');
+      if (!trajet && !i.trajet_ch) return { gid: null };                     // rien à retirer : rien ne s'écrit (le retrait n'a pas de plafond — la route)
+      const actuel = reunionLieu(r);
+      if (trajet) {
+        if (r.annulee) throw erreur('reunion_annulee');
+        if (!actuel) throw erreur('trajet_invalide');                    // pas de lieu (ou illisible) : un trajet ne mène nulle part
+        if (lieu !== actuel) throw erreur('lieu_change');
+      }
+      const t = horloge();
+      if (i.trajet_ch) Q(`INSERT INTO purge(objet, genre, quand) VALUES(?, 'reunion_trajet', ?)`).run(id + '|' + uid + '|' + t, t);
+      Q('UPDATE reunion_invite SET trajet_ch = ?, trajet_le = ? WHERE reunion = ? AND uid = ?')
+        .run(trajet ? sceller('reunion_invite', 'trajet_ch', aadTrajetReu(id, uid), JSON.stringify(Object.assign({}, trajet, { pour_lieu: empreinteLieu(actuel) }))) : null, trajet ? t : null, id, uid);
+      return { gid: journalAjouter('reunion', null, uid, id) };
+    });
+  }
+  /* les participants qui ont un trajet RANGÉ, rangés selon ce lieu : `vers` (calculé vers lui), `ailleurs` (vers un autre — un sceau illisible compte ici). Quand l'organisateur change le lieu, ceux
+     dont le trajet menait à l'ANCIEN sont prévenus que le leur est à refaire ; et toute notification de modification qui part le redit à ceux dont le trajet mène encore ailleurs (elle remplace la
+     précédente : sans ça, un second changement effacerait l'avis). Un trajet que le nouveau lieu rend de nouveau juste ne fait pas dire le contraire. */
+  function reunionTrajetsSelon(id, lieu) {
+    const o = { vers: [], ailleurs: [] };
+    if (!TRAJETS_REUNION) return o;
+    for (const x of Q('SELECT uid, trajet_ch FROM reunion_invite WHERE reunion = ? AND trajet_ch IS NOT NULL ORDER BY cree, uid').all(id)) (lieu && trajetReunionDe(id, x.uid, x.trajet_ch, lieu).trajet ? o.vers : o.ailleurs).push(x.uid);
+    return o;
+  }
 
   /* ── la salle d'une réunion qui disparaît (annulée, supprimée, sans hôte) finit avec elle : des gens y étaient peut-être ── */
   function salleReunionFinir(reunion, motif) {
@@ -3526,13 +3588,44 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q(`SELECT id, prochain FROM reunion WHERE annulee = 0 AND prochain IS NOT NULL AND prochain <= ? AND prochain > ? AND (prochain > ? OR (prochain = ? AND id > ?)) ORDER BY prochain, id LIMIT ?`)
       .all(avant, depuis, a.prochain, a.prochain, a.id, Math.max(1, limite | 0)).map(r => ({ id: r.id, prochain: num(r.prochain) }));
   }
+  /* ⛔ LE PLANIFICATEUR RELIT LES TRAJETS À CHAQUE TOUR (les réunions de l'heure qui vient, toutes les dix à quinze secondes). Mesuré le 14 octobre 2026 : ~17 µs pour en ouvrir un (le sceau, le JSON,
+     l'empreinte) — trois cents réunions de cent participants qui en ont tous un, 0,6 s de service immobile par tour, contre 0,1 s sans trajet. Une mémoire garde le trajet OUVERT, sous une clé qui
+     change à chaque écriture (`réunion|personne|` et le vecteur d'initialisation du sceau, tiré au hasard à chaque scellement) : seul ce qui a changé se rouvre. Une entrée d'avant n'est plus jamais
+     lue — sa clé porte l'ancien sceau ; la mémoire est bornée, et vidée au-delà. */
+  const MEM_TRAJETS_MAX = 20000;
+  const memTrajets = new Map();
+  function trajetPlanif(reunion, uid, blob, empreinte) {
+    const b = Buffer.isBuffer(blob) ? blob : Buffer.from(blob.buffer, blob.byteOffset, blob.byteLength), k = reunion + '|' + uid + '|' + b.toString('base64', 1, 13);     // (une vue, pas une copie)
+    let m = memTrajets.get(k);
+    if (!m) {
+      m = { o: null, pour: null };
+      const x = ouvrirOuNull('reunion_invite', 'trajet_ch', aadTrajetReu(reunion, uid), b);
+      try {
+        const t = x ? JSON.parse(x) : null;
+        if (t && typeof t === 'object' && Number.isSafeInteger(t.minutes)) m = { o: { minutes: t.minutes, km: t.km, mode: t.mode, avance: t.avance, depart: t.depart, depart_label: t.depart_label, vers_label: t.vers_label }, pour: t.pour_lieu };
+      } catch (e) { /* illisible : aucun trajet */ }
+      if (memTrajets.size >= MEM_TRAJETS_MAX) memTrajets.clear();
+      memTrajets.set(k, m);
+    }
+    return m.o && m.pour === empreinte ? m.o : null;
+  }
   /* Une réunion et ses participants qui n'ont pas décliné (et dont le compte est vivant), pour juger les rappels. */
   function reunionPlanif(id) {
     const r = reunionBrute(id); if (!r) return null;
     const titre = reunionTitre(r);
     const participants = Q(`SELECT i.uid AS uid, i.statut AS statut, i.rappels AS rappels, i.rappels_le AS rappels_le, i.cree AS cree FROM reunion_invite i JOIN personne p ON p.id = i.uid
                             WHERE i.reunion = ? AND i.statut <> 'decline' AND p.etat = 'actif' ORDER BY i.cree, i.uid`).all(id)
-      .map(x => ({ uid: x.uid, statut: x.statut, rappels: x.rappels === null || x.rappels === undefined ? null : listeEntiers(x.rappels), rappels_le: x.rappels_le === null || x.rappels_le === undefined ? 0 : num(x.rappels_le), cree: num(x.cree) }));
+      .map(x => ({ uid: x.uid, statut: x.statut, rappels: x.rappels === null || x.rappels === undefined ? null : listeEntiers(x.rappels), rappels_le: x.rappels_le === null || x.rappels_le === undefined ? 0 : num(x.rappels_le), cree: num(x.cree),
+        trajet: null, trajet_le: 0 }));
+    /* les trajets VALABLES (migration 29) : seules les lignes qui en ont un sont ouvertes — un trajet qui menait à un autre lieu ne fait partir personne */
+    if (TRAJETS_REUNION && participants.length) {
+      const lieu = reunionLieu(r), empreinte = lieu ? empreinteLieu(lieu) : null, parUid = new Map(participants.map(p => [p.uid, p]));
+      for (const x of Q('SELECT uid, trajet_ch, trajet_le FROM reunion_invite WHERE reunion = ? AND trajet_ch IS NOT NULL').all(id)) {
+        const p = parUid.get(x.uid); if (!p) continue;
+        const t = empreinte ? trajetPlanif(id, x.uid, x.trajet_ch, empreinte) : null;
+        if (t) { p.trajet = t; p.trajet_le = x.trajet_le === null || x.trajet_le === undefined ? 0 : num(x.trajet_le); }
+      }
+    }
     return { id: r.id, conv: r.conv, hote: r.hote, titre: titre === null ? '' : titre, debut: num(r.debut), fin: num(r.fin), tz: r.tz, rep: r.rep, n: r.n === null ? null : num(r.n), jusqua: r.jusqua || null,
       defaut: listeEntiers(r.rappels), horaire_le: num(r.horaire_le), prochain: r.prochain === null ? null : num(r.prochain), participants };
   }
@@ -3588,8 +3681,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q(`SELECT r.id AS id, r.titre_ch AS titre_ch, r.lieu_ch AS lieu_ch, r.debut AS debut, r.fin AS fin, r.tz AS tz, r.rep AS rep, r.n AS n, r.jusqua AS jusqua, r.annulee AS annulee, r.hote AS hote, i.statut AS statut
               FROM reunion_invite i JOIN reunion r ON r.id = i.reunion WHERE i.uid = ? ORDER BY r.debut, r.id`).all(uid).map(x => {
       const titre = reunionTitre(x), lieu = reunionLieu(x);
+      /* MON trajet (migration 29), qu'il mène encore au lieu de la réunion ou non : ce sont mes données, rangées — l'export les rend toutes */
+      const m = monTrajet(x, uid), tr = trajetReunionDe(x.id, uid, m && m.trajet_ch, lieu);
       return { id: x.id, titre: titre === null ? '' : titre, lieu: lieu === null ? '' : lieu, debut: num(x.debut), fin: num(x.fin), fuseau: x.tz, repetition: x.rep, n: x.n === null ? null : num(x.n), jusqua: x.jusqua || null,
-        annulee: !!x.annulee, role: x.hote === uid ? 'hote' : 'invite', reponse: x.statut, ordre_du_jour: reunionOdj(x.id).map(p => ({ texte: p.texte, fait: p.fait })) };
+        annulee: !!x.annulee, role: x.hote === uid ? 'hote' : 'invite', reponse: x.statut, ordre_du_jour: reunionOdj(x.id).map(p => ({ texte: p.texte, fait: p.fait })),
+        trajet: tr.trajet || (tr.perime ? Object.assign({}, tr.perime, { perime: true }) : null) };
     });
   }
   /* ⛔ L'EFFACEMENT D'UN COMPTE ET SES RÉUNIONS (appelé par `compteEffacer`). Hôte : la réunion passe au plus ancien invité qui n'a pas décliné (celui qui a accepté d'abord ; à égalité, dans l'ORDRE où l'hôte les a invités) — il devient hôte et
@@ -4771,6 +4867,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     presenceSalle, presenceReunion,   // le rapport de présence (migration 16)
     carteContactLire, sondageVue, sondageVoter, sondageAjouterChoix, sondageClore, exportSondagesVotes,   // les cartes d'un message et les sondages (migration 17)
     reunionPourMembre, reunionAcces, reunionsDe, reunionParticipants, enCommun, pieceAccesNoter, pieceSuivi, membreRecuTout, exportPiecesOuvertes, reunionCreer, reunionModifier, reunionAnnuler, reunionSupprimer, reunionInviter, reunionRetirer, reunionQuitter, reunionRepondre, reunionRappelsPoser, reunionsReparer,   // les réunions programmées
+    reunionTrajetPoser, reunionTrajetsSelon,   // …le trajet de chacun (migration 29)
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
     courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
@@ -4897,6 +4994,7 @@ const GENRES_PURGE = {
   suppression_demandee: 'service',   // la DEMANDE de suppression (l'échéance posée) : une copie d'avant ne doit pas la perdre — rejouée par le SERVICE, dans l'ordre du registre
   evenement: 'copie',                // un événement de l'agenda personnel SUPPRIMÉ : sa ligne part
   lieu: 'copie',                     // Domicile ou Travail RETIRÉ ou REMPLACÉ : objet `personne|clé|instant` — la ligne plus ancienne que l'instant part (le domicile retiré ne revient pas)
+  reunion_trajet: 'copie',           // le trajet d'un participant pour une réunion RETIRÉ ou REMPLACÉ : objet `réunion|personne|instant` — le trajet plus ancien que l'instant part (son adresse de départ ne revient pas)
   programme: 'copie',                // un message PROGRAMMÉ parti ou annulé : sa ligne part — une archive d'avant ne le ferait pas repartir
   mdp: 'copie',                      // un mot de passe CHANGÉ (« mot de passe oublié ») : objet `personne|date` — une copie dont le mot de passe est plus ancien le perd (il faudra le réinitialiser), et ses sessions tombent
   suppression_annulee: 'service',    // l'ANNULATION (la personne est revenue) : une copie d'avant ne doit pas ramener l'échéance — idem
@@ -4975,6 +5073,9 @@ function rejouerPurge(chemin, registre, opts) {
     const retirerEvenement = a('evenement') ? d.prepare('DELETE FROM evenement WHERE id = ?') : null;   // (migration 13 : une archive plus ancienne n'a pas la table)
     const retirerProgramme = a('programme') ? d.prepare('DELETE FROM programme WHERE id = ?') : null;   // (migration 22)
     const retirerLieu = a('lieu_perso') ? d.prepare('DELETE FROM lieu_perso WHERE uid = ? AND cle = ? AND maj < ?') : null;   // (migration 28) : seulement ce qui est PLUS ANCIEN que le retrait
+    /* le trajet d'une réunion (migration 29) : une archive d'un schéma plus ancien n'a pas la colonne — rien à y retirer, la ligne du registre est quand même recopiée */
+    const colonneTrajetReu = tableReunion && d.prepare(`SELECT 1 AS n FROM pragma_table_info('reunion_invite') WHERE name = 'trajet_le'`).get() !== undefined;
+    const retirerTrajetReu = colonneTrajetReu ? d.prepare('UPDATE reunion_invite SET trajet_ch = NULL, trajet_le = NULL WHERE reunion = ? AND uid = ? AND trajet_le < ?') : null;
     const pushAvant = a('push') ? d.prepare('DELETE FROM push WHERE uid = ? AND cree <= ?') : null;
     const recopier = d.prepare('INSERT INTO purge(objet, genre, quand) SELECT ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM purge WHERE objet = ? AND genre = ?)');
     d.exec('BEGIN IMMEDIATE');
@@ -5039,6 +5140,9 @@ function rejouerPurge(chemin, registre, opts) {
         } else if (genre === 'lieu') {
           const [uid, cle] = String(r.objet).split('|');
           if (uid && cle && retirerLieu) bilan.lieuxRetires = (bilan.lieuxRetires || 0) + Number(retirerLieu.run(uid, cle, Number(r.quand) || 0).changes);
+        } else if (genre === 'reunion_trajet') {
+          const [reu, uid] = String(r.objet).split('|');
+          if (reu && uid && retirerTrajetReu) bilan.trajetsRetires = (bilan.trajetsRetires || 0) + Number(retirerTrajetReu.run(reu, uid, Number(r.quand) || 0).changes);
         } else if (genre === 'mdp') {
           const q = Number(r.quand) || 0, uid = String(r.objet).split('|')[0];
           if (oublierMdp) bilan.mdpOublies = (bilan.mdpOublies || 0) + Number(oublierMdp.run(uid, q).changes);

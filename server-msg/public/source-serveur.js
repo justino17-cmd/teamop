@@ -3695,7 +3695,10 @@
     const STATUTS_INVITE = ['attente', 'accepte', 'decline', 'peutetre'];
     const statutInvite = (s) => STATUTS_INVITE.indexOf(s) >= 0 ? s : 'attente';
     const listeRappels = (l) => Array.isArray(l) ? l.filter(Number.isInteger) : [];
-    const vueMoiReunion = (m) => ({ hote: !!(m && m.hote), statut: statutInvite(m && m.statut), rappels: listeRappels(m && m.rappels), rappelsPerso: !!(m && m.rappels_perso) });
+    /* MON trajet (14 octobre 2026) : celui que le service a rangé et qui mène encore au lieu de la réunion (`trajet`), ou celui qui menait à un lieu d'avant (`trajetPerime` : ses réglages,
+       pour le refaire d'un geste) — un service d'avant ne dit ni l'un ni l'autre */
+    const vueMoiReunion = (m) => ({ hote: !!(m && m.hote), statut: statutInvite(m && m.statut), rappels: listeRappels(m && m.rappels), rappelsPerso: !!(m && m.rappels_perso),
+      trajet: vueTrajet(m && m.trajet), trajetPerime: vueTrajet(m && m.trajet_perime) });
     function vueReunion(r) {
       if (r.hote) noter(r.hote);
       return { id: r.id, conv: r.conv, titre: String(r.titre || ''), lieu: String(r.lieu || ''), debut: r.debut, fin: r.fin, tz: String(r.tz || ''), repetition: String(r.repetition || 'aucune'),
@@ -3774,6 +3777,11 @@
     async function quitterReunion(id) { await pourReunion(A.quitterReunion(id)); reunionChangee(id, true); }
     async function repondreReunion(id, statut) { direFuseau(); await pourReunion(A.repondreReunion(id, statut)); reunionChangee(id); }
     async function rappelsReunion(id, rappels) { direFuseau(); await pourReunion(A.rappelsReunion(id, rappels)); reunionChangee(id); }
+    /* MON trajet pour la réunion (14 octobre 2026) : `trajet` tel qu'il a été calculé (ou null pour le retirer), `lieu` le lieu VERS LEQUEL il l'a été — le service refuse (`lieu_change`) s'il a changé depuis */
+    async function trajetReunion(id, trajet, lieu) {
+      const t = trajet ? { minutes: trajet.minutes, km: trajet.km, mode: trajet.mode, avance: trajet.avance, depart: trajet.depart, depart_label: trajet.depart_label, vers_label: trajet.vers_label } : null;
+      await pourReunion(A.trajetReunion(id, t ? { trajet: t, lieu: String(lieu || '') } : { trajet: null })); reunionChangee(id);
+    }
     /* ⛔ LE NOMBRE DE PERSONNES D'UNE RÉUNION (organisateur compris) est CELUI DU SERVICE (`/api/config`, `limites.reunion_personnes` — une seule constante côté service) : la page ne l'écrit nulle part, elle le lit. `null`
        quand on n'a pas pu le savoir (le formulaire ne bloque alors rien : c'est le service qui refuse, `reunion_pleine`, et la phrase dit le plafond). Gardé après une lecture réussie seulement. */
     let plafondReunionLu;
@@ -3906,7 +3914,7 @@
       canalCreer, canalRenommer, canalSupprimer, canalAjouterMembres, canalRetirerMembre,
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
       /* ── les réunions programmées (capacité `reunions`) ── */
-      reunions, reunion, programmer, modifierReunion, decalerReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
+      reunions, reunion, programmer, modifierReunion, decalerReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, trajetReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */
       appels: listeAppels,
       demarrerAppel,
