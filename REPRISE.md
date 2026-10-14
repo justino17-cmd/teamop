@@ -19,6 +19,49 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 14 OCTOBRE 2026 — OP MESSAGES : LE TRAJET D'UNE RÉUNION — CHACUN SON « PARTIR À … » (LOT 2)
+
+La suite de la demande de Justin du 13 octobre (« … et pareil pour pro pour les réunions ou rendez-vous » ; « Réunions + Rendez-vous Pro ») : le lot 1 a donné les rendez-vous,
+celui-ci donne les réunions. Ce qui est écrit (bêta) :
+· **Chacun le sien** : chaque participant (l'organisateur compris) range SON trajet sur SA ligne d'invitation (migration 29 : `reunion_invite.trajet_ch`, scellé, lié à
+  `réunion|personne|trajet`, avec l'empreinte du lieu pour lequel il a été calculé ; `trajet_le` en clair, l'heure du service). ⛔ Personne d'autre ne le lit : ni la liste des
+  invités, ni l'organisateur, ni un autre participant, ni la fiche d'un contact (`personnes.commun`), ni le .ics que l'organisateur envoie par courriel.
+· **Route** `POST /api/reunions/:id/trajet { trajet, lieu }` (garde R) : `lieu` est le lieu VERS LEQUEL il a été calculé — changé entre-temps, 409 `lieu_change` (la page relit et
+  recalcule) ; sans lieu, 400 ; annulée, 409 ; `{ trajet: null }` le retire, toujours — ⛔ hors du plafond (soixante POSES par heure), et retirer rien n'écrit rien.
+· **Le lieu change** : le trajet ne compte plus (`moi.trajet_perime` garde ses réglages, pour le refaire d'un geste) ; ⛔ ceux dont le trajet menait à l'ANCIEN lieu reçoivent « … Le
+  lieu a changé : votre trajet est à recalculer. » MÊME quand l'organisateur ne prévient personne, et une notification qui remplace la précédente le redit ; le lieu RETIRÉ : « Le lieu a
+  été retiré : votre heure de départ ne compte plus. » ; le lieu qui revient à celui du calcul rend le trajet juste.
+· **Le planificateur** : « Il est temps de partir » à l'heure de chacun (début − trajet − avance), à chaque date d'une série ; clé NÉGATIVE au registre des rappels ; plancher : l'horaire,
+  l'arrivée et `trajet_le` (un trajet posé après son heure ne sonne pas après coup) ; refusé ou annulé : rien ; à la minute d'un rappel : UNE notification ; en retard : « Il fallait partir
+  à … » (`texteDepart`, le même texte qu'un rendez-vous). Le trajet ouvert est gardé en mémoire (clé : réunion, personne, vecteur du sceau) : ~17 µs → ~4 µs par trajet et par tour.
+· **La page** : la fiche d'une réunion porte « Trajet » sous « Me rappeler » (je pars de · voiture ou à pied · arriver à l'heure, 5, 10 ou 15 min avant), qui s'ENREGISTRE dès qu'il est
+  calculé (pas de bouton « Enregistrer » dans une fiche) ; « Plutôt : … » garde l'adresse choisie ; la ligne de l'agenda dit « Partir à » ; l'adresse tapée et le curseur survivent au
+  redessin (un invité répond pendant qu'on écrit) ; un trajet gardé que rien n'utilise plus (refusée, passée, annulée, sans lieu, en visio) se lit « Il ne sert plus » et se RETIRE.
+· **Le .ics** de SA personne : le trajet et une alarme au départ ; ⛔ d'où l'on part s'y dit avec les mots du service — « Domicile », « Travail », « Ma position », « une autre
+  adresse » —, jamais l'adresse tapée (corrigé aussi pour les rendez-vous du lot 1). Export (un trajet périmé le dit), effacement du compte, registre des purges (genre `reunion_trajet` :
+  une sauvegarde d'avant ne rend pas un trajet retiré ou remplacé).
+· **Relu par `gardien`** (aucun bloquant ; aucune fuite trouvée sur 18 corps hostiles, le flux, l'export, la fiche d'un autre). Corrigé : ⛔ le .ics emportait l'adresse tapée dans un agenda
+  peut-être partagé → les mots du service ; ⛔ le plafond bloquait aussi le RETRAIT (au soixantième essai, plus moyen d'effacer son adresse pendant une heure) → les poses seules, et un
+  retrait vide n'écrit rien ; `personnes.commun` portait `moi.trajet` → retiré ; le lieu retiré disait « à recalculer » → « ne compte plus » ; `indisponible` (une base d'avant la
+  migration) faisait un 500 → 503 et sa phrase ; la confidentialité disait moins que ce qui est gardé → réécrite (ce qui est chiffré, ce qui est en clair, jusqu'à quand ; le .ics), et le
+  registre des traitements le mentionne (nombre de lignes inchangé).
+⚠️ **Limites connues** : un départ de plus d'une heure avant le début passe par la rotation des réunions « lointaines » (au-delà de 500 réunions dans les 27 heures, une rotation plus
+tard) ; recalculer un trajet plus court APRÈS que le départ a sonné fait sonner la nouvelle heure (c'est une nouvelle heure de départ — assumé) ; le registre des purges n'est jamais
+élagué (une ligne par remplacement, bornée par le plafond — même schéma que le Domicile du lot 1 ; à borner avec la rotation des sauvegardes). ⚠️ À faire relire par le juriste avec le
+lot 1 (l'IGN sous-traitant ultérieur, la conservation du trajet).
+Preuves : `test-1006` (89 ✓) entre dans la porte — le vrai service contre un faux IGN : la fiche de chacun, les refus, le départ de chacun, plus d'une heure avant, en retard, à la
+minute d'un rappel, posé après son heure, le lieu qui change puis revient puis est retiré, le refus, une série, le .ics, l'export, la restauration, une base d'avant ; ⛔ ni la fiche de
+l'organisatrice, ni celle d'une invitée, ni leur agenda, ni la fiche d'un contact, ni le FLUX depuis le début ne portent le trajet d'un autre. `test-1005` 169 ✓ (le .ics d'un
+rendez-vous parti d'une autre adresse). Sonde `sonde-opmessages-trajet-reunion.js` (50 ✓) : Bob à l'iPhone (calculer, arriver plus tôt, « Plutôt », à pied, la ligne de l'agenda, le
+lieu changé dit et recalculé d'un geste, « Il est temps de partir »), l'organisatrice au bureau de nuit (rien du trajet de Bob ; le sien depuis Domicile, enregistré depuis la fiche,
+pendant qu'un invité répond), une visio et une réunion refusée sans calcul — et le trajet gardé d'avant le refus qui se retire —, un libellé piégé en texte. ⚠️ Trois échecs de
+la sonde n'avaient qu'une cause, et elle était dans la SONDE : un prédicat qui jette (l'élément absent pendant « Calcul du trajet… ») fait tomber `waitForFunction` aussitôt.
+Porte des bancs messages : 98 suites, 9 983 vérifications (test-971 tombe en local, fuseaux de la machine ; test-973 tombait sur `moi`, corrigé ; test-984, la course connue du
+relais, rejouée seule : 148 ✓) — plancher 9969. Bancs voisins : 905 (1 193), 906 (49), 972 (181), 973 (298), 941 (59), 922 (16), 900 (39), 933 (105), 836 (307), 846 (365).
+Mutations : 53 sur 54 attrapées. 37 au service (l'empreinte du lieu, le lieu du calcul, la clé négative, le plancher, le texte du départ, le .ics, l'export, le rejeu de la purge,
+la mémoire du planificateur — qui ne verrait pas un trajet remplacé ou ignorerait le lieu —, l'adresse tapée dans le .ics, le plafond du retrait, la fiche d'un contact, le lieu
+retiré…) ; 17 à la page, par la sonde. ⚠️ Celle qui survit retire SEULE la relève de l'adresse tapée au redessin : l'écouteur `input` la garde déjà — les deux retirées, la sonde tombe.
+
 # 🟡 13 OCTOBRE 2026 — OP MESSAGES : LE TRAJET D'UN RENDEZ-VOUS — « PARTIR À … » (LOT 1 ; LES RÉUNIONS SONT LE LOT 2)
 
 Justin, sur la fiche « Nouveau rendez-vous » : « dans rendez-vous il faudrait pouvoir ajouter une adresse que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit

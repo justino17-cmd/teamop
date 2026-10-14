@@ -196,7 +196,7 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('⛔ un collègue (Ben, Cleo), un contact (Dan) sont invités ; un étranger (Eve), un collègue que l\'hôte a BLOQUÉ (Gus) et un identifiant inconnu sont rendus ENSEMBLE dans `non_invites`, sans dire lequel est quoi', [statuts(c1.j), tri(c1.j.non_invites)], ['Ana:accepte Ben:attente Cleo:attente Dan:attente', tri([eve.id, gus.id, INC])]);
       v('⛔ Ivy, un contact SANS Pro, n\'est PAS invitée en son nom : elle est rendue dans `par_lien` (« envoie-lui le lien »), seule — ni dans les invités, ni parmi les refusés', [tri(c1.j.par_lien), c1.j.invites.some(x => x.id === ivy.id), c1.j.non_invites.includes(ivy.id)], [[ivy.id], false, false]);
       v('l\'hôte s\'invite d\'office (accepté) et ne compte pas deux fois ; un doublon dans la liste est ignoré (4 participants)', [c1.j.invites.length, c1.j.invites.filter(i => i.hote).map(i => i.prenom)], [4, ['Ana']]);
-      v('la fiche rendue à l\'hôte : hôte, mes rappels, première occurrence', [c1.j.moi, c1.j.prochaine], [{ hote: true, statut: 'accepte', rappels: [15, 60], rappels_perso: false }, { debut: L26, fin: L26 + HEURE }]);
+      v('la fiche rendue à l\'hôte : hôte, mes rappels, première occurrence', [c1.j.moi, c1.j.prochaine], [{ hote: true, statut: 'accepte', rappels: [15, 60], rappels_perso: false, trajet: null, trajet_perime: null }, { debut: L26, fin: L26 + HEURE }]);      // (le trajet de chacun, migration 29 : aucun ici — test-1006 joue le reste)
       v('⛔ chaque invité ne reçoit de l\'hôte que ce que sa fiche dit : identifiant, prénom, nom, photo, réponse — rien d\'autre sur les autres (ni fuseau, ni adresse)', [...new Set(c1.j.invites.map(i => Object.keys(i).sort().join()))], ['avatar,hote,id,nom,prenom,statut']);
       const nb = await nots(b, R1), nc = await nots(c, R1), nd = await nots(d, R1), na = await nots(a, R1);
       v('⛔ chaque invité a UNE notification d\'invitation qui nomme l\'hôte, dit le titre, et l\'heure dans SON fuseau — Ben à Paris : 14:00', [nb.length, nb[0].type, nb[0].titre, nb[0].texte, nb[0].cible], [1, 'reunion_invitation', T1, 'Ana Banc vous a invité à une réunion : lundi 26 octobre à 14:00.', R1]);
@@ -283,7 +283,7 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
     {
       const r = await b.post('/api/reunions/' + R1 + '/rappels', { rappels: [1440, 5] });
       v('Ben choisit 5 minutes et 1 jour avant : ses rappels, triés, sont les siens', [r.code, r.j.moi.rappels, r.j.moi.rappels_perso], [200, [5, 1440], true]);
-      v('⛔ … ceux de la réunion, et ceux d\'Ana, n\'ont pas bougé', [r.j.reunion.rappels, (await fiche(a, R1)).j.moi], [[15, 60], { hote: true, statut: 'accepte', rappels: [15, 60], rappels_perso: false }]);
+      v('⛔ … ceux de la réunion, et ceux d\'Ana, n\'ont pas bougé', [r.j.reunion.rappels, (await fiche(a, R1)).j.moi], [[15, 60], { hote: true, statut: 'accepte', rappels: [15, 60], rappels_perso: false, trajet: null, trajet_perime: null }]);
       const rien = await b.post('/api/reunions/' + R1 + '/rappels', { rappels: [] });
       v('« aucun rappel » est un choix (liste vide)', [rien.j.moi.rappels, rien.j.moi.rappels_perso], [[], true]);
       const nul = await b.post('/api/reunions/' + R1 + '/rappels', { rappels: null });

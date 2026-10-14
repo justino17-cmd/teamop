@@ -103,7 +103,11 @@
 # puis le vrai service contre un faux IGN) ; 900 (l'adresse de l'IGN, sixième exception nommée), 906 (routes-trajet.js au recensement des phrases), 950 (le genre « lieu » du
 # registre des purges, lieu_perso comptée), 957 (lieuxLire au magasin simulé), 903 et 914 (en production, les bancs ferment le trajet) suivent — 97 suites, 9 889 vérifications
 # mesurées par la commande de la porte (test-971 tombe en local, fuseaux de la machine, avec son total complet) — plancher 9875 (le total moins 14, jamais une addition).
-#plancher 9875
+# 14 octobre 2026 : le trajet d'une réunion, chacun le sien (la migration 29) : test-1006 entre (89 : le texte du départ, le .ics, la route, le planificateur, le lieu qui change,
+# l'export, la restauration, une base d'avant) ; 1005 (169 : le .ics ne dit plus l'adresse tapée), 905 (la route à la matrice), 906 (la phrase d'`indisponible`), 972 et 973 (`moi`
+# porte `trajet`) suivent — 98 suites, 9 983 vérifications mesurées par la commande de la porte (test-971 tombe en local, fuseaux de la machine ; test-973 y tombait sur deux
+# comparaisons strictes de `moi`, corrigées et rejouées seules : 298 ✓ ; test-984, la course connue du relais, rejouée seule deux fois : 148 ✓) — plancher 9969 (le total moins 14).
+#plancher 9969
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
