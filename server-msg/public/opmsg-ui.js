@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'fe455ac898e4';
+  const OPMSG_BUILD = 'b73f73694684';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 190;
+  const OPMSG_VERSION = 191;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6947,7 +6947,7 @@
     if (!reuTrajetVoulu(d, o) || (!trajetReuPossible() && !d.moi.trajet)) {
       /* ⛔ un trajet RANGÉ reste retirable quand la zone n'a plus lieu d'être — la réunion refusée, passée, annulée, sans lieu ou en visio, ou le calcul fermé : ce que la personne ne voit plus servir,
          elle doit pouvoir l'effacer (relecture du gardien : il restait gardé, sans terme et sans geste). Rien d'autre : ni calcul, ni heure. */
-      const garde = (d.moi.trajet || d.moi.trajetPerime) && CAP.trajet && typeof source.trajetReunion === 'function';
+      const garde = (d.moi.trajet || d.moi.trajetPerime) && CAP.trajet && typeof source.trajetReunion === 'function' && (!reuTrajetVoulu(d, o) || TJ.ouvert === false);   // (le calcul pas encore dit : on attend, rien ne clignote)
       if (garde && !F.tr) F.tr = trajetReuEtat(d);
       const h = !garde ? '' : '<div class="rubrique"><span>Trajet</span><span>Il ne sert plus</span></div><div class="carte carte-pad reu-trajet">' +
         '<p class="info-note">Ton trajet est encore gardé pour cette réunion, mais il ne sert plus. Toi seul le vois.</p>' + (F.tr.erreur ? '<p class="info-erreur evt-tr-res" role="alert">' + esc(F.tr.erreur) + '</p>' : '') +

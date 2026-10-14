@@ -129,6 +129,11 @@ const hmUtc = (ms) => new Date(ms).toISOString().slice(11, 16);
     const com = await B.get('/api/personnes/' + A.moi.id + '/commun'), comM1 = (com.j.reunions || []).find(x => x.id === M1);
     v('⛔ la fiche de l\'organisatrice chez Bob (« en commun ») : la réunion y est, SANS le trajet de Bob — ni l\'adresse trouvée, ni « Ma position » (relecture du gardien)',
       [com.code, !!comM1, comM1 && 'trajet' in comM1.moi, com.txt.includes(CP.label), com.txt.includes('Ma position')], [200, true, false, false, false]);
+    const flux = async (P) => { const r = await P.get('/api/sync?depuis=0'); return { r, m1: (r.j.evenements || []).filter(e => JSON.stringify(e).includes(M1)).length }; };
+    const fxA = await flux(A), fxB = await flux(B), fxC = await flux(C);
+    v('⛔ le flux (depuis le début) de l\'organisatrice, de Claire et de Bob lui-même : la réunion y passe, son trajet jamais — ni l\'adresse trouvée, ni « Ma position », ni les km (relecture du gardien)',
+      [[fxA, fxB, fxC].map(x => x.r.code), [fxA, fxB, fxC].every(x => x.m1 > 0), [fxA, fxB, fxC].some(x => x.r.txt.includes(CP.label) || x.r.txt.includes('Ma position') || x.r.txt.includes('"km"'))],
+      [[200, 200, 200], true, false]);
     const ligneB = sql('SELECT trajet_ch, trajet_le FROM reunion_invite WHERE reunion = ? AND uid = ?', M1, B.moi.id);
     v('⛔ en base : SCELLÉ (ni le lieu trouvé, ni d\'où l\'on part, ni le mode, ni les km en clair) ; posé à l\'heure du SERVICE', [!!ligneB.trajet_ch,
       enClair('SELECT trajet_ch FROM reunion_invite WHERE reunion = ?', ['Clinique', 'Ma position', 'voiture', String(tB.km)], M1), Number(ligneB.trajet_le) >= avantPose && Number(ligneB.trajet_le) <= maintenant() + 1000],
