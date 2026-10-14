@@ -181,5 +181,14 @@ function validerTrajet(t) {
 }
 /* combien de minutes AVANT le début faut-il partir (le trajet, plus l'avance voulue) — null sans trajet */
 const avantDepart = (t) => t && Number.isSafeInteger(t.minutes) ? t.minutes + (Number.isSafeInteger(t.avance) ? t.avance : 0) : null;
+/* ⛔ LE TEXTE DU RAPPEL DE DÉPART, UNE SEULE FOIS — un rendez-vous (`routes-agenda.js`) et une réunion (`planificateur.js`) le disent pareil : « Il est temps de partir · 25 min en voiture, arrivée
+   13:50 ». Un départ qui sonne EN RETARD (le service arrêté, le planificateur en retard — plus de deux minutes) ne dit pas « il est temps » : il dit l'heure qu'il était, et celle à laquelle on arrivera
+   en partant maintenant (relecture du gardien, 13 octobre 2026). `echeance` : l'heure de partir ; `hm(instant)` : son heure locale (« 13:50 »), dans le fuseau de celui qui lit. */
+const RETARD_DEPART_MS = 2 * 60000;
+function texteDepart(t, debut, echeance, maintenant, hm) {
+  const moyen = t.minutes + ' min ' + (t.mode === 'pied' ? 'à pied' : 'en voiture');
+  if (maintenant - echeance > RETARD_DEPART_MS) return 'Il fallait partir à ' + hm(echeance) + ' · ' + moyen + ' — en partant maintenant, arrivée vers ' + hm(maintenant + t.minutes * 60000);
+  return 'Il est temps de partir · ' + moyen + ', ' + (t.avance ? 'arrivée ' + hm(debut - t.avance * 60000) : 'pour ' + hm(debut));
+}
 
-module.exports = { creerTrajet, validerTrajet, avantDepart, texteAdresse, distanceM, MODES, AVANCES, DEPARTS, RECOLLE_MAX_M, ATTENTE_MAX_MS, REPONSE_MAX, VITESSES };
+module.exports = { creerTrajet, validerTrajet, avantDepart, texteDepart, texteAdresse, distanceM, MODES, AVANCES, DEPARTS, RECOLLE_MAX_M, ATTENTE_MAX_MS, REPONSE_MAX, VITESSES, RETARD_DEPART_MS };

@@ -143,6 +143,7 @@
     trajet_en_cours: 'Un calcul de trajet est déjà en cours. Réessaie dans un instant.',
     trajet_indisponible: 'Le calcul du trajet ne répond pas pour le moment. Réessaie plus tard — le rendez-vous, lui, s\'enregistre sans.',
     trajet_ferme: 'Le calcul du trajet n\'est pas ouvert sur ce serveur.',
+    lieu_change: 'Le lieu de la réunion vient de changer : calcule le trajet à nouveau.',
     /* envoyer plus tard, et l'ordre du jour d'une réunion (8 octobre 2026) */
     programmes_plein: 'Tu as déjà cinquante messages programmés : annule-en un pour en programmer un autre.',
     ordre_du_jour_invalide: 'L\'ordre du jour compte vingt points au plus, de 200 signes chacun.',
@@ -623,6 +624,7 @@
       quitterReunion: (id) => appel('POST', '/api/reunions/' + e(id) + '/quitter'),
       repondreReunion: (id, statut) => appel('POST', '/api/reunions/' + e(id) + '/reponse', { statut }),
       rappelsReunion: (id, rappels) => appel('POST', '/api/reunions/' + e(id) + '/rappels', { rappels }),
+      trajetReunion: (id, corps) => appel('POST', '/api/reunions/' + e(id) + '/trajet', corps),
       /* l'invitation par courriel à quelqu'un qui n'a pas OP MESSAGES (le fichier .ics en pièce jointe) : l'adresse n'est ni rangée ni rendue par le service */
       courrielReunion: (id, destinataire, o2) => appel('POST', '/api/reunions/' + e(id) + '/courriel', Object.assign({ destinataire }, o2 || {})),
       /* l'adresse du fichier .ics (la page le télécharge par un lien : le cookie de session suit) — une occurrence (son début, en millisecondes), ou toute la série */

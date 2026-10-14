@@ -24,6 +24,10 @@
  *     lointaines, passe en ROTATION par une CLÉ de reprise (prochain, id) — pas un rang, qui glisserait quand des réunions sortent de la liste entre deux tours.
  *   · LA SANTÉ (`sante()`, publiée dans /health) : des NOMBRES et un booléen — jamais une réunion, une personne, un titre. L'âge du dernier tour et le nombre de tours de suite en échec sont
  *     surveillés ; un rappel qui ne part plus se voit là.
+ *   · LE DÉPART (14 octobre 2026, le trajet d'une réunion : « pareil pour pro, pour les réunions ») : un participant qui a rangé SON trajet reçoit, à chaque occurrence, « Il est temps de partir »
+ *     à l'heure de PARTIR (le début, moins le trajet, moins l'avance qu'il veut). Même registre, même transaction, même rattrapage que les rappels ; sa clé est négative (`-minutes`). Un trajet qui
+ *     menait à un autre lieu (l'organisateur l'a changé depuis) ne fait partir personne : le stockage ne le rend pas. ⚠️ Un départ de PLUS D'UNE HEURE avant le début tombe pendant que la réunion
+ *     est encore « lointaine » : au-delà de `parTour` réunions lointaines, elles passent en rotation, et ce départ peut sonner une rotation plus tard (un tour par tranche de 500 réunions).
  *   · LE REGISTRE NE GROSSIT PAS : chaque heure, les rappels des occurrences de plus de deux jours et les envois de courriel de plus de huit jours sont élagués.
  *
  * ⛔ LE TEXTE D'UN RAPPEL, UN TITRE, UN NOM n'entrent jamais dans un journal : `journaliser` ne reçoit que des nombres et des états. Les erreurs sont journalisées par leur NOM seulement.
@@ -33,7 +37,8 @@
 const crypto = require('crypto');
 const { performance } = require('perf_hooks');
 const cal = require('./calendrier');
-const { serieDe, texteRappel, creerNotifieur } = require('./reunions-outils');
+const { serieDe, texteRappel, fuseauDe, creerNotifieur } = require('./reunions-outils');
+const { avantDepart, texteDepart } = require('./trajet');
 
 const HEURE = 3600000, JOUR = 86400000;
 const HORIZON_MS = 27 * HEURE;            // « 1 jour avant » est au plus 25 heures le jour d'un changement d'heure ; une heure de marge
@@ -88,7 +93,8 @@ function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push,
     for (const o of occurrences) {
       for (const p of r.participants) {
         const avants = p.rappels !== null ? p.rappels : r.defaut;
-        if (!avants.length) continue;
+        const dep = avantDepart(p.trajet);                                           // son trajet (migration 29) : les minutes avant le début où IL doit partir — null sans trajet
+        if (!avants.length && dep === null) continue;
         const plancher = Math.max(plancherReunion, p.cree, p.rappels_le);
         const dus = [];
         for (const a of avants) {
@@ -97,10 +103,21 @@ function creerPlanificateur({ stockage, hub, config, horloge, journaliser, push,
           if (partis.has(o.debut + '|' + p.uid + '|' + a)) continue;               // déjà parti
           dus.push(a);
         }
+        /* ⛔ LE DÉPART : une échéance de plus, à l'heure de PARTIR (le début, moins le trajet, moins l'avance voulue). Sa clé au registre est NÉGATIVE (`-minutes`), jamais celle d'un rappel (des
+           minutes positives) : un départ et un rappel « 1 heure avant » ne se confondent pas. Son plancher n'est pas le réglage des rappels mais l'instant où le trajet a été posé (`trajet_le`) :
+           un trajet recalculé dont l'heure de partir est déjà passée ne sonne pas après coup ; un départ plus tardif sonne, à sa nouvelle heure (une autre clé). */
+        let depart = null;
+        if (dep !== null) {
+          const echeance = o.debut - dep * cal.MIN;
+          if (echeance >= Math.max(plancherReunion, p.cree, p.trajet_le) && echeance <= t && !partis.has(o.debut + '|' + p.uid + '|' + (-dep))) { dus.push(-dep); depart = echeance; }
+        }
         if (!dus.length) continue;
         if (o.debut <= t) { bilan.abandonnes += dus.length; continue; }            // l'occurrence a COMMENCÉ : un rappel n'a plus de sens
         if (!gens.has(p.uid)) gens.set(p.uid, stockage.personneParId(p.uid));
-        aEnvoyer.push({ reunion: r.id, occurrence: o.debut, uid: p.uid, avants: dus, titre: r.titre, texte: texteRappel(r, gens.get(p.uid), o.debut, t), cible: r.id });
+        /* un départ dû dans le même tour qu'un rappel (un arrêt les a laissés s'accumuler, ou ils tombent à la même minute) : UNE notification, et c'est le départ qu'elle dit */
+        const tz = fuseauDe(gens.get(p.uid), r.tz), hm = (ms) => { const c = cal.champsLocaux(ms, tz); return String(c.h).padStart(2, '0') + ':' + String(c.mi).padStart(2, '0'); };
+        const texte = depart !== null ? texteDepart(p.trajet, o.debut, depart, t, hm) : texteRappel(r, gens.get(p.uid), o.debut, t);
+        aEnvoyer.push({ reunion: r.id, occurrence: o.debut, uid: p.uid, avants: dus, titre: r.titre, texte, cible: r.id });
       }
     }
     if (aEnvoyer.length) {

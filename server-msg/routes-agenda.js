@@ -34,7 +34,7 @@
 'use strict';
 const cal = require('./calendrier');
 const ics = require('./ics');
-const { validerTrajet, avantDepart } = require('./trajet');
+const { validerTrajet, avantDepart, texteDepart } = require('./trajet');
 
 const JOUR = 86400000, MIN = 60000;
 const FENETRE_MAX = 92 * JOUR, LISTE_MAX = 500, EVENEMENTS_MAX = 2000;
@@ -286,12 +286,8 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
       /* l'échéance qui part est-elle celle du DÉPART ? (le trajet et l'avance avant le début, à la minute) — son rappel le dit, avec le trajet et l'heure d'arrivée voulue */
       const hm = (ms) => { const c2 = cal.champsLocaux(ms, x.tz); return String(c2.h).padStart(2, '0') + ':' + String(c2.mi).padStart(2, '0'); };
       const depart = dep !== null && x.rappelA === x.debut - dep * MIN;
-      /* ⛔ un départ qui sonne EN RETARD (le service arrêté, le planificateur en retard — plus de deux minutes) ne dit pas « il est temps » : il dit l'heure qu'il était, et celle à laquelle on
-         arrivera en partant maintenant (relecture du gardien, 13 octobre 2026) */
-      const enRetard = depart && t - x.rappelA > 2 * MIN, moyen = depart ? x.trajet.minutes + ' min ' + (x.trajet.mode === 'pied' ? 'à pied' : 'en voiture') : '';
-      const quand2 = !depart ? quand
-        : enRetard ? 'Il fallait partir à ' + hm(x.rappelA) + ' · ' + moyen + ' — en partant maintenant, arrivée vers ' + hm(t + x.trajet.minutes * MIN)
-        : 'Il est temps de partir · ' + moyen + ', ' + (x.trajet.avance ? 'arrivée ' + hm(x.debut - x.trajet.avance * MIN) : 'pour ' + hm(x.debut));
+      /* le texte du départ (en retard aussi) : le même qu'une réunion — `texteDepart`, une seule fois (`trajet.js`) */
+      const quand2 = depart ? texteDepart(x.trajet, x.debut, x.rappelA, t, hm) : quand;
       const texte = x.genre === 'rdv' && x.avec ? quand2 + ' · avec ' + x.avec : quand2;
       const n = stockage.evenementRappelEnvoyer(x.id, { titre: x.titre, texte, suivant: prochaine(x.debut, x.rappels, x.tz, t, dep) });
       /* le côté du rappel (le sien, sinon celui de la conversation d'où il vient, sinon Perso — la règle de la page) : « OP MESSAGES PRO » pour un rappel de l'agenda Pro */

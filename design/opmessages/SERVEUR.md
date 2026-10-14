@@ -948,6 +948,24 @@ Trois constats, pour Justin :
   · **le .ics** : le trajet dans la description (« Trajet : 25 min en voiture depuis Domicile — partir à 13:10 pour arriver à 13:50. ») et une alarme au départ (`VALARM`, le rappel de la même
     minute n'est pas répété). Bancs : `test-1005` (le module seul, la configuration, puis le vrai service contre un faux IGN), sonde `sonde-opmessages-trajet.js` (la vraie page, une position
     de navigateur, au doigt et au bureau de nuit).
+- ✅ **LE TRAJET D'UNE RÉUNION — CHACUN LE SIEN (14 octobre 2026, lot 2)** — « et pareil pour pro, pour les réunions ». Chaque participant (l'organisateur compris) range SON trajet vers le
+  lieu de la réunion ; personne d'autre ne le lit.
+  · **migration 29** : `reunion_invite.trajet_ch` (scellé, AAD `réunion|personne|trajet`, avec l'empreinte du lieu `pour_lieu`) et `reunion_invite.trajet_le` (en clair : l'heure du service où il a
+    été posé). ⛔ Il ne sort que vers SA personne : `moi.trajet` dans la fiche (`reunionPourMembre`) et l'agenda (`reunionsDe`), jamais dans `invites`, jamais chez l'organisateur.
+  · **route** (garde R) : `POST /api/reunions/:id/trajet` `{ trajet, lieu }` — le trajet calculé par `POST /api/trajet` (jugé par `validerTrajet`), `lieu` le lieu VERS LEQUEL il l'a été : s'il
+    n'est plus celui de la réunion, 409 `lieu_change` ; une réunion sans lieu, 400 `trajet_invalide` ; annulée, 409 `reunion_annulee` ; `{ trajet: null }` le retire, toujours. Soixante écritures
+    par heure et par personne. → la fiche.
+  · **le lieu change** (l'organisateur) : le trajet ne compte plus (`moi.trajet: null`, `moi.trajet_perime` : ses réglages, pour le refaire) ; ⛔ ceux dont le trajet menait à l'ANCIEN lieu
+    reçoivent « … Le lieu a changé : votre trajet est à recalculer. », même quand l'organisateur ne prévient personne ; toute notification de modification qui part le redit à ceux dont le trajet
+    mène encore ailleurs (elle remplace la précédente). Le lieu revient à celui du calcul : le trajet revaut.
+  · **le planificateur** : « Il est temps de partir » à l'heure de PARTIR de chacun (début − trajet − avance), à chaque occurrence ; clé NÉGATIVE au registre (`-minutes`) ; plancher : l'horaire, son
+    arrivée, et `trajet_le` (un trajet posé après son heure ne sonne pas après coup) ; refusé : rien ; à la minute d'un rappel : UNE notification, qui dit le départ ; en retard : « Il fallait partir à… »
+    (`texteDepart`, une seule fois dans `trajet.js` : le même texte qu'un rendez-vous). ⚠️ Un départ de plus d'une heure avant le début passe par la rotation des réunions « lointaines » : au-delà de
+    500 réunions dans les 27 heures, il peut sonner une rotation plus tard.
+  · **le .ics** de SA personne : le trajet dans la description (une date : l'heure, dans son fuseau ; une série : « partir N min avant le début ») et une alarme au départ — jamais dans le fichier
+    que l'organisateur envoie par courriel. **Export** : `reunions[].trajet` (périmé, il le dit : `perime: true`) ; l'effacement du compte l'emporte ; ⛔ un trajet RETIRÉ ou REMPLACÉ est noté au
+    registre des purges (genre `reunion_trajet`, objet `réunion|personne|instant`) : une archive d'avant ne rend pas l'adresse de départ. Bancs : `test-1006`, sonde
+    `sonde-opmessages-trajet-reunion.js` (Bob à l'iPhone, l'organisatrice au bureau de nuit).
 
 ### Étape 7 : appels un à un, audio et vidéo
 

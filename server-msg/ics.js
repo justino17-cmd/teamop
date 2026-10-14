@@ -182,6 +182,7 @@ function regleRepetition(r) {
    · `r` : { id, titre, lieu, debut, fin, tz, rep, n, jusqua, annulee, version } — `debut` et `fin` : la première occurrence, en instants UTC ;
    · `opts.occurrence` : le début (UTC) d'UNE occurrence de la série — le fichier ne porte alors que celle-là ; sinon toute la série (ou la réunion seule) ;
    · `opts.rappels` : les minutes avant le début (5, 15, 60, 1440) des rappels de la personne qui télécharge ;
+   · `opts.trajet` : SON trajet (14 octobre 2026), ou rien — une alarme de plus, à l'heure de partir ; `opts.tzLecteur` : son fuseau, pour dire cette heure (une seule date) ;
    · `opts.maintenant` : l'heure du service (DTSTAMP). */
 function fichier(r, opts) {
   const o = opts || {};
@@ -209,13 +210,23 @@ function fichier(r, opts) {
   }
   event.push('SUMMARY:' + texte(r.titre));
   if (r.lieu) event.push('LOCATION:' + texte(r.lieu));
-  event.push('DESCRIPTION:' + texte('Réunion programmée avec OP MESSAGES.'));
+  /* le trajet de la personne qui télécharge (14 octobre 2026) : la durée et d'où elle part, dans la description ; une alarme à l'heure de PARTIR (le trajet et l'avance voulue avant chaque début).
+     Une série dit « partir N min avant le début » ; une seule date dit l'heure, dans le fuseau de celui qui télécharge. */
+  const t = r.lieu && o.trajet && Number.isSafeInteger(o.trajet.minutes) ? o.trajet : null;
+  const dep = t ? t.minutes + (Number.isSafeInteger(t.avance) ? t.avance : 0) : null;
+  const tzL = cal.tzValide(o.tzLecteur) || r.tz, hm = (ms) => { const c = cal.champsLocaux(ms, tzL); return p2(c.h) + ':' + p2(c.mi); };
+  const moyen = t ? t.minutes + ' min ' + (t.mode === 'pied' ? 'à pied' : 'en voiture') : '';
+  const trajetTexte = !t ? '' : 'Trajet : ' + moyen + (t.depart_label ? ' depuis ' + t.depart_label : '') + ' — ' +
+    (serie ? 'partir ' + dep + ' min avant le début.' : 'partir à ' + hm(debut - dep * cal.MIN) + (t.avance ? ' pour arriver à ' + hm(debut - t.avance * cal.MIN) : '') + '.');
+  event.push('DESCRIPTION:' + texte([trajetTexte, 'Réunion programmée avec OP MESSAGES.'].filter(Boolean).join('\n\n')));
   event.push('STATUS:' + (r.annulee ? 'CANCELLED' : 'CONFIRMED'), 'TRANSP:OPAQUE');
   for (const m of rappels) {
+    if (dep !== null && m === dep && m !== 1440) continue;                       // le rappel qui tombe à l'heure de partir : l'alarme du départ le porte (une seule sonnerie)
     /* Une série écrite en heure locale : « 1 jour » est un jour civil (-P1D). Une occurrence écrite en UTC n'a pas de jour civil : on écrit la durée exacte. */
     const declenche = m === 1440 && serie ? '-P1D' : declencheur(Math.round((debut - cal.echeanceRappel(debut, m, r.tz)) / cal.MIN));
     event.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + texte('Rappel : ' + r.titre), 'TRIGGER:' + declenche, 'END:VALARM');
   }
+  if (dep !== null) event.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + texte('Il est temps de partir : ' + r.titre + ' (' + moyen + ')'), 'TRIGGER:' + declencheur(dep), 'END:VALARM');
   event.push('END:VEVENT');
   for (const l of event) lignes.push(l);
   lignes.push('END:VCALENDAR');
