@@ -117,6 +117,11 @@ Date : jeu. 15 oct. 2026 à 09:12
 Objet : Confirmation
 
 Votre rendez-vous : jeudi 29 octobre 2026 à 9h40.`).debut, '2026-10-29T09:40');
+  /* les deux gardes de l'en-tête se couvrent l'une l'autre (mutation G22 : l'heure écartée suffisait) — chacune a son cas */
+  v('⛔ la DATE d\'en-tête (aujourd\'hui) n\'est pas prise quand le rendez-vous n\'a pas d\'heure', pick(L(`Le jeu. 15 oct. 2026, Doctolib <no-reply@doctolib.fr> a écrit :
+> Votre rendez-vous du vendredi 30 octobre 2026 est confirmé.`), 'date', 'heure'), ['2026-10-30', null]);
+  v('⛔ l\'HEURE d\'un en-tête (« Envoyé : … 14:02 ») ne se colle pas à la date du rendez-vous juste au-dessus', pick(L(`Votre rendez-vous du 30 octobre est confirmé.
+Envoyé : mardi 13 octobre 2026 14:02`), 'date', 'heure'), ['2026-10-30', null]);
   v('⛔ une réservation faite AUJOURD\'HUI, avec son heure, n\'est pas le rendez-vous', L('Rendez-vous pris le 15/10/2026 à 09:30 sur Doctolib.\nVotre rendez-vous : lundi 19 octobre à 11h.').debut, '2026-10-19T11:00');
   v('« Envoyé : » (Outlook) non plus', L(`Envoyé : mardi 13 octobre 2026 08:00
 Votre RDV est fixé au 21/10/2026 à 15h.`).debut, '2026-10-21T15:00');
