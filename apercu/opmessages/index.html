@@ -10211,7 +10211,12 @@ a.menu-action { text-decoration: none; }
   async function trajetReuRetirer() {
     const F = reu.fiche; if (!F || !F.tr || F.tr.calcul) return;
     F.tr.erreur = ''; F.tr.autres = [];
-    try { await source.trajetReunion(F.id, null); mot('Trajet retiré'); await relireFicheTrajet(); }
+    try {
+      await source.trajetReunion(F.id, null); mot('Trajet retiré'); await relireFicheTrajet();
+      /* ⛔ le bouton touché a disparu, et la fiche s'est redessinée tout entière (son trajet a changé) : le focus était tombé sur la page — il va au calcul */
+      const z = $('reu-trajet-zone'), a = document.activeElement;
+      if (reu.fiche === F && z && (!a || a === document.body || !a.isConnected)) { const b = z.querySelector('[data-reu="trajet-calculer"], [data-reu="trajet-ouvrir"]'); if (b) b.focus({ preventScroll: true }); }
+    }
     catch (er) { if (reu.fiche !== F) return; F.tr.erreur = phrase(er, 'Le trajet n\'a pas pu être retiré.'); peindreTrajetReu(); }
   }
 

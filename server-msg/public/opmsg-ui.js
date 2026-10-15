@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c58b579900c3';
+  const OPMSG_BUILD = '9d508743a65c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 201;
+  const OPMSG_VERSION = 202;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -7385,7 +7385,12 @@
   async function trajetReuRetirer() {
     const F = reu.fiche; if (!F || !F.tr || F.tr.calcul) return;
     F.tr.erreur = ''; F.tr.autres = [];
-    try { await source.trajetReunion(F.id, null); mot('Trajet retiré'); await relireFicheTrajet(); }
+    try {
+      await source.trajetReunion(F.id, null); mot('Trajet retiré'); await relireFicheTrajet();
+      /* ⛔ le bouton touché a disparu, et la fiche s'est redessinée tout entière (son trajet a changé) : le focus était tombé sur la page — il va au calcul */
+      const z = $('reu-trajet-zone'), a = document.activeElement;
+      if (reu.fiche === F && z && (!a || a === document.body || !a.isConnected)) { const b = z.querySelector('[data-reu="trajet-calculer"], [data-reu="trajet-ouvrir"]'); if (b) b.focus({ preventScroll: true }); }
+    }
     catch (er) { if (reu.fiche !== F) return; F.tr.erreur = phrase(er, 'Le trajet n\'a pas pu être retiré.'); peindreTrajetReu(); }
   }
 
