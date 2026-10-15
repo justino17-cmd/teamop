@@ -35,6 +35,23 @@ async function ouvrir(b, base, pf, nuit) {
 }
 const attendre = (S, fn, arg, ms) => S.page.waitForFunction(fn, arg, { timeout: ms || 9000, polling: 50 }).then(() => true, () => false);
 async function toucher(S, sel) { const l = S.page.locator(sel).filter({ visible: true }).first(); await l.scrollIntoViewIfNeeded().catch(() => {}); if (S.pf.mobile) await l.tap(); else await l.click(); }
+
+/* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : il propose Rendez-vous, Événement, et Réunion côté Pro. On le touche, puis le choix — avec un seul choix,
+   le « + » y va tout droit. `choixAgenda` lit ce que le « + » propose (et referme le menu). */
+async function creerAgenda(S, quoi) {
+  await toucher(S, '#btn-agenda-plus');
+  await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return (d && !d.hidden) || !!document.querySelector('#feuille:not([hidden]), .feuille:not([hidden])'); }, null, { timeout: 8000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; })) await toucher(S, '#deroule-liste [data-valeur="' + quoi + '"]');
+}
+async function choixAgenda(S) {
+  await toucher(S, '#btn-agenda-plus');
+  const ouvert = await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; }, null, { timeout: 8000 }).then(() => true, () => false);
+  if (!ouvert) return null;
+  const l = await S.page.evaluate(() => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(b => b.textContent.trim()));
+  await S.page.keyboard.press('Escape');
+  await S.page.waitForFunction(() => document.getElementById('deroule').hidden, null, { timeout: 8000 }).catch(() => {});
+  return l;
+}
 const lignes = (S) => S.page.evaluate(() => Array.from(document.querySelectorAll('#liste-reunions [data-evenement]')).map(b => b.textContent.replace(/\s+/g, ' ').trim()));
 async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { recursive: true }); await S.page.waitForTimeout(300); await S.page.screenshot({ path: path.join(DOSSIER, nom + '.png') }); }
 const aujourdhui = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -52,11 +69,12 @@ const aujourdhui = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
     v('l\'onglet du téléphone dit « Agenda »', await A.page.evaluate(() => document.querySelector('#tabs a[data-vue="reunions"]').textContent.trim()), 'Agenda');
     await toucher(A, '#tabs a[data-vue="reunions"]');
     /* ⛔ côté Perso (Alice n'a pas d'espace), « Réunion » devient « Rendez-vous » (13 octobre 2026) : le bouton des réunions est là, caché — le rendez-vous a sa sonde, sonde-opmessages-rendez-vous.js */
-    vrai('il s\'ouvre, titre « Agenda », avec « Événement » et « Rendez-vous » en haut (« Réunion » caché : Perso)', await attendre(A, () => { const s = document.getElementById('vue-reunions'); const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return !s.hidden && document.getElementById('titre-reunions').textContent === 'Agenda' && vu('btn-evenement-nouveau') && vu('btn-rdv-nouveau') && document.getElementById('btn-rdv-nouveau').textContent === 'Rendez-vous' && !!document.getElementById('btn-reunion-nouvelle') && !vu('btn-reunion-nouvelle'); }));
+    vrai('il s\'ouvre, titre « Agenda », avec UN « + » en haut (15 octobre 2026 : plus de liens côte à côte)', await attendre(A, () => { const s = document.getElementById('vue-reunions'), p = document.getElementById('btn-agenda-plus'); return !s.hidden && document.getElementById('titre-reunions').textContent === 'Agenda' && !!p && p.getClientRects().length > 0 && p.getAttribute('aria-label') === 'Nouveau'; }));
+    v('le « + » propose « Rendez-vous » et « Événement » — PAS « Réunion » (Perso)', await choixAgenda(A), ['Rendez-vous', 'Événement']);
     vrai('population : la journée est chargée et vide (« Rien de prévu ce jour-là »)', await attendre(A, () => /Rien de prévu/.test(document.getElementById('liste-reunions').textContent)));
 
     console.log('\n── 2. Créer un événement ──');
-    await toucher(A, '#btn-evenement-nouveau');
+    await creerAgenda(A, 'evenement');
     vrai('« Événement » ouvre « Nouvel événement » : titre, journée entière, début, fin, lieu, rappel (15 min par défaut), note', await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouvel événement' && !!document.getElementById('ev-titre') && document.getElementById('ev-rappel').value === '15' && !!document.getElementById('ev-note')));
     const m = await A.page.evaluate(() => Array.from(document.querySelectorAll('#info-corps input, #info-corps select, #info-corps textarea')).filter(x => x.getClientRects().length).map(x => parseFloat(getComputedStyle(x).fontSize)));
     v('iPhone : chaque champ à 16 px au moins (Safari zoomerait)', [m.length >= 6, m.every(t => t >= 16)], [true, true]);
@@ -89,7 +107,7 @@ const aujourdhui = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
     console.log('\n── 4. Le rappel arrive dans la page ──');
     const debut = new Date(Date.now() + 20 * 60000);
     const local = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(debut).replace(' ', 'T');
-    await toucher(A, '#btn-evenement-nouveau');
+    await creerAgenda(A, 'evenement');
     await attendre(A, () => !!document.getElementById('ev-titre'));
     await A.page.locator('#ev-titre').fill('Appeler le garage'); await A.page.locator('#ev-debut').fill(local);
     const finL = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(debut.getTime() + 1800000)).replace(' ', 'T');

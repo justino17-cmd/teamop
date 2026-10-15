@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '0e62c257a86c';
+  const OPMSG_BUILD = '9d508743a65c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 198;
+  const OPMSG_VERSION = 202;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -276,14 +276,23 @@
      compte Pro sans les deux côtés (un service d'avant). Sans la capacité (un service qui ne connaît pas le rendez-vous), rien ne change.
      ⛔ CÔTÉ PRO, LES DEUX (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») : une réunion (avec d'autres), ou un rendez-vous (chez un client, un fournisseur) —
      rangé dans l'agenda Pro, avec son heure de départ. */
-  function peindreBoutonsAgenda() {
-    const rdv = $('btn-rdv-nouveau'), reu = $('btn-reunion-nouvelle'); if (!rdv || !reu) return;
-    const perso = !etat.pro || (modesActifs() && etat.mode !== 'pro');
-    rdv.hidden = false; reu.hidden = perso;
+  /* ce que le « + » de l'Agenda propose : le rendez-vous (des deux côtés), l'événement, et la réunion — côté Pro seulement quand le rendez-vous existe (Perso, ce sont les rendez-vous ;
+     les réunions sont à Pro). Créer : le même chemin qu'avant, la feuille rend le focus au « + ». */
+  function choixCreerAgenda() {
+    const perso = !etat.pro || (modesActifs() && etat.mode !== 'pro'), l = [];
+    if (CAP.rendezVous) l.push({ valeur: 'rdv', libelle: 'Rendez-vous' });
+    if (CAP.agenda) l.push({ valeur: 'evenement', libelle: 'Événement' });
+    if (!perso || !CAP.rendezVous) l.push({ valeur: 'reunion', libelle: 'Réunion' });
+    return l;
+  }
+  function creerAgenda(quoi) {
+    declencheur = $('btn-agenda-plus');
+    if (quoi === 'reunion') programmerReunion();
+    else if (quoi === 'rdv' && CAP.rendezVous) pousser(Object.assign({}, etat.route, { feuille: 'rdv-new' }));
+    else if (quoi === 'evenement' && CAP.agenda) pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' }));
   }
   function peindreMode() {
     const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
-    peindreBoutonsAgenda();
     if (actif) racine.dataset.cote = etat.mode; else delete racine.dataset.cote;
     document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });       // (son espace caché : « OP MESSAGES PRO » se lit en trois mots, jamais « MESSAGESPRO »)
     $('marque-tel').hidden = !actif;
@@ -2736,7 +2745,6 @@
     else if (i) { const a = etat.appels.find(x => x.id === i.dataset.infos); if (a) { declencheur = i; pousser(Object.assign({}, etat.route, { feuille: 'info:' + a.id })); } }
   });
   $('btn-nouvel-appel').addEventListener('click', () => ouvrirFeuille('appel'));
-  $('btn-modifier-appels').addEventListener('click', () => mot('« Modifier » arrive bientôt'));
 
   /* les détails d'un appel : la même feuille, un autre corps — qui, quand, combien de temps, et les trois gestes (rappeler, l'autre type d'appel, écrire) */
   function rendreInfo(a) {
@@ -3717,6 +3725,8 @@
           (CAP.espaces ? regLigne('entreprise', 'indigo', 'i-entreprise', 'Entreprise et abonnement') : '') +
           regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
           (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', '<span class="reglage-valeur" id="reg-v-notif"></span>') : '') +
+          /* (15 octobre 2026, « plus simple ») « Confirmer l'envoi » (côté Pro) rejoint la première carte, sous Notifications — il avait sa carte à lui, en bas, après « À propos », pour UNE ligne */
+          (confirmerActif() ? '<button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi</span><span class="reglage-valeur" id="reg-v-confirmer"></span></button>' : '') +
           regLigne('contacts', 'vert', 'i-groupe', 'Contacts', '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>') +
           (lieuxPossibles() ? regLigne('lieux', 'sarcelle', 'i-lieu', 'Mes lieux', '<span class="reglage-valeur" id="reg-v-lieux"></span>') : '') +
         '</div><div class="carte reg-menu">' +
@@ -3725,7 +3735,6 @@
           (CAP.compte ? regLigne('compte', 'bleu', 'i-personne', 'Mes données et mon compte') : '') +
           regLigne('apropos', 'gris', 'i-info', 'À propos', '<span class="reglage-valeur" id="reg-v-apropos"></span>') +
         '</div>' +
-        (confirmerActif() ? '<div class="carte"><button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi<small>Côté pro : éviter un message parti par erreur</small></span><span class="reglage-valeur" id="reg-v-confirmer"></span></button></div>' : '') +
         '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reg-tuile t-rouge" aria-hidden="true">' + icone('i-sortie') + '</span><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '</div><div class="reg-detail">' +
         (CAP.espaces ? regSection('entreprise', 'Entreprise et abonnement', '<div class="rubrique"><span>Mes espaces</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>') : '') +
@@ -3979,13 +3988,12 @@
     if (cat !== 'tous') { corps.innerHTML = rendreVcCategorie(cat, brut, q); vcRendreFocus(corps, cleFocus); return; }
     if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
     else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
-    else if (!q || R.length) {
+    else if (R.length) {                // (15 octobre 2026, « plus simple ») la rubrique des demandes ne paraît que s'il y en a : plus de carte « Aucune demande en attente »
       h += '<div class="rubrique"><span>Demandes de contact</span><span>' + (R.length || '') + '</span></div>';
       h += R.length ? '<div class="carte vc-recues">' + R.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'veut t\'ajouter à ses contacts',
           '<button type="button" class="mini plein" data-act="vc-accepter" data-uid="' + esc(d.id) + '" aria-label="Accepter la demande de ' + esc(d.nom) + '">Accepter</button>' +
           '<button type="button" class="mini" data-act="vc-refuser" data-uid="' + esc(d.id) + '" aria-label="Refuser la demande de ' + esc(d.nom) + '">Refuser</button>' +
-          (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="vc-bloquer" data-uid="' + esc(d.id) + '" aria-label="Bloquer ' + esc(d.nom) + '">Bloquer</button>' : ''))).join('') + '</div>'
-        : '<div class="carte carte-pad"><p class="info-note">Aucune demande en attente. Quand quelqu\'un voudra t\'ajouter, elle apparaîtra ici.</p></div>';
+          (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="vc-bloquer" data-uid="' + esc(d.id) + '" aria-label="Bloquer ' + esc(d.nom) + '">Bloquer</button>' : ''))).join('') + '</div>' : '';
     }
     if (D && !(D.erreur && !D.recues) && E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
           '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
@@ -4042,8 +4050,8 @@
     }
     let h = '';
     if (CAP.reunions) {
-      h += '<div class="rubrique"><span>Réunions à venir ensemble</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
-      if (!d.reunions.length) h += '<p class="fc-note">Aucune réunion prévue avec ' + esc(prenom(p)) + ' dans les deux prochains mois.</p>';
+      /* (15 octobre 2026, « plus simple ») sans réunion prévue, la rubrique s'appelle « Réunions » et ne dit qu'une chose : en programmer une — plus de phrase « Aucune réunion… » */
+      h += '<div class="rubrique"><span>' + (d.reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
       h += d.reunions.map(r => {
         const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
         const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(FMT_JOUR_FICHE.format(o.debut) + ' · ' + FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin)) + '<br>' + esc(sonStatutTxt(r, p));
@@ -4348,7 +4356,7 @@
     T.textContent = titre || ''; T.hidden = !titre;
     L.setAttribute('aria-label', nom);
     if (titre) L.setAttribute('aria-describedby', 'deroule-titre'); else L.removeAttribute('aria-describedby');
-    L.innerHTML = choix.map(c => c === '-' ? '<hr class="deroule-sep">' : '<button type="button" class="deroule-choix" tabindex="-1" role="' + (typeof c.coche === 'boolean' ? 'menuitemradio" aria-checked="' + c.coche : 'menuitem') +
+    L.innerHTML = choix.map(c => c === '-' ? '<hr class="deroule-sep">' : '<button type="button" class="deroule-choix' + (c.danger ? ' danger' : '') + '" tabindex="-1" role="' + (typeof c.coche === 'boolean' ? 'menuitemradio" aria-checked="' + c.coche : 'menuitem') +
       '" data-valeur="' + esc(String(c.valeur)) + '"><span class="deroule-coche" aria-hidden="true">' + (c.coche ? icone('i-coche') : '') + '</span><span>' + esc(c.libelle) + '</span></button>').join('');
     etat.deroule = { declencheur, surChoix };
     declencheur.setAttribute('aria-expanded', 'true');
@@ -4436,16 +4444,20 @@
     /* RETROUVER : chercher dans les messages, voir les photos, les fichiers et les liens (9 octobre 2026) */
     if (CAP.retrouver && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="chercher"><span class="reglage-texte">Rechercher dans la conversation</span>' + CHEVRON + '</button>' +
       '<button type="button" class="reglage presse" data-act="medias"><span class="reglage-texte">Photos, fichiers et liens</span>' + CHEVRON + '</button></div>';
-    if (CAP.themesConv && !i.supprime) h += '<div class="carte"><button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button></div>';
+    /* (15 octobre 2026, « l'application doit être plus simple ») ce qui ne vaut que pour MOI — la sourdine, le rangement, les couleurs — dans UNE carte sous « Pour toi » : trois cartes
+       et deux « Pour toi seul » disaient la même chose trois fois */
+    let pourToi = '';
+    if (sd >= 0) pourToi += '<button type="button" class="reglage presse" data-act="sourdine" data-valeur="' + (sd > Date.now() ? sd : 0) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Mettre en sourdine</span><span class="reglage-valeur">' + esc(sd > Date.now() ? finSourdine(sd) : 'Non') + CHEVRON_UD + '</span></button>';
     /* Perso / Pro : où cette conversation paraît, pour moi seul — l'automatique, ou un côté choisi (une directe, un groupe, une RÉUNION — elle range aussi la réunion dans l'agenda Perso ou Pro ;
        un canal est Pro par nature) */
-    if (modesActifs() && (i.type === 'direct' || g || i.type === 'reunion') && !i.supprime && lc) h += '<div class="carte"><button type="button" class="reglage presse" data-act="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans<small>Pour toi seul</small></span><span class="reglage-valeur">' + esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>';
-    if (sd >= 0) h += '<div class="carte"><button type="button" class="reglage presse" data-act="sourdine" data-valeur="' + (sd > Date.now() ? sd : 0) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Mettre en sourdine</span><span class="reglage-valeur">' + esc(sd > Date.now() ? finSourdine(sd) : 'Non') + CHEVRON_UD + '</span></button></div>';
+    if (modesActifs() && (i.type === 'direct' || g || i.type === 'reunion') && !i.supprime && lc) pourToi += '<button type="button" class="reglage presse" data-act="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans</span><span class="reglage-valeur">' + esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button>';
+    if (CAP.themesConv && !i.supprime) pourToi += '<button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs</span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button>';
+    if (pourToi) h += '<div class="rubrique"><span>Pour toi</span><span>Les autres ne le voient pas</span></div><div class="carte pour-toi">' + pourToi + '</div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
         '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (presenceTexte(m) && !m.moi ? '<span class="contact-role">' + presenceTexte(m) + '</span>' : '') + '</span>' +
-        (i.moiAdmin && !m.moi ? '<span class="contact-actions"><button type="button" class="mini" data-act="admin" data-uid="' + esc(m.id) + '" data-admin="' + (m.role === 'admin' ? '0' : '1') + '">' + (m.role === 'admin' ? 'Retirer l\'admin' : 'Nommer admin') +
-          '</button><button type="button" class="mini danger" data-act="retirer" data-uid="' + esc(m.id) + '">Retirer</button></span>' : '') + '</div>').join('') + '</div>';
+        /* (15 octobre 2026, « plus simple ») un seul « … » par membre, qui ouvre « Nommer admin » et « Retirer du groupe » : deux boutons sous CHAQUE nom doublaient la hauteur de la liste */
+        (i.moiAdmin && !m.moi ? '<button type="button" class="mini membre-gerer" data-act="membre" data-uid="' + esc(m.id) + '" data-admin="' + (m.role === 'admin' ? '0' : '1') + '" data-nom="' + esc(m.nom) + '" aria-label="Gérer ' + esc(m.nom) + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste">' + icone('i-points') + '</button>' : '') + '</div>').join('') + '</div>';
       if (i.moiAdmin) {
         const ajoutables = CONTACTS.filter(c => !i.membres.some(m => m.id === c.id));
         h += '<div class="rubrique"><span>Ajouter au groupe</span></div><div class="carte">' + ajoutables.map(c => '<div class="contact">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span></span><button type="button" class="mini" data-act="ajouter" data-uid="' + esc(c.id) + '">Ajouter</button></div>').join('') +
@@ -4478,8 +4490,9 @@
     corps.innerHTML = h;
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
     if (dr) {
-      const n = corps.querySelector('[data-act="' + dr.dataset.act + '"][aria-haspopup="menu"]');
-      if (n && n.dataset.valeur === dr.dataset.valeur) { n.setAttribute('aria-expanded', 'true'); etat.deroule.declencheur = n; }
+      /* ⛔ les « … » des membres sont plusieurs : on retrouve CELUI du même membre (et de son rôle d'alors) — le premier de la liste prenait le menu, et le focus à la fermeture */
+      const n = Array.from(corps.querySelectorAll('[data-act="' + dr.dataset.act + '"][aria-haspopup="menu"]')).find(x => (x.dataset.uid || '') === (dr.dataset.uid || '')) || null;
+      if (n && n.dataset.valeur === dr.dataset.valeur && n.dataset.admin === dr.dataset.admin) { n.setAttribute('aria-expanded', 'true'); etat.deroule.declencheur = n; }
       else { if (n) etat.deroule.declencheur = n; fermerDeroule(true); }
     }
   }
@@ -4521,8 +4534,12 @@
           v => { if (+v !== avant) apresChoixInfo(id, () => source.majConversation(id, { ephemeres: +v })); });
         return;
       }
-      else if (act === 'admin') await source.nommerAdmin(id, b.dataset.uid, b.dataset.admin === '1');
-      else if (act === 'retirer') await source.retirerMembre(id, b.dataset.uid);
+      else if (act === 'membre') {
+        const uid = b.dataset.uid, nommer = b.dataset.admin === '1', nom = b.dataset.nom || '';
+        ouvrirDeroule(b, 'Gérer ' + nom, nom, [{ valeur: 'admin', libelle: nommer ? 'Nommer admin' : 'Retirer l\'admin' }, '-', { valeur: 'retirer', libelle: 'Retirer du groupe', danger: true }],
+          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a été retiré du groupe'));
+        return;
+      }
       else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);
       else if (act === 'lien-groupe') { const r = await source.lienGroupe(id); $('ci-lien').innerHTML = boiteLien('ci-lien-champ', r.code); }
       else if (act === 'debloquer') { await source.debloquer(b.dataset.uid); rendreListeBloques(); peindreBloquesN(); mot('Contact débloqué'); }
@@ -4970,7 +4987,8 @@
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
     if (!CAP.actionsMessage || !m || !c || m.systeme || m.attente || (etat.menu && etat.menu.mid === mid)) return;
-    const moi = m.auteur === MOI.id, admin = multi(c) && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
+    /* ⛔ admin, pour supprimer POUR TOUS, c'est dans un groupe ou un canal — le service ne l'accorde qu'à eux (l'organisateur d'une réunion se voyait proposer « pour tous », refusé) */
+    const moi = m.auteur === MOI.id, admin = (c.type === 'groupe' || c.type === 'canal') && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
     const mienne = (m.reactions || []).find(r => r.moi);
     etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
@@ -4988,8 +5006,10 @@
     if (!m.supprime && rappelPossible()) h += '<button type="button" class="menu-action" data-menu="rappel" aria-haspopup="menu">Me le rappeler</button>';
     const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
     if (pieceSuivie) h += '<button type="button" class="menu-action" data-menu="suivi">' + (m.fichier ? 'Qui l\'a téléchargé' : m.vocal ? 'Qui l\'a écouté' : 'Qui l\'a vue') + '</button>';
-    h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
-    if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer-tous">Supprimer pour tous</button>';
+    /* (15 octobre 2026, « l'application doit être plus simple ») UNE ligne « Supprimer… » quand les deux suppressions sont possibles : elle ouvre le choix (pour moi, pour tous) — ce choix
+       tient lieu de la seconde touche que « pour tous » a toujours demandée. Une seule possible (le message d'un autre) : elle reste directe, comme avant. */
+    if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer" aria-haspopup="menu">Supprimer…</button>';
+    else h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
     $('menu-msg').innerHTML = h;
     const rang = Array.from($('conv-messages').querySelectorAll('.msg[data-mid]')).find(x => x.dataset.mid === mid);
     const ancre = rang && (rang.querySelector('.msg-rang') || rang);
@@ -5050,7 +5070,12 @@
     if (!m || !id || (!r && !a)) return;
     if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); masquerAvis(); } catch (er) { avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
     const act = a.dataset.menu;
-    if (act === 'supprimer-tous' && a.dataset.pret !== '1') {                  // une suppression pour tous demande une seconde touche, dite
+    if (act === 'supprimer') {                  // « Supprimer… » : le choix — et « pour tous » n'y demande plus rien, ce choix ÉTAIT sa seconde touche
+      $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message ?</p><button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
+      $('menu-msg').querySelector('button').focus({ preventScroll: true });
+      return;
+    }
+    if (act === 'supprimer-tous' && a.dataset.pret !== '1') {                  // ⛔ garde : une suppression pour tous ne part jamais sur UNE touche — un bouton direct qui viendrait un jour la redemanderait
       $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message pour tous ?</p><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
       $('menu-msg').querySelector('button').focus({ preventScroll: true }); return;
     }
@@ -5262,6 +5287,8 @@
     const fin = FMT_MOIS_COURT.format(dim).replace('.', ''), debut = a.getMonth() === b.getMonth() ? String(a.getDate()) : FMT_MOIS_COURT.format(lundi).replace('.', '');
     return debut + ' – ' + fin + (b.getFullYear() !== new Date().getFullYear() ? ' ' + b.getFullYear() : '');
   }
+  /* (15 octobre 2026, « plus simple ») un rappel s'écrit court sur sa pastille (« 15 min », « 1 h », « 1 jour ») — le libellé entier reste son nom (aria-label) */
+  const rappelCourt = t => String(t).replace(/^(\d+) minutes avant$/, '$1 min').replace(/^1 heure avant$/, '1 h').replace(/^1 jour avant$/, '1 jour');
   const libelleRappel = m => (RAPPELS_REUNION.find(x => x[0] === m) || [m, m + ' minutes avant'])[1];
   /* « Se répète toutes les semaines, jusqu'au 30 novembre 2026 » */
   function libelleRepetition(r) {
@@ -5284,9 +5311,9 @@
   function construireReunions() {
     const sec = $('vue-reunions');
     sec.innerHTML =
-      '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
-        '<span class="entete-actions"><button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button>' +
-        (CAP.rendezVous ? '<button type="button" class="lien-texte presse" id="btn-rdv-nouveau" aria-haspopup="dialog" hidden>Rendez-vous</button>' : '') + '</span></div>' +
+      /* (15 octobre 2026, « l'application doit être plus simple ») UN seul « + », comme le Calendrier d'Apple : il propose ce qu'on peut créer de CE côté (`choixCreerAgenda`) —
+         avant, deux ou trois liens côte à côte (« Événement », « Réunion », « Rendez-vous ») */
+      '<div class="entete-vue"><span></span><button type="button" class="btn-plus" id="btn-agenda-plus" aria-haspopup="menu" aria-expanded="false" aria-label="Nouveau"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button></div>' +
       pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="seg" id="reu-vue-seg" role="group" aria-label="Afficher"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-reu-vue="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-reu-vue="mois" aria-pressed="false">Mois</button></div>' +
       '<div class="sem-nav" role="group" aria-label="Période affichée">' +
@@ -5309,10 +5336,11 @@
     $('reu-vue-seg').addEventListener('click', e => { const b = e.target.closest('[data-reu-vue]'); if (b) changerVueAgenda(b.dataset.reuVue); });
     for (const z of ['mois-jours', 'sem-grille']) $(z).addEventListener('click', e => clicCaseAgenda(e, z === 'mois-jours'));
     agendaGestes(sec);                                // clic droit, appui long, glisser — sur les cases et la liste du jour
-    $('btn-reunion-nouvelle').addEventListener('click', () => programmerReunion());
-    if (CAP.rendezVous) $('btn-rdv-nouveau').addEventListener('click', () => { declencheur = $('btn-rdv-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'rdv-new' })); });
-    peindreBoutonsAgenda();
-    if (CAP.agenda) $('btn-evenement-nouveau').addEventListener('click', () => { declencheur = $('btn-evenement-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' })); });
+    $('btn-agenda-plus').addEventListener('click', () => {
+      const b = $('btn-agenda-plus'), l = choixCreerAgenda();
+      if (l.length === 1) { creerAgenda(l[0].valeur); return; }
+      ouvrirDeroule(b, 'Nouveau', null, l, creerAgenda);
+    });
     $('sem-prec').addEventListener('click', () => vueMois() ? changerMois(-1) : changerSemaine(-7));
     $('sem-suiv').addEventListener('click', () => vueMois() ? changerMois(1) : changerSemaine(7));
     $('sem-titre').addEventListener('click', () => { const t = minuitDe(Date.now()); allerAuJour(t); });
@@ -5914,8 +5942,8 @@
         '<div class="seg" id="bord-portee" role="group" aria-label="Réunions prévues : la semaine ou le mois"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-bord-portee="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-bord-portee="mois" aria-pressed="false">Mois</button></div>' +
         '<ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
         '<div class="rubrique"><span>Rappels</span><span id="bord-rappels-n"></span></div><ul class="carte-liste" id="bord-rappels" role="list" aria-label="Rappels"></ul>' +
-        (typeof source.mentionsRecentes === 'function' ? '<div class="rubrique"><span>Mentions</span><span id="bord-mentions-n"></span></div><ul class="carte-liste" id="bord-mentions" role="list" aria-label="Mentions"></ul>' : '') +
-        '<div class="rubrique"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
+        (typeof source.mentionsRecentes === 'function' ? '<div class="rubrique" id="bord-mentions-rub"><span>Mentions</span><span id="bord-mentions-n"></span></div><ul class="carte-liste" id="bord-mentions" role="list" aria-label="Mentions"></ul>' : '') +
+        '<div class="rubrique" id="bord-appels-rub"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
       sec.dataset.pret = '1';
       bord.portee = typeof source.bordReunions === 'function' && source.bordReunions() === 'mois' ? 'mois' : 'semaine';
     }
@@ -5946,12 +5974,14 @@
       const t7 = now - 7 * 86400000, ms = bord.mentions.filter(x => x.t >= t7 && pourBord(coteDe(etat.conversations.find(c => c.id === x.conv)))).slice(0, 8), nl = ms.filter(x => !x.lue).length;
       $('bord-mentions').innerHTML = att || (ms.length ? ms.map(ligneMention).join('') : '<li class="bord-vide"><span>Aucune mention ces sept derniers jours.</span></li>');
       $('bord-mentions-n').textContent = nl ? String(nl) : '';
+      $('bord-mentions-rub').hidden = $('bord-mentions').hidden = !att && !ms.length;      // (15 octobre 2026, « plus simple ») un bloc vide ne se montre pas : seulement ce qui a du contenu
     }
     /* les appels manqués IMPORTANTS, avec leur raison */
     const imp = appelsImportants(bord.appels.filter(a => pourBord(coteAppel(a))));      // (8 octobre 2026) un appel manqué d'un ami n'est pas au tableau de bord (le côté Pro)
     $('bord-appels').innerHTML = att || (imp.length ? imp.map(x => ligneAppel(x.a).replace('<span class="appel-kind">', '<span class="bord-raison">' + esc(x.raisons.join(' · ')) + '</span><span class="appel-kind">')).join('')
       : '<li class="bord-vide"><span>Aucun appel manqué important. Les autres sont dans Appels.</span></li>');
     $('bord-appels-n').textContent = imp.length ? String(imp.length) : '';
+    $('bord-appels-rub').hidden = $('bord-appels').hidden = !att && !imp.length;
   }
   /* ⛔ UNE MENTION LUE se reconnaît aussi à sa conversation : sans non-lus, on l'a ouverte depuis (dans une autre visite, sur un autre appareil) — elle n'est plus « non lue » ici, et le
      service l'apprend, en UNE fois */
@@ -6067,7 +6097,7 @@
   const RAPPELS_EVT = [['', 'Aucun'], ['0', 'À l\'heure'], ['5', '5 minutes avant'], ['15', '15 minutes avant'], ['30', '30 minutes avant'], ['60', '1 heure avant'], ['1440', 'La veille']];
   /* les rappels d'un rendez-vous : des cases (trois au plus), comme ceux d'une réunion — la veille et une heure avant par défaut */
   const RAPPELS_RDV = [[1440, 'La veille'], [60, '1 heure avant'], [30, '30 minutes avant'], [15, '15 minutes avant'], [5, '5 minutes avant'], [0, 'À l\'heure']];
-  function htmlRappelsEvt(liste) { return RAPPELS_RDV.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (liste.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-evt-rappel="' + x[0] + '"><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
+  function htmlRappelsEvt(liste) { return RAPPELS_RDV.map(x => '<button type="button" class="reglage presse rappel-puce" role="checkbox" aria-checked="' + (liste.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" aria-label="' + esc(x[1]) + '" data-evt-rappel="' + x[0] + '"><span class="reglage-texte">' + esc(rappelCourt(x[1])) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
   function evtBasculerRappel(min) {
     const F = reu.formEvt; if (!F || !F.rdv || !$('ev-rappels')) return;
     const i = F.rappels.indexOf(min);
@@ -6117,7 +6147,13 @@
   }
   function htmlTrajet(F, possible) {
     const T = F.tr, L = TJ.lieux || { domicile: null, travail: null };
-    let h = '<div class="rubrique"><span>Trajet</span><span>L\'heure à laquelle partir</span></div>';
+    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas, comme dans la fiche d'une réunion : « Calculer l'heure de départ » déplie le formulaire
+       (le départ, le mode, l'avance — et la phrase sur la position, lue AVANT que la position serve), « Y aller » reste à côté. Un trajet calculé, en cours, en erreur ou périmé : ouvert. */
+    if (possible && !T.ouvert && !T.calc && !T.calcul && !T.erreur && !T.perime)
+      return '<div class="info-actions evt-tr-gestes"><button type="button" class="mini" data-evt="trajet-ouvrir" aria-expanded="false">Calculer l\'heure de départ</button>' +
+        (destinationGps($('ev-lieu') ? $('ev-lieu').value : '', null) ? BOUTON_GPS_EVT : '') + '</div>';
+    T.ouvert = true;      // ⛔ ouvert, il le RESTE pour cette fiche : changer le départ retire le trajet d'avant, et le formulaire ne doit pas se replier sous le doigt
+    let h = '<div class="rubrique"><span>Trajet</span></div>';
     if (possible) {
       const opt = ['position', 'domicile', 'travail', 'adresse'].map(k => [k, k === 'domicile' || k === 'travail' ? NOM_DEPART[k] + (L[k] ? ' — ' + L[k].label : ' (à enregistrer)') : NOM_DEPART[k]]);
       h += '<div class="champ"><label for="ev-tr-depart">Je pars de</label><select id="ev-tr-depart">' + optionsDe(opt, T.depart) + '</select>' +
@@ -6156,7 +6192,7 @@
     if (!possible && !F.tr.calc) { const oui = !!destinationGps($('ev-lieu') ? $('ev-lieu').value : '', null); z.innerHTML = '<div class="info-actions evt-tr-gestes"' + (oui ? '>' + BOUTON_GPS_EVT : ' hidden>') + '</div>'; return; }
     const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.trMode ? '[data-tr-mode="' + a.dataset.trMode + '"]' : a.dataset.evt ? '[data-evt="' + a.dataset.evt + '"]' : '') : '';
     z.innerHTML = htmlTrajet(F, possible);
-    if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
+    if (cle) { const b = z.querySelector(cle) || z.querySelector('[data-evt="trajet-calculer"]'); if (b && !b.disabled) b.focus({ preventScroll: true }); }      // le bouton touché a disparu (« Retirer le trajet ») : le focus va au calcul
   }
   /* « Ma position » : le navigateur la demande (il pose la question de la permission) ; elle ne sert qu'au calcul, et ne quitte la fiche que vers le service */
   function positionDuMoment() {
@@ -6548,7 +6584,7 @@
       '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
       '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="' + (rdv && CAP.trajet ? 'Adresse — pour savoir quand partir' : 'Facultatif') + '"></div>' +
       (rdv ? '<div id="ev-trajet-zone"></div>' : '') +
-      (rdv ? '<div class="rubrique"><span>Rappels</span><span>Trois au plus</span></div><div class="carte" id="ev-rappels" role="group" aria-label="Rappels du rendez-vous">' + htmlRappelsEvt(rappels0) + '</div>'
+      (rdv ? '<div class="rubrique"><span>Rappels</span><span>Trois au plus</span></div><div class="carte rappels-puces" id="ev-rappels" role="group" aria-label="Rappels du rendez-vous">' + htmlRappelsEvt(rappels0) + '</div>'
         : '<div class="champ"><label for="ev-rappel">Rappel</label><select id="ev-rappel">' + optionsDe(RAPPELS_EVT, e ? (e.rappel === null ? '' : String(e.rappel)) : '15') + '</select></div>') +
       '<div class="champ"><label for="ev-note">Note</label><textarea id="ev-note" maxlength="2000" rows="3" placeholder="Facultatif">' + esc(e ? e.note : '') + '</textarea></div>' +
       '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
@@ -6641,6 +6677,7 @@
     erreurInfo('');
     if (b.dataset.evt === 'enregistrer') evtEnregistrer(b); else if (b.dataset.evt === 'supprimer') evtSupprimer(b);
     else if (b.dataset.evt === 'fait') evtFait(b); else if (b.dataset.evt === 'reporter') evtReporter(b); else if (b.dataset.evt === 'voir') evtVoir();
+    else if (b.dataset.evt === 'trajet-ouvrir') { const F = reu.formEvt; if (F && F.tr) { F.tr.ouvert = true; peindreTrajet(); const x = $('ev-tr-depart'); if (x) x.focus({ preventScroll: true }); } }
     else if (b.dataset.evt === 'trajet-calculer') trajetCalculer(); else if (b.dataset.evt === 'trajet-retirer') trajetRetirer(); else if (b.dataset.evt === 'trajet-autre') trajetAutre(b.dataset.label);
     else if (b.dataset.evt === 'coller') evtCollerOuvrir(b); else if (b.dataset.evt === 'coller-remplir') evtCollerRemplir($('ev-coller-texte').value);
     else if (b.dataset.evt === 'gps') { const F = reu.formEvt, c = F && F.tr && F.tr.calc; ouvrirMenuGps(destinationGps($('ev-lieu') ? $('ev-lieu').value : '', c), c ? c.mode : (F && F.tr ? F.tr.mode : 'voiture'), b); }
@@ -7215,7 +7252,17 @@
   }
   function htmlTrajetReu(d, o, T) {
     const possible = trajetReuPossible(), L = TJ.lieux || { domicile: null, travail: null }, c = d.moi.trajet;
-    let h = '<div class="rubrique"><span>Trajet</span><span>L\'heure à laquelle partir</span></div><div class="carte carte-pad reu-trajet">';
+    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas : deux lignes, « Calculer l'heure de départ » (le formulaire s'ouvre d'un toucher) et
+       « Y aller » — plus un formulaire entier sous les yeux de qui n'en veut pas. Un trajet rangé, un calcul en cours, une erreur : ouvert, comme avant. */
+    if (!T.ouvert && !c && !T.calcul && !T.erreur && !d.moi.trajetPerime) {
+      const gps = destinationGps(d.lieu, c);
+      if (!possible && !gps) return '';
+      return '<div class="rubrique"><span>Trajet</span></div><div class="carte reu-trajet replie">' +
+        (possible ? '<button type="button" class="reglage presse" data-reu="trajet-ouvrir" aria-expanded="false">' + icone('i-horloge') + '<span class="reglage-texte">Calculer l\'heure de départ</span>' + CHEVRON + '</button>' : '') +
+        (gps ? '<button type="button" class="reglage presse" data-reu="trajet-gps" aria-haspopup="menu">' + icone('i-itineraire') + '<span class="reglage-texte">Y aller</span>' + CHEVRON + '</button>' : '') + '</div>';
+    }
+    T.ouvert = true;      // ouvert, il le reste pour cette fiche (comme celui d'un rendez-vous)
+    let h = '<div class="rubrique"><span>Trajet</span></div><div class="carte carte-pad reu-trajet">';
     if (possible) {
       const opt = ['position', 'domicile', 'travail', 'adresse'].map(k => [k, k === 'domicile' || k === 'travail' ? NOM_DEPART[k] + (L[k] ? ' — ' + L[k].label : ' (à enregistrer)') : NOM_DEPART[k]]);
       h += '<div class="champ"><label for="rt-depart">Je pars de</label><select id="rt-depart"' + (T.calcul ? ' disabled' : '') + '>' + optionsDe(opt, T.depart) + '</select>' +
@@ -7268,7 +7315,7 @@
     }
     const sig = JSON.stringify(d.moi.trajet || d.moi.trajetPerime || null);
     if (!F.tr) F.tr = trajetReuEtat(d);
-    else if (F.tr.sig !== sig && !F.tr.calcul) F.tr = Object.assign(trajetReuEtat(d), { autres: F.tr.autres, erreur: F.tr.erreur });
+    else if (F.tr.sig !== sig && !F.tr.calcul) F.tr = Object.assign(trajetReuEtat(d), { autres: F.tr.autres, erreur: F.tr.erreur, ouvert: F.tr.ouvert });      // déplié, il le reste (« Retirer le trajet » ne le replie pas sous le doigt)
     const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.mode ? '[data-mode="' + a.dataset.mode + '"]' : a.dataset.reu ? '[data-reu="' + a.dataset.reu + '"]' : '') : '';
     const champ = $('rt-adresse'), saisie = champ && z.contains(champ) ? { v: champ.value, focus: a === champ, pos: champ.selectionStart } : null;
     if (saisie) F.tr.adresse = saisie.v;
@@ -7278,7 +7325,7 @@
     if (z._trajet === h) return;
     z._trajet = h; z.innerHTML = h;
     if (saisie && saisie.focus && $('rt-adresse')) { $('rt-adresse').focus({ preventScroll: true }); try { $('rt-adresse').setSelectionRange(saisie.pos, saisie.pos); } catch (e) { /* un champ sans curseur */ } }
-    else if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
+    else if (cle) { const b = z.querySelector(cle) || z.querySelector('[data-reu="trajet-calculer"]'); if (b && !b.disabled) b.focus({ preventScroll: true }); }      // le bouton touché a disparu (« Retirer le trajet ») : le focus va au calcul, pas à la page
   }
   /* après un enregistrement : la fiche se relit (elle ne se redessine que si elle a changé — l'événement de la source la relit aussi : pas un redessin de plus), puis la zone, qui ne se repeint que si ELLE a changé */
   const relireFicheTrajet = async () => { await rendreFiche(); peindreTrajetReu(); };
@@ -7338,7 +7385,12 @@
   async function trajetReuRetirer() {
     const F = reu.fiche; if (!F || !F.tr || F.tr.calcul) return;
     F.tr.erreur = ''; F.tr.autres = [];
-    try { await source.trajetReunion(F.id, null); mot('Trajet retiré'); await relireFicheTrajet(); }
+    try {
+      await source.trajetReunion(F.id, null); mot('Trajet retiré'); await relireFicheTrajet();
+      /* ⛔ le bouton touché a disparu, et la fiche s'est redessinée tout entière (son trajet a changé) : le focus était tombé sur la page — il va au calcul */
+      const z = $('reu-trajet-zone'), a = document.activeElement;
+      if (reu.fiche === F && z && (!a || a === document.body || !a.isConnected)) { const b = z.querySelector('[data-reu="trajet-calculer"], [data-reu="trajet-ouvrir"]'); if (b) b.focus({ preventScroll: true }); }
+    }
     catch (er) { if (reu.fiche !== F) return; F.tr.erreur = phrase(er, 'Le trajet n\'a pas pu être retiré.'); peindreTrajetReu(); }
   }
 
@@ -7353,7 +7405,7 @@
   function htmlFiche(d) {
     const F = reu.fiche, hote = d.moi.hote, o = (F.occurrence && d.repetition !== 'aucune' ? { debut: F.occurrence, fin: F.occurrence + (d.fin - d.debut) } : (d.prochaine || { debut: d.debut, fin: d.fin }));
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d);
-    const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
+    const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse rappel-puce" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" aria-label="' + esc(x[1]) + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(rappelCourt(x[1])) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
     let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
       '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
       (d.annulee ? '<p class="info-erreur">Cette réunion est annulée.</p>' : '') +
@@ -7365,7 +7417,7 @@
     /* (salle) la salle de la réunion : entrer quand elle est ouverte, sinon dire qu'elle ne l'est pas encore */
     if (CAP.salles && !d.annulee && d.salle) {
       if (d.salle.rejoignable) s += '<div class="carte carte-pad"><div class="info-actions"><button type="button" class="mini" data-reu="rejoindre" data-type="video">' + icone('i-video') + ' Rejoindre</button><button type="button" class="mini" data-reu="rejoindre" data-type="audio">' + icone('i-phone') + ' Rejoindre en audio</button></div>' + (d.salle.ouverte ? '<p class="info-note">La salle est ouverte.</p>' : '') + '</div>';
-      else s += '<div class="carte carte-pad"><p class="info-note">La salle s\'ouvre peu avant le début de la réunion.</p></div>';
+      else s += '<p class="pied-note">La salle s\'ouvre peu avant le début de la réunion.</p>';      // (15 octobre 2026, « plus simple ») une phrase sous la carte, plus une carte à elle seule
     }
     /* l'ordre du jour (8 octobre 2026) : chacun le coche ; l'organisateur le pose dans « Modifier la réunion » */
     if (d.ordreDuJour && d.ordreDuJour.length) s += '<div class="rubrique"><span>Ordre du jour</span><span>' + d.ordreDuJour.filter(p => p.fait).length + ' / ' + d.ordreDuJour.length + '</span></div><div class="carte" role="group" aria-label="Ordre du jour">' +
@@ -7374,8 +7426,8 @@
     if (!hote && !d.annulee) s += '<div class="rubrique"><span>Ta réponse</span></div><div class="g-choix" role="radiogroup" aria-label="Ta réponse">' +
       STATUTS_REPONSE.map(x => '<button type="button" class="g-pilule presse" role="radio" aria-checked="' + (d.moi.statut === x[0] ? 'true' : 'false') + '" data-reu="reponse" data-statut="' + x[0] + '">' + esc(x[1]) + '</button>').join('') + '</div>';
     /* mes rappels */
-    if (!d.annulee) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml +
-      (d.moi.rappelsPerso ? '<button type="button" class="reglage presse" data-reu="rappels-defaut"><span class="reglage-texte">Rétablir les rappels de la réunion<small>Ceux que l\'organisateur a choisis</small></span></button>' : '') + '</div>';
+    if (!d.annulee) s += '<div class="rubrique"><span>Me rappeler</span></div><div class="carte rappels-puces" id="reu-rappels" role="group" aria-label="Mes rappels">' + rappelsHtml + '</div>' +
+      (d.moi.rappelsPerso ? '<div class="carte"><button type="button" class="reglage presse" data-reu="rappels-defaut"><span class="reglage-texte">Rétablir les rappels de la réunion<small>Ceux que l\'organisateur a choisis</small></span></button></div>' : '');
     /* MON trajet (14 octobre 2026) : sa zone, peinte à part (`peindreTrajetReu`) — un calcul en cours ne redessine pas toute la fiche */
     s += '<div id="reu-trajet-zone"></div>';
     /* les participants */
@@ -7401,13 +7453,13 @@
       s += '<div class="rubrique"><span>Organisateur</span></div>';
       const sd = snapDecalage(F.id, d), decalable = !!(sd && sd.peut);
       F.decalable = decalable ? sd : null;
-      if (!d.annulee) s += '<div class="carte">' + (decalable ? '<button type="button" class="reglage presse" data-reu="decaler" aria-haspopup="dialog">' + icone('i-agenda') + '<span class="reglage-texte">Décaler<small>Un autre jour ou une autre heure, avec un motif — chacun est prévenu</small></span>' + CHEVRON + '</button>' : '') +
+      if (!d.annulee) s += '<div class="carte">' + (decalable ? '<button type="button" class="reglage presse" data-reu="decaler" aria-haspopup="dialog">' + icone('i-agenda') + '<span class="reglage-texte">Décaler</span>' + CHEVRON + '</button>' : '') +
         '<button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
       if (F.courriel && !d.annulee) s += htmlCourriel(d, o);
       if (CAP.presenceRapport) {
         s += '<div class="rubrique"><span>Présence</span></div><div class="carte">';
-        if (!F.presence) s += '<button type="button" class="reglage presse" data-reu="presence">' + icone('i-groupe') + '<span class="reglage-texte">Rapport de présence<small>Qui est venu à chaque séance, combien de temps — et qui manquait</small></span>' + CHEVRON + '</button>';
+        if (!F.presence) s += '<button type="button" class="reglage presse" data-reu="presence">' + icone('i-groupe') + '<span class="reglage-texte">Rapport de présence</span>' + CHEVRON + '</button>';
         else if (!F.presence.seances.length) s += '<div class="reglage"><span class="reglage-texte">Pas encore de séance<small>Le rapport se remplit dès que la salle s\'ouvre</small></span></div>';
         else s += F.presence.seances.slice(0, 5).map(p => { const L = presenceLignes(p);
           return '<div class="reglage presence-seance"><span class="reglage-texte">' + esc(maj1(FMT_SUIVI.format(p.debut))) + (p.enCours ? ' · en cours' : '') + '<small>' + L.venus.length + (L.venus.length > 1 ? ' présences' : ' présence') + (L.absents.length ? ', ' + L.absents.length + (L.absents.length > 1 ? ' absences' : ' absence') : '') + '</small></span></div>' +
@@ -7417,8 +7469,8 @@
         s += '</div>';
       }
       if (CAP.salles && !d.annulee) s += '<div class="rubrique"><span>Salle</span></div><div class="carte">' +
-        '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Les personnes qui arrivent attendent que tu les admettes</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
-        '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité<small>Ouvre la salle à qui a un compte OP MESSAGES' + (d.plafond ? ', dans la limite de ' + d.plafond + ' personnes' : '') + '</small></span></button>' +
+        '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
+        '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité</span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>';
       s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
         '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
@@ -7513,6 +7565,7 @@
         /* MON trajet (14 octobre 2026) : ses erreurs se disent DANS sa zone, pas en tête de fiche */
         else if (act === 'trajet-mode') trajetReuChanger('mode', b.dataset.mode === 'pied' ? 'pied' : 'voiture');
         else if (act === 'trajet-calculer') trajetReuCalculer();
+        else if (act === 'trajet-ouvrir') { if (F.tr) F.tr.ouvert = true; peindreTrajetReu(); const x = $('rt-depart'); if (x) x.focus({ preventScroll: true }); }
         else if (act === 'trajet-retirer') trajetReuRetirer();
         else if (act === 'trajet-autre' && b.dataset.label) trajetReuCalculer(b.dataset.label);
         else if (act === 'trajet-gps') { const c = d.moi.trajet; ouvrirMenuGps(destinationGps(d.lieu, c), c ? c.mode : (F.tr ? F.tr.mode : 'voiture'), b); }
@@ -7608,7 +7661,7 @@
 
   /* ── « Programmer » et « Modifier » : le formulaire (les feuilles « reunion-new » et « reunion-edit:<id> ») ── */
   const optionsDe = (liste, courant) => liste.map(x => '<option value="' + esc(x[0]) + '"' + (x[0] === courant ? ' selected' : '') + '>' + esc(x[1]) + '</option>').join('');
-  function htmlRappelsForm(F) { return RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (F.rappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="form-rappel" data-min="' + x[0] + '"><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
+  function htmlRappelsForm(F) { return RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse rappel-puce" role="checkbox" aria-checked="' + (F.rappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" aria-label="' + esc(x[1]) + '" data-reu="form-rappel" data-min="' + x[0] + '"><span class="reglage-texte">' + esc(rappelCourt(x[1])) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join(''); }
   function htmlInvitesForm(F) {
     const liste = candidats([]).filter(c => !F.recherche || norme(nomPersonne(c.id) + ' ' + c.role).includes(norme(F.recherche)));
     return liste.length ? liste.map(c => { const k = contactDe(c.id); return k ? '<button type="button" class="contact presse" role="checkbox" aria-checked="' + (F.choisis.indexOf(c.id) >= 0 ? 'true' : 'false') + '" data-reu="form-invite" data-uid="' + esc(c.id) + '">' + avatar(k) + '<span class="contact-texte"><span class="contact-nom">' + esc(k.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : ''; }).join('')
@@ -7683,12 +7736,12 @@
       '<div id="rf-fin-rep"><div class="champ"><label for="rf-fin-type">Fin de la répétition</label><select id="rf-fin-type">' + optionsDe([['jamais', 'Jamais'], ['date', 'À une date'], ['nombre', 'Après un nombre de fois']], typeFin) + '</select></div>' +
         '<div class="champ" id="rf-jusqua-c"><label for="rf-jusqua">Dernier jour</label><input id="rf-jusqua" type="date" value="' + esc(initial.jusqua || '') + '"></div>' +
         '<div class="champ" id="rf-n-c"><label for="rf-n">Nombre de réunions</label><input id="rf-n" type="number" min="2" max="1000" inputmode="numeric" value="' + esc(initial.n || 10) + '"></div></div>' +
-      '<div class="rubrique"><span>Rappel</span></div><div class="carte" id="rf-rappels" role="group" aria-label="Rappels de la réunion">' + htmlRappelsForm(reu.form) + '</div>' +
+      '<div class="rubrique"><span>Rappel</span></div><div class="carte rappels-puces" id="rf-rappels" role="group" aria-label="Rappels de la réunion">' + htmlRappelsForm(reu.form) + '</div>' +
       (id ? '' : '<div class="rubrique"><span>Invités</span><span id="rf-invites-n" aria-live="polite">0</span></div><p class="info-note" id="rf-invites-note" aria-live="polite" hidden></p>' +
         '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher une personne à inviter</span><input type="search" id="rf-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
         '<div class="carte" id="rf-invites" role="group" aria-label="Personnes à inviter">' + htmlInvitesForm(reu.form) + '</div>') +
       '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="true" data-reu="form-notifier"><span class="reglage-texte">Notifier les invités<small>' + (id ? 'Ils sont prévenus de ce qui change' : 'Chaque invité reçoit une notification') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' +
-      (CAP.salles ? '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (initial.attente ? 'true' : 'false') + '" data-reu="form-attente"><span class="reglage-texte">Salle d\'attente<small>Les personnes qui arrivent attendent que tu les admettes</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' : '') +
+      (CAP.salles ? '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (initial.attente ? 'true' : 'false') + '" data-reu="form-attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' : '') +
       '<div class="info-actions"><button type="button" class="mini" data-reu="form-enregistrer">' + (id ? 'Enregistrer' : 'Programmer') + '</button></div>';
     synchroFormRepetition();
     ['rf-debut', 'rf-fin', 'rf-pays'].forEach(x => { $(x).addEventListener('input', peindreChezEux); $(x).addEventListener('change', peindreChezEux); });
@@ -8246,13 +8299,10 @@
         l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
     const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
     h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp + ligneFlou(A) +
-      '<div class="salle-rang libre"><span class="texte">Son amélioré<small>Réduction du bruit, annulation d\'écho et volume automatique, toujours actifs</small></span></div>' +
       (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
     if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
-    h += '<div class="salle-rub"><span>Bientôt</span></div><div class="salle-liste salle-bientot">' +
-      '<div class="salle-rang libre" aria-disabled="true"><span class="texte">Sous-titres en direct<small>Bientôt</small></span></div><div class="salle-rang libre" aria-disabled="true"><span class="texte">Salles de sous-groupes<small>Bientôt</small></span></div></div>';
     if (s.moi.proprietaire) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
     return h;
   }

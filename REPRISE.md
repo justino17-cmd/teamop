@@ -19,7 +19,42 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# 🟡 15 OCTOBRE 2026 (SOIR) — OP MESSAGES : PLUS D'« AJOUTER À MON CALENDRIER » NULLE PART — LA RÉUNION AUSSI, ET LE COURRIEL D'INVITATION PART SANS .ICS
+# 🟡 15 OCTOBRE 2026 (SOIR) — OP MESSAGES PLUS SIMPLE, À LA FAÇON D'APPLE : LOTS 1 À 3 (BÊTA, PR À VENIR)
+
+Justin : « revois toute l'application, teste de A à Z, revois tout le style comme Apple ; il faut que l'application soit plus simple — je te laisse faire et décider ; montre-moi
+quand tu as fini ; pense à tout ce qu'on a mis, mais il faut le simplifier ». La règle suivie : **rien de ce qui sert ne disparaît** ; on retire ce qui ne fait rien ou parle pour ne
+rien dire, on replie ce qui ne sert pas tout de suite, on regroupe ce qui dit la même chose. Captures « avant » (43, iPhone et Mac, jour et nuit) : `scratchpad/captures-avant/` de la
+session, prises par `scratchpad/vitrine-opmessages.js` (le vrai service en local, trois comptes, un groupe, une réunion) ; les « après » se reprennent par le même script.
+· **Lot 1** (`8164919e`) : un seul « + » dans l'Agenda (le menu propose ce que ce côté sait créer : Rendez-vous et Événement en Perso, Réunion en plus en Pro) ; plus de promesses
+  vides (« Modifier » des Appels qui répondait « arrive bientôt », la rubrique « Bientôt » de la salle, la ligne passive « Son amélioré ») ; plus de cartes vides (« Aucune demande en
+  attente », les blocs vides du tableau de bord, « Aucune réunion prévue avec… » d'une fiche contact).
+· **Lot 2** (`bea9b5e4`) : le **trajet replié** (fiche d'une réunion, fiche d'un rendez-vous) tant qu'aucun n'est calculé — « Calculer l'heure de départ » déplie (la phrase sur la
+  position reste lue AVANT qu'elle serve), « Y aller » reste à côté ; déplié, il le reste pour la fiche. Les **rappels en pastilles** (« 5 min · 15 min · 1 h · 1 jour »), mêmes cases
+  (`role="checkbox"`, nom entier en `aria-label`), dessinées comme celles de la durée. Les **Infos d'un groupe** : un seul « … » par membre (« Nommer admin », « Retirer du groupe » en
+  rouge — le menu tient lieu de confirmation, il n'y en avait aucune) ; sourdine, rangement et couleurs dans UNE carte « Pour toi ». La fiche d'une réunion perd ses sous-titres qui
+  répétaient la ligne, la note de la salle passe sous la carte.
+  ⛔ Pris en route, à retenir : la classe des pastilles s'appelait d'abord `.puce` — le nom, déjà pris, des membres choisis d'un groupe (une COLONNE animée) — et le texte restait
+  collé en haut (mesuré : à 1 px du bord, sur 44). C'est `CSS` qui a nommé le coupable (`flex-direction: column` sur un bouton qui n'en déclarait pas), pas la relecture.
+Preuves (lot 2) : sondes trajet 72, trajet des réunions 52 (le repli, le toucher qui déplie, le focus), gestes de l'agenda 78, rendez-vous 34, réunions 297, serveur 418 (le « … »
+joué de bout en bout), groupe 210, menus déroulants 62, perso-pro 62, notifications 104, thèmes 13. ⚠️ Deux sondes tombaient AVANT ces lots, à l'identique sur `main` :
+`menu-rappel` (meurt sur `data-jour="null"`, dépend de la date) et `agenda-decaler` (3 ✗).
+· **Lot 3** (`598c4348`, `28f762be`) : le menu d'un message n'a plus qu'UNE ligne « Supprimer… » quand on peut supprimer pour moi ET pour tous — elle ouvre le choix, qui tient
+  lieu de la seconde touche que « pour tous » a toujours demandée (la garde reste) ; « Confirmer l'envoi » (Pro) rejoint la première carte du Profil.
+· **Relecture adverse des trois lots** (workflow, dix agents Sonnet : cinq angles — rien ne se perd, accessibilité, rendu, bancs, droits —, chaque constat contre-vérifié ;
+  20 confirmés sur 27), tout corrigé : le menu « … » d'un membre n'avait pas d'ancre (il tombait au pied de la feuille) et se raccrochait au PREMIER membre après un redessin ;
+  le trajet d'une réunion se repliait après « Retirer le trajet » et le focus tombait sur la page ; l'anneau du clavier disparaissait dans une pastille cochée ; rien ne distinguait
+  une pastille cochée en couleurs forcées ; deux encres dans une même carte ; ⛔ dette d'avant : « Supprimer pour tous » était proposé à l'organisateur d'une réunion sur le message
+  d'un invité — le service ne l'accorde qu'aux admins d'un groupe ou d'un canal. Et deux bancs : `appels-plus` cherchait encore « Réduction du bruit » (il serait tombé à sa
+  prochaine passe), `reunion-confort` gardait la rubrique « Bientôt » par un élément qui n'existe plus (vert pour toujours — un ensemble vide).
+Preuves (lot 3) : les 58 sondes d'OP MESSAGES jouées l'une après l'autre sur la branche — toutes vertes sauf `menu-rappel` et `agenda-decaler` (rouges à l'identique sur `main`),
+`visio` et `relais` (LiveKit et coturn absents de cette machine : non lançables ici), la sonde principale à part (longue). test-857 : 540 ✓ (D03 revisée, D03b neuve : le
+« … » qui se raccroche au premier membre). Mutations de la page : `scratchpad/mutations-simplification.py` (S01–S13).
+Suite : la PR, les captures « avant / après » montrées à Justin ; à proposer ensuite (non commencé) : la salle de réunion (une barre de cinq boutons, un « Plus » en groupes —
+c'est le seul changement qui touche des habitudes déjà prises, la question lui est posée).
+
+# ✅ 15 OCTOBRE 2026 (SOIR) — OP MESSAGES : PLUS D'« AJOUTER À MON CALENDRIER » NULLE PART — LA RÉUNION AUSSI, ET LE COURRIEL D'INVITATION PART SANS .ICS
+
+✅ **En service sur la bêta** : PR #141 fusionnée (`e62cd89b`), msg-beta relu le 15 octobre au soir — `/health` sur `e62cd89b`, `OPMSG_VERSION` 198, `index.html` et `opmsg-ui.js` servis identiques à `main` (empreintes comparées).
 
 Justin, à « les réunions gardent encore « Ajouter à mon calendrier », dans leur fiche, leur menu et le mail d'invitation — je le retire aussi ? » : « retire aussi ». Ce qui est écrit (bêta) :
 · **La page** : plus d'« Ajouter à mon agenda (.ics) » (ni « Cette date (.ics) », ni « Toute la série (.ics) ») dans la fiche d'une réunion, plus d'« Ajouter à mon calendrier (.ics) » dans son

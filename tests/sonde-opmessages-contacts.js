@@ -67,7 +67,7 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     v('population : aucune demande au départ, la pastille de l\'onglet est cachée', await badge(A), []);
     await toucher(A, '#tabs a[data-vue="contacts"]');
     vrai('toucher « Contacts » ouvre l\'onglet', await vueVisible(A, 'contacts'));
-    vrai('il dit « Aucune demande en attente » et « Pas encore de contact » (après avoir LU les demandes)', await attendre(A, () => { const t = document.getElementById('vue-contacts').textContent; return t.includes('Aucune demande en attente') && t.includes('Pas encore de contact'); }));
+    vrai('il dit « Pas encore de contact » — et, sans demande, AUCUNE rubrique « Demandes de contact » (15 octobre 2026 : plus de carte vide), après avoir LU les demandes', await attendre(A, () => { const t = document.getElementById('vue-contacts').textContent; return !t.includes('Chargement des demandes') && !t.includes('Demandes de contact') && !t.includes('Aucune demande en attente') && t.includes('Pas encore de contact'); }));
     const bulle = await A.page.evaluate(() => { const bu = document.querySelector('.tabs-bulle').getBoundingClientRect(), t = document.querySelector('#tabs a[data-vue="contacts"]').getBoundingClientRect(); return Math.abs((bu.left + bu.width / 2) - (t.left + t.width / 2)) < 3 && Math.abs(bu.width - t.width) < 3; });
     vrai('la bulle de la barre se pose exactement sous « Contacts » (cinq colonnes égales)', await attendre(A, () => { const bu = document.querySelector('.tabs-bulle').getBoundingClientRect(), t = document.querySelector('#tabs a[data-vue="contacts"]').getBoundingClientRect(); return Math.abs((bu.left + bu.width / 2) - (t.left + t.width / 2)) < 3 && Math.abs(bu.width - t.width) < 3; }) || bulle);
     await toucher(A, '#tabs a[data-vue="messages"]'); await vueVisible(A, 'messages');
@@ -90,7 +90,7 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
 
     console.log('\n── 3. Alice accepte ──');
     await toucher(A, '#vue-contacts [data-act="vc-accepter"]');
-    vrai('« Contact ajouté » ; la demande quitte la liste ; Bruno est dans « Mes contacts »', await attendre(A, () => { const s = document.getElementById('vue-contacts'); return !s.querySelector('.vc-recues') && s.textContent.includes('Aucune demande en attente') && !!Array.from(s.querySelectorAll('[data-act="vc-ecrire"]')).find(x => x.textContent.includes('Bruno')); }));
+    vrai('« Contact ajouté » ; la demande quitte la liste ; Bruno est dans « Mes contacts »', await attendre(A, () => { const s = document.getElementById('vue-contacts'); return !s.querySelector('.vc-recues') && !s.textContent.includes('Demandes de contact') && !!Array.from(s.querySelectorAll('[data-act="vc-ecrire"]')).find(x => x.textContent.includes('Bruno')); }));
     v('la pastille de l\'onglet disparaît', await badge(A), []);
     vrai('chez Bruno, sans rien toucher : Alice passe de « en attente » à « Mes contacts »', await attendre(B, () => { const s = document.getElementById('vue-contacts'); return !s.querySelector('[data-act="vc-retirer"]') && !!Array.from(s.querySelectorAll('[data-act="vc-ecrire"]')).find(x => x.textContent.includes('Alice')); }, null, 12000));
     await toucher(B, '#vue-contacts [data-act="vc-ecrire"]');

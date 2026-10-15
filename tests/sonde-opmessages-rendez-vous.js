@@ -39,10 +39,27 @@ async function ouvrir(b, base, pf, nuit) {
 }
 const attendre = (S, fn, arg, ms) => S.page.waitForFunction(fn, arg, { timeout: ms || 9000, polling: 50 }).then(() => true, () => false);
 async function toucher(S, sel) { const l = S.page.locator(sel).filter({ visible: true }).first(); await l.scrollIntoViewIfNeeded().catch(() => {}); if (S.pf.mobile) await l.tap(); else await l.click(); }
+
+/* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : il propose Rendez-vous, Événement, et Réunion côté Pro. On le touche, puis le choix — avec un seul choix,
+   le « + » y va tout droit. `choixAgenda` lit ce que le « + » propose (et referme le menu). */
+async function creerAgenda(S, quoi) {
+  await toucher(S, '#btn-agenda-plus');
+  await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return (d && !d.hidden) || !!document.querySelector('#feuille:not([hidden]), .feuille:not([hidden])'); }, null, { timeout: 8000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; })) await toucher(S, '#deroule-liste [data-valeur="' + quoi + '"]');
+}
+async function choixAgenda(S) {
+  await toucher(S, '#btn-agenda-plus');
+  const ouvert = await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; }, null, { timeout: 8000 }).then(() => true, () => false);
+  if (!ouvert) return null;
+  const l = await S.page.evaluate(() => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(b => b.textContent.trim()));
+  await S.page.keyboard.press('Escape');
+  await S.page.waitForFunction(() => document.getElementById('deroule').hidden, null, { timeout: 8000 }).catch(() => {});
+  return l;
+}
 const lignes = (S) => S.page.evaluate(() => Array.from(document.querySelectorAll('#liste-reunions [data-evenement]')).map(b => b.textContent.replace(/\s+/g, ' ').trim()));
 const cases = (S) => S.page.evaluate(() => Array.from(document.querySelectorAll('#ev-rappels [data-evt-rappel]')).map(x => x.dataset.evtRappel + (x.getAttribute('aria-checked') === 'true' ? '✓' : '')));
 /* les deux boutons de l'en-tête : [« Rendez-vous » visible, « Réunion » présent, « Réunion » visible] */
-const entete = (S) => S.page.evaluate(() => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return [vu('btn-rdv-nouveau'), !!document.getElementById('btn-reunion-nouvelle'), vu('btn-reunion-nouvelle')]; });
+const entete = (S) => choixAgenda(S);      // ce que propose le « + » de l'Agenda (15 octobre 2026 : un seul « + »)
 async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { recursive: true }); await S.page.waitForTimeout(300); await S.page.screenshot({ path: path.join(DOSSIER, nom + '.png') }); }
 const localParis = (t) => new Intl.DateTimeFormat('sv-SE', { timeZone: PARIS, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(t)).replace(' ', 'T');
 const aujourdhui = () => localParis(Date.now()).slice(0, 10);
@@ -63,16 +80,18 @@ const aujourdhui = () => localParis(Date.now()).slice(0, 10);
     console.log('\n── 1. iPhone, côté Perso : « Rendez-vous » à la place de « Réunion » ──');
     await toucher(A, '#tabs a[data-vue="reunions"]');
     vrai('population : Alice a les deux côtés (la bêta ouvre tout) et elle est côté Perso', await attendre(A, () => document.documentElement.dataset.cote === 'perso' && !document.getElementById('vue-reunions').hidden));
-    v('⛔ l\'en-tête de l\'Agenda : « Rendez-vous » visible, « Réunion » présent mais caché', await entete(A), [true, true, false]);
-    v('   « Événement » est toujours là, et « Rendez-vous » se lit tel quel', await A.page.evaluate(() => [!!document.getElementById('btn-evenement-nouveau'), document.getElementById('btn-rdv-nouveau').textContent]), [true, 'Rendez-vous']);
+    v('⛔ le « + » de l\'Agenda : « Rendez-vous », puis « Événement » — PAS « Réunion » (Perso)', await entete(A), ['Rendez-vous', 'Événement']);
 
     console.log('\n── 2. « Nouveau rendez-vous » : avec qui, une heure, des rappels en cases ──');
-    await toucher(A, '#btn-rdv-nouveau');
+    await creerAgenda(A, 'rdv');
     vrai('la feuille « Nouveau rendez-vous » : titre, « Avec », début, fin, lieu, les rappels, note', await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && ['ev-titre', 'ev-avec', 'ev-debut', 'ev-fin', 'ev-lieu', 'ev-rappels', 'ev-note'].every(id => !!document.getElementById(id))));
     v('⛔ un rendez-vous a une heure : pas de « Toute la journée », et le début se règle à la minute', await A.page.evaluate(() => [!!document.getElementById('ev-journee'), document.getElementById('ev-debut').type]), [false, 'datetime-local']);
     v('les rappels : six cases, « la veille » et « 1 heure avant » cochées par défaut', await cases(A), ['1440✓', '60✓', '30', '15', '5', '0']);
     const mesures = await A.page.evaluate(() => [Array.from(document.querySelectorAll('#ev-rappels [data-evt-rappel]')).map(x => Math.round(x.getBoundingClientRect().height)), Array.from(document.querySelectorAll('#info-corps input, #info-corps textarea')).filter(x => x.getClientRects().length).map(x => parseFloat(getComputedStyle(x).fontSize))]);
     v('iPhone : chaque case de rappel fait 44 px au moins, chaque champ 16 px au moins (Safari zoomerait)', [mesures[0].length, mesures[0].every(h => h >= 44), mesures[1].length >= 5, mesures[1].every(t => t >= 16)], [6, true, true, true], mesures);
+    /* (15 octobre 2026, « plus simple ») des PASTILLES : le texte court à l'écran, le nom entier pour le lecteur d'écran */
+    v('les rappels en pastilles : « La veille · 1 h · 30 min · 15 min · 5 min · À l\'heure », chacune NOMMÉE en entier', await A.page.evaluate(() => Array.from(document.querySelectorAll('#ev-rappels [data-evt-rappel]')).map(x => [x.textContent.trim(), x.getAttribute('aria-label'), x.classList.contains('rappel-puce')])),
+      [['La veille', 'La veille', true], ['1 h', '1 heure avant', true], ['30 min', '30 minutes avant', true], ['15 min', '15 minutes avant', true], ['5 min', '5 minutes avant', true], ['À l\'heure', 'À l\'heure', true]]);
     await toucher(A, '[data-evt="enregistrer"]');
     vrai('sans titre : l\'écran le DIT (« Donne un titre au rendez-vous »)', await attendre(A, () => { const e = document.getElementById('info-erreur'); return e && !e.hidden && /titre au rendez-vous/.test(e.textContent); }));
     await toucher(A, '#ev-rappels [data-evt-rappel="15"]');
@@ -113,7 +132,7 @@ const aujourdhui = () => localParis(Date.now()).slice(0, 10);
 
     console.log('\n── 5. Le rappel arrive dans la page, et dit avec qui ──');
     const debut = Math.ceil((Date.now() + 70 * 60000) / 60000) * 60000;
-    await toucher(A, '#btn-rdv-nouveau');
+    await creerAgenda(A, 'rdv');
     await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-avec'));
     await A.page.locator('#ev-titre').fill('Garage QXV'); await A.page.locator('#ev-avec').fill('M. Blanc');
     await A.page.locator('#ev-debut').fill(localParis(debut)); await A.page.locator('#ev-fin').fill(localParis(debut + 1800000));
@@ -131,7 +150,7 @@ const aujourdhui = () => localParis(Date.now()).slice(0, 10);
     const B = await ouvrir(b, svc.base, BUREAU, true);
     await toucher(B, '#nav-side a[data-vue="reunions"]');
     vrai('la journée porte « Ostéopathe QXV » (le même compte, un autre appareil)', await attendre(B, () => /Ostéopathe QXV/.test(document.getElementById('liste-reunions').textContent)));
-    v('côté Perso au bureau aussi : « Rendez-vous », pas « Réunion »', await entete(B), [true, true, false]);
+    v('côté Perso au bureau aussi : « Rendez-vous », pas « Réunion »', await entete(B), ['Rendez-vous', 'Événement']);
     await B.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'Ostéopathe QXV' }).first().click();
     vrai('population : la fiche « Rendez-vous » s\'ouvre au bureau, avec ses valeurs', await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Rendez-vous' && document.getElementById('ev-titre').value === 'Ostéopathe QXV' && !!document.querySelector('#info-corps [data-evt="fait"]')));
     v('⛔ au bureau non plus : rien à télécharger, pas d\'« Ajouter à mon calendrier »', await B.page.evaluate(() => [document.querySelectorAll('#info-corps a[download], #info-corps a[href*="/ics"]').length, /Ajouter à mon calendrier/.test(document.getElementById('info-corps').textContent)]), [0, false]);
@@ -141,10 +160,12 @@ const aujourdhui = () => localParis(Date.now()).slice(0, 10);
     vrai('population : le sélecteur Perso | Pro de la barre latérale est là', await attendre(B, () => Array.from(document.querySelectorAll('.cote-seg-side [data-cote="pro"]')).some(x => x.getClientRects().length)));
     await toucher(B, '.cote-seg-side [data-cote="pro"]');
     /* ⛔ côté Pro, « Réunion » ET « Rendez-vous » (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») */
-    vrai('côté Pro : l\'en-tête propose « Réunion » ET « Rendez-vous »', await attendre(B, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; }; return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && vu('btn-rdv-nouveau'); }));
+    vrai('population : côté Pro', await attendre(B, () => document.documentElement.dataset.cote === 'pro' && !!document.getElementById('btn-agenda-plus')));
+    v('côté Pro : le « + » propose « Rendez-vous », « Événement » ET « Réunion »', await entete(B), ['Rendez-vous', 'Événement', 'Réunion']);
     await capture(B, 'rdv-5-pro-bureau-nuit');
     await toucher(B, '.cote-seg-side [data-cote="perso"]');
-    vrai('de retour côté Perso : « Rendez-vous » seul (« Réunion » se cache)', await attendre(B, () => { const x = document.getElementById('btn-rdv-nouveau'); return document.documentElement.dataset.cote === 'perso' && !!x && !x.hidden && document.getElementById('btn-reunion-nouvelle').hidden; }));
+    vrai('population : de retour côté Perso', await attendre(B, () => document.documentElement.dataset.cote === 'perso'));
+    v('de retour côté Perso : « Réunion » quitte le « + »', await entete(B), ['Rendez-vous', 'Événement']);
 
     v('aucune erreur JavaScript', [A.erreurs, B.erreurs], [[], []]);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }

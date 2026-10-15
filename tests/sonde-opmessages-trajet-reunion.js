@@ -58,6 +58,12 @@ const arr = (x) => Math.round(x * 1e4) / 1e4;
 const zone = (S) => S.page.evaluate(() => { const z = document.getElementById('reu-trajet-zone'); return z ? z.textContent.replace(/\s+/g, ' ').trim() : null; });
 const resultat = (S) => S.page.evaluate(() => { const r = document.getElementById('rt-res'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; });
 const ouvrirFiche = async (S, id) => { await S.page.evaluate(r => { location.hash = '#reunions/' + r; }, id); return attendre(S, () => !!document.querySelector('#info-corps .info-nom'), null, 12000); };
+/* (15 octobre 2026, « plus simple ») la zone s'ouvre REPLIÉE tant qu'aucun trajet n'est rangé : un toucher sur « Calculer l'heure de départ » déplie le formulaire */
+const ouvrirTrajet = async (S) => {
+  if (!await attendre(S, () => !!document.querySelector('[data-reu="trajet-ouvrir"]') || !!document.getElementById('rt-depart'))) return false;
+  if (await S.page.evaluate(() => !!document.querySelector('[data-reu="trajet-ouvrir"]'))) await toucher(S, '[data-reu="trajet-ouvrir"]');
+  return attendre(S, () => !!document.getElementById('rt-depart'));
+};
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: MDP.alice, nom: 'Alice Martin', actif: true }, bob: { pass: MDP.bob, nom: 'Bob Petit', actif: true } });
@@ -93,7 +99,12 @@ const ouvrirFiche = async (S, id) => { await S.page.evaluate(r => { location.has
 
     console.log('\n── 1. iPhone, Bob : la fiche de la réunion porte « Trajet » ──');
     vrai('la fiche s\'ouvre', await ouvrirFiche(B, R));
-    vrai('la zone « Trajet » paraît (le service a dit qu\'il calcule)', await attendre(B, () => !!document.getElementById('rt-depart')), await zone(B));
+    vrai('la zone « Trajet » paraît (le service a dit qu\'il calcule), REPLIÉE', await attendre(B, () => !!document.querySelector('[data-reu="trajet-ouvrir"]')), await zone(B));
+    const replie = await B.page.evaluate(() => { const z = document.getElementById('reu-trajet-zone'), bs = Array.from(z.querySelectorAll('button'));
+      return [bs.map(x => x.textContent.trim()), !!z.querySelector('select, input'), bs.every(x => x.getBoundingClientRect().height >= 44), document.querySelector('[data-reu="trajet-ouvrir"]').getAttribute('aria-expanded')]; });
+    v('   repliée : deux lignes, « Calculer l\'heure de départ » et « Y aller » — ni départ, ni mode, ni avance sous les yeux ; 44 px chacune', replie, [['Calculer l\'heure de départ', 'Y aller'], false, true, 'false']);
+    await toucher(B, '[data-reu="trajet-ouvrir"]');
+    vrai('un toucher la déplie : le formulaire paraît, le focus sur « Je pars de »', await attendre(B, () => !!document.getElementById('rt-depart') && document.activeElement === document.getElementById('rt-depart')), await zone(B));
     const init = await B.page.evaluate(() => ({ depart: document.getElementById('rt-depart').value, options: Array.from(document.getElementById('rt-depart').options).map(o => o.value + ':' + o.textContent),
       mode: Array.from(document.querySelectorAll('[data-reu="trajet-mode"]')).map(x => x.dataset.mode + (x.getAttribute('aria-pressed') === 'true' ? '✓' : '')), avance: document.getElementById('rt-avance').value,
       bouton: (document.querySelector('[data-reu="trajet-calculer"]') || {}).textContent, note: /ni gardée, ni montrée à personne/.test(document.getElementById('reu-trajet-zone').textContent),
@@ -151,7 +162,7 @@ const ouvrirFiche = async (S, id) => { await S.page.evaluate(r => { location.has
 
     console.log('\n── 5. Au bureau, de nuit, Alice : rien du trajet de Bob ; le sien depuis Domicile ──');
     const A = await ouvrir(b, svc.base, 'alice', BUREAU, { nuit: true });
-    vrai('sa fiche s\'ouvre, avec SA zone « Trajet »', await ouvrirFiche(A, R) && await attendre(A, () => !!document.getElementById('rt-depart')), await zone(A));
+    vrai('sa fiche s\'ouvre, avec SA zone « Trajet »', await ouvrirFiche(A, R) && await ouvrirTrajet(A), await zone(A));
     const voitA = await A.page.evaluate(() => { const t = document.getElementById('info-corps').textContent; return [!!document.getElementById('rt-res'), /Partir à/.test(t), /à pied/.test(t), /75001/.test(t), /Ma position/.test(document.getElementById('rt-depart').value)]; });
     v('⛔ ni « Partir à », ni « à pied », ni l\'adresse vers laquelle Bob va : la fiche d\'Alice ne porte RIEN de son trajet', voitA.slice(0, 4), [false, false, false, false]);
     await A.page.locator('#rt-depart').selectOption('domicile');
@@ -179,12 +190,16 @@ const ouvrirFiche = async (S, id) => { await S.page.evaluate(r => { location.has
     v('   le service', [(await monTrajet(B0, R)).vers_label, (await monTrajet(B0, R)).mode, (await monTrajet(B0, R)).minutes], [TE.label, 'pied', minutesDe(POS, TE, 'pied')]);
     await toucher(B, '[data-reu="trajet-retirer"]');
     vrai('« Retirer le trajet » : « Trajet retiré », plus de « Partir à »', await attendre(B, () => /Trajet retiré/.test(document.getElementById('mot').textContent) && !document.getElementById('rt-res')));
+    /* (15 octobre 2026) déplié, il le reste : « Retirer le trajet » ne replie pas le formulaire sous le doigt (son état se refaisait sans `ouvert`), et le focus ne tombe pas sur la page */
+    v('   ⛔ le formulaire reste DÉPLIÉ (le départ, « Calculer », pas de ligne « Calculer l\'heure de départ » repliée)', await B.page.evaluate(() => [!!document.getElementById('rt-depart'), !!document.querySelector('[data-reu="trajet-calculer"]'), !document.querySelector('[data-reu="trajet-ouvrir"]')]), [true, true, true], await zone(B));
+    vrai('   ⛔ le bouton touché a disparu : le focus va à « Calculer », pas à la page', await attendre(B, () => !!document.activeElement && document.activeElement.dataset.reu === 'trajet-calculer', null, 4000),
+      await B.page.evaluate(() => document.activeElement ? document.activeElement.tagName + '#' + document.activeElement.id + '[' + (document.activeElement.dataset.reu || '') + ']' : '-'));
     v('   le service : plus de trajet pour Bob (celui d\'Alice reste — il mène à l\'ancien lieu, dit périmé)', [await monTrajet(B0, R), (await A0.get('/api/reunions/' + R)).j.moi.trajet_perime && (await A0.get('/api/reunions/' + R)).j.moi.trajet_perime.depart], [null, 'domicile']);
 
     console.log('\n── 7. L\'heure de partir arrive : « Il est temps de partir » ──');
     const debut7 = Math.ceil((Date.now() + 60 * 60000) / 60000) * 60000;
     const R7 = await prog('Départ QXT', 'Tour Eiffel', debut7, { rappels: [] });
-    vrai('population : la fiche de la réunion qui commence dans une heure', await ouvrirFiche(B, R7) && await attendre(B, () => !!document.getElementById('rt-depart')));
+    vrai('population : la fiche de la réunion qui commence dans une heure', await ouvrirFiche(B, R7) && await ouvrirTrajet(B));
     await toucher(B, '[data-reu="trajet-mode"][data-mode="voiture"]');
     await toucher(B, '[data-reu="trajet-calculer"]');
     vrai('   calculé et enregistré', await attendre(B, () => /Partir à/.test((document.getElementById('rt-res') || {}).textContent || '') && /Trajet enregistré/.test(document.getElementById('mot').textContent), null, 12000), await zone(B));
@@ -210,7 +225,7 @@ const ouvrirFiche = async (S, id) => { await S.page.evaluate(r => { location.has
 
     console.log('\n── 9. Un libellé piégé de l\'IGN s\'affiche en TEXTE ──');
     const RB = await prog('Atelier QXT', 'Atelier balise', debut0 + 7 * 3600000);
-    vrai('population : la fiche', await ouvrirFiche(B, RB) && await attendre(B, () => !!document.getElementById('rt-depart')));
+    vrai('population : la fiche', await ouvrirFiche(B, RB) && await ouvrirTrajet(B));
     await toucher(B, '[data-reu="trajet-calculer"]');
     vrai('« Partir à » paraît', await attendre(B, () => /Partir à/.test((document.getElementById('rt-res') || {}).textContent || ''), null, 12000), await zone(B));
     v('⛔ le balisage s\'affiche en TEXTE (« Vers Rue <img …> & Fils », « Plutôt : Impasse <b …>gras</b> ») : aucune image, aucun gras, rien d\'exécuté', await B.page.evaluate(() => {

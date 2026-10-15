@@ -97,6 +97,21 @@ function localDans(t, tz) {
     const att = (P, fn, arg, ms) => P.page.waitForFunction(fn, arg, { timeout: ms || 12000, polling: 100 }).then(() => true, () => false);
     const capture = async (P, nom) => { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { recursive: true }); await P.page.screenshot({ path: path.join(DOSSIER, nom + '.png') }); };
     const toucher = (P, sel, texte) => { let l = P.page.locator(sel); if (texte) l = l.filter({ hasText: texte }); l = l.filter({ visible: true }).first(); return P.bureau ? l.click() : l.tap(); };
+    /* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : on le touche, puis le choix (un seul choix : il y va tout droit) ; `choixAgenda` lit ce qu'il propose */
+    async function creerAgenda(S, quoi) {
+      await toucher(S, '#btn-agenda-plus');
+      await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return (d && !d.hidden) || !!document.querySelector('#feuille:not([hidden]), .feuille:not([hidden])'); }, null, { timeout: 8000 }).catch(() => {});
+      if (await S.page.evaluate(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; })) await toucher(S, '#deroule-liste [data-valeur="' + quoi + '"]');
+    }
+    async function choixAgenda(S) {
+      await toucher(S, '#btn-agenda-plus');
+      const ouvert = await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; }, null, { timeout: 8000 }).then(() => true, () => false);
+      if (!ouvert) return null;
+      const l = await S.page.evaluate(() => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(b => b.textContent.trim()));
+      await S.page.keyboard.press('Escape');
+      await S.page.waitForFunction(() => document.getElementById('deroule').hidden, null, { timeout: 8000 }).catch(() => {});
+      return l;
+    }
     /* l'Agenda, puis demain (la semaine suivante si demain y est) */
     const versAgenda = async (P) => {
       await toucher(P, P.bureau ? '#nav-side a.side-lien[data-vue="reunions"]' : '#tabs a.tab[data-vue="reunions"]');
@@ -171,7 +186,7 @@ function localDans(t, tz) {
     A.page.on('request', q => { if (q.method() === 'POST' && /\/api\/(reunions|agenda)$/.test(q.url())) postes.push({ u: q.url().replace(/^.*\/api\//, ''), c: (() => { try { return JSON.parse(q.postData()).cote; } catch (e) { return '?'; } })() }); });
     /* la fiche d'un événement : la population (le formulaire est ouvert), puis l'absence de tout segment Perso|Pro ; il s'enregistre où l'on est */
     const creerEvenement = async (titre, h1, h2) => {
-      await toucher(A, '#btn-evenement-nouveau');
+      await creerAgenda(A, 'evenement');
       vrai('(population) la fiche d\'un nouvel événement est ouverte : titre, début, fin, bouton Enregistrer', await att(A, () => !!document.getElementById('ev-titre') && !!document.getElementById('ev-debut') && !!document.getElementById('ev-fin') && !!document.querySelector('[data-evt="enregistrer"]')));
       v('⛔ …et elle n\'a AUCUN segment Perso|Pro (ni #ev-cote, ni choix de côté, ni sélecteur visible)', [await anciens(A), await segVisible(A)], [0, []]);
       await A.page.locator('#ev-titre').fill(titre);
@@ -184,7 +199,7 @@ function localDans(t, tz) {
     vrai('« À ranger » : de même', await creerEvenement('À ranger QZK', '16:30', '17:00'));
     v('la demande portait le côté (Pro) pour les deux, et le service les a rangés Pro', [postes.filter(x => x.u === 'agenda').map(x => x.c), (await agendaAna()).filter(e => /^(Créé côté Pro|À ranger) QZK$/.test(e.titre)).map(e => e.titre + ':' + e.cote).sort()], [['pro', 'pro'], ['Créé côté Pro QZK:pro', 'À ranger QZK:pro']]);
     /* la réunion : sa fiche (population : elle est ouverte) n'a aucun segment ; programmée côté Pro, elle naît Pro */
-    await toucher(A, '#btn-reunion-nouvelle');
+    await creerAgenda(A, 'reunion');
     vrai('(population) la fiche d\'une nouvelle réunion est ouverte : titre, début, fin, bouton Programmer', await att(A, () => !!document.getElementById('rf-titre') && !!document.getElementById('rf-debut') && !!document.getElementById('rf-fin') && !!document.querySelector('[data-reu="form-enregistrer"]')));
     v('⛔ …et elle n\'a AUCUN segment Perso|Pro (ni #rf-cote, ni choix de côté, ni sélecteur visible)', [await anciens(A), await segVisible(A)], [0, []]);
     await A.page.locator('#rf-titre').fill('Réunion Pro QZK');
@@ -239,9 +254,8 @@ function localDans(t, tz) {
     postes.length = 0;
     vrai('« Créé côté Perso » : un événement créé d\'ici paraît dans l\'agenda Perso', await creerEvenement('Créé côté Perso QZK', '21:30', '22:00'));
     /* ⛔ côté Perso, l'Agenda propose « Rendez-vous » à la place de « Réunion » (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous ») */
-    v('⛔ côté Perso : « Rendez-vous » en haut de l\'Agenda, « Réunion » caché (population : il existe)', await A.page.evaluate(() => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
-      return [vu('btn-rdv-nouveau'), !!document.getElementById('btn-reunion-nouvelle'), vu('btn-reunion-nouvelle')]; }), [true, true, false]);
-    await toucher(A, '#btn-rdv-nouveau');
+    v('⛔ côté Perso : le « + » de l\'Agenda propose « Rendez-vous » (et « Événement »), PAS « Réunion »', await choixAgenda(A), ['Rendez-vous', 'Événement']);
+    await creerAgenda(A, 'rdv');
     vrai('(population) la fiche d\'un nouveau rendez-vous est ouverte : titre, « Avec », début, fin, les rappels, bouton Enregistrer', await att(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-titre') && !!document.getElementById('ev-avec') && !!document.getElementById('ev-debut') && !!document.getElementById('ev-rappels') && !!document.querySelector('[data-evt="enregistrer"]')));
     v('⛔ …et elle n\'a AUCUN segment Perso|Pro', [await anciens(A), await segVisible(A)], [0, []]);
     await A.page.locator('#ev-titre').fill('Anniversaire QZK'); await A.page.locator('#ev-avec').fill('Léa');

@@ -49,6 +49,29 @@ async function ouvrir(b, base, pf, o) {
 }
 const attendre = (S, fn, arg, ms) => S.page.waitForFunction(fn, arg, { timeout: ms || 9000, polling: 50 }).then(() => true, () => false);
 async function toucher(S, sel) { const l = S.page.locator(sel).filter({ visible: true }).first(); await l.scrollIntoViewIfNeeded().catch(() => {}); if (S.pf.mobile) await l.tap(); else await l.click(); }
+/* (15 octobre 2026, « plus simple ») la zone du trajet s'ouvre REPLIÉE tant qu'aucun trajet n'est calculé : un toucher sur « Calculer l'heure de départ » déplie le formulaire */
+const deplier = async (S) => {
+  if (!await attendre(S, () => !!document.querySelector('[data-evt="trajet-ouvrir"]') || !!document.getElementById('ev-tr-depart'))) return false;
+  if (await S.page.evaluate(() => !!document.querySelector('[data-evt="trajet-ouvrir"]'))) await toucher(S, '[data-evt="trajet-ouvrir"]');
+  return attendre(S, () => !!document.getElementById('ev-tr-depart'));
+};
+
+/* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : il propose Rendez-vous, Événement, et Réunion côté Pro. On le touche, puis le choix — avec un seul choix,
+   le « + » y va tout droit. `choixAgenda` lit ce que le « + » propose (et referme le menu). */
+async function creerAgenda(S, quoi) {
+  await toucher(S, '#btn-agenda-plus');
+  await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return (d && !d.hidden) || !!document.querySelector('#feuille:not([hidden]), .feuille:not([hidden])'); }, null, { timeout: 8000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; })) await toucher(S, '#deroule-liste [data-valeur="' + quoi + '"]');
+}
+async function choixAgenda(S) {
+  await toucher(S, '#btn-agenda-plus');
+  const ouvert = await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; }, null, { timeout: 8000 }).then(() => true, () => false);
+  if (!ouvert) return null;
+  const l = await S.page.evaluate(() => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(b => b.textContent.trim()));
+  await S.page.keyboard.press('Escape');
+  await S.page.waitForFunction(() => document.getElementById('deroule').hidden, null, { timeout: 8000 }).catch(() => {});
+  return l;
+}
 async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { recursive: true }); await S.page.waitForTimeout(300); await S.page.screenshot({ path: path.join(DOSSIER, nom + '.png') }); }
 const localParis = (t) => new Intl.DateTimeFormat('sv-SE', { timeZone: PARIS, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(t)).replace(' ', 'T');
 const hmParis = (t) => localParis(t).slice(11, 16);
@@ -78,9 +101,13 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
 
     console.log('\n── 1. iPhone : « Nouveau rendez-vous » porte « Trajet » ──');
     await toucher(A, '#tabs a[data-vue="reunions"]');
-    await attendre(A, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-rdv-nouveau'));
-    await toucher(A, '#btn-rdv-nouveau');
-    vrai('la feuille « Nouveau rendez-vous » s\'ouvre, et la zone « Trajet » paraît (le service a dit qu\'il calcule)', await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-tr-depart')));
+    await attendre(A, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-agenda-plus'));
+    await creerAgenda(A, 'rdv');
+    vrai('la feuille « Nouveau rendez-vous » s\'ouvre, et la zone « Trajet » paraît (le service a dit qu\'il calcule), REPLIÉE', await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.querySelector('#ev-trajet-zone [data-evt="trajet-ouvrir"]')));
+    v('   repliée : « Calculer l\'heure de départ » seul (pas encore de lieu, donc pas de « Y aller ») — ni départ, ni mode, ni avance sous les yeux ; 44 px', await A.page.evaluate(() => { const z = document.getElementById('ev-trajet-zone'), bs = Array.from(z.querySelectorAll('button'));
+      return [bs.map(x => x.textContent.trim()), !!z.querySelector('select, input'), bs.every(x => x.getBoundingClientRect().height >= 44), bs[0] && bs[0].getAttribute('aria-expanded')]; }), [['Calculer l\'heure de départ'], false, true, 'false']);
+    await toucher(A, '#ev-trajet-zone [data-evt="trajet-ouvrir"]');
+    vrai('un toucher la déplie : le formulaire paraît, le focus sur « Je pars de »', await attendre(A, () => !!document.getElementById('ev-tr-depart') && document.activeElement === document.getElementById('ev-tr-depart')), await zone(A));
     const init = await A.page.evaluate(() => ({ depart: document.getElementById('ev-tr-depart').value, options: Array.from(document.getElementById('ev-tr-depart').options).map(o => o.value + ':' + o.textContent),
       mode: Array.from(document.querySelectorAll('[data-tr-mode]')).map(x => x.dataset.trMode + (x.getAttribute('aria-pressed') === 'true' ? '✓' : '')), avance: document.getElementById('ev-tr-avance').value,
       bouton: (document.querySelector('[data-evt="trajet-calculer"]') || {}).textContent, note: /ni gardée, ni montrée à personne/.test(document.getElementById('ev-trajet-zone').textContent),
@@ -199,7 +226,7 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
 
     console.log('\n── 6. Domicile, enregistré depuis la fiche ; « Retirer le trajet » ──');
     await A.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'Kiné QXT' }).first().tap();
-    await attendre(A, () => !!document.getElementById('ev-tr-depart'));
+    await deplier(A);
     await A.page.locator('#ev-tr-depart').selectOption('domicile');
     vrai('Domicile n\'est pas encore enregistré : le champ « Adresse de ton domicile » paraît, et dit qu\'elle sera gardée', await attendre(A, () => !!document.getElementById('ev-tr-adresse') && /Adresse de ton domicile/.test(document.getElementById('ev-trajet-zone').textContent) && /gardée pour la prochaine fois/.test(document.getElementById('ev-trajet-zone').textContent)), await zone(A));
     vrai('   ⛔ et le trajet d\'avant (depuis Ma position) est retiré : il ne part pas de là', await attendre(A, () => !document.getElementById('ev-tr-res')));
@@ -221,8 +248,8 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
 
     console.log('\n── 7. L\'heure de partir arrive : « Il est temps de partir » ──');
     const debut = Math.ceil((Date.now() + 60 * 60000) / 60000) * 60000;
-    await toucher(A, '#btn-rdv-nouveau');
-    await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-tr-depart'));
+    await creerAgenda(A, 'rdv');
+    await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous'); await deplier(A);
     await A.page.locator('#ev-titre').fill('Banque QXT');
     await A.page.locator('#ev-debut').fill(localParis(debut)); await A.page.locator('#ev-fin').fill(localParis(debut + 1800000));
     await A.page.locator('#ev-lieu').fill('Tour Eiffel');
@@ -267,9 +294,9 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     console.log('\n── 9. Un navigateur qui refuse la position ──');
     const N = await ouvrir(b, svc.base, IPHONE, { position: false });
     await toucher(N, '#tabs a[data-vue="reunions"]');
-    await attendre(N, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-rdv-nouveau'));
-    await toucher(N, '#btn-rdv-nouveau');
-    await attendre(N, () => !!document.getElementById('ev-tr-depart'));
+    await attendre(N, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-agenda-plus'));
+    await creerAgenda(N, 'rdv');
+    await deplier(N);
     await N.page.locator('#ev-titre').fill('Poste QXT'); await N.page.locator('#ev-lieu').fill('Tour Eiffel');
     n = ign.etat.appels.length;
     await toucher(N, '[data-evt="trajet-calculer"]');
@@ -285,14 +312,11 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     await attendre(B, () => !document.getElementById('vue-reunions').hidden);
     vrai('population : le sélecteur Perso | Pro de la barre latérale est là', await attendre(B, () => Array.from(document.querySelectorAll('.cote-seg-side [data-cote="pro"]')).some(x => x.getClientRects().length)));
     await toucher(B, '.cote-seg-side [data-cote="pro"]');
-    vrai('côté Pro : la barre propose « Événement », « Réunion » ET « Rendez-vous », sur une rangée, au même écart', await attendre(B, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
-      const r = document.getElementById('btn-reunion-nouvelle').getBoundingClientRect(), d = document.getElementById('btn-rdv-nouveau').getBoundingClientRect(), ev = document.getElementById('btn-evenement-nouveau').getBoundingClientRect();
-      return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && vu('btn-rdv-nouveau') && r.left > ev.right && d.left > r.right && Math.abs(r.top - d.top) < 2 && Math.abs(ev.top - r.top) < 2
-        && Math.abs((r.left - ev.right) - (d.left - r.right)) <= 1; }),
-      null);
-    console.log('      (en-tête : ' + await B.page.evaluate(() => ['btn-evenement-nouveau', 'btn-reunion-nouvelle', 'btn-rdv-nouveau'].map(id => { const x = document.getElementById(id); if (!x) return id + ' absent'; const r = x.getBoundingClientRect(); return id + (x.hidden ? ' caché ' : ' ') + Math.round(r.left) + '→' + Math.round(r.right) + ' @' + Math.round(r.top); }).join(' | ')) + ')');
-    await toucher(B, '#btn-rdv-nouveau');
-    await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-tr-depart'));
+    vrai('population : côté Pro', await attendre(B, () => document.documentElement.dataset.cote === 'pro' && !!document.getElementById('btn-agenda-plus')));
+    /* (15 octobre 2026, « plus simple ») un seul « + » : il propose les trois, dans un menu qui sort de lui */
+    v('côté Pro : le « + » de l\'Agenda propose « Rendez-vous », « Événement » ET « Réunion »', await choixAgenda(B), ['Rendez-vous', 'Événement', 'Réunion']);
+    await creerAgenda(B, 'rdv');
+    await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous'); await deplier(B);
     await B.page.locator('#ev-titre').fill('Client QXT'); await B.page.locator('#ev-avec').fill('M. Garnier');
     await B.page.locator('#ev-debut').fill(demain() + 'T10:00'); await B.page.locator('#ev-fin').fill(demain() + 'T11:00');
     await B.page.locator('#ev-lieu').fill('Clinique du Parc, Lyon');
@@ -306,8 +330,8 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     vrai('« Rendez-vous ajouté à ton agenda »', await attendre(B, () => /Rendez-vous ajouté/.test(document.getElementById('mot').textContent)));
     v('le service : un rendez-vous PRO, avec son trajet depuis Domicile', ((await agendaAlice()).filter(e => e.titre === 'Client QXT').map(e => [e.genre, e.cote, e.trajet && e.trajet.depart, e.trajet && e.trajet.minutes, e.trajet && e.trajet.vers_label])), [['rdv', 'pro', 'domicile', mP, CP.label]]);
     /* ⛔ l'IGN est un TIERS : un libellé piégé (du balisage) s'affiche en TEXTE — dans « Vers … » comme dans « Plutôt : … » — et ne crée aucun élément */
-    await toucher(B, '#btn-rdv-nouveau');
-    await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-tr-depart'));
+    await creerAgenda(B, 'rdv');
+    await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous'); await deplier(B);
     await B.page.locator('#ev-titre').fill('Atelier QXT'); await B.page.locator('#ev-debut').fill(demain() + 'T15:00'); await B.page.locator('#ev-fin').fill(demain() + 'T16:00');
     await B.page.locator('#ev-lieu').fill('Atelier balise');
     await toucher(B, '[data-evt="trajet-calculer"]');

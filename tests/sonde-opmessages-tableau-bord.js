@@ -178,6 +178,18 @@ function localDans(t, tz) {
     await capture(A2, 'bord-2-bureau');
     vrai('le bureau s\'ouvre sur « Mois » (le choix du téléphone, retenu par le compte) : la réunion dans douze jours est là', await att(A2, () => document.querySelector('#bord-portee [data-bord-portee="mois"]').getAttribute('aria-pressed') === 'true' && /Revue mensuelle WQXZ/.test(document.getElementById('bord-reunions').textContent)));
 
+    /* (15 octobre 2026, « plus simple ») un bloc vide ne se montre pas : Ana rappelle Dan aussi — plus d'appel manqué important, la rubrique se CACHE ; Dan rappelle deux fois sans réponse, elle REVIENT */
+    console.log('\n5 bis. Plus rien d\'important : la rubrique se cache, et revient');
+    v('population : la rubrique « Appels manqués importants » est là (Dan y reste)', await A.page.evaluate(() => [document.getElementById('bord-appels-rub').hidden, document.getElementById('bord-appels').hidden, document.querySelectorAll('#bord-appels .appel-ligne').length]), [false, false, 1]);
+    const renduDan = await P.ana.post('/api/appels', { uid: P.dan.moi.id, type: 'audio' });
+    await P.ana.post('/api/appels/' + renduDan.j.appel.id + '/quitter', {});
+    await A.page.locator('#tabs .tab[data-vue="messages"]').tap(); await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
+    vrai('⛔ Ana a rappelé Dan : plus rien d\'important — la rubrique ET sa liste se cachent (population : les réunions du tableau sont là)', await att(A, () => /Point chantier WQXZ/.test(document.getElementById('bord-reunions').textContent) && document.getElementById('bord-appels-rub').hidden && document.getElementById('bord-appels').hidden),
+      await A.page.evaluate(() => document.getElementById('bord-appels').textContent.trim().slice(0, 120)));
+    v('   (le service n\'a perdu aucun appel : ils sont dans l\'onglet Appels)', (await manquer(P.dan)) === 200 && (await manquer(P.dan)) === 200, true);
+    await A.page.locator('#tabs .tab[data-vue="messages"]').tap(); await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
+    vrai('Dan rappelle deux fois sans réponse : la rubrique REVIENT, avec Dan (« A appelé 2 fois »)', await att(A, () => !document.getElementById('bord-appels-rub').hidden && !document.getElementById('bord-appels').hidden && /Dan Banc/.test(document.getElementById('bord-appels').textContent)));
+
     console.log('\n6. Sans réunion : rien à programmer d\'ici');
     const C = await ouvrir('cleo', TEL);
     vrai('(le geste complet) Cléo passe Pro, par le Profil', await basculerTel(C, 'pro'));
@@ -188,6 +200,8 @@ function localDans(t, tz) {
     await C.page.locator('#bord-portee [data-bord-portee="mois"]').tap();
     vrai('« Mois » : « Aucune réunion dans les 30 prochains jours. », toujours sans bouton', await att(C, () => { const l = document.getElementById('bord-reunions'); return l.textContent.trim() === 'Aucune réunion dans les 30 prochains jours.' && !l.querySelector('button'); }), JSON.stringify(await vide()));
     await capture(C, 'bord-3-vide-mois');
+    v('⛔ Cléo n\'a été mentionnée nulle part : pas de rubrique « Mentions » vide (population : le tableau est chargé, ses réunions le disent)', await C.page.evaluate(() => { const r = document.getElementById('bord-mentions-rub');
+      return [/Aucune réunion/.test(document.getElementById('bord-reunions').textContent), !r || (r.hidden && document.getElementById('bord-mentions').hidden)]; }), [true, true]);
     console.log('\n6 bis. Le rond d\'un rappel : coché au doigt, il quitte le tableau');
     await A.page.locator('#tabs .tab[data-vue="accueil"]').tap();
     await att(A, () => /Rappeler le fournisseur WQXZ/.test(document.getElementById('bord-rappels').textContent));

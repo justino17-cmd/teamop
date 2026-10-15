@@ -383,10 +383,12 @@ async function couple(b, env, cfg) {
     await verifier('« Supprimer pour moi » : le message disparaît chez A', A, t => !Array.from(document.querySelectorAll('#conv-messages .msg')).some(x => x.textContent.includes(t) && !x.querySelector('.citation')), M, 6000, () => A.page.evaluate(() => Array.from(document.querySelectorAll('#conv-messages .msg')).map(x => x.textContent.replace(/\s+/g, ' ').slice(0, 45)).join(' | ')));
     await dormir(500);
     vrai('… et reste chez B', (await bulle(B, M).count()) >= 1);
-    /* supprimer pour tous : deux touches, dites */
+    /* supprimer pour tous : deux touches, dites — (15 octobre 2026) « Supprimer… » ouvre le choix, le choix est la seconde touche */
     await menuDe(A, E2, 'plus');
-    await actionMenu(A, 'supprimer-tous');
-    vrai('« Supprimer pour tous » demande une SECONDE touche, et la dit', /Supprimer ce message pour tous/.test(await lire(A, '#menu-msg')));
+    vrai('son propre message : UNE ligne « Supprimer… », plus deux lignes rouges', (await nombre(A, '#menu-msg [data-menu="supprimer"]')) === 1 && (await nombre(A, '#menu-msg [data-menu="supprimer-moi"], #menu-msg [data-menu="supprimer-tous"]')) === 0);
+    await actionMenu(A, 'supprimer');
+    vrai('« Supprimer… » demande, et propose les deux (pour moi, pour tous) — rien n\'est parti', /Supprimer ce message \?/.test(await lire(A, '#menu-msg')) && (await nombre(A, '#menu-msg [data-menu="supprimer-moi"]')) === 1 && (await nombre(A, '#menu-msg [data-menu="supprimer-tous"]')) === 1
+      && !/Message supprimé/.test(await lire(A, '#conv-messages')));
     await actionMenu(A, 'supprimer-tous');
     await verifier('chez B le message devient « Message supprimé »', B, () => /Message supprimé/.test(document.getElementById('conv-messages').textContent), null, 8000);
     await verifier('et chez A aussi', A, () => /Message supprimé/.test(document.getElementById('conv-messages').textContent), null, 6000);
@@ -429,12 +431,12 @@ async function couple(b, env, cfg) {
     await verifier('les infos du groupe : deux membres, A est « Admin »', A, () => /Groupe · 2 membres/.test((document.querySelector('#info-corps .info-sous') || {}).textContent || '') && !!document.querySelector('#info-corps .badge-admin'), null, 6000, () => texteVu(A, '#info-corps'));
     await largeur(A, 'infos du groupe');
     const rangees = await A.page.evaluate(() => {
-      const rangs = Array.from(document.querySelectorAll('#info-corps .contact.avec-actions'));
+      const rangs = Array.from(document.querySelectorAll('#info-corps .contact:has(.membre-gerer)'));
       const chevauche = (a, b) => a.right > b.left + 1 && b.right > a.left + 1 && a.bottom > b.top + 1 && b.bottom > a.top + 1;
-      return { n: rangs.length, chev: rangs.filter(r => { const g = document.createRange(); g.selectNodeContents(r.querySelector('.contact-nom')); return chevauche(g.getBoundingClientRect(), r.querySelector('.contact-actions').getBoundingClientRect()); }).length };
+      return { n: rangs.length, chev: rangs.filter(r => { const g = document.createRange(); g.selectNodeContents(r.querySelector('.contact-nom')); return chevauche(g.getBoundingClientRect(), r.querySelector('.membre-gerer').getBoundingClientRect()); }).length };
     });
     vrai('population : ' + rangees.n + ' membre(s) gérable(s) dans les infos du groupe', rangees.n >= 1);
-    v('0 membre dont le NOM passe sous ses boutons « Nommer admin » / « Retirer » (le texte réel est mesuré, pas sa boîte)', rangees.chev, 0);
+    v('0 membre dont le NOM passe sous son « … » (« Nommer admin », « Retirer du groupe ») — le texte réel est mesuré, pas sa boîte', rangees.chev, 0);
     await capturer(b, tag + '-06-infos-groupe', [A, B]);
     await toucher(A, '[data-act="annonces"]');
     await verifier('« Seuls les admins écrivent » : chez B le champ est fermé et la phrase le dit', B, () => !document.getElementById('compo-ferme').hidden || document.getElementById('compo').hidden, null, 8000, () => texteVu(B, '#compo-ferme'));
@@ -468,11 +470,29 @@ async function couple(b, env, cfg) {
     await envoyerTexte(C, tag + '-g3');
     await verifier('C écrit : A et B le reçoivent', B, t => (document.getElementById('conv-messages').textContent || '').includes(t), tag + '-g3', 9000);
     /* admins et retrait */
-    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomB + '")) [data-act="admin"]');
+    /* (15 octobre 2026) un seul « … » par membre : il ouvre « Nommer admin » et « Retirer du groupe » */
+    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomB + '")) [data-act="membre"]');
+    await verifier('le « … » de B ouvre son menu : « Nommer admin », puis « Retirer du groupe »', A, () => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(x => x.textContent).join('|') === 'Nommer admin|Retirer du groupe', null, 6000, () => texteVu(A, '#deroule-liste'));
+    v('   le « … » est nommé (« Gérer … »), seul « Retirer du groupe » est rouge, et le menu SORT du « … » (accroché à lui, pas au pied de la feuille)', await A.page.evaluate(p => {
+      const b = Array.from(document.querySelectorAll('#info-corps [data-act="membre"]')).find(x => x.getAttribute('aria-expanded') === 'true'), m = document.getElementById('deroule');
+      if (!b || !m) return ['pas de « … » ouvert ou pas de menu'];
+      const rb = b.getBoundingClientRect(), rm = m.getBoundingClientRect();
+      return [new RegExp('^Gérer ' + p).test(b.getAttribute('aria-label') || ''), Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(x => x.classList.contains('danger')),
+        Math.abs(rm.top - rb.bottom) < 40 || Math.abs(rm.bottom - rb.top) < 40, Math.abs(rm.right - rb.right) < 40];
+    }, prenomB), [true, [false, true], true, true]);
+    await toucher(A, '#deroule-liste [data-valeur="admin"]');
+    await verifier('« Nommer admin » : la page le dit (« … est admin »)', A, p => new RegExp(p + '.* est admin').test(document.getElementById('mot').textContent), prenomB, 6000, () => texteVu(A, '#mot'));
+    await verifier('le « … » de B, devenu admin, propose « Retirer l\'admin » (le rôle suit le redessin)', A, p => { const b = Array.from(document.querySelectorAll('#info-corps .contact')).find(x => new RegExp(p).test(x.querySelector('.contact-nom').textContent)); const g = b && b.querySelector('[data-act="membre"]'); return !!g && g.dataset.admin === '0' && !!b.querySelector('.badge-admin'); }, prenomB, 8000, () => texteVu(A, '#info-corps'));
+    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomB + '")) [data-act="membre"]');
+    await verifier('   son menu : « Retirer l\'admin », puis « Retirer du groupe »', A, () => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(x => x.textContent).join('|') === 'Retirer l\'admin|Retirer du groupe', null, 6000, () => texteVu(A, '#deroule-liste'));
+    await A.page.keyboard.press('Escape');
+    await verifier('   Échap le ferme sans rien faire (B reste admin)', A, p => document.getElementById('deroule').hidden && Array.from(document.querySelectorAll('#info-corps .contact')).some(x => new RegExp(p).test(x.querySelector('.contact-nom').textContent) && !!x.querySelector('.badge-admin')), prenomB, 4000);
     await toucher(B, '#conv-titre');
-    await verifier('chez B les infos montrent maintenant « Ajouter au groupe » et « Retirer »', B, () => !!document.querySelector('#info-corps [data-act="retirer"]'), null, 8000, () => texteVu(B, '#info-corps'));
+    await verifier('chez B les infos montrent maintenant « Ajouter au groupe » et le « … » des membres', B, () => !!document.querySelector('#info-corps [data-act="membre"]'), null, 8000, () => texteVu(B, '#info-corps'));
     await toucher(B, '#g-annuler');
-    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomC + '")) [data-act="retirer"]');
+    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomC + '")) [data-act="membre"]');
+    await toucher(A, '#deroule-liste [data-valeur="retirer"]');
+    await verifier('« Retirer du groupe » : la page le dit (« … a été retiré du groupe »)', A, p => new RegExp(p + '.* a été retiré du groupe').test(document.getElementById('mot').textContent), prenomC, 6000, () => texteVu(A, '#mot'));
     await verifier('A retire C : C est averti (« Tu n\'es plus dans cette conversation »), revient à la liste, le groupe n\'y est plus', C, g => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(x => x.textContent === g) && document.documentElement.dataset.conv !== '1', G, 9000, () => texteVu(C, '#liste-conv'));
     await envoyerTexte(B, tag + '-apres');
     await dormir(1200);
