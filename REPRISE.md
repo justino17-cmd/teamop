@@ -19,19 +19,24 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# 🟡 15 OCTOBRE 2026 (SOIR) — OP MESSAGES PLUS SIMPLE, À LA FAÇON D'APPLE : LOTS 1 À 3 (BÊTA, PR À VENIR)
+# ✅ 15 OCTOBRE 2026 (SOIR) — OP MESSAGES PLUS SIMPLE, À LA FAÇON D'APPLE : LOTS 1 À 3 (BÊTA, EN SERVICE)
+
+✅ **En service sur la bêta** : PR #142 fusionnée (`e8a87326`), msg-beta relu le 15 octobre au soir — `/health` sur `e8a87326`, `OPMSG_VERSION` 202, schéma 29, `index.html` et `opmsg-ui.js` servis identiques à `main` (empreintes comparées) ; la production n'a pas bougé (job sauté). La page « avant / après » (dix écrans, ce qui a changé de place, les preuves) est montrée à Justin : https://claude.ai/artifact/EqwWgtrdoqjkKpNFEqYQjp (privée).
+⚠️ Avant de la montrer, elle a été relue affirmation par affirmation contre le code, les captures et les preuves (37 agents Sonnet, chaque doute contre-vérifié) :
+75 affirmations, 27 corrigées. La pire : elle portait « plus de lien .ics » au crédit de ce lot, avec une capture « avant » qui n'en montrait aucun — ce retrait
+était celui de la PR #141, fusionnée juste avant. Une page « avant / après » se fait sur le diff des DEUX commits comparés, pas sur le souvenir de la journée.
 
 Justin : « revois toute l'application, teste de A à Z, revois tout le style comme Apple ; il faut que l'application soit plus simple — je te laisse faire et décider ; montre-moi
 quand tu as fini ; pense à tout ce qu'on a mis, mais il faut le simplifier ». La règle suivie : **rien de ce qui sert ne disparaît** ; on retire ce qui ne fait rien ou parle pour ne
 rien dire, on replie ce qui ne sert pas tout de suite, on regroupe ce qui dit la même chose. Captures « avant » (43, iPhone et Mac, jour et nuit) : `scratchpad/captures-avant/` de la
-session, prises par `scratchpad/vitrine-opmessages.js` (le vrai service en local, trois comptes, un groupe, une réunion) ; les « après » se reprennent par le même script.
+session, prises par `scratchpad/vitrine-opmessages.js` (le vrai service en local, quatre comptes, un groupe, une réunion) ; les « après » se reprennent par le même script.
 · **Lot 1** (`8164919e`) : un seul « + » dans l'Agenda (le menu propose ce que ce côté sait créer : Rendez-vous et Événement en Perso, Réunion en plus en Pro) ; plus de promesses
   vides (« Modifier » des Appels qui répondait « arrive bientôt », la rubrique « Bientôt » de la salle, la ligne passive « Son amélioré ») ; plus de cartes vides (« Aucune demande en
   attente », les blocs vides du tableau de bord, « Aucune réunion prévue avec… » d'une fiche contact).
 · **Lot 2** (`bea9b5e4`) : le **trajet replié** (fiche d'une réunion, fiche d'un rendez-vous) tant qu'aucun n'est calculé — « Calculer l'heure de départ » déplie (la phrase sur la
   position reste lue AVANT qu'elle serve), « Y aller » reste à côté ; déplié, il le reste pour la fiche. Les **rappels en pastilles** (« 5 min · 15 min · 1 h · 1 jour »), mêmes cases
   (`role="checkbox"`, nom entier en `aria-label`), dessinées comme celles de la durée. Les **Infos d'un groupe** : un seul « … » par membre (« Nommer admin », « Retirer du groupe » en
-  rouge — le menu tient lieu de confirmation, il n'y en avait aucune) ; sourdine, rangement et couleurs dans UNE carte « Pour toi ». La fiche d'une réunion perd ses sous-titres qui
+  rouge — retirer quelqu'un passe d'une touche à deux ; il n'y a toujours pas de question de confirmation) ; sourdine, rangement et couleurs dans UNE carte « Pour toi ». La fiche d'une réunion perd ses sous-titres qui
   répétaient la ligne, la note de la salle passe sous la carte.
   ⛔ Pris en route, à retenir : la classe des pastilles s'appelait d'abord `.puce` — le nom, déjà pris, des membres choisis d'un groupe (une COLONNE animée) — et le texte restait
   collé en haut (mesuré : à 1 px du bord, sur 44). C'est `CSS` qui a nommé le coupable (`flex-direction: column` sur un bouton qui n'en déclarait pas), pas la relecture.
@@ -41,16 +46,19 @@ joué de bout en bout), groupe 210, menus déroulants 62, perso-pro 62, notifica
 · **Lot 3** (`598c4348`, `28f762be`) : le menu d'un message n'a plus qu'UNE ligne « Supprimer… » quand on peut supprimer pour moi ET pour tous — elle ouvre le choix, qui tient
   lieu de la seconde touche que « pour tous » a toujours demandée (la garde reste) ; « Confirmer l'envoi » (Pro) rejoint la première carte du Profil.
 · **Relecture adverse des trois lots** (workflow, dix agents Sonnet : cinq angles — rien ne se perd, accessibilité, rendu, bancs, droits —, chaque constat contre-vérifié ;
-  20 confirmés sur 27), tout corrigé : le menu « … » d'un membre n'avait pas d'ancre (il tombait au pied de la feuille) et se raccrochait au PREMIER membre après un redessin ;
+  21 réels sur 27, dont trois relevés deux fois), tout corrigé : le menu « … » d'un membre n'avait pas d'ancre (il tombait au pied de la feuille) et se raccrochait au PREMIER membre après un redessin ;
   le trajet d'une réunion se repliait après « Retirer le trajet » et le focus tombait sur la page ; l'anneau du clavier disparaissait dans une pastille cochée ; rien ne distinguait
   une pastille cochée en couleurs forcées ; deux encres dans une même carte ; ⛔ dette d'avant : « Supprimer pour tous » était proposé à l'organisateur d'une réunion sur le message
   d'un invité — le service ne l'accorde qu'aux admins d'un groupe ou d'un canal. Et deux bancs : `appels-plus` cherchait encore « Réduction du bruit » (il serait tombé à sa
   prochaine passe), `reunion-confort` gardait la rubrique « Bientôt » par un élément qui n'existe plus (vert pour toujours — un ensemble vide).
 Preuves (lot 3) : les 58 sondes d'OP MESSAGES jouées l'une après l'autre sur la branche — toutes vertes sauf `menu-rappel` et `agenda-decaler` (rouges à l'identique sur `main`),
 `visio` et `relais` (LiveKit et coturn absents de cette machine : non lançables ici), la sonde principale à part (longue). test-857 : 540 ✓ (D03 revisée, D03b neuve : le
-« … » qui se raccroche au premier membre). Mutations de la page : `scratchpad/mutations-simplification.py` (S01–S13).
-Suite : la PR, les captures « avant / après » montrées à Justin ; à proposer ensuite (non commencé) : la salle de réunion (une barre de cinq boutons, un « Plus » en groupes —
-c'est le seul changement qui touche des habitudes déjà prises, la question lui est posée).
+« … » qui se raccroche au premier membre). Mutations de la page : `scratchpad/mutations-simplification.py` (S01–S13 et S05b) — 13 attrapées sur 14 ; S05 seule survit (un second
+repli couvre le même focus), S05b retire les deux et tombe (rejouée le 15 octobre au soir : `scratchpad/mutations-S05b.txt`).
+⏳ **Attend Justin** (posé le 15 octobre au soir, non commencé) : 1. la salle de réunion — garder la barre ronde seule (micro, caméra, partager, discussion, participants, plus)
+et ranger la rangée de pastilles (Réagir, Lever la main en tête, puis Intervenant, Annoter, Enregistrer…) dans « Plus », déjà classé en groupes (c'est le dernier
+changement qui déplacerait des boutons connus des habitués) ; 2. retirer le code .ics devenu dormant (routes et `ics.js` gardés sans bouton depuis
+la PR #141).
 
 # ✅ 15 OCTOBRE 2026 (SOIR) — OP MESSAGES : PLUS D'« AJOUTER À MON CALENDRIER » NULLE PART — LA RÉUNION AUSSI, ET LE COURRIEL D'INVITATION PART SANS .ICS
 
