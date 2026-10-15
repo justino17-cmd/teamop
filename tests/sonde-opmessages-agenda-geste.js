@@ -349,6 +349,11 @@ const allerDemain = (S) => S.page.evaluate(() => {
     vrai('population : le calcul a trouvé l\'arrivée piégée', await attendre(B, () => /Partir à/.test((document.getElementById('ev-tr-res') || {}).textContent || ''), null, 12000));
     await B.page.locator('#ev-trajet-zone [data-evt="gps"]').click();
     await menuOuvert(B);
+    /* ⛔ au bureau, le menu se place sous SON bouton — pas à l'endroit du clic droit d'avant (sur « Médecin », dans la semaine), ni dans le coin de l'écran */
+    const pos = await B.page.evaluate(() => { const b = document.querySelector('#ev-trajet-zone [data-evt="gps"]').getBoundingClientRect(), m = document.getElementById('menu-msg').getBoundingClientRect();
+      const x = Math.max(8, Math.min(b.left, innerWidth - m.width - 8)), y = Math.max(8, Math.min(b.bottom + 4, innerHeight - m.height - 8));
+      return { ecart: [Math.round(Math.abs(m.left - x)), Math.round(Math.abs(m.top - y))], menu: [Math.round(m.left), Math.round(m.top)], bouton: [Math.round(b.left), Math.round(b.bottom)] }; });
+    v('⛔ au bureau, « Y aller » ouvert d\'une fiche se place sous son bouton (et non au dernier clic droit)', pos.ecart.every(e => e <= 2), true, pos);
     const g7 = await feuilleGps(B);
     v('⛔ l\'arrivée piégée s\'affiche en TEXTE (aucun élément créé, rien d\'exécuté), et l\'adresse est encodée dans le lien', [g7.balises, await B.page.evaluate(() => window.__xss === undefined), g7.titre.includes('<img'), !!g7.liens[0] && !/[<>" ]/.test(g7.liens[0].href)], [0, true, true, true], g7);
     await B.page.keyboard.press('Escape');

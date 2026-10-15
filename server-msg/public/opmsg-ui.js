@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'd97bd9b8c8cd';
+  const OPMSG_BUILD = 'a3ff43d103d6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 192;
+  const OPMSG_VERSION = 193;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5575,9 +5575,10 @@
   }
   /* à la souris, le menu s'ouvre À L'ENDROIT du clic (gardé dans l'écran) ; au clavier, sous le rendez-vous ; au doigt ou sur un écran étroit, c'est la feuille du bas (le CSS en décide) */
   function placerMenuAgenda() {
-    const M = $('menu-msg'), F = $('menu-fond'), m0 = etat.menu; if (!m0 || !m0.agenda) return;
+    const M = $('menu-msg'), F = $('menu-fond'), m0 = etat.menu; if (!m0 || !(m0.agenda || m0.gps)) return;
     if (!matchMedia('(min-width: 700px) and (hover: hover) and (pointer: fine)').matches) return;
-    const el = retrouverAgenda(m0.declencheur, m0.cle), r = el && el.isConnected ? el.getBoundingClientRect() : null, m = M.getBoundingClientRect();
+    /* « Y aller » ouvert d'une fiche : sous SON bouton — sans ça, il prenait la place du dernier clic droit, ou le coin de l'écran (relecture du 15 octobre 2026) */
+    const el = m0.agenda ? retrouverAgenda(m0.declencheur, m0.cle) : m0.declencheur, r = el && el.isConnected ? el.getBoundingClientRect() : null, m = M.getBoundingClientRect();
     let x = m0.ou ? m0.ou.x : r ? r.left : 24, y = m0.ou ? m0.ou.y : r ? r.bottom + 4 : 24;
     x = Math.max(8, Math.min(x, innerWidth - m.width - 8)); y = Math.max(8, Math.min(y, innerHeight - m.height - 8));
     F.style.setProperty('--ag-x', Math.round(x) + 'px'); F.style.setProperty('--ag-y', Math.round(y) + 'px');
@@ -6151,7 +6152,8 @@
   function peindreTrajet() {
     const z = $('ev-trajet-zone'), F = reu.formEvt; if (!z || !F || !F.rdv || !F.tr) return;
     const possible = trajetPossible();
-    if (!possible && !F.tr.calc) { z.innerHTML = ''; return; }
+    /* sans calcul possible (le service ne calcule pas, ou pas encore), la zone ne garde que « Y aller » — il n'a besoin d'aucun service ; vide, elle se cache */
+    if (!possible && !F.tr.calc) { const oui = !!destinationGps($('ev-lieu') ? $('ev-lieu').value : '', null); z.innerHTML = '<div class="info-actions evt-tr-gestes"' + (oui ? '>' + BOUTON_GPS_EVT : ' hidden>') + '</div>'; return; }
     const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.trMode ? '[data-tr-mode="' + a.dataset.trMode + '"]' : a.dataset.evt ? '[data-evt="' + a.dataset.evt + '"]' : '') : '';
     z.innerHTML = htmlTrajet(F, possible);
     if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
@@ -6312,6 +6314,7 @@
     const g = document.querySelector('#ev-trajet-zone .evt-tr-gestes'); if (!g) return;
     const F = reu.formEvt, b = g.querySelector('[data-evt="gps"]'), oui = !!destinationGps($('ev-lieu') ? $('ev-lieu').value : '', F && F.tr ? F.tr.calc : null);
     if (oui && !b) g.insertAdjacentHTML('beforeend', BOUTON_GPS_EVT); else if (!oui && b) b.remove();
+    g.hidden = !g.querySelector('button');
   }
   function ouvrirMenuGps(dest, mode, declencheur) {
     if (!dest || etat.menu) return;
@@ -6319,8 +6322,9 @@
     const M = $('menu-msg');
     M.setAttribute('aria-label', 'Y aller');
     M.innerHTML = htmlLiensGps(dest, mode);
-    M.classList.add('ag'); $('menu-fond').classList.add('ag');               // la feuille du bas, comme le menu d'un rendez-vous
+    M.classList.add('ag'); $('menu-fond').classList.add('ag');               // comme le menu d'un rendez-vous : la feuille du bas au doigt, sous son bouton à la souris
     $('menu-fond').hidden = false;
+    placerMenuAgenda();
     synchroInert();
     const premier = M.querySelector('a, button'); if (premier) premier.focus({ preventScroll: true });
   }
@@ -6333,7 +6337,7 @@
     oct: 10, octobre: 10, nov: 11, novembre: 11, dec: 12, decembre: 12 };
   /* pour quoi : le premier qui se reconnaît (les plus précis d'abord — un dentiste trouvé par un site de médecins reste un dentiste) */
   const MOTIFS_RDV = [[/dentist|orthodont/i, 'Dentiste'], [/kin[ée]/i, 'Kiné'], [/ophtalmo|orthoptiste/i, 'Ophtalmo'], [/dermato/i, 'Dermato'], [/gyn[ée]co|sage-femme/i, 'Gynéco'],
-    [/p[ée]diatre/i, 'Pédiatre'], [/radiologie|\bIRM\b|scanner|[ée]chographie|mammographie/i, 'Imagerie'], [/laboratoire|prise de sang|analyses m[ée]dicales/i, 'Laboratoire'],
+    [/p[ée]diatre/i, 'Pédiatre'], [/radiologie|\bIRM\b|\bscanner\b(?![ \t]+(?:le|la|les|ce|cet|cette|votre|vos|un|une|ici)\b)|[ée]chographie|mammographie/i, 'Imagerie'], [/laboratoire|prise de sang|analyses m[ée]dicales/i, 'Laboratoire'],
     [/v[ée]t[ée]rinaire/i, 'Vétérinaire'], [/ost[ée]opathe/i, 'Ostéopathe'], [/psycholog|psychiatr/i, 'Psy'], [/m[ée]decin|docteur|\bDr\.?\s|consultation/i, 'Médecin'],
     [/contr[ôo]le technique/i, 'Contrôle technique'], [/garage|vidange|pneus?\b|carrosserie|entretien du v[ée]hicule|r[ée]vision/i, 'Garage'],
     [/coiff/i, 'Coiffeur'], [/esth[ée]ti|onglerie|manucure|massage/i, 'Institut'], [/notaire/i, 'Notaire'], [/avocat/i, 'Avocat'],
@@ -6357,10 +6361,17 @@
   }
   const localDeInstant = t => { const d = new Date(t); return { date: d.getFullYear() + '-' + p2c(d.getMonth() + 1) + '-' + p2c(d.getDate()), heure: p2c(d.getHours()) + ':' + p2c(d.getMinutes()) }; };
   const bornerDuree = m => Number.isFinite(m) && m >= 5 && m <= 720 ? Math.round(m) : null;
-  const propre = (s, max) => String(s || '').replace(/\s+/g, ' ').replace(/^[\s,;:–—-]+|[\s,;:–—-]+$/g, '').slice(0, max);
-  /* le fichier d'agenda collé tel quel (BEGIN:VEVENT) : son début, sa fin, son titre, son lieu */
+  /* nettoyer un morceau trouvé : les blancs repliés, la ponctuation des bords ôtée — ⛔ borné AVANT les expressions (une bordure de « , , , » longue de 20 000 signes coûtait n²) */
+  const propre = (s, max) => {
+    const x = String(s || '').slice(0, 4 * max).replace(/\s+/g, ' ');
+    let a = 0, b = x.length; while (a < b && ' ,;:–—-'.includes(x[a])) a++; while (b > a && ' ,;:–—-'.includes(x[b - 1])) b--;
+    return x.slice(a, b).slice(0, max);
+  };
+  /* le fichier d'agenda collé tel quel (BEGIN:VEVENT) : son début, sa fin, son titre, son lieu — lus dans le bloc de l'ÉVÉNEMENT seul : un .ics d'Apple, de Google ou d'Outlook porte
+     d'abord son fuseau (VTIMEZONE), dont les DTSTART datent de 1970 ou de 1601 (relecture du 15 octobre 2026 : « Je n'ai pas trouvé de date » sur un vrai fichier) */
   function lireIcs(t) {
-    const lignes = t.replace(/\n[ \t]/g, '').split('\n'), champ = nom => (lignes.find(x => x.toUpperCase().indexOf(nom) === 0 && /^[A-Z-]+[;:]/i.test(x)) || '');
+    const i = t.search(/BEGIN:VEVENT/i), j = i < 0 ? -1 : t.slice(i).search(/END:VEVENT/i), bloc = i < 0 ? t : j < 0 ? t.slice(i) : t.slice(i, i + j);
+    const lignes = bloc.replace(/\n[ \t]/g, '').split('\n'), champ = nom => (lignes.find(x => x.toUpperCase().indexOf(nom) === 0 && /^[A-Z-]+[;:]/i.test(x)) || '');
     const brut = l => l.slice(l.indexOf(':') + 1).replace(/\\n/gi, ' ').replace(/\\([,;\\])/g, '$1').trim();
     const quand = l => {
       const x = /^[A-Z-]+([^:]*):(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})\d{0,2}(Z?))?/i.exec(l); if (!x) return null;
@@ -6376,24 +6387,32 @@
     const duree = d.t !== null && f && f.t !== null ? bornerDuree((f.t - d.t) / 60000) : null;
     return { date: d.date, heure: d.heure, duree, lieu: propre(brut(champ('LOCATION')), 200) || null, titre: propre(brut(champ('SUMMARY')), 120) || null };
   }
+  /* ⛔ AUCUNE expression de cette lecture ne met deux quantificateurs côte à côte sur les mêmes signes (« \s*:?\s* ») : sur une longue suite de blancs — un mail riche copié, ses
+     marges —, le retour arrière devenait cubique et la page GELAIT (relecture du 15 octobre 2026, mesuré : « 1 » et 3 000 espaces, 10,5 s ; « adresse » et 3 000 retours à la
+     ligne, 46,5 s). Le texte est d'abord replié (trois blancs ou plus → deux : les deux espaces qui séparent encore deux morceaux restent), et test-1007 joue des suites
+     de blancs et un mélange tiré au sort, chronomètre en main. */
   function lireConfirmation(texte, maintenant) {
-    const t = String(texte || '').slice(0, 20000).normalize('NFC').replace(/[   \t]/g, ' ').replace(/\r\n?/g, '\n');
+    const t0 = String(texte || '').slice(0, 20000).normalize('NFC').replace(/[\u00a0\u2007\u2009\u202f\t]/g, ' ').replace(/\r\n?/g, '\n');
     const r = { date: null, heure: null, debut: null, duree: null, lieu: null, avec: null, titre: null };
-    if (!t.trim()) return r;
+    if (!t0.trim()) return r;
     const auj = new Date(maintenant), aujJ = auj.getFullYear() + '-' + p2c(auj.getMonth() + 1) + '-' + p2c(auj.getDate());
-    const ics = /BEGIN:VEVENT/i.test(t) ? lireIcs(t) : null;
+    const ics = /BEGIN:VEVENT/i.test(t0) ? lireIcs(t0) : null;                // (le .ics se lit tel quel : ses lignes repliées portent leurs espaces)
+    const t = ics ? t0 : t0.replace(/[ \t]{3,}/g, '  ').replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n');
     if (ics) Object.assign(r, { date: ics.date, heure: ics.heure, duree: ics.duree, lieu: ics.lieu, titre: ics.titre });
     else {
       /* une ligne d'en-tête (« Le 12 oct. 2026 à 10:02, X a écrit : », « Envoyé : … ») ou une date de RÉSERVATION ne disent pas quand a lieu le rendez-vous */
       const debutsLignes = [0]; for (let k = 0; k < t.length; k++) if (t[k] === '\n') debutsLignes.push(k + 1);
-      const nLigne = i => { let n = 0; for (let k = 0; k < debutsLignes.length && debutsLignes[k] <= i; k++) n = k; return n; };
+      const nLigne = i => { let a = 0, b = debutsLignes.length - 1; while (a < b) { const m = (a + b + 1) >> 1; if (debutsLignes[m] <= i) a = m; else b = m - 1; } return a; };
       const ligneN = n => n < 0 || n >= debutsLignes.length ? '' : t.slice(debutsLignes[n], n + 1 < debutsLignes.length ? debutsLignes[n + 1] - 1 : t.length);
       /* « Date : … » est l'en-tête d'un mail transféré quand « De : », « Objet : »… l'entourent ; seule, c'est la date du rendez-vous (« Date : 05/11/2026 ») */
-      const champMail = l => /^\s*>?\s*(?:de|from|objet|subject|à|a|to|cc)\s*:/i.test(l);
+      const champMail = l => /^[ \t]*(?:>[ \t]*)?(?:de|from|objet|subject|à|a|to|cc)[ \t]*:/i.test(l);
+      const vuLigne = new Map();                                              // une ligne se juge une fois, quel que soit le nombre de dates qu'elle porte
       const enTete = i => {
-        const n = nLigne(i), l = ligneN(n);
-        if (/a [ée]crit\s*:?\s*$|^\s*>?\s*(?:envoy[ée]|sent|from|de|objet|subject|re[çc]u)\s*:/i.test(l)) return true;
-        return /^\s*>?\s*date\s*:/i.test(l) && (champMail(ligneN(n - 1)) || champMail(ligneN(n + 1)));
+        const n = nLigne(i); if (vuLigne.has(n)) return vuLigne.get(n);
+        const l = ligneN(n);
+        const v = /a [ée]crit[ \t]*(?::[ \t]*)?$|^[ \t]*(?:>[ \t]*)?(?:envoy[ée]|sent|from|de|objet|subject|re[çc]u)[ \t]*:/i.test(l)
+          || (/^[ \t]*(?:>[ \t]*)?date[ \t]*:/i.test(l) && (champMail(ligneN(n - 1)) || champMail(ligneN(n + 1))));
+        vuLigne.set(n, v); return v;
       };
       const pasLeRdv = i => /(?:r[ée]serv[ée]e?s?|pris|effectu[ée]e?|envoy[ée]e?|cr[ée][ée]e?|[ée]dit[ée]e?|command[ée]e?|pay[ée]e?|r[ée]gl[ée]e?|factur[ée]e?)\s+(?:le|du)\s+$/i.test(t.slice(Math.max(0, i - 30), i));
       const dates = [];
@@ -6413,17 +6432,17 @@
         dates.push({ i: x.index + x[1].length, j: x.index + x[0].length, a: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() });
       }
       const heures = [];
-      const reH = /(^|[^\d,.:])([01]?\d|2[0-3])\s*(?:h|H|:|heures?)\s*([0-5]\d)?(?![\d])/g;
+      const reH = /(^|[^\d,.:])([01]?\d|2[0-3])[ \t]*(?:h|H|:|heures?)[ \t]*([0-5]\d)?(?![\d])/g;
       for (let x; (x = reH.exec(t));) {
         const i = x.index + x[1].length, avant = t.slice(Math.max(0, i - 24), i);
-        if (/dur[ée]e?\s*(?:estim[ée]e\s*)?:?\s*$|pendant\s+$|\b(?:dans|sous|en)\s+$/i.test(avant)) continue;      // une durée, pas une heure
-        if (/^\s*\d{1,2}\s*(?:h|:)\s*\/\s*\d/.test(t.slice(i)) || /^\s*(?:h|:)?\s*\/\s*\d/.test(t.slice(x.index + x[0].length))) continue;   // « 24h/24 »
+        if (/dur[ée]e?\s*(?:estim[ée]e\s*)?:?\s*$|pendant\s+$|\b(?:dans|sous|en)\s+$/i.test(avant)) continue;      // une durée, pas une heure (24 signes : borné)
+        if (/^[ \t]*\d{1,2}[ \t]*[hH:][ \t]*\/[ \t]*\d/.test(t.slice(i, i + 40)) || /^[ \t]*(?:[hH:][ \t]*)?\/[ \t]*\d/.test(t.slice(x.index + x[0].length, x.index + x[0].length + 40))) continue;   // « 24h/24 »
         heures.push({ i, j: x.index + x[0].length, h: +x[2], mi: x[3] ? +x[3] : 0 });
       }
-      /* une plage (« de 14h30 à 15h », « 9:00 - 9:30 ») : sa fin donne la durée */
-      for (const h of heures) {
-        const suite = heures.find(y => y.i > h.i && y.i - h.j <= 8 && /^\s*(?:-|–|—|à|a|au|jusqu.?à)\s*$/i.test(t.slice(h.j, y.i)));
-        if (suite) h.fin = suite.h * 60 + suite.mi;
+      /* une plage (« de 14h30 à 15h », « 9:00 - 9:30 ») : sa fin donne la durée — l'heure suivante seule peut l'être (les heures sont rangées dans l'ordre du texte) */
+      for (let k = 0; k + 1 < heures.length; k++) {
+        const h = heures[k], y = heures[k + 1];
+        if (y.i - h.j <= 8 && /^[ \t]*(?:-|–|—|à|a|au|jusqu.?à)[ \t]*$/i.test(t.slice(h.j, y.i))) h.fin = y.h * 60 + y.mi;
       }
       const valides = dates.filter(x => !enTete(x.i) && !pasLeRdv(x.i)).map(x => {
         let a = x.a, date = '';
@@ -6447,26 +6466,29 @@
         }
       }
       if (r.duree === null) {
-        const du = /dur[ée]e\s*(?:estim[ée]e\s*|pr[ée]vue\s*)?:?\s*(\d{1,3})\s*(min(?:utes?)?|mn|h|heures?)\s*(\d{1,2})?/i.exec(t) || /\((\d{1,3})\s*(min(?:utes?)?|mn)\)/i.exec(t);
+        const du = /dur[ée]e[ \t]*(?:(?:estim[ée]e|pr[ée]vue)[ \t]*)?(?::[ \t]*)?(\d{1,3})[ \t]*(min(?:utes?)?|mn|h|heures?)[ \t]*(\d{1,2})?/i.exec(t) || /\((\d{1,3})[ \t]*(min(?:utes?)?|mn)\)/i.exec(t);
         if (du) r.duree = bornerDuree(/^h/i.test(du[2]) ? +du[1] * 60 + (du[3] ? +du[3] : 0) : +du[1]);
       }
-      /* l'adresse : une rue (un numéro et un type de voie), son code postal et sa ville — sur la même ligne ou la suivante ; sinon la ligne « Adresse : … » */
-      const reRue = /(^|[^\d])(\d{1,4}\s*(?:bis|ter)?\s*,?\s+(?:rue|avenue|av\.|boulevard|bd|place|chemin|all[ée]e|impasse|route|rte|quai|cours|square|passage|voie|esplanade|parvis|promenade|r[ée]sidence|lotissement)\b[^\n]*)/i;
-      const reCp = /\b\d{5}\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\x27’ -]{1,40}/;
-      const coupe = s => { const c = reCp.exec(s); if (c) return s.slice(0, c.index + c[0].length).replace(/\s+-\s+.*$/, ''); return s.split(/[.(;]|\s{2,}/)[0]; };
+      /* l'adresse : une rue (un numéro et un type de voie), son code postal et sa ville — sur la même ligne ou la suivante ; sinon la ligne « Adresse : … » (pas « Adresse e-mail ») */
+      const reRue = /(^|[^\d])(\d{1,4}(?:[ \t]*(?:bis|ter))?(?:[ \t]*,)?[ \t]+(?:rue|avenue|av\.|boulevard|bd|place|chemin|all[ée]e|impasse|route|rte|quai|cours|square|passage|voie|esplanade|parvis|promenade|r[ée]sidence|lotissement)\b[^\n]*)/i;
+      const reCp = /\b\d{5}[ \t]+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\x27’ -]{1,40}/;
+      const coupe = s => { const c = reCp.exec(s); if (c) return s.slice(0, c.index + c[0].length).replace(/[ \t]{1,3}-[ \t]{1,3}.*$/, ''); return s.split(/[.(;]|[ \t]{2}/)[0]; };
       const rue = reRue.exec(t);
       if (rue) {
         let s = rue[2];
-        if (!reCp.test(s)) { const suite = t.slice(rue.index + rue[0].length).replace(/^\n+/, ''), cp = /^\s*(\d{5}\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\x27’ -]{1,40})/.exec(suite); s = coupe(s) + (cp ? ', ' + cp[1] : ''); }
+        if (!reCp.test(s)) { const suite = t.slice(rue.index + rue[0].length, rue.index + rue[0].length + 200).replace(/^\n+/, ''), cp = /^[ \t]*(\d{5}[ \t]+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\x27’ -]{1,40})/.exec(suite); s = coupe(s) + (cp ? ', ' + cp[1] : ''); }
         else s = coupe(s);
         r.lieu = propre(s, 200) || null;
       }
-      if (!r.lieu) { const ad = /adresse\s*:?\s*\n?\s*([^\n]{5,160})/i.exec(t); if (ad) r.lieu = propre(coupe(ad[1]), 200) || null; }
+      if (!r.lieu) {
+        const ad = /adresse(?![ \t]*(?:e-?mail|mail|[ée]lectronique|courriel|ip\b|web))[ \t]*(?::[ \t]*)?(?:\n[ \t]*){0,2}([^\n]{5,160})/i.exec(t);
+        if (ad && !/@|https?:/i.test(ad[1])) r.lieu = propre(coupe(ad[1]), 200) || null;
+      }
       /* avec qui : « avec Dr Sophie Martin », « auprès de Maître Leroy » ; sinon un « Dr X » ; sinon « chez Garage Dupont » */
       const titres = '(?:Dr\\.?|Docteur|Pr\\.?|Professeur|Me|Ma[iî]tre|M\\.|Mme|Mlle|Madame|Monsieur)';
-      const nom = '[A-ZÀ-Þ][A-Za-zÀ-ÿ\\x27’-]+(?:\\s+[A-ZÀ-Þ][A-Za-zÀ-ÿ\\x27’-]+){0,3}';
-      const av = new RegExp('(?:[Aa]vec|[Aa]upr[eè]s d[eu])\\s+(?:le |la )?(' + titres + '\\s+' + nom + ')').exec(t) || new RegExp('\\b((?:Dr\\.?|Docteur)\\s+' + nom + ')').exec(t) ||
-        /\bchez\s+([A-ZÀ-Þ][A-Za-zÀ-ÿ0-9&\x27’ -]{2,40}?)(?=[.,;:!\n(]|\s+(?:le|la|les|à|a|pour|au|du|ce|cet|demain)\s|$)/.exec(t);
+      const nom = '[A-ZÀ-Þ][A-Za-zÀ-ÿ\\x27’-]+(?:[ \\t]+[A-ZÀ-Þ][A-Za-zÀ-ÿ\\x27’-]+){0,3}';
+      const av = new RegExp('(?:[Aa]vec|[Aa]upr[eè]s d[eu])[ \\t]+(?:le |la )?(' + titres + '[ \\t]+' + nom + ')').exec(t) || new RegExp('\\b((?:Dr\\.?|Docteur)[ \\t]+' + nom + ')').exec(t) ||
+        /\bchez[ \t]+([A-ZÀ-Þ][A-Za-zÀ-ÿ0-9&\x27’ -]{2,40}?)(?=[.,;:!\n(]|[ \t]+(?:le|la|les|à|a|pour|au|du|ce|cet|demain)[ \t]|$)/.exec(t);
       if (av) r.avec = propre(av[1], 120) || null;
     }
     if (r.date && r.heure) r.debut = r.date + 'T' + r.heure;

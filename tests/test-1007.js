@@ -53,7 +53,7 @@ const M = {
   liensGps: decl('function liensGps('), htmlLiensGps: jusqua('const htmlLiensGps = ', 'data-gps-fermer>Annuler</button>\';'), destinationGps: ligne('const destinationGps = '),
   MOIS_FR: decl('const MOIS_FR = '), MOTIFS_RDV: jusqua('const MOTIFS_RDV = ', ']];'), sansAccents: ligne('const sansAccents = '), p2c: ligne('const p2c = '),
   dateJuste: ligne('const dateJuste = '), instantMural: decl('function instantMural('), localDeInstant: ligne('const localDeInstant = '), bornerDuree: ligne('const bornerDuree = '),
-  propre: ligne('const propre = '), lireIcs: decl('function lireIcs('), lireConfirmation: decl('function lireConfirmation('),
+  propre: decl('const propre = '), lireIcs: decl('function lireIcs('), lireConfirmation: decl('function lireConfirmation('),
 };
 
 /* ═══ le bac à sable : les vraies fonctions, de faux champs ═══ */
@@ -84,6 +84,8 @@ function bac(os) {
   console.log('\n1. « Coller une confirmation » : ce que le texte donne, et rien d\'inventé');
   const MAINT = new Date(2026, 9, 15, 10, 0).getTime();        // jeudi 15 octobre 2026, 10:00 (Paris)
   const L = t => F.lireConfirmation(t, MAINT);
+  /* ⛔ une lecture qui gèle FAIT TOMBER le banc, elle ne le fige pas : chronométrée dans le bac à sable, coupée à 2 s (Infinity) */
+  const chrono = t => { B.ctx.__t = t; const t0 = process.hrtime.bigint(); try { vm.runInContext('F.lireConfirmation(__t, ' + MAINT + ')', B.ctx, { timeout: 2000 }); } catch (e) { return Infinity; } return Number(process.hrtime.bigint() - t0) / 1e6; };
   const pick = (r, ...k) => k.map(x => r[x]);
   v('Doctolib : le jour, l\'heure, le médecin, la rue ET la ville (ligne suivante) ; pour quoi : « Médecin »', pick(L(`Bonjour,
 Votre rendez-vous avec Dr Sophie Martin (Médecin généraliste) est confirmé.
@@ -147,6 +149,7 @@ END:VEVENT`).debut, '2026-10-25T02:30');
   v('l\'heure AVANT la date, sur la même ligne', L('Rendez-vous à 15h, le 27 octobre.').debut, '2026-10-27T15:00');
   v('« avec Maître Leroy, notaire » → avec Maître Leroy, « Notaire »', pick(L('Rendez-vous avec Maître Leroy, notaire, le 4 novembre 2026 à 11h00'), 'avec', 'titre'), ['Maître Leroy', 'Notaire']);
   v('« auprès de Mme Petit »', L('Votre entretien auprès de Mme Petit le 9 novembre à 14h').avec, 'Mme Petit');
+  v('« Scanner » : le médical oui, « scanner le QR code » non', [L('Votre scanner du genou le 5/11/2026 à 8h30').titre, L('Rendez-vous le 5/11/2026 à 8h30 chez Mme Petit. Pensez à scanner le QR code à l\'accueil.').titre], ['Imagerie', 'Mme Petit']);
   v('une réservation de restaurant', pick(L('Votre réservation pour 4 personnes au restaurant Le Port est confirmée pour le samedi 24 octobre à 20h30.'), 'debut', 'titre'), ['2026-10-24T20:30', 'Restaurant']);
   v('⛔ le 31 février n\'existe pas : la date suivante est prise', L('RDV le 31/02/2027 à 10h, sinon le 01/03/2027 à 11h').debut, '2027-03-01T11:00');
   v('une plage avec un tiret (« 14:00 - 14:45 ») ; le contrôle technique ; « route de … »', pick(L('Contrôle technique le 26/10/2026, 14:00 - 14:45, 22 route de Nantes 17000 La Rochelle'), 'debut', 'duree', 'titre', 'lieu'), ['2026-10-26T14:00', 45, 'Contrôle technique', '22 route de Nantes 17000 La Rochelle']);
@@ -155,14 +158,63 @@ END:VEVENT`).debut, '2026-10-25T02:30');
   v('« Adresse : » sur sa propre ligne, quand aucune rue n\'est reconnue', L('Rendez-vous le 30/10/2026 à 10h.\nAdresse :\nCentre commercial Les Minimes, 17000 La Rochelle').lieu, 'Centre commercial Les Minimes, 17000 La Rochelle');
   v('la date juste : années bornées, mois et jours réels', [F.dateJuste(2026, 2, 29), F.dateJuste(2028, 2, 29), F.dateJuste(1999, 1, 1), F.dateJuste(2026, 13, 1)], ['', '2028-02-29', '', '']);
   v('un fuseau inconnu ne casse rien : null', F.instantMural(2026, 10, 21, 9, 0, 'Pas/Un_Fuseau'), null);
+  v('un .ics d\'Apple, de Google ou d\'Outlook porte d\'abord son FUSEAU (VTIMEZONE, des DTSTART de 1970) : seul le bloc de l\'événement compte', pick(L(`BEGIN:VCALENDAR
+PRODID:-//Apple Inc.//macOS 15.0//EN
+BEGIN:VTIMEZONE
+TZID:Europe/Paris
+BEGIN:DAYLIGHT
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0200
+DTSTART:19810329T020000
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+BEGIN:STANDARD
+TZOFFSETFROM:+0200
+TZOFFSETTO:+0100
+DTSTART:19961027T030000
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+DTSTART;TZID=Europe/Paris:20261104T091500
+DTEND;TZID=Europe/Paris:20261104T100000
+SUMMARY:Ostéopathe
+LOCATION:4 avenue Foch\\, 75116 Paris
+BEGIN:VALARM
+TRIGGER:-PT1H
+END:VALARM
+END:VEVENT
+END:VCALENDAR`), 'debut', 'duree', 'titre', 'lieu'), ['2026-11-04T09:15', 45, 'Ostéopathe', '4 avenue Foch, 75116 Paris']);
+  v('⛔ « Adresse e-mail : … » n\'est pas un lieu ; « Adresse : … » en est un', [L('RDV le 30/10/2026 à 10h. Votre adresse e-mail : jean@exemple.fr').lieu, L('RDV le 30/10/2026 à 10h. Adresse électronique : jean@exemple.fr').lieu,
+    L('RDV le 30/10/2026 à 10h.\nAdresse : Centre commercial Les Minimes').lieu], [null, null, 'Centre commercial Les Minimes']);
+  {
+    /* ⛔ LE GEL (relecture du 15 octobre 2026) : deux quantificateurs côte à côte sur les mêmes blancs (« \\s*:?\\s* ») font un retour arrière cubique — « 1 » et 3 000 espaces
+       coûtaient 10,5 s, « adresse » et 3 000 retours à la ligne 46,5 s : la page gelait au collage d'un mail riche. Chaque forme dangereuse est jouée, chronomètre en main */
+    const formes = { 'un chiffre et 6 000 espaces': '1' + ' '.repeat(6000) + 'x', '« adresse » et 6 000 retours à la ligne': 'adresse' + '\n'.repeat(6000),
+      '« adresse : » et des blancs mêlés': 'adresse :' + ' \n'.repeat(3000), 'un chiffre et des blancs mêlés': '1' + '\n '.repeat(3000) + 'x', '« durée » et 6 000 espaces': 'durée' + ' '.repeat(6000) + 'x',
+      '« 14h » et 6 000 espaces': '14h' + ' '.repeat(6000) + 'x', '« a écrit » et 6 000 espaces': 'a écrit' + ' '.repeat(6000) + 'x', 'une citation (« > ») et 6 000 espaces': '>' + ' '.repeat(6000) + 'x',
+      '« 12 rue » et 6 000 espaces': '12 rue' + ' '.repeat(6000) + 'x', '6 000 « , » au bord d\'une rue': '12 rue A' + ', '.repeat(6000) + 'x', '« chez X » et 6 000 espaces': 'chez Garage' + ' '.repeat(6000) + 'x',
+      '5 000 dates sur 5 000 lignes': '1/1\n'.repeat(5000), '3 000 dates et 3 000 heures': '1/1 1h '.repeat(3000) };
+    const lents = [];
+    for (const [nom, t] of Object.entries(formes)) { const ms = chrono(t); if (ms > 300) lents.push(nom + ' : ' + (ms === Infinity ? 'plus de 2 s' : Math.round(ms) + ' ms')); }
+    v('⛔ aucune forme dangereuse ne fige la lecture (chacune en moins de 300 ms ; population : ' + Object.keys(formes).length + ' formes)', lents, []);
+    /* et un mélange TIRÉ AU SORT (graine fixe : le même à chaque passage) sur l'alphabet des expressions — chiffres, blancs, h, :, /, virgules, mots-clés */
+    let graine = 1015;
+    const hasard = () => { graine = (graine * 1103515245 + 12345) % 2147483648; return graine / 2147483648; };
+    const ALPHA = ['1', '2', '0', ' ', ' ', ' ', '\n', '\t', 'h', ':', '/', '.', ',', '-', '(', ')', ' rue ', ' adresse ', ' durée ', ' a écrit ', '> ', ' de ', ' le ', ' à ', ' chez ', 'Dr ', ' octobre ', ' avec ', ' min', '\u202f'];
+    const melanges = []; let pire = 0;
+    for (let k = 0; k < 12; k++) { let t = ''; while (t.length < 20000) { const c = ALPHA[Math.floor(hasard() * ALPHA.length)]; t += hasard() < 0.15 ? c.repeat(1 + Math.floor(hasard() * 400)) : c; } melanges.push(t.slice(0, 20000)); }
+    for (const t of melanges) pire = Math.max(pire, chrono(t));
+    vrai('⛔ douze mélanges de 20 000 signes tirés au sort : le pire en moins de 500 ms', pire < 500, Math.round(pire) + ' ms');
+  }
   {
     /* ⛔ un texte immense (un mail entier collé deux cents fois) ne fige pas la page : la lecture est bornée à 20 000 signes, et mesurée */
     const bloc = 'Le cabinet est ouvert du lundi au vendredi de 8h à 19h. Rendez-vous le 12/11/2026 à 9h. 12 rue des Lilas 78000 Versailles. ';
-    const t0 = process.hrtime.bigint(), r = L(bloc.repeat(2000)), ms = Number(process.hrtime.bigint() - t0) / 1e6;
+    const ms = chrono(bloc.repeat(2000)), r = L(bloc.repeat(2000));
     v('⛔ 240 000 signes collés : lu en moins de 300 ms, et la date est trouvée', [ms < 300, r.debut], [true, '2026-11-12T09:00'], Math.round(ms) + ' ms');
     const pire = '1/1 '.repeat(5000) + 'à 9h';
-    const t1 = process.hrtime.bigint(); L(pire); const ms2 = Number(process.hrtime.bigint() - t1) / 1e6;
-    vrai('⛔ 5 000 dates en rafale : lues en moins de 1,5 s (aucun retour arrière explosif)', ms2 < 1500, Math.round(ms2) + ' ms');
+    const ms2 = chrono(pire);
+    vrai('⛔ 5 000 dates en rafale : lues en moins de 300 ms', ms2 < 300, Math.round(ms2) + ' ms');
   }
 
   /* ═══ 2. LA DURÉE ═══ */
@@ -268,6 +320,9 @@ END:VEVENT`).debut, '2026-10-25T02:30');
     const clic = decl('async function clicMenuAgenda(');
     vrai('⛔ un lien de « Y aller » touché ferme le menu APRÈS (un lien retiré de la page pendant son clic ne s\'ouvre plus)', /if \(e\.target\.closest\('a\[data-gps\]'\)\) \{ setTimeout\(fermerMenu, 0\); return; \}/.test(clic));
     vrai('le sous-menu « Y aller » met le focus sur la première application, pas sur « Annuler »', /querySelector\('a\[href\], button'\)/.test(ligne('function sousMenuAgenda(')));
+    v('⛔ au bureau, « Y aller » ouvert d\'une fiche se place sous SON bouton (sinon : à l\'endroit du dernier clic droit, ou dans le coin)', [/placerMenuAgenda\(\);/.test(decl('function ouvrirMenuGps(')),
+      /if \(!m0 \|\| !\(m0\.agenda \|\| m0\.gps\)\) return;/.test(decl('function placerMenuAgenda(')), /m0\.agenda \? retrouverAgenda\(m0\.declencheur, m0\.cle\) : m0\.declencheur/.test(decl('function placerMenuAgenda('))], [true, true, true]);
+    vrai('sans calcul possible (le service ne calcule pas), la fiche garde « Y aller » — il n\'a besoin d\'aucun service', /if \(!possible && !F\.tr\.calc\) \{[^}]*BOUTON_GPS_EVT/.test(decl('function peindreTrajet(')));
   }
   {
     /* « Y aller » suit le lieu qu'on TAPE : sans calcul, la zone ne se repeint pas — le bouton seul paraît ou s'en va (la sonde le joue au doigt) */

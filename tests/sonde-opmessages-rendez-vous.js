@@ -50,7 +50,8 @@ const aujourdhui = () => localParis(Date.now()).slice(0, 10);
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: MDP, nom: 'Alice Martin', actif: true } });
   const port = await T.portLibre();
-  const svc = await T.lancerService({ port, urlGestion: og.url, horloge: true, config: { origines: ['http://127.0.0.1:' + port], reunions: { planificateurMs: 150, bailMs: 2000 } } });
+  /* `trajet: false` : le calcul du trajet FERMÉ (un réglage de production) — la fiche d'un rendez-vous garde alors « Y aller », qui n'a besoin d'aucun service */
+  const svc = await T.lancerService({ port, urlGestion: og.url, horloge: true, config: { origines: ['http://127.0.0.1:' + port], reunions: { planificateurMs: 150, bailMs: 2000 }, trajet: false } });
   let b = null;
   try { b = await pw.chromium.launch({ executablePath: CHROME, headless: true, args: ARGS }); }
   catch (e) { console.error('Sonde non lançable : ' + e.message.split('\n')[0]); await svc.arreter(); await og.fermer(); process.exit(2); }
@@ -99,6 +100,9 @@ const aujourdhui = () => localParis(Date.now()).slice(0, 10);
       lien: document.querySelectorAll('#info-corps a[data-evt="ics"], #info-corps a[download], #info-corps a[href*="/ics"]').length, texte: /Ajouter à mon calendrier/.test(document.getElementById('info-corps').textContent) }));
     vrai('population : la fiche porte ses gestes (« Marquer comme fait » et les trois « Reporter »)', fiche.gestes === 4, fiche);
     v('⛔ plus d\'« Ajouter à mon calendrier » (15 octobre 2026 : « l\'application fait déjà agenda ») : ni lien vers le .ics, ni le texte', [fiche.lien, fiche.texte], [0, false]);
+    /* ce service-ci a le trajet fermé : la fiche garde quand même « Y aller » vers son lieu — il n'a besoin d'aucun service */
+    v('sans calcul de trajet (population : ni « Calculer », ni le choix du départ), « Y aller » est là, 44 px au moins', await A.page.evaluate(() => { const z = document.getElementById('ev-trajet-zone'), b = z && z.querySelector('[data-evt="gps"]');
+      return [!!z && !z.querySelector('[data-evt="trajet-calculer"], #ev-tr-depart'), !!b && b.getClientRects().length > 0, !!b && Math.round(b.getBoundingClientRect().height) >= 44]; }), [true, true, true]);
 
     console.log('\n── 4. Modifier : un rappel décoché ──');
     await toucher(A, '#ev-rappels [data-evt-rappel="1440"]');
