@@ -287,7 +287,7 @@ function construireApp(ctx) {
   installerCompte(H, ctx);      // le compte : exporter ses données, supprimer son compte
   installerEspaces(H, ctx);     // les espaces professionnels : membres, invitations, canaux, « Contacts de l'entreprise »
   installerFacturation(H, ctx); // Messages Pro : les offres, l'état, le paiement (Stripe), le portail, la relecture
-  installerReunions(H, ctx);    // les réunions programmées : agenda, programmer, inviter, répondre, rappels, fichier .ics
+  installerReunions(H, ctx);    // les réunions programmées : agenda, programmer, inviter, répondre, rappels, fichier .ics (sans bouton depuis le 15 octobre 2026)
   installerAppels(H, ctx);      // les appels : le relais (identifiants éphémères), lancer (à deux ou à plusieurs), répondre, rejoindre, raccrocher, signaler, l'historique
   installerSalles(H, ctx);      // les salles : les gestes de l'hôte et des co-hôtes, ceux des participants
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */

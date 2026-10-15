@@ -319,6 +319,16 @@ END:VCALENDAR`), 'debut', 'duree', 'titre', 'lieu'), ['2026-11-04T09:15', 45, 'O
   const fiche = decl('function rendreFormEvenement(');
   vrai('(population) la fiche d\'un rendez-vous est trouvée', fiche.length > 2000, fiche.length);
   v('⛔ plus d\'« Ajouter à mon calendrier » dans la fiche : ni `adresseIcsEvenement`, ni lien .ics, ni le texte', [/adresseIcsEvenement/.test(fiche), /data-evt="ics"/.test(fiche), /Ajouter à mon calendrier/.test(fiche)], [false, false, false]);
+  {
+    /* « retire aussi » (15 octobre 2026) : la RÉUNION non plus — sa fiche, son menu, le courriel d'invitation */
+    const ficheR = decl('function htmlFiche('), menuR = decl('function htmlMenuAgenda('), courrielR = decl('function htmlCourriel(');
+    vrai('(population) la fiche d\'une réunion, le menu de l\'agenda et le courriel d\'invitation sont trouvés', ficheR.length > 4000 && menuR.length > 1500 && courrielR.length > 500, [ficheR.length, menuR.length, courrielR.length]);
+    v('⛔ plus d\'« Ajouter à mon calendrier » pour une réunion : ni dans sa fiche (« Ajouter à mon agenda », « Cette date », « Toute la série »), ni dans le menu, ni son geste — la page n\'appelle plus AUCUNE adresse de .ics',
+      [/\.ics|Ajouter à mon agenda|adresseIcs/.test(ficheR), /a\('ics'|Ajouter à mon calendrier/.test(menuR), /act === 'ics'/.test(JS), /\badresseIcs(Evenement)?\b/.test(JS), /\.ics\b/.test(JS)], [false, false, false, false, false]);
+    v('« Ranger dans » reste — et sans lui, pas de rubrique « Agenda » vide : la conversation de la réunion prend alors la sienne', [/data-reu="cote"/.test(ficheR), /if \(lc\) s \+= '<div class="rubrique"><span>Agenda<\/span><\/div>/.test(ficheR), (ficheR.match(/<span>Agenda<\/span>/g) || []).length,
+      /if \(!lc\) s \+= '<div class="rubrique"><span>Conversation<\/span><\/div>';\s*s \+= '<div class="carte"><button type="button" class="reglage presse" data-reu="conversation">/.test(ficheR)], [true, true, 1, true]);
+    v('le courriel d\'invitation dit ce qu\'il contient : du texte, sans fichier d\'agenda', [/\.ics|que son agenda sait lire/.test(courrielR), /Le message dit le titre, la date, l\\'heure et le lieu, sans fichier d\\'agenda\./.test(courrielR)], [false, true]);
+  }
   v('« Coller une confirmation » : seulement pour un rendez-vous NEUF, la zone bornée à 20 000 signes, comme la lecture', [/const coller = !e && rdv \?/.test(fiche), /id="ev-coller-texte"[^>]*maxlength="20000"/.test(fiche), /String\(texte \|\| ''\)\.slice\(0, 20000\)/.test(M.lireConfirmation)], [true, true, true]);
   vrai('la durée suit « Début » dans la fiche, et la réunion la porte aussi', /id="ev-debut"[\s\S]{0,400}\+\s*htmlDuree\('ev', duree0, journee\)\s*\+\s*'<div class="champ"><label for="ev-fin">/.test(fiche) && /htmlDuree\('rf', minutesEntre\(initial\.debut, initial\.fin\)\)\s*\+\s*'<div class="champ"><label for="rf-fin">/.test(decl('function rendreFormReunion(') || JS));
   {

@@ -111,7 +111,7 @@
 # fonctions de la page — la lecture d'une confirmation, le gel joué et coupé à 2 s, la durée, les liens, le calcul fermé) ; 900 (les deux liens de « Y aller », septième exception
 # nommée et comptée), 1003 (le côté d'une réunion reste le dernier champ de son formulaire) suivent — 99 suites, 10 081 vérifications mesurées par la commande de la porte
 # (test-971 tombe en local, fuseaux de la machine) — plancher 10067 (le total moins 14).
-#plancher 10067
+#plancher 10076
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js

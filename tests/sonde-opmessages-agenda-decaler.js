@@ -102,9 +102,9 @@ async function tirer(S, de, vers) {
     await A.page.mouse.click(p.x, p.y, { button: 'right' });
     await attendre(A, () => !document.getElementById('menu-fond').hidden);
     const m1 = await menu(A);
-    v('le menu s\'ouvre là où on a cliqué (coin à ±2 px du pointeur), compact, et propose Ouvrir, Décaler…, Écrire aux participants, le .ics, Annuler la réunion…',
-      [m1.ouvert, m1.ag, Math.abs(m1.x - Math.round(p.x)) <= 2 && Math.abs(m1.y - Math.round(p.y)) <= 2, m1.titre, ['Ouvrir', 'Décaler…', 'Écrire aux participants', 'Ajouter à mon calendrier (.ics)', 'Annuler la réunion…'].every(t => m1.actions.includes(t)), m1.focus],
-      [true, true, true, TITRE, true, 'Ouvrir'], m1);
+    v('le menu s\'ouvre là où on a cliqué (coin à ±2 px du pointeur), compact, et propose Ouvrir, Décaler…, Écrire aux participants, Annuler la réunion… — ⛔ plus « Ajouter à mon calendrier » (15 octobre 2026)',
+      [m1.ouvert, m1.ag, Math.abs(m1.x - Math.round(p.x)) <= 2 && Math.abs(m1.y - Math.round(p.y)) <= 2, m1.titre, ['Ouvrir', 'Décaler…', 'Écrire aux participants', 'Annuler la réunion…'].every(t => m1.actions.includes(t)), m1.actions.some(t => /calendrier|\.ics/.test(t)), m1.focus],
+      [true, true, true, TITRE, true, false, 'Ouvrir'], m1);
     await capture(A, '2-menu-clic-droit');
     await A.page.keyboard.press('Escape');
     vrai('Échap ferme le menu et rend le focus au rendez-vous', await attendre(A, () => document.getElementById('menu-fond').hidden && document.activeElement && document.activeElement.dataset.ag === 'r'));

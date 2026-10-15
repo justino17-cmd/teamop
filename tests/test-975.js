@@ -1,12 +1,12 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LE COURRIEL D'INVITATION AUX RÉUNIONS (étape 6, lot 5) : LE VRAI MODULE, LE VRAI SERVICE, UN FAUX RELAIS SMTP, ET L'OUTIL DE CONFIGURATION.
 
-   `test-973` joue les routes des réunions, `test-974` le planificateur ; celui-ci joue la dernière pièce : l'hôte écrit l'adresse de quelqu'un qui n'a pas OP MESSAGES, et un courriel part avec le
-   fichier .ics. Ce qui est gardé, dans l'ordre :
+   `test-973` joue les routes des réunions, `test-974` le planificateur ; celui-ci joue la dernière pièce : l'hôte écrit l'adresse de quelqu'un qui n'a pas OP MESSAGES, et un courriel part — du
+   TEXTE seul : ⛔ plus de fichier .ics joint depuis le 15 octobre 2026 (Justin : « retire aussi », après « l'application fait déjà agenda »). Ce qui est gardé, dans l'ordre :
 
      · l'adresse : une boîte, une ligne, jamais une injection d'en-tête, jamais deux destinataires ; comptée sur sa forme normalisée (majuscules, « +étiquette ») ;
      · INERTE sans relais, et le DIT (503 `courriel_non_ouvert`, `/api/config` → `courriel.ouvert:false`) — même pour une adresse fausse, sans rien ranger, sans charger la bibliothèque d'envoi ;
-     · le message QUI PART, relu par un faux relais comme le relirait un vrai : enveloppe, en-têtes, gabarit FIXE (objet, texte simple, aucun lien), pièce jointe .ics DÉCODÉE et comparée au fichier de la
-       route `GET …/ics` ; le point doublé (RFC 5321 § 4.5.2) est défait par le relais du banc, sinon il accuserait le service ;
+     · le message QUI PART, relu par un faux relais comme le relirait un vrai : enveloppe, en-têtes, gabarit FIXE (objet, texte simple, aucun lien), AUCUNE pièce jointe, et la date qu'il dit (celle
+       que l'hôte a choisie, qui doit exister ; une réunion seule ne dit que la sienne) ; le point doublé (RFC 5321 § 4.5.2) est défait par le relais du banc, sinon il accuserait le service ;
      · deux plafonds DURABLES, à la milliseconde : dix par compte et par 24 heures, deux par destinataire et par 7 jours (la boîte, pas l'écriture) — un redémarrage ne les remet pas à zéro, un envoi
        en vol compte déjà (deux demandes simultanées ne passent pas à deux quand il n'en reste qu'une), un relais qui refuse RENDS la place ;
      · le canal : TLS implicite et STARTTLS jouent pour de vrai (un certificat fabriqué par `openssl`, déclaré à la machine par `NODE_EXTRA_CA_CERTS`) ; un relais qui n'offre pas STARTTLS n'a JAMAIS vu
@@ -44,7 +44,7 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e.code === '
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const jeton = () => 'opm_' + crypto.randomBytes(32).toString('base64url');
 
-const { fauxRelais, lireMessage, sansDtstamp, TEXTE_RELAIS } = require('./outils-relais');   // le faux relais et la lecture d'un courriel vivent dans `outils-relais.js` (la sonde navigateur s'en sert aussi)
+const { fauxRelais, lireMessage, TEXTE_RELAIS } = require('./outils-relais');   // le faux relais et la lecture d'un courriel vivent dans `outils-relais.js` (la sonde navigateur s'en sert aussi)
 
 /* ═══ UN CERTIFICAT POUR LE FAUX RELAIS ═════════════════════════════════════════════════════════════════════════════════════════════════════════ */
 function fabriquerCertificat() {
@@ -120,8 +120,15 @@ function essayerRelais(cfg, env) {
     const c1 = COURRIEL.corpsDuMessage(hote, r, L26, true), c2 = COURRIEL.corpsDuMessage(hote, r, L26, false), c3 = COURRIEL.corpsDuMessage(hote, Object.assign({}, r, { lieu: '' }), L26, true);
     v('du TEXTE : des fins de ligne CRLF, aucune balise, aucune adresse web', [/\r\n/.test(c1), /<[a-z\/!]/i.test(c1), /https?:|www\.|\/#/i.test(c1)], [true, false, false]);
     v('il nomme l\'hôte, le titre, le lieu et l\'heure dans le fuseau de la réunion', [/Ana Banc vous invite à une réunion\./.test(c1), c1.includes('Réunion : Point ' + CANARI_T), c1.includes('Lieu : ' + CANARI_L), c1.includes('Quand : lundi 26 octobre à 14:00 (heure de Europe/Paris)')], [true, true, true, true]);
-    v('⛔ il dit que la série SE RÉPÈTE quand le fichier porte la série — et le tait pour une seule occurrence (elle ne se répète pas)', [/— se répète chaque semaine/.test(c1), /se répète/.test(c2)], [true, false]);
+    v('⛔ il dit que la série SE RÉPÈTE quand le message parle de la série — et le tait pour une seule occurrence (elle ne se répète pas)', [/— se répète chaque semaine/.test(c1), /se répète/.test(c2)], [true, false]);
+    v('⛔ il ne parle d\'aucun fichier (15 octobre 2026 : plus de .ics joint) — ni « .ics », ni « fichier joint », ni « pièce jointe », ni « agenda » (population : trois messages)', [c1, c2, c3].map(c => /\.ics|fichier|pi[eè]ce jointe|agenda|calendrier/i.test(c)), [false, false, false]);
     v('sans lieu, pas de ligne « Lieu » vide', [/Lieu :/.test(c3)], [false]);
+    /* une série BORNÉE (15 octobre 2026, relecture) : sans le .ics qui portait COUNT et UNTIL, le texte dit la DERNIÈRE date — la première des deux bornes qui arrive */
+    const quandDe = (x) => (COURRIEL.corpsDuMessage(hote, Object.assign({}, r, { debut: L26, fin: L26 + HEURE }, x), L26, true).split('\r\n').find(l => l.startsWith('  Quand :')) || '').replace(/^  Quand : lundi 26 octobre à 14:00 \(heure de Europe\/Paris\) — /, '');
+    v('⛔ une série BORNÉE dit jusqu\'à quand : trois fois (lundi 9 novembre), jusqu\'au 20 novembre (le dernier lundi, le 16), les deux (la première borne, le 2), un mois sur deux fois — sans borne, rien de plus',
+      [quandDe({ n: 3 }), quandDe({ jusqua: '2026-11-20' }), quandDe({ n: 3, jusqua: '2026-11-05' }), quandDe({ repetition: 'mensuelle', n: 2 }), quandDe({})],
+      ['se répète chaque semaine, jusqu\'au lundi 9 novembre 2026', 'se répète chaque semaine, jusqu\'au lundi 16 novembre 2026', 'se répète chaque semaine, jusqu\'au lundi 2 novembre 2026', 'se répète chaque mois, jusqu\'au jeudi 26 novembre 2026', 'se répète chaque semaine']);
+    v('… et le message d\'UNE date d\'une série bornée ne dit ni qu\'elle se répète, ni sa fin', /se répète|jusqu'au/.test(COURRIEL.corpsDuMessage(hote, Object.assign({}, r, { debut: L26, fin: L26 + HEURE, n: 3 }), L26, false)), false);
     v('⛔ il dit d\'où vient le message, qu\'on n\'y répond pas, et qu\'on peut l\'ignorer sans rien inscrire', [/envoyé par OP MESSAGES à la demande de Ana Banc/.test(c1), /Vous ne pouvez pas y répondre/.test(c1), /ignorez-le : rien n'est inscrit à votre nom/.test(c1)], [true, true, true]);
     v('l\'objet est FIXE', COURRIEL.SUJET, SUJET);
   }
@@ -276,7 +283,29 @@ function essayerRelais(cfg, env) {
     const eL = await l.c.envoyer({ uid: l.ana.id, hote: HOTE, destinataire: ADR(800), reunion: REUNION }).then(() => 'ok', (x) => x.code);
     v('un relais SANS identifiant (local), qui OFFRE pourtant l\'authentification : le courriel part, et aucune authentification n\'est tentée (population : le message est arrivé)', [eL, libre.messages.length, libre.etat.commandes.includes('AUTH'), l.rangs()], ['ok', 1, false, 1]);
     l.S.fermer(); await libre.fermer();
-    for (const x of [b, c, d, e]) x.S.fermer();
+
+    /* LA DATE QUE DIT LE MESSAGE (15 octobre 2026) : sans fichier joint, le texte est TOUT ce que la personne reçoit — il ne dit que ce que la réunion est. Avant, une réunion seule écrivait
+       dans le texte l'instant que la demande portait (le fichier, lui, gardait la vraie date) : le message pouvait annoncer une heure que la réunion n'a pas. */
+    const u = atelier(ZERO, CONFIG.courrielConfig({ courriel: RELAIS_CFG(relais) }, 'prod'));
+    const envU = async (reunion, occurrence, dest) => {
+      const n0 = relais.messages.length;
+      const r = await u.c.envoyer({ uid: u.ana.id, hote: HOTE, destinataire: dest, reunion, occurrence }).then(() => 'ok', (x) => x.code);
+      return { r, m: relais.messages.length > n0 ? lireMessage(relais.messages[n0]) : null, n: relais.messages.length - n0 };
+    };
+    const SEULE = Object.assign({}, REUNION, { id: 'r_' + 'b2'.repeat(16), repetition: 'aucune', debut: L26 + JOUR, fin: L26 + JOUR + HEURE });
+    const quand = (m) => { const x = m && /^  Quand : (.*)$/m.exec((m.texte || '').replace(/\r/g, '')); return x ? x[1] : null; };
+    const s1 = await envU(SEULE, L26 + 15 * JOUR, ADR(900)), s2 = await envU(SEULE, undefined, ADR(901));
+    v('⛔ une réunion SEULE dit SA date (mardi 27 octobre à 14:00), même quand la demande porte un autre instant (le 10 novembre) — et sans la demande aussi',
+      [s1.r, quand(s1.m), s2.r, quand(s2.m)], ['ok', 'mardi 27 octobre à 14:00 (heure de Europe/Paris)', 'ok', 'mardi 27 octobre à 14:00 (heure de Europe/Paris)']);
+    const s3 = await envU(REUNION, L26 + 7 * JOUR, ADR(902)), s4 = await envU(REUNION, undefined, ADR(903));
+    v('une SÉRIE : la date choisie (lundi 2 novembre, sans « se répète »), sinon la prochaine (lundi 26 octobre, « se répète chaque semaine »)',
+      [s3.r, quand(s3.m), s4.r, quand(s4.m)], ['ok', 'lundi 2 novembre à 14:00 (heure de Europe/Paris)', 'ok', 'lundi 26 octobre à 14:00 (heure de Europe/Paris) — se répète chaque semaine']);
+    const avantU = u.rangs();
+    const s5 = await envU(REUNION, L26 + JOUR, ADR(904)), s6 = await envU(Object.assign({}, SEULE, { tz: 'Mars/Olympus' }), undefined, ADR(905));
+    v('⛔ une date qui n\'est PAS dans la série, un fuseau que le service ne connaît pas : « occurrence_inconnue », rien ne part, rien n\'est réservé (population : quatre messages partis avant)',
+      [s5.r, s6.r, s5.n + s6.n, u.rangs() - avantU, avantU], ['occurrence_inconnue', 'occurrence_inconnue', 0, 0, 4]);
+    v('⛔ aucun des quatre ne porte de fichier : une partie texte simple, rien d\'autre', [s1, s2, s3, s4].map(x => [x.m.parts.map(p => p.type), x.m.ics]), [s1, s2, s3, s4].map(() => [['text/plain'], null]));
+    for (const x of [b, c, d, e, u]) x.S.fermer();
     await relais.fermer();
   }
 
@@ -368,22 +397,19 @@ function essayerRelais(cfg, env) {
     v('⛔ l\'enveloppe : l\'adresse d\'expédition configurée, UN seul destinataire (celui qu\'on a écrit)', [m1.enveloppe.de, m1.enveloppe.a], [EXPEDITEUR, [ADR(1)]]);
     v('⛔ les en-têtes : l\'objet FIXE, le destinataire, l\'expéditeur nommé « OP MESSAGES », « envoi automatique » — et NI Cc, NI Bcc, NI Reply-To (aucune adresse de l\'hôte n\'est connue ni donnée)',
       [m1.sujet, m1.a, m1.nomDe, m1.adresseDe, m1.h['auto-submitted'], m1.h['x-auto-response-suppress'], ['cc', 'bcc', 'reply-to'].filter(k => m1.h[k])], [SUJET, ADR(1), 'OP MESSAGES', EXPEDITEUR, ['auto-generated'], ['All'], []]);
-    v('⛔ la forme : UNE partie texte simple et UNE pièce jointe .ics — aucune partie HTML, aucune image (population : deux feuilles)', [m1.parts.map(p => p.type).sort(), m1.h['content-type'][0].startsWith('multipart/mixed')], [['text/calendar', 'text/plain'], true]);
+    v('⛔ la forme : UNE partie, du texte simple — aucune pièce jointe (plus de .ics depuis le 15 octobre 2026), aucune partie HTML, aucune image', [m1.parts.map(p => p.type), m1.h['content-type'][0].split(';')[0].trim(), m1.ics, /content-disposition:\s*attachment|\.ics\b|BEGIN:VCALENDAR/i.test(relais.messages[0].brut.toString('latin1'))], [['text/plain'], 'text/plain', null, false]);
     const lignesTexte = m1.texte.split(/\r?\n/);
     v('⛔ le texte nomme l\'hôte, le titre, la prochaine occurrence dans le fuseau de la réunion, le lieu — et dit que la série se répète',
       [lignesTexte.includes('Ana Banc vous invite à une réunion.'), lignesTexte.includes('  Réunion : Point ' + CANARI_T), lignesTexte.includes('  Quand : lundi 26 octobre à 14:00 (heure de Europe/Paris) — se répète chaque semaine'), lignesTexte.includes('  Lieu : ' + CANARI_L)], [true, true, true, true]);
     v('⛔ … et RIEN d\'autre de la réunion : ni les autres invités (Ben Quux), ni un lien vers la conversation, ni une adresse web, ni un identifiant de réunion', [/Quux|Ben/.test(m1.texte), /https?:|www\.|\/#|r_[0-9a-f]{32}/.test(m1.texte)], [false, false]);
-    v('⛔ le fichier .ics DÉCODÉ est celui de la route `GET …/ics` (à l\'estampille près) : la même série, avec son rappel — et il se déclare calendrier, en pièce jointe, sous un nom ASCII sûr',
-      [sansDtstamp(m1.ics) === sansDtstamp(route.txt), (m1.ics.match(/BEGIN:VALARM/g) || []).length, /RRULE:FREQ=WEEKLY;BYDAY=MO/.test(m1.ics), /METHOD:PUBLISH/.test(m1.ics), /^text\/calendar/.test(m1.icsEntetes['content-type'][0]) && /method=PUBLISH/i.test(m1.icsEntetes['content-type'][0]) && /charset=utf-8/i.test(m1.icsEntetes['content-type'][0]), /attachment/.test(m1.icsEntetes['content-disposition'][0]), /filename="?reunion-point-titre-wqxz-canari\.ics"?/.test(m1.icsEntetes['content-disposition'][0])],
-      [true, 1, true, true, true, true, true]);
+    v('la route `GET …/ics` répond toujours (sans bouton depuis le 15 octobre 2026 : elle reste au service, le temps qu\'on dise si elle part)', [route.code, /BEGIN:VCALENDAR/.test(route.txt)], [200, true]);
 
     /* ── une seule occurrence ── */
     const L9 = L26 + 14 * JOUR;
     const r2 = await post(a, RS.id, { destinataire: ADR(2), occurrence: L9 });
     const m2 = lireMessage(relais.messages[1]);
-    const route2 = await a.get('/api/reunions/' + RS.id + '/ics?occurrence=' + L9);
-    v('⛔ UNE occurrence : le texte dit CELLE-LÀ (lundi 9 novembre) et ne dit pas que la série se répète ; le fichier ne porte que cette occurrence (pas de RRULE) et est celui de la route',
-      [r2.code, /Quand : lundi 9 novembre à 14:00 \(heure de Europe\/Paris\)\r?\n/.test(m2.texte), /se répète/.test(m2.texte), /RRULE/.test(m2.ics), /DTSTART:20261109T130000Z/.test(m2.ics), sansDtstamp(m2.ics) === sansDtstamp(route2.txt)], [200, true, false, false, true, true]);
+    v('⛔ UNE occurrence : le texte dit CELLE-LÀ (lundi 9 novembre) et ne dit pas que la série se répète — sans fichier joint',
+      [r2.code, /Quand : lundi 9 novembre à 14:00 \(heure de Europe\/Paris\)\r?\n/.test(m2.texte), /se répète/.test(m2.texte), m2.parts.map(p => p.type), m2.ics], [200, true, false, ['text/plain'], null]);
     const apres = etat();
     const r3 = await post(a, RS.id, { destinataire: ADR(3), occurrence: L26 + JOUR });
     v('une date qui n\'est PAS une occurrence : 404 `occurrence_inconnue`, rien de réservé, rien d\'envoyé', [r3.code, r3.j.error, etat()], [404, 'occurrence_inconnue', apres]);
@@ -391,7 +417,7 @@ function essayerRelais(cfg, env) {
     v('… et toujours rien de réservé ni d\'envoyé', etat(), apres);
     const rU = await post(a, RU.id, { destinataire: ADR(4) });
     const mU = lireMessage(relais.messages[2]);
-    v('une réunion SANS répétition : le texte ne dit pas « se répète », le fichier est écrit en UTC sans RRULE', [rU.code, /se répète/.test(mU.texte), /RRULE/.test(mU.ics), /DTSTART:20261027T090000Z/.test(mU.ics)], [200, false, false, true]);
+    v('une réunion SANS répétition : le texte dit SA date (mardi 27 octobre à 10:00), ne dit pas « se répète », sans fichier joint', [rU.code, /Quand : mardi 27 octobre à 10:00 \(heure de Europe\/Paris\)\r?\n/.test(mU.texte), /se répète/.test(mU.texte), mU.ics], [200, true, false, null]);
 
     /* ── les adresses fausses, au service ── */
     const avantAdr = etat();
@@ -506,7 +532,7 @@ function essayerRelais(cfg, env) {
         const R = await mk(a);
         const r = await a.post('/api/reunions/' + R.id + '/courriel', { destinataire: ADR(500) });
         const m = rl.messages[0] ? lireMessage(rl.messages[0]) : null;
-        v('⛔ « ' + securite + ' » : 200, le message est arrivé CHIFFRÉ (le relais le dit), l\'authentification a eu lieu une fois, le fichier .ics est joint', [r.code, m && m.tls, rl.etat.auths, m && m.ics && /BEGIN:VCALENDAR/.test(m.ics), m && m.sujet], [200, true, [true], true, SUJET]);
+        v('⛔ « ' + securite + ' » : 200, le message est arrivé CHIFFRÉ (le relais le dit), l\'authentification a eu lieu une fois, du texte sans fichier joint', [r.code, m && m.tls, rl.etat.auths, m && m.ics === null && /vous invite à une réunion/.test(m.texte || ''), m && m.sujet], [200, true, [true], true, SUJET]);
       } finally { await X.fermer(); await rl.fermer(); }
     }
   }
@@ -639,7 +665,7 @@ function essayerRelais(cfg, env) {
       const n0 = rl.messages.length;
       const r = await a.post('/api/reunions/' + R.id + '/courriel', { destinataire: ADR(700) });
       const m = rl.messages[n0] ? lireMessage(rl.messages[n0]) : null;
-      v('⛔ le bloc ÉCRIT PAR L\'OUTIL, donné tel quel au service, fait partir une invitation (nom affiché choisi, expéditeur, objet fixe, fichier joint)', [r.code, m && m.nomDe, m && m.adresseDe, m && m.sujet, m && /BEGIN:VCALENDAR/.test(m.ics)], [200, 'Banc WQXZ', EXPEDITEUR, SUJET, true]);
+      v('⛔ le bloc ÉCRIT PAR L\'OUTIL, donné tel quel au service, fait partir une invitation (nom affiché choisi, expéditeur, objet fixe, le texte de l\'invitation)', [r.code, m && m.nomDe, m && m.adresseDe, m && m.sujet, m && /vous invite à une réunion/.test(m.texte || '')], [200, 'Banc WQXZ', EXPEDITEUR, SUJET, true]);
     } finally { await Z.fermer(); }
     await rl.fermer();
 

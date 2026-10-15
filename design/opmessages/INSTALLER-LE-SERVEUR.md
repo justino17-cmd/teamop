@@ -672,9 +672,10 @@ conception, question 15) — ce geste n'existe pas encore, et c'est ce qui sépa
 
 ## 10 sexies. Le courriel d'OP MESSAGES (les invitations aux réunions) — pour l'étape 6, avant d'ouvrir « Envoyer par courriel »
 
-Une réunion programmée peut être envoyée **par courriel** à quelqu'un qui n'a pas OP MESSAGES : le message porte un fichier `.ics` que son agenda sait lire. Tant que ces gestes ne sont pas faits, **rien ne casse et
+Une réunion programmée peut être envoyée **par courriel** à quelqu'un qui n'a pas OP MESSAGES : le message dit le titre, la date, l'heure et le lieu — **sans fichier `.ics` depuis le 15 octobre 2026** (« retire aussi » :
+plus d'« Ajouter à mon calendrier » nulle part). Tant que ces gestes ne sont pas faits, **rien ne casse et
 rien ne part** : le service est **inerte et le dit** — la page affiche « l'envoi par courriel n'est pas encore ouvert » (la route répond 503 `courriel_non_ouvert`, et `/api/config` dit `"courriel":{"ouvert":false}`).
-Il n'y a **aucune urgence** : le reste des réunions (l'agenda, les invités dans l'application, les rappels, le fichier `.ics` à télécharger) marche sans.
+Il n'y a **aucune urgence** : le reste des réunions (l'agenda, les invités dans l'application, les rappels) marche sans.
 
 ⛔ **Le mot de passe du compte de messagerie est un secret** : il va **de la console de ton fournisseur à ton gestionnaire de mots de passe**, puis **au VPS en saisie masquée** (`configurer-courriel.js`). Tu ne le
 recolles **jamais** dans la conversation, et le service ne l'écrit nulle part où tu pourrais le recoller par mégarde (ni `/health`, ni `/api/config`, ni les journaux, ni une réponse d'erreur). Ce que tu peux recoller :
@@ -729,7 +730,7 @@ curl -s https://msg-beta.teamop.fr/api/config
 ```
 
 **À voir** : `"courriel":{"ouvert":true}` (et rien d'autre du relais : ni l'hôte, ni l'identifiant). Puis, dans l'application : programme une réunion, ouvre-la, **« Envoyer par courriel »**, ta **propre** adresse. **À voir** :
-le courriel dans la minute, l'objet « Invitation à une réunion — OP MESSAGES », le texte simple, la pièce jointe `.ics` ; ouvre-la : elle s'ajoute à ton agenda **à la bonne heure, dans ton fuseau**.
+le courriel dans la minute, l'objet « Invitation à une réunion — OP MESSAGES », le texte simple — le titre, **la date et l'heure justes, dans le fuseau de la réunion**, le lieu — et **aucune pièce jointe**.
 
 **Si rien n'arrive** : la page dit une phrase par cause (« le courriel n'a pas pu partir… », « cette adresse n'est pas valable », le plafond atteint). Dans le journal du service
 (`journalctl -u teamop-msg@beta | grep '"evt":"courriel"'`), la ligne d'échec porte le **nom** du refus : `EAUTH` (identifiant ou mot de passe refusé), `ESOCKET`/`ECONNECTION` (relais injoignable ou mauvais port),
@@ -739,12 +740,12 @@ le courriel dans la minute, l'objet « Invitation à une réunion — OP MESSAGE
 
 - **Rien ne tourne en fond** pour le courriel : il part quand l'hôte le demande, et seulement alors.
 - **`/health` ne dit rien du courriel**, volontairement : un relais en panne se voit à la réponse de la page (« le courriel n'a pas pu partir »), pas à une alarme muette — et une invitation qui ne part pas ne prive personne
-  de rien (l'invité reçoit déjà la réunion dans l'application, ou télécharge le fichier lui-même).
+  de rien (l'invité reçoit déjà la réunion dans l'application).
 - **La configuration est lue au démarrage** : changer de relais (ou de mot de passe, après sa révocation) = relancer le script, puis redémarrer le service.
 
 ### 5. Ce que le fournisseur de messagerie reçoit (pour les textes légaux)
 
-Il transporte chaque invitation : il reçoit **l'adresse du destinataire, le prénom et le nom de l'hôte, le titre, le lieu et l'heure de la réunion**, et le fichier `.ics`. C'est un **sous-traitant** à nommer dans les mentions
+Il transporte chaque invitation : il reçoit **l'adresse du destinataire, le prénom et le nom de l'hôte, le titre, le lieu et l'heure de la réunion** (plus de fichier `.ics` depuis le 15 octobre 2026). C'est un **sous-traitant** à nommer dans les mentions
 et la politique de confidentialité (comme OVHcloud pour les SMS). OP MESSAGES, lui, ne **garde** aucune adresse de destinataire : une empreinte pour compter les plafonds, rien de plus.
 
 ---

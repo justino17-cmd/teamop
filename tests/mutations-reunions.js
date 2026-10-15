@@ -3,7 +3,7 @@
    `941`, `950` et la sonde navigateur `sonde-opmessages-reunions.js` gardent — l'heure d'une série calculée en ajoutant 7 × 24 h, une heure absente ou vécue deux fois lue de travers,
    un `UNTIL` en heure locale, un titre qui ouvre une ligne du fichier .ics ; une réunion qui se lit sans y être invité, un invité qui modifie, un changement d'horaire qui laisse
    « décliné » celui qui ne peut plus venir ; un rappel qui part deux fois, un bail qui ne s'éteint jamais, un rappel du passé renvoyé après une restauration ; un effacement qui
-   revient d'une archive d'avant, un rejeu qui écrit une ligne de plus au registre ; un courriel qui part sans son plafond, une pièce jointe qui n'est pas la bonne, un secret affiché ;
+   revient d'une archive d'avant, un rejeu qui écrit une ligne de plus au registre ; un courriel qui part sans son plafond, un .ics qui revient en pièce jointe, une date qui n'est pas celle de la réunion, un secret affiché ;
    une route sans sa garde, un code d'erreur que l'écran ne sait pas dire ; et, côté page, une adresse de fichier qui passe par l'enveloppe asynchrone, un fuseau qu'on ne dit pas au service, une adresse tapée perdue au redessin, un bouton
    qui reste grisé, une date que la fiche garde après un changement d'horaire, un lieu « javascript: » devenu lien, une heure lue dans le fuseau de la réunion au lieu de celui de l'appareil, un refus d'ICI qui n'en est plus un, un retour d'historique rejoué pendant qu'il est en vol (la fiche ouverte au doigt quitte l'application), une disparition apprise de quatre côtés qui ferme la fiche quatre fois — dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md
    efface aussi les correctifs non commités), joue les bancs visés, et exige qu'AU MOINS UN tombe (code de sortie non nul ou un « ✗ »).
@@ -534,17 +534,20 @@ m('E28', 'le nom affiché de l\'expéditeur ne suit plus le réglage', F.mail, "
 m('E29', 'l\'adresse d\'expédition est l\'identifiant du compte', F.mail, "from: { name: cfg.nom, address: cfg.de }", "from: { name: cfg.nom, address: cfg.utilisateur || cfg.de }", ['975']);
 m('E30', 'l\'objet est le titre de la réunion (écrit par l\'hôte) au lieu de l\'objet fixe', F.mail, "subject: SUJET,", "subject: reunion.titre,", ['975']);
 m('E31', 'le corps part en HTML au lieu du texte simple', F.mail, "text: corpsDuMessage(", "html: corpsDuMessage(", ['975']);
-m('E32', 'la pièce jointe n\'est plus déclarée comme un calendrier', F.mail, "contentType: 'text/calendar; charset=utf-8; method=PUBLISH'", "contentType: 'application/octet-stream'", ['975']);
-m('E33', 'le type de la pièce jointe perd son paramètre `method=PUBLISH` (que le fichier déclare en METHOD:PUBLISH)', F.mail, "contentType: 'text/calendar; charset=utf-8; method=PUBLISH'", "contentType: 'text/calendar; charset=utf-8'", ['975']);
-m('E34', 'le nom du fichier joint est le titre brut de la réunion', F.mail, "filename: ics.nom({ titre: reunion.titre })", "filename: reunion.titre + '.ics'", ['975']);
+/* (15 octobre 2026 : « retire aussi » — le courriel part SANS fichier .ics ; le texte est tout ce que la personne reçoit : la date qu'il dit doit être celle de la réunion) */
+m('E32', 'un fichier .ics revient en pièce jointe du courriel', F.mail, "text: corpsDuMessage(hote, reunion, quand, !choisie),",
+  "text: corpsDuMessage(hote, reunion, quand, !choisie), attachments: [{ filename: 'reunion.ics', content: 'BEGIN:VCALENDAR\\r\\nEND:VCALENDAR\\r\\n', contentType: 'text/calendar; charset=utf-8; method=PUBLISH' }],", ['975']);
+m('E33', 'une réunion SEULE dit l\'instant que la demande porte (le texte annonce une heure que la réunion n\'a pas)', F.mail, "reunion.repetition === 'aucune' ? { debut: reunion.debut } :", "reunion.repetition === 'aucune' ? { debut: occurrence } :", ['975']);
+m('E120', 'une série BORNÉE ne dit plus jusqu\'à quand elle se répète (sans le .ics, le texte ferait noter une réunion sans fin)', F.mail, "+ REPETE[r.repetition] + finDeLaSerie(r) :", "+ REPETE[r.repetition] :", ['975']);
+m('E119', 'un fuseau que le service ne connaît pas n\'est plus refusé (le texte dit une heure au décalage inventé)', F.mail, "    if (cal.tzValide(reunion.tz) === null) throw erreur('occurrence_inconnue');\n", "", ['975']);
 m('E35', 'les en-têtes qui découragent les réponses automatiques sont retirés', F.mail, "        headers: { 'X-Auto-Response-Suppress': 'All', 'Auto-Submitted': 'auto-generated' },\n", "", ['975']);
 m('E36', 'le message part aussi en copie au destinataire (Cc)', F.mail, "to: adresse, subject: SUJET,", "to: adresse, cc: adresse, subject: SUJET,", ['975']);
-m('E37', 'un fichier d\'UNE occurrence dit quand même que la série se répète', F.mail, "corpsDuMessage(hote, reunion, quand, occurrence === undefined || occurrence === null)", "corpsDuMessage(hote, reunion, quand, true)", ['975']);
+m('E37', 'un message d\'UNE occurrence dit quand même que la série se répète', F.mail, "corpsDuMessage(hote, reunion, quand, !choisie)", "corpsDuMessage(hote, reunion, quand, true)", ['975']);
 m('E38', 'le texte d\'une série dit sa PREMIÈRE occurrence au lieu de la prochaine', F.mail, "(cal.premiereApres({ debut: reunion.debut, fin: reunion.fin, tz: reunion.tz, rep: reunion.repetition, n: reunion.n, jusqua: reunion.jusqua }, t, true) || { debut: reunion.debut }).debut", "reunion.debut", ['975']);
 m('E39', 'le texte ne dit plus le fuseau de la réunion', F.mail, " + ' (heure de ' + r.tz + ')'", "", ['975']);
 m('E40', 'l\'heure du texte est dite en UTC au lieu du fuseau de la réunion', F.mail, "cal.dire(t, fuseauDe(null, r.tz))", "cal.dire(t, 'UTC')", ['975']);
 m('E41', 'le texte ne dit plus qu\'on peut ignorer le message', F.mail, "Si vous ne connaissez pas cette personne, ignorez-le : rien n\\'est inscrit à votre nom.", "", ['975']);
-m('E42', 'l\'occurrence inconnue n\'est plus refusée : un courriel part avec un fichier vide', F.mail, "    if (fichier === null) throw erreur('occurrence_inconnue');\n", "", ['975']);
+m('E42', 'l\'occurrence inconnue n\'est plus refusée : un courriel part et dit la date demandée, qui n\'est pas dans la série', F.mail, "      if (!occ) throw erreur('occurrence_inconnue');\n      quand = occ.debut;", "      quand = occ ? occ.debut : occurrence;", ['975']);
 m('E43', 'un service sans relais n\'est plus inerte : l\'envoi tente quand même', F.mail, "const ouvert = () => cfg.mode === 'smtp';", "const ouvert = () => true;", ['975']);
 m('E44', 'l\'envoi ne vérifie plus que le relais est ouvert (l\'adresse est jugée d\'abord)', F.mail, "  async function envoyer({ uid, hote, destinataire, reunion, occurrence }) {\n    if (!ouvert()) throw erreur('courriel_non_ouvert');\n", "  async function envoyer({ uid, hote, destinataire, reunion, occurrence }) {\n", ['975']);
 m('E45', '`verifier` ne se connecte plus au relais : il répond « vérifié » sans essayer', F.mail, "    await transporter().verify();\n", "", ['975']);

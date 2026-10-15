@@ -770,8 +770,8 @@ async function controler(PAGE, SRC, DOC) {
       v('⛔ qui peut DÉCALER : l\'organisateur, une réunion à venir, ni série, ni annulée, ni passée ; un événement à soi — et une phrase dit pourquoi sinon',
         [cas.map(G.peutDecaler), G.raisonNonDecalable(cas[1]), G.raisonNonDecalable(cas[2])], [[true, false, false, false, false, true], 'Seul l\'organisateur peut décaler cette réunion.', 'Une réunion qui se répète se modifie en entier : « Modifier la réunion », dans sa fiche.']);
       const actions = h => Array.from(h.matchAll(/data-ag-menu="([a-z-]+)"(?: data-statut="([a-z]+)" aria-pressed="(true|false)")?/g)).map(m => m[1] + (m[2] ? ':' + m[2] + (m[3] === 'true' ? '*' : '') : ''));
-      v('⛔ le menu de l\'ORGANISATEUR : ouvrir, décaler, écrire aux participants, le .ics, annuler — jamais « répondre »', actions(G.htmlMenuAgenda(cas[0])), ['ouvrir', 'decaler', 'conversation', 'ics', 'annuler']);
-      v('⛔ le menu de l\'INVITÉ : ouvrir, répondre (sa réponse cochée), écrire, le .ics — jamais décaler ni annuler', actions(G.htmlMenuAgenda(x(R({ moi: { hote: false, statut: 'peutetre' } })))), ['ouvrir', 'reponse:accepte', 'reponse:peutetre*', 'reponse:decline', 'conversation', 'ics']);
+      v('⛔ le menu de l\'ORGANISATEUR : ouvrir, décaler, écrire aux participants, annuler — jamais « répondre », ⛔ jamais le .ics (15 octobre 2026 : « retire aussi » — et la source sait pourtant le fabriquer)', actions(G.htmlMenuAgenda(cas[0])), ['ouvrir', 'decaler', 'conversation', 'annuler']);
+      v('⛔ le menu de l\'INVITÉ : ouvrir, répondre (sa réponse cochée), écrire — jamais décaler ni annuler, ⛔ jamais le .ics', actions(G.htmlMenuAgenda(x(R({ moi: { hote: false, statut: 'peutetre' } })))), ['ouvrir', 'reponse:accepte', 'reponse:peutetre*', 'reponse:decline', 'conversation']);
       v('une SÉRIE organisée : « Modifier la série… » au lieu de « Décaler… »', actions(G.htmlMenuAgenda(cas[2])).includes('modifier') && !actions(G.htmlMenuAgenda(cas[2])).includes('decaler'), true);
       v('un événement : ouvrir, décaler, fait, reporter, supprimer ; « Voir le message » seulement s\'il vient d\'un message ; « Ranger dans » seulement avec les deux côtés',
         [actions(G.htmlMenuAgenda(cas[5])), (() => { cA.modes = true; const a = actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { source: { conv: 'c_x', seq: 3 } }), o: futur })); cA.modes = false; return a; })()],
@@ -782,7 +782,7 @@ async function controler(PAGE, SRC, DOC) {
           actions(G.htmlMenuAgenda(x(R({ lieu: '8 rue Lafayette' }), cas[4].o))).includes('gps'), actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { lieu: '4 avenue Foch' }), o: futur })),
           actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { lieu: '4 avenue Foch', fait: Date.now() }), o: futur })).includes('gps'),
           actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { lieu: '4 avenue Foch' }), o: cas[4].o })).includes('gps')],
-        [['ouvrir', 'decaler', 'gps', 'conversation', 'ics', 'annuler'], false, false, false, ['ouvrir', 'decaler', 'fait', 'reporter', 'gps', 'supprimer'], false, false]);
+        [['ouvrir', 'decaler', 'gps', 'conversation', 'annuler'], false, false, false, ['ouvrir', 'decaler', 'fait', 'reporter', 'gps', 'supprimer'], false, false]);
       vrai('le titre du menu est ÉCHAPPÉ (un titre « <img onerror> » reste du texte)', /&lt;img onerror&gt;/.test(G.htmlMenuAgenda(x(R({ titre: '<img onerror>' })))) && !/<img onerror>/.test(G.htmlMenuAgenda(x(R({ titre: '<img onerror>' })))));
       /* les chevauchements : des DEUX côtés (on ne peut pas être à deux endroits), jamais soi-même, ni une réunion annulée ou refusée, ni une journée entière, ni un rappel fait */
       const o = (h1, h2) => ({ debut: maintenant + h1 * H, fin: maintenant + h2 * H, seance: null });

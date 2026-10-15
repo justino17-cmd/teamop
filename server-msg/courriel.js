@@ -1,8 +1,9 @@
-/* ══ LE COURRIEL D'INVITATION — UNE RÉUNION, UN FICHIER .ICS, UNE ADRESSE QUE L'HÔTE A SAISIE ═══════════════════════════════════════════════════
+/* ══ LE COURRIEL D'INVITATION — UNE RÉUNION, UN TEXTE, UNE ADRESSE QUE L'HÔTE A SAISIE ═══════════════════════════════════════════════════════════
  *
- * L'hôte d'une réunion peut l'envoyer par courriel à quelqu'un qui n'a pas OP MESSAGES : le message porte le fichier `.ics` (le même que celui de la route `GET …/ics`) et l'agenda de
- * la personne le lit. Ce module est INERTE sans configuration (`config.courriel` : un relais SMTP) et le DIT — la page affiche « l'envoi par courriel n'est pas encore ouvert » —, rien
- * ne part, rien n'est demandé à personne.
+ * L'hôte d'une réunion peut l'envoyer par courriel à quelqu'un qui n'a pas OP MESSAGES : le message dit le titre, la date, l'heure (dans le fuseau de la réunion) et le lieu.
+ * ⛔ SANS FICHIER .ICS DEPUIS LE 15 OCTOBRE 2026 (Justin : « retire aussi », après « l'application fait déjà agenda ») : il n'y a plus d'« Ajouter à mon calendrier » nulle part,
+ * ni dans la fiche, ni dans le menu, ni ici. Ce module est INERTE sans configuration (`config.courriel` : un relais SMTP) et le DIT — la page affiche « l'envoi par courriel n'est
+ * pas encore ouvert » —, rien ne part, rien n'est demandé à personne.
  *
  *   · LE GABARIT EST FIXE. L'objet est toujours le même (« Invitation à une réunion — OP MESSAGES »), le corps est du TEXTE SIMPLE (aucun HTML, aucun lien, aucune image) : ce que l'hôte
  *     écrit (le titre, le lieu) y entre comme du texte, une seule fois, dans une phrase qui nomme l'hôte et dit d'où vient le message. Un service qui laisserait écrire l'objet et le
@@ -16,7 +17,6 @@
  *   · LE JOURNAL ne reçoit qu'un état et un nombre (`courriel` : envoye, echec) — jamais une adresse, un nom, un titre.
  */
 'use strict';
-const ics = require('./ics');
 const cal = require('./calendrier');
 const { RE_ADRESSE_MEL } = require('./config');
 const { nomAffiche, fuseauDe } = require('./reunions-outils');
@@ -49,12 +49,19 @@ const normalisee = (a) => {
 };
 
 /* Le corps : du texte simple. `hote` : celui qui invite ; `r` : la réunion (titre, lieu, fuseau, répétition) ; `t` : l'occurrence dont on parle (la prochaine, ou celle qu'on a choisie) ; `serie` :
-   le fichier joint porte-t-il TOUTE la série (alors le message dit qu'elle se répète) — un fichier d'une seule occurrence ne le dit pas, il ne se répète pas. */
+   le message parle-t-il de TOUTE la série (alors il dit qu'elle se répète, et jusqu'à quand) — celui d'une seule date ne le dit pas.
+   ⛔ Une série BORNÉE (un nombre de fois, une date de fin) dit sa DERNIÈRE date : le fichier .ics joint portait la règle (COUNT, UNTIL) ; sans lui, « se répète chaque semaine » tout
+   court ferait noter une réunion sans fin (relecture, 15 octobre 2026). La dernière date est celle que la fiche compte (`cal.derniereDate` : la première des deux bornes qui arrive). */
+const FMT_FIN = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+function finDeLaSerie(r) {
+  if (!r.n && !r.jusqua) return '';
+  const d = cal.derniereDate({ debut: r.debut, fin: r.fin, tz: r.tz, rep: r.repetition, n: r.n || null, jusqua: r.jusqua || null });
+  return d ? ', jusqu\'au ' + FMT_FIN.format(Date.UTC(d.a, d.m - 1, d.j)).replace(/\u202f|\u00a0/g, ' ') : '';
+}
 function corpsDuMessage(hote, r, t, serie) {
   const quand = cal.dire(t, fuseauDe(null, r.tz)) + ' (heure de ' + r.tz + ')';
   return ['Bonjour,', '', nomAffiche(hote) + ' vous invite à une réunion.', '',
-    '  Réunion : ' + r.titre, '  Quand : ' + quand + (serie && REPETE[r.repetition] ? ' — se répète ' + REPETE[r.repetition] : ''), r.lieu ? '  Lieu : ' + r.lieu : null, '',
-    'Le fichier joint (.ics) ajoute cette réunion à votre agenda : ouvrez-le avec votre application de calendrier.', '',
+    '  Réunion : ' + r.titre, '  Quand : ' + quand + (serie && REPETE[r.repetition] ? ' — se répète ' + REPETE[r.repetition] + finDeLaSerie(r) : ''), r.lieu ? '  Lieu : ' + r.lieu : null, '',
     '--', 'Ce message a été envoyé par OP MESSAGES à la demande de ' + nomAffiche(hote) + '. Vous ne pouvez pas y répondre. Si vous ne connaissez pas cette personne, ignorez-le : rien n\'est inscrit à votre nom.', ''].filter(l => l !== null).join('\r\n');
 }
 
@@ -62,7 +69,8 @@ function creerCourriel({ config, stockage, scelleur, horloge, journaliser }) {
   const cfg = config.courriel;
   const journal = (evt, champs) => { try { if (journaliser) journaliser(evt, champs); } catch (e) { /* un journal qui échoue ne défait rien */ } };
   let transport = null;
-  /* `nodemailer` ne se charge qu'au premier envoi : un service sans relais ne le demande jamais. Ni fichier ni adresse web lus pour une pièce jointe (`disableFileAccess`, `disableUrlAccess`). */
+  /* `nodemailer` ne se charge qu'au premier envoi : un service sans relais ne le demande jamais. Ni fichier ni adresse web lus pour une pièce jointe (`disableFileAccess`, `disableUrlAccess`) —
+     aucun message n'en porte plus, la garde reste en défense en profondeur. */
   function transporter() {
     if (transport) return transport;
     const nodemailer = require('nodemailer');
@@ -86,16 +94,21 @@ function creerCourriel({ config, stockage, scelleur, horloge, journaliser }) {
     const n = stockage.courrierCompter({ uid, destH, depuis: { compte: t - COMPTE_FENETRE_MS, destinataire: t - DEST_FENETRE_MS } });
     if (n.compte >= COMPTE_MAX) throw erreur('courriel_quota_compte');
     if (n.destinataire >= DEST_MAX) throw erreur('courriel_quota_destinataire');
-    const opts = { maintenant: t, rappels: reunion.rappels };
-    if (occurrence !== undefined && occurrence !== null) opts.occurrence = occurrence;
-    const fichier = ics.fichier({ id: reunion.id, titre: reunion.titre, lieu: reunion.lieu, debut: reunion.debut, fin: reunion.fin, tz: reunion.tz, rep: reunion.repetition, n: reunion.n, jusqua: reunion.jusqua, annulee: reunion.annulee, version: reunion.version }, opts);
-    if (fichier === null) throw erreur('occurrence_inconnue');
-    const quand = occurrence !== undefined && occurrence !== null ? occurrence : (cal.premiereApres({ debut: reunion.debut, fin: reunion.fin, tz: reunion.tz, rep: reunion.repetition, n: reunion.n, jusqua: reunion.jusqua }, t, true) || { debut: reunion.debut }).debut;
+    /* La date dont parle le message : celle que l'hôte a choisie, qui doit EXISTER dans la série (une date inventée ne part pas dans un courriel), sinon la prochaine. Une réunion
+       seule n'a qu'une date, la sienne : une occurrence donnée ne la remplace pas (le texte est désormais tout ce que la personne reçoit — il ne dit que ce que la réunion est).
+       Un fuseau que le service n'a pas validé ne produit pas d'heure au décalage inventé (la garde que portait le fichier .ics). */
+    if (cal.tzValide(reunion.tz) === null) throw erreur('occurrence_inconnue');
+    const choisie = occurrence !== undefined && occurrence !== null;
+    let quand;
+    if (choisie) {
+      const occ = reunion.repetition === 'aucune' ? { debut: reunion.debut } : cal.occurrenceA({ debut: reunion.debut, fin: reunion.fin, tz: reunion.tz, rep: reunion.repetition, n: reunion.n || null, jusqua: reunion.jusqua || null }, occurrence);
+      if (!occ) throw erreur('occurrence_inconnue');
+      quand = occ.debut;
+    } else quand = (cal.premiereApres({ debut: reunion.debut, fin: reunion.fin, tz: reunion.tz, rep: reunion.repetition, n: reunion.n, jusqua: reunion.jusqua }, t, true) || { debut: reunion.debut }).debut;
     const reserve = stockage.courrierNoter({ uid, destH });         // RÉSERVÉ avant de partir : le plafond se prend dans le même souffle qu'il se vérifie
     try {
       await transporter().sendMail({
-        from: { name: cfg.nom, address: cfg.de }, to: adresse, subject: SUJET, text: corpsDuMessage(hote, reunion, quand, occurrence === undefined || occurrence === null),
-        attachments: [{ filename: ics.nom({ titre: reunion.titre }), content: fichier, contentType: 'text/calendar; charset=utf-8; method=PUBLISH' }],
+        from: { name: cfg.nom, address: cfg.de }, to: adresse, subject: SUJET, text: corpsDuMessage(hote, reunion, quand, !choisie),
         headers: { 'X-Auto-Response-Suppress': 'All', 'Auto-Submitted': 'auto-generated' },
       });
     } catch (e) {

@@ -59,7 +59,7 @@
  *   transcription {url, secret, dureeMaxS, file, parPersonne, budgetHeureS, essais, parHeure, sondeMs, delaiSondeMs, delaiBaseMs, delaiParSMs}   La TRANSCRIPTION des vocaux (11 octobre 2026) : l'ouvrier whisper.cpp
  *                                posé par `install-transcription.sh` (sa propre unité, sur la boucle locale) — voir `transcriptionConfig`. SANS ce bloc, pas de transcription : la page ne la propose pas.
  *                                Son `secret` ne s'affiche ni ne se copie.
- *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (un fichier .ics joint). SANS `hote`, INERTE et le dit.
+ *   courriel      {hote, port, securite, utilisateur, mot_de_passe, de, nom, timeoutMs}   L'envoi des invitations aux réunions par courriel (du texte, sans fichier joint). SANS `hote`, INERTE et le dit.
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
  *   inscriptionCourriel  true pour OUVRIR les inscriptions par adresse e-mail (« comme Discord ») ; absent ou autre chose : fermées (503 `inscription_fermee`). Il faut aussi un relais (`courriel`).
