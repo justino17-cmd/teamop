@@ -208,7 +208,7 @@ function controler(PAGE, DOC, SRC) {
   const MESURES_PERMISES = [
     [/const r = b\.getBoundingClientRect\(\), e = y < r\.top \? r\.top - y/, 'l\'index de « Nouvelle discussion » : quelle lettre est SOUS le doigt'],
     [/tient\.o = o; const r = o\.getBoundingClientRect\(\); let p = r\.width > 0 \? \(x - r\.left\) \/ r\.width : 0;/, 'l\'onde d\'un vocal : où est le pointeur DANS l\'onde à l\'instant du geste (un rapport lu et jeté, jamais une largeur recopiée)'],
-    [/const el = retrouverAgenda\(m0\.declencheur, m0\.cle\), r = el && el\.isConnected \? el\.getBoundingClientRect\(\) : null, m = M\.getBoundingClientRect\(\);/, 'le menu d\'un rendez-vous de l\'agenda : ouvert au point du clic droit (ou sous le rendez-vous au clavier), gardé dans l\'écran — lu à l\'ouverture, jamais suivi'],
+    [/const el = m0\.agenda \? retrouverAgenda\(m0\.declencheur, m0\.cle\) : m0\.declencheur, r = el && el\.isConnected \? el\.getBoundingClientRect\(\) : null, m = M\.getBoundingClientRect\(\);/, 'le menu d\'un rendez-vous de l\'agenda : ouvert au point du clic droit (ou sous le rendez-vous au clavier), et « Y aller » d\'une fiche sous son bouton, gardés dans l\'écran — lu à l\'ouverture, jamais suivi'],
     [/T\.fantome\.style\.width = Math\.round\(T\.el\.getBoundingClientRect\(\)\.width\) \+ 'px';/, 'le fantôme d\'un rendez-vous qu\'on tire : la largeur de la puce au début du glisser, pour la durée du glisser seulement'],
   ];
   const lignesMesure = JS.split('\n').filter(l => /offsetWidth|getBoundingClientRect/.test(l));
@@ -230,7 +230,11 @@ function controler(PAGE, DOC, SRC) {
   const entier = PAGE.replace(/<!--[\s\S]*?-->/g, ' ');
   /* ⛔ une ADRESSE porte un hôte après « // » (9 octobre 2026, run 633) : le schéma seul, `'https://' + u` — le préfixe qu'un lien « www. » écrit par quelqu'un reçoit
      dans une bulle (`texteRiche`) —, ne charge rien et ne mène nulle part par lui-même. Le motif exige donc au moins un caractère d'hôte ; une vraie adresse le porte toujours. */
-  v('⛔ aucune adresse http(s):// dans la page (feuille, police, script, image, lien)', [...new Set(entier.match(/https?:\/\/[^\s"'<>)]+/g) || [])], []);
+  /* ⛔ UNE EXCEPTION, NOMMÉE ET COMPTÉE (15 octobre 2026) : les deux adresses de « Y aller » (`liensGps`) — Google Maps et Waze. Ce sont des LIENS que la personne touche, vers
+     l'application de guidage qu'elle choisit : jamais une feuille, une police, un script ni une image que la page chargerait. Ces deux préfixes exacts, une fois chacun, et rien d'autre. */
+  const GPS = ['https://www.google.com/maps/dir/?api=1&destination=', 'https://waze.com/ul?q='];
+  v('⛔ aucune adresse http(s):// dans la page (feuille, police, script, image, lien) — hors les deux liens de « Y aller », une fois chacun',
+    [...new Set(entier.match(/https?:\/\/[^\s"'<>)]+/g) || [])].filter(a => !(GPS.includes(a) && entier.split(a).length - 1 === 1)), []);
   v('⛔ aucun <script src> autre que source.js, <link> autre que l\'icône locale, <iframe>, <img> distant, @import, url(http)',
     [(entier.match(/<script[^>]*\ssrc="(?!source\.js")/g) || []).length, (entier.match(/<link\b(?![^>]*rel="icon"[^>]*href="\.\.\/\.\.\/icons\/opmsg-favicon-32\.png")[^>]*>/g) || []).length, (entier.match(/<iframe|@import|url\(\s*["']?https?:/g) || []).length], [0, 0, 0]);
   v('⛔ aucune image écrite dans le balisage qui ne soit le logo du dépôt (icons/opmsg-192.png) ; les photos et vocaux de la personne ne naissent que de blob:', [...new Set((HTML.match(/<img[^>]*\ssrc="[^"]*"/g) || []).map(s => /src="([^"]*)"/.exec(s)[1]))], ['../../icons/opmsg-192.png']);

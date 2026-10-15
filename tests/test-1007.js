@@ -330,7 +330,7 @@ END:VCALENDAR`), 'debut', 'duree', 'titre', 'lieu'), ['2026-11-04T09:15', 45, 'O
   {
     const menu = decl('function htmlMenuAgenda(');
     vrai('(population) le menu de l\'appui long est trouvé', menu.length > 1000, menu.length);
-    v('l\'appui long propose « Y aller » — pour un rendez-vous pas encore fait, et pour une réunion ni annulée ni passée', [/if \(!e\.fait && destinationGps\(e\.lieu, e\.trajet\)\) h \+= a\('gps', 'Y aller'/.test(menu), /if \(!r\.annulee && !se && destinationGps\(r\.lieu, r\.moi\.trajet\)\) h \+= a\('gps', 'Y aller'/.test(menu), /a\('fait', e\.fait \? 'Remettre à faire' : 'Marquer comme fait'\)/.test(menu)], [true, true, true]);
+    v('l\'appui long propose « Y aller » — pour un rendez-vous ni fait ni passé, et pour une réunion ni annulée, ni terminée, ni passée (test-857 le joue)', [/if \(!e\.fait && x\.o\.fin > Date\.now\(\) && destinationGps\(e\.lieu, e\.trajet\)\) h \+= a\('gps', 'Y aller'/.test(menu), /if \(!r\.annulee && !se && x\.o\.fin > Date\.now\(\) && destinationGps\(r\.lieu, r\.moi\.trajet\)\) h \+= a\('gps', 'Y aller'/.test(menu), /a\('fait', e\.fait \? 'Remettre à faire' : 'Marquer comme fait'\)/.test(menu)], [true, true, true]);
     const clic = decl('async function clicMenuAgenda(');
     /* par précaution : Chromium suit un lien retiré pendant son propre clic (mesuré), rien ne le promet des autres moteurs — le menu se ferme une fois le clic fini, des DEUX chemins */
     v('un lien de « Y aller » touché ferme son menu une fois le clic fini — celui de l\'appui long et celui d\'une fiche', [/if \(e\.target\.closest\('a\[data-gps\]'\)\) \{ setTimeout\(fermerMenu, 0\); return; \}/.test(clic),

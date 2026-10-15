@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'd98f038ba002';
+  const OPMSG_BUILD = 'b9dd0a99e63e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 195;
+  const OPMSG_VERSION = 196;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5544,7 +5544,7 @@
       if (peutDecaler(x)) h += a('decaler', 'Décaler…', ' aria-haspopup="dialog"');
       else if (r.moi.hote && !r.annulee && r.repetition !== 'aucune') h += a('modifier', 'Modifier la série…', ' aria-haspopup="dialog"');
       if (!r.moi.hote && !r.annulee && !se) h += '<div class="menu-reponses" role="group" aria-label="Répondre">' + STATUTS_REPONSE.map(([v, l]) => '<button type="button" class="menu-action menu-reponse" data-ag-menu="reponse" data-statut="' + v + '" aria-pressed="' + (r.moi.statut === v ? 'true' : 'false') + '">' + l + '</button>').join('') + '</div>';
-      if (!r.annulee && !se && destinationGps(r.lieu, r.moi.trajet)) h += a('gps', 'Y aller', ' aria-haspopup="menu"');
+      if (!r.annulee && !se && x.o.fin > Date.now() && destinationGps(r.lieu, r.moi.trajet)) h += a('gps', 'Y aller', ' aria-haspopup="menu"');      // (une date passée : plus d'endroit où aller)
       h += a('conversation', 'Écrire aux participants');
       if (typeof source.adresseIcs === 'function' && !r.annulee) h += a('ics', 'Ajouter à mon calendrier (.ics)');
       if (modesActifs() && etat.conversations.some(c => c.id === r.conv)) { const autre = coteReu(r) === 'pro' ? 'perso' : 'pro'; h += a('cote', 'Ranger dans ' + NOM_COTE[autre], ' data-cote="' + autre + '"'); }
@@ -5553,7 +5553,7 @@
       if (peutDecaler(x)) h += a('decaler', 'Décaler…', ' aria-haspopup="dialog"');
       if (typeof source.faitEvenement === 'function') h += a('fait', e.fait ? 'Remettre à faire' : 'Marquer comme fait');
       if (typeof source.reporterEvenement === 'function') h += a('reporter', 'Reporter', ' aria-haspopup="menu"');
-      if (!e.fait && destinationGps(e.lieu, e.trajet)) h += a('gps', 'Y aller', ' aria-haspopup="menu"');
+      if (!e.fait && x.o.fin > Date.now() && destinationGps(e.lieu, e.trajet)) h += a('gps', 'Y aller', ' aria-haspopup="menu"');
       if (e.source) h += a('voir', 'Voir le message');
       if (modesActifs()) { const autre = coteEvt(e) === 'pro' ? 'perso' : 'pro'; h += a('cote', 'Ranger dans ' + NOM_COTE[autre], ' data-cote="' + autre + '"'); }
       if (typeof source.supprimerEvenement === 'function') h += a('supprimer', 'Supprimer…', '', 'danger');
@@ -6246,7 +6246,7 @@
     if (!T.touche && (c || !T.calc)) return undefined;
     return c ? { minutes: c.minutes, km: c.km, mode: c.mode, avance: c.avance, depart: c.depart, depart_label: c.depart_label, vers_label: c.vers_label } : null;
   }
-  /* ══ LA DURÉE (15 octobre 2026, Justin, capture du choix de l'heure à l'appui : « quand on sélectionne l'heure de début, il faudrait qu'on puisse choisir ce que ça va durer,
+  /* ══ LA DURÉE (15 octobre 2026, capture du choix de l'heure à l'appui : « quand on sélectionne l'heure de début, il faudrait qu'on puisse choisir ce que ça va durer,
      30 minutes, une heure ou plus ») ══ Trois gestes sous « Début » : 30 min, 1 h, et « Plus » (de 1 h 30 à 8 h). La fin SUIT : une durée la pose, un début changé la déplace
      d'autant (la durée est gardée), une fin changée à la main redit sa durée. Les heures sont celles des champs, en heure locale : une durée d'horloge murale. Le même trio sert
      le rendez-vous, l'événement et la réunion (préfixe `ev` ou `rf`). */
@@ -6291,7 +6291,7 @@
   }
   /* la fin change à la main : elle dit la nouvelle durée */
   function finDuree(p) { const S = etatDuree(p), m = dureeChamps(p); if (S && m) S.duree = m; peindreDuree(p); }
-  /* ══ Y ALLER (15 octobre 2026, Justin : « il faudrait pouvoir l'ouvrir à partir de n'importe quel GPS qui est installé sur un téléphone ») ══ Un menu des applications de guidage :
+  /* ══ Y ALLER (15 octobre 2026 : « il faudrait pouvoir l'ouvrir à partir de n'importe quel GPS qui est installé sur un téléphone ») ══ Un menu des applications de guidage :
      Plans (chez Apple), Google Maps, Waze — et, sur Android, « Choisir une application », qui ouvre le choix du téléphone (toutes celles qui y sont installées). L'adresse est celle
      que le calcul a trouvée, sinon le lieu tel qu'il est écrit ; le départ, l'application le prend (la position du moment). ⛔ Rien ne part d'ici : ce sont des liens que la
      personne touche, vers l'application qu'elle choisit — c'est elle qui reçoit alors l'adresse. */
@@ -6329,7 +6329,7 @@
     synchroInert();
     const premier = M.querySelector('a, button'); if (premier) premier.focus({ preventScroll: true });
   }
-  /* ══ COLLER UNE CONFIRMATION (15 octobre 2026, Justin : « quand les gens prennent un rendez-vous sur un site ou autre, ils peuvent l'ajouter à notre calendrier, mais par
+  /* ══ COLLER UNE CONFIRMATION (15 octobre 2026 : « quand les gens prennent un rendez-vous sur un site ou autre, ils peuvent l'ajouter à notre calendrier, mais par
      l'application ») ══ Le mail ou le SMS de confirmation (un médecin, un garage, la mairie…), collé dans « Nouveau rendez-vous » : la page y lit la date, l'heure, la durée,
      l'adresse, avec qui et pour quoi, et remplit la fiche ; la personne vérifie et enregistre. ⛔ Tout se lit ICI, sur l'appareil : le texte collé ne part nulle part, seul le
      rendez-vous enregistré va au service. Un fichier d'agenda (.ics) collé tel quel se lit aussi. Ce qu'on ne trouve pas, on ne l'invente pas : la fiche garde ce qu'elle avait.
@@ -6528,7 +6528,7 @@
       (typeof source.reporterEvenement === 'function' ? '<div class="reglage evt-reporter" role="group" aria-label="Reporter"><span class="reglage-texte">Reporter</span><span class="evt-reporter-choix">' +
         (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
-      /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026, Justin : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
+      /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026 : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
          ENTRE ici, d'où « Coller une confirmation »). La route du .ics d'un événement reste au service, sans bouton ; celle d'une RÉUNION sert toujours (sa fiche, son menu, le
          courriel d'invitation). */
       '</div>' : '';

@@ -756,7 +756,8 @@ async function controler(PAGE, SRC, DOC) {
         occurrencesDuJour: () => cA.duJour || [] };
       vm.createContext(cA);
       const iL = JS.indexOf('function localDans(t, tz) {'), fL = JS.indexOf('const PAYS_FUSEAUX = [', iL), ligne = d => { const i = JS.indexOf(d); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
-      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + JS.slice(iA, fA) +
+      /* « Y aller » au menu (15 octobre 2026) : la destination se lit par les VRAIES `estUrl` et `destinationGps`, définies hors de la tranche */
+      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + ligne('const estUrl = ') + '\n' + ligne('const destinationGps = ') + '\n' + JS.slice(iA, fA) +
         '\nthis.G = { peutDecaler, raisonNonDecalable, htmlMenuAgenda, conflitsAgenda, caseJour, elementAgenda, phrasePrevenus, modeleDecalage, snapDecalage, debutDecale, jourDans, joursEntre, cleAgenda };', cA, { timeout: 2000 });
       G = cA.G;
     } catch (e) { G = null; }
@@ -775,6 +776,13 @@ async function controler(PAGE, SRC, DOC) {
       v('un événement : ouvrir, décaler, fait, reporter, supprimer ; « Voir le message » seulement s\'il vient d\'un message ; « Ranger dans » seulement avec les deux côtés',
         [actions(G.htmlMenuAgenda(cas[5])), (() => { cA.modes = true; const a = actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { source: { conv: 'c_x', seq: 3 } }), o: futur })); cA.modes = false; return a; })()],
         [['ouvrir', 'decaler', 'fait', 'reporter', 'supprimer'], ['ouvrir', 'decaler', 'fait', 'reporter', 'voir', 'cote', 'supprimer']]);
+      /* « Y aller » (15 octobre 2026) : un lieu, et ni une visio, ni une réunion annulée ou passée, ni un événement fait */
+      v('« Y aller » paraît au menu avec un lieu — avant « Écrire aux participants » pour une réunion, après « Reporter » pour un événement — jamais pour une visio, une annulée, une passée, un fait',
+        [actions(G.htmlMenuAgenda(x(R({ lieu: '8 rue Lafayette' })))), actions(G.htmlMenuAgenda(x(R({ lieu: 'https://visio.exemple.fr/salle' })))).includes('gps'), actions(G.htmlMenuAgenda(x(R({ lieu: '8 rue Lafayette', annulee: true })))).includes('gps'),
+          actions(G.htmlMenuAgenda(x(R({ lieu: '8 rue Lafayette' }), cas[4].o))).includes('gps'), actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { lieu: '4 avenue Foch' }), o: futur })),
+          actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { lieu: '4 avenue Foch', fait: Date.now() }), o: futur })).includes('gps'),
+          actions(G.htmlMenuAgenda({ e: Object.assign({}, cas[5].e, { lieu: '4 avenue Foch' }), o: cas[4].o })).includes('gps')],
+        [['ouvrir', 'decaler', 'gps', 'conversation', 'ics', 'annuler'], false, false, false, ['ouvrir', 'decaler', 'fait', 'reporter', 'gps', 'supprimer'], false, false]);
       vrai('le titre du menu est ÉCHAPPÉ (un titre « <img onerror> » reste du texte)', /&lt;img onerror&gt;/.test(G.htmlMenuAgenda(x(R({ titre: '<img onerror>' })))) && !/<img onerror>/.test(G.htmlMenuAgenda(x(R({ titre: '<img onerror>' })))));
       /* les chevauchements : des DEUX côtés (on ne peut pas être à deux endroits), jamais soi-même, ni une réunion annulée ou refusée, ni une journée entière, ni un rappel fait */
       const o = (h1, h2) => ({ debut: maintenant + h1 * H, fin: maintenant + h2 * H, seance: null });
