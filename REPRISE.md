@@ -19,7 +19,9 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# 🟡 15 OCTOBRE 2026 (SOIR) — OP MESSAGES PLUS SIMPLE, À LA FAÇON D'APPLE : LOTS 1 À 3 (BÊTA, PR À VENIR)
+# ✅ 15 OCTOBRE 2026 (SOIR) — OP MESSAGES PLUS SIMPLE, À LA FAÇON D'APPLE : LOTS 1 À 3 (BÊTA, EN SERVICE)
+
+✅ **En service sur la bêta** : PR #142 fusionnée (`e8a87326`), msg-beta relu le 15 octobre au soir — `/health` sur `e8a87326`, `OPMSG_VERSION` 202, schéma 29, `index.html` et `opmsg-ui.js` servis identiques à `main` (empreintes comparées) ; la production n'a pas bougé (job sauté). La page « avant / après » (dix écrans, ce qui a changé de place, les preuves) est montrée à Justin : https://claude.ai/artifact/EqwWgtrdoqjkKpNFEqYQjp (privée).
 
 Justin : « revois toute l'application, teste de A à Z, revois tout le style comme Apple ; il faut que l'application soit plus simple — je te laisse faire et décider ; montre-moi
 quand tu as fini ; pense à tout ce qu'on a mis, mais il faut le simplifier ». La règle suivie : **rien de ce qui sert ne disparaît** ; on retire ce qui ne fait rien ou parle pour ne
@@ -49,8 +51,9 @@ joué de bout en bout), groupe 210, menus déroulants 62, perso-pro 62, notifica
 Preuves (lot 3) : les 58 sondes d'OP MESSAGES jouées l'une après l'autre sur la branche — toutes vertes sauf `menu-rappel` et `agenda-decaler` (rouges à l'identique sur `main`),
 `visio` et `relais` (LiveKit et coturn absents de cette machine : non lançables ici), la sonde principale à part (longue). test-857 : 540 ✓ (D03 revisée, D03b neuve : le
 « … » qui se raccroche au premier membre). Mutations de la page : `scratchpad/mutations-simplification.py` (S01–S13).
-Suite : la PR, les captures « avant / après » montrées à Justin ; à proposer ensuite (non commencé) : la salle de réunion (une barre de cinq boutons, un « Plus » en groupes —
-c'est le seul changement qui touche des habitudes déjà prises, la question lui est posée).
+⏳ **Attend Justin** (posé le 15 octobre au soir, non commencé) : 1. la salle de réunion — une barre de cinq boutons ronds et un « Plus » en groupes, à la place de la
+rangée de pastilles (c'est le seul changement qui touche des habitudes déjà prises) ; 2. retirer le code .ics devenu dormant (routes et `ics.js` gardés sans bouton depuis
+la PR #141).
 
 # ✅ 15 OCTOBRE 2026 (SOIR) — OP MESSAGES : PLUS D'« AJOUTER À MON CALENDRIER » NULLE PART — LA RÉUNION AUSSI, ET LE COURRIEL D'INVITATION PART SANS .ICS
 
