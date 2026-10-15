@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a3ff43d103d6';
+  const OPMSG_BUILD = '348db9276c72';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 193;
+  const OPMSG_VERSION = 194;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -7666,7 +7666,7 @@
     const initial = { odj: d ? (d.ordreDuJour || []).map(p => p.texte) : [], titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
     /* « Programmer une réunion avec … » depuis la fiche d'une personne : elle est déjà invitée (une fois — le formulaire suivant repart vide) */
     const avec = !id && reu.prechoisis ? [reu.prechoisis] : []; reu.prechoisis = null;
-    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, cote: etat.mode, duree: minutesEntre(initial.debut, initial.fin) || 60 };
+    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, duree: minutesEntre(initial.debut, initial.fin) || 60, cote: etat.mode };
     const typeFin = initial.n ? 'nombre' : initial.jusqua ? 'date' : 'jamais';
     corps.dataset.sig = '';
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +

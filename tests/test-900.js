@@ -68,11 +68,17 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
     /* ⛔ UNE SECONDE EXCEPTION, NOMMÉE : `push.js` porte la LISTE BLANCHE des services push des navigateurs — celui de Chrome s'appelle `fcm.googleapis.com`. Ce n'est pas Firebase (le produit) : c'est la
        boîte aux lettres que le navigateur d'une personne impose pour la réveiller. On retire de ce fichier les noms exacts de la liste (et rien d'autre : toute autre trace de Firebase y reste interdite). */
     const sansListePush = nom === 'push.js' ? c.replace(/fcm\.googleapis\.com/g, '') : c;
-    if (/firebase|firestore|googleapis|gstatic|google\.com|fcm\./i.test(sansListePush)) interdits.push(nom + ' : trace de Firebase / Google');
+    /* ⛔ UNE SEPTIÈME EXCEPTION, NOMMÉE ET COMPTÉE : `opmsg-ui.js` (la page) porte les deux adresses de « Y aller » (15 octobre 2026, Justin : « l'ouvrir à partir de n'importe quel GPS installé
+       sur un téléphone ») — Google Maps et Waze. Ce sont des LIENS que la personne touche, vers l'application de guidage qu'elle choisit ; jamais une connexion de la page ni du service (ni
+       `fetch`, ni image, ni script). Ces deux préfixes exacts, UNE fois chacun (dans `liensGps`), et rien d'autre : toute autre trace de Google, et tout autre hôte, y reste interdit. */
+    const GPS = ['https://www.google.com/maps/dir/?api=1&destination=', 'https://waze.com/ul?q='];
+    if (nom === 'opmsg-ui.js') for (const g of GPS) { const n = c.split(g).length - 1; if (n !== 1) interdits.push(nom + ' : « ' + g + ' » ' + n + ' fois (une seule, dans liensGps)'); }
+    const sansGps = x => nom === 'opmsg-ui.js' ? GPS.reduce((y, g) => y.split(g).join(''), x) : x;
+    if (/firebase|firestore|googleapis|gstatic|google\.com|fcm\./i.test(sansGps(sansListePush))) interdits.push(nom + ' : trace de Firebase / Google');
     /* ⛔ UNE SEULE EXCEPTION, NOMMÉE : `sms-ovh.js` porte les trois points d'entrée de l'API d'OVHcloud (Europe, Canada, États-Unis) — le
        prestataire SMS est une décision de Justin (1er octobre 2026), et la production refuse toute autre base (nos clés de signature ne
        partent pas ailleurs). Tout autre fichier, et tout autre hôte dans celui-là, reste interdit. */
-    for (const m of c.matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) {
+    for (const m of sansGps(c).matchAll(/https?:\/\/([a-zA-Z0-9.-]+)/g)) {
       if (/^(127\.0\.0\.1|localhost)(:\d+)?$/.test(m[1])) continue;
       if (nom === 'sms-ovh.js' && /^(?:eu|ca)\.api\.ovh\.com$|^api\.us\.ovhcloud\.com$/.test(m[1])) continue;
       /* ⛔ UNE TROISIÈME EXCEPTION, NOMMÉE : `facturation.js` appelle `api.stripe.com` — Messages Pro se paie par Stripe (SERVEUR.md § 3.8, décision de Justin), par `fetch`, sans

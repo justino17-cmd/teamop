@@ -10456,7 +10456,7 @@ a.menu-action { text-decoration: none; }
     const initial = { odj: d ? (d.ordreDuJour || []).map(p => p.texte) : [], titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
     /* « Programmer une réunion avec … » depuis la fiche d'une personne : elle est déjà invitée (une fois — le formulaire suivant repart vide) */
     const avec = !id && reu.prechoisis ? [reu.prechoisis] : []; reu.prechoisis = null;
-    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, cote: etat.mode, duree: minutesEntre(initial.debut, initial.fin) || 60 };
+    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, duree: minutesEntre(initial.debut, initial.fin) || 60, cote: etat.mode };
     const typeFin = initial.n ? 'nombre' : initial.jusqua ? 'date' : 'jamais';
     corps.dataset.sig = '';
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
