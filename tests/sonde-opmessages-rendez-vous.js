@@ -1,12 +1,13 @@
-/* ══ SONDE — LE RENDEZ-VOUS PERSONNEL DANS LA VRAIE PAGE SERVIE : « RENDEZ-VOUS » À LA PLACE DE « RÉUNION » CÔTÉ PERSO, AVEC QUI, PLUSIEURS RAPPELS, « AJOUTER À MON CALENDRIER » ══════
-   13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des rappels et tout » ; puis « ils peuvent aussi
-   l'ajouter à leur agenda, comme Apple fait ». Joué contre le VRAI service (la bêta ouvre tout : Alice a les deux côtés), horloge avancée au geste :
+/* ══ SONDE — LE RENDEZ-VOUS PERSONNEL DANS LA VRAIE PAGE SERVIE : « RENDEZ-VOUS » À LA PLACE DE « RÉUNION » CÔTÉ PERSO, AVEC QUI, PLUSIEURS RAPPELS ══════
+   13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des rappels et tout ». Le 15 octobre,
+   « Ajouter à mon calendrier » a quitté la fiche (Justin : « l'application fait déjà agenda » — sonde-opmessages-agenda-geste.js joue ce qui le remplace : coller une confirmation).
+   Joué contre le VRAI service (la bêta ouvre tout : Alice a les deux côtés), horloge avancée au geste :
      1. iPhone, côté Perso : l'en-tête de l'Agenda propose « Événement » et « Rendez-vous » — « Réunion » y est caché ;
      2. « Rendez-vous » ouvre « Nouveau rendez-vous » : titre, « Avec », une heure (jamais « toute la journée »), les rappels en cases — la veille et 1 h avant cochés —, trois au plus ;
-     3. enregistré, il paraît dans la journée : « Rendez-vous avec … », le lieu, ses rappels ; sa fiche porte « Ajouter à mon calendrier », un VRAI fichier .ics (ses rappels en VALARM) ;
+     3. enregistré, il paraît dans la journée : « Rendez-vous avec … », le lieu, ses rappels ; ⛔ sa fiche ne propose plus « Ajouter à mon calendrier » ;
      4. modifié (un rappel décoché), le service retient la nouvelle liste ;
      5. le rappel arrive dans la page et dit avec qui ;
-     6. au bureau, de nuit : le lien du calendrier TÉLÉCHARGE le fichier ; côté Pro, l'en-tête propose « Réunion » ET « Rendez-vous » (le trajet, 13 octobre 2026 : « pareil pour pro »).
+     6. au bureau, de nuit : la fiche non plus ; côté Pro, l'en-tête propose « Réunion » ET « Rendez-vous » (le trajet, 13 octobre 2026 : « pareil pour pro »).
    ⛔ ON ATTEND AU GESTE ; ⛔ CHAQUE ABSENCE EST PRÉCÉDÉE DE SA POPULATION.
    Lancer :   node tests/sonde-opmessages-rendez-vous.js          CAPTURES=/dossier pour les images.
    Code 1 si UN contrôle tombe, 2 si elle ne peut pas tourner. */
@@ -45,8 +46,6 @@ const entete = (S) => S.page.evaluate(() => { const vu = (id) => { const x = doc
 async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { recursive: true }); await S.page.waitForTimeout(300); await S.page.screenshot({ path: path.join(DOSSIER, nom + '.png') }); }
 const localParis = (t) => new Intl.DateTimeFormat('sv-SE', { timeZone: PARIS, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }).format(new Date(t)).replace(' ', 'T');
 const aujourdhui = () => localParis(Date.now()).slice(0, 10);
-/* l'en-tête d'un fichier .ics, déplié (RFC 5545 § 3.1) : une ligne par propriété */
-const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean);
 
 (async () => {
   const og = await T.fauxOpGestion({ alice: { pass: MDP, nom: 'Alice Martin', actif: true } });
@@ -87,7 +86,7 @@ const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean)
     await toucher(A, '[data-evt="enregistrer"]');
     vrai('« Enregistrer » : la feuille se ferme, « Rendez-vous ajouté à ton agenda »', await attendre(A, () => !document.documentElement.classList.contains('feuille-ouverte') && /Rendez-vous ajouté à ton agenda/.test(document.getElementById('mot').textContent)));
 
-    console.log('\n── 3. Dans la journée, puis sa fiche : « Ajouter à mon calendrier » ──');
+    console.log('\n── 3. Dans la journée, puis sa fiche : plus d\'« Ajouter à mon calendrier » ──');
     vrai('il paraît : 20:00 → 20:45, « Rendez-vous avec Dr Morel », le lieu, ses trois rappels', await attendre(A, () => Array.from(document.querySelectorAll('#liste-reunions [data-evenement]')).some(x => /20:00/.test(x.textContent) && /20:45/.test(x.textContent) && /Ostéopathe QXV/.test(x.textContent)
       && /Rendez-vous avec Dr Morel · 8 rue Lafayette · Rappels la veille, 1 h avant et 15 min avant/.test(x.textContent))), await lignes(A));
     const RV = (await agendaAlice()).find(e => e.titre === 'Ostéopathe QXV') || {};
@@ -96,13 +95,10 @@ const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean)
     await A.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'Ostéopathe QXV' }).first().tap();
     vrai('le toucher ouvre « Rendez-vous » avec ses valeurs (titre, avec qui, rappels cochés)', await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Rendez-vous' && document.getElementById('ev-titre').value === 'Ostéopathe QXV' && document.getElementById('ev-avec').value === 'Dr Morel'));
     v('   ses rappels, tels que le service les a rangés', await cases(A), ['1440✓', '60✓', '30', '15✓', '5', '0']);
-    const lien = await A.page.evaluate(() => { const a = document.querySelector('#info-corps a[data-evt="ics"]'); return a ? { href: a.getAttribute('href'), dl: a.hasAttribute('download'), texte: a.querySelector('.reglage-texte').firstChild.textContent.trim(), h: Math.round(a.getBoundingClientRect().height) } : null; });
-    v('« Ajouter à mon calendrier » : un lien de téléchargement vers le fichier .ics du rendez-vous, 44 px au moins', lien && [lien.texte, lien.href.endsWith('/api/agenda/' + RV.id + '/ics'), lien.dl, lien.h >= 44], ['Ajouter à mon calendrier', true, true, true], lien);
-    const f = await A.page.evaluate(async (u) => { const r = await fetch(u, { credentials: 'include' }); return { code: r.status, type: r.headers.get('content-type'), disp: r.headers.get('content-disposition'), txt: await r.text() }; }, lien.href);
-    const L = deplier(f.txt);
-    v('le fichier (relu par la page, avec sa session) : un calendrier, nommé d\'après le rendez-vous', [f.code, (f.type || '').split(';')[0], f.disp], [200, 'text/calendar', 'attachment; filename="rendez-vous-osteopathe-qxv.ics"']);
-    v('   son contenu : le titre, le lieu, « Avec : Dr Morel », et ⛔ trois alarmes — 15 min, 1 h, la veille', [L.find(l => l.startsWith('SUMMARY:')), L.find(l => l.startsWith('LOCATION:')), /Avec : Dr Morel/.test(L.find(l => l.startsWith('DESCRIPTION:')) || ''),
-      L.filter(l => l.startsWith('TRIGGER:')).length, L.filter(l => l.startsWith('TRIGGER:')).slice(0, 2)], ['SUMMARY:Ostéopathe QXV', 'LOCATION:8 rue Lafayette', true, 3, ['TRIGGER:-PT15M', 'TRIGGER:-PT1H']]);
+    const fiche = await A.page.evaluate(() => ({ gestes: Array.from(document.querySelectorAll('#info-corps .evt-gestes [data-evt="fait"], #info-corps .evt-gestes [data-evt="reporter"]')).length,
+      lien: document.querySelectorAll('#info-corps a[data-evt="ics"], #info-corps a[download], #info-corps a[href*="/ics"]').length, texte: /Ajouter à mon calendrier/.test(document.getElementById('info-corps').textContent) }));
+    vrai('population : la fiche porte ses gestes (« Marquer comme fait » et les trois « Reporter »)', fiche.gestes === 4, fiche);
+    v('⛔ plus d\'« Ajouter à mon calendrier » (15 octobre 2026 : « l\'application fait déjà agenda ») : ni lien vers le .ics, ni le texte', [fiche.lien, fiche.texte], [0, false]);
 
     console.log('\n── 4. Modifier : un rappel décoché ──');
     await toucher(A, '#ev-rappels [data-evt-rappel="1440"]');
@@ -127,18 +123,14 @@ const deplier = (txt) => txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean)
       await A.page.evaluate(() => document.getElementById('notif').textContent));
     await capture(A, 'rdv-3-rappel-iphone');
 
-    console.log('\n── 6. Au bureau, de nuit : le fichier se télécharge ; côté Pro, « Réunion » revient ──');
+    console.log('\n── 6. Au bureau, de nuit : la fiche non plus ; côté Pro, « Réunion » revient ──');
     const B = await ouvrir(b, svc.base, BUREAU, true);
     await toucher(B, '#nav-side a[data-vue="reunions"]');
     vrai('la journée porte « Ostéopathe QXV » (le même compte, un autre appareil)', await attendre(B, () => /Ostéopathe QXV/.test(document.getElementById('liste-reunions').textContent)));
     v('côté Perso au bureau aussi : « Rendez-vous », pas « Réunion »', await entete(B), [true, true, false]);
     await B.page.locator('#liste-reunions [data-evenement]').filter({ hasText: 'Ostéopathe QXV' }).first().click();
-    await attendre(B, () => !!document.querySelector('#info-corps a[data-evt="ics"]'));
-    const [dl] = await Promise.all([B.page.waitForEvent('download', { timeout: 9000 }).catch(() => null), toucher(B, '#info-corps a[data-evt="ics"]')]);
-    const contenu = dl ? fs.readFileSync(await dl.path(), 'utf8') : '';
-    v('« Ajouter à mon calendrier » TÉLÉCHARGE le fichier : son nom, un calendrier, deux alarmes (la liste modifiée)', [dl && dl.suggestedFilename(), contenu.startsWith('BEGIN:VCALENDAR\r\n'), deplier(contenu).filter(l => l.startsWith('TRIGGER:'))],
-      ['rendez-vous-osteopathe-qxv.ics', true, ['TRIGGER:-PT15M', 'TRIGGER:-PT1H']]);
-    vrai('   et la page est restée là (la fiche est toujours ouverte, rien n\'a navigué)', await attendre(B, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Rendez-vous'));
+    vrai('population : la fiche « Rendez-vous » s\'ouvre au bureau, avec ses valeurs', await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Rendez-vous' && document.getElementById('ev-titre').value === 'Ostéopathe QXV' && !!document.querySelector('#info-corps [data-evt="fait"]')));
+    v('⛔ au bureau non plus : rien à télécharger, pas d\'« Ajouter à mon calendrier »', await B.page.evaluate(() => [document.querySelectorAll('#info-corps a[download], #info-corps a[href*="/ics"]').length, /Ajouter à mon calendrier/.test(document.getElementById('info-corps').textContent)]), [0, false]);
     await capture(B, 'rdv-4-fiche-bureau-nuit');
     await B.page.keyboard.press('Escape');
     await attendre(B, () => !document.documentElement.classList.contains('feuille-ouverte'));

@@ -1625,7 +1625,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   .mjour-elts { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   .mjour-elt { display: block; width: 100%; min-width: 0; padding: 1px 6px; border-radius: 5px; font-size: 12px; line-height: 17px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
   .mjour-elt:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-  .mjour-elt.fait { text-decoration: line-through; opacity: .7; }
+  .mjour-elt.fait { text-decoration: line-through; opacity: .8; background: color-mix(in srgb, var(--vert) 26%, transparent); }
   .mjour-elt.terminee { opacity: .6; }
   /* la SEMAINE en grille : les sept cases du mois, plus hautes, le nom du jour devant son numéro */
   .sem-jours { display: none; }
@@ -1666,7 +1666,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .menu-reponses { display: flex; border-bottom: var(--sep); }
 .menu-reponses .menu-reponse { flex: 1; justify-content: center; padding: 0 6px; border-bottom: 0; font-size: 15px; }
 .menu-reponses .menu-reponse[aria-pressed="true"] { color: var(--accent-txt); font-weight: 600; }
-.reunion-ligne { -webkit-touch-callout: none; }
+.reunion-ligne { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
 /* la feuille « Décaler le rendez-vous » */
 .dc-tete { display: grid; gap: 4px; }
 .dc-titre { font-size: 17px; font-weight: 600; overflow-wrap: anywhere; }
@@ -2115,6 +2115,20 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .evt-gestes .reglage .evt-rond { flex: none; }
 .evt-reporter { flex-wrap: wrap; row-gap: 8px; }
 .evt-reporter-choix { display: flex; flex-wrap: wrap; gap: 8px; }
+/* la durée sous « Début » (15 octobre 2026) : 30 min, 1 h, « Plus » — la durée que disent les champs est pleine. ⛔ Le menu « Plus » garde 16 px : en dessous, Safari zoome la page. */
+.duree-choix { display: flex; flex-wrap: wrap; gap: 8px; }
+.duree-choix .mini[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
+.champ .duree-plus { width: auto; min-width: 96px; flex: 0 1 auto; height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 16px; font-weight: 600; text-align: center; text-align-last: center; -webkit-appearance: none; appearance: none; }
+.champ .duree-plus.actif { background: var(--fill); color: var(--on-fill); }
+@media (pointer: coarse) { .champ .duree-plus { height: 44px; } }
+/* « Coller une confirmation » (15 octobre 2026) : la zone s'ouvre sous son bouton */
+.evt-coller-zone { padding: 12px 14px 6px; border-top: var(--sep); }
+.evt-coller-zone .champ { margin-bottom: 10px; }
+/* « Y aller » : les liens du menu ont l'air de ses boutons */
+a.menu-action { text-decoration: none; }
+/* un rendez-vous fait se voit EN VERT (15 octobre 2026 : « marquer effectué, et ça s'affiche en vert ») : une coche ronde devant son titre, et sa case du mois ou de la semaine teintée */
+.fait-vert { display: inline-grid; place-items: center; width: 18px; height: 18px; margin-right: 6px; border-radius: 50%; background: var(--vert); color: #fff; vertical-align: -3px; }
+.fait-vert .ic { width: 12px; height: 12px; stroke-width: 3; }
 .msg.msg-cible .bulle { animation: msg-cible 2s ease-out; }
 /* un message PROGRAMMÉ : une bulle en pointillés, à droite, l'heure prévue dessous — il n'est pas encore parti */
 .prog-liste { padding-top: 4px; }

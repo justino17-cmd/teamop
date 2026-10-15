@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'b73f73694684';
+  const OPMSG_BUILD = 'd97bd9b8c8cd';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 191;
+  const OPMSG_VERSION = 192;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5043,6 +5043,7 @@
       return;
     }
     if (m0.agenda) { if (e.target === $('menu-fond')) fermerMenu(); else clicMenuAgenda(e); return; }      // le menu d'un rendez-vous de l'Agenda
+    if (m0.gps) { if (e.target.closest('a[data-gps]')) setTimeout(fermerMenu, 0); else if (e.target === $('menu-fond') || e.target.closest('[data-gps-fermer]')) fermerMenu(); return; }      // « Y aller »
     if (e.target === $('menu-fond')) { fermerMenu(); return; }
     const mid = etat.menu.mid, id = etat.conv, m = trouverMessage(mid);
     const r = e.target.closest('[data-menu-reac]'), a = e.target.closest('[data-menu]');
@@ -5069,7 +5070,7 @@
   });
   $('menu-msg').addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
-    const l = Array.from($('menu-msg').querySelectorAll('button')); if (!l.length) return;
+    const l = Array.from($('menu-msg').querySelectorAll('button, a[href]')); if (!l.length) return;
     const a = document.activeElement, i = l.indexOf(a);
     if (e.shiftKey && i <= 0) { e.preventDefault(); l[l.length - 1].focus(); } else if (!e.shiftKey && i === l.length - 1) { e.preventDefault(); l[0].focus(); }
   });
@@ -5386,7 +5387,7 @@
        Rappels d'Apple ; fait, il quitte le tableau et reste dans l'agenda, barré. Le rond est un bouton à part : la ligne, elle, ouvre la fiche. */
     const rond = coche ? '<button type="button" class="evt-coche presse" data-evt-fait="' + esc(e.id) + '" aria-pressed="' + (e.fait ? 'true' : 'false') + '" aria-label="' + esc((e.fait ? 'Remettre « ' : 'Marquer « ') + e.titre + (e.fait ? ' » à faire' : ' » comme fait')) + '"><span class="evt-rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : '';
     return '<li' + (coche ? ' class="evt-li"' : '') + '>' + rond + '<button type="button" class="reunion-ligne evenement-ligne presse' + (e.fait ? ' fait' : '') + '" data-evenement="' + esc(e.id) + '" aria-label="' + esc((e.fait ? 'Fait : ' : '') + e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + FMT_HEURE.format(e.debut) + ' à ') + FMT_HEURE.format(e.fin)) + (sous ? ', ' + sous : '')) + '">' + heure +
-      '<span class="reunion-corps"><span class="reunion-titre">' + esc(e.titre) + '</span>' + (sous ? '<span class="reunion-sous">' + esc(sous) + '</span>' : '') + '</span></button></li>';
+      '<span class="reunion-corps"><span class="reunion-titre">' + (e.fait ? '<span class="fait-vert" aria-hidden="true">' + icone('i-coche') + '</span>' : '') + esc(e.titre) + '</span>' + (sous ? '<span class="reunion-sous">' + esc(sous) + '</span>' : '') + '</span></button></li>';
   }
   function libelleEtat(r) {
     if (r.annulee) return 'Annulée';
@@ -5543,6 +5544,7 @@
       if (peutDecaler(x)) h += a('decaler', 'Décaler…', ' aria-haspopup="dialog"');
       else if (r.moi.hote && !r.annulee && r.repetition !== 'aucune') h += a('modifier', 'Modifier la série…', ' aria-haspopup="dialog"');
       if (!r.moi.hote && !r.annulee && !se) h += '<div class="menu-reponses" role="group" aria-label="Répondre">' + STATUTS_REPONSE.map(([v, l]) => '<button type="button" class="menu-action menu-reponse" data-ag-menu="reponse" data-statut="' + v + '" aria-pressed="' + (r.moi.statut === v ? 'true' : 'false') + '">' + l + '</button>').join('') + '</div>';
+      if (!r.annulee && !se && destinationGps(r.lieu, r.moi.trajet)) h += a('gps', 'Y aller', ' aria-haspopup="menu"');
       h += a('conversation', 'Écrire aux participants');
       if (typeof source.adresseIcs === 'function' && !r.annulee) h += a('ics', 'Ajouter à mon calendrier (.ics)');
       if (modesActifs() && etat.conversations.some(c => c.id === r.conv)) { const autre = coteReu(r) === 'pro' ? 'perso' : 'pro'; h += a('cote', 'Ranger dans ' + NOM_COTE[autre], ' data-cote="' + autre + '"'); }
@@ -5551,6 +5553,7 @@
       if (peutDecaler(x)) h += a('decaler', 'Décaler…', ' aria-haspopup="dialog"');
       if (typeof source.faitEvenement === 'function') h += a('fait', e.fait ? 'Remettre à faire' : 'Marquer comme fait');
       if (typeof source.reporterEvenement === 'function') h += a('reporter', 'Reporter', ' aria-haspopup="menu"');
+      if (!e.fait && destinationGps(e.lieu, e.trajet)) h += a('gps', 'Y aller', ' aria-haspopup="menu"');
       if (e.source) h += a('voir', 'Voir le message');
       if (modesActifs()) { const autre = coteEvt(e) === 'pro' ? 'perso' : 'pro'; h += a('cote', 'Ranger dans ' + NOM_COTE[autre], ' data-cote="' + autre + '"'); }
       if (typeof source.supprimerEvenement === 'function') h += a('supprimer', 'Supprimer…', '', 'danger');
@@ -5579,11 +5582,15 @@
     x = Math.max(8, Math.min(x, innerWidth - m.width - 8)); y = Math.max(8, Math.min(y, innerHeight - m.height - 8));
     F.style.setProperty('--ag-x', Math.round(x) + 'px'); F.style.setProperty('--ag-y', Math.round(y) + 'px');
   }
-  function sousMenuAgenda(html) { $('menu-msg').innerHTML = html; placerMenuAgenda(); const b = $('menu-msg').querySelector('button'); if (b) b.focus({ preventScroll: true }); }
+  function sousMenuAgenda(html) { $('menu-msg').innerHTML = html; placerMenuAgenda(); const b = $('menu-msg').querySelector('a[href], button'); if (b) b.focus({ preventScroll: true }); }      // (« Y aller » : la première application, pas « Annuler »)
   async function clicMenuAgenda(e) {
+    /* un lien de « Y aller » : il s'ouvre (le navigateur le suit), puis le menu se ferme — pas avant : un lien retiré de la page ne s'ouvre plus */
+    if (e.target.closest('a[data-gps]')) { setTimeout(fermerMenu, 0); return; }
+    if (e.target.closest('[data-gps-fermer]')) { fermerMenu(); return; }
     const b = e.target.closest('[data-ag-menu]'); if (!b || !etat.menu || !etat.menu.agenda) return;
     const A = etat.menu.agenda, el = retrouverAgenda(etat.menu.declencheur, etat.menu.cle), act = b.dataset.agMenu, x = elementAgenda(A.type, A.id, A.debut);
     if (act === 'garder') { fermerMenu(); return; }
+    if (act === 'gps' && x) { const t = x.e ? x.e.trajet : x.r.moi.trajet; sousMenuAgenda(htmlLiensGps(destinationGps(x.e ? x.e.lieu : x.r.lieu, t), t ? t.mode : 'voiture')); return; }
     if (!x) { fermerMenu(); avis(A.type === 'e' ? 'Cet événement n\'existe plus.' : PHRASE_REUNION_PERDUE); return; }
     const titre = titreElt(x);
     /* les gestes qui défont quelque chose demandent une seconde touche, dite */
@@ -6136,7 +6143,8 @@
         '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir.</p></div>';
     }
     h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-evt="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (T.calc ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
-      (T.calc ? '<button type="button" class="mini" data-evt="trajet-retirer">Retirer le trajet</button>' : '') + '</div>';
+      (T.calc ? '<button type="button" class="mini" data-evt="trajet-retirer">Retirer le trajet</button>' : '') +
+      (destinationGps($('ev-lieu') ? $('ev-lieu').value : '', T.calc) ? BOUTON_GPS_EVT : '') + '</div>';
     return h;
   }
   /* repeindre sans perdre le doigt : le champ ou le bouton qui avait le focus le retrouve (sauf pendant la frappe : on ne repeint pas un champ qu'on tape) */
@@ -6235,6 +6243,237 @@
     if (!T.touche && (c || !T.calc)) return undefined;
     return c ? { minutes: c.minutes, km: c.km, mode: c.mode, avance: c.avance, depart: c.depart, depart_label: c.depart_label, vers_label: c.vers_label } : null;
   }
+  /* ══ LA DURÉE (15 octobre 2026, Justin, capture du choix de l'heure à l'appui : « quand on sélectionne l'heure de début, il faudrait qu'on puisse choisir ce que ça va durer,
+     30 minutes, une heure ou plus ») ══ Trois gestes sous « Début » : 30 min, 1 h, et « Plus » (de 1 h 30 à 8 h). La fin SUIT : une durée la pose, un début changé la déplace
+     d'autant (la durée est gardée), une fin changée à la main redit sa durée. Les heures sont celles des champs, en heure locale : une durée d'horloge murale. Le même trio sert
+     le rendez-vous, l'événement et la réunion (préfixe `ev` ou `rf`). */
+  const DUREES_PLUS = [90, 120, 150, 180, 240, 300, 360, 480];
+  /* ⛔ la FORME d'abord : sous Chrome, `Date.parse(':00Z')` rend une date (l'an 2000) — un champ vidé donnait une durée de 234 825 h et une fin vingt-sept ans plus tard */
+  const minutesMur = a => /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(String(a || '')) ? Date.parse(a.slice(0, 16) + ':00Z') : NaN;
+  const minutesEntre = (a, b) => { const x = minutesMur(a), y = minutesMur(b); return Number.isFinite(x) && Number.isFinite(y) ? Math.round((y - x) / 60000) : null; };
+  const plusMinutes = (a, m) => { const x = minutesMur(a); return Number.isFinite(x) && Number.isFinite(m) ? new Date(x + m * 60000).toISOString().slice(0, 16) : ''; };
+  /* ses identifiants, écrits en toutes lettres (un identifiant cherché par la page doit se trouver écrit quelque part — test-906) */
+  const ATTR_DUREE = { ev: ['id="ev-duree"', 'id="ev-duree-t"', 'aria-labelledby="ev-duree-t"', 'id="ev-duree-plus"'], rf: ['id="rf-duree"', 'id="rf-duree-t"', 'aria-labelledby="rf-duree-t"', 'id="rf-duree-plus"'] };
+  function htmlDuree(p, m, cache) {
+    const plus = DUREES_PLUS.includes(m), autre = m > 0 && m !== 30 && m !== 60 && !plus, A = ATTR_DUREE[p];
+    return '<div class="champ duree" ' + A[0] + (cache ? ' hidden' : '') + '><span class="champ-titre" ' + A[1] + '>Durée</span><div class="duree-choix" role="group" ' + A[2] + '>' +
+      [[30, '30 min'], [60, '1 h']].map(([v, l]) => '<button type="button" class="mini" data-duree="' + v + '" aria-pressed="' + (m === v ? 'true' : 'false') + '">' + l + '</button>').join('') +
+      '<select ' + A[3] + ' class="duree-plus' + (plus || autre ? ' actif' : '') + '" aria-label="Plus d\'une heure">' +
+        '<option value=""' + (plus || autre ? '' : ' selected') + '>Plus…</option>' + (autre ? '<option value="autre" selected disabled>' + esc(dureeTr(m)) + '</option>' : '') +
+        DUREES_PLUS.map(v => '<option value="' + v + '"' + (m === v ? ' selected' : '') + '>' + dureeTr(v) + '</option>').join('') + '</select></div></div>';
+  }
+  /* la durée que disent les champs (en minutes), ou null — une fin avant le début n'en est pas une */
+  const dureeChamps = p => { const d = $(p + '-debut'), f = $(p + '-fin'), m = d && f ? minutesEntre(d.value, f.value) : null; return m !== null && m > 0 ? m : null; };
+  /* redessiner le trio d'après les champs (le geste qui avait le focus le retrouve) */
+  function peindreDuree(p) {
+    const z = $(p + '-duree'); if (!z) return;
+    const a = document.activeElement, cle = a && z.contains(a) ? (a.dataset.duree ? '[data-duree="' + a.dataset.duree + '"]' : a.id ? '#' + a.id : '') : '';
+    z.outerHTML = htmlDuree(p, dureeChamps(p), z.hidden);
+    if (cle) { const b = $(p + '-duree').querySelector(cle); if (b) b.focus({ preventScroll: true }); }
+  }
+  const etatDuree = p => p === 'ev' ? reu.formEvt : reu.form;
+  /* une durée choisie : la fin = le début + la durée (et ce qui suit la fin — l'heure « chez eux », le trajet — suit) */
+  function choisirDuree(p, m) {
+    const d = $(p + '-debut'), f = $(p + '-fin'), S = etatDuree(p); if (!d || !f || !d.value || !(m > 0)) return;
+    if (S) S.duree = m;
+    f.value = plusMinutes(d.value, m);
+    f.dispatchEvent(new Event('input', { bubbles: true }));
+    peindreDuree(p);
+  }
+  /* le début change : la fin se déplace d'autant (la durée est gardée) */
+  function debutDuree(p) {
+    const d = $(p + '-debut'), f = $(p + '-fin'), S = etatDuree(p); if (!d || !f || !d.value || d.value.length < 16) return;
+    if (S && S.duree > 0) { const v = plusMinutes(d.value, S.duree); if (v && v !== f.value) { f.value = v; f.dispatchEvent(new Event('input', { bubbles: true })); } }
+    peindreDuree(p);
+  }
+  /* la fin change à la main : elle dit la nouvelle durée */
+  function finDuree(p) { const S = etatDuree(p), m = dureeChamps(p); if (S && m) S.duree = m; peindreDuree(p); }
+  /* ══ Y ALLER (15 octobre 2026, Justin : « il faudrait pouvoir l'ouvrir à partir de n'importe quel GPS qui est installé sur un téléphone ») ══ Un menu des applications de guidage :
+     Plans (chez Apple), Google Maps, Waze — et, sur Android, « Choisir une application », qui ouvre le choix du téléphone (toutes celles qui y sont installées). L'adresse est celle
+     que le calcul a trouvée, sinon le lieu tel qu'il est écrit ; le départ, l'application le prend (la position du moment). ⛔ Rien ne part d'ici : ce sont des liens que la
+     personne touche, vers l'application qu'elle choisit — c'est elle qui reçoit alors l'adresse. */
+  function liensGps(dest, mode) {
+    const q = encodeURIComponent(dest), pied = mode === 'pied', os = document.documentElement.dataset.os || '', apple = os === 'ios' || os === 'ipados' || os === 'macos', l = [];
+    if (os === 'android') l.push(['autre', 'Choisir une application', 'geo:0,0?q=' + q]);
+    if (apple) l.push(['plans', 'Plans', 'maps://?daddr=' + q + '&dirflg=' + (pied ? 'w' : 'd')]);
+    l.push(['google', 'Google Maps', 'https://www.google.com/maps/dir/?api=1&destination=' + q + '&travelmode=' + (pied ? 'walking' : 'driving')]);
+    if (!pied) l.push(['waze', 'Waze', 'https://waze.com/ul?q=' + q + '&navigate=yes']);
+    return l;
+  }
+  /* les liens eux-mêmes : une adresse d'application (Plans, le choix d'Android) s'ouvre sur place, une page (Google Maps, Waze) dans un nouvel onglet — que l'application installée prend */
+  const htmlLiensGps = (dest, mode) => '<p class="menu-question menu-titre"><b>Y aller</b><small>' + esc(dest) + '</small></p>' +
+    liensGps(dest, mode).map(([k, l, href]) => '<a class="menu-action" data-gps="' + k + '" href="' + esc(href) + '"' + (/^https:/.test(href) ? ' target="_blank"' : '') + ' rel="noopener noreferrer">' + esc(l) + '</a>').join('') +
+    '<button type="button" class="menu-action" data-gps-fermer>Annuler</button>';
+  const destinationGps = (lieu, trajet) => { const x = String((trajet && trajet.vers_label) || lieu || '').trim(); return x && !estUrl(x) ? x.slice(0, 300) : ''; };
+  const BOUTON_GPS_EVT = '<button type="button" class="mini" data-evt="gps" aria-haspopup="menu">Y aller</button>';
+  /* « Y aller » suit le lieu qu'on TAPE : sans calcul, la zone du trajet ne se repeint pas (un lieu écrit dans une fiche neuve ne le montrait pas, un lieu vidé laissait un bouton mort) —
+     le bouton seul paraît ou s'en va, la zone reste (le champ de l'adresse de départ peut y avoir le curseur) */
+  function gpsSynchro() {
+    const g = document.querySelector('#ev-trajet-zone .evt-tr-gestes'); if (!g) return;
+    const F = reu.formEvt, b = g.querySelector('[data-evt="gps"]'), oui = !!destinationGps($('ev-lieu') ? $('ev-lieu').value : '', F && F.tr ? F.tr.calc : null);
+    if (oui && !b) g.insertAdjacentHTML('beforeend', BOUTON_GPS_EVT); else if (!oui && b) b.remove();
+  }
+  function ouvrirMenuGps(dest, mode, declencheur) {
+    if (!dest || etat.menu) return;
+    etat.menu = { gps: true, declencheur: declencheur || null, t: Date.now() };
+    const M = $('menu-msg');
+    M.setAttribute('aria-label', 'Y aller');
+    M.innerHTML = htmlLiensGps(dest, mode);
+    M.classList.add('ag'); $('menu-fond').classList.add('ag');               // la feuille du bas, comme le menu d'un rendez-vous
+    $('menu-fond').hidden = false;
+    synchroInert();
+    const premier = M.querySelector('a, button'); if (premier) premier.focus({ preventScroll: true });
+  }
+  /* ══ COLLER UNE CONFIRMATION (15 octobre 2026, Justin : « quand les gens prennent un rendez-vous sur un site ou autre, ils peuvent l'ajouter à notre calendrier, mais par
+     l'application ») ══ Le mail ou le SMS de confirmation (un médecin, un garage, la mairie…), collé dans « Nouveau rendez-vous » : la page y lit la date, l'heure, la durée,
+     l'adresse, avec qui et pour quoi, et remplit la fiche ; la personne vérifie et enregistre. ⛔ Tout se lit ICI, sur l'appareil : le texte collé ne part nulle part, seul le
+     rendez-vous enregistré va au service. Un fichier d'agenda (.ics) collé tel quel se lit aussi. Ce qu'on ne trouve pas, on ne l'invente pas : la fiche garde ce qu'elle avait.
+     ⛔ Aucune assertion arrière dans ces expressions : un Safari d'avant iOS 16.4 refuserait la PAGE entière (une erreur de syntaxe, pas de cette seule fonction). */
+  const MOIS_FR = { janv: 1, janvier: 1, fev: 2, fevr: 2, fevrier: 2, mars: 3, avr: 4, avril: 4, mai: 5, juin: 6, juil: 7, juillet: 7, aout: 8, sep: 9, sept: 9, septembre: 9,
+    oct: 10, octobre: 10, nov: 11, novembre: 11, dec: 12, decembre: 12 };
+  /* pour quoi : le premier qui se reconnaît (les plus précis d'abord — un dentiste trouvé par un site de médecins reste un dentiste) */
+  const MOTIFS_RDV = [[/dentist|orthodont/i, 'Dentiste'], [/kin[ée]/i, 'Kiné'], [/ophtalmo|orthoptiste/i, 'Ophtalmo'], [/dermato/i, 'Dermato'], [/gyn[ée]co|sage-femme/i, 'Gynéco'],
+    [/p[ée]diatre/i, 'Pédiatre'], [/radiologie|\bIRM\b|scanner|[ée]chographie|mammographie/i, 'Imagerie'], [/laboratoire|prise de sang|analyses m[ée]dicales/i, 'Laboratoire'],
+    [/v[ée]t[ée]rinaire/i, 'Vétérinaire'], [/ost[ée]opathe/i, 'Ostéopathe'], [/psycholog|psychiatr/i, 'Psy'], [/m[ée]decin|docteur|\bDr\.?\s|consultation/i, 'Médecin'],
+    [/contr[ôo]le technique/i, 'Contrôle technique'], [/garage|vidange|pneus?\b|carrosserie|entretien du v[ée]hicule|r[ée]vision/i, 'Garage'],
+    [/coiff/i, 'Coiffeur'], [/esth[ée]ti|onglerie|manucure|massage/i, 'Institut'], [/notaire/i, 'Notaire'], [/avocat/i, 'Avocat'],
+    [/pr[ée]fecture|\bANTS\b|passeport|carte nationale d.identit[ée]|mairie/i, 'Mairie'], [/imp[ôo]ts|finances publiques/i, 'Impôts'], [/banque|bancaire/i, 'Banque'],
+    [/restaurant|une table pour|r[ée]servation pour \d+ personnes?/i, 'Restaurant']];
+  const sansAccents = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const p2c = n => String(n).padStart(2, '0');
+  /* une date juste (pas de 31 février) → « AAAA-MM-JJ », sinon '' */
+  const dateJuste = (a, m, j) => { const d = new Date(Date.UTC(a, m - 1, j)); return a >= 2000 && a <= 2100 && d.getUTCMonth() === m - 1 && d.getUTCDate() === j ? a + '-' + p2c(m) + '-' + p2c(j) : ''; };
+  /* l'heure murale d'un fuseau → l'instant (deux corrections suffisent, changements d'heure compris) ; un fuseau inconnu rend null */
+  function instantMural(a, m, j, h, mi, tz) {
+    let t = Date.UTC(a, m - 1, j, h, mi);
+    try {
+      const f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
+      for (let k = 0; k < 2; k++) {
+        const p = {}; for (const x of f.formatToParts(new Date(t))) p[x.type] = Number(x.value);
+        t += Date.UTC(a, m - 1, j, h, mi) - Date.UTC(p.year, p.month - 1, p.day, p.hour % 24, p.minute);
+      }
+    } catch (e) { return null; }
+    return t;
+  }
+  const localDeInstant = t => { const d = new Date(t); return { date: d.getFullYear() + '-' + p2c(d.getMonth() + 1) + '-' + p2c(d.getDate()), heure: p2c(d.getHours()) + ':' + p2c(d.getMinutes()) }; };
+  const bornerDuree = m => Number.isFinite(m) && m >= 5 && m <= 720 ? Math.round(m) : null;
+  const propre = (s, max) => String(s || '').replace(/\s+/g, ' ').replace(/^[\s,;:–—-]+|[\s,;:–—-]+$/g, '').slice(0, max);
+  /* le fichier d'agenda collé tel quel (BEGIN:VEVENT) : son début, sa fin, son titre, son lieu */
+  function lireIcs(t) {
+    const lignes = t.replace(/\n[ \t]/g, '').split('\n'), champ = nom => (lignes.find(x => x.toUpperCase().indexOf(nom) === 0 && /^[A-Z-]+[;:]/i.test(x)) || '');
+    const brut = l => l.slice(l.indexOf(':') + 1).replace(/\\n/gi, ' ').replace(/\\([,;\\])/g, '$1').trim();
+    const quand = l => {
+      const x = /^[A-Z-]+([^:]*):(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})\d{0,2}(Z?))?/i.exec(l); if (!x) return null;
+      const a = +x[2], m = +x[3], j = +x[4];
+      if (!dateJuste(a, m, j)) return null;
+      if (x[5] === undefined) return { date: dateJuste(a, m, j), heure: null, t: null };
+      const h = +x[5], mi = +x[6], tz = (/TZID=([^;:]+)/i.exec(x[1]) || [])[1];
+      const t = x[7] ? Date.UTC(a, m - 1, j, h, mi) : tz ? instantMural(a, m, j, h, mi, tz) : null;
+      return t !== null ? Object.assign(localDeInstant(t), { t }) : { date: dateJuste(a, m, j), heure: p2c(h) + ':' + p2c(mi), t: null };
+    };
+    const d = quand(champ('DTSTART')), f = quand(champ('DTEND'));
+    if (!d) return null;
+    const duree = d.t !== null && f && f.t !== null ? bornerDuree((f.t - d.t) / 60000) : null;
+    return { date: d.date, heure: d.heure, duree, lieu: propre(brut(champ('LOCATION')), 200) || null, titre: propre(brut(champ('SUMMARY')), 120) || null };
+  }
+  function lireConfirmation(texte, maintenant) {
+    const t = String(texte || '').slice(0, 20000).normalize('NFC').replace(/[   \t]/g, ' ').replace(/\r\n?/g, '\n');
+    const r = { date: null, heure: null, debut: null, duree: null, lieu: null, avec: null, titre: null };
+    if (!t.trim()) return r;
+    const auj = new Date(maintenant), aujJ = auj.getFullYear() + '-' + p2c(auj.getMonth() + 1) + '-' + p2c(auj.getDate());
+    const ics = /BEGIN:VEVENT/i.test(t) ? lireIcs(t) : null;
+    if (ics) Object.assign(r, { date: ics.date, heure: ics.heure, duree: ics.duree, lieu: ics.lieu, titre: ics.titre });
+    else {
+      /* une ligne d'en-tête (« Le 12 oct. 2026 à 10:02, X a écrit : », « Envoyé : … ») ou une date de RÉSERVATION ne disent pas quand a lieu le rendez-vous */
+      const debutsLignes = [0]; for (let k = 0; k < t.length; k++) if (t[k] === '\n') debutsLignes.push(k + 1);
+      const nLigne = i => { let n = 0; for (let k = 0; k < debutsLignes.length && debutsLignes[k] <= i; k++) n = k; return n; };
+      const ligneN = n => n < 0 || n >= debutsLignes.length ? '' : t.slice(debutsLignes[n], n + 1 < debutsLignes.length ? debutsLignes[n + 1] - 1 : t.length);
+      /* « Date : … » est l'en-tête d'un mail transféré quand « De : », « Objet : »… l'entourent ; seule, c'est la date du rendez-vous (« Date : 05/11/2026 ») */
+      const champMail = l => /^\s*>?\s*(?:de|from|objet|subject|à|a|to|cc)\s*:/i.test(l);
+      const enTete = i => {
+        const n = nLigne(i), l = ligneN(n);
+        if (/a [ée]crit\s*:?\s*$|^\s*>?\s*(?:envoy[ée]|sent|from|de|objet|subject|re[çc]u)\s*:/i.test(l)) return true;
+        return /^\s*>?\s*date\s*:/i.test(l) && (champMail(ligneN(n - 1)) || champMail(ligneN(n + 1)));
+      };
+      const pasLeRdv = i => /(?:r[ée]serv[ée]e?s?|pris|effectu[ée]e?|envoy[ée]e?|cr[ée][ée]e?|[ée]dit[ée]e?|command[ée]e?|pay[ée]e?|r[ée]gl[ée]e?|factur[ée]e?)\s+(?:le|du)\s+$/i.test(t.slice(Math.max(0, i - 30), i));
+      const dates = [];
+      const reMois = /(?:(?:lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche|lun|mar|mer|jeu|ven|sam|dim)\.?\s+)?(1er|\d{1,2})\s+(janv(?:ier)?|f[ée]v(?:r(?:ier)?)?|mars|avr(?:il)?|mai|juin|juil(?:let)?|ao[uû]t|sept?(?:embre)?|oct(?:obre)?|nov(?:embre)?|d[ée]c(?:embre)?)(?![a-zà-ÿ])\.?(?:\s+(\d{4}))?/gi;
+      for (let x; (x = reMois.exec(t));) dates.push({ i: x.index, j: x.index + x[0].length, a: x[3] ? +x[3] : null, m: MOIS_FR[sansAccents(x[2].toLowerCase())], d: x[1].toLowerCase() === '1er' ? 1 : +x[1] });
+      /* « 15/10 », « 15/10/2026 », « 15/10/26 » ; avec des points, l'année est exigée (« 3.5 km » n'est pas le 3 mai) */
+      const reNum = /(^|[^\d/.,-])(\d{1,2})(?:\/(\d{1,2})(?:\/(\d{4}|\d{2}))?|\.(\d{1,2})\.(\d{4}))(?![\d/.,]\d)/g;
+      for (let x; (x = reNum.exec(t));) {
+        const an = x[4] || x[6] || null;
+        dates.push({ i: x.index + x[1].length, j: x.index + x[0].length, a: an ? (an.length === 2 ? 2000 + +an : +an) : null, m: +(x[3] || x[5]), d: +x[2] });
+      }
+      const reIso = /(^|[^\d])(\d{4})-(\d{2})-(\d{2})(?!\d)/g;
+      for (let x; (x = reIso.exec(t));) dates.push({ i: x.index + x[1].length, j: x.index + x[0].length, a: +x[2], m: +x[3], d: +x[4] });
+      const reRel = /(^|[^a-zà-ÿ])(aujourd.hui|apr[eè]s-demain|demain)(?![a-zà-ÿ])/gi;
+      for (let x; (x = reRel.exec(t));) {
+        const k = sansAccents(x[2].toLowerCase()), n = k.indexOf('apres') === 0 ? 2 : k === 'demain' ? 1 : 0, d = new Date(auj.getFullYear(), auj.getMonth(), auj.getDate() + n);
+        dates.push({ i: x.index + x[1].length, j: x.index + x[0].length, a: d.getFullYear(), m: d.getMonth() + 1, d: d.getDate() });
+      }
+      const heures = [];
+      const reH = /(^|[^\d,.:])([01]?\d|2[0-3])\s*(?:h|H|:|heures?)\s*([0-5]\d)?(?![\d])/g;
+      for (let x; (x = reH.exec(t));) {
+        const i = x.index + x[1].length, avant = t.slice(Math.max(0, i - 24), i);
+        if (/dur[ée]e?\s*(?:estim[ée]e\s*)?:?\s*$|pendant\s+$|\b(?:dans|sous|en)\s+$/i.test(avant)) continue;      // une durée, pas une heure
+        if (/^\s*\d{1,2}\s*(?:h|:)\s*\/\s*\d/.test(t.slice(i)) || /^\s*(?:h|:)?\s*\/\s*\d/.test(t.slice(x.index + x[0].length))) continue;   // « 24h/24 »
+        heures.push({ i, j: x.index + x[0].length, h: +x[2], mi: x[3] ? +x[3] : 0 });
+      }
+      /* une plage (« de 14h30 à 15h », « 9:00 - 9:30 ») : sa fin donne la durée */
+      for (const h of heures) {
+        const suite = heures.find(y => y.i > h.i && y.i - h.j <= 8 && /^\s*(?:-|–|—|à|a|au|jusqu.?à)\s*$/i.test(t.slice(h.j, y.i)));
+        if (suite) h.fin = suite.h * 60 + suite.mi;
+      }
+      const valides = dates.filter(x => !enTete(x.i) && !pasLeRdv(x.i)).map(x => {
+        let a = x.a, date = '';
+        if (a === null) { a = auj.getFullYear(); date = dateJuste(a, x.m, x.d); if (date && date < aujJ) { a++; date = dateJuste(a, x.m, x.d); } }
+        else date = dateJuste(a, x.m, x.d);
+        return date ? Object.assign({}, x, { date }) : null;
+      }).filter(Boolean).sort((p, q) => p.i - q.i);
+      /* chaque date prend l'heure qui la suit de près (sans autre date entre les deux) — ou, à défaut, celle qui la précède sur la même ligne */
+      const cands = valides.map((x, k) => {
+        const borne = k + 1 < valides.length ? valides[k + 1].i : Infinity;
+        let h = heures.find(y => y.i >= x.j && y.i - x.j <= 90 && y.i < borne && !enTete(y.i));
+        if (!h) h = heures.filter(y => y.j <= x.i && x.i - y.j <= 40 && t.slice(y.j, x.i).indexOf('\n') < 0 && !enTete(y.i)).pop();
+        return { date: x.date, h: h || null };
+      });
+      const choisi = cands.find(c => c.h && c.date >= aujJ) || cands.find(c => c.date >= aujJ) || cands.find(c => c.h) || cands[0];
+      if (choisi) {
+        r.date = choisi.date;
+        if (choisi.h) {
+          r.heure = p2c(choisi.h.h) + ':' + p2c(choisi.h.mi);
+          if (choisi.h.fin !== undefined) r.duree = bornerDuree(choisi.h.fin - (choisi.h.h * 60 + choisi.h.mi));
+        }
+      }
+      if (r.duree === null) {
+        const du = /dur[ée]e\s*(?:estim[ée]e\s*|pr[ée]vue\s*)?:?\s*(\d{1,3})\s*(min(?:utes?)?|mn|h|heures?)\s*(\d{1,2})?/i.exec(t) || /\((\d{1,3})\s*(min(?:utes?)?|mn)\)/i.exec(t);
+        if (du) r.duree = bornerDuree(/^h/i.test(du[2]) ? +du[1] * 60 + (du[3] ? +du[3] : 0) : +du[1]);
+      }
+      /* l'adresse : une rue (un numéro et un type de voie), son code postal et sa ville — sur la même ligne ou la suivante ; sinon la ligne « Adresse : … » */
+      const reRue = /(^|[^\d])(\d{1,4}\s*(?:bis|ter)?\s*,?\s+(?:rue|avenue|av\.|boulevard|bd|place|chemin|all[ée]e|impasse|route|rte|quai|cours|square|passage|voie|esplanade|parvis|promenade|r[ée]sidence|lotissement)\b[^\n]*)/i;
+      const reCp = /\b\d{5}\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\x27’ -]{1,40}/;
+      const coupe = s => { const c = reCp.exec(s); if (c) return s.slice(0, c.index + c[0].length).replace(/\s+-\s+.*$/, ''); return s.split(/[.(;]|\s{2,}/)[0]; };
+      const rue = reRue.exec(t);
+      if (rue) {
+        let s = rue[2];
+        if (!reCp.test(s)) { const suite = t.slice(rue.index + rue[0].length).replace(/^\n+/, ''), cp = /^\s*(\d{5}\s+[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ\x27’ -]{1,40})/.exec(suite); s = coupe(s) + (cp ? ', ' + cp[1] : ''); }
+        else s = coupe(s);
+        r.lieu = propre(s, 200) || null;
+      }
+      if (!r.lieu) { const ad = /adresse\s*:?\s*\n?\s*([^\n]{5,160})/i.exec(t); if (ad) r.lieu = propre(coupe(ad[1]), 200) || null; }
+      /* avec qui : « avec Dr Sophie Martin », « auprès de Maître Leroy » ; sinon un « Dr X » ; sinon « chez Garage Dupont » */
+      const titres = '(?:Dr\\.?|Docteur|Pr\\.?|Professeur|Me|Ma[iî]tre|M\\.|Mme|Mlle|Madame|Monsieur)';
+      const nom = '[A-ZÀ-Þ][A-Za-zÀ-ÿ\\x27’-]+(?:\\s+[A-ZÀ-Þ][A-Za-zÀ-ÿ\\x27’-]+){0,3}';
+      const av = new RegExp('(?:[Aa]vec|[Aa]upr[eè]s d[eu])\\s+(?:le |la )?(' + titres + '\\s+' + nom + ')').exec(t) || new RegExp('\\b((?:Dr\\.?|Docteur)\\s+' + nom + ')').exec(t) ||
+        /\bchez\s+([A-ZÀ-Þ][A-Za-zÀ-ÿ0-9&\x27’ -]{2,40}?)(?=[.,;:!\n(]|\s+(?:le|la|les|à|a|pour|au|du|ce|cet|demain)\s|$)/.exec(t);
+      if (av) r.avec = propre(av[1], 120) || null;
+    }
+    if (r.date && r.heure) r.debut = r.date + 'T' + r.heure;
+    const motif = MOTIFS_RDV.find(([re]) => re.test(t));
+    if (!r.titre) r.titre = motif ? motif[1] : r.avec || null;
+    return r;
+  }
   /* ⛔ la fiche ouverte est-elle celle d'un rendez-vous ? `synchroFeuille` repasse APRÈS le dessin de la fiche et en réécrit le titre : il le lit ici, sur la fiche DESSINÉE pour l'identifiant
      demandé (une fiche encore en chargement n'en dit rien — elle posera son titre en arrivant). */
   const ficheEstRdv = () => !!(reu.formEvt && reu.formEvt.rdv && reu.formEvt.id && reu.formEvt.id === reu.formEvtDemande);
@@ -6266,15 +6505,24 @@
       (typeof source.reporterEvenement === 'function' ? '<div class="reglage evt-reporter" role="group" aria-label="Reporter"><span class="reglage-texte">Reporter</span><span class="evt-reporter-choix">' +
         (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
-      /* « Ajouter à mon calendrier », comme Apple : un lien vers le fichier .ics (rappels compris) — l'iPhone propose de l'ajouter à Calendrier, l'ordinateur le télécharge */
-      (typeof source.adresseIcsEvenement === 'function' ? '<a class="reglage presse" data-evt="ics" download href="' + esc(source.adresseIcsEvenement(e.id)) + '">' + icone('i-telecharger') + '<span class="reglage-texte">Ajouter à mon calendrier<small>Calendrier d\'Apple, Google Agenda, Outlook — avec ses rappels</small></span>' + CHEVRON + '</a>' : '') +
+      /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026, Justin : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
+         ENTRE ici, d'où « Coller une confirmation »). La route du .ics d'un événement reste au service, sans bouton ; celle d'une RÉUNION sert toujours (sa fiche, son menu, le
+         courriel d'invitation). */
       '</div>' : '';
     const rappels0 = e ? (Array.isArray(e.rappels) ? e.rappels.slice() : (e.rappel === null ? [] : [e.rappel])) : (rdv ? [1440, 60] : null);
-    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + gestes +
+    /* un rendez-vous NEUF peut se remplir d'une confirmation collée (un mail, un SMS) : tout se lit sur l'appareil */
+    const coller = !e && rdv ? '<div class="carte evt-coller"><button type="button" class="reglage presse" data-evt="coller" aria-expanded="false" aria-controls="ev-coller-zone">' + icone('i-fichier') +
+      '<span class="reglage-texte">Coller une confirmation<small>Le mail ou le SMS d\'un site (médecin, garage, mairie…) : la date, l\'heure et l\'adresse se remplissent</small></span></button>' +
+      '<div id="ev-coller-zone" class="evt-coller-zone" hidden><div class="champ"><label for="ev-coller-texte">Texte de la confirmation</label><textarea id="ev-coller-texte" rows="5" maxlength="20000" placeholder="Colle ici le mail ou le SMS"></textarea>' +
+      '<span class="info-note">Le texte reste sur ton appareil : seul le rendez-vous rempli s\'enregistre.</span></div>' +
+      '<div class="info-actions"><button type="button" class="mini plein" data-evt="coller-remplir">Remplir le rendez-vous</button></div><p class="info-note" id="ev-coller-res" role="status"></p></div></div>' : '';
+    const duree0 = Math.round((f0 - d0) / 60000);
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + gestes + coller +
       '<div class="champ"><label for="ev-titre">Titre</label><input id="ev-titre" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.titre : '') + '" placeholder="' + (rdv ? 'Médecin, coiffeur, garage…' : 'Dentiste, anniversaire, rendez-vous…') + '"></div>' +
       (rdv ? '<div class="champ"><label for="ev-avec">Avec</label><input id="ev-avec" type="text" maxlength="120" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.avec : '') + '" placeholder="Facultatif — Dr Martin, le garage…"></div>'
         : '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="' + (journee ? 'true' : 'false') + '" id="ev-journee"><span class="reglage-texte">Toute la journée</span><span class="interrupteur" aria-hidden="true"></span></button></div>') +
       '<div class="champ"><label for="ev-debut">Début</label><input id="ev-debut" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(d0, tz).slice(0, 10) : localDans(d0, tz)) + '"></div>' +
+      htmlDuree('ev', duree0, journee) +
       '<div class="champ"><label for="ev-fin">Fin</label><input id="ev-fin" type="' + (journee ? 'date' : 'datetime-local') + '" step="60" value="' + esc(journee ? localDans(f0 - 1, tz).slice(0, 10) : localDans(f0, tz)) + '"></div>' +
       '<div class="champ"><label for="ev-lieu">Lieu</label><input id="ev-lieu" type="text" maxlength="300" autocomplete="off" enterkeyhint="next" value="' + esc(e ? e.lieu : '') + '" placeholder="' + (rdv && CAP.trajet ? 'Adresse — pour savoir quand partir' : 'Facultatif') + '"></div>' +
       (rdv ? '<div id="ev-trajet-zone"></div>' : '') +
@@ -6284,7 +6532,7 @@
       '<div class="info-actions"><button type="button" class="mini plein" data-evt="enregistrer">Enregistrer</button>' + (id ? '<button type="button" class="mini danger" data-evt="supprimer">Supprimer</button>' : '') + '</div>';
     reu.formEvt = { id: id || null, tz, fait: !!(e && e.fait), source: (e && e.source) || null, titre: e ? e.titre : '', cote: etat.mode, rdv, rappels: rdv ? rappels0 : null,
       rappelsPlus: !!(e && !rdv && Array.isArray(e.rappels) && e.rappels.length > 1), rappelInitial: e ? (e.rappel === null ? '' : String(e.rappel)) : '15',      // le côté où l'on était en ouvrant la fiche
-      tr: rdv ? trajetEtat(e) : null };
+      tr: rdv ? trajetEtat(e) : null, duree: journee ? 60 : duree0 };
     if (rdv) { peindreTrajet(); trajetPreparer(reu.formEvt); }      // le trajet repris s'affiche tout de suite ; le calcul se propose quand le service a dit qu'il calcule
   }
   function evtBasculerJournee() {
@@ -6292,6 +6540,7 @@
     const oui = b.getAttribute('aria-checked') !== 'true';
     b.setAttribute('aria-checked', oui ? 'true' : 'false');
     for (const k of ['ev-debut', 'ev-fin']) { const c = $(k), v = c.value; c.type = oui ? 'date' : 'datetime-local'; c.value = oui ? v.slice(0, 10) : (v.length === 10 ? v + (k === 'ev-debut' ? 'T09:00' : 'T10:00') : v); }
+    if ($('ev-duree')) { $('ev-duree').hidden = oui; if (!oui) { const F = reu.formEvt; if (F) F.duree = dureeChamps('ev') || 60; peindreDuree('ev'); } }
   }
   async function evtEnregistrer(b) {
     const F = reu.formEvt; if (!F) return;
@@ -6365,17 +6614,56 @@
     if (e.target.closest('#ev-journee')) { evtBasculerJournee(); return; }
     const rp = e.target.closest('[data-evt-rappel]'); if (rp) { evtBasculerRappel(Number(rp.dataset.evtRappel)); return; }
     const md = e.target.closest('[data-tr-mode]'); if (md) { trajetChanger('mode', md.dataset.trMode === 'pied' ? 'pied' : 'voiture'); return; }
+    const du = e.target.closest('#ev-duree [data-duree]'); if (du) { choisirDuree('ev', Number(du.dataset.duree)); return; }
     const b = e.target.closest('[data-evt]'); if (!b || b.disabled) return;
     erreurInfo('');
     if (b.dataset.evt === 'enregistrer') evtEnregistrer(b); else if (b.dataset.evt === 'supprimer') evtSupprimer(b);
     else if (b.dataset.evt === 'fait') evtFait(b); else if (b.dataset.evt === 'reporter') evtReporter(b); else if (b.dataset.evt === 'voir') evtVoir();
     else if (b.dataset.evt === 'trajet-calculer') trajetCalculer(); else if (b.dataset.evt === 'trajet-retirer') trajetRetirer(); else if (b.dataset.evt === 'trajet-autre') trajetAutre(b.dataset.label);
+    else if (b.dataset.evt === 'coller') evtCollerOuvrir(b); else if (b.dataset.evt === 'coller-remplir') evtCollerRemplir($('ev-coller-texte').value);
+    else if (b.dataset.evt === 'gps') { const F = reu.formEvt, c = F && F.tr && F.tr.calc; ouvrirMenuGps(destinationGps($('ev-lieu') ? $('ev-lieu').value : '', c), c ? c.mode : (F && F.tr ? F.tr.mode : 'voiture'), b); }
   });
+  $('info-corps').addEventListener('click', e => { const du = e.target.closest('#rf-duree [data-duree]'); if (du && reu.form) choisirDuree('rf', Number(du.dataset.duree)); });
+  $('info-corps').addEventListener('change', e => { if (e.target && e.target.id === 'rf-duree-plus' && reu.form) { const v = Number(e.target.value); if (v > 0) choisirDuree('rf', v); } });
+  /* « Coller une confirmation » : la zone s'ouvre ; le presse-papiers est lu s'il se laisse lire (sur l'iPhone, une bulle « Coller » le demande) — sinon on colle soi-même */
+  async function evtCollerOuvrir(b) {
+    const z = $('ev-coller-zone'); if (!z) return;
+    const ouvert = z.hidden; z.hidden = !ouvert; b.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+    if (!ouvert) return;
+    const ta = $('ev-coller-texte');
+    let lu = '';
+    try { if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') lu = await navigator.clipboard.readText(); } catch (er) { lu = ''; }
+    if (!$('ev-coller-texte')) return;                                      // la fiche s'est fermée pendant la lecture
+    if (lu && lu.trim() && !ta.value.trim()) { ta.value = lu.slice(0, 20000); evtCollerRemplir(ta.value); } else ta.focus();
+  }
+  /* remplir la fiche d'après le texte : ce qui est trouvé remplace, ce qui ne l'est pas reste ; la personne vérifie avant d'enregistrer */
+  function evtCollerRemplir(texte) {
+    const F = reu.formEvt, res = $('ev-coller-res'); if (!F || !res) return;
+    if (!String(texte || '').trim()) { res.textContent = 'Colle d\'abord le mail ou le SMS de confirmation.'; $('ev-coller-texte').focus(); return; }
+    const r = lireConfirmation(texte, Date.now());
+    if (!r.date) { res.textContent = 'Je n\'ai pas trouvé de date dans ce texte : remplis le rendez-vous à la main.'; return; }
+    const dit = [];
+    if (r.titre && !$('ev-titre').value.trim()) { $('ev-titre').value = r.titre; dit.push('« ' + r.titre + ' »'); }
+    if (r.avec && $('ev-avec') && !$('ev-avec').value.trim()) { $('ev-avec').value = r.avec; dit.push('avec ' + r.avec); }
+    const heure = r.heure || ($('ev-debut').value.slice(11, 16) || '09:00'), debut = r.date + 'T' + heure;
+    $('ev-debut').value = debut;
+    if (r.duree) F.duree = r.duree;
+    $('ev-fin').value = plusMinutes(debut, F.duree || 60);
+    for (const k of ['ev-debut', 'ev-fin']) $(k).dispatchEvent(new Event('input', { bubbles: true }));
+    peindreDuree('ev');
+    dit.push(FMT_JOUR_LONG.format(new Date(r.date + 'T12:00:00')) + (r.heure ? ' à ' + r.heure.replace(':', ' h ') : ''));
+    if (r.duree) dit.push(dureeTr(r.duree));
+    if (r.lieu) { $('ev-lieu').value = r.lieu; for (const ev of ['input', 'change']) $('ev-lieu').dispatchEvent(new Event(ev, { bubbles: true })); dit.push(r.lieu); }
+    res.textContent = 'Rempli : ' + dit.join(' · ') + '.' + (r.heure ? '' : ' Je n\'ai pas trouvé l\'heure : choisis-la.') + ' Vérifie, puis enregistre.';
+  }
   /* le trajet : choisir d'où l'on part, quand arriver ; quitter le lieu (ou l'adresse de départ) après l'avoir changé recalcule */
   const ficheEvtOuverte = () => etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'rdv-new' || etat.groupe.mode === 'evenement');
   $('info-corps').addEventListener('change', e => {
     if (!ficheEvtOuverte() || !e.target) return;
     const id = e.target.id;
+    if (id === 'ev-duree-plus') { const v = Number(e.target.value); if (v > 0) choisirDuree('ev', v); return; }
+    if (id === 'ev-debut') { debutDuree('ev'); return; }
+    if (id === 'ev-fin') { finDuree('ev'); return; }
     if (id === 'ev-tr-depart') trajetChanger('depart', ['position', 'domicile', 'travail', 'adresse'].includes(e.target.value) ? e.target.value : 'position');
     else if (id === 'ev-tr-avance') trajetAvance([0, 5, 10, 15].includes(Number(e.target.value)) ? Number(e.target.value) : 0);
     else if (id === 'ev-lieu' || id === 'ev-tr-adresse') trajetQuitte(id);
@@ -6386,8 +6674,8 @@
     if (!(etat.groupe.ouvert && (etat.groupe.mode === 'evenement-new' || etat.groupe.mode === 'rdv-new' || etat.groupe.mode === 'evenement') && e.target && /^ev-/.test(e.target.id || ''))) return;
     erreurInfo('');
     const id = e.target.id;
-    if (id === 'ev-lieu' || id === 'ev-tr-adresse') trajetTape(id);
-    else if (id === 'ev-debut') { const F = reu.formEvt; if (F && F.tr && F.tr.calc) peindreTrajet(); }      // l'heure de partir suit l'heure du rendez-vous
+    if (id === 'ev-lieu' || id === 'ev-tr-adresse') { trajetTape(id); if (id === 'ev-lieu') gpsSynchro(); }
+    else if (id === 'ev-debut') { debutDuree('ev'); const F = reu.formEvt; if (F && F.tr && F.tr.calc) peindreTrajet(); }      // la fin suit (la durée est gardée), l'heure de partir aussi
   });
   /* ═══ LE THÈME D'UNE CONVERSATION (7 octobre 2026) — un aperçu, les fonds, les couleurs de mes bulles ; chaque touche s'applique tout de suite et s'enregistre ═══ */
   const FONDS_CONV = [['aucun', 'Par défaut'], ['aube', 'Aube'], ['ocean', 'Océan'], ['foret', 'Forêt'], ['lavande', 'Lavande'], ['sable', 'Sable'], ['corail', 'Corail'], ['ardoise', 'Ardoise']];
@@ -6932,7 +7220,8 @@
         '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir' + (d.repetition !== 'aucune' ? ', à chaque date' : '') + '. Toi seul le vois.</p></div>';
     }
     h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-reu="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (c ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
-      (c ? '<button type="button" class="mini" data-reu="trajet-retirer"' + (T.calcul ? ' disabled' : '') + '>Retirer le trajet</button>' : '') + '</div></div>';
+      (c ? '<button type="button" class="mini" data-reu="trajet-retirer"' + (T.calcul ? ' disabled' : '') + '>Retirer le trajet</button>' : '') +
+      (destinationGps(d.lieu, c) ? '<button type="button" class="mini" data-reu="trajet-gps" aria-haspopup="menu">Y aller</button>' : '') + '</div></div>';
     return h;
   }
   /* la date dont la fiche parle (celle choisie dans l'agenda, sinon la prochaine) — celle dont on calcule l'heure de partir ; une date passée cède la place à la prochaine */
@@ -7207,6 +7496,7 @@
         else if (act === 'trajet-calculer') trajetReuCalculer();
         else if (act === 'trajet-retirer') trajetReuRetirer();
         else if (act === 'trajet-autre' && b.dataset.label) trajetReuCalculer(b.dataset.label);
+        else if (act === 'trajet-gps') { const c = d.moi.trajet; ouvrirMenuGps(destinationGps(d.lieu, c), c ? c.mode : (F.tr ? F.tr.mode : 'voiture'), b); }
         else if (act === 'odj') { b.setAttribute('aria-disabled', 'true'); const fait = b.getAttribute('aria-checked') !== 'true'; await source.cocherPoint(id, b.dataset.point, fait); await relire(); }
         else if (act === 'inviter') { b.setAttribute('aria-disabled', 'true'); const r = await source.inviterReunion(id, [b.dataset.uid], { notifier: true }); mot(r.ajoutes ? 'Invitation envoyée' : r.parLien ? 'Cette personne n\'a pas Messages Pro : envoie-lui le lien de la réunion' : 'Cette personne ne peut pas être invitée'); await relire(); }
         else if (act === 'retirer') { b.setAttribute('aria-disabled', 'true'); await source.retirerInviteReunion(id, b.dataset.uid); mot('Personne retirée de la réunion'); await relire(); }
@@ -7354,7 +7644,7 @@
     const initial = { odj: d ? (d.ordreDuJour || []).map(p => p.texte) : [], titre: d ? d.titre : '', lieu: d ? d.lieu : '', debut: localDans(debut0, tz), fin: localDans(fin0, tz), tz, repetition: d ? d.repetition : 'aucune', n: d ? d.n : null, jusqua: d ? d.jusqua : null, rappels: d ? d.rappels.slice() : [15], attente: d ? d.attente === true : false };
     /* « Programmer une réunion avec … » depuis la fiche d'une personne : elle est déjà invitée (une fois — le formulaire suivant repart vide) */
     const avec = !id && reu.prechoisis ? [reu.prechoisis] : []; reu.prechoisis = null;
-    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, debutPrec: initial.debut, cote: etat.mode };
+    reu.form = { id: id || null, choisis: avec, rappels: initial.rappels.slice(), attente: initial.attente, notifier: true, recherche: '', initial, cote: etat.mode, duree: minutesEntre(initial.debut, initial.fin) || 60 };
     const typeFin = initial.n ? 'nombre' : initial.jusqua ? 'date' : 'jamais';
     corps.dataset.sig = '';
     corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
@@ -7363,6 +7653,7 @@
       /* l'ordre du jour (8 octobre 2026) : un point par ligne — les participants les cochent pendant la séance, et le compte rendu les reprend */
       '<div class="champ"><label for="rf-odj">Ordre du jour</label><textarea id="rf-odj" rows="3" maxlength="4300" placeholder="Un point par ligne (facultatif)">' + esc(initial.odj.join('\n')) + '</textarea></div>' +
       '<div class="champ"><label for="rf-debut">' + (d && d.repetition !== 'aucune' ? 'Début de la première réunion' : 'Début') + '</label><input id="rf-debut" type="datetime-local" step="60" value="' + esc(initial.debut) + '"></div>' +
+      htmlDuree('rf', minutesEntre(initial.debut, initial.fin)) +
       '<div class="champ"><label for="rf-fin">Fin</label><input id="rf-fin" type="datetime-local" step="60" value="' + esc(initial.fin) + '"></div>' +
       '<input type="hidden" id="rf-tz" value="' + esc(tz) + '">' +
       (fuseauAppareil() && tz !== fuseauAppareil() ? '<p class="info-note" id="rf-tz-note">Les heures ci-dessus sont celles de ' + esc(villeDe(tz)) + ', le fuseau de la réunion.</p>' : '') +
@@ -7384,13 +7675,10 @@
     ['rf-debut', 'rf-fin', 'rf-pays'].forEach(x => { $(x).addEventListener('input', peindreChezEux); $(x).addEventListener('change', peindreChezEux); });
     $('rf-rep').addEventListener('change', synchroFormRepetition);
     $('rf-fin-type').addEventListener('change', synchroFormRepetition);
-    /* une fin avant le début n'a pas de sens : changer le début déplace la fin d'autant (la durée est gardée) */
-    $('rf-debut').addEventListener('change', () => {
-      const a = reu.form.debutPrec, b = $('rf-debut').value, f = $('rf-fin').value;
-      if (b && f && f <= b) { const dureeMs = Date.parse(f + ':00Z') - Date.parse(a + ':00Z'); $('rf-fin').value = new Date(Date.parse(b + ':00Z') + (dureeMs > 0 ? dureeMs : 3600000)).toISOString().slice(0, 16); }
-      if (b) reu.form.debutPrec = b;
-      synchroFormRepetition();
-    });
+    /* changer le début déplace la fin d'autant — la durée est gardée (15 octobre 2026 : la durée se choisit sous « Début ») ; une fin changée à la main dit sa nouvelle durée */
+    $('rf-debut').addEventListener('input', () => debutDuree('rf'));
+    $('rf-debut').addEventListener('change', () => { debutDuree('rf'); synchroFormRepetition(); });
+    $('rf-fin').addEventListener('change', () => finDuree('rf'));
     if (!id) {
       if (CAP.reunionPlafond && typeof source.plafondReunion === 'function') {
         const F0 = reu.form;
