@@ -190,6 +190,10 @@ const ouvrirTrajet = async (S) => {
     v('   le service', [(await monTrajet(B0, R)).vers_label, (await monTrajet(B0, R)).mode, (await monTrajet(B0, R)).minutes], [TE.label, 'pied', minutesDe(POS, TE, 'pied')]);
     await toucher(B, '[data-reu="trajet-retirer"]');
     vrai('« Retirer le trajet » : « Trajet retiré », plus de « Partir à »', await attendre(B, () => /Trajet retiré/.test(document.getElementById('mot').textContent) && !document.getElementById('rt-res')));
+    /* (15 octobre 2026) déplié, il le reste : « Retirer le trajet » ne replie pas le formulaire sous le doigt (son état se refaisait sans `ouvert`), et le focus ne tombe pas sur la page */
+    v('   ⛔ le formulaire reste DÉPLIÉ (le départ, « Calculer », pas de ligne « Calculer l\'heure de départ » repliée)', await B.page.evaluate(() => [!!document.getElementById('rt-depart'), !!document.querySelector('[data-reu="trajet-calculer"]'), !document.querySelector('[data-reu="trajet-ouvrir"]')]), [true, true, true], await zone(B));
+    vrai('   ⛔ le bouton touché a disparu : le focus va à « Calculer », pas à la page', await attendre(B, () => !!document.activeElement && document.activeElement.dataset.reu === 'trajet-calculer', null, 4000),
+      await B.page.evaluate(() => document.activeElement ? document.activeElement.tagName + '#' + document.activeElement.id + '[' + (document.activeElement.dataset.reu || '') + ']' : '-'));
     v('   le service : plus de trajet pour Bob (celui d\'Alice reste — il mène à l\'ancien lieu, dit périmé)', [await monTrajet(B0, R), (await A0.get('/api/reunions/' + R)).j.moi.trajet_perime && (await A0.get('/api/reunions/' + R)).j.moi.trajet_perime.depart], [null, 'domicile']);
 
     console.log('\n── 7. L\'heure de partir arrive : « Il est temps de partir » ──');

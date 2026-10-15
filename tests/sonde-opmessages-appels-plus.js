@@ -90,7 +90,9 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cleo Banc' };
     vrai('population : Ana est dans la salle', await att(A, () => document.documentElement.dataset.salle === '1' || !!document.getElementById('salle-ecran') && !document.getElementById('salle-ecran').hidden, null, 20000));
     vrai('population : Ana a son micro', await att(A, () => window.__pistes.some(t => t.kind === 'audio' && t.readyState === 'live'), null, 15000));
     await A.page.locator('#salle-plus').click();
-    vrai('la rubrique « Son et image » est dans « Plus », avec le son amélioré dit en clair', await att(A, () => /Son et image/.test(document.getElementById('salle-panneau-corps').textContent) && /Réduction du bruit/.test(document.getElementById('salle-panneau-corps').textContent)));
+    /* (15 octobre 2026, « plus simple ») la ligne passive « Son amélioré » (Réduction du bruit…) est retirée : elle ne réglait rien — le son amélioré reste, sans ligne pour le dire */
+    vrai('la rubrique « Son et image » est dans « Plus » (population : « Micro » y est), et la ligne passive « Son amélioré » n\'y est plus', await att(A, () => { const t = document.getElementById('salle-panneau-corps').textContent;
+      return /Son et image/.test(t) && /Micro/.test(t) && !/Son amélioré|Réduction du bruit/.test(t); }));
     const micros = await A.page.evaluate(async () => (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'audioinput' && d.deviceId && d.deviceId !== 'default' && d.deviceId !== 'communications').map(d => d.deviceId));
     if (micros.length >= 2) {
       vrai('population : l\'appareil a ' + micros.length + ' micros — le menu « Micro » les propose', await att(A, () => { const s = document.querySelector('select[data-appareil="micro"]'); return !!s && s.options.length >= 3; }));

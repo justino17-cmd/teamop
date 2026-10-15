@@ -390,6 +390,7 @@ async function parcoursA(b, ctx) {
       /* le fuseau n'est plus un champ (7 octobre 2026 : « automatique en fonction du système ») : les tailles se mesurent sur les cinq champs qu'on touche */
       polices: ids.filter(i => i !== 'rf-tz').map(i => parseFloat(getComputedStyle(el(i)).fontSize)), hauteurs: ids.filter(i => i !== 'rf-tz').map(i => Math.round(el(i).getBoundingClientRect().height)),
       rappels: Array.from(document.querySelectorAll('#rf-rappels [data-min]')).map(e => [e.dataset.min, e.getAttribute('aria-checked')]),
+      pastilles: Array.from(document.querySelectorAll('#rf-rappels [data-min]')).map(e => [e.textContent.trim(), e.getAttribute('aria-label')]),
       invites: Array.from(document.querySelectorAll('#rf-invites [data-uid]')).map(e => e.querySelector('.contact-nom').textContent), n: el('rf-invites-n').textContent,
       notifier: document.querySelector('[data-reu="form-notifier"]').getAttribute('aria-checked'), debut: el('rf-debut').value, fin: el('rf-fin').value,
     };
@@ -397,6 +398,7 @@ async function parcoursA(b, ctx) {
   v('le formulaire neuf : six champs, le fuseau de l\'appareil (Paris), pas de répétition (sa fin cachée), le rappel de 15 minutes seul coché, « Notifier » allumé, aucun invité choisi', [form.presents, form.tz, form.rep, form.finRepCachee, form.rappels, form.n, form.notifier],
     [[true, true, true, true, true, true], PARIS, 'aucune', true, [['5', 'false'], ['15', 'true'], ['60', 'false'], ['1440', 'false']], '0', 'true']);
   v('⛔ le fuseau suit l\'appareil, sans champ à l\'écran ; la case « Participants dans un autre pays » est là, son choix replié', [form.tzCache, form.etranger], [true, [true, true]]);
+  v('les rappels en pastilles (15 octobre 2026) : le texte court à l\'écran, le nom entier pour le lecteur d\'écran', form.pastilles, [['5 min', '5 minutes avant'], ['15 min', '15 minutes avant'], ['1 h', '1 heure avant'], ['1 jour', '1 jour avant']]);
   v('… les deux contacts (Bruno, Dora) sont proposés', form.invites.slice().sort(), ['Bruno Petit', 'Dora Leroy']);
   vrai('… le début est une heure pleine à venir et la fin une heure plus tard', /^\d{4}-\d{2}-\d{2}T\d{2}:00$/.test(form.debut) && Date.parse(form.fin + ':00Z') - Date.parse(form.debut + ':00Z') === H);
   v('⛔ chaque champ fait 16 px de police au moins (Safari zoomerait la page au toucher) et 44 px de haut', [form.polices.every(p => p >= 16), form.hauteurs.every(h => h >= 43)], [true, true]);
@@ -526,6 +528,8 @@ async function parcoursA(b, ctx) {
   await toucher(B, '[data-reu="reponse"][data-statut="accepte"]');
   await verifier('Bruno ré-accepte : Alice le voit « Accepté » de nouveau', A, () => Array.from(document.querySelectorAll('#info-corps .contact.avec-actions')).some(e => /Bruno Petit/.test(e.textContent) && /Accepté/.test(e.textContent)), null, 10000, () => texteCorps(A));
   /* ses rappels à lui */
+  v('sa fiche : les mêmes pastilles (texte court, nom entier)', await B.page.evaluate(() => Array.from(document.querySelectorAll('#reu-rappels [data-min]')).map(e => [e.textContent.trim(), e.getAttribute('aria-label')])),
+    [['5 min', '5 minutes avant'], ['15 min', '15 minutes avant'], ['1 h', '1 heure avant'], ['1 jour', '1 jour avant']]);
   await toucher(B, '#reu-rappels [data-min="60"]');
   await verifier('Bruno ajoute « 1 heure avant » : coché, et « Rétablir les rappels de la réunion » paraît', B, () => document.querySelector('#reu-rappels [data-min="60"]').getAttribute('aria-checked') === 'true' && !!document.querySelector('[data-reu="rappels-defaut"]'), null, 8000, () => texteCorps(B));
   v('⛔ le service tient SES rappels (5/15/60/1440 → 15, 60, 1440) et ceux d\'Alice n\'ont pas bougé (population : sa ligne existe, sans rappels à elle)', [sql('SELECT rappels AS n FROM reunion_invite WHERE reunion = ? AND uid = ?', R, P.bruno.moi.id).n, nb('SELECT COUNT(*) AS n FROM reunion_invite WHERE reunion = ? AND uid = ? AND rappels IS NULL', R, P.alice.moi.id)], ['[15,60,1440]', 1]);

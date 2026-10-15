@@ -89,6 +89,9 @@ const aujourdhui = () => localParis(Date.now()).slice(0, 10);
     v('les rappels : six cases, « la veille » et « 1 heure avant » cochées par défaut', await cases(A), ['1440✓', '60✓', '30', '15', '5', '0']);
     const mesures = await A.page.evaluate(() => [Array.from(document.querySelectorAll('#ev-rappels [data-evt-rappel]')).map(x => Math.round(x.getBoundingClientRect().height)), Array.from(document.querySelectorAll('#info-corps input, #info-corps textarea')).filter(x => x.getClientRects().length).map(x => parseFloat(getComputedStyle(x).fontSize))]);
     v('iPhone : chaque case de rappel fait 44 px au moins, chaque champ 16 px au moins (Safari zoomerait)', [mesures[0].length, mesures[0].every(h => h >= 44), mesures[1].length >= 5, mesures[1].every(t => t >= 16)], [6, true, true, true], mesures);
+    /* (15 octobre 2026, « plus simple ») des PASTILLES : le texte court à l'écran, le nom entier pour le lecteur d'écran */
+    v('les rappels en pastilles : « La veille · 1 h · 30 min · 15 min · 5 min · À l\'heure », chacune NOMMÉE en entier', await A.page.evaluate(() => Array.from(document.querySelectorAll('#ev-rappels [data-evt-rappel]')).map(x => [x.textContent.trim(), x.getAttribute('aria-label'), x.classList.contains('rappel-puce')])),
+      [['La veille', 'La veille', true], ['1 h', '1 heure avant', true], ['30 min', '30 minutes avant', true], ['15 min', '15 minutes avant', true], ['5 min', '5 minutes avant', true], ['À l\'heure', 'À l\'heure', true]]);
     await toucher(A, '[data-evt="enregistrer"]');
     vrai('sans titre : l\'écran le DIT (« Donne un titre au rendez-vous »)', await attendre(A, () => { const e = document.getElementById('info-erreur'); return e && !e.hidden && /titre au rendez-vous/.test(e.textContent); }));
     await toucher(A, '#ev-rappels [data-evt-rappel="15"]');

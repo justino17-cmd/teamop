@@ -1298,8 +1298,8 @@ html[data-service] .mention-apercu { display: none; }
    sait pas ancrer le pose au milieu de l'écran (la place d'origine d'un `popover`) ; un navigateur sans `popover` le montre au pied de la feuille. */
 .reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
 .reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
-.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }
-#btn-agenda-plus[aria-expanded="true"] { anchor-name: --deroule; }      /* le « + » de l'Agenda (15 octobre 2026) : son menu sort de lui, comme le « + » du Calendrier d'Apple */      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+#btn-agenda-plus[aria-expanded="true"], .mini.membre-gerer[aria-expanded="true"] { anchor-name: --deroule; }      /* le « + » de l'Agenda (15 octobre 2026 : son menu sort de lui, comme le « + » du Calendrier d'Apple) et le « … » d'un membre — sans ancre, le menu tombait au pied de la feuille */
 .chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
   background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); color: var(--text);
@@ -1719,6 +1719,7 @@ a.mini .ic { font-size: 16px; }
 /* une phrase d'aide SOUS une carte (le pied de groupe des Réglages d'Apple), plus une carte à elle seule */
 .pied-note { margin: -4px 16px 16px; font-size: 13px; line-height: 1.35; color: var(--sub-meta); }
 .rappels-puces { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; overflow: visible; background: none; }
+.carte.rappels-puces { background: none; box-shadow: none; border-radius: 0; }      /* ⛔ au bureau, `.carte` reçoit son ombre-liseré plus loin : sans ça, les pastilles restaient dans un cadre */
 .rappels-puces > .rappel-puce { width: auto; flex: 0 0 auto; min-height: 36px; padding: 0 16px; gap: 0; border: 0; border-radius: 999px; background: var(--fill-soft); }
 /* ⛔ un nom à elles (`rappel-puce`) : la première version s'appelait `.puce` — le nom des membres choisis d'un groupe, une COLONNE animée — et le texte restait collé en haut
    de la pastille (mesuré : à 1 px du bord, sur 44) ; et un défaut de l'une aurait touché l'autre */
@@ -1728,6 +1729,16 @@ a.mini .ic { font-size: 16px; }
 .rappels-puces > .rappel-puce[aria-checked="true"] .reglage-texte { color: var(--on-fill); }
 .rappels-puces > .rappel-puce:disabled { opacity: .5; }
 @media (pointer: coarse) { .rappels-puces > .rappel-puce { min-height: 44px; } }
+/* ⛔ l'anneau du clavier DEHORS : posé dedans (`.carte .reglage:focus-visible`), il se fondait dans le plein d'une pastille cochée (même bleu, de jour) */
+.rappels-puces > .rappel-puce:focus-visible { outline-offset: 2px; }
+html[data-os="windows"] .rappels-puces > .rappel-puce { border-radius: 6px; }      /* comme les boutons `.mini` de Windows, et les pastilles de durée d'à côté */
+@media (forced-colors: active) {      /* sans fonds : la pastille cochée garde un signe (la coche ne s'y dessine plus) */
+  .rappels-puces > .rappel-puce, .duree-choix .mini { border: 1px solid CanvasText; }
+  .rappels-puces > .rappel-puce[aria-checked="true"], .duree-choix .mini[aria-pressed="true"] { outline: 2px solid Highlight; outline-offset: 1px; }
+}
+/* une carte, une encre : « Fond et couleurs » (sans menu) restait bleu entre deux lignes à menu, à l'encre du texte ; et dans le trajet replié, deux GESTES, tous deux à l'accent */
+.info-corps .carte.pour-toi .reglage-texte { color: var(--text); }
+.info-corps .reu-trajet.replie .reglage-texte { color: var(--accent-txt); }
 .reglage[role="checkbox"][aria-checked="true"] .rond .ic { opacity: 1; }
 /* la coche d'une case DANS une ligne de réglage : celle de la ligne (12 px, encre de coche), pas l'icône de 22 px des lignes d'une feuille */
 .info-corps .reglage .rond .ic { font-size: inherit; color: inherit; }
@@ -1938,7 +1949,6 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-seg { display: inline-flex; gap: 4px; padding: 3px; border-radius: 999px; background: rgba(255,255,255,.1); }
 .salle-seg button { min-height: 36px; padding: 0 14px; border-radius: 999px; color: #fff; font-size: 14px; font-weight: 600; }
 .salle-seg button[aria-pressed="true"] { background: #fff; color: #000; }
-.salle-bientot { opacity: .55; }
 .salle-fil { max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
 .salle-msg { max-width: 92%; padding: 7px 11px; border-radius: 14px; background: rgba(255,255,255,.14); font-size: 15px; line-height: 20px; overflow-wrap: anywhere; align-self: flex-start; }
 .salle-msg.moi { align-self: flex-end; background: var(--fill); }
@@ -2139,7 +2149,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 /* la durée sous « Début » (15 octobre 2026) : 30 min, 1 h, « Plus » — la durée que disent les champs est pleine. ⛔ Le menu « Plus » garde 16 px : en dessous, Safari zoome la page. */
 .duree-choix { display: flex; flex-wrap: wrap; gap: 8px; }
 .duree-choix .mini[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
-.duree-choix .mini { font-size: 16px; }      /* (15 octobre 2026) à la taille de « Plus… » (16 px : Safari ne zoome pas un menu à 16 px) et des pastilles de rappel, juste dessous */
+.duree-choix .mini { font-size: 16px; min-height: 36px; padding: 0 16px; border-radius: 999px; }      /* (15 octobre 2026) la forme de « Plus… » et des pastilles de rappel, juste dessous (16 px : Safari ne zoome pas un menu à 16 px) — au bureau, `.mini` en faisait un rectangle de 24 px */
+@media (pointer: coarse) { .duree-choix .mini { min-height: 44px; } }
 .champ .duree-plus { width: auto; min-width: 96px; flex: 0 1 auto; height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 16px; font-weight: 600; text-align: center; text-align-last: center; -webkit-appearance: none; appearance: none; }
 .champ .duree-plus.actif { background: var(--fill); color: var(--on-fill); }
 @media (pointer: coarse) { .champ .duree-plus { height: 44px; } }

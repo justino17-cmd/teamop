@@ -316,7 +316,9 @@ const INIT = () => {
     console.log('\n7. L\'arrière-plan flou');
     await toucher(A, '#salle-plus');
     vrai('Chromium sans effet d\'appareil : « Plus » DIT que le navigateur ne le propose pas (pas d\'interrupteur mort)', await att(A, () => /Arrière-plan flou\s*Ton navigateur ne le propose pas sur cet appareil/.test(document.getElementById('salle-panneau-corps').textContent) && !document.querySelector('[data-sa="flou"]')));
-    v('« Bientôt » ne cite plus le flou', await A.page.evaluate(() => /Arrière-plan flou/.test((document.querySelector('.salle-bientot') || {}).textContent || '')), false);
+    /* (15 octobre 2026, « plus simple ») la rubrique « Bientôt » (ce qui n'était pas fait) est retirée de « Plus » — l'ancien contrôle lisait un élément qui n'existe plus, donc passait toujours */
+    v('« Plus » ne promet plus rien (population : « Arrière-plan flou » y est, ci-dessus) : ni rubrique « Bientôt », ni « Sous-titres en direct », ni « Salles de sous-groupes »', await A.page.evaluate(() => { const c = document.getElementById('salle-panneau-corps'), t = c.textContent;
+      return [/Arrière-plan flou/.test(t), !!c.querySelector('.salle-bientot'), Array.from(c.querySelectorAll('.salle-rub, .rubrique')).some(r => /^\s*Bientôt\s*$/.test(r.textContent)), /Sous-titres en direct|Salles de sous-groupes/.test(t)]; }), [true, false, false, false]);
     await toucher(A, '#salle-panneau-fermer');
     await A.page.evaluate(() => { window.__flouSimule = true; });
     await toucher(A, '#salle-plus');

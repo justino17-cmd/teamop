@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5ef234f03acf';
+  const OPMSG_BUILD = 'c58b579900c3';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 200;
+  const OPMSG_VERSION = 201;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3725,6 +3725,8 @@
           (CAP.espaces ? regLigne('entreprise', 'indigo', 'i-entreprise', 'Entreprise et abonnement') : '') +
           regLigne('confidentialite', 'bleu', 'i-cadenas', 'Confidentialité') +
           (CAP.notifications ? regLigne('notifications', 'rouge', 'i-cloche', 'Notifications', '<span class="reglage-valeur" id="reg-v-notif"></span>') : '') +
+          /* (15 octobre 2026, « plus simple ») « Confirmer l'envoi » (côté Pro) rejoint la première carte, sous Notifications — il avait sa carte à lui, en bas, après « À propos », pour UNE ligne */
+          (confirmerActif() ? '<button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi</span><span class="reglage-valeur" id="reg-v-confirmer"></span></button>' : '') +
           regLigne('contacts', 'vert', 'i-groupe', 'Contacts', '<span class="reglage-valeur" id="reg-demandes-n" aria-label="demandes reçues"></span>') +
           (lieuxPossibles() ? regLigne('lieux', 'sarcelle', 'i-lieu', 'Mes lieux', '<span class="reglage-valeur" id="reg-v-lieux"></span>') : '') +
         '</div><div class="carte reg-menu">' +
@@ -3733,7 +3735,6 @@
           (CAP.compte ? regLigne('compte', 'bleu', 'i-personne', 'Mes données et mon compte') : '') +
           regLigne('apropos', 'gris', 'i-info', 'À propos', '<span class="reglage-valeur" id="reg-v-apropos"></span>') +
         '</div>' +
-        (confirmerActif() ? '<div class="carte"><button type="button" class="reglage presse" id="reg-confirmer" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reg-tuile t-indigo" aria-hidden="true">' + icone('i-chat') + '</span><span class="reglage-texte">Confirmer l\'envoi<small>Côté pro : éviter un message parti par erreur</small></span><span class="reglage-valeur" id="reg-v-confirmer"></span></button></div>' : '') +
         '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reg-tuile t-rouge" aria-hidden="true">' + icone('i-sortie') + '</span><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '</div><div class="reg-detail">' +
         (CAP.espaces ? regSection('entreprise', 'Entreprise et abonnement', '<div class="rubrique"><span>Mes espaces</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>') : '') +
@@ -4451,7 +4452,7 @@
        un canal est Pro par nature) */
     if (modesActifs() && (i.type === 'direct' || g || i.type === 'reunion') && !i.supprime && lc) pourToi += '<button type="button" class="reglage presse" data-act="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') + '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans</span><span class="reglage-valeur">' + esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button>';
     if (CAP.themesConv && !i.supprime) pourToi += '<button type="button" class="reglage presse" data-act="theme"><span class="reglage-texte">Fond et couleurs</span><span class="reglage-valeur">' + esc(nomTheme(thC)) + '</span>' + CHEVRON + '</button>';
-    if (pourToi) h += '<div class="rubrique"><span>Pour toi</span><span>Les autres ne le voient pas</span></div><div class="carte">' + pourToi + '</div>';
+    if (pourToi) h += '<div class="rubrique"><span>Pour toi</span><span>Les autres ne le voient pas</span></div><div class="carte pour-toi">' + pourToi + '</div>';
     if (g) {
       h += '<div class="rubrique"><span>Membres</span><span>' + i.membres.length + '</span></div><div class="carte">' + i.membres.map(m =>
         '<div class="contact' + (i.moiAdmin && !m.moi ? ' avec-actions' : '') + '">' + avatar(m) + '<span class="contact-texte"><span class="contact-nom">' + esc(m.moi ? 'Vous' : m.nom) + (m.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (presenceTexte(m) && !m.moi ? '<span class="contact-role">' + presenceTexte(m) + '</span>' : '') + '</span>' +
@@ -4489,8 +4490,9 @@
     corps.innerHTML = h;
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
     if (dr) {
-      const n = corps.querySelector('[data-act="' + dr.dataset.act + '"][aria-haspopup="menu"]');
-      if (n && n.dataset.valeur === dr.dataset.valeur) { n.setAttribute('aria-expanded', 'true'); etat.deroule.declencheur = n; }
+      /* ⛔ les « … » des membres sont plusieurs : on retrouve CELUI du même membre (et de son rôle d'alors) — le premier de la liste prenait le menu, et le focus à la fermeture */
+      const n = Array.from(corps.querySelectorAll('[data-act="' + dr.dataset.act + '"][aria-haspopup="menu"]')).find(x => (x.dataset.uid || '') === (dr.dataset.uid || '')) || null;
+      if (n && n.dataset.valeur === dr.dataset.valeur && n.dataset.admin === dr.dataset.admin) { n.setAttribute('aria-expanded', 'true'); etat.deroule.declencheur = n; }
       else { if (n) etat.deroule.declencheur = n; fermerDeroule(true); }
     }
   }
@@ -4535,7 +4537,7 @@
       else if (act === 'membre') {
         const uid = b.dataset.uid, nommer = b.dataset.admin === '1', nom = b.dataset.nom || '';
         ouvrirDeroule(b, 'Gérer ' + nom, nom, [{ valeur: 'admin', libelle: nommer ? 'Nommer admin' : 'Retirer l\'admin' }, '-', { valeur: 'retirer', libelle: 'Retirer du groupe', danger: true }],
-          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a quitté le groupe'));
+          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a été retiré du groupe'));
         return;
       }
       else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);
@@ -4985,7 +4987,8 @@
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
     if (!CAP.actionsMessage || !m || !c || m.systeme || m.attente || (etat.menu && etat.menu.mid === mid)) return;
-    const moi = m.auteur === MOI.id, admin = multi(c) && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
+    /* ⛔ admin, pour supprimer POUR TOUS, c'est dans un groupe ou un canal — le service ne l'accorde qu'à eux (l'organisateur d'une réunion se voyait proposer « pour tous », refusé) */
+    const moi = m.auteur === MOI.id, admin = (c.type === 'groupe' || c.type === 'canal') && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
     const mienne = (m.reactions || []).find(r => r.moi);
     etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
@@ -5003,8 +5006,10 @@
     if (!m.supprime && rappelPossible()) h += '<button type="button" class="menu-action" data-menu="rappel" aria-haspopup="menu">Me le rappeler</button>';
     const pieceSuivie = moi && !m.supprime && suiviPossible() ? pieceDe(m) : null;
     if (pieceSuivie) h += '<button type="button" class="menu-action" data-menu="suivi">' + (m.fichier ? 'Qui l\'a téléchargé' : m.vocal ? 'Qui l\'a écouté' : 'Qui l\'a vue') + '</button>';
-    h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
-    if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer-tous">Supprimer pour tous</button>';
+    /* (15 octobre 2026, « l'application doit être plus simple ») UNE ligne « Supprimer… » quand les deux suppressions sont possibles : elle ouvre le choix (pour moi, pour tous) — ce choix
+       tient lieu de la seconde touche que « pour tous » a toujours demandée. Une seule possible (le message d'un autre) : elle reste directe, comme avant. */
+    if ((moi || admin) && !m.supprime) h += '<button type="button" class="menu-action danger" data-menu="supprimer" aria-haspopup="menu">Supprimer…</button>';
+    else h += '<button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button>';
     $('menu-msg').innerHTML = h;
     const rang = Array.from($('conv-messages').querySelectorAll('.msg[data-mid]')).find(x => x.dataset.mid === mid);
     const ancre = rang && (rang.querySelector('.msg-rang') || rang);
@@ -5065,7 +5070,12 @@
     if (!m || !id || (!r && !a)) return;
     if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); masquerAvis(); } catch (er) { avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
     const act = a.dataset.menu;
-    if (act === 'supprimer-tous' && a.dataset.pret !== '1') {                  // une suppression pour tous demande une seconde touche, dite
+    if (act === 'supprimer') {                  // « Supprimer… » : le choix — et « pour tous » n'y demande plus rien, ce choix ÉTAIT sa seconde touche
+      $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message ?</p><button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
+      $('menu-msg').querySelector('button').focus({ preventScroll: true });
+      return;
+    }
+    if (act === 'supprimer-tous' && a.dataset.pret !== '1') {                  // ⛔ garde : une suppression pour tous ne part jamais sur UNE touche — un bouton direct qui viendrait un jour la redemanderait
       $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message pour tous ?</p><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
       $('menu-msg').querySelector('button').focus({ preventScroll: true }); return;
     }
@@ -6182,7 +6192,7 @@
     if (!possible && !F.tr.calc) { const oui = !!destinationGps($('ev-lieu') ? $('ev-lieu').value : '', null); z.innerHTML = '<div class="info-actions evt-tr-gestes"' + (oui ? '>' + BOUTON_GPS_EVT : ' hidden>') + '</div>'; return; }
     const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.trMode ? '[data-tr-mode="' + a.dataset.trMode + '"]' : a.dataset.evt ? '[data-evt="' + a.dataset.evt + '"]' : '') : '';
     z.innerHTML = htmlTrajet(F, possible);
-    if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
+    if (cle) { const b = z.querySelector(cle) || z.querySelector('[data-evt="trajet-calculer"]'); if (b && !b.disabled) b.focus({ preventScroll: true }); }      // le bouton touché a disparu (« Retirer le trajet ») : le focus va au calcul
   }
   /* « Ma position » : le navigateur la demande (il pose la question de la permission) ; elle ne sert qu'au calcul, et ne quitte la fiche que vers le service */
   function positionDuMoment() {
@@ -7305,7 +7315,7 @@
     }
     const sig = JSON.stringify(d.moi.trajet || d.moi.trajetPerime || null);
     if (!F.tr) F.tr = trajetReuEtat(d);
-    else if (F.tr.sig !== sig && !F.tr.calcul) F.tr = Object.assign(trajetReuEtat(d), { autres: F.tr.autres, erreur: F.tr.erreur });
+    else if (F.tr.sig !== sig && !F.tr.calcul) F.tr = Object.assign(trajetReuEtat(d), { autres: F.tr.autres, erreur: F.tr.erreur, ouvert: F.tr.ouvert });      // déplié, il le reste (« Retirer le trajet » ne le replie pas sous le doigt)
     const a = document.activeElement, cle = a && z.contains(a) ? (a.id ? '#' + a.id : a.dataset.mode ? '[data-mode="' + a.dataset.mode + '"]' : a.dataset.reu ? '[data-reu="' + a.dataset.reu + '"]' : '') : '';
     const champ = $('rt-adresse'), saisie = champ && z.contains(champ) ? { v: champ.value, focus: a === champ, pos: champ.selectionStart } : null;
     if (saisie) F.tr.adresse = saisie.v;
@@ -7315,7 +7325,7 @@
     if (z._trajet === h) return;
     z._trajet = h; z.innerHTML = h;
     if (saisie && saisie.focus && $('rt-adresse')) { $('rt-adresse').focus({ preventScroll: true }); try { $('rt-adresse').setSelectionRange(saisie.pos, saisie.pos); } catch (e) { /* un champ sans curseur */ } }
-    else if (cle) { const b = z.querySelector(cle); if (b && !b.disabled) b.focus({ preventScroll: true }); }
+    else if (cle) { const b = z.querySelector(cle) || z.querySelector('[data-reu="trajet-calculer"]'); if (b && !b.disabled) b.focus({ preventScroll: true }); }      // le bouton touché a disparu (« Retirer le trajet ») : le focus va au calcul, pas à la page
   }
   /* après un enregistrement : la fiche se relit (elle ne se redessine que si elle a changé — l'événement de la source la relit aussi : pas un redessin de plus), puis la zone, qui ne se repeint que si ELLE a changé */
   const relireFicheTrajet = async () => { await rendreFiche(); peindreTrajetReu(); };
