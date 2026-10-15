@@ -19,6 +19,59 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 15 OCTOBRE 2026 — OP MESSAGES : L'AGENDA, QUATRE GESTES — LA DURÉE, « Y ALLER », COLLER UNE CONFIRMATION, L'APPUI LONG EN VERT
+
+Justin, trois captures de la bêta à l'appui : « quand on sélectionne l'heure de début, il faudrait qu'on puisse choisir ce que ça va durer, 30 minutes, une heure ou plus » ; « il
+faudrait pouvoir l'ouvrir à partir de n'importe quel GPS qui est installé sur un téléphone » ; « je sais pas pourquoi il a ajouté à mon agenda, car l'application fait déjà agenda » —
+et, à la question posée : « quand les gens prennent un rendez-vous sur un site ou autre, ils peuvent l'ajouter à notre calendrier, mais par l'application » (choix : coller la
+confirmation) ; « on peut rester appuyé sur le rendez-vous concerné, marquer effectué, et ça s'affiche en vert, ou déplacer ». Ce qui est écrit (bêta, la PAGE seule — le service
+ne change pas) :
+· **La durée sous « Début »** (rendez-vous, événement, réunion) : « 30 min », « 1 h », « Plus… » (1 h 30 à 8 h). La fin SUIT : une durée la pose, un début changé la déplace
+  d'autant (la durée est gardée — la réunion ne déplaçait la fin que quand elle tombait avant le début), une fin tapée redit sa durée (« 45 min » dans « Plus… »). Cachée pour
+  « Toute la journée ». ⛔ Sous Chrome, `Date.parse(':00Z')` rend l'an 2000 : un champ vidé faisait une durée de 234 825 h — la FORME est vérifiée d'abord (`minutesMur`, trouvé par le banc).
+· **« Y aller »** : dans la zone du trajet d'un rendez-vous et d'une réunion (même quand le calcul est fermé : il n'a besoin d'aucun service), et dans le menu de l'appui long / du
+  clic droit. Une feuille des applications de guidage : Plans (Apple), Google Maps, Waze (en voiture) et, sur Android, « Choisir une application » (`geo:` — le choix du téléphone,
+  TOUTES celles qui y sont installées). Vers l'arrivée trouvée par le calcul, sinon le lieu écrit ; un lien de visio n'est pas une adresse ; il suit le lieu qu'on tape ; au bureau, sous
+  son bouton. ⛔ Ce sont des liens que la personne touche, jamais une connexion : test-900 les nomme (septième exception), une fois chacun.
+· **Plus d'« Ajouter à mon calendrier » dans la fiche d'un rendez-vous** ; **« Coller une confirmation »** dans « Nouveau rendez-vous » : le mail ou le SMS d'un site (médecin, garage,
+  mairie…) — collé, ou lu dans le presse-papiers d'un toucher quand l'appareil le permet — remplit le titre (le motif : Médecin, Dentiste, Garage…), avec qui, le jour, l'heure, la
+  durée et l'adresse ; un .ics collé se lit aussi (son seul bloc VEVENT). ⛔ Tout se lit SUR L'APPAREIL : le texte collé ne part nulle part, seul le rendez-vous rempli s'enregistre
+  (la sonde le prouve avec une référence témoin). Ni la date d'un en-tête de mail transféré, ni une date de réservation ne comptent ; ce qu'on ne trouve pas, on ne l'invente pas.
+· **L'appui long** existait (le menu : « Marquer comme fait », « Reporter », « Décaler… »…) ; il porte maintenant « Y aller », et ⛔ la ligne ne sélectionne plus son texte au
+  doigt (iOS coupait l'appui long pour sélectionner — sans doute pourquoi Justin ne le trouvait pas). **Fait = vert** : une coche ronde verte devant le titre, la case du mois et de
+  la semaine teintée de vert.
+· **Relu par `relecteur`** (pas d'injection, pas de fuite du texte collé, pas d'assertion arrière, pas de zone morte). Corrigé : ⛔ la lecture d'une confirmation GELAIT la page sur
+  une longue suite de blancs (deux quantificateurs côte à côte : « 1 » et 3 000 espaces, 10,5 s ; « adresse » et 3 000 retours à la ligne, 46,5 s — un mail riche copié) → le texte
+  replié d'abord, chaque expression sans ambiguïté, l'en-tête d'un mail jugé une fois par ligne, la ligne trouvée par dichotomie, `propre` borné ; et mon banc annonçait « aucun retour
+  arrière explosif » sans jouer une seule suite de blancs ; un vrai .ics (Apple, Google, Outlook) commence par son fuseau (DTSTART de 1970) et n'était jamais lu ; au bureau, « Y aller »
+  d'une fiche s'ouvrait à l'endroit du dernier clic droit ; « Adresse e-mail » passait pour un lieu, « scanner le QR code » pour de l'imagerie. ⚠️ Et une recopie avait changé les
+  espaces insécables de la normalisation en espaces ordinaires (le banc l'a vu) : elles sont écrites en échappements.
+⚠️ **À dire à Justin, pas tranché** : les RÉUNIONS gardent « Ajouter à mon calendrier (.ics) » (leur fiche, leur menu ; le courriel d'invitation en porte un pour qui n'a pas
+l'application) — à retirer aussi s'il le veut. La route `GET /api/agenda/:id/ics` (le .ics d'un événement) reste au service, sans bouton : à retirer avec sa phrase.
+⚠️ **Limites connues** : la durée est une durée d'HORLOGE (« 1 h » reste une heure affichée la nuit du changement d'heure) ; la lecture d'une confirmation devine (le motif lu dans tout
+le texte, « 1/2 » pris pour le 1er février) — elle ne remplit le titre et « Avec » que s'ils sont vides, et dit ce qu'elle a lu : la personne vérifie ; « coller » écrase le lieu déjà
+tapé (ce qui est trouvé remplace) ; la coche blanche sur le vert est à 2:1 (décorative, doublée du texte barré et de « Fait : » pour un lecteur d'écran).
+⚠️ **Dette trouvée en passant, préexistante** : `sonde-opmessages-agenda-decaler.js` tombe (3 ✗ : le chevauchement « 16:30 », le salon sur deux jours — puis elle s'arrête) à
+l'IDENTIQUE sur `main` (764c6bd5), le 15 octobre (un jeudi) — sans rapport avec ce chantier ; à rejouer un autre jour pour savoir si c'est le jour de la semaine.
+Preuves : `test-1007` (95 ✓) entre dans la porte — les VRAIES fonctions de la page dans un bac à sable : la lecture d'une confirmation (Doctolib, un SMS de garage, des mails transférés —
+reçus aujourd'hui compris —, une réservation du jour, des .ics en UTC, à fuseau nommé, d'Apple avec son VTIMEZONE, la nuit du changement d'heure ; « 24h/24 », « 3.5 km », le 31 février,
+« Adresse e-mail », « scanner le QR code »…), ⛔ 13 formes de blancs dangereuses et 12 mélanges tirés au sort, chacun coupé à 2 s (un gel fait TOMBER le banc, il ne le fige pas) ; la
+durée (le trio, la fin qui suit, le champ vidé) ; « Y aller » selon l'appareil, l'adresse encodée, nos seuls schémas, le menu échappé ; la vraie `peindreTrajet` (calcul fermé) ; ⛔ la
+lecture ne parle à personne ; aucune assertion arrière dans tout le script. Contre-épreuve : ce banc sur la page d'avant la relecture rend 5 ✗ en 7 s (sans le délai, il gelait).
+Sonde `sonde-opmessages-agenda-geste.js` (78 ✓, hors porte) : l'iPhone (la durée au doigt, « Coller une confirmation » presse-papiers fermé, « Y aller » avant et après le calcul, à
+pied, l'appui long — « Y aller », « Marquer comme fait » en VERT sans ouvrir la fiche, « Remettre à faire »), l'Android (la confirmation copiée lue d'un toucher, « Choisir une
+application »), le bureau de nuit (« Toute la journée », une réunion, la semaine teintée de vert, le clic droit, Google Maps dans un autre onglet — un faux : rien ne sort de la
+machine —, le menu sous son bouton, une arrivée piégée en texte) ; ⛔ la référence témoin du texte collé n'est dans AUCUNE requête. Sondes voisines rejouées : rendez-vous (33 :
+plus de .ics ; le trajet fermé, « Y aller » reste), trajet (69), trajet-réunion (50), agenda (17), agenda-côté (76), ordre du jour (23), réunions (296).
+Mutations : 36 sur 38 attrapées (la durée, les liens, l'appui long, la lecture, le gel, le .ics, la position, le texte collé envoyé dans la note…). Les deux qui survivent retirent
+chacune UNE des deux gardes du gel (le texte replié, les expressions sans ambiguïté) : l'autre tient ; les deux retirées, le banc tombe. ⚠️ Trois cas du banc ne prouvaient rien au
+premier tour (un en-tête et une réservation datés du PASSÉ ne sont jamais choisis ; une adresse e-mail porte un « @ » qu'une seconde garde écarte) : refaits avec la date du jour, et
+les deux gardes de l'en-tête (la date, l'heure) ont chacune leur cas. ⚠️ Et « un lien retiré de la page pendant son clic ne s'ouvre plus » était FAUX (mesuré : Chromium l'ouvre) — la
+fermeture différée du menu reste, comme simple précaution, et le commentaire le dit.
+Porte des bancs messages : 99 suites, 10 081 vérifications (test-971 tombe en local, fuseaux de la machine) — plancher 10067. ⚠️ Deux suites de la porte ont dû suivre, et
+c'est elles qui l'ont vu : test-900 refusait les liens de Google Maps et de Waze dans le code servi (septième exception, nommée et COMPTÉE : une fois chacun) ; test-1003 lisait le côté d'une
+réunion en dernier champ de son formulaire (`duree` passe avant).
+
 # 🟡 14 OCTOBRE 2026 — OP MESSAGES : LE TRAJET D'UNE RÉUNION — CHACUN SON « PARTIR À … » (LOT 2)
 
 La suite de la demande de Justin du 13 octobre (« … et pareil pour pro pour les réunions ou rendez-vous » ; « Réunions + Rendez-vous Pro ») : le lot 1 a donné les rendez-vous,
