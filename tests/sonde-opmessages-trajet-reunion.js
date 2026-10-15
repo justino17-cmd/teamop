@@ -103,7 +103,7 @@ const ouvrirFiche = async (S, id) => { await S.page.evaluate(r => { location.has
       ['position', ['position:Ma position', 'domicile:Domicile (à enregistrer)', 'travail:Travail (à enregistrer)', 'adresse:Une autre adresse'], ['voiture✓', 'pied'], '5', 'Calculer l\'heure de départ']);
     v('   la rubrique « Trajet », sous « Me rappeler » ; la position dite pour ce qu\'elle est', [init.titre, init.apresRappels, init.note], [true, true, true]);
     const tailles = await B.page.evaluate(() => Array.from(document.querySelectorAll('#reu-trajet-zone button, #reu-trajet-zone select')).filter(x => x.getClientRects().length).map(x => Math.round(x.getBoundingClientRect().height)));
-    v('iPhone : chaque commande du trajet fait 44 px au moins (population : le départ, voiture, à pied, l\'avance, « Calculer »)', [tailles.length, tailles.every(h => h >= 44)], [5, true], tailles);
+    v('iPhone : chaque commande du trajet fait 44 px au moins (population : le départ, voiture, à pied, l\'avance, « Calculer », « Y aller »)', [tailles.length, tailles.every(h => h >= 44)], [6, true], tailles);
 
     console.log('\n── 2. « Calculer » : « Partir à », enregistré tout de suite ──');
     B.requetes.length = 0; let n = ign.etat.appels.length;
