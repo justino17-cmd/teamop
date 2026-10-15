@@ -1294,7 +1294,8 @@ html[data-service] .mention-apercu { display: none; }
    sait pas ancrer le pose au milieu de l'écran (la place d'origine d'un `popover`) ; un navigateur sans `popover` le montre au pied de la feuille. */
 .reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
 .reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
-.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }
+#btn-agenda-plus[aria-expanded="true"] { anchor-name: --deroule; }      /* le « + » de l'Agenda (15 octobre 2026) : son menu sort de lui, comme le « + » du Calendrier d'Apple */      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
 .chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
   background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); color: var(--text);
@@ -2511,7 +2512,7 @@ a.menu-action { text-decoration: none; }
     <section class="vue" id="vue-contacts" aria-labelledby="titre-contacts" hidden></section>
     <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
       <div class="entete-vue">
-        <button type="button" class="lien-texte presse" id="btn-modifier-appels">Modifier</button>
+        <span></span>
         <button type="button" class="lien-texte presse" id="btn-nouvel-appel" aria-haspopup="dialog">Nouvel appel</button>
       </div>
       <h1 class="grand-titre" id="titre-appels">Appels</h1>
@@ -3066,14 +3067,23 @@ a.menu-action { text-decoration: none; }
      compte Pro sans les deux côtés (un service d'avant). Sans la capacité (un service qui ne connaît pas le rendez-vous), rien ne change.
      ⛔ CÔTÉ PRO, LES DEUX (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») : une réunion (avec d'autres), ou un rendez-vous (chez un client, un fournisseur) —
      rangé dans l'agenda Pro, avec son heure de départ. */
-  function peindreBoutonsAgenda() {
-    const rdv = $('btn-rdv-nouveau'), reu = $('btn-reunion-nouvelle'); if (!rdv || !reu) return;
-    const perso = !etat.pro || (modesActifs() && etat.mode !== 'pro');
-    rdv.hidden = false; reu.hidden = perso;
+  /* ce que le « + » de l'Agenda propose : le rendez-vous (des deux côtés), l'événement, et la réunion — côté Pro seulement quand le rendez-vous existe (Perso, ce sont les rendez-vous ;
+     les réunions sont à Pro). Créer : le même chemin qu'avant, la feuille rend le focus au « + ». */
+  function choixCreerAgenda() {
+    const perso = !etat.pro || (modesActifs() && etat.mode !== 'pro'), l = [];
+    if (CAP.rendezVous) l.push({ valeur: 'rdv', libelle: 'Rendez-vous' });
+    if (CAP.agenda) l.push({ valeur: 'evenement', libelle: 'Événement' });
+    if (!perso || !CAP.rendezVous) l.push({ valeur: 'reunion', libelle: 'Réunion' });
+    return l;
+  }
+  function creerAgenda(quoi) {
+    declencheur = $('btn-agenda-plus');
+    if (quoi === 'reunion') programmerReunion();
+    else if (quoi === 'rdv' && CAP.rendezVous) pousser(Object.assign({}, etat.route, { feuille: 'rdv-new' }));
+    else if (quoi === 'evenement' && CAP.agenda) pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' }));
   }
   function peindreMode() {
     const actif = modesActifs(), pro = actif && etat.mode === 'pro', racine = document.documentElement, autre = etat.mode === 'pro' ? 'perso' : 'pro';
-    peindreBoutonsAgenda();
     if (actif) racine.dataset.cote = etat.mode; else delete racine.dataset.cote;
     document.querySelectorAll('.marque-pro').forEach(e => { e.hidden = !pro; });       // (son espace caché : « OP MESSAGES PRO » se lit en trois mots, jamais « MESSAGESPRO »)
     $('marque-tel').hidden = !actif;
@@ -5526,7 +5536,6 @@ a.menu-action { text-decoration: none; }
     else if (i) { const a = etat.appels.find(x => x.id === i.dataset.infos); if (a) { declencheur = i; pousser(Object.assign({}, etat.route, { feuille: 'info:' + a.id })); } }
   });
   $('btn-nouvel-appel').addEventListener('click', () => ouvrirFeuille('appel'));
-  $('btn-modifier-appels').addEventListener('click', () => mot('« Modifier » arrive bientôt'));
 
   /* les détails d'un appel : la même feuille, un autre corps — qui, quand, combien de temps, et les trois gestes (rappeler, l'autre type d'appel, écrire) */
   function rendreInfo(a) {
@@ -6769,13 +6778,12 @@ a.menu-action { text-decoration: none; }
     if (cat !== 'tous') { corps.innerHTML = rendreVcCategorie(cat, brut, q); vcRendreFocus(corps, cleFocus); return; }
     if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
     else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
-    else if (!q || R.length) {
+    else if (R.length) {                // (15 octobre 2026, « plus simple ») la rubrique des demandes ne paraît que s'il y en a : plus de carte « Aucune demande en attente »
       h += '<div class="rubrique"><span>Demandes de contact</span><span>' + (R.length || '') + '</span></div>';
       h += R.length ? '<div class="carte vc-recues">' + R.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'veut t\'ajouter à ses contacts',
           '<button type="button" class="mini plein" data-act="vc-accepter" data-uid="' + esc(d.id) + '" aria-label="Accepter la demande de ' + esc(d.nom) + '">Accepter</button>' +
           '<button type="button" class="mini" data-act="vc-refuser" data-uid="' + esc(d.id) + '" aria-label="Refuser la demande de ' + esc(d.nom) + '">Refuser</button>' +
-          (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="vc-bloquer" data-uid="' + esc(d.id) + '" aria-label="Bloquer ' + esc(d.nom) + '">Bloquer</button>' : ''))).join('') + '</div>'
-        : '<div class="carte carte-pad"><p class="info-note">Aucune demande en attente. Quand quelqu\'un voudra t\'ajouter, elle apparaîtra ici.</p></div>';
+          (typeof source.bloquer === 'function' ? '<button type="button" class="mini danger" data-act="vc-bloquer" data-uid="' + esc(d.id) + '" aria-label="Bloquer ' + esc(d.nom) + '">Bloquer</button>' : ''))).join('') + '</div>' : '';
     }
     if (D && !(D.erreur && !D.recues) && E.length) h += '<div class="rubrique"><span>Demandes envoyées</span><span>' + E.length + '</span></div><div class="carte">' + E.map(d => ligne(d, (d.identifiant ? d.identifiant + ' · ' : '') + 'en attente de réponse',
           '<button type="button" class="mini" data-act="vc-retirer" data-uid="' + esc(d.id) + '" aria-label="Retirer la demande envoyée à ' + esc(d.nom) + '">Retirer</button>')).join('') + '</div>';
@@ -6832,8 +6840,8 @@ a.menu-action { text-decoration: none; }
     }
     let h = '';
     if (CAP.reunions) {
-      h += '<div class="rubrique"><span>Réunions à venir ensemble</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
-      if (!d.reunions.length) h += '<p class="fc-note">Aucune réunion prévue avec ' + esc(prenom(p)) + ' dans les deux prochains mois.</p>';
+      /* (15 octobre 2026, « plus simple ») sans réunion prévue, la rubrique s'appelle « Réunions » et ne dit qu'une chose : en programmer une — plus de phrase « Aucune réunion… » */
+      h += '<div class="rubrique"><span>' + (d.reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
       h += d.reunions.map(r => {
         const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
         const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(FMT_JOUR_FICHE.format(o.debut) + ' · ' + FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin)) + '<br>' + esc(sonStatutTxt(r, p));
@@ -8074,9 +8082,9 @@ a.menu-action { text-decoration: none; }
   function construireReunions() {
     const sec = $('vue-reunions');
     sec.innerHTML =
-      '<div class="entete-vue">' + (CAP.agenda ? '<button type="button" class="lien-texte presse" id="btn-evenement-nouveau" aria-haspopup="dialog">Événement</button>' : '<span></span>') +
-        '<span class="entete-actions"><button type="button" class="lien-texte presse" id="btn-reunion-nouvelle" aria-haspopup="dialog">' + (CAP.agenda ? 'Réunion' : 'Programmer') + '</button>' +
-        (CAP.rendezVous ? '<button type="button" class="lien-texte presse" id="btn-rdv-nouveau" aria-haspopup="dialog" hidden>Rendez-vous</button>' : '') + '</span></div>' +
+      /* (15 octobre 2026, « l'application doit être plus simple ») UN seul « + », comme le Calendrier d'Apple : il propose ce qu'on peut créer de CE côté (`choixCreerAgenda`) —
+         avant, deux ou trois liens côte à côte (« Événement », « Réunion », « Rendez-vous ») */
+      '<div class="entete-vue"><span></span><button type="button" class="btn-plus" id="btn-agenda-plus" aria-haspopup="menu" aria-expanded="false" aria-label="Nouveau"><span class="pastille"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span></button></div>' +
       pastilleMoi() + '<h1 class="grand-titre" id="titre-reunions">' + esc(VUES.reunions.titre) + '</h1>' +
       '<div class="seg" id="reu-vue-seg" role="group" aria-label="Afficher"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-reu-vue="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-reu-vue="mois" aria-pressed="false">Mois</button></div>' +
       '<div class="sem-nav" role="group" aria-label="Période affichée">' +
@@ -8099,10 +8107,11 @@ a.menu-action { text-decoration: none; }
     $('reu-vue-seg').addEventListener('click', e => { const b = e.target.closest('[data-reu-vue]'); if (b) changerVueAgenda(b.dataset.reuVue); });
     for (const z of ['mois-jours', 'sem-grille']) $(z).addEventListener('click', e => clicCaseAgenda(e, z === 'mois-jours'));
     agendaGestes(sec);                                // clic droit, appui long, glisser — sur les cases et la liste du jour
-    $('btn-reunion-nouvelle').addEventListener('click', () => programmerReunion());
-    if (CAP.rendezVous) $('btn-rdv-nouveau').addEventListener('click', () => { declencheur = $('btn-rdv-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'rdv-new' })); });
-    peindreBoutonsAgenda();
-    if (CAP.agenda) $('btn-evenement-nouveau').addEventListener('click', () => { declencheur = $('btn-evenement-nouveau'); pousser(Object.assign({}, etat.route, { feuille: 'evenement-new' })); });
+    $('btn-agenda-plus').addEventListener('click', () => {
+      const b = $('btn-agenda-plus'), l = choixCreerAgenda();
+      if (l.length === 1) { creerAgenda(l[0].valeur); return; }
+      ouvrirDeroule(b, 'Nouveau', null, l, creerAgenda);
+    });
     $('sem-prec').addEventListener('click', () => vueMois() ? changerMois(-1) : changerSemaine(-7));
     $('sem-suiv').addEventListener('click', () => vueMois() ? changerMois(1) : changerSemaine(7));
     $('sem-titre').addEventListener('click', () => { const t = minuitDe(Date.now()); allerAuJour(t); });
@@ -8704,8 +8713,8 @@ a.menu-action { text-decoration: none; }
         '<div class="seg" id="bord-portee" role="group" aria-label="Réunions prévues : la semaine ou le mois"><span class="seg-knob" aria-hidden="true"></span><button type="button" class="seg-bouton" data-bord-portee="semaine" aria-pressed="true">Semaine</button><button type="button" class="seg-bouton" data-bord-portee="mois" aria-pressed="false">Mois</button></div>' +
         '<ul class="carte-liste" id="bord-reunions" role="list" aria-label="Réunions prévues"></ul>' +
         '<div class="rubrique"><span>Rappels</span><span id="bord-rappels-n"></span></div><ul class="carte-liste" id="bord-rappels" role="list" aria-label="Rappels"></ul>' +
-        (typeof source.mentionsRecentes === 'function' ? '<div class="rubrique"><span>Mentions</span><span id="bord-mentions-n"></span></div><ul class="carte-liste" id="bord-mentions" role="list" aria-label="Mentions"></ul>' : '') +
-        '<div class="rubrique"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
+        (typeof source.mentionsRecentes === 'function' ? '<div class="rubrique" id="bord-mentions-rub"><span>Mentions</span><span id="bord-mentions-n"></span></div><ul class="carte-liste" id="bord-mentions" role="list" aria-label="Mentions"></ul>' : '') +
+        '<div class="rubrique" id="bord-appels-rub"><span>Appels manqués importants</span><span id="bord-appels-n"></span></div><ul class="carte-liste" id="bord-appels" role="list" aria-label="Appels manqués importants"></ul>';
       sec.dataset.pret = '1';
       bord.portee = typeof source.bordReunions === 'function' && source.bordReunions() === 'mois' ? 'mois' : 'semaine';
     }
@@ -8736,12 +8745,14 @@ a.menu-action { text-decoration: none; }
       const t7 = now - 7 * 86400000, ms = bord.mentions.filter(x => x.t >= t7 && pourBord(coteDe(etat.conversations.find(c => c.id === x.conv)))).slice(0, 8), nl = ms.filter(x => !x.lue).length;
       $('bord-mentions').innerHTML = att || (ms.length ? ms.map(ligneMention).join('') : '<li class="bord-vide"><span>Aucune mention ces sept derniers jours.</span></li>');
       $('bord-mentions-n').textContent = nl ? String(nl) : '';
+      $('bord-mentions-rub').hidden = $('bord-mentions').hidden = !att && !ms.length;      // (15 octobre 2026, « plus simple ») un bloc vide ne se montre pas : seulement ce qui a du contenu
     }
     /* les appels manqués IMPORTANTS, avec leur raison */
     const imp = appelsImportants(bord.appels.filter(a => pourBord(coteAppel(a))));      // (8 octobre 2026) un appel manqué d'un ami n'est pas au tableau de bord (le côté Pro)
     $('bord-appels').innerHTML = att || (imp.length ? imp.map(x => ligneAppel(x.a).replace('<span class="appel-kind">', '<span class="bord-raison">' + esc(x.raisons.join(' · ')) + '</span><span class="appel-kind">')).join('')
       : '<li class="bord-vide"><span>Aucun appel manqué important. Les autres sont dans Appels.</span></li>');
     $('bord-appels-n').textContent = imp.length ? String(imp.length) : '';
+    $('bord-appels-rub').hidden = $('bord-appels').hidden = !att && !imp.length;
   }
   /* ⛔ UNE MENTION LUE se reconnaît aussi à sa conversation : sans non-lus, on l'a ouverte depuis (dans une autre visite, sur un autre appareil) — elle n'est plus « non lue » ici, et le
      service l'apprend, en UNE fois */
@@ -11036,13 +11047,10 @@ a.menu-action { text-decoration: none; }
         l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
     const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
     h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp + ligneFlou(A) +
-      '<div class="salle-rang libre"><span class="texte">Son amélioré<small>Réduction du bruit, annulation d\'écho et volume automatique, toujours actifs</small></span></div>' +
       (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
     if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
-    h += '<div class="salle-rub"><span>Bientôt</span></div><div class="salle-liste salle-bientot">' +
-      '<div class="salle-rang libre" aria-disabled="true"><span class="texte">Sous-titres en direct<small>Bientôt</small></span></div><div class="salle-rang libre" aria-disabled="true"><span class="texte">Salles de sous-groupes<small>Bientôt</small></span></div></div>';
     if (s.moi.proprietaire) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
     return h;
   }

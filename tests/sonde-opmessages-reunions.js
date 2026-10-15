@@ -135,6 +135,23 @@ async function toucher(S, sel) {
   S.gestes++;
   if (S.pf.mobile) await loc.tap(); else await loc.click();
 }
+
+/* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : il propose Rendez-vous, Événement, et Réunion côté Pro. On le touche, puis le choix — avec un seul choix,
+   le « + » y va tout droit. `choixAgenda` lit ce que le « + » propose (et referme le menu). */
+async function creerAgenda(S, quoi) {
+  await toucher(S, '#btn-agenda-plus');
+  await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return (d && !d.hidden) || !!document.querySelector('#feuille:not([hidden]), .feuille:not([hidden])'); }, null, { timeout: 8000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; })) await toucher(S, '#deroule-liste [data-valeur="' + quoi + '"]');
+}
+async function choixAgenda(S) {
+  await toucher(S, '#btn-agenda-plus');
+  const ouvert = await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; }, null, { timeout: 8000 }).then(() => true, () => false);
+  if (!ouvert) return null;
+  const l = await S.page.evaluate(() => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(b => b.textContent.trim()));
+  await S.page.keyboard.press('Escape');
+  await S.page.waitForFunction(() => document.getElementById('deroule').hidden, null, { timeout: 8000 }).catch(() => {});
+  return l;
+}
 async function saisir(S, sel, texte) { await S.page.locator(sel).filter({ visible: true }).first().fill(texte); S.gestes++; }
 async function capture(S, nom) {
   if (!DOSSIER_CAPTURES) return;
@@ -357,14 +374,14 @@ async function parcoursA(b, ctx) {
   await verifier('l\'onglet Agenda : son titre, la semaine, sept jours dont UN SEUL « aujourd\'hui » (et c\'est le jour choisi), « Programmer », et « Rien de prévu ce jour-là »', A, () => {
     const auj = document.querySelectorAll('#sem-jours [aria-current="date"]');
     return document.getElementById('titre-reunions').textContent === 'Agenda' && document.querySelectorAll('#sem-jours .jour').length === 7 && auj.length === 1 && auj[0].getAttribute('aria-pressed') === 'true'
-      && !!document.getElementById('btn-reunion-nouvelle') && /Rien de prévu ce jour-là/.test(document.getElementById('liste-reunions').textContent);
+      && !!document.getElementById('btn-agenda-plus') && /Rien de prévu ce jour-là/.test(document.getElementById('liste-reunions').textContent);
   }, null, 10000, () => lire(A, '#vue-reunions'));
-  v('chaque cible tactile de l\'agenda mesure 44 px au moins (population : sept jours, deux flèches, le titre de la semaine, « Programmer »)', [(await A.page.evaluate(() => document.querySelectorAll('#sem-jours .jour, .sem-fleche, #sem-titre, #btn-reunion-nouvelle').length)), await petitesCibles(A, '#sem-jours .jour, .sem-fleche, #sem-titre, #btn-reunion-nouvelle')], [11, []]);
+  v('chaque cible tactile de l\'agenda mesure 44 px au moins (population : sept jours, deux flèches, le titre de la semaine, le « + »)', [(await A.page.evaluate(() => document.querySelectorAll('#sem-jours .jour, .sem-fleche, #sem-titre, #btn-agenda-plus').length)), await petitesCibles(A, '#sem-jours .jour, .sem-fleche, #sem-titre, #btn-agenda-plus')], [11, []]);
   await capture(A, 'r1-agenda-vide');
   await largeur(A, 'Réunions (vide)');
 
   console.log('\n── « Programmer » : le formulaire, ses refus locaux, une série hebdomadaire de trois dates qui traverse le changement d\'heure ──');
-  await toucher(A, '#btn-reunion-nouvelle');
+  await creerAgenda(A, 'reunion');
   await verifier('la feuille « Nouvelle réunion » s\'ouvre avec ses champs et la liste des gens qu\'on peut inviter', A, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre') && document.querySelectorAll('#rf-invites [data-uid]').length === 2, null, 8000, () => texteCorps(A));
   const form = await A.page.evaluate(() => {
     const ids = ['rf-titre', 'rf-lieu', 'rf-debut', 'rf-fin', 'rf-tz', 'rf-rep'], el = (i) => document.getElementById(i);
@@ -771,7 +788,7 @@ async function parcoursA2(E) {
   const accEsp = lienEsp && lienEsp.j && lienEsp.j.code ? await P.chloe.post('/api/invitations/accepter', { code: lienEsp.j.code }) : null;
   vrai('population : Alice a un espace et Chloé en est membre (elle n\'est toujours le contact de personne)', esp.code === 201 && !!accEsp && accEsp.code === 200 && nb('SELECT COUNT(*) AS n FROM espace_membre') === 2);
   await onglet(A, 'reunions');
-  await toucher(A, '#btn-reunion-nouvelle');
+  await creerAgenda(A, 'reunion');
   await verifier('⛔ « Programmer » propose maintenant Chloé, avec son espace — alors que les écrans d\'avant avaient lu la liste AVANT que l\'espace existe', A, () => Array.from(document.querySelectorAll('#rf-invites [data-uid]')).some(e => /Chloé Durand/.test(e.textContent) && /Collègue — Atelier WQXZ/.test(e.textContent)), null, 10000, () => texteCorps(A));
   await saisir(A, '#rf-titre', TITRE_3);
   await saisir(A, '#rf-debut', DST.apres2 + 'T10:00');
@@ -838,8 +855,8 @@ async function parcoursC(b, ctx) {
   console.log('\n── À la formule de production : l\'Agenda propose « Rendez-vous » ; « Programmer une réunion » ouvre la feuille « Réunions », qui dit la règle ──');
   await onglet(A, 'reunions');
   /* ⛔ Perso (13 octobre 2026) : l'en-tête de l'Agenda propose « Rendez-vous » ; la réunion reste joignable — pour apprendre qu'elle est à Pro — par « Nouvelle discussion » */
-  await verifier('⛔ Perso : « Rendez-vous » est dans l\'en-tête de l\'Agenda, « Réunion » y est caché (population : il existe)', A, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
-    return vu('btn-rdv-nouveau') && !!document.getElementById('btn-reunion-nouvelle') && !vu('btn-reunion-nouvelle'); }, null, 10000, () => lire(A, '#vue-reunions'));
+  await verifier('population : l\'Agenda est ouvert, avec son « + »', A, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-agenda-plus'), null, 10000, () => lire(A, '#vue-reunions'));
+  v('⛔ Perso : le « + » de l\'Agenda propose « Rendez-vous » (et « Événement »), PAS « Réunion »', await choixAgenda(A), ['Rendez-vous', 'Événement']);
   await onglet(A, 'messages'); await toucher(A, '#btn-plus');
   await verifier('population : « Nouvelle discussion » porte « Programmer une réunion »', A, () => !!document.querySelector('[data-nd-act="reunion"]'), null, 8000, () => lire(A, '#feuille'));
   await toucher(A, '[data-nd-act="reunion"]');

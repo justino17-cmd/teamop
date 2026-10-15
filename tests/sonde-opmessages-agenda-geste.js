@@ -59,6 +59,23 @@ const dormir = ms => new Promise(r => setTimeout(r, ms));
 const menuOuvert = async (S) => { const ok = await attendre(S, () => !document.getElementById('menu-fond').hidden); await dormir(600); return ok; };
 const attendre = (S, fn, arg, ms) => S.page.waitForFunction(fn, arg, { timeout: ms || 9000, polling: 50 }).then(() => true, () => false);
 async function toucher(S, sel) { const l = S.page.locator(sel).filter({ visible: true }).first(); await l.scrollIntoViewIfNeeded().catch(() => {}); if (S.pf.mobile) await l.tap(); else await l.click(); }
+
+/* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : il propose Rendez-vous, Événement, et Réunion côté Pro. On le touche, puis le choix — avec un seul choix,
+   le « + » y va tout droit. `choixAgenda` lit ce que le « + » propose (et referme le menu). */
+async function creerAgenda(S, quoi) {
+  await toucher(S, '#btn-agenda-plus');
+  await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return (d && !d.hidden) || !!document.querySelector('#feuille:not([hidden]), .feuille:not([hidden])'); }, null, { timeout: 8000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; })) await toucher(S, '#deroule-liste [data-valeur="' + quoi + '"]');
+}
+async function choixAgenda(S) {
+  await toucher(S, '#btn-agenda-plus');
+  const ouvert = await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; }, null, { timeout: 8000 }).then(() => true, () => false);
+  if (!ouvert) return null;
+  const l = await S.page.evaluate(() => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(b => b.textContent.trim()));
+  await S.page.keyboard.press('Escape');
+  await S.page.waitForFunction(() => document.getElementById('deroule').hidden, null, { timeout: 8000 }).catch(() => {});
+  return l;
+}
 /* l'appui long AU DOIGT : le menu s'ouvre à 480 ms ; le doigt se lève 520 ms après (passé les 350 ms où la page ignore le clic du relâcher) */
 async function appuiLong(S, loc) {
   await loc.scrollIntoViewIfNeeded().catch(() => {});
@@ -117,8 +134,8 @@ const allerDemain = (S) => S.page.evaluate(() => {
     console.log('\n── 1. iPhone : la durée sous « Début » ──');
     vrai('population : l\'iPhone se reconnaît (data-os="ios")', await A.page.evaluate(() => document.documentElement.dataset.os === 'ios'));
     await toucher(A, '#tabs a[data-vue="reunions"]');
-    await attendre(A, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-rdv-nouveau'));
-    await toucher(A, '#btn-rdv-nouveau');
+    await attendre(A, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-agenda-plus'));
+    await creerAgenda(A, 'rdv');
     vrai('« Nouveau rendez-vous » s\'ouvre, avec « Durée »', await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-duree')));
     v('« Durée » se range JUSTE sous « Début », avant « Fin »', await A.page.evaluate(() => { const d = document.getElementById('ev-debut').closest('.champ'), z = document.getElementById('ev-duree');
       return [d.nextElementSibling === z, !!(z.nextElementSibling && z.nextElementSibling.querySelector('#ev-fin')), document.getElementById('ev-duree-t').textContent]; }), [true, true, 'Durée']);
@@ -150,7 +167,7 @@ const allerDemain = (S) => S.page.evaluate(() => {
     v('le service a le rendez-vous de demain, 09:00 → 09:45', [D1.debut === instantParis(J + 'T09:00'), (D1.fin - D1.debut) / 60000], [true, 45], D1);
 
     console.log('\n── 2. iPhone : « Coller une confirmation » (presse-papiers fermé : on colle soi-même) ──');
-    await toucher(A, '#btn-rdv-nouveau');
+    await creerAgenda(A, 'rdv');
     await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-duree'));
     v('la carte « Coller une confirmation » : fermée, 44 px au moins, au-dessus du titre', await A.page.evaluate(() => { const b = document.querySelector('#info-corps [data-evt="coller"]'); return b ? [b.querySelector('.reglage-texte').firstChild.textContent, b.getAttribute('aria-expanded'),
       document.getElementById('ev-coller-zone').hidden, Math.round(b.getBoundingClientRect().height) >= 44, !!(b.compareDocumentPosition(document.getElementById('ev-titre')) & Node.DOCUMENT_POSITION_FOLLOWING)] : null; }), ['Coller une confirmation', 'false', true, true, true]);
@@ -255,8 +272,8 @@ const allerDemain = (S) => S.page.evaluate(() => {
     const CONF2 = 'GARAGE DUPONT : votre véhicule est attendu le ' + J.split('-').reverse().slice(0, 2).join('/') + ' de 8h30 à 10h. 3 avenue de la Gare 69003 Lyon. Réf ' + TEMOIN + '. Rép STOP au 36111';
     await N.page.evaluate(t => navigator.clipboard.writeText(t), CONF2);
     await toucher(N, '#tabs a[data-vue="reunions"]');
-    await attendre(N, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-rdv-nouveau'));
-    await toucher(N, '#btn-rdv-nouveau');
+    await attendre(N, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-agenda-plus'));
+    await creerAgenda(N, 'rdv');
     await attendre(N, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.querySelector('[data-evt="coller"]'));
     N.requetes.length = 0;
     await toucher(N, '[data-evt="coller"]');
@@ -281,7 +298,7 @@ const allerDemain = (S) => S.page.evaluate(() => {
     await B.page.locator('#nav-side a[data-vue="reunions"]').click();
     await attendre(B, () => !document.getElementById('vue-reunions').hidden);
     /* un événement « toute la journée » n'a pas de durée : le trio se cache, et revient (une heure) quand on décoche */
-    await B.page.locator('#btn-evenement-nouveau').click();
+    await creerAgenda(B, 'evenement');
     vrai('population : « Nouvel événement » s\'ouvre avec « Toute la journée » et « Durée »', await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouvel événement' && !!document.getElementById('ev-journee') && !!document.getElementById('ev-duree')));
     const visible = () => B.page.evaluate(() => { const z = document.getElementById('ev-duree'); return !!z && !z.hidden && z.getClientRects().length > 0; });
     const vu0 = await visible();
@@ -293,8 +310,8 @@ const allerDemain = (S) => S.page.evaluate(() => {
     await attendre(B, () => !document.documentElement.classList.contains('feuille-ouverte'));
     vrai('population : le sélecteur Perso | Pro de la barre latérale est là', await attendre(B, () => Array.from(document.querySelectorAll('.cote-seg-side [data-cote="pro"]')).some(x => x.getClientRects().length)));
     await B.page.locator('.cote-seg-side [data-cote="pro"]').filter({ visible: true }).first().click();
-    await attendre(B, () => document.documentElement.dataset.cote === 'pro' && !document.getElementById('btn-reunion-nouvelle').hidden);
-    await B.page.locator('#btn-reunion-nouvelle').click();
+    await attendre(B, () => document.documentElement.dataset.cote === 'pro' && !!document.getElementById('btn-agenda-plus'));
+    await creerAgenda(B, 'reunion');
     vrai('« Nouvelle réunion » : « Durée » sous « Début »', await attendre(B, () => !!document.getElementById('rf-duree') && document.getElementById('rf-debut').closest('.champ').nextElementSibling === document.getElementById('rf-duree')));
     await B.page.locator('#rf-debut').fill(J + 'T10:00');
     const r0 = await duree(B, 'rf');
@@ -340,7 +357,7 @@ const allerDemain = (S) => S.page.evaluate(() => {
     if (onglet) await onglet.close();
     await capture(B, 'geste-7-semaine-bureau-nuit');
     /* ⛔ une arrivée PIÉGÉE : le libellé de l'IGN porte du balisage — « Y aller » le dit en texte */
-    await B.page.locator('#btn-rdv-nouveau').click();
+    await creerAgenda(B, 'rdv');
     await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-tr-depart'));
     await B.page.locator('#ev-titre').fill('Piège QXW');
     await B.page.locator('#ev-debut').fill(J + 'T18:00');

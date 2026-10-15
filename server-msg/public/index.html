@@ -1298,7 +1298,8 @@ html[data-service] .mention-apercu { display: none; }
    sait pas ancrer le pose au milieu de l'écran (la place d'origine d'un `popover`) ; un navigateur sans `popover` le montre au pied de la feuille. */
 .reglage[aria-haspopup="menu"] .reglage-texte { color: var(--text); }
 .reglage[aria-haspopup="menu"] .reglage-valeur { display: inline-flex; align-items: center; gap: 6px; color: var(--accent-txt); }
-.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
+.reglage[aria-haspopup="menu"][aria-expanded="true"] { anchor-name: --deroule; }
+#btn-agenda-plus[aria-expanded="true"] { anchor-name: --deroule; }      /* le « + » de l'Agenda (15 octobre 2026) : son menu sort de lui, comme le « + » du Calendrier d'Apple */      /* la ligne ouverte ne se colore pas (iOS, le Mac) : grisée, au téléphone, elle se fondait dans le fond de la feuille et la carte semblait finir au-dessus */
 .chev-ud { width: 9px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .deroule { min-width: 232px; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); padding: 6px; border: var(--line); border-radius: 20px; overflow: auto; overscroll-behavior: contain;
   background: var(--sheet-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%); color: var(--text);
@@ -2515,7 +2516,7 @@ a.menu-action { text-decoration: none; }
     <section class="vue" id="vue-contacts" aria-labelledby="titre-contacts" hidden></section>
     <section class="vue" id="vue-appels" aria-labelledby="titre-appels" hidden>
       <div class="entete-vue">
-        <button type="button" class="lien-texte presse" id="btn-modifier-appels">Modifier</button>
+        <span></span>
         <button type="button" class="lien-texte presse" id="btn-nouvel-appel" aria-haspopup="dialog">Nouvel appel</button>
       </div>
       <h1 class="grand-titre" id="titre-appels">Appels</h1>

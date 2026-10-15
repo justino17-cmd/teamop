@@ -104,6 +104,23 @@ async function toucher(S, sel) {
   S.gestes++;
   if (S.pf.mobile) await loc.tap(); else await loc.click();
 }
+
+/* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : il propose Rendez-vous, Événement, et Réunion côté Pro. On le touche, puis le choix — avec un seul choix,
+   le « + » y va tout droit. `choixAgenda` lit ce que le « + » propose (et referme le menu). */
+async function creerAgenda(S, quoi) {
+  await toucher(S, '#btn-agenda-plus');
+  await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return (d && !d.hidden) || !!document.querySelector('#feuille:not([hidden]), .feuille:not([hidden])'); }, null, { timeout: 8000 }).catch(() => {});
+  if (await S.page.evaluate(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; })) await toucher(S, '#deroule-liste [data-valeur="' + quoi + '"]');
+}
+async function choixAgenda(S) {
+  await toucher(S, '#btn-agenda-plus');
+  const ouvert = await S.page.waitForFunction(() => { const d = document.getElementById('deroule'); return !!d && !d.hidden; }, null, { timeout: 8000 }).then(() => true, () => false);
+  if (!ouvert) return null;
+  const l = await S.page.evaluate(() => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(b => b.textContent.trim()));
+  await S.page.keyboard.press('Escape');
+  await S.page.waitForFunction(() => document.getElementById('deroule').hidden, null, { timeout: 8000 }).catch(() => {});
+  return l;
+}
 async function saisir(S, sel, texte) { await S.page.locator(sel).filter({ visible: true }).first().fill(texte); S.gestes++; }
 async function capture(S, nom) {
   if (!DOSSIER_CAPTURES) return;
@@ -186,8 +203,8 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     await connecter(A, 'alice');
     await onglet(A, 'reunions');
     /* ⛔ 13 octobre 2026 (« dans Perso, à la place de réunion tu mets rendez-vous ») : l'en-tête de l'Agenda d'une personne Perso propose « Rendez-vous », plus « Réunion » */
-    await verifier('⛔ Perso : l\'en-tête de l\'Agenda propose « Rendez-vous » (visible), « Réunion » est caché (population : il existe)', A, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
-      return vu('btn-rdv-nouveau') && !!document.getElementById('btn-reunion-nouvelle') && !vu('btn-reunion-nouvelle'); }, null, 10000, () => etatPage(A));
+    await verifier('population : l\'Agenda est ouvert, avec son « + »', A, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-agenda-plus'), null, 10000, () => etatPage(A));
+    v('⛔ Perso : le « + » de l\'Agenda propose « Rendez-vous » (et « Événement »), PAS « Réunion »', await choixAgenda(A), ['Rendez-vous', 'Événement']);
     /* la réunion reste joignable — pour apprendre qu'elle est à Pro — par « Nouvelle discussion › Programmer une réunion » */
     await onglet(A, 'messages'); await toucher(A, '#btn-plus');
     await verifier('population : « Nouvelle discussion » porte « Programmer une réunion »', A, () => !!document.querySelector('[data-nd-act="reunion"]'), null, 8000, () => texteCorps(A));
@@ -213,9 +230,9 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     /* ⛔ Dora a les deux côtés : « Réunion » est celui du côté Pro (13 octobre 2026) — elle y passe par la barre latérale, le seul sélecteur du bureau */
     await toucher(D, '.cote-seg-side [data-cote="pro"]');
     /* ⛔ et « Rendez-vous » AUSSI côté Pro (13 octobre 2026, avec le trajet : « pareil pour pro, pour les réunions ou rendez-vous ») */
-    await verifier('Dora côté Pro : l\'en-tête de l\'Agenda propose « Réunion » ET « Rendez-vous »', D, () => { const vu = (id) => { const x = document.getElementById(id); return !!x && !x.hidden && x.getClientRects().length > 0; };
-      return document.documentElement.dataset.cote === 'pro' && vu('btn-reunion-nouvelle') && vu('btn-rdv-nouveau'); }, null, 10000, () => etatPage(D));
-    await toucher(D, '#btn-reunion-nouvelle');
+    await verifier('population : Dora est côté Pro, l\'Agenda a son « + »', D, () => document.documentElement.dataset.cote === 'pro' && !!document.getElementById('btn-agenda-plus'), null, 10000, () => etatPage(D));
+    v('Dora côté Pro : le « + » de l\'Agenda propose « Réunion » ET « Rendez-vous »', await choixAgenda(D), ['Rendez-vous', 'Événement', 'Réunion']);
+    await creerAgenda(D, 'reunion');
     await verifier('Dora (Pro) : le formulaire « Nouvelle réunion » s\'ouvre', D, () => document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre'), null, 10000, () => texteCorps(D));
     await saisir(D, '#rf-titre', 'Point WQXZ-LIEN');
     await toucher(D, '[data-reu="form-invite"][data-uid="' + P.bruno.moi.id + '"]');
@@ -285,7 +302,7 @@ const localParis = (t) => { const p = Object.fromEntries(new Intl.DateTimeFormat
     const C = await ouvrir(b, svc.base, PROFILS.iphone); C.nom = 'Chloé (iPhone)'; tous.push(C);
     await connecter(C, 'chloe');
     await onglet(C, 'reunions');
-    await toucher(C, '#btn-reunion-nouvelle');
+    await creerAgenda(C, 'reunion');
     await verifier('Chloé (Pro par l\'espace de Dora) : le formulaire « Nouvelle réunion » s\'ouvre', C, () => document.getElementById('feuille-titre').textContent === 'Nouvelle réunion' && !!document.getElementById('rf-titre'), null, 10000, () => texteCorps(C));
     await saisir(C, '#rf-titre', 'Point WQXZ-RESILIE');
     abo('canceled');
