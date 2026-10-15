@@ -59,6 +59,12 @@ const dormir = ms => new Promise(r => setTimeout(r, ms));
 const menuOuvert = async (S) => { const ok = await attendre(S, () => !document.getElementById('menu-fond').hidden); await dormir(600); return ok; };
 const attendre = (S, fn, arg, ms) => S.page.waitForFunction(fn, arg, { timeout: ms || 9000, polling: 50 }).then(() => true, () => false);
 async function toucher(S, sel) { const l = S.page.locator(sel).filter({ visible: true }).first(); await l.scrollIntoViewIfNeeded().catch(() => {}); if (S.pf.mobile) await l.tap(); else await l.click(); }
+/* (15 octobre 2026, « plus simple ») la zone du trajet s'ouvre REPLIÉE tant qu'aucun trajet n'est calculé : un toucher sur « Calculer l'heure de départ » déplie le formulaire */
+const deplier = async (S) => {
+  if (!await attendre(S, () => !!document.querySelector('[data-evt="trajet-ouvrir"]') || !!document.getElementById('ev-tr-depart'))) return false;
+  if (await S.page.evaluate(() => !!document.querySelector('[data-evt="trajet-ouvrir"]'))) await toucher(S, '[data-evt="trajet-ouvrir"]');
+  return attendre(S, () => !!document.getElementById('ev-tr-depart'));
+};
 
 /* (15 octobre 2026, « plus simple ») l'Agenda n'a plus qu'un « + » : il propose Rendez-vous, Événement, et Réunion côté Pro. On le touche, puis le choix — avec un seul choix,
    le « + » y va tout droit. `choixAgenda` lit ce que le « + » propose (et referme le menu). */
@@ -209,6 +215,7 @@ const allerDemain = (S) => S.page.evaluate(() => {
     await capture(A, 'geste-3-y-aller-iphone');
     await toucher(A, '#menu-msg [data-gps-fermer]');
     vrai('« Annuler » ferme la feuille ; la fiche est toujours là, remplie', await attendre(A, () => document.getElementById('menu-fond').hidden && document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('ev-titre').value === 'Médecin'));
+    await deplier(A);
     await toucher(A, '[data-evt="trajet-calculer"]');
     vrai('« Calculer l\'heure de départ » : « Partir à »', await attendre(A, () => /Partir à/.test((document.getElementById('ev-tr-res') || {}).textContent || ''), null, 12000));
     await toucher(A, '#ev-trajet-zone [data-evt="gps"]');
@@ -358,7 +365,7 @@ const allerDemain = (S) => S.page.evaluate(() => {
     await capture(B, 'geste-7-semaine-bureau-nuit');
     /* ⛔ une arrivée PIÉGÉE : le libellé de l'IGN porte du balisage — « Y aller » le dit en texte */
     await creerAgenda(B, 'rdv');
-    await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.getElementById('ev-tr-depart'));
+    await attendre(B, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous'); await deplier(B);
     await B.page.locator('#ev-titre').fill('Piège QXW');
     await B.page.locator('#ev-debut').fill(J + 'T18:00');
     await B.page.locator('#ev-lieu').fill('Rue balise');

@@ -429,12 +429,12 @@ async function couple(b, env, cfg) {
     await verifier('les infos du groupe : deux membres, A est « Admin »', A, () => /Groupe · 2 membres/.test((document.querySelector('#info-corps .info-sous') || {}).textContent || '') && !!document.querySelector('#info-corps .badge-admin'), null, 6000, () => texteVu(A, '#info-corps'));
     await largeur(A, 'infos du groupe');
     const rangees = await A.page.evaluate(() => {
-      const rangs = Array.from(document.querySelectorAll('#info-corps .contact.avec-actions'));
+      const rangs = Array.from(document.querySelectorAll('#info-corps .contact:has(.membre-gerer)'));
       const chevauche = (a, b) => a.right > b.left + 1 && b.right > a.left + 1 && a.bottom > b.top + 1 && b.bottom > a.top + 1;
-      return { n: rangs.length, chev: rangs.filter(r => { const g = document.createRange(); g.selectNodeContents(r.querySelector('.contact-nom')); return chevauche(g.getBoundingClientRect(), r.querySelector('.contact-actions').getBoundingClientRect()); }).length };
+      return { n: rangs.length, chev: rangs.filter(r => { const g = document.createRange(); g.selectNodeContents(r.querySelector('.contact-nom')); return chevauche(g.getBoundingClientRect(), r.querySelector('.membre-gerer').getBoundingClientRect()); }).length };
     });
     vrai('population : ' + rangees.n + ' membre(s) gérable(s) dans les infos du groupe', rangees.n >= 1);
-    v('0 membre dont le NOM passe sous ses boutons « Nommer admin » / « Retirer » (le texte réel est mesuré, pas sa boîte)', rangees.chev, 0);
+    v('0 membre dont le NOM passe sous son « … » (« Nommer admin », « Retirer du groupe ») — le texte réel est mesuré, pas sa boîte', rangees.chev, 0);
     await capturer(b, tag + '-06-infos-groupe', [A, B]);
     await toucher(A, '[data-act="annonces"]');
     await verifier('« Seuls les admins écrivent » : chez B le champ est fermé et la phrase le dit', B, () => !document.getElementById('compo-ferme').hidden || document.getElementById('compo').hidden, null, 8000, () => texteVu(B, '#compo-ferme'));
@@ -468,11 +468,15 @@ async function couple(b, env, cfg) {
     await envoyerTexte(C, tag + '-g3');
     await verifier('C écrit : A et B le reçoivent', B, t => (document.getElementById('conv-messages').textContent || '').includes(t), tag + '-g3', 9000);
     /* admins et retrait */
-    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomB + '")) [data-act="admin"]');
+    /* (15 octobre 2026) un seul « … » par membre : il ouvre « Nommer admin » et « Retirer du groupe » */
+    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomB + '")) [data-act="membre"]');
+    await verifier('le « … » de B ouvre son menu : « Nommer admin », puis « Retirer du groupe »', A, () => Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(x => x.textContent).join('|') === 'Nommer admin|Retirer du groupe', null, 6000, () => texteVu(A, '#deroule-liste'));
+    await toucher(A, '#deroule-liste [data-valeur="admin"]');
     await toucher(B, '#conv-titre');
-    await verifier('chez B les infos montrent maintenant « Ajouter au groupe » et « Retirer »', B, () => !!document.querySelector('#info-corps [data-act="retirer"]'), null, 8000, () => texteVu(B, '#info-corps'));
+    await verifier('chez B les infos montrent maintenant « Ajouter au groupe » et le « … » des membres', B, () => !!document.querySelector('#info-corps [data-act="membre"]'), null, 8000, () => texteVu(B, '#info-corps'));
     await toucher(B, '#g-annuler');
-    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomC + '")) [data-act="retirer"]');
+    await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomC + '")) [data-act="membre"]');
+    await toucher(A, '#deroule-liste [data-valeur="retirer"]');
     await verifier('A retire C : C est averti (« Tu n\'es plus dans cette conversation »), revient à la liste, le groupe n\'y est plus', C, g => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(x => x.textContent === g) && document.documentElement.dataset.conv !== '1', G, 9000, () => texteVu(C, '#liste-conv'));
     await envoyerTexte(B, tag + '-apres');
     await dormir(1200);

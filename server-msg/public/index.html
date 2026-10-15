@@ -1386,6 +1386,11 @@ html[data-service] .mention-apercu { display: none; }
 .mini { flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 14px; font-weight: 600; text-align: center; transition: transform .12s ease-out; }
 .mini:active { transform: scale(.96); }
 .mini.danger { color: var(--rouge-txt); }
+.deroule-choix.danger { color: var(--rouge-txt); }
+/* le « … » d'un membre : un rond de 36 px (44 au doigt), l'icône seule — son nom (« Gérer Ben Durand ») est dans aria-label */
+.mini.membre-gerer { width: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-left: auto; }
+.mini.membre-gerer .ic { width: 18px; height: 18px; }
+@media (pointer: coarse) { .mini.membre-gerer { width: 44px; } }
 @media (pointer: coarse) { .mini { min-height: 44px; } }
 .reglage.danger .reglage-texte { color: var(--rouge-txt); }
 .reglage[aria-disabled="true"] { opacity: .6; }
@@ -1708,6 +1713,21 @@ a.mini .ic { font-size: 16px; }
 .champ .info-note { margin: 0; padding: 0 4px; }
 .carte-pad .champ { margin-bottom: 10px; }
 .reglage[role="checkbox"][aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
+/* LES RAPPELS EN PASTILLES (15 octobre 2026, « l'application doit être plus simple ») : « 5 min · 15 min · 1 h · 1 jour » sur une ligne, à la place de quatre (ou six) lignes à cocher —
+   les mêmes boutons (role="checkbox", leur valeur, leur nom entier), seule la forme change : une pastille pleine est cochée. Elles ont l'air des pastilles de la durée
+   (`.duree-choix .mini`), posées sur la page et pas dans une carte : deux rangées de pastilles côte à côte dans une feuille ne doivent pas se dessiner de deux façons. */
+/* une phrase d'aide SOUS une carte (le pied de groupe des Réglages d'Apple), plus une carte à elle seule */
+.pied-note { margin: -4px 16px 16px; font-size: 13px; line-height: 1.35; color: var(--sub-meta); }
+.rappels-puces { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; overflow: visible; background: none; }
+.rappels-puces > .rappel-puce { width: auto; flex: 0 0 auto; min-height: 36px; padding: 0 16px; gap: 0; border: 0; border-radius: 999px; background: var(--fill-soft); }
+/* ⛔ un nom à elles (`rappel-puce`) : la première version s'appelait `.puce` — le nom des membres choisis d'un groupe, une COLONNE animée — et le texte restait collé en haut
+   de la pastille (mesuré : à 1 px du bord, sur 44) ; et un défaut de l'une aurait touché l'autre */
+.rappels-puces > .rappel-puce .reglage-texte { flex: none; font-size: 16px; font-weight: 600; color: var(--accent-txt); }
+.rappels-puces > .rappel-puce .rond { display: none; }
+.rappels-puces > .rappel-puce[aria-checked="true"] { background: var(--fill); }
+.rappels-puces > .rappel-puce[aria-checked="true"] .reglage-texte { color: var(--on-fill); }
+.rappels-puces > .rappel-puce:disabled { opacity: .5; }
+@media (pointer: coarse) { .rappels-puces > .rappel-puce { min-height: 44px; } }
 .reglage[role="checkbox"][aria-checked="true"] .rond .ic { opacity: 1; }
 /* la coche d'une case DANS une ligne de réglage : celle de la ligne (12 px, encre de coche), pas l'icône de 22 px des lignes d'une feuille */
 .info-corps .reglage .rond .ic { font-size: inherit; color: inherit; }
@@ -2119,11 +2139,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 /* la durée sous « Début » (15 octobre 2026) : 30 min, 1 h, « Plus » — la durée que disent les champs est pleine. ⛔ Le menu « Plus » garde 16 px : en dessous, Safari zoome la page. */
 .duree-choix { display: flex; flex-wrap: wrap; gap: 8px; }
 .duree-choix .mini[aria-pressed="true"] { background: var(--fill); color: var(--on-fill); }
+.duree-choix .mini { font-size: 16px; }      /* (15 octobre 2026) à la taille de « Plus… » (16 px : Safari ne zoome pas un menu à 16 px) et des pastilles de rappel, juste dessous */
 .champ .duree-plus { width: auto; min-width: 96px; flex: 0 1 auto; height: 36px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 16px; font-weight: 600; text-align: center; text-align-last: center; -webkit-appearance: none; appearance: none; }
 .champ .duree-plus.actif { background: var(--fill); color: var(--on-fill); }
 @media (pointer: coarse) { .champ .duree-plus { height: 44px; } }
 /* « Coller une confirmation » (15 octobre 2026) : la zone s'ouvre sous son bouton */
 .evt-coller-zone { padding: 12px 14px 6px; border-top: var(--sep); }
+.evt-coller > .reglage { border-bottom: 0; }      /* (15 octobre 2026) la zone qui s'ouvre dessous porte déjà le filet : fermée, il traînait au bas arrondi de la carte */
 .evt-coller-zone .champ { margin-bottom: 10px; }
 /* « Y aller » : les liens du menu ont l'air de ses boutons */
 a.menu-action { text-decoration: none; }
@@ -2417,6 +2439,8 @@ a.menu-action { text-decoration: none; }
   <symbol id="i-droite" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
   <symbol id="i-partager" viewBox="0 0 24 24"><path d="M12 15V3.5M8 7.5l4-4 4 4M7 10.5H5.5v10h13v-10H17"/></symbol>
   <symbol id="i-sondage" viewBox="0 0 24 24"><path d="M5 19.5V13M10 19.5V5M15 19.5v-9M20 19.5V8.5"/></symbol>
+  <symbol id="i-horloge" viewBox="0 0 24 24"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM12 7.5V12l3 2"/></symbol>
+  <symbol id="i-itineraire" viewBox="0 0 24 24"><path d="M10.6 3.4a2 2 0 0 1 2.8 0l7.2 7.2a2 2 0 0 1 0 2.8l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1 0-2.8ZM9.5 14.5V12a1.5 1.5 0 0 1 1.5-1.5h4M13 8.5l2 2-2 2"/></symbol>
   <symbol id="i-sortie" viewBox="0 0 24 24"><path d="M14 4.5H6.5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2H14M10 12h10M16.5 8.5 20 12l-3.5 3.5"/></symbol>
 </svg>
 
