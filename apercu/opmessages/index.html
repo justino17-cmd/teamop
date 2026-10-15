@@ -8375,7 +8375,8 @@ a.menu-action { text-decoration: none; }
   }
   function sousMenuAgenda(html) { $('menu-msg').innerHTML = html; placerMenuAgenda(); const b = $('menu-msg').querySelector('a[href], button'); if (b) b.focus({ preventScroll: true }); }      // (« Y aller » : la première application, pas « Annuler »)
   async function clicMenuAgenda(e) {
-    /* un lien de « Y aller » : il s'ouvre (le navigateur le suit), puis le menu se ferme — pas avant : un lien retiré de la page ne s'ouvre plus */
+    /* un lien de « Y aller » : le navigateur le suit ; le menu se ferme une fois le clic fini, par précaution — Chromium suit un lien retiré pendant son propre clic (mesuré le
+       15 octobre 2026), rien ne le promet des autres moteurs */
     if (e.target.closest('a[data-gps]')) { setTimeout(fermerMenu, 0); return; }
     if (e.target.closest('[data-gps-fermer]')) { fermerMenu(); return; }
     const b = e.target.closest('[data-ag-menu]'); if (!b || !etat.menu || !etat.menu.agenda) return;

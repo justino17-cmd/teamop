@@ -109,6 +109,15 @@ Objet : Confirmation
 À : moi@exemple.fr
 
 Votre rendez-vous : jeudi 29 octobre 2026 à 9h40, 1 place de Verdun, 17000 La Rochelle.`), 'debut', 'lieu'), ['2026-10-29T09:40', '1 place de Verdun, 17000 La Rochelle']);
+  /* ⛔ un en-tête PASSÉ ne serait jamais choisi (une date passée cède la place) : le cas qui prouve, c'est le mail reçu AUJOURD'HUI, avec son heure */
+  v('⛔ un mail transféré reçu AUJOURD\'HUI : la date de « … a écrit : », avec son heure, ne compte toujours pas', L(`Le jeu. 15 oct. 2026 à 09:12, Doctolib <no-reply@doctolib.fr> a écrit :
+> Votre rendez-vous du vendredi 30 octobre 2026 à 11h00 est confirmé.`).debut, '2026-10-30T11:00');
+  v('⛔ … ni celle d\'un transfert Gmail (« Date : » entouré de « De : » et « Objet : »)', L(`De : Mairie <rdv@mairie.fr>
+Date : jeu. 15 oct. 2026 à 09:12
+Objet : Confirmation
+
+Votre rendez-vous : jeudi 29 octobre 2026 à 9h40.`).debut, '2026-10-29T09:40');
+  v('⛔ une réservation faite AUJOURD\'HUI, avec son heure, n\'est pas le rendez-vous', L('Rendez-vous pris le 15/10/2026 à 09:30 sur Doctolib.\nVotre rendez-vous : lundi 19 octobre à 11h.').debut, '2026-10-19T11:00');
   v('« Envoyé : » (Outlook) non plus', L(`Envoyé : mardi 13 octobre 2026 08:00
 Votre RDV est fixé au 21/10/2026 à 15h.`).debut, '2026-10-21T15:00');
   v('« Date : 05/11/2026 » SEULE (sans « De : » autour) est bien la date du rendez-vous — la préfecture', pick(L(`Votre demande de rendez-vous est confirmée.
@@ -185,8 +194,8 @@ TRIGGER:-PT1H
 END:VALARM
 END:VEVENT
 END:VCALENDAR`), 'debut', 'duree', 'titre', 'lieu'), ['2026-11-04T09:15', 45, 'Ostéopathe', '4 avenue Foch, 75116 Paris']);
-  v('⛔ « Adresse e-mail : … » n\'est pas un lieu ; « Adresse : … » en est un', [L('RDV le 30/10/2026 à 10h. Votre adresse e-mail : jean@exemple.fr').lieu, L('RDV le 30/10/2026 à 10h. Adresse électronique : jean@exemple.fr').lieu,
-    L('RDV le 30/10/2026 à 10h.\nAdresse : Centre commercial Les Minimes').lieu], [null, null, 'Centre commercial Les Minimes']);
+  v('⛔ « Adresse e-mail : … » n\'est pas un lieu — même sans « @ » ; « Adresse : … » en est un', [L('RDV le 30/10/2026 à 10h. Votre adresse e-mail : jean@exemple.fr').lieu, L('RDV le 30/10/2026 à 10h. Adresse électronique : jean@exemple.fr').lieu,
+    L('RDV le 30/10/2026 à 10h. Votre adresse mail : celle de votre espace client').lieu, L('RDV le 30/10/2026 à 10h.\nAdresse : Centre commercial Les Minimes').lieu], [null, null, null, 'Centre commercial Les Minimes']);
   {
     /* ⛔ LE GEL (relecture du 15 octobre 2026) : deux quantificateurs côte à côte sur les mêmes blancs (« \\s*:?\\s* ») font un retour arrière cubique — « 1 » et 3 000 espaces
        coûtaient 10,5 s, « adresse » et 3 000 retours à la ligne 46,5 s : la page gelait au collage d'un mail riche. Chaque forme dangereuse est jouée, chronomètre en main */
@@ -318,11 +327,25 @@ END:VCALENDAR`), 'debut', 'duree', 'titre', 'lieu'), ['2026-11-04T09:15', 45, 'O
     vrai('(population) le menu de l\'appui long est trouvé', menu.length > 1000, menu.length);
     v('l\'appui long propose « Y aller » — pour un rendez-vous pas encore fait, et pour une réunion ni annulée ni passée', [/if \(!e\.fait && destinationGps\(e\.lieu, e\.trajet\)\) h \+= a\('gps', 'Y aller'/.test(menu), /if \(!r\.annulee && !se && destinationGps\(r\.lieu, r\.moi\.trajet\)\) h \+= a\('gps', 'Y aller'/.test(menu), /a\('fait', e\.fait \? 'Remettre à faire' : 'Marquer comme fait'\)/.test(menu)], [true, true, true]);
     const clic = decl('async function clicMenuAgenda(');
-    vrai('⛔ un lien de « Y aller » touché ferme le menu APRÈS (un lien retiré de la page pendant son clic ne s\'ouvre plus)', /if \(e\.target\.closest\('a\[data-gps\]'\)\) \{ setTimeout\(fermerMenu, 0\); return; \}/.test(clic));
+    /* par précaution : Chromium suit un lien retiré pendant son propre clic (mesuré), rien ne le promet des autres moteurs — le menu se ferme une fois le clic fini, des DEUX chemins */
+    v('un lien de « Y aller » touché ferme son menu une fois le clic fini — celui de l\'appui long et celui d\'une fiche', [/if \(e\.target\.closest\('a\[data-gps\]'\)\) \{ setTimeout\(fermerMenu, 0\); return; \}/.test(clic),
+      /if \(m0\.gps\) \{ if \(e\.target\.closest\('a\[data-gps\]'\)\) setTimeout\(fermerMenu, 0\);/.test(JS)], [true, true]);
     vrai('le sous-menu « Y aller » met le focus sur la première application, pas sur « Annuler »', /querySelector\('a\[href\], button'\)/.test(ligne('function sousMenuAgenda(')));
     v('⛔ au bureau, « Y aller » ouvert d\'une fiche se place sous SON bouton (sinon : à l\'endroit du dernier clic droit, ou dans le coin)', [/placerMenuAgenda\(\);/.test(decl('function ouvrirMenuGps(')),
       /if \(!m0 \|\| !\(m0\.agenda \|\| m0\.gps\)\) return;/.test(decl('function placerMenuAgenda(')), /m0\.agenda \? retrouverAgenda\(m0\.declencheur, m0\.cle\) : m0\.declencheur/.test(decl('function placerMenuAgenda('))], [true, true, true]);
-    vrai('sans calcul possible (le service ne calcule pas), la fiche garde « Y aller » — il n\'a besoin d\'aucun service', /if \(!possible && !F\.tr\.calc\) \{[^}]*BOUTON_GPS_EVT/.test(decl('function peindreTrajet(')));
+    {
+      /* sans calcul possible (le service ne calcule pas), la fiche garde « Y aller » — joué : la VRAIE `peindreTrajet`, une fausse zone (un motif sur son texte passait encore avec un `return` devant) */
+      const z = { innerHTML: '', contains: () => false }, E = { 'ev-trajet-zone': z, 'ev-lieu': { value: '8 rue Lafayette' } };
+      const cx = { String, $: id => E[id] || null, reu: { formEvt: { rdv: true, tr: { calc: null } } }, trajetPossible: () => false, document: { activeElement: null }, htmlTrajet: () => 'CALCUL' };
+      vm.createContext(cx);
+      vm.runInContext([M.estUrl, M.destinationGps, ligne('const BOUTON_GPS_EVT = '), decl('function peindreTrajet(')].join('\n') + '\nthis.peindre = peindreTrajet;', cx);
+      cx.peindre(); const avecLieu = z.innerHTML;
+      E['ev-lieu'].value = 'https://visio.exemple.fr/salle'; cx.peindre(); const visio = z.innerHTML;
+      E['ev-lieu'].value = ''; cx.peindre(); const sansLieu = z.innerHTML;
+      cx.trajetPossible = () => true; E['ev-lieu'].value = '8 rue Lafayette'; cx.peindre(); const possible = z.innerHTML;
+      v('sans calcul possible, la zone ne garde que « Y aller » ; vide (un lien de visio, aucun lieu), elle se cache ; le calcul possible, la zone entière', [/data-evt="gps"/.test(avecLieu) && !/hidden/.test(avecLieu),
+        /hidden/.test(visio) && !/data-evt/.test(visio), /hidden/.test(sansLieu) && !/data-evt/.test(sansLieu), possible], [true, true, true, 'CALCUL'], [avecLieu, visio, sansLieu]);
+    }
   }
   {
     /* « Y aller » suit le lieu qu'on TAPE : sans calcul, la zone ne se repeint pas — le bouton seul paraît ou s'en va (la sonde le joue au doigt) */
