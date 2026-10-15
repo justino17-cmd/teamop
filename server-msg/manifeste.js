@@ -186,6 +186,8 @@ const MANIFESTE = [
   { id: 'reunions.rappels',  m: 'POST', p: '/api/reunions/:id/rappels',              garde: 'R' },
   /* MON trajet pour la réunion (14 octobre 2026) : un participant, pour lui seul — le calcul passe par `/api/trajet`, ceci le range (`routes-reunions.js`) */
   { id: 'reunions.trajet',   m: 'POST', p: '/api/reunions/:id/trajet',               garde: 'R' },
+  /* le .ics d'une réunion — et, plus bas, celui d'un événement : SANS BOUTON depuis le 15 octobre 2026 (Justin : « l'application fait déjà agenda », puis « retire aussi ») ; les
+     routes et leurs bancs restent, le temps qu'il dise s'il les retire */
   { id: 'reunions.ics',      m: 'GET',  p: '/api/reunions/:id/ics',                  garde: 'R' },
   /* L'invitation par COURRIEL (`courriel.js`) : l'hôte seul, à l'adresse qu'il saisit — inerte (503) tant qu'aucun relais n'est configuré. Pas `pro` : la fonction Pro est de PROGRAMMER ; ce qui est
      programmé reste à son hôte, comme la modification et l'annulation. */

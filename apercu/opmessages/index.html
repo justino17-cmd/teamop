@@ -8336,7 +8336,7 @@ a.menu-action { text-decoration: none; }
       if (!r.moi.hote && !r.annulee && !se) h += '<div class="menu-reponses" role="group" aria-label="Répondre">' + STATUTS_REPONSE.map(([v, l]) => '<button type="button" class="menu-action menu-reponse" data-ag-menu="reponse" data-statut="' + v + '" aria-pressed="' + (r.moi.statut === v ? 'true' : 'false') + '">' + l + '</button>').join('') + '</div>';
       if (!r.annulee && !se && x.o.fin > Date.now() && destinationGps(r.lieu, r.moi.trajet)) h += a('gps', 'Y aller', ' aria-haspopup="menu"');      // (une date passée : plus d'endroit où aller)
       h += a('conversation', 'Écrire aux participants');
-      if (typeof source.adresseIcs === 'function' && !r.annulee) h += a('ics', 'Ajouter à mon calendrier (.ics)');
+      /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026 : « retire aussi » — après le rendez-vous, la réunion : « l'application fait déjà agenda ») */
       if (modesActifs() && etat.conversations.some(c => c.id === r.conv)) { const autre = coteReu(r) === 'pro' ? 'perso' : 'pro'; h += a('cote', 'Ranger dans ' + NOM_COTE[autre], ' data-cote="' + autre + '"'); }
       if (r.moi.hote && !r.annulee && !se && typeof source.annulerReunion === 'function') h += a('annuler', 'Annuler la réunion…', '', 'danger');
     } else {
@@ -8409,7 +8409,6 @@ a.menu-action { text-decoration: none; }
       else if (act === 'rejoindre') rejoindreReunionUI(A.id, undefined, el && el.isConnected ? el : null, false);
       else if (act === 'reponse') { await source.repondreReunion(A.id, b.dataset.statut); mot(b.dataset.statut === 'accepte' ? 'Tu as accepté la réunion' : b.dataset.statut === 'decline' ? 'Tu as refusé la réunion' : 'Réponse enregistrée : peut-être'); chargerReunions(); }
       else if (act === 'conversation') ouvrirConvId(x.r.conv);
-      else if (act === 'ics') { const l = document.createElement('a'); l.href = source.adresseIcs(A.id, x.r.repetition !== 'aucune' ? { occurrence: A.debut } : {}); l.download = ''; l.hidden = true; document.body.appendChild(l); l.click(); l.remove(); }
       else if (act === 'cote') {
         const cote = b.dataset.cote === 'pro' ? 'pro' : 'perso';
         if (x.r) { await source.rangerCote(x.r.conv, cote); if (typeof source.lister === 'function') await rafraichirListe(); mot('Réunion rangée dans l\'agenda ' + NOM_COTE[cote]); rendreReunions(); }
@@ -9319,8 +9318,8 @@ a.menu-action { text-decoration: none; }
         (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
       /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026 : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
-         ENTRE ici, d'où « Coller une confirmation »). La route du .ics d'un événement reste au service, sans bouton ; celle d'une RÉUNION sert toujours (sa fiche, son menu, le
-         courriel d'invitation). */
+         ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Les routes des .ics restent
+         au service, sans bouton. */
       '</div>' : '';
     const rappels0 = e ? (Array.isArray(e.rappels) ? e.rappels.slice() : (e.rappel === null ? [] : [e.rappel])) : (rdv ? [1440, 60] : null);
     /* un rendez-vous NEUF peut se remplir d'une confirmation collée (un mail, un SMS) : tout se lit sur l'appareil */
@@ -10143,7 +10142,7 @@ a.menu-action { text-decoration: none; }
   }
   function htmlFiche(d) {
     const F = reu.fiche, hote = d.moi.hote, o = (F.occurrence && d.repetition !== 'aucune' ? { debut: F.occurrence, fin: F.occurrence + (d.fin - d.debut) } : (d.prochaine || { debut: d.debut, fin: d.fin }));
-    const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d), serie = d.repetition !== 'aucune';
+    const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d);
     const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(x[1]) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
     let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
       '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
@@ -10177,16 +10176,12 @@ a.menu-action { text-decoration: none; }
       if (d.plafond && d.invites.length >= d.plafond) s += '<div class="rubrique"><span>Inviter</span></div><div class="carte carte-pad"><p class="info-note">Cette réunion compte ' + d.plafond + ' personnes, toi compris : c\'est le maximum. Retire quelqu\'un pour en inviter une autre.</p></div>';
       else if (dispo.length) s += '<div class="rubrique"><span>Inviter</span></div><div class="carte">' + dispo.map(c => { const k = contactDe(c.id); return k ? '<div class="contact avec-actions">' + avatar(k) + '<span class="contact-texte"><span class="contact-nom">' + esc(k.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span><span class="contact-actions"><button type="button" class="mini" data-reu="inviter" data-uid="' + esc(c.id) + '" aria-label="' + esc('Inviter ' + k.nom) + '">Inviter</button></span></div>' : ''; }).join('') + '</div>';
     }
-    /* le fichier pour l'agenda, la conversation */
-    const ics = (occ) => source.adresseIcs(d.id, occ ? { occurrence: occ } : {});
+    /* l'agenda, la conversation — ⛔ plus d'« Ajouter à mon agenda (.ics) » (15 octobre 2026 : « retire aussi » — « l'application fait déjà agenda ») */
     /* (8 octobre 2026) l'agenda où elle paraît — Perso ou Pro —, pour moi seul : celui de SA conversation (« Ranger dans », le même menu que ses infos) */
     const lc = modesActifs() ? etat.conversations.find(x => x.id === d.conv) : null;
-    s += '<div class="rubrique"><span>Agenda</span></div>' + (lc ? '<div class="carte"><button type="button" class="reglage presse" data-reu="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') +
+    if (lc) s += '<div class="rubrique"><span>Agenda</span></div><div class="carte"><button type="button" class="reglage presse" data-reu="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') +
       '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans<small>Pour toi seul</small></span><span class="reglage-valeur">' +
-      esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>' : '') +
-      '<div class="carte carte-pad"><div class="info-actions">' +
-      (serie ? '<a class="mini" href="' + esc(ics(o.debut)) + '" download>' + icone('i-telecharger') + ' Cette date (.ics)</a><a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Toute la série (.ics)</a>'
-        : '<a class="mini" href="' + esc(ics(null)) + '" download>' + icone('i-telecharger') + ' Ajouter à mon agenda (.ics)</a>') + '</div></div>';
+      esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>';     // (sans « Ranger dans », pas de rubrique vide)
     s += '<div class="carte"><button type="button" class="reglage presse" data-reu="conversation">' + icone('i-chat') + '<span class="reglage-texte">Ouvrir la conversation de la réunion</span>' + CHEVRON + '</button></div>';
     /* la sortie de l'INVITÉ : une invitation qu'on ne veut pas ne reste pas dans l'agenda sans issue (l'organisateur, lui, annule ou supprime) */
     if (!hote) s += '<div class="rubrique"><span>Invité</span></div>' + (F.confirme === 'quitter' ? htmlConfirmation(d) : '<div class="carte"><button type="button" class="reglage presse danger" data-reu="quitter-demander"><span class="reglage-texte">Quitter la réunion<small>Elle disparaît de ton agenda et tu sors de sa conversation</small></span></button></div>');
@@ -10226,7 +10221,7 @@ a.menu-action { text-decoration: none; }
     return '<div class="carte carte-pad" id="reu-courriel">' +
       '<div class="champ"><label for="rc-adresse">Adresse courriel</label><input id="rc-adresse" type="email" inputmode="email" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="prenom.nom@exemple.fr"></div>' +
       (serie ? '<div class="g-choix" role="radiogroup" aria-label="Ce que le message contient"><button type="button" class="g-pilule presse" role="radio" aria-checked="' + (C.serie ? 'true' : 'false') + '" data-reu="courriel-portee" data-portee="serie">Toute la série</button><button type="button" class="g-pilule presse" role="radio" aria-checked="' + (C.serie ? 'false' : 'true') + '" data-reu="courriel-portee" data-portee="date">Cette date</button></div>' : '') +
-      '<p class="info-note">Le message part avec le fichier .ics, que son agenda sait lire. L\'adresse n\'est pas conservée. Dix envois par jour au plus, deux par adresse et par semaine.</p>' +
+      '<p class="info-note">Le message dit le titre, la date, l\'heure et le lieu, sans fichier d\'agenda. L\'adresse n\'est pas conservée. Dix envois par jour au plus, deux par adresse et par semaine.</p>' +
       '<div class="info-actions"><button type="button" class="mini" data-reu="courriel-envoyer">Envoyer</button></div></div>';
   }
   function htmlConfirmation(d) {

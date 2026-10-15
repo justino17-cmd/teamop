@@ -19,6 +19,31 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# 🟡 15 OCTOBRE 2026 (SOIR) — OP MESSAGES : PLUS D'« AJOUTER À MON CALENDRIER » NULLE PART — LA RÉUNION AUSSI, ET LE COURRIEL D'INVITATION PART SANS .ICS
+
+Justin, à « les réunions gardent encore « Ajouter à mon calendrier », dans leur fiche, leur menu et le mail d'invitation — je le retire aussi ? » : « retire aussi ». Ce qui est écrit (bêta) :
+· **La page** : plus d'« Ajouter à mon agenda (.ics) » (ni « Cette date (.ics) », ni « Toute la série (.ics) ») dans la fiche d'une réunion, plus d'« Ajouter à mon calendrier (.ics) » dans son
+  menu (appui long, clic droit) ni le geste qui téléchargeait. La rubrique « Agenda » de la fiche ne reste qu'avec « Ranger dans » (sans lui, pas de rubrique vide). La page n'appelle
+  plus AUCUNE adresse de .ics (`test-1007` le compte dans le script sans commentaires).
+· **Le courriel d'invitation** (« Envoyer par courriel », à quelqu'un qui n'a pas OP MESSAGES) part en TEXTE seul : le titre, la date, l'heure dans le fuseau de la réunion, le lieu ;
+  plus de pièce jointe, plus de phrase sur le fichier. La page le dit (« Le message dit le titre, la date, l'heure et le lieu, sans fichier d'agenda. »). ⛔ Le texte étant tout ce que la
+  personne reçoit, sa date est vérifiée : une date choisie doit EXISTER dans la série (sinon `occurrence_inconnue`, rien ne part), une réunion seule ne dit que SA date — avant, le
+  texte d'une réunion seule reprenait l'instant que la demande portait (le fichier joint, lui, gardait la vraie date) —, et un fuseau que le service ne connaît pas ne part pas
+  (la garde que portait la fabrique du .ics).
+· ⚠️ **Gardé, sans bouton** : les routes `GET /api/reunions/:id/ics` et `GET /api/agenda/:id/ics`, `server-msg/ics.js` et leurs bancs (`test-971`, `973`, `975`, `976`, `992`, `1004` à
+  `1006`), et les adresses de la source (`adresseIcs`, `adresseIcsEvenement`) — le temps que Justin dise s'il les retire (c'est du code qui ne sert plus, mais retirer un module de
+  300 lignes et ses bancs ne lui a pas été demandé). La politique de confidentialité parle encore du « fichier d'agenda (.ics) que l'utilisateur télécharge » (ligne 41, OP MESSAGES et son
+  trajet) : vrai de ce que la route fabrique, mais plus rien ne le propose — à revoir avec le juriste, avec le reste. `INSTALLER-LE-SERVEUR.md` (§ 10 sexies) est à jour.
+Preuves : `test-975` (139 ✓, le courriel) — le message qui part : une seule partie, du texte simple, AUCUNE pièce jointe ni « .ics » dans le message brut ; la date d'une série,
+d'une occurrence choisie, d'une réunion seule (sa date, même quand la demande porte un autre instant), le refus d'une date hors série et d'un fuseau inconnu (rien ne part, rien n'est
+réservé) ; les routes `…/ics` répondent toujours. `test-857` (539 ✓) : le menu de l'organisateur et celui de l'invité n'ont plus d'entrée .ics — alors que la source du banc SAIT la fabriquer.
+`test-1007` (99 ✓) : la fiche, le menu, la note du courriel, et AUCUNE adresse de .ics dans le script de la page. Sondes : réunions (295 ✓ : la fiche de l'organisatrice et celle d'une date
+sans rien à télécharger, une rubrique « Agenda » seulement avec « Ranger dans », le courriel reçu par le relais du banc en texte seul avec la bonne date, la fiche de Bruno), rendez-vous (33),
+agenda-geste (78), agenda-décaler (20 ✓ 3 ✗ : la dette d'avant, à l'identique ; son menu sans .ics passe). Porte des bancs messages : 99 suites, 10 090 vérifications (test-971 tombe en local,
+fuseaux de la machine) — plancher 10076.
+⚠️ Dette vue en passant, préexistante : `node tests/mutations-reunions.js --verifier` trouve 23 mutations MAL VISÉES sur 457, à l'identique sur `main` (8ecc515f) — des motifs que des
+chantiers suivants ont déplacés (X30, X32, X40, Y05…). À reprendre un jour : tant qu'elles le sont, ces défauts-là ne sont plus éprouvés.
+
 # 🟡 15 OCTOBRE 2026 — OP MESSAGES : L'AGENDA, QUATRE GESTES — LA DURÉE, « Y ALLER », COLLER UNE CONFIRMATION, L'APPUI LONG EN VERT
 
 Justin, trois captures de la bêta à l'appui : « quand on sélectionne l'heure de début, il faudrait qu'on puisse choisir ce que ça va durer, 30 minutes, une heure ou plus » ; « il
@@ -46,8 +71,7 @@ ne change pas) :
   arrière explosif » sans jouer une seule suite de blancs ; un vrai .ics (Apple, Google, Outlook) commence par son fuseau (DTSTART de 1970) et n'était jamais lu ; au bureau, « Y aller »
   d'une fiche s'ouvrait à l'endroit du dernier clic droit ; « Adresse e-mail » passait pour un lieu, « scanner le QR code » pour de l'imagerie. ⚠️ Et une recopie avait changé les
   espaces insécables de la normalisation en espaces ordinaires (le banc l'a vu) : elles sont écrites en échappements.
-⚠️ **À dire à Justin, pas tranché** : les RÉUNIONS gardent « Ajouter à mon calendrier (.ics) » (leur fiche, leur menu ; le courriel d'invitation en porte un pour qui n'a pas
-l'application) — à retirer aussi s'il le veut. La route `GET /api/agenda/:id/ics` (le .ics d'un événement) reste au service, sans bouton : à retirer avec sa phrase.
+✅ **Tranché le même jour** : « retire aussi » — les RÉUNIONS n'ont plus d'« Ajouter à mon calendrier » non plus, ni le courriel d'invitation de fichier joint (l'entrée au-dessus).
 ⚠️ **Limites connues** : la durée est une durée d'HORLOGE (« 1 h » reste une heure affichée la nuit du changement d'heure) ; la lecture d'une confirmation devine (le motif lu dans tout
 le texte, « 1/2 » pris pour le 1er février) — elle ne remplit le titre et « Avec » que s'ils sont vides, et dit ce qu'elle a lu : la personne vérifie ; « coller » écrase le lieu déjà
 tapé (ce qui est trouvé remplace) ; la coche blanche sur le vert est à 2:1 (décorative, doublée du texte barré et de « Fait : » pour un lecteur d'écran).

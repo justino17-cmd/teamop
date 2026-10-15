@@ -12,8 +12,9 @@
  *   POST /api/reunions/:id/quitter              R   la sortie de l'INVITÉ : plus d'invitation, plus de conversation de la réunion, plus de rappel ; l'hôte ne quitte pas (il annule ou supprime) et peut réinviter
  *   POST /api/reunions/:id/reponse   {statut}   R   accepte · decline · peutetre — l'hôte n'a pas à répondre
  *   POST /api/reunions/:id/rappels   {rappels}  R   MES rappels (5, 15, 60, 1440 minutes avant) ; `null` rend la main au réglage de la réunion
- *   GET  /api/reunions/:id/ics?serie=1|occurrence=<début>  R   le fichier pour l'agenda de la personne (une occurrence, ou toute la série)
- *   POST /api/reunions/:id/courriel {destinataire,occurrence?}  H   l'invitation par COURRIEL à quelqu'un qui n'a pas OP MESSAGES (le .ics en pièce jointe) — inerte sans relais SMTP, 503 qui le dit
+ *   GET  /api/reunions/:id/ics?serie=1|occurrence=<début>  R   le fichier pour l'agenda de la personne (une occurrence, ou toute la série) — SANS BOUTON depuis le 15 octobre 2026
+ *                                                              (Justin : « retire aussi » : « l'application fait déjà agenda ») ; la route et ses bancs restent, le temps qu'il dise s'il la retire
+ *   POST /api/reunions/:id/courriel {destinataire,occurrence?}  H   l'invitation par COURRIEL à quelqu'un qui n'a pas OP MESSAGES (du texte : plus de .ics joint depuis le 15 octobre 2026) — inerte sans relais SMTP, 503 qui le dit
  *   POST /api/reunions/:id/rejoindre {type?}    R   ENTRER dans la salle (de quinze minutes avant le début à trois heures après la fin) : la première personne qui entre l'ouvre ; la salle d'attente, si elle est demandée
  *   POST /api/reunions/:id/lien                 H   le lien d'invité (le code, que la page met dans le fragment de l'adresse) — créé s'il n'existe pas
  *   POST /api/reunions/:id/lien/renouveler      H   un autre code : l'ANCIEN MEURT (et se note : une restauration ne le rend pas)
@@ -505,7 +506,7 @@ function installerReunions(H, ctx) {
   H['reunions.ics'] = garder((req, res) => {
     if (!plafond(res, 'ics', req.moi.id, { max: 60, fenetreMs: 60000 })) return;
     const q = req.query || {}, rr = stockage.reunionPourMembre(req.reunion.id, req.moi.id), r = rr.reunion;
-    /* MON trajet (migration 29) : une alarme de plus, à l'heure de partir — dans le fichier de SA personne seulement (jamais dans celui que l'organisateur envoie par courriel) */
+    /* MON trajet (migration 29) : une alarme de plus, à l'heure de partir — dans le fichier de SA personne seulement (le courriel de l'organisateur ne porte plus de fichier) */
     const opts = { maintenant: horloge(), rappels: rr.moi.rappels, trajet: rr.moi.trajet || null, tzLecteur: req.moi.tz };
     if (q.occurrence !== undefined) {
       if (!/^\d{1,15}$/.test(String(q.occurrence))) return refus(res, 400, 'champ_invalide');
@@ -574,7 +575,7 @@ function installerReunions(H, ctx) {
   });
 
   /* ── le courriel ── */
-  /* L'hôte écrit l'adresse de quelqu'un qui n'a pas OP MESSAGES ; le service envoie UN message au gabarit fixe, le .ics en pièce jointe (`courriel.js`). Dans cet ordre : le relais est-il ouvert
+  /* L'hôte écrit l'adresse de quelqu'un qui n'a pas OP MESSAGES ; le service envoie UN message au gabarit fixe, du texte seul (`courriel.js`). Dans cet ordre : le relais est-il ouvert
      (sinon 503, avant de rien lire), la demande est-elle bien formée, le plafond par minute, la réunion vit-elle encore (une annulée ou finie ne s'envoie pas), puis les plafonds durables
      (dix par jour et par compte, deux par destinataire et par semaine) dans `courriel.envoyer`. L'adresse n'est NI rangée, NI journalisée, NI rendue. */
   H['reunions.courriel'] = garder(async (req, res) => {

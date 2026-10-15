@@ -7,8 +7,8 @@
 
    Ce qu'elle joue : l'agenda de la semaine (vide, puis avec la réunion, l'aujourd'hui, les sept jours) ; « Programmer » (les champs, les refus d'ICI, une série hebdomadaire de trois dates qui traverse le
    changement d'heure d'octobre, les invités filtrés par une recherche) ; la fiche de l'organisateur et celle d'un invité (les gestes de chacun, et SEULEMENT ceux-là) ; la réponse de Bruno vue EN DIRECT
-   par Alice ; SES rappels à lui ; la conversation de la réunion (dont le titre mène à la réunion) ; une personne non invitée qui ne voit RIEN ; inviter, puis retirer en direct ; le fichier .ics téléchargé
-   (toute la série, une date) ; le courriel (les refus, un envoi qui part avec son fichier, le plafond par adresse) ; modifier (un lieu ne touche pas aux réponses, un horaire les remet en attente ;
+   par Alice ; SES rappels à lui ; la conversation de la réunion (dont le titre mène à la réunion) ; une personne non invitée qui ne voit RIEN ; inviter, puis retirer en direct ; ⛔ plus de fichier .ics
+   (15 octobre 2026 : ni dans la fiche ni dans le courriel) ; le courriel (les refus, un envoi qui part en texte seul et dit la bonne date, le plafond par adresse) ; modifier (un lieu ne touche pas aux réponses, un horaire les remet en attente ;
    « Notifier » éteint ne prévient personne) ; les rappels qui arrivent à l'heure, une seule fois, quand le service avance de trois heures ; annuler (avec demande de confirmation) puis supprimer ;
    l'absence d'erreur dans la console et de débordement d'écran.
 
@@ -18,7 +18,7 @@
    `SEULES=D node tests/sonde-opmessages-reunions.js` la joue seule (un service, un navigateur, six pages l'une après l'autre) ; sans `SEULES`, tout se joue, comme la porte et le compteur l'attendent.
 
    ⛔ CE QU'ELLE NE PEUT PAS JOUER, ET DIT : un vrai relais SMTP et une vraie boîte de réception (le relais est un faux, local : le geste de Justin est de le configurer, en saisie masquée, par
-   `node server-msg/configurer-courriel.js`) ; l'ouverture du fichier .ics dans une vraie application d'agenda (`test-971` le relit par un lecteur indépendant) ; la notification poussée quand la page est
+   `node server-msg/configurer-courriel.js`) ; la notification poussée quand la page est
    FERMÉE (`sonde-opmessages-push.js`) — ici la même notification arrive par le flux, et l'adresse `/#reunions/<identifiant>` que la notification ouvrirait est jouée par `goto` ; un vrai téléphone dans un
    vrai fuseau (le navigateur de banc reçoit un fuseau forcé : Paris pour Alice, New York pour Bruno).
 
@@ -298,7 +298,7 @@ function trouDeMars(maintenant) {
 const bannieres = (S) => S.page.evaluate(() => window.__bannieres.slice());
 const choisir = async (S, sel, valeur) => { await S.page.locator(sel).filter({ visible: true }).first().selectOption(valeur); S.gestes++; };
 const erreurInfo = (S) => lire(S, '#info-erreur');
-/* ce que la fiche montre, lu dans la page (le texte de chaque ligne, les gestes offerts, les liens .ics) */
+/* ce que la fiche montre, lu dans la page (le texte de chaque ligne, les gestes offerts, ses rubriques — et ce qui se télécharge : plus rien depuis le 15 octobre 2026) */
 const lireFiche = (S) => S.page.evaluate(() => {
   const c = document.getElementById('info-corps'), net = (e) => e.textContent.replace(/\s+/g, ' ').trim(), t = (s) => { const e = c.querySelector(s); return e ? net(e) : null; };
   return {
@@ -307,7 +307,8 @@ const lireFiche = (S) => S.page.evaluate(() => {
     participants: Array.from(c.querySelectorAll('.contact.avec-actions')).filter(e => !e.querySelector('[data-reu="inviter"]')).map(e => net(e.querySelector('.contact-texte'))),
     gestes: Array.from(c.querySelectorAll('[data-reu]')).map(e => e.dataset.reu + (e.dataset.statut ? ':' + e.dataset.statut : '') + (e.dataset.min ? ':' + e.dataset.min : '')),
     cochees: Array.from(c.querySelectorAll('[aria-checked="true"]')).map(e => (e.dataset.statut || e.dataset.min || e.dataset.portee || e.dataset.reu)),
-    liens: Array.from(c.querySelectorAll('a[download]')).map(e => [e.href, net(e)]),
+    liens: Array.from(c.querySelectorAll('a[download]')).map(e => [e.href, net(e)]), versIcs: c.querySelectorAll('a[href*="/ics"]').length, texte: net(c),
+    rubriques: Array.from(c.querySelectorAll('.rubrique > span:first-child')).map(net),
     inviter: Array.from(c.querySelectorAll('[data-reu="inviter"]')).map(e => e.dataset.uid),
   };
 });
@@ -445,7 +446,8 @@ async function parcoursA(b, ctx) {
   const attendusHote = ['rappel:5', 'rappel:15', 'rappel:60', 'rappel:1440', 'retirer', 'inviter', 'conversation', 'modifier', 'courriel-ouvrir', 'annuler-demander', 'supprimer-demander'];
   v('⛔ ses gestes d\'organisatrice : modifier, envoyer par courriel, annuler, supprimer, inviter, retirer — et AUCUNE réponse à donner à sa propre réunion', [attendusHote.filter(g => !fa.gestes.includes(g)), fa.gestes.filter(g => /^reponse/.test(g))], [[], []]);
   v('… ses rappels : ceux de la réunion (15 minutes, 1 jour), cochés', fa.cochees.filter(c => /^\d+$/.test(c)).sort(), ['1440', '15']);
-  v('⛔ le fichier .ics : une adresse de CE service pour UNE date et pour TOUTE la série, qui se TÉLÉCHARGE', [fa.liens.map(l => l[1]), fa.liens.map(l => l[0].replace(R, 'R').replace(/\d{9,}/, 'N'))], [['Cette date (.ics)', 'Toute la série (.ics)'], [svc.base + '/api/reunions/R/ics?occurrence=N', svc.base + '/api/reunions/R/ics?serie=1']]);
+  v('⛔ plus de fichier .ics (15 octobre 2026 : « retire aussi » — « l\'application fait déjà agenda ») : rien à télécharger, aucune adresse de .ics, ni « Ajouter à mon agenda » ni « (.ics) » — et une rubrique « Agenda » n\'existe qu\'avec « Ranger dans »',
+    [fa.liens.length, fa.versIcs, /Ajouter à mon (agenda|calendrier)|\(\.ics\)/.test(fa.texte), fa.rubriques.includes('Agenda') === fa.gestes.includes('cote'), fa.texte.length > 300], [0, 0, false, true, true]);
   v('… Dora est proposée à l\'invitation (pas Bruno, déjà invité)', fa.inviter.length, 1);
   v('chaque cible de la fiche mesure 44 px au moins (population : ses boutons et ses liens)', [(await A.page.evaluate(() => document.querySelectorAll('#info-corps [data-reu], #info-corps a.mini, #g-annuler').length)) > 10, await petitesCibles(A, '#info-corps [data-reu], #info-corps a.mini, #g-annuler')], [true, []]);
   await capture(A, 'r3-fiche-organisateur');
@@ -568,13 +570,7 @@ async function parcoursA(b, ctx) {
   return { tous, sql, nb, P, A, B, D, Z, R, DST, OCC };
 }
 
-/* la suite du parcours A : l'agenda d'Alice, le fichier .ics, le courriel, modifier, les rappels, annuler et supprimer */
-const deplier = (t) => t.replace(/\r\n[ \t]/g, '');
-const enUtc = (t) => new Date(t).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
-async function telecharger(S, sel) {
-  const [dl] = await Promise.all([S.page.waitForEvent('download', { timeout: 10000 }), toucher(S, sel)]);
-  return { nom: dl.suggestedFilename(), texte: fs.readFileSync(await dl.path(), 'utf8') };
-}
+/* la suite du parcours A : l'agenda d'Alice, une date (sans fichier .ics), le courriel, modifier, les rappels, annuler et supprimer */
 const dernierPost = (S, motif) => { const l = S.postes.filter(p => motif.test(p.chemin)); return l.length ? JSON.parse(l[l.length - 1].corps || '{}') : null; };
 const ligneAgenda = (S, a, ms) => verifier(a.titre_verif, S, (x) => {
   const j = document.querySelector('#sem-jours .jour[aria-pressed="true"]'), l = document.querySelector('#liste-reunions .reunion-ligne');
@@ -617,18 +613,12 @@ async function parcoursA2(E) {
   }, TITRE, 12000, () => lire(A, '#liste-conv'));
   await onglet(A, 'reunions');
 
-  console.log('\n── Le fichier .ics : téléchargé par le lien de la fiche, relu comme le ferait un agenda ──');
+  console.log('\n── Une date de la série, depuis l\'agenda : plus de fichier .ics à télécharger (15 octobre 2026) ──');
   await toucher(A, '#liste-reunions .reunion-ligne');
   await verifier('Alice ouvre la réunion depuis son agenda : la fiche parle de CETTE date (le deuxième lundi)', A, (a) => document.getElementById('feuille-titre').textContent === 'Réunion' && !!document.querySelector('#info-corps .carte > div.reglage') && document.querySelector('#info-corps .carte > div.reglage').textContent.toLowerCase().includes(a), libJour(DST.apres).split(' ').slice(1).join(' '), 10000, () => texteCorps(A));
-  const serie = await telecharger(A, 'a.mini[href*="serie="]');
-  const sd = deplier(serie.texte);
-  v('⛔ « Toute la série » : un VRAI calendrier téléchargé — la règle hebdomadaire de trois dates, l\'heure LOCALE de Paris, son fuseau, les deux rappels d\'Alice',
-    [/\.ics$/.test(serie.nom), sd.startsWith('BEGIN:VCALENDAR'), sd.includes('SUMMARY:' + TITRE), /RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=3/.test(sd), sd.includes('DTSTART;TZID=Europe/Paris:' + DST.avant.replace(/-/g, '') + 'T140000'), sd.includes('BEGIN:VTIMEZONE'), (sd.match(/BEGIN:VALARM/g) || []).length, sd.includes(R)],
-    [true, true, true, true, true, true, 2, true]);
-  const date = await telecharger(A, 'a.mini[href*="occurrence="]');
-  const dd = deplier(date.texte);
-  v('⛔ « Cette date » : UNE occurrence — la date du deuxième lundi, sans règle de répétition (population : le fichier est un calendrier avec son titre)',
-    [/\.ics$/.test(date.nom), dd.startsWith('BEGIN:VCALENDAR') && dd.includes('SUMMARY:' + TITRE), /RRULE/.test(dd), new RegExp('DTSTART[^:\\r\\n]*:(' + enUtc(OCC[1]) + '|' + DST.apres.replace(/-/g, '') + 'T140000)').test(dd)], [true, true, false, true]);
+  const f2 = await lireFiche(A);
+  v('⛔ la fiche de CETTE date non plus : ni « Cette date (.ics) » ni « Toute la série (.ics) », aucune adresse de .ics, rien à télécharger (population : la fiche est lue, avec son horaire)',
+    [f2.liens.length, f2.versIcs, /\(\.ics\)|Ajouter à mon agenda/.test(f2.texte), f2.infos.length > 0], [0, 0, false, true]);
   await capture(A, 'r7-fiche-date');
   await largeur(A, 'fiche (organisateur, deuxième date)');
 
@@ -650,16 +640,17 @@ async function parcoursA2(E) {
   await verifier('« Cette date » à une vraie adresse : « Invitation envoyée par courriel », le champ est vidé', A, () => /Invitation envoyée par courriel/.test(document.getElementById('mot').textContent) && document.getElementById('rc-adresse').value === '', null, 12000, () => etatPage(A));
   await T.attendre(() => relais.messages.length >= 1, 8000, 20);
   const m1 = relais.messages.length ? lireMessage(relais.messages[0]) : null;
-  v('⛔ le relais a reçu UN courriel : à cette adresse, l\'objet fixe, de la part de l\'expéditeur du service, avec UN calendrier en pièce jointe — celui d\'UNE date (le deuxième lundi), sans règle de répétition',
-    [relais.messages.length, m1 && m1.enveloppe.a, m1 && m1.sujet, m1 && m1.enveloppe.de, m1 && m1.ics && m1.ics.includes('SUMMARY:' + TITRE), m1 && m1.ics && /RRULE/.test(m1.ics), m1 && m1.ics && new RegExp('DTSTART[^:\\r\\n]*:(' + enUtc(OCC[1]) + '|' + DST.apres.replace(/-/g, '') + 'T140000)').test(deplier(m1.ics))],
-    [1, [ADRESSE], 'Invitation à une réunion — OP MESSAGES', EXPEDITEUR, true, false, true]);
+  const quandM = (m) => { const x = m && /^  Quand : (.*)$/m.exec((m.texte || '').replace(/\r/g, '')); return x ? x[1] : null; };
+  v('⛔ le relais a reçu UN courriel : à cette adresse, l\'objet fixe, de la part de l\'expéditeur du service — du TEXTE seul (plus de calendrier joint depuis le 15 octobre 2026), qui dit CETTE date (le deuxième lundi), sans « se répète »',
+    [relais.messages.length, m1 && m1.enveloppe.a, m1 && m1.sujet, m1 && m1.enveloppe.de, m1 && m1.parts.map(x => x.type), m1 && m1.ics, quandM(m1)],
+    [1, [ADRESSE], 'Invitation à une réunion — OP MESSAGES', EXPEDITEUR, ['text/plain'], null, libJour(DST.apres) + ' à 14:00 (heure de ' + PARIS + ')']);
   v('… l\'objet est FIXE (aucun mot de la réunion : ni le titre ni le lieu ne peuvent y glisser une ligne) ; le texte, lui, nomme la réunion (titre, lieu)', m1 && [m1.sujet.includes('WQXZ'), (m1.texte || '').includes(TITRE), (m1.texte || '').includes(LIEU)], [false, true, true]);
   await toucher(A, '[data-reu="courriel-portee"][data-portee="serie"]');
   await saisir(A, '#rc-adresse', ADRESSE);
   await toucher(A, '[data-reu="courriel-envoyer"]');
   await T.attendre(() => relais.messages.length >= 2, 12000, 20);
   const m2 = relais.messages.length >= 2 ? lireMessage(relais.messages[1]) : null;
-  v('« Toute la série » à la même adresse (le deuxième envoi de la semaine, permis) : le calendrier porte la règle hebdomadaire', [relais.messages.length, m2 && /RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=3/.test(deplier(m2.ics || ''))], [2, true]);
+  v('« Toute la série » à la même adresse (le deuxième envoi de la semaine, permis) : le texte dit qu\'elle se répète chaque semaine — toujours sans fichier joint', [relais.messages.length, m2 && /— se répète chaque semaine$/.test(quandM(m2) || ''), m2 && m2.ics], [2, true, null]);
   await saisir(A, '#rc-adresse', 'WQXZ.Dest+etiquette@Exemple.Invalid');
   await toucher(A, '[data-reu="courriel-envoyer"]');
   await verifier('⛔ un TROISIÈME envoi à la même boîte (autre écriture : majuscules, « +étiquette ») : refusé, et la page dit pourquoi — deux invitations par adresse et par semaine', A, () => /Cette adresse a déjà reçu deux invitations de ta part cette semaine/.test(document.getElementById('info-erreur').textContent), null, 8000, () => erreurInfo(A));
@@ -722,9 +713,9 @@ async function parcoursA2(E) {
   v('… le registre du service tient quatre lignes (deux rappels × deux personnes) — et Chloé, qui n\'est pas invitée, et Dora, qu\'on a retirée, n\'ont rien reçu (population : leur page est ouverte, elle a reçu d\'autres bannières avant)', [nb('SELECT COUNT(*) AS n FROM rappel WHERE reunion = ?', R2), rz.some(t => /Commence/.test(t)), rd.some(t => /Commence/.test(t)), rd.length > 0], [4, false, false, true]);
   /* la fiche d'une réunion SANS répétition : un seul lien, un lieu qui est une adresse web (un lien sûr) */
   await B.page.goto(svc.base + '/#reunions/' + R2);
-  await verifier('Bruno ouvre la seconde réunion : un seul lien .ics (« Ajouter à mon agenda »), pas de ligne de répétition, le lieu est un lien qui ne donne rien à la page ouvrante', B, (t) => {
+  await verifier('Bruno ouvre la seconde réunion : rien à télécharger (plus de « Ajouter à mon agenda (.ics) »), pas de ligne de répétition, le lieu est un lien qui ne donne rien à la page ouvrante', B, (t) => {
     const a = document.querySelector('#info-corps a.lien-lieu'), liens = Array.from(document.querySelectorAll('#info-corps a[download]'));
-    return document.getElementById('feuille-titre').textContent === 'Réunion' && document.querySelector('#info-corps .info-nom').textContent === t && liens.length === 1 && /Ajouter à mon agenda/.test(liens[0].textContent) && !/Se répète/.test(document.getElementById('info-corps').textContent)
+    return document.getElementById('feuille-titre').textContent === 'Réunion' && document.querySelector('#info-corps .info-nom').textContent === t && liens.length === 0 && !document.querySelector('#info-corps a[href*="/ics"]') && !/Ajouter à mon agenda|\(\.ics\)/.test(document.getElementById('info-corps').textContent) && !/Se répète/.test(document.getElementById('info-corps').textContent)
       && !!a && a.getAttribute('target') === '_blank' && /noopener/.test(a.rel) && /noreferrer/.test(a.rel);
   }, TITRE_2, 12000, () => texteCorps(B));
 
