@@ -49,11 +49,19 @@ const normalisee = (a) => {
 };
 
 /* Le corps : du texte simple. `hote` : celui qui invite ; `r` : la réunion (titre, lieu, fuseau, répétition) ; `t` : l'occurrence dont on parle (la prochaine, ou celle qu'on a choisie) ; `serie` :
-   le message parle-t-il de TOUTE la série (alors il dit qu'elle se répète) — celui d'une seule date ne le dit pas. */
+   le message parle-t-il de TOUTE la série (alors il dit qu'elle se répète, et jusqu'à quand) — celui d'une seule date ne le dit pas.
+   ⛔ Une série BORNÉE (un nombre de fois, une date de fin) dit sa DERNIÈRE date : le fichier .ics joint portait la règle (COUNT, UNTIL) ; sans lui, « se répète chaque semaine » tout
+   court ferait noter une réunion sans fin (relecture, 15 octobre 2026). La dernière date est celle que la fiche compte (`cal.derniereDate` : la première des deux bornes qui arrive). */
+const FMT_FIN = new Intl.DateTimeFormat('fr-FR', { timeZone: 'UTC', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+function finDeLaSerie(r) {
+  if (!r.n && !r.jusqua) return '';
+  const d = cal.derniereDate({ debut: r.debut, fin: r.fin, tz: r.tz, rep: r.repetition, n: r.n || null, jusqua: r.jusqua || null });
+  return d ? ', jusqu\'au ' + FMT_FIN.format(Date.UTC(d.a, d.m - 1, d.j)).replace(/\u202f|\u00a0/g, ' ') : '';
+}
 function corpsDuMessage(hote, r, t, serie) {
   const quand = cal.dire(t, fuseauDe(null, r.tz)) + ' (heure de ' + r.tz + ')';
   return ['Bonjour,', '', nomAffiche(hote) + ' vous invite à une réunion.', '',
-    '  Réunion : ' + r.titre, '  Quand : ' + quand + (serie && REPETE[r.repetition] ? ' — se répète ' + REPETE[r.repetition] : ''), r.lieu ? '  Lieu : ' + r.lieu : null, '',
+    '  Réunion : ' + r.titre, '  Quand : ' + quand + (serie && REPETE[r.repetition] ? ' — se répète ' + REPETE[r.repetition] + finDeLaSerie(r) : ''), r.lieu ? '  Lieu : ' + r.lieu : null, '',
     '--', 'Ce message a été envoyé par OP MESSAGES à la demande de ' + nomAffiche(hote) + '. Vous ne pouvez pas y répondre. Si vous ne connaissez pas cette personne, ignorez-le : rien n\'est inscrit à votre nom.', ''].filter(l => l !== null).join('\r\n');
 }
 

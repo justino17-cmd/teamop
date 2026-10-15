@@ -10,7 +10,7 @@
  *   POST /api/agenda/:id/supprimer                        S
  *   POST /api/agenda/:id/fait                             S  {fait: true|false} — coché, il ne sonne plus ; décoché, son rappel se recalcule
  *   POST /api/agenda/:id/reporter                         S  {dans: 10 | 60 | 'demain'} — plus tard (10 min, 1 h) ou demain 9 h dans son fuseau, décoché, et il sonnera à l'heure
- *   GET  /api/agenda/:id/ics                              S  le fichier .ics de l'événement (ses rappels compris) : « Ajouter à mon calendrier »
+ *   GET  /api/agenda/:id/ics                              S  le fichier .ics de l'événement (ses rappels compris) — SANS BOUTON depuis le 15 octobre 2026 (« l'application fait déjà agenda »)
  *
  * ⛔ LE RENDEZ-VOUS (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous… avec des rappels et tout », « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ») est
  *    un événement de `genre` 'rdv' : il a TOUJOURS une heure (jamais « toute la journée »), un « avec qui » (`avec`, facultatif, scellé comme le titre) et, comme tout événement, une LISTE de
@@ -255,7 +255,8 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     res.json({ evenement: e });
   };
 
-  /* « Ajouter à mon calendrier » : le fichier .ics de l'événement, ses rappels compris (Calendrier d'Apple, Google Agenda, Outlook l'ouvrent). Un événement d'un autre : 404, comme un inconnu.
+  /* Le fichier .ics de l'événement, ses rappels compris (Calendrier d'Apple, Google Agenda, Outlook l'ouvrent) — ⛔ plus de bouton « Ajouter à mon calendrier » depuis le 15 octobre 2026 :
+     la route reste, le temps de savoir si elle part. Un événement d'un autre : 404, comme un inconnu.
      Une lecture : elle ne prend rien au plafond des écritures, mais garde le sien (60 par minute). */
   H['agenda.ics'] = (req, res) => {
     const id = req.params.id;

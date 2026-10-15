@@ -626,11 +626,12 @@
       repondreReunion: (id, statut) => appel('POST', '/api/reunions/' + e(id) + '/reponse', { statut }),
       rappelsReunion: (id, rappels) => appel('POST', '/api/reunions/' + e(id) + '/rappels', { rappels }),
       trajetReunion: (id, corps) => appel('POST', '/api/reunions/' + e(id) + '/trajet', corps),
-      /* l'invitation par courriel à quelqu'un qui n'a pas OP MESSAGES (le fichier .ics en pièce jointe) : l'adresse n'est ni rangée ni rendue par le service */
+      /* l'invitation par courriel à quelqu'un qui n'a pas OP MESSAGES (du texte seul : plus de .ics joint depuis le 15 octobre 2026) : l'adresse n'est ni rangée ni rendue par le service */
       courrielReunion: (id, destinataire, o2) => appel('POST', '/api/reunions/' + e(id) + '/courriel', Object.assign({ destinataire }, o2 || {})),
-      /* l'adresse du fichier .ics (la page le télécharge par un lien : le cookie de session suit) — une occurrence (son début, en millisecondes), ou toute la série */
+      /* l'adresse du fichier .ics — une occurrence (son début, en millisecondes), ou toute la série. ⛔ SANS BOUTON depuis le 15 octobre 2026 (« l'application fait déjà agenda », « retire
+         aussi ») : la page ne l'appelle plus ; l'adresse et la route restent, le temps de savoir si elles partent */
       adresseIcs: (id, o2) => base + '/api/reunions/' + e(id) + '/ics' + rq(o2 && o2.occurrence ? { occurrence: o2.occurrence } : { serie: 1 }),
-      /* l'adresse du fichier .ics d'un événement ou d'un rendez-vous de l'agenda personnel (« Ajouter à mon calendrier ») — la page le télécharge par un lien, comme celui d'une réunion */
+      /* l'adresse du fichier .ics d'un événement ou d'un rendez-vous de l'agenda personnel — ⛔ SANS BOUTON depuis le 15 octobre 2026, comme celle d'une réunion */
       adresseIcsEvenement: (id) => base + '/api/agenda/' + e(id) + '/ics',
 
       /* Le temps réel. `gestionnaires` : une fonction par événement (`message`, `lu`, `saisie`,

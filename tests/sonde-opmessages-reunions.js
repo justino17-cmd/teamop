@@ -309,6 +309,8 @@ const lireFiche = (S) => S.page.evaluate(() => {
     cochees: Array.from(c.querySelectorAll('[aria-checked="true"]')).map(e => (e.dataset.statut || e.dataset.min || e.dataset.portee || e.dataset.reu)),
     liens: Array.from(c.querySelectorAll('a[download]')).map(e => [e.href, net(e)]), versIcs: c.querySelectorAll('a[href*="/ics"]').length, texte: net(c),
     rubriques: Array.from(c.querySelectorAll('.rubrique > span:first-child')).map(net),
+    /* la rubrique sous laquelle tombe « Ouvrir la conversation de la réunion » (la première `.rubrique` en remontant ses voisines) */
+    rubriqueConv: (() => { let e = c.querySelector('[data-reu="conversation"]'); e = e && e.closest('.carte'); while (e && !(e.classList && e.classList.contains('rubrique'))) e = e.previousElementSibling; return e ? net(e.querySelector('span') || e) : null; })(),
     inviter: Array.from(c.querySelectorAll('[data-reu="inviter"]')).map(e => e.dataset.uid),
   };
 });
@@ -485,6 +487,8 @@ async function parcoursA(b, ctx) {
   const fb = await lireFiche(B);
   v('⛔ la fiche de Bruno : « Organisée par Alice Martin », SON heure avec celle de Paris entre parenthèses, la répétition', [fb.sous, /08:00 – 09:00 \(14:00 – 15:00 à Paris\)/.test(fb.infos[0]) || fb.infos[0].includes(heureDans(OCC[0], NY) + ' – ' + heureDans(OCC[0] + H, NY) + ' (14:00 – 15:00 à Paris)'), fb.infos[1]], ['Organisée par Alice Martin', true, 'Se répète toutes les semaines, 3 fois']);
   v('… trois réponses possibles, AUCUNE choisie ; ses rappels sont ceux de la réunion (15 minutes, 1 jour)', [fb.gestes.filter(g => /^reponse/.test(g)), fb.cochees.filter(c => /^(accepte|decline|peutetre)$/.test(c)), fb.cochees.filter(c => /^\d+$/.test(c)).sort()], [['reponse:accepte', 'reponse:peutetre', 'reponse:decline'], [], ['1440', '15']]);
+  v('⛔ la carte « Ouvrir la conversation de la réunion » a sa rubrique — « Agenda » avec « Ranger dans », sinon « Conversation » — jamais celle des participants (Alice, puis Bruno)',
+    [[fa.rubriqueConv, fa.gestes.includes('cote')], [fb.rubriqueConv, fb.gestes.includes('cote')]].map(([r, cote]) => r === (cote ? 'Agenda' : 'Conversation')), [true, true]);
   v('⛔ et RIEN de l\'organisatrice : ni modifier, ni annuler, ni supprimer, ni courriel, ni inviter, ni retirer (population : il a des gestes — réponse, rappels, conversation)', [fb.gestes.length > 5, fb.gestes.filter(g => ['modifier', 'annuler-demander', 'supprimer-demander', 'courriel-ouvrir', 'inviter', 'retirer'].includes(g))], [true, []]);
   await capture(B, 'r5-fiche-invite');
   await largeur(B, 'fiche (invité)');
@@ -650,7 +654,10 @@ async function parcoursA2(E) {
   await toucher(A, '[data-reu="courriel-envoyer"]');
   await T.attendre(() => relais.messages.length >= 2, 12000, 20);
   const m2 = relais.messages.length >= 2 ? lireMessage(relais.messages[1]) : null;
-  v('« Toute la série » à la même adresse (le deuxième envoi de la semaine, permis) : le texte dit qu\'elle se répète chaque semaine — toujours sans fichier joint', [relais.messages.length, m2 && /— se répète chaque semaine$/.test(quandM(m2) || ''), m2 && m2.ics], [2, true, null]);
+  /* la série a TROIS dates : sans le .ics qui portait son COUNT, le texte dit sa dernière (15 octobre 2026) */
+  const finSerie = FMT(PARIS, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(OCC[2]).replace(/\u202f|\u00a0/g, ' ');
+  v('« Toute la série » à la même adresse (le deuxième envoi de la semaine, permis) : le texte dit qu\'elle se répète chaque semaine JUSQU\'À sa troisième date (' + finSerie + ') — toujours sans fichier joint',
+    [relais.messages.length, m2 && (quandM(m2) || '').endsWith('— se répète chaque semaine, jusqu\'au ' + finSerie), m2 && m2.ics], [2, true, null]);
   await saisir(A, '#rc-adresse', 'WQXZ.Dest+etiquette@Exemple.Invalid');
   await toucher(A, '[data-reu="courriel-envoyer"]');
   await verifier('⛔ un TROISIÈME envoi à la même boîte (autre écriture : majuscules, « +étiquette ») : refusé, et la page dit pourquoi — deux invitations par adresse et par semaine', A, () => /Cette adresse a déjà reçu deux invitations de ta part cette semaine/.test(document.getElementById('info-erreur').textContent), null, 8000, () => erreurInfo(A));

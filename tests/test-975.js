@@ -123,6 +123,12 @@ function essayerRelais(cfg, env) {
     v('⛔ il dit que la série SE RÉPÈTE quand le message parle de la série — et le tait pour une seule occurrence (elle ne se répète pas)', [/— se répète chaque semaine/.test(c1), /se répète/.test(c2)], [true, false]);
     v('⛔ il ne parle d\'aucun fichier (15 octobre 2026 : plus de .ics joint) — ni « .ics », ni « fichier joint », ni « pièce jointe », ni « agenda » (population : trois messages)', [c1, c2, c3].map(c => /\.ics|fichier|pi[eè]ce jointe|agenda|calendrier/i.test(c)), [false, false, false]);
     v('sans lieu, pas de ligne « Lieu » vide', [/Lieu :/.test(c3)], [false]);
+    /* une série BORNÉE (15 octobre 2026, relecture) : sans le .ics qui portait COUNT et UNTIL, le texte dit la DERNIÈRE date — la première des deux bornes qui arrive */
+    const quandDe = (x) => (COURRIEL.corpsDuMessage(hote, Object.assign({}, r, { debut: L26, fin: L26 + HEURE }, x), L26, true).split('\r\n').find(l => l.startsWith('  Quand :')) || '').replace(/^  Quand : lundi 26 octobre à 14:00 \(heure de Europe\/Paris\) — /, '');
+    v('⛔ une série BORNÉE dit jusqu\'à quand : trois fois (lundi 9 novembre), jusqu\'au 20 novembre (le dernier lundi, le 16), les deux (la première borne, le 2), un mois sur deux fois — sans borne, rien de plus',
+      [quandDe({ n: 3 }), quandDe({ jusqua: '2026-11-20' }), quandDe({ n: 3, jusqua: '2026-11-05' }), quandDe({ repetition: 'mensuelle', n: 2 }), quandDe({})],
+      ['se répète chaque semaine, jusqu\'au lundi 9 novembre 2026', 'se répète chaque semaine, jusqu\'au lundi 16 novembre 2026', 'se répète chaque semaine, jusqu\'au lundi 2 novembre 2026', 'se répète chaque mois, jusqu\'au jeudi 26 novembre 2026', 'se répète chaque semaine']);
+    v('… et le message d\'UNE date d\'une série bornée ne dit ni qu\'elle se répète, ni sa fin', /se répète|jusqu'au/.test(COURRIEL.corpsDuMessage(hote, Object.assign({}, r, { debut: L26, fin: L26 + HEURE, n: 3 }), L26, false)), false);
     v('⛔ il dit d\'où vient le message, qu\'on n\'y répond pas, et qu\'on peut l\'ignorer sans rien inscrire', [/envoyé par OP MESSAGES à la demande de Ana Banc/.test(c1), /Vous ne pouvez pas y répondre/.test(c1), /ignorez-le : rien n'est inscrit à votre nom/.test(c1)], [true, true, true]);
     v('l\'objet est FIXE', COURRIEL.SUJET, SUJET);
   }

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a5e46b66699e';
+  const OPMSG_BUILD = '0e62c257a86c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 197;
+  const OPMSG_VERSION = 198;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -7392,6 +7392,7 @@
     if (lc) s += '<div class="rubrique"><span>Agenda</span></div><div class="carte"><button type="button" class="reglage presse" data-reu="cote" data-valeur="' + (lc.coteChoisi || 'auto') + '" data-auto="' + (lc.coteAuto === 'pro' ? 'pro' : 'perso') +
       '" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Ranger dans<small>Pour toi seul</small></span><span class="reglage-valeur">' +
       esc(lc.coteChoisi ? NOM_COTE[lc.coteChoisi] : NOM_COTE[lc.coteAuto === 'pro' ? 'pro' : 'perso'] + ' (auto)') + CHEVRON_UD + '</span></button></div>';     // (sans « Ranger dans », pas de rubrique vide)
+    if (!lc) s += '<div class="rubrique"><span>Conversation</span></div>';   // sans « Ranger dans », la carte ne tombe pas sous « Participants » ou « Inviter »
     s += '<div class="carte"><button type="button" class="reglage presse" data-reu="conversation">' + icone('i-chat') + '<span class="reglage-texte">Ouvrir la conversation de la réunion</span>' + CHEVRON + '</button></div>';
     /* la sortie de l'INVITÉ : une invitation qu'on ne veut pas ne reste pas dans l'agenda sans issue (l'organisateur, lui, annule ou supprime) */
     if (!hote) s += '<div class="rubrique"><span>Invité</span></div>' + (F.confirme === 'quitter' ? htmlConfirmation(d) : '<div class="carte"><button type="button" class="reglage presse danger" data-reu="quitter-demander"><span class="reglage-texte">Quitter la réunion<small>Elle disparaît de ton agenda et tu sors de sa conversation</small></span></button></div>');

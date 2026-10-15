@@ -538,6 +538,7 @@ m('E31', 'le corps part en HTML au lieu du texte simple', F.mail, "text: corpsDu
 m('E32', 'un fichier .ics revient en pièce jointe du courriel', F.mail, "text: corpsDuMessage(hote, reunion, quand, !choisie),",
   "text: corpsDuMessage(hote, reunion, quand, !choisie), attachments: [{ filename: 'reunion.ics', content: 'BEGIN:VCALENDAR\\r\\nEND:VCALENDAR\\r\\n', contentType: 'text/calendar; charset=utf-8; method=PUBLISH' }],", ['975']);
 m('E33', 'une réunion SEULE dit l\'instant que la demande porte (le texte annonce une heure que la réunion n\'a pas)', F.mail, "reunion.repetition === 'aucune' ? { debut: reunion.debut } :", "reunion.repetition === 'aucune' ? { debut: occurrence } :", ['975']);
+m('E120', 'une série BORNÉE ne dit plus jusqu\'à quand elle se répète (sans le .ics, le texte ferait noter une réunion sans fin)', F.mail, "+ REPETE[r.repetition] + finDeLaSerie(r) :", "+ REPETE[r.repetition] :", ['975']);
 m('E119', 'un fuseau que le service ne connaît pas n\'est plus refusé (le texte dit une heure au décalage inventé)', F.mail, "    if (cal.tzValide(reunion.tz) === null) throw erreur('occurrence_inconnue');\n", "", ['975']);
 m('E35', 'les en-têtes qui découragent les réponses automatiques sont retirés', F.mail, "        headers: { 'X-Auto-Response-Suppress': 'All', 'Auto-Submitted': 'auto-generated' },\n", "", ['975']);
 m('E36', 'le message part aussi en copie au destinataire (Cc)', F.mail, "to: adresse, subject: SUJET,", "to: adresse, cc: adresse, subject: SUJET,", ['975']);
