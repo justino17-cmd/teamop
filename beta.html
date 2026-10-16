@@ -8993,6 +8993,16 @@ const NUIS_TRAIT = {
 };
 const METHODES = ['Appâtage','Piégeage mécanique','Plaques engluées','Pulvérisation','Gel insecticide','Fumigation / nébulisation','Poudrage','Bouchage d\'accès','Grillage / proofing','Contrôle / surveillance'];
 const MOYENS_PAIEMENT = ['A) Carte bancaire','B) Lien de paiement','C) Espèces','D) Chèque','E) Paiement en plusieurs fois - COFIDIS','F) Paiement en 2x - espèce + chèque','G) Paiement en 2x - CB + chèque','H) Virement'];
+/* ⛔ Les options du « Moyen de paiement » de la fiche (mode stylo) viennent de LA liste du formulaire
+   (MOYENS_PAIEMENT), « Aucun » en tête — le testeur (interventions#12, 16 octobre 2026) lisait « Aucun » sur une
+   intervention créée « C) Espèces » : le select avait SA liste (Espèces, Chèque, Carte bancaire, Virement) où aucune
+   option ne portait la valeur de la base, et le premier toucher aurait effacé le moyen. Une valeur d'avant la liste
+   (« Espèces ») reste proposée et sélectionnée plutôt que perdue. */
+function intMoyenPaiementOptions(cur){
+  cur=cur||'';
+  const liste=['Aucun'].concat(MOYENS_PAIEMENT);
+  if(cur&&!MOYENS_PAIEMENT.includes(cur)) liste.splice(1,0,cur);
+  return liste.map(m=>`<option ${(m==='Aucun'?!cur:m===cur)?'selected':''}>${esc(m)}</option>`).join(''); }
 const VISITE_TECH = ['Non','Oui','À prévoir'];
 /* Auto-remplissage : catégorie d'intervention -> nuisibles + méthodes par défaut (gain de temps sur le terrain) */
 const CAT_AUTO = {
@@ -23969,7 +23979,7 @@ function renderIntDetail(id){
           : (f,lbl)=>`<div style="margin-bottom:16px"><div class="comm-lbl" style="margin-bottom:6px">${lbl} :</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px;white-space:pre-wrap">${esc(i[f]||'')}</div></div>`;
           const oui=(f,lbl)=>`<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:7px">${lbl} :</div><label style="margin-right:22px;font-size:14px;color:var(--t1);${intEdit?'cursor:pointer':''}"><input type="radio" name="q-${f}" ${i[f]==='oui'?'checked':''} ${intEdit?`onclick="intQSet('${id}','${f}','oui')"`:'disabled'} style="width:19px;height:19px;accent-color:var(--acc);vertical-align:-4px"> Oui</label><label style="font-size:14px;color:var(--t1);${intEdit?'cursor:pointer':''}"><input type="radio" name="q-${f}" ${i[f]==='non'?'checked':''} ${intEdit?`onclick="intQSet('${id}','${f}','non')"`:'disabled'} style="width:19px;height:19px;accent-color:var(--acc);vertical-align:-4px"> Non</label></div>`;
           const mp=intEdit
-          ? `<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:6px">Moyen de paiement :</div><select onchange="(db.interventions.find(x=>x.id==='${id}')||{}).moyenPaiement=this.value==='Aucun'?'':this.value;save()" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:11px 12px;color:var(--t1);font-family:inherit;font-size:14px">${['Aucun','Espèces','Chèque','Carte bancaire','Virement'].map(m=>`<option ${((i.moyenPaiement||'Aucun')===m)?'selected':''}>${m}</option>`).join('')}</select></div>`
+          ? `<div style="margin-bottom:14px"><div class="comm-lbl" style="margin-bottom:6px">Moyen de paiement :</div><select onchange="(db.interventions.find(x=>x.id==='${id}')||{}).moyenPaiement=this.value==='Aucun'?'':this.value;save()" style="width:100%;background:var(--card2);border:1px solid var(--brd2);border-radius:10px;padding:11px 12px;color:var(--t1);font-family:inherit;font-size:14px">${intMoyenPaiementOptions(i.moyenPaiement)}</select></div>`
           : `<div style="margin-bottom:16px"><div class="comm-lbl" style="margin-bottom:6px">Moyen de paiement :</div><div style="border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding:1px 0 1px 12px;font-size:13.5px;color:var(--t1);min-height:19px">${esc(i.moyenPaiement||'')}</div></div>`;
           return ta('commCommercial','Commentaire vendeur')+ta('commTechnicien','Commentaire technicien')+ta('commChefRegional','Commentaire responsable')+mp
           +oui('qTypeTraitement','Type de traitement')+oui('qVisiteTechnique','Visite technique')+oui('qCtrlVehicule',"Contrôle de l'état du véhicule")+oui('qCtrlMateriel',"Contrôle de l'état du Matériel"); })()}

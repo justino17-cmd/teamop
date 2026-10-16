@@ -25,9 +25,9 @@ const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'sy
   'intRegistreEncaisse', 'factureAFacturer', 'interAFacturer', 'regAdd', 'regDeLInter', 'regModeDe', 'docTot', 'intRecaleAuJourFait',
   'intRecaleDefaire', 'intHisto', 'intTechIds', 'intStatutPermis', 'saveRapport', 'assistFinish', 'assistCloture', 'asKeepSigs', 'intSetStatutDo',
   'intEffToggle', 'intTerminerPrevu', 'intGenererDoc', 'intInfOf', 'intEffectuer', 'formRapport', 'intRepasseNonTerminee', 'intInfestationConstat',
-  'interReglee', 'interDejaRegle'];
+  'interReglee', 'interDejaRegle', 'intMoyenPaiementOptions'];
 const CODE = FONCTIONS.map(fonction).filter(Boolean).join('\n');
-const CONSTS = ['const ligTotLigne=', 'const ligHT=', 'const MOYENS_PAIEMENT='].map(ligne).join('\n');
+const CONSTS = ['const ligTotLigne=', 'const ligHT=', 'const MOYENS_PAIEMENT =', 'const esc ='].map(ligne).join('\n');
 
 /* opts : { db, moi, droits:{ 'int.modifier':false, … }, voit:{ factures:false }, moiTech } */
 function monde(opts) {
