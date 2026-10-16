@@ -35575,7 +35575,10 @@ function syncFactureFromIntervention(i){
 function factValider(id){ if(!isFinanceMgr()){ toast('Validation comptable réservée au droit « Voir / gérer la comptabilité »'); return; } const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; f.valideCompta=!f.valideCompta; logEvent('Facture '+(f.valideCompta?'validée compta':'validation retirée'),f.num,'finance'); save(); views.factures(); toast(f.valideCompta?'Validée par la compta ✓':'Validation retirée'); }
 /* ── Facturation pro ── */
 let factFilter='tous';
-function factIsLate(f){ return f.statut==='envoyee' && f.date && (Date.now()-new Date(f.date+'T00:00:00').getTime() > 30*86400000); }
+/* g06 (facturation#5) : « En retard » est aussi un statut que le formulaire OFFRE et que le reste de l'application
+   (compta, tableau de bord, virement) traite comme un impayé. Une facture posée « retard » à la main est donc en
+   retard, sans attendre trente jours — sinon elle sortait des compteurs « À encaisser » et « En retard ». */
+function factIsLate(f){ return f.statut==='retard' || (f.statut==='envoyee' && f.date && (Date.now()-new Date(f.date+'T00:00:00').getTime() > 30*86400000)); }
 /* ⛔ v738 — ENVOYER, MARQUER PAYÉE, CONVERTIR : CE SONT DES MODIFICATIONS (et une création). Aucune de
    ces portes ne lisait « Ventes » : un compte en consultation seule marquait une facture payée, l'envoyait
    au client, transformait un devis en facture. Mesuré sur la v737. */
@@ -35594,22 +35597,36 @@ views.factures=function(){
   const emis=all.filter(f=>f.statut!=='brouillon');
   const totFact=emis.reduce((s,f)=>s+ttc(f),0);
   const totPaid=all.filter(f=>f.statut==='payee').reduce((s,f)=>s+ttc(f),0);
-  const dueList=all.filter(f=>f.statut==='envoyee'); const totDue=dueList.reduce((s,f)=>s+ttc(f),0);
+  const dueList=all.filter(f=>f.statut==='envoyee'||f.statut==='retard'); const totDue=dueList.reduce((s,f)=>s+ttc(f),0);
   const lateList=dueList.filter(factIsLate); const totLate=lateList.reduce((s,f)=>s+ttc(f),0);
   const devisAcc=visibleDocs(db.devis||[]).filter(d=>d.statut==='accepte'&&!(db.factures||[]).some(f=>f.devisId===d.id));
-  const intsAfact=visibleInts(db.interventions||[]).filter(i=>i.statut==='terminee'&&!(db.factures||[]).some(f=>f.interventionId===i.id));
+  /* g06 (facturation#6) : une intervention est déjà facturée si une facture la porte par L'UNE des trois clés —
+     `interventionId` (facture née de l'intervention), `interId` (facture automatique, réglée sur place) ou
+     `interIds` (facture GROUPÉE de la validation de la journée). Ne regarder que la première la laissait
+     proposée, et « Générer la facture » en créait une seconde, à un autre montant. */
+  const intDejaFacturee=new Set(); (db.factures||[]).forEach(f=>{ if(f.interventionId) intDejaFacturee.add(f.interventionId); if(f.interId) intDejaFacturee.add(f.interId); (f.interIds||[]).forEach(x=>intDejaFacturee.add(x)); });
+  const intsAfact=visibleInts(db.interventions||[]).filter(i=>i.statut==='terminee'&&!intDejaFacturee.has(i.id));
+  /* g06 (facturation#2, sa part) : deux appareils qui émettent avant de s'être vus tirent le même numéro — le bandeau
+     des devis existe déjà ; une facture en double ne se voyait nulle part. */
+  const dblNums=docNumsDoubles('factures');
+  const bandeauDbl=dblNums.length?`<div class="card" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);padding:12px 14px;margin-bottom:12px">
+    <div style="font-weight:800;color:var(--org);font-size:13.5px">⚠️ ${dblNums.length} numéro${dblNums.length>1?'s':''} en double</div>
+    <div style="font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.55"><span class="mono">${dblNums.slice(0,6).map(esc).join(', ')}</span>${dblNums.length>6?' et '+(dblNums.length-6)+' autre(s)':''} — deux appareils ont émis le même numéro sans s'être vus. Ouvre la plus récente (clique la ligne) et donne-lui le numéro suivant : la numérotation d'une facture doit rester continue.</div></div>`:'';
   /* v738 : l'export « Excel » est la COMPTABILITÉ ENTIÈRE (factures, télécollectes, registre des
      encaissements) — il suit le droit de la Comptabilité, pas le menu Factures qu'un commercial a d'office */
   const vMod=canCat('ventes','modifier'), vAj=canCat('ventes','ajouter');
   setHeader('Factures','Facturation',`${isFinanceMgr()?`<button class="btn ghost" onclick="exportComptaTout()" title="Export Excel">Excel</button> `:''}${vAj?`<button class="btn" onclick="formDoc('factures')">＋ Nouvelle facture</button>`:''}`);
   const filters=[['tous','Toutes',all.length],['brouillon','En attente',all.filter(f=>f.statut==='brouillon').length],['envoyee','À encaisser',dueList.length],['retard','En retard',lateList.length],['payee','Payées',all.filter(f=>f.statut==='payee').length]];
-  let list = factFilter==='retard' ? lateList : (factFilter==='tous'? all : all.filter(f=>f.statut===factFilter));
+  let list = factFilter==='retard' ? lateList : factFilter==='envoyee' ? dueList : (factFilter==='tous'? all : all.filter(f=>f.statut===factFilter));
   const row=f=>{ const late=factIsLate(f); const st=late?'retard':f.statut;
-    return `<div class="pl-row">
+    /* g06 (facturation#9) : le motif `.pl-row.lga` du dépôt — sous 440 px de LIGNE le libellé prend sa ligne et le groupe
+       de gestes (Aperçu · FX · ↩︎ · Validée · 🗑) passe dessous. Sans lui la colonne de texte tombait à 0 px sur téléphone
+       (titre sur six lignes, rangée de 479 px) ; et un montant long est insécable, « € » ne reste plus seul. */
+    return `<div class="pl-row lga">
       <div class="pl-info" style="cursor:pointer" onclick="${vMod?`formDoc('factures','${f.id}')`:`printDoc('factures','${f.id}')`}">
-        <div class="pl-title">${esc(f.num||'—')} · ${eur(ttc(f))}</div>
+        <div class="pl-title">${esc(f.num||'—')} · <span style="white-space:nowrap">${eur(ttc(f))}</span></div>
         <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
-      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+      <span class="lga-a" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn ghost sm" onclick="printDoc('factures','${f.id}')" title="Aperçu">Aperçu</button>
         <button class="btn ghost sm" onclick="exportFacturX('${f.id}')" title="Export Factur-X (facturation électronique)">FX</button>
         ${vMod&&f.statut==='brouillon'?`<button class="btn sm" onclick="factEnvoyer('${f.id}')" title="Envoyer la facture au client par e-mail">📧 Envoyer</button><button class="btn ghost sm" onclick="factSetStatut('${f.id}','envoyee')" title="Marquer envoyée (si l'envoi a été fait autrement)">📤</button>`:''}
@@ -35618,7 +35635,7 @@ views.factures=function(){
         ${f.statut==='payee'&&isFinanceMgr()?`<button class="btn ${f.valideCompta?'ghost':''} sm" onclick="factValider('${f.id}')" title="Validation comptable">${f.valideCompta?'Validée':'Valider'}</button>`:''}
         ${canDel?`<button class="btn danger sm" onclick="delFacture('${f.id}')" title="Supprimer">🗑</button>`:''}
       </span></div>`; };
-  $('content').innerHTML=`<div class="kpis">
+  $('content').innerHTML=bandeauDbl+`<div class="kpis">
     <div class="kpi"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">📄</div><div class="kpi-val">${eur(totFact)}</div><div class="kpi-lbl">Total facturé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">✅</div><div class="kpi-val">${eur(totPaid)}</div><div class="kpi-lbl">Encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">⏳</div><div class="kpi-val">${eur(totDue)}</div><div class="kpi-lbl">À encaisser (${dueList.length})</div></div>
