@@ -75,6 +75,7 @@ function monde(opts) {
     function intNum(){ return 'INT-2026-001'; }
     ${CODE}
   `, ctx);
+  ctx.exec = code => vm.runInContext(code, ctx);
   return ctx;
 }
 /* laisse partir les promesses (courriel de facture) */

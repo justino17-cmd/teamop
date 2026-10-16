@@ -23316,7 +23316,7 @@ function clotureSuiteModal(id,askNext,recurMsg){ const it=db.interventions.find(
 /* ── F6. CLÔTURE GUIDÉE — assistant par étapes qui remplit les mêmes champs que le rapport ── */
 let asW=null, rapTags=[];
 const AS_STEPS=['Constat','Actions','Produits','Photos','Reco.','Signatures'];
-function assistCloture(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
+function assistCloture(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return; if(!intStatutPermis(i,'terminee')){ toast('Rédiger ou clore cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return; }
   rapPhotos=(i.photos||[]).slice(); rapTags=(i.photoTags||[]).slice();
   rapConstat=Object.assign({infestation:'',indices:[],conformite:'',recommandations:'',securisation:''}, JSON.parse(JSON.stringify(i.constat||{})));
   intNuis=new Set(i.nuisibles||((i.nuisible&&i.nuisible!=='—')?[i.nuisible]:[]));
@@ -23421,7 +23421,7 @@ async function asAddPhotos(e){ const files=[...e.target.files]; e.target.value='
   for(const f of files){ const d=await compressImage(f); if(d){ rapPhotos.push(d); rapTags.push(''); } } assistRender(); }
 function asRecoAdd(ix){ const r=RECO_3D[ix]; if(!r) return; if((asW.reco||'').includes(r)){ toast('Déjà ajoutée'); return; }
   asW.reco=(asW.reco?asW.reco.trimEnd()+'\n':'')+'• '+r; const ta=$('as-reco'); if(ta) ta.value=asW.reco; else assistRender(); toast('Recommandation ajoutée'); }
-function assistFinish(id){ if(!asW) return; const ix=db.interventions.findIndex(x=>x.id===id); if(ix<0) return;
+function assistFinish(id){ if(!asW) return; const ix=db.interventions.findIndex(x=>x.id===id); if(ix<0) return; if(!intStatutPermis(db.interventions[ix],'terminee')){ toast('Rédiger ou clore cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return; }
   asKeepSigs();
   const it=db.interventions[ix];
   it.compteRendu=asW.obs||''; it.noteInterne=asW.noteInterne||''; it.materiel=asW.materiel||''; it.zones=asW.zones||'';
@@ -23830,6 +23830,7 @@ function renderIntDetail(id){
   /* v738 : réaffectée par la synchro pendant qu'on la regarde, elle ne se redessine plus chez qui ne la voit plus */
   if(!ouvrables().int(i)){ $('content').innerHTML=`<div class="card">${emptyState('🔒','Cette intervention ne te concerne plus.','','')}</div>`; return; }
   window._curIntId=id;
+  const peutClore=intStatutPermis(i,'terminee');   // « Rédiger » et « Clôture guidée » : la règle du menu de statut
   i.produitsUtilises=i.produitsUtilises||[]; i.equipements=i.equipements||[];
   i.docs=i.docs||[];
   i.plans=i.plans||[];
@@ -23963,7 +23964,7 @@ function renderIntDetail(id){
           +oui('qTypeTraitement','Type de traitement')+oui('qVisiteTechnique','Visite technique')+oui('qCtrlVehicule',"Contrôle de l'état du véhicule")+oui('qCtrlMateriel',"Contrôle de l'état du Matériel"); })()}
       </div></details>
       ${(()=>{ const co=i.constat||{}; const sum=traitementSummary(i); const has=i.compteRendu||co.infestation||co.conformite||(co.indices&&co.indices.length)||co.recommandations||sum.length;
-        return `<div class="card"><div class="card-head" style="margin-bottom:8px"><h3>Rapport</h3><span style="display:flex;gap:6px">${i.statut!=='terminee'?`<button class="btn sm" onclick="assistCloture('${id}')">✓ Clôture guidée</button>`:''}<button class="btn ghost sm" onclick="formRapport('${id}')">Rédiger</button></span></div>${has?`
+        return `<div class="card"><div class="card-head" style="margin-bottom:8px"><h3>Rapport</h3><span style="display:flex;gap:6px">${peutClore&&i.statut!=='terminee'?`<button class="btn sm" onclick="assistCloture('${id}')">✓ Clôture guidée</button>`:''}${peutClore?`<button class="btn ghost sm" onclick="formRapport('${id}')">Rédiger</button>`:''}</span></div>${has?`
           ${co.infestation?`<div class="bdt-row"><span class="bdt-lbl">Niveau d'infestation</span><span class="bdt-val">${esc(co.infestation)}</span></div>`:''}
           ${co.conformite?`<div class="bdt-row"><span class="bdt-lbl">Conformité</span><span class="bdt-val">${esc(co.conformite)}</span></div>`:''}
           ${(co.indices&&co.indices.length)?`<div style="margin:8px 0"><div class="dt-lbl" style="margin-bottom:4px">Indices</div><div style="display:flex;flex-wrap:wrap;gap:4px">${co.indices.map(x=>`<span class="tag" style="font-size:11px">${esc(x)}</span>`).join('')}</div></div>`:''}
@@ -24070,8 +24071,8 @@ function renderIntDetail(id){
       ${abtn(fic('dl',18),'Télécharger le rapport',`printRapport('${id}')`)}
       <div style="display:flex;align-items:center;gap:12px;margin:4px 0"><div style="flex:1;height:1px;background:var(--brd)"></div><b style="font-size:16px">Autres</b><div style="flex:1;height:1px;background:var(--brd)"></div></div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-        <button class="btn ghost sm" onclick="formRapport('${id}')">Rédiger le rapport</button>
-        ${i.statut!=='terminee'?`<button class="btn ghost sm" onclick="assistCloture('${id}')">✓ Clôture guidée</button>`:''}
+        ${peutClore?`<button class="btn ghost sm" onclick="formRapport('${id}')">Rédiger le rapport</button>`:''}
+        ${peutClore&&i.statut!=='terminee'?`<button class="btn ghost sm" onclick="assistCloture('${id}')">✓ Clôture guidée</button>`:''}
         ${canCat('ventes','ajouter')&&userSeesModule(currentUser,'devis')?`<button class="btn ghost sm" onclick="intGenererDoc('${id}','devis')">Créer un devis</button>`:''}
         ${i.statut==='terminee'&&canCat('ventes','ajouter')&&userSeesModule(currentUser,'factures')?`<button class="btn ghost sm" onclick="intGenererDoc('${id}','factures')">Facturer cette intervention</button>`:''}
         <button class="btn ghost sm" onclick="mailClientRdv('${id}','rappel')">E-mail de rappel</button>
@@ -24115,7 +24116,7 @@ function renderIntDetail(id){
         ${i.montant?`<div class="frow"><span class="frow-lbl">Montant encaissé</span><div class="frow-val"><b style="color:var(--acc-txt)">${eur(i.montant)}</b></div></div>`:''}
         ${i.moyenPaiement?`<div class="frow"><span class="frow-lbl">Moyen</span><div class="frow-val">${esc(i.moyenPaiement)}</div></div>`:''}
         ${i.tpePhoto?`<div style="margin-top:10px"><div class="dt-lbl" style="margin-bottom:6px">Photo du TPE</div><img src="${i.tpePhoto}" onclick="window.open(this.src)" style="max-width:240px;border-radius:8px;border:1px solid var(--brd);cursor:pointer"></div>`:''}</div>`:''}
-      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn ghost" onclick="closeModal();formRapport('${id}')">Rédiger / modifier</button><button class="btn ghost" onclick="printRapport('${id}')">Export PDF</button><button class="btn" onclick="envoiRapportClient('${id}')">Envoyer au client</button></div>`;
+      <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">${peutClore?`<button class="btn ghost" onclick="closeModal();formRapport('${id}')">Rédiger / modifier</button>`:''}<button class="btn ghost" onclick="printRapport('${id}')">Export PDF</button><button class="btn" onclick="envoiRapportClient('${id}')">Envoyer au client</button></div>`;
   }
   setHeader('','','');
   $('content').innerHTML=`
@@ -24382,6 +24383,7 @@ function intEffField(id,field,part,val){ const i=db.interventions.find(x=>x.id==
   if(i.debutReel&&i.finReel){ i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); const el=$('eff-dur'); if(el) el.textContent=dureeStr(i.dureeReelle); }
   save(); }
 function intEffToggle(id,checked){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
+  if(!intStatutPermis(i,checked?'terminee':(i.debutReel?'encours':'planifiee'))){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); renderIntDetail(id); return; }   // la case se décoche : l'écran est redessiné
   if(checked){ i.statut='terminee'; if(!i.finReel) i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); delete _gpsAway[id]; intHisto(i,'Marquée effectuée'); syncFactureFromIntervention(i,{cloture:true}); intRecurNext(i); }
   else { i.statut=i.debutReel?'encours':'planifiee'; intHisto(i,'Repassée '+(i.debutReel?'en cours':'planifiée')); }
   save(); renderIntDetail(id); }
@@ -25152,7 +25154,7 @@ async function aiGenRapport(id){ const i=db.interventions.find(x=>x.id===id); if
     else toast('Erreur IA : '+e.message);
   }
 }
-function formRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return;
+function formRapport(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return; if(!intStatutPermis(i,'terminee')){ toast('Rédiger ou clore cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return; }
   rapPhotos = (i.photos||[]).slice();
   rapChamps = JSON.parse(JSON.stringify(i.champs||{}));
   rapConstat = Object.assign({infestation:'',indices:[],conformite:'',recommandations:'',securisation:''}, i.constat||{});
@@ -25281,7 +25283,12 @@ function initSigPad(existing,cvId){ const cv=$(cvId||'sig-pad'); if(!cv) return;
   cv.ontouchstart=down; cv.ontouchmove=move; cv.ontouchend=up;
 }
 function clearSig(cvId){ const cv=$(cvId||'sig-pad'); if(cv&&cv._ctx){ cv._ctx.clearRect(0,0,cv.width,cv.height); cv.dataset.has=''; } }
-function saveRapport(e,id){ e.preventDefault(); const f=e.target; const data=Object.fromEntries(new FormData(f)); const ix=db.interventions.findIndex(x=>x.id===id);
+/* ⛔ v738 (rapport interventions#2, 16 octobre 2026) — « Rédiger » et la Clôture guidée terminent une
+   intervention, mais ne lisaient aucune case : un compte à qui l'administrateur avait retiré « Interventions →
+   Modifier » (le menu de statut le refusait bien) terminait et réécrivait le compte-rendu par ce second chemin.
+   La règle est CELLE DU MENU DE STATUT (intStatutPermis) : la case, ou le technicien rattaché à SON intervention
+   — le terrain n'est pas bloqué. Elle se lit ici, en première instruction : le bouton caché ne garde rien. */
+function saveRapport(e,id){ e.preventDefault(); if(!intStatutPermis(db.interventions.find(x=>x.id===id),'terminee')){ toast('Rédiger ou clore cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return; } const f=e.target; const data=Object.fromEntries(new FormData(f)); const ix=db.interventions.findIndex(x=>x.id===id);
   const cv=$('sig-pad'); const sig = (cv&&cv.dataset.has) ? cv.toDataURL('image/png') : (db.interventions[ix].signature||'');
   const cvT=$('sig-pad-tech'); const sigT = (cvT&&cvT.dataset.has) ? cvT.toDataURL('image/png') : (db.interventions[ix].signatureTech||'');
   const constat={infestation:data.infestation==='—'?'':data.infestation, conformite:data.conformite==='—'?'':data.conformite, recommandations:data.recommandations||'', indices:(rapConstat.indices||[]).slice()};
