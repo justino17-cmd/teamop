@@ -11328,7 +11328,7 @@ a.menu-action { text-decoration: none; }
     if (enSalle(A) && s.moi.proprietaire && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
     raccrocherCouche();
   });
-  /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026, Justin : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
+  /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026 : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
      Lever la main en tête) : une fonction par geste, appelée par la ligne du panneau ET par le raccourci (H, G). Le panneau se referme après le geste (on voit ce qu'il a fait :
      la main sur sa vignette, la vue qui change, « REC ») et le focus revient sur « Plus ». */
   async function salleMainBasculer(A) { const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } }

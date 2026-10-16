@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e289514f7b1f';
+  const OPMSG_BUILD = 'adfade0d715e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 204;
+  const OPMSG_VERSION = 205;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8530,7 +8530,7 @@
     if (enSalle(A) && s.moi.proprietaire && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
     raccrocherCouche();
   });
-  /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026, Justin : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
+  /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026 : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
      Lever la main en tête) : une fonction par geste, appelée par la ligne du panneau ET par le raccourci (H, G). Le panneau se referme après le geste (on voit ce qu'il a fait :
      la main sur sa vignette, la vue qui change, « REC ») et le focus revient sur « Plus ». */
   async function salleMainBasculer(A) { const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } }
