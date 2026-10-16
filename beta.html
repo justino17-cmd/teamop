@@ -23421,12 +23421,23 @@ async function asAddPhotos(e){ const files=[...e.target.files]; e.target.value='
   for(const f of files){ const d=await compressImage(f); if(d){ rapPhotos.push(d); rapTags.push(''); } } assistRender(); }
 function asRecoAdd(ix){ const r=RECO_3D[ix]; if(!r) return; if((asW.reco||'').includes(r)){ toast('Déjà ajoutée'); return; }
   asW.reco=(asW.reco?asW.reco.trimEnd()+'\n':'')+'• '+r; const ta=$('as-reco'); if(ta) ta.value=asW.reco; else assistRender(); toast('Recommandation ajoutée'); }
+/* ⛔ Le niveau d'infestation existe en DEUX formes : la jauge de la fiche (faible/moyen/fort) et le libellé du
+   constat du rapport (Aucune présence/Faible/Moyen/Fort/Critique). Le rapport client et le registre sanitaire lisent
+   le constat. Avant le 16 octobre 2026 la Clôture guidée gardait le constat déjà saisi (« Fort ») sous la jauge
+   qu'on venait de choisir (« Faible ») : la fiche disait une chose, le document du client l'autre.
+   Règle : le niveau CHOISI remplace le constat ; sinon (jauge vide) le constat reste ; et un libellé plus fin que la
+   jauge (« Critique » sous « fort ») n'est pas réécrit quand la personne n'a pas changé de niveau. */
+function intInfestationConstat(cur,jauge){
+  const m={'Aucune présence':'faible','Faible':'faible','Moyen':'moyen','Fort':'fort','Critique':'fort'};
+  if(!jauge) return cur||'';
+  if(cur&&m[cur]===jauge) return cur;
+  return {faible:'Faible',moyen:'Moyen',fort:'Fort'}[jauge]||cur||''; }
 function assistFinish(id){ if(!asW) return; const ix=db.interventions.findIndex(x=>x.id===id); if(ix<0) return; if(!intStatutPermis(db.interventions[ix],'terminee')){ toast('Rédiger ou clore cette intervention n\'est pas autorisé pour ton compte (Permissions)'); return; }
   asKeepSigs();
   const it=db.interventions[ix];
   it.compteRendu=asW.obs||''; it.noteInterne=asW.noteInterne||''; it.materiel=asW.materiel||''; it.zones=asW.zones||'';
   it.infestation=asW.infest||'';
-  it.constat=Object.assign({},it.constat||{},{infestation:it.constat&&it.constat.infestation||({faible:'Faible',moyen:'Moyen',fort:'Fort'}[asW.infest]||''),recommandations:asW.reco||'',indices:(rapConstat.indices||[]).slice()});
+  it.constat=Object.assign({},it.constat||{},{infestation:intInfestationConstat(it.constat&&it.constat.infestation,asW.infest),recommandations:asW.reco||'',indices:(rapConstat.indices||[]).slice()});
   it.nuisibles=[...intNuis]; it.nuisible=it.nuisibles[0]||'—';
   it.methodes=[...intMeth];
   it.traitementNuis=JSON.parse(JSON.stringify(intTrait||{}));
