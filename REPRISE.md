@@ -19,6 +19,16 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# ⛔ DÉCISION DE JUSTIN, 16 OCTOBRE 2026 (SOIR) — ELAN N'EST PLUS CLIENT ; LES CORRECTIFS D'OP GESTION VONT AUSSI EN PUBLIC
+
+Justin : « le client ELAN a été supprimé pour non-paiement […] j'ai pris la décision de ne plus travailler avec eux, donc pas de risque pour l'instant,
+pas de client ». Puis, à la question « où vont les correctifs d'OP GESTION ? » : **« Bêta et version publique »**. Pour les correctifs de la campagne
+de test (ci-dessous), `app.html` ET `beta.html` changent ensemble, et la fusion les met en ligne — c'est la phrase que demande la règle du
+11 septembre, et elle lève, POUR CES CORRECTIFS, la suspension du 23 septembre (« rien en public tant que le serveur n'est pas séparé de Firebase »),
+dont la raison était ELAN. ⚠️ Ce n'est pas un blanc-seing pour la suite : un autre chantier qui toucherait `app.html` redemande sa phrase, et le jour
+où une entreprise reprend l'application, la règle « bêta d'abord » revient d'elle-même. Les preuves exigées avant une publication (suite complète,
+syntaxe, mesure au navigateur, fichier servi relu) restent toutes dues.
+
 # 🟡 16 OCTOBRE 2026 (SOIR) — DES AGENTS TESTENT OP GESTION ET OP MESSAGES DE A À Z, AU NAVIGATEUR (EN COURS)
 
 Justin : « je veux que tu mettes des agents sur OP GESTION qui testent toute l'application de A à Z, qui regardent et utilisent l'application pour voir les
