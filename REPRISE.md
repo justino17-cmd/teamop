@@ -19,7 +19,27 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# 🟡 16 OCTOBRE 2026 — OP MESSAGES (BÊTA) : LA SALLE N'A PLUS QUE SA BARRE RONDE, ET LE FICHIER .ICS EST PARTI (PR À VENIR)
+# 🟡 16 OCTOBRE 2026 (SOIR) — DES AGENTS TESTENT OP GESTION ET OP MESSAGES DE A À Z, AU NAVIGATEUR (EN COURS)
+
+Justin : « je veux que tu mettes des agents sur OP GESTION qui testent toute l'application de A à Z, qui regardent et utilisent l'application pour voir les
+bugs » ; puis, pour OP MESSAGES : « pareil, tu mets des agents à la tester, vérifier et améliorer s'il le faut ». Deux campagnes (workflows, agents Sonnet) :
+treize parties chacune, un testeur par partie qui UTILISE l'application (vrais gestes, rôles, téléphone et bureau, jour et nuit), chaque bug rejoué par un
+second agent chargé de le réfuter et d'en trouver la cause, puis un agent qui liste ce qui n'a pas été testé. ⛔ Bêta et 127.0.0.1 seulement :
+· OP GESTION : une COPIE figée de `beta.html` (v767-beta) servie en local, entrée par programme (la connexion de la bêta passe par api.teamop.fr),
+  `betaRemplir` pour la démonstration, Leaflet/jsPDF/pdf.js servis depuis une copie locale (mêmes versions), l'écran hors ligne neutralisé ;
+· OP MESSAGES : une copie figée du service (v207) lancée en local avec le faux OP GESTION, quatre comptes et un monde de départ (contacts, groupe,
+  espace Pro payé, réunions, agenda, appels manqués) — plusieurs comptes ouverts en même temps.
+Les bancs d'essai (`banc.js`, `banc-msg.js`), les scripts et les captures des agents sont dans le scratchpad de la session : ils meurent avec elle —
+ce qui compte (les bugs confirmés, leur cause, les correctifs) entre ici et dans les PR. Le premier testeur d'OP GESTION (planning, tâches, absences)
+a rendu 13 bugs possibles (dont : une intervention déposée sur un congé, une absence validée modifiable par le technicien, deux absences qui se
+chevauchent, un double clic qui crée deux fois) — EN CONTRE-VÉRIFICATION, rien n'est confirmé à cette heure.
+
+# ✅ 16 OCTOBRE 2026 — OP MESSAGES (BÊTA) : LA SALLE N'A PLUS QUE SA BARRE RONDE, ET LE FICHIER .ICS EST PARTI (BÊTA, EN SERVICE)
+
+✅ **En service sur la bêta** : PR #144 fusionnée (`ecc9de23`), msg-beta relu le 16 octobre à 20 h 35 — `/health` sur `ecc9de23`, schéma 29, `index.html`,
+`opmsg-ui.js` et `api.js` servis identiques à `main` (empreintes comparées), `OPMSG_VERSION` 207, l'adresse .ics d'une réunion rend 404 ; le job de
+production a été sauté (la publication publique attend la phrase de Justin). La page avant/après (https://claude.ai/artifact/EqwWgtrdoqjkKpNFEqYQjp)
+porte désormais la salle en tête.
 
 Justin, aux deux questions de la page avant/après (la salle : ranger la rangée de pastilles dans « Plus » ; le code .ics dormant : le retirer) : « ok fait les deux ».
 · **La salle** (`3bc32d30`, puis la relecture `5a5728fc` et `8e553c19`, UI 207) : plus de rangée au-dessus de la barre ronde (micro, caméra, participants, plus ; « Partager »
