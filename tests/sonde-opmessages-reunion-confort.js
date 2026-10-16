@@ -224,6 +224,13 @@ const INIT = () => {
     vrai('Ben la baisse : plus de main, ni chez lui ni chez Ana', await att(B, () => document.getElementById('salle-panneau').hidden && !document.querySelector('#salle-vous-badges .salle-badge.main')) && await att(A, uid => !document.querySelector('#salle-scene > .salle-tuile[data-uid="' + uid + '"] .salle-badge.main'), idB, 15000));
     vrai('Ana passe en « Vue intervenant » depuis « Plus »', await geste(A, 'vue') && await att(A, () => document.getElementById('salle-scene').dataset.vue === 'intervenant'));
     vrai('…et revient à la galerie (l\'interrupteur allumé l\'éteint)', await geste(A, 'vue') && await att(A, () => document.getElementById('salle-scene').dataset.vue === 'galerie'));
+    /* « Plus » OUVERT suit ce qui change sans lui : la touche G bascule la vue, son interrupteur la suit (la signature du panneau lit la vue) */
+    await plusOuvert(A);
+    await A.page.keyboard.press('g');
+    vrai('« Plus » ouvert, G passe en intervenant : l\'interrupteur « Vue intervenant » s\'allume de lui-même', await att(A, () => document.getElementById('salle-scene').dataset.vue === 'intervenant' && (document.querySelector('#salle-panneau-corps [data-sa="vue"]') || {}).getAttribute?.('aria-checked') === 'true'));
+    await A.page.keyboard.press('g');
+    vrai('…G de nouveau : galerie, l\'interrupteur s\'éteint', await att(A, () => document.getElementById('salle-scene').dataset.vue === 'galerie' && (document.querySelector('#salle-panneau-corps [data-sa="vue"]') || {}).getAttribute?.('aria-checked') === 'false'));
+    await toucher(A, '#salle-panneau-fermer');
 
     /* ═══ 4. ÉPINGLER POUR MOI ═══ */
     console.log('\n4. Épingler pour moi (Cleo entre, muette : l\'épingle doit DÉCIDER contre Ana, qui parle)');

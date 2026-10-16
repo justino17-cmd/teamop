@@ -246,6 +246,7 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     await C.page.keyboard.press('Escape');
     vrai('Échap quitte le mode « Annoter » (la barre se range, le calque laisse passer le doigt)', await att(C, () => document.getElementById('annot-barre').hidden && getComputedStyle(document.querySelector('.annot-calque')).pointerEvents === 'none'));
     vrai('   ⛔ et Échap n\'a PAS quitté la salle', await C.page.evaluate(() => document.documentElement.dataset.salle === '1'));
+    vrai('   …et le focus revient sur « Plus », d\'où « Annoter » s\'ouvre (la ligne n\'existe plus panneau fermé : le focus ne tombe pas sur la page)', await C.page.evaluate(() => document.activeElement === document.getElementById('salle-plus')));
     for (const [nom, S] of [['Ana', A], ['Ben', B], ['Cléo', C]]) v('aucune erreur JavaScript chez ' + nom, S.erreurs, []);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }
   fin();
