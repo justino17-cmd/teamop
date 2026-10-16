@@ -2,7 +2,7 @@
    14 octobre 2026, le lot 2 du trajet : « et pareil pour pro, pour les réunions ou rendez-vous » (Justin, sur la fiche « Nouveau rendez-vous » ; puis « Réunions + Rendez-vous Pro »). Le lot 1
    (`test-1005`) a donné son heure de départ à un rendez-vous ; ici, CHAQUE participant d'une réunion range la sienne (`reunion_invite.trajet_ch`, migration 29) :
      · le texte du départ n'existe qu'UNE fois (`texteDepart`, `trajet.js`) — un rendez-vous et une réunion le disent pareil, en retard aussi ;
-     · le fichier .ics d'une réunion : une alarme à l'heure de partir et le trajet dans la description — dans le fichier de SA personne seulement ;
+     · (le fichier .ics d'une réunion est parti le 16 octobre 2026 : plus de fichier, donc plus d'alarme ni de trajet à y mettre) ;
      · la route (`POST /api/reunions/:id/trajet`) : un participant, pour lui ; ⛔ le lieu VERS LEQUEL le trajet a été calculé doit être celui de la réunion (`lieu_change`), une réunion sans
        lieu ou annulée n'en reçoit pas, le retirer se peut toujours ; soixante écritures par heure ;
      · ⛔ PERSONNE D'AUTRE NE LE LIT : ni l'organisateur, ni un autre invité, ni la liste des invités, ni l'agenda d'un autre — et il est SCELLÉ en base ;
@@ -21,7 +21,6 @@ const { fauxIgn } = require('./outils-trajet');
 const { v, vrai, fin } = T.compteur();
 T.sauterSiSansDependances();
 const { texteDepart, avantDepart } = require(path.join(T.SERVICE, 'trajet.js'));
-const ics = require(path.join(T.SERVICE, 'ics.js'));
 const { ouvrir: ouvrirBase, MIGRATIONS } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
 
@@ -40,36 +39,6 @@ const hmUtc = (ms) => new Date(ms).toISOString().slice(11, 16);
   v('   deux minutes de retard tout juste : encore « il est temps »', texteDepart(TJ(), deb0, ech0, ech0 + 2 * MIN, hmUtc), 'Il est temps de partir · 40 min en voiture, arrivée 13:50');
   v('⛔ au-delà de deux minutes : l\'heure qu\'il était, et l\'arrivée en partant MAINTENANT', texteDepart(TJ(), deb0, ech0, ech0 + 6 * MIN, hmUtc),
     'Il fallait partir à 13:10 · 40 min en voiture — en partant maintenant, arrivée vers 13:56');
-
-  /* ══ 0 bis. LE FICHIER .ICS D'UNE RÉUNION ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-  console.log('\n0 bis. Le fichier .ics d\'une réunion : mon trajet, une alarme à l\'heure de partir');
-  const lignes = (txt) => String(txt || '').replace(/\r\n /g, '').split('\r\n').filter(Boolean);
-  const val = (l, k) => (l.find(x => x.startsWith(k + ':') || x.startsWith(k + ';')) || '').replace(/^[^:]*:/, '');
-  const trig = (l) => l.filter(x => x.startsWith('TRIGGER:')).map(x => x.slice(8));
-  const R0 = { id: 'r_' + 'a'.repeat(32), titre: 'Chantier QXR', lieu: 'Clinique du Parc', debut: Date.parse('2026-10-26T13:00:00Z'), fin: Date.parse('2026-10-26T14:00:00Z'), tz: 'Europe/Paris', rep: 'aucune', n: null, jusqua: null, annulee: false, version: 0 };
-  const f1 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [15, 60], trajet: TJ(), tzLecteur: 'Europe/Paris' }));
-  v('une date : la description dit le trajet, d\'où l\'on part, et l\'heure de partir pour arriver en avance (14:00 à Paris, 40 min + 10 : partir à 13:10)', val(f1, 'DESCRIPTION'),
-    'Trajet : 40 min en voiture depuis Domicile — partir à 13:10 pour arriver à 13:50.\\n\\nRéunion programmée avec OP MESSAGES.');
-  v('⛔ une alarme de plus, à l\'heure de PARTIR (-50 min), après les rappels', trig(f1), ['-PT15M', '-PT1H', '-PT50M']);
-  v('   elle dit qu\'il est temps de partir, et combien de temps', f1.filter(x => x.startsWith('DESCRIPTION:Il est temps')), ['DESCRIPTION:Il est temps de partir : Chantier QXR (40 min en voiture)']);
-  const fNy = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [], trajet: TJ(), tzLecteur: 'America/New_York' }));
-  v('   l\'heure se dit dans le fuseau de celui qui télécharge (New York, encore à l\'heure d\'été le 26 octobre : 09:00 → partir à 08:10, arriver à 08:50)', val(fNy, 'DESCRIPTION').split('\\n')[0],
-    'Trajet : 40 min en voiture depuis Domicile — partir à 08:10 pour arriver à 08:50.');
-  const f2 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [15], trajet: TJ({ minutes: 10, avance: 5, mode: 'pied', depart: 'position', depart_label: 'Ma position' }), tzLecteur: 'Europe/Paris' }));
-  v('⛔ le rappel qui tombe à l\'heure de partir (15 min) : UNE alarme, celle du départ', [trig(f2), f2.filter(x => x.startsWith('DESCRIPTION:Rappel')).length, f2.filter(x => x.startsWith('DESCRIPTION:Il est temps')).length], [['-PT15M'], 0, 1]);
-  const f3 = lignes(ics.fichier(Object.assign({}, R0, { rep: 'hebdomadaire' }), { maintenant: deb0, rappels: [], trajet: TJ() }));
-  v('une SÉRIE : « partir 50 min avant le début » (chaque date a la sienne), et l\'alarme', [val(f3, 'DESCRIPTION'), trig(f3)],
-    ['Trajet : 40 min en voiture depuis Domicile — partir 50 min avant le début.\\n\\nRéunion programmée avec OP MESSAGES.', ['-PT50M']]);
-  const f6 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [], trajet: TJ({ depart: 'adresse', depart_label: '12 Rue des Lilas 78000 Versailles' }), tzLecteur: 'Europe/Paris' }));
-  v('⛔ « Une autre adresse » : le fichier dit « depuis une autre adresse », JAMAIS l\'adresse tapée — il part dans un agenda Google ou Apple, parfois partagé (relecture du gardien)',
-    [val(f6, 'DESCRIPTION').split('\\n')[0], f6.some(x => /Lilas|Versailles/.test(x))], ['Trajet : 40 min en voiture depuis une autre adresse — partir à 13:10 pour arriver à 13:50.', false]);
-  const f7 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [], trajet: TJ({ depart: 'travail', depart_label: 'Bureau, 3 rue Haute' }), tzLecteur: 'Europe/Paris' }));
-  v('   les mots sont ceux du SERVICE, jamais l\'étiquette rangée (que la page écrit) : « depuis Travail »', [val(f7, 'DESCRIPTION').split('\\n')[0], f7.some(x => /rue Haute/.test(x))],
-    ['Trajet : 40 min en voiture depuis Travail — partir à 13:10 pour arriver à 13:50.', false]);
-  const f4 = lignes(ics.fichier(R0, { maintenant: deb0, rappels: [15] }));
-  const f5 = lignes(ics.fichier(Object.assign({}, R0, { lieu: '' }), { maintenant: deb0, rappels: [15], trajet: TJ() }));
-  v('⛔ sans trajet (le fichier de quelqu\'un d\'autre, celui que l\'organisateur envoie par courriel) — ou sans lieu : ni « Trajet », ni alarme de départ',
-    [f4.some(x => /Trajet :|Il est temps/.test(x)), trig(f4), f5.some(x => /Trajet :|Il est temps/.test(x)), trig(f5)], [false, ['-PT15M'], false, ['-PT15M']]);
 
   /* ══ LE SERVICE ══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
   const og = await T.fauxOpGestion({ alice: { pass: MDP.alice, nom: 'Alice Martin', actif: true }, bob: { pass: MDP.bob, nom: 'Bob Petit', actif: true }, claire: { pass: MDP.claire, nom: 'Claire Roy', actif: true },
@@ -297,16 +266,6 @@ const hmUtc = (ms) => new Date(ms).toISOString().slice(11, 16);
     vrai('   le lendemain : le départ de la deuxième date', await T.attendre(async () => (await notifs(B, 'Série QXR')).length === 2, 8000, 100));
     v('   chaque date a SA ligne au registre', registre(M10, B.moi.id), [[deb10, -50], [deb10 + JOUR, -50]]);
     await lues();
-
-    console.log('\n11. « Ajouter à mon agenda » : mon trajet dans MON fichier');
-    const occ1 = (await fiche(B, M1)).prochaine.debut;
-    const ib = await B.get('/api/reunions/' + M1 + '/ics?occurrence=' + occ1), ia = await A.get('/api/reunions/' + M1 + '/ics?occurrence=' + occ1), ic = await C.get('/api/reunions/' + M1 + '/ics?occurrence=' + occ1);
-    const lb = lignes(ib.txt), la = lignes(ia.txt), lcx = lignes(ic.txt);
-    const decl = (m) => m % 60 === 0 ? '-PT' + (m / 60) + 'H' : '-PT' + m + 'M';
-    v('le fichier de Bob : le trajet dans la description (son heure à lui, en UTC), et l\'alarme du départ après son rappel', [ib.code, val(lb, 'DESCRIPTION'), trig(lb)],
-      [200, 'Trajet : ' + tB.minutes + ' min en voiture depuis Ma position — partir à ' + hmUtc(occ1 - (tB.minutes + 5) * MIN) + ' pour arriver à ' + hmUtc(occ1 - 5 * MIN) + '.\\n\\nRéunion programmée avec OP MESSAGES.',
-        ['-PT15M', decl(tB.minutes + 5)]]);
-    v('⛔ ceux de l\'organisatrice et de Claire : ni « Trajet », ni alarme de départ', [la.some(x => /Trajet :|Il est temps/.test(x)), lcx.some(x => /Trajet :|Il est temps/.test(x)), trig(la), trig(lcx)], [false, false, ['-PT15M'], ['-PT15M']]);
 
     console.log('\n12. L\'export, l\'effacement du compte');
     await A.post('/api/reunions/' + M8 + '/modifier', { lieu: '3 avenue de la Gare', notifier: false });       // le trajet de Bob pour M8 ne mène plus au lieu

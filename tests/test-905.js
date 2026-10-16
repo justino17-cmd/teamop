@@ -111,7 +111,6 @@ const MATRICE = {
   'agenda.supprimer':   { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/supprimer', {}], codes: [404] },
   'agenda.fait':        { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/fait', { fait: true }], codes: [404] },
   'agenda.reporter':    { ok: () => ['POST', '/api/agenda/e_' + '0'.repeat(32) + '/reporter', { dans: 10 }], codes: [404] },
-  'agenda.ics':         { ok: () => ['GET', '/api/agenda/e_' + '0'.repeat(32) + '/ics'], codes: [404] },
   /* le trajet (13 octobre 2026) : S. Le calcul est joué SANS lieu (400 `lieu_vide`, la garde a passé) — jamais chez l'IGN, ni le faux d'un banc (le seau horaire d'une personne n'y est pas
      touché) ; Domicile et Travail se lisent (200) et se retirent (200, sans calcul). Le calcul lui-même est joué par `test-1005`. */
   'trajet.calcul':      { ok: () => ['POST', '/api/trajet', { mode: 'voiture', vers: '' }], codes: [400] },
@@ -205,7 +204,6 @@ const MATRICE = {
   'reunions.rappels':   { ok: (F) => ['POST', '/api/reunions/' + F.R + '/rappels', { rappels: [5] }], codes: [200] },
   'reunions.trajet':    { ok: (F) => ['POST', '/api/reunions/' + F.R + '/trajet', { trajet: null }], codes: [200] },      // (retirer son trajet : toujours permis à un participant — test-1006 joue le reste)
   'reunions.odj_cocher': { ok: (F) => ['POST', '/api/reunions/' + F.R + '/ordre-du-jour', { point: '00000000', fait: true }], codes: [404] },      // (le banc de matrice ne pose pas d'ordre du jour : le point n'existe pas — la porte, elle, s'est ouverte ; test-938 joue le reste)
-  'reunions.ics':       { ok: (F) => ['GET', '/api/reunions/' + F.R + '/ics'], codes: [200] },
   'reunions.courriel':  { ok: (F) => ['POST', '/api/reunions/' + F.R + '/courriel', { destinataire: 'banc.invite@exemple.invalid' }], codes: [503] },   // sans relais SMTP : la garde a passé, le courriel est INERTE et le dit (test-975 joue le relais)
   /* Les APPELS À DEUX (étape 7). Lancer est V (agir au nom d'une adresse) : chacun appelle SON contact, un appel par acteur (la route précédente a libéré les lignes). Les trois gestes d'un appel sont AP : la
      garde ne laisse passer que les deux participants, et un non-participant reçoit le 404 d'un appel qui n'existe pas. Pendant ces routes, Ana et Ben parlent depuis les appareils LIÉS à l'appel (`liees`) :
@@ -306,7 +304,7 @@ const ATTENDU = {
       v('les identifiants du manifeste sont uniques, et chaque (méthode, chemin) aussi', [new Set(ids).size === ids.length, new Set(MANIFESTE.map(r => r.m + ' ' + r.p)).size === ids.length], [true, true]);
       v('toutes les gardes du manifeste sont connues de la table des attentes', MANIFESTE.filter(r => !ATTENDU[r.garde]).map(r => r.id), []);
       vrai('population : au moins 30 routes à jouer', MANIFESTE.length >= 30);
-      v('les quatorze routes des réunions sont au manifeste, avec leurs gardes (liste S, programmer V + organisateur [Pro], fiche R, sept gestes d\'hôte H — dont décaler —, quitter R, réponse R, rappels R, fichier R, courriel H)', ['reunions.liste', 'reunions.creer', 'reunions.lire', 'reunions.modifier', 'reunions.decaler', 'reunions.annuler', 'reunions.supprimer', 'reunions.inviter', 'reunions.retirer', 'reunions.quitter', 'reunions.reponse', 'reunions.rappels', 'reunions.ics', 'reunions.courriel'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : '') + (x.organiser ? '+org' : ''); }), ['S', 'V+org', 'R', 'H', 'H', 'H', 'H', 'H', 'H', 'R', 'R', 'R', 'R', 'H']);
+      v('les treize routes des réunions sont au manifeste, avec leurs gardes (liste S, programmer V + organisateur [Pro], fiche R, sept gestes d\'hôte H — dont décaler —, quitter R, réponse R, rappels R, courriel H)', ['reunions.liste', 'reunions.creer', 'reunions.lire', 'reunions.modifier', 'reunions.decaler', 'reunions.annuler', 'reunions.supprimer', 'reunions.inviter', 'reunions.retirer', 'reunions.quitter', 'reunions.reponse', 'reunions.rappels', 'reunions.courriel'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : '') + (x.organiser ? '+org' : ''); }), ['S', 'V+org', 'R', 'H', 'H', 'H', 'H', 'H', 'H', 'R', 'R', 'R', 'H']);
       v('⛔ Perso+ est RETIRÉ (12 octobre 2026) : aucune de ses quatre routes n\'est au manifeste, et aucun chemin ne vise plus `/api/moi/perso-plus`', [['perso.etat', 'perso.paiement', 'perso.portail', 'perso.relire'].filter(i => MANIFESTE.some(y => y.id === i)), MANIFESTE.filter(y => /perso-plus/.test(y.p)).length], [[], 0]);
       v('⛔ UNE SEULE route est « organisateur » (programmer une réunion), aucune n\'est à la fois pro et organisateur — les routes d\'une ENTREPRISE restent Pro seul', [MANIFESTE.filter(r => r.organiser).map(r => r.id), MANIFESTE.filter(r => r.pro && r.organiser).length, MANIFESTE.filter(r => r.pro).map(r => r.id).sort()], [['reunions.creer'], 0, ['canaux.creer', 'espaces.creer', 'espaces.invitations.creer']]);
       v('les six routes des appels à deux sont au manifeste, avec leurs gardes (relais S, historique S, lancer V, répondre AP, raccrocher AP, signal AP), et AUCUNE n\'est Pro — les appels à deux sont gratuits en Perso', ['ice', 'appels.liste', 'appels.creer', 'appels.repondre', 'appels.quitter', 'appels.signal'].map(i => { const x = MANIFESTE.find(y => y.id === i) || {}; return x.garde + (x.pro ? '+pro' : ''); }), ['S', 'S', 'V', 'AP', 'AP', 'AP']);
@@ -672,8 +670,8 @@ const ATTENDU = {
       }
       v('une fiche personne mal formée : 404', (await c.get('/api/personnes/x')).code, 404);
       for (const id of ['x', 'r_', 'r_zzzz', 'R_' + '0'.repeat(32), 'r_' + '0'.repeat(31), 'r_' + '0'.repeat(33), 'c_' + '0'.repeat(32), '..', '%00']) {
-        const a = await c.get('/api/reunions/' + id), b = await c.get('/api/reunions/' + id + '/ics');
-        v('réunion « ' + id + ' » → 404 introuvable (fiche et fichier)', [a.code, a.j && a.j.error, b.code], [404, 'introuvable', 404]);
+        const a = await c.get('/api/reunions/' + id);
+        v('réunion « ' + id + ' » → 404 introuvable (fiche)', [a.code, a.j && a.j.error], [404, 'introuvable']);
       }
     }
 

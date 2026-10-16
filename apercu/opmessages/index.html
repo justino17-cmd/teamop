@@ -9362,8 +9362,8 @@ a.menu-action { text-decoration: none; }
         (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
       /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026 : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
-         ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Les routes des .ics restent
-         au service, sans bouton. */
+         ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Le service ne fabrique plus de .ics
+         (16 octobre 2026 : « ok fait les deux »). */
       '</div>' : '';
     const rappels0 = e ? (Array.isArray(e.rappels) ? e.rappels.slice() : (e.rappel === null ? [] : [e.rappel])) : (rdv ? [1440, 60] : null);
     /* un rendez-vous NEUF peut se remplir d'une confirmation collée (un mail, un SMS) : tout se lit sur l'appareil */

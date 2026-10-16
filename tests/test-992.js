@@ -8,7 +8,7 @@
      0. PERSO+ N'EXISTE PLUS : ses quatre routes répondent 404 ;
      1. PROGRAMMER EST À PRO : Perso → 402 (`raison` « perso », `offre` « pro ») ; Pro → 201 ; un corps qui ment ne change rien ; une ligne Perso+ restée en base n'ouvre rien ; rien n'est écrit par un refus ;
      2. ÊTRE INVITÉ EN SON NOM EST À PRO : un contact Perso est rendu dans `par_lien` (à la création comme par « Inviter »), sans notification et sans rien voir de la réunion ; un contact Pro est invité ;
-     3. LE LIEN FAIT ENTRER TOUT COMPTE : la personne Perso entre par le lien d'invité, devient invitée (acceptée), répond, lit la fiche et le fichier .ics — et n'organise pas pour autant ; arrivée la première, elle
+     3. LE LIEN FAIT ENTRER TOUT COMPTE : la personne Perso entre par le lien d'invité, devient invitée (acceptée), répond, lit la fiche — et n'organise pas pour autant ; arrivée la première, elle
         n'est jamais l'hôte par intérim (c'est le premier invité NOMMÉ qui prend la porte) et attend à la porte d'une salle d'attente ;
      4. LE PLAFOND DE DIX PERSONNES : la onzième est refusée (création, invitation, lien), avec le plafond dit ; une personne déjà invitée n'est jamais refusée ; un appel de GROUPE n'est pas concerné ; rien ne vend
         le supplément « Grandes réunions » ;
@@ -121,7 +121,7 @@ const tri = (l) => (l || []).slice().sort();
       const apercu = await T.client(svc.base).post('/api/reunions/apercu', { code });
       const parLien = await f1.post('/api/reunions/rejoindre', { code });
       v('⛔ Fred (PERSO) entre PAR LE LIEN d\'Eve : 200, il devient invité (accepté) et entre dans la salle — l\'aperçu public ne dit que de quoi décider', [apercu.code, Object.keys(apercu.j.reunion).sort(), parLien.code, parLien.j.reunion === id, parLien.j.appel && parLien.j.appel.moi && parLien.j.appel.moi.statut], [200, ['attente', 'debut', 'en_cours', 'fin', 'titre'], 200, true, 'present']);
-      v('… la fiche, le fichier .ics, répondre : tout lui est ouvert (il est invité, par le lien)', [(await f1.get('/api/reunions/' + id)).code, (await f1.get('/api/reunions/' + id + '/ics')).code, dit(await f1.post('/api/reunions/' + id + '/reponse', { statut: 'peutetre' }))], [200, 200, [200, undefined]]);
+      v('… la fiche, répondre : tout lui est ouvert (il est invité, par le lien)', [(await f1.get('/api/reunions/' + id)).code, dit(await f1.post('/api/reunions/' + id + '/reponse', { statut: 'peutetre' }))], [200, [200, undefined]]);
       v('mais il n\'organise pas pour autant : Fred ne programme pas (402), n\'invite pas et ne renouvelle pas le lien (403 : il n\'est pas l\'hôte)', [dit(await f1.post('/api/reunions', corpsR())), dit(await f1.post('/api/reunions/' + id + '/inviter', { uids: [gus.id] })), dit(await f1.post('/api/reunions/' + id + '/lien', {}))], [[402, 'formule_requise'], [403, 'interdit'], [403, 'interdit']]);
       /* ⛔ L'INTÉRIM NE REVIENT QU'À UN INVITÉ NOMMÉ (relecture du gardien, 12 octobre 2026) : Fred, entré le PREMIER par le lien, aurait été l'hôte par intérim — exclure un invité de l'organisatrice, sans retour,
          verrouiller. Il entre en simple participant ; Ana, invitée NOMMÉE (Pro), prend la porte en arrivant. */

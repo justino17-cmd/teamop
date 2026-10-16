@@ -1,7 +1,7 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LE COURRIEL D'INVITATION AUX RÉUNIONS (étape 6, lot 5) : LE VRAI MODULE, LE VRAI SERVICE, UN FAUX RELAIS SMTP, ET L'OUTIL DE CONFIGURATION.
 
    `test-973` joue les routes des réunions, `test-974` le planificateur ; celui-ci joue la dernière pièce : l'hôte écrit l'adresse de quelqu'un qui n'a pas OP MESSAGES, et un courriel part — du
-   TEXTE seul : ⛔ plus de fichier .ics joint depuis le 15 octobre 2026 (Justin : « retire aussi », après « l'application fait déjà agenda »). Ce qui est gardé, dans l'ordre :
+   TEXTE seul : ⛔ plus de fichier .ics joint depuis le 15 octobre 2026 (Justin : « retire aussi », après « l'application fait déjà agenda ») ; le fichier .ics est parti le 16 octobre 2026, route comprise. Ce qui est gardé, dans l'ordre :
 
      · l'adresse : une boîte, une ligne, jamais une injection d'en-tête, jamais deux destinataires ; comptée sur sa forme normalisée (majuscules, « +étiquette ») ;
      · INERTE sans relais, et le DIT (503 `courriel_non_ouvert`, `/api/config` → `courriel.ouvert:false`) — même pour une adresse fausse, sans rien ranger, sans charger la bibliothèque d'envoi ;
@@ -69,7 +69,7 @@ async function monter(config, opts) {
   return { svc, S, pers, cl, sql, lignes, avancer, maintenant, decal: () => decal, fermer: async (nettoyer) => { try { S.fermer(); } catch (x) { /* déjà fermé */ } await svc.arreter(nettoyer); } };
 }
 const RELAIS_CFG = (relais, extra) => Object.assign({ hote: '127.0.0.1', port: relais.port, securite: 'aucune', utilisateur: UTIL, mot_de_passe: MDP, de: EXPEDITEUR, timeoutMs: 3000 }, extra || {});
-const QUOTAS_LARGES = { reunion: { max: 100000, fenetreMs: HEURE }, ics: { max: 100000, fenetreMs: MIN }, courriel: { max: 100000, fenetreMs: MIN } };
+const QUOTAS_LARGES = { reunion: { max: 100000, fenetreMs: HEURE }, courriel: { max: 100000, fenetreMs: MIN } };
 const B0 = { titre: 'Point ' + CANARI_T, lieu: CANARI_L, debut: '2026-10-26T14:00', fin: '2026-10-26T15:00', tz: 'Europe/Paris' };
 const mk = async (cli, extra) => { const r = await cli.post('/api/reunions', Object.assign({}, B0, extra || {})); if (r.code !== 201) throw new Error('création de banc refusée : ' + r.code + ' ' + JSON.stringify(r.j)); return r.j.reunion; };
 
@@ -367,7 +367,7 @@ function essayerRelais(cfg, env) {
   }
 
   /* ═══ 8. LE SERVICE AVEC UN RELAIS : LE MESSAGE, LES REFUS, LES PLAFONDS, LA DURABILITÉ, LES FUITES ═══════════════════════════════════════════ */
-  console.log('\nLe service avec un relais : le message qui part, comparé au fichier de la route ; chaque refus ; les plafonds durables ; rien ne fuit');
+  console.log('\nLe service avec un relais : le message qui part ; chaque refus ; les plafonds durables ; rien ne fuit');
   const relais = await fauxRelais({ auth: identifiants });
   const REPONSES = [];
   const suivre = async (promesse) => { const r = await promesse; REPONSES.push(r.txt); return r; };
@@ -393,7 +393,6 @@ function essayerRelais(cfg, env) {
     const r1 = await post(a, RS.id, { destinataire: ADR(1) });
     v('⛔ l\'hôte envoie la SÉRIE à une adresse : 200, une ligne réservée, UN message chez le relais', [r1.code, r1.j, etat()], [200, { ok: true }, { lignes: 1, mails: 1 }]);
     const m1 = lireMessage(relais.messages[0]);
-    const route = await a.get('/api/reunions/' + RS.id + '/ics?serie=1');
     v('⛔ l\'enveloppe : l\'adresse d\'expédition configurée, UN seul destinataire (celui qu\'on a écrit)', [m1.enveloppe.de, m1.enveloppe.a], [EXPEDITEUR, [ADR(1)]]);
     v('⛔ les en-têtes : l\'objet FIXE, le destinataire, l\'expéditeur nommé « OP MESSAGES », « envoi automatique » — et NI Cc, NI Bcc, NI Reply-To (aucune adresse de l\'hôte n\'est connue ni donnée)',
       [m1.sujet, m1.a, m1.nomDe, m1.adresseDe, m1.h['auto-submitted'], m1.h['x-auto-response-suppress'], ['cc', 'bcc', 'reply-to'].filter(k => m1.h[k])], [SUJET, ADR(1), 'OP MESSAGES', EXPEDITEUR, ['auto-generated'], ['All'], []]);
@@ -402,7 +401,6 @@ function essayerRelais(cfg, env) {
     v('⛔ le texte nomme l\'hôte, le titre, la prochaine occurrence dans le fuseau de la réunion, le lieu — et dit que la série se répète',
       [lignesTexte.includes('Ana Banc vous invite à une réunion.'), lignesTexte.includes('  Réunion : Point ' + CANARI_T), lignesTexte.includes('  Quand : lundi 26 octobre à 14:00 (heure de Europe/Paris) — se répète chaque semaine'), lignesTexte.includes('  Lieu : ' + CANARI_L)], [true, true, true, true]);
     v('⛔ … et RIEN d\'autre de la réunion : ni les autres invités (Ben Quux), ni un lien vers la conversation, ni une adresse web, ni un identifiant de réunion', [/Quux|Ben/.test(m1.texte), /https?:|www\.|\/#|r_[0-9a-f]{32}/.test(m1.texte)], [false, false]);
-    v('la route `GET …/ics` répond toujours (sans bouton depuis le 15 octobre 2026 : elle reste au service, le temps qu\'on dise si elle part)', [route.code, /BEGIN:VCALENDAR/.test(route.txt)], [200, true]);
 
     /* ── une seule occurrence ── */
     const L9 = L26 + 14 * JOUR;
@@ -505,7 +503,7 @@ function essayerRelais(cfg, env) {
   /* ═══ 9. LE PLAFOND PAR MINUTE (les plafonds de production, pas ceux du banc) ═══════════════════════════════════════════════════════════════ */
   console.log('\nLe plafond par minute : cinq envois par personne, le sixième attend — propre à chacun');
   {
-    const D = await monter({ courriel: RELAIS_CFG(relais), quotas: { reunion: QUOTAS_LARGES.reunion, ics: QUOTAS_LARGES.ics } });
+    const D = await monter({ courriel: RELAIS_CFG(relais), quotas: { reunion: QUOTAS_LARGES.reunion } });
     try {
       const gil = D.pers('Gil'), hana = D.pers('Hana');
       const g = D.cl(gil), h = D.cl(hana);

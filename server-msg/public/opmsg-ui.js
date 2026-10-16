@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '81da3b0711e0';
+  const OPMSG_BUILD = 'e289514f7b1f';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 203;
+  const OPMSG_VERSION = 204;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6564,8 +6564,8 @@
         (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
       /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026 : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
-         ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Les routes des .ics restent
-         au service, sans bouton. */
+         ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Le service ne fabrique plus de .ics
+         (16 octobre 2026 : « ok fait les deux »). */
       '</div>' : '';
     const rappels0 = e ? (Array.isArray(e.rappels) ? e.rappels.slice() : (e.rappel === null ? [] : [e.rappel])) : (rdv ? [1440, 60] : null);
     /* un rendez-vous NEUF peut se remplir d'une confirmation collée (un mail, un SMS) : tout se lit sur l'appareil */

@@ -10,7 +10,6 @@
  *   POST /api/agenda/:id/supprimer                        S
  *   POST /api/agenda/:id/fait                             S  {fait: true|false} — coché, il ne sonne plus ; décoché, son rappel se recalcule
  *   POST /api/agenda/:id/reporter                         S  {dans: 10 | 60 | 'demain'} — plus tard (10 min, 1 h) ou demain 9 h dans son fuseau, décoché, et il sonnera à l'heure
- *   GET  /api/agenda/:id/ics                              S  le fichier .ics de l'événement (ses rappels compris) — SANS BOUTON depuis le 15 octobre 2026 (« l'application fait déjà agenda »)
  *
  * ⛔ LE RENDEZ-VOUS (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous… avec des rappels et tout », « ils peuvent aussi l'ajouter à leur agenda, comme Apple fait ») est
  *    un événement de `genre` 'rdv' : il a TOUJOURS une heure (jamais « toute la journée »), un « avec qui » (`avec`, facultatif, scellé comme le titre) et, comme tout événement, une LISTE de
@@ -33,7 +32,6 @@
  */
 'use strict';
 const cal = require('./calendrier');
-const ics = require('./ics');
 const { validerTrajet, avantDepart, texteDepart } = require('./trajet');
 
 const JOUR = 86400000, MIN = 60000;
@@ -253,22 +251,6 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     const e = stockage.evenementReporter(req.moi.id, id, { debut, fin: debut + duree, journee: base.journee, rappel: rappels[0], rappelA: prochaine(debut, rappels, base.tz, t, avantDepart(base.trajet)), rappels });
     if (!e) return refus(res, 404, 'introuvable');
     res.json({ evenement: e });
-  };
-
-  /* Le fichier .ics de l'événement, ses rappels compris (Calendrier d'Apple, Google Agenda, Outlook l'ouvrent) — ⛔ plus de bouton « Ajouter à mon calendrier » depuis le 15 octobre 2026 :
-     la route reste, le temps de savoir si elle part. Un événement d'un autre : 404, comme un inconnu.
-     Une lecture : elle ne prend rien au plafond des écritures, mais garde le sien (60 par minute). */
-  H['agenda.ics'] = (req, res) => {
-    const id = req.params.id;
-    if (!ID_EVT.test(id)) return refus(res, 404, 'introuvable');
-    const q = quotas.essai('agenda-ics:' + req.moi.id, 60, 60000);
-    if (!q.ok) { res.set('Retry-After', String(q.retry)); return refus(res, 429, 'quota_atteint', { retry: q.retry }); }
-    const e = stockage.evenementLire(req.moi.id, id);
-    if (!e) return refus(res, 404, 'introuvable');
-    const texte = ics.fichierEvenement(e, { maintenant: horloge() });
-    if (texte === null) return refus(res, 404, 'introuvable');
-    res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + ics.nomEvenement(e) + '"', 'Cache-Control': 'no-store' });
-    res.send(texte);
   };
 
   /* ── Les rappels, appelés par le planificateur (qui tient le bail) : → { envoyes, abandonnes, passes }. `budget` : le nombre de rappels au plus pour ce tour. `depuis` : l'instant de la

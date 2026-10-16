@@ -1,10 +1,10 @@
 /* ══ LES MUTATIONS DES RÉUNIONS PROGRAMMÉES — « un banc qui passe ne prouve rien tant qu'on ne l'a pas vu ÉCHOUER » (CLAUDE.md) ═══════════════════════════════
    Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas). Il remet, UN PAR UN, les défauts que `tests/test-970` à `976`, `905`, `906`, `934`,
    `941`, `950` et la sonde navigateur `sonde-opmessages-reunions.js` gardent — l'heure d'une série calculée en ajoutant 7 × 24 h, une heure absente ou vécue deux fois lue de travers,
-   un `UNTIL` en heure locale, un titre qui ouvre une ligne du fichier .ics ; une réunion qui se lit sans y être invité, un invité qui modifie, un changement d'horaire qui laisse
+   une réunion qui se lit sans y être invité, un invité qui modifie, un changement d'horaire qui laisse
    « décliné » celui qui ne peut plus venir ; un rappel qui part deux fois, un bail qui ne s'éteint jamais, un rappel du passé renvoyé après une restauration ; un effacement qui
-   revient d'une archive d'avant, un rejeu qui écrit une ligne de plus au registre ; un courriel qui part sans son plafond, un .ics qui revient en pièce jointe, une date qui n'est pas celle de la réunion, un secret affiché ;
-   une route sans sa garde, un code d'erreur que l'écran ne sait pas dire ; et, côté page, une adresse de fichier qui passe par l'enveloppe asynchrone, un fuseau qu'on ne dit pas au service, une adresse tapée perdue au redessin, un bouton
+   revient d'une archive d'avant, un rejeu qui écrit une ligne de plus au registre ; un courriel qui part sans son plafond, un .ics qui revient en pièce jointe (le fichier .ics est parti le 16 octobre 2026 : seule cette garde négative reste), une date qui n'est pas celle de la réunion, un secret affiché ;
+   une route sans sa garde, un code d'erreur que l'écran ne sait pas dire ; et, côté page, un fuseau qu'on ne dit pas au service, une adresse tapée perdue au redessin, un bouton
    qui reste grisé, une date que la fiche garde après un changement d'horaire, un lieu « javascript: » devenu lien, une heure lue dans le fuseau de la réunion au lieu de celui de l'appareil, un refus d'ICI qui n'en est plus un, un retour d'historique rejoué pendant qu'il est en vol (la fiche ouverte au doigt quitte l'application), une disparition apprise de quatre côtés qui ferme la fiche quatre fois — dans une COPIE de l'arbre (jamais dans l'arbre lui-même : le `git checkout` d'après-mutation de CLAUDE.md
    efface aussi les correctifs non commités), joue les bancs visés, et exige qu'AU MOINS UN tombe (code de sortie non nul ou un « ✗ »).
 
@@ -19,7 +19,7 @@
 
    Lancer :  TMPDIR=/un/dossier node tests/mutations-reunions.js                 (toutes, hors sondes navigateur)
              NODE_PATH=/opt/node22/lib/node_modules/playwright/node_modules node tests/mutations-reunions.js --sondes     (les mutations jouées par la sonde navigateur)
-             node tests/mutations-reunions.js I01 S05                             (seulement celles-là)
+             node tests/mutations-reunions.js C01 S05                             (seulement celles-là)
              node tests/mutations-reunions.js --verifier                         (ne joue rien : chaque motif se trouve UNE fois dans l'arbre, chaque banc existe)
              node tests/mutations-reunions.js --liste                            (le catalogue)
              --copies=N (défaut 2)   --garder ID (fabrique UNE copie mutée, l'imprime et s'arrête)   --sans-temoin   --temoins (ne joue que les témoins)   --details=FICHIER (tous les ✗ de chaque mutation qui tombe)
@@ -30,12 +30,12 @@ const fs = require('fs'), os = require('os'), path = require('path'), { spawn, s
 const RACINE = path.join(__dirname, '..');
 const DELAI_MS = 300000;
 const F = {
-  cal: 'server-msg/calendrier.js', ics: 'server-msg/ics.js', stock: 'server-msg/stockage.js', app: 'server-msg/app.js', man: 'server-msg/manifeste.js',
+  cal: 'server-msg/calendrier.js', stock: 'server-msg/stockage.js', app: 'server-msg/app.js', man: 'server-msg/manifeste.js',
   routes: 'server-msg/routes.js', reu: 'server-msg/routes-reunions.js', outils: 'server-msg/reunions-outils.js', plan: 'server-msg/planificateur.js', mail: 'server-msg/courriel.js', conf: 'server-msg/config.js', index: 'server-msg/index.js',
   compte: 'server-msg/compte.js', rejeu: 'server-msg/rejeu.js', surv: '.github/scripts/surveillance-messages.js',
   src: 'server-msg/public/source-serveur.js', api: 'server-msg/public/api.js', page: 'apercu/opmessages/index.html', cfgmail: 'server-msg/configurer-courriel.js',
 };
-const BANCS = ['901', '905', '906', '934', '941', '950', '970', '971', '972', '973', '974', '975', '976', 'sonde'];
+const BANCS = ['901', '905', '906', '934', '941', '950', '970', '972', '973', '974', '975', '976', 'sonde'];
 const SONDE_FICHIER = 'sonde-opmessages-reunions.js';
 const MUTATIONS = [];
 /* m(id, nom, fichier, ancien, nouveau, suites) — `ancien` : une chaîne, ou une expression régulière (une seule occurrence, `$1` permis dans `nouveau`) */
@@ -46,100 +46,27 @@ const SONDE = { sonde: true };
 
 /* ══ 1. LE CALENDRIER — l'heure d'une réunion se calcule dans SON fuseau (calendrier.js) ═════════════════════════════════════════════════════════════════════ */
 m('C01', '« 1 jour avant » redevient 24 heures exactes : le rappel de la veille d\'un jour de bascule tombe à la mauvaise heure locale', F.cal,
-  "if (avantMin !== 1440) return debut - avantMin * MIN;", "return debut - avantMin * MIN;", ['970', '971']);
+  "if (avantMin !== 1440) return debut - avantMin * MIN;", "return debut - avantMin * MIN;", ['970']);
 m('C02', 'une heure locale qui N\'EXISTE PAS (le trou de mars) est lue avec le décalage d\'APRÈS le trou : la réunion de 02:30 tombe une heure trop tard', F.cal,
-  "if (!bons.length) return naif - avant;", "if (!bons.length) return naif - apres;", ['970', '971']);
-m('C03', 'une heure vécue DEUX FOIS (la nuit d\'octobre) est lue à sa seconde passe : l\'agenda de la personne la lira à la première', F.cal,
-  "return Math.min.apply(null, bons);", "return Math.max.apply(null, bons);", ['970', '971']);
+  "if (!bons.length) return naif - avant;", "if (!bons.length) return naif - apres;", ['970']);
+m('C03', 'une heure vécue DEUX FOIS (la nuit d\'octobre) est lue à sa seconde passe : les agendas (RFC 5545) la lisent à la première, et la série se décale d\'une heure', F.cal,
+  "return Math.min.apply(null, bons);", "return Math.max.apply(null, bons);", ['970']);
 m('C04', 'la boucle d\'occurrences s\'arrête à 5 000 périodes : une série quotidienne sans fin disparaît en silence au bout de quatorze ans', F.cal,
   "const PERIODES_MAX = 40000;", "const PERIODES_MAX = 5000;", ['970']);
 m('C05', 'le 31 d\'une série mensuelle est DÉCALÉ au 30 (au dernier jour du mois) au lieu d\'être sauté', F.cal,
-  "return anc.j <= joursDansMois(a, m) ? { a, m, j: anc.j } : null;", "return { a, m, j: Math.min(anc.j, joursDansMois(a, m)) };", ['970', '971']);
+  "return anc.j <= joursDansMois(a, m) ? { a, m, j: anc.j } : null;", "return { a, m, j: Math.min(anc.j, joursDansMois(a, m)) };", ['970']);
 m('C06', 'la fin d\'une série par DATE exclut son dernier jour (la limite est l\'instant 23:59:59 locale, pas minuit)', F.cal,
-  "if (limite !== null && t > limite) break;\n    if (t >= du", "if (limite !== null && t > limite - 86400000) break;\n    if (t >= du", ['970', '971']);
+  "if (limite !== null && t > limite) break;\n    if (t >= du", "if (limite !== null && t > limite - 86400000) break;\n    if (t >= du", ['970']);
 m('C07', 'la fin d\'une série par date n\'est plus appliquée à l\'instant (seul le jour compte, avec un jour de marge)', F.cal,
-  "if (limite !== null && t > limite) break;\n    if (t >= du", "if (t >= du", ['970', '971']);
-m('C08', '`derniereDate` ignore la limite par NOMBRE : une série de quatre fois a une fin lointaine (le fichier décrirait trop d\'années)', F.cal,
+  "if (limite !== null && t > limite) break;\n    if (t >= du", "if (t >= du", ['970']);
+m('C08', '`derniereDate` ignore la limite par NOMBRE : une série de quatre fois a une fin lointaine (le courriel dirait une fin de série trop lointaine)', F.cal,
   "    if (s.n && valides >= s.n) break;\n    if (nJusqua !== null && numeroJour(d) > nJusqua) break;", "    if (nJusqua !== null && numeroJour(d) > nJusqua) break;", ['970']);
 m('C09', 'une date qui n\'existe pas (le 31 avril) est acceptée par la lecture d\'une heure locale', F.cal,
   "p.j > joursDansMois(p.a, p.m) || p.h > 23", "p.h > 23", ['970']);
 m('C10', 'la « prochaine occurrence » ne part plus du début de la série : une réunion à plus de 100 jours n\'a aucune prochaine (ni rappel, ni avertissement à la suppression)', F.cal,
   "const du = Math.max(inclus ? t : t + 1, s.debut);", "const du = inclus ? t : t + 1;", ['970', '973']);
 
-/* ══ 2. LE FICHIER .ICS — ce que l'agenda de la personne lira (ics.js) ═════════════════════════════════════════════════════════════════════════════════════════ */
-m('I01', 'UNTIL s\'écrit en heure LOCALE alors que DTSTART porte un fuseau (la RFC l\'exige en UTC) : l\'agenda coupe la série au mauvais instant', F.ics,
-  "parties.push('UNTIL=' + enUtc(cal.limiteDe(s)));", "parties.push('UNTIL=' + enLocal(cal.limiteDe(s), r.tz));", ['971']);
-m('I02', 'UNTIL et COUNT s\'écrivent ENSEMBLE quand la série porte les deux limites (la RFC l\'interdit : certains agendas refusent le fichier)', F.ics,
-  "if (s.n && s.jusqua) parties.push('COUNT=' + cal.compter(s, s.n + 1));", "if (false) parties.push('COUNT=' + cal.compter(s, s.n + 1));", ['971']);
-m('I03', 'avec les deux limites, COUNT vaut le nombre DEMANDÉ et non le nombre d\'occurrences réelles : la série dépasse sa date de fin', F.ics,
-  "parties.push('COUNT=' + cal.compter(s, s.n + 1));", "parties.push('COUNT=' + s.n);", ['971']);
-m('I04', '« 1 jour avant » d\'une série devient la durée exacte de 24 heures (l\'agenda sonne à la mauvaise heure le jour d\'un changement d\'heure)', F.ics,
-  "const declenche = m === 1440 && serie ? '-P1D'", "const declenche = m === 1440 && false ? '-P1D'", ['971']);
-m('I05', 'l\'identifiant d\'une occurrence est celui de sa série : l\'importer remplace toute la série par cette seule date', F.ics,
-  "if (r.rep !== 'aucune') uid += '-' + enUtc(debut).replace(/[^0-9TZ]/g, '');", "", ['971']);
-m('I06', 'le pliage à 75 octets coupe un caractère UTF-8 en deux (un émoji, une lettre accentuée à cheval sur la limite)', F.ics,
-  "if (fin < buf.length) while (fin > debut && (buf[fin] & 0xC0) === 0x80) fin--;", "", ['971']);
-m('I07', 'les lignes de suite comptent 75 octets en plus de l\'espace de tête : 76 octets, hors limite', F.ics,
-  "const max = morceaux.length === 0 ? 75 : 74;", "const max = morceaux.length === 0 ? 75 : 75;", ['971']);
-m('I08', 'le point-virgule d\'un titre n\'est plus échappé : il ouvre un paramètre de propriété', F.ics,
-  ".replace(/;/g, '\\\\;')", "", ['971']);
-m('I09', 'la virgule d\'un titre n\'est plus échappée : elle sépare deux valeurs', F.ics,
-  ".replace(/,/g, '\\\\,')", "", ['971']);
-m('I10', 'la barre oblique inverse d\'un titre n\'est plus échappée : « a\\nb » tapé par la personne devient un saut de ligne dans l\'agenda', F.ics,
-  "l.replace(/\\\\/g, '\\\\\\\\')", "l", ['971']);
-m('I11', 'un retour chariot SEUL n\'est plus un saut de ligne : il passe dans le fichier et ouvre une ligne', F.ics,
-  ".replace(/\\r\\n|\\r|\\u0085|\\u2028|\\u2029/g, '\\n')", ".replace(/\\r\\n|\\u0085|\\u2028|\\u2029/g, '\\n')", ['971']);
-m('I12', 'les caractères de contrôle d\'un titre ne sont plus retirés', F.ics,
-  ".replace(/[\\u0000-\\u0008\\u000b\\u000c\\u000e-\\u001f\\u007f]/g, '')", "", ['971']);
-m('I13', 'une SÉRIE est écrite en UTC, sans fuseau ni VTIMEZONE : l\'agenda la décale d\'une heure à chaque changement d\'heure', F.ics,
-  "event.push('DTSTART;TZID=' + r.tz + ':' + enLocal(debut, r.tz),", "event.push('DTSTART:' + enUtc(debut),", ['971']);
-m('I14', 'la règle annuelle d\'un changement d\'heure européen devient « le PREMIER dimanche » au lieu du dernier', F.ics,
-  "return { mois: l0.getUTCMonth() + 1, jour: l0.getUTCDay(), rang: -1 };", "return { mois: l0.getUTCMonth() + 1, jour: l0.getUTCDay(), rang: 1 };", ['971']);
-m('I15', 'le signe des décalages négatifs se perd dans le VTIMEZONE (New York à l\'est de Greenwich)', F.ics,
-  "return (ms < 0 ? '-' : '+') + p2(Math.floor(m / 60)) + p2(m % 60);", "return '+' + p2(Math.floor(m / 60)) + p2(m % 60);", ['971']);
-m('I16', 'le jour de la semaine d\'une série hebdomadaire n\'est plus écrit (BYDAY) : un agenda naïf ne sait plus quel jour répéter', F.ics,
-  "parties.push('FREQ=WEEKLY', 'BYDAY=' + JOURS[cal.jourSemaine(c)]);", "parties.push('FREQ=WEEKLY');", ['971']);
-m('I17', 'le jour du mois d\'une série mensuelle n\'est plus écrit (BYMONTHDAY) : le 31 retombe sur le jour du début', F.ics,
-  "else parties.push('FREQ=MONTHLY', 'BYMONTHDAY=' + c.j);", "else parties.push('FREQ=MONTHLY');", ['971']);
-m('I18', 'une réunion ANNULÉE s\'exporte encore « confirmée » : l\'agenda ne la barre pas', F.ics,
-  "event.push('STATUS:' + (r.annulee ? 'CANCELLED' : 'CONFIRMED'), 'TRANSP:OPAQUE');", "event.push('STATUS:CONFIRMED', 'TRANSP:OPAQUE');", ['971']);
-m('I19', 'la version de la réunion (SEQUENCE) ne monte plus : l\'agenda ne remplace pas l\'événement qu\'il avait', F.ics,
-  "'SEQUENCE:' + (r.version | 0)]", "'SEQUENCE:0']", ['971']);
-m('I20', 'un rappel que le service ne connaît pas (7 minutes, un texte) entre dans le fichier', F.ics,
-  "(o.rappels || []).filter((m) => cal.RAPPELS_PERMIS.includes(m)).sort((a, b) => a - b)", "(o.rappels || []).sort((a, b) => a - b)", ['971']);
-m('I21', 'les changements de décalage sont sondés tous les 90 jours : deux changements proches (le ramadan du Maroc) échappent', F.ics,
-  "const n = Math.min(t + 7 * cal.JOUR, a), on", "const n = Math.min(t + 90 * cal.JOUR, a), on", ['971']);
-m('I22', 'le VTIMEZONE n\'a plus d\'état de départ : un agenda qui lit une heure avant le premier changement devine', F.ics,
-  "composant(genreDepart, o0, o0, de, ['DTSTART:19700101T000000']);", "", ['971']);
-m('I23', 'la fin d\'une série est écrite en UTC quand son début est local : la durée change d\'un agenda à l\'autre', F.ics,
-  "'DTEND;TZID=' + r.tz + ':' + enLocal(fin, r.tz)", "'DTEND:' + enUtc(fin)", ['971']);
-m('I24', 'le nom du fichier garde ses accents (« é » devient « - » au lieu de « e »)', F.ics,
-  ".normalize('NFD').replace(/[\\u0300-\\u036f]/g, '')", "", ['971']);
-m('I25', 'le nom du fichier n\'est plus borné : un titre de 300 lettres fait un nom de 300 lettres', F.ics,
-  ".slice(0, 40).replace(/-+$/, '')", ".replace(/-+$/, '')", ['971']);
-m('I26', 'le VTIMEZONE ne décrit que dix ans, même pour une série bornée plus loin : au-delà, l\'agenda garde le dernier décalage connu', F.ics,
-  "const a1 = derniere ? Math.min(a0 + 30, derniere.a) : a0 + 10;", "const a1 = a0 + 10;", ['971']);
-m('I27', 'un fuseau inconnu produit quand même un fichier (avec un décalage inventé)', F.ics,
-  "if (cal.tzValide(r.tz) === null) return null;", "", ['971']);
-m('I28', 'un instant qui n\'est pas une occurrence de la série est servi comme la série entière', F.ics,
-  "if (!occ) return null;", "if (!occ) return fichier(r, Object.assign({}, o, { occurrence: null }));", ['971']);
-m('I29', 'une règle annuelle est déduite d\'UN SEUL changement', F.ics,
-  "if (trs.length < 2) return null;", "if (trs.length < 1) return null;", ['971']);
-m('I30', 'la règle annuelle ne vérifie plus que les changements tombent le même jour de la semaine (une date fixe passe pour « le dimanche »)', F.ics,
-  "|| d.getUTCDay() !== l0.getUTCDay() ||", "||", ['971']);
-m('I31', 'les changements vers l\'été et vers l\'hiver n\'ont plus besoin d\'être en nombre égal pour déduire une règle', F.ics,
-  "&& vers(true).length === vers(false).length) {", ") {", ['971'],
-  EQ('`regleAnnuelle` refuse déjà un sens qui n\'a qu\'un changement (« moins de deux ») : les deux gardes se neutralisent'));
-m2('I32', 'les DEUX gardes ensemble — une règle déduite d\'un seul changement ET sans égalité entre les sens : Vancouver (heure d\'été permanente) reçoit une règle annuelle pour un retour à l\'hiver qui n\'existe plus',
-  [[F.ics, "if (trs.length < 2) return null;", "if (trs.length < 1) return null;"], [F.ics, "&& vers(true).length === vers(false).length) {", ") {"]], ['971']);
-m('I33', 'la règle annuelle ne vérifie plus l\'HEURE du changement', F.ics,
-  "|| !memeHeure(d)) return null;", ") return null;", ['971']);
-m('I34', 'la règle annuelle ne vérifie plus que les décalages (avant, après) sont les mêmes d\'une année à l\'autre', F.ics,
-  "if (tr.avant !== premier.avant || tr.apres !== premier.apres || d.getUTCMonth()", "if (d.getUTCMonth()", ['971']);
-m('I35', 'le « n-ième dimanche » n\'exige plus un rang CONSTANT (Jérusalem : tantôt le quatrième vendredi, tantôt le cinquième)', F.ics,
-  "if (trs.every((tr) => rang(localAvant(tr)) === r0)) return", "if (true) return", ['971']);
-m('I36', 'le « dernier dimanche » est jugé sur le premier changement seulement', F.ics,
-  "if (trs.every((tr) => dernier(localAvant(tr)))) return", "if (dernier(localAvant(trs[0]))) return", ['971']);
+/* ══ 2. (le fichier .ics est parti le 16 octobre 2026 : `ics.js`, ses deux routes et leurs mutations I01-I36, R28-R29, R31-R34, R45 et U01 ont été retirés avec lui ; les gardes NÉGATIVES — E32 — restent) ═════════════ */
 
 /* ══ 3. LE STOCKAGE DES RÉUNIONS — ce qui est rangé, ce qui s'efface, ce qui se rejoue (stockage.js, migration 7) ══════════════════════════════════════════════ */
 m('S01', 'le bail du planificateur n\'est plus refusé à une AUTRE instance tant qu\'il vit : deux instances envoient les rappels', F.stock,
@@ -317,24 +244,8 @@ m('R26', 'l\'agenda garde une occurrence qui FINIT à l\'instant où la fenêtre
   ".filter(o => o.fin > du && o.debut < au);", ".filter(o => o.fin >= du && o.debut <= au);", ['973']);
 m('R27', 'la fenêtre par défaut ne commence plus la VEILLE : la réunion de ce matin disparaît de l\'agenda', F.reu,
   "const du = q.du === undefined ? horloge() - JOUR : ent(q.du);", "const du = q.du === undefined ? horloge() : ent(q.du);", ['973']);
-m('R28', 'le fichier .ics s\'ouvre dans le navigateur au lieu d\'être téléchargé', F.reu,
-  "'Content-Disposition': 'attachment; filename=\"'", "'Content-Disposition': 'inline; filename=\"'", ['973']);
-m('R29', 'le fichier .ics n\'a plus de plafond (60 par minute)', F.reu,
-  "    if (!plafond(res, 'ics', req.moi.id, { max: 60, fenetreMs: 60000 })) return;\n", "", ['973']);
 m('R30', 'programmer n\'a plus de plafond (30 par heure et par personne)', F.reu,
   "    if (!plafond(res, 'reunion', hote.id, { max: 30, fenetreMs: 3600000 })) return;\n", "", ['973']);
-m('R31', 'le fichier de la personne porte les rappels de l\'HÔTE (les siens sont ignorés)', F.reu,
-  "const opts = { maintenant: horloge(), rappels: rr.moi.rappels };", "const opts = { maintenant: horloge(), rappels: rr.reunion.rappels };", ['973']);
-m('R32', 'le fichier .ics peut être mis en cache (une réunion modifiée reste l\'ancienne chez la personne) — l\'en-tête de la ROUTE seulement', F.reu,
-  ", 'Cache-Control': 'no-store' });\n    res.send(texte);", " });\n    res.send(texte);", ['973'],
-  EQ('le préfixe `/api` pose déjà `no-store` sur toute réponse (app.js) : la garde restante tient seule ; le défaut réel retire LES DEUX (R32 + la ligne d\'app.js)'));
-m2('R32+A', 'le fichier .ics peut être mis en cache : ni l\'en-tête de la route, ni celui du préfixe `/api`', [
-  [F.reu, ", 'Cache-Control': 'no-store' });\n    res.send(texte);", " });\n    res.send(texte);"],
-  [F.app, "  app.use('/api', (req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });\n", ""]], ['973']);
-m('R33', 'une occurrence demandée est ignorée : le fichier est toujours celui de la série', F.reu,
-  "      opts.occurrence = parseInt(q.occurrence, 10);\n", "", ['973']);
-m('R34', 'une occurrence qui n\'en est pas une rend un fichier VIDE (200) au lieu de dire `occurrence_inconnue`', F.reu,
-  "    if (texte === null) return refus(res, 404, 'occurrence_inconnue');\n", "", ['973']);
 m('R35', 'le plafond de 300 réunions n\'est plus traduit : une erreur du stockage devient une panne (500)', F.reu,
   " trop_de_reunions: [409, 'trop_de_reunions'],", "", ['973']);
 m('R36', 'une réunion annulée répond 400 au lieu de 409 (l\'écran la confond avec un champ invalide)', F.reu,
@@ -355,8 +266,6 @@ m('R43', 'la ligne `reunions.modifier` du manifeste ne demande plus l\'hôte (ga
   /(id: 'reunions\.modifier',[^}]*garde: )'H'/, "$1'R'", ['973', '905']);
 m('R44', 'la ligne `reunions.supprimer` du manifeste ne demande plus l\'hôte (garde R)', F.man,
   /(id: 'reunions\.supprimer',[^}]*garde: )'H'/, "$1'R'", ['973', '905']);
-m('R45', 'la ligne `reunions.ics` du manifeste demande un abonnement Pro à celui qui télécharge', F.man,
-  /(id: 'reunions\.ics',[^}]*garde: 'R')/, "$1, pro: true", ['973', '905']);
 m('R46', 'quitter la conversation d\'une réunion est de nouveau permis (l\'invité sort du chat sans se décliner)', F.routes,
   "    if (c.type === 'reunion') return refus(res, 409, 'reunion_quitter');\n", "", ['973']);
 m('R47', 'l\'export des données ne porte plus les réunions de la personne', F.compte,
@@ -646,8 +555,6 @@ m('E118', 'l\'outil n\'exige plus l\'hôte ni l\'adresse d\'expédition', F.cfgm
 /* ── 5. L'INTERFACE (le module de données de la page, puis la page elle-même) — le module est joué par test-976, la page par la SONDE navigateur ─────────────────────────────────── */
 
 /* le module de données : ce que la page appelle */
-m('U01', 'l\'adresse du fichier .ics passe par l\'enveloppe asynchrone de l\'API : la page met « [object Promise] » dans un lien', F.src,
-  "const adresseIcs = (id, o2) => api0.adresseIcs(id, o2 || {});", "const adresseIcs = (id, o2) => A.adresseIcs(id, o2 || {});", ['976']);
 m('U02', 'le fuseau de l\'appareil n\'est plus dit à l\'entrée : on invite quelqu\'un qui n\'a pas ouvert l\'onglet, et sa notification dit l\'heure de PARIS', F.src,
   /\n      direFuseau\(\);[^\n]*dès l'entrée[^\n]*\n/, "\n", ['976']);
 m('U03', 'une panne de lecture de la configuration devient « pas encore ouvert » (faux) au lieu de « on ne sait pas » (null)', F.src,

@@ -179,9 +179,8 @@ tests/test-963.js
 tests/test-964.js
 tests/test-965.js
 #
-# ── Les réunions programmées (étape 6, 3 octobre 2026) : le calendrier (970), le fichier .ics lu par un agenda indépendant (971), le stockage (972), les routes en HTTP (973), le planificateur de rappels (974), le courriel d'invitation contre un faux relais SMTP et l'outil de configuration (975) ──
+# ── Les réunions programmées (étape 6, 3 octobre 2026) : le calendrier et ses 94 faits du monde réel (970 ; le fichier .ics et son banc 971 sont partis le 16 octobre 2026), le stockage (972), les routes en HTTP (973), le planificateur de rappels (974), le courriel d'invitation contre un faux relais SMTP et l'outil de configuration (975) ──
 tests/test-970.js
-tests/test-971.js
 tests/test-972.js
 tests/test-973.js
 tests/test-974.js
@@ -225,14 +224,14 @@ tests/test-997.js
 # ── L'agenda personnel (6 octobre 2026) : des événements à soi, avec un rappel — le vrai service, l'horloge avancée au geste (998) ──
 tests/test-998.js
 # ── Le rendez-vous personnel (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous… avec des rappels et tout », « ils peuvent aussi l'ajouter à leur agenda, comme Apple
-#    fait ») : avec qui, plusieurs rappels partis dans l'ordre, le fichier .ics, la migration 27 — le vrai service, l'horloge avancée au geste (1004) ; la vraie page : tests/sonde-opmessages-rendez-vous.js ──
+#    fait ») : avec qui, plusieurs rappels partis dans l'ordre, la migration 27 — le vrai service, l'horloge avancée au geste (1004) ; la vraie page : tests/sonde-opmessages-rendez-vous.js ──
 tests/test-1004.js
 # ── Le trajet d'un rendez-vous (13 octobre 2026 : « que ça calcule le temps de trajet pour dire à la personne à quelle heure il doit partir s'il veut arriver 5 ou 10 minutes
 #    avant ») : le calcul chez l'IGN par le SERVICE — un faux IGN sur la boucle locale, aucun banc ne sort sur Internet —, Domicile et Travail scellés, « Il est temps de partir »,
-#    le .ics, la migration 28 (1005) ; la vraie page : tests/sonde-opmessages-trajet.js ──
+#    la migration 28 (1005) ; la vraie page : tests/sonde-opmessages-trajet.js ──
 tests/test-1005.js
 # ── Le trajet d'une réunion, chacun le sien (14 octobre 2026 : « et pareil pour pro, pour les réunions ») : rangé scellé sur SA ligne d'invitation (migration 29), lu par lui seul,
-#    « Il est temps de partir » à chaque date, le lieu changé par l'organisateur, le .ics, l'export, le registre des purges (1006) ; la vraie page : tests/sonde-opmessages-trajet-reunion.js ──
+#    « Il est temps de partir » à chaque date, le lieu changé par l'organisateur, l'export, le registre des purges (1006) ; la vraie page : tests/sonde-opmessages-trajet-reunion.js ──
 tests/test-1006.js
 # ── L'agenda, quatre gestes (15 octobre 2026 : « choisir ce que ça va durer, 30 minutes, une heure ou plus », « l'ouvrir à partir de n'importe quel GPS », « l'ajouter à notre calendrier,
 #    mais par l'application », « rester appuyé sur le rendez-vous, marquer effectué ») : la durée, « Y aller », la lecture d'une confirmation collée (qui ne parle à personne) — les vraies

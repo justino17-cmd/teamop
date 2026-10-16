@@ -56,7 +56,7 @@ on change si sa réponse change quelque chose.
 
 ### 3.1 Architecture
 
-- **Dossier du dépôt : `server-msg/`**, avec son propre `package.json` : `express`, `web-push` et `nodemailer`, mêmes versions que `server/`. Tout le reste est fait main : Stripe par `fetch`, S3 par copie de `s3.js`, calendrier `.ics`, sauvegarde.
+- **Dossier du dépôt : `server-msg/`**, avec son propre `package.json` : `express`, `web-push` et `nodemailer`, mêmes versions que `server/`. Tout le reste est fait main : Stripe par `fetch`, S3 par copie de `s3.js`, calendrier (fuseaux et récurrences), sauvegarde.
 - **Deux instances du même code**, une unité modèle `teamop-msg@.service` :
 
 | | bêta | production |
@@ -888,7 +888,7 @@ Trois constats, pour Justin :
 - **Gestes** : un seul, FACULTATIF — configurer le relais SMTP (`node server-msg/configurer-courriel.js`, saisie masquée, section 10 sexies d'`INSTALLER-LE-SERVEUR.md`). Sans lui, tout marche sauf l'envoi par courriel, qui reste INERTE et que l'écran dit (« L'envoi par courriel n'est pas encore ouvert »).
 - ✅ **CONSTRUITE EN BRANCHE le 3 octobre 2026** (huit commits « OP MESSAGES réunions (n/8) », du calendrier à la sonde navigateur ; rien n'est poussé). Ce qui existe, et rien de plus :
   · **le calendrier** (`calendrier.js`) : une série se calcule en HEURE LOCALE du fuseau de la réunion, jamais « + 7 × 24 h » — le lundi 14:00 de Paris reste 14:00 de part et d'autre du 25 octobre 2026 (12:00 UTC puis 13:00 UTC) ; une heure qui n'existe pas (le trou de mars) est refusée, une heure vécue deux fois prend la première ; « 1 jour avant » est la même heure locale la veille ;
-  · **le fichier .ics** écrit à la main (`ics.js`, RFC 5545 : VTIMEZONE, RRULE, VALARM), relu par un lecteur indépendant (`test-971`) ; une occurrence ou toute la série ;
+  · **le fichier .ics** écrit à la main (`ics.js`, RFC 5545 : VTIMEZONE, RRULE, VALARM), relu par un lecteur indépendant (`test-971`) ; une occurrence ou toute la série — ⛔ **retiré le 16 octobre 2026** (Justin : « ok fait les deux », après « l'application fait déjà agenda ») : `ics.js`, ses deux routes et `test-971` sont partis, les 94 faits du monde réel de `test-971` vivent dans `test-970` ;
   · **le stockage** (migration 7 : réunion, invités, registre des rappels, bail du planificateur, plafonds du courriel) et ses effacements rejoués après une restauration ;
   · **treize routes** (agenda, créer, lire, modifier, annuler, supprimer, inviter, retirer, quitter, répondre, rappels, .ics, courriel) et deux gardes neuves : R (invité ou hôte ; un autre reçoit 404, le même qu'une réunion qui n'existe pas) et H (l'hôte ; un invité reçoit 403). Programmer seul est PRO (la bêta ouvre tout) ;
   · **le planificateur** : un bail en base (une seule instance envoie, un arrêt brutal le laisse expirer), un tour toutes les 10 à 15 s, un rappel parti UNE seule fois (le registre et la notification s'écrivent dans la même transaction), rattrapé quand il a encore un sens, sinon abandonné et journalisé ; **un tour a un BUDGET** (voir la relecture ci-dessous) ;
@@ -911,7 +911,7 @@ Trois constats, pour Justin :
   · jusqu'à TROIS rappels (`rappels`, parmi à l'heure, 5, 15, 30 min, 1 h, la veille ; la page coche la veille et 1 h avant), pour tout événement : ils partent DANS L'ORDRE, chacun une fois —
     l'échéance passe au suivant dans la transaction qui écrit la notification ; si l'horloge saute par-dessus plusieurs, un seul part. ⛔ `rappel` garde le premier et `rappel_a` le prochain : le
     code d'avant (un retour en arrière) y lit un rappel juste ; `rappel` seul reste accepté (une page d'avant), jamais avec `rappels` ;
-  · « Ajouter à mon calendrier » : `GET /api/agenda/:id/ics` (garde S, 60 par minute, l'événement d'un autre répond 404), le fichier de `ics.js` — l'heure en UTC, une journée entière en DATES,
+  · « Ajouter à mon calendrier » (⛔ retiré : sans bouton depuis le 15 octobre 2026, la route est partie le 16) : `GET /api/agenda/:id/ics` (garde S, 60 par minute, l'événement d'un autre répond 404), le fichier de `ics.js` — l'heure en UTC, une journée entière en DATES,
     chaque rappel un `VALARM` (« la veille » la durée exacte, 25 h le dimanche du changement d'heure ; `-P1D` pour une journée entière) ; « avec qui » dans la description ;
   · ⛔ relu par `gardien` (aucun bloquant) : une liste rangée n'est crue que si son premier est `rappel` (le code d'avant récrit `rappel` sans connaître la liste — revenu au code neuf,
     une liste périmée faisait revenir un rappel retiré) ; `rappel` seul ÉGAL au premier (une page d'avant le renvoie à chaque enregistrement) garde la liste ; modifier un événement coché
