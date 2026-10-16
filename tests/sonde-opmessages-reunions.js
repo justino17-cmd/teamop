@@ -1,5 +1,5 @@
 /* ══ SONDE DE BOUT EN BOUT — LES RÉUNIONS PROGRAMMÉES D'OP MESSAGES, DANS DE VRAIS NAVIGATEURS ══════════════════════════════════════════════════════
-   `tests/test-976.js` fait parler le module de données de la page au vrai service ; `test-970` à `975` jouent le calendrier, le fichier .ics, le stockage, les routes, le planificateur et le courriel.
+   `tests/test-976.js` fait parler le module de données de la page au vrai service ; `test-970` joue le calendrier (et ses 94 faits du monde réel), `972` le stockage, `973` les routes, `974` le planificateur, `975` le courriel (le fichier .ics est parti le 16 octobre 2026).
    Celle-ci joue ce que seul un navigateur voit : la VRAIE PAGE SERVIE (`server-msg/public/`), au DOIGT (iPhone 393) et à la souris (bureau 1440, à New York), contre le VRAI service, sur 127.0.0.1 — jamais
    teamop.fr — trois fois : la bêta avec un relais SMTP de banc et une horloge décalable (tout ouvert), la bêta SANS relais (l'écran DIT que l'envoi par courriel n'est pas encore ouvert) et un service à la
    formule de PRODUCTION (« Programmer » est à Messages Pro : la page ouvre la feuille « Réunions » et dit la règle, sans bouton mort, rien de créé — un Pro qui invite un Perso, l'entrée par le lien et le refus
@@ -277,7 +277,7 @@ const MIN = 60000, H = 3600000;
 const TITRE = 'Point WQXZ-CANARI', LIEU = 'Salle WQXZ-B', LIEU_2 = 'javascript:alert(WQXZ-C)', TITRE_2 = 'Rappel WQXZ-CANARI', TITRE_3 = 'Collègue WQXZ-CANARI';
 const UTIL = 'UTIL-WQXZ-CANARI', MDP_RELAIS = 'MDP-WQXZ-CANARI-7', EXPEDITEUR = 'invitations@exemple.invalid', ADRESSE = 'wqxz.dest@exemple.invalid';
 const PARIS = 'Europe/Paris', NY = 'America/New_York';
-const QUOTAS = { reunion: { max: 100000, fenetreMs: H }, ics: { max: 100000, fenetreMs: MIN }, courriel: { max: 100000, fenetreMs: MIN } };
+const QUOTAS = { reunion: { max: 100000, fenetreMs: H }, courriel: { max: 100000, fenetreMs: MIN } };
 const ymd = (t) => new Date(t).toISOString().slice(0, 10);
 const FMT = (tz, o) => new Intl.DateTimeFormat('fr-FR', Object.assign({ timeZone: tz }, o));
 const heureDans = (t, tz) => FMT(tz, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(t);

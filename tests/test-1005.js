@@ -11,7 +11,7 @@
        les refus, chacun son code ; trente calculs par heure et par personne (⛔ ce qui n'a pas atteint l'IGN ne compte pas) ; deux calculs en cours au plus ; ⛔ le journal ne dit que des issues ;
      · le trajet d'un rendez-vous : une échéance de plus — l'heure de PARTIR — et son rappel « Il est temps de partir » (⛔ en retard, il le dit : « Il fallait partir à… ») ; un lieu qui
        change sans trajet neuf emporte l'ancien — ⛔ même changé par un autre chemin que la route (le trajet porte l'empreinte de son lieu) ;
-     · « Ajouter à mon calendrier » : le trajet dans la description, une alarme à l'heure de partir ; l'export porte le trajet et les lieux ; l'effacement du compte les emporte ;
+     · l'export porte le trajet et les lieux ; l'effacement du compte les emporte ; (le fichier .ics est parti le 16 octobre 2026) ;
      · ⛔ un Domicile retiré ou remplacé ne revient pas avec une sauvegarde d'avant (le registre des purges, rejoué hors ligne) ;
      · `trajet: false` : tout se ferme, sauf ce qui ne calcule pas (lire, retirer, enregistrer un rendez-vous).
    Code 0 si tout passe, 1 sinon. */
@@ -602,35 +602,6 @@ function fauxFetch(repondre) {
         [garde && garde.minutes, apres.lieu, apres.trajet, !!sql('SELECT trajet_ch FROM evenement WHERE id = ?', id5).trajet_ch], [90, 'Gare de Lyon', null, true]);
       v('   et l\'empreinte ne sort jamais : le trajet rendu porte ses champs, rien d\'autre', Object.keys(garde || {}).sort(), ['avance', 'depart', 'depart_label', 'km', 'minutes', 'mode', 'vers_label']);
     } finally { S3.fermer(); }
-
-    console.log('\n9. « Ajouter à mon calendrier » : le trajet et l\'alarme du départ');
-    const ics = async (id) => { const r = await A.get('/api/agenda/' + id + '/ics'); return { code: r.code, lignes: r.txt.replace(/\r\n /g, '').split('\r\n').filter(Boolean) }; };
-    const val = (l, k) => (l.find(x => x.startsWith(k + ':') || x.startsWith(k + ';')) || '').replace(/^[^:]*:/, '');
-    const trig = (l) => l.filter(x => x.startsWith('TRIGGER:')).map(x => x.slice(8));
-    const ki = await A.post('/api/agenda', { genre: 'rdv', titre: 'Kiné, Mme Roux', avec: 'Mme Roux', lieu: 'Clinique du Parc', debut: '2026-10-26T14:00', fin: '2026-10-26T14:45', tz: 'Europe/Paris', rappels: [60, 15], trajet: TJ({ vers_label: CP.label }) });
-    const fk = await ics(ki.j.evenement.id);
-    v('la description dit le trajet, d\'où l\'on part, et l\'heure de partir pour arriver en avance (14:00 à Paris, 40 min + 10 : partir à 13:10)', [fk.code, val(fk.lignes, 'DESCRIPTION')],
-      [200, 'Avec : Mme Roux\\n\\nTrajet : 40 min en voiture depuis Domicile — partir à 13:10 pour arriver à 13:50.\\n\\nRendez-vous ajouté depuis OP MESSAGES.']);
-    v('⛔ une alarme de plus, à l\'heure de PARTIR (-50 min), après les deux rappels', trig(fk.lignes), ['-PT15M', '-PT1H', '-PT50M']);
-    v('   elle dit qu\'il est temps de partir, et combien de temps', fk.lignes.filter(x => x.startsWith('DESCRIPTION:Il est temps')), ['DESCRIPTION:Il est temps de partir : Kiné\\, Mme Roux (40 min en voiture)']);
-    const bq = await A.post('/api/agenda', { genre: 'rdv', titre: 'Banque', lieu: 'Tour Eiffel', debut: '2026-10-26T14:00', tz: 'Europe/Paris', rappels: [15],
-      trajet: TJ({ minutes: 10, avance: 5, mode: 'pied', depart: 'position', depart_label: 'Ma position', vers_label: TE.label }) });
-    const fb = await ics(bq.j.evenement.id);
-    v('⛔ le rappel qui tombe à l\'heure de partir (15 min) : UNE alarme, celle du départ (pas deux sonneries)', [trig(fb.lignes), fb.lignes.filter(x => x.startsWith('DESCRIPTION:Il est temps')).length, fb.lignes.filter(x => x.startsWith('DESCRIPTION:Rappel')).length],
-      [['-PT15M'], 1, 0]);
-    v('   à pied, depuis « Ma position »', val(fb.lignes, 'DESCRIPTION'), 'Trajet : 10 min à pied depuis Ma position — partir à 13:45 pour arriver à 13:55.\\n\\nRendez-vous ajouté depuis OP MESSAGES.');
-    const sa = await A.post('/api/agenda', { genre: 'rdv', titre: 'Garage', lieu: 'Tour Eiffel', debut: '2026-10-26T09:30', tz: 'Europe/Paris', trajet: TJ({ minutes: 75, avance: 0, vers_label: TE.label }) });
-    const fs2 = await ics(sa.j.evenement.id);
-    v('sans avance : « partir à » seul ; sans rappel : l\'alarme du départ seule (1 h 15 avant)', [val(fs2.lignes, 'DESCRIPTION'), trig(fs2.lignes)],
-      ['Trajet : 75 min en voiture depuis Domicile — partir à 08:15.\\n\\nRendez-vous ajouté depuis OP MESSAGES.', ['-PT75M']]);
-    const ad = await A.post('/api/agenda', { genre: 'rdv', titre: 'Notaire', lieu: 'Tour Eiffel', debut: '2026-10-26T14:00', tz: 'Europe/Paris',
-      trajet: TJ({ depart: 'adresse', depart_label: '12 Rue des Lilas 78000 Versailles', vers_label: TE.label }) });
-    const fa = await ics(ad.j.evenement.id);
-    v('⛔ parti d\'« Une autre adresse » : le fichier dit « depuis une autre adresse », JAMAIS l\'adresse tapée — il part dans un agenda Google ou Apple, parfois partagé (relecture du gardien, lot 2)',
-      [ad.code, val(fa.lignes, 'DESCRIPTION'), fa.lignes.some(x => /Lilas|Versailles/.test(x))],
-      [201, 'Trajet : 40 min en voiture depuis une autre adresse — partir à 13:10 pour arriver à 13:50.\\n\\nRendez-vous ajouté depuis OP MESSAGES.', false]);
-    const st = await ics(sansTr.j.evenement.id);
-    v('un rendez-vous sans trajet (ou au trajet illisible) : ni « Trajet », ni alarme de départ', [st.code, st.lignes.some(x => /Trajet :|Il est temps/.test(x)), trig(st.lignes)], [200, false, ['-PT1H']]);
 
     console.log('\n10. L\'export, l\'effacement du compte');
     const ex = await A.post('/api/compte/export', {});

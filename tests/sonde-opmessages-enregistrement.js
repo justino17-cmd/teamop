@@ -67,19 +67,30 @@ const ECRAN = () => {
       if (await att(B, () => { const x = document.getElementById('appel-repondre'); return !!x && x.getClientRects().length > 0; }, null, 20000)) await B.page.locator('#appel-repondre').click();
       return att(A, () => document.querySelectorAll('#salle-scene > .salle-tuile[data-uid]').length === 1, null, 20000) && att(B, () => document.documentElement.dataset.salle === '1', null, 20000);
     };
+    /* 16 octobre 2026 : « Enregistrer » et « Annoter » sont dans « Plus » (la rangée de pastilles y est rangée). Ouvrir « Plus », attendre qu'il soit POSÉ (il se redessine une fois
+       de lui-même quand la liste des micros arrive : 300 ms sans changement), toucher la ligne — « Plus » se referme */
+    const dansPlus = async (S, sa) => {
+      const sel = '#salle-panneau-corps [data-sa="' + sa + '"]';
+      if (await S.page.evaluate(() => document.getElementById('salle-panneau').hidden)) await S.page.locator('#salle-plus').click();
+      await att(S, q => !!document.querySelector(q), sel);
+      await S.page.evaluate(() => new Promise(fin => { const c = document.getElementById('salle-panneau-corps'); let t = setTimeout(fini, 300); const o = new MutationObserver(() => { clearTimeout(t); t = setTimeout(fini, 300); }); function fini() { o.disconnect(); clearTimeout(garde); fin(); } const garde = setTimeout(fini, 4000); o.observe(c, { childList: true, subtree: true, attributes: true }); }));
+      await S.page.locator(sel).click();
+    };
     const enregistrer = async (ms) => {
-      await A.page.locator('#salle-rec-btn').click();
-      const ok = await att(A, () => document.getElementById('salle-rec-btn').getAttribute('aria-pressed') === 'true');
+      await dansPlus(A, 'rec');
+      const ok = await att(A, () => !document.getElementById('salle-rec').hidden && document.getElementById('salle-panneau').hidden);      // « REC » paraît, « Plus » s'est refermé
       await A.page.waitForTimeout(ms);
       return ok;
     };
     vrai('population : Ana et Ben sont dans la salle du groupe (Cléo, membre, n\'y vient pas)', await entrer());
-    vrai('population : « Enregistrer » est proposé à Ana (l\'hôte)', await att(A, () => { const x = document.getElementById('salle-rec-btn'); return !x.hidden && x.getClientRects().length > 0; }));
+    await A.page.locator('#salle-plus').click();
+    vrai('population : « Plus » propose « Enregistrer » à Ana (l\'hôte)', await att(A, () => /^Enregistrer/.test((document.querySelector('#salle-panneau-corps [data-sa="rec"]') || {}).textContent || '')));
+    await A.page.locator('#salle-panneau-fermer').click();
 
     console.log('\n1. Ce que l\'enregistrement contient');
     await B.page.locator('#salle-partage').click();
     vrai('population : Ben partage son écran, Ana l\'a en grand', await att(A, () => { const t = document.querySelector('#salle-scene > .salle-tuile.grand'); const v = t && t.querySelector('video'); return !!v && v.videoWidth > 0; }, null, 20000));
-    await A.page.locator('#salle-annoter').click();
+    await dansPlus(A, 'annoter');
     const pt = (fx, fy) => A.page.evaluate(([fx, fy]) => { const cv = document.querySelector('.annot-calque'), t = cv.parentElement, r = cv.getBoundingClientRect(), v = t.querySelector('video'), q = v.videoWidth / v.videoHeight, W = t.clientWidth, H = t.clientHeight, w = Math.min(W, H * q), h = w / q; return [r.left + (W - w) / 2 + fx * w, r.top + (H - h) / 2 + fy * h]; }, [fx, fy]);
     await A.page.locator('#annot-barre [data-outil="rect"]').click();
     const p1 = await pt(0.3, 0.35), p2 = await pt(0.7, 0.75);
@@ -88,7 +99,7 @@ const ECRAN = () => {
     await A.page.locator('#annot-fin').click();
     vrai('Ana enregistre : le bandeau « REC » paraît chez Ben', await enregistrer(500) && await att(B, () => !document.getElementById('salle-rec').hidden));
     await A.page.waitForTimeout(2500);
-    await A.page.locator('#salle-rec-btn').click();
+    await dansPlus(A, 'rec');
     vrai('Ana arrête : la carte « Enregistrement terminé » paraît', await att(A, () => !document.getElementById('rec-fin').hidden, null, 15000));
     const info = await A.page.evaluate(() => document.getElementById('rec-fin-info').textContent);
     vrai('   elle dit le titre, la durée et la taille (« Revue de projet · 3 s · 1 Mo »)', /^Revue de projet · \d+ s · \d+ Mo$/.test(info), info);
@@ -154,7 +165,7 @@ const ECRAN = () => {
 
     console.log('\n3. Supprimer demande une seconde touche');
     vrai('population : un second enregistrement', await enregistrer(1500));
-    await A.page.locator('#salle-rec-btn').click();
+    await dansPlus(A, 'rec');
     await att(A, () => !document.getElementById('rec-fin').hidden, null, 15000);
     await A.page.locator('#rec-fin-jeter').click();
     v('une touche : « Supprimer définitivement ? », la carte reste', await A.page.evaluate(() => [document.getElementById('rec-fin-jeter').textContent, !document.getElementById('rec-fin').hidden]), ['Supprimer définitivement ?', true]);
@@ -163,7 +174,7 @@ const ECRAN = () => {
 
     console.log('\n4. Enregistrer sur cet appareil');
     await enregistrer(1500);
-    await A.page.locator('#salle-rec-btn').click();
+    await dansPlus(A, 'rec');
     await att(A, () => !document.getElementById('rec-fin').hidden, null, 15000);
     const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 15000 }).catch(() => null), A.page.locator('#rec-fin-garder').click()]);
     vrai('le navigateur télécharge « Enregistrement - Revue de projet - … .webm » (un nom en ASCII : il survit à tous les systèmes de fichiers)', !!dl && /^Enregistrement - Revue de projet - \d{4}-\d{2}-\d{2} \d{2}h\d{2}\.webm$/.test(dl.suggestedFilename()), dl && dl.suggestedFilename());

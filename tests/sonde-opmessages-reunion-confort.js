@@ -184,6 +184,55 @@ const INIT = () => {
     vrai('…et chez Ben, la tuile d\'Ana n\'est plus « micro coupé »', await att(B, uid => { const t = document.querySelector('#salle-scene > .salle-tuile[data-uid="' + uid + '"]'); return !!t && !/micro coupé/.test(t.getAttribute('aria-label')); }, idA, 15000));
     v('⛔ la copie d\'écoute s\'est arrêtée avec le micro ouvert : un micro, une caméra', await pistesVivantes(A), ['audio', 'video']);
 
+    /* ═══ 3 bis. LA BARRE RONDE SEULE (16 octobre 2026, Justin : « ok fait les deux ») — la rangée de pastilles est rangée dans « Plus », Réagir et Lever la main en tête ═══ */
+    console.log('\n3 bis. La barre ronde seule ; « Plus » commence par Réagir et Lever la main');
+    /* un geste de « Plus » : l'ouvrir, toucher la ligne, et le panneau se referme (le focus revient sur « Plus ») */
+    /* « Plus » ouvert ET posé : il se redessine une fois de lui-même, quand la liste des micros et des caméras arrive — on attend que son contenu ne bouge plus (300 ms sans
+       changement), sinon on toucherait une ligne que ce redessin remplace */
+    const plusOuvert = async (S) => {
+      if (await S.page.evaluate(() => document.getElementById('salle-panneau').hidden)) await toucher(S, '#salle-plus');
+      await att(S, () => !!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'));
+      await S.page.evaluate(() => new Promise(fin => { const c = document.getElementById('salle-panneau-corps'); let t = setTimeout(fini, 300); const o = new MutationObserver(() => { clearTimeout(t); t = setTimeout(fini, 300); }); function fini() { o.disconnect(); clearTimeout(garde); fin(); } const garde = setTimeout(fini, 4000); o.observe(c, { childList: true, subtree: true, attributes: true }); }));
+    };
+    const geste = async (S, sa, s2) => {
+      const sel = '#salle-panneau-corps [data-sa="' + sa + '"]' + (s2 ? '[data-s="' + s2 + '"]' : '');
+      await plusOuvert(S);
+      if (!await att(S, q => !!document.querySelector(q), sel)) return false;
+      await toucher(S, sel);
+      return att(S, () => document.getElementById('salle-panneau').hidden && document.activeElement === document.getElementById('salle-plus'));
+    };
+    for (const [S, qui] of [[A, 'Ana (bureau)'], [B, 'Ben (iPhone)']]) {
+      v('population : chez ' + qui + ', la barre ronde est là — Micro, Caméra, Participants, Plus', await S.page.evaluate(() => ['salle-micro', 'salle-cam', 'salle-participants', 'salle-plus'].map(id => { const b = document.getElementById(id), r = b && b.getBoundingClientRect(); return !!r && r.width > 0 && !b.hidden; })), [true, true, true, true]);
+      v('⛔ …et rien au-dessus d\'elle : ni la rangée de pastilles, ni Réagir, ni Lever la main, ni Enregistrer', await S.page.evaluate(() => [document.querySelectorAll('.salle-pastilles, .salle-pastille').length, ['salle-reagir', 'salle-emojis', 'salle-main', 'salle-vue', 'salle-pip', 'salle-annoter', 'salle-partage-changer', 'salle-rec-btn'].filter(id => document.getElementById(id)).length]), [0, 0]);
+      await plusOuvert(S);
+      v('« Plus » chez ' + qui + ' : Réagir d\'abord (quatre réactions, puis « Lever la main »), puis l\'affichage', await att(S, () => !!document.querySelector('#salle-panneau-corps [data-sa="reaction"]')) && await S.page.evaluate(() => {
+        const rubs = Array.from(document.querySelectorAll('#salle-panneau-corps > .salle-rub')).map(r => r.textContent.trim());
+        const premiere = document.querySelector('#salle-panneau-corps > .salle-liste');
+        return [rubs.slice(0, 2), Array.from(premiere.querySelectorAll('[data-sa="reaction"]')).map(b => b.getAttribute('aria-label') + ' ' + b.textContent), premiere.querySelector('[data-sa="main"]').getAttribute('role'), premiere.querySelector('[data-sa="main"]').getAttribute('aria-checked'), /Lever la main/.test(premiere.querySelector('[data-sa="main"]').textContent)];
+      }), [['Réagir', 'Affichage'], ['Pouce levé 👍', 'Cœur ❤️', 'Bravo 👏', 'Rire 😂'], 'switch', 'false', true]);
+      v('…« Vue intervenant » est un interrupteur, éteint (on est en galerie)', await S.page.evaluate(() => { const b = document.querySelector('#salle-panneau-corps [data-sa="vue"]'); return [b.getAttribute('role'), b.getAttribute('aria-checked'), document.getElementById('salle-scene').dataset.vue]; }), ['switch', 'false', 'galerie']);
+      await capture(S, S === A ? '3b-plus-bureau' : '3b-plus-telephone');
+      await toucher(S, '#salle-panneau-fermer');
+    }
+    vrai('Ben réagit depuis « Plus » (un cœur) : le panneau se referme, le focus revient sur « Plus »', await geste(B, 'reaction', 'coeur'));
+    vrai('…et le lecteur d\'écran de Ben l\'entend : « Réaction envoyée : Cœur » (l\'émoji qui monte est aria-hidden)', await att(B, () => /Réaction envoyée : Cœur/.test(document.getElementById('annonce-appel').textContent)));
+    vrai('…et Ana voit le cœur sur la vignette de Ben', await att(A, uid => { const r = document.querySelector('#salle-scene > .salle-tuile[data-uid="' + uid + '"] .salle-reaction'); return !!r && /❤/.test(r.textContent); }, idB, 15000));
+    vrai('Ben lève la main depuis « Plus » : le panneau se referme', await geste(B, 'main'));
+    vrai('…sa main paraît sur sa vignette, chez lui et chez Ana', await att(B, () => !!document.querySelector('#salle-vous-badges .salle-badge.main')) && await att(A, uid => !!document.querySelector('#salle-scene > .salle-tuile[data-uid="' + uid + '"] .salle-badge.main'), idB, 15000));
+    await plusOuvert(B);
+    vrai('…et « Plus » rouvert la dit levée (l\'interrupteur allumé)', await att(B, () => { const b = document.querySelector('#salle-panneau-corps [data-sa="main"]'); return !!b && b.getAttribute('aria-checked') === 'true'; }));
+    await toucher(B, '#salle-panneau-corps [data-sa="main"]');
+    vrai('Ben la baisse : plus de main, ni chez lui ni chez Ana', await att(B, () => document.getElementById('salle-panneau').hidden && !document.querySelector('#salle-vous-badges .salle-badge.main')) && await att(A, uid => !document.querySelector('#salle-scene > .salle-tuile[data-uid="' + uid + '"] .salle-badge.main'), idB, 15000));
+    vrai('Ana passe en « Vue intervenant » depuis « Plus »', await geste(A, 'vue') && await att(A, () => document.getElementById('salle-scene').dataset.vue === 'intervenant'));
+    vrai('…et revient à la galerie (l\'interrupteur allumé l\'éteint)', await geste(A, 'vue') && await att(A, () => document.getElementById('salle-scene').dataset.vue === 'galerie'));
+    /* « Plus » OUVERT suit ce qui change sans lui : la touche G bascule la vue, son interrupteur la suit (la signature du panneau lit la vue) */
+    await plusOuvert(A);
+    await A.page.keyboard.press('g');
+    vrai('« Plus » ouvert, G passe en intervenant : l\'interrupteur « Vue intervenant » s\'allume de lui-même', await att(A, () => document.getElementById('salle-scene').dataset.vue === 'intervenant' && (document.querySelector('#salle-panneau-corps [data-sa="vue"]') || {}).getAttribute?.('aria-checked') === 'true'));
+    await A.page.keyboard.press('g');
+    vrai('…G de nouveau : galerie, l\'interrupteur s\'éteint', await att(A, () => document.getElementById('salle-scene').dataset.vue === 'galerie' && (document.querySelector('#salle-panneau-corps [data-sa="vue"]') || {}).getAttribute?.('aria-checked') === 'false'));
+    await toucher(A, '#salle-panneau-fermer');
+
     /* ═══ 4. ÉPINGLER POUR MOI ═══ */
     console.log('\n4. Épingler pour moi (Cleo entre, muette : l\'épingle doit DÉCIDER contre Ana, qui parle)');
     const tuile = uid => '.salle-tuile[data-uid="' + uid + '"]';
@@ -212,16 +261,16 @@ const INIT = () => {
     /* une preuve que Ben a reçu un état PLUS RÉCENT que l'épingle d'Ana : elle lève la main, il la voit */
     await A.page.evaluate(() => document.getElementById('salle-ecran').focus({ preventScroll: true }));
     await A.page.keyboard.press('h');
-    vrai('population : Ana lève la main, et Ben la voit (son état est plus récent que l\'épingle d\'Ana)', await att(A, () => document.getElementById('salle-main').getAttribute('aria-pressed') === 'true') && await att(B, sel => !!document.querySelector('#salle-scene > ' + sel + ' .salle-badge.main'), tuile(idA), 15000));
+    vrai('population : Ana lève la main, et Ben la voit (son état est plus récent que l\'épingle d\'Ana)', await att(A, () => !!document.querySelector('#salle-vous-badges .salle-badge.main')) && await att(B, sel => !!document.querySelector('#salle-scene > ' + sel + ' .salle-badge.main'), tuile(idA), 15000));
     v('⛔ …et chez Ben, Cleo n\'est épinglée pour PERSONNE (ni tuile « épinglée », ni devant, rien dans son état)', await B.page.evaluate(async sel => { const t = document.querySelector(sel); const a = OPMSG_SOURCE.appelActif(); const s = a && await OPMSG_SOURCE.appel(a.id); return [t.classList.contains('epingle'), t.classList.contains('grand'), (s && s.epingle) || null]; }, tuile(idC)), [false, false, null]);
     await A.page.evaluate(() => document.getElementById('salle-ecran').focus({ preventScroll: true }));
     await A.page.keyboard.press('h');
-    vrai('Ana baisse la main', await att(A, () => document.getElementById('salle-main').getAttribute('aria-pressed') === 'false'));
+    vrai('Ana baisse la main', await att(A, () => !document.querySelector('#salle-vous-badges .salle-badge.main')));
     await toucher(A, tuile(idC) + ' .salle-tuile-epingle');
     vrai('Ana retire son épingle (le bouton de la tuile) : Cleo n\'est plus devant chez elle', await att(A, sel => !document.querySelector(sel).classList.contains('grand') && document.querySelector(sel + ' .salle-tuile-epingle').getAttribute('aria-pressed') === 'false', tuile(idC)));
-    await A.page.evaluate(() => { if (document.getElementById('salle-scene').dataset.vue !== 'galerie') document.getElementById('salle-vue').click(); });
+    if (await A.page.evaluate(() => document.getElementById('salle-scene').dataset.vue !== 'galerie')) await geste(A, 'vue');
     await att(A, () => document.getElementById('salle-scene').dataset.vue === 'galerie');
-    await B.page.evaluate(() => { if (document.getElementById('salle-scene').dataset.vue !== 'galerie') document.getElementById('salle-vue').click(); });
+    if (await B.page.evaluate(() => document.getElementById('salle-scene').dataset.vue !== 'galerie')) await geste(B, 'vue');
     await att(B, () => document.getElementById('salle-scene').dataset.vue === 'galerie');
 
     /* ═══ 5. LES RACCOURCIS ═══ */
@@ -237,9 +286,9 @@ const INIT = () => {
     await presse('v');
     vrai('V de nouveau : elle se rallume', await att(A, () => document.getElementById('salle-cam').getAttribute('aria-pressed') === 'true', null, 15000));
     await presse('h');
-    vrai('H : la main se lève (Ben la voit)', await att(A, () => document.getElementById('salle-main').getAttribute('aria-pressed') === 'true') && await att(B, sel => !!document.querySelector('#salle-scene > ' + sel + ' .salle-badge.main'), tuile(idA), 15000));
+    vrai('H : la main se lève (Ben la voit)', await att(A, () => !!document.querySelector('#salle-vous-badges .salle-badge.main')) && await att(B, sel => !!document.querySelector('#salle-scene > ' + sel + ' .salle-badge.main'), tuile(idA), 15000));
     await presse('h');
-    vrai('H de nouveau : elle se baisse', await att(A, () => document.getElementById('salle-main').getAttribute('aria-pressed') === 'false'));
+    vrai('H de nouveau : elle se baisse', await att(A, () => !document.querySelector('#salle-vous-badges .salle-badge.main')));
     await presse('g');
     vrai('G : la vue passe en « intervenant »', await att(A, () => document.getElementById('salle-scene').dataset.vue === 'intervenant'));
     await presse('g');
@@ -264,7 +313,7 @@ const INIT = () => {
     await att(A, () => !!document.getElementById('salle-saisie'));
     await A.page.locator('#salle-saisie').focus();
     await A.page.keyboard.type('mvh');
-    v('⛔ dans le champ de la discussion, « m », « v », « h » S\'ÉCRIVENT : le micro, la caméra et la main ne bougent pas', await A.page.evaluate(() => [document.getElementById('salle-saisie').value, document.getElementById('salle-micro').getAttribute('aria-pressed'), document.getElementById('salle-cam').getAttribute('aria-pressed'), document.getElementById('salle-main').getAttribute('aria-pressed')]), ['mvh', 'false', 'true', 'false']);
+    v('⛔ dans le champ de la discussion, « m », « v », « h » S\'ÉCRIVENT : le micro, la caméra et la main ne bougent pas', await A.page.evaluate(() => [document.getElementById('salle-saisie').value, document.getElementById('salle-micro').getAttribute('aria-pressed'), document.getElementById('salle-cam').getAttribute('aria-pressed'), document.querySelector('#salle-vous-badges .salle-badge.main') ? 'true' : 'false']), ['mvh', 'false', 'true', 'false']);
     await A.page.locator('#salle-saisie').fill('');
     await A.page.keyboard.press('Escape');
     await att(A, () => document.getElementById('salle-panneau').hidden);
@@ -305,10 +354,10 @@ const INIT = () => {
     await A.page.evaluate(() => document.getElementById('salle-ecran').focus({ preventScroll: true }));
     await A.page.keyboard.press('h');
     vrai('…quand le moteur juge MA connexion faible : le badge sur « Vous », et l\'avis, avec ce qui aide', await att(A, () => !!document.querySelector('#salle-vous-badges .salle-badge.reseau.faible') && /Ta connexion est faible/.test(document.getElementById('salle-avis').textContent) && /Couper ta caméra/.test(document.getElementById('salle-avis').textContent), null, 10000));
-    await att(A, () => document.getElementById('salle-main').getAttribute('aria-pressed') === 'true');      // la page a relu sa main (la touche suivante la baisse : elle lit cet état)
+    await att(A, () => !!document.querySelector('#salle-vous-badges .salle-badge.main'));      // la page a relu sa main (la touche suivante la baisse : elle lit cet état)
     await A.page.evaluate(() => { window.OPMSG_SOURCE.appel = window.__appelVrai; document.getElementById('salle-ecran').focus({ preventScroll: true }); });
     await A.page.keyboard.press('h');
-    vrai('(Ana baisse la main)', await att(A, () => document.getElementById('salle-main').getAttribute('aria-pressed') === 'false'));
+    vrai('(Ana baisse la main)', await att(A, () => !document.querySelector('#salle-vous-badges .salle-badge.main')));
     await A.page.evaluate(() => { window.__degrader = false; });
     vrai('les statistiques redeviennent saines : les badges s\'en vont', await att(A, sel => document.querySelectorAll('#salle-scene > ' + sel + ' .salle-badge.reseau, #salle-vous-badges .salle-badge.reseau').length === 0, tuile(idB), 15000));
 

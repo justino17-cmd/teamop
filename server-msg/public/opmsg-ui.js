@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '9d508743a65c';
+  const OPMSG_BUILD = '3ee1c64a7ec8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 202;
+  const OPMSG_VERSION = 207;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3033,9 +3033,7 @@
     } catch (e) { avisAppel('L\'image dans l\'image n\'a pas pu s\'ouvrir sur ce navigateur.'); }
   }
   function majPip() {
-    const A = etat.appelUI, b = $('appel-pip'), sp = $('salle-pip');
-    /* (salle) la pastille « Image dans l'image » est SUR l'écran de la réunion (8 octobre 2026 : « ça serait bien sur l'écran de la réunion ») — le panneau Plus la garde aussi */
-    if (sp) { sp.hidden = !(A && enSalle(A) && pipPossible()); sp.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false'); }
+    const A = etat.appelUI, b = $('appel-pip');
     if (!b) return;
     b.hidden = !(A && !enSalle(A) && pipPossible() && videoAPip(A));
     b.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false');
@@ -3205,7 +3203,9 @@
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
   $('appel-pip').addEventListener('click', basculerPip);
-  document.addEventListener('enterpictureinpicture', majPip, true); document.addEventListener('leavepictureinpicture', majPip, true);
+  /* l'image dans l'image change d'état hors de la page (le système la ferme) : le bouton de l'appel à deux ET, en salle, la ligne de « Plus » qui la dit */
+  const pipChange = () => { majPip(); const A = etat.appelUI; if (enSalle(A)) sallePanneauRendre(A); };
+  document.addEventListener('enterpictureinpicture', pipChange, true); document.addEventListener('leavepictureinpicture', pipChange, true);
   $('appel-flip').addEventListener('click', retournerCamera);
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
   /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
@@ -6564,8 +6564,8 @@
         (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
       /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026 : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
-         ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Les routes des .ics restent
-         au service, sans bouton. */
+         ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Le service ne fabrique plus de .ics
+         (16 octobre 2026 : « ok fait les deux »). */
       '</div>' : '';
     const rappels0 = e ? (Array.isArray(e.rappels) ? e.rappels.slice() : (e.rappel === null ? [] : [e.rappel])) : (rdv ? [1440, 60] : null);
     /* un rendez-vous NEUF peut se remplir d'une confirmation collée (un mail, un SMS) : tout se lit sur l'appareil */
@@ -7871,12 +7871,12 @@
      ⛔ Les gestes de l'hôte sont CACHÉS aux autres, pas seulement grisés — et le service les refuse de toute façon (403) : un bouton qui paraîtrait par erreur ne ferait rien.
      ⛔ Un panneau (Participants, Discussion, Plus) se redessine seulement quand CE QU'IL MONTRE change (une signature) : « qui parle » change trois fois par seconde et ne doit ni vider un champ en cours de saisie,
      ni faire perdre le doigt à celui qui allait toucher « Admettre ». */
-  const EMOJI_SALLE = { pouce: '👍', coeur: '❤️', bravo: '👏', rire: '😂' };
+  const EMOJI_SALLE = { pouce: '👍', coeur: '❤️', bravo: '👏', rire: '😂' }, NOM_REACTION = { pouce: 'Pouce levé', coeur: 'Cœur', bravo: 'Bravo', rire: 'Rire' };
   const PHRASE_REACTION = { pouce: 'lève le pouce', coeur: 'envoie un cœur', bravo: 'applaudit', rire: 'rit' };
   const MINUTEURS = [[60, '1 min'], [300, '5 min'], [600, '10 min'], [900, '15 min']];
   const partagePossible = () => !!(navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function') && !/iPhone|iPod/.test(navigator.userAgent || '');
   const enSalle = A => !!(A && A.snap && A.snap.salle && !A.snap.entrant);
-  const sx = A => A.sx || (A.sx = { panneau: null, declencheur: null, emojis: false, vue: 'galerie', actions: null, retirer: null, formSondage: false, choixN: 2, vote: null, masque: '', micVu: 0, bandeauMic: null,
+  const sx = A => A.sx || (A.sx = { panneau: null, declencheur: null, vue: 'galerie', actions: null, retirer: null, formSondage: false, choixN: 2, vote: null, masque: '', micVu: 0, bandeauMic: null,
     discussion: [], vus: null, neufs: 0, ids: null, mains: null, recPar: null, grand: null, sigs: {}, finMinuteur: 0 });
   const nomM = m => (m && (m.prenom || m.nom)) || 'Quelqu\'un';
   const lecture = el => { const p = el && el.play ? el.play() : null; if (p && p.catch) p.catch(() => { /* le navigateur attend un geste : la prochaine touche relance */ }); };
@@ -8069,21 +8069,13 @@
       bp.setAttribute('aria-pressed', A.ecran ? 'true' : 'false'); bp.setAttribute('aria-disabled', permis ? 'false' : 'true');
       bp.setAttribute('aria-label', A.ecran ? 'Arrêter le partage d\'écran' : permis ? 'Partager l\'écran' : 'Partager l\'écran (l\'hôte ne l\'autorise pas)');
       bp.querySelector('.salle-cmd-texte').textContent = A.ecran ? 'Arrêter' : 'Partager';
-      $('salle-partage-changer').hidden = !A.ecran;                                        // pendant le partage seulement : une autre fenêtre, sans arrêter
     }
     const bd = $('salle-discussion'); bd.hidden = !s.conv;
     const nl = X.neufs; $('salle-discussion-n').hidden = !nl; $('salle-discussion-n').textContent = nl > 9 ? '9+' : String(nl);
     bd.setAttribute('aria-label', 'Discussion' + (nl ? ', ' + nl + (nl > 1 ? ' nouveaux messages' : ' nouveau message') : ''));
     const att = hote ? (s.enAttente | 0) : 0, bn = $('salle-participants-n'); bn.hidden = !att; bn.textContent = String(att);
     $('salle-participants').setAttribute('aria-label', 'Participants, ' + s.nb + (att ? ', ' + att + (att > 1 ? ' personnes attendent' : ' personne attend') : ''));
-    const bmn = $('salle-main'); bmn.setAttribute('aria-pressed', s.moi.main ? 'true' : 'false'); bmn.querySelector('span').textContent = s.moi.main ? 'Baisser la main' : 'Lever la main';
-    const bv = $('salle-vue'); bv.querySelector('span').textContent = X.vue === 'intervenant' ? 'Vue galerie' : 'Vue intervenant'; bv.querySelector('use').setAttribute('href', X.vue === 'intervenant' ? '#i-grille' : '#i-intervenant');
     majPip();
-    const br = $('salle-rec-btn'), moiRec = !!(s.rec && s.rec.par === MOI.id), autreRec = !!(s.rec && !moiRec);
-    br.hidden = !(hote && ((s.outils && recDisponible()) || moiRec));          // l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, mais on peut toujours ÉTEINDRE celui qu'on a lancé
-    br.setAttribute('aria-pressed', moiRec ? 'true' : 'false'); br.setAttribute('aria-disabled', autreRec ? 'true' : 'false');
-    br.querySelector('span').textContent = moiRec ? 'Arrêter l\'enregistrement' : autreRec ? 'Enregistré par ' + s.rec.nom : 'Enregistrer';
-    $('salle-reagir').setAttribute('aria-expanded', X.emojis ? 'true' : 'false'); $('salle-emojis').hidden = !X.emojis;
     ['discussion', 'participants', 'plus'].forEach(n => $('salle-' + n).setAttribute('aria-expanded', X.panneau === n ? 'true' : 'false'));
   }
 
@@ -8203,7 +8195,7 @@
   function salleOuvrirPanneau(A, nom, declencheurEl) {
     const X = sx(A);
     if (X.panneau === nom) { salleFermerPanneau(A); return; }
-    X.panneau = nom; X.emojis = false; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
+    X.panneau = nom; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
     if (nom === 'discussion') { X.neufs = 0; salleDiscussionCharger(A, true); }
     /* la discussion ou le suivi ouverts : les compteurs de MES documents se relisent toutes les 15 s (un patron garde le panneau ouvert, il voit les téléchargements arriver) */
     clearInterval(X.minuterieSuivis);
@@ -8261,6 +8253,19 @@
     const s = A.snap, X = sx(A), hote = s.moi.hote;
     const inter = (act, actif, titre, detail) => '<button type="button" class="salle-rang" role="switch" aria-checked="' + (actif ? 'true' : 'false') + '" data-sa="' + act + '"><span class="texte">' + esc(titre) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span><span class="salle-inter" aria-hidden="true"></span></button>';
     let h = '';
+    /* la rangée de pastilles, rangée ici (16 octobre 2026) : d'abord ce qu'on fait le plus — réagir, lever la main —, puis l'affichage, le partage, l'enregistrement */
+    const moiRec = !!(s.rec && s.rec.par === MOI.id), autreRec = !!(s.rec && !moiRec);
+    const ligneRec = !salleRecPossible(A) ? '' : autreRec
+      ? '<div class="salle-rang libre" id="salle-rec-ligne"><span class="texte">Enregistré par ' + esc(s.rec.nom) + '<small>Chacun voit « REC » tant que ça enregistre</small></span></div>'
+      : '<button type="button" class="salle-rang" data-sa="rec" id="salle-rec-ligne"><span class="texte">' + (moiRec ? 'Arrêter l\'enregistrement<small>Tu choisis ensuite de le garder ou non</small>' : 'Enregistrer<small>Chacun voit « REC » tant que ça enregistre</small>') + '</span></button>';
+    if (moiRec) h += '<div class="salle-rub"><span>Enregistrement</span></div><div class="salle-liste">' + ligneRec + '</div>';     // ce qui enregistre se coupe d'ici, en premier
+    h += '<div class="salle-rub"><span>Réagir</span></div><div class="salle-liste"><div class="salle-rang libre salle-reactions" role="group" aria-label="Réactions">' +
+      Object.keys(EMOJI_SALLE).map(k => '<button type="button" class="presse" data-sa="reaction" data-s="' + k + '" aria-label="' + NOM_REACTION[k] + '">' + EMOJI_SALLE[k] + '</button>').join('') + '</div>' +
+      inter('main', s.moi.main, 'Lever la main', 'Ta main paraît sur ta vignette') + '</div>';
+    h += '<div class="salle-rub"><span>Affichage</span></div><div class="salle-liste">' + inter('vue', X.vue === 'intervenant', 'Vue intervenant', 'Celui qui parle en grand') +
+      (pipPossible() ? inter('pip', !!document.pictureInPictureElement, 'Image dans l\'image', 'La vidéo de celui qui parle flotte au-dessus des autres applications') : '') + '</div>';
+    if (A.ecran) h += '<div class="salle-rub"><span>Partage d\'écran</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="partage-changer"><span class="texte">Changer de fenêtre<small>Partager une autre fenêtre, sans arrêter</small></span></button></div>';
+    if (ligneRec && !moiRec) h += '<div class="salle-rub"><span>Enregistrement</span></div><div class="salle-liste">' + ligneRec + '</div>';
     if (hote && s.outils) {
       h += '<div class="salle-rub"><span>Sondage et minuteur</span></div><div class="salle-liste">';
       if (X.formSondage) {
@@ -8283,23 +8288,23 @@
     }
     /* le tableau blanc et les annotations : ouvrir le tableau (tous, sauf si l'hôte les a réservées aux hôtes), le fermer (l'hôte, celui qui l'a ouvert), le réglage de l'hôte */
     const an = s.annot || { support: null, permis: 'tous', ouvreur: null };
+    const ligneAnnoter = annotPeut(A) ? inter('annoter', !!X.annoter, 'Annoter', an.support === 'tableau' ? 'Dessiner sur le tableau blanc' : an.support === 'ecran:' + MOI.id ? 'Dessiner sur ton écran partagé, tous le voient' : 'Dessiner sur l\'écran partagé') : '';
     if (CAP.annotations) {
       const surTableau = an.support === 'tableau', ouvreur = surTableau ? s.membres.find(m => m.id === an.ouvreur) : null;
-      let lignes = '';
+      let lignes = ligneAnnoter;
       if (surTableau) lignes += annotMaitre(A) ? '<button type="button" class="salle-rang" data-sa="tableau-fermer"><span class="texte">Fermer le tableau blanc<small>Ce qui y est dessiné s\'efface pour tous : « Capturer » l\'envoie d\'abord dans la discussion</small></span></button>'
         : '<div class="salle-rang libre"><span class="texte">Tableau blanc ouvert<small>' + esc(an.ouvreur === MOI.id ? 'Par vous' : 'Par ' + nomM(ouvreur)) + '</small></span></div>';
       else if (an.permis === 'tous' || hote) lignes += '<button type="button" class="salle-rang" data-sa="tableau-ouvrir"><span class="texte">Ouvrir un tableau blanc<small>Chacun y dessine et y écrit, tout le monde le voit</small></span></button>';
       if (hote) lignes += inter('annot-permis', an.permis === 'tous', 'Annotations des participants', 'Dessiner sur l\'écran partagé et le tableau (les hôtes le peuvent toujours)');
       if (lignes) h += '<div class="salle-rub"><span>Tableau blanc et annotations</span></div><div class="salle-liste">' + lignes + '</div>';
     }
-    /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image, là où le navigateur la sait */
+    /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image est plus haut, dans « Affichage » */
     const ap = X.appareils || [], choix = (quoi, kind, titre) => { const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
       const actuel = prefMedias[quoi] || '';
       return '<label class="salle-rang libre salle-appareil"><span class="texte">' + esc(titre) + '</span><select data-appareil="' + quoi + '" aria-label="' + esc(titre) + '"><option value="">Par défaut</option>' +
         l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
     const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
-    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp + ligneFlou(A) +
-      (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
+    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp + ligneFlou(A) + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
     if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
@@ -8351,7 +8356,7 @@
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom, m.reseau]);
-    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs]);
+    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs, s.rec ? [s.rec.par, s.rec.nom] : null, X.vue, !!X.annoter, annotPeut(A), !!A.ecran, !!document.pictureInPictureElement]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
@@ -8360,7 +8365,7 @@
     const bas = (() => { const f = $('salle-fil'); return !f || f.scrollHeight - f.scrollTop - f.clientHeight < 40; })();
     corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : X.panneau === 'ordre' ? htmlOrdreSalle(A) : X.panneau === 'raccourcis' ? htmlRaccourcis() : htmlDiscussion(A);
     for (const id of Object.keys(champs)) { const i = $(id); if (i && corps.contains(i)) { i.value = champs[id].v; if (champs[id].focus) { i.focus({ preventScroll: true }); try { i.setSelectionRange(champs[id].a, champs[id].a); } catch (e) { /* un champ sans curseur */ } } } }
-    if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); }
+    if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); else p.focus({ preventScroll: true }); }
     const f = $('salle-fil'); if (f && bas) f.scrollTop = f.scrollHeight;
   }
   /* la discussion : la conversation de la salle (celle du groupe, celle de la réunion), lue et écrite par la source — le même fil que celui de l'application */
@@ -8464,7 +8469,22 @@
       }
       case 'sondage-fermer': await salleGeste(A, 'evt', { k: 'sondage', donnees: { op: 'fermer' } }); return;
       case 'sondage-masquer': X.masque = s.sondage ? s.sondage.id : ''; $('salle-bandeaux').dataset.sig = ''; salleBandeaux(A); return;
-      case 'pip': basculerPip(); return;
+      /* les gestes venus de la rangée de pastilles : le panneau se referme D'ABORD (dans le geste : l'image dans l'image, l'enregistrement et le partage d'écran demandent un
+         geste de la personne), puis le geste se fait */
+      case 'reaction': if (!EMOJI_SALLE[el.dataset.s]) return; salleFermerPanneau(A); if (await salleGeste(A, 'reaction', { emoji: el.dataset.s }, 'La réaction n\'est pas partie.')) annonceAppel('Réaction envoyée : ' + NOM_REACTION[el.dataset.s]); return;
+      case 'main': salleFermerPanneau(A); await salleMainBasculer(A); return;
+      case 'vue': salleFermerPanneau(A); salleVueBasculer(A); return;
+      case 'pip': salleFermerPanneau(A); basculerPip(); return;
+      case 'partage-changer': if (!A.ecran) return; salleFermerPanneau(A); changerPartage(); return;
+      case 'rec': salleFermerPanneau(A); salleRecBasculer(A); return;
+      case 'annoter': {
+        const on = !X.annoter;
+        if (!on) { salleFermerPanneau(A); annoterBasculer(A, false); return; }
+        annoterBasculer(A, true);                                                        // il referme le panneau lui-même ; le focus va au premier outil de la barre
+        // refusé (le support a disparu entre le dessin de la ligne et le toucher) : « Plus » reste ouvert et redessiné sans la ligne, le focus y reste — pas sur le bouton qu'il cache
+        const f = X.annoter ? $('annot-barre').querySelector('[data-outil]') : X.panneau ? null : $('salle-plus'); if (f) f.focus({ preventScroll: true });
+        return;
+      }
       case 'minuteur': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'demarrer', secondes: +el.dataset.s } }, 'Le minuteur n\'a pas pu démarrer.'); return;
       case 'minuteur-arreter': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'arreter' } }); return;
       case 'lien-copier': {
@@ -8505,24 +8525,21 @@
   $('salle-cam').addEventListener('click', basculerCamera);
   $('salle-flip').addEventListener('click', retournerCamera);
   $('salle-partage').addEventListener('click', () => basculerPartage());
-  $('salle-partage-changer').addEventListener('click', () => changerPartage());
-  $('salle-pip').addEventListener('click', () => basculerPip());
   $('salle-quitter').addEventListener('click', () => {
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;
     if (enSalle(A) && s.moi.proprietaire && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
     raccrocherCouche();
   });
-  $('salle-reagir').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A)) return; const X = sx(A); X.emojis = !X.emojis; if (X.emojis && X.panneau) salleFermerPanneau(A, false); salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); });
-  $('salle-emojis').addEventListener('click', async e => {
-    const b = e.target.closest('[data-reaction]'), A = etat.appelUI; if (!b || !enSalle(A)) return;
-    const X = sx(A); X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio));
-    $('salle-reagir').focus({ preventScroll: true });
-    await salleGeste(A, 'reaction', { emoji: b.dataset.reaction }, 'La réaction n\'est pas partie.');
-  });
-  $('salle-main').addEventListener('click', async () => { const A = etat.appelUI; if (!enSalle(A)) return; const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } });
-  $('salle-vue').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A)) return; const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); });
-  $('salle-rec-btn').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A) || $('salle-rec-btn').getAttribute('aria-disabled') === 'true') return; if (A.rec) recArreter(A, true); else recDemarrer(A); });
+  /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026 : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
+     Lever la main en tête) : une fonction par geste, appelée par la ligne du panneau ET par le raccourci (H, G). Le panneau se referme après le geste (on voit ce qu'il a fait :
+     la main sur sa vignette, la vue qui change, « REC ») et le focus revient sur « Plus ». */
+  async function salleMainBasculer(A) { const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } }
+  function salleVueBasculer(A) { const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); }
+  /* l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, et COMMENCÉ par l'hôte seul (grade 2 : le service refuse le co-hôte — test-986) ;
+     on peut toujours ÉTEINDRE celui qu'on a lancé ; celui d'un autre, un hôte ou co-hôte le voit dire « Enregistré par », sans geste d'ici */
+  const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id); return moiRec || (!!s.moi.hote && !!s.rec) || ((s.moi.grade | 0) >= 2 && !!s.outils && recDisponible()); };
+  function salleRecBasculer(A) { const s = A.snap; if (!salleRecPossible(A) || (s.rec && s.rec.par !== MOI.id)) return; if (A.rec) recArreter(A, true); else recDemarrer(A); }
   /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
   $('salle-doc').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
@@ -8547,7 +8564,7 @@
     /* ⛔ UNE SEULE porte pour envoyer : `envoi()` (la même que la conversation) — le refus du service se dit avec SA phrase */
     if (!await envoi({ texte: t }, A.snap.conv) && !perime(A)) { mot('Le message n\'a pas pu être envoyé.'); const c2 = $('salle-saisie'); if (c2 && !c2.value) c2.value = t; }
   });
-  /* ⛔ Échap : un écouteur à part, en CAPTURE, qui passe avant celui de la page (la chaîne « photo, feuille, appel, enregistrement, conversation » reste telle qu'elle est). Il ferme ce qui est ouvert PAR-DESSUS la salle (la palette de réactions, un panneau) ; il ne quitte JAMAIS une salle toute seule — une touche tapée par erreur n'arrête pas une réunion de vingt personnes */
+  /* ⛔ Échap : un écouteur à part, en CAPTURE, qui passe avant celui de la page (la chaîne « photo, feuille, appel, enregistrement, conversation » reste telle qu'elle est). Il ferme ce qui est ouvert PAR-DESSUS la salle (un panneau, l'annotation) ; il ne quitte JAMAIS une salle toute seule — une touche tapée par erreur n'arrête pas une réunion de vingt personnes */
   function salleEchap() {
     const A = etat.appelUI; if (!enSalle(A)) return false;
     const X = sx(A);
@@ -8555,9 +8572,8 @@
       const N = annotEtat(A);
       if (N.saisie) { annotSaisieFermer(A, false); return true; }
       if (N.palette) { const q = N.palette; annotPaletteFermer(A); $(q === 'couleur' ? 'annot-couleur' : 'annot-effacer').focus({ preventScroll: true }); return true; }
-      annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return true;
+      annoterQuitter(A); return true;
     }
-    if (X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); $('salle-reagir').focus({ preventScroll: true }); return true; }
     if (X.panneau) { salleFermerPanneau(A); return true; }
     return true;
   }
@@ -8686,9 +8702,8 @@
       }
       if (!sup && X.annoter) annoterBasculer(A, false);
     }
-    if (X.annoterApres && sup === X.annoterApres) { X.annoterApres = null; if (!X.annoter) annoterBasculer(A, true); }       // je viens d'ouvrir le tableau : j'y dessine tout de suite
+    if (X.annoterApres && sup === X.annoterApres) { X.annoterApres = null; if (!X.annoter) { annoterBasculer(A, true); const f = X.annoter && $('annot-barre').querySelector('[data-outil]'); if (f) f.focus({ preventScroll: true }); } }       // je viens d'ouvrir le tableau : j'y dessine tout de suite
     if (X.annoter && !annotPeut(A)) { annoterBasculer(A, false); if (sup) mot('L\'hôte a réservé les annotations aux hôtes.'); }
-    const bp = $('salle-annoter'); bp.hidden = !annotPeut(A); bp.setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
     $('annot-capturer').hidden = !(sup === 'tableau' || annotMaitre(A));                 // l'écran de quelqu'un ne se capture que par lui ou un hôte ; le tableau, par tous
     $('annot-effacer').setAttribute('aria-label', annotMaitre(A) ? 'Effacer…' : 'Effacer mes annotations');
   }
@@ -8697,12 +8712,17 @@
     X.annoter = !!actif && annotPeut(A);
     if (X.annoter) E.dataset.annoter = '1'; else { E.removeAttribute('data-annoter'); annotSaisieFermer(A, true); annotPaletteFermer(A); }
     $('annot-barre').hidden = !X.annoter;
-    $('salle-annoter').setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
     annotOutils(A);
     if (X.annoter && X.panneau) salleFermerPanneau(A, false);
-    if (X.annoter && X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); }
+    if (X.panneau === 'plus') sallePanneauRendre(A, true);                    // « Plus » ouvert (on peut l'ouvrir en annotant) : son interrupteur « Annoter » suit
     if (X.annoter) { const sup = annotInfo(A).support; annonceAppel(sup === 'tableau' ? 'Annoter : dessine sur le tableau blanc' : sup === 'ecran:' + MOI.id ? 'Annoter : dessine sur ton écran partagé, tous le voient sur leur écran' : 'Annoter : dessine sur l\'écran partagé'); }
     annotPlanifier();
+  }
+  /* quitter l'annotation (Échap, « OK ») : un panneau resté ouvert garde le focus — « Plus » sur son interrupteur « Annoter », qu'il vient de redessiner éteint —, sinon le bouton « Plus », d'où « Annoter » se rouvre. Jamais un bouton que le panneau recouvre. */
+  function annoterQuitter(A) {
+    annoterBasculer(A, false);
+    const X = sx(A), f = X.panneau ? (X.panneau === 'plus' && $('salle-panneau-corps').querySelector('[data-sa="annoter"]')) || $('salle-panneau') : $('salle-plus');
+    f.focus({ preventScroll: true });
   }
   /* l'état des boutons de la barre : l'outil choisi, la pastille de la couleur */
   function annotOutils(A) {
@@ -8886,7 +8906,6 @@
     document.body.appendChild(lien); lien.click(); setTimeout(() => { lien.remove(); URL.revokeObjectURL(url); }, 4000);
     mot('Capture rangée dans tes téléchargements');
   }
-  $('salle-annoter').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) annoterBasculer(A, !sx(A).annoter); });
   $('annot-barre').addEventListener('click', async e => {
     const b = e.target.closest('button'), A = etat.appelUI; if (!b || !enSalle(A) || !$('annot-barre').contains(b)) return;
     const N = annotEtat(A);
@@ -8900,7 +8919,7 @@
       case 'annot-effacer': if (annotMaitre(A)) annotPaletteOuvrir(A, 'effacer'); else await annotEffacer(A, 'miens'); return;
       case 'annot-annuler': annotPaletteFermer(A); if (N.trait) annotFinir(A, true); await annotEnvoyer(A, { op: 'annuler' }); if (!perime(A)) annotPlanifier(); return;
       case 'annot-capturer': annotPaletteFermer(A); await annotCapturer(A); return;
-      case 'annot-fin': annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return;
+      case 'annot-fin': annoterQuitter(A); return;
       default: return;
     }
   });
@@ -9196,8 +9215,8 @@
     const l = e.key && e.key.length === 1 ? e.key.toLowerCase() : '';
     if (l === 'm') { e.preventDefault(); basculerMicro(); }
     else if (l === 'v') { e.preventDefault(); basculerCamera(); }
-    else if (l === 'h') { e.preventDefault(); $('salle-main').click(); }
-    else if (l === 'g') { e.preventDefault(); $('salle-vue').click(); }
+    else if (l === 'h') { e.preventDefault(); salleMainBasculer(A); }
+    else if (l === 'g') { e.preventDefault(); salleVueBasculer(A); }
     else if (e.key === '?') { e.preventDefault(); salleOuvrirPanneau(A, 'raccourcis', document.activeElement); }
   });
   document.addEventListener('keyup', e => { if (e.key !== ' ' && e.key !== 'Spacebar') return; const A = etat.appelUI; if (A && A.sx && A.sx.ptt) { e.preventDefault(); parlerMaintenu(A, false); } });
@@ -9348,13 +9367,13 @@
     const seul = $('salle-seul'); if (seul) seul.remove();
     $('salle-bandeaux').innerHTML = ''; $('salle-bandeaux').dataset.sig = '';
     $('salle-panneau').hidden = true; $('salle-panneau-corps').innerHTML = ''; $('salle-panneau-corps').dataset.sig = '';
-    $('salle-emojis').hidden = true; $('salle-avis').hidden = true;
+    $('salle-avis').hidden = true;
     $('salle-ecran').removeAttribute('data-attente');
     /* les annotations : le tableau, le calque, la barre — et la minuterie d'un trait en cours */
     const tab = $('salle-tableau'); if (tab) tab.remove();
     document.querySelectorAll('.annot-calque, .annot-saisie').forEach(x => x.remove());
     if (A && A.sx && A.sx.an) { clearInterval(A.sx.an.minuterie); if (A.sx.an.ro) A.sx.an.ro.disconnect(); A.sx.an.trait = null; }
-    $('salle-ecran').removeAttribute('data-annoter'); $('annot-barre').hidden = true; $('annot-palette').hidden = true; $('annot-palette').innerHTML = ''; $('salle-annoter').hidden = true;
+    $('salle-ecran').removeAttribute('data-annoter'); $('annot-barre').hidden = true; $('annot-palette').hidden = true; $('annot-palette').innerHTML = '';
     const v = $('salle-video-local'); try { v.pause(); } catch (e) { /* rien */ } v.srcObject = null;
     $('salle-vous').dataset.camera = 'off';
     scene.dataset.vue = 'galerie'; scene.dataset.n = '1';

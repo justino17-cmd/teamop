@@ -1895,16 +1895,6 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-choix > i { position: absolute; z-index: 0; inset: 0 auto 0 0; background: rgba(48,209,88,.4); }
 .salle-choix > span { position: relative; z-index: 1; min-width: 0; overflow-wrap: anywhere; }
 .salle-choix[aria-pressed="true"] { outline: 2px solid #fff; }
-.salle-pastilles { flex: none; position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 4px max(14px, env(safe-area-inset-right, 0px)) 4px max(14px, env(safe-area-inset-left, 0px)); }
-.salle-pastille {
-  min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--salle-vitre); border: 1px solid var(--salle-bord); color: #fff; font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
-  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
-}
-.salle-pastille[aria-pressed="true"] { background: #fff; color: #000; }
-.salle-pastille[hidden] { display: none; }
-.salle-emojis { position: absolute; z-index: 4; bottom: 100%; left: 0; right: 0; margin: 0 auto; width: max-content; max-width: calc(100% - 16px); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 8px; border-radius: 18px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); }
-.salle-emojis[hidden] { display: none; }
-.salle-emojis button { width: 48px; height: 48px; border-radius: 50%; font-size: 26px; line-height: 1; display: grid; place-items: center; background: rgba(255,255,255,.1); }
 .salle-bas { flex: none; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 14px) max(12px, env(safe-area-inset-left, 0px)); }
 .salle-cmds { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 8px 6px; max-width: 560px; margin-inline: auto; }
 .salle-cmd { position: relative; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; line-height: 15px; color: #fff; text-align: center; }
@@ -1998,10 +1988,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .invite-carte { margin: 0 auto; max-width: 420px; padding: 18px; border-radius: 18px; background: var(--card); border: var(--line); text-align: center; }
 .invite-carte h3 { margin: 0 0 4px; font-size: 20px; line-height: 26px; overflow-wrap: anywhere; }
 .invite-carte p { margin: 4px 0; overflow-wrap: anywhere; }
-.salle-pastille .ic { width: 18px; height: 18px; stroke-width: 1.8; flex: none; }
 .salle-btn .ic { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
 .salle-cmd-texte { display: block; max-width: 100%; overflow-wrap: anywhere; }
-.salle-ecran[data-attente] .salle-pastilles, .salle-ecran[data-attente] .salle-cmds, .salle-ecran[data-attente] .salle-tuile { display: none; }
+.salle-ecran[data-attente] .salle-cmds, .salle-ecran[data-attente] .salle-tuile { display: none; }
 .salle-avis { margin: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
 .salle-tuile .salle-sans-camera { display: none; bottom: auto; top: calc(50% + 42px); }
 .salle-tuile.grand[data-camera="off"] .salle-sans-camera, .salle-scene[data-n="1"] .salle-tuile[data-camera="off"] .salle-sans-camera, .salle-scene[data-n="2"] .salle-tuile[data-camera="off"] .salle-sans-camera { display: block; }
@@ -2046,8 +2035,6 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .rec-fin-gestes { flex: 1 1 0; }
   .rec-fin-carte video { max-height: 42dvh; }
 }
-/* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
-@media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
 /* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
 .annot-barre > button, .annot-palette > button { min-width: 44px; min-height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; }
 .annot-barre > button[aria-pressed="true"], .annot-palette > button[aria-pressed="true"] { background: rgba(255,255,255,.22); }
@@ -2077,6 +2064,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .annot-palette > .salle-btn { min-height: 44px; }
 .annot-barre > button[hidden] { display: none; }
 .salle-rang.libre { min-height: 44px; }
+.salle-rang.salle-reactions { justify-content: space-around; padding-top: 8px; padding-bottom: 8px; }
+@media (forced-colors: active) {      /* sans fonds : l'interrupteur garde son rail et son pouce, la réaction son contour (l'état de « Lever la main » n'est que là) */
+  .salle-inter { forced-color-adjust: none; border: 2px solid CanvasText; background: Canvas; } .salle-inter::after { background: CanvasText; }
+  [aria-checked="true"] > .salle-inter { background: Highlight; } [aria-checked="true"] > .salle-inter::after { background: HighlightText; }
+  .salle-reactions button { border: 1px solid CanvasText; }
+}
+.salle-reactions button { flex: none; width: 48px; height: 48px; border-radius: 50%; font-size: 26px; line-height: 1; display: grid; place-items: center; background: rgba(255,255,255,.1); }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }
 .salle-panneau-corps { display: block; }
@@ -2420,9 +2414,6 @@ a.menu-action { text-decoration: none; }
   <symbol id="i-transferer" viewBox="0 0 24 24"><path d="M14 5l7 7-7 7M21 12H11a7 7 0 0 0-7 7"/></symbol>
   <symbol id="i-archive" viewBox="0 0 24 24"><path d="M3.5 5h17v4h-17zM5 9v10h14V9M10 13h4"/></symbol>
   <symbol id="i-grille" viewBox="0 0 24 24"><path d="M4 4h7v7H4ZM13 4h7v7h-7ZM4 13h7v7H4ZM13 13h7v7h-7Z"/></symbol>
-  <symbol id="i-intervenant" viewBox="0 0 24 24"><path d="M4 4h16v10H4ZM4 17h4v3H4ZM10 17h4v3h-4ZM16 17h4v3h-4Z"/></symbol>
-  <symbol id="i-rec" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z"/></symbol>
-  <symbol id="i-reaction" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM8.5 14c.8 1.3 2 2 3.5 2s2.7-.7 3.5-2M9 9.5h.01M15 9.5h.01"/></symbol>
   <symbol id="i-lien" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
   <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
@@ -2680,21 +2671,6 @@ a.menu-action { text-decoration: none; }
       <button type="button" class="presse" id="annot-effacer" aria-haspopup="true" aria-expanded="false" aria-label="Effacer mes annotations"><svg class="ic" aria-hidden="true"><use href="#i-corbeille"/></svg></button>
       <button type="button" class="presse" id="annot-capturer" aria-label="Capturer et envoyer dans la discussion" hidden><svg class="ic" aria-hidden="true"><use href="#i-capture"/></svg></button>
       <button type="button" class="presse annot-fin" id="annot-fin">OK</button>
-    </div>
-    <div class="salle-pastilles" role="group" aria-label="Réactions et affichage">
-      <button type="button" class="salle-pastille presse" id="salle-reagir" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-reaction"/></svg>Réagir</button>
-      <div class="salle-emojis" id="salle-emojis" role="group" aria-label="Réactions" hidden>
-        <button type="button" class="presse" data-reaction="pouce" aria-label="Pouce levé">👍</button>
-        <button type="button" class="presse" data-reaction="coeur" aria-label="Cœur">❤️</button>
-        <button type="button" class="presse" data-reaction="bravo" aria-label="Bravo">👏</button>
-        <button type="button" class="presse" data-reaction="rire" aria-label="Rire">😂</button>
-      </div>
-      <button type="button" class="salle-pastille presse" id="salle-main" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-main"/></svg><span>Lever la main</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-vue"><svg class="ic" aria-hidden="true"><use href="#i-intervenant"/></svg><span>Intervenant</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-pip" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-pip"/></svg><span>Image dans l'image</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-annoter" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg><span>Annoter</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-partage-changer" hidden><svg class="ic" aria-hidden="true"><use href="#i-ecran"/></svg><span>Changer de fenêtre</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-rec-btn" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-rec"/></svg><span>Enregistrer</span></button>
     </div>
     <div class="salle-bas">
       <div class="salle-cmds" role="group" aria-label="Commandes de la salle">

@@ -161,7 +161,7 @@ const feuilleDe = (S, titre) => attendre(S, (t) => document.documentElement.clas
 const petitesCibles = (S, sel) => S.page.evaluate((s) => Array.from(document.querySelectorAll(s)).filter(e => e.getClientRects().length > 0 && !e.hidden).map(e => { const r = e.getBoundingClientRect(); return [e.dataset.rp || e.dataset.reu || e.id || e.className, Math.round(r.height)]; }).filter(x => x[1] < 44), sel);
 
 const QUOTAS = { reunion: { max: 100000, fenetreMs: 3600000 }, relire: { max: 100000, fenetreMs: 3600000 }, paiement: { max: 100000, fenetreMs: 3600000 }, portail: { max: 100000, fenetreMs: 3600000 },
-  rejoindre_reunion: { max: 100000, fenetreMs: 60000 }, ics: { max: 100000, fenetreMs: 60000 }, groupe: { max: 100000, fenetreMs: 3600000 } };
+  rejoindre_reunion: { max: 100000, fenetreMs: 60000 }, groupe: { max: 100000, fenetreMs: 3600000 } };
 /* deux personnes sont contacts l'une de l'autre (par le lien de contact : le geste que la page offre ailleurs) */
 async function contacts(x, y) {
   const l = await x.post('/api/contacts/lien', {});

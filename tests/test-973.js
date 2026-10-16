@@ -9,11 +9,11 @@
      · les invités sont des contacts ou des membres de SON espace (`peutEcrire`), jamais un autre — un inconnu et un refusé répondent PAREIL ; un non-invité reçoit le 404 d'une réunion inexistante ;
      · les notifications se composent dans le fuseau de CELUI QUI LES REÇOIT, ne nomment l'hôte qu'à ses invités, se taisent sur « Notifier les invités : non » — sauf l'annulation, qui part toujours ;
      · modifier : seul l'hôte ; un changement d'HORAIRE remet les réponses en attente, un lieu non ; annuler prévient et ne se fait qu'une fois ; supprimer emporte la conversation ;
-     · inviter, retirer, répondre, régler ses rappels ; le fichier .ics (série, occurrence, annulée) avec ses en-têtes, sans adresse de courriel, sans ligne qu'un titre pourrait ouvrir ;
+     · inviter, retirer, répondre, régler ses rappels ; une série lue par ses participants, sans ligne qu'un titre pourrait ouvrir (le fichier .ics est parti le 16 octobre 2026) ;
      · la conversation de la réunion s'écrit comme un groupe, et les routes des GROUPES la refusent (renommer, ajouter, retirer, promouvoir, lien, quitter) ;
      · le push : l'invitation et l'annulation partent, la charge minimale ne dit rien du titre (sauf aperçu activé), la SOURDINE coupe une modification mais jamais une annulation ;
      · en direct (SSE) chaque geste arrive aux autres participants et à personne d'autre ; l'export des données d'une personne porte SES réunions ;
-     · production : 30 programmations par heure et par personne, 60 fichiers par minute, 300 réunions à venir par hôte (et le code d'erreur que la page sait dire).
+     · production : 30 programmations par heure et par personne, 300 réunions à venir par hôte (et le code d'erreur que la page sait dire).
 
    ⛔ UNE ASSERTION SUR UN ENSEMBLE VIDE PASSE ET NE PROUVE RIEN : chaque « zéro » ci-dessous est précédé de la population qu'il aurait pu compter. */
 'use strict';
@@ -24,7 +24,6 @@ T.sauterSiSansDependances();
 const { v, vrai, fin } = T.compteur();
 const { ouvrir } = require(path.join(T.SERVICE, 'stockage.js'));
 const { creerScelleur } = require(path.join(T.SERVICE, 'scelle.js'));
-const ICS = require(path.join(T.SERVICE, 'ics.js'));
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
 
@@ -66,13 +65,10 @@ async function monter(config, env) {
   return { svc, S, pers, cl, payer, entrer, sql, nReunions, avancer, maintenant, fermer: async () => { try { S.fermer(); } catch (x) { /* déjà fermé */ } await svc.arreter(); } };
 }
 
-/* Les lignes d'un fichier .ics, repliées défaites */
-const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
-
 (async () => {
   const fps = await P.fauxServicePush();
   const PAIRE = paireVapid();
-  const M = await monter({ formule: { toutOuvert: false }, quotas: { reunion: { max: 100000, fenetreMs: HEURE }, ics: { max: 100000, fenetreMs: MIN } }, push: PUSH_CFG, vapidPublicKey: PAIRE.pub, vapidPrivateKey: PAIRE.priv }, { OPMSG_TEST_PUSH: fps.hote });
+  const M = await monter({ formule: { toutOuvert: false }, quotas: { reunion: { max: 100000, fenetreMs: HEURE } }, push: PUSH_CFG, vapidPublicKey: PAIRE.pub, vapidPrivateKey: PAIRE.priv }, { OPMSG_TEST_PUSH: fps.hote });
   const { svc, S, pers, cl, payer, entrer, sql, nReunions, avancer } = M;
   const ana = pers('Ana'), ben = pers('Ben'), cleo = pers('Cleo'), dan = pers('Dan'), eve = pers('Eve'), fred = pers('Fred'), gus = pers('Gus'), hal = pers('Hal'), ivy = pers('Ivy');
   const a = cl(ana), b = cl(ben), c = cl(cleo), d = cl(dan), e = cl(eve), f = cl(fred), g = cl(gus), h = cl(hal), iv = cl(ivy);
@@ -229,8 +225,8 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
         v('⛔ ' + nom + ' : 404, la MÊME réponse qu\'une réunion qui n\'existe pas', [r.code, r.j], [inex.code, inex.j]);
       }
       v('population : la réponse d\'une réunion inexistante est bien un 404 « introuvable »', [inex.code, inex.j], [404, { error: 'introuvable' }]);
-      const ics = await e.get('/api/reunions/' + R1 + '/ics'), rep = await e.post('/api/reunions/' + R1 + '/reponse', { statut: 'accepte' });
-      v('… ni le fichier .ics ni une réponse : 404 aussi', [ics.code, rep.code], [404, 404]);
+      const rep = await e.post('/api/reunions/' + R1 + '/reponse', { statut: 'accepte' });
+      v('… ni une réponse : 404 aussi', rep.code, 404);
       v('des identifiants mal formés répondent 404 (jamais une erreur de format, jamais un 500)', (await Promise.all(['r_zz', 'x', 'r_' + 'A'.repeat(32), 'c_' + '0'.repeat(32), 'r_' + '0'.repeat(31)].map(async id => (await b.get('/api/reunions/' + id)).code))), [404, 404, 404, 404, 404]);
     }
 
@@ -445,8 +441,6 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('⛔ une réunion annulée ne se modifie plus, n\'invite plus, ne reçoit plus de réponse : 409 `reunion_annulee`', apres.map(x => [x.code, x.j.error]), [[409, 'reunion_annulee'], [409, 'reunion_annulee'], [409, 'reunion_annulee']]);
       const lue = await fiche(b, R2);
       v('… mais elle se LIT (« annulée »), et paraît dans l\'agenda de Ben marquée annulée', [lue.code, lue.j.reunion.annulee, (await b.get('/api/reunions')).j.reunions.find(x => x.id === R2).annulee], [200, true, true]);
-      const ics = lignesIcs((await b.get('/api/reunions/' + R2 + '/ics')).txt);
-      v('… et son fichier .ics dit `STATUS:CANCELLED` (l\'agenda de la personne la barre au lieu de la garder)', [ics.includes('STATUS:CANCELLED'), ics.includes('STATUS:CONFIRMED')], [true, false]);
       const sys = (await a.get('/api/conversations/' + lue.j.reunion.conv + '/messages')).j.messages.filter(x => x.type === 'systeme').map(x => x.meta.k);
       v('la conversation le dit (un message d\'activité)', sys, ['reunion_creee', 'reunion_annulee']);
     }
@@ -533,31 +527,17 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
       v('la suppression est NOTÉE au registre des effacements (l\'archive d\'avant ne la ressusciterait pas)', Number(sql(`SELECT COUNT(*) AS n FROM purge WHERE genre = 'conversation' AND objet = ?`, R3.reunion.conv).n), 1);
     }
 
-    /* ═══ 12. LE FICHIER .ICS ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
-    console.log('\nLe fichier .ics : la série ou une occurrence, ses en-têtes, rien qui ne soit à la personne');
+    /* ═══ 12. UNE SÉRIE À PLUSIEURS, ET UN TITRE QUI VOUDRAIT OUVRIR UNE LIGNE (le fichier .ics est parti le 16 octobre 2026 : reste ce que la fiche en rend) ═══ */
+    console.log('\nUne série à plusieurs : le titre reste une seule ligne, les rappels sont ceux de chacun, rien ne sort de l\'espace');
     {
       const TS = 'Revue; budget, "T3" \\ fin';
       const RS = (await mk(a, { titre: TS + '\r\nATTENDEE:intrus\r\nBEGIN:VEVENT', lieu: 'Salle 3', repetition: 'hebdomadaire', n: 4, invites: [ben.id, dan.id], rappels: [15, 60] })).reunion.id;
       await b.post('/api/reunions/' + RS + '/rappels', { rappels: [5] });
-      const s = await b.get('/api/reunions/' + RS + '/ics?serie=1');
-      const L = lignesIcs(s.txt);
-      v('la série : 200, en `text/calendar`, jamais mise en cache', [s.code, s.h.get('content-type'), s.h.get('cache-control')], [200, 'text/calendar; charset=utf-8', 'no-store']);
-      vrai('… TÉLÉCHARGÉE (attachment), sous un nom ASCII sûr : lettres minuscules, chiffres, tirets, `.ics` — jamais le titre brut', /^attachment; filename="reunion-[a-z0-9-]{1,40}\.ics"$/.test(s.h.get('content-disposition')));
-      v('le fichier est un calendrier complet, aux fins de ligne CRLF', [L[0], L[L.length - 2], L[L.length - 1], /\r\n$/.test(s.txt), /[^\r]\n/.test(s.txt)], ['BEGIN:VCALENDAR', 'END:VCALENDAR', '', true, false]);
-      v('l\'identifiant, la règle de répétition (quatre lundis), l\'heure LOCALE de Paris', [L.includes('UID:reunion-' + RS + '@' + ICS.DOMAINE), L.includes('RRULE:FREQ=WEEKLY;BYDAY=MO;COUNT=4'), L.includes('DTSTART;TZID=Europe/Paris:20261026T140000')], [true, true, true]);
-      v('⛔ le titre est ÉCHAPPÉ (point-virgule, virgule, barre oblique) : une seule ligne SUMMARY, et le titre n\'a pas ouvert de ligne (aucun ATTENDEE, un seul VEVENT)', [L.filter(x => x.startsWith('SUMMARY:')).length, L.filter(x => x.startsWith('ATTENDEE')).length, L.filter(x => x === 'BEGIN:VEVENT').length, L.find(x => x.startsWith('SUMMARY:')) === 'SUMMARY:Revue\\; budget\\, "T3" \\\\ finATTENDEE:intrusBEGIN:VEVENT'], [1, 0, 1, true]);
-      v('⛔ MES rappels (Ben : 5 minutes) sont ceux du fichier de Ben ; ceux de l\'hôte (15 minutes et 1 heure) ceux du sien', [L.filter(x => x.startsWith('TRIGGER:')), lignesIcs((await a.get('/api/reunions/' + RS + '/ics?serie=1')).txt).filter(x => x.startsWith('TRIGGER:'))], [['TRIGGER:-PT5M'], ['TRIGGER:-PT15M', 'TRIGGER:-PT1H']]);
-      v('⛔ aucune adresse de courriel ni aucun nom de personne dans le fichier (le seul « @ » est celui de l\'identifiant)', [(s.txt.match(/@/g) || []).length, /Ana|Ben|Banc|mailto/.test(s.txt)], [1, false]);
-      const occ = await b.get('/api/reunions/' + RS + '/ics?occurrence=' + Date.UTC(2026, 10, 2, 13, 0));
-      const Lo = lignesIcs(occ.txt);
-      v('une occurrence : un événement SEUL, en UTC, sans règle de répétition, à l\'identifiant propre', [Lo.filter(x => x === 'BEGIN:VEVENT').length, Lo.includes('DTSTART:20261102T130000Z'), Lo.some(x => x.startsWith('RRULE')), Lo.find(x => x.startsWith('UID:')).startsWith('UID:reunion-' + RS + '-20261102T130000Z@')], [1, true, false, true]);
-      const plie = s.txt.split('\r\n').every(x => Buffer.byteLength(x, 'utf8') <= 75);
-      vrai('aucune ligne ne dépasse 75 octets (pliage de la RFC 5545)', plie);
-      const refus = [['une occurrence qui n\'en est pas une (une heure plus tard)', '?occurrence=' + Date.UTC(2026, 10, 2, 14, 0), 404, 'occurrence_inconnue'], ['une occurrence en texte', '?occurrence=abc', 400, 'champ_invalide'], ['`serie` ni 0 ni 1', '?serie=2', 400, 'champ_invalide']];
-      for (const [nom, q, code, err] of refus) { const x = await b.get('/api/reunions/' + RS + '/ics' + q); v('refus : ' + nom, [x.code, x.j.error], [code, err]); }
-      const dd = await d.get('/api/reunions/' + RS + '/ics');
-      v('population : Dan (Perso, sans Pro) télécharge le fichier de la réunion où il est invité (200) — mais pas Eve (404)', [dd.code, (await e.get('/api/reunions/' + RS + '/ics')).code], [200, 404]);
-      v('le fichier sans paramètre est celui de la série', lignesIcs(dd.txt).some(x => x.startsWith('RRULE:FREQ=WEEKLY')), true);
+      const vb = await fiche(b, RS), va = await fiche(a, RS);
+      vrai('population : la série est lue par Ben (200), avec son titre', vb.code === 200 && typeof vb.j.reunion.titre === 'string' && vb.j.reunion.titre.length > 0);
+      v('⛔ le titre tient sur UNE ligne (aucun retour à la ligne ne survit) et garde ses signes', [/[\r\n]/.test(vb.j.reunion.titre), vb.j.reunion.titre.startsWith(TS)], [false, true]);
+      v('⛔ MES rappels (Ben : 5 minutes) sont ceux de Ben ; ceux de l\'hôte (15 minutes et 1 heure) ceux de la réunion', [vb.j.moi.rappels, va.j.moi.rappels], [[5], [15, 60]]);
+      v('population : Dan (Perso, sans Pro) lit la réunion où il est invité (200) — mais pas Eve (404)', [(await fiche(d, RS)).code, (await fiche(e, RS)).code], [200, 404]);
     }
 
     /* ═══ 13. LA CONVERSATION DE LA RÉUNION ═══════════════════════════════════════════════════════════════════════════════════════════════════ */
@@ -710,7 +690,7 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
   }
 
   /* ═══ 19. LES PLAFONDS DE PRODUCTION (un second service, sans les relâchements du banc) ════════════════════════════════════════════════════════════════ */
-  console.log('\nLes plafonds de production : 30 programmations par heure, 60 fichiers par minute, 300 réunions à venir par hôte');
+  console.log('\nLes plafonds de production : 30 programmations par heure, 300 réunions à venir par hôte');
   const Q = await monter({}, {});
   try {
     const { S, pers, cl, nReunions, avancer } = Q;
@@ -727,12 +707,6 @@ const lignesIcs = (txt) => String(txt).replace(/\r\n[ \t]/g, '').split('\r\n');
     avancer(61 * MIN);
     v('une heure après, il reprend', (await gi.post('/api/reunions', corps({ titre: 'Reprise' }))).code, 201);
     const RS = chez.j.reunion.id;
-    let dernierIcs = null;
-    for (let i = 0; i < 60; i++) { dernierIcs = await hu.get('/api/reunions/' + RS + '/ics'); if (dernierIcs.code !== 200) throw new Error('le fichier ' + i + ' a été refusé : ' + dernierIcs.code); }
-    const ics61 = await hu.get('/api/reunions/' + RS + '/ics');
-    v('⛔ soixante fichiers .ics en une minute passent (200) ; le soixante et unième : 429 `quota_atteint`', [dernierIcs.code, ics61.code, ics61.j.error, Number(ics61.h.get('retry-after')) > 0], [200, 429, 'quota_atteint', true]);
-    avancer(61 * 1000);
-    v('une minute après, le fichier se télécharge de nouveau', (await hu.get('/api/reunions/' + RS + '/ics')).code, 200);
     /* 300 réunions À VENIR par hôte : on les programme par lots de trente, une heure d'horloge entre deux (la « Reprise » de tout à l'heure compte dans l'heure en cours : on la laisse passer) */
     avancer(61 * MIN);
     const n0 = nReunions(), deja = Number(Q.sql(`SELECT COUNT(*) AS n FROM reunion WHERE hote = ? AND annulee = 0 AND prochain IS NOT NULL`, gil.id).n);

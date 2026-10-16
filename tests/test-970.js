@@ -107,7 +107,7 @@ console.log('\nUne réunion sans répétition : une seule occurrence');
   v('une fenêtre vide ou inversée ne rend rien', [C.occurrences(s, s.debut, s.debut).length, C.occurrences(s, s.debut + 10, s.debut).length], [0, 0]);
   v('premiereApres : la réunion future ; passée, null', [C.premiereApres(s, U(2026, 10, 1)).debut === s.debut, C.premiereApres(s, s.debut), C.premiereApres(s, s.debut, true).debut === s.debut], [true, null, true]);
   v('occurrenceA : vrai pour son début exact, faux à une minute près', [!!C.occurrenceA(s, s.debut), C.occurrenceA(s, s.debut + 60000)], [true, null]);
-  v('compter : 1', C.compter(s, 100), 1);
+  v('sur deux ans, une seule occurrence', C.occurrences(s, U(2026, 1, 1), U(2028, 1, 1)).length, 1);
 }
 
 console.log('\nUne réunion programmée dans cinq mois a sa « prochaine » : la fenêtre de 100 jours part du DÉBUT de la série quand on la regarde de loin');
@@ -197,10 +197,10 @@ console.log('\nLa fin d\'une série : « N fois », « jusqu\'au », la premièr
   v('   « 50 fois » ET « jusqu\'au 21 octobre » : 3 (la date arrive d\'abord)', locales(deux2, 0).length, 3);
   const sn = serie(PARIS, '2026-10-19T14:00', 60, 'quotidienne', { n: 1 });
   v('   « 1 fois » : la première seule', locales(sn, 0).length, 1);
-  v('compter : « N fois » → N ; « jusqu\'au » → le bon nombre ; plafonné par `max`', [C.compter(serie(PARIS, '2026-10-19T14:00', 60, 'hebdomadaire', { n: 12 }), 1000), C.compter(sj, 1000), C.compter(serie(PARIS, '2026-10-19T14:00', 60, 'quotidienne', { n: 400 }), 10)], [12, 4, 10]);
-  const jours = C.compter(serie(PARIS, '2026-01-01T09:00', 30, 'quotidienne', { jusqua: '2026-12-31' }), 1000);
+  v('« N fois » → N ; « jusqu\'au » → le bon nombre ; plafonné par `max` (sur deux ans)', [C.occurrences(serie(PARIS, '2026-10-19T14:00', 60, 'hebdomadaire', { n: 12 }), U(2026, 10, 1), U(2028, 10, 1), 1000).length, C.occurrences(sj, U(2026, 10, 1), U(2028, 10, 1), 1000).length, C.occurrences(serie(PARIS, '2026-10-19T14:00', 60, 'quotidienne', { n: 400 }), U(2026, 10, 1), U(2028, 10, 1), 10).length], [12, 4, 10]);
+  const jours = C.occurrences(serie(PARIS, '2026-01-01T09:00', 30, 'quotidienne', { jusqua: '2026-12-31' }), U(2025, 12, 1), U(2027, 2, 1), 1000).length;
   v('un an de réunions quotidiennes : 365 occurrences', jours, 365);
-  v('⛔ une série sans AUCUNE limite ne court pas sans fin : plafonnée par `max` (compter) et par la fenêtre (occurrences)', [C.compter(serie(PARIS, '2026-01-01T09:00', 30, 'quotidienne'), 800), C.occurrences(serie(PARIS, '2026-01-01T09:00', 30, 'quotidienne'), U(2026, 3, 1), U(2026, 3, 8)).length], [800, 7]);
+  v('⛔ une série sans AUCUNE limite ne court pas sans fin : plafonnée par `max` et par la fenêtre', [C.occurrences(serie(PARIS, '2026-01-01T09:00', 30, 'quotidienne'), U(2026, 1, 1), U(2030, 1, 1), 800).length, C.occurrences(serie(PARIS, '2026-01-01T09:00', 30, 'quotidienne'), U(2026, 3, 1), U(2026, 3, 8)).length], [800, 7]);
 }
 
 console.log('\nUne fenêtre rend exactement ce qu\'on trouve en énumérant toute la série (propriété jouée sur plusieurs séries et plusieurs dizaines de fenêtres)');
@@ -366,6 +366,112 @@ console.log('\nLa fin d\'une série : posée une fois, qui écarte EN SQL les s�
         }
   vrai('population : ' + series + ' séries bornées', series === 180);
   v('⛔ pour chacune : toutes ses occurrences finissent AVANT la fin posée, et après elle il n\'y en a plus aucune (écarter une série qui court serait pire que d\'en garder une qui vient de finir)', fautes.slice(0, 5), []);
+}
+
+console.log('\nLes faits du monde réel (Python zoneinfo, tzdata 2025b) : le calendrier du service lit la même heure');
+/* ⛔ Repris de test-971 (le banc du fichier .ics, parti avec lui le 16 octobre 2026) : 94 heures locales sur 12 fuseaux — heures entières, demi-heures (Kolkata, Lord Howe),
+   trois quarts d'heure (Kathmandu, Chatham), hémisphère sud, sans changement d'heure — mesurées avec une AUTRE implémentation de la base des fuseaux (le `zoneinfo` de Python,
+   PEP 495, qui suit la même règle que la RFC 5545 pour une heure absente ou vécue deux fois). Un banc qui compare deux calculs de la même source garde un accord, pas une vérité :
+   c'est l'oracle indépendant d'`instantLocal`, et il ne doit pas partir avec le fichier qu'il servait aussi. */
+{
+  const iso = (t) => new Date(t).toISOString().replace('.000Z', 'Z').replace(':00Z', 'Z');
+  const local = (tz, texte) => C.instantLocal(C.lireLocal(texte), tz);
+  const FAITS = `Europe/Paris 2026-03-29T01:30 2026-03-29T00:30Z
+Europe/Paris 2026-03-29T02:00 2026-03-29T01:00Z
+Europe/Paris 2026-03-29T02:30 2026-03-29T01:30Z
+Europe/Paris 2026-03-29T03:30 2026-03-29T01:30Z
+Europe/Paris 2026-10-25T02:30 2026-10-25T00:30Z
+Europe/Paris 2026-10-25T03:00 2026-10-25T02:00Z
+Europe/Paris 2026-10-25T03:30 2026-10-25T02:30Z
+Europe/Paris 2026-10-25T04:30 2026-10-25T03:30Z
+Europe/Paris 2027-03-28T01:30 2027-03-28T00:30Z
+Europe/Paris 2027-03-28T02:00 2027-03-28T01:00Z
+Europe/Paris 2027-03-28T02:30 2027-03-28T01:30Z
+Europe/Paris 2027-03-28T03:30 2027-03-28T01:30Z
+Europe/Paris 2027-10-31T02:30 2027-10-31T00:30Z
+Europe/Paris 2027-10-31T03:00 2027-10-31T02:00Z
+Europe/Paris 2027-10-31T03:30 2027-10-31T02:30Z
+Europe/Paris 2027-10-31T04:30 2027-10-31T03:30Z
+Europe/Paris 2028-03-26T01:30 2028-03-26T00:30Z
+Europe/Paris 2028-03-26T02:00 2028-03-26T01:00Z
+Europe/Paris 2028-03-26T02:30 2028-03-26T01:30Z
+Europe/Paris 2028-03-26T03:30 2028-03-26T01:30Z
+Europe/Paris 2028-10-29T02:30 2028-10-29T00:30Z
+Europe/Paris 2028-10-29T03:00 2028-10-29T02:00Z
+Europe/Paris 2028-10-29T03:30 2028-10-29T02:30Z
+Europe/Paris 2028-10-29T04:30 2028-10-29T03:30Z
+America/New_York 2026-03-08T01:30 2026-03-08T06:30Z
+America/New_York 2026-03-08T02:00 2026-03-08T07:00Z
+America/New_York 2026-03-08T02:30 2026-03-08T07:30Z
+America/New_York 2026-03-08T03:30 2026-03-08T07:30Z
+America/New_York 2026-11-01T01:30 2026-11-01T05:30Z
+America/New_York 2026-11-01T02:00 2026-11-01T07:00Z
+America/New_York 2026-11-01T02:30 2026-11-01T07:30Z
+America/New_York 2026-11-01T03:30 2026-11-01T08:30Z
+Australia/Sydney 2026-04-05T02:30 2026-04-04T15:30Z
+Australia/Sydney 2026-04-05T03:00 2026-04-04T17:00Z
+Australia/Sydney 2026-04-05T03:30 2026-04-04T17:30Z
+Australia/Sydney 2026-04-05T04:30 2026-04-04T18:30Z
+Australia/Sydney 2026-10-04T01:30 2026-10-03T15:30Z
+Australia/Sydney 2026-10-04T02:00 2026-10-03T16:00Z
+Australia/Sydney 2026-10-04T02:30 2026-10-03T16:30Z
+Australia/Sydney 2026-10-04T03:30 2026-10-03T16:30Z
+Australia/Lord_Howe 2026-04-05T01:30 2026-04-04T14:30Z
+Australia/Lord_Howe 2026-04-05T02:00 2026-04-04T15:30Z
+Australia/Lord_Howe 2026-04-05T02:30 2026-04-04T16:00Z
+Australia/Lord_Howe 2026-04-05T03:30 2026-04-04T17:00Z
+Australia/Lord_Howe 2026-10-04T01:30 2026-10-03T15:00Z
+Australia/Lord_Howe 2026-10-04T02:00 2026-10-03T15:30Z
+Australia/Lord_Howe 2026-10-04T02:30 2026-10-03T15:30Z
+Australia/Lord_Howe 2026-10-04T03:30 2026-10-03T16:30Z
+Pacific/Chatham 2026-04-05T03:15 2026-04-04T13:30Z
+Pacific/Chatham 2026-04-05T03:45 2026-04-04T15:00Z
+Pacific/Chatham 2026-04-05T04:15 2026-04-04T15:30Z
+Pacific/Chatham 2026-04-05T05:15 2026-04-04T16:30Z
+Pacific/Chatham 2026-09-27T02:15 2026-09-26T13:30Z
+Pacific/Chatham 2026-09-27T02:45 2026-09-26T14:00Z
+Pacific/Chatham 2026-09-27T03:15 2026-09-26T14:30Z
+Pacific/Chatham 2026-09-27T04:15 2026-09-26T14:30Z
+Europe/London 2026-03-29T00:30 2026-03-29T00:30Z
+Europe/London 2026-03-29T01:00 2026-03-29T01:00Z
+Europe/London 2026-03-29T01:30 2026-03-29T01:30Z
+Europe/London 2026-03-29T02:30 2026-03-29T01:30Z
+Europe/London 2026-10-25T01:30 2026-10-25T00:30Z
+Europe/London 2026-10-25T02:00 2026-10-25T02:00Z
+Europe/London 2026-10-25T02:30 2026-10-25T02:30Z
+Europe/London 2026-10-25T03:30 2026-10-25T03:30Z
+America/Los_Angeles 2026-03-08T01:30 2026-03-08T09:30Z
+America/Los_Angeles 2026-03-08T02:00 2026-03-08T10:00Z
+America/Los_Angeles 2026-03-08T02:30 2026-03-08T10:30Z
+America/Los_Angeles 2026-03-08T03:30 2026-03-08T10:30Z
+America/Los_Angeles 2026-11-01T01:30 2026-11-01T08:30Z
+America/Los_Angeles 2026-11-01T02:00 2026-11-01T10:00Z
+America/Los_Angeles 2026-11-01T02:30 2026-11-01T10:30Z
+America/Los_Angeles 2026-11-01T03:30 2026-11-01T11:30Z
+Pacific/Auckland 2026-04-05T02:30 2026-04-04T13:30Z
+Pacific/Auckland 2026-04-05T03:00 2026-04-04T15:00Z
+Pacific/Auckland 2026-04-05T03:30 2026-04-04T15:30Z
+Pacific/Auckland 2026-04-05T04:30 2026-04-04T16:30Z
+Pacific/Auckland 2026-09-27T01:30 2026-09-26T13:30Z
+Pacific/Auckland 2026-09-27T02:00 2026-09-26T14:00Z
+Pacific/Auckland 2026-09-27T02:30 2026-09-26T14:30Z
+Pacific/Auckland 2026-09-27T03:30 2026-09-26T14:30Z
+Europe/Dublin 2026-03-29T00:30 2026-03-29T00:30Z
+Europe/Dublin 2026-03-29T01:00 2026-03-29T01:00Z
+Europe/Dublin 2026-03-29T01:30 2026-03-29T01:30Z
+Europe/Dublin 2026-03-29T02:30 2026-03-29T01:30Z
+Europe/Dublin 2026-10-25T01:30 2026-10-25T00:30Z
+Europe/Dublin 2026-10-25T02:00 2026-10-25T02:00Z
+Europe/Dublin 2026-10-25T02:30 2026-10-25T02:30Z
+Europe/Dublin 2026-10-25T03:30 2026-10-25T03:30Z
+Asia/Kolkata 2026-01-15T09:00 2026-01-15T03:30Z
+Asia/Kolkata 2026-10-26T14:00 2026-10-26T08:30Z
+Asia/Kathmandu 2026-01-15T09:00 2026-01-15T03:15Z
+Asia/Kathmandu 2026-10-26T14:00 2026-10-26T08:15Z
+Asia/Tokyo 2026-01-15T09:00 2026-01-15T00:00Z
+Asia/Tokyo 2026-10-26T14:00 2026-10-26T05:00Z`.split('\n').map((l) => l.split(' '));
+  vrai('la population : 94 faits, 12 fuseaux', FAITS.length === 94 && new Set(FAITS.map((f) => f[0])).size === 12);
+  v('⛔ le calendrier du service rend l\'instant du monde réel pour les 94 heures locales (dont les heures absentes et vécues deux fois)', FAITS.filter(([tz, loc, utc]) => iso(local(tz, loc)) !== utc), []);
 }
 
 fin();

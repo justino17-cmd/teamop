@@ -310,7 +310,7 @@ async function parcours(b, base, pf, sombre, personnes) {
 
 (async () => {
   const og = await T.fauxOpGestion(Object.fromEntries(Object.keys(NOMS).map(l => [l, { pass: MOTS[l], nom: NOMS[l], actif: true }])));
-  const QUOTAS = { reunion: { max: 100000, fenetreMs: 3600000 }, ics: { max: 100000, fenetreMs: 60000 }, courriel: { max: 100000, fenetreMs: 60000 } };
+  const QUOTAS = { reunion: { max: 100000, fenetreMs: 3600000 }, courriel: { max: 100000, fenetreMs: 60000 } };
   const svc = await T.lancerService({ urlGestion: og.url, config: { pulsationMs: 3000, presenceGraceMs: 500, balayageMs: 500, beta: { relectureMs: 300, timeoutMs: 1500 }, quotas: QUOTAS } });
   let b = null;
   const tous = [];

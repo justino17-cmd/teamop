@@ -80,6 +80,15 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     const att = (S, fn, arg, ms) => S.page.waitForFunction(fn, arg, { timeout: ms || 15000, polling: 100 }).then(() => true, () => false);
     const capture = async (S, nom) => { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { recursive: true }); await S.page.screenshot({ path: path.join(DOSSIER, nom + '.png') }); };
     const visible = (id) => { const e = document.getElementById(id); return !!e && !e.hidden && e.getClientRects().length > 0; };
+    /* 16 octobre 2026 : la rangée de pastilles est rangée dans « Plus » — « Annoter », « Image dans l'image », « Changer de fenêtre » s'y touchent. « Plus » ouvert ET posé : il se
+       redessine une fois de lui-même (la liste des micros arrive) — 300 ms sans changement, sinon on toucherait une ligne remplacée */
+    const plus = async (S) => {
+      if (await S.page.evaluate(() => document.getElementById('salle-panneau').hidden)) await S.page.locator('#salle-plus').click();
+      await att(S, () => !!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'));
+      await S.page.evaluate(() => new Promise(fin => { const c = document.getElementById('salle-panneau-corps'); let t = setTimeout(fini, 300); const o = new MutationObserver(() => { clearTimeout(t); t = setTimeout(fini, 300); }); function fini() { o.disconnect(); clearTimeout(garde); fin(); } const garde = setTimeout(fini, 4000); o.observe(c, { childList: true, subtree: true, attributes: true }); }));
+    };
+    const fermerPlus = async (S) => { if (!await S.page.evaluate(() => document.getElementById('salle-panneau').hidden)) { await S.page.locator('#salle-panneau-fermer').click(); await att(S, () => document.getElementById('salle-panneau').hidden); } };
+    const annoterPar = async (S) => { await plus(S); await S.page.locator('#salle-panneau-corps [data-sa="annoter"]').click(); await att(S, () => !document.getElementById('annot-barre').hidden && document.getElementById('salle-panneau').hidden); };
     /* un geste de souris sur l'IMAGE du calque (fx, fy entre 0 et 1) */
     const pointSur = async (S, fx, fy) => S.page.evaluate(([fx, fy]) => {
       const cv = document.querySelector('.annot-calque'), t = cv.parentElement, r = cv.getBoundingClientRect(), W = t.clientWidth, H = t.clientHeight, v = t.id === 'salle-tableau' ? null : t.querySelector('video');
@@ -98,12 +107,12 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     vrai('population : chez Ana, Ben et Cléo sont présents (deux vignettes)', await att(A, () => document.querySelectorAll('#salle-scene > .salle-tuile[data-uid]').length === 2, null, 20000));
 
     console.log('\n1. Le support : un partage d\'écran');
-    v('personne ne partage : « Annoter » n\'est proposé à personne', await Promise.all([A, B, C].map(S => S.page.evaluate(() => document.getElementById('salle-annoter').hidden))), [true, true, true]);
+    v('personne ne partage : « Annoter » n\'est proposé à personne (chacun son « Plus » ouvert : population, ses réactions)', await Promise.all([A, B, C].map(async S => { await plus(S); const r = await S.page.evaluate(() => [!!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'), !!document.querySelector('#salle-panneau-corps [data-sa="annoter"]')]); await fermerPlus(S); return r; })), [[true, false], [true, false], [true, false]]);
     /* Ben coupe sa caméra AVANT de partager : c'est le cas courant (on montre un document, pas son visage), et celui où l'écran se cachait derrière l'avatar */
     if (await B.page.evaluate(() => document.getElementById('salle-cam').getAttribute('aria-pressed') === 'true')) await B.page.locator('#salle-cam').click();
     vrai('population : la caméra de Ben est coupée', await att(B, () => document.getElementById('salle-cam').getAttribute('aria-pressed') === 'false'));
     await B.page.locator('#salle-partage').click();
-    vrai('Ben partage : « Annoter » paraît chez les trois', await att(A, visible, 'salle-annoter') && await att(B, visible, 'salle-annoter') && await att(C, visible, 'salle-annoter'));
+    vrai('Ben partage : « Annoter » paraît dans « Plus » chez les trois', (await Promise.all([A, B, C].map(async S => { await plus(S); const r = await att(S, () => !!document.querySelector('#salle-panneau-corps [data-sa="annoter"][role="switch"][aria-checked="false"]')); await fermerPlus(S); return r; }))).every(Boolean));
     const vueA = await A.page.evaluate(() => ({ vue: document.getElementById('salle-scene').dataset.vue, grand: (document.querySelector('#salle-scene > .salle-tuile.grand') || {}).dataset || {} }));
     v('chez Ana (et Cléo) la vue passe à « intervenant », l\'écran de Ben EN GRAND ; ⛔ chez Ben, rien ne bouge (il ne se regarde pas lui-même)',
       [vueA.vue, vueA.grand.ecran, await C.page.evaluate(() => document.getElementById('salle-scene').dataset.vue), await B.page.evaluate(() => document.getElementById('salle-scene').dataset.vue)], ['intervenant', '1', 'intervenant', 'galerie']);
@@ -113,8 +122,8 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
 
     v('⛔ caméra coupée, l\'ÉCRAN de Ben se voit chez Ana : la vidéo est affichée, ni avatar ni « Caméra désactivée » par-dessus', await A.page.evaluate(() => { const t = document.querySelector('#salle-scene > .salle-tuile.grand'); return [getComputedStyle(t.querySelector('video')).display, getComputedStyle(t.querySelector('.tuile-av')).display, getComputedStyle(t.querySelector('.salle-sans-camera')).display]; }), ['block', 'none', 'none']);
     console.log('\n2. Ana annote');
-    await A.page.locator('#salle-annoter').click();
-    v('« Annoter » : la barre d\'outils paraît, le stylo est choisi, le calque prend la souris', await A.page.evaluate(() => [!document.getElementById('annot-barre').hidden, document.querySelector('#annot-barre [data-outil="stylo"]').getAttribute('aria-pressed'), getComputedStyle(document.querySelector('.annot-calque')).pointerEvents, document.getElementById('salle-annoter').getAttribute('aria-pressed')]), [true, 'true', 'auto', 'true']);
+    await annoterPar(A);
+    v('« Annoter » (dans « Plus ») : « Plus » se referme, la barre d\'outils paraît, le stylo est choisi ET a le focus, le calque prend la souris', await A.page.evaluate(() => [document.getElementById('salle-panneau').hidden, !document.getElementById('annot-barre').hidden, document.querySelector('#annot-barre [data-outil="stylo"]').getAttribute('aria-pressed'), document.activeElement === document.querySelector('#annot-barre [data-outil="stylo"]'), getComputedStyle(document.querySelector('.annot-calque')).pointerEvents]), [true, true, 'true', true, 'auto']);
     const debut = await pointSur(A, 0.3, 0.3);
     await A.page.mouse.move(debut[0], debut[1]); await A.page.mouse.down();
     for (let i = 1; i <= 20; i++) { const p = await pointSur(A, 0.3 + 0.4 * i / 20, 0.3 + 0.3 * i / 20); await A.page.mouse.move(p[0], p[1]); await A.page.waitForTimeout(25); }
@@ -150,7 +159,7 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     await capture(C, 'annot-telephone-texte-deplace');
     await A.page.keyboard.press(process.platform === 'darwin' ? 'Meta+z' : 'Control+z');
     vrai('⌘Z / Ctrl+Z retire le dernier geste d\'Ana : Cléo n\'en a plus qu\'une', await att(C, () => (document.querySelector('.annot-calque') || {}).dataset.n === '1'));
-    await C.page.locator('#salle-annoter').click();
+    await annoterPar(C);
     await C.page.locator('#annot-couleur').click();
     vrai('Cléo ouvre la palette : huit couleurs et trois épaisseurs, sur des cibles de 44 px', await C.page.evaluate(() => { const l = Array.from(document.querySelectorAll('#annot-palette button')); return l.length === 11 && l.every(x => x.getBoundingClientRect().height >= 44 && x.getBoundingClientRect().width >= 44); }));
     await C.page.locator('#annot-palette [data-couleur="vert"]').click();
@@ -164,28 +173,36 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     await A.page.locator('#salle-plus').click();
     vrai('population : le panneau Plus d\'Ana a « Tableau blanc et annotations »', await att(A, () => /Tableau blanc et annotations/.test(document.getElementById('salle-panneau-corps').textContent)));
     await A.page.locator('[data-sa="annot-permis"]').click();
-    vrai('« Annotations des participants » coupé : chez Cléo, « Annoter » disparaît et son mode s\'éteint', await att(C, () => document.getElementById('salle-annoter').hidden && !document.getElementById('salle-ecran').hasAttribute('data-annoter')));
-    v('   ⛔ chez Ben aussi, alors que c\'est SON écran (un partage s\'annonce, il ne donne pas la main) ; chez Ana (hôte), il reste', [await att(B, () => document.getElementById('salle-annoter').hidden), await A.page.evaluate(() => document.getElementById('salle-annoter').hidden)], [true, false]);
+    vrai('« Annotations des participants » coupé : chez Cléo, son mode d\'annotation s\'éteint', await att(C, () => !document.getElementById('salle-ecran').hasAttribute('data-annoter') && document.getElementById('annot-barre').hidden));
+    for (const S of [B, C]) await plus(S);
+    v('   ⛔ chez Ben aussi, alors que c\'est SON écran (un partage s\'annonce, il ne donne pas la main) ; chez Ana (hôte), il reste — chacun son « Plus » ouvert (population : ses réactions)', await Promise.all([C, B, A].map(S => S.page.evaluate(() => [!!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'), !!document.querySelector('#salle-panneau-corps [data-sa="annoter"]')]))), [[true, false], [true, false], [true, true]]);
     await A.page.locator('[data-sa="annot-permis"]').click();
-    vrai('rendu à tous : « Annoter » revient chez Cléo', await att(C, visible, 'salle-annoter'));
+    vrai('rendu à tous : « Annoter » revient dans le « Plus » de Cléo (resté ouvert)', await att(C, () => !!document.querySelector('#salle-panneau-corps [data-sa="annoter"]')));
+    for (const S of [B, C]) await fermerPlus(S);
     await A.page.locator('#salle-panneau-fermer').click();
 
-    console.log('\n3 ter. « Image dans l\'image » sur l\'écran de la réunion (8 octobre 2026)');
-    const pipA = await A.page.evaluate(() => ({ permis: document.pictureInPictureEnabled === true, vu: !document.getElementById('salle-pip').hidden && document.getElementById('salle-pip').getClientRects().length > 0, rang: document.getElementById('salle-pip').parentElement === document.getElementById('salle-vue').parentElement }));
-    v('la pastille « Image dans l\'image » est sur l\'écran de la réunion, à côté de « Vue », là où le navigateur le permet (ici : ' + (pipA.permis ? 'oui' : 'non') + ')', [pipA.vu, pipA.rang], [pipA.permis, true]);
+    console.log('\n3 ter. « Image dans l\'image », dans « Plus » (sur l\'écran de la réunion le 8 octobre 2026, rangée dans « Plus » le 16)');
+    await plus(A);
+    const pipA = await A.page.evaluate(() => { const b = document.querySelector('#salle-panneau-corps [data-sa="pip"]'), l = b && b.closest('.salle-liste'); return { ouvert: !!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'), permis: document.pictureInPictureEnabled === true, vu: !!b, rang: !!l && !!l.querySelector('[data-sa="vue"]') && (l.previousElementSibling || {}).textContent === 'Affichage', role: b ? b.getAttribute('role') : null }; });
+    if (!pipA.permis) await fermerPlus(A);
+    v('« Image dans l\'image » est dans « Plus », rubrique « Affichage », sous « Vue intervenant » — un interrupteur, là où le navigateur le permet (ici : ' + (pipA.permis ? 'oui' : 'non') + ')', [pipA.ouvert, pipA.vu, pipA.rang, pipA.role], pipA.permis ? [true, true, true, 'switch'] : [true, false, false, null]);
     if (pipA.permis) {
-      await A.page.locator('#salle-pip').click();
-      vrai('la toucher ouvre l\'image flottante (la vidéo de l\'écran partagé), et la pastille le dit', await att(A, () => document.pictureInPictureElement && document.pictureInPictureElement.tagName === 'VIDEO' && document.getElementById('salle-pip').getAttribute('aria-pressed') === 'true', null, 6000));
-      await A.page.locator('#salle-pip').click();
-      vrai('la retoucher la ferme', await att(A, () => !document.pictureInPictureElement && document.getElementById('salle-pip').getAttribute('aria-pressed') === 'false', null, 6000));
+      await A.page.locator('#salle-panneau-corps [data-sa="pip"]').click();
+      vrai('la toucher ouvre l\'image flottante (la vidéo de l\'écran partagé) et referme « Plus » ; rouvert, son interrupteur est allumé', await att(A, () => document.pictureInPictureElement && document.pictureInPictureElement.tagName === 'VIDEO' && document.getElementById('salle-panneau').hidden, null, 6000) && (await plus(A), await att(A, () => (document.querySelector('#salle-panneau-corps [data-sa="pip"]') || {}).getAttribute?.('aria-checked') === 'true')));
+      await plus(A); await A.page.locator('#salle-panneau-corps [data-sa="pip"]').click();
+      vrai('la retoucher la ferme (et l\'interrupteur s\'éteint)', await att(A, () => !document.pictureInPictureElement, null, 6000) && (await plus(A), await att(A, () => (document.querySelector('#salle-panneau-corps [data-sa="pip"]') || {}).getAttribute?.('aria-checked') === 'false')));
+      await fermerPlus(A);
     }
 
     console.log('\n3 bis. Ben change de fenêtre sans arrêter (8 octobre 2026)');
     const pxBen = (S) => S.page.evaluate((uid) => { const v = document.querySelector('#salle-scene .salle-tuile[data-uid="' + uid + '"] video'); if (!v || !v.videoWidth) return null; const c = document.createElement('canvas'); c.width = 8; c.height = 8; const g = c.getContext('2d'); g.drawImage(v, 0, 0, 8, 8); const d = g.getImageData(1, 6, 1, 1).data; return [d[0], d[1], d[2]]; }, B0.moi.id);
     const bleuAvant = await pxBen(A);
-    vrai('population : Ana voit la fenêtre de Ben (bleue), et « Changer de fenêtre » n\'est proposé qu\'à Ben', !!bleuAvant && bleuAvant[2] > bleuAvant[0] && await B.page.evaluate(() => !document.getElementById('salle-partage-changer').hidden) && await A.page.evaluate(() => document.getElementById('salle-partage-changer').hidden), JSON.stringify(bleuAvant));
+    for (const S of [A, B]) await plus(S);
+    vrai('population : Ana voit la fenêtre de Ben (bleue), et « Changer de fenêtre » n\'est proposé qu\'à Ben, dans « Plus » (rubrique « Partage d\'écran »)', !!bleuAvant && bleuAvant[2] > bleuAvant[0] && await B.page.evaluate(() => !!document.querySelector('#salle-panneau-corps [data-sa="partage-changer"]') && Array.from(document.querySelectorAll('#salle-panneau-corps > .salle-rub')).some(r => r.textContent === 'Partage d\'écran')) && await A.page.evaluate(() => !!document.querySelector('#salle-panneau-corps [data-sa="reaction"]') && !document.querySelector('#salle-panneau-corps [data-sa="partage-changer"]')), JSON.stringify(bleuAvant));
+    await fermerPlus(A);
     vrai('population : il y a des annotations sur la fenêtre de Ben', await att(C, () => +(document.querySelector('.annot-calque') || {}).dataset.n > 0));
-    await B.page.locator('#salle-partage-changer').click();
+    await B.page.locator('#salle-panneau-corps [data-sa="partage-changer"]').click();
+    vrai('…la ligne referme « Plus »', await att(B, () => document.getElementById('salle-panneau').hidden));
     let rougeApres = null; for (let i = 0; i < 40; i++) { rougeApres = await pxBen(A); if (rougeApres && rougeApres[0] > rougeApres[2] + 40) break; await A.page.waitForTimeout(150); }
     vrai('⛔ « Changer de fenêtre » : Ana voit la NOUVELLE fenêtre (rouge) dans la même vignette', !!rougeApres && rougeApres[0] > rougeApres[2] + 40, JSON.stringify(rougeApres));
     v('⛔ …sans que le partage s\'arrête : Ben partage toujours (« Arrêter »), le calque est toujours sur sa vignette chez Ana', [await B.page.evaluate(() => document.querySelector('#salle-partage .salle-cmd-texte').textContent), await A.page.evaluate(() => !!document.querySelector('.salle-tuile .annot-calque'))], ['Arrêter', true]);
@@ -193,8 +210,11 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
 
     console.log('\n4. Ben arrête de partager');
     await B.page.locator('#salle-partage').click();
-    vrai('chez Ben, « Changer de fenêtre » s\'efface avec le partage', await att(B, () => document.getElementById('salle-partage-changer').hidden));
-    vrai('chez Ana : la barre d\'outils et le calque s\'en vont, « Annoter » disparaît, la vue revient en galerie', await att(A, () => document.getElementById('annot-barre').hidden && !document.querySelector('.annot-calque')?.isConnected && document.getElementById('salle-annoter').hidden && document.getElementById('salle-scene').dataset.vue === 'galerie'));
+    await plus(B);
+    vrai('chez Ben, « Changer de fenêtre » s\'efface de « Plus » avec le partage (son « Plus » ouvert : population)', await att(B, () => !!document.querySelector('#salle-panneau-corps [data-sa="reaction"]') && !document.querySelector('#salle-panneau-corps [data-sa="partage-changer"]')));
+    await fermerPlus(B);
+    vrai('chez Ana : la barre d\'outils et le calque s\'en vont, son mode d\'annotation s\'éteint, la vue revient en galerie', await att(A, () => document.getElementById('annot-barre').hidden && !document.querySelector('.annot-calque')?.isConnected && !document.getElementById('salle-ecran').hasAttribute('data-annoter') && document.getElementById('salle-scene').dataset.vue === 'galerie'));
+    v('…et « Annoter » n\'est plus proposé dans « Plus », ni chez Ana ni chez Ben (leur « Plus » ouvert : population)', await Promise.all([A, B].map(async S => { await plus(S); const r = await S.page.evaluate(() => [!!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'), !!document.querySelector('#salle-panneau-corps [data-sa="annoter"]')]); await fermerPlus(S); return r; })), [[true, false], [true, false]]);
 
     console.log('\n5. Le tableau blanc');
     await C.page.locator('#salle-plus').click();
@@ -223,9 +243,20 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     vrai('⛔ dans la discussion de la salle (Ana), la capture se VOIT : une image décodée, sa légende dessous', await att(A, () => Array.from(document.querySelectorAll('.salle-msg-photo')).some(x => { const i = x.querySelector('.salle-photo img'); return !!i && i.complete && i.naturalWidth > 100 && /^Tableau blanc — /.test((x.querySelector('.salle-photo-leg') || {}).textContent || ''); }), null, 15000),
       await A.page.evaluate(() => (document.getElementById('salle-panneau-corps') || {}).textContent || '').then(t => t.slice(0, 200)));
     await capture(A, 'annot-discussion-capture');
+    /* « Plus » ouvert PENDANT qu'on annote (rien ne l'interdit) : Échap quitte l'annotation, et l'interrupteur « Annoter » du panneau resté ouvert le dit */
+    await plus(C);
+    vrai('population : Cléo annote, et son « Plus » (ouvert par-dessus) le dit : « Annoter » allumé', await att(C, () => (document.querySelector('#salle-panneau-corps [data-sa="annoter"]') || {}).getAttribute?.('aria-checked') === 'true'));
     await C.page.keyboard.press('Escape');
+    vrai('⛔ Échap quitte l\'annotation : dans « Plus » resté ouvert, l\'interrupteur « Annoter » s\'éteint (il ne dit pas « activé » sur un mode coupé)', await att(C, () => !document.getElementById('salle-panneau').hidden && (document.querySelector('#salle-panneau-corps [data-sa="annoter"]') || {}).getAttribute?.('aria-checked') === 'false'));
     vrai('Échap quitte le mode « Annoter » (la barre se range, le calque laisse passer le doigt)', await att(C, () => document.getElementById('annot-barre').hidden && getComputedStyle(document.querySelector('.annot-calque')).pointerEvents === 'none'));
     vrai('   ⛔ et Échap n\'a PAS quitté la salle', await C.page.evaluate(() => document.documentElement.dataset.salle === '1'));
+    vrai('   …et le focus RESTE dans « Plus », sur l\'interrupteur « Annoter » éteint (pas sur le bouton « Plus » que le panneau recouvre)', await C.page.evaluate(() => document.activeElement === document.querySelector('#salle-panneau-corps [data-sa="annoter"]')));
+    await fermerPlus(C);
+    /* panneau FERMÉ : Échap quitte l'annotation et rend le focus au bouton « Plus », d'où « Annoter » se rouvre (la ligne n'existe plus panneau fermé : le focus ne tombe pas sur la page) */
+    await annoterPar(C);
+    vrai('population : Cléo annote de nouveau, « Plus » fermé', await att(C, () => !document.getElementById('annot-barre').hidden && document.getElementById('salle-panneau').hidden));
+    await C.page.keyboard.press('Escape');
+    vrai('Échap, « Plus » fermé : le mode se range, et le focus revient sur le bouton « Plus »', await att(C, () => document.getElementById('annot-barre').hidden && document.activeElement === document.getElementById('salle-plus')));
     for (const [nom, S] of [['Ana', A], ['Ben', B], ['Cléo', C]]) v('aucune erreur JavaScript chez ' + nom, S.erreurs, []);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }
   fin();

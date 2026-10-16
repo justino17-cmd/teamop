@@ -103,7 +103,6 @@ const MANIFESTE = [
   { id: 'agenda.supprimer',  m: 'POST', p: '/api/agenda/:id/supprimer',              garde: 'S' },
   { id: 'agenda.fait',       m: 'POST', p: '/api/agenda/:id/fait',                   garde: 'S' },
   { id: 'agenda.reporter',   m: 'POST', p: '/api/agenda/:id/reporter',               garde: 'S' },
-  { id: 'agenda.ics',        m: 'GET',  p: '/api/agenda/:id/ics',                    garde: 'S' },
   /* LE TRAJET (13 octobre 2026, `routes-trajet.js`) : l'heure à laquelle partir. Le calcul passe par le service — la page ne parle à aucun tiers ; Domicile et Travail sont à SOI (S). */
   { id: 'trajet.calcul',     m: 'POST', p: '/api/trajet',                            garde: 'S' },
   { id: 'moi.lieux',         m: 'GET',  p: '/api/moi/lieux',                         garde: 'S' },
@@ -170,7 +169,7 @@ const MANIFESTE = [
   { id: 'facturation.portail', m: 'POST', p: '/api/espaces/:id/facturation/portail', garde: 'EP' },
   { id: 'facturation.relire', m: 'POST', p: '/api/espaces/:id/facturation/relire',   garde: 'EP' },
   /* Étape 6 : les RÉUNIONS PROGRAMMÉES (`routes-reunions.js`). Programmer est une fonction d'ORGANISATEUR — Pro (la bêta ouvre tout) ; être invité EN SON NOM demande Pro aussi (« un Pro peut inviter des Persos,
-     mais que par lien » : Justin, 12 octobre 2026), le lien fait entrer tout compte ; répondre, télécharger le .ics et ENTRER dans la salle ne coûtent rien — « les invités rejoignent sans siège ». L'hôte agit par H, un invité par R : la réunion se lit dans l'adresse (`:id`), JAMAIS dans le corps. */
+     mais que par lien » : Justin, 12 octobre 2026), le lien fait entrer tout compte ; répondre et ENTRER dans la salle ne coûtent rien — « les invités rejoignent sans siège ». L'hôte agit par H, un invité par R : la réunion se lit dans l'adresse (`:id`), JAMAIS dans le corps. */
   { id: 'reunions.liste',    m: 'GET',  p: '/api/reunions',                          garde: 'S' },
   { id: 'reunions.creer',    m: 'POST', p: '/api/reunions',                          garde: 'V', organiser: true },
   { id: 'reunions.lire',     m: 'GET',  p: '/api/reunions/:id',                      garde: 'R' },
@@ -186,9 +185,6 @@ const MANIFESTE = [
   { id: 'reunions.rappels',  m: 'POST', p: '/api/reunions/:id/rappels',              garde: 'R' },
   /* MON trajet pour la réunion (14 octobre 2026) : un participant, pour lui seul — le calcul passe par `/api/trajet`, ceci le range (`routes-reunions.js`) */
   { id: 'reunions.trajet',   m: 'POST', p: '/api/reunions/:id/trajet',               garde: 'R' },
-  /* le .ics d'une réunion — et, plus bas, celui d'un événement : SANS BOUTON depuis le 15 octobre 2026 (Justin : « l'application fait déjà agenda », puis « retire aussi ») ; les
-     routes et leurs bancs restent, le temps qu'il dise s'il les retire */
-  { id: 'reunions.ics',      m: 'GET',  p: '/api/reunions/:id/ics',                  garde: 'R' },
   /* L'invitation par COURRIEL (`courriel.js`) : l'hôte seul, à l'adresse qu'il saisit — inerte (503) tant qu'aucun relais n'est configuré. Pas `pro` : la fonction Pro est de PROGRAMMER ; ce qui est
      programmé reste à son hôte, comme la modification et l'annulation. */
   { id: 'reunions.courriel', m: 'POST', p: '/api/reunions/:id/courriel',            garde: 'H' },

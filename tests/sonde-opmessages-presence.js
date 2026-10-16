@@ -63,9 +63,18 @@ const ECRAN = () => {
       if (await att(B, () => { const x = document.getElementById('appel-repondre'); return !!x && x.getClientRects().length > 0; }, null, 20000)) await B.page.locator('#appel-repondre').click();
       return att(A, () => document.querySelectorAll('#salle-scene > .salle-tuile[data-uid]').length === 1, null, 20000) && att(B, () => document.documentElement.dataset.salle === '1', null, 20000);
     };
+    /* 16 octobre 2026 : « Enregistrer » et « Annoter » sont dans « Plus » (la rangée de pastilles y est rangée). Ouvrir « Plus », attendre qu'il soit POSÉ (il se redessine une fois
+       de lui-même quand la liste des micros arrive : 300 ms sans changement), toucher la ligne — « Plus » se referme */
+    const dansPlus = async (S, sa) => {
+      const sel = '#salle-panneau-corps [data-sa="' + sa + '"]';
+      if (await S.page.evaluate(() => document.getElementById('salle-panneau').hidden)) await S.page.locator('#salle-plus').click();
+      await att(S, q => !!document.querySelector(q), sel);
+      await S.page.evaluate(() => new Promise(fin => { const c = document.getElementById('salle-panneau-corps'); let t = setTimeout(fini, 300); const o = new MutationObserver(() => { clearTimeout(t); t = setTimeout(fini, 300); }); function fini() { o.disconnect(); clearTimeout(garde); fin(); } const garde = setTimeout(fini, 4000); o.observe(c, { childList: true, subtree: true, attributes: true }); }));
+      await S.page.locator(sel).click();
+    };
     const enregistrer = async (ms) => {
-      await A.page.locator('#salle-rec-btn').click();
-      const ok = await att(A, () => document.getElementById('salle-rec-btn').getAttribute('aria-pressed') === 'true');
+      await dansPlus(A, 'rec');
+      const ok = await att(A, () => !document.getElementById('salle-rec').hidden && document.getElementById('salle-panneau').hidden);      // « REC » paraît, « Plus » s'est refermé
       await A.page.waitForTimeout(ms);
       return ok;
     };

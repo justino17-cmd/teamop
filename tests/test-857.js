@@ -746,7 +746,7 @@ async function controler(PAGE, SRC, DOC) {
     let G = null, cA = null;
     const maintenant = Date.now(), H = 3600000;
     try {
-      cA = { CAP: { agenda: true, salles: true }, source: { decalerReunion() {}, majEvenement() {}, faitEvenement() {}, reporterEvenement() {}, supprimerEvenement() {}, annulerReunion() {}, adresseIcs() {} },
+      cA = { CAP: { agenda: true, salles: true }, source: { decalerReunion() {}, majEvenement() {}, faitEvenement() {}, reporterEvenement() {}, supprimerEvenement() {}, annulerReunion() {} },
         MOI: { id: 'p_moi' }, etat: { conversations: [{ id: 'c_r1', cote: 'pro' }] }, reu: { liste: [], evenements: [], charge: true, mois: 0, jour: 0 }, JOUR_MS: 86400000, NOM_COTE: { perso: 'Perso', pro: 'Pro' },
         STATUTS_REPONSE: [['accepte', 'Accepter'], ['peutetre', 'Peut-être'], ['decline', 'Refuser']], PHRASE_REUNION_PERDUE: 'perdue', ID_EVT: /^e_[0-9a-f]{32}$/,
         FMT_HEURE: new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' }), FMT_JOUR_LONG: new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Paris' }),
@@ -771,7 +771,7 @@ async function controler(PAGE, SRC, DOC) {
       v('⛔ qui peut DÉCALER : l\'organisateur, une réunion à venir, ni série, ni annulée, ni passée ; un événement à soi — et une phrase dit pourquoi sinon',
         [cas.map(G.peutDecaler), G.raisonNonDecalable(cas[1]), G.raisonNonDecalable(cas[2])], [[true, false, false, false, false, true], 'Seul l\'organisateur peut décaler cette réunion.', 'Une réunion qui se répète se modifie en entier : « Modifier la réunion », dans sa fiche.']);
       const actions = h => Array.from(h.matchAll(/data-ag-menu="([a-z-]+)"(?: data-statut="([a-z]+)" aria-pressed="(true|false)")?/g)).map(m => m[1] + (m[2] ? ':' + m[2] + (m[3] === 'true' ? '*' : '') : ''));
-      v('⛔ le menu de l\'ORGANISATEUR : ouvrir, décaler, écrire aux participants, annuler — jamais « répondre », ⛔ jamais le .ics (15 octobre 2026 : « retire aussi » — et la source sait pourtant le fabriquer)', actions(G.htmlMenuAgenda(cas[0])), ['ouvrir', 'decaler', 'conversation', 'annuler']);
+      v('⛔ le menu de l\'ORGANISATEUR : ouvrir, décaler, écrire aux participants, annuler — jamais « répondre », ⛔ jamais le .ics (15 octobre 2026 : « retire aussi » ; le fichier .ics est parti du service le 16 octobre 2026)', actions(G.htmlMenuAgenda(cas[0])), ['ouvrir', 'decaler', 'conversation', 'annuler']);
       v('⛔ le menu de l\'INVITÉ : ouvrir, répondre (sa réponse cochée), écrire — jamais décaler ni annuler, ⛔ jamais le .ics', actions(G.htmlMenuAgenda(x(R({ moi: { hote: false, statut: 'peutetre' } })))), ['ouvrir', 'reponse:accepte', 'reponse:peutetre*', 'reponse:decline', 'conversation']);
       v('une SÉRIE organisée : « Modifier la série… » au lieu de « Décaler… »', actions(G.htmlMenuAgenda(cas[2])).includes('modifier') && !actions(G.htmlMenuAgenda(cas[2])).includes('decaler'), true);
       v('un événement : ouvrir, décaler, fait, reporter, supprimer ; « Voir le message » seulement s\'il vient d\'un message ; « Ranger dans » seulement avec les deux côtés',

@@ -1,12 +1,11 @@
-/* ══ test-1004 — LE RENDEZ-VOUS PERSONNEL : AVEC QUI, PLUSIEURS RAPPELS, ET « AJOUTER À MON CALENDRIER » — LE VRAI SERVICE, L'HORLOGE AVANCÉE AU GESTE ══════════════════════════════
+/* ══ test-1004 — LE RENDEZ-VOUS PERSONNEL : AVEC QUI, PLUSIEURS RAPPELS — LE VRAI SERVICE, L'HORLOGE AVANCÉE AU GESTE ══════════════════════════════
    13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous personnels avec des rappels et tout » ; puis « ils peuvent aussi
    l'ajouter à leur agenda, comme Apple fait ». Un rendez-vous est un événement de l'agenda personnel (`server-msg/routes-agenda.js`, migration 27) de genre 'rdv'. Ce banc parle au VRAI service :
      · il a TOUJOURS une heure (jamais « toute la journée »), un « avec qui » scellé en base comme le titre, et jusqu'à TROIS rappels (rangés le plus éloigné d'abord) ;
      · ⛔ les rappels partent DANS L'ORDRE, chacun une fois : quand l'un part, l'échéance passe au suivant — calculée par le service, jamais par la page ; le texte dit « avec qui » ;
      · le genre se choisit à la création et ne change pas ; « avec qui » n'appartient qu'au rendez-vous ; `rappel` (un seul, la page d'avant) reste accepté, jamais avec `rappels` ;
      · cocher, décocher, reporter, modifier gardent la liste ; une ligne d'avant la migration (ni genre ni liste) se lit comme un événement à son rappel seul ;
-     · « Ajouter à mon calendrier » : `GET /api/agenda/:id/ics` rend un VRAI fichier (RFC 5545 : CRLF, lignes repliées à 75 octets, texte échappé), ses rappels en `VALARM` — « la veille »
-       d'un rendez-vous le dimanche du changement d'heure dure 25 heures ; une journée entière s'écrit en DATES ; celui d'un autre n'existe pas (404) ;
+     · « Ajouter à mon calendrier » (un fichier .ics) est parti le 16 octobre 2026 : plus de route `/ics`, plus de fichier ;
      · l'export des données porte le genre, « avec qui » et la liste des rappels.
    Code 0 si tout passe, 1 sinon. */
 'use strict';
@@ -156,45 +155,12 @@ const AVEC = 'Dr Lemoine QXR';
     v('reporter à demain 9 h : la liste est gardée (en base aussi), avec qui aussi, l\'échéance est 1 h avant le nouvel horaire', [p1.code, p1.j.evenement.rappels, sql('SELECT rappels FROM evenement WHERE id = ?', rf.id).rappels, p1.j.evenement.avec,
       Number(sql('SELECT rappel_a FROM evenement WHERE id = ?', rf.id).rappel_a)], [200, [60, 15], '[60,15]', 'M. Blanc', p1.j.evenement.debut - 60 * 60000]);
 
-    console.log('\n6. « Ajouter à mon calendrier » : le fichier .ics');
-    const ics = (c, id) => c.get('/api/agenda/' + id + '/ics');
-    /* le dimanche 25 octobre 2026, l'heure d'hiver revient à 3 h : « la veille à la même heure » (samedi 14:00, encore en heure d'été) est 25 heures avant */
+    console.log('\n6. Un rendez-vous à trois rappels (le fichier .ics est parti le 16 octobre 2026 ; ce rendez-vous sert à l\'export et à la restauration)');
+    /* le dimanche 25 octobre 2026, l'heure d'hiver revient à 3 h : un rendez-vous à trois rappels, dont « la veille » — réutilisé aux sections 7 et 8 (export, restauration) */
     const NOTE = 'Apporter les résultats d\'analyse, la carte vitale et l\'ordonnance du mois dernier — sans oublier la lettre du médecin traitant.';
     const rv = await A.post('/api/agenda', { genre: 'rdv', titre: 'Cardiologue, Dr Lemoine', avec: 'Dr Lemoine, cardiologue', lieu: 'Clinique; bâtiment B', note: NOTE, debut: '2026-10-25T14:00', fin: '2026-10-25T14:30',
       tz: 'Europe/Paris', rappels: [1440, 60, 0] });
     const RV = rv.j.evenement;
-    const f = await ics(A, RV.id);
-    v('200, un calendrier, en pièce jointe nommée d\'après le rendez-vous, jamais mis en cache', [f.code, (f.h.get('content-type') || '').split(';')[0], f.h.get('content-disposition'), f.h.get('cache-control')],
-      [200, 'text/calendar', 'attachment; filename="rendez-vous-cardiologue-dr-lemoine.ics"', 'no-store']);
-    const brut = f.txt;
-    v('⛔ chaque ligne finit par CRLF (aucun saut de ligne nu), et le fichier aussi', [/(^|[^\r])\n/.test(brut), brut.endsWith('\r\n')], [false, true]);
-    const physiques = brut.split('\r\n').filter(Boolean);
-    v('⛔ aucune ligne de plus de 75 octets (elles sont REPLIÉES — la note l\'exige)', [physiques.filter(l => Buffer.byteLength(l, 'utf8') > 75).length, physiques.some(l => l.startsWith(' '))], [0, true]);
-    const lignes = brut.replace(/\r\n /g, '').split('\r\n').filter(Boolean);
-    const val = (k) => (lignes.find(l => l.startsWith(k + ':') || l.startsWith(k + ';')) || '').replace(/^[^:]*:/, '');
-    v('l\'enveloppe : un VCALENDAR de version 2.0 qui porte UN événement', [lignes[0], val('VERSION'), lignes.filter(l => l === 'BEGIN:VEVENT').length, lignes[lignes.length - 1]], ['BEGIN:VCALENDAR', '2.0', 1, 'END:VCALENDAR']);
-    v('un identifiant STABLE (le même à chaque téléchargement : un second import met à jour, il ne double pas)', [val('UID'), (await ics(A, RV.id)).txt.replace(/\r\n /g, '').split('\r\n').find(l => l.startsWith('UID:'))],
-      ['agenda-' + RV.id + '@opmessages.invalid', 'UID:agenda-' + RV.id + '@opmessages.invalid']);
-    v('l\'heure en UTC : 14:00 de Paris le 25 octobre (heure d\'hiver) = 13:00 UTC, jusqu\'à 13:30', [val('DTSTART'), val('DTEND')], ['20261025T130000Z', '20261025T133000Z']);
-    v('le titre, le lieu : ÉCHAPPÉS (« , » → « \\, », « ; » → « \\; »)', [val('SUMMARY'), val('LOCATION')], ['Cardiologue\\, Dr Lemoine', 'Clinique\\; bâtiment B']);
-    const desc = val('DESCRIPTION');
-    vrai('« avec qui » et la note sont dans la description (pas dans le titre)', desc.startsWith('Avec : Dr Lemoine\\, cardiologue\\n\\n') && desc.includes('carte vitale') && desc.endsWith('Rendez-vous ajouté depuis OP MESSAGES.'), desc);
-    const trig = lignes.filter(l => l.startsWith('TRIGGER:')).map(l => l.slice(8));
-    v('⛔ trois rappels → trois VALARM : à l\'heure (PT0S), 1 h avant, et « la veille » = 25 HEURES avant (samedi 14:00, encore en heure d\'été)', trig, ['PT0S', '-PT1H', '-PT25H']);
-    v('   chaque alarme s\'affiche et dit le titre', [lignes.filter(l => l === 'ACTION:DISPLAY').length, lignes.filter(l => l === 'DESCRIPTION:Rappel : Cardiologue\\, Dr Lemoine').length], [3, 3]);
-    /* une journée entière : des DATES (la fin exclue est le lendemain), « la veille » un jour civil */
-    const rj = await A.post('/api/agenda', { titre: 'Réveillon', debut: '2026-12-24', journee: true, tz: 'Europe/Paris', rappel: 1440 });
-    const fj = await ics(A, rj.j.evenement.id);
-    const lj = fj.txt.replace(/\r\n /g, '').split('\r\n');
-    v('une journée entière : DTSTART/DTEND en dates (le 24, fin exclue le 25), « la veille » = -P1D, libre (TRANSPARENT), un fichier « evenement-… », sans « Avec : »',
-      [fj.code, lj.find(l => l.startsWith('DTSTART')), lj.find(l => l.startsWith('DTEND')), lj.filter(l => l.startsWith('TRIGGER:')), lj.find(l => l.startsWith('TRANSP')), /filename="evenement-reveillon\.ics"/.test(fj.h.get('content-disposition') || ''), /Avec :/.test(fj.txt)],
-      [200, 'DTSTART;VALUE=DATE:20261224', 'DTEND;VALUE=DATE:20261225', ['TRIGGER:-P1D'], 'TRANSP:TRANSPARENT', true, false]);
-    const sansR = await ics(A, r4.j.evenement.id);
-    v('un rendez-vous sans rappel : aucun VALARM', [sansR.code, /BEGIN:VALARM/.test(sansR.txt)], [200, false]);
-    v('⛔ le rendez-vous d\'Alice n\'existe pas pour Bob (404, comme un inconnu) ; un identifiant mal formé : 404', [(await ics(B, RV.id)).code, (await ics(A, 'e_' + '0'.repeat(32))).code, (await ics(A, 'e_pasunid')).code],
-      [404, 404, 404]);
-    const anon = T.client(svc.base);
-    v('⛔ sans session : 401, et rien du rendez-vous dans la réponse', [(await anon.get('/api/agenda/' + RV.id + '/ics')).code, /Lemoine/.test((await anon.get('/api/agenda/' + RV.id + '/ics')).txt)], [401, false]);
 
     console.log('\n7. L\'export des données, et les lignes d\'avant la migration');
     const ex = await A.post('/api/compte/export', {});

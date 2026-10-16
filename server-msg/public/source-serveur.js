@@ -42,8 +42,8 @@
    « pro », `raison` « perso » ou « organisateur », `abonnementOuvert`).
    LE PLAFOND D'UNE RÉUNION (capacité `reunionPlafond`) : plafondReunion() → le nombre de personnes qu'une réunion compte au plus, organisateur compris, tel que le SERVICE le dit (`null` s'il ne l'a pas dit) ; la fiche d'une réunion le porte aussi (`plafond`).
    LES RÉUNIONS PROGRAMMÉES (capacité `reunions`, étape 6) : reunions(du, au) (l'agenda d'une fenêtre : chaque réunion avec ses occurrences), reunion(id) (la fiche : horaire, répétition, invités et
-   leur réponse, MES rappels), programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion ; adresseIcs(id, {occurrence}) (l'adresse
-   du fichier .ics, que la page télécharge par un lien : le cookie de session suit) ; courrielOuvert() (vrai/faux, ou null si on n'a pas pu savoir) et courrielReunion(id, adresse, {occurrence}).
+   leur réponse, MES rappels), programmer, modifierReunion, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion ;
+   courrielOuvert() (vrai/faux, ou null si on n'a pas pu savoir) et courrielReunion(id, adresse, {occurrence}).
    Les heures se disent en millisecondes UTC (rendues) ou en heure LOCALE « 2026-10-26T14:00 » + un fuseau (envoyées) : le service fait autorité sur le fuseau. Les personnes d'une réunion sont des
    IDENTIFIANTS (la page les habille avec `personne(id)`, au moment de peindre : une photo arrivée après coup apparaît). Le fuseau de CET appareil est dit au service UNE fois par séance (quand la page
    ouvre l'agenda, programme, répond ou règle ses rappels) : les notifications de la personne se composent dans son fuseau.
@@ -3793,9 +3793,6 @@
         return plafondReunionLu;
       } catch (e) { return null; }
     }
-    /* le fichier .ics : une adresse de CE service (jamais une adresse venue du service), que la page ouvre par un lien — SANS réseau, donc pas par `A`, dont chaque méthode est enveloppée en asynchrone */
-    const adresseIcs = (id, o2) => api0.adresseIcs(id, o2 || {});
-    const adresseIcsEvenement = (id) => api0.adresseIcsEvenement(id);
     /* l'envoi par courriel est-il ouvert ? vrai/faux, ou null quand on n'a pas pu le savoir (on ne dit « pas encore ouvert » que quand le service l'a DIT) */
     async function courrielOuvert() { try { const c = await A.config(); return c && c.courriel && typeof c.courriel.ouvert === 'boolean' ? c.courriel.ouvert : null; } catch (e) { return null; } }
     async function courrielReunion(id, adresse, o2) {
@@ -3886,7 +3883,7 @@
       capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, rendezVous: true, trajet: true, texteMax: 8000 },
       demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
-      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement, adresseIcsEvenement, trajetOuvert, calculerTrajet, lieux, poserLieu,
+      evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement, trajetOuvert, calculerTrajet, lieux, poserLieu,
       messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
@@ -3914,7 +3911,7 @@
       canalCreer, canalRenommer, canalSupprimer, canalAjouterMembres, canalRetirerMembre,
       abonnementOffres, abonnement, abonnementPayer, abonnementPortail, abonnementRelire,
       /* ── les réunions programmées (capacité `reunions`) ── */
-      reunions, reunion, programmer, modifierReunion, decalerReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, trajetReunion, adresseIcs, courrielOuvert, courrielReunion, plafondReunion,
+      reunions, reunion, programmer, modifierReunion, decalerReunion, cocherPoint, annulerReunion, supprimerReunion, inviterReunion, retirerInviteReunion, quitterReunion, repondreReunion, rappelsReunion, trajetReunion, courrielOuvert, courrielReunion, plafondReunion,
       /* ── les appels à deux (capacité `appels`) : l'historique, lancer, l'appel qui sonne ou court (`appel`), répondre, raccrocher ; les pistes que la page remet au moteur et le flux de l'autre qu'elle lit ── */
       appels: listeAppels,
       demarrerAppel,

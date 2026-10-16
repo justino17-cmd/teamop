@@ -1,14 +1,14 @@
 /* ══ LE CALENDRIER — FUSEAUX, HEURES LOCALES, RÉCURRENCES ═══════════════════════════════════════════════════════════════════════
  *
  * Module PUR : aucune base, aucune horloge, aucun réseau. Tout ce qu'une réunion programmée sait du temps passe ici — l'enregistrement (heure locale → instant), les
- * occurrences d'une série, l'échéance d'un rappel, et ce que le fichier `.ics` (`ics.js`) dit à un agenda. UNE seule définition : le service et l'agenda de la personne
- * doivent calculer la même heure, sinon le rappel de la réunion n'arrive pas quand l'agenda sonne.
+ * occurrences d'une série, l'échéance d'un rappel, la date du courriel d'invitation. UNE seule définition : le service, la page et le courriel doivent dire la même heure,
+ * sinon le rappel de la réunion n'arrive pas à l'heure qu'elle affiche.
  *
  * ⛔ LES HEURES D'UNE SÉRIE SE CALCULENT DANS LE FUSEAU DE LA RÉUNION, JAMAIS EN AJOUTANT 7 × 24 H. Une réunion hebdomadaire « le lundi à 14:00, Paris » reste à 14:00 à Paris
  * quand l'heure d'hiver arrive (le 25 octobre 2026) : son instant UTC, lui, change d'une heure. Ajouter 604 800 000 ms à chaque semaine la décalerait d'une heure pour tous les
  * invités, du jour au lendemain, sans qu'aucune erreur ne le dise. La série est donc définie par une DATE LOCALE (jour, jour de la semaine ou jour du mois) et une HEURE
  * LOCALE ; chaque occurrence est résolue en instant à son tour.
- * ⛔ LES CAS LIMITES SUIVENT LA RFC 5545 (§ 3.3.5), parce que c'est ce que l'agenda de la personne fera de notre `.ics` :
+ * ⛔ LES CAS LIMITES SUIVENT LA RFC 5545 (§ 3.3.5), parce que c'est ce que font les agendas (Apple, Google, Outlook) — la personne y lit la même heure que chez nous :
  *   · une heure locale qui N'EXISTE PAS (le trou du passage à l'heure d'été : 02:30 le 29 mars 2026 à Paris) est lue avec le décalage d'AVANT le trou — elle tombe donc à 03:30 ;
  *   · une heure locale AMBIGUË (le passage à l'heure d'hiver : 02:30 le 25 octobre 2026 à Paris, vécue deux fois) est la PREMIÈRE ;
  *   · un mois sans le jour demandé (le 31 d'une série mensuelle) SAUTE ce mois, et ne compte pas dans « N fois » — il n'est pas décalé au 30 ni au dernier jour.
@@ -117,7 +117,6 @@ function dire(t, tz) {
 const joursDansMois = (a, m) => new Date(Date.UTC(a, m, 0)).getUTCDate();
 const ajouterJours = (d, n) => { const x = new Date(Date.UTC(d.a, d.m - 1, d.j + n)); return { a: x.getUTCFullYear(), m: x.getUTCMonth() + 1, j: x.getUTCDate() }; };
 const numeroJour = (d) => Math.floor(Date.UTC(d.a, d.m - 1, d.j) / JOUR);
-const jourSemaine = (d) => new Date(Date.UTC(d.a, d.m - 1, d.j)).getUTCDay();   // 0 = dimanche
 
 /* ── Les séries ──────────────────────────────────────────────────────────────────────────────────────────────────────────────── */
 /* Une série : { debut, fin, tz, rep, n, jusqua } — `debut` et `fin` : la PREMIÈRE occurrence (instants UTC) ; `rep` : l'une des répétitions ; `n` : le nombre d'occurrences au
@@ -197,8 +196,8 @@ function occurrences(s, du, au, max) {
   return sortie;
 }
 
-/* La date locale de la DERNIÈRE occurrence d'une série bornée (par `n`, par `jusqua` ou par les deux) — un calcul de dates civiles, sans fuseau — ; null si la série n'a pas de fin. Sert à
-   savoir jusqu'à quelle année un fichier .ics doit décrire le fuseau. */
+/* La date locale de la DERNIÈRE occurrence d'une série bornée (par `n`, par `jusqua` ou par les deux) — un calcul de dates civiles, sans fuseau — ; null si la série n'a pas de fin. Sert au
+   courriel d'invitation, qui dit la dernière date d'une série bornée (« jusqu'au … »). */
 function derniereDate(s) {
   const anc = ancreDe(s);
   if (s.rep === 'aucune') return { a: anc.a, m: anc.m, j: anc.j };
@@ -240,26 +239,9 @@ function occurrenceA(s, debut) {
   const r = occurrences(s, debut, debut + 1, 1);
   return r.length && r[0].debut === debut ? r[0] : null;
 }
-/* Le nombre d'occurrences de la série, compté jusqu'à `max` (au-delà on s'arrête : « plus de max »). Une série sans fin ni limite compte `max`. */
-function compter(s, max) {
-  let n = 0;
-  const lim = max || 1000;
-  const anc = ancreDe(s), limite = limiteDe(s);
-  for (let k = 0; k < PERIODES_MAX && n < lim; k++) {
-    stats.periodes++;
-    if (s.rep === 'aucune' && k > 0) break;
-    const d = dateDuRang(s, anc, k);
-    if (!d) continue;
-    if (s.n && n >= s.n) break;
-    if (limite !== null) { const t = k === 0 ? s.debut : instantLocal({ a: d.a, m: d.m, j: d.j, h: anc.h, mi: anc.mi }, s.tz); if (t > limite) break; }
-    n++;
-  }
-  return n;
-}
-
-/* Une série récurrente est définie par son HEURE LOCALE (c'est ce que l'agenda de la personne lira dans le `.ics`) : son premier instant est donc celui que cette heure locale
-   désigne selon la RFC 5545 — pour une heure vécue deux fois, la première. Un instant donné en UTC qui tomberait dans la seconde passe serait, sinon, lu une heure plus tôt par
-   l'agenda. Une réunion sans répétition garde son instant tel quel (son `.ics` le dit en UTC). → { debut, fin } */
+/* Une série récurrente est définie par son HEURE LOCALE (c'est ainsi que les agendas la décrivent) : son premier instant est donc celui que cette heure locale
+   désigne selon la RFC 5545 — pour une heure vécue deux fois, la première. Un instant donné en UTC qui tomberait dans la seconde passe serait, sinon, lu une heure plus tôt que
+   les occurrences suivantes. Une réunion sans répétition garde son instant tel quel. → { debut, fin } */
 function normaliserSerie(s) {
   if (s.rep === 'aucune') return { debut: s.debut, fin: s.fin };
   const c = champsLocaux(s.debut, s.tz), debut = instantLocal({ a: c.a, m: c.m, j: c.j, h: c.h, mi: c.mi }, s.tz);
@@ -278,6 +260,6 @@ function echeanceRappel(debut, avantMin, tz) {
 module.exports = {
   MIN, JOUR, REPETITIONS, RAPPELS_PERMIS, T_MIN, T_MAX, PERIODES_MAX,
   tzValide, decalage, champsLocaux, instantLocal, lireLocal, lireDate, formaterDate, formaterLocal, dire,
-  joursDansMois, ajouterJours, numeroJour, jourSemaine,
-  occurrences, premiereApres, occurrenceA, compter, limiteDe, derniereDate, finDeSerie, normaliserSerie, echeanceRappel, stats,
+  joursDansMois, ajouterJours, numeroJour,
+  occurrences, premiereApres, occurrenceA, limiteDe, derniereDate, finDeSerie, normaliserSerie, echeanceRappel, stats,
 };

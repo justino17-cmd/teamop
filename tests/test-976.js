@@ -2,7 +2,7 @@
 
    Les VRAIES fonctions de `server-msg/public/api.js` et de `server-msg/public/source-serveur.js` (le module que la page appelle) sont exécutées dans Node contre le VRAI service, à deux ou trois
    personnes (chacune est un « appareil de poche » : cookie, Origin, flux). Ce que ni `test-973` (les routes seules) ni la sonde (le DOM) ne voient :
-     · LE CONTRAT : la capacité `reunions`, chaque méthode que la page appelle, l'adresse du fichier .ics (une adresse de CE service, jamais une adresse venue du service) ;
+     · LE CONTRAT : la capacité `reunions`, chaque méthode que la page appelle (le fichier .ics est parti le 16 octobre 2026 : plus d'adresse ni de route) ;
      · UNE RÉUNION SE PROGRAMME, SE LIT, SE MODIFIE, S'ANNULE, SE SUPPRIME PAR LE MODULE : l'agenda d'une fenêtre porte ses occurrences en millisecondes UTC (une série hebdomadaire de trois dates qui traverse le
        25 octobre garde son heure LOCALE), les personnes ne sont que des identifiants que la page habille, l'hôte et le rôle viennent du service ;
      · LES AUTRES L'APPRENNENT EN DIRECT : l'événement `reunions` (et la notification d'invitation, de modification, d'annulation, dite dans le fuseau de celui qui la lit) arrive sans recharger ;
@@ -25,7 +25,7 @@ const { creerSourceServeur } = require(path.join(T.SERVICE, 'public', 'source-se
 const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 const attrape = async (p) => { try { await p; return null; } catch (e) { return e; } };
 const JOUR = 86400000;
-const METHODES = ['reunions', 'reunion', 'programmer', 'modifierReunion', 'decalerReunion', 'annulerReunion', 'supprimerReunion', 'inviterReunion', 'retirerInviteReunion', 'quitterReunion', 'repondreReunion', 'rappelsReunion', 'adresseIcs', 'courrielOuvert', 'courrielReunion'];
+const METHODES = ['reunions', 'reunion', 'programmer', 'modifierReunion', 'decalerReunion', 'annulerReunion', 'supprimerReunion', 'inviterReunion', 'retirerInviteReunion', 'quitterReunion', 'repondreReunion', 'rappelsReunion', 'courrielOuvert', 'courrielReunion'];
 const TITRE = 'Point TITRE-WQXZ-CANARI';
 
 setTimeout(() => { console.log('  ✗ délai global du banc dépassé (240 s)'); process.exit(1); }, 240000).unref();
@@ -79,14 +79,12 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
     const alice = await A.entrer('alice'), bob = await B.entrer('bob'), cleo = await C.entrer('cleo'), dan = await D.entrer('dan');
 
     /* ═══ 1. LE CONTRAT ═══════════════════════════════════════════════════════════════════════════════════════════ */
-    console.log('Le contrat : la capacité `reunions`, les méthodes de la page, l\'adresse du fichier .ics');
+    console.log('Le contrat : la capacité `reunions`, les méthodes de la page');
     {
       v('le module annonce la capacité `reunions`', A.src.capacites.reunions, true);
       v('chaque méthode que la page appelle existe', METHODES.filter(k => typeof A.src[k] !== 'function'), []);
       vrai('population : quatre personnes sont entrées par la porte bêta', new Set([alice.id, bob.id, cleo.id, dan.id]).size === 4);
       vrai('⛔ le fuseau de l\'appareil est dit au service DÈS L\'ENTRÉE (avant tout geste d\'agenda) : on invite des gens qui n\'ont pas encore ouvert l\'onglet', !!(await att(() => B.reseau.requetes.some(r => r.m === 'POST' && r.chemin === '/api/moi/maj'))) && B.reseau.requetes.every(r => !/\/api\/reunions/.test(r.chemin)));
-      v('⛔ l\'adresse du fichier .ics est une adresse de CE service : toute la série, ou UNE occurrence', [A.src.adresseIcs('r_' + 'a'.repeat(32)), A.src.adresseIcs('r_' + 'a'.repeat(32), { occurrence: 1793019600000 })],
-        [svcA.base + '/api/reunions/r_' + 'a'.repeat(32) + '/ics?serie=1', svcA.base + '/api/reunions/r_' + 'a'.repeat(32) + '/ics?occurrence=1793019600000']);
     }
 
     /* Alice et Bob, et Dan, sont contacts ; Cléo n'est le contact de personne (on ne l'invite pas) */
@@ -247,20 +245,6 @@ const jourParis = (t) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Pa
       v('⛔ une SÉRIE ne se décale pas (pas encore une seule date) : refusé, et la phrase mène à la fiche', [codeDe(e3), phrase(e3)], ['serie_non_decalable', 'Cette réunion se répète : on ne décale pas une seule date d\'une série. Modifie la série depuis sa fiche.']);
       const e4 = await attrape(A.src.decalerReunion(rd.id, { debut: jd + 'T14:00', fin: jd + 'T15:00' }));
       v('le même horaire : refusé, et dit', [codeDe(e4), phrase(e4)], ['horaire_identique', 'C\'est déjà l\'horaire de ce rendez-vous.']);
-    }
-
-    /* ═══ 7. LE FICHIER .ICS ══════════════════════════════════════════════════════════════════════════════════════ */
-    console.log('\nLe fichier .ics : l\'adresse que la page ouvre rend un vrai calendrier');
-    {
-      const r = await B.nav.fetch(B.src.adresseIcs(R));
-      const t = await r.text();
-      v('toute la série : un calendrier téléchargé (pièce jointe), le titre, la règle de répétition', [r.status, /attachment/.test(r.headers.get('content-disposition') || ''), /^BEGIN:VCALENDAR/.test(t), t.includes('SUMMARY:' + TITRE), /RRULE:FREQ=WEEKLY;BYDAY=[A-Z]{2};COUNT=3\r?\n/.test(t)], [200, true, true, true, true]);
-      const occ = instantParis(dates[1], 15, 0);
-      const r2 = await B.nav.fetch(B.src.adresseIcs(R, { occurrence: occ }));
-      const t2 = await r2.text();
-      v('UNE occurrence : le fichier ne porte que celle-là (pas de règle de répétition)', [r2.status, /RRULE/.test(t2), /DTSTART/.test(t2)], [200, false, true]);
-      const r3 = await B.nav.fetch(B.src.adresseIcs(R, { occurrence: occ + 60000 }));
-      v('une date qui n\'est pas une occurrence : 404 (et pas un fichier inventé)', r3.status, 404);
     }
 
     /* ═══ 8. LE COURRIEL ══════════════════════════════════════════════════════════════════════════════════════════ */

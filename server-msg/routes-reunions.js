@@ -1,4 +1,4 @@
-/* ══ LES ROUTES DES RÉUNIONS PROGRAMMÉES — L'AGENDA, PROGRAMMER, INVITER, RÉPONDRE, LES RAPPELS, LE FICHIER .ICS ═══════════════════════════════════════════
+/* ══ LES ROUTES DES RÉUNIONS PROGRAMMÉES — L'AGENDA, PROGRAMMER, INVITER, RÉPONDRE, LES RAPPELS, LE TRAJET ═════════════════════════════════════════════════════
  *
  *   GET  /api/reunions?du=&au=                  S   mes réunions qui touchent la fenêtre (62 jours au plus), avec leurs occurrences : de quoi dessiner la semaine
  *   POST /api/reunions   {titre,lieu?,debut,fin,tz?,repetition?,jusqua?,n?,invites?,rappels?,notifier?}   V PRO  programmer — la fonction Pro (la bêta ouvre tout) ; un invité sans Pro est rendu (`par_lien`)
@@ -12,8 +12,6 @@
  *   POST /api/reunions/:id/quitter              R   la sortie de l'INVITÉ : plus d'invitation, plus de conversation de la réunion, plus de rappel ; l'hôte ne quitte pas (il annule ou supprime) et peut réinviter
  *   POST /api/reunions/:id/reponse   {statut}   R   accepte · decline · peutetre — l'hôte n'a pas à répondre
  *   POST /api/reunions/:id/rappels   {rappels}  R   MES rappels (5, 15, 60, 1440 minutes avant) ; `null` rend la main au réglage de la réunion
- *   GET  /api/reunions/:id/ics?serie=1|occurrence=<début>  R   le fichier pour l'agenda de la personne (une occurrence, ou toute la série) — SANS BOUTON depuis le 15 octobre 2026
- *                                                              (Justin : « retire aussi » : « l'application fait déjà agenda ») ; la route et ses bancs restent, le temps qu'il dise s'il la retire
  *   POST /api/reunions/:id/courriel {destinataire,occurrence?}  H   l'invitation par COURRIEL à quelqu'un qui n'a pas OP MESSAGES (du texte : plus de .ics joint depuis le 15 octobre 2026) — inerte sans relais SMTP, 503 qui le dit
  *   POST /api/reunions/:id/rejoindre {type?}    R   ENTRER dans la salle (de quinze minutes avant le début à trois heures après la fin) : la première personne qui entre l'ouvre ; la salle d'attente, si elle est demandée
  *   POST /api/reunions/:id/lien                 H   le lien d'invité (le code, que la page met dans le fragment de l'adresse) — créé s'il n'existe pas
@@ -21,7 +19,7 @@
  *   POST /api/reunions/apercu {code}            P   ce qu'il faut pour DÉCIDER de rejoindre (titre, horaire, ouverte ou non) — jamais un participant ; public et limité ; 410 `lien_invalide` pour tout code mort, quelle qu'en soit la raison
  *   POST /api/reunions/rejoindre {code, type?}  S   rejoindre PAR LE LIEN : un compte est exigé (v1) ; la personne devient invitée (acceptée) et entre
  *
- * Une fonction par ligne du manifeste (`manifeste.js`), branchée par `routes.js`. Le SQL est dans `stockage.js`, l'heure dans `calendrier.js`, le fichier dans `ics.js`, les notifications dans
+ * Une fonction par ligne du manifeste (`manifeste.js`), branchée par `routes.js`. Le SQL est dans `stockage.js`, l'heure dans `calendrier.js`, les notifications dans
  * `reunions-outils.js`, les rappels dans `planificateur.js`.
  *
  * ⛔ LA RÉUNION, LA PERSONNE ET LE RÔLE VIENNENT DE LA SESSION ET DE LA BASE, jamais du corps : un `{hote, uid, role}` envoyé pour s'attribuer une réunion est ignoré. Une réunion dont on n'est
@@ -37,7 +35,6 @@
  */
 'use strict';
 const cal = require('./calendrier');
-const ics = require('./ics');
 const { nettoyerNom, ID_PERS } = require('./routes');      // (l'ordre du jour : un point est une ligne, nettoyée comme un nom)
 const { serieDe, nomAffiche, texteInvitation, texteModification, texteDecalage, texteAnnulation, creerNotifieur } = require('./reunions-outils');
 const { adresseValide } = require('./courriel');
@@ -500,22 +497,6 @@ function installerReunions(H, ctx) {
     stockage.reunionTrajetPoser({ id, uid: req.moi.id, trajet: t.trajet, lieu: t.trajet ? nettoyerNom(b.lieu) : null });
     hub.reveiller({ uids: [req.moi.id] });
     res.json(vue(req.moi.id, id));
-  });
-
-  /* ── le fichier .ics ── */
-  H['reunions.ics'] = garder((req, res) => {
-    if (!plafond(res, 'ics', req.moi.id, { max: 60, fenetreMs: 60000 })) return;
-    const q = req.query || {}, rr = stockage.reunionPourMembre(req.reunion.id, req.moi.id), r = rr.reunion;
-    /* MON trajet (migration 29) : une alarme de plus, à l'heure de partir — dans le fichier de SA personne seulement (le courriel de l'organisateur ne porte plus de fichier) */
-    const opts = { maintenant: horloge(), rappels: rr.moi.rappels, trajet: rr.moi.trajet || null, tzLecteur: req.moi.tz };
-    if (q.occurrence !== undefined) {
-      if (!/^\d{1,15}$/.test(String(q.occurrence))) return refus(res, 400, 'champ_invalide');
-      opts.occurrence = parseInt(q.occurrence, 10);
-    } else if (q.serie !== undefined && q.serie !== '1' && q.serie !== '0') return refus(res, 400, 'champ_invalide');
-    const texte = ics.fichier({ id: r.id, titre: r.titre, lieu: r.lieu, debut: r.debut, fin: r.fin, tz: r.tz, rep: r.repetition, n: r.n, jusqua: r.jusqua, annulee: r.annulee, version: r.version }, opts);
-    if (texte === null) return refus(res, 404, 'occurrence_inconnue');
-    res.set({ 'Content-Type': 'text/calendar; charset=utf-8', 'Content-Disposition': 'attachment; filename="' + ics.nom(r) + '"', 'Cache-Control': 'no-store' });
-    res.send(texte);
   });
 
   /* ── la salle et le lien d'invité (étape 8) ── */
