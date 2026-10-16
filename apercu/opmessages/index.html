@@ -1891,16 +1891,6 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-choix > i { position: absolute; z-index: 0; inset: 0 auto 0 0; background: rgba(48,209,88,.4); }
 .salle-choix > span { position: relative; z-index: 1; min-width: 0; overflow-wrap: anywhere; }
 .salle-choix[aria-pressed="true"] { outline: 2px solid #fff; }
-.salle-pastilles { flex: none; position: relative; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; padding: 4px max(14px, env(safe-area-inset-right, 0px)) 4px max(14px, env(safe-area-inset-left, 0px)); }
-.salle-pastille {
-  min-height: 40px; padding: 0 14px; border-radius: 999px; background: var(--salle-vitre); border: 1px solid var(--salle-bord); color: #fff; font-size: 15px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;
-  -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
-}
-.salle-pastille[aria-pressed="true"] { background: #fff; color: #000; }
-.salle-pastille[hidden] { display: none; }
-.salle-emojis { position: absolute; z-index: 4; bottom: 100%; left: 0; right: 0; margin: 0 auto; width: max-content; max-width: calc(100% - 16px); display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 8px; border-radius: 18px; background: var(--salle-panneau); border: 1px solid var(--salle-bord); }
-.salle-emojis[hidden] { display: none; }
-.salle-emojis button { width: 48px; height: 48px; border-radius: 50%; font-size: 26px; line-height: 1; display: grid; place-items: center; background: rgba(255,255,255,.1); }
 .salle-bas { flex: none; padding: 8px max(12px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 14px) max(12px, env(safe-area-inset-left, 0px)); }
 .salle-cmds { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 8px 6px; max-width: 560px; margin-inline: auto; }
 .salle-cmd { position: relative; min-height: 44px; display: flex; flex-direction: column; align-items: center; gap: 4px; font-size: 12px; line-height: 15px; color: #fff; text-align: center; }
@@ -1994,10 +1984,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .invite-carte { margin: 0 auto; max-width: 420px; padding: 18px; border-radius: 18px; background: var(--card); border: var(--line); text-align: center; }
 .invite-carte h3 { margin: 0 0 4px; font-size: 20px; line-height: 26px; overflow-wrap: anywhere; }
 .invite-carte p { margin: 4px 0; overflow-wrap: anywhere; }
-.salle-pastille .ic { width: 18px; height: 18px; stroke-width: 1.8; flex: none; }
 .salle-btn .ic { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
 .salle-cmd-texte { display: block; max-width: 100%; overflow-wrap: anywhere; }
-.salle-ecran[data-attente] .salle-pastilles, .salle-ecran[data-attente] .salle-cmds, .salle-ecran[data-attente] .salle-tuile { display: none; }
+.salle-ecran[data-attente] .salle-cmds, .salle-ecran[data-attente] .salle-tuile { display: none; }
 .salle-avis { margin: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
 .salle-tuile .salle-sans-camera { display: none; bottom: auto; top: calc(50% + 42px); }
 .salle-tuile.grand[data-camera="off"] .salle-sans-camera, .salle-scene[data-n="1"] .salle-tuile[data-camera="off"] .salle-sans-camera, .salle-scene[data-n="2"] .salle-tuile[data-camera="off"] .salle-sans-camera { display: block; }
@@ -2043,7 +2032,6 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .rec-fin-carte video { max-height: 42dvh; }
 }
 /* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
-@media (max-width: 780px) { .salle-ecran[data-annoter] .salle-pastilles { display: none; } }
 /* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
 .annot-barre > button, .annot-palette > button { min-width: 44px; min-height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; }
 .annot-barre > button[aria-pressed="true"], .annot-palette > button[aria-pressed="true"] { background: rgba(255,255,255,.22); }
@@ -2073,6 +2061,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .annot-palette > .salle-btn { min-height: 44px; }
 .annot-barre > button[hidden] { display: none; }
 .salle-rang.libre { min-height: 44px; }
+.salle-rang.salle-reactions { justify-content: space-around; padding-top: 8px; padding-bottom: 8px; }
+.salle-reactions button { flex: none; width: 48px; height: 48px; border-radius: 50%; font-size: 26px; line-height: 1; display: grid; place-items: center; background: rgba(255,255,255,.1); }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }
 .salle-panneau-corps { display: block; }
@@ -2416,9 +2406,6 @@ a.menu-action { text-decoration: none; }
   <symbol id="i-transferer" viewBox="0 0 24 24"><path d="M14 5l7 7-7 7M21 12H11a7 7 0 0 0-7 7"/></symbol>
   <symbol id="i-archive" viewBox="0 0 24 24"><path d="M3.5 5h17v4h-17zM5 9v10h14V9M10 13h4"/></symbol>
   <symbol id="i-grille" viewBox="0 0 24 24"><path d="M4 4h7v7H4ZM13 4h7v7h-7ZM4 13h7v7H4ZM13 13h7v7h-7Z"/></symbol>
-  <symbol id="i-intervenant" viewBox="0 0 24 24"><path d="M4 4h16v10H4ZM4 17h4v3H4ZM10 17h4v3h-4ZM16 17h4v3h-4Z"/></symbol>
-  <symbol id="i-rec" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10ZM3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0Z"/></symbol>
-  <symbol id="i-reaction" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM8.5 14c.8 1.3 2 2 3.5 2s2.7-.7 3.5-2M9 9.5h.01M15 9.5h.01"/></symbol>
   <symbol id="i-lien" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
   <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
@@ -2676,21 +2663,6 @@ a.menu-action { text-decoration: none; }
       <button type="button" class="presse" id="annot-effacer" aria-haspopup="true" aria-expanded="false" aria-label="Effacer mes annotations"><svg class="ic" aria-hidden="true"><use href="#i-corbeille"/></svg></button>
       <button type="button" class="presse" id="annot-capturer" aria-label="Capturer et envoyer dans la discussion" hidden><svg class="ic" aria-hidden="true"><use href="#i-capture"/></svg></button>
       <button type="button" class="presse annot-fin" id="annot-fin">OK</button>
-    </div>
-    <div class="salle-pastilles" role="group" aria-label="Réactions et affichage">
-      <button type="button" class="salle-pastille presse" id="salle-reagir" aria-haspopup="true" aria-expanded="false"><svg class="ic" aria-hidden="true"><use href="#i-reaction"/></svg>Réagir</button>
-      <div class="salle-emojis" id="salle-emojis" role="group" aria-label="Réactions" hidden>
-        <button type="button" class="presse" data-reaction="pouce" aria-label="Pouce levé">👍</button>
-        <button type="button" class="presse" data-reaction="coeur" aria-label="Cœur">❤️</button>
-        <button type="button" class="presse" data-reaction="bravo" aria-label="Bravo">👏</button>
-        <button type="button" class="presse" data-reaction="rire" aria-label="Rire">😂</button>
-      </div>
-      <button type="button" class="salle-pastille presse" id="salle-main" aria-pressed="false"><svg class="ic" aria-hidden="true"><use href="#i-main"/></svg><span>Lever la main</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-vue"><svg class="ic" aria-hidden="true"><use href="#i-intervenant"/></svg><span>Intervenant</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-pip" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-pip"/></svg><span>Image dans l'image</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-annoter" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-crayon"/></svg><span>Annoter</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-partage-changer" hidden><svg class="ic" aria-hidden="true"><use href="#i-ecran"/></svg><span>Changer de fenêtre</span></button>
-      <button type="button" class="salle-pastille presse" id="salle-rec-btn" aria-pressed="false" hidden><svg class="ic" aria-hidden="true"><use href="#i-rec"/></svg><span>Enregistrer</span></button>
     </div>
     <div class="salle-bas">
       <div class="salle-cmds" role="group" aria-label="Commandes de la salle">
@@ -5859,9 +5831,7 @@ a.menu-action { text-decoration: none; }
     } catch (e) { avisAppel('L\'image dans l\'image n\'a pas pu s\'ouvrir sur ce navigateur.'); }
   }
   function majPip() {
-    const A = etat.appelUI, b = $('appel-pip'), sp = $('salle-pip');
-    /* (salle) la pastille « Image dans l'image » est SUR l'écran de la réunion (8 octobre 2026 : « ça serait bien sur l'écran de la réunion ») — le panneau Plus la garde aussi */
-    if (sp) { sp.hidden = !(A && enSalle(A) && pipPossible()); sp.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false'); }
+    const A = etat.appelUI, b = $('appel-pip');
     if (!b) return;
     b.hidden = !(A && !enSalle(A) && pipPossible() && videoAPip(A));
     b.setAttribute('aria-pressed', document.pictureInPictureElement ? 'true' : 'false');
@@ -6031,7 +6001,9 @@ a.menu-action { text-decoration: none; }
   $('appel-hp').addEventListener('click', () => { const A = etat.appelUI; if (!A || !A.snap) return; A.haut = !A.haut; rendreAppel(); annonceAppel(A.haut ? 'Haut-parleur activé' : 'Haut-parleur coupé'); });
   $('appel-cam').addEventListener('click', basculerCamera);
   $('appel-pip').addEventListener('click', basculerPip);
-  document.addEventListener('enterpictureinpicture', majPip, true); document.addEventListener('leavepictureinpicture', majPip, true);
+  /* l'image dans l'image change d'état hors de la page (le système la ferme) : le bouton de l'appel à deux ET, en salle, la ligne de « Plus » qui la dit */
+  const pipChange = () => { majPip(); const A = etat.appelUI; if (enSalle(A)) sallePanneauRendre(A); };
+  document.addEventListener('enterpictureinpicture', pipChange, true); document.addEventListener('leavepictureinpicture', pipChange, true);
   $('appel-flip').addEventListener('click', retournerCamera);
   $('appel-msg').addEventListener('click', () => { const A = etat.appelUI; if (A && A.snap) ouvrirConversationAvec(A.snap.membres.map(m => m.id), A.snap.conv); });
   /* (version servie) l'appel ENTRANT : « Refuser » ferme l'écran — c'est `quitterAppel` qui refuse auprès du service, comme tout autre chemin qui ferme —, « Répondre » prend l'appel PUIS demande le micro et la caméra
@@ -10697,12 +10669,12 @@ a.menu-action { text-decoration: none; }
      ⛔ Les gestes de l'hôte sont CACHÉS aux autres, pas seulement grisés — et le service les refuse de toute façon (403) : un bouton qui paraîtrait par erreur ne ferait rien.
      ⛔ Un panneau (Participants, Discussion, Plus) se redessine seulement quand CE QU'IL MONTRE change (une signature) : « qui parle » change trois fois par seconde et ne doit ni vider un champ en cours de saisie,
      ni faire perdre le doigt à celui qui allait toucher « Admettre ». */
-  const EMOJI_SALLE = { pouce: '👍', coeur: '❤️', bravo: '👏', rire: '😂' };
+  const EMOJI_SALLE = { pouce: '👍', coeur: '❤️', bravo: '👏', rire: '😂' }, NOM_REACTION = { pouce: 'Pouce levé', coeur: 'Cœur', bravo: 'Bravo', rire: 'Rire' };
   const PHRASE_REACTION = { pouce: 'lève le pouce', coeur: 'envoie un cœur', bravo: 'applaudit', rire: 'rit' };
   const MINUTEURS = [[60, '1 min'], [300, '5 min'], [600, '10 min'], [900, '15 min']];
   const partagePossible = () => !!(navigator.mediaDevices && typeof navigator.mediaDevices.getDisplayMedia === 'function') && !/iPhone|iPod/.test(navigator.userAgent || '');
   const enSalle = A => !!(A && A.snap && A.snap.salle && !A.snap.entrant);
-  const sx = A => A.sx || (A.sx = { panneau: null, declencheur: null, emojis: false, vue: 'galerie', actions: null, retirer: null, formSondage: false, choixN: 2, vote: null, masque: '', micVu: 0, bandeauMic: null,
+  const sx = A => A.sx || (A.sx = { panneau: null, declencheur: null, vue: 'galerie', actions: null, retirer: null, formSondage: false, choixN: 2, vote: null, masque: '', micVu: 0, bandeauMic: null,
     discussion: [], vus: null, neufs: 0, ids: null, mains: null, recPar: null, grand: null, sigs: {}, finMinuteur: 0 });
   const nomM = m => (m && (m.prenom || m.nom)) || 'Quelqu\'un';
   const lecture = el => { const p = el && el.play ? el.play() : null; if (p && p.catch) p.catch(() => { /* le navigateur attend un geste : la prochaine touche relance */ }); };
@@ -10895,21 +10867,13 @@ a.menu-action { text-decoration: none; }
       bp.setAttribute('aria-pressed', A.ecran ? 'true' : 'false'); bp.setAttribute('aria-disabled', permis ? 'false' : 'true');
       bp.setAttribute('aria-label', A.ecran ? 'Arrêter le partage d\'écran' : permis ? 'Partager l\'écran' : 'Partager l\'écran (l\'hôte ne l\'autorise pas)');
       bp.querySelector('.salle-cmd-texte').textContent = A.ecran ? 'Arrêter' : 'Partager';
-      $('salle-partage-changer').hidden = !A.ecran;                                        // pendant le partage seulement : une autre fenêtre, sans arrêter
     }
     const bd = $('salle-discussion'); bd.hidden = !s.conv;
     const nl = X.neufs; $('salle-discussion-n').hidden = !nl; $('salle-discussion-n').textContent = nl > 9 ? '9+' : String(nl);
     bd.setAttribute('aria-label', 'Discussion' + (nl ? ', ' + nl + (nl > 1 ? ' nouveaux messages' : ' nouveau message') : ''));
     const att = hote ? (s.enAttente | 0) : 0, bn = $('salle-participants-n'); bn.hidden = !att; bn.textContent = String(att);
     $('salle-participants').setAttribute('aria-label', 'Participants, ' + s.nb + (att ? ', ' + att + (att > 1 ? ' personnes attendent' : ' personne attend') : ''));
-    const bmn = $('salle-main'); bmn.setAttribute('aria-pressed', s.moi.main ? 'true' : 'false'); bmn.querySelector('span').textContent = s.moi.main ? 'Baisser la main' : 'Lever la main';
-    const bv = $('salle-vue'); bv.querySelector('span').textContent = X.vue === 'intervenant' ? 'Vue galerie' : 'Vue intervenant'; bv.querySelector('use').setAttribute('href', X.vue === 'intervenant' ? '#i-grille' : '#i-intervenant');
     majPip();
-    const br = $('salle-rec-btn'), moiRec = !!(s.rec && s.rec.par === MOI.id), autreRec = !!(s.rec && !moiRec);
-    br.hidden = !(hote && ((s.outils && recDisponible()) || moiRec));          // l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, mais on peut toujours ÉTEINDRE celui qu'on a lancé
-    br.setAttribute('aria-pressed', moiRec ? 'true' : 'false'); br.setAttribute('aria-disabled', autreRec ? 'true' : 'false');
-    br.querySelector('span').textContent = moiRec ? 'Arrêter l\'enregistrement' : autreRec ? 'Enregistré par ' + s.rec.nom : 'Enregistrer';
-    $('salle-reagir').setAttribute('aria-expanded', X.emojis ? 'true' : 'false'); $('salle-emojis').hidden = !X.emojis;
     ['discussion', 'participants', 'plus'].forEach(n => $('salle-' + n).setAttribute('aria-expanded', X.panneau === n ? 'true' : 'false'));
   }
 
@@ -11029,7 +10993,7 @@ a.menu-action { text-decoration: none; }
   function salleOuvrirPanneau(A, nom, declencheurEl) {
     const X = sx(A);
     if (X.panneau === nom) { salleFermerPanneau(A); return; }
-    X.panneau = nom; X.emojis = false; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
+    X.panneau = nom; X.actions = null; X.retirer = null; X.declencheur = declencheurEl || null;
     if (nom === 'discussion') { X.neufs = 0; salleDiscussionCharger(A, true); }
     /* la discussion ou le suivi ouverts : les compteurs de MES documents se relisent toutes les 15 s (un patron garde le panneau ouvert, il voit les téléchargements arriver) */
     clearInterval(X.minuterieSuivis);
@@ -11087,6 +11051,19 @@ a.menu-action { text-decoration: none; }
     const s = A.snap, X = sx(A), hote = s.moi.hote;
     const inter = (act, actif, titre, detail) => '<button type="button" class="salle-rang" role="switch" aria-checked="' + (actif ? 'true' : 'false') + '" data-sa="' + act + '"><span class="texte">' + esc(titre) + (detail ? '<small>' + esc(detail) + '</small>' : '') + '</span><span class="salle-inter" aria-hidden="true"></span></button>';
     let h = '';
+    /* la rangée de pastilles, rangée ici (16 octobre 2026) : d'abord ce qu'on fait le plus — réagir, lever la main —, puis l'affichage, le partage, l'enregistrement */
+    const moiRec = !!(s.rec && s.rec.par === MOI.id), autreRec = !!(s.rec && !moiRec);
+    const ligneRec = !salleRecPossible(A) ? '' : autreRec
+      ? '<div class="salle-rang libre" id="salle-rec-ligne"><span class="texte">Enregistré par ' + esc(s.rec.nom) + '<small>Lui seul peut l\'arrêter</small></span></div>'
+      : '<button type="button" class="salle-rang" data-sa="rec" id="salle-rec-ligne"><span class="texte">' + (moiRec ? 'Arrêter l\'enregistrement<small>Tu choisis ensuite de le garder ou non</small>' : 'Enregistrer<small>Chacun voit « REC » tant que ça enregistre</small>') + '</span></button>';
+    if (moiRec) h += '<div class="salle-rub"><span>Enregistrement</span></div><div class="salle-liste">' + ligneRec + '</div>';     // ce qui enregistre se coupe d'ici, en premier
+    h += '<div class="salle-rub"><span>Réagir</span></div><div class="salle-liste"><div class="salle-rang libre salle-reactions" role="group" aria-label="Réactions">' +
+      Object.keys(EMOJI_SALLE).map(k => '<button type="button" class="presse" data-sa="reaction" data-s="' + k + '" aria-label="' + NOM_REACTION[k] + '">' + EMOJI_SALLE[k] + '</button>').join('') + '</div>' +
+      inter('main', s.moi.main, 'Lever la main', 'Ta main paraît sur ta vignette') + '</div>';
+    h += '<div class="salle-rub"><span>Affichage</span></div><div class="salle-liste">' + inter('vue', X.vue === 'intervenant', 'Vue intervenant', 'Celui qui parle en grand') +
+      (pipPossible() ? inter('pip', !!document.pictureInPictureElement, 'Image dans l\'image', 'La vidéo de celui qui parle flotte au-dessus des autres applications') : '') + '</div>';
+    if (A.ecran) h += '<div class="salle-rub"><span>Partage d\'écran</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="partage-changer"><span class="texte">Changer de fenêtre<small>Partager une autre fenêtre, sans arrêter</small></span></button></div>';
+    if (ligneRec && !moiRec) h += '<div class="salle-rub"><span>Enregistrement</span></div><div class="salle-liste">' + ligneRec + '</div>';
     if (hote && s.outils) {
       h += '<div class="salle-rub"><span>Sondage et minuteur</span></div><div class="salle-liste">';
       if (X.formSondage) {
@@ -11109,23 +11086,23 @@ a.menu-action { text-decoration: none; }
     }
     /* le tableau blanc et les annotations : ouvrir le tableau (tous, sauf si l'hôte les a réservées aux hôtes), le fermer (l'hôte, celui qui l'a ouvert), le réglage de l'hôte */
     const an = s.annot || { support: null, permis: 'tous', ouvreur: null };
+    const ligneAnnoter = annotPeut(A) ? inter('annoter', !!X.annoter, 'Annoter', an.support === 'tableau' ? 'Dessiner sur le tableau blanc' : an.support === 'ecran:' + MOI.id ? 'Dessiner sur ton écran partagé, tous le voient' : 'Dessiner sur l\'écran partagé') : '';
     if (CAP.annotations) {
       const surTableau = an.support === 'tableau', ouvreur = surTableau ? s.membres.find(m => m.id === an.ouvreur) : null;
-      let lignes = '';
+      let lignes = ligneAnnoter;
       if (surTableau) lignes += annotMaitre(A) ? '<button type="button" class="salle-rang" data-sa="tableau-fermer"><span class="texte">Fermer le tableau blanc<small>Ce qui y est dessiné s\'efface pour tous : « Capturer » l\'envoie d\'abord dans la discussion</small></span></button>'
         : '<div class="salle-rang libre"><span class="texte">Tableau blanc ouvert<small>' + esc(an.ouvreur === MOI.id ? 'Par vous' : 'Par ' + nomM(ouvreur)) + '</small></span></div>';
       else if (an.permis === 'tous' || hote) lignes += '<button type="button" class="salle-rang" data-sa="tableau-ouvrir"><span class="texte">Ouvrir un tableau blanc<small>Chacun y dessine et y écrit, tout le monde le voit</small></span></button>';
       if (hote) lignes += inter('annot-permis', an.permis === 'tous', 'Annotations des participants', 'Dessiner sur l\'écran partagé et le tableau (les hôtes le peuvent toujours)');
       if (lignes) h += '<div class="salle-rub"><span>Tableau blanc et annotations</span></div><div class="salle-liste">' + lignes + '</div>';
     }
-    /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image, là où le navigateur la sait */
+    /* micro, caméra, sortie : la liste vient de l'appareil (lue à l'ouverture du panneau, `X.appareils`) ; l'image dans l'image est plus haut, dans « Affichage » */
     const ap = X.appareils || [], choix = (quoi, kind, titre) => { const l = ap.filter(d => d.kind === kind); if (l.length < 2) return '';
       const actuel = prefMedias[quoi] || '';
       return '<label class="salle-rang libre salle-appareil"><span class="texte">' + esc(titre) + '</span><select data-appareil="' + quoi + '" aria-label="' + esc(titre) + '"><option value="">Par défaut</option>' +
         l.map((d, i) => '<option value="' + esc(d.deviceId) + '"' + (d.deviceId === actuel ? ' selected' : '') + '>' + esc(d.label || (titre + ' ' + (i + 1))) + '</option>').join('') + '</select></label>'; };
     const lignesAp = choix('micro', 'audioinput', 'Micro') + choix('camera', 'videoinput', 'Caméra') + (sortieChoisissable() ? choix('sortie', 'audiooutput', 'Sortie du son') : '');
-    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp + ligneFlou(A) +
-      (pipPossible() ? '<button type="button" class="salle-rang" data-sa="pip"><span class="texte">Image dans l\'image<small>La vidéo de celui qui parle flotte au-dessus des autres applications</small></span></button>' : '') + '</div>';
+    h += '<div class="salle-rub"><span>Son et image</span></div><div class="salle-liste">' + lignesAp + ligneFlou(A) + '</div>';
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
     if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
@@ -11177,7 +11154,7 @@ a.menu-action { text-decoration: none; }
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom, m.reseau]);
-    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs]);
+    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs, s.rec ? [s.rec.par, s.rec.nom] : null, X.vue, !!X.annoter, annotPeut(A), !!A.ecran, !!document.pictureInPictureElement]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
@@ -11290,7 +11267,21 @@ a.menu-action { text-decoration: none; }
       }
       case 'sondage-fermer': await salleGeste(A, 'evt', { k: 'sondage', donnees: { op: 'fermer' } }); return;
       case 'sondage-masquer': X.masque = s.sondage ? s.sondage.id : ''; $('salle-bandeaux').dataset.sig = ''; salleBandeaux(A); return;
-      case 'pip': basculerPip(); return;
+      /* les gestes venus de la rangée de pastilles : le panneau se referme D'ABORD (dans le geste : l'image dans l'image, l'enregistrement et le partage d'écran demandent un
+         geste de la personne), puis le geste se fait */
+      case 'reaction': if (!EMOJI_SALLE[el.dataset.s]) return; salleFermerPanneau(A); await salleGeste(A, 'reaction', { emoji: el.dataset.s }, 'La réaction n\'est pas partie.'); return;
+      case 'main': salleFermerPanneau(A); await salleMainBasculer(A); return;
+      case 'vue': salleFermerPanneau(A); salleVueBasculer(A); return;
+      case 'pip': salleFermerPanneau(A); basculerPip(); return;
+      case 'partage-changer': if (!A.ecran) return; salleFermerPanneau(A); changerPartage(); return;
+      case 'rec': salleFermerPanneau(A); salleRecBasculer(A); return;
+      case 'annoter': {
+        const on = !X.annoter;
+        if (!on) { salleFermerPanneau(A); annoterBasculer(A, false); return; }
+        annoterBasculer(A, true);                                                        // il referme le panneau lui-même ; le focus va au premier outil de la barre
+        const f = X.annoter ? $('annot-barre').querySelector('[data-outil]') : $('salle-plus'); if (f) f.focus({ preventScroll: true });
+        return;
+      }
       case 'minuteur': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'demarrer', secondes: +el.dataset.s } }, 'Le minuteur n\'a pas pu démarrer.'); return;
       case 'minuteur-arreter': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'arreter' } }); return;
       case 'lien-copier': {
@@ -11331,24 +11322,20 @@ a.menu-action { text-decoration: none; }
   $('salle-cam').addEventListener('click', basculerCamera);
   $('salle-flip').addEventListener('click', retournerCamera);
   $('salle-partage').addEventListener('click', () => basculerPartage());
-  $('salle-partage-changer').addEventListener('click', () => changerPartage());
-  $('salle-pip').addEventListener('click', () => basculerPip());
   $('salle-quitter').addEventListener('click', () => {
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;
     if (enSalle(A) && s.moi.proprietaire && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
     raccrocherCouche();
   });
-  $('salle-reagir').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A)) return; const X = sx(A); X.emojis = !X.emojis; if (X.emojis && X.panneau) salleFermerPanneau(A, false); salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); });
-  $('salle-emojis').addEventListener('click', async e => {
-    const b = e.target.closest('[data-reaction]'), A = etat.appelUI; if (!b || !enSalle(A)) return;
-    const X = sx(A); X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio));
-    $('salle-reagir').focus({ preventScroll: true });
-    await salleGeste(A, 'reaction', { emoji: b.dataset.reaction }, 'La réaction n\'est pas partie.');
-  });
-  $('salle-main').addEventListener('click', async () => { const A = etat.appelUI; if (!enSalle(A)) return; const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } });
-  $('salle-vue').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A)) return; const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); });
-  $('salle-rec-btn').addEventListener('click', () => { const A = etat.appelUI; if (!enSalle(A) || $('salle-rec-btn').getAttribute('aria-disabled') === 'true') return; if (A.rec) recArreter(A, true); else recDemarrer(A); });
+  /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026, Justin : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
+     Lever la main en tête) : une fonction par geste, appelée par la ligne du panneau ET par le raccourci (H, G). Le panneau se referme après le geste (on voit ce qu'il a fait :
+     la main sur sa vignette, la vue qui change, « REC ») et le focus revient sur « Plus ». */
+  async function salleMainBasculer(A) { const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } }
+  function salleVueBasculer(A) { const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); }
+  /* l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, mais on peut toujours ÉTEINDRE celui qu'on a lancé ; celui d'un autre hôte ne s'arrête pas d'ici */
+  const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id); return !!s.moi.hote && ((s.outils && recDisponible()) || moiRec); };
+  function salleRecBasculer(A) { const s = A.snap; if (!salleRecPossible(A) || (s.rec && s.rec.par !== MOI.id)) return; if (A.rec) recArreter(A, true); else recDemarrer(A); }
   /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
   $('salle-doc').addEventListener('change', async e => {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
@@ -11381,9 +11368,8 @@ a.menu-action { text-decoration: none; }
       const N = annotEtat(A);
       if (N.saisie) { annotSaisieFermer(A, false); return true; }
       if (N.palette) { const q = N.palette; annotPaletteFermer(A); $(q === 'couleur' ? 'annot-couleur' : 'annot-effacer').focus({ preventScroll: true }); return true; }
-      annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return true;
+      annoterBasculer(A, false); $('salle-plus').focus({ preventScroll: true }); return true;
     }
-    if (X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); $('salle-reagir').focus({ preventScroll: true }); return true; }
     if (X.panneau) { salleFermerPanneau(A); return true; }
     return true;
   }
@@ -11514,7 +11500,6 @@ a.menu-action { text-decoration: none; }
     }
     if (X.annoterApres && sup === X.annoterApres) { X.annoterApres = null; if (!X.annoter) annoterBasculer(A, true); }       // je viens d'ouvrir le tableau : j'y dessine tout de suite
     if (X.annoter && !annotPeut(A)) { annoterBasculer(A, false); if (sup) mot('L\'hôte a réservé les annotations aux hôtes.'); }
-    const bp = $('salle-annoter'); bp.hidden = !annotPeut(A); bp.setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
     $('annot-capturer').hidden = !(sup === 'tableau' || annotMaitre(A));                 // l'écran de quelqu'un ne se capture que par lui ou un hôte ; le tableau, par tous
     $('annot-effacer').setAttribute('aria-label', annotMaitre(A) ? 'Effacer…' : 'Effacer mes annotations');
   }
@@ -11523,10 +11508,8 @@ a.menu-action { text-decoration: none; }
     X.annoter = !!actif && annotPeut(A);
     if (X.annoter) E.dataset.annoter = '1'; else { E.removeAttribute('data-annoter'); annotSaisieFermer(A, true); annotPaletteFermer(A); }
     $('annot-barre').hidden = !X.annoter;
-    $('salle-annoter').setAttribute('aria-pressed', X.annoter ? 'true' : 'false');
     annotOutils(A);
     if (X.annoter && X.panneau) salleFermerPanneau(A, false);
-    if (X.annoter && X.emojis) { X.emojis = false; salleCommandes(A, A.mediaPret && (!A.micro || !A.audio)); }
     if (X.annoter) { const sup = annotInfo(A).support; annonceAppel(sup === 'tableau' ? 'Annoter : dessine sur le tableau blanc' : sup === 'ecran:' + MOI.id ? 'Annoter : dessine sur ton écran partagé, tous le voient sur leur écran' : 'Annoter : dessine sur l\'écran partagé'); }
     annotPlanifier();
   }
@@ -11712,7 +11695,6 @@ a.menu-action { text-decoration: none; }
     document.body.appendChild(lien); lien.click(); setTimeout(() => { lien.remove(); URL.revokeObjectURL(url); }, 4000);
     mot('Capture rangée dans tes téléchargements');
   }
-  $('salle-annoter').addEventListener('click', () => { const A = etat.appelUI; if (enSalle(A)) annoterBasculer(A, !sx(A).annoter); });
   $('annot-barre').addEventListener('click', async e => {
     const b = e.target.closest('button'), A = etat.appelUI; if (!b || !enSalle(A) || !$('annot-barre').contains(b)) return;
     const N = annotEtat(A);
@@ -11726,7 +11708,7 @@ a.menu-action { text-decoration: none; }
       case 'annot-effacer': if (annotMaitre(A)) annotPaletteOuvrir(A, 'effacer'); else await annotEffacer(A, 'miens'); return;
       case 'annot-annuler': annotPaletteFermer(A); if (N.trait) annotFinir(A, true); await annotEnvoyer(A, { op: 'annuler' }); if (!perime(A)) annotPlanifier(); return;
       case 'annot-capturer': annotPaletteFermer(A); await annotCapturer(A); return;
-      case 'annot-fin': annoterBasculer(A, false); $('salle-annoter').focus({ preventScroll: true }); return;
+      case 'annot-fin': annoterBasculer(A, false); $('salle-plus').focus({ preventScroll: true }); return;
       default: return;
     }
   });
@@ -12022,8 +12004,8 @@ a.menu-action { text-decoration: none; }
     const l = e.key && e.key.length === 1 ? e.key.toLowerCase() : '';
     if (l === 'm') { e.preventDefault(); basculerMicro(); }
     else if (l === 'v') { e.preventDefault(); basculerCamera(); }
-    else if (l === 'h') { e.preventDefault(); $('salle-main').click(); }
-    else if (l === 'g') { e.preventDefault(); $('salle-vue').click(); }
+    else if (l === 'h') { e.preventDefault(); salleMainBasculer(A); }
+    else if (l === 'g') { e.preventDefault(); salleVueBasculer(A); }
     else if (e.key === '?') { e.preventDefault(); salleOuvrirPanneau(A, 'raccourcis', document.activeElement); }
   });
   document.addEventListener('keyup', e => { if (e.key !== ' ' && e.key !== 'Spacebar') return; const A = etat.appelUI; if (A && A.sx && A.sx.ptt) { e.preventDefault(); parlerMaintenu(A, false); } });
@@ -12174,13 +12156,13 @@ a.menu-action { text-decoration: none; }
     const seul = $('salle-seul'); if (seul) seul.remove();
     $('salle-bandeaux').innerHTML = ''; $('salle-bandeaux').dataset.sig = '';
     $('salle-panneau').hidden = true; $('salle-panneau-corps').innerHTML = ''; $('salle-panneau-corps').dataset.sig = '';
-    $('salle-emojis').hidden = true; $('salle-avis').hidden = true;
+    $('salle-avis').hidden = true;
     $('salle-ecran').removeAttribute('data-attente');
     /* les annotations : le tableau, le calque, la barre — et la minuterie d'un trait en cours */
     const tab = $('salle-tableau'); if (tab) tab.remove();
     document.querySelectorAll('.annot-calque, .annot-saisie').forEach(x => x.remove());
     if (A && A.sx && A.sx.an) { clearInterval(A.sx.an.minuterie); if (A.sx.an.ro) A.sx.an.ro.disconnect(); A.sx.an.trait = null; }
-    $('salle-ecran').removeAttribute('data-annoter'); $('annot-barre').hidden = true; $('annot-palette').hidden = true; $('annot-palette').innerHTML = ''; $('salle-annoter').hidden = true;
+    $('salle-ecran').removeAttribute('data-annoter'); $('annot-barre').hidden = true; $('annot-palette').hidden = true; $('annot-palette').innerHTML = '';
     const v = $('salle-video-local'); try { v.pause(); } catch (e) { /* rien */ } v.srcObject = null;
     $('salle-vous').dataset.camera = 'off';
     scene.dataset.vue = 'galerie'; scene.dataset.n = '1';

@@ -449,6 +449,13 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
     const fermer = async (S) => { if (await visible(S, '#salle-panneau')) { await toucher(S, '#salle-panneau-fermer'); await S.page.waitForFunction(() => document.getElementById('salle-panneau').hidden, null, { timeout: 4000 }); } };
     const ligne = (uid) => '#salle-panneau-corps button.salle-rang[data-sa="ligne"][data-uid="' + uid + '"]';
     const geste = (act, uid) => '#salle-panneau-corps [data-sa="' + act + '"]' + (uid ? '[data-uid="' + uid + '"]' : '');
+    /* « Plus » ouvert ET posé : il se redessine une fois de lui-même, quand la liste des micros et des caméras arrive — 300 ms sans changement, sinon on toucherait une ligne remplacée */
+    const plus = async (S) => {
+      await panneau(S, 'plus');
+      await S.page.waitForFunction(() => !!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'), null, { timeout: 6000 });
+      await S.page.evaluate(() => new Promise(fin => { const c = document.getElementById('salle-panneau-corps'); let t = setTimeout(fini, 300); const o = new MutationObserver(() => { clearTimeout(t); t = setTimeout(fini, 300); }); function fini() { o.disconnect(); clearTimeout(garde); fin(); } const garde = setTimeout(fini, 4000); o.observe(c, { childList: true, subtree: true, attributes: true }); }));
+    };
+    const dansPlus = async (S, act, s2) => { await plus(S); await toucher(S, geste(act) + (s2 ? '[data-s="' + s2 + '"]' : '')); await S.page.waitForFunction(() => document.getElementById('salle-panneau').hidden, null, { timeout: 6000 }); };
     const lireConv = async (login) => { const n = nav(login); await n.src.connexion(login, MOTS[login]); await n.src.demarrer(); try { return (await n.src.ouvrir(grp.id)).messages; } finally { n.src.arreter(); } };
     const MESURES = {};
 
@@ -464,19 +471,24 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await verifier('… tout le monde reparle : les trois autres se rallument chez Ana', A, () => document.querySelectorAll('#salle-scene > .salle-tuile.parle[data-uid]').length === 3, null, 12000, async () => 'allumées=' + await allumees(A));
 
       /* la main levée */
-      await toucher(C, '#salle-main');
+      await plus(C);
+      await largeur(C, 'salle · Plus (téléphone)');
+      await toucher(C, geste('main'));
+      vrai('Cleo lève la main depuis « Plus » : le panneau se referme', await verifier('… le panneau de Cleo', C, () => document.getElementById('salle-panneau').hidden, null, 6000));
       for (const S of [A, B, D]) await verifier(S.nom + ' : la main de Cleo est LEVÉE (badge sur sa vignette)', S, u => !!document.querySelector('#salle-scene > .salle-tuile[data-uid="' + u + '"] .salle-badge.main'), id.cleo, 10000, async () => JSON.stringify((await tuiles(S)).find(t => t.uid === id.cleo)));
-      await verifier('… et Cleo le voit aussi (le bouton dit « Baisser la main », enfoncé)', C, () => /Baisser/.test(document.getElementById('salle-main').textContent) && document.getElementById('salle-main').getAttribute('aria-pressed') === 'true', null, 6000);
-      await toucher(C, '#salle-main');
+      await verifier('… et Cleo le voit aussi : sa main sur SA vignette', C, () => !!document.querySelector('#salle-vous-badges .salle-badge.main'), null, 6000);
+      await plus(C);
+      await verifier('… et « Plus » rouvert la dit levée (l\'interrupteur « Lever la main » allumé)', C, () => { const b = document.querySelector('#salle-panneau-corps [data-sa="main"]'); return !!b && b.getAttribute('role') === 'switch' && b.getAttribute('aria-checked') === 'true'; }, null, 6000);
+      await toucher(C, geste('main'));
       await verifier('… elle la baisse : le badge disparaît chez Ben', B, u => !document.querySelector('#salle-scene > .salle-tuile[data-uid="' + u + '"] .salle-badge.main'), id.cleo, 10000);
 
       /* les réactions */
-      await toucher(B, '#salle-reagir');
-      vrai('Ben : la palette de réactions s\'ouvre (quatre réactions)', await visible(B, '#salle-emojis') && (await B.page.evaluate(() => document.querySelectorAll('#salle-emojis [data-reaction]').length)) === 4);
-      await toucher(B, '#salle-emojis [data-reaction="coeur"]');
+      await plus(B);
+      v('Ben : « Plus » commence par « Réagir » et ses quatre réactions', await B.page.evaluate(() => [(document.querySelector('#salle-panneau-corps > .salle-rub') || {}).textContent, document.querySelectorAll('#salle-panneau-corps [data-sa="reaction"]').length]), ['Réagir', 4]);
+      await toucher(B, geste('reaction') + '[data-s="coeur"]');
       for (const S of [A, C, D]) await verifier(S.nom + ' : le cœur de Ben monte de SA vignette', S, u => { const r = document.querySelector('#salle-scene > .salle-tuile[data-uid="' + u + '"] .salle-reaction'); return !!r && r.textContent.includes('❤'); }, id.ben, 10000);
       await verifier('… et il s\'EFFACE de lui-même (rien ne s\'accumule)', A, () => document.querySelectorAll('.salle-reaction').length === 0, null, 8000);
-      vrai('… la palette se referme après le choix', !(await visible(B, '#salle-emojis')));
+      vrai('… « Plus » se referme après le choix (le focus revient sur « Plus »)', !(await visible(B, '#salle-panneau')) && await B.page.evaluate(() => document.activeElement === document.getElementById('salle-plus')));
 
       /* la discussion : la conversation du groupe, le même fil */
       await panneau(A, 'discussion');
@@ -499,12 +511,12 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
       await toucher(A, geste('epingler', id.ben));
       await fermer(A);
       for (const S of [C, D]) await verifier(S.nom + ' : la vignette de Ben est ÉPINGLÉE', S, u => !!document.querySelector('#salle-scene > .salle-tuile.epingle[data-uid="' + u + '"]'), id.ben, 10000);
-      await toucher(C, '#salle-vue');
+      await dansPlus(C, 'vue');
       await verifier('Cleo passe en vue « intervenant » : l\'épinglé (Ben) est la GRANDE vignette, les autres suivent', C, u => { const s = document.getElementById('salle-scene'); const g = s.querySelector('.salle-tuile.grand'); return s.dataset.vue === 'intervenant' && !!g && g.dataset.uid === u; }, id.ben, 8000, async () => JSON.stringify((await tuiles(C)).map(t => [t.uid.slice(0, 4), t.grand, t.epingle])));
       await largeur(C, 'salle · vue intervenant (téléphone)');
       await capturer(bT, '21-intervenant', [A, C]);
-      await toucher(C, '#salle-vue');
-      await verifier('… elle revient à la galerie (le bouton le dit)', C, () => document.getElementById('salle-scene').dataset.vue === 'galerie' && !document.querySelector('.salle-tuile.grand'), null, 6000);
+      await dansPlus(C, 'vue');
+      await verifier('… elle revient à la galerie (l\'interrupteur de « Plus » l\'éteint)', C, () => document.getElementById('salle-scene').dataset.vue === 'galerie' && !document.querySelector('.salle-tuile.grand'), null, 6000);
       await panneau(A, 'participants');
       await toucher(A, ligne(id.ben));
       await toucher(A, geste('epingler', id.ben));
@@ -691,14 +703,18 @@ setTimeout(() => { console.log('  ✗ délai global de la sonde dépassé (1500 
     await bloc('6. L\'enregistrement LOCAL de l\'hôte : le bandeau « REC » chez tous, un fichier lu par ffprobe (image et voix), la tonalité retrouvée par Goertzel', async () => {
       if (!ffAvailable()) { console.log('  ⚠️  NON VÉRIFIÉ : ffprobe/ffmpeg absents — l\'enregistrement n\'est pas jugé (il faut alors le MASQUER, jamais le laisser).'); return; }
       for (const S of [A, B, C, E]) await parler(S, true);
-      vrai('population : le bouton « Enregistrer » existe pour l\'hôte (Ana) et pour le co-hôte (Ben), PAS pour Cleo', (await visible(A, '#salle-rec-btn')) && (await visible(B, '#salle-rec-btn')) && !(await visible(C, '#salle-rec-btn')));
-      await toucher(A, '#salle-rec-btn');
+      for (const S of [A, B, C]) await plus(S);
+      v('population : « Plus » propose « Enregistrer » à l\'hôte (Ana) et au co-hôte (Ben), PAS à Cleo (son « Plus » est bien ouvert)', await Promise.all([A, B, C].map(S => S.page.evaluate(() => [!!document.querySelector('#salle-panneau-corps [data-sa="reaction"]'), !!document.querySelector('#salle-panneau-corps [data-sa="rec"]')]))), [[true, true], [true, true], [true, false]]);
+      await toucher(A, geste('rec'));
       for (const S of [A, B, C, E]) await verifier(S.nom + ' : le bandeau « REC » est là', S, () => !document.getElementById('salle-rec').hidden && /REC/.test(document.getElementById('salle-rec').textContent), null, 12000, async () => 'rec=«' + (await lire(S, '#salle-rec')) + '» caché=' + !(await visible(S, '#salle-rec')));
-      vrai('… et Ben (co-hôte) ne peut pas enregistrer en même temps : son bouton dit QUI enregistre', await verifier('… le bouton de Ben', B, () => /Enregistré par/.test(document.getElementById('salle-rec-btn').textContent) && document.getElementById('salle-rec-btn').getAttribute('aria-disabled') === 'true', null, 8000, async () => '«' + (await lire(B, '#salle-rec-btn')) + '»'));
+      vrai('… et Ben (co-hôte) ne peut pas enregistrer en même temps : son « Plus », resté ouvert, dit QUI enregistre — et n\'a plus de geste', await verifier('… le « Plus » de Ben', B, () => { const l = document.getElementById('salle-rec-ligne'); return !!l && /Enregistré par/.test(l.textContent) && !document.querySelector('#salle-panneau-corps [data-sa="rec"]'); }, null, 8000, async () => '«' + (await lire(B, '#salle-panneau-corps')) + '»'));
+      await fermer(B); await fermer(C);
       await largeur(C, 'salle · REC (téléphone)');
       await dormir(7000);
       /* depuis le 7 octobre 2026, l'arrêt ouvre la carte « Enregistrement terminé » (l'envoyer aux absents, le garder, le supprimer) : le fichier se range par « Enregistrer sur cet appareil » */
-      await toucher(A, '#salle-rec-btn');
+      await plus(A);
+      v('Ana : son « Plus » commence par « Enregistrement » et propose de l\'arrêter', await A.page.evaluate(() => [(document.querySelector('#salle-panneau-corps > .salle-rub') || {}).textContent, /Arrêter l'enregistrement/.test((document.querySelector('#salle-panneau-corps [data-sa="rec"]') || {}).textContent || '')]), ['Enregistrement', true]);
+      await toucher(A, geste('rec'));
       await verifier('Ana : l\'arrêt ouvre la carte « Enregistrement terminé »', A, () => !document.getElementById('rec-fin').hidden, null, 15000);
       const [dl] = await Promise.all([A.page.waitForEvent('download', { timeout: 30000 }), toucher(A, '#rec-fin-garder')]);      // le geste d'un iPhone (et son diagnostic s'il n'aboutit pas)
       await verifier('… « Enregistrer sur cet appareil » ferme la carte (elle ne couvre plus les commandes de la salle)', A, () => document.getElementById('rec-fin').hidden, null, 6000);
