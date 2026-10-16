@@ -4700,6 +4700,22 @@ html[data-refonte] .pl-row.lga{container:ligne-gestes / inline-size;flex-wrap:wr
   html[data-refonte] .lga::after{order:1}
   html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st,html[data-refonte] .lga > .btn{order:2;margin-left:auto}
 }
+/* ⛔ ET LES LIGNES DE BONS DE COMMANDE (g03, achats#2 et achats#9, mesuré au navigateur) : pastille de
+   fournisseur, TEXTE (numéro, quantités, courriel du destinataire), statut, puis trois boutons — Voir le PDF,
+   Envoyer, corbeille — sur une seule ligne. Texte à 0 px sur Android et iPhone (« BC- / 2026- / 001 / 2 / article(s) »
+   mot par mot, boutons sortis de 87 à 183 px de la carte) et à 14 px sur iPad ; sur Commandes en cours, 35 px
+   pour une commande partielle (« reste dû : … »). Même motif que `.lga`, avec SON seuil : le texte d'un bon est long
+   (une adresse courriel entière), il lui faut ~200 px, et la ligne en perd 430 aux gestes — d'où 700 px et non 440.
+   La ligne est son propre conteneur (`ligne-bon`), parce qu'elle vit dans la liste, dans « Par box » (plus étroite
+   de 68 px) et dans Commandes en cours : un @media sur l'écran ne voit pas l'iPad et son menu latéral.
+   Le statut ET les boutons forment UN groupe (`.lgb-a`) : deux marges automatiques s'en seraient partagé la place. */
+html[data-refonte] .pl-row.lgb{container:ligne-bon / inline-size;flex-wrap:wrap;row-gap:10px!important}
+html[data-refonte] .lgb > .lgb-a{display:flex;align-items:center;gap:15px;flex-shrink:0}
+@container ligne-bon (max-width:700px){
+  html[data-refonte] .lgb > .pl-info{flex:1 1 calc(100% - 60px)}   /* la base du texte prend la ligne : la pastille et le chevron seuls restent à côté */
+  html[data-refonte] .lgb::after{order:1}
+  html[data-refonte] .lgb > .lgb-a{order:2;flex-shrink:1;flex-wrap:wrap;justify-content:flex-end;gap:8px 10px;margin-left:auto}
+}
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
    C'est ce qui manquait pour que ça se lise comme une application de terrain et non comme un
@@ -30178,14 +30194,14 @@ function renderBonsList(){
   if(!list.length){ el.innerHTML=`<div class="card">${emptyState('✉️','Aucun bon de commande.','Nouveau','formBon()')}</div>`; return; }
   const bulkBtn = bonsFilter==='prets' ? `<button class="btn" style="width:100%;justify-content:center;margin:0 0 10px" onclick="bonEnvoyerTousPrets()">✉️ Envoyer les bons prêts… (${list.length}) — tu choisis lesquels</button>` : '';
   const bonRow=b=>{ const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{}; const fn=f.nom||b.fournisseur||'Sans fournisseur'; const c=f.nom?fourColor(f.nom):'var(--t3)';
-    return `<div class="pl-row" onclick="ficheBon('${b.id}')" style="align-items:center">
+    return `<div class="pl-row lgb" onclick="ficheBon('${b.id}')" style="align-items:center">
     <span style="width:12px;height:12px;border-radius:50%;background:${c};flex-shrink:0"></span>
     <div class="pl-info"><div class="pl-title">${esc(fn)} <span style="color:var(--t3);font-weight:400;font-size:12px">· ${esc(bonNum(b))}</span></div>
-      <div class="pl-meta">${(b.lignes||[]).length} article(s) · ${bonQteTotTxt(b)} · ${fmtShort(b.date)}${bonEmailDest(b,f)?`<br>→ <span style="color:var(--acc-txt)">${esc(bonEmailDest(b,f))}</span>`:'<br>⚠️ e-mail fournisseur manquant'}</div></div>${badge(STATBC,b.statut)}
+      <div class="pl-meta">${(b.lignes||[]).length} article(s) · ${bonQteTotTxt(b)} · ${fmtShort(b.date)}${bonEmailDest(b,f)?`<br>→ <span style="color:var(--acc-txt)">${esc(bonEmailDest(b,f))}</span>`:'<br>⚠️ e-mail fournisseur manquant'}</div></div><span class="lgb-a">${badge(STATBC,b.statut)}
     <span onclick="event.stopPropagation()" style="display:flex;gap:4px;flex-shrink:0">
       <button class="btn ghost sm" title="Voir le PDF" onclick="bonPdfOpen('${b.id}')">📄</button>
       ${b.statut==='brouillon'?`<button class="btn sm" onclick="bonStatut('${b.id}','prete')">✓ Prêt</button>`:b.statut==='prete'?`<button class="btn sm" onclick="envoiBonApercu('${b.id}')">✉️ Envoyer</button>`:''}
-      <button class="btn danger sm" onclick="delItem('bons','${b.id}')">🗑</button></span></div>`; };
+      <button class="btn danger sm" onclick="delItem('bons','${b.id}')">🗑</button></span></span></div>`; };
   if(bonsTab==='box'){ el.innerHTML=bulkBtn+bonsParBoxHtml(list,bonRow); return; }
   if(bonsTab==='liste'){ el.innerHTML=bulkBtn+list.map(bonRow).join(''); return; }
   // groupé par site ou fournisseur
@@ -31793,7 +31809,7 @@ views.commandes=function(){
        c'est la seule information qui permet de relancer le fournisseur. */
     const manque=b.statut==='partielle'?` · <b style="color:var(--org)">reste dû : ${esc(bonResteTxt(b))}</b>`:'';
     const suivi=enRoute+manque+(b.recuPar?` · reçu le ${fmtShort(b.recuLe)} par ${esc(b.recuPar)}`:'')+(b.valideDrNom?` · validé par ${esc(b.valideDrNom)}`:'');
-    return `<div class="pl-row" onclick="ficheBon('${b.id}')"><div class="pl-info"><div class="pl-title">${esc(fournName(b.fournisseurId)||b.fournisseur||'Fournisseur')} · ${(b.lignes||[]).length} article(s)</div><div class="pl-meta">${esc(bonNum(b))} · ${bonQteTotTxt(b)}${suivi}</div></div>${b.statut==='arrivageNote'?'<span class="st st-purple">📦 Arrivée — attente DR</span>':badge(STATBC,b.statut)}${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();cmdEnCoursSuppr('${b.id}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}</div>`;}).join('') : emptyState('📥','Aucune commande en cours.','',''))+pied;
+    return `<div class="pl-row lgb" onclick="ficheBon('${b.id}')"><div class="pl-info"><div class="pl-title">${esc(fournName(b.fournisseurId)||b.fournisseur||'Fournisseur')} · ${(b.lignes||[]).length} article(s)</div><div class="pl-meta">${esc(bonNum(b))} · ${bonQteTotTxt(b)}${suivi}</div></div><span class="lgb-a">${b.statut==='arrivageNote'?'<span class="st st-purple">📦 Arrivée — attente DR</span>':badge(STATBC,b.statut)}${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();cmdEnCoursSuppr('${b.id}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}</span></div>`;}).join('') : emptyState('📥','Aucune commande en cours.','',''))+pied;
 };
 
 /* ═══════════════ VÉHICULES (fiche complète : carte grise, assurance, conducteur — modèle ELAN) ═══════════════ */
