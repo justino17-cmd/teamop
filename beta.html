@@ -24072,8 +24072,8 @@ function renderIntDetail(id){
       <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
         <button class="btn ghost sm" onclick="formRapport('${id}')">Rédiger le rapport</button>
         ${i.statut!=='terminee'?`<button class="btn ghost sm" onclick="assistCloture('${id}')">✓ Clôture guidée</button>`:''}
-        ${canCat('ventes','ajouter')?`<button class="btn ghost sm" onclick="intGenererDoc('${id}','devis')">Créer un devis</button>`:''}
-        ${i.statut==='terminee'&&canCat('ventes','ajouter')?`<button class="btn ghost sm" onclick="intGenererDoc('${id}','factures')">Facturer cette intervention</button>`:''}
+        ${canCat('ventes','ajouter')&&userSeesModule(currentUser,'devis')?`<button class="btn ghost sm" onclick="intGenererDoc('${id}','devis')">Créer un devis</button>`:''}
+        ${i.statut==='terminee'&&canCat('ventes','ajouter')&&userSeesModule(currentUser,'factures')?`<button class="btn ghost sm" onclick="intGenererDoc('${id}','factures')">Facturer cette intervention</button>`:''}
         <button class="btn ghost sm" onclick="mailClientRdv('${id}','rappel')">E-mail de rappel</button>
         ${cliA.tel?`<button class="btn ghost sm" onclick="smsArrivee('${id}')">Prévenir de l'arrivée</button>`:''}
         ${(i.adresse||cliA.adresse)?`<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.adresse||cliA.adresse)}" target="_blank" class="btn ghost sm" style="text-decoration:none">Itinéraire</a>`:''}
@@ -24639,7 +24639,17 @@ function intDemarrerQuick(id){ const i=db.interventions.find(x=>x.id===id); if(!
 function intCkAdd(id){ const v=($('ck-new').value||'').trim(); if(!v) return; const i=db.interventions.find(x=>x.id===id); i.checklist=i.checklist||[]; i.checklist.push({t:v,done:false}); save(); renderIntDetail(id); }
 function intCkToggle(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.checklist||!i.checklist[k]) return; i.checklist[k].done=!i.checklist[k].done; save(); renderIntDetail(id); }
 function intCkDel(id,k){ const i=db.interventions.find(x=>x.id===id); if(!i||!i.checklist) return; i.checklist.splice(k,1); save(); renderIntDetail(id); }
-function intGenererDoc(id,kind){ if(!permGarde('ventes','ajouter',kind==='devis'?'un devis':'une facture')) return; const i=db.interventions.find(x=>x.id===id); if(!i)return;
+/* ⛔ « Facturer cette intervention » (16 octobre 2026, testeur) : deux clics créaient deux factures de plus à côté
+   de la facture automatique, le prix encaissé (un TTC) recevait 20 % de TVA par-dessus (120 € → 144 €), et un
+   technicien — qui n'a PAS la rubrique Factures — facturait quand même, parce que « Ventes → Ajouter » vaut VRAI
+   par défaut (catDeduitRegle rend null). La case se lit ici, en première instruction ; la RUBRIQUE s'ajoute à
+   la case ; et une intervention qui a déjà sa facture (n'importe laquelle des trois clés) l'OUVRE au lieu d'en
+   créer une seconde. */
+function intGenererDoc(id,kind){ if(!permGarde('ventes','ajouter',kind==='devis'?'un devis':'une facture')) return;
+  if(!userSeesModule(currentUser,kind==='devis'?'devis':'factures')){ toast('Ton compte n\'a pas accès à la rubrique '+(kind==='devis'?'Devis':'Factures')+' (Permissions)'); return; }
+  const i=db.interventions.find(x=>x.id===id); if(!i)return;
+  if(kind==='factures'){ const ex=factureDeIntervention(id);
+    if(ex){ closeModal(); toast('Cette intervention a déjà sa facture '+(ex.num||'')+' — la voici'); if(canCat('ventes','modifier')) formDoc('factures',ex.id); else printDoc('factures',ex.id); return; } }
   /* Le technicien saisit dans SON unité (250 mL) ; le prix de la fiche est par unité de
      stock (48 €/L). Sans stockConv — que la déduction de stock appliquait sur exactement la
      même donnée, jusqu'à la v741 — la facture partait chez le client à 12 000 € au lieu de 12 €. L'unité
@@ -24648,10 +24658,12 @@ function intGenererDoc(id,kind){ if(!permGarde('ventes','ajouter',kind==='devis'
     const uL=prodLineUnit(l), uP=p.unite||uL;
     const q=Math.round(stockConv(l.qte!=null?(+l.qte||0):1,uL,uP)*10000)/10000;
     return {designation:(p.nom||l.nomLibre||'Produit')+(uP?' ('+uP+')':''),qte:q,pu:p.prix||0}; });
-  if(Number(i.montant)>0) lignes.unshift({designation:i.titre||'Prestation',qte:1,pu:Number(i.montant)||0});
+  /* le prix de la fiche est un TTC (« Prix encaissé ») : on en tire le HT, la TVA se rajoute au total */
+  const tvaR=intTvaFacture();
+  if(Number(i.montant)>0) lignes.unshift({designation:i.titre||'Prestation',qte:1,pu:intMontantHT(i.montant,tvaR)});
   if(!lignes.length) lignes.push({designation:i.titre||'Prestation',qte:1,pu:0});
   const pref=kind==='devis'?'DEV':'FAC'; const num=docNum(kind);
-  db[kind].push({id:uid(),num,clientId:i.clientId,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:20,lignes,rapportModele:i.rapportModele||'',notes:'Depuis intervention : '+(i.titre||''),interventionId:i.id});
+  db[kind].push({id:uid(),num,clientId:i.clientId,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:tvaR,lignes,rapportModele:i.rapportModele||'',notes:'Depuis intervention : '+(i.titre||''),interventionId:i.id,montantInt:Number(i.montant)||0});
   logEvent(kind==='devis'?'Devis créé':'Facture créée',num+' (depuis intervention)','commercial'); save(); closeModal();
   if(kind==='factures'){ factFilter='brouillon'; toast('Facture '+num+' créée — elle est En attente : vérifie l\'aperçu puis envoie-la'); } else toast('Devis créé : '+num);
   go(kind);
