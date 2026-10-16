@@ -330,7 +330,9 @@
   .tag{font-size:12px;font-weight:600;padding:3px 9px;border-radius:7px;background:color-mix(in srgb,var(--t3) 12%,transparent);color:var(--t2);}
   .tag.hot{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);}
 
-  .search-inp{width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;color:var(--t1);font-family:'Archivo',sans-serif;font-size:14px;margin-bottom:14px;}
+  .search-inp{width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;color:var(--t1);font-family:'Archivo',sans-serif;font-size:14px;margin-bottom:14px;text-overflow:ellipsis;}
+  /* un libellé trop long pour le champ (« Rechercher un produit, une référence, un fournisseur… » : 441 px dans 358) finit par « … » au lieu d'être coupé net sur « ur » — g03, technicien#13 */
+  .search-inp::placeholder{text-overflow:ellipsis;}
   .search-inp:focus{outline:none;border-color:color-mix(in srgb,var(--acc) 55%,transparent);}
   /* FILTERS */
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
@@ -460,7 +462,12 @@
   .bar-lbl{font-size:13px;color:var(--t2);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .bar-track{flex:1;height:12px;background:var(--bg);border-radius:100px;overflow:hidden;}
   .bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .5s;}
-  .bar-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:64px;text-align:right;flex-shrink:0;}
+  /* ⛔ UNE COLONNE DE MONTANTS NE SE FIXE PAS À 64 PX (g03, accueil#9, mesuré au navigateur) : « 1 055,00 € » passait sur deux
+     lignes (« € » seul dessous), « 12 345,67 € » dépassait de 6 px, « 123 456,78 € » de 14 px et « 118 518 518,52 € » de 46 px
+     — jusqu'à sortir de la carte (page à 395 px pour 390). 64 px reste le PLANCHER (les petits chiffres gardent leur
+     alignement), la colonne s'élargit à son contenu, insécable, et c'est la barre — `flex:1`, sans largeur propre — qui
+     cède la place : un chiffre se lit, une barre se devine. */
+  .bar-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:auto;min-width:64px;white-space:nowrap;text-align:right;flex-shrink:0;}
 
   /* MAP */
   .map-canvas{position:relative;height:440px;border-radius:16px;overflow:hidden;border:1px solid var(--brd);background:linear-gradient(135deg,#10141b,#181f2b);background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;}
