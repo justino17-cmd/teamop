@@ -10535,11 +10535,19 @@ function numPlafondRelever(){ if(!db) return; db.numMax=(db.numMax&&typeof db.nu
     const k=m[1]+'-'+m[2], n=+m[3]; if(n>(db.numMax[k]||0)) db.numMax[k]=n; }); };
   voir(db.interventions,'num'); voir(db.interventionsArchive,'num');
   voir(db.devis,'num'); voir(db.factures,'num'); voir(db.demandes,'num'); voir(db.bonsRemise,'num');
-  voir(db.bons,'numero'); }
+  voir(db.bons,'numero');
+  /* g02 : un contrat et une enveloppe supprimés rendaient leur numéro (le plafond ne les lisait pas) */
+  voir(db.contrats,'num'); voir(db.enveloppes,'numero'); }
 function numMaxUnion(a,b){ const o={};
   new Set([].concat(Object.keys(a||{}),Object.keys(b||{}))).forEach(k=>{ o[k]=Math.max(+((a||{})[k])||0,+((b||{})[k])||0); });
   return o; }
 function numPlafond(prefixe,annee){ return +((db&&db.numMax)||{})[prefixe+'-'+annee]||0; }
+/* UNE SEULE définition de « ce numéro est déjà porté par un autre document ». Un N° saisi à la main
+   (contrat, bon de commande) pouvait doubler celui d'un autre : rien ne le vérifiait. Retourne le
+   document en conflit (le premier trouvé), ou null. Espaces et casse ignorés ; l'enregistrement
+   qu'on édite (exceptId) ne compte pas contre lui-même. Un numéro vide n'est jamais « pris ». */
+function numDejaPris(coll,champ,num,exceptId){ const n=String(num==null?'':num).trim().toLowerCase(); if(!n) return null;
+  return ((db&&db[coll])||[]).find(x=>x&&x.id!==exceptId&&String(x[champ]==null?'':x[champ]).trim().toLowerCase()===n)||null; }
 /* ⛔ v751 — UN RAFRAÎCHISSEMENT D'AFFICHAGE NE COUPE JAMAIS LA SYNCHRO. `refreshBadges()` et `updateBell()`
    passaient sans filet entre l'enregistrement et `syncPush()` : une erreur dans le calcul de la cloche
    (le `bx` de computeNotifs, vérification de A à Z du 26 septembre 2026) sortait de save() et plus rien ne
@@ -29542,14 +29550,22 @@ function saveBox(e,id){ e.preventDefault(); if(!boxGererGarde(id?'modifier':'ajo
 const PAY_MODES=['Espèces','Chèque','Carte','Virement','SumUp','Cofidis'];
 const PAY_STAT={encaisse:{l:'Encaissé',c:'st-green'},attente:{l:'En attente',c:'st-org'},annule:{l:'Annulé',c:'st-red'}};
 function envPaie(e){ return e.paiements||[]; }
-function envTotal(e){ return envPaie(e).filter(p=>p.statut!=='annule').reduce((s,p)=>s+(p.montant||0),0); }
-function envEsp(e){ return envPaie(e).filter(p=>p.mode==='Espèces'&&p.statut!=='annule').reduce((s,p)=>s+(p.montant||0),0); }
-function envChq(e){ return envPaie(e).filter(p=>p.mode==='Chèque'&&p.statut!=='annule').reduce((s,p)=>s+(p.montant||0),0); }
+/* g02 : « encaissé » veut dire ENCAISSÉ. Un chèque « En attente » n'est pas de l'argent reçu : il se montre
+   à part (envAttente), il n'entre ni dans le total ni dans les chèques. Un statut absent ou inconnu se
+   lit « Encaissé » — c'est ce que la fiche affiche (PAY_STAT[p.statut]||PAY_STAT.encaisse) : l'écran et
+   le compte disent la même chose. */
+const envEncaisse=p=>!!p&&p.statut!=='attente'&&p.statut!=='annule';
+function envTotal(e){ return envPaie(e).filter(envEncaisse).reduce((s,p)=>s+(p.montant||0),0); }
+function envEsp(e){ return envPaie(e).filter(p=>p.mode==='Espèces'&&envEncaisse(p)).reduce((s,p)=>s+(p.montant||0),0); }
+function envChq(e){ return envPaie(e).filter(p=>p.mode==='Chèque'&&envEncaisse(p)).reduce((s,p)=>s+(p.montant||0),0); }
+function envAttente(e){ return envPaie(e).filter(p=>p&&p.statut==='attente').reduce((s,p)=>s+(p.montant||0),0); }
+const envAttenteLigne=t=>t>0?`<div class="pl-meta" style="margin:-4px 0 10px;color:var(--org)">⏳ En attente : ${eur(t)} — pas encore compté dans le total</div>`:'';
 let envView=null;
 views.enveloppes=function(){
   const total=db.enveloppes.reduce((s,e)=>s+envTotal(e),0);
   const esp=db.enveloppes.reduce((s,e)=>s+envEsp(e),0);
   const chq=db.enveloppes.reduce((s,e)=>s+envChq(e),0);
+  const att=db.enveloppes.reduce((s,e)=>s+envAttente(e),0);
   setHeader('Enveloppes','Encaissements clients',`<button class="btn" onclick="formEnv()">＋ Enveloppe</button>`);
   const list=[...db.enveloppes].sort((a,b)=>(b.dateCreation||'').localeCompare(a.dateCreation||''));
   const rows=list.map(e=>{ const n=envPaie(e).length;
@@ -29571,6 +29587,7 @@ views.enveloppes=function(){
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(total)}</div><div class="kpi-lbl">Total encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💵</div><div class="kpi-val">${eur(esp)}</div><div class="kpi-lbl">Espèces</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📝</div><div class="kpi-val">${eur(chq)}</div><div class="kpi-lbl">Chèques</div></div></div>
+    ${envAttenteLigne(att)}
     ${list.length? rows:`<div class="card">${emptyState('📮','Aucune enveloppe.','Nouvelle','formEnv()')}</div>`}`;
 };
 function ficheEnv(id){ const e=db.enveloppes.find(x=>x.id===id); if(!e)return; e.paiements=e.paiements||[];
@@ -29590,6 +29607,7 @@ function ficheEnv(id){ const e=db.enveloppes.find(x=>x.id===id); if(!e)return; e
       <div class="kpi"><div class="kpi-val" style="color:var(--org)">${eur(envTotal(e))}</div><div class="kpi-lbl">Total encaissé</div></div>
       <div class="kpi"><div class="kpi-val">💵 ${eur(envEsp(e))}</div><div class="kpi-lbl">Espèces</div></div>
       <div class="kpi"><div class="kpi-val">📝 ${eur(envChq(e))}</div><div class="kpi-lbl">Chèques</div></div></div>
+    ${envAttenteLigne(envAttente(e))}
     <div class="form-sec">Encaissements (${pays.length})</div>
     <div class="fgroup">${pays.length? pays.map(p=>{ const st=PAY_STAT[p.statut]||PAY_STAT.encaisse;
       return `<div class="frow"><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--t1)">${esc(p.mode)}</div><div style="font-size:11px;color:var(--t3)" class="mono">${fmtShort(p.date)}${p.reference?' · '+esc(p.reference):''}</div></div>
@@ -29603,7 +29621,7 @@ function formPaiement(envId){ if(!permGarde('stock','modifier','une enveloppe'))
       <div class="form-sec">Mode de paiement</div>
       <div class="fgroup"><div class="frow"><select name="mode" style="width:100%">${PAY_MODES.map(m=>`<option>${m}</option>`).join('')}</select></div></div>
       <div class="form-sec">Montant</div>
-      <div class="fgroup"><div class="frow"><input type="number" step="0.01" name="montant" required placeholder="0,00 €" inputmode="decimal"></div></div>
+      <div class="fgroup"><div class="frow"><input type="number" step="0.01" min="0.01" name="montant" required placeholder="0,00 €" inputmode="decimal"></div></div>
       <div class="form-sec">Détails</div>
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Date</span><div class="frow-val"><input type="date" name="date" value="${todayISO()}" style="width:auto"></div></div>
@@ -29616,7 +29634,11 @@ function formPaiement(envId){ if(!permGarde('stock','modifier','une enveloppe'))
    l'enveloppe (« Stock → Modifier », comme saveEnv). Rien ne le lisait, et le ✕ supprimait un paiement
    client réel d'un seul toucher, sans confirmation — la seule suppression du fichier sans question. */
 function savePaiement(ev,envId){ ev.preventDefault(); if(!permGarde('stock','modifier','une enveloppe')) return; const e=db.enveloppes.find(x=>x.id===envId); if(!e)return; e.paiements=e.paiements||[];
-  const d=Object.fromEntries(new FormData(ev.target)); d.montant=parseFloat(d.montant)||0;
+  const d=Object.fromEntries(new FormData(ev.target)); d.montant=parseFloat(String(d.montant==null?'':d.montant).replace(',','.'));
+  /* g02 : un encaissement est un montant REÇU, donc strictement positif. 0, vide et NaN ne disent rien ; un
+     négatif ressemble à un remboursement, notion qui n'existe pas encore ici — on refuse en le disant. */
+  if(!isFinite(d.montant)||d.montant===0){ toast('Indique un montant supérieur à 0 €'); return; }
+  if(d.montant<0){ toast('Un encaissement ne peut pas être négatif — les remboursements ne sont pas gérés ici'); return; }
   e.paiements.push({id:uid(),mode:d.mode,montant:d.montant,date:d.date,reference:d.reference,statut:d.statut});
   logEvent('Encaissement',`${e.numero} — ${eur(d.montant)} (${d.mode})`,'finance'); save(); ficheEnv(envId); toast('Encaissement ajouté');
 }
@@ -29649,7 +29671,7 @@ function saveEnv(ev,id){ ev.preventDefault();
   const clientNom=`${d.prenom||''} ${d.nom||''}`.trim();
   const obj={clientNom,clientTelephone:d.clientTelephone,adresse:d.adresse,ville:d.ville,technicienId:d.technicienId,actif:f.actif.checked};
   if(id){ const ix=db.enveloppes.findIndex(x=>x.id===id); db.enveloppes[ix]={...db.enveloppes[ix],...obj}; save(); toast('Mise à jour'); ficheEnv(id); }
-  else{ const numero='ENV-'+new Date().getFullYear()+'-'+String(db.enveloppes.length+1).padStart(3,'0'); db.enveloppes.push({id:uid(),numero,...obj,dateCreation:todayISO(),paiements:[]}); logEvent('Nouvelle enveloppe',numero,'finance'); save(); toast('Enveloppe créée'); closeModal(); views.enveloppes(); }
+  else{ const numero=nextNum('enveloppes','ENV','numero'); db.enveloppes.push({id:uid(),numero,...obj,dateCreation:todayISO(),paiements:[]}); logEvent('Nouvelle enveloppe',numero,'finance'); save(); toast('Enveloppe créée'); closeModal(); views.enveloppes(); }
 }
 
 /* ═══════════════ MES DEMANDES (demande de commande Chef → DR, liée à une Box) ═══════════════ */
@@ -31064,6 +31086,13 @@ function bonValider(id){ const form=$('bonform'); if(!form) return; const f=Obje
   const lignesOk=bonLignes.filter(l=>l.designation||l.produitId);
   if(!lignesOk.length){ alert('Ta commande est vide.\n\nAjoute au moins un produit avec le bouton 📖 Catalogue.'); return; }
   const _qt=bonQteTot({lignes:lignesOk}); if(_qt.ctn+_qt.u===0){ alert('⚠️ Toutes les quantités sont à 0.\n\nRègle les CARTONS ou les UNITÉS de chaque produit (boutons − / ＋) avant de valider la commande.'); if(!$('bon-qty')) bonQtyOpen(); return; }
+  /* g02 : un numéro de bon ne se réutilise pas. Saisi à la main, il pouvait doubler celui d'un autre bon
+     (les réponses fournisseur retrouvent le bon par son numéro : elles tomberaient sur le premier). À la
+     modification, seulement si le N° CHANGE — un doublon d'avant ne bloque pas la correction d'autre chose.
+     Avant bonMemorise : un refus n'a rien écrit. */
+  { const num0=String(f.numero||'').trim(), av=id?String(((db.bons.find(x=>x.id===id))||{}).numero||'').trim().toLowerCase():'';
+    const pris=(!id||av!==num0.toLowerCase())?numDejaPris('bons','numero',num0,id):null;
+    if(pris){ toast('Le numéro '+num0+' est déjà porté par un autre bon de commande — choisis-en un autre'); return; } f.numero=num0; }
   bonMemorise(bonLignes);   // les prix / u-ctn saisis enrichissent le catalogue pour la prochaine fois
   const selName=fournName(f.fournisseurId)||'';
   const groups=bonGroupes(f.fournisseurId);
@@ -37464,7 +37493,12 @@ views.contrats=function(){
   setHeader('Contrats','Contrats de maintenance & récurrents',cAj?`<button class="btn" onclick="formContrat()">＋ Contrat</button>`:'');
   const rows=list.map(ct=>`<tr data-ctr="${esc(ct.id)}"><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}${ctrPastille(echDe.get(ct.id))}</td><td>${badge(CTR_ST,ct.statut)}</td>
     <td style="text-align:right;white-space:nowrap">${iAj?`<button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> `:''}${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> `:''}${cSup?`<button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button>`:''}</td></tr>`).join('');
-  $('content').innerHTML=`${ctrBandeau(ech,cMod)}<div class="card" style="background:color-mix(in srgb,var(--acc) 7%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div style="font-size:13px;color:var(--t2)">Le bouton <b>Générer</b> crée automatiquement la prochaine intervention planifiée selon la fréquence du contrat.</div></div>
+  /* g02 : les doublons déjà en base se DISENT, ils ne se renumérotent pas (un numéro émis ne change pas seul) */
+  const dbl=docNumsDoubles('contrats');
+  const bandeauDbl=dbl.length?`<div class="card" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);padding:12px 14px;margin-bottom:12px">
+    <div style="font-weight:800;color:var(--org);font-size:13.5px">⚠️ ${dbl.length} numéro${dbl.length>1?'s':''} en double</div>
+    <div style="font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.55"><span class="mono">${dbl.slice(0,6).map(esc).join(', ')}</span>${dbl.length>6?' et '+(dbl.length-6)+' autre(s)':''} — deux contrats portent le même numéro. Ouvre le plus récent (✎) et donne-lui un autre numéro.</div></div>`:'';
+  $('content').innerHTML=`${bandeauDbl}${ctrBandeau(ech,cMod)}<div class="card" style="background:color-mix(in srgb,var(--acc) 7%,transparent);border-color:color-mix(in srgb,var(--acc) 30%,transparent)"><div style="font-size:13px;color:var(--t2)">Le bouton <b>Générer</b> crée automatiquement la prochaine intervention planifiée selon la fréquence du contrat.</div></div>
     ${list.length? tableCard(['N°','Intitulé','Client','Fréquence','Montant','Période','Statut',''],rows):`<div class="card">${emptyState('📑','Aucun contrat.',cAj?'Créer':'',cAj?'formContrat()':'')}</div>`}`;
 };
 function ctrFreqDays(f){ return {mensuel:30,trimestriel:91,semestriel:182,annuel:365}[f]||30; }   // contrats (minuscules) — distinct de freqDays des box
@@ -37477,7 +37511,7 @@ function genererInterventionContrat(id){ if(!permGarde('int','ajouter','une inte
 function formContrat(id){ const ct=id?db.contrats.find(x=>x.id===id):{};
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} contrat</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="saveContrat(event,'${id||''}')">
-      <div class="field-row"><div class="field"><label>N° *</label><input name="num" required value="${esc(ct.num)||('CTR-'+new Date().getFullYear()+'-'+String(db.contrats.length+1).padStart(3,'0'))}"></div>
+      <div class="field-row"><div class="field"><label>N° *</label><input name="num" required value="${esc(ct.num)||nextNum('contrats','CTR','num')}"></div>
         <div class="field"><label>Montant (€)</label><input type="number" step="0.01" name="montant" value="${ct.montant??0}"></div></div>
       <div class="field"><label>Intitulé *</label><input name="titre" required value="${esc(ct.titre)}"></div>
       <div class="field"><label>Client *</label><select name="clientId" required><option value="">—</option>${clientsProposes(ct.clientId).map(c=>`<option value="${c.id}" ${c.id===ct.clientId?'selected':''}>${esc(c.nom)}</option>`).join('')}</select></div>
@@ -37489,6 +37523,11 @@ function formContrat(id){ const ct=id?db.contrats.find(x=>x.id===id):{};
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
 }
 function saveContrat(e,id){ e.preventDefault(); if(!permGarde('ventes',id?'modifier':'ajouter','un contrat')) return; const d=Object.fromEntries(new FormData(e.target)); d.montant=parseFloat(d.montant)||0;
+  /* g02 : un N° est unique. À la modification, seulement s'il CHANGE — corriger un contrat dont le numéro
+     est déjà doublé (doublon d'avant) ne doit pas se bloquer. */
+  { const avant=id?(db.contrats.find(x=>x.id===id)||{}).num:''; d.num=String(d.num||'').trim();
+    const pris=(!id||String(avant||'').trim().toLowerCase()!==d.num.toLowerCase())?numDejaPris('contrats','num',d.num,id):null;
+    if(pris){ toast('Le numéro '+d.num+' est déjà porté par le contrat « '+(pris.titre||pris.num)+' » — choisis-en un autre'); return; } }
   if(!clientPropose(d.clientId,id?((db.contrats.find(x=>x.id===id)||{}).clientId):'')){ toast('Ce client ne te concerne pas — choisis-en un dans la liste'); return; }
   if(id){ const ix=db.contrats.findIndex(x=>x.id===id); db.contrats[ix]={...db.contrats[ix],...d}; toast('Contrat mis à jour'); }
   else{ db.contrats.push({id:uid(),creePar:(currentUser&&currentUser.id)||'',...d}); logEvent('Contrat créé',d.num,'finance'); toast('Contrat créé'); }
