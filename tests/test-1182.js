@@ -64,7 +64,11 @@ for (const n of ['saveRapport', 'assistCloture', 'assistFinish', 'intEffToggle',
 console.log('\n── 1182 · 4. les boutons « Rédiger » et « Clôture guidée » se cachent à qui ne peut pas (le code de la fiche) ──');
 { const lignes = SRC.split('\n').filter(l => /(formRapport|assistCloture)\('\$\{id\}'\)/.test(l));
   vrai('population : les boutons de la fiche (4 lignes)', lignes.length >= 4, lignes.length);
-  v('… chacun lit peutClore (= intStatutPermis(i,\'terminee\'))', lignes.filter(l => !/peutClore/.test(l)).map(l => l.slice(0, 90)), []);
+  /* un bouton = un segment jusqu'au </button> qui le ferme : CHAQUE segment qui appelle l'une des deux fonctions lit peutClore
+     (une ligne qui en porte deux ne doit pas laisser le second sans garde — mutation « Rédiger toujours visible ») */
+  const segments = lignes.flatMap(l => l.split('</button>')).filter(sg => /(formRapport|assistCloture)\('\$\{id\}'\)/.test(sg));
+  vrai('population : 5 boutons (carte Rapport ×2, Autres ×2, Rédiger / modifier)', segments.length === 5, segments.length);
+  v('… chacun lit peutClore (= intStatutPermis(i,\'terminee\'))', segments.filter(sg => !/peutClore/.test(sg)).map(sg => sg.slice(-90)), []);
   vrai('peutClore est défini dans renderIntDetail par la même règle que le menu de statut', /const peutClore=intStatutPermis\(i,'terminee'\)/.test(fonction('renderIntDetail'))); }
 
 fin();
