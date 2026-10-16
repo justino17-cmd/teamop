@@ -22,26 +22,35 @@ de se publier à chaque fusion, comme avant.
 # 🟡 16 OCTOBRE 2026 — OP MESSAGES (BÊTA) : LA SALLE N'A PLUS QUE SA BARRE RONDE, ET LE FICHIER .ICS EST PARTI (PR À VENIR)
 
 Justin, aux deux questions de la page avant/après (la salle : ranger la rangée de pastilles dans « Plus » ; le code .ics dormant : le retirer) : « ok fait les deux ».
-· **La salle** (`3bc32d30`, puis la relecture) : plus de rangée au-dessus de la barre ronde (micro, caméra, partager, discussion, participants, plus). Ses gestes sont des lignes de
-  « Plus » : « Réagir » en tête (les quatre réactions, l'interrupteur « Lever la main »), « Affichage » (Vue intervenant, Image dans l'image — deux interrupteurs qui disent
-  leur état), « Partage d'écran » (Changer de fenêtre, pendant un partage), « Enregistrement » (EN TÊTE pour qui enregistre : « Arrêter » est le premier geste), « Annoter » avec
-  le tableau blanc. Le panneau se referme après le geste et rend le focus à « Plus » (« Annoter » le donne au premier outil, Échap le rend à « Plus ») ; H et G appellent les
-  mêmes gestes ; la signature du panneau lit l'enregistrement, la vue, l'annotation, le partage et l'image dans l'image (« Plus » ouvert suit G, et Échap qui quitte une
-  annotation). ⚠️ « Image dans l'image » et « Changer de fenêtre » étaient SUR l'écran de la salle depuis le 8 octobre, à sa demande : ils sont rangés avec le reste — à
-  remettre sur l'écran s'il le préfère. ⛔ Dette d'avant, corrigée en passant (relecture) : « Enregistrer » était proposé au co-hôte, que le service refuse (seul l'hôte, grade 2,
-  commence — test-986) ; le co-hôte voit désormais « Enregistré par X » quand un autre enregistre, sans geste. Couleurs forcées : l'interrupteur garde rail, pouce et état.
+· **La salle** (`3bc32d30`, puis la relecture `5a5728fc` et `8e553c19`, UI 207) : plus de rangée au-dessus de la barre ronde (micro, caméra, participants, plus ; « Partager »
+  quand l'appareil sait partager son écran, « Discussion » quand la réunion a la sienne). Ses gestes sont des lignes de « Plus », en tête : « Réagir » (les quatre réactions,
+  l'interrupteur « Lever la main »), « Affichage » (Vue intervenant, Image dans l'image — deux interrupteurs qui disent leur état), « Partage d'écran » (Changer de fenêtre,
+  pendant un partage), « Enregistrement » (passe AVANT Réagir pour qui enregistre : « Arrêter » est alors le premier geste) ; puis l'ordre du jour et les outils de l'hôte, puis
+  « Annoter » avec le tableau blanc. Toucher une de ces lignes referme « Plus » PUIS fait le geste, le focus revient au bouton « Plus » (les interrupteurs de l'hôte laissent le
+  panneau ouvert, comme avant) ; « Annoter » donne le focus au premier outil ; en quittant l'annotation (Échap, « OK »), `annoterQuitter` le pose sur l'interrupteur « Annoter »
+  si « Plus » est resté ouvert, sinon sur le bouton « Plus » — jamais sur un bouton que le panneau recouvre. Au clavier, H et G appellent les mêmes gestes ; la signature du
+  panneau lit l'enregistrement, la vue, l'annotation, le partage et l'image dans l'image (« Plus » ouvert suit G, et Échap qui quitte une annotation). Le coût, dit à Justin :
+  main, vue, image dans l'image, changer de fenêtre, enregistrer et annoter passent d'un toucher à deux (réagir en demandait déjà deux). ⚠️ « Image dans l'image » était SUR
+  l'écran de la salle depuis le 8 octobre à sa demande (« Changer de fenêtre », demandé la même nuit, y était aussi) : rangés avec le reste — à remettre s'il le préfère.
+  ⛔ Dette d'avant, corrigée en passant (relecture) : « Enregistrer » était proposé au co-hôte, que le service refuse (seul l'hôte, grade 2, commence — test-986) ; il ne lui
+  est plus proposé, et « Enregistré par X » se lit sans geste (la pastille grisée le disait, sauf quand son navigateur ne savait pas enregistrer). Couleurs forcées :
+  l'interrupteur garde rail, pouce et état. ⚠️ Vu et laissé (d'avant, inchangé) : à 390 px, quand « Partager » paraît, la barre passe sur deux rangées et « Plus » reste
+  seul en bas (grille `minmax(58px, 1fr)`). La page cache « Partager » sur iPhone, et le bouton ne paraît que si le navigateur fournit
+  `getDisplayMedia` : une fenêtre de bureau rétrécie, ou un téléphone Android dont le navigateur le fournirait (NON vérifié sur un vrai Android). Sur Mac, « Plus » ouvert couvre les deux derniers ronds de la barre
+  (panneau à droite, 380 px) : voulu, comme avant ; la croix le referme.
 · **Le .ics** (`10b8564a`) : partis `server-msg/ics.js`, `GET /api/reunions/:id/ics`, `GET /api/agenda/:id/ics`, `adresseIcs`/`adresseIcsEvenement` (api.js,
   source-serveur.js), `jourSemaine` et `compter` (calendrier.js, plus d'appelant), `test-971`. ⛔ Restent exprès : la lecture d'un .ics COLLÉ (« Coller une confirmation »,
   `lireIcs`, test-1007) et toutes les gardes négatives (aucune pièce jointe .ics, aucun lien .ics). Les 94 faits du monde réel de test-971 (zoneinfo, 12 fuseaux) vivent dans
-  test-970 (109 ✓) : l'oracle indépendant d'`instantLocal` n'est pas parti avec le fichier. ⚠️ `confidentialite.html:41` garde EXPRÈS sa phrase sur le « fichier d'agenda (.ics) » :
-  la version publique d'OP MESSAGES n'a pas reçu ce retrait ; la retirer LE JOUR où elle le reçoit (dans la ligne, sans en changer le nombre : la page est citée par numéro).
-Preuves (avant la relecture, sur `08b1a225`) : la sonde du confort 101 ✓ (la barre seule, l'ordre de « Plus », chaque geste, G panneau ouvert), groupe 214 ✓, annotations 51 ✓,
-enregistrement 26 ✓, présence 11 ✓ ; mutations de la salle `scratchpad/salle/mutations-salle.py` M01–M10 toutes attrapées ; mutations du calendrier C01–C10 toutes tuées par test-970 SEUL ;
-porte des bancs messages : 98 suites, 9 942 vérifications, toutes vertes en local (plus aucun banc ne dépend des fuseaux de la machine) — plancher 9928 ; suite complète :
-313 suites, 23 729 vérifications, seul test-856 tombait (un nom dans un commentaire de la page : corrigé, 175 ✓). Relecture adverse (six angles, chaque constat contre-vérifié) :
-14 réels sur 17, tous mineurs (dont 3 d'avant), tous corrigés. ⚠️ Un commit intermédiaire porte mal son contenu : `08b1a225` (« sondes de la salle ») contient aussi la
-suppression de test-971, qui était déjà indexée — le contenu final est juste. ⚠️ `node tests/mutations-reunions.js --verifier` : 22 mutations MAL VISÉES, d'avant (la dette
-notée plus bas), sans lien avec ce lot.
+  test-970 (107 → 109 ✓) : l'oracle indépendant d'`instantLocal` n'est pas parti avec le fichier. ⚠️ `confidentialite.html:41` garde EXPRÈS sa phrase sur le « fichier d'agenda
+  (.ics) » : la version publique d'OP MESSAGES n'a pas reçu ce retrait ; la retirer LE JOUR où elle le reçoit (dans la ligne, sans en changer le nombre : la page est citée par numéro).
+Preuves, sur le code final (`8e553c19`) : sondes de la salle — confort 104 ✓ (la barre seule, l'ordre de « Plus », chaque geste, G panneau ouvert, l'annonce d'une réaction),
+annotations 56 ✓ (Échap panneau ouvert ET fermé), groupe 214 ✓ (le co-hôte sans « Enregistrer »), enregistrement 26 ✓, présence 11 ✓ ; mutations de la salle
+`scratchpad/salle/mutations-salle.py` (session) : M01–M13 toutes attrapées (M01–M12 sur `5a5728fc` ; M05, M06 revisées et M13 neuve sur `8e553c19` ; M12 rejouée seule : 102 ✓ 2 ✗,
+c'est l'annonce qui tombe — le second ✗ en découle, l'attente de 15 s laisse s'éteindre le cœur chez Ana) ; mutations du calendrier C01–C10 toutes tuées par test-970 SEUL ;
+porte des bancs messages : 98 suites, 9 942 vérifications, toutes vertes (plancher 9928) ; suite complète : 313 suites, 23 731 vérifications, toutes vertes. Relecture adverse (six angles, chaque constat contre-vérifié) : 14 réels sur 17, tous mineurs (dont 3 d'avant), tous corrigés ; puis la page avant/après et le
+corps de PR relus affirmation par affirmation (25 affirmations, 34 agents Sonnet) : 9 imprécises, toutes corrigées, et le focus d'« Annoter » (deux chemins) trouvé en passant.
+⚠️ Un commit intermédiaire porte mal son contenu : `08b1a225` (« sondes de la salle ») contient aussi la suppression de test-971, qui était déjà indexée — le contenu final est
+juste. ⚠️ `node tests/mutations-reunions.js --verifier` : 22 mutations MAL VISÉES, d'avant (la dette notée plus bas), sans lien avec ce lot.
 
 # ✅ 15 OCTOBRE 2026 (SOIR) — OP MESSAGES PLUS SIMPLE, À LA FAÇON D'APPLE : LOTS 1 À 3 (BÊTA, EN SERVICE)
 
