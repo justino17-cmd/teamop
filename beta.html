@@ -35582,14 +35582,39 @@ function factIsLate(f){ return f.statut==='retard' || (f.statut==='envoyee' && f
 /* ⛔ v738 — ENVOYER, MARQUER PAYÉE, CONVERTIR : CE SONT DES MODIFICATIONS (et une création). Aucune de
    ces portes ne lisait « Ventes » : un compte en consultation seule marquait une facture payée, l'envoyait
    au client, transformait un devis en facture. Mesuré sur la v737. */
-function factSetStatut(id,st){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; f.statut=st; if(st==='payee'&&!f.datePaiement)f.datePaiement=todayISO(); if(st!=='payee')delete f.datePaiement; logEvent('Facture '+((FACT_ST[st]||{}).l||st),f.num,'finance'); save(); views.factures(); toast('Facture mise à jour'); }
+/* ⛔ g06 (facturation#4, #11) — UN EURO, UNE LIGNE : la ligne du registre qu'a créée le pointage d'une facture
+   (`factureId`, aucune intervention) meurt avec le paiement. « Annuler le paiement » la laissait : re-pointer le
+   virement ajoutait une seconde ligne (130 € au registre pour une facture de 120 €), et supprimer la facture en
+   laissait une orpheline. ⚠️ Une ligne qui porte AUSSI `interId` est l'encaissement sur place d'une intervention :
+   l'argent a bien été pris, elle appartient à l'intervention et reste. Le registre est de la comptabilité :
+   sans « Voir / gérer la comptabilité », on ne l'efface pas — et le geste est refusé EN ENTIER, pas à moitié. */
+function factLignesRegistre(f){ return (db.registres||[]).filter(l=>l.factureId===f.id&&!l.interId); }
+function factRegistreRetirer(f){ const ls=factLignesRegistre(f); if(!ls.length) return 0; const ids=new Set(ls.map(l=>l.id));
+  db.registres=(db.registres||[]).filter(l=>!ids.has(l.id));
+  ls.forEach(l=>logEvent('Ligne du registre retirée',f.num+' — '+eur(l.montant)+' ('+(((typeof REG_MODES!=='undefined'&&REG_MODES[l.mode])||['',l.mode||''])[1])+')','finance')); return ls.length; }
+/* Quitter « Payée » (bouton ↩︎, ou statut changé dans le formulaire) : à appeler AVANT d'écrire le nouveau statut.
+   Rend faux si le geste est refusé ; sinon retire la validation comptable et les lignes de pointage. */
+function factQuitterPayee(f,nouveau){ if(!f||f.statut!=='payee'||nouveau==='payee') return true;
+  const ls=factLignesRegistre(f);
+  if(ls.length){
+    if(!isFinanceMgr()){ toast('Annuler ce paiement retire sa ligne du registre des encaissements : réservé au droit « Voir / gérer la comptabilité »'); return false; }
+    if(!confirm('Annuler le paiement retire aussi du registre des encaissements :\n'+ls.map(l=>'• '+eur(l.montant)+' ('+(((typeof REG_MODES!=='undefined'&&REG_MODES[l.mode])||['',l.mode||''])[1])+')').join('\n')+'\n\nContinuer ?')) return false; }
+  if(f.valideCompta){ f.valideCompta=false; logEvent('Facture validation retirée (paiement annulé)',f.num,'finance'); }
+  factRegistreRetirer(f); return true; }
+function factSetStatut(id,st){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; if(!factQuitterPayee(f,st)) return; f.statut=st; if(st==='payee'&&!f.datePaiement)f.datePaiement=todayISO(); if(st!=='payee')delete f.datePaiement; logEvent('Facture '+((FACT_ST[st]||{}).l||st),f.num,'finance'); save(); views.factures(); toast('Facture mise à jour'); }
 /* Envoi d'une facture En attente : l'e-mail part (ou SMS si pas d'e-mail) et la facture passe « Envoyée » */
 function factEnvoyer(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return;
   const c=db.clients.find(x=>x.id===f.clientId)||{};
   if(!c.email&&!c.tel){ toast('Ajoute un e-mail (ou un téléphone) sur la fiche du client d\'abord'); return; }
   Promise.resolve(envoiDoc('factures',id,'mail')).then(ok=>{ if(!ok) return;   // v740 : « Envoyée » quand elle est PARTIE
     f.statut='envoyee'; logEvent('Facture envoyée',f.num,'finance'); save(); if(current==='factures') views.factures(); }); }
-function delFacture(id){ if(!canCat('ventes','supprimer')){toast('Suppression non autorisée pour ton compte (Permissions)');return;} if(!confirm('Supprimer cette facture ?'))return; db.factures=(db.factures||[]).filter(x=>x.id!==id); logEvent('Facture supprimée',id,'finance'); save(); views.factures(); toast('Facture supprimée'); }
+function delFacture(id){ if(!canCat('ventes','supprimer')){toast('Suppression non autorisée pour ton compte (Permissions)');return;}
+  /* g06 (facturation#4) : la ligne de registre née du pointage de CETTE facture part avec elle (sinon elle reste orpheline) */
+  const f0=(db.factures||[]).find(x=>x.id===id), reg0=f0?factLignesRegistre(f0):[];
+  if(reg0.length&&!isFinanceMgr()){ toast('Cette facture a une ligne au registre des encaissements : la supprimer demande le droit « Voir / gérer la comptabilité »'); return; }
+  if(!confirm('Supprimer cette facture ?'+(reg0.length?'\n\nSa ligne du registre des encaissements ('+reg0.map(l=>eur(l.montant)).join(', ')+') sera retirée aussi.':'')))return;
+  if(f0&&reg0.length) factRegistreRetirer(f0);
+  db.factures=(db.factures||[]).filter(x=>x.id!==id); logEvent('Facture supprimée',id,'finance'); save(); views.factures(); toast('Facture supprimée'); }
 views.factures=function(){
   const canDel=canCat('ventes','supprimer');
   const ttc=f=>docTot(f).ttc;
