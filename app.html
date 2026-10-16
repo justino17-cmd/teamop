@@ -13571,7 +13571,12 @@ function multiPoserDefil(y){ if(!y) return; const c = $('content'); if(c && c.sc
 function multiCapturer(){
   if(!currentUser || !current) return;
   const o = multiTout();
-  const ouverte = !!($('overlay') && $('overlay').classList.contains('open')) && !_modalForcee;
+  /* ⛔ « open » ne veut pas dire ouverte : pendant les 210 ms de sa sortie animée, l'overlay garde « open » ET porte
+     « ferme » (§6, chemin de sortie d'une fenêtre). Or c'est PRÉCISÉMENT le moment où un enregistrement appelle
+     `closeModal(); go(current)` : lire « open » seul mémorisait le formulaire qu'on venait d'enregistrer, la barre
+     « Reprendre » le proposait, et Reprendre + Créer faisait un doublon (clients#0, achats#0) — ou rouvrait la fiche d'un
+     client supprimé (clients#1). Une fenêtre en train de partir est une fenêtre que la personne a quittée. */
+  const ouverte = !!($('overlay') && $('overlay').classList.contains('open') && !$('overlay').classList.contains('ferme')) && !_modalForcee;
   const e = { ts: Date.now(), y: multiDefil() };
   if(ouverte && _multiHtml && _multiHtml.length <= MULTI_MAX){
     const m = $('modal');
@@ -24856,6 +24861,9 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
       <button class="btn" onclick="closeModal();formDoc('devis')">＋ Devis</button></div>`);
 }
 function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
+  /* clients#1 : la fiche d'un client supprimé (une reprise d'avant, un lien resté ouvert) jetait une TypeError sur
+     `c.prefPassage` et le bouton « Modifier » ne faisait rien, sans un mot. On le dit. */
+  if(!c){ toast('Ce client n’existe plus'); return; }
   const pp=c.prefPassage||{};
   const JN=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} client</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -42544,6 +42552,29 @@ if(typeof window.closeModal==='function'&&typeof window.openModal==='function'){
     var ov=voile(); if(ov) ov.classList.remove('ferme');
     return ouvrirNatif.apply(this,arguments);
   };
+  /* ⛔⛔ UNE FENÊTRE QUI PART N'ACCEPTE PLUS RIEN — UNE GARDE POUR TOUS LES FORMULAIRES (lot g01, 16 octobre 2026).
+     Pendant ses 210 ms de sortie, l'overlay reste « open ferme » : le formulaire et ses boutons sont encore dans le DOM,
+     encore cliquables. Un deuxième clic ou toucher (mesuré à 0, 60, 120 et 200 ms, plus à 300) rappelait `save*` —
+     deux clients, deux devis AU MÊME NUMÉRO, deux arrivages (stock crédité deux fois), deux lignes « Rapport enregistré »,
+     quinze constats pour une seule cause. Trente `if(enCours) return` dans les `save*` auraient été trente rustines (et la
+     trente-et-unième oubliée) : on avale le geste ICI, là où l'on sait que la fenêtre est en train de partir.
+     · En phase de CAPTURE sur le document : on passe avant les gestionnaires en ligne (`onsubmit`, `onclick`), qui sont
+       ceux des formulaires. `click` couvre les boutons (saveArrivage n'est PAS un submit), `submit` couvre Entrée dans un
+       champ et les formulaires.
+     · ⛔ Pas de `pointer-events:none` sur l'overlay qui part : le deuxième toucher tomberait sur la page DESSOUS (une carte,
+       une ligne qui ouvre une fiche). On avale le geste, on ne le laisse pas traverser.
+     · Ne se déclenche que si la cible est DANS l'overlay et qu'il porte « ferme » : un formulaire refusé (« Indique un
+       client ») reste ouvert, sans « ferme », donc le renvoi reste possible ; `openModal` retire « ferme », donc le premier
+       clic d'un « closeModal(); ouvrirAutreChose() » n'est pas avalé non plus.
+     · Un gestionnaire asynchrone qui ne ferme pas tout de suite (saveUser, aiGenDevisXylo, mailBoxSave) n'est pas couvert
+       par ici : il se protège par `btnOccupe(el)`, qui existe déjà. */
+  var avalerSiPart=function(e){
+    var ov=voile(); if(!ov||!ov.classList.contains('ferme')) return;
+    var t=e.target; if(!t||!ov.contains(t)) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+  };
+  document.addEventListener('click',avalerSiPart,true);
+  document.addEventListener('submit',avalerSiPart,true);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════════════════════
