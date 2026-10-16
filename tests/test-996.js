@@ -21,6 +21,7 @@ let ok = 0, ko = 0;
 const v = (t, a, b) => { const bon = JSON.stringify(a) === JSON.stringify(b); bon ? ok++ : ko++;
   console.log('  ' + (bon ? '✓' : '✗') + ' ' + t + (bon ? '' : '  → attendu ' + JSON.stringify(b) + ', reçu ' + JSON.stringify(a))); };
 const vrai = (t, c) => v(t, !!c, true);
+const lire = f => { try { return fs.readFileSync(f, 'utf8'); } catch { return null; } };  // un fichier absent est un ✗, pas un banc qui meurt
 
 const RACINE = path.join(__dirname, '..');
 const HOOKS = path.join(RACINE, '.claude', 'hooks');
@@ -91,15 +92,15 @@ laisse('arbre propre : git checkout app.html', 'git checkout app.html');
 salir();
 const etatAvant = g('status', '--porcelain');
 const { r: r1, dossier } = garde('git checkout app.html sur un correctif non commité', 'git checkout app.html');
-vrai('   la copie porte le CONTENU du correctif (on peut le récupérer)', dossier && fs.readFileSync(path.join(dossier, 'fichiers', 'app.html'), 'utf8') === CORRECTIF);
-vrai('   changements.diff porte la ligne', dossier && /\+le correctif NON COMMITÉ/.test(fs.readFileSync(path.join(dossier, 'changements.diff'), 'utf8')));
-vrai('   COMMANDE.txt nomme le geste', dossier && /git checkout app\.html/.test(fs.readFileSync(path.join(dossier, 'COMMANDE.txt'), 'utf8')));
+vrai('   la copie porte le CONTENU du correctif (on peut le récupérer)', dossier && lire(path.join(dossier, 'fichiers', 'app.html')) === CORRECTIF);
+vrai('   changements.diff porte la ligne', dossier && /\+le correctif NON COMMITÉ/.test(lire(path.join(dossier, 'changements.diff'))));
+vrai('   COMMANDE.txt nomme le geste', dossier && /git checkout app\.html/.test(lire(path.join(dossier, 'COMMANDE.txt'))));
 vrai('   l\'avis nomme le fichier et le chemin de la copie', /app\.html/.test(r1.avis) && r1.avis.includes(dossier));
 v('   le hook ne touche PAS à l\'arbre de travail', g('status', '--porcelain'), etatAvant);
 // la récupération de bout en bout : le geste part, puis on reprend depuis la copie
 g('checkout', 'app.html');
 v('   (le geste a bien effacé le correctif)', fs.readFileSync(path.join(depot, 'app.html'), 'utf8'), 'version commitée\n');
-execFileSync('git', ['apply', path.join(dossier, 'changements.diff')], { cwd: depot });
+spawnSync('git', ['apply', path.join(dossier, 'changements.diff')], { cwd: depot });
 v('   git apply changements.diff le RAMÈNE', fs.readFileSync(path.join(depot, 'app.html'), 'utf8'), CORRECTIF);
 
 garde('git checkout -- .', 'git checkout -- .');
@@ -123,12 +124,16 @@ laisse('git reset --soft HEAD', 'git reset --soft HEAD');
 garde('git switch -f autre', 'git switch -f autre');
 laisse('git status ; git diff ; git log', 'git status; git diff; git log -1');
 laisse('echo "git checkout app.html" (une phrase, pas un geste)', 'echo "git checkout app.html"');
-laisse('un heredoc qui CITE git checkout (message de commit)', "git commit -F - <<'EOF'\nretrait de la mutation par git checkout app.html\nEOF");
+laisse('un heredoc dont une ligne COMMENCE par git checkout (message de commit)', "git commit -F - <<'EOF'\ngit checkout app.html retire la mutation\nEOF");
+laisse('   même avec <<- et un terminateur indenté', "cat <<-FIN\n\tgit checkout app.html\n\tFIN");
+garde('   mais un geste APRÈS le heredoc est vu', "cat <<'EOF'\ntexte\nEOF\ngit checkout app.html");
+laisse('echo \'git checkout app.html\' (guillemets simples)', "echo 'git checkout app.html'");
+garde('bash -c \'git checkout app.html\' (guillemets simples)', "bash -c 'git checkout app.html'");
 laisse('git stash push -- app.html (met de côté, ne perd rien)', 'git stash push -- app.html');
 
 fs.writeFileSync(path.join(depot, 'banc-neuf.js'), 'un banc pas encore ajouté\n');
 const { dossier: dClean } = garde('git clean -fd (un fichier non suivi)', 'git clean -fd');
-vrai('   la copie porte le fichier non suivi', dClean && fs.readFileSync(path.join(dClean, 'fichiers', 'banc-neuf.js'), 'utf8') === 'un banc pas encore ajouté\n');
+vrai('   la copie porte le fichier non suivi', dClean && lire(path.join(dClean, 'fichiers', 'banc-neuf.js')) === 'un banc pas encore ajouté\n');
 laisse('git clean -nd (essai à blanc)', 'git clean -nd');
 fs.rmSync(path.join(depot, 'banc-neuf.js'));
 
