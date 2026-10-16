@@ -2035,7 +2035,6 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
   .rec-fin-gestes { flex: 1 1 0; }
   .rec-fin-carte video { max-height: 42dvh; }
 }
-/* au téléphone, pendant qu'on annote, la rangée des pastilles (réagir, main, vue…) laisse sa place à l'image : « OK » ou Échap la rendent */
 /* ⛔ la barre (et sa palette, qui s'ouvre AU-DESSUS d'elle, sur la scène) passe devant les noms des vignettes (z-index 2 dans l'écran de la salle) : mesuré au téléphone, la palette s'ouvrait SOUS eux */
 .annot-barre > button, .annot-palette > button { min-width: 44px; min-height: 44px; border-radius: 14px; display: grid; place-items: center; color: #fff; }
 .annot-barre > button[aria-pressed="true"], .annot-palette > button[aria-pressed="true"] { background: rgba(255,255,255,.22); }
@@ -2066,6 +2065,11 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .annot-barre > button[hidden] { display: none; }
 .salle-rang.libre { min-height: 44px; }
 .salle-rang.salle-reactions { justify-content: space-around; padding-top: 8px; padding-bottom: 8px; }
+@media (forced-colors: active) {      /* sans fonds : l'interrupteur garde son rail et son pouce, la réaction son contour (l'état de « Lever la main » n'est que là) */
+  .salle-inter { forced-color-adjust: none; border: 2px solid CanvasText; background: Canvas; } .salle-inter::after { background: CanvasText; }
+  [aria-checked="true"] > .salle-inter { background: Highlight; } [aria-checked="true"] > .salle-inter::after { background: HighlightText; }
+  .salle-reactions button { border: 1px solid CanvasText; }
+}
 .salle-reactions button { flex: none; width: 48px; height: 48px; border-radius: 50%; font-size: 26px; line-height: 1; display: grid; place-items: center; background: rgba(255,255,255,.1); }
 .salle-rang.libre > .texte { flex: 1 1 140px; }
 .salle-liste + .salle-liste { margin-top: 8px; }

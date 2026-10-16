@@ -215,6 +215,7 @@ const INIT = () => {
       await toucher(S, '#salle-panneau-fermer');
     }
     vrai('Ben réagit depuis « Plus » (un cœur) : le panneau se referme, le focus revient sur « Plus »', await geste(B, 'reaction', 'coeur'));
+    vrai('…et le lecteur d\'écran de Ben l\'entend : « Réaction envoyée : Cœur » (l\'émoji qui monte est aria-hidden)', await att(B, () => /Réaction envoyée : Cœur/.test(document.getElementById('annonce-appel').textContent)));
     vrai('…et Ana voit le cœur sur la vignette de Ben', await att(A, uid => { const r = document.querySelector('#salle-scene > .salle-tuile[data-uid="' + uid + '"] .salle-reaction'); return !!r && /❤/.test(r.textContent); }, idB, 15000));
     vrai('Ben lève la main depuis « Plus » : le panneau se referme', await geste(B, 'main'));
     vrai('…sa main paraît sur sa vignette, chez lui et chez Ana', await att(B, () => !!document.querySelector('#salle-vous-badges .salle-badge.main')) && await att(A, uid => !!document.querySelector('#salle-scene > .salle-tuile[data-uid="' + uid + '"] .salle-badge.main'), idB, 15000));

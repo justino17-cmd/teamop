@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'adfade0d715e';
+  const OPMSG_BUILD = 'f726bcfe3508';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 205;
+  const OPMSG_VERSION = 206;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8256,7 +8256,7 @@
     /* la rangée de pastilles, rangée ici (16 octobre 2026) : d'abord ce qu'on fait le plus — réagir, lever la main —, puis l'affichage, le partage, l'enregistrement */
     const moiRec = !!(s.rec && s.rec.par === MOI.id), autreRec = !!(s.rec && !moiRec);
     const ligneRec = !salleRecPossible(A) ? '' : autreRec
-      ? '<div class="salle-rang libre" id="salle-rec-ligne"><span class="texte">Enregistré par ' + esc(s.rec.nom) + '<small>Lui seul peut l\'arrêter</small></span></div>'
+      ? '<div class="salle-rang libre" id="salle-rec-ligne"><span class="texte">Enregistré par ' + esc(s.rec.nom) + '<small>Chacun voit « REC » tant que ça enregistre</small></span></div>'
       : '<button type="button" class="salle-rang" data-sa="rec" id="salle-rec-ligne"><span class="texte">' + (moiRec ? 'Arrêter l\'enregistrement<small>Tu choisis ensuite de le garder ou non</small>' : 'Enregistrer<small>Chacun voit « REC » tant que ça enregistre</small>') + '</span></button>';
     if (moiRec) h += '<div class="salle-rub"><span>Enregistrement</span></div><div class="salle-liste">' + ligneRec + '</div>';     // ce qui enregistre se coupe d'ici, en premier
     h += '<div class="salle-rub"><span>Réagir</span></div><div class="salle-liste"><div class="salle-rang libre salle-reactions" role="group" aria-label="Réactions">' +
@@ -8365,7 +8365,7 @@
     const bas = (() => { const f = $('salle-fil'); return !f || f.scrollHeight - f.scrollTop - f.clientHeight < 40; })();
     corps.innerHTML = X.panneau === 'participants' ? htmlParticipants(A) : X.panneau === 'plus' ? htmlPlus(A) : X.panneau === 'quitter' ? htmlQuitter(A) : X.panneau === 'suivi' ? htmlSuiviSalle(A) : X.panneau === 'presence' ? htmlPresenceSalle(A) : X.panneau === 'ordre' ? htmlOrdreSalle(A) : X.panneau === 'raccourcis' ? htmlRaccourcis() : htmlDiscussion(A);
     for (const id of Object.keys(champs)) { const i = $(id); if (i && corps.contains(i)) { i.value = champs[id].v; if (champs[id].focus) { i.focus({ preventScroll: true }); try { i.setSelectionRange(champs[id].a, champs[id].a); } catch (e) { /* un champ sans curseur */ } } } }
-    if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); }
+    if (cle && !Object.values(champs).some(c => c.focus)) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-sa]')).find(x => x.dataset.sa === a && (x.dataset.uid || x.dataset.s || '') === u); if (b) b.focus({ preventScroll: true }); else p.focus({ preventScroll: true }); }
     const f = $('salle-fil'); if (f && bas) f.scrollTop = f.scrollHeight;
   }
   /* la discussion : la conversation de la salle (celle du groupe, celle de la réunion), lue et écrite par la source — le même fil que celui de l'application */
@@ -8471,7 +8471,7 @@
       case 'sondage-masquer': X.masque = s.sondage ? s.sondage.id : ''; $('salle-bandeaux').dataset.sig = ''; salleBandeaux(A); return;
       /* les gestes venus de la rangée de pastilles : le panneau se referme D'ABORD (dans le geste : l'image dans l'image, l'enregistrement et le partage d'écran demandent un
          geste de la personne), puis le geste se fait */
-      case 'reaction': if (!EMOJI_SALLE[el.dataset.s]) return; salleFermerPanneau(A); await salleGeste(A, 'reaction', { emoji: el.dataset.s }, 'La réaction n\'est pas partie.'); return;
+      case 'reaction': if (!EMOJI_SALLE[el.dataset.s]) return; salleFermerPanneau(A); if (await salleGeste(A, 'reaction', { emoji: el.dataset.s }, 'La réaction n\'est pas partie.')) annonceAppel('Réaction envoyée : ' + NOM_REACTION[el.dataset.s]); return;
       case 'main': salleFermerPanneau(A); await salleMainBasculer(A); return;
       case 'vue': salleFermerPanneau(A); salleVueBasculer(A); return;
       case 'pip': salleFermerPanneau(A); basculerPip(); return;
@@ -8535,8 +8535,9 @@
      la main sur sa vignette, la vue qui change, « REC ») et le focus revient sur « Plus ». */
   async function salleMainBasculer(A) { const levee = !A.snap.moi.main; if (await salleGeste(A, 'main', { actif: levee }, 'La main n\'a pas pu être ' + (levee ? 'levée.' : 'baissée.'))) { annonceAppel(levee ? 'Main levée' : 'Main baissée'); rendreAppel(); } }
   function salleVueBasculer(A) { const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); }
-  /* l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, mais on peut toujours ÉTEINDRE celui qu'on a lancé ; celui d'un autre hôte ne s'arrête pas d'ici */
-  const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id); return !!s.moi.hote && ((s.outils && recDisponible()) || moiRec); };
+  /* l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, et COMMENCÉ par l'hôte seul (grade 2 : le service refuse le co-hôte — test-986) ;
+     on peut toujours ÉTEINDRE celui qu'on a lancé ; celui d'un autre, un hôte ou co-hôte le voit dire « Enregistré par », sans geste d'ici */
+  const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id); return moiRec || (!!s.moi.hote && !!s.rec) || ((s.moi.grade | 0) >= 2 && !!s.outils && recDisponible()); };
   function salleRecBasculer(A) { const s = A.snap; if (!salleRecPossible(A) || (s.rec && s.rec.par !== MOI.id)) return; if (A.rec) recArreter(A, true); else recDemarrer(A); }
   /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
   $('salle-doc').addEventListener('change', async e => {
@@ -8700,7 +8701,7 @@
       }
       if (!sup && X.annoter) annoterBasculer(A, false);
     }
-    if (X.annoterApres && sup === X.annoterApres) { X.annoterApres = null; if (!X.annoter) annoterBasculer(A, true); }       // je viens d'ouvrir le tableau : j'y dessine tout de suite
+    if (X.annoterApres && sup === X.annoterApres) { X.annoterApres = null; if (!X.annoter) { annoterBasculer(A, true); const f = X.annoter && $('annot-barre').querySelector('[data-outil]'); if (f) f.focus({ preventScroll: true }); } }       // je viens d'ouvrir le tableau : j'y dessine tout de suite
     if (X.annoter && !annotPeut(A)) { annoterBasculer(A, false); if (sup) mot('L\'hôte a réservé les annotations aux hôtes.'); }
     $('annot-capturer').hidden = !(sup === 'tableau' || annotMaitre(A));                 // l'écran de quelqu'un ne se capture que par lui ou un hôte ; le tableau, par tous
     $('annot-effacer').setAttribute('aria-label', annotMaitre(A) ? 'Effacer…' : 'Effacer mes annotations');
@@ -8712,6 +8713,7 @@
     $('annot-barre').hidden = !X.annoter;
     annotOutils(A);
     if (X.annoter && X.panneau) salleFermerPanneau(A, false);
+    if (X.panneau === 'plus') sallePanneauRendre(A, true);                    // « Plus » ouvert (on peut l'ouvrir en annotant) : son interrupteur « Annoter » suit
     if (X.annoter) { const sup = annotInfo(A).support; annonceAppel(sup === 'tableau' ? 'Annoter : dessine sur le tableau blanc' : sup === 'ecran:' + MOI.id ? 'Annoter : dessine sur ton écran partagé, tous le voient sur leur écran' : 'Annoter : dessine sur l\'écran partagé'); }
     annotPlanifier();
   }
