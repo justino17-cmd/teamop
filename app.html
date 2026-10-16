@@ -24290,16 +24290,39 @@ function intRecaleAuJourFait(i){
   if(!i.date||i.date===fait) return '';
   const av=i.date;
   i.datePrevue=i.datePrevue||av;
-  i.date=fait;
+  i.date=fait; i.dateRecale=fait;   // la marque de CE déplacement : intRecaleDefaire ne rend la date que si personne ne l'a retouchée depuis
   intHisto(i,'📅 Faite le '+fmtShort(fait)+' au lieu du '+fmtShort(av)+' — déplacée sur le planning du jour réel');
   logEvent('Intervention déplacée au jour réel',i.titre+' : '+fmtShort(av)+' → '+fmtShort(fait),'intervention');
   return av;
 }
-function intSetStatutDo(id,st){ const i=db.interventions.find(x=>x.id===id); if(!i)return; i.statut=st; intHisto(i,'Statut : '+((STATUT_INT[st]||{}).l||st));
+/* ⛔ LE RETOUR DU RECALAGE (rapport interventions#4, 16 octobre 2026) : « Terminée » déplace l'intervention au
+   jour réel (VOULU, ci-dessus) — mais la repasser « Planifiée » / « En cours » laissait la date au jour réel, le
+   rendez-vous client disparaissait du jour prévu, `datePrevue` dormait sans servir et `finReel` restait posé sur une
+   fiche non terminée. On défait ce que le recalage a fait, et SEULEMENT cela : la date n'est rendue que si personne
+   ne l'a retouchée depuis (`dateRecale`) ; une fiche d'avant (datePrevue sans marque) est rendue aussi, puisque
+   `datePrevue` n'est écrite que par le recalage. Rend la date du jour réel quitté (ou '' si rien n'a été défait). */
+function intRecaleDefaire(i){
+  if(!i||!i.datePrevue) return '';
+  const prevu=i.datePrevue, fait=i.date, retouchee=(i.dateRecale!==undefined&&i.dateRecale!==fait);
+  delete i.datePrevue; delete i.dateRecale;
+  if(retouchee||!prevu||prevu===fait) return '';
+  i.date=prevu;
+  intHisto(i,'📅 Remise au '+fmtShort(prevu)+' (date prévue) — elle n\'est plus terminée');
+  logEvent('Intervention remise à sa date prévue',i.titre+' : '+fmtShort(fait)+' → '+fmtShort(prevu),'intervention');
+  return fait;
+}
+/* quitter « Terminée » pour « Planifiée » / « En cours » : plus de fin réelle, plus de durée réelle, la date prévue revient */
+function intRepasseNonTerminee(i,ancien){
+  if(!i||ancien!=='terminee') return '';
+  delete i.finReel; delete i.dureeReelle;
+  return intRecaleDefaire(i);
+}
+function intSetStatutDo(id,st){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const ancien=i.statut; i.statut=st; intHisto(i,'Statut : '+((STATUT_INT[st]||{}).l||st));
+  let rendu=''; if(st==='planifiee'||st==='encours') rendu=intRepasseNonTerminee(i,ancien);
   if(st==='encours'&&!i.debutReel) i.debutReel=Date.now();
   let nd='',dep='';
   if(st==='terminee'){ i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.round((i.finReel-i.debutReel)/60000); dep=intRecaleAuJourFait(i); syncFactureFromIntervention(i,{cloture:true}); nd=intRecurNext(i); }
-  logEvent('Intervention '+(STATUT_INT[st].l.toLowerCase()),i.titre,'intervention'); save(); renderIntDetail(id); toast(STATUT_INT[st].l+(dep?' · 📅 déplacée du '+fmtShort(dep)+' à aujourd’hui':'')+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
+  logEvent('Intervention '+(STATUT_INT[st].l.toLowerCase()),i.titre,'intervention'); save(); renderIntDetail(id); toast(STATUT_INT[st].l+(dep?' · 📅 déplacée du '+fmtShort(dep)+' à aujourd’hui':'')+(rendu?' · 📅 remise au '+fmtShort(i.date):'')+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
 /* Multi-techniciens : techIds[] (tous), techId = principal (compatibilité) */
 function intTechIds(i){ return (i&&i.techIds&&i.techIds.length)?i.techIds:(i&&i.techId?[i.techId]:[]); }
 function techNames(i){ const ids=intTechIds(i); return ids.length?ids.map(id=>techName(id)).filter(Boolean).join(', '):'Non assigné'; }
@@ -24396,7 +24419,7 @@ function intEffField(id,field,part,val){ const i=db.interventions.find(x=>x.id==
 function intEffToggle(id,checked){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(!intStatutPermis(i,checked?'terminee':(i.debutReel?'encours':'planifiee'))){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); renderIntDetail(id); return; }   // la case se décoche : l'écran est redessiné
   if(checked){ i.statut='terminee'; if(!i.finReel) i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); delete _gpsAway[id]; intHisto(i,'Marquée effectuée'); syncFactureFromIntervention(i,{cloture:true}); intRecurNext(i); }
-  else { i.statut=i.debutReel?'encours':'planifiee'; intHisto(i,'Repassée '+(i.debutReel?'en cours':'planifiée')); }
+  else { const ancien=i.statut; i.statut=i.debutReel?'encours':'planifiee'; intHisto(i,'Repassée '+(i.debutReel?'en cours':'planifiée')); intRepasseNonTerminee(i,ancien); }
   save(); renderIntDetail(id); }
 function intChrono(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(!i.debutReel){ i.debutReel=Date.now(); delete i.finReel; delete i.dureeReelle; i.statut='encours'; if(i.gpsAuto) delete i.gpsAuto.debut; intHisto(i,'Chrono démarré'); }
