@@ -250,8 +250,13 @@ const vert = (px) => !!px && px[3] > 150 && px[1] > 150 && px[0] < 120 && px[2] 
     vrai('⛔ Échap quitte l\'annotation : dans « Plus » resté ouvert, l\'interrupteur « Annoter » s\'éteint (il ne dit pas « activé » sur un mode coupé)', await att(C, () => !document.getElementById('salle-panneau').hidden && (document.querySelector('#salle-panneau-corps [data-sa="annoter"]') || {}).getAttribute?.('aria-checked') === 'false'));
     vrai('Échap quitte le mode « Annoter » (la barre se range, le calque laisse passer le doigt)', await att(C, () => document.getElementById('annot-barre').hidden && getComputedStyle(document.querySelector('.annot-calque')).pointerEvents === 'none'));
     vrai('   ⛔ et Échap n\'a PAS quitté la salle', await C.page.evaluate(() => document.documentElement.dataset.salle === '1'));
-    vrai('   …et le focus revient sur « Plus », d\'où « Annoter » s\'ouvre (la ligne n\'existe plus panneau fermé : le focus ne tombe pas sur la page)', await C.page.evaluate(() => document.activeElement === document.getElementById('salle-plus')));
+    vrai('   …et le focus RESTE dans « Plus », sur l\'interrupteur « Annoter » éteint (pas sur le bouton « Plus » que le panneau recouvre)', await C.page.evaluate(() => document.activeElement === document.querySelector('#salle-panneau-corps [data-sa="annoter"]')));
     await fermerPlus(C);
+    /* panneau FERMÉ : Échap quitte l'annotation et rend le focus au bouton « Plus », d'où « Annoter » se rouvre (la ligne n'existe plus panneau fermé : le focus ne tombe pas sur la page) */
+    await annoterPar(C);
+    vrai('population : Cléo annote de nouveau, « Plus » fermé', await att(C, () => !document.getElementById('annot-barre').hidden && document.getElementById('salle-panneau').hidden));
+    await C.page.keyboard.press('Escape');
+    vrai('Échap, « Plus » fermé : le mode se range, et le focus revient sur le bouton « Plus »', await att(C, () => document.getElementById('annot-barre').hidden && document.activeElement === document.getElementById('salle-plus')));
     for (const [nom, S] of [['Ana', A], ['Ben', B], ['Cléo', C]]) v('aucune erreur JavaScript chez ' + nom, S.erreurs, []);
   } finally { await b.close(); await svc.arreter(); await og.fermer(); }
   fin();

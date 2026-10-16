@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'f726bcfe3508';
+  const OPMSG_BUILD = '3ee1c64a7ec8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 206;
+  const OPMSG_VERSION = 207;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8481,7 +8481,8 @@
         const on = !X.annoter;
         if (!on) { salleFermerPanneau(A); annoterBasculer(A, false); return; }
         annoterBasculer(A, true);                                                        // il referme le panneau lui-même ; le focus va au premier outil de la barre
-        const f = X.annoter ? $('annot-barre').querySelector('[data-outil]') : $('salle-plus'); if (f) f.focus({ preventScroll: true });
+        // refusé (le support a disparu entre le dessin de la ligne et le toucher) : « Plus » reste ouvert et redessiné sans la ligne, le focus y reste — pas sur le bouton qu'il cache
+        const f = X.annoter ? $('annot-barre').querySelector('[data-outil]') : X.panneau ? null : $('salle-plus'); if (f) f.focus({ preventScroll: true });
         return;
       }
       case 'minuteur': await salleGeste(A, 'evt', { k: 'minuteur', donnees: { op: 'demarrer', secondes: +el.dataset.s } }, 'Le minuteur n\'a pas pu démarrer.'); return;
@@ -8563,7 +8564,7 @@
     /* ⛔ UNE SEULE porte pour envoyer : `envoi()` (la même que la conversation) — le refus du service se dit avec SA phrase */
     if (!await envoi({ texte: t }, A.snap.conv) && !perime(A)) { mot('Le message n\'a pas pu être envoyé.'); const c2 = $('salle-saisie'); if (c2 && !c2.value) c2.value = t; }
   });
-  /* ⛔ Échap : un écouteur à part, en CAPTURE, qui passe avant celui de la page (la chaîne « photo, feuille, appel, enregistrement, conversation » reste telle qu'elle est). Il ferme ce qui est ouvert PAR-DESSUS la salle (la palette de réactions, un panneau) ; il ne quitte JAMAIS une salle toute seule — une touche tapée par erreur n'arrête pas une réunion de vingt personnes */
+  /* ⛔ Échap : un écouteur à part, en CAPTURE, qui passe avant celui de la page (la chaîne « photo, feuille, appel, enregistrement, conversation » reste telle qu'elle est). Il ferme ce qui est ouvert PAR-DESSUS la salle (un panneau, l'annotation) ; il ne quitte JAMAIS une salle toute seule — une touche tapée par erreur n'arrête pas une réunion de vingt personnes */
   function salleEchap() {
     const A = etat.appelUI; if (!enSalle(A)) return false;
     const X = sx(A);
@@ -8571,7 +8572,7 @@
       const N = annotEtat(A);
       if (N.saisie) { annotSaisieFermer(A, false); return true; }
       if (N.palette) { const q = N.palette; annotPaletteFermer(A); $(q === 'couleur' ? 'annot-couleur' : 'annot-effacer').focus({ preventScroll: true }); return true; }
-      annoterBasculer(A, false); $('salle-plus').focus({ preventScroll: true }); return true;
+      annoterQuitter(A); return true;
     }
     if (X.panneau) { salleFermerPanneau(A); return true; }
     return true;
@@ -8716,6 +8717,12 @@
     if (X.panneau === 'plus') sallePanneauRendre(A, true);                    // « Plus » ouvert (on peut l'ouvrir en annotant) : son interrupteur « Annoter » suit
     if (X.annoter) { const sup = annotInfo(A).support; annonceAppel(sup === 'tableau' ? 'Annoter : dessine sur le tableau blanc' : sup === 'ecran:' + MOI.id ? 'Annoter : dessine sur ton écran partagé, tous le voient sur leur écran' : 'Annoter : dessine sur l\'écran partagé'); }
     annotPlanifier();
+  }
+  /* quitter l'annotation (Échap, « OK ») : un panneau resté ouvert garde le focus — « Plus » sur son interrupteur « Annoter », qu'il vient de redessiner éteint —, sinon le bouton « Plus », d'où « Annoter » se rouvre. Jamais un bouton que le panneau recouvre. */
+  function annoterQuitter(A) {
+    annoterBasculer(A, false);
+    const X = sx(A), f = X.panneau ? (X.panneau === 'plus' && $('salle-panneau-corps').querySelector('[data-sa="annoter"]')) || $('salle-panneau') : $('salle-plus');
+    f.focus({ preventScroll: true });
   }
   /* l'état des boutons de la barre : l'outil choisi, la pastille de la couleur */
   function annotOutils(A) {
@@ -8912,7 +8919,7 @@
       case 'annot-effacer': if (annotMaitre(A)) annotPaletteOuvrir(A, 'effacer'); else await annotEffacer(A, 'miens'); return;
       case 'annot-annuler': annotPaletteFermer(A); if (N.trait) annotFinir(A, true); await annotEnvoyer(A, { op: 'annuler' }); if (!perime(A)) annotPlanifier(); return;
       case 'annot-capturer': annotPaletteFermer(A); await annotCapturer(A); return;
-      case 'annot-fin': annoterBasculer(A, false); $('salle-plus').focus({ preventScroll: true }); return;
+      case 'annot-fin': annoterQuitter(A); return;
       default: return;
     }
   });
