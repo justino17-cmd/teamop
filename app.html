@@ -23683,13 +23683,18 @@ function renderPassageDates(n){ const box=document.getElementById('passage-dates
 }
 /* Chevauchements (même technicien, même jour, plages horaires qui se croisent) */
 function toMin(h){ if(!h) return 0; const [a,b]=(h||'0:0').split(':'); return (+a)*60+(+b||0); }
-function nextRecurDate(iso,recur){ const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return '';
+/* ⛔ Un mois n'a pas tous les jours : `setMonth(+1)` sur le 31 janvier rend le 3 mars (février sauté), et
+   le 30 novembre + 3 mois le 2 mars. On BORNE au dernier jour du mois cible (28/29 février, 30 avril…).
+   Sans dérive : le jour d'ancrage de la série (`ancre`, le 31 de départ) est reporté d'occurrence en
+   occurrence (31 janv. -> 28 févr. -> 31 mars, et non 28 mars) — mais il ne vaut que si la date courante est
+   bien celle qu'il aurait donnée ; une occurrence déplacée à la main repart de SON jour. */
+function nextRecurDate(iso,recur,ancre){ const d=new Date(iso+'T00:00:00'); if(isNaN(d)) return '';
+  const mois={mensuelle:1,trimestrielle:3,semestrielle:6,annuelle:12}[recur];
   if(recur==='hebdo') d.setDate(d.getDate()+7);
   else if(recur==='bimensuelle') d.setDate(d.getDate()+14);
-  else if(recur==='mensuelle') d.setMonth(d.getMonth()+1);
-  else if(recur==='trimestrielle') d.setMonth(d.getMonth()+3);
-  else if(recur==='semestrielle') d.setMonth(d.getMonth()+6);
-  else if(recur==='annuelle') d.setFullYear(d.getFullYear()+1);
+  else if(mois){ const dernier=(Y,M)=>new Date(Y,M+1,0).getDate(); const y=d.getFullYear(), m=d.getMonth(), j=d.getDate();
+    const a=parseInt(ancre,10); const jour=(a>j&&j===Math.min(a,dernier(y,m)))?a:j;
+    const t=new Date(y,m+mois,1); t.setDate(Math.min(jour,dernier(t.getFullYear(),t.getMonth()))); return t.toLocaleDateString('sv-SE'); }
   else return '';
   return d.toLocaleDateString('sv-SE'); }
 function intConflictOf(cand,ignoreId){ const ids=intTechIds(cand); if(!ids.length||!cand.date||!cand.heure) return null;
@@ -24231,8 +24236,14 @@ function intTerminerPrevu(id){ const i=db.interventions.find(x=>x.id===id); if(!
   intHisto(i,'Terminée à la date prévue'); const nd=intRecurNext(i); logEvent('Intervention terminée',i.titre,'intervention'); save(); renderIntDetail(id); toast('Terminée à la date prévue'+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
 /* Récurrence (Organilog) : appelée à CHAQUE clôture (rapport, menu statut, case effectuée, terminée à la date prévue) */
 function intRecurNext(cur){ if(!cur||!cur.recurrence||cur.recurrence==='aucune'||cur.nextCreated||!cur.date) return '';
-  const nd=nextRecurDate(cur.date,cur.recurrence); if(!nd) return '';
-  const copy={id:uid(),num:intNum(),titre:cur.titre,type:cur.type,clientId:cur.clientId,techId:cur.techId,techIds:intTechIds(cur).slice(),adresse:cur.adresse,date:nd,heure:cur.heure,duree:cur.duree,prio:cur.prio,statut:'planifiee',recurrence:cur.recurrence,desc:cur.desc||'',montant:cur.montant||0,nuisibles:(cur.nuisibles||[]).slice(),nuisible:cur.nuisible||'—',methodes:(cur.methodes||[]).slice(),compteRendu:'',groupId:cur.groupId||''};
+  const ancre=cur.recurAncre||parseInt(String(cur.date).slice(8,10),10)||0;   /* le jour de départ de la série (31) : voir nextRecurDate */
+  const nd=nextRecurDate(cur.date,cur.recurrence,ancre); if(!nd) return '';
+  /* ⛔ `rapportModele` = la SOCIÉTÉ de l'intervention : sans lui, `docEntete()` sort le rapport, le devis et la facture
+     du passage suivant au nom (SIRET, TVA, IBAN) de l'entreprise principale — un document juridiquement faux. Ni
+     `contratId` (un contrat génère SES passages, `genererInterventionContrat` : le copier les compterait deux fois), ni
+     `moyenPaiement`, `aFacturer`, `finReel`, `dureeReelle` (propres au passage qu'on vient de clore). */
+  const copy={id:uid(),num:intNum(),titre:cur.titre,type:cur.type,clientId:cur.clientId,techId:cur.techId,techIds:intTechIds(cur).slice(),adresse:cur.adresse,date:nd,heure:cur.heure,duree:cur.duree,prio:cur.prio,statut:'planifiee',recurrence:cur.recurrence,desc:cur.desc||'',montant:cur.montant||0,rapportModele:cur.rapportModele||'',nuisibles:(cur.nuisibles||[]).slice(),nuisible:cur.nuisible||'—',methodes:(cur.methodes||[]).slice(),compteRendu:'',groupId:cur.groupId||''};
+  if(ancre>parseInt(nd.slice(8,10),10)) copy.recurAncre=ancre;   /* seulement quand le mois a raboté le jour (28 févr. : ancre 31) */
   db.interventions.push(copy); cur.nextCreated=true; notifyTechNewInt(copy);
   intHisto(cur,'🔁 Prochaine occurrence planifiée le '+fmtShort(nd));
   logEvent('Récurrence planifiée',cur.titre+' → '+fmtShort(nd),'intervention');
@@ -25342,6 +25353,9 @@ function rapportConstatLignes(i){ const co=i.constat||{}; const pk=Array.isArray
    le PDF — et une seule règle. */
 /* Les champs personnalisés remplis sur ce passage (un tableau vide ne compte pas). */
 function rapportChampsPerso(i){ return (db.champsPerso||[]).filter(f=>i.champs&&i.champs[f.id]!=null&&(!Array.isArray(i.champs[f.id])||i.champs[f.id].length)); }
+/* La durée du rapport client : celle du passage tel qu'il a EU LIEU (chrono, « Terminée à la date prévue »), à défaut
+   la durée prévue. Le rapport imprimé et le PDF la lisent ici — une seule règle (interventions#15). */
+function rapportDuree(i){ const r=parseInt(i&&i.dureeReelle,10); return r>0?r:(parseInt(i&&i.duree,10)||0); }
 function rapportProduitsLibres(i){ return (i.produitsUtilises||[]).filter(l=>!l.categorie||!(((i.quest||{})[l.categorie]||{}).actif)); }
 /* ══ LE RAPPORT D'INTERVENTION EN VRAI PDF, JOINT AU COURRIEL (v744) ══════════════════════════
    Jusqu'ici, « Par e-mail » ouvrait la fenêtre d'impression et envoyait… le TEXTE du rapport :
@@ -25420,7 +25434,7 @@ function rapportPdfStr(i,E,imgs){
 
   /* ─ le passage : quoi, chez qui, par qui */
   /* les mêmes quatre renseignements que le rapport imprimé, et les mêmes sources */
-  { const cl=[['Client',c.nom||'—'],['Technicien(s)',techNames(i)||'—'],['Durée',(i.duree||0)+' min'],['Adresse',i.adresse||'']].filter(r=>r[1]);
+  { const cl=[['Client',c.nom||'—'],['Technicien(s)',techNames(i)||'—'],['Durée',rapportDuree(i)+' min'],['Adresse',i.adresse||'']].filter(r=>r[1]);
     const tl=lignes(i.titre||'Intervention',10.5,1,L-20).slice(0,2);
     const ph=16+tl.length*13+cl.length*12.5+4; place(ph+4);
     R(M,y-ph+10,L,ph,ACCLT); T(M+10,y-4,8,'INTERVENTION',1,ACC); let yy=y-18;
@@ -25445,7 +25459,7 @@ function rapportPdfStr(i,E,imgs){
   { const prods=rapportProduitsLibres(i);
     if(prods.length){ titre('Produits utilisés',30);
       tableau([{t:'Désignation',x:M+6,w:236},{t:'Réf.',x:M+248,w:80},{t:'N° AMM',x:M+334,w:96},{t:'Qté',x:M+436,w:65,d:1}],
-        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',prodLineAmm(l)||'—',(l.qte!=null?l.qte:1)+' '+(l.unite||'')]; })); } }
+        prods.map(l=>{ const p=produit(l.produitId); return [prodLineName(l),p.ref||'',prodLineAmm(l)||'—',(l.qte!=null?l.qte:1)+' '+prodLineUnit(l)]; })); } }
 
   /* ─ le plan d'appâtage, postes à la couleur de LEUR ÉTAT sur ce passage (la légende du rapport imprimé) */
   { const plans=((db.plansSite||{})[i.clientId]||[]).filter(p=>p&&(p.postes||[]).length);
@@ -25593,7 +25607,7 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
   /* v740 : nom, couleur, logo et coordonnées de la société de CETTE intervention (docEntete) */
   const H=docEntete(i.rapportModele), soc=H.nom, AC=H.couleur;
   // les produits rattachés à un type de traitement apparaissent dans leur section ; ici, les lignes « libres »
-  const prod=rapportProduitsLibres(i).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(l.unite||'')}</td></tr>`;}).join('');
+  const prod=rapportProduitsLibres(i).map(l=>{const p=produit(l.produitId);return `<tr><td>${esc(prodLineName(l))}</td><td>${esc(p.ref||'')}</td><td>${esc(prodLineAmm(l)||'—')}</td><td style="text-align:right">${l.qte!=null?l.qte:1} ${esc(prodLineUnit(l))}</td></tr>`;}).join('');
   const equip=(i.equipements||[]).map(e=>`<tr><td>${esc(e.nom)}</td><td>${esc(e.reference)||''}</td></tr>`).join('');
   const champs=rapportChampsPerso(i).map(f=>{ const v=i.champs[f.id];
     if(f.type==='tableau'&&Array.isArray(v)) return `<div class="box"><b>${esc(f.label)}</b><table style="margin-top:6px"><thead><tr>${(f.colonnes||[]).map(co=>`<th>${esc(co)}</th>`).join('')}</tr></thead><tbody>${v.map(r=>`<tr>${(f.colonnes||[]).map((co,ci)=>`<td>${esc(r[ci]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
@@ -25610,7 +25624,7 @@ async function printRapport(id){ const i=db.interventions.find(x=>x.id===id); if
     .ft{margin-top:30px;font-size:11px;color:#999;text-align:center}@media print{body{padding:18px}}</style></head>
     <body><div class="hd"><div class="logo">${H.logo?`<img src="${esc(H.logo)}" alt="">`:''}${esc(soc)}<small>Rapport d'intervention</small>${docCoordLignes(H).map(x=>`<div class="coord">${esc(x)}</div>`).join('')}</div>
       <div style="text-align:right"><h1>RAPPORT D'INTERVENTION</h1><div class="muted">${new Date((i.date||todayISO())+'T00:00:00').toLocaleDateString('fr-FR')} · ${i.heure||''}</div></div></div>
-      <div class="box"><b>${esc(i.titre)}</b><br><span class="muted">Client : ${esc(c.nom||'—')} · Technicien(s) : ${esc(techNames(i))} · Durée : ${i.duree||0} min<br>${esc(i.adresse||'')}</span></div>
+      <div class="box"><b>${esc(i.titre)}</b><br><span class="muted">Client : ${esc(c.nom||'—')} · Technicien(s) : ${esc(techNames(i))} · Durée : ${rapportDuree(i)} min<br>${esc(i.adresse||'')}</span></div>
       ${i.desc?`<p><b>Description :</b> ${esc(i.desc)}</p>`:''}
       ${i.compteRendu?`<div class="box"><b>Compte-rendu</b><br>${esc(i.compteRendu).replace(/\n/g,'<br>')}</div>`:''}
       ${(()=>{ const rows=rapportConstatLignes(i);
