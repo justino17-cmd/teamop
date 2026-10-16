@@ -37305,17 +37305,35 @@ function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modi
   /* v738 : la liste ne propose que les clients qu'on voit — l'enregistrement le vérifie aussi */
   const _av=id?(db[cfg.coll].find(x=>x.id===id)||{}):{};
   if(!clientPropose(f.clientId,_av.clientId)){ toast('Ce client ne te concerne pas — choisis-en un dans la liste'); return; }
+  /* g06 — TROIS REFUS, tous AVANT la première écriture (le client, le registre, le document) : un refus à moitié
+     laisserait une fiche client réécrite pour un document qui n'existe pas.
+     · facturation#15 : une facture sans aucune ligne remplie se créait à 0,00 € et CONSOMMAIT un numéro (continu,
+       donc à supprimer à la main) ; les devis restent libres de se préparer vides ;
+     · facturation#2 : deux appareils qui émettent avant de s'être vus tirent le même numéro (bandeau « numéros en
+       double ») ; ici on refuse de le CRÉER ou de s'en donner un déjà pris — dans la même série seulement (DV- et FAC-
+       ne se rencontrent pas). Test écrit EN LIGNE : un double déjà en base reste modifiable tant qu'on ne lui change pas
+       son numéro, sinon on ne pourrait même plus ouvrir la facture pour la corriger ;
+     · facturation#4/#11 : quitter « Payée » par le formulaire retire la ligne de registre et la validation compta,
+       comme le bouton ↩︎ (factQuitterPayee demande la confirmation et lit le droit Comptabilité). */
+  const lignesOk=formLignes.filter(l=>l.designation||l.pu);
+  if(kind==='factures'&&!lignesOk.length){ toast('Ajoute au moins une ligne à la facture (une désignation ou un prix) avant de l\'enregistrer'); return; }
+  { const numNorm=x=>String(x==null?'':x).trim().toUpperCase(), nv=numNorm(f.num);
+    if(nv&&(!id||numNorm(_av.num)!==nv)&&(db[cfg.coll]||[]).some(x=>x.id!==id&&numNorm(x.num)===nv)){ toast('Le numéro '+String(f.num).trim()+' est déjà porté par '+(kind==='devis'?'un autre devis':'une autre facture')+' — choisis-en un autre'); return; } }
+  if(kind==='factures'&&id&&!factQuitterPayee(_av,f.statut)) return;
   // Mise à jour des coordonnées du client (adresse complète) saisies dans le document
   /* v738 : réécrire la fiche du client, c'est « Clients → Modifier » — le devis s'enregistre sans elle */
   const cli=canCat('crm','modifier')?db.clients.find(x=>x.id===f.clientId):null; if(cli){ const a=document.getElementById('doc-cli-adr'),v=document.getElementById('doc-cli-ville'),tl=document.getElementById('doc-cli-tel'),em=document.getElementById('doc-cli-email');
     if(a)cli.adresse=a.value.trim(); if(tl)cli.tel=tl.value.trim(); if(em)cli.email=em.value.trim();
     if(v&&v.value.trim()){ const mv=v.value.trim().match(/(\d{5})\s*(.*)/); if(mv){cli.codePostal=mv[1];cli.ville=mv[2].trim();} else cli.ville=v.value.trim(); } }
-  const doc={num:f.num,clientId:f.clientId,date:f.date,tva:parseFloat(f.tva)||0,statut:f.statut,notes:f.notes,rapportModele:f.rapportModele||'',lignes:formLignes.filter(l=>l.designation||l.pu)};
+  const doc={num:f.num,clientId:f.clientId,date:f.date,tva:parseFloat(f.tva)||0,statut:f.statut,notes:f.notes,rapportModele:f.rapportModele||'',lignes:lignesOk};
   if(id){ const ix=db[cfg.coll].findIndex(x=>x.id===id); db[cfg.coll][ix]={...db[cfg.coll][ix],...doc}; toast(cfg.titre+' mis à jour'); }
   else{ db[cfg.coll].push({id:uid(),devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); logEvent(cfg.titre+' créé',f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cfg.titre+' créé'); }
   save(); closeModal();
   if(kind==='devis'){ const cur=id?db.devis.find(x=>x.id===id):null; docListView('devis', !!(cur&&cur.xylo)); }
-  else docListView(kind);
+  /* g06 (facturation#10) : une facture enregistrée revient à l'écran Factures (cartes, filtres, boutons Payée / Valider /
+     Envoyer / FX / Excel) — docListView('factures') montrait un tableau nu, sans rien de tout cela. */
+  else if(current==='factures') views.factures();
+  else go('factures');
 }
 function devisToFacture(id){ if(!permGarde('ventes','ajouter','une facture')) return; const d=db.devis.find(x=>x.id===id); if(!d) return; const num=docNum('factures');
   db.factures.push({id:uid(),num,clientId:d.clientId,devisId:id,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:d.tva,notes:d.notes,rapportModele:d.rapportModele||'',lignes:JSON.parse(JSON.stringify(d.lignes))});
