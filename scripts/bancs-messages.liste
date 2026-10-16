@@ -111,7 +111,11 @@
 # fonctions de la page — la lecture d'une confirmation, le gel joué et coupé à 2 s, la durée, les liens, le calcul fermé) ; 900 (les deux liens de « Y aller », septième exception
 # nommée et comptée), 1003 (le côté d'une réunion reste le dernier champ de son formulaire) suivent — 99 suites, 10 081 vérifications mesurées par la commande de la porte
 # (test-971 tombe en local, fuseaux de la machine) — plancher 10067 (le total moins 14).
-#plancher 10076
+# 16 octobre 2026, « ok fait les deux » : la salle n'a plus que sa barre ronde (la rangée de pastilles est rangée dans « Plus » : les sondes de la salle, hors porte) et le
+# fichier .ics est parti — test-971 sort de la liste (ses 94 faits du monde réel entrent dans 970 : 107 → 109) ; 905 (1193 → 1180), 973 (298 → 285), 975 (141 → 140),
+# 976 (73 → 69), 1004 (66 → 52), 1005 (169 → 161), 1006 (89 → 78) perdent leur part .ics, rien d'autre — 98 suites, 9 942 vérifications mesurées par la commande de la
+# porte, toutes vertes en local (plus aucun banc ne dépend des fuseaux de la machine) — plancher 9928 (le total moins 14, jamais une addition).
+#plancher 9928
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
