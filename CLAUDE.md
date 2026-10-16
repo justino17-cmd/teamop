@@ -168,7 +168,9 @@ seconde a été la pire : le correctif de l'ancre a disparu AVANT le `git add`, 
 n'a capturé que le banc — un commit qui annonce un correctif et ne contient que son test. Les
 deux suites sont reparties au rouge une heure plus tard, sur du code que je croyais corrigé.
 
-L'ordre est donc : **correctif → banc → `git commit` → mutation → `git checkout`.** Et après
+L'ordre est donc : **correctif → banc → `git commit` → mutation → `git checkout`.** (Filet depuis le
+16 octobre 2026 : `.claude/hooks/garde-git.js` recopie le fichier AVANT le `git checkout` — voir « Les hooks du dépôt ».
+Un filet, pas une permission : l'ordre reste celui-ci.) Et après
 chaque tour de mutations, relire ce que le commit contient VRAIMENT (`git show --stat`), pas ce
 qu'on croit y avoir mis.
 
@@ -2444,3 +2446,12 @@ Python…), ne savent rien de ce dépôt : `gardien`, `relecteur`, `testeur` res
 `click-path-audit`, `make-interfaces-feel-better`, `strategic-compact`, recopiées dans `.claude/skills/` avec un bloc
 « Adaptation TeamOP » et leur `LICENSE` (MIT). Une pièce de plus se recopie de la même façon — jamais `enabledPlugins`
 ni `./install.sh`.
+
+⛔ **LES HOOKS DU DÉPÔT (`.claude/hooks/`, 16 octobre 2026) : trois règles de cette page, tenues par des scripts.**
+`session-start.sh` (sessions distantes seulement) installe ce que `ci.yml` installe (`server/`, `server-msg/`, ESLint) :
+sans lui, `test-726` rendait « 0 ✓ 0 ✗ » dans une session sur le web. `garde-git.js` recopie dans `.git/garde-git/` ce
+qu'un `checkout`, `restore`, `reset --hard`, `switch -f` ou `clean -f` effacerait de non commité, et le dit au modèle. Elle
+ne BLOQUE pas, parce que la méthode des mutations jette une mutation par `git checkout` ; un correctif parti avec elle se
+ramène par `git apply .git/garde-git/<horodatage>/changements.diff`. `garde-navigateur.js` refuse au navigateur piloté
+`app.html` hors aperçu, et tout hôte distant hors bêta. `tests/test-996.js` les exécute (25 mutations sur 25 mordent),
+et il vérifie aussi que `session-start.sh` installe ce que `ci.yml` installe, à la même version d'ESLint.

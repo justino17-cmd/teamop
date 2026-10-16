@@ -61,6 +61,8 @@ const ailleurs = path.join(tmp, 'ailleurs');
 fs.mkdirSync(depot); fs.mkdirSync(ailleurs);
 const g = (...a) => execFileSync('git', a, { cwd: depot, encoding: 'utf8', env: { ...process.env, LC_ALL: 'C' } });
 g('init', '-q', '-b', 'main'); g('config', 'user.email', 'banc@exemple.fr'); g('config', 'user.name', 'banc');
+// la configuration globale de la machine ne décide pas (signature obligatoire, hooks maison sur le Mac de Justin)
+g('config', 'commit.gpgsign', 'false'); g('config', 'core.hooksPath', os.devnull);
 fs.mkdirSync(path.join(depot, 'sous'));
 fs.writeFileSync(path.join(depot, 'app.html'), 'version commitée\n');
 fs.writeFileSync(path.join(depot, 'sous', 'b.js'), 'b commité\n');

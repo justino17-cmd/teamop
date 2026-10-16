@@ -45,6 +45,28 @@ au dessin ou au mouvement, `apple-visual-craft`.
 6. **Les données de clients figées dans le code.** Piège déjà rencontré : `REPORT_TEMPLATES`
    portait les ~90 agences d'un seul client et les servait à tous les autres. Aucune donnée
    propre à un client ne se code en dur.
+7. **Les pannes silencieuses** — la panne type de ce dépôt (CLAUDE.md la nomme ainsi). Une
+   erreur avalée ne plante pas : elle fait MENTIR l'écran. Pour chaque `catch`, chaque
+   `.catch(() => …)`, chaque repli (`|| []`, `|| ''`, `return false`) et chaque `fetch(`
+   ajouté par le diff, une seule question : **quand ça échoue, que dit l'écran ?** Si la
+   réponse est « rien » ou « autre chose que la vérité », c'est ⚠️ au moins. Les cas déjà
+   payés, à reconnaître :
+   - un échec rendu comme une liste VIDE au lieu de `null` « on n'a pas pu savoir » —
+     `_mailboxes` réclamait le mot de passe Gmail de quelqu'un dont la boîte marchait ;
+   - `fetch` ne jette pas sur un refus : un écran qui annonce « vient de partir » sans lire
+     `r.ok` ou le code l'annonce aussi sur un 400, un 429, une coupure (« mot de passe
+     oublié », 6 cas faux sur 9) ;
+   - un repli qui retombe sur un état qui ne donne plus rien (`fbJetonEquipe` → `''` →
+     anonyme, depuis que la règle Firestore est fermée) ;
+   - un `false` que l'appelant ne remonte pas (`fbRevoquerEquipe` : croire une entreprise
+     coupée alors qu'elle ne l'est pas) ;
+   - un champ de `/health` ou un compteur que personne ne lit — du code mort qui a l'air
+     d'une garde ;
+   - un banc qui saute sa partie exécutée ou meurt après son total : « 0 ✓ 0 ✗ » a l'air vert.
+   Un repli silencieux peut être VOULU (une garde qui laisse passer quand elle ne sait pas
+   lire, pour ne pas casser le travail) : il est alors écrit et expliqué en commentaire.
+   Sinon, proposer ce que l'écran devrait dire. (Inspiré de l'agent `silent-failure-hunter`
+   d'ECC, licence MIT, réécrit sur les cas de ce dépôt.)
 
 ## Méthode
 
