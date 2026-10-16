@@ -23438,7 +23438,7 @@ function assistFinish(id){ if(!asW) return; const ix=db.interventions.findIndex(
   it.statut='terminee'; it.finReel=Date.now();
   if(it.debutReel) it.dureeReelle=Math.round((it.finReel-it.debutReel)/60000)||it.duree;
   intRecaleAuJourFait(it);
-  syncFactureFromIntervention(it);
+  syncFactureFromIntervention(it,{cloture:true});
   let recurMsg='';
   const askNext=it.date&&!it.nextCreated&&((it.recurrence&&it.recurrence!=='aucune')||it.passageTotal>1||it.groupId);
   if(askNext) it.nextCreated=true;
@@ -24228,7 +24228,7 @@ function intPushDemande(id){ if(!permGarde('int','modifier','une intervention'))
 function intTerminerPrevu(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return; if(!intStatutPermis(i,'terminee')){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); return; }
   const base=i.date?new Date(i.date+'T'+(i.heure||'08:00')):new Date(new Date().toLocaleDateString('sv-SE')+'T08:00');
   i.debutReel=base.getTime(); i.finReel=base.getTime()+(i.duree||60)*60000; i.dureeReelle=i.duree||60; i.statut='terminee';
-  intHisto(i,'Terminée à la date prévue'); const nd=intRecurNext(i); logEvent('Intervention terminée',i.titre,'intervention'); save(); renderIntDetail(id); toast('Terminée à la date prévue'+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
+  intHisto(i,'Terminée à la date prévue'); syncFactureFromIntervention(i,{cloture:true}); const nd=intRecurNext(i); logEvent('Intervention terminée',i.titre,'intervention'); save(); renderIntDetail(id); toast('Terminée à la date prévue'+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
 /* Récurrence (Organilog) : appelée à CHAQUE clôture (rapport, menu statut, case effectuée, terminée à la date prévue) */
 function intRecurNext(cur){ if(!cur||!cur.recurrence||cur.recurrence==='aucune'||cur.nextCreated||!cur.date) return '';
   const nd=nextRecurDate(cur.date,cur.recurrence); if(!nd) return '';
@@ -24286,7 +24286,7 @@ function intRecaleAuJourFait(i){
 function intSetStatutDo(id,st){ const i=db.interventions.find(x=>x.id===id); if(!i)return; i.statut=st; intHisto(i,'Statut : '+((STATUT_INT[st]||{}).l||st));
   if(st==='encours'&&!i.debutReel) i.debutReel=Date.now();
   let nd='',dep='';
-  if(st==='terminee'){ i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.round((i.finReel-i.debutReel)/60000); dep=intRecaleAuJourFait(i); nd=intRecurNext(i); }
+  if(st==='terminee'){ i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.round((i.finReel-i.debutReel)/60000); dep=intRecaleAuJourFait(i); syncFactureFromIntervention(i,{cloture:true}); nd=intRecurNext(i); }
   logEvent('Intervention '+(STATUT_INT[st].l.toLowerCase()),i.titre,'intervention'); save(); renderIntDetail(id); toast(STATUT_INT[st].l+(dep?' · 📅 déplacée du '+fmtShort(dep)+' à aujourd’hui':'')+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
 /* Multi-techniciens : techIds[] (tous), techId = principal (compatibilité) */
 function intTechIds(i){ return (i&&i.techIds&&i.techIds.length)?i.techIds:(i&&i.techId?[i.techId]:[]); }
@@ -24382,7 +24382,7 @@ function intEffField(id,field,part,val){ const i=db.interventions.find(x=>x.id==
   if(i.debutReel&&i.finReel){ i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); const el=$('eff-dur'); if(el) el.textContent=dureeStr(i.dureeReelle); }
   save(); }
 function intEffToggle(id,checked){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
-  if(checked){ i.statut='terminee'; if(!i.finReel) i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); delete _gpsAway[id]; intHisto(i,'Marquée effectuée'); intRecurNext(i); }
+  if(checked){ i.statut='terminee'; if(!i.finReel) i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); delete _gpsAway[id]; intHisto(i,'Marquée effectuée'); syncFactureFromIntervention(i,{cloture:true}); intRecurNext(i); }
   else { i.statut=i.debutReel?'encours':'planifiee'; intHisto(i,'Repassée '+(i.debutReel?'en cours':'planifiée')); }
   save(); renderIntDetail(id); }
 function intChrono(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
@@ -25289,21 +25289,9 @@ function saveRapport(e,id){ e.preventDefault(); const f=e.target; const data=Obj
   // Étiquettes avant/après : invalidées si la liste de photos a changé hors assistant
   if(db.interventions[ix].photoTags&&db.interventions[ix].photoTags.length!==rapPhotos.length) delete db.interventions[ix].photoTags;
   if(effectuee&&sig) db.interventions[ix].clientAbsent=false;   // v741 : effectuer ne déduit plus rien du stock
-  /* EFFECTUER écrit dans le registre : une intervention payée = UNE ligne,
-     créée ici et jamais recomptée ailleurs. */
-  try{ if(typeof regMigration==='function') regMigration();
-    const it2=db.interventions[ix]; const mnt=Number(it2.montant)||0;
-    if(effectuee && mnt>0 && it2.moyenPaiement){
-      const ex=regDeLInter(it2.id);
-      if(ex){ ex.montant=Math.round(mnt*100)/100; ex.mode=regModeDe(it2.moyenPaiement); ex.clientNom=clientName(it2.clientId); }
-      else { regAdd({date:it2.date||todayISO(),montant:mnt,mode:regModeDe(it2.moyenPaiement),interId:it2.id,
-          clientNom:clientName(it2.clientId),techId:it2.techId||myTechId()||'',declarantId:currentUser.id,
-          declarantNom:fullName(currentUser),source:'effectuer',note:it2.titre||''});
-        toast('💶 '+eur(mnt)+' au registre — à confirmer ce soir en télécollecte'); }
-      /* et LA FACTURE se fait toute seule : créée payée, envoyée au client */
-      try{ factureAutoIntervention(it2); }catch(e){}
-    } }catch(e){}
-  syncFactureFromIntervention(db.interventions[ix]);
+  /* EFFECTUER : la facture, le registre (une intervention payée = UNE ligne) et le courriel passent par le
+     MÊME chemin que les quatre autres portes de clôture — jamais une 2ᵉ facture (1180). */
+  syncFactureFromIntervention(db.interventions[ix],{cloture:!!effectuee});
   // Récurrence / passages (P10) : à la clôture, on propose le passage suivant (modale « Passage suivant »)
   let recurMsg='';
   const cur=db.interventions[ix];
@@ -35555,22 +35543,76 @@ function docListView(kind,xyloOnly){
 views.devis=()=>docListView('devis',false);
 views.devisXylo=()=>docListView('devis',true);
 /* ── Facturation auto depuis l'intervention : prix → facture ; payée → facture payée ── */
-function syncFactureFromIntervention(i){
-  if(!i || !(Number(i.montant)>0)) return;
+/* ⛔⛔ UNE INTERVENTION, UNE FACTURE, UN MONTANT, UNE LIGNE DE REGISTRE — QUELLE QUE SOIT LA PORTE.
+   Mesuré le 16 octobre 2026 (testeur, deux fois chacun) : « Rédiger » + « Effectué » créait DEUX factures
+   « payées » (40,20 € et 33,50 € pour 33,50 € encaissés). Trois clés de lien coexistaient — `interventionId`
+   (la facture automatique et « Facturer cette intervention »), `interId` (la facture « réglée sur place ») et
+   `interIds` + `aFacturer` (le groupe du contrôle du jour) — et chaque créateur ne cherchait que la sienne.
+   Désormais TOUT créateur commence par factureDeIntervention (qui lit les trois, sans rien écrire : aucune
+   facture existante n'est migrée ni réécrite) ; on n'ÉCRIT plus que `interventionId`.
+   ⚠️ Le champ s'appelle « Prix encaissé (€) » : c'est un TTC. Les deux voies divisent par (1 + TVA) ; avant, l'une
+   ajoutait 20 % au prix (120 € devenaient 144 €), l'autre non. Les factures DÉJÀ émises à 144 € restent telles
+   quelles — `montantInt` (le prix dont la facture est tirée) ne les suit que si le prix change APRÈS. */
+function factureDeIntervention(id){
+  if(!id) return null;
+  const fs=db.factures||[];
+  const directe=fs.find(f=>f.interventionId===id)||fs.find(f=>f.interId===id);
+  if(directe) return directe;
+  const groupee=fs.find(f=>(f.interIds||[]).includes(id));
+  if(groupee) return groupee;
+  const it=(db.interventions||[]).find(x=>x.id===id);
+  return (it&&it.factureId&&fs.find(f=>f.id===it.factureId))||null;
+}
+function intTvaFacture(){ return (db.factTva!=null&&db.factTva!=='')?Number(db.factTva):20; }
+function intMontantHT(ttc,tva){ return Math.round((Number(ttc)||0)/(1+(Number(tva)||0)/100)*100)/100; }
+/* UN SEUL chemin intervention → facture → registre. `opts.cloture` : l'appelant vient de poser « terminée »
+   (les cinq portes : menu de statut, case « Effectué ? », « Terminer à la date prévue », « Rédiger » +
+   Effectuée, Clôture guidée). Hors clôture (création, modification du formulaire), la facture suit le prix et
+   le statut comme avant, mais ni le registre ni le courriel ne bougent. */
+function syncFactureFromIntervention(i,opts){
+  if(!i || !(Number(i.montant)>0)) return null;
   db.factures=db.factures||[];
-  const paid = i.statut==='terminee' && i.moyenPaiement && i.moyenPaiement!=='';
+  const mnt=Number(i.montant)||0, tvaR=intTvaFacture(), ht=intMontantHT(mnt,tvaR);
+  /* payée sur place = un moyen de paiement ET de l'argent réellement encaissé : « à facturer » (le client
+     recevra une facture) et « déjà réglé à un autre passage » n'ont rien mis en caisse aujourd'hui */
+  const paid = i.statut==='terminee' && !!i.moyenPaiement && !i.aFacturer && !i.dejaRegle;
   const computed = paid?'payee':(i.statut==='terminee'?'envoyee':'brouillon');
-  const lignes=[{designation:i.titre||'Prestation',qte:1,pu:Number(i.montant)||0}];
-  let f=db.factures.find(x=>x.interventionId===i.id);
+  let f=factureDeIntervention(i.id), vientDePayer=false;
   if(!f){
-    f={id:uid(),num:docNum('factures'),clientId:i.clientId,interventionId:i.id,date:i.date||todayISO(),tva:20,statut:computed,lignes,rapportModele:i.rapportModele||'',moyenPaiement:i.moyenPaiement||'',notes:'Auto — intervention : '+(i.titre||'')};
-    if(paid) f.datePaiement=todayISO();
+    f={id:uid(),num:docNum('factures'),clientId:i.clientId,interventionId:i.id,date:i.date||todayISO(),tva:tvaR,montantInt:mnt,statut:computed,lignes:[{designation:i.titre||'Prestation',qte:1,pu:ht}],rapportModele:i.rapportModele||'',moyenPaiement:i.moyenPaiement||'',
+       notes:paid?'Générée automatiquement — réglée sur place ('+i.moyenPaiement+')':'Auto — intervention : '+(i.titre||'')};
+    if(paid){ f.datePaiement=todayISO(); vientDePayer=true; }
     db.factures.unshift(f); logEvent('Facture auto créée',f.num+' ('+computed+')','finance');
-  } else {
-    f.lignes=lignes; f.clientId=i.clientId; if(i.moyenPaiement) f.moyenPaiement=i.moyenPaiement;
+  } else if(f.interventionId===i.id||f.interId===i.id){
+    /* le prix a changé depuis que la facture en a été tirée (ou facture « réglée sur place » d'avant, déjà juste) */
+    if(f.lignes&&f.lignes[0]&&(f.montantInt!==undefined?f.montantInt!==mnt:!!f.auto)){ f.lignes[0].pu=ht; f.tva=tvaR; f.montantInt=mnt; }
+    f.clientId=i.clientId; if(i.moyenPaiement) f.moyenPaiement=i.moyenPaiement;
     const ord={brouillon:0,envoyee:1,payee:2};
-    if((ord[computed]||0)>(ord[f.statut]||0)){ f.statut=computed; if(computed==='payee'&&!f.datePaiement) f.datePaiement=todayISO(); }
+    if((ord[computed]||0)>(ord[f.statut]||0)){ f.statut=computed; if(computed==='payee'){ vientDePayer=true; if(!f.datePaiement) f.datePaiement=todayISO(); } }
   }
+  if(opts&&opts.cloture){
+    if(paid) intRegistreEncaisse(i,f);
+    /* le courriel part UNE fois, au moment où la facture devient « payée » — jamais renvoyé par une re-clôture */
+    if(paid&&vientDePayer&&db.factAuto!==false&&!f.mailEnvoye) factureMailPayee(f,i);
+  }
+  return f;
+}
+/* Effectuer écrit dans le registre : une intervention payée = UNE ligne, quelle que soit la porte, créée ici et
+   jamais recomptée ailleurs. Une ligne déjà là (confirmée en télécollecte, au contrôle du jour) n'est ni doublée
+   ni réécrite : elle retrouve seulement sa facture, pour que « Annuler le paiement » la rejoigne. */
+function intRegistreEncaisse(it,f){
+  try{ if(typeof regMigration==='function') regMigration(); }catch(e){}
+  const mnt=Number(it.montant)||0; if(mnt<=0||!it.moyenPaiement) return null;
+  const ex=regDeLInter(it.id);
+  if(ex){
+    if(ex.source==='effectuer'&&!ex.jourValide){ ex.montant=Math.round(mnt*100)/100; ex.mode=regModeDe(it.moyenPaiement); ex.clientNom=clientName(it.clientId); }
+    if(f&&!ex.factureId) ex.factureId=f.id;
+    return ex; }
+  const l=regAdd({date:it.date||todayISO(),montant:mnt,mode:regModeDe(it.moyenPaiement),interId:it.id,factureId:f?f.id:'',
+    clientNom:clientName(it.clientId),techId:it.techId||myTechId()||'',declarantId:currentUser.id,
+    declarantNom:fullName(currentUser),source:'effectuer',note:it.titre||''});
+  toast('💶 '+eur(mnt)+' au registre — à confirmer ce soir en télécollecte');
+  return l;
 }
 function factValider(id){ if(!isFinanceMgr()){ toast('Validation comptable réservée au droit « Voir / gérer la comptabilité »'); return; } const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; f.valideCompta=!f.valideCompta; logEvent('Facture '+(f.valideCompta?'validée compta':'validation retirée'),f.num,'finance'); save(); views.factures(); toast(f.valideCompta?'Validée par la compta ✓':'Validation retirée'); }
 /* ── Facturation pro ── */
@@ -35712,16 +35754,23 @@ function ctrlRouvrir(techId,declarantId,d){
    client le même jour tiennent sur un seul document. Elles arrivent en
    brouillon dans Ventes › Factures, prêtes à être relues et envoyées. */
 function factureAFacturer(d,techId,declarantId){
-  const ints=(db.interventions||[]).filter(i=>i.date===d&&techId&&i.techId===techId&&interAFacturer(i));
-  if(!ints.length) return [];
+  const toutes=(db.interventions||[]).filter(i=>i.date===d&&techId&&i.techId===techId&&interAFacturer(i));
+  if(!toutes.length) return [];
   db.factures=db.factures||[];
-  const tvaR=(db.factTva!=null&&db.factTva!=='')?Number(db.factTva):20;
+  const tvaR=intTvaFacture();
+  /* ⛔ UNE INTERVENTION, UNE FACTURE : celle qui a déjà la sienne (brouillon posé à sa création, facture
+     « Générer la facture ») est reprise telle quelle, JAMAIS doublée dans un groupe. Seule la facture du
+     groupe lui-même (interIds) se complète plus bas. */
+  const creees=[];
+  const ints=toutes.filter(i=>{ const ex=factureDeIntervention(i.id);
+    if(!ex||(ex.aFacturer&&(ex.interIds||[]).includes(i.id))) return true;
+    i.factureId=ex.id; if(!creees.includes(ex)) creees.push(ex); return false; });
+  if(!ints.length){ save(); return creees; }
   /* une pile par client ET par société : quand l'entreprise a plusieurs
      sociétés, la facture sort au nom choisi dans l'intervention */
   const parClient={};
   ints.forEach(i=>{ const k=JSON.stringify([i.clientId||'',i.rapportModele||'']);
     (parClient[k]=parClient[k]||[]).push(i); });
-  const creees=[];
   Object.keys(parClient).forEach(k=>{
     const lot=parClient[k];
     const [cid,soc]=JSON.parse(k);
@@ -35747,27 +35796,14 @@ function factureAFacturer(d,techId,declarantId){
 /* combien de factures attendent d'être éditées */
 function facturesAEditer(){ return (db.factures||[]).filter(f=>f.aFacturer&&f.statut==='brouillon'); }
 
-/* ══ LA FACTURE AUTOMATIQUE ══
-   Intervention payée → la facture est créée « Payée » et part au client par
-   e-mail (via le serveur, comme les rapports). Une seule facture par
-   intervention : re-enregistrer met à jour le montant, sans renvoyer l'email.
+/* ══ LA FACTURE PAYÉE SUR PLACE PART AU CLIENT ══
+   Intervention payée → la facture (créée ou passée « payée » par syncFactureFromIntervention, UN seul chemin)
+   part au client par e-mail via le serveur, comme les rapports. Elle ne part qu'UNE fois (`mailEnvoye`) :
+   re-enregistrer ou re-clôturer met à jour le montant, sans renvoyer l'email.
    L'argent, lui, est déjà compté au registre — la facture n'ajoute rien. */
-function factureAutoIntervention(it){
-  if(db.factAuto===false) return;
-  const mnt=Number(it.montant)||0; if(mnt<=0) return;
-  db.factures=db.factures||[];
-  const tvaR=(db.factTva!=null&&db.factTva!=='')?Number(db.factTva):20;
-  const ht=Math.round(mnt/(1+tvaR/100)*100)/100;
-  let f=db.factures.find(x=>x.interId===it.id);
-  if(f){ if(f.auto&&f.lignes&&f.lignes[0]){ f.lignes[0].pu=ht; f.tva=tvaR; save(); } return; }
-  f={id:uid(),num:docNum('factures'),clientId:it.clientId,devisId:'',date:todayISO(),statut:'payee',
-     datePaiement:todayISO(),tva:tvaR,interId:it.id,auto:true,
-     rapportModele:it.rapportModele||'',moyenPaiement:it.moyenPaiement||'',
-     notes:'Générée automatiquement — réglée sur place ('+(it.moyenPaiement||'')+')',
-     lignes:[{designation:(it.titre||'Intervention')+' — le '+fmtShort(it.date||todayISO()),qte:1,pu:ht}]};
-  db.factures.push(f);
-  const l=regDeLInter(it.id); if(l) l.factureId=f.id;
-  logEvent('Facture automatique',f.num+' — '+eur(mnt)+' ('+clientName(it.clientId)+')','finance'); save();
+function factureMailPayee(f,it){
+  if(db.factAuto===false||!f||!it) return;
+  const tvaR=(f.tva!=null&&f.tva!=='')?Number(f.tva):intTvaFacture();
   const c=(db.clients||[]).find(x=>x.id===it.clientId);
   if(c&&(c.email||'').trim()){
     const t=docTot(f), soc=rapportSociete(it.rapportModele);   // v740 : la signature nomme la société de l'intervention
@@ -35782,11 +35818,11 @@ function factureAutoIntervention(it){
       const opts=Object.assign({},docMailOpts(it.rapportModele)||{});
       if(pdf){ opts.atts=[{filename:('Facture-'+(f.num||'')).replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}]; opts.mailtoBody=corpsDe(false); }
       return srvMail((c.email||'').trim(),'Votre facture '+f.num,corpsDe(!!pdf),'','facture',null,Object.keys(opts).length?opts:undefined); })()
-      .then(okE=>{ if(okE){ f.mailEnvoye=Date.now(); save(); toast('🧾 Facture '+f.num+' créée et envoyée à '+c.email); }
-        else toast('🧾 Facture '+f.num+' créée — l\'email n\'est pas parti (à renvoyer depuis Factures)'); })
-      .catch(()=>{ toast('🧾 Facture '+f.num+' créée — l\'email n\'est pas parti'); });
+      .then(okE=>{ if(okE){ f.mailEnvoye=Date.now(); save(); toast('🧾 Facture '+f.num+' réglée — envoyée à '+c.email); }
+        else toast('🧾 Facture '+f.num+' réglée — l\'email n\'est pas parti (à renvoyer depuis Factures)'); })
+      .catch(()=>{ toast('🧾 Facture '+f.num+' réglée — l\'email n\'est pas parti'); });
   } else {
-    toast('🧾 Facture '+f.num+' créée — ajoute l\'e-mail du client pour l\'envoi automatique');
+    toast('🧾 Facture '+f.num+' réglée — ajoute l\'e-mail du client pour l\'envoi automatique');
   }
 }
 
