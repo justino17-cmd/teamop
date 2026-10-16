@@ -268,6 +268,12 @@
   .frow-val>input,.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
   .frow>textarea{resize:vertical;min-height:44px;font-family:inherit;}
   .frow .frow-lbl{color:var(--t1);font-size:15px;white-space:nowrap;}
+  /* ⛔ UN CHAMP POSÉ DIRECTEMENT APRÈS SON LIBELLÉ SE RANGE À CÔTÉ DE LUI (g03, achats#12). `.frow>input{width:100%}`
+     (la ligne sans libellé, placeholder seul) forçait la ligne à passer : « N° » restait seul au-dessus de sa valeur
+     — « Nouveau bon », « Modifier la box », fiche produit —, sur Mac comme sur iPhone, alors que la valeur est
+     écrite `text-align:right`, c'est-à-dire pensée pour la MÊME ligne. Une base de 140 px (et non 0) garde la
+     protection du `flex-wrap` : un libellé long sur un écran étroit renvoie quand même le champ dessous. */
+  .frow>.frow-lbl+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]){flex:1 1 140px;width:auto;min-width:0;}
   .frow .frow-val{margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;min-width:0;max-width:100%;}
   .frow select{appearance:none;-webkit-appearance:none;}
   /* champs de saisie d'un relevé : à l'écriture, rien d'autre */
@@ -30869,6 +30875,26 @@ function bonQtyList(){ const el=$('bqty-wrap'); if(!el) return;
     #bqty-wrap th{position:sticky;top:0;background:var(--card);z-index:2;text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.8px;color:var(--t3);padding:9px 8px;border-bottom:1px solid var(--brd2);white-space:nowrap}
     #bqty-wrap td{padding:8px;border-bottom:1px solid var(--brd);vertical-align:middle}
     #bqty-wrap tr.alt td{background:color-mix(in srgb,var(--bg1) 60%,transparent)}
+    /* ⛔ AU TÉLÉPHONE ET SUR iPAD PORTRAIT, LE TABLEAU DE 840 PX NE MONTRAIT QUE « PRODUIT » ET « CARTONS » (g03, achats#11) :
+       dans un écran de 390 px, seuls deux colonnes sur sept sont visibles à l'ouverture — U/CTN, UNITÉS, TOTAL et COMMENTAIRE
+       sont hors écran, sans la moindre indication qu'on peut défiler. La commande est la raison d'être de cet écran : on ne
+       cache pas la saisie des unités derrière un geste qu'on ne devine pas. Sous 900 px, chaque ligne devient une CARTE :
+       le produit sur toute la largeur, puis chaque champ sous son étiquette (reprise de l'en-tête, qui disparaît), qui passent
+       à la ligne quand ça ne tient pas. Au-dessus, le tableau reste un tableau. */
+    @media(max-width:900px){
+      #bqty-wrap table{min-width:0}
+      #bqty-wrap thead{display:none}
+      #bqty-wrap table,#bqty-wrap tbody{display:block;width:100%}
+      #bqty-wrap tr{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px;padding:12px;border-bottom:1px solid var(--brd)}
+      #bqty-wrap tr:last-child{border-bottom:0}
+      #bqty-wrap tr.alt{background:color-mix(in srgb,var(--bg1) 60%,transparent)}
+      #bqty-wrap tr.alt td{background:transparent}
+      #bqty-wrap td{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:0;border:0}
+      #bqty-wrap td[data-l]::before{content:attr(data-l);font-size:10.5px;font-weight:800;letter-spacing:.8px;color:var(--t3)}
+      #bqty-wrap td:first-child{flex:1 0 100%}
+      #bqty-wrap td.bq-c{flex:1 1 100%}
+      #bqty-wrap td.bq-x{margin-left:auto}
+    }
   </style>`;
   _bqtyGroups.forEach((g,gi)=>{ const c=g.k==='Sans fournisseur'?'var(--t3)':fourColor(g.k);
     html+=`<div style="display:flex;align-items:center;gap:9px;margin:16px 2px 8px">
@@ -30881,12 +30907,12 @@ function bonQtyList(){ const el=$('bqty-wrap'); if(!el) return;
     g.idx.forEach((i,j)=>{ const l=bonLignes[i];
       html+=`<tr class="${j%2?'alt':''}">
         <td>${l.produitId?`<b style="font-size:13.5px">${esc(l.designation||'—')}</b>${l.reference?`<div class="mono" style="font-size:11px;color:var(--t3)">${esc(l.reference)}</div>`:''}`:`<input value="${esc(l.designation||'')}" placeholder="Désignation libre…" style="min-width:180px;width:100%" oninput="bonLignes[${i}].designation=this.value">`}</td>
-        <td><div style="display:flex;align-items:center;gap:4px">${step(i,'cartons',-1)}${num(i,'cartons',52)}${step(i,'cartons',1)}</div></td>
-        <td>${num(i,'upc',52)}</td>
-        <td><div style="display:flex;align-items:center;gap:4px">${step(i,'quantite',-1)}${num(i,'quantite',52)}${step(i,'quantite',1)}</div></td>
-        <td id="bqty-t-${i}" style="text-align:right;font-weight:800;color:var(--acc-txt);white-space:nowrap"></td>
-        <td><input value="${esc(l.commentaire||'')}" placeholder="Commentaire…" style="min-width:150px;width:100%" oninput="bonLignes[${i}].commentaire=this.value"></td>
-        <td><button type="button" class="btn danger sm" onclick="bonLignes.splice(${i},1);bonQtyList()">✕</button></td></tr>`;
+        <td data-l="CARTONS"><div style="display:flex;align-items:center;gap:4px">${step(i,'cartons',-1)}${num(i,'cartons',52)}${step(i,'cartons',1)}</div></td>
+        <td data-l="U/CTN">${num(i,'upc',52)}</td>
+        <td data-l="UNITÉS"><div style="display:flex;align-items:center;gap:4px">${step(i,'quantite',-1)}${num(i,'quantite',52)}${step(i,'quantite',1)}</div></td>
+        <td data-l="TOTAL" id="bqty-t-${i}" style="text-align:right;font-weight:800;color:var(--acc-txt);white-space:nowrap"></td>
+        <td data-l="COMMENTAIRE" class="bq-c"><input value="${esc(l.commentaire||'')}" placeholder="Commentaire…" style="min-width:150px;width:100%" oninput="bonLignes[${i}].commentaire=this.value"></td>
+        <td class="bq-x"><button type="button" class="btn danger sm" onclick="bonLignes.splice(${i},1);bonQtyList()">✕</button></td></tr>`;
     });
     html+='</tbody></table></div>';
   });
@@ -31046,10 +31072,13 @@ function renderBonLignes(){ const el=$('bon-lignes'); if(!el)return;
         <div class="pl-info"><div class="pl-title">${esc(k)}</div><div class="pl-meta">${ls.length} article(s) · ${bonQteTotTxt({lignes:ls})}</div></div>
         <span style="color:var(--t3);font-size:13px;white-space:nowrap">Modifier ›</span></div>`; }).join('');
   }
+  /* ⛔ 140 px et non 110 : « 💾 Garder de côté » en demande ~125, et à 110 sur un iPhone (trois colonnes de 111 px)
+     son icône recouvrait le « F » d'« Aperçu PDF » — le contenu d'un bouton centré déborde des DEUX côtés. À 140,
+     trois colonnes ne tiennent plus sous ~440 px : deux boutons, puis le troisième sur sa ligne (g03, achats#12). */
   el.innerHTML=recap+`<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:110px" onclick="bonPdfDraft()">📄 Aperçu PDF</button>
-      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:110px" onclick="bonGarder()">💾 Garder de côté</button>
-      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:110px" onclick="bonShareDraft()">📤 Partager</button>
+      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:140px" onclick="bonPdfDraft()">📄 Aperçu PDF</button>
+      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:140px" onclick="bonGarder()">💾 Garder de côté</button>
+      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:140px" onclick="bonShareDraft()">📤 Partager</button>
     </div>`;
   const c=$('bon-lignes-count'); if(c)c.textContent=lignes.length;
   bonTotRefresh();
