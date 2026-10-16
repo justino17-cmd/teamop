@@ -2434,3 +2434,13 @@ d'environnement) → frontmatter de l'agent → réglage de session.
 
 `bashOutputMaxChars` plafonne ce qu'une commande renvoie au modèle. Une trace
 Playwright en échec fait des dizaines de milliers de caractères, tous facturés.
+
+⛔ **ECC (« Everything Claude Code », `affaan-m/ECC`) N'EST PAS INSTALLÉ EN ENTIER — EXPRÈS.** Vérifié le
+16 octobre 2026 (v2.2.3) : 71 agents dont 4 en Opus, 311 skills (≈ 29 000 jetons de descriptions chargés à CHAQUE
+session), 27 hooks — GateGuard bloque la première modification de chaque fichier, « observe » recopie l'entrée et la sortie
+de chaque outil (5 000 caractères) dans `~/.claude/homunculus/`, secrets masqués mais pas les noms ni les adresses de
+clients. C'est contraire à « tout en Sonnet » et à la consommation de la semaine, et ses agents, génériques (React,
+Python…), ne savent rien de ce dépôt : `gardien`, `relecteur`, `testeur` restent. Justin a choisi la sélection :
+`click-path-audit`, `make-interfaces-feel-better`, `strategic-compact`, recopiées dans `.claude/skills/` avec un bloc
+« Adaptation TeamOP » et leur `LICENSE` (MIT). Une pièce de plus se recopie de la même façon — jamais `enabledPlugins`
+ni `./install.sh`.
