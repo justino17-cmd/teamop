@@ -3333,7 +3333,7 @@ a.menu-action { text-decoration: none; }
      ferme QUE lui. Restent hors couche, comme avant : le menu d'un rendez-vous de l'Agenda et « Y aller » (ouverts par d'autres fonctions). */
   let menuRetour = false, apresRetour = [], filetMenu = 0;
   function menuEntreePoser() {
-    if (menuRetour) return false;                                       // le retour d'un menu précédent est encore en vol : celui-ci reste hors couche, plutôt que de se croiser avec lui
+    if (menuRetour || !etat.route) return false;                        // le retour d'un menu précédent est encore en vol : celui-ci reste hors couche, plutôt que de se croiser avec lui
     const h = entree();
     if (h && h.menu) return true;                                       // son entrée est déjà là (un menu qui en remplace un autre)
     history.pushState({ opmsg: 1, n: h ? h.n + 1 : 1, r: etat.route, p: etat.route, menu: 1 }, '', urlDe(etat.route));
@@ -7879,7 +7879,9 @@ a.menu-action { text-decoration: none; }
     if (ancre) { ancre.classList.add('menu-ancre'); $('menu-fond').classList.add('ancre'); $('menu-fond').classList.toggle('de-moi', moi); }
     $('menu-fond').hidden = false;
     synchroInert();
-    const premier = $('menu-msg').querySelector('button'); if (premier) premier.focus({ preventScroll: true });
+    /* le premier bouton (le 👍) prend le focus pour le clavier et le lecteur d'écran — mais AU DOIGT ou à la souris sans anneau (`rendreFocus`) : l'anneau autour du 👍 faisait croire
+       qu'une réaction était déjà choisie (testeur, 17 octobre 2026). Ouvert au clavier, l'anneau reste : c'est lui qui dit où l'on est. */
+    const premier = $('menu-msg').querySelector('button'); if (premier) rendreFocus(premier);
   }
   /* ── « ME LE RAPPELER » (8 octobre 2026 : « il faudrait pouvoir le mettre en rappel ») : un événement de l'AGENDA, à l'heure choisie, avec son rappel à l'heure — la notification
      part du service, même application fermée. Le titre dit de quoi il s'agit, le lieu dit la conversation, la note garde le texte. Rien de neuf côté service : l'agenda sait déjà le faire. */
@@ -7896,15 +7898,36 @@ a.menu-action { text-decoration: none; }
     $('menu-msg').innerHTML = '<p class="menu-question">Me le rappeler</p>' + h + '<button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
     $('menu-msg').querySelector('button').focus({ preventScroll: true });
   }
+  /* ⛔ LE MÊME RAPPEL NE SE POSE PAS DEUX FOIS (testeur, 17 octobre 2026 : deux touches sur « Dans 1 heure » posaient deux événements « Rappel : On se fait un ciné ? »). Le rappel
+     garde le chemin vers son message (`source: { conv, seq }`) : même message, non coché, à la même heure à 5 minutes près (« Dans 1 heure » touché deux minutes plus tard reste le même
+     choix) → « Déjà dans ton agenda ». Un AUTRE horaire pour le même message reste permis (deux rappels voulus). `rappelsEnVol` couvre les deux touches avant que la première réponde ;
+     une relecture de l'agenda qui échoue ne bloque pas le rappel. */
+  const rappelsEnVol = [], RAPPEL_PROCHE_MS = 5 * 60000;
   async function rappelPoser(m, quand) {
     const x = rappelChoix().find(y => y.cle === quand), c = etat.convDonnees; if (!x || !c) return;
+    const lien = Number.isSafeInteger(m.seq) && m.seq > 0 && /^c_[0-9a-f]{32}$/.test(c.id) ? { conv: c.id, seq: m.seq } : null;
+    const enVol = lien ? { conv: lien.conv, seq: lien.seq, t: x.t } : null;
+    const memeRappel = y => y.conv === lien.conv && y.seq === lien.seq && Math.abs(y.t - x.t) <= RAPPEL_PROCHE_MS;
+    if (enVol) {
+      if (rappelsEnVol.some(memeRappel)) { mot('Déjà dans ton agenda'); return; }
+      rappelsEnVol.push(enVol);
+    }
+    try { await rappelPoserSuite(m, x, c, lien); }
+    finally { const i = rappelsEnVol.indexOf(enVol); if (i >= 0) rappelsEnVol.splice(i, 1); }
+  }
+  async function rappelPoserSuite(m, x, c, lien) {
+    if (lien && typeof source.evenements === 'function') {
+      let l = []; try { l = await source.evenements(x.t - RAPPEL_PROCHE_MS, x.t + RAPPEL_PROCHE_MS + 1) || []; } catch (er) { l = []; }
+      /* (« o » : le chemin du rappel lu à travers « source » — le générateur croirait à une méthode de la source) */
+      if (l.some(e => { const o = e.source; return o && o.conv === lien.conv && o.seq === lien.seq && !e.fait && Math.abs(e.debut - x.t) <= RAPPEL_PROCHE_MS; })) { mot('Déjà dans ton agenda'); return; }
+    }
     const moi = m.auteur === MOI.id, de = moi ? 'ton message' : 'le message de ' + nomAuteur(m.auteur);
     const quoi = m.texte ? m.texte.replace(/\s+/g, ' ').trim() : m.photos ? 'une photo' : m.vocal ? 'un message vocal' : m.fichier ? 'le fichier « ' + m.fichier.nom + ' »' : m.sondage ? 'un sondage' : m.position ? 'une position' : m.carteContact ? 'une fiche de contact' : 'un message';
     const titre = Array.from('Rappel : ' + quoi).slice(0, 118).join('') + (Array.from('Rappel : ' + quoi).length > 118 ? '…' : '');
     const note = Array.from('Rappel sur ' + de + ', dans « ' + nomConv(c) + ' ».' + (m.texte ? '\n\n' + m.texte : '')).slice(0, 2000).join('');
     try {
       await source.creerEvenement(Object.assign({ titre, lieu: Array.from(nomConv(c)).slice(0, 300).join(''), note, journee: false, debut: localDans(x.t, x.tz), fin: localDans(x.t + 15 * 60000, x.tz), rappel: 0, tz: x.tz },
-        Number.isSafeInteger(m.seq) && m.seq > 0 && /^c_[0-9a-f]{32}$/.test(c.id) ? { source: { conv: c.id, seq: m.seq } } : {},      // « Voir le message » : le chemin vers lui, pas une copie
+        lien ? { source: lien } : {},      // « Voir le message » : le chemin vers lui, pas une copie
         modesActifs() ? { cote: coteDe(etat.conversations.find(x => x.id === c.id) || c) } : {}));      // l'agenda du côté de sa conversation
       mot('Je te le rappelle ' + (x.cle === 'demain' ? 'demain à ' : x.cle === 'lundi' ? 'lundi à ' : 'à ') + heureDans(x.t, x.tz) + ' — c\'est dans ton agenda');
       if (etat.route && etat.route.vue === 'reunions') chargerReunions();
