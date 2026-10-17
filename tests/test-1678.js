@@ -216,6 +216,26 @@ console.log('\n── 5. au clavier : l\'anneau de focus ──');
   vrai('  … le focus ne dépend pas de la règle des champs (`.field input:focus{box-shadow:…30 %}`, trop pâle) : le contour est propre à la case', !!f && cmp(spec(f.sel), spec('html[data-refonte] .field input:focus')) > 0);
 }
 
+/* ══ 5 bis. UNE CASE DÉSACTIVÉE SE GRISE (relecture du lot : le trait et le remplissage en !important effaçaient le grisé natif) ═══ */
+console.log('\n── 5 bis. une case désactivée ne ressemble pas à une case libre ──');
+{
+  const d = regle(CB + ':disabled', '')[0], force = regle('html[data-refonte] .opt-fl.force input[type=checkbox]:not(.cb-natif):disabled', '')[0];
+  /* la population d'abord : sans case désactivée dans le balisage, « elle se grise » ne garderait rien */
+  const dis = (SRC.match(/<input type="checkbox"[^>]*\$\{[^}]*\?'disabled'[^}]*\}/g) || []).concat(SRC.match(/<input type="checkbox"[^>]*\bdisabled\b[^>]*>/g) || []);
+  vrai('le balisage porte des cases désactivées (administrateur « d\'office », bon sans e-mail fournisseur, option imposée) — population comptée', dis.length >= 3, dis.length);
+  vrai('la case désactivée a SA règle (`:disabled`), hors de tout @media', regle(CB + ':disabled', '').length === 1);
+  if (d) {
+    const o = parseFloat(px(d, 'opacity'));
+    vrai('  … elle se grise : une opacité entre 0,3 et 0,7 (la case reste lisible : un état coché grisé se distingue encore d\'un état vide)', o >= 0.3 && o <= 0.7, px(d, 'opacity'));
+    vrai('  … `cursor:default` : rien ne s\'attend à un clic', px(d, 'cursor') === 'default');
+    vrai('  … l\'opacité n\'est PAS en !important : une case qui écrit la sienne en ligne la garde', !imp(d, 'opacity'));
+    vrai('  … la règle de base ne pose AUCUNE opacité, ni la règle coché : le grisé ne peut pas être battu par elles', !base.decl['opacity'] && !coche.decl['opacity']);
+    vrai('  … plus spécifique que la règle de base (même sélecteur plus `:disabled`) et écrite APRÈS elle', cmp(spec(d.sel), spec(CB)) > 0 && d.ordre > base.ordre);
+  }
+  vrai('une option imposée (`.opt-fl.force`, dont la LIGNE est déjà grisée à .65) ne grise pas sa case une seconde fois', !!force && px(force, 'opacity') === '1' && cmp(spec(force.sel), spec(CB + ':disabled')) > 0);
+  vrai('  … et sa ligne est bien grisée par la feuille (sinon l\'exception laisserait la case à pleine force)', REGLES.some(r => r.sel === '.opt-fl.force' && parseFloat(px(r, 'opacity')) < 1));
+}
+
 /* ══ 6. CONTRE-ÉPREUVES : CE QUI NE DOIT PAS CHANGER ══════════════════════════════════════════════════════════════════ */
 console.log('\n── 6. contre-épreuves ──');
 {
