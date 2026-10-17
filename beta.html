@@ -13680,6 +13680,14 @@ function multiReprendre(vue){
   }catch(err){}
   /* ⑤ enfin, ce que les modèles dessinent */
   MULTI_MODELES.forEach(r => { try{ if(modeles[r.id] !== undefined && m.querySelector('#' + r.id)) r.rendre(modeles[r.id]); }catch(err){} });
+  /* ⑥ les affichages DÉRIVÉS d'un champ caché : « Début » (#deb-aff) n'est écrit que par la roue d'heure, il gardait donc l'heure
+     de l'OUVERTURE pendant que le champ caché `heure` (restitué en ③) portait celle de la saisie — l'écran disait 09:00, l'intervention
+     s'enregistrait à 14:00. On le relit depuis le champ, puis « Fin prévue » depuis l'heure ET la durée restituées. */
+  try{
+    const h = m.querySelector('[name=heure]'), a = m.querySelector('#deb-aff');
+    if(h && a && h.value) a.textContent = h.value;
+    if(h && m.querySelector('#fin-dit')) intFinDit();
+  }catch(err){}
   multiOublier(vue);
   try{ const b = document.querySelector('.multi-bar'); if(b) b.remove(); }catch(err){}
   try{ toast('Reprise là où tu en étais'); }catch(err){}

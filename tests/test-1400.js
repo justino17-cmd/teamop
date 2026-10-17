@@ -158,6 +158,7 @@ function monde(stockage) {
     function renderDemLignes(){ __rendus.push(['dem-lignes',JSON.stringify(demLignes)]); const e=$('dem-lignes'); if(e) e.textContent=JSON.stringify(demLignes); }
     function renderBonLignes(){ __rendus.push(['bon-lignes',JSON.stringify(bonLignes),_bonEditId]); const e=$('bon-lignes'); if(e) e.textContent=bonLignes.length+' article(s)'; }
     function renderBonSites(){ __rendus.push(['bon-livraison',JSON.stringify(bonSites)]); const e=$('bon-livraison'); if(e) e.textContent=bonSites.map(s=>s.nom).join('|'); }
+    function intFinDit(){ const h=document.querySelector('#modal [name="heure"]'), z=document.getElementById('fin-dit'); __rendus.push(['fin',h&&h.value]); if(z&&h) z.textContent='Fin prévue : '+h.value; }
     function intDureePose(n){ __rendus.push(['duree',n]); const f=document.querySelector('#modal [name="duree"]'); if(f) f.value=n; }
   `, ctx);
   return ctx;
@@ -209,6 +210,7 @@ const FORM_INTERV = `<div class="modal-head"><h3>Intervention</h3></div><form id
   <span class="chip int-tech" data-tid="t2" onclick="this.classList.toggle('active')">Ben</span>
   <span class="chip int-tech" data-tid="t3" onclick="this.classList.toggle('active')">Carla</span>
   <span class="chip active" onclick="toggleUnSet('x')">Piloté par un Set</span>
+  <input type="hidden" name="heure" value="09:00"><span id="deb-aff">09:00</span><div id="fin-dit"></div>
   <input type="hidden" name="duree" value="60"><div id="dur-chips"><div class="chip active" onclick="intDureePose(60)">1 h</div></div>
   <div id="int-nuis"></div><div id="int-meth"></div></form>`;
 const stock2 = new Map();
@@ -217,6 +219,8 @@ ex(W3, `openModal(${JSON.stringify(FORM_INTERV)}); intNuis=new Set(['Rats']); in
 champ(W3, '[name="titre"]').value = 'Cuisine'; champ(W3, '#cli-search').value = 'Boulangerie'; champ(W3, '#cli-id').value = 'c1';
 W3.document.querySelectorAll('.int-tech').forEach(x => { if (x.dataset.tid !== 't1') x.classList.add('active'); });
 champ(W3, '[name="duree"]').value = '90';
+/* la roue d'heure écrit le champ caché ET l'affichage « Début » (ouvreRouesInt) : ici 14:00, l'ouverture disait 09:00 */
+champ(W3, '[name="heure"]').value = '14:00'; champ(W3, '#deb-aff').textContent = '14:00';
 ex(W3, 'multiCapturer()');
 const puces2 = (JSON.parse(stock2.get(CLE)).devis || {}).puces || [];
 v('⛔ seules les puces dont le clic ne fait que basculer une classe sont gardées (3 techniciens) — ni celle d\'un Set, ni celles de la durée (leur modèle)', puces2.length, 3);
@@ -229,6 +233,7 @@ v('⛔ nuisibles + traitement restitués après rechargement', ex(W4, '[[...intN
 v('⛔ méthodes restituées', ex(W4, '[...intMeth]'), ['Appâtage']);
 vrai('   et redessinés (les vrais rendus ont été appelés, dans les conteneurs)', champ(W4, '#int-nuis').textContent === 'Rats' && champ(W4, '#int-meth').textContent === 'Appâtage');
 v('⛔ la durée 90 est restituée ET ses puces redessinées (intDureePose(90))', [champ(W4, '[name="duree"]').value, W4.__rendus.filter(r => r[0] === 'duree').map(r => r[1])], ['90', [90]]);
+v('⛔ l\'affichage « Début » suit l\'heure restituée (14:00, pas l\'09:00 de l\'ouverture) ET « Fin prévue » est redessinée', [champ(W4, '[name="heure"]').value, champ(W4, '#deb-aff').textContent, champ(W4, '#fin-dit').textContent, W4.__rendus.filter(r => r[0] === 'fin').slice(-1)[0]], ['14:00', '14:00', 'Fin prévue : 14:00', ['fin', '14:00']]);
 vrai('   la liste de suggestions rouverte par l\'événement input est refermée', champ(W4, '#cli-list').style.display === 'none', champ(W4, '#cli-list').style);
 
 /* ═══════════════ 3. LE CLIENT : la puce suit le champ caché ═══════════════ */
