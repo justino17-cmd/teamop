@@ -13,11 +13,34 @@ de ligne du tout.
 
 ---
 
-# ⏳ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
+# ⏳ 17 OCTOBRE 2026 (NUIT) — LA TOUR REPRISE DE A À Z, ET LES CORRECTIFS DU CONTRÔLE : CINQ BRANCHES, RIEN SUR `main`
+
+Justin : « je veux que tu me refasses toute la Tour de A à Z, que tu sépares bien les demandes de OP GESTION et les
+demandes de OP MESSAGES […] Pareil pour le système de mail […] une vraie boîte mail intégrée dans la Tour ». Ses
+réponses du même soir : OP MESSAGES se pilote **par un relais d'`api.teamop.fr`** (la Tour ne parle qu'à notre API) ;
+le courrier garde **les mêmes boîtes, triées par console** ; le ménage du menu est fait ; le module d'administration
+du serveur d'OP MESSAGES s'écrit **sur sa branche**, pas dans la session qui en a la charge.
+
+| branche | contenu | ce qu'il lui faut pour partir |
+|---|---|---|
+| `claude/correctifs-controle` | `X-Powered-By` retiré (`test-1011`), polices du site servies par teamop.fr (`vitrine/polices/`, OFL), cibles au doigt du site et du portail, aperçus refaits | **phrase de Justin** : `server/` déploie le VPS ; le site part par `publication-site.yml` |
+| `claude/app-correctifs-controle` | sur la ligne **v768** (`claude/op-gestion-interface-yb6p32`, qui la porte déjà) : « Modules OP » ne cite plus Organilog, la langue n'est demandée qu'à un appareil non français, polices locales, le compte de départ prend le prénom et le nom de la demande (`test-1013`) | part AVEC la v768 — bêta d'abord ; `app.html` reste sous la règle du 23 septembre (rien en public avant la sortie de Firebase) |
+| `claude/tour-refonte` | Tour **v2.87** : écran **Demandes** (OP GESTION seul, payé lu chez Stripe, accepter depuis la carte — `test-1014`) ; Connexions et Devis IA en sous-onglets ; **Comptes du site** revenu (il n'était plus appelé par aucun écran) ; **Journal des gestes noté par le serveur** (`MON_GESTES`, `test-1015` : chaque route POST de la Tour classée) ; code mort retiré ; le prénom et le nom voyagent dans le code de l'espace (`p`, `f`) | essai par Justin sur `apercu/tour.html`, puis **phrase** — le journal touche `server/` |
+| `claude/tour-courrier-serveur` | (agent en cours) le moteur du courrier de la Tour : dossiers, pages, pièces, brouillons, tri par console | relecture `gardien`, puis l'écran (v2.88) |
+| `claude/msg-admin` | (agent en cours) `server-msg/admin.js` : ce que la Tour OP MESSAGES pourra lire et faire, derrière un secret partagé | le relais dans `server/index.js`, puis les vues de la console OP MESSAGES |
+
+⚠️ **v768 appartient à `claude/op-gestion-interface-yb6p32`** (ses fonctions d'options, que `test-845` attend). Une
+autre branche qui monte `APP_VERSION` à 768 fait tomber `test-845` : les correctifs d'application montent avec elle.
+⚠️ Ce que le contrôle a relevé et qui reste « à regarder » : `app.html` charge encore Leaflet chez `unpkg.com` (et
+d'autres bibliothèques à la demande) ; la fenêtre « Photo de profil » revient au rechargement.
+
+---
+
+# ✅ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
 
 Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un
-contrôle ». Branche `claude/controle-client-mystere` — **pas sur `main`** (attend sa phrase ; rien de servi ne
-change : `scripts/controle/`, `.claude/`, `CLAUDE.md`, ce fichier).
+contrôle ». **Fusionné sur `main` le 17 octobre au soir** (`9fd78c3`, phrase de Justin) — rien de servi ne change :
+`scripts/controle/`, `.claude/`, `CLAUDE.md`, ce fichier. Les correctifs de ce qu'il a trouvé : entrée ci-dessus.
 
 - **Ce qui existe** : `node scripts/controle/controle.js <sortie>` (skill `/controle`, agent `client-mystere`).
   Un JUMEAU sur 127.0.0.1 — le site assemblé servi sous ses vraies adresses, le vrai `server/index.js` isolé,
