@@ -106,7 +106,10 @@ node -e '
   for (const w of [".github/workflows/deploiement.yml", ".github/workflows/ci.yml"]) {
     const s = fs.readFileSync(w, "utf8");
     const n = (s.match(avant) || []).length;
-    if (n !== 1) { console.error("✗ " + w + " : ligne des bancs trouvée " + n + " fois"); process.exit(1); }
+    /* une branche qui a fusionné main porte DÉJÀ la ligne réécrite : on la garde, si elle est bien celle-là, et une seule fois */
+    const deja = (s.match(/run: (?:[A-Z_]+="[^"\n]*" )*BANCS_PLANCHER=\$\(sed -n \x27s\/\^#plancher \/\/p\x27 scripts\/bancs-serveur\.liste\) bash scripts\/bancs-ci\.sh \$\(grep -vE \x27\^\[\[:space:\]\]\*\(#\|\$\)\x27 scripts\/bancs-serveur\.liste\)\n/g) || []).length;
+    if (n === 0 && deja === 1) { console.log("  " + w + " : ligne des bancs déjà réécrite (la liste du serveur)"); continue; }
+    if (n !== 1) { console.error("✗ " + w + " : ligne des bancs trouvée " + n + " fois (déjà réécrite : " + deja + ")"); process.exit(1); }
     fs.writeFileSync(w, s.replace(avant, apres));
   }'
 
