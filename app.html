@@ -18137,7 +18137,7 @@ function planAPlanifier(SRC){ const pool=SRC.filter(i=>!i.date||i.statut==='apla
    · plusieurs jours affichés côte à côte, chaque colonne porte le technicien ET son jour
    · la carte à droite montre toutes les interventions des jours et techniciens choisis
    ═══════════════════════════════════════════════════════════════════════════ */
-let planJours=[], planTechM=null, planMenuOuvert=false, _planMap=null;
+let planJours=[], planTechM=null, planTechMConnus=null, planMenuOuvert=false, _planMap=null;
 let planCarteOn=(function(){ try{ const v=localStorage.getItem('elan_plan_cartem'); return v===null?true:v==='1'; }catch(e){ return true; } })();
 let _planMapTok=0, _planMarkers={};
 /* carte affichee a cote du planning dans les vues Jour / Semaine / Mois (choix memorise) */
@@ -18820,15 +18820,32 @@ function planCarteFocus(id){
   }catch(e){}
 }
 
+/* Les techniciens affichés se mémorisent sur l'appareil (localStorage, jamais dans db). Mémoriser
+   SEULEMENT l'ensemble affiché faisait qu'un technicien créé après la première visite n'y était
+   jamais : « Filtre actif : 4 techniciens sur 5 », sa colonne absente et ses interventions cachées.
+   On mémorise donc aussi la liste des techniciens CONNUS à ce moment-là (elan_plan_techs_connus) :
+   un identifiant connu et absent de l'ensemble a été DÉCOCHÉ exprès (il le reste), un identifiant
+   jamais vu est NOUVEAU (il s'affiche). Rapproché à chaque appel, pas seulement au premier : le
+   technicien peut naître pendant que le Planning reste en mémoire. */
+function planTechMEcrire(){ try{ localStorage.setItem('elan_plan_techs',JSON.stringify([...planTechM])); localStorage.setItem('elan_plan_techs_connus',JSON.stringify([...planTechMConnus])); }catch(e){} }
 function planTechMSet(){
-  if(planTechM) return planTechM;
-  let sauv=null; try{ sauv=JSON.parse(localStorage.getItem('elan_plan_techs')||'null'); }catch(e){}
   const connus=db.techniciens.map(t=>t.id).concat(['']);
-  planTechM=new Set(Array.isArray(sauv)&&sauv.length?sauv.filter(x=>connus.includes(x)):connus);
-  if(!planTechM.size) planTechM=new Set(connus);
+  if(!planTechM){
+    let sauv=null, sauvConnus=null;
+    try{ sauv=JSON.parse(localStorage.getItem('elan_plan_techs')||'null'); }catch(e){}
+    try{ sauvConnus=JSON.parse(localStorage.getItem('elan_plan_techs_connus')||'null'); }catch(e){}
+    planTechM=new Set(Array.isArray(sauv)&&sauv.length?sauv.filter(x=>connus.includes(x)):connus);
+    if(!planTechM.size) planTechM=new Set(connus);
+    /* sans liste mémorisée (réglage d'avant), tous ceux qui existent sont « connus » : on ne devine pas
+       lequel a été décoché exprès — comportement d'avant, puis les nouveaux paraissent d'eux-mêmes */
+    planTechMConnus=new Set(Array.isArray(sauvConnus)&&Array.isArray(sauv)&&sauv.length?sauvConnus:connus);
+  }
+  let neuf=false;
+  connus.forEach(id=>{ if(!planTechMConnus.has(id)){ planTechMConnus.add(id); planTechM.add(id); neuf=true; } });
+  if(neuf) planTechMEcrire();
   return planTechM;
 }
-function planTechMSave(){ try{ localStorage.setItem('elan_plan_techs',JSON.stringify([...planTechMSet()])); }catch(e){} }
+function planTechMSave(){ planTechMSet(); planTechMEcrire(); }
 function planTechMToggle(id){ const s=planTechMSet(); if(s.has(id)) s.delete(id); else s.add(id); planTechMSave();
   if(planFocusT&&!s.has(planFocusT)) planFocusT='';
   views.planning(); }
