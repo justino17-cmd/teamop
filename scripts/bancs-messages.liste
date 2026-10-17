@@ -120,7 +120,9 @@
 # vertes (9 942 + 24) — plancher 9952 (le total moins 14, jamais une addition).
 # 17 octobre 2026, la fusion des vingt et un lots de la revue d'octobre (renumérotés 2400-2610) : 166 suites, 11 210 vérifications mesurées par la commande de la
 # porte, dans les conditions de la CI (sans Chromium : test-2600 se saute), toutes vertes (commit 407cc9de) — plancher 11196 (le total moins 14, jamais une addition).
-#plancher 11196
+# 17 octobre 2026, la seconde vague (neuf bancs, 2620-2653) : 175 suites, 11 390 vérifications mesurées par la commande de la porte, dans les conditions de
+# la CI, toutes vertes (commit 3304529b) — plancher 11376 (le total moins 14, jamais une addition).
+#plancher 11376
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
