@@ -4,7 +4,7 @@
        sur le segmenté Semaine / Mois, sur « Fermer » et le titre d'une feuille (pro#7, agenda#3) ;
      · la BANDE « Connexion perdue — reconnexion en cours… » — `position: fixed; top: 0` : elle cachait le logo, « Messages / Modifier / + », « Ajouter » de Contacts, l'avatar et le titre de
        la conversation, « Quitter » de la salle, tant que la coupure durait (temps-reel#4, contacts@10, salle@3) ;
-     · (la bannière d'arrivée de la discussion de la salle est gardée par `tests/test-1430.js`, les vraies fonctions de la page).
+     · (la bannière d'arrivée de la discussion de la salle est gardée par `tests/test-2430.js`, les vraies fonctions de la page).
    Ce que la sonde exige, sur quatre appareils (360, 390 avec encoche, 820, 1 440) et sur les écrans où l'on est vraiment (la liste, une conversation, Contacts, l'Agenda, une feuille) :
      1. le petit mot, court et long, ne recouvre AUCUN titre ni AUCUNE commande de l'en-tête, de la feuille, de la barre d'onglets ni du champ d'écriture ;
      2. la bande hors ligne ne recouvre rien non plus : le contenu est POUSSÉ de sa hauteur, et revient en place quand la connexion revient.
