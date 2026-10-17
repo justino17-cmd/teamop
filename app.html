@@ -5372,6 +5372,11 @@ html[data-refonte] #msg-photo-prev + div > .btn:last-child{min-height:var(--rf-t
 @media (min-width:781px){
   html[data-refonte] #msg-photo-prev + div{padding-right:76px}
 }
+/* ⛔ j01 (r4#4) : sous 781 px la même réserve manquait — le bouton flottant OP MESSAGES (56 px, à 16 px du bord, à
+   `--tabh` + 14) tombait exactement sur la rangée collante posée à `--tabh` + 6 et recouvrait la moitié droite
+   d'« Envoyer » (elementFromPoint au bord droit = le flot, le toucher ouvrait son lien). On réserve sa place, comme au
+   bureau, mais seulement quand il est VRAIMENT affiché (`msg-flot-on`, posée par renderMsgFlottant). */
+html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
 /* ── AU TÉLÉPHONE, LA BARRE D'ONGLETS PREND SA PLACE (appareils#0, 17 octobre 2026) ──────────────────
    Mesuré sur un iPhone 390×844, page en haut : le champ « Message à toute l'équipe… » était à top=785 pour
    une barre qui commence à 768. `elementFromPoint` au centre du champ rendait l'onglet, et un vrai toucher
@@ -5392,6 +5397,7 @@ html[data-refonte] #msg-photo-prev + div > .btn:last-child{min-height:var(--rf-t
   html[data-refonte] body.rf-onglets #msg-saisie{
     position:sticky!important;bottom:calc(var(--tabh) + 6px);z-index:3;
     padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
+  html[data-refonte] body.rf-onglets.msg-flot-on #msg-saisie{padding-right:76px}
 }
 /* ── LE SEUIL DU COURRIER EST 1179, PAS 780 NI 959 ─────────────────────────────────────────
    Ce bloc relâchait la hauteur imposée au cadre de la boîte mail à partir de 780 px. Or
