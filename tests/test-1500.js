@@ -279,7 +279,9 @@ console.log('\n── 5. les cases nues d\'une rangée (r3#11) ──');
   vrai('⛔ aucune ne vise une case à cocher ni un bouton radio : chacune les exclut',
     quiRetire.every(r => scinder(r.sel, ',').every(s => !/\.frow-val ?> ?input/.test(s) || (/:not\(\[type=checkbox\]\)/.test(s) && /:not\(\[type=radio\]\)/.test(s)))), quiRetire.map(r => r.sel));
   const tout = REGLES.filter(r => ['appearance', '-webkit-appearance'].some(p => r.decl[p] && r.decl[p].val === 'none') && /(^|[\s,>])input(\[type=checkbox\])?($|[\s,:.[])/.test(r.sel) && !/(^|\s)select/.test(r.sel) && !/::/.test(r.sel));
-  vrai('aucune règle générale ne retire non plus l\'apparence de TOUTE case (`input{appearance:none}`)', tout.every(r => /type=(?!checkbox)/.test(r.sel) || /\.frow-val ?> ?input:not/.test(r.sel) || /\.frow-val/.test(r.sel) === false && /type=/.test(r.sel)), tout.map(r => r.sel));
+  /* c2 (17 octobre 2026) : UNE règle commune retire l'apparence native des cases — mais elle les DESSINE (trait, remplissage, coche : test-1678).
+     C'est la seule permise, nommée ; une autre qui retirerait l'apparence sans dessiner serait le défaut d'origine. */
+  vrai('aucune règle générale ne retire non plus l\'apparence de TOUTE case (`input{appearance:none}`) — sauf la règle commune qui la DESSINE (test-1678)', tout.every(r => r.sel === 'html[data-refonte] input[type=checkbox]:not(.cb-natif)' || /type=(?!checkbox)/.test(r.sel) || /\.frow-val ?> ?input:not/.test(r.sel) || /\.frow-val/.test(r.sel) === false && /type=/.test(r.sel)), tout.map(r => r.sel));
   /* le balisage : les trois cases nues sont bien des enfants DIRECTS de `.frow-val` — la forme que visait la règle d'avant */
   vrai('le balisage : « Active » (enveloppe) est une case nue dans `.frow-val`', /<span class="frow-lbl">Active<\/span><div class="frow-val"><input type="checkbox" name="actif"/.test(SRC));
   vrai('le balisage : « Box active » / « Stockage actif » aussi', /<div class="frow-val"><input type="checkbox" name="actif" \$\{b\.actif!==false\?'checked':''\}/.test(SRC));

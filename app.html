@@ -4184,8 +4184,35 @@ html[data-refonte] .bell-count{transition:transform var(--d-3) var(--ressort)}
 
 /* ── 9. LES INTERRUPTEURS ── le curseur d'un interrupteur doit partir avec la piste, pas après :
    les deux sur la même courbe, la même durée. */
-html[data-refonte] input[type=checkbox],html[data-refonte] input[type=radio]{
+html[data-refonte] input[type=radio]{
   accent-color:var(--acc);width:20px;height:20px;cursor:pointer}
+/* ⛔ c2 — UNE CASE À COCHER, UN SEUL DESSIN (17 octobre 2026). Elle gardait l'apparence NATIVE du navigateur : `accent-color` y
+   colore le remplissage, et rien d'autre ne tient. Mesuré au pixel (`--acc` contre le fond de la rangée, onze teintes, jour et
+   nuit) : coché, la case tombait à 2,62:1 sous le vert de jour (la teinte de presque tout le monde), 2,59 sous l'orange, 2,71
+   sous l'indigo de nuit — un remplissage qu'on ne distingue pas du fond. Et ses tailles, écrites EN LIGNE case par case (38×24,
+   46×28, 40×24, 17 à 26 px), faisaient une cible de 24 px de haut au doigt. Le remplissage prend donc le jeton d'ENCRE d'accent
+   (`--acc-txt`, tenu ≥ 4,5:1 sous chaque teinte par test-773/774), le trait décoché `--t3` (≥ 3:1 sur la vitre comme sur
+   la page), et la coche est DESSINÉE (`::after`, en `--bg1`) : aucune case n'a plus besoin d'un habillage à elle. Les
+   dimensions sont posées ICI en `!important` — elles battent le `style="width:38px;height:24px"` qui faisait une case oblongue.
+   Au doigt, `::before` étend la zone qui répond à 44 × 44 px (une case de 24 px se rate avec un gant ; `inset:-12px` se compte depuis le bord INTÉRIEUR du trait de 2 px : 20 + 24 = 44). Le focus au clavier garde
+   l'anneau commun (`:focus-visible`, plus bas). Un interrupteur (`.switch`) cache sa case et dessine la sienne : exclu. */
+html[data-refonte] input[type=checkbox]:not(.cb-natif){
+  -webkit-appearance:none;appearance:none;box-sizing:border-box;position:relative;flex-shrink:0;cursor:pointer;
+  width:20px!important;height:20px!important;min-width:20px!important;min-height:20px!important;padding:0!important;
+  border:2px solid var(--t3)!important;border-radius:6px!important;background-color:transparent!important;background-image:none!important;
+  transition:background-color var(--d-2) var(--e-sortie),border-color var(--d-2) var(--e-sortie)}
+html[data-refonte] input[type=checkbox]:not(.cb-natif):checked{background-color:var(--acc-txt)!important;border-color:var(--acc-txt)!important}
+html[data-refonte] input[type=checkbox]:not(.cb-natif)::after{
+  content:'';position:absolute;left:30%;top:6%;width:26%;height:52%;box-sizing:content-box;
+  border:solid var(--bg1,#fff);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) scale(0);transition:transform var(--d-2) var(--ressort)}
+html[data-refonte] input[type=checkbox]:not(.cb-natif):checked::after{transform:rotate(45deg) scale(1)}
+html[data-refonte] input[type=checkbox]:not(.cb-natif):focus-visible{outline:2px solid var(--acc-txt)!important;outline-offset:2px}
+/* Une case DÉSACTIVÉE se grise : l'apparence native le faisait seule, et le trait et le remplissage ci-dessus sont en `!important` —
+   sans cette ligne, « d'office (administrateur) » (cochée, non modifiable) avait l'image d'une case cochée qu'on peut décocher, et la
+   ligne d'un bon sans e-mail fournisseur (vide, non cochable) celle d'une case libre. `opacity` n'est PAS en `!important` : une case qui
+   écrit déjà la sienne en ligne la garde ; `.opt-fl.force` grise déjà toute sa ligne (.65), sa case ne se grise pas une seconde fois. */
+html[data-refonte] input[type=checkbox]:not(.cb-natif):disabled{cursor:default;opacity:.45}
+html[data-refonte] .opt-fl.force input[type=checkbox]:not(.cb-natif):disabled{opacity:1}
 html[data-refonte] .sw,html[data-refonte] .switch,html[data-refonte] .toggle{
   transition:background-color var(--d-2) var(--e-sortie)}
 html[data-refonte] .sw::after,html[data-refonte] .switch::after,html[data-refonte] .toggle::after{
@@ -4412,8 +4439,11 @@ html[data-refonte] .chip,html[data-refonte] .tab{scroll-snap-align:center}
   html[data-refonte] input[type=datetime-local],html[data-refonte] input[type=month],
   html[data-refonte] input[type=week],html[data-refonte] select,html[data-refonte] textarea{font-size:16px!important}
   html[data-refonte] .field input,html[data-refonte] .field select,html[data-refonte] .field textarea{min-height:48px}
-  /* Une case à cocher de 20 px se rate une fois sur trois avec un gant. */
-  html[data-refonte] input[type=checkbox],html[data-refonte] input[type=radio]{width:24px;height:24px}
+  /* Une case à cocher de 20 px se rate une fois sur trois avec un gant : 24 px dessinés, et une zone de 44 × 44 qui répond
+     (`::before`, c2). Les cases du même dessin sont sous `input[type=checkbox]:not(.cb-natif)`, plus haut. */
+  html[data-refonte] input[type=radio]{width:24px;height:24px}
+  html[data-refonte] input[type=checkbox]:not(.cb-natif){width:24px!important;height:24px!important;min-width:24px!important;min-height:24px!important}
+  html[data-refonte] input[type=checkbox]:not(.cb-natif)::before{content:'';position:absolute;inset:-12px}
 }
 
 /* ── SANS VRAI SURVOL ── sur un écran tactile, :hover se déclenche à l'appui et RESTE COLLÉ
