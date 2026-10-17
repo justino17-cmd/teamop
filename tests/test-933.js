@@ -256,6 +256,8 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     v('   pas de doublon', L.length, new Set(L).size);
     v('   chaque ligne est un banc de tests/ (rien d\'autre ne se lance par ce compteur)', L.filter(f => !/^tests\/test-(9\d\d|10\d\d|15\d\d)\.js$/.test(f)), []);
     for (const s of ['930', '931', '932', '933', '934']) vrai('   le banc ' + s + ' (l\'installation et le déploiement) est dans la liste', L.includes('tests/test-' + s + '.js'));
+    /* ⛔ Un banc de correctif qui n'est pas dans la liste ne garde RIEN à la porte : le défaut qu'il garde peut revenir, la CI reste verte (relecture du lot m08, 17 octobre 2026). */
+    vrai('⛔ le banc 1540 (l\'envoi en file, « écrit… », « signe(s) en trop ») est dans la liste', L.includes('tests/test-2540.js'));
     const serveur = fs.readFileSync(path.join(RACINE, 'scripts', 'bancs-serveur.liste'), 'utf8').split('\n').map(x => x.trim()).filter(x => x && !x.startsWith('#'));
     v('⛔ la liste est DISJOINTE de celle du serveur d\'OP GESTION (deux services, deux portes, deux planchers)', L.filter(f => serveur.includes(f)), []);
     /* ⛔ Elle ne lit AUCUNE page d'OP GESTION : sur `main`, `app.html` et `tour.html` ne sont pas ceux de la branche, et ces

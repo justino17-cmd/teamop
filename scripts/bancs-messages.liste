@@ -288,3 +288,6 @@ tests/test-1003.js
 #    jamais déduite des échecs d'envoi), /api/config qui ne propose plus le compte par adresse — le vrai service, un relais mort puis un relais qui meurt (1510) ;
 #    la vraie page : tests/sonde-opmessages-entree-m02.js (hors porte, comme les autres sonde-opmessages-*)
 tests/test-2510.js
+# ── Un message tapé pendant un envoi, « écrit… » qui s'éteint avec le champ, l'accord de « signe(s) en trop » (17 octobre 2026) : les vraies fonctions de la page, un service lent que le banc libère ou refuse (1540) ;
+#    la vraie page : test-857 (motifs) et tests/sonde-opmessages-serveur.js (bloc 9 ter, rafale)
+tests/test-2540.js
