@@ -254,7 +254,7 @@ vrai('des blocs run: sont lus (population avant verdict)', blocs.length >= 6);
     vrai('⛔ elle porte son plancher de vérifications (sans lui, une suite qui saute sa partie exécutée rend un total plus petit et VERT)', pl >= 200);
     v('⛔ chaque suite nommée existe', L.filter(f => !fs.existsSync(path.join(RACINE, f))), []);
     v('   pas de doublon', L.length, new Set(L).size);
-    v('   chaque ligne est un banc de tests/ (rien d\'autre ne se lance par ce compteur)', L.filter(f => !/^tests\/test-(9\d\d|10\d\d)\.js$/.test(f)), []);
+    v('   chaque ligne est un banc de tests/ (rien d\'autre ne se lance par ce compteur)', L.filter(f => !/^tests\/test-(9\d\d|10\d\d|15\d\d)\.js$/.test(f)), []);
     for (const s of ['930', '931', '932', '933', '934']) vrai('   le banc ' + s + ' (l\'installation et le déploiement) est dans la liste', L.includes('tests/test-' + s + '.js'));
     const serveur = fs.readFileSync(path.join(RACINE, 'scripts', 'bancs-serveur.liste'), 'utf8').split('\n').map(x => x.trim()).filter(x => x && !x.startsWith('#'));
     v('⛔ la liste est DISJOINTE de celle du serveur d\'OP GESTION (deux services, deux portes, deux planchers)', L.filter(f => serveur.includes(f)), []);
