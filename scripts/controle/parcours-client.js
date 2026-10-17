@@ -15,6 +15,9 @@
 'use strict';
 const crypto = require('crypto');
 const dormir = ms => new Promise(r => setTimeout(r, ms));
+/* Les mots qu'un client NEUF ne doit pas lire dans son application : un logiciel concurrent, le nom d'un client réel.
+   Rangés « à regarder » (un humain tranche), jamais « défaut ». */
+const MOTS_INTERNES = /\b(Organilog|ELAN|Elan Gestion|ELAN GESTION)\b/g;
 
 async function jouer(J, K, o) {
   const opt = o || {};
@@ -23,7 +26,7 @@ async function jouer(J, K, o) {
     mdp: 'Jumeau-' + crypto.randomBytes(5).toString('hex'), tel: '06 12 34 56 78', lien: 'hygiene' + suffixe, formule: opt.formule || 'business',
     metier: 'nettoyage', utilisateurs: 3 };
   const p = await J.onglet({ profil: opt.profil || 'telephone', nom: 'client' });
-  const etat = { client: C, petites: new Map() };
+  const etat = { client: C, petites: new Map(), internes: new Set() };
   const passe = (nom, fn, x) => K.etape(nom, async (e) => { p.etape = nom; return fn(e); }, x);
   const juger = async (e, nom) => {
     const a = await p.auditEcran();
@@ -263,6 +266,10 @@ async function jouer(J, K, o) {
       const vide = await p.ev(`(document.getElementById('content')||{}).innerText ? document.getElementById('content').innerText.trim().length : 0`);
       if (!vide) ko.push(v + ' : écran vide');
       if (a.motsSuspects && a.motsSuspects.length) K.constat('défaut', 'Texte suspect dans la rubrique « ' + v + ' » : ' + a.motsSuspects.join(', '), '', 'rubriques');
+      /* des mots qui n'ont rien à faire sous les yeux d'un client neuf : le nom d'un autre logiciel, d'un client réel */
+      const internes = await p.ev(`(()=>{ const t=(document.getElementById('content')||{}).innerText||''; return [...new Set(t.match(${MOTS_INTERNES.toString()})||[])]; })()`).catch(() => []);
+      for (const m of internes) { const k = m + '|' + v; if (!etat.internes.has(k)) { etat.internes.add(k);
+        K.constat('à regarder', 'Mot interne montré à un client neuf : « ' + m + ' » (rubrique « ' + v + ' »)', 'voulu ? sinon le retirer de l\'écran, ou la rubrique du menu d\'un client', 'rubriques'); } }
       if (a.defileDeCote > 0) K.constat('défaut', 'La rubrique « ' + v + ' » glisse de côté (' + a.defileDeCote + ' px)', '', 'rubriques');
       if (p.erreurs.length === n0 && vide) ouvertes++;
     }
@@ -275,8 +282,13 @@ async function jouer(J, K, o) {
   await passe('Après rechargement, la session est toujours là', async (e) => {
     await p.aller('https://teamop.fr/app.html');
     const ok = await p.attendre(() => p.ev(`typeof currentUser!=='undefined' && !!currentUser`), 20000);
+    await dormir(1500);
     e.capture(await p.capture('apres-rechargement'));
-    if (!ok) e.note('écran : ' + (await p.texte()).slice(0, 200));
+    if (!ok) { e.note('écran : ' + (await p.texte()).slice(0, 200)); return false; }
+    /* connecté ne suffit pas : le client doit VOIR son application, pas une fenêtre posée dessus */
+    const c = await p.couverture();
+    if (c) { e.note('une fenêtre couvre l\'application : « ' + c.texte + ' »');
+      K.constat('à regarder', 'Après rechargement, une fenêtre couvre l\'application', '« ' + c.texte + ' » (' + (c.id ? '#' + c.id : c.classe) + ') — voulu une fois (premier choix), ou à chaque ouverture ?', 'rechargement'); }
     return ok;
   });
 

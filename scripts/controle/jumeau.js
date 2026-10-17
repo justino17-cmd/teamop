@@ -449,8 +449,14 @@ async function demarrer(opts) {
         if(Math.min(r.width,r.height)<32 && (el.innerText||el.getAttribute('aria-label')||'').trim()) petits.push((el.innerText||el.getAttribute('aria-label')).trim().slice(0,40)+' '+Math.round(r.width)+'×'+Math.round(r.height)); }
       return { defileDeCote: cote, motsSuspects: [...new Set(mots)], ciblesPetites: petits.slice(0,12), titre: document.title };
     })()`).catch(x => ({ erreur: String(x.message || x) }));
+    /* Qu'est-ce qui COUVRE l'écran ? Le point au milieu de la fenêtre doit appartenir à la page (contenu, menu, barres) ;
+       sinon on rend le texte de la fenêtre ou du voile posé dessus — c'est ce que le client a sous les yeux. */
+    const couverture = () => ev(`(()=>{ const x=innerWidth/2, y=innerHeight/2; const el=document.elementFromPoint(x,y); if(!el) return null;
+      if(el.closest('#content,.sidebar,#tabbar,.rf-tabs,.topbar,header,main')) return null;
+      let c=el; while(c.parentElement && c.parentElement!==document.body) c=c.parentElement;
+      return { id:c.id||'', classe:String(c.className||'').slice(0,60), texte:(c.innerText||'').replace(/\\s+/g,' ').trim().slice(0,160) }; })()`).catch(() => null);
     const fermer = async () => { onglets.delete(sessionId); try { await C.envoyer('Target.closeTarget', { targetId }); } catch (x) {} };
-    return Object.assign(og, { e, ev, attendre, aller, toucher, taper, choisir, texte, capture, auditEcran, localiser, fermer,
+    return Object.assign(og, { e, ev, attendre, aller, toucher, taper, choisir, texte, couverture, capture, auditEcran, localiser, fermer,
       repondreDialogue(v) { og.reponseDialogue = v; } });
   }
 

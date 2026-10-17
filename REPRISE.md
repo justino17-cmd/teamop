@@ -29,6 +29,11 @@ change : `scripts/controle/`, `.claude/`, `CLAUDE.md`, ce fichier).
     compte pourtant « 1 entreprise cliente », et l'écran vide promet « elles apparaissent dès qu'une s'inscrit sur
     le site ». Détour : Accès › « Accès à la version publique » d'abord. **À trancher avec Justin** : est-ce
     ainsi qu'il accepte aujourd'hui ?
+  · ⚠️ « Modules OP (mis de côté) », au menu d'une cliente neuve, écrit « interface 100 % Organilog » (le nom d'un
+    autre logiciel) ;
+  · ⚠️ la fenêtre « Langue / Language / Idioma » s'ouvre à CHAQUE ouverture tant qu'aucune langue n'est choisie
+    (`app.html`, `if(!prefLocalLire('elan_lang')) setTimeout(openLangPicker,300)`) — et à la première connexion, la
+    fenêtre du mot de passe la remplace : la question n'est posée qu'à l'ouverture suivante ;
   · ⚠️ des commandes sous 32 px au doigt (en-tête du site, liens de `espace.html` et `connexion.html`) ;
     `app.html` appelle `fonts.googleapis.com` et `unpkg.com` (l'adresse IP du client part chez Google) ;
     l'API annonce `X-Powered-By: Express`.
