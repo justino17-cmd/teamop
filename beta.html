@@ -15866,8 +15866,13 @@ let current='dashboard';
    retour partait à la rubrique d'avant et sautait la liste. Règle : fenêtre ouverte → on la ferme (la Clôture guidée demande
    d'abord, si l'on a saisi quelque chose) ; sinon fiche ouverte → retour à la liste de sa rubrique ; sinon retour normal.
    Rend '' (rien d'ouvert), 'fenetre' (fenêtre fermée, ou gardée par sa confirmation), 'bloque' (écran obligatoire) ou 'fiche'.
-   Ne touche à aucun historique : c'est l'appelant (bloc `popstate`) qui remet l'entrée que le navigateur vient de consommer. */
-function retourFerme(){
+   Ne touche à aucun historique : c'est l'appelant (bloc `popstate`) qui remet l'entrée que le navigateur vient de consommer.
+   ⛔ Les feuilles SECONDAIRES (`#overlay2` : détail d'un traitement dans la Clôture guidée, visionneuse de photo) sont AU-DESSUS de
+   `#overlay` : c'est elles qu'un retour ferme d'abord, seules — sinon la confirmation de la Clôture s'affichait par-dessus une feuille
+   restée orpheline, ou la liste se redessinait sous une photo. `fenetresSeules` (la touche Échap) laisse la fiche tranquille. */
+function retourFerme(fenetresSeules){
+  const ov2=$('overlay2');
+  if(ov2&&ov2.classList.contains('open')){ closeSub(); return 'fenetre'; }
   const ov=$('overlay');
   if(ov&&ov.classList.contains('open')&&!ov.classList.contains('ferme')){
     if(_modalForcee) return 'bloque';
@@ -15875,7 +15880,7 @@ function retourFerme(){
     if(assistOuverte()){ assistFermer(); return 'fenetre'; }
     closeModal(); return 'fenetre';
   }
-  if(_ecranRendu){ ficheRetour(current); return 'fiche'; }
+  if(!fenetresSeules&&_ecranRendu){ ficheRetour(current); return 'fiche'; }
   return '';
 }
 function goBack(){
@@ -23369,11 +23374,21 @@ function assistCloture(id){ const i=db.interventions.find(x=>x.id===id); if(!i) 
    disparaissaient (rouvrir repartait de l'intervention). Une seule fonction ferme la Clôture guidée — le bouton « Fermer » ET le
    retour système (`retourFerme`) — et elle demande avant de perdre quelque chose. Rien n'est écrit dans `db` : ouvrir ou fermer
    n'enregistre pas ; c'est « ✓ Clôturer » qui le fait. */
-function asEmpreinte(){ if(!asW) return '';
-  try{ asKeepSigs(); }catch(e){}   // une signature dessinée mais pas encore gardée compte aussi
-  return JSON.stringify([asW.absent,asW.obs,asW.noteInterne,asW.materiel,asW.zones,asW.infest,asW.reco,asW.sig,asW.sigT,
+/* ⛔ L'OUVERTURE NE LIT PAS LE DOM. `closeModal()` ne vide jamais `#modal` : le canvas de signature de la Clôture PRÉCÉDENTE (dataset.has)
+   y est encore, et l'y lire à l'ouverture donnait à l'intervention B la signature dessinée pour A, redessinée à l'étape Signatures puis
+   écrite sur le rapport. On ne lit donc les canvas que pour savoir si l'on a DESSINÉ depuis (`dataset.drawn`, posé par le tracé), et
+   seulement à l'étape Signatures, dont le canvas vient d'être rendu pour CETTE clôture. Une signature déjà enregistrée, redessinée
+   par `initSigPad`, n'est pas une modification : sans `drawn`, on ne la ré-encode pas. */
+function asSigsVives(){ let s=asW.sig, t=asW.sigT;
+  if(asW.step===5){
+    const cv=$('as-sig'); if(cv&&cv.dataset.has&&cv.dataset.drawn) s=cv.toDataURL('image/png');
+    const cvT=$('as-sig-t'); if(cvT&&cvT.dataset.has&&cvT.dataset.drawn) t=cvT.toDataURL('image/png'); }
+  return [s,t]; }
+function asEmpreinte(vives){ if(!asW) return '';
+  const sg=vives?asSigsVives():[asW.sig,asW.sigT];   // une signature dessinée mais pas encore gardée compte aussi — jamais à l'ouverture
+  return JSON.stringify([asW.absent,asW.obs,asW.noteInterne,asW.materiel,asW.zones,asW.infest,asW.reco,sg[0],sg[1],
     [...intNuis].sort(),[...intMeth].sort(),intTrait,[...rapPresta].sort(),(rapConstat||{}).indices,rapPhotos.length,rapTags]); }
-function assistModifie(){ return !!asW&&asEmpreinte()!==asW.ref; }
+function assistModifie(){ return !!asW&&asEmpreinte(true)!==asW.ref; }
 /* La Clôture guidée est-elle ce que la fenêtre ouverte montre ? (`_multiHtml` est le balisage de la dernière fenêtre ouverte.) */
 function assistOuverte(){ return !!asW&&String(_multiHtml||'').indexOf('assistFermer()')>=0; }
 function assistFermer(){
@@ -25318,7 +25333,7 @@ function initSigPad(existing,cvId){ const cv=$(cvId||'sig-pad'); if(!cv) return;
   if(existing){ const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,cv.width,cv.height); img.src=existing; cv.dataset.has='1'; }
   const pos=e=>{ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)*(cv.width/r.width), y:(t.clientY-r.top)*(cv.height/r.height)}; };
   const down=e=>{ drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault(); };
-  const move=e=>{ if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); cv.dataset.has='1'; e.preventDefault(); };
+  const move=e=>{ if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); cv.dataset.has='1'; cv.dataset.drawn='1'; e.preventDefault(); };
   const up=()=>{ drawing=false; };
   cv.onmousedown=down; cv.onmousemove=move; window.addEventListener('mouseup',up);
   cv.ontouchstart=down; cv.ontouchmove=move; cv.ontouchend=up;
@@ -40743,7 +40758,9 @@ function userFootMenu(e){ e.preventDefault(); e.stopPropagation();
     document.addEventListener('click',close); document.addEventListener('contextmenu',close); },0);
 }
 
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+/* ⛔ Échap passe par la MÊME garde que le retour système et le bouton « Fermer » : la Clôture guidée demande avant de perdre sa saisie
+   (poste de bureau, tablette avec clavier) et une feuille secondaire se ferme avant la fenêtre qu'elle recouvre. */
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&retourFerme(true)==='') closeModal(); });
 
 /* ═══════════════ LEIA RETIRÉE — 23 septembre 2026 ═══════════════
    Justin : « on supprime la bulle Leia, on supprime totalement, on fera un vrai agent dans le

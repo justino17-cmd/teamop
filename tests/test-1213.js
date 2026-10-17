@@ -26,13 +26,14 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 console.log('\n── 1213 · 0. la population ──');
 const F = {};
 ['function retourFerme(', 'function goBack(', 'function ficheRetour(', 'function assistCloture(', 'function asEmpreinte(', 'function assistModifie(', 'function assistOuverte(',
-  'function assistFermer(', 'function asKeepSigs(', 'function t3dQuestModalEnd(', 'function closeModal('].forEach(h => { F[h] = bloc(h); });
+  'function assistFermer(', 'function asKeepSigs(', 'function asSigsVives(', 'function closeSub(', 'function t3dQuestModalEnd(', 'function closeModal('].forEach(h => { F[h] = bloc(h); });
 const ligneOuvre = ligne('function assistOuverte(');
+const ligneEchap = ligne("document.addEventListener('keydown',e=>{ if(e.key==='Escape'");
 // le bloc des enveloppes (go / goBack / popstate), de « var goNatif » à la fin de son try
 const i0 = SRC.indexOf('var goNatif=window.go'), debutBloc = SRC.lastIndexOf('try{', i0), finBloc = SRC.indexOf("if(typeof window.closeModal==='function'", i0);
 const ENVELOPPES = (i0 > 0 && finBloc > i0) ? SRC.slice(debutBloc, finBloc).trim() : '';
 let syntaxe = false; try { new Function(ENVELOPPES); syntaxe = true; } catch (e) { }
-vrai('toutes les fonctions sont trouvées', Object.values(F).every(x => x.length > 40) && ligneOuvre.length > 40, Object.entries(F).filter(([k, v]) => v.length <= 40).map(([k]) => k));
+vrai('toutes les fonctions sont trouvées', Object.values(F).every(x => x.length > 40) && ligneOuvre.length > 40 && ligneEchap.length > 40, Object.entries(F).filter(([k, v]) => v.length <= 40).map(([k]) => k));
 vrai('le bloc des enveloppes (go, goBack, popstate) est trouvé et valide', ENVELOPPES.length > 1500 && syntaxe, ENVELOPPES.length);
 vrai('⛔ une seule définition de retourFerme, assistFermer, goBack', ['function retourFerme(', 'function assistFermer(', 'function goBack('].every(n => SRC.split(n).length === 2));
 vrai('le bouton « Fermer » de la Clôture guidée appelle assistFermer (pas closeModal directement)', /onclick="assistFermer\(\)">Fermer<\/button><h3>Clôture guidée/.test(SRC) && !/onclick="closeModal\(\)">Fermer<\/button><h3>Clôture guidée/.test(SRC));
@@ -40,9 +41,10 @@ vrai('le bouton « Fermer » de la Clôture guidée appelle assistFermer (pas cl
 function monde(opts) {
   opts = opts || {};
   const ov = { s: new Set(), classList: { contains: c => ov.s.has(c), add: c => ov.s.add(c), remove: c => ov.s.delete(c) } };
+  const ov2 = { s: new Set(), classList: { contains: c => ov2.s.has(c), add: c => ov2.s.add(c), remove: c => ov2.s.delete(c) } };
   const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, __log: [], __urls: [], __confirms: [], __saves: 0, __push: 0, __back: 0,
-    __handlers: {}, __ov: ov, $: id => id === 'overlay' ? ov : null,
-    document: { getElementById: () => null, querySelector: () => null },
+    __handlers: {}, __ov: ov, __ov2: ov2, __elts: {}, $: id => id === 'overlay' ? ov : id === 'overlay2' ? ov2 : (ctx.__elts[id] || null),
+    document: { getElementById: () => null, querySelector: () => null, addEventListener(t, f) { ctx.__handlers['doc_' + t] = f; } },
     history: { state: { rf: 1 }, pushState(s, t, u) { ctx.__push++; ctx.__urls.push(u); this.state = s; }, back() { ctx.__back++; }, replaceState() {} },
     confirm: m => { ctx.__confirms.push(m); return !!ctx.__reponse; }, __reponse: false };
   ctx.window = ctx;
@@ -61,12 +63,15 @@ function monde(opts) {
     function t3dQuestModalEnd(id){ __log.push('t3dEnd '+id); _t3dModalCat=''; closeModal(); assistRender(); }
     function marquer(){}
     ${F['function closeModal(']}
+    ${F['function closeSub(']}
+    ${F['function asSigsVives(']}
     ${F['function asKeepSigs(']}
     ${F['function ficheRetour(']}
     ${F['function asEmpreinte(']}\n${F['function assistModifie(']}\n${ligneOuvre.startsWith('function') ? F['function assistOuverte('] : ''}\n${F['function assistFermer(']}
     ${F['function assistCloture(']}
     ${F['function retourFerme(']}\n${F['function goBack(']}
     ${ENVELOPPES}
+    ${ligneEchap}
   `, ctx);
   return ctx;
 }
@@ -123,6 +128,54 @@ console.log('\n── 1213 · technicien#5 · le bouton « Fermer » ──');
     vrai('rien saisi : pas de modification', vm.runInContext('assistModifie()', V) === false);
     vm.runInContext(js, V);
     vrai('saisir ' + nom + ' compte comme une saisie à ne pas perdre', vm.runInContext('assistModifie()', V) === true); } }
+
+console.log('\n── 1213 · ⛔ un canvas de signature RÉSIDUEL ne se lit pas à l\'ouverture ──');
+// closeModal() ne vide pas #modal : le canvas dessiné pour l'intervention A y reste quand on ouvre la Clôture de B.
+const canvasSig = (has, drawn, url) => ({ dataset: Object.assign({}, has ? { has: '1' } : {}, drawn ? { drawn: '1' } : {}), toDataURL: () => url });
+{ const W = monde(); W.__elts['as-sig'] = canvasSig(true, true, 'SIGNATURE_DE_A'); W.__elts['as-sig-t'] = canvasSig(true, true, 'SIGNATURE_TECH_DE_A');
+  ouvrirCloture(W, false);
+  vrai('la signature du canvas résiduel n\'entre PAS dans la Clôture de l\'autre intervention (asW.sig vide)', vm.runInContext('asW.sig', W) === '' && vm.runInContext('asW.sigT', W) === '', vm.runInContext('[asW.sig,asW.sigT]', W));
+  vrai('… et elle n\'est pas « modifiée » à l\'ouverture', vm.runInContext('assistModifie()', W) === false);
+  // l'étape Signatures rend un canvas NEUF : seul ce qui est dessiné DEPUIS compte
+  vm.runInContext('asW.step=5', W); W.__elts['as-sig'] = canvasSig(false, false, 'BLANC'); W.__elts['as-sig-t'] = canvasSig(false, false, 'BLANC');
+  vrai('étape Signatures, canvas neufs, rien dessiné : pas de modification', vm.runInContext('assistModifie()', W) === false); }
+console.log('\n── 1213 · signatures dessinées : elles comptent, une signature déjà enregistrée non ──');
+{ const W = monde(); ouvrirCloture(W, false); vm.runInContext('asW.step=5', W);
+  W.__elts['as-sig-t'] = canvasSig(true, true, 'data:image/png;base64,DESSINEE');
+  vrai('signature technicien DESSINÉE à l\'étape Signatures : saisie à ne pas perdre', vm.runInContext('assistModifie()', W) === true);
+  W.__reponse = false; const r = W.assistFermer();
+  vrai('« Fermer » la demande, et refusé = ne ferme pas', r === false && W.__confirms.length === 1 && vm.runInContext('asW', W) !== null, W.__confirms.length); }
+{ const W = monde(); vm.runInContext("db.interventions[0].signature='data:image/png;base64,ANCIENNE'", W); ouvrirCloture(W, false); vm.runInContext('asW.step=5', W);
+  W.__elts['as-sig'] = canvasSig(true, false, 'data:image/png;base64,REENCODEE');   // initSigPad a redessiné l'ancienne : has, mais pas drawn
+  vrai('une signature DÉJÀ enregistrée, redessinée par initSigPad et non touchée, n\'est pas une modification', vm.runInContext('assistModifie()', W) === false);
+  vm.runInContext("asW.sig=''", W); W.__elts['as-sig'] = canvasSig(false, true, '');   // « Effacer »
+  vrai('« Effacer » la signature enregistrée en est une', vm.runInContext('assistModifie()', W) === true); }
+
+console.log('\n── 1213 · la touche Échap passe par la même garde ──');
+const echap = W => W.__handlers.doc_keydown({ key: 'Escape' });
+{ const W = monde(); ouvrirCloture(W, true); W.__reponse = false; echap(W); const e = etat(W);
+  vrai('Échap sur la Clôture guidée avec saisie : on DEMANDE, et refusé = la saisie est intacte', e.confirms === 1 && e.ouvert && e.asW === 'i1' && vm.runInContext('asW.obs', W) === 'mes observations', e); }
+{ const W = monde(); ouvrirCloture(W, true); W.__reponse = true; echap(W); const e = etat(W);
+  vrai('Échap confirmé : la Clôture se ferme, asW jeté, la rubrique n\'est pas quittée', !e.ouvert && e.asW === null && e.current === 'interventions' && e.log.length === 0, e); }
+{ const W = monde(); ouvrirCloture(W, false); echap(W); const e = etat(W);
+  vrai('Échap sans rien saisi : ferme sans rien demander', !e.ouvert && e.confirms === 0 && e.asW === null, e); }
+{ const W = monde(); W.__ov.s.add('open'); vm.runInContext("_multiHtml='<div>fenêtre ordinaire</div>'", W); echap(W); const e = etat(W);
+  vrai('Échap sur une fenêtre ordinaire : elle se ferme (comportement d\'avant)', !e.ouvert && e.confirms === 0, e); }
+{ const W = monde(); vm.runInContext('_ecranRendu=function(){}', W); echap(W); const e = etat(W);
+  vrai('Échap sur une fiche plein écran : ne la quitte pas (c\'est le retour système qui le fait)', e.log.length === 0 && e.current === 'interventions', e); }
+{ const W = monde(); W.__ov.s.add('open'); vm.runInContext('_modalForcee=true', W); echap(W);
+  vrai('Échap sur un écran obligatoire : ne le ferme pas', etat(W).ouvert); }
+
+console.log('\n── 1213 · feuilles secondaires (#overlay2) : on les ferme AVANT la fenêtre qu\'elles recouvrent ──');
+{ const W = monde(); ouvrirCloture(W, true); W.__ov2.s.add('open'); W.__reponse = true; popstate(W); const e = etat(W);
+  vrai('retour système avec une feuille secondaire sur la Clôture : elle seule se ferme, la Clôture reste, sans confirmation', !W.__ov2.s.has('open') && e.ouvert && e.asW === 'i1' && e.confirms === 0, e);
+  vrai('… l\'entrée d\'historique est remise (un geste, une navigation) et la rubrique n\'est pas quittée', e.push === 1 && e.current === 'interventions' && e.log.length === 0, e);
+  popstate(W); const e2 = etat(W);
+  vrai('… un second retour traite alors la Clôture (confirmation, puis fermeture)', e2.confirms === 1 && !e2.ouvert && e2.asW === null, e2); }
+{ const W = monde(); ouvrirCloture(W, true); W.__ov2.s.add('open'); W.__reponse = true; echap(W); const e = etat(W);
+  vrai('Échap : la feuille secondaire d\'abord, la Clôture ensuite', !W.__ov2.s.has('open') && e.ouvert && e.asW === 'i1' && e.confirms === 0, e); }
+{ const W = monde(); vm.runInContext('_ecranRendu=function(){}', W); W.__ov2.s.add('open'); popstate(W); const e = etat(W);
+  vrai('visionneuse de photo ouverte sur une fiche : le retour ferme la visionneuse, la fiche n\'est pas redessinée dessous', !W.__ov2.s.has('open') && e.log.length === 0 && e.push === 1, e); }
 
 console.log('\n── 1213 · fenêtres ordinaires et écran obligatoire ──');
 { const W = monde(); W.__ov.s.add('open'); vm.runInContext("_multiHtml='<div>une fenêtre ordinaire</div>'", W); popstate(W); const e = etat(W);
