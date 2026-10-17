@@ -24624,7 +24624,8 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
     if(_ancien==='terminee'&&_st!=='terminee'&&_st!=='annulee') _rendu=intRepasseNonTerminee(db.interventions[ix],_ancien);
     /* ⛔ L'ALLER de la même porte (campagne 2, 17 octobre 2026) : passer à « Terminée » par le formulaire posait le statut et rien d'autre — pas de
        fin réelle, et l'intervention restait au jour PRÉVU du planning, alors que le menu de statut et l'assistant font les deux (`finReel`, puis
-       `intRecaleAuJourFait`, la MÊME fonction). Le retour, lui, rendait déjà la date : l'aller-retour n'était pas symétrique.
+       `intRecaleAuJourFait`, la MÊME fonction) — comme, depuis, la case « Effectué ? » et le compte-rendu (test-1676) ; seul « Terminer à la date prévue »
+       ne recale pas, et n'en a pas besoin : il pose la fin réelle sur le jour prévu lui-même. Le retour, lui, rendait déjà la date : l'aller-retour n'était pas symétrique.
        Une date changée dans ce même envoi est le choix explicite de la personne : on ne la défait pas. */
     if(_ancien!=='terminee'&&_st==='terminee'){ const _t=db.interventions[ix];
       if(!_t.finReel) _t.finReel=Date.now();
@@ -25295,9 +25296,14 @@ function intEffField(id,field,part,val){ const i=db.interventions.find(x=>x.id==
   save(); }
 function intEffToggle(id,checked){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(!intStatutPermis(i,checked?'terminee':(i.debutReel?'encours':'planifiee'))){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); renderIntDetail(id); return; }   // la case se décoche : l'écran est redessiné
-  if(checked){ i.statut='terminee'; if(!i.finReel) i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); delete _gpsAway[id]; intHisto(i,'Marquée effectuée'); syncFactureFromIntervention(i,{cloture:true}); intRecurNext(i); }
+  let dep='';
+  if(checked){ const ancien=i.statut; i.statut='terminee'; if(!i.finReel) i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.max(0,Math.round((i.finReel-i.debutReel)/60000)); delete _gpsAway[id]; intHisto(i,'Marquée effectuée');
+    /* ⛔ comme le menu de statut et l'assistant (relecture du 17 octobre 2026) : « Terminée » rejoint le planning du jour RÉEL — la MÊME fonction,
+       et seulement à l'ALLER (cocher une fiche déjà terminée ne rejoue rien). Le retour (le else) rendait déjà la date : l'aller-retour est symétrique. */
+    if(ancien!=='terminee') dep=intRecaleAuJourFait(i);
+    syncFactureFromIntervention(i,{cloture:true}); intRecurNext(i); }
   else { const ancien=i.statut; i.statut=i.debutReel?'encours':'planifiee'; intHisto(i,'Repassée '+(i.debutReel?'en cours':'planifiée')); intRepasseNonTerminee(i,ancien); }
-  save(); renderIntDetail(id); }
+  save(); renderIntDetail(id); if(dep) toast('Effectuée · 📅 déplacée du '+fmtShort(dep)+' au '+fmtShort(i.date)); }
 function intChrono(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(!i.debutReel){ i.debutReel=Date.now(); delete i.finReel; delete i.dureeReelle; i.statut='encours'; if(i.gpsAuto) delete i.gpsAuto.debut; intHisto(i,'Chrono démarré'); }
   else if(!i.finReel){ i.finReel=Date.now(); i.dureeReelle=Math.max(1,Math.round((i.finReel-i.debutReel)/60000)); if(i.gpsAuto) delete i.gpsAuto.fin; delete _gpsAway[id]; intHisto(i,'Chrono arrêté — '+dureeStr(i.dureeReelle)); }
@@ -26328,6 +26334,9 @@ function saveRapport(e,id){ e.preventDefault(); if(!intStatutPermis(db.intervent
   /* ⛔ décocher « Intervention effectuée » QUITTE « Terminée » comme le fait le menu de statut : la date prévue revient,
      la fin réelle et la durée réelle partent (relecture du 17 octobre 2026 — une porte oubliée de intRepasseNonTerminee) */
   const rendu=(!effectuee&&ancienStatut==='terminee')?intRepasseNonTerminee(db.interventions[ix],ancienStatut):'';
+  /* ⛔ et l'ALLER, par la même porte (relecture du 17 octobre 2026) : « Intervention effectuée » rejoint le planning du jour réel comme le menu de
+     statut et l'assistant — la MÊME fonction, seulement quand la fiche n'était pas déjà terminée (rouvrir un compte-rendu ne la redéplace pas). */
+  const dep=(effectuee&&ancienStatut!=='terminee')?intRecaleAuJourFait(db.interventions[ix]):'';
   // Niveau d'infestation simplifié (jauge fiche) tenu en cohérence avec le constat
   { const m={'Aucune présence':'faible','Faible':'faible','Moyen':'moyen','Fort':'fort','Critique':'fort'}; if(constat.infestation) db.interventions[ix].infestation=m[constat.infestation]||''; }
   // Étiquettes avant/après : invalidées si la liste de photos a changé hors assistant
@@ -26344,7 +26353,7 @@ function saveRapport(e,id){ e.preventDefault(); if(!intStatutPermis(db.intervent
   else if(effectuee){ const nd=intRecurNext(cur); if(nd) recurMsg=' · Prochaine le '+fmtShort(nd); }
   intHisto(db.interventions[ix],effectuee?'Rapport rédigé — intervention effectuée':'Rapport enregistré');
   logEvent('Rapport rédigé',db.interventions[ix].titre+(effectuee?' (effectuée)':''),'intervention'); save();
-  if(effectuee){ closeModal(); clotureSuiteModal(id,askNext,recurMsg);
+  if(effectuee){ closeModal(); clotureSuiteModal(id,askNext,recurMsg+(dep?' · 📅 faite le '+fmtShort(db.interventions[ix].date)+' (prévue le '+fmtShort(dep)+')':''));
   } else { closeModal(); toast('Rapport enregistré'+(rendu?' · 📅 remise au '+fmtShort(db.interventions[ix].date):'')); go(current); } }
 
 /* ⛔ LES LIGNES « CONSTAT & PRESTATION » D'UN RAPPORT — UNE SEULE SOURCE (v744). Le rapport
