@@ -183,9 +183,10 @@ const geometrie = (S) => S.page.evaluate(() => {
     await ouvrirRappel();
     const avantRep = Date.now();
     await toucher(P, '#info-corps [data-evt="reporter"][data-dans="10"]');
-    vrai('« Reporter » 10 min : la page dit l\'heure retenue (« Reporté à … ») et la fiche se ferme', await attendre(P, () => /Reporté à \d\d:\d\d/.test(document.getElementById('mot').textContent)));
+    vrai('« Reporter » 10 min : la page dit l\'heure retenue (« Reporté à … ») et la fiche se ferme', await attendre(P, () => /Reporté (à|au) .*\d\d:\d\d/.test(document.getElementById('mot').textContent)));
     const evR = (((await A0.get('/api/agenda?du=' + (avantRep - 3600000) + '&au=' + (avantRep + 2 * 86400000))).j.evenements) || []).find(x => x.id === ev.id);
-    vrai('⛔ … et le SERVICE l\'a reporté : dans 10 à 11 minutes, et il sonnera', !!evR && evR.debut - avantRep >= 9 * 60000 && evR.debut - avantRep <= 12 * 60000 && evR.rappelEnAttente === true, evR);
+    /* 17 octobre 2026 (agenda#0) : « Reporter » repousse à partir du PLUS TARD de maintenant et du début — ce rappel est dans une heure, il passe donc à ce début + 10 minutes (avant : à maintenant + 10 min, il AVANÇAIT de 50 min) */
+    vrai('⛔ … et le SERVICE l\'a reporté : 10 minutes après son heure d\'avant (il ne recule pas), et il sonnera', !!evR && Math.abs(evR.debut - (ev.debut + 10 * 60000)) < 1000 && evR.debut > ev.debut && evR.rappelEnAttente === true, evR);
     await ouvrirRappel();
     await toucher(P, '#info-corps [data-evt="fait"]');
     await attendre(P, () => /: fait$/.test(document.getElementById('mot').textContent));

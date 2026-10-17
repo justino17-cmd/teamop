@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = '92c3937e9161';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 208;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5654,7 +5654,7 @@
       }
       else if (act === 'annuler') { await source.annulerReunion(A.id); mot('Réunion annulée : les invités sont prévenus'); chargerReunions(); }
       else if (act === 'fait') { await source.faitEvenement(A.id, !x.e.fait); mot(x.e.fait ? '« ' + titre + ' » : à faire' : '« ' + titre + ' » : fait'); evenementsRelire(); }
-      else if (act === 'reporter-choix') { const dans = b.dataset.dans === 'demain' ? 'demain' : Number(b.dataset.dans); const v = await source.reporterEvenement(A.id, dans); mot('Reporté ' + (dans === 'demain' ? 'à demain' + (v.journee ? '' : ' ' + FMT_HEURE.format(v.debut)) : 'à ' + FMT_HEURE.format(v.debut))); evenementsRelire(); }
+      else if (act === 'reporter-choix') { const dans = b.dataset.dans === 'demain' ? 'demain' : Number(b.dataset.dans); const v = await source.reporterEvenement(A.id, dans); mot(phraseReport(dans, v)); evenementsRelire(); }
       else if (act === 'voir') { const lien = x.e.source; voirMessage(lien.conv, lien.seq, false); }      // (« lien » : lu à travers « source », le générateur croirait à une méthode de la source)
       else if (act === 'supprimer') { await source.supprimerEvenement(A.id); mot('Événement supprimé'); reu.evenements = (reu.evenements || []).filter(y => y.id !== A.id); bord.evenements = bord.evenements.filter(y => y.id !== A.id); evenementsRelire(); }
     } catch (er) { avis(phrase(er, 'Cette action n\'a pas pu se faire.')); }
@@ -6634,6 +6634,16 @@
     try { await source.faitEvenement(F.id, !F.fait); mot(F.fait ? '« ' + F.titre + ' » : à faire' : '« ' + F.titre + ' » : fait'); fermerCouche(); evenementsRelire(); }
     catch (er) { b.disabled = false; erreurInfo(phrase(er, 'Le rappel n\'a pas pu être coché.')); }
   }
+  /* « Reporté à … » : l'heure RETENUE par le service. Un événement à venir se repousse depuis SON début (agenda#0) : le nouveau jour n'est plus forcément aujourd'hui ni demain — la phrase le
+     dit alors (« Reporté au 28 oct. à 10:10 »), sans quoi « à demain 09:00 » mentirait sur un rendez-vous du 28. Le même jour qu'avant garde sa phrase d'avant. */
+  function phraseReport(dans, e) {
+    const d = new Date(e.debut), auj = new Date(), jour = (x) => x.getFullYear() * 400 + x.getMonth() * 32 + x.getDate();
+    const dem = new Date(auj.getFullYear(), auj.getMonth(), auj.getDate() + 1);
+    const heure = e.journee ? '' : FMT_HEURE.format(e.debut);
+    if (jour(d) === jour(dem)) return 'Reporté à demain' + (heure ? ' ' + heure : '');
+    if (jour(d) === jour(auj)) return 'Reporté à ' + heure;
+    return 'Reporté au ' + FMT_DATE.format(e.debut) + (heure ? ' à ' + heure : '');
+  }
   /* reporter : l'heure se calcule au SERVICE (dans 10 min, 1 h, demain 9 h dans le fuseau du rappel) — la page dit celle qu'il a retenue */
   async function evtReporter(b) {
     const F = reu.formEvt; if (!F || !F.id) return;
@@ -6641,7 +6651,7 @@
     for (const x of document.querySelectorAll('#info-corps [data-evt="reporter"]')) x.disabled = true;
     try {
       const e = await source.reporterEvenement(F.id, dans);
-      mot('Reporté ' + (dans === 'demain' ? 'à demain' + (e.journee ? '' : ' ' + FMT_HEURE.format(e.debut)) : 'à ' + FMT_HEURE.format(e.debut)));
+      mot(phraseReport(dans, e));
       fermerCouche(); evenementsRelire();
     } catch (er) { for (const x of document.querySelectorAll('#info-corps [data-evt="reporter"]')) x.disabled = false; erreurInfo(phrase(er, 'Le rappel n\'a pas pu être reporté.')); }
   }
