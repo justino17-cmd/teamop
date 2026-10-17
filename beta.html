@@ -9120,8 +9120,9 @@ function roleValider(cle){
   /* admin#5 : un nom de rôle est UNIQUE, fournis et maison confondus (casse, accents, espaces). Deux « Applicateur 3D »
      — ou un « Technicien » à côté du fourni — étaient indistinguables dans la liste du formulaire de compte, qui
      est justement faite pour s'y retrouver. Le rôle qu'on modifie s'écarte lui-même : le ré-enregistrer sous son
-     nom (pour changer une case) reste possible. */
-  const _nn=nomNorm(nom), _pris=Object.keys(ROLE).map(roleDef).concat(rolesPerso()).find(r=>r&&r.cle!==cle&&nomNorm(r.nom)===_nn);
+     nom (pour changer une case) reste possible. Un rôle fourni MASQUÉ (roleSupprimer) ne compte pas : la liste ne le
+     montre plus et aucun écran ne le remet — le refuser désignerait un rôle invisible et interdirait à jamais ce nom. */
+  const _nn=nomNorm(nom), _pris=Object.keys(ROLE).map(roleDef).filter(r=>r&&!r.masque).concat(rolesPerso()).find(r=>r&&r.cle!==cle&&nomNorm(r.nom)===_nn);
   if(_pris){ toast('Un rôle « '+_pris.nom+' » existe déjà — choisis un autre nom',4200); return; }
   const ancienNom=cle?roleLbl(cle):'';
   if(cle){

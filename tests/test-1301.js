@@ -69,6 +69,16 @@ const noms = W => vm.runInContext('rolesPerso().map(function(r){ return r.nom; }
     const k = valider(W, '', 'Commercial', false);
     v('⛔ … et l’ANCIEN nom d’un rôle fourni renommé est de nouveau libre (il ne porte plus ce nom)', [k.saves], [1]); }
 
+  console.log('\n── 1301 · 1 bis. ⛔ un rôle fourni MASQUÉ ne réserve plus son nom (relecture) ──');
+  { const W = monde({ roleMasques: { technicien: true } });
+    const a = valider(W, '', 'Technicien', true);
+    v('⛔⛔ « Technicien » (fourni, retiré de la liste) peut être recréé en rôle maison', [a.saves, noms(W)], [1, ['Technicien']]);
+    const b = valider(W, '', 'Technicien', true);
+    v('… mais le doublon du rôle maison, lui, reste refusé', [b.saves, noms(W).length], [0, 1]);
+    const c = valider(W, '', 'Commercial', false);
+    v('contre-épreuve : un fourni NON masqué (« Commercial ») réserve toujours son nom', [c.saves, noms(W).length], [0, 1]);
+    vrai('… et le refus nomme le rôle', c.toasts.some(t => /existe déjà/.test(t) && /Commercial/.test(t)), c.toasts); }
+
   console.log('\n── 1301 · 2. ⛔ renommer un rôle met à jour le métier des fiches techniciens liées ──');
   { const W = monde({ users: [{ id: 'u1', role: 'r_x', techId: 't1' }, { id: 'u2', role: 'r_x', techId: 't2' }, { id: 'u3', role: 'technicien', techId: 't3' }, { id: 'u4', role: 'r_x', techId: '' }],
       techniciens: [{ id: 't1', nom: 'Ana', metier: 'Applicateur 3D' }, { id: 't2', nom: 'Bob', metier: 'Spécialiste choisi à la main' }, { id: 't3', nom: 'Cyril', metier: 'Technicien' }],
