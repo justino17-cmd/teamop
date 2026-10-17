@@ -2020,6 +2020,10 @@ const MON_GESTES = {
   'portail/message': 'a changé le message du portail', 'portail/etat': 'a ouvert ou fermé le portail',
   'portail/actu': 'a publié une actualité du portail', 'portail/actu/supprimer': 'a supprimé une actualité du portail',
   'portail/importer': 'a importé des comptes dans le portail', 'sauvegarde/lancer': 'a lancé une sauvegarde',
+  /* le socle (op-socle.js, déclarées par `poser`) — le retour en arrière est le geste le plus lourd de la console */
+  'op/double': 'a réglé la double écriture d’une entreprise', 'op/lecture': 'a basculé la lecture d’une entreprise',
+  'op/revenir': 'a demandé le code ou appliqué un retour en arrière d’une entreprise', 'op/ouvrir': 'a ouvert une lecture de diagnostic d’une entreprise',
+  'op/couper': 'a coupé le stockage d’une entreprise',
 };
 const MON_ACTIONS_MAX = 500;
 /* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
@@ -2038,8 +2042,10 @@ function monGesteNoter(req, res) {
   const b = req.body && typeof req.body === 'object' ? req.body : {};
   const detail = ['statut', 'formule'].map(k => typeof b[k] === 'string' ? monStr(b[k], 20) : '').filter(Boolean).join(' · ')
     + (/\/clients\/demande$/.test(chemin) ? (b.traite === false ? 'remise à traiter' : 'classée') : '');   // la route classe quand `traite` manque
-  monActions.push(Object.assign({ ts: Date.now(), qui: monStr(req.tourUser.nom, 60), geste: g, cible: monGesteCible(b) },
-    detail ? { detail } : {}, monAppDeRoute(req) ? { app: monAppDeRoute(req) } : {}));
+  const apps = Array.isArray(req._gesteApps) && req._gesteApps.length ? req._gesteApps : null;
+  const app = apps ? (apps.includes('gestion') ? 'gestion' : apps[0]) : monAppDeRoute(req);
+  monActions.push(Object.assign({ ts: Date.now(), qui: monStr(req.tourUser.nom, 60), geste: g, cible: req._gesteCible ? monStr(req._gesteCible, 60) : monGesteCible(b) },
+    detail ? { detail } : {}, app ? { app } : {}));
   if (monActions.length > MON_ACTIONS_MAX) monActions = monActions.slice(-MON_ACTIONS_MAX);
   monSave();
 }
@@ -2248,6 +2254,14 @@ const betaApps = c => { const l = Array.isArray(c && c.apps) ? BETA_APPS.filter(
 const betaAppsValides = v => (Array.isArray(v) && v.length && v.every(a => typeof a === 'string' && BETA_APPS.includes(a))) ? BETA_APPS.filter(a => v.includes(a)) : null;
 const betaPublic = c => ({ id: c.id, login: c.login, nom: c.nom, chantier: c.chantier || '', apps: betaApps(c), actif: !!c.actif, ts: c.ts || 0, creePar: c.creePar || '', derniere: c.derniere || 0 });
 app.get('/api/monitor/beta', monPatronStrict, (req, res) => { res.json({ comptes: betaComptes.map(betaPublic) }); });
+/* Le journal des gestes : un accès bêta appartient à UNE console, que sa route ne dit pas (la même pour les deux). On le relit
+   AVANT la route — après, une suppression l'a déjà effacé (test-940 : un mot de passe posé depuis OP MESSAGES s'inscrivait
+   au Journal d'OP GESTION). */
+app.use('/api/monitor/beta', (req, res, next) => {
+  try { const b = req.body || {}, c = b.id ? betaComptes.find(x => x.id === b.id) : null;
+    if (c) { req._gesteApps = betaApps(c); req._gesteCible = c.login; } else if (Array.isArray(b.apps)) req._gesteApps = b.apps.filter(a => TOUR_APPS.includes(a)); } catch (e) {}
+  next();
+});
 app.post('/api/monitor/beta', monPatronStrict, (req, res) => {
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const nom = monStr((req.body || {}).nom, 60).trim();

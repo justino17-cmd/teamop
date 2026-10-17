@@ -32,9 +32,11 @@ const nu = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/
   try { TABLE = vm.runInNewContext('(' + SRC.slice(i0 + 'const MON_GESTES = '.length, i1 + 2) + ')'); } catch (e) { vrai('la table se lit', false, e.message); }
   const routes = new Set();
   for (const f of fs.readdirSync(path.dirname(SERVEUR)).filter(f => f.endsWith('.js'))) {
-    for (const m of nu(fs.readFileSync(path.join(path.dirname(SERVEUR), f), 'utf8')).matchAll(/app\.post\(\s*'\/api\/monitor\/([^']+)'/g)) routes.add(m[1].toLowerCase().replace(/\/+$/, ''));
+    /* les deux façons de déclarer une route : `app.post('…')`, et `poser('POST', '…')` d'op-socle.js — la seconde avait
+       échappé au premier recensement (relecture du 17 octobre 2026 : le retour en arrière n'était pas journalisé) */
+    for (const m of nu(fs.readFileSync(path.join(path.dirname(SERVEUR), f), 'utf8')).matchAll(/(?:app\.post\(|poser\(\s*'POST',)\s*'\/api\/monitor\/([^']+)'/g)) routes.add(m[1].toLowerCase().replace(/\/+$/, ''));
   }
-  vrai('(population) les routes POST de la Tour sont recensées dans server/ (' + routes.size + ')', routes.size >= 60, routes.size);
+  vrai('(population) les routes POST de la Tour sont recensées dans server/ (' + routes.size + ')', routes.size >= 70, routes.size);
   v('chaque route POST de la Tour est classée dans la table (un geste, ou null pour une lecture)', [...routes].filter(r => !(r in TABLE)).sort(), []);
   v('aucune entrée de la table ne vise une route disparue', Object.keys(TABLE).filter(k => !routes.has(k)).sort(), []);
   const gestes = Object.values(TABLE).filter(Boolean);

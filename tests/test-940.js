@@ -44,9 +44,9 @@ function bloc(motif) {
   const f = suite.exec(CODE);
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
-const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'chargerEssais', 'btChamp', 'btAjouter', 'btToggle', 'btSuppr', 'btChantier',
+const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'geste', 'chargerEssais', 'btChamp', 'btAjouter', 'btToggle', 'btSuppr', 'btChantier',
   'btMdp', 'tirageSur', 'btAppsDe', 'btAvec', 'btDeLaConsole', 'accLigneBeta', 'accBlocBeta', 'accFicheBeta', 'accFormBeta', 'vueEssaisMsg', 'chargerVersionsMsg', 'vueAccueilMsg', 'esc', 'jsq', 'ini', 'fmtJour', 'videTour'];
-const VARS = ['BT', 'MV', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
+const VARS = ['_gestes', 'BT', 'MV', 'BT_APPS', 'BETA_MSG_ADRESSE', 'APPS_TOUR', 'INJOIGNABLE'];
 const SRC = NOMS.map(bloc), SRCV = VARS.map(bloc);
 
 function tour(API, jeton, app, { confirmer = true } = {}) {
@@ -264,7 +264,7 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     console.log('\n10. L\'accueil de la console MESSAGES ne parle plus de Firebase (capture de Justin, 2 octobre 2026)');
     const et0 = await (await fetch(B + '/api/monitor/messages/etat', { headers: { Authorization: 'Bearer ' + PATRON } })).json();
     v('⛔ le serveur ne rend plus la note, même écrite dans son fichier par le serveur d\'avant', ['note' in et0, et0.enTravaux], [false, true]);
-    TM.run('var ENT={liste:[]}, MSG={loaded:false}, OPM={loaded:true,err:"",d:' + JSON.stringify({ enTravaux: true, depuis: '2026-09-10', note: NOTE_FIREBASE }) + "}; function incOuverts(){ return []; } var INC={loaded:true,err:\'\',list:[]}, OPMA={sante:{inst:\'beta\',loaded:true,err:\'\',d:{decompte:null}}}; function opmaInstance(){ return \'beta\'; } function opmaLire(){} function acGroupe(){ return ''; } function ligneAc(){ return ''; } function vueInfo(){ return {section:'Pilotage',lib:'Accueil'}; }");
+    TM.run('var ENT={liste:[]}, MSG={loaded:false}, OPM={loaded:true,err:"",d:' + JSON.stringify({ enTravaux: true, depuis: '2026-09-10', note: NOTE_FIREBASE }) + "}; function incOuverts(){ return []; } var INC={loaded:true,err:\'\',list:[]}, OPMA={sante:{inst:\'beta\',loaded:true,err:\'\',d:{decompte:null}}}; function opmaInstance(){ return \'beta\'; } function opmaLire(){} function vuePermise(){ return true; } function acGroupe(){ return ''; } function ligneAc(){ return ''; } function vueInfo(){ return {section:'Pilotage',lib:'Accueil'}; }");
     const accueil = TM.run('vueAccueilMsg()');
     vrai('population : l\'accueil se dessine, « Bêta » (v2.85 : la bêta tourne, la publique n\'est pas ouverte)', /<span class="past p-ambre">Bêta<\/span>/.test(accueil));
     vrai('⛔ et même si un serveur lui rend la note Firebase, la Tour ne l\'affiche pas : elle dit le serveur d\'OP MESSAGES', !/elan-gestion|projet OP MESSAGES|Firebase\s*\)|configuration web/.test(accueil) && /son propre serveur, séparé d’OP GESTION et de Firebase/.test(accueil));
@@ -333,7 +333,7 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     reponse = TAUTRE; TM.run('btMdp(' + JSON.stringify(oubli.id) + ',"oubli")');
     vrai('⛔ un mot de passe valable : la Tour DIT la réussite (« l\'ancien ne passe plus »)', await jusqua(() => /Nouveau mot de passe posé pour « oubli »/.test(dern())));
     v('   et le serveur l\'a posé : le précédent est refusé, le nouveau ouvre', [(await entre(NEUF)).s, (await entre(TAUTRE)).s], [403, 200]);
-    vrai('   ⛔ ni le toast ni le journal de la Tour ne contiennent le mot de passe', !TM.toasts.some(t => t.includes(TAUTRE)) && !JSON.stringify(TM.run('JR.actions')).includes(TAUTRE) && /a posé un nouveau mot de passe à l’accès bêta « oubli » \(OP MESSAGES\)/.test(TM.run('JR.actions[0].tx')));
+    vrai('   ⛔ ni le toast ni le journal de la Tour ne contiennent le mot de passe', !TM.toasts.some(t => t.includes(TAUTRE)) && (await (async () => { const j = await (await fetch(B + '/api/monitor/journal', { headers: { Authorization: 'Bearer ' + PATRON } })).json(); const t = JSON.stringify(j.actions || []); return !t.includes(TAUTRE) && (j.actions || []).some(g => /mot de passe d’un accès bêta/.test(g.geste) && g.app === 'messages'); })()));   // v2.88 : le journal des gestes est celui du SERVEUR
     const TX = tour(B, 'f'.repeat(48), 'messages'); TX.ctx.prompt = () => 'refus-patron-940-x';
     TX.run('btMdp(' + JSON.stringify(oubli.id) + ',"oubli")');
     vrai('⛔ un REFUS du serveur (jeton non patron : 403) se LIT : « Réservé au patron… rien n\'a été changé »', await jusqua(() => /Réservé au patron/.test(TX.toasts[TX.toasts.length - 1] || '') && /rien n’a été changé/.test(TX.toasts[TX.toasts.length - 1])));
@@ -345,7 +345,7 @@ console.log('\n── 940 · la Tour v2.81 ouvre les accès bêta d\'OP MESSAGES
     vrai('⛔ un serveur injoignable se lit (« Serveur injoignable… rien n\'a été changé »), jamais une réussite', await jusqua(() => /Serveur injoignable/.test(TN.toasts[TN.toasts.length - 1] || '')) && !/posé/.test(TN.toasts.join('|')));
     const TGp = tour(B, PATRON, 'gestion'); TGp.run('chargerEssais()'); await TGp.attendre('BT.loaded');
     TGp.ctx.prompt = () => 'gaston-nouveau-940'; TGp.run('btMdp(' + JSON.stringify(gastonId) + ',"gaston")');
-    vrai('la console GESTION pose aussi un mot de passe (sans « (OP MESSAGES) » dans son journal) : l\'ancien tombe, le nouveau ouvre', await jusqua(() => /Nouveau mot de passe posé pour « gaston »/.test(TGp.toasts[TGp.toasts.length - 1] || '')) && (await login('gaston', 'pw-gaston-940-a')).s === 403 && (await login('gaston', 'gaston-nouveau-940')).s === 200 && !/OP MESSAGES/.test(TGp.run('JR.actions[0].tx')));
+    vrai('la console GESTION pose aussi un mot de passe (sans « (OP MESSAGES) » dans son journal) : l\'ancien tombe, le nouveau ouvre', await jusqua(() => /Nouveau mot de passe posé pour « gaston »/.test(TGp.toasts[TGp.toasts.length - 1] || '')) && (await login('gaston', 'pw-gaston-940-a')).s === 403 && (await login('gaston', 'gaston-nouveau-940')).s === 200 && (await (async () => { const j = await (await fetch(B + '/api/monitor/journal', { headers: { Authorization: 'Bearer ' + PATRON } })).json(); const g = (j.actions || []).find(x => /mot de passe d’un accès bêta/.test(x.geste)); return !!g && g.app === 'gestion'; })()));   // v2.88 : noté par le serveur, dans la console de la route
     /* En DERNIER : dès qu'un compte nominatif existe, le jeton du mot de passe de départ (celui des essais ci-dessus) ne passe plus. */
     v('population : un compte collaborateur est créé (le jeton de départ cesse alors de valoir patron — d\'où sa place, en dernier)', (await appel('/api/monitor/users', { nom: 'Collab 940', pass: 'pw-collab-940-a' }, PATRON)).s, 200);
     const COLLAB = (await appel('/api/monitor/login', { nom: 'Collab 940', pass: 'pw-collab-940-a' })).j.token;

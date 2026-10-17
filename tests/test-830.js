@@ -584,7 +584,7 @@ function remise(cnt, apps, repondre, app) {
 {
   const expr = (() => { const i = CODE.indexOf('var zeroBtn='), j = CODE.indexOf(": '';", i); return i < 0 || j < 0 ? '' : CODE.slice(i, j + 5); })();
   vrai('population : le bouton de remise à zéro est trouvé', expr.length > 100);
-  const rendu = (n, apps, app) => { const ctx = { _aClasser: n, MYAPPS: apps, APP: app || 'gestion', APPS_TOUR: { gestion: { nom: 'OP GESTION', court: 'GESTION' }, messages: { nom: 'OP MESSAGES', court: 'MESSAGES' } }, esc: x => String(x) }; executer(expr + '\nthis.h=zeroBtn;', ctx);
+  const rendu = (n, apps, app) => { const ctx = { _aClasser: n, MYROLE: 'patron', MYAPPS: apps, APP: app || 'gestion', APPS_TOUR: { gestion: { nom: 'OP GESTION', court: 'GESTION' }, messages: { nom: 'OP MESSAGES', court: 'MESSAGES' } }, esc: x => String(x) }; executer(expr + '\nthis.h=zeroBtn;', ctx);
     return String(ctx.h).replace(/<[^>]+>/g, '|').split('|').map(s => s.trim()).filter(Boolean); };
   const a = rendu(1, ['gestion']), b = rendu(4, ['gestion', 'messages'], 'messages');
   v('le bouton compte juste, au singulier comme au pluriel', [a[0], b[0]], ['↺ Tout remettre à zéro — 1 problème', '↺ Tout remettre à zéro — 4 problèmes']);

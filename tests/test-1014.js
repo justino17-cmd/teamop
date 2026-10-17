@@ -42,7 +42,7 @@ const compile = s => { try { new vm.Script(s); return true; } catch (e) { return
 
 console.log('\n── test-1014 : l\'écran Demandes de la Tour ──');
 const NOMS = ['demEstGestion', 'demandesListe', 'demandesATraiter', 'demPaiement', 'demEspace', 'vueDemandes', 'demCarte', 'sigleAdr',
-  'teteListe', 'esc', 'jsq', 'nMot', 'sigle', 'espSlugJs', 'tourIdentDefaut', 'acErr', 'acSquel', 'aboPast'];
+  'teteListe', 'esc', 'jsq', 'nMot', 'sigle', 'espSlugJs', 'tourIdentDefaut', 'acErr', 'acSquel', 'aboPast', 'aboFiable'];
 const COURTES = ['esc', 'jsq'];
 const FN = NOMS.map(n => COURTES.includes(n) ? parLignes(n) : fonction(n)), LIGNES = [ligne('var DEM='), ligne('var MET_L=')];
 vrai('(population) les fonctions de l\'écran et ce qu\'elles appellent sont trouvées dans tour.html', FN.every(Boolean) && LIGNES.every(Boolean), NOMS.filter((n, i) => !FN[i]).join(', '));
@@ -71,11 +71,11 @@ const bac = (cli, opt) => {
   vm.createContext(ctx);
   vm.runInContext([
     'var CLI=' + JSON.stringify({ list: cli, loaded: o.charge !== false, err: o.err || '' }) + ';',
-    'var ABO=' + JSON.stringify({ abos: ABOS, loaded: true, configured: true }) + ';',
+    'var ABO=' + JSON.stringify({ abos: o.abos || ABOS, loaded: true, configured: true, videFaute: !!o.videFaute }) + ';',
     'var ENT=' + JSON.stringify({ liste: ENTS, loaded: true }) + ';',
     'function enTete(t,p){ return "<h1>"+t+"</h1>"; }',
     'function videTour(t,s){ return "<div class=\\"vide\\">"+t+" — "+s+"</div>"; }',
-    'function fmtJour(ts){ return "le jour"; } function svg(){ return ""; } var INJOIGNABLE="injoignable";',
+    'function fmtJour(ts){ return "le jour"; } function svg(){ return ""; } var INJOIGNABLE="injoignable"; var MYROLE=' + JSON.stringify(o.role || 'patron') + ';',
   ].concat(LIGNES, FN).join('\n'), ctx);
   return ctx;
 };
@@ -113,12 +113,19 @@ vrai('pendant le chargement : un squelette, pas « aucune demande »', /ac-squel
 const V = bac([]);
 vrai('sans aucune demande : l\'écran le dit, et dit d\'où elles viendront', /Aucune demande à traiter/.test(V.vueDemandes()));
 
+const K = bac(CLIENTS, { role: 'collaborateur' });
+const htmlK = K.vueDemandes();
+vrai('⛔ un collaborateur ne se voit pas offrir « Accepter » (le serveur le réserve au patron) — et on le lui dit', !/Accepter et ouvrir/.test(htmlK) && /réservé au patron/.test(htmlK) && /Classer sans suite/.test(htmlK));
+vrai('(population) Stripe lu et aucun abonnement : « pas encore payé »', /pas encore payé/.test(bac(CLIENTS, { abos: [] }).vueDemandes()));
+const S = bac(CLIENTS, { abos: [], videFaute: true });
+vrai('⛔ Stripe qui ne répond pas : jamais « pas encore payé » (un vide de panne n\'est pas un vide)', !/pas encore payé/.test(S.vueDemandes()) && /Stripe ne répond pas/.test(S.vueDemandes()));
+
 /* 4. le câblage : le menu, le rendu, le compteur, l'accueil */
 vrai('« Demandes » est au menu d\'OP GESTION, avec son compteur', /\['demandes','Demandes','gestion','bdg-dem'\]/.test(CODE));
 vrai('renderVue dessine l\'écran Demandes', /TAB==='demandes'\) v\.innerHTML=vueDemandes\(\);/.test(fonction('renderVue')));
 vrai('le compteur du menu suit les demandes à traiter quand les comptes du site arrivent', /setBdg\('bdg-dem',demandesATraiter\(\)\.length\)/.test(fonction('chargerClients')));
 vrai('l\'accueil met les demandes à traiter en tête de ce qui attend', /demandesATraiter\(\)/.test(fonction('vueAccueil')) && /titre:'Demandes à traiter'/.test(fonction('vueAccueil')));
-vrai('accepter depuis la carte passe l\'identifiant à tourAccepterDemande (pas de fenêtre du navigateur)', /tourAccepterDemande\(email,nom,ident\)/.test(fonction('demAccepter')) && /identVoulu!=null\?identVoulu:prompt\(/.test(fonction('tourAccepterDemande')));
+vrai('accepter depuis la carte passe l\'identifiant ET la demande touchée à tourAccepterDemande (pas de fenêtre du navigateur)', /tourAccepterDemande\(email,nom,ident,i\)/.test(fonction('demAccepter')) && /identVoulu!=null\?identVoulu:prompt\(/.test(fonction('tourAccepterDemande')));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);
