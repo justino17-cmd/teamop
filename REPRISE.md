@@ -66,6 +66,11 @@ Suite complète et porte d'OP MESSAGES sur le code final : en cours de mesure.
 - **Des numéros de bancs réservés en parallèle se chevauchent** : 1400–1609 avait été donné aux deux campagnes. Ceux d'OP MESSAGES ont été renumérotés
   en 2400–2609 ; `test-900` et `test-933` (la règle des numéros admis par la porte) admettent désormais 2400–2699, et le plancher de la porte se
   remesure en conditions de CI (`CHROME_MSG=/inexistant` : les bancs navigateur sautent) à chaque entrée.
+- ⛔ **Le numéro 768 avait déjà servi** : la branche `claude/op-gestion-interface-yb6p32` porte sa propre bêta v768 (« les options du Pro »,
+  1er octobre), jamais fusionnée. `test-845` en déduisait « v768 = les options » et faisait tomber la porte du déploiement du serveur sur la v768
+  des correctifs ; il lit désormais les options dans le CODE (la vraie `forfaitServeurSync` les appelle-t-elle ?), comme `test-848` depuis le
+  2 octobre — joué sur les trois pages (options, correctifs, v767). **Si les options du Pro rejoignent un jour `main`, elles prennent un numéro
+  au-dessus de 768.**
 
 **⏳ OP GESTION — ce qui attend une décision de Justin** (aucun n'est un défaut qui empêche de travailler ; chacun change un geste connu, une règle ou un
 texte juridique) :
