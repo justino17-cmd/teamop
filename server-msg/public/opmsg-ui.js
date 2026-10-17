@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = 'c3aadc8d784d';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 208;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1679,6 +1679,9 @@
     if (legende.trim() && nSignes(legende) > TEXTE_MAX) { avis(texteTropLong(nSignes(legende))); return; }
     const conv = ep.conv, photos = ep.photos.slice();
     ep.envoi = true;
+    /* ⛔ le second toucher d'un double toucher tombe sur ce que l'aperçu laisse à la place de la flèche : le MICRO (mesuré : un enregistrement démarre, iPhone et Android). Comme
+       l'envoi d'un texte, l'enregistrement et la visionneuse : les commandes qui prennent sa place se taisent 400 ms — ICI, dans la fonction, pour que la flèche ET Entrée la portent */
+    armerRetap();
     /* on ferme AVANT l'attente (comme le champ du message se vide avant) : l'image part, l'écran rend la conversation ; un refus se dit par l'avis et rend les adresses */
     epFermer(true);
     try {

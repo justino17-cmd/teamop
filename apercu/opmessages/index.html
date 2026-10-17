@@ -4481,6 +4481,9 @@ a.menu-action { text-decoration: none; }
     if (legende.trim() && nSignes(legende) > TEXTE_MAX) { avis(texteTropLong(nSignes(legende))); return; }
     const conv = ep.conv, photos = ep.photos.slice();
     ep.envoi = true;
+    /* ⛔ le second toucher d'un double toucher tombe sur ce que l'aperçu laisse à la place de la flèche : le MICRO (mesuré : un enregistrement démarre, iPhone et Android). Comme
+       l'envoi d'un texte, l'enregistrement et la visionneuse : les commandes qui prennent sa place se taisent 400 ms — ICI, dans la fonction, pour que la flèche ET Entrée la portent */
+    armerRetap();
     /* on ferme AVANT l'attente (comme le champ du message se vide avant) : l'image part, l'écran rend la conversation ; un refus se dit par l'avis et rend les adresses */
     epFermer(true);
     try {
