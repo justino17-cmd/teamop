@@ -9164,6 +9164,21 @@ const I18N={
    Une clé est la chaîne française telle que l'écran l'écrit (texte entier d'un nœud) ; ce qui n'y est pas reste en français. */
 Object.assign(I18N.en,{ 'Tout':'All','Connexion':'Sign-in','Modifications':'Edits','Demandes':'Requests','Commandes':'Orders','Finance':'Finance','Support':'Support','Synchronisation':'Sync' });
 Object.assign(I18N.es,{ 'Tout':'Todo','Connexion':'Inicio de sesión','Modifications':'Modificaciones','Demandes':'Solicitudes','Commandes':'Pedidos','Finance':'Finanzas','Support':'Soporte','Synchronisation':'Sincronización' });
+/* g16 (accueil#12) — tableau de bord, Statistiques, Archives, Historique : les libellés que ces écrans écrivent en français
+   alors que leurs voisins étaient traduits. Les clés sont les chaînes d'AUJOURD'HUI (apostrophe typographique comprise :
+   « Aujourd’hui », « l’entreprise ») ; on ne traduit ni les données de l'utilisateur ni les libellés qui portent un nombre. */
+Object.assign(I18N.en,{ 'Bons à envoyer':'Orders to send','Planning de l’entreprise':'Company schedule','Mon planning':'My schedule','Aujourd’hui':'Today','7 jours':'7 days','14 jours':'14 days','Le mois':'This month',
+  'Ouvrir le planning général':'Open the company schedule','Ouvrir mon planning':'Open my schedule','interventions sur la période':'jobs in the period','intervention sur la période':'job in the period',
+  'à planifier':'to schedule','en retard':'late','absent':'absent','absents':'absent','de travail prévu':'of planned work','Équipe':'Team','Non assigné':'Unassigned',
+  'Tout est en ordre — stocks OK, aucune demande ni bon en attente.':'All clear — stock OK, no pending requests or orders.',
+  'CA encaissé':'Revenue collected','CA facturé':'Revenue invoiced','En attente de paiement':'Awaiting payment','Devis émis':'Quotes issued','Taux d\'acceptation devis':'Quote acceptance rate',
+  'Interventions par statut':'Jobs by status','Top clients (CA facturé)':'Top clients (invoiced revenue)','Aucune facture':'No invoices','Temps pointé':'Time clocked','Aucun évènement.':'No events.' });
+Object.assign(I18N.es,{ 'Bons à envoyer':'Pedidos por enviar','Planning de l’entreprise':'Agenda de la empresa','Mon planning':'Mi agenda','Aujourd’hui':'Hoy','7 jours':'7 días','14 jours':'14 días','Le mois':'El mes',
+  'Ouvrir le planning général':'Abrir la agenda general','Ouvrir mon planning':'Abrir mi agenda','interventions sur la période':'intervenciones en el período','intervention sur la période':'intervención en el período',
+  'à planifier':'por planificar','en retard':'con retraso','absent':'ausente','absents':'ausentes','de travail prévu':'de trabajo previsto','Équipe':'Equipo','Non assigné':'Sin asignar',
+  'Tout est en ordre — stocks OK, aucune demande ni bon en attente.':'Todo en orden — stock correcto, ninguna solicitud ni pedido pendiente.',
+  'CA encaissé':'Ingresos cobrados','CA facturé':'Facturación emitida','En attente de paiement':'Pendiente de pago','Devis émis':'Presupuestos emitidos','Taux d\'acceptation devis':'Tasa de aceptación de presupuestos',
+  'Interventions par statut':'Intervenciones por estado','Top clients (CA facturé)':'Mejores clientes (facturación)','Aucune facture':'Ninguna factura','Temps pointé':'Tiempo fichado','Aucun évènement.':'Ningún evento.' });
 function t(s){ const l=getLang(); if(l==='fr'||!s) return s; const d=I18N[l]; return (d&&d[s]!=null)?d[s]:s; }
 /* Traduction du rendu : remplace les textes français connus dans le DOM (FR = repli) */
 function translateNode(node){ const l=getLang(); if(l==='fr'||!node) return; const d=I18N[l]; if(!d) return;
@@ -9184,7 +9199,10 @@ function startI18n(){ if(_i18nObs||!window.MutationObserver) return;
 /* Comme un réglage d'apparence (voir `prefLocal`, en tête du script) : on range — en mémoire si
    l'appareil est plein —, on APPLIQUE, puis on enregistre. Avant, `setItem` jetait sur un appareil
    plein et la langue ne changeait pas ; un `save()` qui jetait sautait le redessin. */
-function setLang(l){ prefLocal('elanB_lang',l); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); }
+/* <html lang> suit la langue choisie : sans lui, un lecteur d'écran lit de l'anglais avec la voix française et le
+   navigateur propose de traduire une page déjà traduite (g16, accueil#12). Posé à chaque changement et au démarrage. */
+function langDocAppliquer(){ try{ document.documentElement.lang=getLang(); }catch(e){} }
+function setLang(l){ prefLocal('elanB_lang',l); langDocAppliquer(); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); }
   prefGarder('lang',l); toast(LANG_FLAG[l]+' '+LANGS[l]); }
 function openLangPicker(){ openModal(`<div class="modal-head"><h3>🌍 ${t('Langue')} / Language / Idioma</h3></div>
   <div style="padding:2px"><p style="color:var(--t2);font-size:14px;margin-bottom:14px">Choisis ta langue · Choose your language · Elige tu idioma</p>
@@ -39347,6 +39365,7 @@ async function adminDepartAppliquer(){
   return ch;
 }
 async function boot(){
+  langDocAppliquer();   // avant tout await : le lien d'entreprise peut rendre la main, la langue du document doit déjà être posée
   try{ if(await teamopLienCheck()) return; }catch(e){}   // lien d'entreprise : bascule d'espace avant tout
   try{ regMigration(); }catch(e){} let ch=false; for(const u of db.users){ if(!u.pinHash && !u.sansMdp && !u.compteSite && !BETA_ESSAI){ u.pinHash=await sha256('1234'); ch=true; } }
   // Ménage définitif des données de démonstration d'origine — plus personne ne voit d'utilisateur test.
