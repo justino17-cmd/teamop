@@ -11,8 +11,8 @@
 
    Correctif borné : la classe `cli-barre` sur ces deux barres seulement, et une règle `.filters.seg-on.cli-barre{margin-left:0;
    margin-right:8px}` — QUE dans l'état segmenté (avec cinq puces ou plus, la barre redevient une rangée qui défile et garde son
-   débordement bord à bord). Les autres segmentés (Tâches, Registre, Demandes, Historique, Bons) ne sont pas touchés : ils
-   portent le même décalage de 16 px (x=0), mais ne se recouvrent avec rien — noté dans le rapport du lot, pas corrigé ici.
+   débordement bord à bord). Les autres segmentés (Tâches, Registre, Demandes, Historique, Bons) portaient le même
+   décalage de 16 px (x=0) sans se recouvrir avec rien : ils sont corrigés par le lot c2-filtres-alignes (test-1682), qui a généralisé la règle.
 
    Ce banc REJOUE LA CASCADE (tests/outils-cascade-app.js, avec un `>` strict) pour la barre telle que views.clients l'écrit,
    et garde la RELATION : marges gauche et droite jamais négatives au téléphone, donc aucun recouvrement entre voisines.
@@ -98,12 +98,16 @@ for (const [nom, b] of [['type', typeBar], ['étiquette', tagBar]]) {
     vrai(w + ' px · barre ' + nom + ' (≥ 5 puces, pas de seg-on) : marges -16 px (le débordement bord à bord est gardé)', gl.px === -16 && dr.px === -16, [gl.px, dr.px]);
   }
 }
-console.log('\n── 1641 · 3. contre-épreuve : un AUTRE segmenté (sans cli-barre) n\'est pas touché ──');
+console.log('\n── 1641 · 3. un AUTRE segmenté (sans cli-barre) : posé sur la marge de la colonne depuis le lot c2-filtres-alignes ──');
+/* c2-filtres-alignes (test-1682) : cette contre-épreuve gardait « la règle n'est pas devenue générale » (un segmenté sans cli-barre
+   gardait les -16 px de la feuille, donc x=0 : Tâches, Registre, Demandes, Historique, Bons). C'était l'ANCIEN comportement fautif
+   de ces cinq écrans — la règle est devenue générale EXPRÈS (`.filters.seg-on{margin-left:0;margin-right:0}`). On garde l'autre
+   moitié : sans cli-barre, le segmenté n'a PAS les 8 px de marge droite des barres de Clients. */
 {
   const autre = { tag: 'div', classes: ['filters', 'seg-on'], attrs: { class: 'filters seg-on', style: 'margin-bottom:10px' } };
   for (const w of [360, 390]) {
-    const gl = gagne(base.concat(autre), w, 'margin-left', undefined);
-    vrai(w + ' px : un segmenté sans cli-barre garde sa marge gauche de la feuille (' + (gl && gl.v) + ') — la règle n\'est pas devenue générale', !!gl && /var\(--rf-marge\)/.test(gl.v), gl && gl.v);
+    const gl = gagne(base.concat(autre), w, 'margin-left', undefined), dr = gagne(base.concat(autre), w, 'margin-right', undefined);
+    vrai(w + ' px : un segmenté sans cli-barre a ses marges à 0 (' + (gl && gl.v) + ' / ' + (dr && dr.v) + ') — plus de décalage de 16 px', !!gl && gl.v === '0' && !!dr && dr.v === '0', [gl && gl.v, dr && dr.v]);
   }
 }
 

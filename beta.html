@@ -6742,6 +6742,20 @@ html[data-refonte] .filters.seg-on .chip.active{color:var(--t1)!important}
    la colonne (0), pas en débordement (-16 px de `.filters` au téléphone), avec 8 px entre elles quand elles tiennent sur une
    ligne. Bornées à `.cli-barre` : les autres segmentés de l'application ne bougent pas (voir tests/test-1641.js). */
 html[data-refonte] .filters.seg-on.cli-barre{margin-left:0;margin-right:8px}
+/* ⛔ c2-filtres-alignes — LE MÊME CORRECTIF POUR TOUS LES SEGMENTÉS, pas une classe par écran. Tâches, Registre, Demandes
+   (donc « Historique des demandes »), Historique et Bons posaient leur barre à x=0 au téléphone, 16 px à gauche de la colonne
+   (x=16) où se tiennent Clients, Produits, Boxes, Comptabilité : `html[data-refonte] .filters` leur donne -16 px de marge pour une
+   rangée qui défile bord à bord, avec son rembourrage de 16 px — et un segmenté (`padding:3px`) n'a pas ce rembourrage. Les
+   écrans alignés l'étaient par hasard : ils écrivent `margin:0 0 8px` en ligne, qui efface aussi les marges latérales. Ici, la
+   marge latérale d'un segmenté vaut 0 ; la piste de Bons (puces non `.chip`, `padding:3px` écrit en ligne, reconnue comme plus
+   haut par `.filters[style*="padding:3px"]`) suit. Une rangée de cinq puces ou plus n'est PAS un segmenté (`seg-on` retombe) :
+   elle garde son débordement bord à bord voulu. Moins spécifique que `.cli-barre` (8 px à droite) et que `.content-map >` :
+   ceux-là gardent leur valeur. Voir tests/test-1682.js. */
+html[data-refonte] .filters.seg-on,
+html[data-refonte] .filters[style*="padding:3px"]{margin-left:0;margin-right:0}
+/* …et la piste de Bons ne dépasse pas sa colonne : à 320 px elle mesure 297 px (la somme de ses quatre onglets, qui ne rétrécissent
+   pas) dans une colonne de 288 — sortie de 9 px sur la droite. Comme `.filters.seg-on` plus bas, elle plafonne à 100 % et défile. */
+html[data-refonte] .filters[style*="padding:3px"]{max-width:100%}
 html[data-refonte] .filters.seg-on .seg-cur{
   /* ⛔ top:0 — PAS 3px. La transformation est calculée depuis le bord du GROUPE, rembourrage
      compris : un `top` non nul s'AJOUTE et décale le curseur sous le chip. Mesuré : 3 px. */
