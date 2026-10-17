@@ -40,7 +40,7 @@ function monde(users, moi, journal) {
   vm.runInContext(`${ESC}\n${TI.replace('const ', 'var ')}\n${TL.replace('const ', 'var ')}\n${FN.replace('const ', 'var ')}\n${LOG}\n${AUT}\n
     var histFilter='all', _histMax=80, _histVue='', HIST_PAS=80;
     function uid(){ return 'e'+(++__uid); } function setHeader(){} function t(s){ return s; }
-    function visibleJournal(l){ return l; } function fmtTs(ts){ return String(ts); } function emptyState(){ return '<div class="vide"></div>'; }
+    function visibleJournal(l){ return l; } function fmtTs(ts){ return String(ts); } function fmtTsEcran(ts){ return String(ts); } function nbT(n,u,p){ return n+' '+(n>1?p:u); } /* g16 : journalView compose par nbT et date par fmtTsEcran (test-1154 les joue pour de vrai) */ function emptyState(){ return '<div class="vide"></div>'; }
     function $(id){ return id==='content' ? { set innerHTML(h){ __page.html=h; } } : {}; }
     ${JV}`, ctx);
   return ctx;

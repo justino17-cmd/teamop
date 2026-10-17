@@ -41,7 +41,7 @@ function monde(types) {
   vm.runInContext(`${ESC}\n${TI.replace('const ', 'var ')}\n${TL ? TL.replace('const ', 'var ') : ''}
     function fullName(u){ return u&&u.nom||'—'; } function journalAuteur(j){ return j.userNom; }
     var histFilter='all', _histMax=80, _histVue='', HIST_PAS=80;
-    function setHeader(){} function t(s){ return s; } function visibleJournal(l){ return l; } function fmtTs(ts){ return String(ts); } function emptyState(){ return ''; }
+    function setHeader(){} function t(s){ return s; } function visibleJournal(l){ return l; } function fmtTs(ts){ return String(ts); } function fmtTsEcran(ts){ return String(ts); } function nbT(n,u,p){ return n+' '+(n>1?p:u); } /* g16 : journalView compose par nbT et date par fmtTsEcran (test-1154 les joue pour de vrai) */ function emptyState(){ return ''; }
     function $(id){ return id==='content' ? { set innerHTML(h){ __page.html=h; } } : {}; }
     ${JV}`, ctx);
   return ctx;
