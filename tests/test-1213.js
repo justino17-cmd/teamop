@@ -40,16 +40,16 @@ vrai('le bouton « Fermer » de la Clôture guidée appelle assistFermer (pas cl
 function monde(opts) {
   opts = opts || {};
   const ov = { s: new Set(), classList: { contains: c => ov.s.has(c), add: c => ov.s.add(c), remove: c => ov.s.delete(c) } };
-  const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, __log: [], __confirms: [], __saves: 0, __push: 0, __back: 0,
+  const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, __log: [], __urls: [], __confirms: [], __saves: 0, __push: 0, __back: 0,
     __handlers: {}, __ov: ov, $: id => id === 'overlay' ? ov : null,
     document: { getElementById: () => null, querySelector: () => null },
-    history: { state: { rf: 1 }, pushState(s) { ctx.__push++; this.state = s; }, back() { ctx.__back++; }, replaceState() {} },
+    history: { state: { rf: 1 }, pushState(s, t, u) { ctx.__push++; ctx.__urls.push(u); this.state = s; }, back() { ctx.__back++; }, replaceState() {} },
     confirm: m => { ctx.__confirms.push(m); return !!ctx.__reponse; }, __reponse: false };
   ctx.window = ctx;
   ctx.addEventListener = (t, f) => { ctx.__handlers[t] = f; };
   vm.createContext(ctx);
   vm.runInContext(`
-    var current='interventions', _ecranRendu=null, _modalForcee=false, _multiHtml='', _balayageFin=0, _t3dModalCat='';
+    let current='interventions'; var _ecranRendu=null, _modalForcee=false, _multiHtml='', _balayageFin=0, _t3dModalCat='';
     window._viewStack=['planning'];
     var asW=null, intNuis=new Set(['Rats']), intMeth=new Set(), intTrait={}, rapPresta=new Set(), rapConstat={indices:[]}, rapPhotos=[], rapTags=[];
     var db={interventions:[{id:'i1',titre:'T',clientId:'c1',compteRendu:'',noteInterne:'',materiel:'',zones:'',nuisibles:['Rats'],constat:{}}]};
@@ -71,7 +71,7 @@ function monde(opts) {
   return ctx;
 }
 const popstate = W => W.__handlers.popstate();
-const etat = W => ({ current: vm.runInContext('current', W), pile: vm.runInContext('window._viewStack.slice()', W), ouvert: W.__ov.s.has('open'), asW: vm.runInContext('asW?asW.id:null', W), confirms: W.__confirms.length, push: W.__push, back: W.__back, log: W.__log.slice() });
+const etat = W => ({ current: vm.runInContext('current', W), pile: vm.runInContext('window._viewStack.slice()', W), ouvert: W.__ov.s.has('open'), asW: vm.runInContext('asW?asW.id:null', W), confirms: W.__confirms.length, urls: W.__urls.slice(), push: W.__push, back: W.__back, log: W.__log.slice() });
 const ouvrirCloture = (W, saisie) => { vm.runInContext("assistCloture('i1')", W); if (saisie) vm.runInContext("asW.obs='mes observations'; asW.materiel='pulvérisateur'; asW.infest='fort'", W); };
 
 console.log('\n── 1213 · technicien#4 · retour système depuis une fiche d\'intervention ──');
@@ -95,7 +95,8 @@ console.log('\n── 1213 · technicien#4 et #5 · retour système avec la Clô
   vrai('retour avec saisie : on DEMANDE (une confirmation)', e.confirms === 1, e.confirms);
   vrai('refusé : la fenêtre reste ouverte, la saisie est intacte', e.ouvert && e.asW === 'i1' && vm.runInContext('asW.obs', W) === 'mes observations', e);
   vrai('refusé : la rubrique n\'est PAS quittée, la pile est intacte', e.current === 'interventions' && e.log.length === 0 && JSON.stringify(e.pile) === '["planning"]', e);
-  vrai('⛔ refusé : l\'entrée d\'historique est remise', e.push === 1, e.push); }
+  vrai('⛔ refusé : l\'entrée d\'historique est remise', e.push === 1, e.push);
+  vrai('⛔ … et elle porte l\'adresse de la rubrique où l\'on reste (« current » est un let, pas window.current)', e.urls[0] === '#v=interventions', e.urls); }
 { const W = monde(); ouvrirCloture(W, true); W.__reponse = true; popstate(W); const e = etat(W);
   vrai('accepté : la fenêtre se ferme SEULE (la rubrique n\'est pas quittée)', !e.ouvert && e.current === 'interventions' && e.log.length === 0 && JSON.stringify(e.pile) === '["planning"]', e);
   vrai('accepté : l\'état de la clôture est jeté (asW nul), et l\'entrée d\'historique remise', e.asW === null && e.push === 1, e); }
@@ -131,7 +132,8 @@ console.log('\n── 1213 · fenêtres ordinaires et écran obligatoire ──'
 { const W = monde(); W.__ov.s.add('open'); W.__ov.s.add('ferme'); popstate(W); const e = etat(W);
   vrai('une fenêtre en train de se fermer (animation de sortie) n\'est plus « ouverte » : le retour est celui d\'avant', e.current === 'planning', e); }
 { const W = monde(); vm.runInContext('window._balayageFin=Date.now()', W); vm.runInContext('_ecranRendu=function(){}', W); popstate(W); const e = etat(W);
-  vrai('« un geste, une navigation » : le doublon d\'un balayage est toujours ignoré (et son entrée remise)', e.log.length === 0 && e.push === 1, e); }
+  vrai('« un geste, une navigation » : le doublon d\'un balayage est toujours ignoré (et son entrée remise)', e.log.length === 0 && e.push === 1, e);
+  vrai('… avec l\'adresse de la rubrique courante, pas « #v= »', e.urls[0] === '#v=interventions', e.urls); }
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exit(ko ? 1 : 0);

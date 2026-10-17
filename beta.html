@@ -42526,6 +42526,9 @@ try{
        On enveloppe donc goBack() elle-même, et on recule aussi l'historique pour qu'il suive
        l'écran. Le drapeau « nous » distingue ce recul-là du geste de l'utilisateur. */
     var nous=false;
+    /* `current` est un `let` : il n'est PAS une propriété de window. `window.current` valait toujours undefined, et l'entrée remise
+       portait l'adresse « #v= » (un rechargement ouvrait alors le tableau de bord). On lit la variable elle-même. */
+    var vueCourante=function(){ try{ return current||''; }catch(e){ return ''; } };
     if(typeof window.goBack==='function'){
       var retourNatif=window.goBack;
       window.goBack=function(){
@@ -42554,7 +42557,7 @@ try{
          ⚠️ Et on ne coupe PAS le geste du navigateur (`overscroll-behavior-x`) : tout ce
          bloc existe pour que le retour système marche. On ignore le doublon, pas la porte. */
       if(Date.now() - (window._balayageFin||0) < 450){
-        try{ history.pushState({rf:1},'','#v='+(window.current||'')); }catch(e){}
+        try{ history.pushState({rf:1},'','#v='+vueCourante()); }catch(e){}
         return;
       }
       /* ⛔ Une fenêtre ou une fiche ouverte absorbe le retour : le navigateur vient de consommer l'entrée de l'écran où l'on reste,
@@ -42563,7 +42566,7 @@ try{
       if(typeof retourFerme==='function'){
         var absorbe=retourFerme();
         if(absorbe){
-          if(absorbe!=='fiche'){ try{ history.pushState({rf:1},'','#v='+(window.current||'')); }catch(e){} }
+          if(absorbe!=='fiche'){ try{ history.pushState({rf:1},'','#v='+vueCourante()); }catch(e){} }
           return;
         }
       }
