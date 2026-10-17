@@ -58,7 +58,7 @@ function monde(opts) {
     function formDoc(k,i){ __ouvert.push('formDoc('+k+','+i+')'); } function printDocOuvre(){ }
     var __id=0; function uid(){ return 'n'+(++__id); }
     function docNum(k){ const c=DOC[k].coll, m=(db[c]||[]).reduce((s,x)=>Math.max(s,parseInt((String(x.num||'').match(/(\\d+)$/)||[0,0])[1])||0),0); return DOC[k].prefix+'-2026-'+String(m+1).padStart(3,'0'); }
-    function clientName(id){ return ((db.clients||[]).find(c=>c.id===id)||{}).nom||'—'; } function fmtShort(d){ return d||''; }
+    function clientName(id){ return ((db.clients||[]).find(c=>c.id===id)||{}).nom||'—'; } function fmtShort(d){ return d||''; } function fmtShortAn(d){ return d||''; }
     function visibleDocs(l){ return l; } function setHeader(){} function badge(m,k){ return '<i>'+((m[k]||{}).l||k)+'</i>'; }
     function tableCard(h,rows){ return '<table>'+rows+'</table>'; } function emptyState(){ return ''; }
     const __el={ set innerHTML(h){ __html=h; } }; function $(id){ return __el; }

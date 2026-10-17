@@ -57,7 +57,7 @@ function monde(o) {
     ${F.ST}\n${F.RJ}
     function todayISO(){ return '${AUJ}'; }
     function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-    function fmtShort(d){ return d? d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4) : '—'; }
+    function fmtShort(d){ return d? d.slice(8,10)+'/'+d.slice(5,7)+'/'+d.slice(0,4) : '—'; } function fmtShortAn(d){ return fmtShort(d); }
     function eur(n){ return (n||0)+' €'; }
     function clientName(id){ const c=db.clients.find(x=>x.id===id); return c?c.nom:''; }
     function visibleDocs(l){ return (l||[]).filter(x=>!__cache.has(x.id)); }

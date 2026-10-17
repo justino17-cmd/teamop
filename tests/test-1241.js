@@ -50,7 +50,7 @@ function monde(role) {
     $: (id) => els[id] || (els[id] = { innerHTML: '' }),
     bonsFilter: 'prets', bonsSearch: '', bonsTab: 'liste', STATBC,
     visibleBons: (l) => l || [], norm: (s) => String(s || '').toLowerCase(), esc: (s) => String(s ?? ''),
-    fourColor: () => 'red', fournName: (id) => 'SODIF', bonNum: (b) => b.numero, bonQteTotTxt: () => '2 u', fmtShort: (d) => d,
+    fourColor: () => 'red', fournName: (id) => 'SODIF', bonNum: (b) => b.numero, bonQteTotTxt: () => '2 u', fmtShort: (d) => d, fmtShortAn: (d) => d,
     bonEmailDest: (b, f) => (f && f.email) || '', badge: (m, k) => '<span class="st ' + m[k].c + '">' + m[k].l + '</span>',
     emptyState: () => '', renderBonsReponses: () => {}, bonsParBoxHtml: () => '', bonResteTxt: () => 'ADVION GEL x3',
     setHeader: () => {}, currentUser: { role }, views: {}, Date,
