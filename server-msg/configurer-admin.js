@@ -103,9 +103,8 @@ function ecrire(avant, apres, attendu) {
   let secret = await demander('Secret d\'administration (masqué) : ', true);
   let fabrique = false;
   if (!secret) { secret = crypto.randomBytes(32).toString('hex'); fabrique = true; }
-  if (!RE_SECRET.test(secret)) echec('Le secret est 64 caractères hexadécimaux (0-9, a-f).');
   const secretMinuscule = secret.toLowerCase();
-  /* La MÊME validation que le démarrage du service : ce qui passe ici démarrera là. */
+  /* La MÊME validation que le démarrage du service, et la seule : ce qui passe ici démarrera là (64 hexadécimaux, assez irrégulier). */
   try { adminConfig({ admin: { secret: secretMinuscule } }, null); } catch (e) { echec(sansPrefixe(e)); }
   ecrire(config, Object.assign({}, config, { admin: { secret: secretMinuscule } }), secretMinuscule);
   console.log('✅ ' + CONFIG_PATH + ' mis à jour (chmod 600). Empreinte courte du secret : ' + courte(secretMinuscule) + '.');

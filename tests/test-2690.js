@@ -94,7 +94,7 @@ async function toutes(base, chemin, limite) {
     const ana = SF.personneCreer({ identifiant: MEL('ana'), prenom: 'Ana', nom: 'ZQXWNOM', origine: 'compte', verifie: true });
     const ben = SF.personneCreer({ identifiant: MEL('ben'), prenom: 'Ben', nom: 'ZQXWNOM', origine: 'compte', verifie: true });
     const cleo = SF.personneCreer({ identifiant: MEL('cleo'), prenom: 'Cleo', nom: 'ZQXWNOM', origine: 'compte', verifie: true });
-    const dan = SF.personneCreer({ identifiant: MEL('dan'), prenom: 'Dan', nom: 'ZQXWNOM', origine: 'compte', verifie: true });
+    const dan = SF.personneCreer({ identifiant: 'mel:Dan.WQXZ@Exemple.invalid', /* une ligne écrite à la main avec des MAJUSCULES : le contrat dit « adresse en minuscules » */ prenom: 'Dan', nom: 'ZQXWNOM', origine: 'compte', verifie: true });
     const eva = SF.personneCreer({ identifiant: MEL('eva'), prenom: 'Eva', nom: 'ZQXWNOM', origine: 'compte', verifie: true });
     const fay = SF.personneCreer({ identifiant: MEL('fay'), prenom: 'Fay', nom: 'ZQXWNOM', origine: 'compte', verifie: true });
     const SEL = 'SEL-WQXZ-CANARI', HASH = 'HASH-WQXZ-CANARI', JETON_ANA = 'tokAnaWQXZ-jeton-de-session', APPAREIL = 'APPAREIL-WQXZ-CANARI';
@@ -246,6 +246,7 @@ async function toutes(base, chemin, limite) {
       const pro = { formule: 'pro', motif: 'abonne', sursis_jusqua: null }, perso = { formule: 'perso', motif: 'aucun', sursis_jusqua: null }, impaye = { formule: 'impaye', motif: 'impaye', sursis_jusqua: null };
       v('Ana (adresse, propriétaire d\'un espace PAYÉ) : l\'adresse, son empreinte, Pro — la formule RÉELLE, pas celle du drapeau de la bêta', sansDates(par(ids.ana)),
         attendu({ id: ids.ana, origine: 'courriel', etat: 'actif', email: 'ana.wqxz@exemple.invalid', email_sha256: sha('ana.wqxz@exemple.invalid'), formule: pro, espaces: 1 }));
+      v('⛔ une adresse rangée avec des MAJUSCULES (Dan) sort en minuscules, et son empreinte est celle de la forme en minuscules — la Tour calcule SHA-256(adresse en minuscules)', [par(ids.dan).email, par(ids.dan).email_sha256], ['dan.wqxz@exemple.invalid', sha('dan.wqxz@exemple.invalid')]);
       v('Ben (propriétaire d\'un espace IMPAYÉ depuis huit jours) : « impaye » ; Cleo (simple membre de cet espace) aussi ; Dan (propriétaire d\'un espace sans abonnement) : Perso', [par(ids.ben).formule, par(ids.cleo).formule, par(ids.dan).formule, [par(ids.ben).espaces, par(ids.cleo).espaces, par(ids.dan).espaces]], [impaye, impaye, perso, [1, 1, 1]]);
       v('Fay (suppression programmée dans dix jours) : l\'état le dit, avec l\'échéance ; elle n\'a plus de session', [par(ids.fay).etat, typeof par(ids.fay).suppression_le, par(ids.fay).suppression_le > Date.now(), par(ids.fay).derniere_activite], ['suppression_programmee', 'number', true, null]);
       v('un accès bêta (Alice) : le mode d\'inscription, l\'identifiant de l\'accès chez OP GESTION (« b… »), ni adresse ni empreinte, vue récemment', [par(ids.alice).origine, /^b[0-9a-f]{6,32}$/.test(par(ids.alice).acces_beta), par(ids.alice).email, par(ids.alice).email_sha256, Date.now() - par(ids.alice).derniere_activite < 60000, par(ids.alice).formule], ['beta', true, null, null, true, perso]);
