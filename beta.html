@@ -30720,7 +30720,10 @@ function _fourQuickEdit(fid,onSave){ const f=db.fournisseurs.find(x=>x.id===fid)
 /* v738 : renommer un fournisseur depuis un bon, c'est le modifier — la même case que l'écran Fournisseurs */
 function fourQuickSave(fid){ if(!permGarde('com','modifier','un fournisseur')) return; const f=db.fournisseurs.find(x=>x.id===fid); if(!f) return; const g=i=>((document.getElementById(i)||{}).value||'').trim();
   const em=g('fq-email'); if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast('Adresse e-mail invalide'); return; }
-  f.nom=g('fq-nom')||f.nom; f.email=em; f.contact=g('fq-contact'); f.telephone=g('fq-tel');
+  /* g20 (achats#1, achats#8) : le nom suit la même règle que l'écran Fournisseurs — unique, et ses produits le suivent.
+     Un nom laissé vide garde l'ancien (comme avant). Refus AVANT d'écrire quoi que ce soit : la fenêtre reste ouverte. */
+  const nv=g('fq-nom'); if(nv && nv!==f.nom){ const r=fournisseurRenommer(fid,nv); if(r.erreur){ toast(r.erreur); return; } }
+  f.email=em; f.contact=g('fq-contact'); f.telephone=g('fq-tel');
   save(); const ov=$('four-quick'); if(ov) ov.remove(); toast('🏭 Fournisseur mis à jour');
   try{ if(_fourQuickCb) _fourQuickCb(); }catch(e){} _fourQuickCb=null;
 }
@@ -34772,6 +34775,11 @@ function saveSimple(e,coll,id,numFields){ e.preventDefault();
   const _grp=COLL_GRP[coll]||'';
   if(_grp && !permGarde(_grp, id?'modifier':'ajouter', COLL_QUOI[coll]||('un élément de '+coll))) return;
   const d=Object.fromEntries(new FormData(e.target)); (numFields||[]).forEach(f=>{ if(d[f]!==undefined) d[f]=parseFloat(d[f])||0; });
+  /* g20 (achats#1, achats#8) : un fournisseur a un nom non vide et unique, et le renommer emporte le lien de
+     ses produits (`fournisseurRenommer`). Refus AVANT toute écriture, fenêtre laissée ouverte : ce qui a été
+     tapé n'est pas perdu. */
+  if(coll==='fournisseurs'){ const r=id ? fournisseurRenommer(id,d.nom) : fournisseurNomControle(d.nom,'');
+    if(r.erreur){ toast(r.erreur); return; } d.nom=r.nom; }
   if(id){ const ix=db[coll].findIndex(x=>x.id===id); db[coll][ix]={...db[coll][ix],...d}; toast('Mis à jour'); }
   else{ if(coll==='clients'){ d.x=10+Math.random()*80; d.y=10+Math.random()*80; } db[coll].push({id:uid(),...d}); logEvent('Création',`${coll} : ${d.nom||d.ref||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);
@@ -39190,6 +39198,36 @@ function fourMemeNom(a,b){
   const n=x=>String(x||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const x=n(a); return !!x && x===n(b); }
 function produitDuFournisseur(p,nom){ return ((p&&p.fournisseurs)||[]).some(v=>fourMemeNom(v,nom)); }
+/* ⛔ g20 (achats#8) — UN NOM DE FOURNISSEUR SE CONTRÔLE À TOUTES LES PORTES. `bonFourNew` (le ＋ du bon)
+   refusait déjà le doublon ; l'écran Fournisseurs (`saveSimple`) et le ✎ rapide d'un bon n'en
+   contrôlaient aucun : mesuré, deux cartes de même nom et une carte au nom fait d'espaces — et `fidOf()`
+   (bonValider, bonSeparer) prend le PREMIER fournisseur d'un nom, donc le second ne recevait jamais un
+   bon. Même comparaison que le lien des produits (accents, casse, ponctuation : `nomNorm`) ; `sauf` est
+   l'identifiant qu'on est en train de renommer, qui ne se refuse pas à lui-même. Rend {nom} ou {erreur}. */
+function fournisseurNomControle(nom,sauf){
+  const n=String(nom==null?'':nom).trim();
+  if(!n) return {erreur:'Indique un nom'};
+  const cle=nomNorm(n)||n.toUpperCase();
+  if((db.fournisseurs||[]).some(x=>x.id!==sauf && (nomNorm(x.nom)||String(x.nom||'').trim().toUpperCase())===cle)) return {erreur:'Ce fournisseur existe déjà'};
+  return {nom:n}; }
+/* ⛔ g20 (achats#1) — RENOMMER UN FOURNISSEUR NE DÉTACHE PAS SES PRODUITS. Un produit désigne son
+   fournisseur par son NOM (`p.fournisseurs=['ARMOSA']`, jamais par identifiant — voir `fourMemeNom`) :
+   renommer la fiche sans suivre ce lien faisait passer « 53 produits au catalogue » à « 0 », et le filtre
+   fournisseur du Catalogue des bons ne trouvait plus rien (persistant après rechargement). UNE fonction,
+   appelée par l'écran Fournisseurs ET par le ✎ rapide d'un bon : deux copies finiraient par ne plus dire
+   la même chose. Les fiches modifiées sont estampillées par le `save()` de l'appelant (jamais
+   `produitCreer` ni `push` : rien ne naît ici). Si une AUTRE fiche porte encore l'ancien nom (doublons
+   d'avant, à la casse près), les produits y restent liés : on ne leur retire pas leur fournisseur.
+   Rend {nom} (renommé) ou {erreur} (rien n'a bougé). */
+function fournisseurRenommer(id,nouveau){
+  const f=(db.fournisseurs||[]).find(x=>x.id===id); if(!f) return {erreur:'Fournisseur introuvable'};
+  const v=fournisseurNomControle(nouveau,id); if(v.erreur) return v;
+  const ancien=f.nom; f.nom=v.nom;
+  if(!ancien||ancien===v.nom) return {nom:v.nom};
+  if((db.fournisseurs||[]).some(x=>x.id!==id && fourMemeNom(x.nom,ancien))) return {nom:v.nom};
+  (db.produits||[]).forEach(p=>{ if(!p||!Array.isArray(p.fournisseurs)||!p.fournisseurs.some(x=>fourMemeNom(x,ancien))) return;
+    const l=[]; p.fournisseurs.forEach(x=>{ const y=fourMemeNom(x,ancien)?v.nom:x; if(!l.some(z=>fourMemeNom(z,y))) l.push(y); }); p.fournisseurs=l; });
+  return {nom:v.nom}; }
 /* ══ FOURNISSEURS EN DOUBLE — LE MÉNAGE DE CE QUI EST DÉJÀ ENTRÉ ══
    Le correctif d'identifiant ci-dessus arrête la cause ; il ne range pas derrière lui. Chez
    ELAN, seize fiches pour six fournisseurs — chacun des cinq du pack métier en TRIPLE.
