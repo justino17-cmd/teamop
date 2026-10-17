@@ -51,14 +51,16 @@ function historique(urlDebut) {
 const attendre = (ms) => new Promise(r => setTimeout(r, ms === undefined ? 20 : ms));
 
 /* un élément factice : tout ce que les fonctions de la page lui demandent répond sans lever */
+const METHODES = new Set(['removeAttribute', 'setAttribute', 'getAttribute', 'addEventListener', 'removeEventListener', 'getClientRects', 'closest', 'append', 'remove', 'scrollIntoView', 'blur', 'click', 'matches', 'insertAdjacentHTML']);
 function faux(nom) {
-  const traces = [];
+  const traces = [], style = {};
   const o = new Proxy(function () {}, {
     get(c, k) {
       if (k === 'traces') return traces; if (k === Symbol.toPrimitive) return () => nom;
       if (k === 'classList') return { add() {}, remove() {}, toggle() {}, contains() { return false; } };
-      if (k === 'dataset') return {}; if (k === 'querySelectorAll') return () => []; if (k === 'querySelector') return () => null;
+      if (k === 'dataset') return {}; if (k === 'style') return style; if (k === 'querySelectorAll') return () => []; if (k === 'querySelector') return () => null;
       if (k === 'isConnected') return true; if (k === 'focus') return (...a) => { traces.push('focus'); };
+      if (METHODES.has(k)) return () => undefined;
       return c[k];
     },
     set(c, k, v) { c[k] = v; traces.push(k + '=' + (typeof v === 'string' ? v.slice(0, 30) : v)); return true; },

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '99ea7d6c1cde';
+  const OPMSG_BUILD = '38347409093d';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -501,7 +501,7 @@
      donc le navigateur n'a pas de second retour à jouer ; et un bouton qui ferme ne ferme pas ET ne navigue pas — il navigue, et
      la fermeture suit. Une entrée neuve n'est posée que si quelque chose s'ouvre : passer d'une conversation à l'autre (au bureau)
      REMPLACE l'entrée au lieu d'en empiler. */
-  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && (a.sec || null) === (b.sec || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.appel || null) === (b.appel || null);
+  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && (a.sec || null) === (b.sec || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.apercu || null) === (b.apercu || null) && (a.appel || null) === (b.appel || null);
   /* `sec` : une rubrique de Profil ouverte (« #reglages/confidentialite ») — une couche comme une conversation : le retour système la referme */
   const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : r.sec ? '/' + r.sec : '');
   function routeDepuisHash() {
@@ -513,12 +513,13 @@
     const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv
       : vue === 'reunions' && CAP.agenda && ID_EVT.test(conv || '') ? 'evenement:' + conv : false;       // un RAPPEL de l'agenda (sa notification touchée) : sa fiche
     const sec = vue === 'reglages' && REG_SECTIONS.includes(p[1]) ? p[1] : null;
-    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, sec, feuille, photo: null, appel: null };
+    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, sec, feuille, photo: null, apercu: null, appel: null };
   }
   const entree = () => (history.state && history.state.opmsg) ? history.state : null;
   function parentDe(r) {
     if (r.appel) return Object.assign({}, r, { appel: null });
     if (r.photo) return Object.assign({}, r, { photo: null });
+    if (r.apercu) return Object.assign({}, r, { apercu: null });      // l'aperçu des photos AVANT l'envoi : une couche, comme la photo agrandie
     if (r.feuille) return Object.assign({}, r, { feuille: false });
     if (r.sec) return Object.assign({}, r, { sec: null });
     if (r.conv) return Object.assign({}, r, { conv: null });
@@ -598,6 +599,7 @@
     if (r.feuille && (!etat.groupe.ouvert || etat.groupe.cle !== cleFeuille(r.feuille))) ouvrirFeuilleDom(r.feuille); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
     const cle = r.photo || null;
     if (cle !== etat.photo) { if (cle) ouvrirPhotoDom(cle); else fermerPhotoDom(); }
+    apercuAppliquer(r);
     /* l'appel est la couche du DESSUS. ⛔ Une route qui n'en porte plus le RÉDUIT (« Message », un onglet, le retour système, Échap) : l'appel continue, la barre du haut y ramène.
        Seul un RACCROCHAGE le termine (le bouton rouge, « Refuser », « Quitter la salle », l'appel fini ailleurs : `raccrocherCouche`) — et un appel ENTRANT qu'on quitte sans
        l'avoir pris est refusé, comme avant. Une seule sortie reste : `quitterAppel`. */
@@ -1657,6 +1659,16 @@
     epAjuster();      // ⛔ APRÈS l'ouverture : mesuré caché, le champ prenait 0 px de contenu et la légende se lisait coupée en deux
     epRendre();
     setTimeout(() => { try { $('ep-legende').focus({ preventScroll: true }); } catch (e) { /* rien */ } }, 30);
+    pousser(Object.assign({}, etat.route, { apercu: conv }));       // une COUCHE de la route (17 octobre 2026) : le retour système la referme, elle seule
+  }
+  /* ⛔ L'APERÇU EST UNE COUCHE (testeur « medias#1 », 17 octobre 2026) : il vivait HORS de la route — le retour du navigateur quittait la conversation et laissait l'aperçu ouvert
+     par-dessus la liste, et « Envoyer » faisait partir la photo vers une conversation qui n'était plus à l'écran. La route dit `apercu: <conversation>` ; `appliquer` rejoue ce
+     que la route dit (comme pour la photo agrandie) : l'aperçu ouvert dont la route ne parle plus se ferme, SANS rendre une entrée de plus (le navigateur l'a déjà rendue) ; une
+     route qui parle d'un aperçu que cette page n'a pas (un « avancer » vers une entrée d'avant) le retire. Les photos choisies ne se gardent pas d'une entrée à l'autre. */
+  function apercuAppliquer(r) {
+    const veut = r.apercu && r.apercu === r.conv ? r.apercu : null;         // un aperçu ne vaut que POUR la conversation que la route affiche
+    if (ep.ouvert && veut !== ep.conv) epFermer(false, true);
+    if (r.apercu && !(veut && ep.ouvert)) remplacer(Object.assign({}, r, { apercu: null }));
   }
   function epRendre() {
     if (!ep.ouvert) return;
@@ -1672,12 +1684,15 @@
     $('ep-ajouter').hidden = n >= ep.max;
   }
   function epAjuster() { const ta = $('ep-legende'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 124) + 'px'; }
-  function epFermer(envoye) {
+  function epFermer(envoye, routeDit) {
     if (!ep.ouvert) return;
     ep.ouvert = false; $('envoi-photos').hidden = true;
     if (!envoye) ep.photos.forEach(p => URL.revokeObjectURL(p.url));
     ep.photos = []; $('ep-grande').removeAttribute('src'); $('ep-vignettes').innerHTML = ''; $('ep-legende').value = '';
     synchroInert();
+    /* la croix, Échap, « Envoyer » et la dernière vignette retirée passent par ici : ils REDONNENT l'entrée de l'aperçu (fermerCouche), comme toute couche. Quand c'est la route
+       qui vient de dire que l'aperçu n'est plus (popstate, une route remplacée), il n'y a rien à rendre. */
+    if (!routeDit && etat.route && etat.route.apercu) fermerCouche();
     const d = ep.declencheur; ep.declencheur = null;
     try { if (d && d.focus && document.contains(d)) d.focus({ preventScroll: true }); else $('saisie').focus({ preventScroll: true }); } catch (e) { /* rien */ }
   }
