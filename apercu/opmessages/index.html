@@ -10255,9 +10255,11 @@ a.menu-action { text-decoration: none; }
     if (!hote) s += '<div class="rubrique"><span>Invité</span></div>' + (F.confirme === 'quitter' ? htmlConfirmation(d) : '<div class="carte"><button type="button" class="reglage presse danger" data-reu="quitter-demander"><span class="reglage-texte">Quitter la réunion<small>Elle disparaît de ton agenda et tu sors de sa conversation</small></span></button></div>');
     /* les gestes de l'hôte */
     if (hote) {
-      s += '<div class="rubrique"><span>Organisateur</span></div>';
+      /* ⛔ UN TITRE NE S'ÉCRIT QUE DEVANT CE QU'IL TITRE (17 octobre 2026, testeur) : annulée, la réunion ne se décale, ne se modifie ni ne s'envoie plus — le titre « Organisateur » restait seul, suivi du titre
+         « Présence ». Il paraît devant les gestes d'une réunion qui vit ; annulée, il passe devant ce qui lui reste (supprimer), tout en bas. */
       const sd = snapDecalage(F.id, d), decalable = !!(sd && sd.peut);
       F.decalable = decalable ? sd : null;
+      if (!d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       if (!d.annulee) s += '<div class="carte">' + (decalable ? '<button type="button" class="reglage presse" data-reu="decaler" aria-haspopup="dialog">' + icone('i-agenda') + '<span class="reglage-texte">Décaler</span>' + CHEVRON + '</button>' : '') +
         '<button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
@@ -10277,6 +10279,7 @@ a.menu-action { text-decoration: none; }
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité</span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>';
+      if (d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
         '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
     }

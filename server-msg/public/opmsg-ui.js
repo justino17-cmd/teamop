@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'cbd65095e4c6';
+  const OPMSG_BUILD = '1ddc54d8bde6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -7453,9 +7453,11 @@
     if (!hote) s += '<div class="rubrique"><span>Invité</span></div>' + (F.confirme === 'quitter' ? htmlConfirmation(d) : '<div class="carte"><button type="button" class="reglage presse danger" data-reu="quitter-demander"><span class="reglage-texte">Quitter la réunion<small>Elle disparaît de ton agenda et tu sors de sa conversation</small></span></button></div>');
     /* les gestes de l'hôte */
     if (hote) {
-      s += '<div class="rubrique"><span>Organisateur</span></div>';
+      /* ⛔ UN TITRE NE S'ÉCRIT QUE DEVANT CE QU'IL TITRE (17 octobre 2026, testeur) : annulée, la réunion ne se décale, ne se modifie ni ne s'envoie plus — le titre « Organisateur » restait seul, suivi du titre
+         « Présence ». Il paraît devant les gestes d'une réunion qui vit ; annulée, il passe devant ce qui lui reste (supprimer), tout en bas. */
       const sd = snapDecalage(F.id, d), decalable = !!(sd && sd.peut);
       F.decalable = decalable ? sd : null;
+      if (!d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       if (!d.annulee) s += '<div class="carte">' + (decalable ? '<button type="button" class="reglage presse" data-reu="decaler" aria-haspopup="dialog">' + icone('i-agenda') + '<span class="reglage-texte">Décaler</span>' + CHEVRON + '</button>' : '') +
         '<button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
@@ -7475,6 +7477,7 @@
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité</span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>';
+      if (d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
         '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
     }
