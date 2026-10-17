@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '36adfde9fa55';
+  const OPMSG_BUILD = 'e49e497148dc';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 211;
+  const OPMSG_VERSION = 212;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1118,7 +1118,7 @@
     if (jeton !== etat.jeton) return;                       // une autre conversation (ou la liste) a pris la place pendant l'attente
     /* ⛔ un échec de chargement (réseau, refus du service) n'est PAS « cette conversation n'existe plus » : on dit ce qui s'est passé */
     if (panne) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot(phrase(panne, 'La conversation n\'a pas pu être ouverte.')); return; }
-    if (!c) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot('Cette conversation n\'existe plus.'); return; }
+    if (!c) { const versMessage = cibleMsg.conv === id; cibleMsg.conv = null; remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot(versMessage ? 'Tu n\'es plus dans cette conversation.' : 'Cette conversation n\'existe plus.'); return; }
     rendreConv(c, true);
     synchroInert();
     if (matchMedia('(pointer: fine)').matches) $('saisie').focus({ preventScroll: true }); else $('conv-ecran').focus({ preventScroll: true });
@@ -1151,7 +1151,11 @@
   const cibleMsg = { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false };
   /* `remplacerEntree` : on part d'une FICHE posée par un geste (le rappel, touché dans l'Agenda ou le tableau de bord) — son entrée d'historique devient la conversation, et le
      retour ramène là d'où la fiche était partie. */
+  /* ⛔ une conversation que la liste, bien chargée, ne porte plus : la personne l'a QUITTÉE (ou on l'en a retirée). Elle existe encore — « n'existe plus » était faux — et y envoyer menait à la
+     liste des Messages, loin de l'écran où se trouvait le rappel. */
+  const convQuittee = id => !!id && Array.isArray(etat.conversations) && etat.conversations.length > 0 && !etat.conversations.some(c => c.id === id);
   function voirMessage(conv, seq, remplacerEntree) {
+    if (convQuittee(conv)) { cibleMsg.conv = null; mot('Tu n\'es plus dans cette conversation.'); return; }
     Object.assign(cibleMsg, { conv, seq, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false });
     const ouverte = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages';
     if (ouverte && !remplacerEntree) { allerAuMessage(); return; }
@@ -7011,10 +7015,13 @@
   /* les destinations : mes conversations (pas une invitation que je n'ai pas acceptée), du côté où l'on travaille — une RECHERCHE cherche des deux côtés, comme la liste */
   /* ⛔ une ligne COCHÉE reste à l'écran pendant une recherche (relecture adverse) : elle part à l'envoi, elle ne se cache pas */
   const convsTransfert = () => { const G = etat.groupe, q = norme((G.tRecherche || '').trim()); return etat.conversations.filter(c => c.invitation !== 'recue' && ((G.tVers || []).includes(c.id) || (q ? norme(c.nom).includes(q) : dansMode(c)))); };
+  /* ⛔ la liste ne propose que le côté où l'on travaille : sans le dire, la conversation de l'AUTRE côté « n'apparaissait pas » sans raison. Une recherche, elle, cherche des deux côtés. */
+  const noteTransfert = () => 'Le message part en ton nom, marqué « Transféré » : le nom de qui l\'a écrit ne part pas. Cinq conversations au plus.' +
+    (modesActifs() ? ' Seules les conversations ' + NOM_COTE[etat.mode] + ' sont proposées ; une recherche cherche des deux côtés.' : '');
   function rendreTransfert() {
     const G = etat.groupe, m = etat.convDonnees && etat.convDonnees.messages.find(x => x.id === G.tMid);
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + (m ? apercuTransfert(m) : '') +
-      '<p class="info-note">Le message part en ton nom, marqué « Transféré » : le nom de qui l\'a écrit ne part pas. Cinq conversations au plus.</p>' +
+      '<p class="info-note">' + noteTransfert() + '</p>' +
       '<div class="info-champ"><input id="tr-recherche" type="search" autocomplete="off" enterkeyhint="search" placeholder="Rechercher" aria-label="Rechercher une conversation"></div>' +
       '<div class="rubrique"><span>Envoyer à</span><span id="tr-n" aria-live="polite"></span></div><div class="carte" id="tr-liste"></div><p class="vide" id="tr-aucun" hidden></p>';
     peindreTransfert();
