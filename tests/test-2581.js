@@ -63,7 +63,7 @@ function fiche(opts) {
   const reunion = (extra) => Object.assign({ id: 'r_x', salleOuverte: false, occurrences: [Object.assign({ debut: OCC.debut, fin: OCC.fin }, { seance: SEANCE })] }, extra || {});
   const dRej = { id: 'r_x', annulee: false, salle: { rejoignable: true, ouverte: false, occurrence: OCC } };
   const lire = (liste, d, panne) => {
-    const M = P.monter({ seanceFiche: P.decl('async function seanceFiche(') }, { source: source(liste, panne), CAP: { salles: true } });
+    const M = P.monter({ occTerminee: P.ligne('const occTerminee ='), seanceFiche: P.decl('async function seanceFiche(') }, { source: source(liste, panne), CAP: { salles: true } });
     return { M, appel: M.F.seanceFiche && M.F.seanceFiche(d || dRej, 'r_x') };
   };
   const a = lire([reunion()]);

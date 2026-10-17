@@ -42,7 +42,7 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
     heureEmpilee: entre('const heureEmpilee = ', '\n  };'), phraseChevauche: ligne('const phraseChevauche = '),
     quandFiche: ligne('const quandFiche = '), FMT_JOUR_FICHE: ligne('const FMT_JOUR_FICHE = '),
     REPONSE_CR: ligne('const REPONSE_CR = '), dureeCr: ligne('const dureeCr = '), htmlCompteRendu: decl('function htmlCompteRendu('),
-    ligneReunion: decl('function ligneReunion('),
+    ligneReunion: decl('function ligneReunion('), occTerminee: ligne('const occTerminee = '),      // (lot p01, n#9) la règle « occurrence terminée » que lisent la ligne et la case
   };
   /* sans le correctif, ces morceaux n'existent pas : on le DIT (la population), et le banc tombe sur les contrôles qui suivent */
   const manquants = Object.keys(M).filter(k => !M[k]);
