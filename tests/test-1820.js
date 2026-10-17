@@ -50,7 +50,7 @@ const FN = {
   techForKey: ligne('function techForKey(key,affectable){'), techForClient: ligne('function techForClient(clientId){'),
   intTechsAff: ligne('function intTechsAff(i){'), techConnu: ligne('function techConnu(id){'), techPastille: bloc('function techPastille(id,taille){'),
   techPuces: bloc('function techPuces(i,opts){'), techPile: bloc('function techPile(i,max){'), shiftDay: ligne('function shiftDay(iso,n){'),
-  PLAN_FREQ: ligne('const PLAN_FREQ='), planTechsAff: ligne('function planTechsAff(){'), planGroups: bloc('function planGroups(){'),
+  PLAN_FREQ: ligne('const PLAN_FREQ='), pgPersSet: bloc('function pgPersSet(){'), pgPersCompte: bloc('function pgPersCompte(jours){'), planTechsAff: ligne('function planTechsAff(){'), planGroups: bloc('function planGroups(){'),
 };
 v('toutes les fonctions sont trouvées dans app.html', Object.keys(FN).filter(k => !FN[k]), []);
 v('⛔ une seule définition de chaque (une seconde gagnerait partout, en silence)',
@@ -78,6 +78,7 @@ function monde(db, extra) {
     function actAll(){ return db.activites||[]; } function actTitre(){ return 'garage'; } function clockFromMin(m){ return String(m); }
     function formIntervention(id,p){ __form.push(p); }
     function keyForClient(){ return '75'; } function depDeKey(k){ return String(k).slice(0,2); } function parseTechDepts(s){ return String(s||'').split(',').map(x=>x.trim()).filter(Boolean); }
+    var pgPers=null; var localStorage={getItem(){ return null; }, setItem(){} };
     var __u=0; function uid(){ return 'u'+(++__u); } function intNum(){ return 'N'+(++__u); }
     function planTechMSet(){ return new Set(db.techniciens.map(t=>t.id).concat([''])); } function can(){ return true; } function myTechId(){ return null; }
     function planPlageHoraire(){} function planJoursCarte(){ return ['2026-10-20']; }
@@ -88,7 +89,7 @@ function monde(db, extra) {
     ${FN.PLAN_FREQ.replace('const ', 'var ')}
     ${[FN.techAssignable, FN.techCompteDesactive, FN.techsAffectables, FN.optTechs, FN.techNomAff, FN.techPeutRecevoir, FN.techRefusDesactive, FN.planAffecteGate,
       FN.techsAffichees, FN.intTechIds, FN.planDepotAvant, FN.planMultiVide, FN.planWeekVide, FN.actDeplace, FN.planChangerTech, FN.planNextCompute, FN.planPrefOf,
-      FN.copieInt, FN.techForKey, FN.techForClient, FN.intTechsAff, FN.techConnu, FN.techPastille, FN.techPuces, FN.techPile, FN.shiftDay, FN.planTechsAff, FN.planGroups].join('\n')}
+      FN.copieInt, FN.techForKey, FN.techForClient, FN.intTechsAff, FN.techConnu, FN.techPastille, FN.techPuces, FN.techPile, FN.shiftDay, FN.planTechsAff, FN.planGroups, FN.pgPersSet, FN.pgPersCompte].join('\n')}
   `, ctx);
   return ctx;
 }
@@ -148,6 +149,28 @@ console.log('\n── 2. les listes d’affectation ──');
   db.interventions[0].statut = 'planifiee';
   const g = vm.runInContext('planGroups().map(x=>x.nom)', Object.assign(W, {}));
   vrai('planGroups (lignes des vues Semaine et Jour) lit la même règle', JSON.stringify(g) === JSON.stringify(['Alice Actif', 'Omar Off (compte désactivé)', 'Sans Compte', 'Deux Comptes', 'Non assigné']), g);
+}
+
+console.log('\n── 2 bis. le compteur « Équipe n / N » du Planning général (relecture du 17 octobre 2026) ──');
+{
+  /* Planning général : le bouton « Équipe » comptait le désactivé MASQUÉ au numérateur (pgPersSet garde son id)
+     mais plus au dénominateur : « 4 / 3 » à l'ouverture, puis « 3 / 3 » (bouton éteint) alors qu'une personne
+     venait d'être décochée. Les deux nombres se comptent sur ce qui est à l'écran. */
+  const cpt = (j, avant) => { const W = monde(base()); if (avant) vm.runInContext(avant, W); return vm.runInContext(`pgPersCompte(${JSON.stringify(j)})`, W); };
+  const c1 = cpt(['2026-10-21']);
+  vrai('population : le désactivé est bien masqué ce jour-là (sinon le contrôle est creux)',
+    vm.runInContext(`techsAffichees(['2026-10-21']).map(t=>t.id)`, monde(base())).indexOf('tO') < 0);
+  v('désactivé masqué, tout le monde coché : le compteur est égal au total (jamais « 4 / 3 »)', c1, { n: 4, tot: 4 });
+  vrai('n ne dépasse jamais le total', c1.n <= c1.tot, c1);
+  const c2 = cpt(['2026-10-21'], "pgPersSet().delete('tA')");
+  v('une personne décochée : n passe sous le total (le bouton se marque actif)', c2, { n: 3, tot: 4 });
+  vrai('… et c’est bien « n < total » que le bouton teste', c2.n < c2.tot);
+  v('le désactivé qui porte une intervention ce jour-là est compté des deux côtés', cpt([J]), { n: 5, tot: 5 });
+  v('… décoché, il fait baisser n', cpt([J], "pgPersSet().delete('tO')"), { n: 4, tot: 5 });
+  const L = ligne('  const cptPers=pgPersCompte(jours)');
+  vrai('views.planningGeneral lit le compteur par la fonction (une seule définition du compte)',
+    L.length > 30 && /nPers=cptPers\.n/.test(L) && /totPers=cptPers\.tot/.test(L), L);
+  vrai('⛔ plus de compteur bâti sur deux populations (pgPersSet().size contre techsAffichees)', compte('pgPersSet().size') === 0, compte('pgPersSet().size'));
 }
 
 console.log('\n── 3. les gestes qui AFFECTENT, joués ──');

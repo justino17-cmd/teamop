@@ -16937,6 +16937,12 @@ function pgPersSet(){
   if(!pgPers.size) connus.forEach(x=>pgPers.add(x));
   return pgPers;
 }
+/* le compteur « Équipe n / N » : numérateur et dénominateur se comptent sur la même population — les lignes que le
+   planning garde (un compte désactivé sans rien dans ces jours n'en a plus, décision de Justin du 17 octobre 2026)
+   plus « Non assigné ». pgPersSet() garde l'identifiant d'un masqué : le compter au numérateur seulement faisait
+   lire « 4 / 3 » à l'ouverture et masquait qu'une personne était décochée. */
+function pgPersCompte(jours){ const s2=pgPersSet(), ids=techsAffichees(jours).map(t=>t.id).concat(['']);
+  return {n:ids.filter(id=>s2.has(id)).length, tot:ids.length}; }
 function pgPersSave(){ try{ localStorage.setItem('elanB_pg_pers',JSON.stringify([...pgPersSet()])); }catch(e){} }
 function pgPersToggle(id){ const s2=pgPersSet(); if(s2.has(id)) s2.delete(id); else s2.add(id); pgPersSave(); pgPersRender(); views.planningGeneral(); }
 function pgPersTous(on){ const s2=pgPersSet(); s2.clear();
@@ -17135,7 +17141,7 @@ views.planningGeneral=function(){
   const larg=dense?(n>=90?18:26):(n===14?70:118);
   const PORTEES=[[7,'7 jours','vsem','Une semaine'],[14,'14 jours','vsem','Deux semaines'],
                  [30,'1 mois','vmois','Le mois entier'],[90,'3 mois','vmois','Un trimestre']];
-  const nPers=pgPersSet().size, totPers=techsAffichees(jours).length+1;
+  const cptPers=pgPersCompte(jours), nPers=cptPers.n, totPers=cptPers.tot;   // 17 oct. 2026 : les deux nombres comptent la MÊME population (ce qui est à l'écran)
   /* ⛔ planning#10 — les compteurs du bandeau se calculent sur ce qui est À L'ÉCRAN (le filtre Équipe et la recherche) :
      décocher Sophie laissait « 14 interventions » alors que 8 étaient affichées. Une intervention partagée ne compte qu'une fois. */
   const idsAff=new Set(gens.map(g2=>g2.id));
