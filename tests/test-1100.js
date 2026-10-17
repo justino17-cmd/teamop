@@ -217,7 +217,15 @@ console.log('\n── 4. la FORME du correctif (code seul, commentaires retirés
   v('⛔ la garde est posée en phase de CAPTURE sur « click » ET « submit »', ECOUT, ['click', 'submit']);
   vrai('⛔ elle arrête le geste avant les gestionnaires en ligne (stopImmediatePropagation + preventDefault)', /stopImmediatePropagation\(\)/.test(PAS) && /preventDefault\(\)/.test(PAS));
   const CSS = BRUT.replace(/\/\*[\s\S]*?\*\//g, ' ');
-  const regles = [...CSS.matchAll(/([^{}]*\.overlay\.ferme[^{}]*)\{([^}]*)\}/g)];
+  /* ⛔ Recensé par indexOf, en temps linéaire : un `[^{}]*` devant un littéral, sur les 3,5 Mo d'app.html, peut prendre
+     des dizaines de secondes sur une MUTATION (retour arrière à chaque position) — CLAUDE.md, test-781. */
+  const regles = [];
+  for (let i = CSS.indexOf('.overlay.ferme'); i >= 0; i = CSS.indexOf('.overlay.ferme', i + 1)) {
+    const o = CSS.indexOf('{', i), c = CSS.indexOf('}', o); const dep = Math.max(CSS.lastIndexOf('}', i), CSS.lastIndexOf('{', i)) + 1;
+    if (o < 0 || c < 0 || (CSS.indexOf('}', i) >= 0 && CSS.indexOf('}', i) < o)) continue;   // une occurrence dans un corps de règle, pas un sélecteur
+    if (regles.length && regles[regles.length - 1][3] === dep) continue;
+    regles.push([null, CSS.slice(dep, o), CSS.slice(o + 1, c), dep]);
+  }
   vrai('population : les règles CSS de l\'overlay en sortie sont trouvées', regles.length >= 2, regles.length);
   vrai('⛔ aucune ne pose pointer-events:none sur l\'overlay qui part (le 2e toucher tomberait sur la page DESSOUS)',
     !regles.some(r => /pointer-events\s*:\s*none/.test(r[2]) && !/\.modal/.test(r[1])), regles.map(r => r[1].trim().slice(0, 60)));
