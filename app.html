@@ -7386,6 +7386,29 @@ html[data-os="windows"][data-marque][data-verre][data-refonte] .ph-actions .btn{
   html[data-marque][data-verre][data-refonte] .ph-actions .btn{min-height:44px!important;padding:0 16px!important}
 }
 
+/* ── lot h04 (appareils#8) : UN TÉLÉPHONE EN PAYSAGE (844×390) NE MONTRE PAS DE CONTENU — l'en-tête en mangeait la moitié ──
+   Mesuré (iPhone 844×390, Android 800×360) : la barre du haut 68 px + l'en-tête d'écran 196 à 213 px — bouton retour (44) sur une
+   rangée, titre et sous-titre (86) sur la suivante, actions (42-46) sur la troisième — : le premier bloc de contenu ne commençait
+   qu'à 288-352 px sur 390. Le menu latéral permanent (272 px dès 781 px) ne change PAS — c'est la règle « la navigation se choisit
+   à la largeur » (iPad) ; un menu rétractable en paysage téléphone est une décision de produit, pas de ce correctif. On compacte
+   ce qui est gonflé : le retour, le titre et les actions partagent UNE rangée (les actions repassent dessous quand elles n'y
+   tiennent pas), le titre passe de 34 à 22 px, la barre du haut perd son plancher de 58 px.
+   Borne : paysage ET hauteur ≤ 560 px ET largeur ≤ 1024 px — jamais un iPad (820 px de haut en paysage) ni un bureau ordinaire.
+   `[data-refonte][data-refonte]` : même force que la couche du thème final ci-dessus (`html[data-marque][data-refonte]`), écrite
+   avant — c'est l'ordre qui tranche, donc ce bloc vient APRÈS elle. Les cibles tactiles ne bougent pas (retour 44, actions 44-46). */
+@media (orientation:landscape) and (max-height:560px) and (max-width:1024px){
+  html[data-refonte][data-refonte] .topbar{min-height:44px!important;padding-top:max(6px,env(safe-area-inset-top))!important;padding-bottom:6px!important}
+  html[data-refonte][data-refonte] .page-head{display:flex;flex-wrap:wrap;align-items:center;column-gap:12px;padding-top:6px!important;padding-bottom:0!important}
+  html[data-refonte][data-refonte] .page-head:empty{display:none}
+  html[data-refonte][data-refonte] .page-head > .ph-back{flex:0 0 auto;margin:0!important}
+  html[data-refonte][data-refonte] .page-head > .ph-row{flex:1 1 280px;min-width:0;gap:8px 12px;align-items:center}
+  html[data-refonte][data-refonte] .ph-row > div:first-child{flex:1 1 200px!important;min-width:0}
+  html[data-refonte][data-refonte] .ph-actions{flex:0 1 auto!important;justify-content:flex-end}
+  html[data-refonte][data-refonte] .ph-title{font-size:22px!important;line-height:26px!important;letter-spacing:0!important}
+  html[data-refonte][data-refonte] .ph-sub{font-size:13px!important;line-height:17px;margin-top:0!important}
+  html[data-refonte][data-refonte] .ph-surtitre{font-size:11px;margin-bottom:0}
+}
+
 /* La barre « Reprendre » du multitâche : une vitre posée en haut de l'écran, comme une
    notification du système — le nom de ce qu'on avait commencé, sa fraîcheur dessous, l'action
    en voile de la teinte (le même langage que l'action d'un en-tête), et une croix ronde. */
