@@ -29659,15 +29659,38 @@ const STATV={ enAttente:{l:'En attente',c:'st-org'}, valide:{l:'Validée',c:'st-
    qui l'avait faite ne savait jamais si sa commande était partie, arrivée, ou encore en tiroir.
    Les deux objets sont maintenant reliés (demande.bonId ↔ bon.demandeId) et la demande affiche
    l'avancement réel de son bon. */
+/* ⛔ g20 (achats#3) — UNE DEMANDE SUIT TOUS LES BONS QUI EN SORTENT, PAS SEULEMENT LE PREMIER. `d.bonId`
+   désigne le bon né à la validation ; quand « ✓ Prêt » le SÉPARE par fournisseur (`bonSeparer`), le bon
+   de chaque autre fournisseur copie `demandeId` mais la demande ne le connaît pas. Lire `d.bonId` seul
+   faisait passer la demande à « Reçue » dès que la première moitié était livrée — « Rien en cours »,
+   alors que l'autre fournisseur n'était même pas commandé, et plus rien ne la suivait. Le lien se lit
+   donc dans les DEUX sens : le bon désigné par la demande, et tout bon qui désigne la demande. */
+function demandeBons(d){
+  if(!d) return [];
+  const bons=db.bons||[]; const out=[];
+  const b0=d.bonId&&bons.find(x=>x.id===d.bonId); if(b0) out.push(b0);
+  bons.forEach(b=>{ if(b&&d.id&&b.demandeId===d.id&&!out.includes(b)) out.push(b); });
+  return out;
+}
 function demandeEtat(d){
   if(!d) return STATV.enAttente;
   if(d.statut!=='valide') return STATV[d.statut]||STATV.enAttente;
-  const b=d.bonId&&(db.bons||[]).find(x=>x.id===d.bonId);
-  if(!b) return { l:'Acceptée', c:'st-green' };
-  if(b.statut==='livree')  return { l:'Reçue', c:'st-green' };
-  if(b.statut==='annulee') return { l:'Commande annulée', c:'st-red' };
-  const st=STATBC[b.statut];
-  return st ? { l:'Acceptée · '+st.l, c:st.c } : { l:'Acceptée', c:'st-green' };
+  const bons=demandeBons(d);
+  if(!bons.length) return { l:'Acceptée', c:'st-green' };
+  if(bons.length===1){ const b=bons[0];
+    if(b.statut==='livree')  return { l:'Reçue', c:'st-green' };
+    if(b.statut==='annulee') return { l:'Commande annulée', c:'st-red' };
+    const st=STATBC[b.statut];
+    return st ? { l:'Acceptée · '+st.l, c:st.c } : { l:'Acceptée', c:'st-green' }; }
+  /* plusieurs bons : un bon annulé n'est plus attendu ; « Reçue » seulement quand TOUS les autres sont livrés */
+  const vifs=bons.filter(b=>b.statut!=='annulee');
+  if(!vifs.length) return { l:'Commande annulée', c:'st-red' };
+  const livres=vifs.filter(b=>b.statut==='livree').length;
+  if(livres===vifs.length) return { l:'Reçue', c:'st-green' };
+  if(livres>0) return { l:'Partiellement reçue · '+livres+'/'+vifs.length, c:'st-org' };
+  const ordre=Object.keys(STATBC); const moins=vifs.slice().sort((x,y)=>ordre.indexOf(x.statut)-ordre.indexOf(y.statut))[0];
+  const st=STATBC[moins.statut];
+  return { l:'Acceptée · '+(st?st.l:'en cours')+' ('+vifs.length+' bons)', c:st?st.c:'st-green' };
 }
 const badgeEtat = (o) => `<span class="st ${o.c}">${o.l}</span>`;
 const demTotal=d=>(d.lignes||[]).reduce((s,l)=>s+(l.quantite||0),0);
@@ -29683,9 +29706,9 @@ function demandeEnCours(d){
   if(!d) return false;
   if(d.statut==='enAttente') return true;
   if(d.statut!=='valide') return false;                 // refusée : plus rien n'est attendu
-  const b=d.bonId&&(db.bons||[]).find(x=>x.id===d.bonId);
-  if(!b) return false;                                  // acceptée, sans commande à suivre
-  return b.statut!=='livree' && b.statut!=='annulee';
+  const bons=demandeBons(d);
+  if(!bons.length) return false;                        // acceptée, sans commande à suivre
+  return bons.some(b=>b.statut!=='livree' && b.statut!=='annulee');   // g20 : TOUS les bons de la demande, pas le premier seul
 }
 function demMoisLabel(k){
   if(!k||k==='—') return 'Sans date';
