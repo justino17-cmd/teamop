@@ -38,60 +38,10 @@ const fin = () => { try { if (enfant) enfant.kill('SIGKILL'); } catch (e) {} try
 process.on('exit', fin);
 setTimeout(() => { console.log('  ✗ banc FIGÉ au-delà de 200 s'); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); fin(); process.exit(1); }, 200000).unref();
 
-/* ── La fausse boîte IMAP : l'état vit dans un fichier JSON que le banc écrit et relit ──────────────── */
-const FAUX_IMAP_MODULE = `'use strict';
-const fs = require('fs');
-const FICHIER = process.env.FAUX_IMAP;
-const lire = () => { try { return JSON.parse(fs.readFileSync(FICHIER, 'utf8')); } catch (e) { return { messages: [], actions: [] }; } };
-const ecrire = (b) => { fs.writeFileSync(FICHIER + '.tmp', JSON.stringify(b)); fs.renameSync(FICHIER + '.tmp', FICHIER); };
-const dans = (b, d) => b.messages.filter(m => (m.dossier || 'INBOX') === d);
-function choisir(b, d, plage, parUid) {
-  const l = dans(b, d);
-  if (plage && typeof plage === 'object') {
-    if (plage.seen === false) return l.filter(m => !(m.flags || []).includes('\\\\Seen'));
-    if (plage.uid != null) { const s = new Set(String(plage.uid).split(',').map(Number)); return l.filter(m => s.has(m.uid)); }
-    return l;
-  }
-  const txt = String(plage), cle = parUid ? 'uid' : 'seq';
-  if (/^\\d+:\\*$/.test(txt)) { const a = +txt.split(':')[0]; return l.filter(m => m[cle] >= a); }
-  const s = new Set(txt.split(',').map(Number)); return l.filter(m => s.has(m[cle]));
-}
-function vue(m) {
-  const src = 'Message-ID: ' + m.messageId + '\\r\\nFrom: ' + m.from + '\\r\\nTo: ' + (m.to || '') + '\\r\\nSubject: ' + m.subject
-    + '\\r\\nContent-Type: text/plain; charset=utf-8\\r\\n\\r\\n' + (m.text || '') + '\\r\\n';
-  return { seq: m.seq, uid: m.uid, flags: new Set(m.flags || []), source: Buffer.from(src), size: src.length, bodyStructure: { childNodes: [] },
-    envelope: { messageId: m.messageId, from: [{ address: m.from, name: '' }], to: [{ address: m.to || '', name: '' }], subject: m.subject, date: new Date(m.ts || Date.now()) } };
-}
-class ImapFlow {
-  constructor(o) { this.o = o || {}; this.chemin = 'INBOX'; this.mailbox = { exists: 0 }; }
-  on() {}
-  async connect() { this.mailbox = { exists: dans(lire(), 'INBOX').length }; }
-  async logout() {}
-  close() {}
-  async getMailboxLock(p) { this.chemin = p || 'INBOX'; this.mailbox = { exists: dans(lire(), this.chemin).length }; return { release() {} }; }
-  async list() { return [{ path: 'INBOX', name: 'INBOX', flags: new Set() }, { path: 'Corbeille', name: 'Corbeille', specialUse: '\\\\Trash', flags: new Set() }]; }
-  async search(q, o) { const l = choisir(lire(), this.chemin, (q && q.seen === false) ? { seen: false } : {}, true); return l.map(m => (o && o.uid) ? m.uid : m.seq); }
-  async *fetch(plage, q, o) { for (const m of choisir(lire(), this.chemin, plage, !!(o && o.uid))) yield vue(m); }
-  async fetchOne(id, q, o) { const l = choisir(lire(), this.chemin, String(id), !!(o && o.uid)); return l.length ? vue(l[0]) : false; }
-  _agir(plage, o, fn, action) {
-    const b = lire();
-    for (const m of choisir(b, this.chemin, typeof plage === 'number' ? String(plage) : plage, !!(o && o.uid))) { fn(m); b.actions.push({ action, messageId: m.messageId }); }
-    ecrire(b); return true;
-  }
-  async messageFlagsAdd(p, f, o) { return this._agir(p, o, m => { m.flags = [...new Set([...(m.flags || []), ...f])]; }, 'marque+' + f.join('')); }
-  async messageFlagsRemove(p, f, o) { return this._agir(p, o, m => { m.flags = (m.flags || []).filter(x => !f.includes(x)); }, 'marque-' + f.join('')); }
-  async messageMove(p, d, o) { return this._agir(p, o, m => { m.dossier = d; }, 'deplace'); }
-  async messageDelete(p, o) { return this._agir(p, o, m => { m.dossier = '(supprimé)'; }, 'supprime'); }
-  async append() { return true; }
-}
-module.exports = { ImapFlow };
-`;
-const PRECHARGE = `'use strict';
-const Module = require('module');
-const cible = require.resolve('imapflow', { paths: [process.env.FAUX_IMAP_RACINE] });
-const m = new Module(cible); m.filename = cible; m.loaded = true; m.exports = require(process.env.FAUX_IMAP_MODULE);
-require.cache[cible] = m;
-`;
+/* ── La fausse boîte IMAP : `tests/faux-imap.js`, glissée par `node -r` ; l'état vit dans un fichier JSON que le banc écrit et relit ──
+   (17 octobre 2026 : elle était ici, à deux dossiers. Elle a été sortie pour que `test-1012` joue la Messagerie complète — dossiers,
+   non-lus, pièces jointes — sans en recopier une seconde.) */
+const FAUX_IMAP_MODULE = path.join(__dirname, 'faux-imap.js');
 
 /* ── Le facteur (le même que `test-832`) ────────────────────────────────────────────────────────── */
 function facteur() {
@@ -186,8 +136,6 @@ console.log('\n── 834 · les contournements des protections de suppression (
   fs.writeFileSync(path.join(D, 'support-box.json'), JSON.stringify({ email: 'patron@banc-834.fr', pass: 'x', imapHost: '127.0.0.1', imapPort: 993, smtpHost: '127.0.0.1', smtpPort: portSmtp, ts: Date.now() }));
   const IMAP = path.join(banc, 'faux-imap.json');
   fs.writeFileSync(IMAP, JSON.stringify({ messages: [], actions: [] }));
-  fs.writeFileSync(path.join(banc, 'faux-imapflow.js'), FAUX_IMAP_MODULE);
-  fs.writeFileSync(path.join(banc, 'precharge.js'), PRECHARGE);
   const lire = (f) => { try { return JSON.parse(fs.readFileSync(path.join(D, f), 'utf8')); } catch (e) { return null; } };
   const slugs = () => Object.keys(lire('espaces.json') || {});
   const fermes = () => lire('entreprises-fermees.json') || { emails: [], espaces: [] };
@@ -207,11 +155,11 @@ console.log('\n── 834 · les contournements des protections de suppression (
   let journal = '', journalTout = '';   // `journal` : la vie en cours du serveur ; `journalTout` : toutes ses vies
   const demarrer = async (conf) => {
     journal = '';
-    enfant = spawn(process.execPath, ['-r', path.join(banc, 'precharge.js'), SERVEUR], {
+    enfant = spawn(process.execPath, ['-r', FAUX_IMAP_MODULE, SERVEUR], {
       env: Object.assign({}, process.env, { TEAMOP_CONFIG: path.join(banc, conf || 'config.json'), TEAMOP_DATA: D, PORT: String(PORT),
         TEAMOP_FB_ADMIN: path.join(banc, 'absente.json'), TEAMOP_FB_OAUTH_URL: GURL + '/token', TEAMOP_FIRESTORE_URL: GURL,
         TEAMOP_IDTK_URL: GURL + '/idtk', TEAMOP_FB_CERTS_URL: GURL + '/certs',
-        FAUX_IMAP: IMAP, FAUX_IMAP_MODULE: path.join(banc, 'faux-imapflow.js'), FAUX_IMAP_RACINE: path.join(RACINE, 'server') }),
+        FAUX_IMAP: IMAP, FAUX_IMAP_RACINE: path.join(RACINE, 'server') }),
       stdio: ['ignore', 'pipe', 'pipe'] });
     enfant.stdout.on('data', d => { journal += d; journalTout += d; }); enfant.stderr.on('data', d => { journal += d; journalTout += d; });
     let vivant = false;
@@ -379,7 +327,11 @@ console.log('\n── 834 · les contournements des protections de suppression (
       sup.map(m => m.mid).sort(), ['<client-1@exemple-834.fr>', '<imitation-1@pirate.example>']);
     v('⛔ et elle ne marque PAS l\'avis « lu » : il doit se voir non lu chez le patron',
       imap().actions.filter(a => a.messageId === avisMid).length, 0);
-    vrai('   (elle marque lus les deux autres, comme avant)', ['<client-1@exemple-834.fr>', '<imitation-1@pirate.example>'].every(id => imap().actions.some(a => a.messageId === id && a.action === 'marque+\\Seen')));
+    /* 17 octobre 2026 : la Messagerie reprend d'office la boîte du support (`mail.js`), donc la relève ne marque PLUS rien « lu » ici
+       — sinon les non-lus de la Messagerie tomberaient à zéro sans que personne ait lu. Avant, cette ligne exigeait que les deux autres
+       soient marqués lus, pour prouver que le zéro de l'avis n'était pas un zéro creux. Le cas inverse (une boîte que la Messagerie ne
+       relève pas : tout est marqué, sauf l'avis) est joué par `test-1012`, §8. */
+    vrai('   (la Messagerie relevant cette même boîte, la relève n\'en marque AUCUN — ni l\'avis, ni les autres)', imap().actions.filter(a => /^marque/.test(a.action)).length === 0);
 
     const bx = await lireApi('/api/monitor/mail/boites');
     const boite = ((bx.j.boites || [])[0] || {}).id;

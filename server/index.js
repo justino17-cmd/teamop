@@ -61,7 +61,17 @@ for (const m of ['get', 'post', 'put', 'delete', 'patch', 'all', 'use']) {
 // serait inopérant. « 1 » = un seul intermédiaire de confiance devant nous.
 app.set('trust proxy', 1);
 
-app.use(express.json({ limit: '6mb' })); // large : les e-mails peuvent porter un PDF en pièce jointe (base64)
+/* ⛔ DEUX CHEMINS SEULEMENT ONT UN PLAFOND PLUS LARGE : l'envoi et le brouillon de la Messagerie de la Tour
+   (`server/mail.js`), qui annoncent 12 pièces et 12 Mo — soit ~16 Mo une fois en base64. Le plafond global les
+   refusait en 413 AVANT la route. Ils sont écartés d'ici, et la route monte `jsonGros` (20 Mo) APRÈS avoir vérifié
+   la session : lire 20 Mo avant de savoir qui parle serait le moyen le moins cher de remplir la mémoire du serveur.
+   Le chemin est comparé SANS tenir compte de la casse ni de la barre finale, comme Express le route : sinon la
+   route atteinte par « /API/MONITOR/MAIL/ENVOYER/ » retomberait sous les 6 Mo, et pire, l'inverse laisserait
+   une autre route sans aucun analyseur. Toutes les AUTRES routes gardent leurs 6 Mo. */
+const CHEMINS_GROS_JSON = /^\/api\/monitor\/mail\/(envoyer|brouillon)\/?$/i;
+const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuvent porter un PDF en pièce jointe (base64)
+const jsonGros = express.json({ limit: '20mb' });
+app.use((req, res, next) => CHEMINS_GROS_JSON.test(req.path) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = config.origins || ['https://teamop.fr', 'https://www.teamop.fr'];
@@ -8910,6 +8920,19 @@ async function supCorps(source) {
   } catch (e) { return { text: '', html: '', pieces: [] }; }
 }
 let supportBusy = false;
+/* ⛔ UNE BOÎTE QUE LA MESSAGERIE RELÈVE DÉJÀ NE SE MARQUE PLUS « LUE » ICI (17 octobre 2026). La relève du support
+   marquait `\Seen` tout ce qu'elle importait, toutes les 120 s ; la Messagerie (`mail.js`) compte les non-lus de
+   cette même boîte, dossier par dossier : elle les aurait vus tomber à zéro sans que personne ait rien lu — et elle
+   reprend d'office, au démarrage, la boîte de `support-box.json`. Quand l'adresse est reliée là, la relève IMPORTE
+   toujours (l'onglet Support d'avant vit de cette liste) mais ne touche plus un seul drapeau. */
+function supportReliee() {
+  try {
+    if (!supportBox || !messagerieTour) return false;
+    const a = adrNue(supportBox.email);
+    return !!a && (messagerieTour.boites() || []).some(b => b && adrNue(b.email) === a);
+  } catch (e) { return false; }
+}
+const supSansMid = new Set();   // un message sans Message-ID, retenu par sa place dans la boîte : sans drapeau, rien d'autre ne dit qu'il est rangé
 async function releveSupport(importHisto) {   // même mécanique que la relève des boîtes commandes
   if (!supportBox || supportBusy) return; supportBusy = true;
   const { ImapFlow } = require('imapflow'); const { simpleParser } = require('mailparser'); let client;
@@ -8930,17 +8953,31 @@ async function releveSupport(importHisto) {   // même mécanique que la relève
           }
         }
       }
+      const reliee = supportReliee();   // la Messagerie relève cette boîte : on importe, on ne marque rien
       const nouveaux = [];
-      for await (const msg of client.fetch({ seen: false }, { envelope: true, source: { maxLength: 600000 } })) nouveaux.push(msg);
+      /* Reliée : les enveloppes seules d'abord. Sans drapeau, les non-lus restent non lus, donc reviennent à chaque
+         passage — tirer le corps (600 Ko au plus) de chacun, toutes les deux minutes, ne s'impose que pour ceux
+         qu'on n'a pas encore rangés. */
+      for await (const msg of client.fetch({ seen: false }, reliee ? { uid: true, envelope: true } : { envelope: true, source: { maxLength: 600000 } })) nouveaux.push(msg);
       for (const msg of nouveaux) {
         const env = msg.envelope || {}; const mid = String(env.messageId || '').slice(0, 200);
         /* Un e-mail de sécurité (code, avis de suppression) n'entre pas dans la liste du support — que TOUT
            compte de la Tour lit — et il n'est pas marqué lu : il doit se voir non lu chez le patron. */
         if (mailProtege(env.messageId)) continue;
-        if (mid && supMids.has(mid)) { try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {} continue; }
-        supportMails.push(supEntry(env, await supCorps(msg.source)));
+        if (mid && supMids.has(mid)) { if (!reliee) { try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {} } continue; }
+        let source = msg.source;
+        if (reliee) {
+          if (!mid) {
+            const place = String((client.mailbox && client.mailbox.uidValidity) || '') + ':' + msg.uid;
+            if (supSansMid.has(place)) continue;
+            if (supSansMid.size > 5000) supSansMid.clear();
+            supSansMid.add(place);
+          }
+          try { const complet = await client.fetchOne(String(msg.uid), { source: { maxLength: 600000 } }, { uid: true }); source = complet && complet.source; } catch (_) { source = null; }
+        }
+        supportMails.push(supEntry(env, await supCorps(source)));
         if (mid) supMids.add(mid);
-        try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {}
+        if (!reliee) { try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {} }
       }
       supSave();
     } finally { lock.release(); }
@@ -9760,6 +9797,24 @@ if (config.stripe && config.stripe.secretKey) {
 }
 
 // ═══ MESSAGERIE COMPLÈTE (plusieurs boîtes : réception, envoi, dossiers, pièces jointes) ═══
+/* Le tri du courrier par console (Justin, 17 octobre 2026 : « mêmes boîtes, triées »). Ces deux questions sont
+   posées par `mail.js` pour l'adresse de l'INTERLOCUTEUR de chaque message ; une règle posée à la main passe avant
+   elles (voir l'en-tête de `mail.js`).
+   · OP GESTION connaît les adresses de son annuaire (le champ `email` des espaces) et celles de ses fiches
+     clients (les clés de `clientsData`).
+   · ⛔ OP MESSAGES : LE CROCHET EST POSÉ, IL RÉPOND FAUX. OP MESSAGES aura son propre serveur et ses comptes sont des
+     PERSONNES, quand l'annuaire d'ici cloisonne par ENTREPRISE (décision du 22 septembre 2026) : on ne lit donc pas
+     ses comptes ici. Le jour où il existe, c'est CETTE fonction qu'on branche (une requête à son serveur, avec un
+     délai court et un repli sur « faux » — un serveur muet ne doit pas figer la liste du courrier). Tant qu'elle
+     rend faux, ce qu'OP MESSAGES réclame se range par règle (`POST /api/monitor/mail/regle`).
+   Aucune des deux n'écrit, ni ne journalise : une adresse n'a rien à faire dans un journal. */
+function adresseConnueGestion(adr) {
+  const a = adrNue(adr);
+  if (!a || a.indexOf('@') < 1) return false;
+  try { if (Object.prototype.hasOwnProperty.call(clientsData, a)) return true; } catch (e) {}
+  try { return Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === a); } catch (e) { return false; }
+}
+function adresseConnueMessages(adr) { return false; }
 try {
   const pousseNotif = async (titre, corps, url) => {
     const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#support' });
@@ -9773,7 +9828,8 @@ try {
   /* `mailProtege` : les e-mails de sécurité que la Messagerie montre sans jamais les déplacer, les supprimer
      ni les marquer (voir plus haut). Et on garde ses boîtes (sans mot de passe) : `supprDestLisible` doit
      savoir si le code d'une suppression y atterrirait. */
-  messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege });
+  messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege,
+    quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages });
   console.log('messagerie : module chargé');
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 
