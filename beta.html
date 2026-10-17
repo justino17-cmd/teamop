@@ -2512,6 +2512,9 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .btn.ghost{background:var(--tint)!important;color:var(--acc-txt)!important}
 .btn.ghost:hover{background:color-mix(in srgb,var(--tint) 100%,var(--acc) 10%)!important;color:var(--acc-txt)!important}
 .btn.sm{min-height:32px;padding:0 12px!important;font-size:13.5px!important}
+/* lot h04 (appareils#2) : « ＋ Ajouter un point de livraison (même commande) » passe à la ligne au téléphone étroit.
+   Le `padding:0 …!important` ci-dessus collerait deux lignes de texte aux bords du bouton : il reprend de l'air en haut et en bas. */
+.btn.sm.bon-site-ajout{padding:8px 12px!important;height:auto;line-height:1.3;white-space:normal}
 .btn.danger{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
 .btn.danger:hover{background:var(--red)!important;color:#FFFFFF!important}
 /* « Fin de journée » (Pointage) : le bouton PRINCIPAL de l'écran reste en tête — pleine largeur au
@@ -30733,7 +30736,11 @@ function bonBoxPick(bid){ const bx=db.boxes.find(x=>x.id===bid); if(!bx) return;
     bonSites[0]={nom:bx.nom||bx.numero||'',adresse:bx.adresse||'',cp:bx.codePostal||'',ville:bx.ville||'',contact:resp?fullName(resp):'',tel:bx.tel||''};
     renderBonSites(); toast('📍 Adresse de livraison'+(bx.tel?' et téléphone sur place':'')+' remplis depuis la box');
   } else if(!s.tel&&bx.tel){ s.tel=bx.tel; if(!s.contact&&resp) s.contact=fullName(resp); renderBonSites(); toast('📞 Téléphone sur place repris de la box'); } }
-/* ── Points de livraison (une même commande peut partir vers plusieurs sites : un bon par site) ── */
+/* ── Points de livraison (une même commande peut partir vers plusieurs sites : un bon par site) ──
+   lot h04 : le libellé du bouton « ＋ Ajouter un point de livraison (même commande) » est long, et `.btn` est en
+   `white-space:nowrap` : à 360 px le texte sortait du bouton (353 px de texte dans 322) et poussait la fenêtre de 12 px vers
+   la droite. Il passe donc à la ligne (en ligne : la feuille n'impose pas `white-space` à `.btn`, mais un style en ligne
+   est la seule garde qui ne dépend pas de l'ordre des règles). */
 function renderBonSites(){ const el=$('bon-livraison'); if(!el) return;
   el.innerHTML=bonSites.map((s,i)=>`<div class="fgroup" style="margin-bottom:10px">
     ${bonSites.length>1?`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 0"><b style="font-size:11px;letter-spacing:.8px;color:var(--t3)">📍 POINT DE LIVRAISON ${i+1}</b><button type="button" class="btn danger sm" onclick="bonSites.splice(${i},1);renderBonSites()">✕</button></div>`:''}
@@ -30743,7 +30750,7 @@ function renderBonSites(){ const el=$('bon-livraison'); if(!el) return;
     <div class="frow"><input placeholder="Contact sur place" value="${esc(s.contact)}" oninput="bonSites[${i}].contact=this.value"></div>
     <div class="frow"><input placeholder="Téléphone" inputmode="tel" value="${esc(s.tel)}" oninput="bonSites[${i}].tel=this.value"></div>
   </div>`).join('')
-  +`<button type="button" class="btn ghost sm" style="width:100%;justify-content:center" onclick="bonSites.push({nom:'',adresse:'',cp:'',ville:'',contact:'',tel:''});renderBonSites()">＋ Ajouter un point de livraison (même commande)</button>
+  +`<button type="button" class="btn ghost sm bon-site-ajout" style="width:100%;justify-content:center;white-space:normal;text-align:center" onclick="bonSites.push({nom:'',adresse:'',cp:'',ville:'',contact:'',tel:''});renderBonSites()">＋ Ajouter un point de livraison (même commande)</button>
   ${bonSites.length>1?`<div class="detail-desc" style="margin-top:8px">📦 ${bonSites.length} points de livraison → à la validation, <b>${bonSites.length} bons identiques</b> seront créés (un par site), chacun envoyable au fournisseur.</div>`:''}`;
 }
 /* ── Sélecteur catalogue : filtre par fournisseur, cocher les produits, valider, puis régler les quantités ── */
