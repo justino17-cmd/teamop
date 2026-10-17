@@ -472,16 +472,21 @@ function essayerRelais(cfg, env) {
 
     /* ── un relais qui refuse, vu de la page : une phrase, jamais le texte du relais ── */
     const REE = await mk(e, { debut: '2026-11-03T10:00', fin: '2026-11-03T11:00', titre: 'D\'Eve ' + CANARI_T });
-    const avantE = etat();
+    /* ⛔ les places d'EVE, pas le total de la table : le planificateur élague `courrier_envoi` au-delà de 8 jours sur SA minuterie
+       (réelle), et ce banc a déjà avancé l'horloge de plusieurs jours — sous charge, l'élagage passait entre deux relevés et
+       emportait 10 lignes d'Ana et de Ben (obtenu [200, -10], porte d'OP MESSAGES du 17 octobre 2026). */
+    const placesEve = () => Number(M.sql('SELECT COUNT(*) AS n FROM courrier_envoi WHERE uid = ?', e.moi.id).n);
+    const etatE = () => ({ lignesEve: placesEve(), mails: relais.messages.length });
+    const avantE = etatE();
     relais.etat.rcpt = 'refus';
     const fRcpt = await post(e, REE.id, { destinataire: ADR(30) });
     relais.etat.rcpt = 'ok'; relais.etat.data = 'refus';
     const fData = await post(e, REE.id, { destinataire: ADR(30) });
     relais.etat.data = 'ok';
     v('⛔ un relais qui refuse le destinataire, puis le message : 502 `courriel_echec` deux fois, le corps ne dit RIEN d\'autre (jamais le texte du relais), et la place d\'Eve n\'est pas consommée',
-      [[fRcpt, fData].map(r => [r.code, r.j]), [fRcpt.txt, fData.txt].filter(t => t.includes(TEXTE_RELAIS) || t.includes('550') || t.includes('554')), etat()], [[[502, { error: 'courriel_echec' }], [502, { error: 'courriel_echec' }]], [], avantE]);
+      [[fRcpt, fData].map(r => [r.code, r.j]), [fRcpt.txt, fData.txt].filter(t => t.includes(TEXTE_RELAIS) || t.includes('550') || t.includes('554')), etatE()], [[[502, { error: 'courriel_echec' }], [502, { error: 'courriel_echec' }]], [], avantE]);
     const ok30 = await post(e, REE.id, { destinataire: ADR(30) });
-    v('… et le même envoi, relais rétabli, part (200) — la place rendue servait', [ok30.code, etat().lignes - avantE.lignes], [200, 1]);
+    v('… et le même envoi, relais rétabli, part (200) — la place rendue servait', [ok30.code, etatE().lignesEve - avantE.lignesEve], [200, 1]);
 
     /* ── RIEN NE FUIT ── */
     const sante = await T.client(M.svc.base).get('/health');
