@@ -1436,10 +1436,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (n >= max) throw erreur('groupe_plein');
         const t = horloge(), ds = c.dernier_seq + 1 + ajoutes.length;
         /* revenir, c'est repartir des réglages par défaut — le côté choisi compris (une base d'avant la migration 20 n'a pas la colonne : deux requêtes LITTÉRALES, jamais un texte construit) */
-        if (m) (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
-          : Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(ds, ds - 1, t, conv, u);
-        if (m && LU_HEURE) Q('UPDATE membre SET lu_ts = NULL WHERE conv = ? AND uid = ?').run(conv, u);      // revenir, c'est repartir sans heure de lecture : celle d'avant le départ ne se lit plus
-        else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, 'membre', ?, ?, ?)`).run(conv, u, ds, ds - 1, t);
+        /* ⛔ un seul if/else : l'INSERT n'est que le « sinon » de `m` (une base d'avant la migration 30 passe par le même chemin, sans la remise à NULL de l'heure de lecture) */
+        if (m) {
+          (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
+            : Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(ds, ds - 1, t, conv, u);
+          if (LU_HEURE) Q('UPDATE membre SET lu_ts = NULL WHERE conv = ? AND uid = ?').run(conv, u);      // revenir, c'est repartir sans heure de lecture : celle d'avant le départ ne se lit plus
+        } else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, 'membre', ?, ?, ?)`).run(conv, u, ds, ds - 1, t);
         n++; ajoutes.push(u);
         messageSysteme(conv, par || u, { k: par && par !== u ? 'membre_ajoute' : 'rejoint', uid: u });
       }
@@ -3841,10 +3843,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const ds = num(c.dernier_seq) + 1;
     const m = Q('SELECT quitte_le FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);
     if (m && m.quitte_le === null) { Q('UPDATE membre SET role = ? WHERE conv = ? AND uid = ?').run(role, conv, uid); return false; }
-    if (m) (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
-      : Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(role, ds, ds - 1, t, conv, uid);
-    if (m && LU_HEURE) Q('UPDATE membre SET lu_ts = NULL WHERE conv = ? AND uid = ?').run(conv, uid);      // revenir, c'est repartir sans heure de lecture
-    else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, ?, ?, ?, ?)`).run(conv, uid, role, ds, ds - 1, t);
+    /* ⛔ un seul if/else : l'INSERT n'est que le « sinon » de `m` (une base d'avant la migration 30 passe par le même chemin, sans la remise à NULL de l'heure de lecture) */
+    if (m) {
+      (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
+        : Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(role, ds, ds - 1, t, conv, uid);
+      if (LU_HEURE) Q('UPDATE membre SET lu_ts = NULL WHERE conv = ? AND uid = ?').run(conv, uid);      // revenir, c'est repartir sans heure de lecture
+    } else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, ?, ?, ?, ?)`).run(conv, uid, role, ds, ds - 1, t);
     return true;
   }
   function canauxPublics(espace) { return Q('SELECT conv FROM canal WHERE espace = ? AND prive = 0 ORDER BY cree, conv').all(espace).map(r => r.conv); }

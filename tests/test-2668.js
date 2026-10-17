@@ -174,5 +174,37 @@ const HEURE = 3600000;
     neuve.fermer();
   } catch (e) { console.log('  ✗ la base existante : ' + (e && e.stack || e)); process.exitCode = 1; }
   finally { try { fs.rmSync(bac, { recursive: true, force: true }); } catch (e) {} }
+
+  console.log('\nUne base au schéma 29 : REVENIR dans un groupe ou un canal ne doit pas jeter (relecture : la clause else se rattachait au nouveau if)');
+  const bac2 = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-2668b-'));
+  try {
+    const h2 = { t: 1790000000000 };
+    const vieux = ouvrir({ chemin: path.join(bac2, 'msg.db'), scelleur: creerScelleur(crypto.randomBytes(32)), horloge: () => h2.t, migrations: MIGRATIONS.filter(m => m.v <= 29) });
+    const mk = (n) => vieux.personneCreer({ identifiant: 'beta:' + n, prenom: n, nom: 'Test', origine: 'beta', verifie: true });
+    const a = mk('ana'), b = mk('ben'), c = mk('carla');
+    vrai('(population) la base est bien au schéma 29', vieux.schema() === 29);
+    const g = vieux.convCreerGroupe({ createur: a.id, nom: 'Chantier', membres: [b.id, c.id] }).id || null;
+    vrai('(population) le groupe existe', !!g);
+    h2.t += 1000; vieux.membreRetirer({ conv: g, par: a.id, uid: b.id });
+    h2.t += 1000;
+    let err = null, r = null;
+    try { r = vieux.membresAjouter({ conv: g, par: a.id, uids: [b.id] }); } catch (e) { err = e; }
+    v('groupe : Ben revient sans erreur (un UPDATE, pas un INSERT de plus)', [err && String(err.message || err), r && r.ajoutes], [null, [b.id]]);
+    vrai('groupe : Ben est de nouveau membre actif, une seule ligne', vieux.membresActifs(g).filter(u => u === b.id).length === 1);
+    // le canal public : on y revient en rejoignant l'espace de nouveau (membreJoindre)
+    const e = vieux.espaceCreer({ nom: 'Equipe', proprio: a.id }).id;
+    err = null;
+    try {
+      vieux.canalCreer({ espace: e, par: a.id, nom: 'general', prive: false });
+      vieux.lienCreer({ h: 'h-2668-a', genre: 'espace', cible: e, par: a.id, ttlMs: 60000, max: 5 });
+      vieux.invitationAccepter({ h: 'h-2668-a', uid: b.id, max: 10 });
+      vieux.espaceMembreRetirer({ espace: e, uid: b.id });
+      vieux.lienCreer({ h: 'h-2668-b', genre: 'espace', cible: e, par: a.id, ttlMs: 60000, max: 5 });
+      vieux.invitationAccepter({ h: 'h-2668-b', uid: b.id, max: 10 });
+    } catch (x) { err = x; }
+    v('canal public : Ben quitte l\'espace puis y revient sans erreur', err && String(err.message || err), null);
+    vieux.fermer();
+  } catch (e) { console.log('  ✗ le retour au schéma 29 : ' + (e && e.stack || e)); process.exitCode = 1; }
+  finally { try { fs.rmSync(bac2, { recursive: true, force: true }); } catch (e) {} }
   fin();
 })();
