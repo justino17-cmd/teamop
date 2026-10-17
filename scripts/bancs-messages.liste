@@ -115,7 +115,9 @@
 # fichier .ics est parti — test-971 sort de la liste (ses 94 faits du monde réel entrent dans 970 : 107 → 109) ; 905 (1193 → 1180), 973 (298 → 285), 975 (141 → 140),
 # 976 (73 → 69), 1004 (66 → 52), 1005 (169 → 161), 1006 (89 → 78) perdent leur part .ics, rien d'autre — 98 suites, 9 942 vérifications mesurées par la commande de la
 # porte, toutes vertes en local (plus aucun banc ne dépend des fuseaux de la machine) — plancher 9928 (le total moins 14, jamais une addition).
-#plancher 9928
+# 17 octobre 2026, la revue de la bêta, lot m16 (l'agenda des réunions relu à la fin d'une séance, la fiche d'une réunion finie, le titre vide, le compteur d'invités, les libellés du trajet : test-1580 à 1584, 71 vérifications ; la liste et
+# les numéros admis de 900 et 933 les nomment) — 103 suites, 10 013 vérifications mesurées par la commande de la porte (10 012 avant que 933 accepte les numéros 158x) — plancher 9999 (le total moins 14, jamais une addition).
+#plancher 9999
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -281,3 +283,11 @@ tests/test-1002.js
 #    une seule bascule Perso / Pro et le passage automatique en Pro aux heures de travail (11 octobre 2026) : les vraies fonctions de la page, le vrai service, deux
 #    appareils de la même personne — la vraie page au doigt : tests/sonde-opmessages-bascule.js
 tests/test-1003.js
+# ── L'agenda des réunions, la fiche d'une réunion finie, l'écran de la fenêtre « Réunion » (17 octobre 2026, lot m16 de la revue) : la fin d'une séance prévient tous ses participants — le vrai service, cinq flux SSE (1580) ;
+#    la fiche d'une réunion terminée pour tous ne propose plus d'entrer (1581, vraies htmlFiche et seanceFiche) ; la fiche d'une réunion annulée n'a plus de titre vide (1582) ; le compteur « Invités » d'une réunion
+#    ouverte depuis un contact (1583) ; les deux libellés du trajet (1584). La vraie page : tests/sonde-opmessages-reunions.js, -trajet.js, -trajet-reunion.js, -agenda-geste.js. Outil de ces cinq bancs, pas une suite : tests/outils-page-reunions.js.
+tests/test-1580.js
+tests/test-1581.js
+tests/test-1582.js
+tests/test-1583.js
+tests/test-1584.js
