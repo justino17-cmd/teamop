@@ -3177,14 +3177,14 @@ a.menu-action { text-decoration: none; }
     const hp = source.heuresPro();
     return hp ? coteHoraire(hp, Date.now()) : null;
   }
-  let minuteurHoraire = 0;
+  let minuteurHoraire = 0, repriseHoraire = null, reprisePrefs = false;          // (les deux dernières : une bascule différée par une fiche ouverte, reprise à sa fermeture — `basculeReprendre`)
   /* force : on vient d'allumer le réglage — il vaut tout de suite, même si on avait choisi son côté depuis la dernière borne */
   function horaireAppliquer(force) {
-    clearTimeout(minuteurHoraire); minuteurHoraire = 0;
+    clearTimeout(minuteurHoraire); minuteurHoraire = 0; repriseHoraire = null;
     const h = horaireAttendu(); if (!h) return;
     const choisiLe = Math.max(etat.modeGesteLe || 0, typeof source.modeChoisiLe === 'function' ? source.modeChoisiLe() : 0);
     if (h.cote !== etat.mode && (force || choisiLe < h.depuis)) {
-      if (basculeAttend(h.cote)) { minuteurHoraire = setTimeout(() => horaireAppliquer(force), 30000); return; }
+      if (basculeAttend(h.cote)) { repriseHoraire = { force: !!force }; minuteurHoraire = setTimeout(() => horaireAppliquer(force), 30000); return; }
       changerMode(h.cote, true, true);              // la conversation ouverte reste ouverte (on écrivait peut-être) : la liste, elle, est déjà de l'autre côté
       mot(h.cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso');
     }
@@ -3196,11 +3196,11 @@ a.menu-action { text-decoration: none; }
   /* le côté ou le passage automatique a changé sur un autre appareil (ou ici) : la page suit — sauf pendant qu'un choix fait ICI est encore en route (il est le plus récent) */
   let minuteurPrefs = 0;
   function surPrefs() {
-    clearTimeout(minuteurPrefs);
+    clearTimeout(minuteurPrefs); reprisePrefs = false;
     if (modesActifs() && !etat.modeEnVol && typeof source.modeTravail === 'function') {
       const m = source.modeTravail();
       if (etat.modeNonEcrit) { if (m !== etat.mode) ecrireCote(etat.mode, false); else etat.modeNonEcrit = false; }      // le choix fait ici sans réseau est le plus récent : il s'écrit maintenant
-      else if (m !== etat.mode) { if (basculeAttend(m)) { minuteurPrefs = setTimeout(surPrefs, 30000); return; } changerMode(m, true, false, true); }
+      else if (m !== etat.mode) { if (basculeAttend(m)) { reprisePrefs = true; minuteurPrefs = setTimeout(surPrefs, 30000); return; } changerMode(m, true, false, true); }
     }
     peindreCoteReglage();
     horaireAppliquer(false);
@@ -3208,6 +3208,13 @@ a.menu-action { text-decoration: none; }
   /* une bascule qui ne vient pas d'un geste (l'heure, un autre appareil) attend qu'une fiche ou un menu ouverts sur l'Accueil soient fermés : passer en Perso quitte l'Accueil (il
      n'est que du côté Pro), et la fiche partirait avec ce qu'on y écrivait */
   const basculeAttend = m => m === 'perso' && !!etat.route && etat.route.vue === 'accueil' && !!(etat.route.feuille || etat.menu);
+  /* ⛔ la bascule qui attendait la fiche ou le menu a lieu DÈS QU'ILS SE FERMENT — pas au bout des 30 s de la minuterie (à 18 h, fiche fermée à 18:00:17, le côté ne changeait qu'à
+     18:00:53, lot m14). Appelée là où une fiche, un menu ou l'écran se ferment (`appliquer`, `fermerMenu`) ; sans rien en attente, elle ne fait rien. */
+  function basculeReprendre() {
+    if (basculeAttend('perso')) return;
+    if (reprisePrefs) { reprisePrefs = false; surPrefs(); }
+    if (repriseHoraire) { const r = repriseHoraire; repriseHoraire = null; horaireAppliquer(r.force); }
+  }
   /* relire le compte, puis l'horaire : revenir sur la page (un téléphone en veille n'a pas fait tourner le minuteur, et son flux a pu manquer un choix fait ailleurs — relecture du
      11 octobre 2026 : il le défaisait au réveil), le réseau revenu, la borne arrivée. L'événement `prefs` de la relecture rappelle `surPrefs` ; sans réseau, l'horaire juge seul. */
   function relireCompte() {
@@ -3402,6 +3409,7 @@ a.menu-action { text-decoration: none; }
       else if (appelReductible()) reduireAppel(); else quitterAppel();
     }
     etat.raccrocher = false;
+    basculeReprendre();                                                     // une bascule différée par la fiche ou le menu qu'on vient de fermer a lieu maintenant
     synchroInert();
   }
   /* ce qui n'est pas au premier plan ne reçoit ni le focus ni le lecteur d'écran : la feuille et la photo rendent TOUT inerte,
@@ -4068,7 +4076,7 @@ a.menu-action { text-decoration: none; }
   /* ── CONFIRMER L'ENVOI (côté pro, 7 octobre 2026 : « confirmer l'envoi de votre message pour éviter les envois par erreur ») ──
      Le réglage du compte (Profil) : « Jamais », « Groupes et canaux » (là où une erreur se lit à plusieurs), « Partout ». Il ne vaut que pour un compte pro, et que pour le TEXTE
      du champ : une photo, un vocal, une carte passent déjà par leur propre geste d'envoi. Ce qu'on retape annule la demande (on ne confirme jamais un texte qu'on n'a pas relu). */
-  const CONFIRMER = [['jamais', 'Jamais'], ['groupes', 'Groupes et canaux'], ['partout', 'Partout']];
+  const CONFIRMER = [['jamais', 'Jamais'], ['groupes', 'Groupes et canaux'], ['partout', 'Partout (côté Pro)']];      // « Partout » ne vaut que du côté Pro : une conversation Perso part sans demander (`confirmationRequise`)
   const confirmerActif = () => !!(etat.pro && CAP.confirmerEnvoi && typeof source.confirmerEnvoi === 'function');
   /* ⛔ la conversation ouverte : ses données, ou — pendant qu'elles se chargent (`ouvrirConv` remet `convDonnees` à null, une seconde en 4G) — son résumé de la liste. Sans ça, un envoi
      fait dans cette fenêtre passait pour une conversation à deux et partait sans demander (relecture du 7 octobre 2026). */
@@ -6286,8 +6294,11 @@ a.menu-action { text-decoration: none; }
     if (c.dataset.sig === sig && c.innerHTML) { peindreMode(); return; }
     c.dataset.sig = sig;
     const ligneAuto = typeof source.choisirModeAuto !== 'function' ? ''
-      : hp ? '<button type="button" class="reglage presse" role="switch" id="reg-mode-auto" aria-checked="' + (auto ? 'true' : 'false') + '"' + (reg.autoOccupe ? ' aria-disabled="true"' : '') + '><span class="reglage-texte">Passer en Pro pendant mes heures<small>' +
-        esc(auto ? 'Pro pendant tes heures (' + heuresTexte(hp) + '), Perso le reste du temps. Tu peux toujours basculer à la main : l\'automatique reprend à l\'heure suivante.' : 'Coupé : tu bascules à la main. Tes heures : ' + heuresTexte(hp) + '.') +
+      : hp || auto ? '<button type="button" class="reglage presse" role="switch" id="reg-mode-auto" aria-checked="' + (auto ? 'true' : 'false') + '"' + (reg.autoOccupe ? ' aria-disabled="true"' : '') + '><span class="reglage-texte">Passer en Pro pendant mes heures<small>' +
+        /* ⛔ allumé sans heures (elles ont été coupées dans Notifications) : le réglage RESTE allumé — rien n'est éteint à la place de la personne — mais il DIT qu'il est en pause, au lieu de
+           redemander « Règle d'abord tes heures » comme s'il était coupé : il reprendrait tout seul au rallumage des heures (lot m14). L'application, elle, ne bascule rien sans heures. */
+        esc(!hp ? 'En pause : tes heures de travail sont coupées, donc rien ne bascule. Rallume-les dans Notifications et le passage reprend. Tu peux aussi le couper ici.'
+          : auto ? 'Pro pendant tes heures (' + heuresTexte(hp) + '), Perso le reste du temps. Tu peux toujours basculer à la main : l\'automatique reprend à l\'heure suivante.' : 'Coupé : tu bascules à la main. Tes heures : ' + heuresTexte(hp) + '.') +
         '</small></span><span class="interrupteur" aria-hidden="true"></span></button>'
       : CAP.notifications ? '<button type="button" class="reglage presse" id="reg-mode-heures" data-reg-sec="notifications"><span class="reglage-texte">Passer en Pro pendant mes heures<small>Règle d\'abord tes heures de travail, dans Notifications.</small></span>' + CHEVRON + '</button>' : '';
     c.hidden = false;
@@ -6379,6 +6390,20 @@ a.menu-action { text-decoration: none; }
     reg.notifOccupe = false; peindreNotif();
     if (quoi === 'heures' || quoi === 'heures-maj') { peindreCoteReglage(); horaireAppliquer(false); }       // les heures du passage automatique en Pro
     const b = document.getElementById('reg-notif-' + quoi); if (b) b.focus({ preventScroll: true });
+  }
+  /* ⛔ UN RÉGLAGE CHANGÉ SUR UN AUTRE APPAREIL (l'événement `prefs`, lot m14) : la rubrique OUVERTE le relit et se repeint. Avant, l'interrupteur de vie privée, « Pause pendant les
+     réunions », « Confirmer l'envoi » et les heures de travail gardaient l'état d'avant jusqu'à ce qu'on QUITTE la vue — et le toucher suivant écrivait par-dessus (les heures par
+     défaut, 9 h – 18 h, à la place des 6 h 30 réglées sur l'iPhone). Quatre garde-fous : on ne repeint QUE si l'état a changé (une repeinte inutile fait tomber le focus du clavier — c'est
+     le retour de mon propre geste, le plus fréquent) ; jamais pendant un geste d'ICI (il dit son propre verdict) ; jamais par-dessus un écran refait pendant la lecture
+     (`rendreReglages` remet l'état à zéro) ; et une lecture REFUSÉE ne vide rien — l'écran garde ce qu'il savait. */
+  async function reglagesRelire() {
+    if (!CAP.reglages || !$('reg-conf')) return;
+    const tour = reg.relecture = (reg.relecture || 0) + 1;
+    peindreConfirmer();                                                           // « Confirmer l'envoi » se lit du compte déjà relu (aucun réseau)
+    const [c, nt] = await Promise.allSettled([reg.conf ? source.confidentialite() : Promise.resolve(null), CAP.notifications && reg.notif ? source.notifEtat() : Promise.resolve(null)]);
+    if (tour !== reg.relecture) return;                                           // une relecture plus récente est partie : c'est elle qui décide
+    if (c.status === 'fulfilled' && c.value && reg.conf && !reg.occupe && JSON.stringify(c.value) !== JSON.stringify(reg.conf)) { reg.conf = c.value; peindreConf(); }
+    if (nt.status === 'fulfilled' && nt.value && reg.notif && !reg.notifOccupe && JSON.stringify(nt.value) !== JSON.stringify(reg.notif)) { reg.notif = nt.value; peindreNotif(); peindreCoteReglage(); }
   }
   /* ── Compte : exporter mes données (un fichier téléchargé), supprimer mon compte (une feuille qui dit tout) ── */
   function peindreCompte() {
@@ -6591,7 +6616,7 @@ a.menu-action { text-decoration: none; }
     if (bouton.id === 'reg-esp-gerer') { declencheur = bouton; ouvrirFeuille('entreprise'); return; }
     if (bouton.id === 'reg-confirmer' && confirmerActif()) {
       const avant = source.confirmerEnvoi();
-      ouvrirDeroule(bouton, 'Confirmer l\'envoi', 'Avant de partir, le message demande une seconde touche — où ?', CONFIRMER.map(x => ({ valeur: x[0], libelle: x[1], coche: x[0] === avant })), async x => {
+      ouvrirDeroule(bouton, 'Confirmer l\'envoi', 'Avant de partir, le message demande une seconde touche — où ? Ne s\'applique qu\'aux conversations Pro.', CONFIRMER.map(x => ({ valeur: x[0], libelle: x[1], coche: x[0] === avant })), async x => {
         if (x === avant) return;
         nette();
         try { await source.choisirConfirmerEnvoi(x); peindreConfirmer(); mot(x === 'jamais' ? 'Les messages partent sans confirmation' : 'Confirmation avant d\'envoyer : ' + CONFIRMER.find(y => y[0] === x)[1].toLowerCase()); }
@@ -7785,6 +7810,7 @@ a.menu-action { text-decoration: none; }
     $('conv-messages').querySelectorAll('.menu-ancre').forEach(x => x.classList.remove('menu-ancre'));
     synchroInert();
     rendreFocus(d);
+    basculeReprendre();                                                     // une bascule différée par ce menu (ouvert sur l'Accueil) a lieu maintenant
   }
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
@@ -12294,6 +12320,7 @@ a.menu-action { text-decoration: none; }
       if (ev.type === 'reunions') { surReunions(ev); if (etat.route && etat.route.vue === 'accueil') chargerAccueil(); commun.cache.clear(); if (etat.vcSel && auBureau()) chargerCommun(etat.vcSel, true); if (etat.groupe.ouvert && etat.groupe.mode === 'personne') chargerCommun(etat.groupe.personneId, true); }   // une réunion programmée, modifiée, annulée : la fiche ouverte se relit
       if (ev.type === 'moi') { MOI = source.moi() || MOI; peindreMoi(); peindreProfilReglage(); }          // mon nom, mon statut ou ma photo a changé (ici, ou sur un autre appareil)
       if (ev.type === 'prefs') surPrefs();                       // mon côté, le passage automatique ou mes heures ont changé (ici, ou sur un autre appareil)
+      if (ev.type === 'prefs') reglagesRelire();                 // …et tout réglage affiché dans le Profil (confidentialité, notifications, confirmation) : la rubrique ouverte le relit
       if (ev.type === 'reseau') { fluxPerdu = ev.etat !== 'ok'; $('hors-ligne').hidden = ev.etat === 'ok'; if (ev.etat === 'ok') { verifierVersion(); relireCompte(); } }   // un déploiement redémarre le service : la connexion revient, la version a peut-être changé
       if (ev.type === 'arrivee') surArrivee(ev);
       if (ev.type === 'notification') { if (ev.nature === 'mention') surMention(ev); else notifier(ev.titre || 'OP MESSAGES', ev.texte || '', ev.nature === 'contact_demande' ? 'contacts' : ''); }

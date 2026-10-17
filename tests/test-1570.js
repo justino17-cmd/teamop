@@ -87,6 +87,15 @@ else (async () => {
     const R1 = e1 && e1.reglages;
     v('⛔ réglé : l\'export dit les heures de travail (6 h 30 – 18 h), la pause coupée, la confirmation « groupes », le passage automatique allumé, le côté Pro',
       R1 && [R1.heures_pro, R1.pause_reunion, R1.confirmer_envoi, R1.mode_auto, R1.mode], [HP, false, 'groupes', true, 'pro']);
+
+    console.log('\n3. Couper les heures de travail n\'éteint PAS le passage automatique à la place de la personne (pro#3) : la page le DIT, le service ne l\'écrit pas');
+    const eli = pers('Eli'), el1 = cl(eli);
+    await el1.post('/api/moi/maj', { prefs: { heures_pro: { jours: [1, 2, 3, 4, 5], debut: 540, fin: 1080 }, mode_auto: true } });
+    const coupe = await el1.post('/api/moi/maj', { prefs: { heures_pro: null } });
+    vrai('(population) le compte avait des heures ET le passage automatique allumé, puis les heures sont coupées', coupe.code === 200 && !('heures_pro' in coupe.j.moi.prefs), JSON.stringify(coupe.j && coupe.j.moi.prefs));
+    v('⛔ le service ne touche pas à mode_auto : aucune écriture silencieuse (la page, elle, le montre « en pause » — test-1571)', coupe.j.moi.prefs.mode_auto, true);
+    const rallume = await el1.post('/api/moi/maj', { prefs: { heures_pro: { jours: [1, 2, 3, 4, 5], debut: 540, fin: 1080 } } });
+    v('   rallumer les heures reprend le passage automatique tel que la personne l\'avait laissé', rallume.j.moi.prefs.mode_auto, true);
   } catch (e) {
     vrai('le banc a tourné sans exception', false, String(e && e.stack || e));
   } finally {
