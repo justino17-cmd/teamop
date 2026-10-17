@@ -464,6 +464,16 @@
   /* Carte plein écran */
   .content-map{padding:0 !important;}
   .content-map .map-card{margin:0;border-radius:0;border:0;}
+  /* ⛔ clients#9 — LA CARTE EST BORD À BORD, PAS LA RANGÉE QUI LA SURMONTE. `.content-map{padding:0}` retire la marge de
+     tout l'écran : le segmenté « Liste · Carte · Produits donnés » (Carte des box) et la barre « Carte du … / Technicien »
+     (Carte interventions) se retrouvaient collés au menu (x=258), pleine largeur, quand la liste Clients commence à 292 —
+     mesuré à 1440, 820 et 390 px. Ils reprennent la marge de la page (`--rf-marge`, zone sûre comprise), celle que
+     `html[data-refonte] .content` donne à tous les autres écrans ; la carte, elle, reste bord à bord. Par CLASSE, pas par
+     écran : toute rangée de ce genre posée sous un `.content-map` suit. `!important` parce que le segmenté porte
+     `style="margin:0 0 10px"` en ligne (boxSousCats). */
+  html[data-refonte] .content-map > .filters.seg-on,html[data-refonte] .content-map > .pf-bar{
+    margin-left:max(var(--rf-marge,30px),env(safe-area-inset-left))!important;
+    margin-right:max(var(--rf-marge,30px),env(safe-area-inset-right))!important}
   .leaflet-popup-content a{display:inline-block;}
   .marker{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
   .marker .pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.4);}
