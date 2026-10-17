@@ -257,7 +257,9 @@ const ESP = o => Object.assign({ slug: 'monclient', t: 'ent-x', email: 'patron@c
      ce banc sont tombés ainsi, sur une route juste. */
   /* (et `aboManuelDe`, 30 septembre 2026 : `finEssaiPeriode` lit « réglé à la main » par la même définition qu'`espacePaye`
      — sans elle, elle jetait, et toute facturation différée retombait en immédiate) */
-  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres'].map(extraire).concat([CONSTS]);
+  /* (et `stripeEntetes`, 17 octobre 2026 : la route écrit ses en-têtes de Stripe par elle — sans elle, elle jetait et
+     répondait 500 ; 50 contrôles de test-727 et 3 de test-797 sont tombés ainsi, sur une route juste) */
+  const AIDES_ROUTE = ['espaceT', 'espacesDeRef', 'facturationGroupes', 'nomsEntreprise', 'facturationDe', 'espaceParT', 'finEssaiPeriode', 'periodeOfferte', 'formulePromo', 'formuleDuCode', 'aboManuelDe', 'jourApres', 'stripeEntetes'].map(extraire).concat([CONSTS]);
   vrai('la route et ses aides (dont finEssaiPeriode et aboManuelDe) sont trouvées dans le fichier réel', AIDES_ROUTE.every(Boolean));
   const PRIX_PRO = (/^\s*pro: \['(price_\w+)'/m.exec(SRC) || [])[1], PRIX_PREMIUM = (/^\s*premium: \['(price_\w+)'/m.exec(SRC) || [])[1];
   vrai('les tarifs Pro et Business Premium du serveur sont lus', /^price_/.test(PRIX_PRO || '') && /^price_/.test(PRIX_PREMIUM || ''));

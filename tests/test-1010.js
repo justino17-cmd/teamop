@@ -143,7 +143,9 @@ globalThis.fetch = async function (url, opts) {
     const conf = path.join(dir, 'config.json');
     const poser = o => { fs.writeFileSync(conf, JSON.stringify(o)); fs.chmodSync(conf, 0o600); };
     const lire = () => JSON.parse(fs.readFileSync(conf, 'utf8'));
+    const restes = () => fs.readdirSync(dir).filter(f => f !== 'config.json' && f !== 'bin' && f !== 'etat');
 
+    /* ── set-stripe.sh : son python, exécuté ── */
     const S = pythonDe('set-stripe.sh');
     vrai('set-stripe.sh : le python est trouvé', S.py.length > 50);
     vrai('⛔ set-stripe.sh ne met plus la clé sur une ligne de commande (elle passe par l\'environnement du seul python)',
@@ -152,22 +154,62 @@ globalThis.fetch = async function (url, opts) {
     const r1 = spawnSync('python3', ['-', conf], { input: S.py, env: Object.assign({}, process.env, { TEAMOP_CLE_STRIPE: 'sk_nouvelle' }), encoding: 'utf8' });
     v('set-stripe.sh : le python réussit', r1.status, 0);
     v('⛔ changer la clé GARDE la version figée (et le reste de la configuration)', lire(), { apiKey: 'banc', stripe: { secretKey: 'sk_nouvelle', apiVersion: '2026-09-30.endive' } });
+    v('   le fichier garde ses droits (600), et aucun temporaire ne reste', [(fs.statSync(conf).mode & 0o777).toString(8), restes()], ['600', []]);
+    for (const [f, x] of [['set-stripe.sh', S], ['set-stripe-version.sh', pythonDe('set-stripe-version.sh')]])
+      vrai('⛔ ' + f + ' : le temporaire NAÎT en 600 (jamais lisible par tous, même pendant l\'écriture) et s\'efface en cas d\'échec',
+        /os\.open\(tmp, os\.O_WRONLY \| os\.O_CREAT \| os\.O_TRUNC, 0o600\)/.test(x.py) && /finally:\n\s+if os\.path\.exists\(tmp\):\n\s+os\.remove\(tmp\)/.test(x.py));
 
-    const V = pythonDe('set-stripe-version.sh');
-    vrai('set-stripe-version.sh : le python est trouvé', V.py.length > 50);
-    poser({ apiKey: 'banc', stripe: { secretKey: 'sk_banc' } });
-    const r2 = spawnSync('python3', ['-', conf, '2026-09-30.endive'], { input: V.py, encoding: 'utf8' });
-    v('set-stripe-version.sh : le python réussit', r2.status, 0);
-    v('la version est écrite, la clé et le reste ne bougent pas', lire(), { apiKey: 'banc', stripe: { secretKey: 'sk_banc', apiVersion: '2026-09-30.endive' } });
-    v('⛔ le fichier garde ses droits (600 : il porte des secrets)', (fs.statSync(conf).mode & 0o777).toString(8), '600');
-    vrai('aucun temporaire laissé derrière', !fs.existsSync(conf + '.tmp'));
+    /* ── set-stripe-version.sh : le VRAI script, de bout en bout — `systemctl`, `curl` et `sleep` remplacés par des témoins ── */
+    const bin = path.join(dir, 'bin'), etat = path.join(dir, 'etat'); fs.mkdirSync(bin); fs.mkdirSync(etat);
+    fs.writeFileSync(path.join(bin, 'systemctl'), '#!/bin/bash\necho "$*" >> "' + etat + '/systemctl"\n');
+    fs.writeFileSync(path.join(bin, 'sleep'), '#!/bin/bash\nexit 0\n');
+    /* curl : `/health` rend le contenu de etat/health ; `/api/stripe/prices` rend, dans l'ordre, les codes de etat/tarifs */
+    fs.writeFileSync(path.join(bin, 'curl'), '#!/bin/bash\nu="${@: -1}"\ncase "$u" in\n'
+      + '  */health) printf "%s" "$(cat "' + etat + '/health")" ;;\n'
+      + '  */api/stripe/prices) c=$(head -n1 "' + etat + '/tarifs"); sed -i 1d "' + etat + '/tarifs"; printf "%s" "$c" ;;\n'
+      + '  *) printf 000 ;;\nesac\n');
+    for (const f of ['systemctl', 'sleep', 'curl']) fs.chmodSync(path.join(bin, f), 0o755);
+    const jouer = (version, tarifs, health) => {
+      fs.writeFileSync(path.join(etat, 'tarifs'), tarifs.join('\n') + '\n');
+      fs.writeFileSync(path.join(etat, 'health'), health);
+      try { fs.unlinkSync(path.join(etat, 'systemctl')); } catch (e) {}
+      const r = spawnSync('bash', [path.join(RACINE, 'server', 'set-stripe-version.sh')], { input: version + '\n', encoding: 'utf8',
+        env: Object.assign({}, process.env, { PATH: bin + ':' + process.env.PATH, TEAMOP_CONFIG: conf }) });
+      let redemarrages = 0; try { redemarrages = fs.readFileSync(path.join(etat, 'systemctl'), 'utf8').split('\n').filter(Boolean).length; } catch (e) {}
+      return { code: r.status, sortie: r.stdout + r.stderr, redemarrages };
+    };
+    const BASE = { apiKey: 'banc', stripe: { secretKey: 'sk_banc' } };
+
+    poser(BASE);
+    let r = jouer('2026-09-30.endive', ['200', '200'], '200');
+    v('[accepte] code 0, et le ✅ est dit', [r.code, /✅ Stripe accepte la version 2026-09-30\.endive/.test(r.sortie)], [0, true]);
+    v('[accepte] la version est écrite, la clé et le reste ne bougent pas', lire(), { apiKey: 'banc', stripe: { secretKey: 'sk_banc', apiVersion: '2026-09-30.endive' } });
+    v('[accepte] droits 600, ⛔ aucune copie des secrets laissée sur le disque, un seul redémarrage',
+      [(fs.statSync(conf).mode & 0o777).toString(8), restes(), r.redemarrages], ['600', [], 1]);
+
+    poser(BASE);
+    r = jouer('2026-09-30.endive', ['502'], '200');
+    v('[Stripe en panne AVANT] refus (code 1), rien n\'est touché, rien n\'est redémarré', [r.code, lire(), restes(), r.redemarrages], [1, BASE, [], 0]);
+    vrai('[Stripe en panne AVANT] il dit que ce n\'est pas la version', /Ce n'est pas la version/.test(r.sortie));
+
+    poser(BASE);
+    r = jouer('2026-09-30.endive', ['200', '502'], '200');
+    v('[version refusée] code 1, configuration d\'avant remise, aucune copie laissée, redémarré deux fois',
+      [r.code, lire(), restes(), r.redemarrages], [1, BASE, [], 2]);
+    vrai('[version refusée] il le dit', /elle est refusée\. Retour à la configuration d'avant/.test(r.sortie));
+
+    poser(BASE);
+    r = jouer('2026-09-30.endive', ['200'], '000');
+    v('[le serveur ne redémarre pas] code 1, configuration d\'avant remise, aucune copie laissée', [r.code, lire(), restes()], [1, BASE, []]);
+    vrai('[le serveur ne redémarre pas] il le dit, et dit aussi que le serveur ne répond toujours pas', /ne répond plus après le redémarrage/.test(r.sortie) && /le serveur ne répond pas : systemctl status/.test(r.sortie));
+
+    poser(BASE);
+    r = jouer('latest', ['200', '200'], '200');
+    v('[forme inattendue] refus (code 1) avant tout appel, rien n\'est touché', [r.code, lire(), restes(), r.redemarrages], [1, BASE, [], 0]);
+
     poser({ apiKey: 'banc' });
-    const r3 = spawnSync('python3', ['-', conf, '2026-09-30.endive'], { input: V.py, encoding: 'utf8' });
-    v('sans clé Stripe : refus (code 2), et rien n\'est écrit', [r3.status, lire()], [2, { apiKey: 'banc' }]);
-    vrai('la forme de la version est contrôlée AVANT toute écriture (même motif que le serveur)',
-      V.t.indexOf("grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}(\\.[a-z]+)?$'") > 0 && V.t.indexOf("grep -Eq") < V.t.indexOf('cp -p'));
-    vrai('une version que Stripe refuse fait remettre la configuration d\'avant (la route qui l\'envoie doit répondre 200)',
-      /curl[^\n]*\/api\/stripe\/prices/.test(V.t) && /cp -p "\$CONF\.avant-version" "\$CONF"/.test(V.t));
+    r = jouer('2026-09-30.endive', ['200', '200'], '200');
+    v('[aucune clé Stripe] refus, rien n\'est écrit, aucune copie laissée', [r.code, lire(), restes(), r.redemarrages], [1, { apiKey: 'banc' }, [], 0]);
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) {}
   }
 

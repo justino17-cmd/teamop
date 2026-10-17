@@ -9541,6 +9541,9 @@ function stripeCache(c, vide, calcul, quoi) {
 }
 
 /* ⛔ LES EN-TÊTES DE STRIPE S'ÉCRIVENT ICI, ET NULLE PART AILLEURS — LA VERSION DE L'API Y EST FIGÉE (17 octobre 2026).
+   Trois `fetch` passent par elle : les tarifs, la page de paiement, et `stripeMonGet` (qui sert toutes les lectures :
+   abonnements, factures, relectures d'un impayé). ⚠️ `server/stripe-options.js`, outil lancé à la main, a son propre `fetch`
+   et suit encore la version du compte.
    Sans `Stripe-Version`, chaque appel suit la version réglée dans le tableau de bord de Stripe : le jour où quelqu'un la
    monte, la forme des réponses change sous le serveur (un champ renommé, une expansion refusée) sans qu'une ligne de ce dépôt
    ait bougé — et `espacePaye` lit ces réponses pour décider qui est servi. `config.stripe.apiVersion` la fige ; ABSENTE, rien

@@ -19,7 +19,17 @@ c = json.load(open(chemin))
 s = c.get('stripe') if isinstance(c.get('stripe'), dict) else {}
 s['secretKey'] = os.environ['TEAMOP_CLE_STRIPE']
 c['stripe'] = s
-json.dump(c, open(chemin, 'w'), indent=2)
+# temporaire créé en 600, puis renommage : jamais de config.json à moitié écrit, jamais lisible par tous
+tmp = chemin + '.tmp'
+try:
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as f:
+        json.dump(c, f, indent=2)
+    os.chmod(tmp, os.stat(chemin).st_mode & 0o777)
+    os.replace(tmp, chemin)
+finally:
+    if os.path.exists(tmp):
+        os.remove(tmp)
 print('Configuration enregistrée.')
 PYEOF
 
