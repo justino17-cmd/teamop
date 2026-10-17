@@ -5532,6 +5532,33 @@ html[data-refonte] .card[style*="padding:10px 8px;margin-bottom:12px"] > div:nth
   background:var(--rf-creux);border-radius:14px;padding:3px;gap:3px!important}
 html[data-refonte] [onclick^="intSelDay='"]{padding:8px 0!important}
 html[data-refonte] [onclick^="intSelDay='"] > div:last-child{height:14px!important;font-size:12px!important}
+/* ── lot h04 (appareils#7) : LES SEPT JOURS D'INTERVENTIONS AU TÉLÉPHONE ── les flèches ‹ › prenaient 92 px de la rangée des
+   jours (2 × 42 + les espacements) : il restait 26 px (Android 360) à 30 px (iPhone 390) par jour, au doigt — sous le plancher
+   de 38 px du dépôt. Elles montent sur la ligne du mois, avec « Aujourd'hui » : ‹ Aujourd'hui › se lit comme une seule
+   navigation, et les sept jours prennent toute la largeur de la carte (≥ 40 px à 360, ≥ 44 à 390). La rangée des jours
+   (`> div:nth-child(2)`) cesse d'avoir une boîte (`display:contents`) : ses trois enfants deviennent des enfants de la
+   carte, que `order` range. Seule la bande d'INTERVENTIONS porte `.int-jours` : la liste semaine du Planning, dont les jours
+   ne sont pas ces cases, garde sa rangée. Au-delà de 480 px (tablette), rien ne change : les jours y ont déjà 51 px.
+   Sous 340 px, la ligne ne tient plus en une seule : le mois garde la sienne, les flèches passent dessous.
+   ⛔ `!important` sur ce que le gabarit écrit DÉJÀ en ligne (`display:flex` de la rangée, `flex:1` du groupe de jours) : un
+   style en ligne bat la feuille — c'est ce qui avait laissé les flèches dans la rangée au premier essai. */
+@media (max-width:480px){
+  html[data-refonte] .card.int-jours{gap:8px 6px;padding:12px 10px!important}
+  html[data-refonte] .card.int-jours > div:first-child{order:0;flex:1 1 auto;min-width:0}
+  html[data-refonte] .card.int-jours > div:nth-child(2){display:contents!important}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button{min-width:38px;padding:0!important;justify-content:center}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button:first-child{order:1}
+  html[data-refonte] .card.int-jours > div:last-child{order:2;margin:0!important}
+  html[data-refonte] .card.int-jours > div:last-child .btn{padding:0 10px!important}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button:last-child{order:3}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > div{order:4;flex:1 1 100%!important}
+}
+@media (max-width:340px){
+  html[data-refonte] .card.int-jours{padding:12px 6px!important}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > div[style*="flex:1;display:flex"]{padding:1px;gap:1px!important}
+  html[data-refonte] .card.int-jours > div:first-child{flex:1 1 100%}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button:first-child{margin-left:auto}
+}
 
 /* ── LE JOUR REGARDÉ, DIT UNE SEULE FOIS ── la pastille du jour et les compteurs disaient deux
    choses sur deux étages ; ils tiennent sur une ligne, alignés à gauche comme le reste de la
@@ -21455,7 +21482,7 @@ views.interventions=function(){
   if(!intSelDay) intSelDay=todayISO(); if(!intWeekRef) intWeekRef=intSelDay;
   const days=weekDays(intWeekRef), WD=['L','M','M','J','V','S','D'];
   const moisLabel=new Date(intSelDay+'T00:00:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-  const strip=`<div class="card" style="padding:10px 8px;margin-bottom:12px">
+  const strip=`<div class="card int-jours" style="padding:10px 8px;margin-bottom:12px">
     <div style="text-align:center;font-weight:600;color:var(--t2);font-size:13px;margin-bottom:8px;text-transform:capitalize">${moisLabel}</div>
     <div style="display:flex;align-items:center;gap:4px">
       <button class="btn ghost sm" onclick="intWeekRef=shiftDay(intWeekRef,-7);views.interventions()">‹</button>
