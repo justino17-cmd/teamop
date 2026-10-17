@@ -47,6 +47,9 @@ const refus = (code, statut, retry) => { const e = new API.ErreurApi(code, statu
 const jouer = async (M) => { try { await M.ctx.identVoir(); } catch (e) { M.leve = e; } };
 const texteRes = (els) => els['ct-ident-res'].innerHTML.replace(/<[^>]+>/g, ' ').replace(/&#(\d+);/g, (m, n) => String.fromCharCode(+n)).replace(/\s+/g, ' ').trim();
 
+/* ⛔ un banc dont la boucle d'événements se vide AVANT la fin (une promesse que plus rien ne résout) sortait en 0 sans total : il est dit mort */
+let fini = false;
+process.on('exit', () => { if (!fini) { console.log('  ✗ le banc s\'est arrêté avant la fin (une promesse jamais résolue)'); process.exitCode = 1; } });
 (async () => {
   console.log('\n── 1560 · le format se contrôle avant l\'appel, dans la MÊME grammaire que le service ──');
   const vide = monter({ contactParIdentifiant: async () => ({ trouve: false }) });
@@ -102,6 +105,15 @@ const texteRes = (els) => els['ct-ident-res'].innerHTML.replace(/<[^>]+>/g, ' ')
     const dit = texteRes(M.els);
     vrai('⛔ la réponse (tardive) du premier essai ne recouvre pas le refus du second', /4 ou 5 chiffres/.test(dit) && !/Personne avec cet identifiant/.test(dit), dit);
   }
+  { // un refus TARDIF d'un essai ancien ne recouvre pas non plus le verdict du plus récent
+    const attentes = [];
+    const M = monter({ contactParIdentifiant: () => new Promise((ok, ko) => attentes.push({ ok, ko })) });
+    M.els['ct-ident'].value = 'Camille#4821'; const p1 = jouer(M);
+    M.els['ct-ident'].value = 'Zoe#0000'; const p2 = jouer(M);
+    attentes[0].ko(refus('recherches_plafond', 429, 40)); await p1; attentes.slice(1).forEach(a => a.ok({ trouve: false })); await p2;
+    const dit = texteRes(M.els);
+    vrai('⛔ le refus (429) tardif du premier essai ne recouvre pas le verdict du second', /4 ou 5 chiffres/.test(dit) && !/Trop de recherches/.test(dit), dit);
+  }
   { // les refus de saisie (vide, nom seul) sont eux aussi sous le champ
     const M = monter({ contactParIdentifiant: async () => ({ trouve: false }) });
     M.els['ct-ident'].value = '';
@@ -125,5 +137,5 @@ const texteRes = (els) => els['ct-ident-res'].innerHTML.replace(/<[^>]+>/g, ' ')
   console.log('\n── 1560 · la phrase du 400 ne dit plus « en entier » pour un identifiant complet ──');
   vrai('identifiant_invalide : dit la plage (4 ou 5 chiffres, 1000 à 99999) et ne dit pas « en entier »', /4 ou 5 chiffres/.test(ph('identifiant_invalide', 400, 0)) && /1000/.test(ph('identifiant_invalide', 400, 0)) && !/en entier/.test(ph('identifiant_invalide', 400, 0)), ph('identifiant_invalide', 400, 0));
 
-  fin();
+  fini = true; fin();
 })().catch(e => { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exit(1); });
