@@ -93,6 +93,18 @@ for (const kind of ['devis', 'factures']) {
     v(kind + ' : 90 lignes courtes, 90 désignations écrites, aucune en double', colDes(pdf).length, 90); borne(pdf, kind + ' 90 lignes'); entetes(pdf, kind + ' 90 lignes'); }
 }
 
+console.log('\n── 1687 · 3 bis. une ligne qui tient sur une page neuve y passe tout entière (pas coupée en deux) ──');
+{ const huit = 'Prestation longue ' + 'abc def ghi jkl mno pqr stu vwx yza bcd efg hij klm nop qrs tuv wxy zab cde fgh ij '.repeat(5);
+  const lignesDe = n => Array.from({ length: n }, (_, i) => ({ designation: 'Ligne ' + (i + 1), qte: 1, pu: 1 })).concat([{ designation: huit, qte: 1, pu: 1 }]);
+  let coupe = [], saute = 0, vus = 0;
+  for (let n = 14; n <= 40; n++) { const pdf = W.docPdfStr('devis', doc({ lignes: lignesDe(n) }), null), t = lire(pdf).filter(l => l.x === 50 && l.y > 62 && !/^D.SIGNATION$/.test(l.txt) && !/^Ligne \d+$/.test(l.txt));
+    const lp = new Set(t.map(l => l.page)); vus++; if (t.length < 3) continue;
+    if (lp.size > 1) coupe.push(n);
+    if ([...lp][0] >= 1 && lignesAvant(pdf, n)) saute++; }
+  function lignesAvant(pdf, n) { return lire(pdf).filter(l => l.x === 50 && l.page === 0 && /^Ligne \d+$/.test(l.txt)).length === n; }
+  vrai('population : ' + vus + ' longueurs de tableau jouées, et la ligne de plusieurs lignes de texte passe tout entière à la page suivante pour certaines (' + saute + ')', vus === 27 && saute >= 1, [vus, saute]);
+  v('jamais coupée en deux pages alors qu\'elle tient sur une page neuve', coupe, []); }
+
 console.log('\n── 1687 · 4. le « DÉTAIL » du devis ──');
 { const paragraphes = Array.from({ length: 12 }, (_, i) => 'Consigne ' + (i + 1) + ' : prévenir le gardien avant le passage sur le site ' + (i + 1));
   const notes = paragraphes.join('\n') + '\n' + LARGE;
