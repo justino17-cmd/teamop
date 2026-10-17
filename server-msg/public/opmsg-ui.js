@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '83375e4e203f';
+  const OPMSG_BUILD = 'e36b45baf6d3';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 214;
+  const OPMSG_VERSION = 215;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3153,15 +3153,22 @@
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
     const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
-    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
+    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); A.finiParAutre = avant === 'en-cours' && !snap.avis; raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
     if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
     rendreAppel();
+  }
+  /* ⛔ la fin d'un appel QUI A EU LIEU se dit à l'écran (lot m19, appels@3) : le refus, le manqué et l'absence de réponse avaient leur toast, la fin d'un appel normal n'avait qu'une annonce pour
+     lecteur d'écran — l'écran se fermait sans un mot. Pure, pour que le banc l'exécute. Un appel sans durée (annulé, refusé, sans réponse) n'a rien de plus à dire : il a déjà sa phrase, ou n'en veut pas. */
+  function phraseFinAppel(parAutre, prenom, duree) {
+    if (!(duree > 0)) return null;
+    return (parAutre ? (prenom ? prenom + ' a raccroché' : 'L\'autre a raccroché') : 'Appel terminé') + ' · ' + dureeAppel(duree);
   }
   /* ⛔ LA SORTIE UNIQUE : tout chemin qui retire la couche « appel » de la route passe ici, et rien d'autre ne raccroche. Les pistes sont arrêtées d'ABORD, de façon synchrone ;
      la source l'apprend ensuite (terminerAppel crée la ligne d'historique), et l'écran en garde une phrase pour le lecteur d'écran. */
   function quitterAppel() {
     const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
+    const parAutre = !!(A && A.finiParAutre), enSalleAvant = !!(A && enSalle(A)), premier = A && A.snap && A.snap.membres && A.snap.membres[0] ? A.snap.membres[0].prenom : '';        // lus AVANT que l'appel soit défait
     etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null; etat.appelReduit = false;
     delete document.documentElement.dataset.appelReduit;
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
@@ -3175,7 +3182,11 @@
     $('appel-ecran').removeAttribute('data-entrant');         // ⛔ l'écran qui se ferme n'est plus « entrant » : le suivant (un appel qu'on lance) ne reprend ni « Répondre » ni « Refuser » d'une sonnerie perdue — l'appel pris sur l'autre appareil (relecture, T4)
     synchroInert();
     requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
-    if (id) source.terminerAppel(id).then(rec => annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé'), () => { /* l'appel n'existait plus chez la source */ });
+    if (id) source.terminerAppel(id).then(rec => {
+      annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé');
+      const dit = enSalleAvant ? null : phraseFinAppel(parAutre, premier, rec.duree);          // une salle a son propre message de sortie
+      if (dit) mot(dit);
+    }, () => { /* l'appel n'existait plus chez la source */ });
   }
   $('appel-raccrocher').addEventListener('click', raccrocherCouche);
   /* ── L'APPEL RÉDUIT ── raccrocher = fermer la couche EN LE DISANT (sinon la fermer le réduit) ; réduire = rendre la page, garder l'appel ; restaurer = rouvrir l'écran tel quel */
