@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'aa14a671a92b';
+  const OPMSG_BUILD = 'f00030c96aa2';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 210;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4509,6 +4509,8 @@
     const noms = non.map(u => nomDe(u) || 'Cette personne');
     return noms.length === 1 ? noms[0] + ' n\'a pas pu être ajouté(e).' : noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1] + ' n\'ont pas pu être ajoutés.';
   };
+  /* ce que dit le toast d'un lien d'invitation accepté : le service rend `deja` pour un contact ET pour un groupe, et le mot du contact ne vaut pas pour un groupe */
+  const motLienAccepte = r => r.genre === 'groupe' ? (r.deja ? 'Tu fais déjà partie de ce groupe' : 'Tu as rejoint le groupe') : (r.deja ? 'Déjà dans tes contacts' : 'Contact ajouté');
   /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
   async function apresChoixInfo(id, geste, motReussi) {
     erreurInfo('');
@@ -4537,7 +4539,7 @@
       else if (act === 'demande-bloquer') { b.disabled = true; await source.bloquer(b.dataset.uid); mot('Bloqué : cette personne ne peut plus te trouver ni t\'écrire'); await chargerDemandes(); }
       else if (act === 'demande-retirer') { b.disabled = true; await source.annulerDemande(b.dataset.uid); mot('Demande retirée'); await chargerDemandes(); }
       else if (act === 'lien-lire') await lireLienSaisi();
-      else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(r.deja ? 'Déjà dans tes contacts' : r.genre === 'groupe' ? 'Tu as rejoint le groupe' : 'Contact ajouté'); ouvrirConvId(r.conv); }
+      else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(motLienAccepte(r)); ouvrirConvId(r.conv); }
       else if (act === 'ecrire') { const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
       else if (act === 'annonces') await source.majConversation(id, { annonces: b.getAttribute('aria-checked') !== 'true' });
       else if (act === 'ephemeres') {
