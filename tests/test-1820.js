@@ -168,7 +168,8 @@ console.log('\n── 3. les gestes qui AFFECTENT, joués ──');
     void i; }
   // création sur une case vide
   { const { W } = mk(); const e = { currentTarget: { getBoundingClientRect: () => ({ top: 0 }) }, clientY: 40, target: null }; e.target = e.currentTarget;
-    vm.runInContext(`planMultiVide(${JSON.stringify({})}, '${J}', 'tO', 7, 46)`, W);
+    W.e0 = { currentTarget: { getBoundingClientRect: () => ({ top: 0 }) }, clientY: 40 };
+    vm.runInContext(`planMultiVide(e0, '${J}', 'tO', 7, 46)`, W);
     vrai('case vide de la colonne désactivée (Multi) : aucune création proposée', W.__form.length === 0 && W.__t.some(m => /compte désactivé/.test(m)), [W.__form, W.__t]);
     W.__t.length = 0;
     W.e = { currentTarget: { getBoundingClientRect: () => ({ top: 0 }) }, clientY: 40 }; W.e.target = W.e.currentTarget;
