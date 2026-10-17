@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5b16f81aab0a';
+  const OPMSG_BUILD = '3e87de2b336b';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 229;
+  const OPMSG_VERSION = 230;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -640,7 +640,11 @@
        replie sur Messages — mais l'adresse et l'historique GARDAIENT le fragment (17 octobre 2026 : seul un rechargement la corrigeait). On remplace l'entrée par la route
        réellement affichée, comme le démarrage le fait (`n: 0` : arrivée par un lien, rien à rendre) ; un fragment connu (« #reglages/confidentialite ») n'est pas touché. */
     const r = routeDepuisHash();
-    if (location.hash.slice(1).split('/')[0] !== r.vue) history.replaceState({ opmsg: 1, n: 0, r, p: null }, '', urlDe(r));
+    /* ⛔ …sauf un LIEN d'invitation (`#lien=`, `#invitation=`, `#reunion=`) collé dans un onglet déjà ouvert : `hashchange` arrive APRÈS ce `popstate` et RELIT l'adresse pour y lire
+       son code — la réécrire ici lui retirait le code, et la feuille ne s'ouvrait plus (testeur « groupes@n#4 », 17 octobre 2026). Ces écouteurs défont eux-mêmes l'entrée
+       (`history.back()`) ; on ne remplace donc que si AUCUN d'eux ne lira ce fragment (même capacité, même condition qu'eux). */
+    const lienEnAttente = etat.route && ((CAP.liens && lienDansAdresse()) || (CAP.espaces && invitationDansAdresse()) || (CAP.salles && reunionDansAdresse()));
+    if (!lienEnAttente && location.hash.slice(1).split('/')[0] !== r.vue) history.replaceState({ opmsg: 1, n: 0, r, p: null }, '', urlDe(r));
     appliquer(r);
   });
   window.addEventListener('popstate', menuRetourFin);          // APRÈS l'application de la route : les gestes de navigation qui attendaient le retour du menu partent maintenant
