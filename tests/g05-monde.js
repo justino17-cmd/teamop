@@ -43,6 +43,7 @@ function monde(opts) {
     ${CONSTS}
     var rapConstat={indices:[]}, rapPresta=new Set(), rapTraitement={}, intNuis=new Set(), intTrait={}, intMeth=new Set(), rapPhotos=[], rapTags=[], rapChamps=[], rapTpe='';
     var asW=null, _gpsAway={}, current='interventions', factFilter='tous';
+    var _intReport=null;   // posé par formIntervention (lot g09 : ce qu'une duplication reporte) et relu par saveIntervention — le bac à sable doit le connaître
     var STATUT_INT={aplanifier:{l:'À planifier'},planifiee:{l:'Planifiée'},encours:{l:'En cours'},terminee:{l:'Terminée'},annulee:{l:'Annulée'}};
     function toast(m){ __toasts.push(String(m)); }
     function save(){ __saves++; }
