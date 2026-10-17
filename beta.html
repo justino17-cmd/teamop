@@ -8141,6 +8141,11 @@ const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
    compte de départ et demande au serveur avant d'ouvrir : les accès d'essai se créent et se
    coupent depuis la Tour de contrôle. Ici, dans l'application des clients : jamais. */
 const BETA_ESSAI=true;
+/* ⛔ LA PAGE OÙ L'ON EST — jamais l'autre. Sur beta.html, un Ctrl/⌘+clic sur le menu ouvrait app.html (la PRODUCTION,
+   qui partage l'origine teamop.fr et, si une session cliente y est ouverte, ses données) et les notifications push de la
+   bêta pointaient vers /app.html. Une page de test ne renvoie JAMAIS l'équipe vers la production : tout lien vers soi-même
+   (menu, favoris, push) passe par cette constante. Ici, dans l'application des clients, elle vaut « app.html » : rien ne change. */
+const PAGE_APP=BETA_ESSAI?'beta.html':'app.html';
 /* Catalogue produits officiel OP GESTION — le pack du métier « 3D — Hygiène anti-nuisibles ».
    [nom, categorie, [fournisseurs], reference]. 110 références d'origine, puis 50 ajoutées le 10 septembre
    2026 à la demande de Justin (liste copiée de sa bêta) : la gamme VULCANO d'ORCAD et cinq bâches MABI.
@@ -13066,10 +13071,13 @@ async function pushSubscribe(quiet){ try{
   if(!quiet){ toast('Notifications activées sur cet appareil ✓'); if(current==='parametres') views.parametres(); }
   return true;
 }catch(e){ console.error('push',e); if(!quiet) toast('Activation impossible (serveur push injoignable ?)'); return false; } }
+/* L'adresse d'une notification pointe vers LA PAGE COURANTE (PAGE_APP) : les dix-neuf appels écrivent '/app.html#v=…' et la
+   bêta les réécrit ici, pour ne pas toucher à chacun. Le serveur ne garde que le chemin (le fragment saute). */
+function pushUrl(url){ return String(url||'/app.html').replace(/^\/(?:app|beta)\.html(?=$|[#?])/,'/'+PAGE_APP); }
 function pushNotify(title,body,url,userIds){ try{
-  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:String(title||'').slice(0,120),body:String(body||'').slice(0,300),url:url||'/app.html',exceptUserId:(currentUser?currentUser.id:''),userIds:Array.isArray(userIds)?userIds:[]})}).catch(()=>{}); }catch(e){} }
+  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:String(title||'').slice(0,120),body:String(body||'').slice(0,300),url:pushUrl(url),exceptUserId:(currentUser?currentUser.id:''),userIds:Array.isArray(userIds)?userIds:[]})}).catch(()=>{}); }catch(e){} }
 async function pushTest(){ const ok=await pushSubscribe(); if(!ok) return;
-  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:'TeamOP — test',body:'Les notifications fonctionnent ✓',url:'/app.html'})})
+  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:'TeamOP — test',body:'Les notifications fonctionnent ✓',url:pushUrl('/app.html')})})
     .then(r=>r.json()).then(r=>toast('Notification envoyée à '+((r&&r.sent)||0)+' appareil(s)')).catch(()=>toast('Serveur push injoignable')); }
 function pushPropose(){ try{ if(!pushSupported()||!currentUser) return; if(Notification.permission!=='default') return;
   if(document.querySelector('#overlay.open')) return;
@@ -15921,12 +15929,13 @@ function favorisEtoile(k){
 function favorisBloc(){
   const l=favorisLire();
   const bouton=`<button class="nav-fav-edit" type="button" onclick="favorisEditer()">${_favEdit?'Terminé':'Modifier'}</button>`;
-  if(!l.length && !_favEdit) return '';
+  /* ⛔ LE BOUTON D'ENTRÉE EXISTE TOUJOURS. Rendu '' sans favori, le bloc emportait avec lui le SEUL « Modifier » de
+     l'application (les étoiles n'existent qu'en édition) : un compte neuf n'avait aucun moyen d'épingler un premier favori. */
   const lignes = l.map(k=>{ const it=ongletItem(k); if(!it) return '';
     return `<div class="nav-item nav-item-fav${multiEnCours(k)?' nav-encours':''}" data-view="${k}" data-fav="1"
-       onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${k}','_blank');return;}go('${k}')">${it.ic?`<span class="ico" style="${catVars(k)}">${it.ic}</span>`:''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
+       onclick="if(event.ctrlKey||event.metaKey){window.open('${PAGE_APP}#v=${k}','_blank');return;}go('${k}')">${it.ic?`<span class="ico" style="${catVars(k)}">${it.ic}</span>`:''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
   }).join('');
-  const vide = !l.length ? `<div class="nav-fav-vide">Touche l’étoile d’une rubrique pour l’épingler ici.</div>` : '';
+  const vide = !l.length ? `<div class="nav-fav-vide">${_favEdit?'Touche l’étoile d’une rubrique pour l’épingler ici.':'Touche « Modifier », puis l’étoile d’une rubrique pour l’épingler ici.'}</div>` : '';
   return `<div class="nav-label nav-label-fav"><span>Favoris</span>${bouton}</div>`+lignes+vide;
 }
 function renderNav(){ try{ applyBrand(); }catch(e){}
@@ -15955,7 +15964,7 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     const verrouTitre=(currentUser&&currentUser.role==='admin')?'Accès suspendu jusqu’au règlement de l’abonnement':'Accès momentanément suspendu';
     return tete + rows.map(r=> r.verrou
       ? `<div class="nav-item nav-verrou" style="opacity:.38" title="${verrouTitre}" onclick="go('${r.it.k}')"><span class="ico" style="--cat-j:#636366;--cat-n:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
-      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="${catVars(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
+      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('${PAGE_APP}#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('${PAGE_APP}#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="${catVars(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
     ).join('');
   }).join('');
   /* La loupe seulement quand il y a de quoi chercher : sous une dizaine de rubriques, elle
@@ -15977,13 +15986,39 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
 }
 function refreshBadges(){
   // les compteurs du menu suivent le périmètre de la personne (ses interventions, ses box, son véhicule) — jamais « 19 box » quand elle n'en voit qu'une
-  const map={int:visibleInts(db.interventions),cli:db.clients,prd:db.produits,box:visibleBoxes(db.boxes),env:db.enveloppes,veh:visibleVehicules(db.vehicules),usr:db.users,dev:db.devis,fac:db.factures,ctr:db.contrats,four:db.fournisseurs};
+  /* ⛔ clients, devis, factures et contrats suivent le MÊME périmètre que leur liste (`visibleClients`, `visibleDocs`) : un technicien
+     qui voit 4 clients lisait « 7 » dans le menu — le nombre de clients de toute l'entreprise. Produits, enveloppes, fournisseurs et
+     utilisateurs sont montrés en entier par leur écran (et les deux derniers sont réservés à l'administrateur) : leur total est juste. */
+  const map={int:visibleInts(db.interventions),cli:visibleClients(db.clients),prd:db.produits,box:visibleBoxes(db.boxes),env:db.enveloppes,veh:visibleVehicules(db.vehicules),usr:db.users,dev:visibleDocs(db.devis),fac:visibleDocs(db.factures),ctr:visibleDocs(db.contrats),four:db.fournisseurs};
   document.querySelectorAll('[data-badge]').forEach(el=>{ const c=map[el.dataset.badge]; if(c) el.textContent=c.length; });
 }
 
 const views={};
 let current='dashboard';
+/* ⛔ LE RETOUR SYSTÈME FERME CE QUI EST OUVERT, ET RIEN D'AUTRE. Mesuré (Android, iPhone) : une fenêtre ouverte (la Clôture guidée)
+   se fermait ET la rubrique était quittée, saisie perdue ; une fiche d'intervention n'étant pas une VUE (elle ne s'empile pas), le
+   retour partait à la rubrique d'avant et sautait la liste. Règle : fenêtre ouverte → on la ferme (la Clôture guidée demande
+   d'abord, si l'on a saisi quelque chose) ; sinon fiche ouverte → retour à la liste de sa rubrique ; sinon retour normal.
+   Rend '' (rien d'ouvert), 'fenetre' (fenêtre fermée, ou gardée par sa confirmation), 'bloque' (écran obligatoire) ou 'fiche'.
+   Ne touche à aucun historique : c'est l'appelant (bloc `popstate`) qui remet l'entrée que le navigateur vient de consommer.
+   ⛔ Les feuilles SECONDAIRES (`#overlay2` : détail d'un traitement dans la Clôture guidée, visionneuse de photo) sont AU-DESSUS de
+   `#overlay` : c'est elles qu'un retour ferme d'abord, seules — sinon la confirmation de la Clôture s'affichait par-dessus une feuille
+   restée orpheline, ou la liste se redessinait sous une photo. `fenetresSeules` (la touche Échap) laisse la fiche tranquille. */
+function retourFerme(fenetresSeules){
+  const ov2=$('overlay2');
+  if(ov2&&ov2.classList.contains('open')){ closeSub(); return 'fenetre'; }
+  const ov=$('overlay');
+  if(ov&&ov.classList.contains('open')&&!ov.classList.contains('ferme')){
+    if(_modalForcee) return 'bloque';
+    if(window._t3dModalCat&&asW){ t3dQuestModalEnd(asW.id); return 'fenetre'; }   // le questionnaire revient à la Clôture guidée, il ne la quitte pas
+    if(assistOuverte()){ assistFermer(); return 'fenetre'; }
+    closeModal(); return 'fenetre';
+  }
+  if(!fenetresSeules&&_ecranRendu){ ficheRetour(current); return 'fiche'; }
+  return '';
+}
 function goBack(){
+  if(retourFerme()) return;
   const st=window._viewStack||[];
   let v=st.pop();
   while(v===current&&st.length) v=st.pop();     // on ne revient jamais sur la page où l'on est déjà
@@ -16014,11 +16049,11 @@ try{ document.addEventListener('visibilitychange',()=>{ if(document.visibilitySt
 function planPleinQuitteSiBesoin(v){ try{ if(v!=='planning'&&planPleinPageOn()) planPleinPage(false); }catch(e){} }
 /* Croise l'ancien écran et le nouveau. La classe .entre déclenche l'arrivée du contenu ;
    elle se retire seule, sinon le rafraîchissement suivant la rejouerait. */
-function rendreVueAnimee(view,sens){
+function rendreVueAnimee(view,sens,remonter){
   const c=$('content');
   const sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const poser=()=>{ rendreVueSure(view); if(c){ c.classList.add('entre'); setTimeout(()=>c.classList.remove('entre'),460); } compterKpi(c); };
-  if(!document.startViewTransition||sobre){ rendreVueSure(view); return; }
+  const poser=()=>{ rendreVueSure(view,remonter); if(c){ c.classList.add('entre'); setTimeout(()=>c.classList.remove('entre'),460); } compterKpi(c); };
+  if(!document.startViewTransition||sobre){ rendreVueSure(view,remonter); return; }
   rendreDirige(sens,poser);
 }
 /* Un mouvement porte un sens. 'avant' : on entre dans une fiche, elle est poussée depuis la
@@ -16067,7 +16102,7 @@ function rendreDirige(sens,rendu){
    du texte, jamais une géométrie (une taille lue au mauvais moment fausse tout — CLAUDE.md). */
 function kpiTailler(racine){ try{ (racine||document).querySelectorAll('.kpis .kpi-val').forEach(el=>{
   const n=Math.max(1,String(el.textContent||'').trim().length); el.style.setProperty('--kpi-n',n); }); }catch(e){} }
-function rendreVueSure(view){
+function rendreVueSure(view,remonter){
   /* ⛔ PERSONNE CONNECTÉ, AUCUNE VUE. `go()` rend la vue dans une transition de vue, donc PLUS TARD,
      hors de l'appel : si la déconnexion passe entre les deux (un compte désactivé par la synchro juste
      à l'entrée, un jeton refusé, une session expirée), la vue se rendait SANS utilisateur. Mesuré le
@@ -16078,6 +16113,13 @@ function rendreVueSure(view){
   if(!currentUser) return;
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
+  /* ⛔ UNE NOUVELLE RUBRIQUE S'OUVRE EN HAUT. Mesuré : Paramètres défilé à 2 500 px, un tap sur « Accueil » ouvrait le tableau
+     de bord à scrollY=1080 (titre et cartes du haut hors écran) ; sur Mac, Clients s'ouvrait à 2 500 px sur 13 888. Ni `go()` ni
+     cette fonction ne remettaient jamais l'écran en haut. Selon l'écran c'est `#content` ou la PAGE qui défile : on remet les deux.
+     Ici, APRÈS l'écriture de la vue (une vue plus courte garderait sinon un défilement périmé) et AVANT `multiProposer`, qui
+     rend à une fenêtre laissée en route le défilement où elle en était. `remonter` ne vaut vrai que pour une vraie navigation
+     (`go` : view !== current) — jamais pour le rafraîchissement d'après un enregistrement, qui garde sa place. */
+  if(remonter){ try{ const c0=$('content'); if(c0) c0.scrollTop=0; window.scrollTo(0,0); }catch(_e){} }
   /* ⛔ APRÈS la vue, pas avant : `rendreVueAnimee` écrit `#content` plus tard, donc une barre
      posée depuis `go()` sur une minuterie était balayée — mesuré absente à 100, 300, 600,
      1 200 et 2 500 ms. Ici on est juste après l'écriture réelle de l'écran. */
@@ -16244,6 +16286,7 @@ function go(view){
   /* en arrivant sur le planning, la carte est repliée : le planning prend tout l'écran.
      On l'affiche ensuite si on en a besoin, ça reste le temps qu'on est dessus. */
   if(view==='planning'&&current!=='planning'){ try{ planDispReset(); }catch(e){} }
+  const _nouvelle=(view!==current);   // lu AVANT d'écraser current : go(current) est un rafraîchissement, il garde sa place
   current=view;
   try{ history.replaceState(null,'','#v='+view); }catch(e){}
   document.getElementById('sidebar').classList.remove('open');
@@ -16259,7 +16302,7 @@ function go(view){
      doigt — sinon le mouvement contredit la main. Consommé tout de suite : gardé, il
      enverrait la navigation SUIVANTE dans la même direction. */
   const _sens=_sensForce||(_retour?'retour':''); _sensForce='';
-  rendreVueAnimee(view,_sens);
+  rendreVueAnimee(view,_sens,_nouvelle);
   /* La barre de reprise se pose dans `rendreVueSure`, la seule fonction qui écrit vraiment
      l'écran. Ici on ne repeint que les pastilles du menu. */
   multiPastilles();
@@ -23601,14 +23644,41 @@ function assistCloture(id){ const i=db.interventions.find(x=>x.id===id); if(!i) 
   intMeth=new Set(i.methodes||[]);
   rapPresta=new Set(Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}));
   asW={id,step:0,absent:!!i.clientAbsent,obs:i.compteRendu||'',noteInterne:i.noteInterne||'',materiel:i.materiel||'',zones:i.zones||'',infest:i.infestation||intInfOf(i)||'',reco:(i.constat||{}).recommandations||'',sig:i.signature||'',sigT:i.signatureTech||''};
+  asW.ref=asEmpreinte();   // l'état d'ouverture : « Fermer » compare à lui pour savoir s'il y a une saisie à perdre
   assistRender(); }
+/* ⛔ « FERMER » NE JETTE PAS UNE SAISIE EN SILENCE. Seuls les produits s'enregistrent au fil de l'eau ; constat, observations,
+   matériel, zones, niveau, recommandations, nuisibles, méthodes et signatures vivent dans `asW` et les variables du rapport, et
+   disparaissaient (rouvrir repartait de l'intervention). Une seule fonction ferme la Clôture guidée — le bouton « Fermer » ET le
+   retour système (`retourFerme`) — et elle demande avant de perdre quelque chose. Rien n'est écrit dans `db` : ouvrir ou fermer
+   n'enregistre pas ; c'est « ✓ Clôturer » qui le fait. */
+/* ⛔ L'OUVERTURE NE LIT PAS LE DOM. `closeModal()` ne vide jamais `#modal` : le canvas de signature de la Clôture PRÉCÉDENTE (dataset.has)
+   y est encore, et l'y lire à l'ouverture donnait à l'intervention B la signature dessinée pour A, redessinée à l'étape Signatures puis
+   écrite sur le rapport. On ne lit donc les canvas que pour savoir si l'on a DESSINÉ depuis (`dataset.drawn`, posé par le tracé), et
+   seulement à l'étape Signatures, dont le canvas vient d'être rendu pour CETTE clôture. Une signature déjà enregistrée, redessinée
+   par `initSigPad`, n'est pas une modification : sans `drawn`, on ne la ré-encode pas. */
+function asSigsVives(){ let s=asW.sig, t=asW.sigT;
+  if(asW.step===5){
+    const cv=$('as-sig'); if(cv&&cv.dataset.has&&cv.dataset.drawn) s=cv.toDataURL('image/png');
+    const cvT=$('as-sig-t'); if(cvT&&cvT.dataset.has&&cvT.dataset.drawn) t=cvT.toDataURL('image/png'); }
+  return [s,t]; }
+function asEmpreinte(vives){ if(!asW) return '';
+  const sg=vives?asSigsVives():[asW.sig,asW.sigT];   // une signature dessinée mais pas encore gardée compte aussi — jamais à l'ouverture
+  return JSON.stringify([asW.absent,asW.obs,asW.noteInterne,asW.materiel,asW.zones,asW.infest,asW.reco,sg[0],sg[1],
+    [...intNuis].sort(),[...intMeth].sort(),intTrait,[...rapPresta].sort(),(rapConstat||{}).indices,rapPhotos.length,rapTags]); }
+function assistModifie(){ return !!asW&&asEmpreinte(true)!==asW.ref; }
+/* La Clôture guidée est-elle ce que la fenêtre ouverte montre ? (`_multiHtml` est le balisage de la dernière fenêtre ouverte.) */
+function assistOuverte(){ return !!asW&&String(_multiHtml||'').indexOf('assistFermer()')>=0; }
+function assistFermer(){
+  if(!asW){ closeModal(); return true; }
+  if(assistModifie()&&!confirm('Fermer la clôture guidée ?\n\nCe que tu as saisi (constat, observations, matériel, recommandations, signatures…) ne sera pas enregistré.')) return false;
+  asW=null; closeModal(); return true; }
 function asKeepSigs(){ // conserve les signatures dessinées avant de changer d'étape
   const cv=$('as-sig'); if(cv&&cv.dataset.has) asW.sig=cv.toDataURL('image/png');
   const cvT=$('as-sig-t'); if(cvT&&cvT.dataset.has) asW.sigT=cvT.toDataURL('image/png'); }
 function asGo(step){ if(!asW) return; if(asW.step===5) asKeepSigs(); asW.step=Math.max(0,Math.min(AS_STEPS.length-1,step)); assistRender(); }
 function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id===asW.id); if(!i){ closeModal(); return; }
   const s=asW.step;
-  const head=`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>Clôture guidée ${s+1}/6</h3>${s<5?`<button type="button" class="btn sm" onclick="asGo(${s+1})">Suivant ›</button>`:`<button type="button" class="btn sm" onclick="assistFinish('${i.id}')">✓ Clôturer</button>`}</div>`;
+  const head=`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="assistFermer()">Fermer</button><h3>Clôture guidée ${s+1}/6</h3>${s<5?`<button type="button" class="btn sm" onclick="asGo(${s+1})">Suivant ›</button>`:`<button type="button" class="btn sm" onclick="assistFinish('${i.id}')">✓ Clôturer</button>`}</div>`;
   const dots=`<div style="display:flex;gap:4px;margin:2px 0 14px;overflow-x:auto">${AS_STEPS.map((l,ix)=>`<div onclick="asGo(${ix})" style="flex:1;min-width:52px;text-align:center;cursor:pointer;padding:7px 2px;border-radius:9px;font-size:11px;font-weight:800;background:${ix===s?'var(--acc)':ix<s?'color-mix(in srgb,var(--acc) 18%,transparent)':'var(--bg2)'};color:${ix===s?'var(--on-acc)':ix<s?'var(--acc-txt)':'var(--t3)'}">${ix<s?'✓ ':''}${l}</div>`).join('')}</div>`;
   let body='';
   if(s===0){ const sel=[...intNuis]; const all=[...NUIS_3D,...sel.filter(n=>!NUIS_3D.includes(n))];
@@ -25717,7 +25787,7 @@ function initSigPad(existing,cvId){ const cv=$(cvId||'sig-pad'); if(!cv) return;
   if(existing){ const img=new Image(); img.onload=()=>ctx.drawImage(img,0,0,cv.width,cv.height); img.src=existing; cv.dataset.has='1'; }
   const pos=e=>{ const r=cv.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:(t.clientX-r.left)*(cv.width/r.width), y:(t.clientY-r.top)*(cv.height/r.height)}; };
   const down=e=>{ drawing=true; const p=pos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); e.preventDefault(); };
-  const move=e=>{ if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); cv.dataset.has='1'; e.preventDefault(); };
+  const move=e=>{ if(!drawing)return; const p=pos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); cv.dataset.has='1'; cv.dataset.drawn='1'; e.preventDefault(); };
   const up=()=>{ drawing=false; };
   cv.onmousedown=down; cv.onmousemove=move; window.addEventListener('mouseup',up);
   cv.ontouchstart=down; cv.ontouchmove=move; cv.ontouchend=up;
@@ -41449,7 +41519,9 @@ function userFootMenu(e){ e.preventDefault(); e.stopPropagation();
     document.addEventListener('click',close); document.addEventListener('contextmenu',close); },0);
 }
 
-document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeModal(); });
+/* ⛔ Échap passe par la MÊME garde que le retour système et le bouton « Fermer » : la Clôture guidée demande avant de perdre sa saisie
+   (poste de bureau, tablette avec clavier) et une feuille secondaire se ferme avant la fenêtre qu'elle recouvre. */
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&retourFerme(true)==='') closeModal(); });
 
 /* ═══════════════ LEIA RETIRÉE — 23 septembre 2026 ═══════════════
    Justin : « on supprime la bulle Leia, on supprime totalement, on fera un vrai agent dans le
@@ -41482,7 +41554,10 @@ const TOUR = [
   {v:'parametres',ic:'⚙️',t:'Les paramètres',h:"Personnalise tout : <b>thème</b>, <b>langue</b>, <b>sauvegarde</b> (export/import), <b>email du comptable</b> et activation de l'<b>Assistant IA</b>."},
 ];
 let tourIdx=0, tourSteps=[];
-function menuLabel(v){ const it=avecSousCats(NAV.flatMap(s=>s.items)).find(x=>x.k===v); return it?t(it.l):v; }
+/* Les Paramètres ne sont pas dans NAV (ils s'ouvrent par la barre d'onglets et le bas du menu) : sans cette table, la visite
+   guidée annonçait « Menu : parametres ». Une clé inconnue reste telle quelle — on ne masque pas un oubli de plus. */
+const MENU_HORS_NAV={parametres:'Paramètres'};
+function menuLabel(v){ const it=avecSousCats(NAV.flatMap(s=>s.items)).find(x=>x.k===v); return it?t(it.l):(MENU_HORS_NAV[v]?t(MENU_HORS_NAV[v]):v); }
 function startTour(){ if(!currentUser) return; if(typeof closeModal==='function') closeModal();
   tourSteps=TOUR.filter(s=>userSeesModule(currentUser,s.v));
   if(!tourSteps.length) return; tourIdx=0; tourShow(); }
@@ -43229,6 +43304,9 @@ try{
        On enveloppe donc goBack() elle-même, et on recule aussi l'historique pour qu'il suive
        l'écran. Le drapeau « nous » distingue ce recul-là du geste de l'utilisateur. */
     var nous=false;
+    /* `current` est un `let` : il n'est PAS une propriété de window. `window.current` valait toujours undefined, et l'entrée remise
+       portait l'adresse « #v= » (un rechargement ouvrait alors le tableau de bord). On lit la variable elle-même. */
+    var vueCourante=function(){ try{ return current||''; }catch(e){ return ''; } };
     if(typeof window.goBack==='function'){
       var retourNatif=window.goBack;
       window.goBack=function(){
@@ -43257,8 +43335,18 @@ try{
          ⚠️ Et on ne coupe PAS le geste du navigateur (`overscroll-behavior-x`) : tout ce
          bloc existe pour que le retour système marche. On ignore le doublon, pas la porte. */
       if(Date.now() - (window._balayageFin||0) < 450){
-        try{ history.pushState({rf:1},'','#v='+(window.current||'')); }catch(e){}
+        try{ history.pushState({rf:1},'','#v='+vueCourante()); }catch(e){}
         return;
+      }
+      /* ⛔ Une fenêtre ou une fiche ouverte absorbe le retour : le navigateur vient de consommer l'entrée de l'écran où l'on reste,
+         on la REMET (comme pour le doublon ci-dessus) — sinon l'historique prend un cran de retard. Une fiche passe par go(),
+         dont l'enveloppe empile déjà l'entrée. */
+      if(typeof retourFerme==='function'){
+        var absorbe=retourFerme();
+        if(absorbe){
+          if(absorbe!=='fiche'){ try{ history.pushState({rf:1},'','#v='+vueCourante()); }catch(e){} }
+          return;
+        }
       }
       var pile=window._viewStack||[];
       if(pile.length && typeof goBack==='function'){
