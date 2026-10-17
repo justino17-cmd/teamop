@@ -105,6 +105,7 @@ function monde(lang) {
     function absInfo(){ return { l:'Congés', c:'#900' }; } function absJoursOuvres(){ return 3; } function absNb(n){ return String(n); }
     function tdbRetards(){ return db.interventions.filter(function(i){ return i.date && i.date<TOD; }); }
     function tdbPortee(){ return '7'; } function toutVoir(){ return true; }
+    function techsAffichees(){ return db.techniciens; }   /* 17 oct. 2026 : la règle des comptes désactivés est jouée par test-1820 */
     function techPuces(){ return ''; } function dureeStr(m){ return m+' min'; } function eur(x){ return x+' €'; }
     function docTot(){ return {ttc:0}; } function ymOfX(){ return ''; }
     function archStats(ym){ return { ints:db.interventions.slice(0,2), facts:[], caPaye:0, caTot:0, dem:[], pts:[], minTot:0 }; }

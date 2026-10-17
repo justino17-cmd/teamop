@@ -36,7 +36,8 @@ const existe = h => APP.indexOf(h) >= 0;
 
 const FONCTIONS = ['function nextRecurDate(', 'function intRecurNext(', 'function prodLineUnit(', 'function rapportProduitsLibres(',
   'function rapportPdfStr(', 'async function printRapport(', 'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(',
-  'const PH_MARQUE=', 'function photoPid(', 'function photoSrc(', 'function planImgSrc(', 'const MENTION_REGL=', 'function rapportChampsPerso('];
+  'const PH_MARQUE=', 'function photoPid(', 'function photoSrc(', 'function planImgSrc(', 'const MENTION_REGL=', 'function rapportChampsPerso(',
+  'function techAssignable('];   // 17 oct. 2026 : l'occurrence suivante ne reprend pas un compte désactivé (règle jouée par test-1820)
 if (existe('function rapportDuree(')) FONCTIONS.splice(3, 0, 'function rapportDuree(');
 const SOURCES = FONCTIONS.map(decoupe);
 vrai('les déclarations sont extraites du fichier réel (' + SOURCES.length + ')', SOURCES.every(x => x.length > 10));

@@ -73,7 +73,7 @@ for (const f of (process.env.APP_FICHIER ? [process.env.APP_FICHIER] : ['app.htm
   /* le bac à sable : les vraies fonctions de la page */
   const src = ['uidTs', 'techColorHash', 'techCouleurs', 'techCouleursDe', 'techColor', 'techCouleurNom', 'techConnu', 'intTechsAff', 'techPastille', 'techPuces', 'techPile',
     'planIntDe', 'planCouleurDans', 'planAutres', 'planBoutAutres', 'planPileAutres', 'planAvec', 'techCouleurChoix', 'numIcon', 'encreSur', 'intTechIds', 'planTechsOf', 'planCardColor',
-    'techCouleursFiger', 'techCouleursSimuler', 'techCouleurPrevenus'].map(n => [n, fonction(CODE, n)]);
+    'techCouleursFiger', 'techCouleursSimuler', 'techCouleurPrevenus', 'techAssignable', 'techCompteDesactive'].map(n => [n, fonction(CODE, n)]);   // 17 oct. 2026 : techPuces signale « compte désactivé »
   const manque = src.filter(([, c]) => c.length < 20).map(([n]) => n);
   vrai('population : les fonctions de la couleur et des pastilles sont trouvées', manque.length === 0, manque);
   if (manque.length) continue;
@@ -83,7 +83,7 @@ for (const f of (process.env.APP_FICHIER ? [process.env.APP_FICHIER] : ['app.htm
     const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
     const initials=name=>(name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const techName=id=>{ const t=db.techniciens.find(t=>t.id===id); if(t) return t.nom||'Non assigné'; const a=(db.techArchive||[]).find(t=>t.id===id); return a?(a.nom||'Ancien technicien'):'Non assigné'; };
-    const L={divIcon:o=>o};
+    const L={divIcon:o=>o}; const TECH_INACTIF_LBL='compte désactivé';
     ${src.map(([, c]) => c).join('\n')}
     return {set:(T,A)=>{ db=ctx.db={techniciens:T,techArchive:A||[]}; }, techCouleurs,techCouleursDe,techColor,techPastille,techPuces,techPile,planIntDe,planCouleurDans,planAutres,planBoutAutres,planPileAutres,planAvec,techCouleurChoix,numIcon,encreSur,techCouleurNom,techCouleursFiger,techCouleursSimuler,techCouleurPrevenus,
       get dit(){ return typeof window!=='undefined'?window._tccDit:null; }};`);

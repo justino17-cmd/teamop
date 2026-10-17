@@ -20,7 +20,7 @@ function bloc(debut) {
 }
 const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
 const FNS = ['function cpEstArrondissement(', 'function depDeKey(', 'function depFromCp(', 'function cpToKey(', 'function keyLabel(', 'function deptCodeFromName(',
-  'function parseTechDepts(', 'function keyForClient(', 'function techForClient(', 'function techForKey(', 'function techCouvrantEnPartie(', 'function deptColor('];
+  'function parseTechDepts(', 'function keyForClient(', 'function techForClient(', 'function techForKey(', 'function techCouvrantEnPartie(', 'function deptColor(', 'function techAssignable('];   // 17 oct. 2026 : techForClient saute un compte désactivé
 const NOMS = ligne('const DEPT_NAMES='), BIG = ligne('const BIG_CITIES=');
 const SECT = bloc('views.secteurs=function(){');
 vrai('(population) views.secteurs et les fonctions de clés sont trouvées', SECT.length > 1500 && !!NOMS && !!BIG && bloc('function cpToKey(').length > 50 && bloc('function techForKey(').length > 50);

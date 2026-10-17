@@ -27,7 +27,8 @@ const FN = ['function toMin(', 'function indisposOf(', 'function indispoAt(', 'f
   'function intHisto(', 'function clockFromMin(', 'function planYbord(', 'function planEquipeApres(', 'function planPoserEquipe(', 'function planSnap(',
   'function planStamp(', 'function planDup(', 'function planObligationLever(', 'function planAbsGate(', 'function planDepotAvant(', 'function planDepotApres(',
   'function planMultiDrop(', 'function planWeekDrop(', 'function planDropTime(', 'function planDropCell(',
-  'function planTechsOf(', 'function toMinH(', 'function planDeplacerValider(', 'function planDeplacerAnnuler(', 'function planChangerTech(', 'function planChangerTechAnnuler('];
+  'function planTechsOf(', 'function toMinH(', 'function planDeplacerValider(', 'function planDeplacerAnnuler(', 'function planChangerTech(', 'function planChangerTechAnnuler(',
+  'function techAssignable(', 'function techPeutRecevoir(', 'function techRefusDesactive(', 'function planAffecteGate('];   // 17 oct. 2026 : les gestes d'affectation refusent un compte désactivé (règle jouée par test-1820)
 const manquantes = FN.filter(h => APP.indexOf(h) < 0 && h !== 'function planObligationLever(');
 const code = FN.filter(h => APP.indexOf(h) >= 0).map(decoupe).join('\n');
 
@@ -52,6 +53,7 @@ function monter() {
   W.uid = (() => { let n = 0; return () => 'n' + (++n); })();
   W.save = () => { S.saves.push(1); };
   W.serieShiftPropose = () => {};
+  W.TECH_INACTIF_LBL = 'compte désactivé'; if (!W.db.users) W.db.users = [];
   W.intConflictOf = () => null;
   Object.defineProperty(W, 'planSel', { get: () => S.planSel, set: v => { S.planSel = v; }, enumerable: true });
   W.planJours = ['2026-10-16'];

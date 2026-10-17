@@ -153,7 +153,8 @@ console.log('\n── 1110 · 5. « Passage suivant » : la VRAIE planNextModal,
     esc: s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])),
     clientName: () => 'Boulangerie Dupont', fmtLong: () => 'dimanche 15 novembre 2026', techName: () => '', techPuces: () => '',
     openModal: h => { html = h; }, closeModal() {}, go() {}, current: 'interventions', fmtShort: () => '', uid: () => 'x', todayISO: () => '2026-10-16',
-    planNextCreate() {}, toast() {}, save() {}, planNextManual() {} };
+    planNextCreate() {}, toast() {}, save() {}, planNextManual() {},
+    techsAffectables: () => [], techNomAff: t => t.nom };   // 17 oct. 2026 : la règle d'affectation est jouée par test-1820 ; ici un double
   vm.createContext(ctx);
   let err = null;
   try { vm.runInContext(F + '\nplanNextModal("i1");', ctx); } catch (e) { err = String(e && e.message || e); }
