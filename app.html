@@ -32770,7 +32770,7 @@ function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
   if(m){ go('produits'); setTimeout(()=>{ try{ prdSearch=m.nom; views.produits(); }catch(e){} },60); return; }
   m=visibleTechniciens(db.techniciens).find(x=>x.nom&&x.nom.length>2&&dn.includes(norm(x.nom)));
   if(m){ try{ ficheTech(m.id); }catch(e){ go('techniciens'); } return; }
-  m=db.vehicules.find(x=>x.immat&&dn.includes(norm(x.immat)));
+  m=visibleVehicules(db.vehicules||[]).find(x=>(x.plaque||x.immat)&&dn.includes(norm(x.plaque||x.immat)));   // `plaque` : le champ du formulaire (equipe#4) ; `immat`, l'ancien nom
   if(m){ go('vehicules'); return; }
   const map={intervention:'interventions',stock:'mouvements',finance:'comptabilite',commercial:'devis',box:'boxes',auth:'utilisateurs',admin:'utilisateurs'};
   const v=map[j.type];
@@ -32836,8 +32836,12 @@ function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id=
   if(!t){ if((db.techniciens||[]).some(x=>x.id===id)) toast('Cette fiche ne te concerne pas'); return; }
   const ints=db.interventions.filter(i=>intTechIds(i).indexOf(id)>=0).sort((a,b)=>(b.date+b.heure).localeCompare(a.date+a.heure));   // v757 : second compris
   const pts=db.pointages.filter(p=>p.techId===id);
-  const totMin=pts.reduce((s,p)=>s+Math.max(0,minutes(p.debut,p.fin)-(p.pause||0)),0);
-  const veh=db.vehicules.find(v=>v.techId===id);
+  /* ⛔ comme l'écran Pointage (campagne du 16 octobre 2026, equipe#2) : `ptTotal` lit debutTs/finTs, donc une nuit
+     (22:00 → 06:00) compte 8 h et un pointage ouvert compte jusqu'à maintenant (plafonné). HH:MM seul rendait 0. */
+  const totMin=Math.floor(ptTotal(pts)/60);
+  /* ⛔ le formulaire du véhicule écrit `conducteurTechnicienId` et `plaque` (equipe#4) ; `techId` et `immat` sont
+     les noms d'avant, qu'on lit toujours. Les véhicules qu'on voit seulement (vehiculeAuto fait le même rapprochement). */
+  const veh=visibleVehicules(db.vehicules||[]).find(v=>vehiculeAuto(v,{techId:id}));
   const enCours=ints.filter(i=>i.statut==='encours'||i.statut==='planifiee').length;
   const k=(ic,bg,val,lbl)=>`<div class="kpi kpi-fiche" style="padding:14px"><div class="kpi-ico" style="width:34px;height:34px;font-size:16px;margin-bottom:8px;background:${bg}">${ic}</div><div class="kpi-val">${val}</div><div class="kpi-lbl">${lbl}</div></div>`;
   openModal(`<div class="modal-head"><h3>👷 ${esc(t.nom)}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -32845,7 +32849,7 @@ function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id=
       <div><div class="dt-lbl">Rôle</div><div class="dt-val">${esc(t.metier)||'Technicien'}</div></div>
       <div><div class="dt-lbl">Téléphone</div><div class="dt-val">${esc(t.tel)||'—'}</div></div>
       <div><div class="dt-lbl">Email</div><div class="dt-val">${esc(t.email)||'—'}</div></div>
-      <div><div class="dt-lbl">Véhicule</div><div class="dt-val">${veh?esc(veh.immat):'—'}</div></div>
+      <div><div class="dt-lbl">Véhicule</div><div class="dt-val">${veh?esc(veh.plaque||veh.immat):'—'}</div></div>
       <div><div class="dt-lbl">Certibiocide</div><div class="dt-val">${esc(t.certibiocide)||'—'} ${certibBadge(t)}</div></div>
       ${t.certibiocideExp?`<div><div class="dt-lbl">Valide jusqu'au</div><div class="dt-val">${fmtShort(t.certibiocideExp)}</div></div>`:''}</div>
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:14px 0">
@@ -35078,6 +35082,12 @@ function etiqAppliquerCat(){ if(!permGarde('stock','modifier','le stock')) retur
 /* ═══════════════ COMMERCIAL : DEVIS & FACTURES (façon Organilog) ═══════════════ */
 const DEVIS_ST={brouillon:{l:'Brouillon',c:'st-grey'},envoye:{l:'Envoyé',c:'st-blue'},accepte:{l:'Accepté',c:'st-green'},refuse:{l:'Refusé',c:'st-red'}};
 const FACT_ST={brouillon:{l:'En attente',c:'st-grey'},envoyee:{l:'Envoyée',c:'st-blue'},payee:{l:'Payée',c:'st-green'},retard:{l:'En retard',c:'st-red'}};
+/* ⛔ UN DOCUMENT EST « ÉMIS » DÈS QU'IL EST SORTI DU BROUILLON — UNE SEULE DÉFINITION (campagne du 16 octobre
+   2026, accueil#8). Un devis jamais envoyé n'est pas « émis », une facture « En attente » n'est pas « facturée » :
+   Statistiques (Devis émis, Taux d'acceptation, Top clients), Archives (CA facturé) et l'écran Factures
+   (Total facturé) comptaient chacun à leur façon, et les deux premiers y mettaient les brouillons. */
+function docEmis(d){ return !!d && d.statut!=='brouillon'; }
+const DOCS_EMIS_NOTE='<div data-regle="docs-emis" style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Les brouillons ne comptent pas : sont « émis » les devis envoyés, acceptés ou refusés, et « facturées » les factures envoyées, payées ou en retard.</div>';
 const DOC={ devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DEV',st:DEVIS_ST}, factures:{coll:'factures',titre:'Facture',un:'facture',prefix:'FAC',st:FACT_ST} };
 /* Le total HT est la somme des lignes ARRONDIES AU CENTIME, pas la somme des valeurs exactes.
    Trois lignes de 1,5 × 33,33 s'affichaient « 49,99 » chacune sous un Total HT de 149,98 : le
@@ -35591,7 +35601,7 @@ views.factures=function(){
   const canDel=canCat('ventes','supprimer');
   const ttc=f=>docTot(f).ttc;
   const all=[...visibleDocs(db.factures||[])].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const emis=all.filter(f=>f.statut!=='brouillon');
+  const emis=all.filter(docEmis);
   const totFact=emis.reduce((s,f)=>s+ttc(f),0);
   const totPaid=all.filter(f=>f.statut==='payee').reduce((s,f)=>s+ttc(f),0);
   const dueList=all.filter(f=>f.statut==='envoyee'); const totDue=dueList.reduce((s,f)=>s+ttc(f),0);
@@ -37975,7 +37985,7 @@ function ptPdfStr(list,b){
    avec la case. Et tout se compte sur ce que la personne voit, jamais sur la base entière. */
 views.statistiques=function(){
   setHeader('Statistiques',"Pilotage de l'activité");
-  const fin=isFinanceMgr(); const FA=fin?visibleDocs(db.factures||[]):[], DV=fin?visibleDocs(db.devis||[]):[];
+  const fin=isFinanceMgr(); const FA=fin?visibleDocs(db.factures||[]):[], DV=fin?visibleDocs(db.devis||[]).filter(docEmis):[];   // brouillons écartés : voir docEmis
   const caPaye=FA.filter(f=>f.statut==='payee').reduce((s,f)=>s+docTot(f).ttc,0);
   const caAtt=FA.filter(f=>f.statut==='envoyee'||f.statut==='retard').reduce((s,f)=>s+docTot(f).ttc,0);
   const devisTtc=DV.reduce((s,d)=>s+docTot(d).ttc,0);
@@ -37984,14 +37994,14 @@ views.statistiques=function(){
   const parSt={}; visibleInts(db.interventions||[]).forEach(i=>parSt[i.statut]=(parSt[i.statut]||0)+1);
   const maxI=Math.max(1,...Object.values(parSt));
   // CA par client (factures)
-  const parClient={}; FA.forEach(f=>{ parClient[f.clientId]=(parClient[f.clientId]||0)+docTot(f).ttc; });
+  const parClient={}; FA.filter(docEmis).forEach(f=>{ parClient[f.clientId]=(parClient[f.clientId]||0)+docTot(f).ttc; });
   const topC=Object.entries(parClient).map(([id,v])=>({nom:clientName(id),v})).sort((a,b)=>b.v-a.v).slice(0,6);
   const maxC=Math.max(1,...topC.map(c=>c.v));
   const kpisArgent=fin?`<div class="kpis">
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">⏳</div><div class="kpi-val">${eur(caAtt)}</div><div class="kpi-lbl">En attente de paiement</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">💰</div><div class="kpi-val">${eur(devisTtc)}</div><div class="kpi-lbl">Devis émis</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">✅</div><div class="kpi-val">${tauxAccept}%</div><div class="kpi-lbl">Taux d'acceptation devis</div></div></div>`:'';
+    <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">✅</div><div class="kpi-val">${tauxAccept}%</div><div class="kpi-lbl">Taux d'acceptation devis</div></div></div>${DOCS_EMIS_NOTE}`:'';
   $('content').innerHTML=(fin?'':`<div class="card" style="font-size:13px;color:var(--t2);line-height:1.6">🔒 Chiffre d'affaires, devis et classement des clients : réservés au droit « Voir / gérer la comptabilité et les tarifs » (Permissions → Ventes).</div>`)+kpisArgent+`
     <div class="grid2">
       <div class="card"><div class="card-head"><h3>Interventions par statut</h3></div>
@@ -38142,14 +38152,22 @@ views.histoDemandes=function(){ demOnglet='histo'; go('demandes'); };
 /* ═══════════════ ARCHIVES MENSUELLES (récap + PDF) ═══════════════ */
 let archMonth=null;
 function ymOf(iso){ return (iso||'').slice(0,7); }
+/* ⛔ CE QUE LES ARCHIVES MONTRENT SUIT CE QUE LA PERSONNE VOIT, ET LE CA SUIT LE DROIT COMPTABILITÉ
+   (campagne du 16 octobre 2026, technicien#12) : Statistiques refuse le chiffre d'affaires sans « Voir / gérer la
+   comptabilité » ; les Archives le donnaient, avec les feuilles de temps de TOUS, à un chef d'équipe qui n'a pas ce
+   droit. Même droit (`isFinanceMgr`), mêmes périmètres (`visibleDocs`, `visibleInts`, `visiblePointages`), lus ICI,
+   dans la fonction qui calcule — l'écran et le PDF la partagent, aucun des deux ne peut l'oublier.
+   Le CA facturé écarte les brouillons (`docEmis`) ; le temps pointé se compte comme l'écran Pointage (`ptTotal` :
+   debutTs/finTs, une nuit compte, un pointage ouvert compte jusqu'à maintenant, plafonné à PT_MAX_H). */
 function archStats(ym){
-  const ints=db.interventions.filter(i=>ymOf(i.date)===ym);
-  const facts=db.factures.filter(f=>ymOf(f.date)===ym);
+  const fin=isFinanceMgr();
+  const ints=visibleInts(db.interventions||[]).filter(i=>ymOf(i.date)===ym);
+  const facts=fin?visibleDocs(db.factures||[]).filter(f=>ymOf(f.date)===ym):[];
   const caPaye=facts.filter(f=>f.statut==='payee').reduce((s,f)=>s+docTot(f).ttc,0);
-  const caTot=facts.reduce((s,f)=>s+docTot(f).ttc,0);
-  const dem=db.demandes.filter(d=>ymOf(d.date)===ym);
-  const pts=db.pointages.filter(p=>ymOf(p.date)===ym); const minTot=pts.reduce((s,p)=>s+Math.max(0,minutes(p.debut,p.fin)-(p.pause||0)),0);
-  return {ints,facts,caPaye,caTot,dem,pts,minTot};
+  const caTot=facts.filter(docEmis).reduce((s,f)=>s+docTot(f).ttc,0);
+  const dem=(db.demandes||[]).filter(d=>ymOf(d.date)===ym);
+  const pts=visiblePointages(db.pointages||[]).filter(p=>ymOf(p.date)===ym); const minTot=Math.floor(ptTotal(pts)/60);
+  return {fin,ints,facts,caPaye,caTot,dem,pts,minTot};
 }
 views.archives=function(){
   if(!archMonth) archMonth=todayISO().slice(0,7);
@@ -38160,10 +38178,10 @@ views.archives=function(){
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3 style="text-transform:capitalize">🗄️ ${label}</h3></div>
     <div class="kpis">
       <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">🧰</div><div class="kpi-val">${s.ints.length}</div><div class="kpi-lbl">Interventions</div></div>
-      <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(s.caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
-      <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">🧾</div><div class="kpi-val">${eur(s.caTot)}</div><div class="kpi-lbl">CA facturé</div></div>
+      ${s.fin?`<div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(s.caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
+      <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">🧾</div><div class="kpi-val">${eur(s.caTot)}</div><div class="kpi-lbl">CA facturé</div></div>`:''}
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
-    </div></div>
+    </div>${s.fin?DOCS_EMIS_NOTE:''}</div>
     <div class="card"><div class="card-head"><h3>Interventions du mois (${s.ints.length})</h3></div>
       ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
     </div>`;
@@ -38174,7 +38192,7 @@ function printArchive(){ const ym=archMonth, s=archStats(ym); const [y,mo]=ym.sp
   const introws=s.ints.map(i=>`<tr><td>${new Date(i.date+'T00:00:00').toLocaleDateString('fr-FR')}</td><td>${esc(i.titre)}</td><td>${esc(clientName(i.clientId))}</td><td>${esc(techNames(i))}</td><td>${STATUT_INT[i.statut]?STATUT_INT[i.statut].l:i.statut}</td></tr>`).join('');
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Archive ${label}</title><style>body{font-family:Arial;padding:40px;color:#1A1F28}.hd{border-bottom:3px solid #1E7A4E;padding-bottom:12px;margin-bottom:18px}.logo{font-size:22px;font-weight:800;color:#1E7A4E}.k{display:inline-block;border:1px solid #E3E8F0;border-radius:8px;padding:10px 16px;margin:4px}table{width:100%;border-collapse:collapse;margin-top:14px}th{background:#1E7A4E;color:#fff;padding:8px;text-align:left;font-size:12px}td{padding:7px;border-bottom:1px solid #E3E8F0;font-size:12px}</style></head>
   <body><div class="hd"><div class="logo">OP GESTION</div><div style="color:#666">Archive mensuelle — ${label}</div></div>
-  <div><span class="k"><b>${s.ints.length}</b> interventions</span><span class="k">CA encaissé <b>${eur(s.caPaye)}</b></span><span class="k">CA facturé <b>${eur(s.caTot)}</b></span><span class="k">Temps pointé <b>${dureeStr(s.minTot)}</b></span></div>
+  <div><span class="k"><b>${s.ints.length}</b> interventions</span>${s.fin?`<span class="k">CA encaissé <b>${eur(s.caPaye)}</b></span><span class="k">CA facturé <b>${eur(s.caTot)}</b></span>`:''}<span class="k">Temps pointé <b>${dureeStr(s.minTot)}</b></span></div>
   <h3 style="margin-top:20px;font-size:15px">Interventions</h3><table><thead><tr><th>Date</th><th>Intervention</th><th>Client</th><th>Technicien</th><th>Statut</th></tr></thead><tbody>${introws||'<tr><td colspan=5>Aucune</td></tr>'}</tbody></table>
   <div style="margin-top:30px;font-size:11px;color:#999;text-align:center">OP GESTION — généré le ${new Date().toLocaleDateString('fr-FR')}</div></body></html>`);
   w.document.close(); w.focus(); setTimeout(()=>{try{w.print();}catch(e){}},350); }
