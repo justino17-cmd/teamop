@@ -13714,7 +13714,7 @@ function openModal(html,taille){ const m=$('modal'); _multiHtml = String(html ||
   m.classList.add('pose'); clearTimeout(window._poseT); window._poseT=setTimeout(()=>m.classList.remove('pose'),620); }
 /* Écran obligatoire (mot de passe personnel à la 1re connexion) : ni Échap ni fermeture tant qu'il n'est pas validé */
 let _modalForcee=false;
-function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').classList.remove('open'); _pp=null; if(scanTimer){clearInterval(scanTimer);scanTimer=null;} if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;} stopBoxScanCamera(); }
+function closeModal(force){ if(_modalForcee&&force!==true) return; $('overlay').classList.remove('open'); try{ ecranFenetreFermee(); }catch(e){} _pp=null; if(scanTimer){clearInterval(scanTimer);scanTimer=null;} if(scanStream){scanStream.getTracks().forEach(t=>t.stop());scanStream=null;} stopBoxScanCamera(); }
 /* Une fenêtre ouverte NE se ferme QUE par sa croix ✕ ou son bouton Annuler —
    plus jamais par un clic à côté (qui faisait perdre la saisie en revenant
    d'une autre fenêtre : le clic de reprise tombait sur le fond sombre). */
@@ -16078,9 +16078,26 @@ function placerGlisse(anime){
    Chaque vue de détail dépose donc ici de quoi SE redessiner. go() l'efface : changer de
    rubrique est une décision de l'utilisateur, un rafraîchissement ne l'est pas. */
 let _ecranRendu=null;
-function ecranDetail(fn){ _ecranRendu=fn; }
+/* ⛔⛔ UN DÉTAIL RENDU DANS UNE FENÊTRE NE COMPTE QUE TANT QUE LA FENÊTRE EST OUVERTE (lot h01, robustesse#7).
+   `ficheClient` s'enregistre ici, et RIEN ne le défaisait à la fermeture : mesuré (Android, instrumenté), la fiche fermée restait
+   « l'écran rendu » — la synchro de l'équipe (`refreshEcran`, à chaque mise à jour reçue) la ROUVRAIT par-dessus la liste, et le
+   retour système suivant croyait fermer une fiche plein écran. Une fiche PLEIN ÉCRAN (intervention, box) n'a pas ce défaut : elle
+   est l'écran, et `go()` la lève. Le détail de fenêtre se déclare donc `ecranDetail(fn, true)` ; `closeModal` le lève.
+   ⚠️ Il lève CELUI-LÀ seulement (identité de la fonction) et rend le détail qu'il recouvrait : une fiche client ouverte depuis le
+   détail d'une intervention ne doit pas faire perdre l'intervention à la synchro suivante. */
+let _ecranFenetre=null, _ecranSous=null;
+function ecranDetail(fn,fenetre){
+  if(fenetre){ _ecranSous=(_ecranFenetre&&_ecranRendu===_ecranFenetre)?_ecranSous:_ecranRendu; _ecranFenetre=fn; }
+  _ecranRendu=fn;
+}
+function ecranFenetreFermee(){
+  if(_ecranFenetre&&_ecranRendu===_ecranFenetre) _ecranRendu=_ecranSous;
+  _ecranFenetre=null; _ecranSous=null;
+}
 function refreshEcran(){
   if(!currentUser) return;
+  /* filet : une fenêtre refermée sans passer par closeModal (classe retirée à la main) ne ressuscite pas non plus */
+  try{ const ov=$('overlay'); if(_ecranFenetre&&_ecranRendu===_ecranFenetre&&!(ov&&ov.classList.contains('open')&&!ov.classList.contains('ferme'))) ecranFenetreFermee(); }catch(e){}
   /* Un détail qui plante ne doit pas figer l'écran sur une page morte : on oublie le
      détail et on retombe sur sa liste, qui est toujours affichable. */
   if(_ecranRendu){ try{ _ecranRendu(); return; }catch(e){ _ecranRendu=null; } }
@@ -24891,7 +24908,7 @@ views.clients=function(){
    notification y mènent : la règle de visibilité doit donc être ICI, pas seulement dans la liste. */
 function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
   if(!ouvrables().cli(c)){ toast('Cette fiche ne te concerne pas'); return; }
-  ecranDetail(()=>ficheClient(id));   // une synchro ne doit pas refermer la fiche ouverte
+  ecranDetail(()=>ficheClient(id),true);   // une synchro ne doit pas refermer la fiche ouverte — mais ne la rouvre pas une fois fermée (fenêtre : voir ecranDetail)
   /* l'historique du SITE, en entier (voir ouvrables()) — les montants, eux, suivent le périmètre (visibleDocs) */
   const ints=db.interventions.filter(i=>i.clientId===id).sort((a,b)=>(b.date+b.heure).localeCompare(a.date+a.heure));
   const devis=visibleDocs(db.devis.filter(d=>d.clientId===id)), facts=visibleDocs(db.factures.filter(f=>f.clientId===id));
