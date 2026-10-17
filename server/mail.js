@@ -6,6 +6,17 @@
                       copie/copie cachée, pièces jointes, copie dans « Envoyés ».
    Brouillons       : enregistrés dans le dossier Brouillons de la boîte.
    Les mots de passe vivent UNIQUEMENT dans le fichier de données du serveur.
+
+   ⛔ LES MÊMES BOÎTES SERVENT LES DEUX CONSOLES DE LA TOUR (Justin, 17 octobre 2026 : « mêmes boîtes,
+   triées »). Chaque message porte `console` — 'gestion', 'messages' ou 'atrier' — décidé par l'adresse
+   de l'INTERLOCUTEUR (l'expéditeur d'un message reçu, le premier destinataire d'un message envoyé),
+   dans cet ordre, et il n'y en a pas d'autre : 1. une règle posée à la main (adresse exacte, puis
+   domaine « @exemple.fr ») ; 2. une adresse connue d'OP GESTION (`ctx.adresseGestion`, que
+   `server/index.js` branche sur l'annuaire des espaces et sur les fiches clients) ; 3. une adresse
+   connue d'OP MESSAGES (`ctx.adresseMessages` : le CROCHET est posé, il rend faux pour l'instant — OP
+   MESSAGES aura son propre serveur, ses comptes sont des personnes et non des entreprises) ;
+   4. sinon 'atrier', pour que quelqu'un le range. Un message à trier se montre dans LES DEUX consoles :
+   un courriel qu'aucune console ne réclame ne doit pas disparaître.
    ═══════════════════════════════════════════════════════════════════════════ */
 'use strict';
 const fs = require('fs');
@@ -13,11 +24,27 @@ const path = require('path');
 const crypto = require('crypto');
 
 const MAX_PIECES = 12;
-const MAX_PIECES_OCTETS = 12 * 1024 * 1024;   // 12 Mo au total pour un envoi
+const MAX_PIECES_OCTETS = 12 * 1024 * 1024;   // 12 Mo au total pour un envoi — environ 16 Mo de JSON une fois en base64, d'où l'analyseur à 20 Mo de `index.js`
 const PAR_PAGE = 30;
+const ENVOIS_PAR_HEURE = 60;           // par compte de la Tour, pas par boîte : c'est la session volée qu'on borne
+const BROUILLONS_PAR_HEURE = 30;        // un brouillon porte jusqu'à 12 Mo de pièces rangées dans la boîte : sans budget, une session remplit Brouillons
+const MAX_TRI = 1500;                  // messages les plus récents examinés pour filtrer par console (`tronque` quand le dossier est plus long)
+const MAX_REGLES = 2000;
+const NON_LUS_MS = Math.max(1, parseInt(process.env.TEAMOP_MAIL_NONLUS_MS, 10) || 20000);   // les non-lus se périment vite, et tout geste qui les change les oublie aussitôt (la variable : pour les bancs seulement)
 
 module.exports = function monterMessagerie(app, ctx) {
   const { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege } = ctx;
+  /* Ce que `server/index.js` branche : le budget horaire (`quotaOk`, le même mécanisme que partout), le masquage
+     des adresses (`masqueMail`, `sansAdresses`), l'analyseur de gros corps JSON des deux routes qui portent des
+     pièces, et les deux questions « cette adresse est-elle connue de… ». Une réponse qui manque ne rend jamais
+     « oui » : l'adresse reste à trier. */
+  const quotaOk = typeof ctx.quotaOk === 'function' ? ctx.quotaOk : null;
+  const sansAdr = typeof ctx.sansAdresses === 'function' ? ctx.sansAdresses
+    : (t => String(t || '').replace(/[^\s<>"'(),;:[\]]+@[^\s<>"'(),;:[\]]+/g, '(adresse)'));
+  const masque = typeof ctx.masqueMail === 'function' ? ctx.masqueMail : (() => '(adresse)');
+  const jsonGros = typeof ctx.jsonGros === 'function' ? ctx.jsonGros : require('express').json({ limit: '20mb' });
+  const connueGestion = typeof ctx.adresseGestion === 'function' ? ctx.adresseGestion : () => false;
+  const connueMessages = typeof ctx.adresseMessages === 'function' ? ctx.adresseMessages : () => false;
   /* ⛔ LES E-MAILS DE SÉCURITÉ DU SERVEUR (`gardien`, 27 septembre 2026, B4). Le code d'une suppression et
      l'avis qui la suit partent à la boîte de TEAM OP — que cette Messagerie relève. Une session de la Tour
      volée lisait le code qu'on lui demandait, puis supprimait l'avis qui l'aurait dénoncée. Ils restent
@@ -32,6 +59,8 @@ module.exports = function monterMessagerie(app, ctx) {
     const m = await client.fetchOne(String(uid), { uid: true, envelope: true }, { uid: true });
     if (m && m.envelope && protege(m.envelope.messageId)) throw erreurProtege();
   }
+  const envoiQuota = new Map();   // 'u:<compte>' -> { n, reset } (le format de `quotaOk`)
+  const brouillonQuota = new Map();   // même forme, budget à part : écrire des brouillons ne doit pas manger les envois
   const BOITES_PATH = path.join(DATA_DIR, 'mail-boites.json');
   const SUIVI_PATH = path.join(DATA_DIR, 'mail-suivi.json');
   const REGLAGES_PATH = path.join(DATA_DIR, 'mail-reglages.json');
@@ -63,10 +92,29 @@ module.exports = function monterMessagerie(app, ctx) {
     { id: 'm4', titre: '💡 Comment faire', objet: '', texte: 'Bonjour {prenom},\n\nVoici comment procéder :\n\n1. \n2. \n3. \n\nDites-moi si cela fonctionne de votre côté.' },
     { id: 'm5', titre: '🎁 Offre 3 mois', objet: 'Votre offre — 3 mois offerts', texte: 'Bonjour {prenom},\n\nComme convenu, votre code {promo} vous offre 3 mois d\'abonnement. Il s\'applique directement au moment du paiement.\n\nBonne découverte de {formule} !' }
   ];
-  let reglages = { signature: 'L\'équipe TEAM OP\nsupport@teamop.fr · teamop.fr', modeles: MODELES_DEFAUT };
+  /* `regles` : adresse exacte ou domaine (« @exemple.fr ») -> 'gestion' | 'messages', posées à la main depuis la Tour.
+     Sans prototype : une clé vient d'un champ de formulaire, et rien ne doit pouvoir y glisser un « __proto__ ». */
+  function regleAdresse(v) {
+    if (typeof v !== 'string') return '';
+    let a = v.trim().toLowerCase();
+    if (a.length > 200) return '';
+    const m = /<([^<>]+)>\s*$/.exec(a); if (m) a = m[1].trim();
+    if (a.length > 160) return '';
+    if (/^[^@\s,;<>"'()[\]]+@[^@\s,;<>"'()[\]]+\.[^@\s,;<>"'()[\]]+$/.test(a)) return a;     // une adresse
+    if (/^@[^@\s,;<>"'()[\]]+\.[^@\s,;<>"'()[\]]+$/.test(a)) return a;                       // tout un domaine
+    return '';
+  }
+  function reglesLues(r) {
+    const out = Object.create(null);
+    if (r && typeof r === 'object' && !Array.isArray(r)) {
+      for (const k of Object.keys(r)) { const a = regleAdresse(k); if (a === k && (r[k] === 'gestion' || r[k] === 'messages') && Object.keys(out).length < MAX_REGLES) out[k] = r[k]; }
+    }
+    return out;
+  }
+  let reglages = { signature: 'L\'équipe TEAM OP\nsupport@teamop.fr · teamop.fr', modeles: MODELES_DEFAUT, regles: Object.create(null) };
   try {
     const r = JSON.parse(fs.readFileSync(REGLAGES_PATH, 'utf8'));
-    if (r && typeof r === 'object') reglages = { signature: String(r.signature || reglages.signature), modeles: Array.isArray(r.modeles) && r.modeles.length ? r.modeles : MODELES_DEFAUT };
+    if (r && typeof r === 'object') reglages = { signature: String(r.signature || reglages.signature), modeles: Array.isArray(r.modeles) && r.modeles.length ? r.modeles : MODELES_DEFAUT, regles: reglesLues(r.regles) };
   } catch (e) {}
   function reglagesSauve() { try { fs.writeFileSync(REGLAGES_PATH, JSON.stringify(reglages)); } catch (e) { console.error('mail reglages:', e.message); } }
 
@@ -161,6 +209,32 @@ module.exports = function monterMessagerie(app, ctx) {
     cacheDossiers.set(b.id, { ts: Date.now(), liste });
     return liste;
   }
+  /* Les non-lus de CHAQUE dossier (IMAP STATUS UNSEEN) — la Réception seule ne dit pas qu'un message attend dans les
+     Indésirables. Un compteur par dossier, `null` quand le serveur n'a pas su répondre : « on n'a pas pu savoir » n'est
+     pas « zéro » (la règle de `_mailboxes`, côté Tour). Gardé 20 s, et oublié à chaque geste qui le change. */
+  const cacheNonLus = new Map();   // id boîte -> { ts, par: { chemin: n | null } }
+  function nonLusOublier(id) { cacheNonLus.delete(id); }
+  async function nonLusDe(b, liste, frais) {
+    const c = cacheNonLus.get(b.id);
+    if (!frais && c && Date.now() - c.ts < NON_LUS_MS) return c.par;
+    let par;
+    try {
+      par = await avecImap(b, async client => {
+        const out = {};
+        for (const d of liste) {
+          try { const st = await client.status(d.chemin, { unseen: true }); out[d.chemin] = (st && Number.isFinite(st.unseen)) ? st.unseen : null; }
+          catch (e) { out[d.chemin] = null; }
+        }
+        return out;
+      });
+    } catch (e) {
+      if (c) return c.par;   // la boîte ne répond pas : le dernier chiffre connu vaut mieux qu'un faux zéro
+      par = {}; liste.forEach(d => { par[d.chemin] = null; });
+      return par;            // et on ne le garde pas : la prochaine demande réessaie
+    }
+    cacheNonLus.set(b.id, { ts: Date.now(), par });
+    return par;
+  }
   async function cheminRole(b, role) {
     const d = (await dossiersDe(b)).find(x => x.role === role);
     return d ? d.chemin : null;
@@ -190,6 +264,32 @@ module.exports = function monterMessagerie(app, ctx) {
       .replace(/[ \t ]+/g, ' ').replace(/ ?\n ?/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
+  /* ── le tri par console ────────────────────────────────────────────────── */
+  function appelle(f, a) { try { return !!f(a); } catch (e) { return false; } }   // une question qui échoue ne range pas : l'adresse reste à trier
+  function consoleDeAdresse(adr) {
+    const a = String(adr || '').trim().toLowerCase();
+    if (!a || a.indexOf('@') < 1) return 'atrier';
+    const r = reglages.regles[a] || reglages.regles['@' + a.slice(a.lastIndexOf('@') + 1)];   // l'adresse exacte passe avant son domaine
+    if (r === 'gestion' || r === 'messages') return r;
+    if (appelle(connueGestion, a)) return 'gestion';
+    if (appelle(connueMessages, a)) return 'messages';
+    return 'atrier';
+  }
+  /* L'interlocuteur : celui à qui l'on a affaire. Un message ENVOYÉ (dossier Envoyés ou Brouillons, ou écrit de
+     l'adresse même de la boîte) a pour interlocuteur son premier destinataire ; un message REÇU, son expéditeur.
+     Se fier au seul dossier rangerait mal un message d'un alias, se fier au seul expéditeur un brouillon. */
+  function interlocuteurDe(b, role, de, pour, copie) {
+    const envoye = role === 'envoyes' || role === 'brouillons' || (!!de && de === String(b.email || '').toLowerCase());
+    if (envoye) return String((pour[0] && pour[0].adr) || (copie[0] && copie[0].adr) || '').toLowerCase();
+    return String(de || '').toLowerCase();
+  }
+  /* Le rôle d'un dossier se lit AVANT d'ouvrir la boîte : `dossiersDe` passe par la file de la boîte, et l'appeler
+     depuis une tâche de cette file l'attendrait elle-même, pour toujours. */
+  async function roleDuChemin(b, chemin) {
+    try { const d = (await dossiersDe(b)).find(x => x.chemin === chemin); if (d) return d.role; } catch (e) {}
+    return roleDe({ path: chemin });
+  }
+
   /* ═════════════════════ LES BOÎTES ═════════════════════ */
   app.get('/api/monitor/mail/boites', monAdmin, (req, res) => res.json({ boites: boites.map(publique) }));
 
@@ -207,13 +307,13 @@ module.exports = function monterMessagerie(app, ctx) {
       const nodemailer = require('nodemailer');
       await nodemailer.createTransport({ host: b.smtpHost, port: b.smtpPort, secure: b.smtpPort === 465,
         auth: { user: b.email, pass: b.pass }, connectionTimeout: 9000, greetingTimeout: 9000 }).verify();
-    } catch (e) { return res.status(400).json({ error: "Connexion d'envoi (SMTP) refusée : " + String(e.message || e).slice(0, 140) }); }
+    } catch (e) { return res.status(400).json({ error: "Connexion d'envoi (SMTP) refusée : " + sansAdr(String(e.message || e)).slice(0, 140) }); }
     try {
       const { ImapFlow } = require('imapflow');
       const c = new ImapFlow({ host: b.imapHost, port: b.imapPort, secure: true, auth: { user: b.email, pass: b.pass }, logger: false });
       c.on('error', () => {});   // une erreur émise en événement tuerait le processus : on l'absorbe, l'échec est déjà traité par le try/catch
       await c.connect(); await c.logout();
-    } catch (e) { return res.status(400).json({ error: 'Connexion de réception (IMAP) refusée : ' + String(e.message || e).slice(0, 140) }); }
+    } catch (e) { return res.status(400).json({ error: 'Connexion de réception (IMAP) refusée : ' + sansAdr(String(e.message || e)).slice(0, 140) }); }
     const i = boites.findIndex(x => x.email === adr);
     if (i >= 0) { b.id = boites[i].id; boites[i] = b; } else boites.push(b);
     cacheDossiers.delete(b.id); sauve();
@@ -232,29 +332,52 @@ module.exports = function monterMessagerie(app, ctx) {
   /* ═════════════════════ DOSSIERS ═════════════════════ */
   app.get('/api/monitor/mail/dossiers', monAdmin, async (req, res) => {
     const out = [];
+    const frais = String(req.query.frais || '') === '1';
     for (const b of boites) {
       try {
-        const liste = await dossiersDe(b, String(req.query.frais || '') === '1');
-        let nonLus = 0;
-        try {
-          nonLus = await avecImap(b, async client => {
-            const inbox = (liste.find(x => x.role === 'inbox') || {}).chemin || 'INBOX';
-            const l = await client.getMailboxLock(inbox);
-            try { return (await client.search({ seen: false }, { uid: true })).length; } finally { l.release(); }
-          });
-        } catch (e) {}
+        const base = await dossiersDe(b, frais);
+        const par = await nonLusDe(b, base, frais);
+        // chaque dossier porte SON compteur ; `nonLus` de la boîte reste celui de la Réception (la Tour d'avant le lit)
+        const liste = base.map(d => Object.assign({}, d, { nonLus: Number.isFinite(par[d.chemin]) ? par[d.chemin] : null }));
+        const ib = liste.find(x => x.role === 'inbox');
+        const nonLus = ib && Number.isFinite(ib.nonLus) ? ib.nonLus : 0;
         out.push({ boite: publique(b), dossiers: liste, nonLus });
       } catch (e) {
-        out.push({ boite: publique(b), dossiers: [], nonLus: 0, erreur: String(e.message || e).slice(0, 140) });
+        out.push({ boite: publique(b), dossiers: [], nonLus: 0, erreur: sansAdr(String(e.message || e)).slice(0, 140) });
       }
     }
     res.json({ boites: out });
   });
 
   /* ═════════════════════ LISTE DES MESSAGES ═════════════════════ */
-  async function listeDe(b, dossier, page, q) {
+  const CHAMPS_LISTE = { uid: true, envelope: true, flags: true, bodyStructure: true, size: true };
+  function ligneDe(b, chemin, role, m) {
+    const env = m.envelope || {};
+    const de = adr1(env.from), pour = pers(env.to), copie = pers(env.cc);
+    const fl = m.flags || new Set();
+    const interlocuteur = interlocuteurDe(b, role, de.adr, pour, copie);
+    return { uid: m.uid, dossier: chemin, boite: b.id,
+      de: de.adr, deNom: de.nom, pour: pour.map(p => p.adr).slice(0, 5),
+      interlocuteur, console: consoleDeAdresse(interlocuteur),
+      objet: String(env.subject || '(sans objet)').slice(0, 200),
+      ts: env.date ? new Date(env.date).getTime() : 0,
+      lu: fl.has ? fl.has('\\Seen') : false, marque: fl.has ? fl.has('\\Flagged') : false,
+      repondu: fl.has ? fl.has('\\Answered') : false,
+      pieces: comptePieces(m.bodyStructure), taille: m.size || 0,
+      mid: String(env.messageId || '').slice(0, 300),
+      protege: protege(env.messageId),
+      auto: estNotification(de.adr, env.subject),
+      suivi: (function () { const sv = suivi[String(env.messageId || '')]; return sv ? { statut: sv.statut, assigne: sv.assigne || '' } : null; })() };
+  }
+  /* `filtre` ('gestion' | 'messages' | '') : la console qu'on regarde. Elle voit ses messages ET ceux à trier, jamais
+     ceux de l'autre. Le rôle d'un message ne se connaît qu'une fois l'enveloppe lue : filtrer APRÈS avoir découpé
+     la page rendrait des pages de tailles inégales et un total faux. On examine donc les `MAX_TRI` plus récents du
+     dossier, on garde ceux de la console, et c'est cette liste qu'on pagine — `tronque` dit quand le dossier est
+     plus long que la fenêtre. */
+  async function listeDe(b, dossier, page, q, filtre) {
+    const chemin = dossier || 'INBOX';
+    const role = await roleDuChemin(b, chemin);
     return avecImap(b, async client => {
-      const chemin = dossier || 'INBOX';
       const lock = await client.getMailboxLock(chemin);
       try {
         let uids;
@@ -265,29 +388,32 @@ module.exports = function monterMessagerie(app, ctx) {
           uids = await client.search({ all: true }, { uid: true });
         }
         uids = (uids || []).sort((x, y) => y - x);
-        const total = uids.length;
-        const tranche = uids.slice(page * PAR_PAGE, page * PAR_PAGE + PAR_PAGE);
         const messages = [];
-        if (tranche.length) {
-          for await (const m of client.fetch({ uid: tranche.join(',') }, { uid: true, envelope: true, flags: true, bodyStructure: true, size: true }, { uid: true })) {
-            const env = m.envelope || {};
-            const de = adr1(env.from), pour = pers(env.to);
-            const fl = m.flags || new Set();
-            messages.push({ uid: m.uid, dossier: chemin, boite: b.id,
-              de: de.adr, deNom: de.nom, pour: pour.map(p => p.adr).slice(0, 5),
-              objet: String(env.subject || '(sans objet)').slice(0, 200),
-              ts: env.date ? new Date(env.date).getTime() : 0,
-              lu: fl.has ? fl.has('\\Seen') : false, marque: fl.has ? fl.has('\\Flagged') : false,
-              repondu: fl.has ? fl.has('\\Answered') : false,
-              pieces: comptePieces(m.bodyStructure), taille: m.size || 0,
-              mid: String(env.messageId || '').slice(0, 300),
-              protege: protege(env.messageId),
-              auto: estNotification(de.adr, env.subject),
-              suivi: (function () { const sv = suivi[String(env.messageId || '')]; return sv ? { statut: sv.statut, assigne: sv.assigne || '' } : null; })() });
+        let total = uids.length, tronque = false;
+        if (!filtre) {
+          const tranche = uids.slice(page * PAR_PAGE, page * PAR_PAGE + PAR_PAGE);
+          if (tranche.length) {
+            for await (const m of client.fetch({ uid: tranche.join(',') }, CHAMPS_LISTE, { uid: true })) messages.push(ligneDe(b, chemin, role, m));
           }
+        } else {
+          const fenetre = uids.slice(0, MAX_TRI);
+          tronque = uids.length > fenetre.length;
+          const gardes = [];
+          for (let i = 0; i < fenetre.length; i += 150) {
+            const lot = fenetre.slice(i, i + 150);
+            for await (const m of client.fetch({ uid: lot.join(',') }, CHAMPS_LISTE, { uid: true })) {
+              const l = ligneDe(b, chemin, role, m);
+              if (l.console === filtre || l.console === 'atrier') gardes.push(l);
+            }
+          }
+          gardes.sort((x, y) => y.uid - x.uid);
+          total = gardes.length;
+          messages.push.apply(messages, gardes.slice(page * PAR_PAGE, page * PAR_PAGE + PAR_PAGE));
         }
         messages.sort((x, y) => (y.ts || 0) - (x.ts || 0));
-        return { messages, total, page, pages: Math.max(1, Math.ceil(total / PAR_PAGE)) };
+        const out = { messages, total, page, pages: Math.max(1, Math.ceil(total / PAR_PAGE)) };
+        if (filtre) { out.console = filtre; out.tronque = tronque; }
+        return out;
       } finally { lock.release(); }
     });
   }
@@ -295,25 +421,30 @@ module.exports = function monterMessagerie(app, ctx) {
   app.get('/api/monitor/mail/liste', monAdmin, async (req, res) => {
     const page = Math.max(0, Math.min(200, parseInt(req.query.page, 10) || 0));
     const q = monStr(req.query.q, 120).trim();
+    const demande = monStr(req.query.console, 12).trim().toLowerCase();
+    if (demande && demande !== 'gestion' && demande !== 'messages') return res.status(400).json({ error: 'console inconnue (gestion ou messages)' });
+    const filtre = demande;
     // vue « toutes les boîtes » : les réceptions fusionnées
     if (!req.query.boite || req.query.boite === 'toutes') {
       let messages = [], total = 0; const erreurs = [];
       for (const b of boites) {
         try {
           const inbox = (await cheminRole(b, 'inbox')) || 'INBOX';
-          const r = await listeDe(b, inbox, page, q);
+          const r = await listeDe(b, inbox, page, q, filtre);
           messages = messages.concat(r.messages); total += r.total;
-        } catch (e) { erreurs.push(b.email + ' : ' + String(e.message || e).slice(0, 100)); }
+        } catch (e) { erreurs.push(masque(b.email) + ' : ' + sansAdr(String(e.message || e)).slice(0, 100)); }
       }
       messages.sort((x, y) => (y.ts || 0) - (x.ts || 0));
-      return res.json({ messages: messages.slice(0, PAR_PAGE * 2), total, page, pages: Math.max(1, Math.ceil(total / PAR_PAGE)), fusion: true, erreurs });
+      const out = { messages: messages.slice(0, PAR_PAGE * 2), total, page, pages: Math.max(1, Math.ceil(total / PAR_PAGE)), fusion: true, erreurs };
+      if (filtre) out.console = filtre;
+      return res.json(out);
     }
     const b = trouve(req.query.boite);
     if (!b) return res.status(404).json({ error: 'boîte introuvable' });
     try {
       const chemin = monStr(req.query.dossier, 200) || (await cheminRole(b, 'inbox')) || 'INBOX';
-      res.json(await listeDe(b, chemin, page, q));
-    } catch (e) { res.status(502).json({ error: 'boîte injoignable : ' + String(e.message || e).slice(0, 140) }); }
+      res.json(await listeDe(b, chemin, page, q, filtre));
+    } catch (e) { res.status(502).json({ error: 'boîte injoignable : ' + sansAdr(String(e.message || e)).slice(0, 140) }); }
   });
 
   /* ═════════════════════ LECTURE D'UN MESSAGE ═════════════════════ */
@@ -324,6 +455,7 @@ module.exports = function monterMessagerie(app, ctx) {
     const uid = parseInt(req.query.uid, 10);
     if (!uid) return res.status(400).json({ error: 'message introuvable' });
     try {
+      const role = await roleDuChemin(b, chemin);   // avant d'ouvrir la boîte : voir `roleDuChemin`
       const out = await avecImap(b, async client => {
         const lock = await client.getMailboxLock(chemin);
         try {
@@ -339,19 +471,22 @@ module.exports = function monterMessagerie(app, ctx) {
             .filter(a => a.nom).slice(0, MAX_PIECES);
           // à l'ouverture, le message est marqué lu (comme dans une vraie messagerie) — sauf un e-mail de sécurité
           const estProtege = protege(env.messageId);
-          if (!estProtege && !(msg.flags && msg.flags.has && msg.flags.has('\\Seen'))) { try { await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true }); } catch (_) {} }
+          if (!estProtege && !(msg.flags && msg.flags.has && msg.flags.has('\\Seen'))) { try { await client.messageFlagsAdd(String(uid), ['\\Seen'], { uid: true }); nonLusOublier(b.id); } catch (_) {} }
           const midCle = String(env.messageId || '');
-          if (!estProtege && midCle && !suivi[midCle] && roleDe({ path: chemin }) === 'inbox') {
+          if (!estProtege && midCle && !suivi[midCle] && role === 'inbox') {
             const deAdr = de.adr;
             suivi[midCle] = { statut: estNotification(deAdr, env.subject) ? 'resolu' : 'aTraiter', assigne: '', par: '',
               ts: Date.now(), recuTs: env.date ? new Date(env.date).getTime() : Date.now(), repTs: 0,
               de: deAdr, objet: String(env.subject || '').slice(0, 160), auto: estNotification(deAdr, env.subject) ? 1 : 0 };
             suiviSauve();
           }
+          const pour = pers(env.to), copie = pers(env.cc);
+          const interlocuteur = interlocuteurDe(b, role, de.adr, pour, copie);
           return { uid, dossier: chemin, boite: b.id, boiteEmail: b.email,
             suivi: suivi[midCle] ? { statut: suivi[midCle].statut, assigne: suivi[midCle].assigne || '' } : null,
             auto: estNotification(de.adr, env.subject),
-            de: de.adr, deNom: de.nom, pour: pers(env.to), copie: pers(env.cc),
+            interlocuteur, console: consoleDeAdresse(interlocuteur),
+            de: de.adr, deNom: de.nom, pour, copie,
             objet: String(env.subject || '(sans objet)').slice(0, 300),
             ts: env.date ? new Date(env.date).getTime() : 0,
             texte: texte.slice(0, 40000), html: (typeof p.html === 'string' ? p.html : '').slice(0, 400000),
@@ -361,7 +496,7 @@ module.exports = function monterMessagerie(app, ctx) {
       });
       if (!out) return res.status(404).json({ error: 'message introuvable' });
       res.json(out);
-    } catch (e) { res.status(502).json({ error: 'lecture impossible : ' + String(e.message || e).slice(0, 140) }); }
+    } catch (e) { res.status(502).json({ error: 'lecture impossible : ' + sansAdr(String(e.message || e)).slice(0, 140) }); }
   });
 
   /* ═════════════════════ PIÈCE JOINTE ═════════════════════ */
@@ -407,7 +542,7 @@ module.exports = function monterMessagerie(app, ctx) {
           if (lu === false) await client.messageFlagsRemove(String(u), ['\\Seen'], { uid: true });
           if (marque === true) await client.messageFlagsAdd(String(u), ['\\Flagged'], { uid: true });
           if (marque === false) await client.messageFlagsRemove(String(u), ['\\Flagged'], { uid: true });
-        } finally { lock.release(); }
+        } finally { lock.release(); nonLusOublier(b.id); }
       });
       res.json({ ok: true });
     } catch (e) {
@@ -430,12 +565,12 @@ module.exports = function monterMessagerie(app, ctx) {
       if (dest === src) return res.json({ ok: true, deja: true });
       await avecImap(b, async client => {
         const lock = await client.getMailboxLock(src);
-        try { await verifierNonProtege(client, u); await client.messageMove(String(u), dest, { uid: true }); } finally { lock.release(); }
+        try { await verifierNonProtege(client, u); await client.messageMove(String(u), dest, { uid: true }); } finally { lock.release(); nonLusOublier(b.id); }
       });
       res.json({ ok: true, vers: dest });
     } catch (e) {
       if (e && e.protege) return res.status(403).json({ error: REFUS_PROTEGE });
-      res.status(502).json({ error: 'déplacement impossible : ' + String(e.message || e).slice(0, 120) });
+      res.status(502).json({ error: 'déplacement impossible : ' + sansAdr(String(e.message || e)).slice(0, 120) });
     }
   });
 
@@ -455,12 +590,12 @@ module.exports = function monterMessagerie(app, ctx) {
           await verifierNonProtege(client, u);
           if (definitif) { await client.messageFlagsAdd(String(u), ['\\Deleted'], { uid: true }); try { await client.messageDelete(String(u), { uid: true }); } catch (_) {} }
           else await client.messageMove(String(u), corbeille, { uid: true });
-        } finally { lock.release(); }
+        } finally { lock.release(); nonLusOublier(b.id); }
       });
       res.json({ ok: true, definitif });
     } catch (e) {
       if (e && e.protege) return res.status(403).json({ error: REFUS_PROTEGE });
-      res.status(502).json({ error: 'suppression impossible : ' + String(e.message || e).slice(0, 120) });
+      res.status(502).json({ error: 'suppression impossible : ' + sansAdr(String(e.message || e)).slice(0, 120) });
     }
   });
 
@@ -482,7 +617,12 @@ module.exports = function monterMessagerie(app, ctx) {
     return String(v || '').split(/[,;]/).map(x => x.trim()).filter(x => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x.replace(/^.*</, '').replace(/>.*$/, ''))).slice(0, 20);
   }
 
-  app.post('/api/monitor/mail/envoyer', monAdmin, async (req, res) => {
+  /* ⛔ LES DEUX ROUTES QUI PORTENT DES PIÈCES ONT LEUR PROPRE ANALYSEUR (`jsonGros`, 20 Mo), MONTÉ APRÈS `monAdmin`.
+     Le plafond global d'`index.js` (6 Mo) refusait en 413 AVANT la route : « 12 pièces, 12 Mo » était une promesse que
+     le serveur ne pouvait pas tenir, puisque 12 Mo d'octets font ~16 Mo de base64. Et l'ordre compte : lire 20 Mo avant
+     de savoir QUI parle ferait de ces deux chemins le moyen le moins cher de remplir la mémoire du serveur. Les autres
+     routes gardent leurs 6 Mo (`index.js` écarte ces deux chemins du plafond global, et eux seuls). */
+  app.post('/api/monitor/mail/envoyer', monAdmin, jsonGros, async (req, res) => {
     const b = trouve((req.body || {}).boite) || boites[0];
     if (!b) return res.status(503).json({ error: 'aucune boîte connectée' });
     const to = adrListe((req.body || {}).a), cc = adrListe((req.body || {}).copie), bcc = adrListe((req.body || {}).copieCachee);
@@ -493,6 +633,17 @@ module.exports = function monterMessagerie(app, ctx) {
     let pieces;
     try { pieces = piecesValides((req.body || {}).pieces); }
     catch (e) { return res.status(400).json({ error: String(e.message) }); }
+    /* Le budget d'envoi : par COMPTE de la Tour (une session volée n'écrit pas à tous nos clients en une nuit), compté
+       APRÈS les contrôles — un message refusé pour une adresse fausse ne consomme rien — et AVANT l'envoi. */
+    if (!quotaOk) return res.status(503).json({ error: 'envoi indisponible : la limite d\'envoi n\'est pas branchée' });
+    if (envoiQuota.size > 2000) envoiQuota.clear();
+    const cleQuota = 'u:' + String((req.tourUser && (req.tourUser.id || req.tourUser.nom)) || '?');
+    if (!quotaOk(envoiQuota, cleQuota, ENVOIS_PAR_HEURE, 3600000)) {
+      const q = envoiQuota.get(cleQuota);
+      const attente = Math.max(1, Math.ceil(((q && q.reset) - Date.now()) / 1000) || 3600);
+      res.setHeader('Retry-After', String(attente));   // la Tour est sur une autre origine : elle ne lit pas cet en-tête, d'où `reessayerDans` dans le corps
+      return res.status(429).json({ error: 'trop d\'envois : ' + ENVOIS_PAR_HEURE + ' messages par heure et par compte — réessaie plus tard', limite: ENVOIS_PAR_HEURE, reessayerDans: attente });
+    }
 
     const rep = (req.body || {}).enReponseA || null;   // { mid }
     const options = { from: '"' + (b.nom || 'TEAM OP') + '" <' + b.email + '>', to: to.join(', '),
@@ -515,7 +666,7 @@ module.exports = function monterMessagerie(app, ctx) {
       const t = nodemailer.createTransport({ host: b.smtpHost, port: b.smtpPort, secure: b.smtpPort === 465,
         auth: { user: b.email, pass: b.pass }, connectionTimeout: 12000, greetingTimeout: 12000 });
       await t.sendMail(options);
-    } catch (e) { return res.status(500).json({ error: 'envoi refusé : ' + String(e.message || e).slice(0, 160) }); }
+    } catch (e) { return res.status(500).json({ error: 'envoi refusé : ' + sansAdr(String(e.message || e)).slice(0, 160) }); }
     // 3) copie dans « Envoyés » + le message d'origine passe en « répondu »
     let copieOk = false;
     try {
@@ -538,13 +689,25 @@ module.exports = function monterMessagerie(app, ctx) {
   });
 
   /* ═════════════════════ BROUILLON ═════════════════════ */
-  app.post('/api/monitor/mail/brouillon', monAdmin, async (req, res) => {
+  app.post('/api/monitor/mail/brouillon', monAdmin, jsonGros, async (req, res) => {
     const b = trouve((req.body || {}).boite) || boites[0];
     if (!b) return res.status(503).json({ error: 'aucune boîte connectée' });
     const options = { from: '"' + (b.nom || 'TEAM OP') + '" <' + b.email + '>',
       to: adrListe((req.body || {}).a).join(', '), subject: monStr((req.body || {}).objet, 300) || '(sans objet)',
       text: String((req.body || {}).texte || '').slice(0, 60000) };
     const cc = adrListe((req.body || {}).copie); if (cc.length) options.cc = cc.join(', ');
+    // un brouillon garde ses pièces : sans elles, rouvrir le brouillon d'un envoi à joindre le rendrait incomplet, sans un mot
+    try { const pj = piecesValides((req.body || {}).pieces); if (pj.length) options.attachments = pj; }
+    catch (e) { return res.status(400).json({ error: String(e.message) }); }
+    if (!quotaOk) return res.status(503).json({ error: 'brouillon indisponible : la limite n\'est pas branchée' });
+    if (brouillonQuota.size > 2000) brouillonQuota.clear();
+    const cleBr = 'u:' + String((req.tourUser && (req.tourUser.id || req.tourUser.nom)) || '?');
+    if (!quotaOk(brouillonQuota, cleBr, BROUILLONS_PAR_HEURE, 3600000)) {
+      const q = brouillonQuota.get(cleBr);
+      const attente = Math.max(1, Math.ceil(((q && q.reset) - Date.now()) / 1000) || 3600);
+      res.setHeader('Retry-After', String(attente));
+      return res.status(429).json({ error: 'trop de brouillons : ' + BROUILLONS_PAR_HEURE + ' par heure et par compte — réessaie plus tard', limite: BROUILLONS_PAR_HEURE, reessayerDans: attente });
+    }
     try {
       const nodemailer = require('nodemailer');
       const info = await nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'windows' }).sendMail(options);
@@ -552,7 +715,7 @@ module.exports = function monterMessagerie(app, ctx) {
       if (!brouillons) return res.status(501).json({ error: 'cette boîte n\'a pas de dossier Brouillons' });
       await avecImap(b, async client => { await client.append(brouillons, info.message, ['\\Draft', '\\Seen']); });
       res.json({ ok: true });
-    } catch (e) { res.status(502).json({ error: 'brouillon non enregistré : ' + String(e.message || e).slice(0, 140) }); }
+    } catch (e) { res.status(502).json({ error: 'brouillon non enregistré : ' + sansAdr(String(e.message || e)).slice(0, 140) }); }
   });
 
   /* ═════════════════════ RÉGLAGES : signature et réponses toutes prêtes ═════════════════════ */
@@ -570,6 +733,33 @@ module.exports = function monterMessagerie(app, ctx) {
     }
     reglagesSauve();
     res.json({ ok: true, signature: reglages.signature, modeles: reglages.modeles });
+  });
+
+  /* ═════════════════════ LES RÈGLES DE TRI ═════════════════════ */
+  app.get('/api/monitor/mail/regles', monAdmin, (req, res) => {
+    res.json({ regles: Object.keys(reglages.regles).sort().map(adresse => ({ adresse, console: reglages.regles[adresse] })) });
+  });
+  /* POST { adresse, console } — `console` : 'gestion' | 'messages' pose la règle, `null` la retire. L'adresse est soit
+     complète (« paul@exemple.fr »), soit un domaine entier (« @exemple.fr »). La règle de l'adresse passe avant celle
+     de son domaine, et les deux passent avant l'annuaire d'OP GESTION. */
+  app.post('/api/monitor/mail/regle', monAdmin, (req, res) => {
+    const corps = req.body || {};
+    const adresse = regleAdresse(corps.adresse);
+    if (!adresse) return res.status(400).json({ error: 'adresse invalide : une adresse complète, ou un domaine « @exemple.fr »' });
+    /* Un DOMAINE entier déplace tout un pan du courrier d'une console à l'autre — « @gmail.com → messages » le ferait disparaître
+       de la vue d'un compte qui n'a que GESTION, en silence. C'est un réglage de la boîte, comme la signature : au patron.
+       Une adresse seule (ce que la Tour propose sous un message) reste à tout compte du Courrier. */
+    if (adresse[0] === '@' && !(req.tourUser && req.tourUser.role === 'patron')) return res.status(403).json({ error: 'ranger tout un domaine est réservé au patron' });
+    if (!Object.prototype.hasOwnProperty.call(corps, 'console')) return res.status(400).json({ error: 'console manquante (gestion, messages, ou null pour retirer la règle)' });
+    const c = corps.console;
+    if (c !== null && c !== '' && c !== 'gestion' && c !== 'messages') return res.status(400).json({ error: 'console inconnue (gestion, messages, ou null pour retirer la règle)' });
+    if (c === null || c === '') delete reglages.regles[adresse];
+    else {
+      if (!(adresse in reglages.regles) && Object.keys(reglages.regles).length >= MAX_REGLES) return res.status(400).json({ error: 'trop de règles (' + MAX_REGLES + ' au maximum)' });
+      reglages.regles[adresse] = c;
+    }
+    reglagesSauve();
+    res.json({ ok: true, adresse, console: c === '' ? null : c, regles: Object.keys(reglages.regles).length });
   });
 
   /* ═════════════════════ SUIVI D'UNE DEMANDE ═════════════════════ */

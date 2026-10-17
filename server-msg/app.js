@@ -37,6 +37,7 @@ const { installerSalles } = require('./routes-salles');
 const { ID_APPEL } = require('./appels');
 const { ID_REUNION } = require('./reunions-outils');
 const { installerFacturation } = require('./facturation');
+const { installerAdmin, gardeAdmin } = require('./admin');
 const { ID_PIECE } = require('./pieces');
 
 const NOM_ENTETE = 'x-opm';
@@ -179,6 +180,9 @@ function construireApp(ctx) {
      trahit une requête venue d'Internet). Sinon, le même 404 qu'une route qui n'existe pas. La signature se vérifie ensuite, dans la route (`visio.avisLire`). */
   const BOUCLE = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
   garde.LV = [(req, res, next) => (BOUCLE.has(req.socket && req.socket.remoteAddress) && req.headers['x-forwarded-for'] === undefined && req.headers['x-real-ip'] === undefined) ? next() : refus(res, 404, 'introuvable')];
+  /* ⛔ AD : l'ADMINISTRATION, pour la console interne. Aucune session, aucun cookie : la boucle locale ET aucun en-tête de proxy ET le secret de la configuration (`admin.js` porte les trois et le contrat) ; sinon, ou sans secret
+     configuré, le même 404 qu'une route qui n'existe pas. */
+  garde.AD = gardeAdmin(ctx);
   garde.S = [(req, res, next) => {
     const j = lireCookie(req);
     if (!j || !JETON.test(j)) return refus(res, 401, 'session_requise');
@@ -290,6 +294,7 @@ function construireApp(ctx) {
   installerReunions(H, ctx);    // les réunions programmées : agenda, programmer, inviter, répondre, rappels, trajet
   installerAppels(H, ctx);      // les appels : le relais (identifiants éphémères), lancer (à deux ou à plusieurs), répondre, rejoindre, raccrocher, signaler, l'historique
   installerSalles(H, ctx);      // les salles : les gestes de l'hôte et des co-hôtes, ceux des participants
+  installerAdmin(H, ctx);       // l'administration : des lectures pour la console interne, gardées par AD
   /* Les écritures authentifiées ont un plafond propre, par compte (en plus de celui de l'adresse). */
   const limiteEcriture = (req, res, next) => {
     const q = Object.assign({ max: 300, fenetreMs: 60000 }, config.quotas.ecriture || {});

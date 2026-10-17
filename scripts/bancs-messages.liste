@@ -389,3 +389,6 @@ tests/test-2660.js
 tests/test-2661.js
 tests/test-2662.js
 tests/test-2663.js
+# ── L'administration d'OP MESSAGES pour la console interne (17 octobre 2026) : la garde AD (boucle locale + sans proxy + secret), les six routes de lecture, l'absence de fuite (2690) ; l'outil de pose du secret (2691).
+tests/test-2690.js
+tests/test-2691.js
