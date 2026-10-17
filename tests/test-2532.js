@@ -14,13 +14,24 @@ const { v, vrai, fin } = T.compteur();
 const C = 'c_' + 'a'.repeat(32);
 
 function monter(opts) {
-  const noms = ['fermerMenu', 'ouvrirMenuMessage', 'ouvrirMenuPlus'];
+  const noms = ['fermerMenu', 'ouvrirMenuMessage', 'ouvrirMenuPlus', 'basculeReprendre'];
   const dispo = n => { try { T.fonction(n); return true; } catch (e) { return false; } };
   const avec = noms.concat(['menuEntreePoser', 'menuEntreeRendre', 'menuRetourFin'].filter(dispo));
   const consts = T.PAGE.match(/const REACTIONS = \[[^\n]*\n/)[0];
+  /* lot m14 : `fermerMenu` appelle `basculeReprendre` (une bascule Pro/Perso différée par un menu ouvert sur l'Accueil a lieu dès qu'il se ferme). On monte la VRAIE fonction et sa
+     VRAIE condition `basculeAttend` ; l'état qu'elles lisent (`reprisePrefs`, `repriseHoraire`) est déclaré comme la page le déclare, au repos — rien n'attend, donc rien n'est rejoué.
+     `surPrefs` et `horaireAppliquer` (ce qu'elle rejoue quand quelque chose attend) ne sont PAS montées : ce banc ne parle pas de bascule — elles lèvent si on les atteint, au lieu de
+     laisser croire qu'un rejeu a eu lieu. */
+  const basculeAttendTxt = (T.PAGE.match(/\n  const basculeAttend = [^\n]*/) || [''])[0].trim();
+  const reprises = (T.PAGE.match(/\n  let minuteurHoraire = 0, repriseHoraire = null, reprisePrefs = false;/) || [''])[0].trim();
+  if (!basculeAttendTxt || !reprises) throw new Error('ancres de la bascule différée (basculeAttend, repriseHoraire/reprisePrefs) introuvables dans la page');
+  const bascule = reprises + '\n' + basculeAttendTxt + `
+      function surPrefs() { throw new Error('surPrefs atteinte : une bascule différée attendait, ce banc ne la joue pas'); }
+      function horaireAppliquer() { throw new Error('horaireAppliquer atteinte : une bascule différée attendait, ce banc ne la joue pas'); }
+      `;
   const M = T.monter(Object.assign({
     avec,
-    pre: consts + `
+    pre: consts + bascule + `
       const MOI = { id: 'u1' }; const trOuvertes = new Set(); const message = { id: 'm1', auteur: 'u2', texte: 'Bonjour', t: Date.now(), reactions: [] };
       const trouverMessage = id => id === 'm1' ? message : null; const compoFerme = () => false; const estCarte = () => false; const transferable = () => false; const transcriptionPossible = () => false;
       const rappelPossible = () => true; const suiviPossible = () => false; const pieceDe = () => null; const tuilesPlus = () => [['photo', 'Photos', 'i-photo'], ['contact', 'Contact', 'i-c']];
@@ -46,6 +57,8 @@ const retours = (M) => M.journal.filter(x => x === 'back').length;
 (async () => {
   const M0 = monter();
   vrai('(population) fermerMenu, ouvrirMenuMessage et ouvrirMenuPlus sont trouvées dans la page, avec leur navigation', M0.ctx.fermerMenu && M0.ctx.ouvrirMenuMessage && M0.ctx.ouvrirMenuPlus);
+
+  vrai('(population) la VRAIE basculeReprendre (lot m14) et sa condition basculeAttend sont montées, au repos : rien n\'attend, elles ne rejouent rien', typeof M0.ctx.basculeReprendre === 'function' && M0.ctx.basculeReprendre() === undefined && require('vm').runInContext('basculeAttend(\'perso\')', M0.ctx) === false);
 
   /* 1. LE BUG : retour avec le menu d'un message ouvert */
   {

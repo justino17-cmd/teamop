@@ -93,6 +93,11 @@ const NOM_LONG = ['A'.repeat(60), 'N'.repeat(60)];   // 120 signes, aucune espac
       /* deux trames ET une lecture forcée, avant toute mesure de taille */
       S.poser = () => page.evaluate(async () => { await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); void document.documentElement.offsetWidth; void document.body.offsetHeight; });
       await page.goto(svc.base + '/');
+      /* ⛔ depuis le lot m02 l'écran d'ouverture est la connexion par ADRESSE (`#f-mel`) ; l'accès d'essai (`#c-login`) s'atteint par le lien « Accès d'essai (Tour de contrôle) » — on le touche
+         comme une vraie personne, sans jamais forcer l'affichage d'un panneau masqué. Les deux sont prouvés présents avant d'agir (une attente vide ne prouverait rien). */
+      const essaiDirect = await S.attendre(() => { const c = document.getElementById('c-login'), l = document.querySelector('#f-mel [data-cx-essai]'); return (c && c.getClientRects().length > 0) || (l && !l.hidden && l.getClientRects().length > 0); }, null, 15000);
+      vrai('population : l\'écran de connexion propose l\'accès d\'essai (' + nom + ')', essaiDirect);
+      if (await page.evaluate(() => { const c = document.getElementById('c-login'); return !(c && c.getClientRects().length > 0); })) await S.toucher('#f-mel [data-cx-essai]');
       await page.locator('#c-login').fill(login); await page.locator('#c-pass').fill(MOTS[login]); await S.toucher('#c-entrer');
       vrai('population : ' + NOMS[login] + ' est connecté(e) (' + nom + ')', await S.attendre(() => { const a = document.getElementById('app'); return a && !a.hidden && document.getElementById('moi-nom').textContent.trim().length > 0; }));
       return S;

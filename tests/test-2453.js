@@ -44,7 +44,9 @@ const ecouteur = (marqueur, debutRecherche) => {
   }
   return '';
 };
+/* TEXTE_MAX vient du lot m11 voisin (« 1 signe en trop ») : MESSAGES_ERREUR l'écrit dans sa phrase « trop-long ». On sort les DEUX vraies lignes (CAP, puis la ligne qui pose TEXTE_MAX = CAP.texteMax), pas une valeur recopiée. */
 const M = {
+  CAP: ligne('const CAP = '), TEXTE_MAX: ligne('const VOCAL_MIN_MS = '),
   phrase: ligne('const phrase = '), phraseSilence: ligne('const phraseSilence = '), MESSAGES_ERREUR: ligne('const MESSAGES_ERREUR = '),
   envoi: decl('async function envoi('), lancerAppel: decl('async function lancerAppel('), gesteCarte: decl('function gesteCarte('),
 };
@@ -70,7 +72,7 @@ function bac(o) {
   ctx.document = { addEventListener: (t, f) => { ctx._doc = f; } };
   ctx.$ = id => ({ addEventListener: (t, f) => { ctx['_' + id] = f; } });
   vm.createContext(ctx);
-  vm.runInContext(Object.values(M).join('\n') + '\n' + (o.ecouteurs ? LISTE_INFO + '\n' + LISTE_FICHE : '') + '\nthis.F = { phraseSilence: typeof phraseSilence === "function" ? phraseSilence : null, envoi, lancerAppel, gesteCarte };', ctx);
+  vm.runInContext(Object.values(M).join('\n') + '\n' + (o.ecouteurs ? LISTE_INFO + '\n' + LISTE_FICHE : '') + '\nthis.F = { TEXTE_MAX, MESSAGES_ERREUR, phraseSilence: typeof phraseSilence === "function" ? phraseSilence : null, envoi, lancerAppel, gesteCarte };', ctx);
   return { F: ctx.F, dit, ctx };
 }
 /* un clic : `closest` ne reconnaît que le sélecteur voulu (le reste rend null, comme sur une page où l'on touche ailleurs) */
@@ -88,6 +90,9 @@ const clic = (selecteur, attrs, extra) => {
   vrai('(population) le refus du service (404 « introuvable ») porte, par défaut, la phrase qui accuse une suppression', /supprimée/.test(refus.phrase()) && refus.dit === true);
   const X = bac({ ecouteurs: true });
   vrai('(population) le bac à sable exécute les fonctions et capture les écouteurs', typeof X.F.phraseSilence === 'function' && typeof X.ctx._doc === 'function' && typeof X.ctx['_info-corps'] === 'function');
+
+  vrai('(population) les pièces du lot voisin sont trouvées dans la page : CAP, la ligne de TEXTE_MAX, MESSAGES_ERREUR', /CAP\.texteMax/.test(M.TEXTE_MAX) && /TEXTE_MAX/.test(M.MESSAGES_ERREUR) && /texteMax/.test(M.CAP));
+  vrai('(population) TEXTE_MAX est un nombre réel dans le bac (la phrase « trop-long » le porte)', typeof X.F.TEXTE_MAX === 'number' && X.F.TEXTE_MAX > 0 && /trop long/.test(X.F.MESSAGES_ERREUR['trop-long']));
 
   console.log('\n1. La fonction unique : « introuvable » dit la phrase neutre, tout autre refus garde la sienne');
   {

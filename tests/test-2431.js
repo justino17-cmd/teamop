@@ -38,7 +38,9 @@ console.log('1. Le petit mot');
   vrai('⛔ une feuille ouverte et l\'appel à deux : en HAUT, sur ce que rien ne rend touchable (page éteinte par le voile, 56 px vides sous l\'encoche), sous la bande hors ligne',
     /top:\s*calc\(var\(--vvt, 0px\) \+ env\(safe-area-inset-top, 0px\) \+ var\(--hl-h\) \+ 6px\)/.test(corps('html.feuille-ouverte .mot, html[data-appel]:not([data-salle]) .mot')));
   vrai('et il entre sans rester décalé : `.on` remet la transformation à zéro dans ces deux cas aussi', /transform:\s*none/.test(corps('html.feuille-ouverte .mot.on, html[data-appel]:not([data-salle]) .mot.on')));
-  vrai('le JavaScript qui le montre est inchangé (texte + classe `on`, 2,4 s)', /function mot\(texte\) \{\s*clearTimeout\(minMot\);\s*\$\('mot'\)\.textContent = texte; \$\('mot'\)\.classList\.add\('on'\);\s*minMot = setTimeout\(\(\) => \$\('mot'\)\.classList\.remove\('on'\), 2400\);/.test(JS));
+  /* (m13, m21) `mot(texte, ms)` a gagné une durée facultative (7 s pour un avertissement, 4 s pour « déjà dans un appel »…) : légitime, la fusion garde `ms || 2400`. Ce que ce lot garde reste vrai :
+     texte + classe `on`, et 2,4 s PAR DÉFAUT — c'est la forme sans durée qui ne doit pas bouger. */
+  vrai('le JavaScript qui le montre ne change pas de fond (texte + classe `on`, 2,4 s par défaut ; la durée est facultative)', /function mot\(texte(?:, ms)?\) \{\s*clearTimeout\(minMot\);\s*\$\('mot'\)\.textContent = texte; \$\('mot'\)\.classList\.add\('on'\);\s*minMot = setTimeout\(\(\) => \$\('mot'\)\.classList\.remove\('on'\), (?:ms \|\| )?2400\);/.test(JS));
 }
 
 console.log('\n2. La bande hors ligne');

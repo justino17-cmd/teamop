@@ -34,8 +34,11 @@ function decl(debut) {
   return '';
 }
 const ligne = debut => { const i = JS.indexOf(debut); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
+/* TEXTE_MAX (lot m09 : « trop long » nomme la limite dans MESSAGES_ERREUR) : la page le pose sur la ligne des constantes du vocal, depuis `CAP.texteMax` — dont la valeur par défaut vit dans l'objet CAP. On prend les DEUX dans la page réelle (la ligne exacte, et la valeur par défaut), jamais une valeur recopiée. */
+const TEXTE_MAX_DECL = (/TEXTE_MAX = CAP\.texteMax;/.exec(ligne('const VOCAL_MIN_MS = ')) || [''])[0].replace(/^/, 'const ');
+const TEXTE_MAX_DEFAUT = +((/\btexteMax: (\d+)/.exec(ligne('const CAP = ')) || [, '0'])[1]);
 const M = {
-  esc: ligne('const esc = '), phrase: ligne('const phrase = '), phraseSilence: ligne('const phraseSilence = '), MESSAGES_ERREUR: ligne('const MESSAGES_ERREUR = '), icone: ligne('const icone = '), CHEVRON: ligne('const CHEVRON = '), prenom: ligne('const prenom = '),
+  TEXTE_MAX: TEXTE_MAX_DECL, esc: ligne('const esc = '), phrase: ligne('const phrase = '), phraseSilence: ligne('const phraseSilence = '), MESSAGES_ERREUR: ligne('const MESSAGES_ERREUR = '), icone: ligne('const icone = '), CHEVRON: ligne('const CHEVRON = '), prenom: ligne('const prenom = '),
   sonStatutTxt: ligne('const sonStatutTxt = '), duCote: ligne('const duCote = '), coteReu: ligne('const coteReu = '), coteDe: ligne('const coteDe = '), modesActifs: ligne('const modesActifs = '),
   envoi: decl('async function envoi('), vcPersonne: decl('function vcPersonne('), ficheCommun: decl('function ficheCommun('), chargerCommun: decl('async function chargerCommun('), peindreCommun: decl('function peindreCommun('),
 };
@@ -43,7 +46,7 @@ function bac(o) {
   const avis = [], peints = [];
   const ctx = {
     Math, JSON, Number, Array, Object, String, Date, Intl, RegExp, Map, Set, console, Promise,
-    etat: { conv: 'c_ab', forcerBas: false, mode: 'perso', pro: false, conversations: [], vcEsp: null }, CAP: { reunions: true, espaces: true },
+    etat: { conv: 'c_ab', forcerBas: false, mode: 'perso', pro: false, conversations: [], vcEsp: null }, CAP: { reunions: true, espaces: true, texteMax: TEXTE_MAX_DEFAUT },
     CONTACTS: [{ id: 'p_ben', nom: 'Ben Durand', initiales: 'BD', avatar: 3 }],
     FMT_HEURE: new Intl.DateTimeFormat('fr-FR'), FMT_JOUR_FICHE: new Intl.DateTimeFormat('fr-FR'), FMT_MOIS_CAL: new Intl.DateTimeFormat('fr-FR'),
     commun: { cache: new Map(), enCours: new Map() }, avis: t => avis.push(t),
@@ -58,6 +61,7 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
 
 (async () => {
   console.log('\n0. La population : les vraies fonctions sont trouvées dans la page');
+  vrai('(population) TEXTE_MAX est posé depuis CAP.texteMax et la valeur par défaut est lue dans la page', /^const TEXTE_MAX = CAP\.texteMax;$/.test(TEXTE_MAX_DECL) && TEXTE_MAX_DEFAUT > 0);
   v('(population) chaque morceau est trouvé', Object.keys(M).filter(k => !M[k]), []);
   vrai('(population) le bac à sable les exécute', typeof bac({}).F.envoi === 'function' && typeof bac({}).F.chargerCommun === 'function');
 

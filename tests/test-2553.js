@@ -38,7 +38,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
 (async () => {
   console.log('1. La page : les VRAIES fonctions de la liste, dans un bac à sable');
   const morceaux = {
-    esc: ligne('const esc = '), icone: ligne('const icone = '), blob: ligne('const blob = '), nomConv: ligne('const nomConv = '), avatar: ligne('const avatar = '),
+    esc: ligne('const esc = '), icone: ligne('const icone = '), blob: ligne('const blob = '), avIndex: ligne('const avIndex = '), nomConv: ligne('const nomConv = '), avatar: ligne('const avatar = '),
     enSourdine: flechePlus('const enSourdine = '), autreCote: ligne('const autreCote = '), coteDe: ligne('const coteDe = '), NOM_COTE: ligne('const NOM_COTE = '),
     ligneConv: decl('function ligneConv('), boutonEpingle: flechePlus('const boutonEpingle = '),
   };
@@ -49,7 +49,7 @@ setTimeout(() => { console.log('  ✗ délai global du banc dépassé (120 s)');
     const ctx = { Date: FauxDate, Math, JSON, Number, Array, Object, String, Set, console, etat: { conv: null, selection: null, listeArchives: false }, modesActifs: () => false, CHEVRON: '<svg class="chev"></svg>',
       libelleListe: () => '12:00' };
     vm.createContext(ctx);
-    vm.runInContext([morceaux.esc, morceaux.icone, morceaux.blob, morceaux.nomConv, morceaux.avatar, morceaux.enSourdine, morceaux.coteDe, morceaux.NOM_COTE, morceaux.autreCote, morceaux.ligneConv, morceaux.boutonEpingle,
+    vm.runInContext([morceaux.esc, morceaux.icone, morceaux.blob, morceaux.avIndex, morceaux.nomConv, morceaux.avatar, morceaux.enSourdine, morceaux.coteDe, morceaux.NOM_COTE, morceaux.autreCote, morceaux.ligneConv, morceaux.boutonEpingle,
       'this.F = { ligneConv, boutonEpingle, enSourdine };'].join('\n'), ctx, { timeout: 3000 });
     const F = ctx.F;
     const base = { id: 'c_1', type: 'direct', nom: 'Ben Durand', court: 'Ben', initiales: 'BD', avatar: 2, photo: null, t: H.t, apercu: 'Salut', nonLu: false, nonLus: 0, cote: 'perso' };

@@ -53,11 +53,11 @@ console.log('\nLa ligne système « membre_ajoute » (source-serveur.js)');
 
 console.log('\nLe mot qui suit « Retirer du groupe » (page)');
 {
-  const m = /const motRetire = [^\n]*/.exec(JS);
-  vrai('(population) la page déclare `motRetire` (le mot du retrait) et le geste « Gérer » l\'emploie', !!m && /retirerMembre\(id, uid\), v === 'admin' \? [^\n]*: motRetire\(nom\)\)/.test(JS));
+  const m = /const motRetireMembre = [^\n]*/.exec(JS);
+  vrai('(population) la page déclare `motRetireMembre` (le mot du retrait) et le geste « Gérer » l\'emploie', !!m && /retirerMembre\(id, uid\), v === 'admin' \? [^\n]*: motRetireMembre\(nom\)\)/.test(JS));
   let f = null;
-  try { const ctx = {}; vm.createContext(ctx); vm.runInContext((m ? m[0] : '') + '\nthis.f = motRetire;', ctx, { timeout: 1000 }); f = ctx.f; } catch (e) { f = null; }
-  vrai('(population) la fonction `motRetire` s\'exécute', typeof f === 'function');
+  try { const ctx = {}; vm.createContext(ctx); vm.runInContext((m ? m[0] : '') + '\nthis.f = motRetireMembre;', ctx, { timeout: 1000 }); f = ctx.f; } catch (e) { f = null; }
+  vrai('(population) la fonction `motRetireMembre` s\'exécute', typeof f === 'function');
   if (f) v('⛔ le mot ne s\'accorde pas au masculin : « Cléo Petit n\'est plus dans le groupe » (pour Cléo comme pour Ben)', [f('Cléo Petit'), f('Ben Roux')], ['Cléo Petit n\'est plus dans le groupe', 'Ben Roux n\'est plus dans le groupe']);
   vrai('⛔ le code de la page ne dit plus « a été retiré du groupe » (population : le geste « Retirer du groupe » existe encore)', !/a été retiré du groupe/.test(JS) && /libelle: 'Retirer du groupe'/.test(JS));
 }

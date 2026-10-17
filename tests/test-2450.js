@@ -43,6 +43,8 @@ const M = {
   CHEVRON: ligne('const CHEVRON = '), blob: ligne('const blob = '), avatar: jusqua('const avatar = ', "</span>'"),
   modesActifs: ligne('const modesActifs = '), coteDe: ligne('const coteDe = '), dansMode: ligne('const dansMode = '), duCote: ligne('const duCote = '),
   coteReu: ligne('const coteReu = '), sonStatutTxt: ligne('const sonStatutTxt = '),
+  /* lot m09 (la saison de l'heure) : ficheCommun écrit la plage par `quandFiche`, qui lit `plageHeures` et `heureSaison` — les VRAIES, extraites comme le reste */
+  heureSaison: jusqua('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '), quandFiche: ligne('const quandFiche = '),
   ficheTete: decl('function ficheTete('), ficheCommun: decl('function ficheCommun('), vcAucun: ligne('const vcAucun = '), rendreVcCategorie: decl('function rendreVcCategorie('),
 };
 

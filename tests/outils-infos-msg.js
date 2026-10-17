@@ -3,7 +3,7 @@
  * Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas).
  *
  * Il exécute les VRAIES fonctions de la page d'OP MESSAGES (`apercu/opmessages/index.html`) dans un bac à sable `vm` : l'ÉCOUTEUR des gestes des feuilles « Contacts » et « Infos »
- * (`$('info-corps').addEventListener('click', …)`), `apresChoixInfo`, `surRetire` et les petites fonctions qui disent ce qu'on voit (`phraseNonAjoutes`, `motLienAccepte`,
+ * (`$('info-corps').addEventListener('click', …)`), `apresChoixInfo`, `surRetire` et les petites fonctions qui disent ce qu'on voit (`phraseRefusAjout`, `motLienAccepte`,
  * `motRetire`). Autour : de FAUX éléments, une FAUSSE source, et un journal de ce que la page a dit (`erreurInfo`, `mot`) et fait (`remplacer`, `rafraichirListe`).
  *
  *   · `OPMSG_RACINE=<dossier>` lit la page ailleurs que dans l'arbre : c'est ainsi qu'on montre qu'un banc TOMBE sur le code d'avant (un `git archive` du commit précédent).
@@ -53,7 +53,7 @@ function ecouteur() {
 /* les pièces de la page, par nom — une absente est une chaîne vide, et `manquantes()` la nomme */
 const PIECES = {
   coteDe: ligne('const coteDe = '),
-  phraseNonAjoutes: jusqua('const phraseNonAjoutes = ', "n\\'ont pas pu être ajoutés.';\n  };"),
+  phraseRefusAjout: jusqua('const phraseRefusAjout = ', "n\\'ont pas pu être ajoutés.';\n  };"),
   motLienAccepte: ligne('const motLienAccepte = '),
   apresChoixInfo: decl('async function apresChoixInfo('),
   convQuittees: ligne('const convQuittees = '),
@@ -96,10 +96,10 @@ function bac(opts = {}) {
   };
   vm.createContext(ctx);
   /* une pièce absente (le code d'AVANT un correctif) n'empêche pas le bac de naître : elle vaut `null`, et c'est le banc qui tombe sur elle */
-  const noms = ['coteDe', 'phraseNonAjoutes', 'motLienAccepte', 'apresChoixInfo', 'convQuittees', 'motRetire', 'surRetire'].filter(k => PIECES[k]);
+  const noms = ['coteDe', 'phraseRefusAjout', 'motLienAccepte', 'apresChoixInfo', 'convQuittees', 'motRetire', 'surRetire'].filter(k => PIECES[k]);
   vm.runInContext(noms.map(k => PIECES[k]).join('\n') +
     '\nconst __reel = apresChoixInfo; apresChoixInfo = function () { const p = __reel.apply(null, arguments); __promesses.push(p); return p; };' +
-    '\nthis.F = { ' + ['phraseNonAjoutes', 'motLienAccepte', 'motRetire', 'surRetire', 'coteDe', 'convQuittees'].map(k => k + ': ' + (noms.includes(k) ? k : 'null')).join(', ') + ', H: ' + (ECOUTEUR || 'null') + ' };', ctx, { timeout: 3000 });
+    '\nthis.F = { ' + ['phraseRefusAjout', 'motLienAccepte', 'motRetire', 'surRetire', 'coteDe', 'convQuittees'].map(k => k + ': ' + (noms.includes(k) ? k : 'null')).join(', ') + ', H: ' + (ECOUTEUR || 'null') + ' };', ctx, { timeout: 3000 });
   B.F = ctx.F;
   B.champ = (id, valeur) => { champs[id] = { id, value: valeur }; return champs[id]; };
   /* un clic sur un bouton `data-act` : l'écouteur réel, puis l'attente des gestes lancés sans attente (`apresChoixInfo`) */

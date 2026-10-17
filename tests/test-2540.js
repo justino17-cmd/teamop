@@ -27,12 +27,15 @@ function tranche(debut, finMarque) {
   return i < 0 || j < 0 ? '' : script.slice(i, j);
 }
 const T_ERREUR = tranche('const MESSAGES_ERREUR =', '\n');
+/* les DEUX dires de refus RÉELS de la page : `phrase` (m-base) et `phraseSilence` (m11 : « introuvable » à l'envoi dit la phrase neutre, pas une accusation) — `envoi()` appelle la seconde */
+const T_PHRASE = tranche('const phrase = (e, defaut) =>', '\n');
+const T_SILENCE = tranche('const phraseSilence = (e, neutre, defaut) =>', '\n');
 const T_ENVOI = tranche('async function envoi(brouillon, cible)', '  /* ── CONFIRMER L\'ENVOI');
 const T_ENVOYER = tranche(script.includes('const finSaisie = id =>') ? 'const finSaisie = id =>' : 'async function envoyerTexte()', '  /* ⛔ une réponse ou une modification se compose DANS la saisie');
 const T_LIMITE = tranche('const nSignes = t =>', '  $(\'saisie\').addEventListener(\'input\', () => {');
 const T_INPUT = tranche('  $(\'saisie\').addEventListener(\'input\', () => {\n    ajusterSaisie();', '  $(\'saisie\').addEventListener(\'blur\', () => { if (CAP.saisie');
-vrai('(population) les cinq tranches de la page sont trouvées (' + [T_ERREUR, T_ENVOI, T_ENVOYER, T_LIMITE, T_INPUT].map(x => x.length).join(', ') + ' caractères)',
-  T_ERREUR.length > 100 && T_ENVOI.length > 200 && T_ENVOYER.length > 1500 && T_LIMITE.length > 200 && T_INPUT.length > 400);
+vrai('(population) les sept tranches de la page sont trouvées (' + [T_ERREUR, T_PHRASE, T_SILENCE, T_ENVOI, T_ENVOYER, T_LIMITE, T_INPUT].map(x => x.length).join(', ') + ' caractères)',
+  T_ERREUR.length > 100 && T_PHRASE.length > 60 && T_SILENCE.length > 60 && T_ENVOI.length > 200 && T_ENVOYER.length > 1500 && T_LIMITE.length > 200 && T_INPUT.length > 400);
 
 /* un bloc qui MEURT (exception) se compte en ✗ et n'arrête pas les autres : sur l'ancien code, la suite se mesure quand même */
 const essai = async f => { try { await f(); } catch (e) { v('un bloc de ce banc a levé une exception : ' + String(e && e.message).slice(0, 120), false, true); } };
@@ -63,7 +66,6 @@ function monde(opts = {}) {
     $: id => els[id] || (els[id] = { textContent: '', hidden: false, value: '' }),
     avis: t => { M.avis.push(t); avisEl.textContent = t; avisEl.hidden = false; },
     masquerAvis: () => { avisEl.hidden = true; avisEl.textContent = ''; },
-    phrase: (e, d) => (e && e.dit ? e.message : (d || 'Une erreur est survenue.')),
     ajusterSaisie() {}, majBoutons() {}, majContexte() {}, fermerConfirmation() { etat.confirmeAttente = null; },
     demanderConfirmation() { M.demandes++; etat.confirmeAttente = etat.conv; },
     confirmationRequise: () => o.confirme,
@@ -71,8 +73,8 @@ function monde(opts = {}) {
     mentionsDe: () => [], mentionUI: { choisis: new Map() }, convCourante: () => ({ id: etat.conv }),
   };
   vm.createContext(ctx);
-  vm.runInContext(T_ERREUR + '\n' + T_ENVOI + '\n' + T_LIMITE + '\n' + T_ENVOYER + '\n' + T_INPUT + '\nthis.envoyerTexte = envoyerTexte; this.MESSAGES_ERREUR = MESSAGES_ERREUR; this.texteTropLong = texteTropLong; this.nSignes = nSignes;', ctx, { timeout: 3000 });
-  M.envoyerTexte = ctx.envoyerTexte; M.MESSAGES_ERREUR = ctx.MESSAGES_ERREUR; M.texteTropLong = ctx.texteTropLong;
+  vm.runInContext(T_ERREUR + '\n' + T_PHRASE + '\n' + T_SILENCE + '\n' + T_ENVOI + '\n' + T_LIMITE + '\n' + T_ENVOYER + '\n' + T_INPUT + '\nthis.envoyerTexte = envoyerTexte; this.MESSAGES_ERREUR = MESSAGES_ERREUR; this.texteTropLong = texteTropLong; this.nSignes = nSignes; this.phraseSilence = phraseSilence;', ctx, { timeout: 3000 });
+  M.envoyerTexte = ctx.envoyerTexte; M.MESSAGES_ERREUR = ctx.MESSAGES_ERREUR; M.texteTropLong = ctx.texteTropLong; M.phraseSilence = ctx.phraseSilence;
   M.entree = (texte) => { champ.value = texte; return M.envoyerTexte(); };        // « on tape, puis Entrée »
   M.tape = (texte) => { champ.value = texte; etat.brouillons[etat.conv] = texte; for (const f of champ.listeners.input || []) f(); };       // une frappe : le champ change, l'écouteur `input` tourne
   M.textes = () => M.envois.map(e => e.b.texte);
@@ -166,6 +168,13 @@ function monde(opts = {}) {
     const p2 = M.envoyerTexte();
     M.envois[1].res(); await p2;
     v('« Réessayer » : le texte rendu repart, en UN message', M.textes().slice(1), ['M1\nM2\nM3']);
+  });
+  await essai(async () => {
+    /* m11 sur m08 : un refus « introuvable » (blocage silencieux) rend le texte comme les autres, mais ne dit NI suppression NI « tu n'y es plus » */
+    const M = monde(); const p = M.entree('à quelqu\'un');
+    M.envois[0].rej(Object.assign(new Error('Introuvable (la conversation a peut-être été supprimée ou tu n\'y es plus)'), { dit: true, code: 'introuvable' }));
+    await p;
+    v('⛔ « introuvable » à l\'envoi : le texte revient, et l\'avis est la phrase NEUTRE (pas l\'accusation du service)', [M.champ.value, M.avis[M.avis.length - 1]], ['à quelqu\'un', 'Ce message n\'a pas pu être remis.']);
   });
   await essai(async () => {
     const M = monde(); const p = M.entree('perdu ?');

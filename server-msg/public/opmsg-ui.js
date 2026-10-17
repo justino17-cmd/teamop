@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a7f5e327c578';
+  const OPMSG_BUILD = '5b16f81aab0a';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 228;
+  const OPMSG_VERSION = 229;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4856,7 +4856,9 @@
 
   /* ⛔ « Ajouter au groupe » : le service répond 200 même quand il REFUSE la personne (elle m'a bloqué, ou nous ne sommes pas en contact) — il la rend dans `non_ajoutes` au lieu de
      l'ajouter. Lire seulement le code HTTP laissait la ligne « Ajouter » en place sans un mot (mesuré : ni toast, ni phrase dans la feuille). `nomDe` donne le nom d'un identifiant. */
-  const phraseNonAjoutes = (rep, nomDe) => {
+  /* ⛔ Ne pas confondre avec `phraseNonAjoutes` (la feuille « Nouveau groupe », une liste de prénoms) : deux lots les ont écrites
+     sous le MÊME nom, et une déclaration en double dans une portée tue tout le script de la page (SyntaxError au chargement). */
+  const phraseRefusAjout = (rep, nomDe) => {
     const non = rep && Array.isArray(rep.non_ajoutes) ? rep.non_ajoutes : [];
     if (!non.length) return '';
     const noms = non.map(u => nomDe(u) || 'Cette personne');
@@ -4866,7 +4868,7 @@
   const motLienAccepte = r => r.genre === 'groupe' ? (r.deja ? 'Tu fais déjà partie de ce groupe' : 'Tu as rejoint le groupe') : (r.deja ? 'Déjà dans tes contacts' : 'Contact ajouté');
   /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
   /* le mot du retrait d'un membre : sans genre (« Cléo Petit a été retiré » accordait tout le monde au masculin) */
-  const motRetire = nom => nom + ' n\'est plus dans le groupe';
+  const motRetireMembre = nom => nom + ' n\'est plus dans le groupe';   // le retrait d'un AUTRE membre (« Gérer ») ; `motRetire` plus bas dit le sien
   async function apresChoixInfo(id, geste, motReussi) {
     erreurInfo('');
     try { await geste(); if (motReussi) mot(motReussi); } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
@@ -4906,11 +4908,11 @@
       else if (act === 'membre') {
         const uid = b.dataset.uid, nommer = b.dataset.admin === '1', nom = b.dataset.nom || '';
         ouvrirDeroule(b, 'Gérer ' + nom, nom, [{ valeur: 'admin', libelle: nommer ? 'Nommer admin' : 'Retirer l\'admin' }, '-', { valeur: 'retirer', libelle: 'Retirer du groupe', danger: true }],
-          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : motRetire(nom)));
+          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : motRetireMembre(nom)));
         return;
       }
       else if (act === 'ajouter') {
-        const refus = phraseNonAjoutes(await source.ajouterMembres(id, [b.dataset.uid]), u => { const c = CONTACTS.find(x => x.id === u); return c ? c.nom : ''; });
+        const refus = phraseRefusAjout(await source.ajouterMembres(id, [b.dataset.uid]), u => { const c = CONTACTS.find(x => x.id === u); return c ? c.nom : ''; });
         if (refus) erreurInfo(refus);
       }
       else if (act === 'groupe-renommer') {
