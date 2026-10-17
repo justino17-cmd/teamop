@@ -140,7 +140,8 @@ console.log('\n── 1601 · 4. stabilité et garde-fous ──');
 }
 
 console.log('\n── 1601 · 5. le câblage : qui appelle la mesure ──');
-vrai('la vue mesure à la fin de son rendu', /ml\.scrollTop=ml\.scrollHeight;\s*msgAjuster\(\);\s*msgAjusterVeiller\(\);\s*\}$/.test(VUE), VUE.slice(-160));
+/* k01 (r5#6) : la vue retient aussi « collée en bas » (`_msgBas`) sur la liste neuve, avant de mesurer */
+vrai('la vue mesure à la fin de son rendu', /ml\.scrollTop=ml\.scrollHeight;\s*ml\._msgBas=true;\s*\}\s*msgAjuster\(\);\s*msgAjusterVeiller\(\);\s*\}$/.test(VUE), VUE.slice(-200));
 vrai('ajouter une photo re-mesure (l\'aperçu pousse la rangée)', /msgAjusterPlus\(\)/.test(ADD));
 vrai('retirer la photo re-mesure', /msgAjusterPlus\(\)/.test(CLR));
 {
@@ -155,11 +156,12 @@ vrai('retirer la photo re-mesure', /msgAjusterPlus\(\)/.test(CLR));
 
 console.log('\n── 1601 · 6. le CSS RÉEL ──');
 const ajuste = [...SRC.matchAll(/#msg-list\[data-ajuste\]\s*\{([^}]*)\}/g)].map(m => nettoie(m[1]));
-v('trois règles mesurées (de base, sous 781 px avec la barre d\'onglets, téléphone couché)', ajuste.length, 3);
-vrai('la règle de base retranche top, sous et --msg-bas (rembourrage bas mesuré, 16 px en repli) à 100dvh, avec un plancher, et lève le min-height de 240 px', /height:max\(80px,calc\(100dvh - var\(--msg-top,0px\) - var\(--msg-sous,0px\) - var\(--msg-bas,16px\)\)\)!important/.test(ajuste[0] || '') && /min-height:0!important/.test(ajuste[0] || ''), ajuste[0]);
+/* k01 (r5#4, r5#5) : deux règles de plus, pour l'écran COURT (< 420 px de haut) — test-1630 les garde */
+v('cinq règles mesurées (de base, sous 781 px avec la barre d\'onglets, téléphone couché, et les deux de l\'écran court de k01)', ajuste.length, 5);
+vrai('la règle de base retranche top, sous et --msg-bas (rembourrage bas mesuré, 16 px en repli) à 100dvh, avec un plancher, et lève le min-height de 240 px', /height:max\(140px,calc\(100dvh - var\(--msg-top,0px\) - var\(--msg-sous,0px\) - var\(--msg-bas,16px\)\)\)!important/.test(ajuste[0] || '') && /min-height:0!important/.test(ajuste[0] || ''), ajuste[0]);
 vrai('celle du téléphone retranche en plus --tabh + 6 px (la rangée collante est posée là)', /var\(--msg-sous,0px\) - var\(--tabh\) - 6px\)\)!important/.test(ajuste[1] || ''), ajuste[1]);
-vrai('le téléphone couché (écran court) : plancher abaissé à 48 px et rangée COLLÉE au bas de l\'écran — le champ reste atteignable quand en-tête + barre « Reprendre » + rangée dépassent 390 px',
-  /max\(48px,calc\(100dvh - var\(--msg-top,0px\) - var\(--msg-sous,0px\) - 16px\)\)!important/.test(ajuste[2] || '')
+vrai('le téléphone couché (écran court) : plancher abaissé (120 px depuis k01 ; 48 avant : une liste de 48 px ne lit rien) et rangée COLLÉE au bas de l\'écran — le champ reste atteignable quand en-tête + barre « Reprendre » + rangée dépassent 390 px',
+  /max\(120px,calc\(100dvh - var\(--msg-top,0px\) - var\(--msg-sous,0px\) - 16px\)\)!important/.test(ajuste[2] || '')
   && /@media \(max-height:520px\) and \(max-width:959px\)\{\s*html\[data-refonte\]\[data-kind="mobile"\] #msg-list\[data-ajuste\]/.test(SRC)
   && /\[data-kind="mobile"\] #msg-saisie\{\s*position:sticky!important;bottom:calc\(env\(safe-area-inset-bottom,0px\) \+ 6px\)/.test(SRC), ajuste[2]);
 const iBase = SRC.indexOf('#msg-list[data-ajuste]'), iMob = SRC.indexOf('#msg-list[data-ajuste]', iBase + 10);

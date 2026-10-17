@@ -5384,7 +5384,7 @@ html[data-refonte] #msg-list{
    (`--msg-sous` : aperçu de photo + rangée de saisie) — et le CSS retranche le reste, `100dvh` et `--tabh`, qui restent
    vivants. Sans le script (`data-ajuste` absent), les constantes d'avant restent le repli. */
 html[data-refonte] #msg-list[data-ajuste]{
-  height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--msg-bas,16px)))!important;min-height:0!important}
+  height:max(140px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--msg-bas,16px)))!important;min-height:0!important}
 html[data-refonte] #msg-list:has(> .empty){display:flex;align-items:center;justify-content:center}
 html[data-refonte] #msg-list > .empty{padding:0!important}
 html[data-refonte] .msg{border-radius:17px!important;font-size:14.5px!important;line-height:1.5!important;padding:10px 15px!important}
@@ -5424,7 +5424,7 @@ html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
     height:calc(100dvh - 446px - var(--tabh))!important;min-height:120px!important}
   /* j01 : mesurée, la liste s'arrête là où la rangée collante commence — au-dessus de la barre d'onglets */
   html[data-refonte] body.rf-onglets #msg-list[data-ajuste]{
-    height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--tabh) - 6px))!important;min-height:0!important}
+    height:max(140px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--tabh) - 6px))!important;min-height:0!important}
   html[data-refonte] body.rf-onglets #msg-saisie{
     position:sticky!important;bottom:calc(var(--tabh) + 6px);z-index:3;
     padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
@@ -5436,11 +5436,37 @@ html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
    champ hors de portée sous le pli. Réservé aux écrans courts : une tablette ou un bureau n'en ont pas besoin. */
 @media (max-height:520px) and (max-width:959px){
   html[data-refonte][data-kind="mobile"] #msg-list[data-ajuste]{
-    height:max(48px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - 16px))!important}
+    height:max(120px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - 16px))!important}
   html[data-refonte][data-kind="mobile"] #msg-saisie{
     position:sticky!important;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:3;
     padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
   html[data-refonte][data-kind="mobile"] body.msg-flot-on #msg-saisie{padding-right:76px}
+}
+/* ⛔ k01 (r5#5, r5#4) — SOUS 420 PX DE HAUT, LA CONVERSATION NE SE CALE PLUS SUR CE QUI RESTE : ELLE PREND L'ÉCRAN ET LA PAGE DÉFILE.
+   Un téléphone couché de 360 à 375 px de haut (640×360, 667×375, 812×375), ou un téléphone debout dont le clavier a rogné la
+   fenêtre (375×367 : Android Chrome réduit la fenêtre de mise en page), n'a pas la place du haut de page (200 à 230 px, 75 de plus avec
+   la barre « Reprendre »), d'une rangée de saisie et d'une barre d'onglets en même temps. La liste se calait sur le reste — négatif — et
+   tombait sur son plancher (80, puis 48 px) : une bulle, posée dans le flux SOUS la rangée collante, donc 0 à 41 px visibles au repos.
+   Décision : une liste de 80 px ne lit rien, une page qui défile se lit. Ici la liste ignore `--msg-top` (le haut de page) et prend
+   tout l'écran moins ce qui est collé en bas (rangée de saisie, barre d'onglets) : en poussant la page d'un geste, la conversation
+   paraît entière, au-dessus du champ, avec un plancher de 140 px (deux ou trois bulles). Le champ et « Envoyer » restent collés et
+   atteignables en tout temps. Même raison, un cran plus haut : les trois planchers d'avant (80 px sous 781 px, 48 px couché de 421 à 520)
+   passent à 140 / 140 / 120 — un téléphone debout avec la barre « Reprendre » (375×667) tombait aussi sur 80 px.
+   Les deux règles ont les sélecteurs de celles qu'elles relèvent, et viennent APRÈS : même force, le rang gagne. */
+@media (max-height:420px) and (max-width:959px){
+  html[data-refonte] body.rf-onglets #msg-list[data-ajuste]{
+    height:max(140px,calc(100dvh - var(--msg-sous,0px) - var(--tabh) - 14px))!important}
+  html[data-refonte][data-kind="mobile"] #msg-list[data-ajuste]{
+    height:max(140px,calc(100dvh - var(--msg-sous,0px) - env(safe-area-inset-bottom,0px) - 14px))!important}
+}
+/* ⛔ k01 (r5#7) — hors bureau, au seuil des trois volets (1180 px et plus), `mailAjuster()` pose la place où le cadre commence et ce
+   qui reste sous lui : le cadre finit sur le bas de l'écran, et la page ne défile plus (iPad 1180×820 : 98 px de défilement, cadre
+   +2 px ; Android 1200×800 : 49 px). Le rembourrage bas de 96 px de la tablette (le bureau a 22 px, `data-kind="desktop"`) n'a pas
+   de raison d'être sous un cadre qui a sa propre hauteur. Le bureau n'est pas visé : `:not([data-kind="desktop"])`. */
+@media (min-width:1180px){
+  html[data-refonte]:not([data-kind="desktop"]) #mail-app[data-ajuste]{
+    height:max(440px,calc(100dvh - var(--mail-top,0px) - var(--mail-bas,0px)))!important;min-height:0!important}
+  html[data-refonte]:not([data-kind="desktop"]) .content:has(> #mail-app[data-ajuste]){padding-bottom:22px}
 }
 /* ── LE SEUIL DU COURRIER EST 1179, PAS 780 NI 959 ─────────────────────────────────────────
    Ce bloc relâchait la hauteur imposée au cadre de la boîte mail à partir de 780 px. Or
@@ -16496,6 +16522,9 @@ function rendreVueSure(view,remonter){
      posée depuis `go()` sur une minuterie était balayée — mesuré absente à 100, 300, 600,
      1 200 et 2 500 ms. Ici on est juste après l'écriture réelle de l'écran. */
   try{ multiProposer(view); }catch(_e){}
+  /* ⛔ k01 (r5#5) : sur un écran court, la messagerie s'ouvre sur sa conversation — APRÈS multiProposer (la barre « Reprendre » allonge
+     le haut de page), et seulement pour une vraie navigation. */
+  if(remonter&&view==='messagerie'){ try{ msgAmener(); }catch(_e){} }
   /* Le gabarit des listes se pose ici, pour la meme raison que la barre ci-dessus :
      c'est la seule fonction qui ecrit vraiment l'ecran. */
   try{ segInit($('content')); segObserver(); }catch(_e){}
@@ -31308,6 +31337,33 @@ function mailBasculerMode(){
   else mailOpen(ouvert.type,ouvert.idx);
 }
 try{ window.addEventListener('resize',()=>{ if(current==='boiteMail'&&_mailModeRendu!==null&&_mailDesktop()!==_mailModeRendu) mailBasculerMode(); }); }catch(e){}
+/* ⛔ k01 (r5#7) — LE CADRE TROIS VOLETS SE MESURE SUR SA PLACE, EN DEHORS DU BUREAU. Sa hauteur CSS (`100dvh − 258px`) est calée sur
+   l'en-tête d'un Mac, où le cadre commence à 194 px ; une tablette ou un Android large (1180 px et plus, pointeur au doigt) a un en-tête
+   plus haut — le cadre y commence à 211-260 px, finit à 822 pour un écran de 820 — et le rembourrage bas de `.content` (96 px, pensé
+   pour le bouton flottant) ajoute le reste : 49 à 98 px de défilement de page. Comme pour la conversation (`msgAjuster`), on lit
+   où le cadre commence (chaîne des `offsetTop`, insensible à l'animation d'entrée) et ce qui reste SOUS lui (rembourrages, bordures et
+   marges des ancêtres) ; le CSS retranche les deux. `data-ajuste` est posé AVANT la lecture : il ramène aussi le rembourrage bas de la
+   page à 22 px (comme le bureau), et le lire avant compterait les 96 px d'avant. Le bureau (Mac, Windows) garde ses constantes :
+   il n'a aucun défilement à rattraper, et ce n'est pas lui qu'on touche. En pile (< 1180 px) le cadre est en hauteur libre. */
+function mailAjuster(){
+  const app=$('mail-app'); if(!app||current!=='boiteMail') return false;
+  if(!_mailDesktop()){ app.removeAttribute('data-ajuste'); return false; }
+  if(app.getAttribute('data-ajuste')!=='1') app.setAttribute('data-ajuste','1');
+  let top=0; for(let e=app;e;e=e.offsetParent) top+=e.offsetTop;
+  let bas=0; for(let e=app;e;e=e.parentElement){ const c=getComputedStyle(e);
+    bas+=(parseFloat(c.marginBottom)||0); if(e!==app) bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0); }
+  top=Math.round(top); bas=Math.ceil(bas);
+  if(app.style.getPropertyValue('--mail-top')===top+'px'&&app.style.getPropertyValue('--mail-bas')===bas+'px') return true;
+  app.style.setProperty('--mail-top',top+'px'); app.style.setProperty('--mail-bas',bas+'px');
+  return true;
+}
+let _mailVeille=false, _mailRaf=0;
+function mailAjusterPlus(){ if(_mailRaf||current!=='boiteMail') return; _mailRaf=requestAnimationFrame(()=>{ _mailRaf=0; mailAjuster(); }); }
+function mailAjusterVeiller(){
+  if(_mailVeille) return; _mailVeille=true;
+  try{ window.addEventListener('resize',mailAjusterPlus); window.addEventListener('orientationchange',mailAjusterPlus); }catch(e){}
+  try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(mailAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
+}
 /* ═══ Boîte mail — 3 volets sur ordinateur (dossiers · liste · lecture), pile sur mobile ═══ */
 views.boiteMail=function(){
   setHeader('Boîte mail','',`<button class="btn ghost" onclick="mailBoxesManage()">📬 Boîtes</button> <button class="btn" onclick="mailCompose()">✏️ Écrire</button>`);
@@ -31349,6 +31405,8 @@ views.boiteMail=function(){
       </div>
       ${D?'<div id="mail-pane" style="overflow-y:auto;background:var(--bg)"></div>':''}
     </div>`;
+  // k01 (r5#7) : la hauteur du cadre se mesure sur ce rendu-ci, hors bureau
+  mailAjuster(); mailAjusterVeiller();
   loadMailboxes().then(()=>{
     const sb=$('mail-side-boites');
     const _mbKo=(_mailboxes===null), _mb=_mailboxes||[];
@@ -39973,7 +40031,7 @@ views.messagerie=function(){
   const list=msgThreads();
   const chips=tabs.map(tab=>{ const n=msgNonLus(tab.k); const active=msgSel===tab.k;
     const ava=tab.g?grpAvatar(tab.g,18):`<span style="font-size:13px">${tab.ic}</span>`;
-    return `<div class="chip ${active?'active':''}" style="display:inline-flex;align-items:center;gap:6px" onclick="msgSel='${tab.k}';views.messagerie()">${ava}${esc(tab.lbl)}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`; }).join('');
+    return `<div class="chip ${active?'active':''}" style="display:inline-flex;align-items:center;gap:6px" onclick="msgSel='${tab.k}';views.messagerie();msgAmener()">${ava}${esc(tab.lbl)}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`; }).join('');
   const curTab=tabs.find(t=>t.k===msgSel)||tabs[0];
   const isGroup=msgSel.startsWith('group:'); const gid=isGroup?msgSel.slice(6):'';
   const grp=isGroup?db.groupes.find(x=>x.id===gid):null; const mem=isGroup?groupUsers(grp):[];
@@ -39992,7 +40050,8 @@ views.messagerie=function(){
     </div>
     <div id="msg-photo-prev" style="display:${msgPhoto?'flex':'none'};align-items:center;gap:10px;margin-top:10px">${msgPhoto?`<img src="${msgPhoto}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`:''}</div>
     <div id="msg-saisie" style="display:flex;gap:8px;margin-top:10px;position:relative"><div id="mention-pop" class="mention-pop" style="display:none"></div><label class="btn ghost" style="cursor:pointer;flex-shrink:0" title="Joindre une photo">📷<input type="file" accept="image/*" style="display:none" onchange="msgAddPhoto(event)"></label><input id="msg-input" class="search-inp" style="margin:0;flex:1" placeholder="${ph}" autocomplete="off" oninput="msgInputChange()" onkeydown="if(event.key==='Enter'){const p=document.getElementById('mention-pop'); if(p&&p.style.display!=='none'){return;} envoyerMsg();}"><button class="btn" onclick="envoyerMsg()">Envoyer</button></div>`;
-  const ml=$('msg-list'); if(ml) ml.scrollTop=ml.scrollHeight;
+  // k01 (r5#6) : la vue neuve est collée en bas, et msgAjuster le retient
+  const ml=$('msg-list'); if(ml){ ml.scrollTop=ml.scrollHeight; ml._msgBas=true; }
   msgAjuster(); msgAjusterVeiller();
 };
 /* ⛔ j01 — LA PLACE DE LA CONVERSATION SE MESURE, ELLE NE SE DEVINE PAS (r4#3, r4#5, r4#6). Sa hauteur était une
@@ -40022,11 +40081,17 @@ function msgAjuster(){
   let bas=mb(sa); for(let e=sa.parentElement;e;e=e.parentElement){ const c=getComputedStyle(e); bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0)+(parseFloat(c.marginBottom)||0); }
   bas=Math.ceil(bas);
   const dejaBon=ml.getAttribute('data-ajuste')==='1'&&ml.style.getPropertyValue('--msg-top')===top+'px'&&ml.style.getPropertyValue('--msg-sous')===sous+'px'&&ml.style.getPropertyValue('--msg-bas')===bas+'px';
-  if(dejaBon) return true;
-  const enBas=ml.scrollHeight-ml.scrollTop-ml.clientHeight<4;
+  /* ⛔ k01 (r5#6) — « COLLÉE EN BAS » SE RETIENT AVANT QUE LA FENÊTRE CHANGE, ELLE NE SE RELIT PAS APRÈS. Quand on tourne l'appareil,
+     le CSS a déjà raccourci la liste (`100dvh`) au moment où cette fonction tourne : lire la géométrie ici rend « pas en bas » (le
+     dernier message est sorti par le bas de la zone visible, scrollTop n'a pas bougé) et la liste ne se recolle jamais. Pire, sur
+     une tablette top, sous et bas restent identiques : `dejaBon` sortait avant tout. La marque `_msgBas` est posée au dernier geste
+     que l'on SAIT (vue construite, défilement de la liste) ; tourner l'appareil ne défile pas la liste, donc la marque reste juste. */
+  const enBas=ml._msgBas===undefined?(ml.scrollHeight-ml.scrollTop-ml.clientHeight<4):ml._msgBas;
+  if(!ml._msgEcoute){ ml._msgEcoute=true; try{ ml.addEventListener('scroll',()=>{ ml._msgBas=ml.scrollHeight-ml.scrollTop-ml.clientHeight<4; },{passive:true}); }catch(e){} }
+  if(dejaBon){ if(enBas&&ml.scrollHeight-ml.scrollTop-ml.clientHeight>=4) ml.scrollTop=ml.scrollHeight; return true; }
   ml.style.setProperty('--msg-top',top+'px'); ml.style.setProperty('--msg-sous',sous+'px'); ml.style.setProperty('--msg-bas',bas+'px');
   ml.setAttribute('data-ajuste','1');
-  if(enBas) ml.scrollTop=ml.scrollHeight;
+  if(enBas){ ml.scrollTop=ml.scrollHeight; ml._msgBas=true; }
   return true;
 }
 /* Ce qui change la place SANS passer par un nouveau rendu de la vue : la fenêtre qui tourne ou se redimensionne, la barre
@@ -40039,6 +40104,29 @@ function msgAjusterVeiller(){
   if(_msgVeille) return; _msgVeille=true;
   try{ window.addEventListener('resize',msgAjusterPlus); window.addEventListener('orientationchange',msgAjusterPlus); }catch(e){}
   try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(msgAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
+}
+/* ⛔ k01 (r5#5, relecture) — QUAND LA LISTE EST CACHÉE PAR CE QUI EST COLLÉ EN BAS, LA CONVERSATION SE MONTRE À L'OUVERTURE.
+   Le bloc `@media (max-height:420px)` donne à la liste l'écran entier, mais le haut de page (200 à 230 px, 75 de plus avec « Reprendre »)
+   passe avant elle : à scroll 0 elle ne paraissait que de 0 à 72 px (36 px à 667×375, 0 avec « Reprendre ») — le défaut d'origine,
+   rendu seulement atteignable. Même cause, un téléphone debout de 667 px avec « Reprendre » : 95 px visibles pour 138. On amène donc la
+   page en bas, là où la liste finit juste au-dessus de la rangée de saisie, À L'ENTRÉE dans la rubrique (`remonter` vrai dans
+   `rendreVueSure`, après `multiProposer` — une vraie navigation, jamais le rafraîchissement d'après un enregistrement ni la minuterie,
+   qui garderaient la place de la personne) et quand elle CHOISIT une conversation (la pastille qu'elle vient de toucher est au bout de
+   son doigt, pas la liste). La condition se MESURE au lieu de se deviner par la taille de l'écran : le bas de la liste passe-t-il sous la
+   rangée de saisie collée ou sous la barre d'onglets ? Sur un Mac, un iPad ou un téléphone debout sans barre « Reprendre », non : rien ne
+   bouge. Les pastilles restent une remontée de page plus haut — la liste de conversations est un choix, la conversation est le but. */
+function msgAmener(){
+  try{
+    const ml=$('msg-list'), sa=$('msg-saisie'); if(current!=='messagerie'||!ml||!sa) return false;
+    let couvre=sa.getBoundingClientRect().top; const tb=$('tabbar');
+    if(tb&&getComputedStyle(tb).display!=='none') couvre=Math.min(couvre,tb.getBoundingClientRect().top);
+    if(ml.getBoundingClientRect().bottom<=couvre+4) return false;   // la liste se voit en entier : on ne touche pas à la page
+    const bas=()=>{ if(current==='messagerie') window.scrollTo(0,document.documentElement.scrollHeight); };
+    bas(); const y0=window.scrollY;
+    /* la mesure de msgAjuster et l'entrée de la page peuvent encore bouger la hauteur : on reprend UNE fois, sauf si la personne a déjà défilé */
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(Math.abs((window.scrollY||0)-(y0||0))<2) bas(); }));
+    return true;
+  }catch(e){ return false; }
 }
 let msgPhoto='';
 async function msgAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ msgPhoto=d; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='flex'; pv.innerHTML=`<img src="${d}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`; msgAjusterPlus(); } } e.target.value=''; }

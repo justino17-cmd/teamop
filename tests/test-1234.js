@@ -49,8 +49,9 @@ function monde(moi, opts) {
   ctx.moi(moi);
   ctx.ouvrir = k => { vm.runInContext(`msgSel=${JSON.stringify(k)}`, ctx); ctx.views.messagerie(); return pastilles(ctx.__html); };
   return ctx; }
+// k01 (r5#5) : la pastille amène aussi la conversation choisie (msgAmener) — le motif admet ce second appel, sans rien lâcher sur le reste.
 function pastilles(html) {
-  const out = {}, re = /onclick="msgSel='([^']+)';views\.messagerie\(\)">([\s\S]*?)<\/div>/g; let m;
+  const out = {}, re = /onclick="msgSel='([^']+)';views\.messagerie\(\)(?:;msgAmener\(\))?">([\s\S]*?)<\/div>/g; let m;
   while ((m = re.exec(html))) { const t = /<span class="tag"[^>]*>(\d+)<\/span>/.exec(m[2]); out[m[1]] = t ? +t[1] : 0; }
   return out; }
 const msgs = () => [
