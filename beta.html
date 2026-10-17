@@ -27121,9 +27121,12 @@ views.mouvements=function(){
      qu'on ne peut pas défaire ne doit pas exister. */
   const demoBeta=(APP_VERSION.indexOf('beta')>=0&&currentUser&&currentUser.role==='admin');
   const bandeauDemo=(demoBeta||(demoOn&&currentUser&&currentUser.role==='admin'))?`<div class="card" style="margin-bottom:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-style:dashed"><span style="font-size:17px">🧪</span><div style="flex:1;min-width:220px"><b>Simulation d'essai</b><div style="font-size:12px;color:var(--t3)">Remplit le journal avec des exemples de tout : bon de commande, ajouts, consommations, validations DR, remises, mois passés. Tout est marqué (démo) et se retire d'un clic.</div></div>${demoOn?`<button type="button" class="btn ghost sm" onclick="mvtDemoRetirer()">Retirer la simulation</button>`:(demoBeta?`<button type="button" class="btn ghost sm" onclick="mvtDemoPoser()">Petite simulation</button> <button type="button" class="btn sm" onclick="mvtDemoGrande()">Tout le catalogue · 6 mois</button>`:'')}</div>`:'';
+  /* ⛔ g19 · stock#6 : « pour l'instant » ne se dit que si le journal VISIBLE (`tout`) est vide. Il se disait aussi
+     pour une recherche sans résultat — alors que le journal portait des mouvements, et que Boxes et Produits
+     donnés savent dire « ne correspond ». Une liste vide d'un journal plein, c'est un filtre ou une recherche. */
   $('content').innerHTML=tuiles+barre+bandeauDemo
     +`<div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Ce journal s'écrit tout seul : chaque ajout ou retrait dans une box ou dans le stockage, chaque arrivage et chaque bon de remise y laisse une trace — rangé par jour puis par box, avec le nom de la personne qui l'a fait et de celle qui a validé.</div>`
-    +(list.length?cartes:`<div class="card">${emptyState('🔁',(mvtFType||mvtFBox)?'Aucun mouvement ne correspond à ce filtre.':'Aucun mouvement pour l\'instant. Ils apparaîtront automatiquement dès que le stock bouge.','','')}</div>`);
+    +(list.length?cartes:`<div class="card">${emptyState('🔁',tout.length?'Aucun mouvement ne correspond à cette recherche ou à ce filtre.':'Aucun mouvement pour l\'instant. Ils apparaîtront automatiquement dès que le stock bouge.','','')}</div>`);
 };
 
 /* ═══════════════ BOXES ═══════════════ */
