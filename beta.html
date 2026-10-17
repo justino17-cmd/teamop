@@ -35777,7 +35777,7 @@ function docListView(kind,xyloOnly){
       <button class="btn ghost sm" onclick="printDoc('${kind}','${d.id}')" title="Aperçu">👁</button>
       ${kind==='devis'?`<button class="btn ghost sm" onclick="devisPdfOpen('${d.id}')" title="Voir le PDF">📄</button>
       <button class="btn ghost sm" onclick="devisPdfDownload('${d.id}')" title="Télécharger le PDF">⬇️</button> `:''}
-      ${kind==='devis'&&d.statut==='accepte'&&canCat('ventes','ajouter')?`<button class="btn sm" onclick="devisToFacture('${d.id}')" title="Convertir en facture">→🧾</button> `:''}
+      ${kind==='devis'&&d.statut==='accepte'&&canCat('ventes','ajouter')?(devisFactureDe(d.id)?`<button class="btn ghost sm" onclick="devisToFacture('${d.id}')" title="Voir la facture ${esc(devisFactureDe(d.id).num||'')}">Voir la facture</button> `:`<button class="btn sm" onclick="devisToFacture('${d.id}')" title="Convertir en facture">→🧾</button> `):''}
       ${vMod?`<button class="btn ghost sm" onclick="formDoc('${kind}','${d.id}')">✎</button>`:''}
       ${canCat('ventes','supprimer')?`<button class="btn danger sm" onclick="delItem('${cfg.coll}','${d.id}')">🗑</button>`:''}</td></tr>`;}).join('');
   const empty = xyloOnly ? `<div class="card">${emptyState('🪵','Aucun devis xylophage.','Générer (IA)','formDevisXylo()')}</div>`
@@ -35883,18 +35883,46 @@ function intRegistreEncaisse(it,f){
 function factValider(id){ if(!isFinanceMgr()){ toast('Validation comptable réservée au droit « Voir / gérer la comptabilité »'); return; } const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; f.valideCompta=!f.valideCompta; logEvent('Facture '+(f.valideCompta?'validée compta':'validation retirée'),f.num,'finance'); save(); views.factures(); toast(f.valideCompta?'Validée par la compta ✓':'Validation retirée'); }
 /* ── Facturation pro ── */
 let factFilter='tous';
-function factIsLate(f){ return f.statut==='envoyee' && f.date && (Date.now()-new Date(f.date+'T00:00:00').getTime() > 30*86400000); }
+/* g06 (facturation#5) : « En retard » est aussi un statut que le formulaire OFFRE et que le reste de l'application
+   (compta, tableau de bord, virement) traite comme un impayé. Une facture posée « retard » à la main est donc en
+   retard, sans attendre trente jours — sinon elle sortait des compteurs « À encaisser » et « En retard ». */
+function factIsLate(f){ return f.statut==='retard' || (f.statut==='envoyee' && f.date && (Date.now()-new Date(f.date+'T00:00:00').getTime() > 30*86400000)); }
 /* ⛔ v738 — ENVOYER, MARQUER PAYÉE, CONVERTIR : CE SONT DES MODIFICATIONS (et une création). Aucune de
    ces portes ne lisait « Ventes » : un compte en consultation seule marquait une facture payée, l'envoyait
    au client, transformait un devis en facture. Mesuré sur la v737. */
-function factSetStatut(id,st){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; f.statut=st; if(st==='payee'&&!f.datePaiement)f.datePaiement=todayISO(); if(st!=='payee')delete f.datePaiement; logEvent('Facture '+((FACT_ST[st]||{}).l||st),f.num,'finance'); save(); views.factures(); toast('Facture mise à jour'); }
+/* ⛔ g06 (facturation#4, #11) — UN EURO, UNE LIGNE : la ligne du registre qu'a créée le pointage d'une facture
+   (`factureId`, aucune intervention) meurt avec le paiement. « Annuler le paiement » la laissait : re-pointer le
+   virement ajoutait une seconde ligne (130 € au registre pour une facture de 120 €), et supprimer la facture en
+   laissait une orpheline. ⚠️ Une ligne qui porte AUSSI `interId` est l'encaissement sur place d'une intervention :
+   l'argent a bien été pris, elle appartient à l'intervention et reste. Le registre est de la comptabilité :
+   sans « Voir / gérer la comptabilité », on ne l'efface pas — et le geste est refusé EN ENTIER, pas à moitié. */
+function factLignesRegistre(f){ return (db.registres||[]).filter(l=>l.factureId===f.id&&!l.interId); }
+function factRegistreRetirer(f){ const ls=factLignesRegistre(f); if(!ls.length) return 0; const ids=new Set(ls.map(l=>l.id));
+  db.registres=(db.registres||[]).filter(l=>!ids.has(l.id));
+  ls.forEach(l=>logEvent('Ligne du registre retirée',f.num+' — '+eur(l.montant)+' ('+(((typeof REG_MODES!=='undefined'&&REG_MODES[l.mode])||['',l.mode||''])[1])+')','finance')); return ls.length; }
+/* Quitter « Payée » (bouton ↩︎, ou statut changé dans le formulaire) : à appeler AVANT d'écrire le nouveau statut.
+   Rend faux si le geste est refusé ; sinon retire la validation comptable et les lignes de pointage. */
+function factQuitterPayee(f,nouveau){ if(!f||f.statut!=='payee'||nouveau==='payee') return true;
+  const ls=factLignesRegistre(f);
+  if(ls.length){
+    if(!isFinanceMgr()){ toast('Annuler ce paiement retire sa ligne du registre des encaissements : réservé au droit « Voir / gérer la comptabilité »'); return false; }
+    if(!confirm('Annuler le paiement retire aussi du registre des encaissements :\n'+ls.map(l=>'• '+eur(l.montant)+' ('+(((typeof REG_MODES!=='undefined'&&REG_MODES[l.mode])||['',l.mode||''])[1])+')').join('\n')+'\n\nContinuer ?')) return false; }
+  if(f.valideCompta){ f.valideCompta=false; logEvent('Facture validation retirée (paiement annulé)',f.num,'finance'); }
+  factRegistreRetirer(f); return true; }
+function factSetStatut(id,st){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return; if(!factQuitterPayee(f,st)) return; f.statut=st; if(st==='payee'&&!f.datePaiement)f.datePaiement=todayISO(); if(st!=='payee')delete f.datePaiement; logEvent('Facture '+((FACT_ST[st]||{}).l||st),f.num,'finance'); save(); views.factures(); toast('Facture mise à jour'); }
 /* Envoi d'une facture En attente : l'e-mail part (ou SMS si pas d'e-mail) et la facture passe « Envoyée » */
 function factEnvoyer(id){ if(!permGarde('ventes','modifier','une facture')) return; const f=(db.factures||[]).find(x=>x.id===id); if(!f)return;
   const c=db.clients.find(x=>x.id===f.clientId)||{};
   if(!c.email&&!c.tel){ toast('Ajoute un e-mail (ou un téléphone) sur la fiche du client d\'abord'); return; }
   Promise.resolve(envoiDoc('factures',id,'mail')).then(ok=>{ if(!ok) return;   // v740 : « Envoyée » quand elle est PARTIE
     f.statut='envoyee'; logEvent('Facture envoyée',f.num,'finance'); save(); if(current==='factures') views.factures(); }); }
-function delFacture(id){ if(!canCat('ventes','supprimer')){toast('Suppression non autorisée pour ton compte (Permissions)');return;} if(!confirm('Supprimer cette facture ?'))return; db.factures=(db.factures||[]).filter(x=>x.id!==id); logEvent('Facture supprimée',id,'finance'); save(); views.factures(); toast('Facture supprimée'); }
+function delFacture(id){ if(!canCat('ventes','supprimer')){toast('Suppression non autorisée pour ton compte (Permissions)');return;}
+  /* g06 (facturation#4) : la ligne de registre née du pointage de CETTE facture part avec elle (sinon elle reste orpheline) */
+  const f0=(db.factures||[]).find(x=>x.id===id), reg0=f0?factLignesRegistre(f0):[];
+  if(reg0.length&&!isFinanceMgr()){ toast('Cette facture a une ligne au registre des encaissements : la supprimer demande le droit « Voir / gérer la comptabilité »'); return; }
+  if(!confirm('Supprimer cette facture ?'+(reg0.length?'\n\nSa ligne du registre des encaissements ('+reg0.map(l=>eur(l.montant)).join(', ')+') sera retirée aussi.':'')))return;
+  if(f0&&reg0.length) factRegistreRetirer(f0);
+  db.factures=(db.factures||[]).filter(x=>x.id!==id); logEvent('Facture supprimée',id,'finance'); save(); views.factures(); toast('Facture supprimée'); }
 views.factures=function(){
   const canDel=canCat('ventes','supprimer');
   const ttc=f=>docTot(f).ttc;
@@ -35902,22 +35930,36 @@ views.factures=function(){
   const emis=all.filter(f=>f.statut!=='brouillon');
   const totFact=emis.reduce((s,f)=>s+ttc(f),0);
   const totPaid=all.filter(f=>f.statut==='payee').reduce((s,f)=>s+ttc(f),0);
-  const dueList=all.filter(f=>f.statut==='envoyee'); const totDue=dueList.reduce((s,f)=>s+ttc(f),0);
+  const dueList=all.filter(f=>f.statut==='envoyee'||f.statut==='retard'); const totDue=dueList.reduce((s,f)=>s+ttc(f),0);
   const lateList=dueList.filter(factIsLate); const totLate=lateList.reduce((s,f)=>s+ttc(f),0);
   const devisAcc=visibleDocs(db.devis||[]).filter(d=>d.statut==='accepte'&&!(db.factures||[]).some(f=>f.devisId===d.id));
-  const intsAfact=visibleInts(db.interventions||[]).filter(i=>i.statut==='terminee'&&!(db.factures||[]).some(f=>f.interventionId===i.id));
+  /* g06 (facturation#6) : une intervention est déjà facturée si une facture la porte par L'UNE des trois clés —
+     `interventionId` (facture née de l'intervention), `interId` (facture automatique, réglée sur place) ou
+     `interIds` (facture GROUPÉE de la validation de la journée). Ne regarder que la première la laissait
+     proposée, et « Générer la facture » en créait une seconde, à un autre montant. */
+  const intDejaFacturee=new Set(); (db.factures||[]).forEach(f=>{ if(f.interventionId) intDejaFacturee.add(f.interventionId); if(f.interId) intDejaFacturee.add(f.interId); (f.interIds||[]).forEach(x=>intDejaFacturee.add(x)); });
+  const intsAfact=visibleInts(db.interventions||[]).filter(i=>i.statut==='terminee'&&!intDejaFacturee.has(i.id));
+  /* g06 (facturation#2, sa part) : deux appareils qui émettent avant de s'être vus tirent le même numéro — le bandeau
+     des devis existe déjà ; une facture en double ne se voyait nulle part. */
+  const dblNums=docNumsDoubles('factures');
+  const bandeauDbl=dblNums.length?`<div class="card" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);padding:12px 14px;margin-bottom:12px">
+    <div style="font-weight:800;color:var(--org);font-size:13.5px">⚠️ ${dblNums.length} numéro${dblNums.length>1?'s':''} en double</div>
+    <div style="font-size:12.5px;color:var(--t2);margin-top:4px;line-height:1.55"><span class="mono">${dblNums.slice(0,6).map(esc).join(', ')}</span>${dblNums.length>6?' et '+(dblNums.length-6)+' autre(s)':''} — deux appareils ont émis le même numéro sans s'être vus. Ouvre la plus récente (clique la ligne) et donne-lui le numéro suivant : la numérotation d'une facture doit rester continue.</div></div>`:'';
   /* v738 : l'export « Excel » est la COMPTABILITÉ ENTIÈRE (factures, télécollectes, registre des
      encaissements) — il suit le droit de la Comptabilité, pas le menu Factures qu'un commercial a d'office */
   const vMod=canCat('ventes','modifier'), vAj=canCat('ventes','ajouter');
   setHeader('Factures','Facturation',`${isFinanceMgr()?`<button class="btn ghost" onclick="exportComptaTout()" title="Export Excel">Excel</button> `:''}${vAj?`<button class="btn" onclick="formDoc('factures')">＋ Nouvelle facture</button>`:''}`);
   const filters=[['tous','Toutes',all.length],['brouillon','En attente',all.filter(f=>f.statut==='brouillon').length],['envoyee','À encaisser',dueList.length],['retard','En retard',lateList.length],['payee','Payées',all.filter(f=>f.statut==='payee').length]];
-  let list = factFilter==='retard' ? lateList : (factFilter==='tous'? all : all.filter(f=>f.statut===factFilter));
+  let list = factFilter==='retard' ? lateList : factFilter==='envoyee' ? dueList : (factFilter==='tous'? all : all.filter(f=>f.statut===factFilter));
   const row=f=>{ const late=factIsLate(f); const st=late?'retard':f.statut;
-    return `<div class="pl-row">
+    /* g06 (facturation#9) : le motif `.pl-row.lga` du dépôt — sous 440 px de LIGNE le libellé prend sa ligne et le groupe
+       de gestes (Aperçu · FX · ↩︎ · Validée · 🗑) passe dessous. Sans lui la colonne de texte tombait à 0 px sur téléphone
+       (titre sur six lignes, rangée de 479 px) ; et un montant long est insécable, « € » ne reste plus seul. */
+    return `<div class="pl-row lga">
       <div class="pl-info" style="cursor:pointer" onclick="${vMod?`formDoc('factures','${f.id}')`:`printDoc('factures','${f.id}')`}">
-        <div class="pl-title">${esc(f.num||'—')} · ${eur(ttc(f))}</div>
+        <div class="pl-title">${esc(f.num||'—')} · <span style="white-space:nowrap">${eur(ttc(f))}</span></div>
         <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
-      <span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+      <span class="lga-a" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn ghost sm" onclick="printDoc('factures','${f.id}')" title="Aperçu">Aperçu</button>
         <button class="btn ghost sm" onclick="exportFacturX('${f.id}')" title="Export Factur-X (facturation électronique)">FX</button>
         ${vMod&&f.statut==='brouillon'?`<button class="btn sm" onclick="factEnvoyer('${f.id}')" title="Envoyer la facture au client par e-mail">📧 Envoyer</button><button class="btn ghost sm" onclick="factSetStatut('${f.id}','envoyee')" title="Marquer envoyée (si l'envoi a été fait autrement)">📤</button>`:''}
@@ -35926,7 +35968,7 @@ views.factures=function(){
         ${f.statut==='payee'&&isFinanceMgr()?`<button class="btn ${f.valideCompta?'ghost':''} sm" onclick="factValider('${f.id}')" title="Validation comptable">${f.valideCompta?'Validée':'Valider'}</button>`:''}
         ${canDel?`<button class="btn danger sm" onclick="delFacture('${f.id}')" title="Supprimer">🗑</button>`:''}
       </span></div>`; };
-  $('content').innerHTML=`<div class="kpis">
+  $('content').innerHTML=bandeauDbl+`<div class="kpis">
     <div class="kpi"><div class="kpi-ico" style="background:rgba(59,130,246,.14)">📄</div><div class="kpi-val">${eur(totFact)}</div><div class="kpi-lbl">Total facturé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">✅</div><div class="kpi-val">${eur(totPaid)}</div><div class="kpi-lbl">Encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">⏳</div><div class="kpi-val">${eur(totDue)}</div><div class="kpi-lbl">À encaisser (${dueList.length})</div></div>
@@ -37574,19 +37616,45 @@ function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modi
   /* v738 : la liste ne propose que les clients qu'on voit — l'enregistrement le vérifie aussi */
   const _av=id?(db[cfg.coll].find(x=>x.id===id)||{}):{};
   if(!clientPropose(f.clientId,_av.clientId)){ toast('Ce client ne te concerne pas — choisis-en un dans la liste'); return; }
+  /* g06 — TROIS REFUS, tous AVANT la première écriture (le client, le registre, le document) : un refus à moitié
+     laisserait une fiche client réécrite pour un document qui n'existe pas.
+     · facturation#15 : une facture sans aucune ligne remplie se créait à 0,00 € et CONSOMMAIT un numéro (continu,
+       donc à supprimer à la main) ; les devis restent libres de se préparer vides ;
+     · facturation#2 : deux appareils qui émettent avant de s'être vus tirent le même numéro (bandeau « numéros en
+       double ») ; ici on refuse de le CRÉER ou de s'en donner un déjà pris — dans la même série seulement (DV- et FAC-
+       ne se rencontrent pas). Test écrit EN LIGNE : un double déjà en base reste modifiable tant qu'on ne lui change pas
+       son numéro, sinon on ne pourrait même plus ouvrir la facture pour la corriger ;
+     · facturation#4/#11 : quitter « Payée » par le formulaire retire la ligne de registre et la validation compta,
+       comme le bouton ↩︎ (factQuitterPayee demande la confirmation et lit le droit Comptabilité). */
+  const lignesOk=formLignes.filter(l=>l.designation||l.pu);
+  if(kind==='factures'&&!lignesOk.length){ toast('Ajoute au moins une ligne à la facture (une désignation ou un prix) avant de l\'enregistrer'); return; }
+  { const numNorm=x=>String(x==null?'':x).trim().toUpperCase(), nv=numNorm(f.num);
+    if(nv&&(!id||numNorm(_av.num)!==nv)&&(db[cfg.coll]||[]).some(x=>x.id!==id&&numNorm(x.num)===nv)){ toast('Le numéro '+String(f.num).trim()+' est déjà porté par '+(kind==='devis'?'un autre devis':'une autre facture')+' — choisis-en un autre'); return; } }
+  if(kind==='factures'&&id&&!factQuitterPayee(_av,f.statut)) return;
   // Mise à jour des coordonnées du client (adresse complète) saisies dans le document
   /* v738 : réécrire la fiche du client, c'est « Clients → Modifier » — le devis s'enregistre sans elle */
   const cli=canCat('crm','modifier')?db.clients.find(x=>x.id===f.clientId):null; if(cli){ const a=document.getElementById('doc-cli-adr'),v=document.getElementById('doc-cli-ville'),tl=document.getElementById('doc-cli-tel'),em=document.getElementById('doc-cli-email');
     if(a)cli.adresse=a.value.trim(); if(tl)cli.tel=tl.value.trim(); if(em)cli.email=em.value.trim();
     if(v&&v.value.trim()){ const mv=v.value.trim().match(/(\d{5})\s*(.*)/); if(mv){cli.codePostal=mv[1];cli.ville=mv[2].trim();} else cli.ville=v.value.trim(); } }
-  const doc={num:f.num,clientId:f.clientId,date:f.date,tva:parseFloat(f.tva)||0,statut:f.statut,notes:f.notes,rapportModele:f.rapportModele||'',lignes:formLignes.filter(l=>l.designation||l.pu)};
+  const doc={num:f.num,clientId:f.clientId,date:f.date,tva:parseFloat(f.tva)||0,statut:f.statut,notes:f.notes,rapportModele:f.rapportModele||'',lignes:lignesOk};
   if(id){ const ix=db[cfg.coll].findIndex(x=>x.id===id); db[cfg.coll][ix]={...db[cfg.coll][ix],...doc}; toast(cfg.titre+' mis à jour'); }
   else{ db[cfg.coll].push({id:uid(),devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); logEvent(cfg.titre+' créé',f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cfg.titre+' créé'); }
   save(); closeModal();
   if(kind==='devis'){ const cur=id?db.devis.find(x=>x.id===id):null; docListView('devis', !!(cur&&cur.xylo)); }
-  else docListView(kind);
+  /* g06 (facturation#10) : une facture enregistrée revient à l'écran Factures (cartes, filtres, boutons Payée / Valider /
+     Envoyer / FX / Excel) — docListView('factures') montrait un tableau nu, sans rien de tout cela. */
+  else if(current==='factures') views.factures();
+  else go('factures');
 }
-function devisToFacture(id){ if(!permGarde('ventes','ajouter','une facture')) return; const d=db.devis.find(x=>x.id===id); if(!d) return; const num=docNum('factures');
+/* ⛔ g06 (ventes#3 / facturation#1) — UN DEVIS SE CONVERTIT UNE FOIS. Le bouton →🧾 restait proposé et chaque clic créait une
+   facture de plus (FAC-001, -002, -003 pour le même devis, des numéros continus consommés, un client facturé plusieurs
+   fois). La facture née d'un devis porte `devisId` : si elle existe, on l'OUVRE au lieu d'en créer une autre. Le double
+   clic est guéri ailleurs ; ce garde-fou-ci tient pour deux clics espacés. Les doubles DÉJÀ en base ne sont pas touchés. */
+function devisFactureDe(devisId){ return devisId?((db.factures||[]).find(f=>f.devisId===devisId)||null):null; }
+function devisToFacture(id){ if(!permGarde('ventes','ajouter','une facture')) return; const d=db.devis.find(x=>x.id===id); if(!d) return;
+  const dej=devisFactureDe(id);
+  if(dej){ toast('Ce devis a déjà sa facture '+(dej.num||'')+' — la voici'); if(canCat('ventes','modifier')) formDoc('factures',dej.id); else printDoc('factures',dej.id); return; }
+  const num=docNum('factures');
   db.factures.push({id:uid(),num,clientId:d.clientId,devisId:id,creePar:(currentUser&&currentUser.id)||'',date:todayISO(),statut:'brouillon',tva:d.tva,notes:d.notes,rapportModele:d.rapportModele||'',lignes:JSON.parse(JSON.stringify(d.lignes))});
   logEvent('Facture créée depuis devis',num,'finance'); save(); factFilter='brouillon'; toast('Facture '+num+' créée — elle est En attente : vérifie l\'aperçu puis envoie-la'); go('factures'); }
 
@@ -37609,7 +37677,7 @@ function printDoc(kind,id){
   const fdate=x=>x.toLocaleDateString('fr-FR');
   const modeP=(typeof REG_MODES!=='undefined'&&REG_MODES[d.moyenPaiement])?REG_MODES[d.moyenPaiement][1]:(d.moyenPaiement||'');
   const tvaP=(d.tva==null?0:+d.tva);
-  const rows=(d.lignes||[]).map(l=>`<tr><td>${esc(l.designation)}</td><td class="c">${l.qte}</td><td class="r">${eur(l.pu)}</td><td class="c">${tvaP} %</td><td class="r">${eur((+l.qte||0)*(+l.pu||0))}</td></tr>`).join('');
+  const rows=(d.lignes||[]).map(l=>`<tr><td>${esc(l.designation)}</td><td class="c">${String(Number(l.qte)||0).replace('.',',')}</td><td class="r">${eur(l.pu)}</td><td class="c">${tvaP} %</td><td class="r">${eur(ligTotLigne(l))}</td></tr>`).join('');   /* g06 (ventes#2) : la ligne de l'aperçu est celle du PDF et du total — arrondie PAR LIGNE (ligTotLigne), quantité à virgule comme le PDF ; `eur(qte*pu)` brut affichait 50,00 là où le total et le PDF additionnent 49,99 */
   const emetteur=[[E.adresse,[E.cp,E.ville].filter(Boolean).join(' ')].filter(Boolean).map(esc).join('<br>'),
     E.tel?'Tél. '+esc(E.tel):'', E.siret?'SIRET '+esc(E.siret):'', E.tvaIntra?'TVA '+esc(E.tvaIntra):''].filter(Boolean);
   const destin=[[c.adresse,((c.codePostal||'')+' '+(c.ville||'')).trim()].filter(Boolean).map(esc).join('<br>'),
@@ -37705,7 +37773,7 @@ function printDoc(kind,id){
    un brouillon de secours, ne joint rien (v740). */
 function genDocTexte(kind,d,joint){ const cfg=DOC[kind], c=db.clients.find(x=>x.id===d.clientId)||{}, t=docTot(d), soc=rapportSociete(d.rapportModele), nl='\n';
   const L=[]; L.push('Bonjour'+(c.nom?' '+c.nom:'')+',',''); L.push((joint?'Veuillez trouver ci-joint votre ':'Voici votre ')+cfg.un+' '+(d.num||'')+' ('+soc+')'+(joint?'.':' :'),'');
-  (d.lignes||[]).forEach(l=>L.push('• '+(l.designation||'')+' — '+(l.qte||1)+' × '+eur(l.pu||0)+' = '+eur((+l.qte||0)*(+l.pu||0))));
+  (d.lignes||[]).forEach(l=>L.push('• '+(l.designation||'')+' — '+String(Number(l.qte)||0).replace('.',',')+' × '+eur(l.pu||0)+' = '+eur(ligTotLigne(l))));   // g06 (ventes#2) : les lignes du courriel s'additionnent au total (arrondi par ligne, comme le PDF)
   L.push('','Total TTC : '+eur(t.ttc)); if(d.notes)L.push('',d.notes);
   L.push('','Cordialement,',soc); return L.join(nl);
 }
