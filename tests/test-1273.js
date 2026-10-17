@@ -28,14 +28,17 @@ function monter(opts) {
   const S = { timers: [], t: 0, ecout: {}, ajout: [], drops: [], menus: 0, vues: 0 };
   const ecoute = (type, fn, o) => { (S.ecout[type] = S.ecout[type] || []).push({ fn, o }); };
   const zone = { classes: new Set(), classList: { add(c) { zone.classes.add(c); }, remove(c) { zone.classes.delete(c); } },
-    getAttribute: k => k === 'data-drop' ? 'time:T2:8' : '', getBoundingClientRect: () => ({ top: 0 }) };
+    getAttribute: k => k === 'data-drop' ? (O.zone || 'time:T2:8') : '', getBoundingClientRect: () => ({ top: 0 }) };
   const carte = { getAttribute: k => k === 'data-drag-int' ? 'i1' : '', offsetWidth: 100,
+    getBoundingClientRect: () => ({ top: 100, height: 60 }),
     cloneNode() { const g = { style: {}, enleve: false, remove() { g.enleve = true; } }; S.fantome = g; return g; } };
   const W = { console, Object, Math, JSON, Set, parseInt, Date, isNaN,
     document: { addEventListener: ecoute, body: { appendChild(g) { S.ajout.push(g); } }, elementFromPoint: () => ({ closest: sel => sel === '[data-drop]' ? zone : null }) },
     navigator: {}, window: { _planDragging: false },
     current: 'planning', canPlan: () => O.peut, planLigneDe: () => 'T1', views: { planning() { S.vues++; } },
     planDropCell: (e, ...r) => S.drops.push(['cell', ...r]), planDropTime: (e, ...r) => S.drops.push(['time', e.clientY, ...r]),
+    planMultiDrop: (e, ...r) => S.drops.push(['multi', e.clientY, ...r, 'dy=' + W.window._planGrabDy]),
+    planWeekDrop: (e, ...r) => S.drops.push(['semaine', e.clientY, ...r, 'dy=' + W.window._planGrabDy]),
     plHovHide() {}, planCtxTarget: () => [{}], planCtxOpen: () => { S.menus++; },
     setTimeout: (fn, ms) => { const id = S.timers.length + 1; S.timers.push({ id, fn, a: S.t + ms, vivant: true }); return id; },
     clearTimeout: id => { const t = S.timers.find(x => x.id === id); if (t) t.vivant = false; } };
@@ -93,6 +96,40 @@ console.log('— l\'appui long du menu ne s\'ouvre pas par-dessus un glisser rep
 { const m = monter();
   m.pointeur('pointerdown', 100, 100); m.avance(600);
   vrai('contre-épreuve : doigt immobile 520 ms → le menu s\'ouvre', m.S.menus === 1, m.S.menus); }
+
+console.log('— chaque vue a sa zone de dépôt au doigt (relecture : la Multi, vue par défaut, n\'en avait pas)');
+{ // doigt posé à 130 px, carte dont le haut est à 100 px : le doigt tient la carte à 30 px de son bord
+  const joue = (zone) => { const m = monter({ zone }); m.touche('touchstart', 100, 130); m.avance(300); m.touche('touchmove', 140, 400); m.touche('touchend', 140, 400); return m; };
+  const mu = joue('multi:2026-10-16:T2:0:46');
+  vrai('Multi : le relâcher dépose par planMultiDrop (jour, personne, h0, pixels par heure)', mu.S.drops.length === 1 && mu.S.drops[0][0] === 'multi' && mu.S.drops[0][2] === '2026-10-16' && mu.S.drops[0][3] === 'T2' && mu.S.drops[0][5] === 46, mu.S.drops);
+  vrai('Multi : h0 = 0 (planning dès minuit) n\'est pas remplacé par 8', mu.S.drops[0] && mu.S.drops[0][4] === 0, mu.S.drops);
+  vrai('Multi : la carte se pose là où le doigt la tenait (30 px du bord), pas au bord haut', mu.S.drops[0] && mu.S.drops[0][6] === 'dy=30', mu.S.drops);
+  vrai('Multi : le décalage de saisie est remis à 0 après le dépôt', mu.W.window._planGrabDy === 0);
+  const sw = joue('cell:2026-10-16:T2:7:40');
+  vrai('Semaine : la case jour+heure dépose par planWeekDrop (avec l\'heure, comme à la souris)', sw.S.drops.length === 1 && sw.S.drops[0][0] === 'semaine' && sw.S.drops[0][2] === '2026-10-16' && sw.S.drops[0][4] === 7 && sw.S.drops[0][5] === 40, sw.S.drops);
+  const sc = joue('cell:2026-10-16:T2');
+  vrai('une case sans heure garde le dépôt de case (planDropCell)', sc.S.drops.length === 1 && sc.S.drops[0][0] === 'cell', sc.S.drops);
+  const jo = joue('time:T2:6:52');
+  vrai('Jour : la colonne d\'heures dépose par planDropTime avec SES pixels par heure', jo.S.drops.length === 1 && jo.S.drops[0][0] === 'time' && jo.S.drops[0][3] === 6 && jo.S.drops[0][4] === 52, jo.S.drops);
+  const j0 = joue('time:T2:0:48');
+  vrai('Jour : h0 = 0 n\'est pas remplacé par 8', j0.S.drops[0] && j0.S.drops[0][3] === 0, j0.S.drops); }
+
+console.log('— recensement du fichier : toute vue qui arme un fantôme porte sa zone, et chaque zone mène à son dépôt');
+{ const SRC = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+  const dansFonction = (pos) => { const d = SRC.lastIndexOf('\nfunction ', pos); return SRC.slice(d, SRC.indexOf('\nfunction ', pos)); };
+  const cartes = [['plm-card', 'multi', 'planMultiDrop'], ['plg-mh', 'cell', 'planWeekDrop'], ['plt-blk', 'time', 'planDropTime']];
+  cartes.forEach(([classe, prefixe, depot]) => {
+    const k = SRC.indexOf('<div class="' + classe);
+    vrai('la carte « ' + classe + ' » est écrite dans le code', k > 0);
+    const f = dansFonction(k);
+    const zone = f.match(new RegExp('<div[^>]*data-drop="' + prefixe + ':[^"]*"[^>]*>'));
+    vrai('…et sa fonction porte la zone data-drop="' + prefixe + ':…" au doigt', !!zone);
+    vrai('…dont l\'ondrop appelle ' + depot + ' (le même dépôt que la souris)', !!zone && new RegExp('ondrop="[^"]*' + depot + '\\(').test(zone[0]), zone && zone[0].slice(0, 200));
+    vrai('…et le touchend d\'app.html sait la router vers ' + depot, new RegExp(prefixe === 'cell' ? "parts\\[0\\]==='cell'&&parts\\[3\\]\\) " + depot : "parts\\[0\\]==='" + prefixe + "'\\) " + depot).test(code)); });
+  // aucune zone data-drop ne reste sans route au doigt
+  const prefixes = [...new Set([...SRC.matchAll(/data-drop="(\w+):/g)].map(x => x[1]))];
+  vrai('population : au moins trois zones data-drop (multi, cell, time)', prefixes.length >= 3, prefixes);
+  prefixes.forEach(px => vrai('zone « ' + px + ' » : routée dans touchend', new RegExp("parts\\[0\\]==='" + px + "'").test(code), px)); }
 
 console.log('\n════ test-1273 : ' + ok + ' ✓ ' + ko + ' ✗ ════');
 process.exit(ko ? 1 : 0);

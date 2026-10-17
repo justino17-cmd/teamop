@@ -19029,7 +19029,7 @@ function planMultiHtml(SRC){
           ${t.id?planGauge(mn,capM,'Charge de la journée ('+fmtHmin(mn)+' sur '+fmtHmin(capM)+')',techColor(t.id)):''}</span>
         ${t.id?`<span class="plg-go">›</span>`:''}</div>`;
       const absM=t.id?absentOn(t.id,j):null;
-      let col=`<div class="plm-col${fin}${absM?' absx':''}" data-ligne="${t.id}" ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${techColor(t.id)}')" ondragleave="this.classList.remove('drop');planGuideOff()" ondrop="this.classList.remove('drop');planGuideOff();planMultiDrop(event,'${j}','${t.id}',${h0},${PPH})" ondblclick="planMultiVide(event,'${j}','${t.id}',${h0},${PPH})">`;
+      let col=`<div class="plm-col${fin}${absM?' absx':''}" data-ligne="${t.id}" data-drop="multi:${j}:${t.id}:${h0}:${PPH}" ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${techColor(t.id)}')" ondragleave="this.classList.remove('drop');planGuideOff()" ondrop="this.classList.remove('drop');planGuideOff();planMultiDrop(event,'${j}','${t.id}',${h0},${PPH})" ondblclick="planMultiVide(event,'${j}','${t.id}',${h0},${PPH})">`;
       for(let h=h0;h<h1;h++) col+=`<div class="plm-cell" style="height:${PPH}px"></div>`;
       col+=absBloc(absM,'plm-abs');
       actM.forEach(a=>{ const m=toMinH(a.heure); if(m===null) return;
@@ -19634,7 +19634,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
           style="${lg};${pos};height:${Math.round(hpx)}px;--cc:${sc}">
           ${pn}<b>${planPileAutres(i,gr.id)}${i.heure?`<span class="hh">${esc(i.heure)}</span> `:''}${esc(i.titre||'Intervention')}</b>${detail}</div>`;
       }).join('');
-      g+=`<div class="plg-cell heur ${iso===todayISO()?'today':''} ${abs?'absx':''}" data-drop="cell:${iso}:${gr.id}" data-ech="${eid}"
+      g+=`<div class="plg-cell heur ${iso===todayISO()?'today':''} ${abs?'absx':''}" data-drop="cell:${iso}:${gr.id}:${wh0}:${PPHW}" data-ech="${eid}"
         style="height:${HW}px"
         ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${wh0},${PPHW},'${techColor(gr.id||'')}')"
         ondragleave="this.classList.remove('drop');planGuideOff()"
@@ -19780,7 +19780,7 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
       const serre=gap<30 && adrA && adrB && adrA!==adrB;
       const mid=(finA+debB)/2;
       blocks+=`<div class="plt-gap ${serre?'hot':''}" style="top:${(mid-h0*60)/60*PPH-7}px"><b>${serre?'⚠️ enchaînement serré · ':''}${gap} min de battement</b></div>`; }
-    colsA.push(`<div class="plt-col ${abs?'absx':''}" style="height:${H}px" data-drop="time:${gr.id}:${h0}"
+    colsA.push(`<div class="plt-col ${abs?'absx':''}" style="height:${H}px" data-drop="time:${gr.id}:${h0}:${PPH}"
       ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${cTech}')" ondragleave="this.classList.remove('drop');planGuideOff()"
       ondrop="this.classList.remove('drop');planGuideOff();planDropTime(event,'${gr.id}',${h0},${PPH})">${absBloc(abs,'plt-abs')}${blocks}</div>`);
   });
@@ -19952,7 +19952,9 @@ document.addEventListener('touchstart',e=>{ if(e.touches.length!==1||(current!==
   const c=e.target.closest('[data-drag-int]'); if(!c) return;
   const id=c.getAttribute('data-drag-int'), d0=e.touches[0];
   planTpArreter(_tpDrag);
-  _tpDrag={id,x:d0.clientX,y:d0.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
+  /* où le doigt tient la carte : comme à la souris (planDragStart), la carte se pose là où on l'a saisie */
+  let dy=0; try{ const rb=c.getBoundingClientRect(); dy=Math.max(0,Math.min(rb.height,d0.clientY-rb.top)); }catch(_){ }
+  _tpDrag={id,dy,x:d0.clientX,y:d0.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
     const gh=c.cloneNode(true); Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.92,margin:0,transform:'translate('+(_tpDrag.x+10)+'px,'+(_tpDrag.y+10)+'px) rotate(-2deg)'});
     document.body.appendChild(gh); _tpDrag.ghost=gh; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){ }
   },260)};
@@ -19975,10 +19977,19 @@ document.addEventListener('touchend',e=>{ const t=_tpDrag; _tpDrag=null; if(!t) 
   if(dz){
     const parts=(dz.getAttribute('data-drop')||'').split(':');
     const fake={preventDefault(){},dataTransfer:{getData:()=>t.id},altKey:false,clientY:d0.clientY,currentTarget:dz};
+    /* chaque zone dit à quel dépôt elle mène — le MÊME que sous la souris : Multi (colonne d'une personne
+       un jour donné), Semaine (case jour + heure), Jour (colonne d'heures). Une vue sans zone ici
+       ne déposerait rien au doigt (la Multi, vue par défaut, n'en avait pas). */
+    window._planGrabDy=t.dy||0;
+    /* h0 peut valoir 0 (planning ouvert dès minuit) : `||8` l'aurait remplacé par 8 */
+    const nb=(v,d)=>{ const n=parseInt(v,10); return isNaN(n)?d:n; };
     try{
-      if(parts[0]==='cell') planDropCell(fake,parts[1],parts[2]||'');
-      else if(parts[0]==='time') planDropTime(fake,parts[1]||'',parseInt(parts[2],10)||8);
+      if(parts[0]==='multi') planMultiDrop(fake,parts[1],parts[2]||'',nb(parts[3],8),nb(parts[4],46));
+      else if(parts[0]==='cell'&&parts[3]) planWeekDrop(fake,parts[1],parts[2]||'',nb(parts[3],8),nb(parts[4],46));
+      else if(parts[0]==='cell') planDropCell(fake,parts[1],parts[2]||'');
+      else if(parts[0]==='time') planDropTime(fake,parts[1]||'',nb(parts[2],8),nb(parts[3],48));
     }catch(err){}
+    window._planGrabDy=0;
   }
   if(window._planPending){ window._planPending=false; if(current==='planning'){ try{ views.planning(); }catch(err){} } }
 });
