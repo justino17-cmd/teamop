@@ -128,7 +128,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
     console.log('\nLes événements (la sonnerie, puis « en cours ») et l\'offre de Ben arrivent PENDANT la requête d\'Ana : rien n\'est perdu, rien n\'est « pris ailleurs »');
     {
       A.fluxRetenu = [];
-      const ev0 = A.evs.length;
+      const ev0 = A.evs.length, sig0 = A.recus.signal || 0;
       const sb = await B.src.demarrerAppel({ membres: [ana.id], video: false });
       await att(() => A.fluxRetenu.length >= 1);                          // la sonnerie de Ben est en route chez Ana
       let ouvrir; A.retenir = { re: /POST \/api\/appels$/, porte: new Promise((ok) => { ouvrir = ok; }), faite: false, enRoute: false };
@@ -139,7 +139,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       for (const f of file) f();                                           // la sonnerie arrive (une entrée entrante naît), puis l'événement « en cours » : Ana ne sait pas encore que c'est elle qui l'a pris
       vrai('population : la sonnerie de Ben est arrivée à la page d\'Ana avant la réponse de sa requête', !!(await att(() => A.evs.some(e => e.type === 'appel-entrant' && e.id === sb.id))));
       vrai('population : Ben a offert (l\'offre atteint le flux d\'Ana avant la réponse de sa requête)', !!(await att(() => B.monde.dernier() && B.monde.dernier().localDescription)));
-      await att(() => (A.recus.signal || 0) >= 1);
+      vrai('population : l\'offre de Ben est ARRIVÉE au flux d\'Ana (comptée avant le module), la réponse de sa requête est toujours retenue', !!(await att(() => (A.recus.signal || 0) > sig0)) && !!A.retenir.enRoute);
       ouvrir();
       const sa = await p;
       A.retenir = null;
