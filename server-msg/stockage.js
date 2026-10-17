@@ -4241,8 +4241,26 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Lancer un appel : TOUT dans une transaction — le contrôle « occupé » de l'appelant (il ne fait pas deux appels), celui de l'appelé (écrit alors « occupe », jamais « sonne »), les deux lignes, les deux
      événements, et — appelé occupé — la notification du manqué. `session` : l'empreinte de la session de l'appelant (liée d'emblée). `sonnerieMs` : le délai de la sonnerie. */
+  /* ⛔ DEUX APPELS QUI SE CROISENT (17 octobre 2026) : Ana appelle Ben pendant que Ben appelle Ana. Le second lancement arrivé trouvait la sonnerie du premier comme « appel actif » de SON appelant
+     (`occupe_moi`) — et, dans l'autre ordre, l'appelé « occupé » —, donc chacun lisait l'autre injoignable alors que les deux se cherchaient. L'appel INVERSE (celui de l'appelé vers l'appelant, qui
+     SONNE encore) se reconnaît ici, dans la même transaction que la décision : s'il est le SEUL appel qui occupe l'appelant, le second à arriver y RÉPOND (les deux se rejoignent). Un appel sans
+     rapport (Cléo, déjà au téléphone avec quelqu'un d'autre) ne passe pas par là : il reste `occupe_moi` / « occupé ». → l'identifiant de l'appel inverse, ou null. */
+  function appelInverseQuiSonne(appelant, appele) {
+    const t = horloge();
+    const r = Q(`SELECT a.id AS id FROM appel a
+                 JOIN appel_part pa ON pa.appel = a.id AND pa.uid = ? AND pa.role = 'appelant'
+                 JOIN appel_part pb ON pb.appel = a.id AND pb.uid = ? AND pb.role = 'appele'
+                 WHERE a.genre = 'deux' AND a.etat = 'sonne' AND a.sonne_jusqua > ?
+                 ORDER BY a.cree DESC, a.id DESC LIMIT 1`).get(appele, appelant, t);
+    return r ? r.id : null;
+  }
   function appelCreer({ appelant, appele, type, session, sonnerieMs }) {
     return tx(() => {
+      const inverse = appelInverseQuiSonne(appelant, appele);
+      if (inverse && appelActifDe(appelant) === inverse) {
+        const r = appelRepondre({ id: inverse, uid: appelant, session, accepte: true });
+        return { id: inverse, occupe: false, joint: true, gids: r.gids, notif: null, vue: r.vue };
+      }
       if (appelActifDe(appelant)) throw erreur('occupe_moi');
       const t = horloge(), id = nouvelId('a'), occupe = appelActifDe(appele) !== null;
       Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin) VALUES(?, ?, ?, ?, ?, ?)').run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null);
