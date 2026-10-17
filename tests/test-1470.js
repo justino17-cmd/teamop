@@ -83,6 +83,25 @@ const MIN = 60000, JOUR = 86400000;
     v('⛔ « demain 9 h » d\'un rendez-vous dans 12 jours : le JOUR est dit, jamais « demain »', ctx.f('demain', { debut: loc(12, 9, 0) }), 'Reporté au ' + D12 + ' à 09:00');
     v('⛔ « 10 min » d\'un rendez-vous dans 12 jours : le jour aussi', ctx.f(10, { debut: loc(12, 10, 10) }), 'Reporté au ' + D12 + ' à 10:10');
     v('une journée entière : demain, ou le jour (sans heure)', [ctx.f('demain', { debut: loc(1, 0, 0), journee: true }), ctx.f('demain', { debut: loc(12, 0, 0), journee: true })], ['Reporté à demain', 'Reporté au ' + D12]);
+
+    console.log('\n6. Les boutons « demain » disent le jour RETENU, et la phrase du toast est bien celle de phraseReport (le CODE, commentaires retirés)');
+    const j0 = PAGE.indexOf('  function reportDemainJour('), j1 = j0 < 0 ? -1 : PAGE.indexOf('\n  }\n', j0);
+    vrai('   la fonction est trouvée', j0 > 0 && j1 > j0, [j0, j1]);
+    const ctx2 = { FMT_DATE: ctx.FMT_DATE }; vm.createContext(ctx2); vm.runInContext(PAGE.slice(j0, j1 + 4) + '\nthis.f = reportDemainJour;', ctx2, { timeout: 2000 });
+    const D13 = ctx.FMT_DATE.format(loc(13, 0, 0)), D2 = ctx.FMT_DATE.format(loc(2, 0, 0));
+    v('aujourd\'hui (à venir) : « demain » est bien demain, le libellé d\'avant (chaîne vide)', ctx2.f({ debut: loc(0, 23, 0) }), '');
+    v('déjà passé (rappel échu) : la base est maintenant, donc demain tout court', ctx2.f({ debut: loc(-3, 8, 0) }), '');
+    v('⛔ rendez-vous dans 12 jours : le bouton dit le 13ᵉ jour (le lendemain de l\'événement), jamais « demain »', ctx2.f({ debut: loc(12, 10, 0) }), D13);
+    v('demain à 10 h : le lendemain est après-demain, et le bouton le dit', ctx2.f({ debut: loc(1, 10, 0) }), D2);
+    const SANS = PAGE.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
+    const coupe = (deb, long) => { const i = SANS.indexOf(deb); return i < 0 ? '' : SANS.slice(i, i + long); };
+    const evt = coupe('async function evtReporter(', 700), choix = coupe("act === 'reporter-choix'", 400);
+    vrai('   les deux tranches sont trouvées (une tranche vide passerait au vert sur tout)', evt.length > 0 && choix.length > 0, [evt.length, choix.length]);
+    vrai('   evtReporter (fiche d\'un rappel) annonce par phraseReport(dans, …)', /mot\(phraseReport\(dans, \w+\)\)/.test(evt), evt);
+    vrai('   reporter-choix (menu d\'appui long) annonce par phraseReport(dans, …)', /mot\(phraseReport\(dans, \w+\)\)/.test(choix), choix);
+    vrai('   ⛔ l\'ancienne phrase « Reporté à demain » concaténée à la main n\'existe plus nulle part', !/'Reporté ' \+ \(dans/.test(SANS) && !/Reporté à demain/.test(SANS.replace(/return 'Reporté à demain'[^\n]*\n/, '')), null);
+    const nbJd = (SANS.match(/reportDemainJour\(/g) || []).length;
+    vrai('   les trois endroits qui promettent « demain » (menu, libellé de la fiche, aria-label) lisent reportDemainJour', nbJd >= 4, nbJd);
   } finally { await svc.arreter(); await og.fermer(); }
   fin();
 })().catch((e) => { console.error(e); process.exit(1); });

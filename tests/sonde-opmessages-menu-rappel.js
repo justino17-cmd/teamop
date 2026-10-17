@@ -174,7 +174,7 @@ const geometrie = (S) => S.page.evaluate(() => {
     console.log('\n── 5. La fiche d\'un rappel, ouverte par l\'adresse de sa notification ──');
     const ouvrirRappel = async () => { await P.page.goto(svc.base + '/#reunions/' + ev.id); return attendre(P, () => !!document.querySelector('#info-corps [data-evt="fait"]'), null, 12000); };
     vrai('la page rechargée sur « #reunions/<événement> » ouvre SA fiche (chargée du service), les gestes en tête : « Marquer comme fait », « Reporter » (10 min · 1 h · Demain 9 h), « Voir le message »',
-      await ouvrirRappel() && await P.page.evaluate((t) => { const c = document.getElementById('info-corps'); return /Marquer comme fait/.test(c.textContent) && Array.from(c.querySelectorAll('[data-evt="reporter"]')).map(x => x.textContent).join('|') === '10 min|1 h|Demain 9 h' && !!c.querySelector('[data-evt="voir"]') && document.getElementById('ev-titre').value === 'Rappel : ' + t; }, TEXTE_BEN),
+      await ouvrirRappel() && await P.page.evaluate((t) => { const c = document.getElementById('info-corps'); return /Marquer comme fait/.test(c.textContent) && Array.from(c.querySelectorAll('[data-evt="reporter"]')).map(x => x.textContent).join('|').replace(/Le \d+ \S+, 9 h$/, 'Demain 9 h') === '10 min|1 h|Demain 9 h' && !!c.querySelector('[data-evt="voir"]') && document.getElementById('ev-titre').value === 'Rappel : ' + t; }, TEXTE_BEN),
       await P.page.evaluate(() => document.getElementById('info-corps').textContent.slice(0, 200)));
     await capture(P, '5-fiche-rappel');
     await toucher(P, '#info-corps [data-evt="voir"]');

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '92c3937e9161';
+  const OPMSG_BUILD = 'd1cc0f764a7e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5635,7 +5635,7 @@
       return;
     }
     if (act === 'reporter') {
-      const l = x.e.journee ? [['demain', 'À demain']] : [['10', 'De 10 minutes'], ['60', 'D\'une heure'], ['demain', 'À demain 9 h']];
+      const jd = reportDemainJour(x.e), l = x.e.journee ? [['demain', jd ? 'Au ' + jd : 'À demain']] : [['10', 'De 10 minutes'], ['60', 'D\'une heure'], ['demain', jd ? 'Au ' + jd + ', 9 h' : 'À demain 9 h']];
       sousMenuAgenda('<p class="menu-question">Reporter « ' + esc(titre) + ' »</p>' + l.map(([v, t]) => '<button type="button" class="menu-action" data-ag-menu="reporter-choix" data-dans="' + v + '">' + t + '</button>').join('') + '<button type="button" class="menu-action" data-ag-menu="garder">Annuler</button>');
       return;
     }
@@ -6561,7 +6561,7 @@
     const gestes = e && typeof source.faitEvenement === 'function' ? '<div class="carte evt-gestes">' +
       '<button type="button" class="reglage presse" data-evt="fait" aria-pressed="' + (e.fait ? 'true' : 'false') + '"><span class="evt-rond' + (e.fait ? ' plein' : '') + '" aria-hidden="true">' + icone('i-coche') + '</span><span class="reglage-texte">' + (e.fait ? 'Remettre à faire' : 'Marquer comme fait') + '<small>' + (e.fait ? 'Fait — il ne sonnera plus' : 'Il quitte le tableau de bord et ne sonne plus') + '</small></span></button>' +
       (typeof source.reporterEvenement === 'function' ? '<div class="reglage evt-reporter" role="group" aria-label="Reporter"><span class="reglage-texte">Reporter</span><span class="evt-reporter-choix">' +
-        (e.journee ? [['demain', 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', 'Demain 9 h']]).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
+        ((jd) => e.journee ? [['demain', jd ? 'Le ' + jd : 'Demain']] : [['10', '10 min'], ['60', '1 h'], ['demain', jd ? 'Le ' + jd + ', 9 h' : 'Demain 9 h']])(reportDemainJour(e)).map(([v, l]) => '<button type="button" class="mini" data-evt="reporter" data-dans="' + v + '" aria-label="' + esc('Reporter ' + (v === 'demain' ? (reportDemainJour(e) ? 'au ' + reportDemainJour(e) + (e.journee ? '' : ' à 9 h') : e.journee ? 'à demain' : 'à demain 9 h') : 'de ' + l)) + '">' + esc(l) + '</button>').join('') + '</span></div>' : '') +
       (e.source ? '<button type="button" class="reglage presse" data-evt="voir">' + icone('i-chat') + '<span class="reglage-texte">Voir le message<small>Dans sa conversation</small></span>' + CHEVRON + '</button>' : '') +
       /* ⛔ plus d'« Ajouter à mon calendrier » (15 octobre 2026 : « l'application fait déjà agenda » — ce qu'il veut, c'est l'inverse : qu'un rendez-vous pris sur un site
          ENTRE ici, d'où « Coller une confirmation »). Ni la réunion (sa fiche, son menu, le courriel d'invitation : « retire aussi », le même jour). Le service ne fabrique plus de .ics
@@ -6633,6 +6633,13 @@
     b.disabled = true;
     try { await source.faitEvenement(F.id, !F.fait); mot(F.fait ? '« ' + F.titre + ' » : à faire' : '« ' + F.titre + ' » : fait'); fermerCouche(); evenementsRelire(); }
     catch (er) { b.disabled = false; erreurInfo(phrase(er, 'Le rappel n\'a pas pu être coché.')); }
+  }
+  /* Le bouton « demain » vise le LENDEMAIN DE LA BASE du report (le plus tard de maintenant et du début de l'événement, comme le service) : pour un rendez-vous du 28 il mène au 29 à 9 h, pas
+     à demain. Il le DIT : '' tant que la base est aujourd'hui (le libellé d'avant, « Demain 9 h »), sinon la date retenue (« 29 oct. ») — un bouton ne promet pas « demain » pour un autre jour. */
+  function reportDemainJour(e) {
+    const b = new Date(Math.max(Date.now(), e.debut)), auj = new Date();
+    if (b.getFullYear() === auj.getFullYear() && b.getMonth() === auj.getMonth() && b.getDate() === auj.getDate()) return '';
+    return FMT_DATE.format(new Date(b.getFullYear(), b.getMonth(), b.getDate() + 1));
   }
   /* « Reporté à … » : l'heure RETENUE par le service. Un événement à venir se repousse depuis SON début (agenda#0) : le nouveau jour n'est plus forcément aujourd'hui ni demain — la phrase le
      dit alors (« Reporté au 28 oct. à 10:10 »), sans quoi « à demain 09:00 » mentirait sur un rendez-vous du 28. Le même jour qu'avant garde sa phrase d'avant. */
