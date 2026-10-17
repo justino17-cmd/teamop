@@ -3,8 +3,10 @@
    confirmait l'obligation de travailler… et n'était JAMAIS retirée : la carte déplacée ensuite chez
    Karim (aucun congé) affichait encore « Placée malgré un congé par Justine Admin » au survol (plHovHtml),
    et le badge « congé » sur la carte. Le correctif de planning#4 n'avait réparé que `_oblig` (le Journal).
-   La trace se retire AU GESTE de déplacement (planAbsGate, que les dépôts, « Déplacer… » et le changement
-   de technicien appellent tous) — jamais au chargement. Une place ENCORE en congé la garde.
+   La trace se retire AU GESTE de déplacement, une fois celui-ci ACQUIS (planObligationLever, appelée par
+   chaque dépôt, « Déplacer… » et le changement de technicien juste avant leur save()) — jamais au chargement
+   et jamais à la porte : planAbsGate ne fait que demander la permission, et « Annuler » ou un refus de
+   chevauchement qui suivent doivent retrouver la trace d'avant (relecture du lot i03). Une place ENCORE en congé la garde.
    Ce banc joue les quatre dépôts RÉELS (Multi, Semaine, Jour, case) extraits d'app.html, comme test-1270. */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const APP = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
@@ -24,7 +26,8 @@ function decoupe(h) { const d = APP.indexOf(h); if (d < 0) throw new Error('intr
 const FN = ['function toMin(', 'function indisposOf(', 'function indispoAt(', 'function absentOn(', 'function intTechIds(', 'function techNames(',
   'function intHisto(', 'function clockFromMin(', 'function planYbord(', 'function planEquipeApres(', 'function planPoserEquipe(', 'function planSnap(',
   'function planStamp(', 'function planDup(', 'function planObligationLever(', 'function planAbsGate(', 'function planDepotAvant(', 'function planDepotApres(',
-  'function planMultiDrop(', 'function planWeekDrop(', 'function planDropTime(', 'function planDropCell('];
+  'function planMultiDrop(', 'function planWeekDrop(', 'function planDropTime(', 'function planDropCell(',
+  'function planTechsOf(', 'function toMinH(', 'function planDeplacerValider(', 'function planDeplacerAnnuler(', 'function planChangerTech(', 'function planChangerTechAnnuler('];
 const manquantes = FN.filter(h => APP.indexOf(h) < 0 && h !== 'function planObligationLever(');
 const code = FN.filter(h => APP.indexOf(h) >= 0).map(decoupe).join('\n');
 
@@ -53,7 +56,10 @@ function monter() {
   Object.defineProperty(W, 'planSel', { get: () => S.planSel, set: v => { S.planSel = v; }, enumerable: true });
   W.planJours = ['2026-10-16'];
   vm.createContext(W);
-  vm.runInContext(code, W);
+  W.db.techniciens = [{ id: 'T1' }, { id: 'T2' }, { id: 'T3' }];
+  W.closeModal = () => {}; W.planMode = 'semaine';
+  W.toastAnnuler = (m, a) => { S.annuler = { m, a }; };
+  vm.runInContext(code + '\nvar DEP={id:"",tech:"",date:"",heure:"",depuis:""};', W);
   return { W, S };
 }
 function carte(extra) { return Object.assign({ id: 'i1', titre: 'Nid de frelons', date: '2026-10-15', heure: '09:00', duree: 60, techId: 'T1', techIds: ['T1'], statut: 'planifiee', histo: [] }, extra || {}); }
@@ -94,19 +100,63 @@ for (const nom of ['Multi', 'Semaine', 'Jour', 'Case']) {
     vrai(nom + ' : un dépôt refusé ne touche pas à la trace', S.db.interventions[0].techId === 'T1' && !!S.db.interventions[0].obligation, S.db.interventions[0]); }
 }
 
-console.log('— planAbsGate seule (les autres appelants : « Déplacer… », changer de technicien, passage manuel)');
+console.log('— planAbsGate ne retire plus rien (elle demande la permission) ; planObligationLever retire, sur la place FINALE');
 { const { W, S } = monter(); S.db.absences.push(CONGE('T2', '2026-10-16'));
   const i = carte({ obligation: { par: 'Justine Admin', ts: 1 } });
   vrai('place sans congé : la porte laisse passer', W.planAbsGate('T1', '2026-10-15', i) === true);
-  vrai('place sans congé : la trace est retirée', i.obligation === undefined, i.obligation);
-  const j = carte({ obligation: { par: 'Justine Admin', ts: 1 } });
-  vrai('non assignée (aucune personne) : la porte laisse passer', W.planAbsGate('', '2026-10-16', j) === true);
-  vrai('non assignée : la trace est retirée (personne n\'est en congé)', j.obligation === undefined, j.obligation);
+  vrai('la porte ne touche PAS à la trace (le geste n\'est pas encore acquis)', !!i.obligation && i.obligation.ts === 1, i.obligation);
+  vrai('place sans congé : planObligationLever retire la trace', W.planObligationLever(i) === true && i.obligation === undefined, i.obligation);
+  const j = carte({ obligation: { par: 'Justine Admin', ts: 1 }, techId: '', techIds: [] });
+  vrai('non assignée (personne n\'est en congé) : planObligationLever retire la trace', W.planObligationLever(j) === true && j.obligation === undefined, j.obligation);
   const k = carte();
-  vrai('sans trace, rien à retirer, aucune clé créée', W.planAbsGate('T1', '2026-10-15', k) === true && !('obligation' in k), Object.keys(k));
-  vrai('sans intervention (duplication) : pas d\'exception', W.planAbsGate('T1', '2026-10-15', null) === true);
-  const m = carte({ obligation: { par: 'Justine Admin', ts: 1 } });
-  vrai('place EN congé : la trace est réécrite par la confirmation', W.planAbsGate('T2', '2026-10-16', m) === true && m.obligation.ts !== 1, m.obligation); }
+  vrai('sans trace, rien à retirer, aucune clé créée', W.planAbsGate('T1', '2026-10-15', k) === true && W.planObligationLever(k) === false && !('obligation' in k), Object.keys(k));
+  vrai('sans intervention (duplication) : pas d\'exception', W.planAbsGate('T1', '2026-10-15', null) === true && W.planObligationLever(null) === false);
+  const m = carte({ date: '2026-10-16', techId: 'T2', techIds: ['T2'], obligation: { par: 'Justine Admin', ts: 1 } });
+  vrai('place EN congé : planObligationLever garde la trace', W.planObligationLever(m) === false && !!m.obligation, m.obligation);
+  const m2 = carte({ date: '2026-10-16', techId: 'T2', techIds: ['T2'] });
+  vrai('place EN congé : la confirmation écrit la trace', W.planAbsGate('T2', '2026-10-16', m2) === true && m2.obligation.ts !== 1 && !!m2.obligation.par, m2.obligation);
+  const eq = carte({ date: '2026-10-16', techId: 'T1', techIds: ['T1', 'T2'], obligation: { par: 'X', ts: 1 } });
+  vrai('équipe dont un membre est en congé : la trace reste', W.planObligationLever(eq) === false && !!eq.obligation, eq.obligation); }
+
+// « Déplacer… » (modale) et « Annuler » : la trace d'avant revient
+function deplacer(W, S, i, tech, date) { vm.runInContext('DEP=' + JSON.stringify({ id: i.id, tech, date, heure: i.heure, depuis: '' }), W); W.planDeplacerValider(); }
+console.log('— « Déplacer… » puis « Annuler » : la trace revient avec la place');
+{ const { W, S } = monter(); S.db.interventions.push(carte()); S.db.absences.push(CONGE('T2', '2026-10-16'));
+  const i = S.db.interventions[0];
+  deplacer(W, S, i, 'T2', '2026-10-16');
+  vrai('(témoin) posée de force chez Sophie : trace écrite', !!(i.obligation && i.obligation.par), i.obligation);
+  vrai('« Annuler » après un déplacement vers un congé : la place d\'avant revient et la trace de ce geste part', (W.planDeplacerAnnuler(), i.techId === 'T1' && i.date === '2026-10-15' && i.obligation === undefined), [i.techId, i.date, i.obligation]); }
+{ const { W, S } = monter(); const t0 = { par: 'Justine Admin', ts: 42 }; S.db.interventions.push(carte({ date: '2026-10-16', techId: 'T2', techIds: ['T2'], obligation: t0 })); S.db.absences.push(CONGE('T2', '2026-10-16'));
+  const i = S.db.interventions[0];
+  deplacer(W, S, i, 'T1', '2026-10-15');
+  vrai('déplacée chez Karim (sans congé) : trace retirée', i.techId === 'T1' && i.obligation === undefined, [i.techId, i.obligation]);
+  W.planDeplacerAnnuler();
+  vrai('« Annuler » : l\'intervention est de nouveau chez Sophie EN congé ET la trace « malgré un congé » est revenue', i.techId === 'T2' && i.date === '2026-10-16' && !!i.obligation && i.obligation.ts === 42 && i.obligation.par === 'Justine Admin', [i.techId, i.date, i.obligation]); }
+{ const { W, S } = monter(); S.db.interventions.push(carte({ date: '2026-10-16', techId: 'T2', techIds: ['T2'], obligation: { par: 'J', ts: 7 } })); S.db.absences.push(CONGE('T2', '2026-10-16'));
+  const i = S.db.interventions[0];
+  S.peut.planifObligerTravail = true; S.reponse = false;
+  deplacer(W, S, i, 'T2', '2026-10-16');   // même place en congé, aucun changement : la trace reste
+  vrai('« Déplacer… » vers une place encore en congé (confirmation) : la trace reste', i.techId === 'T2' && !!i.obligation, i.obligation); }
+
+console.log('— changer de technicien (planChangerTech) : refus de chevauchement et « Annuler »');
+{ const { W, S } = monter(); const t0 = { par: 'Justine Admin', ts: 42 };
+  S.db.interventions.push(carte({ date: '2026-10-16', techId: 'T2', techIds: ['T2'], obligation: t0 }), { id: 'i2', titre: 'Autre', date: '2026-10-16', heure: '09:30', duree: 60, techId: 'T1', techIds: ['T1'], statut: 'planifiee', histo: [] });
+  S.db.absences.push(CONGE('T2', '2026-10-16'));
+  const i = S.db.interventions[0];
+  S.reponse = false;   // « L'assigner quand même ? » refusé
+  W.planChangerTech('i1', 'T1');
+  vrai('chevauchement refusé : l\'intervention n\'a pas bougé', i.techId === 'T2', i.techId);
+  vrai('chevauchement refusé : la trace « malgré un congé » est INTACTE (elle n\'a pas été levée à la porte)', !!i.obligation && i.obligation.ts === 42, i.obligation);
+  S.reponse = true;
+  W.planChangerTech('i1', 'T1');
+  vrai('chevauchement accepté : chez Karim, trace retirée', i.techId === 'T1' && i.obligation === undefined, [i.techId, i.obligation]);
+  W.planChangerTechAnnuler();
+  vrai('« Annuler » : de nouveau chez Sophie en congé, la trace est revenue', i.techId === 'T2' && !!i.obligation && i.obligation.ts === 42, [i.techId, i.obligation]); }
+{ const { W, S } = monter(); S.db.interventions.push(carte()); S.db.absences.push(CONGE('T2', '2026-10-15'));
+  const i = S.db.interventions[0]; S.db.interventions.push({ id: 'i2', titre: 'Autre', date: '2026-10-15', heure: '09:30', duree: 60, techId: 'T2', techIds: ['T2'], statut: 'planifiee', histo: [] });
+  S.reponse = false;
+  W.planChangerTech('i1', 'T2');
+  vrai('chevauchement refusé AVANT la porte du congé : aucune obligation ni ligne de journal n\'est écrite sur une carte qui n\'a pas bougé', i.techId === 'T1' && i.obligation === undefined && !(i.histo || []).some(h => /Obligation/.test(JSON.stringify(h))), [i.techId, i.obligation, i.histo]); }
 
 console.log('— le formulaire (saveIntervention) lit la même règle');
 { const SRC = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');

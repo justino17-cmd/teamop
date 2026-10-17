@@ -20337,7 +20337,7 @@ function planDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Droit «
   if(!planAbsGate(intTechIds(i)[0]||'',iso,i)) return;
   i.date=iso; if(i.statut==='aplanifier') i.statut='planifiee';
   planStamp(i,de);
-  const cf=intConflictOf(i,i.id); delete i._oblig; save(); planSel=iso; views.planning();
+  const cf=intConflictOf(i,i.id); delete i._oblig; planObligationLever(i); save(); planSel=iso; views.planning();
   toast(cf?('Déplacée au '+fmtShort(iso)+' — chevauche « '+(cf.titre||'')+' »'):('Intervention déplacée au '+fmtShort(iso)));
   serieShiftPropose(i,(de||{}).date||''); }
 function planDropTech(e,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return;
@@ -20346,7 +20346,7 @@ function planDropTech(e,techId){ e.preventDefault(); if(!canPlan()){ toast('Droi
   planPoserEquipe(i,techId||'',window._planDragDe); if(!i.date){ i.date=planSel; } if(i.statut==='aplanifier') i.statut='planifiee';
   intHisto(i,'Assignée à '+techNames(i));
   planStamp(i,de);
-  const cf=intConflictOf(i,i.id); delete i._oblig; save(); views.planning();
+  const cf=intConflictOf(i,i.id); delete i._oblig; planObligationLever(i); save(); views.planning();
   toast(cf?('Assignée à '+techNames(i)+' — chevauche « '+(cf.titre||'')+' »'):('Assignée à '+techNames(i))); }
 /* ── Duplication (Alt + glisser) ── */
 function planDup(i,patch){ if(!permGarde('int','ajouter','une intervention')) return; const c=JSON.parse(JSON.stringify(i)); c.id=uid(); c.num=''; c.statut='planifiee'; delete c.rapport; delete c.signature; delete c.sigTech; c.histo=[]; delete c.propose; delete c.obligation;
@@ -20354,11 +20354,14 @@ function planDup(i,patch){ if(!permGarde('int','ajouter','une intervention')) re
 /* ── Absences BLOQUANTES : refus net, sauf droit « Obliger à travailler » (confirmation) ── */
 /* La trace « Placée malgré un congé » (i.obligation) décrit la PLACE où l'intervention a été posée de force : dès que
    le geste de déplacement la met ailleurs que sur un jour d'absence, elle n'a plus lieu d'être (le survol et le badge
-   « congé » mentaient). Elle se retire AU GESTE, jamais au chargement. Rend vrai si elle a été retirée. */
-function planObligationLever(i,techId,iso){ if(!i||!i.obligation) return false;
-  if(techId&&iso&&absentOn(techId,iso)) return false;
+   « congé » mentaient). Elle se retire AU GESTE, jamais au chargement, et une fois le déplacement ACQUIS : la porte
+   (planAbsGate) ne fait que demander la permission, car « Annuler » ou un refus qui suit (chevauchement) laissent
+   l'intervention là où elle était — retirer la trace à la porte la perdait pour de bon. Chaque dépôt l'appelle donc
+   juste avant son save(), sur la place FINALE de l'intervention (date et toute l'équipe). Rend vrai si retirée. */
+function planObligationLever(i){ if(!i||!i.obligation) return false;
+  if(i.date&&intTechIds(i).some(t=>absentOn(t,i.date))) return false;
   delete i.obligation; return true; }
-function planAbsGate(techId,iso,i){ const ab=(techId&&iso)?absentOn(techId,iso):null; if(!ab){ planObligationLever(i,techId,iso); return true; }
+function planAbsGate(techId,iso,i){ const ab=(techId&&iso)?absentOn(techId,iso):null; if(!ab) return true;
   const nom=techName(techId), typ=ABS_TYPES[ab.type]||ab.type||'absence';
   const jour=fmtShort(iso).replace(/\.$/,'');   // fmtShort finit par « . » (« 17 oct. ») : la phrase mettait « oct.. Appliquer »
   if(!can('planifObligerTravail')){ toast('❌ Impossible : '+nom+' est en '+typ+' le '+jour); return false; }
@@ -20387,7 +20390,7 @@ function planDepotAvant(e,i,iso,techId,m,patchDup){
 function planDepotApres(i,de){
   planStamp(i,de);
   const forced=!!i._oblig; delete i._oblig;
-  save(); return forced; }
+  planObligationLever(i); save(); return forced; }
 /* ── Dépôt sur une case (jour + technicien d'un geste) ── */
 function planDropCell(e,iso,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i) return;
   const de=planDepotAvant(e,i,iso,techId,null,{date:iso,techId:techId||'',techIds:techId?[techId]:[]});
@@ -20717,15 +20720,16 @@ function planDeplacerRender(){
 }
 function planDeplacerValider(){
   const i=db.interventions.find(z=>z.id===DEP.id); if(!i) return;
+  const avObl=i.obligation?{...i.obligation}:null;   // avant la porte : « Annuler » doit pouvoir remettre la trace d'avant
   if(DEP.tech&&typeof planAbsGate==='function'&&!planAbsGate(DEP.tech,DEP.date,i)) return;
   const de=planSnap(i), avTech=planTechsOf(i)[0]||'', avIds=intTechIds(i).slice(), avD=i.date, avH=i.heure;
   i.date=DEP.date; i.heure=DEP.heure;
   planPoserEquipe(i,DEP.tech||'',DEP.depuis);
   if(i.statut==='aplanifier') i.statut='planifiee';
-  save();
+  planObligationLever(i); save();
   try{ planStamp(i,de); }catch(e){}
   try{ if(avD!==i.date&&typeof serieShiftPropose==='function') serieShiftPropose(i,avD,i.date); }catch(e){}
-  window._planUndoTech={id:DEP.id,tech:avTech,techIds:avIds,date:avD,heure:avH};
+  window._planUndoTech={id:DEP.id,tech:avTech,techIds:avIds,date:avD,heure:avH,obligation:avObl};
   closeModal();
   if(planJours.indexOf(i.date)<0&&planMode==='multi'){ planJours.push(i.date); planJours.sort(); }
   views.planning();
@@ -20740,6 +20744,7 @@ function planDeplacerAnnuler(){
   if(u.date) i.date=u.date; if(u.heure) i.heure=u.heure;
   if(Array.isArray(u.techIds)){ i.techIds=u.techIds.slice(); i.techId=i.techIds[0]||''; }   // v757 : toute l'équipe revient
   else if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
+  if('obligation' in u){ if(u.obligation) i.obligation=u.obligation; else delete i.obligation; }   // la trace « malgré un congé » revient avec la place
   save(); try{ planStamp(i,de); }catch(e){}
   window._planUndoTech=null; views.planning();
   toast('↩︎ Intervention remise comme avant');
@@ -20749,8 +20754,7 @@ function planChangerTech(id,tid){
   if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; }
   const av=planTechsOf(i)[0]||'';
   if(av===tid){ toast(tid?('Déjà chez '+techName(tid)):'Déjà non assignée'); return; }
-  // congé : on demande confirmation (même garde que le glisser-déposer)
-  if(tid&&typeof planAbsGate==='function'&&!planAbsGate(tid,i.date,i)) return;
+  const avObl=i.obligation?{...i.obligation}:null;   // avant la porte : « Annuler » doit pouvoir remettre la trace d'avant
   // chevauchement : on prévient avant, on n'interdit pas
   if(tid&&toMinH(i.heure)!==null){
     const a=toMinH(i.heure), b=a+Math.max(0,parseInt(i.duree)||60);
@@ -20758,11 +20762,14 @@ function planChangerTech(id,tid){
       &&Math.max(toMinH(z.heure),a)<Math.min(toMinH(z.heure)+Math.max(0,parseInt(z.duree)||60),b));
     if(ch&&!confirm('⚠️ '+techName(tid)+' a déjà « '+(ch.titre||'une intervention')+' » à '+(ch.heure||'')+' sur ce créneau.\n\nL\'assigner quand même ?')) return;
   }
+  // congé : on demande confirmation (même garde que le glisser-déposer). APRÈS le chevauchement : la porte note
+  // l'obligation et son entrée de journal dès qu'on confirme — un refus qui suivrait laisserait une trace fausse.
+  if(tid&&typeof planAbsGate==='function'&&!planAbsGate(tid,i.date,i)) return;
   const de=planSnap(i), avIds=intTechIds(i).slice();
   planPoserEquipe(i,tid||'',av);
-  save();
+  planObligationLever(i); save();
   try{ planStamp(i,de); }catch(e){}
-  window._planUndoTech={id:id,tech:av,techIds:avIds};
+  window._planUndoTech={id:id,tech:av,techIds:avIds,obligation:avObl};
   views.planning();
   toastAnnuler('👤 Passée de '+(av?techName(av):'Non assigné')+' à '+(tid?techName(tid):'Non assigné'),'planDeplacerAnnuler()');
 }
@@ -20772,6 +20779,7 @@ function planChangerTechAnnuler(){
   const de=planSnap(i);
   if(Array.isArray(u.techIds)){ i.techIds=u.techIds.slice(); i.techId=i.techIds[0]||''; }
   else if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
+  if('obligation' in u){ if(u.obligation) i.obligation=u.obligation; else delete i.obligation; }
   save();
   try{ planStamp(i,de); }catch(e){}
   window._planUndoTech=null;
@@ -20978,7 +20986,7 @@ function planNextCreate(id,mode){ const i=db.interventions.find(x=>x.id===id); i
     intHisto(n,'Passage planifié manuellement : '+fmtShort(d)+' '+(h||'')); }
   else { msg='Passage '+tot+' à planifier plus tard'; intHisto(n,'Mis de côté (bac À planifier)'); }
   intHisto(i,'Prochain passage créé → '+(n.num||''));
-  db.interventions.push(n); planStamp(n,null); delete n._oblig; save(); closeModal(); toast('🔁 '+msg); go(current); }
+  db.interventions.push(n); planStamp(n,null); delete n._oblig; planObligationLever(n); save(); closeModal(); toast('🔁 '+msg); go(current); }
 /* Carte « proposée » (pointillé orange) : confirmer / ajuster */
 function planProposeModal(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(!canPlan()){ detailIntervention(id); return; }
