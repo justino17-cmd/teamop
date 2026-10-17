@@ -16275,9 +16275,15 @@ const DASH_DEFAULT=['interventions','boxes','enveloppes','bonsCommande','vehicul
 const DASH_OLD2=['boxes','aCommander','produits'];
 const DASH_OLD_DEFAULT=['boxes','aCommander','validationsDR','bonsCommande','produits','enveloppes','vehicules','fournisseurs'];
 let dashEdit=false;
-function dashLayout(){ if(!Array.isArray(db.dashLayout)||!db.dashLayout.length) db.dashLayout=DASH_DEFAULT.slice();
+/* DEUX états, pas un : pas de disposition (jamais personnalisé → les cartes par défaut) et UNE LISTE VIDE (la
+   personne a tout retiré → rien, l'écran le dit et propose « Personnaliser »). Remplacer le vide par le défaut
+   remettait les cinq cartes d'un coup, en silence, au retrait de la dernière (g16, accueil#6). Le repli reste
+   pour une liste dont plus AUCUNE clé n'est une carte connue : personne n'a voulu ce tableau vide-là. Lire
+   ne sauvegarde rien — `dashV2` mis à part, qui est la migration unique ci-dessous. */
+function dashLayout(){ if(!Array.isArray(db.dashLayout)) db.dashLayout=DASH_DEFAULT.slice();
   if(!db.dashV2){ db.dashV2=1; db.dashLayout=DASH_DEFAULT.slice(); try{ save(); }catch(e){} }   // migration unique vers la disposition épurée — le marqueur se synchronise avec l'équipe
-  db.dashLayout=db.dashLayout.filter(k=>DASH_CARDS[k]); return db.dashLayout; }
+  const connues=db.dashLayout.filter(k=>DASH_CARDS[k]);
+  db.dashLayout=(db.dashLayout.length&&!connues.length)?DASH_DEFAULT.slice():connues; return db.dashLayout; }
 function dashToggleEdit(){ dashEdit=!dashEdit; views.dashboard(); }
 function dashRemove(k){ db.dashLayout=dashLayout().filter(x=>x!==k); save(); views.dashboard(); }
 function dashMove(k,dir){ const a=dashLayout().slice(); const i=a.indexOf(k), j=i+dir; if(j<0||j>=a.length)return; [a[i],a[j]]=[a[j],a[i]]; db.dashLayout=a; save(); views.dashboard(); }
@@ -16871,6 +16877,7 @@ views.dashboard=function(){
   $('content').innerHTML=`
     ${dashEdit?`<div class="card" style="border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 6%,transparent)"><div style="font-size:13px;color:var(--t2)">Mode personnalisation : <b>glisse une carte</b> pour la déplacer (souris : cliquer-glisser · téléphone : rester appuyé puis glisser), <b>✕</b> pour retirer. <button class="btn ghost sm" onclick="dashReset()">↻ Réinitialiser</button></div></div>`:''}
     <div class="kpis">${layout.map(card).join('')}</div>
+    ${(!layout.length&&!dashEdit&&hidden.length)?emptyState('🧩','Aucune carte affichée.','Personnaliser','dashToggleEdit()'):''}
     ${(dashEdit||!voitVue('planning'))?'':tdbPlanning()}
     ${dashEdit?`<div class="card" style="margin-top:12px"><div class="card-head"><h3>＋ Ajouter une carte</h3></div><div style="display:flex;flex-wrap:wrap;gap:8px">${hidden.length?hidden.map(k=>`<button class="btn ghost sm" onclick="dashAdd('${k}')">${DASH_CARDS[k].ic} ${DASH_CARDS[k].label}</button>`).join(''):'<div style="color:var(--t3);font-size:13px">Toutes les cartes sont affichées.</div>'}</div></div>`:`
     ${(()=>{ const secs=[];
