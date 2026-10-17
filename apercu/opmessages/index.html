@@ -1015,6 +1015,11 @@ html[data-appel-reduit] .side { top: var(--haut-appel); height: calc(100dvh - va
 .appel-barre-revenir .texte { flex: 1; min-width: 0; display: flex; overflow: hidden; white-space: nowrap; font-variant-numeric: tabular-nums; }
 /* ⛔ la DURÉE est la seule information qui change dans la barre : elle ne se coupe jamais (flex: none) ; c'est le NOM qui prend l'ellipse. Avant, un seul texte portait « Appel en cours · Ben Durand · 00:03 »
    et l'ellipse mangeait la fin — à 360 px on lisait « Appel en cours · Ben Dur… » (lot m19, appels#3). */
+/* ⛔ le préfixe « Appel en cours · » est le premier à partir (relecture du lot m19) : déplacer la coupe de la durée vers le nom ne réglait rien — à 360 px il restait 197 px pour 258 voulus, et le préfixe
+   (≈ 120 px) mangeait tout ce que la durée laissait : le nom disparaissait (« Appel en cours · … · 00:03 », même pour « Ben Durand »). Sous 480 px de large (texte < ≈ 320 px) la barre — verte, avec
+   « Revenir » et le rond rouge, comme celle de l'iPhone — ne garde que le nom et la durée ; l'étiquette vocale du bouton, elle, dit toujours « Appel en cours ». */
+.appel-barre-revenir .texte-prefixe { flex: none; white-space: pre; }
+@media (max-width: 479.98px) { .appel-barre-revenir .texte-prefixe { display: none; } }
 .appel-barre-revenir .texte-nom { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* `pre` et non `nowrap` : la durée commence par une espace (« · 00:03 »), qu'un élément flex en début de ligne effacerait — le nom coupé toucherait alors le point. */
 .appel-barre-revenir .texte-duree { flex: none; white-space: pre; }
@@ -2519,7 +2524,7 @@ a.menu-action { text-decoration: none; }
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
 
 <div class="appel-barre" id="appel-barre" role="region" aria-label="Appel en cours">
-  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte"><span class="texte-nom" id="appel-barre-nom">Appel en cours</span><span class="texte-duree" id="appel-barre-duree"></span></span><b>Revenir</b></button>
+  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte"><span class="texte-prefixe" id="appel-barre-prefixe">Appel en cours · </span><span class="texte-nom" id="appel-barre-nom"></span><span class="texte-duree" id="appel-barre-duree"></span></span><b>Revenir</b></button>
   <button type="button" class="appel-barre-raccrocher presse" id="appel-barre-raccrocher" aria-label="Raccrocher"><span class="rond"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></span></button>
 </div>
 <div class="app" id="app">
@@ -6023,15 +6028,15 @@ a.menu-action { text-decoration: none; }
     (enSalle(A) ? $('salle-ecran') : $('appel-ecran')).focus({ preventScroll: true });
   }
   /* le texte de la barre : qui, et depuis combien de temps (la même horloge que l'écran, toutes les 250 ms) */
-  /* le texte de la barre en DEUX morceaux : le nom (qui peut se couper) et la durée (qui ne se coupe pas) — pure, pour que le banc l'exécute */
+  /* le texte de la barre en TROIS morceaux : le préfixe (qui part le premier sur un téléphone), le nom (qui peut se couper) et la durée (qui ne se coupe pas) ; `nom` = préfixe + qui, pour l'étiquette vocale — pure, pour que le banc l'exécute */
   function textesBarreAppel(snap, maintenant) {
     const qui = snap.titre || snap.nom || (snap.membres || []).map(m => m.nom || m.prenom).filter(Boolean).slice(0, 2).join(', ') || 'Appel';
-    return { nom: 'Appel en cours · ' + qui, duree: snap.etat === 'en-cours' && snap.debut ? ' · ' + dureeAppel((maintenant - snap.debut) / 1000) : snap.etat === 'sonne' ? ' · ça sonne…' : '' };
+    return { prefixe: 'Appel en cours · ', qui: qui, nom: 'Appel en cours · ' + qui, duree: snap.etat === 'en-cours' && snap.debut ? ' · ' + dureeAppel((maintenant - snap.debut) / 1000) : snap.etat === 'sonne' ? ' · ça sonne…' : '' };
   }
   function majBarreAppel() {
     const A = etat.appelUI; if (!etat.appelReduit || !A || !A.snap) return;
     const t = textesBarreAppel(A.snap, Date.now()), n = $('appel-barre-nom'), d = $('appel-barre-duree');
-    if (n.textContent !== t.nom) n.textContent = t.nom;
+    if (n.textContent !== t.qui) n.textContent = t.qui;
     if (d.textContent !== t.duree) d.textContent = t.duree;
     $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t.nom + t.duree);
   }

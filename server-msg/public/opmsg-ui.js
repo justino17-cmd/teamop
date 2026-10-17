@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'bbd79fce75e8';
+  const OPMSG_BUILD = 'e1ff88ae1a3b';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 216;
+  const OPMSG_VERSION = 217;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3210,15 +3210,15 @@
     (enSalle(A) ? $('salle-ecran') : $('appel-ecran')).focus({ preventScroll: true });
   }
   /* le texte de la barre : qui, et depuis combien de temps (la même horloge que l'écran, toutes les 250 ms) */
-  /* le texte de la barre en DEUX morceaux : le nom (qui peut se couper) et la durée (qui ne se coupe pas) — pure, pour que le banc l'exécute */
+  /* le texte de la barre en TROIS morceaux : le préfixe (qui part le premier sur un téléphone), le nom (qui peut se couper) et la durée (qui ne se coupe pas) ; `nom` = préfixe + qui, pour l'étiquette vocale — pure, pour que le banc l'exécute */
   function textesBarreAppel(snap, maintenant) {
     const qui = snap.titre || snap.nom || (snap.membres || []).map(m => m.nom || m.prenom).filter(Boolean).slice(0, 2).join(', ') || 'Appel';
-    return { nom: 'Appel en cours · ' + qui, duree: snap.etat === 'en-cours' && snap.debut ? ' · ' + dureeAppel((maintenant - snap.debut) / 1000) : snap.etat === 'sonne' ? ' · ça sonne…' : '' };
+    return { prefixe: 'Appel en cours · ', qui: qui, nom: 'Appel en cours · ' + qui, duree: snap.etat === 'en-cours' && snap.debut ? ' · ' + dureeAppel((maintenant - snap.debut) / 1000) : snap.etat === 'sonne' ? ' · ça sonne…' : '' };
   }
   function majBarreAppel() {
     const A = etat.appelUI; if (!etat.appelReduit || !A || !A.snap) return;
     const t = textesBarreAppel(A.snap, Date.now()), n = $('appel-barre-nom'), d = $('appel-barre-duree');
-    if (n.textContent !== t.nom) n.textContent = t.nom;
+    if (n.textContent !== t.qui) n.textContent = t.qui;
     if (d.textContent !== t.duree) d.textContent = t.duree;
     $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t.nom + t.duree);
   }
