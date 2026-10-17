@@ -1,4 +1,4 @@
-/* ══ test-1452 — BLOQUÉ SANS LE SAVOIR : LE BLOCAGE SE TAIT, SANS ACCUSER NI PROMETTRE (17 octobre 2026, lot « m11 » de la revue de A à Z : contacts#6, contacts@9, contacts@6) ═══════
+/* ══ test-2452 — BLOQUÉ SANS LE SAVOIR : LE BLOCAGE SE TAIT, SANS ACCUSER NI PROMETTRE (17 octobre 2026, lot « m11 » de la revue de A à Z : contacts#6, contacts@9, contacts@6) ═══════
    Un blocage est SILENCIEUX — voulu : la personne bloquée ne doit rien apprendre (jamais le mot « bloqué »). Mais ce que le service rend alors (404 « introuvable ») se disait mal :
      · sur la FICHE du contact, « EN COMMUN — Introuvable (la conversation a peut-être été supprimée ou tu n'y es plus). — Réessayer » : un bouton qui ne peut jamais marcher ;
      · à l'ENVOI, la même phrase, qui accuse une suppression qui n'a pas eu lieu et pousse à insister ;
@@ -106,7 +106,7 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
     const i = JS.indexOf("if (act === 'ecrire') { const c = await source.ouvrirDirecte(uid);");
     const fin2 = i < 0 ? '' : JS.slice(i, JS.indexOf('function vcRendreFocus', i));
     vrai('(population) le gestionnaire des gestes de la fiche est trouvé', fin2.length > 200);
-    vrai('⛔ un « introuvable » à l\'ouverture de la conversation dit « Cette conversation n\'a pas pu s\'ouvrir. » (pas la phrase qui accuse une suppression)', /act === 'ecrire' \? phraseSilence\(er, 'Cette conversation n\\'a pas pu s\\'ouvrir\.'/.test(fin2));      // (lot m11, relecture : la règle vit dans `phraseSilence` ; test-1453 §5 JOUE ce gestionnaire)
+    vrai('⛔ un « introuvable » à l\'ouverture de la conversation dit « Cette conversation n\'a pas pu s\'ouvrir. » (pas la phrase qui accuse une suppression)', /act === 'ecrire' \? phraseSilence\(er, 'Cette conversation n\\'a pas pu s\\'ouvrir\.'/.test(fin2));      // (lot m11, relecture : la règle vit dans `phraseSilence` ; test-2453 §5 JOUE ce gestionnaire)
   }
 
   /* ═══ 1. LE SERVICE, 2. LE MODULE ═══ */

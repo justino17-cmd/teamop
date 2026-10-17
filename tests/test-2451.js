@@ -1,4 +1,4 @@
-/* ══ test-1451 — LE STATUT SAISI SE MONTRE (17 octobre 2026, lot « m11 » de la revue de A à Z : reglages#0, reglages#1, appareils@7, groupes@7 + reglages@1) ═════════════════════════
+/* ══ test-2451 — LE STATUT SAISI SE MONTRE (17 octobre 2026, lot « m11 » de la revue de A à Z : reglages#0, reglages#1, appareils@7, groupes@7 + reglages@1) ═════════════════════════
    Le champ « Statut » du Profil promet « Ce que tes contacts voient sous ton nom ». Mesuré : tant que la personne était EN LIGNE, ses contacts lisaient « En ligne » à la place de son statut
    (`presenceTexte(p) || p.statut` : la présence passait avant), et elle-même ne le lisait nulle part — la carte du Profil lit `MOI.statut`, que `moi()` du module de données ne rendait pas, et la
    barre latérale disait « Disponible » en dur. Ce fichier garde, avec les VRAIES fonctions de la page (bac à sable) et le VRAI module de données contre le VRAI service :

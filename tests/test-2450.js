@@ -1,4 +1,4 @@
-/* ══ test-1450 — CONTACTS : LA FICHE, LES GROUPES, LA RECHERCHE ET LE FAVORI — les VRAIES fonctions de la page (17 octobre 2026, lot « m11 » de la revue de A à Z) ═══════════════
+/* ══ test-2450 — CONTACTS : LA FICHE, LES GROUPES, LA RECHERCHE ET LE FAVORI — les VRAIES fonctions de la page (17 octobre 2026, lot « m11 » de la revue de A à Z) ═══════════════
    Ce que ce fichier garde, contre `apercu/opmessages/index.html` (la source de Justin) : ses fonctions réelles sont extraites et EXÉCUTÉES dans un bac à sable (`vm`), de faux
    champs autour — jamais le texte d'un motif seul :
      1. contacts#3 — « Réunions à venir ensemble » (la fiche d'un contact) suit la séparation Perso / Pro de l'Agenda : une réunion rangée Pro n'est pas listée côté Perso (et

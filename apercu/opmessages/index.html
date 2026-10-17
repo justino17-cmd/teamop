@@ -2938,7 +2938,7 @@ a.menu-action { text-decoration: none; }
      SILENCIEUX), et api.js sert pour tout 404 « Introuvable (la conversation a peut-être été supprimée ou tu n'y es plus) » — une accusation fausse, et une invitation à insister. Tout geste qui ÉCRIT À
      UNE PERSONNE (message, appel, ouverture d'une conversation, sondage, position, fiche, réaction…) passe donc par ici : « introuvable » dit la phrase NEUTRE du geste (`neutre`, jamais « bloqué »), tout
      autre refus du service garde SA phrase, une erreur inconnue le repli (`defaut`, la phrase neutre à défaut). ENTRER dans une salle qui existe, lire une fiche… gardent `phrase()` : là, « introuvable »
-     dit vrai. Un nouveau geste qui écrit à quelqu'un passe par ici ou n'existe pas (tests/test-1453.js). */
+     dit vrai. Un nouveau geste qui écrit à quelqu'un passe par ici ou n'existe pas (tests/test-2453.js). */
   const phraseSilence = (e, neutre, defaut) => e && e.code === 'introuvable' ? neutre : phrase(e, defaut || neutre);
   /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, vérifié, puis échappé */
   const avatar = c => '<span class="avatar av' + avIndex(c) + (c.enReunion ? ' en-ligne en-reunion' : c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enReunion ? '<i class="presence reunion" title="En réunion"></i>' : c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';

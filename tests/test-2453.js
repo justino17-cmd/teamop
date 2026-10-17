@@ -1,6 +1,6 @@
-/* ══ test-1453 — UN BLOCAGE SILENCIEUX SE TAIT PARTOUT, PAS SEULEMENT SUR TROIS ÉCRANS (17 octobre 2026, lot « m11 », relecture de contacts#6 / contacts@9) ═════════════
+/* ══ test-2453 — UN BLOCAGE SILENCIEUX SE TAIT PARTOUT, PAS SEULEMENT SUR TROIS ÉCRANS (17 octobre 2026, lot « m11 », relecture de contacts#6 / contacts@9) ═════════════
    Le service rend 404 « introuvable » à qui écrit, appelle ou ouvre une conversation avec quelqu'un qui l'a bloqué — VOULU : le blocage ne se dit pas. Mais api.js sert pour tout 404 la phrase
-   « Introuvable (la conversation a peut-être été supprimée ou tu n'y es plus). » : une accusation fausse, et une invitation à insister. test-1452 gardait trois sites (l'envoi d'un texte, « Message »
+   « Introuvable (la conversation a peut-être été supprimée ou tu n'y es plus). » : une accusation fausse, et une invitation à insister. test-2452 gardait trois sites (l'envoi d'un texte, « Message »
    depuis la fiche, « En commun »). La relecture en a trouvé d'autres, qui disaient toujours la phrase générale : « Appeler » / « Vidéo » (POST /api/appels → 404 : routes-appels.js l. 105-141),
    « Écrire » depuis une carte de contact partagée, « Écrire » dans les feuilles Contacts / membres d'un espace, et les autres écritures dans une conversation (programmer, sondage, position, fiche,
    transférer, modifier, réagir, supprimer).
@@ -166,7 +166,7 @@ const clic = (selecteur, attrs, extra) => {
     const q = bac({ ecouteurs: true, source: { ouvrirDirecte: async () => { throw quota; } } });
     await q.ctx['_info-corps'](clic('[data-act]', { act: 'ecrire', uid: 'p_ben' }));
     v('contre-épreuve : un AUTRE refus garde SA phrase', q.dit.info.filter(Boolean), [quota.phrase()]);
-    /* la fiche : « Message » (déjà gardé par test-1452) ET « Appeler » / « Vidéo » */
+    /* la fiche : « Message » (déjà gardé par test-2452) ET « Appeler » / « Vidéo » */
     const f = bac({ ecouteurs: true, source: { ouvrirDirecte: async () => { throw introuvable(); }, demarrerAppel: async () => { throw introuvable(); } } });
     await f.ctx._doc(clic('[data-fiche]', { fiche: 'ecrire', uid: 'p_ben' }));
     v('« Message » depuis la fiche : la phrase neutre', f.dit.mot, [NEUTRE_OUVRIR]);
