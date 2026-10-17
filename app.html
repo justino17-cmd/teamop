@@ -16411,6 +16411,10 @@ function pgGroupes(){
   return out;
 }
 function pgRecherche(v){ pgQ=v; views.planningGeneral(); }
+/* ⛔ planning#9 — « absence du 20 au 21/10 » (ou « le 20/10 ») : la phrase d'une absence qui n'a pas commencé. */
+function pgAbsLib(a){ const fin=a.au||a.du, d=i=>i.slice(8)+'/'+i.slice(5,7);
+  if(a.du===fin) return 'absence le '+d(a.du);
+  return 'absence du '+(a.du.slice(0,7)===fin.slice(0,7)?a.du.slice(8):d(a.du))+' au '+d(fin); }
 views.planningGeneral=function(){
   if(!pgRef) pgRef=todayISO();
   const n=pgPortee(), dense=n>=30;
@@ -16441,8 +16445,12 @@ views.planningGeneral=function(){
     const mesInts=SRC.filter(i=>planIntDe(i,p.id));
     const mesAbs=(db.absences||[]).filter(a=>a.techId===p.id&&absValidee(a));
     const mn=mesInts.reduce((s,i)=>s+(parseInt(i.duree)||60),0);
-    const jAbs=mesAbs.filter(a=>jours.some(j=>a.du<=j&&j<=(a.au||a.du))).length;
-    const sous=p.id===''?'à répartir':(jAbs?'absence en cours':(mesInts.length?fmtHmin(mn):'libre'));
+    /* ⛔ planning#9 — « en cours » se dit d'une absence qui recoupe AUJOURD'HUI, pas de toute absence de la période
+       affichée : celle du 20 au 21/10 vue le 16 se dit avec ses dates. Les heures planifiées restent visibles. */
+    const auj=todayISO(), hs=mesInts.length?fmtHmin(mn):'';
+    const enCours=mesAbs.find(a=>a.du<=auj&&auj<=(a.au||a.du));
+    const aVenir=enCours?null:mesAbs.filter(a=>jours.some(j=>a.du<=j&&j<=(a.au||a.du))).sort((x,y)=>x.du.localeCompare(y.du))[0];
+    const sous=p.id===''?'à répartir':(enCours?'absence en cours'+(hs?' · '+hs:''):aVenir?pgAbsLib(aVenir)+(hs?' · '+hs:''):(hs||'libre'));
     const focOn=(pgFocus!=='')&&(pgFocus===p.id);
     g+=`<div class="pg-pers${pgFocus&&pgFocus!==p.id?' mini':''}${focOn?' foc':''}" style="--tc:${c}"
         onclick="pgFocusSet('${p.id}')" title="${focOn?'Revenir à tout le monde':'N’afficher que '+esc(p.nom)}">
@@ -16478,7 +16486,11 @@ views.planningGeneral=function(){
   const PORTEES=[[7,'7 jours','vsem','Une semaine'],[14,'14 jours','vsem','Deux semaines'],
                  [30,'1 mois','vmois','Le mois entier'],[90,'3 mois','vmois','Un trimestre']];
   const nPers=pgPersSet().size, totPers=db.techniciens.length+1;
-  const nAbs=(db.absences||[]).filter(a=>absValidee(a)&&jours.some(j2=>a.du<=j2&&j2<=(a.au||a.du))).length;
+  /* ⛔ planning#10 — les compteurs du bandeau se calculent sur ce qui est À L'ÉCRAN (le filtre Équipe et la recherche) :
+     décocher Sophie laissait « 14 interventions » alors que 8 étaient affichées. Une intervention partagée ne compte qu'une fois. */
+  const idsAff=new Set(gens.map(g2=>g2.id));
+  const nInt=SRC.filter(i=>gens.some(g2=>planIntDe(i,g2.id))).length;
+  const nAbs=(db.absences||[]).filter(a=>absValidee(a)&&idsAff.has(a.techId)&&jours.some(j2=>a.du<=j2&&j2<=(a.au||a.du))).length;
   $('content').innerHTML=`<div class="card pf-bar" onclick="event.stopPropagation()">
     <div class="pf-row">
       <span class="pf-vues">${PORTEES.map(([v,l,ic,tip])=>`<span class="${n===v?'on':''}" onclick="pgPorteeSet(${v})" data-tip="${esc(tip)}">${ico(ic)}<b>${l}</b></span>`).join('')}</span>
@@ -16491,7 +16503,7 @@ views.planningGeneral=function(){
       <button class="pf-b${(nPers<totPers)?' act':''}" onclick="pgPersListe()" data-tip="Choisir qui afficher — recherche, équipes, raccourcis">${ico('equipe')}<b>Équipe</b> <span class="n">${nPers} / ${totPers}</span> <span class="ar">▾</span></button>
       <span class="pf-vues">${[['tout','Tout','recap','Interventions, activités et absences'],['int','Interventions','vjour','Seulement les interventions'],['abs','Absences','cal','Seulement les absences']].map(([k,l,ic,tip])=>`<span class="${pgFiltre===k?'on':''}" onclick="pgFiltreSet('${k}')" data-tip="${esc(tip)}">${ico(ic)}<b>${l}</b></span>`).join('')}</span>
       <span class="pf-sp2"></span>
-      <span class="pf-cnt2" data-tip="Sur la période affichée"><i style="background:var(--acc)"></i>${SRC.length} intervention${SRC.length>1?'s':''}<i style="background:var(--purple);margin-left:7px"></i>${nAbs} absence${nAbs>1?'s':''}</span>
+      <span class="pf-cnt2" data-tip="Sur la période affichée"><i style="background:var(--acc)"></i>${nInt} intervention${nInt>1?'s':''}<i style="background:var(--purple);margin-left:7px"></i>${nAbs} absence${nAbs>1?'s':''}</span>
       <span class="pf-inw" data-tip="Chercher une personne">${ico('loupe')}
         <input placeholder="Rechercher…" value="${esc(pgQ)}" oninput="clearTimeout(window._pgT);window._pgT=setTimeout(()=>pgRecherche(this.value),260)"></span>
       <span class="pf-zoom"><span onclick="pgZoomPas(-1)" data-tip="Lignes plus basses">−</span><b id="pg-zval" onclick="pgZoomReset()" data-tip="Revenir à 100 %">100 %</b><span onclick="pgZoomPas(1)" data-tip="Lignes plus hautes">+</span></span>
