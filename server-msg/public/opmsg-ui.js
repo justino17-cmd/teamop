@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '0d1ab3aeaa96';
+  const OPMSG_BUILD = '3023e387d1e9';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 223;
+  const OPMSG_VERSION = 224;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3111,8 +3111,17 @@
       }
     }
     A.mediaPret = true;
+    const sansCam = salleAudioSansCamera(A);
+    if (sansCam) dit = dit ? dit + ' ' + sansCam : sansCam;
     if (dit) avisAppel(dit);
     rendreAppel();
+  }
+  /* ⛔ ENTRER « EN VIDÉO » DANS UNE SALLE OUVERTE EN AUDIO, C'EST ENTRER SANS CAMÉRA — ET LE DIRE. La règle est voulue (une salle audio par le serveur de visio n'ouvre pas la caméra : le jeton ne la permet pas, et
+     la maille directe plafonne à quatre) ; ce qui manquait, c'est la raison : la personne avait allumé sa caméra dans « Avant d'entrer », entrait, et se voyait « Activer la caméra » sans un mot. Seul le choix fait dans
+     la feuille compte (`A.choix.camera`) : qui a coupé sa caméra, ou répond à un appel, n'a rien à se faire dire. */
+  function salleAudioSansCamera(A) {
+    if (!A.choix || A.choix.camera !== true || !enSalle(A) || !A.snap || A.snap.type === 'video') return '';
+    return 'Cette salle a été ouverte en audio : ta caméra n\'y est pas ouverte.' + (A.snap.visio ? ' Pour te montrer, lance un appel vidéo.' : ' Touche Caméra pour te montrer.');
   }
   async function basculerMicro() {
     const A = etat.appelUI; if (!A || !A.snap) return;
@@ -8778,12 +8787,16 @@
   function htmlDiscussion(A) {
     const X = sx(A);
     const nomDe = id => { const m = A.snap.membres.find(x => x.id === id); return m ? nomM(m) : nomAuteur(id); };
+    /* ⛔ UN MESSAGE PAS ENCORE PARTI SE VOIT (comme dans le fil, `bulleMessage`) : réseau coupé, « Hors ligne 1 » s'affichait comme une bulle envoyée alors qu'il ne part qu'au retour du réseau. La bulle dit
+       où il en est (sans l'estomper : le blanc de la bulle bleue y perdrait son contraste) — les trois mots du fil : « Envoi… », « En attente de connexion… », « Non envoyé ». */
+    const etatEnvoi = m => m.auteur === MOI.id && m.attente ? (m.echec ? 'Non envoyé' : m.envoi ? 'Envoi…' : 'En attente de connexion…') : '';
+    const envoiHtml = m => etatEnvoi(m) ? '<small class="salle-envoi">' + esc(etatEnvoi(m)) + '</small>' : '';
     const docHtml = m => {
       const moi = m.auteur === MOI.id, sv = moi && X.suivis ? X.suivis.get(m.fichier.piece) : null;
       return '<div class="salle-msg doc' + (moi ? ' moi' : '') + '">' + (moi ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') +
         '<button type="button" class="salle-doc presse" data-sa="doc" data-mid="' + esc(m.id) + '"' + (m.fichier.piece ? '' : ' aria-disabled="true"') + ' aria-label="' + esc('Télécharger ' + m.fichier.nom + ', ' + tailleTexte(m.fichier.taille)) + '">' +
           '<span class="salle-doc-ic">' + icone('i-fichier') + '</span><span class="salle-doc-t"><b dir="auto">' + esc(m.fichier.nom) + '</b><small>' + esc([tailleTexte(m.fichier.taille), echeanceTexte(m.expire)].filter(Boolean).join(' · ')) + '</small></span>' + icone('i-telecharger') + '</button>' +
-        (moi && m.fichier.piece && suiviPossible() ? '<button type="button" class="salle-doc-suivi presse" data-sa="doc-suivi" data-s="' + esc(m.fichier.piece) + '">' + (sv ? esc('Téléchargé par ' + sv.faits + ' sur ' + sv.total) : 'Qui l\'a téléchargé ?') + '</button>' : '') + '</div>';
+        (moi && m.fichier.piece && suiviPossible() ? '<button type="button" class="salle-doc-suivi presse" data-sa="doc-suivi" data-s="' + esc(m.fichier.piece) + '">' + (sv ? esc('Téléchargé par ' + sv.faits + ' sur ' + sv.total) : 'Qui l\'a téléchargé ?') + '</button>' : '') + envoiHtml(m) + '</div>';
     };
     /* ⛔ UNE PHOTO SE VOIT (capture du 8 octobre 2026 : « quand on fait les captures d'écran ça marche pas » — la capture annotée partait bien, mais la discussion de la salle n'en
        montrait que la légende) : l'image, à la largeur du panneau, sa légende dessous ; la toucher l'enregistre. Pas encore lue : une case qui se charge d'elle-même. */
@@ -8793,9 +8806,9 @@
         m.photos.slice(0, 4).map((p, i) => blob(p.url)
           ? '<button type="button" class="salle-photo presse" data-sa="photo" data-mid="' + esc(m.id) + '" data-i="' + i + '" aria-label="' + esc(['Enregistrer la photo', m.texte].filter(Boolean).join(' : ')) + '"><img src="' + esc(p.url) + '" alt=""></button>'
           : '<span class="salle-photo attente" role="img" aria-label="' + (p.etat === 'indisponible' ? 'Photo indisponible' : 'Photo en cours de chargement') + '">' + icone('i-image') + '<span aria-hidden="true">' + (p.etat === 'indisponible' ? 'Photo indisponible' : 'Chargement…') + '</span></span>').join('') +
-        (m.texte ? '<span class="salle-photo-leg" dir="auto">' + esc(m.texte) + '</span>' : '') + '</div>';
+        (m.texte ? '<span class="salle-photo-leg" dir="auto">' + esc(m.texte) + '</span>' : '') + envoiHtml(m) + '</div>';
     };
-    const fil = X.discussion.length ? X.discussion.map(m => m.fichier ? docHtml(m) : m.photos && m.photos.length && !m.supprime ? photoHtml(m) : '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
+    const fil = X.discussion.length ? X.discussion.map(m => m.fichier ? docHtml(m) : m.photos && m.photos.length && !m.supprime ? photoHtml(m) : '<div class="salle-msg' + (m.auteur === MOI.id ? ' moi' : '') + '">' + (m.auteur === MOI.id ? '' : '<small>' + esc(nomDe(m.auteur)) + '</small>') + esc(m.texte || (m.photos ? 'Photo' : m.vocal ? 'Message vocal' : m.fichier ? 'Fichier : ' + m.fichier.nom : '')) + envoiHtml(m) + '</div>').join('') : '<p class="salle-note">Aucun message pour l\'instant.</p>';
     return '<div class="salle-fil" id="salle-fil" role="log" aria-label="Messages" tabindex="0">' + fil + '</div>' +
       '<form class="salle-saisie" id="salle-saisie-form">' + (CAP.fichiers ? '<button type="button" class="salle-joindre presse" data-sa="doc-joindre" aria-label="Envoyer un document">' + icone('i-plus') + '</button>' : '') + '<input id="salle-saisie" type="text" maxlength="' + TEXTE_MAX + '" autocomplete="off" enterkeyhint="send" placeholder="Message" aria-label="Écrire un message"><button type="submit">' + (X.confirme ? 'Confirmer' : 'Envoyer') + '</button></form>';
   }
@@ -8806,7 +8819,7 @@
     $('salle-panneau-titre').textContent = TITRES_PANNEAU[X.panneau] + (X.panneau === 'participants' ? ' (' + s.nb + ')' : '');
     p.hidden = false;
     const memb = s.membres.map(m => [m.id, m.statut, m.grade, m.micro, m.main, m.partage, m.camera, m.relais, m.liaison, m.nom, m.reseau]);
-    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs, s.rec ? [s.rec.par, s.rec.nom] : null, X.vue, !!X.annoter, annotPeut(A), !!A.ecran, !!document.pictureInPictureElement]);
+    const sig = JSON.stringify([X.panneau, X.panneau === 'ordre' ? [X.odj, X.odjPanne] : 0, memb, s.nb, s.moi.grade, s.moi.main, s.verrou, s.salleAttente, s.partageOk, s.outils, !!s.minuteur, s.epingle, X.actions, X.retirer, X.formSondage, X.choixN, X.discussion.length && X.discussion[X.discussion.length - 1].id, X.discussion.length, X.discussion.map(m => m.attente ? (m.echec ? 2 : m.envoi ? 1 : 3) : 0).join(''), X.discussion.reduce((n, m) => n + (m.photos || []).filter(p => blob(p.url)).length, 0), s.capacite, s.nom, s.annot ? [s.annot.support, s.annot.permis, s.annot.ouvreur] : null, X.monEpingle || null, flouSig(A), raccourcisActifs, s.rec ? [s.rec.par, s.rec.nom] : null, X.vue, !!X.annoter, annotPeut(A), !!A.ecran, !!document.pictureInPictureElement]);
     if (!force && corps.dataset.sig === sig) return;
     corps.dataset.sig = sig;
     /* ce qui est tapé et ce qui a le focus survivent au redessin */
@@ -9001,6 +9014,15 @@
     if (await envoi({ fichier: { blob: f, nom: f.name || 'fichier', taille: f.size } }, A.snap.conv)) { if (!perime(A)) { mot('Document envoyé'); salleDiscussionCharger(A, false); } }
     else if (!perime(A)) mot('Le document n\'a pas pu être envoyé.');
   });
+  /* ⛔ LE MÊME VERDICT QUE LE FIL (`confirmationRequise`) pour la conversation de LA RÉUNION : une réunion rangée côté Perso n'est jamais retenue par un réglage du Pro (10 octobre 2026). Le chat de la salle
+     ne testait que le réglage — Cléo, « Partout », écrivait dans le chat d'une salle Perso et lisait « Envoyer à la réunion ? Touche Confirmer… » alors que le fil de la même réunion partait sans demander.
+     Le réglage « Groupes et canaux » vaut ici « oui » : une salle est toujours une conversation à plusieurs. */
+  function salleConfirmationRequise(A) {
+    if (!confirmerActif() || source.confirmerEnvoi() === 'jamais') return false;
+    const id = A.snap && A.snap.conv, cc = (etat.convDonnees && etat.convDonnees.id === id ? etat.convDonnees : null) || etat.conversations.find(x => x.id === id) || null;
+    if (modesActifs() && cc && coteDe(cc) !== 'pro') return false;
+    return true;
+  }
   $('salle-panneau-corps').addEventListener('submit', async e => {
     if (e.target.id !== 'salle-saisie-form') return;
     e.preventDefault();
@@ -9009,7 +9031,7 @@
     /* « Confirmer l'envoi » vaut AUSSI ici (une réunion est une conversation à plusieurs) : le premier « Envoyer » devient « Confirmer », le second envoie ; retaper annule.
        Relecture du 7 octobre 2026 : le chat de la salle était la seule porte d'un texte qui ne demandait jamais. */
     const X = sx(A);
-    if (confirmerActif() && source.confirmerEnvoi() !== 'jamais' && X.confirme !== t) { X.confirme = t; sallePanneauRendre(A, true); mot('Envoyer à la réunion ? Touche « Confirmer » pour envoyer.'); return; }
+    if (salleConfirmationRequise(A) && X.confirme !== t) { X.confirme = t; sallePanneauRendre(A, true); mot('Envoyer à la réunion ? Touche « Confirmer » pour envoyer.'); return; }
     const confirmee = !!X.confirme; X.confirme = null;
     champ.value = '';
     if (confirmee) sallePanneauRendre(A, true);                                // le bouton redevient « Envoyer » (le redessin garde le champ — vide — et son focus)

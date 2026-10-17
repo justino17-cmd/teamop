@@ -927,7 +927,8 @@
       const sortant = c.vue.sens === 'sortant', reunion = c.vue.genre === 'reunion';
       switch (issue) {
         case 'fini': return null;
-        case 'termine': return 'L\'hôte a mis fin ' + (reunion ? 'à la réunion.' : 'à l\'appel.');
+        /* ⛔ le service ne dit pas QUI a terminé : celui qui vient de le demander lui-même (`action('terminerPourTous')`) lit son geste, pas « l'hôte a mis fin » à la troisième personne */
+        case 'termine': return c.termineParMoi ? (reunion ? 'Réunion terminée pour tous.' : 'Appel terminé pour tous.') : 'L\'hôte a mis fin ' + (reunion ? 'à la réunion.' : 'à l\'appel.');
         case 'exclu': return 'L\'hôte t\'a retiré de ' + (reunion ? 'la réunion.' : 'l\'appel.');
         case 'refuse_hote': return 'L\'hôte n\'a pas accepté ta demande.';
         case 'refuse': return sortant ? 'Personne n\'a pu répondre.' : null;
@@ -1936,7 +1937,10 @@
       if (!c || c.id !== id || c.fini) throw d.refus('appel_fini', 409);
       if (!Object.prototype.hasOwnProperty.call(ACTIONS, nom)) throw d.erreurLocale('invalide');
       const a = args || {};
-      const r = await ACTIONS[nom](id, a);
+      /* marquée AVANT l'appel : la réponse du service peut finir la salle (`appliquer`) avant que `await` ne rende la main ; un refus lève la marque, la fin viendrait alors d'un autre */
+      if (nom === 'terminerPourTous') c.termineParMoi = true;
+      let r;
+      try { r = await ACTIONS[nom](id, a); } catch (e) { if (nom === 'terminerPourTous') c.termineParMoi = false; throw e; }
       if (c.fini) return r;
       if ((nom === 'evt' || nom === 'annot') && r && r.ev) surSalleEvt(r.ev);   // l'épingle, le minuteur, le trait que je viens de poser : le service ne me le pousse pas, il me le rend
       if (nom === 'main') { c.salle.mains = c.salle.mains.filter(x => x !== moi()); if (a.actif) c.salle.mains.push(moi()); emettreAppel(c); }
