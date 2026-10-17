@@ -990,8 +990,10 @@ async function controler(PAGE, SRC, DOC) {
     let cr = null;
     try {
       const defs = ['const esc = ', 'const icone = ', 'const maj1 = ', 'const FMT_HEURE = ', 'const FMT_JOUR_LONG = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
+      /* (lot m05) le compte rendu écrit « début–fin » par `heureSaison` (la saison se dit le dimanche du changement d'heure) : la VRAIE, avec le FMT_HEURE du bac */
+      const iHS = JS.indexOf('const heureSaison = '), saisonCr = iHS < 0 ? '' : JS.slice(iHS, JS.indexOf('\n  };', iHS) + 5);
       const ctx = { console }; vm.createContext(ctx);
-      vm.runInContext(defs + '\n' + JS.slice(iC, fC) + '\nthis.f = htmlCompteRendu;', ctx, { timeout: 2000 });
+      vm.runInContext(defs + '\n' + saisonCr + '\n' + JS.slice(iC, fC) + '\nthis.f = htmlCompteRendu;', ctx, { timeout: 2000 });
       cr = ctx.f;
     } catch (e) { cr = null; }
     vrai('la fonction `htmlCompteRendu` de la page s\'exécute dans un bac à sable', typeof cr === 'function');

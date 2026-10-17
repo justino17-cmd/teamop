@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '7f4a8906a62f';
+  const OPMSG_BUILD = '075b2c387b47';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 213;
+  const OPMSG_VERSION = 214;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -140,6 +140,12 @@
     return a === b ? h : h + (a < b ? ' (été)' : ' (hiver)');
   };
   const plageHeures = (debut, fin) => heureSaison(debut, fin) + ' – ' + heureSaison(fin, debut);
+  /* la même vérité sur les rangées de l'Agenda où début et fin sont EMPILÉS (`.reunion-heure`) : on y lisait « 02:30 » sur « 02:30 » le dimanche du changement d'heure, alors que l'étiquette lue à voix haute disait déjà la saison.
+     La colonne s'élargit (classe `saison`) seulement quand une saison s'écrit ; `premier` remplace la première ligne (« Suite » d'un événement qui vient de la veille). */
+  const heureEmpilee = (debut, fin, premier) => {
+    const a = heureSaison(debut, fin), b = heureSaison(fin, debut);
+    return '<span class="reunion-heure' + (a !== FMT_HEURE.format(debut) || b !== FMT_HEURE.format(fin) ? ' saison' : '') + '">' + esc(premier || a) + '<small>' + esc(b) + '</small></span>';
+  };
   const FMT_JOUR = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
   const FMT_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
   const maj1 = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -862,7 +868,7 @@
   const REPONSE_CR = { accepte: 'a accepté', decline: 'a décliné', peutetre: 'peut-être', attente: 'sans réponse' };
   const dureeCr = s => { const mn = Math.max(1, Math.round(s / 60)); return mn < 60 ? mn + ' min' : Math.floor(mn / 60) + ' h' + (mn % 60 ? ' ' + String(mn % 60).padStart(2, '0') : ''); };
   function htmlCompteRendu(m, sens) {
-    const x = m.compteRendu, quand = x.debut ? maj1(FMT_JOUR_LONG.format(x.debut)) + ' · ' + FMT_HEURE.format(x.debut) + (x.fin ? '–' + FMT_HEURE.format(x.fin) : '') + (x.dureeS ? ' · ' + dureeCr(x.dureeS) : '') : '';
+    const x = m.compteRendu, quand = x.debut ? maj1(FMT_JOUR_LONG.format(x.debut)) + ' · ' + (x.fin ? heureSaison(x.debut, x.fin) + '–' + heureSaison(x.fin, x.debut) : FMT_HEURE.format(x.debut)) + (x.dureeS ? ' · ' + dureeCr(x.dureeS) : '') : '';
     const liste = (l, n, droite) => '<ul class="cr-liste">' + l.map(p => '<li><span dir="auto">' + esc(p.nom) + '</span><small>' + esc(droite(p)) + '</small></li>').join('') + (n > l.length ? '<li>et ' + (n - l.length) + ' autres</li>' : '') + '</ul>';
     let h = '<span class="carte-msg compte-rendu ' + sens + '" role="group" aria-label="' + esc('Compte rendu : ' + x.titre) + '">' +
       '<span class="cr-tete">' + icone('i-agenda') + '<span><b>Compte rendu</b><span class="cr-titre" dir="auto">' + esc(x.titre) + '</span></span></span>' +
@@ -4052,6 +4058,8 @@
         (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', p.favori ? 'Favori' : 'Favoris', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
       '</div>';
   }
+  /* la réunion à venir d'une fiche contact : le jour, puis la plage (qui dit sa saison le dimanche du changement d'heure) */
+  const quandFiche = o => FMT_JOUR_FICHE.format(o.debut) + ' · ' + plageHeures(o.debut, o.fin);
   function ficheCommun(p) {
     if (typeof source.enCommun !== 'function') return '';
     const e = commun.cache.get(p.id), d = e && e.d;
@@ -4067,7 +4075,7 @@
       h += '<div class="rubrique"><span>' + (d.reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
       h += d.reunions.map(r => {
         const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
-        const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(FMT_JOUR_FICHE.format(o.debut) + ' · ' + plageHeures(o.debut, o.fin)) + '<br>' + esc(sonStatutTxt(r, p));
+        const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(quandFiche(o)) + '<br>' + esc(sonStatutTxt(r, p));
         return '<button type="button" class="fc-ligne presse" data-fiche="reunion" data-id="' + esc(r.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-date" aria-hidden="true"><small>' + esc(FMT_MOIS_CAL.format(o.debut).replace('.', '')) + '</small><b>' + new Date(o.debut).getDate() + '</b></span>' +
           '<span class="fc-texte"><span class="fc-titre">' + esc(r.titre || 'Réunion') + '</span><span class="fc-sous">' + sous + '</span></span>' + CHEVRON + '</button>';
       }).join('');
@@ -5420,7 +5428,7 @@
   }
   function ligneEvenement(e, jour, coche) {
     const continu = !e.journee && e.debut < jour;
-    const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : '<span class="reunion-heure">' + esc(continu ? 'Suite' : FMT_HEURE.format(e.debut)) + '<small>' + esc(FMT_HEURE.format(e.fin)) + '</small></span>';
+    const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : heureEmpilee(e.debut, e.fin, continu ? 'Suite' : '');
     const rappel = texteRappels(Array.isArray(e.rappels) ? e.rappels : (e.rappel === null ? [] : [e.rappel]));
     /* un rendez-vous le dit, et avec qui (13 octobre 2026) */
     /* son trajet (13 octobre 2026) : l'heure de PARTIR, tant que le rendez-vous n'est ni fait ni passé */
@@ -5457,7 +5465,7 @@
     const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
       : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
     return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
-      '<span class="reunion-heure">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>' +
+      heureEmpilee(o.debut, o.fin) +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
       (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
   }
@@ -5842,6 +5850,7 @@
     for (const e of (CAP.agenda ? reu.evenements || [] : [])) if (e.id !== sauf && !e.journee && !e.fait && e.debut < au && e.fin > du) out.push({ e, o: { debut: e.debut, fin: e.fin } });
     return out.sort((a, b) => a.o.debut - b.o.debut);
   }
+  const phraseChevauche = c => c.length ? 'Attention, ce créneau chevauche ' + c.slice(0, 2).map(y => '« ' + titreElt(y) + ' » (' + plageHeures(y.o.debut, y.o.fin) + ')').join(' et ') + (c.length > 2 ? ' et ' + (c.length - 2) + ' autre' + (c.length > 3 ? 's' : '') : '') + '.' : '';
   function decalerApercu() {
     const F = reu.decalageForm; if (!F) return;
     const t = decalerNouveau(), b = $('dc-apres') && $('dc-apres').querySelector('b'), conf = $('dc-conflit');
@@ -5854,7 +5863,7 @@
       note.textContent = (saisie && ici && saisie !== ici ? saisie + ' n\'existe pas ce jour-là (changement d\'heure) : ce sera ' + ici + '. ' : '') + (loin && loin !== ici ? 'Heure de ' + villeDe(F.tz) + ' : ' + loin + ' – ' + heureDans(t + F.duree, F.tz) + '.' : '');
     }
     if (conf) {
-      conf.textContent = c.length ? 'Attention, ce créneau chevauche ' + c.slice(0, 2).map(y => '« ' + titreElt(y) + ' » (' + plageHeures(y.o.debut, y.o.fin) + ')').join(' et ') + (c.length > 2 ? ' et ' + (c.length - 2) + ' autre' + (c.length > 3 ? 's' : '') : '') + '.' : '';
+      conf.textContent = phraseChevauche(c);
     }
   }
   async function decalerValider(b) {

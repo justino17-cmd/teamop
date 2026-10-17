@@ -4,7 +4,9 @@
      chaque heure dit sa saison (« 02:30 (été) – 02:30 (hiver) ») ; tous les autres jours, l'heure s'écrit comme avant. Les VRAIES fonctions de la page sont exécutées, sous le fuseau
      Europe/Paris posé par le banc lui-même.
    · agenda@5 — l'étiquette d'accessibilité d'un jour disait « 1 élément » : elle dit « 1 rendez-vous », « 2 événements », « 3 réunions » ; un jour qui mêle des sortes garde
-     « éléments ». Le vide sous « Journée / Congés » n'est PAS retenu (hors de ce lot).
+     « éléments ». Le vide sous « Journée / Congés » n'est PAS retenu : la hauteur de 64 px d'une rangée est le plancher tactile voulu, la raccourcir déplace une mise en page que l'équipe connaît.
+   · (relecture) « sur TOUTES les plages » : les rangées empilées de l'Agenda (début au-dessus de la fin), le compte rendu de séance, le message de chevauchement et la fiche contact disent
+     la saison eux aussi — chacun est joué ici, et la mutation « FMT_HEURE seul » sur l'un d'eux doit tomber.
    ⛔ Une absence se prouve sur une population : le nombre d'éléments de chaque jour joué est compté, et la mutation « plus de sorte » doit tomber. */
 'use strict';
 process.env.TZ = 'Europe/Paris';
@@ -37,6 +39,10 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
     titreElt: ligne('const titreElt = '), journeeElt: ligne('const journeeElt = '), termineeElt: ligne('const termineeElt = '), sorteElt: ligne('const sorteElt = '), nombreElts: decl('function nombreElts('),
     etiquetteJour: ligne('const etiquetteJour = '), libelleEtat: decl('function libelleEtat('), puceAgenda: entre('function puceAgenda(', "corps + '</button>';\n  }"), caseJour: decl('function caseJour('),
     ligneEvenement: decl('function ligneEvenement('),
+    heureEmpilee: entre('const heureEmpilee = ', '\n  };'), phraseChevauche: ligne('const phraseChevauche = '),
+    quandFiche: ligne('const quandFiche = '), FMT_JOUR_FICHE: ligne('const FMT_JOUR_FICHE = '),
+    REPONSE_CR: ligne('const REPONSE_CR = '), dureeCr: ligne('const dureeCr = '), htmlCompteRendu: decl('function htmlCompteRendu('),
+    ligneReunion: decl('function ligneReunion('),
   };
   /* sans le correctif, ces morceaux n'existent pas : on le DIT (la population), et le banc tombe sur les contrôles qui suivent */
   const manquants = Object.keys(M).filter(k => !M[k]);
@@ -46,10 +52,11 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
     Intl, Date, Math, Number, String, Array, Set, Object, console,
     CAP: { agenda: true }, reu: { charge: true, mois: 0, jour: 0 }, peutDecaler: () => false, premierDuMois: () => 0, texteRappels: () => '', icone: () => '', CHEVRON: '',
     occurrencesDuJour: () => ctx.__liste,
+    MOI: { id: 'moi' }, nomPersonne: id => id, dureeSeance: () => '1 h', ecartJours: () => 0,
   };
   vm.createContext(ctx);
   let F = null;
-  try { vm.runInContext(Object.values(M).filter(Boolean).join('\n') + '\nthis.F = { libelleHoraire, quandRdv, puceAgenda, caseJour, ligneEvenement, etiquetteJour, nombreElts: typeof nombreElts === "function" ? nombreElts : null };', ctx, { timeout: 3000 }); F = ctx.F; } catch (e) { F = null; console.log('  (le bac à sable ne démarre pas : ' + e.message + ')'); }
+  try { vm.runInContext(Object.values(M).filter(Boolean).join('\n') + '\nthis.F = { heureEmpilee, phraseChevauche, quandFiche, htmlCompteRendu, ligneReunion, libelleHoraire, quandRdv, puceAgenda, caseJour, ligneEvenement, etiquetteJour, nombreElts: typeof nombreElts === "function" ? nombreElts : null };', ctx, { timeout: 3000 }); F = ctx.F; } catch (e) { F = null; console.log('  (le bac à sable ne démarre pas : ' + e.message + ')'); }
   vrai('(population) le bac à sable exécute les vraies fonctions', !!F && typeof F.libelleHoraire === 'function');
   if (!F) return fin();
 
@@ -65,6 +72,18 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
   v('⛔ l\'étiquette de la puce de case (lecteur d\'écran) aussi', (/aria-label="([^"]*)"/.exec(puce) || [, ''])[1], 'Revue hebdomadaire, ' + LABEL);
   const evt = { id: 'e1', titre: 'Garde de nuit', debut: DEB, fin: FIN, journee: false, rappels: [], genre: 'evt' };
   v('⛔ la ligne d\'un événement : « de 02:30 (été) à 02:30 (hiver) »', (/aria-label="([^"]*)"/.exec(F.ligneEvenement(evt, Date.UTC(2026, 9, 24, 22, 0), false)) || [, ''])[1], 'Garde de nuit, de 02:30 (été) à 02:30 (hiver)');
+
+  /* ── (relecture) les rangées EMPILÉES de l'Agenda, le compte rendu, le chevauchement et la fiche contact : la saison s'y dit aussi ── */
+  const texteDe = h => h.replace(/<[^>]*>/g, '|').replace(/\|+/g, '|').replace(/^\||\|$/g, '');
+  const visible = (/<span class="reunion-heure[^"]*">([\s\S]*?)<\/span>/.exec(F.ligneReunion(Object.assign({}, reunion, { lieu: '', participantsN: 2, hote: 'x', rejoignable: false, salleOuverte: false, titre: 'Revue' }), occ)) || [, ''])[1];
+  v('⛔ la rangée d\'une réunion (début au-dessus de la fin) : « 02:30 (été) » puis « 02:30 (hiver) », pas « 02:30 » sur « 02:30 »', texteDe(visible), '02:30 (été)|02:30 (hiver)');
+  v('⛔ la rangée d\'un événement : même chose, et la colonne s\'élargit (classe `saison`) seulement ce jour-là', [texteDe((/<span class="reunion-heure[^"]*">[\s\S]*?<\/span>/.exec(F.ligneEvenement(evt, Date.UTC(2026, 9, 24, 22, 0), false)) || [''])[0]), /class="reunion-heure saison"/.test(F.ligneEvenement(evt, Date.UTC(2026, 9, 24, 22, 0), false))], ['02:30 (été)|02:30 (hiver)', true]);
+  v('(non régressé) un lundi ordinaire : « 14:00 » sur « 15:00 », colonne inchangée (pas de classe `saison`)', [F.heureEmpilee(Date.UTC(2026, 9, 26, 13, 0), Date.UTC(2026, 9, 26, 14, 0)), F.heureEmpilee(Date.UTC(2026, 9, 26, 13, 0), Date.UTC(2026, 9, 26, 14, 0), 'Suite')], ['<span class="reunion-heure">14:00<small>15:00</small></span>', '<span class="reunion-heure">Suite<small>15:00</small></span>']);
+  const cr = F.htmlCompteRendu({ compteRendu: { titre: 'Revue', debut: DEB, fin: FIN, dureeS: 3600, presentsN: 0, presents: [], absentsN: 0, absents: [], points: [], documents: 0 } }, 'recu');
+  v('⛔ le compte rendu de séance : « de 02:30 (été) à 02:30 (hiver) » écrit avec la saison', (/<span class="cr-quand">([^<]*)<\/span>/.exec(cr) || [, ''])[1].split(' · ')[1], '02:30 (été)–02:30 (hiver)');
+  v('(non régressé) le compte rendu d\'un lundi ordinaire garde « 14:00–15:00 »', (/<span class="cr-quand">([^<]*)<\/span>/.exec(F.htmlCompteRendu({ compteRendu: { titre: 'Revue', debut: Date.UTC(2026, 9, 26, 13, 0), fin: Date.UTC(2026, 9, 26, 14, 0), dureeS: 3600, presentsN: 0, presents: [], absentsN: 0, absents: [], points: [], documents: 0 } }, 'recu')) || [, ''])[1].split(' · ')[1], '14:00–15:00');
+  v('⛔ le message de chevauchement (« Attention, ce créneau chevauche… ») dit la saison', F.phraseChevauche([{ e: { titre: 'Garde de nuit' }, o: { debut: DEB, fin: FIN } }]), 'Attention, ce créneau chevauche « Garde de nuit » (02:30 (été) – 02:30 (hiver)).');
+  v('⛔ la fiche d\'un contact (« Réunions à venir ensemble ») dit la saison', F.quandFiche({ debut: DEB, fin: FIN }), 'dimanche 25 octobre · 02:30 (été) – 02:30 (hiver)');
 
   /* ── tous les autres jours : l'heure s'écrit comme avant ── */
   const D2 = Date.UTC(2026, 9, 26, 13, 0), F2 = Date.UTC(2026, 9, 26, 14, 0);
