@@ -110,6 +110,11 @@
   .nav-loupe-ic{font-size:12.5px;opacity:.62;flex-shrink:0;line-height:1;}
   .nav-loupe input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--t1);
     font-size:13px;font-family:inherit;padding:0;}
+  /* L'indice d'un champ (placeholder) gardait le gris du navigateur, #757575, sur les deux thèmes : 3,1 à 3,9:1 de jour
+     comme de nuit, mesuré au pixel sous le verre (test-1442). Le jeton --t3 est celui du texte discret de l'application,
+     réglé pour les deux thèmes ; `opacity:1` parce que Firefox estompe encore l'indice par-dessus sa couleur.
+     Il reste plus pâle que le texte saisi (--t1) : on distingue toujours « saisi » de « indice ». */
+  input::placeholder,textarea::placeholder{color:var(--t3);opacity:1;}
   .nav-loupe input::placeholder{color:var(--t3);}
   /* C'est le CONTENANT qui s'allume au focus (voir :focus-within ci-dessus) : le champ ne doit
      pas poser son propre anneau par-dessus, sinon on en voit deux emboîtés — mesuré, on lisait
@@ -21422,7 +21427,8 @@ views.absences=function(){ db.absences=db.absences||[];
   const passees=rest.filter(a=>(a.au||a.du)<today).sort((a,b)=>b.du.localeCompare(a.du)).slice(0,30);
   const sect=(t,l)=>l.length?`<div class="abs-hdl">${t}</div>`+l.map(row).join(''):'';
   const corps=sect('À traiter',att)+sect('En cours / à venir',aVenir)+sect('Passées',passees);
-  $('content').innerHTML=compteurs+(corps||`<div class="card">${emptyState('','Aucune absence dans ce filtre.','＋ Absence','formAbsence()')}</div>`);
+  /* l'icône de l'état vide est l'émoji de la rubrique (NAV) : icones() le remplace par un trait ; vide, le carré .e-ico restait une pastille sans rien (test-1440) */
+  $('content').innerHTML=compteurs+(corps||`<div class="card">${emptyState('🏖️','Aucune absence dans ce filtre.','＋ Absence','formAbsence()')}</div>`);
 };
 /* ── Soldes de congés de l'équipe ── */
 function absSoldes(){
@@ -39131,13 +39137,14 @@ views.pointage=function(){
   /* ── Période + technicien ── */
   const b=ptBornes();
   const techs=ptTechsVisibles();
+  /* le sélecteur d'équipe vit dans un .field : tout l'habillage des champs (rayon, fond, chevron, police, plancher tactile) y est écrit ; posé dehors, un <select> sortait brut du navigateur (test-1441) */
   const barre=`<div class="card" style="padding:12px 14px">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <div class="seg">${[['semaine','Semaine'],['mois','Mois'],['tout','Tout']].map(([k,l])=>`<button class="${_ptPeriode===k?'on':''}" onclick="ptSetPeriode('${k}')">${l}</button>`).join('')}</div>
       ${b.de?`<button class="btn ghost sm" onclick="ptDecaler(-1)" title="Période précédente">◀</button>
         <span style="font-size:13.5px;font-weight:600;min-width:190px;text-align:center">${esc(b.lbl)}</span>
         <button class="btn ghost sm" onclick="ptDecaler(1)" title="Période suivante">▶</button>`:`<span style="font-size:13.5px;font-weight:600">${esc(b.lbl)}</span>`}
-      ${autres&&techs.length>1?`<select onchange="ptSetTech(this.value)" style="margin-left:auto;max-width:230px"><option value="">Toute mon équipe</option>${techs.map(t=>`<option value="${t.id}" ${_ptTech===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select>`:''}
+      ${autres&&techs.length>1?`<div class="field" style="margin:0 0 0 auto;max-width:230px;min-width:0"><select onchange="ptSetTech(this.value)"><option value="">Toute mon équipe</option>${techs.map(t=>`<option value="${t.id}" ${_ptTech===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>`:''}
     </div></div>`;
 
   /* ── L'historique, journée par journée ── */
