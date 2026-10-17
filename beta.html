@@ -31005,6 +31005,9 @@ function bonDupliquer(id){ if(!peutCommander()){ refusCommander(); return; } con
   copy.id=uid(); copy.numero=nextNum('bons','BC','numero');
   copy.date=todayISO(); copy.statut='brouillon'; copy.faitPar=fullName(currentUser);
   delete copy.dateEnvoi; delete copy.dateReception; delete copy.arrivage; delete copy.sitesSupp;
+  /* g20 (achats#3) : une recommande n'est PAS un bon de la demande d'origine — copiée avec son `demandeId`, elle
+     rouvrait la demande déjà « Reçue » (« Partiellement reçue · 1/2 », « en cours ») tant que le brouillon existait. */
+  delete copy.demandeId;
   db.bons.push(copy); logEvent('Bon recommandé',bonNum(b)+' → '+copy.numero,'commande'); save();
   closeModal(); formBon(copy.id); toast('🔁 Commande recréée ('+copy.numero+') — vérifie les quantités et envoie');
 }
@@ -31104,11 +31107,15 @@ function bonValider(id){ const form=$('bonform'); if(!form) return; const f=Obje
   const sites=[bonSites[0]||{}].concat(bonSites.slice(1).filter(s=>s.nom||s.adresse||s.ville));
   const fidOf=n=>{ if(!n) return f.fournisseurId||''; const x=db.fournisseurs.find(y=>(y.nom||'').toUpperCase()===String(n).toUpperCase()); return x?x.id:(f.fournisseurId||''); };
   let first=true, created=0; const madeIds=[];
+  /* g20 (achats#3) : un bon né d'une demande, rouvert puis séparé ici par fournisseur ou par site, laisse ses
+     bons SUPPLÉMENTAIRES au même lien — sans `demandeId` ils étaient invisibles à `demandeBons`, et le premier bon
+     livré clôturait encore la demande. Le lien se lit sur le bon d'origine (`id`), pas sur le formulaire. */
+  const _demOrigine=id?((db.bons.find(x=>x.id===id)||{}).demandeId||''):'';
   fourKeys.forEach(fk=>{ sites.forEach(s=>{
     const numero=first?f.numero:(nextNum('bons','BC','numero'));
     const obj={numero,date:f.date,fournisseurId:fidOf(fk),boxId:f.boxId||'',statut:f.statut,notes:f.notes,societe:(f.societe||'').trim(),faitPar:fullName(currentUser),lignes:JSON.parse(JSON.stringify(groups[fk]||[])),...bonLivOf(s)};
     if(first&&id){ const ix=db.bons.findIndex(x=>x.id===id); db.bons[ix]={...db.bons[ix],...obj}; delete db.bons[ix].sitesSupp; madeIds.push(id); }
-    else{ const nid=uid(); db.bons.push({id:nid,...obj}); madeIds.push(nid); if(!first) created++; logEvent(first?'Bon de commande créé':'Bon créé (séparation auto)',numero+(fk?' — '+fk:''),'commande'); }
+    else{ const nid=uid(); db.bons.push({id:nid,...obj,...(_demOrigine?{demandeId:_demOrigine}:{})}); madeIds.push(nid); if(!first) created++; logEvent(first?'Bon de commande créé':'Bon créé (séparation auto)',numero+(fk?' — '+fk:''),'commande'); }
     first=false;
   }); });
   save();
@@ -31389,7 +31396,9 @@ function bonPdfStr(b){
     (desL.length?desL:['']).forEach((t,k)=>T(M+92,y-k*11,9.2,t,0,DARK));
     TR(RGT-8,y,9.2,qt,1,DARK);
     y-=17+plus;
-    comL.forEach(t=>{ T(M+92,y+4,7.6,t,0,GREY); y-=11; });
+    /* un commentaire très long (une dizaine de lignes et plus) passe à la page suivante au lieu d'écrire dans le pied
+       de page : ce que le fournisseur doit lire ne se perd pas sous la marge */
+    comL.forEach(t=>{ if(y+4<70) newPage(); T(M+92,y+4,7.6,t,0,GREY); y-=11; });
   });
   R(M,y+11,W-2*M,0.8,LINE);
   // ─ total en encadré vert
@@ -34840,8 +34849,14 @@ function saveSimple(e,coll,id,numFields){ e.preventDefault();
   /* g20 (achats#1, achats#8) : un fournisseur a un nom non vide et unique, et le renommer emporte le lien de
      ses produits (`fournisseurRenommer`). Refus AVANT toute écriture, fenêtre laissée ouverte : ce qui a été
      tapé n'est pas perdu. */
-  if(coll==='fournisseurs'){ const r=id ? fournisseurRenommer(id,d.nom) : fournisseurNomControle(d.nom,'');
-    if(r.erreur){ toast(r.erreur); return; } d.nom=r.nom; }
+  /* ⛔ Le nom ne se CONTRÔLE que s'il CHANGE (comme `compteHomonyme`) : chez ELAN, seize fiches pour six
+     fournisseurs, le pack en triple — corriger le téléphone d'un doublon d'avant ne doit pas être refusé
+     « Ce fournisseur existe déjà », ni celui d'une fiche au nom vide « Indique un nom ». Inchangé : on
+     laisse le nom tel quel (le formulaire ne le réécrit pas), rien n'est contrôlé ni renommé. */
+  if(coll==='fournisseurs'){ const _f0=id?(db.fournisseurs||[]).find(x=>x.id===id):null;
+    if(_f0 && String(d.nom==null?'':d.nom).trim()===String(_f0.nom==null?'':_f0.nom).trim()) delete d.nom;
+    else{ const r=id ? fournisseurRenommer(id,d.nom) : fournisseurNomControle(d.nom,'');
+      if(r.erreur){ toast(r.erreur); return; } d.nom=r.nom; } }
   if(id){ const ix=db[coll].findIndex(x=>x.id===id); db[coll][ix]={...db[coll][ix],...d}; toast('Mis à jour'); }
   else{ if(coll==='clients'){ d.x=10+Math.random()*80; d.y=10+Math.random()*80; } db[coll].push({id:uid(),...d}); logEvent('Création',`${coll} : ${d.nom||d.ref||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);

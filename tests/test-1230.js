@@ -102,6 +102,20 @@ console.log('\n── 1230 · 4. achats#8 — créer : un nom vide ou déjà pri
   v('un nom neuf est créé, sans les espaces autour', W.db.fournisseurs.map(f => f.nom).slice(3), ['Sodif']);
   v('(population : trois refus ont eu lieu, une création)', [W.__saves, W.db.fournisseurs.length], [1, 4]); }
 
+console.log('\n── 1230 · 4 bis. un nom qui ne CHANGE pas ne se contrôle pas (doublons d’avant, fiche au nom vide) ──');
+{ const j = jeu(); j.four.push({ id: 'f9', nom: 'Armosa', telephone: '' }, { id: 'f10', nom: '', telephone: '' }); const W = monde(j.four, j.prod);
+  formSimple(W, 'f9', { nom: 'Armosa', email: '', telephone: '0600000000' });
+  v('⛔ une fiche qui FAIT DOUBLON d’une autre (ELAN : 16 fiches pour 6) : corriger son téléphone est accepté (avant : « existe déjà »)', [W.db.fournisseurs[3].telephone, W.__saves, W.__toasts.some(t => /existe déjà/.test(t))], ['0600000000', 1, false]);
+  v('… le nom est resté tel quel, les produits aussi', [W.db.fournisseurs[3].nom, nb(W, 'ARMOSA')], ['Armosa', 3]);
+  formSimple(W, 'f10', { nom: '  ', email: '', telephone: '0700000000' });
+  v('⛔ une fiche existante au nom vide : modifier son téléphone n’est pas refusé (« Indique un nom ») quand le nom ne bouge pas', [W.db.fournisseurs[4].telephone, W.__toasts.some(t => /Indique un nom/.test(t))], ['0700000000', false]);
+  formSimple(W, 'f9', { nom: 'ORCAD', email: '', telephone: '0600000000' });
+  v('mais CHANGER le nom d’un doublon vers un nom déjà pris reste refusé', [W.db.fournisseurs[3].nom, W.__toasts.some(t => /existe déjà/.test(t))], ['Armosa', true]);
+  formSimple(W, 'f10', { nom: 'Nom neuf', email: '', telephone: '' });
+  v('donner un nom à la fiche vide est accepté', W.db.fournisseurs[4].nom, 'Nom neuf');
+  formSimple(W, 'f9', { nom: '  Armosa  ', email: '', telephone: '0600000001' });
+  v('espaces autour du MÊME nom : inchangé, accepté', [W.db.fournisseurs[3].nom, W.db.fournisseurs[3].telephone], ['Armosa', '0600000001']); }
+
 console.log('\n── 1230 · 5. une autre collection ne change pas ──');
 { const j = jeu(), W = monde(j.four, j.prod);
   W.saveSimple({ preventDefault() {}, target: { __d: { nom: 'Boulangerie' } } }, 'clients', '', []);

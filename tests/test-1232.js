@@ -83,6 +83,17 @@ console.log('\n── 1232 · 3. pagination : un document long reste lisible, du
   borne(pdf, 'document long');
   vrai('le « total » est écrit une fois', (tout(pdf).match(/TOTAL/g) || []).length === 1); }
 
+console.log('\n── 1232 · 3 bis. un commentaire de ligne très long passe à la page suivante, il ne s’écrit pas dans le pied de page ──');
+{ const phrase = 'Instruction de livraison numéro ', com = Array.from({ length: 80 }, (_, i) => phrase + (i + 1) + ' à respecter').join(' ');
+  const lignes = Array.from({ length: 25 }, (_, i) => ({ reference: 'R' + i, designation: 'Produit ' + i, cartons: 1, quantite: 2 }));
+  lignes.push({ reference: 'RC', designation: 'Produit avec consigne', commentaire: com, cartons: 1, quantite: 2 }, { reference: 'RZ', designation: 'Dernier produit', cartons: 1, quantite: 2 });
+  const pdf = W.bonPdfStr(bon({ lignes }));
+  vrai('population : le commentaire fait beaucoup de lignes (> 28) et le document plusieurs pages', lire(pdf).filter(t => /Instruction de livraison/.test(t.txt)).length > 28 && (pdf.match(/\/Type \/Page /g) || []).length >= 2, lire(pdf).filter(t => /Instruction de livraison/.test(t.txt)).length);
+  vrai('⛔ le commentaire ENTIER est dans le PDF, de la première à la dernière consigne (avant : écrit sous la page, perdu)', /Instruction de livraison numéro 1 /.test(tout(pdf)) && /numéro 80 à respecter/.test(tout(pdf)));
+  vrai('… et la ligne suivante, après le commentaire, est là', /Dernier produit/.test(tout(pdf)));
+  borne(pdf, 'commentaire très long en fin de page');
+  vrai('⛔ le texte du commentaire ne sort ni de la page (y ≥ 0) ni du pied', lire(pdf).every(t => t.y >= 0), lire(pdf).filter(t => t.y < 0).slice(0, 2)); }
+
 console.log('\n── 1232 · 4. jamais de « ? » dans un document que reçoit un fournisseur ──');
 { const pdf = W.bonPdfStr(bon({ notes: 'Porte B → sonner ✓ puis 📞 appeler', lignes: [{ designation: 'Gel → 30 g ≥ 2 boîtes ✓', commentaire: 'à l’arrière 🚪', cartons: 1, quantite: 2 }] }));
   const t = lire(pdf).map(l => l.txt).join('|');

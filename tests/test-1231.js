@@ -21,7 +21,8 @@ function bloc(debut) {
   return ''; }
 const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\n', i)); };
 const STATV = ligne('const STATV='), STATBC = ligne('const STATBC='), DE = bloc('function demandeEtat(d){'), DC = bloc('function demandeEnCours(d){'),
-  SEP = bloc('function bonSeparer(id){'), BFN = bloc('function bonFourName(l,selName){'), DB = bloc('function demandeBons(');
+  SEP = bloc('function bonSeparer(id){'), BFN = bloc('function bonFourName(l,selName){'), DB = bloc('function demandeBons('),
+  DUP = bloc('function bonDupliquer(id){'), BV = bloc('function bonValider(id){'), BGR = bloc('function bonGroupes(fournisseurId){'), BLO = ligne('const bonLivOf=');
 
 console.log('\n── 1231 · 0. la population ──');
 v('les morceaux sont trouvés', [!!STATV, !!STATBC, DE.length > 200, DC.length > 150, SEP.length > 400, BFN.length > 100], [true, true, true, true, true, true]);
@@ -92,6 +93,52 @@ console.log('\n── 1231 · 5. un seul bon : comportement d’avant, inchangé
   v('validée sans bon : Acceptée, rien à suivre', [W.demandeEtat(W.db.demandes[1]).l, W.demandeEnCours(W.db.demandes[1])], ['Acceptée', false]);
   v('en attente : en cours', [W.demandeEtat(W.db.demandes[2]).l, W.demandeEnCours(W.db.demandes[2])], ['En attente', true]);
   v('refusée : plus en cours', [W.demandeEtat(W.db.demandes[3]).l, W.demandeEnCours(W.db.demandes[3])], ['Refusée', false]); }
+
+/* ─── relecture : les deux AUTRES chemins qui créent un bon à partir d'un bon de demande ─── */
+console.log('\n── 1231 · 6. « 🔁 Recommander » ne rouvre pas une demande déjà reçue (bonDupliquer) ──');
+v('les morceaux sont trouvés', [DUP.length > 300, BV.length > 1500, BGR.length > 80, BLO.length > 80], [true, true, true, true]);
+v('⛔ une seule définition de bonDupliquer et de bonValider', ['bonDupliquer', 'bonValider'].map(n => SRC.split('function ' + n + '(').length - 1), [1, 1]);
+{ const W = monde();
+  vm.runInContext(`${DUP}
+    var currentUser={ id:'u1' }; function logEvent(){} function save(){} function uid(){ return 'cp'+(++__n); } function peutCommander(){ return true; } function refusCommander(){} function todayISO(){ return '2026-10-16'; } function fullName(){ return 'Zoé'; }
+    function bonNum(b){ return b.numero; } function closeModal(){} function formBon(){} function toast(){}
+    function nextNum(){ return 'BC-2026-9'+(++__n); }`, W);
+  W.db.demandes.push({ id: 'd1', num: 'DC-1', statut: 'valide', bonId: 'b1' });
+  W.db.bons.push({ id: 'b1', demandeId: 'd1', numero: 'BC-2026-001', fournisseurId: 'fA', statut: 'livree', dateReception: '2026-10-10', lignes: [{ produitId: 'pa', designation: 'Gel', quantite: 4 }] });
+  const d = W.db.demandes[0];
+  v('avant la recommande : Reçue, plus en cours', [W.demandeEtat(d).l, W.demandeEnCours(d)], ['Reçue', false]);
+  W.bonDupliquer('b1');
+  const copie = W.db.bons[1];
+  vrai('population : la recommande existe, en brouillon, avec ses lignes', W.db.bons.length === 2 && copie.statut === 'brouillon' && copie.lignes.length === 1, W.db.bons.length);
+  vrai('⛔ la copie ne porte PAS le lien de la demande d’origine (avant : demandeId copié)', !copie.demandeId, copie.demandeId);
+  v('⛔ la demande reste « Reçue » et hors de « En cours » tant que le brouillon de recommande existe', [W.demandeEtat(d).l, W.demandeEnCours(d)], ['Reçue', false]);
+  v('le bon d’origine garde son lien', W.db.bons[0].demandeId, 'd1'); }
+
+console.log('\n── 1231 · 7. un bon de demande rouvert et séparé par le formulaire (bonValider) garde ses bons suivis ──');
+function monde7(champs, avecDemande) {
+  const W = monde();
+  W.__form = champs; W.__toasts = [];
+  vm.runInContext(`${BFN}\n${BGR}\n${BLO}\n${BV}
+    var bonLignes=[], bonSites=[{}], bonsFilter='', current='bons', views={ bons(){} };
+    function FormData(f){ return Object.entries(__form); } function $(i){ return i==='bonform' ? {} : null; }
+    function alert(){} function bonQteTot(){ return { ctn:1, u:1, conv:1 }; } function bonMemorise(){} function fullName(){ return 'Zoé'; }
+    var currentUser={ id:'u1' }; function closeModal(){} function go(){} function toast(m){ __toasts.push(m); }
+    function nextNum(){ return 'BC-2026-9'+(++__n); }`, W);
+  W.db.demandes.push({ id: 'd1', num: 'DC-1', statut: 'valide', bonId: 'b1' });
+  W.db.bons.push({ id: 'b1', demandeId: avecDemande ? 'd1' : undefined, numero: 'BC-2026-001', fournisseurId: '', statut: 'brouillon', lignes: [] });
+  vm.runInContext(`bonLignes=[{ produitId:'pa', designation:'Gel', quantite:4 }, { produitId:'po', designation:'Piège', quantite:2 }];`, W);
+  return W; }
+{ const W = monde7({ numero: 'BC-2026-001', date: '2026-10-16', fournisseurId: '', boxId: '', statut: 'prete', notes: '', societe: '' }, true);
+  W.bonValider('b1');
+  const bons = W.db.bons, d = W.db.demandes[0];
+  vrai('population : la validation a séparé le bon en deux (ARMOSA, ORCAD)', bons.length === 2 && bons.map(b => W.db.fournisseurs.find(f => f.id === b.fournisseurId) ? W.db.fournisseurs.find(f => f.id === b.fournisseurId).nom : '?').sort().join() === 'ARMOSA,ORCAD', bons.map(b => b.fournisseurId));
+  v('le bon d’origine garde son lien', bons[0].demandeId, 'd1');
+  v('⛔ le bon SUPPLÉMENTAIRE porte le même demandeId (avant : absent, invisible à la demande)', bons[1].demandeId, 'd1');
+  bons[0].statut = 'livree';
+  vrai('⛔ le premier bon livré ne clôt pas la demande (avant : « Reçue », « Rien en cours »)', W.demandeEtat(d).l !== 'Reçue' && W.demandeEnCours(d) === true, W.demandeEtat(d)); }
+{ const W = monde7({ numero: 'BC-2026-050', date: '2026-10-16', fournisseurId: '', boxId: '', statut: 'prete', notes: '', societe: '' }, false);
+  W.bonValider('');
+  vrai('création d’un bon neuf sans demande : aucun demandeId inventé', W.db.bons.length === 3 && W.db.bons.slice(1).every(b => !b.demandeId), W.db.bons.map(b => b.demandeId)); }
 
 console.log('\n══ test-1231 : ' + ok + ' ✓  ' + ko + ' ✗ ══');
 process.exit(ko ? 1 : 0);
