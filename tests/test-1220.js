@@ -69,6 +69,10 @@ function monde(o) {
     function intTechIds(i){ return (i&&i.techIds)||[]; }  var STATUT_INT={}; var intTechIdsX=1;
     function openBox(){} function detailIntervention(){} function ficheClient(){} function formDoc(){}
     var prdSearch='';
+    /* les écrans parlent la langue de l'appareil depuis un autre lot (t, moisEcran, fmtShortEcran) : en français, ici. */
+    function t(s){ return s; } function ecranLoc(){ return 'fr-FR'; }
+    ${ligne('function moisEcran(')}
+    ${ligne('function fmtShortEcran(')}
     var PT_MAX_H=16;\n${PIECES.minutes}\n${PIECES.dureeStr}\n${PIECES.docTot}\n${PIECES.ymOf}\n${PIECES.isFin}\n${PIECES.norm}\n${PIECES.ptOuvert}\n${PIECES.ptSecs}\n${PIECES.ptTotal}
     ${bloc('function docEmis(')}\n${PIECES.vehAuto}\n${PIECES.note}
     ${PIECES.vPlaque}\n${PIECES.vehName}\n${PIECES.archStats}\n${PIECES.fiche}\n${PIECES.journal}\n${PIECES.print}
