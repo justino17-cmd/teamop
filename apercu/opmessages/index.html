@@ -8949,10 +8949,10 @@ a.menu-action { text-decoration: none; }
   }
   function htmlTrajet(F, possible) {
     const T = F.tr, L = TJ.lieux || { domicile: null, travail: null };
-    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas, comme dans la fiche d'une réunion : « Calculer l'heure de départ » déplie le formulaire
+    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas, comme dans la fiche d'une réunion : « Heure de départ » déplie le formulaire (« Calculer » est le bouton du formulaire : deux gestes, deux mots — 17 octobre 2026)
        (le départ, le mode, l'avance — et la phrase sur la position, lue AVANT que la position serve), « Y aller » reste à côté. Un trajet calculé, en cours, en erreur ou périmé : ouvert. */
     if (possible && !T.ouvert && !T.calc && !T.calcul && !T.erreur && !T.perime)
-      return '<div class="info-actions evt-tr-gestes"><button type="button" class="mini" data-evt="trajet-ouvrir" aria-expanded="false">Calculer l\'heure de départ</button>' +
+      return '<div class="info-actions evt-tr-gestes"><button type="button" class="mini" data-evt="trajet-ouvrir" aria-expanded="false">Heure de départ</button>' +
         (destinationGps($('ev-lieu') ? $('ev-lieu').value : '', null) ? BOUTON_GPS_EVT : '') + '</div>';
     T.ouvert = true;      // ⛔ ouvert, il le RESTE pour cette fiche : changer le départ retire le trajet d'avant, et le formulaire ne doit pas se replier sous le doigt
     let h = '<div class="rubrique"><span>Trajet</span></div>';
@@ -8981,7 +8981,7 @@ a.menu-action { text-decoration: none; }
         (possible && T.autres.length ? '<p class="info-note">Pas le bon endroit ? Plutôt :</p><div class="info-actions evt-tr-autres">' + T.autres.map(a => '<button type="button" class="mini" data-evt="trajet-autre" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div>' : '') +
         '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir.</p></div>';
     }
-    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-evt="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (T.calc ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
+    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-evt="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (T.calc ? 'Recalculer' : 'Calculer') + '</button>' : '') +
       (T.calc ? '<button type="button" class="mini" data-evt="trajet-retirer">Retirer le trajet</button>' : '') +
       (destinationGps($('ev-lieu') ? $('ev-lieu').value : '', T.calc) ? BOUTON_GPS_EVT : '') + '</div>';
     return h;
@@ -10054,13 +10054,13 @@ a.menu-action { text-decoration: none; }
   }
   function htmlTrajetReu(d, o, T) {
     const possible = trajetReuPossible(), L = TJ.lieux || { domicile: null, travail: null }, c = d.moi.trajet;
-    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas : deux lignes, « Calculer l'heure de départ » (le formulaire s'ouvre d'un toucher) et
+    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas : deux lignes, « Heure de départ » (le formulaire s'ouvre d'un toucher ; « Calculer » est le bouton du formulaire : deux gestes, deux mots — 17 octobre 2026) et
        « Y aller » — plus un formulaire entier sous les yeux de qui n'en veut pas. Un trajet rangé, un calcul en cours, une erreur : ouvert, comme avant. */
     if (!T.ouvert && !c && !T.calcul && !T.erreur && !d.moi.trajetPerime) {
       const gps = destinationGps(d.lieu, c);
       if (!possible && !gps) return '';
       return '<div class="rubrique"><span>Trajet</span></div><div class="carte reu-trajet replie">' +
-        (possible ? '<button type="button" class="reglage presse" data-reu="trajet-ouvrir" aria-expanded="false">' + icone('i-horloge') + '<span class="reglage-texte">Calculer l\'heure de départ</span>' + CHEVRON + '</button>' : '') +
+        (possible ? '<button type="button" class="reglage presse" data-reu="trajet-ouvrir" aria-expanded="false">' + icone('i-horloge') + '<span class="reglage-texte">Heure de départ</span>' + CHEVRON + '</button>' : '') +
         (gps ? '<button type="button" class="reglage presse" data-reu="trajet-gps" aria-haspopup="menu">' + icone('i-itineraire') + '<span class="reglage-texte">Y aller</span>' + CHEVRON + '</button>' : '') + '</div>';
     }
     T.ouvert = true;      // ouvert, il le reste pour cette fiche (comme celui d'un rendez-vous)
@@ -10090,7 +10090,7 @@ a.menu-action { text-decoration: none; }
         (possible && T.autres.length ? '<p class="info-note">Pas le bon endroit ? Plutôt :</p><div class="info-actions evt-tr-autres">' + T.autres.map(a => '<button type="button" class="mini" data-reu="trajet-autre" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div>' : '') +
         '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir' + (d.repetition !== 'aucune' ? ', à chaque date' : '') + '. Toi seul le vois.</p></div>';
     }
-    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-reu="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (c ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
+    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-reu="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (c ? 'Recalculer' : 'Calculer') + '</button>' : '') +
       (c ? '<button type="button" class="mini" data-reu="trajet-retirer"' + (T.calcul ? ' disabled' : '') + '>Retirer le trajet</button>' : '') +
       (destinationGps(d.lieu, c) ? '<button type="button" class="mini" data-reu="trajet-gps" aria-haspopup="menu">Y aller</button>' : '') + '</div></div>';
     return h;
