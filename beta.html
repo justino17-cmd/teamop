@@ -29287,7 +29287,10 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
      relit le formulaire ENTIER (`new FormData`) : un champ retiré s'écrirait vide, et la catégorie ou le
      groupe d'hier disparaîtraient au premier enregistrement. Les rangées sans objet pour le stock de
      l'entreprise (numéro, classement, visites de passage) sont donc MASQUÉES (`hidden`), leurs champs
-     restent et repartent tels quels. Relevé en v742 : « inoffensif, mais bavard ». */
+     restent et repartent tels quels. Relevé en v742 : « inoffensif, mais bavard ».
+     ⛔ g19 · stock#2 : un champ MASQUÉ ne porte jamais `required`. Le numéro du stockage est vide (numero:'') ;
+     requis ET invisible, le navigateur refusait d'envoyer le formulaire (« not focusable »), sans un mot —
+     impossible de désactiver le stockage, qui ne se supprime pas : c'est son seul geste de retrait. */
   const S=estStockage(b), cache=S?' hidden':'';
   boxCodes = id&&b.codesAcces ? JSON.parse(JSON.stringify(b.codesAcces)) : [{type:'Code entrée',valeur:''}];
   boxTechSel=new Set(b.techIds||[]); boxUserSel=new Set(b.userIds||[]);
@@ -29311,7 +29314,7 @@ function formBox(id){ if(!boxGererGarde(id?'modifier':'ajouter')) return; const 
       </div>
       <div class="form-sec">Identification</div>
       <div class="fgroup">
-        <div class="frow"${cache}><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero" required value="${esc(b.numero||b.ref)}" placeholder="Numéro (ex : BOX-0001)" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
+        <div class="frow"${cache}><span class="frow-lbl mono" style="color:var(--acc-txt)">N°</span><input name="numero"${S?'':' required'} value="${esc(b.numero||b.ref)}" placeholder="Numéro (ex : BOX-0001)" class="mono" style="text-align:right;color:var(--acc-txt);text-transform:uppercase"></div>
         <div class="frow"><input name="nom" value="${esc(b.nom)}" placeholder="Nom ou description"></div>
         <div class="frow"><input name="adresse" value="${esc(b.adresse)}" placeholder="Adresse" oninput="boxLat=null;boxLng=null"></div>
         <div class="frow"><input name="ville" value="${esc(b.ville)}" placeholder="Ville"></div>
