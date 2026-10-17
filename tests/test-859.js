@@ -144,7 +144,8 @@ async function controler(PAGE, SRC) {
   let dureeAppel = null, dureeCourte = null, libelleAppel = null;
   try { dureeAppel = ligne('dureeAppel') ? new Function('return ' + ligne('dureeAppel'))() : null; } catch (e) { dureeAppel = null; }
   try { dureeCourte = ligne('dureeCourte') ? new Function('return ' + ligne('dureeCourte'))() : null; } catch (e) { dureeCourte = null; }
-  try { const c = corps('function libelleAppel'), tab = (/const SENS_APPEL = (\{[^}]*\});/.exec(JS) || [, '{}'])[1]; libelleAppel = c ? new Function('dureeCourte', 'SENS_APPEL', c + '\nreturn libelleAppel;')(dureeCourte, eval('(' + tab + ')')) : null; } catch (e) { libelleAppel = null; }
+  try { const c = corps('function libelleAppel'), tab = (/const SENS_APPEL = (\{[^}]*\});/.exec(JS) || [, '{}'])[1], tabIssue = (/const ISSUE_APPEL = (\{[^}]*\});/.exec(JS) || [, '{}'])[1];        // (m19, appels@2) libelleAppel lit aussi ISSUE_APPEL : sans elle le banc mourait sur un ReferenceError
+    libelleAppel = c ? new Function('dureeCourte', 'SENS_APPEL', 'ISSUE_APPEL', c + '\nreturn libelleAppel;')(dureeCourte, eval('(' + tab + ')'), eval('(' + tabIssue + ')')) : null; } catch (e) { libelleAppel = null; }
   vrai('(population) les trois fonctions réelles sont extraites de la page : dureeAppel, dureeCourte, libelleAppel', typeof dureeAppel === 'function' && typeof dureeCourte === 'function' && typeof libelleAppel === 'function', [typeof dureeAppel, typeof dureeCourte, typeof libelleAppel].join());
   if (dureeAppel) {
     v('dureeAppel : la durée qui court s\'écrit mm:ss — 0 → 00:00, 59 → 00:59, 60 → 01:00, 192 → 03:12, 3599 → 59:59', [0, 59, 60, 192, 3599].map(dureeAppel), ['00:00', '00:59', '01:00', '03:12', '59:59']);
@@ -157,6 +158,7 @@ async function controler(PAGE, SRC) {
   if (libelleAppel) {
     const L = o => libelleAppel(Object.assign({ groupe: false, type: 'audio', sens: 'entrant', repetitions: 1, duree: 0, membres: ['c1'] }, o));
     v('libelleAppel : le type, le sens, la durée — « Appel vidéo entrant · 9 min », « Appel sortant · 3 min », « Appel manqué »', [L({ type: 'video', duree: 540 }), L({ sens: 'sortant', duree: 190 }), L({ sens: 'manque' })], ['Appel vidéo entrant · 9 min', 'Appel sortant · 3 min', 'Appel manqué']);
+    v('libelleAppel (m19, appels@2) : l\'ISSUE d\'un appel sortant passe devant le sens — « Appel refusé », « Appel vidéo annulé », « Appel sans réponse » ; sans issue, « Appel sortant » est inchangé', [L({ sens: 'sortant', issue: 'refuse' }), L({ sens: 'sortant', type: 'video', issue: 'annule' }), L({ sens: 'sortant', issue: 'manque' }), L({ sens: 'sortant', issue: null, duree: 190 })], ['Appel refusé', 'Appel vidéo annulé', 'Appel sans réponse', 'Appel sortant · 3 min']);
     v('libelleAppel : des manqués d\'affilée s\'écrivent « Appel manqué (2) » — un seul n\'a pas de parenthèse', [L({ sens: 'manque', repetitions: 2 }), L({ sens: 'manque', repetitions: 1 })], ['Appel manqué (2)', 'Appel manqué']);
     v('libelleAppel : un groupe dit « Appel de groupe », ses participants (les autres + moi) et sa durée', [L({ groupe: true, type: 'video', duree: 2520, membres: ['c3', 'c6'] }), L({ groupe: true, sens: 'sortant', membres: ['c1', 'c3', 'c5'], duree: 7 })], ['Appel de groupe vidéo entrant · 3 participants · 42 min', 'Appel de groupe sortant · 4 participants · 7 s']);
   } else for (let i = 0; i < 3; i++) vrai('libelleAppel exécutée (' + i + ')', false);
@@ -175,7 +177,7 @@ async function controler(PAGE, SRC) {
       && /function raccrocherCouche\(\) \{ etat\.raccrocher = true; if \(etat\.appelReduit\) quitterAppel\(\); else fermerCouche\(\); \}/.test(JS) && !/function quitterAppel[\s\S]*?quitterAppel\(\)/.test(quitter.slice(30)), (JS.match(/quitterAppel\(\)/g) || []).length + ' occurrences (définition comprise)');
   vrai('⛔ raccrocher (le bouton rouge, la barre « Revenir à l\'appel », l\'appel fini ailleurs) passe par raccrocherCouche : elle DIT qu\'on raccroche (etat.raccrocher), sinon fermer la couche RÉDUIRAIT l\'appel [sonde : appel réduit]',
     /\$\('appel-raccrocher'\)\.addEventListener\('click', raccrocherCouche\);/.test(JS) && /\$\('appel-barre-raccrocher'\)\.addEventListener\('click', \(\) => \{ if \(etat\.appelId && etat\.appelReduit\) raccrocherCouche\(\); \}\);/.test(JS)
-      && /if \(snap\.etat === 'termine'\) \{ if \(snap\.avis\) mot\(snap\.avis\); raccrocherCouche\(\); return; \}/.test(JS) && /return !etat\.raccrocher && CAP\.appelsMedias/.test(JS));
+      && /if \(snap\.etat === 'termine'\) \{ if \(snap\.avis\) mot\(snap\.avis\); A\.finiParAutre = avant === 'en-cours' && !snap\.avis; raccrocherCouche\(\); return; \}/.test(JS) && /return !etat\.raccrocher && CAP\.appelsMedias/.test(JS));
   vrai('arreterPistes n\'est appelée que par quitterAppel et par pagehide (la page qu\'on ferme) — jamais « pour faire propre » ailleurs', (JS.match(/arreterPistes\(/g) || []).length === 3 && /window\.addEventListener\('pagehide', \(\) => \{ if \(etat\.appelUI\) arreterPistes\(etat\.appelUI\); \}\);/.test(JS), (JS.match(/arreterPistes\(/g) || []).length + ' occurrences');
   const acquerir = corps('async function acquerirMedias');
   vrai('une piste qui arrive APRÈS la fin de l\'appel est arrêtée aussitôt (perime(A) après chaque attente : le flux est jeté) — jamais une caméra allumée pour un appel qui n\'existe plus [sonde : retour avant la réponse]',
