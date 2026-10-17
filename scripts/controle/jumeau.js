@@ -492,7 +492,8 @@ async function demarrer(opts) {
   const lireDonnees = f => { try { return JSON.parse(fs.readFileSync(path.join(DATA, f), 'utf8')); } catch (e) { return null; } };
 
   return { SORTIE, DATA, SITE, API, VERSION_APP, MDP_TOUR, IP_CLIENT, config, api, onglet, arreter, courriers, attendreCourrier,
-    etatStripe, attendreEspace, journalStripe, sortiesServeur, journalServeur, ongletsOuverts: () => tous.slice(), lireDonnees, traces, dormir, sourceServeur: SRC_SERVEUR };
+    etatStripe, attendreEspace, journalStripe, sortiesServeur, journalServeur, ongletsOuverts: () => tous.slice(), lireDonnees, traces, dormir, sourceServeur: SRC_SERVEUR,
+    surCdp: f => C.sur(f) };   // pour une sonde : écouter un événement du navigateur (une pause du débogueur sur une page figée)
 }
 
 module.exports = { demarrer, decoder, PROFILS };

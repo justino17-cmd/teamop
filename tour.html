@@ -4354,11 +4354,13 @@ function orphelinLecture(d){
     essai:nbL<=1&&nbD<=1&&ev.length<=12&&reussies>0
   };
 }
-function chargerComptesSite(){
+/* `dire` : appelé par « ↻ Actualiser », le geste le DIT — une liste relue à l'identique ne change rien à l'écran, et un bouton
+   qui ne fait rien de visible se retouche (passe de clics v2.88). Les rechargements d'arrière-plan, eux, se taisent. */
+function chargerComptesSite(dire){
   CS.loaded=false; CS.err='';
   apiGet('/api/monitor/comptes-site').then(function(d){
     CS.comptes=(d&&d.comptes)||[]; CS.anonymes=(d&&d.anonymes)||0;
-    CS.loaded=true; rafraichirSiConcerne();
+    CS.loaded=true; rafraichirSiConcerne(); if(dire) toast('↻ Comptes du site à jour');
   }).catch(function(e){ CS.err=(e&&e.corps)||(e&&e.status?msgErreur(e):'Impossible de lire les comptes du site — serveur injoignable.'); CS.loaded=true; rafraichirSiConcerne(); });
 }
 /* Supprime un compte du site. Le serveur REFUSE (409) si le compte porte une entreprise :
@@ -4449,11 +4451,11 @@ function rafraichirSiConcerne(){
 var JR={cnx:[],loaded:false,err:'',serveur:[],f:'tout'};
 /* ── Connexions des applications : toutes les entreprises, le moindre détail ── */
 var CNX={list:[],global:{},loaded:false,err:'',sel:null,det:null,detErr:'',q:'',f:'toutes'};
-function chargerConnexions(){
+function chargerConnexions(dire){   // `dire` : voir chargerComptesSite
   apiGet('/api/monitor/connexions').then(function(d){ if(!d) return;
     CNX.list=d.espaces||[]; CNX.global=d.global||{}; CNX.loaded=true; CNX.err='';
     if(CNX.sel&&!CNX.list.some(function(x){ return x.t===CNX.sel; })) CNX.sel=null;
-    if(TAB==='entreprises') render();   /* v2.88 : depuis la v2.87, Connexions est un ONGLET d'Entreprises — TAB ne vaut plus jamais « connexions » */
+    if(TAB==='entreprises') render(); if(dire) toast('↻ Connexions à jour');   /* v2.88 : depuis la v2.87, Connexions est un ONGLET d'Entreprises — TAB ne vaut plus jamais « connexions » */
   }).catch(function(e){ CNX.err=msgErreur(e); CNX.loaded=true; if(TAB==='entreprises') render(); });
 }
 function cnxSel(t){ CNX.sel=t; CNX.det=null; CNX.detErr=''; renderNav('avant'); window.scrollTo(0,0);
@@ -4522,7 +4524,7 @@ function vueConnexions(){
   var g=CNX.global||{};
   var tete=enTete('Connexions',
     'Qui se connecte, quand, depuis quel appareil, avec quelle version, par quel chemin — et les échecs. Remonté par les applications à chaque connexion (à partir de la v550).',
-    '<button class="btn-fant" onclick="chargerConnexions()">↻ Actualiser</button>');
+    '<button class="btn-fant" onclick="chargerConnexions(true)">↻ Actualiser</button>');
   /* Le squelette porte la FORME de ce qui arrive : « Chargement des connexions… » en texte
      laissait l'écran vide pendant tout l'appel, puis tout apparaissait d'un coup. */
   if(!CNX.loaded) return tete+squelListe(6);
@@ -9055,7 +9057,7 @@ function blocComptesDe(o){
 function vueComptesSite(){
   var t='<div>'+enTete('Comptes du site',
     'Les comptes de personnes créés sur teamop.fr — y compris ceux qui n’ont jamais ouvert d’espace, invisibles partout ailleurs. Supprimer un compte retire son accès à l’espace client ; sa boîte mail n’est pas touchée.',
-    '<button type="button" class="btn-fant" onclick="chargerComptesSite()">↻ Actualiser</button>');
+    '<button type="button" class="btn-fant" onclick="chargerComptesSite(true)">↻ Actualiser</button>');
   if(!CS.loaded) return t+squelListe(4)+'</div>';
   if(CS.err) return t+videTour('Comptes illisibles',esc(CS.err),
     '<button type="button" class="btn-fant" onclick="chargerComptesSite()">Réessayer</button>')+'</div>';

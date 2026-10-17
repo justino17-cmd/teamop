@@ -25,7 +25,7 @@ function bloc(nom) {
   const f = suite.exec(CODE);
   return CODE.slice(m.index + 1, f ? f.index : CODE.length);
 }
-const NOMS = ['_gestes', 'geste', 'msgErreur', 'paieOk', 'paieEchec', 'aboFiable', 'chargerAbos', 'incNoteEnCours', 'chargerIncidents', 'chargerConnexions', 'chargerDevisIA', 'setApp'];
+const NOMS = ['_gestes', 'geste', 'msgErreur', 'paieOk', 'paieEchec', 'aboFiable', 'chargerAbos', 'incNoteEnCours', 'chargerIncidents', 'chargerConnexions', 'chargerComptesSite', 'chargerDevisIA', 'setApp'];
 const SRCS = NOMS.map(bloc);
 console.log('\n── test-1017 : la revue de toutes les catégories de la Tour ──');
 vrai('(population) les fonctions corrigées sont trouvées dans tour.html', SRCS.every(Boolean), NOMS.filter((n, i) => !SRCS[i]).join(', '));
@@ -36,7 +36,7 @@ function bac(extra) {
     toast: t => journal.toasts.push(String(t)), render: () => { journal.rendus++; }, INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.',
     APPS_TOUR: { gestion: { nom: 'OP GESTION' }, messages: { nom: 'OP MESSAGES' } }, MYAPPS: ['gestion', 'messages'], APP: 'gestion', TAB: 'accueil',
     INC: { list: [], cnt: {}, loaded: false, err: '', f: { app: '', ent: '' } }, ABO: { abos: [], paiements: [], loaded: false, err: '' },
-    CNX: { loaded: false }, DIA: { loaded: false }, ENT: { sel: null }, BT: { login: 'l', nom: 'n', chantier: 'c', pass: 'secret' },
+    CNX: { loaded: false }, CS: { loaded: false }, DIA: { loaded: false }, ENT: { sel: null }, BT: { login: 'l', nom: 'n', chantier: 'c', pass: 'secret' },
     setBdg() {}, majCompteursApp() {}, majBarreBas() {}, incOuverts: () => [], chargerEspaces() {}, document: { getElementById: () => null, body: { dataset: {} }, querySelectorAll: () => [] },
     localStorage: { setItem() {} }, $: () => null }, extra || {});
   vm.createContext(ctx);
@@ -121,6 +121,17 @@ function bac(extra) {
     vrai('Connexions (onglet d’Entreprises) : la réponse redessine', journal.rendus >= 1, journal.rendus);
     journal.rendus = 0; ctx.TAB = 'abonnements'; ctx.chargerDevisIA(); await dormir(20);
     vrai('Devis IA (onglet d’Abonnements) : la réponse redessine', journal.rendus >= 1, journal.rendus);
+  }
+  /* 6 bis. « ↻ Actualiser » DIT qu'il a relu — une liste relue à l'identique ne change rien à l'écran ; l'arrière-plan se tait */
+  {
+    const { ctx, journal } = bac({ apiGet: () => Promise.resolve({ espaces: [], global: {}, comptes: [] }) });
+    ctx.TAB = 'entreprises'; ctx.rafraichirSiConcerne = () => {};
+    ctx.chargerConnexions(); ctx.chargerComptesSite(); await dormir(20);
+    v('(population) les deux relectures d’arrière-plan réussissent, et se taisent', [ctx.CNX.loaded, ctx.CS.loaded, journal.toasts], [true, true, []]);
+    ctx.chargerConnexions(true); ctx.chargerComptesSite(true); await dormir(20);
+    v('⛔ appelées par le bouton, elles le disent', journal.toasts.slice().sort(), ['↻ Comptes du site à jour', '↻ Connexions à jour']);
+    const SRC = require('fs').readFileSync(require('path').join(__dirname, '..', 'tour.html'), 'utf8');
+    v('   et les deux boutons « ↻ Actualiser » passent `true`', [/onclick="chargerConnexions\(true\)">↻ Actualiser/.test(SRC), /onclick="chargerComptesSite\(true\)">↻ Actualiser/.test(SRC)], [true, true]);
   }
   /* 7. changer de console */
   {
