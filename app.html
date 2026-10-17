@@ -5459,6 +5459,15 @@ html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
   html[data-refonte][data-kind="mobile"] #msg-list[data-ajuste]{
     height:max(140px,calc(100dvh - var(--msg-sous,0px) - env(safe-area-inset-bottom,0px) - 14px))!important}
 }
+/* ⛔ k01 (r5#7) — hors bureau, au seuil des trois volets (1180 px et plus), `mailAjuster()` pose la place où le cadre commence et ce
+   qui reste sous lui : le cadre finit sur le bas de l'écran, et la page ne défile plus (iPad 1180×820 : 98 px de défilement, cadre
+   +2 px ; Android 1200×800 : 49 px). Le rembourrage bas de 96 px de la tablette (le bureau a 22 px, `data-kind="desktop"`) n'a pas
+   de raison d'être sous un cadre qui a sa propre hauteur. Le bureau n'est pas visé : `:not([data-kind="desktop"])`. */
+@media (min-width:1180px){
+  html[data-refonte]:not([data-kind="desktop"]) #mail-app[data-ajuste]{
+    height:max(440px,calc(100dvh - var(--mail-top,0px) - var(--mail-bas,0px)))!important;min-height:0!important}
+  html[data-refonte]:not([data-kind="desktop"]) .content:has(> #mail-app[data-ajuste]){padding-bottom:22px}
+}
 /* ── LE SEUIL DU COURRIER EST 1179, PAS 780 NI 959 ─────────────────────────────────────────
    Ce bloc relâchait la hauteur imposée au cadre de la boîte mail à partir de 780 px. Or
    _mailDesktop() ne bascule en trois volets qu'à MAIL_TROIS_VOLETS (1180 px). Entre les deux — 781 à
@@ -31325,6 +31334,33 @@ function mailBasculerMode(){
   else mailOpen(ouvert.type,ouvert.idx);
 }
 try{ window.addEventListener('resize',()=>{ if(current==='boiteMail'&&_mailModeRendu!==null&&_mailDesktop()!==_mailModeRendu) mailBasculerMode(); }); }catch(e){}
+/* ⛔ k01 (r5#7) — LE CADRE TROIS VOLETS SE MESURE SUR SA PLACE, EN DEHORS DU BUREAU. Sa hauteur CSS (`100dvh − 258px`) est calée sur
+   l'en-tête d'un Mac, où le cadre commence à 194 px ; une tablette ou un Android large (1180 px et plus, pointeur au doigt) a un en-tête
+   plus haut — le cadre y commence à 211-260 px, finit à 822 pour un écran de 820 — et le rembourrage bas de `.content` (96 px, pensé
+   pour le bouton flottant) ajoute le reste : 49 à 98 px de défilement de page. Comme pour la conversation (`msgAjuster`), on lit
+   où le cadre commence (chaîne des `offsetTop`, insensible à l'animation d'entrée) et ce qui reste SOUS lui (rembourrages, bordures et
+   marges des ancêtres) ; le CSS retranche les deux. `data-ajuste` est posé AVANT la lecture : il ramène aussi le rembourrage bas de la
+   page à 22 px (comme le bureau), et le lire avant compterait les 96 px d'avant. Le bureau (Mac, Windows) garde ses constantes :
+   il n'a aucun défilement à rattraper, et ce n'est pas lui qu'on touche. En pile (< 1180 px) le cadre est en hauteur libre. */
+function mailAjuster(){
+  const app=$('mail-app'); if(!app||current!=='boiteMail') return false;
+  if(!_mailDesktop()){ app.removeAttribute('data-ajuste'); return false; }
+  if(app.getAttribute('data-ajuste')!=='1') app.setAttribute('data-ajuste','1');
+  let top=0; for(let e=app;e;e=e.offsetParent) top+=e.offsetTop;
+  let bas=0; for(let e=app;e;e=e.parentElement){ const c=getComputedStyle(e);
+    bas+=(parseFloat(c.marginBottom)||0); if(e!==app) bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0); }
+  top=Math.round(top); bas=Math.ceil(bas);
+  if(app.style.getPropertyValue('--mail-top')===top+'px'&&app.style.getPropertyValue('--mail-bas')===bas+'px') return true;
+  app.style.setProperty('--mail-top',top+'px'); app.style.setProperty('--mail-bas',bas+'px');
+  return true;
+}
+let _mailVeille=false, _mailRaf=0;
+function mailAjusterPlus(){ if(_mailRaf||current!=='boiteMail') return; _mailRaf=requestAnimationFrame(()=>{ _mailRaf=0; mailAjuster(); }); }
+function mailAjusterVeiller(){
+  if(_mailVeille) return; _mailVeille=true;
+  try{ window.addEventListener('resize',mailAjusterPlus); window.addEventListener('orientationchange',mailAjusterPlus); }catch(e){}
+  try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(mailAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
+}
 /* ═══ Boîte mail — 3 volets sur ordinateur (dossiers · liste · lecture), pile sur mobile ═══ */
 views.boiteMail=function(){
   setHeader('Boîte mail','',`<button class="btn ghost" onclick="mailBoxesManage()">📬 Boîtes</button> <button class="btn" onclick="mailCompose()">✏️ Écrire</button>`);
@@ -31366,6 +31402,8 @@ views.boiteMail=function(){
       </div>
       ${D?'<div id="mail-pane" style="overflow-y:auto;background:var(--bg)"></div>':''}
     </div>`;
+  // k01 (r5#7) : la hauteur du cadre se mesure sur ce rendu-ci, hors bureau
+  mailAjuster(); mailAjusterVeiller();
   loadMailboxes().then(()=>{
     const sb=$('mail-side-boites');
     const _mbKo=(_mailboxes===null), _mb=_mailboxes||[];
