@@ -84,8 +84,14 @@ async function capture(S, nom) { if (!DOSSIER) return; fs.mkdirSync(DOSSIER, { r
     console.log('\n── ⛔ un nom seul ne part pas au service ──');
     const avant = A.reseau.filter(r => r === 'POST /api/contacts/identifiant').length;
     await saisir(A, '#ct-ident', 'Bruno'); await toucher(A, '[data-act="ident-voir"]');
-    vrai('« Bruno » seul : la page explique qu\'il faut « # » et les chiffres', await contient(A, '#info-erreur', 'un nom seul ne suffit pas'), await texte(A, '#info-erreur'));
+    vrai('« Bruno » seul : la page explique qu\'il faut « # » et les chiffres, SOUS le champ (m12 : plus en haut de la feuille, hors de vue)', await contient(A, '#ct-ident-res', 'un nom seul ne suffit pas'), await texte(A, '#ct-ident-res'));
     v('   et AUCUNE requête n\'est partie (population : la recherche suivante en fera une)', A.reseau.filter(r => r === 'POST /api/contacts/identifiant').length - avant, 0);
+    /* m12 : un identifiant HORS PLAGE (« Zoe#0000 », « Cléo#1 ») est refusé par la page elle-même — sous le champ, sans « Recherche… » qui reste, sans requête */
+    for (const t of ['Zoe#0000', 'Cléo#1']) {
+      await saisir(A, '#ct-ident', t); await toucher(A, '[data-act="ident-voir"]');
+      vrai('« ' + t + ' » : refusé sous le champ (4 ou 5 chiffres), jamais « Recherche… » à côté', await contient(A, '#ct-ident-res', '4 ou 5 chiffres') && !(await texte(A, '#ct-ident-res')).includes('Recherche…'), await texte(A, '#ct-ident-res'));
+    }
+    v('   et AUCUNE requête n\'est partie non plus', A.reseau.filter(r => r === 'POST /api/contacts/identifiant').length - avant, 0);
 
     console.log('\n── un identifiant inconnu : la phrase neutre ──');
     await saisir(A, '#ct-ident', 'Personne#1234'); await A.page.locator('#ct-ident').press('Enter');

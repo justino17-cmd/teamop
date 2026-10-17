@@ -7090,14 +7090,34 @@ a.menu-action { text-decoration: none; }
       await chargerDemandes();
     } catch (er) { b.disabled = false; mot(phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }
   });
+  /* ⛔ LA GRAMMAIRE D'UN IDENTIFIANT, recopiée de `identLire` (server-msg/stockage.js) : le service ne l'expose pas, et la page la contrôle AVANT l'appel, comme elle contrôle déjà la
+     présence du « # » — « Zoe#0000 » ou « Cléo#1 » ne méritent pas un aller-retour (ni une recherche comptée au plafond). Quatre ou cinq chiffres, de 1000 à 99999, sans zéro devant.
+     `tests/test-1560.js` compare cette fonction à `identLire` sur une liste de cas : si le service change la plage, le banc tombe. */
+  function identFormatOk(t) {
+    if (typeof t !== 'string' || t.length > 80) return false;
+    const m = /^(.*)#\s*(\d{4,5})$/.exec(t.trim());
+    if (!m) return false;
+    const n = Number(m[2]);
+    return n >= 1000 && n <= 99999 && String(n) === m[2];
+  }
+  let identEssai = 0;   // l'essai en cours : une réponse qui arrive après un essai plus récent ne parle plus (chaque essai écrit SON verdict)
   async function identVoir() {
     const champ = $('ct-ident'), res = $('ct-ident-res'); if (!champ || !res) return;
     const t = champ.value.trim();
+    const moi = ++identEssai;
     res.innerHTML = '';
-    if (!t) { erreurInfo('Tape un identifiant (Camille#4821) ou un numéro.'); champ.focus(); return; }
-    if (!t.includes('#') && !/^\+?[\d\s.()-]{6,}$/.test(t)) { erreurInfo('Un nom seul ne suffit pas : ajoute « # » et les chiffres de son identifiant (Camille#4821), ou tape son numéro.'); champ.focus(); return; }
+    /* ⛔ Un refus se dit SOUS le champ où l'on tape (en haut de la feuille il était hors de vue sur un téléphone défilé), et il REMPLACE « Recherche… » : le 400 du service
+       (« Zoe#0000 ») était rattrapé plus haut, qui écrivait le message en haut sans jamais vider ce texte — il restait pour toujours à côté du refus. */
+    const dire = (msg) => { if (moi === identEssai) res.innerHTML = '<p class="info-erreur ident-erreur" role="alert">' + esc(msg) + '</p>'; };
+    erreurInfo('');
+    if (!t) { dire('Tape un identifiant (Camille#4821) ou un numéro.'); champ.focus(); return; }
+    if (!t.includes('#') && !/^\+?[\d\s.()-]{6,}$/.test(t)) { dire('Un nom seul ne suffit pas : ajoute « # » et les chiffres de son identifiant (Camille#4821), ou tape son numéro.'); champ.focus(); return; }
+    if (t.includes('#') && !identFormatOk(t)) { dire('Cet identifiant n\'est pas valable : après « # », il y a 4 ou 5 chiffres, de 1000 à 99999 (Camille#4821).'); champ.focus(); return; }
     res.innerHTML = '<p class="vide">Recherche…</p>';
-    const r = await source.contactParIdentifiant(t);
+    let r;
+    try { r = await source.contactParIdentifiant(t); }
+    catch (er) { dire(phrase(er, 'La recherche n\'a pas pu se faire.')); return; }
+    if (moi !== identEssai) return;
     if (!r.trouve) { res.innerHTML = '<p class="info-note ident-neutre">Personne avec cet identifiant, ou cette personne ne souhaite pas être trouvée.</p>'; return; }
     const action = r.dejaContact ? '<button type="button" class="mini" data-act="ecrire" data-uid="' + esc(r.id) + '">Écrire</button>'
       : r.demande === 'envoyee' ? '<button type="button" class="mini" disabled>Demande envoyée</button>'
