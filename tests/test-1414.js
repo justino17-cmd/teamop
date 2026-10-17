@@ -33,7 +33,8 @@ vrai('une seule définition', (CODE.match(/function saisieGardeInstaller\(/g) ||
 // les quatre formulaires de la consigne existent, leur champ de nom est `required` : la garde les couvre.
 const FORMS = [
   { id: 'client', fn: 'saveClientForm', champ: /<form onsubmit="saveClientForm\([\s\S]{0,400}?<input name="nom" required/ },
-  { id: 'box', fn: 'saveBox', champ: /<form id="boxform" onsubmit="saveBox\([\s\S]{0,4000}?<input name="numero" required/ },
+  /* le numéro d'une box est requis — sauf celui du stockage, qui n'en porte pas (vague 1 : `${S?'':' required'}`) */
+  { id: 'box', fn: 'saveBox', champ: /<form id="boxform" onsubmit="saveBox\([\s\S]{0,4000}?<input name="numero"(?: required|\$\{S\?'':' required'\})/ },
   { id: 'intervention', fn: 'saveIntervention', champ: /<form id="intform" onsubmit="saveIntervention\([\s\S]{0,6000}?<input name="titre" required/ },
   { id: 'produit', fn: 'saveProduit', champ: /<form id="prodform" onsubmit="saveProduit\([\s\S]{0,3000}?<input name="nom" required/ } ];
 for (const f of FORMS) vrai('le formulaire « ' + f.id + ' » porte un champ de texte required (' + f.fn + ')', f.champ.test(CODE));

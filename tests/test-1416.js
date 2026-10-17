@@ -37,6 +37,7 @@ function jouer(kind, id) {
     const permGarde=()=>true, clientPropose=()=>true, canCat=()=>false, currentUser={id:'u1'};
     const toast=m=>toasts.push(m), logEvent=(t,d,c)=>journal.push(t), save=()=>{}, closeModal=()=>{}, docListView=()=>{};
     const uid=()=>'nouveau', eur=x=>x+' €', docTot=d=>({ttc:120}), document={getElementById:()=>null};
+    var current='devis', views={factures(){}}; const go=()=>{};   /* saveDoc redessine la rubrique où l'on est (vague 1) : ici, aucune */
     ${DOC}
     ${SAVE}
     return saveDoc;`)(db, toasts, journal);
