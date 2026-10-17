@@ -7680,6 +7680,38 @@ html[data-refonte] .filters.tc-modes,html[data-refonte] .filters.seg-on:not(.seg
 @media (prefers-contrast: more){
   html[data-marque][data-verre]{--vr-liseret:var(--t3); --tf-filet:var(--t3)}
 }
+
+/* ── 22. CE QUI NE TIENT PAS DANS SA CARTE, SA FENÊTRE OU SON ÉCRAN (g04, 16 octobre 2026) ──
+   Sept défauts relevés au navigateur sur téléphone (Android 360 px, iPhone 390 px, iPad 820 px), tous de la
+   même famille : une boîte qui prend la largeur de son CONTENU au lieu de la largeur qu'on lui laisse.
+   Rien ne dépasse « à l'œil » dans une capture prise page en haut — la page glisse de côté, ou la fenêtre, et un
+   bouton se retrouve hors écran. Chacun se corrige dans la feuille, sur le COMPOSANT (jamais sur l'écran où il
+   est né) et sans toucher à une fonction métier ; mesures : scratchpad g04 (sonde-param.js, sonde-modales.js),
+   tests/test-1110.js pour les règles.
+   · un `.btn` est `white-space:nowrap` : « Forcer la mise à jour (vider le cache) » et « Ajouter mon e-mail de
+     récupération » sortaient de leur carte (jusqu'à 39 px) et poussaient la page à 383 px. Dans une carte, un
+     bouton qui ne tient pas passe à la ligne ; un bouton qui tient n'est pas touché. On ne vise QUE les
+     boutons posés directement dans la carte ou dans sa rangée sans classe — les rangées classées (`.filters`,
+     `.seg`, la barre du planning…) font défiler leurs boutons exprès. `padding-block` : au doigt, le shorthand
+     `padding:0 18px!important` n'aurait laissé aucune marge à un libellé sur deux lignes. */
+@media (max-width:780px){
+  html[data-refonte] #content .card > .btn,
+  html[data-refonte] #content .card > div:not([class]) > .btn{
+    max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.3;padding-block:8px!important}
+  /* · la rangée Français / English / Español fait 335 px pour 278 à 306 utiles : tronquée (« Españ »), elle
+       défilait sans rien qui le dise. Trois pastilles passent à la ligne, la dernière sous les autres. */
+  html[data-refonte] .filters:has(> .chip[onclick^="setLang("]){
+    flex-wrap:wrap!important;overflow:visible;margin-left:0;margin-right:0;padding-left:0;padding-right:0;
+    -webkit-mask-image:none!important;mask-image:none!important}
+}
+/* · la liste déroulante de l'étape « Produits » de la Clôture guidée (`flex:1` sans `min-width:0`, écrit en ligne)
+     prend la largeur de sa plus longue option : 589 px dans une fenêtre de 388, et le ＋ — seul moyen d'ajouter
+     le produit — à 617 px, hors écran (sur iPad aussi : 961 pour 820). `!important` : le style est en ligne. */
+#as-prod{min-width:0!important;max-width:100%!important}
+#as-prod + .btn{flex:none}
+/* · une adresse e-mail est un mot de 85 signes sans espace : elle poussait la fiche « Accès de … » (mot de passe
+     provisoire coupé hors écran) et la carte de la liste des utilisateurs, donc la page entière, à 496 px. */
+#ui-mail,#modal .frow-val > .mono,html[data-refonte] .usr-c > div[role="button"]{overflow-wrap:anywhere}
 </style>
 </head>
 <body>
@@ -20473,7 +20505,7 @@ function planNextModal(id){ const i=db.interventions.find(x=>x.id===id); if(!i) 
   const freq=PLAN_FREQ[i.recurrence]||30;
   openModal(`<div class="modal-head"><h3>🔁 Passage suivant — ${esc(clientName(i.clientId))}</h3><button class="modal-close" onclick="closeModal();go(current)">✕</button></div>
     <p style="color:var(--t2);font-size:13px;line-height:1.6;margin-bottom:12px">« <b>${esc(i.titre)}</b> » est clôturée. Fréquence : <b>${freq} jours</b>${i.recurrence&&i.recurrence!=='aucune'?' ('+(INT_RECUR[i.recurrence]||i.recurrence)+')':''}. Comment placer le passage suivant ?</p>
-    ${prop?`<button class="btn" style="width:100%;justify-content:flex-start;gap:10px;margin-bottom:8px;padding:13px 16px;text-align:left" onclick="planNextCreate('${id}','auto')">✅ <span><b>Proposition auto</b> — ${esc(fmtLong(prop.date))} à ${esc(prop.heure)} · ${esc(techName(prop.techId)||'Non assigné')}<br><small style="font-weight:400;opacity:.85">respecte les jours acceptés du client, évite absences, indispos et conflits — en pointillé orange tant que non confirmé</small></span></button>`
+    ${prop?`<button class="btn" style="width:100%;justify-content:flex-start;gap:10px;margin-bottom:8px;padding:13px 16px;text-align:left;white-space:normal;min-width:0;max-width:100%" onclick="planNextCreate('${id}','auto')">✅ <span style="min-width:0;overflow-wrap:anywhere"><b>Proposition auto</b> — ${esc(fmtLong(prop.date))} à ${esc(prop.heure)} · ${esc(techName(prop.techId)||'Non assigné')}<br><small style="font-weight:400;opacity:.85">respecte les jours acceptés du client, évite absences, indispos et conflits — en pointillé orange tant que non confirmé</small></span></button>`
       :`<div style="border:1px dashed var(--org);border-radius:12px;padding:11px 14px;font-size:12.5px;color:var(--org);margin-bottom:8px">Aucun créneau valide trouvé sous 14 jours (absences / conflits / jours acceptés) — la proposition auto enverra la carte au bac « À planifier ».<br><button class="btn sm" style="margin-top:8px" onclick="planNextCreate('${id}','auto')">📥 Envoyer au bac « À planifier »</button></div>`}
     <div class="fgroup" style="margin-bottom:8px"><div class="frow" style="display:block"><b style="font-size:13.5px">📅 Choisir manuellement</b>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
