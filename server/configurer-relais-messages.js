@@ -3,7 +3,7 @@
  *
  * La console OP MESSAGES de la Tour lit l'administration d'OP MESSAGES par un relais d'api.teamop.fr
  * (`/api/monitor/messages/admin/*`, server/index.js), qui présente un secret dans l'en-tête `X-OPM-Admin`. Le service
- * d'OP MESSAGES porte la MÊME valeur (`server-msg/configurer-admin.js`, de son côté) : deux services, un secret.
+ * d'OP MESSAGES porte la MÊME valeur (son outil `configurer-admin.js`, de son côté) : deux services, un secret.
  *
  * Usage, SUR LE VPS, en root :
  *   node /opt/teamop/repo/server/configurer-relais-messages.js beta               (poser ou remplacer le secret de la bêta)

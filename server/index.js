@@ -7358,7 +7358,7 @@ app.post('/api/monitor/messages/version-min', monPatronStrict, async (req, res) 
 /* ══ LE RELAIS VERS L'ADMINISTRATION D'OP MESSAGES (17 octobre 2026) ══
    Justin : « je veux que la Tour contrôle OP GESTION et l'autre côté contrôle OP MESSAGES ; bien tout séparé » — et, à la
    question du chemin : « par api.teamop.fr ». La Tour ne parle qu'à notre API ; celle-ci relaie, EN BOUCLE LOCALE, vers les
-   routes `/api/admin/*` du service d'OP MESSAGES (`server-msg/admin.js` : le CONTRAT est dans son en-tête).
+   routes `/api/admin/*` du service d'OP MESSAGES (son module d'administration : le CONTRAT est dans son en-tête).
    ⛔ Ce que le relais garantit, et que `tests/test-1016.js` joue contre un faux service :
      · il ne relaie QUE six routes, en GET, avec les SEULS paramètres que le contrat nomme — rien d'autre de la requête de la
        Tour ne passe : ni son jeton, ni ses cookies, ni son `Origin`, ni un en-tête de proxy (le service refuse tout ce qui en
