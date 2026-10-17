@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5b16f81aab0a';
+  const OPMSG_BUILD = 'e2392f1f359a';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 229;
+  const OPMSG_VERSION = 232;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5856,7 +5856,7 @@
     const { h, note, hz, ville } = libelleHoraire(r, o);
     /* ⛔ UNE OCCURRENCE QUI A EU LIEU LE DIT (8 octobre 2026 : « une fois que la réunion est terminée pour tous, ça le marque, avec les participants, la durée ») : « Terminée », combien de temps,
        combien sont venus — et, pour l'organisateur, qui (le service ne donne les noms qu'à lui). Plus de « Rejoindre » tant qu'aucune salle n'est rouverte. */
-    const se = o.seance && !r.salleOuverte ? o.seance : null;
+    const se = occTerminee(r, o) ? o.seance : null;
     const etatTxt = se && !r.annulee ? 'Terminée' : libelleEtat(r);
     /* MON trajet (14 octobre 2026) : l'heure de PARTIR pour cette date, tant qu'elle est à venir — jamais pour une réunion annulée, refusée ou finie */
     const tr = r.moi.trajet, partir = tr && !se && !r.annulee && r.moi.statut !== 'decline' && o.debut > Date.now() ? 'Partir à ' + FMT_HEURE.format(o.debut - (tr.minutes + tr.avance) * 60000) : '';
@@ -5889,7 +5889,11 @@
     return n + ' ' + (n > 1 && s !== 'rendez-vous' ? s + 's' : s);
   }
   const journeeElt = (x, t) => !!(x.e && (x.e.journee || x.e.debut < t));
-  const termineeElt = x => !!(x.r && x.o.seance && !x.r.salleOuverte);
+  /* ⛔ UNE OCCURRENCE « TERMINÉE » (17 octobre 2026, `n#9`) : ce qui est terminé POUR TOUS, c'est le geste de l'hôte (`seance.pourTous`) — ou une occurrence dont la fin prévue est passée, qui a eu lieu. Une salle simplement
+     VIDÉE (tout le monde est parti) ne l'est pas : elle se rouvre, et la réunion programmée garde son « Rejoindre » dans la liste comme dans la fiche jusqu'à sa fin. Avant, `o.seance && !r.salleOuverte` seul : l'hôte
+     entré une minute en avance puis ressorti fermait la réunion à tous ses invités, avant son heure. Le service dit les deux (`pour_tous`, `fin`) ; liste, agenda, tableau de bord et fiche lisent cette règle. */
+  const occTerminee = (r, o) => !!(o && o.seance && !r.salleOuverte && (o.seance.pourTous || o.fin <= Date.now()));
+  const termineeElt = x => !!(x.r && occTerminee(x.r, x.o));
   function puceAgenda(x, t) {
     const journee = journeeElt(x, t), titre = titreElt(x), termine = termineeElt(x);
     const cls = 'mjour-elt' + (journee ? ' journee' : '') + (x.r && x.r.annulee ? ' annulee' : '') + (termine ? ' terminee' : '') + (x.e && x.e.fait ? ' fait' : '');
@@ -6393,7 +6397,7 @@
     /* les réunions des 7 ou 30 prochains jours (en cours comprises, terminées exclues), un intertitre par jour */
     const occ = [];
     const pourBord = cote => !modesActifs() || cote === 'pro';          // le tableau de bord est le côté Pro : ni le dîner d'anniversaire, ni le dentiste
-    for (const r of bord.reunions) if (!r.annulee && pourBord(coteReu(r))) for (const o of r.occurrences) if (o.fin > now && o.debut < fin && !(o.seance && !r.salleOuverte)) occ.push({ r, o });
+    for (const r of bord.reunions) if (!r.annulee && pourBord(coteReu(r))) for (const o of r.occurrences) if (o.fin > now && o.debut < fin && !occTerminee(r, o)) occ.push({ r, o });
     occ.sort((x, y) => x.o.debut - y.o.debut || x.r.id.localeCompare(y.r.id));
     let h = '', jp = null;
     for (const x of occ.slice(0, BORD_MAX)) { const j = minuitDe(x.o.debut); if (j !== jp) { h += '<li class="bord-jour" aria-hidden="true">' + esc(libelleJourBord(j)) + '</li>'; jp = j; } h += ligneReunion(x.r, x.o); }
@@ -7974,14 +7978,14 @@
       '<div class="info-actions"><button type="button" class="mini danger" data-reu="supprimer-confirmer">Supprimer la réunion</button><button type="button" class="mini" data-reu="confirmation-retour">Garder la réunion</button></div></div>';
   }
   /* ⛔ LA SÉANCE D'UNE FICHE SE LIT DANS LA LISTE, comme l'agenda la lit : la fiche (`d.salle.rejoignable`) reste vraie pendant toute la fenêtre d'entrée, séance finie ou non. On redemande au service les
-     occurrences qui COMMENCENT à l'instant de celle de la fiche (une fenêtre d'une milliseconde), et la règle est celle de la ligne : une séance de l'occurrence, aucune salle ouverte. → la séance, `null`
+     occurrences qui COMMENCENT à l'instant de celle de la fiche (une fenêtre d'une milliseconde), et la règle est celle de la ligne (`occTerminee`) : une séance de l'occurrence terminée pour tous (ou dont la fin prévue est passée), aucune salle ouverte. → la séance, `null`
      (pas de séance finie, ou rien à décider : salle ouverte, réunion annulée, hors de la fenêtre) ou `undefined` (la liste n'a pas répondu : la fiche garde son verdict d'avant). */
   async function seanceFiche(d, id) {
     const oc = d.salle && d.salle.occurrence;
     if (!CAP.salles || d.annulee || !d.salle || !d.salle.rejoignable || d.salle.ouverte || !oc || typeof source.reunions !== 'function') return null;
     try {
       const r = (await source.reunions(oc.debut, oc.debut + 1)).find(x => x.id === id), o = r && r.occurrences.find(x => x.debut === oc.debut);
-      return o && o.seance && !r.salleOuverte ? o.seance : null;
+      return o && occTerminee(r, o) ? o.seance : null;
     } catch (e) { return undefined; }
   }
   async function rendreFiche() {
@@ -8798,7 +8802,7 @@
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
     if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
-    if (s.moi.proprietaire) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
+    if (salleTerminable(s)) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
     return h;
   }
   /* ⛔ LES RACCOURCIS (12 octobre 2026) : des lettres seules, comme Zoom et Teams — pas de Ctrl ni de ⌘, qui sont aux navigateurs (⌘D garde un favori, Ctrl+E cherche). Ils ne jouent
@@ -8895,7 +8899,7 @@
     const A = etat.appelUI; if (!enSalle(A)) return;
     const s = A.snap, X = sx(A), uid = el.dataset.uid;
     /* ⛔ l'hôte PAR INTÉRIM (invité nommé entré avant l'organisateur) tient la porte — admettre, refuser — mais n'a pas les gestes qu'on ne défait pas ; le service les lui refuse (403), la page ne les laisse pas partir */
-    if (s.moi.interim && ['couper-tous', 'cohote', 'retirer-demander', 'retirer-confirmer', 'verrou', 'attente', 'partage-ok', 'rec'].includes(act)) { mot('L\'organisateur n\'est pas encore là : tu fais entrer, il règle la salle.'); return; }
+    if (s.moi.interim && ['couper-tous', 'cohote', 'retirer-demander', 'retirer-confirmer', 'verrou', 'attente', 'partage-ok', 'rec', 'terminer-demander', 'terminer-confirmer'].includes(act)) { mot('L\'organisateur n\'est pas encore là : tu fais entrer, il règle la salle.'); return; }
     switch (act) {
       case 'panneau-fermer': salleFermerPanneau(A); return;
       case 'doc-joindre': $('salle-doc').click(); return;
@@ -9024,7 +9028,7 @@
   $('salle-quitter').addEventListener('click', () => {
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;
-    if (enSalle(A) && s.moi.proprietaire && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
+    if (enSalle(A) && salleTerminable(s) && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
     raccrocherCouche();
   });
   /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026 : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
@@ -9034,6 +9038,9 @@
   function salleVueBasculer(A) { const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); }
   /* l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, et COMMENCÉ par l'hôte seul (grade 2 : le service refuse le co-hôte — test-986) ;
      on peut toujours ÉTEINDRE celui qu'on a lancé ; celui d'un autre, un hôte ou co-hôte le voit dire « Enregistré par », sans geste d'ici */
+  /* ⛔ « TERMINER POUR TOUS » (17 octobre 2026, `n#10`) : l'hôte seul — et pas l'hôte PAR INTÉRIM (`moi.interim`), à qui le service le refuse (403) comme tout geste qu'on ne défait pas. Le bouton de « Plus », le choix
+     « partir ou finir pour tous » du bouton Quitter et `salleAgir` lisent cette seule règle : une réunion fermée à tous par quelqu'un qui n'a que la porte ne se rouvre pas d'un geste. */
+  const salleTerminable = s => !!(s.moi.proprietaire && !s.moi.interim);
   const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id), inter = !!s.moi.interim; return moiRec || (!!s.moi.hote && !inter && !!s.rec) || ((s.moi.grade | 0) >= 2 && !inter && !!s.outils && recDisponible()); };
   function salleRecBasculer(A) { const s = A.snap; if (!salleRecPossible(A) || (s.rec && s.rec.par !== MOI.id)) return; if (A.rec) recArreter(A, true); else recDemarrer(A); }
   /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
