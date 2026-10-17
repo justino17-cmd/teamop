@@ -62,7 +62,7 @@ const VU_ET_PAS_GARDE = {
      d'un devis aussi. Ils portent désormais leur garde — et la section 6 refuse qu'une entrée d'ici
      nomme une fonction gardée : la justification serait périmée. */
   planNextCreate: 'récurrence automatique', intRecurNext: 'récurrence automatique (clôture de SON intervention)',
-  factureAFacturer: 'facture dérivée d une intervention', factureAutoIntervention: 'facture dérivée',
+  factureAFacturer: 'facture dérivée d une intervention',   /* 1180 : factureAutoIntervention n'existe plus — la facture payée sur place passe par syncFactureFromIntervention */
   stockExportBon: 'circuit bons - peutCommander', validerDemande: 'circuit bons - validerDR',
   bonDupliquer: 'circuit bons - peutCommander', bonGarder: 'circuit bons - peutCommander',
   bonValider: 'circuit bons - peutCommander', bonSeparer: 'circuit bons - peutCommander',
