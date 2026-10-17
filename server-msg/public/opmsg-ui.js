@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '38347409093d';
+  const OPMSG_BUILD = '2077f09033ff';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 209;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -525,12 +525,44 @@
     if (r.conv) return Object.assign({}, r, { conv: null });
     return null;
   }
-  function pousser(r) {
+  /* ⛔ LE MENU (d'un message, « + », « Envoyer plus tard ») EST UNE COUCHE (testeur « conversations#3 », 17 octobre 2026) : il vivait dans `etat.menu`, hors de la route, donc le retour
+     système (Android, geste d'iOS) jouait la route d'AVANT — la liste — et `fermerConv` (qui appelle `fermerMenu`) fermait la conversation ET perdait le contexte « Répondre à ».
+     Il POUSSE désormais une entrée marquée `menu` (même route : rien ne change à l'écran), `fermerMenu` la RENDS quand elle est au sommet, et `popstate` avec un menu ouvert ne
+     ferme QUE lui. Restent hors couche, comme avant : le menu d'un rendez-vous de l'Agenda et « Y aller » (ouverts par d'autres fonctions). */
+  let menuRetour = false, apresRetour = [], filetMenu = 0;
+  function menuEntreePoser() {
+    if (menuRetour) return false;                                       // le retour d'un menu précédent est encore en vol : celui-ci reste hors couche, plutôt que de se croiser avec lui
     const h = entree();
+    if (h && h.menu) return true;                                       // son entrée est déjà là (un menu qui en remplace un autre)
+    history.pushState({ opmsg: 1, n: h ? h.n + 1 : 1, r: etat.route, p: etat.route, menu: 1 }, '', urlDe(etat.route));
+    return true;
+  }
+  /* ⛔ fermer le menu REND l'entrée par `rendreEntree` (un retour, une fois) ; le DOM, lui, se ferme tout de suite. Or ce retour est ASYNCHRONE, et un choix du menu ouvre souvent
+     quelque chose JUSTE APRÈS (Suivi, Transférer, Contact, Sondage → une feuille, donc `pousser`) : poussée avant que le retour tombe, la feuille serait refermée par lui. Tout
+     `pousser` / `remplacer` demandé pendant ce retour attend donc `popstate` (`menuRetourFin`) — ou le filet d'1,6 s si le navigateur ne le rend jamais. */
+  function menuEntreeRendre() {
+    const h = entree(); if (!h || !h.menu) return;
+    const avant = retourEnVol; rendreEntree();
+    if (avant || !retourEnVol) return;                                   // un autre retour était déjà en vol : le nôtre n'est pas parti
+    menuRetour = true; clearTimeout(filetMenu); filetMenu = setTimeout(menuRetourFin, 1600);
+  }
+  function menuRetourFin() {
+    clearTimeout(filetMenu);
+    if (!menuRetour) return;
+    menuRetour = false;
+    const q = apresRetour; apresRetour = [];
+    q.forEach(f => f());
+  }
+  function pousser(r) {
+    if (menuRetour) { apresRetour.push(() => pousser(r)); return; }
+    const h = entree();
+    /* une couche poussée PAR-DESSUS un menu ouvert (un appel entrant) prend la place de son entrée : sinon l'entrée du menu resterait dessous, un retour « pour rien » */
+    if (h && h.menu) { history.replaceState({ opmsg: 1, n: h.n, r, p: h.p }, '', urlDe(r)); appliquer(r); return; }
     history.pushState({ opmsg: 1, n: h ? h.n + 1 : 1, r, p: etat.route }, '', urlDe(r));
     appliquer(r);
   }
   function remplacer(r) {
+    if (menuRetour) { apresRetour.push(() => remplacer(r)); return; }
     const h = entree();
     history.replaceState({ opmsg: 1, n: h ? h.n : 0, r, p: h ? h.p : null }, '', urlDe(r));
     appliquer(r);
@@ -558,8 +590,12 @@
   /* la position de la liste est rendue PAR LA PAGE (etat.scrollListe, au retour), pas par la restauration native de l'historique : celle-ci diffère d'un
      navigateur à l'autre (Safari iOS ne la rend pas toujours sur un retour système) et masquait, ici, le retrait de notre propre mémoire (sonde, S04) */
   try { history.scrollRestoration = 'manual'; } catch (e) { /* un navigateur sans l'option garde la sienne */ }
+  /* le retour qui vient de rendre l'entrée du menu (ou le geste du navigateur) : le menu qui était ouvert se ferme, SANS rendre une entrée de plus. Un menu dont l'entrée est
+     encore sous nos pieds (on revient dessus depuis une couche posée par-dessus) reste ouvert. */
+  function menuAuRetour(e) { if (etat.menu && etat.menu.entree && !(e.state && e.state.menu)) fermerMenu(true); }
   window.addEventListener('popstate', () => { retourEnVol = false; clearTimeout(filetRetour); });         // le retour demandé a eu lieu : le suivant peut se demander (AVANT l'écouteur qui applique la route)
   window.addEventListener('popstate', e => {
+    menuAuRetour(e);
     if (e.state && e.state.opmsg) { appliquer(e.state.r); return; }
     /* une adresse ÉCRITE À LA MAIN (aucun état de la page : `location.hash = …`, un lien collé) : un fragment que la page ne connaît pas (« #accueil » sans Pro, « #nimporte »)
        replie sur Messages — mais l'adresse et l'historique GARDAIENT le fragment (17 octobre 2026 : seul un rechargement la corrigeait). On remplace l'entrée par la route
@@ -568,6 +604,7 @@
     if (location.hash.slice(1).split('/')[0] !== r.vue) history.replaceState({ opmsg: 1, n: 0, r, p: null }, '', urlDe(r));
     appliquer(r);
   });
+  window.addEventListener('popstate', menuRetourFin);          // APRÈS l'application de la route : les gestes de navigation qui attendaient le retour du menu partent maintenant
 
   /* appliquer(route) : l'écran DIT la route, rien d'autre. Elle ne pousse jamais d'historique — elle est jouée aussi par popstate. */
   function appliquer(r) {
@@ -1444,7 +1481,7 @@
   /* ⛔ ENVOYER PLUS TARD (8 octobre 2026 : « écrire un message maintenant et le programmer pour demain 8 h ») — un appui long sur la flèche, ou le clic droit, comme dans Messages d'Apple ;
      la tuile « Plus tard » de la feuille « + » y mène aussi (au clavier, par exemple). Le clic que produit le relâcher d'un appui long n'envoie PAS le message. */
   { let minuteur = null;
-    const lancer = () => { if (typeof source.programmerMessage !== 'function' || !$('saisie').value.trim() || etat.menu) return; etat.envoyerLong = true; etat.menu = { plus: true, declencheur: $('envoyer'), t: Date.now(), appuiLong: true }; plusTardMenu(true); };
+    const lancer = () => { if (typeof source.programmerMessage !== 'function' || !$('saisie').value.trim() || etat.menu) return; etat.envoyerLong = true; etat.menu = { plus: true, declencheur: $('envoyer'), t: Date.now(), appuiLong: true, entree: menuEntreePoser() }; plusTardMenu(true); };
     $('envoyer').addEventListener('pointerdown', () => { clearTimeout(minuteur); etat.envoyerLong = false; minuteur = setTimeout(lancer, 550); });
     for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('envoyer').addEventListener(ev, () => { clearTimeout(minuteur); if (etat.menu && etat.menu.appuiLong && !etat.menu.relache) etat.menu.relache = Date.now(); });
     $('envoyer').addEventListener('contextmenu', e => { e.preventDefault(); clearTimeout(minuteur); lancer(); }); }
@@ -1543,7 +1580,7 @@
   }
   function ouvrirMenuPlus() {
     if (etat.menu || !etat.conv) return;
-    etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now() };
+    etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now(), entree: menuEntreePoser() };
     const M = $('menu-msg');
     M.setAttribute('aria-label', 'Joindre'); M.classList.add('pj'); $('menu-fond').classList.add('pj');   // le fond le sait aussi : à la souris, un menu ancré au « + », sans voile
     M.innerHTML = tuilesPlus().map(x => '<button type="button" class="pj-tuile presse" data-plus="' + x[0] + '"><span class="pj-disque" aria-hidden="true">' + icone(x[2]) + '</span><span>' + esc(x[1]) + '</span></button>').join('');
@@ -4999,13 +5036,14 @@
 
   /* ── Le menu d'un message : réagir, répondre, copier, modifier, supprimer — au bouton (souris), à l'appui long (doigt) ou au clic droit ── */
   const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'], DELAI_MODIF_MS = 15 * 60000;
-  function fermerMenu() {
+  function fermerMenu(passif) {
     if (!etat.menu) return;
     const m0 = etat.menu, d = m0.agenda ? retrouverAgenda(m0.declencheur, m0.cle) : m0.declencheur; etat.menu = null;
     $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj', 'pt', 'ag'); $('menu-fond').classList.remove('pj', 'ancre', 'de-moi', 'ag');
     $('conv-messages').querySelectorAll('.menu-ancre').forEach(x => x.classList.remove('menu-ancre'));
     synchroInert();
     rendreFocus(d);
+    if (m0.entree && passif !== true) menuEntreeRendre();       // `passif` : c'est le retour du navigateur qui ferme, l'entrée est déjà rendue
   }
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
@@ -5013,7 +5051,7 @@
     /* ⛔ admin, pour supprimer POUR TOUS, c'est dans un groupe ou un canal — le service ne l'accorde qu'à eux (l'organisateur d'une réunion se voyait proposer « pour tous », refusé) */
     const moi = m.auteur === MOI.id, admin = (c.type === 'groupe' || c.type === 'canal') && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
     const mienne = (m.reactions || []).find(r => r.moi);
-    etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
+    etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now(), entree: menuEntreePoser() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
     if (CAP.transferts && transferable(m)) h += '<button type="button" class="menu-action" data-menu="transferer" aria-haspopup="dialog">Transférer</button>';
