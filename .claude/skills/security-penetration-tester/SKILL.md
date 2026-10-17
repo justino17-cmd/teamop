@@ -1,6 +1,6 @@
 ---
 name: "security-penetration-tester"
-description: "Offensive review of TeamOP's own attack surface — unauthenticated endpoints, credential and team-key disclosure, secrets in logs and e-mail archives, Firestore rule gaps. Use when auditing server/index.js, adding an endpoint, or verifying a security fix on this codebase."
+description: "Offensive review of TeamOP's own attack surface — unauthenticated endpoints, credential and team-key disclosure, secrets in logs and e-mail archives, Firestore rule gaps. Use for a dedicated security audit of server/index.js or to verify a security fix on this codebase; routine route changes are covered by api-contract-validator and the gardien agent."
 ---
 
 # Security Penetration Tester — TeamOP

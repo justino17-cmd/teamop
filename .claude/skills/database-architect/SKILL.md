@@ -1,6 +1,6 @@
 ---
 name: "database-architect"
-description: "Data-model and Firestore authority for TeamOP / ELAN GESTION. Use when adding a collection or field, changing security rules, touching the team sync key model, or working with the elan_* localStorage namespace and the space registry JSON files."
+description: "Data-model and Firestore authority for TeamOP / OP GESTION. Use when adding a collection or field, changing security rules, touching the team sync key model, or working with the elan_* localStorage namespace and the space registry JSON files."
 ---
 
 # Database Architect — TeamOP

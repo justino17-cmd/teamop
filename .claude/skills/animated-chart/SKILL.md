@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: animated-chart
 description: Make a looping animated chart for LinkedIn or a newsletter in code with Claude Code. Bars that become a line, a number that counts up, a before and after. Every value stays exactly as given. Use when someone says "animate my chart", "animated graph", "make my results move", "stat animation" or wants a data graphic that loops.
 ---

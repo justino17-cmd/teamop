@@ -44,6 +44,25 @@ Charge d'abord les deux skills qui portent les règles de ce dépôt :
 6. **L'anti-abus.** Il lit `req.ip` et **pas** l'en-tête brut, parce qu'un en-tête fourni par
    le client se falsifie. Ne jamais « simplifier » ça. `app.set('trust proxy', 1)` en dépend.
 
+## Et les questions que la liste ci-dessus ne pose pas (OWASP API Security Top 10, 2023)
+
+Ajoutées le 17 octobre 2026. Ce ne sont pas des attaques à lancer — tu relis le code, tu n'envoies
+jamais de requête à `teamop.fr` ni à `api.teamop.fr`.
+
+- **Le droit sur l'OBJET, pas seulement sur la route (API1).** Une route qui reçoit un identifiant
+  (intervention, facture, pièce jointe, espace) vérifie-t-elle que l'objet appartient à
+  l'entreprise de l'appelant ? Connaître un identifiant ne doit jamais suffire.
+- **Le droit sur chaque CHAMP (API3).** En écriture : un champ du corps que l'appelant n'a pas à
+  poser (formule, échéance d'un code, rôle, « payé ») est-il ignoré ? Un `Object.assign(fiche,
+  req.body)` est un constat. C'est la règle du dépôt : une valeur du corps ne décide jamais de ce
+  qu'une entreprise a payé.
+- **Le droit sur la FONCTION (API5).** Les routes de la Tour et de `/api/monitor/*` refusent-elles
+  une session qui n'est pas celle du patron, même valide ?
+- **Les parcours qu'on peut AUTOMATISER (API6).** Code promo, inscription, mot de passe oublié,
+  assistant devis : un script peut-il boucler dessus ? Le plafond est-il par IP ET par espace ?
+- **L'INVENTAIRE (API9).** Une route d'une ancienne version encore montée, une route de test, un
+  chemin déclaré deux fois (voir le premier piège ci-dessous) : tout ce qui écoute doit servir.
+
 ## Les pièges déjà rencontrés dans ce dépôt
 
 - **Deux routes de même chemin : la première enregistrée gagne, en silence.**

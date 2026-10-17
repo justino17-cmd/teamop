@@ -1,6 +1,6 @@
 ---
 name: "super-architect"
-description: "Architecture authority for the TeamOP / ELAN GESTION codebase (single-file HTML apps, Express API, Firestore sync). Use when adding a feature that spans app.html and beta.html, when deciding where code belongs, when bumping APP_VERSION, or when production and beta risk drifting apart."
+description: "Architecture authority for the TeamOP / OP GESTION codebase (single-file HTML apps, Express API, Firestore sync). Use when adding a feature that spans app.html and beta.html, when deciding where code belongs, when bumping APP_VERSION, or when production and beta risk drifting apart."
 ---
 
 # Super Architect — TeamOP

@@ -13,6 +13,84 @@ de ligne du tout.
 
 ---
 
+# ⏳ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
+
+Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un
+contrôle ». Branche `claude/controle-client-mystere` — **pas sur `main`** (attend sa phrase ; rien de servi ne
+change : `scripts/controle/`, `.claude/`, `CLAUDE.md`, ce fichier).
+
+- **Ce qui existe** : `node scripts/controle/controle.js <sortie>` (skill `/controle`, agent `client-mystere`).
+  Un JUMEAU sur 127.0.0.1 — le site assemblé servi sous ses vraies adresses, le vrai `server/index.js` isolé,
+  Stripe imité avec état, un facteur SMTP local — et une cliente fictive qui joue au doigt, sur iPhone, les
+  16 étapes du site à l'application (≈ 70 s). Rapport `rapport.md` + `rapport.json` + captures.
+- **Ce qu'il a trouvé au premier passage** (code de `main` au 17 octobre, 2b71ea5) :
+  · ❌ **Tour : une demande neuve n'apparaît pas dans « Entreprises »** — la liste ne lit que l'annuaire et les
+    connexions, et « ✅ Accepter la demande » ne vit que sur la fiche d'une entreprise de cette liste ; l'accueil
+    compte pourtant « 1 entreprise cliente », et l'écran vide promet « elles apparaissent dès qu'une s'inscrit sur
+    le site ». Détour : Accès › « Accès à la version publique » d'abord. **À trancher avec Justin** : est-ce
+    ainsi qu'il accepte aujourd'hui ?
+  · ⚠️ « Modules OP (mis de côté) », au menu d'une cliente neuve, écrit « interface 100 % Organilog » (le nom d'un
+    autre logiciel) ;
+  · ⚠️ la fenêtre « Langue / Language / Idioma » s'ouvre à CHAQUE ouverture tant qu'aucune langue n'est choisie
+    (`app.html`, `if(!prefLocalLire('elan_lang')) setTimeout(openLangPicker,300)`) — et à la première connexion, la
+    fenêtre du mot de passe la remplace : la question n'est posée qu'à l'ouverture suivante ;
+  · ⚠️ des commandes sous 32 px au doigt (en-tête du site, liens de `espace.html` et `connexion.html`) ;
+    `app.html` appelle `fonts.googleapis.com` et `unpkg.com` (l'adresse IP du client part chez Google) ;
+    l'API annonce `X-Powered-By: Express`.
+- **L'état de production que le dépôt ne porte pas**, posé dans le jumeau comme en ligne : version exigée = celle
+  de l'`app.html` servie (en ligne, `/api/version` rend 767) ; copie Firebase coupée avec un inventaire vide (une
+  entreprise neuve part d'un document vide, comme en ligne). La recopie d'une entreprise ANCIENNE n'est pas jouée.
+- **Contre-épreuve** : `node scratchpad/mutations-controle.js` — 6 ✓ 0 ✗ le 17 octobre : le témoin passe (16/16), et
+  chaque défaut remis dans une copie est vu — une rubrique qui jette (Stock), la route de paiement en 500 (bloquant à
+  l'étape 7), le courriel de confirmation sans lien (bloquant à l'étape 6), l'adresse du client écrite dans le journal
+  du serveur, « undefined » sur la page de paiement.
+- **Ce qui reste ouvert** : une tâche planifiée hebdomadaire (proposée, pas créée) ; d'autres parcours (un
+  technicien, deux appareils, un impayé, un code promo) ; aucun workflow ne le lance (il lui faut Chromium à
+  `/opt/pw-browsers/chromium` ou `CHROME=…`) : il tourne dans une session, à la demande.
+
+---
+
+# ✅ 17 OCTOBRE 2026 — LE SITE NE SERT PLUS QUE LE SITE ; SKILLS VÉRIFIÉS ; QUATRE TÂCHES AUTOMATIQUES — EN SERVICE
+
+Mesuré ce jour : `teamop.fr/CLAUDE.md`, `/REPRISE.md`, `/.claude/agents/gardien.md` et `/firestore.rules` répondaient 200 —
+GitHub Pages servait la racine du dépôt. Justin a choisi « le dossier public ». Branche `claude/site-public` :
+`scripts/assembler-site.sh` (liste blanche → `_site`), `.github/workflows/publication-site.yml` (publie `_site`, puis
+vérifie au CDN que les pages répondent 200 et les fichiers internes 404), `tests/test-1008.js` (49 contrôles, quatre
+mutations qui le font tomber). Aucune page ni adresse ne change.
+✅ **Fait le 17 octobre 2026** : Justin a passé Réglages → Pages → Source sur « GitHub Actions » (compte `justino17-cmd`, seul
+administrateur — le compte des sessions, `justin17553-boop`, ne l'est pas), puis « ok, fusionne sur main » → `262abe4`.
+Mesuré après publication : pages 200, `CLAUDE.md`, `REPRISE.md`, `.claude/…`, `firestore.rules`, `server/…` 404, application
+inchangée (v767). Retour arrière : remettre la Source sur la branche `main`, dossier `/ (root)`. ⚠️ Le dépôt reste PUBLIC sur GitHub : ce changement ferme teamop.fr, pas github.com.
+
+Branche `claude/skills-verifies` (fusionnée dans `262abe4`) : 15 skills relus et figés (12 marketing de
+coreyhaines31/marketingskills @365b412, 3 sur commande de muratcankoylan/agent-skills-for-context-engineering @9ff0c99),
+les 13 skills vidéo passés sur commande seulement, « ELAN GESTION » → « OP GESTION » dans trois descriptions,
+`security-penetration-tester` ne se déclenche plus sur chaque route, `deployeur` ne signe plus avec une ancienne session.
+Refusés après lecture : stop-slop, heretic, Agent-Reach, MiroFish ; Strix seulement en local, jamais contre la production.
+
+Quatre tâches programmées, en LECTURE SEULE (aucun commit, aucun push), rapport poussé sur le téléphone : point du matin
+(jours ouvrés 7 h 53), revue sécurité (lundi 8 h 47), dépendances (lundi 9 h 20), audit du site (le 1er du mois, 9 h 46).
+Heure de Paris. Elles se modifient ou s'arrêtent dans la liste des tâches programmées de claude.ai.
+
+# ⏳ 17 OCTOBRE 2026 (SOIR) — AUDITS STRIPE, ANTHROPIC, OWASP : CE QUI EST GARDÉ — BRANCHE `claude/outils-securite`
+
+Justin, à la proposition « A et B » : « A et B ». A (cette branche, aucun effet sur la production) :
+- agent `echecs-silencieux` (adapté de `silent-failure-hunter`, Anthropic, Apache-2.0 — licence dans `.claude/licences/`) ;
+- skills `stripe-best-practices` et `upgrade-stripe` (Stripe, MIT, commit `c1f5b08`), sur commande seulement, avec un
+  avertissement « TeamOP appelle Stripe par fetch, sans SDK » ; Connect, Treasury et Tax retirés ; NI le plugin, NI ses hooks,
+  NI son serveur MCP (ils glissent des demandes d'avis dans les conversations et branchent le compte Stripe par OAuth) ;
+- `scripts/verif-secrets.sh` reconnaît les clés Stripe (`sk_`/`rk_`, `whsec_`), Slack, SendGrid et npm — `tests/test-1009.js` ;
+- `gardien` pose les questions OWASP API1/3/5/6/9 qu'il ne posait pas.
+Refusés après lecture : `security-guidance` (Opus en dur à chaque tour, contourne « tout en Sonnet »), `claude-security` en
+permanence (licence propriétaire : jamais copié dans ce dépôt public ; au plus un essai ponctuel), les skills OWASP tels quels
+(procédures d'attaque réelles sans garde-fou, fichiers cassés hors de leur dépôt).
+B (branche à part, `claude/stripe-version-idempotence`) : `stripeEntetes` écrit les en-têtes de tous les appels à Stripe et
+fige la version de l'API par `config.stripe.apiVersion` ; `set-stripe.sh` ne l'efface plus ; `set-stripe-version.sh` la pose et
+la vérifie. Relu par `gardien` (aucun bloquant, ses trois points corrigés). PAS de clé d'idempotence : le serveur ne réessaie
+jamais une création, la page désactive son bouton, et une clé tirée du contenu ferait rejouer par Stripe une panne 500.
+⏳ `server/` : attend la PHRASE de Justin avant `main` ; puis, sur le VPS, `bash server/set-stripe-version.sh` avec la
+version affichée dans le tableau de bord Stripe (Développeurs → Version de l'API). Sans ce geste, rien ne change.
+
 # ⛔ DÉCISION DE JUSTIN, 8 OCTOBRE 2026 (NUIT) — OP MESSAGES RESTE EN BÊTA
 
 « Aucun [OP] message pour l'instant, c'est que de la bêta : on publiera quand l'application sera stable et utilisable par tout le monde. » La version publique

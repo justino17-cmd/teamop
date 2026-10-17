@@ -21,9 +21,21 @@ seule mémoire qui passe de l'une à l'autre. Le tenir à jour quand un chantier
 ## Structure
 
 - **Racine** — site vitrine et applications, HTML/CSS/JS sans framework, servi par GitHub Pages
+  ⛔ **depuis un dossier assemblé, pas depuis la racine** (17 octobre 2026) : `scripts/assembler-site.sh`
+  copie une LISTE BLANCHE dans `_site` (pages, scripts et manifestes de la racine par leur forme, plus
+  `icons/ vitrine/ sons/ screenshots/ apercu/ .well-known/`), `.github/workflows/publication-site.yml`
+  la publie. Avant, `teamop.fr/CLAUDE.md` répondait 200. Un DOSSIER neuf à servir s'ajoute dans le
+  script, sinon il n'est pas en ligne — `tests/test-1008.js` refuse une page qui pointe vers un fichier perdu.
 - **`server/`** — API Node/Express déployée sur un VPS, hors GitHub Pages
 - **`.github/workflows/`** — surveillance horaire du site et de l'API
 - **`scripts/web/`** — lire un site (Crawl4AI, installé à la première utilisation, dans une session du cloud comme sur le Mac) : `bash scripts/web/lire-site.sh <url> [--liens|--pages N]` — voir son `LISEZMOI.md` (et le cadre RGPD avant de prendre des coordonnées)
+- **`scripts/controle/`** — le CONTRÔLE de bout en bout (17 octobre 2026, skill `/controle`, agent `client-mystere`) :
+  `node scripts/controle/controle.js <sortie>` monte un JUMEAU sur 127.0.0.1 (le site assemblé servi sous ses vraies
+  adresses, le vrai serveur isolé, Stripe imité avec état, un facteur SMTP local) et y joue une cliente fictive du
+  site jusqu'à l'application, puis relit ce qu'elle a laissé (erreurs, 5xx, données personnelles dans le journal…).
+  ⛔ Il pilote `app.html` : c'est permis parce qu'il n'y a AUCUNE donnée réelle (serveur jetable, entreprise fictive,
+  réseau coupé) — la raison de la règle « bêta uniquement » ci-dessous. Jamais contre teamop.fr. Contre-épreuve :
+  `node scratchpad/mutations-controle.js`.
 
 Pas de compilation, pas de bundler. Ce qui est écrit est ce qui est servi.
 
@@ -40,7 +52,11 @@ Dépendances : `express`, `imapflow` + `mailparser` (réception des courriels),
 
 **Stripe n'est pas une dépendance** : l'API est appelée directement par `fetch`
 vers `api.stripe.com`. Une bibliothèque de moins à maintenir et à auditer — garder
-cette approche.
+cette approche. ⛔ **Tout appel à Stripe écrit ses en-têtes par `stripeEntetes(sk, extra)`**
+(17 octobre 2026) : c'est elle qui fige la version de l'API (`config.stripe.apiVersion`, posée et
+vérifiée par `server/set-stripe-version.sh`). Un `fetch` vers Stripe qui écrit son `Authorization`
+à la main suivrait la version du tableau de bord — `tests/test-1010.js` le refuse. Un banc qui
+extrait la route de paiement doit fournir `stripeEntetes` (`test-727`, `test-797`).
 
 `server/agent-devis.js` — assistant de rédaction de devis. Modèle `claude-opus-5`,
 un seul outil (`creer_devis`), plafond de 100 appels par jour, code d'accès d'équipe.
@@ -2363,6 +2379,8 @@ Le choix est donc écrit, agent par agent, dans le frontmatter de `.claude/agent
 | `concepteur` | `sonnet` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
 | `gardien` | `sonnet` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
 | `relecteur` | `sonnet` | `high` | Applique des critères écrits à un diff : systématique, pas créatif. Mais il passe après chaque changement, donc son coût unitaire compte |
+| `echecs-silencieux` | `sonnet` | `high` | Traque ce qui échoue sans que personne le sache (refus muet, `[]` au lieu de `null`, catch qui avale, garde que personne ne lit). Adapté de `silent-failure-hunter` d'Anthropic (Apache-2.0, `.claude/licences/`), lecture seule |
+| `client-mystere` | `sonnet` | `high` | Lance le contrôle de bout en bout (`scripts/controle/`) et enquête sur chaque constat — `fichier:ligne`, journal, capture. Trie, ne corrige pas ; lecture seule |
 
 Les deux derniers comblent ce que la CI ne fait pas : elle ne vérifie que les secrets commités
 et les failles des dépendances — **pas même la syntaxe**, et personne ne relisait ce qu'une
