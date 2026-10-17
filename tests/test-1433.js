@@ -20,21 +20,24 @@ const SRC = APP.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*
 let ok = 0, ko = 0;
 const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + (d !== undefined ? '  → ' + JSON.stringify(d).slice(0, 300) : '')); } };
 
-const ENTETE = '@media (orientation:landscape) and (max-height:560px) and (max-width:1024px){';
-const i0 = SRC.indexOf(ENTETE);
-vrai('le bloc paysage-bas des téléphones est trouvé', i0 > 0);
+// le bloc se retrouve par sa FORME (paysage + deux bornes + sa première règle) et ses bornes se LISENT : un bloc élargi à
+// 900 px de haut (qui viserait un iPad) doit faire tomber les contrôles de borne, pas seulement la recherche de l'ancre
+const RE = /@media \(orientation:landscape\) and \(max-height:(\d+)px\) and \(max-width:(\d+)px\)\{\s*html\[data-refonte\]\[data-refonte\] \.topbar\{/;
+const M0 = RE.exec(SRC);
+vrai('le bloc paysage-bas des téléphones est trouvé', !!M0);
+const i0 = M0 ? M0.index : -1;
 const fin = i0 < 0 ? -1 : SRC.indexOf('\n}', i0);
 const bloc = i0 < 0 || fin < 0 ? '' : SRC.slice(i0, fin + 2);
-vrai('le bloc est borné (paysage ET hauteur ≤ 560 px ET largeur ≤ 1024 px)', bloc.length > 200);
+vrai('le bloc est borné par une hauteur et une largeur', bloc.length > 200);
 
 console.log('— la borne protège les autres appareils —');
-const mh = /max-height:(\d+)px/.exec(ENTETE), mw = /max-width:(\d+)px/.exec(ENTETE);
+const mh = [0, M0 ? M0[1] : 0], mw = [0, M0 ? M0[2] : 0];
 // hauteurs et largeurs de contre-épreuve (sonde) : iPad paysage 1180×820, Mac 1440×900, iPad portrait 820×1180, iPhone portrait 390×844
 const appareils = [['iPad paysage 1180×820', 1180, 820, true], ['Mac 1440×900', 1440, 900, true], ['iPad portrait 820×1180', 820, 1180, false], ['iPhone portrait 390×844', 390, 844, false], ['iPad mini paysage 1024×768', 1024, 768, true]];
 const vise = (w, h, paysage) => paysage && h <= +mh[1] && w <= +mw[1];
 for (const [n, w, h, p] of appareils) vrai(n + ' : le bloc ne le vise pas', !vise(w, h, p));
 for (const [n, w, h] of [['iPhone paysage 844×390', 844, 390], ['Android paysage 800×360', 800, 360], ['iPhone Pro Max paysage 932×430', 932, 430]]) vrai(n + ' : le bloc le vise', vise(w, h, true));
-vrai('la hauteur maximale reste celle du bloc paysage voisin (560 px)', mh && +mh[1] === 560 && /@media\(orientation:landscape\) and \(max-height:560px\)\{/.test(SRC));
+vrai('la hauteur maximale reste celle du bloc paysage voisin (560 px)', +mh[1] === 560 && /@media\(orientation:landscape\) and \(max-height:560px\)\{/.test(SRC));
 
 console.log('— ce que le bloc doit gagner —');
 const regle = (sel) => { const r = new RegExp(sel.replace(/[.*+?^${}()|[\]\\>]/g, '\\$&') + '\\s*\\{([^}]*)\\}').exec(bloc); return r ? r[1] : null; };
@@ -42,7 +45,7 @@ const F = 'html[data-refonte][data-refonte]';
 const titre = regle(F + ' .ph-title');
 vrai('le titre se réduit, en !important (la couche du thème final écrit 34px!important)', !!titre && /font-size:\s*2\d(\.\d+)?px\s*!important/.test(titre), titre);
 vrai('la force du bloc égale celle du thème final : deux attributs sur <html>', /^html\[data-refonte\]\[data-refonte\]/.test(F) && /html\[data-marque\]\[data-refonte\] \.ph-title\{/.test(SRC));
-const iTheme = SRC.indexOf('html[data-marque][data-refonte] .ph-title{'), iBloc = SRC.indexOf(ENTETE);
+const iTheme = SRC.indexOf('html[data-marque][data-refonte] .ph-title{'), iBloc = i0;
 vrai('le bloc vient APRÈS la couche du thème final (à force égale, c\'est l\'ordre qui tranche)', iTheme > 0 && iBloc > iTheme, [iTheme, iBloc]);
 const ph = regle(F + ' .page-head');
 vrai('l\'en-tête range retour · titre · actions sur UNE rangée (flex, retour à la ligne permis)', !!ph && /display:\s*flex/.test(ph) && /flex-wrap:\s*wrap/.test(ph), ph);
