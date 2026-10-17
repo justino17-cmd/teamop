@@ -8,7 +8,7 @@
         ⛔ un nom vide est refusé AVEC une phrase et ne part pas (le service le refuserait ; un refus se dit, sans aller-retour) ; un refus du service garde sa phrase ;
         un renommage réussi efface le refus d'avant ;
      2. le BALISAGE de la feuille, lu dans le code (commentaires retirés) : le champ et son bouton sont dans le bloc réservé à l'ADMINISTRATEUR du groupe, après « Ajouter au groupe »
-        et avant « Quitter le groupe » ; `maxlength` 80 comme le service ; et la frappe en cours survit au redessin de la feuille (la présence d'un membre redessine : le nom tapé ne s'envole pas).
+        et avant « Quitter le groupe » ; pas de `maxlength` (la coupe au signe, 40 comme à la création, est gardée par test-2652) ; et la frappe en cours survit au redessin de la feuille (la présence d'un membre redessine : le nom tapé ne s'envole pas).
    Le comportement bout en bout (le vrai service, deux navigateurs) est la sonde du lot : `correctifs/m04/sonde-m04.js`, bloc B.
    Code 0 si tout passe, 1 sinon. */
 'use strict';
@@ -58,7 +58,8 @@ const { v, vrai, fin } = T.compteur();
     vrai('le champ est dans la feuille du groupe, réservé à l\'administrateur (après « Ajouter au groupe », avant « Quitter »)', iChamp > iAjout && iChamp < iQuitter);
     vrai('son bouton « Enregistrer » est avec lui', iBouton > iChamp && iBouton < iQuitter);
     const champ = iChamp > 0 ? J.slice(J.lastIndexOf('<input', iChamp), J.indexOf('>', iChamp) + 1) : '';
-    vrai('c\'est un champ texte de 80 signes au plus, nommé pour un lecteur d\'écran', /type="text"/.test(champ) && /maxlength="80"/.test(champ) && /aria-label="Nom du groupe"/.test(champ));
+    /* (p04) plus de `maxlength` : il comptait 80 unités UTF-16 (40 émojis) là où la création compte 40 SIGNES — la coupe au signe est dans `limiterRenommage` (tests/test-2652.js) */
+    vrai('c\'est un champ texte nommé pour un lecteur d\'écran, sans `maxlength` (la coupe au signe est faite à la frappe, comme à la création)', /type="text"/.test(champ) && !/maxlength/.test(champ) && /aria-label="Nom du groupe"/.test(champ));
     const iRedessin = J.indexOf('corps.innerHTML = h;');
     vrai('(population) le redessin de la feuille est trouvé', iRedessin > 0);
     vrai('la frappe en cours est relevée AVANT le redessin et rendue APRÈS', /const frappe = actif && corps\.contains\(actif\) && actif\.tagName === 'INPUT' && actif\.type === 'text'/.test(J) &&

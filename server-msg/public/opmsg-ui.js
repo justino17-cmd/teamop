@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '9c7534c5a626';
+  const OPMSG_BUILD = '9185a223544e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 231;
+  const OPMSG_VERSION = 232;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2839,9 +2839,14 @@
   /* ⛔ (m13) la limite du nom d'un groupe se compte en SIGNES (points de code), comme le service (`Array.from(nom).length <= 80`) : `maxlength` compte des unités UTF-16, un émoji en pèse deux —
      45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin. */
   const NOM_GROUPE_MAX = 40;
-  function limiterNomGroupe(champ) {
+  /* ⛔ (p04) UNE SEULE RÈGLE ET UN SEUL COMPTEUR pour le nom d'un groupe : la création (`limiterNomGroupe`) et le renommage (`limiterRenommage`, dans les Infos) coupent tous deux ici, au signe. Le
+     renommage portait `maxlength="80"` : 80 UNITÉS UTF-16 — 40 émojis — là où la création compte 40 SIGNES. */
+  function limiterNomSignes(champ) {
     const signes = Array.from(champ.value);
     if (signes.length > NOM_GROUPE_MAX) champ.value = signes.slice(0, NOM_GROUPE_MAX).join('');
+  }
+  function limiterNomGroupe(champ) {
+    limiterNomSignes(champ);
     g().nom = champ.value;
   }
   $('g-nom').addEventListener('input', e => { if (!e.isComposing) limiterNomGroupe(e.target); else g().nom = e.target.value; });
@@ -4819,7 +4824,7 @@
         const ajoutables = CONTACTS.filter(c => !i.membres.some(m => m.id === c.id));
         h += '<div class="rubrique"><span>Ajouter au groupe</span></div><div class="carte">' + ajoutables.map(c => '<div class="contact">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span></span><button type="button" class="mini" data-act="ajouter" data-uid="' + esc(c.id) + '">Ajouter</button></div>').join('') +
           '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>' +
-          '<div class="rubrique"><span>Renommer</span></div><div class="carte carte-pad"><div class="info-champ"><input id="gr-renom" type="text" maxlength="80" autocomplete="off" value="' + esc(i.nom) + '" aria-label="Nom du groupe"><button type="button" class="mini" data-act="groupe-renommer">Enregistrer</button></div></div>';
+          '<div class="rubrique"><span>Renommer</span></div><div class="carte carte-pad"><div class="info-champ"><input id="gr-renom" type="text" autocomplete="off" value="' + esc(i.nom) + '" aria-label="Nom du groupe"><button type="button" class="mini" data-act="groupe-renommer">Enregistrer</button></div></div>';
       }
       h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="quitter"><span class="reglage-texte">Quitter le groupe</span></button></div>';
     } else if (canal) {
@@ -4977,6 +4982,14 @@
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
     } catch (er) { erreurInfo(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Cette action n\'a pas pu se faire.') : phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
+  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite de la création (`limiterNomSignes`) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
+     (clavier chinois, japonais, accents morts) on attend sa fin. Un nom plus long déjà enregistré n'est pas touché tant qu'on n'y tape rien. */
+  const limiterRenommage = e => {
+    if (!e.target || e.target.id !== 'gr-renom' || (e.type === 'input' && e.isComposing)) return;
+    limiterNomSignes(e.target);
+  };
+  $('info-corps').addEventListener('input', limiterRenommage);
+  $('info-corps').addEventListener('compositionend', limiterRenommage);
   /* Entrée dans le champ de l'identifiant : « Voir » (le clavier d'un téléphone dit « Rechercher », enterkeyhint) */
   $('info-corps').addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !e.target || e.target.id !== 'ct-ident' || e.isComposing) return;
