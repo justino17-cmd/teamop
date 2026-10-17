@@ -2096,7 +2096,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
 .bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
 .carte-liste > li.bord-jour::after { display: none; }
-.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
+.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--sub-meta); }
+/* ⛔ LE ROUGE EST POUR L'APPEL MANQUÉ, PAS POUR LA RAISON DE L'AFFICHER (17 octobre 2026, capture iPad) : « Collègue », « Favori », « A appelé 3 fois » informent, ils n'alertent pas — la pastille prend un gris de
+   légende sur un voile neutre, et le nom de l'appelant l'encre du texte. La liste des Appels, elle, garde son rouge (`.appel-nom-ligne.manque`). tests/test-1504.js. */
+#bord-appels .appel-nom-ligne.manque { color: var(--text); }
 .bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 #vue-accueil > #bord-portee { max-width: 320px; margin-inline: auto; }        /* comme l'Agenda : un petit segmenté centré, jamais une barre de toute la largeur */
 .bord-plus { list-style: none; }
