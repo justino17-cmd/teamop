@@ -91,6 +91,10 @@ app.use((req, res, next) => {
 //    état périmé — par exemple « Stripe non configuré » alors que Stripe vient d'être relié.
 //    Cela évite aussi de laisser des données privées de clients dans le cache disque.
 app.use('/api/monitor', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+/* Chaque GESTE de la Tour s'inscrit au Journal une fois la réponse partie, et seulement s'il a réussi — voir `monGesteNoter`.
+   Posé ICI, avant toute route /api/monitor (mail.js, portail.js, documents.js et sauvegarde.js compris) : un crochet monté
+   plus bas ne verrait pas les routes déclarées avant lui. */
+app.use('/api/monitor', (req, res, next) => { if (req.method === 'POST') res.on('finish', () => { try { monGesteNoter(req, res); } catch (e) { console.error('journal des gestes :', e.message); } }); next(); });
 /*    La même raison vaut, mot pour mot, pour les routes qui rendent de la correspondance :
       corps d'e-mails de fournisseurs, adresses des boîtes connectées, fiches clients. Sans
       cet en-tête, Express ne pose qu'un ETag et ces réponses se rangent dans le cache disque
@@ -1714,8 +1718,8 @@ app.post('/api/email', async (req, res) => {
 const crypto = require('crypto');
 const MONITOR_PATH = path.join(path.dirname(CONFIG_PATH), 'monitor.json');
 
-let monIssues = [], monUsers = [], monJournal = [], monArchive = [];
-try { const d = JSON.parse(fs.readFileSync(MONITOR_PATH, 'utf8')); monIssues = d.issues || []; monUsers = d.users || []; monJournal = d.journal || []; monArchive = d.archive || []; } catch (e) {}
+let monIssues = [], monUsers = [], monJournal = [], monArchive = [], monActions = [];
+try { const d = JSON.parse(fs.readFileSync(MONITOR_PATH, 'utf8')); monIssues = d.issues || []; monUsers = d.users || []; monJournal = d.journal || []; monArchive = d.archive || []; monActions = Array.isArray(d.actions) ? d.actions : []; } catch (e) {}
 // Rien n'est jamais perdu : ce qui sort de la liste vivante part dans l'archive.
 function monArchiver(list) {
   if (!list.length) return;
@@ -1755,7 +1759,7 @@ let monSaveTimer = null;
 function monSave() {
   clearTimeout(monSaveTimer);
   monSaveTimer = setTimeout(() => {
-    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive })); } catch (e) { console.error('monitor save:', e.message); }
+    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions })); } catch (e) { console.error('monitor save:', e.message); }
   }, 500);
 }
 monPurge();
@@ -1972,6 +1976,73 @@ function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réu
   if (monJournal.length > 300) monJournal = monJournal.slice(-300);
   monSave();
 }
+/* ⛔ LE JOURNAL DES GESTES DE LA TOUR (17 octobre 2026). Justin : « je veux tout reprendre la Tour de A à Z ». Mesuré le même
+   jour au jumeau (scripts/controle/audit-tour.js) : après avoir accepté une demande, ouvert un espace et envoyé son e-mail
+   d'accès, le Journal disait « Aucune action depuis l'ouverture de la console » — les gestes ne vivaient que dans la page
+   qui les avait faits, perdus au premier rechargement et invisibles d'un autre appareil. Le serveur les note désormais.
+   La table dit, pour CHAQUE route POST de la Tour, ce que le geste fait — ou `null` : une lecture, un aperçu, un geste de
+   rangement trop fréquent pour dire quelque chose (marquer lu, déplacer, brouillon). Une route absente de la table n'est
+   pas notée : `tests/test-1015.js` refuse qu'il en existe une, et refuse une entrée qui ne vise plus aucune route.
+   Ce qui est noté : qui, le geste, la console, et une CIBLE prise dans une liste fermée de champs du corps — jamais un mot
+   de passe, un code ou un lien ; une adresse e-mail n'y entre que masquée (`masqueMail`). */
+const MON_GESTES = {
+  'login': null, 'report': null,
+  'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
+  'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
+  'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
+  'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
+  'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
+  'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
+  'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'espaces/statut': null, 'entreprise/dossier': null,
+  'espaces/activite': null, 'espaces/connexions': null, 'espaces/compteurs-zero': 'a remis à zéro ou rétabli les compteurs d’une entreprise',
+  'connexions/effacer-tentatives': 'a effacé les tentatives de connexion refusées',
+  'compte/supprimer': 'a supprimé un compte d’une entreprise', 'comptes/supprimer': 'a supprimé des comptes d’une entreprise',
+  'comptes/mdp': 'a posé un mot de passe provisoire', 'compte/reautoriser': 'a réautorisé un compte', 'compte/mdp-annuler': 'a annulé un mot de passe provisoire',
+  'espaces/renaitre': 'a fait repartir une entreprise à neuf', 'espaces/promo': 'a appliqué un code promo à une entreprise',
+  'annonce': 'a envoyé l’annonce de mise à jour', 'espaces/mail-acces': 'a envoyé l’e-mail d’accès d’une entreprise',
+  'espaces/acces': null, 'espaces/identifiants': 'a changé les identifiants de départ d’une entreprise',
+  'espaces/apps': 'a ouvert ou fermé OP MESSAGES pour une entreprise', 'messages/etat': 'a changé l’état d’OP MESSAGES',
+  'espaces/renommer': 'a renommé une entreprise', 'espaces/suspendre': 'a suspendu ou rouvert l’accès d’une entreprise',
+  'version-min': 'a changé la version exigée d’OP GESTION', 'messages/version-min': 'a changé la version exigée d’OP MESSAGES',
+  'messages/publier': 'a publié OP MESSAGES', 'clients/retirer': 'a demandé ou confirmé le retrait d’un client du site',
+  'entreprise/apercu-suppression': null, 'entreprise/supprimer': 'a demandé ou confirmé la suppression d’une entreprise',
+  'issues/tout-ignorer': 'a remis Surveillance à zéro', 'status': 'a changé le statut d’un incident',
+  'expliquer': 'a demandé l’explication d’un incident', 'proposer': 'a demandé une correction pour un incident',
+  'support/connect': 'a relié la boîte support', 'support/reply': 'a répondu à un courriel', 'support/envoyer': 'a envoyé un courriel',
+  'support/retirer': 'a retiré un courriel de la page', 'support/marquer': null,
+  'comptes-site/supprimer': 'a supprimé un compte du site', 'clients/metier': 'a changé le métier d’un client du site',
+  'clients/note': 'a écrit une note sur un client du site', 'clients/demande': 'a classé ou remis à traiter une demande',
+  'devisia': 'a changé l’accès Devis IA d’une entreprise',
+  'mail/boites': 'a relié une boîte mail', 'mail/boites/retirer': 'a retiré une boîte mail', 'mail/flag': null, 'mail/deplacer': null,
+  'mail/supprimer': 'a supprimé un courriel', 'mail/envoyer': 'a envoyé un courriel', 'mail/brouillon': null,
+  'mail/reglages': 'a changé les réglages du courrier', 'mail/suivi': null,
+  'documents/inventaire': 'a lancé l’inventaire des documents',
+  'portail/message': 'a changé le message du portail', 'portail/etat': 'a ouvert ou fermé le portail',
+  'portail/actu': 'a publié une actualité du portail', 'portail/actu/supprimer': 'a supprimé une actualité du portail',
+  'portail/importer': 'a importé des comptes dans le portail', 'sauvegarde/lancer': 'a lancé une sauvegarde',
+};
+const MON_ACTIONS_MAX = 500;
+/* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
+   adresse masquée ; jamais `pass`, `code`, `mdp`, `lien`, `texte` — ils ne sont pas dans la liste, donc ils n'y entrent pas. */
+function monGesteCible(b) {
+  b = b && typeof b === 'object' ? b : {};
+  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return monStr(x.trim(), 60); }
+  if (typeof b.email === 'string' && b.email.trim()) return masqueMail(b.email);
+  return '';
+}
+function monGesteNoter(req, res) {
+  if (!req.tourUser || res.statusCode >= 400) return;   // un refus n'est pas un geste ; une route publique (report) n'a pas de compte
+  const chemin = String(req.route && typeof req.route.path === 'string' ? req.route.path : '').toLowerCase().replace(/\/+$/, '');
+  const g = MON_GESTES[chemin.replace(/^\/api\/monitor\//, '')];
+  if (!g) return;
+  const b = req.body && typeof req.body === 'object' ? req.body : {};
+  const detail = ['statut', 'formule'].map(k => typeof b[k] === 'string' ? monStr(b[k], 20) : '').filter(Boolean).join(' · ')
+    + (typeof b.traite === 'boolean' ? (b.traite ? 'classée' : 'remise à traiter') : '');
+  monActions.push(Object.assign({ ts: Date.now(), qui: monStr(req.tourUser.nom, 60), geste: g, cible: monGesteCible(b) },
+    detail ? { detail } : {}, monAppDeRoute(req) ? { app: monAppDeRoute(req) } : {}));
+  if (monActions.length > MON_ACTIONS_MAX) monActions = monActions.slice(-MON_ACTIONS_MAX);
+  monSave();
+}
 app.post('/api/monitor/login', (req, res) => {
   const ip = req.ip || '?';   // req.ip, jamais l'en-tête brut : nginx AJOUTE à la valeur reçue, donc .split(',')[0] rend celle de l'appelant
   const q = monLoginTries.get(ip) || { count: 0, reset: Date.now() + 3600000 };
@@ -2099,7 +2170,7 @@ app.get('/api/monitor/users', monPatronStrict, (req, res) => {
 // journal des connexions (réussies et échouées) — visible par le patron dans la section Équipe
 app.get('/api/monitor/mails', monAdmin, (req, res) => { res.json({ ok: true, mails: mailsLog.slice(0, 120) }); });
 app.get('/api/monitor/journal', monPatronStrict, (req, res) => {
-  res.json({ journal: monJournal.slice(-100).reverse() });
+  res.json({ journal: monJournal.slice(-100).reverse(), actions: monActions.slice(-200).reverse() });
 });
 app.post('/api/monitor/users', monPatronStrict, (req, res) => {
   const nom = monStr((req.body || {}).nom, 60).trim();

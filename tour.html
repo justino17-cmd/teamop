@@ -4042,7 +4042,7 @@ function setTab(t,sansAnim){
   if(t==='abonnements'){ if(!ABO.loaded) chargerAbos(); if(!PRO.loaded&&!PRO.err) chargerPromos(); }
   if(t==='devisia'&&!DIA.loaded) chargerDevisIA();
   if(t==='equipe'&&!EQ.loaded) chargerEquipe();
-  if(t==='journal'&&!JR.loaded) chargerJournal();
+  if(t==='journal') chargerJournal();
   window.scrollTo(0,0);
   tiroirRafraichir();
 }
@@ -4401,7 +4401,7 @@ function rafraichirSiConcerne(){
      classList), l'exception était avalée, et l'écran Accès ne se redessinait jamais quand ses données changeaient. */
   try{ if(TAB==='essais'||TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
 }
-var JR={cnx:[],loaded:false,err:'',actions:[],f:'tout'};
+var JR={cnx:[],loaded:false,err:'',actions:[],serveur:[],f:'tout'};
 /* ── Connexions des applications : toutes les entreprises, le moindre détail ── */
 var CNX={list:[],global:{},loaded:false,err:'',sel:null,det:null,detErr:'',q:'',f:'toutes'};
 function chargerConnexions(){
@@ -5631,8 +5631,15 @@ function chargerEquipe(){
 }
 function chargerJournal(){
   if(MYROLE!=='patron'){ JR.cnx=[]; JR.loaded=true; JR.err='Réservé au patron — les connexions à la console ne sont visibles que par lui.'; if(TAB==='journal') render(); return; }
+  /* Les gestes viennent du serveur (v2.87 : `monGesteNoter`) — durables, vus de tous les appareils. Ceux de cette page
+     (`JR.actions`) ne restent que s'ils sont plus récents que la demande : le serveur ne les avait pas encore. */
+  var dem=Date.now();
   apiGet('/api/monitor/journal').then(function(d){ if(!d) return;
-    JR.cnx=d.journal||[]; JR.loaded=true; JR.err=''; if(TAB==='journal'||TAB==='accueil') render();
+    JR.cnx=d.journal||[]; JR.loaded=true; JR.err='';
+    JR.serveur=(d.actions||[]).map(function(a){ return {ts:a.ts,app:a.app||null,
+      tx:(a.qui||'?')+' '+(a.geste||'')+(a.cible?' « '+a.cible+' »':'')+(a.detail?' ('+a.detail+')':'')}; });
+    JR.actions=(JR.actions||[]).filter(function(a){ return a.ts>dem; });
+    if(TAB==='journal'||TAB==='accueil') render();
   }).catch(function(e){ JR.err=msgErreur(e); JR.loaded=true; if(TAB==='journal') render(); });
 }
 function chargerMail(frais){
@@ -10024,7 +10031,7 @@ function vueJournal(){
   /* v2.85 — CHAQUE CONSOLE SON JOURNAL : une action (de cette session, ou notée par le serveur avec la console de sa route — `app`) ne paraît que dans la
      console où elle a été faite. Une connexion à la Tour n'a pas de console : elle paraît là où le compte travaille (`apps`), et une tentative refusée
      (un identifiant qui ne dit rien) dans les deux — c'est le signal de sécurité. */
-  var A=(JR.actions||[]).filter(function(a){ return !a.app||a.app===APP; });
+  var A=(JR.actions||[]).concat(JR.serveur||[]).filter(function(a){ return !a.app||a.app===APP; });
   var C=(JR.cnx||[]).filter(function(j){
     if(j.app) return j.app===APP;
     if(j.ok&&j.apps) return String(j.apps).split('+').indexOf(APP)>=0;
@@ -10041,7 +10048,7 @@ function vueJournal(){
   var kpis='<div class="grille-kpi jr-kpi" style="margin-top:18px;margin-bottom:22px">'+
     kpi('tout',C.length,'connexion'+(C.length>1?'s':'')+' enregistrée'+(C.length>1?'s':''))+
     kpi('echecs',ko.length,ko.length?('tentative'+(ko.length>1?'s':'')+' refusée'+(ko.length>1?'s':'')):'aucune tentative refusée',true)+
-    kpi('actions',A.length,'action'+(A.length>1?'s':'')+' cette session')+
+    kpi('actions',A.length,'action'+(A.length>1?'s':'')+' enregistrée'+(A.length>1?'s':''))+
   '</div>';
 
   /* Une tentative refusée est une LIGNE DE REGISTRE, comme partout ailleurs dans la Tour —
@@ -10088,8 +10095,8 @@ function vueJournal(){
   var corpsAct=A.length
     ? '<div class="reg-bloc act">'+A.map(function(a){
         return '<div class="reg-l inerte"><span class="reg-txt"><span class="reg-l2">'+esc(a.tx)+'</span></span>'+
-          '<span class="reg-fin"><span class="reg-h">'+esc(fmtHeure(a.ts))+'</span></span></div>'; }).join('')+'</div>'
-    : '<div class="jr-vide">Aucune action depuis l’ouverture de la console. Tout ce que tu fais ici — attribuer une formule, activer un code, fermer une entreprise — s’inscrit sur cette liste.</div>';
+          '<span class="reg-fin"><span class="reg-h">'+esc(fmtDate(a.ts))+'</span></span></div>'; }).join('')+'</div>'
+    : '<div class="jr-vide">Aucune action enregistrée. Tout ce qui se fait ici — accepter une demande, attribuer une formule, fermer une entreprise — s’inscrit sur cette liste, et y reste.</div>';
 
   /* « Réservé au patron » est une règle, pas une panne : elle a le dessin d'une note, pas
      celui d'une erreur. Toute autre erreur porte son bouton de reprise. */
@@ -10098,11 +10105,11 @@ function vueJournal(){
     bloc=jrGroupe('Connexions à la console',null,'',false,
       '<div class="encart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
       '<div class="encart-tx">'+esc(JR.err)+'</div></div>')+
-      jrGroupe('Ce que j’ai fait dans cette console',A.length,'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page. Le serveur, lui, ne la conserve pas.',false,corpsAct);
+      jrGroupe('Ce qui a été fait dans cette console',A.length,'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page. Le serveur, lui, ne la conserve pas.',false,corpsAct);
   else if(JR.err)
     bloc=jrGroupe('Connexions à la console',null,'',false,
       '<div class="jr-err"><span>'+esc(JR.err)+'</span><button type="button" class="btn-fant" onclick="JR.loaded=false;chargerJournal();render()">Réessayer</button></div>')+
-      jrGroupe('Ce que j’ai fait dans cette console',A.length,'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page.',false,corpsAct);
+      jrGroupe('Ce qui a été fait dans cette console',A.length,'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page.',false,corpsAct);
   else{
     var g=[];
     /* Le groupe des refusées est TOUJOURS rendu quand il est dans le filtre : son absence
@@ -10111,14 +10118,14 @@ function vueJournal(){
       'Un identifiant tapé qui n’existe pas, ou un mot de passe faux. Sur cette console, c’est la seule ligne qui demande quelque chose.',false,corpsKo));
     if((f==='tout')&&ok.length) g.push(jrGroupe('Connexions réussies',ok.length,
       'Qui est entré, depuis quel appareil, et quand.',true,corpsOk));
-    if(f==='tout'||f==='actions') g.push(jrGroupe('Ce que j’ai fait dans cette console',A.length,
+    if(f==='tout'||f==='actions') g.push(jrGroupe('Ce qui a été fait dans cette console',A.length,
       'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page. Le serveur, lui, ne la conserve pas.',false,corpsAct));
     bloc=g.join('');
   }
 
   return enTete('Journal',
     'Ce qui a été fait dans cette console, et qui s’y est connecté. Aucune ligne ne peut être effacée à la main.')+
-    kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Mes actions',A.length]],f,'jrFiltrePoser(')+
+    kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Actions',A.length]],f,'jrFiltrePoser(')+
     '<div class="reg">'+bloc+'</div>'+
     '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console. Au-delà, elles sont effacées — y compris depuis ici.</div>'+
     (APP!=='gestion'?'':'<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Courrier → Envois TeamOP.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+

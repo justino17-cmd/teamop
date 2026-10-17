@@ -177,3 +177,5 @@ tests/test-851.js
 tests/test-1010.js
 # 17 octobre 2026 (soir) : `test-1011` (l'API n'annonce plus « X-Powered-By: Express » — relevé par le contrôle client mystère).
 tests/test-1011.js
+# 17 octobre 2026 (soir) : `test-1015` (le Journal des gestes de la Tour, noté par le serveur : chaque route POST de la Tour classée, un refus jamais inscrit, un mot de passe jamais, le journal survit à un redémarrage).
+tests/test-1015.js
