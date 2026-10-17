@@ -1,4 +1,4 @@
-/* ══ test-1510 — LE RELAIS COURRIEL INJOIGNABLE SE DIT (lot m02, entree#0) : LE VRAI SERVICE, UN RELAIS MORT PUIS UN RELAIS VIVANT ══════════════════════════
+/* ══ test-2510 — LE RELAIS COURRIEL INJOIGNABLE SE DIT (lot m02, entree#0) : LE VRAI SERVICE, UN RELAIS MORT PUIS UN RELAIS VIVANT ══════════════════════════
    Constat du testeur : relais SMTP injoignable (port fermé), `POST /api/mel/inscrire` et `/api/mel/oubli` répondaient 200 {ok:true}, la page disait « un code vient d'y partir »
    et rien ne partait jamais. Le silence n'est voulu que pour ne PAS révéler si une adresse a un compte ; une panne du relais ne dépend d'aucune adresse et se dit.
    Ce que ce banc garde :

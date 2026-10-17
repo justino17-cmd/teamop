@@ -115,7 +115,7 @@
 # fichier .ics est parti — test-971 sort de la liste (ses 94 faits du monde réel entrent dans 970 : 107 → 109) ; 905 (1193 → 1180), 973 (298 → 285), 975 (141 → 140),
 # 976 (73 → 69), 1004 (66 → 52), 1005 (169 → 161), 1006 (89 → 78) perdent leur part .ics, rien d'autre — 98 suites, 9 942 vérifications mesurées par la commande de la
 # porte, toutes vertes en local (plus aucun banc ne dépend des fuseaux de la machine) — plancher 9928 (le total moins 14, jamais une addition).
-# 17 octobre 2026, l'écran de connexion (lot m02) : un relais courriel injoignable ne laisse plus annoncer un code qui ne partira pas (test-1510 entre : 24 vérifications, le vrai service
+# 17 octobre 2026, l'écran de connexion (lot m02) : un relais courriel injoignable ne laisse plus annoncer un code qui ne partira pas (test-2510 entre : 24 vérifications, le vrai service
 # contre un relais mort puis un relais qui meurt ; test-900 et test-933 admettent les numéros 1500-1599) — 99 suites, 9 966 vérifications mesurées par la commande de la porte, toutes
 # vertes (9 942 + 24) — plancher 9952 (le total moins 14, jamais une addition).
 #plancher 9952
@@ -287,4 +287,4 @@ tests/test-1003.js
 # ── Le relais courriel injoignable (17 octobre 2026) : l'inscription et « Mot de passe oublié » rendent 503 courriel_indisponible, la sonde de joignabilité (cache, une seule sonde par fenêtre,
 #    jamais déduite des échecs d'envoi), /api/config qui ne propose plus le compte par adresse — le vrai service, un relais mort puis un relais qui meurt (1510) ;
 #    la vraie page : tests/sonde-opmessages-entree-m02.js (hors porte, comme les autres sonde-opmessages-*)
-tests/test-1510.js
+tests/test-2510.js
