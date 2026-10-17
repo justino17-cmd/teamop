@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="fr">
-<head><base href="/">
+<head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow">
@@ -1478,6 +1478,24 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 .lec-corps{padding:20px 0;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--text2)}
 .lec-rep{border-top:1px solid var(--line);padding-top:16px}
 @media(max-width:640px){.lec{padding:18px 15px}}
+/* v2.88 — LA BOÎTE MAIL : le message HTML dans son cadre isolé, les pièces, le rangement par console, l'écriture. Le cadre est
+   blanc dans les deux modes : c'est la mise en page de l'expéditeur, écrite pour un fond clair — l'inverser la casserait. */
+.cour-html{width:100%;min-height:52vh;border:1px solid var(--line);border-radius:var(--r-2,12px);background:#fff;margin:14px 0}
+.cour-img{margin-top:12px;font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cour-dest{font-size:12.5px;margin-top:8px;word-break:break-word}
+.cour-trier{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-2,12px);font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.cour-range{margin-top:8px;font-size:12.5px}
+.cour-pieces{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.cour-piece{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
+.cour-x{min-width:32px;min-height:32px;border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px}
+.cour-dep{display:inline-flex;align-items:center;gap:6px}
+.cour-champ{display:flex;flex-direction:column;gap:5px;margin:10px 0;font-size:12.5px;color:var(--muted)}
+.cour-champ .inp,.cour-champ .sel-f{width:100%}
+.cour-texte{width:100%;min-height:220px;margin-top:10px;font-family:inherit;line-height:1.6}
+.cour-lien{border:0;background:none;color:var(--link,var(--acc));font:inherit;font-size:13px;cursor:pointer;min-height:44px;padding:0}
+.cour-joindre{display:inline-flex;align-items:center;min-height:44px;cursor:pointer}
+.cour-actions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
+.cour-pied{padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
 
 /* ══ RATTRAPAGE des restes inline ═══ le JS les pose en dur ; ces lignes les ramènent dans le système jusqu'à ce qu'on nettoie le JS ══ */
 #lg-rester{accent-color:var(--acc)!important}                              /* L217 : accent-color:var(--acc) (bleu) */
@@ -2954,7 +2972,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.87</div>
+    <div class="lg-pied">console interne · v2.88</div>
   </div>
 </div>
 
@@ -2996,7 +3014,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.87</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.88</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3008,7 +3026,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.87</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.88</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3059,10 +3077,26 @@ var APPS_TOUR={
    Colonnes : [clé, nom, consoles, compteur?]. */
 var MENU=[
   {section:'Tour',vues:[['accueil','Accueil','gestion messages']]},
-  {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion']]},
-  {section:'Support',vues:[['support','Courrier','gestion','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv']]},
-  {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion']]}
+  {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['comptes','Comptes','messages'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion messages']]},
+  {section:'Support',vues:[['support','Courrier','gestion messages','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv']]},
+  /* v2.88 — le 5ᵉ champ RATTACHE une vue à une autre : elle quitte le menu et la barre du bas, et paraît en onglet en tête
+     de sa vue de tête (Justin, 17 octobre 2026 : « améliore et simplifie-la »). Équipe est « qui peut entrer », comme Accès ;
+     les Sauvegardes et le Journal sont les deux écrans de contrôle qu'on ouvre rarement. Dix entrées deviennent huit. */
+  {section:'Administration',vues:[['essais','Accès','gestion messages'],['equipe','Équipe','gestion messages','','essais'],['journal','Journal','gestion messages'],['donnees','Sauvegardes','gestion','','journal']]}
 ];
+/* le nom que porte la tête d'un groupe au MENU quand il a au moins deux écrans dans la console ouverte (OP MESSAGES n'a pas
+   de Sauvegardes : son « Journal » reste « Journal ») */
+var GROUPE_LIB={journal:'Système'};
+var PARENT_DE={}; MENU.forEach(function(g){ g.vues.forEach(function(x){ if(x[4]) PARENT_DE[x[0]]=x[4]; }); });
+/* l'entrée du menu qui s'allume pour l'écran ouvert : la sienne, ou celle de sa tête */
+function tabMenu(t){ t=t||TAB; return PARENT_DE[t]||t; }
+/* les écrans d'un groupe que CE compte voit dans CETTE console, tête d'abord : [[clé, libellé], …] */
+function groupeDe(t){ var tete=PARENT_DE[t]||t, l=[];
+  MENU.forEach(function(g){ g.vues.forEach(function(x){
+    if((x[0]===tete||x[4]===tete)&&(x[2]||'').split(' ').indexOf(APP)>=0&&vuePermise(x[0])) l.push([x[0],x[1]]); }); });
+  return l; }
+function groupeOnglets(t){ var l=groupeDe(t); if(l.length<2) return '';
+  return '<div class="sous-onglets">'+teteListe('','Choisir l’écran',l,t,'setTab(')+'</div>'; }
 /* ⛔ CE QUI EST AU PATRON SEUL, ET LE SERVEUR LE DIT AUSSI : Accès, Équipe, Journal et Sauvegardes
    répondent « Réservé au patron » à tout autre compte (monPatronStrict). Le Journal et les Sauvegardes
    restaient pourtant au menu d'un collaborateur, pour n'y montrer qu'un refus ; et une adresse tapée à
@@ -3074,9 +3108,14 @@ var PATRON_SEUL=['essais','equipe','journal','donnees'];
    active et qui se paie). Un ancien favori, un lien d'e-mail (#gestion/devisia) ou la barre du bas d'avant y mènent
    encore : la clé d'avant ouvre la vue parente sur le bon onglet. */
 var VUE_ALIAS={connexions:{vue:'entreprises',sous:'connexions'},devisia:{vue:'abonnements',sous:'devisia'}};
-var SOUS={entreprises:'liste',abonnements:'abos'};
-function vueAlias(t){ var a=VUE_ALIAS[t]; if(!a) return t; SOUS[a.vue]=a.sous; return a.vue; }
-function vuePermise(t){ return PATRON_SEUL.indexOf(t)<0||MYROLE==='patron'; }
+var SOUS={entreprises:'liste',abonnements:'abos',entreprisesmsg:'espaces',survmsg:'apps'};
+/* v2.88 — les deux clés d'avant sont des écrans d'OP GESTION : dans OP MESSAGES (qui a désormais SES Abonnements), « devisia » ne mène nulle part */
+function vueAlias(t,app){ var a=VUE_ALIAS[t]; if(!a||(app||APP)!=='gestion') return t; SOUS[a.vue]=a.sous; return a.vue; }
+function vuePermise(t){
+  /* v2.88 : le Courrier vit dans les deux consoles, mais le serveur range mail/* dans OP GESTION (la boîte porte les liens de
+     connexion des entreprises) : un compte qui n'a QU'OP MESSAGES ne le voit pas — il n'y lirait qu'un refus. */
+  if(t==='support'&&typeof MYAPPS!=='undefined'&&MYAPPS.indexOf('gestion')<0) return false;
+  return PATRON_SEUL.indexOf(t)<0||MYROLE==='patron'; }
 function vuesDe(app){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(function(x){ if((x[2]||'').split(' ').indexOf(app)>=0) l.push(x[0]); }); }); return l; }
 var VUES_PAR_APP={gestion:vuesDe('gestion'),messages:vuesDe('messages')};
 /* les vues de la console ouverte que CE compte peut ouvrir — c'est la porte de setTab */
@@ -3094,9 +3133,9 @@ function appVisible(code){ var a=appDe(code); return a==='*'||a===APP; }
 function lireHash(){
   var m=/^#?([a-z]+)(?:\/([a-z]+))?$/.exec(location.hash||''), app=null, tab=null;
   if(m){ if(APPS_TOUR[m[1]]){ app=m[1]; tab=m[2]||null; } else { tab=m[1]; } }
-  if(tab) tab=vueAlias(tab);
   if(!app){ try{ app=localStorage.getItem('tour_app')||''; }catch(e){ app=''; } }
   if(MYAPPS.indexOf(app)<0) app=MYAPPS[0]||'gestion';
+  if(tab) tab=vueAlias(tab,app);
   var liste=VUES_PAR_APP[app]||VUES_PAR_APP.gestion;
   if(!tab||liste.indexOf(tab)<0) tab='accueil';
   return {app:app,tab:tab};
@@ -3110,7 +3149,9 @@ function setApp(app,sansAnim,tabVoulu){
   if(MYAPPS.indexOf(app)<0){ toast('La Tour '+APPS_TOUR[app].nom+' n’est pas ouverte à ton compte'); return; }
   var change=(app!==APP);
   APP=app; document.body.dataset.app=app; try{ localStorage.setItem('tour_app',app); }catch(e){}
-  if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; if(INC.f) INC.f.app=''; }catch(e){} }
+  if(change){ try{ INC.sel=null; INC.grp=null; ENT.sel=null; if(typeof CNX!=='undefined') CNX.sel=null; if(INC.f){ INC.f.app=''; INC.f.ent=''; }
+    /* v2.88 : un mot de passe tiré pour un accès bêta d'une console ne passe pas dans l'autre */
+    BT.login=''; BT.nom=''; BT.chantier=''; BT.pass=''; }catch(e){} }
   /* le compteur de Surveillance est celui de la console OUVERTE (il gardait celui de l'autre jusqu'au prochain chargement) */
   try{ if(INC.loaded) setBdg('bdg-surv',incOuverts().length); }catch(e){}
   [].forEach.call(document.querySelectorAll('.app-sw button'),function(b){ b.setAttribute('aria-pressed',String(b.dataset.app===app)); });
@@ -3226,6 +3267,8 @@ function apiGet(u){ return fetch(API+u,{headers:hAuth()}).then(srvRepond,srvMuet
 function msgErreur(err){ if(err&&err.status===403){
     if(err.app&&APPS_TOUR[err.app]) return 'Cette action appartient à la Tour '+APPS_TOUR[err.app].nom+' — ton compte n’y a pas accès.';
     return 'Réservé au patron — ton compte n’a pas cet accès.'; }
+  /* v2.88 — un 404, un 409, un 500 ne sont pas une coupure : « Serveur injoignable » envoyait chercher du côté du réseau */
+  if(err&&err.status) return 'Le serveur a refusé ('+err.status+')'+(err.corps?' : '+String(err.corps).slice(0,160):'')+'.';
   return INJOIGNABLE; }
 /* `status` s'ajoute au verdict, il ne le remplace pas : tous les appelants existants lisent
    `ok` et `d`, et continuent. Il manquait pour distinguer deux refus qui ne veulent PAS dire la
@@ -3285,7 +3328,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.87';
+var TOUR_VERSION='v2.88';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -3304,20 +3347,24 @@ if(_mqSombre&&!MODE_FORCE){ var _suitMode=function(){ modeApplique(modeLu()); };
 modeApplique(modeLu());
 
 /* ══ CONNEXION ══ */
+var _loginEnCours=false;
 function doLogin(){
   var nom=($('lg-id').value||'').trim(), pass=$('lg-pass').value||'';
   if(!nom||!pass){ $('lg-err').textContent='Nom d’utilisateur et mot de passe requis.'; return; }
+  if(_loginEnCours) return;   /* v2.88 : un double clic envoyait deux essais — et le serveur verrouille après cinq échecs */
+  _loginEnCours=true; setTimeout(function(){ _loginEnCours=false; },8000);
   $('lg-err').textContent='';
   fetch(API+'/api/monitor/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nom:nom,pass:pass,rester:!!(document.getElementById('lg-rester')||{}).checked})})
     .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
     .then(function(x){
+      _loginEnCours=false;
       if(!x.ok){ $('lg-err').textContent=x.d.error||'Connexion refusée.'; return; }
       TOKEN=x.d.token; MYNOM=x.d.nom||nom; MYROLE=x.d.role||'collaborateur'; poserApps(x.d.apps);
       try{ var st=(document.getElementById('lg-rester')||{}).checked?localStorage:sessionStorage;
         st.setItem('tour_token',TOKEN); st.setItem('tour_nom',MYNOM); st.setItem('tour_role',MYROLE); st.setItem('tour_apps',JSON.stringify(MYAPPS)); }catch(e){}
       entrer();
     })
-    .catch(function(){ $('lg-err').textContent='Serveur injoignable — réessayez dans un instant.'; });
+    .catch(function(){ _loginEnCours=false; $('lg-err').textContent='Serveur injoignable — réessayez dans un instant.'; });
 }
 function doLogout(){ try{ sessionStorage.removeItem('tour_token'); localStorage.removeItem('tour_token'); localStorage.removeItem('tour_nom'); localStorage.removeItem('tour_role'); sessionStorage.removeItem('tour_apps'); localStorage.removeItem('tour_apps'); }catch(e){} location.hash=''; location.reload(); }
 
@@ -3380,6 +3427,7 @@ var IC={
   devisia:'<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M18.5 16l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7z"></path>'
 };
 IC.essais=IC.cadenas;
+IC.comptes='<circle cx="12" cy="8" r="3.5"></circle><path d="M5 20c.8-3.6 3.6-5.5 7-5.5s6.2 1.9 7 5.5"></path>';   /* une personne : OP MESSAGES compte des PERSONNES */
 IC.demandes='<path d="M4 13h4l2 3h4l2-3h4"></path><path d="M6 5h12l2 8v6H4v-6z"></path>';   /* un bac d'arrivée : ce qui entre */   /* l'accès bêta est une porte : le cadenas le dit */
 /* « Plus » ouvre TOUTES les vues : trois traits (le menu), comme la maquette — trois points disaient « autres actions », pas « toutes les destinations ». */
 IC.menu='<path d="M4 7h16M4 12h16M4 17h16"></path>';
@@ -3408,8 +3456,9 @@ function squelListe(n){
 /* Ce que CE compte voit dans CETTE console : ce qui est au patron (PATRON_SEUL) lui reste. */
 function menuVisible(){
   return MENU.map(function(g){ return {section:g.section,vues:g.vues.filter(function(x){
-      if(!vuePermise(x[0])) return false;
-      return (x[2]||'').split(' ').indexOf(APP)>=0; })}; })
+      if(!vuePermise(x[0])||x[4]) return false;
+      return (x[2]||'').split(' ').indexOf(APP)>=0; }).map(function(x){
+        return (GROUPE_LIB[x[0]]&&groupeDe(x[0]).length>1)?[x[0],GROUPE_LIB[x[0]]].concat(x.slice(2)):x; })}; })
     .filter(function(g){ return g.vues.length; });
 }
 function vueInfo(t){
@@ -3459,7 +3508,7 @@ var BAS_MAX=4;
 var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
 /* Un nom qui tient sous l'icône, dans une colonne d'une soixantaine de pixels. Le nom COMPLET reste
    dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
-var BAS_LIB={accueil:'Accueil',surveillance:'Surveill.',demandes:'Demandes',entreprises:'Entreprises',essais:'Accès',
+var BAS_LIB={comptes:'Comptes',accueil:'Accueil',surveillance:'Surveill.',demandes:'Demandes',entreprises:'Entreprises',essais:'Accès',
   abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal'};
 /* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
 function barreDispo(){
@@ -3470,7 +3519,7 @@ function barreDispo(){
 function barreDe(brut){
   var dispo=barreDispo().map(function(o){ return o.t; }), l=[];
   /* v2.87 : une barre rangée avant le ménage garde sa place — « devisia » y devient Abonnements, « connexions » Entreprises */
-  var ajoute=function(t){ t=String(t||'').trim(); if(VUE_ALIAS[t]) t=VUE_ALIAS[t].vue; if(l.length<BAS_MAX&&dispo.indexOf(t)>=0&&l.indexOf(t)<0) l.push(t); };
+  var ajoute=function(t){ t=String(t||'').trim(); if(VUE_ALIAS[t]&&APP==='gestion') t=VUE_ALIAS[t].vue; if(PARENT_DE[t]) t=PARENT_DE[t]; if(l.length<BAS_MAX&&dispo.indexOf(t)>=0&&l.indexOf(t)<0) l.push(t); };
   String(brut||'').split(',').forEach(ajoute);
   BAS_DEFAUT.forEach(ajoute); dispo.forEach(ajoute);
   return l;
@@ -3509,8 +3558,8 @@ function majBarreBas(sansAnim){
   var ouverte=_feuilleOuverte;
   [].forEach.call(document.querySelectorAll('.bb'),function(b){
     var plus=b.classList.contains('plus');
-    b.classList.toggle('on',plus?ouverte:(b.dataset.t===TAB&&!ouverte));
-    if(plus) b.setAttribute('aria-expanded',String(ouverte)); else if(b.dataset.t===TAB) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+    b.classList.toggle('on',plus?ouverte:(b.dataset.t===tabMenu()&&!ouverte));
+    if(plus) b.setAttribute('aria-expanded',String(ouverte)); else if(b.dataset.t===tabMenu()) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
   var derriere=0;
   barreDispo().forEach(function(o){ if(!o.bdg) return;
     var src=$(o.bdg), n=(src&&src.style.display!=='none')?(+src.textContent||0):0;
@@ -3776,7 +3825,7 @@ function ouvrirFeuille(quoi){
     menuVisible().forEach(function(g){
       h+='<div class="feuille-sec">'+esc(g.section)+'</div><div class="groupe">'+g.vues.map(function(x){
         var bd=x[3]?$(x[3]):null, n=bd&&bd.style.display!=='none'?(+bd.textContent||0):0;
-        return '<button type="button" data-t="'+x[0]+'" class="'+(x[0]===TAB?'on':'')+'"'+(x[0]===TAB?' aria-current="page"':'')+' onclick="setTab(\''+x[0]+'\');fermerFeuille()"><span class="ic">'+svg(x[0],16)+'</span>'+esc(x[1])+
+        return '<button type="button" data-t="'+x[0]+'" class="'+(x[0]===tabMenu()?'on':'')+'"'+(x[0]===tabMenu()?' aria-current="page"':'')+' onclick="setTab(\''+x[0]+'\');fermerFeuille()"><span class="ic">'+svg(x[0],16)+'</span>'+esc(x[1])+
           (n?'<span class="bdg-r" style="display:inline-block;margin-left:auto">'+n+'</span>':'')+'<span class="chev"'+(n?' style="margin-left:8px"':'')+'>›</span></button>'; }).join('')+'</div>';
     });
     /* l'appui long sur la barre ne se devine pas : le réglage a aussi sa porte, là où on cherche tout */
@@ -3822,7 +3871,7 @@ function tiroirHtml(){
   menuVisible().forEach(function(g){
     h+='<div class="ti-sec">'+esc(g.section)+'</div>';
     g.vues.forEach(function(x){
-      var on=(x[0]===TAB), bd=x[3]?$(x[3]):null, n=bd&&bd.style.display!=='none'?(+bd.textContent||0):0;
+      var on=(x[0]===tabMenu()), bd=x[3]?$(x[3]):null, n=bd&&bd.style.display!=='none'?(+bd.textContent||0):0;
       h+='<button type="button" class="ti'+(on?' on':'')+'" data-t="'+x[0]+'"'+(on?' aria-current="page"':'')+' onclick="tiroirAller(\''+x[0]+'\')">'+
         '<span class="ic">'+svg(x[0],20)+'</span><span class="lib">'+esc(x[1])+'</span>'+
         (n?'<span class="'+(x[0]==='surveillance'?'bdg-r':'bdg-b')+'">'+n+'</span>':'')+'</button>';
@@ -4011,18 +4060,20 @@ function amenerOngletEnVue(){
 function setTab(t,sansAnim){
   t=vueAlias(t);
   if(vues().indexOf(t)<0) t='accueil';   /* un onglet de l'autre console ne laisse jamais un écran blanc */
+  if(t==='entreprises'&&TAB==='entreprises'&&ENT.sel) ENT.sel=null;   /* v2.88 : retoucher « Entreprises » ramène à la liste */
   TAB=t; ecrireHash(); try{ localStorage.setItem('tour_tab_'+APP,t); }catch(e){}
-  [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on',b.getAttribute('data-t')===t); });
+  [].forEach.call(document.querySelectorAll('.tab'),function(b){ b.classList.toggle('on',b.getAttribute('data-t')===tabMenu(t)); });
   placerIndic(!sansAnim);
   amenerOngletEnVue(); majBarreBas(); majHaut();
   if(sansAnim) render(); else renderAnime();
   /* Le Courrier range par ENTREPRISE : sans l'annuaire ni les clients du site, il n'a aucun
      moyen de savoir à qui appartient une adresse, et tout retomberait dans « pas encore
      rattachées ». Ces deux listes ne se chargeaient que depuis l'onglet Entreprises. */
-  if(t==='support'){ if(!MSG.loaded) chargerMail(); if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); }
+  if(t==='support'){ if(!MSG.loaded) chargerMail(); else if(MSG.listeApp!==APP){ MSG.ouvert=null; MSG.lu=null; chargerMessages(); }   /* v2.88 : chaque console a SES messages */
+    if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); }
   /* PBL porte les espaces : sans lui, « Leurs espaces » resterait sur « Chargement… » pour qui
      ouvre Entreprises sans être passé par Accès. */
-  if(APP==='messages'&&t==='accueil'){ if(!OPM.loaded) chargerEtatMessages(); if(!ENT.loaded) chargerEntreprises(); }
+  if(APP==='messages'&&t==='accueil'){ if(!OPM.loaded||OPM.err) chargerEtatMessages(); if(!ENT.loaded) chargerEntreprises(); }
   if(t==='entreprises'){ if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); if(!PBL.loaded) chargerAccesPublics(); if(!CS.loaded) chargerComptesSite(); }
   /* L'état de la sauvegarde ne vient PAS de `chargerTout()` : cet écran est le seul à s'en
      servir, et le charger au démarrage ferait payer une requête à tout le monde pour un
@@ -4039,9 +4090,8 @@ function setTab(t,sansAnim){
   /* chargerPromos() n'était appelée NULLE PART : le bloc des formules offertes restait
      sur « Chargement des codes… » pour toute la session, alors que c'est le seul endroit de
      la console où l'on voit qui profite d'une formule offerte, et jusqu'à quand. */
-  if(t==='abonnements'){ if(!ABO.loaded) chargerAbos(); if(!PRO.loaded&&!PRO.err) chargerPromos(); }
-  if(t==='devisia'&&!DIA.loaded) chargerDevisIA();
-  if(t==='equipe'&&!EQ.loaded) chargerEquipe();
+  if(t==='abonnements'){ if(!ABO.loaded||ABO.err) chargerAbos(); if(!PRO.loaded||PRO.err) chargerPromos(); }
+  if(t==='equipe'&&(!EQ.loaded||EQ.err)) chargerEquipe();   /* v2.88 : un échec au chargement figeait l'écran pour toute la séance */
   if(t==='journal') chargerJournal();
   window.scrollTo(0,0);
   tiroirRafraichir();
@@ -4216,7 +4266,7 @@ function entZeroCompteurs(poser){
   apiPost('/api/monitor/espaces/compteurs-zero',{t:t,annuler:!poser}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
     toast(poser?'Compteurs repartis de zéro':'Historique complet rétabli');
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(poser?' a remis à zéro les compteurs d’une entreprise':' a rétabli l’historique complet d’une entreprise')});
+    
     chargerEntreprises(); entSel(t); entSel(t);   // entSel bascule : deux appels rouvrent la même fiche, rechargée
   }).catch(function(){ toast('Serveur injoignable'); });
 }
@@ -4231,11 +4281,11 @@ function incToutIgnorer(){
   apiPost('/api/monitor/issues/tout-ignorer',{app:APP}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Impossible — réessaie.'); return; }
     toast(nMot(r.d.classes,'problème classé','problèmes classés'));
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a remis Surveillance à zéro ('+nMot(r.d.classes,'problème','problèmes')+')'});
+    
     chargerIncidents();
   }).catch(function(){ toast('Serveur injoignable'); });
 }
-function entQ(v){ ENT.q=v; rafraichirSiConcerne(); }
+function entQ(v){ ENT.q=v; rendreDifféré(); }   /* v2.88 : rafraichirSiConcerne() redessinait tout #vue et faisait perdre le champ à chaque lettre */
 /* v2.85 — les entreprises que la console OUVERTE surveille : toutes, pour OP GESTION ; celles ouvertes à OP MESSAGES pour l'autre */
 function nbEntSurveillees(){ return APP==='messages'?(ENT.liste||[]).filter(function(o){ return o&&o.opMessages&&!o.technique; }).length:(INC.nbEnt||0); }
 /* Cliquer un compteur restreint la liste ; le recliquer la rouvre. C'est le seul geste
@@ -4251,19 +4301,13 @@ function entFiltrePoser(f){ ENT.filtre=f||''; rafraichirSiConcerne(); }
 /* Selection par identifiant d'espace : c'est la seule cle que TOUTES les sources partagent.
    L'e-mail manque aux espaces hors annuaire, le nom se renomme. */
 function entSel(t){
-  var ouvre=ENT.sel!==t;
   ENT.sel=(ENT.sel===t?null:t);
+  /* v2.88 — une fiche s'ouvre sur l'onglet « Entreprises » : ouverte depuis Surveillance, le Courrier ou une Demande alors
+     que « Comptes du site » ou « Connexions » était le dernier onglet vu, elle était posée mais invisible (relecture du
+     17 octobre 2026, mesuré). Et la page remonte : ouverte depuis le milieu de la liste, le nom était à −962 px. */
+  if(ENT.sel) SOUS.entreprises='liste';
   renderNav('detail');
-  /* Au telephone la fiche REMPLACE la liste : sans ce recadrage on resterait sur le pave
-     de tete et le clic n'aurait aucun effet visible. Sur grand ecran les deux colonnes
-     sont cote a cote, donc rien a bouger. */
-  if(window.innerWidth<900) setTimeout(function(){
-    var c=document.querySelector(ouvre?'.col-detail':'.col-liste'); if(!c) return;
-    var doux=!window.matchMedia||!matchMedia('(prefers-reduced-motion:reduce)').matches;
-    var b=document.querySelector('.bandeau');
-    var chapeau=(b&&getComputedStyle(b).position==='sticky')?b.getBoundingClientRect().height:0;
-    window.scrollTo({top:Math.max(0,c.getBoundingClientRect().top+window.pageYOffset-chapeau-12),behavior:doux?'smooth':'auto'});
-  },60);
+  window.scrollTo(0,0);
   if(ENT.sel){
     var o=(ENT.liste||[]).find(function(x){ return x.t===ENT.sel; })||{};
     var nm=o.nom||o.slug||'';
@@ -4324,12 +4368,12 @@ function csSupprimer(email,btn){
   if(!confirm('Supprimer définitivement le compte « '+email+' » ?\n\n• son accès à teamop.fr/espace.html\n• sa fiche et sa messagerie\n\nSa boîte mail, elle, n\'est pas touchée : elle continue de recevoir et d\'envoyer.')) return;
   if(btn){ btn.disabled=true; btn.textContent='Suppression…'; }
   apiPost('/api/monitor/comptes-site/supprimer',{email:email}).then(function(r){
-    if(r&&r.ok&&r.d&&r.d.ok){ toast('🗑 Compte supprimé'); JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a supprimé le compte du site « '+email+' »'}); chargerComptesSite(); return; }
+    if(r&&r.ok&&r.d&&r.d.ok){ toast('🗑 Compte supprimé'); chargerComptesSite(); return; }
     toast((r&&r.d&&r.d.error)||'Suppression refusée');
     if(btn){ btn.disabled=false; btn.textContent='🗑 Supprimer'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='🗑 Supprimer'; } });
 }
-function csQ(v){ CS.q=v; rafraichirSiConcerne(); }
+function csQ(v){ CS.q=v; rendreDifféré(); }
 function chargerAccesPublics(){
   PBL.loaded=false; PBL.err='';
   apiGet('/api/monitor/espaces/liste').then(function(d){
@@ -4399,17 +4443,18 @@ function rafraichirSiConcerne(){
   /* l'accueil aussi : ses compteurs (clientes, ouvertes à OP MESSAGES) lisent la liste des entreprises */
   /* v2.68 (relecture) — renderVue attend l'ÉLÉMENT de la vue : renderVue('essais') jetait (un texte n'a pas de
      classList), l'exception était avalée, et l'écran Accès ne se redessinait jamais quand ses données changeaient. */
-  try{ if(TAB==='essais'||TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
+  try{ if(TAB==='demandes'){ rendreEnGardantLeFocus(); return; }   /* v2.88 : « espace déjà ouvert » et « payé » arrivent après le premier rendu */
+    if(TAB==='essais'||TAB==='entreprises'||TAB==='abonnements'||TAB==='accueil') render(); }catch(e){}
 }
-var JR={cnx:[],loaded:false,err:'',actions:[],serveur:[],f:'tout'};
+var JR={cnx:[],loaded:false,err:'',serveur:[],f:'tout'};
 /* ── Connexions des applications : toutes les entreprises, le moindre détail ── */
 var CNX={list:[],global:{},loaded:false,err:'',sel:null,det:null,detErr:'',q:'',f:'toutes'};
 function chargerConnexions(){
   apiGet('/api/monitor/connexions').then(function(d){ if(!d) return;
     CNX.list=d.espaces||[]; CNX.global=d.global||{}; CNX.loaded=true; CNX.err='';
     if(CNX.sel&&!CNX.list.some(function(x){ return x.t===CNX.sel; })) CNX.sel=null;
-    if(TAB==='connexions') render();
-  }).catch(function(e){ CNX.err=msgErreur(e); CNX.loaded=true; if(TAB==='connexions') render(); });
+    if(TAB==='entreprises') render();   /* v2.88 : depuis la v2.87, Connexions est un ONGLET d'Entreprises — TAB ne vaut plus jamais « connexions » */
+  }).catch(function(e){ CNX.err=msgErreur(e); CNX.loaded=true; if(TAB==='entreprises') render(); });
 }
 function cnxSel(t){ CNX.sel=t; CNX.det=null; CNX.detErr=''; renderNav('avant'); window.scrollTo(0,0);
   var e=CNX.list.filter(function(x){ return x.t===t; })[0]||{};
@@ -4640,7 +4685,7 @@ function vueConnexions(){
       nEch=CNX.list.filter(function(x){ return x.resume&&x.resume.echecs24>0; }).length;
   var teteL=teteListe('Entreprises','Filtrer les connexions',[['toutes','Toutes',CNX.list.length],['actives','Actives 7 j',nAct],['echecs','Avec échecs',nEch]],
     (CNX.f&&CNX.f!=='toutes')?CNX.f:'toutes','cnxF(');
-  return tete+bandeau+teteL+'<div class="rech-rang"><div class="rech">'+svg('loupe',16)+'<input placeholder="Rechercher une entreprise…" value="'+esc(CNX.q)+'" oninput="cnxQ(this.value)"></div>'+filtres+'</div>'+table;
+  return tete+bandeau+teteL+'<div class="rech-rang"><div class="rech">'+svg('loupe',16)+'<input placeholder="Rechercher une entreprise…" value="'+esc(CNX.q)+'" id="cnx-q" oninput="cnxQ(this.value)"></div>'+filtres+'</div>'+table;
 }
 function tourConnexionsCharge(nm){
   apiPost('/api/monitor/espaces/connexions',{nom:nm,n:8}).then(function(r){
@@ -4650,38 +4695,47 @@ function tourConnexionsCharge(nm){
     el.innerHTML=cnxResumeHtml(d.resume,nm)+
       (ev.length?'<div class="cnx-suite">'+cnxTable(ev)+'</div>'
         :videTour('Aucune connexion remontée pour l’instant','Les applications les signalent à partir de la v551.','','connexions'))+
-      '<div class="cnx-suite"><button type="button" class="btn-fant" onclick="setTab(\'connexions\');cnxSel(\''+jsq(d.t)+'\')">Voir toutes les connexions →</button></div>';
+      '<div class="cnx-suite"><button type="button" class="btn-fant" onclick="ENT.sel=null;setTab(\'connexions\');cnxSel(\''+jsq(d.t)+'\')">Voir toutes les connexions →</button></div>';
   }).catch(function(){ var el=document.getElementById('fiche-connexions');
     if(el) el.innerHTML=videTour('Serveur injoignable','Les connexions de cette entreprise n’ont pas pu être lues.','','connexions'); });
 }
 
 /* v2.85 — un compte qui n'a QUE la console OP MESSAGES ne charge pas le courrier, les clientes ni les abonnements d'OP GESTION : le serveur les lui refuse,
    et chaque refus tombait en « Serveur injoignable » dans un coin de l'écran */
-function chargerTout(){ var g=MYAPPS.indexOf('gestion')>=0; chargerIncidents(); if(g){ chargerClients(); chargerAbos(); } chargerJournal(); chargerEquipe(); chargerEssais(); if(g){ chargerAccesPublics(); chargerMail(); } }
+function chargerTout(){ var g=MYAPPS.indexOf('gestion')>=0; chargerIncidents(); if(g){ chargerClients(); chargerAbos(); chargerEntreprises(); } chargerJournal(); chargerEquipe(); chargerEssais(); if(g){ chargerAccesPublics(); chargerMail(); } }
 
+/* v2.88 (relecture du 17 octobre 2026) — la relève de chaque minute redessinait l'écran : une note en cours de frappe
+   (#inc-note) disparaissait sans bruit, et UN raté réseau (fréquent en 4G) remplaçait la liste lue, dossier ouvert compris,
+   par « La surveillance ne répond pas ». Désormais : on ne redessine pas sous une note qu'on écrit ; une relève qui échoue
+   après une première lecture réussie GARDE la liste et ne pose qu'un avertissement (INC.avert). */
+function incNoteEnCours(){ var n=document.getElementById('inc-note'); return !!(n&&(n.value.trim()||document.activeElement===n)); }
 function chargerIncidents(){
   apiGet('/api/monitor/issues').then(function(d){
     if(!d) return;
-    INC.list=d.issues||[]; INC.cnt=d.compteurs||{}; INC.nbEnt=d.entreprises||0; INC.loaded=true; INC.err='';
+    INC.list=d.issues||[]; INC.cnt=d.compteurs||{}; INC.nbEnt=d.entreprises||0; INC.loaded=true; INC.err=''; INC.avert='';
     setBdg('bdg-surv',incOuverts().length); majCompteursApp(); majBarreBas();
-    if(TAB==='surveillance'||TAB==='accueil') render();
-  }).catch(function(e){ INC.err=msgErreur(e); INC.loaded=true; if(TAB==='surveillance'||TAB==='accueil') render(); });
+    if((TAB==='surveillance'&&!incNoteEnCours())||TAB==='accueil') render();
+  }).catch(function(e){
+    if(INC.loaded&&!INC.err&&(INC.list||[]).length){ INC.avert='Dernière relève impossible ('+msgErreur(e)+') — la liste affichée est celle d’avant.'; }
+    else { INC.err=msgErreur(e); INC.loaded=true; }
+    if((TAB==='surveillance'&&!incNoteEnCours())||TAB==='accueil') render(); });
 }
 /* ── ✨ Devis IA : activation entreprise par entreprise (la clé et les codes restent côté serveur) ── */
 var DIA={equipes:{},noms:{},entreprises:[],cle:false,quotaJour:0,utilises:0,loaded:false,err:'',nv:''};
 function chargerDevisIA(){
   apiGet('/api/monitor/devisia').then(function(d){ if(!d) return;
     DIA.equipes=d.equipes||{}; DIA.noms=d.noms||{}; DIA.entreprises=d.entreprises||[]; DIA.cle=!!d.cle; DIA.quotaJour=d.quotaJour||0; DIA.utilises=d.utilises||0; DIA.loaded=true; DIA.err='';
-    if(TAB==='devisia') render();
-  }).catch(function(e){ DIA.err=msgErreur(e); DIA.loaded=true; if(TAB==='devisia') render(); });
+    if(TAB==='abonnements') render();   /* v2.88 : Devis IA est un ONGLET d'Abonnements */
+  }).catch(function(e){ DIA.err=msgErreur(e); DIA.loaded=true; if(TAB==='abonnements') render(); });
 }
-function diaEnvoyer(body){
-  fetch(API+'/api/monitor/devisia',{method:'POST',headers:hAuth(),body:JSON.stringify(body)})
-    .then(function(r){ return r.json(); })
-    .then(function(d){ if(d&&d.equipes){ DIA.equipes=d.equipes; DIA.noms=d.noms||DIA.noms; render(); } else if(d&&d.error) alert(d.error); })
-    .catch(function(){ alert(INJOIGNABLE); });
+/* v2.88 — par apiPost et `geste` : un 502 qui n'est pas du JSON se lisait « injoignable », le code tapé était vidé AVANT la
+   réponse (un refus laissait un champ qui mentait), et un double clic envoyait deux fois. */
+function diaEnvoyer(body,apres){
+  return geste('dia-'+(body.teamId||''),function(){ return apiPost('/api/monitor/devisia',body); },function(x){
+    var d=x.d||{}; if(d.equipes){ DIA.equipes=d.equipes; DIA.noms=d.noms||DIA.noms; } if(apres) apres(); render(); });
 }
-function diaActiver(){ var t=(DIA.nv||'').trim(); if(!t){ alert("Entre le code d'espace de l'entreprise (celui avec lequel son équipe se synchronise)."); return; } DIA.nv=''; diaEnvoyer({teamId:t,actif:true}); }
+function diaActiver(){ var t=(DIA.nv||'').trim(); if(!t){ toast('Entre le code d’espace de l’entreprise (celui avec lequel son équipe se synchronise).'); return; }
+  diaEnvoyer({teamId:t,actif:true},function(){ DIA.nv=''; }); }
 /* Couper retire une fonction EN SERVICE chez une cliente qui paie. diaRetirer() confirmait
    déjà pour une action moins grave ; celle-ci partait sans rien demander. */
 function diaToggle(t,on){
@@ -5148,7 +5202,7 @@ function tourApps(slug,nom,ouvrir){
   if(!ouvrir && !confirm('Fermer OP MESSAGES pour « '+(nom||slug)+' » ?\n\nLa rangée disparaît de son OP GESTION à la prochaine ouverture. Rien d’autre ne change : ni ses données, ni sa formule, ni ses connexions.')) return;
   apiPost('/api/monitor/espaces/apps',{slug:slug,opMessages:!!ouvrir}).then(function(r){
     if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron'); return; }
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(ouvrir?' a ouvert':' a fermé')+' OP MESSAGES pour « '+(nom||slug)+' »'});
+    
     toast(ouvrir?'💬 OP MESSAGES ouvert':'💬 OP MESSAGES fermé');
     chargerAccesPublics(); chargerEntreprises();   /* v2.87 : la console MESSAGES lit ENT — sans ça, la ligne restait figée */
   }).catch(function(){ toast('Serveur injoignable'); });
@@ -5171,7 +5225,7 @@ function tourAccesRenommer(slug,nom){
   if(v===String(nom||'').trim()){ toast('C’est déjà ce nom'); return; }
   apiPost('/api/monitor/espaces/renommer',{slug:slug,nouveau:v}).then(function(r){
     if(!(r&&r.ok)){ alert((r&&r.d&&r.d.error)||'Renommage impossible.'); return; }
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a renommé l’espace « '+(nom||slug)+' » en « '+v+' »'});
+    
     chargerAccesPublics(); chargerClients();
     tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">✏️ Renommé — '+esc(v)+'</div>'+
       '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">Rien à redonner à l’entreprise : son adresse n’a pas changé.</div>'+
@@ -5182,10 +5236,10 @@ function tourAccesRenommer(slug,nom){
 }
 function tourAccesSuspendre(slug,nom,rouvrir){
   if(!slug){ toast('Espace sans identifiant technique'); return; }
-  if(!rouvrir && !confirm('⏸ SUSPENDRE l’accès de « '+(nom||slug)+' » ?\n\n• la connexion est refusée immédiatement (lien, code et identifiants compris)\n• les appareils déjà connectés se videront à leur prochain lancement\n• AUCUNE donnée n’est effacée : rouvrir les rend\n\nPour effacer pour de bon, c’est « Supprimer ».')) return;
+  if(!rouvrir && !confirm('⏸ SUSPENDRE l’accès de « '+(nom||slug)+' » ?\n\n• la connexion est refusée immédiatement (par le lien comme par les identifiants)\n• les appareils déjà connectés se videront à leur prochain lancement\n• AUCUNE donnée n’est effacée : rouvrir les rend\n\nPour effacer pour de bon, c’est « Supprimer ».')) return;
   apiPost('/api/monitor/espaces/suspendre',{slug:slug,rouvrir:!!rouvrir}).then(function(r){
     if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron'); return; }
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(rouvrir?' a rouvert':' a suspendu')+' l’accès « '+(nom||slug)+' »'});
+    
     /* ⛔ SUSPENDRE NE SUFFIT PAS À COUPER, et il faut que ça se voie. Le serveur refuse les
        nouveaux jetons, mais un appareil déjà connecté tient une session renouvelable : sans
        la révocation Firebase il garde l'accès aux données. Le serveur la tente et dit si elle
@@ -5209,7 +5263,7 @@ function tourAccesSupprimer(slug,nom){
   supprAppel('/api/monitor/espaces/renaitre',{nom:cible}).then(function(r){
     if(r&&r.annule){ toast('Code non saisi — rien n’a été supprimé'); return; }
     if(!renaitreReussi(r)){ toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron',12000); return; }
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a supprimé l’accès « '+cible+' »'});
+    
     /* Le cas où une coupure ratée coûte le plus : l'espace est supprimé et sort de l'annuaire,
        mais un appareil qui garde sa session le fait RENAÎTRE hors annuaire, orphelin — la
        genèse même des « espaces hors annuaire ». L'autre appelant de cette route (repartir à
@@ -5329,10 +5383,15 @@ function tourCopie(id,btn){ var el=document.getElementById(id); if(!el) return;
    geste fait désormais TOUT ce qu'elle faisait, mais sur décision — l'espace, le code promo de la demande (vérifié par le
    serveur : il existe, il n'a pas déjà servi à cette entreprise), la formule et le nombre d'utilisateurs, et les demandes
    marquées traitées. Puis le panneau : l'adresse, les identifiants, et l'envoi en un clic. Plus aucun code d'accès. */
-async function tourAccepterDemande(email,nom,identVoulu){
+async function tourAccepterDemande(email,nom,identVoulu,idxVoulu){
   var c=(CLI.list||[]).find(function(x){ return x.email===email; })||{};
-  var dems=(c.demandes||[]).map(function(d,i){ return {d:(d&&typeof d==='object')?d:{},i:i}; });
-  var dm=(dems.slice().sort(function(a,b){ return (b.d.date||0)-(a.d.date||0); })[0]||{d:{}}).d;
+  /* v2.88 — les demandes d'OP GESTION seulement (une demande d'OP MESSAGES ne fait pas une formule d'OP GESTION), et celle
+     de la CARTE touchée quand on la connaît : la plus récente pouvait être une autre (relecture du 17 octobre 2026). */
+  var dems=(c.demandes||[]).map(function(d,i){ return {d:(d&&typeof d==='object')?d:(typeof d==='string'?{besoin:d}:{}),i:i}; })
+    .filter(function(x){ return demEstGestion(x.d); });
+  if(!dems.length){ toast('Aucune demande d’OP GESTION à accepter pour cette adresse'); return; }
+  var choisie=(idxVoulu!=null&&dems.filter(function(x){ return x.i===idxVoulu; })[0])||dems.slice().sort(function(a,b){ return (b.d.date||0)-(a.d.date||0); })[0];
+  var dm=choisie.d;
   /* une demande d'avant le 29 septembre 2026 qui disait « Gratuit » : la formule d'entrée, Pro (plus de Gratuit) */
   var F={'business premium':'premium','premium':'premium','business':'business','pro':'pro','gratuit':'pro'};
   var formule=F[String(dm.formule||'').toLowerCase()]||'business';
@@ -5410,7 +5469,7 @@ async function tourAccepterDemande(email,nom,identVoulu){
 function chargerEspaces(){
   apiGet('/api/monitor/espaces/liste').then(function(d){
     ESP.loaded=true;
-    if(!d){ ESP.err='Impossible de charger — le serveur a-t-il été mis à jour ? (git pull + restart)'; }
+    if(!d){ ESP.err='Les formules attribuées n’ont pas pu être lues — le serveur ne répond pas.'; }
     else { ESP.err=''; ESP.list=d.espaces||[]; }
     if(TAB==='abonnements'||TAB==='entreprises') render();
   }).catch(function(){ ESP.loaded=true; ESP.err='Serveur injoignable.'; if(TAB==='abonnements') render(); });
@@ -5556,15 +5615,6 @@ function tourStatutPack(nom){
     else toast((r&&r.d&&r.d.error)||'Statut indisponible');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
-function supConnecterBoite(){
-  var email=prompt('Adresse de la boîte à connecter au Courrier :','contact@teamop.fr'); if(!email) return;
-  var pass=prompt('Mot de passe de cette boîte (celui du webmail OVH) :'); if(!pass) return;
-  toast('Connexion à '+email+'…');
-  apiPost('/api/monitor/support/connect',{email:email.trim(),pass:pass}).then(function(r){
-    if(r&&r.ok){ toast('📬 Boîte '+email.trim()+' connectée — ses mails arrivent dans le Courrier'); setTimeout(function(){ location.reload(); },900); }
-    else toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron');
-  }).catch(function(){ toast('Serveur injoignable'); });
-}
 /* 💾 L'abonnement réglé à la main : formule, places, statut, fin — prime sur Stripe et les codes */
 function tourAboEnregistrer(nom,btn){
   var f=(document.getElementById('abo-f')||{}).value, q=parseInt((document.getElementById('abo-q')||{}).value,10)||1;
@@ -5575,7 +5625,7 @@ function tourAboEnregistrer(nom,btn){
   var corps={nom:nom,formule:f,quantite:q,statut:st,fin:fin}; if(optsVisible()) corps.options=optsChoisies();
   apiPost('/api/monitor/espaces/abonnement',corps).then(function(r){
     if(r&&r.ok&&r.d&&r.d.ok){ toast('💾 Abonnement enregistré : '+f+(q>1?' ×'+q:'')+(corps.options&&corps.options.length?' + '+corps.options.map(function(k){ return optsLib(k,1); }).join(', '):'')+' · '+st+(fin?' jusqu\'au '+fin:'')+' — actif à la prochaine ouverture de leur app'); tourPackPrefill(nom); setTimeout(chargerEspaces,300); }
-    else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour (git pull) ou réservé au patron');
+    else toast((r&&r.d&&r.d.error)||'Refusé par le serveur — ce geste est peut-être réservé au patron');
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer'; } });
 }
@@ -5611,7 +5661,12 @@ function chargerAbos(){
     ABO.err='';
     if(a){ ABO.configured=!!a.configured; ABO.abos=a.abos||[]; ABO.mrr=Number(a.mrr)||0; ABO.actifs=Number(a.actifs)||0; ABO.impayes=Number(a.impayes)||0; }
     if(p){ if(!a) ABO.configured=!!p.configured; ABO.paiements=(p.paiements||[]).slice().sort(function(x,y){ return (y.date||0)-(x.date||0); }); ABO.echecs=Number(p.echecs)||0; }
-    if(TAB==='abonnements'||TAB==='accueil') render();
+    /* v2.88 — Stripe en panne répond 200 avec des listes VIDES et `erreur`, ou avec les anciennes et `perime` : on le dit,
+       et un vide qui vient d'une panne n'est jamais « aucun abonnement ». Une des deux lectures perdue se dit aussi. */
+    ABO.stripeErr=String((a&&a.erreur)||(p&&p.erreur)||(!a?'Les abonnements n’ont pas pu être lus.':!p?'Les paiements n’ont pas pu être lus.':''));
+    ABO.perime=((a&&a.perime)||(p&&p.perime))?((a&&a.majTs)||(p&&p.majTs)||0):0;
+    ABO.videFaute=!a||!p||!!((a.erreur&&!a.perime)||(p.erreur&&!p.perime));
+    if(TAB==='demandes') rendreEnGardantLeFocus(); else if(TAB==='abonnements'||TAB==='accueil') render();
   });
 }
 function chargerEquipe(){
@@ -5624,18 +5679,18 @@ function chargerEquipe(){
 }
 function chargerJournal(){
   if(MYROLE!=='patron'){ JR.cnx=[]; JR.loaded=true; JR.err='Réservé au patron — les connexions à la console ne sont visibles que par lui.'; if(TAB==='journal') render(); return; }
-  /* Les gestes viennent du serveur (v2.87 : `monGesteNoter`) — durables, vus de tous les appareils. Ceux de cette page
-     (`JR.actions`) ne restent que s'ils sont plus récents que la demande : le serveur ne les avait pas encore. */
-  var dem=Date.now();
+  /* Les gestes viennent du serveur (v2.87 : `monGesteNoter`) — durables, vus de tous les appareils. v2.88 : la page n'en
+     tient plus de copie à elle (18 inscriptions qui doublaient le serveur, sur 18 gestes quand il en note une soixantaine). */
   apiGet('/api/monitor/journal').then(function(d){ if(!d) return;
     JR.cnx=d.journal||[]; JR.loaded=true; JR.err='';
     JR.serveur=(d.actions||[]).map(function(a){ return {ts:a.ts,app:a.app||null,
       tx:(a.qui||'?')+' '+(a.geste||'')+(a.cible?' « '+a.cible+' »':'')+(a.detail?' ('+a.detail+')':'')}; });
-    JR.actions=(JR.actions||[]).filter(function(a){ return a.ts>dem; });
     if(TAB==='journal'||TAB==='accueil') render();
   }).catch(function(e){ JR.err=msgErreur(e); JR.loaded=true; if(TAB==='journal') render(); });
 }
-function chargerMail(frais){
+/* `releve` : la relève de fond (toutes les deux minutes) — elle met à jour les compteurs, mais ne recharge la liste ni
+   pendant qu'on écrit, ni quand on a demandé « les suivants » (la liste repartirait à la première page sous les yeux). */
+function chargerMail(frais,releve){
   if(MSG.busy) return; MSG.busy=true;
   apiGet('/api/monitor/mail/dossiers'+(frais?'?frais=1':'')).then(function(d){
     MSG.busy=false; MSG.loaded=true;
@@ -5643,33 +5698,11 @@ function chargerMail(frais){
     MSG.err=''; MSG.boites=d.boites||[];
     MSG.nonLus=MSG.boites.reduce(function(n,b){ return n+(Number(b.nonLus)||0); },0);
     setBdg('bdg-supp',MSG.nonLus);
-    if(TAB==='support'||TAB==='accueil') render();
+    if(releve&&(MSG.compo||MSG.page>0||MSG.ouvert)) return;
+    if(TAB==='support') rendreEnGardantLeFocus(); else if(TAB==='accueil') render();
     chargerMessages();
-  }).catch(function(){ MSG.busy=false; MSG.loaded=true; MSG.err=INJOIGNABLE; if(TAB==='support') render(); });
+  }).catch(function(e){ MSG.busy=false; MSG.loaded=true; if(releve&&MSG.boites.length) return; MSG.err=msgErreur(e); if(TAB==='support') render(); });
 }
-function chargerMessages(){
-  var s=MSG.sel, p='/api/monitor/mail/liste?page=0'+(MSG.q?'&q='+encodeURIComponent(MSG.q):'');
-  if(s.boite&&s.boite!=='toutes') p+='&boite='+encodeURIComponent(s.boite)+'&dossier='+encodeURIComponent(s.dossier||'');
-  /* Elle avalait TOUT : « if(!d||d.error) return » sortait sans rien dire, et le .catch était
-     vide. Le serveur, lui, est bavard — il renvoie {error} avec un 502 quand une boîte est
-     injoignable, et un tableau « erreurs » en vue fusionnée. Résultat : quand l'IMAP refusait
-     la connexion, l'écran affichait « Rien dans ce dossier », ce qui est faux : il y a quelque
-     chose, on n'arrive simplement pas à le lire. C'est ce mensonge qui a fait dire « ça ne
-     marche plus » sans qu'on sache par quel bout le prendre. */
-  apiGet(p).then(function(d){
-    if(!d) return;
-    if(d.error){ MSG.errListe=String(d.error); MSG.messages=[]; MSG.total=0;
-      if(TAB==='support'||TAB==='accueil') render(); return; }
-    MSG.errListe=(d.erreurs&&d.erreurs.length)?d.erreurs.join(' · '):'';
-    MSG.messages=d.messages||[]; MSG.total=Number(d.total)||0;
-    if(TAB==='support'||TAB==='accueil') render();
-  }).catch(function(e){
-    MSG.errListe=(e&&e.status===502)?'La boîte ne répond pas (IMAP). Vérifiez l’adresse, le mot de passe d’application et le serveur dans « Boîtes reliées ».':msgErreur(e);
-    MSG.messages=[]; MSG.total=0;
-    if(TAB==='support'||TAB==='accueil') render();
-  });
-}
-
 /* ═══ RENDU ═══ */
 /* Le contenu d'un onglet remplaçait l'autre d'un coup : rien ne disait d'où on venait.
    L'API de transition de vue du navigateur croise les deux états — c'est elle qui fait le
@@ -5766,7 +5799,7 @@ function sousOnglets(vue,segs){
   if(ENT.sel&&vue==='entreprises') return '';   /* dans la fiche d'une entreprise, on n'est plus dans la liste */
   return '<div class="sous-onglets">'+teteListe('','Choisir l’écran',segs,SOUS[vue],'sousOnglet(\''+vue+'\',')+'</div>';
 }
-function sousOnglet(vue,s){ SOUS[vue]=s;
+function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
   if(s==='connexions'&&!CNX.loaded) chargerConnexions();
   if(s==='comptes'&&!CS.loaded) chargerComptesSite();
   if(s==='devisia'&&!DIA.loaded) chargerDevisIA();
@@ -5775,15 +5808,18 @@ function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
-  else if(TAB==='surveillance') v.innerHTML=vueSurveillance();
+  else if(TAB==='surveillance'&&APP==='messages') v.innerHTML=sousOnglets('survmsg',[['apps','Incidents'],['service','Service']])+(SOUS.survmsg==='service'?vueServiceMsg():survAvert()+vueSurveillance());
+  else if(TAB==='surveillance') v.innerHTML=survAvert()+vueSurveillance();
   else if(TAB==='support') v.innerHTML=vueSupport();
   else if(TAB==='demandes') v.innerHTML=vueDemandes();
-  else if(TAB==='entreprises') v.innerHTML=(APP==='messages')?vueEntreprisesMsg():(sousOnglets('entreprises',[['liste','Entreprises'],['comptes','Comptes du site'],['connexions','Connexions']])+(SOUS.entreprises==='connexions'?vueConnexions():SOUS.entreprises==='comptes'?vueComptesSite():vueEntreprises()));
+  else if(TAB==='comptes') v.innerHTML=vueComptesMsg();
+  else if(TAB==='entreprises') v.innerHTML=(APP==='messages')?(sousOnglets('entreprisesmsg',[['espaces','Espaces d’OP MESSAGES'],['gestion','Depuis OP GESTION']])+(SOUS.entreprisesmsg==='gestion'?vueEntreprisesMsg():vueEspacesMsg())):(sousOnglets('entreprises',[['liste','Entreprises'],['comptes','Comptes du site'],['connexions','Connexions']])+(SOUS.entreprises==='connexions'?vueConnexions():SOUS.entreprises==='comptes'?vueComptesSite():vueEntreprises()));
+  else if(TAB==='abonnements'&&APP==='messages') v.innerHTML=vueAbonnementsMsg();
   else if(TAB==='abonnements') v.innerHTML=sousOnglets('abonnements',[['abos','Abonnements'],['devisia','Devis IA']])+(SOUS.abonnements==='devisia'?vueDevisIA():vueAbonnements());
-  else if(TAB==='essais') v.innerHTML=vueEssais();
-  else if(TAB==='donnees') v.innerHTML=vueDonnees();
-  else if(TAB==='equipe') v.innerHTML=vueEquipe();
-  else if(TAB==='journal') v.innerHTML=vueJournal();
+  else if(TAB==='essais') v.innerHTML=groupeOnglets('essais')+vueEssais();
+  else if(TAB==='donnees') v.innerHTML=groupeOnglets('donnees')+vueDonnees();
+  else if(TAB==='equipe') v.innerHTML=groupeOnglets('equipe')+vueEquipe();
+  else if(TAB==='journal') v.innerHTML=groupeOnglets('journal')+vueJournal();
   if(v.classList.contains('entre')) compterKpi(v);
   /* ICI et pas dans render() : renderAnime() appelle renderVue() directement, sans passer par
      render(). Accroché à render(), le pliage ne s'appliquait donc jamais lors d'un changement
@@ -5826,6 +5862,12 @@ function incOuverts(){ return incDeLaConsole().filter(function(i){ var st=i.stat
 function incTitre(i){ return String(i.message||i.origine||i.categorie||'Incident').split('\n')[0].slice(0,120); }
 function entNom(i){ var e=(i.entreprises||[])[0]; return (e&&(e.nom||e.entreprise))||'—'; }
 function paieOk(p){ var s=String(p.statut||'').toLowerCase(); return s==='reussi'||s==='paye'||s==='succeeded'||s==='paid'; }
+/* v2.88 — un ÉCHEC est un prélèvement refusé (`echec`), pas tout ce qui n'est pas payé : une facture ouverte (pas encore
+   tentée), annulée par nous ou d'un autre état s'affichait « Paiement refusé » (relecture du 17 octobre 2026 : 2 faux sur 3). */
+function paieEchec(p){ return String((p&&p.statut)||'').toLowerCase()==='echec'; }
+/* Les chiffres de Stripe sont-ils LUS ? Un Stripe qui ne répond pas renvoie des listes vides avec `erreur` — les afficher
+   telles quelles écrivait « 0 € » et « pas encore payé » partout. */
+function aboFiable(){ return ABO.loaded&&ABO.configured&&!ABO.videFaute; }
 
 /* ══════════ 1. ACCUEIL ══════════ */
 function vueAccueil(){
@@ -5838,7 +5880,7 @@ function vueAccueil(){
   var hautes=incOuverts().filter(function(i){ return gravite(i)==='haute'; });
   var neufs=incOuverts().filter(function(i){ return (i.statut||'nouveau')==='nouveau' && gravite(i)!=='haute'; });
   var tousLus=(MSG.messages||[]).filter(function(m){ return !m.lu; });
-  var tousImp=(ABO.paiements||[]).filter(function(p){ return !paieOk(p); });
+  var tousImp=(ABO.paiements||[]).filter(paieEchec);
   var nonLus=tousLus.slice(0,4), impayes=tousImp.slice(0,3);
   var demAT=CLI.loaded?demandesATraiter():[];
   var n=hautes.length+neufs.length+nonLus.length+impayes.length+demAT.length;
@@ -5888,9 +5930,18 @@ function vueAccueil(){
       l2:'<b>'+esc(fmtEur(p.montant))+'</b> · '+esc(fmtJour(p.date)),
       past:{c:'p-rouge',t:'Échec'},action:"allerImpayes()"}); })});
 
+  /* v2.88 (relecture du 17 octobre 2026, mesuré) — une boîte mail en panne REMPLAÇAIT les urgences, les demandes et
+     les impayés par « La surveillance ne répond pas », et « Rien en attente » s'affichait avant que les demandes, Stripe
+     et le courrier aient répondu. Chaque source dit sa panne à SA place ; le vide n'est dit que quand tout a été lu. */
+  var pannes=[];
+  if(CLI.err) pannes.push(ligneAc({ton:'ambre',ico:'demandes',t1:'Les demandes ne répondent pas',titre:'Demandes',l2:esc(CLI.err),action:"chargerClients()"}));
+  if(ABO.loaded&&ABO.configured&&ABO.videFaute) pannes.push(ligneAc({ton:'ambre',ico:'abonnements',t1:'Stripe ne répond pas',titre:'Stripe',l2:esc(ABO.stripeErr||'les paiements n’ont pas pu être lus'),action:"chargerAbos()"}));
+  if(MSG.err) pannes.push(ligneAc({ton:'ambre',ico:'support',t1:'Le courrier ne répond pas',titre:'Courrier',l2:esc(MSG.err),action:"setTab('support')"}));
+  if(pannes.length) G.push({titre:'Ce qui n’a pas pu être lu',n:pannes.length,tot:pannes.length,bloc:'reg-bloc',sous:'Ces chiffres manquent à l’accueil : le reste est à jour.',opt:false,l:pannes});
+  n=G.reduce(function(t,g){ return g.titre==='Ce qui n’a pas pu être lu'?t:t+(g.tot||0); },0);
   var prio;
-  if(INC.err||MSG.err) prio=acErr('La surveillance ne répond pas',INC.err||MSG.err,'chargerIncidents()');
-  else if(!INC.loaded) prio=acSquel();
+  if(INC.err) prio=acErr('La surveillance ne répond pas',INC.err,'chargerIncidents()');
+  else if(!INC.loaded||!CLI.loaded||!ABO.loaded) prio=acSquel();
   else if(!G.length) prio=videTour('','Rien en attente. Les demandes du site, les incidents signalés par les applications, les courriels non lus et les prélèvements refusés arrivent ici.',
     '<button type="button" class="btn-fant" onclick="setTab(\'surveillance\')">Ouvrir la surveillance</button>',false);
   else prio='<div class="reg">'+G.map(acGroupe).join('')+'</div>';
@@ -5904,9 +5955,9 @@ function vueAccueil(){
     {t:'Messages non lus',v:MSG.nonLus,s:MSG.boites.length+' boîte'+(MSG.boites.length>1?'s':'')+' reliée'+(MSG.boites.length>1?'s':''),go:"setTab('support')"},
     /* v2.87 : le chiffre est celui de l'écran où il mène — « 1 entreprise cliente » ouvrait une liste de 0 (comptes du
        site contre annuaire). Une demande sans espace se compte dans « Demandes », plus ici. */
-    {t:'Entreprises clientes',v:ENT.loaded?((ENT.stats&&ENT.stats.total)||0):(CLI.total||CLI.list.length),s:nbEntSurveillees()+' surveillée'+(nbEntSurveillees()>1?'s':''),go:"setTab('entreprises')"},
-    {t:'Revenu mensuel',v:ABO.configured?fmtEur(ABO.mrr):'—',mini:true,
-      s:ABO.configured?(ABO.actifs+' abonnement'+(ABO.actifs>1?'s':'')+' actif'+(ABO.actifs>1?'s':'')):'Stripe n’est pas relié',go:"setTab('abonnements')"}
+    {t:'Entreprises clientes',v:(ENT.loaded&&!ENT.err)?((ENT.stats&&ENT.stats.total)||0):'—',s:nbEntSurveillees()+' surveillée'+(nbEntSurveillees()>1?'s':''),go:"setTab('entreprises')"},
+    {t:'Revenu mensuel',v:aboFiable()?fmtEur(ABO.mrr):'—',mini:true,
+      s:!ABO.loaded?'lecture de Stripe…':!ABO.configured?'Stripe n’est pas relié':ABO.videFaute?'Stripe ne répond pas':(ABO.actifs+' abonnement'+(ABO.actifs>1?'s':'')+' actif'+(ABO.actifs>1?'s':'')+(ABO.perime?' · chiffres du '+fmtJour(ABO.perime):'')),go:"setTab('abonnements')"}
   ].map(function(x){
     return '<button type="button" class="reg-l" onclick="'+x.go+'">'+
       '<span class="reg-txt"><span class="reg-t1">'+x.t+'</span>'+
@@ -5920,7 +5971,7 @@ function vueAccueil(){
   if(ABO.err) pay=acErr('Les abonnements ne répondent pas',ABO.err,'chargerAbos()');
   else if(!ABO.loaded) pay=acSquel();
   else pay=(ABO.paiements||[]).slice(0,4).map(function(p){
-    var ok=paieOk(p);
+    var ok=!paieEchec(p);
     return '<button type="button" class="reg-l" onclick="'+(ok?"setTab('abonnements')":'allerImpayes()')+'">'+
       '<span class="reg-txt"><span class="reg-t1">'+esc(p.clientNom||p.clientEmail||'Client')+'</span>'+
       '<span class="reg-l2">'+esc(fmtJour(p.date))+'</span>'+
@@ -5930,7 +5981,7 @@ function vueAccueil(){
       '<span class="reg-fin">'+(ok?'':'<span class="past p-rouge">Échec</span>')+
       '<span class="ac-n mini">'+esc(fmtEur(p.montant))+'</span>'+
       '<span class="reg-chev" aria-hidden="true">›</span></span></button>';
-  }).join('')||videTour('',(ABO.configured?'Aucun paiement enregistré ces derniers jours.':'Stripe n’est pas relié au serveur : aucun paiement ne remonte.'),'',false);
+  }).join('')||videTour('',(!ABO.configured?'Stripe n’est pas relié au serveur : aucun paiement ne remonte.':ABO.videFaute?'Stripe ne répond pas : les paiements n’ont pas pu être lus.':'Aucun paiement enregistré ces derniers jours.'),'',false);
 
   /* chargerJournal() pose JR.err = « Réservé au patron… » quand MYROLE n'est pas patron, et
      vueAccueil() ne l'a jamais lu : un collaborateur lisait « Aucune activité enregistrée »
@@ -5966,9 +6017,10 @@ function vueAccueil(){
           '<div class="reg-bloc">'+pay+'</div>'+
           '<button type="button" class="ac-plus" onclick="setTab(\'abonnements\')">Tout voir →</button></div>'+
       '</div>'+
-      '<div class="ac-bande"><div class="reg-g"><div class="reg-tete"><span class="reg-nom">Activité de la console</span></div>'+
+      /* v2.88 : au collaborateur, cette bande ne disait que « Réservé au patron » et menait à un écran fermé */
+      (MYROLE==='patron'?'<div class="ac-bande"><div class="reg-g"><div class="reg-tete"><span class="reg-nom">Activité de la console</span></div>'+
         '<div class="ac-jr">'+act+'</div>'+
-        '<button type="button" class="ac-plus" onclick="setTab(\'journal\')">Ouvrir le journal →</button></div></div>'+
+        '<button type="button" class="ac-plus" onclick="setTab(\'journal\')">Ouvrir le journal →</button></div></div>':'')+
     '</div>';
 }
 /* Un groupe de l'accueil. Un groupe vide n'arrive jamais ici : la règle du socle veut qu'un
@@ -5981,12 +6033,19 @@ function vueAccueil(){
    Une Tour vide et honnête vaut mieux qu'une Tour pleine de zéros qui ressemblent à des mesures. */
 function vueAccueilMsg(){
   var jour=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); jour=jour.charAt(0).toUpperCase()+jour.slice(1);
-  var ouvertes=(ENT.liste||[]).filter(function(o){ return o&&o.opMessages; }).length;
-  var inc=incOuverts().length;
+  /* v2.88 — un chiffre qu'on n'a pas pu lire s'écrit « — », jamais « 0 » (relecture du 17 octobre 2026 : « 0 incident »
+     s'affichait pendant que la surveillance était injoignable) */
+  var ouvertes=(ENT.loaded&&!ENT.err)?(ENT.liste||[]).filter(function(o){ return o&&o.opMessages&&!o.technique; }).length:'—';
+  var inc=(INC.loaded&&!INC.err)?incOuverts().length:'—';
+  /* ce que dit le service lui-même, par le relais (v2.88) */
+  var sa=OPMA.sante; if(!sa||sa.inst!==opmaInstance()){ opmaLire('sante','sante',{},false,true); sa=OPMA.sante; }
+  var dc=(sa.loaded&&!sa.err&&sa.d&&sa.d.decompte)||null;
+  var nComptes=dc?Object.keys(dc.comptes||{}).reduce(function(n,k){ return n+((dc.comptes[k]||{}).actifs||0); },0):'—';
+  var nEspaces=dc&&dc.espaces!=null?dc.espaces:'—';
   var d=OPM.d||{}, enTravaux=!(OPM.loaded&&d&&d.enTravaux===false);
   var etat='';
   if(!OPM.loaded) etat='<div class="carte"><div class="squel" style="height:14px;width:60%">&nbsp;</div><div class="squel" style="height:12px;width:90%;margin-top:8px">&nbsp;</div></div>';
-  else if(OPM.err) etat='<div class="carte"><div class="ttl-carte">État d’OP MESSAGES</div><div style="color:var(--muted);font-size:13px">'+esc(OPM.err)+'</div></div>';
+  else if(OPM.err) etat='<div class="carte"><div class="ttl-carte">État d’OP MESSAGES</div><div style="color:var(--muted);font-size:13px">'+esc(OPM.err)+'</div><div style="margin-top:10px"><button type="button" class="btn-fant" onclick="chargerEtatMessages()">Réessayer</button></div></div>';
   else if(enTravaux) etat='<div class="carte" style="border-color:var(--app-brd)"><div class="ttl-carte"><span class="past p-ambre">Bêta</span> OP MESSAGES — la version publique n’est pas encore ouverte'+(d.depuis?' <span class="n">depuis le '+esc(d.depuis)+'</span>':'')+'</div>'+
       /* v2.81 — plus la note du serveur : elle parlait encore de Firebase (« bascule vers le projet OP MESSAGES »), et Justin l'a lue le 2 octobre 2026 */
       /* v2.85 — le serveur d'OP MESSAGES EXISTE (la bêta tourne sur msg-beta.teamop.fr) : la carte ne dit plus qu'il reste à l'installer */
@@ -5998,10 +6057,13 @@ function vueAccueilMsg(){
   else etat='<div class="carte"><div class="ttl-carte"><span class="past p-vert">En service</span> OP MESSAGES'+(d.projet?' <span class="n">sur '+esc(d.projet)+'</span>':'')+'</div></div>';
   var tuile=function(l,n,go,cls){ return '<button type="button" class="kpi clic '+(cls||'')+'" onclick="'+go+'"><div class="l">'+l+'</div><div class="n">'+n+'</div></button>'; };
   var kpis='<div class="grille-kpi rang" style="margin:0 0 20px">'+
-    tuile('Entreprises ouvertes à OP MESSAGES',ouvertes,"setTab('entreprises')")+
-    tuile('Incidents OP MESSAGES ouverts',inc,"setTab('surveillance')",inc?'ko':'')+
+    tuile('Comptes sur OP MESSAGES',nComptes,"setTab('comptes')")+
+    tuile('Espaces sur OP MESSAGES',nEspaces,"SOUS.entreprisesmsg='espaces';setTab('entreprises')")+
+    tuile('Entreprises d’OP GESTION ouvertes à OP MESSAGES',ouvertes,"SOUS.entreprisesmsg='gestion';setTab('entreprises')")+
+    tuile('Incidents OP MESSAGES ouverts',inc,"setTab('surveillance')",(inc&&inc!=='—')?'ko':'')+
     /* v2.85 — le courrier (support@, controle@) est celui d'OP GESTION : il n'a plus de tuile ici */
-    tuile('Accès à la bêta',btDeLaConsole().filter(function(c){ return c.actif!==false; }).length,"setTab('essais')")+'</div>';
+    (vuePermise('essais')?tuile('Accès à la bêta',(BT.loaded&&!BT.err)?btDeLaConsole().filter(function(c){ return c.actif!==false; }).length:'—',"setTab('essais')"):'')+'</div>'+
+    (sa.loaded&&sa.err?'<div class="note" style="margin:-8px 0 18px">'+esc(sa.err)+'</div>':'');
   var sup='';
   return '<div class="page-tete"><div class="page-txt"><div class="tt-section">'+esc(vueInfo('accueil').section+' · '+vueInfo('accueil').lib)+'</div><div class="ttl-page">Bonjour '+esc(MYNOM)+'</div><div class="desc">'+jour+' · Tour OP MESSAGES</div></div></div>'+etat+'<div style="height:16px"></div>'+kpis+'<div class="reg">'+sup+'</div>';
 }
@@ -6009,7 +6071,7 @@ function opmBascule(){
   var projet=prompt('Nom du serveur d’OP MESSAGES (ex. msg.teamop.fr) :',''); if(!projet) return;
   if(!confirm('Déclarer OP MESSAGES en service sur « '+projet+' » ?\n\nÀ ne faire QU’APRÈS l’installation du serveur et la publication de messages.html : l’accueil cessera d’afficher « en travaux ».')) return;
   apiPost('/api/monitor/messages/etat',{enTravaux:false,projet:projet}).then(function(r){ if(!(r&&r.ok)){ toast((r&&r.d&&r.d.error)||'Refusé'); return; }
-    toast('OP MESSAGES déclaré en service'); JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a déclaré OP MESSAGES en service ('+projet+')'}); chargerEtatMessages(); }).catch(function(){ toast('Serveur injoignable'); });
+    toast('OP MESSAGES déclaré en service'); chargerEtatMessages(); }).catch(function(){ toast('Serveur injoignable'); });
 }
 /* Le seul écran ACTIONNABLE d'OP MESSAGES aujourd'hui : qui y est ouvert, et l'ouvrir ou le fermer. */
 function vueEntreprisesMsg(){
@@ -6026,13 +6088,169 @@ function vueEntreprisesMsg(){
       '<span class="reg-l2">'+(ouv?'<span class="past p-app messages">OP MESSAGES ouvert</span>':'<span class="past p-gris">fermé</span>')+(o.suspendu?' <span class="past p-rouge">⏸ Suspendue</span>':'')+(o.email?' · '+esc(o.email):'')+'</span>'+
       (o.slug?'<span class="reg-l3 mono">'+esc(o.slug)+'</span>':'')+'</span>'+
       '<span class="reg-fin">'+(MYROLE==='patron'?'<button type="button" class="btn-fant'+(ouv?' danger':' teinte')+'" onclick="tourApps(\''+jsq(o.slug||'')+'\',\''+jsq(nm)+'\','+(ouv?'false':'true')+')">'+(ouv?'Fermer':'Ouvrir')+'</button>':'')+'</span></div>'; };
-  var rech='<div class="rech rech-seule">'+svg('loupe',16)+'<input placeholder="Rechercher une entreprise…" value="'+esc(ENT.q||'')+'" oninput="entQ(this.value)"></div>';
+  var rech='<div class="rech rech-seule">'+svg('loupe',16)+'<input placeholder="Rechercher une entreprise…" value="'+esc(ENT.q||'')+'" id="ent-q" oninput="entQ(this.value)"></div>';
   var kpi='<div class="grille-kpi simple" style="margin-bottom:16px"><div class="kpi"><div class="l">ouvertes à OP MESSAGES</div><div class="n">'+tous.filter(function(o){ return o.opMessages; }).length+'</div></div><div class="kpi"><div class="l">entreprises connues</div><div class="n">'+tous.length+'</div></div></div>';
   var g1='<div class="reg-g reg-g-fixe"><div class="reg-tete"><span class="reg-nom">Ouvertes à OP MESSAGES</span><span class="reg-n">'+ouvertes.length+'</span></div>'+
     (ouvertes.length?'<div class="reg-cli">'+ouvertes.map(function(o){ return ligne(o,true); }).join('')+'</div>':videTour('Aucune entreprise ouverte à OP MESSAGES','Ouvrir une entreprise ci-dessous ajoute la rangée SUITE dans son OP GESTION.','','messages'))+'</div>';
   var g2='<div class="reg-g"><div class="reg-tete"><span class="reg-nom">Toutes les autres</span><span class="reg-n">'+autres.length+'</span><div class="reg-sous">Fermées à OP MESSAGES. Le patron peut les ouvrir.</div></div>'+
     (autres.length?'<div class="reg-bloc">'+autres.map(function(o){ return ligne(o,false); }).join('')+'</div>':videTour('','Rien d’autre : toutes les entreprises connues sont déjà ouvertes à OP MESSAGES.','',false))+'</div>';
   return tete+kpi+rech+'<div class="reg">'+g1+g2+'</div>';
+}
+/* ══ LA CONSOLE OP MESSAGES LIT OP MESSAGES (v2.88, 17 octobre 2026) ══
+   Justin : « je veux que la Tour contrôle OP GESTION, et l'autre côté contrôle OP MESSAGES ; bien tout séparé ». Jusqu'ici la
+   console OP MESSAGES ne montrait que ce qu'OP GESTION savait d'elle (les entreprises d'OP GESTION ouvertes à la rangée SUITE).
+   Elle lit désormais le service lui-même, par le relais d'api.teamop.fr (`/api/monitor/messages/admin/*`, server/index.js) :
+   ses comptes de personnes, ses espaces, ses abonnements, son état et son journal. Des LECTURES : rien ne s'écrit chez
+   OP MESSAGES depuis la Tour (le contrat de `server-msg/admin.js` n'en ouvre aucune).
+   ⛔ Un relais qui ne répond pas se DIT (sans secret, secret refusé, service injoignable) — jamais « aucun compte ». */
+var OPMA={inst:null,cache:{},comptes:null,abos:null,esp:null,f:{origine:'',etat:'actif'}};
+function opmaInstance(){
+  if(OPMA.inst) return OPMA.inst;
+  try{ var x=localStorage.getItem('tour_opm_instance'); if(x==='beta'||x==='prod') return (OPMA.inst=x); }catch(e){}
+  var d=OPM.d||{}; return (OPM.loaded&&d.enTravaux===false)?'prod':'beta';   /* la publique n'est pas ouverte : la bêta d'abord */
+}
+function opmaChoisir(i){ if(i!=='beta'&&i!=='prod') return; OPMA.inst=i; try{ localStorage.setItem('tour_opm_instance',i); }catch(e){}
+  OPMA.cache={}; OPMA.comptes=null; OPMA.abos=null; OPMA.esp=null; render(); }
+function opmaBascule(){ var i=opmaInstance();
+  return '<div class="opma-inst">'+teteListe('','Quelle instance d’OP MESSAGES',[['prod','Publique'],['beta','Bêta']],i,'opmaChoisir(')+'</div>'; }
+/* Le message d'un relais qui refuse, dit pour le patron : ce qu'il voit, et le geste qui répare. */
+function opmaErreur(e){
+  var c=String((e&&e.corps)||'');
+  if(/relais non configuré/.test(c)) return 'Le relais vers OP MESSAGES ('+(opmaInstance()==='beta'?'bêta':'publique')+') n’est pas configuré. Sur le VPS : node /opt/teamop/repo/server/configurer-relais-messages.js '+opmaInstance()+' — avec la même valeur que côté OP MESSAGES (configurer-admin.js).';
+  if(e&&e.status===502&&/refuse/.test(c)) return 'OP MESSAGES refuse le relais : le secret n’est pas le même des deux côtés, ou son administration n’est pas ouverte. Comparer les empreintes courtes des deux outils (--verifier).';
+  if(e&&(e.status===502||e.status===504)) return 'OP MESSAGES ('+(opmaInstance()==='beta'?'bêta':'publique')+') ne répond pas en boucle locale'+(c?' — '+c:'')+'.';
+  if(e&&e.status===403) return msgErreur(e);
+  return c||INJOIGNABLE;
+}
+/* Une lecture, gardée par instance + route + paramètres. `apres` (la page suivante) AJOUTE à la liste au lieu de la remplacer. */
+function opmaLire(cle,route,params,suite,sansRendu){
+  var inst=opmaInstance(), qs='instance='+inst;
+  Object.keys(params||{}).forEach(function(k){ if(params[k]) qs+='&'+k+'='+encodeURIComponent(params[k]); });
+  var etat=OPMA[cle]&&OPMA[cle].inst===inst&&OPMA[cle].qs===qs.replace(/&apres=[^&]*/,'')&&suite?OPMA[cle]:{inst:inst,qs:qs.replace(/&apres=[^&]*/,''),items:[],loaded:false,err:'',total:0,suivant:null,d:null};
+  etat.busy=true; if(!suite){ etat.loaded=false; etat.err=''; } OPMA[cle]=etat; if(!sansRendu) opmaRendre();   /* appelée DEPUIS un rendu : elle ne redessine pas sous lui */
+  apiGet('/api/monitor/messages/admin/'+route+'?'+qs).then(function(r){
+    if(OPMA[cle]!==etat) return;   /* une autre instance, un autre filtre : cette réponse ne vaut plus */
+    etat.busy=false; if(!r) return;
+    var d=r.donnees||{}; etat.d=d; etat.total=d.total||0; etat.suivant=d.suivant||null;
+    etat.items=(suite?etat.items:[]).concat(Array.isArray(d.items)?d.items:[]); etat.loaded=true; etat.err=''; opmaRendre();
+  }).catch(function(e){ if(OPMA[cle]!==etat) return; etat.busy=false; etat.loaded=true; etat.err=opmaErreur(e); opmaRendre(); });
+}
+/* on ne redessine que l'écran qui lit OP MESSAGES : une réponse qui arrive ailleurs n'efface pas ce qu'on y tape */
+function opmaRendre(){ if(APP==='messages'&&['accueil','comptes','entreprises','abonnements','surveillance'].indexOf(TAB)>=0) render(); }
+function opmaDate(ms){ return ms?fmtJour(ms):'—'; }
+var OPMA_FORMULE={perso:'Perso',pro:'Pro',impaye:'Impayé'};
+function opmaFormule(f){ if(!f) return '<span class="past p-gris">—</span>';
+  var l=OPMA_FORMULE[f.formule]||f.formule||'?';
+  return '<span class="past '+(f.formule==='impaye'?'p-rouge':f.formule==='pro'?'p-vert':'p-gris')+'"'+(f.motif?' title="'+esc(f.motif)+'"':'')+'>'+esc(l)+(f.sursis_jusqua?' · sursis au '+esc(opmaDate(f.sursis_jusqua)):'')+'</span>'; }
+function opmaPlus(cle,route,params){ var e=OPMA[cle]; if(!e||!e.suivant||e.busy) return;
+  opmaLire(cle,route,Object.assign({},params,{apres:e.suivant}),true); }
+function opmaPied(e,cle,fn){
+  if(e.busy&&e.loaded) return '<div class="vide"><p>Chargement de la suite…</p></div>';
+  return e.suivant?'<button type="button" class="ac-plus" onclick="'+fn+'">Voir les suivants ('+(e.total-e.items.length)+' de plus) →</button>':''; }
+
+/* ── Comptes : les PERSONNES d'OP MESSAGES ── */
+var OPMA_ORIG={courriel:'Adresse e-mail',telephone:'Téléphone',beta:'Accès bêta'};
+function opmaComptesParams(){ return {limite:'50',origine:OPMA.f.origine,etat:OPMA.f.etat}; }
+function opmaFiltre(k,v){ OPMA.f[k]=v; opmaLire('comptes','comptes',opmaComptesParams()); }
+function vueComptesMsg(){
+  var tete=enTete('Comptes','Les comptes de personnes d’OP MESSAGES, lus sur son propre serveur. Un numéro de téléphone ne sort jamais : un compte par téléphone se reconnaît à son identifiant public (Prénom#1234).',
+    '<button type="button" class="btn-fant" onclick="opmaLire(\'comptes\',\'comptes\',opmaComptesParams())">↻ Actualiser</button>');
+  var e=OPMA.comptes;
+  if(!e||e.inst!==opmaInstance()){ opmaLire('comptes','comptes',opmaComptesParams(),false,true); e=OPMA.comptes; }
+  var filtres=teteListe('','Mode d’inscription',[['','Tous'],['courriel','E-mail'],['telephone','Téléphone'],['beta','Bêta']],OPMA.f.origine,'opmaFiltre(\'origine\',')+
+    teteListe('','État du compte',[['actif','Actifs'],['supprime','Supprimés'],['tous','Tous']],OPMA.f.etat,'opmaFiltre(\'etat\',');
+  var corps;
+  if(!e.loaded) corps=squelListe(4);
+  else if(e.err) corps=acErr('Les comptes d’OP MESSAGES ne répondent pas',e.err,"opmaLire('comptes','comptes',opmaComptesParams())");
+  else if(!e.items.length) corps=videTour('Aucun compte'+(OPMA.f.origine||OPMA.f.etat!=='actif'?' pour ce filtre':''),'Les comptes arrivent dès qu’une personne s’inscrit sur OP MESSAGES.','',false);
+  else corps='<div class="reg-bloc">'+e.items.map(function(c){
+      var nom=c.ident||(c.etat==='supprime'?'(compte supprimé)':'(sans identifiant)');
+      var etat=c.etat==='actif'?'':c.etat==='suppression_programmee'?'<span class="past p-ambre">suppression le '+esc(opmaDate(c.suppression_le))+'</span>':'<span class="past p-gris">supprimé</span>';
+      return '<div class="reg-l inerte"><span class="reg-av sans">'+esc(sigle(c.ident||'?'))+'</span>'+
+        '<span class="reg-txt"><span class="reg-t1">'+esc(nom)+'</span>'+
+        '<span class="reg-l2">'+esc(OPMA_ORIG[c.origine]||c.origine||'')+(c.email?' · <span class="mono">'+esc(c.email)+'</span>':'')+(c.verifie===false&&c.origine==='courriel'?' · adresse non confirmée':'')+'</span>'+
+        '<span class="reg-l3">créé le '+esc(opmaDate(c.cree))+' · '+(c.derniere_activite?'actif le '+esc(opmaDate(c.derniere_activite)):'jamais connecté')+' · '+esc(nMot(c.espaces||0,'espace','espaces'))+'</span></span>'+
+        '<span class="reg-fin">'+opmaFormule(c.formule)+' '+etat+'</span></div>'; }).join('')+'</div>'+
+      opmaPied(e,'comptes',"opmaPlus('comptes','comptes',opmaComptesParams())");
+  var compte=e.loaded&&!e.err?'<div class="opma-n">'+esc(nMot(e.total,'compte','comptes'))+(e.d&&e.d.tout_ouvert?' · <span class="past p-ambre">tout ouvert sur cette instance</span>':'')+'</div>':'';
+  return tete+opmaBascule()+'<div class="opma-filtres">'+filtres+'</div>'+compte+corps;
+}
+
+/* ── Espaces : les ENTREPRISES d'OP MESSAGES (le service), à côté de celles d'OP GESTION ouvertes à la rangée SUITE ── */
+function vueEspacesMsg(){
+  var tete=enTete('Espaces d’OP MESSAGES','Les espaces créés sur OP MESSAGES : leur nom, leurs membres, leurs canaux et leur abonnement. Un nom illisible veut dire que son chiffré ne s’ouvre pas — le service le compte.',
+    '<button type="button" class="btn-fant" onclick="opmaLire(\'esp\',\'espaces\',{limite:\'50\'})">↻ Actualiser</button>');
+  var e=OPMA.esp;
+  if(!e||e.inst!==opmaInstance()){ opmaLire('esp','espaces',{limite:'50'},false,true); e=OPMA.esp; }
+  var corps;
+  if(!e.loaded) corps=squelListe(3);
+  else if(e.err) corps=acErr('Les espaces d’OP MESSAGES ne répondent pas',e.err,"opmaLire('esp','espaces',{limite:'50'})");
+  else if(!e.items.length) corps=videTour('Aucun espace','Un espace naît quand une personne crée son entreprise dans OP MESSAGES.','',false);
+  else corps='<div class="reg-bloc">'+e.items.map(function(s){ var a=s.abonnement;
+      return '<div class="reg-l inerte"><span class="reg-av'+(s.nom?'':' sans')+'">'+esc(sigle(s.nom||'?'))+'</span>'+
+        '<span class="reg-txt"><span class="reg-t1">'+esc(s.nom||'(nom illisible)')+'</span>'+
+        '<span class="reg-l2">'+esc(nMot(s.membres||0,'membre','membres'))+' · '+esc(nMot(s.canaux||0,'canal','canaux'))+' · créé le '+esc(opmaDate(s.cree))+'</span>'+
+        (a?'<span class="reg-l3">abonnement '+esc(aboPast(a.statut)[0].toLowerCase())+' · '+esc(nMot(a.places||0,'place','places'))+(a.fin_periode?' · jusqu’au '+esc(opmaDate(a.fin_periode)):'')+(a.annule?' · s’arrête à la fin de la période':'')+'</span>':'<span class="reg-l3">sans abonnement</span>')+'</span>'+
+        '<span class="reg-fin">'+opmaFormule(s.formule)+(s.places_depassees?' <span class="past p-ambre">places dépassées</span>':'')+'</span></div>'; }).join('')+'</div>'+
+      opmaPied(e,'esp',"opmaPlus('esp','espaces',{limite:'50'})");
+  return tete+opmaBascule()+(e.loaded&&!e.err?'<div class="opma-n">'+esc(nMot(e.total,'espace','espaces'))+'</div>':'')+corps;
+}
+
+/* ── Abonnements d'OP MESSAGES : la facturation du service, séparée de celle d'OP GESTION ── */
+function vueAbonnementsMsg(){
+  var tete=enTete('Abonnements','Les abonnements d’OP MESSAGES — sa propre facturation, séparée de celle d’OP GESTION. Aucun identifiant Stripe ne sort du service : on voit qu’un abonnement existe, son statut, ses places.',
+    '<button type="button" class="btn-fant" onclick="opmaLire(\'abos\',\'abonnements\',{limite:\'50\'})">↻ Actualiser</button>');
+  var e=OPMA.abos;
+  if(!e||e.inst!==opmaInstance()){ opmaLire('abos','abonnements',{limite:'50'},false,true); e=OPMA.abos; }
+  if(!e.loaded) return tete+opmaBascule()+acSquel();
+  if(e.err) return tete+opmaBascule()+acErr('Les abonnements d’OP MESSAGES ne répondent pas',e.err,"opmaLire('abos','abonnements',{limite:'50'})");
+  var d=e.d||{}, f=d.facturation||{}, ps=(d.resume&&d.resume.par_statut)||{};
+  var kpis='<div class="grille-kpi rang" style="margin:0 0 18px">'+Object.keys(ps).map(function(st){ var x=ps[st]||{};
+      return '<div class="kpi"><div class="l">'+esc(aboPast(st)[0])+'</div><div class="n">'+(x.n||0)+'</div><div class="l">'+esc(nMot(x.places||0,'place','places'))+'</div></div>'; }).join('')+
+    (Object.keys(ps).length?'':'<div class="kpi"><div class="l">Abonnements</div><div class="n">0</div></div>')+'</div>';
+  var etat='<div class="carte" style="margin-bottom:16px"><div class="ttl-carte">Facturation</div><div class="kv">'+
+    [['Ouverte',f.ouvert?'oui':'non'],['Mode',esc(f.mode||'—')],['Dernière lecture de Stripe',f.derniere_lecture?esc(fmtDate(f.derniere_lecture)):'—'],
+     ['Stripe en panne depuis',f.stripe_echec_min?esc(nMot(f.stripe_echec_min,'minute','minutes')):'—']].map(function(p){ return '<div><span class="k">'+p[0]+'</span><span class="v">'+p[1]+'</span></div>'; }).join('')+'</div>'+
+    (d.resume&&d.resume.perso_plus&&d.resume.perso_plus.a_annuler?'<div class="note">⚠️ '+esc(nMot(d.resume.perso_plus.a_annuler,'abonnement','abonnements'))+' de l’ancien forfait « Perso+ » à résilier chez Stripe.</div>':'')+'</div>';
+  var liste=!e.items.length?videTour('Aucun abonnement','Ils arrivent dès qu’un espace s’abonne sur OP MESSAGES.','',false)
+    :'<div class="reg-bloc">'+e.items.map(function(a){ var p=aboPast(a.statut);
+      return '<div class="reg-l inerte"><span class="reg-av'+(a.nom?'':' sans')+'">'+esc(sigle(a.nom||'?'))+'</span>'+
+        '<span class="reg-txt"><span class="reg-t1">'+esc(a.nom||'(nom illisible)')+'</span>'+
+        '<span class="reg-l2">'+esc(nMot(a.places||0,'place','places'))+' pour '+esc(nMot(a.membres||0,'membre','membres'))+(a.fin_periode?' · période payée jusqu’au '+esc(opmaDate(a.fin_periode)):'')+'</span>'+
+        '<span class="reg-l3">'+(a.annule?'s’arrête à la fin de la période · ':'')+(a.impaye_depuis?'impayé depuis le '+esc(opmaDate(a.impaye_depuis))+' · ':'')+(a.paiement_en_attente?'paiement en attente · ':'')+(a.stripe?'chez Stripe':'hors Stripe')+'</span></span>'+
+        '<span class="reg-fin"><span class="past '+p[1]+'">'+esc(p[0])+'</span>'+(a.places_depassees?' <span class="past p-ambre">places dépassées</span>':'')+'</span></div>'; }).join('')+'</div>'+
+      opmaPied(e,'abos',"opmaPlus('abos','abonnements',{limite:'50'})");
+  return tete+opmaBascule()+kpis+etat+liste;
+}
+
+/* ── Le service : son état et son journal (la Surveillance d'OP MESSAGES, côté serveur) ── */
+function vueServiceMsg(){
+  var tete=enTete('Service','L’état du serveur d’OP MESSAGES et ce qu’il a journalisé depuis son démarrage — sans adresse IP, sans nom, sans texte de message (le service ne laisse sortir que sa liste blanche).',
+    '<button type="button" class="btn-fant" onclick="opmaLire(\'sante\',\'sante\',{});opmaLire(\'inc\',\'incidents\',{limite:\'100\'})">↻ Actualiser</button>');
+  var s=OPMA.sante, j=OPMA.inc;
+  if(!s||s.inst!==opmaInstance()){ opmaLire('sante','sante',{},false,true); s=OPMA.sante; }
+  if(!j||j.inst!==opmaInstance()){ opmaLire('inc','incidents',{limite:'100'},false,true); j=OPMA.inc; }
+  if(!s.loaded) return tete+opmaBascule()+acSquel();
+  if(s.err) return tete+opmaBascule()+acErr('OP MESSAGES ne répond pas',s.err,"opmaLire('sante','sante',{})");
+  var d=s.d||{}, b=d.base||{}, st=b.stats||{}, disq=d.disque||{}, adm=d.admin||{};
+  var kv=[['Instance',esc(d.instance||opmaInstance())],['Version',esc(String(d.version||'—'))+(d.sha?' · <span class="mono">'+esc(String(d.sha).slice(0,7))+'</span>':'')],
+    ['Démarré le',d.demarre_le?esc(fmtDate(d.demarre_le)):'—'],['Personnes',String(st.personnes!=null?st.personnes:'—')],['Conversations',String(st.conversations!=null?st.conversations:'—')],
+    ['Messages',String(st.messages!=null?st.messages:'—')],['Base',(b.fichier_mo!=null?esc(String(b.fichier_mo))+' Mo':'—')+(b.illisibles?' · <b>'+esc(nMot(b.illisibles,'élément illisible','éléments illisibles'))+'</b>':'')],
+    ['Disque libre',disq.libre_mo!=null?esc(String(disq.libre_mo))+' Mo'+(disq.bas?' · <b>bas</b>':''):'—'],
+    ['Relais refusés',Object.keys(adm.refus||{}).filter(function(k){ return adm.refus[k]; }).map(function(k){ return esc(k)+' '+adm.refus[k]; }).join(' · ')||'aucun']];
+  var etat='<div class="carte" style="margin-bottom:16px"><div class="ttl-carte">'+(disq.bas||b.illisibles?'<span class="past p-ambre">À regarder</span> ':'<span class="past p-vert">En service</span> ')+'OP MESSAGES</div><div class="kv">'+
+    kv.map(function(p){ return '<div><span class="k">'+p[0]+'</span><span class="v">'+p[1]+'</span></div>'; }).join('')+'</div></div>';
+  var journal;
+  if(!j.loaded) journal=squelListe(3);
+  else if(j.err) journal=acErr('Le journal du service ne répond pas',j.err,"opmaLire('inc','incidents',{limite:'100'})");
+  else { var jd=j.d||{}, l=jd.incidents||[], cpt=jd.compteurs||{};
+    var rangs=Object.keys(cpt).sort(function(a,b){ return (cpt[b].n||0)-(cpt[a].n||0); }).slice(0,12).map(function(k){ return '<span class="past '+(cpt[k].incidents?'p-ambre':'p-gris')+'">'+esc(k)+' '+(cpt[k].n||0)+'</span>'; }).join(' ');
+    journal='<div class="carte"><div class="ttl-carte">Journal du service <span class="n">depuis le '+esc(jd.depuis?fmtDate(jd.depuis):'démarrage')+'</span></div>'+
+      (rangs?'<div style="display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px">'+rangs+'</div>':'')+
+      (l.length?'<div class="reg-bloc">'+l.slice(0,60).map(function(x){ var det=Object.keys(x).filter(function(k){ return k!=='t'&&k!=='evt'; }).map(function(k){ return k+' : '+String(x[k]); }).join(' · ');
+        return '<div class="reg-l inerte"><span class="reg-txt"><span class="reg-t1 mono">'+esc(x.evt||'?')+'</span>'+(det?'<span class="reg-l2">'+esc(det)+'</span>':'')+'</span><span class="reg-fin"><span class="reg-h">'+esc(fmtDate(x.t))+'</span></span></div>'; }).join('')+'</div>'
+        :videTour('','Aucun incident journalisé depuis le démarrage du service.','',false))+'</div>'; }
+  return tete+opmaBascule()+etat+journal;
 }
 function acGroupe(g){
   return '<div class="reg-g"><div class="reg-tete"><span class="reg-nom">'+esc(g.titre)+'</span>'+
@@ -6090,7 +6308,7 @@ function allerFicheEntreprise(nom){
     var attendre=setInterval(function(){ if(ENT.loaded||++essais>40){ clearInterval(attendre); ouvrir(); } },100); }
 }
 function allerMessage(b,d,u){ setTab('support'); lireMessage(b,d,u); }
-function allerImpayes(){ ABO.f='past_due'; setTab('abonnements'); }
+function allerImpayes(){ ABO.f='past_due'; SOUS.abonnements='abos'; setTab('abonnements'); }
 
 /* ══════════ 2. SURVEILLANCE ══════════ */
 function incFiltres(){
@@ -6389,6 +6607,8 @@ function blocSortieFirebase(){
     ligne('Reprise du portail', SFB.imp, function(r){ return nMot(r.repris,'dossier repris','dossiers repris')+', '+(r.ignores||0)+' déjà là, '+nMot(r.comptesPrepares,'compte à poser','comptes à poser')+(r.comptesRemis?', '+nMot(r.comptesRemis,'compte jamais vérifié remis à poser','comptes jamais vérifiés remis à poser'):'')+(r.sansAdresse?', '+r.sansAdresse+' sans adresse':'')+(r.champsRefuses?' · '+nMot(r.champsRefuses,'champ trop gros écarté','champs trop gros écartés'):''); })+
     ligne('Inventaire', SFB.inv, function(r){ return (r.complet?'<b>complet</b>':'<b style="color:var(--redText)">incomplet</b>')+' — '+nMot(r.entreprises,'entreprise','entreprises')+' : '+nMot(r.documents,'document','documents')+', '+nMot(r.absents,'absente de Google','absentes de Google')+', '+nMot(r.ignores,'fermée','fermées')+(r.echecs?', <b>'+nMot(r.echecs,'échec','échecs')+'</b>':''); });
 }
+/* v2.88 — une relève qui a échoué après une lecture réussie : la liste reste, l'avertissement le dit (posé par renderVue) */
+function survAvert(){ return (INC.avert&&INC.loaded&&!INC.err)?'<div class="note" style="margin-bottom:12px">⚠️ '+esc(INC.avert)+' <a href="#" onclick="chargerIncidents();return false">Relire</a></div>':''; }
 function vueSurveillance(){
   if(!INC.loaded) return enTete('Surveillance',SURV_DESC)+acSquel();
   if(INC.err) return enTete('Surveillance',SURV_DESC)+acErr('La surveillance ne répond pas',INC.err,'chargerIncidents()');
@@ -6526,7 +6746,7 @@ function vueSurveillance(){
     var auDefaut=(INC.f.statut==='actifs'&&!INC.f.type&&!INC.f.grav&&!INC.f.app&&!INC.f.ent);
     if(auDefaut) listeVide='<div class="svl-calme"><span class="svl-ic">✅</span><div><b>Rien à traiter.</b>'+
       '<p>Aucun problème ouvert sur les '+nbEntSurveillees()+' entreprise'+(nbEntSurveillees()>1?'s':'')+' surveillée'+(nbEntSurveillees()>1?'s':'')+
-      '. Les dossiers déjà corrigés restent consultables : choisissez « Tout, corrigés inclus » dans le filtre ci-dessus.</p></div></div>';
+      '. Les dossiers déjà corrigés restent consultables : choisissez « Corrigés » ou « Tout » dans le filtre ci-dessus.</p></div></div>';
     else{
       var dits=[];
       if(INC.f.type) dits.push('type « '+esc(TYPE_L[INC.f.type]||INC.f.type)+' »');
@@ -6571,7 +6791,7 @@ function vueSurveillance(){
      y commençait par une minuscule, orpheline. Et le chiffre compte les problèmes de TOUTES les consoles
      du compte (le serveur les classe toutes) : dans la Tour OP MESSAGES, « 4 problèmes » à côté
      d'« Ouverts 1 » avait l'air d'une erreur. On le dit. */
-  var zeroBtn=_aClasser? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
+  var zeroBtn=(_aClasser&&MYROLE==='patron')? '<div style="margin:-8px 0 18px;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px"><button type="button" class="btn-fant" onclick="incToutIgnorer()">↺ Tout remettre à zéro — '+_aClasser+' problème'+(_aClasser>1?'s':'')+'</button>'+
     '<span style="font-size:12px;color:var(--muted);flex:1 1 260px;min-width:0">'+(MYAPPS.length>1?'Ceux d’'+esc(APPS_TOUR[APP].nom)+' seulement passent':'Ils passent')+' en « ignoré » : rien n’est effacé, aucun courriel n’est envoyé, et un problème qui se reproduit revient tout seul.</span></div>' : '';
   /* LE TABLEAU FILTRABLE DE LA MAQUETTE — son titre et ses segments (incSegStatut) : Ouverts · Corrigés ·
      Écartés · Tout, posés par le même filtre de statut (incF). ⛔ v2.68 : le menu déroulant à neuf choix
@@ -6802,7 +7022,7 @@ function vueIncident(i){
       '<div class="barre-act"><span class="barre-act-l">Suivi :</span>'+
         (st!=='encours'?'<button type="button" class="pill-act amb" onclick="incStatut(\''+jsq(i.id)+'\',\'encours\')">Je m’en occupe</button>':'')+
         (st!=='corrige'?'<button type="button" class="pill-act vrt" onclick="incStatut(\''+jsq(i.id)+'\',\'corrige\')">Marquer corrigé</button>':'')+
-        (st!=='ignore'?'<button type="button" class="pill-act gri" onclick="incStatut(\''+jsq(i.id)+'\',\'ignore\')">Ignorer</button>':'')+
+        (st!=='ignore'&&MYROLE==='patron'?'<button type="button" class="pill-act gri" onclick="incStatut(\''+jsq(i.id)+'\',\'ignore\')">Ignorer</button>':'')+
         '<button type="button" class="pill-act" onclick="incCause(\''+jsq(i.id)+'\')">🔎 '+(i.explication?'Refaire la recherche de cause':'Chercher la cause')+'</button>'+
         (i.explication&&i.explication.codeLu&&MYROLE==='patron'?'<button type="button" class="pill-act" onclick="incProposer(\''+jsq(i.id)+'\')">🛠 '+(i.proposition?'Refaire la proposition':'Proposer une correction')+'</button>':'')+
         '<button type="button" class="pill-act" onclick="incCopier(\''+jsq(i.id)+'\')">📋 Copier le dossier complet</button></div>'+
@@ -6847,11 +7067,10 @@ function incCarteCause(i){
 function incCause(id){
   var i=INC.list.filter(function(y){ return y.id===id; })[0];
   var refaire=!!(i&&i.explication);
-  toast('\ud83d\udd0e Lecture du code et recherche de la cause\u2026',8000);
-  apiPost('/api/monitor/expliquer',{id:id,refaire:refaire}).then(function(x){
-    if(!x.ok){ toast('\u26a0\ufe0f '+(x.d.error||'refus\u00e9'),6000); return; }
+  if(_gestes['cause-'+id]) return;   /* v2.88 : deux clics lançaient deux appels à Claude, payants */
+  toast('\ud83d\udd0e Lecture du code et recherche de la cause\u2026',30000);
+  geste('cause-'+id,function(){ return apiPost('/api/monitor/expliquer',{id:id,refaire:refaire}); },function(x){
     if(i) i.explication=x.d.explication;
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a cherch\u00e9 la cause de l\u2019incident #'+String(id).slice(-6)});
     renderNav('fondu');
     toast(x.d.deja?'Cause d\u00e9j\u00e0 \u00e9tablie \u2014 affich\u00e9e':'\u2713 Cause \u00e9tablie ('+(CONF_L[x.d.explication.confiance]||'').toLowerCase()+')',5000);
   });
@@ -6879,11 +7098,10 @@ function incCarteProposition(i){
 function incProposer(id){
   var i=INC.list.filter(function(y){ return y.id===id; })[0];
   if(!confirm('Demander une correction pour cet incident ?\n\nClaude \u00e9crira le correctif \u00e0 partir du code du d\u00e9p\u00f4t et ouvrira une proposition EN BROUILLON sur GitHub.\nRien ne part en production : c\u2019est toi qui fusionnes, ou pas.')) return;
-  toast('\ud83d\udee0 \u00c9criture du correctif et ouverture de la proposition\u2026',15000);
-  apiPost('/api/monitor/proposer',{id:id,refaire:!!(i&&i.proposition)}).then(function(x){
-    if(!x.ok){ toast('\u26a0\ufe0f '+(x.d.error||'refus\u00e9'),9000); return; }
+  if(_gestes['prop-'+id]) return;
+  toast('\ud83d\udee0 \u00c9criture du correctif et ouverture de la proposition\u2026',60000);
+  geste('prop-'+id,function(){ return apiPost('/api/monitor/proposer',{id:id,refaire:!!(i&&i.proposition)}); },function(x){
     if(i) i.proposition=x.d.proposition;
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a propos\u00e9 une correction pour l\u2019incident #'+String(id).slice(-6)});
     renderNav('fondu');
     toast(x.d.deja?'Proposition d\u00e9j\u00e0 ouverte \u2014 affich\u00e9e':'\u2713 Proposition #'+x.d.proposition.numero+' ouverte, en attente de ta validation',7000);
   });
@@ -6892,10 +7110,8 @@ function incStatut(id,st,note){
   var i=INC.list.filter(function(y){ return y.id===id; })[0];
   if(st==='corrige'&&i&&!i.mailEnvoye&&(i.entreprises||[]).some(function(e){ return e.email; })&&
      !confirm('Marquer corrig\u00e9 ?\nL\u2019e-mail automatique \u00ab Votre application a \u00e9t\u00e9 am\u00e9lior\u00e9e \u2705 \u00bb partira aux entreprises touch\u00e9es.')) return;
-  apiPost('/api/monitor/status',{id:id,statut:st,note:note||''}).then(function(x){
-    if(!x.ok){ toast('\u26a0\ufe0f '+(x.d.error||'refus\u00e9')); return; }
+  geste('statut-'+id,function(){ return apiPost('/api/monitor/status',{id:id,statut:st,note:note||''}); },function(x){
     if(i){ i.statut=st; if(note) i.notes=(i.notes?i.notes+'\n':'')+note; }
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a marqu\u00e9 l\u2019incident #'+String(id).slice(-6)+' \u00ab '+ST_L[st]+' \u00bb'});
     setBdg('bdg-surv',incOuverts().length);
     renderNav('fondu');
     var n=(x.d.mails||0)+(x.d.mailsSimules||0);
@@ -7159,7 +7375,7 @@ function chargerEnvois(){
   apiGet('/api/monitor/mails').then(function(d){ if(!d) return;
     MSG.envoyes=d.mails||[]; MSG.envErr='';
     if(TAB==='support') render();
-  }).catch(function(){ MSG.envErr='Serveur injoignable — ou serveur à mettre à jour (git pull + restart).';
+  }).catch(function(){ MSG.envErr='Les envois n’ont pas pu être lus — le serveur ne répond pas.';
     if(TAB==='support') render(); });
 }
 
@@ -7168,35 +7384,6 @@ function mailQ(v){ MSG.autoTout=false; MSG.q=v||''; chargerMessages(); }
    controle@ ou les trois à la fois. Un mot juste coûte le même clic qu'un mot faux. */
 function mailActualiser(){ chargerMail(true);
   toast(mailBoiteChoisie() ? (mailBoiteNom(mailBoiteChoisie())+' actualisée') : 'Toutes les boîtes actualisées'); }
-function compoOuvrir(dest){ MSG.compo=true; if(dest) MSG.cDest=dest; renderNav('lecture'); }
-function compoFermer(){ MSG.compo=false; renderNav('lecture-retour'); }
-function compoChamp(k,v){ MSG[k]=v; }
-function compoEnvoyer(){
-  if(!MSG.cDest||!(MSG.cTexte||'').trim()){ toast('Choisissez un destinataire et écrivez un message'); return; }
-  apiPost('/api/monitor/support/envoyer',{to:MSG.cDest,subject:MSG.cSujet||'(sans objet)',text:MSG.cTexte})
-    .then(function(x){
-      if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
-      toast('Message envoyé à '+MSG.cDest);
-      MSG.compo=false; MSG.cSujet=''; MSG.cTexte=''; renderNav('fondu');
-    }).catch(function(){ toast('Serveur injoignable — le message n’est pas parti. Réessayez.'); });   /* fetch qui jette : rien n'est parti, il faut le DIRE (INJOIGNABLE promet une nouvelle tentative : un envoi n'en fait pas) */
-}
-function lireMessage(b,d,u){
-  MSG.lu=b+'|'+d+'|'+u; MSG.ouvert=null; render();
-  apiGet('/api/monitor/mail/message?boite='+encodeURIComponent(b)+'&dossier='+encodeURIComponent(d)+'&uid='+u)
-    .then(function(m){ if(!m||m.error) return; MSG.ouvert=m;
-      var k=MSG.messages.filter(function(x){ return x.uid===u&&x.boite===b; })[0];
-      if(k&&!k.lu){ k.lu=true; MSG.nonLus=Math.max(0,MSG.nonLus-1); setBdg('bdg-supp',MSG.nonLus); }
-      renderNav('lecture'); }).catch(function(){});
-}
-function repondre(){
-  var z=$('rep-txt'), t=(z&&z.value)||'';
-  if(!t.trim()){ toast('Écrivez votre réponse avant d’envoyer'); return; }
-  var m=MSG.ouvert; if(!m) return;
-  apiPost('/api/monitor/support/envoyer',{to:m.de,subject:'Re: '+(m.objet||''),text:t})
-    .then(function(x){ if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
-      toast('Réponse envoyée à '+(m.deNom||m.de)); if(z) z.value=''; })
-    .catch(function(){ toast('Serveur injoignable — la réponse n’est pas partie. Réessayez.'); });
-}
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    LE COURRIER — un vrai client mail, à trois volets.
    Gauche : les dossiers, avec le nombre de messages non lus.
@@ -7319,7 +7506,8 @@ function mailLigneRecue(m,att){
      encombre une ligne où le nom, l'objet et l'heure, eux, comptent. */
   if(!mailBoiteChoisie()){ var bn=m.boiteNom||mailBoiteNom(m.boite); if(bn) l3.push(esc(bn)); }
   if(m.deNom&&m.de&&m.deNom!==m.de) l3.push(esc(m.de));
-  return supLigne({nom:m.deNom||m.de,adr:m.de,ts:m.ts,objet:m.objet,l3:l3.join(' · '),
+  /* v2.88 : ni OP GESTION ni OP MESSAGES ne le réclament encore — dans les signes de la ligne, pas en 3ᵉ ligne : celle-ci se cache au téléphone */
+  return supLigne({nom:m.deNom||m.de,adr:m.de,ts:m.ts,objet:m.objet,l3:l3.join(' · '),trier:m.console==='atrier',
     pieces:m.pieces,marque:m.marque,repondu:m.repondu,att:!!att,on:(MSG.lu===cle),
     action:"lireMessage('"+jsq(m.boite)+"','"+jsq(m.dossier)+"',"+m.uid+")"});
 }
@@ -7340,6 +7528,7 @@ function supGroupe(titre,n,sous,opt,bloc,lignes,pied){
 function supLigne(o){
   var sig=[],reste=0;
   var push=function(h){ if(sig.length<2) sig.push(h); else reste++; };
+  if(o.trier) push('<span class="past p-ambre" title="Ni OP GESTION ni OP MESSAGES ne réclament encore cette adresse">à trier</span>');
   if(o.pieces) push('<span class="sup-sig" title="'+nMot(o.pieces,'pièce jointe','pièces jointes')+'">📎 '+o.pieces+'</span>');
   if(o.marque) push('<span class="sup-sig" title="Marqué">⚑</span>');
   if(o.repondu) push('<span class="sup-sig" title="Une réponse est partie">↩</span>');
@@ -7384,7 +7573,7 @@ function mailListeRecueCorps(){
   if(!M.length) return supVide('support','Rien dans ce dossier',
     (MSG.boites||[]).some(function(b){ return b&&b.erreur; })
       ?'Rien de lisible pour l’instant — voir l’avertissement ci-dessus.'
-      :'Les nouveaux messages arrivent tout seuls ; le bouton ⟳ force une relève.');
+      :'La boîte se relève toute seule toutes les deux minutes ; ⟳ force une relève.');
 
   /* ── TOUTES LES ENTREPRISES : groupé PAR ENTREPRISE, jamais à plat ──
      C'est la demande, mot pour mot : « je ne veux pas que tout soit mélangé entre eux ».
@@ -7527,22 +7716,6 @@ function mailTeteLecture(nom, adr, ts, sujet, badge){
       '<div class="lec-h" title="'+esc(fmtDateLong(ts))+'">'+esc(fmtDateLong(ts))+'</div></div>'+
     (badge||'')+'</div>';
 }
-function lecture(){
-  var m=MSG.ouvert;
-  if(!m) return supVide('support','Aucun message ouvert','Choisissez un message à gauche.',
-    '<button type="button" class="btn-fant" onclick="compoOuvrir()">Écrire</button>');
-  var corps=String(m.texte||'').trim()||'(message vide)';
-  return '<div class="lec">'+
-    mailTeteLecture(m.deNom, m.de, m.ts, m.objet,
-      '<div class="lec-act"><button class="btn-fant" onclick="voirClient(\''+jsq(m.de||'')+'\')">Voir la fiche client</button></div>')+
-    '<div class="lec-corps">'+esc(corps)+'</div>'+
-    '<div class="lec-rep">'+
-      '<div class="lbl">RÉPONDRE À '+esc(String(m.deNom||m.de||'').toUpperCase())+'</div>'+
-      '<textarea id="rep-txt" class="inp" rows="4" placeholder="Votre réponse…"></textarea>'+
-      '<div style="display:flex;justify-content:flex-end;margin-top:10px">'+
-        '<button class="btn-plein" onclick="repondre()">'+svg('avion',15)+' Envoyer la réponse</button></div>'+
-    '</div></div>';
-}
 function envoyeLire(i){ MSG.envSel=i; renderNav('lecture'); }
 function envoyeLecture(){
   var m=(MSG.envoyes||[])[MSG.envSel];
@@ -7645,17 +7818,8 @@ try{ window.addEventListener('resize', function(){
 }); }catch(e){}
 function vueSupport(){
   var env=mailEnvoyes(), ouvert=env?((MSG.envoyes||[])[MSG.envSel]?true:false):!!MSG.ouvert;
-  var ent=CLI.list.map(function(c){ return '<option value="'+esc(c.email)+'"'+(MSG.cDest===c.email?' selected':'')+'>'+esc(c.entreprise||c.nom||c.email)+'</option>'; }).join('');
-  var compo=MSG.compo?'<div class="carte" style="border-color:var(--accBrd);margin-bottom:16px">'+
-      '<div class="ttl-carte">Nouveau message</div>'+
-      '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
-        '<div><div class="lbl">DESTINATAIRE</div><select class="sel-f" style="width:100%" onchange="compoChamp(\'cDest\',this.value)"><option value="">Choisir une entreprise…</option>'+ent+'</select></div>'+
-        '<div><div class="lbl">SUJET</div><input class="inp" value="'+esc(MSG.cSujet)+'" oninput="compoChamp(\'cSujet\',this.value)" placeholder="Objet du message"></div>'+
-        '<div><div class="lbl">MESSAGE</div><textarea class="inp" rows="5" oninput="compoChamp(\'cTexte\',this.value)" placeholder="Votre message…">'+esc(MSG.cTexte)+'</textarea></div>'+
-        '<div style="display:flex;gap:9px;justify-content:flex-end">'+
-          '<button class="btn-fant" onclick="compoFermer()">Annuler</button>'+
-          '<button class="btn-plein" onclick="compoEnvoyer()">'+svg('avion',15)+' Envoyer</button></div>'+
-      '</div></div>':'';
+  /* v2.88 — le message s'écrit dans le volet de lecture (courCompo), plus dans une carte au-dessus de la liste */
+  var compo='';
 
   var rech=env
     ? '<input placeholder="Rechercher un envoi…" value="'+esc(MSG.envQ||'')+'" oninput="envoyesQ(this.value)">'
@@ -7705,13 +7869,14 @@ function vueSupport(){
 
   /* Écran étroit : un seul volet à la fois. */
   if(mailEtroit()){
+    if(MSG.compo&&!env) return tete+'<div class="mail mail-1">'+courCompo()+'</div>';
     if(ouvert) return tete+compo+'<div class="mail mail-1">'+(env?envoyeLecture():lecture())+'</div>';
     return tete+compo+
       '<div class="dos-bar">'+mailDossiers()+'</div>'+
       '<div class="mail mail-1 mail-plat">'+
         '<div class="mail-rech"><div class="rech">'+svg('loupe',16)+rech+'</div>'+
           '<button class="btn-icone" onclick="'+rafraichir+'" title="Actualiser">'+svg('refresh',15)+'</button></div>'+
-        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue())+'</div></div>';
+        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue()+courPied())+'</div></div>';
   }
   return tete+compo+
     '<div class="mail">'+
@@ -7719,7 +7884,7 @@ function vueSupport(){
       '<div class="mail-liste">'+
         '<div class="mail-rech"><div class="rech">'+svg('loupe',16)+rech+'</div>'+
           '<button class="btn-icone" onclick="'+rafraichir+'" title="Actualiser">'+svg('refresh',15)+'</button></div>'+
-        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue())+'</div></div>'+
+        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue()+courPied())+'</div></div>'+
       '<div class="mail-lect">'+(env?envoyeLecture():lecture())+'</div>'+
     '</div>';
 }
@@ -7740,6 +7905,288 @@ function voirClient(email){
   else { chargerEntreprises(); var essais=0;
     var attendre=setInterval(function(){ if(ENT.loaded||++essais>40){ clearInterval(attendre); ouvrir(); } },100); }
 }
+
+/* ══ LA BOÎTE MAIL DE LA TOUR (v2.88, 17 octobre 2026) ══
+   Justin : « je veux une vraie boîte mail intégrée dans la Tour » ; « mêmes boîtes, triées » entre les deux consoles.
+   Le serveur (`server/mail.js`) range chaque message : `console` = 'gestion', 'messages' ou 'atrier' (l'adresse de
+   l'interlocuteur : une règle posée à la main, l'annuaire d'OP GESTION, sinon « à trier »). Chaque console demande SES
+   messages et ceux « à trier » (`console=`), jamais ceux de l'autre.
+   Ce que fait l'écran, et que l'ancien ne faisait pas : lire un message HTML tel qu'il a été écrit (dans un cadre isolé,
+   sans script ni image distante tant qu'on ne les demande pas), télécharger ses pièces, répondre (à l'expéditeur ou à
+   tous), transférer avec les pièces, écrire à une adresse libre avec copie, copie cachée et pièces, depuis la boîte de
+   son choix, garder un brouillon, marquer non lu ou important, déplacer, supprimer, ranger une adresse dans une console,
+   lire la suite d'un long dossier, et relever tout seul toutes les deux minutes.
+   ⛔ Règles gardées de l'écran d'avant (relecture du 17 octobre 2026) : un courriel « protégé » (code de sécurité) ne
+   se déplace ni ne se supprime — le serveur le refuse et l'écran ne le propose pas ; le texte s'affiche échappé, jamais en
+   HTML brut ; une boîte en panne coiffe tout, un dossier illisible n'est pas « rien dans ce dossier ». */
+var COUR={c:null,images:{},reglages:null};
+/* ── la liste : la console ouverte, page par page, et une réponse périmée ne remplace pas la liste qu'on regarde ── */
+function chargerMessages(suite){
+  var s=MSG.sel, page=suite?(MSG.page||0)+1:0, jeton=MSG.jetonListe=(MSG.jetonListe||0)+1;
+  MSG.listeApp=APP;
+  var p='/api/monitor/mail/liste?page='+page+'&console='+encodeURIComponent(APP)+(MSG.q?'&q='+encodeURIComponent(MSG.q):'');
+  if(s.boite&&s.boite!=='toutes') p+='&boite='+encodeURIComponent(s.boite)+'&dossier='+encodeURIComponent(s.dossier||'');
+  if(suite) MSG.suiteEnCours=true;
+  apiGet(p).then(function(d){
+    if(jeton!==MSG.jetonListe) return;   /* on a changé de boîte entre-temps : cette réponse ne vaut plus */
+    MSG.suiteEnCours=false;
+    if(!d) return;
+    if(d.error){ MSG.errListe=String(d.error); if(!suite){ MSG.messages=[]; MSG.total=0; } if(TAB==='support'||TAB==='accueil') render(); return; }
+    MSG.errListe=(d.erreurs&&d.erreurs.length)?d.erreurs.join(' · '):'';
+    MSG.messages=suite?(MSG.messages||[]).concat(d.messages||[]):(d.messages||[]);
+    MSG.total=Number(d.total)||0; MSG.page=Number(d.page)||page; MSG.pages=Math.max(1,Number(d.pages)||1); MSG.tronque=!!d.tronque;
+    if(TAB==='support'||TAB==='accueil') rendreEnGardantLeFocus();
+  }).catch(function(e){
+    if(jeton!==MSG.jetonListe) return;
+    MSG.suiteEnCours=false;
+    MSG.errListe=(e&&e.status===502)?'La boîte ne répond pas (IMAP). Vérifiez l’adresse, le mot de passe d’application et le serveur dans « Boîtes reliées ».':msgErreur(e);
+    if(!suite){ MSG.messages=[]; MSG.total=0; }
+    if(TAB==='support'||TAB==='accueil') render();
+  });
+}
+function courPied(){
+  var n=(MSG.messages||[]).length;
+  if(MSG.suiteEnCours) return '<div class="cour-pied">Chargement de la suite…</div>';
+  var plus=(MSG.page||0)+1<(MSG.pages||1);
+  return (plus||MSG.tronque)?'<div class="cour-pied">'+(plus?'<button type="button" class="btn-fant" onclick="chargerMessages(true)">Voir les suivants ('+n+' sur '+(MSG.total||n)+')</button>':'')+
+    (MSG.tronque?'<div class="g">Le tri par console regarde les 1 500 messages les plus récents de ce dossier — cherchez par le texte pour aller plus loin.</div>':'')+'</div>':'';
+}
+/* ── lire un message : la ligne touchée et le volet restent d'accord même sur deux clics rapprochés ── */
+function lireMessage(b,d,u){
+  var cle=b+'|'+d+'|'+u;
+  MSG.lu=cle; MSG.ouvert=null; MSG.luErr=''; MSG.compo=false; render();
+  apiGet('/api/monitor/mail/message?boite='+encodeURIComponent(b)+'&dossier='+encodeURIComponent(d)+'&uid='+u)
+    .then(function(m){ if(MSG.lu!==cle) return; if(!m) return;
+      MSG.ouvert=m;
+      var k=(MSG.messages||[]).filter(function(x){ return x.uid===u&&x.boite===b&&x.dossier===d; })[0];
+      /* le serveur marque lu à l'ouverture — sauf un courriel protégé ; seuls les non-lus de la Réception se comptent */
+      if(k&&!k.lu&&!m.protege){ k.lu=true;
+        var bx=(MSG.boites||[]).filter(function(x){ return (x.boite||{}).id===b; })[0];
+        var inbox=mailDossiersDe(b).some(function(x){ return x.chemin===d&&x.role==='inbox'; });
+        if(inbox){ MSG.nonLus=Math.max(0,MSG.nonLus-1); if(bx&&bx.nonLus) bx.nonLus--; setBdg('bdg-supp',MSG.nonLus); } }
+      renderNav('lecture'); })
+    .catch(function(e){ if(MSG.lu!==cle) return; MSG.luErr=msgErreur(e); render(); });
+}
+function courAdrs(l){ return (l||[]).map(function(p){ return p&&p.adr?(p.nom&&p.nom!==p.adr?p.nom+' <'+p.adr+'>':p.adr):''; }).filter(Boolean); }
+/* Un message HTML se lit tel qu'il a été écrit, dans un cadre ISOLÉ : `sandbox` sans `allow-scripts` ni `allow-same-origin`
+   (aucun script, aucun accès à la Tour ni à sa session), et une règle de sécurité qui n'admet aucune ressource distante —
+   une image de suivi dirait à l'expéditeur que le message est ouvert, et quand. « Afficher les images » l'ouvre, pour CE
+   message seulement. Un lien s'ouvre dans un nouvel onglet, hors du cadre. */
+function courHtml(m){
+  var cle=m.boite+'|'+m.dossier+'|'+m.uid, img=!!COUR.images[cle];
+  var csp="default-src 'none'; style-src 'unsafe-inline'; img-src data: cid:"+(img?' https: http:':'')+"; font-src data:";
+  var doc='<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="'+csp+'"><base target="_blank">'+
+    /* la balise de style est coupée en deux : écrite d'un bloc dans ce script, les bancs qui lisent les feuilles de la page
+       la prendraient pour une troisième feuille (test-830) */
+    '<st'+'yle>body{font:14px/1.6 -apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif;color:#1d2433;background:#fff;margin:14px;word-break:break-word}img{max-width:100%;height:auto}</st'+'yle></head><body>'+m.html+'<div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body></html>';
+  var distantes=/<img[^>]+src=["']?https?:/i.test(m.html);
+  return (distantes&&!img?'<div class="cour-img">Images distantes bloquées (elles diraient à l’expéditeur que vous avez lu). <button type="button" class="btn-fant" onclick="COUR.images[\''+jsq(cle)+'\']=true;render()">Afficher les images</button></div>':'')+
+    '<iframe class="cour-html" title="Contenu du message" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" srcdoc="'+esc(doc)+'"></iframe>';
+}
+function lecture(){
+  var m=MSG.ouvert;
+  if(MSG.compo&&!mailEtroit()) return courCompo();
+  if(MSG.luErr) return supVide('support','Ce message ne s’ouvre pas',esc(MSG.luErr),
+    MSG.lu?'<button type="button" class="btn-fant" onclick="lireMessage.apply(null,MSG.lu.split(\'|\').map(function(x,i){ return i===2?+x:x; }))">Réessayer</button>':'');
+  if(!m) return MSG.lu?supSquel():supVide('support','Aucun message ouvert','Choisissez un message à gauche.',
+    '<button type="button" class="btn-fant" onclick="compoOuvrir()">Écrire</button>');
+  var ici=m.boite+'|'+m.dossier+'|'+m.uid;
+  var dossiers=mailDossiersDe(m.boite).filter(function(x){ return x.chemin!==m.dossier&&x.role!=='noselect'; });
+  var gestes=
+    '<button type="button" class="btn-plein" onclick="courRepondre(false)">'+svg('avion',14)+' Répondre</button>'+
+    ((m.pour||[]).length+(m.copie||[]).length>1?'<button type="button" class="btn-fant" onclick="courRepondre(true)">Répondre à tous</button>':'')+
+    '<button type="button" class="btn-fant" onclick="courTransferer()">Transférer</button>'+
+    (m.protege?'<span class="past p-gris" title="Un courriel de sécurité (un code, un lien de connexion) ne se déplace ni ne se supprime">🔒 protégé</span>':
+      '<button type="button" class="btn-fant" onclick="courFlag({lu:false})">Marquer non lu</button>'+
+      '<button type="button" class="btn-fant" aria-pressed="'+(!!m.marque)+'" onclick="courFlag({marque:'+(!m.marque)+'})">'+(m.marque?'★ Important':'☆ Important')+'</button>'+
+      (dossiers.length?'<label class="cour-dep"><span class="g">Déplacer</span><select class="sel-f" onchange="if(this.value)courDeplacer(this.value)"><option value="">vers…</option>'+
+        dossiers.map(function(x){ return '<option value="'+esc(x.chemin)+'">'+esc(x.nom||x.chemin)+'</option>'; }).join('')+'</select></label>':'')+
+      '<button type="button" class="btn-fant danger" onclick="courSupprimer()">Supprimer</button>')+
+    '<button type="button" class="btn-fant" onclick="voirClient(\''+jsq(m.interlocuteur||m.de||'')+'\')">Fiche client</button>';
+  /* le rangement : à quelle console appartient cette adresse — c'est le geste qui trie la boîte */
+  var autre=APP==='gestion'?'messages':'gestion', adr=String(m.interlocuteur||m.de||'');
+  var dom=adr.indexOf('@')>0?'@'+adr.split('@')[1]:'';
+  var range=m.console==='atrier'
+    ?'<div class="cour-trier"><b>À trier.</b> Cette adresse n’appartient encore à aucune console. Ranger <span class="mono">'+esc(adr)+'</span> dans '+
+      '<button type="button" class="btn-fant" onclick="courRanger(\''+jsq(adr)+'\',\'gestion\')">OP GESTION</button>'+
+      '<button type="button" class="btn-fant" onclick="courRanger(\''+jsq(adr)+'\',\'messages\')">OP MESSAGES</button>'+
+      (dom&&MAIL_PUBLICS.indexOf(dom.slice(1))<0?' — ou tout <span class="mono">'+esc(dom)+'</span> : <button type="button" class="btn-fant" onclick="courRanger(\''+jsq(dom)+'\',\''+APP+'\')">ici</button>':'')+'</div>'
+    :(m.console&&m.console!==APP?'':'<div class="cour-range g">Rangé dans '+esc(APPS_TOUR[m.console]?APPS_TOUR[m.console].nom:m.console||'')+' · <a href="#" onclick="courRanger(\''+jsq(adr)+'\',\''+autre+'\');return false">le ranger dans '+esc(APPS_TOUR[autre].nom)+'</a></div>');
+  var pieces=(m.pieces||[]).length?'<div class="cour-pieces">'+m.pieces.map(function(p){
+      return '<button type="button" class="cour-piece" onclick="courPiece('+p.idx+',this)">📎 '+esc(p.nom)+' <span class="g">'+esc(courTaille(p.taille))+'</span></button>'; }).join('')+'</div>':'';
+  var dest='<div class="cour-dest g">À : '+esc(courAdrs(m.pour).join(', ')||'—')+(courAdrs(m.copie).length?' · Cc : '+esc(courAdrs(m.copie).join(', ')):'')+'</div>';
+  var corps=m.html&&String(m.html).trim()?courHtml(m):'<div class="lec-corps">'+esc(String(m.texte||'').trim()||'(message vide)')+'</div>';
+  return '<div class="lec" data-cle="'+esc(ici)+'">'+mailTeteLecture(m.deNom,m.de,m.ts,m.objet,'<div class="lec-act">'+gestes+'</div>')+dest+range+pieces+corps+'</div>';
+}
+function courTaille(o){ o=Number(o)||0; return o>1048576?(Math.round(o/104857.6)/10)+' Mo':o>1024?Math.round(o/1024)+' Ko':o+' o'; }
+/* Une pièce se télécharge AVEC la session (en-tête Authorization) : un lien nu partirait sans elle et rendrait 401. */
+function courPiece(idx,btn){
+  var m=MSG.ouvert; if(!m) return;
+  if(btn){ btn.disabled=true; }
+  fetch(API+'/api/monitor/mail/piece?boite='+encodeURIComponent(m.boite)+'&dossier='+encodeURIComponent(m.dossier)+'&uid='+m.uid+'&idx='+idx,{headers:hAuth()})
+    .then(function(r){ if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(d){ throw new Error(d.error||('refusé ('+r.status+')')); }); return r.blob(); })
+    .then(function(b){ var p=(m.pieces||[]).filter(function(x){ return x.idx===idx; })[0]||{}; var u=URL.createObjectURL(b), a=document.createElement('a');
+      a.href=u; a.download=p.nom||('piece-'+(idx+1)); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); })
+    .catch(function(e){ toast('⚠️ Pièce non téléchargée : '+(e&&e.message?e.message:'serveur injoignable')); })
+    .then(function(){ if(btn) btn.disabled=false; });
+}
+function courGeste(route,corps,fait){
+  var m=MSG.ouvert; if(!m) return;
+  geste('cour-'+route+'-'+m.uid,function(){ return apiPost('/api/monitor/mail/'+route,Object.assign({boite:m.boite,dossier:m.dossier,uid:m.uid},corps)); },fait);
+}
+function courFlag(f){ var m=MSG.ouvert;
+  courGeste('flag',f,function(){
+    var k=(MSG.messages||[]).filter(function(x){ return x.uid===m.uid&&x.boite===m.boite&&x.dossier===m.dossier; })[0];
+    if(f.lu===false){ if(k) k.lu=false; MSG.ouvert=null; MSG.lu=null; toast('Marqué non lu'); chargerMail(true); }
+    if(f.marque!=null){ m.marque=f.marque; if(k) k.marque=f.marque; toast(f.marque?'Marqué important':'Plus marqué important'); }
+    render(); }); }
+function courDeplacer(vers){ var m=MSG.ouvert;
+  courGeste('deplacer',{vers:vers},function(){ toast('Déplacé'); MSG.ouvert=null; MSG.lu=null; chargerMessages(); chargerMail(true); }); }
+function courSupprimer(){ var m=MSG.ouvert;
+  if(!confirm('Supprimer « '+(m.objet||'(sans objet)')+' » ?\n\nIl part dans la Corbeille de la boîte (supprimé pour de bon s’il y est déjà).')) return;
+  courGeste('supprimer',{},function(x){ toast(x.d&&x.d.definitif?'Supprimé définitivement':'Dans la Corbeille'); MSG.ouvert=null; MSG.lu=null; chargerMessages(); chargerMail(true); }); }
+/* Ranger une adresse (ou tout un domaine) dans une console : la règle vaut pour tous ses messages, passés et à venir. */
+function courRanger(adr,cons){
+  geste('cour-regle',function(){ return apiPost('/api/monitor/mail/regle',{adresse:adr,console:cons}); },function(){
+    toast(adr+' → '+(APPS_TOUR[cons]?APPS_TOUR[cons].nom:cons)); if(MSG.ouvert) MSG.ouvert.console=cons; chargerMessages(); render(); });
+}
+
+/* ── écrire, répondre, transférer ── */
+function courSignature(){ var s=COUR.reglages&&COUR.reglages.signature; return s?'\n\n-- \n'+s:''; }
+function chargerReglagesCourrier(){ if(COUR.reglages) return;
+  apiGet('/api/monitor/mail/reglages').then(function(d){ COUR.reglages=d||{signature:'',modeles:[]}; }).catch(function(){ COUR.reglages={signature:'',modeles:[]}; }); }
+function courBoiteDefaut(){ var s=MSG.sel; if(s&&s.boite&&s.boite!=='toutes') return s.boite; var b=((MSG.boites||[])[0]||{}).boite||{}; return b.id||''; }
+function courNouveau(o){
+  o=o||{}; chargerReglagesCourrier();
+  MSG.compo=true;
+  COUR.c={boite:o.boite||courBoiteDefaut(),a:o.a||'',copie:o.copie||'',cci:'',objet:o.objet||'',texte:o.texte!=null?o.texte:courSignature(),pieces:o.pieces||[],enReponseA:o.enReponseA||null,mode:o.mode||'nouveau',voirCopie:!!o.copie};
+  renderNav('lecture');
+}
+/* Le seul point d'entrée gardé de l'écran d'avant : les Demandes et les fiches l'appellent avec une adresse. */
+function compoOuvrir(dest){ courNouveau({a:dest||''}); }
+function compoFermer(){ MSG.compo=false; COUR.c=null; renderNav('lecture-retour'); }
+function courChamp(k,v){ if(COUR.c) COUR.c[k]=v; }
+function courRe(objet,pfx){ var o=String(objet||'').trim(); return new RegExp('^'+pfx+'\\s*:','i').test(o)?o:pfx+': '+o; }
+function courCitation(m){
+  var t=String(m.texte||'').trim().split('\n').map(function(l){ return '> '+l; }).join('\n');
+  return '\n\n'+courSignature().replace(/^\n\n/,'')+'\n\nLe '+fmtDateLong(m.ts)+', '+(m.deNom||m.de)+' a écrit :\n'+t;
+}
+function courRepondre(tous){
+  var m=MSG.ouvert; if(!m) return;
+  var moi=String(m.boiteEmail||'').toLowerCase(), envoye=String(m.de||'').toLowerCase()===moi;
+  /* un message que NOUS avons envoyé : on répond à ses destinataires — jamais à notre propre boîte (test-1018) */
+  var a=envoye?courAdrs((m.pour||[]).filter(function(p){ return String(p.adr||'').toLowerCase()!==moi; })).join(', '):(m.de||'');
+  var copie='';
+  if(tous){ var deja={}; deja[moi]=1; String(a).toLowerCase().split(/[,;]\s*/).forEach(function(x){ deja[x.replace(/.*<|>.*/g,'').trim()]=1; });
+    copie=(m.pour||[]).concat(m.copie||[]).filter(function(p){ var x=String(p.adr||'').toLowerCase(); if(!x||deja[x]) return false; deja[x]=1; return true; }).map(function(p){ return p.adr; }).join(', '); }
+  courNouveau({boite:m.boite,a:a,copie:copie,objet:courRe(m.objet,'Re'),texte:courCitation(m),enReponseA:{mid:m.mid,dossier:m.dossier,uid:m.uid},mode:tous?'tous':'repondre'});
+}
+/* Transférer emporte les pièces : on les relit au serveur (avec la session), et on les joint telles quelles. */
+function courTransferer(){
+  var m=MSG.ouvert; if(!m) return;
+  var tete='\n\n'+courSignature().replace(/^\n\n/,'')+'\n\n---------- Message transféré ----------\nDe : '+(m.deNom?m.deNom+' <'+m.de+'>':m.de)+'\nDate : '+fmtDateLong(m.ts)+'\nObjet : '+(m.objet||'')+'\nÀ : '+courAdrs(m.pour).join(', ')+'\n\n'+String(m.texte||'').trim();
+  var ps=m.pieces||[];
+  if(!ps.length){ courNouveau({boite:m.boite,objet:courRe(m.objet,'Tr'),texte:tete,mode:'transferer'}); return; }
+  toast('Récupération des pièces jointes…',20000);
+  Promise.all(ps.map(function(p){
+    return fetch(API+'/api/monitor/mail/piece?boite='+encodeURIComponent(m.boite)+'&dossier='+encodeURIComponent(m.dossier)+'&uid='+m.uid+'&idx='+p.idx,{headers:hAuth()})
+      .then(function(r){ if(!r.ok) throw new Error(p.nom); return r.blob(); }).then(function(b){ return courEnB64(b).then(function(b64){ return {nom:p.nom,type:p.type||b.type||'application/octet-stream',b64:b64,taille:b.size}; }); });
+  })).then(function(l){ toast(nMot(l.length,'pièce jointe reprise','pièces jointes reprises'));
+    courNouveau({boite:m.boite,objet:courRe(m.objet,'Tr'),texte:tete,pieces:l,mode:'transferer'}); })
+  .catch(function(e){ toast('⚠️ Une pièce n’a pas pu être reprise ('+(e&&e.message||'serveur injoignable')+') — le transfert part sans elles si vous l’envoyez.',8000);
+    courNouveau({boite:m.boite,objet:courRe(m.objet,'Tr'),texte:tete,mode:'transferer'}); });
+}
+function courEnB64(blob){ return new Promise(function(ok,ko){ var r=new FileReader(); r.onload=function(){ ok(String(r.result).split(',')[1]||''); }; r.onerror=ko; r.readAsDataURL(blob); }); }
+var COUR_MAX_PIECES=12, COUR_MAX_OCTETS=12*1048576;
+function courPieces(input){
+  var c=COUR.c; if(!c) return;
+  var fichiers=[].slice.call(input.files||[]); input.value='';
+  var total=c.pieces.reduce(function(s,p){ return s+(p.taille||0); },0);
+  var refus=[];
+  Promise.all(fichiers.map(function(f){
+    if(c.pieces.length>=COUR_MAX_PIECES){ refus.push(f.name+' (12 pièces au plus)'); return null; }
+    if(total+f.size>COUR_MAX_OCTETS){ refus.push(f.name+' (12 Mo au plus en tout)'); return null; }
+    total+=f.size; c.pieces.push({nom:f.name,type:f.type||'application/octet-stream',taille:f.size,b64:null,lecture:true});
+    var p=c.pieces[c.pieces.length-1];
+    return courEnB64(f).then(function(b){ p.b64=b; p.lecture=false; });
+  })).then(function(){ if(refus.length) toast('⚠️ Pas jointes : '+refus.join(', '),8000); rendreEnGardantLeFocus(); });
+  rendreEnGardantLeFocus();
+}
+function courRetirerPiece(i){ if(COUR.c){ COUR.c.pieces.splice(i,1); rendreEnGardantLeFocus(); } }
+function courCorps(){ var c=COUR.c;
+  return {boite:c.boite,a:c.a,copie:c.copie,copieCachee:c.cci,objet:c.objet,texte:c.texte,
+    pieces:c.pieces.filter(function(p){ return p.b64; }).map(function(p){ return {nom:p.nom,type:p.type,b64:p.b64}; })}; }
+function courEnvoyer(){
+  var c=COUR.c; if(!c) return;
+  if(!String(c.a||'').trim()&&!String(c.copie||'').trim()){ toast('Indiquez au moins un destinataire'); return; }
+  if(!String(c.texte||'').trim()){ toast('Le message est vide'); return; }
+  if(c.pieces.some(function(p){ return p.lecture; })){ toast('Une pièce jointe est encore en lecture — un instant'); return; }
+  var corps=courCorps(); if(c.enReponseA) corps.enReponseA=c.enReponseA;
+  var btn=document.getElementById('cour-envoyer'); if(btn){ btn.disabled=true; btn.textContent='Envoi…'; }
+  geste('cour-envoyer',function(){ return apiPost('/api/monitor/mail/envoyer',corps); },function(){
+    toast('Message envoyé'+(String(c.a).trim()?' à '+String(c.a).trim():''));
+    MSG.compo=false; COUR.c=null; MSG.envoyes=null; renderNav('fondu'); chargerMail(true); })
+  .then(function(ok){ if(!ok){ var b=document.getElementById('cour-envoyer'); if(b){ b.disabled=false; b.textContent='Envoyer'; } } });
+}
+function courBrouillon(){
+  var c=COUR.c; if(!c) return;
+  geste('cour-brouillon',function(){ return apiPost('/api/monitor/mail/brouillon',courCorps()); },function(){ toast('Brouillon enregistré dans la boîte'); });
+}
+function courCompo(){
+  var c=COUR.c; if(!c) return '';
+  var titres={nouveau:'Nouveau message',repondre:'Répondre',tous:'Répondre à tous',transferer:'Transférer'};
+  var boites=(MSG.boites||[]).map(function(x){ var b=x.boite||{}; return '<option value="'+esc(b.id)+'"'+(b.id===c.boite?' selected':'')+'>'+esc((b.nom?b.nom+' — ':'')+(b.email||b.id))+'</option>'; }).join('');
+  /* les adresses connues — clientes du site et entreprises — proposées au fil de la frappe, jamais imposées */
+  var vus={}, conn=[];
+  (CLI.list||[]).forEach(function(x){ if(x.email&&!vus[x.email]){ vus[x.email]=1; conn.push([x.email,x.entreprise||x.nom||'']); } });
+  (ENT.liste||[]).forEach(function(x){ if(x.email&&!vus[x.email]){ vus[x.email]=1; conn.push([x.email,x.nom||'']); } });
+  var champ=function(id,lib,k,type,place){ return '<label class="cour-champ"><span>'+lib+'</span><input class="inp" id="'+id+'" type="'+(type||'text')+'"'+(k==='a'||k==='copie'||k==='cci'?' list="cour-adrs" autocomplete="off"':'')+' value="'+esc(c[k]||'')+'" oninput="courChamp(\''+k+'\',this.value)" placeholder="'+esc(place||'')+'"></label>'; };
+  return '<div class="lec cour-compo">'+
+    (mailEtroit()?'<button class="btn-fant lec-ret" onclick="compoFermer()">‹ Fermer</button>':'')+
+    '<div class="lec-obj">'+esc(titres[c.mode]||'Nouveau message')+'</div>'+
+    '<datalist id="cour-adrs">'+conn.map(function(x){ return '<option value="'+esc(x[0])+'">'+esc(x[1])+'</option>'; }).join('')+'</datalist>'+
+    (boites?'<label class="cour-champ"><span>De</span><select class="sel-f" id="cour-boite" onchange="courChamp(\'boite\',this.value)">'+boites+'</select></label>':
+      '<div class="note">Aucune boîte reliée : le message partira de l’adresse d’envoi de TeamOP.</div>')+
+    champ('cour-a','À','a','text','adresse@exemple.fr, une autre…')+
+    (c.voirCopie?champ('cour-cc','Cc','copie')+champ('cour-cci','Cci','cci'):'<button type="button" class="cour-lien" onclick="COUR.c.voirCopie=true;rendreEnGardantLeFocus()">+ Copie, copie cachée</button>')+
+    champ('cour-objet','Objet','objet','text','Objet du message')+
+    '<textarea class="inp cour-texte" id="cour-texte" rows="12" oninput="courChamp(\'texte\',this.value)" placeholder="Votre message…">'+esc(c.texte||'')+'</textarea>'+
+    '<div class="cour-pieces">'+c.pieces.map(function(p,i){ return '<span class="cour-piece">📎 '+esc(p.nom)+' <span class="g">'+(p.lecture?'lecture…':esc(courTaille(p.taille)))+'</span> <button type="button" class="cour-x" aria-label="Retirer '+esc(p.nom)+'" onclick="courRetirerPiece('+i+')">✕</button></span>'; }).join('')+
+      '<label class="btn-fant cour-joindre">📎 Joindre<input type="file" multiple hidden onchange="courPieces(this)"></label></div>'+
+    '<div class="cour-actions"><button type="button" class="btn-fant" onclick="compoFermer()">Annuler</button>'+
+      '<button type="button" class="btn-fant" onclick="courBrouillon()">Enregistrer le brouillon</button>'+
+      '<button type="button" class="btn-plein" id="cour-envoyer" onclick="courEnvoyer()">'+svg('avion',15)+' Envoyer</button></div>'+
+  '</div>';
+}
+/* ── relier une boîte : un vrai formulaire (le mot de passe ne s'écrit plus dans une fenêtre du navigateur, en clair) ── */
+function supConnecterBoite(){
+  tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:6px">Relier une boîte mail</div>'+
+    '<div class="g" style="margin-bottom:14px">La boîte arrive dans le Courrier des deux consoles : chaque message s’y range selon l’adresse de l’interlocuteur.</div>'+
+    '<label class="cour-champ"><span>Adresse</span><input class="inp" id="bx-email" type="email" autocomplete="off" placeholder="contact@teamop.fr"></label>'+
+    '<label class="cour-champ"><span>Mot de passe</span><input class="inp" id="bx-pass" type="password" autocomplete="new-password" placeholder="celui du webmail, ou un mot de passe d’application"></label>'+
+    '<label class="cour-champ"><span>Nom affiché</span><input class="inp" id="bx-nom" type="text" value="TEAM OP"></label>'+
+    '<details style="margin:6px 0 12px"><summary class="g">Serveurs (OVH par défaut)</summary>'+
+      '<label class="cour-champ"><span>IMAP</span><input class="inp" id="bx-imap" type="text" placeholder="imap.mail.ovh.net"></label>'+
+      '<label class="cour-champ"><span>SMTP</span><input class="inp" id="bx-smtp" type="text" placeholder="smtp.mail.ovh.net"></label></details>'+
+    '<div style="display:flex;gap:9px;justify-content:flex-end"><button type="button" class="btn-plein" id="bx-ok" onclick="supRelier()">Relier la boîte</button></div>');
+}
+function supRelier(){
+  var v=function(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; };
+  var corps={email:v('bx-email'),pass:(document.getElementById('bx-pass')||{}).value||'',nom:v('bx-nom')};
+  if(v('bx-imap')) corps.imapHost=v('bx-imap'); if(v('bx-smtp')) corps.smtpHost=v('bx-smtp');
+  if(!corps.email||!corps.pass){ toast('L’adresse et le mot de passe sont nécessaires'); return; }
+  var b=document.getElementById('bx-ok'); if(b){ b.disabled=true; b.textContent='Vérification de la boîte…'; }
+  geste('bx-relier',function(){ return apiPost('/api/monitor/mail/boites',corps); },function(){
+    var p=document.getElementById('tour-panneau'); if(p) p.remove();
+    toast('📬 '+corps.email+' reliée'); chargerMail(true); })
+  .then(function(ok){ if(!ok){ var x=document.getElementById('bx-ok'); if(x){ x.disabled=false; x.textContent='Relier la boîte'; } } });
+}
+/* ── la relève : toutes les deux minutes, quand la Tour est à l'écran — jamais sous un message qu'on écrit ── */
+setInterval(function(){
+  try{ if(!TOKEN||document.hidden||MYAPPS.indexOf('gestion')<0) return;
+    chargerMail(false,true);
+  }catch(e){}
+},120000);
 
 /* ══════════ 4. ENTREPRISES ══════════ */
 function chargerDossier(nom){
@@ -8009,7 +8456,7 @@ function vueEntreprises(){
   var segE=[['','Toutes',(ENT.liste||[]).length],['erreurs','Avec erreurs',st.avecErreurs||0],['horsAnnuaire','Hors annuaire',st.horsAnnuaire||0]];
   var teteL=teteListe('Espaces clients','Filtrer les entreprises',segE,ENT.filtre||'','entFiltrePoser(');
   return tete+kpi+teteL+
-    '<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Rechercher (nom, adresse, identifiant d’espace)…" value="'+esc(ENT.q)+'" oninput="entQ(this.value)"></div>'+
+    '<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Rechercher (nom, adresse, identifiant d’espace)…" value="'+esc(ENT.q)+'" id="ent-q" oninput="entQ(this.value)"></div>'+
     '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'+
       '<span>'+l.length+' sur '+(ENT.liste||[]).length+'</span>'+
       (ENT.filtre?'<button type="button" class="filtre-pose" onclick="entFiltre(\''+ENT.filtre+'\')" title="Revenir à toutes les entreprises">'+
@@ -8168,7 +8615,7 @@ function entSupprimer(t,nm){
       caseTxt:'Oui, je veux supprimer « '+nm+' » partout', oui:'Oui, supprimer partout',
       chemin:'/api/monitor/entreprise/supprimer', corps:{t:t},
       fin:function(x){
-        JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a supprimé « '+nm+' » partout'});
+        
         /* On ne dit jamais « tout est propre » si le serveur signale qu'une écriture a
            échoué : un ménage à moitié fait qu'on croit terminé est pire qu'un ménage
            annoncé incomplet. */
@@ -8241,7 +8688,7 @@ function ficheEntreprise(){
   carteSi(blocEspaceDe(o))+
   /* Pleine largeur : ce bloc porte des sélecteurs, des champs et sept boutons. Sur une
      demi-colonne ils se replieraient les uns sous les autres. */
-  (blocGestionClient()?'<div class="carte p24 pleine">'+blocGestionClient()+'</div>':'')+
+  (function(){ var g=blocGestionClient(); return g?'<div class="carte p24 pleine">'+g+'</div>':''; })()+
   carteSi(blocOrphelin(o))+
   carteSi(blocComptesDe(o))+
   blocSupprimer(o)+
@@ -8583,7 +9030,7 @@ function blocComptesDe(o){
     return !!(c.societe&&espSlugJs(c.societe)===espSlugJs(o.nom||''))||!!(c.entreprise&&espSlugJs(c.entreprise)===espSlugJs(o.nom||''));
   });
   if(!l.length) return '<div class="sous-sec"><div class="sec">SES COMPTES DU SITE</div>'+
-    videTour('Aucun compte du site rattaché à cette entreprise','Les comptes sans entreprise vivent dans l’onglet Accès, où se fait le ménage.','','entreprises')+'</div>';
+    videTour('Aucun compte du site rattaché à cette entreprise','Les comptes sans entreprise sont dans Entreprises › Comptes du site, où se fait le ménage.','','entreprises')+'</div>';
   return '<div class="sous-sec"><div class="sec">SES COMPTES DU SITE <span class="n">— '+l.length+'</span></div>'+
     '<div class="reg-bloc">'+l.map(function(c){
       return '<div class="reg-l inerte">'+
@@ -8614,7 +9061,7 @@ function vueComptesSite(){
     '<button type="button" class="btn-fant" onclick="chargerComptesSite()">Réessayer</button>')+'</div>';
   var q=(CS.q||'').toLowerCase().trim();
   var l=CS.comptes.filter(function(c){ return !q||((c.email||'')+' '+(c.nom||'')+' '+(c.societe||'')+' '+(c.entreprise||'')).toLowerCase().indexOf(q)>=0; });
-  t+='<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Filtrer par nom, entreprise ou adresse…" value="'+esc(CS.q)+'" oninput="csQ(this.value)"></div>';
+  t+='<div class="rech" style="margin-bottom:12px">'+svg('loupe',16)+'<input placeholder="Filtrer par nom, entreprise ou adresse…" value="'+esc(CS.q)+'" id="cs-q" oninput="csQ(this.value)"></div>';
   if(!l.length) return t+(q?videTour('Aucun compte ne correspond','Essayez un autre nom, une autre entreprise ou une autre adresse.','')
     :videTour('Aucun compte sur le site','Ils arrivent dès qu’une personne s’inscrit sur teamop.fr.',''))+'</div>';
   /* Le nombre d'anonymes est dit, pas caché : sans cette ligne on croirait que la console
@@ -8642,7 +9089,7 @@ function vueComptesSite(){
       '</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
         (lie
-          ? '<span style="font-size:12px;color:var(--muted)">Porte une entreprise — sa suppression passe par la fiche de l’entreprise (« Fermer définitivement »), qui efface aussi son espace et ses données.</span>'
+          ? '<span style="font-size:12px;color:var(--muted)">Porte une entreprise — sa suppression passe par la fiche de l’entreprise (« 🗑 Supprimer … partout »), qui efface aussi son espace et ses données.</span>'
           : '<button class="btn-fant" style="color:var(--redText);border-color:rgba(255,107,107,.35)" onclick="csSupprimer(\''+jsq(c.email)+'\',this)">🗑 Supprimer</button>')+
       '</div>'+
     '</div>';
@@ -8663,7 +9110,7 @@ function vueComptesSite(){
    (Stripe, par son adresse), si un espace existe déjà à son adresse, et les trois gestes — accepter, écrire, classer.
    Une demande d'OP MESSAGES n'entre pas dans cette console : le portail ne les prend plus (espace.html fige
    « OP GESTION »), et une ancienne qui en porterait la mention reste à l'écart. */
-var DEM={vue:'atraiter'};
+var DEM={vue:'atraiter',id:{}};
 function demEstGestion(d){ return String((d&&d.app)||'').toLowerCase().indexOf('messages')<0; }
 function demandesListe(){
   var l=[];
@@ -8696,11 +9143,11 @@ function vueDemandes(){
   if(CLI.err) return tete+acErr('Les demandes ne répondent pas',CLI.err,'chargerClients()');
   var tout=demandesListe(), aT=tout.filter(function(x){ return !x.traitee; }), faites=tout.filter(function(x){ return !!x.traitee; });
   var seg=teteListe('Demandes du site','Filtrer les demandes',[['atraiter','À traiter',aT.length],['traitees','Traitées',faites.length]],DEM.vue,'demOnglet(');
-  var liste=DEM.vue==='traitees'?faites.slice(0,40):aT;
+  var liste=DEM.vue==='traitees'?faites.slice(0,40):aT, tronque=DEM.vue==='traitees'&&faites.length>40;
   if(!liste.length) return tete+seg+(DEM.vue==='traitees'
     ?videTour('Aucune demande traitée','Les demandes acceptées ou classées se rangent ici.','','entreprises')
     :videTour('Aucune demande à traiter','Les demandes envoyées depuis l’espace client du site arrivent ici, avec un avis par e-mail.','','entreprises'));
-  return tete+seg+'<div class="dem-liste">'+liste.map(demCarte).join('')+'</div>';
+  return tete+seg+(tronque?'<div class="note">Les 40 plus récentes sur '+faites.length+'.</div>':'')+'<div class="dem-liste">'+liste.map(demCarte).join('')+'</div>';
 }
 function demCarte(x){
   var c=x.c, d=x.d, i=x.i;
@@ -8714,7 +9161,8 @@ function demCarte(x){
   if(pay) pastilles.push(pay.statut==='actif'||pay.statut==='essai'
     ?'<span class="past p-vert">💳 payé · '+esc(pay.formule||'abonnement')+'</span>'
     :'<span class="past '+aboPast(pay.statut)[1]+'">💳 abonnement '+esc(aboPast(pay.statut)[0].toLowerCase())+'</span>');
-  else if(ABO.loaded&&ABO.configured) pastilles.push('<span class="past p-gris">pas encore payé</span>');
+  else if(aboFiable()) pastilles.push('<span class="past p-gris">pas encore payé</span>');
+  else if(ABO.loaded&&ABO.configured) pastilles.push('<span class="past p-gris">paiement : Stripe ne répond pas</span>');
   var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(c.email)+'</span>'],
     ['Téléphone',c.tel?esc(c.tel):'—'],['Formule',esc(formule)+(d.users?' · '+esc(nMot(d.users,'utilisateur','utilisateurs')):'')],
     ['Métier',esc(MET_L[d.metier]||'non précisé')],['Lien souhaité',d.lien?'<span class="mono">teamop.fr/e/'+esc(espSlugJs(d.lien))+'</span>'+(espSlugJs(d.lien)!==d.lien?' <span class="g">(tapé « '+esc(d.lien)+' »)</span>':''):'—'],
@@ -8722,8 +9170,8 @@ function demCarte(x){
   var gestes=x.traitee
     ?'<button type="button" class="btn-fant" onclick="demClasser(\''+jsq(c.email)+'\','+i+',false)">Remettre à traiter</button>'+
       (esp?'<button type="button" class="btn-fant" onclick="demOuvrirFiche(\''+jsq(esp.t)+'\')">Ouvrir la fiche</button>':'')
-    :'<label class="dem-ident"><span>Identifiant de départ</span><input class="inp" id="dem-id-'+i+'-'+esc(sigleAdr(c.email))+'" value="'+esc(tourIdentDefaut(c.email))+'" autocomplete="off" spellcheck="false"></label>'+
-      '<button type="button" class="btn-plein" onclick="demAccepter(\''+jsq(c.email)+'\',\''+jsq(nomEnt)+'\','+i+',this)">✅ Accepter et ouvrir l’espace</button>'+
+    :(MYROLE!=='patron'?'<span class="g dem-patron">Ouvrir l’espace est réservé au patron.</span>':'<label class="dem-ident"><span>Identifiant de départ</span><input class="inp" id="dem-id-'+i+'-'+esc(sigleAdr(c.email))+'" value="'+esc(DEM.id[i+'-'+sigleAdr(c.email)]!=null?DEM.id[i+'-'+sigleAdr(c.email)]:tourIdentDefaut(c.email))+'" oninput="DEM.id[\''+i+'-'+sigleAdr(c.email)+'\']=this.value" autocomplete="off" spellcheck="false"></label>'+
+      '<button type="button" class="btn-plein" onclick="demAccepter(\''+jsq(c.email)+'\',\''+jsq(nomEnt)+'\','+i+',this)">✅ Accepter et ouvrir l’espace</button>')+
       '<button type="button" class="btn-fant" onclick="compoOuvrir(\''+jsq(c.email)+'\');setTab(\'support\')">Écrire</button>'+
       '<button type="button" class="btn-fant" onclick="demClasser(\''+jsq(c.email)+'\','+i+',true)">Classer sans suite</button>';
   return '<div class="carte p24 dem-carte">'+
@@ -8740,7 +9188,7 @@ async function demAccepter(email,nom,i,btn){
   var champ=$('dem-id-'+i+'-'+sigleAdr(email)), ident=((champ&&champ.value)||'').trim();
   if(!ident){ toast('Donne un identifiant de départ — son prénom, en général'); if(champ) champ.focus(); return; }
   if(btn){ btn.disabled=true; btn.textContent='Ouverture de l’espace…'; }
-  try{ await tourAccepterDemande(email,nom,ident); }
+  try{ await tourAccepterDemande(email,nom,ident,i); }
   finally{ if(btn&&btn.isConnected){ btn.disabled=false; btn.textContent='✅ Accepter et ouvrir l’espace'; } }
 }
 function demClasser(email,i,traite){
@@ -8749,10 +9197,15 @@ function demClasser(email,i,traite){
     toast(traite?'Demande classée':'Demande remise à traiter'); chargerClients();
   }).catch(function(){ toast(INJOIGNABLE); });
 }
-function demOuvrirFiche(t){ setTab('entreprises'); setTimeout(function(){ try{ entSel(t); }catch(e){} },60); }
+function demOuvrirFiche(t){ setTab('entreprises'); setTimeout(function(){ try{ if(ENT.sel!==t) entSel(t); else { SOUS.entreprises='liste'; renderNav('detail'); } }catch(e){} },60); }
 
 function blocGestionClient(){
   var c=CLI.list.filter(function(x){ return x.email===CLI.sel; })[0];
+  /* v2.88 — un espace ouvert DEPUIS LA TOUR n'a pas de compte du site : sans cette fiche de remplacement, il n'avait ni
+     Abonnement, ni Métier, ni Code promo — alors que l'écran Accès dit « sa fiche → Abonnement → En essai » pour lever
+     sa suspension (relecture du 17 octobre 2026, mesuré). Ses réglages passent par son nom d'espace, comme les autres. */
+  if(!c&&ENT.sel){ var o=(ENT.liste||[]).find(function(x){ return x.t===ENT.sel; });
+    if(o&&o.email&&o.email===CLI.sel) c={email:o.email,entreprise:o.nom||o.slug||'',nom:'',demandes:[],inscrit:o.ts||0,sansCompteSite:true}; }
   if(c){ var nmAct=c.entreprise||c.nom||c.email; clearTimeout(window._ficheActT); window._ficheActT=setTimeout(function(){ tourActiviteCharge(nmAct); },150); }
   if(!c) return '';   /* pas de compte du site rattaché : rien à gérer ici */
   var s=cliStatut(c), nm=c.entreprise||c.nom||c.email, prenom=String(c.nom||nm).split(' ')[0];
@@ -8791,7 +9244,9 @@ function blocGestionClient(){
     '<div class="note">'+esc(metDemande(c)?'métier demandé : '+MET_L[metDemande(c)]:'métier non précisé à la demande')+' · statut du site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
     '<div class="sous-act">'+
       '<button type="button" class="btn-plein" onclick="compoOuvrir(\''+jsq(c.email)+'\');setTab(\'support\')">Écrire à '+esc(prenom)+'</button>'+
-      '<button type="button" class="btn-fant" onclick="tourAccepterDemande(\''+jsq(c.email)+'\',\''+jsq(nm)+'\')">✅ Accepter la demande</button>'+
+      /* v2.88 — « Accepter la demande » ne vit plus que sur l'écran Demandes : ici il s'affichait pour TOUTE cliente, et sans
+         demande à traiter il posait « Business ×1 » par-dessus une formule payée (relecture du 17 octobre 2026). */
+      (demandesATraiter().some(function(x){ return x.c.email===c.email; })?'<button type="button" class="btn-fant" onclick="setTab(\'demandes\')">✅ Voir sa demande</button>':'')+
       '<button type="button" class="btn-fant" onclick="tourLienEntreprise(\''+jsq(c.email)+'\',\''+jsq(nm)+'\')">🔗 Lien de connexion</button>'+
       '<button type="button" class="btn-fant" onclick="window.open(\'https://dashboard.stripe.com/search?query='+encodeURIComponent(c.email)+'\',\'_blank\',\'noopener\')">Voir dans Stripe '+svg('ext',14)+'</button>'+
       /* Un seul geste destructif dans cette fiche, et c'est le complet : « Supprimer cette
@@ -8998,7 +9453,7 @@ function blocPromos(){
   var sous='Ces formules ne passent pas par Stripe : elles n’apparaissent ni dans le revenu ni dans les abonnements ci-dessus. C’est ici, et nulle part ailleurs, qu’on voit qui en profite et jusqu’à quand.';
   var env=function(corps,n){ return '<div class="reg" style="margin-top:32px">'+abnGroupe('Formules offertes (code promo)',n,sous,false,corps)+'</div>'; };
   if(!PRO.loaded) return env('<div class="jr-sq squel"></div>',null);
-  if(PRO.err) return env('<div class="jr-err"><span>'+esc(PRO.err)+'</span></div>',null);
+  if(PRO.err) return env('<div class="jr-err"><span>'+esc(PRO.err)+'</span><button type="button" class="btn-fant" onclick="chargerPromos()">Réessayer</button></div>',null);
   if(!PRO.codes.length) return env('<div class="jr-vide">Aucun code promo configuré sur le serveur.</div>',0);
   var corps=PRO.codes.map(function(c){
     var usages=(c.usages||[]);
@@ -9079,6 +9534,11 @@ function vueAbonnements(){
   /* Les formules offertes ne passent PAS par Stripe : elles disparaissaient exactement dans
      le seul cas où elles sont la seule information disponible. */
   if(!ABO.configured) return tete+videTour('Stripe n’est pas relié au serveur','Dès que Stripe sera relié, les abonnés, le revenu mensuel et les paiements apparaîtront ici tout seuls.','')+blocEspaces()+blocPromos();
+  /* v2.88 — Stripe en panne : on le DIT en tête, et un écran vide qui vient d'une panne ne dit pas « aucun abonnement » */
+  if(ABO.videFaute&&!(ABO.abos||[]).length&&!(ABO.paiements||[]).length)
+    return tete+acErr('Stripe ne répond pas',ABO.stripeErr||'Les chiffres n’ont pas pu être lus.','chargerAbos()')+blocEspaces()+blocPromos();
+  tete+=ABO.stripeErr?'<div class="note" style="margin-bottom:14px">⚠️ '+esc(ABO.perime?('Chiffres de Stripe du '+fmtDate(ABO.perime)+' — la relecture a échoué. '):'')+esc(ABO.stripeErr)+
+    ' <a href="#" onclick="chargerAbos();return false">Relire</a></div>':'';
 
   var abos=(ABO.abos||[]).slice();
   var enEssai=abos.filter(function(a){ return /trial|essai/i.test(String(a.statut||'')); }).length;
@@ -9090,9 +9550,9 @@ function vueAbonnements(){
      pas s'il montait, alors que le composant qui le dit est déjà dessiné. */
   var mois={},ordre=[];
   (ABO.paiements||[]).forEach(function(p){ if(!paieOk(p)||!p.date) return;
-    var d=new Date(p.date), c=d.getFullYear()+'-'+d.getMonth();
+    var d=new Date(p.date), c=d.getFullYear()*12+d.getMonth();   /* v2.88 : une clé NUMÉRIQUE — en texte, novembre (« 2026-10 ») passait avant mai (« 2026-5 ») */
     if(mois[c]===undefined){ mois[c]=0; ordre.push(c); } mois[c]+=Number(p.montant)||0; });
-  ordre.sort(); ordre=ordre.slice(-6);
+  ordre.sort(function(a,b){ return a-b; }); ordre=ordre.slice(-6);
   var bars='';
   if(ordre.length>=3){
     var mx=Math.max.apply(null,ordre.map(function(c){ return mois[c]; }))||1;
@@ -9125,7 +9585,7 @@ function vueAbonnements(){
       '<span class="reg-l3">'+(a.prochaine?'échéance du '+esc(fmtJour(a.prochaine)):'')+(a.id?' · '+esc(String(a.id)):'')+'</span></span>'+
       '<span class="reg-fin">'+abnEur(a.montant,a.periodicite,'du')+'<span class="past p-rouge">⚠ Impayé</span>'+
       '<span class="reg-chev" aria-hidden="true">'+svg('ext',14)+'</span></span></button>'; });
-  var echecs=(ABO.paiements||[]).filter(function(p){ return !paieOk(p)&&p.date>Date.now()-30*86400000; });
+  var echecs=(ABO.paiements||[]).filter(function(p){ return paieEchec(p)&&p.date>Date.now()-30*86400000; });
   var duEchecs=echecs.map(function(p){
     var mort=!p.url;
     return '<button type="button" class="reg-l cli" onclick="'+(mort?'':'window.open(\''+jsq(p.url||'')+'\',\'_blank\',\'noopener\')')+'"'+(mort?' disabled style="cursor:default"':'')+'>'+
@@ -9281,26 +9741,39 @@ function eqApps(id,cle){
   apiPost('/api/monitor/users/apps',{id:id,apps:apps}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+((x&&x.d&&x.d.error)||'refusé')); return; }
     u.apps=(x.d&&x.d.apps)||apps; u.appsPar=MYNOM;
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a réglé les applications de « '+u.nom+' » : '+u.apps.map(function(a){ return APPS_TOUR[a]?APPS_TOUR[a].nom:a; }).join(' + ')});
+    
     toast('Applications de '+u.nom+' : '+u.apps.map(function(a){ return APPS_TOUR[a].court; }).join(' + ')); render();
   }).catch(function(e){ toast(msgErreur(e)); });
+}
+/* v2.88 — UN GESTE QUI ÉCRIT DIT TOUJOURS COMMENT IL A FINI, ET NE PART QU'UNE FOIS (relecture du 17 octobre 2026) :
+   « Accès supprimé » s'affichait sur un refus du serveur, une coupure ne disait rien, un double clic créait deux comptes ou
+   envoyait deux codes à un client. `geste(cle, faire, reussi)` : `faire` rend la promesse d'apiPost ; un refus dit SON
+   motif, une coupure le dit, et la même clé ne repart pas tant que la première n'a pas répondu. */
+var _gestes={};
+function geste(cle,faire,reussi){
+  if(_gestes[cle]) return Promise.resolve(false);
+  _gestes[cle]=true;
+  var fin=function(){ delete _gestes[cle]; };
+  return Promise.resolve().then(faire).then(function(x){ fin();
+    if(!(x&&x.ok)){ toast('⚠️ '+String((x&&x.d&&x.d.error)||'Refusé par le serveur').slice(0,200),6000); return false; }
+    if(reussi) reussi(x); return true;
+  },function(){ fin(); toast('Serveur injoignable — rien n’a été fait. Réessayez.',6000); return false; });
 }
 function eqAjouter(){
   var nom=(EQ.nom||'').trim(), pass=EQ.pass||'';
   if(!nom||!pass){ toast('Choisissez un nom d’utilisateur et un mot de passe'); return; }
   if(EQ.users.some(function(u){ return (u.nom||'')===nom; })){ toast('Ce nom d’utilisateur existe déjà'); return; }
   if(pass.length<8){ toast('Le mot de passe fait 8 caractères au minimum'); return; }
-  var apps=['gestion','messages'].filter(function(a){ var c=$('eq-app-'+a); return c&&c.checked; }); if(!apps.length) apps=['gestion'];
-  apiPost('/api/monitor/users',{nom:nom,email:'',pass:pass,apps:apps}).then(function(x){
-    if(!x.ok){ toast('⚠️ '+(x.d.error||'refusé')); return; }
-    EQ.nom=''; EQ.pass='';
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a créé le compte équipe « '+nom+' »'});
-    toast('Compte « '+nom+' » créé'); chargerEquipe();
-  });
+  /* v2.88 — aucune console cochée : on le dit (avant, le compte naissait « OP GESTION » sans un mot) */
+  var apps=['gestion','messages'].filter(function(a){ var c=$('eq-app-'+a); return c&&c.checked; });
+  if(!apps.length){ toast('Cochez au moins une console : OP GESTION ou OP MESSAGES'); return; }
+  geste('eqAjouter',function(){ return apiPost('/api/monitor/users',{nom:nom,email:'',pass:pass,apps:apps}); },function(){
+    EQ.nom=''; EQ.pass=''; toast('Compte « '+nom+' » créé'); chargerEquipe(); });
 }
-function eqToggle(id){ apiPost('/api/monitor/users/toggle',{id:id}).then(function(){ chargerEquipe(); }); }
+function eqToggle(id){ geste('eqToggle-'+id,function(){ return apiPost('/api/monitor/users/toggle',{id:id}); },function(x){
+  toast(x.d&&x.d.actif?'Accès rouvert':'Accès coupé'); chargerEquipe(); }); }
 function eqSuppr(id,nom){ if(!confirm('Supprimer définitivement l’accès de '+nom+' ?')) return;
-  apiPost('/api/monitor/users/delete',{id:id}).then(function(){ toast('Accès supprimé'); chargerEquipe(); }); }
+  geste('eqSuppr-'+id,function(){ return apiPost('/api/monitor/users/delete',{id:id}); },function(){ toast('Accès supprimé'); chargerEquipe(); }); }
 
 /* ══════════ 6 bis. ACCÈS BÊTA ══════════
    La bêta d'OP GESTION est une page publique. Ces accès sont la seule façon d'y entrer :
@@ -9322,21 +9795,19 @@ function btAjouter(){
   if(!login||!pass){ toast('Choisis un identifiant et un mot de passe'); return; }
   /* v2.81 — un accès ouvre UNE application : celle de la console où on le crée (Justin : « bien séparé dans la Tour ») */
   var apps=[(APP==='messages')?'messages':'gestion'];
-  apiPost('/api/monitor/beta',{login:login,nom:nom,pass:pass,chantier:chantier,apps:apps}).then(function(x){
-    if(!x.ok){ toast('⚠️ '+(x.d.error||'refusé')); return; }
+  geste('btAjouter',function(){ return apiPost('/api/monitor/beta',{login:login,nom:nom,pass:pass,chantier:chantier,apps:apps}); },function(x){
     BT.login=''; BT.nom=''; BT.chantier=''; BT.pass='';
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a ouvert l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
+    
     /* un serveur d'avant ignore `apps` et rend un accès sans le champ : il n'ouvre que OP GESTION — ne pas le laisser croire le contraire */
     if(APP==='messages'&&!(x.d&&x.d.compte&&Array.isArray(x.d.compte.apps))){ toast('⚠️ Accès créé, mais le serveur ne connaît pas encore OP MESSAGES (mise à jour en attente) : il n’ouvre que la bêta d’OP GESTION'); }
     else toast('Accès « '+login+' » ouvert');
     chargerEssais();
   });
 }
-function btToggle(id){ apiPost('/api/monitor/beta/toggle',{id:id}).then(function(x){
-  if(x&&x.ok){ JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+(x.d.actif?' a rouvert':' a coupé')+' un accès bêta'}); }
-  chargerEssais(); }); }
+function btToggle(id){ geste('btToggle-'+id,function(){ return apiPost('/api/monitor/beta/toggle',{id:id}); },function(x){
+  toast(x.d&&x.d.actif?'Accès bêta rouvert':'Accès bêta coupé'); chargerEssais(); }); }
 function btSuppr(id,login){ if(!confirm('Supprimer définitivement l’accès bêta « '+login+' » ?')) return;
-  apiPost('/api/monitor/beta/delete',{id:id}).then(function(){ toast('Accès supprimé'); chargerEssais(); }); }
+  geste('btSuppr-'+id,function(){ return apiPost('/api/monitor/beta/delete',{id:id}); },function(){ toast('Accès supprimé'); chargerEssais(); }); }
 /* ══ v2.81 — UN ACCÈS, UNE APPLICATION (Justin, 1er octobre 2026 : « fais un lien bêta dans la Tour [pour OP MESSAGES], fais le même
    système pour les accès comme OP GESTION » ; puis le 2 octobre, capture de la console MESSAGES à l'appui : « je veux pouvoir créer
    les accès d'OP MESSAGES ici, car je veux que ça soit bien séparé dans la Tour »). Chaque console crée et montre les SIENS ; un même
@@ -9375,7 +9846,7 @@ async function pbCreer(btn){
     var e=await tourEspaceDe(email,nom,ident,mdp,!dejaLa,'tour');
     if(!e){ if(btn){ btn.disabled=false; btn.textContent='Ouvrir l\'accès'; } return; }
     PB.nom=''; PB.email=''; PB.ident=''; PB.pass='';
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a ouvert un accès à la version publique « '+nom+' »'});
+    
     chargerAccesPublics();   // il doit apparaître dans la liste, tout de suite
     tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:4px">🌍 Accès version publique — '+esc(e.nom)+'</div>'+
       '<div style="color:var(--muted);font-size:13px;margin-bottom:16px">C’est un vrai espace d’entreprise sur <b>teamop.fr/app.html</b>. Ouvre le lien sur chaque appareil qui doit y accéder.</div>'+
@@ -9597,7 +10068,7 @@ function btMdp(id,login){
   if(v.length<8){ toast('⚠️ Mot de passe de 8 caractères minimum — rien n’a été changé'); return; }
   apiPost('/api/monitor/beta/mdp',{id:id,pass:v}).then(function(x){
     if(!(x&&x.ok)){ toast('⚠️ '+(x&&x.status===403?'Réservé au patron — ton compte n’a pas cet accès.':((x&&x.d&&x.d.error)||'refusé'))+' — rien n’a été changé'); return; }
-    JR.actions.unshift({ts:Date.now(),app:APP,tx:MYNOM+' a posé un nouveau mot de passe à l’accès bêta « '+login+' »'+(APP==='messages'?' (OP MESSAGES)':'')});
+    
     toast('Nouveau mot de passe posé pour « '+login+' » — l’ancien ne passe plus'); chargerEssais();
   }).catch(function(){ toast('⚠️ Serveur injoignable — rien n’a été changé'); });
 }
@@ -9726,7 +10197,7 @@ function vueEquipe(){
   var tete=enTete('Équipe',
     'Qui peut ouvrir cette console, et avec quels droits. Chaque connexion est journalisée.');
   if(!EQ.loaded) return tete+acSquel();
-  if(EQ.err) return tete+'<div class="encart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg><div class="encart-tx">'+esc(EQ.err)+'</div></div>';
+  if(EQ.err) return tete+'<div class="encart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg><div class="encart-tx">'+esc(EQ.err)+'</div>'+(/^R[ée]serv/.test(EQ.err)?'':'<button type="button" class="btn-fant" onclick="EQ.loaded=false;chargerEquipe();render()">Réessayer</button>')+'</div>';
 
   /* La seule donnée qui compte vraiment — qui s'est servi de cette clé, et quand — était
      DÉJÀ en mémoire (JR.cnx) et n'était affichée nulle part. On ne montre jamais un TOTAL :
@@ -9882,16 +10353,14 @@ function donApercu(){
    d'autres fois est un bouton dont on ne sait plus ce qu'il fait. */
 function donDemanderCode(){
   var t=(DON.ent||'').trim(), ms=donInstantMs(); if(!t||!ms) return;
-  apiPost('/api/monitor/op/revenir',{t:t,instant:ms}).then(function(r){
-    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,160):'Refusé.'); return; }
-    DON.codeEnvoye=true; render(); toast('Code envoyé à l’adresse de l’entreprise.');
-  });
+  /* v2.88 — un double clic envoyait DEUX courriels de code à un vrai client */
+  geste('donCode',function(){ return apiPost('/api/monitor/op/revenir',{t:t,instant:ms}); },function(){
+    DON.codeEnvoye=true; render(); toast('Code envoyé à l’adresse de l’entreprise.'); });
 }
 function donAppliquer(){
   var t=(DON.ent||'').trim(), ms=donInstantMs(), c=(DON.code||'').trim();
   if(!t||!ms||!c){ toast('Il faut le code reçu par courriel.'); return; }
-  apiPost('/api/monitor/op/revenir',{t:t,instant:ms,code:c,sansLesIllisibles:!!DON.sansIllisibles}).then(function(r){
-    if(!r.ok){ toast(r.d&&r.d.error?String(r.d.error).slice(0,200):'Refusé.'); return; }
+  geste('donAppliquer',function(){ return apiPost('/api/monitor/op/revenir',{t:t,instant:ms,code:c,sansLesIllisibles:!!DON.sansIllisibles}); },function(r){
     DON.codeEnvoye=false; DON.code='';
     /* ⛔ LES REFUS SE DISENT, ET DANS LE MÊME SOUFFLE. `pousser()` refuse un LOT ENTIER quand
        l'espace est plein : un retour peut donc s'arrêter au milieu. Annoncer les remises sans
@@ -9998,17 +10467,17 @@ function vueDonnees(){
   return tete+'<div class="reg">'+gSauv+gRetour+'</div>';   /* v2.68 : l'écart des autres écrans entre deux groupes */
 }
 function donSauvLancer(){
-  toast('Sauvegarde lancée…');
-  apiPost('/api/monitor/sauvegarde/lancer',{}).then(function(r){
-    toast(r.ok&&r.d&&r.d.ok?'Sauvegarde réussie.':'Échec : '+((r.d&&r.d.motif)||'motif inconnu'));
-    donCharger();
-  });
+  if(_gestes.donSauv) return;   /* v2.88 : un second clic lançait une seconde sauvegarde */
+  toast('Sauvegarde lancée…',60000);
+  geste('donSauv',function(){ return apiPost('/api/monitor/sauvegarde/lancer',{}); },function(r){
+    toast(r.d&&r.d.ok?'Sauvegarde réussie.':'Échec : '+((r.d&&(r.d.motif||r.d.error))||'motif inconnu'));
+    donCharger(); }).then(function(ok){ if(!ok) donCharger(); });
 }
 function vueJournal(){
   /* v2.85 — CHAQUE CONSOLE SON JOURNAL : une action (de cette session, ou notée par le serveur avec la console de sa route — `app`) ne paraît que dans la
      console où elle a été faite. Une connexion à la Tour n'a pas de console : elle paraît là où le compte travaille (`apps`), et une tentative refusée
      (un identifiant qui ne dit rien) dans les deux — c'est le signal de sécurité. */
-  var A=(JR.actions||[]).concat(JR.serveur||[]).filter(function(a){ return !a.app||a.app===APP; });
+  var A=(JR.serveur||[]).filter(function(a){ return !a.app||a.app===APP; }), lu=JR.loaded&&!JR.err;
   var C=(JR.cnx||[]).filter(function(j){
     if(j.app) return j.app===APP;
     if(j.ok&&j.apps) return String(j.apps).split('+').indexOf(APP)>=0;
@@ -10023,9 +10492,10 @@ function vueJournal(){
   /* La couleur ne parle jamais seule : à zéro échec, le libellé dit « aucune tentative
      refusée » et le chiffre reste en encre normale. */
   var kpis='<div class="grille-kpi jr-kpi" style="margin-top:18px;margin-bottom:22px">'+
-    kpi('tout',C.length,'connexion'+(C.length>1?'s':'')+' enregistrée'+(C.length>1?'s':''))+
-    kpi('echecs',ko.length,ko.length?('tentative'+(ko.length>1?'s':'')+' refusée'+(ko.length>1?'s':'')):'aucune tentative refusée',true)+
-    kpi('actions',A.length,'action'+(A.length>1?'s':'')+' enregistrée'+(A.length>1?'s':''))+
+    /* v2.88 — pas lu n'est pas zéro : « aucune tentative refusée » s'affichait pendant une panne, et c'est le seul signal de sécurité de la console */
+    (lu?kpi('tout',C.length,'connexion'+(C.length>1?'s':'')+' enregistrée'+(C.length>1?'s':'')):kpi('tout','—','connexions : pas lues'))+
+    (lu?kpi('echecs',ko.length,ko.length?('tentative'+(ko.length>1?'s':'')+' refusée'+(ko.length>1?'s':'')):'aucune tentative refusée',true):kpi('echecs','—','tentatives refusées : pas lues'))+
+    (lu?kpi('actions',A.length,'action'+(A.length>1?'s':'')+' enregistrée'+(A.length>1?'s':'')):kpi('actions','—','actions : pas lues'))+
   '</div>';
 
   /* Une tentative refusée est une LIGNE DE REGISTRE, comme partout ailleurs dans la Tour —
@@ -10082,11 +10552,11 @@ function vueJournal(){
     bloc=jrGroupe('Connexions à la console',null,'',false,
       '<div class="encart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)">'+IC.cadenas+'</svg>'+
       '<div class="encart-tx">'+esc(JR.err)+'</div></div>')+
-      jrGroupe('Ce qui a été fait dans cette console',A.length,'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page. Le serveur, lui, ne la conserve pas.',false,corpsAct);
+      jrGroupe('Ce qui a été fait dans cette console',A.length,'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct);
   else if(JR.err)
     bloc=jrGroupe('Connexions à la console',null,'',false,
       '<div class="jr-err"><span>'+esc(JR.err)+'</span><button type="button" class="btn-fant" onclick="JR.loaded=false;chargerJournal();render()">Réessayer</button></div>')+
-      jrGroupe('Ce qui a été fait dans cette console',A.length,'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page.',false,corpsAct);
+      jrGroupe('Ce qui a été fait dans cette console',A.length,'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct);
   else{
     var g=[];
     /* Le groupe des refusées est TOUJOURS rendu quand il est dans le filtre : son absence
@@ -10096,7 +10566,7 @@ function vueJournal(){
     if((f==='tout')&&ok.length) g.push(jrGroupe('Connexions réussies',ok.length,
       'Qui est entré, depuis quel appareil, et quand.',true,corpsOk));
     if(f==='tout'||f==='actions') g.push(jrGroupe('Ce qui a été fait dans cette console',A.length,
-      'Cette liste vit dans l’onglet ouvert : elle repart vide au prochain rechargement de la page. Le serveur, lui, ne la conserve pas.',false,corpsAct));
+      'Les gestes sont notés par le serveur — vus de tous les appareils, gardés après un rechargement (les 200 derniers paraissent ici).',false,corpsAct));
     bloc=g.join('');
   }
 
@@ -10104,7 +10574,7 @@ function vueJournal(){
     'Ce qui a été fait dans cette console, et qui s’y est connecté. Aucune ligne ne peut être effacée à la main.')+
     kpis+teteListe('Dernières entrées','Filtrer le journal',[['tout','Tout',C.length+A.length],['echecs','Refusées',ko.length],['actions','Actions',A.length]],f,'jrFiltrePoser(')+
     '<div class="reg">'+bloc+'</div>'+
-    '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console. Au-delà, elles sont effacées — y compris depuis ici.</div>'+
+    '<div class="jr-fin">Le serveur conserve les 100 dernières connexions à la console et les 500 derniers gestes ; les plus anciens laissent la place aux nouveaux.</div>'+
     (APP!=='gestion'?'':'<div class="reg-tech jr-mails"><div><b>📧 Les e-mails envoyés sont dans Courrier → Envois TeamOP.</b> Rangés par entreprise, avec la recherche et le contenu de chaque message. Ils étaient dupliqués ici en liste plate : une seule place vaut mieux que deux.</div>'+
     '<button type="button" class="btn-plein" onclick="setTab(\'support\');envoyesOuvrir()">Ouvrir les envois</button></div>');
 }
@@ -10148,5 +10618,5 @@ function vueJournal(){
   try{ new MutationObserver(function(){ clearTimeout(t); t=setTimeout(tout,60); }).observe(document.documentElement,{childList:true,subtree:true}); }catch(e){}
 })();
 </script>
-<div id="apercu-ruban" style="position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:99999;font:600 12px/1 -apple-system,system-ui,sans-serif;letter-spacing:.06em;color:#fff;background:#B26E12;padding:8px 14px;border-radius:99px;box-shadow:0 6px 24px rgba(0,0,0,.25);pointer-events:none">APERÇU · refonte en cours</div></body>
+</body>
 </html>

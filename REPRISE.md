@@ -13,37 +13,65 @@ de ligne du tout.
 
 ---
 
-# ⏳ 17 OCTOBRE 2026 (NUIT) — LA TOUR REPRISE DE A À Z, ET LES CORRECTIFS DU CONTRÔLE : CINQ BRANCHES, RIEN SUR `main`
+# ⏳ 17 OCTOBRE 2026 (NUIT) — LA TOUR v2.88 REPRISE DE A À Z : DEUX CONSOLES SÉPARÉES, UNE VRAIE BOÎTE MAIL — RIEN SUR `main`
 
-Justin : « je veux que tu me refasses toute la Tour de A à Z, que tu sépares bien les demandes de OP GESTION et les
-demandes de OP MESSAGES […] Pareil pour le système de mail […] une vraie boîte mail intégrée dans la Tour ». Ses
-réponses du même soir : OP MESSAGES se pilote **par un relais d'`api.teamop.fr`** (la Tour ne parle qu'à notre API) ;
-le courrier garde **les mêmes boîtes, triées par console** ; le ménage du menu est fait ; le module d'administration
-du serveur d'OP MESSAGES s'écrit **sur sa branche**, pas dans la session qui en a la charge.
+Justin : « refais toute la Tour de A à Z […] sépare bien les demandes d'OP GESTION et d'OP MESSAGES […] la Tour contrôle
+OP GESTION et l'autre côté contrôle OP MESSAGES […] une vraie boîte mail intégrée » ; puis « revois toutes les catégories,
+corrige les bugs, améliore et simplifie-la ». Ses réponses : OP MESSAGES **par un relais d'`api.teamop.fr`** ; le courrier
+**« mêmes boîtes, triées »** ; le ménage du menu **fait** ; le module d'OP MESSAGES **sur sa branche**.
 
-| branche | contenu | ce qu'il lui faut pour partir |
+**Ce qui est fait, sur `claude/tour-refonte` (Tour v2.88 + serveur) :**
+- **menu** : dix entrées → huit (Équipe en onglet d'Accès, Sauvegardes en onglet de « Système »/Journal ; Connexions et
+  Devis IA en onglets d'Entreprises et d'Abonnements ; les anciennes adresses y mènent encore) ;
+- **Demandes** (OP GESTION seul) : payé lu chez Stripe, accepter LA demande de la carte, refus et attente dits (`test-1014`) ;
+- **console OP MESSAGES branchée sur son serveur** : Comptes, Espaces, Abonnements, Service (état + journal), instance
+  Publique/Bêta — par `GET /api/monitor/messages/admin/*` (relais en boucle locale, `test-1016`) ;
+- **Courrier dans les deux consoles, trié** : HTML isolé, pièces, répondre/à tous/transférer, écrire (copie, cci, pièces),
+  brouillon, déplacer, supprimer, ranger une adresse ou un domaine, pages, relève toutes les 2 min (`test-1018`,
+  `scratchpad/sonde-courrier.js` : 27 ✓ au bureau, 27 ✓ au téléphone, contre le vrai serveur et une boîte IMAP de banc) ;
+- **Journal des gestes noté par le serveur** (`MON_GESTES`, `test-1015` : 78 routes POST classées, `poser()` compris) ;
+- **la revue des catégories** : une trentaine de défauts réels corrigés (relectures, puis `test-1017`), dont : onglets restés
+  en squelette, fiche invisible derrière un onglet, recherche qui perdait le champ, Stripe en panne lu « 0 € », factures
+  annulées comptées « refusées », graphique trié faux dès novembre, note de Surveillance effacée chaque minute, faux
+  « Accès supprimé », deux codes envoyés à un client sur un double clic, Journal qui mentait sur lui-même, « Accepter » de
+  la fiche qui pouvait rétrograder une cliente qui paie ;
+- **fusionnée** : `claude/tour-courrier-serveur` (le serveur du courrier trié, `test-1012`).
+Toutes les contre-épreuves de ces bancs mordent (scripts `scratchpad/mut-10*.py`).
+
+**Les autres branches :**
+| branche | contenu | ce qu'il lui faut |
 |---|---|---|
-| `claude/correctifs-controle` | `X-Powered-By` retiré (`test-1011`), polices du site servies par teamop.fr (`vitrine/polices/`, OFL), cibles au doigt du site et du portail, aperçus refaits | **phrase de Justin** : `server/` déploie le VPS ; le site part par `publication-site.yml` |
-| `claude/app-correctifs-controle` | sur la ligne **v768** (`claude/op-gestion-interface-yb6p32`, qui la porte déjà) : « Modules OP » ne cite plus Organilog, la langue n'est demandée qu'à un appareil non français, polices locales, le compte de départ prend le prénom et le nom de la demande (`test-1013`) | part AVEC la v768 — bêta d'abord ; `app.html` reste sous la règle du 23 septembre (rien en public avant la sortie de Firebase) |
-| `claude/tour-refonte` | Tour **v2.87** : écran **Demandes** (OP GESTION seul, payé lu chez Stripe, accepter depuis la carte — `test-1014`) ; Connexions et Devis IA en sous-onglets ; **Comptes du site** revenu (il n'était plus appelé par aucun écran) ; **Journal des gestes noté par le serveur** (`MON_GESTES`, `test-1015` : chaque route POST de la Tour classée) ; code mort retiré ; le prénom et le nom voyagent dans le code de l'espace (`p`, `f`) | essai par Justin sur `apercu/tour.html`, puis **phrase** — le journal touche `server/` |
-| `claude/tour-courrier-serveur` | (agent en cours) le moteur du courrier de la Tour : dossiers, pages, pièces, brouillons, tri par console | relecture `gardien`, puis l'écran (v2.88) |
-| `claude/msg-admin` | (agent en cours) `server-msg/admin.js` : ce que la Tour OP MESSAGES pourra lire et faire, derrière un secret partagé | le relais dans `server/index.js`, puis les vues de la console OP MESSAGES |
+| `claude/correctifs-controle` | `X-Powered-By` retiré (`test-1011`), polices du site chez nous, cibles au doigt du site | **phrase de Justin** (serveur + site) |
+| `claude/app-correctifs-controle` | sur la ligne **v768** : Organilog, langue, polices, nom du compte de départ (`test-1013`) | part AVEC la v768 (bêta d'abord) |
+| `claude/msg-admin` | `server-msg/admin.js` + `configurer-admin.js` (`test-2690`, `test-2691`) | part avec OP MESSAGES (son déploiement, son approbation) |
 
-⚠️ **v768 appartient à `claude/op-gestion-interface-yb6p32`** (ses fonctions d'options, que `test-845` attend). Une
-autre branche qui monte `APP_VERSION` à 768 fait tomber `test-845` : les correctifs d'application montent avec elle.
-⚠️ Ce que le contrôle a relevé et qui reste « à regarder » : `app.html` charge encore Leaflet chez `unpkg.com` (et
-d'autres bibliothèques à la demande : pdf.js, jsPDF, Tesseract chez jsDelivr) — les servir d'ici ne suffirait pas pour la
-carte, dont les tuiles viennent de toute façon d'un serveur de cartes : c'est une décision (sous-traitance), pas un correctif.
-✅ Écarté après lecture : la fenêtre « Photo de profil » au rechargement est VOULUE (`maybeProfilePhoto` : une fois par
-personne et par appareil, et pas par-dessus une autre fenêtre — à la première ouverture, c'est celle du mot de passe).
+**⛔ L'ORDRE DE MISE EN LIGNE (rien ne part sans la phrase de Justin) :**
+1. **le serveur d'abord** (`server/` de `claude/tour-refonte` sur `main` = déploiement du VPS). Il est rétrocompatible avec la
+   Tour en ligne : champs ajoutés seulement, la liste du courrier sans `console` rend tout comme avant. Sur le VPS, hors dépôt :
+   **nginx doit laisser passer 20 Mo** sur `/api/monitor/mail/envoyer` et `/brouillon` (`client_max_body_size`) ;
+2. **essai de la Tour** par Justin sur `teamop.fr/apercu/tour.html` (v2.88) — contre l'ancien serveur, l'aperçu ne montre
+   ni le tri du courrier, ni le Journal des gestes, ni OP MESSAGES : c'est pour ça que le serveur passe avant ;
+3. puis `tour.html` sur `main` ;
+4. le relais vers OP MESSAGES s'allume quand les DEUX côtés ont le même secret, en saisie masquée :
+   `node /opt/teamop/repo/server/configurer-relais-messages.js beta` (api) et `configurer-admin.js` (OP MESSAGES) — les deux
+   disent la même empreinte courte. Jusque-là la console OP MESSAGES dit « relais non configuré », avec ces deux gestes.
+
+**À trancher par Justin :**
+- un compte de la Tour qui n'a QUE la console OP MESSAGES ne voit pas le Courrier (le serveur range `mail/*` dans OP GESTION :
+  la boîte porte les liens de connexion des entreprises) — le lui ouvrir, filtré côté serveur, est un chantier de plus ;
+- l'identifiant public « Prénom#1234 » sort par l'administration d'OP MESSAGES (seul moyen de retrouver un compte par
+  téléphone sans son numéro) ;
+- `app.html` charge encore Leaflet, pdf.js, jsPDF et Tesseract chez des CDN — et les tuiles de carte viennent d'un serveur
+  de cartes : une décision de sous-traitance, pas un correctif.
+✅ Écarté après lecture : la fenêtre « Photo de profil » au rechargement est VOULUE (`maybeProfilePhoto`).
 
 ---
 
-# ⏳ 17 OCTOBRE 2026 (SOIR) — LE COURRIER DE LA TOUR : « MÊMES BOÎTES, TRIÉES » — LE SERVEUR EST PRÊT, LA TOUR NE L'APPELLE PAS ENCORE
+# ⏳ 17 OCTOBRE 2026 (SOIR) — LE COURRIER DE LA TOUR : « MÊMES BOÎTES, TRIÉES » — LE SERVEUR (fusionné dans `claude/tour-refonte`, que la Tour v2.88 appelle)
 
 Justin : la Tour a deux consoles (OP GESTION, OP MESSAGES) et, pour le courrier, « mêmes boîtes, triées ». Branche
 `claude/tour-courrier-serveur` — **pas sur `main`** (un push de `server/` sur `main` déploie le VPS : il attend sa phrase).
-Serveur seulement : `tour.html` n'est pas touchée, la Tour d'aujourd'hui marche sans changement.
+Serveur seulement — la Tour qui l'appelle est la v2.88 (entrée ci-dessus) ; la Tour en ligne marche sans changement.
 
 - **Fait** (`server/mail.js`, `server/index.js`, `tests/test-1012.js`, `tests/faux-imap.js`) : chaque message de `/mail/liste` et
   `/mail/message` porte `console` ('gestion' | 'messages' | 'atrier') et `interlocuteur` ; `/mail/liste?console=` rend la console demandée
