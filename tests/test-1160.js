@@ -38,7 +38,7 @@ function monde(box) {
     todayISO: () => '2026-10-17', fullName: u => u.prenom, roleLbl: r => r, stkLienOk: () => true,
     renderBoxCodes() {}, renderBoxTechs() {}, renderBoxFormProds() {}, renderBoxPhoto() {} };
   const ctx = new Proxy(propre, { has: (t, k) => typeof k === 'string' && k !== 'undefined',
-    get: (t, k) => k in t ? t[k] : (k === Symbol.unscopables ? undefined : (() => '')),
+    get: (t, k) => k in t ? t[k] : (k === Symbol.unscopables ? undefined : (k in globalThis ? globalThis[k] : (() => ''))),
     set: (t, k, v) => { t[k] = v; return true; } });
   vm.createContext(ctx);
   vm.runInContext(`${SID}\n${ES}\n${FB}\nvar boxCodes,boxTechSel,boxUserSel,boxVisibleTous,boxFormStock,boxFormStockDepart,boxFormId,boxFormCatOpen,boxLat,boxLng,boxAddrResults,boxPhoto;`, ctx);
