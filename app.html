@@ -30307,15 +30307,38 @@ const STATV={ enAttente:{l:'En attente',c:'st-org'}, valide:{l:'Validée',c:'st-
    qui l'avait faite ne savait jamais si sa commande était partie, arrivée, ou encore en tiroir.
    Les deux objets sont maintenant reliés (demande.bonId ↔ bon.demandeId) et la demande affiche
    l'avancement réel de son bon. */
+/* ⛔ g20 (achats#3) — UNE DEMANDE SUIT TOUS LES BONS QUI EN SORTENT, PAS SEULEMENT LE PREMIER. `d.bonId`
+   désigne le bon né à la validation ; quand « ✓ Prêt » le SÉPARE par fournisseur (`bonSeparer`), le bon
+   de chaque autre fournisseur copie `demandeId` mais la demande ne le connaît pas. Lire `d.bonId` seul
+   faisait passer la demande à « Reçue » dès que la première moitié était livrée — « Rien en cours »,
+   alors que l'autre fournisseur n'était même pas commandé, et plus rien ne la suivait. Le lien se lit
+   donc dans les DEUX sens : le bon désigné par la demande, et tout bon qui désigne la demande. */
+function demandeBons(d){
+  if(!d) return [];
+  const bons=db.bons||[]; const out=[];
+  const b0=d.bonId&&bons.find(x=>x.id===d.bonId); if(b0) out.push(b0);
+  bons.forEach(b=>{ if(b&&d.id&&b.demandeId===d.id&&!out.includes(b)) out.push(b); });
+  return out;
+}
 function demandeEtat(d){
   if(!d) return STATV.enAttente;
   if(d.statut!=='valide') return STATV[d.statut]||STATV.enAttente;
-  const b=d.bonId&&(db.bons||[]).find(x=>x.id===d.bonId);
-  if(!b) return { l:'Acceptée', c:'st-green' };
-  if(b.statut==='livree')  return { l:'Reçue', c:'st-green' };
-  if(b.statut==='annulee') return { l:'Commande annulée', c:'st-red' };
-  const st=STATBC[b.statut];
-  return st ? { l:'Acceptée · '+st.l, c:st.c } : { l:'Acceptée', c:'st-green' };
+  const bons=demandeBons(d);
+  if(!bons.length) return { l:'Acceptée', c:'st-green' };
+  if(bons.length===1){ const b=bons[0];
+    if(b.statut==='livree')  return { l:'Reçue', c:'st-green' };
+    if(b.statut==='annulee') return { l:'Commande annulée', c:'st-red' };
+    const st=STATBC[b.statut];
+    return st ? { l:'Acceptée · '+st.l, c:st.c } : { l:'Acceptée', c:'st-green' }; }
+  /* plusieurs bons : un bon annulé n'est plus attendu ; « Reçue » seulement quand TOUS les autres sont livrés */
+  const vifs=bons.filter(b=>b.statut!=='annulee');
+  if(!vifs.length) return { l:'Commande annulée', c:'st-red' };
+  const livres=vifs.filter(b=>b.statut==='livree').length;
+  if(livres===vifs.length) return { l:'Reçue', c:'st-green' };
+  if(livres>0) return { l:'Partiellement reçue · '+livres+'/'+vifs.length, c:'st-org' };
+  const ordre=Object.keys(STATBC); const moins=vifs.slice().sort((x,y)=>ordre.indexOf(x.statut)-ordre.indexOf(y.statut))[0];
+  const st=STATBC[moins.statut];
+  return { l:'Acceptée · '+(st?st.l:'en cours')+' ('+vifs.length+' bons)', c:st?st.c:'st-green' };
 }
 const badgeEtat = (o) => `<span class="st ${o.c}">${o.l}</span>`;
 const demTotal=d=>(d.lignes||[]).reduce((s,l)=>s+(l.quantite||0),0);
@@ -30331,9 +30354,9 @@ function demandeEnCours(d){
   if(!d) return false;
   if(d.statut==='enAttente') return true;
   if(d.statut!=='valide') return false;                 // refusée : plus rien n'est attendu
-  const b=d.bonId&&(db.bons||[]).find(x=>x.id===d.bonId);
-  if(!b) return false;                                  // acceptée, sans commande à suivre
-  return b.statut!=='livree' && b.statut!=='annulee';
+  const bons=demandeBons(d);
+  if(!bons.length) return false;                        // acceptée, sans commande à suivre
+  return bons.some(b=>b.statut!=='livree' && b.statut!=='annulee');   // g20 : TOUS les bons de la demande, pas le premier seul
 }
 function demMoisLabel(k){
   if(!k||k==='—') return 'Sans date';
@@ -31220,7 +31243,13 @@ async function mailSend(){ const to=(($('mc-to')||{}).value||'').trim(), subject
   else{ try{ const feat=await srvFeatures(); if(feat&&feat.boite&&feat.boiteAddr&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(feat.boiteAddr)) opts.replyTo=feat.boiteAddr; else if(currentUser&&currentUser.mailReply) opts.replyTo=currentUser.mailReply; }catch(e){} }
   if(_mailAtt&&_mailAtt.content) opts.atts=[_mailAtt];
   const ok=await srvMail(to,subject||'(sans objet)',text,'✉️ E-mail envoyé à '+to,'',null,opts);
-  if(ok){ db.mailSent=db.mailSent||[]; db.mailSent.push({ts:Date.now(),to,subject,text,att:_mailAtt?_mailAtt.filename:'',from:fromLabel}); if(db.mailSent.length>200) db.mailSent=db.mailSent.slice(-200); save(); }
+  /* ⛔ g20 (achats#10) — LA FENÊTRE NE SE FERME QU'AU SUCCÈS. `srvMail` rend `false` quand le serveur d'envoi est
+     injoignable ou refuse, et il ouvre alors un brouillon `mailto:` — qui n'existe pas sur un poste sans client
+     Mail : fermer la fenêtre jetait l'objet, le destinataire et le message tapés, sans rien enregistrer. À
+     l'échec, la fenêtre reste ouverte avec son texte (comme « Envoi automatique impossible » sur un bon) ; le
+     brouillon `mailto:` reste le repli, pas la seule trace. */
+  if(!ok){ toast('✉️ Message non envoyé — ton texte est conservé ici : réessaie, ou termine-le dans le brouillon Mail préparé.'); return; }
+  db.mailSent=db.mailSent||[]; db.mailSent.push({ts:Date.now(),to,subject,text,att:_mailAtt?_mailAtt.filename:'',from:fromLabel}); if(db.mailSent.length>200) db.mailSent=db.mailSent.slice(-200); save();
   closeModal(); if(current==='boiteMail') views.boiteMail();
 }
 /* 📥 Réponses des fournisseurs — relevées par le serveur (Boîte Commandes), rattachées aux bons */
@@ -31368,7 +31397,10 @@ function _fourQuickEdit(fid,onSave){ const f=db.fournisseurs.find(x=>x.id===fid)
 /* v738 : renommer un fournisseur depuis un bon, c'est le modifier — la même case que l'écran Fournisseurs */
 function fourQuickSave(fid){ if(!permGarde('com','modifier','un fournisseur')) return; const f=db.fournisseurs.find(x=>x.id===fid); if(!f) return; const g=i=>((document.getElementById(i)||{}).value||'').trim();
   const em=g('fq-email'); if(em&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast('Adresse e-mail invalide'); return; }
-  f.nom=g('fq-nom')||f.nom; f.email=em; f.contact=g('fq-contact'); f.telephone=g('fq-tel');
+  /* g20 (achats#1, achats#8) : le nom suit la même règle que l'écran Fournisseurs — unique, et ses produits le suivent.
+     Un nom laissé vide garde l'ancien (comme avant). Refus AVANT d'écrire quoi que ce soit : la fenêtre reste ouverte. */
+  const nv=g('fq-nom'); if(nv && nv!==f.nom){ const r=fournisseurRenommer(fid,nv); if(r.erreur){ toast(r.erreur); return; } }
+  f.email=em; f.contact=g('fq-contact'); f.telephone=g('fq-tel');
   save(); const ov=$('four-quick'); if(ov) ov.remove(); toast('🏭 Fournisseur mis à jour');
   try{ if(_fourQuickCb) _fourQuickCb(); }catch(e){} _fourQuickCb=null;
 }
@@ -31641,6 +31673,9 @@ function bonDupliquer(id){ if(!peutCommander()){ refusCommander(); return; } con
   copy.id=uid(); copy.numero=nextNum('bons','BC','numero');
   copy.date=todayISO(); copy.statut='brouillon'; copy.faitPar=fullName(currentUser);
   delete copy.dateEnvoi; delete copy.dateReception; delete copy.arrivage; delete copy.sitesSupp;
+  /* g20 (achats#3) : une recommande n'est PAS un bon de la demande d'origine — copiée avec son `demandeId`, elle
+     rouvrait la demande déjà « Reçue » (« Partiellement reçue · 1/2 », « en cours ») tant que le brouillon existait. */
+  delete copy.demandeId;
   db.bons.push(copy); logEvent('Bon recommandé',bonNum(b)+' → '+copy.numero,'commande'); save();
   closeModal(); formBon(copy.id); toast('🔁 Commande recréée ('+copy.numero+') — vérifie les quantités et envoie');
 }
@@ -31758,11 +31793,15 @@ function bonValider(id){ const form=$('bonform'); if(!form) return; const f=Obje
   const sites=[bonSites[0]||{}].concat(bonSites.slice(1).filter(s=>s.nom||s.adresse||s.ville));
   const fidOf=n=>{ if(!n) return f.fournisseurId||''; const x=db.fournisseurs.find(y=>(y.nom||'').toUpperCase()===String(n).toUpperCase()); return x?x.id:(f.fournisseurId||''); };
   let first=true, created=0; const madeIds=[];
+  /* g20 (achats#3) : un bon né d'une demande, rouvert puis séparé ici par fournisseur ou par site, laisse ses
+     bons SUPPLÉMENTAIRES au même lien — sans `demandeId` ils étaient invisibles à `demandeBons`, et le premier bon
+     livré clôturait encore la demande. Le lien se lit sur le bon d'origine (`id`), pas sur le formulaire. */
+  const _demOrigine=id?((db.bons.find(x=>x.id===id)||{}).demandeId||''):'';
   fourKeys.forEach(fk=>{ sites.forEach(s=>{
     const numero=first?f.numero:(nextNum('bons','BC','numero'));
     const obj={numero,date:f.date,fournisseurId:fidOf(fk),boxId:f.boxId||'',statut:f.statut,notes:f.notes,societe:(f.societe||'').trim(),faitPar:fullName(currentUser),lignes:JSON.parse(JSON.stringify(groups[fk]||[])),...bonLivOf(s)};
     if(first&&id){ const ix=db.bons.findIndex(x=>x.id===id); db.bons[ix]={...db.bons[ix],...obj}; delete db.bons[ix].sitesSupp; madeIds.push(id); }
-    else{ const nid=uid(); db.bons.push({id:nid,...obj}); madeIds.push(nid); if(!first) created++; logEvent(first?'Bon de commande créé':'Bon créé (séparation auto)',numero+(fk?' — '+fk:''),'commande'); }
+    else{ const nid=uid(); db.bons.push({id:nid,...obj,...(_demOrigine?{demandeId:_demOrigine}:{})}); madeIds.push(nid); if(!first) created++; logEvent(first?'Bon de commande créé':'Bon créé (séparation auto)',numero+(fk?' — '+fk:''),'commande'); }
     first=false;
   }); });
   save();
@@ -31971,6 +32010,26 @@ function bonPdfStr(b){
   const TR=(xr,yy,sz,txt,bold,col)=>T(xr-_pdfLarg(txt,sz,bold),yy,sz,txt,bold,col);   // v740 : largeur réelle (Helvetica)
   const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
   const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
+  /* ⛔ g20 (achats#4) — CE QUE LE FOURNISSEUR REÇOIT NE SE COUPE PAS À N SIGNES. La note était coupée à 100 signes
+     et à cinq lignes, la désignation à 56, le commentaire à 78, la référence à 14 : des instructions de
+     livraison (« …sinon refus de réception ») sortaient tronquées, et le « … » de `cut` ne prévenait personne. Un
+     texte se REPLIE sur plusieurs lignes, mesuré par `_pdfLarg` (la largeur réelle en Helvetica, après la
+     translittération WinAnsi — ce qu'on mesure est ce qu'on écrit) ; un mot plus long que la colonne est cassé
+     au signe près, jamais perdu. Un saut de ligne saisi est gardé. */
+  const wrapL=(s,sz,gras,maxW)=>{ const out=[];
+    String(s==null?'':s).split(/\r?\n/).forEach(par=>{ const ms=par.trim().split(/\s+/).filter(Boolean);
+      if(!ms.length){ out.push(''); return; }
+      let cur='';
+      ms.forEach(w=>{ let cs=Array.from(w);
+        while(cs.length>1 && _pdfLarg(cs.join(''),sz,gras)>maxW){
+          let k=1; while(k<cs.length-1 && _pdfLarg(cs.slice(0,k+1).join(''),sz,gras)<=maxW) k++;
+          if(cur){ out.push(cur); cur=''; }
+          out.push(cs.slice(0,k).join('')); cs=cs.slice(k); }
+        w=cs.join('');
+        if(cur && _pdfLarg(cur+' '+w,sz,gras)>maxW){ out.push(cur); cur=w; } else cur=cur?cur+' '+w:w; });
+      if(cur) out.push(cur); });
+    while(out.length && out[out.length-1]==='') out.pop();
+    return out; };
   const dateFr=d=>{ try{ return new Date((d||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return d||''; } };
   const tableHead=()=>{ R(M,y-6,W-2*M,22,GREEN);
     T(M+8,y,9,'RÉF',1,'1 1 1'); T(M+92,y,9,'DÉSIGNATION',1,'1 1 1'); TR(RGT-8,y,9,'QUANTITÉ',1,'1 1 1');
@@ -32012,13 +32071,20 @@ function bonPdfStr(b){
   // ─ tableau des articles
   tableHead();
   (b.lignes||[]).forEach((l,i)=>{
-    if(y<118) newPage();
-    if(i%2===1) R(M,y-6,W-2*M,17,'0.962 0.97 0.976');
-    T(M+8,y,8.5,cut(l.reference||'—',14),0,GREY);
-    T(M+92,y,9.2,cut(l.designation||'',56),0,DARK);
-    TR(RGT-8,y,9.2,bonQteTxt(l),1,DARK);
-    y-=17;
-    if(l.commentaire){ T(M+92,y+4,7.6,cut('» '+l.commentaire,78),0,GREY); y-=11; }
+    /* g20 : référence, désignation et commentaire se REPLIENT (voir `wrapL`) — la colonne de désignation s'arrête avant la quantité */
+    const qt=bonQteTxt(l);
+    const refL=wrapL(l.reference||'—',8.5,0,76), desL=wrapL(l.designation||'',9.2,0,Math.max(120,RGT-8-_pdfLarg(qt,9.2,1)-10-(M+92))),
+      comL=l.commentaire?wrapL('» '+l.commentaire,7.6,0,RGT-8-(M+92)):[];
+    const nl=Math.max(refL.length,desL.length,1), plus=(nl-1)*11;
+    if(y-plus<118) newPage();
+    if(i%2===1) R(M,y-6-plus,W-2*M,17+plus,'0.962 0.97 0.976');
+    refL.forEach((t,k)=>T(M+8,y-k*11,8.5,t,0,GREY));
+    (desL.length?desL:['']).forEach((t,k)=>T(M+92,y-k*11,9.2,t,0,DARK));
+    TR(RGT-8,y,9.2,qt,1,DARK);
+    y-=17+plus;
+    /* un commentaire très long (une dizaine de lignes et plus) passe à la page suivante au lieu d'écrire dans le pied
+       de page : ce que le fournisseur doit lire ne se perd pas sous la marge */
+    comL.forEach(t=>{ if(y+4<70) newPage(); T(M+92,y+4,7.6,t,0,GREY); y-=11; });
   });
   R(M,y+11,W-2*M,0.8,LINE);
   // ─ total en encadré vert
@@ -32029,11 +32095,19 @@ function bonPdfStr(b){
   T(RGT-bw+10,y,10.5,'TOTAL',1,'1 1 1'); TR(RGT-8,y,10.5,totTxt,1,'1 1 1');
   y-=8;
   // ─ notes encadrées
-  if(b.notes){ const nl=String(b.notes).split(/\n/).slice(0,5); const nh=22+nl.length*12;
-    y-=16; R(M,y-nh+8,W-2*M,nh,GREENLT);
-    T(M+9,y-6,8,'NOTES',1,GREEN);
-    nl.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,cut(line,100),0,DARK); });
-    y-=nh; }
+  /* g20 (achats#4) : TOUTE la note, repliée à la largeur de l'encadré ; si elle dépasse la page, l'encadré continue
+     sur la suivante (« NOTES (suite) ») plutôt que de perdre la fin — ce sont des instructions de livraison. */
+  const notesL=b.notes?wrapL(b.notes,8.8,0,W-2*M-18):[];
+  for(let k=0,suite=false;k<notesL.length;){
+    y-=16; const place=Math.floor((y-78)/12);
+    if(place<3){ newPage(); continue; }
+    const pris=notesL.slice(k,k+place), nh=22+pris.length*12;
+    R(M,y-nh+8,W-2*M,nh,GREENLT);
+    T(M+9,y-6,8,suite?'NOTES (suite)':'NOTES',1,GREEN);
+    pris.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,line,0,DARK); });
+    y-=nh; k+=pris.length; suite=true;
+    if(k<notesL.length) newPage();
+  }
   pages.push(ops.join('\n'));
   // ─ pied de page sur chaque page (avec numérotation)
   const foot=(i,n)=>['0.85 0.88 0.91 rg',M+' 56 '+(W-2*M)+' 0.8 re f',
@@ -35536,6 +35610,17 @@ function saveSimple(e,coll,id,numFields){ e.preventDefault();
   const _grp=COLL_GRP[coll]||'';
   if(_grp && !permGarde(_grp, id?'modifier':'ajouter', COLL_QUOI[coll]||('un élément de '+coll))) return;
   const d=Object.fromEntries(new FormData(e.target)); (numFields||[]).forEach(f=>{ if(d[f]!==undefined) d[f]=parseFloat(d[f])||0; });
+  /* g20 (achats#1, achats#8) : un fournisseur a un nom non vide et unique, et le renommer emporte le lien de
+     ses produits (`fournisseurRenommer`). Refus AVANT toute écriture, fenêtre laissée ouverte : ce qui a été
+     tapé n'est pas perdu. */
+  /* ⛔ Le nom ne se CONTRÔLE que s'il CHANGE (comme `compteHomonyme`) : chez ELAN, seize fiches pour six
+     fournisseurs, le pack en triple — corriger le téléphone d'un doublon d'avant ne doit pas être refusé
+     « Ce fournisseur existe déjà », ni celui d'une fiche au nom vide « Indique un nom ». Inchangé : on
+     laisse le nom tel quel (le formulaire ne le réécrit pas), rien n'est contrôlé ni renommé. */
+  if(coll==='fournisseurs'){ const _f0=id?(db.fournisseurs||[]).find(x=>x.id===id):null;
+    if(_f0 && String(d.nom==null?'':d.nom).trim()===String(_f0.nom==null?'':_f0.nom).trim()) delete d.nom;
+    else{ const r=id ? fournisseurRenommer(id,d.nom) : fournisseurNomControle(d.nom,'');
+      if(r.erreur){ toast(r.erreur); return; } d.nom=r.nom; } }
   if(id){ const ix=db[coll].findIndex(x=>x.id===id); db[coll][ix]={...db[coll][ix],...d}; toast('Mis à jour'); }
   else{ if(coll==='clients'){ d.x=10+Math.random()*80; d.y=10+Math.random()*80; } db[coll].push({id:uid(),...d}); logEvent('Création',`${coll} : ${d.nom||d.ref||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);
@@ -39227,7 +39312,26 @@ function msgInThread(m,k){ const me=currentUser?currentUser.id:'';
   if(k.startsWith('user:')){ const u=k.slice(5); return (m.toUserId===u&&m.fromId===me)||(m.toUserId===me&&m.fromId===u); }
   if(k.startsWith('tech:')) return m.toTechId===k.slice(5);
   return false; }
-function msgCount(k){ return db.messages.filter(m=>msgInThread(m,k)).length; }
+/* ⛔ g20 (achats#13) — LA PASTILLE D'UNE CONVERSATION COMPTE CE QUI N'A PAS ÉTÉ LU, PAS TOUT CE QUI S'Y EST DIT.
+   `msgCount` donnait le nombre TOTAL de messages du fil, y compris les siens : « Général 3 » restait affiché
+   pendant qu'on lisait Général, et ne disparaissait jamais. La marque de lecture est celle d'un APPAREIL et d'un
+   COMPTE (`elan_msg_lu:<compte>`, par conversation : la date du dernier message lu) — comme les notifications
+   « vues » —, jamais dans `db` : ouvrir un écran n'écrit rien dans les données de l'entreprise (une marque
+   dans `db` partirait à la synchro chez tout le monde). Comparée à la date des MESSAGES du fil (jamais à
+   l'horloge de l'appareil : un message vient d'un autre poste). Si le rangement est plein ou refusé, la marque
+   tient en mémoire le temps de la séance (même fragilité que `prefLocal`). */
+function msgLuCle(){ return 'elan_msg_lu'+(currentUser&&currentUser.id?':'+currentUser.id:''); }
+let _msgLuMem={};
+function msgLuLire(){ let o={}; try{ o=JSON.parse(localStorage.getItem(msgLuCle())||'{}')||{}; }catch(e){ o={}; }
+  const m=_msgLuMem[msgLuCle()]||{}; Object.keys(m).forEach(k=>{ if((m[k]||0)>(o[k]||0)) o[k]=m[k]; });
+  return o; }
+function msgLuMarquer(k){
+  const t=(db.messages||[]).filter(m=>msgInThread(m,k)).reduce((x,m)=>Math.max(x,m.ts||0),0); if(!t) return;
+  const cle=msgLuCle(), o=msgLuLire(); if((o[k]||0)>=t) return;
+  o[k]=t; (_msgLuMem[cle]=_msgLuMem[cle]||{})[k]=t;
+  try{ localStorage.setItem(cle,JSON.stringify(o)); }catch(e){} }
+function msgNonLus(k){ const me=currentUser?currentUser.id:'', lu=msgLuLire()[k]||0;
+  return (db.messages||[]).filter(m=>msgInThread(m,k) && m.fromId!==me && (m.ts||0)>lu).length; }
 function roleIcon(r){ return ({admin:'🛠️',dr:'👔',chefEquipe:'👔',commercial:'💼',compta:'🧮',technicien:'🧑‍🔧'})[r]||'👤'; }
 function msgThreads(){ return db.messages.filter(msgMatch).sort((a,b)=>a.ts-b.ts); }
 /* ── Groupes : membres = comptes utilisateurs (chefs + techniciens) ── */
@@ -39400,9 +39504,10 @@ views.messagerie=function(){
     .concat(people.map(u=>({k:'user:'+u.id,lbl:fullName(u),ic:roleIcon(u.role)})))
     .concat(groupes.map(g=>({k:'group:'+g.id,lbl:g.nom,g})));
   if(!tabs.some(t=>t.k===msgSel)) msgSel='general';
+  msgLuMarquer(msgSel);   // g20 : la conversation qu'on affiche est lue — marque d'appareil, rien dans db
   setHeader('Messagerie',"Interne à l'équipe — pas pour les clients", isMgr?`<button class="btn sm" onclick="formGroupe()">Nouveau groupe</button>`:'');
   const list=msgThreads();
-  const chips=tabs.map(tab=>{ const n=msgCount(tab.k); const active=msgSel===tab.k;
+  const chips=tabs.map(tab=>{ const n=msgNonLus(tab.k); const active=msgSel===tab.k;
     const ava=tab.g?grpAvatar(tab.g,18):`<span style="font-size:13px">${tab.ic}</span>`;
     return `<div class="chip ${active?'active':''}" style="display:inline-flex;align-items:center;gap:6px" onclick="msgSel='${tab.k}';views.messagerie()">${ava}${esc(tab.lbl)}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`; }).join('');
   const curTab=tabs.find(t=>t.k===msgSel)||tabs[0];
@@ -40244,6 +40349,36 @@ function fourMemeNom(a,b){
   const n=x=>String(x||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const x=n(a); return !!x && x===n(b); }
 function produitDuFournisseur(p,nom){ return ((p&&p.fournisseurs)||[]).some(v=>fourMemeNom(v,nom)); }
+/* ⛔ g20 (achats#8) — UN NOM DE FOURNISSEUR SE CONTRÔLE À TOUTES LES PORTES. `bonFourNew` (le ＋ du bon)
+   refusait déjà le doublon ; l'écran Fournisseurs (`saveSimple`) et le ✎ rapide d'un bon n'en
+   contrôlaient aucun : mesuré, deux cartes de même nom et une carte au nom fait d'espaces — et `fidOf()`
+   (bonValider, bonSeparer) prend le PREMIER fournisseur d'un nom, donc le second ne recevait jamais un
+   bon. Même comparaison que le lien des produits (accents, casse, ponctuation : `nomNorm`) ; `sauf` est
+   l'identifiant qu'on est en train de renommer, qui ne se refuse pas à lui-même. Rend {nom} ou {erreur}. */
+function fournisseurNomControle(nom,sauf){
+  const n=String(nom==null?'':nom).trim();
+  if(!n) return {erreur:'Indique un nom'};
+  const cle=nomNorm(n)||n.toUpperCase();
+  if((db.fournisseurs||[]).some(x=>x.id!==sauf && (nomNorm(x.nom)||String(x.nom||'').trim().toUpperCase())===cle)) return {erreur:'Ce fournisseur existe déjà'};
+  return {nom:n}; }
+/* ⛔ g20 (achats#1) — RENOMMER UN FOURNISSEUR NE DÉTACHE PAS SES PRODUITS. Un produit désigne son
+   fournisseur par son NOM (`p.fournisseurs=['ARMOSA']`, jamais par identifiant — voir `fourMemeNom`) :
+   renommer la fiche sans suivre ce lien faisait passer « 53 produits au catalogue » à « 0 », et le filtre
+   fournisseur du Catalogue des bons ne trouvait plus rien (persistant après rechargement). UNE fonction,
+   appelée par l'écran Fournisseurs ET par le ✎ rapide d'un bon : deux copies finiraient par ne plus dire
+   la même chose. Les fiches modifiées sont estampillées par le `save()` de l'appelant (jamais
+   `produitCreer` ni `push` : rien ne naît ici). Si une AUTRE fiche porte encore l'ancien nom (doublons
+   d'avant, à la casse près), les produits y restent liés : on ne leur retire pas leur fournisseur.
+   Rend {nom} (renommé) ou {erreur} (rien n'a bougé). */
+function fournisseurRenommer(id,nouveau){
+  const f=(db.fournisseurs||[]).find(x=>x.id===id); if(!f) return {erreur:'Fournisseur introuvable'};
+  const v=fournisseurNomControle(nouveau,id); if(v.erreur) return v;
+  const ancien=f.nom; f.nom=v.nom;
+  if(!ancien||ancien===v.nom) return {nom:v.nom};
+  if((db.fournisseurs||[]).some(x=>x.id!==id && fourMemeNom(x.nom,ancien))) return {nom:v.nom};
+  (db.produits||[]).forEach(p=>{ if(!p||!Array.isArray(p.fournisseurs)||!p.fournisseurs.some(x=>fourMemeNom(x,ancien))) return;
+    const l=[]; p.fournisseurs.forEach(x=>{ const y=fourMemeNom(x,ancien)?v.nom:x; if(!l.some(z=>fourMemeNom(z,y))) l.push(y); }); p.fournisseurs=l; });
+  return {nom:v.nom}; }
 /* ══ FOURNISSEURS EN DOUBLE — LE MÉNAGE DE CE QUI EST DÉJÀ ENTRÉ ══
    Le correctif d'identifiant ci-dessus arrête la cause ; il ne range pas derrière lui. Chez
    ELAN, seize fiches pour six fournisseurs — chacun des cinq du pack métier en TRIPLE.
