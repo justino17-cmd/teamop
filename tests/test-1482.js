@@ -67,5 +67,31 @@ const mots = (b) => (b.match(/<small class="salle-envoi">([^<]*)<\/small>/) || [
   const rendre0 = i < 0 ? '' : CODE.slice(i, CODE.indexOf('if (!force && corps.dataset.sig === sig) return;', i));
   vrai('(population) la signature du panneau est trouvée (' + rendre0.length + ' caractères)', rendre0.length > 600);
   vrai('⛔ la signature compte l\'état d\'envoi des messages (`m.attente` / `m.envoi` / `m.echec`) : un message qui part change ce que le panneau montre', /X\.discussion\.map\(m => m\.attente \? \(m\.echec \? 2 : m\.envoi \? 1 : 3\) : 0\)\.join\(''\)/.test(rendre0));
+
+  console.log('\nLe mot reste LISIBLE sur la bulle de moi, dans les DEUX thèmes');
+  /* ⛔ Le mot est une <small> de 12 px : texte courant, 4,5:1 exigé. Il héritait de `.salle-msg small { color: var(--salle-sub) }` (blanc à 78 %), posé sur la bulle `moi` (--fill) : 5,7:1 en clair, 4,08:1 en SOMBRE.
+     On lit la feuille réelle (commentaires retirés), on résout les jetons de chaque thème, on COMPOSE l'encre (alpha) sur le fond de la bulle, et on calcule le contraste. */
+  const STYLE = T.sansCommentaires((/<style[^>]*>([\s\S]*?)<\/style>/.exec(PAGE) || [, ''])[1]);
+  const bloc = (ouv) => { const i = STYLE.indexOf(ouv); if (i < 0) return ''; let n = 0, k = STYLE.indexOf('{', i); const d = k; for (; k < STYLE.length; k++) { if (STYLE[k] === '{') n++; else if (STYLE[k] === '}' && --n === 0) break; } return STYLE.slice(d + 1, k); };
+  const jetons = (txt) => { const o = {}; txt.replace(/(--[\w-]+)\s*:\s*([^;]+);/g, (_, k, val) => { o[k] = val.trim(); return ''; }); return o; };
+  const clair = jetons(bloc(':root {\n'));
+  const sombreBloc = bloc('@media (prefers-color-scheme: dark) {\n  :root {');
+  const sombre = Object.assign({}, clair, jetons(sombreBloc.slice(0, sombreBloc.indexOf('}'))), {});
+  vrai('(population) les jetons des deux thèmes sont lus (--fill clair ' + clair['--fill'] + ', sombre ' + sombre['--fill'] + ')', /^#/.test(clair['--fill'] || '') && /^#/.test(sombre['--fill'] || '') && clair['--fill'] !== sombre['--fill']);
+  const rgba = (c, J) => { c = (c || '').trim(); const r = /^var\((--[\w-]+)\)$/.exec(c); if (r) return rgba(J[r[1]], J);
+    let m = /^#([0-9a-f]{6})$/i.exec(c); if (m) return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4), 16), 1];
+    m = /^rgba?\(([^)]*)\)$/.exec(c); if (m) { const a = m[1].split(',').map(Number); return [a[0], a[1], a[2], a.length > 3 ? a[3] : 1]; } return null; };
+  const lum = ([r, g, b]) => { const f = x => (x /= 255) <= .03928 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); return .2126 * f(r) + .7152 * f(g) + .0722 * f(b); };
+  const contraste = (encre, fond) => { const e = [0, 1, 2].map(i => encre[i] * encre[3] + fond[i] * (1 - encre[3])); const a = lum(e), b = lum(fond); return (Math.max(a, b) + .05) / (Math.min(a, b) + .05); };
+  /* L'encre que le mot reçoit : la règle la plus précise qui le vise, sinon celle de `.salle-msg small` (le cas fautif). */
+  const couleurDe = (sel) => { const m = new RegExp('(?:^|\\n)' + sel.replace(/[.]/g, '\\.') + '\\s*\\{([^}]*)\\}').exec(STYLE); const c = m && /(?:^|[;\s])color\s*:\s*([^;]+)/.exec(m[1]); return c ? c[1].trim() : null; };
+  const encreMot = couleurDe('.salle-msg.moi .salle-envoi') || couleurDe('.salle-msg small');
+  vrai('(population) l\'encre du mot est trouvée dans la feuille (' + encreMot + ') et le jeton --salle-sub aussi', !!encreMot && /^rgba/.test((/--salle-sub\s*:\s*([^;]+);/.exec(STYLE) || [, ''])[1].trim()));
+  const racine = (/--salle-sub\s*:\s*([^;]+);/.exec(STYLE) || [, ''])[1].trim();
+  const J = (t) => Object.assign({}, t, { '--salle-sub': racine });
+  for (const [nom, t] of [['clair', clair], ['sombre', sombre]]) {
+    const e = rgba(encreMot, J(t)), f = rgba(t['--fill'], t);
+    vrai('⛔ le mot sur la bulle de moi (thème ' + nom + ') tient 4,5:1 — mesuré ' + (e && f ? contraste(e, f).toFixed(2) : '?') + ':1', !!e && !!f && contraste(e, f) >= 4.5);
+  }
   fin();
 })();

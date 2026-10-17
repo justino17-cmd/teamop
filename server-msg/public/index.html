@@ -1943,6 +1943,8 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-msg { max-width: 92%; padding: 7px 11px; border-radius: 14px; background: rgba(255,255,255,.14); font-size: 15px; line-height: 20px; overflow-wrap: anywhere; align-self: flex-start; }
 .salle-msg.moi { align-self: flex-end; background: var(--fill); }
 .salle-msg .salle-envoi { text-align: right; }
+/* Le mot d'état se pose sur la bulle de MOI (--fill) : il prend l'encre de cette surface (--on-fill), pas le blanc à 78 % de `small` — 4,08:1 en thème sombre, sous les 4,5:1 d'un texte de 12 px. */
+.salle-msg.moi .salle-envoi { color: var(--on-fill); }
 .salle-msg small { display: block; font-size: 12px; line-height: 15px; color: var(--salle-sub); }
 .salle-saisie { display: flex; gap: 8px; margin-top: 8px; }
 .salle-joindre { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; }
