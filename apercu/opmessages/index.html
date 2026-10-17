@@ -6105,7 +6105,11 @@ a.menu-action { text-decoration: none; }
   }
   /* fermer ou recharger la page avec un message encore « En attente » le perdrait : le navigateur demande confirmation (rien n'est rangé sur l'appareil, c'est voulu) */
   window.addEventListener('beforeunload', e => {
-    if (etat.partir || typeof source.enAttente !== 'function' || !(source.enAttente() > 0)) return;
+    if (etat.partir) return;
+    /* ⛔ et un APPEL en cours (lot m19, appels@6) : recharger ou fermer la page le termine des deux côtés en 160 ms, sans un mot — la personne retombait sur la liste des appels. Le navigateur demande
+       confirmation, comme pour un message en attente. (Dire « l'appel a été interrompu » au retour exigerait de ranger un état sur l'appareil : non fait.) */
+    const enAttente = typeof source.enAttente === 'function' && source.enAttente() > 0;
+    if (!enAttente && !etat.appelId) return;
     e.preventDefault(); e.returnValue = '';
   });
   const erreurConnexion = t => {

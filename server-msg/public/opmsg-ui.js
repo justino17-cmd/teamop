@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e36b45baf6d3';
+  const OPMSG_BUILD = 'bbd79fce75e8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 215;
+  const OPMSG_VERSION = 216;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3292,7 +3292,11 @@
   }
   /* fermer ou recharger la page avec un message encore « En attente » le perdrait : le navigateur demande confirmation (rien n'est rangé sur l'appareil, c'est voulu) */
   window.addEventListener('beforeunload', e => {
-    if (etat.partir || typeof source.enAttente !== 'function' || !(source.enAttente() > 0)) return;
+    if (etat.partir) return;
+    /* ⛔ et un APPEL en cours (lot m19, appels@6) : recharger ou fermer la page le termine des deux côtés en 160 ms, sans un mot — la personne retombait sur la liste des appels. Le navigateur demande
+       confirmation, comme pour un message en attente. (Dire « l'appel a été interrompu » au retour exigerait de ranger un état sur l'appareil : non fait.) */
+    const enAttente = typeof source.enAttente === 'function' && source.enAttente() > 0;
+    if (!enAttente && !etat.appelId) return;
     e.preventDefault(); e.returnValue = '';
   });
   const erreurConnexion = t => {
