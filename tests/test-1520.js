@@ -32,7 +32,7 @@ const manquantes = FN.filter(h => APP.indexOf(h) < 0 && h !== 'function planObli
 const code = FN.filter(h => APP.indexOf(h) >= 0).map(decoupe).join('\n');
 
 function monter() {
-  const S = { toasts: [], saves: [], dialogues: [], reponse: true, peut: { planifDeplacer: true, planifObligerTravail: true, ajouter: true }, planSel: '2026-10-16' };
+  const S = { toasts: [], saves: [], dialogues: [], reponse: true, reponseChev: true, peut: { planifDeplacer: true, planifObligerTravail: true, ajouter: true }, planSel: '2026-10-16' };
   S.db = { interventions: [], absences: [], indispos: [], planJournal: [], techniciens: [{ id: 'T1' }, { id: 'T2' }, { id: 'T3' }] };
   S.currentUser = { id: 'u', prenom: 'Justine', nom: 'Admin', role: 'admin' };
   const W = { console, Object, JSON, String, Math, Date, Array, Number, parseInt, S,
@@ -43,7 +43,7 @@ function monter() {
   W.canCat = (g, d) => g === 'int' && d === 'ajouter' ? S.peut.ajouter : true;
   W.permGarde = (g, d, q) => { if (W.canCat(g, d)) return true; W.toast('refus ' + q); return false; };
   W.toast = t => S.toasts.push(t);
-  W.confirm = m => { S.dialogues.push(m); return S.reponse; };
+  W.confirm = m => { S.dialogues.push(m); return /assigner quand m/.test(m) ? S.reponseChev : S.reponse; };   // deux questions : l'obligation (reponse) et le chevauchement (reponseChev)
   W.fullName = u => u.prenom + ' ' + u.nom;
   W.techName = id => ({ T1: 'Karim Benali', T2: 'Sophie Martin', T3: 'Léa Roux' })[id] || '';
   W.fmtShort = iso => { const [, m, j] = iso.split('-'); return String(+j) + ' ' + ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'][+m - 1]; };
@@ -143,18 +143,18 @@ console.log('— changer de technicien (planChangerTech) : refus de chevauchemen
   S.db.interventions.push(carte({ date: '2026-10-16', techId: 'T2', techIds: ['T2'], obligation: t0 }), { id: 'i2', titre: 'Autre', date: '2026-10-16', heure: '09:30', duree: 60, techId: 'T1', techIds: ['T1'], statut: 'planifiee', histo: [] });
   S.db.absences.push(CONGE('T2', '2026-10-16'));
   const i = S.db.interventions[0];
-  S.reponse = false;   // « L'assigner quand même ? » refusé
+  S.reponseChev = false;   // « L'assigner quand même ? » refusé
   W.planChangerTech('i1', 'T1');
   vrai('chevauchement refusé : l\'intervention n\'a pas bougé', i.techId === 'T2', i.techId);
   vrai('chevauchement refusé : la trace « malgré un congé » est INTACTE (elle n\'a pas été levée à la porte)', !!i.obligation && i.obligation.ts === 42, i.obligation);
-  S.reponse = true;
+  S.reponseChev = true;
   W.planChangerTech('i1', 'T1');
   vrai('chevauchement accepté : chez Karim, trace retirée', i.techId === 'T1' && i.obligation === undefined, [i.techId, i.obligation]);
   W.planChangerTechAnnuler();
   vrai('« Annuler » : de nouveau chez Sophie en congé, la trace est revenue', i.techId === 'T2' && !!i.obligation && i.obligation.ts === 42, [i.techId, i.obligation]); }
 { const { W, S } = monter(); S.db.interventions.push(carte()); S.db.absences.push(CONGE('T2', '2026-10-15'));
   const i = S.db.interventions[0]; S.db.interventions.push({ id: 'i2', titre: 'Autre', date: '2026-10-15', heure: '09:30', duree: 60, techId: 'T2', techIds: ['T2'], statut: 'planifiee', histo: [] });
-  S.reponse = false;
+  S.reponseChev = false;   // l'obligation de travailler (reponse) est acceptée, le chevauchement refusé
   W.planChangerTech('i1', 'T2');
   vrai('chevauchement refusé AVANT la porte du congé : aucune obligation ni ligne de journal n\'est écrite sur une carte qui n\'a pas bougé', i.techId === 'T1' && i.obligation === undefined && !(i.histo || []).some(h => /Obligation/.test(JSON.stringify(h))), [i.techId, i.obligation, i.histo]); }
 
