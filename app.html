@@ -20763,9 +20763,9 @@ views.taches=function(){ db.taches=db.taches||[];
     return `<div class="pl-row" style="border-left:3px solid ${t.fait?'var(--acc)':late?'var(--red)':t.prio==='haute'?'var(--org)':'transparent'}">
       <input type="checkbox" ${t.fait?'checked':''} onchange="tacheToggle('${t.id}')" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0;cursor:pointer">
       <div class="pl-info" onclick="formTache('${t.id}')" style="cursor:pointer">
-        <div class="pl-title" style="${t.fait?'text-decoration:line-through;opacity:.6':''}">${esc(t.titre)} ${t.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''}</div>
+        <div class="pl-title" style="overflow-wrap:anywhere;${t.fait?'text-decoration:line-through;opacity:.6':''}">${esc(t.titre)} ${t.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''}</div>
         <div class="pl-meta">${t.echeance?`<span style="${late?'color:var(--red);font-weight:700':''}">📅 ${fmtShort(t.echeance)}${late?' — en retard':''}</span> · `:''}${esc(techName(t.techId)||'Non assignée')}${t.clientId?' · '+esc(clientName(t.clientId)):''}</div>
-        ${t.note?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(t.note)}</div>`:''}
+        ${t.note?`<div style="font-size:11px;color:var(--t3);margin-top:2px;min-width:0;overflow-wrap:anywhere">${esc(t.note)}</div>`:''}
       </div>
       ${canCat('plan','supprimer')?`<button class="btn ghost sm" onclick="delTache('${t.id}')">🗑</button>`:''}
     </div>`; }).join('');
@@ -20788,6 +20788,8 @@ function formTache(id){ db.taches=db.taches||[]; const t=id?db.taches.find(x=>x.
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div>
     </form>`); }
 function saveTache(e,id){ e.preventDefault(); if(!permGarde('plan',id?'modifier':'ajouter','une tâche')) return; const d=Object.fromEntries(new FormData(e.target));
+  /* ⛔ planning#12 — `required` ne voit pas les espaces : un titre fait d'espaces passait et donnait une carte sans nom. */
+  d.titre=String(d.titre||'').trim(); if(!d.titre){ toast('Le titre de la tâche est obligatoire'); return; }
   if(id){ const ix=db.taches.findIndex(x=>x.id===id); db.taches[ix]={...db.taches[ix],...d}; }
   else db.taches.push({id:uid(),fait:false,creePar:currentUser.id,creeLe:todayISO(),...d});
   logEvent(id?'Tâche modifiée':'Nouvelle tâche',d.titre,'crud'); save(); closeModal(); views.taches(); toast(id?'Tâche mise à jour':'Tâche créée'); }
