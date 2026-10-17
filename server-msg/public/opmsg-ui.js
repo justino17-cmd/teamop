@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '84bbc4afa566';
+  const OPMSG_BUILD = '26529a0c3ab6';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 240;
+  const OPMSG_VERSION = 241;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2861,7 +2861,7 @@
   /* ⛔ (p04) UN SEUL COMPTEUR pour le nom d'un groupe, deux limites qui ne bougent pas : la création coupe à 40 (`NOM_GROUPE_MAX`, lot m13), le renommage garde la limite du service, 80 (`NOM_RENOMMAGE_MAX`,
      `Array.from(nom).length <= 80` dans routes.js) — celle que l'utilisateur connaît (m04 : « maxlength 80 comme le service »). Le défaut n'était pas la limite mais l'UNITÉ : `maxlength="80"` compte des unités
      UTF-16, 40 émojis pour 80. On ne raccourcit donc rien (un nom de 41 à 80 signes, déjà enregistré, se corrige sans être raboté) ; que la création et le renommage diffèrent (40 contre 80) est une décision
-     de produit, laissée à Justin. */
+     de produit, à trancher (REPRISE.md). */
   const NOM_RENOMMAGE_MAX = 80;
   function limiterNomSignes(champ, max) {
     const signes = Array.from(champ.value);
