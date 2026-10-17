@@ -39,7 +39,7 @@ async function verifier(J, K, r) {
   }
   /* 1 bis. les commandes trop petites au doigt, une fois chacune, avec les pages où on les a vues */
   const petites = (r && r.etat && r.etat.petites) || new Map();
-  if (petites.size) K.constat('à regarder', 'Commandes petites au doigt (sous 32 px, le plancher du dépôt est 44)',
+  if (petites.size) K.constat('à regarder', 'Commandes petites au doigt (la zone qui répond fait moins de 44 px, le plancher du dépôt)',
     [...petites].map(([k, v]) => '« ' + k + ' » ' + v.taille + ' — ' + [...v.pages].join(', ')).join('\n'));
   /* 2. les réponses de l'API */
   const vus = new Map();

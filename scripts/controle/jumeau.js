@@ -248,6 +248,9 @@ async function demarrer(opts) {
   const portNav = await libre();
   const nav = spawn(CHROME, ['--headless=new', '--no-sandbox', '--disable-dev-shm-usage', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
     '--enable-gpu-rasterization', '--ignore-gpu-blocklist', '--hide-scrollbars', '--no-first-run', '--no-default-browser-check',
+    /* une cliente française a un appareil en français : sans ça, navigator.language vaut « en-US » et la page se croit
+       chez un étranger (la fenêtre de langue, les formats de date) */
+    '--lang=' + (o.langue || 'fr-FR'), '--accept-lang=' + (o.langue || 'fr-FR') + ',fr',
     '--remote-debugging-port=' + portNav, '--user-data-dir=' + path.join(BANC, 'nav'), 'about:blank'], { stdio: 'ignore', detached: true });
   enfants.push(nav);
   let ver = null;
@@ -441,12 +444,23 @@ async function demarrer(opts) {
     const auditEcran = () => ev(`(async()=>{ await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); void document.body.offsetWidth;
       const y=scrollY; scrollTo(9999,y); const cote=scrollX; scrollTo(0,y);
       const txt=document.body?document.body.innerText:''; const mots=(txt.match(/\\b(undefined|NaN|\\[object Object\\])\\b/g)||[]);
-      const petits=[]; if(${pr.tac}) for(const el of document.querySelectorAll('a,button,[role=button],input[type=checkbox],input[type=radio],select')){
-        const r=el.getBoundingClientRect(); if(!r.width||!r.height||getComputedStyle(el).visibility==='hidden') continue;
-        if(r.top>innerHeight*3) continue;
-        /* un lien DANS une phrase est exempté (WCAG 2.5.8) : on le touche sur la ligne, pas sur sa boîte */
-        if(getComputedStyle(el).display==='inline' && el.parentElement && (el.parentElement.innerText||'').trim().length > (el.innerText||'').trim().length+20) continue;
-        if(Math.min(r.width,r.height)<32 && (el.innerText||el.getAttribute('aria-label')||'').trim()) petits.push((el.innerText||el.getAttribute('aria-label')).trim().slice(0,40)+' '+Math.round(r.width)+'×'+Math.round(r.height)); }
+      /* ⛔ UNE CIBLE TACTILE SE MESURE À CE QU'UN DOIGT DÉCLENCHE, PAS À SON RECTANGLE (CLAUDE.md, 22 septembre 2026) :
+         une pilule de 29 px peut répondre sur 45 grâce à un ::after. On amène chaque petite cible au milieu de l'écran et
+         on cherche, pixel après pixel depuis son centre, jusqu'où le toucher tombe encore sur ELLE (elementFromPoint voit
+         les pseudo-éléments). Version du 17 octobre 2026 : la première mesurait le rectangle et accusait la pilule. */
+      const petits=[]; if(${pr.tac}){ const y0=scrollY;
+        const touche=(el,x,y)=>{ const d=document.elementFromPoint(x,y); return !!d && (d===el||el.contains(d)); };
+        const zone=(el,cx,cy,dx,dy)=>{ let n=0; for(let k=1;k<=30;k++){ if(!touche(el,cx+dx*k,cy+dy*k)) break; n=k; } return n; };
+        for(const el of document.querySelectorAll('a,button,[role=button],input[type=checkbox],input[type=radio],select')){
+          let r=el.getBoundingClientRect(); if(!r.width||!r.height||getComputedStyle(el).visibility==='hidden') continue;
+          if(Math.min(r.width,r.height)>=44 || !(el.innerText||el.getAttribute('aria-label')||'').trim()) continue;
+          /* un lien DANS une phrase est exempté (WCAG 2.5.8) : on le touche sur la ligne, pas sur sa boîte */
+          if(getComputedStyle(el).display==='inline' && el.parentElement && (el.parentElement.innerText||'').trim().length > (el.innerText||'').trim().length+20) continue;
+          el.scrollIntoView({block:'center',inline:'center'}); r=el.getBoundingClientRect();
+          const cx=r.left+r.width/2, cy=r.top+r.height/2; if(!touche(el,cx,cy)) continue;   // recouvert : une autre mesure
+          const h=r.height<44 ? zone(el,cx,cy,0,-1)+zone(el,cx,cy,0,1)+1 : r.height, w=r.width<44 ? zone(el,cx,cy,-1,0)+zone(el,cx,cy,1,0)+1 : r.width;
+          if(Math.min(w,h)<44) petits.push((el.innerText||el.getAttribute('aria-label')).trim().replace(/\\s+/g,' ').slice(0,40)+' '+Math.round(w)+'×'+Math.round(h)); }
+        scrollTo(0,y0); }
       return { defileDeCote: cote, motsSuspects: [...new Set(mots)], ciblesPetites: petits.slice(0,12), titre: document.title };
     })()`).catch(x => ({ erreur: String(x.message || x) }));
     /* Qu'est-ce qui COUVRE l'écran ? Le point au milieu de la fenêtre doit appartenir à la page (contenu, menu, barres) ;

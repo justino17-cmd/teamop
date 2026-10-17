@@ -447,6 +447,9 @@ h1, h2, h3 { text-wrap: balance; }
 @media (pointer: coarse) {
   .pilule { position: relative; }
   .pilule::after { content: ""; position: absolute; top: -8px; bottom: -8px; left: -4px; right: -4px; }
+  /* le logo « TEAM OP » de la barre (22 px dessinés) : même extension que la pilule — contrôle client mystère, 17 octobre 2026 */
+  .marque { position: relative; }
+  .marque::after { content: ""; position: absolute; top: -11px; bottom: -11px; left: -4px; right: -4px; }
   .lien-suite, .app-carte > a, .pack > a, .commencer .boutons a:last-child { display: inline-flex; align-items: center; min-height: 44px; }
   .besoin, .segment button { min-height: 44px; }
   .formule .cta { padding: 12px 0; }

@@ -235,6 +235,12 @@ async function jouer(J, K, o) {
     if (!b) { e.note('bouton d\'enregistrement introuvable'); return false; }
     const ferme = await p.attendre(async () => !(await p.ev(`!!(document.querySelector('#fp-p1')&&document.querySelector('#fp-p1').getClientRects().length)`)), 8000);
     if (!ferme) e.note('la fenêtre reste ouverte : ' + (await p.texte()).slice(0, 200));
+    /* le compte qu'elle a reçu porte-t-il SON nom ? La demande le disait (prénom, nom) */
+    const nom = await p.ev(`typeof currentUser!=='undefined'&&currentUser ? ((currentUser.prenom||'')+' '+(currentUser.nom||'')).trim() : ''`).catch(() => '');
+    e.note('compte : « ' + nom + ' »');
+    if (nom && nom !== C.prenom + ' ' + C.nom) K.constat('à regarder', 'Le compte de la cliente ne porte pas son nom : « ' + nom + ' »',
+      'La demande disait « ' + C.prenom + ' ' + C.nom + ' ». Le compte de départ d\'un espace neuf naît « OP Admin » (app.html, ESPACE NEUF) et rien ne le renomme : ' +
+      'elle se voit « ' + nom + ' » dans son application, son journal et ses documents.', 'mot de passe');
     return ferme;
   });
 
