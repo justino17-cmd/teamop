@@ -9664,6 +9664,8 @@ a.menu-action { text-decoration: none; }
     l.hidden = !R.resultats.length;
     const n = R.resultats.length;
     $('rc-etat').textContent = R.erreur ? R.erreur : R.enCours && !n ? 'Recherche…' : !R.q ? RC_NOTE
+      /* ⛔ un seul signe ne part pas au service (`lancerRecherche`) : l'écran le DIT, il n'affirme pas une absence qu'il n'a pas vérifiée */
+      : !assezLongue(R.q) ? 'Tape au moins deux lettres.'
       : n ? (n > 1 ? n + ' messages' : 'Un message') + (R.suite ? ' — il peut y en avoir d\'autres plus anciens' : '')
       : R.suite ? 'Aucun message récent ne contient « ' + R.q + ' ».' : 'Aucun message ne contient « ' + R.q + ' ».';
     $('rc-plus-zone').hidden = !R.suite || !!R.erreur;

@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '204e0a5a16e8';
+  const OPMSG_BUILD = '75823553019a';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 209;
+  const OPMSG_VERSION = 210;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6862,6 +6862,8 @@
     l.hidden = !R.resultats.length;
     const n = R.resultats.length;
     $('rc-etat').textContent = R.erreur ? R.erreur : R.enCours && !n ? 'Recherche…' : !R.q ? RC_NOTE
+      /* ⛔ un seul signe ne part pas au service (`lancerRecherche`) : l'écran le DIT, il n'affirme pas une absence qu'il n'a pas vérifiée */
+      : !assezLongue(R.q) ? 'Tape au moins deux lettres.'
       : n ? (n > 1 ? n + ' messages' : 'Un message') + (R.suite ? ' — il peut y en avoir d\'autres plus anciens' : '')
       : R.suite ? 'Aucun message récent ne contient « ' + R.q + ' ».' : 'Aucun message ne contient « ' + R.q + ' ».';
     $('rc-plus-zone').hidden = !R.suite || !!R.erreur;
