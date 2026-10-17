@@ -3,7 +3,8 @@
    sauf un nombre nu : « +33 6 12 34 56 78 » (un numéro écrit comme on l'écrit) sortait donc « '+33 6 12 34 56 78 »,
    avec l'apostrophe visible dans Excel. L'injection de formule (lot g07) reste fermée : une formule porte des
    LETTRES, des « = », « @ », « | », « ! », « , » ou un second « + » — jamais seulement des chiffres, espaces,
-   points, tirets et parenthèses. Ce banc EXÉCUTE la vraie csvCellule, extraite d'app.html.                    */
+   points, tirets et parenthèses. ⚠️ k03 (r5#3) a retiré les TIRETS et les parenthèses ordinaires de cette exemption : « - » est un
+   opérateur (+33-6-12 = 15). Le banc de la règle actuelle est test-1651. Ce banc EXÉCUTE la vraie csvCellule, extraite d'app.html.                    */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const BRUT = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
 const SRC = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -14,8 +15,12 @@ vrai('csvCellule est trouvée (une seule définition)', i0 > 0 && i1 > i0 && SRC
 const ctx = {}; vm.createContext(ctx); vm.runInContext(SRC.slice(iDeb, i1), ctx); const C = ctx.csvCellule;
 
 console.log('— des numéros de téléphone écrits comme on les écrit : tels quels');
-for (const t of ['+33 6 12 34 56 78', '+33-6-12-34-56-78', '+33.6.12.34.56.78', '+33 (0)6 12 34 56 78', '+33612345678', '0612345678', '06 12 34 56 78', '+33 6 12 34 56 78', '-12,50', '+3'])
+for (const t of ['+33 6 12 34 56 78', '+33.6.12.34.56.78', '+33 (0)6 12 34 56 78', '+33612345678', '0612345678', '06 12 34 56 78', '+33 6 12 34 56 78', '-12,50', '+3'])
   vrai('« ' + t + ' » : aucune apostrophe', C(t) === '"' + t + '"', C(t));
+
+console.log('— k03 (r5#3) : un tiret entre deux chiffres est une soustraction — « +33-6-12-34-56-78 » garde l\'apostrophe (voir test-1651)');
+for (const t of ['+33-6-12-34-56-78', '+1-2', '-1-2'])
+  vrai('« ' + t + ' » : apostrophe (le tableur en ferait un calcul)', C(t).startsWith('"\''), C(t));
 
 console.log('— les vraies formules restent neutralisées (CSV injection)');
 for (const t of ['=1+1 Resto', '=HYPERLINK("http://x")', '@SUM(A1)', '+SUM(A1)', '-2+3', '+cmd|\' /C calc\'!A0', '-1+cmd|x', '+33 6 =A1', '- tiret', '-', '+', '+ -', '+33 6 12 34 56 78 abc', '+1+1', '\t=1', '\r=1', '+33\n=1'])
