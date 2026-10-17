@@ -15852,7 +15852,10 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
 }
 function refreshBadges(){
   // les compteurs du menu suivent le périmètre de la personne (ses interventions, ses box, son véhicule) — jamais « 19 box » quand elle n'en voit qu'une
-  const map={int:visibleInts(db.interventions),cli:db.clients,prd:db.produits,box:visibleBoxes(db.boxes),env:db.enveloppes,veh:visibleVehicules(db.vehicules),usr:db.users,dev:db.devis,fac:db.factures,ctr:db.contrats,four:db.fournisseurs};
+  /* ⛔ clients, devis, factures et contrats suivent le MÊME périmètre que leur liste (`visibleClients`, `visibleDocs`) : un technicien
+     qui voit 4 clients lisait « 7 » dans le menu — le nombre de clients de toute l'entreprise. Produits, enveloppes, fournisseurs et
+     utilisateurs sont montrés en entier par leur écran (et les deux derniers sont réservés à l'administrateur) : leur total est juste. */
+  const map={int:visibleInts(db.interventions),cli:visibleClients(db.clients),prd:db.produits,box:visibleBoxes(db.boxes),env:db.enveloppes,veh:visibleVehicules(db.vehicules),usr:db.users,dev:visibleDocs(db.devis),fac:visibleDocs(db.factures),ctr:visibleDocs(db.contrats),four:db.fournisseurs};
   document.querySelectorAll('[data-badge]').forEach(el=>{ const c=map[el.dataset.badge]; if(c) el.textContent=c.length; });
 }
 
