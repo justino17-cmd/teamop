@@ -3803,7 +3803,12 @@ a.menu-action { text-decoration: none; }
     invitBloquer = 0;
     document.querySelectorAll('#compo-invit [data-invit]').forEach(x => x.setAttribute('aria-disabled', 'true'));
     try {
-      if (g === 'bloquer') { await source.bloquer(c.autre); mot('Bloqué'); }
+      if (g === 'bloquer') {
+        await source.bloquer(c.autre); mot('Bloqué');
+        /* ⛔ bloquée, la personne ne peut plus rien demander : on SORT du fil, comme le blocage depuis « Infos » (« Refuser » le fait aussi). Le laisser ouvert gardait Accepter / Refuser / Bloquer
+           sous les yeux de quelqu'un qu'on vient de bloquer, alors que « Accepter » n'aurait rien débloqué (testeur, contacts#1). */
+        if (etat.conv === conv) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (typeof source.lister === 'function') rafraichirListe(); }
+      }
       else {
         const r = await source.repondreInvitation(conv, c.autre, g === 'accepter');
         mot(r === 'acceptee' ? 'Invitation acceptée : vous êtes en contact' : 'Invitation refusée');

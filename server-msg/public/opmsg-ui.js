@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '0b5a66dcb9f5';
+  const OPMSG_BUILD = 'e45cf0603d7e';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 209;
+  const OPMSG_VERSION = 210;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1001,7 +1001,12 @@
     invitBloquer = 0;
     document.querySelectorAll('#compo-invit [data-invit]').forEach(x => x.setAttribute('aria-disabled', 'true'));
     try {
-      if (g === 'bloquer') { await source.bloquer(c.autre); mot('Bloqué'); }
+      if (g === 'bloquer') {
+        await source.bloquer(c.autre); mot('Bloqué');
+        /* ⛔ bloquée, la personne ne peut plus rien demander : on SORT du fil, comme le blocage depuis « Infos » (« Refuser » le fait aussi). Le laisser ouvert gardait Accepter / Refuser / Bloquer
+           sous les yeux de quelqu'un qu'on vient de bloquer, alors que « Accepter » n'aurait rien débloqué (testeur, contacts#1). */
+        if (etat.conv === conv) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (typeof source.lister === 'function') rafraichirListe(); }
+      }
       else {
         const r = await source.repondreInvitation(conv, c.autre, g === 'accepter');
         mot(r === 'acceptee' ? 'Invitation acceptée : vous êtes en contact' : 'Invitation refusée');
