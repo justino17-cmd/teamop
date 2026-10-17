@@ -384,3 +384,4 @@ tests/test-2653.js
 # ── La troisième passe (17 octobre 2026) : le statut d'un contact sans espace ne sort plus de la feuille (2660), une réunion de plusieurs jours dit son jour de fin (2661).
 tests/test-2660.js
 tests/test-2661.js
+tests/test-2662.js

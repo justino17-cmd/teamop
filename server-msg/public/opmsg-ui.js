@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '41485e1d0ad0';
+  const OPMSG_BUILD = '84bbc4afa566';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 239;
+  const OPMSG_VERSION = 240;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -964,8 +964,9 @@
      temps), les absents (et leur réponse), l'ordre du jour coché ou non, les documents partagés. Une carte, comme un sondage ; tout y est échappé. */
   const REPONSE_CR = { accepte: 'a accepté', decline: 'a décliné', peutetre: 'peut-être', attente: 'sans réponse' };
   const dureeCr = s => { const mn = Math.max(1, Math.round(s / 60)); return mn < 60 ? mn + ' min' : Math.floor(mn / 60) + ' h' + (mn % 60 ? ' ' + String(mn % 60).padStart(2, '0') : ''); };
+  /* ⛔ (r6) une séance qui finit un autre jour le dit (`finLue`) : « 09:00–09:00 » se lisait comme une séance d'une minute */
   function htmlCompteRendu(m, sens) {
-    const x = m.compteRendu, quand = x.debut ? maj1(FMT_JOUR_LONG.format(x.debut)) + ' · ' + (x.fin ? heureSaison(x.debut, x.fin) + '–' + heureSaison(x.fin, x.debut) : FMT_HEURE.format(x.debut)) + (x.dureeS ? ' · ' + dureeCr(x.dureeS) : '') : '';
+    const x = m.compteRendu, quand = x.debut ? maj1(FMT_JOUR_LONG.format(x.debut)) + ' · ' + (x.fin ? heureSaison(x.debut, x.fin) + '–' + finLue(x.debut, x.fin) : FMT_HEURE.format(x.debut)) + (x.dureeS ? ' · ' + dureeCr(x.dureeS) : '') : '';
     const liste = (l, n, droite) => '<ul class="cr-liste">' + l.map(p => '<li><span dir="auto">' + esc(p.nom) + '</span><small>' + esc(droite(p)) + '</small></li>').join('') + (n > l.length ? '<li>et ' + (n - l.length) + ' autres</li>' : '') + '</ul>';
     let h = '<span class="carte-msg compte-rendu ' + sens + '" role="group" aria-label="' + esc('Compte rendu : ' + x.titre) + '">' +
       '<span class="cr-tete">' + icone('i-agenda') + '<span><b>Compte rendu</b><span class="cr-titre" dir="auto">' + esc(x.titre) + '</span></span></span>' +
@@ -6039,7 +6040,8 @@
     if (x.r.repetition !== 'aucune') return 'Une réunion qui se répète se modifie en entier : « Modifier la réunion », dans sa fiche.';
     return 'Cette réunion est passée.';
   }
-  const quandRdv = (d, f, journee, jours) => maj1(FMT_JOUR_LONG.format(d)) + (journee ? (jours > 1 ? ', ' + jours + ' jours' : ', toute la journée') : ', ' + plageHeures(d, f));
+  /* ⛔ (r6) le titre du menu d'un élément et le « Prévu / Nouveau » de « Décaler » écrivent le jour de DÉBUT seul : la plage dit donc le jour de fin quand il diffère (`plageLongue`, q01) — « vendredi 23 octobre, 09:00 – 09:00 » se lisait comme une durée nulle */
+  const quandRdv = (d, f, journee, jours) => maj1(FMT_JOUR_LONG.format(d)) + (journee ? (jours > 1 ? ', ' + jours + ' jours' : ', toute la journée') : ', ' + plageLongue(d, f));
   function htmlMenuAgenda(x) {
     const r = x.r, e = x.e, a = (act, txt, extra, cls) => '<button type="button" class="menu-action' + (cls ? ' ' + cls : '') + '" data-ag-menu="' + act + '"' + (extra || '') + '>' + txt + '</button>';
     let h = '<p class="menu-question menu-titre"><b>' + esc(titreElt(x)) + '</b><small>' + esc(quandRdv(x.o.debut, x.o.fin, !!(e && e.journee), e ? Math.max(1, Math.round((e.fin - e.debut) / JOUR_MS)) : 1)) + '</small></p>' + a('ouvrir', 'Ouvrir', ' aria-haspopup="dialog"');
@@ -9966,7 +9968,8 @@
     if (panne) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">' + esc(phrase(panne, 'Le lien n\'a pas pu être lu.')) + '</p>'; return; }
     if (!r) { corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert">Ce lien n\'est plus valable : la réunion est finie, annulée, ou son lien a été renouvelé.</p>'; return; }
     invite.apercu = r;
-    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p><div class="invite-carte"><h3>' + esc(r.titre || 'Réunion') + '</h3><p>' + esc(maj1(FMT_JOUR_LONG.format(r.debut)) + ' · ' + FMT_HEURE.format(r.debut) + ' à ' + FMT_HEURE.format(r.fin)) + '</p>' +
+    /* ⛔ (r6) la fin d'une réunion de plusieurs jours se lit avec son jour (`finLue`, comme la fiche — q01) : l'aperçu du lien écrivait « 09:00 à 09:00 » du vendredi au lundi */
+    corps.innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p><div class="invite-carte"><h3>' + esc(r.titre || 'Réunion') + '</h3><p>' + esc(maj1(FMT_JOUR_LONG.format(r.debut)) + ' · ' + heureSaison(r.debut, r.fin) + ' à ' + finLue(r.debut, r.fin)) + '</p>' +
       (r.attente ? '<p class="info-note">Un hôte te laissera entrer.</p>' : '') +
       (r.enCours ? '<div class="info-actions"><button type="button" class="mini" data-reu="invite-rejoindre" data-type="video">Rejoindre en vidéo</button><button type="button" class="mini" data-reu="invite-rejoindre" data-type="audio">Rejoindre en audio</button></div>'
         : '<p class="info-note">La salle n\'est pas encore ouverte : elle s\'ouvre peu avant le début. Garde ce lien et reviens à l\'heure.</p>') + '</div>';

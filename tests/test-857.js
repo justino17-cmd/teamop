@@ -991,7 +991,9 @@ async function controler(PAGE, SRC, DOC) {
     try {
       const defs = ['const esc = ', 'const icone = ', 'const maj1 = ', 'const FMT_HEURE = ', 'const FMT_JOUR_LONG = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
       /* (lot m05) le compte rendu écrit « début–fin » par `heureSaison` (la saison se dit le dimanche du changement d'heure) : la VRAIE, avec le FMT_HEURE du bac */
-      const iHS = JS.indexOf('const heureSaison = '), saisonCr = iHS < 0 ? '' : JS.slice(iHS, JS.indexOf('\n  };', iHS) + 5);
+      /* (re-test final, 17 octobre 2026) une séance qui finit un autre jour le dit par `finLue` (test-2662) : les VRAIES, avec ce qu'elles lisent */
+      const iHS = JS.indexOf('const heureSaison = '), saisonCr = iHS < 0 ? '' : JS.slice(iHS, JS.indexOf('\n  };', iHS) + 5)
+        + '\n' + ['const FMT_JOUR_FIN = ', 'const autreJour = ', 'const minutesDuJour = ', 'const jourFinDit = ', 'const finLue = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
       const ctx = { console }; vm.createContext(ctx);
       vm.runInContext(defs + '\n' + saisonCr + '\n' + JS.slice(iC, fC) + '\nthis.f = htmlCompteRendu;', ctx, { timeout: 2000 });
       cr = ctx.f;
