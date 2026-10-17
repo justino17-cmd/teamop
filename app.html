@@ -5451,7 +5451,9 @@ html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
 }
 /* ⛔ k01 (r5#5, r5#4) — SOUS 420 PX DE HAUT, LA CONVERSATION NE SE CALE PLUS SUR CE QUI RESTE : ELLE PREND L'ÉCRAN ET LA PAGE DÉFILE.
    Un téléphone couché de 360 à 375 px de haut (640×360, 667×375, 812×375), ou un téléphone debout dont le clavier a rogné la
-   fenêtre (375×367 : Android Chrome réduit la fenêtre de mise en page), n'a pas la place du haut de page (200 à 230 px, 75 de plus avec
+   fenêtre (375×367 — seul un navigateur qui réduit la fenêtre de MISE EN PAGE au clavier : ni Safari, ni Chrome pour Android depuis sa
+   version 108, ni Firefox depuis la 132, qui ne réduisent que la fenêtre visible tant que la page ne demande pas
+   `interactive-widget=resizes-content` — elle ne le demande pas ; le navigateur piloté des bancs, lui, la réduit), n'a pas la place du haut de page (200 à 230 px, 75 de plus avec
    la barre « Reprendre »), d'une rangée de saisie et d'une barre d'onglets en même temps. La liste se calait sur le reste — négatif — et
    tombait sur son plancher (80, puis 48 px) : une bulle, posée dans le flux SOUS la rangée collante, donc 0 à 41 px visibles au repos.
    Décision : une liste de 80 px ne lit rien, une page qui défile se lit. Ici la liste ignore `--msg-top` (le haut de page) et prend
