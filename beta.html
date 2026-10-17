@@ -44538,7 +44538,13 @@ if(typeof window.deptColor==='function'){
    « vide » reste celui du navigateur, et « Dupont » entouré d'espaces passe comme avant. */
 function saisieGardeInstaller(doc){
   var TYPES={text:1,search:1,tel:1,email:1,url:1};
-  function vide(v){ return v.length>0 && /^[\s​-‍⁠﻿]*$/.test(v); }
+  /* ⛔ « Rien de visible » = espaces (\s, insécables compris), TOUT caractère de format (\p{Cf} : marques gauche-à-droite U+200E/200F,
+     trait d'union conditionnel U+00AD, U+2060–2064, U+180E, ZWSP/ZWNJ/ZWJ, BOM…), les contrôles (\p{Cc}), et les « remplisseurs » qui se
+     dessinent en blanc sans être des espaces : braille vide U+2800, Hangul filler U+115F/1160/3164/FFA0, liant de graphèmes U+034F,
+     voyelles inhérentes khmères U+17B4/17B5, sélecteurs de variation (U+180B–180D, U+FE00–FE0F). Une valeur faite de ça seulement
+     passait la garde ET l'homonymie (rejoué : un compte créé au prénom U+200E). La classe ne refuse JAMAIS un vrai signe :
+     un émoji seul, une lettre accentuée ou un idéogramme portent un caractère visible, donc ne sont pas « tout invisible ». */
+  function vide(v){ return v.length>0 && /^[\s\p{Cf}\p{Cc}\u034F\u115F\u1160\u17B4\u17B5\u180B-\u180D\u2800\u3164\uFE00-\uFE0F\uFFA0]*$/u.test(v); }
   function libelle(el){
     var champ=el.closest&&el.closest('.field'), l=champ&&champ.querySelector&&champ.querySelector('label');
     var t=(l&&l.textContent)||el.getAttribute('aria-label')||'';
