@@ -129,8 +129,8 @@ process.on('exit', () => { if (!fini) { console.log('  ✗ le banc s\'est arrêt
   v('… 60 s (la fin de la fenêtre)', ph('recherches_plafond', 429, 60), 'Trop de recherches : réessaie dans 60 s.');
   vrai('⛔ la phrase ne contient ni « aujourd\'hui » (la limite est d\'une minute), ni « : (», ni « : . »', !/aujourd'hui|: \(|: \./.test(ph('recherches_plafond', 429, 55)));
   v('recherches_plafond SANS Retry-After : la phrase de la table, sans parenthèse ni deux-points orphelin', ph('recherches_plafond', 429, 0), 'Tu as fait beaucoup de recherches aujourd\'hui : réessaie plus tard.');
-  v('le plafond du JOUR (le service donne 3600 s) garde « aujourd\'hui » et une attente propre', ph('recherches_plafond', 429, 3600), 'Tu as fait beaucoup de recherches aujourd\'hui : réessaie dans 60 min.');
-  v('ajouts_plafond (« : réessaie demain ») avec attente : pas de deux-points orphelin non plus', ph('ajouts_plafond', 429, 3600), 'Tu as envoyé beaucoup de demandes aujourd\'hui : réessaie dans 60 min.');
+  v('le plafond du JOUR (le service donne l\'attente RÉELLE du plafond glissant, ici 14 h : test-917) garde « aujourd\'hui » et une attente propre', ph('recherches_plafond', 429, 50400), 'Tu as fait beaucoup de recherches aujourd\'hui : réessaie dans 14 h.');
+  v('ajouts_plafond (« : réessaie demain ») avec attente : pas de deux-points orphelin non plus', ph('ajouts_plafond', 429, 43200), 'Tu as envoyé beaucoup de demandes aujourd\'hui : réessaie dans 12 h.');
   v('les autres phrases ne bougent pas : « Trop de demandes en peu de temps (réessaie dans 20 s). » (une seule invitation à réessayer)', ph('quota_atteint', 429, 20), 'Trop de demandes en peu de temps (réessaie dans 20 s).');
   v('une phrase sans clause « réessaie » reçoit toujours la parenthèse', ph('transcription_indisponible', 503, 60), 'La transcription est momentanément indisponible (réessaie dans 60 s).');
 

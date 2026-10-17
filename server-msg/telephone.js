@@ -334,6 +334,15 @@ function creerTelephone(ctx) {
   }
   const jeune = (moi) => horloge() - moi.cree < JOUR;
 
+  /* ⛔ Le plafond du jour se compte sur 24 h GLISSANTES : la place se libère quand la recherche la plus ancienne qui compte en sort, pas « dans une heure ». Le `Retry-After` dit
+     cette attente-là (jamais moins d'une seconde, jamais plus d'un jour) — un client qui lit « réessaie dans 60 min » et revient pour rien perd confiance dans la phrase. Rend 0 sous le plafond. */
+  function plafondRecherches(uid, maxJour) {
+    const depuis = horloge() - JOUR, n = stockage.rechercheCompter(uid, depuis);
+    if (n < maxJour) return 0;
+    const ts = stockage.rechercheRang(uid, depuis, n - maxJour);
+    return ts === null ? 3600 : Math.min(JOUR / 1000, Math.max(1, Math.ceil((ts + JOUR - horloge()) / 1000)));
+  }
+
   H_['contacts.chercher'] = async (req, res) => {
     const t0 = Date.now();
     const a = analyser(corps(req).numero);
@@ -342,7 +351,8 @@ function creerTelephone(ctx) {
     /* ⛔ ANTI-ÉNUMÉRATION : un plafond DURABLE par compte et par jour (en base : un redémarrage ne le remet pas à zéro), plus bas pour un
        compte de moins de 24 h, et une rafale limitée. Le plafond se vérifie AVANT de savoir si le numéro existe. */
     const maxJour = jeune(req.moi) ? cfg.rechercheJourJeune : cfg.rechercheJour;
-    if (stockage.rechercheCompter(uid, horloge() - JOUR) >= maxJour) return trop(res, 'recherches_plafond', 3600);
+    const attenteJour = plafondRecherches(uid, maxJour);
+    if (attenteJour) return trop(res, 'recherches_plafond', attenteJour);
     const q = essai('chercher_minute', uid, { max: 5, fenetreMs: 60000 });
     if (!q.ok) return trop(res, 'recherches_plafond', q.retry);
     stockage.rechercheNoter(uid);
@@ -388,7 +398,8 @@ function creerTelephone(ctx) {
     if (!lu) return refus(res, 400, 'identifiant_invalide');
     const uid = req.moi.id;
     const maxJour = jeune(req.moi) ? cfg.rechercheJourJeune : cfg.rechercheJour;
-    if (stockage.rechercheCompter(uid, horloge() - JOUR) >= maxJour) return trop(res, 'recherches_plafond', 3600);
+    const attenteJour = plafondRecherches(uid, maxJour);
+    if (attenteJour) return trop(res, 'recherches_plafond', attenteJour);
     const q = essai('chercher_minute', uid, { max: 5, fenetreMs: 60000 });
     if (!q.ok) return trop(res, 'recherches_plafond', q.retry);
     stockage.rechercheNoter(uid);

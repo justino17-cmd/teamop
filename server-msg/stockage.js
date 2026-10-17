@@ -2827,6 +2827,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Les recherches de contact par numéro : un compte ne peut pas parcourir l'annuaire. */
   function rechercheNoter(uid) { Q('INSERT INTO recherche_tel(uid, ts) VALUES(?, ?)').run(uid, horloge()); }
   function rechercheCompter(uid, depuis) { return num(Q('SELECT COUNT(*) AS n FROM recherche_tel WHERE uid = ? AND ts >= ?').get(uid, depuis).n); }
+  /* L'horodatage de la recherche de rang `rang` (0 = la plus ancienne) dans la fenêtre : c'est elle qui, en sortant des 24 h, libère une place du plafond du jour. */
+  function rechercheRang(uid, depuis, rang) { const r = Q('SELECT ts FROM recherche_tel WHERE uid = ? AND ts >= ? ORDER BY ts ASC LIMIT 1 OFFSET ?').get(uid, depuis, Math.max(0, rang)); return r ? num(r.ts) : null; }
   function rechercheRendre(uid) { Q('DELETE FROM recherche_tel WHERE rowid = (SELECT MAX(rowid) FROM recherche_tel WHERE uid = ?)').run(uid); }
 
   /* ══ PUSH — les abonnements des appareils, la paire VAPID, qui reçoit quoi (migration 4) ══════════════════════════════
@@ -4858,7 +4860,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
-    telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
+    telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRang, rechercheRendre,
     identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler, invitationEtat, invitationMarquer, invitationEnvoyes,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, pushConvNonLue, coteDe, mentionEncore, autreSupprime,
