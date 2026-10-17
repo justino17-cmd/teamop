@@ -20308,7 +20308,11 @@ function planDayListHtml(SRC){
       <div style="display:flex;align-items:center;gap:8px;margin:0 2px 6px"><span class="avatar av-tc" style="width:26px;height:26px;font-size:11px;--tc:${techColor(g.id)}">${initials(g.nom)}</span><b style="font-size:13.5px">${esc(g.nom)}</b>${abs?`<span style="font-size:11px;color:var(--org);font-weight:700">${esc(ABS_TYPES[abs.type]||abs.type)}</span>`:''}<span style="font-size:11px;color:var(--t3)">${ints.length?ints.length+' int. · '+Math.floor(tot/60)+'h'+String(tot%60).padStart(2,'0'):'libre'}</span></div>
       ${ints.length?ints.map(i=>planIntCard(i,{hideTech:true,couleurTech:true,ligne:g.id})).join(''):`<div style="border:1px dashed var(--brd);border-radius:12px;padding:12px;text-align:center;color:var(--t3);font-size:12px">Déposez une intervention ici</div>`}
     </div>`; }).join('');
-  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">Glissez une carte sur un technicien pour la réassigner${canPlan()?' · sur un jour (vue Semaine/Mois) pour changer la date':''}</div>`+secs;
+  /* i02 (r3#16) : on n'invite à glisser que celui qui PEUT planifier — la même règle que le glisser lui-même (`planDropTech` refuse
+     sans « Déplacer le planning »), et que `planAide` des autres vues. Les autres lisent le motif, comme dans la vue Jour en colonnes. */
+  const aide=canPlan()?'Glissez une carte sur un technicien pour la réassigner · sur un jour (vue Semaine/Mois) pour changer la date'
+    :'Lecture seule — le droit « Déplacer le planning » est requis pour réorganiser';
+  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${aide}</div>`+secs;
 }
 /* ---- Vue MOIS ---- */
 function planMonthHtml(SRC){
