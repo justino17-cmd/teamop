@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'ec5c206a98b4';
+  const OPMSG_BUILD = 'ee48a9979a2d';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 242;
+  const OPMSG_VERSION = 243;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8390,10 +8390,15 @@
      ⛔ Une cellule qui commence par = + - @ est désamorcée (une apostrophe devant) : un nom choisi par quelqu'un d'autre ne devient jamais une formule dans le tableur du patron. ── */
   const REPONSES_INVITE = { accepte: 'Avait accepté', decline: 'Avait décliné', peutetre: 'Avait répondu « peut-être »', attente: 'Sans réponse' };
   const ABSENCES_APPEL = { invite: 'Son appareil sonne', manque: 'N\'a pas répondu', refuse: 'A refusé l\'appel', attente: 'À la porte', parti: 'Sorti', exclu: 'Retiré' };
+  /* ⛔ (r6) UNE PRÉSENCE QUI PASSE LA JOURNÉE DIT SES JOURS (re-test final : « Dan Roux 10:00 → 09:00 · 72 h 00 » sous « Ven. 23 oct. », d'une séance du vendredi au lundi — un départ qui
+     se lit avant l'arrivée). L'arrivée dit son jour quand ce n'est pas celui de la séance (ou, en direct, pas aujourd'hui) ; le départ, quand `jourFinDit` le veut (comme la fin d'une réunion :
+     une soirée de moins de 24 h garde l'heure seule). Le même jour, rien ne change. */
+  const heurePresence = (t, ref) => (ref && autreJour(ref, t) ? FMT_JOUR_FIN.format(t) + ' ' : '') + FMT_HEURE.format(t);
+  const departPresence = (arrivee, depart) => (jourFinDit(arrivee, depart) ? FMT_JOUR_FIN.format(depart) + ' ' : '') + FMT_HEURE.format(depart);
   function presenceLignes(p) {
     return {
       venus: p.venus.map(x => ({ id: x.id, nom: x.nom, present: x.present, duree: dureeCourte(x.duree),
-        detail: (x.present ? 'Depuis ' + FMT_HEURE.format(x.arrivee) + ' · en ce moment' : FMT_HEURE.format(x.arrivee) + (x.depart ? ' → ' + FMT_HEURE.format(x.depart) : '')) + ' · ' + dureeCourte(x.duree) })),
+        detail: (x.present ? 'Depuis ' + heurePresence(x.arrivee, Date.now()) + ' · en ce moment' : heurePresence(x.arrivee, p.debut) + (x.depart ? ' → ' + departPresence(x.arrivee, x.depart) : '')) + ' · ' + dureeCourte(x.duree) })),
       absents: p.absents.map(x => ({ id: x.id, nom: x.nom, detail: x.reponse ? (REPONSES_INVITE[x.reponse] || 'Invité') : (ABSENCES_APPEL[x.statut] || 'Absence') })),
     };
   }
@@ -8402,7 +8407,8 @@
     const lignes = [['Séance', 'Nom', 'Présence', 'Arrivée', 'Départ', 'Durée (min)', 'Détail'].map(cel).join(';')];
     for (const p of seances) {
       const seance = FMT_SUIVI.format(p.debut);
-      for (const x of p.venus) lignes.push([seance, x.nom, 'oui', FMT_HEURE.format(x.arrivee), x.depart ? FMT_HEURE.format(x.depart) : (x.present ? 'en cours' : ''), (x.duree / 60).toFixed(1).replace('.', ','), ''].map(cel).join(';'));
+      /* (r6) l'arrivée et le départ disent leur jour comme à l'écran (`heurePresence`, `departPresence`) : seule la colonne « Séance » le donnait, celui du DÉBUT */
+      for (const x of p.venus) lignes.push([seance, x.nom, 'oui', heurePresence(x.arrivee, p.debut), x.depart ? departPresence(x.arrivee, x.depart) : (x.present ? 'en cours' : ''), (x.duree / 60).toFixed(1).replace('.', ','), ''].map(cel).join(';'));
       for (const x of presenceLignes(p).absents) lignes.push([seance, x.nom, 'non', '', '', '0', x.detail].map(cel).join(';'));
     }
     const nom = 'presence-' + String(titre || 'reunion').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).toLowerCase() + '-' + new Date().toISOString().slice(0, 10) + '.csv';
