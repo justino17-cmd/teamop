@@ -22016,7 +22016,7 @@ views.interventions=function(){
       ${(i.statut==='planifiee'&&i.date&&i.heure&&new Date(i.date+'T'+i.heure).getTime()>Date.now())?`<div class="int-cd" style="font-size:11px;color:var(--acc-txt);font-weight:700;white-space:nowrap;margin-right:8px">🕐 ${esc(fmtCountdown(new Date(i.date+'T'+i.heure).getTime()-Date.now()))}<div style="color:var(--t3);font-weight:400">${esc(i.heure)} – ${esc(addMin(i.heure,i.duree||60))}</div></div>`:''}
       <span class="int-a" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
         ${badge(STATUT_INT,i.statut)}
-        <span style="display:flex;gap:4px">${!fin&&i.statut!=='annulee'?`${i.statut==='planifiee'?`<button class="btn ghost sm" title="Démarrer (passe en cours)" onclick="intDemarrerQuick('${i.id}')">▶</button>`:''}<button class="btn sm" title="Effectué" onclick="intEffectuer('${i.id}')">Effectué</button>`:`<button class="btn ghost sm" title="Rapport" onclick="formRapport('${i.id}')">Rapport</button>`}</span>
+        <span style="display:flex;gap:4px">${!fin&&i.statut!=='annulee'?`${i.statut==='planifiee'?`<button class="btn ghost sm" title="Démarrer (passe en cours)" onclick="intDemarrerQuick('${i.id}')">▶</button>`:''}<button class="btn sm" title="Effectué" onclick="intEffectuer('${i.id}')">Effectué</button>`:`<button class="btn ghost sm" title="Rapport" onclick="${intStatutPermis(i,'terminee')?'formRapport':'detailIntervention'}('${i.id}')">Rapport</button>`}</span>
       </span>
     </div>`; };
   if(intView==='liste'){
@@ -25738,13 +25738,16 @@ function saveClientForm(e,id){ e.preventDefault(); if(!permGarde('crm',id?'modif
 }
 
 /* ═══════════════ RAPPORTS ═══════════════ */
+/* ⛔ i03/r3#5 — SANS « Interventions → Modifier », formRapport REFUSE (intStatutPermis, la règle du menu de statut) :
+   la ligne « Terminée » ne doit donc pas y mener. Elle ouvre la FICHE (detailIntervention, où le compte-rendu se lit
+   sans « Rédiger » ni « Clôture guidée »), et son bouton dit « Voir ». Le refus de formRapport reste la garde. */
 views.rapports=function(){
   setHeader('Rapports',"Comptes-rendus d'intervention");
   const _mesInts=visibleInts(db.interventions);
   const done=_mesInts.filter(i=>i.statut==='terminee');
   const pend=_mesInts.filter(i=>i.statut!=='terminee'&&i.statut!=='annulee');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Terminées</h3></div>
-    ${done.length? done.map(i=>`<div class="pl-row lgt" onclick="formRapport('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
+    ${done.length? done.map(i=>`<div class="pl-row lgt" onclick="${intStatutPermis(i,'terminee')?'formRapport':'detailIntervention'}('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu||!intStatutPermis(i,'terminee')?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
   </div><div class="card"><div class="card-head"><h3>En attente de clôture</h3></div>
     ${pend.length? pend.map(i=>`<div class="pl-row lgt" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : emptyState('🎉','Tout est à jour !','','')}
   </div>`;
