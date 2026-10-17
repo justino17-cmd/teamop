@@ -1,4 +1,4 @@
-/* ══ test-1470 — « REPORTER » REPOUSSE, IL N'AVANCE JAMAIS — LE VRAI SERVICE, L'HORLOGE AVANCÉE AU GESTE ═════════════════════════════════════════════
+/* ══ test-2470 — « REPORTER » REPOUSSE, IL N'AVANCE JAMAIS — LE VRAI SERVICE, L'HORLOGE AVANCÉE AU GESTE ═════════════════════════════════════════════
    17 octobre 2026, deux constats des agents de test (agenda#0, pro#2) : « Reporter 10 min / 1 h / Demain 9 h » (fiche d'un rendez-vous, menu d'appui long, fiche d'un rappel du tableau de bord)
    déplaçait l'événement à MAINTENANT + 10 min / + 1 h / demain 9 h, quelle que soit sa date : un rendez-vous du 28 octobre passait à dans 10 minutes (il AVANÇAIT de douze jours, sans
    confirmation, pendant que le menu dit « De 10 minutes »), un rappel de 05:47 passait à 01:48. « Reporter » a été conçu pour un rappel ÉCHU qu'on repousse — ce comportement-là reste vrai.

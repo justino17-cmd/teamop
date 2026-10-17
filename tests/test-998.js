@@ -142,8 +142,8 @@ const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter l
     const t2 = Date.now() + 16 * 60000 + 60 * 60000;          // l'horloge du SERVICE : la section 5 l'a avancée de 16 puis de 60 minutes
     const p1 = await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 10 });
     const d1 = p1.j.evenement.debut - t2;
-    /* 17 octobre 2026 (agenda#0, `test-1470`) : « Reporter » repousse depuis le PLUS TARD de maintenant et du début — ce rappel est dans ~3 h, il passe à son début + 10 min (avant : « dans 10 à 11 min »,
-       il AVANÇAIT de près de 3 h sans un mot) ; un rappel déjà échu se repousse toujours depuis maintenant (`test-1470` § 3) */
+    /* 17 octobre 2026 (agenda#0, `test-2470`) : « Reporter » repousse depuis le PLUS TARD de maintenant et du début — ce rappel est dans ~3 h, il passe à son début + 10 min (avant : « dans 10 à 11 min »,
+       il AVANÇAIT de près de 3 h sans un mot) ; un rappel déjà échu se repousse toujours depuis maintenant (`test-2470` § 3) */
     v('reporter de 10 min : l\'heure est CALCULÉE par le service (son début + 10 min, à la minute — il ne recule pas), la durée gardée, décoché, et il sonnera', [p1.code, p1.j.evenement.debut === RS.debut + 10 * 60000 && d1 > 10 * 60000, p1.j.evenement.debut % 60000, p1.j.evenement.fin - p1.j.evenement.debut, p1.j.evenement.fait, p1.j.evenement.rappelEnAttente],
       [200, true, 0, RS.fin - RS.debut, null, true]);
     const p2 = await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 'demain' });
