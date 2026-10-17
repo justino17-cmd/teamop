@@ -2206,6 +2206,8 @@
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* l'échéance de la sourdine de CETTE personne (0 : pas en sourdine) — la même lecture que `infos()` : la liste dessine un croissant de lune barré, et grise le point « non lu » */
+        sourdine: c.muet_jusqua > maintenant() ? c.muet_jusqua : 0,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
         invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
         /* PERSO / PRO : le côté qui vaut, l'automatique, et celui que j'ai choisi à la main (null : l'automatique) — un service d'avant n'en dit rien : tout est Perso */
