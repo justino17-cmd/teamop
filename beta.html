@@ -34831,11 +34831,12 @@ function delItem(coll,id){
     if(!confirm('Supprimer le technicien « '+(t.nom||'')+' » ?\n\nIl est retiré des box, des véhicules et du planning à venir ; son historique garde son nom.')) return;
     techArchiver(id); logEvent('Technicien supprimé',t.nom||'','crud'); save(); closeModal(); toast('Technicien retiré partout'); go(current); return;
   } else if(coll==='clients'){ const c=db.clients.find(x=>x.id===id)||{}; const l=clientLiens(id);
-    /* Une facture ne se supprime jamais d'ici (obligation comptable) et ne reste pas sans client : on garde la fiche.
-       Le reste (interventions, devis, contrats, box) reste, SANS client — on le dit avant, chiffres à l'appui. */
-    if(l.factures){ toast('« '+(c.nom||'Ce client')+' » a '+liensPluriel(l.factures,'facture')+' : une facture ne se supprime pas et ne peut pas rester sans client. Garde la fiche (ou supprime d\'abord les factures de test).',7000); return; }
+    /* Le client part comme avant — la suppression n'est PAS refusée (delFacture supprime une facture avec le seul droit
+       « Ventes · supprimer » : aucune règle ne protège les factures ici, on n'en invente pas). Mais ce qu'il porte
+       (interventions, devis, factures, contrats, box) RESTE, SANS client : on le dit avant, chiffres à l'appui, factures
+       comprises — c'est la confirmation honnête que le générique « Supprimer cet élément ? » ne donnait pas. */
     const reste=clientLiensTxt(l);
-    if(!confirm(reste?'Supprimer le client « '+(c.nom||'')+' » ?\n\nIl est lié à : '+reste+'.\nCes éléments RESTENT, mais sans client : plus de nom ni d\'adresse dessus.\n\nPour garder l\'historique lisible, garde plutôt la fiche.':'Supprimer cet élément ?')) return;
+    if(!confirm(reste?'Supprimer le client « '+(c.nom||'')+' » ?\n\nIl est lié à : '+reste+'.\nCes éléments RESTENT, mais sans client : plus de nom ni d\'adresse dessus'+(l.factures?' (une facture sans client ne peut plus être réclamée)':'')+'.\n\nPour garder l\'historique lisible, garde plutôt la fiche.':'Supprimer cet élément ?')) return;
   } else if(!confirm('Supprimer cet élément ?'))return;
   db[coll]=db[coll].filter(x=>x.id!==id); logEvent('Suppression',coll,'crud'); save(); closeModal(); toast('Supprimé'); go(current); }
 

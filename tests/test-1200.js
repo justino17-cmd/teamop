@@ -3,9 +3,9 @@
 
    · clients#6 — `delItem('clients')` demandait « Supprimer cet élément ? » à un client qui avait des
      interventions, des devis, des factures : elles restaient avec un client « — » (et sans adresse, qui
-     venait du client). Une facture sans client est une facture qu'on ne peut plus réclamer : on ne
-     supprime jamais une facture (obligation comptable) et on ne laisse pas non plus un client qui en
-     porte. Le reste (interventions, devis, contrats, box) se confirme en NOMMANT ce qui reste sans client.
+     venait du client). On ne REFUSE pas la suppression (aucune règle ne protège les factures ici : `delFacture`
+     en supprime une avec le seul droit « Ventes · supprimer ») : on la CONFIRME en NOMMANT ce qui reste sans
+     client — interventions, devis, factures, contrats, box, chiffres à l'appui.
    · stock#3 — `delItem('boxes')` détachait les bons et les demandes, mais pas `db.boxMvtAttente` : une
      demande de sortie en attente du DR restait « à valider » pour une box disparue, et « Valider » la
      passait en silence à « refuse » (box introuvable). Elle est maintenant REFUSÉE avec un motif lisible
@@ -93,13 +93,21 @@ const baseClients = () => ({
   v('annulé : le client reste', w.db.clients.length, 3);
   v('annulé : rien n\'est enregistré', w.__saves, 0);
 }
-{ /* c. client avec facture : refus net, aucune confirmation, rien ne part */
+{ /* c. client avec facture : PAS de refus — une confirmation qui chiffre la facture et dit qu'elle reste sans client */
   const w = monde(baseClients()); w.delItem('clients', 'cB');
-  v('une facture liée : le client reste', w.db.clients.map(c => c.id), ['cA', 'cB', 'cC']);
-  v('… la facture est intacte', w.db.factures.length, 1);
-  v('… aucune confirmation proposée (rien à confirmer, c\'est refusé)', w.__confirms.length, 0);
-  vrai('… le refus dit pourquoi : « 1 facture »', /1 facture/.test(w.__toasts.join('|')), w.__toasts);
-  v('… et rien n\'est enregistré', w.__saves, 0);
+  vrai('une confirmation est proposée (la suppression n\'est pas interdite)', w.__confirms.length === 1, w.__confirms);
+  vrai('… elle compte la facture : « 1 facture »', /1 facture/.test(w.__confirms[0] || ''), w.__confirms);
+  vrai('… elle compte aussi l\'intervention liée', /1 intervention/.test(w.__confirms[0] || ''), w.__confirms);
+  vrai('… elle dit que la facture reste SANS client', /sans client/i.test(w.__confirms[0] || '') && /facture sans client/.test(w.__confirms[0] || ''), w.__confirms);
+  vrai('… et ne prétend PAS qu\'une facture ne se supprime pas', !/ne se supprime pas|obligation/i.test(w.__confirms[0] + w.__toasts.join('|')), [w.__confirms, w.__toasts]);
+  v('accepté : le client part', w.db.clients.map(c => c.id), ['cA', 'cC']);
+  v('… la facture est conservée (rien d\'autre n\'est supprimé)', w.db.factures.map(f => f.id), ['f1']);
+  v('… l\'intervention aussi', w.db.interventions.length, 3);
+  v('… une sauvegarde est faite', w.__saves, 1);
+}
+{ /* c'. facture liée mais annulé : rien ne bouge */
+  const w = monde(baseClients(), { confirm: false }); w.delItem('clients', 'cB');
+  v('annulé : le client reste, la facture aussi, rien enregistré', [w.db.clients.length, w.db.factures.length, w.__saves], [3, 1, 0]);
 }
 { /* d. client sans lien : comme avant */
   const w = monde(baseClients()); w.delItem('clients', 'cC');
