@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c3aadc8d784d';
+  const OPMSG_BUILD = 'cf2535167322';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -818,17 +818,18 @@
       '<button type="button" class="carte-btn presse" data-pos-copier="' + esc(m.id) + '">Copier</button></span></span>';
   }
   /* la fiche d'un contact : « Écrire » s'il l'est déjà, « Ajouter » sinon (une demande, que la personne accepte ou non), rien pour soi-même */
-  const fichesDemandees = new Map();         // message → ce que la demande a donné (« envoyee », « acceptee »…)
+  /* ⛔ « Demande envoyée » et « Écrire » se lisent sur la CARTE (`f.demande`, `f.contact`) : c'est le service qui les dit, à chaque lecture. La page n'en garde aucune mémoire — celle d'avant (une `Map`)
+     mourait au rechargement, ramenait « Ajouter », et primait sur le service quand l'autre avait accepté (lot m09) */
   function htmlCarteFiche(m, sens) {
-    const f = m.carteContact, d = fichesDemandees.get(m.id);
+    const f = m.carteContact;
     /* « Écrire » à quelqu'un qui n'est pas (encore) un contact : une INVITATION — la personne trouve le message dans ses « Invitations » et choisit d'y répondre */
     const ecrireInv = CAP.invitations ? '<button type="button" class="carte-btn presse" data-fiche-ecrire-carte="' + esc(m.id) + '">' + icone('i-chat') + '<span>Écrire</span></button>' : '';
     const action = f.indisponible ? '<span class="carte-sous">Cette personne ne se laisse plus trouver.</span>' : f.moi ? '<span class="carte-sous">C\'est toi</span>' :
-      f.contact || d === 'acceptee' ? '<button type="button" class="carte-btn presse" data-fiche-ecrire="' + esc(f.uid) + '">' + icone('i-chat') + '<span>Écrire</span></button>' :
-      ecrireInv + (d ? '<button type="button" class="carte-btn presse" aria-disabled="true">Demande envoyée</button>' :
+      f.contact ? '<button type="button" class="carte-btn presse" data-fiche-ecrire="' + esc(f.uid) + '">' + icone('i-chat') + '<span>Écrire</span></button>' :
+      ecrireInv + (f.demande ? '<button type="button" class="carte-btn presse" aria-disabled="true">Demande envoyée</button>' :
       '<button type="button" class="carte-btn presse" data-fiche-ajouter="' + esc(m.id) + '">' + icone('i-personne') + '<span>Ajouter</span></button>');
     return '<span class="carte-msg fiche ' + sens + '" role="group" aria-label="Fiche de ' + esc(f.prenom) + '">' +
-      '<span class="fiche-haut">' + avatar({ initiales: f.initiales, avatar: f.avatar }) + '<span><span class="carte-titre" dir="auto">' + esc(f.prenom) + '</span><span class="carte-sous">' + esc(f.indisponible ? 'Fiche indisponible' : f.identifiant || 'Contact OP MESSAGES') + '</span></span></span>' +
+      '<span class="fiche-haut">' + avatar({ initiales: f.initiales, avatar: f.avatar }) + '<span><span class="carte-titre" dir="auto">' + esc(f.nom || f.prenom) + '</span><span class="carte-sous">' + esc(f.indisponible ? 'Fiche indisponible' : f.identifiant || 'Contact OP MESSAGES') + '</span></span></span>' +
       '<span class="carte-actions">' + action + '</span></span>';
   }
   /* le sondage : ses règles DITES (on sait d'avance si c'est anonyme, si l'on verra les résultats), un choix par rangée qu'on touche pour voter — une réponse ou plusieurs —,
@@ -1791,7 +1792,7 @@
     if (fa) {
       const mid = fa.dataset.ficheAjouter, m = trouverMessage(mid); if (!m || !conv || fa.getAttribute('aria-disabled') === 'true') return true;
       fa.setAttribute('aria-disabled', 'true');
-      source.demanderCarte(conv, m.seq).then(r => { fichesDemandees.set(mid, r); mot(r === 'acceptee' ? 'Vous êtes maintenant en contact' : r === 'deja' ? 'Vous êtes déjà en contact' : 'Demande envoyée'); rafraichirConv(); },
+      source.demanderCarte(conv, m.seq).then(r => { mot(r === 'acceptee' ? 'Vous êtes maintenant en contact' : r === 'deja' ? 'Vous êtes déjà en contact' : 'Demande envoyée'); rafraichirConv(); },
         er => { fa.removeAttribute('aria-disabled'); avis(phrase(er, 'La demande n\'a pas pu partir.')); });
       return true;
     }
@@ -1800,7 +1801,7 @@
       const mid = fw.dataset.ficheEcrireCarte, m = trouverMessage(mid); if (!m || !conv || fw.getAttribute('aria-disabled') === 'true') return true;
       fw.setAttribute('aria-disabled', 'true');
       source.ecrireCarte(conv, m.seq).then(r => {
-        fichesDemandees.set(mid, r.resultat === 'deja' ? 'acceptee' : r.resultat); fw.removeAttribute('aria-disabled');
+        fw.removeAttribute('aria-disabled');
         if (r.resultat === 'envoyee') mot('Invitation : écris ton message');
         pousser({ vue: 'messages', conv: r.conv, feuille: false, photo: null, appel: null });
       }, er => { fw.removeAttribute('aria-disabled'); avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.')); });
