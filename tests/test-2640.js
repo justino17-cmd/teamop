@@ -143,4 +143,21 @@ for (const nuit of [false, true]) {
   }
 }
 
+/* ── 4. LA RAISON D'UN APPEL MANQUÉ : UNE PASTILLE QUI PEUT PASSER À LA LIGNE N'EST PAS UNE CAPSULE ──────────────────────────────────────────────────────────────────────────── */
+{
+  const rayon = C.valeur(L, '.bord-raison', 'border-radius', {}), coupe = C.valeur(L, '.bord-raison', 'overflow-wrap', {}), nowrap = C.valeur(L, '.bord-raison', 'white-space', {});
+  vrai('(population) .bord-raison déclare un rayon (' + rayon + ')', !!rayon);
+  const px = /^(\d+(?:\.\d+)?)px$/.exec(rayon || '');
+  /* si le texte ne peut pas passer à la ligne (nowrap), la capsule est juste ; sinon le rayon est celui d'un rectangle doux : ≤ la demi-hauteur de DEUX lignes de 16 px (~17 px) */
+  vrai('⛔ la raison d\'un appel, qui passe à la ligne sur téléphone, n\'est pas une capsule de 999 px (rayon ' + rayon + ')', nowrap === 'nowrap' || (px && +px[1] <= 14));
+  vrai('un mot long se coupe plutôt que de sortir de la pastille (overflow-wrap : ' + coupe + ')', nowrap === 'nowrap' || coupe === 'anywhere' || coupe === 'break-word');
+}
+
+/* ── 5. LE STATUT D'UN SEUL MOT LONG RESTE DANS LA CARTE DU CONTACT ──────────────────────────────────────────────────────────────────────────────────────────────────────────── */
+{
+  const coupe = C.valeur(L, '.contact-role', 'overflow-wrap', {}) || C.valeur(L, '.contact-role', 'word-break', {});
+  vrai('(population) .contact-role est une règle de la feuille (taille ' + C.valeur(L, '.contact-role', 'font-size', {}) + ')', !!C.valeur(L, '.contact-role', 'font-size', {}));
+  vrai('⛔ le statut d\'un contact se coupe où il le faut (overflow-wrap : ' + coupe + ') — une adresse collée ne sort plus de la carte', /^(anywhere|break-word|break-all)$/.test(coupe || ''));
+  vrai('contre-témoin : la colonne de texte du contact peut rétrécir (min-width: 0, sinon aucune coupure ne la tient)', C.valeur(L, '.contact-texte', 'min-width', {}) === '0');
+}
 fin();

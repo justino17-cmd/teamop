@@ -573,7 +573,9 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .contact .avatar { width: 38px; height: 38px; font-size: 14px; }
 .contact-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .contact-nom { font-size: 17px; letter-spacing: -.02em; }
-.contact-role { font-size: 13px; color: var(--sub-meta); }
+/* un statut d'un seul mot long (une adresse collée, 140 caractères sans espace) ne se coupait pas : il sortait de la carte, sous la flèche et l'étoile (lot p03, n#8). `.contact-texte` rétrécit déjà (min-width: 0) —
+   il manquait de dire où couper, comme le font `.reg-moi-statut`, `.info-sous` et `.conv-apercu`. */
+.contact-role { font-size: 13px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .rond { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid var(--rond-bord); display: grid; place-items: center; transition: background-color .2s, border-color .2s; color: var(--coche); font-size: 12px; }
 .rond .ic { stroke-width: 3.2; opacity: 0; transition: opacity .2s; }
 .contact[aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
@@ -2168,7 +2170,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
 .bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
 .carte-liste > li.bord-jour::after { display: none; }
-.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--sub-meta); }
+/* ⛔ UNE PASTILLE QUI PEUT PASSER À LA LIGNE N'EST PAS UNE CAPSULE (lot p03, n#7) : « A appelé 2 fois · Collègue » demande 162 px, la colonne en offre 154 (iPhone) ou 124 (Android) — l'heure et le bouton « i »
+   prennent le reste. Sur une ligne, un rayon de 12 px est une capsule ; sur deux, ce n'est plus un disque aplati de 33 px mais un rectangle doux. Un mot trop long se coupe plutôt que de sortir. On ne tronque
+   pas par une ellipse : une raison coupée ne nomme rien (la règle de `.appel-kind`). */
+.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 2px 8px; border-radius: 12px; line-height: 16px; overflow-wrap: anywhere; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--sub-meta); }
 /* ⛔ LE ROUGE EST POUR L'APPEL MANQUÉ, PAS POUR LA RAISON DE L'AFFICHER (17 octobre 2026, capture iPad) : « Collègue », « Favori », « A appelé 3 fois » informent, ils n'alertent pas — la pastille prend un gris de
    légende sur un voile neutre, et le nom de l'appelant l'encre du texte. La liste des Appels, elle, garde son rouge (`.appel-nom-ligne.manque`). tests/test-2504.js. */
 #bord-appels .appel-nom-ligne.manque { color: var(--text); }
