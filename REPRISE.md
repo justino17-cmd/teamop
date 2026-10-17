@@ -48,11 +48,31 @@ corrigé et re-testé ». OP GESTION part en **v768 sur la bêta ET en public** 
 | | OP GESTION | OP MESSAGES |
 |---|---|---|
 | bugs confirmés, première passe | 135 (11 parties) | 83, plus les améliorations retenues (13 parties) |
-| vagues de correction | 5 — g01–g21, h01–h05, i01–i03, j01–j03, k01–k03 | 3 — m01–m21, p01–p04, q01 |
-| corrections livrées (entrées de rapport) | 183 | 136 |
-| re-tests du code fusionné | 121 corrigés / 28 partiels → 23 / 2 → 28 / 2 → final (k01–k03) : en cours | 101 / 36 (les partiels : des décisions, ci-dessous) → 12 / 2 → final (q01) : en cours |
+| vagues de correction | 6 — g01–g21, h01–h05, i01–i03, j01–j03, k01–k03, puis le re-test final (r6–r10) | 4 — m01–m21, p01–p04, q01, puis le re-test final (r6–r8) |
+| corrections livrées (entrées de rapport) | 183, + la rotation de la Messagerie | 136, + le jour de fin à huit endroits et le rapport de présence |
+| re-tests du code fusionné | 121 corrigés / 28 partiels → 23 / 2 → 28 / 2 → final : k01–k03 corrigés, la rotation corrigée en trois passes (r8, r9, r10) | 101 / 36 (les partiels : des décisions, ci-dessous) → 12 / 2 → final : q01 corrigé, puis r6, r7 et r8 corrigés |
 
-Suite complète et porte d'OP MESSAGES sur le code final : en cours de mesure.
+Suite complète sur le code final (28471a17) : **502 suites · 28 760 vérifications, toutes vertes**. Porte d'OP MESSAGES dans les conditions de la CI :
+**179 suites · 11 469 vérifications** (plancher 11 455). Porte du serveur dans les conditions du job de déploiement : 58 suites · 3 939 vérifications (plancher 3 925).
+
+**Le re-test final** (des agents neufs au navigateur sur le code fusionné, chacun suivi d'un second agent chargé de le RÉFUTER — c'est ce second agent qui a
+trouvé presque tout ce qui suit) :
+- ⛔ **trois bancs auraient bloqué la publication** : `test-845` déduisait « v768 = les options du Pro » (voir la leçon plus bas) et faisait tomber la porte
+  du serveur ; `test-856` refusait un vrai nom laissé dans un commentaire de la page d'OP MESSAGES par le lot p04 ; `main` avait avancé (`test-851`, la porte
+  du serveur refusait tout depuis le 7 octobre — une autre session l'a réparé, fusionné ici).
+- **OP MESSAGES — une réunion de plusieurs jours se lisait « 09:00 – 09:00 »** à huit endroits que q01 n'avait pas vus : l'aperçu du lien d'invité, le compte
+  rendu, `quandRdv` (menu de l'Agenda, « Prévu / Nouveau » de Décaler), la phrase de chevauchement, l'heure dans un autre fuseau (note de Décaler, parenthèse
+  de la rangée — nouvelle `finDans(debut, fin, tz)`), le « chez eux » du formulaire, le rapport de présence et son CSV. Un balayage complet (page ET service :
+  courriels, rappels, notifications) n'a plus rien trouvé. `test-2662`, `test-2663`.
+- **OP GESTION — la Messagerie : tourner l'appareil cachait la conversation** sous la rangée de saisie (défaut d'avant k01). Corrigé en TROIS passes, chacune
+  prise en défaut par le contre-vérificateur : « la page est-elle en bas ? » ratait le cas ordinaire sans « Reprendre » (10 à 31 px de défilement, tolérance
+  de 4 px) ; « la fin de la conversation se voit-elle ? » relue au seul défilement ratait ✕ sur « Reprendre » (la fin redevient visible sans défilement) ;
+  elle se relit désormais aussi quand la mise en page change (`msgFinRelire` dans `msgAjusterPlus`). `test-1660`.
+- La « régression » de k01 (dernière bulle sous la rangée avec « Reprendre ») était un artefact : la sonde faisait `window.scrollTo(0,0)` ; par de vrais gestes,
+  0 px sur 864 mesures. ⚠️ Mais REMONTER la page au doigt pour voir les pastilles fait passer le bas de la liste sous la rangée collée — le prix assumé du
+  plancher de 140 px de k01 (« une page qui défile se lit ») : un balayage inverse le rend, et toucher une pastille ramène la conversation.
+- Le commentaire de k01 prêtait à Chrome pour Android un rognage de la fenêtre de mise en page au clavier qu'il ne fait plus depuis la version 108
+  (Firefox 132 aussi) : corrigé, aucune règle ne change.
 
 **Trois leçons de méthode, payées pendant la campagne** (les deux premières sont aussi dans `CLAUDE.md`) :
 - ⛔ **Un agent de workflow en `isolation: 'worktree'` part de `origin/main`, PAS de la branche de travail.** Les vagues 1 et 2 d'OP GESTION et les
@@ -96,7 +116,10 @@ complète) ; le formulaire d'intervention passé à « Terminée » ne pose ni `
 les zones de dépôt du planning sans `data-drop` (puces de jour, rangées de techniciens) n'ont pas de dépôt au doigt ; la case nue `appearance:none`
 reste sur « Box active », la fiche « Active »… ; les véhicules créés par un technicien avant le correctif (sans `creePar`) restent invisibles pour lui,
 l'administrateur les attribue ; le formulaire Box n'a pas la reprise de brouillon (règle « le stock d'une box ne se réécrit jamais en bloc ») ;
-`test-984` tombe encore sous forte charge (course au chronomètre du relais, tâche #95).
+`test-984` tombe encore sous forte charge (course au chronomètre du relais, tâche #95). Re-test final : deux changements de LARGEUR dans le même rendu
+(moins de 50 ms, aucun geste humain ne le fait) laissent la liste de la Messagerie décalée (défaut d'avant, inchangé) ; le rapport de présence suit la règle de
+`jourFinDit` — un séjour de moins de 24 h qui passe minuit garde l'heure seule (« 10:00 → 09:00 · 23 h 00 », la durée à côté), et en direct « Depuis »
+dit le jour d'une arrivée d'hier même pour une soirée.
 
 **⏳ OP MESSAGES — ce qui attend une décision de Justin** (rien n'est fait, chaque point change ce que l'utilisateur connaît) :
 - **contacts#1** — ce que devient la conversation d'un contact BLOQUÉ (règle du service, `server-msg/`).

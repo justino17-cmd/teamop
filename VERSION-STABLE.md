@@ -6,8 +6,8 @@ campagne de test partent ensemble dans `app.html` et `beta.html`.
 
 v768 — ce qui change pour une entreprise : près de deux cents corrections, trouvées par une campagne d'agents qui ont UTILISÉ l'application
 écran par écran (téléphone, tablette, ordinateur ; jour et nuit ; administrateur et technicien), chacune prouvée par un banc qui tombait avant
-le correctif, relue à charge, puis rejouée au navigateur sur le code fusionné — cinq vagues, jusqu'à ce que la recampagne ne trouve plus rien
-de neuf qui ne soit mineur.
+le correctif, relue à charge, puis rejouée au navigateur sur le code fusionné et contre-vérifiée par un second agent — six vagues, jusqu'à ce
+que la recampagne ne trouve plus rien de neuf qui ne soit mineur.
 - **Planning et absences** : un dépôt respecte les congés et les indisponibilités (vue Multi comprise), Alt + glisser duplique, un double-clic
   sur une case prépare l'intervention avec la personne et l'heure, deux absences ne se chevauchent plus, une absence validée modifiée par un
   technicien repasse en attente.
@@ -15,7 +15,8 @@ de neuf qui ne soit mineur.
   convertit qu'une fois, supprimer un client lié chiffre ce qui en dépend ; exports comptables : formules neutralisées, décimales justes,
   dates avec l'année.
 - **Téléphone et tablette** : les écrans tiennent dans leur largeur (Rapports, Archives, Historique, bons de commande, Paramètres à 320 px),
-  la messagerie garde son champ visible en portrait et en paysage, la boîte mail suit la rotation, plus rien ne se recouvre.
+  la messagerie garde son champ visible en portrait et en paysage — et sa conversation quand on tourne l'appareil —, la boîte mail suit la
+  rotation, plus rien ne se recouvre.
 - **Une saisie interrompue se reprend en entier** (« Reprendre » rend lignes, techniciens et client), et le retour du téléphone recule d'un
   écran à la fois (une fiche fermée ne se rouvre plus à la synchronisation).
 - **Droits et textes** : les gestes refusés le sont aussi par leurs seconds chemins, le dernier administrateur ne se désactive pas, des messages
@@ -23,8 +24,9 @@ de neuf qui ne soit mineur.
 Aucun format de données ne change : une v767 et une v768 travaillent ensemble. ⚠️ Restent à la décision de Justin (REPRISE.md) : le bouton
 « Démarrer » de « Ma journée », les fiches technicien inactives, les paiements partiels, Nominatim dans les pages juridiques, la vitre de nuit
 d'OP GESTION (le contraste du texte saisi y plafonne à 4,72:1).
-Publiée avec elle : la bêta d'OP MESSAGES (msg-beta) reçoit les vingt et un lots de correctifs d'octobre et leurs deux reprises — la version
-publique d'OP MESSAGES attend toujours la phrase de Justin.
+Publiée avec elle : la bêta d'OP MESSAGES (msg-beta) reçoit les vingt et un lots de correctifs d'octobre et leurs reprises (dont une réunion de
+plusieurs jours qui dit partout son jour de fin, et le rapport de présence qui dit ses jours) — la version publique d'OP MESSAGES attend toujours
+la phrase de Justin.
 
 ## Ancien point
 
