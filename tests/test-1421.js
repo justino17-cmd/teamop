@@ -93,5 +93,39 @@ vrai('la barre de titre ne cache « Écrire » (le volet le porte) qu\'à partir
 vrai('aucune règle du courrier ne garde l\'ancien seuil 959/960', !REG.some(r => /#mail-(app|mid|side|pane)|mail-list|mailCompose/.test(r.sel) && r.media.some(m => /\b(959|960)px/.test(m))),
   REG.filter(r => /#mail-(app|mid|side|pane)|mail-list|mailCompose/.test(r.sel) && r.media.some(m => /\b(959|960)px/.test(m))).map(r => r.sel + ' @ ' + r.media));
 
+console.log('\n── 1421 · 3. la ROTATION : l\'écouteur « resize » reconstruit la vue quand — et seulement quand — le mode franchit le seuil ──');
+/* Relevé de la relecture : l'écouteur ajouté pour la rotation d'une tablette n'était gardé par aucun banc (retirer la
+   ligne laissait 19 ✓ 0 ✗). On EXÉCUTE ici la vraie ligne du fichier dans un bac à sable : une fenêtre factice qui
+   retient ses écouteurs, une vue `boiteMail` factice qui fait ce que fait la vraie en entrée (poser le mode rendu —
+   vérifié dans le code de la vraie vue plus bas), et on joue des redimensionnements. */
+const bloc = (/let _mailModeRendu=null;\s*try\{ window\.addEventListener\('resize'[^\n]*/.exec(CODE) || [''])[0];
+vrai('la ligne de l\'écouteur « resize » est trouvée dans le code (pas dans un commentaire)', /addEventListener\('resize'/.test(bloc), bloc.slice(0, 80));
+vrai('la vraie vue pose le mode rendu en entrée (`_mailModeRendu=D` juste après `const D=_mailDesktop()`)', /const D=_mailDesktop\(\);\s*_mailModeRendu=D;/.test(VUE));
+function rotation() {
+  const ecouteurs = []; let reconstruit = 0;
+  const ctx = { window: { innerWidth: 1100, addEventListener: (t, f) => ecouteurs.push([t, f]) }, current: 'boiteMail', views: {} };
+  ctx.views.boiteMail = () => { reconstruit++; vm.runInContext('_mailModeRendu=_mailDesktop()', ctx); };
+  vm.createContext(ctx);
+  try { vm.runInContext(constLigne + '\n' + ligneDesk + '\n' + bloc, ctx); } catch (e) { return null; }
+  const redim = (w, vue) => { ctx.window.innerWidth = w; if (vue !== undefined) ctx.current = vue; ecouteurs.filter(e => e[0] === 'resize').forEach(e => e[1]()); return reconstruit; };
+  return { ctx, ecouteurs, redim, nb: () => reconstruit, rendre: () => ctx.views.boiteMail() };
+}
+const R = rotation();
+vrai('la ligne s\'exécute et pose UN écouteur « resize »', !!R && R.ecouteurs.filter(e => e[0] === 'resize').length === 1, R && R.ecouteurs.length);
+if (R) {
+  R.redim(1100); vrai('avant tout rendu de la vue (mode inconnu), un redimensionnement ne reconstruit rien', R.nb() === 0, R.nb());
+  R.rendre(); const base = R.nb();
+  R.redim(1000); R.redim(1150);
+  vrai('1100 → 1000 → 1150 px (toujours en pile) : aucune reconstruction', R.nb() === base, R.nb() - base);
+  R.redim(1300);
+  vrai('1150 → 1300 px (la pile devient trois volets) : la vue est reconstruite UNE fois', R.nb() === base + 1, R.nb() - base);
+  R.redim(1320); R.redim(1500);
+  vrai('1300 → 1500 px (toujours trois volets) : pas de reconstruction de plus', R.nb() === base + 1, R.nb() - base);
+  R.redim(820);
+  vrai('1500 → 820 px (rotation inverse, retour à la pile) : reconstruite aussi', R.nb() === base + 2, R.nb() - base);
+  R.redim(1400, 'dashboard');
+  vrai('hors de la boîte mail (rubrique « dashboard »), franchir le seuil ne reconstruit pas la vue — elle écraserait l\'écran d\'une autre rubrique', R.nb() === base + 2, R.nb() - base);
+}
+
 console.log('\n── ' + 1421 + ' : ' + ok + ' ✓ ' + ko + ' ✗ ──');
 process.exit(ko ? 1 : 0);
