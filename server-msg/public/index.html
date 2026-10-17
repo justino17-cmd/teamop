@@ -1020,7 +1020,9 @@ html[data-appel-reduit] .side { top: var(--haut-appel); height: calc(100dvh - va
 .appel-barre-revenir b { flex: none; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.14); font-size: 14px; }
 .appel-barre-raccrocher { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: none; color: #000; }
 .appel-barre-raccrocher .rond { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #e5484d; color: #fff; }
-.appel-barre-raccrocher .ic { width: 18px; height: 18px; }
+/* ⛔ le rond de la barre porte la classe `.rond` des cases de contact, dont `.rond .ic { opacity: 0; stroke-width: 3.2 }` cache la coche d'une case non cochée : sans ces deux lignes le combiné (18 px,
+   trait blanc) était là et invisible — un rond rouge vide (lot m19, appels#2). Même spécificité, écrit plus loin : la barre gagne. */
+.appel-barre-raccrocher .ic { width: 18px; height: 18px; opacity: 1; stroke-width: 2; }
 html[data-appel], html[data-appel] body { overflow: hidden; }
 html[data-appel] .tabs { display: none; }
 @media (min-width: 900px) { .appel-ecran { left: 236px; } }
