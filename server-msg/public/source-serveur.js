@@ -2186,7 +2186,11 @@
         apercu = prefixe + corps;
       }
       const loc = convs.get(c.id);
-      const nonLus = loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq ? 0 : c.non_lus;
+      /* ⛔ Le dernier message visible est de MOI : on vient de répondre, la ligne ne dit pas « Non lu » (le testeur l'a mesuré : « Vous : Oui, on démarre lundi. » avec un point bleu et un nom en gras).
+         C'est l'AFFICHAGE qui le tait : le service tient « envoyer n'est pas lire » exprès (un envoi sorti d'une file hors ligne ne marque pas lus des messages jamais vus), son `lu_seq` ne bouge
+         pas, et un message reçu APRÈS le mien rallume le point (le dernier n'est plus de moi). Rien ne s'écrit. */
+      const dernierEstMoi = !!c.apercu && c.apercu.type !== 'systeme' && estMoi(c.apercu.auteur);
+      const nonLus = dernierEstMoi || (loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq) ? 0 : c.non_lus;
       /* ⛔ une conversation DIRECTE a la couleur de la PERSONNE (Contacts, Appels, Infos, la fiche et l'écran d'appel la prennent sur son identifiant) : la même personne n'a pas deux couleurs.
          Un groupe, un canal, une réunion n'ont pas de personne : ils gardent celle de leur conversation. */
       return {
