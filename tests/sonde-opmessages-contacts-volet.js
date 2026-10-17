@@ -97,7 +97,33 @@ const BUREAU = { w: 1440, h: 900 };
     v('⛔ la pastille de la barre et la grande photo du Profil ont la MÊME couleur d\'avatar', await page.evaluate(() => [document.querySelector('#moi-carte .moi-av').className.match(/\bav\d\b/)[0] === document.querySelector('#reg-profil .reg-moi .avatar').className.match(/\bav\d\b/)[0]]), [true]);
     void couleurs;
 
-    console.log('\n── 6. rien ne casse ──');
+    console.log('\n── 6. bloquée sans le savoir : ni « Introuvable », ni « Réessayer », ni accusation (contacts#6, contacts@6, contacts@9) ──');
+    await page.locator('.cote-seg [data-cote="perso"]').filter({ visible: true }).first().click();
+    await page.evaluate(() => { location.hash = '#contacts'; });
+    const pageB = await (await nav.newContext({ viewport: { width: 900, height: 700 }, locale: 'fr-FR' })).newPage();
+    await pageB.goto(svc.base + '/'); await pageB.locator('#c-login').fill('bruno'); await pageB.locator('#c-pass').fill(MOTS.bruno); await pageB.locator('#c-entrer').click();
+    await pageB.waitForFunction(() => { const a = document.getElementById('app'); return a && !a.hidden; }, null, { timeout: 12000 });
+    const ligneBruno = () => page.evaluate(() => { const l = Array.from(document.querySelectorAll('#vc-corps .contact')).find(x => x.textContent.includes('Bruno Petit')); return l ? { role: (l.querySelector('.contact-role') || {}).textContent || '', enLigne: !!l.querySelector('.avatar.en-ligne') } : null; });
+    await categorie('tous');
+    vrai('population : Alice voit Bruno EN LIGNE dans sa liste', await attendre(() => { const l = Array.from(document.querySelectorAll('#vc-corps .contact')).find(x => x.textContent.includes('Bruno Petit')); return !!l && !!l.querySelector('.avatar.en-ligne'); }, null, 12000));
+    v('…et sa ligne dit « En ligne »', (await ligneBruno()).role, 'En ligne');
+    const convAB = (await A.post('/api/conversations/directe', { uid: C.bruno.moi.id })).j.conversation.id;       // la conversation qui existait AVANT le blocage
+    const bl = await C.bruno.post('/api/contacts/bloquer', { uid: A.moi.id });
+    v('Bruno bloque Alice', bl.code, 200);
+    vrai('⛔ l\'indicateur « En ligne » de Bruno s\'éteint chez Alice SANS rechargement (contacts@6)', await attendre(() => { const l = Array.from(document.querySelectorAll('#vc-corps .contact')).find(x => x.textContent.includes('Bruno Petit')); return !l || !l.querySelector('.avatar.en-ligne'); }, null, 12000));
+    await choisir('Bruno Petit');
+    vrai('population : la fiche de Bruno est ouverte', await fichePour('Bruno Petit'));
+    vrai('population : la lecture de « En commun » est finie (plus de squelette)', await attendre(() => !document.querySelector('#vc-fiche .fc-squelette'), null, 12000));
+    v('⛔ la fiche ne montre ni « Introuvable… », ni « Réessayer », ni rubrique « En commun » en erreur (contacts#6)', await page.evaluate(() => ({ note: !!document.querySelector('#vc-fiche .fc-note'), reessayer: !!document.querySelector('#vc-fiche [data-fiche="relire"]'), texte: /Introuvable|supprimée|n.y es plus/.test(document.getElementById('vc-fiche').innerText) })), { note: false, reessayer: false, texte: false });
+    await page.locator('#vc-fiche [data-fiche="ecrire"]').click();
+    vrai('⛔ « Message » depuis la fiche (aucune conversation ouverte) dit « Cette conversation n\'a pas pu s\'ouvrir. », pas « supprimée ou tu n\'y es plus »', await attendre(() => { const m = document.getElementById('mot'); return m.classList.contains('on') && m.textContent === 'Cette conversation n\'a pas pu s\'ouvrir.'; }, null, 12000));
+    await page.evaluate((id) => { location.hash = '#messages/' + id; }, convAB);
+    vrai('population : la conversation avec Bruno (celle d\'avant le blocage) s\'ouvre', await attendre(() => /^#messages\/./.test(location.hash) && !!document.getElementById('saisie') && document.getElementById('saisie').getClientRects().length > 0));
+    await page.locator('#saisie').fill('Bruno ?'); await page.keyboard.press('Enter');
+    vrai('⛔ l\'envoi dit « Ce message n\'a pas pu être remis. » (ni suppression, ni « tu n\'y es plus », ni « bloqué »)', await attendre(() => { const a = document.getElementById('avis'); return !a.hidden && a.textContent === 'Ce message n\'a pas pu être remis.'; }, null, 12000));
+    v('…le texte reste dans le champ (rien n\'est perdu)', await page.evaluate(() => document.getElementById('saisie').value), 'Bruno ?');
+
+    console.log('\n── 7. rien ne casse ──');
     v('aucune erreur JavaScript', erreurs, []);
     await ctx.close();
   } catch (e) { console.error('✗ la sonde est morte : ' + (e && e.stack || e)); process.exitCode = 1; }

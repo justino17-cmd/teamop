@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'c7029871af01';
+  const OPMSG_BUILD = '72d29b9a94f7';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 209;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1266,7 +1266,13 @@
     const id = cible || etat.conv; if (!id) return false;
     if (id === etat.conv) etat.forcerBas = true;
     try { await source.envoyer(id, brouillon); return true; }
-    catch (e) { etat.forcerBas = false; avis(e && e.dit ? phrase(e) : (MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.')); return false; }   // ⛔ un refus du service se dit avec SA phrase (« réessaie dans 40 s ») : seule une erreur de l'aperçu garde les trois phrases d'avant
+    catch (e) {
+      etat.forcerBas = false;
+      /* ⛔ « introuvable » À L'ENVOI ne dit ni suppression ni « tu n'y es plus » : la conversation peut très bien exister, et c'est justement ce qu'un blocage SILENCIEUX (voulu) ne doit pas révéler.
+         Ni accusation fausse, ni invitation à insister : le message n'est pas parti, c'est tout. */
+      avis(e && e.code === 'introuvable' ? 'Ce message n\'a pas pu être remis.' : e && e.dit ? phrase(e) : (MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.'));
+      return false;
+    }   // ⛔ un refus du service se dit avec SA phrase (« réessaie dans 40 s ») : seule une erreur de l'aperçu garde les trois phrases d'avant
   }
   /* ── CONFIRMER L'ENVOI (côté pro, 7 octobre 2026 : « confirmer l'envoi de votre message pour éviter les envois par erreur ») ──
      Le réglage du compte (Profil) : « Jamais », « Groupes et canaux » (là où une erreur se lit à plusieurs), « Partout ». Il ne vaut que pour un compte pro, et que pour le TEXTE
@@ -4057,6 +4063,7 @@
     if (typeof source.enCommun !== 'function') return '';
     const e = commun.cache.get(p.id), d = e && e.d;
     if (!d) {
+      if (e && e.absent) return '';
       if (e && e.panne) return '<div class="rubrique"><span>En commun</span></div><div class="carte"><p class="fc-note" role="alert">' + esc(e.panne) + '</p>' +
         '<button type="button" class="fc-ligne fc-agir presse" data-fiche="relire" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-agenda') + '</span><span class="fc-texte"><span class="fc-titre">Réessayer</span></span></button></div>';
       const sq = '<div class="fc-squelette" aria-hidden="true"><i></i><span><b></b><b></b></span></div>';
@@ -4089,11 +4096,16 @@
   async function chargerCommun(uid, force) {
     if (typeof source.enCommun !== 'function' || !uid) return;
     const e = commun.cache.get(uid);
-    if (!force && e && e.d && Date.now() - e.t < 60000) return;
+    if (!force && e && (e.d || e.absent) && Date.now() - e.t < 60000) return;
     if (commun.enCours.has(uid)) return commun.enCours.get(uid);
     const lecture = (async () => {
       try { commun.cache.set(uid, { t: Date.now(), d: await source.enCommun(uid) }); }
-      catch (er) { if (!(e && e.d)) commun.cache.set(uid, { t: 0, d: null, panne: phrase(er, 'Ce que vous avez en commun n\'a pas pu être lu.') }); }
+      catch (er) {
+        /* ⛔ « introuvable » : la personne n'est plus visible (compte supprimé, ou un blocage SILENCIEUX — voulu, il ne doit rien révéler). Ni « En commun » en erreur, ni « Réessayer » qui ne peut jamais marcher :
+           la fiche ne montre rien de plus, et la lecture n'est pas refaite à chaque affichage (une minute de calme). Une vraie panne (réseau, 5xx) garde son message et son bouton. */
+        if (er && er.code === 'introuvable') commun.cache.set(uid, { t: Date.now(), d: null, absent: true });
+        else if (!(e && e.d)) commun.cache.set(uid, { t: 0, d: null, panne: phrase(er, 'Ce que vous avez en commun n\'a pas pu être lu.') });
+      }
       finally { commun.enCours.delete(uid); }
       peindreCommun(uid);
     })();
@@ -4172,7 +4184,7 @@
         try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
         if (etat.groupe.ouvert && etat.groupe.mode === 'personne') rendrePersonne();
       }
-    } catch (er) { mot(phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }
+    } catch (er) { mot(act === 'ecrire' && er && er.code === 'introuvable' ? 'Cette conversation n\'a pas pu s\'ouvrir.' : phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }      // ⛔ pas « supprimée ou tu n'y es plus » : un blocage silencieux ne se révèle pas
   });
   function vcRendreFocus(corps, cleFocus) {
     if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
