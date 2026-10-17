@@ -142,7 +142,8 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     v('⛔ console OP MESSAGES : le patron, Mona et Dora ; Gaston à part', [gM['Accès ouverts'], gM['Sans accès à la Tour OP MESSAGES']], [['Patron', 'Mona', 'Dora'], ['Gaston']]);
     vrai('le formulaire coche la console ouverte, pas l\'autre', /id="eq-app-messages" checked/.test(TM.run('vueEquipe()')) && !/id="eq-app-gestion" checked/.test(TM.run('vueEquipe()')) && /id="eq-app-gestion" checked/.test(TG.run('vueEquipe()')));
     vrai('⛔ plus de « (en travaux) » à côté d\'OP MESSAGES', !/en travaux/.test(TM.run('vueEquipe()')));
-    vrai('la note du collaborateur décrit SA console : dans OP MESSAGES, pas d\'Abonnements ni de Courrier', !/Abonnements|Courrier/.test(TM.run('eqNoteCollaborateur()')) && /Courrier/.test(TG.run('eqNoteCollaborateur()')));
+    /* v2.88 : OP MESSAGES a SES Comptes et SES Abonnements (lus sur son serveur) ; le Courrier et les Demandes restent à OP GESTION */
+    vrai('la note du collaborateur décrit SA console : dans OP MESSAGES, ses Comptes, pas de Courrier ni de Demandes', !/Courrier|Demandes/.test(TM.run('eqNoteCollaborateur()')) && /Comptes/.test(TM.run('eqNoteCollaborateur()')) && /Courrier/.test(TG.run('eqNoteCollaborateur()')));
 
     console.log('\n── 979 · 6. Entreprises ──');
     /* une erreur d'OP GESTION et deux d'OP MESSAGES, chez la même entreprise */

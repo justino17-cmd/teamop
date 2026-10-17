@@ -55,7 +55,8 @@ console.log('\n2. Le choix, joué avec les vraies fonctions');
 const MENU = bloc('var MENU=[', '];');
 vrai('le menu est trouvé (population)', MENU.length > 300, MENU.length);
 /* v2.87 : VUE_ALIAS — une barre rangée avant le ménage traduit « devisia » et « connexions » */
-const JEU = [MENU, ligne('var PATRON_SEUL='), ligne('var VUE_ALIAS='), fonction('vuePermise'), fonction('menuVisible'), ligne('var BAS_DEFAUT='), ligne('var BAS_MAX='), ligne('var BAS=BAS_DEFAUT'),
+/* v2.88 : les vues RATTACHÉES (Équipe sous Accès, Sauvegardes sous Système) et leur tête — GROUPE_LIB, PARENT_DE */
+const JEU = [MENU, ligne('var GROUPE_LIB='), ligne('var PARENT_DE='), ligne('function tabMenu('), fonction('groupeDe'), ligne('var PATRON_SEUL='), ligne('var VUE_ALIAS='), fonction('vuePermise'), fonction('menuVisible'), ligne('var BAS_DEFAUT='), ligne('var BAS_MAX='), ligne('var BAS=BAS_DEFAUT'),
   bloc('var BAS_LIB={', '};'), fonction('barreDispo'), fonction('barreDe'), ligne('var _barreRepli='), fonction('barreLire'),
   ligne('var _barreBrouillon='), fonction('barreBascule'), fonction('barreCompteTxt'), fonction('barreRepeindre'),
   fonction('barreDefaut'), fonction('barreValider')].join('\n');
@@ -79,17 +80,18 @@ function bac(role, app) {
   v('par défaut (collaborateur) : le Courrier à la place d’Accès', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   const m = bac('patron', 'messages');
   v('par défaut (console MESSAGES) : Accès y existe depuis la v2.81 (la bêta d’OP MESSAGES a ses accès) : la barre est celle de GESTION', m.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'essais']);
-  v('la liste des vues suit le menu visible (patron, GESTION : 10 vues — v2.87 : Demandes entre, Connexions et Devis IA deviennent des onglets)', p.ctx.barreDispo().length, 10);
+  v('la liste des vues suit le menu visible (patron, GESTION : 8 vues — v2.87 : Demandes entre, Connexions et Devis IA deviennent des onglets ; v2.88 : Équipe et Sauvegardes rattachées)', p.ctx.barreDispo().length, 8);
   v('…(collaborateur : ni Accès, ni Équipe, ni Journal, ni Sauvegardes — ce que le serveur lui refuse)', c.ctx.barreDispo().map(o => o.t).filter(t => ['essais', 'equipe', 'journal', 'donnees'].includes(t)), []);
 }
 {
   const p = bac('patron', 'gestion');
   const lire = x => { p.rangement.set('tour_barre_gestion', x); return p.ctx.barreLire(); };
-  v('un choix de deux vues se complète par la barre d’origine', lire('journal,equipe'), ['journal', 'equipe', 'accueil', 'surveillance']);
-  v('l’ordre choisi est respecté', lire('entreprises,accueil,journal,donnees'), ['entreprises', 'accueil', 'journal', 'donnees']);
-  v('un doublon ne prend pas deux places', lire('journal,journal,equipe'), ['journal', 'equipe', 'accueil', 'surveillance']);
+  /* v2.88 : une vue RATTACHÉE (Équipe, Sauvegardes) rangée dans une barre d'avant y devient sa tête (Accès, Système/Journal) */
+  v('un choix de deux vues se complète par la barre d’origine (Équipe d’avant devient Accès)', lire('journal,equipe'), ['journal', 'essais', 'accueil', 'surveillance']);
+  v('l’ordre choisi est respecté (Sauvegardes d’avant rejoint Système, déjà là : une place se libère)', lire('entreprises,accueil,journal,donnees'), ['entreprises', 'accueil', 'journal', 'surveillance']);
+  v('un doublon ne prend pas deux places', lire('journal,journal,equipe'), ['journal', 'essais', 'accueil', 'surveillance']);
   v('une vue inconnue ou des blancs sont ignorés', lire(' , journal , inconnue ,'), ['journal', 'accueil', 'surveillance', 'entreprises']);
-  v('au-delà de quatre, les quatre premières valides', lire('journal,equipe,donnees,demandes,abonnements'), ['journal', 'equipe', 'donnees', 'demandes']);
+  v('au-delà de quatre, les quatre premières valides', lire('journal,equipe,donnees,demandes,abonnements'), ['journal', 'essais', 'demandes', 'abonnements']);
   /* v2.87 : une barre rangée avant le ménage (Devis IA et Connexions sont devenus des onglets) garde sa place */
   v('« devisia » d’une barre d’avant devient Abonnements, « connexions » Entreprises', lire('devisia,connexions,journal'), ['abonnements', 'entreprises', 'journal', 'accueil']);
   const m = bac('patron', 'messages'); m.rangement.set('tour_barre_gestion', 'journal,equipe');
@@ -97,7 +99,8 @@ function bac(role, app) {
   const c = bac('collaborateur', 'gestion'); c.rangement.set('tour_barre_gestion', 'essais,equipe,journal');
   v('⛔ une vue que le compte ne voit pas n’entre jamais dans sa barre, même « choisie »', c.ctx.barreLire(), ['accueil', 'surveillance', 'entreprises', 'support']);
   const mv = bac('patron', 'messages'); mv.rangement.set('tour_barre_messages', 'devisia,abonnements,journal');
-  v('…ni une vue d’une AUTRE console (Devis IA n’existe pas dans MESSAGES)', mv.ctx.barreLire(), ['journal', 'accueil', 'surveillance', 'entreprises']);
+  /* v2.88 : OP MESSAGES a SES Abonnements (lus sur son serveur) — « devisia », lui, reste un écran d'OP GESTION */
+  v('…ni une vue d’une AUTRE console (Devis IA n’existe pas dans MESSAGES)', mv.ctx.barreLire(), ['abonnements', 'journal', 'accueil', 'surveillance']);
 }
 {
   const p = bac('patron', 'gestion');
@@ -129,10 +132,10 @@ function bac(role, app) {
   /* ⛔ le rangement est PARTAGÉ par toute l'origine teamop.fr, et Safari le borne à 5 Mo */
   const p = bac('patron', 'gestion');
   p.remplir(true);
-  p.ctx._barreBrouillon = ['journal', 'equipe', 'accueil', 'donnees'];
+  p.ctx._barreBrouillon = ['journal', 'essais', 'accueil', 'demandes'];
   let jete = null; try { p.ctx.barreValider(); } catch (e) { jete = e.message; }
   v('rangement plein : Enregistrer ne jette pas', jete, null);
-  v('…la barre change quand même, pour cette visite', p.ctx.barreLire(), ['journal', 'equipe', 'accueil', 'donnees']);
+  v('…la barre change quand même, pour cette visite', p.ctx.barreLire(), ['journal', 'essais', 'accueil', 'demandes']);
   v('…et on dit qu’elle ne sera pas gardée', /appareil est plein/.test(p.journal.toasts.pop() || ''), true);
   p.remplir(false);
   p.ctx._barreBrouillon = ['journal', 'accueil', 'surveillance', 'entreprises'];

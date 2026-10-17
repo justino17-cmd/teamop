@@ -50,7 +50,7 @@ function fonction(nom) {
 const ligne = (debut) => { const i = CODE.indexOf(debut); if (i < 0) return ''; return CODE.slice(i, CODE.indexOf('\n', i)); };
 const bloc = (debut, fin) => { const i = CODE.indexOf(debut); if (i < 0) return ''; const j = CODE.indexOf(fin, i); return j < 0 ? '' : CODE.slice(i, j + fin.length); };
 
-const PIECES = [bloc('var MENU=[', '];'), ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('vuesDe'), ligne('var VUES_PAR_APP='),
+const PIECES = [bloc('var MENU=[', '];'), ligne('var GROUPE_LIB='), ligne('var PARENT_DE='), ligne('function tabMenu('), fonction('groupeDe'), ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('vuesDe'), ligne('var VUES_PAR_APP='),
   fonction('vues'), fonction('menuVisible'), fonction('vueInfo'), bloc('var BAS_LIB={', '};'), fonction('eqNoteCollaborateur'),
   fonction('libsPatronSeul'), fonction('enPhrase'), ligne('function esc(s){')];
 vrai('population : les pièces du menu sont extraites (13 sur 13)', PIECES.every(Boolean), PIECES.map((p, i) => p ? '' : i).join(' '));
@@ -65,26 +65,31 @@ const P = bac('patron', 'gestion');
 const cles = P.MENU.reduce((a, g) => a.concat(g.vues.map(x => x[0])), []);
 v('quatre catégories, rangées par sujet', P.MENU.map(g => g.section), ['Tour', 'Clients', 'Support', 'Administration']);
 v('…et dans chacune, ses vues', P.MENU.map(g => g.vues.map(x => x[0]).join(',')),
-  ['accueil', 'demandes,entreprises,abonnements', 'support,surveillance', 'essais,equipe,journal,donnees']);   // v2.87 (Justin, 17 octobre 2026 : « je range »)
+  ['accueil', 'demandes,comptes,entreprises,abonnements', 'support,surveillance', 'essais,equipe,journal,donnees']);   // v2.87 (Justin, 17 octobre 2026 : « je range ») ; v2.88 : les Comptes d'OP MESSAGES
 v('chaque vue une seule fois', cles.length, new Set(cles).size);
 const rendues = [...fonction('renderVue').matchAll(/TAB==='(\w+)'/g)].map(m => m[1]);
 vrai('population : renderVue dessine des vues', rendues.length >= 10, rendues.length);
 v('le menu et renderVue connaissent les MÊMES vues (aucune orpheline, aucune fantôme)', [...cles].sort(), [...new Set(rendues)].sort());
 v('la liste des vues de GESTION est DÉDUITE du menu, dans son ordre', P.VUES_PAR_APP.gestion,
   cles.filter(k => P.MENU.some(g => g.vues.some(x => x[0] === k && x[2].split(' ').includes('gestion')))));
-v('…celle de MESSAGES aussi — sans le Courrier, qui est celui d’OP GESTION (v2.85)', P.VUES_PAR_APP.messages, ['accueil', 'entreprises', 'surveillance', 'essais', 'equipe', 'journal']);
+/* v2.88 : la console OP MESSAGES lit son serveur — ses Comptes et ses Abonnements ; ni Courrier ni Demandes (ceux d'OP GESTION) */
+v('…celle de MESSAGES aussi — sans le Courrier, qui est celui d’OP GESTION (v2.85)', P.VUES_PAR_APP.messages, ['accueil', 'comptes', 'entreprises', 'abonnements', 'surveillance', 'essais', 'equipe', 'journal']);
+v('⛔ v2.88 : Équipe et Sauvegardes sont RATTACHÉES (à Accès, au Journal) — hors du menu, en onglets de leur tête', P.MENU.reduce((a, g) => a.concat(g.vues.filter(x => x[4]).map(x => x[0] + '→' + x[4])), []), ['equipe→essais', 'donnees→journal']);
 vrai('⛔ plus aucune liste des vues écrite à la main', /var VUES_PAR_APP=\{gestion:vuesDe\('gestion'\),messages:vuesDe\('messages'\)\};/.test(CODE) && !/\nvar VUES=/.test(CODE));
 
 console.log('\n2. Un nom par vue, partout');
 const LIB = {}; P.MENU.forEach(g => g.vues.forEach(x => { LIB[x[0]] = x[1]; }));
-v('les noms du menu', LIB, { accueil: 'Accueil', demandes: 'Demandes', entreprises: 'Entreprises', abonnements: 'Abonnements',
+v('les noms du menu', LIB, { accueil: 'Accueil', demandes: 'Demandes', comptes: 'Comptes', entreprises: 'Entreprises', abonnements: 'Abonnements',
   support: 'Courrier', surveillance: 'Surveillance', essais: 'Accès', equipe: 'Équipe', journal: 'Journal', donnees: 'Sauvegardes' });
 /* v2.87 : un écran double porte ses onglets (sousOnglets) — l'écran d'un onglet se titre du nom de son onglet */
 const ONGLETS = {}; for (const m of fonction('renderVue').matchAll(/sousOnglets\('(\w+)',\[([^\]]*\](?:,\[[^\]]*\])*)\]\)/g)) ONGLETS[m[1]] = [...m[2].matchAll(/\['\w+','([^']+)'\]/g)].map(x => x[1]);
-v('les écrans doubles et leurs onglets', ONGLETS, { entreprises: ['Entreprises', 'Comptes du site', 'Connexions'], abonnements: ['Abonnements', 'Devis IA'] });
+v('les écrans doubles et leurs onglets', ONGLETS, { survmsg: ['Incidents', 'Service'], entreprisesmsg: ['Espaces d’OP MESSAGES', 'Depuis OP GESTION'], entreprises: ['Entreprises', 'Comptes du site', 'Connexions'], abonnements: ['Abonnements', 'Devis IA'] });
 /* le titre de chaque page : toutes les chaînes passées à enTete() dans la fonction qui la dessine */
 const rv = fonction('renderVue');
-const dessin = {}; for (const m of rv.matchAll(/TAB==='(\w+)'\) v\.innerHTML=([^;]+);/g)) dessin[m[1]] = [...m[2].matchAll(/(vue\w+)\(\)/g)].map(x => x[1]);
+/* v2.88 : une vue peut avoir une ligne PAR CONSOLE (`TAB==='abonnements'&&APP==='messages'`) — chacune compte, avec les onglets qu'elle pose */
+const dessin = {}, ongletsDe = {}; for (const m of rv.matchAll(/TAB==='(\w+)'(?:&&APP==='\w+')?\) v\.innerHTML=([^;]+);/g)) {
+  dessin[m[1]] = (dessin[m[1]] || []).concat([...m[2].matchAll(/(vue\w+)\(\)/g)].map(x => x[1]));
+  for (const o of m[2].matchAll(/sousOnglets\('(\w+)'/g)) ongletsDe[m[1]] = (ongletsDe[m[1]] || []).concat(ONGLETS[o[1]] || []); }
 let titres = 0;
 for (const [cle, fns] of Object.entries(dessin)) {
   if (cle === 'accueil') continue;
@@ -95,7 +100,7 @@ for (const [cle, fns] of Object.entries(dessin)) {
     const lits = [...corps.matchAll(/enTete\(([^,]+),/g)].map(m => [...m[1].matchAll(/'([^']*)'/g)].map(x => x[1])).flat()
       .filter(t => t.trim() && !/^\s*·/.test(t));
     titres += lits.length;
-    vrai('« ' + LIB[cle] + ' » : ' + f + ' se titre du nom du menu' + (ONGLETS[cle] ? ' ou de son onglet' : ''), lits.length && lits.every(t => t === LIB[cle] || t.startsWith(LIB[cle] + ' · ') || (ONGLETS[cle] || []).includes(t)), JSON.stringify(lits));
+    vrai('« ' + LIB[cle] + ' » : ' + f + ' se titre du nom du menu' + (ongletsDe[cle] ? ' ou de son onglet' : ''), lits.length && lits.every(t => t === LIB[cle] || t.startsWith(LIB[cle] + ' · ') || (ongletsDe[cle] || []).includes(t)), JSON.stringify(lits));
   }
 }
 vrai('population : les titres de page relevés', titres >= 11, titres);
