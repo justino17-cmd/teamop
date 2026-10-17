@@ -3009,7 +3009,8 @@
            connaît pas encore (le premier message d'une directe) attend la liste relue pour le savoir. */
         const arrivee = (r) => {
           const inv = !!r && r.invitation === 'recue';
-          emettre({ type: 'arrivee', conv: d.conv, invitation: inv, de: inv ? resume(r).nom : nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
+          /* ⛔ `sourdine` : la conversation est en sourdine (« Plus de notification de cette conversation ») — la page reçoit TOUJOURS le message (la liste, le point non lu) mais ne fait pas surgir sa bannière ; une invitation n'est jamais en sourdine (elle n'est pas encore une conversation de moi). La mention, elle, passe la sourdine : c'est l'événement `notification`, pas celui-ci. */
+          emettre({ type: 'arrivee', conv: d.conv, invitation: inv, sourdine: !inv && !!r && Number(r.muet_jusqua) > maintenant(), de: inv ? resume(r).nom : nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
         };
         const r = convsApi.find(x => x.id === d.conv);
         if (r) arrivee(r); else relireListe().then(() => arrivee(convsApi.find(x => x.id === d.conv)), () => arrivee(null));

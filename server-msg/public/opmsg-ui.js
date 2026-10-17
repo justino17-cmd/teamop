@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = 'd22b637f7a87';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 208;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5152,7 +5152,13 @@
   }
   function surArrivee(ev) {
     if (ev.conv === etat.conv && document.visibilityState === 'visible') return;      // la conversation est sous les yeux : le message y paraît, pas de bannière
+    /* ⛔ la discussion de la SALLE où l'on est (la conversation de la réunion) est sous les yeux comme une conversation ouverte : sa bannière tombait sur le titre et « Quitter » de la
+       salle (un toucher à cet endroit ouvrait la conversation et réduisait la salle) — la pastille de « Discussion » dit qu'il y a du neuf */
+    const A = etat.appelUI;
+    if (enSalle(A) && A.snap.conv === ev.conv && document.visibilityState === 'visible') return;
     if (arriveeRetenue(ev)) return;
+    /* ⛔ une conversation EN SOURDINE reçoit son message (la liste, le point non lu) mais ne fait pas surgir sa bannière — le service ne fait rien sonner non plus. Une mention passe la sourdine : c'est l'événement `notification`. */
+    if (ev.sourdine) return;
     if (ev.invitation) { notifier('Invitation · ' + ev.de, 'Quelqu\'un qui n\'est pas dans tes contacts souhaite t\'écrire. Touche pour voir tes invitations.', 'invitations'); return; }
     notifier(prefixeCote(ev.conv) + (ev.groupe && ev.convNom ? ev.de + ' · ' + ev.convNom : ev.de), ev.texte || 'Nouveau message', /^c_[0-9a-f]{32}$/.test(String(ev.conv || '')) ? 'conv:' + ev.conv : '');
   }
