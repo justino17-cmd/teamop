@@ -66,7 +66,7 @@ const attendu = () => new Promise(r => setImmediate(r));
         };
         vm.createContext(ctx);
         vm.runInContext([morceaux.reglagesRelire, morceaux.actionNotif, 'this.F = { reglagesRelire, actionNotif };'].join('\n'), ctx, { timeout: 3000 });
-        return { F: ctx.F, S, notes, reg: ctx.reg };
+        return { F: ctx.F, S, notes, reg: ctx.reg, sourceRef: ctx.source };
       }
       { const x = bac(); await x.F.reglagesRelire();
         v('⛔ l\'autre appareil a réglé : la confidentialité (présence coupée) et les notifications (heures 6 h 30) sont RELUES et repeintes', [x.reg.conf.presence, x.reg.notif.heuresPro, x.notes.conf, x.notes.notif], [false, HP, 1, 1]);
@@ -78,6 +78,17 @@ const attendu = () => new Promise(r => setImmediate(r));
         v('⛔ pendant un geste d\'ICI (il dit son propre verdict) : la relecture ne le recouvre pas', [x.reg.conf.presence, x.reg.notif.heuresPro, x.notes.conf, x.notes.notif], [true, null, 0, 0]); }
       { const x = bac(); const p = x.F.reglagesRelire(); x.reg.conf = null; x.reg.notif = null; await p;
         v('⛔ l\'écran des réglages refait pendant la lecture (rendreReglages remet l\'état à zéro) : la relecture arrive trop tard et ne repose rien', [x.reg.conf, x.reg.notif, x.notes.conf, x.notes.notif], [null, null, 0, 0]); }
+      { const x = bac(); const attente = [];
+        x.reg.conf = { trouvable: 'tous', presence: true, accuses: true, position: false };
+        const lecture = () => new Promise(res => attente.push(res));
+        x.reg.notif = null;
+        // deux relectures qui se croisent : la PLUS RÉCENTE (présence coupée) répond d'abord, la plus ancienne (présence encore allumée, accusés coupés) répond après
+        const src = { confidentialite: lecture };
+        Object.assign(x.sourceRef, src);
+        const p1 = x.F.reglagesRelire(), p2 = x.F.reglagesRelire();
+        attente[1]({ trouvable: 'tous', presence: false, accuses: true, position: false }); await p2;
+        attente[0]({ trouvable: 'tous', presence: true, accuses: false, position: false }); await p1;
+        v('⛔ deux relectures qui se croisent : la plus ANCIENNE, arrivée après, ne remplace pas la plus récente', [x.reg.conf.presence, x.reg.conf.accuses, x.notes.conf], [false, true, 1]); }
       { const x = bac({ refus: true }); await x.F.reglagesRelire();
         v('⛔ une relecture REFUSÉE (hors ligne) ne vide ni ne change rien : l\'écran garde ce qu\'il savait', [x.reg.conf.presence, x.reg.notif.heuresPro, x.notes.conf, x.notes.notif], [true, null, 0, 0]); }
       { const x = bac(); x.reg.conf = null; x.reg.notif = null; await x.F.reglagesRelire();
