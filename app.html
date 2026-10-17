@@ -32066,7 +32066,10 @@ function bonValider(id){ const form=$('bonform'); if(!form) return; const f=Obje
   bonsFilter=(f.statut==='prete')?'prets':bonsFilter;   // → direction l'onglet Prêts à envoyer
   if(current==='bons') views.bons(); else go('bons');
   const multiF=fourKeys.filter(k=>k).length>1, multiS=sites.length>1;
-  toast('✅ '+madeIds.length+' bon(s) prêt(s) à envoyer'+(multiF?' — un par fournisseur':'')+(multiS?' · un par site':''));
+  /* i02 (r3#14) : le message dit l'état RÉELLEMENT posé (`statut:f.statut`) — « prêt(s) à envoyer » pour un brouillon annonçait autre
+     chose que ce qui était écrit (la demande restait « En préparation »). */
+  const etat=f.statut==='prete'?'prêt(s) à envoyer':f.statut==='brouillon'?'gardé(s) en préparation':'enregistré(s)';
+  toast('✅ '+madeIds.length+' bon(s) '+etat+(multiF?' — un par fournisseur':'')+(multiS?' · un par site':''));
 }
 /* ✂️ Sépare un bon existant par fournisseur (si sa liste mélange plusieurs fournisseurs) — retourne le nb de bons créés en plus */
 function bonSeparer(id){ const b=db.bons.find(x=>x.id===id); if(!b) return 0;
