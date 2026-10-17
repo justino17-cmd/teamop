@@ -2291,6 +2291,16 @@ manifeste de l'app). La pastille verte « OP » de la Tour n'est qu'un repère d
   même fichier, `p[:d] + neuf + p[fin:]` a supprimé un bloc `const cibles` qui vivait ENTRE les
   deux ancres, et le `replace` censé le réécrire n'a plus rien trouvé. On vérifie donc ce que la
   tranche contient (`assert 'const cibles' in p[d:fin]`) avant de la remplacer.
+- ⛔⛔ **UN AGENT DE WORKFLOW EN `isolation: 'worktree'` PART DE `origin/main`, PAS DE LA BRANCHE DE TRAVAIL.** Campagne de test
+  du 16-17 octobre 2026 : deux vagues de correcteurs d'OP GESTION et vingt et un lots d'OP MESSAGES ont écrit sur l'ancien `main`
+  (`ecc9de23`), justes chacun et en partie à côté de ce que la branche avait déjà. Seul le re-test sur le code FUSIONNÉ l'a montré.
+  La consigne d'un correcteur commence donc par `git checkout -b fix/<lot> <branche de travail>`, et il vérifie sa base avant
+  d'écrire. Et l'on re-teste toujours le code fusionné, jamais la branche d'un lot.
+- ⛔⛔ **DEUX LOTS FUSIONNÉS SANS UN CONFLIT PEUVENT DÉCLARER DEUX FOIS LE MÊME NOM — ET LA PAGE ENTIÈRE MEURT.** Même campagne :
+  `phraseNonAjoutes` et `motRetire` déclarés chacun par deux lots dans la même portée du script d'OP MESSAGES. Git a fusionné sans
+  rien dire (les lignes étaient loin l'une de l'autre) ; au chargement, SyntaxError, page blanche. Aucun banc ne l'a vu : chacun
+  compile SA tranche, et `verifier-syntaxe.js` ne lit que les pages de la racine. `tests/test-2610.js` compile la page source et ce
+  que le service sert. Après toute fusion de lots écrits en parallèle : compiler la page ENTIÈRE.
 - **Une commande qui dépasse son délai et bascule en arrière-plan reçoit un NOUVEL
   identifiant.** Sa sortie va dans le nouveau fichier ; l'ancien reste figé sur une capture
   partielle. Surveiller l'ancien, c'est attendre pour toujours.
