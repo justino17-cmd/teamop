@@ -30291,7 +30291,7 @@ views.boiteMail=function(){
              quand on a fini de lire, et pas au milieu de la liste des boîtes. Les deux boutons
              portent un vrai libellé — un bouton réduit à une icône se rend vide quand l'icône
              manque, ce qui donnait un rectangle gris sans rien dedans. -->
-        <div style="flex:0 0 auto;border-top:1px solid var(--brd);margin:10px -10px 0;padding:10px 12px 2px;display:grid;gap:6px">
+        <div id="mail-side-pied" style="flex:0 0 auto;border-top:1px solid var(--brd);margin:10px 0 0;padding:10px 0 2px;display:grid;grid-template-columns:minmax(0,1fr);gap:6px">
           <button class="btn ghost sm" style="width:100%;justify-content:center" onclick="mailBoxesManage()">Gérer mes boîtes</button>
           <button class="btn ghost sm" style="width:100%;justify-content:center" onclick="mailConnect()">＋ Connecter une boîte</button>
         </div>`:''}
