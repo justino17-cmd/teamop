@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a16e5d92b71f';
+  const OPMSG_BUILD = '41485e1d0ad0';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 235;
+  const OPMSG_VERSION = 239;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -153,11 +153,25 @@
     return a === b ? h : h + (a < b ? ' (été)' : ' (hiver)');
   };
   const plageHeures = (debut, fin) => heureSaison(debut, fin) + ' – ' + heureSaison(fin, debut);
+  /* ⛔ (q01) UNE RÉUNION DE PLUSIEURS JOURS DIT OÙ ELLE FINIT. Du vendredi 09:00 au lundi 09:00, `plageHeures` écrit « 09:00 – 09:00 » — une durée nulle à la lecture — et, depuis que le suffixe de saison ne
+     s'écrit plus que le même jour (p04), plus rien ne disait que la fin est un autre jour. Quand la fin tombe un autre jour que le début ET que l'heure seule ne suffit pas à le comprendre, la plage dit le jour de fin
+     (« 09:00 – lun. 26 oct. 09:00 ») ; sinon c'est `plageHeures` telle quelle (le dimanche du changement d'heure y garde sa saison). La rangée empilée de l'Agenda, elle, a une forme courte (« 26/10 »).
+     ⛔ « L'heure seule ne suffit pas » (`jourFinDit`) : une fin qui passe MINUIT sans dépasser une journée (soirée 23:00 → 01:00, garde de nuit) se lisait sans ambiguïté — c'est l'agenda de tous les jours, il ne
+     bouge pas. Le jour de fin ne s'écrit que si la fin tombe à une heure qui n'est pas plus tôt que le début (« 09:00 » sur « 09:00 »), ou après 24 h ou plus (« 23:00 » sur « 01:00 » deux jours plus tard).
+     `plageHeures` reste l'HEURE seule : les étiquettes qui ont déjà le jour à côté (menu d'un rendez-vous, chevauchement) la gardent. Le jour se compare par `toDateString`, comme `heureSaison`. */
+  const FMT_JOUR_FIN = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  const FMT_JJMM = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' });
+  const autreJour = (debut, fin) => new Date(debut).toDateString() !== new Date(fin).toDateString();
+  const minutesDuJour = t => { const d = new Date(t); return d.getHours() * 60 + d.getMinutes(); };
+  const jourFinDit = (debut, fin) => autreJour(debut, fin) && !(fin - debut < 86400000 && minutesDuJour(fin) < minutesDuJour(debut));
+  /* la FIN telle qu'on la lit : précédée de son jour quand `jourFinDit` — la rangée d'un événement la lit aussi à voix haute (`ligneEvenement`), pour que le nom du bouton dise ce que l'écran écrit */
+  const finLue = (debut, fin) => (jourFinDit(debut, fin) ? FMT_JOUR_FIN.format(fin) + ' ' : '') + heureSaison(fin, debut);
+  const plageLongue = (debut, fin) => jourFinDit(debut, fin) ? heureSaison(debut, fin) + ' – ' + finLue(debut, fin) : plageHeures(debut, fin);
   /* la même vérité sur les rangées de l'Agenda où début et fin sont EMPILÉS (`.reunion-heure`) : on y lisait « 02:30 » sur « 02:30 » le dimanche du changement d'heure, alors que l'étiquette lue à voix haute disait déjà la saison.
      La colonne s'élargit (classe `saison`) seulement quand une saison s'écrit ; `premier` remplace la première ligne (« Suite » d'un événement qui vient de la veille). */
   const heureEmpilee = (debut, fin, premier) => {
-    const a = heureSaison(debut, fin), b = heureSaison(fin, debut);
-    return '<span class="reunion-heure' + (a !== FMT_HEURE.format(debut) || b !== FMT_HEURE.format(fin) ? ' saison' : '') + '">' + esc(premier || a) + '<small>' + esc(b) + '</small></span>';
+    const a = heureSaison(debut, fin), b = heureSaison(fin, debut), jours = jourFinDit(debut, fin);
+    return '<span class="reunion-heure' + (jours ? ' jours' : a !== FMT_HEURE.format(debut) || b !== FMT_HEURE.format(fin) ? ' saison' : '') + '">' + esc(premier || a) + '<small>' + esc((jours ? FMT_JJMM.format(fin) + ' ' : '') + b) + '</small></span>';
   };
   const FMT_JOUR = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
   const FMT_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
@@ -4370,7 +4384,7 @@
       '</div>';
   }
   /* la réunion à venir d'une fiche contact : le jour, puis la plage (qui dit sa saison le dimanche du changement d'heure) */
-  const quandFiche = o => FMT_JOUR_FICHE.format(o.debut) + ' · ' + plageHeures(o.debut, o.fin);
+  const quandFiche = o => FMT_JOUR_FICHE.format(o.debut) + ' · ' + plageLongue(o.debut, o.fin);
   function ficheCommun(p) {
     if (typeof source.enCommun !== 'function') return '';
     const e = commun.cache.get(p.id), d = e && e.d;
@@ -5749,7 +5763,7 @@
   }
   /* l'horaire d'une occurrence : « 14:00 – 15:00 », et, si le fuseau de la réunion donne une autre heure que l'appareil, « (14:00 – 15:00 à Paris) » */
   function libelleHoraire(r, o) {
-    const h = plageHeures(o.debut, o.fin), la = heureDans(o.debut, r.tz), lb = heureDans(o.fin, r.tz);
+    const h = plageLongue(o.debut, o.fin), la = heureDans(o.debut, r.tz), lb = heureDans(o.fin, r.tz);
     const autre = !!la && la !== FMT_HEURE.format(o.debut);
     return { h, note: autre ? la + ' – ' + lb + ' à ' + villeDe(r.tz) : '', hz: autre ? la + ' – ' + lb : '', ville: autre ? villeDe(r.tz) : '' };
   }
@@ -5864,7 +5878,7 @@
     /* ⛔ COCHER UN RAPPEL (8 octobre 2026 : « cocher un rappel fait » — la seule façon de s'en défaire était de le supprimer) : au tableau de bord, un rond devant la ligne, comme dans
        Rappels d'Apple ; fait, il quitte le tableau et reste dans l'agenda, barré. Le rond est un bouton à part : la ligne, elle, ouvre la fiche. */
     const rond = coche ? '<button type="button" class="evt-coche presse" data-evt-fait="' + esc(e.id) + '" aria-pressed="' + (e.fait ? 'true' : 'false') + '" aria-label="' + esc((e.fait ? 'Remettre « ' : 'Marquer « ') + e.titre + (e.fait ? ' » à faire' : ' » comme fait')) + '"><span class="evt-rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : '';
-    return '<li' + (coche ? ' class="evt-li"' : '') + '>' + rond + '<button type="button" class="reunion-ligne evenement-ligne presse' + (e.fait ? ' fait' : '') + '" data-evenement="' + esc(e.id) + '" aria-label="' + esc((e.fait ? 'Fait : ' : '') + e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + heureSaison(e.debut, e.fin) + ' à ') + heureSaison(e.fin, e.debut)) + (sous ? ', ' + sous : '')) + '">' + heure +
+    return '<li' + (coche ? ' class="evt-li"' : '') + '>' + rond + '<button type="button" class="reunion-ligne evenement-ligne presse' + (e.fait ? ' fait' : '') + '" data-evenement="' + esc(e.id) + '" aria-label="' + esc((e.fait ? 'Fait : ' : '') + e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + heureSaison(e.debut, e.fin) + ' à ') + finLue(e.debut, e.fin)) + (sous ? ', ' + sous : '')) + '">' + heure +
       '<span class="reunion-corps"><span class="reunion-titre">' + (e.fait ? '<span class="fait-vert" aria-hidden="true">' + icone('i-coche') + '</span>' : '') + esc(e.titre) + '</span>' + (sous ? '<span class="reunion-sous">' + esc(sous) + '</span>' : '') + '</span></button></li>';
   }
   function libelleEtat(r) {
@@ -5922,7 +5936,7 @@
     const corps = (journee ? '' : '<time>' + esc(FMT_HEURE.format(x.o.debut)) + '</time>') + esc(titre);
     if (termine) return '<span class="' + cls + '" aria-hidden="true">' + corps + '</span>';         // une séance finie ne s'ouvre plus (comme dans la liste du jour) : la case la dit
     const etatTxt = x.r ? libelleEtat(x.r) : x.e.fait ? 'Fait' : '';
-    const lab = titre + ', ' + (journee ? 'toute la journée' : plageHeures(x.o.debut, x.o.fin)) + (etatTxt ? ', ' + etatTxt : '');
+    const lab = titre + ', ' + (journee ? 'toute la journée' : plageLongue(x.o.debut, x.o.fin)) + (etatTxt ? ', ' + etatTxt : '');
     return '<button type="button" class="' + cls + (peutDecaler(x) ? ' bouge' : '') + ' presse" data-ag="' + (x.e ? 'e' : 'r') + '" data-id="' + esc(x.e ? x.e.id : x.r.id) + '" data-debut="' + (+(x.e ? x.e.debut : x.o.debut) || 0) + '" aria-label="' + esc(lab) + '">' + corps + '</button>';
   }
   function caseJour(t, auj, max, semaine) {
