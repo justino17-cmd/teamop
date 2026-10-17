@@ -22,15 +22,15 @@ function bloc(debut) {
   for (let k = j; k < SRC.length; k++) { const c = SRC[k]; if (c === '{') p++; else if (c === '}') { p--; if (p === 0) return SRC.slice(i, k + 1); } }
   return ''; }
 const iL = SRC.indexOf('const _PDF_L=['), PDFL = iL < 0 ? '' : SRC.slice(iL, SRC.indexOf("].map(l=>l.split(' ').map(Number));", iL) + 36);
-const TR = bloc('function _pdfTranslit(s){'), TX = bloc('function _pdfTxt(s){'), LG = bloc('function _pdfLarg(txt,sz,gras){'), BP = bloc('function bonPdfStr(b){');
+const TR = bloc('function _pdfTranslit(s){'), TX = bloc('function _pdfTxt(s){'), LG = bloc('function _pdfLarg(txt,sz,gras){'), RP = bloc('function _pdfReplier(s,sz,gras,maxW){'), BP = bloc('function bonPdfStr(b){');
 
 console.log('\n── 1232 · 0. la population ──');
-v('les fonctions du bac à sable sont trouvées', [PDFL.length > 500, TR.length > 300, TX.length > 300, LG.length > 200, BP.length > 3000], [true, true, true, true, true]);
+v('les fonctions du bac à sable sont trouvées', [PDFL.length > 500, TR.length > 300, TX.length > 300, LG.length > 200, RP.length > 300, BP.length > 3000], [true, true, true, true, true, true]);
 v('⛔ une seule définition de bonPdfStr (une seconde gagnerait partout, en silence)', SRC.split('function bonPdfStr(').length - 1, 1);
 
 const W = { console, Object, JSON, String, Math, Date, Array, Number, Set };
 vm.createContext(W);
-vm.runInContext(`${PDFL}\n${TR}\n${TX}\n${LG}\n${BP}
+vm.runInContext(`${PDFL}\n${TR}\n${TX}\n${LG}\n${RP}\n${BP}
   var db={ fournisseurs:[{ id:'f1', nom:'ARMOSA', email:'commandes@armosa.fr', adresse:'1 rue du Port', codePostal:'17000', ville:'La Rochelle', telephone:'0500000000' }] };
   function bcEntete(){ return 'Nettoyage Excellence'; } function bcCouleur(){ return '#1E7A4E'; } function docCoordLignes(){ return []; } function docEntete(){ return {}; }
   function bonNum(b){ return b.numero||'BC-1'; } function bonQteTxt(){ return '2 ctn'; } function bonQteTotTxt(){ return '2 ctn'; } function todayISO(){ return '2026-10-16'; }`, W);
