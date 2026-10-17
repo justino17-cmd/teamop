@@ -23769,8 +23769,15 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
     save(); closeModal(); toast(nbP+' passages créés'); go(current); return;
   }
   let _saved=null;
-  if(id){ const ix=db.interventions.findIndex(x=>x.id===id); db.interventions[ix]={...db.interventions[ix],...data}; _saved=db.interventions[ix]; intHisto(db.interventions[ix],'Fiche modifiée'); syncFactureFromIntervention(db.interventions[ix]); logEvent('Modif intervention',data.titre,'crud'); }
-  else{ const obj={id:uid(),num:intNum(),compteRendu:'',...data}; _saved=obj; intHisto(obj,'Intervention créée'); db.interventions.push(obj); syncFactureFromIntervention(obj); logEvent('Nouvelle intervention',data.titre,'crud'); notifyTechNewInt(obj); }
+  /* ⛔ LE SELECT « Statut » DU FORMULAIRE EST UNE SIXIÈME PORTE DE CLÔTURE (relecture du 17 octobre 2026) : passer à
+     « Terminée » par ici doit faire ce que font les cinq autres — facture payée, ligne de registre, courriel — et en
+     QUITTER (« Planifiée » / « En cours ») doit rendre la date prévue et retirer la fin réelle (intRepasseNonTerminee). */
+  let _rendu='';
+  if(id){ const ix=db.interventions.findIndex(x=>x.id===id); const _ancien=db.interventions[ix].statut; db.interventions[ix]={...db.interventions[ix],...data}; _saved=db.interventions[ix]; intHisto(db.interventions[ix],'Fiche modifiée');
+    const _st=db.interventions[ix].statut;   // le statut APRÈS fusion : un formulaire sans select « Statut » ne change rien
+    if(_ancien==='terminee'&&_st!=='terminee'&&_st!=='annulee') _rendu=intRepasseNonTerminee(db.interventions[ix],_ancien);
+    syncFactureFromIntervention(db.interventions[ix],{cloture:_st==='terminee'&&_ancien!=='terminee'}); logEvent('Modif intervention',data.titre,'crud'); }
+  else{ const obj={id:uid(),num:intNum(),compteRendu:'',...data}; _saved=obj; intHisto(obj,'Intervention créée'); db.interventions.push(obj); syncFactureFromIntervention(obj,{cloture:obj.statut==='terminee'}); logEvent('Nouvelle intervention',data.titre,'crud'); notifyTechNewInt(obj); }
   // Traçabilité de l'obligation de travailler (journal du planning P9)
   if(_forceAbs && _saved){ intHisto(_saved,'⚠️ Obligation de travailler appliquée ('+techName(data.techId)+' absent le '+fmtShort(data.date)+')'); _saved._oblig=true; planStamp(_saved,null); delete _saved._oblig; }
   // Journal du planning : toute création datée est tracée (y compris depuis une case vide du planning)
@@ -23782,7 +23789,7 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
   const cf=intConflictOf(data,id);
   if(cf) autoMsg='Chevauchement : '+techName(data.techId)+' a déjà « '+(cf.titre||'')+' » à '+(cf.heure||'')+' ce jour-là';
   if(_forceAbs) autoMsg='⚠️ Obligation de travailler appliquée — '+techName(data.techId)+' est en absence le '+fmtShort(data.date);
-  save(); closeModal(); toast(autoMsg || (id?'Mise à jour':'Intervention créée')); go(current);
+  save(); closeModal(); toast(autoMsg || (id?'Mise à jour':'Intervention créée')+(_rendu?' · 📅 remise au '+fmtShort(_saved.date):'')); go(current);
 }
 let intTab='general', intBackView='interventions', infTab='plan', fsTab='medias', _effTick=null, intEdit=false;
 /* Ouvrir une fiche est une décision : elle entre par la droite. Le mouvement est ici, au
@@ -25344,9 +25351,13 @@ function saveRapport(e,id){ e.preventDefault(); if(!intStatutPermis(db.intervent
   data.montant = (data.montant!==undefined && data.montant!=='') ? (parseFloat(String(data.montant).replace(',','.'))||0) : (it.montant||0);
   data.tpePhoto = rapTpe||'';
   const effectuee=f.effectuee&&f.effectuee.checked;
+  const ancienStatut=it.statut;
   data.statut = effectuee ? 'terminee' : (it.statut==='terminee'?'encours':(it.statut||'planifiee'));
   if(effectuee){ it.finReel=Date.now(); if(it.debutReel) data.dureeReelle=Math.round((it.finReel-it.debutReel)/60000)||it.duree; }
   db.interventions[ix]={...db.interventions[ix],...data,constat,prestation,traitement,nuisibles,nuisible:nuisibles[0]||'—',traitementNuis,photos:rapPhotos.slice(),signature:sig,signatureTech:sigT,champs:JSON.parse(JSON.stringify(rapChamps))};
+  /* ⛔ décocher « Intervention effectuée » QUITTE « Terminée » comme le fait le menu de statut : la date prévue revient,
+     la fin réelle et la durée réelle partent (relecture du 17 octobre 2026 — une porte oubliée de intRepasseNonTerminee) */
+  const rendu=(!effectuee&&ancienStatut==='terminee')?intRepasseNonTerminee(db.interventions[ix],ancienStatut):'';
   // Niveau d'infestation simplifié (jauge fiche) tenu en cohérence avec le constat
   { const m={'Aucune présence':'faible','Faible':'faible','Moyen':'moyen','Fort':'fort','Critique':'fort'}; if(constat.infestation) db.interventions[ix].infestation=m[constat.infestation]||''; }
   // Étiquettes avant/après : invalidées si la liste de photos a changé hors assistant
@@ -25364,7 +25375,7 @@ function saveRapport(e,id){ e.preventDefault(); if(!intStatutPermis(db.intervent
   intHisto(db.interventions[ix],effectuee?'Rapport rédigé — intervention effectuée':'Rapport enregistré');
   logEvent('Rapport rédigé',db.interventions[ix].titre+(effectuee?' (effectuée)':''),'intervention'); save();
   if(effectuee){ closeModal(); clotureSuiteModal(id,askNext,recurMsg);
-  } else { closeModal(); toast('Rapport enregistré'); go(current); } }
+  } else { closeModal(); toast('Rapport enregistré'+(rendu?' · 📅 remise au '+fmtShort(db.interventions[ix].date):'')); go(current); } }
 
 /* ⛔ LES LIGNES « CONSTAT & PRESTATION » D'UN RAPPORT — UNE SEULE SOURCE (v744). Le rapport
    imprimé et le rapport PDF joint au courriel les lisent ICI : deux copies diraient un jour deux
@@ -35648,7 +35659,24 @@ function syncFactureFromIntervention(i,opts){
     db.factures.unshift(f); logEvent('Facture auto créée',f.num+' ('+computed+')','finance');
   } else if(f.interventionId===i.id||f.interId===i.id){
     /* le prix a changé depuis que la facture en a été tirée (ou facture « réglée sur place » d'avant, déjà juste) */
-    if(f.lignes&&f.lignes[0]&&(f.montantInt!==undefined?f.montantInt!==mnt:!!f.auto)){ f.lignes[0].pu=ht; f.tva=tvaR; f.montantInt=mnt; }
+    const l0=f.lignes&&f.lignes[0];
+    if(l0){
+      if(f.montantInt!==undefined){
+        /* ⛔ `montantInt` vaut 0 sur une facture « Facturer cette intervention » faite SANS prix : ses lignes sont les
+           produits utilisés, la première n'est PAS la prestation — un prix posé ensuite ne doit pas en écraser le prix
+           unitaire (rejoué : pu 10 devenait 41,67 pour une quantité de 2). */
+        if(f.montantInt>0&&f.montantInt!==mnt){ l0.pu=ht; f.tva=tvaR; f.montantInt=mnt; }
+      } else if(f.auto){ l0.pu=ht; f.tva=tvaR; f.montantInt=mnt; }
+      else if(f.statut==='brouillon'&&f.lignes.length===1){
+        /* un brouillon d'AVANT ce correctif, tiré de l'intervention (une seule ligne, pas de `montantInt`) : il suit le
+           prix, sinon il partirait chez le client à l'ancien. Rien ne bouge tant que le prix n'a pas changé : un
+           brouillon dont `pu` vaut le prix (l'ancienne façon, 120 € devenant 144 €) ou son HT est juste tel quel —
+           on y pose seulement `montantInt`, pour qu'il suive la suite. Une facture ÉMISE n'est jamais réécrite. */
+        const pu=Number(l0.pu)||0;
+        if(pu===mnt||pu===ht) f.montantInt=mnt;
+        else { l0.pu=ht; f.tva=tvaR; f.montantInt=mnt; }
+      }
+    }
     f.clientId=i.clientId; if(i.moyenPaiement) f.moyenPaiement=i.moyenPaiement;
     const ord={brouillon:0,envoyee:1,payee:2};
     if((ord[computed]||0)>(ord[f.statut]||0)){ f.statut=computed; if(computed==='payee'){ vientDePayer=true; if(!f.datePaiement) f.datePaiement=todayISO(); } }
@@ -35815,7 +35843,13 @@ function ctrlRouvrir(techId,declarantId,d){
 /* ── LES FACTURES À ÉDITER ──
    Une facture par CLIENT et par jour : deux interventions chez le même
    client le même jour tiennent sur un seul document. Elles arrivent en
-   brouillon dans Ventes › Factures, prêtes à être relues et envoyées. */
+   brouillon dans Ventes › Factures, prêtes à être relues et envoyées.
+   ⛔ MAIS « UNE INTERVENTION, UNE FACTURE » PASSE AVANT (relecture du 17 octobre 2026) : une intervention qui a
+   DÉJÀ sa facture (le brouillon que syncFactureFromIntervention pose dès qu'elle a un prix, ou « Facturer cette
+   intervention ») la garde — on ne fusionne jamais deux documents dont l'un a pu partir chez le client, et avant
+   ce choix le groupe DOUBLAIT la facture au lieu de la regrouper. Le groupe ne se forme donc que pour les
+   interventions qui n'ont pas encore de facture (prix posé hors des écrans de l'intervention, télécollecte) ;
+   les autres sont reprises telles quelles et comptées « à éditer » (facturesAEditer) tant qu'elles sont en brouillon. */
 function factureAFacturer(d,techId,declarantId){
   const toutes=(db.interventions||[]).filter(i=>i.date===d&&techId&&i.techId===techId&&interAFacturer(i));
   if(!toutes.length) return [];
@@ -35857,7 +35891,10 @@ function factureAFacturer(d,techId,declarantId){
   return creees;
 }
 /* combien de factures attendent d'être éditées */
-function facturesAEditer(){ return (db.factures||[]).filter(f=>f.aFacturer&&f.statut==='brouillon'); }
+function facturesAEditer(){
+  /* le groupe du contrôle du jour (aFacturer) OU la facture reprise d'une intervention « à facturer » (i.factureId, posé par factureAFacturer) */
+  const reprises=new Set(); (db.interventions||[]).forEach(i=>{ if(i.aFacturer&&i.factureId) reprises.add(i.factureId); });
+  return (db.factures||[]).filter(f=>f.statut==='brouillon'&&(f.aFacturer||reprises.has(f.id))); }
 
 /* ══ LA FACTURE PAYÉE SUR PLACE PART AU CLIENT ══
    Intervention payée → la facture (créée ou passée « payée » par syncFactureFromIntervention, UN seul chemin)

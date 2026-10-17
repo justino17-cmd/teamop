@@ -25,7 +25,7 @@ const FONCTIONS = ['factureDeIntervention', 'intTvaFacture', 'intMontantHT', 'sy
   'intRegistreEncaisse', 'factureAFacturer', 'interAFacturer', 'regAdd', 'regDeLInter', 'regModeDe', 'docTot', 'intRecaleAuJourFait',
   'intRecaleDefaire', 'intHisto', 'intTechIds', 'intStatutPermis', 'saveRapport', 'assistFinish', 'assistCloture', 'asKeepSigs', 'intSetStatutDo',
   'intEffToggle', 'intTerminerPrevu', 'intGenererDoc', 'intInfOf', 'intEffectuer', 'formRapport', 'intRepasseNonTerminee', 'intInfestationConstat',
-  'interReglee', 'interDejaRegle', 'intMoyenPaiementOptions'];
+  'interReglee', 'interDejaRegle', 'intMoyenPaiementOptions', 'saveIntervention', 'facturesAEditer'];
 const CODE = FONCTIONS.map(fonction).filter(Boolean).join('\n');
 const CONSTS = ['const ligTotLigne=', 'const ligHT=', 'const MOYENS_PAIEMENT =', 'const esc ='].map(ligne).join('\n');
 
@@ -73,6 +73,9 @@ function monde(opts) {
     function produit(id){ return (db.produits||[]).find(p=>p.id===id)||{}; }
     function prodLineUnit(l){ return l.unite||'u'; } function stockConv(q){ return q; }
     function intNum(){ return 'INT-2026-001'; }
+    var document={querySelectorAll:()=>[],getElementById:()=>null}; var ABS_TYPES={};
+    function techForClient(){ return null; } function absentOn(){ return null; } function planStamp(){} function intConflictOf(){ return null; }
+    function keyForClient(){ return ''; } function techForKey(){ return null; } function keyLabel(){ return ''; } function toMin(h){ var a=String(h||'').split(':'); return (+a[0]||0)*60+(+a[1]||0); }
     ${CODE}
   `, ctx);
   ctx.exec = code => vm.runInContext(code, ctx);
