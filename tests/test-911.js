@@ -435,7 +435,7 @@ const json = async (base, methode, chemin, corps, entetes) => {
       await sixieme.src.connexion('eve', 'pw-eve-123456'); await sixieme.src.demarrer();
       const avis = await sixieme.attendreEv(e => e.type === 'avis' && /onglets/i.test(e.texte), 8000);
       vrai('⛔ LE FLUX REFUSÉ SE DIT : le sixième onglet reçoit un avis « Trop d\'onglets ouverts sur ce compte » (EventSource ne montre jamais le 429 : le client le lit)', !!avis);
-      v('et le nom de la personne piégé (« <img … onerror … >Eve ») reste TEXTE, initiales comprises', [sixieme.src.moi().nom, /^</.test(sixieme.src.moi().initiales)], ['<img src=x onerror=alert(1)>Eve', true]);
+      v('et le nom de la personne piégé (« <img … onerror … >Eve ») reste TEXTE, initiales comprises (des lettres, jamais « < » : lot m10)', [sixieme.src.moi().nom, /^\p{L}+$/u.test(sixieme.src.moi().initiales)], ['<img src=x onerror=alert(1)>Eve', true]);
       onglets[0].src.arreter();
       vrai('une place libérée : le sixième flux s\'ouvre tout seul (reprise à la main), sans que la page fasse rien', await sixieme.attendreEv(e => e.type === 'reseau' && e.etat === 'ok', 10000) !== null);
       for (const o of onglets) o.src.arreter(); sixieme.src.arreter();
