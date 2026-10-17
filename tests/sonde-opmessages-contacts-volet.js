@@ -113,7 +113,12 @@ const BUREAU = { w: 1440, h: 900 };
     vrai('⛔ l\'indicateur « En ligne » de Bruno s\'éteint chez Alice SANS rechargement (contacts@6)', await attendre(() => { const l = Array.from(document.querySelectorAll('#vc-corps .contact')).find(x => x.textContent.includes('Bruno Petit')); return !l || !l.querySelector('.avatar.en-ligne'); }, null, 12000));
     await choisir('Bruno Petit');
     vrai('population : la fiche de Bruno est ouverte', await fichePour('Bruno Petit'));
-    vrai('population : la lecture de « En commun » est finie (plus de squelette)', await attendre(() => !document.querySelector('#vc-fiche .fc-squelette'), null, 12000));
+    vrai('population : la lecture de « En commun » est finie (plus de squelette) — elle date d\'avant le blocage : la fiche montre encore ses rubriques', await attendre(() => !document.querySelector('#vc-fiche .fc-squelette') && !!document.querySelector('#vc-fiche .fc-commun .rubrique'), null, 12000));
+    /* un événement d'agenda (Alice programme une réunion à elle seule) vide la mémoire de « En commun » et la fait RELIRE : c'est ce qui arrive en vrai, dans la minute — le service répond alors 404 */
+    const demain = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const prog = await A.post('/api/reunions', { titre: 'Point seul', debut: demain + 'T10:00', fin: demain + 'T11:00', tz: 'Europe/Paris', invites: [], notifier: false });
+    v('(population) Alice programme une réunion (elle seule)', prog.code, 201);
+    vrai('population : la fiche relit « En commun » et le service répond « introuvable » : elle se vide', await attendre(() => { const c = document.querySelector('#vc-fiche .fc-commun'); return !!c && c.children.length === 0; }, null, 12000));
     v('⛔ la fiche ne montre ni « Introuvable… », ni « Réessayer », ni rubrique « En commun » en erreur (contacts#6)', await page.evaluate(() => ({ note: !!document.querySelector('#vc-fiche .fc-note'), reessayer: !!document.querySelector('#vc-fiche [data-fiche="relire"]'), texte: /Introuvable|supprimée|n.y es plus/.test(document.getElementById('vc-fiche').innerText) })), { note: false, reessayer: false, texte: false });
     await page.locator('#vc-fiche [data-fiche="ecrire"]').click();
     vrai('⛔ « Message » depuis la fiche (aucune conversation ouverte) dit « Cette conversation n\'a pas pu s\'ouvrir. », pas « supprimée ou tu n\'y es plus »', await attendre(() => { const m = document.getElementById('mot'); return m.classList.contains('on') && m.textContent === 'Cette conversation n\'a pas pu s\'ouvrir.'; }, null, 12000));

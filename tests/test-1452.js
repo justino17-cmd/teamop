@@ -117,19 +117,22 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
   try {
     const cA = await T.connecter(svc, og, 'ana', 'pw-ana-12345678'), cB = await T.connecter(svc, og, 'ben', 'pw-ben-12345678'), cC = await T.connecter(svc, og, 'cleo', 'pw-cleo-1234567');
     for (const c of [cB, cC]) { const k = await cA.post('/api/contacts/lien', { max: 1 }); await c.post('/api/liens/accepter', { code: k.j.code }); }
+    { const k = await cB.post('/api/contacts/lien', { max: 1 }); await cC.post('/api/liens/accepter', { code: k.j.code }); }       // Cléo est AUSSI le contact de Ben : un événement de présence de Ben qui sortirait par erreur chez elle se verrait
     const nav = T.navigateur(svc.base);
     const monter = () => { const n = T.navigateur(svc.base); const src = creerSourceServeur({ OPMSG, base: svc.base, fetch: n.fetch, EventSource: n.EventSource, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5 }); const x = { src, async entrer(l, p) { await src.connexion(l, p); const d = await src.demarrer(); if (!d.connecte) throw new Error('démarrage refusé'); return src.moi(); } }; ouverts.push(x); return x; };
     const A = monter(), B = monter(), C = monter();
     const ma = await A.entrer('ana', 'pw-ana-12345678'), mb = await B.entrer('ben', 'pw-ben-12345678'); await C.entrer('cleo', 'pw-cleo-1234567');
     void nav; void ma;
-    const evA = [], evC = [];
-    A.src.ecouter(e => evA.push(e)); C.src.ecouter(e => evC.push(e));
+    const evA = [], evB = [], evC = [];
+    A.src.ecouter(e => evA.push(e)); B.src.ecouter(e => evB.push(e)); C.src.ecouter(e => evC.push(e));
     vrai('(population) Ana voit Ben EN LIGNE', await att(async () => { await A.src.rafraichirContacts(); const c = A.src.contacts().find(x => x.id === mb.id); return c && c.enLigne === true; }));
     const conv = (await cA.post('/api/conversations/directe', { uid: mb.id })).j.conversation.id;
+    await cA.post('/api/conversations/' + conv + '/messages', { cid: 'c' + Date.now().toString(36) + 'bb', texte: 'Salut Ben' });          // une conversation vide ne se liste pas : elle a son premier message
     const fiche0 = await cA.get('/api/personnes/' + mb.id + '/commun');
     v('(population) avant le blocage, la fiche de Ben se lit (200)', fiche0.code, 200);
     await A.src.ouvrir(conv);
-    evA.length = 0; evC.length = 0;
+    vrai('(population) Ben voit Ana EN LIGNE, dans ses contacts ET sur la ligne de leur conversation', await att(async () => { await B.src.rafraichirContacts(); const c = B.src.contacts().find(x => x.id === ma.id), l = (await B.src.lister()).find(x => x.id === conv); return c && c.enLigne === true && l && l.enLigne === true; }));
+    evA.length = 0; evB.length = 0; evC.length = 0;
     const r = await cB.post('/api/contacts/bloquer', { uid: ma.id });
     v('Ben bloque Ana', r.code, 200);
     vrai('⛔ Ana apprend, SANS recharger, que Ben n\'est plus visible : l\'indicateur « En ligne » s\'éteint (contacts@6)', await att(() => { const c = A.src.contacts().find(x => x.id === mb.id); return !c || c.enLigne === false; }));
@@ -144,8 +147,9 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
     const e1 = await cA.post('/api/conversations/' + conv + '/messages', { cid: 'c' + Date.now().toString(36) + 'aa', texte: 'Ben ?' });
     v('…l\'envoi aussi', [e1.code, e1.j && e1.j.error], [404, 'introuvable']);
     vrai('⛔ et aucune de ces réponses ne dit « bloqué »', !/bloqu/i.test(JSON.stringify([f1.j, e1.j])));
-    /* le bloqueur : Ben n'a plus la présence d'Ana non plus */
-    vrai('Ben (le bloqueur) ne voit plus Ana en ligne non plus', await att(async () => { await B.src.rafraichirContacts(); const c = B.src.contacts().find(x => x.id === ma.id); return !c || c.enLigne === false; }));
+    /* le bloqueur : Ben n'a plus la présence d'Ana non plus — sur la ligne de leur conversation, SANS relecture (l'événement) */
+    vrai('⛔ Ben (le bloqueur) ne voit plus Ana en ligne non plus : la ligne de leur conversation s\'éteint, sans relecture', await att(async () => { const l = (await B.src.lister()).find(x => x.id === conv); return l && l.enLigne === false; }));
+    vrai('…par l\'événement `presence` du flux', evB.some(e => e.type === 'presence' && e.id === ma.id));
     void flux;
   } finally {
     for (const x of ouverts) { try { x.src.arreter(); } catch (e) { /* déjà arrêté */ } }
