@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e93b93cbe954';
+  const OPMSG_BUILD = 'b9c54e4ea43c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 225;
+  const OPMSG_VERSION = 226;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2924,8 +2924,10 @@
   const dureeAppel = s => { s = Math.max(0, Math.floor(+s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = n => String(n).padStart(2, '0'); return (h ? h + ':' + p(m) : p(m)) + ':' + p(x); };
   const dureeCourte = s => { s = Math.max(0, Math.floor(+s || 0)); if (s < 60) return s + ' s'; const m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
   const SENS_APPEL = { entrant: ' entrant', sortant: ' sortant', manque: ' manqué' };
+  /* ⛔ l'ISSUE d'un appel sortant qui n'a pas abouti passe devant le sens (lot m19, appels@2) : « Appel sortant » d'un appel que l'autre a refusé faisait croire qu'il avait eu lieu */
+  const ISSUE_APPEL = { annule: ' annulé', refuse: ' refusé', manque: ' sans réponse', occupe: ' occupé' };
   function libelleAppel(a) {
-    let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (SENS_APPEL[a.sens] || '');
+    let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (ISSUE_APPEL[a.issue] || SENS_APPEL[a.sens] || '');
     if (a.sens === 'manque' && a.repetitions > 1) t += ' (' + a.repetitions + ')';
     if (a.groupe) t += ' · ' + (a.membres.length + 1) + ' participants';
     if (a.duree > 0) t += ' · ' + dureeCourte(a.duree);
@@ -3316,6 +3318,13 @@
     try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { sonnerieEtat.ctx = new AC(); if (sonnerieEtat.ctx.state === 'suspended') sonnerieEtat.ctx.resume().catch(() => {}); } } catch (e) { sonnerieEtat.ctx = null; }
     sonnerieUneFois(); sonnerieEtat.min = setInterval(sonnerieUneFois, 4500);
   }
+  /* ⛔ UN AVATAR ET UN SEUL STATUT tant que l'autre n'a pas répondu (lot m19, appels#5 et appels@9) : le haut de l'écran dit déjà « Sonnerie… » sous son nom, et la vignette ne le répétait pas seulement —
+     elle le posait en haut à gauche, SOUS l'en-tête (voilée) et sur la 1re ligne d'un nom de deux lignes, et l'étiquette « Vidéo de Ben » annonçait une vidéo qui n'existe pas encore. La pastille « Sonnerie… »
+     ne sert donc que dans la grille d'un appel de groupe (elle y dit QUI sonne encore) ; l'étiquette « Vidéo de … » n'existe que quand l'autre a répondu. Pure, pour que le banc l'exécute. */
+  function htmlTuileAppel(m, mise, medias) {
+    const sonne = m.etat === 'sonne', nom = mise === 'video' ? (sonne ? '' : 'Vidéo de ' + m.prenom) : m.prenom;
+    return (medias ? '<video muted playsinline autoplay aria-hidden="true"></video>' : '') + '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(nom) + '</span>' + (sonne && mise === 'groupe' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+  }
   /* l'écran DIT l'état : la mise en page, le nom, les vignettes (refaites seulement quand ce qui les décide change), les commandes */
   function rendreAppel() {
     const A = etat.appelUI; if (!A || !A.snap) return;
@@ -3339,7 +3348,7 @@
         const t = document.createElement('div');
         t.className = 'tuile av' + (((m.avatar | 0) % 6 + 6) % 6); t.setAttribute('role', 'listitem'); t.dataset.membre = m.id; t.dataset.etat = m.etat;
         if (CAP.appelsMedias) t.dataset.camera = m.camera ? 'on' : 'off';
-        t.innerHTML = (CAP.appelsMedias ? '<video muted playsinline autoplay aria-hidden="true"></video>' : '') + '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(mise === 'video' ? 'Vidéo de ' + m.prenom : m.prenom) + '</span>' + (m.etat === 'sonne' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+        t.innerHTML = htmlTuileAppel(m, mise, CAP.appelsMedias);
         scene.insertBefore(t, vous);
       });
     }
@@ -3381,15 +3390,22 @@
     let snap = null; try { snap = await source.appel(A.id); } catch (e) { snap = null; }
     if (perime(A) || !snap) return;
     const avant = A.snap.etat, etaitEntrant = !!A.snap.entrant; A.snap = snap;
-    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
+    if (snap.etat === 'termine') { if (snap.avis) mot(snap.avis); A.finiParAutre = avant === 'en-cours' && !snap.avis; raccrocherCouche(); return; }       // (version servie) l'appel a fini sans qu'on raccroche : on dit pourquoi — réduit, il n'a plus de couche à fermer (raccrocherCouche le sait)
     if (etaitEntrant && !snap.entrant) arreterSonnerie();
     if (avant === 'sonne' && snap.etat === 'en-cours') annonceAppel('Appel connecté');
     rendreAppel();
+  }
+  /* ⛔ la fin d'un appel QUI A EU LIEU se dit à l'écran (lot m19, appels@3) : le refus, le manqué et l'absence de réponse avaient leur toast, la fin d'un appel normal n'avait qu'une annonce pour
+     lecteur d'écran — l'écran se fermait sans un mot. Pure, pour que le banc l'exécute. Un appel sans durée (annulé, refusé, sans réponse) n'a rien de plus à dire : il a déjà sa phrase, ou n'en veut pas. */
+  function phraseFinAppel(parAutre, prenom, duree) {
+    if (!(duree > 0)) return null;
+    return (parAutre ? (prenom ? prenom + ' a raccroché' : 'L\'autre a raccroché') : 'Appel terminé') + ' · ' + dureeAppel(duree);
   }
   /* ⛔ LA SORTIE UNIQUE : tout chemin qui retire la couche « appel » de la route passe ici, et rien d'autre ne raccroche. Les pistes sont arrêtées d'ABORD, de façon synchrone ;
      la source l'apprend ensuite (terminerAppel crée la ligne d'historique), et l'écran en garde une phrase pour le lecteur d'écran. */
   function quitterAppel() {
     const A = etat.appelUI, id = etat.appelId, cle = etat.declencheurAppel;
+    const parAutre = !!(A && A.finiParAutre), enSalleAvant = !!(A && enSalle(A)), premier = A && A.snap && A.snap.membres && A.snap.membres[0] ? A.snap.membres[0].prenom : '';        // lus AVANT que l'appel soit défait
     etat.jetonAppel++; etat.appelId = null; etat.appelUI = null; etat.declencheurAppel = null; etat.appelReduit = false;
     delete document.documentElement.dataset.appelReduit;
     if (A) { A.fini = true; clearInterval(A.minut); arreterPistes(A); }
@@ -3403,7 +3419,11 @@
     $('appel-ecran').removeAttribute('data-entrant');         // ⛔ l'écran qui se ferme n'est plus « entrant » : le suivant (un appel qu'on lance) ne reprend ni « Répondre » ni « Refuser » d'une sonnerie perdue — l'appel pris sur l'autre appareil (relecture, T4)
     synchroInert();
     requestAnimationFrame(() => { const b = cle && document.querySelector(cle); if (b && !etat.appelId && b.getClientRects().length) b.focus({ preventScroll: true }); });
-    if (id) source.terminerAppel(id).then(rec => annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé'), () => { /* l'appel n'existait plus chez la source */ });
+    if (id) source.terminerAppel(id).then(rec => {
+      annonceAppel(rec.duree > 0 || !CAP.appelsMedias ? 'Appel terminé · ' + dureeAppel(rec.duree) : 'Appel terminé');
+      const dit = enSalleAvant ? null : phraseFinAppel(parAutre, premier, rec.duree);          // une salle a son propre message de sortie
+      if (dit) mot(dit);
+    }, () => { /* l'appel n'existait plus chez la source */ });
   }
   $('appel-raccrocher').addEventListener('click', raccrocherCouche);
   /* ── L'APPEL RÉDUIT ── raccrocher = fermer la couche EN LE DISANT (sinon la fermer le réduit) ; réduire = rendre la page, garder l'appel ; restaurer = rouvrir l'écran tel quel */
@@ -3427,12 +3447,17 @@
     (enSalle(A) ? $('salle-ecran') : $('appel-ecran')).focus({ preventScroll: true });
   }
   /* le texte de la barre : qui, et depuis combien de temps (la même horloge que l'écran, toutes les 250 ms) */
+  /* le texte de la barre en TROIS morceaux : le préfixe (qui part le premier sur un téléphone), le nom (qui peut se couper) et la durée (qui ne se coupe pas) ; `nom` = préfixe + qui, pour l'étiquette vocale — pure, pour que le banc l'exécute */
+  function textesBarreAppel(snap, maintenant) {
+    const qui = snap.titre || snap.nom || (snap.membres || []).map(m => m.nom || m.prenom).filter(Boolean).slice(0, 2).join(', ') || 'Appel';
+    return { prefixe: 'Appel en cours · ', qui: qui, nom: 'Appel en cours · ' + qui, duree: snap.etat === 'en-cours' && snap.debut ? ' · ' + dureeAppel((maintenant - snap.debut) / 1000) : snap.etat === 'sonne' ? ' · ça sonne…' : '' };
+  }
   function majBarreAppel() {
     const A = etat.appelUI; if (!etat.appelReduit || !A || !A.snap) return;
-    const qui = A.snap.titre || A.snap.nom || (A.snap.membres || []).map(m => m.nom || m.prenom).filter(Boolean).slice(0, 2).join(', ') || 'Appel';
-    const t = 'Appel en cours · ' + qui + (A.snap.etat === 'en-cours' && A.snap.debut ? ' · ' + dureeAppel((Date.now() - A.snap.debut) / 1000) : A.snap.etat === 'sonne' ? ' · ça sonne…' : ''), e = $('appel-barre-texte');
-    if (e.textContent !== t) e.textContent = t;
-    $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t);
+    const t = textesBarreAppel(A.snap, Date.now()), n = $('appel-barre-nom'), d = $('appel-barre-duree');
+    if (n.textContent !== t.qui) n.textContent = t.qui;
+    if (d.textContent !== t.duree) d.textContent = t.duree;
+    $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t.nom + t.duree);
   }
   $('appel-barre-revenir').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) pousser(Object.assign({}, etat.route, { feuille: false, photo: null, appel: etat.appelId })); });
   $('appel-barre-raccrocher').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) raccrocherCouche(); });
@@ -3506,7 +3531,11 @@
   }
   /* fermer ou recharger la page avec un message encore « En attente » le perdrait : le navigateur demande confirmation (rien n'est rangé sur l'appareil, c'est voulu) */
   window.addEventListener('beforeunload', e => {
-    if (etat.partir || typeof source.enAttente !== 'function' || !(source.enAttente() > 0)) return;
+    if (etat.partir) return;
+    /* ⛔ et un APPEL en cours (lot m19, appels@6) : recharger ou fermer la page le termine des deux côtés en 160 ms, sans un mot — la personne retombait sur la liste des appels. Le navigateur demande
+       confirmation, comme pour un message en attente. (Dire « l'appel a été interrompu » au retour exigerait de ranger un état sur l'appareil : non fait.) */
+    const enAttente = typeof source.enAttente === 'function' && source.enAttente() > 0;
+    if (!enAttente && !etat.appelId) return;
     e.preventDefault(); e.returnValue = '';
   });
   const erreurConnexion = t => {

@@ -297,9 +297,14 @@
         sens: c.role === 'appelant' ? 'sortant' : 'entrant', entrant, liaison: fini ? 'fini' : c.liaison, issue: fini ? c.fini.issue : null, avis: fini ? c.fini.avis : null, relais: c.relais,
       };
     }
+    /* ⛔ L'ISSUE d'un appel SORTANT qui n'a pas abouti (lot m19, appels@2) : la liste disait « Appel sortant » d'un appel annulé, refusé ou resté sans réponse — la personne avait vu « Ben a refusé l'appel »
+       à l'écran, et plus rien ensuite. Le service sait déjà : annulé, refusé, sans réponse (`manque`), occupé. `sens` reste « sortant » (l'icône, le tri et le filtre « Manqués » en dépendent) ; l'issue est un champ de plus,
+       absent (null) pour un appel répondu et pour tout appel ENTRANT (celui-là a déjà son « manqué »). */
+    const ISSUES_SORTANT = ['annule', 'refuse', 'manque', 'occupe'];
+    const issueSortant = (sortant, issue) => sortant && ISSUES_SORTANT.includes(issue) ? issue : null;
     function enregistrement(c) {
       const v = c.vue, p = autreVue(c);
-      return { id: c.id, type: v.type, sens: c.role === 'appelant' ? 'sortant' : 'entrant', groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: v.debut, duree: dureeFinale(c) };
+      return { id: c.id, type: v.type, sens: c.role === 'appelant' ? 'sortant' : 'entrant', issue: issueSortant(c.role === 'appelant', c.fini && c.fini.issue), groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: v.debut, duree: dureeFinale(c) };
     }
 
     /* ── ce qu'on dit quand un appel finit autrement que par un geste de la personne ── */
@@ -810,7 +815,7 @@
     function vueHistorique(a) {
       noterAutre(a);
       const p = a.autre && typeof a.autre.id === 'string' ? (d.personne(a.autre.id) || { id: a.autre.id, nom: 'Quelqu\'un', initiales: '?', avatar: 0, photo: null }) : { id: null, nom: d.nomSupprime, initiales: '?', avatar: 0, photo: null };
-      return { id: a.id, type: a.type, sens: a.manque ? 'manque' : a.sens === 'sortant' ? 'sortant' : 'entrant', groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: a.debut, duree: Number.isInteger(a.duree_s) ? a.duree_s : 0 };
+      return { id: a.id, type: a.type, sens: a.manque ? 'manque' : a.sens === 'sortant' ? 'sortant' : 'entrant', issue: issueSortant(a.sens === 'sortant', a.repondu === null || a.repondu === undefined ? a.etat : null), groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: a.debut, duree: Number.isInteger(a.duree_s) ? a.duree_s : 0 };
     }
     function arreter() {
       const c = courant;

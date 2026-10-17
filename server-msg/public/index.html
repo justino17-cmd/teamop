@@ -1035,11 +1035,23 @@ body { padding-top: var(--pousse); }
 .app { min-height: calc(100vh - var(--pousse)); min-height: calc(100dvh - var(--pousse)); }
 .side { top: var(--pousse); height: calc(100vh - var(--pousse)); height: calc(100dvh - var(--pousse)); }
 .appel-barre-revenir { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 4px; background: none; color: inherit; font-size: 15px; font-weight: 600; text-align: left; }
-.appel-barre-revenir .texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.appel-barre-revenir .texte { flex: 1; min-width: 0; display: flex; overflow: hidden; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* ⛔ la DURÉE est la seule information qui change dans la barre : elle ne se coupe jamais (flex: none) ; c'est le NOM qui prend l'ellipse. Avant, un seul texte portait « Appel en cours · Ben Durand · 00:03 »
+   et l'ellipse mangeait la fin — à 360 px on lisait « Appel en cours · Ben Dur… » (lot m19, appels#3). */
+/* ⛔ le préfixe « Appel en cours · » est le premier à partir (relecture du lot m19) : déplacer la coupe de la durée vers le nom ne réglait rien — à 360 px il restait 197 px pour 258 voulus, et le préfixe
+   (≈ 120 px) mangeait tout ce que la durée laissait : le nom disparaissait (« Appel en cours · … · 00:03 », même pour « Ben Durand »). Sous 480 px de large (texte < ≈ 320 px) la barre — verte, avec
+   « Revenir » et le rond rouge, comme celle de l'iPhone — ne garde que le nom et la durée ; l'étiquette vocale du bouton, elle, dit toujours « Appel en cours ». */
+.appel-barre-revenir .texte-prefixe { flex: none; white-space: pre; }
+@media (max-width: 479.98px) { .appel-barre-revenir .texte-prefixe { display: none; } }
+.appel-barre-revenir .texte-nom { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* `pre` et non `nowrap` : la durée commence par une espace (« · 00:03 »), qu'un élément flex en début de ligne effacerait — le nom coupé toucherait alors le point. */
+.appel-barre-revenir .texte-duree { flex: none; white-space: pre; }
 .appel-barre-revenir b { flex: none; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.14); font-size: 14px; }
 .appel-barre-raccrocher { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: none; color: #000; }
 .appel-barre-raccrocher .rond { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #e5484d; color: #fff; }
-.appel-barre-raccrocher .ic { width: 18px; height: 18px; }
+/* ⛔ le rond de la barre porte la classe `.rond` des cases de contact, dont `.rond .ic { opacity: 0; stroke-width: 3.2 }` cache la coche d'une case non cochée : sans ces deux lignes le combiné (18 px,
+   trait blanc) était là et invisible — un rond rouge vide (lot m19, appels#2). Même spécificité, écrit plus loin : la barre gagne. */
+.appel-barre-raccrocher .ic { width: 18px; height: 18px; opacity: 1; stroke-width: 2; }
 html[data-appel], html[data-appel] body { overflow: hidden; }
 html[data-appel] .tabs { display: none; }
 @media (min-width: 900px) { .appel-ecran { left: 236px; } }
@@ -1096,6 +1108,7 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 }
 .tuile-nom { bottom: 8px; font-weight: 600; }
 .tuile-etat { top: 8px; }
+.tuile-nom:empty { display: none; }
 .tuile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
 .tuile[data-camera="on"] video { display: block; }
 .tuile[data-camera="on"] .tuile-av { display: none; }
@@ -1111,6 +1124,9 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 .appel-ecran[data-mise="video"] .tuile { position: absolute; inset: 0; border-radius: 0; }
 .appel-ecran[data-mise="video"] .tuile-av { width: 110px; height: 110px; font-size: 40px; }
 .appel-ecran[data-mise="video"] .tuile-nom { left: max(16px, env(safe-area-inset-left, 0px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); }
+/* ⛔ l'étiquette « Vidéo de … » se range À GAUCHE de la vignette « Vous » (104 px, 176 au bureau) et ne passe jamais dessous : un nom long prend l'ellipse (lot m19, appels#5) */
+.appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 104px - max(14px, env(safe-area-inset-right, 0px)) - 12px); }
+@media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 176px - max(14px, env(safe-area-inset-right, 0px)) - 12px); } }
 .appel-ecran[data-mise="video"] .tuile.vous {
   inset: auto; top: calc(env(safe-area-inset-top, 0px) + 110px); right: max(14px, env(safe-area-inset-right, 0px)); width: 104px; height: 150px; border-radius: 16px;
   background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 2;
@@ -2544,7 +2560,7 @@ a.menu-action { text-decoration: none; }
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
 
 <div class="appel-barre" id="appel-barre" role="region" aria-label="Appel en cours">
-  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte">Appel en cours</span><b>Revenir</b></button>
+  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte"><span class="texte-prefixe" id="appel-barre-prefixe">Appel en cours · </span><span class="texte-nom" id="appel-barre-nom"></span><span class="texte-duree" id="appel-barre-duree"></span></span><b>Revenir</b></button>
   <button type="button" class="appel-barre-raccrocher presse" id="appel-barre-raccrocher" aria-label="Raccrocher"><span class="rond"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></span></button>
 </div>
 <div class="app" id="app">
