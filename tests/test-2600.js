@@ -16,7 +16,7 @@
    un débordement finit par demander à la PAGE si elle bouge (`scrollTo` puis `scrollX` / `scrollY`) ; chaque absence est précédée de sa POPULATION (ce qui est comparé existe, et
    a été compté) ; une mutation du CSS doit faire tomber ces contrôles (voir le rapport du lot).
    ⛔ Un banc de CSS ne cherche jamais un motif dans un commentaire : il MESURE. Sans Chromium (ou sans les dépendances du service), il se saute et le dit.
-   Lancer :   node tests/test-1600.js          CAPTURES=/dossier pour les images.   Code 1 si un contrôle tombe. */
+   Lancer :   node tests/test-2600.js          CAPTURES=/dossier pour les images.   Code 1 si un contrôle tombe. */
 'use strict';
 const fs = require('fs'), path = require('path');
 const T = require('./outils-msg');
