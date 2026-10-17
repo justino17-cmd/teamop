@@ -13,7 +13,9 @@
 const fs = require('fs'), os = require('os'), path = require('path'), http = require('http'), crypto = require('crypto');
 const { spawn } = require('child_process');
 const T = require('./outils-msg');
-T.sauterSiSansDependances();
+/* PAS de T.sauterSiSansDependances() ici : ce banc ne touche pas à server-msg/, et le job « bancs » de deploiement.yml ne l'installe
+   pas. Avec elle, il sortait en 0 sans rien vérifier (« banc non exécuté »), la porte tombait à 3911 vérifications pour un plancher
+   de 3925, et AUCUN déploiement du serveur n'est parti du 7 au 16 octobre 2026. Sa seule dépendance est celle du serveur, gardée juste dessous. */
 const { v, vrai, fin } = T.compteur();
 if (!fs.existsSync(path.join(T.RACINE, 'server', 'node_modules', 'web-push'))) { console.log('  (server/node_modules absent : banc sauté)'); fin('test-851'); process.exit(0); }
 
