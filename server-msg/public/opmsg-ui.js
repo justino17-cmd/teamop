@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = 'f2a5c5f348bf';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 208;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8237,15 +8237,15 @@
           h += '<div class="salle-rang actions">' + (s.outils ? '<button type="button" class="salle-btn presse" data-sa="couper" data-uid="' + esc(m.id) + '"' + (m.micro ? '' : ' aria-disabled="true"') + '>Demander de couper le micro</button>' : '') +
             '<button type="button" class="salle-btn presse" data-sa="epingler-moi" data-uid="' + esc(m.id) + '">' + (X.monEpingle === m.id ? 'Ne plus épingler pour moi' : 'Épingler pour moi') + '</button>' +
             '<button type="button" class="salle-btn presse" data-sa="epingler" data-uid="' + esc(m.id) + '">' + (s.epingle === m.id ? 'Retirer l\'épingle pour tous' : 'Épingler pour tous') + '</button>';
-          if (s.moi.proprietaire) h += '<button type="button" class="salle-btn presse" data-sa="cohote" data-uid="' + esc(m.id) + '" data-actif="' + (m.grade >= 1 ? '0' : '1') + '">' + (m.grade >= 1 ? 'Retirer co-hôte' : 'Nommer co-hôte') + '</button>';
-          if (s.outils && (m.grade | 0) < 2 && ((m.grade | 0) < 1 || moiGrade >= 2)) h += '<button type="button" class="salle-btn danger presse" data-sa="retirer-demander" data-uid="' + esc(m.id) + '">Retirer de la salle</button>';
+          if (s.moi.proprietaire && !s.moi.interim) h += '<button type="button" class="salle-btn presse" data-sa="cohote" data-uid="' + esc(m.id) + '" data-actif="' + (m.grade >= 1 ? '0' : '1') + '">' + (m.grade >= 1 ? 'Retirer co-hôte' : 'Nommer co-hôte') + '</button>';
+          if (s.outils && !s.moi.interim && (m.grade | 0) < 2 && ((m.grade | 0) < 1 || moiGrade >= 2)) h += '<button type="button" class="salle-btn danger presse" data-sa="retirer-demander" data-uid="' + esc(m.id) + '">Retirer de la salle</button>';
           h += '</div>';
         }
       }
     }
     h += '</div>';
     if (sonnent.length) h += '<div class="salle-rub"><span>Sonnerie en cours</span><span>' + sonnent.length + '</span></div><div class="salle-liste">' + sonnent.map(m => '<div class="salle-rang">' + rangAvatar(m) + '<span class="texte">' + esc(m.nom) + '<small>Sonnerie…</small></span></div>').join('') + '</div>';
-    if (hote && s.outils && presents.length) h += '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="couper-tous">Demander à tous de couper le micro</button></p>';
+    if (hote && s.outils && !s.moi.interim && presents.length) h += '<p class="salle-note"><button type="button" class="salle-btn presse" data-sa="couper-tous">Demander à tous de couper le micro</button></p>';
     if (hote && s.genre === 'reunion' && s.reunion && ID_REUNION.test(s.reunion)) h += '<div class="salle-rub"><span>Inviter</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte"><small>Un lien d\'invité ouvre la salle à qui a un compte OP MESSAGES.</small></span><button type="button" class="salle-btn presse" data-sa="lien-copier">' + icone('i-lien') + 'Copier le lien</button></div></div>';
     return h;
   }
@@ -8278,7 +8278,7 @@
     }
     if (s.genre === 'reunion' && ID_REUNION.test(s.reunion || '') && typeof source.cocherPoint === 'function') h += '<div class="salle-rub"><span>Réunion</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="ordre"><span class="texte">Ordre du jour<small>Cocher ce qui est traité — le compte rendu le reprend</small></span></button></div>';
     if (hote && CAP.presenceRapport) h += '<div class="salle-rub"><span>Présence</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="presence"><span class="texte">Rapport de présence<small>Qui est venu, à quelle heure, combien de temps — et qui manque</small></span></button></div>';
-    if (hote) {
+    if (hote && !s.moi.interim) {
       /* la salle d'attente et le verrou sont des OUTILS d'organisateur (dans un appel gratuit, ils ne sont pas proposés) ; le partage d'écran des participants reste un réglage de la salle, pour tous */
       h += '<div class="salle-rub"><span>Sécurité</span></div><div class="salle-liste">' +
         (s.outils ? inter('verrou', s.verrou, 'Verrouiller la salle', 'Plus personne n\'entre (les hôtes, si)') +
@@ -8400,6 +8400,8 @@
   async function salleAgir(act, el) {
     const A = etat.appelUI; if (!enSalle(A)) return;
     const s = A.snap, X = sx(A), uid = el.dataset.uid;
+    /* ⛔ l'hôte PAR INTÉRIM (invité nommé entré avant l'organisateur) tient la porte — admettre, refuser — mais n'a pas les gestes qu'on ne défait pas ; le service les lui refuse (403), la page ne les laisse pas partir */
+    if (s.moi.interim && ['couper-tous', 'cohote', 'retirer-demander', 'retirer-confirmer', 'verrou', 'attente', 'partage-ok', 'rec'].includes(act)) { mot('L\'organisateur n\'est pas encore là : tu fais entrer, il règle la salle.'); return; }
     switch (act) {
       case 'panneau-fermer': salleFermerPanneau(A); return;
       case 'doc-joindre': $('salle-doc').click(); return;
@@ -8538,7 +8540,7 @@
   function salleVueBasculer(A) { const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); }
   /* l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, et COMMENCÉ par l'hôte seul (grade 2 : le service refuse le co-hôte — test-986) ;
      on peut toujours ÉTEINDRE celui qu'on a lancé ; celui d'un autre, un hôte ou co-hôte le voit dire « Enregistré par », sans geste d'ici */
-  const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id); return moiRec || (!!s.moi.hote && !!s.rec) || ((s.moi.grade | 0) >= 2 && !!s.outils && recDisponible()); };
+  const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id), inter = !!s.moi.interim; return moiRec || (!!s.moi.hote && !inter && !!s.rec) || ((s.moi.grade | 0) >= 2 && !inter && !!s.outils && recDisponible()); };
   function salleRecBasculer(A) { const s = A.snap; if (!salleRecPossible(A) || (s.rec && s.rec.par !== MOI.id)) return; if (A.rec) recArreter(A, true); else recDemarrer(A); }
   /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
   $('salle-doc').addEventListener('change', async e => {

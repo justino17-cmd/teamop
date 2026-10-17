@@ -907,7 +907,7 @@
         id: c.id, etat, type: v.type, groupe: true, salle: true, genre: v.genre, conv: v.conv || null, reunion: v.reunion || null, nom: nomSalle(c), court: nomSalle(c),
         initiales: personneDe(v.autre && v.autre.id).initiales || '?', avatar: personneDe(v.autre && v.autre.id).avatar || 0, photo: null,
         membres, nb: v.nb || 0, capacite: v.capacite || null,
-        moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()), reseau: st === 'present' ? c.reseauMoi : null },
+        moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, interim: !!(v.moi && v.moi.interim && st === 'present'), hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()), reseau: st === 'present' ? c.reseauMoi : null },
         entrant: !fini && c.entrant && !c.local, attente: !fini && st === 'attente', exclu: st === 'exclu',
         verrou: !!v.verrou, salleAttente: !!v.attente, partageOk: v.partage_ok !== false, rec: v.rec ? { par: v.rec.par, nom: v.rec.par === moi() ? 'vous' : personneDe(v.rec.par).prenom } : null,
         enAttente: v.en_attente || 0, epingle: c.salle.epingle || null, sondage: c.salle.sondage || null, outils: c.salle.outils === true,

@@ -71,7 +71,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       v('une seconde avant l\'ouverture : toujours 409', dit(await b1.post('/api/reunions/' + R1.id + '/rejoindre', {})), [409, 'reunion_hors_horaire']);
       M.avancer(SEC);
       const ouv = await b1.post('/api/reunions/' + R1.id + '/rejoindre', {});
-      v('⛔ à l\'ouverture : Ben entre (200) — il a ouvert la salle, personne n\'y sonne, la salle COURT d\'emblée ; il en est l\'hôte PAR INTÉRIM (une salle n\'est jamais sans maître : personne d\'autre ne pourrait admettre qui frappe)', [ouv.code, ouv.j.appel.genre, ouv.j.etat, ouv.j.appel.moi, ouv.j.appel.reunion === R1.id, ouv.j.appel.capacite], [200, 'reunion', 'en_cours', { statut: 'present', grade: 2, gen: 1 }, true, 4]);
+      v('⛔ à l\'ouverture : Ben entre (200) — il a ouvert la salle, personne n\'y sonne, la salle COURT d\'emblée ; il en est l\'hôte PAR INTÉRIM (une salle n\'est jamais sans maître : personne d\'autre ne pourrait admettre qui frappe)', [ouv.code, ouv.j.appel.genre, ouv.j.etat, ouv.j.appel.moi, ouv.j.appel.reunion === R1.id, ouv.j.appel.capacite], [200, 'reunion', 'en_cours', { statut: 'present', grade: 2, gen: 1, interim: true }, true, 4]);
       v('⛔ personne n\'a été appelé : aucun événement `appel` chez Ana (l\'hôte), aucune sonnerie', [S.evenementsPour(ana.id, 0, 1000).evenements.filter(e => e.event === 'appel' && e.data.id === ouv.j.appel.id).length], [0]);
       const fiche2 = (await a1.get('/api/reunions/' + R1.id)).j;
       v('la fiche d\'Ana : la salle est OUVERTE (« Rejoindre » avec une salle qui existe), rejoignable', [fiche2.salle.rejoignable, fiche2.salle.ouverte, fiche2.salle.occurrence.debut === R1.debut], [true, true, true]);
@@ -81,7 +81,7 @@ const octetsBase = (chemin) => { let b = Buffer.alloc(0); for (const s of ['', '
       v('⛔ Ana, l\'organisatrice, voit la salle OUVERTE parmi ses salles à rejoindre (la bannière « Rejoindre »)', [sa.j.salles.map(x => [x.id === ouv.j.appel.id, x.genre, x.reunion === R1.id, x.nb, x.titre])], [[[true, 'reunion', true, 1, 'Point d\'équipe']]]);
       /* l'organisatrice entre : elle REPREND la main */
       const ra = await a1.post('/api/reunions/' + R1.id + '/rejoindre', {});
-      v('⛔ l\'organisatrice arrive : elle REPREND la main (hôte, grade 2) ; Ben, l\'hôte par intérim, devient co-hôte (grade 1) ; la salle court (deux présents)', [ra.j.appel.moi.grade, S.appelAcces(ouv.j.appel.id, ben.id).grade, ra.j.appel.nb, ra.j.etat], [2, 1, 2, 'en_cours']);
+      v('⛔ l\'organisatrice arrive : elle REPREND la main (hôte, grade 2) ; Ben, l\'hôte par intérim, retombe à grade 0 (m01, 16 octobre 2026 : il n\'était pas co-hôte NOMMÉ — le rester pour toujours lui donnait exclure et verrouiller sans que personne les lui ait confiés, `test-2400`) ; la salle court (deux présents)', [ra.j.appel.moi.grade, S.appelAcces(ouv.j.appel.id, ben.id).grade, ra.j.appel.nb, ra.j.etat], [2, 0, 2, 'en_cours']);
       const rb = await b1.post('/api/reunions/' + R1.id + '/rejoindre', {});
       v('le MÊME appareil de Ben rejoint deux fois : `deja`, sans rien écrire', [rb.code, rb.j.deja], [200, true]);
       v('⛔ un non-invité (Dan) reçoit le MÊME 404 qu\'une réunion qui n\'existe pas', [dit(await d1.post('/api/reunions/' + R1.id + '/rejoindre', {})), (await d1.post('/api/reunions/' + R1.id + '/rejoindre', {})).txt === (await d1.post('/api/reunions/r_' + '0'.repeat(32) + '/rejoindre', {})).txt], [[404, 'introuvable'], true]);

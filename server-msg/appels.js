@@ -514,6 +514,8 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
   /* ⛔ un geste d'annotation diffuse SANS passer par `evt` : il n'est pas un « événement de 2 Ko » (un trait en cours en fait dix par seconde) — son propre plafond (`routes-salles.js`) */
   /* « Couper le micro » : une DEMANDE, adressée à une personne ou à toutes. Le service la relaie à l'appareil visé ; c'est la page qui l'honore (ou non). */
   function demanderCouperMicro({ moi, acces, cible }) {
+    /* ⛔ l'hôte par intérim (l'organisateur n'est pas là) ne fait pas taire TOUTE la salle ; demander à UNE personne, lui, reste possible (voir `stockage.salleInterim`) */
+    if (cible === null && acces.interim) throw erreur('interdit');
     const ev = { appel: acces.id, de: moi.id, k: 'couper_micro', cible: cible === null ? 'tous' : cible };
     if (cible === null) return { ev, atteints: diffuser(acces.id, 'salle_evt', ev, moi.id) };
     const t = stockage.appelAcces(acces.id, cible);
