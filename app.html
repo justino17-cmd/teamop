@@ -40079,7 +40079,7 @@ views.messagerie=function(){
     <div id="msg-saisie" style="display:flex;gap:8px;margin-top:10px;position:relative"><div id="mention-pop" class="mention-pop" style="display:none"></div><label class="btn ghost" style="cursor:pointer;flex-shrink:0" title="Joindre une photo">📷<input type="file" accept="image/*" style="display:none" onchange="msgAddPhoto(event)"></label><input id="msg-input" class="search-inp" style="margin:0;flex:1" placeholder="${ph}" autocomplete="off" oninput="msgInputChange()" onkeydown="if(event.key==='Enter'){const p=document.getElementById('mention-pop'); if(p&&p.style.display!=='none'){return;} envoyerMsg();}"><button class="btn" onclick="envoyerMsg()">Envoyer</button></div>`;
   // k01 (r5#6) : la vue neuve est collée en bas, et msgAjuster le retient
   const ml=$('msg-list'); if(ml){ ml.scrollTop=ml.scrollHeight; ml._msgBas=true; }
-  msgAjuster(); msgAjusterVeiller(); _msgPageBas=msgPageEnBas();
+  msgAjuster(); msgAjusterVeiller(); _msgFinVue=true;
 };
 /* ⛔ j01 — LA PLACE DE LA CONVERSATION SE MESURE, ELLE NE SE DEVINE PAS (r4#3, r4#5, r4#6). Sa hauteur était une
    constante (« 100dvh − 446 px − --tabh ») qui supposait un haut de page de Mac. Elle ne comptait ni la barre
@@ -40127,23 +40127,41 @@ function msgAjuster(){
    stabilise tout seul (la liste se règle, la page se raccourcit, la seconde mesure rend les mêmes nombres : rien à écrire). */
 let _msgVeille=false, _msgRaf=0;
 function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=requestAnimationFrame(()=>{ _msgRaf=0; msgAjuster(); }); }
-/* ⛔ (r6) TOURNER L'APPAREIL NE CACHE PLUS LA CONVERSATION. Le re-test final (64 mesures au navigateur) : entrée en portrait, la page amenée en
-   bas par `msgAmener`, puis le passage en paysage GARDE `scrollY` — la liste, raccourcie, passait sous la rangée de saisie collée (129 à 236 px
-   de la dernière bulle cachés, 0 à 70 px de conversation visibles) jusqu'à ce qu'on pousse la page. Même défaut avant k01 (90 à 121 px).
-   Si la page était EN BAS avant de tourner, elle y retourne ; si la personne était remontée lire les pastilles, on garde sa place
-   (la règle de `msgAmener` : jamais sur un rafraîchissement). Une rotation change la LARGEUR : une barre d'outils qui se replie ou le
-   clavier ne changent que la hauteur, et ne font rien bouger ici. */
-let _msgLargeur=0, _msgPageBas=true;
-function msgPageEnBas(){ const d=document.documentElement; return (window.scrollY||0)+window.innerHeight>=d.scrollHeight-4; }
-function msgTourner(){
+/* ⛔ (r6) TOURNER L'APPAREIL NE CACHE PLUS LA CONVERSATION. Le re-test final (64 mesures au navigateur) : entrée en portrait, puis le passage
+   en paysage GARDE `scrollY` — la liste, raccourcie, passait sous la rangée de saisie collée (129 à 236 px de la dernière bulle cachés, 0 à 70 px
+   de conversation visibles) jusqu'à ce qu'on pousse la page. Même défaut avant k01 (90 à 121 px).
+   Si la FIN de la conversation se voyait avant de tourner, `msgAmener` la ramène ; si la personne était remontée lire les pastilles (la fin
+   cachée sous la rangée), on garde sa place (la règle de `msgAmener` : jamais sur un rafraîchissement). Une rotation change la LARGEUR : une
+   barre d'outils qui se replie ou le clavier ne changent que la hauteur, et ne font rien bouger ici.
+   ⚠️ Pas « la page est-elle en bas ? » : c'était la première écriture, et le second re-test l'a prise en défaut dans le cas ORDINAIRE — sans la
+   barre « Reprendre », la page a 10 à 31 px de défilement sous la rangée (le rembourrage du bas), `scrollY` reste à 0, et une tolérance de 4 px la
+   disait « remontée » : rien ne revenait (160 px cachés en paysage, 32 configurations sur 32 ; de même après un envoi ou le choix d'une
+   conversation, qui redessinent la vue sans la barre). On demande ce que voit la personne : le même test que `msgAmener` (`msgFinCachee`). */
+let _msgLargeur=0, _msgFinVue=true, _msgFinRaf=0, _msgTourT=0, _msgTourVue=true;
+/* la fin de la conversation se voit-elle ? — le bas de la liste au-dessus de ce qui est collé en bas (rangée de saisie, barre d'onglets) */
+function msgFinCachee(){
+  const ml=$('msg-list'), sa=$('msg-saisie'); if(!ml||!sa) return false;
+  let couvre=sa.getBoundingClientRect().top; const tb=$('tabbar');
+  if(tb&&getComputedStyle(tb).display!=='none') couvre=Math.min(couvre,tb.getBoundingClientRect().top);
+  return ml.getBoundingClientRect().bottom>couvre+4;
+}
+/* suivie au défilement, une fois par image ; jamais pendant l'entrée de la vue (les cartes glissent : un rectangle lu là est décalé) ni pendant
+   une rotation (orientationchange arrive avant le nouveau `innerWidth` sur iPhone : une lecture entre les deux verrait déjà la géométrie neuve) */
+function msgFinSuivre(){
+  if(_msgFinRaf||current!=='messagerie') return;
+  _msgFinRaf=requestAnimationFrame(()=>{ _msgFinRaf=0; const c=$('content');
+    if(current!=='messagerie'||(c&&c.classList.contains('entre'))||Date.now()-_msgTourT<800) return; _msgFinVue=!msgFinCachee(); });
+}
+function msgTourner(e){
+  if(e&&e.type==='orientationchange'){ _msgTourT=Date.now(); _msgTourVue=_msgFinVue; }
   const w=window.innerWidth, tourne=!!_msgLargeur&&w!==_msgLargeur; _msgLargeur=w;
-  const bas=_msgPageBas; msgAjusterPlus();
-  if(tourne&&bas&&current==='messagerie') requestAnimationFrame(()=>requestAnimationFrame(()=>{ try{ if(current==='messagerie'){ msgAmener(); _msgPageBas=true; } }catch(e){} }));
+  const vue=Date.now()-_msgTourT<800?_msgTourVue:_msgFinVue; msgAjusterPlus();
+  if(tourne&&vue&&current==='messagerie') requestAnimationFrame(()=>requestAnimationFrame(()=>{ try{ if(current==='messagerie'){ msgAmener(); _msgFinVue=true; } }catch(e){} }));
 }
 function msgAjusterVeiller(){
   if(_msgVeille) return; _msgVeille=true; _msgLargeur=window.innerWidth;
   try{ window.addEventListener('resize',msgTourner); window.addEventListener('orientationchange',msgTourner);
-    window.addEventListener('scroll',()=>{ if(current==='messagerie') _msgPageBas=msgPageEnBas(); },{passive:true}); }catch(e){}
+    window.addEventListener('scroll',msgFinSuivre,{passive:true}); }catch(e){}
   try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(msgAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
 }
 /* ⛔ k01 (r5#5, relecture) — QUAND LA LISTE EST CACHÉE PAR CE QUI EST COLLÉ EN BAS, LA CONVERSATION SE MONTRE À L'OUVERTURE.
@@ -40159,13 +40177,11 @@ function msgAjusterVeiller(){
 function msgAmener(){
   try{
     const ml=$('msg-list'), sa=$('msg-saisie'); if(current!=='messagerie'||!ml||!sa) return false;
-    let couvre=sa.getBoundingClientRect().top; const tb=$('tabbar');
-    if(tb&&getComputedStyle(tb).display!=='none') couvre=Math.min(couvre,tb.getBoundingClientRect().top);
-    if(ml.getBoundingClientRect().bottom<=couvre+4) return false;   // la liste se voit en entier : on ne touche pas à la page
+    if(!msgFinCachee()){ _msgFinVue=true; return false; }   // la liste se voit en entier : on ne touche pas à la page
     const bas=()=>{ if(current==='messagerie') window.scrollTo(0,document.documentElement.scrollHeight); };
-    bas(); const y0=window.scrollY; _msgPageBas=true;
+    bas(); const y0=window.scrollY; _msgFinVue=true;
     /* la mesure de msgAjuster et l'entrée de la page peuvent encore bouger la hauteur : on reprend UNE fois, sauf si la personne a déjà défilé */
-    requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(Math.abs((window.scrollY||0)-(y0||0))<2){ bas(); _msgPageBas=true; } }));
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(Math.abs((window.scrollY||0)-(y0||0))<2){ bas(); _msgFinVue=true; } }));
     return true;
   }catch(e){ return false; }
 }

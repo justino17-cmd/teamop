@@ -20,10 +20,11 @@ function bloc(debut) {
   for (let k = j; k < SRC.length; k++) { const c = SRC[k]; if (c === '{') p++; else if (c === '}') { p--; if (p === 0) return SRC.slice(i, k + 1); } }
   return '';
 }
-const AM = bloc('function msgAmener(){'), RV = bloc('function rendreVueSure(view,remonter){'), VUE = bloc('views.messagerie=function(){');
+const AM = bloc('function msgAmener(){'), FC = bloc('function msgFinCachee(){'), RV = bloc('function rendreVueSure(view,remonter){'), VUE = bloc('views.messagerie=function(){');
 
 console.log('\n── 1633 · 0. la population ──');
-vrai('msgAmener, rendreVueSure et la vue sont trouvées', AM.length > 200 && RV.length > 800 && VUE.length > 3000, [AM.length, RV.length, VUE.length]);
+/* (r6) le test « la fin de la conversation est-elle cachée ? » vit dans `msgFinCachee`, partagé avec la rotation (`msgTourner`, test-1660) */
+vrai('msgAmener, msgFinCachee, rendreVueSure et la vue sont trouvées', AM.length > 200 && FC.length > 150 && RV.length > 800 && VUE.length > 3000, [AM.length, FC.length, RV.length, VUE.length]);
 v('⛔ une seule définition de msgAmener et de rendreVueSure (une seconde gagnerait partout, en silence)', ['function msgAmener(', 'function rendreVueSure('].map(n => SRC.split(n).length - 1), [1, 1]);
 
 /* un faux monde : la liste a un bas, la rangée de saisie (collée) et la barre d'onglets un haut ; la fenêtre note ses scrollTo (qui bougent
@@ -39,7 +40,7 @@ function monde(o) {
     requestAnimationFrame: f => { raf.push(f); return raf.length; }, $: id => els[id] || null };
   ctx.__ap = ap; ctx.__raf = raf; ctx.__win = win;
   ctx.__images = () => { while (raf.length) raf.shift()(); };
-  vm.createContext(ctx); vm.runInContext(AM, ctx); return ctx;
+  vm.createContext(ctx); vm.runInContext(FC + '\n' + AM, ctx); return ctx;
 }
 const run = (code, c) => { try { return vm.runInContext(code, c); } catch (e) { return 'ERREUR ' + e.message; } };
 
@@ -107,7 +108,7 @@ vrai('⛔ la pastille amène la conversation choisie (dans le code, pas dans une
 vrai('le rafraîchissement par envoi d\'un message ne l\'appelle pas (envoyerMsg garde la place)', !/function envoyerMsg\(\)[^\n]*msgAmener/.test(SRC) && !/msgAmener/.test(bloc('function envoyerMsg(')));
 /* (r6, re-test final) un troisième appelant, voulu : `msgTourner`, quand l'appareil TOURNE et que la page était en bas (test-1660) — jamais sur un rafraîchissement */
 v('msgAmener n\'est appelée que par la pastille, rendreVueSure et la rotation', (SRC.match(/msgAmener\(\)/g) || []).length - 1, 3);
-vrai('…et la rotation ne l\'appelle que si la largeur a changé ET que la page était en bas', /if\(tourne&&bas&&current==='messagerie'\)[^\n]*msgAmener\(\)/.test(SRC));
+vrai('…et la rotation ne l\'appelle que si la largeur a changé ET que la fin de la conversation se voyait', /if\(tourne&&vue&&current==='messagerie'\)[^\n]*msgAmener\(\)/.test(SRC));
 
 console.log(`\n════ test-1633 : ${ok} ✓ ${ko} ✗ ════`);
 process.exit(ko ? 1 : 0);
