@@ -15861,7 +15861,25 @@ function refreshBadges(){
 
 const views={};
 let current='dashboard';
+/* ⛔ LE RETOUR SYSTÈME FERME CE QUI EST OUVERT, ET RIEN D'AUTRE. Mesuré (Android, iPhone) : une fenêtre ouverte (la Clôture guidée)
+   se fermait ET la rubrique était quittée, saisie perdue ; une fiche d'intervention n'étant pas une VUE (elle ne s'empile pas), le
+   retour partait à la rubrique d'avant et sautait la liste. Règle : fenêtre ouverte → on la ferme (la Clôture guidée demande
+   d'abord, si l'on a saisi quelque chose) ; sinon fiche ouverte → retour à la liste de sa rubrique ; sinon retour normal.
+   Rend '' (rien d'ouvert), 'fenetre' (fenêtre fermée, ou gardée par sa confirmation), 'bloque' (écran obligatoire) ou 'fiche'.
+   Ne touche à aucun historique : c'est l'appelant (bloc `popstate`) qui remet l'entrée que le navigateur vient de consommer. */
+function retourFerme(){
+  const ov=$('overlay');
+  if(ov&&ov.classList.contains('open')&&!ov.classList.contains('ferme')){
+    if(_modalForcee) return 'bloque';
+    if(window._t3dModalCat&&asW){ t3dQuestModalEnd(asW.id); return 'fenetre'; }   // le questionnaire revient à la Clôture guidée, il ne la quitte pas
+    if(assistOuverte()){ assistFermer(); return 'fenetre'; }
+    closeModal(); return 'fenetre';
+  }
+  if(_ecranRendu){ ficheRetour(current); return 'fiche'; }
+  return '';
+}
 function goBack(){
+  if(retourFerme()) return;
   const st=window._viewStack||[];
   let v=st.pop();
   while(v===current&&st.length) v=st.pop();     // on ne revient jamais sur la page où l'on est déjà
@@ -23344,14 +23362,31 @@ function assistCloture(id){ const i=db.interventions.find(x=>x.id===id); if(!i) 
   intMeth=new Set(i.methodes||[]);
   rapPresta=new Set(Array.isArray(i.prestation)?i.prestation:Object.keys(i.prestation||{}));
   asW={id,step:0,absent:!!i.clientAbsent,obs:i.compteRendu||'',noteInterne:i.noteInterne||'',materiel:i.materiel||'',zones:i.zones||'',infest:i.infestation||intInfOf(i)||'',reco:(i.constat||{}).recommandations||'',sig:i.signature||'',sigT:i.signatureTech||''};
+  asW.ref=asEmpreinte();   // l'état d'ouverture : « Fermer » compare à lui pour savoir s'il y a une saisie à perdre
   assistRender(); }
+/* ⛔ « FERMER » NE JETTE PAS UNE SAISIE EN SILENCE. Seuls les produits s'enregistrent au fil de l'eau ; constat, observations,
+   matériel, zones, niveau, recommandations, nuisibles, méthodes et signatures vivent dans `asW` et les variables du rapport, et
+   disparaissaient (rouvrir repartait de l'intervention). Une seule fonction ferme la Clôture guidée — le bouton « Fermer » ET le
+   retour système (`retourFerme`) — et elle demande avant de perdre quelque chose. Rien n'est écrit dans `db` : ouvrir ou fermer
+   n'enregistre pas ; c'est « ✓ Clôturer » qui le fait. */
+function asEmpreinte(){ if(!asW) return '';
+  try{ asKeepSigs(); }catch(e){}   // une signature dessinée mais pas encore gardée compte aussi
+  return JSON.stringify([asW.absent,asW.obs,asW.noteInterne,asW.materiel,asW.zones,asW.infest,asW.reco,asW.sig,asW.sigT,
+    [...intNuis].sort(),[...intMeth].sort(),intTrait,[...rapPresta].sort(),(rapConstat||{}).indices,rapPhotos.length,rapTags]); }
+function assistModifie(){ return !!asW&&asEmpreinte()!==asW.ref; }
+/* La Clôture guidée est-elle ce que la fenêtre ouverte montre ? (`_multiHtml` est le balisage de la dernière fenêtre ouverte.) */
+function assistOuverte(){ return !!asW&&String(_multiHtml||'').indexOf('assistFermer()')>=0; }
+function assistFermer(){
+  if(!asW){ closeModal(); return true; }
+  if(assistModifie()&&!confirm('Fermer la clôture guidée ?\n\nCe que tu as saisi (constat, observations, matériel, recommandations, signatures…) ne sera pas enregistré.')) return false;
+  asW=null; closeModal(); return true; }
 function asKeepSigs(){ // conserve les signatures dessinées avant de changer d'étape
   const cv=$('as-sig'); if(cv&&cv.dataset.has) asW.sig=cv.toDataURL('image/png');
   const cvT=$('as-sig-t'); if(cvT&&cvT.dataset.has) asW.sigT=cvT.toDataURL('image/png'); }
 function asGo(step){ if(!asW) return; if(asW.step===5) asKeepSigs(); asW.step=Math.max(0,Math.min(AS_STEPS.length-1,step)); assistRender(); }
 function assistRender(){ if(!asW) return; const i=db.interventions.find(x=>x.id===asW.id); if(!i){ closeModal(); return; }
   const s=asW.step;
-  const head=`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="closeModal()">Fermer</button><h3>Clôture guidée ${s+1}/6</h3>${s<5?`<button type="button" class="btn sm" onclick="asGo(${s+1})">Suivant ›</button>`:`<button type="button" class="btn sm" onclick="assistFinish('${i.id}')">✓ Clôturer</button>`}</div>`;
+  const head=`<div class="modal-head sheet-head"><button type="button" class="btn ghost sm" onclick="assistFermer()">Fermer</button><h3>Clôture guidée ${s+1}/6</h3>${s<5?`<button type="button" class="btn sm" onclick="asGo(${s+1})">Suivant ›</button>`:`<button type="button" class="btn sm" onclick="assistFinish('${i.id}')">✓ Clôturer</button>`}</div>`;
   const dots=`<div style="display:flex;gap:4px;margin:2px 0 14px;overflow-x:auto">${AS_STEPS.map((l,ix)=>`<div onclick="asGo(${ix})" style="flex:1;min-width:52px;text-align:center;cursor:pointer;padding:7px 2px;border-radius:9px;font-size:11px;font-weight:800;background:${ix===s?'var(--acc)':ix<s?'color-mix(in srgb,var(--acc) 18%,transparent)':'var(--bg2)'};color:${ix===s?'var(--on-acc)':ix<s?'var(--acc-txt)':'var(--t3)'}">${ix<s?'✓ ':''}${l}</div>`).join('')}</div>`;
   let body='';
   if(s===0){ const sel=[...intNuis]; const all=[...NUIS_3D,...sel.filter(n=>!NUIS_3D.includes(n))];
@@ -42521,6 +42556,16 @@ try{
       if(Date.now() - (window._balayageFin||0) < 450){
         try{ history.pushState({rf:1},'','#v='+(window.current||'')); }catch(e){}
         return;
+      }
+      /* ⛔ Une fenêtre ou une fiche ouverte absorbe le retour : le navigateur vient de consommer l'entrée de l'écran où l'on reste,
+         on la REMET (comme pour le doublon ci-dessus) — sinon l'historique prend un cran de retard. Une fiche passe par go(),
+         dont l'enveloppe empile déjà l'entrée. */
+      if(typeof retourFerme==='function'){
+        var absorbe=retourFerme();
+        if(absorbe){
+          if(absorbe!=='fiche'){ try{ history.pushState({rf:1},'','#v='+(window.current||'')); }catch(e){} }
+          return;
+        }
       }
       var pile=window._viewStack||[];
       if(pile.length && typeof goBack==='function'){
