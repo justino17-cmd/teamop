@@ -22337,11 +22337,32 @@ function intTechCard(i,opts){ opts=opts||{}; const cli=db.clients.find(c=>c.id==
       </div>
       ${badge(STATUT_INT,i.statut)}
     </div>
-    ${opts.startBtn?`<button class="btn" onclick="event.stopPropagation();intDemarrerFiche('${i.id}')" style="width:100%;justify-content:center;margin-top:11px;padding:13px;font-size:15px;font-weight:800;border-radius:100px">▶ Démarrer</button>`:''}
+    ${opts.startBtn&&!enCours?`<button class="btn" onclick="event.stopPropagation();intDemarrerFiche('${i.id}')" style="width:100%;justify-content:center;margin-top:11px;min-height:44px;padding:13px;font-size:15px;font-weight:800;border-radius:100px">▶ Démarrer</button>`:''}
+    ${opts.ouvrirBtn&&enCours?`<button class="btn ghost" onclick="event.stopPropagation();intOuvrirFiche('${i.id}')" style="width:100%;justify-content:center;margin-top:11px;min-height:44px;padding:13px;font-size:15px;font-weight:800;border-radius:100px">Ouvrir la fiche</button>`:''}
   </div>`; }
+/* ⛔ « ▶ DÉMARRER » DE « MA JOURNÉE » (rapport technicien#9, décision de Justin du 17 octobre 2026 : « Oui, l'ajouter »).
+   Le bouton existait (intTechCard, startBtn) mais personne ne l'allumait : renderIntTechDay calculait nextId sans le lire,
+   et le geste était une COPIE du menu de statut (`i.statut='encours'` écrit à la main, sans le droit ni les mêmes lignes
+   de journal). Il passe désormais par la MÊME porte que le menu — intSetStatut → intSetStatutDo : le droit de changer le
+   statut, la ligne « Statut : En cours », l'heure de début (debutReel), le journal, rien de plus. La case se lit ICI, dans
+   la fonction qui écrit : le bouton caché (intJourProchain) n'est pas une garde. Une intervention ne déduit rien du stock.
+   Double toucher : le premier démarre, le second trouve « en cours » et ne fait rien (une seule ligne de journal). */
+let _intDemarreTs=0;
 function intDemarrerFiche(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
-  i.statut='encours'; if(!i.debutReel) i.debutReel=Date.now(); intHisto(i,'Démarrée depuis « Ma journée »');
-  logEvent('Intervention démarrée',i.titre,'intervention'); save(); toast('▶ C’est parti — bonne intervention !'); detailIntervention(id); }
+  if(!intStatutPermis(i,'encours')){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); return; }
+  if(i.statut!=='planifiee'||i.debutReel||i.finReel) return;
+  _intDemarreTs=Date.now();
+  intSetStatut(id,'encours',()=>views.interventions()); }
+/* Ouvrir la fiche d'une intervention déjà en cours. Le bouton « ▶ Démarrer » qu'elle remplace était sous le doigt : le second
+   toucher d'un double toucher tomberait dessus et ouvrirait la fiche sans qu'on l'ait voulu — il est ignoré une demi-seconde. */
+function intOuvrirFiche(id){ if(Date.now()-_intDemarreTs<600) return; detailIntervention(id); }
+/* La PROCHAINE intervention du jour à démarrer : la première, à l'heure, qui n'est pas commencée — une seule, et aucune tant
+   qu'une autre du jour est déjà en cours (on propose de l'ouvrir, pas d'en démarrer une seconde). Le code n'interdit pas
+   pour autant deux « en cours » : le menu de statut, « ▶ » de l'historique et le GPS en posent plusieurs sans contrôle — conservé. */
+function intEnCoursFiche(i){ return !!i&&(i.statut==='encours'||(!!i.debutReel&&!i.finReel&&i.statut!=='terminee')); }
+function intJourProchain(auj){ if((auj||[]).some(intEnCoursFiche)) return '';
+  const p=(auj||[]).find(i=>i.statut==='planifiee'&&!i.debutReel&&!i.finReel);
+  return p&&intStatutPermis(p,'encours')?p.id:''; }
 function renderIntTechDay(SRC){
   const today=todayISO();
   /* v739 : SA journée — pas les interventions non affectées que « Déplacer le planning » lui montre */
@@ -22354,12 +22375,12 @@ function renderIntTechDay(SRC){
   const semaine=act.filter(i=>i.date&&i.date>shiftDay(today,1)&&i.date<=shiftDay(today,7)&&i.statut!=='terminee').sort((a,b)=>((a.date||'')+(a.heure||'')).localeCompare((b.date||'')+(b.heure||'')));
   const plusTard=act.filter(i=>(!i.date&&i.statut!=='terminee')||(i.date&&i.date>shiftDay(today,7)&&i.statut!=='terminee')).sort((a,b)=>((a.date||'9999')+(a.heure||'')).localeCompare((b.date||'9999')+(b.heure||'')));
   const done=SRC.filter(i=>i.statut==='terminee').sort((a,b)=>((b.date||'')+(b.heure||'')).localeCompare((a.date||'')+(a.heure||''))).slice(0,10);
-  const nextId=(auj.find(i=>i.statut==='planifiee')||{}).id;
+  const nextId=intJourProchain(auj);   // « ▶ Démarrer » : la prochaine du jour, une seule (17 octobre 2026)
   const secD=(title,color,arr,open,opts)=>arr.length?`<details ${open?'open':''}><summary style="cursor:pointer;font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:${color};margin:14px 2px 8px;font-weight:800;list-style:none">▸ ${title} · ${arr.length}</summary>${arr.map(i=>intTechCard(i,Object.assign({},opts,{startBtn:false}))).join('')}</details>`:'';
   $('content').innerHTML=`<div class="mj">
     ${secD('🔴 En retard','var(--red)',retard,true,{showDate:true})}
     <div style="font-size:12px;letter-spacing:.8px;text-transform:uppercase;color:var(--acc-txt);margin:14px 2px 8px;font-weight:800">▶ Aujourd'hui — ${new Date(today+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'})}</div>
-    ${auj.length?auj.map(i=>intTechCard(i,{big:true})).join(''):`<div class="card">${emptyState('🎉','Aucune intervention aujourd’hui.','Profite pour vérifier ton stock et ton véhicule.','')}</div>`}
+    ${auj.length?auj.map(i=>intTechCard(i,{big:true,startBtn:i.id===nextId,ouvrirBtn:true})).join(''):`<div class="card">${emptyState('🎉','Aucune intervention aujourd’hui.','Profite pour vérifier ton stock et ton véhicule.','')}</div>`}
     ${secD('📆 Demain','var(--blue)',demain,false,{showDate:true})}
     ${secD('📆 Cette semaine','var(--blue)',semaine,false,{showDate:true})}
     ${secD('📆 Plus tard / à planifier','var(--t3)',plusTard,false,{showDate:true})}
@@ -25126,10 +25147,10 @@ function intStatutMenu(id){ const i=db.interventions.find(x=>x.id===id); if(!i) 
   openModal(`<div class="modal-head"><h3>Statut de l'intervention</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     ${permis.map(s=>{ const cur=i.statut===s;
       return `<button class="btn ${cur?'':'ghost'}" style="width:100%;justify-content:space-between;margin-bottom:8px;padding:13px 16px" onclick="closeModal();intSetStatut('${id}','${s}')"><span>${(STATUT_INT[s]||{}).l||s}</span>${cur?'✓':''}</button>`; }).join('')}`); }
-function intSetStatut(id,st){ if(st==='annulee' && !can('annuler')){ toast('Annulation non autorisée pour votre rôle'); return; }
+function intSetStatut(id,st,apres){ if(st==='annulee' && !can('annuler')){ toast('Annulation non autorisée pour votre rôle'); return; }
   if(!intStatutPermis(db.interventions.find(x=>x.id===id),st)){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); return; }
   if(st==='annulee'){ intAnnulerModal(id); return; }   // annulation → toujours avec motif
-  intSetStatutDo(id,st); }
+  intSetStatutDo(id,st,apres); }
 /* Annulation avec motif (ex : « le client a rappelé pour annuler ») */
 function intAnnulerModal(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   openModal(`<div class="modal-head"><h3>🚫 Annuler l'intervention</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -25181,12 +25202,14 @@ function intRepasseNonTerminee(i,ancien){
   delete i.finReel; delete i.dureeReelle;
   return intRecaleDefaire(i);
 }
-function intSetStatutDo(id,st){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const ancien=i.statut; i.statut=st; intHisto(i,'Statut : '+((STATUT_INT[st]||{}).l||st));
+/* `apres` (facultatif) : ce que l'écran fait une fois le statut écrit, à la place de rouvrir la fiche. Le menu de statut n'en passe
+   pas (il est DANS la fiche) ; « ▶ Démarrer » de « Ma journée » repeint sa liste (décision de Justin, 17 octobre 2026). */
+function intSetStatutDo(id,st,apres){ const i=db.interventions.find(x=>x.id===id); if(!i)return; const ancien=i.statut; i.statut=st; intHisto(i,'Statut : '+((STATUT_INT[st]||{}).l||st));
   let rendu=''; if(st==='planifiee'||st==='encours') rendu=intRepasseNonTerminee(i,ancien);
   if(st==='encours'&&!i.debutReel) i.debutReel=Date.now();
   let nd='',dep='';
   if(st==='terminee'){ i.finReel=Date.now(); if(i.debutReel) i.dureeReelle=Math.round((i.finReel-i.debutReel)/60000); dep=intRecaleAuJourFait(i); syncFactureFromIntervention(i,{cloture:true}); nd=intRecurNext(i); }
-  logEvent('Intervention '+(STATUT_INT[st].l.toLowerCase()),i.titre,'intervention'); save(); renderIntDetail(id); toast(STATUT_INT[st].l+(dep?' · 📅 déplacée du '+fmtShort(dep)+' à aujourd’hui':'')+(rendu?' · 📅 remise au '+fmtShort(i.date):'')+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
+  logEvent('Intervention '+(STATUT_INT[st].l.toLowerCase()),i.titre,'intervention'); save(); if(typeof apres==='function') apres(); else renderIntDetail(id); toast(STATUT_INT[st].l+(dep?' · 📅 déplacée du '+fmtShort(dep)+' à aujourd’hui':'')+(rendu?' · 📅 remise au '+fmtShort(i.date):'')+(nd?' · 🔁 prochaine le '+fmtShort(nd):'')); }
 /* Multi-techniciens : techIds[] (tous), techId = principal (compatibilité) */
 function intTechIds(i){ return (i&&i.techIds&&i.techIds.length)?i.techIds:(i&&i.techId?[i.techId]:[]); }
 function techNames(i){ const ids=intTechIds(i); return ids.length?ids.map(id=>techName(id)).filter(Boolean).join(', '):'Non assigné'; }
