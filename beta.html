@@ -40904,6 +40904,14 @@ let _platHaute=null;
 function opPlatHaute(){
   const uad=navigator.userAgentData;
   if(!uad||!uad.getHighEntropyValues) return;
+  /* ⛔ ON NE CROIT L'API QUE SI ELLE DÉCRIT LE MÊME APPAREIL QUE L'AGENT (accueil#17). Un Chromium qui s'annonce
+     « Safari / Macintosh » (agent forcé : mode appareil des outils de développement, banc d'essai) répond avec SA
+     plateforme : la `platformVersion` d'une autre machine s'affichait comme « Version du système : 10 », « mesurée ».
+     Il faut un agent Chromium (« Chrome/ », « Edg/ ») ET une plateforme de l'API qui dit la même chose que l'agent ;
+     sinon on ne prétend pas savoir — 0 veut dire « on ne sait pas ». */
+  const _ua=navigator.userAgent||'', _os=opOS(), _pf=String(uad.platform||'');
+  const _chromium=/Chrome\/|Edg[A-Z]?\//.test(_ua), _coherent=(_os==='macos'&&/^macOS$/i.test(_pf))||(_os==='windows'&&/^Windows$/i.test(_pf));
+  if(!_chromium||!_coherent) return;
   try{ uad.getHighEntropyValues(['platformVersion']).then(h=>{
     const v=parseInt(String((h&&h.platformVersion)||'').split('.')[0],10);
     if(isFinite(v)&&v>0){ _platHaute=v; try{ opPlatAppliquer(); }catch(e){} }
