@@ -5728,14 +5728,17 @@ a.menu-action { text-decoration: none; }
   /* ⛔ (m13) la limite du nom d'un groupe se compte en SIGNES (points de code), comme le service (`Array.from(nom).length <= 80`) : `maxlength` compte des unités UTF-16, un émoji en pèse deux —
      45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin. */
   const NOM_GROUPE_MAX = 40;
-  /* ⛔ (p04) UNE SEULE RÈGLE ET UN SEUL COMPTEUR pour le nom d'un groupe : la création (`limiterNomGroupe`) et le renommage (`limiterRenommage`, dans les Infos) coupent tous deux ici, au signe. Le
-     renommage portait `maxlength="80"` : 80 UNITÉS UTF-16 — 40 émojis — là où la création compte 40 SIGNES. */
-  function limiterNomSignes(champ) {
+  /* ⛔ (p04) UN SEUL COMPTEUR pour le nom d'un groupe, deux limites qui ne bougent pas : la création coupe à 40 (`NOM_GROUPE_MAX`, lot m13), le renommage garde la limite du service, 80 (`NOM_RENOMMAGE_MAX`,
+     `Array.from(nom).length <= 80` dans routes.js) — celle que l'utilisateur connaît (m04 : « maxlength 80 comme le service »). Le défaut n'était pas la limite mais l'UNITÉ : `maxlength="80"` compte des unités
+     UTF-16, 40 émojis pour 80. On ne raccourcit donc rien (un nom de 41 à 80 signes, déjà enregistré, se corrige sans être raboté) ; que la création et le renommage diffèrent (40 contre 80) est une décision
+     de produit, laissée à Justin. */
+  const NOM_RENOMMAGE_MAX = 80;
+  function limiterNomSignes(champ, max) {
     const signes = Array.from(champ.value);
-    if (signes.length > NOM_GROUPE_MAX) champ.value = signes.slice(0, NOM_GROUPE_MAX).join('');
+    if (signes.length > max) champ.value = signes.slice(0, max).join('');
   }
   function limiterNomGroupe(champ) {
-    limiterNomSignes(champ);
+    limiterNomSignes(champ, NOM_GROUPE_MAX);
     g().nom = champ.value;
   }
   $('g-nom').addEventListener('input', e => { if (!e.isComposing) limiterNomGroupe(e.target); else g().nom = e.target.value; });
@@ -7871,11 +7874,11 @@ a.menu-action { text-decoration: none; }
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
     } catch (er) { erreurInfo(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Cette action n\'a pas pu se faire.') : phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
-  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite de la création (`limiterNomSignes`) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
-     (clavier chinois, japonais, accents morts) on attend sa fin. Un nom plus long déjà enregistré n'est pas touché tant qu'on n'y tape rien. */
+  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite du service (`NOM_RENOMMAGE_MAX`, 80) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
+     (clavier chinois, japonais, accents morts) on attend sa fin. Le service refuse au-delà de 80 : un nom enregistré n'est jamais plus long, et rien n'est coupé en dessous. */
   const limiterRenommage = e => {
     if (!e.target || e.target.id !== 'gr-renom' || (e.type === 'input' && e.isComposing)) return;
-    limiterNomSignes(e.target);
+    limiterNomSignes(e.target, NOM_RENOMMAGE_MAX);
   };
   $('info-corps').addEventListener('input', limiterRenommage);
   $('info-corps').addEventListener('compositionend', limiterRenommage);
