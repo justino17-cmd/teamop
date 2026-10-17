@@ -24783,7 +24783,7 @@ function printRegistre(cid){ const c=db.clients.find(x=>x.id===cid)||{}; const i
 }
 
 /* ═══════════════ CLIENTS ═══════════════ */
-let cliTypeF='tous';
+let cliTypeF='tous', cliSearch='';
 views.clients=function(){
   const _tous=visibleClients(db.clients);
   setHeader('Clients',`${_tous.length} client(s)`,`${can('voirTout')?`<button class="btn ghost" onclick="exportClientsCsv()">CSV</button> `:''}<button class="btn" onclick="formClient()">＋ Client</button>`);
@@ -24793,6 +24793,23 @@ views.clients=function(){
      d'étiquettes (plus aucune n'existe) donc sans geste pour lever le filtre — les clients semblaient
      avoir disparu. Une étiquette qui n'existe plus nulle part ne filtre plus rien, et on le remet à zéro. */
   if(cliTagFilter && !_tags.includes(cliTagFilter)) cliTagFilter='';
+  const nPro=_tous.filter(c=>cliIsPro(c)).length;
+  if(!(nPro&&nPro<_tous.length)) cliTypeF='tous';   // plus de barre pour le lever : il ne filtre plus rien (même piège que l'étiquette)
+  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
+  /* un filtre actif se VOIT toujours, et se lève d'un geste : la puce « Filtre : VIP ✕ » */
+  const puceFiltre=cliTagFilter?`<div class="chip active" onclick="cliTagFilter='';views.clients()" title="Retirer le filtre">Filtre : ${esc(cliTagFilter)} ✕</div>`:'';
+  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}${puceFiltre}</div>`:'';
+  /* clients#8 : un champ de recherche, posé AU-DESSUS d'une liste qui se redessine seule (`renderClientsList`) —
+     comme la liste des box : reconstruire le champ à chaque frappe fermerait le clavier. Il reste visible tant
+     qu'une recherche est active, même s'il ne reste qu'un client : jamais un filtre caché. */
+  const recherche=(_tous.length>1||cliSearch)?`<input class="search-inp" id="cli-search" placeholder="Nom, téléphone, ville, e-mail…" value="${esc(cliSearch)}" oninput="cliSearch=this.value;rechDiffere(renderClientsList)" autocomplete="off">`:'';
+  $('content').innerHTML=recherche+typeBar+tagBar+'<div id="cli-liste"></div>';
+  renderClientsList();
+}
+/* La liste elle-même : filtre d'étiquette, de type, recherche, puis TRI PAR NOM (accents et casse ignorés —
+   la liste suivait l'ordre d'insertion : « Aaa » après « M. et Mme Durand », les doublons en fin). */
+function renderClientsList(){ const el=$('cli-liste'); if(!el) return;
+  const _tous=visibleClients(db.clients);
   let _clis=_tous; if(cliTagFilter) _clis=_clis.filter(c=>(c.tags||[]).includes(cliTagFilter));
   /* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026) : les initiales dans une pastille,
      le nom en 17 semi-gras, le nombre d'interventions à droite, « Ville · téléphone » dessous, le
@@ -24801,6 +24818,10 @@ views.clients=function(){
      « Supprimer »), à un tap, gardés par les mêmes cases (`delItem` relit « Clients → Supprimer »).
      « Pro » / « Particulier » devient un segmenté au-dessus de la liste, comme dans la maquette. */
   if(cliTypeF==='pro') _clis=_clis.filter(c=>cliIsPro(c)); else if(cliTypeF==='part') _clis=_clis.filter(c=>!cliIsPro(c));
+  const q=norm(cliSearch).trim(), qTel=/^[\d\s.+()\-]+$/.test(String(cliSearch).trim())?String(cliSearch).replace(/\D/g,''):'';
+  if(q) _clis=_clis.filter(c=>norm([c.nom,c.adresse,c.ville,c.codePostal,c.contact,c.email,c.tel].filter(Boolean).join(' ')).includes(q)
+    || (qTel.length>=3&&String(c.tel||'').replace(/\D/g,'').includes(qTel)));   // le téléphone se compare en chiffres
+  _clis=_clis.slice().sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));
   const rows=_clis.map(c=>{ const n=db.interventions.filter(i=>i.clientId===c.id).length; const pro=cliIsPro(c);
     const ou=(c.ville||'').trim()||(c.adresse||'').trim();
     const meta=[pro?'':'Particulier', esc(ou), esc(c.tel||'')].filter(Boolean).join(' · ');
@@ -24814,12 +24835,10 @@ views.clients=function(){
       </div>
       <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>`;}).join('');
-  const nPro=_tous.filter(c=>cliIsPro(c)).length;
-  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
-  /* un filtre actif se VOIT toujours, et se lève d'un geste : la puce « Filtre : VIP ✕ » */
-  const puceFiltre=cliTagFilter?`<div class="chip active" onclick="cliTagFilter='';views.clients()" title="Retirer le filtre">Filtre : ${esc(cliTagFilter)} ✕</div>`:'';
-  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}${puceFiltre}</div>`:'';
-  $('content').innerHTML=typeBar+tagBar+(_clis.length? `<div class="tf-groupe">${rows}</div>`:`<div class="card">${emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`);
+  el.innerHTML=_clis.length? `<div class="tf-groupe">${rows}</div>`
+    : `<div class="card">${(_tous.length&&(cliTagFilter||q||cliTypeF!=='tous'))
+        ? emptyState('🔎','Aucun client ne correspond.','Tout afficher',"cliTagFilter='';cliTypeF='tous';cliSearch='';views.clients()")
+        : emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`;
 }
 /* ⛔ v738 — UNE FICHE S'OUVRE PAR SON IDENTIFIANT, PAS PAR SON MENU. La recherche, un lien, une
    notification y mènent : la règle de visibilité doit donc être ICI, pas seulement dans la liste. */
@@ -24918,6 +24937,16 @@ function cliLocaliserFond(id){ const c=db.clients.find(x=>x.id===id); if(!c||!St
     if(!g||!x||x.lat!=null||x.adresse!==adr) return;
     x.lat=g.lat; x.lng=g.lng; save(); if(current==='carteInt') views.carteInt();
   }).catch(()=>{}); }
+/* ⛔ UN DOUBLON SE SIGNALE, SANS BLOQUER — clients#8. Deux « Doublon Test » au même téléphone étaient créés sans une
+   question. Même nom (`nomNorm` : casse, accents, ponctuation, espaces ignorés) ou même téléphone (en chiffres, six
+   au moins : deux fiches sans numéro ne sont pas « le même ») : un `confirm` à la CRÉATION seulement. Refusé, rien
+   n'est créé et la fenêtre reste ouverte. Cherché dans ce que je vois (`visibleClients`) : la question ne révèle pas
+   un client hors de mon périmètre. */
+function cliDoublon(d){ const nom=nomNorm(d.nom), tel=String(d.tel||'').replace(/\D/g,'');
+  for(const c of visibleClients(db.clients)){
+    if(nom&&nomNorm(c.nom)===nom) return {c,raison:'même nom'};
+    if(tel.length>=6&&String(c.tel||'').replace(/\D/g,'')===tel) return {c,raison:'même téléphone'}; }
+  return null; }
 /* Enregistrement du client + préférences de passage (P10a : db.clients[x].prefPassage) */
 function saveClientForm(e,id){ e.preventDefault(); if(!permGarde('crm',id?'modifier':'ajouter','un client')) return; const d=Object.fromEntries(new FormData(e.target));
   const jours=[]; for(let k=0;k<7;k++){ if(d['pp_j'+k]!==undefined) jours.push(k); delete d['pp_j'+k]; }
@@ -24931,7 +24960,9 @@ function saveClientForm(e,id){ e.preventDefault(); if(!permGarde('crm',id?'modif
       neuf.lat=null; neuf.lng=null;
       const dv=cliAdresseDerive(d.adresse); if(dv){ if(d.codePostal===undefined) neuf.codePostal=dv.codePostal; if(d.ville===undefined) neuf.ville=dv.ville; } }
     db.clients[ix]=neuf; toast('Mis à jour'); }
-  else { d.x=10+Math.random()*80; d.y=10+Math.random()*80;
+  else { const dbl=cliDoublon(d);
+    if(dbl && !confirm(`Un client « ${dbl.c.nom} » existe déjà (${dbl.raison}). Le créer quand même ?`)) return;
+    d.x=10+Math.random()*80; d.y=10+Math.random()*80;
     /* qui l'a créé : sans cela, un technicien qui ajoute un client le perdrait de vue
        à la seconde suivante, tant qu'aucune intervention ne l'y rattache */
     d.creePar=currentUser&&currentUser.id;

@@ -25,29 +25,31 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 console.log('\n── 1130 · 0. la population ──');
 const VC = bloc('views.clients=function(){'), AT = ligne('function allTags(){'), TC = ligne('function tagChipsHtml(x){'), CP = ligne('function cliIsPro(c){'),
   TG = ligne('function toggleTag(coll,id,t){'), ES = ligne('function emptyState(ico,txt,btn,fn){'), ESC = ligne('const esc = s =>'), INI = ligne('const initials = name =>'),
-  NM = ligne('const norm = s =>'), ETAT = ligne('let cliTagFilter='), ETAT2 = ligne('let cliTypeF=');
+  NM = ligne('const norm = s =>'), ETAT = ligne('let cliTagFilter='), ETAT2 = ligne('let cliTypeF='),
+  RL = bloc('function renderClientsList(');   // g10 clients#8 : la liste se redessine à part, dans #cli-liste
 v('les pièces sont trouvées', [VC.length > 1500, !!AT, !!TC, !!CP, !!TG, !!ES, !!ESC, !!INI, !!NM, !!ETAT, !!ETAT2], [true, true, true, true, true, true, true, true, true, true, true]);
 v('⛔ une seule définition de views.clients et de allTags (une seconde gagnerait en silence)', [SRC.split('views.clients=function(').length - 1, SRC.split('function allTags(').length - 1], [1, 1]);
 
 function monde(clients, interventions) {
-  const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, __sub: '', __page: { innerHTML: '' },
+  const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, __sub: '', __page: { innerHTML: '' }, __liste: { innerHTML: '' },
     db: { clients, interventions: interventions || [], devis: [], factures: [] }, currentUser: { id: 'u1', role: 'admin' },
     __saves: 0 };
   vm.createContext(ctx);
   vm.runInContext(`${ESC.replace('const ', 'var ')}\n${INI.replace('const ', 'var ')}\n${NM.replace('const ', 'var ')}\n${ETAT}\n${ETAT2}\n${AT}\n${TC}\n${CP}\n${TG}\n${ES}
-    function $(id){ return id==='content' ? __page : { value:'', focus(){}, innerHTML:'' }; }
+    function $(id){ return id==='content' ? __page : (id==='cli-liste' ? __liste : { value:'', focus(){}, innerHTML:'' }); }
     function setHeader(t,s){ __sub=s; } function can(){ return true; } function visibleClients(l){ return l; }
     function save(){ __saves++; } function openTagEditor(){}
     function exportClientsCsv(){} function formClient(){} function ficheClient(){}
     function rechDiffere(f){ f(); } var views={};
-    ${VC}`, ctx);
+    ${RL}\n${VC}`, ctx);
   return ctx;
 }
 const base = () => [
   { id: 'c1', nom: 'Boulangerie Au Bon Pain', ville: 'La Rochelle', tel: '0612345678', tags: ['VIP'] },
   { id: 'c2', nom: 'Cabinet Martin', ville: 'Niort', tags: [] }, { id: 'c3', nom: 'M. Durand', tags: [] },
   { id: 'c4', nom: 'Garage Leroy', tags: [] }, { id: 'c5', nom: 'Hôtel du Port', tags: [] }, { id: 'c6', nom: 'Pharmacie Nord', tags: [] }, { id: 'c7', nom: 'Résidence Les Pins', tags: [] }];
-const lignes = W => (W.__page.innerHTML.match(/class="tf-rangee"/g) || []).length;
+const html = W => W.__page.innerHTML + W.__liste.innerHTML;   // la liste vit dans #cli-liste (avant clients#8 : dans #content)
+const lignes = W => (html(W).match(/class="tf-rangee"/g) || []).length;
 const evalDansPage = (W, code) => vm.runInContext(code, W);
 const filtreLu = W => vm.runInContext('cliTagFilter', W);
 
@@ -60,7 +62,7 @@ console.log('\n── 1130 · 1. le scénario du testeur : retirer la dernière 
   W.views.clients();
   v('⛔ le filtre mort est levé : les sept clients reparaissent', lignes(W), 7);
   v('… et cliTagFilter est remis à zéro', filtreLu(W), '');
-  vrai('… et l’écran ne dit pas « Aucun client. »', !/Aucun client\./.test(W.__page.innerHTML)); }
+  vrai('… et l’écran ne dit pas « Aucun client. »', !/Aucun client\./.test(html(W))); }
 
 console.log('\n── 1130 · 2. un filtre actif se voit toujours, et se lève d’un geste ──');
 { const W = monde(base());

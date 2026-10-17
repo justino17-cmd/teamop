@@ -26,7 +26,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 
 console.log('\n── 1131 · 0. la population ──');
 const SC = bloc('function saveClientForm(e,id){');
-const AIDES = ['function cliAdresseDerive(', 'function cliGeoRequete(', 'function cliLocaliserFond('].map(bloc).join('\n');
+const AIDES = ['function cliAdresseDerive(', 'function cliGeoRequete(', 'function cliLocaliserFond(', 'function cliDoublon(', 'function nomNorm('].map(bloc).join('\n');   // cliDoublon : g10 clients#8 (test-1134)
 vrai('saveClientForm est trouvée', SC.length > 900, SC.length);
 v('⛔ une seule définition de saveClientForm', SRC.split('function saveClientForm(').length - 1, 1);
 
@@ -37,6 +37,7 @@ function monde(clients, geocodeRep) {
   vm.createContext(ctx);
   vm.runInContext(`${AIDES}
     var views={ carteInt(){ __vues.push('carteInt'); }, clients(){}, carte(){} };
+    function visibleClients(l){ return l; }
     function permGarde(){ return true; } function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; }
     function closeModal(){} function go(){} function logEvent(){} var __id=0; function uid(){ return 'n'+(++__id); }
     function FormData(t){ return Object.entries(t); } function initials(){ return ''; }
