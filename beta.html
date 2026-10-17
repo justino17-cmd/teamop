@@ -20600,8 +20600,11 @@ document.addEventListener('touchstart',e=>{ if(e.touches.length!==1||(current!==
   /* deux marques de SOURCE : data-drag-int (les cartes à fantôme : Multi, Semaine, Jour, carte) et data-tp-int (les lignes des listes —
      Semaine/Jour en liste, Mois, Interventions — qui se glissent vers une puce de jour ou une rangée de technicien). La seconde est
      distincte pour ne pas donner à ces lignes le menu contextuel ni la mise en retrait de la recherche, qui lisent la première. */
-  const c=e.target.closest('[data-drag-int]')||e.target.closest('[data-tp-int]'); if(!c) return;
-  const id=c.getAttribute('data-drag-int')||c.getAttribute('data-tp-int'), d0=e.touches[0];
+  const c=e.target.closest('[data-drag-int]')||e.target.closest('[data-tp-int]')||e.target.closest('[data-act]'); if(!c) return;
+  /* une ACTIVITÉ (tâche, garage, dépôt : data-act) se glisse comme à la souris (actDragStart) : son identifiant part préfixé « act: »,
+     ce que les trois dépôts horaires (Multi, Semaine, Jour) reconnaissent avant de chercher une intervention */
+  const id=c.getAttribute('data-drag-int')||c.getAttribute('data-tp-int')||(c.getAttribute('data-act')?'act:'+c.getAttribute('data-act'):''), d0=e.touches[0];
+  if(!id) return;
   planTpArreter(_tpDrag);
   /* où le doigt tient la carte : comme à la souris (planDragStart), la carte se pose là où on l'a saisie */
   let dy=0; try{ const rb=c.getBoundingClientRect(); dy=Math.max(0,Math.min(rb.height,d0.clientY-rb.top)); }catch(_){ }
