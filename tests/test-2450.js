@@ -44,7 +44,7 @@ const M = {
   modesActifs: ligne('const modesActifs = '), coteDe: ligne('const coteDe = '), dansMode: ligne('const dansMode = '), duCote: ligne('const duCote = '),
   coteReu: ligne('const coteReu = '), sonStatutTxt: ligne('const sonStatutTxt = '),
   /* lot m09 (la saison de l'heure) : ficheCommun écrit la plage par `quandFiche`, qui lit `plageHeures` et `heureSaison` — les VRAIES, extraites comme le reste */
-  heureSaison: jusqua('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '), FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), plageLongue: ligne('const plageLongue = '), quandFiche: ligne('const quandFiche = '),
+  heureSaison: jusqua('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '), FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), minutesDuJour: ligne('const minutesDuJour = '), jourFinDit: ligne('const jourFinDit = '), finLue: ligne('const finLue = '), plageLongue: ligne('const plageLongue = '), quandFiche: ligne('const quandFiche = '),
   ficheTete: decl('function ficheTete('), ficheCommun: decl('function ficheCommun('), vcAucun: ligne('const vcAucun = '), rendreVcCategorie: decl('function rendreVcCategorie('),
 };
 

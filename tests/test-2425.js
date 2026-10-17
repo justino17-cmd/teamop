@@ -36,7 +36,7 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
     esc: ligne('const esc = '), FMT_HEURE: ligne('const FMT_HEURE = '), FMT_JOUR_LONG: ligne('const FMT_JOUR_LONG = '), FMT_JOUR_COURT: ligne('const FMT_JOUR_COURT = '), maj1: ligne('const maj1 = '),
     heureSaison: entre('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '),
     /* (lot q01) le jour de fin d'une réunion de plusieurs jours : `libelleHoraire` et `quandFiche` lisent `plageLongue` */
-    FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), plageLongue: ligne('const plageLongue = '),
+    FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), minutesDuJour: ligne('const minutesDuJour = '), jourFinDit: ligne('const jourFinDit = '), finLue: ligne('const finLue = '), plageLongue: ligne('const plageLongue = '),
     heureDans: ligne('function heureDans('), villeDe: ligne('const villeDe = '), libelleHoraire: decl('function libelleHoraire('), quandRdv: ligne('const quandRdv = '),
     titreElt: ligne('const titreElt = '), journeeElt: ligne('const journeeElt = '), termineeElt: ligne('const termineeElt = '), sorteElt: ligne('const sorteElt = '), nombreElts: decl('function nombreElts('),
     etiquetteJour: ligne('const etiquetteJour = '), libelleEtat: decl('function libelleEtat('), puceAgenda: entre('function puceAgenda(', "corps + '</button>';\n  }"), caseJour: decl('function caseJour('),

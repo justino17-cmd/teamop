@@ -16,7 +16,7 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
 
 const M = { esc: ligne('const esc = '), FMT_HEURE: ligne('const FMT_HEURE = '), heureSaison: entre('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '),
   /* (lot q01) la rangée empilée dit le jour de fin d'une réunion de plusieurs jours : `heureEmpilee` lit `autreJour` et `FMT_JJMM` */
-  FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), plageLongue: ligne('const plageLongue = '), heureEmpilee: entre('const heureEmpilee = ', '\n  };') };
+  FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), minutesDuJour: ligne('const minutesDuJour = '), jourFinDit: ligne('const jourFinDit = '), finLue: ligne('const finLue = '), plageLongue: ligne('const plageLongue = '), heureEmpilee: entre('const heureEmpilee = ', '\n  };') };
 const manquants = Object.keys(M).filter(k => !M[k]);
 vrai('(population) chaque morceau de la page est trouvé' + (manquants.length ? ' — manquent : ' + manquants.join(', ') : ''), !manquants.length);
 const ctx = { Intl, Date, Math, Number, String, Array, Set, Object, console }; vm.createContext(ctx);
