@@ -89,8 +89,8 @@ function faireBac(src, caps, etatDepart) {
 async function essai(titre, f) { try { await f(); } catch (e) { vrai('⛔ ' + titre + ' : la section est morte — ' + String(e && e.message || e).split('\n')[0], false); } }
 
 (async () => {
-  const L = ['cleo', 'ana', 'ben', 'dan', 'eve'];
-  const NOMS = { cleo: 'Cléo Petit', ana: 'Ana Martin', ben: 'Ben Durand', dan: 'Dan Roux', eve: 'Eve Blanc' };
+  const L = ['cleo', 'ana', 'ben', 'dan', 'eve', 'fay'];
+  const NOMS = { cleo: 'Cléo Petit', ana: 'Ana Martin', ben: 'Ben Durand', dan: 'Dan Roux', eve: 'Eve Blanc', fay: 'Fay Lemoine' };
   const MDP = Object.fromEntries(L.map(k => [k, 'pw-' + k + '-12345678']));
   const og = await T.fauxOpGestion(Object.fromEntries(L.map(k => [k, { pass: MDP[k], nom: NOMS[k], actif: true }])));
   const svc = await T.lancerService({ urlGestion: og.url });
@@ -176,6 +176,15 @@ async function essai(titre, f) { try { await f(); } catch (e) { vrai('⛔ ' + ti
     v('(population) le service lit TOUJOURS Eve parmi les membres de l\'espace de Cléo (administratrice) …', (await src.espaceContacts(idEspace)).contacts.some(p => p.id === ids.eve), true);
     v('… mais bloquée par Cléo, elle n\'est plus proposée ; Ben reste', bq.choix().map(c => c.id).sort(), [ids.ana, ids.ben, ids.dan].sort());
     await src.debloquer(ids.eve);
+    /* ⛔ RELUS À CHAQUE OUVERTURE : `chargerCollegues` rend son cache tel quel s'il existe (même `[]`, qui est truthy). Sans la remise à `null` de `chargerChoixCollegues`, un collègue arrivé
+       entre deux ouvertures ne serait jamais proposé — Fay rejoint l'espace APRÈS la première lecture, et la seconde ouverture doit la montrer. */
+    const rel = faireBac(src, caps, { mode: 'pro' }); rel.setContacts(src.contacts());
+    rel.charger('chat'); await T.attendre(() => rel.reu.colleagues !== null && rel.reu.colleagues.length > 0, 8000, 10); await T.dort(100);
+    v('(population) première ouverture : le cache porte Ben et Eve, pas Fay (elle n\'est encore dans aucun espace)', [rel.reu.colleagues.map(p => p.id).sort(), rel.choix().some(c => c.id === ids.fay)], [[ids.ben, ids.eve].sort(), false]);
+    const entree = await P.fay.post('/api/invitations/accepter', { code: inv.j.code });
+    if (entree.code !== 200 && entree.code !== 201) throw new Error('invitation non acceptée (fay) : ' + entree.code);
+    rel.charger('chat'); await T.attendre(() => rel.reu.colleagues !== null && rel.reu.colleagues.length > 2, 8000, 10); await T.dort(100);
+    v('⛔ SECONDE ouverture, cache déjà rempli : le collègue arrivé entre-temps (Fay) est proposé — les collègues sont relus à chaque ouverture, pas gardés', [rel.choix().map(c => c.id).sort(), rel.reu.colleagues.some(p => p.id === ids.fay)], [[ids.ana, ids.ben, ids.dan, ids.eve, ids.fay].sort(), true]);
     v('le service accepte un groupe avec un collègue non-contact (ce que la page propose désormais est faisable)', (await P.cleo.post('/api/conversations/groupe', { nom: 'Collègues', membres: [ids.ben] })).code, 201);
     vrai('l\'ouverture d\'une feuille (« Nouveau groupe », « Nouvel appel », « Nouvelle discussion ») lit les collègues, et « Nouvelle discussion » se dessine avec la liste complète',
       /mode === 'chat' \|\| etat\.groupe\.mode === 'appel' \|\| etat\.groupe\.mode === 'nouvelle'\) \{ collegueChoix = \[\];[^\n]*chargerChoixCollegues\(etat\.groupe\.cle\);/.test(APERCU) && /ndModele\(contactsChoix\(\), etat\.conversations, G\.recherche\)/.test(APERCU)
