@@ -20352,7 +20352,13 @@ function planDropTech(e,techId){ e.preventDefault(); if(!canPlan()){ toast('Droi
 function planDup(i,patch){ if(!permGarde('int','ajouter','une intervention')) return; const c=JSON.parse(JSON.stringify(i)); c.id=uid(); c.num=''; c.statut='planifiee'; delete c.rapport; delete c.signature; delete c.sigTech; c.histo=[]; delete c.propose; delete c.obligation;
   Object.assign(c,patch||{}); db.interventions.push(c); intHisto(c,'Créée par duplication (planning)'); planStamp(c,null); save(); views.planning(); toast('Intervention dupliquée'); }
 /* ── Absences BLOQUANTES : refus net, sauf droit « Obliger à travailler » (confirmation) ── */
-function planAbsGate(techId,iso,i){ if(!techId||!iso) return true; const ab=absentOn(techId,iso); if(!ab) return true;
+/* La trace « Placée malgré un congé » (i.obligation) décrit la PLACE où l'intervention a été posée de force : dès que
+   le geste de déplacement la met ailleurs que sur un jour d'absence, elle n'a plus lieu d'être (le survol et le badge
+   « congé » mentaient). Elle se retire AU GESTE, jamais au chargement. Rend vrai si elle a été retirée. */
+function planObligationLever(i,techId,iso){ if(!i||!i.obligation) return false;
+  if(techId&&iso&&absentOn(techId,iso)) return false;
+  delete i.obligation; return true; }
+function planAbsGate(techId,iso,i){ const ab=(techId&&iso)?absentOn(techId,iso):null; if(!ab){ planObligationLever(i,techId,iso); return true; }
   const nom=techName(techId), typ=ABS_TYPES[ab.type]||ab.type||'absence';
   const jour=fmtShort(iso).replace(/\.$/,'');   // fmtShort finit par « . » (« 17 oct. ») : la phrase mettait « oct.. Appliquer »
   if(!can('planifObligerTravail')){ toast('❌ Impossible : '+nom+' est en '+typ+' le '+jour); return false; }
@@ -24433,6 +24439,7 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
      QUITTER (« Planifiée » / « En cours ») doit rendre la date prévue et retirer la fin réelle (intRepasseNonTerminee). */
   let _rendu='';
   if(id){ const ix=db.interventions.findIndex(x=>x.id===id); const _ancien=db.interventions[ix].statut; db.interventions[ix]={...db.interventions[ix],...data}; _saved=db.interventions[ix]; intHisto(db.interventions[ix],'Fiche modifiée');
+    { const _m=db.interventions[ix]; if(!_forceAbs&&_m.obligation&&!absentOn((_m.techIds&&_m.techIds[0])||_m.techId,_m.date)) delete _m.obligation; }   // déplacée par le formulaire vers une place sans congé : la trace « malgré un congé » part
     const _st=db.interventions[ix].statut;   // le statut APRÈS fusion : un formulaire sans select « Statut » ne change rien
     if(_ancien==='terminee'&&_st!=='terminee'&&_st!=='annulee') _rendu=intRepasseNonTerminee(db.interventions[ix],_ancien);
     syncFactureFromIntervention(db.interventions[ix],{cloture:_st==='terminee'&&_ancien!=='terminee'}); logEvent('Modif intervention',data.titre,'crud'); }
