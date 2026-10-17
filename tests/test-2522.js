@@ -1,4 +1,4 @@
-/* ══ test-1522 — LE LIEN D'INVITATION D'UN GROUPE DONT ON FAIT DÉJÀ PARTIE ═══════════════════════════════════════════════════════════════════════════════
+/* ══ test-2522 — LE LIEN D'INVITATION D'UN GROUPE DONT ON FAIT DÉJÀ PARTIE ═══════════════════════════════════════════════════════════════════════════════
    Revue de la bêta (lot m04, groupes#5). Un membre qui ouvre le lien d'invitation de SON groupe lisait « Déjà dans tes contacts » : le toast de « Accepter l'invitation » ne connaissait
    que les contacts (`mot(r.deja ? 'Déjà dans tes contacts' : …)` sans regarder `r.genre`). La source rend bien `{ genre: 'groupe', deja: true }` ; la conversation s'ouvrait bien.
 

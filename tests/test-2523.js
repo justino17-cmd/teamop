@@ -1,4 +1,4 @@
-/* ══ test-1523 — « RANGER DANS » SUR LA CONVERSATION OUVERTE ═════════════════════════════════════════════════════════════════════════════════════════════
+/* ══ test-2523 — « RANGER DANS » SUR LA CONVERSATION OUVERTE ═════════════════════════════════════════════════════════════════════════════════════════════
    Revue de la bêta (lot m04, conversations#4). Le principe est écrit dans le code (`ouvrirConv`, `changerMode`) : la conversation ouverte est toujours dans la liste qu'on voit. « Ranger dans
    Pro » depuis les Infos de la conversation OUVERTE (côté Perso) la rangeait de l'autre côté : elle quittait la liste affichée mais restait ouverte à droite, la bascule Perso / Pro ne bougeait pas
    (à raison : le côté est une préférence du compte), et le toast disait « Rangée dans Pro » devant une conversation toujours là.

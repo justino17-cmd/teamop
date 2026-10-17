@@ -1,4 +1,4 @@
-/* ══ test-1521 — RENOMMER UN GROUPE, COMME UN CANAL ═══════════════════════════════════════════════════════════════════════════════════════════════════════
+/* ══ test-2521 — RENOMMER UN GROUPE, COMME UN CANAL ═══════════════════════════════════════════════════════════════════════════════════════════════════════
    Revue de la bêta (lot m04, groupes#3). Un canal a son champ « Renommer » (`can-renommer`) ; les Infos d'un GROUPE n'en avaient aucun : le nom était du texte, alors que le service
    accepte `POST /api/conversations/:id/maj { nom }` pour un groupe (administrateur, 1 à 80 signes) et que `majConversation` de la source sait déjà le dire. Deux groupes créés sans nom
    s'appelaient donc tous deux « Nouveau groupe » pour toujours. (Le NOM PAR DÉFAUT d'un groupe — tiré de ses membres — est une décision de Justin : non faite ici.)

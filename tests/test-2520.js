@@ -1,4 +1,4 @@
-/* ══ test-1520 — « AJOUTER AU GROUPE » : UN REFUS DU SERVICE SE DIT ═══════════════════════════════════════════════════════════════════════════════════════
+/* ══ test-2520 — « AJOUTER AU GROUPE » : UN REFUS DU SERVICE SE DIT ═══════════════════════════════════════════════════════════════════════════════════════
    Revue de la bêta (lot m04, groupes#0). Dans les Infos d'un groupe, « Ajouter » sur quelqu'un qui m'a bloqué (ou avec qui je ne suis plus en contact) ne disait RIEN : le service répond
    200 `{ ajoutes: [], non_ajoutes: [ce_contact] }`, et la page faisait `await source.ajouterMembres(…)` sans lire la réponse — ni toast, ni phrase dans la feuille, la ligne restait là.
    Le service est juste (`routes.js` : « les autres sont RENDUS »), c'est la page qui n'écoutait pas ce qu'il rendait.

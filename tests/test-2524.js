@@ -1,4 +1,4 @@
-/* ══ test-1524 — ÊTRE RETIRÉ D'UN GROUPE OU D'UN CANAL PENDANT QU'ON LE REGARDE ══════════════════════════════════════════════════════════════════════════
+/* ══ test-2524 — ÊTRE RETIRÉ D'UN GROUPE OU D'UN CANAL PENDANT QU'ON LE REGARDE ══════════════════════════════════════════════════════════════════════════
    Revue de la bêta (lot m04, groupes@3 et securite@0). Retiré d'un groupe pendant qu'on le regarde, on revenait à la liste avec « Tu n'es plus dans cette conversation. » — vrai, mais
    qui ? lequel ? — et, si un message était en cours de saisie, rien ne disait qu'il n'était pas parti (« on croit à un bug »). Le brouillon n'est PAS rangé sur l'appareil (voulu : une
    conversation quittée ne garde rien) ; on le DIT, c'est tout.

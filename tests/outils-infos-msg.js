@@ -1,4 +1,4 @@
-/* ══ OUTILS DES BANCS DES INFOS D'UNE CONVERSATION (tests/test-1520 à 1529) ═══════════════════════════════════════════════════════════════════════════════
+/* ══ OUTILS DES BANCS DES INFOS D'UNE CONVERSATION (tests/test-2520 à 1529) ═══════════════════════════════════════════════════════════════════════════════
  *
  * Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas).
  *
