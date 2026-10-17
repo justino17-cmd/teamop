@@ -470,8 +470,13 @@
      mesuré à 1440, 820 et 390 px. Ils reprennent la marge de la page (`--rf-marge`, zone sûre comprise), celle que
      `html[data-refonte] .content` donne à tous les autres écrans ; la carte, elle, reste bord à bord. Par CLASSE, pas par
      écran : toute rangée de ce genre posée sous un `.content-map` suit. `!important` parce que le segmenté porte
-     `style="margin:0 0 10px"` en ligne (boxSousCats). */
-  html[data-refonte] .content-map > .filters.seg-on,html[data-refonte] .content-map > .pf-bar{
+     `style="margin:0 0 10px"` en ligne (boxSousCats).
+     Les CARTES posées SOUS la carte suivent aussi (relecture de g10 : la légende « Couleur = technicien », « Secteurs par
+     département », « Tournée & temps de trajet » — qui porte le bouton « Localiser les clients » — restaient collées au menu,
+     258→1440 à 1440 px, 0→390 à 390 px) : tout enfant direct `.card` sauf `.map-card`, et la rangée de repli `#map-fb`
+     (« Carte indisponible »). La carte elle-même reste bord à bord. */
+  html[data-refonte] .content-map > .filters.seg-on,html[data-refonte] .content-map > .pf-bar,
+  html[data-refonte] .content-map > .card:not(.map-card),html[data-refonte] .content-map > #map-fb{
     margin-left:max(var(--rf-marge,30px),env(safe-area-inset-left))!important;
     margin-right:max(var(--rf-marge,30px),env(safe-area-inset-right))!important}
   .leaflet-popup-content a{display:inline-block;}

@@ -31,7 +31,9 @@ vrai('⛔ marge droite de même', /margin-right:max\(var\(--rf-marge,30px\),env\
 vrai('⛔ `!important` : le segmenté écrit sa marge en ligne (style="margin:0 0 10px")', (corps.match(/!important/g) || []).length >= 2, corps);
 vrai('… et c’est bien la même variable que la page (`.content` de la refonte la lit)', /html\[data-refonte\] \.content\{\s*padding-left:max\(var\(--rf-marge,30px\),env\(safe-area-inset-left\)\);\s*padding-right:max\(var\(--rf-marge,30px\),env\(safe-area-inset-right\)\)\}/.test(SRC));
 v('--rf-marge existe aux trois largeurs (16, 24, 34)', ['html[data-refonte]{--rf-marge:16px}', 'html[data-refonte]{--rf-marge:24px}', 'html[data-refonte]{--rf-marge:34px}'].map(x => SRC.includes(x)), [true, true, true]);
-vrai('la carte, elle, ne reçoit aucune marge de cette règle (bord à bord)', !/map-card/.test(regle));
+vrai('la carte, elle, ne reçoit aucune marge de cette règle (bord à bord)', !/\.map-card\b(?!\))/.test(sel.replace(/:not\(\.map-card\)/g, '')), sel);
+vrai('⛔ relecture : les CARTES sous la carte (légende, secteurs, tournée + « Localiser les clients ») suivent la même règle — tout enfant direct .card sauf .map-card', /\.content-map > \.card:not\(\.map-card\)/.test(sel), sel);
+vrai('… et la rangée de repli #map-fb (« Carte indisponible »)', /\.content-map > #map-fb/.test(sel), sel);
 
 console.log('\n── 1135 · 2. le balisage que la règle suppose ──');
 const cb = SRC.slice(SRC.indexOf('views.carteBox=function(){'), SRC.indexOf('views.carteBox=function(){') + 1400),
@@ -40,6 +42,8 @@ vrai('Carte des box : le segmenté est le premier enfant de #content, avant la c
 vrai('… et boxSousCats rend un <nav class="filters"> à marge en ligne (d’où !important)', /<nav class="filters" aria-label="Boxes" style="margin:0 0 10px">/.test(SRC));
 vrai('Carte interventions : la barre est le premier enfant de #content, avant la carte', /\$\('content'\)\.innerHTML=carteFiltreBar\(tousPts\)\+`<div class="card map-card"/.test(ci));
 vrai('… et carteFiltreBar rend une carte .pf-bar', /return `<div class="card pf-bar" onclick="event\.stopPropagation\(\)">/.test(SRC));
+vrai('Carte interventions : légende, secteurs et tournée sont des .card enfants directs de #content, APRÈS la carte', /\$\{legTech\}\$\{legende\}\s*<div class="card" style="margin-top:12px"><div class="card-head"><h3>Tournée & temps de trajet<\/h3>/.test(ci), ci.slice(ci.indexOf('map-card'), ci.indexOf('map-card') + 400));
+vrai('… et legTech / legende sont bien des <div class="card" …>', /const legTech = techsJour\.length\?`<div class="card"/.test(SRC) && /const legende = secteurs\.length\?`<div class="card"/.test(SRC));
 vrai('les deux écrans reçoivent bien .content-map (c’est elle qui retire la marge)', /\$\('content'\)\.classList\.toggle\('content-map', view==='carteBox'\|\|view==='carteInt'\)/.test(SRC));
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
