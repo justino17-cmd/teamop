@@ -36,7 +36,7 @@ const PIECES = {
   print: bloc('function printArchive(){'), fiche: bloc('function ficheTech(id){'), journal: bloc('function journalGo(id){'),
   ptSecs: bloc('function ptSecs(p,now){'), ptOuvert: ligne('function ptOuvert(p)'), ptTotal: ligne('function ptTotal(list,now)'),
   minutes: ligne('function minutes(deb,fin)'), vehAuto: ligne('function vehiculeAuto(v,u)'), note: ligne('const DOCS_EMIS_NOTE='), dureeStr: ligne('function dureeStr(min)'), docTot: ligne('function docTot(d)'),
-  ymOf: ligne('function ymOf(iso)'), isFin: ligne('function isFinanceMgr()'), norm: ligne('const norm =')
+  ymOf: ligne('function ymOf(iso)'), isFin: ligne('function isFinanceMgr()'), norm: ligne('const norm ='), vPlaque: ligne('const vPlaque='), vehName: ligne('const vehName =')
 };
 v('toutes les pièces sont trouvées (une tranche vide passerait au vert sur tout)', Object.entries(PIECES).filter(([, s]) => s.length < 20).map(([k]) => k), []);
 v('⛔ une seule définition de chaque fonction extraite',
@@ -57,8 +57,8 @@ function monde(o) {
     function can(c){ return !!__caps[c]; }
     function setHeader(){}  var $=id=>({ set innerHTML(h){ out.content=h; }, get innerHTML(){ return out.content; } });
     function toast(m){ out.toasts.push(String(m)); } function go(v){ out.go.push(v); }
-    function visibleDocs(l){ return l||[]; } function visibleInts(l){ return (l||[]).filter(i=>!__caps.__seulementMoi||(i.techIds||[]).includes('tMoi')); } function visibleBoxes(l){ return l||[]; }
-    function visibleVehicules(l){ return l||[]; } function visibleTechniciens(l){ return l||[]; }
+    function visibleDocs(l){ return (l||[]).filter(d=>!__caps.__docsRestreints||d.clientId!=='cHors'); } function visibleInts(l){ return (l||[]).filter(i=>!__caps.__seulementMoi||(i.techIds||[]).includes('tMoi')); } function visibleBoxes(l){ return l||[]; }
+    function visibleVehicules(l){ return (l||[]).filter(v=>!__caps.__vehRestreints||!v.hors); } function visibleTechniciens(l){ return l||[]; }
     function visiblePointages(l){ return (l||[]).filter(p=>!__caps.__seulementMoi||p.techId==='tMoi'); }
     function clientName(id){ var c=(db.clients||[]).find(x=>x.id===id); return c?c.nom:''; }
     function techNames(){ return ''; } function techPuces(){ return ''; } function esc(s){ return String(s==null?'':s); }
@@ -71,9 +71,10 @@ function monde(o) {
     var prdSearch='';
     var PT_MAX_H=16;\n${PIECES.minutes}\n${PIECES.dureeStr}\n${PIECES.docTot}\n${PIECES.ymOf}\n${PIECES.isFin}\n${PIECES.norm}\n${PIECES.ptOuvert}\n${PIECES.ptSecs}\n${PIECES.ptTotal}
     ${bloc('function docEmis(')}\n${PIECES.vehAuto}\n${PIECES.note}
-    ${PIECES.archStats}\n${PIECES.fiche}\n${PIECES.journal}\n${PIECES.print}
+    ${PIECES.vPlaque}\n${PIECES.vehName}\n${PIECES.archStats}\n${PIECES.fiche}\n${PIECES.journal}\n${PIECES.print}
     ${PIECES.stats}\n${PIECES.archives}
   `, ctx);
+  ctx.vehName = vm.runInContext('vehName', ctx);   // un `const` n'est pas une propriété du contexte
   return ctx;
 }
 /* lit « la valeur » de la tuile qui porte ce libellé */
@@ -142,6 +143,25 @@ console.log('\n── 1220 · 2. Archives : brouillons écartés, droit comptabi
   vrai('contre-épreuve : avec le droit comptabilité, le CA paraît', kpi(f.out.content, 'CA facturé') === '300,00 €' && kpi(f.out.content, 'CA encaissé') === '200,00 €', sans(f.out.content).slice(0, 300));
 }
 
+/* ═══ 2 bis. le PÉRIMÈTRE se lit aussi quand on a le droit comptabilité (visibleDocs / visibleVehicules) ═══
+   Relecture du lot g17 : retirer `visibleDocs` d'archStats ou de Statistiques, ou `visibleVehicules` de la fiche et du
+   journal, laissait le banc vert — aucun cas ne donnait le droit à un compte au périmètre restreint. */
+console.log('\n── 1220 · 2 bis. Droit comptabilité + périmètre propre : ce qui est hors périmètre n\'entre pas ──');
+{
+  const db = {
+    clients: [{ id: 'cA', nom: 'Client Alpha' }, { id: 'cHors', nom: 'Client Lointain' }],
+    devis: [{ id: 'd1', clientId: 'cA', statut: 'accepte', lignes: L(100) }, { id: 'd2', clientId: 'cHors', statut: 'accepte', lignes: L(1000) }],
+    factures: [{ id: 'f1', clientId: 'cA', statut: 'payee', date: AUJ, lignes: L(200) }, { id: 'f2', clientId: 'cHors', statut: 'payee', date: AUJ, lignes: L(700) }]
+  };
+  const caps = { voirCompta: true, voirTout: true, __docsRestreints: true };
+  const m = monde({ db, caps }); const s2 = m.archStats(YM);
+  v('population : 2 factures dans la base, le droit comptabilité est tenu', [db.factures.length, s2.fin], [2, true]);
+  v('⛔ archStats : la facture d\'un client hors périmètre n\'entre pas (CA 200, pas 900)', [s2.facts.length, s2.caPaye, s2.caTot], [1, 200, 200]);
+  const st = monde({ db, caps }); st.views.statistiques(); const hs = st.out.content;
+  v('⛔ Statistiques : « Devis émis » et « CA encaissé » ne comptent que le périmètre (100 € / 200 €)', [kpi(hs, 'Devis émis'), kpi(hs, 'CA encaissé')], ['100,00 €', '200,00 €']);
+  vrai('… et le classement des clients ne nomme pas le client hors périmètre', /Client Alpha/.test(hs) && !/Client Lointain/.test(hs), sans(hs).slice(-300));
+}
+
 /* ═══ 3. equipe#2 — Temps pointé de la fiche technicien = écran Pointage ═══ */
 console.log('\n── 1220 · 3. Fiche technicien : Temps pointé et véhicule lié ──');
 {
@@ -172,6 +192,16 @@ console.log('\n── 1220 · 3. Fiche technicien : Temps pointé et véhicule l
     v('une saisie à la main (HH:MM seulement) compte toujours : 3h00', kpi(a.out.modal, 'Temps pointé'), '3h00'); }
 }
 
+/* ═══ 3 bis. equipe#4 — un véhicule hors périmètre ne se montre pas, même rattaché au technicien ═══ */
+console.log('\n── 1220 · 3 bis. Véhicule hors périmètre ──');
+{
+  const db = { techniciens: [{ id: 't1', nom: 'Sophie Martin' }], vehicules: [{ id: 'v9', plaque: 'HH-000-HH', conducteurTechnicienId: 't1', hors: true }] };
+  const a = monde({ db, caps: { voirTout: true, __vehRestreints: true } }); a.ficheTech('t1');
+  vrai('⛔ le véhicule rattaché mais hors périmètre n\'est pas écrit sur la fiche', /Véhicule<\/div><div class="dt-val">—</.test(a.out.modal) && !/HH-000-HH/.test(a.out.modal), sans(a.out.modal).slice(0, 300));
+  const b = monde({ db, caps: { voirTout: true } }); b.ficheTech('t1');
+  vrai('contre-épreuve : le même véhicule, sans restriction de périmètre, s\'affiche', /HH-000-HH/.test(b.out.modal));
+}
+
 /* ═══ 4. equipe#4 — la recherche du journal retrouve le véhicule par sa plaque ═══ */
 console.log('\n── 1220 · 4. Journal : retrouver le véhicule par sa plaque ──');
 {
@@ -181,7 +211,21 @@ console.log('\n── 1220 · 4. Journal : retrouver le véhicule par sa plaque 
   const a = monde({ db: { journal: j, vehicules: [{ id: 'v1', immat: 'AB-123-CD' }] } }); a.journalGo('j1');
   v('… l\'ancien champ `immat` mène toujours à Véhicules', a.out.go, ['vehicules']);
   const b = monde({ db: { journal: j, vehicules: [{ id: 'v1', plaque: 'ZZ-000-ZZ' }] } }); b.journalGo('j1');
+  { const j2 = [{ id: 'j1', action: 'Plein effectué', detail: 'Véhicule HH-000-HH : plein', type: 'admin' }];
+    const c = monde({ db: { journal: j2, vehicules: [{ id: 'v9', plaque: 'HH-000-HH', hors: true }] }, caps: { voirTout: true, __vehRestreints: true } }); c.journalGo('j1');
+    vrai('⛔ … un véhicule hors périmètre n\'est pas retrouvé par sa plaque', c.out.go[0] !== 'vehicules', c.out.go); }
   vrai('… une autre plaque ne mène pas là (le repli est le type de l\'évènement, ou rien)', b.out.go[0] !== 'vehicules', b.out);
+}
+
+/* ═══ 4 bis. equipe#4 — vehName (Mouvements, remises, rapports) lit la plaque comme tout le reste ═══ */
+console.log('\n── 1220 · 4 bis. vehName : la plaque du formulaire ──');
+{
+  const m = monde({ db: { vehicules: [{ id: 'a', plaque: 'AB-123-CD' }, { id: 'b', immat: 'ZZ-999-ZZ' }, { id: 'c', plaque: 'NEW-1', immat: 'OLD-1' }, { id: 'd', nom: 'Camion atelier' }, { id: 'e' }] } });
+  v('⛔ vehName : `plaque` (le champ du formulaire), pas « Véhicule »', m.vehName('a'), 'AB-123-CD');
+  v('… `immat` (ancien nom) toujours lu', m.vehName('b'), 'ZZ-999-ZZ');
+  v('… les deux : la plaque du formulaire gagne, comme vPlaque', m.vehName('c'), 'NEW-1');
+  v('… sans plaque : le nom, puis « Véhicule »', [m.vehName('d'), m.vehName('e')], ['Camion atelier', 'Véhicule']);
+  v('… identifiant inconnu : « — »', m.vehName('zz'), '—');
 }
 
 /* ═══ 5. les définitions ne doivent pas diverger ═══ */
