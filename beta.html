@@ -25541,13 +25541,19 @@ views.clients=function(){
   const nPro=_tous.filter(c=>cliIsPro(c)).length;
   if(!(nPro&&nPro<_tous.length)) cliTypeF='tous';   // plus de barre pour le lever : il ne filtre plus rien (même piège que l'étiquette)
   const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
-  /* un filtre actif se VOIT toujours, et se lève d'un geste : la puce « Filtre : VIP ✕ » */
-  const puceFiltre=cliTagFilter?`<div class="chip active" onclick="cliTagFilter='';views.clients()" title="Retirer le filtre">Filtre : ${esc(cliTagFilter)} ✕</div>`:'';
-  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}${puceFiltre}</div>`:'';
+  /* un filtre actif se VOIT toujours (la puce de l'étiquette, active) et se lève d'un geste (la retoucher, ou « Tous »).
+     ⛔ i03/r3#9 — il n'y avait qu'une marque à lui donner : la puce « Filtre : VIP ✕ » ajoutée à côté de la puce VIP,
+     déjà active, doublait la même information. L'étiquette filtrée existe toujours dans la barre (un filtre dont
+     l'étiquette a disparu est remis à zéro plus haut), donc sa puce suffit. */
+  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="${cliTagFilter===t?`cliTagFilter='';views.clients()`:`cliTagFilter=this.textContent.trim();views.clients()`}"${cliTagFilter===t?' title="Retirer le filtre"':''}>${esc(t)}</div>`).join('')}</div>`:'';
   /* clients#8 : un champ de recherche, posé AU-DESSUS d'une liste qui se redessine seule (`renderClientsList`) —
      comme la liste des box : reconstruire le champ à chaque frappe fermerait le clavier. Il reste visible tant
      qu'une recherche est active, même s'il ne reste qu'un client : jamais un filtre caché. */
-  const recherche=(_tous.length>1||cliSearch)?`<input class="search-inp" id="cli-search" placeholder="Nom, téléphone, ville, e-mail…" value="${esc(cliSearch)}" oninput="cliSearch=this.value;rechDiffere(renderClientsList)" autocomplete="off">`:'';
+  /* ⛔ i03/r3#8 — SON IDENTIFIANT N'EST PAS `cli-search` : c'est celui du champ « Client » de la fenêtre d'intervention
+     (formIntervention). Deux éléments de même id, `getElementById` rend le premier du document — celui de CETTE liste,
+     dans #content, avant #overlay — et cliPick / saveIntervention écrivaient et lisaient la recherche au lieu du client
+     choisi (un texte de recherche « Durand » créait un client et y rattachait l'intervention). */
+  const recherche=(_tous.length>1||cliSearch)?`<input class="search-inp" id="cli-recherche" placeholder="Nom, téléphone, ville, e-mail…" value="${esc(cliSearch)}" oninput="cliSearch=this.value;rechDiffere(renderClientsList)" autocomplete="off">`:'';
   $('content').innerHTML=recherche+typeBar+tagBar+'<div id="cli-liste"></div>';
   renderClientsList();
 }

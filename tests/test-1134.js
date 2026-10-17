@@ -26,7 +26,7 @@ console.log('\n── 1134 · 0. la population ──');
 const VC = bloc('views.clients=function(){'), RL = bloc('function renderClientsList('), SC = bloc('function saveClientForm(e,id){'),
   AIDES = ['function cliAdresseDerive(', 'function cliGeoRequete(', 'function cliLocaliserFond(', 'function cliDoublon('].map(bloc).join('\n'),
   AT = ligne('function allTags(){'), TC = ligne('function tagChipsHtml(x){'), CP = ligne('function cliIsPro(c){'), ES = ligne('function emptyState(ico,txt,btn,fn){'),
-  ESC = ligne('const esc = s =>'), INI = ligne('const initials = name =>'), NM = ligne('const norm = s =>'), NN = ligne('function nomNorm(s){'),
+  ESC = ligne('const esc = s =>'), INI = ligne('const initials = (name,max) =>'), NM = ligne('const norm = s =>'), NN = ligne('function nomNorm(s){'),
   ETAT = ligne('let cliTagFilter='), ETAT2 = ligne('let cliTypeF='), ETAT3 = ligne('let cliSearch=');
 vrai('views.clients et saveClientForm sont trouvées', VC.length > 800 && SC.length > 900 && !!AT && !!TC && !!CP && !!ES && !!NN && !!NM, [VC.length, SC.length]);
 vrai('renderClientsList existe (la liste vit à part du champ, comme renderBoxesList)', RL.length > 800, RL.length);
@@ -64,7 +64,7 @@ console.log('\n── 1134 · 1. la liste est triée par nom ──');
 console.log('\n── 1134 · 2. un champ de recherche, qui ne se reconstruit pas à la frappe ──');
 { const W = monde(base());
   W.views.clients();
-  const champ = (W.__page.innerHTML.match(/<input class="search-inp" id="cli-search"[^>]*oninput="([^"]*)"/) || [])[1];
+  const champ = (W.__page.innerHTML.match(/<input class="search-inp" id="cli-recherche"[^>]*oninput="([^"]*)"/) || [])[1];
   vrai('⛔ le champ de recherche est là', !!champ, W.__page.innerHTML.slice(0, 200));
   const taper = t => { vm.runInContext(`(function(){ ${champ.replace(/&quot;/g, '"')} }).call({ value: ${JSON.stringify(t)} })`, W); };
   const avant = W.__page.innerHTML;
@@ -84,11 +84,11 @@ console.log('\n── 1134 · 2. un champ de recherche, qui ne se reconstruit pa
     v('… et les quatre clients reviennent', noms(W).length, 4); } }
 { const W = monde(base());
   vm.runInContext("cliSearch='durand'", W); W.views.clients();
-  vrai('une recherche posée avant de rouvrir l’écran se VOIT dans le champ (jamais un filtre caché)', /id="cli-search"[^>]*value="durand"/.test(W.__page.innerHTML), W.__page.innerHTML.slice(0, 300));
+  vrai('une recherche posée avant de rouvrir l’écran se VOIT dans le champ (jamais un filtre caché)', /id="cli-recherche"[^>]*value="durand"/.test(W.__page.innerHTML), W.__page.innerHTML.slice(0, 300));
   v('… et filtre la liste', noms(W), ['M. et Mme Durand']); }
 { const W = monde([{ id: 'u', nom: 'Seul', tags: [] }]);
   vm.runInContext("cliSearch='xx'", W); W.views.clients();
-  vrai('un seul client mais une recherche active : le champ reste visible (rien de caché qui filtre)', /id="cli-search"/.test(W.__page.innerHTML)); }
+  vrai('un seul client mais une recherche active : le champ reste visible (rien de caché qui filtre)', /id="cli-recherche"/.test(W.__page.innerHTML)); }
 { const W = monde(base());
   vm.runInContext("cliTypeF='part'", W); W.views.clients();
   vrai('⛔ un filtre « Particuliers » devenu sans objet (aucun particulier, donc plus de barre) ne laisse pas « Aucun client »', noms(W).length === 4 && /./.test(vm.runInContext('cliTypeF', W)) && vm.runInContext('cliTypeF', W) === 'tous', [noms(W).length, vm.runInContext('cliTypeF', W)]); }
