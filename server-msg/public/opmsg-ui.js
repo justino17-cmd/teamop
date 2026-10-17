@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'bc608e688dbb';
+  const OPMSG_BUILD = 'fda7ef37ded0';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8549,6 +8549,15 @@
     if (await envoi({ fichier: { blob: f, nom: f.name || 'fichier', taille: f.size } }, A.snap.conv)) { if (!perime(A)) { mot('Document envoyé'); salleDiscussionCharger(A, false); } }
     else if (!perime(A)) mot('Le document n\'a pas pu être envoyé.');
   });
+  /* ⛔ LE MÊME VERDICT QUE LE FIL (`confirmationRequise`) pour la conversation de LA RÉUNION : une réunion rangée côté Perso n'est jamais retenue par un réglage du Pro (10 octobre 2026). Le chat de la salle
+     ne testait que le réglage — Cléo, « Partout », écrivait dans le chat d'une salle Perso et lisait « Envoyer à la réunion ? Touche Confirmer… » alors que le fil de la même réunion partait sans demander.
+     Le réglage « Groupes et canaux » vaut ici « oui » : une salle est toujours une conversation à plusieurs. */
+  function salleConfirmationRequise(A) {
+    if (!confirmerActif() || source.confirmerEnvoi() === 'jamais') return false;
+    const id = A.snap && A.snap.conv, cc = (etat.convDonnees && etat.convDonnees.id === id ? etat.convDonnees : null) || etat.conversations.find(x => x.id === id) || null;
+    if (modesActifs() && cc && coteDe(cc) !== 'pro') return false;
+    return true;
+  }
   $('salle-panneau-corps').addEventListener('submit', async e => {
     if (e.target.id !== 'salle-saisie-form') return;
     e.preventDefault();
@@ -8557,7 +8566,7 @@
     /* « Confirmer l'envoi » vaut AUSSI ici (une réunion est une conversation à plusieurs) : le premier « Envoyer » devient « Confirmer », le second envoie ; retaper annule.
        Relecture du 7 octobre 2026 : le chat de la salle était la seule porte d'un texte qui ne demandait jamais. */
     const X = sx(A);
-    if (confirmerActif() && source.confirmerEnvoi() !== 'jamais' && X.confirme !== t) { X.confirme = t; sallePanneauRendre(A, true); mot('Envoyer à la réunion ? Touche « Confirmer » pour envoyer.'); return; }
+    if (salleConfirmationRequise(A) && X.confirme !== t) { X.confirme = t; sallePanneauRendre(A, true); mot('Envoyer à la réunion ? Touche « Confirmer » pour envoyer.'); return; }
     const confirmee = !!X.confirme; X.confirme = null;
     champ.value = '';
     if (confirmee) sallePanneauRendre(A, true);                                // le bouton redevient « Envoyer » (le redessin garde le champ — vide — et son focus)

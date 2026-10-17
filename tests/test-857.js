@@ -730,7 +730,7 @@ async function controler(PAGE, SRC, DOC) {
     /const confirmeTropTot = \(\) => etat\.confirmeAttente === etat\.conv && performance\.now\(\) - \(etat\.confirmeDepuis \|\| 0\) < 400;/.test(JS) && /etat\.confirmeAttente = etat\.conv; etat\.confirmeDepuis = performance\.now\(\);/.test(JS)
       && /\{ e\.preventDefault\(\); if \(e\.repeat \|\| confirmeTropTot\(\)\) return; envoyerTexte\(\); \}/.test(JS));
   vrai('⛔ « Confirmer l\'envoi » vaut aussi dans le chat de la SALLE (une réunion est à plusieurs) : le premier envoi devient « Confirmer », retaper annule',
-    /if \(confirmerActif\(\) && source\.confirmerEnvoi\(\) !== 'jamais' && X\.confirme !== t\) \{ X\.confirme = t; sallePanneauRendre\(A, true\);/.test(JS) && /<button type="submit">' \+ \(X\.confirme \? 'Confirmer' : 'Envoyer'\) \+ '<\/button>/.test(JS)
+    /if \(salleConfirmationRequise\(A\) && X\.confirme !== t\) \{ X\.confirme = t; sallePanneauRendre\(A, true\);/.test(JS) && /function salleConfirmationRequise\(A\) \{\s*if \(!confirmerActif\(\) \|\| source\.confirmerEnvoi\(\) === 'jamais'\) return false;/.test(JS) && /<button type="submit">' \+ \(X\.confirme \? 'Confirmer' : 'Envoyer'\) \+ '<\/button>/.test(JS)
       && /if \(enSalle\(A\) && sx\(A\)\.confirme\) \{ sx\(A\)\.confirme = null; sallePanneauRendre\(A, true\); \}/.test(JS));
   vrai('⛔ Perso / Pro : le lien « Invitations » passe du côté de l\'invitation avant d\'ouvrir la liste ; créer ou rejoindre un espace passe côté Pro (sans couvrir « Tu as rejoint… »)',
     /const i0 = etat\.conversations\.find\(c => c\.invitation === 'recue'\); if \(i0 && !dansMode\(i0\)\) changerMode\(coteDe\(i0\), true\);/.test(JS)
