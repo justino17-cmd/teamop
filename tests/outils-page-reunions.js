@@ -1,4 +1,4 @@
-/* ══ OUTIL DES BANCS DE LA PAGE D'OP MESSAGES QUI JOUENT LES FICHES DE RÉUNION (tests/test-1581 à 1584) ══════════════════════════════════════
+/* ══ OUTIL DES BANCS DE LA PAGE D'OP MESSAGES QUI JOUENT LES FICHES DE RÉUNION (tests/test-2581 à 1584) ══════════════════════════════════════
  *
  * Pas une suite (le nom ne commence pas par `test-` : le compteur ne le lance pas). Il sort de la page (`apercu/opmessages/index.html`) les VRAIES déclarations de fonctions dont un banc a
  * besoin — jamais une copie réécrite — et les exécute dans un bac à sable `vm`.
