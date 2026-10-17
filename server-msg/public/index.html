@@ -1446,6 +1446,13 @@ html[data-service] .mention-apercu { display: none; }
 .conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #3a3a3c; color: #fff; }
 .conv-ecran[data-bulle="sarcelle"] .envoyee, .theme-apercu[data-bulle="sarcelle"] .envoyee, .theme-pastille[data-bulle="sarcelle"] .theme-rond { background: #0b6e79; color: #fff; }
 .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #8e1b3a; color: #fff; }
+/* ⛔ DE NUIT, UNE BULLE ENVOYÉE S'ÉCLAIRCIT (17 octobre 2026, au pixel) : les fonds de nuit sont des teintes à 14–24 % sur un bleu nuit — sombres ; le graphite #3a3a3c et le bordeaux #8e1b3a, choisis pour
+   le jour, s'y confondaient (Graphite sur Sable : 1,04:1 ; 11 combinaisons sur 72 sous 1,5:1). Une surface élevée est plus claire que son fond. Le blanc reste lisible dessus (≥ 4,5:1),
+   et la pastille du choix (.theme-rond) suit la même règle. Le jour ne bouge pas. tests/test-1503.js rejoue les 72 combinaisons. */
+@media (prefers-color-scheme: dark) {
+  .conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #636366; }
+  .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #b02a4f; }
+}
 .theme-apercu { display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; margin-bottom: 18px; border-radius: 18px; background-color: var(--base); border: var(--line); }
 .theme-apercu .bulle { max-width: 78%; padding: 8px 12px; font-size: 16px; line-height: 21px; }
 .theme-apercu .recue { align-self: flex-start; }
