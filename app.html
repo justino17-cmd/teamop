@@ -39931,7 +39931,10 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
         <div class="login-card-title">Connexion</div>
         ${_surEspace?'':`<div class="field"><label>Entreprise <span style="font-weight:400;color:var(--t3)">— si ton compte est chez une entreprise TeamOP</span></label><input id="li-ent" placeholder="Nom de ton entreprise (ex : GCI)" autocomplete="organization" autocapitalize="off"><div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Écris le nom de ton entreprise, puis ton identifiant et ton mot de passe : tu arrives directement dans son espace, sans lien ni code. Tu as un lien de connexion ? Colle-le ici, il marche aussi.</div></div>`}
         <div class="field"><label>Identifiant</label><input id="li-login" value="${esc(saved)}" placeholder="Votre identifiant" autocomplete="username" required></div>
-        <div class="field"><label>Mot de passe</label><input id="li-pin" type="password" placeholder="••••••••" autocomplete="current-password" required><div style="font-size:11px;color:var(--t3);margin-top:4px">Ancien compte à code PIN ? Tape ton PIN — on te fera créer ton mot de passe juste après.</div></div>
+        <!-- ⛔ LA PHRASE DU PIN EST CELLE DE L'APPLICATION PUBLIQUE (accueil#18) : des comptes à PIN y existent encore et
+             « on te fera créer ton mot de passe » y est vrai. La bêta n'a ni PIN ni création de mot de passe (les accès
+             viennent de la Tour) : la lire là-bas n'a pas de sens. On la masque quand BETA_ESSAI, jamais en production. -->
+        <div class="field"><label>Mot de passe</label><input id="li-pin" type="password" placeholder="••••••••" autocomplete="current-password" required>${BETA_ESSAI?'':`<div style="font-size:11px;color:var(--t3);margin-top:4px">Ancien compte à code PIN ? Tape ton PIN — on te fera créer ton mot de passe juste après.</div>`}</div>
         <label class="login-remember"><input type="checkbox" id="li-remember" ${saved?'checked':''}> Rester connecté</label>
         <div id="li-error" class="login-error" style="display:none">Identifiant ou mot de passe incorrect</div>
         <button type="submit" class="btn" style="width:100%;justify-content:center;margin-top:6px">→ Se connecter</button>
