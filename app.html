@@ -8030,6 +8030,11 @@ const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
    compte de départ et demande au serveur avant d'ouvrir : les accès d'essai se créent et se
    coupent depuis la Tour de contrôle. Ici, dans l'application des clients : jamais. */
 const BETA_ESSAI=false;
+/* ⛔ LA PAGE OÙ L'ON EST — jamais l'autre. Sur beta.html, un Ctrl/⌘+clic sur le menu ouvrait app.html (la PRODUCTION,
+   qui partage l'origine teamop.fr et, si une session cliente y est ouverte, ses données) et les notifications push de la
+   bêta pointaient vers /app.html. Une page de test ne renvoie JAMAIS l'équipe vers la production : tout lien vers soi-même
+   (menu, favoris, push) passe par cette constante. Ici, dans l'application des clients, elle vaut « app.html » : rien ne change. */
+const PAGE_APP=BETA_ESSAI?'beta.html':'app.html';
 /* Catalogue produits officiel OP GESTION — le pack du métier « 3D — Hygiène anti-nuisibles ».
    [nom, categorie, [fournisseurs], reference]. 110 références d'origine, puis 50 ajoutées le 10 septembre
    2026 à la demande de Justin (liste copiée de sa bêta) : la gamme VULCANO d'ORCAD et cinq bâches MABI.
@@ -12937,10 +12942,13 @@ async function pushSubscribe(quiet){ try{
   if(!quiet){ toast('Notifications activées sur cet appareil ✓'); if(current==='parametres') views.parametres(); }
   return true;
 }catch(e){ console.error('push',e); if(!quiet) toast('Activation impossible (serveur push injoignable ?)'); return false; } }
+/* L'adresse d'une notification pointe vers LA PAGE COURANTE (PAGE_APP) : les dix-neuf appels écrivent '/app.html#v=…' et la
+   bêta les réécrit ici, pour ne pas toucher à chacun. Le serveur ne garde que le chemin (le fragment saute). */
+function pushUrl(url){ return String(url||'/app.html').replace(/^\/(?:app|beta)\.html(?=$|[#?])/,'/'+PAGE_APP); }
 function pushNotify(title,body,url,userIds){ try{
-  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:String(title||'').slice(0,120),body:String(body||'').slice(0,300),url:url||'/app.html',exceptUserId:(currentUser?currentUser.id:''),userIds:Array.isArray(userIds)?userIds:[]})}).catch(()=>{}); }catch(e){} }
+  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:String(title||'').slice(0,120),body:String(body||'').slice(0,300),url:pushUrl(url),exceptUserId:(currentUser?currentUser.id:''),userIds:Array.isArray(userIds)?userIds:[]})}).catch(()=>{}); }catch(e){} }
 async function pushTest(){ const ok=await pushSubscribe(); if(!ok) return;
-  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:'TeamOP — test',body:'Les notifications fonctionnent ✓',url:'/app.html'})})
+  fetch(PUSH_API+'/api/notify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({teamId:syncTeam(),title:'TeamOP — test',body:'Les notifications fonctionnent ✓',url:pushUrl('/app.html')})})
     .then(r=>r.json()).then(r=>toast('Notification envoyée à '+((r&&r.sent)||0)+' appareil(s)')).catch(()=>toast('Serveur push injoignable')); }
 function pushPropose(){ try{ if(!pushSupported()||!currentUser) return; if(Notification.permission!=='default') return;
   if(document.querySelector('#overlay.open')) return;
@@ -15787,12 +15795,13 @@ function favorisEtoile(k){
 function favorisBloc(){
   const l=favorisLire();
   const bouton=`<button class="nav-fav-edit" type="button" onclick="favorisEditer()">${_favEdit?'Terminé':'Modifier'}</button>`;
-  if(!l.length && !_favEdit) return '';
+  /* ⛔ LE BOUTON D'ENTRÉE EXISTE TOUJOURS. Rendu '' sans favori, le bloc emportait avec lui le SEUL « Modifier » de
+     l'application (les étoiles n'existent qu'en édition) : un compte neuf n'avait aucun moyen d'épingler un premier favori. */
   const lignes = l.map(k=>{ const it=ongletItem(k); if(!it) return '';
     return `<div class="nav-item nav-item-fav${multiEnCours(k)?' nav-encours':''}" data-view="${k}" data-fav="1"
-       onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${k}','_blank');return;}go('${k}')">${it.ic?`<span class="ico" style="${catVars(k)}">${it.ic}</span>`:''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
+       onclick="if(event.ctrlKey||event.metaKey){window.open('${PAGE_APP}#v=${k}','_blank');return;}go('${k}')">${it.ic?`<span class="ico" style="${catVars(k)}">${it.ic}</span>`:''}${esc(t(it.l))}${_favEdit?favorisEtoile(k):''}</div>`;
   }).join('');
-  const vide = !l.length ? `<div class="nav-fav-vide">Touche l’étoile d’une rubrique pour l’épingler ici.</div>` : '';
+  const vide = !l.length ? `<div class="nav-fav-vide">${_favEdit?'Touche l’étoile d’une rubrique pour l’épingler ici.':'Touche « Modifier », puis l’étoile d’une rubrique pour l’épingler ici.'}</div>` : '';
   return `<div class="nav-label nav-label-fav"><span>Favoris</span>${bouton}</div>`+lignes+vide;
 }
 function renderNav(){ try{ applyBrand(); }catch(e){}
@@ -15821,7 +15830,7 @@ function renderNav(){ try{ applyBrand(); }catch(e){}
     const verrouTitre=(currentUser&&currentUser.role==='admin')?'Accès suspendu jusqu’au règlement de l’abonnement':'Accès momentanément suspendu';
     return tete + rows.map(r=> r.verrou
       ? `<div class="nav-item nav-verrou" style="opacity:.38" title="${verrouTitre}" onclick="go('${r.it.k}')"><span class="ico" style="--cat-j:#636366;--cat-n:#8E8E93">🔒</span>${esc(t(r.it.l))}</div>`
-      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('app.html#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('app.html#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="${catVars(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
+      : `<div class="nav-item${multiEnCours(r.it.k)?' nav-encours':''}" data-view="${r.it.k}" onclick="if(event.ctrlKey||event.metaKey){window.open('${PAGE_APP}#v=${r.it.k}','_blank');return;}go('${r.it.k}')" onauxclick="if(event.button===1)window.open('${PAGE_APP}#v=${r.it.k}','_blank')">${r.it.ic?`<span class="ico" style="${catVars(r.it.k)}">${r.it.ic}</span>`:''}${esc(t(r.it.l))}${multiEnCours(r.it.k)?' <span class="multi-pt" title="Tu as quelque chose en cours ici"></span>':''}${r.it.b?` <span class="badge" data-badge="${r.it.b}">0</span>`:''}${_favEdit?favorisEtoile(r.it.k):''}</div>`
     ).join('');
   }).join('');
   /* La loupe seulement quand il y a de quoi chercher : sous une dizaine de rubriques, elle
@@ -40721,7 +40730,10 @@ const TOUR = [
   {v:'parametres',ic:'⚙️',t:'Les paramètres',h:"Personnalise tout : <b>thème</b>, <b>langue</b>, <b>sauvegarde</b> (export/import), <b>email du comptable</b> et activation de l'<b>Assistant IA</b>."},
 ];
 let tourIdx=0, tourSteps=[];
-function menuLabel(v){ const it=avecSousCats(NAV.flatMap(s=>s.items)).find(x=>x.k===v); return it?t(it.l):v; }
+/* Les Paramètres ne sont pas dans NAV (ils s'ouvrent par la barre d'onglets et le bas du menu) : sans cette table, la visite
+   guidée annonçait « Menu : parametres ». Une clé inconnue reste telle quelle — on ne masque pas un oubli de plus. */
+const MENU_HORS_NAV={parametres:'Paramètres'};
+function menuLabel(v){ const it=avecSousCats(NAV.flatMap(s=>s.items)).find(x=>x.k===v); return it?t(it.l):(MENU_HORS_NAV[v]?t(MENU_HORS_NAV[v]):v); }
 function startTour(){ if(!currentUser) return; if(typeof closeModal==='function') closeModal();
   tourSteps=TOUR.filter(s=>userSeesModule(currentUser,s.v));
   if(!tourSteps.length) return; tourIdx=0; tourShow(); }
