@@ -3803,7 +3803,12 @@ a.menu-action { text-decoration: none; }
     invitBloquer = 0;
     document.querySelectorAll('#compo-invit [data-invit]').forEach(x => x.setAttribute('aria-disabled', 'true'));
     try {
-      if (g === 'bloquer') { await source.bloquer(c.autre); mot('Bloqué'); }
+      if (g === 'bloquer') {
+        await source.bloquer(c.autre); mot('Bloqué');
+        /* ⛔ bloquée, la personne ne peut plus rien demander : on SORT du fil, comme le blocage depuis « Infos » (« Refuser » le fait aussi). Le laisser ouvert gardait Accepter / Refuser / Bloquer
+           sous les yeux de quelqu'un qu'on vient de bloquer, alors que « Accepter » n'aurait rien débloqué (testeur, contacts#1). */
+        if (etat.conv === conv) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (typeof source.lister === 'function') rafraichirListe(); }
+      }
       else {
         const r = await source.repondreInvitation(conv, c.autre, g === 'accepter');
         mot(r === 'acceptee' ? 'Invitation acceptée : vous êtes en contact' : 'Invitation refusée');
@@ -4028,7 +4033,7 @@ a.menu-action { text-decoration: none; }
       /* (version servie) l'appel d'un groupe appelle TOUT le groupe ; si une salle est déjà ouverte pour cette conversation, on y ENTRE au lieu d'en ouvrir une seconde */
       const ouverte = await sallesDeConv(c);
       if (etat.conv !== c.id) return;
-      if (ouverte) { avantEntrer({ titre: ouverte.titre || c.nom || '', type: ouverte.type, entrer: () => source.rejoindreAppel(ouverte.id), el: $('conv-cam') }); return; }
+      if (ouverte) { avantEntrer({ titre: ouverte.titre || c.nom || '', type: ouverte.type, entrer: () => source.rejoindreAppel(ouverte.id), el: $('conv-cam'), id: ouverte.id }); return; }
     }
     lancerAppel({ membres: c.membres.filter(x => x !== MOI.id), video: true, conv: c.id }, $('conv-cam'));
   });
@@ -4055,6 +4060,10 @@ a.menu-action { text-decoration: none; }
   function avis(texte) {
     clearTimeout(minAvis);
     const a = $('avis'); a.textContent = texte; a.hidden = false;
+    /* ⛔ #avis vit DANS l'écran Conversation : hors d'une conversation (le tableau de bord, l'agenda, le profil, la liste au retour d'une reconnexion) cet écran est caché, la phrase s'écrivait
+       dans un élément de 0 × 0 et le refus ne se disait nulle part — un rappel qu'on coche, que le service refuse, revenait décoché sans un mot (testeur, pro#0). Quand la phrase ne se verrait
+       pas, elle passe par le petit mot, tenu aussi longtemps que l'avis (un refus se lit ; 2,4 s, non). */
+    if (!a.offsetWidth) { a.hidden = true; a.textContent = ''; mot(texte, 7000); return; }
     minAvis = setTimeout(masquerAvis, 7000);
   }
   function masquerAvis() { clearTimeout(minAvis); $('avis').hidden = true; $('avis').textContent = ''; }
@@ -5111,10 +5120,10 @@ a.menu-action { text-decoration: none; }
   setInterval(() => verifierVersion(), 10 * 60000);
   setTimeout(() => verifierVersion(true), 1500);
 
-  function mot(texte) {
+  function mot(texte, ms) {
     clearTimeout(minMot);
     $('mot').textContent = texte; $('mot').classList.add('on');
-    minMot = setTimeout(() => $('mot').classList.remove('on'), 2400);
+    minMot = setTimeout(() => $('mot').classList.remove('on'), ms || 2400);
   }
 
   /* ═══ 9. LA FEUILLE « NOUVEAU GROUPE » ══════════════════════════════════════════════════════════════════════════════════════ */
@@ -5576,8 +5585,17 @@ a.menu-action { text-decoration: none; }
   }
   function rappeler(a, type, depuisFeuille, declencheurEl) { return lancerAppel({ membres: a.membres.slice(), video: type === 'video', conv: a.conv }, declencheurEl || document.activeElement, !!depuisFeuille); }
   /* lancer = demander à la source, PUIS pousser la route (l'écran suit dans afficherAppel, jouée aussi par le retour système). Depuis une feuille, l'entrée de la feuille est remplacée. */
+  /* ⛔ UN GESTE QUI NE FAIT RIEN DIT POURQUOI. Déjà dans un appel (réduit : la barre verte « Revenir »), toucher la caméra d'une conversation, « Rappeler » ou « Rejoindre » sortait en
+     silence — ni message ni écran, la personne croyait l'appareil figé (testeur, appels#1 et salle#0). On le dit, et, si l'appel est réduit, on y RAMÈNE par la même route que la barre verte
+     (`restaurerAppel` suit). `meme` : c'est la salle où l'on est déjà — on y revient ; sinon on garde la place où l'on est, la barre verte reste là pour revenir. */
+  function dejaEnAppel(meme, dit) {
+    mot(dit || 'Tu es déjà dans un appel.', 4000);
+    if (meme && etat.appelId && etat.appelReduit) pousser(Object.assign({}, etat.route, { feuille: false, photo: null, appel: etat.appelId }));
+    return false;
+  }
   async function lancerAppel(spec, declencheurEl, depuisFeuille, entrer) {
-    if (etat.appelId || etat.appelDemarre) return false;           // deux touchers dans le même instant ne lancent pas deux appels
+    if (etat.appelId) return dejaEnAppel(true);
+    if (etat.appelDemarre) return false;                           // deux touchers dans le même instant ne lancent pas deux appels (le premier va répondre : rien à dire)
     etat.appelDemarre = true;
     let c = null, refus = null; try { c = await (entrer ? entrer() : source.demarrerAppel(spec)); } catch (e) { c = null; refus = e; }          // `entrer` : on ENTRE dans une salle qui existe déjà (la bannière d'une conversation, une réunion, un lien d'invité)
     etat.appelDemarre = false;
@@ -6461,7 +6479,7 @@ a.menu-action { text-decoration: none; }
   /* ═══ MES LIEUX (13 octobre 2026) — Domicile et Travail, d'où l'on part pour un rendez-vous ═══
      Rangés au service (scellés) ; la page n'en lit que l'adresse trouvée. Enregistrer cherche l'adresse (le service demande à l'IGN) et dit les autres possibles : « Plutôt : … » les choisit. */
   const lieuxPossibles = () => !!(CAP.trajet && typeof source.lieux === 'function' && typeof source.poserLieu === 'function');
-  const lieuxReg = { lieux: null, erreur: '', edite: null, occupe: false, autres: { domicile: [], travail: [] } };
+  const lieuxReg = { lieux: null, erreur: '', edite: null, occupe: false, saisie: null, autres: { domicile: [], travail: [] } };       // `saisie` : l'adresse TAPÉE, tenue tant que l'enregistrement n'a pas abouti
   async function chargerLieux() {
     try { const l = await source.lieux(); lieuxReg.lieux = l; lieuxReg.erreur = ''; TJ.lieux = l; }
     catch (er) { lieuxReg.erreur = phrase(er, 'Tes lieux n\'ont pas pu être lus.'); }
@@ -6475,7 +6493,7 @@ a.menu-action { text-decoration: none; }
     if (!L) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     c.innerHTML = ['domicile', 'travail'].map(k => {
       const nom = k === 'domicile' ? 'Domicile' : 'Travail', l = L[k], du = k === 'domicile' ? 'du domicile' : 'du travail';
-      if (lieuxReg.edite === k) return '<div class="carte-pad reg-lieu-edit"><div class="champ"><label for="reg-lieu-' + k + '">Adresse ' + du + '</label><input id="reg-lieu-' + k + '" type="text" maxlength="200" autocomplete="street-address" enterkeyhint="done" value="' + esc(l ? l.label : '') + '" placeholder="Rue, ville"></div>' +
+      if (lieuxReg.edite === k) return '<div class="carte-pad reg-lieu-edit"><div class="champ"><label for="reg-lieu-' + k + '">Adresse ' + du + '</label><input id="reg-lieu-' + k + '" type="text" maxlength="200" autocomplete="street-address" enterkeyhint="done" value="' + esc(lieuxReg.saisie !== null ? lieuxReg.saisie : l ? l.label : '') + '" placeholder="Rue, ville"></div>' +
         '<div class="info-actions"><button type="button" class="mini plein" data-lieu-ok="' + k + '"' + (lieuxReg.occupe ? ' disabled' : '') + '>' + (lieuxReg.occupe ? 'Recherche…' : 'Enregistrer') + '</button>' +
         (l ? '<button type="button" class="mini danger" data-lieu-retirer="' + k + '"' + (lieuxReg.occupe ? ' disabled' : '') + '>Retirer</button>' : '') + '<button type="button" class="mini" data-lieu-annuler="1">Annuler</button></div></div>';
       return '<button type="button" class="reglage presse" data-lieu-edit="' + k + '"><span class="reglage-texte">' + nom + '<small>' + esc(l ? l.label : 'Pas encore enregistré') + '</small></span>' + CHEVRON + '</button>' +
@@ -6488,12 +6506,18 @@ a.menu-action { text-decoration: none; }
     const er = $('reg-erreur'), dit = t => { if (er) { er.textContent = t; er.hidden = !t; } };
     dit('');
     if (texte === '' && force === undefined) { dit('Écris une adresse : une rue et une ville.'); if (i) i.focus(); return; }
+    /* ⛔ l'adresse tapée se GARDE : le champ est repeint (« Recherche… », puis l'erreur) et revenait vide ou à l'ancienne adresse — il fallait tout retaper à chaque essai (testeur, reglages#2) */
+    lieuxReg.saisie = force === undefined ? texte : null;
     lieuxReg.occupe = true; peindreLieux();
     try {
       const r = await source.poserLieu(k, texte);
+      lieuxReg.saisie = null;
       lieuxReg.lieux = r.lieux; TJ.lieux = r.lieux; lieuxReg.edite = null; lieuxReg.autres[k] = force !== undefined ? [] : r.autres;      // retirer, ou un choix parmi « Plutôt » : rien à reproposer
       mot(texte === null ? (k === 'domicile' ? 'Domicile retiré' : 'Travail retiré') : (k === 'domicile' ? 'Domicile enregistré' : 'Travail enregistré'));
-    } catch (x) { dit(phrase(x, 'L\'adresse n\'a pas pu être enregistrée.')); }
+    } catch (x) {
+      /* ⛔ la phrase du service parle du RENDEZ-VOUS (« …le rendez-vous, lui, s'enregistre sans ») : ici on règle une adresse, il n'y en a pas */
+      dit(x && x.code === 'trajet_indisponible' ? 'L\'adresse n\'a pas pu être vérifiée pour le moment. Réessaie plus tard.' : phrase(x, 'L\'adresse n\'a pas pu être enregistrée.'));
+    }
     lieuxReg.occupe = false; peindreLieux();
     const b = document.querySelector(lieuxReg.edite ? '#reg-lieu-' + k : '[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true });
   }
@@ -6597,8 +6621,8 @@ a.menu-action { text-decoration: none; }
     if (bouton.dataset.regSec) { const r = Object.assign({}, etat.route, { sec: bouton.dataset.regSec }); if (largeBureau.matches) remplacer(r); else if (!memeRoute(r, etat.route)) pousser(r); return; }
     if (bouton.dataset.regRetour) { fermerCouche(); return; }
     /* Mes lieux : ouvrir l'adresse, l'enregistrer, la retirer, choisir une autre trouvée */
-    if (bouton.dataset.lieuEdit) { lieuxReg.edite = bouton.dataset.lieuEdit === 'travail' ? 'travail' : 'domicile'; lieuxReg.autres[lieuxReg.edite] = []; peindreLieux(); const i = $('reg-lieu-' + lieuxReg.edite); if (i) i.focus(); return; }
-    if (bouton.dataset.lieuAnnuler) { const k = lieuxReg.edite; lieuxReg.edite = null; peindreLieux(); const b = k && document.querySelector('[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true }); return; }
+    if (bouton.dataset.lieuEdit) { lieuxReg.edite = bouton.dataset.lieuEdit === 'travail' ? 'travail' : 'domicile'; lieuxReg.saisie = null; lieuxReg.autres[lieuxReg.edite] = []; peindreLieux(); const i = $('reg-lieu-' + lieuxReg.edite); if (i) i.focus(); return; }
+    if (bouton.dataset.lieuAnnuler) { const k = lieuxReg.edite; lieuxReg.edite = null; lieuxReg.saisie = null; peindreLieux(); const b = k && document.querySelector('[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true }); return; }
     if (bouton.dataset.lieuOk) { lieuEnregistrer(bouton.dataset.lieuOk === 'travail' ? 'travail' : 'domicile'); return; }
     if (bouton.dataset.lieuRetirer) { lieuEnregistrer(bouton.dataset.lieuRetirer === 'travail' ? 'travail' : 'domicile', null); return; }
     if (bouton.dataset.lieuChoix && bouton.dataset.label) { lieuEnregistrer(bouton.dataset.lieuChoix === 'travail' ? 'travail' : 'domicile', bouton.dataset.label); return; }
@@ -8875,8 +8899,8 @@ a.menu-action { text-decoration: none; }
   async function cocherRappel(id) {
     const x = bord.evenements.find(y => y.id === id); if (!x || typeof source.faitEvenement !== 'function') return;
     const avant = x.fait; x.fait = Date.now(); rendreAccueil();
-    mot('« ' + x.titre + ' » : fait');
-    try { const e = await source.faitEvenement(id, true); Object.assign(x, e); reu.evenements = (reu.evenements || []).map(y => y.id === id ? e : y); chargerReunions(); }
+    /* ⛔ « fait » ne s'annonce qu'APRÈS la réponse du service : annoncé avant, il restait affiché sur un geste refusé, pendant que la ligne revenait décochée */
+    try { const e = await source.faitEvenement(id, true); Object.assign(x, e); reu.evenements = (reu.evenements || []).map(y => y.id === id ? e : y); mot('« ' + x.titre + ' » : fait'); chargerReunions(); }
     catch (er) { x.fait = avant; rendreAccueil(); avis(phrase(er, 'Le rappel n\'a pas pu être coché.')); }
   }
   /* la semaine ou le mois : filtré tout de suite sur ce qu'on a, relu sur la nouvelle fenêtre, retenu par le compte (refusé, le choix vaut pour cette visite) */
@@ -12050,8 +12074,13 @@ a.menu-action { text-decoration: none; }
      ⛔ Les pistes de l'aperçu sont ARRÊTÉES avant d'entrer : la salle les redemande (le navigateur se souvient de l'autorisation), et en salle d'attente ni micro ni caméra ne restent
      ouverts. Seuls les CHOIX passent (`etat.choixEntree`, lus par l'appel qui naît). Une page sans médias (l'aperçu de l'interface) entre directement, comme avant. */
   function avantEntrer(o) {
+    /* ⛔ déjà en appel : la salle qu'on a réduite est CELLE-CI (`o.id` : l'appel ; `o.reunion` : la réunion) → on y revient ; une autre → on le dit, sans la quitter */
+    if (etat.appelId) {
+      const A = etat.appelUI, meme = (!!o.id && o.id === etat.appelId) || (!!o.reunion && !!A && !!A.snap && A.snap.reunion === o.reunion);
+      return dejaEnAppel(meme, meme ? (o.reunion ? 'Tu es déjà dans cette réunion.' : 'Tu es déjà dans cet appel.') : 'Tu es déjà dans un appel : raccroche-le avant d\'en rejoindre un autre.');
+    }
     if (!CAP.appelsMedias || !mediasDispo()) return lancerAppel(null, o.el, !!o.depuisFeuille, o.entrer);
-    if (etat.appelId || etat.appelDemarre) return false;
+    if (etat.appelDemarre) return false;
     if (etat.groupe.ouvert && etat.groupe.mode === 'avant') return false;           // déjà ouverte (une double activation) : on ne rouvre pas par-dessus
     avantArreter();
     avant.prete = { titre: o.titre || '', type: o.type === 'audio' ? 'audio' : o.type === 'video' ? 'video' : null, entrer: o.entrer, el: o.el || null, micro: true, camera: o.type !== 'audio', entree: false };
@@ -12216,8 +12245,8 @@ a.menu-action { text-decoration: none; }
     b.hidden = !x;
     if (x) { b.dataset.salle = x.id; b.dataset.type = x.type || ''; b.dataset.titre = x.titre || (c.nom || ''); $('conv-salle-texte').textContent = (x.genre === 'reunion' ? 'Réunion en cours' : 'Appel en cours') + ' · ' + x.nb + (x.nb > 1 ? ' participants' : ' participant'); }
   }
-  $('conv-salle').addEventListener('click', () => { const b = $('conv-salle'), id = b.dataset.salle; if (id) avantEntrer({ titre: b.dataset.titre || '', type: b.dataset.type, entrer: () => source.rejoindreAppel(id), el: b }); });
-  const rejoindreReunionUI = (id, type, el, depuisFeuille) => avantEntrer({ titre: titreReunion(id), type, entrer: () => source.rejoindreReunion(id, type), el, depuisFeuille: !!depuisFeuille });
+  $('conv-salle').addEventListener('click', () => { const b = $('conv-salle'), id = b.dataset.salle; if (id) avantEntrer({ titre: b.dataset.titre || '', type: b.dataset.type, entrer: () => source.rejoindreAppel(id), el: b, id }); });
+  const rejoindreReunionUI = (id, type, el, depuisFeuille) => avantEntrer({ titre: titreReunion(id), type, entrer: () => source.rejoindreReunion(id, type), el, depuisFeuille: !!depuisFeuille, reunion: id });
 
   /* ── le lien d'invité : « #reunion=<code> » — la feuille montre la réunion (l'aperçu public du service) et laisse choisir ── */
   const reunionDansAdresse = () => { const m = /(?:^|[#&])reunion=([A-Za-z0-9_-]{20,64})/.exec(location.hash || ''); return m ? m[1] : null; };

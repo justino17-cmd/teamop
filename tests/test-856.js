@@ -208,6 +208,7 @@ function controler(PAGE, DOC, SRC) {
   const MESURES_PERMISES = [
     [/const r = b\.getBoundingClientRect\(\), e = y < r\.top \? r\.top - y/, 'l\'index de « Nouvelle discussion » : quelle lettre est SOUS le doigt'],
     [/tient\.o = o; const r = o\.getBoundingClientRect\(\); let p = r\.width > 0 \? \(x - r\.left\) \/ r\.width : 0;/, 'l\'onde d\'un vocal : où est le pointeur DANS l\'onde à l\'instant du geste (un rapport lu et jeté, jamais une largeur recopiée)'],
+    [/if \(!a\.offsetWidth\) \{ a\.hidden = true; a\.textContent = ''; mot\(texte, 7000\); return; \}/, 'la phrase d\'un avis : #avis est-il AFFICHÉ (sa taille, pas son texte : son écran Conversation est caché hors d\'une conversation) — sinon elle passe par le petit mot ; une visibilité lue et jetée, jamais une largeur recopiée'],
     [/const el = m0\.agenda \? retrouverAgenda\(m0\.declencheur, m0\.cle\) : m0\.declencheur, r = el && el\.isConnected \? el\.getBoundingClientRect\(\) : null, m = M\.getBoundingClientRect\(\);/, 'le menu d\'un rendez-vous de l\'agenda : ouvert au point du clic droit (ou sous le rendez-vous au clavier), et « Y aller » d\'une fiche sous son bouton, gardés dans l\'écran — lu à l\'ouverture, jamais suivi'],
     [/T\.fantome\.style\.width = Math\.round\(T\.el\.getBoundingClientRect\(\)\.width\) \+ 'px';/, 'le fantôme d\'un rendez-vous qu\'on tire : la largeur de la puce au début du glisser, pour la durée du glisser seulement'],
   ];
