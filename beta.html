@@ -20644,6 +20644,20 @@ function absPeutValider(a){
   if(monTech && a.techId===monTech) return false;          // c'est mon absence
   return true;
 }
+/* ⛔ planning#7 — à qui prévenir quand une absence validée est modifiée : les responsables (« Tout voir »)
+   actifs, ni celui qui agit, ni la personne absente. Sans eux la demande attendrait sans que personne le sache. */
+function absValideursIds(a){ const moi=currentUser&&currentUser.id;
+  return (db.users||[]).filter(u=>u&&u.actif!==false&&u.id!==moi&&userCap(u,'voirTout')&&!(a&&a.techId&&u.techId===a.techId)).map(u=>u.id); }
+/* ⛔ planning#8 — une autre absence de la MÊME personne qui recoupe la période de `d` (dates ISO : on compare des
+   chaînes). Ni les refusées ni les annulées ne bloquent ; l'absence éditée (`sauf`) s'exclut ; un matin et un
+   après-midi du même jour ne se recoupent pas. */
+function absChevauche(d,sauf){ if(!d||!d.techId||!d.du) return null; const fin=d.au||d.du;
+  return (db.absences||[]).find(a=>{ if(!a||a.id===sauf||a.techId!==d.techId) return false;
+    const st=absStatut(a); if(st==='refusee'||st==='annulee') return false;
+    if(!(a.du<=fin && d.du<=(a.au||a.du))) return false;
+    const seul=a.du===(a.au||a.du) && d.du===fin && a.du===d.du;
+    if(seul && a.demi && d.demi && a.demi!==d.demi) return false;
+    return true; })||null; }
 /* est-ce l'absence de la personne connectée ? */
 function absEstMienne(a){
   let monTech=''; try{ monTech=myTechId()||''; }catch(e){}
@@ -20668,13 +20682,17 @@ function feriesAn(y){
 function estFerie(iso){ if(!iso) return false; return feriesAn(Number(iso.slice(0,4))).has(iso); }
 function estOuvre(iso){ if(!iso) return false; const j=new Date(iso+'T00:00:00').getDay(); return j!==0&&j!==6&&!estFerie(iso); }
 /* ce qui est réellement décompté : ni samedis, ni dimanches, ni fériés — demi-journées comprises */
-function absJoursOuvres(a){
-  if(!a||!a.du) return 0;
+function absJoursOuvres(a){ return absJoursListe(a).reduce((s,x)=>s+x[1],0); }
+/* ⛔ planning#8 — les jours décomptés, UN PAR UN ([date ISO, 1 ou 0,5]) : c'est ce qui permet au solde de ne pas
+   compter deux fois un jour que deux absences recoupent (doublons déjà en base). Le 3ᵉ élément dit quelle part du
+   jour : 'j' (entier), 'matin' ou 'aprem' — un matin et un après-midi font bien une journée. */
+function absJoursListe(a){
+  if(!a||!a.du) return [];
   const fin=a.au||a.du;
-  if(a.du===fin && a.demi) return estOuvre(a.du)?0.5:0;
-  let n=0, d=a.du, garde=0;
-  while(d<=fin && garde++<800){ if(estOuvre(d)) n++; d=shiftDay(d,1); }
-  return n;
+  if(a.du===fin && a.demi) return estOuvre(a.du)?[[a.du,0.5,a.demi==='aprem'?'aprem':'matin']]:[];
+  const l=[]; let d=a.du, garde=0;
+  while(d<=fin && garde++<800){ if(estOuvre(d)) l.push([d,1,'j']); d=shiftDay(d,1); }
+  return l;
 }
 function absNb(n){ return String(Math.round((Number(n)||0)*2)/2).replace('.',','); }
 function absNbTexte(a){ const n=absJoursOuvres(a);
@@ -20694,8 +20712,14 @@ function absDroit(techId){ const t=(db.techniciens||[]).find(x=>x.id===techId);
 function absSolde(techId){
   const p=absPeriodeRef();
   const l=(db.absences||[]).filter(a=>a.techId===techId&&absCompteSolde(a)&&a.du>=p.du&&a.du<=p.au);
-  const pris=l.filter(a=>absStatut(a)==='validee').reduce((s,a)=>s+absJoursOuvres(a),0);
-  const dem =l.filter(a=>absStatut(a)==='attente').reduce((s,a)=>s+absJoursOuvres(a),0);
+  /* un jour recoupé par deux absences ne se décompte qu'UNE fois (la plus longue part du jour l'emporte) ; une demande
+     en attente ne recompte pas un jour déjà validé. */
+  const parJour=st=>{ const m={}; l.filter(a=>absStatut(a)===st).forEach(a=>absJoursListe(a).forEach(x=>{
+      const o=m[x[0]]||(m[x[0]]={matin:0,aprem:0}); if(x[2]==='j'){ o.matin=0.5; o.aprem=0.5; } else o[x[2]]=0.5; }));
+    const r={}; Object.keys(m).forEach(j=>{ r[j]=m[j].matin+m[j].aprem; }); return r; };
+  const mV=parJour('validee'), mA=parJour('attente');
+  const pris=Object.keys(mV).reduce((s,j)=>s+mV[j],0);
+  const dem =Object.keys(mA).reduce((s,j)=>s+Math.max(0,mA[j]-(mV[j]||0)),0);
   const droit=absDroit(techId);
   return {droit:droit,pris:pris,demande:dem,reste:Math.round((droit-pris-dem)*2)/2,periode:p};
 }
@@ -21079,11 +21103,29 @@ function saveAbsence(e,id){ e.preventDefault(); if(!permGarde('plan',id?'modifie
   if(!absJoursOuvres(d)){ toast('Cette période ne contient aucun jour ouvré'); return; }
   d.justif=absJustifTmp||''; d.justifNom=absJustifTmp?(absJustifNom||''):'';
   db.absences=db.absences||[];
-  if(id){ const k=db.absences.findIndex(x=>x.id===id); if(k>=0) db.absences[k]={...db.absences[k],...d}; }
+  /* ⛔ planning#8 — la même personne n'est pas absente deux fois le même jour : deux demandes qui se
+     recoupent faisaient compter les jours deux fois au solde. On ne compare que si la période (ou la
+     personne) CHANGE : corriger la note d'un doublon d'avant la règle reste possible. */
+  const av=id?db.absences.find(x=>x.id===id):null;
+  const periodeChange=!av||av.techId!==d.techId||av.du!==d.du||(av.au||av.du)!==(d.au||d.du)||(av.demi||'')!==(d.demi||'');
+  if(periodeChange){ const dbl=absChevauche(d,id);
+    if(dbl){ toast(techName(d.techId)+' a déjà une absence « '+(ABS_TYPES[dbl.type]||'Absence')+' » '
+        +(dbl.du===(dbl.au||dbl.du)?'le '+fmtShort(dbl.du):'du '+fmtShort(dbl.du)+' au '+fmtShort(dbl.au||dbl.du))
+        +' ('+(absStatut(dbl)==='attente'?'en attente':'validée')+') — modifie-la plutôt que d’en ajouter une autre'); return; } }
+  let revalider=false;
+  if(id){ const k=db.absences.findIndex(x=>x.id===id);
+    if(k>=0){ const ap={...db.absences[k],...d};
+      /* ⛔ planning#7 — une absence VALIDÉE dont les dates (ou le type, ou la personne) changent n'est plus
+         celle qu'un responsable a validée : sans valideur derrière l'éditeur, elle repart en attente, sa
+         décision effacée. Un valideur qui la modifie garde sa décision (c'est lui qui décide). */
+      if(absValidee(db.absences[k]) && (av.techId!==d.techId||av.du!==d.du||(av.au||av.du)!==(d.au||d.du)||(av.demi||'')!==(d.demi||'')||av.type!==d.type) && !absPeutValider(ap)){
+        ap.statut='attente'; ap.parQui=''; ap.leQuand=''; ap.motif=''; revalider=true; }
+      db.absences[k]=ap; } }
   else db.absences.push({id:uid(),creePar:currentUser.id,creeLe:todayISO(),statut:'attente',...d});
   absJustifTmp=''; absJustifNom='';
-  logEvent(id?'Absence modifiée':'Absence enregistrée',techName(d.techId)+' · '+(ABS_TYPES[d.type]||''),'crud');
-  save(); closeModal(); views.absences(); toast(id?'Absence modifiée':'Absence enregistrée'); }
+  logEvent(id?(revalider?'Absence modifiée — à revalider':'Absence modifiée'):'Absence enregistrée',techName(d.techId)+' · '+(ABS_TYPES[d.type]||''),'crud');
+  if(revalider){ try{ const dest=absValideursIds(d); if(dest.length) pushNotify('🏖️ Absence à revalider',techName(d.techId)+' · '+(ABS_TYPES[d.type]||'')+' · du '+fmtShort(d.du)+' au '+fmtShort(d.au||d.du)+' — modifiée après validation','/app.html#v=absences',dest); }catch(_){} }
+  save(); closeModal(); views.absences(); toast(id?(revalider?'Absence modifiée — repassée en attente de validation':'Absence modifiée'):'Absence enregistrée'); }
 function delAbsence(id){ const a=(db.absences||[]).find(x=>x.id===id); if(!a) return;
   if(!(canCat('plan','supprimer')||a.creePar===(currentUser&&currentUser.id))){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }   // v738 : la même règle que le bouton
   if(!confirm('Supprimer cette absence ?')) return; db.absences=(db.absences||[]).filter(x=>x.id!==id); save(); views.absences(); toast('Supprimée'); }
