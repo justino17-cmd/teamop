@@ -5365,7 +5365,7 @@ html[data-refonte] #msg-list{
    (`--msg-sous` : aperçu de photo + rangée de saisie) — et le CSS retranche le reste, `100dvh` et `--tabh`, qui restent
    vivants. Sans le script (`data-ajuste` absent), les constantes d'avant restent le repli. */
 html[data-refonte] #msg-list[data-ajuste]{
-  height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - 16px))!important;min-height:0!important}
+  height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--msg-bas,16px)))!important;min-height:0!important}
 html[data-refonte] #msg-list:has(> .empty){display:flex;align-items:center;justify-content:center}
 html[data-refonte] #msg-list > .empty{padding:0!important}
 html[data-refonte] .msg{border-radius:17px!important;font-size:14.5px!important;line-height:1.5!important;padding:10px 15px!important}
@@ -39968,16 +39968,27 @@ views.messagerie=function(){
    barre d'onglets en JavaScript). Si la liste était collée en bas, elle y reste. */
 function msgAjuster(){
   const ml=$('msg-list'), sa=$('msg-saisie'); if(!ml||!sa||current!=='messagerie') return false;
-  const mt=el=>parseFloat(getComputedStyle(el).marginTop)||0;
+  const mt=el=>parseFloat(getComputedStyle(el).marginTop)||0, mb=el=>parseFloat(getComputedStyle(el).marginBottom)||0;
   const pv=$('msg-photo-prev');
   /* la chaîne des `offsetTop`, pas `getBoundingClientRect` : les cartes ENTRENT en glissant (transform) et un rectangle lu
      pendant l'entrée est décalé de la distance du glissement, sans que rien ne prévienne l'observateur */
   let top=0; for(let e=ml;e;e=e.offsetParent) top+=e.offsetTop;
-  const sous=Math.round(sa.offsetHeight+mt(sa)+((pv&&pv.offsetHeight)?pv.offsetHeight+mt(pv):0));
-  const dejaBon=ml.getAttribute('data-ajuste')==='1'&&ml.style.getPropertyValue('--msg-top')===top+'px'&&ml.style.getPropertyValue('--msg-sous')===sous+'px';
+  /* le vide entre la liste et ce qui la suit est une marge FUSIONNÉE : la plus grande de la marge basse de la liste (18 px) et de la
+     marge haute du premier élément visible qui suit (10 px), pas leur somme ni la seconde seule — compter seulement la seconde laissait
+     8 px de défilement vertical au Mac (relecture j01, mesuré : champ à 842-886, page de 908 pour 900). L'aperçu masqué (display:none)
+     ne prend aucune place et ne compte pas. */
+  const pvVu=!!(pv&&pv.offsetHeight);
+  const sous=Math.round(sa.offsetHeight+(pvVu?pv.offsetHeight+mt(sa)+Math.max(mb(ml),mt(pv)):Math.max(mb(ml),mt(sa))));
+  /* ce qui reste de la page SOUS la rangée de saisie : marge de la rangée, puis rembourrage bas, bordure et marge de chaque
+     ancêtre jusqu'à <html> (22 px à #content sur un Mac, 96 + 8 sur une tablette). L'ancienne constante (396) le comptait ;
+     une marge fixe de 16 px ne le compte pas, et la page gagnait du défilement vertical sur un bureau qui n'en avait aucun
+     (relecture de j01, mesuré à 1440×900 et 1280×720). On le lit au lieu de le deviner. */
+  let bas=mb(sa); for(let e=sa.parentElement;e;e=e.parentElement){ const c=getComputedStyle(e); bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0)+(parseFloat(c.marginBottom)||0); }
+  bas=Math.ceil(bas);
+  const dejaBon=ml.getAttribute('data-ajuste')==='1'&&ml.style.getPropertyValue('--msg-top')===top+'px'&&ml.style.getPropertyValue('--msg-sous')===sous+'px'&&ml.style.getPropertyValue('--msg-bas')===bas+'px';
   if(dejaBon) return true;
   const enBas=ml.scrollHeight-ml.scrollTop-ml.clientHeight<4;
-  ml.style.setProperty('--msg-top',top+'px'); ml.style.setProperty('--msg-sous',sous+'px');
+  ml.style.setProperty('--msg-top',top+'px'); ml.style.setProperty('--msg-sous',sous+'px'); ml.style.setProperty('--msg-bas',bas+'px');
   ml.setAttribute('data-ajuste','1');
   if(enBas) ml.scrollTop=ml.scrollHeight;
   return true;

@@ -41,13 +41,14 @@ function monde(o) {
     getAttribute(n) { return n in this.attrs ? this.attrs[n] : null; }, setAttribute(n, x) { this.attrs[n] = String(x); ecritures.push('attr:' + n); },
     style: null, getBoundingClientRect() { return { top: o.leurre }; } }, p);
   const mk = (id, p) => { const e = el(id, p); e.style = { setProperty: (k, x) => { e.props[k] = x; ecritures.push('prop:' + k); }, getPropertyValue: k => e.props[k] || '' }; reg[id] = e; return e; };
-  const corps = mk('body', { offsetTop: 0 });
-  const content = mk('content', { offsetTop: o.hautContenu, offsetParent: corps });
-  const ml = mk('msg-list', { offsetTop: o.barre ? 75 : 0, offsetParent: content, scrollHeight: 900, clientHeight: 300, scrollTop: o.enBas === false ? 100 : 600 });
-  const sa = mk('msg-saisie', { offsetHeight: 62, mt: 10 });
+  const html = mk('html', { pb: 0 });
+  const corps = mk('body', { offsetTop: 0, pb: o.padCorps || 0, parentElement: html });
+  const content = mk('content', { offsetTop: o.hautContenu, offsetParent: corps, pb: o.padContenu === undefined ? 22 : o.padContenu, parentElement: corps });
+  const ml = mk('msg-list', { offsetTop: o.barre ? 75 : 0, offsetParent: content, scrollHeight: 900, clientHeight: 300, scrollTop: o.enBas === false ? 100 : 600, mb: o.mbListe || 0 });
+  const sa = mk('msg-saisie', { offsetHeight: 62, mt: 10, mb: o.margeSaisie || 0, parentElement: content });
   const pv = mk('msg-photo-prev', { offsetHeight: o.photo ? 70 : 0, mt: 10 });
   const ctx = { console, JSON, Math, Number, parseFloat, current: o.vue || 'messagerie', window: { scrollY: o.scrollY || 0 }, __reg: reg, __ecr: ecritures,
-    getComputedStyle: e => ({ marginTop: (e.mt || 0) + 'px' }), $: id => reg[id] || null, document: { body: corps } };
+    getComputedStyle: e => ({ marginTop: (e.mt || 0) + 'px', marginBottom: (e.mb || 0) + 'px', paddingBottom: (e.pb || 0) + 'px', borderBottomWidth: (e.bb || 0) + 'px' }), $: id => reg[id] || null, document: { body: corps } };
   vm.createContext(ctx); vm.runInContext(AJ, ctx);
   return ctx;
 }
@@ -92,6 +93,33 @@ console.log('\n── 1601 · 3. r4#6 : l\'en-tête plus haut d\'une tablette en
   vrai('l\'ancienne constante (768 − 396) le faisait déborder de 39 px', 373 + (768 - 396) + 72 > 768 + 30);
 }
 
+console.log('\n── 1601 · 3 bis. relecture j01 : le bureau sans barre ne gagne AUCUN défilement vertical ──');
+{
+  /* Mac 1440×900 mesuré : #content porte 22 px de rembourrage bas, <body> 0. Le CSS retranche --msg-bas ; la page doit finir
+     exactement sur 100dvh : top + liste + sous + bas = 900. Avec l'ancienne marge fixe de 16 px elle dépassait (14 px de
+     défilement mesurés au navigateur, la rangée collait au bord) — la sonde ne lisait pas scrollMax. */
+  const hauteurPage = (c, ih) => { const t = parseInt(lire(c, 'msg-list', '--msg-top')), so = parseInt(lire(c, 'msg-list', '--msg-sous')), ba = parseInt(lire(c, 'msg-list', '--msg-bas'));
+    const liste = Math.max(80, ih - t - so - ba); return t + liste + so + ba; };
+  /* la liste porte 18 px de marge basse (mesuré), la rangée 10 de marge haute : elles FUSIONNENT, le vide vaut 18 et non 10 */
+  const mac = monde({ hautContenu: 297, mbListe: 18 }); run('msgAjuster()', mac);
+  v('⛔ le vide liste → rangée est la marge FUSIONNÉE (max(18, 10) = 18, pas 10) : --msg-sous = rangée 62 + 18 = 80, et non 72', lire(mac, 'msg-list', '--msg-sous'), '80px');
+  { const ph = monde({ hautContenu: 297, mbListe: 18, photo: true }); run('msgAjuster()', ph);
+    v('avec l\'aperçu de photo visible : le vide liste → aperçu est fusionné (max(18, 10)), puis aperçu → rangée (10) : 62 + 70 + 10 + 18', lire(ph, 'msg-list', '--msg-sous'), '160px'); }
+  v('--msg-bas = le rembourrage bas de #content (22 px), lu et pas supposé', lire(mac, 'msg-list', '--msg-bas'), '22px');
+  v('Mac 1440×900 : la page finit EXACTEMENT sur l\'écran (0 px de défilement vertical)', hauteurPage(mac, 900), 900);
+  vrai('l\'ancienne marge fixe de 16 px la faisait dépasser (6 px de trop avec ce rembourrage)', 297 + (900 - 297 - 72 - 16) + 72 + 22 > 900 + 5);
+  const macb = monde({ hautContenu: 372 }); run('msgAjuster()', macb);
+  v('même chose quand le haut de page est plus bas (372, barre « Reprendre ») : toujours 0 px de défilement', hauteurPage(macb, 900), 900);
+  const tab = monde({ hautContenu: 297, padContenu: 96, padCorps: 8 }); run('msgAjuster()', tab);
+  v('tablette : 96 px de #content + 8 px de <body> comptés (104), la page tient dans 768', [lire(tab, 'msg-list', '--msg-bas'), hauteurPage(tab, 768)], ['104px', 768]);
+  const mar = monde({ hautContenu: 297, margeSaisie: 4 }); run('msgAjuster()', mar);
+  v('la marge basse de la rangée elle-même compte aussi', lire(mar, 'msg-list', '--msg-bas'), '26px');
+  const c2 = monde({ hautContenu: 297 }); run('msgAjuster()', c2); const n2 = c2.__ecr.length;
+  run('msgAjuster()', c2); v('un rembourrage identique ne réécrit rien', c2.__ecr.length, n2);
+  c2.__reg['content'].pb = 40; run('msgAjuster()', c2);
+  v('un rembourrage qui change se re-mesure', lire(c2, 'msg-list', '--msg-bas'), '40px');
+}
+
 console.log('\n── 1601 · 4. stabilité et garde-fous ──');
 {
   const c = monde({ hautContenu: 297 }); run('msgAjuster()', c); const n = c.__ecr.length;
@@ -128,7 +156,7 @@ vrai('retirer la photo re-mesure', /msgAjusterPlus\(\)/.test(CLR));
 console.log('\n── 1601 · 6. le CSS RÉEL ──');
 const ajuste = [...SRC.matchAll(/#msg-list\[data-ajuste\]\s*\{([^}]*)\}/g)].map(m => nettoie(m[1]));
 v('trois règles mesurées (de base, sous 781 px avec la barre d\'onglets, téléphone couché)', ajuste.length, 3);
-vrai('la règle de base retranche top et sous à 100dvh, avec un plancher, et lève le min-height de 240 px', /height:max\(80px,calc\(100dvh - var\(--msg-top,0px\) - var\(--msg-sous,0px\) - 16px\)\)!important/.test(ajuste[0] || '') && /min-height:0!important/.test(ajuste[0] || ''), ajuste[0]);
+vrai('la règle de base retranche top, sous et --msg-bas (rembourrage bas mesuré, 16 px en repli) à 100dvh, avec un plancher, et lève le min-height de 240 px', /height:max\(80px,calc\(100dvh - var\(--msg-top,0px\) - var\(--msg-sous,0px\) - var\(--msg-bas,16px\)\)\)!important/.test(ajuste[0] || '') && /min-height:0!important/.test(ajuste[0] || ''), ajuste[0]);
 vrai('celle du téléphone retranche en plus --tabh + 6 px (la rangée collante est posée là)', /var\(--msg-sous,0px\) - var\(--tabh\) - 6px\)\)!important/.test(ajuste[1] || ''), ajuste[1]);
 vrai('le téléphone couché (écran court) : plancher abaissé à 48 px et rangée COLLÉE au bas de l\'écran — le champ reste atteignable quand en-tête + barre « Reprendre » + rangée dépassent 390 px',
   /max\(48px,calc\(100dvh - var\(--msg-top,0px\) - var\(--msg-sous,0px\) - 16px\)\)!important/.test(ajuste[2] || '')
