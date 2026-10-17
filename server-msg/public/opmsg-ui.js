@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'f13d19c5c6b6';
+  const OPMSG_BUILD = 'e93b19614149';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 216;
+  const OPMSG_VERSION = 217;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -172,15 +172,19 @@
   /* ⛔ (10 octobre 2026 : « que tout soit bien différencié entre perso et pro ») une conversation de l'AUTRE côté — une recherche cherche des deux — porte une étiquette « Pro » ou « Perso » :
      l'ouvrir bascule de côté, on le sait avant de toucher */
   const autreCote = c => !!(c && modesActifs() && coteDe(c) !== etat.mode);
+  /* ⛔ une conversation EN SOURDINE le dit sur sa ligne (un croissant de lune barré) et son point « non lu » se tait : le service ne notifie plus rien, la liste ne doit pas crier à sa place.
+     `sourdine` est l'échéance (un nombre de millisecondes, 0 sinon) que la source tire de `muet_jusqua` ; comparée à l'heure DE LA PAGE, elle s'éteint seule à l'échéance au prochain rendu */
+  const enSourdine = c => !!c && (Number(c.sourdine) || 0) > Date.now();
   function ligneConv(c, neuve) {
     const sel = etat.conv === c.id, pris = !!(etat.selection && etat.selection.has(c.id));
+    const muette = enSourdine(c);
     /* en mode « Modifier » : la ligne se COCHE au lieu de s'ouvrir (`aria-pressed` le dit à l'oreille) ; le point « non lu » reste dit, après la coche */
     return '<li' + (neuve ? ' class="conv-neuve"' : '') + '>' + (etat.selection
       ? '<button type="button" class="conv presse conv-choix" data-choisir="' + esc(c.id) + '" aria-pressed="' + pris + '"><span class="conv-coche' + (pris ? ' prise' : '') + '" aria-hidden="true">' + (pris ? icone('i-coche') : '') + '</span>' +
         (c.nonLu ? '<span class="sr-seul">Non lu, </span>' : '')
       : '<button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
-        '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
-      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
+        '<span class="conv-point">' + (c.nonLu ? '<i class="point' + (muette ? ' muet' : '') + '"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
+      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span>' + (muette ? '<span class="conv-sourdine" role="img" aria-label="En sourdine">' + icone('i-sourdine') + '</span>' : '') + '<span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
       '<span class="conv-apercu" dir="auto">' + (autreCote(c) ? '<span class="conv-etiquette cote-' + coteDe(c) + '">' + NOM_COTE[coteDe(c)] + '</span>' : '') + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
   }
   /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
@@ -242,6 +246,9 @@
     const f = ok && !etat.selection ? $('btn-modifier') : $('liste-actions').querySelector('button:not([disabled])') || $('btn-modifier');
     f.focus({ preventScroll: true });
   }
+  /* ⛔ une conversation épinglée qui attend une lecture le DIT sur son avatar (un point, comme sur la liste) : sortie de la liste, l'épingle ne montrait plus rien (relecture du 17 octobre 2026) */
+  const boutonEpingle = c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
+    avatar(c) + (c.nonLu ? '<i class="point epingle-point' + (enSourdine(c) ? ' muet' : '') + '"></i><span class="sr-seul">Non lu</span>' : '') + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>';
   function rendreListe() {
     const q = norme(etat.recherche);
     const invits = etat.conversations.filter(c => c.invitation === 'recue' && dansMode(c));
@@ -268,8 +275,7 @@
         : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
     const pins = etat.listeInvit || etat.listeArchives || etat.selection ? [] : etat.conversations.filter(c => c.epingle && !c.archive && c.invitation !== 'recue' && dansMode(c));
-    $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
-      avatar(c) + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>').join('');
+    $('epingles').innerHTML = pins.map(boutonEpingle).join('');
     $('epingles').hidden = !pins.length;
     peindreSelection(); majBadge(); peindreMode();
   }

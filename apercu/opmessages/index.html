@@ -279,6 +279,11 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 @media (hover: hover) { .conv:not([aria-current="true"]):hover { background: var(--field); } }
 .conv-point { width: 10px; flex: none; display: flex; justify-content: center; }
 .point { width: 10px; height: 10px; border-radius: 50%; background: var(--fill); }
+.point.muet { background: var(--faint); }       /* une conversation en sourdine ne réclame rien : son point existe, il ne crie pas */
+.conv-sourdine { flex: none; display: inline-flex; align-self: center; color: var(--faint); }
+.conv-sourdine .ic { width: 14px; height: 14px; }
+.epingle-bouton { position: relative; }
+.epingle-point { position: absolute; top: 0; right: 6px; width: 12px; height: 12px; box-shadow: 0 0 0 2px var(--card); }
 .conv .avatar { width: 50px; height: 50px; font-size: 18px; }
 .conv-corps { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .conv-ligne { display: flex; align-items: baseline; gap: 8px; }
@@ -2442,6 +2447,7 @@ a.menu-action { text-decoration: none; }
   <symbol id="i-courriel" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 .5 8 6 8-6"/></symbol>
   <symbol id="i-personne" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c.9-3.4 3.7-5.2 7-5.2s6.1 1.8 7 5.2"/></symbol>
   <symbol id="i-cloche" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5l1.5-1.5ZM10 20.5a2.2 2.2 0 0 0 4 0"/></symbol>
+  <symbol id="i-sourdine" viewBox="0 0 24 24"><path d="M20 14.2A8 8 0 0 1 9.8 4 8 8 0 1 0 20 14.2ZM4 4l16 16"/></symbol>
   <symbol id="i-cadenas" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.3v2.2"/></symbol>
   <symbol id="i-appareil" viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="2.4"/><path d="M11 17.5h2"/></symbol>
   <symbol id="i-disque" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
@@ -2996,15 +3002,19 @@ a.menu-action { text-decoration: none; }
   /* ⛔ (10 octobre 2026 : « que tout soit bien différencié entre perso et pro ») une conversation de l'AUTRE côté — une recherche cherche des deux — porte une étiquette « Pro » ou « Perso » :
      l'ouvrir bascule de côté, on le sait avant de toucher */
   const autreCote = c => !!(c && modesActifs() && coteDe(c) !== etat.mode);
+  /* ⛔ une conversation EN SOURDINE le dit sur sa ligne (un croissant de lune barré) et son point « non lu » se tait : le service ne notifie plus rien, la liste ne doit pas crier à sa place.
+     `sourdine` est l'échéance (un nombre de millisecondes, 0 sinon) que la source tire de `muet_jusqua` ; comparée à l'heure DE LA PAGE, elle s'éteint seule à l'échéance au prochain rendu */
+  const enSourdine = c => !!c && (Number(c.sourdine) || 0) > Date.now();
   function ligneConv(c, neuve) {
     const sel = etat.conv === c.id, pris = !!(etat.selection && etat.selection.has(c.id));
+    const muette = enSourdine(c);
     /* en mode « Modifier » : la ligne se COCHE au lieu de s'ouvrir (`aria-pressed` le dit à l'oreille) ; le point « non lu » reste dit, après la coche */
     return '<li' + (neuve ? ' class="conv-neuve"' : '') + '>' + (etat.selection
       ? '<button type="button" class="conv presse conv-choix" data-choisir="' + esc(c.id) + '" aria-pressed="' + pris + '"><span class="conv-coche' + (pris ? ' prise' : '') + '" aria-hidden="true">' + (pris ? icone('i-coche') : '') + '</span>' +
         (c.nonLu ? '<span class="sr-seul">Non lu, </span>' : '')
       : '<button type="button" class="conv presse" data-ouvrir="' + esc(c.id) + '"' + (sel ? ' aria-current="true"' : '') + '>' +
-        '<span class="conv-point">' + (c.nonLu ? '<i class="point"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
-      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span><span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
+        '<span class="conv-point">' + (c.nonLu ? '<i class="point' + (muette ? ' muet' : '') + '"></i><span class="sr-seul">Non lu</span>' : '') + '</span>') + avatar(c) +
+      '<span class="conv-corps"><span class="conv-ligne"><span class="conv-nom">' + esc(nomConv(c)) + (c.type === 'canal' && c.prive ? '<span class="sr-seul"> (canal privé)</span>' : '') + '</span>' + (muette ? '<span class="conv-sourdine" role="img" aria-label="En sourdine">' + icone('i-sourdine') + '</span>' : '') + '<span class="conv-heure" data-t="' + (+c.t || 0) + '">' + esc(libelleListe(c.t)) + '</span>' + CHEVRON + '</span>' +
       '<span class="conv-apercu" dir="auto">' + (autreCote(c) ? '<span class="conv-etiquette cote-' + coteDe(c) + '">' + NOM_COTE[coteDe(c)] + '</span>' : '') + (c.archive && !etat.listeArchives ? '<span class="conv-etiquette">Archivée</span>' : '') + esc(c.apercu) + '</span></span></button></li>';
   }
   /* ⛔ LES INVITATIONS (7 octobre 2026) : les messages de personnes qui ne sont pas dans mes contacts ne se mêlent pas à mes conversations — une ligne « Invitations » en tête de
@@ -3066,6 +3076,9 @@ a.menu-action { text-decoration: none; }
     const f = ok && !etat.selection ? $('btn-modifier') : $('liste-actions').querySelector('button:not([disabled])') || $('btn-modifier');
     f.focus({ preventScroll: true });
   }
+  /* ⛔ une conversation épinglée qui attend une lecture le DIT sur son avatar (un point, comme sur la liste) : sortie de la liste, l'épingle ne montrait plus rien (relecture du 17 octobre 2026) */
+  const boutonEpingle = c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
+    avatar(c) + (c.nonLu ? '<i class="point epingle-point' + (enSourdine(c) ? ' muet' : '') + '"></i><span class="sr-seul">Non lu</span>' : '') + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>';
   function rendreListe() {
     const q = norme(etat.recherche);
     const invits = etat.conversations.filter(c => c.invitation === 'recue' && dansMode(c));
@@ -3092,8 +3105,7 @@ a.menu-action { text-decoration: none; }
         : '<li class="vide">Aucun résultat pour « ' + esc(etat.recherche.trim()) + ' »</li>'));
     /* épinglés : les conversations marquées, une colonne de 76 px chacune (nom court, jamais coupé en deux) */
     const pins = etat.listeInvit || etat.listeArchives || etat.selection ? [] : etat.conversations.filter(c => c.epingle && !c.archive && c.invitation !== 'recue' && dansMode(c));
-    $('epingles').innerHTML = pins.map(c => '<li class="epingle"><button type="button" class="epingle-bouton" data-ouvrir="' + esc(c.id) + '"' + (etat.conv === c.id ? ' aria-current="true"' : '') + '>' +
-      avatar(c) + '<span class="epingle-nom">' + esc(c.court || c.nom) + '</span></button></li>').join('');
+    $('epingles').innerHTML = pins.map(boutonEpingle).join('');
     $('epingles').hidden = !pins.length;
     peindreSelection(); majBadge(); peindreMode();
   }

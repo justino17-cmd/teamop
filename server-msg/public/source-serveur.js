@@ -111,10 +111,12 @@
     return e;
   }
 
+  /* ⛔ Des LETTRES, jamais le premier caractère venu (lot m10, 17 octobre 2026) : « Ana (Pro) » faisait « A( », un nom collé avec une balise « A< », « 👷 Léo Roux » « 👷R ». Un mot se lit
+     à partir de sa première lettre (`\p{L}`) ; un mot sans lettre ne compte pas ; un nom sans aucune lettre se replie sur « ? » — comme un nom vide. */
   const initialesDe = (nom) => {
-    const mots = String(nom || '').trim().split(/\s+/).filter(Boolean);
+    const mots = String(nom || '').split(/\s+/).map(m => m.replace(/^[^\p{L}]+/u, '')).filter(Boolean);
     if (!mots.length) return '?';
-    const a = Array.from(mots[0]), b = mots.length > 1 ? Array.from(mots[mots.length - 1]) : a.slice(1);
+    const a = Array.from(mots[0]), b = mots.length > 1 ? Array.from(mots[mots.length - 1]) : a.slice(1).filter(c => /\p{L}/u.test(c));
     return (a[0] + (b[0] || '')).toUpperCase();
   };
   const indexAvatar = (id) => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 6007; return h % 6; };
@@ -2201,13 +2203,21 @@
         apercu = prefixe + corps;
       }
       const loc = convs.get(c.id);
-      const nonLus = loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq ? 0 : c.non_lus;
+      /* ⛔ Le dernier message visible est de MOI : on vient de répondre, la ligne ne dit pas « Non lu » (le testeur l'a mesuré : « Vous : Oui, on démarre lundi. » avec un point bleu et un nom en gras).
+         C'est l'AFFICHAGE qui le tait : le service tient « envoyer n'est pas lire » exprès (un envoi sorti d'une file hors ligne ne marque pas lus des messages jamais vus), son `lu_seq` ne bouge
+         pas, et un message reçu APRÈS le mien rallume le point (le dernier n'est plus de moi). Rien ne s'écrit. */
+      const dernierEstMoi = !!c.apercu && c.apercu.type !== 'systeme' && estMoi(c.apercu.auteur);
+      const nonLus = dernierEstMoi || (loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq) ? 0 : c.non_lus;
+      /* ⛔ une conversation DIRECTE a la couleur de la PERSONNE (Contacts, Appels, Infos, la fiche et l'écran d'appel la prennent sur son identifiant) : la même personne n'a pas deux couleurs.
+         Un groupe, un canal, une réunion n'ont pas de personne : ils gardent celle de leur conversation. */
       return {
-        id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, archive: !!c.archive, supprime,
+        id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(direct && c.autre && c.autre.id ? c.autre.id : c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, archive: !!c.archive, supprime,
         theme: themeDe(c.theme),
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* l'échéance de la sourdine de CETTE personne (0 : pas en sourdine) — la même lecture que `infos()` : la liste dessine un croissant de lune barré, et grise le point « non lu » */
+        sourdine: c.muet_jusqua > maintenant() ? c.muet_jusqua : 0,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
         invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
         /* PERSO / PRO : le côté qui vaut, l'automatique, et celui que j'ai choisi à la main (null : l'automatique) — un service d'avant n'en dit rien : tout est Perso */
@@ -2462,7 +2472,8 @@
         espace: canalD && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canalD && d.conversation.prive === true,
         reunion: d.conversation.type === 'reunion' && typeof d.conversation.reunion === 'string' ? d.conversation.reunion : null };
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
-      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), enReunion: enReunion.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
+      /* la base porte la couleur de la CONVERSATION (le repli ci-dessus) : une directe prend celle de la personne, comme `resume()` */
+      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), enReunion: enReunion.has(autre.id), autre: autre.id, avatar: indexAvatar(autre.id), photo: photoPiece(autre.avatar) }); }
       else if (d.conversation.type === 'groupe' || canalD) { base.nom = base.court = d.conversation.nom || (canalD ? 'Canal' : 'Groupe'); base.photo = photoPiece(d.conversation.avatar); }
       else if (d.conversation.type === 'reunion') { base.nom = base.court = d.conversation.nom || 'Réunion'; base.photo = null; }
       if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
