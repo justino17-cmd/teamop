@@ -180,6 +180,8 @@ svg.ic.plein { fill: currentColor; stroke: none; }
 svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sr-seul { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* ceux qui sont posés À LA FIN du document (l'annonce d'appel, les deux champs de photo) n'ont pas de `top` : leur place « naturelle » est après tout le reste, et leur bas dépassait de 1 px — la page défilait pour rien sur chaque écran, avec un ascenseur permanent sous Windows (17 octobre 2026) */
+body > .sr-seul { top: 0; left: 0; }
 [hidden] { display: none !important; }
 
 /* La réponse au toucher est IMMÉDIATE : l'état « pressé » se pose au doigt posé, pas au relâché (apple-design, §1). La transition
@@ -389,7 +391,8 @@ p.transcription { margin: 0; font-size: 15px; line-height: 20px; letter-spacing:
 .vc-fiche-tete .avatar { width: 96px; height: 96px; font-size: 36px; margin-bottom: 10px; }
 .vc-fiche-nom { margin: 0; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .vc-fiche-statut { margin: 0; font-size: 15px; color: var(--sub-meta); }
-.vc-fiche-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px; padding: 0 0 22px; }
+/* les gestes forment UNE rangée, quel que soit leur nombre (4 ou 5) : des colonnes égales qui se partagent la largeur — `auto-fit` avec 60 px au plus étroit en laissait un seul sur une 2e ligne à 360 px (17 octobre 2026) */
+.vc-fiche-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; padding: 0 0 22px; }
 .vc-action { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 2px; border-radius: 12px; background: var(--card); color: var(--accent-txt); font-size: 12px; font-weight: 500; }
 .vc-action-rond { display: grid; place-items: center; font-size: 22px; }
 .vc-action[aria-pressed="true"] .vc-action-rond { color: #f5a623; }
@@ -405,7 +408,7 @@ p.transcription { margin: 0; font-size: 15px; line-height: 20px; letter-spacing:
 .fc-sous { font-size: 13px; line-height: 17px; color: var(--sub-meta); }
 .fc-sous .fc-en-cours { color: var(--vert, #34c759); font-weight: 600; }
 .fc-icone { flex: none; width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; background: var(--fill-soft); color: var(--accent-txt); font-size: 20px; }
-.fc-ligne.fc-agir .fc-titre { color: var(--accent-txt); }
+.fc-ligne.fc-agir .fc-titre { color: var(--accent-txt); white-space: normal; overflow-wrap: anywhere; }      /* un GESTE (« Programmer une réunion avec Ben ») se lit en entier : sur deux lignes plutôt qu'une ellipse (17 octobre 2026) */
 .fc-ligne.fc-agir .fc-icone { background: transparent; }
 .fc-note { margin: 0; padding: 12px 14px; font-size: 13px; line-height: 18px; color: var(--sub-meta); border-bottom: var(--sep); }
 .fc-squelette { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; border-bottom: var(--sep); }
@@ -520,7 +523,11 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .poignee i { width: 36px; height: 5px; border-radius: 999px; background: var(--faint); }
 @media (min-width: 700px) { .poignee { display: none; } .feuille-tete { padding-top: 8px; } }
 .feuille-barre { display: flex; align-items: center; gap: 4px; padding: 2px max(8px, 3vw) 6px; }
-.feuille-barre h2 { flex: 1; min-width: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.017em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* le titre est CENTRÉ sur la feuille : les boutons de chaque côté (« Annuler » à gauche, « Créer » à droite, ou « Fermer » seul) n'ont pas la même largeur, donc on leur donne la
+   MÊME part de la ligne (même base, même croissance : une base de 44 px, la cible tactile, que le rembourrage de chacun ne fait pas varier) et le titre garde la sienne — sans ça le titre se décalait de la moitié de l'écart, ~7 px (17 octobre 2026) */
+.feuille-barre > .feuille-bouton { flex: 1 1 44px; box-sizing: border-box; min-width: max-content; }      /* jamais plus étroit que son libellé… */
+.feuille-barre > .feuille-bouton.nd-x { min-width: 44px; }      /* …sauf la croix ronde, qui garde sa cible de 44 px */
+.feuille-barre h2 { flex: 0 1 auto; min-width: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.017em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feuille-bouton { min-height: 44px; min-width: 44px; padding: 0 8px; flex: none; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent-txt); }
 .feuille-bouton.fin { justify-content: flex-end; font-weight: 600; }
 .feuille-bouton[aria-disabled="true"] { color: rgba(120,120,128,.5); cursor: default; }
@@ -762,7 +769,7 @@ html:not([data-vue="messages"]) .conv-ecran { display: none; }
 .msg.suite { margin-top: 2px; }
 .msg.de-moi { align-items: flex-end; }
 .msg.de-autre { align-items: flex-start; }
-.msg-nom { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+.msg-nom { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }      /* un prénom de 60 signes sans espace ne sort plus de la colonne : coupé par une ellipse (le nom entier reste dans la fiche) */
 .bulle {
   max-width: 78%; padding: 8px 13px; font-size: 17px; line-height: 22px; letter-spacing: -.02em; text-wrap: pretty;
   overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; -webkit-user-select: text;
@@ -909,6 +916,8 @@ html[data-selection] .tabs { display: none; }
 .ep-vig { position: relative; flex: none; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; padding: 0; background: rgba(255,255,255,.1); outline: 2px solid transparent; outline-offset: -2px; }
 .ep-vig[aria-current="true"] { outline-color: var(--fill); }
 .ep-vig img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* l'enveloppe d'UNE vignette (écrite par le JavaScript : la vignette ET sa croix) — elle porte la place et sert de repère à la croix : sans règle, elle restait `static` et les croix de toutes les vignettes remontaient à l'angle de l'aperçu, empilées (17 octobre 2026) */
+.ep-vig-l { position: relative; flex: none; width: 56px; height: 56px; }
 .ep-retirer { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: rgba(0,0,0,.66); color: #fff; font-size: 11px; }
 .ep-retirer::after { content: ''; position: absolute; inset: -11px; }   /* la croix se touche sur 44 px, même dessinée sur 22 */
 .ep-bas { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px 10px; }
@@ -1011,7 +1020,7 @@ html[data-selection] .tabs { display: none; }
 .nd-index button { flex: 0 1 22px; min-height: 14px; width: 44px; padding: 0; display: grid; place-items: center; font-size: 11px; line-height: 1; font-weight: 700; color: var(--accent-txt); }
 .nd-index button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
 .nd-x { padding: 0 4px; }
-.feuille[data-mode="nouvelle"] #g-annuler { width: 44px; padding: 0; overflow: hidden; }      /* l'« Annuler » invisible ne garde que la largeur du ✕ : le titre reste au centre de la feuille */
+.feuille[data-mode="nouvelle"] #g-annuler { min-width: 44px; padding: 0; overflow: hidden; }      /* l'« Annuler » invisible ne garde que la largeur du ✕ : le titre reste au centre de la feuille (la base de la barre les égalise : `flex` sur les deux côtés, plus `width`) */
 .nd-x-rond { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--fill-soft); color: var(--sub); font-size: 14px; }
 .nd-x-rond .ic { stroke-width: 2.4; }
 
@@ -1316,6 +1325,7 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 [data-plus="contact"] > .pj-disque { background: #8e8e93; }
 [data-plus="fichier"] > .pj-disque { background: #5e5ce6; }
 [data-plus="sondage"] > .pj-disque { background: #ff9f0a; }
+[data-plus="plus-tard"] > .pj-disque { background: #af52de; }      /* « Plus tard » : un disque comme les autres — sans, l'icône blanche flottait sur le blanc du thème de jour (17 octobre 2026) */
 @media (hover: hover) { .pj-tuile:hover { background: var(--field); } }
 /* ⛔ À LA SOURIS, LE « + » OUVRE UN MENU QUI SORT DU BOUTON (capture à l'appui, 7 octobre 2026 : « quand je clique sur le +, il faudrait pas que ça se mette comme ça ») —
    une liste comme celle de Messages sur Mac, collée au « + », sans voile sur la conversation ; jamais une fenêtre au milieu de l'écran. Ancré en CSS au bouton (`anchor-name`),
@@ -2035,6 +2045,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .invite-carte { margin: 0 auto; max-width: 420px; padding: 18px; border-radius: 18px; background: var(--card); border: var(--line); text-align: center; }
 .invite-carte h3 { margin: 0 0 4px; font-size: 20px; line-height: 26px; overflow-wrap: anywhere; }
 .invite-carte p { margin: 4px 0; overflow-wrap: anywhere; }
+.invite-carte .info-actions { justify-content: center; margin-top: 14px; }      /* les boutons de la salle : centrés comme le reste de la carte, et à distance du texte de la date (17 octobre 2026) */
 .salle-btn .ic { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
 .salle-cmd-texte { display: block; max-width: 100%; overflow-wrap: anywhere; }
 .salle-ecran[data-attente] .salle-cmds, .salle-ecran[data-attente] .salle-tuile { display: none; }
@@ -2370,7 +2381,9 @@ a.menu-action { text-decoration: none; }
   /* CONTACTS = Contacts sur Mac : la liste (380 px) à gauche, la fiche à droite, séparées d'un filet ; la fiche se tient en haut quand la liste défile */
   #vue-contacts { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); column-gap: 0; }
   #vue-contacts > .entete-vue { grid-column: 1 / -1; }
-  #vue-contacts > .vc-col { max-width: none; margin: 0; padding-right: 20px; min-width: 0; }
+  #vue-contacts > .vc-col { max-width: none; margin: 0; padding-right: 20px; min-width: 0; padding-bottom: 32px; }
+  /* Contacts remplit la fenêtre PILE : la fiche de droite fait `100vh − 52 px` (sous la barre d'outils), la vue 100vh — et la marge basse du contenu y ajoutait ses 32 px, donc la page défilait de 33 px. Sur cette seule rubrique la marge passe à la LISTE (sa dernière ligne ne colle pas au bas de la fenêtre). */
+  html[data-vue="contacts"] .contenu { padding-bottom: 0; }
   #vue-contacts > .vc-fiche { max-width: none; margin: -14px -24px 0 0; min-height: calc(100vh - 52px); border-left: var(--line); position: sticky; top: calc(52px + var(--pousse, 0px)); align-self: start; }
   #vue-contacts .contact[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
   #vue-contacts .contact[aria-current="true"] .vc-chevron { stroke: currentColor; }
