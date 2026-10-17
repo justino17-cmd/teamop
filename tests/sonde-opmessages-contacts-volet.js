@@ -87,7 +87,17 @@ const BUREAU = { w: 1440, h: 900 };
     v('…sa ligne est marquée', await marquee(), ['Dan Colin']);
     if (DOSSIER) await page.screenshot({ path: path.join(DOSSIER, 'volet-entreprise.png') });
 
-    console.log('\n── 5. rien ne casse ──');
+    console.log('\n── 5. MON statut dans la barre latérale, et la couleur de ma pastille (reglages#1, appareils@7) ──');
+    vrai('population : la barre dit « Disponible » (aucun statut)', await attendre(() => document.getElementById('moi-statut-texte').textContent === 'Disponible'));
+    const couleurs = await page.evaluate(() => ({ barre: document.querySelector('#moi-carte .moi-av').className.match(/\bav\d\b/)[0] }));
+    await page.evaluate(async () => { await fetch('/api/moi/maj', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-OPM': '1' }, body: JSON.stringify({ statut: 'Au bureau jusqu\'à 17 h' }) }); });
+    vrai('⛔ la barre dit MON statut, plus « Disponible » (le service prévient les autres appareils de la personne : l\'événement `moi`)', await attendre(() => document.getElementById('moi-statut-texte').textContent === 'Au bureau jusqu\'à 17 h', null, 12000));
+    await page.evaluate(() => { location.hash = '#reglages'; });
+    vrai('population : le Profil est ouvert (la carte du compte)', await attendre(() => !!document.querySelector('#reg-profil .reg-moi .avatar')));
+    v('⛔ la pastille de la barre et la grande photo du Profil ont la MÊME couleur d\'avatar', await page.evaluate(() => [document.querySelector('#moi-carte .moi-av').className.match(/\bav\d\b/)[0] === document.querySelector('#reg-profil .reg-moi .avatar').className.match(/\bav\d\b/)[0]]), [true]);
+    void couleurs;
+
+    console.log('\n── 6. rien ne casse ──');
     v('aucune erreur JavaScript', erreurs, []);
     await ctx.close();
   } catch (e) { console.error('✗ la sonde est morte : ' + (e && e.stack || e)); process.exitCode = 1; }

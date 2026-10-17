@@ -2154,7 +2154,9 @@
     const nomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).nom : 'Quelqu\'un');
 
     /* ── les contacts ── */
-    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enReunion.has(c.id) ? 'En réunion' : enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id), enReunion: enReunion.has(c.id), favori: c.favori === true });
+    /* ⛔ le STATUT que la personne a écrit passe devant la présence (« Ce que tes contacts voient sous ton nom ») : tant qu'elle était en ligne, ses contacts lisaient « En ligne » et jamais son statut.
+       La présence reste dite quand il n'y en a pas, et le point de l'avatar (`enLigne`, `enReunion`) la dit toujours. Une règle d'AFFICHAGE : le service rend toujours les deux, séparés. */
+    const vueContact = (c) => Object.assign(vuePersonne(c), { statut: c.statut || '', role: c.statut || (enReunion.has(c.id) ? 'En réunion' : enLigne.has(c.id) ? 'En ligne' : ''), enLigne: enLigne.has(c.id), enReunion: enReunion.has(c.id), favori: c.favori === true });
     function installerContacts(liste) {
       contactsTous = liste.slice();
       contactsApi = liste.filter(c => c.mutuel && !c.bloque);
@@ -3887,7 +3889,7 @@
       messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
-      moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
+      moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, statut: moiApi.statut || '', presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),
       personne, rafraichirContacts,
       lister, ouvrir, precedents, envoyer, marquerLu, saisie, rangerConvs,

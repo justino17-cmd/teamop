@@ -478,7 +478,8 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .moi-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moi-nom { font-size: 13px; font-weight: 600; }
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
-.moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+.moi-statut i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+.moi-statut span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }      /* un statut long ne pousse pas la barre : il se coupe, la pastille entière le dit en infobulle */
 .moi-statut.masque i { background: var(--sub-meta); }
 /* le nombre de demandes de contact REÇUES, sur « Ajouter un contact » (Réglages) : une pastille à l'accent, comme un badge d'iOS */
 .reglage-valeur.pastille-n { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 13px; font-weight: 600; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }

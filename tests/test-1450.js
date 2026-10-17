@@ -39,7 +39,7 @@ const ligne = debut => { const i = JS.indexOf(debut); return i < 0 ? '' : JS.sli
 const jusqua = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1 : JS.indexOf(finTexte, i); return i < 0 || j < 0 ? '' : JS.slice(i, j + finTexte.length); };
 
 const M = {
-  esc: ligne('const esc = '), vcNorm: ligne('const vcNorm = '), presenceTexte: ligne('const presenceTexte = '), prenom: ligne('const prenom = '), icone: ligne('const icone = '),
+  esc: ligne('const esc = '), vcNorm: ligne('const vcNorm = '), avIndex: ligne('const avIndex = '), statutTexte: ligne('const statutTexte = '), presenceTexte: ligne('const presenceTexte = '), prenom: ligne('const prenom = '), icone: ligne('const icone = '),
   CHEVRON: ligne('const CHEVRON = '), blob: ligne('const blob = '), avatar: jusqua('const avatar = ', "</span>'"),
   modesActifs: ligne('const modesActifs = '), coteDe: ligne('const coteDe = '), dansMode: ligne('const dansMode = '), duCote: ligne('const duCote = '),
   coteReu: ligne('const coteReu = '), sonStatutTxt: ligne('const sonStatutTxt = '),

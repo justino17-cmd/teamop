@@ -1009,9 +1009,9 @@ async function controler(PAGE, SRC, DOC) {
         && /if \(enSalle\(A\) && sx\(A\)\.panneau === 'ordre' && A\.snap && \(!ev\.id \|\| ev\.id === A\.snap\.reunion\)\) salleOrdreCharger\(A\);/.test(JS) && /\} else if \(m\.compteRendu && !m\.supprime\) \{\s*h \+= htmlCompteRendu\(m, sens\);/.test(JS));
   }
   /* « NE PAS DÉRANGER PENDANT UNE RÉUNION » (8 octobre 2026) — le service retient et résume (test-937) ; la page montre « En réunion » et porte l'interrupteur */
-  vrai('⛔ « Ne pas déranger pendant une réunion » : la pastille « En réunion » (rouge barrée) passe devant « En ligne », les mots aussi (partout par `presenceTexte`) ; l\'interrupteur « Pause pendant les réunions » est un réglage du COMPTE ; pas de bannière sur l\'écran d\'un appel',
+  vrai('⛔ « Ne pas déranger pendant une réunion » : la pastille « En réunion » (rouge barrée) passe devant « En ligne », les mots aussi (partout par `presenceTexte`, directement ou par `statutTexte` qui lui laisse la place quand la personne n\'a pas écrit de statut — 17 octobre 2026) ; l\'interrupteur « Pause pendant les réunions » est un réglage du COMPTE ; pas de bannière sur l\'écran d\'un appel',
     /\(c\.enReunion \? '<i class="presence reunion" title="En réunion"><\/i>' : c\.enLigne \? '<i class="presence" title="En ligne"><\/i>' : ''\)/.test(JS) && /const presenceTexte = p => p && p\.enReunion \? 'En réunion' : p && p\.enLigne \? 'En ligne' : '';/.test(JS)
-      && (JS.match(/presenceTexte\(/g) || []).length >= 10 && /\.avatar \.presence\.reunion \{ background: var\(--rouge\); \}/.test(CSS) && /id="reg-notif-pause"/.test(JS)
+      && (JS.match(/(?:presenceTexte|statutTexte)\(/g) || []).length >= 10 && /const statutTexte = p => p \? \(p\.statut \|\| presenceTexte\(p\)\) : '';/.test(JS) && /\.avatar \.presence\.reunion \{ background: var\(--rouge\); \}/.test(CSS) && /id="reg-notif-pause"/.test(JS)
       && /else if \(quoi === 'pause'\) reg\.notif = await source\.notifPauseReunion\(!reg\.notif\.pauseReunion\);/.test(JS) && /bouton\.id === 'reg-notif-pause'/.test(JS)
       && /&& !\(etat\.appelId && !etat\.appelReduit\)\) notifier\(/.test(JS));
 

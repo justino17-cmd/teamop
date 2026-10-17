@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e487f2104884';
+  const OPMSG_BUILD = 'c7029871af01';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -77,8 +77,10 @@
      La vue existe toujours (ORDRE la garde : adresses « #reglages/… », notifications, bancs) — seuls le menu et la barre d'onglets la perdent. */
   let NAV = ORDRE.filter(k => k !== 'reglages');
   /* l'avatar qui mène au Profil, au bout du grand titre de chaque vue (téléphone et tablette en portrait ; au bureau, c'est la carte du bas de la barre latérale) */
+  /* l'index de couleur d'un avatar (0 à 5) : le MÊME pour la pastille de la barre, la grande photo du Profil et ce que les autres voient de la personne */
+  const avIndex = c => (((c && c.avatar) | 0) % 6 + 6) % 6;
   const pastilleMoi = () => '<a href="#reglages" class="moi-pastille presse" data-vue="reglages" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages">' +
-    '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span><b class="moi-point" aria-hidden="true" hidden></b></a>';
+    '<span class="avatar av' + avIndex(MOI) + ' moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span><b class="moi-point" aria-hidden="true" hidden></b></a>';
   /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
   const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'lieux', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
@@ -115,6 +117,9 @@
   const prenom = c => c.nom.split(' ')[0];
   /* la présence en mots : « En réunion » (dans une salle — 8 octobre 2026, « Ne pas déranger ») passe devant « En ligne » ; rien sinon */
   const presenceTexte = p => p && p.enReunion ? 'En réunion' : p && p.enLigne ? 'En ligne' : '';
+  /* ⛔ CE QU'ON LIT SOUS UN NOM : le STATUT que la personne a écrit (« Ce que tes contacts voient sous ton nom »), et la présence seulement quand il n'y en a pas. La présence passait avant :
+     tant que la personne était en ligne, personne ne lisait son statut. Le point de l'avatar dit déjà qu'elle est là. UNE fonction pour la fiche, la liste « Entreprise » et les membres d'un espace. */
+  const statutTexte = p => p ? (p.statut || presenceTexte(p)) : '';
   /* une conversation à plusieurs : un groupe, ou un CANAL d'espace (mêmes messages, même fil : le nom de l'auteur se montre) ; un canal se nomme « # nom » */
   const multi = c => !!c && (c.type === 'groupe' || c.type === 'canal' || c.type === 'reunion');
   const nomConv = c => (c.type === 'canal' ? '# ' : '') + c.nom;
@@ -127,7 +132,7 @@
   /* une erreur DIT quelque chose : la phrase française du service si l'erreur en porte une, sinon la phrase de l'écran — jamais un message technique */
   const phrase = (e, defaut) => e && e.dit ? (typeof e.phrase === 'function' ? e.phrase() : e.message) : (defaut || 'Une erreur est survenue.');
   /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, vérifié, puis échappé */
-  const avatar = c => '<span class="avatar av' + (((c.avatar | 0) % 6 + 6) % 6) + (c.enReunion ? ' en-ligne en-reunion' : c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enReunion ? '<i class="presence reunion" title="En réunion"></i>' : c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
+  const avatar = c => '<span class="avatar av' + avIndex(c) + (c.enReunion ? ' en-ligne en-reunion' : c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enReunion ? '<i class="presence reunion" title="En réunion"></i>' : c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
 
   /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
   const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -3455,12 +3460,14 @@
   const refusBloc = t => '<p class="info-erreur" role="alert">' + esc(t) + '</p><button type="button" class="mini reg-relire" data-reg-relire="1">Réessayer</button>';
   function peindreMoi() {
     const ph = blob(MOI.photo);
-    document.querySelectorAll('.moi-av').forEach(a => { a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : ''; });
+    document.querySelectorAll('.moi-av').forEach(a => { a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : ''; a.className = a.className.replace(/\bav\d\b/, 'av' + avIndex(MOI)); });      // ⛔ la couleur de la personne, pas `av0` en dur : la même que la grande photo du Profil
     $('moi-nom').textContent = MOI.nom;
     /* ⛔ MA présence : coupée, la barre ne dit plus « Disponible » avec un point vert pendant que personne ne me voit (relecture du testeur). L'aperçu n'a pas ce réglage : `presence` y est absente. */
     const masquee = MOI.presence === false;
     $('moi-statut').classList.toggle('masque', masquee);
-    $('moi-statut-texte').textContent = masquee ? 'Présence masquée' : 'Disponible';
+    /* ⛔ MON statut (« Ce que tes contacts voient sous ton nom ») remplace « Disponible » : la personne le lit là où elle le tient — la présence coupée reste dite en premier */
+    $('moi-statut-texte').textContent = masquee ? 'Présence masquée' : (MOI.statut || 'Disponible');
+    $('moi-statut-texte').title = masquee ? '' : (MOI.statut || '');
   }
   function peindreProfilReglage() {
     const c = $('reg-profil'); if (!c || !MOI) return;
@@ -3872,10 +3879,12 @@
     peindreProfil(p);
   }
   function peindreProfil(p) {
-    const ph = blob(p.photo);
+    const ph = blob(p.photo), ident = CAP.identifiants && typeof source.monIdentifiant === 'function' ? source.monIdentifiant() : null;
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="profil-photo">' + avatar(p) + '<div class="info-actions"><button type="button" class="mini" data-act="profil-photo">' + (ph ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (ph ? '<button type="button" class="mini danger" data-act="profil-photo-retirer">Retirer</button>' : '') + '</div></div>' +
-      '<label class="champ-profil"><span>Prénom</span><input id="pf-prenom" type="text" maxlength="60" autocomplete="given-name" value="' + esc(p.champs.prenom) + '"></label>' +
+      '<label class="champ-profil"><span>Prénom</span><input id="pf-prenom" type="text" maxlength="60" autocomplete="given-name" aria-describedby="pf-prenom-aide" value="' + esc(p.champs.prenom) + '"></label>' +
+      /* ⛔ l'identifiant suit le prénom : « Ben#5922 » devient « Benoît#5922 » et l'ancien ne retrouve plus personne — la feuille le DIT avant qu'on enregistre (une phrase, pas d'aperçu) */
+      '<p class="info-note" id="pf-prenom-aide">' + (ident ? 'Ton identifiant (' + esc(ident) + ') suit ton prénom : si tu le changes, ton identifiant change aussi, et l\'ancien ne te retrouve plus.' : 'Ton identifiant suit ton prénom : si tu le changes, ton identifiant change aussi, et l\'ancien ne te retrouve plus.') + '</p>' +
       '<label class="champ-profil"><span>Nom</span><input id="pf-nom" type="text" maxlength="60" autocomplete="family-name" value="' + esc(p.champs.nom) + '"></label>' +
       '<label class="champ-profil"><span>Statut</span><input id="pf-statut" type="text" maxlength="140" autocomplete="off" placeholder="Ce que tes contacts voient sous ton nom" value="' + esc(p.champs.statut) + '"></label>' +
       '<div class="info-actions"><button type="button" class="mini" data-act="profil-enregistrer">Enregistrer</button></div>';
@@ -4037,7 +4046,7 @@
     const estContact = (CONTACTS || []).some(x => x.id === p.id), uid = esc(p.id);
     const geste = (fiche, ic, txt, extra) => '<button type="button" class="vc-action presse" data-fiche="' + fiche + '" data-uid="' + uid + '"' + (extra || '') + '><span class="vc-action-rond">' + ic + '</span><span>' + txt + '</span></button>';
     return '<div class="vc-fiche-tete">' + avatar(p) + '<h2 class="vc-fiche-nom">' + esc(p.nom) + '</h2>' +
-      (presenceTexte(p) || p.statut || p.role ? '<p class="vc-fiche-statut">' + esc(presenceTexte(p) || p.statut || p.role) + '</p>' : '') + '</div>' +
+      (statutTexte(p) || p.role ? '<p class="vc-fiche-statut">' + esc(statutTexte(p) || p.role) + '</p>' : '') + '</div>' +
       '<div class="vc-fiche-actions">' + geste('ecrire', icone('i-chat'), 'Message') +
         (CAP.appels ? geste('appel', icone('i-phone'), 'Appeler', ' data-video="0"') + geste('appel', icone('i-video'), 'Vidéo', ' data-video="1"') : '') +
         (CAP.reunions ? geste('programmer', icone('i-agenda'), 'Réunion') : '') +
@@ -4253,7 +4262,7 @@
       if (!L) h += '<p class="vide">' + (S.panne[e.id] ? esc(S.panne[e.id]) : 'Chargement…') + '</p>';
       else if (!L.length) h += '<div class="carte carte-pad"><p class="info-note">Personne d\'autre dans cet espace pour l\'instant.</p></div>';
       else h += '<div class="carte">' + L.map(p => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '"' + (auBureau() && etat.vcSel === p.id ? ' aria-current="true"' : '') + '>' + avatar(p) +
-        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (presenceTexte(p) || p.statut ? '<span class="contact-role">' + esc(presenceTexte(p) || p.statut) + '</span>' : '') + '</span>' +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (statutTexte(p) ? '<span class="contact-role">' + esc(statutTexte(p)) + '</span>' : '') + '</span>' +
         '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
     }
     return vus ? h : vcAucun(brut);
@@ -4726,7 +4735,7 @@
     if (agit) act.push('<button type="button" class="mini danger" data-act="esp-retirer" data-uid="' + esc(p.id) + '">Retirer</button>');
     if (d.proprio && !p.moi) act.push('<button type="button" class="mini danger" data-act="esp-transferer" data-uid="' + esc(p.id) + '">Passer la propriété</button>');
     return '<div class="contact' + (act.length ? ' avec-actions' : '') + '" data-nom="' + esc(norme(p.nom)) + '">' + avatar(p) + '<span class="contact-texte"><span class="contact-nom">' + esc(p.moi ? 'Vous' : p.nom) +
-      (p.proprio ? '<span class="badge-admin">Propriétaire</span>' : p.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (presenceTexte(p) || p.statut ? '<span class="contact-role">' + esc(presenceTexte(p) || p.statut) + '</span>' : '') + '</span>' +
+      (p.proprio ? '<span class="badge-admin">Propriétaire</span>' : p.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (statutTexte(p) ? '<span class="contact-role">' + esc(statutTexte(p)) + '</span>' : '') + '</span>' +
       (act.length ? '<span class="contact-actions">' + act.join('') + '</span>' : '') + '</div>';
   }
   /* le champ de la feuille FILTRE la liste reçue (accents et casse ignorés) ; il ne cherche nulle part ailleurs */
