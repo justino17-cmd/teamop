@@ -7275,6 +7275,8 @@ a.menu-action { text-decoration: none; }
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
+    /* un nom en cours de frappe (« Renommer ») survit au redessin : la présence d'un membre qui change redessine la feuille, et le texte tapé ne doit pas s'envoler */
+    const frappe = actif && corps.contains(actif) && actif.tagName === 'INPUT' && actif.type === 'text' && actif.id ? { id: actif.id, valeur: actif.value, debut: actif.selectionStart, fin: actif.selectionEnd } : null;
     const g = i.type === 'groupe', canal = i.type === 'canal', eph = EPHEMERES.find(e => e[0] === i.ephemeres) || [i.ephemeres, i.ephemeres + ' s'], off = i.moiAdmin ? '' : ' disabled';
     corps.dataset.espace = canal && i.espace ? i.espace : '';
     const sd = CAP.notifications && !i.supprime ? (Number(i.sourdine) || 0) : -1;           // -1 : pas de sourdine à proposer ; 0 : pas en sourdine ; sinon l'échéance
@@ -7305,7 +7307,8 @@ a.menu-action { text-decoration: none; }
       if (i.moiAdmin) {
         const ajoutables = CONTACTS.filter(c => !i.membres.some(m => m.id === c.id));
         h += '<div class="rubrique"><span>Ajouter au groupe</span></div><div class="carte">' + ajoutables.map(c => '<div class="contact">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span></span><button type="button" class="mini" data-act="ajouter" data-uid="' + esc(c.id) + '">Ajouter</button></div>').join('') +
-          '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>';
+          '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>' +
+          '<div class="rubrique"><span>Renommer</span></div><div class="carte carte-pad"><div class="info-champ"><input id="gr-renom" type="text" maxlength="80" autocomplete="off" value="' + esc(i.nom) + '" aria-label="Nom du groupe"><button type="button" class="mini" data-act="groupe-renommer">Enregistrer</button></div></div>';
       }
       h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="quitter"><span class="reglage-texte">Quitter le groupe</span></button></div>';
     } else if (canal) {
@@ -7332,6 +7335,7 @@ a.menu-action { text-decoration: none; }
     }
     const dr = etat.deroule && corps.contains(etat.deroule.declencheur) ? etat.deroule.declencheur : null;
     corps.innerHTML = h;
+    if (frappe) { const n = corps.querySelector('#' + frappe.id); if (n) { n.value = frappe.valeur; n.focus({ preventScroll: true }); try { n.setSelectionRange(frappe.debut, frappe.fin); } catch (e2) { /* type sans sélection */ } } }
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
     if (dr) {
       /* ⛔ les « … » des membres sont plusieurs : on retrouve CELUI du même membre (et de son rôle d'alors) — le premier de la liste prenait le menu, et le focus à la fermeture */
@@ -7341,6 +7345,16 @@ a.menu-action { text-decoration: none; }
     }
   }
 
+  /* ⛔ « Ajouter au groupe » : le service répond 200 même quand il REFUSE la personne (elle m'a bloqué, ou nous ne sommes pas en contact) — il la rend dans `non_ajoutes` au lieu de
+     l'ajouter. Lire seulement le code HTTP laissait la ligne « Ajouter » en place sans un mot (mesuré : ni toast, ni phrase dans la feuille). `nomDe` donne le nom d'un identifiant. */
+  const phraseNonAjoutes = (rep, nomDe) => {
+    const non = rep && Array.isArray(rep.non_ajoutes) ? rep.non_ajoutes : [];
+    if (!non.length) return '';
+    const noms = non.map(u => nomDe(u) || 'Cette personne');
+    return noms.length === 1 ? noms[0] + ' n\'a pas pu être ajouté(e).' : noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1] + ' n\'ont pas pu être ajoutés.';
+  };
+  /* ce que dit le toast d'un lien d'invitation accepté : le service rend `deja` pour un contact ET pour un groupe, et le mot du contact ne vaut pas pour un groupe */
+  const motLienAccepte = r => r.genre === 'groupe' ? (r.deja ? 'Tu fais déjà partie de ce groupe' : 'Tu as rejoint le groupe') : (r.deja ? 'Déjà dans tes contacts' : 'Contact ajouté');
   /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
   async function apresChoixInfo(id, geste, motReussi) {
     erreurInfo('');
@@ -7369,7 +7383,7 @@ a.menu-action { text-decoration: none; }
       else if (act === 'demande-bloquer') { b.disabled = true; await source.bloquer(b.dataset.uid); mot('Bloqué : cette personne ne peut plus te trouver ni t\'écrire'); await chargerDemandes(); }
       else if (act === 'demande-retirer') { b.disabled = true; await source.annulerDemande(b.dataset.uid); mot('Demande retirée'); await chargerDemandes(); }
       else if (act === 'lien-lire') await lireLienSaisi();
-      else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(r.deja ? 'Déjà dans tes contacts' : r.genre === 'groupe' ? 'Tu as rejoint le groupe' : 'Contact ajouté'); ouvrirConvId(r.conv); }
+      else if (act === 'lien-accepter') { const r = await source.accepterLien(b.dataset.code); mot(motLienAccepte(r)); ouvrirConvId(r.conv); }
       else if (act === 'ecrire') { const c = await source.ouvrirDirecte(b.dataset.uid); ouvrirConvId(c); }
       else if (act === 'annonces') await source.majConversation(id, { annonces: b.getAttribute('aria-checked') !== 'true' });
       else if (act === 'ephemeres') {
@@ -7384,7 +7398,16 @@ a.menu-action { text-decoration: none; }
           v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a été retiré du groupe'));
         return;
       }
-      else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);
+      else if (act === 'ajouter') {
+        const refus = phraseNonAjoutes(await source.ajouterMembres(id, [b.dataset.uid]), u => { const c = CONTACTS.find(x => x.id === u); return c ? c.nom : ''; });
+        if (refus) erreurInfo(refus);
+      }
+      else if (act === 'groupe-renommer') {
+        /* (17 octobre 2026) le même geste que le canal (`can-renommer`) : un champ et « Enregistrer ». Le service refuse un nom vide ou de plus de 80 signes — la page le dit avant */
+        const nom = $('gr-renom').value.trim();
+        if (!nom) { erreurInfo('Le nom du groupe ne peut pas être vide.'); return; }
+        await source.majConversation(id, { nom }); mot('Groupe renommé');
+      }
       else if (act === 'lien-groupe') { const r = await source.lienGroupe(id); $('ci-lien').innerHTML = boiteLien('ci-lien-champ', r.code); }
       else if (act === 'debloquer') { await source.debloquer(b.dataset.uid); rendreListeBloques(); peindreBloquesN(); mot('Contact débloqué'); }
       else if (act === 'bloquer') {
@@ -7405,7 +7428,14 @@ a.menu-action { text-decoration: none; }
         const avant = b.dataset.valeur, auto = b.dataset.auto === 'pro' ? 'pro' : 'perso';
         ouvrirDeroule(b, 'Ranger dans', 'Le côté où cette conversation paraît. Pour toi seul : les autres gardent leur rangement.',
           [{ valeur: 'auto', libelle: 'Automatique (' + NOM_COTE[auto] + ')', coche: avant === 'auto' }, '-', { valeur: 'perso', libelle: 'Perso', coche: avant === 'perso' }, { valeur: 'pro', libelle: 'Pro', coche: avant === 'pro' }],
-          v => { if (v !== avant) apresChoixInfo(id, () => source.rangerCote(id, v === 'auto' ? null : v), v === 'auto' ? 'Rangée automatiquement (' + NOM_COTE[auto] + ')' : 'Rangée dans ' + NOM_COTE[v]); });
+          v => { if (v !== avant) apresChoixInfo(id, async () => {
+            await source.rangerCote(id, v === 'auto' ? null : v);
+            /* ⛔ « la conversation ouverte est toujours dans la liste qu'on voit » : rangée de l'AUTRE côté, elle quitte la liste affichée mais restait ouverte (et la bascule Perso / Pro ne bougeait pas, à raison :
+               le côté est une préférence du compte). On relit la liste, qui porte le côté, et on la ferme comme `bloquer` — sans changer de côté (`changerMode`) */
+            await rafraichirListe();
+            const c = etat.conversations.find(x => x.id === id);
+            if (etat.conv === id && modesActifs() && c && coteDe(c) !== etat.mode) remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+          }, v === 'auto' ? 'Rangée automatiquement (' + NOM_COTE[auto] + ')' : 'Rangée dans ' + NOM_COTE[v]); });
         return;
       }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
@@ -8004,10 +8034,20 @@ a.menu-action { text-decoration: none; }
   function prefixeCote(conv) { const c = conv && etat.conversations.find(x => x.id === conv); return autreCote(c) ? NOM_COTE[coteDe(c)] + ' · ' : ''; }
   /* les conversations que JE viens de faire disparaître (une réunion supprimée) : leur retrait ne se dit pas « Tu n'es plus dans cette conversation » — le geste a déjà son avis */
   const convQuittees = new Map();
+  /* ce que le toast dit à qui est retiré d'une conversation qu'il regardait : le NOM du groupe ou du canal (« on croit à un bug » quand la page revient à la liste sans l'expliquer), et — si un
+     message était en cours — qu'il n'est pas parti. Rien n'est rangé sur l'appareil pour le garder (voulu) : on le DIT, c'est tout. */
+  const motRetire = (c, brouillon) => {
+    /* le nom passe par une variable : il part dans mot() (textContent), jamais dans du balisage — et test-857 refuse toute concaténation NUE d'un nom, ce qui oblige à le dire */
+    const nom = c && c.nom ? String(c.nom) : '';
+    const base = nom && c.type === 'groupe' ? `Tu as été retiré de ${nom}.` : nom && c.type === 'canal' ? `Tu as été retiré du canal ${nom}.` : 'Tu n\'es plus dans cette conversation.';
+    return base + (brouillon ? ' Ton message en cours n\'a pas été envoyé.' : '');
+  };
   function surRetire(id) {
     const voulu = Date.now() - (convQuittees.get(id) || 0) < 30000; convQuittees.delete(id);
+    const brouillon = etat.conv === id && !!$('saisie').value.trim();
+    const avis = motRetire(etat.conversations.find(x => x.id === id), brouillon);      // lu AVANT la relecture de la liste (dernière ligne) : le nom vient de la liste que la page avait
     if (etat.groupe.ouvert && etat.groupe.convId === id) remplacer(Object.assign({}, etat.route, { feuille: false }));
-    if (etat.conv === id) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (!voulu) mot('Tu n\'es plus dans cette conversation.'); }
+    if (etat.conv === id) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); if (!voulu) mot(avis); }
     rafraichirListe();
   }
 
