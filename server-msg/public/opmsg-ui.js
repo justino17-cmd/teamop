@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = '3a6119ba4265';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -95,7 +95,7 @@
     modeEnVol: 0,                 // les écritures du côté pas encore revenues : l'événement `prefs` qui les croise ne remet pas l'ancien côté
     modeNonEcrit: false,          // le côté choisi ICI n'a pas pu s'écrire (hors ligne) : il tient sur l'appareil et s'écrit au retour du réseau
     conv: null, convDonnees: null, jeton: 0,
-    recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, posVues: {}, forcerBas: false, envoiEnCours: false,
+    recherche: '', neuves: new Set(), brouillons: {}, scrollListe: 0, posVues: {}, forcerBas: false, envoiEnCours: false, fileEnvoi: [], envoiCtx: null,
     groupe: groupeVierge(), garderPhoto: false, photo: null, creation: false,
     selection: null, listeArchives: false, rangement: false,  // « Modifier » de la liste : les conversations cochées (un Set), ou null hors du mode ; la liste des Archivées ouverte
     appels: [], filtreAppels: 'tous', jetonAppels: 0,        // l'historique tel que la source l'a rendu pour le filtre choisi
@@ -1248,7 +1248,7 @@
     $('envoyer').hidden = !a; $('compo-micro').hidden = a;
     $('compo-camera').hidden = a || !auDoigt() || !CAP.photos;
   }
-  const MESSAGES_ERREUR = { interdit: 'Seuls les admins peuvent écrire dans ce groupe.', 'trop-long': 'Ce message est trop long (4 000 signes au plus).', introuvable: 'Cette conversation n\'existe plus.' };
+  const MESSAGES_ERREUR = { interdit: 'Seuls les admins peuvent écrire dans ce groupe.', 'trop-long': 'Ce message est trop long (' + TEXTE_MAX.toLocaleString('fr-FR') + ' signes au plus).', introuvable: 'Cette conversation n\'existe plus.' };
   let minAvis = 0;
   function avis(texte) {
     clearTimeout(minAvis);
@@ -1290,47 +1290,65 @@
   $('compo-confirme-oui').addEventListener('click', () => { if (etat.confirmeAttente === etat.conv) envoyerTexte(); });
   $('compo-confirme-non').addEventListener('click', () => { fermerConfirmation(); $('saisie').focus({ preventScroll: true }); });
   $('saisie').addEventListener('input', () => fermerConfirmation());
+  /* « écrit… » s'éteint chez l'autre : le champ vidé (à la main ou par l'envoi). La source ne l'envoie que si une frappe a été annoncée, et attend la fenêtre de 2 s du service. */
+  const finSaisie = id => { if (CAP.saisie && id && typeof source.saisie === 'function') source.saisie(id, false); };
+  /* UN message de la file : { id, t, ctx, cites } tel qu'il était au moment de l'Entrée. Rend vrai s'il est parti. */
+  async function envoyerUn(x) {
+    const { id, t, ctx } = x;
+    let ok;
+    if (ctx && ctx.type === 'modif') {
+      try { await source.modifier(id, ctx.mid, t); ok = true; }
+      catch (e) { ok = false; avis(phrase(e, 'La modification n\'a pas pu être enregistrée.')); }
+    } else {
+      ok = await envoi(Object.assign(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t }, x.cites.length ? { mentions: x.cites } : {}), id);
+      if (ok) mentionUI.choisis.delete(id);
+    }
+    if (!ok) return false;
+    if (ctx && etat.contexte === ctx) { etat.contexte = null; majContexte(); }
+    masquerAvis();
+    return true;
+  }
+  /* Un envoi refusé RENDEZ le texte à la personne, dans l'ordre où elle l'avait écrit, sans écraser ce qu'elle a déjà tapé depuis. */
+  function rendreRefuses(liste) {
+    const parConv = new Map();
+    for (const y of liste) { if (!parConv.has(y.id)) parConv.set(y.id, []); parConv.get(y.id).push(y.t); }
+    for (const [id, textes] of parConv) {
+      const t = textes.join('\n'), ta = $('saisie'), ici = etat.conv === id, reste = ici ? ta.value : (etat.brouillons[id] || '');
+      /* ce que la personne a tapé depuis reste TEL QUEL, derrière le texte rendu : rien n'est écrasé, rien n'est perdu (avant, un champ déjà repris avalait le texte refusé) */
+      const nv = reste ? t + '\n' + reste : t;
+      if (ici) { ta.value = nv; ajusterSaisie(); majBoutons(); }
+      etat.brouillons[id] = nv;
+    }
+  }
   async function envoyerTexte() {
-    if (etat.envoiEnCours) { etat.envoiSuivant = true; return; }     // deux clics dans le même instant ne postent pas deux messages ; un toucher pendant l'attente n'est pas perdu : le message suivant part ensuite
-    const ta = $('saisie'), t = ta.value.replace(/\s+$/, '');
-    /* vider le champ en modifiant la LÉGENDE d'une photo, c'est la retirer ; partout ailleurs, un champ vide n'envoie rien */
-    const ctx0 = etat.contexte, cible = ctx0 && ctx0.type === 'modif' ? trouverMessage(ctx0.mid) : null;
+    const ta = $('saisie'), t = ta.value.replace(/\s+$/, ''), enVol = etat.envoiEnCours;
+    /* vider le champ en modifiant la LÉGENDE d'une photo, c'est la retirer ; partout ailleurs, un champ vide n'envoie rien. Pendant un envoi, le contexte (réponse, modification) de CET envoi
+       n'est pas celui du message qu'on tape : il est déjà parti avec lui. */
+    const ctx0 = enVol && etat.contexte === etat.envoiCtx ? null : etat.contexte, cible = ctx0 && ctx0.type === 'modif' ? trouverMessage(ctx0.mid) : null;
     if (!t.trim() && !(cible && cible.photos)) return;
     const nt = nSignes(t);
     if (nt > TEXTE_MAX) { avis(texteTropLong(nt)); return; }
     /* « Confirmer l'envoi » : la PREMIÈRE touche demande, la seconde envoie (une modification n'est pas un envoi) */
     if (!(ctx0 && ctx0.type === 'modif') && confirmationRequise() && etat.confirmeAttente !== etat.conv) { demanderConfirmation(); return; }
     fermerConfirmation();
-    etat.envoiEnCours = true;
-    let refuse = false;
-    const id = etat.conv, ctx = etat.contexte;
+    const id = etat.conv, x = { id, t, ctx: ctx0, cites: ctx0 && ctx0.type === 'modif' ? [] : mentionsDe(t, convCourante(), mentionUI.choisis.get(id)) };
     /* ⛔ le champ se vide AVANT l'attente, pas après : la réponse du service peut mettre une seconde (4G), et ce qu'on a tapé entre-temps — le message SUIVANT — était effacé
-       quand elle arrivait (mesuré : deux messages enchaînés, le second disparaissait du champ). Un envoi refusé rend le texte à la personne, sauf si elle a déjà écrit autre chose. */
-    ta.value = ''; delete etat.brouillons[id]; ajusterSaisie(); majBoutons();
+       quand elle arrivait (mesuré : deux messages enchaînés, le second disparaissait du champ). */
+    ta.value = ''; delete etat.brouillons[id]; ajusterSaisie(); majBoutons(); finSaisie(id);
+    /* ⛔ Entrée pendant un envoi : le message est PRIS tel qu'il est à cet instant (x) et mis en file — le champ est déjà vide, la suite se tape à part. Avant, le texte restait dans le champ et
+       partait à la fin du premier envoi, tel que le champ était ALORS : « A7 A » puis « 8 » (mesuré, 15 messages tapés vite, trois essais sur trois). La file part dans l'ordre ; « ok » puis
+       « ok » 250 ms plus tard, ce sont deux messages. */
+    if (enVol) { etat.fileEnvoi.push(x); return; }
+    etat.envoiEnCours = true;
     try {
-      let ok;
-      if (ctx && ctx.type === 'modif') {
-        try { await source.modifier(id, ctx.mid, t); ok = true; }
-        catch (e) { ok = false; avis(phrase(e, 'La modification n\'a pas pu être enregistrée.')); }
-      } else {
-        const cites = mentionsDe(t, convCourante(), mentionUI.choisis.get(id));
-        ok = await envoi(Object.assign(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t }, cites.length ? { mentions: cites } : {}));
-        if (ok) mentionUI.choisis.delete(id);
+      for (let courant = x; courant; courant = etat.fileEnvoi.shift()) {
+        etat.envoiCtx = courant.ctx;
+        /* un refus rend le message ET ceux qui le suivaient (ils ne partent pas avant lui : l'ordre, et aucune boucle de renvoi) */
+        if (!(await envoyerUn(courant))) { rendreRefuses([courant].concat(etat.fileEnvoi.splice(0))); return; }
       }
-      if (!ok) {
-        refuse = true;
-        if (etat.conv === id && !ta.value) { ta.value = t; etat.brouillons[id] = t; ajusterSaisie(); majBoutons(); }
-        else if (!etat.brouillons[id]) etat.brouillons[id] = t;
-        return;
-      }
-      if (ctx && etat.contexte === ctx) { etat.contexte = null; majContexte(); }
-      masquerAvis();
     } finally {
-      etat.envoiEnCours = false;
-      const suivant = etat.envoiSuivant; etat.envoiSuivant = false;
-      /* ⛔ un texte attendait : il part — SAUF s'il est celui qu'on vient de voir REFUSER (le renvoyer en boucle). Un envoi RÉUSSI ne bloque pas un message identique : « ok » puis « ok »
-         250 ms plus tard, c'est deux messages (le second était avalé, relecture du testeur, D2) */
-      if (suivant && ta.value.trim() && !(refuse && ta.value.replace(/\s+$/, '') === t)) envoyerTexte();
+      etat.envoiEnCours = false; etat.envoiCtx = null;
+      if (etat.fileEnvoi.length) rendreRefuses(etat.fileEnvoi.splice(0));      // une exception en route : rien de ce qui était en file n'est perdu
     }
   }
   /* ⛔ une réponse ou une modification se compose DANS la saisie : une bande au-dessus dit laquelle, une croix l'abandonne (Échap aussi) */
@@ -1404,13 +1422,16 @@
   /* ⛔ un texte plus long que la limite ne se COUPE pas en silence (le champ garde ce qu'on a collé, la fin comprise) : on le dit tout de suite, et l'envoi attend */
   /* ⛔ des SIGNES, pas des unités UTF-16 : le service compte les points de code (8 000 émojis passent), et la page refusait dès 4 001 en annonçant un chiffre faux */
   const nSignes = t => t.length <= TEXTE_MAX ? t.length : Array.from(t).length;
-  const texteTropLong = n => 'Ce message est trop long : ' + (n - TEXTE_MAX).toLocaleString('fr-FR') + ' signes en trop (' + TEXTE_MAX.toLocaleString('fr-FR') + ' au plus).';
+  /* « 1 signe en trop », « 2 signes en trop » : l'accord se fait ICI, pour les trois appelants (la frappe, l'envoi, la légende d'une photo) */
+  const texteTropLong = n => { const d = n - TEXTE_MAX; return 'Ce message est trop long : ' + d.toLocaleString('fr-FR') + (d > 1 ? ' signes' : ' signe') + ' en trop (' + TEXTE_MAX.toLocaleString('fr-FR') + ' au plus).'; };
   $('saisie').addEventListener('input', () => {
     ajusterSaisie(); majBoutons(); if (etat.conv) etat.brouillons[etat.conv] = $('saisie').value;
     const n = nSignes($('saisie').value);
     if (n > TEXTE_MAX) avis(texteTropLong(n)); else if (/trop long/.test($('avis').textContent)) masquerAvis();
     /* la frappe part aux autres (éphémère, jamais stockée) : la source la limite à une par 2 s */
-    if (CAP.saisie && etat.conv && $('saisie').value.trim() && !(etat.contexte && etat.contexte.type === 'modif') && typeof source.saisie === 'function') source.saisie(etat.conv, true);
+    /* ⛔ le champ VIDÉ éteint « écrit… » aussitôt (la source en repousse l'envoi jusqu'à la réouverture de sa fenêtre de 2 s : elle ne le fait pas refuser) ; avant, l'indicateur survivait ~6 s chez l'autre */
+    if ($('saisie').value.trim()) { if (CAP.saisie && etat.conv && !(etat.contexte && etat.contexte.type === 'modif') && typeof source.saisie === 'function') source.saisie(etat.conv, true); }
+    else finSaisie(etat.conv);
   });
   $('saisie').addEventListener('blur', () => { if (CAP.saisie && etat.conv && typeof source.saisie === 'function') source.saisie(etat.conv, false); });
   /* un second toucher qui suit de près le premier tombe sur ce que le premier a LAISSÉ à sa place : la flèche d'envoi disparue, c'est le micro qui reçoit le
