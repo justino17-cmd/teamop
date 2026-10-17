@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5f2b6db57b43';
+  const OPMSG_BUILD = 'ef7d263764f1';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 210;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1635,9 +1635,15 @@
     /* ⛔ jamais « les dix premières, le reste en silence » (relecture du testeur : la onzième disparaissait sans un mot) */
     const fichiers = choisies.slice(0, lim.parMessage), enTrop = choisies.length - fichiers.length;
     const bonnes = []; let ratees = 0, lourds = 0;
+    /* ⛔ LA RÉDUCTION SE DIT (lot m09 : une image de 3000 × 2000 px mettait 6 s à devenir l'aperçu, sans un mot — on re-choisissait la même photo) : après 400 ms, « Réduction… ». Une petite photo
+       se réduit en quelques dizaines de ms et ne fait rien clignoter. Seul CET avis est retiré à la fin, et seulement s'il est encore à l'écran : celui qui suit (une image illisible) reste. */
+    const texteReduction = fichiers.length > 1 ? 'Réduction des photos…' : 'Réduction de la photo…';
+    const minReduction = setTimeout(() => avis(texteReduction), 400);
     for (const f of fichiers) {
       try { const r = await reduireImage(f, 1600, .82, 250 * 1024, lim.gifMax); if (r.gifTropLourd) lourds++; bonnes.push({ blob: r.blob, url: URL.createObjectURL(r.blob), w: r.w, h: r.h }); } catch (er) { ratees++; }
     }
+    clearTimeout(minReduction);
+    if ($('avis').textContent === texteReduction) masquerAvis();
     const dits = [];
     if (enTrop) dits.push(lim.parMessage + ' photos au plus par envoi : ' + (enTrop === 1 ? 'la ' + (lim.parMessage + 1 === 11 ? 'onzième' : (lim.parMessage + 1) + 'e') + ' n\'a pas été envoyée.' : 'les ' + enTrop + ' dernières n\'ont pas été envoyées.'));
     if (ratees) dits.push(ratees === 1 ? 'Une image n\'a pas pu être lue — elle n\'a pas été envoyée.' : ratees + ' images n\'ont pas pu être lues — elles n\'ont pas été envoyées.');
