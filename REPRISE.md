@@ -32,7 +32,10 @@ du serveur d'OP MESSAGES s'écrit **sur sa branche**, pas dans la session qui en
 ⚠️ **v768 appartient à `claude/op-gestion-interface-yb6p32`** (ses fonctions d'options, que `test-845` attend). Une
 autre branche qui monte `APP_VERSION` à 768 fait tomber `test-845` : les correctifs d'application montent avec elle.
 ⚠️ Ce que le contrôle a relevé et qui reste « à regarder » : `app.html` charge encore Leaflet chez `unpkg.com` (et
-d'autres bibliothèques à la demande) ; la fenêtre « Photo de profil » revient au rechargement.
+d'autres bibliothèques à la demande : pdf.js, jsPDF, Tesseract chez jsDelivr) — les servir d'ici ne suffirait pas pour la
+carte, dont les tuiles viennent de toute façon d'un serveur de cartes : c'est une décision (sous-traitance), pas un correctif.
+✅ Écarté après lecture : la fenêtre « Photo de profil » au rechargement est VOULUE (`maybeProfilePhoto` : une fois par
+personne et par appareil, et pas par-dessus une autre fenêtre — à la première ouverture, c'est celle du mot de passe).
 
 ---
 
