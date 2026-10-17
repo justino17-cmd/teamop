@@ -757,8 +757,10 @@ async function controler(PAGE, SRC, DOC) {
         occurrencesDuJour: () => cA.duJour || [] };
       vm.createContext(cA);
       const iL = JS.indexOf('function localDans(t, tz) {'), fL = JS.indexOf('const PAYS_FUSEAUX = [', iL), ligne = d => { const i = JS.indexOf(d); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
+      /* (lot m05) l'heure répétée du changement d'heure se dit : `heureSaison` / `plageHeures` vivent près de FMT_HEURE, hors de la tranche — les VRAIES, avec le FMT_HEURE du bac */
+      const iH = JS.indexOf('const heureSaison = '), saison = iH < 0 ? '' : JS.slice(iH, JS.indexOf('\n  };', iH) + 5) + '\n' + ligne('const plageHeures = ');
       /* « Y aller » au menu (15 octobre 2026) : la destination se lit par les VRAIES `estUrl` et `destinationGps`, définies hors de la tranche */
-      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + ligne('const estUrl = ') + '\n' + ligne('const destinationGps = ') + '\n' + JS.slice(iA, fA) +
+      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + ligne('const estUrl = ') + '\n' + ligne('const destinationGps = ') + '\n' + saison + '\n' + JS.slice(iA, fA) +
         '\nthis.G = { peutDecaler, raisonNonDecalable, htmlMenuAgenda, conflitsAgenda, caseJour, elementAgenda, phrasePrevenus, modeleDecalage, snapDecalage, debutDecale, jourDans, joursEntre, cleAgenda };', cA, { timeout: 2000 });
       G = cA.G;
     } catch (e) { G = null; }
@@ -988,8 +990,10 @@ async function controler(PAGE, SRC, DOC) {
     let cr = null;
     try {
       const defs = ['const esc = ', 'const icone = ', 'const maj1 = ', 'const FMT_HEURE = ', 'const FMT_JOUR_LONG = '].map(k => (JS.match(new RegExp(ech(k) + '[^\\n]+')) || [''])[0]).join('\n');
+      /* (lot m05) le compte rendu écrit « début–fin » par `heureSaison` (la saison se dit le dimanche du changement d'heure) : la VRAIE, avec le FMT_HEURE du bac */
+      const iHS = JS.indexOf('const heureSaison = '), saisonCr = iHS < 0 ? '' : JS.slice(iHS, JS.indexOf('\n  };', iHS) + 5);
       const ctx = { console }; vm.createContext(ctx);
-      vm.runInContext(defs + '\n' + JS.slice(iC, fC) + '\nthis.f = htmlCompteRendu;', ctx, { timeout: 2000 });
+      vm.runInContext(defs + '\n' + saisonCr + '\n' + JS.slice(iC, fC) + '\nthis.f = htmlCompteRendu;', ctx, { timeout: 2000 });
       cr = ctx.f;
     } catch (e) { cr = null; }
     vrai('la fonction `htmlCompteRendu` de la page s\'exécute dans un bac à sable', typeof cr === 'function');

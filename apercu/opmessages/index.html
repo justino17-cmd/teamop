@@ -1686,6 +1686,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
 .reunion-heure { flex: none; width: 48px; display: flex; flex-direction: column; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums; }
 .reunion-heure small { font-size: 13px; color: var(--sub-meta); }
+.reunion-heure.saison { width: auto; min-width: 48px; white-space: nowrap; }      /* « 02:30 (été) » ne tient pas dans 48 px : la colonne grandit, ce jour-là seulement */
 .reunion-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-left: 10px; border-left: 3px solid var(--fill); }
 .reunion-titre { font-size: 17px; letter-spacing: -.02em; line-height: 22px; overflow-wrap: anywhere; }
 .reunion-sous { font-size: 14px; line-height: 19px; color: var(--sub-meta); overflow-wrap: anywhere; }
@@ -2933,6 +2934,21 @@ a.menu-action { text-decoration: none; }
 
   /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
   const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  /* ⛔ le dimanche où l'on repasse à l'heure d'hiver, une même heure sonne DEUX fois : une réunion d'une heure à 02:30 (été) finit à 02:30 (hiver), et « 02:30 – 02:30 » ne disait rien.
+     Quand le début et la fin s'affichent pareil mais ne sont pas au même décalage, chaque heure dit sa saison. Sinon (le cas de tous les autres jours) l'heure s'écrit comme avant. */
+  const heureSaison = (t, autre) => {
+    const h = FMT_HEURE.format(t);
+    if (!(autre > 0) || FMT_HEURE.format(autre) !== h) return h;
+    const a = new Date(t).getTimezoneOffset(), b = new Date(autre).getTimezoneOffset();
+    return a === b ? h : h + (a < b ? ' (été)' : ' (hiver)');
+  };
+  const plageHeures = (debut, fin) => heureSaison(debut, fin) + ' – ' + heureSaison(fin, debut);
+  /* la même vérité sur les rangées de l'Agenda où début et fin sont EMPILÉS (`.reunion-heure`) : on y lisait « 02:30 » sur « 02:30 » le dimanche du changement d'heure, alors que l'étiquette lue à voix haute disait déjà la saison.
+     La colonne s'élargit (classe `saison`) seulement quand une saison s'écrit ; `premier` remplace la première ligne (« Suite » d'un événement qui vient de la veille). */
+  const heureEmpilee = (debut, fin, premier) => {
+    const a = heureSaison(debut, fin), b = heureSaison(fin, debut);
+    return '<span class="reunion-heure' + (a !== FMT_HEURE.format(debut) || b !== FMT_HEURE.format(fin) ? ' saison' : '') + '">' + esc(premier || a) + '<small>' + esc(b) + '</small></span>';
+  };
   const FMT_JOUR = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' });
   const FMT_DATE = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' });
   const maj1 = s => s.charAt(0).toUpperCase() + s.slice(1);
@@ -3655,7 +3671,7 @@ a.menu-action { text-decoration: none; }
   const REPONSE_CR = { accepte: 'a accepté', decline: 'a décliné', peutetre: 'peut-être', attente: 'sans réponse' };
   const dureeCr = s => { const mn = Math.max(1, Math.round(s / 60)); return mn < 60 ? mn + ' min' : Math.floor(mn / 60) + ' h' + (mn % 60 ? ' ' + String(mn % 60).padStart(2, '0') : ''); };
   function htmlCompteRendu(m, sens) {
-    const x = m.compteRendu, quand = x.debut ? maj1(FMT_JOUR_LONG.format(x.debut)) + ' · ' + FMT_HEURE.format(x.debut) + (x.fin ? '–' + FMT_HEURE.format(x.fin) : '') + (x.dureeS ? ' · ' + dureeCr(x.dureeS) : '') : '';
+    const x = m.compteRendu, quand = x.debut ? maj1(FMT_JOUR_LONG.format(x.debut)) + ' · ' + (x.fin ? heureSaison(x.debut, x.fin) + '–' + heureSaison(x.fin, x.debut) : FMT_HEURE.format(x.debut)) + (x.dureeS ? ' · ' + dureeCr(x.dureeS) : '') : '';
     const liste = (l, n, droite) => '<ul class="cr-liste">' + l.map(p => '<li><span dir="auto">' + esc(p.nom) + '</span><small>' + esc(droite(p)) + '</small></li>').join('') + (n > l.length ? '<li>et ' + (n - l.length) + ' autres</li>' : '') + '</ul>';
     let h = '<span class="carte-msg compte-rendu ' + sens + '" role="group" aria-label="' + esc('Compte rendu : ' + x.titre) + '">' +
       '<span class="cr-tete">' + icone('i-agenda') + '<span><b>Compte rendu</b><span class="cr-titre" dir="auto">' + esc(x.titre) + '</span></span></span>' +
@@ -3925,7 +3941,7 @@ a.menu-action { text-decoration: none; }
     if (jeton !== etat.jeton) return;                       // une autre conversation (ou la liste) a pris la place pendant l'attente
     /* ⛔ un échec de chargement (réseau, refus du service) n'est PAS « cette conversation n'existe plus » : on dit ce qui s'est passé */
     if (panne) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot(phrase(panne, 'La conversation n\'a pas pu être ouverte.')); return; }
-    if (!c) { remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot('Cette conversation n\'existe plus.'); return; }
+    if (!c) { const versMessage = cibleMsg.conv === id; cibleMsg.conv = null; remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null }); mot(versMessage ? 'Tu n\'es plus dans cette conversation.' : 'Cette conversation n\'existe plus.'); return; }
     rendreConv(c, true);
     synchroInert();
     if (matchMedia('(pointer: fine)').matches) $('saisie').focus({ preventScroll: true }); else $('conv-ecran').focus({ preventScroll: true });
@@ -3958,7 +3974,11 @@ a.menu-action { text-decoration: none; }
   const cibleMsg = { conv: null, seq: 0, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false };
   /* `remplacerEntree` : on part d'une FICHE posée par un geste (le rappel, touché dans l'Agenda ou le tableau de bord) — son entrée d'historique devient la conversation, et le
      retour ramène là d'où la fiche était partie. */
+  /* ⛔ une conversation que la liste, bien chargée, ne porte plus : la personne l'a QUITTÉE (ou on l'en a retirée). Elle existe encore — « n'existe plus » était faux — et y envoyer menait à la
+     liste des Messages, loin de l'écran où se trouvait le rappel. */
+  const convQuittee = id => !!id && Array.isArray(etat.conversations) && etat.conversations.length > 0 && !etat.conversations.some(c => c.id === id);
   function voirMessage(conv, seq, remplacerEntree) {
+    if (convQuittee(conv)) { cibleMsg.conv = null; mot('Tu n\'es plus dans cette conversation.'); return; }
     Object.assign(cibleMsg, { conv, seq, pages: 0, max: 20, retrouver: false, apresFeuille: false, transcription: false });
     const ouverte = etat.conv === conv && !!etat.convDonnees && !!etat.route && etat.route.vue === 'messages';
     if (ouverte && !remplacerEntree) { allerAuMessage(); return; }
@@ -6753,7 +6773,7 @@ a.menu-action { text-decoration: none; }
       '<div class="info-champ"><input id="ct-ident" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" placeholder="Camille#4821 ou un numéro" aria-label="Identifiant ou numéro de la personne"><button type="button" class="mini" data-act="ident-voir">Voir</button></div>' +
       '<div id="ct-ident-res" aria-live="polite"></div></div>' +
     '<div class="rubrique"><span>Mon identifiant</span></div><div class="carte carte-pad">' +
-      '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Réglages › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
+      '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Profil › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
   function peindreIdentMoi() {
     const c = $('ct-ident-moi'); if (!c || typeof source.monIdentifiant !== 'function') return;
     const id = source.monIdentifiant();
@@ -6883,6 +6903,8 @@ a.menu-action { text-decoration: none; }
         (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', p.favori ? 'Favori' : 'Favoris', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
       '</div>';
   }
+  /* la réunion à venir d'une fiche contact : le jour, puis la plage (qui dit sa saison le dimanche du changement d'heure) */
+  const quandFiche = o => FMT_JOUR_FICHE.format(o.debut) + ' · ' + plageHeures(o.debut, o.fin);
   function ficheCommun(p) {
     if (typeof source.enCommun !== 'function') return '';
     const e = commun.cache.get(p.id), d = e && e.d;
@@ -6898,7 +6920,7 @@ a.menu-action { text-decoration: none; }
       h += '<div class="rubrique"><span>' + (d.reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
       h += d.reunions.map(r => {
         const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
-        const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(FMT_JOUR_FICHE.format(o.debut) + ' · ' + FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin)) + '<br>' + esc(sonStatutTxt(r, p));
+        const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(quandFiche(o)) + '<br>' + esc(sonStatutTxt(r, p));
         return '<button type="button" class="fc-ligne presse" data-fiche="reunion" data-id="' + esc(r.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-date" aria-hidden="true"><small>' + esc(FMT_MOIS_CAL.format(o.debut).replace('.', '')) + '</small><b>' + new Date(o.debut).getDate() + '</b></span>' +
           '<span class="fc-texte"><span class="fc-titre">' + esc(r.titre || 'Réunion') + '</span><span class="fc-sous">' + sous + '</span></span>' + CHEVRON + '</button>';
       }).join('');
@@ -7356,6 +7378,8 @@ a.menu-action { text-decoration: none; }
   /* ce que dit le toast d'un lien d'invitation accepté : le service rend `deja` pour un contact ET pour un groupe, et le mot du contact ne vaut pas pour un groupe */
   const motLienAccepte = r => r.genre === 'groupe' ? (r.deja ? 'Tu fais déjà partie de ce groupe' : 'Tu as rejoint le groupe') : (r.deja ? 'Déjà dans tes contacts' : 'Contact ajouté');
   /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
+  /* le mot du retrait d'un membre : sans genre (« Cléo Petit a été retiré » accordait tout le monde au masculin) */
+  const motRetire = nom => nom + ' n\'est plus dans le groupe';
   async function apresChoixInfo(id, geste, motReussi) {
     erreurInfo('');
     try { await geste(); if (motReussi) mot(motReussi); } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
@@ -7395,7 +7419,7 @@ a.menu-action { text-decoration: none; }
       else if (act === 'membre') {
         const uid = b.dataset.uid, nommer = b.dataset.admin === '1', nom = b.dataset.nom || '';
         ouvrirDeroule(b, 'Gérer ' + nom, nom, [{ valeur: 'admin', libelle: nommer ? 'Nommer admin' : 'Retirer l\'admin' }, '-', { valeur: 'retirer', libelle: 'Retirer du groupe', danger: true }],
-          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a été retiré du groupe'));
+          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : motRetire(nom)));
         return;
       }
       else if (act === 'ajouter') {
@@ -7506,8 +7530,8 @@ a.menu-action { text-decoration: none; }
   const euros = n => { try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); } catch (e) { return n + ' €'; } };
   function phraseEspace(e, defaut) {
     let t = phrase(e, defaut);
-    if (e && e.code === 'formule_requise' && e.raison === 'impaye') t += ' L\'abonnement de l\'espace est en retard : règle-le (Réglages › Abonnement) pour les retrouver. Rien n\'est perdu : les messages, les canaux et les membres restent.';
-    else if (e && e.code === 'formule_requise' && e.raison === 'perso') t += ' Cet espace n\'a pas d\'abonnement Messages Pro (Réglages › Abonnement).';
+    if (e && e.code === 'formule_requise' && e.raison === 'impaye') t += ' L\'abonnement de l\'espace est en retard : règle-le (Profil › Entreprise et abonnement) pour les retrouver. Rien n\'est perdu : les messages, les canaux et les membres restent.';
+    else if (e && e.code === 'formule_requise' && e.raison === 'perso') t += ' Cet espace n\'a pas d\'abonnement Messages Pro (Profil › Entreprise et abonnement).';
     else if (e && e.code === 'places_invalides' && e.min > 0) t = 'Le nombre de places est incorrect : au moins ' + e.min + ' (le nombre de membres), 500 au plus.';
     else if (e && e.code === 'places_epuisees' && e.places > 0) t += ' (' + e.membres + ' membres pour ' + e.places + ' places.)';
     return t;
@@ -8183,7 +8207,7 @@ a.menu-action { text-decoration: none; }
   }
   /* l'horaire d'une occurrence : « 14:00 – 15:00 », et, si le fuseau de la réunion donne une autre heure que l'appareil, « (14:00 – 15:00 à Paris) » */
   function libelleHoraire(r, o) {
-    const h = FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin), la = heureDans(o.debut, r.tz), lb = heureDans(o.fin, r.tz);
+    const h = plageHeures(o.debut, o.fin), la = heureDans(o.debut, r.tz), lb = heureDans(o.fin, r.tz);
     const autre = !!la && la !== FMT_HEURE.format(o.debut);
     return { h, note: autre ? la + ' – ' + lb + ' à ' + villeDe(r.tz) : '', hz: autre ? la + ' – ' + lb : '', ville: autre ? villeDe(r.tz) : '' };
   }
@@ -8289,7 +8313,7 @@ a.menu-action { text-decoration: none; }
   }
   function ligneEvenement(e, jour, coche) {
     const continu = !e.journee && e.debut < jour;
-    const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : '<span class="reunion-heure">' + esc(continu ? 'Suite' : FMT_HEURE.format(e.debut)) + '<small>' + esc(FMT_HEURE.format(e.fin)) + '</small></span>';
+    const heure = e.journee ? '<span class="reunion-heure"><span>Journée</span></span>' : heureEmpilee(e.debut, e.fin, continu ? 'Suite' : '');
     const rappel = texteRappels(Array.isArray(e.rappels) ? e.rappels : (e.rappel === null ? [] : [e.rappel]));
     /* un rendez-vous le dit, et avec qui (13 octobre 2026) */
     /* son trajet (13 octobre 2026) : l'heure de PARTIR, tant que le rendez-vous n'est ni fait ni passé */
@@ -8298,7 +8322,7 @@ a.menu-action { text-decoration: none; }
     /* ⛔ COCHER UN RAPPEL (8 octobre 2026 : « cocher un rappel fait » — la seule façon de s'en défaire était de le supprimer) : au tableau de bord, un rond devant la ligne, comme dans
        Rappels d'Apple ; fait, il quitte le tableau et reste dans l'agenda, barré. Le rond est un bouton à part : la ligne, elle, ouvre la fiche. */
     const rond = coche ? '<button type="button" class="evt-coche presse" data-evt-fait="' + esc(e.id) + '" aria-pressed="' + (e.fait ? 'true' : 'false') + '" aria-label="' + esc((e.fait ? 'Remettre « ' : 'Marquer « ') + e.titre + (e.fait ? ' » à faire' : ' » comme fait')) + '"><span class="evt-rond" aria-hidden="true">' + icone('i-coche') + '</span></button>' : '';
-    return '<li' + (coche ? ' class="evt-li"' : '') + '>' + rond + '<button type="button" class="reunion-ligne evenement-ligne presse' + (e.fait ? ' fait' : '') + '" data-evenement="' + esc(e.id) + '" aria-label="' + esc((e.fait ? 'Fait : ' : '') + e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + FMT_HEURE.format(e.debut) + ' à ') + FMT_HEURE.format(e.fin)) + (sous ? ', ' + sous : '')) + '">' + heure +
+    return '<li' + (coche ? ' class="evt-li"' : '') + '>' + rond + '<button type="button" class="reunion-ligne evenement-ligne presse' + (e.fait ? ' fait' : '') + '" data-evenement="' + esc(e.id) + '" aria-label="' + esc((e.fait ? 'Fait : ' : '') + e.titre + ', ' + (e.journee ? 'toute la journée' : (continu ? 'jusqu\'à ' : 'de ' + heureSaison(e.debut, e.fin) + ' à ') + heureSaison(e.fin, e.debut)) + (sous ? ', ' + sous : '')) + '">' + heure +
       '<span class="reunion-corps"><span class="reunion-titre">' + (e.fait ? '<span class="fait-vert" aria-hidden="true">' + icone('i-coche') + '</span>' : '') + esc(e.titre) + '</span>' + (sous ? '<span class="reunion-sous">' + esc(sous) + '</span>' : '') + '</span></button></li>';
   }
   function libelleEtat(r) {
@@ -8326,7 +8350,7 @@ a.menu-action { text-decoration: none; }
     const ouvre = se ? '<div class="reunion-ligne terminee' + (r.annulee ? ' annulee' : '') + '">'
       : '<button type="button" class="reunion-ligne presse' + (r.annulee ? ' annulee' : '') + '" data-reunion="' + esc(r.id) + '" data-debut="' + (+o.debut || 0) + '" aria-label="' + esc(r.titre + ', ' + h + (note ? ' (' + note + ')' : '') + (etatTxt ? ', ' + etatTxt : '')) + '">';
     return '<li' + (rej ? ' class="reunion-li"' : '') + '>' + ouvre +
-      '<span class="reunion-heure">' + esc(FMT_HEURE.format(o.debut)) + '<small>' + esc(FMT_HEURE.format(o.fin)) + '</small></span>' +
+      heureEmpilee(o.debut, o.fin) +
       '<span class="reunion-corps"><span class="reunion-titre">' + esc(r.titre || 'Réunion') + '</span><span class="reunion-sous">' + esc(sous.join(' · ')) + '</span>' + (qui ? '<span class="reunion-sous">' + esc(qui) + '</span>' : '') + (note && !se ? '<span class="reunion-sous">' + esc('Heure de ' + ville + ' : ' + hz) + '</span>' : '') + '</span>' +
       (etatTxt ? '<span class="reunion-etat' + (se ? ' terminee' : '') + (!se && r.moi.statut === 'attente' && !r.moi.hote && !r.annulee ? ' attention' : '') + '">' + esc(etatTxt) + '</span>' : '') + (se ? '</div>' : '</button>') + rej + '</li>';
   }
@@ -8335,6 +8359,15 @@ a.menu-action { text-decoration: none; }
      autre jour. Une case n'est plus UN bouton : des boutons dans un bouton, c'est un HTML invalide, et un rendez-vous n'y était atteignable ni au clavier ni au lecteur d'écran. Au
      téléphone, les rendez-vous ne tiennent pas dans une case : le numéro la remplit, la liste du jour est dessous. */
   const titreElt = x => x.e ? x.e.titre : (x.r.titre || 'Réunion');
+  /* ⛔ « 1 élément » ne disait pas quoi (l'étiquette lue au lecteur d'écran, sur le bandeau des jours et la case du mois) : « 1 rendez-vous », « 2 événements », « 3 réunions ». Un jour qui
+     mêle plusieurs sortes garde « éléments », et les rendez-vous ne prennent pas de « s » (ils sont déjà pluriels). Perso comme Pro : le mot est celui de la fiche (`genre`). */
+  const sorteElt = x => x.r ? 'réunion' : x.e.genre === 'rdv' ? 'rendez-vous' : 'événement';
+  /* l'étiquette d'un jour du bandeau (lecteur d'écran) : le nombre ET la sorte de ce qu'il porte */
+  const etiquetteJour = (t, elts) => { const n = elts.length; return FMT_JOUR_LONG.format(t) + ', ' + (CAP.agenda ? (n ? nombreElts(elts) : 'rien de prévu') : (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion')); };
+  function nombreElts(l) {
+    const n = l.length, sortes = new Set(l.map(sorteElt)), s = sortes.size === 1 ? sortes.values().next().value : 'élément';
+    return n + ' ' + (n > 1 && s !== 'rendez-vous' ? s + 's' : s);
+  }
   const journeeElt = (x, t) => !!(x.e && (x.e.journee || x.e.debut < t));
   const termineeElt = x => !!(x.r && x.o.seance && !x.r.salleOuverte);
   function puceAgenda(x, t) {
@@ -8343,7 +8376,7 @@ a.menu-action { text-decoration: none; }
     const corps = (journee ? '' : '<time>' + esc(FMT_HEURE.format(x.o.debut)) + '</time>') + esc(titre);
     if (termine) return '<span class="' + cls + '" aria-hidden="true">' + corps + '</span>';         // une séance finie ne s'ouvre plus (comme dans la liste du jour) : la case la dit
     const etatTxt = x.r ? libelleEtat(x.r) : x.e.fait ? 'Fait' : '';
-    const lab = titre + ', ' + (journee ? 'toute la journée' : FMT_HEURE.format(x.o.debut) + ' – ' + FMT_HEURE.format(x.o.fin)) + (etatTxt ? ', ' + etatTxt : '');
+    const lab = titre + ', ' + (journee ? 'toute la journée' : plageHeures(x.o.debut, x.o.fin)) + (etatTxt ? ', ' + etatTxt : '');
     return '<button type="button" class="' + cls + (peutDecaler(x) ? ' bouge' : '') + ' presse" data-ag="' + (x.e ? 'e' : 'r') + '" data-id="' + esc(x.e ? x.e.id : x.r.id) + '" data-debut="' + (+(x.e ? x.e.debut : x.o.debut) || 0) + '" aria-label="' + esc(lab) + '">' + corps + '</button>';
   }
   function caseJour(t, auj, max, semaine) {
@@ -8352,7 +8385,7 @@ a.menu-action { text-decoration: none; }
     const dit = vus.map(x => (journeeElt(x, t) ? '' : FMT_HEURE.format(x.o.debut) + ' ') + titreElt(x)).join(', ') + (reste > 0 ? ' et ' + reste + ' autre' + (reste > 1 ? 's' : '') : '');
     return '<div class="mjour' + (hors ? ' hors' : '') + (l.length ? ' avec' : '') + (t === reu.jour ? ' choisi' : '') + '" data-case="' + t + '">' +
       '<button type="button" class="mjour-num presse" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
-        ' aria-label="' + esc(maj1(FMT_JOUR_LONG.format(t)) + ', ' + (l.length ? l.length + (l.length > 1 ? ' éléments : ' : ' élément : ') + dit : 'rien de prévu')) + '">' +
+        ' aria-label="' + esc(maj1(FMT_JOUR_LONG.format(t)) + ', ' + (l.length ? nombreElts(l) + ' : ' + dit : 'rien de prévu')) + '">' +
         (semaine ? '<span class="mjour-nom">' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span>' : '') + '<b>' + new Date(t).getDate() + '</b>' +
         '<span class="mjour-points" aria-hidden="true">' + '<i></i>'.repeat(Math.min(3, l.length)) + '</span></button>' +
       '<div class="mjour-elts">' + vus.map(x => puceAgenda(x, t)).join('') +
@@ -8446,7 +8479,7 @@ a.menu-action { text-decoration: none; }
     if (x.r.repetition !== 'aucune') return 'Une réunion qui se répète se modifie en entier : « Modifier la réunion », dans sa fiche.';
     return 'Cette réunion est passée.';
   }
-  const quandRdv = (d, f, journee, jours) => maj1(FMT_JOUR_LONG.format(d)) + (journee ? (jours > 1 ? ', ' + jours + ' jours' : ', toute la journée') : ', ' + FMT_HEURE.format(d) + ' – ' + FMT_HEURE.format(f));
+  const quandRdv = (d, f, journee, jours) => maj1(FMT_JOUR_LONG.format(d)) + (journee ? (jours > 1 ? ', ' + jours + ' jours' : ', toute la journée') : ', ' + plageHeures(d, f));
   function htmlMenuAgenda(x) {
     const r = x.r, e = x.e, a = (act, txt, extra, cls) => '<button type="button" class="menu-action' + (cls ? ' ' + cls : '') + '" data-ag-menu="' + act + '"' + (extra || '') + '>' + txt + '</button>';
     let h = '<p class="menu-question menu-titre"><b>' + esc(titreElt(x)) + '</b><small>' + esc(quandRdv(x.o.debut, x.o.fin, !!(e && e.journee), e ? Math.max(1, Math.round((e.fin - e.debut) / JOUR_MS)) : 1)) + '</small></p>' + a('ouvrir', 'Ouvrir', ' aria-haspopup="dialog"');
@@ -8702,6 +8735,7 @@ a.menu-action { text-decoration: none; }
     for (const e of (CAP.agenda ? reu.evenements || [] : [])) if (e.id !== sauf && !e.journee && !e.fait && e.debut < au && e.fin > du) out.push({ e, o: { debut: e.debut, fin: e.fin } });
     return out.sort((a, b) => a.o.debut - b.o.debut);
   }
+  const phraseChevauche = c => c.length ? 'Attention, ce créneau chevauche ' + c.slice(0, 2).map(y => '« ' + titreElt(y) + ' » (' + plageHeures(y.o.debut, y.o.fin) + ')').join(' et ') + (c.length > 2 ? ' et ' + (c.length - 2) + ' autre' + (c.length > 3 ? 's' : '') : '') + '.' : '';
   function decalerApercu() {
     const F = reu.decalageForm; if (!F) return;
     const t = decalerNouveau(), b = $('dc-apres') && $('dc-apres').querySelector('b'), conf = $('dc-conflit');
@@ -8714,7 +8748,7 @@ a.menu-action { text-decoration: none; }
       note.textContent = (saisie && ici && saisie !== ici ? saisie + ' n\'existe pas ce jour-là (changement d\'heure) : ce sera ' + ici + '. ' : '') + (loin && loin !== ici ? 'Heure de ' + villeDe(F.tz) + ' : ' + loin + ' – ' + heureDans(t + F.duree, F.tz) + '.' : '');
     }
     if (conf) {
-      conf.textContent = c.length ? 'Attention, ce créneau chevauche ' + c.slice(0, 2).map(y => '« ' + titreElt(y) + ' » (' + FMT_HEURE.format(y.o.debut) + ' – ' + FMT_HEURE.format(y.o.fin) + ')').join(' et ') + (c.length > 2 ? ' et ' + (c.length - 2) + ' autre' + (c.length > 3 ? 's' : '') : '') + '.' : '';
+      conf.textContent = phraseChevauche(c);
     }
   }
   async function decalerValider(b) {
@@ -8774,9 +8808,9 @@ a.menu-action { text-decoration: none; }
     if (M) rendreMois(auj); else rendreSemaine(auj);
     let h = '';
     for (let i = 0; i < 7; i++) {
-      const t = plusJours(reu.semaine, i), n = occurrencesDuJour(t).length;
+      const t = plusJours(reu.semaine, i), elts = occurrencesDuJour(t), n = elts.length;
       h += '<button type="button" class="jour presse' + (n ? ' avec' : '') + '" data-jour="' + t + '" aria-pressed="' + (t === reu.jour ? 'true' : 'false') + '"' + (t === auj ? ' aria-current="date"' : '') +
-        ' aria-label="' + esc(FMT_JOUR_LONG.format(t) + ', ' + (CAP.agenda ? (n ? n + (n > 1 ? ' éléments' : ' élément') : 'rien de prévu') : (n ? n + (n > 1 ? ' réunions' : ' réunion') : 'aucune réunion'))) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
+        ' aria-label="' + esc(etiquetteJour(t, elts)) + '"><span>' + esc(maj1(FMT_JOUR_COURT.format(t)).replace('.', '')) + '</span><b>' + new Date(t).getDate() + '</b><i class="jour-point" aria-hidden="true"></i></button>';
     }
     if (!M) $('sem-jours').innerHTML = h;
     if (cle) { const b = $('sem-jours').querySelector('[data-jour="' + cle.replace(/"/g, '') + '"]'); if (b) b.focus({ preventScroll: true }); }
@@ -9313,7 +9347,7 @@ a.menu-action { text-decoration: none; }
      de blancs et un mélange tiré au sort, chronomètre en main. */
   function lireConfirmation(texte, maintenant) {
     const t0 = String(texte || '').slice(0, 20000).normalize('NFC').replace(/[\u00a0\u2007\u2009\u202f\t]/g, ' ').replace(/\r\n?/g, '\n');
-    const r = { date: null, heure: null, debut: null, duree: null, lieu: null, avec: null, titre: null };
+    const r = { date: null, heure: null, debut: null, duree: null, lieu: null, avec: null, titre: null, anSuivant: false };
     if (!t0.trim()) return r;
     const auj = new Date(maintenant), aujJ = auj.getFullYear() + '-' + p2c(auj.getMonth() + 1) + '-' + p2c(auj.getDate());
     const ics = /BEGIN:VEVENT/i.test(t0) ? lireIcs(t0) : null;                // (le .ics se lit tel quel : ses lignes repliées portent leurs espaces)
@@ -9365,21 +9399,21 @@ a.menu-action { text-decoration: none; }
         if (y.i - h.j <= 8 && /^[ \t]*(?:-|–|—|à|a|au|jusqu.?à)[ \t]*$/i.test(t.slice(h.j, y.i))) h.fin = y.h * 60 + y.mi;
       }
       const valides = dates.filter(x => !enTete(x.i) && !pasLeRdv(x.i)).map(x => {
-        let a = x.a, date = '';
-        if (a === null) { a = auj.getFullYear(); date = dateJuste(a, x.m, x.d); if (date && date < aujJ) { a++; date = dateJuste(a, x.m, x.d); } }
+        let a = x.a, date = '', suivant = false;
+        if (a === null) { a = auj.getFullYear(); date = dateJuste(a, x.m, x.d); if (date && date < aujJ) { a++; date = dateJuste(a, x.m, x.d); suivant = !!date; } }
         else date = dateJuste(a, x.m, x.d);
-        return date ? Object.assign({}, x, { date }) : null;
+        return date ? Object.assign({}, x, { date, suivant }) : null;
       }).filter(Boolean).sort((p, q) => p.i - q.i);
       /* chaque date prend l'heure qui la suit de près (sans autre date entre les deux) — ou, à défaut, celle qui la précède sur la même ligne */
       const cands = valides.map((x, k) => {
         const borne = k + 1 < valides.length ? valides[k + 1].i : Infinity;
         let h = heures.find(y => y.i >= x.j && y.i - x.j <= 90 && y.i < borne && !enTete(y.i));
         if (!h) h = heures.filter(y => y.j <= x.i && x.i - y.j <= 40 && t.slice(y.j, x.i).indexOf('\n') < 0 && !enTete(y.i)).pop();
-        return { date: x.date, h: h || null };
+        return { date: x.date, h: h || null, suivant: x.suivant };
       });
       const choisi = cands.find(c => c.h && c.date >= aujJ) || cands.find(c => c.date >= aujJ) || cands.find(c => c.h) || cands[0];
       if (choisi) {
-        r.date = choisi.date;
+        r.date = choisi.date; r.anSuivant = !!choisi.suivant;
         if (choisi.h) {
           r.heure = p2c(choisi.h.h) + ':' + p2c(choisi.h.mi);
           if (choisi.h.fin !== undefined) r.duree = bornerDuree(choisi.h.fin - (choisi.h.h * 60 + choisi.h.mi));
@@ -9484,6 +9518,12 @@ a.menu-action { text-decoration: none; }
     for (const k of ['ev-debut', 'ev-fin']) { const c = $(k), v = c.value; c.type = oui ? 'date' : 'datetime-local'; c.value = oui ? v.slice(0, 10) : (v.length === 10 ? v + (k === 'ev-debut' ? 'T09:00' : 'T10:00') : v); }
     if ($('ev-duree')) { $('ev-duree').hidden = oui; if (!oui) { const F = reu.formEvt; if (F) F.duree = dureeChamps('ev') || 60; peindreDuree('ev'); } }
   }
+  /* ⛔ le service répond `fin_avant_debut` pour une réunion, un rendez-vous ET un événement, et la phrase du client est celle de la réunion : côté Perso le mot n'existe pas.
+     Ce formulaire sait de quoi il s'agit, il choisit le mot ; le formulaire de réunion garde le sien (`phrase`). */
+  function phraseEvt(er, rdv, defaut) {
+    if (er && er.code === 'fin_avant_debut') return rdv ? 'La fin du rendez-vous doit tomber après son début.' : 'La fin de l\'événement doit tomber après son début.';
+    return phrase(er, defaut);
+  }
   async function evtEnregistrer(b) {
     const F = reu.formEvt; if (!F) return;
     const journee = !F.rdv && $('ev-journee').getAttribute('aria-checked') === 'true';
@@ -9503,7 +9543,7 @@ a.menu-action { text-decoration: none; }
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
       mot(F.rdv ? (F.id ? 'Rendez-vous modifié' : 'Rendez-vous ajouté à ton agenda') : (F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda'));
       fermerCouche(); evenementsRelire();
-    } catch (er) { b.disabled = false; erreurInfo(phrase(er, F.rdv ? 'Le rendez-vous n\'a pas pu être enregistré.' : 'L\'événement n\'a pas pu être enregistré.')); }
+    } catch (er) { b.disabled = false; erreurInfo(phraseEvt(er, F.rdv, F.rdv ? 'Le rendez-vous n\'a pas pu être enregistré.' : 'L\'événement n\'a pas pu être enregistré.')); }
   }
   /* ⛔ UN ÉVÉNEMENT CHANGÉ ICI SE RELIT PARTOUT OÙ IL S'AFFICHE (8 octobre 2026, capture à l'appui : « je peux pas supprimer ») : un rappel supprimé depuis le TABLEAU DE BORD
      l'était bien au service, mais seul l'Agenda se relisait — le tableau le montrait encore, comme si le geste avait échoué. Les réunions, elles, reviennent par le flux du service
@@ -9594,7 +9634,8 @@ a.menu-action { text-decoration: none; }
     $('ev-fin').value = plusMinutes(debut, F.duree || 60);
     for (const k of ['ev-debut', 'ev-fin']) $(k).dispatchEvent(new Event('input', { bubbles: true }));
     peindreDuree('ev');
-    dit.push(FMT_JOUR_LONG.format(new Date(r.date + 'T12:00:00')) + (r.heure ? ' à ' + r.heure.replace(':', ' h ') : ''));
+    /* ⛔ une date sans année qui est déjà passée cette année est comprise comme celle de l'an PROCHAIN : le compte rendu l'écrit (« mardi 12 octobre 2027 »), sinon on enregistre à l'insu de la personne */
+    dit.push(FMT_JOUR_LONG.format(new Date(r.date + 'T12:00:00')) + (r.anSuivant ? ' ' + r.date.slice(0, 4) : '') + (r.heure ? ' à ' + r.heure.replace(':', ' h ') : ''));
     if (r.duree) dit.push(dureeTr(r.duree));
     if (r.lieu) { $('ev-lieu').value = r.lieu; for (const ev of ['input', 'change']) $('ev-lieu').dispatchEvent(new Event(ev, { bubbles: true })); dit.push(r.lieu); }
     res.textContent = 'Rempli : ' + dit.join(' · ') + '.' + (r.heure ? '' : ' Je n\'ai pas trouvé l\'heure : choisis-la.') + ' Vérifie, puis enregistre.';
@@ -9744,6 +9785,8 @@ a.menu-action { text-decoration: none; }
     l.hidden = !R.resultats.length;
     const n = R.resultats.length;
     $('rc-etat').textContent = R.erreur ? R.erreur : R.enCours && !n ? 'Recherche…' : !R.q ? RC_NOTE
+      /* ⛔ un seul signe ne part pas au service (`lancerRecherche`) : l'écran le DIT, il n'affirme pas une absence qu'il n'a pas vérifiée */
+      : !assezLongue(R.q) ? 'Tape au moins deux lettres.'
       : n ? (n > 1 ? n + ' messages' : 'Un message') + (R.suite ? ' — il peut y en avoir d\'autres plus anciens' : '')
       : R.suite ? 'Aucun message récent ne contient « ' + R.q + ' ».' : 'Aucun message ne contient « ' + R.q + ' ».';
     $('rc-plus-zone').hidden = !R.suite || !!R.erreur;
@@ -9885,10 +9928,13 @@ a.menu-action { text-decoration: none; }
   /* les destinations : mes conversations (pas une invitation que je n'ai pas acceptée), du côté où l'on travaille — une RECHERCHE cherche des deux côtés, comme la liste */
   /* ⛔ une ligne COCHÉE reste à l'écran pendant une recherche (relecture adverse) : elle part à l'envoi, elle ne se cache pas */
   const convsTransfert = () => { const G = etat.groupe, q = norme((G.tRecherche || '').trim()); return etat.conversations.filter(c => c.invitation !== 'recue' && ((G.tVers || []).includes(c.id) || (q ? norme(c.nom).includes(q) : dansMode(c)))); };
+  /* ⛔ la liste ne propose que le côté où l'on travaille : sans le dire, la conversation de l'AUTRE côté « n'apparaissait pas » sans raison. Une recherche, elle, cherche des deux côtés. */
+  const noteTransfert = () => 'Le message part en ton nom, marqué « Transféré » : le nom de qui l\'a écrit ne part pas. Cinq conversations au plus.' +
+    (modesActifs() ? ' Seules les conversations ' + NOM_COTE[etat.mode] + ' sont proposées ; une recherche cherche des deux côtés.' : '');
   function rendreTransfert() {
     const G = etat.groupe, m = etat.convDonnees && etat.convDonnees.messages.find(x => x.id === G.tMid);
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' + (m ? apercuTransfert(m) : '') +
-      '<p class="info-note">Le message part en ton nom, marqué « Transféré » : le nom de qui l\'a écrit ne part pas. Cinq conversations au plus.</p>' +
+      '<p class="info-note">' + noteTransfert() + '</p>' +
       '<div class="info-champ"><input id="tr-recherche" type="search" autocomplete="off" enterkeyhint="search" placeholder="Rechercher" aria-label="Rechercher une conversation"></div>' +
       '<div class="rubrique"><span>Envoyer à</span><span id="tr-n" aria-live="polite"></span></div><div class="carte" id="tr-liste"></div><p class="vide" id="tr-aucun" hidden></p>';
     peindreTransfert();

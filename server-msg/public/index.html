@@ -1690,6 +1690,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
 .reunion-heure { flex: none; width: 48px; display: flex; flex-direction: column; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums; }
 .reunion-heure small { font-size: 13px; color: var(--sub-meta); }
+.reunion-heure.saison { width: auto; min-width: 48px; white-space: nowrap; }      /* « 02:30 (été) » ne tient pas dans 48 px : la colonne grandit, ce jour-là seulement */
 .reunion-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-left: 10px; border-left: 3px solid var(--fill); }
 .reunion-titre { font-size: 17px; letter-spacing: -.02em; line-height: 22px; overflow-wrap: anywhere; }
 .reunion-sous { font-size: 14px; line-height: 19px; color: var(--sub-meta); overflow-wrap: anywhere; }
