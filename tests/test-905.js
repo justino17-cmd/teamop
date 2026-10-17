@@ -245,6 +245,14 @@ const MATRICE = {
      Le chemin du jeton et celui de l'avis signé se jouent contre un faux LiveKit dans test-954, et contre le vrai dans test-953. */
   'salles.visio':       { ok: (F) => ['POST', '/api/salles/' + F.SA + '/visio', {}], codes: [409] },
   'visio.avis':         { ok: () => ['POST', '/api/visio/avis', {}], codes: [404] },
+  /* l'ADMINISTRATION (17 octobre 2026) : le service des bancs n'a PAS de secret d'administration — les six routes sont INERTES, et la garde AD refuse tout le monde (même 404 qu'une route inconnue), quelle que soit la
+     session. Les routes ouvertes par un vrai secret, et chaque refus de la garde, se jouent dans `test-2690`. */
+  'admin.sante':        { ok: () => ['GET', '/api/admin/sante'], codes: [404] },
+  'admin.comptes':      { ok: () => ['GET', '/api/admin/comptes'], codes: [404] },
+  'admin.empreintes':   { ok: () => ['GET', '/api/admin/empreintes'], codes: [404] },
+  'admin.espaces':      { ok: () => ['GET', '/api/admin/espaces'], codes: [404] },
+  'admin.abonnements':  { ok: () => ['GET', '/api/admin/abonnements'], codes: [404] },
+  'admin.incidents':    { ok: () => ['GET', '/api/admin/incidents'], codes: [404] },
   /* Le lien d'invité et la salle d'une réunion. `apercu` est PUBLIC (le code vient de la fixture : celui de la réunion d'Ana) ; entrer par le lien est S, par l'identifiant R (l'invité, l'hôte) ; le lien se lit et se
      renouvelle par H. Les deux routes qui ENTRENT jouent une réunion dont la fenêtre est ouverte (elle commence dans deux minutes) : une réunion dans trois jours refuse, et le refus est joué plus bas. */
   'reunions.apercu':    { ok: (F) => ['POST', '/api/reunions/apercu', { code: F.codeR }], codes: [200] },
@@ -284,6 +292,9 @@ const ATTENDU = {
   /* l'AVIS DU SERVEUR DE VISIO (LV) : la garde ne lit AUCUNE session — seulement la socket (la boucle locale) et l'absence des en-têtes que pose nginx ; ici (le banc parle au service en direct) elle laisse
      passer tout le monde, et c'est la ROUTE qui répond (sans serveur de visio : 404). Le refus de ce qui passe par nginx est joué par test-954. */
   LV: { anonyme: 'passe', invalide: 'passe', nonconfirme: 'passe', nonmembre: 'passe', membre: 'passe', admin: 'passe' },
+  /* l'ADMINISTRATION (AD) : la garde ne lit AUCUNE session — la boucle locale, l'absence d'en-tête de proxy et le secret de la configuration. Ici le service n'a pas de secret : INERTE, donc le 404 de la route inconnue pour
+     TOUS les profils, un administrateur de conversation compris (une session n'ouvre pas la console). */
+  AD: { anonyme: [404, 'introuvable'], invalide: [404, 'introuvable'], nonconfirme: [404, 'introuvable'], nonmembre: [404, 'introuvable'], membre: [404, 'introuvable'], admin: [404, 'introuvable'] },
 };
 
 (async () => {

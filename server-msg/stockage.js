@@ -4877,10 +4877,115 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     return Q('SELECT objet, genre, quand FROM purge ORDER BY quand, rowid').all().map(r => ({ objet: String(r.objet), genre: String(r.genre), quand: num(r.quand) }));
   }
 
+  /* ══ L'ADMINISTRATION — DES LECTURES, RIEN D'AUTRE (`admin.js`, 17 octobre 2026) ═══════════════════════════════════════════════
+     La console interne (la Tour) lit l'état du service par des routes gardées (`admin.js`). Tout le SQL vit ici (test-901) : ce bloc ne fait que LIRE — aucune écriture, aucune transaction —
+     et il rend des lignes déjà réduites à ce que la console a le droit de voir.
+     ⛔ CE QUI NE SORT JAMAIS D'ICI : un numéro de téléphone (l'identité d'un compte « telephone » est `tel:<numéro>` : ce chiffré-là n'est même pas OUVERT), un mot de passe, un sel, une
+     empreinte de session ou de jeton, un nom de groupe, le texte d'un message ou d'une notification, un contact. Les seules choses ouvertes sont l'adresse d'un compte « compte » (que la
+     console a demandée, et dont `admin.js` tire l'empreinte), l'identifiant d'un accès bêta, et le NOM d'un espace (une entreprise : la console le montre).
+     ⛔ PAGINATION PAR CLÉ, PAS PAR DÉCALAGE : on reprend APRÈS (création, identifiant) — un compte créé entre deux pages ne décale pas les suivantes, et une page ne relit pas ce que la
+     précédente a rendu. Chaque lecture rend `limite + 1` lignes au plus : la dernière sert à savoir s'il en reste, `admin.js` la retire. */
+  const ADMIN = versionActuelle() >= 12;   // une copie d'avant la migration 12 (un banc de migration) n'a pas toutes les tables lues ci-dessous : elle n'a pas d'administration
+  const apresDe = (a) => (a && Number.isInteger(a.cree) && typeof a.id === 'string' ? a : { cree: -1, id: '' });
+  function adminAdresseDe(r) {
+    /* l'identité d'un compte « compte » est `mel:<adresse en minuscules>` ; tout autre scellé (téléphone, bêta) reste fermé */
+    if (r.origine !== 'compte' || !r.email_ch) return null;
+    const clair = ouvrirOuNull('personne', 'email_ch', r.id + '|email', r.email_ch);
+    const m = typeof clair === 'string' ? /^mel:([^\s@]+@[^\s@]+)$/.exec(clair) : null;
+    return m ? m[1].toLowerCase() : null;
+  }
+  function adminAccesBetaDe(r) {
+    if (r.origine !== 'beta' || !r.email_ch) return null;
+    const clair = ouvrirOuNull('personne', 'email_ch', r.id + '|email', r.email_ch);
+    const m = typeof clair === 'string' ? /^beta:(b[0-9a-f]{6,32})$/.exec(clair) : null;   // l'identifiant de l'accès chez OP GESTION, jamais un nom ni un identifiant de connexion
+    return m ? m[1] : null;
+  }
+  /* → { lignes, plus } ; `origine` : beta | compte | telephone | null, `etat` : actif | supprime | null, `id` : un seul compte ou null */
+  function adminComptes({ apres, limite, origine, etat, id }) {
+    const a = apresDe(apres), o = origine || null, e = etat || null, i = id || null;
+    const brut = Q(`SELECT p.id, p.origine, p.etat, p.verifie_le, p.suppression_le, p.cree, p.prenom, p.ident_num, p.email_ch,
+        (SELECT COUNT(*) FROM espace_membre m WHERE m.uid = p.id) AS espaces_n,
+        (SELECT MAX(v) FROM (SELECT MAX(s.vu) AS v FROM session s WHERE s.personne = p.id
+                             UNION ALL SELECT MAX(t.vu) FROM appareil_tel t WHERE t.personne = p.id
+                             UNION ALL SELECT MAX(x.vu) FROM appareil_mel x WHERE x.personne = p.id)) AS vu
+      FROM personne p
+      WHERE (p.cree > ? OR (p.cree = ? AND p.id > ?)) AND (? IS NULL OR p.origine = ?) AND (? IS NULL OR p.etat = ?) AND (? IS NULL OR p.id = ?)
+      ORDER BY p.cree, p.id LIMIT ?`).all(a.cree, a.cree, a.id, o, o, e, e, i, i, Math.max(1, limite | 0) + 1);
+    const lignes = brut.slice(0, Math.max(1, limite | 0)).map(r => ({
+      id: r.id, origine: r.origine, etat: r.etat === 'supprime' ? 'supprime' : (r.suppression_le !== null && r.suppression_le !== undefined ? 'suppression_programmee' : 'actif'),
+      suppression_le: r.suppression_le === null || r.suppression_le === undefined ? null : num(r.suppression_le),
+      verifie: !!r.verifie_le, cree: num(r.cree), vu: r.vu === null || r.vu === undefined ? null : num(r.vu), espaces: num(r.espaces_n),
+      ident: r.ident_num === null || r.ident_num === undefined || r.etat === 'supprime' ? null : identAfficher(r.prenom, num(r.ident_num)),
+      adresse: adminAdresseDe(r), acces_beta: adminAccesBetaDe(r),
+    }));
+    return { lignes, plus: brut.length > Math.max(1, limite | 0) };
+  }
+  function adminComptesTotal({ origine, etat, id }) {
+    const o = origine || null, e = etat || null, i = id || null;
+    return num(Q('SELECT COUNT(*) AS n FROM personne WHERE (? IS NULL OR origine = ?) AND (? IS NULL OR etat = ?) AND (? IS NULL OR id = ?)').get(o, o, e, e, i, i).n);
+  }
+  /* les adresses des comptes « compte » ACTIFS, de quoi en tirer une empreinte (`admin.js` ne rend jamais l'adresse ici) */
+  function adminAdresses({ apres, limite }) {
+    const a = apresDe(apres), n = Math.max(1, limite | 0);
+    const brut = Q(`SELECT id, origine, cree, email_ch FROM personne WHERE origine = 'compte' AND etat = 'actif' AND email_ch IS NOT NULL AND (cree > ? OR (cree = ? AND id > ?)) ORDER BY cree, id LIMIT ?`)
+      .all(a.cree, a.cree, a.id, n + 1);
+    return { lignes: brut.slice(0, n).map(r => ({ id: r.id, cree: num(r.cree), adresse: adminAdresseDe(r) })), plus: brut.length > n };
+  }
+  function adminAdressesTotal() {
+    return num(Q(`SELECT COUNT(*) AS n FROM personne WHERE origine = 'compte' AND etat = 'actif' AND email_ch IS NOT NULL`).get().n);
+  }
+  const orNulAdmin = (x) => x === null || x === undefined ? null : num(x);
+  function adminEspaces({ apres, limite }) {
+    const a = apresDe(apres), n = Math.max(1, limite | 0);
+    const brut = Q(`SELECT e.id, e.nom_ch, e.proprio, e.cree,
+        (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = e.id) AS membres_n,
+        (SELECT COUNT(*) FROM canal c WHERE c.espace = e.id) AS canaux_n,
+        b.statut, b.places, b.fin_periode, b.annule, b.impaye_depuis, b.relu_le
+      FROM espace e LEFT JOIN abonnement b ON b.espace = e.id
+      WHERE (e.cree > ? OR (e.cree = ? AND e.id > ?)) ORDER BY e.cree, e.id LIMIT ?`).all(a.cree, a.cree, a.id, n + 1);
+    return { lignes: brut.slice(0, n).map(r => ({
+      id: r.id, nom: nomEspace(r), proprio: r.proprio, cree: num(r.cree), membres: num(r.membres_n), canaux: num(r.canaux_n),
+      abonnement: r.statut === null || r.statut === undefined ? null : { statut: r.statut, places: num(r.places), fin_periode: orNulAdmin(r.fin_periode), annule: !!r.annule, impaye_depuis: orNulAdmin(r.impaye_depuis), relu_le: orNulAdmin(r.relu_le) },
+    })), plus: brut.length > n };
+  }
+  function adminEspacesTotal() { return num(Q('SELECT COUNT(*) AS n FROM espace').get().n); }
+  function adminAbonnements({ apres, limite, statut }) {
+    const a = apresDe(apres), n = Math.max(1, limite | 0), s = statut || null;
+    const brut = Q(`SELECT b.espace, b.statut, b.places, b.fin_periode, b.annule, b.impaye_depuis, b.relu_le, b.cree, e.nom_ch, e.id,
+        (b.abonnement IS NOT NULL) AS stripe, (b.session IS NOT NULL) AS attente,
+        (SELECT COUNT(*) FROM espace_membre x WHERE x.espace = b.espace) AS membres_n
+      FROM abonnement b JOIN espace e ON e.id = b.espace
+      WHERE (b.cree > ? OR (b.cree = ? AND b.espace > ?)) AND (? IS NULL OR b.statut = ?) ORDER BY b.cree, b.espace LIMIT ?`).all(a.cree, a.cree, a.id, s, s, n + 1);
+    return { lignes: brut.slice(0, n).map(r => ({
+      id: r.espace, nom: nomEspace(r), statut: r.statut, places: num(r.places), membres: num(r.membres_n), fin_periode: orNulAdmin(r.fin_periode), annule: !!r.annule,
+      impaye_depuis: orNulAdmin(r.impaye_depuis), relu_le: orNulAdmin(r.relu_le), cree: num(r.cree), stripe: !!num(r.stripe), paiement_en_attente: !!num(r.attente),
+    })), plus: brut.length > n };
+  }
+  function adminAbonnementsTotal({ statut }) {
+    const s = statut || null;
+    return num(Q('SELECT COUNT(*) AS n FROM abonnement WHERE (? IS NULL OR statut = ?)').get(s, s).n);
+  }
+  /* le décompte d'ensemble : des NOMBRES (comptes par origine et par état, espaces, abonnements par statut) */
+  function adminDecompte() {
+    const comptes = {};
+    for (const r of Q(`SELECT origine, etat, COUNT(*) AS n, COALESCE(SUM(CASE WHEN suppression_le IS NOT NULL THEN 1 ELSE 0 END), 0) AS programmees FROM personne GROUP BY origine, etat`).all()) {
+      const o = comptes[r.origine] || (comptes[r.origine] = { actifs: 0, supprimes: 0, suppression_programmee: 0 });
+      if (r.etat === 'supprime') o.supprimes += num(r.n); else { o.actifs += num(r.n); o.suppression_programmee += num(r.programmees); }
+    }
+    const statuts = {};
+    for (const r of Q('SELECT statut, COUNT(*) AS n, COALESCE(SUM(places), 0) AS places FROM abonnement GROUP BY statut ORDER BY statut').all()) statuts[r.statut] = { n: num(r.n), places: num(r.places) };
+    return { comptes, espaces: adminEspacesTotal(), abonnements: statuts };
+  }
+  const adminLecture = !ADMIN ? null : {
+    comptes: adminComptes, comptesTotal: adminComptesTotal, adresses: adminAdresses, adressesTotal: adminAdressesTotal,
+    espaces: adminEspaces, espacesTotal: adminEspacesTotal, abonnements: adminAbonnements, abonnementsTotal: adminAbonnementsTotal, decompte: adminDecompte,
+  };
+
   /* les comptes nés avant la migration 11 reçoivent leur identifiant public une fois, au démarrage (une copie d'un schéma plus ancien n'a pas la colonne : rien à faire) */
   if (IDENT) identCompleter();
 
   return {
+    adminLecture,   // l'administration : des lectures seulement (`admin.js`)
     schema, instantane, sonde, fermer, tx, stats, metaLire, nouvelId, illisibles: () => illisibles,
     personneCreer, personneParIdentifiant, personneParId, personneIdentifiant, personneMaj,
     sessionAjouter, sessionLire, sessionToucher, sessionSupprimer, sessionsSupprimerPersonne, sessionsSupprimerAvant, sessionsSupprimerAutres, betaARelire,

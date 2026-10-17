@@ -24,6 +24,8 @@
  *   SP, SH, SO, SJ  une SALLE (étape 8) : participant · hôte ou co-hôte PRÉSENT (un participant voit 403) · l'hôte seul · quelqu'un qui veut ENTRER (le droit se juge dans la transaction). Tous bâtis sur S ; un non-participant, un
  *      exclu et un appel à deux reçoivent le même 404 qu'une salle qui n'existe pas.
  *   LV le SERVEUR DE VISIO (LiveKit) sur la même machine : la boucle locale, sans passer par nginx (aucun `X-Forwarded-For`) — sinon 404 ; la route vérifie ensuite la signature sur le corps (`visio.js`).
+ *   AD l'ADMINISTRATION (la console interne, par le relais d'api.teamop.fr) : la boucle locale ET aucun en-tête de proxy ET le secret `X-OPM-Admin` de la configuration ; sinon, ou sans secret
+ *      configuré, le MÊME 404 qu'une route qui n'existe pas. Des lectures seulement (`admin.js` porte le contrat).
  *   AP participant d'un APPEL (S d'abord : répondre, raccrocher et signaler ne demandent pas d'adresse confirmée — lancer l'appel, lui, exige V) — l'appel se lit dans le chemin (`:id`) ; un non-participant reçoit le
  *      même 404 qu'un appel qui n'existe pas. « L'appareil lié » (la session qui a lancé l'appel ou qui y a répondu) se juge dans la route, pas dans la garde : un autre appareil du même compte voit 403.
  *
@@ -37,6 +39,13 @@
 const MANIFESTE = [
   { id: 'health',            m: 'GET',  p: '/health',                                garde: 'P' },
   { id: 'config',            m: 'GET',  p: '/api/config',                            garde: 'P' },
+  /* L'ADMINISTRATION (17 octobre 2026) : des lectures pour la console interne, gardées par `AD` (boucle locale + sans proxy + secret) — le contrat est dans l'en-tête d'`admin.js` */
+  { id: 'admin.sante',       m: 'GET',  p: '/api/admin/sante',                       garde: 'AD' },
+  { id: 'admin.comptes',     m: 'GET',  p: '/api/admin/comptes',                     garde: 'AD' },
+  { id: 'admin.empreintes',  m: 'GET',  p: '/api/admin/empreintes',                  garde: 'AD' },
+  { id: 'admin.espaces',     m: 'GET',  p: '/api/admin/espaces',                     garde: 'AD' },
+  { id: 'admin.abonnements', m: 'GET',  p: '/api/admin/abonnements',                 garde: 'AD' },
+  { id: 'admin.incidents',   m: 'GET',  p: '/api/admin/incidents',                   garde: 'AD' },
   { id: 'beta.entrer',       m: 'POST', p: '/api/beta/entrer',                       garde: 'B' },
   { id: 'compte.deconnexion', m: 'POST', p: '/api/compte/deconnexion',               garde: 'S' },
   { id: 'moi',               m: 'GET',  p: '/api/moi',                               garde: 'S' },

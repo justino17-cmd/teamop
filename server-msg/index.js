@@ -44,6 +44,7 @@ const { creerTrajet } = require('./trajet');
 const { creerAppels } = require('./appels');
 const { creerVisio } = require('./visio');
 const { creerTranscription } = require('./transcription');
+const { noterJournal } = require('./admin');
 
 const VERSION = '1.9.0-mise-a-jour';
 const CHAMPS_JOURNAL = new Set(['quota', 'nom', 'code', 'instance', 'port', 'sha', 'etat', 'n', 'motif', 'route', 'pays', 'gabarit']);   // `gabarit` : le NOM d'un gabarit fixe de courriel de compte (inscription, existe, reinit, change), jamais une adresse   // `pays` : un code pays (« BE »), jamais un numéro — pour dire quel pays passe en bouclier
@@ -54,6 +55,7 @@ function journaliser(evt, champs) {
     if (!CHAMPS_JOURNAL.has(k)) continue;
     o[k] = typeof v === 'number' || typeof v === 'boolean' ? v : String(v).replace(/[\r\n]/g, ' ').slice(0, 60);
   }
+  noterJournal(o);   // la console interne relit ce que le service journalise déjà (`admin.js`) ; ne fait jamais échouer le journal
   process.stdout.write(JSON.stringify(o) + '\n');
 }
 
