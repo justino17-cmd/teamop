@@ -19059,7 +19059,7 @@ function planMultiHtml(SRC){
   return {tete:tete,larg:larg,bandes:bandes,entetes:entetes,colonnes:colonnes,vide:!techsP.length};
   });
   const grille=`<div>
-    <div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${canPlan()?'Glissez une carte sur une case pour changer <b>le jour et la personne</b> · Alt + glisser = dupliquer · ':''}double-cliquez une case vide pour créer</div>
+    ${planAide('Glissez une carte sur une case pour changer <b>le jour et la personne</b>',true)}
     ${planFenBarre(techs.length)}
     ${blocsHtml.map(b=>b.barre?b.barre:`<div class="card plm-wrap plt-bloc">${b.tete}${planNoteMini(planJours)}${b.vide?`<div class="fen-vide">Personne dans cette fenêtre — clique sur « ＋ personne » pour la remplir.</div>`:`<div class="plm-grid" style="grid-template-columns:${b.larg}">
       ${b.bandes}${b.entetes}${b.colonnes.replace('<div class="plm-gut">',`<div class="plm-gut" style="height:${H}px">`)}
@@ -19070,6 +19070,16 @@ function planMultiHtml(SRC){
     : `<div class="plm-split">${grille}${planCarteCard()}</div>`;
 }
 
+/* L'aide sous la barre du planning ne promet QUE ce que la personne peut faire : « glissez » demande
+   « Déplacer le planning », « Alt + glisser = dupliquer » et « double-cliquez pour créer » demandent
+   d'ajouter une intervention (planDup et planMultiVide refusent sans). Un technicien lisait
+   « double-cliquez une case vide pour créer » et le geste ne faisait rien. Rien à dire → pas de ligne. */
+function planAide(glisse,avecDouble,lecture){
+  const p=[], cree=canCat('int','ajouter');
+  if(canPlan()){ p.push(glisse); if(cree) p.push('Alt + glisser = dupliquer'); }
+  else if(lecture) p.push(lecture);
+  if(avecDouble&&cree) p.push('double-cliquez une case vide pour créer');
+  return p.length?`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${p.join(' · ')}</div>`:''; }
 /* DOUBLE-clic sur une case vide : créer une intervention à ce jour, ce technicien, cette heure.
    Un simple clic ne fait rien, pour ne pas proposer une création à chaque clic dans le vide. */
 function planMultiVide(e,iso,techId,h0,PPH){
@@ -19625,7 +19635,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
         ${absBloc(abs,'plg-absv')}${cartes}
       </div>`; });
   });
-  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${canPlan()?'Glissez une carte sur une case pour changer <b>le jour et la personne</b> d\'un seul geste · Alt + glisser = dupliquer · ':''}double-cliquez une case vide pour créer</div>
+  return nav+`${planAide('Glissez une carte sur une case pour changer <b>le jour et la personne</b> d\'un seul geste',true)}
     <div class="card plg-wrap" style="padding:0">${planNoteMini(days)}<div class="plg" style="grid-template-columns:104px 20px repeat(${days.length},1fr);min-width:${124+days.length*112}px">${g}</div></div>`;
 }
 /* dépôt sur une case de la semaine : jour + technicien + heure d'un seul geste */
@@ -19757,7 +19767,7 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
       ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${cTech}')" ondragleave="this.classList.remove('drop');planGuideOff()"
       ondrop="this.classList.remove('drop');planGuideOff();planDropTime(event,'${gr.id}',${h0},${PPH})">${absBloc(abs,'plt-abs')}${blocks}</div>`);
   });
-  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${canPlan()?`Glissez un bloc <b>verticalement</b> pour changer l'heure (par 5 min) · <b>horizontalement</b> pour changer de personne · Alt + glisser = dupliquer`:'Lecture seule — le droit « Déplacer le planning » est requis pour réorganiser'}</div>
+  return nav+`${planAide('Glissez un bloc <b>verticalement</b> pour changer l\'heure (par 5 min) · <b>horizontalement</b> pour changer de personne',false,'Lecture seule — le droit « Déplacer le planning » est requis pour réorganiser')}
     ${planFenBarre(groups.length)}
     ${(function(){
       const paquets=planPaquets(groups.map((g,k)=>k),k=>groups[k].id);
