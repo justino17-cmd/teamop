@@ -214,8 +214,13 @@ function creerFlux({ stockage, config, horloge = Date.now }) {
     if (acc(avant) !== acc(apres)) personneChangee(uid);
     /* Perso / Pro (11 octobre 2026 : « quand on bascule, c'est tout qui bascule ») : le côté choisi, le passage automatique ou les heures de travail ont changé — mes AUTRES
        appareils l'apprennent tout de suite et relisent mon compte. À moi SEUL : le côté où je travaille ne regarde personne (ni contacts ni co-membres), et rien n'est dans
-       l'enveloppe — la page relit ce qu'elle a le droit de voir. */
-    const cote = (p) => JSON.stringify([p && p.mode === 'pro', !!(p && p.mode_auto), (p && p.heures_pro) || null]);
+       l'enveloppe — la page relit ce qu'elle a le droit de voir.
+       ⛔ ET TOUT RÉGLAGE QUE LA PAGE AFFICHE DANS LE PROFIL (15 octobre 2026, lot m14) : la pause pendant les réunions, « Confirmer l'envoi », l'aperçu des notifications, la
+       présence, les accusés de lecture, la position. Ils ne partaient qu'aux AUTRES (les contacts voient la présence, les co-membres les « Lu ») : mon second appareil gardait
+       l'ancien état à l'écran, et son toucher suivant ÉCRASAIT le réglage fait sur le premier (les heures de 6 h 30 redevenaient 9 h – 18 h). Un réglage qui s'affiche sur
+       plusieurs appareils prévient les autres appareils de la même personne. (La vitesse des vocaux et les vues de l'agenda se relisent à l'ouverture : elles n'en font pas partie.) */
+    const cote = (p) => JSON.stringify([p && p.mode === 'pro', !!(p && p.mode_auto), (p && p.heures_pro) || null,
+      !(p && p.pause_reunion === false), (p && p.confirmer_envoi) || 'jamais', !!(p && p.apercu_notif === true), pres(p), acc(p), !!(p && p.position === true)]);
     if (cote(avant) !== cote(apres)) emettre([uid], 'prefs', {});
   }
   /* Mon profil (photo, nom, statut) vient de changer : mes contacts, ceux qui partagent une conversation avec moi, et mes autres appareils. Éphémère, comme la présence :
