@@ -81,6 +81,17 @@ for f in "${SUITES_MSG[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 #    accès jusqu'à ce que ce soit réglé » et « Formule attribuée, jamais payée » à côté d'une entreprise grisée — et
 #    treize suites de la liste lisent `tour.html` (relevé par `relecteur`).
 PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html tour.html apercu/tour.html)
+# ⛔ TOUR_EN_SERVICE=garder (Justin, 17 octobre 2026 : « serveur + aperçu ») : le serveur part, la Tour EN SERVICE reste
+#    celle de `main` — seul son APERÇU part, pour qu'il l'essaie. Le serveur doit alors parler à la Tour d'AVANT : les
+#    suites de la liste qui lisent `tour.html` gardent leur version de `main` (celle qui garde la Tour servie), et c'est
+#    elle qu'on joue contre le serveur neuf. Une suite NEUVE qui lirait `tour.html` part telle quelle : si elle attend la
+#    Tour neuve, la porte tombe ici — c'est le but.
+if [ "${TOUR_EN_SERVICE:-}" = "garder" ]; then
+  PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html apercu/tour.html)
+  for f in "${SUITES[@]}"; do
+    if grep -q 'tour\.html' "$f" && git cat-file -e "origin/main:$f" 2>/dev/null; then git checkout -q origin/main -- "$f"; echo "  (Tour gardée) $f : version de main"; fi
+  done
+fi
 for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 
 # 2. Les deux workflows de la branche — la ligne des bancs lance la LISTE, pas tout (voir
@@ -145,7 +156,9 @@ Serveur seul : déploiement depuis ${SOURCE:0:8} (app.html et sw.js ne bougent p
 
 server/, sa surveillance (.github/scripts/surveillance.js) et ses bancs
 (scripts/bancs-serveur.liste, lancés par le job « bancs » dont le déploiement dépend).
-Les pages que ces bancs font parler au serveur partent avec lui : ${PAGES_LIEES[*]}.
+Les pages que ces bancs font parler au serveur partent avec lui : ${PAGES_LIEES[*]}.${TOUR_EN_SERVICE:+
+La Tour en service ne change pas (TOUR_EN_SERVICE=$TOUR_EN_SERVICE) : seul son aperçu part, et les suites
+qui lisent tour.html sont celles de main — jouées contre ce serveur.}
 server-msg/ (OP MESSAGES, service à part), son workflow (deploiement-messages.yml) et ses bancs
 (scripts/bancs-messages.liste) : la bêta se déploie à chaque poussée sur server-msg/, la production
 jamais sans l'approbation de l'environnement msg-prod.
