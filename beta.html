@@ -13571,7 +13571,12 @@ function multiPoserDefil(y){ if(!y) return; const c = $('content'); if(c && c.sc
 function multiCapturer(){
   if(!currentUser || !current) return;
   const o = multiTout();
-  const ouverte = !!($('overlay') && $('overlay').classList.contains('open')) && !_modalForcee;
+  /* ⛔ « open » ne veut pas dire ouverte : pendant les 210 ms de sa sortie animée, l'overlay garde « open » ET porte
+     « ferme » (§6, chemin de sortie d'une fenêtre). Or c'est PRÉCISÉMENT le moment où un enregistrement appelle
+     `closeModal(); go(current)` : lire « open » seul mémorisait le formulaire qu'on venait d'enregistrer, la barre
+     « Reprendre » le proposait, et Reprendre + Créer faisait un doublon (clients#0, achats#0) — ou rouvrait la fiche d'un
+     client supprimé (clients#1). Une fenêtre en train de partir est une fenêtre que la personne a quittée. */
+  const ouverte = !!($('overlay') && $('overlay').classList.contains('open') && !$('overlay').classList.contains('ferme')) && !_modalForcee;
   const e = { ts: Date.now(), y: multiDefil() };
   if(ouverte && _multiHtml && _multiHtml.length <= MULTI_MAX){
     const m = $('modal');
@@ -24856,6 +24861,9 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
       <button class="btn" onclick="closeModal();formDoc('devis')">＋ Devis</button></div>`);
 }
 function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
+  /* clients#1 : la fiche d'un client supprimé (une reprise d'avant, un lien resté ouvert) jetait une TypeError sur
+     `c.prefPassage` et le bouton « Modifier » ne faisait rien, sans un mot. On le dit. */
+  if(!c){ toast('Ce client n’existe plus'); return; }
   const pp=c.prefPassage||{};
   const JN=['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} client</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
@@ -33727,7 +33735,17 @@ function droitsBorner(nu,par){
     if(!userSeesModule(par,m.k)&&userSeesModule(nu,m.k)){ acc.modules[m.k]=false; retenus.push('le menu '+t(m.l)); } });
   return retenus;
 }
-async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+async function saveUser(e,id){ e.preventDefault();
+  /* ⛔ UN GESTE ASYNCHRONE SE PROTÈGE LUI-MÊME (lot g01, relecture) : `saveUser` attend le serveur (unicité de l'identifiant)
+     et `sha256` AVANT d'écrire et de fermer la fenêtre. Pendant ce temps la fenêtre n'est pas « ferme » : la garde centrale
+     du §6 ne peut rien avaler, et un double toucher créait DEUX comptes (le second avait passé la vérification locale
+     avant que le premier n'écrive). Le bouton se verrouille donc dès le premier toucher (`btnOccupe`) et se relâche dans
+     TOUS les cas — refus compris, sinon la personne resterait bloquée devant son formulaire. */
+  const _bt=(e.submitter&&e.submitter.nodeType===1)?e.submitter:((e.target&&e.target.querySelector)?e.target.querySelector('button[type=submit]'):null);
+  if(_bt&&_bt._occupe) return;
+  const _relacher=btnOccupe(_bt,'Enregistrement…');
+  try{
+  const d=Object.fromEntries(new FormData(e.target));
   /* Prénom ET nom obligatoires — Justin, 10 septembre 2026 : « comme ça, dans Utilisateurs, avec le
      nom et le prénom, ils savent qui c'est ; et nous pareil dans la Tour ». Deux « florent » sans
      nom, on ne sait plus lequel garder ; deux « Florent Martin », si. */
@@ -33841,6 +33859,7 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
     setTimeout(()=>userIdentifiantsModal(nu,pwd),120);
     return; }
   save(); closeModal(); views.utilisateurs();
+  }finally{ _relacher(); }
 }
 async function resetPwd(id){ if(!adminSeul()) return; const p=prompt('Nouveau mot de passe provisoire (8 caractères minimum) — laisse vide pour en générer un :'); if(p===null)return; if(p&&p.length<8){toast('8 caractères minimum');return;}
   const u=db.users.find(x=>x.id===id); if(!u) return;
@@ -42544,6 +42563,32 @@ if(typeof window.closeModal==='function'&&typeof window.openModal==='function'){
     var ov=voile(); if(ov) ov.classList.remove('ferme');
     return ouvrirNatif.apply(this,arguments);
   };
+  /* ⛔⛔ UNE FENÊTRE QUI PART N'ACCEPTE PLUS RIEN — UNE GARDE POUR TOUS LES FORMULAIRES (lot g01, 16 octobre 2026).
+     Pendant ses 210 ms de sortie, l'overlay reste « open ferme » : le formulaire et ses boutons sont encore dans le DOM,
+     encore cliquables. Un deuxième clic ou toucher (mesuré à 0, 60, 120 et 200 ms, plus à 300) rappelait `save*` —
+     deux clients, deux devis AU MÊME NUMÉRO, deux arrivages (stock crédité deux fois), deux lignes « Rapport enregistré »,
+     quinze constats pour une seule cause. Trente `if(enCours) return` dans les `save*` auraient été trente rustines (et la
+     trente-et-unième oubliée) : on avale le geste ICI, là où l'on sait que la fenêtre est en train de partir.
+     · En phase de CAPTURE sur le document : on passe avant les gestionnaires en ligne (`onsubmit`, `onclick`), qui sont
+       ceux des formulaires. `click` couvre les boutons (saveArrivage n'est PAS un submit), `submit` couvre Entrée dans un
+       champ et les formulaires.
+     · ⛔ Pas de `pointer-events:none` sur l'overlay qui part : le deuxième toucher tomberait sur la page DESSOUS (une carte,
+       une ligne qui ouvre une fiche). On avale le geste, on ne le laisse pas traverser.
+     · Ne se déclenche que si la cible est DANS l'overlay et qu'il porte « ferme » : un formulaire refusé (« Indique un
+       client ») reste ouvert, sans « ferme », donc le renvoi reste possible ; `openModal` retire « ferme », donc le premier
+       clic d'un « closeModal(); ouvrirAutreChose() » n'est pas avalé non plus.
+     · Ce que cette garde NE couvre PAS : un gestionnaire qui attend le réseau AVANT de fermer la fenêtre (elle n'est pas
+       encore « ferme »). Mesuré au navigateur (relecture du lot g01) : `mailBoxSave` est synchrone, il ferme tout de suite,
+       il est couvert ; `aiGenDevisXylo` verrouille son bouton (`sub.disabled=true`) avant son premier `await`, donc un
+       second toucher ne part pas ; `saveUser` n'avait RIEN et créait deux comptes — il se protège désormais lui-même par
+       `btnOccupe` (try/finally). Un nouveau gestionnaire qui `await` avant de fermer en fait autant. `tests/test-1100.js` §4. */
+  var avalerSiPart=function(e){
+    var ov=voile(); if(!ov||!ov.classList.contains('ferme')) return;
+    var t=e.target; if(!t||!ov.contains(t)) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+  };
+  document.addEventListener('click',avalerSiPart,true);
+  document.addEventListener('submit',avalerSiPart,true);
 }
 
 /* ════════════════════════════════════════════════════════════════════════════════════════════
