@@ -30595,7 +30595,13 @@ async function mailSend(){ const to=(($('mc-to')||{}).value||'').trim(), subject
   else{ try{ const feat=await srvFeatures(); if(feat&&feat.boite&&feat.boiteAddr&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(feat.boiteAddr)) opts.replyTo=feat.boiteAddr; else if(currentUser&&currentUser.mailReply) opts.replyTo=currentUser.mailReply; }catch(e){} }
   if(_mailAtt&&_mailAtt.content) opts.atts=[_mailAtt];
   const ok=await srvMail(to,subject||'(sans objet)',text,'✉️ E-mail envoyé à '+to,'',null,opts);
-  if(ok){ db.mailSent=db.mailSent||[]; db.mailSent.push({ts:Date.now(),to,subject,text,att:_mailAtt?_mailAtt.filename:'',from:fromLabel}); if(db.mailSent.length>200) db.mailSent=db.mailSent.slice(-200); save(); }
+  /* ⛔ g20 (achats#10) — LA FENÊTRE NE SE FERME QU'AU SUCCÈS. `srvMail` rend `false` quand le serveur d'envoi est
+     injoignable ou refuse, et il ouvre alors un brouillon `mailto:` — qui n'existe pas sur un poste sans client
+     Mail : fermer la fenêtre jetait l'objet, le destinataire et le message tapés, sans rien enregistrer. À
+     l'échec, la fenêtre reste ouverte avec son texte (comme « Envoi automatique impossible » sur un bon) ; le
+     brouillon `mailto:` reste le repli, pas la seule trace. */
+  if(!ok){ toast('✉️ Message non envoyé — ton texte est conservé ici : réessaie, ou termine-le dans le brouillon Mail préparé.'); return; }
+  db.mailSent=db.mailSent||[]; db.mailSent.push({ts:Date.now(),to,subject,text,att:_mailAtt?_mailAtt.filename:'',from:fromLabel}); if(db.mailSent.length>200) db.mailSent=db.mailSent.slice(-200); save();
   closeModal(); if(current==='boiteMail') views.boiteMail();
 }
 /* 📥 Réponses des fournisseurs — relevées par le serveur (Boîte Commandes), rattachées aux bons */
