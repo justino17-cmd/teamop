@@ -19079,7 +19079,7 @@ function planMultiVide(e,iso,techId,h0,PPH){
   const y=e.clientY-r.top;
   let mins=h0*60+Math.round((y/PPH)*60/5)*5; mins=Math.max(0,Math.min(23*60+55,mins));
   const h=String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
-  formIntervention('',iso,techId,h);
+  formIntervention('',{date:iso,techId:techId||'',heure:h});   // le préremplissage porte la personne ET l'heure de la case
 }
 /* glisser une carte : change le jour ET le technicien d'un seul geste */
 function planMultiDrop(e,iso,techId,h0,PPH){
@@ -19659,7 +19659,7 @@ function planWeekVide(e,iso,techId,h0,PPH){
   if(e.target!==e.currentTarget) return;
   const r=e.currentTarget.getBoundingClientRect();
   let m=h0*60+Math.round((((e.clientY||0)-r.top)/PPH)*60/5)*5; m=Math.max(0,Math.min(23*60+55,m));
-  formIntervention('',iso,techId||'',clockFromMin(m));
+  formIntervention('',{date:iso,techId:techId||'',heure:clockFromMin(m)});   // idem : la case emporte la personne et l'heure
 }
 /* ---- Vue SEMAINE liste (mobile) ---- */
 function planWeekListHtml(SRC){
@@ -23448,8 +23448,24 @@ function assistFinish(id){ if(!asW) return; const ix=db.interventions.findIndex(
   asW=null; closeModal();
   clotureSuiteModal(id,askNext,recurMsg); }
 /* ═══════════ fin refonte interventions ═══════════ */
-function formIntervention(id,presetDate){
-  const i=id?db.interventions.find(x=>x.id===id):{};
+/* ⛔ PRÉREMPLISSAGE GÉNÉRAL (planning#5, clients#7, interventions#13) — UN seul mécanisme.
+   Le second argument est soit une date (ancienne forme : « 2026-10-15 »), soit un OBJET de champs
+   d'intervention : {date, heure, techId|techIds, clientId, titre, …}. Les portes qui ouvrent un
+   formulaire « pour quelqu'un, à tel moment » (case du planning, fiche client, copie) passent par lui
+   au lieu de poser les champs APRÈS l'ouverture ou de créer l'enregistrement AVANT : la case du
+   planning appelait `formIntervention('',iso,techId,heure)` pour une fonction qui n'avait que deux
+   paramètres — la personne et l'heure se perdaient en silence. Deux clés ne sont pas des champs :
+   `reporter` (ce que le formulaire n'a pas et que la CRÉATION doit emporter : la liste de contrôle
+   d'une copie) et `histo` (la ligne d'historique, posée à la VALIDATION). Ouvrir n'écrit rien :
+   « Annuler » ne laisse ni fiche ni numéro consommé. */
+let _intReport=null;
+function formIntervention(id,preset){
+  const _pre=(typeof preset==='string')?{date:preset}:((preset&&typeof preset==='object')?preset:{});
+  const {reporter:_rep,histo:_histo,...champsPre}=_pre;
+  _intReport=(!id&&(_rep||_histo))?{reporter:_rep||{},histo:_histo||''}:null;
+  const i=id?db.interventions.find(x=>x.id===id):{...champsPre};
+  const _cliPre=(!id&&i.clientId)?db.clients.find(x=>x.id===i.clientId):null;
+  const _adr=i.adresse||(_cliPre?(_cliPre.adresse||_cliPre.adresseComplete||''):'');   // comme cliPick : le client choisi apporte son adresse
   intNuis=new Set(i.nuisibles||((i.nuisible&&i.nuisible!=='—')?[i.nuisible]:[]));
   intMeth=new Set(i.methodes||[]);
   intTrait=JSON.parse(JSON.stringify(i.traitementNuis||{}));
@@ -23468,7 +23484,7 @@ function formIntervention(id,presetDate){
           <div class="frow"><span class="frow-lbl">Tél. client</span><div class="frow-val"><input name="cliTel" id="cli-tel" placeholder="Téléphone du client"></div></div>
           <div class="frow"><span class="frow-lbl">Email client</span><div class="frow-val"><input name="cliEmail" id="cli-email" type="email" placeholder="Email du client"></div></div>
           <div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Adresse</span>
-            <input name="adresse" id="adr-search" class="soc-search" autocomplete="off" value="${esc(i.adresse)}" placeholder="Rue, code postal, ville…" oninput="adrSearch(this.value)" onblur="setTimeout(()=>{const b=document.getElementById('adr-list');if(b)b.style.display='none'},200)">
+            <input name="adresse" id="adr-search" class="soc-search" autocomplete="off" value="${esc(_adr)}" placeholder="Rue, code postal, ville…"oninput="adrSearch(this.value)" onblur="setTimeout(()=>{const b=document.getElementById('adr-list');if(b)b.style.display='none'},200)">
             <input type="hidden" id="adr-cp"><input type="hidden" id="adr-ville"><input type="hidden" id="adr-lat"><input type="hidden" id="adr-lng">
             <div id="adr-list" class="soc-list" style="display:none"></div>
           </div>
@@ -23499,7 +23515,7 @@ function formIntervention(id,presetDate){
 
         <div class="fsec"><div class="form-sec">Planification</div>
         <div class="fgroup">
-          <div class="frow"><span class="frow-lbl">Date</span><div class="frow-val"><input type="date" name="date" value="${i.date||presetDate||''}" style="width:auto"></div></div>
+          <div class="frow"><span class="frow-lbl">Date</span><div class="frow-val"><input type="date" name="date" value="${i.date||''}" style="width:auto"></div></div>
           <div class="frow" style="border-bottom:none;padding-top:0"><span style="font-size:11px;color:var(--t3)">Laisser la date vide = « À planifier » (à glisser plus tard dans le Planning)</span></div>
           <div class="frow" onclick="ouvreRouesInt()" style="cursor:pointer"><span class="frow-lbl">Début</span><div class="frow-val"><input type="hidden" name="heure" value="${i.heure||'09:00'}"><span id="deb-aff" style="font-weight:800;font-size:16.5px;letter-spacing:.02em">${i.heure||'09:00'}</span><span style="margin-left:8px;color:var(--t3)">🕐</span></div></div>
           <div class="frow" style="display:block">
@@ -23735,13 +23751,15 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
       if(!can('planifObligerTravail')){ toast('❌ Impossible : '+_nom+' est en '+_typ+' le '+fmtShort(data.date)); return; }
       if(!confirm(_nom+' est en '+_typ+' le '+fmtShort(data.date)+'. Appliquer l’obligation de travailler ?')) return;
       data.obligation={par:(currentUser&&fullName(currentUser))||'',ts:Date.now()}; _forceAbs=true; } }
+  // Une copie (« Dupliquer ») naît ICI, à la validation : ce que le formulaire n'a pas (la liste de contrôle) et sa ligne d'historique
+  const _rep=id?null:_intReport; _intReport=null;
   // Passages multiples : crée un rendez-vous par passage, titre « k/n passage »
   const nbP=parseInt(data.nbPassages)||1;
   if(!id && nbP>1){
     const gid=uid(); const base=(data.titre||'').trim().replace(/\s*[—-]\s*\d+\/\d+\s*passage\s*$/i,'');
     for(let k=1;k<=nbP;k++){ const d2={...data}; d2.titre=(base?base+' ':'')+'— '+k+'/'+nbP+' passage'; d2.passageNum=k; d2.passageTotal=nbP; d2.groupId=gid;
       if(k>1){ const dd=document.getElementById('pdate-'+k), hh=document.getElementById('pheure-'+k); if(dd&&dd.value)d2.date=dd.value; if(hh&&hh.value)d2.heure=hh.value; }
-      const obj={id:uid(),num:intNum(),compteRendu:'',...d2}; db.interventions.push(obj); notifyTechNewInt(obj);
+      const obj={id:uid(),num:intNum(),compteRendu:'',...(_rep?_rep.reporter:{}),...d2}; if(_rep&&_rep.histo) intHisto(obj,_rep.histo); db.interventions.push(obj); notifyTechNewInt(obj);
       try{ if(obj.date) planStamp(obj,null); }catch(e){}
     }
     logEvent('Interventions (passages)',base+' ×'+nbP,'crud');
@@ -23749,7 +23767,7 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
   }
   let _saved=null;
   if(id){ const ix=db.interventions.findIndex(x=>x.id===id); db.interventions[ix]={...db.interventions[ix],...data}; _saved=db.interventions[ix]; intHisto(db.interventions[ix],'Fiche modifiée'); syncFactureFromIntervention(db.interventions[ix]); logEvent('Modif intervention',data.titre,'crud'); }
-  else{ const obj={id:uid(),num:intNum(),compteRendu:'',...data}; _saved=obj; intHisto(obj,'Intervention créée'); db.interventions.push(obj); syncFactureFromIntervention(obj); logEvent('Nouvelle intervention',data.titre,'crud'); notifyTechNewInt(obj); }
+  else{ const obj={id:uid(),num:intNum(),compteRendu:'',...(_rep?_rep.reporter:{}),...data}; _saved=obj; intHisto(obj,'Intervention créée'); if(_rep&&_rep.histo) intHisto(obj,_rep.histo); db.interventions.push(obj); syncFactureFromIntervention(obj); logEvent('Nouvelle intervention',data.titre,'crud'); notifyTechNewInt(obj); }
   // Traçabilité de l'obligation de travailler (journal du planning P9)
   if(_forceAbs && _saved){ intHisto(_saved,'⚠️ Obligation de travailler appliquée ('+techName(data.techId)+' absent le '+fmtShort(data.date)+')'); _saved._oblig=true; planStamp(_saved,null); delete _saved._oblig; }
   // Journal du planning : toute création datée est tracée (y compris depuis une case vide du planning)
@@ -24550,8 +24568,12 @@ function creerProchainPassage(id){ if(!permGarde('int','ajouter','une interventi
   db.interventions.push(n); save(); toast('Prochain passage créé — fixez le rendez-vous');
   formIntervention(n.id); }
 function dupliquerIntervention(id){ if(!permGarde('int','ajouter','une intervention')) return; const i=db.interventions.find(x=>x.id===id); if(!i) return;
-  const n=_copieInt(i,{}); intHisto(n,'Dupliquée depuis '+(i.num||i.titre)); db.interventions.push(n); save();
-  toast('Intervention dupliquée ('+n.num+')'); formIntervention(n.id); }
+  /* ⛔ interventions#13 — la copie se CONSTRUIT en mémoire et s'OUVRE ; elle n'entre dans `db` qu'à la validation
+     (saveIntervention). Avant : elle était poussée et sauvegardée AVANT le formulaire, donc « Annuler » laissait la copie
+     — et son numéro consommé — chez toute l'équipe. Ouvrir un écran n'écrit pas. L'id et le numéro de la copie en
+     mémoire sont jetés : saveIntervention en pose de neufs, au moment où la fiche naît. */
+  const {id:_x,num:_y,checklist,compteRendu:_z,...champs}=_copieInt(i,{});
+  formIntervention('',{...champs,reporter:{checklist},histo:'Dupliquée depuis '+(i.num||i.titre)}); }
 function _avisTexte(i,c){
   const dt=i.date?new Date(i.date+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}):'ce jour';
   const subj='Avis de passage — '+rapportSociete(i.rapportModele);
@@ -24852,8 +24874,8 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
       ${canCat('crm','supprimer')?`<button class="btn danger" onclick="closeModal();delItem('clients','${c.id}')">Supprimer</button>`:''}
       <button class="btn ghost" onclick="openTagEditor('clients','${c.id}')">Étiquettes</button>
       <button class="btn ghost" onclick="printDossierClient('${c.id}')">Dossier client</button>
-      <button class="btn" onclick="closeModal();formIntervention()">＋ Intervention</button>
-      <button class="btn" onclick="closeModal();formDoc('devis')">＋ Devis</button></div>`);
+      ${canCat('int','ajouter')?`<button class="btn" onclick="closeModal();formIntervention('',{clientId:'${c.id}'})">＋ Intervention</button>`:''}
+      ${canCat('ventes','ajouter')?`<button class="btn" onclick="closeModal();formDoc('devis','',{clientId:'${c.id}'})">＋ Devis</button>`:''}</div>`);
 }
 function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
   const pp=c.prefPassage||{};
@@ -37241,8 +37263,10 @@ function docCliInfo(id){ const el=document.getElementById('doc-cli-info'); if(!e
    vérification de A à Z du 26 septembre 2026. La « Qté » d'une ligne (pas de 0,5) refusait 1,75. Un champ qui
    porte une valeur décimale légitime déclare son pas ; un champ relu par parseInt reste entier EXPRÈS (un
    2,5 tronqué en 2 sans un mot serait pire que la bulle du navigateur). `tests/test-818.js`. */
-function formDoc(kind,id){
-  const cfg=DOC[kind], d=id?db[cfg.coll].find(x=>x.id===id):{};
+function formDoc(kind,id,preset){
+  /* clients#7 : un document ouvert DEPUIS la fiche d'un client emporte ce client (select + bloc d'infos) —
+     le troisième argument est un préremplissage de champs du document ({clientId}), jamais écrit avant la validation */
+  const cfg=DOC[kind], d=id?db[cfg.coll].find(x=>x.id===id):{...(preset&&typeof preset==='object'?preset:{})};
   formLignes = id ? JSON.parse(JSON.stringify(d.lignes||[])) : [{designation:'',qte:1,pu:0}];
   openModal(`<div class="modal-head"><h3>${id?'Modifier':(kind==='factures'?'Nouvelle':'Nouveau')} ${cfg.un}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="saveDoc(event,'${kind}','${id||''}')">
@@ -37255,7 +37279,7 @@ function formDoc(kind,id){
       <div id="lig-tot" style="text-align:right;font-size:14px;color:var(--t2);margin:6px 0 14px"></div>
       <div class="field-row"><div class="field"><label>TVA (%)</label><input id="f-tva" type="number" step="0.01" min="0" name="tva" value="${d.tva??20}" oninput="ligTot()"></div>
         <div class="field"><label>Statut</label><select name="statut">${Object.entries(cfg.st).map(([k,v])=>`<option value="${k}" ${d.statut===k?'selected':''}>${v.l}</option>`).join('')}</select></div></div>
-      <div class="field"><label>Notes</label><input name="notes" value="${esc(d.notes)}"></div>
+      <div class="field"><label>Notes</label><textarea name="notes" rows="4">${esc(d.notes)}</textarea></div>
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div></form>`);
   renderLignes();
 }
