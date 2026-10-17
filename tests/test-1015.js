@@ -92,6 +92,9 @@ const nu = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/
   /* une collaboratrice fait un geste : c'est son nom qui s'inscrit */
   const COLLAB = (await appel('/api/monitor/login', { nom: 'Collaboratrice', pass: SECRET_COLLAB })).j.token;
   vrai('(population) la collaboratrice ouvre une session', COLLAB);
+  /* on laisse passer l'écriture que la connexion vient de programmer (monSave, 500 ms) : le geste suivant doit s'écrire de
+     LUI-MÊME — sa route n'écrit que les comptes du site, et sans ça une écriture voisine le sauverait par chance */
+  await dormir(700);
   r = await appel('/api/monitor/clients/note', { email: 'camille@exemple-1015.fr', note: 'rappeler lundi' }, COLLAB);
   v('la collaboratrice écrit une note : 200', r.s, 200);
 
