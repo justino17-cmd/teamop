@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'd3e2a0ae8f45';
+  const OPMSG_BUILD = '621c4d2c3bfa';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 210;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5155,7 +5155,7 @@
     /* ⛔ la discussion de la SALLE où l'on est (la conversation de la réunion) est sous les yeux comme une conversation ouverte : sa bannière tombait sur le titre et « Quitter » de la
        salle (un toucher à cet endroit ouvrait la conversation et réduisait la salle) — la pastille de « Discussion » dit qu'il y a du neuf */
     const A = etat.appelUI;
-    if (enSalle(A) && A.snap.conv === ev.conv && document.visibilityState === 'visible') return;
+    if (enSalle(A) && !etat.appelReduit && A.snap.conv === ev.conv && document.visibilityState === 'visible') return;      // ⛔ réduite (barre « Revenir à l'appel »), la salle ne couvre plus la page : sa discussion n'est PAS sous les yeux, la bannière paraît
     if (arriveeRetenue(ev)) return;
     /* ⛔ une conversation EN SOURDINE reçoit son message (la liste, le point non lu) mais ne fait pas surgir sa bannière — le service ne fait rien sonner non plus. Une mention passe la sourdine : c'est l'événement `notification`. */
     if (ev.sourdine) return;

@@ -7978,7 +7978,7 @@ a.menu-action { text-decoration: none; }
     /* ⛔ la discussion de la SALLE où l'on est (la conversation de la réunion) est sous les yeux comme une conversation ouverte : sa bannière tombait sur le titre et « Quitter » de la
        salle (un toucher à cet endroit ouvrait la conversation et réduisait la salle) — la pastille de « Discussion » dit qu'il y a du neuf */
     const A = etat.appelUI;
-    if (enSalle(A) && A.snap.conv === ev.conv && document.visibilityState === 'visible') return;
+    if (enSalle(A) && !etat.appelReduit && A.snap.conv === ev.conv && document.visibilityState === 'visible') return;      // ⛔ réduite (barre « Revenir à l'appel »), la salle ne couvre plus la page : sa discussion n'est PAS sous les yeux, la bannière paraît
     if (arriveeRetenue(ev)) return;
     /* ⛔ une conversation EN SOURDINE reçoit son message (la liste, le point non lu) mais ne fait pas surgir sa bannière — le service ne fait rien sonner non plus. Une mention passe la sourdine : c'est l'événement `notification`. */
     if (ev.sourdine) return;

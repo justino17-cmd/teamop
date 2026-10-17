@@ -53,11 +53,11 @@ function partiePage() {
   v('(population) les fonctions réelles sont trouvées dans la page', Object.keys(morceaux).filter(k => !morceaux[k]), []);
   const CONV = 'c_' + 'a'.repeat(32), AUTRE = 'c_' + 'b'.repeat(32);
   function bac(o) {
-    const S = Object.assign({ conv: null, salle: null, visible: 'visible' }, o || {});
+    const S = Object.assign({ conv: null, salle: null, reduite: false, visible: 'visible' }, o || {});
     const bannieres = [];
     const ctx = {
       Date, Math, JSON, Number, Array, Object, String, RegExp,
-      etat: { mode: 'perso', conv: S.conv, conversations: [], appelUI: S.salle ? { snap: { salle: true, entrant: false, conv: S.salle } } : null },
+      etat: { mode: 'perso', conv: S.conv, appelReduit: S.reduite, conversations: [], appelUI: S.salle ? { snap: { salle: true, entrant: false, conv: S.salle } } : null },
       document: { visibilityState: S.visible },
       modesActifs: () => false, source: {}, coteDe: () => 'perso', autreCote: () => false, NOM_COTE: { perso: 'Perso', pro: 'Pro' },
       notifier: (texte, aide, cible) => bannieres.push({ texte, aide, cible }),
@@ -83,6 +83,8 @@ function partiePage() {
   { const x = bac({ salle: CONV }); x.surArrivee(ev({ conv: CONV, groupe: true, convNom: 'Point chantier' }));
     x.surArrivee(ev({ conv: AUTRE }));
     v('⛔ salle#4 : un message de la discussion MÊME de la salle ouverte ne fait pas surgir la bannière — celle d\'une AUTRE conversation, si (sentinelle)', x.bannieres.map(b => b.cible), ['conv:' + AUTRE]); }
+  { const x = bac({ salle: CONV, reduite: true }); x.surArrivee(ev({ conv: CONV, groupe: true, convNom: 'Point chantier' }));
+    v('⛔ salle RÉDUITE (barre « Revenir à l\'appel », on navigue ailleurs) : la discussion de la salle n\'est pas sous les yeux, sa bannière paraît', x.bannieres.map(b => b.cible), ['conv:' + CONV]); }
   { const x = bac({ salle: CONV, visible: 'hidden' }); x.surArrivee(ev({ conv: CONV }));
     v('page cachée (un autre onglet, l\'écran verrouillé) : la bannière paraît quand même, comme pour la conversation ouverte', x.bannieres.length, 1); }
   { const x = bac({ conv: CONV }); x.surArrivee(ev({ conv: CONV }));
