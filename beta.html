@@ -38702,12 +38702,25 @@ function openSearch(){ openModal(`<div class="modal-head"><h3>Rechercher partout
     <input class="search-inp" id="gsearch" placeholder="Client, intervention, produit, box, véhicule, devis…" oninput="var _v=this.value;rechDiffere(function(){ renderSearch(_v); })">
     <div id="gsearch-res"><div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div></div>`);
   setTimeout(()=>{ const i=$('gsearch'); if(i) i.focus(); },60); }
+/* ⛔ clients#8 — UN CLIENT SE CHERCHE COMME ON LE CHERCHE SUR LE TERRAIN : il appelle, on a son numéro. La
+   recherche ne lisait que nom + adresse (« 0777000111 », un e-mail, une ville : « Aucun résultat »), et coupait
+   chaque famille à six sans le dire. Le téléphone se compare en CHIFFRES (« 07 77 00 », « 07.77.00.01 » et
+   « 0777000111 » désignent la même fiche) et seulement à partir de trois chiffres — « 06 » ne ratisse pas
+   tous les mobiles. La liste dépasse six : une ligne « voir les N autres » déplie la famille, et une autre
+   requête la replie. Le périmètre reste la seule porte (`visibleClients`) : rien ici ne l'élargit. */
+let _rechPlus={}, _rechDerniere='';
+function rechPlus(type){ _rechPlus[type]=1; renderSearch(_rechDerniere); }
 function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=norm(qq);
   if(q.length<2){ el.innerHTML='<div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div>'; return; }
-  const R=[]; const add=(arr,type,ic,nameFn,subFn,actFn)=>{ (arr||[]).forEach(x=>{ const nom=nameFn(x)||''; const sub=subFn(x)||''; if(norm(nom+' '+sub).includes(q)&&R.filter(r=>r.type===type).length<6) R.push({ic,type,nom,sub,act:actFn(x)}); }); };
+  if(qq!==_rechDerniere){ _rechPlus={}; _rechDerniere=qq; }
+  const qTel=/^[\d\s.+()\-]+$/.test(String(qq).trim())?String(qq).replace(/\D/g,''):'';   // un numéro tapé comme on l'écrit
+  const R=[]; const add=(arr,type,ic,nameFn,subFn,actFn,extraFn,telFn)=>{ (arr||[]).forEach(x=>{ const nom=nameFn(x)||''; const sub=subFn(x)||'';
+    const ex=extraFn?(extraFn(x)||''):'';
+    if(norm(nom+' '+sub+' '+ex).includes(q) || (qTel.length>=3&&telFn&&String(telFn(x)||'').replace(/\D/g,'').includes(qTel))) R.push({ic,type,nom,sub,act:actFn(x)}); }); };
   /* v738 : chaque famille par le filtre de son écran ET seulement si ce menu lui est ouvert (rechVoit) */
   const V=(k,l)=>rechVoit(k)?l:[];
-  add(V('clients',visibleClients(db.clients)),'Client','🏢',c=>c.nom,c=>c.adresse,c=>`closeModal();ficheClient('${c.id}')`);
+  add(V('clients',visibleClients(db.clients)),'Client','🏢',c=>c.nom,c=>[c.adresse||'',(c.ville&&!norm(c.adresse||'').includes(norm(c.ville)))?c.ville:''].filter(Boolean).join(' · '),c=>`closeModal();ficheClient('${c.id}')`,
+    c=>[c.ville,c.codePostal,c.contact,c.email].filter(Boolean).join(' '),c=>c.tel);
   add(V('interventions',visibleInts(db.interventions,true)),'Intervention','🧰',i=>i.titre,i=>clientName(i.clientId)+' · '+fmtShort(i.date),i=>`closeModal();detailIntervention('${i.id}')`);
   add(V('produits',db.produits),'Produit','📦',p=>p.nom,p=>p.ref,p=>`closeModal();formProduit('${p.id}')`);
   add(V('boxes',visibleBoxes(db.boxes)),'Box','🧱',b=>b.nom||b.numero,b=>b.ville,b=>`closeModal();openBox('${b.id}')`);   // la recherche respecte le périmètre
@@ -38716,7 +38729,13 @@ function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=no
   add(V('factures',visibleDocs(db.factures)),'Facture','🧾',f=>f.num,f=>clientName(f.clientId),()=>`closeModal();go('factures')`);
   add(V('fournisseurs',db.fournisseurs),'Fournisseur','🏭',f=>f.nom,f=>f.ville,()=>`closeModal();go('fournisseurs')`);
   add(visibleTechniciens(db.techniciens),'Technicien','👷',t=>t.nom,t=>t.metier,t=>`closeModal();ficheTech('${t.id}')`);   // chacun voit ce qui le concerne
-  el.innerHTML = R.length? R.map(r=>`<div class="pl-row" onclick="${r.act}"><span style="font-size:18px;width:24px;text-align:center">${r.ic}</span><div class="pl-info"><div class="pl-title">${esc(r.nom)}</div><div class="pl-meta">${esc(r.type)}${r.sub?' · '+esc(r.sub):''}</div></div></div>`).join('') : '<div style="color:var(--t3);font-size:13px;padding:8px">Aucun résultat pour « '+esc(qq)+' »</div>';
+  /* six par famille, sauf celle qu'on a dépliée (cent au plus : au-delà, une requête plus précise) */
+  const par={}, ordre=[]; R.forEach(r=>{ (par[r.type]||(ordre.push(r.type),par[r.type]=[])).push(r); });
+  const ligneR=r=>`<div class="pl-row" onclick="${r.act}"><span style="font-size:18px;width:24px;text-align:center">${r.ic}</span><div class="pl-info"><div class="pl-title">${esc(r.nom)}</div><div class="pl-meta">${esc(r.type)}${r.sub?' · '+esc(r.sub):''}</div></div></div>`;
+  el.innerHTML = R.length? ordre.map(t=>{ const L=par[t], lim=_rechPlus[t]?100:6, reste=L.length-lim, pl=reste>1?'s':'';
+    return L.slice(0,lim).map(ligneR).join('')+(reste<=0?'':_rechPlus[t]
+      ?`<div style="color:var(--t3);font-size:12.5px;padding:6px 8px">${reste} autre${pl} : précisez la recherche.</div>`
+      :`<div class="pl-row" onclick="rechPlus('${t}')"><span style="font-size:18px;width:24px;text-align:center">＋</span><div class="pl-info"><div class="pl-title">Voir les ${reste} autre${pl}</div><div class="pl-meta">${esc(t)}</div></div></div>`); }).join('') : '<div style="color:var(--t3);font-size:13px;padding:8px">Aucun résultat pour « '+esc(qq)+' »</div>';
 }
 
 /* ═══════════════ NOTIFICATIONS ═══════════════ */
