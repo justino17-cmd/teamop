@@ -31311,6 +31311,26 @@ function bonPdfStr(b){
   const TR=(xr,yy,sz,txt,bold,col)=>T(xr-_pdfLarg(txt,sz,bold),yy,sz,txt,bold,col);   // v740 : largeur réelle (Helvetica)
   const R=(x,yy,w,h,col)=>ops.push(col+' rg',x.toFixed(1)+' '+yy.toFixed(1)+' '+w.toFixed(1)+' '+h.toFixed(1)+' re f');
   const cut=(s,n)=>{ s=String(s||''); return s.length>n? s.slice(0,n-1)+'…':s; };
+  /* ⛔ g20 (achats#4) — CE QUE LE FOURNISSEUR REÇOIT NE SE COUPE PAS À N SIGNES. La note était coupée à 100 signes
+     et à cinq lignes, la désignation à 56, le commentaire à 78, la référence à 14 : des instructions de
+     livraison (« …sinon refus de réception ») sortaient tronquées, et le « … » de `cut` ne prévenait personne. Un
+     texte se REPLIE sur plusieurs lignes, mesuré par `_pdfLarg` (la largeur réelle en Helvetica, après la
+     translittération WinAnsi — ce qu'on mesure est ce qu'on écrit) ; un mot plus long que la colonne est cassé
+     au signe près, jamais perdu. Un saut de ligne saisi est gardé. */
+  const wrapL=(s,sz,gras,maxW)=>{ const out=[];
+    String(s==null?'':s).split(/\r?\n/).forEach(par=>{ const ms=par.trim().split(/\s+/).filter(Boolean);
+      if(!ms.length){ out.push(''); return; }
+      let cur='';
+      ms.forEach(w=>{ let cs=Array.from(w);
+        while(cs.length>1 && _pdfLarg(cs.join(''),sz,gras)>maxW){
+          let k=1; while(k<cs.length-1 && _pdfLarg(cs.slice(0,k+1).join(''),sz,gras)<=maxW) k++;
+          if(cur){ out.push(cur); cur=''; }
+          out.push(cs.slice(0,k).join('')); cs=cs.slice(k); }
+        w=cs.join('');
+        if(cur && _pdfLarg(cur+' '+w,sz,gras)>maxW){ out.push(cur); cur=w; } else cur=cur?cur+' '+w:w; });
+      if(cur) out.push(cur); });
+    while(out.length && out[out.length-1]==='') out.pop();
+    return out; };
   const dateFr=d=>{ try{ return new Date((d||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return d||''; } };
   const tableHead=()=>{ R(M,y-6,W-2*M,22,GREEN);
     T(M+8,y,9,'RÉF',1,'1 1 1'); T(M+92,y,9,'DÉSIGNATION',1,'1 1 1'); TR(RGT-8,y,9,'QUANTITÉ',1,'1 1 1');
@@ -31352,13 +31372,18 @@ function bonPdfStr(b){
   // ─ tableau des articles
   tableHead();
   (b.lignes||[]).forEach((l,i)=>{
-    if(y<118) newPage();
-    if(i%2===1) R(M,y-6,W-2*M,17,'0.962 0.97 0.976');
-    T(M+8,y,8.5,cut(l.reference||'—',14),0,GREY);
-    T(M+92,y,9.2,cut(l.designation||'',56),0,DARK);
-    TR(RGT-8,y,9.2,bonQteTxt(l),1,DARK);
-    y-=17;
-    if(l.commentaire){ T(M+92,y+4,7.6,cut('» '+l.commentaire,78),0,GREY); y-=11; }
+    /* g20 : référence, désignation et commentaire se REPLIENT (voir `wrapL`) — la colonne de désignation s'arrête avant la quantité */
+    const qt=bonQteTxt(l);
+    const refL=wrapL(l.reference||'—',8.5,0,76), desL=wrapL(l.designation||'',9.2,0,Math.max(120,RGT-8-_pdfLarg(qt,9.2,1)-10-(M+92))),
+      comL=l.commentaire?wrapL('» '+l.commentaire,7.6,0,RGT-8-(M+92)):[];
+    const nl=Math.max(refL.length,desL.length,1), plus=(nl-1)*11;
+    if(y-plus<118) newPage();
+    if(i%2===1) R(M,y-6-plus,W-2*M,17+plus,'0.962 0.97 0.976');
+    refL.forEach((t,k)=>T(M+8,y-k*11,8.5,t,0,GREY));
+    (desL.length?desL:['']).forEach((t,k)=>T(M+92,y-k*11,9.2,t,0,DARK));
+    TR(RGT-8,y,9.2,qt,1,DARK);
+    y-=17+plus;
+    comL.forEach(t=>{ T(M+92,y+4,7.6,t,0,GREY); y-=11; });
   });
   R(M,y+11,W-2*M,0.8,LINE);
   // ─ total en encadré vert
@@ -31369,11 +31394,19 @@ function bonPdfStr(b){
   T(RGT-bw+10,y,10.5,'TOTAL',1,'1 1 1'); TR(RGT-8,y,10.5,totTxt,1,'1 1 1');
   y-=8;
   // ─ notes encadrées
-  if(b.notes){ const nl=String(b.notes).split(/\n/).slice(0,5); const nh=22+nl.length*12;
-    y-=16; R(M,y-nh+8,W-2*M,nh,GREENLT);
-    T(M+9,y-6,8,'NOTES',1,GREEN);
-    nl.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,cut(line,100),0,DARK); });
-    y-=nh; }
+  /* g20 (achats#4) : TOUTE la note, repliée à la largeur de l'encadré ; si elle dépasse la page, l'encadré continue
+     sur la suivante (« NOTES (suite) ») plutôt que de perdre la fin — ce sont des instructions de livraison. */
+  const notesL=b.notes?wrapL(b.notes,8.8,0,W-2*M-18):[];
+  for(let k=0,suite=false;k<notesL.length;){
+    y-=16; const place=Math.floor((y-78)/12);
+    if(place<3){ newPage(); continue; }
+    const pris=notesL.slice(k,k+place), nh=22+pris.length*12;
+    R(M,y-nh+8,W-2*M,nh,GREENLT);
+    T(M+9,y-6,8,suite?'NOTES (suite)':'NOTES',1,GREEN);
+    pris.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,line,0,DARK); });
+    y-=nh; k+=pris.length; suite=true;
+    if(k<notesL.length) newPage();
+  }
   pages.push(ops.join('\n'));
   // ─ pied de page sur chaque page (avec numérotation)
   const foot=(i,n)=>['0.85 0.88 0.91 rg',M+' 56 '+(W-2*M)+' 0.8 re f',
