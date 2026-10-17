@@ -296,6 +296,13 @@
   .frow-val>input:not([type=checkbox]):not([type=radio]),.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
   .frow>textarea{resize:vertical;min-height:44px;font-family:inherit;}
   .frow .frow-lbl{color:var(--t1);font-size:15px;white-space:nowrap;}
+  /* ⛔ k02/r5#0 — UN LIBELLÉ DE RANGÉE LONG PASSE À LA LIGNE : « Toute sortie de stock passe par le DR » (279 px, insécable)
+     poussait Paramètres à 342 px sur une fenêtre de 320 (22 px de défilement latéral), l'interrupteur n'ayant aucune
+     place à lui rendre. `white-space:nowrap` ci-dessus est juste pour un libellé COURT (« N° », « Prix ») ; un libellé
+     qui est une phrase se nomme `frow-lbl-long`. Le `flex-basis` de 120 px garde la protection du `flex-wrap` : sur un
+     écran très étroit l'interrupteur passe dessous plutôt que d'écraser le texte à une lettre par ligne. Posé sur les
+     deux libellés-phrases de la carte « Contrôle des mouvements de stock », pas sur tous les `.frow-lbl`. */
+  .frow .frow-lbl.frow-lbl-long{white-space:normal;min-width:0;flex:1 1 120px}
   /* ⛔ UN CHAMP POSÉ DIRECTEMENT APRÈS SON LIBELLÉ SE RANGE À CÔTÉ DE LUI (g03, achats#12). `.frow>input{width:100%}`
      (la ligne sans libellé, placeholder seul) forçait la ligne à passer : « N° » restait seul au-dessus de sa valeur
      — « Nouveau bon », « Modifier la box », fiche produit —, sur Mac comme sur iPhone, alors que la valeur est
@@ -6696,6 +6703,10 @@ html[data-refonte] .filters.seg-on .chip{
   color:var(--t2)!important;font-weight:600;transition:color var(--d-1,.16s) ease;
 }
 html[data-refonte] .filters.seg-on .chip.active{color:var(--t1)!important}
+/* ⛔ k02/r5#2 — les deux barres de puces de l'écran Clients (type, étiquette), quand elles sont un segmenté : sur la marge de
+   la colonne (0), pas en débordement (-16 px de `.filters` au téléphone), avec 8 px entre elles quand elles tiennent sur une
+   ligne. Bornées à `.cli-barre` : les autres segmentés de l'application ne bougent pas (voir tests/test-1641.js). */
+html[data-refonte] .filters.seg-on.cli-barre{margin-left:0;margin-right:8px}
 html[data-refonte] .filters.seg-on .seg-cur{
   /* ⛔ top:0 — PAS 3px. La transformation est calculée depuis le bord du GROUPE, rembourrage
      compris : un `top` non nul s'AJOUTE et décale le curseur sous le chip. Mesuré : 3 px. */
@@ -25694,12 +25705,20 @@ views.clients=function(){
   if(cliTagFilter && !_tags.includes(cliTagFilter)) cliTagFilter='';
   const nPro=_tous.filter(c=>cliIsPro(c)).length;
   if(!(nPro&&nPro<_tous.length)) cliTypeF='tous';   // plus de barre pour le lever : il ne filtre plus rien (même piège que l'étiquette)
-  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
+  /* ⛔ k02/r5#2 — LES DEUX BARRES DE PUCES (type, étiquette) SE POSENT À LA MARGE DE LA COLONNE QUAND ELLES SONT UN SEGMENTÉ.
+     Au téléphone, `html[data-refonte] .filters` donne `margin-left/right: -16px` (rangée qui défile bord à bord, avec son
+     rembourrage de 16 px). Dès que ces barres deviennent des segmentés (`.seg-on` : 2 à 4 puces, padding 3 px, inline-flex),
+     le rembourrage ne les ramène plus : elles restaient décalées de 16 px vers la gauche (x=0, collées au bord de l'écran)
+     et, voisines sur la même ligne, la marge droite de la première (-16) plus la gauche de la seconde (-16) les faisaient se
+     recouvrir de 32 px — « Tous » de la seconde sur la fin de « Particuliers » (intouchable). `cli-barre` ne remet les
+     marges à zéro QUE dans cet état (feuille, `.filters.seg-on.cli-barre`) : avec cinq puces ou plus la barre redevient une
+     rangée qui défile, et elle GARDE son débordement bord à bord. */
+  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters cli-barre" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
   /* un filtre actif se VOIT toujours (la puce de l'étiquette, active) et se lève d'un geste (la retoucher, ou « Tous »).
      ⛔ i03/r3#9 — il n'y avait qu'une marque à lui donner : la puce « Filtre : VIP ✕ » ajoutée à côté de la puce VIP,
      déjà active, doublait la même information. L'étiquette filtrée existe toujours dans la barre (un filtre dont
      l'étiquette a disparu est remis à zéro plus haut), donc sa puce suffit. */
-  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="${cliTagFilter===t?`cliTagFilter='';views.clients()`:`cliTagFilter=this.textContent.trim();views.clients()`}"${cliTagFilter===t?' title="Retirer le filtre"':''}>${esc(t)}</div>`).join('')}</div>`:'';
+  const tagBar=_tags.length?`<div class="filters cli-barre" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="${cliTagFilter===t?`cliTagFilter='';views.clients()`:`cliTagFilter=this.textContent.trim();views.clients()`}"${cliTagFilter===t?' title="Retirer le filtre"':''}>${esc(t)}</div>`).join('')}</div>`:'';
   /* clients#8 : un champ de recherche, posé AU-DESSUS d'une liste qui se redessine seule (`renderClientsList`) —
      comme la liste des box : reconstruire le champ à chaque frappe fermerait le clavier. Il reste visible tant
      qu'une recherche est active, même s'il ne reste qu'un client : jamais un filtre caché. */
@@ -35596,9 +35615,9 @@ views.parametres=function(){
     </div>`:''}
     ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>🔒 Contrôle des mouvements de stock</h3></div>
       <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Jusqu'ici, la validation du DR se cochait <b>fiche par fiche</b>. Il suffisait d'oublier la case en créant un compte pour qu'un mouvement de stock parte sans contrôle — et personne ne s'en apercevait. Un contrôle qu'on peut oublier n'est pas un contrôle.</p>
-      <label class="frow" style="cursor:pointer"><span class="frow-lbl">Toute sortie de stock passe par le DR</span>
+      <label class="frow" style="cursor:pointer"><span class="frow-lbl frow-lbl-long">Toute sortie de stock passe par le DR</span>
         <span class="frow-val"><label class="switch"><input type="checkbox" ${db.validDRTous?'checked':''} onchange="validDRTousSet(this.checked)"><span class="track"></span><span class="knob"></span></label></span></label>
-      <label class="frow" style="cursor:pointer;margin-top:6px"><span class="frow-lbl">Bons de remise à la sortie de stock</span>
+      <label class="frow" style="cursor:pointer;margin-top:6px"><span class="frow-lbl frow-lbl-long">Bons de remise à la sortie de stock</span>
         <span class="frow-val"><label class="switch"><input type="checkbox" ${db.bonsRemiseOff?'':'checked'} onchange="bonsRemiseSet(this.checked)"><span class="track"></span><span class="knob"></span></label></span></label>
       <p style="color:var(--t3);font-size:11.5px;margin-top:6px;line-height:1.55">Activé : quand quelqu'un sort du matériel d'une box, on lui demande <b>pour qui</b>, et un bon de remise (BR-…, PDF) garde la trace de qui a reçu quoi. Coupé : plus de question, plus de bon — le stock bouge pareil.</p>
       <p style="color:var(--t3);font-size:11.5px;margin-top:9px;line-height:1.55">Activé : arrivages, réceptions, prises ＋/−, retraits de box et produits pris en intervention attendent le « Valider » du DR, <b>pour tout le monde</b> — la case des fiches n'a plus à être pensée. Les comptes qui ont le droit de valider ne sont jamais concernés : ils se valideraient eux-mêmes.</p>
@@ -35799,7 +35818,7 @@ views.parametres=function(){
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">
         <span style="position:relative;width:52px;height:52px;border-radius:14px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:${E.couleur?esc(E.couleur):'var(--bg2)'}">${E.couleur?'':'<span style="font-size:20px">🎨</span>'}<input type="color" id="ent-couleur-in" value="${esc(E.couleur||'#1E7A4E')}" onchange="entCouleurSet(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"></span>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn ghost sm" onclick="document.getElementById('ent-couleur-in').click()">${E.couleur?'Changer la couleur':'＋ Choisir la couleur de l’entreprise'}</button>
+          <button class="btn ghost sm" style="white-space:normal" onclick="document.getElementById('ent-couleur-in').click()">${E.couleur?'Changer la couleur':'＋ Choisir la couleur de l’entreprise'}</button>
           ${E.couleur?`<button class="btn ghost sm" style="color:var(--red)" onclick="entCouleurDel()">Retirer</button>`:''}
         </div>
       </div>

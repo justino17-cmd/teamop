@@ -38,7 +38,8 @@ const lignes = W => (W.__liste.innerHTML.match(/class="tf-rangee"/g) || []).leng
 const filtre = W => vm.runInContext('cliTagFilter', W);
 // les puces de la barre d'étiquettes : [{ libelle, active, onclick }]
 function puces(W) {
-  const h = W.__page.innerHTML; const barres = h.split('<div class="filters"').slice(1);
+  const h = W.__page.innerHTML; // k02/r5#2 : les deux barres portent désormais `filters cli-barre` — on coupe sur le début de la classe, pas sur l'attribut entier
+  const barres = h.split('<div class="filters').slice(1);
   return barres.map(b => [...b.matchAll(/<div class="chip ?(active)?" onclick="([^"]*)"[^>]*>([^<]*)<\/div>/g)].map(m => ({ libelle: m[3].trim(), active: !!m[1], onclick: m[2] })));
 }
 const clic = (W, onclick) => { const W2 = W; vm.runInContext(onclick.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/this\.textContent\.trim\(\)/g, "'VIP'"), W2); };
