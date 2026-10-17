@@ -5357,6 +5357,15 @@ html[data-refonte] .rf-signale{animation:rfSignale 900ms var(--e-sortie) 2;borde
 html[data-refonte] #msg-list{
   height:calc(100dvh - 396px)!important;max-height:none!important;min-height:240px!important;
   border-radius:var(--rf-r-carte)!important;padding:18px 20px!important}
+/* ⛔ j01 (17 octobre 2026) — LA HAUTEUR DE LA CONVERSATION SE DÉDUIT, ELLE NE SE RECOPIE PLUS. Les constantes
+   ci-dessus (396, 430, 446 + --tabh) étaient calées sur un haut de page mesuré au Mac : elles ignoraient la barre
+   « Reprendre » du multitâche (+75 px, le dernier message passait sous la rangée de saisie), l'en-tête plus haut d'une
+   tablette en paysage (+76 px) et l'iPhone en paysage (le champ tombait à 489 pour un écran de 390). `msgAjuster()` mesure
+   les DEUX seules choses que le CSS ne sait pas — où la liste commence (`--msg-top`) et ce qui est posé SOUS elle
+   (`--msg-sous` : aperçu de photo + rangée de saisie) — et le CSS retranche le reste, `100dvh` et `--tabh`, qui restent
+   vivants. Sans le script (`data-ajuste` absent), les constantes d'avant restent le repli. */
+html[data-refonte] #msg-list[data-ajuste]{
+  height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--msg-bas,16px)))!important;min-height:0!important}
 html[data-refonte] #msg-list:has(> .empty){display:flex;align-items:center;justify-content:center}
 html[data-refonte] #msg-list > .empty{padding:0!important}
 html[data-refonte] .msg{border-radius:17px!important;font-size:14.5px!important;line-height:1.5!important;padding:10px 15px!important}
@@ -5372,6 +5381,11 @@ html[data-refonte] #msg-photo-prev + div > .btn:last-child{min-height:var(--rf-t
 @media (min-width:781px){
   html[data-refonte] #msg-photo-prev + div{padding-right:76px}
 }
+/* ⛔ j01 (r4#4) : sous 781 px la même réserve manquait — le bouton flottant OP MESSAGES (56 px, à 16 px du bord, à
+   `--tabh` + 14) tombait exactement sur la rangée collante posée à `--tabh` + 6 et recouvrait la moitié droite
+   d'« Envoyer » (elementFromPoint au bord droit = le flot, le toucher ouvrait son lien). On réserve sa place, comme au
+   bureau, mais seulement quand il est VRAIMENT affiché (`msg-flot-on`, posée par renderMsgFlottant). */
+html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
 /* ── AU TÉLÉPHONE, LA BARRE D'ONGLETS PREND SA PLACE (appareils#0, 17 octobre 2026) ──────────────────
    Mesuré sur un iPhone 390×844, page en haut : le champ « Message à toute l'équipe… » était à top=785 pour
    une barre qui commence à 768. `elementFromPoint` au centre du champ rendait l'onglet, et un vrai toucher
@@ -5389,9 +5403,25 @@ html[data-refonte] #msg-photo-prev + div > .btn:last-child{min-height:var(--rf-t
 @media (max-width:780px){
   html[data-refonte] body.rf-onglets #msg-list{
     height:calc(100dvh - 446px - var(--tabh))!important;min-height:120px!important}
+  /* j01 : mesurée, la liste s'arrête là où la rangée collante commence — au-dessus de la barre d'onglets */
+  html[data-refonte] body.rf-onglets #msg-list[data-ajuste]{
+    height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--tabh) - 6px))!important;min-height:0!important}
   html[data-refonte] body.rf-onglets #msg-saisie{
     position:sticky!important;bottom:calc(var(--tabh) + 6px);z-index:3;
     padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
+  html[data-refonte] body.rf-onglets.msg-flot-on #msg-saisie{padding-right:76px}
+}
+/* ⛔ j01 (r4#6) : UN TÉLÉPHONE COUCHÉ (844×390) n'a pas de barre d'onglets mais n'a pas de place non plus : l'en-tête de
+   page en prend 231, la barre « Reprendre » 75 de plus, la rangée de saisie 72 — la somme dépasse l'écran, la liste ne peut
+   plus rien céder (plancher 48 px). On colle donc la rangée au bas de l'écran, comme au portrait, plutôt que de laisser le
+   champ hors de portée sous le pli. Réservé aux écrans courts : une tablette ou un bureau n'en ont pas besoin. */
+@media (max-height:520px) and (max-width:959px){
+  html[data-refonte][data-kind="mobile"] #msg-list[data-ajuste]{
+    height:max(48px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - 16px))!important}
+  html[data-refonte][data-kind="mobile"] #msg-saisie{
+    position:sticky!important;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:3;
+    padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
+  html[data-refonte][data-kind="mobile"] body.msg-flot-on #msg-saisie{padding-right:76px}
 }
 /* ── LE SEUIL DU COURRIER EST 1179, PAS 780 NI 959 ─────────────────────────────────────────
    Ce bloc relâchait la hauteur imposée au cadre de la boîte mail à partir de 780 px. Or
@@ -31224,7 +31254,24 @@ const _mailDesktop=()=>window.innerWidth>=MAIL_TROIS_VOLETS;
    redimensionner une fenêtre de part et d'autre du seuil) laissait la pile dessinée sous des règles de trois
    volets. On reconstruit la vue quand — et seulement quand — le mode a changé. */
 let _mailModeRendu=null;
-try{ window.addEventListener('resize',()=>{ if(current==='boiteMail'&&_mailModeRendu!==null&&_mailDesktop()!==_mailModeRendu) views.boiteMail(); }); }catch(e){}
+/* ⛔ j01 (r4#7) — LE MESSAGE OUVERT SUIT LE CHANGEMENT DE MODE. Reconstruire la vue seule laissait la lecture plein écran
+   (#mail-read, `position:fixed`, z-index 400, posée sur <body> et non dans la vue) PAR-DESSUS la grille neuve quand la fenêtre
+   passait à 1180 px ou plus (rotation d'un iPad 820 → 1180) ; et dans l'autre sens la sélection du volet de droite était
+   perdue, sans erreur. Le message qu'on lisait est relevé AVANT la reconstruction (l'overlay le porte dans son `dataset`,
+   le volet dans `mailSel`), puis rouvert à la manière du nouveau mode : dans le volet de lecture en trois volets, en plein
+   écran sinon. */
+function mailBasculerMode(){
+  const ov=$('mail-read');
+  const ouvert=ov&&ov.dataset&&ov.dataset.idx!==undefined&&ov.dataset.idx!==''?{type:ov.dataset.type,idx:+ov.dataset.idx}
+    :(_mailModeRendu&&mailSel?{type:mailSel.type,idx:mailSel.idx}:null);
+  if(ov) ov.remove();
+  mailSel=null;
+  views.boiteMail();
+  if(!ouvert) return;
+  if(_mailDesktop()&&$('mail-pane')){ mailSel=ouvert; renderMailList(); renderMailPane(); }
+  else mailOpen(ouvert.type,ouvert.idx);
+}
+try{ window.addEventListener('resize',()=>{ if(current==='boiteMail'&&_mailModeRendu!==null&&_mailDesktop()!==_mailModeRendu) mailBasculerMode(); }); }catch(e){}
 /* ═══ Boîte mail — 3 volets sur ordinateur (dossiers · liste · lecture), pile sur mobile ═══ */
 views.boiteMail=function(){
   setHeader('Boîte mail','',`<button class="btn ghost" onclick="mailBoxesManage()">📬 Boîtes</button> <button class="btn" onclick="mailCompose()">✏️ Écrire</button>`);
@@ -31421,7 +31468,7 @@ function mailOpen(type,idx){
   if(!r) return;
   if(type==='recu') _mailMarquerLu(mailKey(r));
   const old=$('mail-read'); if(old) old.remove();
-  const ov=document.createElement('div'); ov.id='mail-read';
+  const ov=document.createElement('div'); ov.id='mail-read'; ov.dataset.type=type; ov.dataset.idx=String(idx);   // j01 : le message qu'elle montre, pour le suivre au changement de mode
   ov.style.cssText='position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;flex-direction:column';
   ov.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--brd);flex-shrink:0">
       <button class="btn ghost sm" onclick="document.getElementById('mail-read').remove();if(current==='boiteMail')views.boiteMail()">← Retour</button><span style="flex:1"></span></div>
@@ -39910,10 +39957,56 @@ views.messagerie=function(){
     <div id="msg-photo-prev" style="display:${msgPhoto?'flex':'none'};align-items:center;gap:10px;margin-top:10px">${msgPhoto?`<img src="${msgPhoto}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`:''}</div>
     <div id="msg-saisie" style="display:flex;gap:8px;margin-top:10px;position:relative"><div id="mention-pop" class="mention-pop" style="display:none"></div><label class="btn ghost" style="cursor:pointer;flex-shrink:0" title="Joindre une photo">📷<input type="file" accept="image/*" style="display:none" onchange="msgAddPhoto(event)"></label><input id="msg-input" class="search-inp" style="margin:0;flex:1" placeholder="${ph}" autocomplete="off" oninput="msgInputChange()" onkeydown="if(event.key==='Enter'){const p=document.getElementById('mention-pop'); if(p&&p.style.display!=='none'){return;} envoyerMsg();}"><button class="btn" onclick="envoyerMsg()">Envoyer</button></div>`;
   const ml=$('msg-list'); if(ml) ml.scrollTop=ml.scrollHeight;
+  msgAjuster(); msgAjusterVeiller();
 };
+/* ⛔ j01 — LA PLACE DE LA CONVERSATION SE MESURE, ELLE NE SE DEVINE PAS (r4#3, r4#5, r4#6). Sa hauteur était une
+   constante (« 100dvh − 446 px − --tabh ») qui supposait un haut de page de Mac. Elle ne comptait ni la barre
+   « Reprendre » du multitâche (22 px de la dernière bulle sous la rangée de saisie, au téléphone), ni l'en-tête plus
+   haut d'une tablette en paysage, ni un iPhone couché (champ à 489 px pour un écran de 390). On pose DEUX nombres que
+   le CSS ne peut pas connaître, en pixels de document : où la liste commence, et ce qui est posé dessous (aperçu de
+   photo, rangée de saisie). Le CSS fait le reste avec `100dvh` et `--tabh`, qui restent vivants (pas de copie de la
+   barre d'onglets en JavaScript). Si la liste était collée en bas, elle y reste. */
+function msgAjuster(){
+  const ml=$('msg-list'), sa=$('msg-saisie'); if(!ml||!sa||current!=='messagerie') return false;
+  const mt=el=>parseFloat(getComputedStyle(el).marginTop)||0, mb=el=>parseFloat(getComputedStyle(el).marginBottom)||0;
+  const pv=$('msg-photo-prev');
+  /* la chaîne des `offsetTop`, pas `getBoundingClientRect` : les cartes ENTRENT en glissant (transform) et un rectangle lu
+     pendant l'entrée est décalé de la distance du glissement, sans que rien ne prévienne l'observateur */
+  let top=0; for(let e=ml;e;e=e.offsetParent) top+=e.offsetTop;
+  /* le vide entre la liste et ce qui la suit est une marge FUSIONNÉE : la plus grande de la marge basse de la liste (18 px) et de la
+     marge haute du premier élément visible qui suit (10 px), pas leur somme ni la seconde seule — compter seulement la seconde laissait
+     8 px de défilement vertical au Mac (relecture j01, mesuré : champ à 842-886, page de 908 pour 900). L'aperçu masqué (display:none)
+     ne prend aucune place et ne compte pas. */
+  const pvVu=!!(pv&&pv.offsetHeight);
+  const sous=Math.round(sa.offsetHeight+(pvVu?pv.offsetHeight+mt(sa)+Math.max(mb(ml),mt(pv)):Math.max(mb(ml),mt(sa))));
+  /* ce qui reste de la page SOUS la rangée de saisie : marge de la rangée, puis rembourrage bas, bordure et marge de chaque
+     ancêtre jusqu'à <html> (22 px à #content sur un Mac, 96 + 8 sur une tablette). L'ancienne constante (396) le comptait ;
+     une marge fixe de 16 px ne le compte pas, et la page gagnait du défilement vertical sur un bureau qui n'en avait aucun
+     (relecture de j01, mesuré à 1440×900 et 1280×720). On le lit au lieu de le deviner. */
+  let bas=mb(sa); for(let e=sa.parentElement;e;e=e.parentElement){ const c=getComputedStyle(e); bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0)+(parseFloat(c.marginBottom)||0); }
+  bas=Math.ceil(bas);
+  const dejaBon=ml.getAttribute('data-ajuste')==='1'&&ml.style.getPropertyValue('--msg-top')===top+'px'&&ml.style.getPropertyValue('--msg-sous')===sous+'px'&&ml.style.getPropertyValue('--msg-bas')===bas+'px';
+  if(dejaBon) return true;
+  const enBas=ml.scrollHeight-ml.scrollTop-ml.clientHeight<4;
+  ml.style.setProperty('--msg-top',top+'px'); ml.style.setProperty('--msg-sous',sous+'px'); ml.style.setProperty('--msg-bas',bas+'px');
+  ml.setAttribute('data-ajuste','1');
+  if(enBas) ml.scrollTop=ml.scrollHeight;
+  return true;
+}
+/* Ce qui change la place SANS passer par un nouveau rendu de la vue : la fenêtre qui tourne ou se redimensionne, la barre
+   « Reprendre » que multiProposer pose en tête de #content APRÈS l'écriture de la vue, une chip qui passe sur une
+   seconde ligne, la photo jointe. Un ResizeObserver sur la page voit tout ce qui change sa hauteur ; le défaut se
+   stabilise tout seul (la liste se règle, la page se raccourcit, la seconde mesure rend les mêmes nombres : rien à écrire). */
+let _msgVeille=false, _msgRaf=0;
+function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=requestAnimationFrame(()=>{ _msgRaf=0; msgAjuster(); }); }
+function msgAjusterVeiller(){
+  if(_msgVeille) return; _msgVeille=true;
+  try{ window.addEventListener('resize',msgAjusterPlus); window.addEventListener('orientationchange',msgAjusterPlus); }catch(e){}
+  try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(msgAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
+}
 let msgPhoto='';
-async function msgAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ msgPhoto=d; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='flex'; pv.innerHTML=`<img src="${d}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`; } } e.target.value=''; }
-function msgClearPhoto(){ msgPhoto=''; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='none'; pv.innerHTML=''; } }
+async function msgAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ msgPhoto=d; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='flex'; pv.innerHTML=`<img src="${d}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`; msgAjusterPlus(); } } e.target.value=''; }
+function msgClearPhoto(){ msgPhoto=''; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='none'; pv.innerHTML=''; msgAjusterPlus(); } }
 function msgViewPhoto(id){ const m=(db.messages||[]).find(x=>x.id===id); if(!m||!m.photo)return; openModal(`<div class="modal-head"><h3>Photo</h3><button class="modal-close" onclick="closeModal()">✕</button></div><img src="${m.photo}" style="width:100%;border-radius:12px">`); }
 /* ⚠️ « Envoyer » sur un champ vide ne faisait RIEN — mesuré par la passe de clics du
    22 septembre 2026 : aucun message, aucun signe. Il rend désormais la main au champ (le
