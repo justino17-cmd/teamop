@@ -53,7 +53,7 @@
     <ol>
       <li><b>Les mécanismes de transfert hors UE</b> (clauses contractuelles types, Data
       Privacy Framework) sont ceux annoncés publiquement par Anthropic et GitHub. Ils doivent
-      être vérifiés contre les contrats réellement souscrits.</li>
+      être vérifiés contre les contrats réellement souscrits, de même que ceux des services de carte (Google) et l'identité exacte de l'exploitant du serveur public OSRM.</li>
       <li><b>Le périmètre professionnel des CGV.</b> Le service est désormais déclaré réservé
       aux professionnels, ce qui écarte l'obligation de médiation de la consommation et le
       droit de rétractation. À confirmer, notamment au regard de l'article L. 221-3 du code
@@ -152,7 +152,7 @@
     <h2>5. Sous-traitants ultérieurs</h2>
     <p>Vous autorisez TEAM OP à recourir aux prestataires ci-dessous. Toute addition
     ou remplacement vous sera notifié <b>30 jours à l'avance</b> par courriel ; vous
-    pourrez vous y opposer et, à défaut d'accord, résilier sans frais.</p>
+    pourrez vous y opposer et, à défaut d'accord, résilier sans frais. Les cinq services de cartographie d'OP GESTION du tableau (OpenStreetMap Foundation, Base Adresse Nationale, IGN, OSRM, Google) sont appelés par l'application depuis avant leur inscription ici : à la date du 17 octobre 2026, cette page les porte à votre connaissance, et vous pouvez vous y opposer dans les mêmes conditions.</p>
     <div class="tableau">
     <table>
       <tr>
@@ -195,11 +195,59 @@
         <td>Aucune donnée applicative</td>
         <td>États-Unis</td>
       </tr>
+      <tr>
+        <td>OpenStreetMap Foundation<br>(service Nominatim, nominatim.openstreetmap.org)</td>
+        <td>OP GESTION — placer sur la carte l'adresse d'un client ou d'une box (géocodage)</td>
+        <td>L'adresse du client telle qu'elle est écrite sur sa fiche (pour une box : adresse, code postal et ville), et le texte tapé dans la recherche d'adresse d'une box ; l'adresse IP de l'appareil. L'appel part de l'appareil, <b>sans passer par nos serveurs</b> ; les coordonnées reçues en retour sont enregistrées sur la fiche. La fondation tient ses propres journaux, selon sa propre politique : nous ne les maîtrisons pas.</td>
+        <td>Royaume-Uni — pays bénéficiant d'une décision d'adéquation de la Commission européenne</td>
+      </tr>
+      <tr>
+        <td>Base Adresse Nationale — service public Adresse<br>(api-adresse.data.gouv.fr)</td>
+        <td>OP GESTION — proposer des adresses pendant la saisie, et situer le site d'un plan d'appâtage</td>
+        <td>Le texte de l'adresse tapé dans la fiche client (dès trois caractères), ou l'adresse du client de l'intervention quand on ouvre le plan d'appâtage ; l'adresse IP de l'appareil. Appel de l'appareil, sans passer par nos serveurs.</td>
+        <td>France — UE</td>
+      </tr>
+      <tr>
+        <td>IGN — Géoplateforme<br>(data.geopf.fr)</td>
+        <td>OP GESTION — fond de plan d'appâtage : bâtiments (BD TOPO) et photographie aérienne</td>
+        <td>Les coordonnées du site de l'intervention (un cadre d'environ deux cents mètres autour, et les numéros des tuiles de la photographie aérienne affichée) ; l'adresse IP de l'appareil. Appel de l'appareil, sans passer par nos serveurs.</td>
+        <td>France — UE</td>
+      </tr>
+      <tr>
+        <td>Projet OSRM — serveur public de calcul d'itinéraire<br>(router.project-osrm.org), exploité par l'association FOSSGIS e.V.</td>
+        <td>OP GESTION — durée et distance des trajets (tournée, planning, ordre proposé, message « SMS d'arrivée »)</td>
+        <td>Les coordonnées (longitude, latitude) des sites des clients, par couples de points ; pour le message « SMS d'arrivée », la position GPS de l'appareil du technicien au moment où il le demande, sans son nom ni son identifiant ; l'adresse IP de l'appareil. Appel de l'appareil, sans passer par nos serveurs.</td>
+        <td>Allemagne — UE</td>
+      </tr>
+      <tr>
+        <td>Google<br>(tuiles de la carte Google Maps, mt0.google.com à mt3.google.com)</td>
+        <td>OP GESTION — fond des cartes (carte des interventions, carte des box, planning)</td>
+        <td>Aucune adresse de client : les numéros de tuile, c'est-à-dire la zone de carte affichée (qui entoure les sites du jour), et l'adresse IP de l'appareil. Appel de l'appareil, sans passer par nos serveurs.</td>
+        <td>Irlande (Google Ireland Ltd) ou États-Unis (Google LLC) selon le service — traité comme un transfert vers les États-Unis</td>
+      </tr>
     </table>
     </div>
+    <h3>Cartes, adresses et trajets : quand ces appels ont lieu</h3>
+    <p>Les cinq services ci-dessus ne sont appelés qu'à l'écran, depuis l'appareil de la personne qui se sert d'OP GESTION ;
+    TEAM OP ne relaie rien : ce que l'appareil en retient (les coordonnées d'un client ou d'une box, un plan d'appâtage) est
+    enregistré dans les données de l'entreprise comme toute autre donnée saisie.</p>
+    <ul>
+      <li><b>Nominatim</b> — après « Enregistrer » sur une fiche client dont l'adresse n'est pas encore située ; au bouton
+      « Localiser les clients » ou « Géolocaliser » (cartes) ; en cherchant l'adresse d'une box et à l'enregistrement de la
+      box ; au message « SMS d'arrivée » si le client n'est pas encore situé ; et, en arrière-plan, quand le suivi GPS est actif
+      et qu'un technicien a ce jour-là une intervention chez un client non situé.</li>
+      <li><b>Base Adresse Nationale</b> — pendant la saisie d'une adresse dans la fiche client, et à l'ouverture d'un plan
+      d'appâtage.</li>
+      <li><b>IGN</b> — au chargement du fond d'un plan d'appâtage.</li>
+      <li><b>OSRM</b> — à l'affichage d'une tournée ou du trajet entre deux interventions, au calcul de l'ordre proposé pour
+      une journée, et au message « SMS d'arrivée ».</li>
+      <li><b>Google</b> — à l'affichage de toute carte, et à chaque déplacement ou zoom.</li>
+    </ul>
+    <p>Les liens « Itinéraire » ouvrent Google Maps, Waze ou Plans d'Apple dans un nouvel onglet, avec l'adresse : c'est un
+    geste de la personne, qui quitte alors l'application et relève de la politique du service qu'elle a choisi.</p>
     <h3>Transferts hors Union européenne</h3>
-    <p>Anthropic PBC et GitHub, Inc. sont établis aux États-Unis. Chacun de ces transferts
-    est encadré :</p>
+    <p>Anthropic PBC et GitHub, Inc. sont établis aux États-Unis, ainsi que Google LLC pour les tuiles de carte ;
+    l'OpenStreetMap Foundation l'est au Royaume-Uni. Chacun de ces transferts est encadré :</p>
     <ul>
       <li><b>Anthropic PBC</b> — clauses contractuelles types de la Commission européenne,
       modules 2 et 3 de la décision d'exécution (UE) 2021/914. Elles sont incorporées
@@ -209,8 +257,12 @@
       <li><b>GitHub, Inc.</b> — auto-certification au cadre de protection des données
       UE–États-Unis, complétée par les clauses contractuelles types pour les transferts
       hors Union européenne.</li>
+      <li><b>OpenStreetMap Foundation</b> (Nominatim) — le Royaume-Uni bénéficie d'une décision d'adéquation de la
+      Commission européenne : l'adresse d'un client peut lui être transmise sans garantie supplémentaire.</li>
+      <li><b>Google</b> (tuiles de carte) — Google LLC adhère au cadre de protection des données UE–États-Unis. Aucune
+      adresse de client ne lui est transmise : seulement la zone de carte affichée et l'adresse IP de l'appareil.</li>
     </ul>
-    <p>Ces mécanismes proviennent des engagements publiés par les deux prestataires ;
+    <p>Ces mécanismes proviennent des engagements publiés par les prestataires ;
     <b>ils doivent être confirmés par le juriste au regard des contrats effectivement
     souscrits</b>, et revérifiés à chaque changement d'offre.</p>
     <p>Si vous ne souhaitez pas que les données de vos clients soient transmises à
