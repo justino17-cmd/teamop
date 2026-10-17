@@ -74,6 +74,8 @@ console.log('\n── 1234 · 1. achats#13 — le scénario des agents : le tech
   v('⛔ un nouveau message dans Général pendant qu’on lit ailleurs : pastille 1', p2.general, 1);
   v('on y retourne : elle disparaît', W.ouvrir('general').general, 0); }
 
+{ const W = monde('uT'); W.db.messages = msgs(); const p = W.ouvrir('user:uD');
+  v('⛔ Général jamais lu : 3 non lus — son PROPRE message (m5) ne compte pas, ni avant ni après', [p.general, p['user:uA']], [3, 1]); }
 console.log('\n── 1. suite — les marques sont celles d’un appareil et d’un compte ──');
 { const W = monde('uT'); W.db.messages = msgs(); W.ouvrir('general'); W.ouvrir('user:uD');
   v('⛔ la marque est rangée sur l’appareil, au nom du COMPTE (elan_msg_lu:uT), pas dans db', Object.keys(W.__stock), ['elan_msg_lu:uT']);
