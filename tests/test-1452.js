@@ -35,7 +35,7 @@ function decl(debut) {
 }
 const ligne = debut => { const i = JS.indexOf(debut); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
 const M = {
-  esc: ligne('const esc = '), phrase: ligne('const phrase = '), MESSAGES_ERREUR: ligne('const MESSAGES_ERREUR = '), icone: ligne('const icone = '), CHEVRON: ligne('const CHEVRON = '), prenom: ligne('const prenom = '),
+  esc: ligne('const esc = '), phrase: ligne('const phrase = '), phraseSilence: ligne('const phraseSilence = '), MESSAGES_ERREUR: ligne('const MESSAGES_ERREUR = '), icone: ligne('const icone = '), CHEVRON: ligne('const CHEVRON = '), prenom: ligne('const prenom = '),
   sonStatutTxt: ligne('const sonStatutTxt = '), duCote: ligne('const duCote = '), coteReu: ligne('const coteReu = '), coteDe: ligne('const coteDe = '), modesActifs: ligne('const modesActifs = '),
   envoi: decl('async function envoi('), vcPersonne: decl('function vcPersonne('), ficheCommun: decl('function ficheCommun('), chargerCommun: decl('async function chargerCommun('), peindreCommun: decl('function peindreCommun('),
 };
@@ -106,7 +106,7 @@ const att = (cond, ms = 8000) => T.attendre(cond, ms, 10);
     const i = JS.indexOf("if (act === 'ecrire') { const c = await source.ouvrirDirecte(uid);");
     const fin2 = i < 0 ? '' : JS.slice(i, JS.indexOf('function vcRendreFocus', i));
     vrai('(population) le gestionnaire des gestes de la fiche est trouvé', fin2.length > 200);
-    vrai('⛔ un « introuvable » à l\'ouverture de la conversation dit « Cette conversation n\'a pas pu s\'ouvrir. » (pas la phrase qui accuse une suppression)', /act === 'ecrire' && er && er\.code === 'introuvable' \? 'Cette conversation n\\'a pas pu s\\'ouvrir\.'/.test(fin2));
+    vrai('⛔ un « introuvable » à l\'ouverture de la conversation dit « Cette conversation n\'a pas pu s\'ouvrir. » (pas la phrase qui accuse une suppression)', /act === 'ecrire' \? phraseSilence\(er, 'Cette conversation n\\'a pas pu s\\'ouvrir\.'/.test(fin2));      // (lot m11, relecture : la règle vit dans `phraseSilence` ; test-1453 §5 JOUE ce gestionnaire)
   }
 
   /* ═══ 1. LE SERVICE, 2. LE MODULE ═══ */

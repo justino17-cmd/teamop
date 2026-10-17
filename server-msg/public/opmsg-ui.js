@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '72d29b9a94f7';
+  const OPMSG_BUILD = '6e9fe5116c14';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 211;
+  const OPMSG_VERSION = 212;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -131,6 +131,12 @@
   const blob = u => typeof u === 'string' && /^blob:https?:\/\/[A-Za-z0-9.:\[\]-]{1,80}\/[0-9a-fA-F-]{8,64}$/.test(u);
   /* une erreur DIT quelque chose : la phrase française du service si l'erreur en porte une, sinon la phrase de l'écran — jamais un message technique */
   const phrase = (e, defaut) => e && e.dit ? (typeof e.phrase === 'function' ? e.phrase() : e.message) : (defaut || 'Une erreur est survenue.');
+  /* ⛔ UNE SEULE FONCTION DIT UN REFUS QUE LE BLOCAGE PEUT CAUSER. Le service rend 404 « introuvable » à qui écrit, appelle ou ouvre une conversation avec quelqu'un qui l'a bloqué (voulu : un blocage est
+     SILENCIEUX), et api.js sert pour tout 404 « Introuvable (la conversation a peut-être été supprimée ou tu n'y es plus) » — une accusation fausse, et une invitation à insister. Tout geste qui ÉCRIT À
+     UNE PERSONNE (message, appel, ouverture d'une conversation, sondage, position, fiche, réaction…) passe donc par ici : « introuvable » dit la phrase NEUTRE du geste (`neutre`, jamais « bloqué »), tout
+     autre refus du service garde SA phrase, une erreur inconnue le repli (`defaut`, la phrase neutre à défaut). ENTRER dans une salle qui existe, lire une fiche… gardent `phrase()` : là, « introuvable »
+     dit vrai. Un nouveau geste qui écrit à quelqu'un passe par ici ou n'existe pas (tests/test-1453.js). */
+  const phraseSilence = (e, neutre, defaut) => e && e.code === 'introuvable' ? neutre : phrase(e, defaut || neutre);
   /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, vérifié, puis échappé */
   const avatar = c => '<span class="avatar av' + avIndex(c) + (c.enReunion ? ' en-ligne en-reunion' : c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enReunion ? '<i class="presence reunion" title="En réunion"></i>' : c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
 
@@ -1270,7 +1276,7 @@
       etat.forcerBas = false;
       /* ⛔ « introuvable » À L'ENVOI ne dit ni suppression ni « tu n'y es plus » : la conversation peut très bien exister, et c'est justement ce qu'un blocage SILENCIEUX (voulu) ne doit pas révéler.
          Ni accusation fausse, ni invitation à insister : le message n'est pas parti, c'est tout. */
-      avis(e && e.code === 'introuvable' ? 'Ce message n\'a pas pu être remis.' : e && e.dit ? phrase(e) : (MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.'));
+      avis(phraseSilence(e, 'Ce message n\'a pas pu être remis.', MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.'));
       return false;
     }   // ⛔ un refus du service se dit avec SA phrase (« réessaie dans 40 s ») : seule une erreur de l'aperçu garde les trois phrases d'avant
   }
@@ -1322,7 +1328,7 @@
       let ok;
       if (ctx && ctx.type === 'modif') {
         try { await source.modifier(id, ctx.mid, t); ok = true; }
-        catch (e) { ok = false; avis(phrase(e, 'La modification n\'a pas pu être enregistrée.')); }
+        catch (e) { ok = false; avis(phraseSilence(e, 'La modification n\'a pas pu être enregistrée.')); }
       } else {
         const cites = mentionsDe(t, convCourante(), mentionUI.choisis.get(id));
         ok = await envoi(Object.assign(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t }, cites.length ? { mentions: cites } : {}));
@@ -1590,7 +1596,7 @@
       if (etat.conv === conv) { $('saisie').value = ''; etat.brouillons[conv] = ''; ajusterSaisie(); majBoutons(); }
       mot('Programmé pour ' + jourEtHeure(t, tz));
       chargerProgrammes(conv);
-    } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être programmé.')); }
+    } catch (er) { avis(phraseSilence(er, 'Le message n\'a pas pu être programmé.')); }
   }
   /* les messages programmés de CETTE conversation, sous le fil : une bulle en pointillés, l'heure prévue, « Annuler l'envoi ». Ils ne sont qu'à moi : personne d'autre ne les voit. */
   const progs = { conv: null, liste: [], jeton: 0 };
@@ -1790,7 +1796,7 @@
       const mid = cl.dataset.sondClore, m = trouverMessage(mid); if (!m || !conv) return true;
       if (!sondClore || sondClore.mid !== mid || Date.now() - sondClore.t > 5000) { sondClore = { mid, t: Date.now() }; rafraichirConv(); setTimeout(() => { if (sondClore && sondClore.mid === mid) { sondClore = null; rafraichirConv(); } }, 5000); return true; }
       sondClore = null;
-      source.sondageClore(conv, m.seq).then(() => mot('Sondage clos'), er => avis(phrase(er, 'Le sondage n\'a pas pu être clos.')));
+      source.sondageClore(conv, m.seq).then(() => mot('Sondage clos'), er => avis(phraseSilence(er, 'Le sondage n\'a pas pu être clos.')));
       return true;
     }
     const cp = e.target.closest('[data-pos-copier]');
@@ -1811,11 +1817,11 @@
         fichesDemandees.set(mid, r.resultat === 'deja' ? 'acceptee' : r.resultat); fw.removeAttribute('aria-disabled');
         if (r.resultat === 'envoyee') mot('Invitation : écris ton message');
         pousser({ vue: 'messages', conv: r.conv, feuille: false, photo: null, appel: null });
-      }, er => { fw.removeAttribute('aria-disabled'); avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.')); });
+      }, er => { fw.removeAttribute('aria-disabled'); avis(phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.')); });
       return true;
     }
     const fe = e.target.closest('[data-fiche-ecrire]');
-    if (fe) { source.ouvrirDirecte(fe.dataset.ficheEcrire).then(c => pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }), er => avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.'))); return true; }
+    if (fe) { source.ouvrirDirecte(fe.dataset.ficheEcrire).then(c => pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }), er => avis(phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.'))); return true; }
     return false;
   }
   /* voter : une réponse — toucher un autre choix le remplace, toucher le sien le retire ; plusieurs — chaque touche coche ou décoche */
@@ -1826,7 +1832,7 @@
     const liste = s.regles.multiple ? (mes.has(idx) ? s.mesChoix.filter(x => x !== idx) : s.mesChoix.concat([idx])) : (mes.has(idx) ? [] : [idx]);
     sondEnVol.add(mid); rafraichirConv();
     try { await source.sondageVoter(conv, m.seq, liste); }
-    catch (er) { avis(phrase(er, 'Ton vote n\'a pas pu partir.')); }
+    catch (er) { avis(phraseSilence(er, 'Ton vote n\'a pas pu partir.')); }
     sondEnVol.delete(mid); rafraichirConv();
   }
   function copierTexte(t, ok) {
@@ -2791,7 +2797,8 @@
     let c = null, refus = null; try { c = await (entrer ? entrer() : source.demarrerAppel(spec)); } catch (e) { c = null; refus = e; }          // `entrer` : on ENTRE dans une salle qui existe déjà (la bannière d'une conversation, une réunion, un lien d'invité)
     etat.appelDemarre = false;
     if (!c) {
-      const dit = phrase(refus, 'L\'appel n\'a pas pu être lancé.');
+      /* ⛔ LANCER un appel vers quelqu'un qui a bloqué rend 404 « introuvable » (routes-appels.js) : la phrase neutre. ENTRER dans une salle qui existe (`entrer`) : « introuvable » dit vrai, la phrase générale reste. */
+      const dit = entrer ? phrase(refus, 'L\'appel n\'a pas pu être lancé.') : phraseSilence(refus, 'L\'appel n\'a pas pu être lancé.');
       mot(dit);                                                                   // (un refus du service se DIT, jamais une phrase générique)
       if (depuisFeuille) { montrerRefusFeuille(dit); erreurInfo(dit); }       // ⛔ …et reste LISIBLE dans la feuille « Nouvel appel » qui reste ouverte : le mot s'efface en 2,4 s, la personne n'a rien lu (relecture, T3)
       return false;
@@ -4184,7 +4191,7 @@
         try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
         if (etat.groupe.ouvert && etat.groupe.mode === 'personne') rendrePersonne();
       }
-    } catch (er) { mot(act === 'ecrire' && er && er.code === 'introuvable' ? 'Cette conversation n\'a pas pu s\'ouvrir.' : phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }      // ⛔ pas « supprimée ou tu n'y es plus » : un blocage silencieux ne se révèle pas
+    } catch (er) { mot(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Ça n\'a pas pu se faire. Réessaie.') : phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }      // ⛔ pas « supprimée ou tu n'y es plus » : un blocage silencieux ne se révèle pas
   });
   function vcRendreFocus(corps, cleFocus) {
     if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
@@ -4621,7 +4628,7 @@
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
-    } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
+    } catch (er) { erreurInfo(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Cette action n\'a pas pu se faire.') : phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
   /* Entrée dans le champ de l'identifiant : « Voir » (le clavier d'un téléphone dit « Rechercher », enterkeyhint) */
   $('info-corps').addEventListener('keydown', e => {
@@ -5103,7 +5110,7 @@
     const mid = etat.menu.mid, id = etat.conv, m = trouverMessage(mid);
     const r = e.target.closest('[data-menu-reac]'), a = e.target.closest('[data-menu]');
     if (!m || !id || (!r && !a)) return;
-    if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); masquerAvis(); } catch (er) { avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
+    if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); masquerAvis(); } catch (er) { avis(phraseSilence(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
     const act = a.dataset.menu;
     if (act === 'supprimer') {                  // « Supprimer… » : le choix — et « pour tous » n'y demande plus rien, ce choix ÉTAIT sa seconde touche
       $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message ?</p><button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
@@ -5126,7 +5133,7 @@
     else if (act === 'suivi') { const pc = pieceDe(m); if (pc) { declencheur = null; ouvrirFeuille('suivi:' + pc); } }
     else if (act === 'transferer') { if (transferable(m)) { declencheur = null; ouvrirFeuille('transferer:' + m.seq); } }
     else if (act === 'modifier') { etat.contexte = { type: 'modif', mid, nom: '', texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').value = m.texte || ''; ajusterSaisie(); majBoutons(); $('saisie').focus({ preventScroll: true }); }
-    else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }
+    else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phraseSilence(er, 'Le message n\'a pas pu être supprimé.')); } }
   });
   $('menu-msg').addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
@@ -5139,7 +5146,7 @@
     const p = e.target.closest('[data-actions]');
     if (p) { ouvrirMenuMessage(p.dataset.actions, p); return; }
     const r = e.target.closest('[data-reagir]');
-    if (r && etat.conv) source.reagir(etat.conv, r.dataset.reagir, r.dataset.emoji).then(masquerAvis, er => avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')));
+    if (r && etat.conv) source.reagir(etat.conv, r.dataset.reagir, r.dataset.emoji).then(masquerAvis, er => avis(phraseSilence(er, 'La réaction n\'a pas pu être enregistrée.')));
   });
   $('conv-messages').addEventListener('contextmenu', e => {
     if (!CAP.actionsMessage) return;
@@ -7069,7 +7076,7 @@
     G.tEnvoi = false;
     const ouverte = etat.groupe === G && G.ouvert;
     if (err || !Array.isArray(r) || !r.length) {
-      const t = err && err.code === 'message_inconnu' ? 'Ce message n\'est plus là : il a peut-être été supprimé.' : phrase(err, 'Le message n\'a pas pu être transféré.');
+      const t = err && err.code === 'message_inconnu' ? 'Ce message n\'est plus là : il a peut-être été supprimé.' : phraseSilence(err, 'Le message n\'a pas pu être transféré.');
       if (ouverte) { montrerErreurTransfert(t); synchroFeuille(); } else avis(t);
       return;
     }
@@ -7135,7 +7142,7 @@
     try {
       await source.envoyerSondage(conv, { question: q, choix, regles: { multiple: oui('sd-multiple'), anonyme: oui('sd-anonyme'), ajout: oui('sd-ajout'), resultats: $('sd-resultats').value, fin } });
       sondForm = null; fermerFeuille(); mot('Sondage envoyé');
-    } catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le sondage n\'a pas pu partir.')); }
+    } catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'Le sondage n\'a pas pu partir.')); }
   }
   /* ── « Voir les votes » : chaque choix, son décompte, et qui l'a choisi (« que l'on puisse voir tous ceux qui votent ») ; anonyme : les décomptes seuls, et pourquoi.
      Elle se redessine quand un vote arrive (`rendreConv` la relance). ── */
@@ -7169,7 +7176,7 @@
     if (!t) { erreurInfo('Écris le choix.'); $('sc-texte').focus(); return; }
     b.setAttribute('aria-disabled', 'true');
     try { await source.sondageAjouter(conv, etat.groupe.sondSeq, t); fermerFeuille(); mot('Choix ajouté'); }
-    catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le choix n\'a pas pu être ajouté.')); }
+    catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'Le choix n\'a pas pu être ajouté.')); }
   }
   const modeCarte = () => etat.groupe.ouvert && ['position', 'carte-contact', 'transferer', 'sondage-nouveau', 'sondage-choix'].includes(etat.groupe.mode);
   $('info-corps').addEventListener('click', async e => {
@@ -7182,7 +7189,7 @@
       if (b.dataset.pos === 'envoyer' && G.pos && etat.conv) {
         erreurInfo(''); b.setAttribute('aria-disabled', 'true');
         try { await source.envoyerPosition(etat.conv, { lat: G.pos.lat, lng: G.pos.lng, precision: G.pos.prec }); fermerFeuille(); mot('Position envoyée'); }
-        catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Ta position n\'a pas pu partir.')); if (x && x.code === 'position_desactivee') reg.conf = null; }
+        catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'Ta position n\'a pas pu partir.')); if (x && x.code === 'position_desactivee') reg.conf = null; }
       }
       return;
     }
@@ -7199,7 +7206,7 @@
       const b = e.target.closest('[data-cc]'); if (!b || b.getAttribute('aria-disabled') === 'true' || !etat.conv) return;
       erreurInfo(''); b.setAttribute('aria-disabled', 'true');
       try { await source.envoyerFiche(etat.conv, b.dataset.cc); fermerFeuille(); mot('Fiche envoyée'); }
-      catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'La fiche n\'a pas pu partir.')); }
+      catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'La fiche n\'a pas pu partir.')); }
       return;
     }
     if (G.mode === 'sondage-nouveau') {

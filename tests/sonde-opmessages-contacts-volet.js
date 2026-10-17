@@ -122,6 +122,14 @@ const BUREAU = { w: 1440, h: 900 };
     v('⛔ la fiche ne montre ni « Introuvable… », ni « Réessayer », ni rubrique « En commun » en erreur (contacts#6)', await page.evaluate(() => ({ note: !!document.querySelector('#vc-fiche .fc-note'), reessayer: !!document.querySelector('#vc-fiche [data-fiche="relire"]'), texte: /Introuvable|supprimée|n.y es plus/.test(document.getElementById('vc-fiche').innerText) })), { note: false, reessayer: false, texte: false });
     await page.locator('#vc-fiche [data-fiche="ecrire"]').click();
     vrai('⛔ « Message » depuis la fiche (aucune conversation ouverte) dit « Cette conversation n\'a pas pu s\'ouvrir. », pas « supprimée ou tu n\'y es plus »', await attendre(() => { const m = document.getElementById('mot'); return m.classList.contains('on') && m.textContent === 'Cette conversation n\'a pas pu s\'ouvrir.'; }, null, 12000));
+    /* « Appeler » et « Vidéo » depuis la même fiche (POST /api/appels → 404 « introuvable » : routes-appels.js) — la relecture du lot a trouvé qu'ils disaient la phrase générale (accusation de suppression) */
+    vrai('population : la fiche porte « Appeler » et « Vidéo »', await attendre(() => !!document.querySelector('#vc-fiche [data-fiche="appel"][data-video="0"]') && !!document.querySelector('#vc-fiche [data-fiche="appel"][data-video="1"]'), null, 12000));
+    for (const [video, nom] of [['0', 'Appeler'], ['1', 'Vidéo']]) {
+      await page.locator('#vc-fiche [data-fiche="appel"][data-video="' + video + '"]').click();
+      vrai('⛔ « ' + nom + ' » vers Bruno (qui a bloqué) dit « L\'appel n\'a pas pu être lancé. » (ni suppression, ni « tu n\'y es plus », ni « Introuvable »)', await attendre(() => { const m = document.getElementById('mot'); return m.classList.contains('on') && m.textContent === 'L\'appel n\'a pas pu être lancé.'; }, null, 12000));
+      vrai('…et aucun écran d\'appel ne s\'ouvre', await page.evaluate(() => !document.documentElement.hasAttribute('data-appel')));
+      await page.waitForFunction(() => !document.getElementById('mot').classList.contains('on'), null, { timeout: 12000 }).catch(() => {});
+    }
     await page.evaluate((id) => { location.hash = '#messages/' + id; }, convAB);
     vrai('population : la conversation avec Bruno (celle d\'avant le blocage) s\'ouvre', await attendre(() => /^#messages\/./.test(location.hash) && !!document.getElementById('saisie') && document.getElementById('saisie').getClientRects().length > 0));
     await page.locator('#saisie').fill('Bruno ?'); await page.keyboard.press('Enter');
