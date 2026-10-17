@@ -20719,10 +20719,15 @@ function absSolde(techId){
 /* ── Tâches ── */
 views.modulesElan=function(){
   const items=NAV.flatMap(g=>g.items).filter(x=>x.aside&&userSeesModule(currentUser,x.k));   // seulement ce que ce compte a le droit d'ouvrir
-  setHeader('Modules OP (mis de côté)', showAside()?'Affichés dans le menu':'Masqués — interface 100 % Organilog',
-    `<button class="btn" onclick="localStorage.setItem('elanB_aside',showAside()?'0':'1');renderNav();go('modulesElan')">${showAside()?'Masquer du menu':'Afficher dans le menu'}</button>`);
+  /* admin#4 : le bouton « Afficher dans le menu / Masquer du menu » ne commandait RIEN (mesuré, test-1303) : `showAside()`
+     n'est lu que par le défaut d'une rubrique absente de la table de son rôle, et `defaultPerms()` les donne toutes —
+     le menu était identique avant et après le clic, et le sous-titre « Masqués — interface 100 % Organilog » mentait
+     (ces rubriques sont dans le menu de qui les a le droit). On retire le bouton et le faux état plutôt que de câbler
+     un réglage d'appareil que personne n'attend : la place d'une rubrique dans le menu se règle PAR PERSONNE, dans
+     Permissions. `showAside()` reste pour la reprise de la v585, qui le lit une fois (test-820). */
+  setHeader('Modules OP (mis de côté)', 'Rubriques métier, selon vos droits');
   $('content').innerHTML=`<div class="card" style="padding:16px">
-    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules métier (3D, circuits internes…) sont <b>mis de côté</b> pour garder une interface façon Organilog. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Vous pouvez les ouvrir ci-dessous ou les ré-afficher dans le menu.</p>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules métier (3D, circuits internes…) sont <b>mis de côté</b> du parcours principal. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Ouvrez-les ci-dessous ; leur place dans le menu de chaque personne se règle dans <b>Permissions</b>.</p>
     ${items.map(x=>`<div class="pl-row" style="cursor:pointer" onclick="go('${x.k}')"><div class="pl-info"><div class="pl-title">${x.ic} ${esc(x.l)}</div></div><span style="color:var(--t3)">Ouvrir ›</span></div>`).join('')}
   </div>`;
 };
