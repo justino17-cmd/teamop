@@ -2428,6 +2428,17 @@
         peutVoter: !!s.peut_voter, peutAjouter: !!s.peut_ajouter, peutClore: !!s.peut_clore,
       });
     }
+    /* ⛔ (p04) UNE PERSONNE QUE LE SERVICE ME LAISSE VOIR, MAIS QUE LA SOURCE NE CONNAÎT PAS ENCORE : une fiche de contact reçue après un rechargement, avant d'avoir ouvert le groupe commun, écrivait
+       « CL / Cléo » (le prénom seul, tel que la fiche le porte), puis « CP / Cléo Petit » dès que le groupe avait été ouvert — la même personne, deux visages. Le registre n'apprend les membres d'un groupe
+       qu'à son ouverture. La source LIT donc la personne (`GET /api/personnes/:id`, que le service ne rend qu'à qui peut la voir : contact, conversation ou espace en commun), la note, et REDESSINE la
+       conversation. Une seule lecture par personne et par séance : « introuvable » (aucun lien) est définitif et reste au prénom seul ; une panne passagère se retente au dessin suivant. */
+    const personnesEnVol = new Set(), personnesInvisibles = new Set();
+    function lirePersonne(uid, conv) {
+      if (personnesEnVol.has(uid) || personnesInvisibles.has(uid) || registre.has(uid) || supprimesIds.has(uid)) return;
+      personnesEnVol.add(uid);
+      A.personne(uid).then(p => { if (p && p.id === uid) noter(p); else personnesInvisibles.add(uid); }, e => { if (e && e.code === 'introuvable') personnesInvisibles.add(uid); })
+        .then(() => { personnesEnVol.delete(uid); if (registre.has(uid)) emettre({ type: 'conversation', id: conv }); });
+    }
     function vueCarte(conv, m) {
       const x = m.meta;
       if (x.k === 'position' && Number.isFinite(x.lat) && Number.isFinite(x.lng) && Math.abs(x.lat) <= 90 && Math.abs(x.lng) <= 180) return { position: { lat: x.lat, lng: x.lng, prec: Number.isInteger(x.prec) ? x.prec : null } };
@@ -2436,6 +2447,7 @@
       if (x.k === 'contact' && typeof x.uid === 'string') {
         /* ⛔ UNE PERSONNE QUE JE CONNAIS DÉJÀ (un contact, un membre d'un groupe commun) s'écrit sur la fiche comme ailleurs : ses initiales sont celles de son avatar (« CP » pour Cléo Petit, pas « CL »
            tirées de son seul prénom) et son nom est complet. Le service ne partage que le PRÉNOM d'une personne qu'on ne connaît pas : alors la fiche n'invente rien. */
+        if (!estMoi(x.uid) && !personne(x.uid)) lirePersonne(x.uid, conv);
         const connue = !estMoi(x.uid) ? personne(x.uid) : null, ok = !!connue && !connue.supprime;
         const contact = contactsApi.some(k => k.id === x.uid);
         /* ⛔ « DEMANDE ENVOYÉE » vient du SERVICE (`meta.demande`, relu à chaque lecture, tenu à jour par `demandeNoter` quand c'est moi qui la fais) — jamais d'une mémoire de la page ; être contact l'emporte */
