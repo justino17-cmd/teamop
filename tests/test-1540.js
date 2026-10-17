@@ -36,6 +36,9 @@ vrai('(population) les cinq tranches de la page sont trouvées (' + [T_ERREUR, T
 
 /* un bloc qui MEURT (exception) se compte en ✗ et n'arrête pas les autres : sur l'ancien code, la suite se mesure quand même */
 const essai = async f => { try { await f(); } catch (e) { v('un bloc de ce banc a levé une exception : ' + String(e && e.message).slice(0, 120), false, true); } };
+/* ⛔ un banc dont une promesse n'est JAMAIS tenue (un envoi qui ne rend pas la main) laisse la boucle d'événements se vider : Node sort alors en 0, sans total. Ce garde-fou le compte en ✗. */
+let total = false;
+process.on('exit', () => { if (!total) { console.log('  ✗ le banc s\'est arrêté AVANT son total (une promesse jamais tenue : un envoi qui ne rend pas la main ?)'); console.log('\n0 ✓  1 ✗'); process.exitCode = 1; } });
 const dort = ms => new Promise(r => setTimeout(r, ms));
 const nbsp = s => String(s).replace(/[  ]/g, ' ');
 
@@ -235,7 +238,8 @@ function monde(opts = {}) {
     v('… et celle de l\'aperçu (4 000) quand c\'est elle qui est en vigueur : jamais un chiffre écrit en dur', nbsp(M2.MESSAGES_ERREUR['trop-long']), 'Ce message est trop long (4 000 signes au plus).');
   });
   vrai('`texteTropLong` est appelée aux trois endroits (frappe, envoi, légende d\'une photo) et AUCUN ne recompose « signes en trop » de son côté', (JS.match(/texteTropLong\(/g) || []).length === 3 && !/signes en trop/.test(JS));
-vrai('l\'ancien drapeau `envoiSuivant` n\'existe plus nulle part dans la page (le texte relu au `finally` était la cause)', !/envoiSuivant/.test(JS));
+  vrai('l\'ancien drapeau `envoiSuivant` n\'existe plus nulle part dans la page (le texte relu au `finally` était la cause)', !/envoiSuivant/.test(JS));
 
+  total = true;
   fin();
-})().catch(e => { console.error(e); process.exitCode = 1; fin(); });
+})().catch(e => { console.error(e); process.exitCode = 1; total = true; fin(); });
