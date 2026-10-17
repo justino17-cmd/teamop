@@ -13061,9 +13061,14 @@ const PUSH_VAPID='BBOBOciYMxg1WjLB2oxOgl23Ayu-DBkPnf9DhRUe660mBaEcAVvQVKlLZdWyzZ
 function _vapidArr(k){ const p='='.repeat((4-k.length%4)%4); const b=atob((k+p).replace(/-/g,'+').replace(/_/g,'/')); const a=new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; }
 function pushSupported(){ return ('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window); }
 async function pushSubscribe(quiet){ try{
-  if(!pushSupported()||!currentUser) return false;
+  if(!pushSupported()){ if(!quiet&&currentUser) toast('Ce navigateur ne gère pas les notifications — sur iPhone, ajoute d\'abord l\'application à l\'écran d\'accueil'); return false; }
+  if(!currentUser) return false;
   if(Notification.permission==='denied'){ if(!quiet) toast('Notifications bloquées — autorise-les dans les réglages du navigateur'); return false; }
-  if(Notification.permission!=='granted'){ const p=await Notification.requestPermission(); if(p!=='granted') return false; }
+  /* ⛔ UN GESTE QUI N'ABOUTIT PAS LE DIT (accueil#14). Le navigateur refusait, ou la personne fermait la demande, et
+     le bouton restait « Activer sur cet appareil » sans un mot. Seul l'appel du lancement (`quiet`) se tait : ce
+     n'est pas un geste. */
+  if(Notification.permission!=='granted'){ const p=(await Notification.requestPermission())||Notification.permission;   // un vieux Safari ne rend rien : on relit l'état
+    if(p!=='granted'){ if(!quiet) toast(p==='denied'?'Notifications refusées — tu pourras les réactiver dans les réglages du site, côté navigateur':'Autorisation non donnée — touche « Activer sur cet appareil » et choisis Autoriser'); return false; } }
   const reg=await navigator.serviceWorker.ready;
   const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_vapidArr(PUSH_VAPID)});
   await fetch(PUSH_API+'/api/subscribe',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({sub:sub.toJSON(),teamId:syncTeam(),userId:currentUser.id,userName:fullName(currentUser)})});
@@ -21475,7 +21480,10 @@ function entLogoPick(e){ const f=e.target.files&&e.target.files[0]; if(!f) retur
 function entLogoDel(){ if(!db.entreprise) return; delete db.entreprise.logo; save(); applyBrand(); try{ avatarAccentSync(); }catch(e){} toast('Logo retiré'); if(current==='parametres') views.parametres(); }
 function entSave(){ const g=id=>((document.getElementById(id)||{}).value||'').trim();
   db.entreprise={...(db.entreprise||{}),nom:g('ent-nom'),adresse:g('ent-adresse'),cp:g('ent-cp'),ville:g('ent-ville'),tel:g('ent-tel'),siret:g('ent-siret'),tvaIntra:g('ent-tvaintra'),iban:g('ent-iban'),bic:g('ent-bic'),enteteBC:g('ent-entete-bc')};   // le logo est conservé
-  try{ if(db.entreprise.nom) localStorage.setItem('elan_entreprise_nom',db.entreprise.nom); }catch(e){}
+  /* ⛔ ÉCRIRE OU EFFACER, jamais seulement écrire (accueil#7). `entrepriseNom()` et `entNom()` retombent sur cette clé
+     quand `db.entreprise.nom` est vide : un nom vidé mais jamais retiré d'ici restait affiché dans le menu et le
+     sous-titre, pendant que le toast annonçait « Entreprise enregistrée ». */
+  try{ if(db.entreprise.nom) localStorage.setItem('elan_entreprise_nom',db.entreprise.nom); else localStorage.removeItem('elan_entreprise_nom'); }catch(e){}
   save(); applyBrand(); toast('🏢 Entreprise enregistrée — son nom apparaîtra sur les bons et e-mails'); }
 function mailBrandName(){ return ((db.mailFrom||'').trim()) || (((db.entreprise||{}).nom)||'').trim() || rapportSociete(); }
 async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
@@ -35354,15 +35362,33 @@ function resetProdWipe(){
    les fonctions ne vérifiaient rien — une porte qui ne tient qu'à l'écran tombe au premier bouton
    qu'on rajoute ailleurs. `remiseZero` et `resetProduction` se gardaient déjà eux-mêmes. */
 function exportData(){ if(!adminSeul()) return; const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='teamop-'+(String(entrepriseNom()||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'espace')+'-'+todayISO()+'.json'; a.click(); URL.revokeObjectURL(a.href); toast('Exporté'); }
+/* ⛔ UN FICHIER JSON N'EST PAS UNE SAUVEGARDE (accueil#0). `{}`, `[]` ou `{"foo":1}` se parsent très bien, et
+   `migrate()` complète ce qui manque par des listes VIDES : la base de l'entreprise — comptes compris, donc
+   l'administrateur — était remplacée par du néant, puis poussée à toute l'équipe par la synchro. On reconnaît donc
+   une sauvegarde À CE QU'ELLE CONTIENT, avant le moindre confirm et avant d'assigner `db` : un objet (pas un
+   tableau), au moins une collection de données connue, de type liste, des comptes dont un administrateur.
+   Rend le MOTIF du refus, ou '' quand le fichier est une sauvegarde. Un export réel passe toujours (il porte
+   `users`) ; une collection récente absente d'une vieille sauvegarde n'est PAS un défaut — migrate() la crée. */
+function sauvegardeMotifRefus(d){
+  if(!d || typeof d!=='object' || Array.isArray(d)) return 'ce fichier n\'est pas une sauvegarde OP GESTION';
+  const faux=COLLECTIONS_DONNEES.concat(['users']).filter(c=>d[c]!==undefined && d[c]!==null && !Array.isArray(d[c]));
+  if(faux.length) return 'la collection « '+faux[0]+' » n\'a pas le bon format';
+  if(!COLLECTIONS_DONNEES.some(c=>Array.isArray(d[c]))) return 'ce fichier n\'est pas une sauvegarde OP GESTION';
+  if(!Array.isArray(d.users) || !d.users.length) return 'la sauvegarde ne contient aucun compte';
+  if(!d.users.some(u=>u && typeof u==='object' && u.role==='admin')) return 'la sauvegarde ne contient aucun compte administrateur';
+  return ''; }
 function importData(e){ if(!adminSeul()) return; const f=e.target.files[0]; if(!f)return;
-  if(!confirm('Importer « '+(f.name||'ce fichier')+' » ?\n\nLa base de l\'entreprise sera REMPLACÉE par son contenu, sur tous les appareils à la prochaine synchro.')) return;
-  const r=new FileReader(); r.onload=()=>{ try{ db=migrate(JSON.parse(r.result)); _dbGen++;   // remplacement asynchrone : un envoi en cours ne doit pas écrire l'ancienne base par-dessus
+  const r=new FileReader(); r.onload=()=>{ try{ let d; try{ d=JSON.parse(r.result); }catch(err){ toast('Fichier invalide'); return; }
+      const motif=sauvegardeMotifRefus(d);
+      if(motif){ toast('Import refusé : '+motif+'. Rien n\'a été modifié.'); return; }
+      if(!confirm('Importer « '+(f.name||'ce fichier')+' » ?\n\nLa base de l\'entreprise sera REMPLACÉE par son contenu, sur tous les appareils à la prochaine synchro.')) return;
+      db=migrate(d); _dbGen++;   // remplacement asynchrone : un envoi en cours ne doit pas écrire l'ancienne base par-dessus
       /* ⛔ RELEVER L'OMBRE AVANT save() — trouvé en relecture le 10 septembre 2026. Sans ça, estampiller()
          compare le fichier importé à l'ombre d'AVANT, et enterre tout ce que le fichier n'a pas : des
          tombes datées de maintenant, qui voyageraient chez toute l'équipe et effaceraient ce qu'elle a
          créé depuis la sauvegarde. Avec l'ombre relevée, un import REMET ce qu'il contient et ne retire
          rien : c'est le sens qu'il doit avoir sur un espace synchronisé. */
-      try{ ombreRelever(); }catch(e){} save(); renderNav(); toast('Importé'); go('dashboard'); }catch(err){ toast('Fichier invalide'); } }; r.readAsText(f); }
+      try{ ombreRelever(); }catch(e){} save(); renderNav(); toast('Importé'); go('dashboard'); }catch(err){ toast('Fichier invalide'); } }; r.readAsText(f); try{ e.target.value=''; }catch(x){} }
 /* resetData() a été SUPPRIMÉE le 10 septembre 2026. Elle n'avait aucun appelant — et c'était
    la seule raison pour laquelle elle n'avait encore rien cassé. Elle retirait la base sans
    retirer le drapeau de vidage NI détacher l'appareil de son espace : au rechargement,
@@ -40736,7 +40762,10 @@ function renderLogin(){ $('app-root').style.display='none'; $('login').style.dis
         <div class="login-card-title">Connexion</div>
         ${_surEspace?'':`<div class="field"><label>Entreprise <span style="font-weight:400;color:var(--t3)">— si ton compte est chez une entreprise TeamOP</span></label><input id="li-ent" placeholder="Nom de ton entreprise (ex : GCI)" autocomplete="organization" autocapitalize="off"><div style="font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5">Écris le nom de ton entreprise, puis ton identifiant et ton mot de passe : tu arrives directement dans son espace, sans lien ni code. Tu as un lien de connexion ? Colle-le ici, il marche aussi.</div></div>`}
         <div class="field"><label>Identifiant</label><input id="li-login" value="${esc(saved)}" placeholder="Votre identifiant" autocomplete="username" required></div>
-        <div class="field"><label>Mot de passe</label><input id="li-pin" type="password" placeholder="••••••••" autocomplete="current-password" required><div style="font-size:11px;color:var(--t3);margin-top:4px">Ancien compte à code PIN ? Tape ton PIN — on te fera créer ton mot de passe juste après.</div></div>
+        <!-- ⛔ LA PHRASE DU PIN EST CELLE DE L'APPLICATION PUBLIQUE (accueil#18) : des comptes à PIN y existent encore et
+             « on te fera créer ton mot de passe » y est vrai. La bêta n'a ni PIN ni création de mot de passe (les accès
+             viennent de la Tour) : la lire là-bas n'a pas de sens. On la masque quand BETA_ESSAI, jamais en production. -->
+        <div class="field"><label>Mot de passe</label><input id="li-pin" type="password" placeholder="••••••••" autocomplete="current-password" required>${BETA_ESSAI?'':`<div style="font-size:11px;color:var(--t3);margin-top:4px">Ancien compte à code PIN ? Tape ton PIN — on te fera créer ton mot de passe juste après.</div>`}</div>
         <label class="login-remember"><input type="checkbox" id="li-remember" ${saved?'checked':''}> Rester connecté</label>
         <div id="li-error" class="login-error" style="display:none">Identifiant ou mot de passe incorrect</div>
         <button type="submit" class="btn" style="width:100%;justify-content:center;margin-top:6px">→ Se connecter</button>
@@ -41317,6 +41346,10 @@ function monComptePwd(){ if(!currentUser) return; const aDejaMdp=!!(currentUser.
 async function monComptePwdSave(btn){ if(!currentUser) return;
   const p0=($('mc-p0')||{}).value||'', p1=($('mc-p1')||{}).value||'', p2=($('mc-p2')||{}).value||'';
   const err=$('mc-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
+  /* ⛔ UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT (accueil#5). `show` ne faisait que POSER : le « 8 caractères
+     minimum » d'un essai raté restait en rouge pendant le « ✓ Mot de passe modifié » de l'essai suivant. Chaque essai
+     commence donc par effacer le verdict d'avant (comme `_vider()` d'espace.html) et n'écrit que le sien. */
+  if(err){ err.textContent=''; err.style.display='none'; }
   if(currentUser.pwdHash||currentUser.pinHash){ const h=await sha256(p0); const ok=currentUser.pwdHash?h===currentUser.pwdHash:(h===currentUser.pinHash||p0===currentUser.pinHash); if(!ok){ show('Mot de passe actuel incorrect.'); return; } }
   if(p1.length<8){ show('8 caractères minimum.'); return; }
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
@@ -41605,7 +41638,10 @@ function carteAide(){
     <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="startTour()">▶️ Visite guidée</button><button class="btn ghost" onclick="signalerProbleme()">Signaler un problème</button></div></div>`;
 }
 function signalerEnvoyer(e){ e.preventDefault();
-  const txt=String(new FormData(e.target).get('txt')||'').trim(); if(!txt) return;
+  const txt=String(new FormData(e.target).get('txt')||'').trim();
+  /* ⛔ UN ENVOI REFUSÉ SE DIT (accueil#15). Le `required` natif laisse passer des espaces ; la fonction sortait alors
+     sans un mot, fenêtre ouverte — la personne croyait son bouton cassé. La fenêtre reste ouverte pour qu'elle écrive. */
+  if(!txt){ toast('Écris quelques mots pour décrire le problème'); try{ const c=e.target.elements&&e.target.elements.txt; if(c){ c.value=''; c.focus(); } }catch(_e){} return; }
   logEvent('Problème signalé',txt,'support'); save(); closeModal();
   toast('Merci, c\'est transmis aux administrateurs');
 }
@@ -41707,6 +41743,14 @@ let _platHaute=null;
 function opPlatHaute(){
   const uad=navigator.userAgentData;
   if(!uad||!uad.getHighEntropyValues) return;
+  /* ⛔ ON NE CROIT L'API QUE SI ELLE DÉCRIT LE MÊME APPAREIL QUE L'AGENT (accueil#17). Un Chromium qui s'annonce
+     « Safari / Macintosh » (agent forcé : mode appareil des outils de développement, banc d'essai) répond avec SA
+     plateforme : la `platformVersion` d'une autre machine s'affichait comme « Version du système : 10 », « mesurée ».
+     Il faut un agent Chromium (« Chrome/ », « Edg/ ») ET une plateforme de l'API qui dit la même chose que l'agent ;
+     sinon on ne prétend pas savoir — 0 veut dire « on ne sait pas ». */
+  const _ua=navigator.userAgent||'', _os=opOS(), _pf=String(uad.platform||'');
+  const _chromium=/Chrome\/|Edg[A-Z]?\//.test(_ua), _coherent=(_os==='macos'&&/^macOS$/i.test(_pf))||(_os==='windows'&&/^Windows$/i.test(_pf));
+  if(!_chromium||!_coherent) return;
   try{ uad.getHighEntropyValues(['platformVersion']).then(h=>{
     const v=parseInt(String((h&&h.platformVersion)||'').split('.')[0],10);
     if(isFinite(v)&&v>0){ _platHaute=v; try{ opPlatAppliquer(); }catch(e){} }
