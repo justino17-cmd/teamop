@@ -47,8 +47,12 @@ Justin, à la proposition « A et B » : « A et B ». A (cette branche, aucun e
 Refusés après lecture : `security-guidance` (Opus en dur à chaque tour, contourne « tout en Sonnet »), `claude-security` en
 permanence (licence propriétaire : jamais copié dans ce dépôt public ; au plus un essai ponctuel), les skills OWASP tels quels
 (procédures d'attaque réelles sans garde-fou, fichiers cassés hors de leur dépôt).
-B (branche à part, `claude/stripe-version-idempotence`) : figer `Stripe-Version` et une clé d'idempotence sur la création du
-paiement — `server/`, donc bancs, `gardien`, et la PHRASE de Justin avant `main`.
+B (branche à part, `claude/stripe-version-idempotence`) : `stripeEntetes` écrit les en-têtes de tous les appels à Stripe et
+fige la version de l'API par `config.stripe.apiVersion` ; `set-stripe.sh` ne l'efface plus ; `set-stripe-version.sh` la pose et
+la vérifie. Relu par `gardien` (aucun bloquant, ses trois points corrigés). PAS de clé d'idempotence : le serveur ne réessaie
+jamais une création, la page désactive son bouton, et une clé tirée du contenu ferait rejouer par Stripe une panne 500.
+⏳ `server/` : attend la PHRASE de Justin avant `main` ; puis, sur le VPS, `bash server/set-stripe-version.sh` avec la
+version affichée dans le tableau de bord Stripe (Développeurs → Version de l'API). Sans ce geste, rien ne change.
 
 # ⛔ DÉCISION DE JUSTIN, 8 OCTOBRE 2026 (NUIT) — OP MESSAGES RESTE EN BÊTA
 
