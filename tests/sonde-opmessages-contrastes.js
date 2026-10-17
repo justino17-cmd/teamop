@@ -5,7 +5,7 @@
         (testeurs : 3,44 / 3,06 / 4,22 avant) ;
      2. LA BULLE ENVOYÉE contre le FOND CHOISI, à 390 px : les 72 combinaisons (8 fonds × 9 couleurs), jour et nuit — la bulle se distingue de son fond (≥ 1,5:1), son encre passe
         4,5:1 (testeurs : 9 sur 72 sous 1,5 de nuit avant). ⛔ Les 72 sont COMPTÉES avant de croire un zéro ;
-     3. 320 PX (iPhone SE) : la barre des sept jours répond sur ≥ 44 px de large, le titre « Nouveau rendez-vous » tient sur une ligne, rien ne pousse la page de côté ;
+     3. 320 PX (iPhone SE) et 344 PX (Galaxy Z Fold replié — relecture : la fenêtre 341–351 px restait sous 44 px) : la barre des sept jours répond sur ≥ 44 px de large, le titre « Nouveau rendez-vous » tient sur une ligne, rien ne pousse la page de côté ;
      4. LA SALLE, de nuit, au téléphone : « Rejoindre » (Avant d'entrer), « Terminer pour tous » et « Quitter » passent 4,5:1 ; les boutons des feuilles « Plus » et « Quitter la salle »
         répondent sur ≥ 44 px de haut (la zone qui répond, `elementFromPoint` sur la verticale du centre).
    ⛔ LA MESURE SE PROUVE D'ABORD : un étalon (#767676 sur blanc = 4,54:1) passe par le même lecteur de capture ; chaque absence est précédée de sa population.
@@ -98,6 +98,7 @@ function dominante(img, cx, cy, r) {
     const PROFILS = {
       tel: { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
       se: { viewport: { width: 320, height: 568 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+      fold: { viewport: { width: 344, height: 700 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
       bureau: { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 },
     };
     const ouvrir = async (login, profil, nuit) => {
@@ -203,6 +204,22 @@ function dominante(img, cx, cy, r) {
       const t = await X.page.evaluate(() => { const h = document.getElementById('feuille-titre'); return { sw: h.scrollWidth, cw: h.clientWidth }; });
       vrai('⛔ le titre tient sur sa ligne : il n\'est plus coupé en « Nouveau rendez-… » (' + t.sw + ' pour ' + t.cw + ' px)', t.sw <= t.cw);
       await capture(X, 'se-feuille');
+      v('aucune erreur JavaScript', X.erreurs, []);
+      await X.ctx.close();
+    }
+
+    console.log('\n3 bis. À 344 px (Galaxy Z Fold replié)');
+    {
+      const X = await ouvrir('ana', 'fold', false);
+      await X.page.evaluate(() => { location.hash = '#reunions'; });
+      await att(X, () => !!document.querySelector('#reu-vue-seg [data-reu-vue="semaine"]'));
+      await toucher(X, '#reu-vue-seg [data-reu-vue="semaine"]');
+      vrai('(population) la barre des sept jours est à l\'écran', await att(X, () => document.querySelectorAll('#sem-jours .jour').length === 7 && Array.from(document.querySelectorAll('#sem-jours .jour')).every(x => x.getClientRects().length)));
+      await X.page.waitForTimeout(600);
+      const zones = await X.page.evaluate(() => Array.from(document.querySelectorAll('#sem-jours .jour')).map(bt => { const r = bt.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; const rep = (x, y) => { const h = document.elementFromPoint(x, y); return !!h && h.closest('.jour') === bt; }; let w1 = 0, w2 = 0; for (let d = 1; d <= 60; d++) { if (rep(cx - d, cy)) w1 = d; else break; } for (let d = 1; d <= 60; d++) { if (rep(cx + d, cy)) w2 = d; else break; } return w1 + w2 + 1; }));
+      vrai('⛔ à 344 px, la zone qui répond de chacun des sept jours fait ≥ 43 px de large (un pixel d\'arrondi près) : ' + zones.join(' '), zones.length === 7 && zones.every(z => z >= 43));
+      const depasse = await X.page.evaluate(async () => { await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); void document.documentElement.offsetWidth; scrollTo(9999, scrollY); const sx = scrollX; scrollTo(0, scrollY); return sx; });
+      v('à 344 px, la page ne glisse pas de côté', depasse, 0);
       v('aucune erreur JavaScript', X.erreurs, []);
       await X.ctx.close();
     }

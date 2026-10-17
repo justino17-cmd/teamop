@@ -4,9 +4,9 @@
        n'a que 288 px de contenu (16 px de marge de chaque côté) pour sept colonnes et six écarts de 4 px ;
      · le titre de la feuille « Nouveau rendez-vous » est coupé en « Nouveau rendez-… » (171 px de texte pour 156 px de place entre « Annuler » et « Créer »).
    Le calcul montre que 360 px (Android) était déjà sous le plancher : 43,4 px. Ce qui est retenu : les écarts passent de 4 à 2 px SOUS 380 px (360 px : 45,1), puis tombent et la barre
-   déborde dans la marge (-11 px de chaque côté) SOUS 340 px — 310 / 7 = 44,3 px par colonne, sans défilement latéral ni changement de forme ailleurs (390 et 430 px ne bougent pas) ; et le titre de la feuille passe à 15 px sous 340 px (il tient sur une ligne, comme partout). Raccourcir le titre en « Rendez-vous » n'est PAS
+   déborde dans la marge (-11 px de chaque côté) SOUS 352 px (relecture : avec des écarts de 2 px la colonne vaut (largeur − 44) / 7, soit 42,9 px à 344 px — Galaxy Z Fold replié — et moins de 44 jusqu'à 351 px) — 310 / 7 = 44,3 px par colonne, sans défilement latéral ni changement de forme ailleurs (390 et 430 px ne bougent pas) ; et le titre de la feuille passe à 15 px sous 340 px (il tient sur une ligne, comme partout). Raccourcir le titre en « Rendez-vous » n'est PAS
    retenu : le mot « Nouveau » distingue une création d'une fiche ouverte (`feuille-titre`, « Rendez-vous » seul = la fiche d'un rendez-vous existant).
-   Ce banc REJOUE la feuille réelle : il calcule la colonne (largeur − 2 marges de page + débord − écarts) / 7 à 320, 360, 390 et 430 px (et 375), et lit la taille du titre. La zone qui répond et
+   Ce banc REJOUE la feuille réelle : il calcule la colonne (largeur − 2 marges de page + débord − écarts) / 7 sur TOUTE la plage 320–480 px au pas de 1 px, puis à 320, 344, 351, 352, 360, 375, 390 et 430 px, et lit la taille du titre. La zone qui répond et
    la coupe du titre sont mesurées au navigateur par tests/sonde-opmessages-contrastes.js (§ 320 px). ⛔ Population comptée d'abord. */
 'use strict';
 const path = require('path');
@@ -37,9 +37,14 @@ function rejouer(sel, ctx) {
 const padPage = (() => { const m = /\.contenu\s*\{[^}]*padding:[^;]*max\((\d+)px,\s*env\(safe-area-inset-right/.exec(L.css); return m ? +m[1] : 0; })();
 v('(population) le contenu de la page a sa marge latérale de 16 px (lue dans .contenu)', padPage, 16);
 
-for (const largeur of [320, 360, 375, 390, 430]) {
-  const r = rejouer('.sem-jours', { largeur, tactile: true });
-  const col = (largeur - 2 * padPage - r.ml - r.mr - 6 * r.gap) / 7;
+const colonne = largeur => { const r = rejouer('.sem-jours', { largeur, tactile: true }); return { r, col: (largeur - 2 * padPage - r.ml - r.mr - 6 * r.gap) / 7 }; };
+/* TOUTE la plage, pas cinq largeurs choisies (relecture du 17 octobre : à 344 px — Galaxy Z Fold replié — la colonne faisait 42,9 px et le banc ne l'échantillonnait pas) */
+{ let pire = null, n = 0;
+  for (let largeur = 320; largeur <= 480; largeur++) { n++; const { col } = colonne(largeur); if (!pire || col < pire.col) pire = { largeur, col }; }
+  vrai('(population) ' + n + ' largeurs rejouées, de 320 à 480 px au pas de 1 px', n === 161);
+  vrai('de 320 à 480 px, aucune colonne ne passe sous 44 px (la plus étroite : ' + pire.col.toFixed(1) + ' px à ' + pire.largeur + ' px)', pire.col >= 44); }
+for (const largeur of [320, 344, 351, 352, 360, 375, 390, 430]) {
+  const { r, col } = colonne(largeur);
   vrai('à ' + largeur + ' px : une colonne de la barre des jours fait ≥ 44 px (' + col.toFixed(1) + ' : marges ' + r.ml + '/' + r.mr + ', écart ' + r.gap + ')', col >= 44);
 }
 /* au-delà de 340 px la barre garde sa forme (écarts, marges de la page) : on n'a pas déformé les autres appareils */
