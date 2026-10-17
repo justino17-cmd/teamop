@@ -3459,8 +3459,8 @@ var BAS_MAX=4;
 var BAS=BAS_DEFAUT.slice(0,BAS_MAX);
 /* Un nom qui tient sous l'icône, dans une colonne d'une soixantaine de pixels. Le nom COMPLET reste
    dans `aria-label` : un lecteur d'écran ne lit pas des abréviations. */
-var BAS_LIB={accueil:'Accueil',surveillance:'Surveill.',entreprises:'Entreprises',connexions:'Connexions',essais:'Accès',
-  abonnements:'Abonn.',devisia:'Devis IA',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal'};
+var BAS_LIB={accueil:'Accueil',surveillance:'Surveill.',demandes:'Demandes',entreprises:'Entreprises',essais:'Accès',
+  abonnements:'Abonn.',support:'Courrier',donnees:'Sauveg.',equipe:'Équipe',journal:'Journal'};
 /* Les vues que CE compte voit dans CETTE console, à plat, dans l'ordre du menu, avec leur compteur. */
 function barreDispo(){
   var l=[]; menuVisible().forEach(function(g){ g.vues.forEach(function(x){ l.push({t:x[0],lib:x[1],bdg:x[3]||''}); }); });
@@ -3469,7 +3469,8 @@ function barreDispo(){
 /* Ce que la barre montre pour un choix enregistré : relu contre ce qu'on voit, dédoublonné, complété. */
 function barreDe(brut){
   var dispo=barreDispo().map(function(o){ return o.t; }), l=[];
-  var ajoute=function(t){ t=String(t||'').trim(); if(l.length<BAS_MAX&&dispo.indexOf(t)>=0&&l.indexOf(t)<0) l.push(t); };
+  /* v2.87 : une barre rangée avant le ménage garde sa place — « devisia » y devient Abonnements, « connexions » Entreprises */
+  var ajoute=function(t){ t=String(t||'').trim(); if(VUE_ALIAS[t]) t=VUE_ALIAS[t].vue; if(l.length<BAS_MAX&&dispo.indexOf(t)>=0&&l.indexOf(t)<0) l.push(t); };
   String(brut||'').split(',').forEach(ajoute);
   BAS_DEFAUT.forEach(ajoute); dispo.forEach(ajoute);
   return l;
@@ -8722,7 +8723,7 @@ function demCarte(x){
   else pastilles.push('<span class="past p-ambre">À traiter</span>');
   if(pay) pastilles.push(pay.statut==='actif'||pay.statut==='essai'
     ?'<span class="past p-vert">💳 payé · '+esc(pay.formule||'abonnement')+'</span>'
-    :'<span class="past p-rouge">💳 '+esc(pay.statut==='impaye'?'impayé':pay.statut||'paiement')+'</span>');
+    :'<span class="past '+aboPast(pay.statut)[1]+'">💳 abonnement '+esc(aboPast(pay.statut)[0].toLowerCase())+'</span>');
   else if(ABO.loaded&&ABO.configured) pastilles.push('<span class="past p-gris">pas encore payé</span>');
   var kv=[['Personne',esc(pers||'—')],['Adresse','<span class="mono">'+esc(c.email)+'</span>'],
     ['Téléphone',c.tel?esc(c.tel):'—'],['Formule',esc(formule)+(d.users?' · '+esc(nMot(d.users,'utilisateur','utilisateurs')):'')],
