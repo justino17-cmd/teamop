@@ -105,7 +105,9 @@ v('une autre rubrique : jamais', vueMonde('planning', true), ['vue', 'multi']);
 console.log('\n── 1633 · 3. la pastille d\'une conversation ──');
 vrai('⛔ la pastille amène la conversation choisie (dans le code, pas dans une phrase)', /onclick="msgSel='\$\{tab\.k\}';views\.messagerie\(\);msgAmener\(\)"/.test(VUE), VUE.slice(VUE.indexOf('onclick="msgSel'), VUE.indexOf('onclick="msgSel') + 90));
 vrai('le rafraîchissement par envoi d\'un message ne l\'appelle pas (envoyerMsg garde la place)', !/function envoyerMsg\(\)[^\n]*msgAmener/.test(SRC) && !/msgAmener/.test(bloc('function envoyerMsg(')));
-v('msgAmener n\'est appelée que par la pastille et rendreVueSure', (SRC.match(/msgAmener\(\)/g) || []).length - 1, 2);
+/* (r6, re-test final) un troisième appelant, voulu : `msgTourner`, quand l'appareil TOURNE et que la page était en bas (test-1660) — jamais sur un rafraîchissement */
+v('msgAmener n\'est appelée que par la pastille, rendreVueSure et la rotation', (SRC.match(/msgAmener\(\)/g) || []).length - 1, 3);
+vrai('…et la rotation ne l\'appelle que si la largeur a changé ET que la page était en bas', /if\(tourne&&bas&&current==='messagerie'\)[^\n]*msgAmener\(\)/.test(SRC));
 
 console.log(`\n════ test-1633 : ${ok} ✓ ${ko} ✗ ════`);
 process.exit(ko ? 1 : 0);

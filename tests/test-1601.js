@@ -141,16 +141,17 @@ console.log('\n── 1601 · 4. stabilité et garde-fous ──');
 
 console.log('\n── 1601 · 5. le câblage : qui appelle la mesure ──');
 /* k01 (r5#6) : la vue retient aussi « collée en bas » (`_msgBas`) sur la liste neuve, avant de mesurer */
-vrai('la vue mesure à la fin de son rendu', /ml\.scrollTop=ml\.scrollHeight;\s*ml\._msgBas=true;\s*\}\s*msgAjuster\(\);\s*msgAjusterVeiller\(\);\s*\}$/.test(VUE), VUE.slice(-200));
+/* (r6) et note si la PAGE est en bas après la mesure : c'est ce que la rotation relit (`msgTourner`, test-1660) */
+vrai('la vue mesure à la fin de son rendu', /ml\.scrollTop=ml\.scrollHeight;\s*ml\._msgBas=true;\s*\}\s*msgAjuster\(\);\s*msgAjusterVeiller\(\);\s*_msgPageBas=msgPageEnBas\(\);\s*\}$/.test(VUE), VUE.slice(-200));
 vrai('ajouter une photo re-mesure (l\'aperçu pousse la rangée)', /msgAjusterPlus\(\)/.test(ADD));
 vrai('retirer la photo re-mesure', /msgAjusterPlus\(\)/.test(CLR));
 {
   const ecout = {}, obs = []; let nRO = 0;
   const ctx = { window: { addEventListener: (e, f) => { ecout[e] = (ecout[e] || 0) + 1; } }, $: id => ({ id }), document: { body: { id: 'body' } }, requestAnimationFrame: f => 1,
-    ResizeObserver: function (cb) { nRO++; this.observe = e => obs.push(e.id); }, msgAjusterPlus: () => {} };
+    ResizeObserver: function (cb) { nRO++; this.observe = e => obs.push(e.id); }, msgAjusterPlus: () => {}, msgTourner: () => {}, msgPageEnBas: () => true };
   vm.createContext(ctx); vm.runInContext('let _msgVeille=false, _msgRaf=0;\n' + PLUS + '\n' + VEIL, ctx);
   run('msgAjusterVeiller(); msgAjusterVeiller();', ctx);
-  v('on veille la fenêtre (resize, orientationchange) UNE fois, même rappelée', [ecout.resize, ecout.orientationchange], [1, 1]);
+  v('on veille la fenêtre (resize, orientationchange, et le défilement de la page pour la rotation) UNE fois, même rappelée', [ecout.resize, ecout.orientationchange, ecout.scroll], [1, 1, 1]);
   v('un seul ResizeObserver, sur #content et le <body> (la barre « Reprendre » arrive après le rendu)', [nRO, obs], [1, ['content', 'body']]);
 }
 
