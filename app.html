@@ -13433,7 +13433,11 @@ const clientName = id => (db.clients.find(c=>c.id===id)||{}).nom || '—';
 const produit = id => db.produits.find(p=>p.id===id) || {};
 const fullName = u => u ? ((u.prenom?u.prenom+' ':'')+(u.nom||'')).trim() || (u.login||'—') : '—';
 const userName = id => { const u=db.users.find(x=>x.id===id); if(u) return fullName(u); const t=db.techniciens.find(x=>x.id===id); return t?t.nom:'—'; };
-const vehName = id => { const v=db.vehicules.find(x=>x.id===id); return v? (v.immat||v.nom||'Véhicule') : '—'; };
+/* ⛔ Le nom d'un véhicule, c'est sa PLAQUE : le formulaire l'écrit dans `plaque` (`vPlaque` lit `plaque`
+   puis `immat`, l'ancien nom). Cette fonction ne lisait que `immat` : un véhicule créé par l'écran
+   s'appelait « Véhicule » dans les Produits donnés, les Mouvements et le bon de remise remis au client.
+   UNE définition, partout : ne pas en recopier la lecture. (Écrite sans `vPlaque`, déclarée bien plus bas.) */
+const vehName = id => { const v=db.vehicules.find(x=>x.id===id); return v? (v.plaque||v.immat||v.nom||'Véhicule') : '—'; };
 
 /* ── Journal ── */
 /* ⛔ UNE LISTE DE NOMS N'A PAS SA PLACE DANS LE JOURNAL. Mesuré chez ELAN le 11 septembre
@@ -14639,7 +14643,7 @@ function visibleRemises(list){ const p=can('voirTout')?perimetreTechIds():null; 
    quelqu'un qui le conduit en dépannage, ni fermer un véhicule à une personne qui y reste
    rattachée sur le papier. On reprend exactement le modèle des box (v590) : deux listes
    d'EXCEPTIONS rangées sur le véhicule, et on n'écrit que ce qui s'écarte du défaut. */
-function vehiculeAuto(v,u){ const tid=u&&u.techId; return !!(tid&&(v.techId===tid||v.conducteurTechnicienId===tid)); }
+function vehiculeAuto(v,u){ const tid=u&&u.techId; return !!(tid&&(v.techId===tid||v.conducteurTechnicienId===tid)) || !!(u&&u.id&&v.creePar===u.id); }
 const vehExclu=(v,userId)=>!!(userId&&((v&&v.userIdsExclus)||[]).includes(userId));
 function userVehiculeVoit(userId,vehId,on){
   const v=(db.vehicules||[]).find(x=>x.id===vehId); if(!v||!userId) return;
@@ -31770,7 +31774,8 @@ function assurEtat(v){ if(!v.dateEcheanceAssurance) return '<span class="st st-g
   if(days<0) return '<span class="st st-red">Expirée</span>'; if(days<=30) return `<span class="st st-org">${days} j</span>`; return '<span class="st st-green">À jour</span>'; }
 views.vehicules=function(){
   const toutVoir=can('voirTout'), perim=toutVoir&&perimetreTechIds(), vs=visibleVehicules(db.vehicules);   // un technicien ne voit que SON véhicule ; un DR rattaché, ceux de son équipe (v622)
-  setHeader('Véhicules',toutVoir?(perim?'Véhicules de mon équipe':'Flotte — fiches véhicules'):'Mon véhicule',toutVoir||canCat('equipe','ajouter')?`<button class="btn" onclick="formVehicule()">＋ Véhicule</button>`:'');
+  const peutAjouter=toutVoir||canCat('equipe','ajouter');
+  setHeader('Véhicules',toutVoir?(perim?'Véhicules de mon équipe':'Flotte — fiches véhicules'):'Mon véhicule',peutAjouter?`<button class="btn" onclick="formVehicule()">＋ Véhicule</button>`:'');
   const rows=vs.map(v=>`<div class="pl-row" onclick="ficheVehicule('${v.id}')">
       <span style="width:44px;height:44px;border-radius:11px;background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc-txt);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🚐</span>
       <div class="pl-info"><div class="pl-title mono">${esc(vPlaque(v))}</div>
@@ -31779,7 +31784,8 @@ views.vehicules=function(){
       </div>
       <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;white-space:nowrap">${badge(VEH,v.statut||'service')} ${assurEtat(v)}</div>
     </div>`).join('');
-  $('content').innerHTML=vs.length? rows:`<div class="card">${toutVoir?emptyState('🚐','Aucun véhicule.','Ajouter','formVehicule()'):emptyState('🚐','Aucun véhicule ne t\'est attribué.','','')}</div>`;
+  /* L'état vide offre « Ajouter » à qui a le bouton ＋ en tête : les deux disent la même chose. */
+  $('content').innerHTML=vs.length? rows:`<div class="card">${peutAjouter?emptyState('🚐',toutVoir?'Aucun véhicule.':'Aucun véhicule ne t\'est attribué.','Ajouter','formVehicule()'):emptyState('🚐','Aucun véhicule ne t\'est attribué.','','')}</div>`;
 }
 function ficheVehicule(id){ const v=db.vehicules.find(x=>x.id===id); if(!v) return;
   const sec=t=>`<div class="dt-lbl" style="margin:16px 0 8px;color:var(--acc-txt)">${t}</div>`;
@@ -31848,9 +31854,23 @@ function formVehicule(id){ const v=id?db.vehicules.find(x=>x.id===id):{};
   ['photoCGRecto','photoCGVerso','photoAttestation','photoCarteVerte'].forEach(renderVehThumb);
 }
 function saveVehicule(e,id){ e.preventDefault(); if(!permGarde('equipe',id?'modifier':'ajouter','un véhicule')) return; const d=Object.fromEntries(new FormData(e.target)); d.annee=parseInt(d.annee)||null; d.kilometrage=parseInt(d.kilometrage)||0;
+  /* ⛔ Les trois validations parlent AVANT d'écrire : une plaque d'espaces donnait une fiche sans nom, la même
+     plaque deux fois deux fiches indiscernables dans les Produits donnés et les bons de remise, et un
+     kilométrage négatif s'affichait tel quel. La plaque se compare « normalisée » (casse, tirets, espaces) ;
+     à la MODIFICATION seulement si elle change (corriger la marque d'un doublon d'avant ne se bloque pas). */
+  d.plaque=String(d.plaque||'').trim();
+  if(!d.plaque){ toast('La plaque d\'immatriculation est obligatoire'); return; }
+  if(d.kilometrage<0){ toast('Le kilométrage ne peut pas être négatif'); return; }
+  const normPlaque=x=>String(x||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const avant=id?db.vehicules.find(x=>x.id===id):null;
+  if(!avant||normPlaque(vPlaque(avant))!==normPlaque(d.plaque)){
+    const autre=db.vehicules.find(x=>x.id!==id&&normPlaque(vPlaque(x))===normPlaque(d.plaque));
+    if(autre){ toast('La plaque « '+vPlaque(autre)+' » existe déjà dans la flotte'); return; }
+  }
   Object.assign(d, vehPhotos);
   if(id){ const ix=db.vehicules.findIndex(x=>x.id===id); db.vehicules[ix]={...db.vehicules[ix],...d}; toast('Véhicule mis à jour'); }
-  else{ db.vehicules.push({id:uid(),...d}); logEvent('Véhicule ajouté',d.plaque,'crud'); toast('Véhicule ajouté'); }
+  else{ /* creePar : sans cette trace, un technicien qui crée un véhicule ne le voyait plus (visibleVehicules ne montre que ce qui lui est rattaché) — vehiculeAuto la lit. Pas de migration : les véhicules d'avant n'ont pas de créateur connu. */
+    db.vehicules.push({id:uid(),...d,creePar:(currentUser&&currentUser.id)||''}); logEvent('Véhicule ajouté',d.plaque,'crud'); toast('Véhicule ajouté'); }
   save(); closeModal(); views.vehicules();
 }
 /* ── Contrôle véhicule (checklist matériel + dates) ── */
@@ -37560,6 +37580,23 @@ function ptEstAMoi(p){ const tid=myTechId(), moi=currentUser&&currentUser.id;
   return !!p && ((!!tid && p.techId===tid) || (!p.techId && !!moi && p.userId===moi)); }
 function ptMesPointages(){ return (db.pointages||[]).filter(ptEstAMoi); }
 function ptOuverteMoi(){ return ptMesPointages().find(ptOuvert) || null; }
+/* ⛔ « AUJOURD'HUI » POUR UN POINTAGE N'EST PAS `p.date`. `date` est le jour d'EMBAUCHE (voulu : c'est
+   ce qui range une feuille de temps) — un pointage commencé à 22 h et encore ouvert à 1 h porte donc
+   la date d'HIER. « Ma journée » et son chrono filtraient sur `date===aujourd'hui` : une équipe de nuit
+   voyait 00:00:00 et aucune période toute la nuit, alors que le bouton disait « Fin de journée » et que
+   l'historique comptait déjà trois heures. Compte pour aujourd'hui : un pointage daté d'aujourd'hui, tout
+   pointage OUVERT (il court, donc il chevauche maintenant — y compris un oubli, que ptSecs plafonne et que
+   « Pointage resté ouvert » signale), et un pointage clos dont [debutTs, finTs] chevauche la journée
+   (22:00 → 06:00 compte pour la nuit qui se termine ce matin). */
+function ptDuJour(p){
+  if(!p) return false;
+  const auj=todayISO();
+  if((p.date||'')===auj) return true;
+  if(ptOuvert(p)) return true;
+  if(!p.debutTs||!p.finTs) return false;
+  const d0=new Date(auj+'T00:00:00'), d1=new Date(d0.getTime()); d1.setDate(d1.getDate()+1);
+  return p.debutTs < d1.getTime() && p.finTs > d0.getTime();
+}
 /* Le nom d'une ligne : la fiche si elle en a une, le compte sinon. `techName('')` rendrait
    « Non assigné » — un pointage n'est jamais « non assigné », il a toujours quelqu'un. */
 function ptNom(p){ if(!p) return '—'; if(p.techId) return techName(p.techId);
@@ -37672,11 +37709,22 @@ function pointerFin(){
   if(ptOubli(p)){ ptCloreOubli(p.id); return; }
   ptFermer(p.id);
 }
+/* ⛔ Une heure de fin qu'on DIT (la reprise d'un oubli) se contrôle, elle ne se corrige pas en silence :
+   « 07:00 » pour un pointage commencé à 08:00 est une faute de frappe, et la ramener au début inscrivait
+   0h00 — la journée effacée, sans un mot. On refuse et on dit pourquoi ; de même une fin dans le futur
+   (une date tapée un jour trop loin compterait des heures qui n'ont pas eu lieu). */
+function ptFinRefus(p,ts){
+  if(!isFinite(ts)) return 'Heure invalide';
+  if(p&&p.debutTs&&ts<p.debutTs) return 'La fin ('+ptHM(ts)+') est avant le début ('+ptHM(p.debutTs)+') — corrige l\'heure ou la date de fin';
+  if(ts>Date.now()+60000) return 'La fin est dans le futur — indique l\'heure à laquelle la journée s\'est vraiment terminée';
+  return '';
+}
 /* Fermer un pointage à l'instant présent. `ts` n'est passé que par la reprise d'un oubli. */
 function ptFermer(id,ts){
   const p=(db.pointages||[]).find(x=>x.id===id); if(!p||!ptOuvert(p)) return;
+  if(ts){ const refus=ptFinRefus(p,ts); if(refus){ toast(refus); return; } }
   ts = ts || Date.now();
-  if(p.debutTs && ts < p.debutTs) ts = p.debutTs;
+  if(p.debutTs && ts < p.debutTs) ts = p.debutTs;   // horloge de l'appareil reculée : « maintenant » ne peut pas précéder le début
   p.finTs=ts; p.fin=ptHM(ts);
   save();
   logEvent('Pointage',ptNom(p)+' a terminé sa journée à '+ptHMS(ts)+' — '+ptDuree(ptSecs(p)),'general');
@@ -37701,7 +37749,9 @@ function ptCloreOubli(id){
 function ptCloreOubliOk(e,id){ e.preventDefault();
   const d=Object.fromEntries(new FormData(e.target));
   const ts=new Date(d.jour+'T'+d.heure+':00').getTime();
-  if(!isFinite(ts)){ toast('Heure invalide'); return; }
+  /* Le refus se dit ICI, fenêtre ouverte : la fermer d'abord obligeait à tout retaper. */
+  const p=(db.pointages||[]).find(x=>x.id===id);
+  const refus=ptFinRefus(p,ts); if(refus){ toast(refus); return; }
   closeModal(); ptFermer(id,ts);
 }
 
@@ -37720,7 +37770,7 @@ function ptTickStart(){
       if(p&&ptOuvert(p)) el.textContent=ptChrono(ptSecs(p,now));
     });
     const j=$('pt-jour-sec');
-    if(j){ const mj=ptMesPointages().filter(p=>(p.date||'')===todayISO());
+    if(j){ const mj=ptMesPointages().filter(ptDuJour);
       j.textContent=ptChrono(ptTotal(mj,now)); }
   },1000);
 }
@@ -37731,7 +37781,7 @@ function ptTickStart(){
 function ptMaJournee(now){
   if(!currentUser) return '';
   const ouv=ptOuverteMoi();
-  const mj=ptMesPointages().filter(p=>(p.date||'')===todayISO()).sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
+  const mj=ptMesPointages().filter(ptDuJour).sort((a,b)=>String(a.debutTs||a.debut||'').localeCompare(String(b.debutTs||b.debut||'')));
   const secJour=ptTotal(mj,now);
   const lignes=[];
   mj.forEach((p,i)=>{
@@ -37825,13 +37875,18 @@ views.pointage=function(){
 function formPointage(id){ const p=id?db.pointages.find(x=>x.id===id):{};
   if(id?!ptPeutCorriger(p):!can('corrigerPointages')){ toast('Corriger des heures demande le droit « Corriger les pointages » (Utilisateurs)'); return; }
   const dTs=p&&p.debutTs, fTs=p&&p.finTs;
+  /* ⛔ Un pointage EN COURS n'a pas de fin : le champ est facultatif et VIDE. Il se préremplissait à
+     17:00 et restait obligatoire — corriger le début d'un pointage de 8 h à 10 h du matin le clôturait à
+     17:00 (dans le futur), comptait des heures pas encore travaillées et retirait « Fin de journée » au
+     technicien. Vide = le pointage reste en cours. */
+  const enCours=!!id && ptOuvert(p);
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} pointage</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="savePointage(event,'${id||''}')">
       ${(id && !p.techId && p.userId)?`<div class="field"><label>Personne</label><div style="padding:9px 0;font-weight:600">${esc(ptNom(p))} <span style="font-weight:400;color:var(--t3)">— compte sans fiche du personnel</span></div></div>`
         :`<div class="field"><label>Technicien *</label><select name="techId" required><option value="">—</option>${ptTechsVisibles().map(t=>`<option value="${t.id}" ${t.id===p.techId||(!id&&t.id===myTechId())?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>`}
-      <div class="field"><label>Date</label><input type="date" name="date" value="${p.date||todayISO()}"></div>
+      <div class="field"><label>Date *</label><input type="date" name="date" required value="${p.date||todayISO()}"></div>
       <div class="field-row"><div class="field"><label>Début *</label><input type="time" name="debut" required value="${dTs?ptHM(dTs):(p.debut||'08:00')}"></div>
-        <div class="field"><label>Fin *</label><input type="time" name="fin" required value="${fTs?ptHM(fTs):(p.fin||'17:00')}"></div></div>
+        <div class="field"><label>${enCours?'Fin (vide = en cours)':'Fin *'}</label><input type="time" name="fin" ${enCours?'':'required'} value="${fTs?ptHM(fTs):(p.fin||(enCours?'':'17:00'))}"></div></div>
       <div class="field"><label>Pause (min)</label><input type="number" name="pause" min="0" value="${p.pause||0}"></div>
       <div class="field"><label>Note</label><input name="note" value="${esc(p.note)}"></div>
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Enregistrer'}</button></div></form>`);
@@ -37857,10 +37912,26 @@ function savePointage(e,id){ e.preventDefault();
      le menu listait TOUTE l'entreprise : un chef pouvait saisir — ou déplacer — les heures d'un
      technicien qui n'est pas le sien. */
   if(d.techId && !ptTechsVisibles().some(t=>t.id===d.techId)){ toast('Ce technicien n\'est pas dans ton équipe'); return; }
-  const jour=d.date||todayISO();
+  /* ⛔ Une date vidée ne devient pas « aujourd'hui » : `date` restait '' pendant que debutTs sautait au
+     jour courant — le pointage du 13 se comptait le 16. Les validations parlent AVANT d'écrire. */
+  if(!d.date){ toast('La date est obligatoire'); return; }
+  const jour=d.date;
+  const ancien=id?db.pointages.find(x=>x.id===id):null;
+  const resteOuvert=!d.fin && !!ancien && ptOuvert(ancien);   // un pointage en cours qu'on corrige sans lui donner de fin
+  if(!d.fin && !resteOuvert){ toast('Indique l\'heure de fin'); return; }
   d.debutTs=new Date(jour+'T'+(d.debut||'00:00')+':00').getTime()||null;
-  d.finTs=new Date(jour+'T'+(d.fin||'00:00')+':00').getTime()||null;
-  if(d.debutTs && d.finTs && d.finTs < d.debutTs) d.finTs += 86400000;   // une nuit : la fin est le lendemain
+  if(!d.debutTs){ toast('Heure de début invalide'); return; }
+  if(resteOuvert){ d.fin=''; d.finTs=null; }
+  else{
+    d.finTs=new Date(jour+'T'+d.fin+':00').getTime()||null;
+    if(!d.finTs){ toast('Heure de fin invalide'); return; }
+    if(d.finTs < d.debutTs) d.finTs += 86400000;   // une nuit : la fin est le lendemain
+  }
+  if(d.debutTs > Date.now()+60000){ toast('Le début est dans le futur'); return; }
+  if(d.finTs && d.finTs > Date.now()+60000){ toast('La fin est dans le futur — un pointage ne compte que des heures déjà travaillées'); return; }
+  if(d.pause<0){ toast('La pause ne peut pas être négative'); return; }
+  const dureeMs=(d.finTs||Date.now())-d.debutTs;
+  if(d.pause*60000 > dureeMs){ toast('La pause ('+d.pause+' min) dépasse la durée du pointage ('+Math.floor(dureeMs/60000)+' min)'); return; }
   if(id){ const ix=db.pointages.findIndex(x=>x.id===id); db.pointages[ix]={...db.pointages[ix],...d}; toast('Pointage mis à jour'); }
   else{ const rec={id:uid(),...d}; db.pointages.push(rec); logEvent('Pointage',`${techName(d.techId)} ${d.debut}-${d.fin}`,'general'); toast('Pointage enregistré'); }
   save(); closeModal(); views.pointage();
@@ -38608,15 +38679,19 @@ function formConducteur(id){ const c=id?db.conducteurs.find(x=>x.id===id):{};
         <div class="frow"><input name="nom" required value="${esc(c.nom)}" placeholder="Nom"></div>
         <div class="frow"><input name="telephone" value="${esc(c.telephone)}" inputmode="tel" placeholder="Téléphone (optionnel)"></div>
       </div>
-      ${id?`<div class="fgroup"><div class="frow"><span class="frow-lbl">Actif</span><div class="frow-val"><input type="checkbox" name="actif" ${c.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--acc)"></div></div></div>`:''}
+      ${id?`<div class="fgroup"><label class="frow" style="cursor:pointer"><span class="frow-lbl">Actif</span><span class="frow-val"><span class="switch"><input type="checkbox" name="actif" ${c.actif!==false?'checked':''} aria-label="Conducteur actif"><span class="track"></span><span class="knob"></span></span></span></label></div>`:''}
     </form>`);
 }
 function saveConducteur(ev,id){ ev.preventDefault();
   if(!permGarde('equipe', id?'modifier':'ajouter','un conducteur')) return;
   const f=ev.target; const d=Object.fromEntries(new FormData(f));
-  const obj={prenom:d.prenom,nom:d.nom,telephone:d.telephone,actif:f.actif?f.actif.checked:true};
+  /* ⛔ Un conducteur sans nom est une ligne vide dans la liste (et un « Conducteur habituel » vide) : des espaces
+     passaient l'attribut `required`. */
+  const prenom=String(d.prenom||'').trim(), nom=String(d.nom||'').trim();
+  if(!prenom||!nom){ toast('Le prénom et le nom du conducteur sont obligatoires'); return; }
+  const obj={prenom,nom,telephone:d.telephone,actif:f.actif?f.actif.checked:true};
   if(id){ const ix=db.conducteurs.findIndex(x=>x.id===id); db.conducteurs[ix]={...db.conducteurs[ix],...obj}; toast('Conducteur mis à jour'); }
-  else{ db.conducteurs.push({id:uid(),...obj,dateCreation:todayISO()}); logEvent('Conducteur ajouté',`${d.prenom} ${d.nom}`,'crud'); toast('Conducteur créé'); }
+  else{ db.conducteurs.push({id:uid(),...obj,dateCreation:todayISO()}); logEvent('Conducteur ajouté',`${prenom} ${nom}`,'crud'); toast('Conducteur créé'); }
   save(); closeModal(); views.conducteurs();
 }
 
