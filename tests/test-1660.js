@@ -42,8 +42,13 @@ function monde(o) {
   const w = { innerWidth: o.l || 375, innerHeight: o.h || 667 };
   const ctx = { window: w, current: o.vue || 'messagerie', $: id => els[id] || null, getComputedStyle: () => ({ display: 'flex' }),
     Date: { now: () => ctx.__t }, __t: 1000000, __amene: 0, __ajuste: 0,
-    requestAnimationFrame: f => { raf.push(f); return raf.length; }, msgAmener: () => { ctx.__amene++; return true; }, msgAjuster: () => { ctx.__ajuste++; } };
+    requestAnimationFrame: f => { raf.push(f); return raf.length; }, msgAmener: () => { ctx.__amene++; return true; }, msgAjuster: () => { ctx.__ajuste++; },
+    /* une minuterie à la main : rien ne part tant que le banc n'avance pas l'horloge (__avancer) */
+    setTimeout: (f, ms) => { minut.push({ f, a: ctx.__t + (ms || 0), id: ++idm }); return idm; }, clearTimeout: id => { const i = minut.findIndex(m => m.id === id); if (i >= 0) minut.splice(i, 1); } };
+  const minut = []; let idm = 0;
   ctx.__g = g; ctx.__images = () => { while (raf.length) raf.shift()(); };
+  ctx.__avancer = ms => { ctx.__t += ms; for (let m; (m = minut.filter(x => x.a <= ctx.__t).sort((x, y) => x.a - y.a)[0]);) { minut.splice(minut.indexOf(m), 1); m.f(); } };
+  ctx.__minuteries = () => minut.length;
   vm.createContext(ctx);
   vm.runInContext(VEILLE + '\n' + PLUS + '\n' + ETAT + '\n' + CACHEE + '\n' + RELIRE + '\n' + SUIVRE + '\n' + TOURNER + '\nthis.F = { msgAjusterPlus, msgFinCachee, msgFinSuivre, msgTourner, etat: () => ({ l: _msgLargeur, vue: _msgFinVue }), poser: (l, vue) => { _msgLargeur = l; _msgFinVue = vue; } };', ctx);
   return ctx;
@@ -153,6 +158,39 @@ console.log('\n── 1660 · 5. ce qui ne doit pas fausser la mesure ──');
   const c = monde({ listeBas: 500, rangee: 529, onglets: 600 }); c.F.poser(0, true);
   c.F.msgTourner({ type: 'resize' }); c.__images();
   v('le tout premier appel (largeur inconnue) n\'amène rien : il retient la largeur', [c.__amene, c.F.etat().l], [0, 375]);
+}
+
+console.log('\n── 1660 · 6. la fin de la fenêtre de rotation relit la marque (contre-vérification de r11) ──');
+{
+  /* entrée en PAYSAGE, remontée vers les pastilles (fin cachée), rotation en PORTRAIT qui fait voir toute la conversation sans un pixel de
+     défilement, puis retour en PAYSAGE : la marque restait « cachée » (la fenêtre de 800 ms interdisait la relecture et rien ne relisait après) */
+  const c = monde({ listeBas: 600, rangee: 290, onglets: 0, l: 667, h: 375 }); c.F.poser(667, true);
+  c.__g.listeBas = 640; c.F.msgFinSuivre(); c.__images();
+  v('(population) en paysage, remontée : la fin est notée cachée', c.F.etat().vue, false);
+  c.F.msgTourner({ type: 'orientationchange' });
+  vrai('orientationchange arme une relecture pour la fin de la fenêtre', c.__minuteries() === 1);
+  c.__g.listeBas = 500; c.__g.rangee = 529; c.__g.onglets = 600; c.__avancer(100); tourner(c, 375, 667); c.__images();
+  v('portrait : rien n\'est amené (elle était remontée), et la relecture de la mise en page est encore interdite', [c.__amene, c.F.etat().vue], [0, false]);
+  c.__avancer(800);
+  v('⛔ à la fin de la fenêtre, la fin se voit : la marque est relevée', c.F.etat().vue, true);
+  c.F.msgTourner({ type: 'orientationchange' }); c.__g.listeBas = 690; c.__g.rangee = 290; c.__g.onglets = 0; c.__avancer(100); tourner(c, 667, 375); c.__images();
+  v('⛔ …et le retour en paysage ramène la conversation (151 à 193 px cachés avant)', c.__amene, 1);
+}
+{
+  /* contre-épreuve : en portrait la fin reste cachée (la conversation est plus longue que l'écran) — la fin de la fenêtre ne relève rien, la place est gardée */
+  const c = monde({ listeBas: 600, rangee: 290, onglets: 0, l: 667, h: 375 }); c.F.poser(667, true);
+  c.__g.listeBas = 640; c.F.msgFinSuivre(); c.__images();
+  c.F.msgTourner({ type: 'orientationchange' }); c.__g.listeBas = 900; c.__g.rangee = 529; c.__g.onglets = 600; c.__avancer(100); tourner(c, 375, 667); c.__images();
+  c.__avancer(800);
+  v('la fin reste cachée en portrait : la marque reste « cachée »', c.F.etat().vue, false);
+  c.F.msgTourner({ type: 'orientationchange' }); c.__g.listeBas = 690; c.__g.rangee = 290; c.__g.onglets = 0; c.__avancer(100); tourner(c, 667, 375); c.__images();
+  v('…et le retour en paysage garde sa place', c.__amene, 0);
+}
+{
+  /* deux orientationchange rapprochés : une seule relecture, à la fin de la DERNIÈRE fenêtre */
+  const c = monde({ listeBas: 500, rangee: 529, onglets: 600 }); c.F.poser(375, true);
+  c.F.msgTourner({ type: 'orientationchange' }); c.__avancer(300); c.F.msgTourner({ type: 'orientationchange' });
+  v('deux rotations rapprochées : une seule relecture en attente', c.__minuteries(), 1);
 }
 
 console.log('\n════ test-1660 : ' + ok + ' ✓  ' + ko + ' ✗ ════');

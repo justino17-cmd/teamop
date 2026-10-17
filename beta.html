@@ -40137,7 +40137,7 @@ function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=r
    barre « Reprendre », la page a 10 à 31 px de défilement sous la rangée (le rembourrage du bas), `scrollY` reste à 0, et une tolérance de 4 px la
    disait « remontée » : rien ne revenait (160 px cachés en paysage, 32 configurations sur 32 ; de même après un envoi ou le choix d'une
    conversation, qui redessinent la vue sans la barre). On demande ce que voit la personne : le même test que `msgAmener` (`msgFinCachee`). */
-let _msgLargeur=0, _msgFinVue=true, _msgFinRaf=0, _msgTourT=0, _msgTourVue=true;
+let _msgLargeur=0, _msgFinVue=true, _msgFinRaf=0, _msgTourT=0, _msgTourVue=true, _msgTourFin=0;
 /* la fin de la conversation se voit-elle ? — la DERNIÈRE BULLE au-dessus de ce qui est collé en bas (rangée de saisie, barre d'onglets). Pas le bas du
    conteneur seul : il dépasse la dernière bulle de son rembourrage et de la marge de la bulle (27 px au téléphone), et un balayage qui laissait la
    bulle entière à 0-27 px au-dessus de la rangée la disait « cachée » — la rotation suivante ne ramenait rien (155 à 214 px, quatrième re-test).
@@ -40168,8 +40168,13 @@ function msgFinSuivre(){
   if(_msgFinRaf||current!=='messagerie') return;
   _msgFinRaf=requestAnimationFrame(()=>{ _msgFinRaf=0; msgFinRelire(); });
 }
+/* ⛔ (r11, contre-vérification) La fenêtre de 800 ms qui suit orientationchange interdit toute relecture — et rien ne relisait APRÈS : entrée en
+   paysage, remontée vers les pastilles (fin cachée), rotation en portrait qui fait voir toute la conversation sans un pixel de défilement, puis
+   retour en paysage : la marque était restée « cachée », rien ne revenait (151 à 193 px sous la rangée, 7 cas sur 8 ; déjà vrai en r10). La fin de
+   la fenêtre relit donc la marque, dans le sens d'une mise en page : elle ne peut que la RELEVER. */
 function msgTourner(e){
-  if(e&&e.type==='orientationchange'){ _msgTourT=Date.now(); _msgTourVue=_msgFinVue; }
+  if(e&&e.type==='orientationchange'){ _msgTourT=Date.now(); _msgTourVue=_msgFinVue;
+    clearTimeout(_msgTourFin); _msgTourFin=setTimeout(()=>{ _msgTourFin=0; try{ msgFinRelire(true); }catch(x){} },850); }
   const w=window.innerWidth, tourne=!!_msgLargeur&&w!==_msgLargeur; _msgLargeur=w;
   const vue=Date.now()-_msgTourT<800?_msgTourVue:_msgFinVue; msgAjusterPlus();
   if(tourne&&vue&&current==='messagerie') requestAnimationFrame(()=>requestAnimationFrame(()=>{ try{ if(current==='messagerie'){ msgAmener(); _msgFinVue=true; } }catch(e){} }));
