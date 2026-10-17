@@ -31948,10 +31948,10 @@ function loadLeaflet(){ return new Promise((res,rej)=>{
 }); }
 async function geocode(q){ try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q)); const j=await r.json(); if(j&&j[0]) return {lat:+j[0].lat,lng:+j[0].lon}; }catch(e){} return null; }
 async function geocodeSearch(q){ try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=fr&q='+encodeURIComponent(q)); return await r.json()||[]; }catch(e){ return null; } }
-async function geocodeClients(){ const todo=db.clients.filter(c=>c.adresse && c.lat==null); if(!todo.length){ toast('Toutes les adresses sont déjà localisées'); return; }
+async function geocodeClients(){ if(!permGarde('crm','modifier','un client')) return; const todo=db.clients.filter(c=>c.adresse && c.lat==null); if(!todo.length){ toast('Toutes les adresses sont déjà localisées'); return; }
   toast('Localisation en cours…'); let n=0;
   for(const c of todo){ const g=await geocode(c.adresse); if(g){ c.lat=g.lat; c.lng=g.lng; n++; save(); } await new Promise(r=>setTimeout(r,1100)); }
-  toast(n+' adresse(s) localisée(s)'); if(current==='carte') views.carte();
+  toast(n+' adresse(s) localisée(s)'); if(current==='carte') views.carte(); if(current==='carteInt') views.carteInt();
 }
 function setMapSat(on){
   /* On range 'a' (automatique) plutôt que d'effacer la clé : `prefAppliquer` ignore une
@@ -32208,13 +32208,24 @@ function carteFiltreBar(tous){
       <span class="pf-cnt"><b>${vus}</b> intervention${vus>1?'s':''} sur ${tous.length}</span></div>`:''}
   </div>`;
 }
+/* ⛔ LA CARTE COMPTE LES INTERVENTIONS DU JOUR, PAS SEULEMENT CELLES QU'ELLE PEUT PLACER — clients#5. Le
+   sous-titre annonçait « 0 intervention(s) » pour une intervention bien réelle dont le client n'était pas
+   localisé, et le texte « le client doit avoir une adresse localisée » promettait un geste qui n'existait
+   pas sur cet écran. `locali` = ceux que « Localiser » peut traiter (le client a une adresse), `sansAdr` =
+   ceux qu'il ne peut pas (rien à géocoder : la fiche du client à compléter). */
+function carteIntBilan(day){ const ints=visibleInts(db.interventions).filter(i=>i.date===day && carteTechVisible(i));
+  let sans=0, locali=0, sansAdr=0;
+  ints.forEach(i=>{ const c=db.clients.find(x=>x.id===i.clientId); if(c&&c.lat!=null) return; sans++; if(c&&String(c.adresse||'').trim()) locali++; else sansAdr++; });
+  return {n:ints.length, sans, locali, sansAdr}; }
 views.carteInt=function(){
   if(!carteIntDay) carteIntDay=todayISO();
   const tousPts=intPoints(carteIntDay);
   const pts=tousPts.filter(carteTechVisible);
   const secteurs=deptSectors();
-  setHeader('Carte interventions',`Tournée du ${fmtShort(carteIntDay)} · ${pts.length} intervention(s)`,
-    `<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> ${mapFondBarre()}`);
+  const bilan=carteIntBilan(carteIntDay);
+  const peutLoc=bilan.locali>0 && canCat('crm','modifier');   // « Localiser » réécrit des fiches client : la case, comme dans geocodeClients
+  setHeader('Carte interventions',`Tournée du ${fmtShort(carteIntDay)} · ${bilan.n} intervention(s)${bilan.sans?` · ${bilan.sans} sans position`:''}`,
+    `${peutLoc?`<button class="btn ghost sm" onclick="geocodeClients()">📍 Localiser les clients</button> `:''}<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> ${mapFondBarre()}`);
   const techsJour=[...new Set(pts.flatMap(p=>{ const t=planTechsOf(p); return t.length?t:['']; }))];   // v757 : les seconds aussi
   const legTech = techsJour.length?`<div class="card" style="margin-top:12px;padding:10px 12px"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
     <b style="font-size:12px;color:var(--t2)">Couleur = technicien :</b>
@@ -32225,7 +32236,7 @@ views.carteInt=function(){
     ${legTech}${legende}
     <div class="card" style="margin-top:12px"><div class="card-head"><h3>Tournée & temps de trajet</h3></div><div id="tournee"></div></div>
     <div id="map-fb"></div>`;
-  renderTournee(pts);
+  renderTournee(pts,bilan);
   setTimeout(()=>{ document.addEventListener('click',function f(){ if(carteDDopen){ carteDDopen=false; if(current==='carteInt') views.carteInt(); } document.removeEventListener('click',f); },{once:true}); },0);
   loadLeaflet().then(()=>{ const el=$('map'); if(!el||!window.L)return; if(_map){try{_map.remove();}catch(e){}_map=null;} fitMapHeightInt(); _map=L.map(el).setView([46.6,2.4],5); mapTiles(_map);
     if(showSecteurs){
@@ -32249,9 +32260,17 @@ views.carteInt=function(){
 };
 function fitMapHeightInt(){ const el=$('map'); if(el){ el.style.height='68vh'; el.style.minHeight='480px'; } }
 function shiftDay(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return d.toLocaleDateString('sv-SE'); }
-async function renderTournee(pts){
+async function renderTournee(pts,bilan){
   const el=$('tournee'); if(!el) return;
-  if(!pts.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px">Aucune intervention géolocalisée ce jour (le client doit avoir une adresse localisée).</div>'; return; }
+  if(!pts.length){
+    /* vide ne veut pas dire « rien ce jour » : on dit POURQUOI, et on offre le geste quand il existe (clients#5) */
+    const b=bilan||{n:0,sans:0,locali:0,sansAdr:0};
+    let msg;
+    if(!b.n) msg='Aucune intervention ce jour.';
+    else { msg=`${b.sans} intervention(s) sans position sur la carte.`;
+      if(b.locali) msg+=` L'adresse de leur client n'est pas encore localisée.${canCat('crm','modifier')?` <button class="btn ghost sm" style="margin-left:6px" onclick="geocodeClients()">📍 Localiser les clients</button>`:''}`;
+      if(b.sansAdr) msg+=` ${b.sansAdr} client(s) sans adresse : à compléter dans leur fiche.`; }
+    el.innerHTML=`<div style="color:var(--t3);font-size:13px">${msg}</div>`; return; }
   el.innerHTML = pts.map((p,i)=>`
     <div class="pl-row lh" style="cursor:pointer" onclick="detailIntervention('${p.id}')"><div class="pl-time">${p.heure}</div>
       <div class="pl-info"><div class="pl-title"><span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:6px">${i+1}</span>${esc(p.titre)}</div><div class="pl-meta">${esc(p.clientNom||'')} · ${esc(p.adresse||'')}</div><div class="pl-meta" style="margin-top:3px">${techPuces(p)}</div></div>${badge(STATUT_INT,p.statut)}</div>
