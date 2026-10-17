@@ -367,3 +367,15 @@ tests/test-2590.js
 tests/test-2591.js
 tests/test-2600.js
 tests/test-2610.js
+# ── La seconde vague de correctifs d'OP MESSAGES (17 octobre 2026), après la recampagne au navigateur du code fusionné : l'hôte par intérim ne termine
+#    pas pour tous (2620, le vrai service ; 2621, la page), une salle simplement vidée n'est pas « terminée » (2622), le lien d'invitation collé dans un
+#    onglet ouvert (2630), la mise en page et le contraste (2640), le changement d'heure, l'avatar d'une réunion, le renommage d'un groupe, la fiche partagée (2650-2653).
+tests/test-2620.js
+tests/test-2621.js
+tests/test-2622.js
+tests/test-2630.js
+tests/test-2640.js
+tests/test-2650.js
+tests/test-2651.js
+tests/test-2652.js
+tests/test-2653.js
