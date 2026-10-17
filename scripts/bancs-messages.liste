@@ -118,7 +118,9 @@
 # 17 octobre 2026, l'écran de connexion (lot m02) : un relais courriel injoignable ne laisse plus annoncer un code qui ne partira pas (test-2510 entre : 24 vérifications, le vrai service
 # contre un relais mort puis un relais qui meurt ; test-900 et test-933 admettent les numéros 1500-1599) — 99 suites, 9 966 vérifications mesurées par la commande de la porte, toutes
 # vertes (9 942 + 24) — plancher 9952 (le total moins 14, jamais une addition).
-#plancher 9952
+# 17 octobre 2026, la fusion des vingt et un lots de la revue d'octobre (renumérotés 2400-2610) : 166 suites, 11 210 vérifications mesurées par la commande de la
+# porte, dans les conditions de la CI (sans Chromium : test-2600 se saute), toutes vertes (commit 407cc9de) — plancher 11196 (le total moins 14, jamais une addition).
+#plancher 11196
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
