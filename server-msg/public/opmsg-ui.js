@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'f00030c96aa2';
+  const OPMSG_BUILD = 'c45d559f1f0f';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 211;
+  const OPMSG_VERSION = 212;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4584,7 +4584,14 @@
         const avant = b.dataset.valeur, auto = b.dataset.auto === 'pro' ? 'pro' : 'perso';
         ouvrirDeroule(b, 'Ranger dans', 'Le côté où cette conversation paraît. Pour toi seul : les autres gardent leur rangement.',
           [{ valeur: 'auto', libelle: 'Automatique (' + NOM_COTE[auto] + ')', coche: avant === 'auto' }, '-', { valeur: 'perso', libelle: 'Perso', coche: avant === 'perso' }, { valeur: 'pro', libelle: 'Pro', coche: avant === 'pro' }],
-          v => { if (v !== avant) apresChoixInfo(id, () => source.rangerCote(id, v === 'auto' ? null : v), v === 'auto' ? 'Rangée automatiquement (' + NOM_COTE[auto] + ')' : 'Rangée dans ' + NOM_COTE[v]); });
+          v => { if (v !== avant) apresChoixInfo(id, async () => {
+            await source.rangerCote(id, v === 'auto' ? null : v);
+            /* ⛔ « la conversation ouverte est toujours dans la liste qu'on voit » : rangée de l'AUTRE côté, elle quitte la liste affichée mais restait ouverte (et la bascule Perso / Pro ne bougeait pas, à raison :
+               le côté est une préférence du compte). On relit la liste, qui porte le côté, et on la ferme comme `bloquer` — sans changer de côté (`changerMode`) */
+            await rafraichirListe();
+            const c = etat.conversations.find(x => x.id === id);
+            if (etat.conv === id && modesActifs() && c && coteDe(c) !== etat.mode) remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+          }, v === 'auto' ? 'Rangée automatiquement (' + NOM_COTE[auto] + ')' : 'Rangée dans ' + NOM_COTE[v]); });
         return;
       }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }

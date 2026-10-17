@@ -7386,7 +7386,14 @@ a.menu-action { text-decoration: none; }
         const avant = b.dataset.valeur, auto = b.dataset.auto === 'pro' ? 'pro' : 'perso';
         ouvrirDeroule(b, 'Ranger dans', 'Le côté où cette conversation paraît. Pour toi seul : les autres gardent leur rangement.',
           [{ valeur: 'auto', libelle: 'Automatique (' + NOM_COTE[auto] + ')', coche: avant === 'auto' }, '-', { valeur: 'perso', libelle: 'Perso', coche: avant === 'perso' }, { valeur: 'pro', libelle: 'Pro', coche: avant === 'pro' }],
-          v => { if (v !== avant) apresChoixInfo(id, () => source.rangerCote(id, v === 'auto' ? null : v), v === 'auto' ? 'Rangée automatiquement (' + NOM_COTE[auto] + ')' : 'Rangée dans ' + NOM_COTE[v]); });
+          v => { if (v !== avant) apresChoixInfo(id, async () => {
+            await source.rangerCote(id, v === 'auto' ? null : v);
+            /* ⛔ « la conversation ouverte est toujours dans la liste qu'on voit » : rangée de l'AUTRE côté, elle quitte la liste affichée mais restait ouverte (et la bascule Perso / Pro ne bougeait pas, à raison :
+               le côté est une préférence du compte). On relit la liste, qui porte le côté, et on la ferme comme `bloquer` — sans changer de côté (`changerMode`) */
+            await rafraichirListe();
+            const c = etat.conversations.find(x => x.id === id);
+            if (etat.conv === id && modesActifs() && c && coteDe(c) !== etat.mode) remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+          }, v === 'auto' ? 'Rangée automatiquement (' + NOM_COTE[auto] + ')' : 'Rangée dans ' + NOM_COTE[v]); });
         return;
       }
       else if (act === 'suppression-annuler') { fermerFeuille(false); return; }
