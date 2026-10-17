@@ -420,7 +420,7 @@ async function parcours(b, ctx) {
     v('⛔ la session est coupée côté service : /api/moi répond 401, plus aucune session d\'Alice', [await A.page.evaluate(async () => (await fetch('/api/moi')).status), sql('SELECT COUNT(*) AS n FROM session WHERE personne = ?', idA).n], [401, 0]);
     await capture(A, '9-ecran-connexion');
     await saisir(A, '#c-login', 'alice'); await saisir(A, '#c-pass', MOTS.alice); await toucher(A, '#c-entrer');
-    await verifier('⛔ se reconnecter ANNULE la suppression : la page s\'ouvre et DIT « Bon retour : la suppression de ton compte est annulée »', A, () => { const a = document.getElementById('avis'); return !document.getElementById('app').hidden && !a.hidden && /la suppression de ton compte est annulée/.test(a.textContent); }, null, 20000, () => A.page.evaluate(() => location.href + ' | ' + document.getElementById('avis').textContent));
+    await verifier('⛔ se reconnecter ANNULE la suppression : la page s\'ouvre et DIT « Bon retour : la suppression de ton compte est annulée »', A, () => { const m = document.getElementById('mot'); /* la liste d'un retour de connexion ne montre pas #avis (il vit dans l'écran Conversation, caché) : la phrase passe par le petit mot */ return !document.getElementById('app').hidden && m.classList.contains('on') && /la suppression de ton compte est annulée/.test(m.textContent); }, null, 20000, () => A.page.evaluate(() => location.href + ' | ' + document.getElementById('mot').textContent + ' | ' + document.getElementById('avis').textContent));
     v('le service a effacé l\'échéance', sql('SELECT suppression_le AS s FROM personne WHERE id = ?', idA).s, null);
     await capture(A, '9-bon-retour');
 
