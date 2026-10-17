@@ -23835,6 +23835,24 @@ function _pdfLarg(txt,sz,gras){ const t=_PDF_L[gras?1:0]; let w=0;
 /* Coupe un texte à une largeur donnée, avec « … » */
 function _pdfCoupe(txt,sz,gras,max){ let s=String(txt==null?'':txt); if(_pdfLarg(s,sz,gras)<=max) return s;
   while(s.length>1&&_pdfLarg(s+'…',sz,gras)>max) s=s.slice(0,-1); return s.replace(/\s+$/,'')+'…'; }
+/* Replie un texte sur plusieurs lignes, mesuré par `_pdfLarg` (la largeur réelle en Helvetica, après la translittération
+   WinAnsi — ce qu'on mesure est ce qu'on écrit) ; un mot plus long que la colonne est cassé au signe près, jamais perdu.
+   Un saut de ligne saisi est gardé. UNE définition pour le bon de commande ET le devis / la facture : un texte coupé par
+   « … » est une phrase perdue dans le PDF que reçoit le fournisseur ou le client (campagne de test du 17 octobre 2026). */
+function _pdfReplier(s,sz,gras,maxW){ const out=[];
+  String(s==null?'':s).split(/\r?\n/).forEach(par=>{ const ms=par.trim().split(/\s+/).filter(Boolean);
+      if(!ms.length){ out.push(''); return; }
+      let cur='';
+      ms.forEach(w=>{ let cs=Array.from(w);
+        while(cs.length>1 && _pdfLarg(cs.join(''),sz,gras)>maxW){
+          let k=1; while(k<cs.length-1 && _pdfLarg(cs.slice(0,k+1).join(''),sz,gras)<=maxW) k++;
+          if(cur){ out.push(cur); cur=''; }
+          out.push(cs.slice(0,k).join('')); cs=cs.slice(k); }
+        w=cs.join('');
+        if(cur && _pdfLarg(cur+' '+w,sz,gras)>maxW){ out.push(cur); cur=w; } else cur=cur?cur+' '+w:w; });
+      if(cur) out.push(cur); });
+    while(out.length && out[out.length-1]==='') out.pop();
+  return out; }
 /* ── Le PDF, écrit à la main comme le bon de commande et le devis ──
    Les plans « geo » et « rooms » se DESSINENT en vecteurs depuis la même géométrie que l'écran
    (papLL2F, papFrac, papMPerPx) : net, quelques Ko, et exécutable hors navigateur. Un plan photo
@@ -32686,20 +32704,7 @@ function bonPdfStr(b){
      texte se REPLIE sur plusieurs lignes, mesuré par `_pdfLarg` (la largeur réelle en Helvetica, après la
      translittération WinAnsi — ce qu'on mesure est ce qu'on écrit) ; un mot plus long que la colonne est cassé
      au signe près, jamais perdu. Un saut de ligne saisi est gardé. */
-  const wrapL=(s,sz,gras,maxW)=>{ const out=[];
-    String(s==null?'':s).split(/\r?\n/).forEach(par=>{ const ms=par.trim().split(/\s+/).filter(Boolean);
-      if(!ms.length){ out.push(''); return; }
-      let cur='';
-      ms.forEach(w=>{ let cs=Array.from(w);
-        while(cs.length>1 && _pdfLarg(cs.join(''),sz,gras)>maxW){
-          let k=1; while(k<cs.length-1 && _pdfLarg(cs.slice(0,k+1).join(''),sz,gras)<=maxW) k++;
-          if(cur){ out.push(cur); cur=''; }
-          out.push(cs.slice(0,k).join('')); cs=cs.slice(k); }
-        w=cs.join('');
-        if(cur && _pdfLarg(cur+' '+w,sz,gras)>maxW){ out.push(cur); cur=w; } else cur=cur?cur+' '+w:w; });
-      if(cur) out.push(cur); });
-    while(out.length && out[out.length-1]==='') out.pop();
-    return out; };
+  const wrapL=_pdfReplier;
   const dateFr=d=>{ try{ return new Date((d||todayISO())+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'}); }catch(e){ return d||''; } };
   const tableHead=()=>{ R(M,y-6,W-2*M,22,GREEN);
     T(M+8,y,9,'RÉF',1,'1 1 1'); T(M+92,y,9,'DÉSIGNATION',1,'1 1 1'); TR(RGT-8,y,9,'QUANTITÉ',1,'1 1 1');
@@ -32746,12 +32751,35 @@ function bonPdfStr(b){
     const refL=wrapL(l.reference||'—',8.5,0,76), desL=wrapL(l.designation||'',9.2,0,Math.max(120,RGT-8-_pdfLarg(qt,9.2,1)-10-(M+92))),
       comL=l.commentaire?wrapL('» '+l.commentaire,7.6,0,RGT-8-(M+92)):[];
     const nl=Math.max(refL.length,desL.length,1), plus=(nl-1)*11;
-    if(y-plus<118) newPage();
-    if(i%2===1) R(M,y-6-plus,W-2*M,17+plus,'0.962 0.97 0.976');
-    refL.forEach((t,k)=>T(M+8,y-k*11,8.5,t,0,GREY));
-    (desL.length?desL:['']).forEach((t,k)=>T(M+92,y-k*11,9.2,t,0,DARK));
-    TR(RGT-8,y,9.2,qt,1,DARK);
-    y-=17+plus;
+    /* c2 (campagne 2) — UNE ligne plus haute qu'une page se perdait : le test ci-dessous ne
+       changeait de page qu'ENTRE deux lignes, et `newPage` ne sauve que ce qui tient sur une page NEUVE (y retombe à `yNeuve`).
+       Une référence de 3 000 signes (76 pt de colonne : une quinzaine de signes par ligne) ou une désignation faite de capitales
+       larges se repliait sur plus de 59 lignes, et les dernières s'écrivaient dans la marge basse puis hors de la page — texte
+       perdu dans le PDF que reçoit le fournisseur. Celle-là s'écrit donc par TRANCHES : on remplit la page, on en ouvre une
+       (`newPage` répète les en-têtes de colonnes), on continue ; la quantité reste sur la première tranche. Une ligne qui tient
+       (ici ou sur une page neuve) suit le chemin d'avant, octet pour octet. */
+    const yNeuve=H-M-14-24;
+    if(yNeuve-plus>=118){
+      if(y-plus<118) newPage();
+      if(i%2===1) R(M,y-6-plus,W-2*M,17+plus,'0.962 0.97 0.976');
+      refL.forEach((t,k)=>T(M+8,y-k*11,8.5,t,0,GREY));
+      (desL.length?desL:['']).forEach((t,k)=>T(M+92,y-k*11,9.2,t,0,DARK));
+      TR(RGT-8,y,9.2,qt,1,DARK);
+      y-=17+plus;
+    } else {
+      if(y<118+2*11) newPage();                     // moins de trois lignes de place : on repart en haut plutôt que d'orpheliner la ligne
+      const desA=desL.length?desL:[''];
+      for(let k0=0;k0<nl;){
+        const cap=Math.floor((y-118)/11)+1, n=Math.min(cap,nl-k0), fin=k0+n>=nl;
+        if(i%2===1) R(M,y-6-(n-1)*11,W-2*M,17+(n-1)*11,'0.962 0.97 0.976');
+        for(let k=k0;k<k0+n;k++){ const yy=y-(k-k0)*11;
+          if(k<refL.length) T(M+8,yy,8.5,refL[k],0,GREY);
+          if(k<desA.length) T(M+92,yy,9.2,desA[k],0,DARK); }
+        if(k0===0) TR(RGT-8,y,9.2,qt,1,DARK);
+        k0+=n;
+        if(fin) y-=17+(n-1)*11; else newPage();
+      }
+    }
     /* un commentaire très long (une dizaine de lignes et plus) passe à la page suivante au lieu d'écrire dans le pied
        de page : ce que le fournisseur doit lire ne se perd pas sous la marge */
     comL.forEach(t=>{ if(y+4<70) newPage(); T(M+92,y+4,7.6,t,0,GREY); y-=11; });
@@ -32885,15 +32913,31 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   tableHead();
 
   let totHT=0;
+  /* Une désignation se REPLIE (comme celle du bon de commande) : coupée à 48 signes par « … », le client recevait une
+     facture ou un devis dont la prestation n'était pas écrite en entier. La ligne grandit de 11 pt par ligne de texte ;
+     une ligne qui ne tient pas sur la page se continue sur la suivante (en-têtes répétés), jamais sous la marge basse.
+     Quantité et prix restent sur la première ligne. Une désignation d'une ligne se dessine exactement comme avant. */
+  const yNeuve=H-M-14-24, PAS=11;
   (d.lignes||[]).forEach((l,i)=>{
-    if(y<150) newPage();
     const q=Number(l.qte)||0, pu=Number(l.pu)||0, tot=ligTotLigne(l); totHT+=tot;   // même arrondi que l'écran et l'e-mail
-    if(i%2===1) R(M,y-6,W-2*M,17,'0.962 0.97 0.976');
-    T(M+8,y,9.2,cut(l.designation||'',48),0,DARK);
-    TR(RGT-232,y,9.2,String(q).replace('.',','),0,DARK);
-    TR(RGT-120,y,9.2,eur(pu),0,DARK);
-    TR(RGT-8,y,9.2,eur(tot),1,DARK);
-    y-=17;
+    const qt=String(q).replace('.',',');
+    const dl=_pdfReplier(l.designation||'',9.2,0,Math.max(120,RGT-232-_pdfLarg(qt,9.2,0)-8-(M+8))); if(!dl.length) dl.push('');
+    const nl=dl.length;
+    if(y<150 || (nl>1 && y-(nl-1)*PAS<150 && yNeuve-(nl-1)*PAS>=150)) newPage();
+    let k=0;
+    while(k<nl){
+      let place=Math.floor((y-150)/PAS)+1;   // lignes de texte dont la base reste au-dessus de la marge
+      if(place<Math.min(3,nl-k)){ newPage(); place=Math.floor((y-150)/PAS)+1; }
+      const pris=Math.min(nl-k,place), h=17+(pris-1)*PAS;
+      if(i%2===1) R(M,y-6-(pris-1)*PAS,W-2*M,h,'0.962 0.97 0.976');
+      for(let t=0;t<pris;t++) T(M+8,y-t*PAS,9.2,dl[k+t],0,DARK);
+      if(k===0){
+        TR(RGT-232,y,9.2,qt,0,DARK);
+        TR(RGT-120,y,9.2,eur(pu),0,DARK);
+        TR(RGT-8,y,9.2,eur(tot),1,DARK); }
+      k+=pris;
+      if(k<nl) newPage(); else y-=h;
+    }
   });
   R(M,y+11,W-2*M,0.8,LINE);
 
@@ -32906,12 +32950,20 @@ function docPdfStr(kind,d,logo){ const estFact=kind==='factures';
   T(RGT-bw+10,y-12,11,'TOTAL TTC',1,'1 1 1'); TR(RGT-8,y-12,11,eur(ttc),1,'1 1 1');
   y-=34;
 
-  if(d.notes){ const nl=String(d.notes).split(/\n/).slice(0,6); const nh=22+nl.length*12;
-    y-=14; if(y-nh<140) newPage();
-    R(M,y-nh+8,W-2*M,nh,GREENLT);
-    T(M+9,y-6,8,'DÉTAIL',1,GREEN);
-    nl.forEach((line,i)=>{ T(M+9,y-19-i*12,8.8,cut(line,100),0,DARK); });
-    y-=nh+6; }
+  /* Le détail se REPLIE aussi (il était limité à 6 lignes de 100 signes : la suite se perdait) et le cadre se continue
+     sur la page suivante quand il est plus haut que la place restante. */
+  if(d.notes){ const nl=_pdfReplier(d.notes,8.8,0,W-2*M-18); const nh=22+nl.length*12;
+    y-=14; if(y-nh<140 && yNeuve-nh>=140) newPage();
+    let k=0, debut=true;
+    while(k<nl.length){
+      let place=Math.floor((y-140-22)/12);   // lignes du cadre qui tiennent au-dessus de la marge
+      if(place<Math.min(3,nl.length-k)){ newPage(); place=Math.floor((y-140-22)/12); }
+      const pris=Math.min(nl.length-k,place), bh=22+pris*12;
+      R(M,y-bh+8,W-2*M,bh,GREENLT);
+      T(M+9,y-6,8,debut?'DÉTAIL':'DÉTAIL (suite)',1,GREEN);
+      for(let t=0;t<pris;t++) T(M+9,y-19-t*12,8.8,nl[k+t],0,DARK);
+      k+=pris; debut=false;
+      if(k<nl.length) newPage(); else y-=bh+6; } }
 
   if(y<160) newPage();
   y-=14;
