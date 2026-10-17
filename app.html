@@ -20703,10 +20703,10 @@ function absSolde(techId){
 /* ── Tâches ── */
 views.modulesElan=function(){
   const items=NAV.flatMap(g=>g.items).filter(x=>x.aside&&userSeesModule(currentUser,x.k));   // seulement ce que ce compte a le droit d'ouvrir
-  setHeader('Modules OP (mis de côté)', showAside()?'Affichés dans le menu':'Masqués — interface 100 % Organilog',
+  setHeader('Modules OP', showAside()?'Affichés dans le menu':'Masqués du menu',
     `<button class="btn" onclick="localStorage.setItem('elan_aside',showAside()?'0':'1');renderNav();go('modulesElan')">${showAside()?'Masquer du menu':'Afficher dans le menu'}</button>`);
   $('content').innerHTML=`<div class="card" style="padding:16px">
-    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules métier (3D, circuits internes…) sont <b>mis de côté</b> pour garder une interface façon Organilog. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Vous pouvez les ouvrir ci-dessous ou les ré-afficher dans le menu.</p>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules complémentaires sont <b>masqués du menu</b> pour garder une interface simple. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Vous pouvez les ouvrir ci-dessous ou les ré-afficher dans le menu.</p>
     ${items.map(x=>`<div class="pl-row" style="cursor:pointer" onclick="go('${x.k}')"><div class="pl-info"><div class="pl-title">${x.ic} ${esc(x.l)}</div></div><span style="color:var(--t3)">Ouvrir ›</span></div>`).join('')}
   </div>`;
 };
@@ -39832,7 +39832,10 @@ function enterApp(u){ currentUser=u;
   // vue demandée par l'adresse (#v=…) : seulement si ce compte y a droit — sinon tableau de bord, sans message (l'adresse peut venir d'un autre compte sur le même appareil)
   (function(){ const m=location.hash.match(/v=([A-Za-z0-9_-]+)/); let v=m&&views[m[1]]?m[1]:'dashboard'; try{ if(v!=='dashboard'){ let it=null; NAV.forEach(s=>s.items.forEach(x=>{ if(x.k===(v==='carteBox'?'boxes':v)) it=x; })); if(it&&!canSee(it)) v='dashboard'; } }catch(e){} go(v); })();
   if(getLang()!=='fr') setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },50);
-  if(!prefLocalLire('elan_lang')) setTimeout(openLangPicker,300);
+  /* La langue ne se demande qu'à un appareil qui n'est PAS réglé en français : l'application est en français par défaut
+     (getLang). Mesuré le 17 octobre 2026 (contrôle client mystère) : posée à tous, la question revenait à chaque ouverture
+     tant qu'on n'avait pas répondu — et à la première connexion, la fenêtre du mot de passe la remplaçait sans un mot. */
+  if(!prefLocalLire('elan_lang') && !/^fr\b/i.test(String((navigator.languages&&navigator.languages[0])||navigator.language||'fr'))) setTimeout(openLangPicker,300);
   maybeDemoTelecollecte();
   if(typeof syncInit==='function') syncInit();
   // migration : le code Devis IA saisi sur l'appareil d'un admin rejoint les données d'équipe (partagé, invisible)
