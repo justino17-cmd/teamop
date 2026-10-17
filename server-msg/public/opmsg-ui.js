@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'eb6c7e5f3176';
+  const OPMSG_BUILD = 'a16e5d92b71f';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 234;
+  const OPMSG_VERSION = 235;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -143,10 +143,12 @@
   /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
   const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
   /* ⛔ le dimanche où l'on repasse à l'heure d'hiver, une même heure sonne DEUX fois : une réunion d'une heure à 02:30 (été) finit à 02:30 (hiver), et « 02:30 – 02:30 » ne disait rien.
-     Quand le début et la fin s'affichent pareil mais ne sont pas au même décalage, chaque heure dit sa saison. Sinon (le cas de tous les autres jours) l'heure s'écrit comme avant. */
+     Quand le début et la fin s'affichent pareil mais ne sont pas au même décalage, chaque heure dit sa saison. Sinon (le cas de tous les autres jours) l'heure s'écrit comme avant.
+     ⛔ (p04) SEULEMENT LE MÊME JOUR : une réunion du vendredi 09:00 au lundi 09:00 à cheval sur le changement d'heure affichait aussi « 09:00 (été) / 09:00 (hiver) » — début et fin tombent des jours
+     différents, il n'y a rien à lever. Le jour se compare dans la fonction elle-même (`toDateString`), pour ne dépendre d'aucun autre morceau de la page. */
   const heureSaison = (t, autre) => {
     const h = FMT_HEURE.format(t);
-    if (!(autre > 0) || FMT_HEURE.format(autre) !== h) return h;
+    if (!(autre > 0) || FMT_HEURE.format(autre) !== h || new Date(t).toDateString() !== new Date(autre).toDateString()) return h;
     const a = new Date(t).getTimezoneOffset(), b = new Date(autre).getTimezoneOffset();
     return a === b ? h : h + (a < b ? ' (été)' : ' (hiver)');
   };
@@ -2841,9 +2843,17 @@
   /* ⛔ (m13) la limite du nom d'un groupe se compte en SIGNES (points de code), comme le service (`Array.from(nom).length <= 80`) : `maxlength` compte des unités UTF-16, un émoji en pèse deux —
      45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin. */
   const NOM_GROUPE_MAX = 40;
-  function limiterNomGroupe(champ) {
+  /* ⛔ (p04) UN SEUL COMPTEUR pour le nom d'un groupe, deux limites qui ne bougent pas : la création coupe à 40 (`NOM_GROUPE_MAX`, lot m13), le renommage garde la limite du service, 80 (`NOM_RENOMMAGE_MAX`,
+     `Array.from(nom).length <= 80` dans routes.js) — celle que l'utilisateur connaît (m04 : « maxlength 80 comme le service »). Le défaut n'était pas la limite mais l'UNITÉ : `maxlength="80"` compte des unités
+     UTF-16, 40 émojis pour 80. On ne raccourcit donc rien (un nom de 41 à 80 signes, déjà enregistré, se corrige sans être raboté) ; que la création et le renommage diffèrent (40 contre 80) est une décision
+     de produit, laissée à Justin. */
+  const NOM_RENOMMAGE_MAX = 80;
+  function limiterNomSignes(champ, max) {
     const signes = Array.from(champ.value);
-    if (signes.length > NOM_GROUPE_MAX) champ.value = signes.slice(0, NOM_GROUPE_MAX).join('');
+    if (signes.length > max) champ.value = signes.slice(0, max).join('');
+  }
+  function limiterNomGroupe(champ) {
+    limiterNomSignes(champ, NOM_GROUPE_MAX);
     g().nom = champ.value;
   }
   $('g-nom').addEventListener('input', e => { if (!e.isComposing) limiterNomGroupe(e.target); else g().nom = e.target.value; });
@@ -4821,7 +4831,7 @@
         const ajoutables = CONTACTS.filter(c => !i.membres.some(m => m.id === c.id));
         h += '<div class="rubrique"><span>Ajouter au groupe</span></div><div class="carte">' + ajoutables.map(c => '<div class="contact">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span></span><button type="button" class="mini" data-act="ajouter" data-uid="' + esc(c.id) + '">Ajouter</button></div>').join('') +
           '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>' +
-          '<div class="rubrique"><span>Renommer</span></div><div class="carte carte-pad"><div class="info-champ"><input id="gr-renom" type="text" maxlength="80" autocomplete="off" value="' + esc(i.nom) + '" aria-label="Nom du groupe"><button type="button" class="mini" data-act="groupe-renommer">Enregistrer</button></div></div>';
+          '<div class="rubrique"><span>Renommer</span></div><div class="carte carte-pad"><div class="info-champ"><input id="gr-renom" type="text" autocomplete="off" value="' + esc(i.nom) + '" aria-label="Nom du groupe"><button type="button" class="mini" data-act="groupe-renommer">Enregistrer</button></div></div>';
       }
       h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="quitter"><span class="reglage-texte">Quitter le groupe</span></button></div>';
     } else if (canal) {
@@ -4979,6 +4989,14 @@
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
     } catch (er) { erreurInfo(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Cette action n\'a pas pu se faire.') : phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
+  /* ⛔ (p04) le champ « Renommer » d'un groupe coupe au SIGNE, à la limite du service (`NOM_RENOMMAGE_MAX`, 80) — la feuille se redessine, l'écouteur est donc posé sur son corps. Pendant une composition
+     (clavier chinois, japonais, accents morts) on attend sa fin. Le service refuse au-delà de 80 : un nom enregistré n'est jamais plus long, et rien n'est coupé en dessous. */
+  const limiterRenommage = e => {
+    if (!e.target || e.target.id !== 'gr-renom' || (e.type === 'input' && e.isComposing)) return;
+    limiterNomSignes(e.target, NOM_RENOMMAGE_MAX);
+  };
+  $('info-corps').addEventListener('input', limiterRenommage);
+  $('info-corps').addEventListener('compositionend', limiterRenommage);
   /* Entrée dans le champ de l'identifiant : « Voir » (le clavier d'un téléphone dit « Rechercher », enterkeyhint) */
   $('info-corps').addEventListener('keydown', e => {
     if (e.key !== 'Enter' || !e.target || e.target.id !== 'ct-ident' || e.isComposing) return;
@@ -7887,7 +7905,7 @@
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d);
     const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse rappel-puce" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" aria-label="' + esc(x[1]) + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(rappelCourt(x[1])) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
     let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
-      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
+      '<div class="info-tete"><span class="avatar av' + (((indexAvatarReunion(d)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
       (d.annulee ? '<p class="info-erreur">Cette réunion est annulée.</p>' : '') +
       '<div class="carte">' +
         '<div class="reglage">' + icone('i-agenda') + '<span class="reglage-texte">' + esc(maj1(FMT_JOUR_LONG.format(o.debut))) + '<small>' + esc(h + (note ? ' (' + note + ')' : '')) + '</small></span></div>' +
@@ -7964,6 +7982,9 @@
     return s;
   }
   const indexAvatarPage = id => { let x = 0; for (const c of String(id)) x = (x * 31 + c.charCodeAt(0)) % 6007; return x % 6; };
+  /* ⛔ (p04) UNE RÉUNION N'A PAS DEUX COULEURS : la liste et l'en-tête de sa conversation hachent l'identifiant de la CONVERSATION (`c_…`, source-serveur : `indexAvatar(c.id)`), la feuille « Infos » hachait
+     celui de la RÉUNION (`r_…`) — deux entrées, deux teintes. La fiche prend l'identifiant de la conversation que la réunion porte ; sans lui (un service d'avant), celui de la réunion. */
+  const indexAvatarReunion = d => indexAvatarPage(d.conv || d.id);
   function htmlCourriel(d, o) {
     const C = reu.fiche.courriel, serie = d.repetition !== 'aucune';
     if (C.ouvert === false) return '<div class="carte carte-pad"><p class="info-note" id="reu-courriel-note">L\'envoi par courriel n\'est pas encore ouvert.</p></div>';
