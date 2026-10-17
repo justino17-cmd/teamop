@@ -721,6 +721,14 @@ const MIGRATIONS = [
     `ALTER TABLE reunion_invite ADD COLUMN trajet_le INTEGER`,
     `PRAGMA user_version = 29`,
   ] },
+  /* ── 30 (17 octobre 2026) : L'HEURE DE LECTURE SURVIT AU RECHARGEMENT — Justin : « Lu 22:50 devient Lu après un rechargement de la page — on garde l'heure de lecture ? » « Oui, garder l'heure ».
+         Le service ne retenait qu'un « lu jusqu'à » (`lu_seq`) : l'heure ne voyageait que dans l'événement en direct (`lu`), et la page qui rechargeait la conversation n'en avait plus aucune trace.
+         `lu_ts` est l'instant de la DERNIÈRE avancée de `lu_seq` (la même valeur que le `ts` de l'événement : une seule source), NULL pour toute ligne d'avant — la page écrit alors « Lu » sans heure,
+         exactement comme avant. Aucune colonne d'avant n'est touchée ; le code d'avant (un retour en arrière du déploiement) ignore la colonne. ── */
+  { v: 30, sql: [
+    `ALTER TABLE membre ADD COLUMN lu_ts INTEGER`,
+    `PRAGMA user_version = 30`,
+  ] },
 ];
 
 const erreur = (code) => Object.assign(new Error(code), { code });
@@ -811,6 +819,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const PROGRAMMES = versionActuelle() >= 22;     // une base d'avant la migration 22 : pas d'envoi programmé
   const ODJ = versionActuelle() >= 23;            // une base d'avant la migration 23 : pas d'ordre du jour
   const INVITATIONS = versionActuelle() >= 19;    // une base d'avant la migration 19 : pas d'invitation à écrire (seules les demandes de contact)
+  const LU_HEURE = versionActuelle() >= 30;       // une base d'avant la migration 30 : l'heure de lecture n'est pas retenue (la page écrit « Lu » seul)
   const THEMES = versionActuelle() >= 18;         // une base d'avant la migration 18 : pas de thème de conversation (le fond et les bulles par défaut)
   const TRANSCRIPTIONS = versionActuelle() >= 26; // une base d'avant la migration 26 : aucune transcription (la page ne propose rien de plus)
 
@@ -845,8 +854,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   const debut = (s, n) => { const a = Array.from(String(s)); return a.length > n ? a.slice(0, n).join('') : String(s); };
 
   /* ── Le journal : une ligne par événement ───────────────────────────────────────────── */
-  function journalAjouter(genre, conv, uid, ref) {
-    const r = Q('INSERT INTO journal(genre, conv, uid, ref, ts) VALUES(?, ?, ?, ?, ?)').run(genre, conv || null, uid || null, ref == null ? null : String(ref), horloge());
+  function journalAjouter(genre, conv, uid, ref, ts) {
+    const r = Q('INSERT INTO journal(genre, conv, uid, ref, ts) VALUES(?, ?, ?, ?, ?)').run(genre, conv || null, uid || null, ref == null ? null : String(ref), ts === undefined ? horloge() : ts);
     return num(r.lastInsertRowid);
   }
 
@@ -1331,12 +1340,19 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function membresDetail(conv, viewer) {
     /* ⛔ l'auteur d'une invitation ne sait pas si elle a été LUE (comme chez Instagram) : la personne la lit sans rien promettre, tant qu'elle n'a pas accepté */
     const moi = personneParId(viewer), invite = invitationEtat(conv, viewer) === 'envoyee', jeVois = accuses(moi && moi.prefs) && !invite;
-    return Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.prefs, m.role, m.depuis_seq, m.lu_seq FROM membre m JOIN personne p ON p.id = m.uid
+    /* ⛔ L'HEURE DE LECTURE (`lu_ts`, migration 30) SUIT `lu_seq` À LA LETTRE : montrée à qui voit le « lu jusqu'à » (soi, ou un membre qui voit les accusés de quelqu'un qui les montre), `null` pour tous les
+       autres — les accusés coupés par l'un OU l'autre, l'invitation non acceptée, un groupe aussi. Deux requêtes LITTÉRALES : une base d'avant la migration 30 n'a pas la colonne. */
+    const lignes = LU_HEURE
+      ? Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.prefs, m.role, m.depuis_seq, m.lu_seq, m.lu_ts FROM membre m JOIN personne p ON p.id = m.uid
               WHERE m.conv = ? AND m.quitte_le IS NULL ORDER BY m.rejoint, m.rowid`).all(conv)
+      : Q(`SELECT p.id, p.prenom, p.nom, p.avatar_piece, p.prefs, m.role, m.depuis_seq, m.lu_seq FROM membre m JOIN personne p ON p.id = m.uid
+              WHERE m.conv = ? AND m.quitte_le IS NULL ORDER BY m.rejoint, m.rowid`).all(conv);
+    return lignes
       .map(r => {
         let prefs = {}; try { prefs = JSON.parse(r.prefs) || {}; } catch (e) {}
-        if (invite && r.id !== viewer) return { id: r.id, prenom: premierMot(r.prenom), nom: '', avatar: null, role: r.role, depuis_seq: r.depuis_seq, lu_seq: null };      // l'invitée : ce que dit la fiche, rien de plus
-        return { id: r.id, prenom: r.prenom, nom: r.nom, avatar: avatarPour(viewer, r.id, r.avatar_piece), role: r.role, depuis_seq: r.depuis_seq, lu_seq: (r.id === viewer || (accuses(prefs) && jeVois)) ? r.lu_seq : null };
+        if (invite && r.id !== viewer) return { id: r.id, prenom: premierMot(r.prenom), nom: '', avatar: null, role: r.role, depuis_seq: r.depuis_seq, lu_seq: null, lu_ts: null };      // l'invitée : ce que dit la fiche, rien de plus
+        const vu = r.id === viewer || (accuses(prefs) && jeVois);
+        return { id: r.id, prenom: r.prenom, nom: r.nom, avatar: avatarPour(viewer, r.id, r.avatar_piece), role: r.role, depuis_seq: r.depuis_seq, lu_seq: vu ? r.lu_seq : null, lu_ts: vu && r.lu_ts != null ? num(r.lu_ts) : null };
       });
   }
   function nbAdmins(conv) { return num(Q(`SELECT COUNT(*) AS n FROM membre WHERE conv = ? AND quitte_le IS NULL AND role = 'admin'`).get(conv).n); }
@@ -1420,9 +1436,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
         if (n >= max) throw erreur('groupe_plein');
         const t = horloge(), ds = c.dernier_seq + 1 + ajoutes.length;
         /* revenir, c'est repartir des réglages par défaut — le côté choisi compris (une base d'avant la migration 20 n'a pas la colonne : deux requêtes LITTÉRALES, jamais un texte construit) */
-        if (m) (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
-          : Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(ds, ds - 1, t, conv, u);
-        else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, 'membre', ?, ?, ?)`).run(conv, u, ds, ds - 1, t);
+        /* ⛔ un seul if/else : l'INSERT n'est que le « sinon » de `m` (une base d'avant la migration 30 passe par le même chemin, sans la remise à NULL de l'heure de lecture) */
+        if (m) {
+          (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
+            : Q(`UPDATE membre SET quitte_le = NULL, role = 'membre', depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(ds, ds - 1, t, conv, u);
+          if (LU_HEURE) Q('UPDATE membre SET lu_ts = NULL WHERE conv = ? AND uid = ?').run(conv, u);      // revenir, c'est repartir sans heure de lecture : celle d'avant le départ ne se lit plus
+        } else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, 'membre', ?, ?, ?)`).run(conv, u, ds, ds - 1, t);
         n++; ajoutes.push(u);
         messageSysteme(conv, par || u, { k: par && par !== u ? 'membre_ajoute' : 'rejoint', uid: u });
       }
@@ -1549,11 +1568,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       const m = Q('SELECT lu_seq FROM membre WHERE conv = ? AND uid = ? AND quitte_le IS NULL').get(conv, uid);
       if (!c || !m) throw erreur('introuvable');
       const cible = Math.min(seq, c.dernier_seq);
-      const r = Q('UPDATE membre SET lu_seq = ? WHERE conv = ? AND uid = ? AND lu_seq < ?').run(cible, conv, uid, cible);
+      /* ⛔ L'HEURE se pose AVEC l'avancée et ne bouge qu'avec elle (le même `WHERE lu_seq < ?`) : un vieux « lu » rejoué ne rajeunit pas l'heure. C'est AUSSI le `ts` de l'événement (une seule horloge lue,
+         une seule source : l'heure du direct et celle du chargement sont la même donnée). */
+      const t = horloge();
+      const r = LU_HEURE ? Q('UPDATE membre SET lu_seq = ?, lu_ts = ? WHERE conv = ? AND uid = ? AND lu_seq < ?').run(cible, t, conv, uid, cible)
+        : Q('UPDATE membre SET lu_seq = ? WHERE conv = ? AND uid = ? AND lu_seq < ?').run(cible, conv, uid, cible);
       let gid = 0;
       /* Sans accusés, l'événement n'est adressé qu'à son titulaire (ses autres appareils) : les membres ne l'apprennent pas. */
       /* ⛔ lire une invitation qu'on n'a pas acceptée ne se dit pas non plus à son auteur (`invitationEtat`) : l'événement n'est adressé qu'à soi */
-      if (num(r.changes) > 0) gid = journalAjouter('lu', conv, accuses((personneParId(uid) || {}).prefs) && !invitationEtat(conv, uid) ? null : uid, uid + ':' + cible);
+      if (num(r.changes) > 0) gid = journalAjouter('lu', conv, accuses((personneParId(uid) || {}).prefs) && !invitationEtat(conv, uid) ? null : uid, uid + ':' + cible, t);
       return { lu_seq: Math.max(m.lu_seq, cible), gid };
     });
   }
@@ -3820,9 +3843,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const ds = num(c.dernier_seq) + 1;
     const m = Q('SELECT quitte_le FROM membre WHERE conv = ? AND uid = ?').get(conv, uid);
     if (m && m.quitte_le === null) { Q('UPDATE membre SET role = ? WHERE conv = ? AND uid = ?').run(role, conv, uid); return false; }
-    if (m) (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
-      : Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(role, ds, ds - 1, t, conv, uid);
-    else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, ?, ?, ?, ?)`).run(conv, uid, role, ds, ds - 1, t);
+    /* ⛔ un seul if/else : l'INSERT n'est que le « sinon » de `m` (une base d'avant la migration 30 passe par le même chemin, sans la remise à NULL de l'heure de lecture) */
+    if (m) {
+      (COTES ? Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0, cote = NULL WHERE conv = ? AND uid = ?`)
+        : Q(`UPDATE membre SET quitte_le = NULL, role = ?, depuis_seq = ?, lu_seq = ?, rejoint = ?, epingle = 0, archive = 0, muet_jusqua = 0 WHERE conv = ? AND uid = ?`)).run(role, ds, ds - 1, t, conv, uid);
+      if (LU_HEURE) Q('UPDATE membre SET lu_ts = NULL WHERE conv = ? AND uid = ?').run(conv, uid);      // revenir, c'est repartir sans heure de lecture
+    } else Q(`INSERT INTO membre(conv, uid, role, depuis_seq, lu_seq, rejoint) VALUES(?, ?, ?, ?, ?, ?)`).run(conv, uid, role, ds, ds - 1, t);
     return true;
   }
   function canauxPublics(espace) { return Q('SELECT conv FROM canal WHERE espace = ? AND prive = 0 ORDER BY cree, conv').all(espace).map(r => r.conv); }

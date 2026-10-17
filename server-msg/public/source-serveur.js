@@ -2053,7 +2053,6 @@
     let contactsApi = [], contactsTous = [], convsApi = [], listeFraiche = false;
     const convs = new Map();               // id → { detail, messages[], aPlus, charge }
     const saisies = new Map();             // conv → Map(uid → minuterie)
-    const lecture = new Map();             // conv → Map(uid → { seq, ts })
     const file = [];                       // l'envoi en attente : { cid, conv, texte, reponse, t, essais }
     let minuterieFile = null, enRelecture = null, derniereSaisie = new Map(), envoiSaisie = new Map(), arretSaisie = new Map();
     const ecouteurs = [];
@@ -2309,15 +2308,16 @@
     };
 
     /* ── les messages ── */
-    function lecteursDe(id) { return lecture.get(id) || lecture.set(id, new Map()).get(id); }
-    /* « Lu » : mon message est lu quand l'autre (une directe) ou tous les autres (un groupe) sont allés au moins jusqu'à lui. `true` si l'heure est inconnue. */
+    /* « Lu » : mon message est lu quand l'autre (une directe) ou tous les autres (un groupe) sont allés au moins jusqu'à lui. `true` si l'heure est inconnue.
+       ⛔ L'HEURE VIENT DU DÉTAIL DE LA CONVERSATION (`membres[].lu_ts`), qu'il vienne d'être LU au service ou mis à jour par l'événement `lu` en direct : UNE source, la même au chargement et
+       en direct. Elle ne venait que de l'événement (une table de la séance) : après un rechargement, « Lu 22:50 » devenait « Lu » (campagne de test, conversations#2 ; Justin, 17 octobre 2026 :
+       « Oui, garder l'heure »). Un service d'avant la migration 30 ne la rend pas : `true`, « Lu » sans heure, comme avant. */
     function luDe(conv, c, m) {
       if (!estMoi(m.auteur) || m.type === 'systeme' || !c.detail) return null;
       const autres = c.detail.membres.filter(x => !estMoi(x.id) && x.lu_seq !== null && x.lu_seq !== undefined);
       if (!autres.length || !autres.every(x => x.lu_seq >= m.seq)) return null;
-      const L = lecture.get(conv);
       let ts = 0;
-      for (const x of autres) { const e = L && L.get(x.id); if (e && e.seq >= m.seq && e.ts > ts) ts = e.ts; else { ts = 0; break; } }
+      for (const x of autres) { if (Number.isFinite(x.lu_ts) && x.lu_ts > ts) ts = x.lu_ts; else { ts = 0; break; } }
       return ts || true;
     }
     /* `genre` : 'canal' (un CANAL d'espace) ou 'reunion' (la conversation d'une réunion) — les phrases disent « le canal », « la réunion » là où un groupe dit « le groupe » (le reste est commun :
@@ -3173,9 +3173,9 @@
       retire: (d) => { convs.delete(d.conv); const S = saisies.get(d.conv); if (S) { for (const h of S.values()) annuler(h); saisies.delete(d.conv); } emettre({ type: 'retire', id: d.conv }); relireListePlusTard(); },
       lu: (d) => {
         if (estMoi(d.uid)) { const r = convsApi.find(x => x.id === d.conv); if (r && d.seq > r.lu_seq) { r.lu_seq = d.seq; relireListePlusTard(); } const c = convs.get(d.conv); if (c) c.luLocal = Math.max(c.luLocal || 0, d.seq); return; }
-        lecteursDe(d.conv).set(d.uid, { seq: d.seq, ts: d.ts || maintenant() });
         const c = convs.get(d.conv);
-        if (c && c.detail) { const x = c.detail.membres.find(m => m.id === d.uid); if (x && (x.lu_seq === null || x.lu_seq === undefined || d.seq > x.lu_seq)) x.lu_seq = d.seq; emettre({ type: 'conversation', id: d.conv }); }
+        /* l'heure avance AVEC le « lu jusqu'à » (jamais seule : un vieil événement rejoué ne rajeunit pas l'heure déjà connue) */
+        if (c && c.detail) { const x = c.detail.membres.find(m => m.id === d.uid); if (x && (x.lu_seq === null || x.lu_seq === undefined || d.seq > x.lu_seq)) { x.lu_seq = d.seq; x.lu_ts = d.ts || maintenant(); } emettre({ type: 'conversation', id: d.conv }); }
       },
       notification: (d, gid) => {
         acquitter(gid);

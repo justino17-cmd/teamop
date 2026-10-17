@@ -179,10 +179,13 @@ const json = async (base, methode, chemin, corps, entetes) => {
       vrai('marquerLu remet les non-lus à zéro dans la liste', (await B.src.lister())[0].nonLus === 0);
       const evLu = await A.attendreEv(e => e.type === 'conversation' && e.id === conv && false) || true;
       void evLu;
-      vrai('⛔ « Lu » REVIENT chez Alice, avec l\'HEURE de la lecture (ce que la page écrit sous le message)', await att(async () => { const o = await A.src.ouvrir(conv); const d = o.messages.find(m => m.texte === 'Salut Bruno <b>gras</b>'); return d && typeof d.lu === 'number' && d.lu > 1e12; }));
+      let heureLu = null;
+      vrai('⛔ « Lu » REVIENT chez Alice, avec l\'HEURE de la lecture (ce que la page écrit sous le message)', await att(async () => { const o = await A.src.ouvrir(conv); const d = o.messages.find(m => m.texte === 'Salut Bruno <b>gras</b>'); if (d && typeof d.lu === 'number' && d.lu > 1e12) heureLu = d.lu; return heureLu !== null; }));
       const fraiche = monter(svc); await fraiche.entrer('alice', 'pw-alice-1234');
       const o2 = await fraiche.src.ouvrir(conv);
-      v('rechargée (page neuve), Alice sait toujours que c\'est lu — l\'heure, elle, est inconnue : « Lu » sans heure (true)', o2.messages[0].lu, true);
+      /* ⛔ DÉCISION DE JUSTIN, 17 octobre 2026 (« Lu 22:50 devient Lu après un rechargement — on garde l'heure de lecture ? » → « Oui, garder l'heure ») : ce banc gardait l'ANCIEN comportement
+         (« Lu » seul après un rechargement, `true`). Le service retient maintenant l'heure (`membre.lu_ts`) et la rend avec le détail : la page neuve écrit la MÊME heure que celle du direct (test-2668, test-2669). */
+      v('rechargée (page neuve), Alice sait toujours que c\'est lu ET à quelle HEURE : celle du direct, plus « Lu » seul', o2.messages[0].lu, heureLu);
       fraiche.src.arreter();
       const avant = B.reseau.requetes.length;
       await B.src.saisie(conv, true); await B.src.saisie(conv, true); await B.src.saisie(conv, true);

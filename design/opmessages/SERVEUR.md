@@ -144,7 +144,7 @@ signalement, purge(objet, genre, quand), courrier_attente(file persistante)
 - **Décisions de modèle**
   - **Unicité** : `UNIQUE(conv, auteur, cid)` donne l'idempotence, un renvoi ne fait jamais deux messages. `seq` s'attribue dans la transaction. Un banc rejoue un deuxième passage (leçon d'`opIdDerive`).
   - **Conversation directe** : une seule par paire via `cle_directe = min|max`.
-  - **Lu** : `membre.lu_seq`, un compteur monotone par personne et par conversation. Il n'y a pas de tableau `lu[]` par message comme dans le modèle du paquet de design.
+  - **Lu** : `membre.lu_seq`, un compteur monotone par personne et par conversation. Il n'y a pas de tableau `lu[]` par message comme dans le modèle du paquet de design. `membre.lu_ts` (migration 30, 17 octobre 2026, décision de Justin « garder l'heure ») est l'instant de la dernière avancée de `lu_seq` — le `ts` de l'événement `lu` et la valeur rendue dans `membres[]` du détail : la page écrit « Lu 22:50 » pareil en direct et après un rechargement. Il suit `lu_seq` à la lettre (accusés coupés, invitation, hors-conversation : `null`).
   - **Éphémères** : `expire_ts = ts + ephemere_s`. Un balayeur supprime corps, pièces et lignes toutes les minutes, et note l'identifiant dans `purge`.
   - **Suppression d'un message** : le corps s'efface tout de suite, une pierre tombale reste.
   - **Réunion** : chaque réunion a une conversation pour son chat.
