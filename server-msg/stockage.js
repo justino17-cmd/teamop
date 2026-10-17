@@ -3183,6 +3183,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { change: true, points, gid: journalAjouter('reunion', r.conv, null, id) };
     });
   }
+  /* ⛔ UNE SÉANCE QUI FINIT SE DIT À TOUS LES PARTICIPANTS (17 octobre 2026, testeur : après « Terminer pour tous », l'agenda de ceux qui étaient en salle gardait « Rejoindre » et « À répondre » jusqu'au
+     rechargement). La fin d'une salle ne changeait rien à la RÉUNION elle-même : seul le compte rendu (un message) partait, et une page qui n'est pas sur la conversation ne relit pas son agenda. L'événement
+     `reunion` est le « relis-la » des réunions ; il suit la conversation de la réunion, donc ne sort jamais du cercle de ses participants. → le numéro d'événement, ou 0 (réunion inconnue). */
+  function reunionSeanceSignaler(id) {
+    const r = reunionBrute(id); if (!r) return 0;
+    return journalAjouter('reunion', r.conv, null, id);
+  }
   /* cocher ou décocher un point (un participant, pendant la séance ou avant) → null si le point n'existe pas */
   function reunionOdjCocher(id, point, fait) {
     if (!ODJ) return null;
@@ -4891,7 +4898,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionTrajetPoser, reunionTrajetsSelon,   // …le trajet de chacun (migration 29)
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
-    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
+    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, reunionSeanceSignaler, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
     appelVue, appelAcces, appelEstVisio, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
     appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, seancesFinies, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };

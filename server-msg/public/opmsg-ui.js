@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '21130e63d348';
+  const OPMSG_BUILD = '0d1ab3aeaa96';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 222;
+  const OPMSG_VERSION = 223;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6545,10 +6545,10 @@
   }
   function htmlTrajet(F, possible) {
     const T = F.tr, L = TJ.lieux || { domicile: null, travail: null };
-    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas, comme dans la fiche d'une réunion : « Calculer l'heure de départ » déplie le formulaire
+    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas, comme dans la fiche d'une réunion : « Heure de départ » déplie le formulaire (« Calculer » est le bouton du formulaire : deux gestes, deux mots — 17 octobre 2026)
        (le départ, le mode, l'avance — et la phrase sur la position, lue AVANT que la position serve), « Y aller » reste à côté. Un trajet calculé, en cours, en erreur ou périmé : ouvert. */
     if (possible && !T.ouvert && !T.calc && !T.calcul && !T.erreur && !T.perime)
-      return '<div class="info-actions evt-tr-gestes"><button type="button" class="mini" data-evt="trajet-ouvrir" aria-expanded="false">Calculer l\'heure de départ</button>' +
+      return '<div class="info-actions evt-tr-gestes"><button type="button" class="mini" data-evt="trajet-ouvrir" aria-expanded="false">Heure de départ</button>' +
         (destinationGps($('ev-lieu') ? $('ev-lieu').value : '', null) ? BOUTON_GPS_EVT : '') + '</div>';
     T.ouvert = true;      // ⛔ ouvert, il le RESTE pour cette fiche : changer le départ retire le trajet d'avant, et le formulaire ne doit pas se replier sous le doigt
     let h = '<div class="rubrique"><span>Trajet</span></div>';
@@ -6577,7 +6577,7 @@
         (possible && T.autres.length ? '<p class="info-note">Pas le bon endroit ? Plutôt :</p><div class="info-actions evt-tr-autres">' + T.autres.map(a => '<button type="button" class="mini" data-evt="trajet-autre" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div>' : '') +
         '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir.</p></div>';
     }
-    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-evt="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (T.calc ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
+    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-evt="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (T.calc ? 'Recalculer' : 'Calculer') + '</button>' : '') +
       (T.calc ? '<button type="button" class="mini" data-evt="trajet-retirer">Retirer le trajet</button>' : '') +
       (destinationGps($('ev-lieu') ? $('ev-lieu').value : '', T.calc) ? BOUTON_GPS_EVT : '') + '</div>';
     return h;
@@ -7684,13 +7684,13 @@
   }
   function htmlTrajetReu(d, o, T) {
     const possible = trajetReuPossible(), L = TJ.lieux || { domicile: null, travail: null }, c = d.moi.trajet;
-    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas : deux lignes, « Calculer l'heure de départ » (le formulaire s'ouvre d'un toucher) et
+    /* (15 octobre 2026, « l'application doit être plus simple ») REPLIÉ tant qu'il ne sert pas : deux lignes, « Heure de départ » (le formulaire s'ouvre d'un toucher ; « Calculer » est le bouton du formulaire : deux gestes, deux mots — 17 octobre 2026) et
        « Y aller » — plus un formulaire entier sous les yeux de qui n'en veut pas. Un trajet rangé, un calcul en cours, une erreur : ouvert, comme avant. */
     if (!T.ouvert && !c && !T.calcul && !T.erreur && !d.moi.trajetPerime) {
       const gps = destinationGps(d.lieu, c);
       if (!possible && !gps) return '';
       return '<div class="rubrique"><span>Trajet</span></div><div class="carte reu-trajet replie">' +
-        (possible ? '<button type="button" class="reglage presse" data-reu="trajet-ouvrir" aria-expanded="false">' + icone('i-horloge') + '<span class="reglage-texte">Calculer l\'heure de départ</span>' + CHEVRON + '</button>' : '') +
+        (possible ? '<button type="button" class="reglage presse" data-reu="trajet-ouvrir" aria-expanded="false">' + icone('i-horloge') + '<span class="reglage-texte">Heure de départ</span>' + CHEVRON + '</button>' : '') +
         (gps ? '<button type="button" class="reglage presse" data-reu="trajet-gps" aria-haspopup="menu">' + icone('i-itineraire') + '<span class="reglage-texte">Y aller</span>' + CHEVRON + '</button>' : '') + '</div>';
     }
     T.ouvert = true;      // ouvert, il le reste pour cette fiche (comme celui d'un rendez-vous)
@@ -7720,7 +7720,7 @@
         (possible && T.autres.length ? '<p class="info-note">Pas le bon endroit ? Plutôt :</p><div class="info-actions evt-tr-autres">' + T.autres.map(a => '<button type="button" class="mini" data-reu="trajet-autre" data-label="' + esc(a) + '">' + esc(a) + '</button>').join('') + '</div>' : '') +
         '<p class="info-note">Calculé avec les données de l\'IGN, sans le trafic du moment. Une notification te dira quand partir' + (d.repetition !== 'aucune' ? ', à chaque date' : '') + '. Toi seul le vois.</p></div>';
     }
-    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-reu="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (c ? 'Recalculer' : 'Calculer l\'heure de départ') + '</button>' : '') +
+    h += '<div class="info-actions evt-tr-gestes">' + (possible ? '<button type="button" class="mini plein" data-reu="trajet-calculer"' + (T.calcul ? ' disabled' : '') + '>' + (c ? 'Recalculer' : 'Calculer') + '</button>' : '') +
       (c ? '<button type="button" class="mini" data-reu="trajet-retirer"' + (T.calcul ? ' disabled' : '') + '>Retirer le trajet</button>' : '') +
       (destinationGps(d.lieu, c) ? '<button type="button" class="mini" data-reu="trajet-gps" aria-haspopup="menu">Y aller</button>' : '') + '</div></div>';
     return h;
@@ -7848,7 +7848,10 @@
       '</div>';
     /* (salle) la salle de la réunion : entrer quand elle est ouverte, sinon dire qu'elle ne l'est pas encore */
     if (CAP.salles && !d.annulee && d.salle) {
-      if (d.salle.rejoignable) s += '<div class="carte carte-pad"><div class="info-actions"><button type="button" class="mini" data-reu="rejoindre" data-type="video">' + icone('i-video') + ' Rejoindre</button><button type="button" class="mini" data-reu="rejoindre" data-type="audio">' + icone('i-phone') + ' Rejoindre en audio</button></div>' + (d.salle.ouverte ? '<p class="info-note">La salle est ouverte.</p>' : '') + '</div>';
+      /* ⛔ LA FICHE DIT CE QUE DIT LA LISTE (17 octobre 2026, testeur) : la ligne d'une réunion dont la séance est finie n'a plus de « Rejoindre » et dit « Terminée » ; la fiche de la même réunion
+         proposait encore d'entrer — et un invité rouvrait une salle neuve, seul. `F.seance` est la séance lue dans la liste (`seanceFiche`), jamais devinée ici ; une salle rouverte la fait disparaître. */
+      if (d.salle.rejoignable && F.seance) s += '<p class="pied-note">Cette réunion est terminée · Durée ' + dureeSeance(F.seance.dureeS) + ' · ' + F.seance.n + (F.seance.n > 1 ? ' présents' : ' présent') + '</p>';
+      else if (d.salle.rejoignable) s += '<div class="carte carte-pad"><div class="info-actions"><button type="button" class="mini" data-reu="rejoindre" data-type="video">' + icone('i-video') + ' Rejoindre</button><button type="button" class="mini" data-reu="rejoindre" data-type="audio">' + icone('i-phone') + ' Rejoindre en audio</button></div>' + (d.salle.ouverte ? '<p class="info-note">La salle est ouverte.</p>' : '') + '</div>';
       else s += '<p class="pied-note">La salle s\'ouvre peu avant le début de la réunion.</p>';      // (15 octobre 2026, « plus simple ») une phrase sous la carte, plus une carte à elle seule
     }
     /* l'ordre du jour (8 octobre 2026) : chacun le coche ; l'organisateur le pose dans « Modifier la réunion » */
@@ -7882,9 +7885,11 @@
     if (!hote) s += '<div class="rubrique"><span>Invité</span></div>' + (F.confirme === 'quitter' ? htmlConfirmation(d) : '<div class="carte"><button type="button" class="reglage presse danger" data-reu="quitter-demander"><span class="reglage-texte">Quitter la réunion<small>Elle disparaît de ton agenda et tu sors de sa conversation</small></span></button></div>');
     /* les gestes de l'hôte */
     if (hote) {
-      s += '<div class="rubrique"><span>Organisateur</span></div>';
+      /* ⛔ UN TITRE NE S'ÉCRIT QUE DEVANT CE QU'IL TITRE (17 octobre 2026, testeur) : annulée, la réunion ne se décale, ne se modifie ni ne s'envoie plus — le titre « Organisateur » restait seul, suivi du titre
+         « Présence ». Il paraît devant les gestes d'une réunion qui vit ; annulée, il passe devant ce qui lui reste (supprimer), tout en bas. */
       const sd = snapDecalage(F.id, d), decalable = !!(sd && sd.peut);
       F.decalable = decalable ? sd : null;
+      if (!d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       if (!d.annulee) s += '<div class="carte">' + (decalable ? '<button type="button" class="reglage presse" data-reu="decaler" aria-haspopup="dialog">' + icone('i-agenda') + '<span class="reglage-texte">Décaler</span>' + CHEVRON + '</button>' : '') +
         '<button type="button" class="reglage presse" data-reu="modifier">' + icone('i-gear') + '<span class="reglage-texte">Modifier la réunion</span>' + CHEVRON + '</button>' +
         '<button type="button" class="reglage presse" data-reu="courriel-ouvrir" aria-expanded="' + (F.courriel ? 'true' : 'false') + '">' + icone('i-courriel') + '<span class="reglage-texte">Envoyer par courriel<small>À quelqu\'un qui n\'a pas OP MESSAGES</small></span>' + CHEVRON + '</button></div>';
@@ -7904,6 +7909,7 @@
         '<button type="button" class="reglage presse" role="switch" aria-checked="' + (d.attente ? 'true' : 'false') + '" data-reu="attente"><span class="reglage-texte">Salle d\'attente<small>Tu admets chaque personne</small></span><span class="interrupteur" aria-hidden="true"></span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-copier">' + icone('i-lien') + '<span class="reglage-texte">Copier le lien d\'invité</span></button>' +
         '<button type="button" class="reglage presse" data-reu="lien-renouveler"><span class="reglage-texte">Renouveler le lien<small>L\'ancien lien cesse de marcher</small></span></button></div>';
+      if (d.annulee) s += '<div class="rubrique"><span>Organisateur</span></div>';
       s += F.confirme ? htmlConfirmation(d) : '<div class="carte">' + (d.annulee ? '' : '<button type="button" class="reglage presse danger" data-reu="annuler-demander"><span class="reglage-texte">Annuler la réunion<small>Elle reste dans l\'agenda, marquée « Annulée »</small></span></button>') +
         '<button type="button" class="reglage presse danger" data-reu="supprimer-demander"><span class="reglage-texte">Supprimer la réunion<small>Elle disparaît pour tout le monde, avec sa conversation</small></span></button></div>';
     }
@@ -7926,6 +7932,17 @@
     return '<div class="carte carte-pad"><p class="info-note">Supprimer cette réunion ? Elle disparaît de l\'agenda de tous, avec sa conversation et ses messages. Cela ne se défait pas.</p>' +
       (aVenir ? '<button type="button" class="reglage presse" role="switch" aria-checked="' + (F.prevenir ? 'true' : 'false') + '" data-reu="prevenir"><span class="reglage-texte">Prévenir les invités<small>Une notification leur dit que la réunion n\'existe plus</small></span><span class="interrupteur" aria-hidden="true"></span></button>' : '') +
       '<div class="info-actions"><button type="button" class="mini danger" data-reu="supprimer-confirmer">Supprimer la réunion</button><button type="button" class="mini" data-reu="confirmation-retour">Garder la réunion</button></div></div>';
+  }
+  /* ⛔ LA SÉANCE D'UNE FICHE SE LIT DANS LA LISTE, comme l'agenda la lit : la fiche (`d.salle.rejoignable`) reste vraie pendant toute la fenêtre d'entrée, séance finie ou non. On redemande au service les
+     occurrences qui COMMENCENT à l'instant de celle de la fiche (une fenêtre d'une milliseconde), et la règle est celle de la ligne : une séance de l'occurrence, aucune salle ouverte. → la séance, `null`
+     (pas de séance finie, ou rien à décider : salle ouverte, réunion annulée, hors de la fenêtre) ou `undefined` (la liste n'a pas répondu : la fiche garde son verdict d'avant). */
+  async function seanceFiche(d, id) {
+    const oc = d.salle && d.salle.occurrence;
+    if (!CAP.salles || d.annulee || !d.salle || !d.salle.rejoignable || d.salle.ouverte || !oc || typeof source.reunions !== 'function') return null;
+    try {
+      const r = (await source.reunions(oc.debut, oc.debut + 1)).find(x => x.id === id), o = r && r.occurrences.find(x => x.debut === oc.debut);
+      return o && o.seance && !r.salleOuverte ? o.seance : null;
+    } catch (e) { return undefined; }
   }
   async function rendreFiche() {
     const G = etat.groupe; if (!G.ouvert || G.mode !== 'reunion') return;
@@ -7951,8 +7968,9 @@
       if (!valide) F.occurrence = null;
       F.occVersion = d.version;
     }
+    { const se = await seanceFiche(d, id); if (!ouvertePour(id) || reu.fiche !== F || n !== F.jeton) return; if (se !== undefined) F.seance = se; }
     if (CAP.reunions && d.moi.hote && !reu.colleagues) chargerCollegues().then(() => { if (ouvertePour(id) && reu.fiche === F) { corps.dataset.sig = ''; rendreFiche(); } });
-    const sig = JSON.stringify([d, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; }),
+    const sig = JSON.stringify([d, F.seance, F.presence, F.confirme, F.prevenir, F.courriel && [F.courriel.ouvert, F.courriel.serie], F.erreur, F.occurrence, CONTACTS.map(c => c.id), (reu.colleagues || []).map(c => c.id), d.invites.map(p => { const c = contactDe(p.id); return c && c.photo ? 1 : 0; }),
       modesActifs() ? ((x) => x ? [x.coteChoisi, x.coteAuto] : null)(etat.conversations.find(x => x.id === d.conv)) : null]);
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.reu ? actif.dataset.reu + '|' + (actif.dataset.uid || actif.dataset.min || actif.dataset.statut || actif.dataset.portee || actif.dataset.point || '') : null;
     /* ⛔ l'adresse tapée se garde que le champ ait le focus ou non : toucher « Cette date » déplace le focus sur le bouton AVANT que la fiche se redessine, et l'adresse partait avec l'ancien champ */
@@ -7970,7 +7988,7 @@
     if (champ && champ.focus && $('rc-adresse')) { $('rc-adresse').focus({ preventScroll: true }); try { $('rc-adresse').setSelectionRange(champ.a, champ.a); } catch (e) { /* un champ sans curseur */ } }
     else if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-reu]')).find(x => x.dataset.reu === a && (x.dataset.uid || x.dataset.min || x.dataset.statut || x.dataset.portee || x.dataset.point || '') === u); if (b) b.focus({ preventScroll: true }); }
   }
-  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
+  function ouvrirFicheEtat(id) { reu.colleagues = null; reu.fiche = { id, donnees: null, jeton: 0, confirme: null, courriel: null, prevenir: true, presence: null, seance: null, occurrence: reu.occurrences[id] || null, occVersion: null, erreur: null, fermee: false, sortie: null }; }
   /* retour à la fiche après un formulaire : l'entrée de la fiche est RENDUE quand c'est elle qui est dessous, sinon on la REMPLACE */
   function versFiche(id) {
     const h = entree(), cible = 'reunion:' + id;
@@ -8169,7 +8187,7 @@
         '<div class="champ" id="rf-jusqua-c"><label for="rf-jusqua">Dernier jour</label><input id="rf-jusqua" type="date" value="' + esc(initial.jusqua || '') + '"></div>' +
         '<div class="champ" id="rf-n-c"><label for="rf-n">Nombre de réunions</label><input id="rf-n" type="number" min="2" max="1000" inputmode="numeric" value="' + esc(initial.n || 10) + '"></div></div>' +
       '<div class="rubrique"><span>Rappel</span></div><div class="carte rappels-puces" id="rf-rappels" role="group" aria-label="Rappels de la réunion">' + htmlRappelsForm(reu.form) + '</div>' +
-      (id ? '' : '<div class="rubrique"><span>Invités</span><span id="rf-invites-n" aria-live="polite">0</span></div><p class="info-note" id="rf-invites-note" aria-live="polite" hidden></p>' +
+      (id ? '' : '<div class="rubrique"><span>Invités</span><span id="rf-invites-n" aria-live="polite">' + reu.form.choisis.length + '</span></div><p class="info-note" id="rf-invites-note" aria-live="polite" hidden></p>' +
         '<label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher une personne à inviter</span><input type="search" id="rf-recherche" placeholder="Rechercher" autocomplete="off" enterkeyhint="search"></label>' +
         '<div class="carte" id="rf-invites" role="group" aria-label="Personnes à inviter">' + htmlInvitesForm(reu.form) + '</div>') +
       '<div class="carte"><button type="button" class="reglage presse" role="switch" aria-checked="true" data-reu="form-notifier"><span class="reglage-texte">Notifier les invités<small>' + (id ? 'Ils sont prévenus de ce qui change' : 'Chaque invité reçoit une notification') + '</small></span><span class="interrupteur" aria-hidden="true"></span></button></div>' +

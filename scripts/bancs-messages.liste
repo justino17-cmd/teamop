@@ -291,3 +291,11 @@ tests/test-2510.js
 # ── Un message tapé pendant un envoi, « écrit… » qui s'éteint avec le champ, l'accord de « signe(s) en trop » (17 octobre 2026) : les vraies fonctions de la page, un service lent que le banc libère ou refuse (1540) ;
 #    la vraie page : test-857 (motifs) et tests/sonde-opmessages-serveur.js (bloc 9 ter, rafale)
 tests/test-2540.js
+# ── L'agenda des réunions, la fiche d'une réunion finie, l'écran de la fenêtre « Réunion » (17 octobre 2026, lot m16 de la revue) : la fin d'une séance prévient tous ses participants — le vrai service, cinq flux SSE (1580) ;
+#    la fiche d'une réunion terminée pour tous ne propose plus d'entrer (1581, vraies htmlFiche et seanceFiche) ; la fiche d'une réunion annulée n'a plus de titre vide (1582) ; le compteur « Invités » d'une réunion
+#    ouverte depuis un contact (1583) ; les deux libellés du trajet (1584). La vraie page : tests/sonde-opmessages-reunions.js, -trajet.js, -trajet-reunion.js, -agenda-geste.js. Outil de ces cinq bancs, pas une suite : tests/outils-page-reunions.js.
+tests/test-2580.js
+tests/test-2581.js
+tests/test-2582.js
+tests/test-2583.js
+tests/test-2584.js
