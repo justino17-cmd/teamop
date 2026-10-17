@@ -13564,6 +13564,45 @@ function multiOublier(vue){ const o = multiTout(); if(o[vue]){ delete o[vue]; mu
 /* Selon les écrans, c'est le conteneur qui défile, ou la page : on regarde les deux. */
 function multiDefil(){ const c = $('content'); return (c && c.scrollTop) ? c.scrollTop : (window.scrollY || 0); }
 function multiPoserDefil(y){ if(!y) return; const c = $('content'); if(c && c.scrollHeight > c.clientHeight) c.scrollTop = y; else window.scrollTo(0, y); }
+/* ⛔⛔ UNE FENÊTRE N'EST PAS QUE SON BALISAGE ET SES CHAMPS (lot h01, robustesse#4 et #5).
+   `_multiHtml` est le texte passé à openModal : il date d'AVANT tout ce que le formulaire dessine
+   ensuite. Or un formulaire garde son état dans deux endroits que ni le balisage ni les champs ne
+   portent :
+   · des MODÈLES JavaScript redessinés après l'ouverture — les lignes d'un devis (`formLignes`, puis
+     `renderLignes()`), les nuisibles et méthodes d'une intervention, les fournisseurs d'un produit…
+     Reprise sans eux : la section « Lignes » revenait VIDE (ni champ ni bouton « ＋ Ligne »), le total
+     restait juste un instant parce que la variable survivait, et après un rechargement le devis
+     s'enregistrait à 0,00 € sans un mot ;
+   · des classes `.active` de puces qui n'ont aucun champ derrière elles (techniciens d'une
+     intervention : `saveIntervention` les relit dans le DOM) — ou dont le champ caché est restitué
+     mais pas la puce (Particulier / Professionnel : l'écran disait l'un, l'enregistrement l'autre).
+   Un REGISTRE par conteneur (id du bloc dessiné → lire / écrire / redessiner) plutôt qu'un `if` par
+   formulaire : la dixième fenêtre s'y inscrit sans toucher aux fonctions du multitâche. Rien de tout
+   cela n'entre dans `db` — c'est de l'état d'APPAREIL, comme le reste (test-748).
+   ⚠️ Les champs qui vivent DANS un conteneur du registre ne sont plus capturés comme champs : le
+   modèle les porte, et leur rang n'existe pas dans le balisage neuf (la reprise écrasait un voisin). */
+const MULTI_MODELES_MAX = 100000;
+const MULTI_MODELES = [
+  { id: 'lignes-box',    lire: () => formLignes,                         ecrire: v => { formLignes = v; },                                  rendre: () => renderLignes() },
+  { id: 'int-nuis',      lire: () => ({ n: [...intNuis], t: intTrait }), ecrire: v => { intNuis = new Set(v.n || []); intTrait = v.t || {}; }, rendre: () => renderIntNuis() },
+  { id: 'int-meth',      lire: () => [...intMeth],                       ecrire: v => { intMeth = new Set(v); },                            rendre: () => renderIntMeth() },
+  { id: 'prod-fours',    lire: () => [...prodFours],                     ecrire: v => { prodFours = new Set(v); },                          rendre: () => renderProdFours() },
+  { id: 'dem-lignes',    lire: () => demLignes,                          ecrire: v => { demLignes = v; },                                   rendre: () => renderDemLignes() },
+  { id: 'bon-lignes',    lire: () => ({ l: bonLignes, e: _bonEditId }),  ecrire: v => { bonLignes = v.l || []; _bonEditId = v.e || ''; },   rendre: () => renderBonLignes() },
+  { id: 'bon-livraison', lire: () => bonSites,                           ecrire: v => { bonSites = v; },                                    rendre: () => renderBonSites() },
+  /* les puces de durée se REDESSINENT à chaque choix (`intDureePose`) : le balisage neuf porte celles de
+     l'ouverture, et le champ caché `duree` est la seule vérité */
+  { id: 'dur-chips',     lire: () => { const d = document.querySelector('#modal [name="duree"]'); return d ? String(d.value) : null; },
+                          ecrire: () => {}, rendre: v => { if (v != null && v !== '') intDureePose(parseInt(v) || 60); } },
+];
+function multiDansModele(x){ try{ return MULTI_MODELES.some(r => !!x.closest('#' + r.id)); }catch(e){ return false; } }
+/* Une puce ne se restitue que si SON clic ne fait que basculer une classe : une puce qui pilote un
+   Set ou un champ (durée, nuisibles…) a son état ailleurs, et lui rendre sa classe seule mentirait. */
+function multiPuceLisible(x){ const oc = x.getAttribute('onclick') || ''; return /classList|cliSetType/.test(oc); }
+/* ⚠️ Le libellé se compare sans ses pictogrammes : `icones()` remplace les émojis par des SVG après coup (le texte lu à
+   la capture n'a plus « 🏠 »), alors que le balisage neuf de la reprise le porte encore. Lettres et chiffres seuls. */
+function multiPuceCle(x){ let d = ''; try{ d = JSON.stringify(Object.assign({}, x.dataset)); }catch(e){} return String(x.textContent || '').replace(/[^\p{L}\p{N}]+/gu, '').slice(0, 40) + '|' + d; }
+function multiChampsDe(m){ return [...m.querySelectorAll('input,select,textarea')].filter(x => !multiDansModele(x)); }
 /* ⛔ LA CAPTURE ÉCRIT TOUJOURS LA VÉRITÉ DU MOMENT, Y COMPRIS « il n'y a plus rien ».
    C'est ce qui fait qu'un enregistrement réussi efface la reprise : la sauvegarde ferme la
    fenêtre puis rappelle go(current), donc on repasse ici sans fenêtre ouverte. Sans ça,
@@ -13576,13 +13615,25 @@ function multiCapturer(){
   if(ouverte && _multiHtml && _multiHtml.length <= MULTI_MAX){
     const m = $('modal');
     const champs = [];
-    if(m) [...m.querySelectorAll('input,select,textarea')].forEach((x, i) => {
+    if(m) multiChampsDe(m).forEach((x, i) => {
       if(x.type === 'file' || x.type === 'password') return;   /* ni fichier, ni secret */
       champs.push({ n: x.name || '', id: x.id || '', i: i, t: x.type || x.tagName.toLowerCase(),
         v: (x.type === 'checkbox' || x.type === 'radio') ? (x.checked ? 1 : 0) : String(x.value == null ? '' : x.value).slice(0, 4000) });
     });
+    const puces = [];
+    if(m) [...m.querySelectorAll('.chip')].forEach(x => { if(multiPuceLisible(x) && !multiDansModele(x)) puces.push({ k: multiPuceCle(x), a: x.classList.contains('active') ? 1 : 0 }); });
+    const modeles = {};
+    if(m) MULTI_MODELES.forEach(r => {
+      try{
+        if(!m.querySelector('#' + r.id)) return;
+        const v = r.lire(); if(v === undefined) return;
+        const t = JSON.stringify(v);
+        if(t === undefined || t.length > MULTI_MODELES_MAX) return;   /* un modèle trop gros ne vaut pas la place qu'il prend */
+        modeles[r.id] = JSON.parse(t);                                  /* une COPIE : le modèle vivant continue de bouger */
+      }catch(err){}
+    });
     const h = m && m.querySelector('h2,h3,.modal-titre');
-    e.html = _multiHtml; e.champs = champs;
+    e.html = _multiHtml; e.champs = champs; e.puces = puces; e.modeles = modeles;
     e.titre = String((h && h.textContent) || 'Fenêtre en cours').trim().slice(0, 60);
   }
   if(!e.html && !e.y){ delete o[current]; } else { o[current] = e; }
@@ -13598,15 +13649,37 @@ function multiReprendre(vue){
   if(!multiFrais(e) || !e.html) return;
   openModal(e.html);
   const m = $('modal'); if(!m) return;
-  const tous = [...m.querySelectorAll('input,select,textarea')];
+  /* ① les modèles d'abord : un champ rejoué peut déclencher un recalcul qui les lit (`ligTot`) */
+  const modeles = (e.modeles && typeof e.modeles === 'object') ? e.modeles : {};
+  MULTI_MODELES.forEach(r => { try{ if(modeles[r.id] !== undefined && m.querySelector('#' + r.id)) r.ecrire(modeles[r.id]); }catch(err){} });
+  /* ② les champs de saisie, avec leurs événements. Les champs CACHÉS attendent : ce que rejouent les
+     événements les efface (`cliFilter` vide `cli-id` à l'événement `input` du champ client, `adrSearch`
+     vide les coordonnées) — restitués avant, ils repartaient à vide et l'intervention perdait son client. */
+  const tous = multiChampsDe(m);
+  const cache = [];
   (e.champs || []).forEach(c => {
     let x = null;
-    try{ x = (c.n && m.querySelector('[name="' + c.n + '"]')) || (c.id && m.querySelector('#' + CSS.escape(c.id))) || tous[c.i] || null; }catch(err){ x = tous[c.i] || null; }
+    try{ x = (c.n && m.querySelector('[name="' + c.n + '"]')) || (c.id && m.querySelector('#' + CSS.escape(c.id))) || null; }catch(err){}
+    /* le rang ne vaut que pour un champ sans nom ni id, et de la même sorte : un champ dessiné après coup
+       n'existe pas dans le balisage neuf, et son rang tomberait sur un voisin qu'il écraserait */
+    if(!x && !c.n && !c.id){ const y = tous[c.i]; if(y && !y.name && !y.id && (y.type || y.tagName.toLowerCase()) === c.t) x = y; }
     if(!x) return;
+    if(c.t === 'hidden'){ cache.push([x, c.v]); return; }
     if(c.t === 'checkbox' || c.t === 'radio'){ x.checked = !!c.v; x.dispatchEvent(new Event('change', { bubbles: true })); return; }
     x.value = c.v;
     x.dispatchEvent(new Event(x.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
   });
+  /* ③ les champs cachés, APRÈS tous les événements */
+  cache.forEach(([x, v]) => { x.value = v; });
+  /* les listes de suggestions que les événements rejoués viennent d'ouvrir n'ont rien à faire là */
+  try{ m.querySelectorAll('.soc-list').forEach(l => { l.style.display = 'none'; }); }catch(err){}
+  /* ④ les puces (classe seule), dans l'ordre où elles étaient */
+  try{
+    const dispo = [...m.querySelectorAll('.chip')].filter(x => multiPuceLisible(x) && !multiDansModele(x)), pris = new Set();
+    (e.puces || []).forEach(p => { const x = dispo.find(d => !pris.has(d) && multiPuceCle(d) === p.k); if(x){ pris.add(x); x.classList.toggle('active', !!p.a); } });
+  }catch(err){}
+  /* ⑤ enfin, ce que les modèles dessinent */
+  MULTI_MODELES.forEach(r => { try{ if(modeles[r.id] !== undefined && m.querySelector('#' + r.id)) r.rendre(modeles[r.id]); }catch(err){} });
   multiOublier(vue);
   try{ const b = document.querySelector('.multi-bar'); if(b) b.remove(); }catch(err){}
   try{ toast('Reprise là où tu en étais'); }catch(err){}
