@@ -2161,10 +2161,27 @@
       enLigne.clear(); enReunion.clear();
       for (const c of liste) { noter(c); if (c.en_ligne) enLigne.add(c.id); if (c.en_reunion) enReunion.add(c.id); }
     }
+    /* ⛔ LES FICHES DE CONTACT SE REDESSINENT QUAND LES CONTACTS CHANGENT (lot m09) : une demande acceptée par l'autre rend la carte « Écrire » — la liste des contacts était relue, mais la conversation
+       ouverte ne l'apprenait qu'au rechargement. On ne prévient que les conversations chargées qui portent une fiche. */
+    const porteFiche = (c) => !!c && c.charge && Array.isArray(c.messages) && c.messages.some(m => m.meta && m.meta.k === 'contact');
     async function rafraichirContacts() {
       installerContacts(await A.contacts());
       emettre({ type: 'contacts' });
+      for (const [id, c] of convs) if (porteFiche(c)) emettre({ type: 'conversation', id });
     }
+    /* l'identifiant de la personne d'une fiche que je vois (dans les messages que j'ai déjà lus), ou null */
+    function uidFiche(conv, seq) { const c = convs.get(conv), m = c && Array.isArray(c.messages) ? c.messages.find(x => x.seq === seq) : null; return m && m.meta && m.meta.k === 'contact' && typeof m.meta.uid === 'string' ? m.meta.uid : null; }
+    /* ⛔ `demande` d'une fiche = ce que le service a dit à la lecture ; quand c'est MOI qui demande (ou qui annule), les fiches déjà lues de cette personne le suivent tout de suite — sans cette
+       mise à jour, il faudrait relire chaque conversation. Le service reste la vérité : à la prochaine lecture (ou au rechargement), c'est lui qui le redit. */
+    function demandeNoter(uid, oui) {
+      if (typeof uid !== 'string') return;
+      for (const [id, c] of convs) {
+        let change = false;
+        if (c && Array.isArray(c.messages)) for (const m of c.messages) if (m.meta && m.meta.k === 'contact' && m.meta.uid === uid && (m.meta.demande === true) !== oui) { if (oui) m.meta.demande = true; else delete m.meta.demande; change = true; }
+        if (change) emettre({ type: 'conversation', id });
+      }
+    }
+    const demandeSuite = (uid, resultat) => { if (resultat === 'envoyee' || resultat === 'deja_envoyee') demandeNoter(uid, true); };
 
     /* ── la liste ── */
     function resume(c) {
@@ -2320,6 +2337,7 @@
     /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. Le texte reste leur résumé (une version d'avant,
        une notification, l'aperçu de la liste) ; la page dessine la carte. Un SONDAGE se relit au service : chacun a SA vue (ses votes, les décomptes que les règles lui montrent). ── */
     const sondages = new Map(), sondagesEnVol = new Set();           // « conv|seq » → la vue du service ; ceux qu'on relit en ce moment
+    const sondagesEchus = new Map();                                  // « conv|seq » → quand on a relu un sondage dont l'heure de fin était passée (une fois par reprise)
     const SONDAGE_REPRISE_MS = 15000;                                 // une relecture ratée (réseau) ne se retente pas à chaque dessin : la page redessine souvent
     function relireSondage(conv, seq) {
       const k = conv + '|' + seq; if (sondagesEnVol.has(k)) return;
@@ -2334,6 +2352,13 @@
       if (!s) return Object.assign(base, { etat: 'charge' });
       if (s.absent) return Object.assign(base, { etat: 'absent' });
       if (s.erreur) return Object.assign(base, { etat: 'erreur' });
+      /* ⛔ L'ÉCHÉANCE PASSE PENDANT QUE LA PAGE EST OUVERTE (lot m09) : le service ne pousse rien à ce moment-là (personne n'a agi), la vue qu'on garde dit encore « ouvert » — et c'était l'écran
+         qui restait ouvert jusqu'au rechargement. À la première lecture après l'heure de fin, on RELIT : le service rend le sondage clos, avec les résultats promis « à la clôture » et sans droits
+         de vote. Une relecture par reprise : si l'horloge de cet appareil avance sur celle du service, il ne répond « ouvert » qu'une fois par reprise — jamais en boucle. */
+      if (!s.clos && s.regles && Number.isFinite(s.regles.fin) && maintenant() >= s.regles.fin) {
+        const dernier = sondagesEchus.get(k);
+        if (dernier === undefined || maintenant() - dernier >= SONDAGE_REPRISE_MS) { sondagesEchus.set(k, maintenant()); relireSondage(conv, seq); }
+      }
       const nomDeUid = (u) => typeof u === 'string' ? prenomDe(u) : null;
       return Object.assign(base, {
         etat: 'ok', regles: Object.assign({}, s.regles), clos: !!s.clos, closLe: s.clos_le || null, auteur: nomDeUid(s.auteur), deMoi: estMoi(s.auteur),
@@ -2348,7 +2373,15 @@
       if (x.k === 'position' && Number.isFinite(x.lat) && Number.isFinite(x.lng) && Math.abs(x.lat) <= 90 && Math.abs(x.lng) <= 180) return { position: { lat: x.lat, lng: x.lng, prec: Number.isInteger(x.prec) ? x.prec : null } };
       /* une fiche dont la personne ne se laisse plus trouver (ou dont le compte est effacé) : le service ne dit plus qui c'est (`uid: null`) */
       if (x.k === 'contact' && x.uid === null) return { carteContact: { uid: null, indisponible: true, prenom: 'Contact', identifiant: null, moi: false, contact: false, avatar: 0, initiales: '?' } };
-      if (x.k === 'contact' && typeof x.uid === 'string') return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact: contactsApi.some(k => k.id === x.uid), avatar: indexAvatar(x.uid), initiales: initialesDe(x.prenom || '?') } };
+      if (x.k === 'contact' && typeof x.uid === 'string') {
+        /* ⛔ UNE PERSONNE QUE JE CONNAIS DÉJÀ (un contact, un membre d'un groupe commun) s'écrit sur la fiche comme ailleurs : ses initiales sont celles de son avatar (« CP » pour Cléo Petit, pas « CL »
+           tirées de son seul prénom) et son nom est complet. Le service ne partage que le PRÉNOM d'une personne qu'on ne connaît pas : alors la fiche n'invente rien. */
+        const connue = !estMoi(x.uid) ? personne(x.uid) : null, ok = !!connue && !connue.supprime;
+        const contact = contactsApi.some(k => k.id === x.uid);
+        /* ⛔ « DEMANDE ENVOYÉE » vient du SERVICE (`meta.demande`, relu à chaque lecture, tenu à jour par `demandeNoter` quand c'est moi qui la fais) — jamais d'une mémoire de la page ; être contact l'emporte */
+        return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', nom: ok ? connue.nom : null, identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact,
+          demande: x.demande === true && !contact, avatar: indexAvatar(x.uid), initiales: ok ? connue.initiales : initialesDe(x.prenom || '?') } };
+      }
       if (x.k === 'sondage') return { sondage: vueSondage(conv, m.seq, x.q) };
       /* le COMPTE RENDU d'une séance (8 octobre 2026) : rédigé par le service à « Terminer pour tous » — chaque champ relu, rien d'autre ne passe */
       if (x.k === 'compte_rendu') {
@@ -2915,7 +2948,9 @@
     const envoyerFiche = (id, uid) => envoyerCarte(id, 'contact', { uid });
     const envoyerSondage = (id, s) => envoyerCarte(id, 'sondage', { question: s.question, choix: s.choix, regles: s.regles });
     async function sondageAgir(conv, seq, faire) {
-      const v = await faire();
+      let v;
+      /* ⛔ le service refuse (409 « sondage_clos ») un geste sur un sondage clos : la carte qu'on garde est périmée — on la RELIT avant de dire le refus, pour que l'écran passe à « Clos » (lot m09) */
+      try { v = await faire(); } catch (e) { if (e && e.code === 'sondage_clos') relireSondage(conv, seq); throw e; }
       sondages.set(conv + '|' + seq, v); emettre({ type: 'conversation', id: conv });
       return vueSondage(conv, seq, '');
     }
@@ -2924,15 +2959,19 @@
     const sondageClore = (conv, seq) => sondageAgir(conv, seq, () => A.sondageClore(conv, seq));
     /* demander la personne d'une fiche reçue (`contacts.demander_carte`) : les mêmes résultats que `demanderContact` */
     async function demanderCarte(conv, seq) {
+      const uid = uidFiche(conv, seq);
       const r = await A.demanderCarte(conv, seq);
-      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      demandeSuite(uid, r.resultat);
+      if (r.resultat === 'acceptee' || r.resultat === 'deja') await rafraichirContacts(); else emettre({ type: 'contacts' });
       emettre({ type: 'conversation', id: conv });
       return r.resultat;
     }
     /* ÉCRIRE à la personne d'une fiche reçue (`contacts.ecrire_carte`) : la directe s'ouvre — une INVITATION si l'on n'est pas encore en contact. → { conv, resultat } */
     async function ecrireCarte(conv, seq) {
+      const uid = uidFiche(conv, seq);
       const r = await A.ecrireCarte(conv, seq);
-      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      demandeSuite(uid, r.resultat);
+      if (r.resultat === 'acceptee' || r.resultat === 'deja') await rafraichirContacts(); else emettre({ type: 'contacts' });
       await relireListe(); emettre({ type: 'liste' });
       return { conv: r.conv, resultat: r.resultat };
     }
@@ -2960,6 +2999,7 @@
     }
     async function demanderContact(id) {
       const r = await A.demanderContact(id);
+      demandeSuite(id, r.resultat);
       if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
       return r.resultat;
     }
@@ -2974,7 +3014,7 @@
       if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
       return r.resultat;
     }
-    async function annulerDemande(id) { await A.annulerDemande(id); emettre({ type: 'contacts' }); }
+    async function annulerDemande(id) { await A.annulerDemande(id); demandeNoter(id, false); emettre({ type: 'contacts' }); }
 
     async function accepterLien(code) {
       const r = await A.accepterLien(code);

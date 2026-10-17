@@ -1822,7 +1822,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const bloqueMoi = !!(id && viewer && (contactLigne(id, viewer) || {}).etat === 'bloque');
     const tr = meta.tr ? { tr: 1 } : {};                 // « Transféré » se garde à la relecture (9 octobre 2026)
     if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous' || bloqueMoi) return Object.assign({ k: 'contact', uid: null, prenom: null, identifiant: null }, tr);
-    return Object.assign({ k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) }, tr);
+    /* ⛔ « DEMANDE ENVOYÉE » EST UN ÉTAT DU SERVICE, pas de la page (lot m09 : l'écran le gardait dans une mémoire qui mourait au rechargement, et « Ajouter » revenait) : celui qui LIT la fiche apprend
+       s'il a déjà une demande en cours vers cette personne — lui seul, jamais l'auteur du partage ni un autre membre — et plus rien dès qu'ils sont contacts. Une demande refusée reste « envoyée » :
+       le refus ne se dit pas (la liste « Demandes envoyées » le dit de la même façon). */
+    const enCours = !!(viewer && id !== viewer && !contactActif(viewer, id) && Q('SELECT 1 AS x FROM demande_contact WHERE de = ? AND vers = ? AND masque = 0').get(viewer, id));
+    return Object.assign({ k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) }, enCours ? { demande: true } : {}, tr);
   }
   /* la fiche de contact d'un message (`meta.k = 'contact'`) que `uid` voit, ou null */
   function carteContactLire(conv, seq, uid) { const v = messageVuPar(conv, seq, uid); return v && v.meta && v.meta.k === 'contact' && typeof v.meta.uid === 'string' ? v.meta : null; }
