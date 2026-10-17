@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = '0b5a66dcb9f5';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -1253,6 +1253,10 @@
   function avis(texte) {
     clearTimeout(minAvis);
     const a = $('avis'); a.textContent = texte; a.hidden = false;
+    /* ⛔ #avis vit DANS l'écran Conversation : hors d'une conversation (le tableau de bord, l'agenda, le profil, la liste au retour d'une reconnexion) cet écran est caché, la phrase s'écrivait
+       dans un élément de 0 × 0 et le refus ne se disait nulle part — un rappel qu'on coche, que le service refuse, revenait décoché sans un mot (testeur, pro#0). Quand la phrase ne se verrait
+       pas, elle passe par le petit mot, tenu aussi longtemps que l'avis (un refus se lit ; 2,4 s, non). */
+    if (!a.offsetWidth) { a.hidden = true; a.textContent = ''; mot(texte, 7000); return; }
     minAvis = setTimeout(masquerAvis, 7000);
   }
   function masquerAvis() { clearTimeout(minAvis); $('avis').hidden = true; $('avis').textContent = ''; }
@@ -2309,10 +2313,10 @@
   setInterval(() => verifierVersion(), 10 * 60000);
   setTimeout(() => verifierVersion(true), 1500);
 
-  function mot(texte) {
+  function mot(texte, ms) {
     clearTimeout(minMot);
     $('mot').textContent = texte; $('mot').classList.add('on');
-    minMot = setTimeout(() => $('mot').classList.remove('on'), 2400);
+    minMot = setTimeout(() => $('mot').classList.remove('on'), ms || 2400);
   }
 
   /* ═══ 9. LA FEUILLE « NOUVEAU GROUPE » ══════════════════════════════════════════════════════════════════════════════════════ */
@@ -6055,8 +6059,8 @@
   async function cocherRappel(id) {
     const x = bord.evenements.find(y => y.id === id); if (!x || typeof source.faitEvenement !== 'function') return;
     const avant = x.fait; x.fait = Date.now(); rendreAccueil();
-    mot('« ' + x.titre + ' » : fait');
-    try { const e = await source.faitEvenement(id, true); Object.assign(x, e); reu.evenements = (reu.evenements || []).map(y => y.id === id ? e : y); chargerReunions(); }
+    /* ⛔ « fait » ne s'annonce qu'APRÈS la réponse du service : annoncé avant, il restait affiché sur un geste refusé, pendant que la ligne revenait décochée */
+    try { const e = await source.faitEvenement(id, true); Object.assign(x, e); reu.evenements = (reu.evenements || []).map(y => y.id === id ? e : y); mot('« ' + x.titre + ' » : fait'); chargerReunions(); }
     catch (er) { x.fait = avant; rendreAccueil(); avis(phrase(er, 'Le rappel n\'a pas pu être coché.')); }
   }
   /* la semaine ou le mois : filtré tout de suite sur ce qu'on a, relu sur la nouvelle fenêtre, retenu par le compte (refusé, le choix vaut pour cette visite) */
