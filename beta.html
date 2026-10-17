@@ -32790,7 +32790,8 @@ function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
   if(m){ go('produits'); setTimeout(()=>{ try{ prdSearch=m.nom; views.produits(); }catch(e){} },60); return; }
   m=visibleTechniciens(db.techniciens).find(x=>x.nom&&x.nom.length>2&&dn.includes(norm(x.nom)));
   if(m){ try{ ficheTech(m.id); }catch(e){ go('techniciens'); } return; }
-  m=db.vehicules.find(x=>x.immat&&dn.includes(norm(x.immat)));
+  /* La plaque d'un véhicule créé par l'écran s'appelle `plaque`, pas `immat` (g18, equipe#3) : vPlaque lit les deux. */
+  m=db.vehicules.find(x=>{ const pl=vPlaque(x); return pl!=='—'&&dn.includes(norm(pl)); });
   if(m){ go('vehicules'); return; }
   const map={intervention:'interventions',stock:'mouvements',finance:'comptabilite',commercial:'devis',box:'boxes',auth:'utilisateurs',admin:'utilisateurs'};
   const v=map[j.type];
@@ -32865,7 +32866,7 @@ function ficheTech(id){ const t=visibleTechniciens(db.techniciens).find(x=>x.id=
       <div><div class="dt-lbl">Rôle</div><div class="dt-val">${esc(t.metier)||'Technicien'}</div></div>
       <div><div class="dt-lbl">Téléphone</div><div class="dt-val">${esc(t.tel)||'—'}</div></div>
       <div><div class="dt-lbl">Email</div><div class="dt-val">${esc(t.email)||'—'}</div></div>
-      <div><div class="dt-lbl">Véhicule</div><div class="dt-val">${veh?esc(veh.immat):'—'}</div></div>
+      <div><div class="dt-lbl">Véhicule</div><div class="dt-val">${veh?esc(vPlaque(veh)):'—'}</div></div>
       <div><div class="dt-lbl">Certibiocide</div><div class="dt-val">${esc(t.certibiocide)||'—'} ${certibBadge(t)}</div></div>
       ${t.certibiocideExp?`<div><div class="dt-lbl">Valide jusqu'au</div><div class="dt-val">${fmtShort(t.certibiocideExp)}</div></div>`:''}</div>
     <div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:14px 0">

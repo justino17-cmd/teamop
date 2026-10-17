@@ -359,5 +359,28 @@ function monde3(conducteurs = []) {
     /\.switch input:checked \+ \.track\{background:var\(--acc\)/.test(SRC) && /\.switch input:checked \+ \.track \+ \.knob\{transform:translateX\(20px\)/.test(SRC));
 }
 
+console.log('\n── 1290 · 8. ⛔ equipe#3 (relecture) · les AUTRES lecteurs de la plaque ──');
+{ /* vehName n'était pas seul : la recherche du journal et la fiche technicien ne lisaient que `immat`. */
+  const lecteurs = SRC.split('\n').filter(l => /\.immat\b/.test(l) && !/^const vPlaque=/.test(l) && !/^const vehName =/.test(l));
+  v('⛔ aucune lecture de `.immat` seul hors vPlaque et vehName (un nouveau lecteur isolé fait tomber ce banc)', lecteurs.map(l => l.trim().slice(0, 90)), []);
+  const ctx = { gos: [], ouverts: [], db: new Proxy({ vehicules: [{ id: 'v1', plaque: 'AB-123-CD' }, { id: 'v2', immat: 'ZZ-999-ZZ' }, { id: 'v3', nom: 'Camionnette' }],
+    journal: [] }, { get: (o, k) => (k in o ? o[k] : []) }), current: 'dashboard' };
+  vm.createContext(ctx);
+  vm.runInContext(`
+    var norm = s => String(s == null ? '' : s).normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+    var go = v => { gos.push(v); }; var toast = () => {}; var visibleBoxes = l => l; var visibleTechniciens = l => l;
+    var detailIntervention = () => {}; var ficheClient = () => {}; var ficheTech = () => {}; var openBox = () => {}; var formDoc = () => {};
+    ${ligne('const vPlaque=')}
+    ${fn('journalGo')}`, ctx);
+  const clic = detail => { ctx.gos.length = 0; ctx.db.journal.length = 0; ctx.db.journal.push({ id: 'j1', detail, action: '' }); vm.runInContext('journalGo("j1")', ctx); return ctx.gos.slice(); };
+  v('une entrée de journal qui cite la plaque d\'un véhicule créé par l\'écran (plaque) ouvre Véhicules', clic('Véhicule AB-123-CD modifié'), ['vehicules']);
+  v('… la casse ne compte pas', clic('véhicule ab-123-cd modifié'), ['vehicules']);
+  v('l\'ancien champ immat est toujours retrouvé', clic('Entretien ZZ-999-ZZ'), ['vehicules']);
+  v('contre-épreuve : un véhicule sans plaque (« — ») ne fait pas ouvrir Véhicules sur n\'importe quelle ligne', clic('Quelque chose — sans rapport'), []);
+  /* la ligne « Véhicule » de la fiche technicien */
+  const fiche = bloc('function ficheTech(');
+  vrai('la fiche technicien écrit la plaque par vPlaque (et non veh.immat, vide pour un véhicule créé par l\'écran)', /\$\{veh\?esc\(vPlaque\(veh\)\):'—'\}/.test(fiche), fiche.length);
+}
+
 console.log('\n══ test-1290 : ' + ok + ' ✓  ' + ko + ' ✗ ══');
 process.exit(ko ? 1 : 0);
