@@ -26,7 +26,7 @@ console.log('\n── 1134 · 0. la population ──');
 const VC = bloc('views.clients=function(){'), RL = bloc('function renderClientsList('), SC = bloc('function saveClientForm(e,id){'),
   AIDES = ['function cliAdresseDerive(', 'function cliGeoRequete(', 'function cliLocaliserFond(', 'function cliDoublon('].map(bloc).join('\n'),
   AT = ligne('function allTags(){'), TC = ligne('function tagChipsHtml(x){'), CP = ligne('function cliIsPro(c){'), ES = ligne('function emptyState(ico,txt,btn,fn){'),
-  ESC = ligne('const esc = s =>'), INI = ligne('const initials = name =>'), NM = ligne('const norm = s =>'), NN = ligne('function nomNorm(s){'),
+  ESC = ligne('const esc = s =>'), INI = ligne('const initials = (name,max) =>')   /* h02 : un 2e paramètre (nombre d'initiales), l'ancre suit la signature */, NM = ligne('const norm = s =>'), NN = ligne('function nomNorm(s){'),
   ETAT = ligne('let cliTagFilter='), ETAT2 = ligne('let cliTypeF='), ETAT3 = ligne('let cliSearch=');
 vrai('views.clients et saveClientForm sont trouvées', VC.length > 800 && SC.length > 900 && !!AT && !!TC && !!CP && !!ES && !!NN && !!NM, [VC.length, SC.length]);
 vrai('renderClientsList existe (la liste vit à part du champ, comme renderBoxesList)', RL.length > 800, RL.length);

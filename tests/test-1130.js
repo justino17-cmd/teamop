@@ -24,7 +24,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 
 console.log('\n── 1130 · 0. la population ──');
 const VC = bloc('views.clients=function(){'), AT = ligne('function allTags(){'), TC = ligne('function tagChipsHtml(x){'), CP = ligne('function cliIsPro(c){'),
-  TG = ligne('function toggleTag(coll,id,t){'), ES = ligne('function emptyState(ico,txt,btn,fn){'), ESC = ligne('const esc = s =>'), INI = ligne('const initials = name =>'),
+  TG = ligne('function toggleTag(coll,id,t){'), ES = ligne('function emptyState(ico,txt,btn,fn){'), ESC = ligne('const esc = s =>'), INI = ligne('const initials = (name,max) =>')   /* h02 : un 2e paramètre (nombre d'initiales), l'ancre suit la signature */,
   NM = ligne('const norm = s =>'), ETAT = ligne('let cliTagFilter='), ETAT2 = ligne('let cliTypeF='),
   RL = bloc('function renderClientsList(');   // g10 clients#8 : la liste se redessine à part, dans #cli-liste
 v('les pièces sont trouvées', [VC.length > 1500, !!AT, !!TC, !!CP, !!TG, !!ES, !!ESC, !!INI, !!NM, !!ETAT, !!ETAT2], [true, true, true, true, true, true, true, true, true, true, true]);

@@ -46,6 +46,9 @@ v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silen
 const PAS = bloc("if(typeof window.closeModal==='function'&&typeof window.openModal==='function'){");
 vrai('le bloc §6 (l\'enveloppe de sortie d\'une fenêtre) est trouvé', PAS.length > 300 && /minuterie/.test(PAS), PAS.length);
 const L_MAX = ligne('const MULTI_MAX'), L_VIE = ligne('const MULTI_VIE_MS');
+/* lot h01 : multiCapturer écarte les champs que portent les MODÈLES (lignes d'un devis, puces…) — le vrai registre et ses lecteurs */
+const H01 = (() => { const a = SRC.indexOf('const MULTI_MODELES_MAX'), b = SRC.indexOf('function multiChampsDe('); return a > 0 && b > a ? SRC.slice(a, SRC.indexOf('\n', b)) : ''; })();
+vrai('le registre des modèles du multitâche (h01) est trouvé', H01.length > 400 && /function multiChampsDe\(/.test(H01), H01.length);
 vrai('les constantes du multitâche sont trouvées', !!L_MAX && !!L_VIE);
 
 /* ── Le bac à sable : un DOM minimal, mais fidèle sur ce qui compte ici — les classes de l'overlay, les écouteurs posés en
@@ -85,7 +88,7 @@ function monde(opts) {
   ctx.window = ctx;
   vm.createContext(ctx);
   vm.runInContext(`
-    ${L_MAX}\n${L_VIE}
+    ${L_MAX}\n${L_VIE}\n${H01}
     var _modalForcee=${opts.forcee ? 'true' : 'false'}; let _multiHtml='';
     ${['multiCle', 'multiTout', 'multiEcrire', 'multiFrais', 'multiOublier', 'multiDefil', 'multiPoserDefil', 'multiCapturer'].map(n => T['function ' + n + '(']).join('\n')}
     function multiPastilles(){}
