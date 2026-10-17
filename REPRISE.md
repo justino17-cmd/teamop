@@ -74,6 +74,13 @@ Toutes les contre-épreuves de ces bancs mordent (scripts `scratchpad/mut-10*.py
    mot de passe TAPÉ DANS LA TOUR (jamais dans une conversation), serveurs OVH par défaut. Le serveur en ligne a déjà la route
    (`POST /api/monitor/mail/boites`, patron) ; c'est le FORMULAIRE qui n'existe que dans la v2.88 — l'aperçu suffit.
 
+**⏸ PASSATION (17 octobre 2026, nuit)** — Justin reprend tout dans UNE conversation, celle d'**OP Courrier** (l'interface mail
+qu'il fait faire à part et qu'il voulait « juste ajouter dans la Tour » : le Courrier de la v2.88 fait DOUBLON avec elle). Après la
+reprise de la mise en ligne : `test-900` (« server/ ne nomme pas OP MESSAGES », arrivée avec main) corrigé en `2b2132d` ; la
+préparation a été ARRÊTÉE à nouveau avant la fin de la suite complète — rien sur `main`. À décider : retirer le Courrier de la v2.88
+au profit d'OP Courrier, ou le garder en attendant ; les routes `server/mail.js` (boîtes IMAP, tri par console) peuvent servir de
+moteur à OP Courrier.
+
 **⏸ MISE EN LIGNE ARRÊTÉE (17 octobre 2026, à la demande de Justin, « on va arrêter »)** — il avait dit « serveur + aperçu ».
 RIEN n'est parti sur `main`. Où on en était : `main` fusionné dans la branche (`264f27e`) ; `scripts/preparer-deploiement-serveur.sh`
 reçoit `TOUR_EN_SERVICE=garder` (le serveur et l'APERÇU de la Tour partent, la Tour en service reste celle de main) ; la porte a
