@@ -37,7 +37,8 @@ function monde() {
     const produit = id => db.produits.find(p=>p.id===id) || {};
     const fournName=id=>{ const f=db.fournisseurs.find(x=>x.id===id); return f?f.nom:''; };
     function nextNum(){ return 'BC-2026-00'+(++__n); } var _u=0; function uid(){ return 'b'+(++_u+10); }
-    function logEvent(a,b){ __log.push(a); } function save(){}`, ctx);
+    function logEvent(a,b){ __log.push(a); } function save(){}
+    ${bloc('function numDejaPris(')}   /* bonValider refuse un numéro déjà pris (lot des numéros) : la vraie */`, ctx);
   return ctx; }
 // le chemin réel : demande validée -> un bon SANS fournisseur (bonId/demandeId) -> « Prêt » le sépare par fournisseur
 function scenario() {

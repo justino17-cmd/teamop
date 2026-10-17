@@ -26,7 +26,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 console.log('\n── 1213 · 0. la population ──');
 const F = {};
 ['function retourFerme(', 'function goBack(', 'function ficheRetour(', 'function assistCloture(', 'function asEmpreinte(', 'function assistModifie(', 'function assistOuverte(',
-  'function assistFermer(', 'function asKeepSigs(', 'function asSigsVives(', 'function closeSub(', 'function t3dQuestModalEnd(', 'function closeModal('].forEach(h => { F[h] = bloc(h); });
+  'function assistFermer(', 'function asKeepSigs(', 'function asSigsVives(', 'function closeSub(', 'function t3dQuestModalEnd(', 'function closeModal(', 'function intStatutPermis('].forEach(h => { F[h] = bloc(h); });
 const ligneOuvre = ligne('function assistOuverte(');
 const ligneEchap = ligne("document.addEventListener('keydown',e=>{ if(e.key==='Escape'");
 // le bloc des enveloppes (go / goBack / popstate), de « var goNatif » à la fin de son try
@@ -57,6 +57,9 @@ function monde(opts) {
     var db={interventions:[{id:'i1',titre:'T',clientId:'c1',compteRendu:'',noteInterne:'',materiel:'',zones:'',nuisibles:['Rats'],constat:{}}]};
     var scanTimer=null, scanStream=null, _pp=null;
     function stopBoxScanCamera(){} function save(){ __saves++; } function toast(){} function intInfOf(){ return ''; }
+    /* assistCloture lit la règle du menu de statut (intStatutPermis, lot g05) : la vraie, avec un compte qui a toutes les cases */
+    function can(){ return true; } function canCat(){ return true; } function intTechIds(i){ return (i&&i.techIds)||[]; } function myTechId(){ return null; }
+    ${F['function intStatutPermis(']}
     function logEvent(){}
     function go(v){ __log.push('go '+v); if(!window._goingBack && current!==v) window._viewStack.push(current); window._goingBack=false; current=v; _ecranRendu=null; }
     function assistRender(){ _multiHtml='<button onclick="assistFermer()">Fermer</button>'; $('overlay').classList.add('open'); }

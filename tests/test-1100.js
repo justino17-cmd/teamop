@@ -268,7 +268,7 @@ vrai('population : mailBoxSave est trouvée', MB.length > 200, MB.length);
     const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, db: { users: [{ id: 'uA', prenom: 'Justin', nom: 'Roux', login: 'jroux', role: 'admin', actif: true }], techniciens: [], boxes: [], vehicules: [] },
       currentUser: { id: 'uA', role: 'admin' }, __toasts: [], __serveur: 0, __attente: [], __verdict: false, __fermees: 0, localStorage: { getItem: () => null, setItem: () => {} } };
     vm.createContext(ctx);
-    vm.runInContext(`${NN}\n${FN.replace('const ', 'var ')}\n${HOM}\n${MSG}\n${BO}
+    vm.runInContext(`${NN}\n${FN.replace('const ', 'var ')}\n${HOM}\n${MSG}\n${BO}\n${bloc('function nomSaisieNet(s){')}   /* admin#7 (lot g21) : saveUser rogne prénom et nom */
       function esc(x){ return String(x); }
       var ROLE_PROTEGE='admin', drRattaches=new Set(), nuBoxes=new Set(), nuVehs=new Set(), nuStk=false, views={utilisateurs(){}};
       function toast(m){ __toasts.push(String(m)); } function save(){} function closeModal(){ __fermees++; } function logEvent(){}

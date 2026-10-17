@@ -52,7 +52,7 @@ function monde(factures, interventions, devis) {
     let _NF; ${EUR}
     const FACT_ST={brouillon:{l:'En attente',c:'st-grey'},envoyee:{l:'Envoyée',c:'st-blue'},payee:{l:'Payée',c:'st-green'},retard:{l:'En retard',c:'st-red'}};
     function badge(map,k){ return '<span class="st '+((map[k]||{}).c||'')+'">'+((map[k]||{}).l||k)+'</span>'; }
-    ${LTL}\n${LHT}\n${DT}\n${DND}\n${LATE}
+    ${LTL}\n${LHT}\n${DT}\n${DND}\n${LATE}\n${bloc('function docEmis(d){')}   /* « émis » : une définition (lot g17) */
     let factFilter='tous'; function __ff(k){ factFilter=k; }
     function canCat(){ return true; } function isFinanceMgr(){ return true; }
     function visibleDocs(l){ return l; } function visibleInts(l){ return l; }
