@@ -13382,6 +13382,10 @@ function seed(){
 const techName = id => { const t=db.techniciens.find(t=>t.id===id); if(t) return t.nom||'Non assigné'; const a=(db.techArchive||[]).find(t=>t.id===id); return a?(a.nom||'Ancien technicien'):'Non assigné'; };
 /* ── Départ d'une personne : retirée PARTOUT (box, véhicules, chefs, planning à venir), sans casser l'historique ── */
 function nomNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+/* admin#7 : un prénom ou un nom se range ROGNÉ et sans espaces doublés. L'écran masque les espaces (HTML), donc
+   « ␣␣Paul␣ » avait l'air juste — et la fiche technicien, « Paul   Durand », échappait à la recherche. On ne touche
+   ni aux accents ni à la casse (c'est le nom de la personne) : seulement ce qu'aucun humain n'a voulu écrire. */
+function nomSaisieNet(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim(); }
 /* ⛔ v742 — DEUX COMPTES NE PORTENT JAMAIS LE MÊME PRÉNOM ET LE MÊME NOM. Justin, 24 septembre 2026 :
    « si deux comptes ont le même nom, l'obligation est d'avoir le prénom et le nom de famille pour
    différencier les deux personnes ». Le nom complet sert de clé à plusieurs endroits — qui a écrit une
@@ -33728,11 +33732,21 @@ function droitsBorner(nu,par){
   return retenus;
 }
 async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+  d.prenom=nomSaisieNet(d.prenom); d.nom=nomSaisieNet(d.nom);   // admin#7 : avant la règle « obligatoires », l'homonyme et la fiche technicien
   /* Prénom ET nom obligatoires — Justin, 10 septembre 2026 : « comme ça, dans Utilisateurs, avec le
      nom et le prénom, ils savent qui c'est ; et nous pareil dans la Tour ». Deux « florent » sans
      nom, on ne sait plus lequel garder ; deux « Florent Martin », si. */
   if(!String(d.prenom||'').trim()||!String(d.nom||'').trim()){ toast('Remplis tous les champs : le prénom et le nom sont obligatoires',3600); return; }
   if(id && currentUser.role!=='admin'){ toast('Modification des comptes réservée à l\'administrateur'); return; }
+  /* ⛔ admin#0 : le DERNIER administrateur actif ne se désactive pas et ne se rétrograde pas. Rien ne le
+     gardait (delUser refuse « Impossible de supprimer votre compte », saveUser écrivait role et actif sans
+     contrôle) : l'entreprise se retrouvait sans personne pour régler les droits ni réactiver le compte. Le
+     refus est ICI, à la source, avant la moindre écriture (pas même la fiche technicien) — un second chemin
+     vers saveUser ne le contourne pas. Un administrateur désactivé ne compte pas. */
+  if(id){ const _cible=db.users.find(x=>x.id===id);
+    if(_cible&&_cible.role===ROLE_PROTEGE&&_cible.actif!==false&&(d.role!==ROLE_PROTEGE||d.actif!=='true')
+       &&!db.users.some(x=>x&&x.id!==id&&x.role===ROLE_PROTEGE&&x.actif!==false)){
+      toast('Il faut au moins un administrateur actif : '+fullName(_cible)+' est le dernier. Donne d\'abord le rôle Administrateur à quelqu\'un d\'autre.',5200); return; } }
   if(!id && currentUser.role!=='admin' && !can('creerUtilisateurs')){ toast('Créer des comptes demande le droit « Créer des utilisateurs » (Permissions)'); return; }
   if(!id && !planPlaceLibre()){ proposerAbonnement(); return; }
   const loginNorm=(d.login||'').trim().toLowerCase();
@@ -38650,9 +38664,9 @@ function openSearch(){ openModal(`<div class="modal-head"><h3>Rechercher partout
     <input class="search-inp" id="gsearch" placeholder="Client, intervention, produit, box, véhicule, devis…" oninput="var _v=this.value;rechDiffere(function(){ renderSearch(_v); })">
     <div id="gsearch-res"><div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div></div>`);
   setTimeout(()=>{ const i=$('gsearch'); if(i) i.focus(); },60); }
-function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=norm(qq);
+function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=norm(qq).replace(/\s+/g,' ').trim();   // admin#7 : espaces doublés des fiches d'avant
   if(q.length<2){ el.innerHTML='<div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div>'; return; }
-  const R=[]; const add=(arr,type,ic,nameFn,subFn,actFn)=>{ (arr||[]).forEach(x=>{ const nom=nameFn(x)||''; const sub=subFn(x)||''; if(norm(nom+' '+sub).includes(q)&&R.filter(r=>r.type===type).length<6) R.push({ic,type,nom,sub,act:actFn(x)}); }); };
+  const R=[]; const add=(arr,type,ic,nameFn,subFn,actFn)=>{ (arr||[]).forEach(x=>{ const nom=nameFn(x)||''; const sub=subFn(x)||''; if(norm(nom+' '+sub).replace(/\s+/g,' ').includes(q)&&R.filter(r=>r.type===type).length<6) R.push({ic,type,nom,sub,act:actFn(x)}); }); };
   /* v738 : chaque famille par le filtre de son écran ET seulement si ce menu lui est ouvert (rechVoit) */
   const V=(k,l)=>rechVoit(k)?l:[];
   add(V('clients',visibleClients(db.clients)),'Client','🏢',c=>c.nom,c=>c.adresse,c=>`closeModal();ficheClient('${c.id}')`);
