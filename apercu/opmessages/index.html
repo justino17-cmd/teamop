@@ -34,6 +34,8 @@
    · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre ;
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat ; en lettres sur une ligne choisie il
      tombe à 4,2:1 — le texte prend #9db8f5 (5,3:1). De jour, l'accent passe partout (≥ 6,7:1) ;
+   · --rouge-fill, --on-rouge : « Terminer pour tous » et « Quitter » (salle) sont des boutons PLEINS qui portent un mot : le #ff453a du système n'y tient que 3,4:1 en blanc. Une surface, une encre —
+     #d70015 et blanc font 5,4:1 de jour comme de nuit (la salle est sombre dans les deux modes). Le #ff453a reste le rouge des PASTILLES et des traits, où 3:1 suffit ;
    · --rouge-txt : le #ff453a des statuts est une couleur d'APLAT (« Raccrocher » : non-texte, 3:1 suffit) ; le NOM d'un appel
      manqué prend sa propre teinte (jour #d70015, 5,4:1 ; nuit #ff8a82, 6,6:1 sur la carte et 5,1:1 sur une ligne pressée) ;
    · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes, au bleu du logo, donc leurs
@@ -79,6 +81,8 @@
   /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
   --rouge: #ff453a;
   --rouge-txt: #d70015;
+  --rouge-fill: #d70015;
+  --on-rouge: #ffffff;
   --vert: #30d158;
   --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
   --appel-voile: rgba(14,26,63,.62);
@@ -132,6 +136,8 @@
     --screen: none;
     --rouge: #ff453a;
     --rouge-txt: #ff8a82;
+    --rouge-fill: #d70015;
+    --on-rouge: #ffffff;
     --vert: #30d158;
     --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
     --appel-voile: rgba(14,26,63,.62);
@@ -1768,7 +1774,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-sous { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 13px; line-height: 18px; color: var(--salle-sub); font-variant-numeric: tabular-nums; }
 .salle-rec { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 18px; font-weight: 700; }
 .salle-rec::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
-.salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 15px; font-weight: 600; }
+.salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 15px; font-weight: 600; }
 .salle-bandeaux { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
 .salle-bandeaux:empty { display: none; }
 .salle-bandeau {
@@ -1804,7 +1810,7 @@ html[data-salle] .appel-ecran { display: none; }
   min-height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
 }
 .salle-btn.plein { background: #fff; color: #000; }
-.salle-btn.danger { background: var(--rouge); color: #fff; }
+.salle-btn.danger { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-btn[aria-disabled="true"], .salle-btn:disabled { opacity: .5; }
 .salle-scene {
   position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 8px; align-content: center; width: 100%; max-width: 1100px; margin-inline: auto;
@@ -1873,7 +1879,7 @@ html[data-salle] .appel-ecran { display: none; }
 .avant-cmd .rond-cmd .ic { width: 24px; height: 24px; }
 .avant-cmd[aria-pressed="true"] .rond-cmd { background: var(--rouge); color: #fff; }
 .avant-cmd[aria-disabled="true"] { opacity: .45; }
-.avant-rejoindre { width: 100%; max-width: 560px; justify-self: center; min-height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; font-size: 17px; font-weight: 600; }
+.avant-rejoindre { width: 100%; max-width: 560px; justify-self: center; min-height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
 .avant-titre { margin: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 @media (min-width: 700px) { .avant-apercu { max-height: 40vh; } }
 .avant-rejoindre[aria-disabled="true"] { opacity: .5; }
