@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'a73e2e42b779';
+  const OPMSG_BUILD = '8fb20473de14';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 213;
+  const OPMSG_VERSION = 214;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -5192,9 +5192,12 @@
   const convQuittees = new Map();
   /* ce que le toast dit à qui est retiré d'une conversation qu'il regardait : le NOM du groupe ou du canal (« on croit à un bug » quand la page revient à la liste sans l'expliquer), et — si un
      message était en cours — qu'il n'est pas parti. Rien n'est rangé sur l'appareil pour le garder (voulu) : on le DIT, c'est tout. */
-  const motRetire = (c, brouillon) =>
-    (c && c.nom && c.type === 'groupe' ? 'Tu as été retiré de ' + c.nom + '.' : c && c.nom && c.type === 'canal' ? 'Tu as été retiré du canal ' + c.nom + '.' : 'Tu n\'es plus dans cette conversation.')
-    + (brouillon ? ' Ton message en cours n\'a pas été envoyé.' : '');
+  const motRetire = (c, brouillon) => {
+    /* le nom passe par une variable : il part dans mot() (textContent), jamais dans du balisage — et test-857 refuse toute concaténation NUE d'un nom, ce qui oblige à le dire */
+    const nom = c && c.nom ? String(c.nom) : '';
+    const base = nom && c.type === 'groupe' ? `Tu as été retiré de ${nom}.` : nom && c.type === 'canal' ? `Tu as été retiré du canal ${nom}.` : 'Tu n\'es plus dans cette conversation.';
+    return base + (brouillon ? ' Ton message en cours n\'a pas été envoyé.' : '');
+  };
   function surRetire(id) {
     const voulu = Date.now() - (convQuittees.get(id) || 0) < 30000; convQuittees.delete(id);
     const brouillon = etat.conv === id && !!$('saisie').value.trim();

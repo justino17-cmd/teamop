@@ -57,7 +57,7 @@ const PIECES = {
   motLienAccepte: ligne('const motLienAccepte = '),
   apresChoixInfo: decl('async function apresChoixInfo('),
   convQuittees: ligne('const convQuittees = '),
-  motRetire: jusqua('const motRetire = ', "n\\'a pas été envoyé.' : '');"),
+  motRetire: decl('const motRetire = (c, brouillon) => {'),
   surRetire: decl('function surRetire('),
 };
 const ECOUTEUR = ecouteur();
