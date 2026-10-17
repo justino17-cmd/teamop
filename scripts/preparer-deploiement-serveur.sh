@@ -106,6 +106,12 @@ if [ "${TOUR_EN_SERVICE:-}" = "garder" ]; then
   done
 fi
 for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
+# ⚠️ Les suites HORS des listes qui relisent le serveur partent avec lui. 17 octobre 2026 : `test-671` lit `server/mail.js`
+#    (le compteur de non-lus, désormais par dossier) ET `tour.html` ; restée celle de `main`, elle attendait l'ancien serveur
+#    et la suite complète tombait (1 ✗ sur 511 suites) sur un serveur juste. Sa version de la branche passe contre la Tour de
+#    `main` (vérifié) : elle part. Une suite ajoutée ici doit passer contre la Tour SERVIE.
+SUITES_SERVEUR_HORS_LISTE=(tests/test-671.js)
+for f in "${SUITES_SERVEUR_HORS_LISTE[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 
 # 2. Les deux workflows de la branche — la ligne des bancs lance la LISTE, pas tout (voir
 #    l'en-tête de la liste). ⚠️ Remplacement exact, compté : un workflow dont la ligne a changé
@@ -163,7 +169,7 @@ VAPP="$(sed -n "s/.*APP_VERSION *= *'\([0-9]*\)'.*/\1/p" app.html | head -1)"
 [ -n "$VAPP" ] || { echo "✗ APP_VERSION illisible dans app.html de main"; exit 1; }
 git add server .github/scripts/surveillance.js .github/workflows/deploiement.yml .github/workflows/ci.yml \
         scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}" "${PAGES_LIEES[@]}" \
-        "${OPMSG_FICHIERS[@]}" "${SUITES_MSG[@]}" ${AIDES_PRISES[@]+"${AIDES_PRISES[@]}"}
+        "${OPMSG_FICHIERS[@]}" "${SUITES_MSG[@]}" ${AIDES_PRISES[@]+"${AIDES_PRISES[@]}"} "${SUITES_SERVEUR_HORS_LISTE[@]}"
 git diff --cached --name-only | grep -q 'node_modules' && { echo "✗ node_modules dans le commit — rien ne se fait"; exit 1; }
 git -c user.name="$(git -C "$RACINE" config user.name || echo TeamOP)" \
     -c user.email="$(git -C "$RACINE" config user.email || echo noreply@teamop.fr)" \
