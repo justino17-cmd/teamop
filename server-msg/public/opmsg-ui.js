@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e1ef9f4ef586';
+  const OPMSG_BUILD = 'aa14a671a92b';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 209;
+  const OPMSG_VERSION = 210;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4431,6 +4431,8 @@
     if (corps.dataset.sig === sig && corps.children.length) return;
     corps.dataset.sig = sig;
     const actif = document.activeElement, cle = actif && corps.contains(actif) && actif.dataset.act ? actif.dataset.act + '|' + (actif.dataset.uid || '') : null;
+    /* un nom en cours de frappe (« Renommer ») survit au redessin : la présence d'un membre qui change redessine la feuille, et le texte tapé ne doit pas s'envoler */
+    const frappe = actif && corps.contains(actif) && actif.tagName === 'INPUT' && actif.type === 'text' && actif.id ? { id: actif.id, valeur: actif.value, debut: actif.selectionStart, fin: actif.selectionEnd } : null;
     const g = i.type === 'groupe', canal = i.type === 'canal', eph = EPHEMERES.find(e => e[0] === i.ephemeres) || [i.ephemeres, i.ephemeres + ' s'], off = i.moiAdmin ? '' : ' disabled';
     corps.dataset.espace = canal && i.espace ? i.espace : '';
     const sd = CAP.notifications && !i.supprime ? (Number(i.sourdine) || 0) : -1;           // -1 : pas de sourdine à proposer ; 0 : pas en sourdine ; sinon l'échéance
@@ -4461,7 +4463,8 @@
       if (i.moiAdmin) {
         const ajoutables = CONTACTS.filter(c => !i.membres.some(m => m.id === c.id));
         h += '<div class="rubrique"><span>Ajouter au groupe</span></div><div class="carte">' + ajoutables.map(c => '<div class="contact">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span></span><button type="button" class="mini" data-act="ajouter" data-uid="' + esc(c.id) + '">Ajouter</button></div>').join('') +
-          '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>';
+          '<button type="button" class="reglage presse" data-act="lien-groupe">' + icone('i-groupe') + '<span class="reglage-texte">Inviter par un lien</span>' + CHEVRON + '</button></div><div id="ci-lien"></div>' +
+          '<div class="rubrique"><span>Renommer</span></div><div class="carte carte-pad"><div class="info-champ"><input id="gr-renom" type="text" maxlength="80" autocomplete="off" value="' + esc(i.nom) + '" aria-label="Nom du groupe"><button type="button" class="mini" data-act="groupe-renommer">Enregistrer</button></div></div>';
       }
       h += '<div class="carte"><button type="button" class="reglage presse danger" data-act="quitter"><span class="reglage-texte">Quitter le groupe</span></button></div>';
     } else if (canal) {
@@ -4488,6 +4491,7 @@
     }
     const dr = etat.deroule && corps.contains(etat.deroule.declencheur) ? etat.deroule.declencheur : null;
     corps.innerHTML = h;
+    if (frappe) { const n = corps.querySelector('#' + frappe.id); if (n) { n.value = frappe.valeur; n.focus({ preventScroll: true }); try { n.setSelectionRange(frappe.debut, frappe.fin); } catch (e2) { /* type sans sélection */ } } }
     if (cle) { const [a, u] = cle.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
     if (dr) {
       /* ⛔ les « … » des membres sont plusieurs : on retrouve CELUI du même membre (et de son rôle d'alors) — le premier de la liste prenait le menu, et le focus à la fermeture */
@@ -4551,6 +4555,12 @@
       else if (act === 'ajouter') {
         const refus = phraseNonAjoutes(await source.ajouterMembres(id, [b.dataset.uid]), u => { const c = CONTACTS.find(x => x.id === u); return c ? c.nom : ''; });
         if (refus) erreurInfo(refus);
+      }
+      else if (act === 'groupe-renommer') {
+        /* (17 octobre 2026) le même geste que le canal (`can-renommer`) : un champ et « Enregistrer ». Le service refuse un nom vide ou de plus de 80 signes — la page le dit avant */
+        const nom = $('gr-renom').value.trim();
+        if (!nom) { erreurInfo('Le nom du groupe ne peut pas être vide.'); return; }
+        await source.majConversation(id, { nom }); mot('Groupe renommé');
       }
       else if (act === 'lien-groupe') { const r = await source.lienGroupe(id); $('ci-lien').innerHTML = boiteLien('ci-lien-champ', r.code); }
       else if (act === 'debloquer') { await source.debloquer(b.dataset.uid); rendreListeBloques(); peindreBloquesN(); mot('Contact débloqué'); }
