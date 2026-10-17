@@ -57,7 +57,7 @@ function monde(factures, interventions, devis) {
     function canCat(){ return true; } function isFinanceMgr(){ return true; }
     function visibleDocs(l){ return l; } function visibleInts(l){ return l; }
     function clientName(id){ return ((db.clients||[]).find(c=>c.id===id)||{}).nom||'—'; }
-    function fmtShort(d){ return d||''; } function techNames(){ return 'Non assigné'; } function rapportSociete(){ return 'Ent'; }
+    function fmtShort(d){ return d||''; } function fmtShortAn(d){ return d||''; } function techNames(){ return 'Non assigné'; } function rapportSociete(){ return 'Ent'; }
     function setHeader(){} var views={};
     const __el={ set innerHTML(h){ __html=h; }, get innerHTML(){ return __html; } };
     function $(id){ return __el; }

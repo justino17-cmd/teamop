@@ -202,7 +202,7 @@ console.log('\n── 1170 · 9. contrats : le bandeau des doublons déjà en ba
 function vueContrats(contrats) {
   const W = monde({ contrats });
   vm.runInContext(`var __content=''; function $(i){ return {set innerHTML(h){ __content=h; }}; } function setHeader(){} function visibleDocs(l){ return l; } function ctrRappels(){ return []; } function ctrBandeau(){ return ''; }
-    function ctrPastille(){ return ''; } function badge(){ return ''; } function clientName(){ return ''; } function fmtShort(d){ return d; } function tableCard(){ return 'TABLE'; } function emptyState(){ return ''; }
+    function ctrPastille(){ return ''; } function badge(){ return ''; } function clientName(){ return ''; } function fmtShort(d){ return d; } function fmtShortAn(d){ return d; } function tableCard(){ return 'TABLE'; } function emptyState(){ return ''; }
     function ctrFreqDays(){ return 30; } function iAjDummy(){}
     ${F.viewContrats}`, W);
   W.views.contrats(); return { W, html: vm.runInContext('__content', W) };

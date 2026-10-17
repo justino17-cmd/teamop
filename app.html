@@ -8947,6 +8947,11 @@ const todayISO = () => isoDe(new Date());
 const jourDe = ts => isoDe(new Date(ts||0));
 function fmtDate(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'long','fr-FR',_O_LONG); }
 function fmtShort(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'jm','fr-FR',_O_JM); }
+/* ⛔ La date d'une LISTE de documents (Devis, Factures, Contrats, Bons de commande) porte son ANNÉE dès qu'elle n'est pas celle de cette année
+   (campagne 2, 17 octobre 2026). `fmtShort` écrit « 01 janv. » : une facture de l'an dernier se confondait avec celle de cette année, alors que
+   les exports portaient la date complète. Même mécanisme partout, jamais un `.slice` écrit à la main dans une liste ; l'année courante reste
+   courte (la largeur des colonnes au téléphone ne bouge que pour l'ancien). `fmtShort` ne change pas : il écrit aussi des phrases d'historique. */
+function fmtShortAn(iso){ if(!iso) return '—'; const c=fmtShort(iso), a=String(iso).slice(0,4); return a===todayISO().slice(0,4)?c:c+' '+a; }
 function fmtJourCourt(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'jc','fr-FR',_O_JC); }
 function fmtLong(iso){ if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'long','fr-FR',_O_LONG); }
 function addMin(hhmm,min){ const p=String(hhmm||'00:00').split(':'); let t=(parseInt(p[0])||0)*60+(parseInt(p[1])||0)+(min||0); t=((t%1440)+1440)%1440; return String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); }
@@ -22121,7 +22126,7 @@ function printDossierClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) r
   const devis=db.devis.filter(d=>d.clientId===id), facts=db.factures.filter(f=>f.clientId===id);
   const w=window.open('','_blank'); if(!w){ toast('Autorisez les pop-ups'); return; }
   const irows=ints.map(i=>`<tr><td>${i.date?fmtShort(i.date):'—'}</td><td>${esc(i.titre)}</td><td>${esc(techNames(i))}</td><td>${(STATUT_INT[i.statut]||{}).l||''}</td></tr>`).join('');
-  const frows=facts.map(f=>`<tr><td>${esc(f.num||'')}</td><td>${f.date?fmtShort(f.date):''}</td><td style="text-align:right">${eur(docTot(f).ttc)}</td><td>${f.statut==='payee'?'Payée':f.statut==='envoyee'?'En attente':'Brouillon'}</td></tr>`).join('');
+  const frows=facts.map(f=>`<tr><td>${esc(f.num||'')}</td><td>${f.date?fmtShortAn(f.date):''}</td><td style="text-align:right">${eur(docTot(f).ttc)}</td><td>${f.statut==='payee'?'Payée':f.statut==='envoyee'?'En attente':'Brouillon'}</td></tr>`).join('');
   w.document.write(`<!doctype html><html lang="fr"><head><meta charset="utf-8"><title>Dossier client — ${esc(c.nom)}</title>
     <style>body{font-family:Arial;padding:30px;color:#1A1F28;font-size:12px}h1{color:${AC};font-size:20px;margin:0}h2{font-size:14px;color:${AC};margin:20px 0 8px}.sub{color:#666;margin:4px 0 14px}table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{border:1px solid #ccc;padding:6px 8px;text-align:left}th{background:${AC};color:${encreSur(AC)};font-size:11px}</style></head>
     <body>${H.logo?`<img src="${esc(H.logo)}" alt="" style="max-height:44px;max-width:170px;display:block;margin-bottom:6px">`:''}<div style="font-size:12px;font-weight:800;color:${AC};letter-spacing:1px;text-transform:uppercase">${esc(H.nom)}</div>${docCoordLignes(H).length?`<div style="color:#666;font-size:10.5px;margin:2px 0 8px">${docCoordLignes(H).map(esc).join(' · ')}</div>`:''}<h1>Dossier client</h1><div class="sub"><b>${esc(c.nom)}</b>${c.contact?' — '+esc(c.contact):''}${c.tel?' · '+esc(c.tel):''}${c.email?' · '+esc(c.email):''}<br>${esc(c.adresse||'')} ${esc(c.codePostal||'')} ${esc(c.ville||'')} · Édité le ${new Date().toLocaleDateString('fr-FR')}</div>
@@ -25811,7 +25816,7 @@ function ficheClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) return;
       <div style="font-size:11.5px;color:var(--t3);margin-top:5px">Plan de lutte, relevés des 12 derniers passages, produits & n° AMM, Certibiocide des techniciens, courbe d'activité par zone, attestation de passage.</div>
     </div>`:''}
     ${sec('Dernières interventions',ints,i=>`<div class="pl-row" onclick="closeModal();detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`)}
-    ${sec('Factures',facts,f=>`<div class="pl-row" onclick="closeModal();go('factures')"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(docTot(f).ttc)}</div><div class="pl-meta">${fmtShort(f.date)}</div></div>${badge(FACT_ST,f.statut)}</div>`)}
+    ${sec('Factures',facts,f=>`<div class="pl-row" onclick="closeModal();go('factures')"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(docTot(f).ttc)}</div><div class="pl-meta">${fmtShortAn(f.date)}</div></div>${badge(FACT_ST,f.statut)}</div>`)}
     <div class="modal-foot" style="flex-wrap:wrap"><button class="btn ghost" onclick="closeModal();formClient('${c.id}')">Modifier</button>
       ${canCat('crm','supprimer')?`<button class="btn danger" onclick="closeModal();delItem('clients','${c.id}')">Supprimer</button>`:''}
       <button class="btn ghost" onclick="openTagEditor('clients','${c.id}')">Étiquettes</button>
@@ -31260,7 +31265,7 @@ function renderBonsList(){
     return `<div class="pl-row lgb" onclick="ficheBon('${b.id}')" style="align-items:center">
     <span style="width:12px;height:12px;border-radius:50%;background:${c};flex-shrink:0"></span>
     <div class="pl-info"><div class="pl-title">${esc(fn)} <span style="color:var(--t3);font-weight:400;font-size:12px">· ${esc(bonNum(b))}</span></div>
-      <div class="pl-meta">${(b.lignes||[]).length} article(s) · ${bonQteTotTxt(b)} · ${fmtShort(b.date)}${bonEmailDest(b,f)?`<br>→ <span style="color:var(--acc-txt)">${esc(bonEmailDest(b,f))}</span>`:'<br>⚠️ e-mail fournisseur manquant'}</div></div><span class="lgb-a">${badge(STATBC,b.statut)}
+      <div class="pl-meta">${(b.lignes||[]).length} article(s) · ${bonQteTotTxt(b)} · ${fmtShortAn(b.date)}${bonEmailDest(b,f)?`<br>→ <span style="color:var(--acc-txt)">${esc(bonEmailDest(b,f))}</span>`:'<br>⚠️ e-mail fournisseur manquant'}</div></div><span class="lgb-a">${badge(STATBC,b.statut)}
     <span onclick="event.stopPropagation()" style="display:flex;gap:4px;flex-shrink:0">
       <button class="btn ghost sm" title="Voir le PDF" onclick="bonPdfOpen('${b.id}')">📄</button>
       ${b.statut==='brouillon'?`<button class="btn sm" onclick="bonStatut('${b.id}','prete')">✓ Prêt</button>`:b.statut==='prete'?`<button class="btn sm" onclick="envoiBonApercu('${b.id}')">✉️ Envoyer</button>`:''}
@@ -36962,7 +36967,7 @@ function docListView(kind,xyloOnly){
   const vMod=canCat('ventes','modifier');
   setHeader(titre, `${list.length} ${cfg.un}(s) · ${eur(total)} TTC`, canCat('ventes','ajouter')?headBtn:'');
   const rows=list.map(d=>{ const t=docTot(d);
-    return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}</td>
+    return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShortAn(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap">
       ${vMod?`<button class="btn sm" onclick="envoiDoc('${kind}','${d.id}','mail')" title="Envoyer par email">📧</button>
       <button class="btn ghost sm" onclick="envoiDoc('${kind}','${d.id}','sms')" title="Envoyer par SMS (exception)">💬</button>`:''}
@@ -37150,7 +37155,7 @@ views.factures=function(){
     return `<div class="pl-row lga">
       <div class="pl-info" style="cursor:pointer" onclick="${vMod?`formDoc('factures','${f.id}')`:`printDoc('factures','${f.id}')`}">
         <div class="pl-title">${esc(f.num||'—')} · <span style="white-space:nowrap">${eur(ttc(f))}</span></div>
-        <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)} · ${badge(FACT_ST,st)}${f.datePaiement?' · payée le '+fmtShort(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
+        <div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShortAn(f.date)} · ${badge(FACT_ST,st)}${f.datePaiement?' · payée le '+fmtShortAn(f.datePaiement):''}${f.valideCompta?' · <span style="color:var(--acc-txt)">validée compta</span>':''}</div></div>
       <span class="lga-a" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
         <button class="btn ghost sm" onclick="printDoc('factures','${f.id}')" title="Aperçu">Aperçu</button>
         <button class="btn ghost sm" onclick="exportFacturX('${f.id}')" title="Export Factur-X (facturation électronique)">FX</button>
@@ -37172,7 +37177,7 @@ views.factures=function(){
         const gp={}; intsAfact.slice(0,80).forEach(i=>{ const n=techNames(i); (gp[n]=gp[n]||[]).push(i); });
         return Object.keys(gp).sort((a,b)=>a==='Non assigné'?1:(b==='Non assigné'?-1:a.localeCompare(b,'fr'))).map(n=>
           `<div class="form-sec" style="margin:12px 0 6px">👷 ${esc(n)} (${gp[n].length})</div>`
-          +gp[n].map(i=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(i.titre)}${Number(i.montant)?` · ${eur(i.montant)}`:''}</div><div class="pl-meta">${esc(clientName(i.clientId))} · ${fmtShort(i.date)} · intervention terminée${(i.rapportModele&&!/g[ée]n[ée]rique/i.test(i.rapportModele))?` · <span style="color:var(--acc-txt);font-weight:700">${esc(rapportSociete(i.rapportModele))}</span>`:''}</div></div><button class="btn sm" onclick="intGenererDoc('${i.id}','factures')">Générer la facture</button></div>`).join('')).join('');
+          +gp[n].map(i=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(i.titre)}${Number(i.montant)?` · ${eur(i.montant)}`:''}</div><div class="pl-meta">${esc(clientName(i.clientId))} · ${fmtShortAn(i.date)} · intervention terminée${(i.rapportModele&&!/g[ée]n[ée]rique/i.test(i.rapportModele))?` · <span style="color:var(--acc-txt);font-weight:700">${esc(rapportSociete(i.rapportModele))}</span>`:''}</div></div><button class="btn sm" onclick="intGenererDoc('${i.id}','factures')">Générer la facture</button></div>`).join('')).join('');
       })()}
     </div>`:''}
     <div style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Le circuit : <b>Générer</b> → la facture arrive <b>En attente</b> → <b>Aperçu</b> pour la vérifier → <b>📧 Envoyer</b> au client → <b>Payée</b> une fois réglée${isFinanceMgr()?' → <b>Valider</b> (compta)':''}.</div>
@@ -38265,7 +38270,7 @@ function comptaSynthese(){
       <div class="frow"><span class="frow-lbl">À encaisser (toutes périodes)</span><div class="frow-val"><b style="color:var(--red)">${eur(impTot)}</b></div></div>
       <div class="frow"><span class="frow-lbl">TVA collectée (${lbl})</span><div class="frow-val"><b>${eur(tvaP)}</b></div></div>
       ${impayes.length?`<div class="form-sec" style="margin-top:6px">En attente de règlement</div>
-      ${impayes.map(f=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(ttc(f))}</div><div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShort(f.date)}</div></div>
+      ${impayes.map(f=>`<div class="pl-row lga"><div class="pl-info"><div class="pl-title">${esc(f.num)} · ${eur(ttc(f))}</div><div class="pl-meta">${esc(clientName(f.clientId))} · ${fmtShortAn(f.date)}</div></div>
         <span class="lga-a" style="display:flex;gap:6px;align-items:center">${badge(FACT_ST,f.statut)}<button class="btn sm" onclick="comptaVirement('${f.id}')">Encaissé</button></span></div>`).join('')}`
       :'<div style="color:var(--t3);font-size:13px;margin-top:6px">Aucune facture en attente 🎉</div>'}
     </div>`;
@@ -39046,7 +39051,7 @@ function ctrBandeau(ech,cMod){ if(!ech.length) return ''; const n=ech.length;
   return `<div class="card ctr-echeances" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 8%,transparent);padding:12px;margin-bottom:12px">
     <div style="font-weight:700;color:var(--t1)">⏰ ${n} contrat${n>1?'s':''} à renouveler</div>
     <div style="font-size:13px;color:var(--t2);margin:4px 0 6px">La date de fin arrive dans les ${CTR_RAPPEL_J} jours, ou elle est passée : renouvelez en changeant la date de fin, ou passez le contrat en « Expiré ».</div>
-    ${ech.map(({ct,j})=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--brd)"><div style="flex:1 1 220px;min-width:0;color:var(--t1)"><b>${esc(ct.num)}</b> · ${esc(ct.titre)}${ct.clientId?' — '+esc(clientName(ct.clientId)):''}<div style="font-size:12.5px;color:var(--t2)">${ctrEcheanceTexte(j)} (${fmtShort(ct.dateFin)})</div></div>${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎ Mettre à jour</button>`:''}</div>`).join('')}
+    ${ech.map(({ct,j})=>`<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-top:1px solid var(--brd)"><div style="flex:1 1 220px;min-width:0;color:var(--t1)"><b>${esc(ct.num)}</b> · ${esc(ct.titre)}${ct.clientId?' — '+esc(clientName(ct.clientId)):''}<div style="font-size:12.5px;color:var(--t2)">${ctrEcheanceTexte(j)} (${fmtShortAn(ct.dateFin)})</div></div>${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎ Mettre à jour</button>`:''}</div>`).join('')}
   </div>`; }
 const FREQ={mensuel:'Mensuel',trimestriel:'Trimestriel',semestriel:'Semestriel',annuel:'Annuel'};
 views.contrats=function(){
@@ -39055,7 +39060,7 @@ views.contrats=function(){
   const cAj=canCat('ventes','ajouter'), cMod=canCat('ventes','modifier'), cSup=canCat('ventes','supprimer'), iAj=canCat('int','ajouter');
   const ech=ctrRappels(), echDe=new Map(ech.map(x=>[x.ct.id,x.j]));   // les rappels d'échéance (ctrEcheance)
   setHeader('Contrats','Contrats de maintenance & récurrents',cAj?`<button class="btn" onclick="formContrat()">＋ Contrat</button>`:'');
-  const rows=list.map(ct=>`<tr data-ctr="${esc(ct.id)}"><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}${ctrPastille(echDe.get(ct.id))}</td><td>${badge(CTR_ST,ct.statut)}</td>
+  const rows=list.map(ct=>`<tr data-ctr="${esc(ct.id)}"><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShortAn(ct.dateDebut)} → ${fmtShortAn(ct.dateFin)}${ctrPastille(echDe.get(ct.id))}</td><td>${badge(CTR_ST,ct.statut)}</td>
     <td class="cel-gestes" style="text-align:right;white-space:nowrap">${iAj?`<button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> `:''}${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> `:''}${cSup?`<button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button>`:''}</td></tr>`).join('');
   /* g02 : les doublons déjà en base se DISENT, ils ne se renumérotent pas (un numéro émis ne change pas seul) */
   const dbl=docNumsDoubles('contrats');
