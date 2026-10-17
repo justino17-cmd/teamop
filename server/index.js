@@ -38,6 +38,9 @@ if (config.smtp && config.smtp.host) {
 }
 
 const app = express();
+/* L'API ne dit pas sur quoi elle tourne : « X-Powered-By: Express » ne sert à personne qu'à qui cherche une faille
+   d'une version connue (relevé par le contrôle client mystère, 17 octobre 2026). `tests/test-1011.js`. */
+app.disable('x-powered-by');
 /* ⛔ UNE ROUTE `async` QUI REJETTE LAISSAIT LA REQUÊTE PENDUE (`gardien`, N1). Express 4 ne
    regarde pas la promesse que rend un gestionnaire : une exception après un `await` devenait un
    rejet orphelin (compté par le filet du processus, plus bas), et la personne en face attendait
