@@ -159,6 +159,8 @@
     code_invalide: 'Ce code n\'est pas le bon, ou il a expiré. Vérifie-le, ou demande-en un nouveau.',
     code_plafond: 'Trop de codes faux. Réessaie dans une heure.',
     identifiants_plafond: 'Trop d\'essais de connexion sur ce compte. Réessaie plus tard, ou choisis « Mot de passe oublié ? » : un code partira à ton adresse.',
+    /* le relais courriel ne répond pas (503, entree#0 du lot m02) : dit pour TOUTES les adresses pareil — ne promet aucun code, ne dit rien d'une adresse */
+    courriel_indisponible: 'L\'envoi de courriels est indisponible pour le moment, réessaie plus tard.',
     service_occupe: 'Le service est très demandé en ce moment. Réessaie dans quelques secondes.',
     version_trop_ancienne: 'Cette version d\'OP MESSAGES n\'est plus acceptée : elle se met à jour.',
     courriel_invalide: 'Cette adresse courriel n\'est pas valable.',

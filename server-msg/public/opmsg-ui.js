@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'f2a5c5f348bf';
+  const OPMSG_BUILD = '1c3398dd6088';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3238,7 +3238,9 @@
      personne n'est plus la même : l'état d'une page n'est que MASQUÉ quand on change d'écran — le compte suivant, dans le même onglet, lisait la conversation, les
      messages et le lien de contact du précédent (relecture du gardien, remarque 1, bloquante). Une page neuve ne porte rien : ni DOM, ni mémoire du module. */
   const PHRASES_MOTIF = {
-    session_requise: 'Ta session a pris fin : elle a expiré, ou l\'accès a été coupé depuis la Tour de contrôle. Reconnecte-toi.',
+    /* ⛔ le service ne dit pas POURQUOI la session est morte (et ne le trace pas : ce serait pister) — la phrase nomme les causes que l'utilisatrice connaît, jamais la Tour de contrôle, qu'un
+       public ne connaît pas : « Déconnecter les autres appareils » ferme la session d'un appareil, et c'est cette phrase-ci qu'il lisait */
+    session_requise: 'Ta session a pris fin : elle a expiré, elle a été fermée depuis un autre de tes appareils, ou ton accès a été coupé. Reconnecte-toi.',
     identite: 'Une autre personne s\'est connectée dans ce navigateur : cette page a été fermée. Reconnecte-toi.',
     deconnecte: 'Tu es déconnecté.',
     suppression: 'Ton compte est en cours de suppression. Si tu changes d\'avis, reconnecte-toi avant la date prévue : la suppression sera annulée.',
@@ -3283,6 +3285,7 @@
     if (t && etat.perdus > 0) t += ' ' + (etat.perdus === 1 ? 'Un message n\'était pas encore parti : il n\'a pas été envoyé, écris-le de nouveau.' : etat.perdus + ' messages n\'étaient pas encore partis : ils n\'ont pas été envoyés, écris-les de nouveau.');
     if (!t && d && d.motif && d.motif !== 'session_requise') t = d.phrase || phrase(null, 'Le service ne répond pas.');
     erreurConnexion(t);
+    cxFocus('f-connexion');          // l'écran d'accès d'essai s'ouvre aussi prêt à taper (le panneau par adresse, lui, prend le focus par `cxMontrer`)
     if (CAP.comptesCourriel && typeof source.comptesOuverts === 'function') source.comptesOuverts().then(c => cxProposer(c, t), () => { /* sans réponse, l'écran reste celui d'avant */ });
     /* (salles) un lien d'invité ouvert sans session : la connexion DIT à quelle réunion il mène (l'aperçu public du service — rien qu'un titre et une heure), puis la page repart avec le lien */
     const cr = CAP.salles ? reunionDansAdresse() : null;
@@ -3296,12 +3299,19 @@
      d'essai. ⛔ La création ne dit jamais si une adresse a déjà un compte (le service répond pareil) : l'écran du code dit « si cette adresse n'a pas encore de compte ». ⛔ Le code se TAPE
      (pas de lien : depuis Mail, un lien ouvrirait Safari, pas l'application installée). Rien n'est rangé sur l'appareil : l'adresse ne vit que le temps de l'écran. */
   const CX_PANNEAUX = ['f-connexion', 'f-mel', 'f-inscrire', 'f-code', 'f-oubli'];
-  const cx = { comptes: null, adresse: '', but: 'inscription', minuterie: 0, renvoiA: 0, enCours: false, champs: null };
+  const cx = { comptes: null, adresse: '', but: 'inscription', minuterie: 0, renvoiA: 0, enCours: false, champs: null, faux: 0 };
+  /* ⛔ le service brûle un code au 5e essai faux (`CODE_ESSAIS`) ; le 6e refus aurait la même phrase que le 1er et la personne retaperait le même code périmé. La page COMPTE ses refus (elle ne
+     demande rien au service : un code « épuisé » rendu par lui dirait qu'une adresse a un code en cours, donc qu'elle a demandé un code). Le compte est le même pour toute adresse. */
+  const CX_ESSAIS = 5;
+  /* sur ordinateur (pointeur précis) on tape tout de suite, sans cliquer dans le champ ; au doigt, le clavier ne s'ouvre pas tout seul */
+  function cxFocus(id) {
+    const premier = $(id).querySelector('input:not([type=checkbox])');
+    if (premier && window.matchMedia && window.matchMedia('(pointer: fine)').matches) premier.focus({ preventScroll: true });
+  }
   function cxMontrer(id) {
     CX_PANNEAUX.forEach(f => { $(f).hidden = f !== id; });
     const err = id === 'f-connexion' ? $('connexion-erreur') : $(id).querySelector('.connexion-erreur'); err.textContent = ''; err.hidden = true;
-    const premier = $(id).querySelector('input:not([type=checkbox])');
-    if (premier && window.matchMedia && window.matchMedia('(pointer: fine)').matches) premier.focus({ preventScroll: true });
+    cxFocus(id);
   }
   function cxProposer(c, motifTexte) {
     cx.comptes = c;
@@ -3322,7 +3332,7 @@
     tic(); cx.minuterie = setInterval(tic, 1000);
   }
   function cxVersCode(but, adresse) {
-    cx.but = but; cx.adresse = adresse; cx.renvoiA = Date.now() + 60000;
+    cx.but = but; cx.adresse = adresse; cx.renvoiA = Date.now() + 60000; cx.faux = 0;
     $('cx-code-titre').textContent = but === 'reinit' ? 'Nouveau mot de passe' : 'Vérifie tes e-mails';
     $('cx-code-sous').textContent = but === 'reinit'
       ? 'Si « ' + adresse + ' » a un compte, un code à six chiffres vient d\'y partir. Tape-le, puis choisis ton nouveau mot de passe : tous tes appareils seront déconnectés.'
@@ -3342,6 +3352,9 @@
     catch (e) { erreurConnexion(phrase(e, 'Ça n\'a pas pu se faire. Réessaie.')); }
     finally { cx.enCours = false; b.removeAttribute('aria-disabled'); }
   }
+  /* ⛔ le mot de passe ne se vide que sur un REFUS d'identifiants : après une coupure (« Pas de connexion au service »), un service qui ne répond pas ou un plafond, il n'est pas en cause —
+     retaper un mot de passe long à chaque coupure, sur le terrain, c'est ce que la personne ne devrait pas avoir à faire */
+  const cxMdpApresEchec = (id, e) => { if (e && e.code === 'identifiants') $(id).value = ''; };
   const cxEntrer = (moi) => { if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload(); };
   document.addEventListener('click', e => {
     const l = e.target.closest('[data-cx]');
@@ -3359,11 +3372,11 @@
        exactement comme le formulaire « Accès d'essai ». */
     if (!a.includes('@') && CAP.connexion && typeof source.connexion === 'function') {
       try { const moi = await source.connexion(a, m); $('cx-mel-mdp').value = ''; if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload(); }
-      catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Identifiant ou mot de passe incorrect.'); return; } throw e; }
+      catch (e) { cxMdpApresEchec('cx-mel-mdp', e); if (e && e.code === 'identifiants') { erreurConnexion('Identifiant ou mot de passe incorrect.'); return; } throw e; }
       return;
     }
     try { const moi = await source.connexionCourriel(a, m); $('cx-mel-mdp').value = ''; cxEntrer(moi); }
-    catch (e) { $('cx-mel-mdp').value = ''; if (e && e.code === 'identifiants') { erreurConnexion('Adresse e-mail ou mot de passe incorrect.'); return; } throw e; }
+    catch (e) { cxMdpApresEchec('cx-mel-mdp', e); if (e && e.code === 'identifiants') { erreurConnexion('Adresse e-mail ou mot de passe incorrect.'); return; } throw e; }
   }); });
   $('f-inscrire').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-inscrire', async () => {
     const champs = { prenom: $('cx-ins-prenom').value.trim(), nom: $('cx-ins-nom').value.trim(), courriel: $('cx-ins-adresse').value.trim(), mdp: $('cx-ins-mdp').value, conditions: $('cx-ins-conditions').checked };
@@ -3384,16 +3397,21 @@
   $('f-code').addEventListener('submit', ev => { ev.preventDefault(); cxGeste('f-code', async () => {
     const code = $('cx-code').value.replace(/\s+/g, '');
     if (!/^\d{6}$/.test(code)) { erreurConnexion('Le code fait six chiffres.'); $('cx-code').focus(); return; }
-    if (cx.but === 'reinit') {
-      const m = $('cx-code-mdp').value;
-      if (m.length < 10) { erreurConnexion('Choisis un mot de passe d\'au moins 10 caractères.'); $('cx-code-mdp').focus(); return; }
-      cxEntrer(await source.reinitMdp(cx.adresse, code, m));
-    } else { await source.confirmerInscription(cx.adresse, code); cx.champs = null; location.reload(); }
+    try {
+      if (cx.but === 'reinit') {
+        const m = $('cx-code-mdp').value;
+        if (m.length < 10) { erreurConnexion('Choisis un mot de passe d\'au moins 10 caractères.'); $('cx-code-mdp').focus(); return; }
+        cxEntrer(await source.reinitMdp(cx.adresse, code, m));
+      } else { await source.confirmerInscription(cx.adresse, code); cx.champs = null; location.reload(); }
+    } catch (e) {
+      if (!(e && e.code === 'code_invalide' && ++cx.faux >= CX_ESSAIS)) throw e;
+      erreurConnexion('Trop d\'essais : ce code ne marche plus. Demande-en un nouveau avec « Renvoyer le code ».');
+    }
   }); });
   $('cx-renvoyer').addEventListener('click', () => cxGeste('f-code', async () => {
     if (Date.now() < cx.renvoiA) return;
     if (cx.but === 'reinit') await source.oubliMdp(cx.adresse); else if (cx.champs) await source.inscrire(cx.champs); else { cxMontrer('f-inscrire'); return; }
-    cx.renvoiA = Date.now() + 60000; cxRenvoiDecompte(); mot('Un nouveau code est parti');
+    cx.renvoiA = Date.now() + 60000; cx.faux = 0; cxRenvoiDecompte(); mot('Un nouveau code est parti');
   }));
   $('cx-code-retour').addEventListener('click', () => { clearInterval(cx.minuterie); cxMontrer(cx.but === 'reinit' ? 'f-oubli' : 'f-inscrire'); });
 
@@ -3411,7 +3429,7 @@
       /* se reconnecter avant l'échéance ANNULE la suppression du compte : le service le dit, la personne doit l'apprendre — la page repart avec le motif (une bannière à l'arrivée) */
       if (moi && moi.suppression_annulee === true) location.replace(location.origin + cheminSur() + '?m=suppression_annulee' + location.hash); else location.reload();
     }
-    catch (e) { $('c-pass').value = ''; erreurConnexion(phrase(e, 'La connexion n\'a pas pu se faire.')); }
+    catch (e) { cxMdpApresEchec('c-pass', e); erreurConnexion(phrase(e, 'La connexion n\'a pas pu se faire.')); }
     finally { connexionEnCours = false; $('c-entrer').removeAttribute('aria-disabled'); }
   });
   /* la session se relit quand on revient sur la page ou que le réseau revient : une autre personne dans le même navigateur, une session coupée */
