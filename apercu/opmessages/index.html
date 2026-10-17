@@ -3062,7 +3062,8 @@ a.menu-action { text-decoration: none; }
      (« 09:00 – lun. 26 oct. 09:00 ») ; sinon c'est `plageHeures` telle quelle (le dimanche du changement d'heure y garde sa saison). La rangée empilée de l'Agenda, elle, a une forme courte (« 26/10 »).
      ⛔ « L'heure seule ne suffit pas » (`jourFinDit`) : une fin qui passe MINUIT sans dépasser une journée (soirée 23:00 → 01:00, garde de nuit) se lisait sans ambiguïté — c'est l'agenda de tous les jours, il ne
      bouge pas. Le jour de fin ne s'écrit que si la fin tombe à une heure qui n'est pas plus tôt que le début (« 09:00 » sur « 09:00 »), ou après 24 h ou plus (« 23:00 » sur « 01:00 » deux jours plus tard).
-     `plageHeures` reste l'HEURE seule : les étiquettes qui ont déjà le jour à côté (menu d'un rendez-vous, chevauchement) la gardent. Le jour se compare par `toDateString`, comme `heureSaison`. */
+     `plageHeures` reste l'HEURE seule, et ne s'écrit plus seule nulle part : `plageLongue` s'en sert le même jour (le chevauchement de « Décaler » la lisait directement, et disait « 09:00 – 09:00 »
+     d'une réunion de 72 h — re-test final). Le jour se compare par `toDateString`, comme `heureSaison`. */
   const FMT_JOUR_FIN = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
   const FMT_JJMM = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit' });
   const autreJour = (debut, fin) => new Date(debut).toDateString() !== new Date(fin).toDateString();
@@ -8613,6 +8614,17 @@ a.menu-action { text-decoration: none; }
   const fuseauAppareil = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { return ''; } };
   /* l'heure d'un instant dans UN fuseau (celui de la réunion) : de quoi dire « 14:00 à Paris » quand l'appareil est ailleurs */
   function heureDans(t, tz) { try { return new Intl.DateTimeFormat('fr-FR', { timeZone: tz, hour: '2-digit', minute: '2-digit' }).format(t); } catch (e) { return ''; } }
+  /* ⛔ (r6) LA FIN DANS UN AUTRE FUSEAU DIT SON JOUR, selon la règle de `jourFinDit` lue dans CE fuseau : « 09:00 – 09:00 à New York » pour une réunion de 72 h se lisait comme une
+     durée nulle (re-test final). Une soirée de moins de 24 h dont la fin est plus tôt sur l'horloge garde l'heure seule, comme ici. */
+  function finDans(debut, fin, tz) {
+    const lb = heureDans(fin, tz); if (!lb) return '';
+    try {
+      const jourTz = t => new Intl.DateTimeFormat('fr-FR', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' }).format(t);
+      const mn = h => { const m = /^(\d\d):(\d\d)$/.exec(h); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; };
+      const dit = jourTz(debut) !== jourTz(fin) && !(fin - debut < 86400000 && mn(lb) < mn(heureDans(debut, tz)));
+      return (dit ? new Intl.DateTimeFormat('fr-FR', { timeZone: tz, weekday: 'short', day: 'numeric', month: 'short' }).format(fin) + ' ' : '') + lb;
+    } catch (e) { return lb; }
+  }
   const villeDe = tz => String(tz || '').split('/').pop().replace(/_/g, ' ');
   /* l'heure LOCALE d'un instant dans un fuseau, sous la forme que le service lit : « 2026-10-26T14:00 » */
   function localDans(t, tz) {
@@ -8668,7 +8680,7 @@ a.menu-action { text-decoration: none; }
   }
   /* l'horaire d'une occurrence : « 14:00 – 15:00 », et, si le fuseau de la réunion donne une autre heure que l'appareil, « (14:00 – 15:00 à Paris) » */
   function libelleHoraire(r, o) {
-    const h = plageLongue(o.debut, o.fin), la = heureDans(o.debut, r.tz), lb = heureDans(o.fin, r.tz);
+    const h = plageLongue(o.debut, o.fin), la = heureDans(o.debut, r.tz), lb = finDans(o.debut, o.fin, r.tz);
     const autre = !!la && la !== FMT_HEURE.format(o.debut);
     return { h, note: autre ? la + ' – ' + lb + ' à ' + villeDe(r.tz) : '', hz: autre ? la + ' – ' + lb : '', ville: autre ? villeDe(r.tz) : '' };
   }
@@ -9201,7 +9213,8 @@ a.menu-action { text-decoration: none; }
     for (const e of (CAP.agenda ? reu.evenements || [] : [])) if (e.id !== sauf && !e.journee && !e.fait && e.debut < au && e.fin > du) out.push({ e, o: { debut: e.debut, fin: e.fin } });
     return out.sort((a, b) => a.o.debut - b.o.debut);
   }
-  const phraseChevauche = c => c.length ? 'Attention, ce créneau chevauche ' + c.slice(0, 2).map(y => '« ' + titreElt(y) + ' » (' + plageHeures(y.o.debut, y.o.fin) + ')').join(' et ') + (c.length > 2 ? ' et ' + (c.length - 2) + ' autre' + (c.length > 3 ? 's' : '') : '') + '.' : '';
+  /* (r6) l'événement en conflit dit où il finit (`plageLongue`) : la phrase ne donne son jour nulle part ailleurs */
+  const phraseChevauche = c => c.length ? 'Attention, ce créneau chevauche ' + c.slice(0, 2).map(y => '« ' + titreElt(y) + ' » (' + plageLongue(y.o.debut, y.o.fin) + ')').join(' et ') + (c.length > 2 ? ' et ' + (c.length - 2) + ' autre' + (c.length > 3 ? 's' : '') : '') + '.' : '';
   function decalerApercu() {
     const F = reu.decalageForm; if (!F) return;
     const t = decalerNouveau(), b = $('dc-apres') && $('dc-apres').querySelector('b'), conf = $('dc-conflit');
@@ -9211,7 +9224,7 @@ a.menu-action { text-decoration: none; }
       /* ⛔ une heure que le jour n'a pas (le trou du changement d'heure de l'appareil) se DIT, avec celle qui sera prise ; et l'heure CHEZ la réunion quand son fuseau n'est pas celui de l'appareil */
       const saisie = !F.journee && $('dc-heure') ? $('dc-heure').value : '', ici = t === null || F.journee ? '' : hmDe(t);
       const loin = ici && F.tz && F.tz !== fuseauAppareil() ? heureDans(t, F.tz) : '';
-      note.textContent = (saisie && ici && saisie !== ici ? saisie + ' n\'existe pas ce jour-là (changement d\'heure) : ce sera ' + ici + '. ' : '') + (loin && loin !== ici ? 'Heure de ' + villeDe(F.tz) + ' : ' + loin + ' – ' + heureDans(t + F.duree, F.tz) + '.' : '');
+      note.textContent = (saisie && ici && saisie !== ici ? saisie + ' n\'existe pas ce jour-là (changement d\'heure) : ce sera ' + ici + '. ' : '') + (loin && loin !== ici ? 'Heure de ' + villeDe(F.tz) + ' : ' + loin + ' – ' + finDans(t, t + F.duree, F.tz) + '.' : '');
     }
     if (conf) {
       conf.textContent = phraseChevauche(c);
@@ -11209,7 +11222,7 @@ a.menu-action { text-decoration: none; }
     const ici = localDans(a, tz).slice(0, 10), labas = localDans(a, z.value).slice(0, 10);
     const lieu = ville.includes(' — ') ? ville.split(' — ')[1].replace(/ \(.*\)$/, '') : ville, h = Number(heureDans(a, z.value).slice(0, 2)), hf = Number(heureDans(b, z.value).slice(0, 2));
     const horsBureau = h < 8 || h >= 19 || hf > 20 || hf < h;
-    n.textContent = 'À ' + lieu + ' : ' + jour + ', de ' + heureDans(a, z.value) + ' à ' + heureDans(b, z.value) + (ici !== labas ? ' — ce n\'est pas le même jour qu\'ici' : '') + (horsBureau ? ' — en dehors des heures de bureau chez eux.' : '.');
+    n.textContent = 'À ' + lieu + ' : ' + jour + ', de ' + heureDans(a, z.value) + ' à ' + finDans(a, b, z.value) + (ici !== labas ? ' — ce n\'est pas le même jour qu\'ici' : '') + (horsBureau ? ' — en dehors des heures de bureau chez eux.' : '.');
   }
   /* ce que le formulaire dit, prêt pour le service ; un refus local dit pourquoi et rend `null` */
   function lireFormReunion() {

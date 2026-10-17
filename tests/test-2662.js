@@ -4,6 +4,11 @@
      · l'aperçu du LIEN D'INVITÉ d'une réunion (`#reunion=<code>`) : « Vendredi 23 octobre · 09:00 à 09:00 » — reproduit au navigateur, compte de Dan ;
      · le COMPTE RENDU d'une séance qui a duré au-delà de minuit : « 09:00–09:00 » ;
      · `quandRdv`, le titre du menu d'un élément de l'Agenda et le « Prévu / Nouveau » de « Décaler » : « vendredi 23 octobre, 09:00 – 09:00 ».
+   Puis le second agent (chargé de réfuter le correctif) en a trouvé quatre de plus, même famille, par des gestes ordinaires de « Décaler » et de l'Agenda :
+     · la phrase de CHEVAUCHEMENT de « Décaler » : « ce créneau chevauche « WeekendPro » (09:00 – 09:00) » — elle ne dit le jour de l'autre événement nulle part ;
+     · l'heure dans un AUTRE FUSEAU : la note « Heure de New York : 09:00 – 09:00 » de « Décaler », et la parenthèse « (09:00 – 09:00 à New York) » de la rangée
+       (`libelleHoraire`) — d'où `finDans(debut, fin, tz)`, la règle de `jourFinDit` lue dans le fuseau de la réunion ;
+     · le « chez eux » du formulaire d'une réunion (« de 09:00 à 09:00 »).
    Les VRAIES fonctions de la page sont exécutées sous Europe/Paris ; pour l'aperçu, l'EXPRESSION réelle de la ligne (commentaires retirés) est évaluée avec la réponse du
    service. Contre-épreuves : le même jour, rien ne change (un jour ordinaire, une soirée qui passe minuit, le dimanche du changement d'heure). */
 'use strict';
@@ -23,6 +28,8 @@ const REQUIS = {
   heureSaison: entre('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '), finLue: ligne('const finLue = '), plageLongue: ligne('const plageLongue = '),
   REPONSE_CR: ligne('const REPONSE_CR = '), dureeCr: ligne('const dureeCr = '), htmlCompteRendu: entre('function htmlCompteRendu(', "return h + '</span>';\n  }"),
   quandRdv: ligne('const quandRdv = '),
+  heureDans: ligne('function heureDans('), finDans: entre('function finDans(', '\n  }'), villeDe: ligne('const villeDe = '), libelleHoraire: entre('function libelleHoraire(', '\n  }'),
+  titreElt: ligne('const titreElt = '), phraseChevauche: ligne('const phraseChevauche = '),
 };
 const manquants = Object.keys(REQUIS).filter(k => !REQUIS[k]);
 vrai('(population) chaque morceau de la page est trouvé' + (manquants.length ? ' — manquent : ' + manquants.join(', ') : ''), !manquants.length);
@@ -34,7 +41,7 @@ const ctx = { Intl, Date, Math, Number, String, Array, Object, console }; vm.cre
 let F = null;
 try {
   vm.runInContext(Object.values(REQUIS).filter(Boolean).join('\n')
-    + '\nthis.F = { quandRdv, htmlCompteRendu, plageHeures, apercu: r => ' + (carte ? carte[1] : '""') + ' };', ctx);
+    + '\nthis.F = { quandRdv, htmlCompteRendu, plageHeures, finDans, libelleHoraire, phraseChevauche, apercu: r => ' + (carte ? carte[1] : '""') + ' };', ctx);
   F = ctx.F;
 } catch (e) { console.log('  ✗ ' + e.message); }
 vrai('(population) le bac à sable exécute les vraies fonctions', !!F && typeof F.quandRdv === 'function' && typeof F.htmlCompteRendu === 'function');
@@ -67,5 +74,28 @@ if (!F) { fin(); } else {
   v('la plage d\'HEURES seule (étiquette du chevauchement, qui a le jour à côté) ne change pas', F.plageHeures(o.debut, o.fin), '09:00 – 09:00');
   /* une séance sans fin connue garde l'heure de début seule */
   v('un compte rendu sans fin : l\'heure de début seule', quandCr(cr(jour.debut, 0)), 'Mardi 20 octobre · 09:00');
+
+  /* ── le second agent : le chevauchement de « Décaler », l'heure dans un autre fuseau, le « chez eux » du formulaire ── */
+  const elt = (titre, x) => ({ r: { titre }, o: x });
+  v('⛔ le CHEVAUCHEMENT de « Décaler » dit où l\'autre événement finit', F.phraseChevauche([elt('WeekendPro', o)]), 'Attention, ce créneau chevauche « WeekendPro » (09:00 – lun. 26 oct. 09:00).');
+  v('…et un chevauchement le même jour reste « 09:00 – 10:30 »', F.phraseChevauche([elt('Court', jour)]), 'Attention, ce créneau chevauche « Court » (09:00 – 10:30).');
+  /* une réunion fixée à New York, 72 h : mercredi 21/10 09:00 (13:00Z) → samedi 24/10 09:00 (13:00Z) ; à Paris, 15:00 → 15:00 */
+  const ny = { debut: Date.UTC(2026, 9, 21, 13, 0), fin: Date.UTC(2026, 9, 24, 13, 0) };
+  v('(population) New York est à −4 h ce jour-là : 13:00Z s\'y lit 09:00, et 15:00 à Paris', [F.finDans(ny.debut, ny.debut, 'America/New_York'), new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' }).format(ny.debut)], ['09:00', '15:00']);
+  v('⛔ `finDans` : la fin d\'une réunion de 72 h à New York dit son jour, lu À New York', F.finDans(ny.debut, ny.fin, 'America/New_York'), 'sam. 24 oct. 09:00');
+  const lh = F.libelleHoraire({ tz: 'America/New_York' }, ny);
+  v('⛔ la rangée d\'une réunion de New York : l\'heure de Paris ET la parenthèse de New York disent le jour de fin', [lh.h, lh.hz], ['15:00 – sam. 24 oct. 15:00', '09:00 – sam. 24 oct. 09:00']);
+  vrai('…et la note dit la ville', /^09:00 – sam\. 24 oct\. 09:00 à /.test(lh.note));
+  /* le jour se juge DANS le fuseau : 22:00 → 23:00 à Paris est 16:00 → 17:00 à New York, même jour ; 05:00 → 07:00 à Paris (le lendemain) est 23:00 → 01:00 à New York */
+  const nyJour = { debut: Date.UTC(2026, 9, 21, 13, 0), fin: Date.UTC(2026, 9, 21, 14, 30) };
+  v('contre-épreuve : une réunion d\'une heure et demie à New York garde l\'heure seule', F.finDans(nyJour.debut, nyJour.fin, 'America/New_York'), '10:30');
+  const nySoir = { debut: Date.UTC(2026, 9, 22, 3, 0), fin: Date.UTC(2026, 9, 22, 5, 0) };       // 23:00 → 01:00 à New York, 05:00 → 07:00 à Paris (même jour)
+  v('contre-épreuve : une soirée de 23:00 à 01:00 À NEW YORK garde l\'heure seule là-bas (la fin, plus tôt sur l\'horloge, se lit)', F.finDans(nySoir.debut, nySoir.fin, 'America/New_York'), '01:00');
+  v('un fuseau inconnu : `finDans` rend vide, comme `heureDans` (rien d\'inventé)', F.finDans(ny.debut, ny.fin, 'Nulle/Part'), '');
+  /* la note de « Décaler » et le « chez eux » du formulaire écrivent la fin par `finDans` : leurs fonctions touchent le DOM, on lit leur CODE (commentaires retirés) */
+  const dec = entre('function decalerApercu(', '\n  }'), chez = entre('function peindreChezEux(', '\n  }');
+  vrai('(population) `decalerApercu` et `peindreChezEux` sont trouvées', dec.length > 300 && chez.length > 300);
+  vrai('⛔ la note de fuseau de « Décaler » écrit la fin par `finDans(t, t + F.duree, F.tz)`', /' : ' \+ loin \+ ' – ' \+ finDans\(t, t \+ F\.duree, F\.tz\)/.test(dec) && !/heureDans\(t \+ F\.duree/.test(dec));
+  vrai('⛔ le « chez eux » du formulaire écrit la fin par `finDans(a, b, z.value)`', /' à ' \+ finDans\(a, b, z\.value\)/.test(chez) && !/' à ' \+ heureDans\(b, z\.value\)/.test(chez));
   fin();
 }

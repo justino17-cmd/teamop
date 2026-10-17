@@ -17,14 +17,14 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
 
 const REQUIS = { esc: ligne('const esc = '), FMT_HEURE: ligne('const FMT_HEURE = '), heureSaison: entre('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '),
   heureEmpilee: entre('const heureEmpilee = ', '\n  };'), FMT_JOUR_FICHE: ligne('const FMT_JOUR_FICHE = '), quandFiche: ligne('const quandFiche = '),
-  heureDans: ligne('function heureDans('), villeDe: ligne('const villeDe = '), libelleHoraire: entre('function libelleHoraire(', '\n  }'), ligneEvenement: entre('function ligneEvenement(', "'</span></button></li>';\n  }") };
+  heureDans: ligne('function heureDans('), finDans: entre('function finDans(', '\n  }'), villeDe: ligne('const villeDe = '), libelleHoraire: entre('function libelleHoraire(', '\n  }'), ligneEvenement: entre('function ligneEvenement(', "'</span></button></li>';\n  }") };
 /* ce que le correctif ajoute : cherché s'il existe, jamais exigé ici (les comportements ci-dessous tombent sans lui) */
 const OPTION = { FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), minutesDuJour: ligne('const minutesDuJour = '), jourFinDit: ligne('const jourFinDit = '), finLue: ligne('const finLue = '), plageLongue: ligne('const plageLongue = ') };
 const manquants = Object.keys(REQUIS).filter(k => !REQUIS[k]);
 vrai('(population) chaque morceau existant de la page est trouvé' + (manquants.length ? ' — manquent : ' + manquants.join(', ') : ''), !manquants.length);
 const ctx = { Intl, Date, Math, Number, String, Array, Set, Object, console }; vm.createContext(ctx);
 let F = null;
-try { vm.runInContext([REQUIS.esc, REQUIS.FMT_HEURE, OPTION.FMT_JOUR_FIN, OPTION.FMT_JJMM, OPTION.autreJour, OPTION.minutesDuJour, OPTION.jourFinDit, REQUIS.heureSaison, REQUIS.plageHeures, OPTION.finLue, OPTION.plageLongue, REQUIS.heureEmpilee, REQUIS.FMT_JOUR_FICHE, REQUIS.quandFiche, REQUIS.heureDans, REQUIS.villeDe, REQUIS.libelleHoraire, 'const texteRappels = () => ""; const icone = () => "";', REQUIS.ligneEvenement].filter(Boolean).join('\n') + '\nthis.F = { plageHeures, heureEmpilee, quandFiche, libelleHoraire, ligneEvenement };', ctx); F = ctx.F; } catch (e) { console.log('  ✗ ' + e.message); }
+try { vm.runInContext([REQUIS.esc, REQUIS.FMT_HEURE, OPTION.FMT_JOUR_FIN, OPTION.FMT_JJMM, OPTION.autreJour, OPTION.minutesDuJour, OPTION.jourFinDit, REQUIS.heureSaison, REQUIS.plageHeures, OPTION.finLue, OPTION.plageLongue, REQUIS.heureEmpilee, REQUIS.FMT_JOUR_FICHE, REQUIS.quandFiche, REQUIS.heureDans, REQUIS.finDans, REQUIS.villeDe, REQUIS.libelleHoraire, 'const texteRappels = () => ""; const icone = () => "";', REQUIS.ligneEvenement].filter(Boolean).join('\n') + '\nthis.F = { plageHeures, heureEmpilee, quandFiche, libelleHoraire, ligneEvenement };', ctx); F = ctx.F; } catch (e) { console.log('  ✗ ' + e.message); }
 vrai('(population) le bac à sable exécute les vraies fonctions', !!F && typeof F.libelleHoraire === 'function');
 if (!F) { fin(); } else {
   const texteDe = h => h.replace(/<[^>]*>/g, '|').replace(/\|+/g, '|').replace(/^\||\|$/g, '');
