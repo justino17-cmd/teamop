@@ -27,7 +27,7 @@ const PIECES = {
   DEPT: ligne('const DEPT_NAMES='), BIG: ligne('const BIG_CITIES='), NORM: ligne('const norm = s =>'),
   ARR: bloc('function cpEstArrondissement('), DEPKEY: bloc('function depDeKey('), DEPCP: bloc('function depFromCp(cp){'), CPKEY: bloc('function cpToKey(cp){'),
   LABEL: bloc('function keyLabel(key){'), NAMECODE: bloc('function deptCodeFromName(s){'), PARSE: bloc('function parseTechDepts(str){'),
-  KFC: bloc('function keyForClient(clientId){'), TFK: bloc('function techForKey(key){'), DCOL: bloc('function deptColor(key){'), SECT: bloc('views.secteurs=function(){') };
+  KFC: bloc('function keyForClient(clientId){'), TFK: bloc('function techForKey(key){') + '\n' + bloc('function techCouvrantEnPartie(dep){'), DCOL: bloc('function deptColor(key){'), SECT: bloc('views.secteurs=function(){') };
 v('toutes les pièces sont trouvées', Object.entries(PIECES).filter(([, x]) => !x).map(([k]) => k), []);
 v('⛔ une seule définition de chaque fonction de secteur', ['cpToKey', 'keyLabel', 'parseTechDepts', 'depFromCp', 'techForKey', 'cpEstArrondissement', 'depDeKey'].map(n => SRC.split('function ' + n + '(').length - 1), [1, 1, 1, 1, 1, 1, 1]);
 

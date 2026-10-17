@@ -20388,7 +20388,7 @@ function planDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Droit «
   if(!planAbsGate(intTechIds(i)[0]||'',iso,i)) return;
   i.date=iso; if(i.statut==='aplanifier') i.statut='planifiee';
   planStamp(i,de);
-  const cf=intConflictOf(i,i.id); delete i._oblig; save(); planSel=iso; views.planning();
+  const cf=intConflictOf(i,i.id); delete i._oblig; planObligationLever(i); save(); planSel=iso; views.planning();
   toast(cf?('Déplacée au '+fmtShort(iso)+' — chevauche « '+(cf.titre||'')+' »'):('Intervention déplacée au '+fmtShort(iso)));
   serieShiftPropose(i,(de||{}).date||''); }
 function planDropTech(e,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return;
@@ -20397,13 +20397,22 @@ function planDropTech(e,techId){ e.preventDefault(); if(!canPlan()){ toast('Droi
   planPoserEquipe(i,techId||'',window._planDragDe); if(!i.date){ i.date=planSel; } if(i.statut==='aplanifier') i.statut='planifiee';
   intHisto(i,'Assignée à '+techNames(i));
   planStamp(i,de);
-  const cf=intConflictOf(i,i.id); delete i._oblig; save(); views.planning();
+  const cf=intConflictOf(i,i.id); delete i._oblig; planObligationLever(i); save(); views.planning();
   toast(cf?('Assignée à '+techNames(i)+' — chevauche « '+(cf.titre||'')+' »'):('Assignée à '+techNames(i))); }
 /* ── Duplication (Alt + glisser) ── */
 function planDup(i,patch){ if(!permGarde('int','ajouter','une intervention')) return; const c=JSON.parse(JSON.stringify(i)); c.id=uid(); c.num=''; c.statut='planifiee'; delete c.rapport; delete c.signature; delete c.sigTech; c.histo=[]; delete c.propose; delete c.obligation;
   Object.assign(c,patch||{}); db.interventions.push(c); intHisto(c,'Créée par duplication (planning)'); planStamp(c,null); save(); views.planning(); toast('Intervention dupliquée'); }
 /* ── Absences BLOQUANTES : refus net, sauf droit « Obliger à travailler » (confirmation) ── */
-function planAbsGate(techId,iso,i){ if(!techId||!iso) return true; const ab=absentOn(techId,iso); if(!ab) return true;
+/* La trace « Placée malgré un congé » (i.obligation) décrit la PLACE où l'intervention a été posée de force : dès que
+   le geste de déplacement la met ailleurs que sur un jour d'absence, elle n'a plus lieu d'être (le survol et le badge
+   « congé » mentaient). Elle se retire AU GESTE, jamais au chargement, et une fois le déplacement ACQUIS : la porte
+   (planAbsGate) ne fait que demander la permission, car « Annuler » ou un refus qui suit (chevauchement) laissent
+   l'intervention là où elle était — retirer la trace à la porte la perdait pour de bon. Chaque dépôt l'appelle donc
+   juste avant son save(), sur la place FINALE de l'intervention (date et toute l'équipe). Rend vrai si retirée. */
+function planObligationLever(i){ if(!i||!i.obligation) return false;
+  if(i.date&&intTechIds(i).some(t=>absentOn(t,i.date))) return false;
+  delete i.obligation; return true; }
+function planAbsGate(techId,iso,i){ const ab=(techId&&iso)?absentOn(techId,iso):null; if(!ab) return true;
   const nom=techName(techId), typ=ABS_TYPES[ab.type]||ab.type||'absence';
   const jour=fmtShort(iso).replace(/\.$/,'');   // fmtShort finit par « . » (« 17 oct. ») : la phrase mettait « oct.. Appliquer »
   if(!can('planifObligerTravail')){ toast('❌ Impossible : '+nom+' est en '+typ+' le '+jour); return false; }
@@ -20432,7 +20441,7 @@ function planDepotAvant(e,i,iso,techId,m,patchDup){
 function planDepotApres(i,de){
   planStamp(i,de);
   const forced=!!i._oblig; delete i._oblig;
-  save(); return forced; }
+  planObligationLever(i); save(); return forced; }
 /* ── Dépôt sur une case (jour + technicien d'un geste) ── */
 function planDropCell(e,iso,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i) return;
   const de=planDepotAvant(e,i,iso,techId,null,{date:iso,techId:techId||'',techIds:techId?[techId]:[]});
@@ -20762,15 +20771,16 @@ function planDeplacerRender(){
 }
 function planDeplacerValider(){
   const i=db.interventions.find(z=>z.id===DEP.id); if(!i) return;
+  const avObl=i.obligation?{...i.obligation}:null;   // avant la porte : « Annuler » doit pouvoir remettre la trace d'avant
   if(DEP.tech&&typeof planAbsGate==='function'&&!planAbsGate(DEP.tech,DEP.date,i)) return;
   const de=planSnap(i), avTech=planTechsOf(i)[0]||'', avIds=intTechIds(i).slice(), avD=i.date, avH=i.heure;
   i.date=DEP.date; i.heure=DEP.heure;
   planPoserEquipe(i,DEP.tech||'',DEP.depuis);
   if(i.statut==='aplanifier') i.statut='planifiee';
-  save();
+  planObligationLever(i); save();
   try{ planStamp(i,de); }catch(e){}
   try{ if(avD!==i.date&&typeof serieShiftPropose==='function') serieShiftPropose(i,avD,i.date); }catch(e){}
-  window._planUndoTech={id:DEP.id,tech:avTech,techIds:avIds,date:avD,heure:avH};
+  window._planUndoTech={id:DEP.id,tech:avTech,techIds:avIds,date:avD,heure:avH,obligation:avObl};
   closeModal();
   if(planJours.indexOf(i.date)<0&&planMode==='multi'){ planJours.push(i.date); planJours.sort(); }
   views.planning();
@@ -20785,6 +20795,7 @@ function planDeplacerAnnuler(){
   if(u.date) i.date=u.date; if(u.heure) i.heure=u.heure;
   if(Array.isArray(u.techIds)){ i.techIds=u.techIds.slice(); i.techId=i.techIds[0]||''; }   // v757 : toute l'équipe revient
   else if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
+  if('obligation' in u){ if(u.obligation) i.obligation=u.obligation; else delete i.obligation; }   // la trace « malgré un congé » revient avec la place
   save(); try{ planStamp(i,de); }catch(e){}
   window._planUndoTech=null; views.planning();
   toast('↩︎ Intervention remise comme avant');
@@ -20794,8 +20805,7 @@ function planChangerTech(id,tid){
   if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; }
   const av=planTechsOf(i)[0]||'';
   if(av===tid){ toast(tid?('Déjà chez '+techName(tid)):'Déjà non assignée'); return; }
-  // congé : on demande confirmation (même garde que le glisser-déposer)
-  if(tid&&typeof planAbsGate==='function'&&!planAbsGate(tid,i.date,i)) return;
+  const avObl=i.obligation?{...i.obligation}:null;   // avant la porte : « Annuler » doit pouvoir remettre la trace d'avant
   // chevauchement : on prévient avant, on n'interdit pas
   if(tid&&toMinH(i.heure)!==null){
     const a=toMinH(i.heure), b=a+Math.max(0,parseInt(i.duree)||60);
@@ -20803,11 +20813,14 @@ function planChangerTech(id,tid){
       &&Math.max(toMinH(z.heure),a)<Math.min(toMinH(z.heure)+Math.max(0,parseInt(z.duree)||60),b));
     if(ch&&!confirm('⚠️ '+techName(tid)+' a déjà « '+(ch.titre||'une intervention')+' » à '+(ch.heure||'')+' sur ce créneau.\n\nL\'assigner quand même ?')) return;
   }
+  // congé : on demande confirmation (même garde que le glisser-déposer). APRÈS le chevauchement : la porte note
+  // l'obligation et son entrée de journal dès qu'on confirme — un refus qui suivrait laisserait une trace fausse.
+  if(tid&&typeof planAbsGate==='function'&&!planAbsGate(tid,i.date,i)) return;
   const de=planSnap(i), avIds=intTechIds(i).slice();
   planPoserEquipe(i,tid||'',av);
-  save();
+  planObligationLever(i); save();
   try{ planStamp(i,de); }catch(e){}
-  window._planUndoTech={id:id,tech:av,techIds:avIds};
+  window._planUndoTech={id:id,tech:av,techIds:avIds,obligation:avObl};
   views.planning();
   toastAnnuler('👤 Passée de '+(av?techName(av):'Non assigné')+' à '+(tid?techName(tid):'Non assigné'),'planDeplacerAnnuler()');
 }
@@ -20817,6 +20830,7 @@ function planChangerTechAnnuler(){
   const de=planSnap(i);
   if(Array.isArray(u.techIds)){ i.techIds=u.techIds.slice(); i.techId=i.techIds[0]||''; }
   else if(u.tech){ i.techId=u.tech; i.techIds=[u.tech]; } else { i.techId=''; i.techIds=[]; }
+  if('obligation' in u){ if(u.obligation) i.obligation=u.obligation; else delete i.obligation; }
   save();
   try{ planStamp(i,de); }catch(e){}
   window._planUndoTech=null;
@@ -21023,7 +21037,7 @@ function planNextCreate(id,mode){ const i=db.interventions.find(x=>x.id===id); i
     intHisto(n,'Passage planifié manuellement : '+fmtShort(d)+' '+(h||'')); }
   else { msg='Passage '+tot+' à planifier plus tard'; intHisto(n,'Mis de côté (bac À planifier)'); }
   intHisto(i,'Prochain passage créé → '+(n.num||''));
-  db.interventions.push(n); planStamp(n,null); delete n._oblig; save(); closeModal(); toast('🔁 '+msg); go(current); }
+  db.interventions.push(n); planStamp(n,null); delete n._oblig; planObligationLever(n); save(); closeModal(); toast('🔁 '+msg); go(current); }
 /* Carte « proposée » (pointillé orange) : confirmer / ajuster */
 function planProposeModal(id){ const i=db.interventions.find(x=>x.id===id); if(!i) return;
   if(!canPlan()){ detailIntervention(id); return; }
@@ -22020,10 +22034,14 @@ function printDossierClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) r
    retour chariot) reçoit une apostrophe ; un NOMBRE ne la reçoit jamais — un montant négatif légitime
    (« -12,50 », écrit par num()) doit rester un nombre. Les nombres sont écrits à la française (virgule) :
    « 33.5 » est lu comme du texte par Excel en locale française. */
+/* Un numéro de téléphone écrit comme on l'écrit (« +33 6 12 34 56 78 », « +33-6-… », « +33 (0)6… ») commence par + mais n'est
+   PAS une formule : une formule porte des lettres, « = », « @ », « | », « ! », « , » ou un second « + ». Seuls un + ou un -
+   en tête, puis des chiffres, espaces (insécables compris), points, tirets et parenthèses — avec au moins un chiffre —
+   passent tels quels. Tout le reste reste neutralisé (injection de formule, lot g07). */
 function csvCellule(v){
   if(v==null) v='';
   else if(typeof v==='number') v=Number.isFinite(v)?String(v).replace('.',','):'';
-  else { v=String(v); if(/^[=+\-@\t\r]/.test(v) && !/^[+-]?\d+(?:[.,]\d+)?$/.test(v)) v="'"+v; }
+  else { v=String(v); if(/^[=+\-@\t\r]/.test(v) && !/^[+-]?\d+(?:[.,]\d+)?$/.test(v) && !/^[+-][\d \u00a0\u202f.\-()]*\d[\d \u00a0\u202f.\-()]*$/.test(v)) v="'"+v; }
   return '"'+v.replace(/"/g,'""')+'"'; }
 function csvCellMontant(m){ const n=Number(m); return Number.isFinite(n)?n:(m==null?0:String(m)); }
 function csvLignes(rows,eol){ return rows.map(r=>r.map(csvCellule).join(';')).join(eol); }
@@ -22061,7 +22079,7 @@ views.interventions=function(){
       ${(i.statut==='planifiee'&&i.date&&i.heure&&new Date(i.date+'T'+i.heure).getTime()>Date.now())?`<div class="int-cd" style="font-size:11px;color:var(--acc-txt);font-weight:700;white-space:nowrap;margin-right:8px">🕐 ${esc(fmtCountdown(new Date(i.date+'T'+i.heure).getTime()-Date.now()))}<div style="color:var(--t3);font-weight:400">${esc(i.heure)} – ${esc(addMin(i.heure,i.duree||60))}</div></div>`:''}
       <span class="int-a" onclick="event.stopPropagation()" style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
         ${badge(STATUT_INT,i.statut)}
-        <span style="display:flex;gap:4px">${!fin&&i.statut!=='annulee'?`${i.statut==='planifiee'?`<button class="btn ghost sm" title="Démarrer (passe en cours)" onclick="intDemarrerQuick('${i.id}')">▶</button>`:''}<button class="btn sm" title="Effectué" onclick="intEffectuer('${i.id}')">Effectué</button>`:`<button class="btn ghost sm" title="Rapport" onclick="formRapport('${i.id}')">Rapport</button>`}</span>
+        <span style="display:flex;gap:4px">${!fin&&i.statut!=='annulee'?`${i.statut==='planifiee'?`<button class="btn ghost sm" title="Démarrer (passe en cours)" onclick="intDemarrerQuick('${i.id}')">▶</button>`:''}<button class="btn sm" title="Effectué" onclick="intEffectuer('${i.id}')">Effectué</button>`:`<button class="btn ghost sm" title="Rapport" onclick="${intStatutPermis(i,'terminee')?'formRapport':'detailIntervention'}('${i.id}')">Rapport</button>`}</span>
       </span>
     </div>`; };
   if(intView==='liste'){
@@ -24484,6 +24502,7 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
      QUITTER (« Planifiée » / « En cours ») doit rendre la date prévue et retirer la fin réelle (intRepasseNonTerminee). */
   let _rendu='';
   if(id){ const ix=db.interventions.findIndex(x=>x.id===id); const _ancien=db.interventions[ix].statut; db.interventions[ix]={...db.interventions[ix],...data}; _saved=db.interventions[ix]; intHisto(db.interventions[ix],'Fiche modifiée');
+    { const _m=db.interventions[ix]; if(!_forceAbs&&_m.obligation&&!absentOn((_m.techIds&&_m.techIds[0])||_m.techId,_m.date)) delete _m.obligation; }   // déplacée par le formulaire vers une place sans congé : la trace « malgré un congé » part
     const _st=db.interventions[ix].statut;   // le statut APRÈS fusion : un formulaire sans select « Statut » ne change rien
     if(_ancien==='terminee'&&_st!=='terminee'&&_st!=='annulee') _rendu=intRepasseNonTerminee(db.interventions[ix],_ancien);
     syncFactureFromIntervention(db.interventions[ix],{cloture:_st==='terminee'&&_ancien!=='terminee'}); logEvent('Modif intervention',data.titre,'crud'); }
@@ -25581,13 +25600,19 @@ views.clients=function(){
   const nPro=_tous.filter(c=>cliIsPro(c)).length;
   if(!(nPro&&nPro<_tous.length)) cliTypeF='tous';   // plus de barre pour le lever : il ne filtre plus rien (même piège que l'étiquette)
   const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
-  /* un filtre actif se VOIT toujours, et se lève d'un geste : la puce « Filtre : VIP ✕ » */
-  const puceFiltre=cliTagFilter?`<div class="chip active" onclick="cliTagFilter='';views.clients()" title="Retirer le filtre">Filtre : ${esc(cliTagFilter)} ✕</div>`:'';
-  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}${puceFiltre}</div>`:'';
+  /* un filtre actif se VOIT toujours (la puce de l'étiquette, active) et se lève d'un geste (la retoucher, ou « Tous »).
+     ⛔ i03/r3#9 — il n'y avait qu'une marque à lui donner : la puce « Filtre : VIP ✕ » ajoutée à côté de la puce VIP,
+     déjà active, doublait la même information. L'étiquette filtrée existe toujours dans la barre (un filtre dont
+     l'étiquette a disparu est remis à zéro plus haut), donc sa puce suffit. */
+  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="${cliTagFilter===t?`cliTagFilter='';views.clients()`:`cliTagFilter=this.textContent.trim();views.clients()`}"${cliTagFilter===t?' title="Retirer le filtre"':''}>${esc(t)}</div>`).join('')}</div>`:'';
   /* clients#8 : un champ de recherche, posé AU-DESSUS d'une liste qui se redessine seule (`renderClientsList`) —
      comme la liste des box : reconstruire le champ à chaque frappe fermerait le clavier. Il reste visible tant
      qu'une recherche est active, même s'il ne reste qu'un client : jamais un filtre caché. */
-  const recherche=(_tous.length>1||cliSearch)?`<input class="search-inp" id="cli-search" placeholder="Nom, téléphone, ville, e-mail…" value="${esc(cliSearch)}" oninput="cliSearch=this.value;rechDiffere(renderClientsList)" autocomplete="off">`:'';
+  /* ⛔ i03/r3#8 — SON IDENTIFIANT N'EST PAS `cli-search` : c'est celui du champ « Client » de la fenêtre d'intervention
+     (formIntervention). Deux éléments de même id, `getElementById` rend le premier du document — celui de CETTE liste,
+     dans #content, avant #overlay — et cliPick / saveIntervention écrivaient et lisaient la recherche au lieu du client
+     choisi (un texte de recherche « Durand » créait un client et y rattachait l'intervention). */
+  const recherche=(_tous.length>1||cliSearch)?`<input class="search-inp" id="cli-recherche" placeholder="Nom, téléphone, ville, e-mail…" value="${esc(cliSearch)}" oninput="cliSearch=this.value;rechDiffere(renderClientsList)" autocomplete="off">`:'';
   $('content').innerHTML=recherche+typeBar+tagBar+'<div id="cli-liste"></div>';
   renderClientsList();
 }
@@ -25782,13 +25807,16 @@ function saveClientForm(e,id){ e.preventDefault(); if(!permGarde('crm',id?'modif
 }
 
 /* ═══════════════ RAPPORTS ═══════════════ */
+/* ⛔ i03/r3#5 — SANS « Interventions → Modifier », formRapport REFUSE (intStatutPermis, la règle du menu de statut) :
+   la ligne « Terminée » ne doit donc pas y mener. Elle ouvre la FICHE (detailIntervention, où le compte-rendu se lit
+   sans « Rédiger » ni « Clôture guidée »), et son bouton dit « Voir ». Le refus de formRapport reste la garde. */
 views.rapports=function(){
   setHeader('Rapports',"Comptes-rendus d'intervention");
   const _mesInts=visibleInts(db.interventions);
   const done=_mesInts.filter(i=>i.statut==='terminee');
   const pend=_mesInts.filter(i=>i.statut!=='terminee'&&i.statut!=='annulee');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Terminées</h3></div>
-    ${done.length? done.map(i=>`<div class="pl-row lgt" onclick="formRapport('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
+    ${done.length? done.map(i=>`<div class="pl-row lgt" onclick="${intStatutPermis(i,'terminee')?'formRapport':'detailIntervention'}('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu||!intStatutPermis(i,'terminee')?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
   </div><div class="card"><div class="card-head"><h3>En attente de clôture</h3></div>
     ${pend.length? pend.map(i=>`<div class="pl-row lgt" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : emptyState('🎉','Tout est à jour !','','')}
   </div>`;
@@ -33222,6 +33250,11 @@ function keyForClient(clientId){ const c=db.clients.find(x=>x.id===clientId); if
 function techForClient(clientId){ return techForKey(keyForClient(clientId)); }
 function deptOf(i){ return keyForClient(i.clientId); }
 function techForKey(key){ if(!key) return null; const dep=depDeKey(key); return db.techniciens.find(t=>{ const codes=parseTechDepts(t.departements); return codes.includes(key)||codes.includes(dep); }); }
+/* i03/r3#15 — qui couvre UNE PARTIE du département `dep` (un code postal ou un arrondissement : « 13001 » pour « 13 ») ?
+   ⛔ Ce n'est PAS techForKey élargi : techForKey sert aussi l'affectation automatique d'un client (techForClient), et
+   un client d'Aix (13100, clé « 13 ») ne doit pas partir chez le technicien de Marseille 1er. Seule la LIGNE d'un
+   département de l'écran Secteurs s'en sert, pour ne pas dire « Non couvert » d'un département que quelqu'un couvre en partie. */
+function techCouvrantEnPartie(dep){ return db.techniciens.find(t=>parseTechDepts(t.departements).some(c=>depDeKey(c)===dep)); }
 function deptColor(key){ const t=techForKey(key); if(t) return techColor(t.id); let h=0; for(const ch of String(key)) h=(h*31+ch.charCodeAt(0))|0; return `hsl(${Math.abs(h)%360} 22% 55%)`; }
 function deptSectors(){ const groups={};
   db.interventions.forEach(i=>{ const key=deptOf(i); const c=db.clients.find(x=>x.id===i.clientId); if(!key||!c||c.lat==null) return; (groups[key]=groups[key]||[]).push({lat:c.lat,lng:c.lng}); });
@@ -40126,9 +40159,10 @@ views.secteurs=function(){
       <div class="pl-info"><div class="pl-title">${esc(t.nom)}</div><div class="pl-meta">${deps.length? deps.map(d=>`<span class="tag">${esc(keyLabel(d))}</span>`).join(' '):'<span style="color:var(--org)">Aucun secteur</span>'}</div></div>
       ${peutModif?`<span onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formTech('${t.id}')" aria-label="Modifier le secteur">✎</button></span>`:''}</div>`;}).join('');
   const depCards=depList.map(dep=>{ const t0=techForKey(dep), t=t0&&visIds.has(t0.id)?t0:null;
+    const p0=t0?null:techCouvrantEnPartie(dep), p=p0&&visIds.has(p0.id)?p0:null;   // r3#15 : couvert en partie (un arrondissement, un code postal)
     return `<div class="pl-row" style="cursor:default"><span style="width:40px;height:40px;border-radius:10px;background:${deptColor(dep)};color:${encreSur(deptColor(dep))};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">${esc(dep)}</span>
       <div class="pl-info"><div class="pl-title">${esc(keyLabel(dep))}</div><div class="pl-meta">${detected[dep]} intervention(s)</div></div>
-      ${t?badge({x:{l:t.nom,c:'st-green'}},'x'):t0?'<span class="st st-green">Couvert</span>':'<span class="st st-red">Non couvert</span>'}</div>`;}).join('');
+      ${t?badge({x:{l:t.nom,c:'st-green'}},'x'):t0?'<span class="st st-green">Couvert</span>':p?badge({x:{l:p.nom+' · en partie',c:'st-green'}},'x'):p0?'<span class="st st-green">Couvert en partie</span>':'<span class="st st-red">Non couvert</span>'}</div>`;}).join('');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Techniciens & secteurs</h3></div>${techCards||'<div style="color:var(--t3);font-size:13px">Aucun technicien.</div>'}</div>
     <div class="card"><div class="card-head"><h3>Départements (données)</h3></div>${depCards||'<div style="color:var(--t3);font-size:13px">Aucun département détecté.</div>'}</div>`;
 };

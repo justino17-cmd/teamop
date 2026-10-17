@@ -64,7 +64,7 @@ console.log('\n── 1134 · 1. la liste est triée par nom ──');
 console.log('\n── 1134 · 2. un champ de recherche, qui ne se reconstruit pas à la frappe ──');
 { const W = monde(base());
   W.views.clients();
-  const champ = (W.__page.innerHTML.match(/<input class="search-inp" id="cli-search"[^>]*oninput="([^"]*)"/) || [])[1];
+  const champ = (W.__page.innerHTML.match(/<input class="search-inp" id="cli-recherche"[^>]*oninput="([^"]*)"/) || [])[1];
   vrai('⛔ le champ de recherche est là', !!champ, W.__page.innerHTML.slice(0, 200));
   const taper = t => { vm.runInContext(`(function(){ ${champ.replace(/&quot;/g, '"')} }).call({ value: ${JSON.stringify(t)} })`, W); };
   const avant = W.__page.innerHTML;
@@ -84,11 +84,11 @@ console.log('\n── 1134 · 2. un champ de recherche, qui ne se reconstruit pa
     v('… et les quatre clients reviennent', noms(W).length, 4); } }
 { const W = monde(base());
   vm.runInContext("cliSearch='durand'", W); W.views.clients();
-  vrai('une recherche posée avant de rouvrir l’écran se VOIT dans le champ (jamais un filtre caché)', /id="cli-search"[^>]*value="durand"/.test(W.__page.innerHTML), W.__page.innerHTML.slice(0, 300));
+  vrai('une recherche posée avant de rouvrir l’écran se VOIT dans le champ (jamais un filtre caché)', /id="cli-recherche"[^>]*value="durand"/.test(W.__page.innerHTML), W.__page.innerHTML.slice(0, 300));
   v('… et filtre la liste', noms(W), ['M. et Mme Durand']); }
 { const W = monde([{ id: 'u', nom: 'Seul', tags: [] }]);
   vm.runInContext("cliSearch='xx'", W); W.views.clients();
-  vrai('un seul client mais une recherche active : le champ reste visible (rien de caché qui filtre)', /id="cli-search"/.test(W.__page.innerHTML)); }
+  vrai('un seul client mais une recherche active : le champ reste visible (rien de caché qui filtre)', /id="cli-recherche"/.test(W.__page.innerHTML)); }
 { const W = monde(base());
   vm.runInContext("cliTypeF='part'", W); W.views.clients();
   vrai('⛔ un filtre « Particuliers » devenu sans objet (aucun particulier, donc plus de barre) ne laisse pas « Aucun client »', noms(W).length === 4 && /./.test(vm.runInContext('cliTypeF', W)) && vm.runInContext('cliTypeF', W) === 'tous', [noms(W).length, vm.runInContext('cliTypeF', W)]); }

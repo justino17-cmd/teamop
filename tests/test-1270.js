@@ -29,7 +29,7 @@ function decoupe(h) { const d = APP.indexOf(h); if (d < 0) throw new Error('intr
 
 const FN = ['function toMin(', 'function indisposOf(', 'function indispoAt(', 'function absentOn(', 'function intTechIds(', 'function techNames(',
   'function intHisto(', 'function clockFromMin(', 'function planYbord(', 'function planEquipeApres(', 'function planPoserEquipe(', 'function planSnap(',
-  'function planStamp(', 'function planDup(', 'function planAbsGate(', 'function planDepotAvant(', 'function planDepotApres(',
+  'function planStamp(', 'function planDup(', 'function planObligationLever(', 'function planAbsGate(', 'function planDepotAvant(', 'function planDepotApres(',
   'function planMultiDrop(', 'function planWeekDrop(', 'function planDropTime(', 'function planDropCell('];
 const manquantes = FN.filter(h => APP.indexOf(h) < 0);
 // planDepotAvant/Apres n'existent pas dans le code AVANT correctif : le banc doit alors TOMBER, pas mourir.

@@ -65,16 +65,20 @@ console.log('\n── 1130 · 1. le scénario du testeur : retirer la dernière 
   vrai('… et l’écran ne dit pas « Aucun client. »', !/Aucun client\./.test(html(W))); }
 
 console.log('\n── 1130 · 2. un filtre actif se voit toujours, et se lève d’un geste ──');
+/* i03/r3#9 : la puce « Filtre : VIP ✕ » DOUBLAIT la puce VIP, déjà active. La garde reste la même — le filtre se voit
+   et se lève d'un geste — mais la marque est la puce de l'étiquette elle-même (test-1524 garde l'absence de doublon). */
 { const W = monde(base());
   evalDansPage(W, "cliTagFilter='VIP'"); W.views.clients();
   const h = W.__page.innerHTML;
-  const puce = (h.match(/<div class="chip[^"]*" onclick="([^"]*)"[^>]*>Filtre : VIP ✕<\/div>/) || [])[1];
-  vrai('une puce « Filtre : VIP ✕ » est affichée tant que le filtre est actif', !!puce, h.slice(0, 300));
+  const puce = (h.match(/<div class="chip active" onclick="([^"]*)"[^>]*>VIP<\/div>/) || [])[1];
+  vrai('la puce VIP est affichée active tant que le filtre est actif', !!puce, h.slice(0, 300));
+  vrai('… et c’est la seule marque (pas de « Filtre : »)', !/Filtre : /.test(h), h.slice(0, 300));
   if (puce) { evalDansPage(W, puce.replace(/&quot;/g, '"').replace(/&#39;/g, "'")); }
   v('… son clic (évalué tel qu’écrit) lève le filtre', filtreLu(W), '');
+  W.views.clients();
   v('… et la liste est complète', lignes(W), 7);
   evalDansPage(W, "cliTagFilter=''"); W.views.clients();
-  vrai('sans filtre, pas de puce « Filtre : »', !/Filtre : /.test(W.__page.innerHTML)); }
+  vrai('sans filtre, aucune puce active autre que « Tous »', !/Filtre : /.test(W.__page.innerHTML)); }
 
 console.log('\n── 1130 · 3. une étiquette qui n’existe que sur une intervention ne piège pas non plus ──');
 { const cl = base(); cl[0].tags = [];
@@ -82,7 +86,7 @@ console.log('\n── 1130 · 3. une étiquette qui n’existe que sur une inter
   evalDansPage(W, "cliTagFilter='Urgent'"); W.views.clients();
   const h = W.__page.innerHTML;
   vrai('l’étiquette existe (sur une intervention) : le filtre tient, aucun client n’en porte → liste vide', lignes(W) === 0, lignes(W));
-  vrai('… mais la puce et le « Tous » sont là pour le lever', /Filtre : Urgent ✕/.test(h) && />Tous<\/div>/.test(h)); }
+  vrai('… mais la puce active et le « Tous » sont là pour le lever', /<div class="chip active" onclick="cliTagFilter='';views.clients\(\)"[^>]*>Urgent<\/div>/.test(h) && />Tous<\/div>/.test(h), h.slice(0, 400)); }
 
 console.log('\n── 1130 · 4. contre-épreuve : un filtre valable continue de filtrer ──');
 { const cl = base(); cl[1].tags = ['VIP']; const W = monde(cl);
