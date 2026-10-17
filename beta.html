@@ -33185,6 +33185,11 @@ function keyForClient(clientId){ const c=db.clients.find(x=>x.id===clientId); if
 function techForClient(clientId){ return techForKey(keyForClient(clientId)); }
 function deptOf(i){ return keyForClient(i.clientId); }
 function techForKey(key){ if(!key) return null; const dep=depDeKey(key); return db.techniciens.find(t=>{ const codes=parseTechDepts(t.departements); return codes.includes(key)||codes.includes(dep); }); }
+/* i03/r3#15 — qui couvre UNE PARTIE du département `dep` (un code postal ou un arrondissement : « 13001 » pour « 13 ») ?
+   ⛔ Ce n'est PAS techForKey élargi : techForKey sert aussi l'affectation automatique d'un client (techForClient), et
+   un client d'Aix (13100, clé « 13 ») ne doit pas partir chez le technicien de Marseille 1er. Seule la LIGNE d'un
+   département de l'écran Secteurs s'en sert, pour ne pas dire « Non couvert » d'un département que quelqu'un couvre en partie. */
+function techCouvrantEnPartie(dep){ return db.techniciens.find(t=>parseTechDepts(t.departements).some(c=>depDeKey(c)===dep)); }
 function deptColor(key){ const t=techForKey(key); if(t) return techColor(t.id); let h=0; for(const ch of String(key)) h=(h*31+ch.charCodeAt(0))|0; return `hsl(${Math.abs(h)%360} 22% 55%)`; }
 function deptSectors(){ const groups={};
   db.interventions.forEach(i=>{ const key=deptOf(i); const c=db.clients.find(x=>x.id===i.clientId); if(!key||!c||c.lat==null) return; (groups[key]=groups[key]||[]).push({lat:c.lat,lng:c.lng}); });
@@ -40077,9 +40082,10 @@ views.secteurs=function(){
       <div class="pl-info"><div class="pl-title">${esc(t.nom)}</div><div class="pl-meta">${deps.length? deps.map(d=>`<span class="tag">${esc(keyLabel(d))}</span>`).join(' '):'<span style="color:var(--org)">Aucun secteur</span>'}</div></div>
       ${peutModif?`<span onclick="event.stopPropagation()"><button class="btn ghost sm" onclick="formTech('${t.id}')" aria-label="Modifier le secteur">✎</button></span>`:''}</div>`;}).join('');
   const depCards=depList.map(dep=>{ const t0=techForKey(dep), t=t0&&visIds.has(t0.id)?t0:null;
+    const p0=t0?null:techCouvrantEnPartie(dep), p=p0&&visIds.has(p0.id)?p0:null;   // r3#15 : couvert en partie (un arrondissement, un code postal)
     return `<div class="pl-row" style="cursor:default"><span style="width:40px;height:40px;border-radius:10px;background:${deptColor(dep)};color:${encreSur(deptColor(dep))};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px">${esc(dep)}</span>
       <div class="pl-info"><div class="pl-title">${esc(keyLabel(dep))}</div><div class="pl-meta">${detected[dep]} intervention(s)</div></div>
-      ${t?badge({x:{l:t.nom,c:'st-green'}},'x'):t0?'<span class="st st-green">Couvert</span>':'<span class="st st-red">Non couvert</span>'}</div>`;}).join('');
+      ${t?badge({x:{l:t.nom,c:'st-green'}},'x'):t0?'<span class="st st-green">Couvert</span>':p?badge({x:{l:p.nom+' · en partie',c:'st-green'}},'x'):p0?'<span class="st st-green">Couvert en partie</span>':'<span class="st st-red">Non couvert</span>'}</div>`;}).join('');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Techniciens & secteurs</h3></div>${techCards||'<div style="color:var(--t3);font-size:13px">Aucun technicien.</div>'}</div>
     <div class="card"><div class="card-head"><h3>Départements (données)</h3></div>${depCards||'<div style="color:var(--t3);font-size:13px">Aucun département détecté.</div>'}</div>`;
 };
