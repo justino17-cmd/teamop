@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '75823553019a';
+  const OPMSG_BUILD = '36adfde9fa55';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 210;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -6602,6 +6602,12 @@
     for (const k of ['ev-debut', 'ev-fin']) { const c = $(k), v = c.value; c.type = oui ? 'date' : 'datetime-local'; c.value = oui ? v.slice(0, 10) : (v.length === 10 ? v + (k === 'ev-debut' ? 'T09:00' : 'T10:00') : v); }
     if ($('ev-duree')) { $('ev-duree').hidden = oui; if (!oui) { const F = reu.formEvt; if (F) F.duree = dureeChamps('ev') || 60; peindreDuree('ev'); } }
   }
+  /* ⛔ le service répond `fin_avant_debut` pour une réunion, un rendez-vous ET un événement, et la phrase du client est celle de la réunion : côté Perso le mot n'existe pas.
+     Ce formulaire sait de quoi il s'agit, il choisit le mot ; le formulaire de réunion garde le sien (`phrase`). */
+  function phraseEvt(er, rdv, defaut) {
+    if (er && er.code === 'fin_avant_debut') return rdv ? 'La fin du rendez-vous doit tomber après son début.' : 'La fin de l\'événement doit tomber après son début.';
+    return phrase(er, defaut);
+  }
   async function evtEnregistrer(b) {
     const F = reu.formEvt; if (!F) return;
     const journee = !F.rdv && $('ev-journee').getAttribute('aria-checked') === 'true';
@@ -6621,7 +6627,7 @@
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
       mot(F.rdv ? (F.id ? 'Rendez-vous modifié' : 'Rendez-vous ajouté à ton agenda') : (F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda'));
       fermerCouche(); evenementsRelire();
-    } catch (er) { b.disabled = false; erreurInfo(phrase(er, F.rdv ? 'Le rendez-vous n\'a pas pu être enregistré.' : 'L\'événement n\'a pas pu être enregistré.')); }
+    } catch (er) { b.disabled = false; erreurInfo(phraseEvt(er, F.rdv, F.rdv ? 'Le rendez-vous n\'a pas pu être enregistré.' : 'L\'événement n\'a pas pu être enregistré.')); }
   }
   /* ⛔ UN ÉVÉNEMENT CHANGÉ ICI SE RELIT PARTOUT OÙ IL S'AFFICHE (8 octobre 2026, capture à l'appui : « je peux pas supprimer ») : un rappel supprimé depuis le TABLEAU DE BORD
      l'était bien au service, mais seul l'Agenda se relisait — le tableau le montrait encore, comme si le geste avait échoué. Les réunions, elles, reviennent par le flux du service

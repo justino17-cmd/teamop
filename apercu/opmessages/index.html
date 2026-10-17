@@ -9404,6 +9404,12 @@ a.menu-action { text-decoration: none; }
     for (const k of ['ev-debut', 'ev-fin']) { const c = $(k), v = c.value; c.type = oui ? 'date' : 'datetime-local'; c.value = oui ? v.slice(0, 10) : (v.length === 10 ? v + (k === 'ev-debut' ? 'T09:00' : 'T10:00') : v); }
     if ($('ev-duree')) { $('ev-duree').hidden = oui; if (!oui) { const F = reu.formEvt; if (F) F.duree = dureeChamps('ev') || 60; peindreDuree('ev'); } }
   }
+  /* ⛔ le service répond `fin_avant_debut` pour une réunion, un rendez-vous ET un événement, et la phrase du client est celle de la réunion : côté Perso le mot n'existe pas.
+     Ce formulaire sait de quoi il s'agit, il choisit le mot ; le formulaire de réunion garde le sien (`phrase`). */
+  function phraseEvt(er, rdv, defaut) {
+    if (er && er.code === 'fin_avant_debut') return rdv ? 'La fin du rendez-vous doit tomber après son début.' : 'La fin de l\'événement doit tomber après son début.';
+    return phrase(er, defaut);
+  }
   async function evtEnregistrer(b) {
     const F = reu.formEvt; if (!F) return;
     const journee = !F.rdv && $('ev-journee').getAttribute('aria-checked') === 'true';
@@ -9423,7 +9429,7 @@ a.menu-action { text-decoration: none; }
       if (F.id) await source.majEvenement(F.id, champs); else await source.creerEvenement(champs);
       mot(F.rdv ? (F.id ? 'Rendez-vous modifié' : 'Rendez-vous ajouté à ton agenda') : (F.id ? 'Événement modifié' : 'Événement ajouté à ton agenda'));
       fermerCouche(); evenementsRelire();
-    } catch (er) { b.disabled = false; erreurInfo(phrase(er, F.rdv ? 'Le rendez-vous n\'a pas pu être enregistré.' : 'L\'événement n\'a pas pu être enregistré.')); }
+    } catch (er) { b.disabled = false; erreurInfo(phraseEvt(er, F.rdv, F.rdv ? 'Le rendez-vous n\'a pas pu être enregistré.' : 'L\'événement n\'a pas pu être enregistré.')); }
   }
   /* ⛔ UN ÉVÉNEMENT CHANGÉ ICI SE RELIT PARTOUT OÙ IL S'AFFICHE (8 octobre 2026, capture à l'appui : « je peux pas supprimer ») : un rappel supprimé depuis le TABLEAU DE BORD
      l'était bien au service, mais seul l'Agenda se relisait — le tableau le montrait encore, comme si le geste avait échoué. Les réunions, elles, reviennent par le flux du service
