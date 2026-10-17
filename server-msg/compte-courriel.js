@@ -88,6 +88,8 @@ function creerCompteCourriel(ctx) {
 
   /* ── Les inscriptions sont-elles ouvertes ? (lu par `/api/config`, qui ne dit qu'un booléen) ── */
   const inscriptionOuverte = () => config.inscriptionCourriel === true && !!courriel && courriel.ouvert();
+  /* … ET le relais répond (dernière sonde connue) : `/api/config` ne propose pas « Créer un compte » tant que le relais est mort */
+  const inscriptionProposee = () => inscriptionOuverte() && courriel.joignableVu();
 
   /* ── Les cookies : la session (comme `telephone.js`) et le jeton d'APPAREIL, qui lie un code à l'appareil qui l'a demandé ── */
   const nomAppareil = config.cookie.nom + 'a';
@@ -162,6 +164,8 @@ function creerCompteCourriel(ctx) {
     if (!prenom || prenom.length > 60 || nom.length > 60 || (b.nom !== undefined && typeof b.nom !== 'string')) return refus(res, 400, 'champ_invalide');
     if (!mdpAccepte(b.mdp, { adresse: adr.a, prenom })) return refus(res, 400, 'mdp_faible');
     if (b.conditions !== true) return refus(res, 400, 'conditions_requises');
+    /* ⛔ LA PANNE DU RELAIS SE DIT, pour TOUTES les adresses pareil, APRÈS la forme et AVANT tout plafond : rien n'est compté (la personne n'a rien consommé), rien n'est révélé */
+    if (!(await courriel.joignable())) return refus(res, 503, 'courriel_indisponible');
     const q = essai('mel_inscrire_reseau', cleReseau(req.ip), { max: 30, fenetreMs: H });
     if (!q.ok) return trop(res, 'reseau_plafond', q.retry);
     const p = plafondDemande(adr, req.ip);
@@ -258,10 +262,11 @@ function creerCompteCourriel(ctx) {
   }
 
   /* ══ 4. MOT DE PASSE OUBLIÉ : un code, si l'adresse a un compte (la réponse est la même sinon) ══ */
-  H_['mel.oubli'] = (req, res) => {
+  H_['mel.oubli'] = async (req, res) => {
     if (!courriel || !courriel.ouvert()) return refus(res, 503, 'courriel_non_ouvert');
     const adr = adresseDe(corps(req).courriel);
     if (!adr) return refus(res, 400, 'courriel_invalide');
+    if (!(await courriel.joignable())) return refus(res, 503, 'courriel_indisponible');      // (voir `mel.inscrire`) : la même réponse pour toutes les adresses, avant tout plafond
     const q = essai('mel_oubli_reseau', cleReseau(req.ip), { max: 30, fenetreMs: H });
     if (!q.ok) return trop(res, 'reseau_plafond', q.retry);
     const p = plafondDemande(adr, req.ip);
@@ -314,7 +319,7 @@ function creerCompteCourriel(ctx) {
   };
 
   for (const k of Object.keys(H_)) H_[k] = garder(H_[k]);
-  return { handlers: H_, inscriptionOuverte, mdp, mdpDevinable };
+  return { handlers: H_, inscriptionOuverte, inscriptionProposee, mdp, mdpDevinable };
 }
 
 function installerCompteCourriel(H, ctx) {

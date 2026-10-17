@@ -138,7 +138,8 @@ console.log('\n── 794 · 2. UN total pour Stock, Produits, la cloche et la c
   v('⛔ une box qu’on ne voit pas ne compte pas', L.some(l => l.p.id === 'x'), false);
   v('stockTotaux rend exactement les mêmes chiffres que les lignes', W.stockTotaux(), { a: 27, c: 3 });
   const SP = bloc('function renderProduitsList(');
-  vrai('⛔ Produits lit stockTotaux — plus `boxEtat(p.qte)`', /const TOT=stockTotaux\(\), toutVu=stockVoitTout\(\);/.test(SP) && /boxEtat\(tq\|\|0\)/.test(SP) && !/boxEtat\(p\.qte\)/.test(SP), SP.length);
+  /* g19 · stock#5 : Produits passe aussi le seuil d'alerte de la fiche (`boxEtat(total, p.seuil)`) — le motif suit ; test-1162 l'EXÉCUTE. */
+  vrai('⛔ Produits lit stockTotaux — plus `boxEtat(p.qte)`', /const TOT=stockTotaux\(\), toutVu=stockVoitTout\(\);/.test(SP) && /boxEtat\(tq\|\|0,p\.seuil\)/.test(SP) && !/boxEtat\(p\.qte\)/.test(SP), SP.length);
   vrai('… et un produit absent de SES box n’est pas « Épuisé » pour qui ne voit pas tout', /\(tq==null&&!toutVu\)\?\{k:'hors',l:'Pas dans tes box'/.test(SP));
   vrai('⛔ plus aucun écran ne lit l’état d’un produit sur `p.qte`', !/boxEtat\(\s*p\.qte/.test(SRC)); }
 
@@ -309,9 +310,11 @@ console.log('\n── 794 · 12. le scanner du catalogue range dans le stockage 
 console.log('\n── 794 · 14. la relecture : le stockage ne se supprime pas, ne s’ouvre qu’avec l’accès, et l’ancien compteur ne revit pas ──');
 /* Relecture adversariale du 24 septembre 2026 (trois angles, chaque constat contre-vérifié). On JOUE les vraies
    fonctions, dans un bac à sable à part : openBox, delItem, etiqAppliquerCat, saveProduitDonne. */
-{ const NOMS = ['openBox', 'delItem', 'etiqAppliquerCat', 'saveProduitDonne', 'estStockage', 'stockageBox', 'stockageOuvert'];
+{ const NOMS = ['openBox', 'delItem', 'etiqAppliquerCat', 'saveProduitDonne', 'estStockage', 'stockageBox', 'stockageOuvert',
+    /* g11 : delItem compte désormais les liens avant de supprimer (client, box) — ses aides font partie de la fonction jouée. */
+    'liensPluriel', 'clientLiens', 'clientLiensTxt', 'boxDemandesAttente', 'boxDemandesRetirer', 'boxMvtRefuser'];
   const C = {}; NOMS.forEach(n => { C[n] = bloc('function ' + n + '('); });
-  v('population : les sept fonctions sont trouvées', NOMS.filter(n => !C[n]), []);
+  v('population : les sept fonctions (et les aides de comptage de delItem) sont trouvées', NOMS.filter(n => !C[n]), []);
   const bac = o => { const ctx = { console, JSON, Math, Date, Set, Object, Array, String, Number,
       db: o.db, currentUser: moi, __vus: o.vus === undefined ? null : o.vus, __toasts: [], __ouvert: [], __conf: [], __saves: 0 };
     vm.createContext(ctx);

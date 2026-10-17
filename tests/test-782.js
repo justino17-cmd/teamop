@@ -37,7 +37,10 @@ console.log('\n── 782 · 0. la population ──');
 const NOMS = ['minutes(deb,fin)', 'pt2(n)', 'ptHM(ts)', 'ptHMS(ts)', 'ptJourDe(d)', 'ptJour(ts)', 'ptOuvert(p)', 'ptOubli(p,now)',
   'ptSecs(p,now)', 'ptDuree(sec)', 'ptChrono(sec)', 'ptHoraires(p)', 'ptEstAMoi(p)', 'ptMesPointages()', 'ptOuverteMoi()', 'ptNom(p)',
   'ptCle(p)', 'ptDit(p)', 'ptPauseEntre(a,b)', 'ptTotal(list,now)', 'ptBoutonJour()', 'pointerDebut()', 'pointerFin()', 'ptFermer(id,ts)',
-  'ptMaJournee(now)'];
+  'ptMaJournee(now)',
+  /* g18 / equipe#0 : « aujourd'hui » pour un pointage n'est plus `p.date===todayISO()` (un pointage de nuit porte la date d'HIER) —
+     ptMaJournee et ptTickStart passent par ptDuJour, que le bac à sable doit donc recevoir. */
+  'ptDuJour(p)'];
 const CODE = NOMS.map(n => bloc('function ' + n + '{'));
 const manquent = NOMS.filter((n, i) => !CODE[i]);
 v('les ' + NOMS.length + ' fonctions du pointage sont trouvées', manquent, []);
@@ -229,7 +232,9 @@ v('⛔ deux boutons pour le même geste sur le même écran, c’est un de trop 
 vrai('« Ma journée » vient de ptMaJournee — la fonction que la section 4 ter EXÉCUTE', /const moi=ptMaJournee\(now\);/.test(vue));
 vrai('les lignes et le total par personne passent par ptNom (jamais « Non assigné » pour un compte)',
   /esc\(ptNom\(p\)\)/.test(vue) && !/techName\(p\.techId\)/.test(vue));
-vrai('le chrono du jour lit la même journée que la carte', /ptMesPointages\(\)\.filter\(p=>\(p\.date\|\|''\)===todayISO\(\)\)/.test(bloc('function ptTickStart(){')));
+/* g18 / equipe#0 : la « même journée » est désormais UNE fonction (ptDuJour) lue par la carte ET le chrono — l'ancien motif
+   (date===aujourd'hui) laissait la nuit à 00:00:00 ; test-1290 EXÉCUTE le cas. */
+vrai('le chrono du jour lit la même journée que la carte (ptDuJour, des deux côtés)', /ptMesPointages\(\)\.filter\(ptDuJour\)/.test(bloc('function ptTickStart(){')) && /ptMesPointages\(\)\.filter\(ptDuJour\)/.test(bloc('function ptMaJournee(now){')));
 vrai('le PDF nomme la colonne « PERSONNE » et passe par ptNom', /'PERSONNE'/.test(SRC) && /cut\(ptNom\(p\),26\)/.test(SRC) && !/'TECHNICIEN',1/.test(SRC));
 
 console.log('\n── 782 · 6. « Fin de journée » reste le bouton PRINCIPAL au téléphone ──');

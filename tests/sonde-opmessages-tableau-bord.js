@@ -159,6 +159,17 @@ function localDans(t, tz) {
     const lignes = () => A.page.evaluate(() => Array.from(document.querySelectorAll('#bord-appels .appel-ligne')).map(x => [x.querySelector('.appel-nom-ligne').textContent.trim(), (x.querySelector('.bord-raison') || {}).textContent || '']));
     v('Dan (« A appelé 2 fois ») et Cléo (« Collègue ») ; ⛔ pas Ben (un seul appel, ni favori ni collègue)', await lignes(), [['Dan Banc', 'A appelé 2 fois'], ['Cléo Banc', 'Collègue']]);
     await capture(A, 'bord-1-telephone');
+    /* ⛔ (17 octobre 2026, lot m21, capture iPad) LE ROUGE EST POUR L'APPEL MANQUÉ, PAS POUR LA RAISON DE L'AFFICHER : « Collègue » et « A appelé 2 fois » informent, ils n'alertent pas.
+       Le nom de l'appelant prend l'encre du texte, la pastille un gris de légende — aucun des deux ne se lit dans `--rouge-txt` (la sonde demande à la PAGE la couleur de ce jeton). */
+    { const c = await A.page.evaluate(() => {
+        const sonde = (v) => { const e = document.createElement('i'); e.style.color = v; document.body.appendChild(e); const r = getComputedStyle(e).color; e.remove(); return r; };
+        const ligne = document.querySelector('#bord-appels .appel-ligne');
+        return { population: !!ligne && !!ligne.querySelector('.bord-raison'), rouge: sonde('var(--rouge-txt)'), texte: sonde('var(--text)'),
+          nom: ligne ? getComputedStyle(ligne.querySelector('.appel-nom-ligne')).color : null, raison: ligne && ligne.querySelector('.bord-raison') ? getComputedStyle(ligne.querySelector('.bord-raison')).color : null };
+      });
+      vrai('population : une ligne d\'appel importante, avec sa pastille de raison, et la couleur du rouge de texte lue (' + c.rouge + ')', c.population && /^rgb/.test(c.rouge));
+      vrai('⛔ le nom de l\'appelant au tableau n\'est pas rouge — il a l\'encre du texte (' + c.nom + ' / texte ' + c.texte + ' / rouge ' + c.rouge + ')', c.nom === c.texte && c.nom !== c.rouge);
+      vrai('⛔ la pastille « Collègue » n\'est pas rouge (' + c.raison + ' / rouge ' + c.rouge + ')', !!c.raison && c.raison !== c.rouge); }
     await A.page.locator('#bord-reunions [data-reunion]').first().tap();
     vrai('toucher la réunion ouvre sa fiche', await att(A, () => document.documentElement.classList.contains('feuille-ouverte') && document.getElementById('feuille-titre').textContent === 'Réunion'));
     await A.page.keyboard.press('Escape');

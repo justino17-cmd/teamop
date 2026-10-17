@@ -68,7 +68,7 @@
     export_quotidien: 'Tu as déjà exporté tes données aujourd\'hui : un export par jour.',
     compte_supprime: 'Ce compte a été supprimé : tu ne peux plus lui écrire.',
     /* l'identifiant « Prénom#1234 », le numéro et les demandes de contact */
-    identifiant_invalide: 'Tape l\'identifiant en entier : le prénom, « # » et les chiffres (par exemple Camille#4821), ou un numéro de téléphone.',
+    identifiant_invalide: 'Cet identifiant n\'est pas valable : le prénom, « # » puis 4 ou 5 chiffres, de 1000 à 99999 (par exemple Camille#4821) — ou un numéro de téléphone.',
     numero_invalide: 'Ce numéro de téléphone n\'est pas valable : écris-le avec l\'indicatif du pays (+33…).',
     recherches_plafond: 'Tu as fait beaucoup de recherches aujourd\'hui : réessaie plus tard.',
     ajouts_plafond: 'Tu as envoyé beaucoup de demandes aujourd\'hui : réessaie demain.',
@@ -84,10 +84,10 @@
     proprio: 'Le propriétaire ne peut ni quitter son espace ni changer de rôle : transfère d\'abord la propriété à un autre membre.',
     destinataire_invalide: 'Cette personne ne peut pas recevoir la propriété de l\'espace (compte supprimé ou en cours de suppression).',
     espace_indisponible: 'Cet espace ne peut pas accueillir de nouveau membre pour l\'instant : demande à son administrateur.',
-    places_epuisees: 'Toutes les places de l\'abonnement sont prises : ajoute des places (Réglages › Abonnement › Gérer) avant d\'inviter quelqu\'un.',
-    abonnement_actif: 'Un abonnement court encore pour cet espace : résilie-le (Réglages › Abonnement › Gérer) avant de supprimer l\'espace.',
+    places_epuisees: 'Toutes les places de l\'abonnement sont prises : ajoute des places (Profil › Entreprise et abonnement › Gérer l\'abonnement) avant d\'inviter quelqu\'un.',
+    abonnement_actif: 'Un abonnement court encore pour cet espace : résilie-le (Profil › Entreprise et abonnement › Gérer l\'abonnement) avant de supprimer l\'espace.',
     espace_abonne: 'Tu es le seul membre d\'un espace qui a un abonnement en cours : résilie-le ou confie l\'espace à quelqu\'un, puis supprime ton compte.',
-    paiement_en_cours: 'Un paiement a été commencé pour cet espace et on n\'en connaît pas l\'issue : touche « J\'ai réglé — vérifier » (Réglages › Abonnement), ou réessaie dans un moment (une page de paiement non réglée expire au bout de 24 heures).',
+    paiement_en_cours: 'Un paiement a été commencé pour cet espace et on n\'en connaît pas l\'issue : touche « J\'ai réglé — vérifier » (Profil › Entreprise et abonnement), ou réessaie dans un moment (une page de paiement non réglée expire au bout de 24 heures).',
     abonnement_non_ouvert: 'L\'abonnement n\'est pas encore ouvert.',
     places_invalides: 'Le nombre de places est incorrect (au moins le nombre de membres, 500 au plus).',
     offre_inconnue: 'Cette offre n\'existe pas.',
@@ -159,6 +159,8 @@
     code_invalide: 'Ce code n\'est pas le bon, ou il a expiré. Vérifie-le, ou demande-en un nouveau.',
     code_plafond: 'Trop de codes faux. Réessaie dans une heure.',
     identifiants_plafond: 'Trop d\'essais de connexion sur ce compte. Réessaie plus tard, ou choisis « Mot de passe oublié ? » : un code partira à ton adresse.',
+    /* le relais courriel ne répond pas (503, entree#0 du lot m02) : dit pour TOUTES les adresses pareil — ne promet aucun code, ne dit rien d'une adresse */
+    courriel_indisponible: 'L\'envoi de courriels est indisponible pour le moment, réessaie plus tard.',
     service_occupe: 'Le service est très demandé en ce moment. Réessaie dans quelques secondes.',
     version_trop_ancienne: 'Cette version d\'OP MESSAGES n\'est plus acceptée : elle se met à jour.',
     courriel_invalide: 'Cette adresse courriel n\'est pas valable.',
@@ -264,7 +266,13 @@
       if (this.code === 'appel_complet' && this.max > 0) return 'La salle est pleine : ' + this.max + ' personnes au plus.';
       if (this.code === 'formule_requise' && this.offre === 'pro') return this.raison === 'organisateur' ? 'Cet outil est réservé aux réunions : l\'organisateur de cet appel n\'a pas Messages Pro.'
         : 'Les réunions sont réservées à Messages Pro. Sans Pro, tu entres dans une réunion par le lien que son organisateur t\'envoie.';
+      /* ⛔ DEUX LIMITES, DEUX PHRASES : la rafale (5 recherches par minute, `Retry-After` d'une minute au plus) n'est pas « aujourd'hui » ; le plafond du jour (3 600 s) l'est. */
+      if (this.code === 'recherches_plafond' && this.retry > 0 && this.retry <= 60) return 'Trop de recherches : réessaie dans ' + attenteLisible(this.retry) + '.';
       if (!(this.retry > 0)) return this.message;
+      /* ⛔ « … aujourd'hui : réessaie plus tard. » — la clause est après un DEUX-POINTS : l'ôter laissait « aujourd'hui : (réessaie dans 55 s). ». Quand l'attente est connue, la clause
+         garde sa place et prend l'attente (« … : réessaie dans 55 s. ») ; la parenthèse ne sert qu'à une invitation qui est une phrase à part. */
+      const apresDeuxPoints = /\s*:\s*R[ée]essaie[^.:]*\.$/i;
+      if (apresDeuxPoints.test(this.message)) return this.message.replace(apresDeuxPoints, ' : réessaie dans ' + attenteLisible(this.retry) + '.');
       const sans = this.message.replace(/\s*R[ée]essaie[^.]*\.$/i, '').replace(/\.$/, '');
       return sans + ' (réessaie dans ' + attenteLisible(this.retry) + ').';
     }

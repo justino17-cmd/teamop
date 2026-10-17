@@ -115,7 +115,17 @@
 # fichier .ics est parti — test-971 sort de la liste (ses 94 faits du monde réel entrent dans 970 : 107 → 109) ; 905 (1193 → 1180), 973 (298 → 285), 975 (141 → 140),
 # 976 (73 → 69), 1004 (66 → 52), 1005 (169 → 161), 1006 (89 → 78) perdent leur part .ics, rien d'autre — 98 suites, 9 942 vérifications mesurées par la commande de la
 # porte, toutes vertes en local (plus aucun banc ne dépend des fuseaux de la machine) — plancher 9928 (le total moins 14, jamais une addition).
-#plancher 9928
+# 17 octobre 2026, l'écran de connexion (lot m02) : un relais courriel injoignable ne laisse plus annoncer un code qui ne partira pas (test-2510 entre : 24 vérifications, le vrai service
+# contre un relais mort puis un relais qui meurt ; test-900 et test-933 admettent les numéros 1500-1599) — 99 suites, 9 966 vérifications mesurées par la commande de la porte, toutes
+# vertes (9 942 + 24) — plancher 9952 (le total moins 14, jamais une addition).
+# 17 octobre 2026, la fusion des vingt et un lots de la revue d'octobre (renumérotés 2400-2610) : 166 suites, 11 210 vérifications mesurées par la commande de la
+# porte, dans les conditions de la CI (sans Chromium : test-2600 se saute), toutes vertes (commit 407cc9de) — plancher 11196 (le total moins 14, jamais une addition).
+# 17 octobre 2026, la seconde vague (neuf bancs, 2620-2653) : 175 suites, 11 390 vérifications mesurées par la commande de la porte, dans les conditions de
+# la CI, toutes vertes (commit 3304529b) — plancher 11376 (le total moins 14, jamais une addition).
+# 17 octobre 2026, la troisième passe et le re-test final (2660-2663 : le statut d'un contact, le jour de fin d'une réunion de plusieurs jours partout — fiche,
+# lien d'invité, compte rendu, Décaler, autre fuseau, « chez eux » —, le rapport de présence) : 179 suites, 11 469 vérifications mesurées par la commande de la
+# porte, dans les conditions de la CI, toutes vertes (commit 8df53f6e) — plancher 11455 (le total moins 14, jamais une addition).
+#plancher 11455
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -281,3 +291,101 @@ tests/test-1002.js
 #    une seule bascule Perso / Pro et le passage automatique en Pro aux heures de travail (11 octobre 2026) : les vraies fonctions de la page, le vrai service, deux
 #    appareils de la même personne — la vraie page au doigt : tests/sonde-opmessages-bascule.js
 tests/test-1003.js
+# ── Le relais courriel injoignable (17 octobre 2026) : l'inscription et « Mot de passe oublié » rendent 503 courriel_indisponible, la sonde de joignabilité (cache, une seule sonde par fenêtre,
+#    jamais déduite des échecs d'envoi), /api/config qui ne propose plus le compte par adresse — le vrai service, un relais mort puis un relais qui meurt (1510) ;
+#    la vraie page : tests/sonde-opmessages-entree-m02.js (hors porte, comme les autres sonde-opmessages-*)
+tests/test-2510.js
+# ── Un message tapé pendant un envoi, « écrit… » qui s'éteint avec le champ, l'accord de « signe(s) en trop » (17 octobre 2026) : les vraies fonctions de la page, un service lent que le banc libère ou refuse (1540) ;
+#    la vraie page : test-857 (motifs) et tests/sonde-opmessages-serveur.js (bloc 9 ter, rafale)
+tests/test-2540.js
+# ── L'agenda des réunions, la fiche d'une réunion finie, l'écran de la fenêtre « Réunion » (17 octobre 2026, lot m16 de la revue) : la fin d'une séance prévient tous ses participants — le vrai service, cinq flux SSE (1580) ;
+#    la fiche d'une réunion terminée pour tous ne propose plus d'entrer (1581, vraies htmlFiche et seanceFiche) ; la fiche d'une réunion annulée n'a plus de titre vide (1582) ; le compteur « Invités » d'une réunion
+#    ouverte depuis un contact (1583) ; les deux libellés du trajet (1584). La vraie page : tests/sonde-opmessages-reunions.js, -trajet.js, -trajet-reunion.js, -agenda-geste.js. Outil de ces cinq bancs, pas une suite : tests/outils-page-reunions.js.
+tests/test-2580.js
+tests/test-2581.js
+tests/test-2582.js
+tests/test-2583.js
+tests/test-2584.js
+# ── Les correctifs de la revue d'octobre 2026 (17 octobre 2026) : vingt et un lots, écrits en parallèle sur le même ancien code puis fusionnés.
+#    Numérotés 1400-1609 par les lots, renumérotés 2400-2609 à la fusion (OP GESTION portait déjà ces numéros). Chaque lot devait inscrire ses
+#    bancs ici à la fusion : la plupart ne l'ont pas fait — les voici, rejoués un par un sur le code fusionné. Les bancs au navigateur
+#    (test-2600) se sautent sans Chromium, comme en CI : le plancher se mesure dans ces conditions-là.
+#    test-2610 : la page ENTIÈRE se compile — deux lots avaient déclaré le même nom dans la même portée, et la page fusionnée ne chargeait plus.
+tests/test-2400.js
+tests/test-2401.js
+tests/test-2410.js
+tests/test-2411.js
+tests/test-2412.js
+tests/test-2413.js
+tests/test-2420.js
+tests/test-2421.js
+tests/test-2422.js
+tests/test-2423.js
+tests/test-2424.js
+tests/test-2425.js
+tests/test-2426.js
+tests/test-2430.js
+tests/test-2431.js
+tests/test-2440.js
+tests/test-2441.js
+tests/test-2442.js
+tests/test-2443.js
+tests/test-2450.js
+tests/test-2451.js
+tests/test-2452.js
+tests/test-2453.js
+tests/test-2460.js
+tests/test-2470.js
+tests/test-2480.js
+tests/test-2481.js
+tests/test-2482.js
+tests/test-2483.js
+tests/test-2490.js
+tests/test-2491.js
+tests/test-2492.js
+tests/test-2493.js
+tests/test-2494.js
+tests/test-2495.js
+tests/test-2500.js
+tests/test-2501.js
+tests/test-2502.js
+tests/test-2503.js
+tests/test-2504.js
+tests/test-2505.js
+tests/test-2520.js
+tests/test-2521.js
+tests/test-2522.js
+tests/test-2523.js
+tests/test-2524.js
+tests/test-2530.js
+tests/test-2531.js
+tests/test-2532.js
+tests/test-2533.js
+tests/test-2534.js
+tests/test-2550.js
+tests/test-2551.js
+tests/test-2553.js
+tests/test-2560.js
+tests/test-2570.js
+tests/test-2571.js
+tests/test-2590.js
+tests/test-2591.js
+tests/test-2600.js
+tests/test-2610.js
+# ── La seconde vague de correctifs d'OP MESSAGES (17 octobre 2026), après la recampagne au navigateur du code fusionné : l'hôte par intérim ne termine
+#    pas pour tous (2620, le vrai service ; 2621, la page), une salle simplement vidée n'est pas « terminée » (2622), le lien d'invitation collé dans un
+#    onglet ouvert (2630), la mise en page et le contraste (2640), le changement d'heure, l'avatar d'une réunion, le renommage d'un groupe, la fiche partagée (2650-2653).
+tests/test-2620.js
+tests/test-2621.js
+tests/test-2622.js
+tests/test-2630.js
+tests/test-2640.js
+tests/test-2650.js
+tests/test-2651.js
+tests/test-2652.js
+tests/test-2653.js
+# ── La troisième passe (17 octobre 2026) : le statut d'un contact sans espace ne sort plus de la feuille (2660), une réunion de plusieurs jours dit son jour de fin (2661) — aussi sur le lien d'invité, le compte rendu et « Décaler » (2662, re-test final).
+tests/test-2660.js
+tests/test-2661.js
+tests/test-2662.js
+tests/test-2663.js

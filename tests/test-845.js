@@ -298,14 +298,21 @@ globalThis.fetch = async function (url, opts) {
     /* ⛔ LE SERVEUR PEUT PARTIR SEUL (`scripts/bancs-serveur.liste`, contre l'app.html de `main`) : la v763 EN SERVICE et la
        v767 de la bêta ne lisent pas la suspension de la même façon. Chacune est jouée contre CE serveur, avec SES attentes — la
        v763 grise les catégories payantes (`forfait()` rend « gratuit ») sans rien écrire ; la v767 suspend l'accès. */
-    const VER_APP = parseInt((/APP_VERSION\s*=\s*'(\d+)'/.exec(APP) || [])[1], 10) || 0, V767 = VER_APP >= 767, V768 = VER_APP >= 768;
+    /* ⛔ LES OPTIONS DU PRO SE LISENT DANS LE CODE, JAMAIS DANS LE NUMÉRO DE VERSION (17 octobre 2026). Ce banc déduisait « v768 =
+       les options du Pro » : c'était le numéro du chantier du 1er octobre (branche `claude/op-gestion-interface-yb6p32`), resté sur sa
+       branche. La v768 publiée le 17 octobre est la campagne de correctifs, SANS options : le banc exigeait trois fonctions qui
+       n'existent pas, et la porte du déploiement du serveur tombait. Même règle que test-848 (2 octobre) : on prend les options
+       quand la VRAIE `forfaitServeurSync` les APPELLE — et une page qui les appelle sans les définir fait tomber la population. */
+    const VER_APP = parseInt((/APP_VERSION\s*=\s*'(\d+)'/.exec(APP) || [])[1], 10) || 0, V767 = VER_APP >= 767,
+      V768 = V767 && /\boptionsPoser\(/.test(fonction('forfaitServeurSync'));
     vrai('la version de l\'application se lit (v' + VER_APP + ')', VER_APP >= 763);
     /* (le bandeau « Paye ton abonnement » n'existe plus depuis la v767 : ce qui n'est pas payé est suspendu — `accesSuspendu`) */
-    const NOMS = V767 ? ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait'].concat(V768 ? ['optionsCle', 'optionsLire', 'optionsPoser'] : [])   // v768 : les options servies se rangent à la lecture de l'état — la v767 (celle que `main` sert, et contre laquelle la porte du déploiement joue ce banc) ne les a pas
+    const NOMS = V767 ? ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'accesSuspendu', 'suspensionClasse', 'suspensionRappel', 'forfait'].concat(V768 ? ['optionsCle', 'optionsLire', 'optionsPoser'] : [])   // les options servies se rangent à la lecture de l'état — quand `forfaitServeurSync` les appelle (ni la v767 que `main` servait, ni la v768 des correctifs)
       : ['forfaitServeurSync', 'suspensionCle', 'suspensionPoser', 'suspensionSursis', 'suspensionGrise', 'suspensionRappel', 'forfait', 'bandeauFormule'];
     const FN = NOMS.map(fonction), PLANS_SRC = bloc('const PLANS={'), OPT_SRC = V768 ? bloc('const OPTIONS_GESTION={') : '', SUSP = (/^let _susp = \{[^\n]*\};$/m.exec(APP) || [''])[0];
-    vrai('(population) les ' + NOMS.length + ' fonctions de la v' + VER_APP + ', PLANS et l\'état de suspension sont trouvés dans le fichier réel',
-      FN.every(Boolean) && /const PLANS=\{/.test(PLANS_SRC) && !!SUSP && (V767 ? /suspensionPoser\(nonPaye\?/ : /suspensionPoser\(j\)/).test(FN[0]));
+    vrai('(population) les ' + NOMS.length + ' fonctions de la v' + VER_APP + (V768 ? ' (options du Pro comprises)' : '') + ', PLANS et l\'état de suspension sont trouvés dans le fichier réel',
+      FN.every(Boolean) && /const PLANS=\{/.test(PLANS_SRC) && !!SUSP && (V767 ? /suspensionPoser\(nonPaye\?/ : /suspensionPoser\(j\)/).test(FN[0]) && (!V768 || !!OPT_SRC),
+      NOMS.filter((n, i) => !FN[i]).concat(V768 && !OPT_SRC ? ['OPTIONS_GESTION'] : []).join(', '));
     /* un appareil : son rangement, son compte, sa base — et ce qu'il fait VOIR (toasts, bandeau) ou ÉCRIRE (save) */
     const appareil = (slug, role, fetchAutre) => {
       const LS = new Map([['elan_sync_team', espaces[slug].t]]);

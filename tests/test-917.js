@@ -126,7 +126,13 @@ const NEUTRE = JSON.stringify({ trouve: false });
       const totalApres10 = await cherche(P, TEL.numeroBE());
       v('⛔ un compte de moins de 24 h : DIX recherches par jour — la onzième est refusée, même après la minute (le plafond du jour, pas celui de la minute)', [totalApres10.code, totalApres10.j.error], [429, 'recherches_plafond']);
       svc.avancer(61 * 1000);
-      vrai('   Retry-After : de l\'ordre d\'une heure', retryDe(await cherche(P, TEL.numeroBE())) === 3600);
+      /* ⛔ Le plafond se compte sur 24 h GLISSANTES : le Retry-After dit quand la plus ancienne recherche qui compte en sort (≈ 24 h moins ce qui s'est écoulé), pas une heure fixe —
+         « réessaie dans 60 min » faisait revenir pour rien. Il DÉCROÎT avec le temps (3 h plus tard : 3 h de moins). */
+      const r1 = retryDe(await cherche(P, TEL.numeroBE()));
+      vrai('   Retry-After : l\'attente RÉELLE du plafond glissant (≈ 24 h moins 2 min), pas une heure fixe (' + r1 + ' s)', r1 >= 86400 - 200 && r1 <= 86400 - 100, String(r1));
+      svc.avancer(3 * 3600 * 1000);
+      const r2 = retryDe(await cherche(P, TEL.numeroBE()));
+      vrai('   … et il décroît avec le temps : 3 h plus tard, 3 h de moins (' + r2 + ' s)', r1 - r2 >= 3 * 3600 - 5 && r1 - r2 <= 3 * 3600 + 5, r1 + ' → ' + r2);
       /* Le plafond est compté AVANT de savoir si le numéro existe : un numéro qui existe et un qui n'existe pas usent le même compteur, et un refus ne dit rien. */
       const refusExistant = await cherche(P, cible.numero), refusAbsent = await cherche(P, TEL.numeroBE());
       v('⛔ le plafond atteint, un numéro qui EXISTE et un qui n\'existe pas reçoivent le MÊME refus (le plafond est compté avant de chercher)', [refusExistant.code, refusAbsent.code, refusExistant.txt === refusAbsent.txt], [429, 429, true]);

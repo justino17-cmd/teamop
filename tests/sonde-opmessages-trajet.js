@@ -49,7 +49,7 @@ async function ouvrir(b, base, pf, o) {
 }
 const attendre = (S, fn, arg, ms) => S.page.waitForFunction(fn, arg, { timeout: ms || 9000, polling: 50 }).then(() => true, () => false);
 async function toucher(S, sel) { const l = S.page.locator(sel).filter({ visible: true }).first(); await l.scrollIntoViewIfNeeded().catch(() => {}); if (S.pf.mobile) await l.tap(); else await l.click(); }
-/* (15 octobre 2026, « plus simple ») la zone du trajet s'ouvre REPLIÉE tant qu'aucun trajet n'est calculé : un toucher sur « Calculer l'heure de départ » déplie le formulaire */
+/* (15 octobre 2026, « plus simple ») la zone du trajet s'ouvre REPLIÉE tant qu'aucun trajet n'est calculé : un toucher sur « Heure de départ » déplie le formulaire */
 const deplier = async (S) => {
   if (!await attendre(S, () => !!document.querySelector('[data-evt="trajet-ouvrir"]') || !!document.getElementById('ev-tr-depart'))) return false;
   if (await S.page.evaluate(() => !!document.querySelector('[data-evt="trajet-ouvrir"]'))) await toucher(S, '[data-evt="trajet-ouvrir"]');
@@ -104,16 +104,16 @@ const resultat = (S) => S.page.evaluate(() => { const r = document.getElementByI
     await attendre(A, () => !document.getElementById('vue-reunions').hidden && !!document.getElementById('btn-agenda-plus'));
     await creerAgenda(A, 'rdv');
     vrai('la feuille « Nouveau rendez-vous » s\'ouvre, et la zone « Trajet » paraît (le service a dit qu\'il calcule), REPLIÉE', await attendre(A, () => document.getElementById('feuille-titre').textContent === 'Nouveau rendez-vous' && !!document.querySelector('#ev-trajet-zone [data-evt="trajet-ouvrir"]')));
-    v('   repliée : « Calculer l\'heure de départ » seul (pas encore de lieu, donc pas de « Y aller ») — ni départ, ni mode, ni avance sous les yeux ; 44 px', await A.page.evaluate(() => { const z = document.getElementById('ev-trajet-zone'), bs = Array.from(z.querySelectorAll('button'));
-      return [bs.map(x => x.textContent.trim()), !!z.querySelector('select, input'), bs.every(x => x.getBoundingClientRect().height >= 44), bs[0] && bs[0].getAttribute('aria-expanded')]; }), [['Calculer l\'heure de départ'], false, true, 'false']);
+    v('   repliée : « Heure de départ » seul (pas encore de lieu, donc pas de « Y aller ») — ni départ, ni mode, ni avance sous les yeux ; 44 px', await A.page.evaluate(() => { const z = document.getElementById('ev-trajet-zone'), bs = Array.from(z.querySelectorAll('button'));
+      return [bs.map(x => x.textContent.trim()), !!z.querySelector('select, input'), bs.every(x => x.getBoundingClientRect().height >= 44), bs[0] && bs[0].getAttribute('aria-expanded')]; }), [['Heure de départ'], false, true, 'false']);
     await toucher(A, '#ev-trajet-zone [data-evt="trajet-ouvrir"]');
     vrai('un toucher la déplie : le formulaire paraît, le focus sur « Je pars de »', await attendre(A, () => !!document.getElementById('ev-tr-depart') && document.activeElement === document.getElementById('ev-tr-depart')), await zone(A));
     const init = await A.page.evaluate(() => ({ depart: document.getElementById('ev-tr-depart').value, options: Array.from(document.getElementById('ev-tr-depart').options).map(o => o.value + ':' + o.textContent),
       mode: Array.from(document.querySelectorAll('[data-tr-mode]')).map(x => x.dataset.trMode + (x.getAttribute('aria-pressed') === 'true' ? '✓' : '')), avance: document.getElementById('ev-tr-avance').value,
       bouton: (document.querySelector('[data-evt="trajet-calculer"]') || {}).textContent, note: /ni gardée, ni montrée à personne/.test(document.getElementById('ev-trajet-zone').textContent),
       lieuApres: document.getElementById('ev-lieu').compareDocumentPosition(document.getElementById('ev-trajet-zone')) === Node.DOCUMENT_POSITION_FOLLOWING, place: document.getElementById('ev-lieu').placeholder }));
-    v('« Je pars de » : Ma position par défaut, puis Domicile et Travail (à enregistrer), ou une autre adresse ; voiture ; arriver 5 min avant ; « Calculer l\'heure de départ »', [init.depart, init.options, init.mode, init.avance, init.bouton],
-      ['position', ['position:Ma position', 'domicile:Domicile (à enregistrer)', 'travail:Travail (à enregistrer)', 'adresse:Une autre adresse'], ['voiture✓', 'pied'], '5', 'Calculer l\'heure de départ']);
+    v('« Je pars de » : Ma position par défaut, puis Domicile et Travail (à enregistrer), ou une autre adresse ; voiture ; arriver 5 min avant ; « Calculer »', [init.depart, init.options, init.mode, init.avance, init.bouton],
+      ['position', ['position:Ma position', 'domicile:Domicile (à enregistrer)', 'travail:Travail (à enregistrer)', 'adresse:Une autre adresse'], ['voiture✓', 'pied'], '5', 'Calculer']);
     v('   la position est dite pour ce qu\'elle est (ni gardée, ni montrée) ; la zone suit le lieu, qui dit à quoi il sert', [init.note, init.lieuApres, init.place], [true, true, 'Adresse — pour savoir quand partir']);
     const tailles = await A.page.evaluate(() => Array.from(document.querySelectorAll('#ev-trajet-zone button, #ev-trajet-zone select')).filter(x => x.getClientRects().length).map(x => Math.round(x.getBoundingClientRect().height)));
     v('iPhone : chaque commande du trajet fait 44 px au moins (population : le choix du départ, voiture, à pied, l\'avance, « Calculer »)', [tailles.length, tailles.every(h => h >= 44)], [5, true], tailles);

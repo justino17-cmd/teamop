@@ -1822,7 +1822,11 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const bloqueMoi = !!(id && viewer && (contactLigne(id, viewer) || {}).etat === 'bloque');
     const tr = meta.tr ? { tr: 1 } : {};                 // « Transféré » se garde à la relecture (9 octobre 2026)
     if (!p || p.etat !== 'actif' || suppressionLe(id) !== null || telTrouvableLire(id) !== 'tous' || bloqueMoi) return Object.assign({ k: 'contact', uid: null, prenom: null, identifiant: null }, tr);
-    return Object.assign({ k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) }, tr);
+    /* ⛔ « DEMANDE ENVOYÉE » EST UN ÉTAT DU SERVICE, pas de la page (lot m09 : l'écran le gardait dans une mémoire qui mourait au rechargement, et « Ajouter » revenait) : celui qui LIT la fiche apprend
+       s'il a déjà une demande en cours vers cette personne — lui seul, jamais l'auteur du partage ni un autre membre — et plus rien dès qu'ils sont contacts. Une demande refusée reste « envoyée » :
+       le refus ne se dit pas (la liste « Demandes envoyées » le dit de la même façon). */
+    const enCours = !!(viewer && id !== viewer && !contactActif(viewer, id) && Q('SELECT 1 AS x FROM demande_contact WHERE de = ? AND vers = ? AND masque = 0').get(viewer, id));
+    return Object.assign({ k: 'contact', uid: id, prenom: premierMot(p.prenom) || 'Contact', identifiant: identDe(id) }, enCours ? { demande: true } : {}, tr);
   }
   /* la fiche de contact d'un message (`meta.k = 'contact'`) que `uid` voit, ou null */
   function carteContactLire(conv, seq, uid) { const v = messageVuPar(conv, seq, uid); return v && v.meta && v.meta.k === 'contact' && typeof v.meta.uid === 'string' ? v.meta : null; }
@@ -2827,6 +2831,8 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Les recherches de contact par numéro : un compte ne peut pas parcourir l'annuaire. */
   function rechercheNoter(uid) { Q('INSERT INTO recherche_tel(uid, ts) VALUES(?, ?)').run(uid, horloge()); }
   function rechercheCompter(uid, depuis) { return num(Q('SELECT COUNT(*) AS n FROM recherche_tel WHERE uid = ? AND ts >= ?').get(uid, depuis).n); }
+  /* L'horodatage de la recherche de rang `rang` (0 = la plus ancienne) dans la fenêtre : c'est elle qui, en sortant des 24 h, libère une place du plafond du jour. */
+  function rechercheRang(uid, depuis, rang) { const r = Q('SELECT ts FROM recherche_tel WHERE uid = ? AND ts >= ? ORDER BY ts ASC LIMIT 1 OFFSET ?').get(uid, depuis, Math.max(0, rang)); return r ? num(r.ts) : null; }
   function rechercheRendre(uid) { Q('DELETE FROM recherche_tel WHERE rowid = (SELECT MAX(rowid) FROM recherche_tel WHERE uid = ?)').run(uid); }
 
   /* ══ PUSH — les abonnements des appareils, la paire VAPID, qui reçoit quoi (migration 4) ══════════════════════════════
@@ -3176,6 +3182,13 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       odjEcrire(id, points);
       return { change: true, points, gid: journalAjouter('reunion', r.conv, null, id) };
     });
+  }
+  /* ⛔ UNE SÉANCE QUI FINIT SE DIT À TOUS LES PARTICIPANTS (17 octobre 2026, testeur : après « Terminer pour tous », l'agenda de ceux qui étaient en salle gardait « Rejoindre » et « À répondre » jusqu'au
+     rechargement). La fin d'une salle ne changeait rien à la RÉUNION elle-même : seul le compte rendu (un message) partait, et une page qui n'est pas sur la conversation ne relit pas son agenda. L'événement
+     `reunion` est le « relis-la » des réunions ; il suit la conversation de la réunion, donc ne sort jamais du cercle de ses participants. → le numéro d'événement, ou 0 (réunion inconnue). */
+  function reunionSeanceSignaler(id) {
+    const r = reunionBrute(id); if (!r) return 0;
+    return journalAjouter('reunion', r.conv, null, id);
   }
   /* cocher ou décocher un point (un participant, pendant la séance ou avant) → null si le point n'existe pas */
   function reunionOdjCocher(id, point, fait) {
@@ -4117,6 +4130,15 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      relayé (seulement entre participants PRÉSENTS — le serveur cesse de relayer celui d'un exclu). Ce qu'il ne peut pas imposer (couper le micro d'autrui, empêcher un navigateur modifié de garder une liaison
      déjà ouverte) reste une DEMANDE que les pages honorent, et l'écran le dit. */
   const GRADE_HOTE = 2, GRADE_COHOTE = 1;
+  /* ⛔ L'HÔTE PAR INTÉRIM (16 octobre 2026, `securite#0`) : dans la salle d'une réunion programmée, le grade 2 n'est pas toujours celui de l'organisateur — le premier invité NOMMÉ qui entre avant lui le reçoit
+     pour que la salle ait quelqu'un à la PORTE (sans hôte, une salle d'attente ne se vide jamais). La porte, pas les armes : il admet et refuse, mais il n'exclut pas (définitif : `appelRejoindre` refuse
+     un exclu, rien ne le réadmet), ne verrouille pas, ne règle ni la salle d'attente ni le partage, n'enregistre pas, ne nomme pas de co-hôte (permanent), ne demande pas à tous de couper le micro.
+     Il se RECONNAÎT sans champ de plus : grade 2 dans une salle de RÉUNION et pas l'organisateur de cette réunion (qui est `reunion.hote`). Un co-hôte (grade 1) nommé par l'organisateur n'est pas concerné ;
+     l'organisateur qui entre fait redescendre l'intérimaire à 0 (`appelRejoindre`). → booléen */
+  function salleInterim(a, uid, grade) {
+    if (!a || a.genre !== 'reunion' || !a.reunion || num(grade) < GRADE_HOTE) return false;
+    return (Q('SELECT hote FROM reunion WHERE id = ?').get(a.reunion) || {}).hote !== uid;
+  }
   function appelBrut(id) { return Q('SELECT id, type, etat, cree, sonne_jusqua, repondu, fin, motif, genre, conv, reunion, capacite, verrou, attente, partage_ok, rec_par, visio FROM appel WHERE id = ?').get(id) || null; }
   const appelPart = (id, uid) => Q('SELECT role, session, statut, grade, entre, gen FROM appel_part WHERE appel = ? AND uid = ?').get(id, uid) || null;
   const appelAutre = (id, uid) => { const r = Q('SELECT uid FROM appel_part WHERE appel = ? AND uid <> ? ORDER BY role, uid').get(id, uid); return r ? r.uid : null; };
@@ -4176,7 +4198,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       duree_s: abouti && fin !== null ? Math.max(0, Math.round((fin - num(a.repondu)) / 1000)) : 0, motif: a.motif || null, lie: !!me.session,
       capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), visio: !!num(a.visio), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, rec: a.rec_par && me.statut !== 'exclu' ? { par: a.rec_par } : null,
       nb: lignes.filter(r => r.statut === 'present').length, en_attente: hote ? lignes.filter(r => r.statut === 'attente').length : 0,
-      moi: { statut: me.statut, grade: num(me.grade), gen: num(me.gen) }, participants: roster, rev: termine ? 0 : appelRev(uid, a.id),
+      moi: Object.assign({ statut: me.statut, grade: num(me.grade), gen: num(me.gen) }, dedans && salleInterim(a, uid, me.grade) ? { interim: true } : {}), participants: roster, rev: termine ? 0 : appelRev(uid, a.id),
     };
   }
   /* ⛔ LA VERSION D'UNE VUE D'APPEL (`rev`), SALLE COMME APPEL À DEUX — 9 octobre 2026, sonde de groupe : une vue arrive par TROIS chemins (le flux, la réponse d'un geste, une relecture — celle de la salle ou de la liste des appels), et
@@ -4205,7 +4227,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     const a = appelBrut(id); if (!a) return null;
     if (a.genre !== 'deux' && me.statut === 'exclu') return null;
     return { id: a.id, etat: a.etat, type: a.type, role: me.role, session: me.session || null, autre: a.genre === 'deux' ? appelAutre(id, uid) : null, sonne_jusqua: num(a.sonne_jusqua), cree: num(a.cree),
-      genre: a.genre, statut: me.statut, grade: num(me.grade), conv: a.conv || null, reunion: a.reunion || null, capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, visio: !!num(a.visio) };
+      genre: a.genre, statut: me.statut, grade: num(me.grade), conv: a.conv || null, reunion: a.reunion || null, capacite: a.capacite === null || a.capacite === undefined ? null : num(a.capacite), verrou: !!a.verrou, attente: !!a.attente, partage_ok: !!a.partage_ok, visio: !!num(a.visio), ...(me.statut === 'present' && salleInterim(a, uid, me.grade) ? { interim: true } : {}) };
   }
   /* Les appels REÇUS par cette personne depuis `depuis` — tous, quelle qu'en soit l'issue (un appel « occupé » ou refusé a fait sonner ou noté un manqué tout de même) → { n, plusAncien }. C'est ce que le
      plafond « par personne appelée » compte : un appelant qui se heurte à un plafond bas ne dit rien des autres. */
@@ -4241,8 +4263,26 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
 
   /* Lancer un appel : TOUT dans une transaction — le contrôle « occupé » de l'appelant (il ne fait pas deux appels), celui de l'appelé (écrit alors « occupe », jamais « sonne »), les deux lignes, les deux
      événements, et — appelé occupé — la notification du manqué. `session` : l'empreinte de la session de l'appelant (liée d'emblée). `sonnerieMs` : le délai de la sonnerie. */
+  /* ⛔ DEUX APPELS QUI SE CROISENT (17 octobre 2026) : Ana appelle Ben pendant que Ben appelle Ana. Le second lancement arrivé trouvait la sonnerie du premier comme « appel actif » de SON appelant
+     (`occupe_moi`) — et, dans l'autre ordre, l'appelé « occupé » —, donc chacun lisait l'autre injoignable alors que les deux se cherchaient. L'appel INVERSE (celui de l'appelé vers l'appelant, qui
+     SONNE encore) se reconnaît ici, dans la même transaction que la décision : s'il est le SEUL appel qui occupe l'appelant, le second à arriver y RÉPOND (les deux se rejoignent). Un appel sans
+     rapport (Cléo, déjà au téléphone avec quelqu'un d'autre) ne passe pas par là : il reste `occupe_moi` / « occupé ». → l'identifiant de l'appel inverse, ou null. */
+  function appelInverseQuiSonne(appelant, appele) {
+    const t = horloge();
+    const r = Q(`SELECT a.id AS id FROM appel a
+                 JOIN appel_part pa ON pa.appel = a.id AND pa.uid = ? AND pa.role = 'appelant'
+                 JOIN appel_part pb ON pb.appel = a.id AND pb.uid = ? AND pb.role = 'appele'
+                 WHERE a.genre = 'deux' AND a.etat = 'sonne' AND a.sonne_jusqua > ?
+                 ORDER BY a.cree DESC, a.id DESC LIMIT 1`).get(appele, appelant, t);
+    return r ? r.id : null;
+  }
   function appelCreer({ appelant, appele, type, session, sonnerieMs }) {
     return tx(() => {
+      const inverse = appelInverseQuiSonne(appelant, appele);
+      if (inverse && appelActifDe(appelant) === inverse) {
+        const r = appelRepondre({ id: inverse, uid: appelant, session, accepte: true });
+        return { id: inverse, occupe: false, joint: true, gids: r.gids, notif: null, vue: r.vue };
+      }
       if (appelActifDe(appelant)) throw erreur('occupe_moi');
       const t = horloge(), id = nouvelId('a'), occupe = appelActifDe(appele) !== null;
       Q('INSERT INTO appel(id, type, etat, cree, sonne_jusqua, fin) VALUES(?, ?, ?, ?, ?, ?)').run(id, type, occupe ? 'occupe' : 'sonne', t, t + sonnerieMs, occupe ? t : null);
@@ -4424,8 +4464,9 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       if (p) Q('UPDATE appel_part SET statut = ?, session = ?, grade = ?, entre = ?, gen = gen + ? WHERE appel = ? AND uid = ?').run(statut, session, grade, t, attend ? 0 : 1, id, uid);
       else Q('INSERT INTO appel_part(appel, uid, role, session, statut, grade, entre, gen) VALUES(?, ?, ?, ?, ?, ?, ?, ?)').run(id, uid, 'appele', session, statut, grade, t, attend ? 0 : 1);
       if (!attend) presenceEntrer(id, uid, t);
-      /* l'organisateur qui arrive REPREND la main : celui qui la tenait à sa place (le plus ancien, ou un co-hôte) devient co-hôte */
-      if (hoteReunion && !attend) Q(`UPDATE appel_part SET grade = ? WHERE appel = ? AND uid <> ? AND grade = ?`).run(GRADE_COHOTE, id, uid, GRADE_HOTE);
+      /* l'organisateur qui arrive REPREND la main : celui qui la tenait à sa place (l'intérimaire : dans une réunion, tout autre grade 2 l'est) redevient simple participant. Il ne devient PAS co-hôte : ce serait
+         lui donner pour toujours les gestes qu'on lui refusait — exclure, verrouiller — sans que personne les lui ait confiés. Un co-hôte NOMMÉ (grade 1) n'est pas touché. */
+      if (hoteReunion && !attend) Q(`UPDATE appel_part SET grade = 0 WHERE appel = ? AND uid <> ? AND grade = ?`).run(id, uid, GRADE_HOTE);
       if (!attend) salleDemarrerSiDeux(id, t);
       return { deja: false, attente: attend, gids: appelEvenements(id, [uid]), vue: appelVue(uid, id), etat: appelBrut(id).etat };
     });
@@ -4501,7 +4542,10 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       presenceSortir(id, uid, t);
       Q(`UPDATE appel_part SET statut = 'parti', session = NULL, grade = CASE WHEN grade = ? THEN 0 ELSE grade END WHERE appel = ? AND uid = ?`).run(GRADE_HOTE, id, uid);
       if (a.rec_par === uid) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
-      if (num(p.grade) === GRADE_HOTE && p.statut === 'present') {
+      /* l'hôte qui part passe la main au suivant (un co-hôte d'abord). ⛔ Dans une RÉUNION, seulement si plus personne n'y tient la porte : un co-hôte nommé par l'organisateur la tient, et le promouvoir en
+         ferait un grade 2 que `salleInterim` prendrait pour un intérimaire — il perdrait ses gestes, puis son grade au retour de l'organisateur. */
+      if (num(p.grade) === GRADE_HOTE && p.statut === 'present'
+        && !(a.genre === 'reunion' && num(Q(`SELECT COUNT(*) AS n FROM appel_part WHERE appel = ? AND statut = 'present' AND uid <> ? AND grade >= ?`).get(id, uid, GRADE_COHOTE).n) > 0)) {
         const s = Q(`SELECT uid FROM appel_part WHERE appel = ? AND statut = 'present' AND uid <> ? ORDER BY grade DESC, entre, uid LIMIT 1`).get(id, uid);
         if (s) Q('UPDATE appel_part SET grade = ? WHERE appel = ? AND uid = ?').run(GRADE_HOTE, id, s.uid);
       }
@@ -4540,10 +4584,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* ── ce que l'HÔTE et ses co-hôtes décident ── */
   const salleVivante = (id) => { const a = appelBrut(id); if (!a || a.genre === 'deux') throw erreur('introuvable'); if (a.etat !== 'sonne' && a.etat !== 'en_cours') throw erreur('appel_fini'); return a; };
   /* `par` doit être DANS la salle avec le grade voulu : la garde de la route l'a jugé, la transaction le rejuge (un hôte parti entre les deux ne commande plus rien). */
-  function salleCommandant(id, par, gradeMin) {
+  function salleCommandant(id, par, gradeMin, sansInterim) {
     const p = appelPart(id, par);
     if (!p || p.statut !== 'present') throw erreur('introuvable');
     if (num(p.grade) < gradeMin) throw erreur('interdit');
+    /* `sansInterim` : les gestes qui engagent les autres (exclure, verrouiller, régler la salle, enregistrer, nommer un co-hôte) ne sont pas à l'hôte par intérim — voir `salleInterim` */
+    if (sansInterim && salleInterim(appelBrut(id), par, p.grade)) throw erreur('interdit');
     return p;
   }
   /* Admettre : la salle d'attente se vide dans la limite de la capacité (une seule personne, ou tout le monde — dans l'ordre d'arrivée). Ce qui ne rentre pas reste à la porte. → { admis, restent, gids } */
@@ -4576,7 +4622,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
      seul l'hôte exclut un co-hôte ; on n'exclut ni l'hôte ni soi-même. → { gids, etait: l'état d'avant } */
   function salleExclure({ id, par, uid }) {
     return tx(() => {
-      const a = salleVivante(id), moi = salleCommandant(id, par, GRADE_COHOTE);
+      const a = salleVivante(id), moi = salleCommandant(id, par, GRADE_COHOTE, true);
       const p = appelPart(id, uid);
       if (!p || uid === par) throw erreur('introuvable');
       if (p.statut === 'exclu') return { deja: true, gids: {}, etait: 'exclu' };
@@ -4590,7 +4636,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   }
   function salleReglage(id, par, colonne, valeur) {
     return tx(() => {
-      salleVivante(id); salleCommandant(id, par, GRADE_COHOTE);
+      salleVivante(id); salleCommandant(id, par, GRADE_COHOTE, true);
       if (colonne === 'verrou') Q('UPDATE appel SET verrou = ? WHERE id = ?').run(valeur ? 1 : 0, id);
       else if (colonne === 'attente') Q('UPDATE appel SET attente = ? WHERE id = ?').run(valeur ? 1 : 0, id);
       else if (colonne === 'partage_ok') Q('UPDATE appel SET partage_ok = ? WHERE id = ?').run(valeur ? 1 : 0, id);
@@ -4606,7 +4652,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   function salleRec(id, par, actif) {
     return tx(() => {
       const a = salleVivante(id);
-      salleCommandant(id, par, actif ? GRADE_HOTE : GRADE_COHOTE);
+      salleCommandant(id, par, actif ? GRADE_HOTE : GRADE_COHOTE, true);
       if (actif) Q('UPDATE appel SET rec_par = ? WHERE id = ?').run(par, id);
       else if (a.rec_par) Q('UPDATE appel SET rec_par = NULL WHERE id = ?').run(id);
       return { gids: appelEvenements(id) };
@@ -4615,17 +4661,19 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
   /* Co-hôte : l'hôte seul promeut ou retire (une personne PRÉSENTE, jamais lui-même). */
   function salleCohote({ id, par, uid, actif }) {
     return tx(() => {
-      salleVivante(id); salleCommandant(id, par, GRADE_HOTE);
+      salleVivante(id); salleCommandant(id, par, GRADE_HOTE, true);
       const p = appelPart(id, uid);
       if (!p || p.statut !== 'present' || uid === par) throw erreur('introuvable');
       Q('UPDATE appel_part SET grade = ? WHERE appel = ? AND uid = ?').run(actif ? GRADE_COHOTE : 0, id, uid);
       return { gids: appelEvenements(id) };
     });
   }
-  /* Terminer pour tous : l'hôte seul. Chaque participant reçoit la fin. */
+  /* Terminer pour tous : l'hôte seul. Chaque participant reçoit la fin.
+     ⛔ Pas l'hôte PAR INTÉRIM (17 octobre 2026, `n#10`) : l'invité qui entre avant l'organisateur tient la porte, il ne ferme pas la réunion de tous — c'est un geste qu'on ne défait pas (la séance
+     est écrite « terminée », le compte rendu part), comme exclure ou enregistrer, que `sansInterim` lui refuse déjà. Ni le lot de l'intérim ni celui de la réunion terminée ne l'avaient tranché. */
   function salleTerminer({ id, par }) {
     return tx(() => {
-      const a = salleVivante(id); salleCommandant(id, par, GRADE_HOTE);
+      const a = salleVivante(id); salleCommandant(id, par, GRADE_HOTE, true);
       return salleFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', 'termine', horloge(), par);
     });
   }
@@ -4858,7 +4906,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     telAppareilLier, telAppareilLire, telAppareilToucher, telAppareilSupprimer, telAppareilsSupprimerPersonne, telAppareilsSupprimerAutres, telAppareilsDe,
     smsTentativesNoter, smsTentativesCompter, smsTentativePremiere, smsTentativesRendre,
     smsReserver, smsRegler, smsSommes, smsPremier, smsPaysSur, smsElaguer, smsBouclierPoser, smsBouclierDe, smsBoucliers,
-    telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRendre,
+    telPersonneParNumero, telTrouvableLire, telTrouvableMaj, rechercheNoter, rechercheCompter, rechercheRang, rechercheRendre,
     identAttribuer, personneParIdent, identDe, identCompleter, demandeCreer, demandesRecues, demandesEnvoyees, demandeRepondre, demandeAnnuler, invitationEtat, invitationMarquer, invitationEnvoyes,
     pushPoser, pushListe, pushCompterDe, pushCompter, pushRetirer, pushRetirerId, pushOk, pushEchec, pushSupprimerPersonne, pushJoignable, pushNonJoignablesPurger, pushRetirerAutres, pushVapidLire, pushVapidPoser,
     pushDestinatairesMessage, pushMessageEncore, pushConvNonLue, coteDe, mentionEncore, autreSupprime,
@@ -4870,7 +4918,7 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
     reunionTrajetPoser, reunionTrajetsSelon,   // …le trajet de chacun (migration 29)
     reunionLien, reunionLienRenouveler, reunionParCode, reunionInviteParCode,   // …leur lien d'invité
     bailPrendre, bailRendre, bailLire, reunionsARappeler, reunionsARappelerDe, reunionPlanif, reunionProchainPoser, rappelEnvoyer, rappelsEnvoyer, rappelDejaEnvoye, rappelsEnvoyesDe, rappelsElaguer, reunionEncore,                             // …et le planificateur
-    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
+    courrierCompter, courrierNoter, courrierRetirer, courrierElaguer, exportReunions, reunionOdj, reunionOdjPoser, reunionOdjCocher, reunionOdjRemettre, reunionSeanceSignaler, piecesPartagees,                                                                                                                  // …et le courriel d'invitation
     appelVue, appelAcces, appelEstVisio, appelActifDe, appelActifVue, enSalle, presentsEnSalle, appelsRecusDepuis, appelCreer, appelRepondre, appelQuitter, appelFinir, appelsEchoir, appelsActifs, appelsListe, appelsElaguer, appelsQuitterTout, appelsFinirEntre, appelsReparer, appelSourdine, exportAppels,   // les appels à deux
     appelCreerGroupe, appelRejoindre, appelPartir, salleAdmettre, salleRefuser, salleExclure, salleVerrou, salleAttente, sallePartage, salleRec, salleCohote, salleTerminer, seancesFinies, salleSessions, salleDeReunion, appelAppelant, salleOrganisateur, salleReunionRejoindre, sallesOuvertes,   // …et à plusieurs : les salles
   };

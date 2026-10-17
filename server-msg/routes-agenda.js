@@ -242,11 +242,14 @@ function creerAgenda({ stockage, quotas, config, horloge, journaliser }) {
     if (!base) return refus(res, 404, 'introuvable');
     if (base.journee && b.dans !== 'demain') return refus(res, 400, 'champ_invalide');           // une journée entière ne se reporte que d'un jour
     const t = horloge(), duree = base.fin - base.debut;
+    /* ⛔ la base du report est le PLUS TARD de maintenant et du début de l'événement : « Reporter » repousse, il n'avance jamais. Un rappel échu (début passé) se repousse depuis
+       maintenant, comme avant ; un rendez-vous du 28 octobre, depuis le 28 octobre — il passait à « dans 10 minutes », douze jours plus tôt, sans un mot (agenda#0, pro#2). */
+    const depart = Math.max(t, base.debut);
     let debut;
     if (b.dans === 'demain') {
-      const auj = cal.champsLocaux(t, base.tz), dem = cal.ajouterJours({ a: auj.a, m: auj.m, j: auj.j }, 1);
+      const auj = cal.champsLocaux(depart, base.tz), dem = cal.ajouterJours({ a: auj.a, m: auj.m, j: auj.j }, 1);
       debut = cal.instantLocal({ a: dem.a, m: dem.m, j: dem.j, h: base.journee ? 0 : 9, mi: 0 }, base.tz);
-    } else debut = Math.ceil((t + b.dans * MIN) / MIN) * MIN;
+    } else debut = Math.ceil((depart + b.dans * MIN) / MIN) * MIN;
     const rappels = base.rappels.length ? base.rappels : [0];
     const e = stockage.evenementReporter(req.moi.id, id, { debut, fin: debut + duree, journee: base.journee, rappel: rappels[0], rappelA: prochaine(debut, rappels, base.tz, t, avantDepart(base.trajet)), rappels });
     if (!e) return refus(res, 404, 'introuvable');

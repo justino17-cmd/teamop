@@ -322,7 +322,8 @@ console.log('\n── 776 · 15. un texte ne s’écrase plus : lignes à heure,
    · titre de fenêtre [Annuler] titre [Ajouter] : « Ajouter un produit aux boxes » sur cinq lignes,
      une barre de 188 px de haut. */
 { const corpsDe = d => { const i = SRC.indexOf(d); return i < 0 ? '' : SRC.slice(i, SRC.indexOf('\nfunction ', i + 20)); };
-  const fP = corpsDe('function planIntCard(i,opts){'), fT = corpsDe('async function renderTournee(pts){');
+  // g10 (clients#5) : renderTournee reçoit désormais le bilan du jour (pts,bilan) — l’ancre suit la signature
+  const fP = corpsDe('function planIntCard(i,opts){'), fT = corpsDe('async function renderTournee(pts,bilan){');
   vrai('population : planIntCard et renderTournee sont trouvées', fP.length > 500 && fT.length > 500, [fP.length, fT.length]);
   vrai('les deux lignes « heure · texte · statut » portent la classe du composant', /class="pl-row lh"/.test(fP) && /class="pl-row lh"/.test(fT));
   const cl = regle('html[data-refonte] .pl-row.lh{container:ligne-heure / inline-size;flex-wrap:wrap;row-gap:8px!important}');

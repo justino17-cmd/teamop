@@ -142,11 +142,13 @@ const TITRE = 'Dentiste QXW', LIEU = 'Cabinet du centre QXW', NOTE = 'Apporter l
     const t2 = Date.now() + 16 * 60000 + 60 * 60000;          // l'horloge du SERVICE : la section 5 l'a avancée de 16 puis de 60 minutes
     const p1 = await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 10 });
     const d1 = p1.j.evenement.debut - t2;
-    v('reporter de 10 min : l\'heure est CALCULÉE par le service (dans 10 à 11 min, à la minute), la durée gardée, décoché, et il sonnera', [p1.code, d1 >= 10 * 60000 && d1 <= 11 * 60000 + 2000, p1.j.evenement.debut % 60000, p1.j.evenement.fin - p1.j.evenement.debut, p1.j.evenement.fait, p1.j.evenement.rappelEnAttente],
+    /* 17 octobre 2026 (agenda#0, `test-2470`) : « Reporter » repousse depuis le PLUS TARD de maintenant et du début — ce rappel est dans ~3 h, il passe à son début + 10 min (avant : « dans 10 à 11 min »,
+       il AVANÇAIT de près de 3 h sans un mot) ; un rappel déjà échu se repousse toujours depuis maintenant (`test-2470` § 3) */
+    v('reporter de 10 min : l\'heure est CALCULÉE par le service (son début + 10 min, à la minute — il ne recule pas), la durée gardée, décoché, et il sonnera', [p1.code, p1.j.evenement.debut === RS.debut + 10 * 60000 && d1 > 10 * 60000, p1.j.evenement.debut % 60000, p1.j.evenement.fin - p1.j.evenement.debut, p1.j.evenement.fait, p1.j.evenement.rappelEnAttente],
       [200, true, 0, RS.fin - RS.debut, null, true]);
     const p2 = await A.post('/api/agenda/' + RS.id + '/reporter', { dans: 'demain' });
     const loc = new Intl.DateTimeFormat('en-GB', { timeZone: 'UTC', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(p2.j.evenement.debut);
-    v('reporter à demain : 9 h dans SON fuseau (UTC ici), le jour suivant', [p2.code, loc, Math.round((p2.j.evenement.debut - t2) / 86400000) <= 1 && p2.j.evenement.debut > t2], [200, '09:00', true]);
+    v('reporter à demain : 9 h dans SON fuseau (UTC ici), le lendemain du jour de l\'événement', [p2.code, loc, new Date(p2.j.evenement.debut).toISOString().slice(0, 10) === new Date(Date.parse(new Date(p1.j.evenement.debut).toISOString().slice(0, 10) + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10)], [200, '09:00', true]);
     const sansRappel = (await A.post('/api/agenda', { titre: 'Sans rappel', debut: debutLocal(bientot2), tz: 'UTC' })).j.evenement;
     v('   un événement SANS rappel en reçoit un « à l\'heure » quand on le reporte (on reporte pour qu\'il sonne)', [(await A.post('/api/agenda/' + sansRappel.id + '/reporter', { dans: 60 })).j.evenement.rappel], [0]);
     const jour = (await A.post('/api/agenda', { titre: 'Journée', debut: '2026-12-01', journee: true, tz: 'UTC' })).j.evenement;

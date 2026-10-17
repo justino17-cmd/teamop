@@ -142,7 +142,9 @@ console.log('\n── 5. Les listes prennent la rangée de la maquette');
   vrai('   … et les passages du jour sont dans UN groupe de verre', /`<div class="tf-groupe">\$\{dayInts\.map\(cardOrg\)\.join\(''\)\}<\/div>`/.test(NU));
 
   /* les clients */
-  const vc = (NU.match(/views\.clients=function\(\)\{[\s\S]*?\n\}\n/) || [''])[0];
+  /* g10 (clients#8) : les rangées vivent désormais dans `renderClientsList` (la liste se redessine seule, sous le champ de
+     recherche) — l'écran Clients, ce sont donc les DEUX fonctions ; les contrôles ci-dessous lisent leur réunion. */
+  const vc = (NU.match(/views\.clients=function\(\)\{[\s\S]*?\n\}\n/) || [''])[0] + (NU.match(/function renderClientsList\(\)\{[\s\S]*?\n\}\n/) || [''])[0];
   vrai('la liste des clients est trouvée', vc.length > 600, vc.length);
   vrai('⛔ plus de ✎ ni de 🗑 sur chaque client', !/formClient\('\$\{c\.id\}'\)/.test(vc) && !/delItem\('clients'/.test(vc));
   vrai('⛔ la rangée ouvre la fiche', /class="tf-rangee" onclick="ficheClient\('\$\{c\.id\}'\)"/.test(vc));
@@ -170,7 +172,9 @@ console.log('\n── 7. Ce que la relecture et l’audit profond ont relevé su
   /* ⚠ Audit profond (iPhone 390 et Android 360, valeurs longues) : 39 titres et métas coupés par
      « … » SANS infobulle dans les nouvelles rangées. Chaque texte coupable porte son texte entier. */
   const co = (NU.match(/const cardOrg=i=>\{[\s\S]*?<\/div>`; \};/) || [''])[0];
-  const vc = (NU.match(/views\.clients=function\(\)\{[\s\S]*?\n\}\n/) || [''])[0];
+  /* g10 (clients#8) : les rangées vivent désormais dans `renderClientsList` (la liste se redessine seule, sous le champ de
+     recherche) — l'écran Clients, ce sont donc les DEUX fonctions ; les contrôles ci-dessous lisent leur réunion. */
+  const vc = (NU.match(/views\.clients=function\(\)\{[\s\S]*?\n\}\n/) || [''])[0] + (NU.match(/function renderClientsList\(\)\{[\s\S]*?\n\}\n/) || [''])[0];
   const bl = NU.slice(NU.indexOf('function boxLigneHtml('), NU.indexOf('function renderBoxesList('));
   vrai('⛔ intervention : titre, statut·client et adresse portent leur infobulle',
     /<b class="tf-titre" title="\$\{esc\(i\.titre\|\|'Intervention'\)\}">/.test(co) && /<span title="\$\{esc\(l2t\)\}">/.test(co) && /<span title="\$\{esc\(l3t\)\}">/.test(co));

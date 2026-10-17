@@ -76,6 +76,8 @@ const GARDES = [
   ['intSetClient', "permGarde('int','modifier'"], ['intPickClient', "permGarde('int','modifier'"], ['intAddDemande', "permGarde('int','modifier'"],
   ['intPushDemande', "permGarde('int','modifier'"], ['intSetStatut', 'intStatutPermis('], ['intDemarrerQuick', 'intStatutPermis('],
   ['intTerminerPrevu', 'intStatutPermis('], ['intEffectuer', 'intStatutPermis('], ['intAnnulerDo', "can('annuler')"],
+  /* 1182 : « Rédiger », la Clôture guidée, la case « Effectué ? » et le formulaire du rapport lisent la règle du menu de statut */
+  ['saveRapport', 'intStatutPermis('], ['assistCloture', 'intStatutPermis('], ['assistFinish', 'intStatutPermis('], ['intEffToggle', 'intStatutPermis('], ['formRapport', 'intStatutPermis('],
   ['delIntDo', "canCat('int','supprimer')"], ['delSerieDo', "canCat('int','supprimer')"], ['intComDel', "canCat('int','supprimer')"],
   ['intDropDay', 'canPlan()'],
   /* Planification */

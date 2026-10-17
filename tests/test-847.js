@@ -35,7 +35,7 @@ console.log('\n── 847 · 0. la population ──');
 const F = {
   RJ: ligne('const CTR_RAPPEL_J='), ECH: bloc('function ctrEcheance(ct,auj){'), RAP: bloc('function ctrRappels(auj){'),
   TXT: bloc('function ctrEcheanceTexte(j){'), PAS: bloc('function ctrPastille(j){'), BAN: bloc('function ctrBandeau(ech,cMod){'),
-  ST: ligne('const CTR_ST='), VUE: vue('views.contrats=function(){'), NOTIF: bloc('function computeNotifs(){') };
+  ST: ligne('const CTR_ST='), DBL: bloc('function docNumsDoubles('), VUE: vue('views.contrats=function(){'), NOTIF: bloc('function computeNotifs(){') };
 v('les fonctions sont trouvées', Object.entries(F).filter(([, s]) => !s).map(([k]) => k), []);
 v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
   ['function ctrEcheance(', 'function ctrRappels(', 'function ctrEcheanceTexte(', 'function ctrPastille(', 'function ctrBandeau(', 'const CTR_RAPPEL_J='].map(n => SRC.split(n).length - 1), [1, 1, 1, 1, 1, 1]);
@@ -78,7 +78,8 @@ function monde(o) {
     function emptyState(ic,t,b,f){ return '<div class="vide">'+t+'</div>'; }
     function $(id){ return id==='content' ? { set innerHTML(h){ __html=h; }, get innerHTML(){ return __html; } } : null; }
     var views={};
-    ${F.ECH}\n${F.RAP}\n${F.TXT}\n${F.PAS}\n${F.BAN}\n${F.VUE}\n${F.NOTIF}`, ctx);
+    /* g02 : l'écran Contrats annonce aussi les numéros en double (docNumsDoubles, la vraie) */
+    ${F.DBL}\n${F.ECH}\n${F.RAP}\n${F.TXT}\n${F.PAS}\n${F.BAN}\n${F.VUE}\n${F.NOTIF}`, ctx);
   return ctx;
 }
 const run = (ctx, code) => vm.runInContext(code, ctx);

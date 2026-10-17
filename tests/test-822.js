@@ -33,8 +33,8 @@ const ligne = debut => { const i = BRUT.indexOf(debut); return i < 0 ? '' : BRUT
 console.log('\n── 822 · 0. la population ──');
 const P = { saveUser: bloc('async function saveUser(e,id){'), userAvatarApply: bloc('function userAvatarApply(){'), enterApp: bloc('function enterApp(u){'),
   avatarAccentSync: bloc('function avatarAccentSync(){'), avbSvg: bloc('function avbSvg(a,sz){'), avbSave: bloc('function avbSave(quiet){'),
-  initials: ligne('const initials = name =>'), fullName: ligne('const fullName = u =>'), TYPE_ICO: ligne('const TYPE_ICO={'),
-  nomNorm: bloc('function nomNorm(s){'), compteHomonyme: bloc('function compteHomonyme(prenom,nom,sauf){'), homonymeMessage: bloc('function homonymeMessage(h,prenom,nom){') };
+  initials: ligne('const initials = (name,max) =>'),   /* h02 : la fonction prend un 2e paramètre (nombre d'initiales), l'ancre suit sa signature */ fullName: ligne('const fullName = u =>'), TYPE_ICO: ligne('const TYPE_ICO={'),
+  nomNorm: bloc('function nomNorm(s){'), compteHomonyme: bloc('function compteHomonyme(prenom,nom,sauf){'), homonymeMessage: bloc('function homonymeMessage(h,prenom,nom){'), nomSaisieNet: bloc('function nomSaisieNet(s){') };   // 1300 : saveUser rogne les noms
 v('toutes les pièces sont trouvées dans le fichier réel', Object.keys(P).filter(k => !P[k]), []);
 
 console.log('\n── 822 · 1. ⛔ l’identité du compte s’écrit là où elle se voit ──');
@@ -54,9 +54,9 @@ function monde(users, moi) {
     db: { users, techniciens: [], boxes: [], vehicules: [], entreprise: { nom: 'Sonde SARL' } }, currentUser: moi, __toasts: [], __els: els, __nav: 0,
     localStorage: { getItem: () => null, setItem: () => {} } };
   vm.createContext(ctx);
-  vm.runInContext(`${P.nomNorm}\n${P.fullName.replace('const ', 'var ')}\n${P.initials.replace('const ', 'var ')}\n${P.compteHomonyme}\n${P.homonymeMessage}
+  vm.runInContext(`${P.nomNorm}\n${P.fullName.replace('const ', 'var ')}\n${P.initials.replace('const ', 'var ')}\n${P.compteHomonyme}\n${P.homonymeMessage}\n${P.nomSaisieNet}
     var ROLE_PROTEGE='admin', drRattaches=new Set(), nuBoxes=new Set(), nuVehs=new Set(), nuStk=false, views={utilisateurs(){}};
-    function toast(m){ __toasts.push(String(m)); } function save(){} function closeModal(){} function logEvent(){} function renderNav(){ __nav++; }
+    function toast(m){ __toasts.push(String(m)); } function save(){} function closeModal(){} function logEvent(){} function renderNav(){ __nav++; } /* lot g01 : saveUser verrouille son bouton (btnOccupe) ; ici l'événement n'a pas de bouton, le double suffit — la vraie est jouée par test-1100 §5 */ function btnOccupe(){ return function(){}; }
     function can(){ return false; } function planPlaceLibre(){ return true; } function proposerAbonnement(){}
     async function loginExisteAilleurs(){ return false; }
     function roleEstTech(r){ return r==='technicien'; } function roleLbl(r){ return ({admin:'Administrateur',technicien:'Technicien'})[r]||r; }
