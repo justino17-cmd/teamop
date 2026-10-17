@@ -1932,6 +1932,10 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-rang > .texte { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; font-size: 16px; line-height: 21px; overflow-wrap: anywhere; }
 .salle-rang > .texte small { font-size: 13px; line-height: 17px; color: var(--salle-sub); }
 .salle-rang .salle-btn { min-height: 36px; }
+/* ⛔ AU DOIGT (17 octobre 2026) : les boutons des feuilles « Plus », « Participants » et « Quitter la salle » répondaient sur 36 px, les menus Micro / Caméra / Sortie sur 40 — sous les 44 px du reste de la page.
+   Le plancher se pose sous (pointer: coarse), jamais sous la largeur d'un téléphone (un iPad n'est ni l'un ni l'autre) ; la souris garde ses boutons compacts. `.salle-rang .salle-btn` est
+   plus spécifique que `.salle-btn` : il faut le nommer ici, sinon sa règle de 36 px bat le plancher dans toutes les rangées de la feuille Participants. */
+@media (pointer: coarse) { .salle-btn, .salle-rang .salle-btn, .salle-appareil select { min-height: 44px; } }
 .salle-rang.actions { padding-left: 58px; background: rgba(255,255,255,.05); }
 button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-inter { flex: none; position: relative; width: 51px; height: 31px; border-radius: 16px; background: rgba(120,120,128,.5); transition: background-color .2s; }
