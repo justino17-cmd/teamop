@@ -19,13 +19,13 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 const bloc = debut => { const i = SRC.indexOf(debut); if (i < 0) return ''; let n = 0;
   for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') n++; else if (SRC[k] === '}') { n--; if (!n) return SRC.slice(i, k + 1); } } return ''; };
 
-const ETAT = ligne('let _msgLargeur='), CACHEE = bloc('function msgFinCachee(){'), RELIRE = bloc('function msgFinRelire(){'), SUIVRE = bloc('function msgFinSuivre(){'), TOURNER = bloc('function msgTourner(e){');
+const ETAT = ligne('let _msgLargeur='), CACHEE = bloc('function msgFinCachee(){'), RELIRE = bloc('function msgFinRelire('), SUIVRE = bloc('function msgFinSuivre(){'), TOURNER = bloc('function msgTourner(e){');
 const PLUS = ligne('function msgAjusterPlus(){'), VEILLE = ligne('let _msgVeille=');
 console.log('\n── 1660 · 1. la population ──');
 vrai('msgFinCachee, msgFinRelire, msgFinSuivre, msgTourner, msgAjusterPlus et leur état sont trouvés dans le fichier réel', ETAT.length > 20 && CACHEE.length > 150 && RELIRE.length > 100 && SUIVRE.length > 80 && TOURNER.length > 150 && PLUS.length > 60 && VEILLE.length > 10,
   [ETAT.length, CACHEE.length, RELIRE.length, SUIVRE.length, TOURNER.length, PLUS.length, VEILLE.length]);
 v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)', ['function msgFinCachee(', 'function msgFinRelire(', 'function msgFinSuivre(', 'function msgTourner('].map(n => SRC.split(n).length - 1), [1, 1, 1, 1]);
-vrai('⛔ la mise en page qui change sans défilement relit la marque (msgAjusterPlus → msgAjuster puis msgFinRelire)', /msgAjuster\(\); msgFinRelire\(\);/.test(PLUS));
+vrai('⛔ la mise en page qui change sans défilement relit la marque, en ne pouvant que la RELEVER (msgAjusterPlus → msgAjuster puis msgFinRelire(true))', /msgAjuster\(\); msgFinRelire\(true\);/.test(PLUS));
 vrai('les écouteurs : resize ET orientationchange → msgTourner, défilement → msgFinSuivre', /addEventListener\('resize',msgTourner\);\s*window\.addEventListener\('orientationchange',msgTourner\);\s*window\.addEventListener\('scroll',msgFinSuivre,\{passive:true\}\)/.test(SRC));
 vrai('msgAmener partage le même test (msgFinCachee) et note la fin vue, y compris quand la liste se voit en entier', /if\(!msgFinCachee\(\)\)\{ _msgFinVue=true; return false; \}/.test(SRC) && /bas\(\); const y0=window\.scrollY; _msgFinVue=true;/.test(SRC));
 vrai('la vue, à la fin de son rendu, note que la fin se voit (la liste est collée en bas ; msgAmener amène la page si la rangée la cache)', /msgAjuster\(\); msgAjusterVeiller\(\); _msgFinVue=true;/.test(SRC));
@@ -88,6 +88,16 @@ console.log('\n── 1660 · 3. le cas ORDINAIRE, sans « Reprendre » — celu
   c.__g.listeBas = 690; c.__g.rangee = 290; c.__g.onglets = 0;
   tourner(c, 667, 375); c.__images();
   v('⛔ …puis on tourne : la conversation revient (160 px cachés avant)', c.__amene, 1);
+}
+{
+  /* le quatrième re-test : la fenêtre RACCOURCIT sans défilement (la barre d'adresse revient, le clavier) — le bas du conteneur passe sous la rangée
+     alors que la dernière bulle se voit encore ; la marque ne doit pas tomber (seul le doigt dit qu'on a quitté la fin), et la rotation ramène */
+  const c = monde({ listeBas: 511, rangee: 529, onglets: 600 }); c.F.poser(375, true);
+  c.window.innerHeight = 611; c.__g.listeBas = 500; c.__g.rangee = 473; c.F.msgTourner({ type: 'resize' }); c.__images();
+  v('⛔ la fenêtre raccourcit sans défilement (le bas du conteneur passe sous la rangée) : la marque reste « vue »', c.F.etat().vue, true);
+  c.__g.listeBas = 690; c.__g.rangee = 290; c.__g.onglets = 0;
+  tourner(c, 611, 375); c.__images();
+  v('⛔ …puis on tourne : la conversation revient (134 à 220 px cachés avec la relecture qui baissait)', c.__amene, 1);
 }
 console.log('\n── 1660 · 4. la place de la personne est gardée ──');
 {

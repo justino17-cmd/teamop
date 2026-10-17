@@ -40126,7 +40126,7 @@ function msgAjuster(){
    seconde ligne, la photo jointe. Un ResizeObserver sur la page voit tout ce qui change sa hauteur ; le défaut se
    stabilise tout seul (la liste se règle, la page se raccourcit, la seconde mesure rend les mêmes nombres : rien à écrire). */
 let _msgVeille=false, _msgRaf=0;
-function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=requestAnimationFrame(()=>{ _msgRaf=0; msgAjuster(); msgFinRelire(); }); }
+function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=requestAnimationFrame(()=>{ _msgRaf=0; msgAjuster(); msgFinRelire(true); }); }
 /* ⛔ (r6) TOURNER L'APPAREIL NE CACHE PLUS LA CONVERSATION. Le re-test final (64 mesures au navigateur) : entrée en portrait, puis le passage
    en paysage GARDE `scrollY` — la liste, raccourcie, passait sous la rangée de saisie collée (129 à 236 px de la dernière bulle cachés, 0 à 70 px
    de conversation visibles) jusqu'à ce qu'on pousse la page. Même défaut avant k01 (90 à 121 px).
@@ -40149,10 +40149,15 @@ function msgFinCachee(){
    par ✕, une barre d'outils qui se replie — le troisième re-test : remontée vers les pastilles, ✕, la fin redevenue visible sans un pixel de
    défilement, la marque restait « cachée » et la rotation ne ramenait rien, 160 px sous la rangée). Jamais pendant l'entrée de la vue (les
    cartes glissent : un rectangle lu là est décalé) ni pendant une rotation (orientationchange arrive avant le nouveau `innerWidth` sur iPhone :
-   une lecture entre les deux verrait déjà la géométrie neuve). */
-function msgFinRelire(){
+   une lecture entre les deux verrait déjà la géométrie neuve).
+   ⛔ Une mise en page qui change ne peut que RELEVER la marque (cachée → vue : ✕, la fenêtre qui grandit), jamais la baisser : le quatrième re-test
+   l'a montré — la fenêtre qui RACCOURCIT sans défilement (la barre d'adresse qui revient, le clavier) faisait passer le bas du conteneur sous la
+   rangée alors que la dernière bulle se voyait encore, la marque tombait à « cachée », et la rotation suivante ne ramenait rien (134 à 220 px
+   sous la rangée, 12 à 14 cas sur 16). Ce qui dit que la personne a quitté la fin des yeux, c'est son doigt : la baisse reste au défilement. */
+function msgFinRelire(monterSeulement){
   const c=$('content'); if(current!=='messagerie'||(c&&c.classList.contains('entre'))||Date.now()-_msgTourT<800) return;
-  _msgFinVue=!msgFinCachee();
+  const vue=!msgFinCachee(); if(monterSeulement&&!vue) return;
+  _msgFinVue=vue;
 }
 function msgFinSuivre(){
   if(_msgFinRaf||current!=='messagerie') return;
