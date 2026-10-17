@@ -21171,7 +21171,10 @@ function entLogoPick(e){ const f=e.target.files&&e.target.files[0]; if(!f) retur
 function entLogoDel(){ if(!db.entreprise) return; delete db.entreprise.logo; save(); applyBrand(); try{ avatarAccentSync(); }catch(e){} toast('Logo retiré'); if(current==='parametres') views.parametres(); }
 function entSave(){ const g=id=>((document.getElementById(id)||{}).value||'').trim();
   db.entreprise={...(db.entreprise||{}),nom:g('ent-nom'),adresse:g('ent-adresse'),cp:g('ent-cp'),ville:g('ent-ville'),tel:g('ent-tel'),siret:g('ent-siret'),tvaIntra:g('ent-tvaintra'),iban:g('ent-iban'),bic:g('ent-bic'),enteteBC:g('ent-entete-bc')};   // le logo est conservé
-  try{ if(db.entreprise.nom) localStorage.setItem('elan_entreprise_nom',db.entreprise.nom); }catch(e){}
+  /* ⛔ ÉCRIRE OU EFFACER, jamais seulement écrire (accueil#7). `entrepriseNom()` et `entNom()` retombent sur cette clé
+     quand `db.entreprise.nom` est vide : un nom vidé mais jamais retiré d'ici restait affiché dans le menu et le
+     sous-titre, pendant que le toast annonçait « Entreprise enregistrée ». */
+  try{ if(db.entreprise.nom) localStorage.setItem('elan_entreprise_nom',db.entreprise.nom); else localStorage.removeItem('elan_entreprise_nom'); }catch(e){}
   save(); applyBrand(); toast('🏢 Entreprise enregistrée — son nom apparaîtra sur les bons et e-mails'); }
 function mailBrandName(){ return ((db.mailFrom||'').trim()) || (((db.entreprise||{}).nom)||'').trim() || rapportSociete(); }
 async function srvMail(to,subject,body,okMsg,cat,boxOverride,opts){
