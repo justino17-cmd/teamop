@@ -140,7 +140,8 @@ console.log('\n── 1601 · 4. stabilité et garde-fous ──');
 }
 
 console.log('\n── 1601 · 5. le câblage : qui appelle la mesure ──');
-vrai('la vue mesure à la fin de son rendu', /ml\.scrollTop=ml\.scrollHeight;\s*msgAjuster\(\);\s*msgAjusterVeiller\(\);\s*\}$/.test(VUE), VUE.slice(-160));
+/* k01 (r5#6) : la vue retient aussi « collée en bas » (`_msgBas`) sur la liste neuve, avant de mesurer */
+vrai('la vue mesure à la fin de son rendu', /ml\.scrollTop=ml\.scrollHeight;\s*ml\._msgBas=true;\s*\}\s*msgAjuster\(\);\s*msgAjusterVeiller\(\);\s*\}$/.test(VUE), VUE.slice(-200));
 vrai('ajouter une photo re-mesure (l\'aperçu pousse la rangée)', /msgAjusterPlus\(\)/.test(ADD));
 vrai('retirer la photo re-mesure', /msgAjusterPlus\(\)/.test(CLR));
 {

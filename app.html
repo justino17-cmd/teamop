@@ -39992,7 +39992,8 @@ views.messagerie=function(){
     </div>
     <div id="msg-photo-prev" style="display:${msgPhoto?'flex':'none'};align-items:center;gap:10px;margin-top:10px">${msgPhoto?`<img src="${msgPhoto}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`:''}</div>
     <div id="msg-saisie" style="display:flex;gap:8px;margin-top:10px;position:relative"><div id="mention-pop" class="mention-pop" style="display:none"></div><label class="btn ghost" style="cursor:pointer;flex-shrink:0" title="Joindre une photo">📷<input type="file" accept="image/*" style="display:none" onchange="msgAddPhoto(event)"></label><input id="msg-input" class="search-inp" style="margin:0;flex:1" placeholder="${ph}" autocomplete="off" oninput="msgInputChange()" onkeydown="if(event.key==='Enter'){const p=document.getElementById('mention-pop'); if(p&&p.style.display!=='none'){return;} envoyerMsg();}"><button class="btn" onclick="envoyerMsg()">Envoyer</button></div>`;
-  const ml=$('msg-list'); if(ml) ml.scrollTop=ml.scrollHeight;
+  // k01 (r5#6) : la vue neuve est collée en bas, et msgAjuster le retient
+  const ml=$('msg-list'); if(ml){ ml.scrollTop=ml.scrollHeight; ml._msgBas=true; }
   msgAjuster(); msgAjusterVeiller();
 };
 /* ⛔ j01 — LA PLACE DE LA CONVERSATION SE MESURE, ELLE NE SE DEVINE PAS (r4#3, r4#5, r4#6). Sa hauteur était une
@@ -40022,11 +40023,17 @@ function msgAjuster(){
   let bas=mb(sa); for(let e=sa.parentElement;e;e=e.parentElement){ const c=getComputedStyle(e); bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0)+(parseFloat(c.marginBottom)||0); }
   bas=Math.ceil(bas);
   const dejaBon=ml.getAttribute('data-ajuste')==='1'&&ml.style.getPropertyValue('--msg-top')===top+'px'&&ml.style.getPropertyValue('--msg-sous')===sous+'px'&&ml.style.getPropertyValue('--msg-bas')===bas+'px';
-  if(dejaBon) return true;
-  const enBas=ml.scrollHeight-ml.scrollTop-ml.clientHeight<4;
+  /* ⛔ k01 (r5#6) — « COLLÉE EN BAS » SE RETIENT AVANT QUE LA FENÊTRE CHANGE, ELLE NE SE RELIT PAS APRÈS. Quand on tourne l'appareil,
+     le CSS a déjà raccourci la liste (`100dvh`) au moment où cette fonction tourne : lire la géométrie ici rend « pas en bas » (le
+     dernier message est sorti par le bas de la zone visible, scrollTop n'a pas bougé) et la liste ne se recolle jamais. Pire, sur
+     une tablette top, sous et bas restent identiques : `dejaBon` sortait avant tout. La marque `_msgBas` est posée au dernier geste
+     que l'on SAIT (vue construite, défilement de la liste) ; tourner l'appareil ne défile pas la liste, donc la marque reste juste. */
+  const enBas=ml._msgBas===undefined?(ml.scrollHeight-ml.scrollTop-ml.clientHeight<4):ml._msgBas;
+  if(!ml._msgEcoute){ ml._msgEcoute=true; try{ ml.addEventListener('scroll',()=>{ ml._msgBas=ml.scrollHeight-ml.scrollTop-ml.clientHeight<4; },{passive:true}); }catch(e){} }
+  if(dejaBon){ if(enBas&&ml.scrollHeight-ml.scrollTop-ml.clientHeight>=4) ml.scrollTop=ml.scrollHeight; return true; }
   ml.style.setProperty('--msg-top',top+'px'); ml.style.setProperty('--msg-sous',sous+'px'); ml.style.setProperty('--msg-bas',bas+'px');
   ml.setAttribute('data-ajuste','1');
-  if(enBas) ml.scrollTop=ml.scrollHeight;
+  if(enBas){ ml.scrollTop=ml.scrollHeight; ml._msgBas=true; }
   return true;
 }
 /* Ce qui change la place SANS passer par un nouveau rendu de la vue : la fenêtre qui tourne ou se redimensionne, la barre
