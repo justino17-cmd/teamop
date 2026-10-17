@@ -19,11 +19,13 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 const bloc = debut => { const i = SRC.indexOf(debut); if (i < 0) return ''; let n = 0;
   for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') n++; else if (SRC[k] === '}') { n--; if (!n) return SRC.slice(i, k + 1); } } return ''; };
 
-const ETAT = ligne('let _msgLargeur='), CACHEE = bloc('function msgFinCachee(){'), SUIVRE = bloc('function msgFinSuivre(){'), TOURNER = bloc('function msgTourner(e){');
+const ETAT = ligne('let _msgLargeur='), CACHEE = bloc('function msgFinCachee(){'), RELIRE = bloc('function msgFinRelire(){'), SUIVRE = bloc('function msgFinSuivre(){'), TOURNER = bloc('function msgTourner(e){');
+const PLUS = ligne('function msgAjusterPlus(){'), VEILLE = ligne('let _msgVeille=');
 console.log('\n── 1660 · 1. la population ──');
-vrai('msgFinCachee, msgFinSuivre, msgTourner et leur état sont trouvés dans le fichier réel', ETAT.length > 20 && CACHEE.length > 150 && SUIVRE.length > 150 && TOURNER.length > 150,
-  [ETAT.length, CACHEE.length, SUIVRE.length, TOURNER.length]);
-v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)', ['function msgFinCachee(', 'function msgFinSuivre(', 'function msgTourner('].map(n => SRC.split(n).length - 1), [1, 1, 1]);
+vrai('msgFinCachee, msgFinRelire, msgFinSuivre, msgTourner, msgAjusterPlus et leur état sont trouvés dans le fichier réel', ETAT.length > 20 && CACHEE.length > 150 && RELIRE.length > 100 && SUIVRE.length > 80 && TOURNER.length > 150 && PLUS.length > 60 && VEILLE.length > 10,
+  [ETAT.length, CACHEE.length, RELIRE.length, SUIVRE.length, TOURNER.length, PLUS.length, VEILLE.length]);
+v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)', ['function msgFinCachee(', 'function msgFinRelire(', 'function msgFinSuivre(', 'function msgTourner('].map(n => SRC.split(n).length - 1), [1, 1, 1, 1]);
+vrai('⛔ la mise en page qui change sans défilement relit la marque (msgAjusterPlus → msgAjuster puis msgFinRelire)', /msgAjuster\(\); msgFinRelire\(\);/.test(PLUS));
 vrai('les écouteurs : resize ET orientationchange → msgTourner, défilement → msgFinSuivre', /addEventListener\('resize',msgTourner\);\s*window\.addEventListener\('orientationchange',msgTourner\);\s*window\.addEventListener\('scroll',msgFinSuivre,\{passive:true\}\)/.test(SRC));
 vrai('msgAmener partage le même test (msgFinCachee) et note la fin vue, y compris quand la liste se voit en entier', /if\(!msgFinCachee\(\)\)\{ _msgFinVue=true; return false; \}/.test(SRC) && /bas\(\); const y0=window\.scrollY; _msgFinVue=true;/.test(SRC));
 vrai('la vue, à la fin de son rendu, note que la fin se voit (la liste est collée en bas ; msgAmener amène la page si la rangée la cache)', /msgAjuster\(\); msgAjusterVeiller\(\); _msgFinVue=true;/.test(SRC));
@@ -39,10 +41,10 @@ function monde(o) {
   const w = { innerWidth: o.l || 375, innerHeight: o.h || 667 };
   const ctx = { window: w, current: o.vue || 'messagerie', $: id => els[id] || null, getComputedStyle: () => ({ display: 'flex' }),
     Date: { now: () => ctx.__t }, __t: 1000000, __amene: 0, __ajuste: 0,
-    requestAnimationFrame: f => { raf.push(f); return raf.length; }, msgAmener: () => { ctx.__amene++; return true; }, msgAjusterPlus: () => { ctx.__ajuste++; } };
+    requestAnimationFrame: f => { raf.push(f); return raf.length; }, msgAmener: () => { ctx.__amene++; return true; }, msgAjuster: () => { ctx.__ajuste++; } };
   ctx.__g = g; ctx.__images = () => { while (raf.length) raf.shift()(); };
   vm.createContext(ctx);
-  vm.runInContext(ETAT + '\n' + CACHEE + '\n' + SUIVRE + '\n' + TOURNER + '\nthis.F = { msgFinCachee, msgFinSuivre, msgTourner, etat: () => ({ l: _msgLargeur, vue: _msgFinVue }), poser: (l, vue) => { _msgLargeur = l; _msgFinVue = vue; } };', ctx);
+  vm.runInContext(VEILLE + '\n' + PLUS + '\n' + ETAT + '\n' + CACHEE + '\n' + RELIRE + '\n' + SUIVRE + '\n' + TOURNER + '\nthis.F = { msgAjusterPlus, msgFinCachee, msgFinSuivre, msgTourner, etat: () => ({ l: _msgLargeur, vue: _msgFinVue }), poser: (l, vue) => { _msgLargeur = l; _msgFinVue = vue; } };', ctx);
   return ctx;
 }
 const tourner = (c, l, h, type) => { c.window.innerWidth = l; c.window.innerHeight = h; c.F.msgTourner({ type: type || 'resize' }); };
@@ -67,13 +69,25 @@ console.log('\n── 1660 · 3. le cas ORDINAIRE, sans « Reprendre » — celu
   c.__g.listeBas = 690; c.__g.rangee = 290; c.__g.onglets = 0;            // en paysage, la liste raccourcie passerait sous la rangée
   tourner(c, 667, 375); c.__images();
   v('⛔ portrait → paysage : msgAmener ramène la conversation', c.__amene, 1);
-  v('…la liste se re-mesure aussi (msgAjusterPlus)', c.__ajuste, 1);
+  v('…la liste se re-mesure aussi (msgAjusterPlus → msgAjuster)', c.__ajuste, 1);
 }
 {
   /* après un envoi ou le choix d'une conversation, la vue est redessinée sans la barre : la fin se voit, la vue l'a noté */
   const c = monde({ listeBas: 500, rangee: 529, onglets: 600 }); c.F.poser(375, true);
   tourner(c, 667, 375); c.__images();
   v('⛔ après un envoi (vue redessinée, fin vue) puis une rotation : la conversation revient', c.__amene, 1);
+}
+{
+  /* le troisième re-test : barre « Reprendre », la personne remonte voir les pastilles (fin cachée), puis touche ✕ — la barre part, la page reste
+     en haut, la fin se voit de nouveau SANS un pixel de défilement ; seul le ResizeObserver le voit (msgAjusterPlus) */
+  const c = monde({ listeBas: 520, rangee: 529, onglets: 600 }); c.F.poser(375, true);
+  c.__g.listeBas = 610; c.F.msgFinSuivre(); c.__images();
+  v('(population) remontée : la fin est notée cachée', c.F.etat().vue, false);
+  c.__g.listeBas = 505; c.F.msgAjusterPlus(); c.__images();               // ✕ : la barre part, la mise en page change, aucun défilement
+  v('⛔ ✕ sur « Reprendre » : la mise en page relit la marque, la fin est vue', c.F.etat().vue, true);
+  c.__g.listeBas = 690; c.__g.rangee = 290; c.__g.onglets = 0;
+  tourner(c, 667, 375); c.__images();
+  v('⛔ …puis on tourne : la conversation revient (160 px cachés avant)', c.__amene, 1);
 }
 console.log('\n── 1660 · 4. la place de la personne est gardée ──');
 {

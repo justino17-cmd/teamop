@@ -40126,7 +40126,7 @@ function msgAjuster(){
    seconde ligne, la photo jointe. Un ResizeObserver sur la page voit tout ce qui change sa hauteur ; le défaut se
    stabilise tout seul (la liste se règle, la page se raccourcit, la seconde mesure rend les mêmes nombres : rien à écrire). */
 let _msgVeille=false, _msgRaf=0;
-function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=requestAnimationFrame(()=>{ _msgRaf=0; msgAjuster(); }); }
+function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=requestAnimationFrame(()=>{ _msgRaf=0; msgAjuster(); msgFinRelire(); }); }
 /* ⛔ (r6) TOURNER L'APPAREIL NE CACHE PLUS LA CONVERSATION. Le re-test final (64 mesures au navigateur) : entrée en portrait, puis le passage
    en paysage GARDE `scrollY` — la liste, raccourcie, passait sous la rangée de saisie collée (129 à 236 px de la dernière bulle cachés, 0 à 70 px
    de conversation visibles) jusqu'à ce qu'on pousse la page. Même défaut avant k01 (90 à 121 px).
@@ -40145,12 +40145,18 @@ function msgFinCachee(){
   if(tb&&getComputedStyle(tb).display!=='none') couvre=Math.min(couvre,tb.getBoundingClientRect().top);
   return ml.getBoundingClientRect().bottom>couvre+4;
 }
-/* suivie au défilement, une fois par image ; jamais pendant l'entrée de la vue (les cartes glissent : un rectangle lu là est décalé) ni pendant
-   une rotation (orientationchange arrive avant le nouveau `innerWidth` sur iPhone : une lecture entre les deux verrait déjà la géométrie neuve) */
+/* relue au défilement (une fois par image) ET quand la mise en page change sans défilement (`msgAjusterPlus` : la barre « Reprendre » fermée
+   par ✕, une barre d'outils qui se replie — le troisième re-test : remontée vers les pastilles, ✕, la fin redevenue visible sans un pixel de
+   défilement, la marque restait « cachée » et la rotation ne ramenait rien, 160 px sous la rangée). Jamais pendant l'entrée de la vue (les
+   cartes glissent : un rectangle lu là est décalé) ni pendant une rotation (orientationchange arrive avant le nouveau `innerWidth` sur iPhone :
+   une lecture entre les deux verrait déjà la géométrie neuve). */
+function msgFinRelire(){
+  const c=$('content'); if(current!=='messagerie'||(c&&c.classList.contains('entre'))||Date.now()-_msgTourT<800) return;
+  _msgFinVue=!msgFinCachee();
+}
 function msgFinSuivre(){
   if(_msgFinRaf||current!=='messagerie') return;
-  _msgFinRaf=requestAnimationFrame(()=>{ _msgFinRaf=0; const c=$('content');
-    if(current!=='messagerie'||(c&&c.classList.contains('entre'))||Date.now()-_msgTourT<800) return; _msgFinVue=!msgFinCachee(); });
+  _msgFinRaf=requestAnimationFrame(()=>{ _msgFinRaf=0; msgFinRelire(); });
 }
 function msgTourner(e){
   if(e&&e.type==='orientationchange'){ _msgTourT=Date.now(); _msgTourVue=_msgFinVue; }
