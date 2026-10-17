@@ -1610,7 +1610,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
    trois au plus, puis « +2 »). Un jour d'un autre mois se lit en gris et mène à son mois. */
 #vue-reunions > #reu-vue-seg { max-width: 320px; margin-inline: auto; }        /* le choix de l'affichage : un petit segmenté centré (le Calendrier du Mac), jamais une barre de toute la largeur */
 .mois { margin: 0 0 16px; }
-.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub); text-align: center; }
+.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub-meta); text-align: center; }
 .mois-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
 .mjour { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: stretch; border-radius: 12px; color: var(--text); }
 /* (10 octobre 2026) la case n'est plus UN bouton : au téléphone, son NUMÉRO la remplit (toucher la case choisit le jour) ; au large, il se range en haut et les rendez-vous sont des boutons dessous */
@@ -1644,15 +1644,15 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   .sem-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
   .sem-grille .mjour { min-height: 220px; }
   .sem-grille .mjour-num { justify-content: space-between; padding-left: 4px; }
-  .sem-grille .mjour-nom { display: block; font-size: 12px; line-height: 16px; color: var(--sub); }
+  .sem-grille .mjour-nom { display: block; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
   /* le glisser (souris) : la main, la case visée, le fantôme qui suit */
   .mjour-elt.tire { opacity: .35; }
   .mjour.cible { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
   .mjour-elt.fantome { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); background: var(--sheet-bg); }
   .mjour-elt.journee { background: color-mix(in srgb, var(--accent) 34%, transparent); }
   .mjour-elt.annulee { text-decoration: line-through; opacity: .7; }
-  .mjour-elt time { font-variant-numeric: tabular-nums; color: var(--sub); margin-right: 4px; }
-  .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub); }
+  .mjour-elt time { font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--text) 80%, transparent); margin-right: 4px; }
+  .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
 }
 /* ⛔ AU DOIGT, SUR TABLETTE (relecture du 10 octobre 2026 : une puce de 19 px entre deux voisines à 2 px se rate) : la SEMAINE donne 44 px à chaque rendez-vous, au numéro et à « +N » ;
    le MOIS garde ses puces comme une vue d'ensemble — la case ENTIÈRE choisit le jour, et la liste du jour, juste dessous (44 px par ligne), ouvre, décale, répond (appui long). */
