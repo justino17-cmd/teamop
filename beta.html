@@ -40504,6 +40504,10 @@ function monComptePwd(){ if(!currentUser) return; const aDejaMdp=!!(currentUser.
 async function monComptePwdSave(btn){ if(!currentUser) return;
   const p0=($('mc-p0')||{}).value||'', p1=($('mc-p1')||{}).value||'', p2=($('mc-p2')||{}).value||'';
   const err=$('mc-err'); const show=m=>{ if(err){ err.textContent='⚠ '+m; err.style.display='block'; } };
+  /* ⛔ UN REFUS NE SURVIT PAS À LA RÉUSSITE QUI LE DÉMENT (accueil#5). `show` ne faisait que POSER : le « 8 caractères
+     minimum » d'un essai raté restait en rouge pendant le « ✓ Mot de passe modifié » de l'essai suivant. Chaque essai
+     commence donc par effacer le verdict d'avant (comme `_vider()` d'espace.html) et n'écrit que le sien. */
+  if(err){ err.textContent=''; err.style.display='none'; }
   if(currentUser.pwdHash||currentUser.pinHash){ const h=await sha256(p0); const ok=currentUser.pwdHash?h===currentUser.pwdHash:(h===currentUser.pinHash||p0===currentUser.pinHash); if(!ok){ show('Mot de passe actuel incorrect.'); return; } }
   if(p1.length<8){ show('8 caractères minimum.'); return; }
   if(p1!==p2){ show('Les deux mots de passe ne correspondent pas.'); return; }
