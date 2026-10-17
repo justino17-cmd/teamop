@@ -9286,7 +9286,48 @@ const I18N={
     'Tableau de bord':'Panel','Statistiques':'Estadísticas','Dashboard conso':'Consumo','Archives mensuelles':'Archivos mensuales','Carte interventions':'Mapa intervenciones','Carte des box':'Mapa de cajas','Historique':'Historial','Planning':'Agenda','Clients':'Clientes','Rapports':'Informes','Registre sanitaire':'Registro sanitario','Pointage':'Fichaje','Devis':'Presupuestos','Devis xylophage':'Presup. carcoma','Factures':'Facturas','Contrats':'Contratos','Produits':'Productos','Boxes':'Cajas','Stock':'Stock','Saisie conso':'Registro consumo','Mouvements stock':'Movimientos','Produits donnés':'Productos entregados','Fournisseurs':'Proveedores','Enveloppes':'Sobres','Brouillon':'Borrador','Mes demandes':'Mis solicitudes','Validations DR':'Validaciones DR','Bons de commande':'Órdenes de compra','Commandes en cours':'Pedidos en curso','Historique demandes':'Historial solicitudes','Messagerie':'Mensajería','Véhicules':'Vehículos','Secteurs':'Sectores','Utilisateurs':'Usuarios','Permissions':'Permisos','Paramètres':'Ajustes','Langue':'Idioma','Apparence':'Apariencia','Thème':'Tema',
     'Annuler':'Cancelar','Enregistrer':'Guardar','Créer':'Crear','Modifier':'Editar','Supprimer':'Eliminar','Fermer':'Cerrar','Envoyer':'Enviar','Ajouter':'Añadir','Valider':'Aprobar','Refuser':'Rechazar','Rechercher':'Buscar','Aujourd\'hui':'Hoy','Auj.':'Hoy','Semaine':'Semana','Liste':'Lista','Oui':'Sí','Non':'No','Effectué':'Hecho','Terminer':'Finalizar','Rapport':'Informe','Au client':'Al cliente','Facture':'Factura','Appeler':'Llamar','Itinéraire':'Ruta','Intervention':'Intervención','Nouvelle intervention':'Nueva intervención','Nouveau':'Nuevo','Client':'Cliente','Adresse':'Dirección','Téléphone':'Teléfono','Email':'Correo','Statut':'Estado','Priorité':'Prioridad','Date':'Fecha','Heure':'Hora','Durée (min)':'Duración (min)','Catégorie':'Categoría','Technicien':'Técnico','Commercial':'Comercial','Société':'Empresa','Description':'Descripción','Notes':'Notas','Compte-rendu':'Informe','Recommandations':'Recomendaciones','Équipement':'Equipo','Général':'General','Photos':'Fotos','Signature':'Firma','Couleur':'Color','Rôle':'Rol','Identifiant':'Usuario','Actif':'Activo','Désactivé':'Desactivado','Accès':'Acceso','Prévenir de l\'arrivée':'Avisar llegada','Tél. client':'Tel. cliente','Email client':'Correo cliente','Prénom':'Nombre','Nom':'Apellido','Nom complet':'Nombre completo','Ville':'Ciudad','Planifiée':'Programada','En cours':'En curso','Terminée':'Terminada','Annulée':'Cancelada','Basse':'Baja','Normale':'Normal','Haute':'Alta','Brouillon':'Borrador','Validée':'Aprobada','Refusée':'Rechazada','En attente':'Pendiente','Assistant IA':'Asistente IA' }
 };
+/* Compléments du dictionnaire, par lots : on les AJOUTE ici plutôt que de retoucher les deux lignes géantes ci-dessus.
+   Une clé est la chaîne française telle que l'écran l'écrit (texte entier d'un nœud) ; ce qui n'y est pas reste en français. */
+Object.assign(I18N.en,{ 'Tout':'All','Connexion':'Sign-in','Modifications':'Edits','Demandes':'Requests','Commandes':'Orders','Finance':'Finance','Support':'Support','Synchronisation':'Sync' });
+Object.assign(I18N.es,{ 'Tout':'Todo','Connexion':'Inicio de sesión','Modifications':'Modificaciones','Demandes':'Solicitudes','Commandes':'Pedidos','Finance':'Finanzas','Support':'Soporte','Synchronisation':'Sincronización' });
+/* g16 (accueil#12) — tableau de bord, Statistiques, Archives, Historique : les libellés que ces écrans écrivent en français
+   alors que leurs voisins étaient traduits. Les clés sont les chaînes d'AUJOURD'HUI (apostrophe typographique comprise :
+   « Aujourd’hui », « l’entreprise ») ; on ne traduit ni les données de l'utilisateur ni les libellés qui portent un nombre. */
+Object.assign(I18N.en,{ 'Bons à envoyer':'Orders to send','Planning de l’entreprise':'Company schedule','Mon planning':'My schedule','Aujourd’hui':'Today','7 jours':'7 days','14 jours':'14 days','Le mois':'This month',
+  'Ouvrir le planning général':'Open the company schedule','Ouvrir mon planning':'Open my schedule','interventions sur la période':'jobs in the period','intervention sur la période':'job in the period',
+  'à planifier':'to schedule','en retard':'late','absent':'absent','absents':'absent','de travail prévu':'of planned work','Équipe':'Team','Non assigné':'Unassigned',
+  'Tout est en ordre — stocks OK, aucune demande ni bon en attente.':'All clear — stock OK, no pending requests or orders.',
+  'CA encaissé':'Revenue collected','CA facturé':'Revenue invoiced','En attente de paiement':'Awaiting payment','Devis émis':'Quotes issued','Taux d\'acceptation devis':'Quote acceptance rate',
+  'Interventions par statut':'Jobs by status','Top clients (CA facturé)':'Top clients (invoiced revenue)','Aucune facture':'No invoices','Temps pointé':'Time clocked','Aucun évènement.':'No events.' });
+Object.assign(I18N.es,{ 'Bons à envoyer':'Pedidos por enviar','Planning de l’entreprise':'Agenda de la empresa','Mon planning':'Mi agenda','Aujourd’hui':'Hoy','7 jours':'7 días','14 jours':'14 días','Le mois':'El mes',
+  'Ouvrir le planning général':'Abrir la agenda general','Ouvrir mon planning':'Abrir mi agenda','interventions sur la période':'intervenciones en el período','intervention sur la période':'intervención en el período',
+  'à planifier':'por planificar','en retard':'con retraso','absent':'ausente','absents':'ausentes','de travail prévu':'de trabajo previsto','Équipe':'Equipo','Non assigné':'Sin asignar',
+  'Tout est en ordre — stocks OK, aucune demande ni bon en attente.':'Todo en orden — stock correcto, ninguna solicitud ni pedido pendiente.',
+  'CA encaissé':'Ingresos cobrados','CA facturé':'Facturación emitida','En attente de paiement':'Pendiente de pago','Devis émis':'Presupuestos emitidos','Taux d\'acceptation devis':'Tasa de aceptación de presupuestos',
+  'Interventions par statut':'Intervenciones por estado','Top clients (CA facturé)':'Mejores clientes (facturación)','Aucune facture':'Ninguna factura','Temps pointé':'Tiempo fichado','Aucun évènement.':'Ningún evento.' });
+/* g16 (accueil#12, 2e passe) — les libellés qui PORTENT UN NOMBRE ne se traduisent pas par correspondance exacte du texte d'un
+   nœud (« 3 interventions sur la période » n'est pas une clé) : l'écran les compose par `nbT`, qui traduit le MOT et laisse le nombre.
+   Ces clés sont donc les mots qu'il compose, et les jours abrégés de la grille du tableau de bord. */
+Object.assign(I18N.en,{'intervention à planifier':'job to schedule','interventions à planifier':'jobs to schedule','intervention en retard':'job late','interventions en retard':'jobs late','absent sur la période':'absent in the period','absents sur la période':'absent in the period','Ouvrir le planning':'Open the schedule','Ouvrir les interventions':'Open the jobs','Ouvrir les absences':'Open the absences','Rien à afficher sur cette période.':'Nothing to show for this period.','jour de retard':'day late','jours de retard':'days late','jusqu\'à':'up to','jour ouvré':'working day','jours ouvrés':'working days','dont':'of which','d’activités':'of activities','autre':'other','autres':'others','à répartir':'to assign','libre':'free','DIM':'SUN','LUN':'MON','MAR':'TUE','MER':'WED','JEU':'THU','VEN':'FRI','SAM':'SAT','Ouvrir le planning du':'Open the schedule of','Interventions du mois':'Jobs this month','Aucune intervention.':'No jobs.','Aucune intervention':'No jobs','À planifier':'To schedule','Afficher la suite':'Show more','évènement plus ancien':'older event','évènements plus anciens':'older events','du':'from','au':'to'});
+Object.assign(I18N.es,{'intervention à planifier':'intervención por planificar','interventions à planifier':'intervenciones por planificar','intervention en retard':'intervención con retraso','interventions en retard':'intervenciones con retraso','absent sur la période':'ausente en el período','absents sur la période':'ausentes en el período','Ouvrir le planning':'Abrir la agenda','Ouvrir les interventions':'Abrir las intervenciones','Ouvrir les absences':'Abrir las ausencias','Rien à afficher sur cette période.':'Nada que mostrar en este período.','jour de retard':'día de retraso','jours de retard':'días de retraso','jusqu\'à':'hasta','jour ouvré':'día laborable','jours ouvrés':'días laborables','dont':'de los cuales','d’activités':'de actividades','autre':'otra','autres':'otras','à répartir':'por repartir','libre':'libre','DIM':'DOM','LUN':'LUN','MAR':'MAR','MER':'MIÉ','JEU':'JUE','VEN':'VIE','SAM':'SÁB','Ouvrir le planning du':'Abrir la agenda del','Interventions du mois':'Intervenciones del mes','Aucune intervention.':'Ninguna intervención.','Aucune intervention':'Ninguna intervención','À planifier':'Por planificar','Afficher la suite':'Mostrar más','évènement plus ancien':'evento anterior','évènements plus anciens':'eventos anteriores','du':'del','au':'al'});
+/* Les actions du journal les plus courantes (écrites telles quelles par `logEvent`). Les ~160 autres actions restent dans la langue où
+   l'événement a été écrit : le journal est une trace datée, et on n'en réécrit pas les lignes. */
+Object.assign(I18N.en,{'Déconnexion':'Sign-out','Création':'Creation','Suppression':'Deletion','Mot de passe modifié':'Password changed','Droits modifiés':'Permissions changed','Droits repris':'Permissions taken back','Remise à zéro':'Reset','Utilisateur créé':'User created','Utilisateur supprimé':'User deleted','Client créé':'Client created','Facture payée':'Invoice paid','Facture envoyée':'Invoice sent','Facture supprimée':'Invoice deleted','Intervention terminée':'Job finished','Intervention démarrée':'Job started','Demande créée':'Request created','Demande validée':'Request approved','Demande refusée':'Request rejected','Rapport rédigé':'Report written','Box créée':'Box created','Fournisseur créé':'Supplier created','Technicien supprimé':'Technician deleted'});
+Object.assign(I18N.es,{'Déconnexion':'Cierre de sesión','Création':'Creación','Suppression':'Eliminación','Mot de passe modifié':'Contraseña modificada','Droits modifiés':'Permisos modificados','Droits repris':'Permisos retirados','Remise à zéro':'Puesta a cero','Utilisateur créé':'Usuario creado','Utilisateur supprimé':'Usuario eliminado','Client créé':'Cliente creado','Facture payée':'Factura pagada','Facture envoyée':'Factura enviada','Facture supprimée':'Factura eliminada','Intervention terminée':'Intervención terminada','Intervention démarrée':'Intervención iniciada','Demande créée':'Solicitud creada','Demande validée':'Solicitud aprobada','Demande refusée':'Solicitud rechazada','Rapport rédigé':'Informe redactado','Box créée':'Caja creada','Fournisseur créé':'Proveedor creado','Technicien supprimé':'Técnico eliminado'});
+Object.assign(I18N.en,{'Une intervention est <b>en retard</b> quand sa date est passée sans qu\'elle ait été passée en « Effectué » ni annulée. Touche une ligne pour ouvrir sa fiche : replanifie-la ou termine-la, et elle sort de cette liste.':'A job is <b>late</b> when its date has passed without it being marked “Done” or cancelled. Tap a line to open its sheet: reschedule it or finish it, and it leaves this list.'});
+Object.assign(I18N.es,{'Une intervention est <b>en retard</b> quand sa date est passée sans qu\'elle ait été passée en « Effectué » ni annulée. Touche une ligne pour ouvrir sa fiche : replanifie-la ou termine-la, et elle sort de cette liste.':'Una intervención está <b>con retraso</b> cuando su fecha ha pasado sin que se haya marcado «Hecho» ni cancelado. Toca una línea para abrir su ficha: reprográmala o termínala y saldrá de esta lista.'});
 function t(s){ const l=getLang(); if(l==='fr'||!s) return s; const d=I18N[l]; return (d&&d[s]!=null)?d[s]:s; }
+/* Un libellé qui porte un nombre : on traduit le MOT (au singulier ou au pluriel), jamais le nombre ni la phrase entière.
+   `translateNode` ne voit que des textes entiers de nœud ; « 3 interventions sur la période » lui échappait, et les fenêtres posées
+   sur <body> (détail du tableau de bord) ne sont de toute façon pas observées. */
+function nbT(n,un,plusieurs){ return n+' '+t(n>1?plusieurs:un); }
+/* Dates d'ÉCRAN dans la langue choisie. `fmtLong`, `fmtShort` et `fmtTs` restent en français : ils écrivent aussi les documents
+   que reçoit un client (devis, factures, rapports). En français, ces trois-ci rendent exactement la même chaîne. */
+function ecranLoc(){ return ({fr:'fr-FR',en:'en-GB',es:'es-ES'})[getLang()]||'fr-FR'; }
+function fmtLongEcran(iso){ const loc=ecranLoc(); if(loc==='fr-FR') return fmtLong(iso); if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'long@'+loc,loc,_O_LONG); }
+function fmtShortEcran(iso){ const loc=ecranLoc(); if(loc==='fr-FR') return fmtShort(iso); if(!iso) return '—'; return _fd(new Date(iso+'T00:00:00'),'jm@'+loc,loc,_O_JM); }
+function fmtTsEcran(ts){ const loc=ecranLoc(); if(loc==='fr-FR') return fmtTs(ts); const f=_F('ts@'+loc,loc,_O_TS); const d=new Date(ts); return f?f.format(d):d.toLocaleString(loc,_O_TS); }
+function moisEcran(y,m){ return new Date(y,m,1).toLocaleDateString(ecranLoc(),{month:'long',year:'numeric'}); }
 /* Traduction du rendu : remplace les textes français connus dans le DOM (FR = repli) */
 function translateNode(node){ const l=getLang(); if(l==='fr'||!node) return; const d=I18N[l]; if(!d) return;
   const apply=tn=>{ const raw=tn.nodeValue; if(!raw) return; const k=raw.trim(); if(!k) return;
@@ -9306,7 +9347,10 @@ function startI18n(){ if(_i18nObs||!window.MutationObserver) return;
 /* Comme un réglage d'apparence (voir `prefLocal`, en tête du script) : on range — en mémoire si
    l'appareil est plein —, on APPLIQUE, puis on enregistre. Avant, `setItem` jetait sur un appareil
    plein et la langue ne changeait pas ; un `save()` qui jetait sautait le redessin. */
-function setLang(l){ prefLocal('elan_lang',l); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); }
+/* <html lang> suit la langue choisie : sans lui, un lecteur d'écran lit de l'anglais avec la voix française et le
+   navigateur propose de traduire une page déjà traduite (g16, accueil#12). Posé à chaque changement et au démarrage. */
+function langDocAppliquer(){ try{ document.documentElement.lang=getLang(); }catch(e){} }
+function setLang(l){ prefLocal('elan_lang',l); langDocAppliquer(); if(currentUser){ renderNav(); if(current) go(current); setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },30); }
   prefGarder('lang',l); toast(LANG_FLAG[l]+' '+LANGS[l]); }
 function openLangPicker(){ openModal(`<div class="modal-head"><h3>🌍 ${t('Langue')} / Language / Idioma</h3></div>
   <div style="padding:2px"><p style="color:var(--t2);font-size:14px;margin-bottom:14px">Choisis ta langue · Choose your language · Elige tu idioma</p>
@@ -13591,7 +13635,9 @@ function logNoms(liste){
 }
 function logEvent(action, detail, type='general', cibleUserId){
   // cibleUserId : la personne concernée par l'évènement (ex. l'auteur d'un mouvement validé par le DR) — elle le voit dans SON historique
-  db.journal.unshift({id:uid(),ts:Date.now(),userId:currentUser&&currentUser.id,userNom:currentUser?currentUser.nom:'Système',action,detail,type,...(cibleUserId?{cibleUserId}:{})});
+  /* L'auteur s'écrit par son NOM COMPLET : `currentUser.nom` seul, c'est le nom de famille — deux « Benali »
+     devenaient indiscernables et « Justine Admin » s'affichait « Admin » (g16, accueil#4). */
+  db.journal.unshift({id:uid(),ts:Date.now(),userId:currentUser&&currentUser.id,userNom:currentUser?fullName(currentUser):'Système',action,detail,type,...(cibleUserId?{cibleUserId}:{})});
   if(db.journal.length>500) db.journal.length=500;
 }
 
@@ -16451,9 +16497,15 @@ const DASH_DEFAULT=['interventions','boxes','enveloppes','bonsCommande','vehicul
 const DASH_OLD2=['boxes','aCommander','produits'];
 const DASH_OLD_DEFAULT=['boxes','aCommander','validationsDR','bonsCommande','produits','enveloppes','vehicules','fournisseurs'];
 let dashEdit=false;
-function dashLayout(){ if(!Array.isArray(db.dashLayout)||!db.dashLayout.length) db.dashLayout=DASH_DEFAULT.slice();
+/* DEUX états, pas un : pas de disposition (jamais personnalisé → les cartes par défaut) et UNE LISTE VIDE (la
+   personne a tout retiré → rien, l'écran le dit et propose « Personnaliser »). Remplacer le vide par le défaut
+   remettait les cinq cartes d'un coup, en silence, au retrait de la dernière (g16, accueil#6). Le repli reste
+   pour une liste dont plus AUCUNE clé n'est une carte connue : personne n'a voulu ce tableau vide-là. Lire
+   ne sauvegarde rien — `dashV2` mis à part, qui est la migration unique ci-dessous. */
+function dashLayout(){ if(!Array.isArray(db.dashLayout)) db.dashLayout=DASH_DEFAULT.slice();
   if(!db.dashV2){ db.dashV2=1; db.dashLayout=DASH_DEFAULT.slice(); try{ save(); }catch(e){} }   // migration unique vers la disposition épurée — le marqueur se synchronise avec l'équipe
-  db.dashLayout=db.dashLayout.filter(k=>DASH_CARDS[k]); return db.dashLayout; }
+  const connues=db.dashLayout.filter(k=>DASH_CARDS[k]);
+  db.dashLayout=(db.dashLayout.length&&!connues.length)?DASH_DEFAULT.slice():connues; return db.dashLayout; }
 function dashToggleEdit(){ dashEdit=!dashEdit; views.dashboard(); }
 function dashRemove(k){ db.dashLayout=dashLayout().filter(x=>x!==k); save(); views.dashboard(); }
 function dashMove(k,dir){ const a=dashLayout().slice(); const i=a.indexOf(k), j=i+dir; if(j<0||j>=a.length)return; [a[i],a[j]]=[a[j],a[i]]; db.dashLayout=a; save(); views.dashboard(); }
@@ -16880,27 +16932,28 @@ function tdbDetail(k){
       ${extra||st(i)}</div>`; };
   let titre='', corps='', pied='';
   if(k==='int'){
-    titre=SRC.length+' intervention'+(SRC.length>1?'s':'')+' sur la période';
+    titre=nbT(SRC.length,'intervention sur la période','interventions sur la période');
     const parJ={}; SRC.forEach(i=>{ (parJ[i.date]=parJ[i.date]||[]).push(i); });
-    corps=Object.keys(parJ).sort().map(j=>`<div class="td-jr">${esc(fmtLong(j))}</div>`
+    corps=Object.keys(parJ).sort().map(j=>`<div class="td-jr">${esc(fmtLongEcran(j))}</div>`
       +parJ[j].sort((a,b)=>(a.heure||'').localeCompare(b.heure||'')).map(i=>ligne(i)).join('')).join('');
-    pied=`<button class="btn" onclick="tdbDetailFerme();go('planningGeneral')">Ouvrir le planning général</button>`;
+    pied=`<button class="btn" onclick="tdbDetailFerme();go('planningGeneral')">${t('Ouvrir le planning général')}</button>`;
   }
   else if(k==='plan'){
     const l=visibleInts(db.interventions,true).filter(i=>!i.date||i.statut==='aplanifier');
-    titre=l.length+' intervention'+(l.length>1?'s':'')+' à planifier';
-    corps=l.map(i=>ligne(i,`<span class="st" style="background:color-mix(in srgb,var(--org) 18%,transparent);color:var(--org)">à planifier</span>`)).join('');
+    titre=nbT(l.length,'intervention à planifier','interventions à planifier');
+    corps=l.map(i=>ligne(i,`<span class="st" style="background:color-mix(in srgb,var(--org) 18%,transparent);color:var(--org)">${t('à planifier')}</span>`)).join('');
     pied=`<button class="btn" onclick="tdbDetailFerme();go('planning')">Ouvrir le planning</button>`;
   }
   else if(k==='retard'){
     const l=tdbRetards();
-    titre=l.length+' intervention'+(l.length>1?'s':'')+' en retard';
+    titre=nbT(l.length,'intervention en retard','interventions en retard');
     const j0=todayISO();
     const retardJ=d=>Math.round((new Date(j0)-new Date(d))/86400000);
     /* une pile par technicien (le 1er assigné = responsable), jour par jour, du plus ancien retard au plus récent */
     const par={}; l.forEach(i=>{ const t=intTechIds(i)[0]||''; (par[t]=par[t]||[]).push(i); });
+    const trad=t;   // `t` est masqué plus bas par l'identifiant du technicien
     const ordre=Object.keys(par).sort((a,b)=>{ if(a==='')return 1; if(b==='')return -1; return (techName(a)||'').localeCompare(techName(b)||'','fr'); });
-    corps=`<div style="font-size:12px;color:var(--t3);margin:2px 2px 10px;line-height:1.5">Une intervention est <b>en retard</b> quand sa date est passée sans qu'elle ait été passée en « Effectué » ni annulée. Touche une ligne pour ouvrir sa fiche : replanifie-la ou termine-la, et elle sort de cette liste.</div>`
+    corps=`<div style="font-size:12px;color:var(--t3);margin:2px 2px 10px;line-height:1.5">${t('Une intervention est <b>en retard</b> quand sa date est passée sans qu\'elle ait été passée en « Effectué » ni annulée. Touche une ligne pour ouvrir sa fiche : replanifie-la ou termine-la, et elle sort de cette liste.')}</div>`
       +ordre.map(t=>{
         const L=par[t].sort((a,b)=>((a.date||'')+(a.heure||'')).localeCompare((b.date||'')+(b.heure||'')));
         const pire=retardJ(L[0].date);
@@ -16908,22 +16961,22 @@ function tdbDetail(k){
         return `<div style="display:flex;align-items:center;gap:9px;margin:16px 0 4px">
             <span class="av" style="--tc:${techColor(t)}">${t?initials(techName(t)):'NA'}</span>
             <b style="font-size:14px">${t?esc(techName(t)):'Non assigné'}</b>
-            <span class="st" style="background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)">${L.length} en retard · jusqu'à ${pire} j</span></div>`
+            <span class="st" style="background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)">${L.length} ${trad('en retard')} · ${trad('jusqu\'à')} ${pire} ${getLang()==='fr'?'j':'d'}</span></div>`
           +Object.keys(parJ).sort().map(j=>{ const r=retardJ(j);
-            return `<div class="td-jr">${esc(fmtLong(j))} · <span style="color:var(--red);font-weight:700">${r} jour${r>1?'s':''} de retard</span></div>`
+            return `<div class="td-jr">${esc(fmtLongEcran(j))} · <span style="color:var(--red);font-weight:700">${nbT(r,'jour de retard','jours de retard')}</span></div>`
               +parJ[j].sort((a,b)=>(a.heure||'').localeCompare(b.heure||'')).map(i=>ligne(i)).join(''); }).join('');
       }).join('');
     pied=`<button class="btn ghost" onclick="tdbDetailFerme();go('interventions')">Ouvrir les interventions</button> <button class="btn" onclick="tdbDetailFerme();go('planningGeneral')">Ouvrir le planning général</button>`;
   }
   else if(k==='abs'){
     const l=tdbAbsences().filter(a=>absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du)));
-    titre=l.length+' absent'+(l.length>1?'s':'')+' sur la période';
+    titre=nbT(l.length,'absent sur la période','absents sur la période');
     corps=l.sort((a,b)=>a.du.localeCompare(b.du)).map(a=>{
       const v=absInfo(a.type), n=absJoursOuvres(a);
       return `<div class="td-li" onclick="tdbDetailFerme();go('absences')">
         <span class="av" style="--tc:${techColor(a.techId)}">${initials(techName(a.techId)||'—')}</span>
         <span class="nm"><b>${esc(techName(a.techId)||'—')}</b>
-          <small>${esc(v.l)} · du ${esc(fmtShort(a.du))} au ${esc(fmtShort(a.au||a.du))} · ${absNb(n)} jour${n>1?'s':''} ouvré${n>1?'s':''}</small></span>
+          <small>${esc(v.l)} · ${t('du')} ${esc(fmtShortEcran(a.du))} ${t('au')} ${esc(fmtShortEcran(a.au||a.du))} · ${absNb(n)} ${t(n>1?'jours ouvrés':'jour ouvré')}</small></span>
         <span class="st" style="background:color-mix(in srgb,${v.c} 18%,transparent);color:${v.c}">${esc(v.l)}</span></div>`; }).join('');
     pied=`<button class="btn" onclick="tdbDetailFerme();go('absences')">Ouvrir les absences</button>`;
   }
@@ -16934,14 +16987,14 @@ function tdbDetail(k){
     tdbActs().filter(a=>jours.indexOf(a.date)>=0).forEach(a=>{ const t=a.techId||''; const d=parseInt(a.duree)||30;
       par[t]=(par[t]||0)+d; mnAct+=d; });
     const tot=Object.values(par).reduce((s2,v)=>s2+v,0);
-    titre=fmtHmin(tot)+' de travail prévu';
+    titre=fmtHmin(tot)+' '+t('de travail prévu');
     const cles=Object.keys(par).sort((a,b)=>par[b]-par[a]);
     corps=cles.map(t=>`<div class="td-ch" style="--tc:${techColor(t)}">
         <span class="av">${t?initials(techName(t)):'NA'}</span>
         <span class="nm">${esc(t?techName(t):'Non assigné')}</span>
         <span class="ba"><i style="width:${tot?Math.round(par[t]/tot*100):0}%"></i></span>
         <span class="vl">${fmtHmin(par[t])}</span></div>`).join('');
-    pied=`<span style="font-size:11.5px;color:var(--t3)">dont ${fmtHmin(mnAct)} d’activités</span>
+    pied=`<span style="font-size:11.5px;color:var(--t3)">${t('dont')} ${fmtHmin(mnAct)} ${t('d’activités')}</span>
       <span style="flex:1"></span><button class="btn" onclick="tdbDetailFerme();go('planningGeneral')">Ouvrir le planning général</button>`;
   }
   let f=document.getElementById('td-det'); if(f) f.remove();
@@ -16951,6 +17004,8 @@ function tdbDetail(k){
     <div style="overflow:auto;max-height:62vh">${corps||'<div class="td-vide">Rien à afficher sur cette période.</div>'}</div>
     <div class="dp-ft">${pied.indexOf('flex:1')<0?'<span class="sp"></span>':''}${pied}</div></div>`;
   document.body.appendChild(f);
+  /* posée sur <body>, la fenêtre n'est pas dans celles que l'observateur de langue suit : on la traduit ici, une fois posée */
+  try{ translateNode(f); }catch(e){}
   f.addEventListener('click',function(e){ if(e.target===f) tdbDetailFerme(); });
   window.addEventListener('keydown',tdbDetailEchap,true);
 }
@@ -16989,13 +17044,13 @@ function tdbPlanning(){
   let g=`<div class="tdb-jh t">Équipe</div>`;
   jours.forEach(j=>{ const d=new Date(j+'T00:00:00');
     g+=`<div class="tdb-jh ${j===todayISO()?'auj':''}" onclick="planSel='${j}';planWeekRef='${j}';planMode='jour';go('planning')"
-        title="Ouvrir le planning du ${esc(fmtLong(j))}">${WD[d.getDay()]} ${d.getDate()}</div>`; });
+        title="${t('Ouvrir le planning du')} ${esc(fmtLongEcran(j))}">${t(WD[d.getDay()])} ${d.getDate()}</div>`; });
   lignes.forEach(gr=>{
     const c=techColor(gr.id);
     const absSem=ABS.filter(a=>a.techId===gr.id&&absValidee(a)&&jours.some(j=>a.du<=j&&j<=(a.au||a.du)));
     const mnT=SRC.filter(i=>planIntDe(i,gr.id)).reduce((s,i)=>s+(parseInt(i.duree)||60),0);
     const nInt=SRC.filter(i=>planIntDe(i,gr.id)).length;
-    const sous=gr.id===''?(nInt?nInt+' à répartir':'—'):(absSem.length?absInfo(absSem[0].type).l.toLowerCase():(nInt?fmtHmin(mnT):'libre'));
+    const sous=gr.id===''?(nInt?nInt+' '+t('à répartir'):'—'):(absSem.length?absInfo(absSem[0].type).l.toLowerCase():(nInt?fmtHmin(mnT):t('libre')));
     g+=`<div class="tdb-tec" style="--tc:${c}" title="${esc(gr.nom)}" ${gr.id?`onclick="planVersTech('${gr.id}')"`:''}>
         <span class="av">${gr.id?initials(gr.nom):'NA'}</span>
         <span style="min-width:0"><b>${esc(gr.nom)}</b><small>${esc(sous)}</small></span></div>`;
@@ -17012,16 +17067,16 @@ function tdbPlanning(){
             onclick="event.stopPropagation();detailIntervention('${i.id}')">
             <b>${i.heure?`<span class="hh">${esc(i.heure)}</span> `:''}${esc(i.titre||'Intervention')}</b>
             <small>${planPileAutres(i,gr.id)}${esc(clientName(i.clientId)||'')}</small></div>`; });
-        if(mine.length>4) cel+=`<div class="tdb-plus">+ ${mine.length-4} autre${mine.length-4>1?'s':''}</div>`;
+        if(mine.length>4) cel+=`<div class="tdb-plus">+ ${nbT(mine.length-4,'autre','autres')}</div>`;
       }
-      g+=`<div class="tdb-cel ${j===todayISO()?'auj':''}" title="Ouvrir le planning du ${esc(fmtShort(j))}"
+      g+=`<div class="tdb-cel ${j===todayISO()?'auj':''}" title="${t('Ouvrir le planning du')} ${esc(fmtShortEcran(j))}"
           onclick="planSel='${j}';planWeekRef='${j}';planMode='jour';go('planning')">${cel}</div>`;
     });
   });
   return `<div class="card" style="padding:0;margin-bottom:14px">
     <div class="tdb-hd"><b>${toutVoir?'Planning de l’entreprise':'Mon planning'}</b>
       <span class="tdb-seg">${seg}</span><span class="sp"></span>
-      ${toutVoir?`<button class="btn ghost sm" onclick="go('planningGeneral')">Ouvrir le planning général →</button>`:`<button class="btn ghost sm" onclick="go('planning')">Ouvrir mon planning →</button>`}</div>
+      ${toutVoir?`<button class="btn ghost sm" onclick="go('planningGeneral')">${t('Ouvrir le planning général')} →</button>`:`<button class="btn ghost sm" onclick="go('planning')">${t('Ouvrir mon planning')} →</button>`}</div>
     <div class="tdb-res">
       <div class="tdb-rz" onclick="tdbDetail('int')"><b>${SRC.length}</b><span>intervention${SRC.length>1?'s':''} sur la période</span></div>
       <div class="tdb-rz" onclick="tdbDetail('plan')"><b style="color:var(--org)">${aPlanifier}</b><span>à planifier</span></div>
@@ -17061,6 +17116,7 @@ views.dashboard=function(){
   $('content').innerHTML=`
     ${dashEdit?`<div class="card" style="border-color:color-mix(in srgb,var(--acc) 40%,transparent);background:color-mix(in srgb,var(--acc) 6%,transparent)"><div style="font-size:13px;color:var(--t2)">Mode personnalisation : <b>glisse une carte</b> pour la déplacer (souris : cliquer-glisser · téléphone : rester appuyé puis glisser), <b>✕</b> pour retirer. <button class="btn ghost sm" onclick="dashReset()">↻ Réinitialiser</button></div></div>`:''}
     <div class="kpis">${layout.map(card).join('')}</div>
+    ${(!layout.length&&!dashEdit&&hidden.length)?emptyState('🧩','Aucune carte affichée.','Personnaliser','dashToggleEdit()'):''}
     ${(dashEdit||!voitVue('planning'))?'':tdbPlanning()}
     ${dashEdit?`<div class="card" style="margin-top:12px"><div class="card-head"><h3>＋ Ajouter une carte</h3></div><div style="display:flex;flex-wrap:wrap;gap:8px">${hidden.length?hidden.map(k=>`<button class="btn ghost sm" onclick="dashAdd('${k}')">${DASH_CARDS[k].ic} ${DASH_CARDS[k].label}</button>`).join(''):'<div style="color:var(--t3);font-size:13px">Toutes les cartes sont affichées.</div>'}</div></div>`:`
     ${(()=>{ const secs=[];
@@ -33353,6 +33409,11 @@ function consoAnalyseHTML(){
 /* v755 — une puce par type d'entrée que le code écrit (logEvent), l'icône de sa rubrique au menu : cinq types
    (intervention, planning, commercial, synchro, réglages d'entreprise) tombaient sur la puce générique. */
 const TYPE_ICO={auth:'🔑',stock:'📦',crud:'✏️',demande:'✈️',commande:'✉️',finance:'💶',support:'🆘',intervention:'🧰',plan:'🗓️',commercial:'💰',sync:'🔄',admin:'🛠️',general:'•'};
+/* Le MOT de chaque puce de filtre. Les clés ci-dessus sont celles qu'écrit `logEvent` dans `db.journal` de toutes les
+   entreprises : elles ne se renomment pas, et le filtre (`histFilter`) les garde. L'écran montrait pourtant « auth »,
+   « crud », « finance » en minuscules et en jargon (g16, accueil#13). Un type absent de la table (version plus récente,
+   import) se montre par sa clé plutôt que de disparaître ; `test-1151` exige un libellé à chaque type que le code écrit. */
+const TYPE_LBL={auth:'Connexion',stock:'Stock',crud:'Modifications',demande:'Demandes',commande:'Commandes',finance:'Finance',support:'Support',intervention:'Interventions',plan:'Planning',commercial:'Commercial',sync:'Synchronisation',admin:'Administration',general:'Général'};
 let histFilter='all';
 /* Clic sur une ligne d'Audit / Historique → ouvre la fiche ou la page liée */
 function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
@@ -33397,6 +33458,11 @@ function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
 const HIST_PAS=80;
 let _histMax=HIST_PAS, _histVue='';
 function histPlus(n){ _histMax+=n; try{ go(current); }catch(e){} }
+/* Qui a fait la ligne. Les lignes écrites avant ce correctif portent le seul nom de famille : on retrouve le
+   compte par `userId` (l'AUTEUR — `cibleUserId` est la personne concernée, jamais l'auteur) et on rend son nom
+   complet, sans réécrire le journal (plafonné à 500, et ouvrir un écran n'écrit pas). Compte disparu, ou
+   identifiant qui n'est pas un compte (semis, « Système ») : on garde ce qui est écrit. */
+function journalAuteur(j){ const u=j&&j.userId?(db.users||[]).find(x=>x.id===j.userId):null; return u?fullName(u):((j&&j.userNom)||''); }
 function journalView(title,sub){
   /* ⛔ LA TRANCHE APPARTIENT À L'ÉCRAN QU'ON REGARDE. `journalView` servait Historique ET Audit
      (Audit, doublon exact, est retiré depuis la v728 — la garde reste pour le prochain écran
@@ -33412,11 +33478,11 @@ function journalView(title,sub){
   if(histFilter!=='all') list=list.filter(j=>j.type===histFilter);
   const types=['all',...new Set(src.map(j=>j.type))];
   const vis=list.slice(0,_histMax), reste=list.length-vis.length;
-  $('content').innerHTML=`<div class="filters">${types.map(t=>`<div class="chip ${histFilter===t?'active':''}" onclick="histFilter='${t}';_histMax=${HIST_PAS};go('${current}')">${t==='all'?'Tout':t}</div>`).join('')}</div>
+  $('content').innerHTML=`<div class="filters">${types.map(t=>`<div class="chip ${histFilter===t?'active':''}" onclick="histFilter='${t}';_histMax=${HIST_PAS};go('${current}')">${t==='all'?'Tout':(TYPE_LBL[t]||t)}</div>`).join('')}</div>
     <div class="card">${vis.length? vis.map(j=>`<div class="tl-item" style="cursor:pointer" onclick="journalGo('${j.id}')"><div class="tl-dot">${TYPE_ICO[j.type]||'•'}</div>
-      <div class="tl-body"><div class="tl-act">${esc(j.action)}</div><div class="tl-det">${esc(j.detail)||''} · 👤 ${esc(j.userNom)}</div></div>
-      <div class="tl-time">${fmtTs(j.ts)}</div></div>`).join('')
-      +(reste?`<div style="padding:14px 0 4px;text-align:center"><button class="btn ghost" onclick="histPlus(${HIST_PAS*2})">Afficher la suite · ${reste} évènement(s) plus anciens</button></div>`:'')
+      <div class="tl-body"><div class="tl-act">${esc(j.action)}</div><div class="tl-det">${esc(j.detail)||''} · 👤 ${esc(journalAuteur(j))}</div></div>
+      <div class="tl-time">${fmtTsEcran(j.ts)}</div></div>`).join('')
+      +(reste?`<div style="padding:14px 0 4px;text-align:center"><button class="btn ghost" onclick="histPlus(${HIST_PAS*2})">${t('Afficher la suite')} · ${nbT(reste,'évènement plus ancien','évènements plus anciens')}</button></div>`:'')
       : emptyState('🕘','Aucun évènement.','','')}</div>`;
 }
 views.historique=function(){ journalView('Historique','Activité de l\'application — journal de traçabilité, en lecture seule'); };
@@ -38992,7 +39058,7 @@ function archStats(ym){
 views.archives=function(){
   if(!archMonth) archMonth=todayISO().slice(0,7);
   const s=archStats(archMonth);
-  const [y,mo]=archMonth.split('-'); const label=new Date(y,mo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const [y,mo]=archMonth.split('-'); const label=moisEcran(y,mo-1);
   setHeader('Archives mensuelles','Récapitulatif par mois',
     `<button class="btn ghost sm" onclick="archMonth=shiftMonth(archMonth,-1);views.archives()">‹</button> <button class="btn ghost sm" onclick="archMonth=shiftMonth(archMonth,1);views.archives()">›</button> <button class="btn" onclick="printArchive()">PDF</button>`);
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3 style="text-transform:capitalize">🗄️ ${label}</h3></div>
@@ -39002,8 +39068,8 @@ views.archives=function(){
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">🧾</div><div class="kpi-val">${eur(s.caTot)}</div><div class="kpi-lbl">CA facturé</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
     </div></div>
-    <div class="card"><div class="card-head"><h3>Interventions du mois (${s.ints.length})</h3></div>
-      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
+    <div class="card"><div class="card-head"><h3>${t('Interventions du mois')} (${s.ints.length})</h3></div>
+      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShortEcran(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
     </div>`;
 };
 function shiftMonth(ym,n){ const [y,m]=ym.split('-').map(Number); return new Date(y,m-1+n,1).toLocaleDateString('sv-SE').slice(0,7); }
@@ -40181,6 +40247,7 @@ async function adminDepartAppliquer(){
   return ch;
 }
 async function boot(){
+  langDocAppliquer();   // avant tout await : le lien d'entreprise peut rendre la main, la langue du document doit déjà être posée
   try{ if(await teamopLienCheck()) return; }catch(e){}   // lien d'entreprise : bascule d'espace avant tout
   try{ regMigration(); }catch(e){} let ch=false; for(const u of db.users){ if(!u.pinHash && !u.sansMdp && !u.compteSite && !BETA_ESSAI){ u.pinHash=await sha256('1234'); ch=true; } }
   // Ménage définitif des données de démonstration d'origine — plus personne ne voit d'utilisateur test.

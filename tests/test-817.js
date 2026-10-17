@@ -43,6 +43,8 @@ let seq = 0;
 const appareil = base => new Function('etat', `let db=etat.db; const syncEnabled=()=>true;
   let currentUser={id:'u1',nom:'Justin'}; const uid=()=>'L'+(etat.seq()).toString(36).padStart(7,'0');
   const exportData=()=>{}, toast=()=>{}, go=()=>{}, closeModal=()=>{}, syncRetraitVoulu=()=>{};
+  /* g16 : logEvent écrit l'auteur par son nom complet (fullName) — le bac à sable doit la fournir, comme app.html. */
+  const fullName=u=>u?((u.prenom?u.prenom+' ':'')+(u.nom||'')).trim()||(u.login||'—'):'—';
   let __saves=0; const save=()=>{ __saves++; estampiller(); }; const syncPush=()=>{};
   ${SYNCHRO}
   return { estampiller, ombreRelever, fusionnerBases, sigRenvoi, logEvent, razAppliquer,
