@@ -31028,6 +31028,14 @@ function renderBonLignes(){ const el=$('bon-lignes'); if(!el)return;
 function bonPickProduit(i,pid){ const p=produit(pid); bonLignes[i].produitId=pid; bonLignes[i].reference=p.ref||''; bonLignes[i].designation=p.nom||''; bonLignes[i].categorie=p.categorie||''; if(p.prix) bonLignes[i].prixUnitaireHT=p.prix; if(p.qteCarton&&!bonLignes[i].upc) bonLignes[i].upc=p.qteCarton; renderBonLignes(); }
 /* Garder le bon de côté (brouillon) pour le finir plus tard — retrouvable dans « En attente d'envoi » */
 function bonGarder(){ const form=$('bonform'); if(!form) return; const f=Object.fromEntries(new FormData(form));
+  /* g02 : « Garder de côté » est le SECOND chemin qui écrit un N° saisi à la main (le premier : bonValider). Sans ce
+     contrôle, un brouillon pouvait naître sous le numéro d'un autre bon, puis passer la validation sans qu'on le
+     lui redise (bonValider ne contrôle qu'un N° qui CHANGE). Même règle : à la modification, seulement si le N°
+     change ; avant toute écriture (le refus n'a rien enregistré). */
+  { const num0=String(f.numero||'').trim(), ex=_bonEditId?db.bons.find(x=>x.id===_bonEditId):null;
+    const av=ex?String(ex.numero||'').trim().toLowerCase():'';
+    const pris=(num0&&(!ex||av!==num0.toLowerCase()))?numDejaPris('bons','numero',num0,_bonEditId):null;
+    if(pris){ toast('Le numéro '+num0+' est déjà porté par un autre bon de commande — choisis-en un autre'); return; } f.numero=num0; }
   const obj={numero:f.numero||(nextNum('bons','BC','numero')),date:f.date||todayISO(),fournisseurId:f.fournisseurId||'',boxId:f.boxId||'',notes:f.notes||'',...bonLivOf(bonSites[0]),sitesSupp:bonSites.slice(1).filter(s=>s.nom||s.adresse||s.ville),faitPar:fullName(currentUser),lignes:bonLignes.filter(l=>l.designation||l.produitId)};
   if(!obj.lignes.length){ toast('Ajoute au moins un produit avant de garder de côté'); return; }
   if(_bonEditId){ const ix=db.bons.findIndex(x=>x.id===_bonEditId); if(ix>=0) db.bons[ix]={...db.bons[ix],...obj}; }

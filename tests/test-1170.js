@@ -34,9 +34,9 @@ const F = {
   saveEnv: bloc('function saveEnv('), formPaiement: bloc('function formPaiement('), savePaiement: bloc('function savePaiement('),
   payStat: ligne('const PAY_STAT='), envPaie: ligne('function envPaie('), envEnc: ligne('const envEncaisse='),
   envTotal: ligne('function envTotal('), envEsp: ligne('function envEsp('), envChq: ligne('function envChq('), envAtt: ligne('function envAttente('),
-  bonValider: bloc('function bonValider('),
+  bonValider: bloc('function bonValider('), bonGarder: bloc('function bonGarder('),
 };
-vrai('les fonctions de base sont trouvées', ['NUM_RE', 'relever', 'union', 'plafond', 'next', 'doubles', 'formContrat', 'saveContrat', 'saveEnv', 'formPaiement', 'savePaiement', 'payStat', 'envPaie', 'envTotal', 'envEsp', 'envChq', 'bonValider'].every(k => F[k].length > 10), Object.keys(F).filter(k => !F[k]));
+vrai('les fonctions de base sont trouvées', ['NUM_RE', 'relever', 'union', 'plafond', 'next', 'doubles', 'formContrat', 'saveContrat', 'saveEnv', 'formPaiement', 'savePaiement', 'payStat', 'envPaie', 'envTotal', 'envEsp', 'envChq', 'bonValider', 'bonGarder'].every(k => F[k].length > 10), Object.keys(F).filter(k => !F[k]));
 // Sur le code d'AVANT ces trois-là n'existent pas : le bac à sable les remplace par des fonctions qui rendent l'ancien comportement.
 const ABSENTS = { pris: !F.pris, envEnc: !F.envEnc, envAtt: !F.envAtt };
 vrai('le code de g02 est présent (numDejaPris, envEncaisse, envAttente)', !ABSENTS.pris && !ABSENTS.envEnc && !ABSENTS.envAtt, ABSENTS);
@@ -121,12 +121,12 @@ console.log('\n── 1170 · 5. fusion : le plafond se réunit par le MAXIMUM �
 console.log('\n── 1170 · 6. bons de commande : deux bons, jamais le même N° (achats#7) ──');
 function mondeBon(bons) {
   const W = monde({ bons: bons || [], fournisseurs: [], boxes: [] });
-  vm.runInContext(`var bonLignes=[{designation:'Produit',qte:1}], bonSites=[{}], bonsFilter='', __memo=0, current='bons', __nav=0, __champs={};
+  vm.runInContext(`var bonLignes=[{designation:'Produit',qte:1}], bonSites=[{}], bonsFilter='', _bonEditId='', __memo=0, current='bons', __nav=0, __champs={};
     function $(i){ return i==='bonform'?{__champs:__champs}:null; }
     function bonQteTot(){ return {ctn:1,u:0}; } function bonMemorise(){ __memo++; } function fournName(){ return ''; }
     function bonGroupes(){ return {'':bonLignes}; } function bonFourName(){ return ''; } function bonLivOf(){ return {}; } function fullName(){ return 'A B'; }
     function alert(m){ __toasts.push('ALERT '+m); } function go(){ __nav++; } views.bons=function(){ __nav++; };
-    ${F.bonValider}`, W);
+    ${F.bonValider}\n${F.bonGarder}`, W);
   return W;
 }
 const chBon = (W, o) => vm.runInContext('__champs=' + JSON.stringify(Object.assign({ numero: '', date: AN + '-06-01', statut: 'prete', fournisseurId: '', boxId: '', notes: '', societe: '' }, o)), W);
@@ -145,6 +145,31 @@ const chBon = (W, o) => vm.runInContext('__champs=' + JSON.stringify(Object.assi
 { const W = mondeBon([{ id: 'b1', numero: 'BC-' + AN + '-005', statut: 'prete' }, { id: 'b2', numero: 'BC-' + AN + '-005', statut: 'prete' }]);
   chBon(W, { numero: 'BC-' + AN + '-005', statut: 'envoyee', notes: 'n' }); W.bonValider('b2');
   v('doublon d\'avant : le bon reste modifiable sous son numéro', W.db.bons.find(b => b.id === 'b2').notes, 'n'); }
+
+console.log('\n── 1170 · 6 bis. « Garder de côté » : le second chemin qui écrit un N° saisi (relecture achats#7) ──');
+const garder = (W, num, editId) => { chBon(W, { numero: num }); vm.runInContext('_bonEditId=' + JSON.stringify(editId || ''), W); W.bonGarder(); };
+{ const W = mondeBon([{ id: 'b1', numero: 'BC-' + AN + '-001', statut: 'prete' }]);
+  garder(W, 'BC-' + AN + '-001');
+  v('⛔ garder de côté un second BC-' + AN + '-001 est refusé : un seul bon en base', W.db.bons.length, 1);
+  vrai('… le message nomme le numéro, aucun enregistrement, la fenêtre reste ouverte', W.__toasts.some(t => /BC-\d{4}-001/.test(t) && /déjà/.test(t)) && W.__saves === 0, [W.__toasts, W.__saves]);
+  garder(W, ' bc-' + AN + '-001 ');
+  v('… casse et espaces n\'y changent rien', W.db.bons.length, 1);
+  garder(W, 'BC-' + AN + '-002');
+  v('contre-épreuve : un numéro libre crée le brouillon', W.db.bons.map(b => b.numero + ':' + b.statut), ['BC-' + AN + '-001:prete', 'BC-' + AN + '-002:brouillon']);
+  const bro = W.db.bons[1].id;
+  garder(W, 'BC-' + AN + '-002', bro);
+  v('un brouillon se regarde sous SON numéro sans se bloquer lui-même', W.db.bons.length, 2);
+  garder(W, 'BC-' + AN + '-001', bro);
+  v('… mais pas sous celui d\'un autre', W.db.bons.find(b => b.id === bro).numero, 'BC-' + AN + '-002');
+  garder(W, '', null);
+  vrai('sans numéro saisi, il en prend un libre (jamais un existant)', new Set(W.db.bons.map(b => b.numero)).size === W.db.bons.length && W.db.bons.length === 3, W.db.bons.map(b => b.numero));
+  // le chemin signalé par la relecture : garder puis valider ne doit pas laisser passer le doublon
+  const W2 = mondeBon([{ id: 'b1', numero: 'BC-' + AN + '-001', statut: 'prete' }]);
+  garder(W2, 'BC-' + AN + '-001'); chBon(W2, { numero: 'BC-' + AN + '-001' }); vm.runInContext('_bonEditId=""', W2); W2.bonValider('');
+  v('⛔ garder puis valider le même N° : toujours un seul bon BC-001', W2.db.bons.filter(b => b.numero === 'BC-' + AN + '-001').length, 1); }
+{ const W = mondeBon([{ id: 'b1', numero: 'BC-' + AN + '-005', statut: 'brouillon' }, { id: 'b2', numero: 'BC-' + AN + '-005', statut: 'brouillon' }]);
+  chBon(W, { numero: 'BC-' + AN + '-005', notes: 'n' }); vm.runInContext('_bonEditId="b2"', W); W.bonGarder();
+  v('doublon d\'avant : le brouillon reste modifiable sous son numéro', W.db.bons.find(b => b.id === 'b2').notes, 'n'); }
 
 console.log('\n── 1170 · 7. encaissements : seul « Encaissé » compte (facturation#13) ──');
 { const W = monde();
