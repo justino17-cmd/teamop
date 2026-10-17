@@ -173,7 +173,8 @@ async function jouer(J, K, o) {
       K.constat('défaut', 'Tour : la nouvelle demande n\'apparaît pas dans « Entreprises »',
         'La demande de « ' + C.entreprise + ' » est enregistrée (accusé et avis envoyés), l\'accueil de la Tour compte ' + accueil + ' entreprise(s) cliente(s), mais la liste « Entreprises » en montre 0 ' +
         'et son écran vide promet « Elles apparaissent dès qu\'une s\'inscrit sur le site ». Le bouton « ✅ Accepter la demande » (tour.html, blocGestionClient) ne vit que sur la fiche d\'une entreprise de cette liste, ' +
-        'qui ne lit que l\'annuaire et les connexions (server/index.js, /api/monitor/entreprises). Sans autre chemin, une demande neuve ne s\'accepte pas au doigt.', 'Tour');
+        'qui ne lit que l\'annuaire et les connexions (server/index.js, /api/monitor/entreprises). Seul détour : ouvrir d\'abord un espace à son adresse (Accès › « Accès à la version publique »), ' +
+        'pour que l\'entreprise paraisse, puis l\'accepter depuis sa fiche — deux gestes, et rien ne l\'indique.', 'Tour');
     }
     tour.repondreDialogue('camille');   // la fenêtre « identifiant » de l'acceptation
     if (fiche) await tour.toucher({ texte: 'Accepter la demande' });
