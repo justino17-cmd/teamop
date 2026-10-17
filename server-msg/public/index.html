@@ -1016,7 +1016,12 @@ html[data-appel-reduit] .conv-ecran { top: calc(var(--vvt, 0px) + var(--haut-app
 html[data-appel-reduit] .conv-vide { top: var(--haut-appel); }
 html[data-appel-reduit] .side { top: var(--haut-appel); height: calc(100dvh - var(--haut-appel)); }
 .appel-barre-revenir { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 4px; background: none; color: inherit; font-size: 15px; font-weight: 600; text-align: left; }
-.appel-barre-revenir .texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.appel-barre-revenir .texte { flex: 1; min-width: 0; display: flex; overflow: hidden; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* ⛔ la DURÉE est la seule information qui change dans la barre : elle ne se coupe jamais (flex: none) ; c'est le NOM qui prend l'ellipse. Avant, un seul texte portait « Appel en cours · Ben Durand · 00:03 »
+   et l'ellipse mangeait la fin — à 360 px on lisait « Appel en cours · Ben Dur… » (lot m19, appels#3). */
+.appel-barre-revenir .texte-nom { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* `pre` et non `nowrap` : la durée commence par une espace (« · 00:03 »), qu'un élément flex en début de ligne effacerait — le nom coupé toucherait alors le point. */
+.appel-barre-revenir .texte-duree { flex: none; white-space: pre; }
 .appel-barre-revenir b { flex: none; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.14); font-size: 14px; }
 .appel-barre-raccrocher { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: none; color: #000; }
 .appel-barre-raccrocher .rond { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #e5484d; color: #fff; }
@@ -2514,7 +2519,7 @@ a.menu-action { text-decoration: none; }
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
 
 <div class="appel-barre" id="appel-barre" role="region" aria-label="Appel en cours">
-  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte">Appel en cours</span><b>Revenir</b></button>
+  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte"><span class="texte-nom" id="appel-barre-nom">Appel en cours</span><span class="texte-duree" id="appel-barre-duree"></span></span><b>Revenir</b></button>
   <button type="button" class="appel-barre-raccrocher presse" id="appel-barre-raccrocher" aria-label="Raccrocher"><span class="rond"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></span></button>
 </div>
 <div class="app" id="app">

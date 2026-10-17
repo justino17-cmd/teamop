@@ -58,4 +58,20 @@ function gagne(R, chaine, prop) {
   }
   return best ? best.v : undefined;
 }
-module.exports = { regles, gagne, vise, sansCommentaires };
+
+/* ── lire le SCRIPT de la page (sans commentaires) : une déclaration entière, ou une ligne ── */
+const sansCommJs = (s) => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/(^|\s)\/\/\s.*$/gm, ' ');      // ⛔ seulement les blocs qui COMMENCENT une ligne (CLAUDE.md, 21 septembre 2026)
+function decl(JS, debut) {
+  const i = JS.indexOf(debut); if (i < 0) return '';
+  let j = JS.indexOf('{', i + debut.length - 1), n = 0, q = null;
+  for (; j < JS.length; j++) {
+    const ch = JS[j];
+    if (q) { if (ch === '\\') { j++; continue; } if (ch === q) q = null; continue; }
+    if (ch === "'" || ch === '"' || ch === '`') { q = ch; continue; }
+    if (ch === '{') n++;
+    else if (ch === '}') { n--; if (n === 0) return JS.slice(i, j + 1) + (JS[j + 1] === ';' ? ';' : ''); }
+  }
+  return '';
+}
+const ligne = (JS, debut) => { const i = JS.indexOf(debut); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
+module.exports = { regles, gagne, vise, sansCommentaires, sansCommJs, decl, ligne };

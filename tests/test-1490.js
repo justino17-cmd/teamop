@@ -14,7 +14,7 @@ const fs = require('fs'), path = require('path');
 const T = require('./outils-msg');
 const C = require('./outils-cascade-msg');
 const { v, vrai, fin } = T.compteur();
-const PAGE = fs.readFileSync(path.join(__dirname, '..', 'apercu/opmessages/index.html'), 'utf8');
+const PAGE = fs.readFileSync(path.join(process.env.OPMSG_RACINE || path.join(__dirname, '..'), 'apercu/opmessages/index.html'), 'utf8');
 const style = (/<style>([\s\S]*?)<\/style>/.exec(PAGE) || [, ''])[1];
 const HTML = PAGE.replace(/<style>[\s\S]*?<\/style>/, ' ').replace(/<script>[\s\S]*?<\/script>/, ' ').replace(/<!--[\s\S]*?-->/g, ' ');
 

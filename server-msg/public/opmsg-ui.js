@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '0389f2a39c0a';
+  const OPMSG_BUILD = '45ea183b62d0';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 210;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3190,12 +3190,17 @@
     (enSalle(A) ? $('salle-ecran') : $('appel-ecran')).focus({ preventScroll: true });
   }
   /* le texte de la barre : qui, et depuis combien de temps (la même horloge que l'écran, toutes les 250 ms) */
+  /* le texte de la barre en DEUX morceaux : le nom (qui peut se couper) et la durée (qui ne se coupe pas) — pure, pour que le banc l'exécute */
+  function textesBarreAppel(snap, maintenant) {
+    const qui = snap.titre || snap.nom || (snap.membres || []).map(m => m.nom || m.prenom).filter(Boolean).slice(0, 2).join(', ') || 'Appel';
+    return { nom: 'Appel en cours · ' + qui, duree: snap.etat === 'en-cours' && snap.debut ? ' · ' + dureeAppel((maintenant - snap.debut) / 1000) : snap.etat === 'sonne' ? ' · ça sonne…' : '' };
+  }
   function majBarreAppel() {
     const A = etat.appelUI; if (!etat.appelReduit || !A || !A.snap) return;
-    const qui = A.snap.titre || A.snap.nom || (A.snap.membres || []).map(m => m.nom || m.prenom).filter(Boolean).slice(0, 2).join(', ') || 'Appel';
-    const t = 'Appel en cours · ' + qui + (A.snap.etat === 'en-cours' && A.snap.debut ? ' · ' + dureeAppel((Date.now() - A.snap.debut) / 1000) : A.snap.etat === 'sonne' ? ' · ça sonne…' : ''), e = $('appel-barre-texte');
-    if (e.textContent !== t) e.textContent = t;
-    $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t);
+    const t = textesBarreAppel(A.snap, Date.now()), n = $('appel-barre-nom'), d = $('appel-barre-duree');
+    if (n.textContent !== t.nom) n.textContent = t.nom;
+    if (d.textContent !== t.duree) d.textContent = t.duree;
+    $('appel-barre-revenir').setAttribute('aria-label', 'Revenir à l\'appel — ' + t.nom + t.duree);
   }
   $('appel-barre-revenir').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) pousser(Object.assign({}, etat.route, { feuille: false, photo: null, appel: etat.appelId })); });
   $('appel-barre-raccrocher').addEventListener('click', () => { if (etat.appelId && etat.appelReduit) raccrocherCouche(); });
