@@ -1,7 +1,7 @@
 /* ══ LES RÉGLAGES SUIVENT LA PERSONNE D'UN APPAREIL À L'AUTRE — LA PAGE (lot m14 : pro#4, reglages#3, pro#3, pro@5, pro@6) ═════════════════════════════════════════════════
    Le testeur, deux appareils ouverts sur le même compte : réglées sur l'iPhone, les heures de travail (6 h 30) n'apparaissaient pas sur le Mac, dont le toucher suivant ÉCRASAIT
    le réglage par les heures par défaut ; « Pause pendant les réunions », « Confirmer l'envoi » et l'interrupteur de vie privée montraient l'ancien état. Le service prévient
-   maintenant mes autres appareils (`test-1570`) ; ce fichier garde l'autre moitié, la PAGE : ses VRAIES fonctions, exécutées dans un bac à sable (`reglagesRelire`,
+   maintenant mes autres appareils (`test-2570`) ; ce fichier garde l'autre moitié, la PAGE : ses VRAIES fonctions, exécutées dans un bac à sable (`reglagesRelire`,
    `actionNotif`, `peindreCoteReglage`, `basculeReprendre`, `horaireAppliquer`, `surPrefs`) et son texte sans commentaires.
 
    Ce que ce fichier garde :
