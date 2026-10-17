@@ -13,18 +13,19 @@ de ligne du tout.
 
 ---
 
-# ⏳ 17 OCTOBRE 2026 — LE SITE NE SERT PLUS QUE LE SITE ; SKILLS VÉRIFIÉS ; QUATRE TÂCHES AUTOMATIQUES — ATTEND DEUX GESTES DE JUSTIN
+# ✅ 17 OCTOBRE 2026 — LE SITE NE SERT PLUS QUE LE SITE ; SKILLS VÉRIFIÉS ; QUATRE TÂCHES AUTOMATIQUES — EN SERVICE
 
 Mesuré ce jour : `teamop.fr/CLAUDE.md`, `/REPRISE.md`, `/.claude/agents/gardien.md` et `/firestore.rules` répondaient 200 —
 GitHub Pages servait la racine du dépôt. Justin a choisi « le dossier public ». Branche `claude/site-public` :
 `scripts/assembler-site.sh` (liste blanche → `_site`), `.github/workflows/publication-site.yml` (publie `_site`, puis
 vérifie au CDN que les pages répondent 200 et les fichiers internes 404), `tests/test-1008.js` (49 contrôles, quatre
 mutations qui le font tomber). Aucune page ni adresse ne change.
-⏳ **Ce qui attend Justin, dans cet ordre** : 1. Réglages → Pages → Source : « GitHub Actions » (réglage d'administrateur,
-la session n'y a pas accès) ; 2. sa phrase pour fusionner la branche sur `main`. Retour arrière : remettre la Source sur
-la branche `main`. ⚠️ Le dépôt reste PUBLIC sur GitHub : ce changement ferme teamop.fr, pas github.com.
+✅ **Fait le 17 octobre 2026** : Justin a passé Réglages → Pages → Source sur « GitHub Actions » (compte `justino17-cmd`, seul
+administrateur — le compte des sessions, `justin17553-boop`, ne l'est pas), puis « ok, fusionne sur main » → `262abe4`.
+Mesuré après publication : pages 200, `CLAUDE.md`, `REPRISE.md`, `.claude/…`, `firestore.rules`, `server/…` 404, application
+inchangée (v767). Retour arrière : remettre la Source sur la branche `main`, dossier `/ (root)`. ⚠️ Le dépôt reste PUBLIC sur GitHub : ce changement ferme teamop.fr, pas github.com.
 
-Branche `claude/skills-verifies` (attend sa phrase pour `main`) : 15 skills relus et figés (12 marketing de
+Branche `claude/skills-verifies` (fusionnée dans `262abe4`) : 15 skills relus et figés (12 marketing de
 coreyhaines31/marketingskills @365b412, 3 sur commande de muratcankoylan/agent-skills-for-context-engineering @9ff0c99),
 les 13 skills vidéo passés sur commande seulement, « ELAN GESTION » → « OP GESTION » dans trois descriptions,
 `security-penetration-tester` ne se déclenche plus sur chaque route, `deployeur` ne signe plus avec une ancienne session.
@@ -33,6 +34,25 @@ Refusés après lecture : stop-slop, heretic, Agent-Reach, MiroFish ; Strix seul
 Quatre tâches programmées, en LECTURE SEULE (aucun commit, aucun push), rapport poussé sur le téléphone : point du matin
 (jours ouvrés 7 h 53), revue sécurité (lundi 8 h 47), dépendances (lundi 9 h 20), audit du site (le 1er du mois, 9 h 46).
 Heure de Paris. Elles se modifient ou s'arrêtent dans la liste des tâches programmées de claude.ai.
+
+# ⏳ 17 OCTOBRE 2026 (SOIR) — AUDITS STRIPE, ANTHROPIC, OWASP : CE QUI EST GARDÉ — BRANCHE `claude/outils-securite`
+
+Justin, à la proposition « A et B » : « A et B ». A (cette branche, aucun effet sur la production) :
+- agent `echecs-silencieux` (adapté de `silent-failure-hunter`, Anthropic, Apache-2.0 — licence dans `.claude/licences/`) ;
+- skills `stripe-best-practices` et `upgrade-stripe` (Stripe, MIT, commit `c1f5b08`), sur commande seulement, avec un
+  avertissement « TeamOP appelle Stripe par fetch, sans SDK » ; Connect, Treasury et Tax retirés ; NI le plugin, NI ses hooks,
+  NI son serveur MCP (ils glissent des demandes d'avis dans les conversations et branchent le compte Stripe par OAuth) ;
+- `scripts/verif-secrets.sh` reconnaît les clés Stripe (`sk_`/`rk_`, `whsec_`), Slack, SendGrid et npm — `tests/test-1009.js` ;
+- `gardien` pose les questions OWASP API1/3/5/6/9 qu'il ne posait pas.
+Refusés après lecture : `security-guidance` (Opus en dur à chaque tour, contourne « tout en Sonnet »), `claude-security` en
+permanence (licence propriétaire : jamais copié dans ce dépôt public ; au plus un essai ponctuel), les skills OWASP tels quels
+(procédures d'attaque réelles sans garde-fou, fichiers cassés hors de leur dépôt).
+B (branche à part, `claude/stripe-version-idempotence`) : `stripeEntetes` écrit les en-têtes de tous les appels à Stripe et
+fige la version de l'API par `config.stripe.apiVersion` ; `set-stripe.sh` ne l'efface plus ; `set-stripe-version.sh` la pose et
+la vérifie. Relu par `gardien` (aucun bloquant, ses trois points corrigés). PAS de clé d'idempotence : le serveur ne réessaie
+jamais une création, la page désactive son bouton, et une clé tirée du contenu ferait rejouer par Stripe une panne 500.
+⏳ `server/` : attend la PHRASE de Justin avant `main` ; puis, sur le VPS, `bash server/set-stripe-version.sh` avec la
+version affichée dans le tableau de bord Stripe (Développeurs → Version de l'API). Sans ce geste, rien ne change.
 
 # ⛔ DÉCISION DE JUSTIN, 8 OCTOBRE 2026 (NUIT) — OP MESSAGES RESTE EN BÊTA
 

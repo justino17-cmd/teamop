@@ -2358,6 +2358,7 @@ Le choix est donc écrit, agent par agent, dans le frontmatter de `.claude/agent
 | `concepteur` | `sonnet` | `high` | Refonte visuelle et mouvement : un jugement de goût, pas un contrôle mécanique |
 | `gardien` | `sonnet` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
 | `relecteur` | `sonnet` | `high` | Applique des critères écrits à un diff : systématique, pas créatif. Mais il passe après chaque changement, donc son coût unitaire compte |
+| `echecs-silencieux` | `sonnet` | `high` | Traque ce qui échoue sans que personne le sache (refus muet, `[]` au lieu de `null`, catch qui avale, garde que personne ne lit). Adapté de `silent-failure-hunter` d'Anthropic (Apache-2.0, `.claude/licences/`), lecture seule |
 
 Les deux derniers comblent ce que la CI ne fait pas : elle ne vérifie que les secrets commités
 et les failles des dépendances — **pas même la syntaxe**, et personne ne relisait ce qu'une

@@ -32,6 +32,15 @@ motifs=(
   "clé Groq|gsk_[A-Za-z0-9]{40,}"
   "clé Cerebras|csk-[A-Za-z0-9]{30,}"
   "clé AWS|AKIA[0-9A-Z]{16}"
+  # Stripe, Slack, SendGrid, npm : ajoutés le 17 octobre 2026 — aucun de ces formats n'était
+  # reconnu. Le serveur appelle Stripe avec une clé SECRÈTE (config.json du VPS) : une copie
+  # dans ce dépôt public ouvrirait le compte de facturation de toutes les entreprises.
+  # Les longueurs minimales laissent passer les exemples de documentation (`sk_test_xxx`).
+  "clé Stripe (secrète ou restreinte)|(sk|rk)_(live|test)_[A-Za-z0-9]{20,}"
+  "secret de webhook Stripe|whsec_[A-Za-z0-9]{20,}"
+  "jeton Slack|xox[abprs]-[A-Za-z0-9-]{10,}"
+  "clé SendGrid|SG\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}"
+  "jeton npm|_authToken=[^[:space:]\$]{10,}"
   "clé privée|-----BEGIN[A-Z ]*PRIVATE KEY-----"
   "secret en dur|(mot_de_passe|password|passwd|secret|api_?key|apikey)[[:space:]]*[:=][[:space:]]*[\"'][^\"'\$]{12,}[\"']"
 )
