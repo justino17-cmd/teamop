@@ -178,7 +178,7 @@ console.log('\n── 794 · 4. ⛔⛔ une intervention ne déduit RIEN — ni b
      « effectuée » et le menu de statut. Les trois dernières n'ont jamais déduit : elles sont gardées pour
      qu'aucune ne s'y mette le jour où l'on croira « harmoniser » les clôtures. */
   const PORTES = [['function saveRapport(e,id){', 1200], ['function assistFinish(id){', 1200], ['function intTerminerPrevu(id){', 300],
-    ['function intEffToggle(id,checked){', 300], ['function intSetStatutDo(id,st){', 300]];
+    ['function intEffToggle(id,checked){', 300], ['function intSetStatutDo(id,st,apres){', 300]];
   const FERME = PORTES.map(([n]) => bloc(n));
   vrai('population : les cinq portes de clôture sont trouvées, et chacune pose « terminee »', FERME.every((b, k) => b.length > PORTES[k][1] && /'terminee'/.test(b)), FERME.map(b => b.length));
   v('⛔ aucune n’écrit le stock (box, compteur, journal, validation du DR)', FERME.map(b => (b.match(/\.stock\[|mouvements\.unshift|traceBox\(|boxMvtEnvoyer\(|boxAdj\(|\.qte\s*=|stockDeduit\s*=/g) || [])), [[], [], [], [], []]);
