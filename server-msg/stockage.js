@@ -4668,10 +4668,12 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
       return { gids: appelEvenements(id) };
     });
   }
-  /* Terminer pour tous : l'hôte seul. Chaque participant reçoit la fin. */
+  /* Terminer pour tous : l'hôte seul. Chaque participant reçoit la fin.
+     ⛔ Pas l'hôte PAR INTÉRIM (17 octobre 2026, `n#10`) : l'invité qui entre avant l'organisateur tient la porte, il ne ferme pas la réunion de tous — c'est un geste qu'on ne défait pas (la séance
+     est écrite « terminée », le compte rendu part), comme exclure ou enregistrer, que `sansInterim` lui refuse déjà. Ni le lot de l'intérim ni celui de la réunion terminée ne l'avaient tranché. */
   function salleTerminer({ id, par }) {
     return tx(() => {
-      const a = salleVivante(id); salleCommandant(id, par, GRADE_HOTE);
+      const a = salleVivante(id); salleCommandant(id, par, GRADE_HOTE, true);
       return salleFinirDans(id, a.etat === 'en_cours' ? 'fini' : 'annule', 'termine', horloge(), par);
     });
   }

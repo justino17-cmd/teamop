@@ -39,8 +39,8 @@ vrai('« Retirer de la salle » : refusé à l\'intérimaire', /if \(s\.outils &
 vrai('« Nommer co-hôte » : refusé à l\'intérimaire', /if \(s\.moi\.proprietaire && !s\.moi\.interim\) h \+= '<button type="button" class="salle-btn presse" data-sa="cohote"/.test(htmlParticipants));
 vrai('« Demander à tous de couper le micro » : refusé à l\'intérimaire', /if \(hote && s\.outils && !s\.moi\.interim && presents\.length\) h \+= [^\n]*data-sa="couper-tous"/.test(htmlParticipants));
 vrai('« Enregistrer » et « Arrêter l\'enregistrement » (celui d\'un autre) : refusés à l\'intérimaire', /inter = !!s\.moi\.interim/.test(recPossible) && /!!s\.moi\.hote && !inter && !!s\.rec/.test(recPossible) && /\(s\.moi\.grade \| 0\) >= 2 && !inter && !!s\.outils/.test(recPossible));
-vrai('… et une commande restée affichée (page périmée, panneau ouvert avant le changement de rôle) est arrêtée par `salleAgir` pour les huit gestes',
-  /if \(s\.moi\.interim && \['couper-tous', 'cohote', 'retirer-demander', 'retirer-confirmer', 'verrou', 'attente', 'partage-ok', 'rec'\]\.includes\(act\)\) \{ mot\([^\n]*\); return; \}\n\s*switch \(act\) \{/.test(salleAgir));
+vrai('… et une commande restée affichée (page périmée, panneau ouvert avant le changement de rôle) est arrêtée par `salleAgir` pour les dix gestes (les huit du lot m01, plus `terminer-demander` / `terminer-confirmer` du lot p01 : « Terminer pour tous » est refusé à l\'intérimaire par le service, `test-2620`, `test-2621`)',
+  /if \(s\.moi\.interim && \['couper-tous', 'cohote', 'retirer-demander', 'retirer-confirmer', 'verrou', 'attente', 'partage-ok', 'rec', 'terminer-demander', 'terminer-confirmer'\]\.includes\(act\)\) \{ mot\([^\n]*\); return; \}\n\s*switch \(act\) \{/.test(salleAgir));
 
 console.log('\nCe qu\'elle garde : la porte, et le geste individuel');
 vrai('admettre / refuser à l\'entrée restent à tout hôte (rien de `interim` autour de leur bloc)', /const attendent = hote \? s\.membres\.filter/.test(htmlParticipants) && !/'admettre'/.test(salleAgir.slice(0, 600)));

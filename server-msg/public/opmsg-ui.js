@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5b16f81aab0a';
+  const OPMSG_BUILD = '10644101aafc';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 229;
+  const OPMSG_VERSION = 230;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -8798,7 +8798,7 @@
     const directs = s.membres.filter(m => m.statut === 'present' && m.liaison === 'connecte' && !m.relais).length, relais = s.membres.filter(m => m.statut === 'present' && m.relais).length;
     h += '<div class="salle-rub"><span>Informations</span></div><div class="salle-liste"><div class="salle-rang libre"><span class="texte">' + esc(s.nom) + '<small>' + esc((s.genre === 'reunion' ? 'Réunion' : 'Appel de groupe') + ' · ' + (s.type === 'video' ? 'vidéo' : 'audio') + ' · ' + s.nb + (s.capacite ? ' sur ' + s.capacite : '') + ' personnes · ' + (s.visio ? 'par le serveur de visio' : directs + ' liaison' + (directs > 1 ? 's' : '') + ' directe' + (directs > 1 ? 's' : '') + (relais ? ', ' + relais + ' par relais' : ''))) + '</small></span></div></div>';
     if (clavierPresent()) h += '<div class="salle-rub"><span>Clavier</span></div><div class="salle-liste"><button type="button" class="salle-rang" data-sa="raccourcis"><span class="texte">Raccourcis clavier<small>' + (raccourcisActifs ? 'M micro · V caméra · H main · espace pour parler' : 'Coupés') + '</small></span></button></div>';
-    if (s.moi.proprietaire) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
+    if (salleTerminable(s)) h += '<p class="salle-note"><button type="button" class="salle-btn danger presse" data-sa="terminer-demander">Terminer pour tous</button></p>';
     return h;
   }
   /* ⛔ LES RACCOURCIS (12 octobre 2026) : des lettres seules, comme Zoom et Teams — pas de Ctrl ni de ⌘, qui sont aux navigateurs (⌘D garde un favori, Ctrl+E cherche). Ils ne jouent
@@ -8895,7 +8895,7 @@
     const A = etat.appelUI; if (!enSalle(A)) return;
     const s = A.snap, X = sx(A), uid = el.dataset.uid;
     /* ⛔ l'hôte PAR INTÉRIM (invité nommé entré avant l'organisateur) tient la porte — admettre, refuser — mais n'a pas les gestes qu'on ne défait pas ; le service les lui refuse (403), la page ne les laisse pas partir */
-    if (s.moi.interim && ['couper-tous', 'cohote', 'retirer-demander', 'retirer-confirmer', 'verrou', 'attente', 'partage-ok', 'rec'].includes(act)) { mot('L\'organisateur n\'est pas encore là : tu fais entrer, il règle la salle.'); return; }
+    if (s.moi.interim && ['couper-tous', 'cohote', 'retirer-demander', 'retirer-confirmer', 'verrou', 'attente', 'partage-ok', 'rec', 'terminer-demander', 'terminer-confirmer'].includes(act)) { mot('L\'organisateur n\'est pas encore là : tu fais entrer, il règle la salle.'); return; }
     switch (act) {
       case 'panneau-fermer': salleFermerPanneau(A); return;
       case 'doc-joindre': $('salle-doc').click(); return;
@@ -9024,7 +9024,7 @@
   $('salle-quitter').addEventListener('click', () => {
     const A = etat.appelUI; if (!A || !A.snap) return;
     const s = A.snap;
-    if (enSalle(A) && s.moi.proprietaire && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
+    if (enSalle(A) && salleTerminable(s) && s.nb > 1) { salleOuvrirPanneau(A, 'quitter', $('salle-quitter')); return; }       // l'hôte qui part choisit : partir (le rôle passe) ou finir pour tous
     raccrocherCouche();
   });
   /* ⛔ LES GESTES DE LA SALLE SONT DANS « PLUS » (16 octobre 2026 : « ok fait les deux » — la barre ronde seule, la rangée de pastilles rangée dans « Plus », Réagir et
@@ -9034,6 +9034,9 @@
   function salleVueBasculer(A) { const X = sx(A); X.vue = X.vue === 'intervenant' ? 'galerie' : 'intervenant'; rendreAppel(); annonceAppel(X.vue === 'intervenant' ? 'Vue intervenant' : 'Vue galerie'); }
   /* l'enregistrement est un outil d'organisateur : jamais proposé dans un appel gratuit, et COMMENCÉ par l'hôte seul (grade 2 : le service refuse le co-hôte — test-986) ;
      on peut toujours ÉTEINDRE celui qu'on a lancé ; celui d'un autre, un hôte ou co-hôte le voit dire « Enregistré par », sans geste d'ici */
+  /* ⛔ « TERMINER POUR TOUS » (17 octobre 2026, `n#10`) : l'hôte seul — et pas l'hôte PAR INTÉRIM (`moi.interim`), à qui le service le refuse (403) comme tout geste qu'on ne défait pas. Le bouton de « Plus », le choix
+     « partir ou finir pour tous » du bouton Quitter et `salleAgir` lisent cette seule règle : une réunion fermée à tous par quelqu'un qui n'a que la porte ne se rouvre pas d'un geste. */
+  const salleTerminable = s => !!(s.moi.proprietaire && !s.moi.interim);
   const salleRecPossible = A => { const s = A.snap, moiRec = !!(s.rec && s.rec.par === MOI.id), inter = !!s.moi.interim; return moiRec || (!!s.moi.hote && !inter && !!s.rec) || ((s.moi.grade | 0) >= 2 && !inter && !!s.outils && recDisponible()); };
   function salleRecBasculer(A) { const s = A.snap; if (!salleRecPossible(A) || (s.rec && s.rec.par !== MOI.id)) return; if (A.rec) recArreter(A, true); else recDemarrer(A); }
   /* un document envoyé DEPUIS la salle : la même porte que la conversation (`envoi`), vers la conversation de la salle — le fil de la réunion le garde après elle */
