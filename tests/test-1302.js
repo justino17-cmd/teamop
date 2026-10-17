@@ -66,12 +66,12 @@ v('… le nom seul aussi (déjà le cas : Haute-Corse)', f("parseTechDepts('Haut
 v('⛔⛔ les codes postaux corses : 20000 et 20100 → 2A, 20200 et 20600 → 2B', [f("cpToKey('20000')"), f("cpToKey('20199')"), f("cpToKey('20200')"), f("cpToKey('20600')")], ['2A', '2A', '2B', '2B']);
 v('⛔ … et leur libellé nomme le département (plus « 20 » sans nom)', [f("keyLabel(cpToKey('20000'))"), f("keyLabel(cpToKey('20200'))")], ['2A — Corse-du-Sud', '2B — Haute-Corse']);
 v('⛔ un technicien « 2A » couvre un client 20000 ; « 2B » couvre 20200 mais pas 20000',
-  f("(function(){ db.techniciens=[{id:'a',nom:'A',departements:'2A Corse-du-Sud'},{id:'b',nom:'B',departements:'2B'}]; return [techForKey(cpToKey('20000')).id, techForKey(cpToKey('20200')).id]; })()"), ['a', 'b']);
+  f("(function(){ db.techniciens=[{id:'a',nom:'A',departements:'2A Corse-du-Sud'},{id:'b',nom:'B',departements:'2B'}]; return [(techForKey(cpToKey('20000'))||{}).id, (techForKey(cpToKey('20200'))||{}).id]; })()"), ['a', 'b']);
 v('… « 20000 » tapé dans le secteur d’un technicien est la Corse-du-Sud', f("parseTechDepts('20000')"), ['2A']);
 v('contre-épreuve : « 21 » (Côte-d’Or), « 20 » seul = les deux départements corses', [f("parseTechDepts('21')"), f("parseTechDepts('20')").sort()], [['21'], ['2A', '2B']]);
 v('⛔⛔ 971 s’affiche « 971 — Guadeloupe », pas « 97 »', [f("keyLabel(cpToKey('97100'))"), f("cpToKey('97100')")], ['971 — Guadeloupe', '971']);
 v('… 972, 974, 976 aussi', [f("keyLabel(cpToKey('97200'))"), f("keyLabel(cpToKey('97400'))"), f("keyLabel(cpToKey('97600'))")], ['972 — Martinique', '974 — La Réunion', '976 — Mayotte']);
-v('… le secteur « 971 Guadeloupe » d’un technicien couvre un client 97100', f("(function(){ db.techniciens=[{id:'g',nom:'G',departements:'971 Guadeloupe'}]; return [parseTechDepts('971 Guadeloupe'), techForKey(cpToKey('97100')).id, techForKey(cpToKey('97200'))||null]; })()"), [['971'], 'g', null]);
+v('… le secteur « 971 Guadeloupe » d’un technicien couvre un client 97100', f("(function(){ db.techniciens=[{id:'g',nom:'G',departements:'971 Guadeloupe'}]; return [parseTechDepts('971 Guadeloupe'), (techForKey(cpToKey('97100'))||{}).id, techForKey(cpToKey('97200'))||null]; })()"), [['971'], 'g', null]);
 v('… et « 97100 » tapé dans un secteur donne 971', f("parseTechDepts('97100')"), ['971']);
 v('contre-épreuve : un département ordinaire n’est pas touché', [f("parseTechDepts('33, 47')"), f("parseTechDepts('75 Paris')"), f("parseTechDepts('Gironde')")], [['33', '47'], ['75'], ['33']]);
 
