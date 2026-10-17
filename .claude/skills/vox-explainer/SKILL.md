@@ -1,4 +1,5 @@
 ---
+disable-model-invocation: true
 name: vox-explainer
 description: Make a short Vox-style documentary explainer (30-60 seconds) entirely in code with Claude Code. Torn paper, halftone texture, bold condensed type, motion on twos. Use when someone says "make a Vox-style video", "explainer video about...", "why does X happen", or wants a documentary-style motion graphic for LinkedIn, Instagram or YouTube without After Effects or a video generator.
 ---
