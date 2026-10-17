@@ -100,8 +100,8 @@ const MIN = 60000, JOUR = 86400000;
     vrai('   evtReporter (fiche d\'un rappel) annonce par phraseReport(dans, …)', /mot\(phraseReport\(dans, \w+\)\)/.test(evt), evt);
     vrai('   reporter-choix (menu d\'appui long) annonce par phraseReport(dans, …)', /mot\(phraseReport\(dans, \w+\)\)/.test(choix), choix);
     vrai('   ⛔ l\'ancienne phrase « Reporté à demain » concaténée à la main n\'existe plus nulle part', !/'Reporté ' \+ \(dans/.test(SANS) && !/Reporté à demain/.test(SANS.replace(/return 'Reporté à demain'[^\n]*\n/, '')), null);
-    const nbJd = (SANS.match(/reportDemainJour\(/g) || []).length;
-    vrai('   les trois endroits qui promettent « demain » (menu, libellé de la fiche, aria-label) lisent reportDemainJour', nbJd >= 4, nbJd);
+    vrai('   le menu d\'appui long fonde son libellé « demain » sur reportDemainJour(x.e)', /const jd = reportDemainJour\(x\.e\)[^;]*'À demain 9 h'/.test(SANS), null);
+    vrai('   le libellé de la fiche (bouton « Demain 9 h ») le fonde sur reportDemainJour(e) et son aria-label aussi', /\)\(reportDemainJour\(e\)\)\.map/.test(SANS) && /'Reporter ' \+ \(v === 'demain' \? \(reportDemainJour\(e\)/.test(SANS), null);
   } finally { await svc.arreter(); await og.fermer(); }
   fin();
 })().catch((e) => { console.error(e); process.exit(1); });
