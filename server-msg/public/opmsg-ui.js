@@ -4290,7 +4290,7 @@
   });
   /* ⛔ LA GRAMMAIRE D'UN IDENTIFIANT, recopiée de `identLire` (server-msg/stockage.js) : le service ne l'expose pas, et la page la contrôle AVANT l'appel, comme elle contrôle déjà la
      présence du « # » — « Zoe#0000 » ou « Cléo#1 » ne méritent pas un aller-retour (ni une recherche comptée au plafond). Quatre ou cinq chiffres, de 1000 à 99999, sans zéro devant.
-     `tests/test-1560.js` compare cette fonction à `identLire` sur une liste de cas : si le service change la plage, le banc tombe. */
+     `tests/test-2560.js` compare cette fonction à `identLire` sur une liste de cas : si le service change la plage, le banc tombe. */
   function identFormatOk(t) {
     if (typeof t !== 'string' || t.length > 80) return false;
     const m = /^(.*)#\s*(\d{4,5})$/.exec(t.trim());
