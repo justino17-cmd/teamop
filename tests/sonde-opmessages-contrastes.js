@@ -1,5 +1,5 @@
 /* ══ SONDE — LES CONTRASTES ET LES CIBLES AU DOIGT, AU PIXEL, DANS LA VRAIE PAGE SERVIE (lot m21, 17 octobre 2026) ═══════════════════════════════════════════════════════════════
-   Les bancs test-1500 à test-1505 REJOUENT la feuille de style ; cette sonde mesure ce que l'ŒIL voit — sur des captures, Chromium en SwiftShader (le chemin `--disable-gpu` ne
+   Les bancs test-2500 à test-2505 REJOUENT la feuille de style ; cette sonde mesure ce que l'ŒIL voit — sur des captures, Chromium en SwiftShader (le chemin `--disable-gpu` ne
    floute pas une vitre mince et fausserait la mesure : CLAUDE.md). Contre le VRAI service, sur une page connectée :
      1. L'AGENDA, au bureau (1440 px), de JOUR et de NUIT : les jours de la semaine (.mjour-nom), l'heure d'une pastille (.mjour-elt time) et l'en-tête des jours du mois passent 4,5:1
         (testeurs : 3,44 / 3,06 / 4,22 avant) ;

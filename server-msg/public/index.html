@@ -1448,7 +1448,7 @@ html[data-service] .mention-apercu { display: none; }
 .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #8e1b3a; color: #fff; }
 /* ⛔ DE NUIT, UNE BULLE ENVOYÉE S'ÉCLAIRCIT (17 octobre 2026, au pixel) : les fonds de nuit sont des teintes à 14–24 % sur un bleu nuit — sombres ; le graphite #3a3a3c et le bordeaux #8e1b3a, choisis pour
    le jour, s'y confondaient (Graphite sur Sable : 1,04:1 ; 11 combinaisons sur 72 sous 1,5:1). Une surface élevée est plus claire que son fond. Le blanc reste lisible dessus (≥ 4,5:1),
-   et la pastille du choix (.theme-rond) suit la même règle. Le jour ne bouge pas. tests/test-1503.js rejoue les 72 combinaisons. */
+   et la pastille du choix (.theme-rond) suit la même règle. Le jour ne bouge pas. tests/test-2503.js rejoue les 72 combinaisons. */
 @media (prefers-color-scheme: dark) {
   .conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #636366; }
   .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #b02a4f; }
@@ -2103,7 +2103,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .carte-liste > li.bord-jour::after { display: none; }
 .bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--sub-meta); }
 /* ⛔ LE ROUGE EST POUR L'APPEL MANQUÉ, PAS POUR LA RAISON DE L'AFFICHER (17 octobre 2026, capture iPad) : « Collègue », « Favori », « A appelé 3 fois » informent, ils n'alertent pas — la pastille prend un gris de
-   légende sur un voile neutre, et le nom de l'appelant l'encre du texte. La liste des Appels, elle, garde son rouge (`.appel-nom-ligne.manque`). tests/test-1504.js. */
+   légende sur un voile neutre, et le nom de l'appelant l'encre du texte. La liste des Appels, elle, garde son rouge (`.appel-nom-ligne.manque`). tests/test-2504.js. */
 #bord-appels .appel-nom-ligne.manque { color: var(--text); }
 .bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 #vue-accueil > #bord-portee { max-width: 320px; margin-inline: auto; }        /* comme l'Agenda : un petit segmenté centré, jamais une barre de toute la largeur */
