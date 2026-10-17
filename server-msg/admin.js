@@ -109,7 +109,7 @@ const sha256 = (x) => crypto.createHash('sha256').update(x).digest();
 const sha256Hex = (x) => crypto.createHash('sha256').update(x).digest('hex');
 
 /* ══ LA CONFIGURATION ═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════
-   `admin: { secret: "<64 hexadécimaux>" }`. Absent : l'administration est INERTE. Présent mais faux (pas un objet, une clé inconnue, un secret qui n'est pas 64 hexadécimaux, trop régulier,
+   `admin: { secret: <64 hexadécimaux, entre guillemets> }`. Absent : l'administration est INERTE. Présent mais faux (pas un objet, une clé inconnue, un secret qui n'est pas 64 hexadécimaux, trop régulier,
    ou égal à la clé maître) : le démarrage est REFUSÉ — un secret à moitié posé ne doit pas laisser croire que la porte est gardée. ⛔ Jamais la valeur dans un message d'erreur. */
 function adminConfig(cfg, kek) {
   const err = (m) => { const e = new Error('config: ' + m); e.code = 'CONFIG'; return e; };

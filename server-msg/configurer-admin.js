@@ -107,7 +107,7 @@ function ecrire(avant, apres, attendu) {
   /* La MÊME validation que le démarrage du service, et la seule : ce qui passe ici démarrera là (64 hexadécimaux, assez irrégulier). */
   try { adminConfig({ admin: { secret: secretMinuscule } }, null); } catch (e) { echec(sansPrefixe(e)); }
   ecrire(config, Object.assign({}, config, { admin: { secret: secretMinuscule } }), secretMinuscule);
-  console.log('✅ ' + CONFIG_PATH + ' mis à jour (chmod 600). Empreinte courte du secret : ' + courte(secretMinuscule) + '.');
+  console.log('✅ ' + CONFIG_PATH + ' mis à jour (chmod 600). Empreinte courte du secret, ' + courte(secretMinuscule) + '.');
   if (fabrique) console.log('   Ce secret a été fabriqué ICI et n\'a été montré à personne : aucun relais ne le connaît, les routes d\'administration restent fermées de fait. Pour les ouvrir, relancer ce script et coller une valeur que vous gardez.');
   else console.log('   Posez la MÊME valeur côté relais de la console (OP GESTION), puis comparez les empreintes courtes — ou relancez ce script avec --verifier.');
   console.log('   Pour finir :   systemctl restart teamop-msg@<instance>   puis la console OP MESSAGES doit répondre (GET /api/admin/sante par le relais).\n');
