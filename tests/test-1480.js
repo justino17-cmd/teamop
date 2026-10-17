@@ -33,7 +33,10 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
   function monter(login) {
     const nav = T.navigateur(svc.base), monde = creerMonde(login), D = { login, nav, monde, evs: [] };
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => true, surMessage: () => {}, abonnementActuel: async () => null, fermerNotifications: async () => {} };
-    D.src = creerSourceServeur({ OPMSG, base: svc.base, fetch: nav.fetch, EventSource: nav.EventSource, navigateur: faux, webrtc: monde, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 20, appelsDelais: DELAIS });
+    /* `retenir` : garde la RÉPONSE d'un POST (par son chemin) jusqu'à ce que le banc la relâche — la requête, elle, est partie et le service l'a traitée */
+    D.retenir = null;
+    const fetchTenu = async (url, o) => { const r = await nav.fetch(url, o); const h = D.retenir; if (h && o && o.method === 'POST' && String(url).endsWith(h.fin)) { h.arrivee = true; await h.libere; } return r; };
+    D.src = creerSourceServeur({ OPMSG, base: svc.base, fetch: fetchTenu, EventSource: nav.EventSource, navigateur: faux, webrtc: monde, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5, delaiAckMs: 20, appelsDelais: DELAIS });
     sources.push(D.src); D.src.ecouter(e => { D.evs.push(e); });
     D.entrer = async () => { await D.src.connexion(login, MDP[login]); const d = await D.src.demarrer(); if (!d.connecte) throw new Error('démarrage refusé'); D.moi = D.src.moi(); return D.moi; };
     D.attendreSnap = async (id, pred, ms) => { let s = null; await att(async () => { s = await D.src.appel(id); return s && pred(s) ? s : null; }, ms); return s && pred(s) ? s : null; };
@@ -76,6 +79,27 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       vrai('(population) l\'appel est fini des deux côtés', !!fa && !!fb);
       v('⛔ l\'hôte lit « Appel terminé pour tous. »', fa && fa.avis, 'Appel terminé pour tous.');
       v('⛔ l\'invité dont le geste avait été refusé lit la phrase de l\'hôte (le refus n\'a rien marqué)', fb && fb.avis, 'L\'hôte a mis fin à l\'appel.');
+    }
+
+    /* ═══ 3. LA FIN ARRIVE AVANT LA RÉPONSE ═══ */
+    console.log('\nLa fin de la salle arrive AVANT la réponse du geste : la marque est posée avant l\'appel, pas après');
+    {
+      const debut = Date.now() + 5 * 60000;
+      const r = await A.src.programmer({ titre: 'Revue', debut, fin: debut + 3600000, invites: [ben.id], salle_attente: false });
+      const sa = await A.src.rejoindreReunion(r.id, 'audio'); donnerPistes(A, sa.id);
+      const sb = await B.src.rejoindreReunion(r.id, 'audio'); donnerPistes(B, sb.id);
+      vrai('(population) les deux sont présents dans la seconde réunion', !!(await att(async () => ((await A.src.appel(sa.id)).membres || []).some(m => m.id === ben.id && m.statut === 'present'))));
+      let libere; const tenu = { fin: '/terminer', arrivee: false, libere: new Promise(r => { libere = r; }) };
+      A.retenir = tenu;
+      const geste = A.src.salleAction(sa.id, 'terminerPourTous', {}).catch(e => e);
+      await att(() => tenu.arrivee);
+      /* le service a traité la demande ; la réponse est retenue : la salle se finit chez Ben, puis chez Ana PAR LE FLUX, avant que son `await` ne rende la main */
+      const fb = await B.attendreSnap(sb.id, x => x.etat === 'termine', 6000);
+      const fa = await A.attendreSnap(sa.id, x => x.etat === 'termine', 6000);
+      vrai('(population) la salle est finie des deux côtés PENDANT que la réponse du geste est encore retenue', !!fa && !!fb && tenu.arrivee);
+      v('⛔ pendant que la réponse est retenue, la vue de l\'hôte dit déjà « Réunion terminée pour tous. » (la marque précède l\'appel)', fa && fa.avis, 'Réunion terminée pour tous.');
+      libere(); A.retenir = null; await geste;
+      v('⛔ l\'hôte lit « Réunion terminée pour tous. » même quand le flux a fini la salle avant la réponse', (await A.src.appel(sa.id)).avis, 'Réunion terminée pour tous.');
     }
   } catch (e) {
     console.log('  ✗ le banc est mort : ' + (e && e.stack || e));
