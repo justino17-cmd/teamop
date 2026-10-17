@@ -70,6 +70,19 @@ mapfile -t SUITES_MSG < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-messages.l
 # ⚠️ Même exigence que pour la liste du serveur : une liste vide ou tronquée ferait passer la porte sur rien.
 [ "${#SUITES_MSG[@]}" -ge 5 ] || { echo "✗ la liste des bancs d'OP MESSAGES n'a que ${#SUITES_MSG[@]} suite(s)"; exit 1; }
 for f in "${SUITES_MSG[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
+# 1 ter. Les AIDES des suites — un fichier de `tests/` qu'une suite charge (`require('./x')`, `path.join(__dirname, 'x.js')`)
+#    sans être une suite : le compteur ne le lance pas, la liste ne le nomme pas. Le 17 octobre 2026, `tests/faux-imap.js`
+#    (la boîte IMAP de banc que `test-834` et `test-1012` glissent au serveur par `node -r`) manquait : le serveur ne
+#    démarrait pas, deux suites s'interrompaient, la porte a refusé — sur un serveur juste. On les recense au lieu de les lister.
+mapfile -t AIDES < <(grep -ohE "__dirname, '[a-z0-9-]+\.js'|require\('\./[a-z0-9-]+(\.js)?'\)" "${SUITES[@]}" "${SUITES_MSG[@]}" \
+  | sed -E "s/.*'(\.\/)?([a-z0-9-]+)(\.js)?'.*/tests\/\2.js/" | sort -u)
+AIDES_PRISES=()
+for f in "${AIDES[@]}"; do
+  if git cat-file -e "$SOURCE:$f" 2>/dev/null && ! grep -qxF "$f" <(printf '%s\n' "${SUITES[@]}" "${SUITES_MSG[@]}"); then
+    git checkout -q "$SOURCE" -- "$f"; AIDES_PRISES+=("$f")
+  fi
+done
+echo "  aides des suites : ${AIDES_PRISES[*]:-aucune}"
 # ⚠️ Les pages que ces suites font parler au serveur partent avec lui : `test-797`, `test-839` et `test-840` lisent la
 #    page de paiement (ses refus, sa grille de prix). Restée celle de `main`, elle ne saurait pas DIRE le refus que le
 #    serveur neuf rend — et les bancs tomberaient ici, sur un serveur juste (relecture adverse, 28 septembre 2026, nuit).
@@ -150,7 +163,7 @@ VAPP="$(sed -n "s/.*APP_VERSION *= *'\([0-9]*\)'.*/\1/p" app.html | head -1)"
 [ -n "$VAPP" ] || { echo "✗ APP_VERSION illisible dans app.html de main"; exit 1; }
 git add server .github/scripts/surveillance.js .github/workflows/deploiement.yml .github/workflows/ci.yml \
         scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}" "${PAGES_LIEES[@]}" \
-        "${OPMSG_FICHIERS[@]}" "${SUITES_MSG[@]}"
+        "${OPMSG_FICHIERS[@]}" "${SUITES_MSG[@]}" ${AIDES_PRISES[@]+"${AIDES_PRISES[@]}"}
 git diff --cached --name-only | grep -q 'node_modules' && { echo "✗ node_modules dans le commit — rien ne se fait"; exit 1; }
 git -c user.name="$(git -C "$RACINE" config user.name || echo TeamOP)" \
     -c user.email="$(git -C "$RACINE" config user.email || echo noreply@teamop.fr)" \

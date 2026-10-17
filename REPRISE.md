@@ -74,6 +74,14 @@ Toutes les contre-épreuves de ces bancs mordent (scripts `scratchpad/mut-10*.py
    mot de passe TAPÉ DANS LA TOUR (jamais dans une conversation), serveurs OVH par défaut. Le serveur en ligne a déjà la route
    (`POST /api/monitor/mail/boites`, patron) ; c'est le FORMULAIRE qui n'existe que dans la v2.88 — l'aperçu suffit.
 
+**⏸ MISE EN LIGNE ARRÊTÉE (17 octobre 2026, à la demande de Justin, « on va arrêter »)** — il avait dit « serveur + aperçu ».
+RIEN n'est parti sur `main`. Où on en était : `main` fusionné dans la branche (`264f27e`) ; `scripts/preparer-deploiement-serveur.sh`
+reçoit `TOUR_EN_SERVICE=garder` (le serveur et l'APERÇU de la Tour partent, la Tour en service reste celle de main) ; la porte a
+REFUSÉ le premier commit préparé : `test-834` et `test-1012` lancent le serveur avec `tests/faux-imap.js`, absent de l'arbre de
+déploiement (une aide de test, pas une suite). Le script emporte désormais les aides que les suites chargent (§ 1 ter) — ⚠️ cette
+dernière retouche n'a PAS encore été rejouée par la porte : relancer `TOUR_EN_SERVICE=garder bash scripts/preparer-deploiement-serveur.sh`
+(retirer d'abord l'arbre `scratchpad/deploiement-serveur` par `git worktree remove --force`), puis pousser sur la phrase de Justin.
+
 **À trancher par Justin :**
 - l'administration d'OP MESSAGES (comptes et leurs adresses « courriel ») est lisible par TOUT compte de la console OP
   MESSAGES, pas le seul patron — comme les Demandes d'OP GESTION pour ses opérateurs. Resserrer = `monPatronStrict` sur
