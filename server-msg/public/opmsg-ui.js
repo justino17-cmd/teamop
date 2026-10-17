@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = 'e487f2104884';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 208;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3953,7 +3953,7 @@
   /* LE BUREAU : un écran large piloté à la souris — la même requête que la couche CSS « 20. LE BUREAU » (une seule définition des deux côtés) */
   const BUREAU_MQ = window.matchMedia ? window.matchMedia('(min-width: 900px) and (hover: hover) and (pointer: fine)') : null;
   const auBureau = () => !!(BUREAU_MQ && BUREAU_MQ.matches);
-  const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ');      // (un double espace du clavier mobile ne fait pas croire que le contact n'existe pas)
   function rendreVueContacts() {
     const sec = $('vue-contacts'); if (!sec || !CAP.identifiants) return;
     if (!$('vc-corps')) {
@@ -3976,6 +3976,11 @@
       if (vcCat() === 'entreprise' && !etat.vcEsp) chargerVcEspaces();
     }
     peindreVcSegment();
+    /* ⛔ la personne choisie dans le volet droit vaut pour UN côté : passé de Perso à Pro (ou l'inverse), sa fiche ne reste pas — avec ses gestes Message / Appeler actifs — à côté d'une
+       liste qui ne la contient plus. Le côté se compare au côté du DERNIER rendu (ici, pas dans `changerMode` : Contacts peut être fermé quand on bascule — le rendu suivant le voit). */
+    const coteVu = modesActifs() ? etat.mode : '';
+    if (etat.vcCoteVu !== undefined && etat.vcCoteVu !== coteVu) etat.vcSel = null;
+    etat.vcCoteVu = coteVu;
     const corps = $('vc-corps');
     const garde = document.activeElement && corps.contains(document.activeElement) ? document.activeElement : null;
     const cleFocus = garde && garde.dataset ? (garde.dataset.act || '') + '|' + (garde.dataset.uid || '') : '';
@@ -3985,7 +3990,7 @@
     const D = demandesEtat, R = cat === 'tous' ? (D && D.recues || []).filter(garder) : [], E = cat === 'tous' ? (D && D.envoyees || []).filter(garder) : [];
     const ligne = (d, sous, actions) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
     let h = '';
-    if (cat !== 'tous') { corps.innerHTML = rendreVcCategorie(cat, brut, q); vcRendreFocus(corps, cleFocus); return; }
+    if (cat !== 'tous') { corps.innerHTML = rendreVcCategorie(cat, brut, q); vcRendreFocus(corps, cleFocus); peindreVcFiche(); return; }      // ⛔ la fiche se repeint dans TOUTES les catégories : choisir un favori ou un collègue change le volet droit, pas seulement dans « Tous »
     if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
     else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
     else if (R.length) {                // (15 octobre 2026, « plus simple ») la rubrique des demandes ne paraît que s'il y en a : plus de carte « Aucune demande en attente »
@@ -4036,7 +4041,7 @@
       '<div class="vc-fiche-actions">' + geste('ecrire', icone('i-chat'), 'Message') +
         (CAP.appels ? geste('appel', icone('i-phone'), 'Appeler', ' data-video="0"') + geste('appel', icone('i-video'), 'Vidéo', ' data-video="1"') : '') +
         (CAP.reunions ? geste('programmer', icone('i-agenda'), 'Réunion') : '') +
-        (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', p.favori ? 'Favori' : 'Favoris', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
+        (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', 'Favori', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
       '</div>';
   }
   function ficheCommun(p) {
@@ -4050,9 +4055,11 @@
     }
     let h = '';
     if (CAP.reunions) {
+      /* ⛔ la MÊME séparation que l'Agenda (`duCote(coteReu(r))`) : une réunion rangée Pro ne se liste pas côté Perso — la toucher ouvrait la réunion Pro depuis Perso. Le compteur compte ce qui est LISTÉ. */
+      const reunions = d.reunions.filter(r => duCote(coteReu(r)));
       /* (15 octobre 2026, « plus simple ») sans réunion prévue, la rubrique s'appelle « Réunions » et ne dit qu'une chose : en programmer une — plus de phrase « Aucune réunion… » */
-      h += '<div class="rubrique"><span>' + (d.reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
-      h += d.reunions.map(r => {
+      h += '<div class="rubrique"><span>' + (reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (reunions.length ? '<span>' + reunions.length + '</span>' : '') + '</div><div class="carte">';
+      h += reunions.map(r => {
         const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
         const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(FMT_JOUR_FICHE.format(o.debut) + ' · ' + FMT_HEURE.format(o.debut) + ' – ' + FMT_HEURE.format(o.fin)) + '<br>' + esc(sonStatutTxt(r, p));
         return '<button type="button" class="fc-ligne presse" data-fiche="reunion" data-id="' + esc(r.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-date" aria-hidden="true"><small>' + esc(FMT_MOIS_CAL.format(o.debut).replace('.', '')) + '</small><b>' + new Date(o.debut).getDate() + '</b></span>' +
@@ -4221,7 +4228,14 @@
         '<span class="contact-texte"><span class="contact-nom">Nouveau groupe</span><span class="contact-role">Choisis des contacts et donne-lui un nom</span></span></button></div>';
       if (G.length) h += '<div class="rubrique"><span>Mes groupes</span><span>' + G.length + '</span></div><div class="carte">' + G.map(g => '<button type="button" class="contact presse" data-act="vc-groupe" data-id="' + esc(g.id) + '">' +
         avatar(g) + '<span class="contact-texte"><span class="contact-nom">' + esc(g.nom) + '</span></span><svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
-      else h += q ? vcAucun(brut) : '<div class="carte carte-pad"><p class="info-note">Tu ne fais partie d\'aucun groupe pour l\'instant.</p></div>';
+      else if (q) h += vcAucun(brut);
+      else {
+        /* ⛔ côté Perso (ou Pro), « aucun groupe » ne dit pas que la personne n'en a pas : ses groupes peuvent être rangés de l'AUTRE côté (un groupe de collègues passe en Pro tout seul).
+           Comme « Aucune conversation Perso pour l'instant » dans Messages : la phrase nomme le côté, et renvoie vers l'autre quand il en a. */
+        const chez = modesActifs() ? (etat.conversations || []).filter(c => c.type === 'groupe' && !dansMode(c)).length : 0, ici = etat.mode === 'pro' ? 'Pro' : 'Perso', ailleurs = etat.mode === 'pro' ? 'Perso' : 'Pro';
+        h += '<div class="carte carte-pad"><p class="info-note">' + (!modesActifs() ? 'Tu ne fais partie d\'aucun groupe pour l\'instant.'
+          : 'Aucun groupe ' + ici + ' pour l\'instant.' + (chez ? ' Tu en as ' + chez + ' côté ' + ailleurs + '.' : '')) + '</p></div>';
+      }
       return h;
     }
     /* Entreprise : les collègues de chaque espace, lus au service. Rien ne s'affiche avant d'avoir été LU : une panne le dit, jamais « aucun collègue ». */
@@ -4238,7 +4252,7 @@
       h += '<div class="rubrique"><span>' + esc(e.nom) + '</span><span>' + (L ? L.length || '' : '') + '</span></div>';
       if (!L) h += '<p class="vide">' + (S.panne[e.id] ? esc(S.panne[e.id]) : 'Chargement…') + '</p>';
       else if (!L.length) h += '<div class="carte carte-pad"><p class="info-note">Personne d\'autre dans cet espace pour l\'instant.</p></div>';
-      else h += '<div class="carte">' + L.map(p => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '">' + avatar(p) +
+      else h += '<div class="carte">' + L.map(p => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '"' + (auBureau() && etat.vcSel === p.id ? ' aria-current="true"' : '') + '>' + avatar(p) +
         '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (presenceTexte(p) || p.statut ? '<span class="contact-role">' + esc(presenceTexte(p) || p.statut) + '</span>' : '') + '</span>' +
         '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
     }
