@@ -138,7 +138,8 @@ console.log('\n── 794 · 2. UN total pour Stock, Produits, la cloche et la c
   v('⛔ une box qu’on ne voit pas ne compte pas', L.some(l => l.p.id === 'x'), false);
   v('stockTotaux rend exactement les mêmes chiffres que les lignes', W.stockTotaux(), { a: 27, c: 3 });
   const SP = bloc('function renderProduitsList(');
-  vrai('⛔ Produits lit stockTotaux — plus `boxEtat(p.qte)`', /const TOT=stockTotaux\(\), toutVu=stockVoitTout\(\);/.test(SP) && /boxEtat\(tq\|\|0\)/.test(SP) && !/boxEtat\(p\.qte\)/.test(SP), SP.length);
+  /* g19 · stock#5 : Produits passe aussi le seuil d'alerte de la fiche (`boxEtat(total, p.seuil)`) — le motif suit ; test-1162 l'EXÉCUTE. */
+  vrai('⛔ Produits lit stockTotaux — plus `boxEtat(p.qte)`', /const TOT=stockTotaux\(\), toutVu=stockVoitTout\(\);/.test(SP) && /boxEtat\(tq\|\|0,p\.seuil\)/.test(SP) && !/boxEtat\(p\.qte\)/.test(SP), SP.length);
   vrai('… et un produit absent de SES box n’est pas « Épuisé » pour qui ne voit pas tout', /\(tq==null&&!toutVu\)\?\{k:'hors',l:'Pas dans tes box'/.test(SP));
   vrai('⛔ plus aucun écran ne lit l’état d’un produit sur `p.qte`', !/boxEtat\(\s*p\.qte/.test(SRC)); }
 
