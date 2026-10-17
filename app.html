@@ -477,6 +477,21 @@
   /* Carte plein écran */
   .content-map{padding:0 !important;}
   .content-map .map-card{margin:0;border-radius:0;border:0;}
+  /* ⛔ clients#9 — LA CARTE EST BORD À BORD, PAS LA RANGÉE QUI LA SURMONTE. `.content-map{padding:0}` retire la marge de
+     tout l'écran : le segmenté « Liste · Carte · Produits donnés » (Carte des box) et la barre « Carte du … / Technicien »
+     (Carte interventions) se retrouvaient collés au menu (x=258), pleine largeur, quand la liste Clients commence à 292 —
+     mesuré à 1440, 820 et 390 px. Ils reprennent la marge de la page (`--rf-marge`, zone sûre comprise), celle que
+     `html[data-refonte] .content` donne à tous les autres écrans ; la carte, elle, reste bord à bord. Par CLASSE, pas par
+     écran : toute rangée de ce genre posée sous un `.content-map` suit. `!important` parce que le segmenté porte
+     `style="margin:0 0 10px"` en ligne (boxSousCats).
+     Les CARTES posées SOUS la carte suivent aussi (relecture de g10 : la légende « Couleur = technicien », « Secteurs par
+     département », « Tournée & temps de trajet » — qui porte le bouton « Localiser les clients » — restaient collées au menu,
+     258→1440 à 1440 px, 0→390 à 390 px) : tout enfant direct `.card` sauf `.map-card`, et la rangée de repli `#map-fb`
+     (« Carte indisponible »). La carte elle-même reste bord à bord. */
+  html[data-refonte] .content-map > .filters.seg-on,html[data-refonte] .content-map > .pf-bar,
+  html[data-refonte] .content-map > .card:not(.map-card),html[data-refonte] .content-map > #map-fb{
+    margin-left:max(var(--rf-marge,30px),env(safe-area-inset-left))!important;
+    margin-right:max(var(--rf-marge,30px),env(safe-area-inset-right))!important}
   .leaflet-popup-content a{display:inline-block;}
   .marker{position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;}
   .marker .pin{width:34px;height:34px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.4);}
@@ -25006,11 +25021,33 @@ function printRegistre(cid){ const c=db.clients.find(x=>x.id===cid)||{}; const i
 }
 
 /* ═══════════════ CLIENTS ═══════════════ */
-let cliTypeF='tous';
+let cliTypeF='tous', cliSearch='';
 views.clients=function(){
   const _tous=visibleClients(db.clients);
   setHeader('Clients',`${_tous.length} client(s)`,`${can('voirTout')?`<button class="btn ghost" onclick="exportClientsCsv()">CSV</button> `:''}<button class="btn" onclick="formClient()">＋ Client</button>`);
   const _tags=allTags();
+  /* ⛔ UN FILTRE NE SURVIT PAS À L'ÉTIQUETTE QU'IL VISE. `cliTagFilter` est global et ne retombait qu'au
+     rechargement : retirer la dernière « VIP » laissait l'écran sur « Aucun client. », sans la barre
+     d'étiquettes (plus aucune n'existe) donc sans geste pour lever le filtre — les clients semblaient
+     avoir disparu. Une étiquette qui n'existe plus nulle part ne filtre plus rien, et on le remet à zéro. */
+  if(cliTagFilter && !_tags.includes(cliTagFilter)) cliTagFilter='';
+  const nPro=_tous.filter(c=>cliIsPro(c)).length;
+  if(!(nPro&&nPro<_tous.length)) cliTypeF='tous';   // plus de barre pour le lever : il ne filtre plus rien (même piège que l'étiquette)
+  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
+  /* un filtre actif se VOIT toujours, et se lève d'un geste : la puce « Filtre : VIP ✕ » */
+  const puceFiltre=cliTagFilter?`<div class="chip active" onclick="cliTagFilter='';views.clients()" title="Retirer le filtre">Filtre : ${esc(cliTagFilter)} ✕</div>`:'';
+  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}${puceFiltre}</div>`:'';
+  /* clients#8 : un champ de recherche, posé AU-DESSUS d'une liste qui se redessine seule (`renderClientsList`) —
+     comme la liste des box : reconstruire le champ à chaque frappe fermerait le clavier. Il reste visible tant
+     qu'une recherche est active, même s'il ne reste qu'un client : jamais un filtre caché. */
+  const recherche=(_tous.length>1||cliSearch)?`<input class="search-inp" id="cli-search" placeholder="Nom, téléphone, ville, e-mail…" value="${esc(cliSearch)}" oninput="cliSearch=this.value;rechDiffere(renderClientsList)" autocomplete="off">`:'';
+  $('content').innerHTML=recherche+typeBar+tagBar+'<div id="cli-liste"></div>';
+  renderClientsList();
+}
+/* La liste elle-même : filtre d'étiquette, de type, recherche, puis TRI PAR NOM (accents et casse ignorés —
+   la liste suivait l'ordre d'insertion : « Aaa » après « M. et Mme Durand », les doublons en fin). */
+function renderClientsList(){ const el=$('cli-liste'); if(!el) return;
+  const _tous=visibleClients(db.clients);
   let _clis=_tous; if(cliTagFilter) _clis=_clis.filter(c=>(c.tags||[]).includes(cliTagFilter));
   /* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026) : les initiales dans une pastille,
      le nom en 17 semi-gras, le nombre d'interventions à droite, « Ville · téléphone » dessous, le
@@ -25019,6 +25056,10 @@ views.clients=function(){
      « Supprimer »), à un tap, gardés par les mêmes cases (`delItem` relit « Clients → Supprimer »).
      « Pro » / « Particulier » devient un segmenté au-dessus de la liste, comme dans la maquette. */
   if(cliTypeF==='pro') _clis=_clis.filter(c=>cliIsPro(c)); else if(cliTypeF==='part') _clis=_clis.filter(c=>!cliIsPro(c));
+  const q=norm(cliSearch).trim(), qTel=/^[\d\s.+()\-]+$/.test(String(cliSearch).trim())?String(cliSearch).replace(/\D/g,''):'';
+  if(q) _clis=_clis.filter(c=>norm([c.nom,c.adresse,c.ville,c.codePostal,c.contact,c.email,c.tel].filter(Boolean).join(' ')).includes(q)
+    || (qTel.length>=3&&String(c.tel||'').replace(/\D/g,'').includes(qTel)));   // le téléphone se compare en chiffres
+  _clis=_clis.slice().sort((a,b)=>String(a.nom||'').localeCompare(String(b.nom||''),'fr',{sensitivity:'base'}));
   const rows=_clis.map(c=>{ const n=db.interventions.filter(i=>i.clientId===c.id).length; const pro=cliIsPro(c);
     const ou=(c.ville||'').trim()||(c.adresse||'').trim();
     const meta=[pro?'':'Particulier', esc(ou), esc(c.tel||'')].filter(Boolean).join(' · ');
@@ -25032,10 +25073,10 @@ views.clients=function(){
       </div>
       <svg class="tf-chev" viewBox="0 0 8 14" aria-hidden="true"><path d="M1.5 1.5 6.5 7l-5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </div>`;}).join('');
-  const nPro=_tous.filter(c=>cliIsPro(c)).length;
-  const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
-  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}</div>`:'';
-  $('content').innerHTML=typeBar+tagBar+(_clis.length? `<div class="tf-groupe">${rows}</div>`:`<div class="card">${emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`);
+  el.innerHTML=_clis.length? `<div class="tf-groupe">${rows}</div>`
+    : `<div class="card">${(_tous.length&&(cliTagFilter||q||cliTypeF!=='tous'))
+        ? emptyState('🔎','Aucun client ne correspond.','Tout afficher',"cliTagFilter='';cliTypeF='tous';cliSearch='';views.clients()")
+        : emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`;
 }
 /* ⛔ v738 — UNE FICHE S'OUVRE PAR SON IDENTIFIANT, PAS PAR SON MENU. La recherche, un lien, une
    notification y mènent : la règle de visibilité doit donc être ICI, pas seulement dans la liste. */
@@ -25118,19 +25159,79 @@ function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
 function cliSetType(el){ const f=el.closest('form'); if(!f) return;
   const h=f.querySelector('[name=typeClient]'); if(h) h.value=el.dataset.v;
   f.querySelectorAll('.tc-chip').forEach(x=>x.classList.toggle('active',x===el)); }
+/* ⛔ L'ADRESSE D'UN CLIENT SUIT SA FICHE — clients#4 et clients#5 (rapport du testeur, mesuré au navigateur).
+   `saveClientForm` faisait `{...ancien,...d}` : changer l'adresse laissait lat/lng sur l'ANCIENNE (la carte et
+   les tournées pointaient La Rochelle pour une adresse à Bordeaux) et la ville de la liste ne bougeait pas ;
+   et un client créé avec une adresse n'était jamais localisé, la box seule le faisait. Trois pièces :
+   · `cliAdresseDerive` lit le code postal et la ville DANS l'adresse quand elle les porte (comme `saveDoc`) ;
+     sans eux, `cliLieuApres` ne garde le lieu connu que si l'adresse ne le contredit pas (elle le nomme, ou n'est qu'une
+     retouche de l'ancienne : une faute de frappe corrigée ne doit pas faire perdre un code postal posé par
+     l'intervention, que le rattachement au technicien lit) — sinon il se vide, voir plus bas ;
+   · `cliGeoRequete` joint code postal et ville à une adresse qui ne les porte pas ;
+   · `cliLocaliserFond` géocode UN client en tâche de fond, ne bloque rien, échoue en silence, et ne pose
+     ses coordonnées que si la fiche est restée telle qu'elle était à la demande (adresse identique, toujours
+     sans coordonnées, toujours là). Jamais au chargement ni en boucle : seul `saveClientForm` l'appelle. */
+function cliAdresseDerive(adr){ const m=String(adr||'').replace(/[\s,]*france\s*$/i,'').match(/\b(\d{5})\s+([^,\d][^,]*?)\s*$/); return m?{codePostal:m[1],ville:m[2].trim()}:null; }
+/* ⛔ ON NE GARDE PAS UN LIEU QUE LA NOUVELLE ADRESSE CONTREDIT — relecture de g10. Le formulaire n'a qu'UN champ adresse :
+   sans code postal ni ville dedans, garder l'ancien code postal et l'ancienne ville faisait géocoder « 5 rue des Lilas
+   17000 La Rochelle » pour un client déménagé ailleurs (coordonnées fausses enregistrées), laissait la ville de la liste
+   et le rattachement au technicien (`keyForClient` lit `codePostal` AVANT l'adresse) sur l'ancien département, et les PDF
+   imprimaient la nouvelle rue avec l'ancien lieu. Ce que la nouvelle adresse dit gagne ; le lieu d'avant ne reste que si
+   elle ne le contredit pas : elle le NOMME (la ville, ou le même code postal), ou elle n'est qu'une RETOUCHE de l'ancienne
+   (faute de frappe, autre numéro dans la même rue : la distance d'édition reste sous le quart). Sinon on ne sait plus où
+   est le client : code postal et ville se vident plutôt que de mentir, et « Localiser les clients » le dira. */
+function cliRetouche(avant, apres){ const a=nomNorm(avant), b=nomNorm(apres); if(!a||!b) return false;
+  if(Math.min(a.length,b.length)>=6 && (a.includes(b)||b.includes(a))) return true;
+  let p=Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){ const q=[i]; for(let j=1;j<=b.length;j++) q[j]=Math.min(p[j]+1,q[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1)); p=q; }
+  return p[b.length] <= Math.max(a.length,b.length)/4; }
+function cliLieuApres(adr, ancien){
+  const dv=cliAdresseDerive(adr); if(dv) return dv;
+  const n=' '+nomNorm(adr)+' ', cp5=(String(adr||'').match(/\b(\d{5})\b/)||[])[1]||'';
+  const ville=String(ancien.ville||'').trim(), cp=String(ancien.codePostal||'').trim();
+  const nomme=!!ville && n.includes(' '+nomNorm(ville)+' ');
+  if(cp5) return {codePostal:cp5, ville:(nomme||cp5===cp)?ville:''};   // un code postal que le motif de cliAdresseDerive ne lit pas (« …, 33000 Bordeaux, bât 3 »)
+  if(nomme || cliRetouche(ancien.adresse, adr)) return {codePostal:cp, ville};
+  return {codePostal:'', ville:''}; }
+function cliGeoRequete(c){ const a=String(c.adresse||'').trim(); if(/\b\d{5}\b/.test(a)) return a; return [a,c.codePostal,c.ville].filter(Boolean).join(' '); }
+function cliLocaliserFond(id){ const c=db.clients.find(x=>x.id===id); if(!c||!String(c.adresse||'').trim()||c.lat!=null) return;
+  const adr=c.adresse;
+  geocode(cliGeoRequete(c)).then(g=>{ const x=db.clients.find(y=>y.id===id);
+    if(!g||!x||x.lat!=null||x.adresse!==adr) return;
+    x.lat=g.lat; x.lng=g.lng; save(); if(current==='carteInt') views.carteInt();
+  }).catch(()=>{}); }
+/* ⛔ UN DOUBLON SE SIGNALE, SANS BLOQUER — clients#8. Deux « Doublon Test » au même téléphone étaient créés sans une
+   question. Même nom (`nomNorm` : casse, accents, ponctuation, espaces ignorés) ou même téléphone (en chiffres, six
+   au moins : deux fiches sans numéro ne sont pas « le même ») : un `confirm` à la CRÉATION seulement. Refusé, rien
+   n'est créé et la fenêtre reste ouverte. Cherché dans ce que je vois (`visibleClients`) : la question ne révèle pas
+   un client hors de mon périmètre. */
+function cliDoublon(d){ const nom=nomNorm(d.nom), tel=String(d.tel||'').replace(/\D/g,'');
+  for(const c of visibleClients(db.clients)){
+    if(nom&&nomNorm(c.nom)===nom) return {c,raison:'même nom'};
+    if(tel.length>=6&&String(c.tel||'').replace(/\D/g,'')===tel) return {c,raison:'même téléphone'}; }
+  return null; }
 /* Enregistrement du client + préférences de passage (P10a : db.clients[x].prefPassage) */
 function saveClientForm(e,id){ e.preventDefault(); if(!permGarde('crm',id?'modifier':'ajouter','un client')) return; const d=Object.fromEntries(new FormData(e.target));
   const jours=[]; for(let k=0;k<7;k++){ if(d['pp_j'+k]!==undefined) jours.push(k); delete d['pp_j'+k]; }
   const prefPassage={jours,creneau:d.pp_creneau||'indifferent',heureFixe:d.pp_heureFixe||'',techId:d.pp_techId||'',prevenir48:d.pp_prevenir48!==undefined,appelerAvant:d.pp_appelerAvant!==undefined};
   ['pp_creneau','pp_heureFixe','pp_techId','pp_prevenir48','pp_appelerAvant'].forEach(k=>delete d[k]);
   d.prefPassage=prefPassage;
-  if(id){ const ix=db.clients.findIndex(x=>x.id===id); if(ix<0) return; db.clients[ix]={...db.clients[ix],...d}; toast('Mis à jour'); }
-  else { d.x=10+Math.random()*80; d.y=10+Math.random()*80;
+  let cible=id;
+  if(id){ const ix=db.clients.findIndex(x=>x.id===id); if(ix<0) return; const ancien=db.clients[ix], neuf={...ancien,...d};
+    /* l'adresse a changé : les coordonnées d'avant ne désignent plus la fiche (clients#4) */
+    if(d.adresse!==undefined && String(d.adresse||'').trim()!==String(ancien.adresse||'').trim()){
+      neuf.lat=null; neuf.lng=null;
+      const lieu=cliLieuApres(d.adresse,ancien); if(d.codePostal===undefined) neuf.codePostal=lieu.codePostal; if(d.ville===undefined) neuf.ville=lieu.ville; }
+    db.clients[ix]=neuf; toast('Mis à jour'); }
+  else { const dbl=cliDoublon(d);
+    if(dbl && !confirm(`Un client « ${dbl.c.nom} » existe déjà (${dbl.raison}). Le créer quand même ?`)) return;
+    d.x=10+Math.random()*80; d.y=10+Math.random()*80;
     /* qui l'a créé : sans cela, un technicien qui ajoute un client le perdrait de vue
        à la seconde suivante, tant qu'aucune intervention ne l'y rattache */
     d.creePar=currentUser&&currentUser.id;
-    db.clients.push({id:uid(),...d}); logEvent('Création',`clients : ${d.nom||''}`,'crud'); toast('Créé'); }
+    cible=uid(); db.clients.push({id:cible,...d}); logEvent('Création',`clients : ${d.nom||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);
+  cliLocaliserFond(cible);   // clients#5 : en tâche de fond, après l'écran — jamais avant, jamais au chargement
 }
 
 /* ═══════════════ RAPPORTS ═══════════════ */
@@ -32193,10 +32294,10 @@ function loadLeaflet(){ return new Promise((res,rej)=>{
 }); }
 async function geocode(q){ try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&q='+encodeURIComponent(q)); const j=await r.json(); if(j&&j[0]) return {lat:+j[0].lat,lng:+j[0].lon}; }catch(e){} return null; }
 async function geocodeSearch(q){ try{ const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=6&countrycodes=fr&q='+encodeURIComponent(q)); return await r.json()||[]; }catch(e){ return null; } }
-async function geocodeClients(){ const todo=db.clients.filter(c=>c.adresse && c.lat==null); if(!todo.length){ toast('Toutes les adresses sont déjà localisées'); return; }
+async function geocodeClients(){ if(!permGarde('crm','modifier','un client')) return; const todo=db.clients.filter(c=>c.adresse && c.lat==null); if(!todo.length){ toast('Toutes les adresses sont déjà localisées'); return; }
   toast('Localisation en cours…'); let n=0;
   for(const c of todo){ const g=await geocode(c.adresse); if(g){ c.lat=g.lat; c.lng=g.lng; n++; save(); } await new Promise(r=>setTimeout(r,1100)); }
-  toast(n+' adresse(s) localisée(s)'); if(current==='carte') views.carte();
+  toast(n+' adresse(s) localisée(s)'); if(current==='carte') views.carte(); if(current==='carteInt') views.carteInt();
 }
 function setMapSat(on){
   /* On range 'a' (automatique) plutôt que d'effacer la clé : `prefAppliquer` ignore une
@@ -32453,13 +32554,24 @@ function carteFiltreBar(tous){
       <span class="pf-cnt"><b>${vus}</b> intervention${vus>1?'s':''} sur ${tous.length}</span></div>`:''}
   </div>`;
 }
+/* ⛔ LA CARTE COMPTE LES INTERVENTIONS DU JOUR, PAS SEULEMENT CELLES QU'ELLE PEUT PLACER — clients#5. Le
+   sous-titre annonçait « 0 intervention(s) » pour une intervention bien réelle dont le client n'était pas
+   localisé, et le texte « le client doit avoir une adresse localisée » promettait un geste qui n'existait
+   pas sur cet écran. `locali` = ceux que « Localiser » peut traiter (le client a une adresse), `sansAdr` =
+   ceux qu'il ne peut pas (rien à géocoder : la fiche du client à compléter). */
+function carteIntBilan(day){ const ints=visibleInts(db.interventions).filter(i=>i.date===day && carteTechVisible(i));
+  let sans=0, locali=0, sansAdr=0;
+  ints.forEach(i=>{ const c=db.clients.find(x=>x.id===i.clientId); if(c&&c.lat!=null) return; sans++; if(c&&String(c.adresse||'').trim()) locali++; else sansAdr++; });
+  return {n:ints.length, sans, locali, sansAdr}; }
 views.carteInt=function(){
   if(!carteIntDay) carteIntDay=todayISO();
   const tousPts=intPoints(carteIntDay);
   const pts=tousPts.filter(carteTechVisible);
   const secteurs=deptSectors();
-  setHeader('Carte interventions',`Tournée du ${fmtShort(carteIntDay)} · ${pts.length} intervention(s)`,
-    `<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> ${mapFondBarre()}`);
+  const bilan=carteIntBilan(carteIntDay);
+  const peutLoc=bilan.locali>0 && canCat('crm','modifier');   // « Localiser » réécrit des fiches client : la case, comme dans geocodeClients
+  setHeader('Carte interventions',`Tournée du ${fmtShort(carteIntDay)} · ${bilan.n} intervention(s)${bilan.sans?` · ${bilan.sans} sans position`:''}`,
+    `${peutLoc?`<button class="btn ghost sm" onclick="geocodeClients()">📍 Localiser les clients</button> `:''}<button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,-1);views.carteInt()">‹</button> <button class="btn ghost sm" onclick="carteIntDay=todayISO();views.carteInt()">Aujourd'hui</button> <button class="btn ghost sm" onclick="carteIntDay=shiftDay(carteIntDay,1);views.carteInt()">›</button> <button class="btn ghost sm" onclick="showSecteurs=!showSecteurs;views.carteInt()">${showSecteurs?'Masquer secteurs':'Secteurs'}</button> ${mapFondBarre()}`);
   const techsJour=[...new Set(pts.flatMap(p=>{ const t=planTechsOf(p); return t.length?t:['']; }))];   // v757 : les seconds aussi
   const legTech = techsJour.length?`<div class="card" style="margin-top:12px;padding:10px 12px"><div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
     <b style="font-size:12px;color:var(--t2)">Couleur = technicien :</b>
@@ -32470,7 +32582,7 @@ views.carteInt=function(){
     ${legTech}${legende}
     <div class="card" style="margin-top:12px"><div class="card-head"><h3>Tournée & temps de trajet</h3></div><div id="tournee"></div></div>
     <div id="map-fb"></div>`;
-  renderTournee(pts);
+  renderTournee(pts,bilan);
   setTimeout(()=>{ document.addEventListener('click',function f(){ if(carteDDopen){ carteDDopen=false; if(current==='carteInt') views.carteInt(); } document.removeEventListener('click',f); },{once:true}); },0);
   loadLeaflet().then(()=>{ const el=$('map'); if(!el||!window.L)return; if(_map){try{_map.remove();}catch(e){}_map=null;} fitMapHeightInt(); _map=L.map(el).setView([46.6,2.4],5); mapTiles(_map);
     if(showSecteurs){
@@ -32494,9 +32606,17 @@ views.carteInt=function(){
 };
 function fitMapHeightInt(){ const el=$('map'); if(el){ el.style.height='68vh'; el.style.minHeight='480px'; } }
 function shiftDay(iso,n){ const d=new Date(iso+'T00:00:00'); d.setDate(d.getDate()+n); return d.toLocaleDateString('sv-SE'); }
-async function renderTournee(pts){
+async function renderTournee(pts,bilan){
   const el=$('tournee'); if(!el) return;
-  if(!pts.length){ el.innerHTML='<div style="color:var(--t3);font-size:13px">Aucune intervention géolocalisée ce jour (le client doit avoir une adresse localisée).</div>'; return; }
+  if(!pts.length){
+    /* vide ne veut pas dire « rien ce jour » : on dit POURQUOI, et on offre le geste quand il existe (clients#5) */
+    const b=bilan||{n:0,sans:0,locali:0,sansAdr:0};
+    let msg;
+    if(!b.n) msg='Aucune intervention ce jour.';
+    else { msg=`${b.sans} intervention(s) sans position sur la carte.`;
+      if(b.locali) msg+=` L'adresse de leur client n'est pas encore localisée.${canCat('crm','modifier')?` <button class="btn ghost sm" style="margin-left:6px" onclick="geocodeClients()">📍 Localiser les clients</button>`:''}`;
+      if(b.sansAdr) msg+=` ${b.sansAdr} client(s) sans adresse : à compléter dans leur fiche.`; }
+    el.innerHTML=`<div style="color:var(--t3);font-size:13px">${msg}</div>`; return; }
   el.innerHTML = pts.map((p,i)=>`
     <div class="pl-row lh" style="cursor:pointer" onclick="detailIntervention('${p.id}')"><div class="pl-time">${p.heure}</div>
       <div class="pl-info"><div class="pl-title"><span style="display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--acc);color:var(--on-acc);align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-right:6px">${i+1}</span>${esc(p.titre)}</div><div class="pl-meta">${esc(p.clientNom||'')} · ${esc(p.adresse||'')}</div><div class="pl-meta" style="margin-top:3px">${techPuces(p)}</div></div>${badge(STATUT_INT,p.statut)}</div>
@@ -39113,12 +39233,25 @@ function openSearch(){ openModal(`<div class="modal-head"><h3>Rechercher partout
     <input class="search-inp" id="gsearch" placeholder="Client, intervention, produit, box, véhicule, devis…" oninput="var _v=this.value;rechDiffere(function(){ renderSearch(_v); })">
     <div id="gsearch-res"><div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div></div>`);
   setTimeout(()=>{ const i=$('gsearch'); if(i) i.focus(); },60); }
+/* ⛔ clients#8 — UN CLIENT SE CHERCHE COMME ON LE CHERCHE SUR LE TERRAIN : il appelle, on a son numéro. La
+   recherche ne lisait que nom + adresse (« 0777000111 », un e-mail, une ville : « Aucun résultat »), et coupait
+   chaque famille à six sans le dire. Le téléphone se compare en CHIFFRES (« 07 77 00 », « 07.77.00.01 » et
+   « 0777000111 » désignent la même fiche) et seulement à partir de trois chiffres — « 06 » ne ratisse pas
+   tous les mobiles. La liste dépasse six : une ligne « voir les N autres » déplie la famille, et une autre
+   requête la replie. Le périmètre reste la seule porte (`visibleClients`) : rien ici ne l'élargit. */
+let _rechPlus={}, _rechDerniere='';
+function rechPlus(type){ _rechPlus[type]=1; renderSearch(_rechDerniere); }
 function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=norm(qq);
   if(q.length<2){ el.innerHTML='<div style="color:var(--t3);font-size:13px;padding:8px">Tapez au moins 2 lettres…</div>'; return; }
-  const R=[]; const add=(arr,type,ic,nameFn,subFn,actFn)=>{ (arr||[]).forEach(x=>{ const nom=nameFn(x)||''; const sub=subFn(x)||''; if(norm(nom+' '+sub).includes(q)&&R.filter(r=>r.type===type).length<6) R.push({ic,type,nom,sub,act:actFn(x)}); }); };
+  if(qq!==_rechDerniere){ _rechPlus={}; _rechDerniere=qq; }
+  const qTel=/^[\d\s.+()\-]+$/.test(String(qq).trim())?String(qq).replace(/\D/g,''):'';   // un numéro tapé comme on l'écrit
+  const R=[]; const add=(arr,type,ic,nameFn,subFn,actFn,extraFn,telFn)=>{ (arr||[]).forEach(x=>{ const nom=nameFn(x)||''; const sub=subFn(x)||'';
+    const ex=extraFn?(extraFn(x)||''):'';
+    if(norm(nom+' '+sub+' '+ex).includes(q) || (qTel.length>=3&&telFn&&String(telFn(x)||'').replace(/\D/g,'').includes(qTel))) R.push({ic,type,nom,sub,act:actFn(x)}); }); };
   /* v738 : chaque famille par le filtre de son écran ET seulement si ce menu lui est ouvert (rechVoit) */
   const V=(k,l)=>rechVoit(k)?l:[];
-  add(V('clients',visibleClients(db.clients)),'Client','🏢',c=>c.nom,c=>c.adresse,c=>`closeModal();ficheClient('${c.id}')`);
+  add(V('clients',visibleClients(db.clients)),'Client','🏢',c=>c.nom,c=>[c.adresse||'',(c.ville&&!norm(c.adresse||'').includes(norm(c.ville)))?c.ville:''].filter(Boolean).join(' · '),c=>`closeModal();ficheClient('${c.id}')`,
+    c=>[c.ville,c.codePostal,c.contact,c.email].filter(Boolean).join(' '),c=>c.tel);
   add(V('interventions',visibleInts(db.interventions,true)),'Intervention','🧰',i=>i.titre,i=>clientName(i.clientId)+' · '+fmtShort(i.date),i=>`closeModal();detailIntervention('${i.id}')`);
   add(V('produits',db.produits),'Produit','📦',p=>p.nom,p=>p.ref,p=>`closeModal();formProduit('${p.id}')`);
   add(V('boxes',visibleBoxes(db.boxes)),'Box','🧱',b=>b.nom||b.numero,b=>b.ville,b=>`closeModal();openBox('${b.id}')`);   // la recherche respecte le périmètre
@@ -39127,7 +39260,13 @@ function renderSearch(qq){ const el=$('gsearch-res'); if(!el) return; const q=no
   add(V('factures',visibleDocs(db.factures)),'Facture','🧾',f=>f.num,f=>clientName(f.clientId),()=>`closeModal();go('factures')`);
   add(V('fournisseurs',db.fournisseurs),'Fournisseur','🏭',f=>f.nom,f=>f.ville,()=>`closeModal();go('fournisseurs')`);
   add(visibleTechniciens(db.techniciens),'Technicien','👷',t=>t.nom,t=>t.metier,t=>`closeModal();ficheTech('${t.id}')`);   // chacun voit ce qui le concerne
-  el.innerHTML = R.length? R.map(r=>`<div class="pl-row" onclick="${r.act}"><span style="font-size:18px;width:24px;text-align:center">${r.ic}</span><div class="pl-info"><div class="pl-title">${esc(r.nom)}</div><div class="pl-meta">${esc(r.type)}${r.sub?' · '+esc(r.sub):''}</div></div></div>`).join('') : '<div style="color:var(--t3);font-size:13px;padding:8px">Aucun résultat pour « '+esc(qq)+' »</div>';
+  /* six par famille, sauf celle qu'on a dépliée (cent au plus : au-delà, une requête plus précise) */
+  const par={}, ordre=[]; R.forEach(r=>{ (par[r.type]||(ordre.push(r.type),par[r.type]=[])).push(r); });
+  const ligneR=r=>`<div class="pl-row" onclick="${r.act}"><span style="font-size:18px;width:24px;text-align:center">${r.ic}</span><div class="pl-info"><div class="pl-title">${esc(r.nom)}</div><div class="pl-meta">${esc(r.type)}${r.sub?' · '+esc(r.sub):''}</div></div></div>`;
+  el.innerHTML = R.length? ordre.map(t=>{ const L=par[t], lim=_rechPlus[t]?100:6, reste=L.length-lim, pl=reste>1?'s':'';
+    return L.slice(0,lim).map(ligneR).join('')+(reste<=0?'':_rechPlus[t]
+      ?`<div style="color:var(--t3);font-size:12.5px;padding:6px 8px">${reste} autre${pl} : précisez la recherche.</div>`
+      :`<div class="pl-row" onclick="rechPlus('${t}')"><span style="font-size:18px;width:24px;text-align:center">＋</span><div class="pl-info"><div class="pl-title">Voir les ${reste} autre${pl}</div><div class="pl-meta">${esc(t)}</div></div></div>`); }).join('') : '<div style="color:var(--t3);font-size:13px;padding:8px">Aucun résultat pour « '+esc(qq)+' »</div>';
 }
 
 /* ═══════════════ NOTIFICATIONS ═══════════════ */
