@@ -38266,7 +38266,26 @@ function msgInThread(m,k){ const me=currentUser?currentUser.id:'';
   if(k.startsWith('user:')){ const u=k.slice(5); return (m.toUserId===u&&m.fromId===me)||(m.toUserId===me&&m.fromId===u); }
   if(k.startsWith('tech:')) return m.toTechId===k.slice(5);
   return false; }
-function msgCount(k){ return db.messages.filter(m=>msgInThread(m,k)).length; }
+/* ⛔ g20 (achats#13) — LA PASTILLE D'UNE CONVERSATION COMPTE CE QUI N'A PAS ÉTÉ LU, PAS TOUT CE QUI S'Y EST DIT.
+   `msgCount` donnait le nombre TOTAL de messages du fil, y compris les siens : « Général 3 » restait affiché
+   pendant qu'on lisait Général, et ne disparaissait jamais. La marque de lecture est celle d'un APPAREIL et d'un
+   COMPTE (`elan_msg_lu:<compte>`, par conversation : la date du dernier message lu) — comme les notifications
+   « vues » —, jamais dans `db` : ouvrir un écran n'écrit rien dans les données de l'entreprise (une marque
+   dans `db` partirait à la synchro chez tout le monde). Comparée à la date des MESSAGES du fil (jamais à
+   l'horloge de l'appareil : un message vient d'un autre poste). Si le rangement est plein ou refusé, la marque
+   tient en mémoire le temps de la séance (même fragilité que `prefLocal`). */
+function msgLuCle(){ return 'elan_msg_lu'+(currentUser&&currentUser.id?':'+currentUser.id:''); }
+let _msgLuMem={};
+function msgLuLire(){ let o={}; try{ o=JSON.parse(localStorage.getItem(msgLuCle())||'{}')||{}; }catch(e){ o={}; }
+  const m=_msgLuMem[msgLuCle()]||{}; Object.keys(m).forEach(k=>{ if((m[k]||0)>(o[k]||0)) o[k]=m[k]; });
+  return o; }
+function msgLuMarquer(k){
+  const t=(db.messages||[]).filter(m=>msgInThread(m,k)).reduce((x,m)=>Math.max(x,m.ts||0),0); if(!t) return;
+  const cle=msgLuCle(), o=msgLuLire(); if((o[k]||0)>=t) return;
+  o[k]=t; (_msgLuMem[cle]=_msgLuMem[cle]||{})[k]=t;
+  try{ localStorage.setItem(cle,JSON.stringify(o)); }catch(e){} }
+function msgNonLus(k){ const me=currentUser?currentUser.id:'', lu=msgLuLire()[k]||0;
+  return (db.messages||[]).filter(m=>msgInThread(m,k) && m.fromId!==me && (m.ts||0)>lu).length; }
 function roleIcon(r){ return ({admin:'🛠️',dr:'👔',chefEquipe:'👔',commercial:'💼',compta:'🧮',technicien:'🧑‍🔧'})[r]||'👤'; }
 function msgThreads(){ return db.messages.filter(msgMatch).sort((a,b)=>a.ts-b.ts); }
 /* ── Groupes : membres = comptes utilisateurs (chefs + techniciens) ── */
@@ -38439,9 +38458,10 @@ views.messagerie=function(){
     .concat(people.map(u=>({k:'user:'+u.id,lbl:fullName(u),ic:roleIcon(u.role)})))
     .concat(groupes.map(g=>({k:'group:'+g.id,lbl:g.nom,g})));
   if(!tabs.some(t=>t.k===msgSel)) msgSel='general';
+  msgLuMarquer(msgSel);   // g20 : la conversation qu'on affiche est lue — marque d'appareil, rien dans db
   setHeader('Messagerie',"Interne à l'équipe — pas pour les clients", isMgr?`<button class="btn sm" onclick="formGroupe()">Nouveau groupe</button>`:'');
   const list=msgThreads();
-  const chips=tabs.map(tab=>{ const n=msgCount(tab.k); const active=msgSel===tab.k;
+  const chips=tabs.map(tab=>{ const n=msgNonLus(tab.k); const active=msgSel===tab.k;
     const ava=tab.g?grpAvatar(tab.g,18):`<span style="font-size:13px">${tab.ic}</span>`;
     return `<div class="chip ${active?'active':''}" style="display:inline-flex;align-items:center;gap:6px" onclick="msgSel='${tab.k}';views.messagerie()">${ava}${esc(tab.lbl)}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`; }).join('');
   const curTab=tabs.find(t=>t.k===msgSel)||tabs[0];
