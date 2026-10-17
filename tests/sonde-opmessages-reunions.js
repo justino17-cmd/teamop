@@ -599,7 +599,7 @@ async function parcoursA(b, ctx) {
 const dernierPost = (S, motif) => { const l = S.postes.filter(p => motif.test(p.chemin)); return l.length ? JSON.parse(l[l.length - 1].corps || '{}') : null; };
 const ligneAgenda = (S, a, ms) => verifier(a.titre_verif, S, (x) => {
   const j = document.querySelector('#sem-jours .jour[aria-pressed="true"]'), l = document.querySelector('#liste-reunions .reunion-ligne');
-  return !!j && j.getAttribute('aria-label').startsWith(x.jour + ',') && /1 élément/.test(j.getAttribute('aria-label')) && !!l && l.querySelector('.reunion-heure').textContent === x.heures && l.querySelector('.reunion-titre').textContent === x.titre
+  return !!j && j.getAttribute('aria-label').startsWith(x.jour + ',') && /1 réunion/.test(j.getAttribute('aria-label')) && !!l && l.querySelector('.reunion-heure').textContent === x.heures && l.querySelector('.reunion-titre').textContent === x.titre
     && x.sous.test(l.querySelector('.reunion-sous').textContent) && l.querySelector('.reunion-etat').textContent === x.etat;
 }, { jour: a.jour, heures: a.heures, titre: a.titre, sous: a.sous, etat: a.etat }, ms || 12000, () => lire(S, '#vue-reunions'));
 

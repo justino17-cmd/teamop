@@ -757,8 +757,10 @@ async function controler(PAGE, SRC, DOC) {
         occurrencesDuJour: () => cA.duJour || [] };
       vm.createContext(cA);
       const iL = JS.indexOf('function localDans(t, tz) {'), fL = JS.indexOf('const PAYS_FUSEAUX = [', iL), ligne = d => { const i = JS.indexOf(d); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
+      /* (lot m05) l'heure répétée du changement d'heure se dit : `heureSaison` / `plageHeures` vivent près de FMT_HEURE, hors de la tranche — les VRAIES, avec le FMT_HEURE du bac */
+      const iH = JS.indexOf('const heureSaison = '), saison = iH < 0 ? '' : JS.slice(iH, JS.indexOf('\n  };', iH) + 5) + '\n' + ligne('const plageHeures = ');
       /* « Y aller » au menu (15 octobre 2026) : la destination se lit par les VRAIES `estUrl` et `destinationGps`, définies hors de la tranche */
-      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + ligne('const estUrl = ') + '\n' + ligne('const destinationGps = ') + '\n' + JS.slice(iA, fA) +
+      vm.runInContext((iL > 0 && fL > iL ? JS.slice(iL, fL) : '') + '\n' + ligne('const dateDeChaine = s =>') + '\n' + ligne('const minuitDe = t =>') + '\n' + ligne('const estUrl = ') + '\n' + ligne('const destinationGps = ') + '\n' + saison + '\n' + JS.slice(iA, fA) +
         '\nthis.G = { peutDecaler, raisonNonDecalable, htmlMenuAgenda, conflitsAgenda, caseJour, elementAgenda, phrasePrevenus, modeleDecalage, snapDecalage, debutDecale, jourDans, joursEntre, cleAgenda };', cA, { timeout: 2000 });
       G = cA.G;
     } catch (e) { G = null; }
