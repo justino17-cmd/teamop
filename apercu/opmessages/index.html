@@ -5519,8 +5519,10 @@ a.menu-action { text-decoration: none; }
   const dureeAppel = s => { s = Math.max(0, Math.floor(+s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = n => String(n).padStart(2, '0'); return (h ? h + ':' + p(m) : p(m)) + ':' + p(x); };
   const dureeCourte = s => { s = Math.max(0, Math.floor(+s || 0)); if (s < 60) return s + ' s'; const m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
   const SENS_APPEL = { entrant: ' entrant', sortant: ' sortant', manque: ' manqué' };
+  /* ⛔ l'ISSUE d'un appel sortant qui n'a pas abouti passe devant le sens (lot m19, appels@2) : « Appel sortant » d'un appel que l'autre a refusé faisait croire qu'il avait eu lieu */
+  const ISSUE_APPEL = { annule: ' annulé', refuse: ' refusé', manque: ' sans réponse', occupe: ' occupé' };
   function libelleAppel(a) {
-    let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (SENS_APPEL[a.sens] || '');
+    let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (ISSUE_APPEL[a.issue] || SENS_APPEL[a.sens] || '');
     if (a.sens === 'manque' && a.repetitions > 1) t += ' (' + a.repetitions + ')';
     if (a.groupe) t += ' · ' + (a.membres.length + 1) + ' participants';
     if (a.duree > 0) t += ' · ' + dureeCourte(a.duree);

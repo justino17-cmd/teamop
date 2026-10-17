@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '45eb3c413923';
+  const OPMSG_BUILD = '83375e4e203f';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 211;
+  const OPMSG_VERSION = 214;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2706,8 +2706,10 @@
   const dureeAppel = s => { s = Math.max(0, Math.floor(+s || 0)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60, p = n => String(n).padStart(2, '0'); return (h ? h + ':' + p(m) : p(m)) + ':' + p(x); };
   const dureeCourte = s => { s = Math.max(0, Math.floor(+s || 0)); if (s < 60) return s + ' s'; const m = Math.floor(s / 60); return m < 60 ? m + ' min' : Math.floor(m / 60) + ' h ' + String(m % 60).padStart(2, '0'); };
   const SENS_APPEL = { entrant: ' entrant', sortant: ' sortant', manque: ' manqué' };
+  /* ⛔ l'ISSUE d'un appel sortant qui n'a pas abouti passe devant le sens (lot m19, appels@2) : « Appel sortant » d'un appel que l'autre a refusé faisait croire qu'il avait eu lieu */
+  const ISSUE_APPEL = { annule: ' annulé', refuse: ' refusé', manque: ' sans réponse', occupe: ' occupé' };
   function libelleAppel(a) {
-    let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (SENS_APPEL[a.sens] || '');
+    let t = (a.groupe ? 'Appel de groupe' : 'Appel') + (a.type === 'video' ? ' vidéo' : '') + (ISSUE_APPEL[a.issue] || SENS_APPEL[a.sens] || '');
     if (a.sens === 'manque' && a.repetitions > 1) t += ' (' + a.repetitions + ')';
     if (a.groupe) t += ' · ' + (a.membres.length + 1) + ' participants';
     if (a.duree > 0) t += ' · ' + dureeCourte(a.duree);
