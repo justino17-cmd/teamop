@@ -37773,13 +37773,14 @@ views.pointage=function(){
   /* ── Période + technicien ── */
   const b=ptBornes();
   const techs=ptTechsVisibles();
+  /* le sélecteur d'équipe vit dans un .field : tout l'habillage des champs (rayon, fond, chevron, police, plancher tactile) y est écrit ; posé dehors, un <select> sortait brut du navigateur (test-1441) */
   const barre=`<div class="card" style="padding:12px 14px">
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <div class="seg">${[['semaine','Semaine'],['mois','Mois'],['tout','Tout']].map(([k,l])=>`<button class="${_ptPeriode===k?'on':''}" onclick="ptSetPeriode('${k}')">${l}</button>`).join('')}</div>
       ${b.de?`<button class="btn ghost sm" onclick="ptDecaler(-1)" title="Période précédente">◀</button>
         <span style="font-size:13.5px;font-weight:600;min-width:190px;text-align:center">${esc(b.lbl)}</span>
         <button class="btn ghost sm" onclick="ptDecaler(1)" title="Période suivante">▶</button>`:`<span style="font-size:13.5px;font-weight:600">${esc(b.lbl)}</span>`}
-      ${autres&&techs.length>1?`<select onchange="ptSetTech(this.value)" style="margin-left:auto;max-width:230px"><option value="">Toute mon équipe</option>${techs.map(t=>`<option value="${t.id}" ${_ptTech===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select>`:''}
+      ${autres&&techs.length>1?`<div class="field" style="margin:0 0 0 auto;max-width:230px;min-width:0"><select onchange="ptSetTech(this.value)"><option value="">Toute mon équipe</option>${techs.map(t=>`<option value="${t.id}" ${_ptTech===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>`:''}
     </div></div>`;
 
   /* ── L'historique, journée par journée ── */
