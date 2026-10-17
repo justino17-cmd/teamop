@@ -179,3 +179,5 @@ tests/test-1010.js
 tests/test-1011.js
 # 17 octobre 2026 (soir) : `test-1015` (le Journal des gestes de la Tour, noté par le serveur : chaque route POST de la Tour classée, un refus jamais inscrit, un mot de passe jamais, le journal survit à un redémarrage).
 tests/test-1015.js
+# 17 octobre 2026 (nuit) : `test-1016` (le relais de la Tour vers l'administration d'OP MESSAGES : six routes en GET, le secret de l'instance, rien de la Tour ne passe, chaque échec se dit ; l'outil `configurer-relais-messages.js`).
+tests/test-1016.js

@@ -7326,6 +7326,62 @@ app.post('/api/monitor/messages/version-min', monPatronStrict, async (req, res) 
   return canalVersionPoser(req, res, 'messages-' + b.canal, b.min, async () => { const e = await msgInstanceEtat(b.canal); return e.joignable ? e.version : 0; });
 });
 
+/* ══ LE RELAIS VERS L'ADMINISTRATION D'OP MESSAGES (17 octobre 2026) ══
+   Justin : « je veux que la Tour contrôle OP GESTION et l'autre côté contrôle OP MESSAGES ; bien tout séparé » — et, à la
+   question du chemin : « par api.teamop.fr ». La Tour ne parle qu'à notre API ; celle-ci relaie, EN BOUCLE LOCALE, vers les
+   routes `/api/admin/*` du service d'OP MESSAGES (`server-msg/admin.js` : le CONTRAT est dans son en-tête).
+   ⛔ Ce que le relais garantit, et que `tests/test-1016.js` joue contre un faux service :
+     · il ne relaie QUE six routes, en GET, avec les SEULS paramètres que le contrat nomme — rien d'autre de la requête de la
+       Tour ne passe : ni son jeton, ni ses cookies, ni son `Origin`, ni un en-tête de proxy (le service refuse tout ce qui en
+       porte : c'est sa seconde preuve) ;
+     · il présente le secret de l'instance dans `X-OPM-Admin` — `config.messagesAdmin.<beta|prod>`, 64 hexadécimaux, posé par
+       `server/configurer-relais-messages.js` en saisie masquée, jamais affiché, jamais dans une réponse ni un journal ;
+     · sans secret : 503 « relais non configuré », et la Tour le DIT ; un 404 du service (sa garde rend 404 à TOUT refus) devient
+       502 « OP MESSAGES refuse le relais » — un secret différent des deux côtés ne doit pas ressembler à « aucun compte » ;
+     · la réponse ne repart que si c'est du JSON, sous 2 Mo, en 4 s au plus.
+   Les routes vivent sous `/api/monitor/messages/` : `monAppDeRoute` les range dans la console OP MESSAGES (un compte limité à
+   OP GESTION reçoit 403). Des lectures seulement : rien ne s'écrit chez OP MESSAGES par ici. */
+const OPM_ADMIN_PARAMS = {
+  sante: [], comptes: ['limite', 'apres', 'origine', 'etat', 'id', 'adresses'], espaces: ['limite', 'apres'],
+  abonnements: ['limite', 'apres', 'statut'], incidents: ['limite'], empreintes: ['limite', 'apres'],
+};
+const OPM_ADMIN_MAX = 2 * 1024 * 1024;
+function opmAdminSecret(instance) {
+  const c = config.messagesAdmin && typeof config.messagesAdmin === 'object' ? config.messagesAdmin : {};
+  const x = String(c[instance] || '');
+  return /^[0-9a-f]{64}$/i.test(x) ? x.toLowerCase() : '';
+}
+app.get('/api/monitor/messages/admin/:route', monAdmin, async (req, res) => {
+  const route = String(req.params.route || '');
+  if (!Object.prototype.hasOwnProperty.call(OPM_ADMIN_PARAMS, route)) return res.status(404).json({ error: 'route inconnue' });
+  const instance = String(req.query.instance || 'prod');
+  if (instance !== 'prod' && instance !== 'beta') return res.status(400).json({ error: 'instance : beta ou prod' });
+  const secret = opmAdminSecret(instance);
+  if (!secret) return res.status(503).json({ error: 'relais non configuré', motif: 'sans_secret', instance });
+  const q = new URLSearchParams();
+  for (const k of OPM_ADMIN_PARAMS[route]) {
+    const v = req.query[k];
+    if (typeof v === 'string' && v.length && v.length <= 200) q.set(k, v);
+  }
+  const url = msgInstanceUrl(instance) + '/api/admin/' + route + (q.toString() ? '?' + q.toString() : '');
+  let r;
+  try {
+    r = await fetch(url, { method: 'GET', headers: { 'X-OPM-Admin': secret, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(4000) });
+  } catch (e) {
+    return res.status(e && e.name === 'TimeoutError' ? 504 : 502).json({ error: 'OP MESSAGES injoignable', motif: e && e.name === 'TimeoutError' ? 'delai' : 'injoignable', instance });
+  }
+  if (r.status === 404) return res.status(502).json({ error: 'OP MESSAGES refuse le relais (secret différent des deux côtés, ou administration fermée)', motif: 'refuse', instance });
+  const type = String(r.headers.get('content-type') || '');
+  const taille = parseInt(r.headers.get('content-length') || '0', 10) || 0;
+  if (!/^application\/json\b/i.test(type) || taille > OPM_ADMIN_MAX) return res.status(502).json({ error: 'réponse inattendue d\'OP MESSAGES', motif: 'forme', instance });
+  let txt = '';
+  try { txt = await r.text(); } catch (e) { return res.status(502).json({ error: 'réponse coupée', motif: 'coupee', instance }); }
+  if (txt.length > OPM_ADMIN_MAX) return res.status(502).json({ error: 'réponse trop grosse', motif: 'forme', instance });
+  let j; try { j = JSON.parse(txt); } catch (e) { return res.status(502).json({ error: 'réponse illisible', motif: 'forme', instance }); }
+  if (!r.ok) return res.status(r.status === 400 || r.status === 429 || r.status === 503 ? r.status : 502).json(Object.assign({ instance }, j && typeof j === 'object' ? { error: String(j.error || 'refus'), champ: j.champ, retry: j.retry } : { error: 'refus' }));
+  res.json({ ok: true, instance, donnees: j });
+});
+
 /* ══ PUBLIER OP MESSAGES DEPUIS LA TOUR (7 octobre 2026) ══
    Justin : « la bêta, tu la fais ; la version publique, comme OP GESTION, on la fait dans la Tour ». UN geste du patron :
      1. le serveur lit le commit que SERT la bêta (son `/health`) — on publie ce qui a été essayé, jamais « le dernier commit de main » ;
