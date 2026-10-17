@@ -13826,6 +13826,37 @@ function seed(){
 /* ── Lookups ── */
 /* nom d'un technicien — y compris parti (archivé) : l'historique garde son nom */
 const techName = id => { const t=db.techniciens.find(t=>t.id===id); if(t) return t.nom||'Non assigné'; const a=(db.techArchive||[]).find(t=>t.id===id); return a?(a.nom||'Ancien technicien'):'Non assigné'; };
+/* ── Un compte DÉSACTIVÉ n'est plus proposé là où l'on AFFECTE quelqu'un (décision de Justin, 17 octobre 2026) ──
+   « Oui, le retirer » : désactiver le compte d'un technicien le retire des listes d'affectation ; ses interventions
+   passées et déjà planifiées restent visibles et SIGNALÉES (« compte désactivé »), et se réaffectent.
+   ⛔ L'inactivité se DÉDUIT du compte lié (`users[].techId`, `actif===false`) — jamais un champ de plus sur la fiche
+   technicien : rien ne s'écrit au seul chargement, et la fiche resterait fausse le jour où le compte est réactivé.
+   UNE fonction décide, `techAssignable` ; toutes les portes d'affectation la lisent (formulaire d'intervention, tâches,
+   absences, plans, glisser-déposer du planning, menus « Changer de personne » / « Déplacer », propositions de passage,
+   proposition automatique par département, lignes du planning). Les listes de CONSULTATION (historique, statistiques,
+   filtres de recherche, rapports, pointage, archives) ne l'appellent PAS : on y retrouve toujours la personne.
+   Sans compte lié, ou si l'un des comptes liés est actif : assignable, comme avant. */
+function techAssignable(t){ const id=(t&&typeof t==='object')?t.id:t; if(!id) return true;
+  const l=(db.users||[]).filter(u=>u&&u.techId===id); return !l.length||l.some(u=>u.actif!==false); }
+/* la fiche existe et son compte est désactivé (« Non assigné » et un identifiant inconnu ne comptent pas) */
+function techCompteDesactive(id){ return !!id&&(db.techniciens||[]).some(t=>t&&t.id===id)&&!techAssignable(id); }
+const TECH_INACTIF_LBL='compte désactivé';
+/* les fiches proposables dans un sélecteur d'affectation ; `garder` = ce que l'enregistrement porte DÉJÀ (on ne le
+   retire pas en silence d'une fiche qu'on rouvre pour autre chose — il reste, signalé, et se décoche) */
+function techsAffectables(garder){ const g=new Set([].concat(garder||[]).filter(Boolean));
+  return (db.techniciens||[]).filter(t=>t&&(techAssignable(t.id)||g.has(t.id))); }
+function optTechs(sel){ return techsAffectables([sel]).map(o=>`<option value="${o.id}" ${o.id===sel?'selected':''}>${esc(techNomAff(o))}</option>`).join(''); }
+function techNomAff(t){ return (t&&t.nom||'')+(t&&!techAssignable(t.id)?' ('+TECH_INACTIF_LBL+')':''); }
+/* peut-on poser cette personne sur cette intervention ? Ceux qu'elle porte déjà restent (on déplace sa date sans
+   la réaffecter), personne d'autre n'est accepté s'il est désactivé */
+function techPeutRecevoir(techId,i){ return !techId||techAssignable(techId)||(!!i&&intTechIds(i).indexOf(techId)>=0); }
+function techRefusDesactive(techId){ toast('❌ '+techName(techId)+' : '+TECH_INACTIF_LBL+' — choisis un autre technicien',4200); return false; }
+function planAffecteGate(techId,i){ return techPeutRecevoir(techId,i)||techRefusDesactive(techId); }
+/* lignes du PLANNING : un désactivé garde sa ligne seulement s'il porte quelque chose dans les jours montrés
+   (c'est ce qu'il faut réaffecter) ; sinon il disparaît. Sa ligne s'écrit « … (compte désactivé) ». */
+function techsAffichees(jours){ const J=new Set(jours||[]);
+  return (db.techniciens||[]).filter(t=>t&&(techAssignable(t.id)||(J.size&&(db.interventions||[]).some(i=>i&&i.statut!=='annulee'&&J.has(i.date)&&intTechIds(i).indexOf(t.id)>=0))))
+    .map(t=>techAssignable(t.id)?t:{...t,nom:techNomAff(t),_desactive:true}); }
 /* ── Départ d'une personne : retirée PARTOUT (box, véhicules, chefs, planning à venir), sans casser l'historique ── */
 function nomNorm(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/g,' ').trim(); }
 /* admin#7 : un prénom ou un nom se range ROGNÉ et sans espaces doublés. L'écran masque les espaces (HTML), donc
@@ -16906,6 +16937,12 @@ function pgPersSet(){
   if(!pgPers.size) connus.forEach(x=>pgPers.add(x));
   return pgPers;
 }
+/* le compteur « Équipe n / N » : numérateur et dénominateur se comptent sur la même population — les lignes que le
+   planning garde (un compte désactivé sans rien dans ces jours n'en a plus, décision de Justin du 17 octobre 2026)
+   plus « Non assigné ». pgPersSet() garde l'identifiant d'un masqué : le compter au numérateur seulement faisait
+   lire « 4 / 3 » à l'ouverture et masquait qu'une personne était décochée. */
+function pgPersCompte(jours){ const s2=pgPersSet(), ids=techsAffichees(jours).map(t=>t.id).concat(['']);
+  return {n:ids.filter(id=>s2.has(id)).length, tot:ids.length}; }
 function pgPersSave(){ try{ localStorage.setItem('elan_pg_pers',JSON.stringify([...pgPersSet()])); }catch(e){} }
 function pgPersToggle(id){ const s2=pgPersSet(); if(s2.has(id)) s2.delete(id); else s2.add(id); pgPersSave(); pgPersRender(); views.planningGeneral(); }
 function pgPersTous(on){ const s2=pgPersSet(); s2.clear();
@@ -16939,9 +16976,9 @@ function pgPersRender(){
   const s2=pgPersSet();
   const q=norm(pgPersQ||'');
   const jours=[]; const n=pgPortee(); for(let k=0;k<n;k++) jours.push(shiftDay(pgRef||todayISO(),k));
-  const nomDe=id=>id===''?'Non assigné':((db.techniciens.find(t=>t.id===id)||{}).nom||'—');
+  const nomDe=id=>id===''?'Non assigné':(((pgTechsAff().find(t=>t.id===id))||db.techniciens.find(t=>t.id===id)||{}).nom||'—');
   const nbDe=id=>visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee'&&planIntDe(i,id)).length;
-  const chefs=(db.techniciens||[]).filter(t=>techEstChef(t.id));
+  const chefs=pgTechsAff().filter(t=>techEstChef(t.id));
   const occ=pgPersOccupes();
   const raccourcis=[
     {l:'Tout le monde',fn:`pgPersTous(true)`},
@@ -17012,14 +17049,17 @@ function techEstChef(id){ if(!id) return false;
   if(t&&t.metier==="Chef d'équipe") return true;
   return (db.techniciens||[]).some(x=>x.chef===id); }
 function techEquipeDe(id){ return (db.techniciens||[]).filter(t=>t.chef===id).map(t=>t.id); }
+/* les jours montrés par le Planning général, et les lignes qu'il garde : un compte désactivé n'y reste que s'il porte quelque chose */
+function pgJoursMontres(){ const n=pgPortee(), j=[]; for(let k=0;k<n;k++) j.push(shiftDay(pgRef||todayISO(),k)); return j; }
+function pgTechsAff(){ return techsAffichees(pgJoursMontres()); }
 function pgGroupes(){
-  const out=[], vus={};
-  (db.techniciens||[]).filter(t=>techEstChef(t.id)).forEach(c=>{
-    const membres=[c.id].concat(techEquipeDe(c.id).filter(x=>x!==c.id));
+  const out=[], vus={}, aff=pgTechsAff();
+  aff.filter(t=>techEstChef(t.id)).forEach(c=>{
+    const membres=[c.id].concat(techEquipeDe(c.id).filter(x=>x!==c.id&&aff.some(a=>a.id===x)));
     membres.forEach(m=>{ vus[m]=1; });
     out.push({id:c.id,titre:'Équipe de '+(c.nom||''),membres:membres});
   });
-  const seuls=(db.techniciens||[]).filter(t=>!vus[t.id]).map(t=>t.id);
+  const seuls=aff.filter(t=>!vus[t.id]).map(t=>t.id);
   if(seuls.length) out.push({id:'',titre:out.length?'Sans équipe':'Toute l’équipe',membres:seuls});
   out.push({id:'na',titre:'Non assigné',membres:['']});
   return out;
@@ -17041,7 +17081,7 @@ views.planningGeneral=function(){
     `<button class="btn ghost" onclick="pgAuj()">Aujourd’hui</button> <button class="btn ghost" onclick="go('planning')">Planning détaillé</button>`);
   const q=norm(pgQ||'');
   const sPers=pgPersSet();
-  let gens=db.techniciens.map(t=>({id:t.id,nom:t.nom,role:'Technicien'})).concat([{id:'',nom:'Non assigné',role:'à répartir'}]);
+  let gens=techsAffichees(jours).map(t=>({id:t.id,nom:t.nom,role:'Technicien'})).concat([{id:'',nom:'Non assigné',role:'à répartir'}]);   // 17 oct. 2026 : un compte désactivé n'a sa ligne que s'il porte quelque chose dans ces jours
   gens=gens.filter(g=>sPers.has(g.id));
   if(q) gens=gens.filter(g=>norm(g.nom).includes(q));
   const SRC=visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
@@ -17101,7 +17141,7 @@ views.planningGeneral=function(){
   const larg=dense?(n>=90?18:26):(n===14?70:118);
   const PORTEES=[[7,'7 jours','vsem','Une semaine'],[14,'14 jours','vsem','Deux semaines'],
                  [30,'1 mois','vmois','Le mois entier'],[90,'3 mois','vmois','Un trimestre']];
-  const nPers=pgPersSet().size, totPers=db.techniciens.length+1;
+  const cptPers=pgPersCompte(jours), nPers=cptPers.n, totPers=cptPers.tot;   // 17 oct. 2026 : les deux nombres comptent la MÊME population (ce qui est à l'écran)
   /* ⛔ planning#10 — les compteurs du bandeau se calculent sur ce qui est À L'ÉCRAN (le filtre Équipe et la recherche) :
      décocher Sophie laissait « 14 interventions » alors que 8 étaient affichées. Une intervention partagée ne compte qu'une fois. */
   const idsAff=new Set(gens.map(g2=>g2.id));
@@ -17399,7 +17439,7 @@ function tdbActs(){ const l=actAll(); if(can('voirTout')) return l; const tid=my
 function tdbPlanning(){
   const jours=tdbJours(); if(!jours.length) return '';
   const toutVoir=can('voirTout'), tidMoi=myTechId();
-  const groupes=(toutVoir?db.techniciens:db.techniciens.filter(t=>t.id===tidMoi)).map(t=>({id:t.id,nom:t.nom})).concat(toutVoir?[{id:'',nom:'Non assigné'}]:[]);
+  const groupes=(toutVoir?techsAffichees(jours):db.techniciens.filter(t=>t.id===tidMoi)).map(t=>({id:t.id,nom:t.nom})).concat(toutVoir?[{id:'',nom:'Non assigné'}]:[]);
   const SRC=visibleInts(db.interventions,true).filter(i=>jours.indexOf(i.date)>=0&&i.statut!=='annulee');
   const parJT={}; SRC.forEach(i=>{ const t=planTechsOf(i); (t.length?t:['']).forEach(x=>{ const k=x+'|'+i.date; (parJT[k]=parJT[k]||[]).push(i); }); });
   const ABS=tdbAbsences(), ACTS=tdbActs();
@@ -17604,7 +17644,7 @@ function actForm(id,techId,date,heure){
           <span style="font-size:17px">${ACT_TYPES[k].ic}</span><span>${ACT_TYPES[k].l}</span></div>`).join('')}
       </div>
       <div class="field-row">
-        <div class="field"><label>Technicien</label><select id="act-tech"><option value="">— Non assigné</option>${db.techniciens.map(x=>`<option value="${x.id}" ${x.id===t?'selected':''}>${esc(x.nom)}</option>`).join('')}</select></div>
+        <div class="field"><label>Technicien</label><select id="act-tech"><option value="">— Non assigné</option>${techsAffectables([t]).map(x=>`<option value="${x.id}" ${x.id===t?'selected':''}>${esc(techNomAff(x))}</option>`).join('')}</select></div>
         <div class="field"><label>Date</label><input type="date" id="act-date" value="${d}"></div>
       </div>
       <div class="field-row">
@@ -17652,6 +17692,7 @@ function actDel(id){
 function actDeplace(id,date,techId,mins){
   const a=actAll().find(x=>x.id===id); if(!a) return;
   if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; }
+  if(techId&&techId!==a.techId&&!techAssignable(techId)){ techRefusDesactive(techId); return; }
   a.date=date; a.techId=techId||''; a.heure=clockFromMin(Math.max(0,Math.min(23*60+55,mins)));
   save(); toast('🔧 '+actTitre(a)+' → '+fmtShort(date)+' '+a.heure);
   if(current==='planning') views.planning();
@@ -17982,7 +18023,7 @@ function planZoomBar(){
 }
 function planGroups(){
   const s=planTechMSet();
-  let l=[...db.techniciens.map(x=>({id:x.id,nom:x.nom})),{id:'',nom:'Non assigné'}];
+  let l=[...planTechsAff().map(x=>({id:x.id,nom:x.nom})),{id:'',nom:'Non assigné'}];   // 17 oct. 2026 : un compte désactivé ne garde sa ligne que s'il porte quelque chose dans les jours montrés
   /* qui ne voit pas tout ne voit que sa propre ligne : afficher les lignes vides
      de ses collègues n'apporte rien et laisse croire qu'ils n'ont rien à faire */
   if(!can('voirTout')){ const moi=myTechId(); l=l.filter(g=>g.id&&g.id===moi); if(!l.length) return []; return l; }
@@ -17990,6 +18031,8 @@ function planGroups(){
 }
 /* la personne connectée peut-elle choisir qui s'affiche ? */
 function planPeutChoisirQui(){ return can('voirTout'); }
+/* les lignes du planning : les techniciens affectables + les désactivés qui portent quelque chose dans les jours montrés */
+function planTechsAff(){ return techsAffichees(planJoursCarte()); }
 function planTechsOf(i){ const known=new Set(db.techniciens.map(x=>x.id)); return intTechIds(i).filter(x=>known.has(x)); }
 function techOnline(nom){ try{ const u=(db.users||[]).find(x=>fullName(x).trim().toLowerCase()===String(nom||'').trim().toLowerCase()); return !!(u&&u.lastSeen&&Date.now()-u.lastSeen<5*60000); }catch(e){ return false; } }
 function fmtHmin(min){ return Math.floor(min/60)+'h'+(min%60?String(min%60).padStart(2,'0'):''); }
@@ -18337,7 +18380,7 @@ function fenNouvelId(){ return 'fen'+Math.random().toString(36).slice(2,9); }
 function fenInit(){
   if(fenList().length) return;
   const s=planTechMSet();
-  const ids=db.techniciens.map(t=>t.id).filter(id=>s.has(id));
+  const ids=planTechsAff().map(t=>t.id).filter(id=>s.has(id));
   const n=Math.max(1,Math.min(6,planParLigneChoix()));
   const out=[];
   for(let k=0;k<ids.length;k+=n) out.push({id:fenNouvelId(),nom:'Planning '+(out.length+1),techs:ids.slice(k,k+n)});
@@ -18359,7 +18402,7 @@ function fenTechToggle(fid,tid){ const l=fenList(), f=l.find(x=>x.id===fid); if(
   const k=f.techs.indexOf(tid); if(k>=0) f.techs.splice(k,1); else f.techs.push(tid);
   fenEcrire(l); views.planning(); }
 function fenTechTous(fid,on){ const l=fenList(), f=l.find(x=>x.id===fid); if(!f) return;
-  f.techs = on ? db.techniciens.map(t=>t.id).concat(['']) : [];
+  f.techs = on ? planTechsAff().map(t=>t.id).concat(['']) : [];
   fenEcrire(l); views.planning(); }
 function fenRanger(ids){ const l=fenList(); if(!l.length) return; l[l.length-1].techs=l[l.length-1].techs.concat(ids);
   fenEcrire(l); views.planning(); }
@@ -18368,7 +18411,7 @@ function fenMenu(fid,ev){
   const l=fenList(), f=l.find(x=>x.id===fid); if(!f) return;
   const ou={}; l.forEach((g,k)=>{ if(g.id!==fid) g.techs.forEach(t=>{ if(ou[t]===undefined) ou[t]='fenêtre '+(k+1); }); });
   const items=[];
-  db.techniciens.concat([{id:'',nom:'Non assigné'}]).forEach(t=>{
+  planTechsAff().concat([{id:'',nom:'Non assigné'}]).forEach(t=>{
     const dedans=f.techs.indexOf(t.id)>=0;
     items.push({coul:techColor(t.id), l:(dedans?'✓ ':'')+t.nom, sous:(!dedans&&ou[t.id])?ou[t.id]:'', fn:()=>fenTechToggle(fid,t.id)});
   });
@@ -18471,7 +18514,7 @@ function planFiltresRaz(){
   toast('Tous les filtres sont effacés');
 }
 /* nombre de filtres actifs sur chaque menu */
-function planNbTech(){ const s=planTechMSet(), tous=db.techniciens.map(t=>t.id).concat(['']);
+function planNbTech(){ const s=planTechMSet(), tous=planTechsAff().map(t=>t.id).concat(['']);
   const off=tous.filter(x=>!s.has(x)).length; return off?tous.length-off:0; }
 /* ══════════════════════════════════════════════════════════════════
    LA BARRE DU PLANNING — une seule, deux groupes.
@@ -18503,7 +18546,7 @@ function planAuj(){ planSel=todayISO(); planWeekRef=planSel;
   views.planning(); }
 /* le menu Équipe : qui j'affiche, et comment c'est rangé */
 function planEquipeMenu(SRC){
-  const s=planTechMSet(), tous=db.techniciens.concat([{id:'',nom:'Non assigné'}]);
+  const s=planTechMSet(), tous=planTechsAff().concat([{id:'',nom:'Non assigné'}]);
   const per=planPeriodeInts(); const cnt={};
   per.forEach(i=>{ const t=planTechsOf(i)[0]||''; cnt[t]=(cnt[t]||0)+1; });
   const sur=fenMode()==='sur', cur=planParLigneChoix();
@@ -18679,7 +18722,7 @@ function planTousRetour(){
 }
 /* la barre n'apparaît que si le planning est effectivement réduit à quelqu'un */
 function planRetourBarre(){
-  const s=planTechMSet(), tousIds=db.techniciens.map(t=>t.id).concat(['']);
+  const s=planTechMSet(), tousIds=planTechsAff().map(t=>t.id).concat(['']);
   const reduit=tousIds.some(x=>!s.has(x));
   if(!reduit&&!planFocusT) return '';
   const v=tousIds.filter(x=>s.has(x));
@@ -19561,7 +19604,7 @@ function planCalHtml(){
 /* barre du haut : menu déroulant des techniciens + jours à comparer + compteurs */
 function planMultiBarre(SRC){
   planJoursInit();
-  const s=planTechMSet(), tous=db.techniciens.concat([{id:'',nom:'Non assigné'}]);
+  const s=planTechMSet(), tous=planTechsAff().concat([{id:'',nom:'Non assigné'}]);
   const nb=tous.filter(t=>s.has(t.id)).length;
   const nbInt=t=>SRC.filter(i=>planJours.includes(i.date)&&(t.id===''?!planTechsOf(i).length:planTechsOf(i).includes(t.id))).length;
   const menu=planMenuOuvert?`<div class="plm-menu">
@@ -19604,7 +19647,7 @@ function planTechVisible(i){
 function planMultiHtml(SRC){
   planJoursInit();
   const s=planTechMSet();
-  const techs=db.techniciens.concat([{id:'',nom:'Non assigné'}]).filter(t=>s.has(t.id));
+  const techs=planTechsAff().concat([{id:'',nom:'Non assigné'}]).filter(t=>s.has(t.id));
   if(!techs.length) return `<div class="card">${emptyState('👥','Aucun technicien sélectionné.','Tout afficher','planTechMTous(true)')}</div>`;
   const ints=SRC.filter(i=>planJours.includes(i.date)&&planTechVisible(i));
   // plage horaire commune à tous les jours affichés
@@ -19733,6 +19776,7 @@ function planAide(glisse,avecDouble,lecture){
    Un simple clic ne fait rien, pour ne pas proposer une création à chaque clic dans le vide. */
 function planMultiVide(e,iso,techId,h0,PPH){
   if(!canCat('int','ajouter')) return;
+  if(techId&&!techAssignable(techId)){ techRefusDesactive(techId); return; }   // 17 oct. 2026 : pas de création sur la colonne d'un compte désactivé
   PPH=PPH||46;
   const col=e.currentTarget, r=col.getBoundingClientRect();
   const y=e.clientY-r.top;
@@ -20310,6 +20354,7 @@ function planWeekDrop(e,iso,techId,h0,PPH){
 function planWeekVide(e,iso,techId,h0,PPH){
   if(!canCat('int','ajouter')) return;
   if(e.target!==e.currentTarget) return;
+  if(techId&&!techAssignable(techId)){ techRefusDesactive(techId); return; }   // idem : la colonne d'un compte désactivé ne reçoit pas de nouvelle intervention
   const r=e.currentTarget.getBoundingClientRect();
   let m=h0*60+Math.round((((e.clientY||0)-r.top)/PPH)*60/5)*5; m=Math.max(0,Math.min(23*60+55,m));
   formIntervention('',{date:iso,techId:techId||'',heure:clockFromMin(m)});   // idem : la case emporte la personne et l'heure
@@ -20446,7 +20491,7 @@ function planDayListHtml(SRC){
     <div style="flex:1;text-align:center;font-weight:700;text-transform:capitalize">${fmtLong(planSel)}${planSel===todayISO()?' · aujourd’hui':''}</div>
     <button class="btn ghost sm" onclick="planSel=shiftDay(planSel,1);views.planning()">›</button></div>`;
   const dayInts=SRC.filter(i=>i.date===planSel);
-  const groups=[...db.techniciens.map(t=>({id:t.id,nom:t.nom})),{id:'',nom:'Non assigné'}]
+  const groups=[...techsAffichees([planSel]).map(t=>({id:t.id,nom:t.nom})),{id:'',nom:'Non assigné'}]
     .filter(g=>planTechMSet().has(g.id));
   const secs=groups.map(g=>{
     const ints=dayInts.filter(i=>g.id?intTechIds(i).includes(g.id):!intTechIds(i).length).sort((a,b)=>(a.heure||'').localeCompare(b.heure||''));
@@ -20496,6 +20541,7 @@ function planDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Droit «
   toast(cf?('Déplacée au '+fmtShort(iso)+' — chevauche « '+(cf.titre||'')+' »'):('Intervention déplacée au '+fmtShort(iso)));
   serieShiftPropose(i,(de||{}).date||''); }
 function planDropTech(e,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return;
+  if(!planAffecteGate(techId,i)) return;
   const de=planSnap(i);
   if(!planAbsGate(techId,i.date||planSel,i)) return;
   planPoserEquipe(i,techId||'',window._planDragDe); if(!i.date){ i.date=planSel; } if(i.statut==='aplanifier') i.statut='planifiee';
@@ -20536,6 +20582,7 @@ function planAbsGate(techId,iso,i){ const ab=(techId&&iso)?absentOn(techId,iso):
                       après planStamp (sinon chaque entrée suivante affirme une obligation).
    Le droit « Déplacer le planning » se lit, lui, en première instruction de chaque dépôt (test-790). */
 function planDepotAvant(e,i,iso,techId,m,patchDup){
+  if(!planAffecteGate(techId,e.altKey?null:i)) return null;   // 17 oct. 2026 : on ne dépose pas sur la colonne d'un compte désactivé (sauf ce qu'elle porte déjà)
   const ind=(techId&&m!=null)?indispoAt(techId,iso,m,parseInt(i.duree)||60):null;
   if(ind){ toast('⛔ '+techName(techId)+' est indisponible '+(ind.debut||'')+'–'+(ind.fin||'')+(ind.motif?' ('+ind.motif+')':'')); return null; }
   if(e.altKey){ if(planAbsGate(techId,iso,null)) planDup(i,patchDup); return null; }
@@ -20797,12 +20844,12 @@ function planCtxItemsTech(id,x,y){
   const i=db.interventions.find(z=>z.id===id); if(!i) return [];
   const cur=planTechsOf(i)[0]||'', jour=i.date||todayISO();
   const items=[{ic:'‹',l:'Retour',fn:()=>planCtxOpen(x||120,y||120,planCtxItemsCard(id,x,y))},'---'];
-  db.techniciens.concat([{id:'',nom:'Non assigné'}]).forEach(t=>{
+  techsAffectables(planTechsOf(i)).concat([{id:'',nom:'Non assigné'}]).forEach(t=>{
     const abs=t.id?absentOn(t.id,jour):null;
     const mien=db.interventions.filter(z=>z.id!==id&&z.date===jour&&(t.id?planTechsOf(z).includes(t.id):!planTechsOf(z).length));
     const mn=mien.reduce((a,z)=>a+(parseInt(z.duree)||60),0);
     const sous=abs?((ABS_TYPES[abs.type]||abs.type)):(mien.length?(mien.length+' int. · '+fmtHmin(mn)):'libre');
-    items.push({coul:techColor(t.id), l:((t.id?planTechsOf(i).indexOf(t.id)>=0:!planTechsOf(i).length)?'✓ ':'')+t.nom, sous:sous, fn:()=>planDeplacerModal(id,t.id)});
+    items.push({coul:techColor(t.id), l:((t.id?planTechsOf(i).indexOf(t.id)>=0:!planTechsOf(i).length)?'✓ ':'')+techNomAff(t), sous:sous, fn:()=>planDeplacerModal(id,t.id)});
   });
   return items;
 }
@@ -20826,7 +20873,7 @@ function planDeplacerJour(n){
 function planDeplacerRender(){
   const el=$('dep-corps'); if(!el) return;
   const i=db.interventions.find(z=>z.id===DEP.id); if(!i) return;
-  const liste=db.techniciens.concat([{id:'',nom:'Non assigné'}]);
+  const liste=techsAffectables(planTechsOf(i)).concat([{id:'',nom:'Non assigné'}]);   // 17 oct. 2026 : ceux que l'intervention porte déjà restent (signalés), aucun autre compte désactivé
   // charge du technicien visé ce jour-là
   const mien=db.interventions.filter(z=>z.id!==DEP.id&&z.date===DEP.date&&(DEP.tech?planTechsOf(z).includes(DEP.tech):!planTechsOf(z).length));
   const mn=mien.reduce((a,z)=>a+(parseInt(z.duree)||60),0);
@@ -20853,7 +20900,7 @@ function planDeplacerRender(){
   el.innerHTML=`
     <div class="dep-lbl">Technicien</div>
     <select class="dep-in" onchange="planDeplacerSet('tech',this.value)">
-      ${liste.map(t=>`<option value="${t.id}" ${DEP.tech===t.id?'selected':''}>${esc(t.nom)}${t.id?'':' (personne)'}</option>`).join('')}
+      ${liste.map(t=>`<option value="${t.id}" ${DEP.tech===t.id?'selected':''}>${esc(techNomAff(t))}${t.id?'':' (personne)'}</option>`).join('')}
     </select>
     <div class="dep-sous"><span class="pt" style="background:${techColor(DEP.tech)}"></span>${mien.length?(mien.length+' intervention'+(mien.length>1?'s':'')+' · '+fmtHmin(mn)+' ce jour-là'):'libre ce jour-là'}${abs?' · '+esc(ABS_TYPES[abs.type]||abs.type):''}</div>
     ${(()=>{ const au=planEquipeApres(i,DEP.tech||'',DEP.depuis).filter(x=>x!==DEP.tech); return (intTechIds(i).length>1&&au.length)?`<div class="dep-sous dep-avec">${au.map(x=>`<span class="tpu">${techPastille(x)}<span class="tpu-n">${esc(techName(x))}</span></span>`).join(' ')} <span>${au.length>1?'restent':'reste'} sur l’intervention</span></div>`:''; })()}
@@ -20876,6 +20923,7 @@ function planDeplacerRender(){
 function planDeplacerValider(){
   const i=db.interventions.find(z=>z.id===DEP.id); if(!i) return;
   const avObl=i.obligation?{...i.obligation}:null;   // avant la porte : « Annuler » doit pouvoir remettre la trace d'avant
+  if(DEP.tech&&!planAffecteGate(DEP.tech,i)) return;
   if(DEP.tech&&typeof planAbsGate==='function'&&!planAbsGate(DEP.tech,DEP.date,i)) return;
   const de=planSnap(i), avTech=planTechsOf(i)[0]||'', avIds=intTechIds(i).slice(), avD=i.date, avH=i.heure;
   i.date=DEP.date; i.heure=DEP.heure;
@@ -20909,6 +20957,7 @@ function planChangerTech(id,tid){
   if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; }
   const av=planTechsOf(i)[0]||'';
   if(av===tid){ toast(tid?('Déjà chez '+techName(tid)):'Déjà non assignée'); return; }
+  if(!planAffecteGate(tid,i)) return;
   const avObl=i.obligation?{...i.obligation}:null;   // avant la porte : « Annuler » doit pouvoir remettre la trace d'avant
   // chevauchement : on prévient avant, on n'interdit pas
   if(tid&&toMinH(i.heure)!==null){
@@ -21065,7 +21114,7 @@ function planNotesBandeau(){
 function planIndispoForm(){ if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; }
   openModal(`<div class="modal-head"><h3>⛔ Indisponibilité</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <p style="color:var(--t3);font-size:12.5px;margin-bottom:10px">Bloque un créneau dans la timeline (garage, formation, RDV…). Impossible de planifier dessus.</p>
-    <div class="field"><label>Technicien *</label><select id="ind-tech">${db.techniciens.map(t=>`<option value="${t.id}">${esc(t.nom)}</option>`).join('')}</select></div>
+    <div class="field"><label>Technicien *</label><select id="ind-tech">${techsAffectables().map(t=>`<option value="${t.id}">${esc(t.nom)}</option>`).join('')}</select></div>
     <div class="field"><label>Date</label><input type="date" id="ind-date" value="${planSel||todayISO()}"></div>
     <div class="field-row"><div class="field"><label>Début</label><input type="time" step="300" id="ind-debut" value="14:00"></div>
       <div class="field"><label>Fin</label><input type="time" step="300" id="ind-fin" value="15:30"></div></div>
@@ -21091,7 +21140,8 @@ function planPrefOf(clientId){ const c=db.clients.find(x=>x.id===clientId); retu
 function planNextCompute(i){ if(!i||!i.date) return null;
   const freq=PLAN_FREQ[i.recurrence]||30;
   const pref=planPrefOf(i.clientId)||{};
-  const techId=pref.techId||intTechIds(i)[0]||'';
+  let techId=pref.techId||intTechIds(i)[0]||'';
+  if(!techAssignable(techId)) techId='';   // 17 oct. 2026 : on ne propose pas un passage à un compte désactivé — il part « Non assigné », à réaffecter
   let heure=i.heure||'09:00';
   if(!i.heure){ if(pref.creneau==='matin') heure='09:00'; else if(pref.creneau==='apresmidi') heure='14:00'; else if(pref.creneau==='fixe'&&pref.heureFixe) heure=pref.heureFixe; }
   const base=shiftDay(i.date,freq);
@@ -21117,7 +21167,7 @@ function planNextModal(id){ const i=db.interventions.find(x=>x.id===id); if(!i) 
     <div class="fgroup" style="margin-bottom:8px"><div class="frow" style="display:block"><b style="font-size:13.5px">📅 Choisir manuellement</b>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;align-items:center">
         <input type="date" id="pn-date" value="${prop?prop.date:shiftDay(i.date||todayISO(),freq)}"><input type="time" step="300" id="pn-heure" value="${prop?prop.heure:(i.heure||'09:00')}">
-        <select id="pn-tech"><option value="">Non assigné</option>${db.techniciens.map(t=>`<option value="${t.id}" ${(prop?prop.techId:intTechIds(i)[0])===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select>
+        <select id="pn-tech"><option value="">Non assigné</option>${techsAffectables().map(t=>`<option value="${t.id}" ${(prop?prop.techId:intTechIds(i)[0])===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select>
         <button class="btn sm" onclick="planNextCreate('${id}','manuel')">Planifier</button></div></div></div>
     <button class="btn ghost" style="width:100%;justify-content:center;margin-bottom:4px" onclick="planNextCreate('${id}','later')">⏳ Plus tard — bac « À planifier »</button>
     ${pref.jours&&pref.jours.length?`<p style="color:var(--t3);font-size:11.5px;margin-top:8px">Préférences client : jours ${pref.jours.map(j=>['L','M','M','J','V','S','D'][j]).join(' ')}${pref.creneau&&pref.creneau!=='indifferent'?' · '+(pref.creneau==='matin'?'matin':pref.creneau==='apresmidi'?'après-midi':'heure fixe '+(pref.heureFixe||'')):''}${pref.techId?' · technicien habituel : '+esc(techName(pref.techId)):''}${pref.prevenir48?' · prévenir 48 h avant':''}${pref.appelerAvant?' · appeler avant':''}</p>`:''}`); }
@@ -21135,6 +21185,7 @@ function planNextCreate(id,mode){ const i=db.interventions.find(x=>x.id===id); i
     else { msg='Aucun créneau valide — passage '+tot+' envoyé au bac « À planifier »'; intHisto(n,'Aucun créneau valide sous 14 jours → bac À planifier'); } }
   else if(mode==='manuel'){ const d=($('pn-date')||{}).value, h=($('pn-heure')||{}).value, t=($('pn-tech')||{}).value||'';
     if(!d){ toast('Choisis une date'); return; }
+    if(t&&!techPeutRecevoir(t,null)){ techRefusDesactive(t); return; }
     if(t&&!planAbsGate(t,d,n)) return;
     n.date=d; n.heure=h||i.heure||'09:00'; n.techId=t; n.techIds=t?[t]:[]; n.statut='planifiee';
     msg='Passage '+tot+' planifié le '+fmtShort(d)+(h?' à '+h:'');
@@ -21489,7 +21540,7 @@ function formTache(id){ db.taches=db.taches||[]; const t=id?db.taches.find(x=>x.
     <form onsubmit="saveTache(event,'${id||''}')">
       <div class="field"><label>Titre *</label><input name="titre" required value="${esc(t.titre||'')}" placeholder="Ex : Rappeler le client / Commander des postes"></div>
       <div class="field-row">
-        <div class="field"><label>Assignée à</label><select name="techId"><option value="">—</option>${optOf(db.techniciens,t.techId)}</select></div>
+        <div class="field"><label>Assignée à</label><select name="techId"><option value="">—</option>${optTechs(t.techId)}</select></div>
         <div class="field"><label>Échéance</label><input type="date" name="echeance" value="${t.echeance||''}"></div>
       </div>
       <div class="field-row">
@@ -21711,7 +21762,7 @@ function formAbsence(id){
   const myTid=myTechId();
   openModal(`<div class="modal-head"><h3>${a?'Modifier l’absence':'Nouvelle absence'}</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="saveAbsence(event,'${id||''}')">
-      <div class="field"><label>Personne *</label><select name="techId" required>${optOf(db.techniciens,a?a.techId:myTid)}</select></div>
+      <div class="field"><label>Personne *</label><select name="techId" required>${optTechs(a?a.techId:myTid)}</select></div>
       <div class="field"><label>Type</label>
         <input type="hidden" id="abs-type" name="type" value="${a?a.type:'conge'}">
         <button type="button" id="abs-typebtn" class="abs-tybtn" onclick="absTypeListe()"></button>
@@ -24348,7 +24399,7 @@ function formIntervention(id,preset){
 
         <div class="fsec"><div class="form-sec">Affectation</div>
         <div class="fgroup">
-          <div class="frow" style="align-items:flex-start"><span class="frow-lbl" style="padding-top:4px">Technicien(s)</span><div class="frow-val" style="display:flex;flex-wrap:wrap;gap:6px">${db.techniciens.map(t=>{ const on=intTechIds(i).includes(t.id); return `<span class="chip int-tech ${on?'active':''}" data-tid="${t.id}" onclick="this.classList.toggle('active')" style="cursor:pointer">${esc(t.nom)}</span>`; }).join('')||'<span style="color:var(--t3);font-size:12px">Aucun technicien créé</span>'}</div></div>
+          <div class="frow" style="align-items:flex-start"><span class="frow-lbl" style="padding-top:4px">Technicien(s)</span><div class="frow-val" style="display:flex;flex-wrap:wrap;gap:6px">${techsAffectables(intTechIds(i)).map(t=>{ const on=intTechIds(i).includes(t.id); return `<span class="chip int-tech ${on?'active':''}" data-tid="${t.id}" onclick="this.classList.toggle('active')" style="cursor:pointer">${esc(techNomAff(t))}</span>`; }).join('')||'<span style="color:var(--t3);font-size:12px">Aucun technicien créé</span>'}</div></div>
           <div class="frow" style="border-bottom:none;padding-top:0"><span style="font-size:11px;color:var(--t3)">Aucun sélectionné = affectation automatique selon le département du client</span></div>
           <div class="frow"><span class="frow-lbl">Commercial</span><div class="frow-val"><input name="commercial" value="${esc(i.commercial)}" placeholder="Nom du commercial"></div></div>
           ${entSocUnique()?`<input type="hidden" name="rapportModele" id="soc-val" value="${esc(i.rapportModele||entSocUnique())}">`:`<div class="frow" style="display:block"><span class="frow-lbl" style="display:block;margin-bottom:6px">Société</span>
@@ -24646,7 +24697,7 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
   if(!id && !_forceAbs && _saved && _saved.date){ try{ planStamp(_saved,null); }catch(e){} }
   // Alerte si le département n'est couvert par aucun technicien
   const key=keyForClient(data.clientId);
-  if(data.clientId && key && !techForKey(key)) autoMsg='Département '+keyLabel(key)+' non couvert par un technicien';
+  if(data.clientId && key && !techForKey(key,true)) autoMsg='Département '+keyLabel(key)+' non couvert par un technicien';
   // Détection de conflit de planning (même technicien, créneaux qui se chevauchent)
   const cf=intConflictOf(data,id);
   if(cf) autoMsg='Chevauchement : '+techName(data.techId)+' a déjà « '+(cf.titre||'')+' » à '+(cf.heure||'')+' ce jour-là';
@@ -24755,7 +24806,7 @@ function renderIntDetail(id){
       <details open class="olsec"><summary><span class="olsec-ic">${fic('list',19)}</span>Éléments clés</summary><div class="olsec-b">
         <div style="display:flex;align-items:center;gap:6px;padding:2px 0 10px"><b style="font-size:13.5px;white-space:nowrap">Société</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(rapportSociete(i.rapportModele))}</span></div>
         <b style="font-size:13.5px">Intervenants</b>
-        <div style="margin:6px 0 12px;border-left:3px solid var(--brd);padding-left:10px">${intTechsAff(i).length?intTechsAff(i).map((tid,k)=>`<div style="display:flex;gap:8px;align-items:center;padding:3px 0">${techPastille(tid,'g')}<span style="font-size:13.5px">${esc(techName(tid))}${k===0?' <span style="color:var(--t3)">(Leader)</span>':''}</span></div>`).join(''):'<span style="color:var(--t3);font-size:13px">Non assignée</span>'}</div>
+        <div style="margin:6px 0 12px;border-left:3px solid var(--brd);padding-left:10px">${intTechsAff(i).length?intTechsAff(i).map((tid,k)=>`<div style="display:flex;gap:8px;align-items:center;padding:3px 0">${techPastille(tid,'g')}<span style="font-size:13.5px">${esc(techName(tid))}${k===0?' <span style="color:var(--t3)">(Leader)</span>':''}${techCompteDesactive(tid)?' <span class="tag fiche-off" style="font-size:10px;background:rgba(245,158,11,.16);color:var(--org)" title="Le compte est désactivé : réaffecte cette intervention (✎ Modifier)">⚠ '+TECH_INACTIF_LBL+'</span>':''}</span></div>`).join(''):'<span style="color:var(--t3);font-size:13px">Non assignée</span>'}</div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Rapport personnalisé</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right;max-width:55%">${esc(i.rapportModele||'')||'Modèle générique'}</span></div>
         <div style="display:flex;align-items:center;gap:6px;padding:6px 0"><b style="font-size:13.5px;white-space:nowrap">Catégorie</b><span style="flex:1;border-bottom:2px dotted color-mix(in srgb,var(--t3) 50%,transparent);margin:0 4px;transform:translateY(3px);min-width:14px"></span><span style="font-size:12.5px;color:var(--t2);text-align:right">${esc(i.type||'')||'—'}</span></div>
         <div style="padding:8px 0 2px"><b style="font-size:13.5px">Demandes client</b><div style="font-size:12.5px;color:var(--t2);margin-top:5px;border-left:3px solid color-mix(in srgb,var(--t3) 45%,transparent);padding-left:12px;min-height:17px;white-space:pre-wrap">${esc(i.desc||'')}</div></div>
@@ -25128,7 +25179,7 @@ function intRecurNext(cur){ if(!cur||!cur.recurrence||cur.recurrence==='aucune'|
      du passage suivant au nom (SIRET, TVA, IBAN) de l'entreprise principale — un document juridiquement faux. Ni
      `contratId` (un contrat génère SES passages, `genererInterventionContrat` : le copier les compterait deux fois), ni
      `moyenPaiement`, `aFacturer`, `finReel`, `dureeReelle` (propres au passage qu'on vient de clore). */
-  const copy={id:uid(),num:intNum(),titre:cur.titre,type:cur.type,clientId:cur.clientId,techId:cur.techId,techIds:intTechIds(cur).slice(),adresse:cur.adresse,date:nd,heure:cur.heure,duree:cur.duree,prio:cur.prio,statut:'planifiee',recurrence:cur.recurrence,desc:cur.desc||'',montant:cur.montant||0,rapportModele:cur.rapportModele||'',nuisibles:(cur.nuisibles||[]).slice(),nuisible:cur.nuisible||'—',methodes:(cur.methodes||[]).slice(),compteRendu:'',groupId:cur.groupId||''};
+  const copy={id:uid(),num:intNum(),titre:cur.titre,type:cur.type,clientId:cur.clientId,techId:(intTechIds(cur).filter(techAssignable)[0]||''),techIds:intTechIds(cur).filter(techAssignable),adresse:cur.adresse,date:nd,heure:cur.heure,duree:cur.duree,prio:cur.prio,statut:'planifiee',recurrence:cur.recurrence,desc:cur.desc||'',montant:cur.montant||0,rapportModele:cur.rapportModele||'',nuisibles:(cur.nuisibles||[]).slice(),nuisible:cur.nuisible||'—',methodes:(cur.methodes||[]).slice(),compteRendu:'',groupId:cur.groupId||''};
   if(ancre>parseInt(nd.slice(8,10),10)) copy.recurAncre=ancre;   /* seulement quand le mois a raboté le jour (28 févr. : ancre 31) */
   db.interventions.push(copy); cur.nextCreated=true; notifyTechNewInt(copy);
   intHisto(cur,'🔁 Prochaine occurrence planifiée le '+fmtShort(nd));
@@ -25463,7 +25514,8 @@ function intHistoriquePassages(id){ const i=db.interventions.find(x=>x.id===id);
       <div class="pl-meta">${x.date?fmtShort(x.date)+(x.heure?' à '+x.heure:''):'À planifier'} · ${techPuces(x)}${(()=>{ const lv=intInfOf(x); if(!lv) return ''; const cfg=INF_LV.find(z=>z[0]===lv)||[]; return ` · <b style="color:${encreDonnee(cfg[2]||'var(--t3)')}">infestation ${cfg[1]||lv}</b>`; })()}</div></div>
       ${badge(STATUT_INT,x.statut)}</div>`; }).join('')}
     ${(i.histo&&i.histo.length)?`<div class="dt-lbl" style="margin:14px 2px 6px">Journal de cette fiche</div>${i.histo.slice(-8).reverse().map(h=>`<div style="display:flex;gap:10px;padding:4px 0;font-size:12px;border-bottom:1px solid var(--brd)"><span style="color:var(--t3);white-space:nowrap">${new Date(h.ts).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit'})} ${new Date(h.ts).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</span><span style="flex:1">${esc(h.txt)}${h.par?` <span style="color:var(--t3)">· ${esc(h.par)}</span>`:''}</span></div>`).join('')}`:''}`); }
-function _copieInt(i,extra){ const n={id:uid(),num:intNum(),titre:i.titre,type:i.type,clientId:i.clientId,techId:i.techId,techIds:intTechIds(i).slice(),adresse:i.adresse,date:i.date,heure:i.heure,duree:i.duree,prio:i.prio,statut:'planifiee',recurrence:i.recurrence,desc:i.desc||'',montant:i.montant||0,rapportModele:i.rapportModele||'',nuisibles:(i.nuisibles||[]).slice(),nuisible:i.nuisible||'—',methodes:(i.methodes||[]).slice(),traitementNuis:JSON.parse(JSON.stringify(i.traitementNuis||{})),checklist:(i.checklist||[]).map(x=>({t:x.t,done:false})),compteRendu:'',...extra}; return n; }
+/* 17 oct. 2026 : une COPIE (passage suivant, duplication) ne reprend pas un compte désactivé — elle part sans lui, à affecter */
+function _copieInt(i,extra){ const _ti=intTechIds(i).filter(techAssignable); const n={id:uid(),num:intNum(),titre:i.titre,type:i.type,clientId:i.clientId,techId:_ti[0]||'',techIds:_ti,adresse:i.adresse,date:i.date,heure:i.heure,duree:i.duree,prio:i.prio,statut:'planifiee',recurrence:i.recurrence,desc:i.desc||'',montant:i.montant||0,rapportModele:i.rapportModele||'',nuisibles:(i.nuisibles||[]).slice(),nuisible:i.nuisible||'—',methodes:(i.methodes||[]).slice(),traitementNuis:JSON.parse(JSON.stringify(i.traitementNuis||{})),checklist:(i.checklist||[]).map(x=>({t:x.t,done:false})),compteRendu:'',...extra}; return n; }
 function creerProchainPassage(id){ if(!permGarde('int','ajouter','une intervention')) return; const i=db.interventions.find(x=>x.id===id); if(!i) return;
   const gid=i.groupId||uid(); i.groupId=gid;
   const tot=(db.interventions.filter(x=>x.groupId===gid).length||1)+1;
@@ -25864,7 +25916,7 @@ function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
           <option value="apresmidi" ${pp.creneau==='apresmidi'?'selected':''}>Après-midi</option>
           <option value="fixe" ${pp.creneau==='fixe'?'selected':''}>Heure fixe</option></select></div>
         <div class="field"><label>Heure fixe</label><input type="time" name="pp_heureFixe" value="${esc(pp.heureFixe||'09:00')}" style="display:${pp.creneau==='fixe'?'':'none'}"></div></div>
-      <div class="field"><label>Technicien habituel</label><select name="pp_techId"><option value="">Aucun (au choix)</option>${db.techniciens.map(t=>`<option value="${t.id}" ${pp.techId===t.id?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div>
+      <div class="field"><label>Technicien habituel</label><select name="pp_techId"><option value="">Aucun (au choix)</option>${techsAffectables([pp.techId]).map(t=>`<option value="${t.id}" ${pp.techId===t.id?'selected':''}>${esc(techNomAff(t))}</option>`).join('')}</select></div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px">
         <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" name="pp_prevenir48" ${pp.prevenir48?'checked':''} style="width:19px;height:19px;accent-color:var(--acc)">📧 Prévenir 48 h avant</label>
         <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer"><input type="checkbox" name="pp_appelerAvant" ${pp.appelerAvant?'checked':''} style="width:19px;height:19px;accent-color:var(--acc)">📞 Appeler avant de venir</label></div>
@@ -28863,7 +28915,7 @@ function openPassage(boxId){ const b=db.boxes.find(x=>x.id===boxId); if(!b)retur
     <form id="passform" onsubmit="savePassage(event,'${boxId}')">
       <div class="fgroup">
         <div class="frow"><span class="frow-lbl">Date</span><div class="frow-val"><input type="date" name="date" value="${todayISO()}" style="width:auto"></div></div>
-        <div class="frow"><span class="frow-lbl">Technicien</span><div class="frow-val"><select name="technicienId"><option value="">—</option>${db.techniciens.map(t=>`<option value="${t.id}">${esc(t.nom)}</option>`).join('')}</select></div></div>
+        <div class="frow"><span class="frow-lbl">Technicien</span><div class="frow-val"><select name="technicienId"><option value="">—</option>${techsAffectables().map(t=>`<option value="${t.id}">${esc(t.nom)}</option>`).join('')}</select></div></div>
       </div>
       <div class="form-sec">État de l'appât</div>
       <div class="fgroup"><div class="frow"><select name="etat" style="width:100%">${Object.entries(APPAT_ETATS).map(([k,v])=>`<option value="${k}">${v.l}</option>`).join('')}</select></div></div>
@@ -30511,11 +30563,12 @@ function renderBoxTechs(){ const el=$('box-techs'); if(!el)return;
   const hint=$('box-vt-hint'); if(hint) hint.textContent = boxVisibleTous ? 'Ce box est visible par toute l\'équipe.' : (boxTechSel.size? '' : 'Aucun technicien coché : seuls les administrateurs et responsables verront ce box.');
   el.style.opacity = boxVisibleTous ? .4 : 1; el.style.pointerEvents = boxVisibleTous ? 'none' : 'auto';
   try{ renderBoxUsers(); }catch(e){}
-  if(!db.techniciens.length){ el.innerHTML='<div class="frow" style="color:var(--t3)">Aucun technicien.</div>'; return; }
-  el.innerHTML=db.techniciens.map(t=>{ const on=boxTechSel.has(t.id);
+  const _tbx=techsAffectables([...boxTechSel]);   // 17 oct. 2026 : un compte désactivé n'est plus proposé (ceux déjà cochés restent, signalés)
+  if(!_tbx.length){ el.innerHTML='<div class="frow" style="color:var(--t3)">Aucun technicien.</div>'; return; }
+  el.innerHTML=_tbx.map(t=>{ const on=boxTechSel.has(t.id);
     return `<div class="frow" style="cursor:pointer" onclick="toggleBoxTech('${t.id}')">
       <span style="font-size:20px;color:${on?'var(--acc-txt)':'var(--t3)'}">${on?'☑':'☐'}</span>
-      <div><div style="font-size:15px;color:var(--t1)">${esc(t.nom)}</div><div style="font-size:11px;color:var(--t3)">${esc(t.metier||'Technicien')}</div></div>
+      <div><div style="font-size:15px;color:var(--t1)">${esc(techNomAff(t))}</div><div style="font-size:11px;color:var(--t3)">${esc(t.metier||'Technicien')}</div></div>
     </div>`;}).join(''); }
 function toggleBoxTech(id){ if(boxTechSel.has(id)) boxTechSel.delete(id); else boxTechSel.add(id); const c=$('box-tech-count'); if(c)c.textContent=boxTechSel.size; renderBoxTechs(); }
 /* comptes sans fiche technicien (DR, commercial, compta…) autorisés sur la box */
@@ -30741,7 +30794,7 @@ function formEnv(id){ const e=id?db.enveloppes.find(x=>x.id===id):{}; const part
       </div>
       <div class="form-sec">Affectation</div>
       <div class="fgroup">
-        <div class="frow"><span class="frow-lbl">Technicien</span><div class="frow-val"><select name="technicienId"><option value="">—</option>${db.techniciens.map(t=>`<option value="${t.id}" ${t.id===e.technicienId?'selected':''}>${esc(t.nom)}</option>`).join('')}</select></div></div>
+        <div class="frow"><span class="frow-lbl">Technicien</span><div class="frow-val"><select name="technicienId"><option value="">—</option>${techsAffectables([e.technicienId]).map(t=>`<option value="${t.id}" ${t.id===e.technicienId?'selected':''}>${esc(techNomAff(t))}</option>`).join('')}</select></div></div>
         <div class="frow"><span class="frow-lbl">Active</span><div class="frow-val"><input type="checkbox" name="actif" ${e.actif!==false?'checked':''} style="width:38px;height:24px;accent-color:var(--org)"></div></div>
       </div>
     </form>`);
@@ -33107,7 +33160,7 @@ function renderVehThumb(key){ const el=$('vp-'+key); if(!el)return; el.innerHTML
 function formVehicule(id){ const v=id?db.vehicules.find(x=>x.id===id):{};
   vehPhotos={photoCGRecto:v.photoCGRecto||'',photoCGVerso:v.photoCGVerso||'',photoAttestation:v.photoAttestation||'',photoCarteVerte:v.photoCarteVerte||''};
   const sec=t=>`<div class="dt-lbl" style="margin:14px 0 8px;color:var(--acc-txt)">${t}</div>`;
-  const techOpt=sel=>`<option value="">—</option>`+db.techniciens.map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${esc(t.nom)}</option>`).join('');
+  const techOpt=sel=>`<option value="">—</option>`+techsAffectables([sel]).map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${esc(techNomAff(t))}</option>`).join('');
   openModal(`<div class="modal-head"><h3>${id?'Modifier':'Nouveau'} véhicule</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="saveVehicule(event,'${id||''}')">
       ${sec('Identification')}
@@ -33395,9 +33448,9 @@ function techPastille(id,taille){ const c=techColor(id||''), nom=id?techName(id)
   return `<span class="tpu-p${taille?' '+taille:''}" style="--tc:${c};--ti:${encreSur(c)}" title="${esc(nom)}">${esc(id?initials(nom):'?')}</span>`; }
 function techPuces(i,opts){ opts=opts||{}; const ids=intTechsAff(i);
   if(!ids.length) return `<span class="tpus"><span class="tpu">${techPastille('')}<span class="tpu-n">Non assigné</span></span></span>`;
-  return `<span class="tpus">`+ids.map((id,k)=>`<span class="tpu">${techPastille(id)}<span class="tpu-n">${esc(techName(id))}${opts.leader&&k===0?' <span style="color:var(--t3);font-weight:500">(Leader)</span>':''}</span></span>`).join('')+`</span>`; }
+  return `<span class="tpus">`+ids.map((id,k)=>`<span class="tpu">${techPastille(id)}<span class="tpu-n">${esc(techName(id))}${techCompteDesactive(id)?` <span class="tpu-off" style="color:var(--org);font-weight:600" title="Le compte de ${esc(techName(id))} est désactivé : réaffecte cette intervention.">· ${TECH_INACTIF_LBL}</span>`:''}${opts.leader&&k===0?' <span style="color:var(--t3);font-weight:500">(Leader)</span>':''}</span></span>`).join('')+`</span>`; }   // 17 oct. 2026 : le signe « compte désactivé » suit la personne partout où l'intervention nomme ses techniciens
 function techPile(i,max){ const ids=intTechsAff(i); if(!ids.length) return ''; max=max||4;
-  const vus=ids.slice(0,max), reste=ids.length-vus.length, noms=ids.map(techName).join(', ');
+  const vus=ids.slice(0,max), reste=ids.length-vus.length, noms=ids.map(id=>techName(id)+(techCompteDesactive(id)?' ('+TECH_INACTIF_LBL+')':'')).join(', ');
   return `<span class="tpil" role="img" aria-label="${esc((ids.length>1?'Techniciens : ':'Technicien : ')+noms)}" title="${esc(noms)}">`
     +vus.map(id=>techPastille(id)).join('')+(reste>0?`<span class="tpu-plus">+${reste}</span>`:'')+`</span>`; }
 /* ⛔ L'ENCRE D'UNE COULEUR D'IDENTITÉ SE CALCULE, ELLE NE SE SUPPOSE PAS. Les cases du planning
@@ -33436,9 +33489,9 @@ function parseTechDepts(str){ const out=new Set(); (str||'').split(/[,;\/\n]/).f
   else { const m2=tok.match(/\b(\d{2,3})\b/); if(m2){ if(m2[1]==='20'){ out.add('2A'); out.add('2B'); } else out.add(m2[1].length===3&&/^9[78]/.test(m2[1])?m2[1]:m2[1].slice(0,2)); } }
   const nm=deptCodeFromName(tok.replace(/[\d]+/g,'').trim()); if(nm) out.add(nm); }); return [...out]; }
 function keyForClient(clientId){ const c=db.clients.find(x=>x.id===clientId); if(!c) return null; let cp=c.codePostal?String(c.codePostal).trim():''; if(!cp){ const m=String(c.adresse||'').match(/\b(\d{5})\b/); if(m) cp=m[1]; } return cpToKey(cp); }
-function techForClient(clientId){ return techForKey(keyForClient(clientId)); }
+function techForClient(clientId){ return techForKey(keyForClient(clientId),true); }   // 17 oct. 2026 : l'affectation automatique ne choisit pas un compte désactivé
 function deptOf(i){ return keyForClient(i.clientId); }
-function techForKey(key){ if(!key) return null; const dep=depDeKey(key); return db.techniciens.find(t=>{ const codes=parseTechDepts(t.departements); return codes.includes(key)||codes.includes(dep); }); }
+function techForKey(key,affectable){ if(!key) return null; const dep=depDeKey(key); return db.techniciens.find(t=>{ if(affectable&&!techAssignable(t.id)) return false; const codes=parseTechDepts(t.departements); return codes.includes(key)||codes.includes(dep); }); }
 /* i03/r3#15 — qui couvre UNE PARTIE du département `dep` (un code postal ou un arrondissement : « 13001 » pour « 13 ») ?
    ⛔ Ce n'est PAS techForKey élargi : techForKey sert aussi l'affectation automatique d'un client (techForClient), et
    un client d'Aix (13100, clé « 13 ») ne doit pas partir chez le technicien de Marseille 1er. Seule la LIGNE d'un
@@ -34304,7 +34357,7 @@ function formTech(id){ if(!permGarde('equipe', id?'modifier':'ajouter','un techn
       <div class="field"><label>Couleur (planning, cartes, interventions)</label>${techCouleurChoix(id||'',t.couleur)}</div>
       <div class="field-row"><div class="field"><label>Capacité par jour (heures)</label><input name="capH"${fg} type="number" min="1" max="14" step="0.5" value="${t.capMin?(t.capMin/60):7}" style="text-align:right"></div>
         <div class="field"><label>Jours de congés par an</label><input name="droitConges"${fg} type="number" min="0" max="60" step="0.5" value="${t.droitConges!=null&&t.droitConges!==''?t.droitConges:25}" style="text-align:right"></div></div>
-      <div class="field"><label>Rattaché à</label><select name="chef"${fg}><option value="">Personne — travaille seul</option>${db.techniciens.filter(x=>x.id!==id&&(gere||x.id===t.chef)).map(x=>`<option value="${x.id}" ${t.chef===x.id?'selected':''}>${esc(x.nom)}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à choisir toute une équipe d'un coup dans le planning général.</div></div>
+      <div class="field"><label>Rattaché à</label><select name="chef"${fg}><option value="">Personne — travaille seul</option>${techsAffectables([t.chef]).filter(x=>x.id!==id&&(gere||x.id===t.chef)).map(x=>`<option value="${x.id}" ${t.chef===x.id?'selected':''}>${esc(techNomAff(x))}</option>`).join('')}</select><div style="font-size:11px;color:var(--t3);margin-top:4px">Sert à choisir toute une équipe d'un coup dans le planning général.</div></div>
       <div style="font-size:11px;color:var(--t3);margin:-6px 2px 10px">La capacité sert à la jauge de charge du planning (vert ≤ 75 %, orange 76-99 %, rouge ≥ 100 %), défaut 7 h. Les jours de congés servent au solde dans Absences &amp; congés, défaut 25 jours ouvrés.</div>
       <div class="field-row"><div class="field"><label>Certibiocide n°</label><input name="certibiocide" value="${esc(t.certibiocide)}" placeholder="N° du certificat" class="mono"></div>
         <div class="field"><label>Valide jusqu'au</label><input type="date" name="certibiocideExp" value="${t.certibiocideExp||''}"></div></div>

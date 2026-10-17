@@ -30,7 +30,8 @@ const F = n => bloc('function ' + n + '(');
 
 console.log('\n── 1260 · 0. la population ──');
 const NOMS = ['planWeekVide', 'planMultiVide', 'formIntervention', 'saveIntervention', 'dupliquerIntervention', '_copieInt', 'ficheClient',
-  'formDoc', 'saveDoc', 'intTechIds', 'intNum', 'intHisto', 'clockFromMin', 'toMin', 'addMin', 'docNum', 'clientsProposes', 'clientPropose'];
+  'formDoc', 'saveDoc', 'intTechIds', 'intNum', 'intHisto', 'clockFromMin', 'toMin', 'addMin', 'docNum', 'clientsProposes', 'clientPropose',
+  'techAssignable', 'techsAffectables', 'techRefusDesactive'];   // 17 oct. 2026 : un compte désactivé n'est plus proposé (la règle est jouée par test-1820)
 const CODE = {}; NOMS.forEach(n => CODE[n] = F(n));
 v('toutes les fonctions sont trouvées (une tranche vide passerait au vert sur tout)', NOMS.filter(n => CODE[n].length < 40), []);
 v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
@@ -83,6 +84,7 @@ function monde(opt) {
     function docNum(){ return 'DEV-2026-001'; }
     ${CODE.clockFromMin}\n${CODE.toMin}\n${CODE.addMin}\n${CODE.intTechIds}\n${CODE.intNum}\n${CODE.intHisto}\n${CODE.clientsProposes}
     ${ligne('let _intReport')}
+    ${CODE.techAssignable}\n${CODE.techsAffectables}\n${CODE.techRefusDesactive}\n${ligne('function techNomAff(t){')}\n${ligne('const TECH_INACTIF_LBL=').replace('const ', 'var ')}\n${ligne('const techName = id =>').replace('const ', 'var ')}
     ${CODE.planWeekVide}\n${CODE.planMultiVide}\n${CODE.formIntervention}\n${CODE.saveIntervention}\n${CODE._copieInt}\n${CODE.dupliquerIntervention}\n${CODE.ficheClient}\n${CODE.formDoc}\n${CODE.saveDoc}
   `, ctx);
   return ctx;

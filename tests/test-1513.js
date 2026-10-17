@@ -34,6 +34,8 @@ function rendre(peut) {
     function planTechMSet(){ return new Set(['t1','']); } function intTechIds(i){ return i.techIds||[]; } function absentOn(){ return null; }
     function techColor(){ return '#000'; } function initials(n){ return String(n).slice(0,2); } function esc(s){ return String(s); }
     function planIntCard(i){ return '<div data-carte="'+i.id+'">carte</div>'; }
+    ${bloc('function techAssignable(t){')}\n${bloc('function techNomAff(t){')}\n${bloc('function techsAffichees(jours){')}   /* 17 oct. 2026 : les lignes de la vue Jour lisent la règle des comptes désactivés (jouée par test-1820) */
+    var TECH_INACTIF_LBL='compte désactivé';
     ${PDL}`, ctx);
   return vm.runInContext('planDayListHtml([{id:"i1",date:"2026-10-17",techIds:["t1"]}])', ctx);
 }

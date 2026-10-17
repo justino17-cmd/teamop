@@ -35,7 +35,9 @@ console.log('\n── 786 · 0. la population ──');
 const NOMS = ['function tableDuRole(role){', 'function capDeduitRegle(cap){', 'function userCap(u,cap){', 'function can(cap){', 'function equipeDe(u){', 'function perimetreTechIds(u){', 'function myTechId(){', 'function ptEstAMoi(p){',
   'function visiblePointages(list){', 'function ptPeutVoirAutres(){', 'function fichesGere(){', 'function ptPeutCorriger(p){', 'function visibleTechniciens(list){',
   /* v742 : la fiche crée un compte — prénom ET nom, jamais celui d'un autre technicien qui a son compte */
-  'function compteHomonyme(prenom,nom,sauf){', 'function homonymeMessage(h,prenom,nom){'];
+  'function compteHomonyme(prenom,nom,sauf){', 'function homonymeMessage(h,prenom,nom){',
+  /* 17 oct. 2026 : « Rattaché à » ne propose plus un compte désactivé (la règle est jouée par test-1820) */
+  'function techAssignable(t){', 'function techsAffectables(garder){', 'function techNomAff(t){'];
 const CODE = NOMS.map(bloc);
 v('les fonctions sont trouvées', NOMS.filter((n, i) => !CODE[i]), []);
 for (const n of ['function ptPeutCorriger(', 'function visibleTechniciens(', 'function fichesGere(']) v('… une seule définition de ' + n.slice(9, -1), SRC.split(n).length - 1, 1);
@@ -131,7 +133,7 @@ function mondeEcran(moi, reglage) {
   const techs = [{ id: 'tK', nom: 'Karim Benali', departements: '44', tel: '06 12', droitConges: 25 }, { id: 'tS', nom: 'Sofia Perez', departements: '85', tel: '06 98' },
     { id: 'tL', nom: 'Léo Martin', departements: '', tel: '07 11' }, { id: 'tJ', nom: 'Jean Terrain', departements: '49', tel: '06 55' }];
   const ctx = { currentUser: u, db: { users, techniciens: techs, pointages: PTS, interventions: [{ clientId: 'c44' }, { clientId: 'c85' }, { clientId: 'c49' }] },
-    CAPS: { technicien: {} }, fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(), views: {},
+    TECH_INACTIF_LBL: 'compte désactivé', CAPS: { technicien: {} }, fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(), views: {},
     setHeader: () => {}, $: () => ({ set innerHTML(h) { out.html = h; } }), keyForClient: id => id.slice(1), parseTechDepts: s => String(s || '').split(',').map(x => x.trim()).filter(Boolean),
     techColor: () => '#123', initials: n => n[0], keyLabel: d => d, deptColor: () => '#456', encreSur: () => '#fff', esc: x => String(x == null ? '' : x),
     techForKey: dep => techs.find(t => t.departements === dep) || null, depDeKey: k => k,   // 1302 : Secteurs range par département via depDeKey (les clés de ce banc sont déjà des départements)

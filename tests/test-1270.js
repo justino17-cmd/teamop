@@ -30,7 +30,8 @@ function decoupe(h) { const d = APP.indexOf(h); if (d < 0) throw new Error('intr
 const FN = ['function toMin(', 'function indisposOf(', 'function indispoAt(', 'function absentOn(', 'function intTechIds(', 'function techNames(',
   'function intHisto(', 'function clockFromMin(', 'function planYbord(', 'function planEquipeApres(', 'function planPoserEquipe(', 'function planSnap(',
   'function planStamp(', 'function planDup(', 'function planObligationLever(', 'function planAbsGate(', 'function planDepotAvant(', 'function planDepotApres(',
-  'function planMultiDrop(', 'function planWeekDrop(', 'function planDropTime(', 'function planDropCell('];
+  'function planMultiDrop(', 'function planWeekDrop(', 'function planDropTime(', 'function planDropCell(',
+  'function techAssignable(', 'function techPeutRecevoir(', 'function techRefusDesactive(', 'function planAffecteGate('];   // 17 oct. 2026 : planDepotAvant refuse un compte désactivé (règle jouée par test-1820)
 const manquantes = FN.filter(h => APP.indexOf(h) < 0);
 // planDepotAvant/Apres n'existent pas dans le code AVANT correctif : le banc doit alors TOMBER, pas mourir.
 const code = FN.filter(h => APP.indexOf(h) >= 0).map(decoupe).join('\n');
@@ -56,6 +57,7 @@ function monter() {
   W.uid = (() => { let n = 0; return () => 'n' + (++n); })();
   W.save = () => { S.saves.push({ journal: S.db.planJournal.length, planBy: S.db.interventions.map(i => !!i.planBy), obl: S.db.interventions.map(i => !!i._oblig) }); };
   W.serieShiftPropose = () => {};
+  W.TECH_INACTIF_LBL = 'compte désactivé'; W.db.users = [];
   W.intConflictOf = () => null;
   Object.defineProperty(W, 'planSel', { get: () => S.planSel, set: v => { S.planSel = v; }, enumerable: true });
   W.planJours = ['2026-10-16'];

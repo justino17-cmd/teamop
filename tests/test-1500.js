@@ -186,7 +186,8 @@ console.log('\n── 3. les boutons à libellé sur plusieurs lignes (r3#7, r3#
     intHisto: () => [], intTechIds: () => [], shiftDay: d => d, PLAN_FREQ: { mensuelle: 30 }, INT_RECUR: { mensuelle: 'mensuelle' },
     planPrefOf: () => ({}), planNextCompute: () => ({ date: '2026-11-15', heure: '09:00', techId: '' }),
     esc: s => String(s == null ? '' : s), clientName: () => 'X', fmtLong: () => 'dimanche 15 novembre', techName: () => '', openModal: h => { html = h; },
-    closeModal() {}, go() {}, current: 'interventions', todayISO: () => '2026-10-16', planNextCreate() {} };
+    closeModal() {}, go() {}, current: 'interventions', todayISO: () => '2026-10-16', planNextCreate() {},
+    techsAffectables: () => [], techNomAff: t => t.nom };   // 17 oct. 2026 : la règle d'affectation est jouée par test-1820 ; ici un double
   vm.createContext(ctx);
   let err = null; try { vm.runInContext(F + '\nplanNextModal("i1");', ctx); } catch (e) { err = String(e && e.message || e); }
   const m = html && /<button class="btn" style="([^"]*)" onclick="planNextCreate\('i1','auto'\)">/.exec(html);

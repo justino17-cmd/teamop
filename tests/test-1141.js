@@ -62,6 +62,7 @@ function monde(absences, ints, pers) {
     ${HM}
     ${PID}
     ${PGL}
+    ${bloc('function techAssignable(t){')}\n${bloc('function techsAffichees(jours){')}\n${bloc('function intTechIds(i){')}\n${bloc('function pgPersCompte(jours){')}   /* 17 oct. 2026 : les lignes du Planning général lisent la règle des comptes désactivés (jouée par test-1820) */
     ${PG}`, ctx);
   return ctx;
 }
