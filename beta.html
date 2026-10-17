@@ -16545,6 +16545,10 @@ function pgGroupes(){
   return out;
 }
 function pgRecherche(v){ pgQ=v; views.planningGeneral(); }
+/* ⛔ planning#9 — « absence du 20 au 21/10 » (ou « le 20/10 ») : la phrase d'une absence qui n'a pas commencé. */
+function pgAbsLib(a){ const fin=a.au||a.du, d=i=>i.slice(8)+'/'+i.slice(5,7);
+  if(a.du===fin) return 'absence le '+d(a.du);
+  return 'absence du '+(a.du.slice(0,7)===fin.slice(0,7)?a.du.slice(8):d(a.du))+' au '+d(fin); }
 views.planningGeneral=function(){
   if(!pgRef) pgRef=todayISO();
   const n=pgPortee(), dense=n>=30;
@@ -16575,8 +16579,14 @@ views.planningGeneral=function(){
     const mesInts=SRC.filter(i=>planIntDe(i,p.id));
     const mesAbs=(db.absences||[]).filter(a=>a.techId===p.id&&absValidee(a));
     const mn=mesInts.reduce((s,i)=>s+(parseInt(i.duree)||60),0);
-    const jAbs=mesAbs.filter(a=>jours.some(j=>a.du<=j&&j<=(a.au||a.du))).length;
-    const sous=p.id===''?'à répartir':(jAbs?'absence en cours':(mesInts.length?fmtHmin(mn):'libre'));
+    /* ⛔ planning#9 — « en cours » se dit d'une absence qui recoupe AUJOURD'HUI, pas de toute absence de la période
+       affichée : celle du 20 au 21/10 vue le 16 se dit avec ses dates. Les heures planifiées restent visibles. */
+    const auj=todayISO(), hs=mesInts.length?fmtHmin(mn):'';
+    /* … ET la période affichée doit contenir aujourd'hui : vue la semaine d'après, une absence d'aujourd'hui seul
+       n'est pas « en cours » (relecture planning#9). */
+    const enCours=jours.indexOf(auj)>=0?mesAbs.find(a=>a.du<=auj&&auj<=(a.au||a.du)):null;
+    const aVenir=enCours?null:mesAbs.filter(a=>jours.some(j=>a.du<=j&&j<=(a.au||a.du))).sort((x,y)=>x.du.localeCompare(y.du))[0];
+    const sous=p.id===''?'à répartir':(enCours?'absence en cours'+(hs?' · '+hs:''):aVenir?pgAbsLib(aVenir)+(hs?' · '+hs:''):(hs||'libre'));
     const focOn=(pgFocus!=='')&&(pgFocus===p.id);
     g+=`<div class="pg-pers${pgFocus&&pgFocus!==p.id?' mini':''}${focOn?' foc':''}" style="--tc:${c}"
         onclick="pgFocusSet('${p.id}')" title="${focOn?'Revenir à tout le monde':'N’afficher que '+esc(p.nom)}">
@@ -16612,7 +16622,11 @@ views.planningGeneral=function(){
   const PORTEES=[[7,'7 jours','vsem','Une semaine'],[14,'14 jours','vsem','Deux semaines'],
                  [30,'1 mois','vmois','Le mois entier'],[90,'3 mois','vmois','Un trimestre']];
   const nPers=pgPersSet().size, totPers=db.techniciens.length+1;
-  const nAbs=(db.absences||[]).filter(a=>absValidee(a)&&jours.some(j2=>a.du<=j2&&j2<=(a.au||a.du))).length;
+  /* ⛔ planning#10 — les compteurs du bandeau se calculent sur ce qui est À L'ÉCRAN (le filtre Équipe et la recherche) :
+     décocher Sophie laissait « 14 interventions » alors que 8 étaient affichées. Une intervention partagée ne compte qu'une fois. */
+  const idsAff=new Set(gens.map(g2=>g2.id));
+  const nInt=SRC.filter(i=>gens.some(g2=>planIntDe(i,g2.id))).length;
+  const nAbs=(db.absences||[]).filter(a=>absValidee(a)&&idsAff.has(a.techId)&&jours.some(j2=>a.du<=j2&&j2<=(a.au||a.du))).length;
   $('content').innerHTML=`<div class="card pf-bar" onclick="event.stopPropagation()">
     <div class="pf-row">
       <span class="pf-vues">${PORTEES.map(([v,l,ic,tip])=>`<span class="${n===v?'on':''}" onclick="pgPorteeSet(${v})" data-tip="${esc(tip)}">${ico(ic)}<b>${l}</b></span>`).join('')}</span>
@@ -16625,7 +16639,7 @@ views.planningGeneral=function(){
       <button class="pf-b${(nPers<totPers)?' act':''}" onclick="pgPersListe()" data-tip="Choisir qui afficher — recherche, équipes, raccourcis">${ico('equipe')}<b>Équipe</b> <span class="n">${nPers} / ${totPers}</span> <span class="ar">▾</span></button>
       <span class="pf-vues">${[['tout','Tout','recap','Interventions, activités et absences'],['int','Interventions','vjour','Seulement les interventions'],['abs','Absences','cal','Seulement les absences']].map(([k,l,ic,tip])=>`<span class="${pgFiltre===k?'on':''}" onclick="pgFiltreSet('${k}')" data-tip="${esc(tip)}">${ico(ic)}<b>${l}</b></span>`).join('')}</span>
       <span class="pf-sp2"></span>
-      <span class="pf-cnt2" data-tip="Sur la période affichée"><i style="background:var(--acc)"></i>${SRC.length} intervention${SRC.length>1?'s':''}<i style="background:var(--purple);margin-left:7px"></i>${nAbs} absence${nAbs>1?'s':''}</span>
+      <span class="pf-cnt2" data-tip="Sur la période affichée"><i style="background:var(--acc)"></i>${nInt} intervention${nInt>1?'s':''}<i style="background:var(--purple);margin-left:7px"></i>${nAbs} absence${nAbs>1?'s':''}</span>
       <span class="pf-inw" data-tip="Chercher une personne">${ico('loupe')}
         <input placeholder="Rechercher…" value="${esc(pgQ)}" oninput="clearTimeout(window._pgT);window._pgT=setTimeout(()=>pgRecherche(this.value),260)"></span>
       <span class="pf-zoom"><span onclick="pgZoomPas(-1)" data-tip="Lignes plus basses">−</span><b id="pg-zval" onclick="pgZoomReset()" data-tip="Revenir à 100 %">100 %</b><span onclick="pgZoomPas(1)" data-tip="Lignes plus hautes">+</span></span>
@@ -20844,6 +20858,20 @@ function absPeutValider(a){
   if(monTech && a.techId===monTech) return false;          // c'est mon absence
   return true;
 }
+/* ⛔ planning#7 — à qui prévenir quand une absence validée est modifiée : les responsables (« Tout voir »)
+   actifs, ni celui qui agit, ni la personne absente. Sans eux la demande attendrait sans que personne le sache. */
+function absValideursIds(a){ const moi=currentUser&&currentUser.id;
+  return (db.users||[]).filter(u=>u&&u.actif!==false&&u.id!==moi&&userCap(u,'voirTout')&&!(a&&a.techId&&u.techId===a.techId)).map(u=>u.id); }
+/* ⛔ planning#8 — une autre absence de la MÊME personne qui recoupe la période de `d` (dates ISO : on compare des
+   chaînes). Ni les refusées ni les annulées ne bloquent ; l'absence éditée (`sauf`) s'exclut ; un matin et un
+   après-midi du même jour ne se recoupent pas. */
+function absChevauche(d,sauf){ if(!d||!d.techId||!d.du) return null; const fin=d.au||d.du;
+  return (db.absences||[]).find(a=>{ if(!a||a.id===sauf||a.techId!==d.techId) return false;
+    const st=absStatut(a); if(st==='refusee'||st==='annulee') return false;
+    if(!(a.du<=fin && d.du<=(a.au||a.du))) return false;
+    const seul=a.du===(a.au||a.du) && d.du===fin && a.du===d.du;
+    if(seul && a.demi && d.demi && a.demi!==d.demi) return false;
+    return true; })||null; }
 /* est-ce l'absence de la personne connectée ? */
 function absEstMienne(a){
   let monTech=''; try{ monTech=myTechId()||''; }catch(e){}
@@ -20868,13 +20896,17 @@ function feriesAn(y){
 function estFerie(iso){ if(!iso) return false; return feriesAn(Number(iso.slice(0,4))).has(iso); }
 function estOuvre(iso){ if(!iso) return false; const j=new Date(iso+'T00:00:00').getDay(); return j!==0&&j!==6&&!estFerie(iso); }
 /* ce qui est réellement décompté : ni samedis, ni dimanches, ni fériés — demi-journées comprises */
-function absJoursOuvres(a){
-  if(!a||!a.du) return 0;
+function absJoursOuvres(a){ return absJoursListe(a).reduce((s,x)=>s+x[1],0); }
+/* ⛔ planning#8 — les jours décomptés, UN PAR UN ([date ISO, 1 ou 0,5]) : c'est ce qui permet au solde de ne pas
+   compter deux fois un jour que deux absences recoupent (doublons déjà en base). Le 3ᵉ élément dit quelle part du
+   jour : 'j' (entier), 'matin' ou 'aprem' — un matin et un après-midi font bien une journée. */
+function absJoursListe(a){
+  if(!a||!a.du) return [];
   const fin=a.au||a.du;
-  if(a.du===fin && a.demi) return estOuvre(a.du)?0.5:0;
-  let n=0, d=a.du, garde=0;
-  while(d<=fin && garde++<800){ if(estOuvre(d)) n++; d=shiftDay(d,1); }
-  return n;
+  if(a.du===fin && a.demi) return estOuvre(a.du)?[[a.du,0.5,a.demi==='aprem'?'aprem':'matin']]:[];
+  const l=[]; let d=a.du, garde=0;
+  while(d<=fin && garde++<800){ if(estOuvre(d)) l.push([d,1,'j']); d=shiftDay(d,1); }
+  return l;
 }
 function absNb(n){ return String(Math.round((Number(n)||0)*2)/2).replace('.',','); }
 function absNbTexte(a){ const n=absJoursOuvres(a);
@@ -20894,8 +20926,17 @@ function absDroit(techId){ const t=(db.techniciens||[]).find(x=>x.id===techId);
 function absSolde(techId){
   const p=absPeriodeRef();
   const l=(db.absences||[]).filter(a=>a.techId===techId&&absCompteSolde(a)&&a.du>=p.du&&a.du<=p.au);
-  const pris=l.filter(a=>absStatut(a)==='validee').reduce((s,a)=>s+absJoursOuvres(a),0);
-  const dem =l.filter(a=>absStatut(a)==='attente').reduce((s,a)=>s+absJoursOuvres(a),0);
+  /* un jour recoupé par deux absences ne se décompte qu'UNE fois (la plus longue part du jour l'emporte) ; une demande
+     en attente ne recompte pas un jour déjà validé. */
+  const parJour=st=>{ const m={}; l.filter(a=>absStatut(a)===st).forEach(a=>absJoursListe(a).forEach(x=>{
+      const o=m[x[0]]||(m[x[0]]={matin:0,aprem:0}); if(x[2]==='j'){ o.matin=0.5; o.aprem=0.5; } else o[x[2]]=0.5; }));
+    return m; };
+  const mV=parJour('validee'), mA=parJour('attente');
+  const pris=Object.keys(mV).reduce((s,j)=>s+mV[j].matin+mV[j].aprem,0);
+  /* la demande se soustrait du validé PAR MOITIÉ de jour : un après-midi validé ne couvre pas un matin demandé
+     (absChevauche les admet tous deux le même jour). */
+  const dem =Object.keys(mA).reduce((s,j)=>{ const v=mV[j]||{matin:0,aprem:0};
+    return s+(v.matin?0:mA[j].matin)+(v.aprem?0:mA[j].aprem); },0);
   const droit=absDroit(techId);
   return {droit:droit,pris:pris,demande:dem,reste:Math.round((droit-pris-dem)*2)/2,periode:p};
 }
@@ -20927,9 +20968,9 @@ views.taches=function(){ db.taches=db.taches||[];
     return `<div class="pl-row" style="border-left:3px solid ${t.fait?'var(--acc)':late?'var(--red)':t.prio==='haute'?'var(--org)':'transparent'}">
       <input type="checkbox" ${t.fait?'checked':''} onchange="tacheToggle('${t.id}')" style="width:22px;height:22px;accent-color:var(--acc);flex-shrink:0;cursor:pointer">
       <div class="pl-info" onclick="formTache('${t.id}')" style="cursor:pointer">
-        <div class="pl-title" style="${t.fait?'text-decoration:line-through;opacity:.6':''}">${esc(t.titre)} ${t.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''}</div>
+        <div class="pl-title" style="overflow-wrap:anywhere;${t.fait?'text-decoration:line-through;opacity:.6':''}">${esc(t.titre)} ${t.prio==='haute'?'<span class="tag hot" style="font-size:9px">Urgent</span>':''}</div>
         <div class="pl-meta">${t.echeance?`<span style="${late?'color:var(--red);font-weight:700':''}">📅 ${fmtShort(t.echeance)}${late?' — en retard':''}</span> · `:''}${esc(techName(t.techId)||'Non assignée')}${t.clientId?' · '+esc(clientName(t.clientId)):''}</div>
-        ${t.note?`<div style="font-size:11px;color:var(--t3);margin-top:2px">${esc(t.note)}</div>`:''}
+        ${t.note?`<div style="font-size:11px;color:var(--t3);margin-top:2px;min-width:0;overflow-wrap:anywhere">${esc(t.note)}</div>`:''}
       </div>
       ${canCat('plan','supprimer')?`<button class="btn ghost sm" onclick="delTache('${t.id}')">🗑</button>`:''}
     </div>`; }).join('');
@@ -20952,6 +20993,8 @@ function formTache(id){ db.taches=db.taches||[]; const t=id?db.taches.find(x=>x.
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn">${id?'Enregistrer':'Créer'}</button></div>
     </form>`); }
 function saveTache(e,id){ e.preventDefault(); if(!permGarde('plan',id?'modifier':'ajouter','une tâche')) return; const d=Object.fromEntries(new FormData(e.target));
+  /* ⛔ planning#12 — `required` ne voit pas les espaces : un titre fait d'espaces passait et donnait une carte sans nom. */
+  d.titre=String(d.titre||'').trim(); if(!d.titre){ toast('Le titre de la tâche est obligatoire'); return; }
   if(id){ const ix=db.taches.findIndex(x=>x.id===id); db.taches[ix]={...db.taches[ix],...d}; }
   else db.taches.push({id:uid(),fait:false,creePar:currentUser.id,creeLe:todayISO(),...d});
   logEvent(id?'Tâche modifiée':'Nouvelle tâche',d.titre,'crud'); save(); closeModal(); views.taches(); toast(id?'Tâche mise à jour':'Tâche créée'); }
@@ -21279,11 +21322,29 @@ function saveAbsence(e,id){ e.preventDefault(); if(!permGarde('plan',id?'modifie
   if(!absJoursOuvres(d)){ toast('Cette période ne contient aucun jour ouvré'); return; }
   d.justif=absJustifTmp||''; d.justifNom=absJustifTmp?(absJustifNom||''):'';
   db.absences=db.absences||[];
-  if(id){ const k=db.absences.findIndex(x=>x.id===id); if(k>=0) db.absences[k]={...db.absences[k],...d}; }
+  /* ⛔ planning#8 — la même personne n'est pas absente deux fois le même jour : deux demandes qui se
+     recoupent faisaient compter les jours deux fois au solde. On ne compare que si la période (ou la
+     personne) CHANGE : corriger la note d'un doublon d'avant la règle reste possible. */
+  const av=id?db.absences.find(x=>x.id===id):null;
+  const periodeChange=!av||av.techId!==d.techId||av.du!==d.du||(av.au||av.du)!==(d.au||d.du)||(av.demi||'')!==(d.demi||'');
+  if(periodeChange){ const dbl=absChevauche(d,id);
+    if(dbl){ toast(techName(d.techId)+' a déjà une absence « '+(ABS_TYPES[dbl.type]||'Absence')+' » '
+        +(dbl.du===(dbl.au||dbl.du)?'le '+fmtShort(dbl.du):'du '+fmtShort(dbl.du)+' au '+fmtShort(dbl.au||dbl.du))
+        +' ('+(absStatut(dbl)==='attente'?'en attente':'validée')+') — modifie-la plutôt que d’en ajouter une autre'); return; } }
+  let revalider=false;
+  if(id){ const k=db.absences.findIndex(x=>x.id===id);
+    if(k>=0){ const ap={...db.absences[k],...d};
+      /* ⛔ planning#7 — une absence VALIDÉE dont les dates (ou le type, ou la personne) changent n'est plus
+         celle qu'un responsable a validée : sans valideur derrière l'éditeur, elle repart en attente, sa
+         décision effacée. Un valideur qui la modifie garde sa décision (c'est lui qui décide). */
+      if(absValidee(db.absences[k]) && (av.techId!==d.techId||av.du!==d.du||(av.au||av.du)!==(d.au||d.du)||(av.demi||'')!==(d.demi||'')||av.type!==d.type) && !absPeutValider(ap)){
+        ap.statut='attente'; ap.parQui=''; ap.leQuand=''; ap.motif=''; revalider=true; }
+      db.absences[k]=ap; } }
   else db.absences.push({id:uid(),creePar:currentUser.id,creeLe:todayISO(),statut:'attente',...d});
   absJustifTmp=''; absJustifNom='';
-  logEvent(id?'Absence modifiée':'Absence enregistrée',techName(d.techId)+' · '+(ABS_TYPES[d.type]||''),'crud');
-  save(); closeModal(); views.absences(); toast(id?'Absence modifiée':'Absence enregistrée'); }
+  logEvent(id?(revalider?'Absence modifiée — à revalider':'Absence modifiée'):'Absence enregistrée',techName(d.techId)+' · '+(ABS_TYPES[d.type]||''),'crud');
+  if(revalider){ try{ const dest=absValideursIds(d); if(dest.length) pushNotify('🏖️ Absence à revalider',techName(d.techId)+' · '+(ABS_TYPES[d.type]||'')+' · du '+fmtShort(d.du)+' au '+fmtShort(d.au||d.du)+' — modifiée après validation','/app.html#v=absences',dest); }catch(_){} }
+  save(); closeModal(); views.absences(); toast(id?(revalider?'Absence modifiée — repassée en attente de validation':'Absence modifiée'):'Absence enregistrée'); }
 function delAbsence(id){ const a=(db.absences||[]).find(x=>x.id===id); if(!a) return;
   if(!(canCat('plan','supprimer')||a.creePar===(currentUser&&currentUser.id))){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }   // v738 : la même règle que le bouton
   if(!confirm('Supprimer cette absence ?')) return; db.absences=(db.absences||[]).filter(x=>x.id!==id); save(); views.absences(); toast('Supprimée'); }
