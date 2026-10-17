@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '5b16f81aab0a';
+  const OPMSG_BUILD = '0386b777728f';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 229;
+  const OPMSG_VERSION = 230;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -143,10 +143,12 @@
   /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
   const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
   /* ⛔ le dimanche où l'on repasse à l'heure d'hiver, une même heure sonne DEUX fois : une réunion d'une heure à 02:30 (été) finit à 02:30 (hiver), et « 02:30 – 02:30 » ne disait rien.
-     Quand le début et la fin s'affichent pareil mais ne sont pas au même décalage, chaque heure dit sa saison. Sinon (le cas de tous les autres jours) l'heure s'écrit comme avant. */
+     Quand le début et la fin s'affichent pareil mais ne sont pas au même décalage, chaque heure dit sa saison. Sinon (le cas de tous les autres jours) l'heure s'écrit comme avant.
+     ⛔ (p04) SEULEMENT LE MÊME JOUR : une réunion du vendredi 09:00 au lundi 09:00 à cheval sur le changement d'heure affichait aussi « 09:00 (été) / 09:00 (hiver) » — début et fin tombent des jours
+     différents, il n'y a rien à lever. Le jour se compare dans la fonction elle-même (`toDateString`), pour ne dépendre d'aucun autre morceau de la page. */
   const heureSaison = (t, autre) => {
     const h = FMT_HEURE.format(t);
-    if (!(autre > 0) || FMT_HEURE.format(autre) !== h) return h;
+    if (!(autre > 0) || FMT_HEURE.format(autre) !== h || new Date(t).toDateString() !== new Date(autre).toDateString()) return h;
     const a = new Date(t).getTimezoneOffset(), b = new Date(autre).getTimezoneOffset();
     return a === b ? h : h + (a < b ? ' (été)' : ' (hiver)');
   };
