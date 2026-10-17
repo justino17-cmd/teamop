@@ -42,6 +42,9 @@ vrai('la section 22 est trouvée (une tranche vide passerait au vert sur tout)',
 const fin = BRUT.indexOf('</style>', i0);
 const CSS = BRUT.slice(BRUT.indexOf('*/', i0) + 2, fin).replace(/\/\*[\s\S]*?\*\//g, ' ');
 vrai('la section est dans la feuille « theme-final » (la dernière, qui gagne)', BRUT.lastIndexOf('<style id="theme-final">', i0) > BRUT.lastIndexOf('<style id="refonte-css">', i0) && BRUT.lastIndexOf('<style id="theme-final">', i0) > 0);
+/* i01 : la virgule d'un sélecteur se lit à la profondeur 0 — `:is(input:not([type=hidden],[type=file]),select)` en porte à l'intérieur
+   de parenthèses imbriquées, que l'ancienne coupe par expression régulière prenait pour des séparateurs de règles. */
+function virgules(s) { const o = []; let p = 0, d = 0; for (let k = 0; k < s.length; k++) { const c = s[k]; if (c === '(' || c === '[') p++; else if (c === ')' || c === ']') p--; else if (c === ',' && !p) { o.push(s.slice(d, k)); d = k + 1; } } o.push(s.slice(d)); return o; }
 /* règles : [{sel, media, decl:{prop:'valeur'(!important)}}] */
 function regles(css, media) {
   const out = []; let k = 0;
@@ -53,7 +56,7 @@ function regles(css, media) {
     const corps = css.slice(o + 1, f);
     if (sel.startsWith('@')) out.push(...regles(corps, sel));
     else { const decl = {}; corps.split(';').forEach(d => { const m = /^\s*([\w-]+)\s*:\s*([\s\S]+?)\s*$/.exec(d); if (m) decl[m[1]] = m[2].replace(/\s+/g, ' '); });
-      sel.split(/,(?![^(\[]*[\)\]])/).forEach(s => out.push({ sel: s.trim().replace(/\s+/g, ' '), media, decl })); }
+      virgules(sel).forEach(s => out.push({ sel: s.trim().replace(/\s+/g, ' '), media, decl })); }
     k = f + 1;
   }
   return out;
@@ -66,7 +69,11 @@ vrai('⛔ aucun :has() ne lit un attribut style (il ferait restyler la page à c
 vrai('⛔ jamais container-type sur #content', !/container-type/.test(CSS));
 
 console.log('\n── 1110 · 1. Paramètres : un bouton qui ne tient pas passe à la ligne (accueil#10, technicien#6) ──');
-for (const sel of ['html[data-refonte] #content .card > .btn', 'html[data-refonte] #content .card > div:not([class]) > .btn']) {
+/* i01 (r3#2, 17 octobre 2026) : la seconde règle EXCLUT désormais la rangée qui porte un champ de saisie — le bouton d'une rangée
+   « champ + ＋ Ajouter » s'écrasait en colonne de lettres (`white-space:normal` + `overflow-wrap:anywhere` ramènent sa largeur
+   minimale à une lettre). Le sélecteur garde donc sa forme d'origine PLUS l'exclusion ; test-1500 §1 garde l'exclusion elle-même. */
+const SANS_CHAMP = ':not(:has(> :is(input:not([type=hidden],[type=file],[type=checkbox],[type=radio]),select,textarea)))';
+for (const sel of ['html[data-refonte] #content .card > .btn', 'html[data-refonte] #content .card > div:not([class])' + SANS_CHAMP + ' > .btn']) {
   const r = trouve(sel, MEDIA_TEL)[0];
   vrai('« ' + sel + ' » existe, sur téléphone', !!r);
   if (r) {
