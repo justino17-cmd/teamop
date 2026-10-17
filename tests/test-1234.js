@@ -42,7 +42,7 @@ function monde(moi, opts) {
   vm.runInContext(`var views={}, msgSel='general', msgPhoto='';
     function can(){ return false; } function inGroup(){ return true; } function groupUsers(){ return []; } function fullName(u){ return u.prenom+' '+u.nom; }
     function roleIcon(){ return '👤'; } function setHeader(){} function esc(s){ return String(s==null?'':s); } function grpAvatar(){ return ''; }
-    function emptyState(){ return '(vide)'; } function msgAjuster(){} function msgAjusterVeiller(){} /* j01 : la mesure de hauteur est gardée par test-1601, ici on joue les pastilles */ function fmtTs(){ return ''; } function formatMsg(t){ return t; } function save(){ __saves++; }
+    function emptyState(){ return '(vide)'; } function msgAjuster(){} function msgAjusterVeiller(){} var _msgPageBas=true; function msgPageEnBas(){ return true; } /* j01 : la mesure de hauteur est gardée par test-1601, la rotation (r6) par test-1660 ; ici on joue les pastilles */ function fmtTs(){ return ''; } function formatMsg(t){ return t; } function save(){ __saves++; }
     var $=function(i){ return i==='content' ? { set innerHTML(h){ __html=h; }, get innerHTML(){ return __html; } } : null; };
     ${COUNT}\n${THREAD}\n${MATCH}\n${THREADS}\n${LUCLE}\nvar _msgLuMem={};\n${LULIRE}\n${LUMARQ}\n${NONLU}\n${VIEW}`, ctx);
   ctx.moi = id => { ctx.currentUser = ctx.db.users.find(u => u.id === id); };

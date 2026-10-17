@@ -122,7 +122,10 @@
 # porte, dans les conditions de la CI (sans Chromium : test-2600 se saute), toutes vertes (commit 407cc9de) — plancher 11196 (le total moins 14, jamais une addition).
 # 17 octobre 2026, la seconde vague (neuf bancs, 2620-2653) : 175 suites, 11 390 vérifications mesurées par la commande de la porte, dans les conditions de
 # la CI, toutes vertes (commit 3304529b) — plancher 11376 (le total moins 14, jamais une addition).
-#plancher 11376
+# 17 octobre 2026, la troisième passe et le re-test final (2660-2663 : le statut d'un contact, le jour de fin d'une réunion de plusieurs jours partout — fiche,
+# lien d'invité, compte rendu, Décaler, autre fuseau, « chez eux » —, le rapport de présence) : 179 suites, 11 469 vérifications mesurées par la commande de la
+# porte, dans les conditions de la CI, toutes vertes (commit 8df53f6e) — plancher 11455 (le total moins 14, jamais une addition).
+#plancher 11455
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
