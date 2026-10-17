@@ -40,6 +40,7 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
     const u = new URL(q.url, 'http://x');
     if (mode === 'muet') return;   // ne répond jamais : le relais doit couper
     if (mode === 'html') { r.writeHead(200, { 'Content-Type': 'text/html' }); return r.end('<h1>oups</h1>'); }
+    if (mode === 'texte') { r.writeHead(200, { 'Content-Type': 'text/plain' }); return r.end('{"total":0,"items":[]}'); }   // du JSON… annoncé comme texte
     if (u.pathname === '/api/admin/sante') return json(200, { instance: 'beta', version: 12, decompte: { espaces: 3 } });
     if (u.pathname === '/api/admin/comptes') {
       if (u.searchParams.get('limite') === '9999') return json(400, { error: 'parametre_invalide', champ: 'limite' });
@@ -76,7 +77,9 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   const login = async (nom, pass) => (await (await fetch(B + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nom, pass }) })).json()).token;
   const PATRON = await login('Patron', MDP), GESTION = await login('Gestion', MDP_G);
   vrai('(population) deux sessions de la Tour : le patron, et un compte d\'OP GESTION seul', PATRON && GESTION);
-  const lire = async (chemin, jeton, entetes) => { const r = await fetch(B + chemin, { headers: Object.assign({ Authorization: 'Bearer ' + jeton }, entetes || {}) });
+  /* chaque lecture borne SA propre attente : un relais sans délai doit faire TOMBER le banc, pas le figer */
+  const lire = async (chemin, jeton, entetes) => { let r; try { r = await fetch(B + chemin, { headers: Object.assign({ Authorization: 'Bearer ' + jeton }, entetes || {}), signal: AbortSignal.timeout(9000) }); }
+    catch (e) { return { s: 0, j: { motif: 'le relais n\'a pas rendu la main en 9 s' }, txt: '' }; }
     const txt = await r.text(); let j = null; try { j = JSON.parse(txt); } catch (e) {} return { s: r.status, j: j || {}, txt }; };
 
   /* 1. ce qui part, ce qui revient */
@@ -118,6 +121,9 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   mode = 'html';
   r = await lire('/api/monitor/messages/admin/sante?instance=beta', PATRON);
   v('une réponse qui n\'est pas du JSON : 502', [r.s, r.j.motif], [502, 'forme']);
+  mode = 'texte';
+  r = await lire('/api/monitor/messages/admin/sante?instance=beta', PATRON);
+  v('du JSON annoncé comme texte : 502 aussi — le contrat dit application/json, on ne devine pas', [r.s, r.j.motif], [502, 'forme']);
   mode = 'muet';
   const t0 = Date.now();
   r = await lire('/api/monitor/messages/admin/sante?instance=beta', PATRON);
