@@ -1,4 +1,4 @@
-/* ══ test-1410 — UN CHAMP OBLIGATOIRE NE SE REMPLIT PAS D'ESPACES (robustesse#8) ══════════════
+/* ══ test-1414 — UN CHAMP OBLIGATOIRE NE SE REMPLIT PAS D'ESPACES (robustesse#8) ══════════════
    `required` n'écarte que le champ VIDE : cinq espaces passent, et on créait un client, une box,
    une intervention, un produit AU NOM VIDE (ligne blanche dans les listes, avatar sans initiales).
    La garde est UNE (`saisieGardeInstaller`, fin d'app.html) : un écouteur `submit` en CAPTURE sur
@@ -25,7 +25,7 @@ function bloc(debut) {
     if (APP[k] === '{') p++; else if (APP[k] === '}') { p--; if (!p) return APP.slice(i, k + 1); } }
   return ''; }
 
-console.log('\n── 1410 · 0. la population ──');
+console.log('\n── 1414 · 0. la population ──');
 const SRC = bloc('function saisieGardeInstaller(doc){');
 vrai('la garde est trouvée dans app.html', SRC.length > 200, SRC.length);
 vrai('elle est INSTALLÉE (un appel dans le code, pas dans un commentaire)', /^saisieGardeInstaller\(document\);/m.test(CODE));
@@ -65,12 +65,12 @@ function monter() {
 }
 function essai(champs) { const b = monter(); let ecrit = 0; const f = formulaire(champs, () => { ecrit++; }); const e = b.envoyer(f); return { e, ecrit, toasts: b.toasts, champs, b }; }
 
-console.log('\n── 1410 · 1. la garde se pose devant tout formulaire ──');
+console.log('\n── 1414 · 1. la garde se pose devant tout formulaire ──');
 { const b = monter();
   vrai('un seul écouteur, sur « submit »', b.ecouteurs.length === 1 && b.ecouteurs[0].type === 'submit', b.ecouteurs.map(l => l.type));
   vrai('posé en phase de CAPTURE (avant le onsubmit du formulaire)', b.ecouteurs[0].capture === true); }
 
-console.log('\n── 1410 · 2. les quatre formulaires, cinq espaces → refusés, rien d’écrit ──');
+console.log('\n── 1414 · 2. les quatre formulaires, cinq espaces → refusés, rien d’écrit ──');
 const CINQ = '     ';
 const jeu = {
   client: () => [champ({ name: 'nom', value: CINQ, label: 'Nom / Raison sociale *' }), champ({ name: 'email', value: '', required: false })],
@@ -88,7 +88,7 @@ for (const k of Object.keys(jeu)) {
 { const r = essai(jeu.box()); vrai('… par son placeholder sinon, sans l’exemple : « Numéro »', /« Numéro »/.test(r.toasts[0]), r.toasts); }
 { const r = essai(jeu.produit()); vrai('… et par le nom du champ quand le placeholder n’est qu’un exemple : « nom »', /« nom »/.test(r.toasts[0]), r.toasts); }
 
-console.log('\n── 1410 · 3. ce qui doit PASSER comme avant ──');
+console.log('\n── 1414 · 3. ce qui doit PASSER comme avant ──');
 { const r = essai([champ({ name: 'nom', value: 'A', label: 'Nom *' })]); vrai('« A » est accepté', r.ecrit === 1 && !r.e.defaut && r.toasts.length === 0); }
 { const r = essai([champ({ name: 'nom', value: '   Dupont  ', label: 'Nom *' })]); vrai('« Dupont » entouré d’espaces est accepté', r.ecrit === 1); }
 { const r = essai([champ({ name: 'nom', value: '', label: 'Nom *' })]); vrai('un champ VIDE reste l’affaire du navigateur (la garde ne dit rien)', r.ecrit === 1 && r.toasts.length === 0); }
@@ -97,7 +97,7 @@ console.log('\n── 1410 · 3. ce qui doit PASSER comme avant ──');
 { const r = essai([champ({ name: 'n', type: 'number', value: CINQ }), champ({ name: 'd', type: 'date', value: CINQ }), champ({ name: 's', tag: 'SELECT', type: 'select-one', value: CINQ }), champ({ name: 'h', type: 'hidden', value: CINQ })]); vrai('nombre, date, liste, caché : non visés', r.ecrit === 1); }
 { const r = essai([champ({ name: 'nom', value: CINQ, disabled: true })]); vrai('un champ désactivé n’est pas lu', r.ecrit === 1); }
 
-console.log('\n── 1410 · 4. les autres formes de « rien de visible » et les autres champs de texte ──');
+console.log('\n── 1414 · 4. les autres formes de « rien de visible » et les autres champs de texte ──');
 for (const [nom, val] of [['espace insécable', '  '], ['espace de largeur nulle', '​​'], ['tabulation et saut de ligne', '\t\n '], ['espace fine', ' ']]) {
   const r = essai([champ({ name: 'nom', value: val, label: 'Nom *' })]); vrai(nom + ' → refusé', r.ecrit === 0 && r.e.stop === true); }
 { const r = essai([champ({ name: 'note', tag: 'TEXTAREA', type: 'textarea', value: CINQ, label: 'Note *' })]); vrai('un <textarea> required en espaces est refusé', r.ecrit === 0 && /« Note »/.test(r.toasts[0]), r.toasts); }

@@ -37427,7 +37427,7 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
       const opts=Object.assign({},docMailOpts(d.rapportModele)||{});
       if(pdf){ opts.atts=[{filename:(cfg.titre+'-'+(d.num||'document')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}];
         opts.mailtoBody=genDocTexte(kind,d,false); }
-      const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+' envoyé à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
+      const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+(cfg.fem?' envoyée':' envoyé')+' à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
       if(ok){ marquer(); if(current===kind&&views[kind]) views[kind](); }
       return ok; })();
   }

@@ -1,4 +1,4 @@
-/* ══ test-1412 — « FACTURE CRÉÉE » / « FACTURE MISE À JOUR » (robustesse#10) ═══════════════════
+/* ══ test-1416 — « FACTURE CRÉÉE » / « FACTURE MISE À JOUR » (robustesse#10) ═══════════════════
    `saveDoc` bâtissait ses messages sur `cfg.titre + ' créé'` : pour une facture (féminin) le toast
    et l'entrée du journal disaient « Facture créé » et « Facture mis à jour ». « Devis » reste au
    masculin. L'accord est une donnée de DOC (`fem`), pas un test sur le nom du document.
@@ -20,7 +20,7 @@ function bloc(debut) {
     if (APP[k] === '{') p++; else if (APP[k] === '}') { p--; if (!p) return APP.slice(i, k + 1); } }
   return ''; }
 
-console.log('\n── 1412 · 0. la population ──');
+console.log('\n── 1416 · 0. la population ──');
 const DOC = ligne('const DOC={'), SAVE = bloc('function saveDoc(e,kind,id){');
 vrai('DOC et saveDoc sont trouvés dans app.html', DOC.length > 40 && SAVE.length > 400, [DOC.length, SAVE.length]);
 vrai('une seule définition de saveDoc', (CODE.match(/function saveDoc\(/g) || []).length === 1);
@@ -45,19 +45,46 @@ function jouer(kind, id) {
   return { toasts, journal };
 }
 
-console.log('\n── 1412 · 1. la facture est féminine ──');
+console.log('\n── 1416 · 1. la facture est féminine ──');
 { const r = jouer('factures'); v('créer une facture : toast « Facture créée »', r.toasts, ['Facture créée']); v('… et journal « Facture créée »', r.journal, ['Facture créée']); }
 { const r = jouer('factures', 'f1'); v('modifier une facture : toast « Facture mise à jour »', r.toasts, ['Facture mise à jour']); v('… rien dans le journal (comme avant)', r.journal, []); }
 
-console.log('\n── 1412 · 2. le devis reste au masculin, inchangé ──');
+console.log('\n── 1416 · 2. le devis reste au masculin, inchangé ──');
 { const r = jouer('devis'); v('créer un devis : toast « Devis créé »', r.toasts, ['Devis créé']); v('… et journal « Devis créé »', r.journal, ['Devis créé']); }
 { const r = jouer('devis', 'd1'); v('modifier un devis : toast « Devis mis à jour »', r.toasts, ['Devis mis à jour']); }
 
-console.log('\n── 1412 · 3. l’accord est une donnée de DOC, et rien d’autre ne dépend de la chaîne fautive ──');
+console.log('\n── 1416 · 3. l’accord est une donnée de DOC, et rien d’autre ne dépend de la chaîne fautive ──');
 vrai('DOC.factures porte l’accord féminin', /factures:\{[^}]*fem:true/.test(DOC), DOC);
 vrai('DOC.devis ne le porte pas', !/devis:\{[^}]*fem:true/.test(DOC));
 vrai('plus de « Facture créé » ni de « mis à jour » collé au titre dans le code', !/cfg\.titre\+' mis à jour'/.test(CODE) && !/cfg\.titre\+' créé'/.test(CODE));
 vrai('aucune entrée du dictionnaire de traduction ne dépend de « Facture créé »', !/'Facture créé'|"Facture créé"|Facture mis à jour/.test(CODE));
 
-console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
-process.exit(ko ? 1 : 0);
+console.log('\n── 1416 · 4. l’ENVOI par courriel dit aussi « Facture envoyée » (relecture : le toast de srvMail) ──');
+/* La relecture a trouvé un troisième endroit qui collait un participe au titre : le message de
+   succès passé à srvMail par envoiDoc. On JOUE la vraie envoiDoc avec un srvMail qui note ce qu'il
+   reçoit — un motif sur le texte garderait une phrase, pas ce que l'utilisateur lit. */
+const ENVOI = bloc('function envoiDoc(kind,id,canal){');
+vrai('envoiDoc est trouvée dans app.html, une seule définition', ENVOI.length > 600 && (CODE.match(/function envoiDoc\(/g) || []).length === 1, ENVOI.length);
+function envoyer(kind) {
+  const msgs = [];
+  const db = { devis: [{ id: 'x1', num: 'D-1', clientId: 'c1', statut: 'brouillon', lignes: [] }], factures: [{ id: 'x1', num: 'F-1', clientId: 'c1', statut: 'brouillon', lignes: [] }],
+    clients: [{ id: 'c1', nom: 'Dupont', email: 'dupont@example.fr' }] };
+  const f = new Function('db', 'msgs', `
+    const DEVIS_ST={brouillon:{l:'Brouillon'}}, FACT_ST={brouillon:{l:'Brouillon'}};
+    const permGarde=()=>true, save=()=>{}, toast=()=>{}, current='', views={};
+    const rapportSociete=()=>'Société', docMailOpts=()=>undefined, docPdfChaine=async()=>'', genDocTexte=()=>'texte';
+    const srvMail=async(to,sujet,corps,okMsg)=>{ msgs.push(okMsg); return true; };
+    ${DOC}
+    ${ENVOI}
+    return envoiDoc;`)(db, msgs);
+  return Promise.resolve(f(kind, 'x1')).then(() => msgs);
+}
+(async () => {
+  v('envoyer une facture : « ✉️ Facture envoyée à Dupont »', await envoyer('factures'), ['✉️ Facture envoyée à Dupont']);
+  v('envoyer un devis : « ✉️ Devis envoyé à Dupont » (inchangé)', await envoyer('devis'), ['✉️ Devis envoyé à Dupont']);
+  /* tout participe collé au titre, n'importe où dans le fichier : il s'accorde par `fem` ou n'existe pas */
+  const colles = CODE.match(/cfg\.titre\s*\+\s*'\s(?:envoy|cr[ée]|mis|supprim|dupliqu|marqu|pay|valid|accept|refus|sign|g[ée]n[ée]r)[^']*'/g) || [];
+  v('aucun participe n’est collé en dur au titre du document (tout passe par cfg.fem)', colles, []);
+  console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
+  process.exit(ko ? 1 : 0);
+})();

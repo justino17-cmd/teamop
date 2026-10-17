@@ -1,4 +1,4 @@
-/* ══ test-1411 — LES INITIALES D'UN NOM QUI COMMENCE PAR UN ÉMOJI (robustesse#11) ═════════════
+/* ══ test-1415 — LES INITIALES D'UN NOM QUI COMMENCE PAR UN ÉMOJI (robustesse#11) ═════════════
    `initials` prenait `w[0]` : la première UNITÉ UTF-16 de chaque mot. Un émoji hors du plan de base
    (🐀 😀 🧑‍🔧) s'écrit sur DEUX unités, et `w[0]` n'en rend que la moitié : une demi-paire de
    substitution, que l'écran dessine « � ». initials('🐀 Dératisation Express') rendait "\ud83dD",
@@ -19,7 +19,7 @@ const vrai = (t, c, d) => { if (c) { ok++; console.log('  ✓ ' + t); } else { k
 const v = (t, a, b) => vrai(t, JSON.stringify(a) === JSON.stringify(b), a);
 const ligne = debut => { const i = APP.indexOf(debut); return i < 0 ? '' : APP.slice(i, APP.indexOf('\n', i)); };
 
-console.log('\n── 1411 · 0. la population ──');
+console.log('\n── 1415 · 0. la population ──');
 const SRC = ligne('const initials = name =>') || ligne('const initials = (name');
 vrai('la fonction est trouvée (sur UNE ligne : test-822 l’extrait ainsi)', SRC.length > 30 && !/\n/.test(SRC), SRC.length);
 vrai('une seule définition', (CODE.match(/const initials\s*=/g) || []).length === 1 && !/function initials\(/.test(CODE));
@@ -27,7 +27,7 @@ if (!SRC) { console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(1); }
 const initials = new Function(SRC.replace('const initials', 'var initials') + '\nreturn initials;')();
 const demi = s => /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(s);
 
-console.log('\n── 1411 · 1. un émoji ne se coupe plus en deux ──');
+console.log('\n── 1415 · 1. un émoji ne se coupe plus en deux ──');
 v('« 🐀 Dératisation Express » → DE (les lettres des mots, l’émoji laissé)', initials('🐀 Dératisation Express'), 'DE');
 v('« 😀 » seul → l’émoji ENTIER', initials('😀'), '😀');
 v('« 🧑‍🔧 Léo Martin » → LM', initials('🧑‍🔧 Léo Martin'), 'LM');
@@ -39,7 +39,7 @@ v('« 🙂 Admin » (prénom émoji + nom) → A', initials('🙂 Admin'), 'A');
 for (const n of ['🐀 Dératisation Express', '😀', '🧑‍🔧 Léo Martin', '🐜 Fourmis & Cie', '🙂 Admin', '😀😀😀', '👨‍👩‍👧', '🇫🇷', 'a😀 b😀'])
   vrai('aucune moitié de paire de substitution pour « ' + n + ' »', !demi(initials(n)), initials(n));
 
-console.log('\n── 1411 · 2. ce qui marchait avant marche encore ──');
+console.log('\n── 1415 · 2. ce qui marchait avant marche encore ──');
 v('« Éric Dupont » → ÉD', initials('Éric Dupont'), 'ÉD');
 v('« élodie » → É (un seul mot)', initials('élodie'), 'É');
 v('« Jean Dupont » → JD', initials('Jean Dupont'), 'JD');
@@ -54,20 +54,20 @@ v('« Équipe Sud » → ÉS', initials('Équipe Sud'), 'ÉS');
 v('de la ponctuation autour : « (Dupont) » → D', initials('(Dupont)'), 'D');
 v('alphabet non latin : « Дмитрий Иванов » → ДИ', initials('Дмитрий Иванов'), 'ДИ');
 
-console.log('\n── 1411 · 3. le nom vide ──');
+console.log('\n── 1415 · 3. le nom vide ──');
 v('chaîne vide → ?', initials(''), '?');
 v('null → ?', initials(null), '?');
 v('undefined → ?', initials(undefined), '?');
 v('que des espaces → ?', initials('   '), '?');
 v('ponctuation seule : le premier signe, pas de trou', initials('---'), '-');
 
-console.log('\n── 1411 · 4. le nombre d’initiales demandé (la tuile d’une box n’en veut qu’une) ──');
+console.log('\n── 1415 · 4. le nombre d’initiales demandé (la tuile d’une box n’en veut qu’une) ──');
 v('initials(x,1) : « Cuisine Resto » → C', initials('Cuisine Resto', 1), 'C');
 vrai('initials(x,1) : un émoji en tête → la lettre du mot, jamais une moitié', !demi(initials('🐀 Rat', 1)) && initials('🐀 Rat', 1) === 'R', initials('🐀 Rat', 1));
 v('initials(x,1) : « 😀 » seul → l’émoji entier', initials('😀', 1), '😀');
 v('par défaut deux initiales', initials('Jean Pierre Dupont').length, 2);
 
-console.log('\n── 1411 · 5. les autres coupes d’avatar passent par la même fonction ──');
+console.log('\n── 1415 · 5. les autres coupes d’avatar passent par la même fonction ──');
 vrai('la tuile d’une box ne coupe plus par [0]', !/String\(b\.nom\|\|b\.numero\|\|'B'\)\.trim\(\)\[0\]/.test(CODE));
 vrai('… elle appelle initials(…,1)', /initials\(String\(b\.nom\|\|b\.numero\|\|'B'\)\.trim\(\),1\)/.test(CODE));
 vrai('l’avatar d’un courriel ne coupe plus par charAt(0)', !/\(who\|\|'\?'\)\.trim\(\)\.charAt\(0\)/.test(CODE));
