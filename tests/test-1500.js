@@ -246,6 +246,28 @@ console.log('\n── 4. la cellule de gestes (r3#10) ──');
   vrai('le balisage : la cellule de gestes des Devis porte `white-space:nowrap` EN LIGNE (c\'est ce que le bureau doit garder)', /<td class="cel-gestes" style="text-align:right;white-space:nowrap">\s*\$\{vMod\?`<button class="btn sm" onclick="envoiDoc/.test(tout));
   vrai('le balisage : celle des Contrats aussi', /<td class="cel-gestes" style="text-align:right;white-space:nowrap">\$\{iAj\?`<button class="btn sm" title="Générer la prochaine intervention"/.test(tout));
   vrai('le tableau passe en mode carte par `.tbl-wrap:has(>.list-tbl .cel-gestes)` : la requête de conteneur existe toujours', REGLES.some(r => r.sel === 'html[data-refonte] .tbl-wrap:has(>.list-tbl .cel-gestes)' && r.decl['container']));
+
+  /* ── relecture de r3#10 : entre la carte (≤ 900 px) et le bureau, le nowrap en ligne fait sortir le tableau de sa carte ──
+     Mesuré au navigateur (scratchpad/gestion/correctifs/i01/sonde-i01-largeurs.js) : un devis accepté DÉJÀ facturé (« Voir la
+     facture », huit gestes) donne une table de 973 px minimum ; à 1 280 px la carte en fait 904 (69 px qui sortent), à 1 320 px 944
+     (29 px), à 1 366 px 990 (rien). Dans cette plage la cellule retrouve donc son retour à la ligne (c'était son état d'avant r3#10). */
+  const tier = REGLES.filter(r => r.sel === 'html[data-refonte] .list-tbl td.cel-gestes:has(>.btn:nth-of-type(5))' && r.decl['white-space']);
+  vrai('⛔ relecture r3#10 : une règle rend le retour à la ligne aux cellules de gestes de cinq boutons ou plus, dans une plage de conteneur (compteur de population)', tier.length === 1, tier.length);
+  if (tier[0]) {
+    const m = /@container tbl-liste \(min-width:(\d+)px\) and \(max-width:(\d+)px\)$/.exec(tier[0].media);
+    vrai('  … posée DANS la requête de conteneur du tableau, bornée des deux côtés (min-width ET max-width)', !!m, tier[0].media);
+    vrai('  … `white-space:normal!important` (le style en ligne est battu)', tier[0].decl['white-space'].val === 'normal' && tier[0].decl['white-space'].imp);
+    const seuilCarte = +(/@container\s+tbl-liste\s*\(max-width:\s*(\d+)px\)/.exec(SRC) || [])[1];
+    vrai('  … commence là où la carte finit (le seuil de la mise en cartes + 1 : aucun trou entre les deux)', !!m && +m[1] === seuilCarte + 1, [m && m[1], seuilCarte]);
+    vrai('  … finit au-dessus de la table la plus large mesurée (973 px, devis déjà facturé) et sous la carte d\'un portable à 1 366 px (990 px : le gain reste là)', !!m && +m[2] >= 973 && +m[2] < 990, m && m[2]);
+    vrai('  … reste un tableau : elle ne passe pas la cellule en flex (c\'est le travail du mode carte, plus haut)', !tier[0].decl['display']);
+  }
+  /* la population que la règle vise : les gestes des Devis (7 à 8 boutons), pas ceux des Contrats (3) qui tiennent sur une ligne */
+  const nbBtn = (re) => { const i = SRC.search(re); if (i < 0) return -1; const f = SRC.indexOf('</td>', i); return (SRC.slice(i, f).match(/<button /g) || []).length; };
+  const nbDevis = nbBtn(/<td class="cel-gestes" style="text-align:right;white-space:nowrap">\s*\$\{vMod\?`<button class="btn sm" onclick="envoiDoc/);
+  const nbContrat = nbBtn(/<td class="cel-gestes" style="text-align:right;white-space:nowrap">\$\{iAj\?`<button class="btn sm" title="Générer la prochaine intervention"/);
+  vrai('la cellule de gestes des Devis compte au moins cinq boutons dans son balisage (la règle la vise)', nbDevis >= 5, nbDevis);
+  vrai('celle des Contrats en compte moins de cinq (la règle ne la touche pas : trois boutons tiennent sur une ligne)', nbContrat > 0 && nbContrat < 5, nbContrat);
 }
 
 /* ══ 5. r3#11 — une case à cocher n'est pas un champ de saisie ════════════════════════════════════════════════ */

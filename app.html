@@ -6746,6 +6746,15 @@ html[data-refonte] .tbl-wrap:has(>.list-tbl .cel-gestes){container:tbl-liste / i
     html[data-refonte] .list-tbl td:empty{display:none}
     html[data-refonte] .list-tbl td.cel-gestes:not(:empty){display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;justify-content:flex-start}
   }
+  /* ⛔ … ET PAS NON PLUS TANT QUE LE TABLEAU N'A PAS DE QUOI TENIR SUR UNE LIGNE (i01, relecture de r3#10). Entre la carte
+     (≤ 900 px) et un ordinateur, le tableau est encore un tableau mais son `nowrap` en ligne lui impose une largeur minimale
+     qu'une carte de 904 à 980 px n'a pas : Devis avec un devis déjà facturé (« Voir la facture »), mesuré au navigateur,
+     table de 973 px dans une carte de 904 (portable à 1 280 px) — 69 px qui sortent, barre de défilement latérale.
+     Dans cette plage la cellule de cinq boutons ou plus (les Devis ; les Contrats n'en ont que trois et tiennent) retrouve donc
+     son retour à la ligne : deux lignes de boutons, rien de coupé (c'était son comportement d'avant r3#10). Au-dessus (carte ≥ 981 px, portable à 1 366 px et plus) le tableau tient, la ligne reste seule. */
+  @container tbl-liste (min-width:901px) and (max-width:980px){
+    html[data-refonte] .list-tbl td.cel-gestes:has(>.btn:nth-of-type(5)){white-space:normal!important}
+  }
 }
 
 /* ── 3. LA RECHERCHE EN PILULE ──
