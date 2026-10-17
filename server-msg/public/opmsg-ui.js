@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = 'e1ef9f4ef586';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4497,6 +4497,14 @@
     }
   }
 
+  /* ⛔ « Ajouter au groupe » : le service répond 200 même quand il REFUSE la personne (elle m'a bloqué, ou nous ne sommes pas en contact) — il la rend dans `non_ajoutes` au lieu de
+     l'ajouter. Lire seulement le code HTTP laissait la ligne « Ajouter » en place sans un mot (mesuré : ni toast, ni phrase dans la feuille). `nomDe` donne le nom d'un identifiant. */
+  const phraseNonAjoutes = (rep, nomDe) => {
+    const non = rep && Array.isArray(rep.non_ajoutes) ? rep.non_ajoutes : [];
+    if (!non.length) return '';
+    const noms = non.map(u => nomDe(u) || 'Cette personne');
+    return noms.length === 1 ? noms[0] + ' n\'a pas pu être ajouté(e).' : noms.slice(0, -1).join(', ') + ' et ' + noms[noms.length - 1] + ' n\'ont pas pu être ajoutés.';
+  };
   /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
   async function apresChoixInfo(id, geste, motReussi) {
     erreurInfo('');
@@ -4540,7 +4548,10 @@
           v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a été retiré du groupe'));
         return;
       }
-      else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);
+      else if (act === 'ajouter') {
+        const refus = phraseNonAjoutes(await source.ajouterMembres(id, [b.dataset.uid]), u => { const c = CONTACTS.find(x => x.id === u); return c ? c.nom : ''; });
+        if (refus) erreurInfo(refus);
+      }
       else if (act === 'lien-groupe') { const r = await source.lienGroupe(id); $('ci-lien').innerHTML = boiteLien('ci-lien-champ', r.code); }
       else if (act === 'debloquer') { await source.debloquer(b.dataset.uid); rendreListeBloques(); peindreBloquesN(); mot('Contact débloqué'); }
       else if (act === 'bloquer') {
