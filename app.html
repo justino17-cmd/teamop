@@ -42873,6 +42873,49 @@ if(typeof window.deptColor==='function'){
     return m? 'hsl('+m[1]+' 30% 38%)' : c;
   };
 }
+
+/* ══ SAISIE — UN CHAMP OBLIGATOIRE NE SE REMPLIT PAS D'ESPACES ═══════════════════════════════
+   L'attribut HTML5 `required` n'écarte que le champ VIDE : cinq espaces le satisfont, et l'on
+   obtenait un client, une box, une intervention ou un produit au nom vide — une ligne blanche
+   dans les listes, un avatar sans initiales, rien de lisible à toucher (rejoué sur les quatre
+   formulaires, v767). Écrire un `trim()` dans chaque save* aurait été autant de rustines, et la
+   suivante oubliée : la garde est UNE, posée en phase de CAPTURE sur le document, donc avant le
+   `onsubmit` de n'importe quel formulaire, présent ou futur. Elle refuse à voix haute (toast,
+   focus sur le champ) et n'a rien écrit : la fonction d'enregistrement n'est jamais appelée.
+   Elle ne vise que les champs de TEXTE requis (pas un mot de passe, un nombre, une date, un
+   fichier, une liste) et seulement une valeur NON vide qui ne contient rien de visible : le cas
+   « vide » reste celui du navigateur, et « Dupont » entouré d'espaces passe comme avant. */
+function saisieGardeInstaller(doc){
+  var TYPES={text:1,search:1,tel:1,email:1,url:1};
+  function vide(v){ return v.length>0 && /^[\s​-‍⁠﻿]*$/.test(v); }
+  function libelle(el){
+    var champ=el.closest&&el.closest('.field'), l=champ&&champ.querySelector&&champ.querySelector('label');
+    var t=(l&&l.textContent)||el.getAttribute('aria-label')||'';
+    if(!t){
+      var ph=el.getAttribute('placeholder')||'';
+      if(ph && !/^\s*ex\s*:/i.test(ph)) t=ph.split(' (')[0];
+    }
+    t=String(t).replace(/\s*\*\s*$/,'').trim();
+    return t||el.getAttribute('name')||'ce champ';
+  }
+  doc.addEventListener('submit',function(e){
+    var form=e.target;
+    if(!form||!form.querySelectorAll) return;
+    var champs=form.querySelectorAll('input[required],textarea[required]');
+    for(var i=0;i<champs.length;i++){
+      var el=champs[i];
+      if(el.disabled) continue;
+      var type=String(el.tagName).toLowerCase()==='textarea'?'text':String(el.type||'text').toLowerCase();
+      if(!TYPES[type]) continue;
+      if(!vide(String(el.value==null?'':el.value))) continue;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if(typeof toast==='function') toast('Le champ « '+libelle(el)+' » est obligatoire',3200);
+      try{ el.focus(); if(el.select) el.select(); }catch(x){}
+      return;
+    }
+  },true);
+}
+saisieGardeInstaller(document);
 })();
 </script>
 </body>
