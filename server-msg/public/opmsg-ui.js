@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e45cf0603d7e';
+  const OPMSG_BUILD = '0cd9fdcce29b';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 210;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3650,7 +3650,7 @@
   /* ═══ MES LIEUX (13 octobre 2026) — Domicile et Travail, d'où l'on part pour un rendez-vous ═══
      Rangés au service (scellés) ; la page n'en lit que l'adresse trouvée. Enregistrer cherche l'adresse (le service demande à l'IGN) et dit les autres possibles : « Plutôt : … » les choisit. */
   const lieuxPossibles = () => !!(CAP.trajet && typeof source.lieux === 'function' && typeof source.poserLieu === 'function');
-  const lieuxReg = { lieux: null, erreur: '', edite: null, occupe: false, autres: { domicile: [], travail: [] } };
+  const lieuxReg = { lieux: null, erreur: '', edite: null, occupe: false, saisie: null, autres: { domicile: [], travail: [] } };       // `saisie` : l'adresse TAPÉE, tenue tant que l'enregistrement n'a pas abouti
   async function chargerLieux() {
     try { const l = await source.lieux(); lieuxReg.lieux = l; lieuxReg.erreur = ''; TJ.lieux = l; }
     catch (er) { lieuxReg.erreur = phrase(er, 'Tes lieux n\'ont pas pu être lus.'); }
@@ -3664,7 +3664,7 @@
     if (!L) { c.innerHTML = '<p class="reg-ligne">Chargement…</p>'; return; }
     c.innerHTML = ['domicile', 'travail'].map(k => {
       const nom = k === 'domicile' ? 'Domicile' : 'Travail', l = L[k], du = k === 'domicile' ? 'du domicile' : 'du travail';
-      if (lieuxReg.edite === k) return '<div class="carte-pad reg-lieu-edit"><div class="champ"><label for="reg-lieu-' + k + '">Adresse ' + du + '</label><input id="reg-lieu-' + k + '" type="text" maxlength="200" autocomplete="street-address" enterkeyhint="done" value="' + esc(l ? l.label : '') + '" placeholder="Rue, ville"></div>' +
+      if (lieuxReg.edite === k) return '<div class="carte-pad reg-lieu-edit"><div class="champ"><label for="reg-lieu-' + k + '">Adresse ' + du + '</label><input id="reg-lieu-' + k + '" type="text" maxlength="200" autocomplete="street-address" enterkeyhint="done" value="' + esc(lieuxReg.saisie !== null ? lieuxReg.saisie : l ? l.label : '') + '" placeholder="Rue, ville"></div>' +
         '<div class="info-actions"><button type="button" class="mini plein" data-lieu-ok="' + k + '"' + (lieuxReg.occupe ? ' disabled' : '') + '>' + (lieuxReg.occupe ? 'Recherche…' : 'Enregistrer') + '</button>' +
         (l ? '<button type="button" class="mini danger" data-lieu-retirer="' + k + '"' + (lieuxReg.occupe ? ' disabled' : '') + '>Retirer</button>' : '') + '<button type="button" class="mini" data-lieu-annuler="1">Annuler</button></div></div>';
       return '<button type="button" class="reglage presse" data-lieu-edit="' + k + '"><span class="reglage-texte">' + nom + '<small>' + esc(l ? l.label : 'Pas encore enregistré') + '</small></span>' + CHEVRON + '</button>' +
@@ -3677,12 +3677,18 @@
     const er = $('reg-erreur'), dit = t => { if (er) { er.textContent = t; er.hidden = !t; } };
     dit('');
     if (texte === '' && force === undefined) { dit('Écris une adresse : une rue et une ville.'); if (i) i.focus(); return; }
+    /* ⛔ l'adresse tapée se GARDE : le champ est repeint (« Recherche… », puis l'erreur) et revenait vide ou à l'ancienne adresse — il fallait tout retaper à chaque essai (testeur, reglages#2) */
+    lieuxReg.saisie = force === undefined ? texte : null;
     lieuxReg.occupe = true; peindreLieux();
     try {
       const r = await source.poserLieu(k, texte);
+      lieuxReg.saisie = null;
       lieuxReg.lieux = r.lieux; TJ.lieux = r.lieux; lieuxReg.edite = null; lieuxReg.autres[k] = force !== undefined ? [] : r.autres;      // retirer, ou un choix parmi « Plutôt » : rien à reproposer
       mot(texte === null ? (k === 'domicile' ? 'Domicile retiré' : 'Travail retiré') : (k === 'domicile' ? 'Domicile enregistré' : 'Travail enregistré'));
-    } catch (x) { dit(phrase(x, 'L\'adresse n\'a pas pu être enregistrée.')); }
+    } catch (x) {
+      /* ⛔ la phrase du service parle du RENDEZ-VOUS (« …le rendez-vous, lui, s'enregistre sans ») : ici on règle une adresse, il n'y en a pas */
+      dit(x && x.code === 'trajet_indisponible' ? 'L\'adresse n\'a pas pu être vérifiée pour le moment. Réessaie plus tard.' : phrase(x, 'L\'adresse n\'a pas pu être enregistrée.'));
+    }
     lieuxReg.occupe = false; peindreLieux();
     const b = document.querySelector(lieuxReg.edite ? '#reg-lieu-' + k : '[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true });
   }
@@ -3786,8 +3792,8 @@
     if (bouton.dataset.regSec) { const r = Object.assign({}, etat.route, { sec: bouton.dataset.regSec }); if (largeBureau.matches) remplacer(r); else if (!memeRoute(r, etat.route)) pousser(r); return; }
     if (bouton.dataset.regRetour) { fermerCouche(); return; }
     /* Mes lieux : ouvrir l'adresse, l'enregistrer, la retirer, choisir une autre trouvée */
-    if (bouton.dataset.lieuEdit) { lieuxReg.edite = bouton.dataset.lieuEdit === 'travail' ? 'travail' : 'domicile'; lieuxReg.autres[lieuxReg.edite] = []; peindreLieux(); const i = $('reg-lieu-' + lieuxReg.edite); if (i) i.focus(); return; }
-    if (bouton.dataset.lieuAnnuler) { const k = lieuxReg.edite; lieuxReg.edite = null; peindreLieux(); const b = k && document.querySelector('[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true }); return; }
+    if (bouton.dataset.lieuEdit) { lieuxReg.edite = bouton.dataset.lieuEdit === 'travail' ? 'travail' : 'domicile'; lieuxReg.saisie = null; lieuxReg.autres[lieuxReg.edite] = []; peindreLieux(); const i = $('reg-lieu-' + lieuxReg.edite); if (i) i.focus(); return; }
+    if (bouton.dataset.lieuAnnuler) { const k = lieuxReg.edite; lieuxReg.edite = null; lieuxReg.saisie = null; peindreLieux(); const b = k && document.querySelector('[data-lieu-edit="' + k + '"]'); if (b) b.focus({ preventScroll: true }); return; }
     if (bouton.dataset.lieuOk) { lieuEnregistrer(bouton.dataset.lieuOk === 'travail' ? 'travail' : 'domicile'); return; }
     if (bouton.dataset.lieuRetirer) { lieuEnregistrer(bouton.dataset.lieuRetirer === 'travail' ? 'travail' : 'domicile', null); return; }
     if (bouton.dataset.lieuChoix && bouton.dataset.label) { lieuEnregistrer(bouton.dataset.lieuChoix === 'travail' ? 'travail' : 'domicile', bouton.dataset.label); return; }
