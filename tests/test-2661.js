@@ -56,5 +56,9 @@ if (!F) { fin(); } else {
   v('…et la rangée garde sa classe `saison`, pas `jours`', [texteDe(F.heureEmpilee(dst.debut, dst.fin)), /class="reunion-heure saison"/.test(F.heureEmpilee(dst.debut, dst.fin))], ['02:30 (été)|02:30 (hiver)', true]);
   /* un fuseau étranger : la note existante est conservée */
   v('(contre-épreuve) l\'heure d\'un autre fuseau reste dite à part (« … à Tokyo »)', F.libelleHoraire({ tz: 'Asia/Tokyo' }, jour).note.endsWith(' à Tokyo'), true);
+  /* l'étiquette lue de la pastille d'un jour (puceAgenda) : son code lit plageLongue — le texte du fichier, commentaires retirés (la fonction a trop de dépendances pour être jouée ici ; la sonde navigateur la lit) */
+  const puce = entre('function puceAgenda(', "corps + '</button>';\n  }");
+  vrai('(population) puceAgenda est trouvée', puce.length > 200);
+  vrai('⛔ son étiquette lue (aria-label) dit la plage avec le jour de fin : plageLongue, pas plageHeures', /const lab = [^\n]*plageLongue\(x\.o\.debut, x\.o\.fin\)/.test(puce) && !/plageHeures\(x\.o/.test(puce));
   fin();
 }
