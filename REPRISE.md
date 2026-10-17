@@ -13,12 +13,6 @@ de ligne du tout.
 
 ---
 
-# ⛔ DÉCISION DE JUSTIN, 8 OCTOBRE 2026 (NUIT) — OP MESSAGES RESTE EN BÊTA
-
-« Aucun [OP] message pour l'instant, c'est que de la bêta : on publiera quand l'application sera stable et utilisable par tout le monde. » La version publique
-d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
-de se publier à chaque fusion, comme avant.
-
 # ⏳ 17 OCTOBRE 2026 — LE SITE NE SERT PLUS QUE LE SITE ; SKILLS VÉRIFIÉS ; QUATRE TÂCHES AUTOMATIQUES — ATTEND DEUX GESTES DE JUSTIN
 
 Mesuré ce jour : `teamop.fr/CLAUDE.md`, `/REPRISE.md`, `/.claude/agents/gardien.md` et `/firestore.rules` répondaient 200 —
@@ -39,6 +33,12 @@ Refusés après lecture : stop-slop, heretic, Agent-Reach, MiroFish ; Strix seul
 Quatre tâches programmées, en LECTURE SEULE (aucun commit, aucun push), rapport poussé sur le téléphone : point du matin
 (jours ouvrés 7 h 53), revue sécurité (lundi 8 h 47), dépendances (lundi 9 h 20), audit du site (le 1er du mois, 9 h 46).
 Heure de Paris. Elles se modifient ou s'arrêtent dans la liste des tâches programmées de claude.ai.
+
+# ⛔ DÉCISION DE JUSTIN, 8 OCTOBRE 2026 (NUIT) — OP MESSAGES RESTE EN BÊTA
+
+« Aucun [OP] message pour l'instant, c'est que de la bêta : on publiera quand l'application sera stable et utilisable par tout le monde. » La version publique
+d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
+de se publier à chaque fusion, comme avant.
 
 # 🟡 16 OCTOBRE 2026 — OP MESSAGES (BÊTA) : LA SALLE N'A PLUS QUE SA BARRE RONDE, ET LE FICHIER .ICS EST PARTI (PR À VENIR)
 
