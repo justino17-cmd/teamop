@@ -99,9 +99,11 @@ v('   … et tout le reste, dans l\'ordre', J.lignes.map(x => x.t), J.vues);
 
 J = jouer({ app: 'messages', apps: ['gestion', 'messages'], tab: 'journal', nMessages: 0, nGestion: true });
 v('console MESSAGES : ses vues seulement', J.lignes.map(x => x.t), J.vues);
-vrai('   population : elles sont moins nombreuses que celles de GESTION', J.vues.length > 0 && J.vues.length < jouer({}).vues.length);
+vrai('   population : ce ne sont pas celles de GESTION (Comptes ici, Demandes là-bas)', J.vues.length > 0 && J.vues.includes('comptes') && !J.vues.includes('demandes') && jouer({}).vues.includes('demandes'));
 v('   la vue ouverte (Journal) marquée', J.lignes.filter(x => x.on).map(x => x.t), ['journal']);
-v('⛔ et pas de Courrier dans la console MESSAGES (il est celui d’OP GESTION, v2.85)', J.lignes.map(x => x.t).includes('support'), false);
+/* v2.88 : le Courrier est dans les deux consoles, trié — mais le serveur le range dans OP GESTION : un compte d'OP MESSAGES seul ne le voit pas */
+v('le Courrier trié est aussi dans la console MESSAGES (« mêmes boîtes, triées »)', J.lignes.map(x => x.t).includes('support'), true);
+v('⛔ …pas pour un compte qui n’a QU’OP MESSAGES (il n’y lirait qu’un refus du serveur)', jouer({ app: 'messages', apps: ['messages'], tab: 'journal', nMessages: 0, nGestion: false }).lignes.map(x => x.t).includes('support'), false);
 const SW = (J.h.match(/<div class="app-sw"[\s\S]*?<\/div>/) || [''])[0];
 v('deux consoles : l\'interrupteur, la console ouverte pressée', [...SW.matchAll(/data-app="(\w+)" aria-pressed="(\w+)"/g)].map(m => m[1] + '=' + m[2]), ['gestion=false', 'messages=true']);
 vrai('   le compteur de l\'autre console est recopié (2), celui qui est caché le reste', /data-app="gestion"[\s\S]*?<span class="app-n">2<\/span>/.test(SW) && /data-app="messages"[\s\S]*?<span class="app-n" hidden>/.test(SW), SW);

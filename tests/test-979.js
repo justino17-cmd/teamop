@@ -110,7 +110,8 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     v('⛔ une console inconnue : 400, rien de classé', r400.status, 400);
 
     console.log('\n── 979 · 3. le Courrier est d\'OP GESTION ──');
-    v('⛔ il n\'est plus au menu d\'OP MESSAGES', TM.run('vuesDe("messages").indexOf("support")'), -1);
+    /* v2.88 (Justin : « pareil pour le système de mail » — « mêmes boîtes, triées ») : le Courrier revient dans OP MESSAGES, TRIÉ (console=messages) */
+    vrai('le Courrier est au menu d\'OP MESSAGES, trié', TM.run('vuesDe("messages").indexOf("support")') >= 0);
     vrai('   il reste à celui d\'OP GESTION', TG.run('vuesDe("gestion").indexOf("support")') >= 0);
     vrai('⛔ l\'accueil d\'OP MESSAGES ne lit plus le courrier (ni MSG.nonLus, ni la liste)', !/MSG\.nonLus|MSG\.messages/.test(bloc('vueAccueilMsg')));
 
@@ -143,7 +144,7 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
     vrai('le formulaire coche la console ouverte, pas l\'autre', /id="eq-app-messages" checked/.test(TM.run('vueEquipe()')) && !/id="eq-app-gestion" checked/.test(TM.run('vueEquipe()')) && /id="eq-app-gestion" checked/.test(TG.run('vueEquipe()')));
     vrai('⛔ plus de « (en travaux) » à côté d\'OP MESSAGES', !/en travaux/.test(TM.run('vueEquipe()')));
     /* v2.88 : OP MESSAGES a SES Comptes et SES Abonnements (lus sur son serveur) ; le Courrier et les Demandes restent à OP GESTION */
-    vrai('la note du collaborateur décrit SA console : dans OP MESSAGES, ses Comptes, pas de Courrier ni de Demandes', !/Courrier|Demandes/.test(TM.run('eqNoteCollaborateur()')) && /Comptes/.test(TM.run('eqNoteCollaborateur()')) && /Courrier/.test(TG.run('eqNoteCollaborateur()')));
+    vrai('la note du collaborateur décrit SA console : dans OP MESSAGES, ses Comptes, pas de Demandes', !/Demandes/.test(TM.run('eqNoteCollaborateur()')) && /Comptes/.test(TM.run('eqNoteCollaborateur()')) && /Demandes/.test(TG.run('eqNoteCollaborateur()')));
 
     console.log('\n── 979 · 6. Entreprises ──');
     /* une erreur d'OP GESTION et deux d'OP MESSAGES, chez la même entreprise */
