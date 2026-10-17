@@ -35,7 +35,8 @@ vrai('⛔ plus aucune trace de la première écriture (« la page est-elle en ba
 function monde(o) {
   const g = { listeBas: o.listeBas, rangee: o.rangee, onglets: o.onglets || 0 }, raf = [];
   const rect = f => ({ getBoundingClientRect: () => f() });
-  const els = { 'msg-list': rect(() => ({ top: 200, bottom: g.listeBas })), 'msg-saisie': rect(() => ({ top: g.rangee, bottom: g.rangee + 60 })),
+  const bulle = Object.assign(rect(() => ({ top: (g.bulleBas || g.listeBas - 27) - 40, bottom: g.bulleBas || g.listeBas - 27 })), { offsetHeight: 40 });
+  const els = { 'msg-list': Object.assign(rect(() => ({ top: 200, bottom: g.listeBas })), { lastElementChild: bulle }), 'msg-saisie': rect(() => ({ top: g.rangee, bottom: g.rangee + 60 })),
     content: { classList: { contains: c => c === 'entre' && !!g.entre } } };
   if (g.onglets) els.tabbar = rect(() => ({ top: g.onglets, bottom: g.onglets + 60 }));
   const w = { innerWidth: o.l || 375, innerHeight: o.h || 667 };
@@ -50,14 +51,17 @@ function monde(o) {
 const tourner = (c, l, h, type) => { c.window.innerWidth = l; c.window.innerHeight = h; c.F.msgTourner({ type: type || 'resize' }); };
 
 console.log('\n── 1660 · 2. msgFinCachee EXÉCUTÉE ──');
+/* (le faux monde pose la dernière bulle 27 px au-dessus du bas du conteneur, comme au téléphone — sauf mention) */
 {
   const c = monde({ listeBas: 500, rangee: 529, onglets: 600 });
   v('la liste finit au-dessus de la rangée : la fin se voit', c.F.msgFinCachee(), false);
-  c.__g.listeBas = 560;
-  v('la liste passe sous la rangée collée : la fin est cachée', c.F.msgFinCachee(), true);
-  c.__g.listeBas = 532;
-  v('à 3 px sous la rangée : se voit (marge de 4 px, comme msgAmener)', c.F.msgFinCachee(), false);
-  const d = monde({ listeBas: 620, rangee: 700, onglets: 600 });
+  c.__g.listeBas = 600;
+  v('la dernière bulle passe sous la rangée collée : la fin est cachée', c.F.msgFinCachee(), true);
+  c.__g.listeBas = 559;
+  v('⛔ le CONTENEUR dépasse la rangée de 30 px mais la dernière bulle finit 3 px dessous : se voit (la marge de 4 px, et la bulle, pas son rembourrage)', c.F.msgFinCachee(), false);
+  c.__g.listeBas = 540; c.__g.bulleBas = 700;
+  v('la liste a été REMONTÉE (la dernière bulle est sous le bas du conteneur, coupée) : c\'est le conteneur qui compte', c.F.msgFinCachee(), true);
+  const d = monde({ listeBas: 650, rangee: 700, onglets: 600 });
   v('sous la barre d\'onglets seule : cachée', d.F.msgFinCachee(), true);
 }
 console.log('\n── 1660 · 3. le cas ORDINAIRE, sans « Reprendre » — celui que la première écriture ratait ──');
@@ -81,7 +85,7 @@ console.log('\n── 1660 · 3. le cas ORDINAIRE, sans « Reprendre » — celu
   /* le troisième re-test : barre « Reprendre », la personne remonte voir les pastilles (fin cachée), puis touche ✕ — la barre part, la page reste
      en haut, la fin se voit de nouveau SANS un pixel de défilement ; seul le ResizeObserver le voit (msgAjusterPlus) */
   const c = monde({ listeBas: 520, rangee: 529, onglets: 600 }); c.F.poser(375, true);
-  c.__g.listeBas = 610; c.F.msgFinSuivre(); c.__images();
+  c.__g.listeBas = 640; c.F.msgFinSuivre(); c.__images();
   v('(population) remontée : la fin est notée cachée', c.F.etat().vue, false);
   c.__g.listeBas = 505; c.F.msgAjusterPlus(); c.__images();               // ✕ : la barre part, la mise en page change, aucun défilement
   v('⛔ ✕ sur « Reprendre » : la mise en page relit la marque, la fin est vue', c.F.etat().vue, true);
@@ -99,10 +103,20 @@ console.log('\n── 1660 · 3. le cas ORDINAIRE, sans « Reprendre » — celu
   tourner(c, 611, 375); c.__images();
   v('⛔ …puis on tourne : la conversation revient (134 à 220 px cachés avec la relecture qui baissait)', c.__amene, 1);
 }
+{
+  /* le quatrième re-test, second cas : un balayage d'une quarantaine de px laisse la dernière bulle ENTIÈRE juste au-dessus de la rangée, le conteneur
+     dessous — la marque tombait (le test lisait le conteneur), et la rotation ne ramenait rien (214 px) */
+  const c = monde({ listeBas: 520, rangee: 529, onglets: 600 }); c.F.poser(375, true);
+  c.__g.listeBas = 553; c.F.msgFinSuivre(); c.__images();
+  v('⛔ un balayage laisse la dernière bulle entière au-dessus de la rangée (le conteneur dessous) : la fin reste « vue »', c.F.etat().vue, true);
+  c.__g.listeBas = 690; c.__g.rangee = 290; c.__g.onglets = 0;
+  tourner(c, 667, 375); c.__images();
+  v('⛔ …puis on tourne : la conversation revient', c.__amene, 1);
+}
 console.log('\n── 1660 · 4. la place de la personne est gardée ──');
 {
   const c = monde({ listeBas: 520, rangee: 529, onglets: 600 }); c.F.poser(375, true);
-  c.__g.listeBas = 610; c.F.msgFinSuivre(); c.__images();                // elle remonte la page au doigt : la fin passe sous la rangée
+  c.__g.listeBas = 640; c.F.msgFinSuivre(); c.__images();                // elle remonte la page au doigt : la fin passe sous la rangée
   v('la personne remonte voir les pastilles : la fin est notée cachée', c.F.etat().vue, false);
   tourner(c, 667, 375); c.__images();
   v('⛔ puis elle tourne : rien n\'est amené, sa place est gardée', c.__amene, 0);

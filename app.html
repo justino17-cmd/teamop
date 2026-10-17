@@ -40138,12 +40138,17 @@ function msgAjusterPlus(){ if(_msgRaf||current!=='messagerie') return; _msgRaf=r
    disait « remontée » : rien ne revenait (160 px cachés en paysage, 32 configurations sur 32 ; de même après un envoi ou le choix d'une
    conversation, qui redessinent la vue sans la barre). On demande ce que voit la personne : le même test que `msgAmener` (`msgFinCachee`). */
 let _msgLargeur=0, _msgFinVue=true, _msgFinRaf=0, _msgTourT=0, _msgTourVue=true;
-/* la fin de la conversation se voit-elle ? — le bas de la liste au-dessus de ce qui est collé en bas (rangée de saisie, barre d'onglets) */
+/* la fin de la conversation se voit-elle ? — la DERNIÈRE BULLE au-dessus de ce qui est collé en bas (rangée de saisie, barre d'onglets). Pas le bas du
+   conteneur seul : il dépasse la dernière bulle de son rembourrage et de la marge de la bulle (27 px au téléphone), et un balayage qui laissait la
+   bulle entière à 0-27 px au-dessus de la rangée la disait « cachée » — la rotation suivante ne ramenait rien (155 à 214 px, quatrième re-test).
+   La bulle ne compte que tant qu'elle est dans la liste : si la liste a été remontée, son bas est sous celui du conteneur, qui reste la mesure. */
 function msgFinCachee(){
   const ml=$('msg-list'), sa=$('msg-saisie'); if(!ml||!sa) return false;
   let couvre=sa.getBoundingClientRect().top; const tb=$('tabbar');
   if(tb&&getComputedStyle(tb).display!=='none') couvre=Math.min(couvre,tb.getBoundingClientRect().top);
-  return ml.getBoundingClientRect().bottom>couvre+4;
+  let bas=ml.getBoundingClientRect().bottom; const d=ml.lastElementChild;
+  if(d&&d.offsetHeight) bas=Math.min(bas,d.getBoundingClientRect().bottom);
+  return bas>couvre+4;
 }
 /* relue au défilement (une fois par image) ET quand la mise en page change sans défilement (`msgAjusterPlus` : la barre « Reprendre » fermée
    par ✕, une barre d'outils qui se replie — le troisième re-test : remontée vers les pastilles, ✕, la fin redevenue visible sans un pixel de
