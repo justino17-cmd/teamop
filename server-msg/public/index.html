@@ -38,6 +38,8 @@
    · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre ;
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat ; en lettres sur une ligne choisie il
      tombe à 4,2:1 — le texte prend #9db8f5 (5,3:1). De jour, l'accent passe partout (≥ 6,7:1) ;
+   · --rouge-fill, --on-rouge : « Terminer pour tous » et « Quitter » (salle) sont des boutons PLEINS qui portent un mot : le #ff453a du système n'y tient que 3,4:1 en blanc. Une surface, une encre —
+     #d70015 et blanc font 5,4:1 de jour comme de nuit (la salle est sombre dans les deux modes). Le #ff453a reste le rouge des PASTILLES et des traits, où 3:1 suffit ;
    · --rouge-txt : le #ff453a des statuts est une couleur d'APLAT (« Raccrocher » : non-texte, 3:1 suffit) ; le NOM d'un appel
      manqué prend sa propre teinte (jour #d70015, 5,4:1 ; nuit #ff8a82, 6,6:1 sur la carte et 5,1:1 sur une ligne pressée) ;
    · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes, au bleu du logo, donc leurs
@@ -83,6 +85,8 @@
   /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
   --rouge: #ff453a;
   --rouge-txt: #d70015;
+  --rouge-fill: #d70015;
+  --on-rouge: #ffffff;
   --vert: #30d158;
   --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
   --appel-voile: rgba(14,26,63,.62);
@@ -136,6 +140,8 @@
     --screen: none;
     --rouge: #ff453a;
     --rouge-txt: #ff8a82;
+    --rouge-fill: #d70015;
+    --on-rouge: #ffffff;
     --vert: #30d158;
     --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
     --appel-voile: rgba(14,26,63,.62);
@@ -1493,6 +1499,13 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #3a3a3c; color: #fff; }
 .conv-ecran[data-bulle="sarcelle"] .envoyee, .theme-apercu[data-bulle="sarcelle"] .envoyee, .theme-pastille[data-bulle="sarcelle"] .theme-rond { background: #0b6e79; color: #fff; }
 .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #8e1b3a; color: #fff; }
+/* ⛔ DE NUIT, UNE BULLE ENVOYÉE S'ÉCLAIRCIT (17 octobre 2026, au pixel) : les fonds de nuit sont des teintes à 14–24 % sur un bleu nuit — sombres ; le graphite #3a3a3c et le bordeaux #8e1b3a, choisis pour
+   le jour, s'y confondaient (Graphite sur Sable : 1,04:1 ; 11 combinaisons sur 72 sous 1,5:1). Une surface élevée est plus claire que son fond. Le blanc reste lisible dessus (≥ 4,5:1),
+   et la pastille du choix (.theme-rond) suit la même règle. Le jour ne bouge pas. tests/test-2503.js rejoue les 72 combinaisons. */
+@media (prefers-color-scheme: dark) {
+  .conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #636366; }
+  .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #b02a4f; }
+}
 .theme-apercu { display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; margin-bottom: 18px; border-radius: 18px; background-color: var(--base); border: var(--line); }
 .theme-apercu .bulle { max-width: 78%; padding: 8px 12px; font-size: 16px; line-height: 21px; }
 .theme-apercu .recue { align-self: flex-start; }
@@ -1644,6 +1657,12 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .sem-fleche.prec .chev { transform: scaleX(-1); }
 .sem-titre { flex: 1; min-width: 0; min-height: 44px; padding: 0 6px; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; color: var(--text); overflow-wrap: anywhere; }
 .sem-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
+/* ⛔ AU DOIGT, SUR UN PETIT TÉLÉPHONE (17 octobre 2026, iPhone SE à 320 px) : sept colonnes et six écarts de 4 px dans 288 px de contenu donnaient 37,7 px de zone qui répond (43,4 à 360 px), sous les 44 px du
+   reste de la page. Les écarts se réduisent d'abord (2 px sous 380 px : 45,1 à 360) ; sous 352 px ils tombent et la barre déborde dans la marge de la page (-11 px de chaque côté : 310 / 7 = 44,3 à 320 px). Le seuil est 352 et non 340 : avec des écarts de 2 px la colonne vaut (largeur − 44) / 7, soit 42,9 à 344 px (Galaxy Z Fold replié) et moins de 44 jusqu'à 351 px (relecture, même jour).
+   Ni défilement latéral, ni autre forme. Le titre d'une feuille (« Nouveau rendez-vous », 171 px) ne tenait pas non plus dans les 156 px laissés entre « Annuler » et « Créer » : 15 px, il tient. */
+@media (max-width: 380px) { .sem-jours { gap: 2px; } }
+@media (max-width: 351px) { .sem-jours { gap: 0; margin-inline: -11px; } }
+@media (max-width: 340px) { .feuille-barre h2 { font-size: 15px; } }
 .jour { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 0 4px; border-radius: 14px; color: var(--text); font-size: 12px; }
 .jour b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 24px; }
 .jour .jour-point { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0; }
@@ -1657,7 +1676,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
    trois au plus, puis « +2 »). Un jour d'un autre mois se lit en gris et mène à son mois. */
 #vue-reunions > #reu-vue-seg { max-width: 320px; margin-inline: auto; }        /* le choix de l'affichage : un petit segmenté centré (le Calendrier du Mac), jamais une barre de toute la largeur */
 .mois { margin: 0 0 16px; }
-.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub); text-align: center; }
+.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub-meta); text-align: center; }
 .mois-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
 .mjour { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: stretch; border-radius: 12px; color: var(--text); }
 /* (10 octobre 2026) la case n'est plus UN bouton : au téléphone, son NUMÉRO la remplit (toucher la case choisit le jour) ; au large, il se range en haut et les rendez-vous sont des boutons dessous */
@@ -1691,15 +1710,15 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   .sem-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
   .sem-grille .mjour { min-height: 220px; }
   .sem-grille .mjour-num { justify-content: space-between; padding-left: 4px; }
-  .sem-grille .mjour-nom { display: block; font-size: 12px; line-height: 16px; color: var(--sub); }
+  .sem-grille .mjour-nom { display: block; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
   /* le glisser (souris) : la main, la case visée, le fantôme qui suit */
   .mjour-elt.tire { opacity: .35; }
   .mjour.cible { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
   .mjour-elt.fantome { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); background: var(--sheet-bg); }
   .mjour-elt.journee { background: color-mix(in srgb, var(--accent) 34%, transparent); }
   .mjour-elt.annulee { text-decoration: line-through; opacity: .7; }
-  .mjour-elt time { font-variant-numeric: tabular-nums; color: var(--sub); margin-right: 4px; }
-  .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub); }
+  .mjour-elt time { font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--text) 80%, transparent); margin-right: 4px; }
+  .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
 }
 /* ⛔ AU DOIGT, SUR TABLETTE (relecture du 10 octobre 2026 : une puce de 19 px entre deux voisines à 2 px se rate) : la SEMAINE donne 44 px à chaque rendez-vous, au numéro et à « +N » ;
    le MOIS garde ses puces comme une vue d'ensemble — la case ENTIÈRE choisit le jour, et la liste du jour, juste dessous (44 px par ligne), ouvre, décale, répond (appui long). */
@@ -1826,7 +1845,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-sous { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 13px; line-height: 18px; color: var(--salle-sub); font-variant-numeric: tabular-nums; }
 .salle-rec { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 18px; font-weight: 700; }
 .salle-rec::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
-.salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 15px; font-weight: 600; }
+.salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 15px; font-weight: 600; }
 .salle-bandeaux { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
 .salle-bandeaux:empty { display: none; }
 .salle-bandeau {
@@ -1862,7 +1881,7 @@ html[data-salle] .appel-ecran { display: none; }
   min-height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
 }
 .salle-btn.plein { background: #fff; color: #000; }
-.salle-btn.danger { background: var(--rouge); color: #fff; }
+.salle-btn.danger { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-btn[aria-disabled="true"], .salle-btn:disabled { opacity: .5; }
 .salle-scene {
   position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 8px; align-content: center; width: 100%; max-width: 1100px; margin-inline: auto;
@@ -1931,7 +1950,7 @@ html[data-salle] .appel-ecran { display: none; }
 .avant-cmd .rond-cmd .ic { width: 24px; height: 24px; }
 .avant-cmd[aria-pressed="true"] .rond-cmd { background: var(--rouge); color: #fff; }
 .avant-cmd[aria-disabled="true"] { opacity: .45; }
-.avant-rejoindre { width: 100%; max-width: 560px; justify-self: center; min-height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; font-size: 17px; font-weight: 600; }
+.avant-rejoindre { width: 100%; max-width: 560px; justify-self: center; min-height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
 .avant-titre { margin: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 @media (min-width: 700px) { .avant-apercu { max-height: 40vh; } }
 .avant-rejoindre[aria-disabled="true"] { opacity: .5; }
@@ -1980,6 +1999,10 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-rang > .texte { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; font-size: 16px; line-height: 21px; overflow-wrap: anywhere; }
 .salle-rang > .texte small { font-size: 13px; line-height: 17px; color: var(--salle-sub); }
 .salle-rang .salle-btn { min-height: 36px; }
+/* ⛔ AU DOIGT (17 octobre 2026) : les boutons des feuilles « Plus », « Participants » et « Quitter la salle » répondaient sur 36 px, les menus Micro / Caméra / Sortie sur 40 — sous les 44 px du reste de la page.
+   Le plancher se pose sous (pointer: coarse), jamais sous la largeur d'un téléphone (un iPad n'est ni l'un ni l'autre) ; la souris garde ses boutons compacts. `.salle-rang .salle-btn` est
+   plus spécifique que `.salle-btn` : il faut le nommer ici, sinon sa règle de 36 px bat le plancher dans toutes les rangées de la feuille Participants. */
+@media (pointer: coarse) { .salle-btn, .salle-rang .salle-btn, .salle-appareil select { min-height: 44px; } }
 .salle-rang.actions { padding-left: 58px; background: rgba(255,255,255,.05); }
 button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-inter { flex: none; position: relative; width: 51px; height: 31px; border-radius: 16px; background: rgba(120,120,128,.5); transition: background-color .2s; }
@@ -2136,7 +2159,10 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
 .bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
 .carte-liste > li.bord-jour::after { display: none; }
-.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
+.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--sub-meta); }
+/* ⛔ LE ROUGE EST POUR L'APPEL MANQUÉ, PAS POUR LA RAISON DE L'AFFICHER (17 octobre 2026, capture iPad) : « Collègue », « Favori », « A appelé 3 fois » informent, ils n'alertent pas — la pastille prend un gris de
+   légende sur un voile neutre, et le nom de l'appelant l'encre du texte. La liste des Appels, elle, garde son rouge (`.appel-nom-ligne.manque`). tests/test-2504.js. */
+#bord-appels .appel-nom-ligne.manque { color: var(--text); }
 .bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 #vue-accueil > #bord-portee { max-width: 320px; margin-inline: auto; }        /* comme l'Agenda : un petit segmenté centré, jamais une barre de toute la largeur */
 .bord-plus { list-style: none; }
