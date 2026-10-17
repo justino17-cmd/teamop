@@ -8579,7 +8579,12 @@ const eur = n => { const v=Number(n)||0;
 let _dbGen=0;
 let _rechT=0;
 function rechDiffere(fn){ clearTimeout(_rechT); _rechT=setTimeout(function(){ try{ fn(); }catch(e){} },170); }
-const initials = name => (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+/* Les initiales d'un nom, pour un avatar. On lit par POINTS DE CODE, jamais par unité UTF-16 : `w[0]` d'un nom qui
+   commence par un émoji (🐀 😀) rendait la moitié d'une paire de substitution, dessinée « � » dans 34 avatars. On
+   prend la première lettre ou le premier chiffre de chaque mot (`max` au plus, 2 par défaut) ; s'il n'y en a aucun
+   (« 😀 » seul), le premier signe ENTIER (une séquence ZWJ ou un drapeau ne se coupent pas) ; « ? » pour un nom vide.
+   Écrite sur UNE ligne : test-822 l'extrait ainsi. UNE seule définition (la seconde d'une fonction déclarée deux fois gagne en silence). */
+const initials = (name,max) => { const mots=String(name||'?').split(/\s+/).filter(Boolean); const ini=mots.map(w=>(w.match(/[\p{L}\p{N}]/u)||[''])[0]).filter(Boolean).slice(0,max||2).join('').toUpperCase(); if(ini) return ini; const w=mots[0]||'?'; try{ return new Intl.Segmenter().segment(w)[Symbol.iterator]().next().value.segment; }catch(e){ return [...w][0]; } };
 const todayISO = () => isoDe(new Date());
 /* Le jour d'un horodatage, DANS LE FUSEAU DE LA PERSONNE. new Date(ts).toISOString() range en
    UTC : un arrivage saisi le 10/09 à 01h30 à Paris ressortait daté du 09/09. La fenêtre est
@@ -26972,7 +26977,7 @@ views.mouvements=function(){
   const voile=mvtMenuOuvert?`<div class="mvt-voile" onclick="mvtMenu('')" style="position:fixed;inset:0;z-index:50"></div>`:'';
   const PALETTE=['#2EB872','#2563EB','#E79A3C','#A78BFA','#E0524D','#0EA5A4','#D96BB0','#8B5A2B'];
   const boxTeinte=b=>PALETTE[Math.abs(String(b.nom||b.numero||'').split('').reduce((s,c)=>s+c.charCodeAt(0),0))%PALETTE.length];
-  const tuileBox=b=>`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:color-mix(in srgb,${boxTeinte(b)} 16%,transparent);color:${boxTeinte(b)}">${esc(String(b.nom||b.numero||'B').trim()[0].toUpperCase())}</span>`;
+  const tuileBox=b=>`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:color-mix(in srgb,${boxTeinte(b)} 16%,transparent);color:${boxTeinte(b)}">${esc(initials(String(b.nom||b.numero||'B').trim(),1))}</span>`;
   const boxesFiltrees=visibleBoxes(db.boxes||[]).filter(b=>!mvtFBoxQ.trim()||String((b.nom||'')+' '+(b.numero||'')).toLowerCase().includes(mvtFBoxQ.trim().toLowerCase()));   // le filtre « box » ne propose que ses box
   const nbMvtBox=id=>tout.filter(m=>m.boxId===id).length;
   const rangBox=(b,on,html)=>`<div onclick="mvtChoisirBox('${b?b.id:''}')" style="display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;background:${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}" onmouseover="this.style.background='color-mix(in srgb,var(--acc) 6%,transparent)'" onmouseout="this.style.background='${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}'">${html}<span style="flex:1"></span>${on?'<span style="color:var(--acc-txt);font-weight:800">✓</span>':''}</div>`;
@@ -30371,7 +30376,7 @@ function mailReadHtml(r,type){
     </div>
     <div style="font-size:19px;font-weight:800;line-height:1.35;margin-bottom:15px">${esc(r.subject||'(sans objet)')}</div>
     <div style="display:flex;gap:12px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--brd);margin-bottom:17px">
-      <span style="width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:${mailColor(who)};font-size:17px">${esc((who||'?').trim().charAt(0).toUpperCase()||'?')}</span>
+      <span style="width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:${mailColor(who)};font-size:17px">${esc(initials((who||'?').trim(),1))}</span>
       <div style="min-width:0">
         <div style="font-weight:800;font-size:14px">${type==='envoye'?'À : ':''}${esc(who)}</div>
         ${type==='recu'&&r.from&&r.fromName?`<div style="font-size:12px;color:var(--t3)">${esc(r.from)}</div>`:''}
@@ -42784,7 +42789,7 @@ function pastillesMail(){
       var t=(nom.textContent||'').replace(/^À\s*:\s*/,'').trim();
       var p=document.createElement('span');
       p.className='rf-pastille-mail'; p.setAttribute('aria-hidden','true');
-      p.textContent=(t.charAt(0)||'?').toUpperCase();
+      p.textContent=initials(t,1);
       tonPastille(p,mailColor(t));
       var pt=ligne.firstElementChild;               // la pastille de non-lu reste devant
       if(pt) ligne.insertBefore(p,pt.nextSibling); else ligne.insertBefore(p,ligne.firstChild);

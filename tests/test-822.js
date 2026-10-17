@@ -33,7 +33,7 @@ const ligne = debut => { const i = BRUT.indexOf(debut); return i < 0 ? '' : BRUT
 console.log('\n── 822 · 0. la population ──');
 const P = { saveUser: bloc('async function saveUser(e,id){'), userAvatarApply: bloc('function userAvatarApply(){'), enterApp: bloc('function enterApp(u){'),
   avatarAccentSync: bloc('function avatarAccentSync(){'), avbSvg: bloc('function avbSvg(a,sz){'), avbSave: bloc('function avbSave(quiet){'),
-  initials: ligne('const initials = name =>'), fullName: ligne('const fullName = u =>'), TYPE_ICO: ligne('const TYPE_ICO={'),
+  initials: ligne('const initials = (name,max) =>'),   /* h02 : la fonction prend un 2e paramètre (nombre d'initiales), l'ancre suit sa signature */ fullName: ligne('const fullName = u =>'), TYPE_ICO: ligne('const TYPE_ICO={'),
   nomNorm: bloc('function nomNorm(s){'), compteHomonyme: bloc('function compteHomonyme(prenom,nom,sauf){'), homonymeMessage: bloc('function homonymeMessage(h,prenom,nom){') };
 v('toutes les pièces sont trouvées dans le fichier réel', Object.keys(P).filter(k => !P[k]), []);
 
