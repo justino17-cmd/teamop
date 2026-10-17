@@ -35,7 +35,7 @@ const PIECES = {
   stats: bloc('views.statistiques=function(){'), archStats: bloc('function archStats(ym){'), archives: bloc('views.archives=function(){'),
   print: bloc('function printArchive(){'), fiche: bloc('function ficheTech(id){'), journal: bloc('function journalGo(id){'),
   ptSecs: bloc('function ptSecs(p,now){'), ptOuvert: ligne('function ptOuvert(p)'), ptTotal: ligne('function ptTotal(list,now)'),
-  minutes: ligne('function minutes(deb,fin)'), vehAuto: ligne('function vehiculeAuto(v,u)'), note: ligne('const DOCS_EMIS_NOTE='), dureeStr: ligne('function dureeStr(min)'), docTot: ligne('function docTot(d)'),
+  minutes: ligne('function minutes(deb,fin)'), vehAuto: ligne('function vehiculeAuto(v,u)'), note: ligne('const DOCS_EMIS_TXT=') + '\n' + ligne('function docsEmisNote('),   /* i02 : la note est une fabrique (elle passe par t() au rendu), plus une constante */ dureeStr: ligne('function dureeStr(min)'), docTot: ligne('function docTot(d)'),
   ymOf: ligne('function ymOf(iso)'), isFin: ligne('function isFinanceMgr()'), norm: ligne('const norm ='), vPlaque: ligne('const vPlaque='), vehName: ligne('const vehName =')
 };
 v('toutes les pièces sont trouvées (une tranche vide passerait au vert sur tout)', Object.entries(PIECES).filter(([, s]) => s.length < 20).map(([k]) => k), []);
