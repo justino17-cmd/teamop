@@ -9479,6 +9479,9 @@ Object.assign(I18N.es,{ 'Bons à envoyer':'Pedidos por enviar','Planning de l’
    Ces clés sont donc les mots qu'il compose, et les jours abrégés de la grille du tableau de bord. */
 Object.assign(I18N.en,{'intervention à planifier':'job to schedule','interventions à planifier':'jobs to schedule','intervention en retard':'job late','interventions en retard':'jobs late','absent sur la période':'absent in the period','absents sur la période':'absent in the period','Ouvrir le planning':'Open the schedule','Ouvrir les interventions':'Open the jobs','Ouvrir les absences':'Open the absences','Rien à afficher sur cette période.':'Nothing to show for this period.','jour de retard':'day late','jours de retard':'days late','jusqu\'à':'up to','jour ouvré':'working day','jours ouvrés':'working days','dont':'of which','d’activités':'of activities','autre':'other','autres':'others','à répartir':'to assign','libre':'free','DIM':'SUN','LUN':'MON','MAR':'TUE','MER':'WED','JEU':'THU','VEN':'FRI','SAM':'SAT','Ouvrir le planning du':'Open the schedule of','Interventions du mois':'Jobs this month','Aucune intervention.':'No jobs.','Aucune intervention':'No jobs','À planifier':'To schedule','Afficher la suite':'Show more','évènement plus ancien':'older event','évènements plus anciens':'older events','du':'from','au':'to'});
 Object.assign(I18N.es,{'intervention à planifier':'intervención por planificar','interventions à planifier':'intervenciones por planificar','intervention en retard':'intervención con retraso','interventions en retard':'intervenciones con retraso','absent sur la période':'ausente en el período','absents sur la période':'ausentes en el período','Ouvrir le planning':'Abrir la agenda','Ouvrir les interventions':'Abrir las intervenciones','Ouvrir les absences':'Abrir las ausencias','Rien à afficher sur cette période.':'Nada que mostrar en este período.','jour de retard':'día de retraso','jours de retard':'días de retraso','jusqu\'à':'hasta','jour ouvré':'día laborable','jours ouvrés':'días laborables','dont':'de los cuales','d’activités':'de actividades','autre':'otra','autres':'otras','à répartir':'por repartir','libre':'libre','DIM':'DOM','LUN':'LUN','MAR':'MAR','MER':'MIÉ','JEU':'JUE','VEN':'VIE','SAM':'SÁB','Ouvrir le planning du':'Abrir la agenda del','Interventions du mois':'Intervenciones del mes','Aucune intervention.':'Ninguna intervención.','Aucune intervention':'Ninguna intervención','À planifier':'Por planificar','Afficher la suite':'Mostrar más','évènement plus ancien':'evento anterior','évènements plus anciens':'eventos anteriores','du':'del','au':'al'});
+/* i02 (r3#1/r3#3) — la note « brouillons » de Statistiques et d'Archives (voir `docsEmisNote`). La clé est la phrase française entière. */
+Object.assign(I18N.en,{'Les brouillons ne comptent pas : sont « émis » les devis envoyés, acceptés ou refusés, et « facturées » les factures envoyées, payées ou en retard.':'Drafts do not count: quotes are “issued” once sent, accepted or declined, and invoices are “invoiced” once sent, paid or overdue.'});
+Object.assign(I18N.es,{'Les brouillons ne comptent pas : sont « émis » les devis envoyés, acceptés ou refusés, et « facturées » les factures envoyées, payées ou en retard.':'Los borradores no cuentan: un presupuesto está «emitido» cuando se ha enviado, aceptado o rechazado, y una factura está «facturada» cuando se ha enviado, pagado o está vencida.'});
 /* Les actions du journal les plus courantes (écrites telles quelles par `logEvent`). Les ~160 autres actions restent dans la langue où
    l'événement a été écrit : le journal est une trace datée, et on n'en réécrit pas les lignes. */
 Object.assign(I18N.en,{'Déconnexion':'Sign-out','Création':'Creation','Suppression':'Deletion','Mot de passe modifié':'Password changed','Droits modifiés':'Permissions changed','Droits repris':'Permissions taken back','Remise à zéro':'Reset','Utilisateur créé':'User created','Utilisateur supprimé':'User deleted','Client créé':'Client created','Facture payée':'Invoice paid','Facture envoyée':'Invoice sent','Facture supprimée':'Invoice deleted','Intervention terminée':'Job finished','Intervention démarrée':'Job started','Demande créée':'Request created','Demande validée':'Request approved','Demande refusée':'Request rejected','Rapport rédigé':'Report written','Box créée':'Box created','Fournisseur créé':'Supplier created','Technicien supprimé':'Technician deleted'});
@@ -20349,7 +20352,11 @@ function planDayListHtml(SRC){
       <div style="display:flex;align-items:center;gap:8px;margin:0 2px 6px"><span class="avatar av-tc" style="width:26px;height:26px;font-size:11px;--tc:${techColor(g.id)}">${initials(g.nom)}</span><b style="font-size:13.5px">${esc(g.nom)}</b>${abs?`<span style="font-size:11px;color:var(--org);font-weight:700">${esc(ABS_TYPES[abs.type]||abs.type)}</span>`:''}<span style="font-size:11px;color:var(--t3)">${ints.length?ints.length+' int. · '+Math.floor(tot/60)+'h'+String(tot%60).padStart(2,'0'):'libre'}</span></div>
       ${ints.length?ints.map(i=>planIntCard(i,{hideTech:true,couleurTech:true,ligne:g.id})).join(''):`<div style="border:1px dashed var(--brd);border-radius:12px;padding:12px;text-align:center;color:var(--t3);font-size:12px">Déposez une intervention ici</div>`}
     </div>`; }).join('');
-  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">Glissez une carte sur un technicien pour la réassigner${canPlan()?' · sur un jour (vue Semaine/Mois) pour changer la date':''}</div>`+secs;
+  /* i02 (r3#16) : on n'invite à glisser que celui qui PEUT planifier — la même règle que le glisser lui-même (`planDropTech` refuse
+     sans « Déplacer le planning »), et que `planAide` des autres vues. Les autres lisent le motif, comme dans la vue Jour en colonnes. */
+  const aide=canPlan()?'Glissez une carte sur un technicien pour la réassigner · sur un jour (vue Semaine/Mois) pour changer la date'
+    :'Lecture seule — le droit « Déplacer le planning » est requis pour réorganiser';
+  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${aide}</div>`+secs;
 }
 /* ---- Vue MOIS ---- */
 function planMonthHtml(SRC){
@@ -32110,7 +32117,10 @@ function bonValider(id){ const form=$('bonform'); if(!form) return; const f=Obje
   bonsFilter=(f.statut==='prete')?'prets':bonsFilter;   // → direction l'onglet Prêts à envoyer
   if(current==='bons') views.bons(); else go('bons');
   const multiF=fourKeys.filter(k=>k).length>1, multiS=sites.length>1;
-  toast('✅ '+madeIds.length+' bon(s) prêt(s) à envoyer'+(multiF?' — un par fournisseur':'')+(multiS?' · un par site':''));
+  /* i02 (r3#14) : le message dit l'état RÉELLEMENT posé (`statut:f.statut`) — « prêt(s) à envoyer » pour un brouillon annonçait autre
+     chose que ce qui était écrit (la demande restait « En préparation »). */
+  const etat=f.statut==='prete'?'prêt(s) à envoyer':f.statut==='brouillon'?'gardé(s) en préparation':'enregistré(s)';
+  toast('✅ '+madeIds.length+' bon(s) '+etat+(multiF?' — un par fournisseur':'')+(multiS?' · un par site':''));
 }
 /* ✂️ Sépare un bon existant par fournisseur (si sa liste mélange plusieurs fournisseurs) — retourne le nb de bons créés en plus */
 function bonSeparer(id){ const b=db.bons.find(x=>x.id===id); if(!b) return 0;
@@ -36285,7 +36295,11 @@ const FACT_ST={brouillon:{l:'En attente',c:'st-grey'},envoyee:{l:'Envoyée',c:'s
    Statistiques (Devis émis, Taux d'acceptation, Top clients), Archives (CA facturé) et l'écran Factures
    (Total facturé) comptaient chacun à leur façon, et les deux premiers y mettaient les brouillons. */
 function docEmis(d){ return !!d && d.statut!=='brouillon'; }
-const DOCS_EMIS_NOTE='<div data-regle="docs-emis" style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Les brouillons ne comptent pas : sont « émis » les devis envoyés, acceptés ou refusés, et « facturées » les factures envoyées, payées ou en retard.</div>';
+/* La note passe par `t()` AU RENDU (i02, r3#1/r3#3) : c'était une constante évaluée une fois au chargement, sans entrée dans `I18N` —
+   la seule phrase d'interface restée française sous English / Español sur Statistiques et Archives. Une fabrique, pas une constante :
+   changer de langue sans recharger doit la suivre. */
+const DOCS_EMIS_TXT='Les brouillons ne comptent pas : sont « émis » les devis envoyés, acceptés ou refusés, et « facturées » les factures envoyées, payées ou en retard.';
+function docsEmisNote(){ return '<div data-regle="docs-emis" style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">'+t(DOCS_EMIS_TXT)+'</div>'; }
 const DOC={ devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DEV',st:DEVIS_ST}, factures:{coll:'factures',titre:'Facture',un:'facture',prefix:'FAC',st:FACT_ST,fem:true} };   /* `fem` : l'accord des messages (« Facture créée », « Devis créé ») est une donnée du document, pas un test sur son nom */
 /* Le total HT est la somme des lignes ARRONDIES AU CENTIME, pas la somme des valeurs exactes.
    Trois lignes de 1,5 × 33,33 s'affichaient « 49,99 » chacune sous un Total HT de 149,98 : le
@@ -39288,7 +39302,15 @@ function savePointage(e,id){ e.preventDefault();
   else{
     d.finTs=new Date(jour+'T'+d.fin+':00').getTime()||null;
     if(!d.finTs){ toast('Heure de fin invalide'); return; }
-    if(d.finTs < d.debutTs) d.finTs += 86400000;   // une nuit : la fin est le lendemain
+    if(d.finTs < d.debutTs){
+      /* i02 (r3#12) : sur un pointage OUVERT commencé AUJOURD'HUI, une fin plus petite que le début ne peut pas être une nuit — le
+         lendemain est dans le futur par construction. C'est une faute de frappe : on la nomme comme la reprise d'un oubli
+         (`ptFinRefus`), au lieu de « dans le futur » qui renvoie la personne chercher une heure qu'elle n'a pas tapée.
+         La règle de nuit ne bouge pas : une nuit commencée hier, ou un pointage clos, passent comme avant. Rien n'est écrit. */
+      if(ancien && ptOuvert(ancien) && ptJour(d.debutTs)===ptJour(Date.now()) && d.finTs+86400000 > Date.now()+60000){
+        toast('La fin ('+ptHM(d.finTs)+') est avant le début ('+ptHM(d.debutTs)+') — corrige l\'heure ou la date de fin'); return; }
+      d.finTs += 86400000;   // une nuit : la fin est le lendemain
+    }
   }
   if(d.debutTs > Date.now()+60000){ toast('Le début est dans le futur'); return; }
   if(d.finTs && d.finTs > Date.now()+60000){ toast('La fin est dans le futur — un pointage ne compte que des heures déjà travaillées'); return; }
@@ -39425,7 +39447,7 @@ views.statistiques=function(){
     <div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">⏳</div><div class="kpi-val">${eur(caAtt)}</div><div class="kpi-lbl">En attente de paiement</div></div>
     <div class="kpi"><div class="kpi-ico" style="background:rgba(96,165,250,.14)">💰</div><div class="kpi-val">${eur(devisTtc)}</div><div class="kpi-lbl">Devis émis</div></div>
-    <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">✅</div><div class="kpi-val">${tauxAccept}%</div><div class="kpi-lbl">Taux d'acceptation devis</div></div></div>${DOCS_EMIS_NOTE}`:'';
+    <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">✅</div><div class="kpi-val">${tauxAccept}%</div><div class="kpi-lbl">Taux d'acceptation devis</div></div></div>${docsEmisNote()}`:'';
   $('content').innerHTML=(fin?'':`<div class="card" style="font-size:13px;color:var(--t2);line-height:1.6">🔒 Chiffre d'affaires, devis et classement des clients : réservés au droit « Voir / gérer la comptabilité et les tarifs » (Permissions → Ventes).</div>`)+kpisArgent+`
     <div class="grid2">
       <div class="card"><div class="card-head"><h3>Interventions par statut</h3></div>
@@ -39605,7 +39627,7 @@ views.archives=function(){
       ${s.fin?`<div class="kpi"><div class="kpi-ico" style="background:color-mix(in srgb,var(--acc) 16%,transparent)">💶</div><div class="kpi-val">${eur(s.caPaye)}</div><div class="kpi-lbl">CA encaissé</div></div>
       <div class="kpi"><div class="kpi-ico" style="background:rgba(251,146,60,.14)">🧾</div><div class="kpi-val">${eur(s.caTot)}</div><div class="kpi-lbl">CA facturé</div></div>`:''}
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
-    </div>${s.fin?DOCS_EMIS_NOTE:''}</div>
+    </div>${s.fin?docsEmisNote():''}</div>
     <div class="card"><div class="card-head"><h3>${t('Interventions du mois')} (${s.ints.length})</h3></div>
       ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row lgt" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShortEcran(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
     </div>`;
