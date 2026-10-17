@@ -12,7 +12,11 @@
      2. la source le rend tel quel, tout de suite après le geste, et APRÈS rechargement (une autre instance) ;
      3. l'acceptation de l'autre redessine la conversation (un événement `conversation`, sans geste de Ben) et la carte devient « Écrire » seul ;
      4. initiales et nom de la fiche sont ceux de l'avatar (une personne connue), la page écrit le nom complet ;
-     5. la page ne garde plus aucune mémoire de la demande (aucun `fichesDemandees` dans le code). */
+     5. la page ne garde plus aucune mémoire de la demande (aucun `fichesDemandees` dans le code) ;
+     6. (relecture du lot) « annuler la demande » : la carte redevient « Ajouter » tout de suite ET après rechargement ;
+     7. « Écrire » à une personne inconnue vaut une demande (la carte le dit sans rechargement) ; une demande REFUSÉE reste « envoyée » (le refus ne se dit pas) ;
+     8. une fois contacts, plus aucune demande — même quand la ligne de la demande est restée en base (le contact s'est fait par un lien), côté service ET côté source ;
+     9. « Demander » depuis la recherche met à jour la fiche déjà lue. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const T = require('./outils-msg');
@@ -48,15 +52,15 @@ const FICHE = faireFiche();
 const texte = h => h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
 (async () => {
-  const NOMS = { ana: 'Ana Martin', ben: 'Ben Durand', cleo: 'Cléo Petit' };
+  const NOMS = { ana: 'Ana Martin', ben: 'Ben Durand', cleo: 'Cléo Petit', dan: 'Dan Roux', eve: 'Eve Blanc', fay: 'Fay Noir' };
   const MDP = Object.fromEntries(Object.keys(NOMS).map(k => [k, 'pw-' + k + '-12345']));
   const og = await T.fauxOpGestion(Object.fromEntries(Object.keys(NOMS).map(k => [k, { pass: MDP[k], nom: NOMS[k], actif: true }])));
   const svc = await T.lancerService({ urlGestion: og.url });
   const sources = [];
-  const ouvrirSource = async (login) => {
+  const ouvrirSource = async (login, enveloppe) => {
     const nav = T.navigateur(svc.base);
     const faux = { priseEnCharge: () => ({ ok: false, raison: 'navigateur' }), permission: () => 'default', visible: () => true, surMessage: () => {}, abonnementActuel: async () => null };
-    const src = creerSourceServeur({ OPMSG, base: svc.base, fetch: nav.fetch, EventSource: nav.EventSource, navigateur: faux, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5 });
+    const src = creerSourceServeur({ OPMSG, base: svc.base, fetch: enveloppe ? enveloppe(nav.fetch) : nav.fetch, EventSource: nav.EventSource, navigateur: faux, attente: () => 60, attenteEnvoi: () => 120, delaiSaisieMs: 500, delaiRelireMs: 5 });
     await src.connexion(login, MDP[login]); const d = await src.demarrer();
     if (!d.connecte) throw new Error('démarrage refusé : ' + JSON.stringify(d));
     sources.push(src); return src;
@@ -65,6 +69,7 @@ const texte = h => h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     const P = {}; for (const l of Object.keys(NOMS)) P[l] = await T.connecter(svc, og, l, MDP[l]);
     const relier = async (x, y) => { const l = await x.post('/api/contacts/lien', {}); await y.post('/api/liens/accepter', { code: l.j.code }); };
     await relier(P.ana, P.ben); await relier(P.ana, P.cleo);        // Ana connaît les deux ; Ben et Cléo ne se connaissent pas
+    for (const k of ['dan', 'eve', 'fay']) await relier(P.ana, P[k]);   // …et Dan, Eve, Fay (les sections 6 à 9)
     const G = (await P.ana.post('/api/conversations/groupe', { nom: 'Chantier Nord', membres: [P.ben.moi.id] })).j.conversation.id;
     const r = await P.ana.post('/api/conversations/' + G + '/messages', { cid: 'cid-fiche-1', type: 'contact', uid: P.cleo.moi.id });
     if (r.code !== 201) throw new Error('la fiche n\'est pas partie (' + r.code + ')');
@@ -100,6 +105,7 @@ const texte = h => h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
     const avant = conversations;
     const ok = await P.cleo.post('/api/contacts/demandes/repondre', { id: P.ben.moi.id, accepter: true });
     v('Cléo accepte la demande de Ben', [ok.code, ok.j.resultat], [200, 'acceptee']);
+    v('⛔ le service ne dit plus « demande » à Ben une fois contacts (la demande est effacée à l\'acceptation)', (await lireMeta(P.ben)).demande === true, false);
     const devenue = await att(async () => { const c = await carte(ben2); return c && c.f.contact === true ? c : null; });
     vrai('(population) la carte de Ben dit que Cléo est un contact', !!devenue);
     v('⛔ la source a REDESSINÉ la conversation sans geste de Ben (un événement « conversation » est parti après l\'acceptation)', conversations > avant, true);
@@ -119,6 +125,78 @@ const texte = h => h.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
     console.log('\n5. La page ne garde plus aucune mémoire de la demande');
     vrai('⛔ plus aucun `fichesDemandees` dans le code de la page (hors commentaires) : l\'état est celui du service', !/fichesDemandees/.test(JS));
+
+    /* ── relecture du lot : les gestes qui défont ou qui ne passent pas par « Ajouter » ── */
+    const fiches = {};
+    for (const k of ['dan', 'eve', 'fay']) {
+      const rr = await P.ana.post('/api/conversations/' + G + '/messages', { cid: 'cid-fiche-' + k, type: 'contact', uid: P[k].moi.id });
+      if (rr.code !== 201) throw new Error('la fiche de ' + k + ' n\'est pas partie (' + rr.code + ')');
+      fiches[k] = rr.j.seq;
+    }
+    const carteDe = async (S, k) => { const c = await S.ouvrir(G); const m = c.messages.find(x => x.carteContact && x.carteContact.uid === P[k].moi.id); return m ? { m, f: m.carteContact, t: texte(FICHE(m, 'recu')) } : null; };
+    /* [contact, demande, « Demande envoyée », « Ajouter », « Écrire »] — « Écrire » est toujours là (une invitation si on n'est pas contacts) */
+    const etatCarte = (c) => [c.f.contact === true, c.f.demande === true, /Demande envoyée/.test(c.t), /Ajouter/.test(c.t), /Écrire/.test(c.t)];
+    const lireMetaDe = async (X, k) => ((await X.get('/api/conversations/' + G + '/messages')).j.messages.find(m => m.seq === fiches[k]) || {}).meta;
+
+    console.log('\n6. Annuler la demande : « Ajouter » revient tout de suite, et reste après rechargement');
+    const ben3 = await ouvrirSource('ben');
+    const d0 = await carteDe(ben3, 'dan');
+    vrai('(population) la carte de Dan est rendue, « Ajouter » proposé', !!d0 && /Ajouter/.test(d0.t));
+    v('Ben demande Dan par la fiche', await ben3.demanderCarte(G, fiches.dan), 'envoyee');
+    const d1 = await carteDe(ben3, 'dan');
+    v('(population) « Demande envoyée » est bien à l\'écran avant d\'annuler', etatCarte(d1), [false, true, true, false, true]);
+    v('le service dit « demande » à Ben (population de la ligne qu\'on annule)', (await lireMetaDe(P.ben, 'dan')).demande === true, true);
+    await ben3.annulerDemande(P.dan.moi.id);
+    const d2 = await carteDe(ben3, 'dan');
+    v('⛔ juste après l\'annulation, SANS rechargement : « Ajouter » est revenu, plus « Demande envoyée »', etatCarte(d2), [false, false, false, true, true]);
+    v('⛔ le service ne dit plus « demande » à Ben (la demande retirée ne compte plus : masque = 1)', (await lireMetaDe(P.ben, 'dan')).demande === true, false);
+    const ben4 = await ouvrirSource('ben');
+    const d3 = await carteDe(ben4, 'dan');
+    v('⛔ APRÈS rechargement : toujours « Ajouter » (une demande retirée ne revient pas)', etatCarte(d3), [false, false, false, true, true]);
+
+    console.log('\n7. « Écrire » à une inconnue vaut une demande ; un refus ne se dit pas');
+    const ben5 = await ouvrirSource('ben');
+    const e0 = await carteDe(ben5, 'eve');
+    vrai('(population) la carte d\'Eve est rendue, « Ajouter » proposé', !!e0 && /Ajouter/.test(e0.t));
+    const ec = await ben5.ecrireCarte(G, fiches.eve);
+    v('Ben écrit à Eve par la fiche : une invitation (une demande)', ec.resultat, 'envoyee');
+    const e1 = await carteDe(ben5, 'eve');
+    v('⛔ juste après « Écrire », SANS rechargement : « Demande envoyée » (la carte suit le geste)', etatCarte(e1), [false, true, true, false, true]);
+    v('le service le dit à Ben, pas à Ana', [(await lireMetaDe(P.ben, 'eve')).demande === true, (await lireMetaDe(P.ana, 'eve')).demande === true], [true, false]);
+    const refus = await P.eve.post('/api/contacts/demandes/repondre', { id: P.ben.moi.id, accepter: false });
+    v('Eve refuse la demande de Ben', [refus.code, refus.j.resultat], [200, 'refusee']);
+    const ben6 = await ouvrirSource('ben');
+    const e2 = await carteDe(ben6, 'eve');
+    v('⛔ APRÈS le refus et un rechargement : toujours « Demande envoyée » (un refus ne se dit pas — « Ajouter » ne revient pas)', etatCarte(e2), [false, true, true, false, true]);
+
+    console.log('\n8. Une fois contacts, plus aucune demande — même si la ligne de la demande est restée en base');
+    const lienEve = await P.eve.post('/api/contacts/lien', {});
+    const accEve = await P.ben.post('/api/liens/accepter', { code: lienEve.j.code });
+    vrai('(population) Ben et Eve sont contacts par le lien d\'Eve (la demande refusée n\'a pas été effacée par ce chemin)', accEve.code === 200 || accEve.code === 201);
+    v('⛔ le service ne dit plus « demande » à Ben : être contact l\'emporte sur une ligne restée en base', (await lireMetaDe(P.ben, 'eve')).demande === true, false);
+    const ben7 = await ouvrirSource('ben');
+    const e3 = await carteDe(ben7, 'eve');
+    v('la carte d\'Eve chez Ben : « Écrire » seul', etatCarte(e3), [true, false, false, false, true]);
+    /* défense en profondeur : même si un service en retard disait encore « demande » à un contact, la source ne le rendrait pas (le contact l'emporte) */
+    const ben8 = await ouvrirSource('ben', (f) => async (url, init) => {
+      const r = await f(url, init);
+      if (!r.ok || !/\/messages/.test(String(url)) || ((init && init.method) || 'GET') !== 'GET') return r;
+      const j = await r.json();
+      for (const m of (j.messages || [])) if (m.meta && m.meta.k === 'contact') m.meta.demande = true;
+      return new Response(JSON.stringify(j), { status: r.status, headers: { 'content-type': 'application/json' } });
+    });
+    const e4 = await carteDe(ben8, 'eve');
+    v('⛔ même si le service disait « demande » : un contact reste « Écrire » seul (la source ne rend pas `demande` à un contact)', etatCarte(e4), [true, false, false, false, true]);
+
+    console.log('\n9. « Demander » depuis l\'écran de recherche met à jour la fiche déjà lue');
+    const ben9 = await ouvrirSource('ben');
+    const f0 = await carteDe(ben9, 'fay');
+    vrai('(population) la carte de Fay est rendue avec son identifiant', !!f0 && typeof f0.f.identifiant === 'string' && /Ajouter/.test(f0.t));
+    const trouvee = await ben9.contactParIdentifiant(f0.f.identifiant);
+    vrai('(population) Ben trouve Fay par son identifiant', trouvee.trouve === true && trouvee.id === P.fay.moi.id);
+    v('Ben lui envoie une demande', await ben9.demanderContact(trouvee.id), 'envoyee');
+    const f1 = await carteDe(ben9, 'fay');
+    v('⛔ la fiche de Fay, déjà lue, passe à « Demande envoyée » sans rechargement', etatCarte(f1), [false, true, true, false, true]);
   } catch (e) { console.log('  ✗ le banc est mort : ' + (e && e.stack || e)); process.exitCode = 1; }
   finally {
     for (const s of sources) { try { if (s.arreter) s.arreter(); } catch (e) { /* déjà arrêté */ } }
