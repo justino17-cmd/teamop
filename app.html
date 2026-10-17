@@ -33735,7 +33735,17 @@ function droitsBorner(nu,par){
     if(!userSeesModule(par,m.k)&&userSeesModule(nu,m.k)){ acc.modules[m.k]=false; retenus.push('le menu '+t(m.l)); } });
   return retenus;
 }
-async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(new FormData(e.target));
+async function saveUser(e,id){ e.preventDefault();
+  /* ⛔ UN GESTE ASYNCHRONE SE PROTÈGE LUI-MÊME (lot g01, relecture) : `saveUser` attend le serveur (unicité de l'identifiant)
+     et `sha256` AVANT d'écrire et de fermer la fenêtre. Pendant ce temps la fenêtre n'est pas « ferme » : la garde centrale
+     du §6 ne peut rien avaler, et un double toucher créait DEUX comptes (le second avait passé la vérification locale
+     avant que le premier n'écrive). Le bouton se verrouille donc dès le premier toucher (`btnOccupe`) et se relâche dans
+     TOUS les cas — refus compris, sinon la personne resterait bloquée devant son formulaire. */
+  const _bt=(e.submitter&&e.submitter.nodeType===1)?e.submitter:((e.target&&e.target.querySelector)?e.target.querySelector('button[type=submit]'):null);
+  if(_bt&&_bt._occupe) return;
+  const _relacher=btnOccupe(_bt,'Enregistrement…');
+  try{
+  const d=Object.fromEntries(new FormData(e.target));
   /* Prénom ET nom obligatoires — Justin, 10 septembre 2026 : « comme ça, dans Utilisateurs, avec le
      nom et le prénom, ils savent qui c'est ; et nous pareil dans la Tour ». Deux « florent » sans
      nom, on ne sait plus lequel garder ; deux « Florent Martin », si. */
@@ -33849,6 +33859,7 @@ async function saveUser(e,id){ e.preventDefault(); const d=Object.fromEntries(ne
     setTimeout(()=>userIdentifiantsModal(nu,pwd),120);
     return; }
   save(); closeModal(); views.utilisateurs();
+  }finally{ _relacher(); }
 }
 async function resetPwd(id){ if(!adminSeul()) return; const p=prompt('Nouveau mot de passe provisoire (8 caractères minimum) — laisse vide pour en générer un :'); if(p===null)return; if(p&&p.length<8){toast('8 caractères minimum');return;}
   const u=db.users.find(x=>x.id===id); if(!u) return;
@@ -42566,8 +42577,11 @@ if(typeof window.closeModal==='function'&&typeof window.openModal==='function'){
      · Ne se déclenche que si la cible est DANS l'overlay et qu'il porte « ferme » : un formulaire refusé (« Indique un
        client ») reste ouvert, sans « ferme », donc le renvoi reste possible ; `openModal` retire « ferme », donc le premier
        clic d'un « closeModal(); ouvrirAutreChose() » n'est pas avalé non plus.
-     · Un gestionnaire asynchrone qui ne ferme pas tout de suite (saveUser, aiGenDevisXylo, mailBoxSave) n'est pas couvert
-       par ici : il se protège par `btnOccupe(el)`, qui existe déjà. */
+     · Ce que cette garde NE couvre PAS : un gestionnaire qui attend le réseau AVANT de fermer la fenêtre (elle n'est pas
+       encore « ferme »). Mesuré au navigateur (relecture du lot g01) : `mailBoxSave` est synchrone, il ferme tout de suite,
+       il est couvert ; `aiGenDevisXylo` verrouille son bouton (`sub.disabled=true`) avant son premier `await`, donc un
+       second toucher ne part pas ; `saveUser` n'avait RIEN et créait deux comptes — il se protège désormais lui-même par
+       `btnOccupe` (try/finally). Un nouveau gestionnaire qui `await` avant de fermer en fait autant. `tests/test-1100.js` §4. */
   var avalerSiPart=function(e){
     var ov=voile(); if(!ov||!ov.classList.contains('ferme')) return;
     var t=e.target; if(!t||!ov.contains(t)) return;

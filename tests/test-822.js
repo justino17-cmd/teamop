@@ -56,7 +56,7 @@ function monde(users, moi) {
   vm.createContext(ctx);
   vm.runInContext(`${P.nomNorm}\n${P.fullName.replace('const ', 'var ')}\n${P.initials.replace('const ', 'var ')}\n${P.compteHomonyme}\n${P.homonymeMessage}
     var ROLE_PROTEGE='admin', drRattaches=new Set(), nuBoxes=new Set(), nuVehs=new Set(), nuStk=false, views={utilisateurs(){}};
-    function toast(m){ __toasts.push(String(m)); } function save(){} function closeModal(){} function logEvent(){} function renderNav(){ __nav++; }
+    function toast(m){ __toasts.push(String(m)); } function save(){} function closeModal(){} function logEvent(){} function renderNav(){ __nav++; } /* lot g01 : saveUser verrouille son bouton (btnOccupe) ; ici l'événement n'a pas de bouton, le double suffit — la vraie est jouée par test-1100 §5 */ function btnOccupe(){ return function(){}; }
     function can(){ return false; } function planPlaceLibre(){ return true; } function proposerAbonnement(){}
     async function loginExisteAilleurs(){ return false; }
     function roleEstTech(r){ return r==='technicien'; } function roleLbl(r){ return ({admin:'Administrateur',technicien:'Technicien'})[r]||r; }

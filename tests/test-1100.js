@@ -226,5 +226,106 @@ console.log('\n── 4. la FORME du correctif (code seul, commentaires retirés
   vrai('⛔ rien ne s\'écrit dans db (le multitâche est un état d\'appareil)', !/\bdb\./.test(MC + PAS));
 }
 
-console.log(`\n════ test-1100 : ${ok} ✓ ${ko} ✗ ════\n`);
-process.exit(ko ? 1 : 0);
+
+console.log('\n── 5. LES GESTES QUE LA GARDE NE COUVRE PAS (relecture du lot) : lesquels se doublent vraiment ? ──');
+const MB = bloc('function mailBoxSave(e,id){');
+vrai('population : mailBoxSave est trouvée', MB.length > 200, MB.length);
+{
+  /* mailBoxSave est SYNCHRONE : elle ferme avant de rendre la main, donc la garde « ferme » la couvre. On la JOUE. */
+  const w = monde();
+  w.run('var __boites=[]; db.mailBoxes=__boites; function adminSeul(){ return true; } function save(){} function uid(){ return "b"+(__boites.length+1); } function FormData(t){ return Object.entries(t); }\n' + MB);
+  w.run('openModal(' + JSON.stringify('<form onsubmit="mailBoxSave(event,\'\')"><button type="submit">Enregistrer</button></form>') + ')');
+  const bouton = { id: 'btn-boite' }; w.modal.children = [bouton];
+  const ev = { target: { user: 'rapports@ex.fr', pass: 'x', host: '', port: '', from: '' }, preventDefault() {} };
+  const envoi = () => w.run('mailBoxSave(__e,"")');
+  w.ctx.__e = ev;
+  const g1 = w.jouer('submit', bouton, envoi);
+  const g2 = w.jouer('submit', bouton, envoi);
+  const g3 = w.jouer('click', bouton, envoi);
+  vrai('⛔ mailBoxSave : la 1re soumission écrit, les suivantes pendant la sortie sont AVALÉES (une seule adresse)', g1.atteint && !g2.atteint && !g3.atteint && w.run('db.mailBoxes.length') === 1, w.run('db.mailBoxes.length'));
+  vrai('   et mailBoxSave n\'attend rien avant de fermer (aucun await dans son code : la garde la voit)', !/\bawait\b/.test(MB) && /closeModal\(\)/.test(MB));
+}
+{
+  const AX = bloc('async function aiGenDevisXylo(e){');
+  const iSub = AX.indexOf('sub.disabled=true'), iAwait = AX.indexOf('await ');
+  vrai('population : aiGenDevisXylo est trouvée avec son verrou et son premier await', AX.length > 500 && iSub > 0 && iAwait > 0, [AX.length, iSub, iAwait]);
+  vrai('⛔ aiGenDevisXylo verrouille son bouton (sub.disabled=true) AVANT son premier await : un 2e toucher ne part pas (mesuré : 1 devis, 1 appel IA à 0/60/200 ms, sonde-g01c)', iSub < iAwait);
+}
+(async () => {
+  /* saveUser : VRAIE fonction, VRAI btnOccupe, un « serveur » dont on tient la réponse (le réseau est ce qui laisse passer le 2e toucher). */
+  const HOM = bloc('function compteHomonyme(prenom,nom,sauf){'), MSG = bloc('function homonymeMessage(h,prenom,nom){'), NN = bloc('function nomNorm(s){'),
+    FN = ligne('const fullName = u =>'), SU = bloc('async function saveUser(e,id){'), BO = bloc('function btnOccupe(el,texte){');
+  vrai('population : saveUser, btnOccupe et leurs voisines sont trouvées', [HOM, MSG, NN, FN, SU, BO].every(x => x.length > 50), [HOM, MSG, NN, FN, SU, BO].map(x => x.length));
+  const monde2 = () => {
+    const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, Promise, db: { users: [{ id: 'uA', prenom: 'Justin', nom: 'Roux', login: 'jroux', role: 'admin', actif: true }], techniciens: [], boxes: [], vehicules: [] },
+      currentUser: { id: 'uA', role: 'admin' }, __toasts: [], __serveur: 0, __attente: [], __verdict: false, __fermees: 0, localStorage: { getItem: () => null, setItem: () => {} } };
+    vm.createContext(ctx);
+    vm.runInContext(`${NN}\n${FN.replace('const ', 'var ')}\n${HOM}\n${MSG}\n${BO}
+      function esc(x){ return String(x); }
+      var ROLE_PROTEGE='admin', drRattaches=new Set(), nuBoxes=new Set(), nuVehs=new Set(), nuStk=false, views={utilisateurs(){}};
+      function toast(m){ __toasts.push(String(m)); } function save(){} function closeModal(){ __fermees++; } function logEvent(){}
+      function can(){ return false; } function planPlaceLibre(){ return true; } function proposerAbonnement(){}
+      function loginExisteAilleurs(){ __serveur++; return new Promise(function(ok){ __attente.push(function(){ ok(__verdict); }); }); }
+      function roleEstTech(r){ return r==='technicien'; } function roleLbl(r){ return r; } function profilDroits(){ return null; }
+      function droitsBorner(){ return []; } function stockageBox(){ return null; } function estStockage(){ return false; }
+      function visibleBoxes(l){ return l||[]; } function visibleVehicules(l){ return l||[]; } function userBoxVoit(){} function userVehiculeVoit(){}
+      function entrepriseNom(){ return 'Sonde SARL'; } async function sha256(){ return 'h'; } function userIdentifiantsModal(){}
+      function setTimeout(f){ }
+      var __id=0; function uid(){ return 'n'+(++__id); }
+      function FormData(t){ return Object.entries(t); }
+      ${SU}`, ctx);
+    const bouton = { nodeType: 1, innerHTML: 'Créer', style: {}, isConnected: true, _occupe: false, classList: { add() {}, remove() {} }, getBoundingClientRect: () => ({ width: 80 }) };
+    const evt = (login) => ({ submitter: bouton, preventDefault() {}, target: { prenom: 'Dbl', nom: 'Test' + login, login, role: 'technicien', email: '', pwd: 'provisoire1' } });
+    const lacher = async () => { while (ctx.__attente.length) ctx.__attente.shift()(); await new Promise(r => setImmediate(r)); await new Promise(r => setImmediate(r)); };
+    return { ctx, bouton, evt, lacher };
+  };
+  {
+    const m = monde2();
+    const p1 = m.ctx.saveUser(m.evt('dbl1'), '');
+    await new Promise(r => setImmediate(r));
+    vrai('population : le 1er geste attend le serveur (la fenêtre n\'est pas encore fermée : la garde centrale ne peut rien)', m.ctx.__serveur === 1 && m.ctx.__fermees === 0, [m.ctx.__serveur, m.ctx.__fermees]);
+    vrai('⛔ le bouton est verrouillé pendant l\'attente (« Enregistrement… »)', m.bouton._occupe === true && m.bouton.innerHTML === 'Enregistrement…', [m.bouton._occupe, m.bouton.innerHTML]);
+    const p2 = m.ctx.saveUser(m.evt('dbl1'), '');          // le 2e toucher, pendant l'attente
+    await new Promise(r => setImmediate(r));
+    await m.lacher(); await p1; await p2;
+    vrai('⛔⛔ double toucher sur « Créer » un utilisateur : UN seul compte (deux avant le correctif)', m.ctx.db.users.length === 2, m.ctx.db.users.map(u => u.login));
+    vrai('   le serveur n\'a été interrogé qu\'UNE fois, la fenêtre fermée une fois', m.ctx.__serveur === 1 && m.ctx.__fermees === 1, [m.ctx.__serveur, m.ctx.__fermees]);
+    vrai('   le bouton est relâché et a retrouvé son libellé', m.bouton._occupe === false && m.bouton.innerHTML === 'Créer', [m.bouton._occupe, m.bouton.innerHTML]);
+  }
+  {
+    const m = monde2(); m.ctx.__verdict = true;             // « cet identifiant existe déjà chez l'équipe »
+    const p = m.ctx.saveUser(m.evt('pris'), ''); await new Promise(r => setImmediate(r)); await m.lacher(); await p;
+    vrai('⛔ un REFUS (identifiant pris) relâche le bouton : la personne n\'est pas bloquée devant son formulaire', m.bouton._occupe === false && m.bouton.innerHTML === 'Créer' && m.ctx.db.users.length === 1, [m.bouton._occupe, m.bouton.innerHTML, m.ctx.db.users.length]);
+    m.ctx.__verdict = false;
+    const p2 = m.ctx.saveUser(m.evt('libre'), ''); await new Promise(r => setImmediate(r)); await m.lacher(); await p2;
+    vrai('   et le renvoi, corrigé, aboutit', m.ctx.db.users.length === 2, m.ctx.db.users.length);
+  }
+  {
+    const m = monde2();
+    const p = m.ctx.saveUser(Object.assign(m.evt(''), {}), ''); await p;
+    vrai('un refus de validation locale (identifiant vide) relâche aussi le bouton', m.bouton._occupe === false && m.bouton.innerHTML === 'Créer', [m.bouton._occupe, m.bouton.innerHTML]);
+  }
+  {
+    const m = monde2(); vm.runInContext('sha256 = async function(){ throw new Error("crypto indisponible"); }', m.ctx);
+    const p = m.ctx.saveUser(m.evt('boum'), '').then(() => null, e => e); await new Promise(r => setImmediate(r)); await m.lacher();
+    const err = await p;
+    vrai('⛔ une EXCEPTION en cours de route relâche le bouton (try/finally) : il ne reste pas mort', !!err && m.bouton._occupe === false && m.bouton.innerHTML === 'Créer', [!!err, m.bouton._occupe, m.bouton.innerHTML]);
+  }
+  {
+    const m = monde2();
+    const e = { preventDefault() {}, target: { prenom: 'Sans', nom: 'Bouton', login: 'sb', role: 'technicien', email: '', pwd: 'provisoire1' } };
+    Object.defineProperty(e.target, 'querySelector', { value: () => m.bouton, enumerable: false });
+    const p = m.ctx.saveUser(e, ''); await new Promise(r => setImmediate(r));
+    vrai('sans e.submitter (Entrée dans un champ) : le bouton est retrouvé dans le formulaire et verrouillé', m.bouton._occupe === true);
+    await m.lacher(); await p;
+    const m2 = monde2(); const p3 = m2.ctx.saveUser({ preventDefault() {}, target: { prenom: 'A', nom: 'B', login: 'ab', role: 'technicien', email: '', pwd: 'provisoire1' } }, ''); await new Promise(r => setImmediate(r)); await m2.lacher(); await p3;
+    vrai('sans aucun bouton trouvable : saveUser fonctionne comme avant', m2.ctx.db.users.length === 2, m2.ctx.db.users.length);
+  }
+  {
+    const code = SU;
+    vrai('FORME : saveUser verrouille par btnOccupe et relâche dans un finally (code seul, commentaires retirés)', /btnOccupe\(\s*_bt/.test(code) && /finally\s*\{\s*_relacher\(\)/.test(code));
+    vrai('   et refuse un 2e geste tant que le bouton est occupé', /_bt\._occupe\)\s*return/.test(code));
+  }
+  console.log(`\n════ test-1100 : ${ok} ✓ ${ko} ✗ ════\n`);
+  process.exit(ko ? 1 : 0);
+})();
