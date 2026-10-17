@@ -13,6 +13,43 @@ de ligne du tout.
 
 ---
 
+# ⏳ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
+
+Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un
+contrôle ». Branche `claude/controle-client-mystere` — **pas sur `main`** (attend sa phrase ; rien de servi ne
+change : `scripts/controle/`, `.claude/`, `CLAUDE.md`, ce fichier).
+
+- **Ce qui existe** : `node scripts/controle/controle.js <sortie>` (skill `/controle`, agent `client-mystere`).
+  Un JUMEAU sur 127.0.0.1 — le site assemblé servi sous ses vraies adresses, le vrai `server/index.js` isolé,
+  Stripe imité avec état, un facteur SMTP local — et une cliente fictive qui joue au doigt, sur iPhone, les
+  16 étapes du site à l'application (≈ 70 s). Rapport `rapport.md` + `rapport.json` + captures.
+- **Ce qu'il a trouvé au premier passage** (code de `main` au 17 octobre, 2b71ea5) :
+  · ❌ **Tour : une demande neuve n'apparaît pas dans « Entreprises »** — la liste ne lit que l'annuaire et les
+    connexions, et « ✅ Accepter la demande » ne vit que sur la fiche d'une entreprise de cette liste ; l'accueil
+    compte pourtant « 1 entreprise cliente », et l'écran vide promet « elles apparaissent dès qu'une s'inscrit sur
+    le site ». Détour : Accès › « Accès à la version publique » d'abord. **À trancher avec Justin** : est-ce
+    ainsi qu'il accepte aujourd'hui ?
+  · ⚠️ « Modules OP (mis de côté) », au menu d'une cliente neuve, écrit « interface 100 % Organilog » (le nom d'un
+    autre logiciel) ;
+  · ⚠️ la fenêtre « Langue / Language / Idioma » s'ouvre à CHAQUE ouverture tant qu'aucune langue n'est choisie
+    (`app.html`, `if(!prefLocalLire('elan_lang')) setTimeout(openLangPicker,300)`) — et à la première connexion, la
+    fenêtre du mot de passe la remplace : la question n'est posée qu'à l'ouverture suivante ;
+  · ⚠️ des commandes sous 32 px au doigt (en-tête du site, liens de `espace.html` et `connexion.html`) ;
+    `app.html` appelle `fonts.googleapis.com` et `unpkg.com` (l'adresse IP du client part chez Google) ;
+    l'API annonce `X-Powered-By: Express`.
+- **L'état de production que le dépôt ne porte pas**, posé dans le jumeau comme en ligne : version exigée = celle
+  de l'`app.html` servie (en ligne, `/api/version` rend 767) ; copie Firebase coupée avec un inventaire vide (une
+  entreprise neuve part d'un document vide, comme en ligne). La recopie d'une entreprise ANCIENNE n'est pas jouée.
+- **Contre-épreuve** : `node scratchpad/mutations-controle.js` — 6 ✓ 0 ✗ le 17 octobre : le témoin passe (16/16), et
+  chaque défaut remis dans une copie est vu — une rubrique qui jette (Stock), la route de paiement en 500 (bloquant à
+  l'étape 7), le courriel de confirmation sans lien (bloquant à l'étape 6), l'adresse du client écrite dans le journal
+  du serveur, « undefined » sur la page de paiement.
+- **Ce qui reste ouvert** : une tâche planifiée hebdomadaire (proposée, pas créée) ; d'autres parcours (un
+  technicien, deux appareils, un impayé, un code promo) ; aucun workflow ne le lance (il lui faut Chromium à
+  `/opt/pw-browsers/chromium` ou `CHROME=…`) : il tourne dans une session, à la demande.
+
+---
+
 # ✅ 17 OCTOBRE 2026 — LE SITE NE SERT PLUS QUE LE SITE ; SKILLS VÉRIFIÉS ; QUATRE TÂCHES AUTOMATIQUES — EN SERVICE
 
 Mesuré ce jour : `teamop.fr/CLAUDE.md`, `/REPRISE.md`, `/.claude/agents/gardien.md` et `/firestore.rules` répondaient 200 —

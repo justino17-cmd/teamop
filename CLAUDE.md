@@ -29,6 +29,13 @@ seule mémoire qui passe de l'une à l'autre. Le tenir à jour quand un chantier
 - **`server/`** — API Node/Express déployée sur un VPS, hors GitHub Pages
 - **`.github/workflows/`** — surveillance horaire du site et de l'API
 - **`scripts/web/`** — lire un site (Crawl4AI, installé à la première utilisation, dans une session du cloud comme sur le Mac) : `bash scripts/web/lire-site.sh <url> [--liens|--pages N]` — voir son `LISEZMOI.md` (et le cadre RGPD avant de prendre des coordonnées)
+- **`scripts/controle/`** — le CONTRÔLE de bout en bout (17 octobre 2026, skill `/controle`, agent `client-mystere`) :
+  `node scripts/controle/controle.js <sortie>` monte un JUMEAU sur 127.0.0.1 (le site assemblé servi sous ses vraies
+  adresses, le vrai serveur isolé, Stripe imité avec état, un facteur SMTP local) et y joue une cliente fictive du
+  site jusqu'à l'application, puis relit ce qu'elle a laissé (erreurs, 5xx, données personnelles dans le journal…).
+  ⛔ Il pilote `app.html` : c'est permis parce qu'il n'y a AUCUNE donnée réelle (serveur jetable, entreprise fictive,
+  réseau coupé) — la raison de la règle « bêta uniquement » ci-dessous. Jamais contre teamop.fr. Contre-épreuve :
+  `node scratchpad/mutations-controle.js`.
 
 Pas de compilation, pas de bundler. Ce qui est écrit est ce qui est servi.
 
@@ -2363,6 +2370,7 @@ Le choix est donc écrit, agent par agent, dans le frontmatter de `.claude/agent
 | `gardien` | `sonnet` | `high` | Penser comme un attaquant se juge aussi. Une route qui fuit ne plante pas — le coût se compare à celui d'une fuite |
 | `relecteur` | `sonnet` | `high` | Applique des critères écrits à un diff : systématique, pas créatif. Mais il passe après chaque changement, donc son coût unitaire compte |
 | `echecs-silencieux` | `sonnet` | `high` | Traque ce qui échoue sans que personne le sache (refus muet, `[]` au lieu de `null`, catch qui avale, garde que personne ne lit). Adapté de `silent-failure-hunter` d'Anthropic (Apache-2.0, `.claude/licences/`), lecture seule |
+| `client-mystere` | `sonnet` | `high` | Lance le contrôle de bout en bout (`scripts/controle/`) et enquête sur chaque constat — `fichier:ligne`, journal, capture. Trie, ne corrige pas ; lecture seule |
 
 Les deux derniers comblent ce que la CI ne fait pas : elle ne vérifie que les secrets commités
 et les failles des dépendances — **pas même la syntaxe**, et personne ne relisait ce qu'une
