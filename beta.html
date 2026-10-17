@@ -15889,11 +15889,11 @@ try{ document.addEventListener('visibilitychange',()=>{ if(document.visibilitySt
 function planPleinQuitteSiBesoin(v){ try{ if(v!=='planning'&&planPleinPageOn()) planPleinPage(false); }catch(e){} }
 /* Croise l'ancien écran et le nouveau. La classe .entre déclenche l'arrivée du contenu ;
    elle se retire seule, sinon le rafraîchissement suivant la rejouerait. */
-function rendreVueAnimee(view,sens){
+function rendreVueAnimee(view,sens,remonter){
   const c=$('content');
   const sobre=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const poser=()=>{ rendreVueSure(view); if(c){ c.classList.add('entre'); setTimeout(()=>c.classList.remove('entre'),460); } compterKpi(c); };
-  if(!document.startViewTransition||sobre){ rendreVueSure(view); return; }
+  const poser=()=>{ rendreVueSure(view,remonter); if(c){ c.classList.add('entre'); setTimeout(()=>c.classList.remove('entre'),460); } compterKpi(c); };
+  if(!document.startViewTransition||sobre){ rendreVueSure(view,remonter); return; }
   rendreDirige(sens,poser);
 }
 /* Un mouvement porte un sens. 'avant' : on entre dans une fiche, elle est poussée depuis la
@@ -15942,7 +15942,7 @@ function rendreDirige(sens,rendu){
    du texte, jamais une géométrie (une taille lue au mauvais moment fausse tout — CLAUDE.md). */
 function kpiTailler(racine){ try{ (racine||document).querySelectorAll('.kpis .kpi-val').forEach(el=>{
   const n=Math.max(1,String(el.textContent||'').trim().length); el.style.setProperty('--kpi-n',n); }); }catch(e){} }
-function rendreVueSure(view){
+function rendreVueSure(view,remonter){
   /* ⛔ PERSONNE CONNECTÉ, AUCUNE VUE. `go()` rend la vue dans une transition de vue, donc PLUS TARD,
      hors de l'appel : si la déconnexion passe entre les deux (un compte désactivé par la synchro juste
      à l'entrée, un jeton refusé, une session expirée), la vue se rendait SANS utilisateur. Mesuré le
@@ -15953,6 +15953,13 @@ function rendreVueSure(view){
   if(!currentUser) return;
   try{ views[view](); }
   catch(e){ console.error('Vue '+view+' :',e); $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Affichage indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Une erreur est survenue sur cette page.<br><span style="color:var(--t3)">${esc(e&&e.message||e)}</span></p><button class="btn ghost sm" style="margin-top:10px" onclick="go('dashboard')">← Retour au tableau de bord</button></div>`; }
+  /* ⛔ UNE NOUVELLE RUBRIQUE S'OUVRE EN HAUT. Mesuré : Paramètres défilé à 2 500 px, un tap sur « Accueil » ouvrait le tableau
+     de bord à scrollY=1080 (titre et cartes du haut hors écran) ; sur Mac, Clients s'ouvrait à 2 500 px sur 13 888. Ni `go()` ni
+     cette fonction ne remettaient jamais l'écran en haut. Selon l'écran c'est `#content` ou la PAGE qui défile : on remet les deux.
+     Ici, APRÈS l'écriture de la vue (une vue plus courte garderait sinon un défilement périmé) et AVANT `multiProposer`, qui
+     rend à une fenêtre laissée en route le défilement où elle en était. `remonter` ne vaut vrai que pour une vraie navigation
+     (`go` : view !== current) — jamais pour le rafraîchissement d'après un enregistrement, qui garde sa place. */
+  if(remonter){ try{ const c0=$('content'); if(c0) c0.scrollTop=0; window.scrollTo(0,0); }catch(_e){} }
   /* ⛔ APRÈS la vue, pas avant : `rendreVueAnimee` écrit `#content` plus tard, donc une barre
      posée depuis `go()` sur une minuterie était balayée — mesuré absente à 100, 300, 600,
      1 200 et 2 500 ms. Ici on est juste après l'écriture réelle de l'écran. */
@@ -16119,6 +16126,7 @@ function go(view){
   /* en arrivant sur le planning, la carte est repliée : le planning prend tout l'écran.
      On l'affiche ensuite si on en a besoin, ça reste le temps qu'on est dessus. */
   if(view==='planning'&&current!=='planning'){ try{ planDispReset(); }catch(e){} }
+  const _nouvelle=(view!==current);   // lu AVANT d'écraser current : go(current) est un rafraîchissement, il garde sa place
   current=view;
   try{ history.replaceState(null,'','#v='+view); }catch(e){}
   document.getElementById('sidebar').classList.remove('open');
@@ -16134,7 +16142,7 @@ function go(view){
      doigt — sinon le mouvement contredit la main. Consommé tout de suite : gardé, il
      enverrait la navigation SUIVANTE dans la même direction. */
   const _sens=_sensForce||(_retour?'retour':''); _sensForce='';
-  rendreVueAnimee(view,_sens);
+  rendreVueAnimee(view,_sens,_nouvelle);
   /* La barre de reprise se pose dans `rendreVueSure`, la seule fonction qui écrit vraiment
      l'écran. Ici on ne repeint que les pastilles du menu. */
   multiPastilles();
