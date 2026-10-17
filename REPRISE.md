@@ -37,6 +37,12 @@ corrige les bugs, améliore et simplifie-la ». Ses réponses : OP MESSAGES **pa
   la fiche qui pouvait rétrograder une cliente qui paie ;
 - **fusionnée** : `claude/tour-courrier-serveur` (le serveur du courrier trié, `test-1012`).
 Toutes les contre-épreuves de ces bancs mordent (scripts `scratchpad/mut-10*.py`).
+- **relecture `gardien` du serveur** (journal, relais, courrier) : aucun bloquant ; quatre points corrigés — ranger tout un
+  DOMAINE réservé au patron (un compte du Courrier faisait disparaître en silence « @gmail.com » de la vue GESTION), 30
+  brouillons par heure et par compte (à part des envois), adresse masquée dans la cible d'un geste (identifiant de connexion,
+  règle de tri), réponse du relais comptée en octets pendant la lecture (`test-1012`, `test-1015`, `test-1016` ; 8 mutations
+  sur 8 mordent, `scratchpad/mut-gardien.py`). Vérifié et écarté : `adresses`/`id` du relais ne portent aucune adresse
+  (oui|non, identifiant opaque) — rien de personnel au journal d'accès de nginx.
 
 **Les autres branches :**
 | branche | contenu | ce qu'il lui faut |
@@ -55,8 +61,14 @@ Toutes les contre-épreuves de ces bancs mordent (scripts `scratchpad/mut-10*.py
 4. le relais vers OP MESSAGES s'allume quand les DEUX côtés ont le même secret, en saisie masquée :
    `node /opt/teamop/repo/server/configurer-relais-messages.js beta` (api) et `configurer-admin.js` (OP MESSAGES) — les deux
    disent la même empreinte courte. Jusque-là la console OP MESSAGES dit « relais non configuré », avec ces deux gestes.
+5. **la boîte mail que Justin crée** (« tu auras juste à l'ajouter dans la Tour ») : Courrier → **Relier une boîte** — adresse,
+   mot de passe TAPÉ DANS LA TOUR (jamais dans une conversation), serveurs OVH par défaut. Le serveur en ligne a déjà la route
+   (`POST /api/monitor/mail/boites`, patron) ; c'est le FORMULAIRE qui n'existe que dans la v2.88 — l'aperçu suffit.
 
 **À trancher par Justin :**
+- l'administration d'OP MESSAGES (comptes et leurs adresses « courriel ») est lisible par TOUT compte de la console OP
+  MESSAGES, pas le seul patron — comme les Demandes d'OP GESTION pour ses opérateurs. Resserrer = `monPatronStrict` sur
+  `/api/monitor/messages/admin/:route` (relecture `gardien`) ;
 - un compte de la Tour qui n'a QUE la console OP MESSAGES ne voit pas le Courrier (le serveur range `mail/*` dans OP GESTION :
   la boîte porte les liens de connexion des entreprises) — le lui ouvrir, filtré côté serveur, est un chantier de plus ;
 - l'identifiant public « Prénom#1234 » sort par l'administration d'OP MESSAGES (seul moyen de retrouver un compte par
