@@ -102,5 +102,29 @@ vrai('registre-traitements.html : « version du 17 octobre 2026 »', /version du
 vrai('mentions-legales.html : « Dernière mise à jour : octobre 2026 »', /Dernière mise à jour : octobre 2026/.test(T.mentions));
 vrai('confidentialite.html : « Dernière mise à jour : octobre 2026 »', /Dernière mise à jour : octobre 2026/.test(T.confid));
 
+console.log('\n── 8. relecture du 17 octobre 2026 : trois phrases que le code contredisait ──');
+/* a. « Google reçoit… jamais une adresse de client » (section 2) et la section 5 doivent dire la même chose : Google n'est pas
+      cité parmi les destinataires de l'adresse. Le code envoie à Google des numéros de tuile, pas une adresse. */
+vrai('le code envoie à Google des tuiles ({s}.google.com/vt), jamais le champ adresse d\'un client', /\{s\}\.google\.com\/vt/.test(CODE) && !/google\.com\/vt[^'"`]*adresse/i.test(CODE));
+{
+  const i = T.confid.indexOf('l\'adresse d\'un client est aussi transmise'), j = T.confid.indexOf('Google ne reçoit', i);
+  const destinataires = i < 0 || j < 0 ? '' : T.confid.slice(i, j);
+  vrai('confidentialite.html §5 : la phrase de partage est trouvée (pas une tranche vide)', destinataires.length > 100, [i, j]);
+  vrai('confidentialite.html §5 : Google n\'est pas cité parmi les destinataires de l\'adresse d\'un client', destinataires.length > 100 && !/Google/.test(destinataires));
+  vrai('confidentialite.html §5 : … il est dit à part qu\'il ne reçoit que la zone affichée et l\'adresse IP, jamais une adresse de client', /Google ne reçoit que la zone de carte affichée et l'adresse IP de l'appareil, jamais une adresse de client/.test(T.confid));
+}
+vrai('aucune page ne qualifie de « services publics » l\'ensemble des services de carte (OSRM et Google ne le sont pas)', ['sous', 'registre', 'confid'].every(k => !/services publics de cartographie/.test(T[k])));
+/* b. la position du pointage : le code l'écrit dans l'enregistrement, qui part à la synchro — la page ne dit plus « pas stockée ». */
+vrai('app.html : pointerDebut range lat et lng de l\'appareil dans l\'enregistrement du pointage', /rec\.lat=\+pos\.coords\.latitude\.toFixed\(5\)[\s\S]{0,80}rec\.lng=\+pos\.coords\.longitude\.toFixed\(5\)/.test(CODE));
+vrai('app.html : les pointages sont une collection synchronisée (COLLECTIONS_DONNEES)', /const COLLECTIONS_DONNEES=\[[^\]]*'pointages'/.test(CODE));
+vrai('confidentialite.html : ne dit plus que la position « n\'est pas stockée sur nos serveurs »', !/n'est pas stockée sur nos serveurs/.test(T.confid));
+vrai('confidentialite.html : dit que la position du pointage « Début de journée » est enregistrée et synchronisée avec les données de l\'équipe', /pointage « Début de journée »[^.]{0,200}enregistrée avec ce pointage[^.]{0,200}synchronisée/.test(T.confid));
+vrai('confidentialite.html : … et que le chronomètre automatique n\'enregistre pas les positions lues', /chronomètre ne sont pas enregistrées/.test(T.confid));
+vrai('registre-traitements.html : la position relevée au pointage est dans les données du traitement cartes', /pointage « Début de journée » et enregistrée avec le pointage/.test(T.registre));
+/* c. §5 de sous-traitance : « toute addition vous sera notifiée 30 jours à l'avance » — les cinq services étaient appelés avant d'être écrits. */
+vrai('sous-traitance.html : dit que les cinq services de carte étaient appelés avant leur inscription, à la date du 17 octobre 2026', /sont appelés par l'application depuis avant leur inscription ici : à la date du 17 octobre 2026/.test(T.sous));
+vrai('sous-traitance.html : … et ouvre le droit d\'opposition de la clause à ces cinq services', /vous pouvez vous y opposer dans les mêmes conditions/.test(T.sous));
+vrai('sous-traitance.html : la clause des 30 jours est intacte (rien n\'est retiré de l\'engagement)', /Toute addition ou remplacement vous sera notifié 30 jours à l'avance par courriel/.test(T.sous));
+
 console.log('\n════ test-1800 : ' + ok + ' ✓ ' + ko + ' ✗ ════');
 process.exit(ko ? 1 : 0);
