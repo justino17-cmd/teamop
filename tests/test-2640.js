@@ -99,4 +99,48 @@ for (const [nom, vue, largeur] of [['Messages (bureau)', 'messages', 1440], ['Me
   }
 }
 
+/* ── 2. LES PASTILLES ROUGES PORTENT LEUR ENCRE : --rouge-fill + --on-rouge ─────────────────────────────────────────────────────────────────────────────────────────────────────── */
+const PASTILLES = [
+  ['.onglet-n', 'compteur de l\'onglet'], ['.cote-n', 'compteur du menu latéral'], ['.salle-rec', 'puce « REC » de la salle'], ['.salle-tuile .tuile-nom.coupe', 'nom d\'une vignette au micro coupé'],
+  ['.salle-badge.rouge', 'pastille rouge d\'une vignette'], ['.salle-badge.reseau.faible', 'réseau faible'], ['.salle-badge.reseau.perdue', 'réseau perdu'], ['.salle-cmd .compte', 'compteur de la barre ronde'],
+];
+const encreHerite = { '.salle-tuile .tuile-nom.coupe': '.tuile-nom', '.salle-badge.rouge': '.salle-badge', '.salle-badge.reseau.faible': '.salle-badge', '.salle-badge.reseau.perdue': '.salle-badge' };
+for (const nuit of [false, true]) {
+  const J = C.jetons(L, nuit), mode = nuit ? 'nuit' : 'jour';
+  vrai('(population) les jetons de ' + mode + ' sont lus (' + Object.keys(J).length + ') dont --rouge-fill et --on-rouge', Object.keys(J).length > 40 && J['--rouge-fill'] && J['--on-rouge']);
+  for (const [sel, nom] of PASTILLES) {
+    const fond = C.valeur(L, sel, 'background', { nuit }) || C.valeur(L, sel, 'background-color', { nuit });
+    const encre = C.valeur(L, sel, 'color', { nuit }) || (encreHerite[sel] ? C.valeur(L, encreHerite[sel], 'color', { nuit }) : null);
+    vrai('(population) ' + sel + ' déclare un fond et une encre (' + fond + ' / ' + encre + ')', fond && encre);
+    if (!fond || !encre) continue;
+    let r = 0, detail = '';
+    try { const f = C.couleur(fond, J), e = C.couleur(encre, J); const F = C.sur(f, [0, 0, 0, 1]); r = C.ratio(C.sur(e, F), F); detail = fond + ' / ' + encre + ' = ' + r.toFixed(2); } catch (err) { detail = String(err.message); }
+    vrai('⛔ ' + nom + ' — ' + mode + ' : l\'encre tient ≥ 4,5:1 sur son aplat (' + detail + ')', r >= 4.5);
+  }
+}
+{
+  /* le recensement part de la FEUILLE, pas d'une liste : toute règle qui peint --rouge en aplat ET porte du texte (une taille de caractères) doit prendre --rouge-fill */
+  const fautives = [], nues = [];
+  for (const r of L.regles) {
+    const m = /(?:^|[;\s])background(?:-color)?\s*:\s*var\(--rouge\)/.exec(r.corps); if (!m) continue;
+    (/(?:^|[;\s])font-size\s*:/.test(r.corps) ? fautives : nues).push(r.sels.join(', '));
+  }
+  vrai('(population) ' + (fautives.length + nues.length) + ' règles peignent encore --rouge en aplat : ce sont des ronds ou des traits sans texte (' + nues.length + ')', nues.length >= 5);
+  v('⛔ aucune règle ne pose du texte (une taille de caractères) sur le rouge du système #ff453a — il faut --rouge-fill', fautives, []);
+}
+
+/* ── 3. « RETIRER … DE LA RÉUNION » (.mini.danger) SE LIT SUR LA PASTILLE TEINTÉE ──────────────────────────────────────────────────────────────────────────────────────────────── */
+const FONDS_MINI = ['--card', '--base', '--solide-feuille', '--solide'];
+for (const nuit of [false, true]) {
+  const J = C.jetons(L, nuit), mode = nuit ? 'nuit' : 'jour';
+  const encre = C.valeur(L, '.mini.danger', 'color', { nuit }), fondMini = C.valeur(L, '.mini', 'background', { nuit });
+  vrai('(population) .mini.danger déclare une encre (' + encre + ') et .mini un fond (' + fondMini + ')', encre && fondMini);
+  if (!encre || !fondMini) continue;
+  for (const tok of FONDS_MINI) {
+    let r = 0, detail = '';
+    try { const page = C.couleur('var(' + tok + ')', J), fond = C.sur(C.couleur(fondMini, J), page); r = C.ratio(C.sur(C.couleur(encre, J), fond), fond); detail = encre + ' sur ' + fondMini + ' posé sur ' + tok + ' = ' + r.toFixed(2); } catch (err) { detail = String(err.message); }
+    vrai('⛔ bouton « danger » (Retirer, Bloquer, Annuler) — ' + mode + ' : ≥ 4,5:1 (' + detail + ')', r >= 4.5);
+  }
+}
+
 fin();

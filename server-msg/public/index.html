@@ -39,7 +39,10 @@
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat ; en lettres sur une ligne choisie il
      tombe à 4,2:1 — le texte prend #9db8f5 (5,3:1). De jour, l'accent passe partout (≥ 6,7:1) ;
    · --rouge-fill, --on-rouge : « Terminer pour tous » et « Quitter » (salle) sont des boutons PLEINS qui portent un mot : le #ff453a du système n'y tient que 3,4:1 en blanc. Une surface, une encre —
-     #d70015 et blanc font 5,4:1 de jour comme de nuit (la salle est sombre dans les deux modes). Le #ff453a reste le rouge des PASTILLES et des traits, où 3:1 suffit ;
+     #d70015 et blanc font 5,4:1 de jour comme de nuit (la salle est sombre dans les deux modes). Le #ff453a reste le rouge des RONDS et des traits SANS TEXTE (raccrocher, point d'enregistrement, épingle),
+     où 3:1 suffit — dès qu'une pastille porte un chiffre ou un mot (compteurs de l'onglet et du menu, « REC », badges et compteur de la salle), c'est le même couple (lot p03, n#2) ;
+   · --rouge-mini : le texte rouge d'un bouton « danger » (.mini.danger : Retirer, Bloquer, Annuler) est posé sur la teinte bleutée de .mini, plus sombre que la carte : le --rouge-txt (5,4:1 sur la carte)
+     y tombait à 4,43:1 de jour, 4,0 sur la page et la feuille. Un rouge plus profond (#b8001a, ≥ 5,1:1 sur la carte, la page, la feuille) ; de nuit, un rouge un cran plus clair (lot p03, n#1) ;
    · --rouge-txt : le #ff453a des statuts est une couleur d'APLAT (« Raccrocher » : non-texte, 3:1 suffit) ; le NOM d'un appel
      manqué prend sa propre teinte (jour #d70015, 5,4:1 ; nuit #ff8a82, 6,6:1 sur la carte et 5,1:1 sur une ligne pressée) ;
    · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes, au bleu du logo, donc leurs
@@ -85,6 +88,7 @@
   /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
   --rouge: #ff453a;
   --rouge-txt: #d70015;
+  --rouge-mini: #b8001a;
   --rouge-fill: #d70015;
   --on-rouge: #ffffff;
   --vert: #30d158;
@@ -140,6 +144,7 @@
     --screen: none;
     --rouge: #ff453a;
     --rouge-txt: #ff8a82;
+    --rouge-mini: #ff9a93;
     --rouge-fill: #d70015;
     --on-rouge: #ffffff;
     --vert: #30d158;
@@ -343,7 +348,7 @@ body > .sr-seul { top: 0; left: 0; }
 .tab:active { transform: scale(.94); }
 .tab[aria-current="page"] { color: var(--tab-active-fg); font-weight: 600; }
 /* le nombre de demandes de contact reçues, sur l'onglet et le lien « Contacts » : un badge d'iOS (rouge système), l'encre blanche */
-.onglet-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.onglet-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
 .onglet-n[hidden] { display: none; }
 .tab .onglet-n { position: absolute; top: 4px; left: calc(50% + 6px); }
 .side-lien .onglet-n { margin-left: auto; }
@@ -1378,7 +1383,7 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
    profil dit qu'il y a du non-lu de l'autre côté. */
 .cote-seg { margin: 0 0 12px; }
 .side .cote-seg { margin: 0 6px 12px; }
-.cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
+.cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
 /* « Confirmer l'envoi » (côté pro) : une barre au-dessus du champ — « Envoyer à « Équipe » — 5 personnes ? » — que l'on confirme (Envoyer, ou Entrée une seconde fois) ou qu'on annule */
 .compo-confirme { max-width: 860px; margin: 0 auto 6px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 16px; background: var(--card); border: var(--line); font-size: 15px; line-height: 20px; }
 .compo-confirme-texte { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
@@ -1448,7 +1453,7 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .lien-boite { display: flex; gap: 8px; margin-bottom: 10px; }
 .mini { flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 14px; font-weight: 600; text-align: center; transition: transform .12s ease-out; }
 .mini:active { transform: scale(.96); }
-.mini.danger { color: var(--rouge-txt); }
+.mini.danger { color: var(--rouge-mini); }
 .deroule-choix.danger { color: var(--rouge-txt); }
 /* le « … » d'un membre : un rond de 36 px (44 au doigt), l'icône seule — son nom (« Gérer Ben Durand ») est dans aria-label */
 .mini.membre-gerer { width: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-left: auto; }
@@ -1847,7 +1852,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-titres { flex: 1; min-width: 0; }
 .salle-titre { margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .salle-sous { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 13px; line-height: 18px; color: var(--salle-sub); font-variant-numeric: tabular-nums; }
-.salle-rec { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 18px; font-weight: 700; }
+.salle-rec { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 12px; line-height: 18px; font-weight: 700; }
 .salle-rec::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
 .salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 15px; font-weight: 600; }
 .salle-bandeaux { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
@@ -1910,7 +1915,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-tuile .tuile-av { z-index: 1; }
 .salle-tuile .tuile-nom { z-index: 2; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; }
 .salle-tuile .tuile-nom .ic { width: 14px; height: 14px; stroke-width: 2; flex: none; }
-.salle-tuile .tuile-nom.coupe { background: var(--rouge); }
+.salle-tuile .tuile-nom.coupe { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-tuile .tuile-etat { z-index: 2; top: 8px; left: 8px; }
 .salle-tuile video { z-index: 0; }
 .salle-tuile.epingle::after { content: "📌"; position: absolute; z-index: 2; top: 8px; right: 8px; font-size: 16px; }
@@ -1918,13 +1923,13 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-tuile.epingle .salle-badges { right: 34px; }
 .salle-badge { min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px; display: grid; place-items: center; background: rgba(0,0,0,.6); color: #fff; font-size: 14px; line-height: 1; }
 .salle-badge.main { background: #ffcc00; color: #000; }
-.salle-badge.rouge { background: var(--rouge); }
+.salle-badge.rouge { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-badge .ic { width: 15px; height: 15px; stroke-width: 2; }
 /* la qualité du réseau d'une liaison (12 octobre 2026) : des barres — une seule pleine quand la liaison est faible, deux quand elle est moyenne ; la couleur ne fait que doubler la forme,
    et le texte est dans l'étiquette (la vignette dit « connexion faible » au lecteur d'écran). Rien ne s'affiche quand tout va bien : on ne montre que ce qui demande l'attention. */
 .salle-badge.reseau .ic { width: 18px; height: 18px; stroke-width: 3.2; stroke-linecap: round; }
 .salle-badge.reseau.moyenne { background: #ffcc00; color: #000; }
-.salle-badge.reseau.faible, .salle-badge.reseau.perdue { background: var(--rouge); color: #fff; }
+.salle-badge.reseau.faible, .salle-badge.reseau.perdue { background: var(--rouge-fill); color: var(--on-rouge); }
 /* ÉPINGLER POUR MOI : un bouton sur chaque vignette, montré au survol ou au focus (bureau), au toucher pendant quelques secondes (téléphone), et toujours quand l'épingle est posée */
 .salle-tuile-epingle { position: absolute; z-index: 3; top: 4px; left: 4px; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; color: #fff; opacity: 0; pointer-events: none; transition: opacity .15s; }
 .salle-tuile-epingle::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(0,0,0,.6); }
@@ -1980,7 +1985,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-cmd[aria-pressed="true"] .rond-cmd { background: #fff; color: #000; }
 .salle-cmd.alerte .rond-cmd { background: var(--rouge); border-color: transparent; }
 .salle-cmd[hidden] { display: none; }
-.salle-cmd .compte { position: absolute; top: -3px; left: calc(50% + 8px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.salle-cmd .compte { position: absolute; top: -3px; left: calc(50% + 8px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 12px; line-height: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
 .salle-panneau {
   position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; max-height: min(78%, 640px); overflow-y: auto; overscroll-behavior: contain;
   padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px));
