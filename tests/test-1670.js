@@ -32,6 +32,11 @@ const NOMS = ['planSnap', 'planStamp', 'absentOn', 'absStatut', 'absValidee', 'p
   'planPoserEquipe', 'planDropDay', 'planDropTech', 'intDropDay'];
 const FONC = {};
 NOMS.forEach(n => { FONC[n] = bloc('function ' + n + '('); });
+/* 17 oct. 2026 : un dépôt sur une personne passe par la règle « compte désactivé » (planAffecteGate, décision de Justin) — on fournit les
+   VRAIES fonctions de la règle (jouée en entier par test-1820) ; sans elles, le dépôt jetait dans le bac à sable et rien ne bougeait. */
+const REGLE = ['techAssignable', 'techPeutRecevoir', 'techRefusDesactive', 'planAffecteGate'].map(n => bloc('function ' + n + '('));
+const LBL_INACTIF = (SRC.match(/^const TECH_INACTIF_LBL=[^\n]*$/m) || [''])[0].replace('const ', 'var ');
+vrai('la règle « compte désactivé » est trouvée dans le fichier réel', REGLE.every(x => x.length > 30) && LBL_INACTIF.length > 20);
 vrai('les treize fonctions réelles sont trouvées (chacune de plus de 40 signes)', NOMS.every(n => FONC[n].length > 40), NOMS.filter(n => FONC[n].length <= 40));
 vrai('⛔ une seule définition de chaque dépôt (une seconde gagnerait partout, en silence)',
   ['planDropDay', 'planDropTech', 'intDropDay'].every(n => SRC.split('function ' + n + '(').length === 2));
@@ -62,7 +67,7 @@ function monter(opts) {
   vm.createContext(W);
   // planSel / intSelDay sont des `let` du fichier : les dépôts les ÉCRIVENT, on les déclare donc dans le contexte
   vm.runInContext('var planSel="2026-10-16", intSelDay="2026-10-16";', W);
-  vm.runInContext(BRUT.slice(t0, t1) + '\n' + NOMS.map(n => FONC[n]).join('\n'), W);
+  vm.runInContext(BRUT.slice(t0, t1) + '\n' + LBL_INACTIF + '\n' + REGLE.join('\n') + '\n' + NOMS.map(n => FONC[n]).join('\n'), W);
   const avance = ms => { S.t += ms; S.timers.filter(x => x.vivant && x.a <= S.t).forEach(x => { x.vivant = false; x.fn(); }); };
   const tire = (type, e) => { (S.ecout[type] || []).forEach(fn => fn(e)); };
   const doigt = (x, y) => ({ clientX: x, clientY: y });
