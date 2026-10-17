@@ -34744,15 +34744,33 @@ function resetProdWipe(){
    les fonctions ne vérifiaient rien — une porte qui ne tient qu'à l'écran tombe au premier bouton
    qu'on rajoute ailleurs. `remiseZero` et `resetProduction` se gardaient déjà eux-mêmes. */
 function exportData(){ if(!adminSeul()) return; const blob=new Blob([JSON.stringify(db,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='teamop-'+(String(entrepriseNom()||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'espace')+'-'+todayISO()+'.json'; a.click(); URL.revokeObjectURL(a.href); toast('Exporté'); }
+/* ⛔ UN FICHIER JSON N'EST PAS UNE SAUVEGARDE (accueil#0). `{}`, `[]` ou `{"foo":1}` se parsent très bien, et
+   `migrate()` complète ce qui manque par des listes VIDES : la base de l'entreprise — comptes compris, donc
+   l'administrateur — était remplacée par du néant, puis poussée à toute l'équipe par la synchro. On reconnaît donc
+   une sauvegarde À CE QU'ELLE CONTIENT, avant le moindre confirm et avant d'assigner `db` : un objet (pas un
+   tableau), au moins une collection de données connue, de type liste, des comptes dont un administrateur.
+   Rend le MOTIF du refus, ou '' quand le fichier est une sauvegarde. Un export réel passe toujours (il porte
+   `users`) ; une collection récente absente d'une vieille sauvegarde n'est PAS un défaut — migrate() la crée. */
+function sauvegardeMotifRefus(d){
+  if(!d || typeof d!=='object' || Array.isArray(d)) return 'ce fichier n\'est pas une sauvegarde OP GESTION';
+  const faux=COLLECTIONS_DONNEES.concat(['users']).filter(c=>d[c]!==undefined && d[c]!==null && !Array.isArray(d[c]));
+  if(faux.length) return 'la collection « '+faux[0]+' » n\'a pas le bon format';
+  if(!COLLECTIONS_DONNEES.some(c=>Array.isArray(d[c]))) return 'ce fichier n\'est pas une sauvegarde OP GESTION';
+  if(!Array.isArray(d.users) || !d.users.length) return 'la sauvegarde ne contient aucun compte';
+  if(!d.users.some(u=>u && typeof u==='object' && u.role==='admin')) return 'la sauvegarde ne contient aucun compte administrateur';
+  return ''; }
 function importData(e){ if(!adminSeul()) return; const f=e.target.files[0]; if(!f)return;
-  if(!confirm('Importer « '+(f.name||'ce fichier')+' » ?\n\nLa base de l\'entreprise sera REMPLACÉE par son contenu, sur tous les appareils à la prochaine synchro.')) return;
-  const r=new FileReader(); r.onload=()=>{ try{ db=migrate(JSON.parse(r.result)); _dbGen++;   // remplacement asynchrone : un envoi en cours ne doit pas écrire l'ancienne base par-dessus
+  const r=new FileReader(); r.onload=()=>{ try{ let d; try{ d=JSON.parse(r.result); }catch(err){ toast('Fichier invalide'); return; }
+      const motif=sauvegardeMotifRefus(d);
+      if(motif){ toast('Import refusé : '+motif+'. Rien n\'a été modifié.'); return; }
+      if(!confirm('Importer « '+(f.name||'ce fichier')+' » ?\n\nLa base de l\'entreprise sera REMPLACÉE par son contenu, sur tous les appareils à la prochaine synchro.')) return;
+      db=migrate(d); _dbGen++;   // remplacement asynchrone : un envoi en cours ne doit pas écrire l'ancienne base par-dessus
       /* ⛔ RELEVER L'OMBRE AVANT save() — trouvé en relecture le 10 septembre 2026. Sans ça, estampiller()
          compare le fichier importé à l'ombre d'AVANT, et enterre tout ce que le fichier n'a pas : des
          tombes datées de maintenant, qui voyageraient chez toute l'équipe et effaceraient ce qu'elle a
          créé depuis la sauvegarde. Avec l'ombre relevée, un import REMET ce qu'il contient et ne retire
          rien : c'est le sens qu'il doit avoir sur un espace synchronisé. */
-      try{ ombreRelever(); }catch(e){} save(); renderNav(); toast('Importé'); go('dashboard'); }catch(err){ toast('Fichier invalide'); } }; r.readAsText(f); }
+      try{ ombreRelever(); }catch(e){} save(); renderNav(); toast('Importé'); go('dashboard'); }catch(err){ toast('Fichier invalide'); } }; r.readAsText(f); try{ e.target.value=''; }catch(x){} }
 /* resetData() a été SUPPRIMÉE le 10 septembre 2026. Elle n'avait aucun appelant — et c'était
    la seule raison pour laquelle elle n'avait encore rien cassé. Elle retirait la base sans
    retirer le drapeau de vidage NI détacher l'appareil de son espace : au rechargement,
