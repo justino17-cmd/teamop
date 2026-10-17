@@ -56,10 +56,17 @@ const msg = (seq, texte) => ({ id: 'm' + seq, seq, auteur: 'u2', texte: texte ||
     v('le même message à une AUTRE heure (3 heures) : un second rappel voulu, il est posé', M.ctx.appels.creer, 2);
     await M.ctx.rappelPoser(msg(8, 'Autre message'), '1h');
     v('un AUTRE message à la même heure : posé', M.ctx.appels.creer, 3);
+    /* le service rend aussi les événements qui CHEVAUCHENT la fenêtre (un rappel dure 15 minutes) : un rappel du même message 12 minutes plus tôt est rendu, et n'est pas le même */
+    M.ctx.agenda.push({ id: 'e_proche', debut: M.ctx.T0 + 2 * 3600000 + 12 * MIN, fait: null, source: { conv: C, seq: 9 } });
+    M.ctx.choix['3h'].t = M.ctx.T0 + 2 * 3600000 + 24 * MIN;
+    const avantProche = M.ctx.appels.creer;
+    await M.ctx.rappelPoser(msg(9), '3h');
+    v('le même message 12 minutes plus tôt (rendu par la fenêtre, car un rappel dure 15 minutes) n\'est PAS le même rappel : posé', M.ctx.appels.creer, avantProche + 1);
+    M.ctx.choix['3h'].t = M.ctx.T0 + 2 * 3600000;
     M.ctx.agenda[0].fait = Date.now();
     M.ctx.choix['1h'].t = M.ctx.T0;
     await M.ctx.rappelPoser(m, '1h');
-    v('le rappel de ce message déjà coché « fait » : on peut en reposer un', M.ctx.appels.creer, 4);
+    v('le rappel de ce message déjà coché « fait » : on peut en reposer un', M.ctx.appels.creer, 5);
   }
   {
     const M = monter({ lecture: 'panne' }); M.etat.route = { vue: 'messages', conv: C };
