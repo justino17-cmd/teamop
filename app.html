@@ -13449,7 +13449,9 @@ function logNoms(liste){
 }
 function logEvent(action, detail, type='general', cibleUserId){
   // cibleUserId : la personne concernée par l'évènement (ex. l'auteur d'un mouvement validé par le DR) — elle le voit dans SON historique
-  db.journal.unshift({id:uid(),ts:Date.now(),userId:currentUser&&currentUser.id,userNom:currentUser?currentUser.nom:'Système',action,detail,type,...(cibleUserId?{cibleUserId}:{})});
+  /* L'auteur s'écrit par son NOM COMPLET : `currentUser.nom` seul, c'est le nom de famille — deux « Benali »
+     devenaient indiscernables et « Justine Admin » s'affichait « Admin » (g16, accueil#4). */
+  db.journal.unshift({id:uid(),ts:Date.now(),userId:currentUser&&currentUser.id,userNom:currentUser?fullName(currentUser):'Système',action,detail,type,...(cibleUserId?{cibleUserId}:{})});
   if(db.journal.length>500) db.journal.length=500;
 }
 
@@ -32790,6 +32792,11 @@ function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
 const HIST_PAS=80;
 let _histMax=HIST_PAS, _histVue='';
 function histPlus(n){ _histMax+=n; try{ go(current); }catch(e){} }
+/* Qui a fait la ligne. Les lignes écrites avant ce correctif portent le seul nom de famille : on retrouve le
+   compte par `userId` (l'AUTEUR — `cibleUserId` est la personne concernée, jamais l'auteur) et on rend son nom
+   complet, sans réécrire le journal (plafonné à 500, et ouvrir un écran n'écrit pas). Compte disparu, ou
+   identifiant qui n'est pas un compte (semis, « Système ») : on garde ce qui est écrit. */
+function journalAuteur(j){ const u=j&&j.userId?(db.users||[]).find(x=>x.id===j.userId):null; return u?fullName(u):((j&&j.userNom)||''); }
 function journalView(title,sub){
   /* ⛔ LA TRANCHE APPARTIENT À L'ÉCRAN QU'ON REGARDE. `journalView` servait Historique ET Audit
      (Audit, doublon exact, est retiré depuis la v728 — la garde reste pour le prochain écran
@@ -32807,7 +32814,7 @@ function journalView(title,sub){
   const vis=list.slice(0,_histMax), reste=list.length-vis.length;
   $('content').innerHTML=`<div class="filters">${types.map(t=>`<div class="chip ${histFilter===t?'active':''}" onclick="histFilter='${t}';_histMax=${HIST_PAS};go('${current}')">${t==='all'?'Tout':t}</div>`).join('')}</div>
     <div class="card">${vis.length? vis.map(j=>`<div class="tl-item" style="cursor:pointer" onclick="journalGo('${j.id}')"><div class="tl-dot">${TYPE_ICO[j.type]||'•'}</div>
-      <div class="tl-body"><div class="tl-act">${esc(j.action)}</div><div class="tl-det">${esc(j.detail)||''} · 👤 ${esc(j.userNom)}</div></div>
+      <div class="tl-body"><div class="tl-act">${esc(j.action)}</div><div class="tl-det">${esc(j.detail)||''} · 👤 ${esc(journalAuteur(j))}</div></div>
       <div class="tl-time">${fmtTs(j.ts)}</div></div>`).join('')
       +(reste?`<div style="padding:14px 0 4px;text-align:center"><button class="btn ghost" onclick="histPlus(${HIST_PAS*2})">Afficher la suite · ${reste} évènement(s) plus anciens</button></div>`:'')
       : emptyState('🕘','Aucun évènement.','','')}</div>`;
