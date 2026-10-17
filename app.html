@@ -12927,9 +12927,14 @@ const PUSH_VAPID='BBOBOciYMxg1WjLB2oxOgl23Ayu-DBkPnf9DhRUe660mBaEcAVvQVKlLZdWyzZ
 function _vapidArr(k){ const p='='.repeat((4-k.length%4)%4); const b=atob((k+p).replace(/-/g,'+').replace(/_/g,'/')); const a=new Uint8Array(b.length); for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i); return a; }
 function pushSupported(){ return ('serviceWorker' in navigator)&&('PushManager' in window)&&('Notification' in window); }
 async function pushSubscribe(quiet){ try{
-  if(!pushSupported()||!currentUser) return false;
+  if(!pushSupported()){ if(!quiet&&currentUser) toast('Ce navigateur ne gère pas les notifications — sur iPhone, ajoute d\'abord l\'application à l\'écran d\'accueil'); return false; }
+  if(!currentUser) return false;
   if(Notification.permission==='denied'){ if(!quiet) toast('Notifications bloquées — autorise-les dans les réglages du navigateur'); return false; }
-  if(Notification.permission!=='granted'){ const p=await Notification.requestPermission(); if(p!=='granted') return false; }
+  /* ⛔ UN GESTE QUI N'ABOUTIT PAS LE DIT (accueil#14). Le navigateur refusait, ou la personne fermait la demande, et
+     le bouton restait « Activer sur cet appareil » sans un mot. Seul l'appel du lancement (`quiet`) se tait : ce
+     n'est pas un geste. */
+  if(Notification.permission!=='granted'){ const p=(await Notification.requestPermission())||Notification.permission;   // un vieux Safari ne rend rien : on relit l'état
+    if(p!=='granted'){ if(!quiet) toast(p==='denied'?'Notifications refusées — tu pourras les réactiver dans les réglages du site, côté navigateur':'Autorisation non donnée — touche « Activer sur cet appareil » et choisis Autoriser'); return false; } }
   const reg=await navigator.serviceWorker.ready;
   const sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:_vapidArr(PUSH_VAPID)});
   await fetch(PUSH_API+'/api/subscribe',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({sub:sub.toJSON(),teamId:syncTeam(),userId:currentUser.id,userName:fullName(currentUser)})});
