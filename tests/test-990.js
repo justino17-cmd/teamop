@@ -425,7 +425,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 3000, deconnecte: 250, reessa
       const sa = await A.src.rejoindreReunion(r.id, 'video');
       donnerPistes(A, sa.id, true);
       vrai('l\'organisatrice entre : la liaison Ana–Ben s\'établit', !!(await att(() => A.monde.vivants().length === 1 && B.monde.vivants().length === 1 && A.monde.vivants()[0].iceConnectionState === 'connected')));
-      v('⛔ elle REPREND la main : hôte propriétaire ; Ben reste co-hôte (il garde le pouvoir d\'admettre)', [(await A.src.appel(sa.id)).moi.proprietaire, (await B.src.appel(sa.id)).moi.hote, (await B.src.appel(sa.id)).moi.proprietaire], [true, true, false]);
+      v('⛔ elle REPREND la main : hôte propriétaire ; Ben, l\'hôte par intérim, redevient simple participant (m01, 16 octobre 2026 : plus de co-hôte permanent qu\'elle n\'a pas nommé — `test-1400`), et ne propose plus rien d\'hôte', [(await A.src.appel(sa.id)).moi.proprietaire, (await B.src.appel(sa.id)).moi.hote, (await B.src.appel(sa.id)).moi.proprietaire], [true, false, false]);
       /* le lien */
       const code = await A.src.lienReunion(r.id);
       v('l\'hôte lit le lien (22 caractères) ; un invité qui n\'est pas l\'hôte ne le lit pas', [/^[A-Za-z0-9_-]{22}$/.test(code), codeDe(await attrape(B.src.lienReunion(r.id)))], [true, 'interdit']);
