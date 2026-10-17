@@ -6711,7 +6711,7 @@ a.menu-action { text-decoration: none; }
       '<div class="info-champ"><input id="ct-ident" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" placeholder="Camille#4821 ou un numéro" aria-label="Identifiant ou numéro de la personne"><button type="button" class="mini" data-act="ident-voir">Voir</button></div>' +
       '<div id="ct-ident-res" aria-live="polite"></div></div>' +
     '<div class="rubrique"><span>Mon identifiant</span></div><div class="carte carte-pad">' +
-      '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Réglages › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
+      '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Profil › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
   function peindreIdentMoi() {
     const c = $('ct-ident-moi'); if (!c || typeof source.monIdentifiant !== 'function') return;
     const id = source.monIdentifiant();
@@ -7436,8 +7436,8 @@ a.menu-action { text-decoration: none; }
   const euros = n => { try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); } catch (e) { return n + ' €'; } };
   function phraseEspace(e, defaut) {
     let t = phrase(e, defaut);
-    if (e && e.code === 'formule_requise' && e.raison === 'impaye') t += ' L\'abonnement de l\'espace est en retard : règle-le (Réglages › Abonnement) pour les retrouver. Rien n\'est perdu : les messages, les canaux et les membres restent.';
-    else if (e && e.code === 'formule_requise' && e.raison === 'perso') t += ' Cet espace n\'a pas d\'abonnement Messages Pro (Réglages › Abonnement).';
+    if (e && e.code === 'formule_requise' && e.raison === 'impaye') t += ' L\'abonnement de l\'espace est en retard : règle-le (Profil › Entreprise et abonnement) pour les retrouver. Rien n\'est perdu : les messages, les canaux et les membres restent.';
+    else if (e && e.code === 'formule_requise' && e.raison === 'perso') t += ' Cet espace n\'a pas d\'abonnement Messages Pro (Profil › Entreprise et abonnement).';
     else if (e && e.code === 'places_invalides' && e.min > 0) t = 'Le nombre de places est incorrect : au moins ' + e.min + ' (le nombre de membres), 500 au plus.';
     else if (e && e.code === 'places_epuisees' && e.places > 0) t += ' (' + e.membres + ' membres pour ' + e.places + ' places.)';
     return t;

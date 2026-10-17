@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '2bd391847e5d';
+  const OPMSG_BUILD = '204e0a5a16e8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 208;
+  const OPMSG_VERSION = 209;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3909,7 +3909,7 @@
       '<div class="info-champ"><input id="ct-ident" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" enterkeyhint="search" placeholder="Camille#4821 ou un numéro" aria-label="Identifiant ou numéro de la personne"><button type="button" class="mini" data-act="ident-voir">Voir</button></div>' +
       '<div id="ct-ident-res" aria-live="polite"></div></div>' +
     '<div class="rubrique"><span>Mon identifiant</span></div><div class="carte carte-pad">' +
-      '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Réglages › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
+      '<p class="info-note">Donne-le à quelqu\'un pour qu\'il te retrouve. Il suit ton prénom ; « Me trouver par mon identifiant » se coupe dans Profil › Confidentialité.</p><div id="ct-ident-moi"></div></div>';
   function peindreIdentMoi() {
     const c = $('ct-ident-moi'); if (!c || typeof source.monIdentifiant !== 'function') return;
     const id = source.monIdentifiant();
@@ -4634,8 +4634,8 @@
   const euros = n => { try { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); } catch (e) { return n + ' €'; } };
   function phraseEspace(e, defaut) {
     let t = phrase(e, defaut);
-    if (e && e.code === 'formule_requise' && e.raison === 'impaye') t += ' L\'abonnement de l\'espace est en retard : règle-le (Réglages › Abonnement) pour les retrouver. Rien n\'est perdu : les messages, les canaux et les membres restent.';
-    else if (e && e.code === 'formule_requise' && e.raison === 'perso') t += ' Cet espace n\'a pas d\'abonnement Messages Pro (Réglages › Abonnement).';
+    if (e && e.code === 'formule_requise' && e.raison === 'impaye') t += ' L\'abonnement de l\'espace est en retard : règle-le (Profil › Entreprise et abonnement) pour les retrouver. Rien n\'est perdu : les messages, les canaux et les membres restent.';
+    else if (e && e.code === 'formule_requise' && e.raison === 'perso') t += ' Cet espace n\'a pas d\'abonnement Messages Pro (Profil › Entreprise et abonnement).';
     else if (e && e.code === 'places_invalides' && e.min > 0) t = 'Le nombre de places est incorrect : au moins ' + e.min + ' (le nombre de membres), 500 au plus.';
     else if (e && e.code === 'places_epuisees' && e.places > 0) t += ' (' + e.membres + ' membres pour ' + e.places + ' places.)';
     return t;
