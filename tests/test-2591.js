@@ -1,7 +1,7 @@
 /* ⛔ CE QUE CE FICHIER GARDE — DEUX APPELS QUI SE CROISENT SE REJOIGNENT, CHEZ LA PAGE AUSSI (lot m18, relecture du 17 octobre 2026).
 
-   Le service (`test-1590`) répond 201 `{ appel, joint: true }` à la personne qui en appelle une autre PENDANT que l'autre l'appelle : l'appel de l'autre, qui sonnait déjà chez elle, est PRIS, et sa vue est
-   ENTRANTE et déjà EN COURS. Ce que `test-1590` ne voit pas : que la PAGE le lise. Avant, `lancer` du moteur (`source-serveur.js`) traitait toute réponse comme un appel SORTANT qui sonne : l'entrée naissait
+   Le service (`test-2590`) répond 201 `{ appel, joint: true }` à la personne qui en appelle une autre PENDANT que l'autre l'appelle : l'appel de l'autre, qui sonnait déjà chez elle, est PRIS, et sa vue est
+   ENTRANTE et déjà EN COURS. Ce que `test-2590` ne voit pas : que la PAGE le lise. Avant, `lancer` du moteur (`source-serveur.js`) traitait toute réponse comme un appel SORTANT qui sonne : l'entrée naissait
    « appelé » sans liaison, l'offre de l'autre était mise de côté (`c.file`, la connexion n'existant jamais), personne n'armait la veille — l'autre disait « Appel connecté », celle qui avait pris l'appel
    restait sur « Connexion… » pour toujours, et le service les tenait toutes deux « occupées » jusqu'au raccroché.
 
