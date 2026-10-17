@@ -1,6 +1,6 @@
 /* ⛔ CE QUE CE FICHIER GARDE — LA PAGE NE PROPOSE PAS À L'HÔTE PAR INTÉRIM CE QUE LE SERVICE LUI REFUSE (m01, 16 octobre 2026).
 
-   `test-1400` joue le SERVICE : l'invité nommé qui entre avant l'organisateur n'exclut pas, ne verrouille pas, ne règle pas la salle, n'enregistre pas, ne nomme pas de co-hôte, ne fait pas taire tout le monde. Ici, la PAGE :
+   `test-2400` joue le SERVICE : l'invité nommé qui entre avant l'organisateur n'exclut pas, ne verrouille pas, ne règle pas la salle, n'enregistre pas, ne nomme pas de co-hôte, ne fait pas taire tout le monde. Ici, la PAGE :
    le service dit `moi.interim` (`source-serveur.js` le passe à la salle), et l'écran retire les commandes correspondantes — « Plus › Sécurité » (verrou, salle d'attente, partage des participants), « Enregistrer »,
    « Retirer de la salle », « Nommer co-hôte », « Demander à tous de couper le micro » — et `salleAgir` refuse le geste si une commande restée affichée le laissait partir. La preuve de bout en bout, au navigateur
    et contre le vrai service, est la sonde `sonde-interim.js` (scratchpad du lot m01) ; ce banc, lui, lit le CODE (commentaires retirés : le correctif est abondamment commenté) et le mute.
