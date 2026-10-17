@@ -5278,11 +5278,11 @@ html[data-refonte] #mail-app #mail-list > .card .btn{
 /* ── UNE SEULE ACTION PRINCIPALE, ET UNE SEULE FOIS ──
    « Écrire » (barre de titre) et « Nouveau message » (volet des dossiers) ouvrent la MÊME
    fenêtre ; « ＋ Connecter » et « Connecter ma boîte mail » aussi. Dès que le volet existe —
-   c'est-à-dire dès 960 px, le seuil de _mailDesktop() — c'est lui qui porte l'action d'écrire,
+   c'est-à-dire dès 1180 px, le seuil de _mailDesktop() — c'est lui qui porte l'action d'écrire,
    et la barre de titre n'en garde que le secondaire. Quand rien n'est connecté, le volet
    disparaît : l'action revient dans la barre, mais en gris, car le vert appartient alors à
    « Connecter ». */
-@media (min-width:960px){
+@media (min-width:1180px){
   html[data-refonte] body:not(:has(#mail-list > .card)) .ph-actions .btn[onclick="mailCompose()"]{display:none}
 }
 html[data-refonte] body:has(#mail-list > .card) .ph-actions .btn[onclick="mailCompose()"]{
@@ -5336,17 +5336,42 @@ html[data-refonte] #msg-photo-prev + div > .btn:last-child{min-height:var(--rf-t
 @media (min-width:781px){
   html[data-refonte] #msg-photo-prev + div{padding-right:76px}
 }
-/* ── LE SEUIL DU COURRIER EST 959, PAS 780 ────────────────────────────────────────────────
+/* ── AU TÉLÉPHONE, LA BARRE D'ONGLETS PREND SA PLACE (appareils#0, 17 octobre 2026) ──────────────────
+   Mesuré sur un iPhone 390×844, page en haut : le champ « Message à toute l'équipe… » était à top=785 pour
+   une barre qui commence à 768. `elementFromPoint` au centre du champ rendait l'onglet, et un vrai toucher
+   lançait go('planning') — on ne pouvait écrire qu'après avoir défilé la page de 73 px, sans rien qui
+   l'invite. Les deux hauteurs de la carte (396, puis 430 sous 959 px) ne retranchaient pas `--tabh`, la
+   place de la barre : le champ, posé à la suite de la carte, tombait dessous. Le plancher de 240 px
+   empêchait en plus de rattraper la place sur un iPhone SE (667 px de haut).
+   Deux gestes, et les deux comptent : (1) la carte se raccourcit de `--tabh` (et son plancher cède), pour que
+   la rangée de saisie tienne à l'écran à l'ouverture ; (2) la rangée se COLLE au-dessus de la barre
+   (`position:sticky`), parce que (1) ne sait pas compter les pastilles qui passent sur trois lignes quand
+   l'équipe est nombreuse — la carte est alors repoussée sous la barre, et c'est la rangée collante qui reste
+   atteignable. Le style en ligne (`position:relative`, nécessaire à la fenêtre des mentions) se bat avec
+   `!important`, comme partout dans ce bloc. Rien de tout cela sans barre : sur tablette et bureau (> 780 px)
+   le menu latéral est permanent et `--tabh` ne dit rien. `--tabh` lui-même n'est pas touché. */
+@media (max-width:780px){
+  html[data-refonte] body.rf-onglets #msg-list{
+    height:calc(100dvh - 446px - var(--tabh))!important;min-height:120px!important}
+  html[data-refonte] body.rf-onglets #msg-saisie{
+    position:sticky!important;bottom:calc(var(--tabh) + 6px);z-index:3;
+    padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
+}
+/* ── LE SEUIL DU COURRIER EST 1179, PAS 780 NI 959 ─────────────────────────────────────────
    Ce bloc relâchait la hauteur imposée au cadre de la boîte mail à partir de 780 px. Or
-   _mailDesktop() ne bascule en trois volets qu'à 960 px. Entre les deux — 781 à 959, la largeur
-   d'une fenêtre Safari qu'on n'a pas mise en plein écran, celle de Justin — l'application
-   empilait en un seul bloc DANS un cadre de 642 px en overflow:hidden, sans conteneur qui
-   défile : mesuré sur WebKit, 4 messages atteignables sur 197, et 19 875 px de contenu hors de
-   portée. C'est le « quand je clique sur Réception, ça fait un bug ».
-   959 est le complément exact de _mailDesktop() (>= 960) : les deux nombres se répondent, et
-   c'est pour ça qu'il faut les lire ensemble malgré les 800 lignes qui les séparent. */
+   _mailDesktop() ne bascule en trois volets qu'à MAIL_TROIS_VOLETS (1180 px). Entre les deux — 781 à
+   1179, la largeur d'une fenêtre Safari qu'on n'a pas mise en plein écran, celle de Justin —
+   l'application empile en un seul bloc ; dans un cadre de 642 px en overflow:hidden, sans conteneur qui
+   défile, on n'atteignait que 4 messages sur 197 (19 875 px de contenu hors de portée, mesuré sur
+   WebKit). C'est le « quand je clique sur Réception, ça fait un bug ».
+   1179 est le complément exact de _mailDesktop() (>= 1180) : les deux nombres se répondent, et
+   c'est pour ça qu'il faut les lire ensemble malgré les 800 lignes qui les séparent. Il est monté de 959
+   à 1179 parce que, à 1024 px, le volet de lecture ne faisait que 116 px (voir MAIL_TROIS_VOLETS).
+   La hauteur de la messagerie (#msg-list) garde son propre seuil, plus bas : elle n'a rien à voir. */
 @media (max-width:959px){
   html[data-refonte] #msg-list{height:calc(100dvh - 430px)!important;padding:14px!important}
+}
+@media (max-width:1179px){
   html[data-refonte] #mail-app{height:auto!important;min-height:0!important;
     background:transparent!important;box-shadow:none!important;overflow:visible!important}
   html[data-refonte] #mail-mid{padding:0!important}
@@ -5459,13 +5484,13 @@ html[data-refonte] #mail-pane div[style*="border:1px solid var(--acc);border-rad
   background:var(--tint)!important;border:0!important;border-radius:var(--rf-r-champ)!important;
   color:var(--acc-txt)!important;padding:10px 14px!important}
 
-/* ── EN PILE ── trois colonnes n'en font aucune sous 960 px : l'application empile déjà
+/* ── EN PILE ── trois colonnes n'en font aucune sous 1180 px : l'application empile déjà
    (les dossiers deviennent des pastilles, la lecture s'ouvre en plein écran). On enlève le
    cadre qui n'a plus rien à cadrer et on rend au message la mesure et les marges du pouce.
    Même seuil que le bloc ci-dessus, et pour la même raison : à 900 px, laisser ce bloc à 780
    donnait une pile habillée en trois volets — un filet vertical qui ne sépare plus rien et un
    aplat de liste sur un bloc pleine largeur. Un seul seuil pour tout l'écran Courrier. */
-@media (max-width:959px){
+@media (max-width:1179px){
   html[data-refonte] #mail-side{background:transparent!important;padding:0 0 10px!important;border:0!important}
   html[data-refonte] #mail-mid{background:transparent!important;border:0!important}
   html[data-refonte] #mail-read [style*="max-width:760px"],
@@ -31018,20 +31043,36 @@ function _mailLus(){ try{ return new Set(JSON.parse(localStorage.getItem('elanB_
 function _mailMarquerLu(k){ const st=_mailLus(); if(st.has(k)) return; st.add(k); localStorage.setItem('elanB_mail_lus',JSON.stringify([...st].slice(-600))); }
 const mailKey=r=>String(r.ts||'')+'|'+String(r.from||'');
 function mailColor(x){ const C=['#DC2626','#7C3AED','#059669','#1E40AF','#EA580C','#0891B2','#BE185D','#4D7C0F']; let h=0; x=String(x||''); for(let i=0;i<x.length;i++) h=(h*31+x.charCodeAt(i))>>>0; return C[h%C.length]; }
-const _mailDesktop=()=>window.innerWidth>=960;
+/* ⛔ LE SEUIL DES TROIS VOLETS EST 1180, PAS 960 — et il se lit ici, dans la CSS (min-width:1180px pour
+   l'action d'écrire, max-width:1179px pour la pile) et dans la grille de views.boiteMail : un seul nombre,
+   à changer partout ensemble (tests/test-1421.js le relit).
+   Le volet de lecture est ce qui reste de la fenêtre après le menu latéral permanent (258 à 272 px), les
+   marges de la page (2 × 24 ou 34 px), la colonne des dossiers (212) et la liste (≥ 280). Mesuré au
+   navigateur (appareils#1) avec l'ancien seuil : 116 px à 1024, 192 à 1100, 258 sur iPad paysage 1180 —
+   le sujet passait sur huit lignes d'un mot, « Supprimer » était coupé. À 1180 il mesure 356 px ; en
+   dessous, l'application empile (dossiers en pastilles, lecture en plein écran), mise en page déjà éprouvée
+   entre 781 et 959. Ce n'est pas la largeur de la fenêtre qui compte, c'est la place QU'IL RESTE à la
+   lecture : d'où un seuil plus haut que celui d'un écran sans menu. */
+const MAIL_TROIS_VOLETS=1180;
+const _mailDesktop=()=>window.innerWidth>=MAIL_TROIS_VOLETS;
+/* La CSS suit la fenêtre en direct, la vue se construit UNE fois : tourner une tablette de 820 à 1180 px (ou
+   redimensionner une fenêtre de part et d'autre du seuil) laissait la pile dessinée sous des règles de trois
+   volets. On reconstruit la vue quand — et seulement quand — le mode a changé. */
+let _mailModeRendu=null;
+try{ window.addEventListener('resize',()=>{ if(current==='boiteMail'&&_mailModeRendu!==null&&_mailDesktop()!==_mailModeRendu) views.boiteMail(); }); }catch(e){}
 /* ═══ Boîte mail — 3 volets sur ordinateur (dossiers · liste · lecture), pile sur mobile ═══ */
 views.boiteMail=function(){
   setHeader('Boîte mail','',`<button class="btn ghost" onclick="mailBoxesManage()">📬 Boîtes</button> <button class="btn" onclick="mailCompose()">✏️ Écrire</button>`);
   const lus=_mailLus(); const supp=_mailSupp();
   const reps=_mailReplies||[];
   const unread=reps.filter(r=>!supp.has(mailKey(r))&&!lus.has(mailKey(r))).length;
-  const D=_mailDesktop();
+  const D=_mailDesktop(); _mailModeRendu=D;
   const dossier=(k,ic,l,n)=>D?
     `<div onclick="mailTab='${k}';mailSel=null;views.boiteMail()" style="display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:9px;cursor:pointer;font-size:13.5px;font-weight:700;margin-bottom:2px;${mailTab===k?'background:color-mix(in srgb,var(--acc) 14%,transparent);color:var(--acc-txt)':'color:var(--t2)'}">${ic} ${l}${n?`<span style="margin-left:auto;font-size:11px;background:var(--acc);color:var(--on-acc);border-radius:100px;padding:1px 8px;font-weight:800">${n}</span>`:''}</div>`
     :`<div class="chip ${mailTab===k?'active':''}" onclick="mailTab='${k}';mailSel=null;views.boiteMail()">${ic} ${l}${n?' ('+n+')':''}</div>`;
   $('content').innerHTML=`
     <div id="mail-connbar"></div>
-    <div id="mail-app" style="${D?'display:grid;grid-template-columns:212px minmax(290px,390px) 1fr;border:1px solid var(--brd);border-radius:14px;overflow:hidden;height:calc(100dvh - 165px);min-height:460px;background:var(--bg1)':''}">
+    <div id="mail-app" style="${D?'display:grid;grid-template-columns:212px clamp(280px,34%,390px) minmax(0,1fr);border:1px solid var(--brd);border-radius:14px;overflow:hidden;height:calc(100dvh - 165px);min-height:460px;background:var(--bg1)':''}">
       <div id="mail-side" style="${D?'border-right:1px solid var(--brd);padding:12px 10px;display:flex;flex-direction:column;min-height:0':'margin-bottom:10px'}">
         ${D?`<button class="btn" style="width:100%;justify-content:center;margin-bottom:14px" onclick="mailCompose()">✏️ Nouveau message</button>`:''}
         <div style="${D?'':'display:flex;gap:6px;flex-wrap:wrap;align-items:center'}">
@@ -31046,7 +31087,7 @@ views.boiteMail=function(){
              quand on a fini de lire, et pas au milieu de la liste des boîtes. Les deux boutons
              portent un vrai libellé — un bouton réduit à une icône se rend vide quand l'icône
              manque, ce qui donnait un rectangle gris sans rien dedans. -->
-        <div style="flex:0 0 auto;border-top:1px solid var(--brd);margin:10px -10px 0;padding:10px 12px 2px;display:grid;gap:6px">
+        <div id="mail-side-pied" style="flex:0 0 auto;border-top:1px solid var(--brd);margin:10px 0 0;padding:10px 0 2px;display:grid;grid-template-columns:minmax(0,1fr);gap:6px">
           <button class="btn ghost sm" style="width:100%;justify-content:center" onclick="mailBoxesManage()">Gérer mes boîtes</button>
           <button class="btn ghost sm" style="width:100%;justify-content:center" onclick="mailConnect()">＋ Connecter une boîte</button>
         </div>`:''}
@@ -39677,7 +39718,7 @@ views.messagerie=function(){
           <div class="msg ${mine?'user':'bot'}" style="max-width:80%${tagged&&!mine?';border:1px solid var(--acc)':''}">${m.photo?`<img src="${m.photo}" style="max-width:210px;max-height:260px;border-radius:10px;display:block;cursor:pointer${m.texte?';margin-bottom:6px':''}" onclick="msgViewPhoto('${m.id}')">`:''}${m.texte?formatMsg(m.texte):''}</div></div>`;}).join('') : emptyState('💬','Aucun message dans cette conversation.','','')}
     </div>
     <div id="msg-photo-prev" style="display:${msgPhoto?'flex':'none'};align-items:center;gap:10px;margin-top:10px">${msgPhoto?`<img src="${msgPhoto}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`:''}</div>
-    <div style="display:flex;gap:8px;margin-top:10px;position:relative"><div id="mention-pop" class="mention-pop" style="display:none"></div><label class="btn ghost" style="cursor:pointer;flex-shrink:0" title="Joindre une photo">📷<input type="file" accept="image/*" style="display:none" onchange="msgAddPhoto(event)"></label><input id="msg-input" class="search-inp" style="margin:0;flex:1" placeholder="${ph}" autocomplete="off" oninput="msgInputChange()" onkeydown="if(event.key==='Enter'){const p=document.getElementById('mention-pop'); if(p&&p.style.display!=='none'){return;} envoyerMsg();}"><button class="btn" onclick="envoyerMsg()">Envoyer</button></div>`;
+    <div id="msg-saisie" style="display:flex;gap:8px;margin-top:10px;position:relative"><div id="mention-pop" class="mention-pop" style="display:none"></div><label class="btn ghost" style="cursor:pointer;flex-shrink:0" title="Joindre une photo">📷<input type="file" accept="image/*" style="display:none" onchange="msgAddPhoto(event)"></label><input id="msg-input" class="search-inp" style="margin:0;flex:1" placeholder="${ph}" autocomplete="off" oninput="msgInputChange()" onkeydown="if(event.key==='Enter'){const p=document.getElementById('mention-pop'); if(p&&p.style.display!=='none'){return;} envoyerMsg();}"><button class="btn" onclick="envoyerMsg()">Envoyer</button></div>`;
   const ml=$('msg-list'); if(ml) ml.scrollTop=ml.scrollHeight;
 };
 let msgPhoto='';
