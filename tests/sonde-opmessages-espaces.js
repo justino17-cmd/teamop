@@ -299,7 +299,7 @@ async function parcoursA(b, ctx) {
   await verifier('Bruno ouvre le canal privé', B, () => document.documentElement.dataset.conv === '1' && /# direction/.test(document.getElementById('conv-titre').textContent), null, 12000);
   await verifier('population : la feuille d\'Alice montre Bruno parmi les membres, avec « Retirer »', A, () => document.querySelectorAll('[data-act="can-retirer-membre"]').length === 2, null, 12000, () => texteCorps(A));
   await A.page.locator('.contact', { hasText: 'Bruno' }).locator('[data-act="can-retirer-membre"]').tap(); A.gestes++;
-  await verifier('⛔ le retirer le lui RETIRE en direct : sa conversation ouverte se ferme, avec « Tu n\'es plus dans cette conversation. »', B, () => document.documentElement.dataset.conv !== '1' && /Tu n'es plus dans cette conversation/.test(document.getElementById('mot').textContent), null, 12000);
+  await verifier('⛔ le retirer le lui RETIRE en direct : sa conversation ouverte se ferme, avec « Tu as été retiré du canal <nom>. »', B, () => document.documentElement.dataset.conv !== '1' && /Tu as été retiré du canal /.test(document.getElementById('mot').textContent), null, 12000);
   await verifier('… et le canal n\'est plus dans sa liste', B, () => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(e => /# direction/.test(e.textContent)), null, 8000, () => lire(B, '#liste-conv'));
   await fermerFeuille(A); await retourListe(A);
 
@@ -339,7 +339,7 @@ async function parcoursA(b, ctx) {
   v('population : le canal privé a trois membres avant le retrait (Alice, Dora, Bruno)', sql('SELECT COUNT(*) AS n FROM membre WHERE conv = (SELECT conv FROM canal WHERE prive = 1) AND quitte_le IS NULL').n, 3);
   /* le geste permis : la propriétaire retire l'administrateur du canal — il en sort, en direct */
   await A.page.locator('#info-corps .contact', { hasText: 'Bruno' }).locator('[data-act="can-retirer-membre"]').tap(); A.gestes++;
-  await verifier('⛔ Alice retire Bruno (administrateur) du canal : permis — il en sort EN DIRECT, sa conversation se ferme', B, () => document.documentElement.dataset.conv !== '1' && /Tu n'es plus dans cette conversation/.test(document.getElementById('mot').textContent), null, 12000, () => etatPage(B));
+  await verifier('⛔ Alice retire Bruno (administrateur) du canal : permis — il en sort EN DIRECT, sa conversation se ferme', B, () => document.documentElement.dataset.conv !== '1' && /Tu as été retiré du canal /.test(document.getElementById('mot').textContent), null, 12000, () => etatPage(B));
   v('… dans la base, le canal privé n\'a plus que ses deux autres membres (Alice et Dora : trois avant le retrait)', sql('SELECT COUNT(*) AS n FROM membre WHERE conv = (SELECT conv FROM canal WHERE prive = 1) AND quitte_le IS NULL').n, 2);
   await fermerFeuille(B); await retourListe(B); await fermerFeuille(A); await retourListe(A);
   await onglet(A, 'reglages'); await rubrique(A, 'entreprise'); await toucher(A, '[data-esp-ouvrir]');
