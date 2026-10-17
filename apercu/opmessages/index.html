@@ -1402,7 +1402,11 @@ html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 @media (pointer: coarse) { .compo-confirme-texte small { display: none; } .compo-confirme .mini { min-height: 44px; } }
 .side-marque b { white-space: nowrap; }      /* « OP MESSAGES PRO » tient sur une ligne dans les 236 px de la barre (mesuré : la pastille passait dessous) */
 .marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
-#vue-messages > .entete-vue { position: relative; }
+/* ⛔ UNE SEULE RÈGLE DÉCIDE DU DÉCALAGE DE L'EN-TÊTE (17 octobre 2026, lot p03, temps-reel#4 / n#11, n#12) : relative, cet en-tête est l'ancre du nom centré (`.marque-tel`). Mais ce `#id > .classe`
+   (1,1,0) bat `position: sticky` de la règle du bureau (`.vue > .entete-vue`, 0,2,0) SANS battre son `top: var(--pousse)` — et un `top` sur un élément relatif le DÉCALE : hors ligne, le corps
+   l'avait déjà poussé de la bande (`body { padding-top: var(--pousse) }`), l'en-tête descendait de 28 + 28 = 56 px, sa barre vitrée recouvrait le champ « Rechercher ». Le `top` s'éteint donc ici :
+   un en-tête qui ne colle pas n'a rien à retrancher au corps (tests/test-2640.js rejoue la cascade, sonde-opmessages-recouvrement la mesure). */
+#vue-messages > .entete-vue { position: relative; top: auto; }
 .marque-tel { position: absolute; left: 96px; right: 96px; margin: 0 auto; width: max-content; max-width: calc(100% - 192px); display: flex; align-items: center; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; pointer-events: none; }
 /* le segment du Profil et le nom centré sont ceux du TÉLÉPHONE : là où la barre latérale paraît (bureau, tablette), c'est elle qui porte le sélecteur — un seul à l'écran */
 @media (min-width: 900px) { .reg-cote-seg, .marque-tel { display: none !important; } }
