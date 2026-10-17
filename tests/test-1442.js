@@ -23,11 +23,15 @@ while ((m = re.exec(SRC))) regles.push({ sel: m[1].trim().replace(/\s+/g, ' '), 
 vrai('au moins deux règles ::placeholder (la générale et celle de la loupe du menu)', regles.length >= 2, regles.length);
 const generale = regles.find(r => /(^|,\s*)input::placeholder\s*,\s*textarea::placeholder$/.test(r.sel));
 vrai('la règle générale « input::placeholder, textarea::placeholder » existe', !!generale, regles.map(r => r.sel));
-vrai('elle donne le jeton de texte discret --t3', !!generale && /color\s*:\s*var\(--t3\)/.test(generale.corps), generale && generale.corps);
+/* j02 (r4#8-11) : l'indice ne prend plus --t3, réglé pour du texte posé sur la page — sous 4,5:1 sur la pilule du Planning de nuit
+   (4,0) et dans la loupe du menu (3,2 / 3,6). Il a SON jeton --ph (l'encre du texte à 80 % la nuit, 68 % le jour), gardé par
+   test-1610 sur les contrastes ; ici on garde seulement que la règle lit un JETON de l'application, jamais un gris en dur. */
+vrai('elle donne un jeton de l\'application (--ph, dérivé de l\'encre — test-1610 en garde les contrastes)', !!generale && /color\s*:\s*var\(--ph\)/.test(generale.corps), generale && generale.corps);
 vrai('elle fixe opacity:1 (l\'indice ne s\'estompe pas deux fois)', !!generale && /opacity\s*:\s*1\b/.test(generale.corps), generale && generale.corps);
 const brutes = regles.filter(r => /color\s*:\s*(#|rgb|hsl|gr[ae]y|silver|darkgr)/i.test(r.corps));
 vrai('aucune règle ::placeholder ne pose une couleur écrite en dur', brutes.length === 0, brutes);
-vrai('la règle de la loupe du menu est conservée', regles.some(r => /\.nav-loupe input::placeholder/.test(r.sel) && /var\(--t3\)/.test(r.corps)));
+/* la règle propre à la loupe (--t3 = 52 % d'encre dans .sidebar, 3,2 à 3,6:1) a été RETIRÉE : la loupe lit la règle générale, --ph y est calculé sur l'encre du menu */
+vrai('la loupe du menu ne porte plus de règle ::placeholder à elle (--t3 y valait 52 % d\'encre)', !regles.some(r => /\.nav-loupe input::placeholder/.test(r.sel)));
 
 console.log('\n── 1442 · 2. l\'indice n\'est pas l\'encre du texte saisi ──');
 vrai('aucune règle ::placeholder ne prend --t1 (l\'encre du texte saisi)', !regles.some(r => /color\s*:\s*var\(--t1\)/.test(r.corps)), regles.map(r => r.corps));

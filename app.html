@@ -111,11 +111,20 @@
   .nav-loupe input{flex:1;min-width:0;background:transparent;border:0;outline:0;color:var(--t1);
     font-size:13px;font-family:inherit;padding:0;}
   /* L'indice d'un champ (placeholder) gardait le gris du navigateur, #757575, sur les deux thèmes : 3,1 à 3,9:1 de jour
-     comme de nuit, mesuré au pixel sous le verre (test-1442). Le jeton --t3 est celui du texte discret de l'application,
-     réglé pour les deux thèmes ; `opacity:1` parce que Firefox estompe encore l'indice par-dessus sa couleur.
-     Il reste plus pâle que le texte saisi (--t1) : on distingue toujours « saisi » de « indice ». */
-  input::placeholder,textarea::placeholder{color:var(--t3);opacity:1;}
-  .nav-loupe input::placeholder{color:var(--t3);}
+     comme de nuit, mesuré au pixel sous le verre (test-1442). Il prend d'abord --t3, le texte discret de l'application.
+     ⛔ Mais --t3 est réglé pour du texte posé sur la PAGE ou sur une carte, pas pour un indice posé sur la surface d'un
+     CHAMP, qui est elle-même une teinte translucide sous du verre (retest j02, mesuré au pixel au Mac, SwiftShader) :
+     Mac nuit, la pilule de recherche du Planning (4,27:1), du Planning général (4,25) et la fenêtre « Rechercher partout »
+     (4,17) ; la loupe du menu latéral, où --t3 vaut --side-mut = 52 % d'encre : 3,45 la nuit, 3,66 le jour. Retoucher
+     --t3 ou --side-mut déplacerait tout le texte secondaire de l'application (design/THEME-REFERENCE.md, test-759) : l'indice
+     a donc SON jeton, --ph, déclaré sur le champ lui-même — là, --t1 est celui de la surface où le champ est posé (la page,
+     une fenêtre, ou le menu latéral qui redéfinit --t1 à son encre). Il vaut l'encre du texte à 80 % la nuit (les surfaces
+     de champ y sont des bleus vifs à mi-luminance : 5,3:1 au pire mesuré) et à 68 % le jour (≥ 6:1 ; 80 % y donnait 9:1, presque
+     le texte saisi) : il suit la teinte et la surface sans réglage par écran, et il reste plus pâle que le texte saisi (--t1 plein).
+     `opacity:1` parce que Firefox estompe encore l'indice par-dessus sa couleur. */
+  input,textarea{--ph:color-mix(in srgb,var(--t1) 80%,transparent);}
+  html[data-theme="light"] input,html[data-theme="light"] textarea{--ph:color-mix(in srgb,var(--t1) 68%,transparent);}
+  input::placeholder,textarea::placeholder{color:var(--ph);opacity:1;}
   /* C'est le CONTENANT qui s'allume au focus (voir :focus-within ci-dessus) : le champ ne doit
      pas poser son propre anneau par-dessus, sinon on en voit deux emboîtés — mesuré, on lisait
      bien un rectangle vert à l'intérieur de la pilule grise.
