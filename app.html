@@ -16522,6 +16522,9 @@ function rendreVueSure(view,remonter){
      posée depuis `go()` sur une minuterie était balayée — mesuré absente à 100, 300, 600,
      1 200 et 2 500 ms. Ici on est juste après l'écriture réelle de l'écran. */
   try{ multiProposer(view); }catch(_e){}
+  /* ⛔ k01 (r5#5) : sur un écran court, la messagerie s'ouvre sur sa conversation — APRÈS multiProposer (la barre « Reprendre » allonge
+     le haut de page), et seulement pour une vraie navigation. */
+  if(remonter&&view==='messagerie'){ try{ msgAmener(); }catch(_e){} }
   /* Le gabarit des listes se pose ici, pour la meme raison que la barre ci-dessus :
      c'est la seule fonction qui ecrit vraiment l'ecran. */
   try{ segInit($('content')); segObserver(); }catch(_e){}
@@ -40028,7 +40031,7 @@ views.messagerie=function(){
   const list=msgThreads();
   const chips=tabs.map(tab=>{ const n=msgNonLus(tab.k); const active=msgSel===tab.k;
     const ava=tab.g?grpAvatar(tab.g,18):`<span style="font-size:13px">${tab.ic}</span>`;
-    return `<div class="chip ${active?'active':''}" style="display:inline-flex;align-items:center;gap:6px" onclick="msgSel='${tab.k}';views.messagerie()">${ava}${esc(tab.lbl)}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`; }).join('');
+    return `<div class="chip ${active?'active':''}" style="display:inline-flex;align-items:center;gap:6px" onclick="msgSel='${tab.k}';views.messagerie();msgAmener()">${ava}${esc(tab.lbl)}${n?` <span class="tag" style="font-size:10px">${n}</span>`:''}</div>`; }).join('');
   const curTab=tabs.find(t=>t.k===msgSel)||tabs[0];
   const isGroup=msgSel.startsWith('group:'); const gid=isGroup?msgSel.slice(6):'';
   const grp=isGroup?db.groupes.find(x=>x.id===gid):null; const mem=isGroup?groupUsers(grp):[];
@@ -40101,6 +40104,29 @@ function msgAjusterVeiller(){
   if(_msgVeille) return; _msgVeille=true;
   try{ window.addEventListener('resize',msgAjusterPlus); window.addEventListener('orientationchange',msgAjusterPlus); }catch(e){}
   try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(msgAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
+}
+/* ⛔ k01 (r5#5, relecture) — QUAND LA LISTE EST CACHÉE PAR CE QUI EST COLLÉ EN BAS, LA CONVERSATION SE MONTRE À L'OUVERTURE.
+   Le bloc `@media (max-height:420px)` donne à la liste l'écran entier, mais le haut de page (200 à 230 px, 75 de plus avec « Reprendre »)
+   passe avant elle : à scroll 0 elle ne paraissait que de 0 à 72 px (36 px à 667×375, 0 avec « Reprendre ») — le défaut d'origine,
+   rendu seulement atteignable. Même cause, un téléphone debout de 667 px avec « Reprendre » : 95 px visibles pour 138. On amène donc la
+   page en bas, là où la liste finit juste au-dessus de la rangée de saisie, À L'ENTRÉE dans la rubrique (`remonter` vrai dans
+   `rendreVueSure`, après `multiProposer` — une vraie navigation, jamais le rafraîchissement d'après un enregistrement ni la minuterie,
+   qui garderaient la place de la personne) et quand elle CHOISIT une conversation (la pastille qu'elle vient de toucher est au bout de
+   son doigt, pas la liste). La condition se MESURE au lieu de se deviner par la taille de l'écran : le bas de la liste passe-t-il sous la
+   rangée de saisie collée ou sous la barre d'onglets ? Sur un Mac, un iPad ou un téléphone debout sans barre « Reprendre », non : rien ne
+   bouge. Les pastilles restent une remontée de page plus haut — la liste de conversations est un choix, la conversation est le but. */
+function msgAmener(){
+  try{
+    const ml=$('msg-list'), sa=$('msg-saisie'); if(current!=='messagerie'||!ml||!sa) return false;
+    let couvre=sa.getBoundingClientRect().top; const tb=$('tabbar');
+    if(tb&&getComputedStyle(tb).display!=='none') couvre=Math.min(couvre,tb.getBoundingClientRect().top);
+    if(ml.getBoundingClientRect().bottom<=couvre+4) return false;   // la liste se voit en entier : on ne touche pas à la page
+    const bas=()=>{ if(current==='messagerie') window.scrollTo(0,document.documentElement.scrollHeight); };
+    bas(); const y0=window.scrollY;
+    /* la mesure de msgAjuster et l'entrée de la page peuvent encore bouger la hauteur : on reprend UNE fois, sauf si la personne a déjà défilé */
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ if(Math.abs((window.scrollY||0)-(y0||0))<2) bas(); }));
+    return true;
+  }catch(e){ return false; }
 }
 let msgPhoto='';
 async function msgAddPhoto(e){ const f=e.target.files&&e.target.files[0]; if(!f)return; const d=await compressImage(f,1280,0.7); if(d){ msgPhoto=d; const pv=$('msg-photo-prev'); if(pv){ pv.style.display='flex'; pv.innerHTML=`<img src="${d}" style="height:58px;border-radius:8px"><button class="btn ghost sm" onclick="msgClearPhoto()">Retirer la photo</button>`; msgAjusterPlus(); } } e.target.value=''; }
