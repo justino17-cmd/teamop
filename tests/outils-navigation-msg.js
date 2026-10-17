@@ -1,4 +1,4 @@
-/* ══ OUTILS COMMUNS DES BANCS DE NAVIGATION D'OP MESSAGES (tests/test-1530 à 1534) ═════════════════════════════════════════
+/* ══ OUTILS COMMUNS DES BANCS DE NAVIGATION D'OP MESSAGES (tests/test-2530 à 1534) ═════════════════════════════════════════
  *
  * Ce fichier n'est PAS une suite (il ne s'appelle pas `test-*.js` : le compteur ne le lance pas).
  *
