@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e93b19614149';
+  const OPMSG_BUILD = '4347697c08db';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 217;
+  const OPMSG_VERSION = 218;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -77,8 +77,10 @@
      La vue existe toujours (ORDRE la garde : adresses « #reglages/… », notifications, bancs) — seuls le menu et la barre d'onglets la perdent. */
   let NAV = ORDRE.filter(k => k !== 'reglages');
   /* l'avatar qui mène au Profil, au bout du grand titre de chaque vue (téléphone et tablette en portrait ; au bureau, c'est la carte du bas de la barre latérale) */
+  /* l'index de couleur d'un avatar (0 à 5) : le MÊME pour la pastille de la barre, la grande photo du Profil et ce que les autres voient de la personne */
+  const avIndex = c => (((c && c.avatar) | 0) % 6 + 6) % 6;
   const pastilleMoi = () => '<a href="#reglages" class="moi-pastille presse" data-vue="reglages" aria-label="Mon profil et mes réglages" title="Mon profil et mes réglages">' +
-    '<span class="avatar av0 moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span><b class="moi-point" aria-hidden="true" hidden></b></a>';
+    '<span class="avatar av' + avIndex(MOI) + ' moi-av" aria-hidden="true"' + (MOI && blob(MOI.photo) ? ' style="background-image:url(&quot;' + esc(MOI.photo) + '&quot;)"' : '') + '>' + (MOI && !blob(MOI.photo) ? esc(MOI.initiales || '') : '') + '</span><b class="moi-point" aria-hidden="true" hidden></b></a>';
   /* les rubriques de Profil, dans l'ordre de la liste — la route n'accepte que celles-ci (« #reglages/confidentialite ») */
   const REG_SECTIONS = ['entreprise', 'confidentialite', 'notifications', 'contacts', 'lieux', 'appareils', 'stockage', 'compte', 'apropos'];
   const EPHEMERES = [[0, 'Désactivés'], [86400, '24 heures'], [604800, '7 jours'], [7776000, '90 jours']];
@@ -115,6 +117,9 @@
   const prenom = c => c.nom.split(' ')[0];
   /* la présence en mots : « En réunion » (dans une salle — 8 octobre 2026, « Ne pas déranger ») passe devant « En ligne » ; rien sinon */
   const presenceTexte = p => p && p.enReunion ? 'En réunion' : p && p.enLigne ? 'En ligne' : '';
+  /* ⛔ CE QU'ON LIT SOUS UN NOM : le STATUT que la personne a écrit (« Ce que tes contacts voient sous ton nom »), et la présence seulement quand il n'y en a pas. La présence passait avant :
+     tant que la personne était en ligne, personne ne lisait son statut. Le point de l'avatar dit déjà qu'elle est là. UNE fonction pour la fiche, la liste « Entreprise » et les membres d'un espace. */
+  const statutTexte = p => p ? (p.statut || presenceTexte(p)) : '';
   /* une conversation à plusieurs : un groupe, ou un CANAL d'espace (mêmes messages, même fil : le nom de l'auteur se montre) ; un canal se nomme « # nom » */
   const multi = c => !!c && (c.type === 'groupe' || c.type === 'canal' || c.type === 'reunion');
   const nomConv = c => (c.type === 'canal' ? '# ' : '') + c.nom;
@@ -126,8 +131,14 @@
   const blob = u => typeof u === 'string' && /^blob:https?:\/\/[A-Za-z0-9.:\[\]-]{1,80}\/[0-9a-fA-F-]{8,64}$/.test(u);
   /* une erreur DIT quelque chose : la phrase française du service si l'erreur en porte une, sinon la phrase de l'écran — jamais un message technique */
   const phrase = (e, defaut) => e && e.dit ? (typeof e.phrase === 'function' ? e.phrase() : e.message) : (defaut || 'Une erreur est survenue.');
+  /* ⛔ UNE SEULE FONCTION DIT UN REFUS QUE LE BLOCAGE PEUT CAUSER. Le service rend 404 « introuvable » à qui écrit, appelle ou ouvre une conversation avec quelqu'un qui l'a bloqué (voulu : un blocage est
+     SILENCIEUX), et api.js sert pour tout 404 « Introuvable (la conversation a peut-être été supprimée ou tu n'y es plus) » — une accusation fausse, et une invitation à insister. Tout geste qui ÉCRIT À
+     UNE PERSONNE (message, appel, ouverture d'une conversation, sondage, position, fiche, réaction…) passe donc par ici : « introuvable » dit la phrase NEUTRE du geste (`neutre`, jamais « bloqué »), tout
+     autre refus du service garde SA phrase, une erreur inconnue le repli (`defaut`, la phrase neutre à défaut). ENTRER dans une salle qui existe, lire une fiche… gardent `phrase()` : là, « introuvable »
+     dit vrai. Un nouveau geste qui écrit à quelqu'un passe par ici ou n'existe pas (tests/test-2453.js). */
+  const phraseSilence = (e, neutre, defaut) => e && e.code === 'introuvable' ? neutre : phrase(e, defaut || neutre);
   /* l'avatar d'une photo choisie s'écrit en style direct : l'adresse est un blob: fabriqué par la page, vérifié, puis échappé */
-  const avatar = c => '<span class="avatar av' + (((c.avatar | 0) % 6 + 6) % 6) + (c.enReunion ? ' en-ligne en-reunion' : c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enReunion ? '<i class="presence reunion" title="En réunion"></i>' : c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
+  const avatar = c => '<span class="avatar av' + avIndex(c) + (c.enReunion ? ' en-ligne en-reunion' : c.enLigne ? ' en-ligne' : '') + '"' + (blob(c.photo) ? ' style="background-image:url(' + esc(c.photo) + ')"' : '') + ' aria-hidden="true">' + (blob(c.photo) ? '' : c.type === 'reunion' ? icone('i-agenda') : esc(c.initiales || '')) + (c.enReunion ? '<i class="presence reunion" title="En réunion"></i>' : c.enLigne ? '<i class="presence" title="En ligne"></i>' : '') + '</span>';
 
   /* les dates : l'heure du jour, « Hier », le jour de la semaine, puis la date — tout se calcule sur l'horloge de l'appareil */
   const FMT_HEURE = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -1358,7 +1369,13 @@
     const id = cible || etat.conv; if (!id) return false;
     if (id === etat.conv) etat.forcerBas = true;
     try { await source.envoyer(id, brouillon); return true; }
-    catch (e) { etat.forcerBas = false; avis(e && e.dit ? phrase(e) : (MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.')); return false; }   // ⛔ un refus du service se dit avec SA phrase (« réessaie dans 40 s ») : seule une erreur de l'aperçu garde les trois phrases d'avant
+    catch (e) {
+      etat.forcerBas = false;
+      /* ⛔ « introuvable » À L'ENVOI ne dit ni suppression ni « tu n'y es plus » : la conversation peut très bien exister, et c'est justement ce qu'un blocage SILENCIEUX (voulu) ne doit pas révéler.
+         Ni accusation fausse, ni invitation à insister : le message n'est pas parti, c'est tout. */
+      avis(phraseSilence(e, 'Ce message n\'a pas pu être remis.', MESSAGES_ERREUR[e && e.code] || 'Le message n\'a pas pu être envoyé.'));
+      return false;
+    }   // ⛔ un refus du service se dit avec SA phrase (« réessaie dans 40 s ») : seule une erreur de l'aperçu garde les trois phrases d'avant
   }
   /* ── CONFIRMER L'ENVOI (côté pro, 7 octobre 2026 : « confirmer l'envoi de votre message pour éviter les envois par erreur ») ──
      Le réglage du compte (Profil) : « Jamais », « Groupes et canaux » (là où une erreur se lit à plusieurs), « Partout ». Il ne vaut que pour un compte pro, et que pour le TEXTE
@@ -1395,7 +1412,7 @@
     let ok;
     if (ctx && ctx.type === 'modif') {
       try { await source.modifier(id, ctx.mid, t); ok = true; }
-      catch (e) { ok = false; avis(phrase(e, 'La modification n\'a pas pu être enregistrée.')); }
+      catch (e) { ok = false; avis(phraseSilence(e, 'La modification n\'a pas pu être enregistrée.')); }
     } else {
       ok = await envoi(Object.assign(ctx && ctx.type === 'reponse' ? { texte: t, reponse: ctx.mid } : { texte: t }, x.cites.length ? { mentions: x.cites } : {}), id);
       if (ok) mentionUI.choisis.delete(id);
@@ -1697,7 +1714,7 @@
       if (etat.conv === conv) { $('saisie').value = ''; etat.brouillons[conv] = ''; ajusterSaisie(); majBoutons(); }
       mot('Programmé pour ' + jourEtHeure(t, tz));
       chargerProgrammes(conv);
-    } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être programmé.')); }
+    } catch (er) { avis(phraseSilence(er, 'Le message n\'a pas pu être programmé.')); }
   }
   /* les messages programmés de CETTE conversation, sous le fil : une bulle en pointillés, l'heure prévue, « Annuler l'envoi ». Ils ne sont qu'à moi : personne d'autre ne les voit. */
   const progs = { conv: null, liste: [], jeton: 0 };
@@ -1919,7 +1936,7 @@
       const mid = cl.dataset.sondClore, m = trouverMessage(mid); if (!m || !conv) return true;
       if (!sondClore || sondClore.mid !== mid || Date.now() - sondClore.t > 5000) { sondClore = { mid, t: Date.now() }; rafraichirConv(); setTimeout(() => { if (sondClore && sondClore.mid === mid) { sondClore = null; rafraichirConv(); } }, 5000); return true; }
       sondClore = null;
-      source.sondageClore(conv, m.seq).then(() => mot('Sondage clos'), er => avis(phrase(er, 'Le sondage n\'a pas pu être clos.')));
+      source.sondageClore(conv, m.seq).then(() => mot('Sondage clos'), er => avis(phraseSilence(er, 'Le sondage n\'a pas pu être clos.')));
       return true;
     }
     const cp = e.target.closest('[data-pos-copier]');
@@ -1940,11 +1957,11 @@
         fw.removeAttribute('aria-disabled');
         if (r.resultat === 'envoyee') mot('Invitation : écris ton message');
         pousser({ vue: 'messages', conv: r.conv, feuille: false, photo: null, appel: null });
-      }, er => { fw.removeAttribute('aria-disabled'); avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.')); });
+      }, er => { fw.removeAttribute('aria-disabled'); avis(phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.')); });
       return true;
     }
     const fe = e.target.closest('[data-fiche-ecrire]');
-    if (fe) { source.ouvrirDirecte(fe.dataset.ficheEcrire).then(c => pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }), er => avis(phrase(er, 'La conversation n\'a pas pu s\'ouvrir.'))); return true; }
+    if (fe) { source.ouvrirDirecte(fe.dataset.ficheEcrire).then(c => pousser({ vue: 'messages', conv: c, feuille: false, photo: null, appel: null }), er => avis(phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.'))); return true; }
     return false;
   }
   /* voter : une réponse — toucher un autre choix le remplace, toucher le sien le retire ; plusieurs — chaque touche coche ou décoche */
@@ -1955,7 +1972,7 @@
     const liste = s.regles.multiple ? (mes.has(idx) ? s.mesChoix.filter(x => x !== idx) : s.mesChoix.concat([idx])) : (mes.has(idx) ? [] : [idx]);
     sondEnVol.add(mid); rafraichirConv();
     try { await source.sondageVoter(conv, m.seq, liste); }
-    catch (er) { avis(phrase(er, 'Ton vote n\'a pas pu partir.')); }
+    catch (er) { avis(phraseSilence(er, 'Ton vote n\'a pas pu partir.')); }
     sondEnVol.delete(mid); rafraichirConv();
   }
   function copierTexte(t, ok) {
@@ -2929,7 +2946,8 @@
     let c = null, refus = null; try { c = await (entrer ? entrer() : source.demarrerAppel(spec)); } catch (e) { c = null; refus = e; }          // `entrer` : on ENTRE dans une salle qui existe déjà (la bannière d'une conversation, une réunion, un lien d'invité)
     etat.appelDemarre = false;
     if (!c) {
-      const dit = phrase(refus, 'L\'appel n\'a pas pu être lancé.');
+      /* ⛔ LANCER un appel vers quelqu'un qui a bloqué rend 404 « introuvable » (routes-appels.js) : la phrase neutre. ENTRER dans une salle qui existe (`entrer`) : « introuvable » dit vrai, la phrase générale reste. */
+      const dit = entrer ? phrase(refus, 'L\'appel n\'a pas pu être lancé.') : phraseSilence(refus, 'L\'appel n\'a pas pu être lancé.');
       mot(dit);                                                                   // (un refus du service se DIT, jamais une phrase générique)
       if (depuisFeuille) { montrerRefusFeuille(dit); erreurInfo(dit); }       // ⛔ …et reste LISIBLE dans la feuille « Nouvel appel » qui reste ouverte : le mot s'efface en 2,4 s, la personne n'a rien lu (relecture, T3)
       return false;
@@ -3622,12 +3640,14 @@
   const refusBloc = t => '<p class="info-erreur" role="alert">' + esc(t) + '</p><button type="button" class="mini reg-relire" data-reg-relire="1">Réessayer</button>';
   function peindreMoi() {
     const ph = blob(MOI.photo);
-    document.querySelectorAll('.moi-av').forEach(a => { a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : ''; });
+    document.querySelectorAll('.moi-av').forEach(a => { a.textContent = ph ? '' : MOI.initiales; a.style.backgroundImage = ph ? 'url("' + MOI.photo + '")' : ''; a.className = a.className.replace(/\bav\d\b/, 'av' + avIndex(MOI)); });      // ⛔ la couleur de la personne, pas `av0` en dur : la même que la grande photo du Profil
     $('moi-nom').textContent = MOI.nom;
     /* ⛔ MA présence : coupée, la barre ne dit plus « Disponible » avec un point vert pendant que personne ne me voit (relecture du testeur). L'aperçu n'a pas ce réglage : `presence` y est absente. */
     const masquee = MOI.presence === false;
     $('moi-statut').classList.toggle('masque', masquee);
-    $('moi-statut-texte').textContent = masquee ? 'Présence masquée' : 'Disponible';
+    /* ⛔ MON statut (« Ce que tes contacts voient sous ton nom ») remplace « Disponible » : la personne le lit là où elle le tient — la présence coupée reste dite en premier */
+    $('moi-statut-texte').textContent = masquee ? 'Présence masquée' : (MOI.statut || 'Disponible');
+    $('moi-statut-texte').title = masquee ? '' : (MOI.statut || '');
   }
   function peindreProfilReglage() {
     const c = $('reg-profil'); if (!c || !MOI) return;
@@ -4045,10 +4065,12 @@
     peindreProfil(p);
   }
   function peindreProfil(p) {
-    const ph = blob(p.photo);
+    const ph = blob(p.photo), ident = CAP.identifiants && typeof source.monIdentifiant === 'function' ? source.monIdentifiant() : null;
     $('info-corps').innerHTML = '<p class="info-erreur" id="info-erreur" role="alert" hidden></p>' +
       '<div class="profil-photo">' + avatar(p) + '<div class="info-actions"><button type="button" class="mini" data-act="profil-photo">' + (ph ? 'Changer la photo' : 'Ajouter une photo') + '</button>' + (ph ? '<button type="button" class="mini danger" data-act="profil-photo-retirer">Retirer</button>' : '') + '</div></div>' +
-      '<label class="champ-profil"><span>Prénom</span><input id="pf-prenom" type="text" maxlength="60" autocomplete="given-name" value="' + esc(p.champs.prenom) + '"></label>' +
+      '<label class="champ-profil"><span>Prénom</span><input id="pf-prenom" type="text" maxlength="60" autocomplete="given-name" aria-describedby="pf-prenom-aide" value="' + esc(p.champs.prenom) + '"></label>' +
+      /* ⛔ l'identifiant suit le prénom : « Ben#5922 » devient « Benoît#5922 » et l'ancien ne retrouve plus personne — la feuille le DIT avant qu'on enregistre (une phrase, pas d'aperçu) */
+      '<p class="info-note" id="pf-prenom-aide">' + (ident ? 'Ton identifiant (' + esc(ident) + ') suit ton prénom : si tu le changes, ton identifiant change aussi, et l\'ancien ne te retrouve plus.' : 'Ton identifiant suit ton prénom : si tu le changes, ton identifiant change aussi, et l\'ancien ne te retrouve plus.') + '</p>' +
       '<label class="champ-profil"><span>Nom</span><input id="pf-nom" type="text" maxlength="60" autocomplete="family-name" value="' + esc(p.champs.nom) + '"></label>' +
       '<label class="champ-profil"><span>Statut</span><input id="pf-statut" type="text" maxlength="140" autocomplete="off" placeholder="Ce que tes contacts voient sous ton nom" value="' + esc(p.champs.statut) + '"></label>' +
       '<div class="info-actions"><button type="button" class="mini" data-act="profil-enregistrer">Enregistrer</button></div>';
@@ -4126,7 +4148,7 @@
   /* LE BUREAU : un écran large piloté à la souris — la même requête que la couche CSS « 20. LE BUREAU » (une seule définition des deux côtés) */
   const BUREAU_MQ = window.matchMedia ? window.matchMedia('(min-width: 900px) and (hover: hover) and (pointer: fine)') : null;
   const auBureau = () => !!(BUREAU_MQ && BUREAU_MQ.matches);
-  const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const vcNorm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ');      // (un double espace du clavier mobile ne fait pas croire que le contact n'existe pas)
   function rendreVueContacts() {
     const sec = $('vue-contacts'); if (!sec || !CAP.identifiants) return;
     if (!$('vc-corps')) {
@@ -4149,6 +4171,11 @@
       if (vcCat() === 'entreprise' && !etat.vcEsp) chargerVcEspaces();
     }
     peindreVcSegment();
+    /* ⛔ la personne choisie dans le volet droit vaut pour UN côté : passé de Perso à Pro (ou l'inverse), sa fiche ne reste pas — avec ses gestes Message / Appeler actifs — à côté d'une
+       liste qui ne la contient plus. Le côté se compare au côté du DERNIER rendu (ici, pas dans `changerMode` : Contacts peut être fermé quand on bascule — le rendu suivant le voit). */
+    const coteVu = modesActifs() ? etat.mode : '';
+    if (etat.vcCoteVu !== undefined && etat.vcCoteVu !== coteVu) etat.vcSel = null;
+    etat.vcCoteVu = coteVu;
     const corps = $('vc-corps');
     const garde = document.activeElement && corps.contains(document.activeElement) ? document.activeElement : null;
     const cleFocus = garde && garde.dataset ? (garde.dataset.act || '') + '|' + (garde.dataset.uid || '') : '';
@@ -4158,7 +4185,7 @@
     const D = demandesEtat, R = cat === 'tous' ? (D && D.recues || []).filter(garder) : [], E = cat === 'tous' ? (D && D.envoyees || []).filter(garder) : [];
     const ligne = (d, sous, actions) => '<div class="contact avec-actions">' + avatar(d) + '<span class="contact-texte"><span class="contact-nom">' + esc(d.nom) + '</span><span class="contact-role">' + esc(sous) + '</span></span><span class="contact-actions">' + actions + '</span></div>';
     let h = '';
-    if (cat !== 'tous') { corps.innerHTML = rendreVcCategorie(cat, brut, q); vcRendreFocus(corps, cleFocus); return; }
+    if (cat !== 'tous') { corps.innerHTML = rendreVcCategorie(cat, brut, q); vcRendreFocus(corps, cleFocus); peindreVcFiche(); return; }      // ⛔ la fiche se repeint dans TOUTES les catégories : choisir un favori ou un collègue change le volet droit, pas seulement dans « Tous »
     if (!D) h += '<p class="vide vc-attente">Chargement des demandes…</p>';
     else if (D.erreur && !D.recues) h += '<div class="carte carte-pad"><p class="info-note">Tes demandes de contact sont momentanément indisponibles.</p><button type="button" class="mini" data-act="vc-relire">Réessayer</button></div>';
     else if (R.length) {                // (15 octobre 2026, « plus simple ») la rubrique des demandes ne paraît que s'il y en a : plus de carte « Aucune demande en attente »
@@ -4205,11 +4232,11 @@
     const estContact = (CONTACTS || []).some(x => x.id === p.id), uid = esc(p.id);
     const geste = (fiche, ic, txt, extra) => '<button type="button" class="vc-action presse" data-fiche="' + fiche + '" data-uid="' + uid + '"' + (extra || '') + '><span class="vc-action-rond">' + ic + '</span><span>' + txt + '</span></button>';
     return '<div class="vc-fiche-tete">' + avatar(p) + '<h2 class="vc-fiche-nom">' + esc(p.nom) + '</h2>' +
-      (presenceTexte(p) || p.statut || p.role ? '<p class="vc-fiche-statut">' + esc(presenceTexte(p) || p.statut || p.role) + '</p>' : '') + '</div>' +
+      (statutTexte(p) || p.role ? '<p class="vc-fiche-statut">' + esc(statutTexte(p) || p.role) + '</p>' : '') + '</div>' +
       '<div class="vc-fiche-actions">' + geste('ecrire', icone('i-chat'), 'Message') +
         (CAP.appels ? geste('appel', icone('i-phone'), 'Appeler', ' data-video="0"') + geste('appel', icone('i-video'), 'Vidéo', ' data-video="1"') : '') +
         (CAP.reunions ? geste('programmer', icone('i-agenda'), 'Réunion') : '') +
-        (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', p.favori ? 'Favori' : 'Favoris', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
+        (estContact && CAP.favoris && typeof source.favori === 'function' ? geste('favori', '<svg class="ic" aria-hidden="true"><use href="#i-etoile"/></svg>', 'Favori', ' aria-pressed="' + (p.favori ? 'true' : 'false') + '"') : '') +
       '</div>';
   }
   /* la réunion à venir d'une fiche contact : le jour, puis la plage (qui dit sa saison le dimanche du changement d'heure) */
@@ -4218,6 +4245,7 @@
     if (typeof source.enCommun !== 'function') return '';
     const e = commun.cache.get(p.id), d = e && e.d;
     if (!d) {
+      if (e && e.absent) return '';
       if (e && e.panne) return '<div class="rubrique"><span>En commun</span></div><div class="carte"><p class="fc-note" role="alert">' + esc(e.panne) + '</p>' +
         '<button type="button" class="fc-ligne fc-agir presse" data-fiche="relire" data-uid="' + esc(p.id) + '"><span class="fc-icone" aria-hidden="true">' + icone('i-agenda') + '</span><span class="fc-texte"><span class="fc-titre">Réessayer</span></span></button></div>';
       const sq = '<div class="fc-squelette" aria-hidden="true"><i></i><span><b></b><b></b></span></div>';
@@ -4225,9 +4253,11 @@
     }
     let h = '';
     if (CAP.reunions) {
+      /* ⛔ la MÊME séparation que l'Agenda (`duCote(coteReu(r))`) : une réunion rangée Pro ne se liste pas côté Perso — la toucher ouvrait la réunion Pro depuis Perso. Le compteur compte ce qui est LISTÉ. */
+      const reunions = d.reunions.filter(r => duCote(coteReu(r)));
       /* (15 octobre 2026, « plus simple ») sans réunion prévue, la rubrique s'appelle « Réunions » et ne dit qu'une chose : en programmer une — plus de phrase « Aucune réunion… » */
-      h += '<div class="rubrique"><span>' + (d.reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (d.reunions.length ? '<span>' + d.reunions.length + '</span>' : '') + '</div><div class="carte">';
-      h += d.reunions.map(r => {
+      h += '<div class="rubrique"><span>' + (reunions.length ? 'Réunions à venir ensemble' : 'Réunions') + '</span>' + (reunions.length ? '<span>' + reunions.length + '</span>' : '') + '</div><div class="carte">';
+      h += reunions.map(r => {
         const o = r.prochaine || { debut: r.debut, fin: r.fin }, maintenant = Date.now(), enCours = o.debut <= maintenant && o.fin > maintenant;
         const sous = (enCours ? '<span class="fc-en-cours">En cours</span> · ' : '') + esc(quandFiche(o)) + '<br>' + esc(sonStatutTxt(r, p));
         return '<button type="button" class="fc-ligne presse" data-fiche="reunion" data-id="' + esc(r.id) + '" data-uid="' + esc(p.id) + '"><span class="fc-date" aria-hidden="true"><small>' + esc(FMT_MOIS_CAL.format(o.debut).replace('.', '')) + '</small><b>' + new Date(o.debut).getDate() + '</b></span>' +
@@ -4248,11 +4278,16 @@
   async function chargerCommun(uid, force) {
     if (typeof source.enCommun !== 'function' || !uid) return;
     const e = commun.cache.get(uid);
-    if (!force && e && e.d && Date.now() - e.t < 60000) return;
+    if (!force && e && (e.d || e.absent) && Date.now() - e.t < 60000) return;
     if (commun.enCours.has(uid)) return commun.enCours.get(uid);
     const lecture = (async () => {
       try { commun.cache.set(uid, { t: Date.now(), d: await source.enCommun(uid) }); }
-      catch (er) { if (!(e && e.d)) commun.cache.set(uid, { t: 0, d: null, panne: phrase(er, 'Ce que vous avez en commun n\'a pas pu être lu.') }); }
+      catch (er) {
+        /* ⛔ « introuvable » : la personne n'est plus visible (compte supprimé, ou un blocage SILENCIEUX — voulu, il ne doit rien révéler). Ni « En commun » en erreur, ni « Réessayer » qui ne peut jamais marcher :
+           la fiche ne montre rien de plus, et la lecture n'est pas refaite à chaque affichage (une minute de calme). Une vraie panne (réseau, 5xx) garde son message et son bouton. */
+        if (er && er.code === 'introuvable') commun.cache.set(uid, { t: Date.now(), d: null, absent: true });
+        else if (!(e && e.d)) commun.cache.set(uid, { t: 0, d: null, panne: phrase(er, 'Ce que vous avez en commun n\'a pas pu être lu.') });
+      }
       finally { commun.enCours.delete(uid); }
       peindreCommun(uid);
     })();
@@ -4331,7 +4366,7 @@
         try { await source.favori(uid, oui); mot(oui ? 'Ajouté aux favoris' : 'Retiré des favoris'); } finally { b.disabled = false; }
         if (etat.groupe.ouvert && etat.groupe.mode === 'personne') rendrePersonne();
       }
-    } catch (er) { mot(phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }
+    } catch (er) { mot(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Ça n\'a pas pu se faire. Réessaie.') : phrase(er, 'Ça n\'a pas pu se faire. Réessaie.')); }      // ⛔ pas « supprimée ou tu n'y es plus » : un blocage silencieux ne se révèle pas
   });
   function vcRendreFocus(corps, cleFocus) {
     if (cleFocus) { const [a, u] = cleFocus.split('|'); const b = Array.from(corps.querySelectorAll('[data-act]')).find(x => x.dataset.act === a && (x.dataset.uid || '') === u); if (b) b.focus({ preventScroll: true }); }
@@ -4396,7 +4431,14 @@
         '<span class="contact-texte"><span class="contact-nom">Nouveau groupe</span><span class="contact-role">Choisis des contacts et donne-lui un nom</span></span></button></div>';
       if (G.length) h += '<div class="rubrique"><span>Mes groupes</span><span>' + G.length + '</span></div><div class="carte">' + G.map(g => '<button type="button" class="contact presse" data-act="vc-groupe" data-id="' + esc(g.id) + '">' +
         avatar(g) + '<span class="contact-texte"><span class="contact-nom">' + esc(g.nom) + '</span></span><svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
-      else h += q ? vcAucun(brut) : '<div class="carte carte-pad"><p class="info-note">Tu ne fais partie d\'aucun groupe pour l\'instant.</p></div>';
+      else if (q) h += vcAucun(brut);
+      else {
+        /* ⛔ côté Perso (ou Pro), « aucun groupe » ne dit pas que la personne n'en a pas : ses groupes peuvent être rangés de l'AUTRE côté (un groupe de collègues passe en Pro tout seul).
+           Comme « Aucune conversation Perso pour l'instant » dans Messages : la phrase nomme le côté, et renvoie vers l'autre quand il en a. */
+        const chez = modesActifs() ? (etat.conversations || []).filter(c => c.type === 'groupe' && !dansMode(c)).length : 0, ici = etat.mode === 'pro' ? 'Pro' : 'Perso', ailleurs = etat.mode === 'pro' ? 'Perso' : 'Pro';
+        h += '<div class="carte carte-pad"><p class="info-note">' + (!modesActifs() ? 'Tu ne fais partie d\'aucun groupe pour l\'instant.'
+          : 'Aucun groupe ' + ici + ' pour l\'instant.' + (chez ? ' Tu en as ' + chez + ' côté ' + ailleurs + '.' : '')) + '</p></div>';
+      }
       return h;
     }
     /* Entreprise : les collègues de chaque espace, lus au service. Rien ne s'affiche avant d'avoir été LU : une panne le dit, jamais « aucun collègue ». */
@@ -4413,8 +4455,8 @@
       h += '<div class="rubrique"><span>' + esc(e.nom) + '</span><span>' + (L ? L.length || '' : '') + '</span></div>';
       if (!L) h += '<p class="vide">' + (S.panne[e.id] ? esc(S.panne[e.id]) : 'Chargement…') + '</p>';
       else if (!L.length) h += '<div class="carte carte-pad"><p class="info-note">Personne d\'autre dans cet espace pour l\'instant.</p></div>';
-      else h += '<div class="carte">' + L.map(p => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '">' + avatar(p) +
-        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (presenceTexte(p) || p.statut ? '<span class="contact-role">' + esc(presenceTexte(p) || p.statut) + '</span>' : '') + '</span>' +
+      else h += '<div class="carte">' + L.map(p => '<button type="button" class="contact presse" data-act="vc-ecrire" data-uid="' + esc(p.id) + '"' + (auBureau() && etat.vcSel === p.id ? ' aria-current="true"' : '') + '>' + avatar(p) +
+        '<span class="contact-texte"><span class="contact-nom">' + esc(p.nom) + '</span>' + (statutTexte(p) ? '<span class="contact-role">' + esc(statutTexte(p)) + '</span>' : '') + '</span>' +
         '<svg class="vc-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>').join('') + '</div>';
     }
     return vus ? h : vcAucun(brut);
@@ -4793,7 +4835,7 @@
         remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
       }
       if (etat.groupe.ouvert && etat.groupe.mode === 'convinfo' && !/lien|copier|quitter/.test(act)) rendreConvInfo();
-    } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
+    } catch (er) { erreurInfo(act === 'ecrire' ? phraseSilence(er, 'Cette conversation n\'a pas pu s\'ouvrir.', 'Cette action n\'a pas pu se faire.') : phrase(er, 'Cette action n\'a pas pu se faire.')); }
   });
   /* Entrée dans le champ de l'identifiant : « Voir » (le clavier d'un téléphone dit « Rechercher », enterkeyhint) */
   $('info-corps').addEventListener('keydown', e => {
@@ -4919,7 +4961,7 @@
     if (agit) act.push('<button type="button" class="mini danger" data-act="esp-retirer" data-uid="' + esc(p.id) + '">Retirer</button>');
     if (d.proprio && !p.moi) act.push('<button type="button" class="mini danger" data-act="esp-transferer" data-uid="' + esc(p.id) + '">Passer la propriété</button>');
     return '<div class="contact' + (act.length ? ' avec-actions' : '') + '" data-nom="' + esc(norme(p.nom)) + '">' + avatar(p) + '<span class="contact-texte"><span class="contact-nom">' + esc(p.moi ? 'Vous' : p.nom) +
-      (p.proprio ? '<span class="badge-admin">Propriétaire</span>' : p.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (presenceTexte(p) || p.statut ? '<span class="contact-role">' + esc(presenceTexte(p) || p.statut) + '</span>' : '') + '</span>' +
+      (p.proprio ? '<span class="badge-admin">Propriétaire</span>' : p.role === 'admin' ? '<span class="badge-admin">Admin</span>' : '') + '</span>' + (statutTexte(p) ? '<span class="contact-role">' + esc(statutTexte(p)) + '</span>' : '') + '</span>' +
       (act.length ? '<span class="contact-actions">' + act.join('') + '</span>' : '') + '</div>';
   }
   /* le champ de la feuille FILTRE la liste reçue (accents et casse ignorés) ; il ne cherche nulle part ailleurs */
@@ -5299,7 +5341,7 @@
     const mid = etat.menu.mid, id = etat.conv, m = trouverMessage(mid);
     const r = e.target.closest('[data-menu-reac]'), a = e.target.closest('[data-menu]');
     if (!m || !id || (!r && !a)) return;
-    if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); masquerAvis(); } catch (er) { avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
+    if (r) { fermerMenu(); try { await source.reagir(id, mid, r.dataset.menuReac); masquerAvis(); } catch (er) { avis(phraseSilence(er, 'La réaction n\'a pas pu être enregistrée.')); } return; }
     const act = a.dataset.menu;
     if (act === 'supprimer') {                  // « Supprimer… » : le choix — et « pour tous » n'y demande plus rien, ce choix ÉTAIT sa seconde touche
       $('menu-msg').innerHTML = '<p class="menu-question">Supprimer ce message ?</p><button type="button" class="menu-action danger" data-menu="supprimer-moi">Supprimer pour moi</button><button type="button" class="menu-action danger" data-menu="supprimer-tous" data-pret="1">Supprimer pour tous</button><button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
@@ -5322,7 +5364,7 @@
     else if (act === 'suivi') { const pc = pieceDe(m); if (pc) { declencheur = null; ouvrirFeuille('suivi:' + pc); } }
     else if (act === 'transferer') { if (transferable(m)) { declencheur = null; ouvrirFeuille('transferer:' + m.seq); } }
     else if (act === 'modifier') { etat.contexte = { type: 'modif', mid, nom: '', texte: (m.texte || '').replace(/\s+/g, ' ').slice(0, 80) }; majContexte(); $('saisie').value = m.texte || ''; ajusterSaisie(); majBoutons(); $('saisie').focus({ preventScroll: true }); }
-    else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phrase(er, 'Le message n\'a pas pu être supprimé.')); } }
+    else if (act === 'supprimer-moi' || act === 'supprimer-tous') { try { await source.supprimer(id, mid, act === 'supprimer-moi' ? 'moi' : 'tous'); masquerAvis(); } catch (er) { avis(phraseSilence(er, 'Le message n\'a pas pu être supprimé.')); } }
   });
   $('menu-msg').addEventListener('keydown', e => {
     if (e.key !== 'Tab') return;
@@ -5335,7 +5377,7 @@
     const p = e.target.closest('[data-actions]');
     if (p) { ouvrirMenuMessage(p.dataset.actions, p); return; }
     const r = e.target.closest('[data-reagir]');
-    if (r && etat.conv) source.reagir(etat.conv, r.dataset.reagir, r.dataset.emoji).then(masquerAvis, er => avis(phrase(er, 'La réaction n\'a pas pu être enregistrée.')));
+    if (r && etat.conv) source.reagir(etat.conv, r.dataset.reagir, r.dataset.emoji).then(masquerAvis, er => avis(phraseSilence(er, 'La réaction n\'a pas pu être enregistrée.')));
   });
   $('conv-messages').addEventListener('contextmenu', e => {
     if (!CAP.actionsMessage) return;
@@ -7303,7 +7345,7 @@
     G.tEnvoi = false;
     const ouverte = etat.groupe === G && G.ouvert;
     if (err || !Array.isArray(r) || !r.length) {
-      const t = err && err.code === 'message_inconnu' ? 'Ce message n\'est plus là : il a peut-être été supprimé.' : phrase(err, 'Le message n\'a pas pu être transféré.');
+      const t = err && err.code === 'message_inconnu' ? 'Ce message n\'est plus là : il a peut-être été supprimé.' : phraseSilence(err, 'Le message n\'a pas pu être transféré.');
       if (ouverte) { montrerErreurTransfert(t); synchroFeuille(); } else avis(t);
       return;
     }
@@ -7371,7 +7413,7 @@
     try {
       await source.envoyerSondage(conv, { question: q, choix, regles: { multiple: oui('sd-multiple'), anonyme: oui('sd-anonyme'), ajout: oui('sd-ajout'), resultats: $('sd-resultats').value, fin } });
       sondForm = null; fermerFeuille(); mot('Sondage envoyé');
-    } catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le sondage n\'a pas pu partir.')); }
+    } catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'Le sondage n\'a pas pu partir.')); }
   }
   /* ── « Voir les votes » : chaque choix, son décompte, et qui l'a choisi (« que l'on puisse voir tous ceux qui votent ») ; anonyme : les décomptes seuls, et pourquoi.
      Elle se redessine quand un vote arrive (`rendreConv` la relance). ── */
@@ -7405,7 +7447,7 @@
     if (!t) { erreurInfo('Écris le choix.'); $('sc-texte').focus(); return; }
     b.setAttribute('aria-disabled', 'true');
     try { await source.sondageAjouter(conv, etat.groupe.sondSeq, t); fermerFeuille(); mot('Choix ajouté'); }
-    catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Le choix n\'a pas pu être ajouté.')); }
+    catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'Le choix n\'a pas pu être ajouté.')); }
   }
   const modeCarte = () => etat.groupe.ouvert && ['position', 'carte-contact', 'transferer', 'sondage-nouveau', 'sondage-choix'].includes(etat.groupe.mode);
   $('info-corps').addEventListener('click', async e => {
@@ -7418,7 +7460,7 @@
       if (b.dataset.pos === 'envoyer' && G.pos && etat.conv) {
         erreurInfo(''); b.setAttribute('aria-disabled', 'true');
         try { await source.envoyerPosition(etat.conv, { lat: G.pos.lat, lng: G.pos.lng, precision: G.pos.prec }); fermerFeuille(); mot('Position envoyée'); }
-        catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'Ta position n\'a pas pu partir.')); if (x && x.code === 'position_desactivee') reg.conf = null; }
+        catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'Ta position n\'a pas pu partir.')); if (x && x.code === 'position_desactivee') reg.conf = null; }
       }
       return;
     }
@@ -7435,7 +7477,7 @@
       const b = e.target.closest('[data-cc]'); if (!b || b.getAttribute('aria-disabled') === 'true' || !etat.conv) return;
       erreurInfo(''); b.setAttribute('aria-disabled', 'true');
       try { await source.envoyerFiche(etat.conv, b.dataset.cc); fermerFeuille(); mot('Fiche envoyée'); }
-      catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phrase(x, 'La fiche n\'a pas pu partir.')); }
+      catch (x) { b.removeAttribute('aria-disabled'); erreurInfo(phraseSilence(x, 'La fiche n\'a pas pu partir.')); }
       return;
     }
     if (G.mode === 'sondage-nouveau') {

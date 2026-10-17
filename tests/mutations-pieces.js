@@ -224,7 +224,7 @@ m('G13', '« Réessayer » ne fait plus rien', F.page, "if (re) { if (typeof sou
 m('G14', '« Annuler » ne fait plus rien', F.page, "if (an) { if (typeof source.abandonner === 'function') source.abandonner(an.dataset.annuler); return; }", 'if (an) { return; }', ['sonde'], GS('6b'));
 m('G15', 'une pièce en échec ne montre plus sa phrase ni ses deux boutons (la bulle seule, sans rien)', F.page, "    if (m.attente && m.echec && typeof source.reessayer === 'function') h += echecHtml(m);\n", '', ['sonde'], GS('6b'));
 m('G16', 'une pièce en échec porte de nouveau un statut « En attente de connexion… » par-dessus sa phrase', F.page, "(m.attente ? (m.echec ? null : m.envoi ? 'Envoi…' : 'En attente de connexion…')", "(m.attente ? (m.envoi ? 'Envoi…' : 'En attente de connexion…')", ['sonde'], GS('6b'));
-m('G17', 'la barre latérale dit « Disponible » même quand MA présence est coupée', F.page, "$('moi-statut-texte').textContent = masquee ? 'Présence masquée' : 'Disponible';", "$('moi-statut-texte').textContent = 'Disponible';", ['sonde'], GS('6b'));
+m('G17', 'la barre latérale dit « Disponible » même quand MA présence est coupée', F.page, "$('moi-statut-texte').textContent = masquee ? 'Présence masquée' : (MOI.statut || 'Disponible');", "$('moi-statut-texte').textContent = MOI.statut || 'Disponible';", ['sonde'], GS('6b'));
 m('G18', 'la durée de la bulle d\'un vocal est arrondie vers le haut (le compteur montrait 0:01, la bulle dit 0:02)', F.page, 'url, dur: msVu / 1000, bars', 'url, dur: Math.ceil(msVu / 1000), bars', ['sonde'], GS('3'));
 
 /* ══ LE LANCEUR ═════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════ */
