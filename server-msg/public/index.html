@@ -38,6 +38,11 @@
    · --on-fill : l'encre posée sur --fill (bulle envoyée, pastille, flèche d'envoi) : une surface, une encre ;
    · --accent-txt et --side-actif-fg : l'accent de NUIT (#7ea2f0) est une couleur d'aplat ; en lettres sur une ligne choisie il
      tombe à 4,2:1 — le texte prend #9db8f5 (5,3:1). De jour, l'accent passe partout (≥ 6,7:1) ;
+   · --rouge-fill, --on-rouge : « Terminer pour tous » et « Quitter » (salle) sont des boutons PLEINS qui portent un mot : le #ff453a du système n'y tient que 3,4:1 en blanc. Une surface, une encre —
+     #d70015 et blanc font 5,4:1 de jour comme de nuit (la salle est sombre dans les deux modes). Le #ff453a reste le rouge des RONDS et des traits SANS TEXTE (raccrocher, point d'enregistrement, épingle),
+     où 3:1 suffit — dès qu'une pastille porte un chiffre ou un mot (compteurs de l'onglet et du menu, « REC », badges et compteur de la salle), c'est le même couple (lot p03, n#2) ;
+   · --rouge-mini : le texte rouge d'un bouton « danger » (.mini.danger : Retirer, Bloquer, Annuler) est posé sur la teinte bleutée de .mini, plus sombre que la carte : le --rouge-txt (5,4:1 sur la carte)
+     y tombait à 4,43:1 de jour, 4,0 sur la page et la feuille. Un rouge plus profond (#b8001a, ≥ 5,1:1 sur la carte, la page, la feuille) ; de nuit, un rouge un cran plus clair (lot p03, n#1) ;
    · --rouge-txt : le #ff453a des statuts est une couleur d'APLAT (« Raccrocher » : non-texte, 3:1 suffit) ; le NOM d'un appel
      manqué prend sa propre teinte (jour #d70015, 5,4:1 ; nuit #ff8a82, 6,6:1 sur la carte et 5,1:1 sur une ligne pressée) ;
    · --appel-fond, --appel-voile, --appel-bouton : l'écran d'appel est SOMBRE dans les deux modes, au bleu du logo, donc leurs
@@ -83,6 +88,9 @@
   /* — ce qui n'est pas dans le tableau du document : encres de statut, puces, plan de repli — */
   --rouge: #ff453a;
   --rouge-txt: #d70015;
+  --rouge-mini: #b8001a;
+  --rouge-fill: #d70015;
+  --on-rouge: #ffffff;
   --vert: #30d158;
   --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
   --appel-voile: rgba(14,26,63,.62);
@@ -136,6 +144,9 @@
     --screen: none;
     --rouge: #ff453a;
     --rouge-txt: #ff8a82;
+    --rouge-mini: #ff9a93;
+    --rouge-fill: #d70015;
+    --on-rouge: #ffffff;
     --vert: #30d158;
     --appel-fond: linear-gradient(160deg, #24408a, #0e1a3f);
     --appel-voile: rgba(14,26,63,.62);
@@ -180,6 +191,8 @@ svg.ic.plein { fill: currentColor; stroke: none; }
 svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .sr-seul { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+/* ceux qui sont posés À LA FIN du document (l'annonce d'appel, les deux champs de photo) n'ont pas de `top` : leur place « naturelle » est après tout le reste, et leur bas dépassait de 1 px — la page défilait pour rien sur chaque écran, avec un ascenseur permanent sous Windows (17 octobre 2026) */
+body > .sr-seul { top: 0; left: 0; }
 [hidden] { display: none !important; }
 
 /* La réponse au toucher est IMMÉDIATE : l'état « pressé » se pose au doigt posé, pas au relâché (apple-design, §1). La transition
@@ -283,6 +296,11 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 @media (hover: hover) { .conv:not([aria-current="true"]):hover { background: var(--field); } }
 .conv-point { width: 10px; flex: none; display: flex; justify-content: center; }
 .point { width: 10px; height: 10px; border-radius: 50%; background: var(--fill); }
+.point.muet { background: var(--faint); }       /* une conversation en sourdine ne réclame rien : son point existe, il ne crie pas */
+.conv-sourdine { flex: none; display: inline-flex; align-self: center; color: var(--faint); }
+.conv-sourdine .ic { width: 14px; height: 14px; }
+.epingle-bouton { position: relative; }
+.epingle-point { position: absolute; top: 0; right: 6px; width: 12px; height: 12px; box-shadow: 0 0 0 2px var(--card); }
 .conv .avatar { width: 50px; height: 50px; font-size: 18px; }
 .conv-corps { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
 .conv-ligne { display: flex; align-items: baseline; gap: 8px; }
@@ -330,7 +348,7 @@ svg.ic { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width
 .tab:active { transform: scale(.94); }
 .tab[aria-current="page"] { color: var(--tab-active-fg); font-weight: 600; }
 /* le nombre de demandes de contact reçues, sur l'onglet et le lien « Contacts » : un badge d'iOS (rouge système), l'encre blanche */
-.onglet-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.onglet-n { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
 .onglet-n[hidden] { display: none; }
 .tab .onglet-n { position: absolute; top: 4px; left: calc(50% + 6px); }
 .side-lien .onglet-n { margin-left: auto; }
@@ -383,8 +401,10 @@ p.transcription { margin: 0; font-size: 15px; line-height: 20px; letter-spacing:
 .vc-fiche-tete { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 8px 18px; text-align: center; }
 .vc-fiche-tete .avatar { width: 96px; height: 96px; font-size: 36px; margin-bottom: 10px; }
 .vc-fiche-nom { margin: 0; font-size: 28px; line-height: 34px; font-weight: 700; letter-spacing: -.02em; overflow-wrap: anywhere; }
-.vc-fiche-statut { margin: 0; font-size: 15px; color: var(--sub-meta); }
-.vc-fiche-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 8px; padding: 0 0 22px; }
+/* (q01) le statut se COUPE comme le nom au-dessus : un mot sans espace (60 « x ») faisait 450 px dans une feuille de 360–390 et sortait des deux côtés de la colonne centrée — `.contact-role` (la liste) l'avait, pas sa jumelle */
+.vc-fiche-statut { margin: 0; font-size: 15px; color: var(--sub-meta); overflow-wrap: anywhere; }
+/* les gestes forment UNE rangée, quel que soit leur nombre (4 ou 5) : des colonnes égales qui se partagent la largeur — `auto-fit` avec 60 px au plus étroit en laissait un seul sur une 2e ligne à 360 px (17 octobre 2026) */
+.vc-fiche-actions { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 8px; padding: 0 0 22px; }
 .vc-action { min-height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 8px 2px; border-radius: 12px; background: var(--card); color: var(--accent-txt); font-size: 12px; font-weight: 500; }
 .vc-action-rond { display: grid; place-items: center; font-size: 22px; }
 .vc-action[aria-pressed="true"] .vc-action-rond { color: #f5a623; }
@@ -400,7 +420,7 @@ p.transcription { margin: 0; font-size: 15px; line-height: 20px; letter-spacing:
 .fc-sous { font-size: 13px; line-height: 17px; color: var(--sub-meta); }
 .fc-sous .fc-en-cours { color: var(--vert, #34c759); font-weight: 600; }
 .fc-icone { flex: none; width: 42px; height: 42px; border-radius: 10px; display: grid; place-items: center; background: var(--fill-soft); color: var(--accent-txt); font-size: 20px; }
-.fc-ligne.fc-agir .fc-titre { color: var(--accent-txt); }
+.fc-ligne.fc-agir .fc-titre { color: var(--accent-txt); white-space: normal; overflow-wrap: anywhere; }      /* un GESTE (« Programmer une réunion avec Ben ») se lit en entier : sur deux lignes plutôt qu'une ellipse (17 octobre 2026) */
 .fc-ligne.fc-agir .fc-icone { background: transparent; }
 .fc-note { margin: 0; padding: 12px 14px; font-size: 13px; line-height: 18px; color: var(--sub-meta); border-bottom: var(--sep); }
 .fc-squelette { display: flex; align-items: center; gap: 12px; min-height: 58px; padding: 8px 14px; border-bottom: var(--sep); }
@@ -478,7 +498,8 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .moi-nom { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .moi-nom { font-size: 13px; font-weight: 600; }
 .moi-statut { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--sub-meta); }
-.moi-statut i { width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+.moi-statut i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--vert); }
+.moi-statut span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }      /* un statut long ne pousse pas la barre : il se coupe, la pastille entière le dit en infobulle */
 .moi-statut.masque i { background: var(--sub-meta); }
 /* le nombre de demandes de contact REÇUES, sur « Ajouter un contact » (Réglages) : une pastille à l'accent, comme un badge d'iOS */
 .reglage-valeur.pastille-n { min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--fill); color: var(--on-fill); font-size: 13px; font-weight: 600; display: inline-grid; place-items: center; font-variant-numeric: tabular-nums; }
@@ -514,7 +535,11 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .poignee i { width: 36px; height: 5px; border-radius: 999px; background: var(--faint); }
 @media (min-width: 700px) { .poignee { display: none; } .feuille-tete { padding-top: 8px; } }
 .feuille-barre { display: flex; align-items: center; gap: 4px; padding: 2px max(8px, 3vw) 6px; }
-.feuille-barre h2 { flex: 1; min-width: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.017em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* le titre est CENTRÉ sur la feuille : les boutons de chaque côté (« Annuler » à gauche, « Créer » à droite, ou « Fermer » seul) n'ont pas la même largeur, donc on leur donne la
+   MÊME part de la ligne (même base, même croissance : une base de 44 px, la cible tactile, que le rembourrage de chacun ne fait pas varier) et le titre garde la sienne — sans ça le titre se décalait de la moitié de l'écart, ~7 px (17 octobre 2026) */
+.feuille-barre > .feuille-bouton { flex: 1 1 44px; box-sizing: border-box; min-width: max-content; }      /* jamais plus étroit que son libellé… */
+.feuille-barre > .feuille-bouton.nd-x { min-width: 44px; }      /* …sauf la croix ronde, qui garde sa cible de 44 px */
+.feuille-barre h2 { flex: 0 1 auto; min-width: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; letter-spacing: -.017em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .feuille-bouton { min-height: 44px; min-width: 44px; padding: 0 8px; flex: none; display: inline-flex; align-items: center; font-size: 17px; color: var(--accent-txt); }
 .feuille-bouton.fin { justify-content: flex-end; font-weight: 600; }
 .feuille-bouton[aria-disabled="true"] { color: rgba(120,120,128,.5); cursor: default; }
@@ -549,7 +574,9 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 .contact .avatar { width: 38px; height: 38px; font-size: 14px; }
 .contact-texte { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .contact-nom { font-size: 17px; letter-spacing: -.02em; }
-.contact-role { font-size: 13px; color: var(--sub-meta); }
+/* un statut d'un seul mot long (une adresse collée, 140 caractères sans espace) ne se coupait pas : il sortait de la carte, sous la flèche et l'étoile (lot p03, n#8). `.contact-texte` rétrécit déjà (min-width: 0) —
+   il manquait de dire où couper, comme le font `.reg-moi-statut`, `.info-sous` et `.conv-apercu`. */
+.contact-role { font-size: 13px; color: var(--sub-meta); overflow-wrap: anywhere; }
 .rond { width: 24px; height: 24px; flex: none; border-radius: 50%; border: 2px solid var(--rond-bord); display: grid; place-items: center; transition: background-color .2s, border-color .2s; color: var(--coche); font-size: 12px; }
 .rond .ic { stroke-width: 3.2; opacity: 0; transition: opacity .2s; }
 .contact[aria-checked="true"] .rond { background: var(--fill); border-color: var(--fill); }
@@ -605,7 +632,7 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 @media (min-width: 1100px) {
   #vue-reglages { max-width: 1120px; }
   .reg-grille { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 28px; align-items: start; }
-  .reg-accueil { position: sticky; top: 12px; }
+  .reg-accueil { position: sticky; top: calc(12px + var(--pousse, 0px)); }
   #vue-reglages[data-sec]:not([data-sec=""]) .reg-accueil, #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: revert; }
   .reg-barre { display: none; }
   .reg-detail { min-width: 0; padding-top: 4px; }
@@ -619,7 +646,7 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
    Le chemin d'entrée est le chemin de sortie (apple-design, §7). Elle ne reçoit aucun toucher : on ne la rate pas, on ne
    la ferme pas — elle ne se met jamais devant ce qu'on fait. */
 .notif {
-  --haut: max(10px, calc(env(safe-area-inset-top, 0px) + 8px));
+  --haut: calc(max(10px, calc(env(safe-area-inset-top, 0px) + 8px)) + var(--hl-h));
   position: fixed; z-index: 50; top: var(--haut); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
   margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 24px;
   background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
@@ -642,7 +669,7 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
    Le bandeau est une capsule de verre en haut (le même verre que la bannière, mais qu'on TOUCHE) ; rien ne bloque : la mise à jour n'est
    jamais obligatoire ici. L'écran de la mise à jour couvre tout, le temps de relire les fichiers (la barre avance au fil des octets). */
 .maj-bandeau {
-  position: fixed; z-index: 45; top: max(10px, calc(env(safe-area-inset-top, 0px) + 8px)); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  position: fixed; z-index: 45; top: calc(max(10px, calc(env(safe-area-inset-top, 0px) + 8px)) + var(--hl-h)); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
   margin: 0 auto; max-width: 520px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 26px;
   background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
   border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.2), var(--verre-reflet); color: var(--text);
@@ -667,16 +694,28 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 /* un petit mot qui s'efface seul (« Modifier » n'est pas encore dessiné) */
 /* ⛔ centré par left/right + margin:auto + width:max-content, JAMAIS par left:50% + translate(-50%) : à largeur automatique, la boîte
    ne prend que la place qui reste à droite de son bord gauche (180 px sur 360, deux lignes) — CLAUDE.md, « boîte absolue centrée ». */
+/* ⛔ LE PETIT MOT SE POSE EN BAS, AU-DESSUS DE CE QUI TIENT LE BAS (17 octobre 2026, lot m07). En haut, il tombait sur ce qu'on lit et touche : le grand titre « Tableau de bord » (≈ 42 %),
+   le segmenté Semaine / Mois, « Fermer » et le titre d'une feuille (pro#7, agenda#3) — et son déplacement d'octobre (84 px sous l'en-tête d'une conversation) n'avait déplacé le défaut que
+   d'un écran. Le haut de chaque écran est fait de titres et de commandes ; le bas, lui, n'a que la barre d'onglets (liste) ou le champ d'écriture (conversation) : le petit mot s'y pose
+   AU-DESSUS (`--mot-bas`). Il se mesure sur le bas de ce qu'on VOIT (`--vvt` + `--vvh` : le clavier ouvert le raccourcit), jamais sur le bas de la page. Une feuille ouverte, elle, tient le bas :
+   le petit mot passe EN HAUT, sur la page de derrière que le voile éteint (rien n'y est touchable). Un texte : `pointer-events: none`. */
+:root { --mot-bas: calc(max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)) + 76px); }
+@media (min-width: 900px) { :root { --mot-bas: calc(env(safe-area-inset-bottom, 0px) + 24px); } }
+html[data-kind="tablette"] { --mot-bas: calc(env(safe-area-inset-bottom, 0px) + 24px); }
+html[data-conv] { --mot-bas: calc(max(10px, env(safe-area-inset-bottom, 0px)) + 78px); }
 .mot {
   position: fixed; z-index: 49; left: 16px; right: 16px; margin: 0 auto; width: max-content; max-width: min(440px, calc(100vw - 32px));
-  top: calc(env(safe-area-inset-top, 0px) + 56px); padding: 9px 16px; border-radius: 18px; text-align: center;
+  top: calc(var(--vvt, 0px) + var(--vvh, 100%) - var(--mot-bas)); translate: 0 -100%; padding: 9px 16px; border-radius: 18px; text-align: center;
   background: rgba(28,28,30,.9); color: #fff; font-size: 14px; line-height: 18px; pointer-events: none; overflow-wrap: anywhere;
-  transform: translateY(-8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
+  transform: translateY(8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
 }
 .mot.on { transform: none; opacity: 1; }
-/* ⛔ au téléphone, une conversation ouverte a un en-tête HAUT (l'avatar au-dessus du nom, comme Messages) : le petit mot passait SUR le nom de la conversation (vu au test de
-   A à Z, 8 octobre 2026 : « Je te le rappelle à … » posé sur le titre). Il se pose sous l'en-tête. */
-@media (max-width: 1099.98px) { html[data-conv] .mot { top: calc(var(--vvt, 0px) + env(safe-area-inset-top, 0px) + 84px); } }
+/* la SALLE tient le bas avec sa barre ronde (93 px + l'encoche) : le petit mot passe au-dessus d'elle */
+html[data-salle] { --mot-bas: calc(env(safe-area-inset-bottom, 0px) + 106px); }
+/* ⛔ en HAUT, sur ce qui n'a rien de touchable derrière : la page qu'une feuille éteint (voile, `inert`), et l'écran d'appel à deux, dont les 56 px sous l'encoche sont vides (ses commandes
+   tiennent le bas, sur deux rangées qui se replient : on n'y mesure pas de place fiable). Sous la bande hors ligne quand elle est là. */
+html.feuille-ouverte .mot, html[data-appel]:not([data-salle]) .mot { top: calc(var(--vvt, 0px) + env(safe-area-inset-top, 0px) + var(--hl-h) + 6px); translate: none; transform: translateY(-8px); }
+html.feuille-ouverte .mot.on, html[data-appel]:not([data-salle]) .mot.on { transform: none; }
 
 /* ⚠️ ÉCARTS AU PAQUET, À FAIRE VALIDER PAR JUSTIN (relecture du 1er octobre 2026) : (1) la flèche d'envoi n'est montrée qu'avec du texte, et le micro disparaît alors — le paquet
    dessine la flèche dans la pilule ET le micro à droite en permanence ; (2) le chevron de retour et son badge sont masqués dès 1 100 px (la liste est à côté) — la capture
@@ -687,12 +726,12 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
    qu'elle ne dessine pas (un vrai champ, le retour, le défilement, l'enregistrement) est ajouté sans toucher aux jetons. */
 :root { --col-liste: clamp(340px, 30vw, 440px); }
 .conv-ecran {
-  position: fixed; z-index: 30; top: var(--vvt, 0px); left: 0; right: 0; height: var(--vvh, 100%); display: none; flex-direction: column; min-height: 0;
+  position: fixed; z-index: 30; top: calc(var(--vvt, 0px) + var(--pousse, 0px)); left: 0; right: 0; height: calc(var(--vvh, 100%) - var(--pousse, 0px)); display: none; flex-direction: column; min-height: 0;
   background-color: var(--base); background-image: var(--screen); background-attachment: fixed; outline: none;
 }
 html[data-conv] .conv-ecran { display: flex; }
 .conv-vide {
-  position: fixed; z-index: 20; top: 0; bottom: 0; right: 0; left: calc(236px + var(--col-liste)); display: none; place-items: center; padding: 24px; text-align: center;
+  position: fixed; z-index: 20; top: var(--pousse, 0px); bottom: 0; right: 0; left: calc(236px + var(--col-liste)); display: none; place-items: center; padding: 24px; text-align: center;
   border-left: var(--sep);
 }
 .conv-vide p { max-width: 28ch; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
@@ -744,7 +783,7 @@ html:not([data-vue="messages"]) .conv-ecran { display: none; }
 .msg.suite { margin-top: 2px; }
 .msg.de-moi { align-items: flex-end; }
 .msg.de-autre { align-items: flex-start; }
-.msg-nom { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); }
+.msg-nom { padding: 0 12px; font-size: 11px; line-height: 14px; color: var(--sub-meta); max-width: 100%; box-sizing: border-box; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }      /* un prénom de 60 signes sans espace ne sort plus de la colonne : coupé par une ellipse (le nom entier reste dans la fiche) */
 .bulle {
   max-width: 78%; padding: 8px 13px; font-size: 17px; line-height: 22px; letter-spacing: -.02em; text-wrap: pretty;
   overflow-wrap: anywhere; white-space: pre-wrap; user-select: text; -webkit-user-select: text;
@@ -891,6 +930,8 @@ html[data-selection] .tabs { display: none; }
 .ep-vig { position: relative; flex: none; width: 56px; height: 56px; border-radius: 10px; overflow: hidden; padding: 0; background: rgba(255,255,255,.1); outline: 2px solid transparent; outline-offset: -2px; }
 .ep-vig[aria-current="true"] { outline-color: var(--fill); }
 .ep-vig img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* l'enveloppe d'UNE vignette (écrite par le JavaScript : la vignette ET sa croix) — elle porte la place et sert de repère à la croix : sans règle, elle restait `static` et les croix de toutes les vignettes remontaient à l'angle de l'aperçu, empilées (17 octobre 2026) */
+.ep-vig-l { position: relative; flex: none; width: 56px; height: 56px; }
 .ep-retirer { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; display: grid; place-items: center; border-radius: 50%; background: rgba(0,0,0,.66); color: #fff; font-size: 11px; }
 .ep-retirer::after { content: ''; position: absolute; inset: -11px; }   /* la croix se touche sur 44 px, même dessinée sur 22 */
 .ep-bas { display: flex; align-items: flex-end; gap: 8px; padding: 8px 10px 10px; }
@@ -993,7 +1034,7 @@ html[data-selection] .tabs { display: none; }
 .nd-index button { flex: 0 1 22px; min-height: 14px; width: 44px; padding: 0; display: grid; place-items: center; font-size: 11px; line-height: 1; font-weight: 700; color: var(--accent-txt); }
 .nd-index button:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: 8px; }
 .nd-x { padding: 0 4px; }
-.feuille[data-mode="nouvelle"] #g-annuler { width: 44px; padding: 0; overflow: hidden; }      /* l'« Annuler » invisible ne garde que la largeur du ✕ : le titre reste au centre de la feuille */
+.feuille[data-mode="nouvelle"] #g-annuler { min-width: 44px; padding: 0; overflow: hidden; }      /* l'« Annuler » invisible ne garde que la largeur du ✕ : le titre reste au centre de la feuille (la base de la barre les égalise : `flex` sur les deux côtés, plus `width`) */
 .nd-x-rond { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--fill-soft); color: var(--sub); font-size: 14px; }
 .nd-x-rond .ic { stroke-width: 2.4; }
 
@@ -1002,7 +1043,7 @@ html[data-selection] .tabs { display: none; }
    vignette de 104 × 150 : la VRAIE caméra) et « groupe » (une grille de participants, « Vous » parmi eux). La mise en page suit la caméra, pas le type de l'appel :
    une caméra refusée laisse un appel audio, une caméra allumée en cours d'appel le fait basculer. */
 .appel-ecran {
-  position: fixed; z-index: 35; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
+  position: fixed; z-index: 35; top: var(--hl-h); left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
   background: var(--appel-fond); color: #fff; outline: none;
 }
 html[data-appel] .appel-ecran { display: flex; }
@@ -1011,16 +1052,29 @@ html[data-appel] .appel-ecran { display: flex; }
 .appel-barre { position: fixed; z-index: 45; top: 0; left: 0; right: 0; display: none; align-items: center; gap: 8px; min-height: var(--haut-appel); padding: env(safe-area-inset-top, 0px) max(10px, env(safe-area-inset-right, 0px)) 0 max(10px, env(safe-area-inset-left, 0px)); background: var(--vert); color: #000; }
 html[data-appel-reduit] { --haut-appel: calc(44px + env(safe-area-inset-top, 0px)); }
 html[data-appel-reduit] .appel-barre { display: flex; }
-html[data-appel-reduit] body { padding-top: var(--haut-appel); }
-html[data-appel-reduit] .conv-ecran { top: calc(var(--vvt, 0px) + var(--haut-appel)); height: calc(var(--vvh, 100%) - var(--haut-appel)); }
-html[data-appel-reduit] .conv-vide { top: var(--haut-appel); }
-html[data-appel-reduit] .side { top: var(--haut-appel); height: calc(100dvh - var(--haut-appel)); }
+/* ce qui pousse la page par le haut — la barre d'appel réduit ET la bande hors ligne — se lit dans UN nom, `--pousse` (la bande d'appel se pose sous la bande hors ligne) */
+.appel-barre { top: var(--hl-h); }
+body { padding-top: var(--pousse); }
+.app { min-height: calc(100vh - var(--pousse)); min-height: calc(100dvh - var(--pousse)); }
+.side { top: var(--pousse); height: calc(100vh - var(--pousse)); height: calc(100dvh - var(--pousse)); }
 .appel-barre-revenir { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 4px; background: none; color: inherit; font-size: 15px; font-weight: 600; text-align: left; }
-.appel-barre-revenir .texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.appel-barre-revenir .texte { flex: 1; min-width: 0; display: flex; overflow: hidden; white-space: nowrap; font-variant-numeric: tabular-nums; }
+/* ⛔ la DURÉE est la seule information qui change dans la barre : elle ne se coupe jamais (flex: none) ; c'est le NOM qui prend l'ellipse. Avant, un seul texte portait « Appel en cours · Ben Durand · 00:03 »
+   et l'ellipse mangeait la fin — à 360 px on lisait « Appel en cours · Ben Dur… » (lot m19, appels#3). */
+/* ⛔ le préfixe « Appel en cours · » est le premier à partir (relecture du lot m19) : déplacer la coupe de la durée vers le nom ne réglait rien — à 360 px il restait 197 px pour 258 voulus, et le préfixe
+   (≈ 120 px) mangeait tout ce que la durée laissait : le nom disparaissait (« Appel en cours · … · 00:03 », même pour « Ben Durand »). Sous 480 px de large (texte < ≈ 320 px) la barre — verte, avec
+   « Revenir » et le rond rouge, comme celle de l'iPhone — ne garde que le nom et la durée ; l'étiquette vocale du bouton, elle, dit toujours « Appel en cours ». */
+.appel-barre-revenir .texte-prefixe { flex: none; white-space: pre; }
+@media (max-width: 479.98px) { .appel-barre-revenir .texte-prefixe { display: none; } }
+.appel-barre-revenir .texte-nom { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* `pre` et non `nowrap` : la durée commence par une espace (« · 00:03 »), qu'un élément flex en début de ligne effacerait — le nom coupé toucherait alors le point. */
+.appel-barre-revenir .texte-duree { flex: none; white-space: pre; }
 .appel-barre-revenir b { flex: none; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.14); font-size: 14px; }
 .appel-barre-raccrocher { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: none; color: #000; }
 .appel-barre-raccrocher .rond { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; background: #e5484d; color: #fff; }
-.appel-barre-raccrocher .ic { width: 18px; height: 18px; }
+/* ⛔ le rond de la barre porte la classe `.rond` des cases de contact, dont `.rond .ic { opacity: 0; stroke-width: 3.2 }` cache la coche d'une case non cochée : sans ces deux lignes le combiné (18 px,
+   trait blanc) était là et invisible — un rond rouge vide (lot m19, appels#2). Même spécificité, écrit plus loin : la barre gagne. */
+.appel-barre-raccrocher .ic { width: 18px; height: 18px; opacity: 1; stroke-width: 2; }
 html[data-appel], html[data-appel] body { overflow: hidden; }
 html[data-appel] .tabs { display: none; }
 @media (min-width: 900px) { .appel-ecran { left: 236px; } }
@@ -1077,6 +1131,7 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 }
 .tuile-nom { bottom: 8px; font-weight: 600; }
 .tuile-etat { top: 8px; }
+.tuile-nom:empty { display: none; }
 .tuile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
 .tuile[data-camera="on"] video { display: block; }
 .tuile[data-camera="on"] .tuile-av { display: none; }
@@ -1092,6 +1147,9 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 .appel-ecran[data-mise="video"] .tuile { position: absolute; inset: 0; border-radius: 0; }
 .appel-ecran[data-mise="video"] .tuile-av { width: 110px; height: 110px; font-size: 40px; }
 .appel-ecran[data-mise="video"] .tuile-nom { left: max(16px, env(safe-area-inset-left, 0px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); }
+/* ⛔ l'étiquette « Vidéo de … » se range À GAUCHE de la vignette « Vous » (104 px, 176 au bureau) et ne passe jamais dessous : un nom long prend l'ellipse (lot m19, appels#5) */
+.appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 104px - max(14px, env(safe-area-inset-right, 0px)) - 12px); }
+@media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 176px - max(14px, env(safe-area-inset-right, 0px)) - 12px); } }
 .appel-ecran[data-mise="video"] .tuile.vous {
   inset: auto; top: calc(env(safe-area-inset-top, 0px) + 110px); right: max(14px, env(safe-area-inset-right, 0px)); width: 104px; height: 150px; border-radius: 16px;
   background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 2;
@@ -1165,9 +1223,17 @@ html[data-service] .mention-apercu { display: none; }
 .champ input.cx-code { text-align: center; font-size: 26px; letter-spacing: .32em; font-variant-numeric: tabular-nums; }
 
 /* la coupure du temps réel : une bande qui reste tant que la connexion n'est pas revenue — jamais un écran qui fait semblant d'être à jour */
+/* ⛔ ELLE POUSSE LE CONTENU DE SA HAUTEUR au lieu de se poser dessus (17 octobre 2026, lot m07 : temps-reel#4, contacts@10, salle@3). En `position: fixed; top: 0` sans rien décaler, elle cachait,
+   tant que la coupure durait, le logo, « Messages / Modifier / + », « Ajouter » de Contacts, l'avatar et le titre de la conversation, « Quitter » de la salle — la coupure est précisément le
+   moment où l'on a besoin de les lire (« Quitter » reste utile quand le réseau est mauvais). Même mécanisme que la barre d'appel réduit : `--hl-h` (28 px tant qu'elle est là, rien sinon,
+   posé par `:has()` sur la bande elle-même : aucun JavaScript, la bande reste celle que le JavaScript montre ou cache) entre dans `--pousse`, que lisent le corps, la conversation, la salle,
+   la barre latérale et les barres collantes. La bande est de HAUTEUR FIXE (l'encoche en plus, que le contenu ne recompte pas : il garde son propre rembourrage d'encoche), sur une ligne :
+   un texte trop long se coupe plutôt que de recouvrir la ligne d'en dessous. Un texte : `pointer-events: none`. */
+:root { --hl-h: 0px; --pousse: calc(var(--hl-h) + var(--haut-appel, 0px)); }
+html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .hors-ligne {
-  position: fixed; z-index: 55; top: 0; left: 0; right: 0; padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 7px; pointer-events: none;   /* un texte : il ne couvre pas les commandes de dessous */
-  background: rgba(28,28,30,.94); color: #fff; font-size: 14px; line-height: 18px; text-align: center; overflow-wrap: anywhere;
+  position: fixed; z-index: 55; top: 0; left: 0; right: 0; box-sizing: border-box; height: calc(env(safe-area-inset-top, 0px) + var(--hl-h)); padding: calc(env(safe-area-inset-top, 0px) + 5px) 16px 0; pointer-events: none;   /* un texte : il ne couvre pas les commandes de dessous */
+  background: rgba(28,28,30,.94); color: #fff; font-size: 14px; line-height: 18px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .liste-erreur {
   display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: var(--card); border: var(--line);
@@ -1273,6 +1339,7 @@ html[data-service] .mention-apercu { display: none; }
 [data-plus="contact"] > .pj-disque { background: #8e8e93; }
 [data-plus="fichier"] > .pj-disque { background: #5e5ce6; }
 [data-plus="sondage"] > .pj-disque { background: #ff9f0a; }
+[data-plus="plus-tard"] > .pj-disque { background: #af52de; }      /* « Plus tard » : un disque comme les autres — sans, l'icône blanche flottait sur le blanc du thème de jour (17 octobre 2026) */
 @media (hover: hover) { .pj-tuile:hover { background: var(--field); } }
 /* ⛔ À LA SOURIS, LE « + » OUVRE UN MENU QUI SORT DU BOUTON (capture à l'appui, 7 octobre 2026 : « quand je clique sur le +, il faudrait pas que ça se mette comme ça ») —
    une liste comme celle de Messages sur Mac, collée au « + », sans voile sur la conversation ; jamais une fenêtre au milieu de l'écran. Ancré en CSS au bouton (`anchor-name`),
@@ -1319,7 +1386,7 @@ html[data-service] .mention-apercu { display: none; }
    profil dit qu'il y a du non-lu de l'autre côté. */
 .cote-seg { margin: 0 0 12px; }
 .side .cote-seg { margin: 0 6px 12px; }
-.cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
+.cote-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 5px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 11px; font-weight: 700; line-height: 18px; font-variant-numeric: tabular-nums; vertical-align: 1px; }
 /* « Confirmer l'envoi » (côté pro) : une barre au-dessus du champ — « Envoyer à « Équipe » — 5 personnes ? » — que l'on confirme (Envoyer, ou Entrée une seconde fois) ou qu'on annule */
 .compo-confirme { max-width: 860px; margin: 0 auto 6px; display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 16px; background: var(--card); border: var(--line); font-size: 15px; line-height: 20px; }
 .compo-confirme-texte { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
@@ -1347,7 +1414,11 @@ html[data-service] .mention-apercu { display: none; }
 @media (pointer: coarse) { .compo-confirme-texte small { display: none; } .compo-confirme .mini { min-height: 44px; } }
 .side-marque b { white-space: nowrap; }      /* « OP MESSAGES PRO » tient sur une ligne dans les 236 px de la barre (mesuré : la pastille passait dessous) */
 .marque-pro { display: inline-grid; place-items: center; height: 18px; margin-left: 5px; padding: 0 5px; border-radius: 5px; background: var(--fill); color: var(--on-fill); font-size: 11px; font-weight: 700; letter-spacing: .05em; vertical-align: 2px; }
-#vue-messages > .entete-vue { position: relative; }
+/* ⛔ UNE SEULE RÈGLE DÉCIDE DU DÉCALAGE DE L'EN-TÊTE (17 octobre 2026, lot p03, temps-reel#4 / n#11, n#12) : relative, cet en-tête est l'ancre du nom centré (`.marque-tel`). Mais ce `#id > .classe`
+   (1,1,0) bat `position: sticky` de la règle du bureau (`.vue > .entete-vue`, 0,2,0) SANS battre son `top: var(--pousse)` — et un `top` sur un élément relatif le DÉCALE : hors ligne, le corps
+   l'avait déjà poussé de la bande (`body { padding-top: var(--pousse) }`), l'en-tête descendait de 28 + 28 = 56 px, sa barre vitrée recouvrait le champ « Rechercher ». Le `top` s'éteint donc ici :
+   un en-tête qui ne colle pas n'a rien à retrancher au corps (tests/test-2640.js rejoue la cascade, sonde-opmessages-recouvrement la mesure). */
+#vue-messages > .entete-vue { position: relative; top: auto; }
 .marque-tel { position: absolute; left: 96px; right: 96px; margin: 0 auto; width: max-content; max-width: calc(100% - 192px); display: flex; align-items: center; font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; pointer-events: none; }
 /* le segment du Profil et le nom centré sont ceux du TÉLÉPHONE : là où la barre latérale paraît (bureau, tablette), c'est elle qui porte le sélecteur — un seul à l'écran */
 @media (min-width: 900px) { .reg-cote-seg, .marque-tel { display: none !important; } }
@@ -1385,7 +1456,7 @@ html[data-service] .mention-apercu { display: none; }
 .lien-boite { display: flex; gap: 8px; margin-bottom: 10px; }
 .mini { flex: none; min-height: 36px; padding: 0 14px; border-radius: 999px; background: var(--fill-soft); color: var(--accent-txt); font-size: 14px; font-weight: 600; text-align: center; transition: transform .12s ease-out; }
 .mini:active { transform: scale(.96); }
-.mini.danger { color: var(--rouge-txt); }
+.mini.danger { color: var(--rouge-mini); }
 .deroule-choix.danger { color: var(--rouge-txt); }
 /* le « … » d'un membre : un rond de 36 px (44 au doigt), l'icône seule — son nom (« Gérer Ben Durand ») est dans aria-label */
 .mini.membre-gerer { width: 36px; padding: 0; display: inline-flex; align-items: center; justify-content: center; margin-left: auto; }
@@ -1440,6 +1511,13 @@ html[data-service] .mention-apercu { display: none; }
 .conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #3a3a3c; color: #fff; }
 .conv-ecran[data-bulle="sarcelle"] .envoyee, .theme-apercu[data-bulle="sarcelle"] .envoyee, .theme-pastille[data-bulle="sarcelle"] .theme-rond { background: #0b6e79; color: #fff; }
 .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #8e1b3a; color: #fff; }
+/* ⛔ DE NUIT, UNE BULLE ENVOYÉE S'ÉCLAIRCIT (17 octobre 2026, au pixel) : les fonds de nuit sont des teintes à 14–24 % sur un bleu nuit — sombres ; le graphite #3a3a3c et le bordeaux #8e1b3a, choisis pour
+   le jour, s'y confondaient (Graphite sur Sable : 1,04:1 ; 11 combinaisons sur 72 sous 1,5:1). Une surface élevée est plus claire que son fond. Le blanc reste lisible dessus (≥ 4,5:1),
+   et la pastille du choix (.theme-rond) suit la même règle. Le jour ne bouge pas. tests/test-2503.js rejoue les 72 combinaisons. */
+@media (prefers-color-scheme: dark) {
+  .conv-ecran[data-bulle="graphite"] .envoyee, .theme-apercu[data-bulle="graphite"] .envoyee, .theme-pastille[data-bulle="graphite"] .theme-rond { background: #636366; }
+  .conv-ecran[data-bulle="bordeaux"] .envoyee, .theme-apercu[data-bulle="bordeaux"] .envoyee, .theme-pastille[data-bulle="bordeaux"] .theme-rond { background: #b02a4f; }
+}
 .theme-apercu { display: flex; flex-direction: column; gap: 6px; padding: 18px 16px; margin-bottom: 18px; border-radius: 18px; background-color: var(--base); border: var(--line); }
 .theme-apercu .bulle { max-width: 78%; padding: 8px 12px; font-size: 16px; line-height: 21px; }
 .theme-apercu .recue { align-self: flex-start; }
@@ -1591,6 +1669,12 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .sem-fleche.prec .chev { transform: scaleX(-1); }
 .sem-titre { flex: 1; min-width: 0; min-height: 44px; padding: 0 6px; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; color: var(--text); overflow-wrap: anywhere; }
 .sem-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
+/* ⛔ AU DOIGT, SUR UN PETIT TÉLÉPHONE (17 octobre 2026, iPhone SE à 320 px) : sept colonnes et six écarts de 4 px dans 288 px de contenu donnaient 37,7 px de zone qui répond (43,4 à 360 px), sous les 44 px du
+   reste de la page. Les écarts se réduisent d'abord (2 px sous 380 px : 45,1 à 360) ; sous 352 px ils tombent et la barre déborde dans la marge de la page (-11 px de chaque côté : 310 / 7 = 44,3 à 320 px). Le seuil est 352 et non 340 : avec des écarts de 2 px la colonne vaut (largeur − 44) / 7, soit 42,9 à 344 px (Galaxy Z Fold replié) et moins de 44 jusqu'à 351 px (relecture, même jour).
+   Ni défilement latéral, ni autre forme. Le titre d'une feuille (« Nouveau rendez-vous », 171 px) ne tenait pas non plus dans les 156 px laissés entre « Annuler » et « Créer » : 15 px, il tient. */
+@media (max-width: 380px) { .sem-jours { gap: 2px; } }
+@media (max-width: 351px) { .sem-jours { gap: 0; margin-inline: -11px; } }
+@media (max-width: 340px) { .feuille-barre h2 { font-size: 15px; } }
 .jour { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 0 4px; border-radius: 14px; color: var(--text); font-size: 12px; }
 .jour b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 24px; }
 .jour .jour-point { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0; }
@@ -1604,7 +1688,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
    trois au plus, puis « +2 »). Un jour d'un autre mois se lit en gris et mène à son mois. */
 #vue-reunions > #reu-vue-seg { max-width: 320px; margin-inline: auto; }        /* le choix de l'affichage : un petit segmenté centré (le Calendrier du Mac), jamais une barre de toute la largeur */
 .mois { margin: 0 0 16px; }
-.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub); text-align: center; }
+.mois-entete { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); margin: 0 0 4px; font-size: 12px; line-height: 16px; color: var(--sub-meta); text-align: center; }
 .mois-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px; }
 .mjour { min-width: 0; min-height: 52px; display: flex; flex-direction: column; align-items: stretch; border-radius: 12px; color: var(--text); }
 /* (10 octobre 2026) la case n'est plus UN bouton : au téléphone, son NUMÉRO la remplit (toucher la case choisit le jour) ; au large, il se range en haut et les rendez-vous sont des boutons dessous */
@@ -1638,15 +1722,15 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
   .sem-grille { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
   .sem-grille .mjour { min-height: 220px; }
   .sem-grille .mjour-num { justify-content: space-between; padding-left: 4px; }
-  .sem-grille .mjour-nom { display: block; font-size: 12px; line-height: 16px; color: var(--sub); }
+  .sem-grille .mjour-nom { display: block; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
   /* le glisser (souris) : la main, la case visée, le fantôme qui suit */
   .mjour-elt.tire { opacity: .35; }
   .mjour.cible { box-shadow: inset 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--card)); }
   .mjour-elt.fantome { position: fixed; left: 0; top: 0; z-index: 90; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.25); background: var(--sheet-bg); }
   .mjour-elt.journee { background: color-mix(in srgb, var(--accent) 34%, transparent); }
   .mjour-elt.annulee { text-decoration: line-through; opacity: .7; }
-  .mjour-elt time { font-variant-numeric: tabular-nums; color: var(--sub); margin-right: 4px; }
-  .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub); }
+  .mjour-elt time { font-variant-numeric: tabular-nums; color: color-mix(in srgb, var(--text) 80%, transparent); margin-right: 4px; }
+  .mjour-plus { align-self: flex-start; padding: 0 6px; border-radius: 5px; font-size: 12px; line-height: 16px; color: var(--sub-meta); }
 }
 /* ⛔ AU DOIGT, SUR TABLETTE (relecture du 10 octobre 2026 : une puce de 19 px entre deux voisines à 2 px se rate) : la SEMAINE donne 44 px à chaque rendez-vous, au numéro et à « +N » ;
    le MOIS garde ses puces comme une vue d'ensemble — la case ENTIÈRE choisit le jour, et la liste du jour, juste dessous (44 px par ligne), ouvre, décale, répond (appui long). */
@@ -1690,6 +1774,7 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .carte-liste .reunion-ligne:focus-visible { outline-offset: -3px; }
 .reunion-heure { flex: none; width: 48px; display: flex; flex-direction: column; font-size: 15px; line-height: 20px; font-variant-numeric: tabular-nums; }
 .reunion-heure small { font-size: 13px; color: var(--sub-meta); }
+.reunion-heure.saison, .reunion-heure.jours { width: auto; min-width: 48px; white-space: nowrap; }      /* « 02:30 (été) » et « 26/10 09:00 » (fin un autre jour) ne tiennent pas dans 48 px : la colonne grandit, cette rangée seulement */
 .reunion-corps { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; padding-left: 10px; border-left: 3px solid var(--fill); }
 .reunion-titre { font-size: 17px; letter-spacing: -.02em; line-height: 22px; overflow-wrap: anywhere; }
 .reunion-sous { font-size: 14px; line-height: 19px; color: var(--sub-meta); overflow-wrap: anywhere; }
@@ -1755,7 +1840,7 @@ html[data-os="windows"] .rappels-puces > .rappel-puce { border-radius: 6px; }   
    se replient (`auto-fit`, `flex-wrap`, `overflow-wrap`). */
 :root { --salle-fond: #0b0d12; --salle-vitre: rgba(255,255,255,.12); --salle-bord: rgba(255,255,255,.18); --salle-sub: rgba(255,255,255,.78); --salle-panneau: rgba(28,30,40,.95); }
 .salle-ecran {
-  position: fixed; z-index: 36; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
+  position: fixed; z-index: 36; top: var(--hl-h); left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
   background: var(--salle-fond); color: #fff; outline: none;
 }
 html[data-salle] .salle-ecran { display: flex; }
@@ -1770,9 +1855,9 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-titres { flex: 1; min-width: 0; }
 .salle-titre { margin: 0; font-size: 17px; line-height: 22px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .salle-sous { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font-size: 13px; line-height: 18px; color: var(--salle-sub); font-variant-numeric: tabular-nums; }
-.salle-rec { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 18px; font-weight: 700; }
+.salle-rec { display: inline-flex; align-items: center; gap: 5px; padding: 0 8px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 12px; line-height: 18px; font-weight: 700; }
 .salle-rec::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
-.salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge); color: #fff; font-size: 15px; font-weight: 600; }
+.salle-quitter { flex: none; min-height: 44px; padding: 0 16px; border-radius: 999px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 15px; font-weight: 600; }
 .salle-bandeaux { flex: none; display: flex; flex-direction: column; gap: 6px; padding: 0 max(14px, env(safe-area-inset-right, 0px)) 0 max(14px, env(safe-area-inset-left, 0px)); }
 .salle-bandeaux:empty { display: none; }
 .salle-bandeau {
@@ -1808,7 +1893,7 @@ html[data-salle] .appel-ecran { display: none; }
   min-height: 36px; padding: 0 14px; border-radius: 999px; background: rgba(255,255,255,.2); color: #fff; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-align: center;
 }
 .salle-btn.plein { background: #fff; color: #000; }
-.salle-btn.danger { background: var(--rouge); color: #fff; }
+.salle-btn.danger { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-btn[aria-disabled="true"], .salle-btn:disabled { opacity: .5; }
 .salle-scene {
   position: relative; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 8px; align-content: center; width: 100%; max-width: 1100px; margin-inline: auto;
@@ -1833,7 +1918,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-tuile .tuile-av { z-index: 1; }
 .salle-tuile .tuile-nom { z-index: 2; left: 8px; bottom: 8px; display: inline-flex; align-items: center; gap: 4px; }
 .salle-tuile .tuile-nom .ic { width: 14px; height: 14px; stroke-width: 2; flex: none; }
-.salle-tuile .tuile-nom.coupe { background: var(--rouge); }
+.salle-tuile .tuile-nom.coupe { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-tuile .tuile-etat { z-index: 2; top: 8px; left: 8px; }
 .salle-tuile video { z-index: 0; }
 .salle-tuile.epingle::after { content: "📌"; position: absolute; z-index: 2; top: 8px; right: 8px; font-size: 16px; }
@@ -1841,13 +1926,13 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-tuile.epingle .salle-badges { right: 34px; }
 .salle-badge { min-width: 26px; height: 26px; padding: 0 4px; border-radius: 13px; display: grid; place-items: center; background: rgba(0,0,0,.6); color: #fff; font-size: 14px; line-height: 1; }
 .salle-badge.main { background: #ffcc00; color: #000; }
-.salle-badge.rouge { background: var(--rouge); }
+.salle-badge.rouge { background: var(--rouge-fill); color: var(--on-rouge); }
 .salle-badge .ic { width: 15px; height: 15px; stroke-width: 2; }
 /* la qualité du réseau d'une liaison (12 octobre 2026) : des barres — une seule pleine quand la liaison est faible, deux quand elle est moyenne ; la couleur ne fait que doubler la forme,
    et le texte est dans l'étiquette (la vignette dit « connexion faible » au lecteur d'écran). Rien ne s'affiche quand tout va bien : on ne montre que ce qui demande l'attention. */
 .salle-badge.reseau .ic { width: 18px; height: 18px; stroke-width: 3.2; stroke-linecap: round; }
 .salle-badge.reseau.moyenne { background: #ffcc00; color: #000; }
-.salle-badge.reseau.faible, .salle-badge.reseau.perdue { background: var(--rouge); color: #fff; }
+.salle-badge.reseau.faible, .salle-badge.reseau.perdue { background: var(--rouge-fill); color: var(--on-rouge); }
 /* ÉPINGLER POUR MOI : un bouton sur chaque vignette, montré au survol ou au focus (bureau), au toucher pendant quelques secondes (téléphone), et toujours quand l'épingle est posée */
 .salle-tuile-epingle { position: absolute; z-index: 3; top: 4px; left: 4px; width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; color: #fff; opacity: 0; pointer-events: none; transition: opacity .15s; }
 .salle-tuile-epingle::before { content: ""; position: absolute; inset: 6px; border-radius: 50%; background: rgba(0,0,0,.6); }
@@ -1877,7 +1962,7 @@ html[data-salle] .appel-ecran { display: none; }
 .avant-cmd .rond-cmd .ic { width: 24px; height: 24px; }
 .avant-cmd[aria-pressed="true"] .rond-cmd { background: var(--rouge); color: #fff; }
 .avant-cmd[aria-disabled="true"] { opacity: .45; }
-.avant-rejoindre { width: 100%; max-width: 560px; justify-self: center; min-height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; font-size: 17px; font-weight: 600; }
+.avant-rejoindre { width: 100%; max-width: 560px; justify-self: center; min-height: 50px; border-radius: 14px; display: flex; align-items: center; justify-content: center; background: var(--fill); color: var(--on-fill); font-size: 17px; font-weight: 600; }
 .avant-titre { margin: 0; text-align: center; font-size: 17px; line-height: 22px; font-weight: 600; color: var(--text); overflow-wrap: anywhere; }
 @media (min-width: 700px) { .avant-apercu { max-height: 40vh; } }
 .avant-rejoindre[aria-disabled="true"] { opacity: .5; }
@@ -1903,7 +1988,7 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-cmd[aria-pressed="true"] .rond-cmd { background: #fff; color: #000; }
 .salle-cmd.alerte .rond-cmd { background: var(--rouge); border-color: transparent; }
 .salle-cmd[hidden] { display: none; }
-.salle-cmd .compte { position: absolute; top: -3px; left: calc(50% + 8px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--rouge); color: #fff; font-size: 12px; line-height: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+.salle-cmd .compte { position: absolute; top: -3px; left: calc(50% + 8px); min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--rouge-fill); color: var(--on-rouge); font-size: 12px; line-height: 20px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
 .salle-panneau {
   position: absolute; z-index: 5; left: 0; right: 0; bottom: 0; max-height: min(78%, 640px); overflow-y: auto; overscroll-behavior: contain;
   padding: 14px max(16px, env(safe-area-inset-right, 0px)) calc(env(safe-area-inset-bottom, 0px) + 16px) max(16px, env(safe-area-inset-left, 0px));
@@ -1926,6 +2011,10 @@ html[data-salle] .appel-ecran { display: none; }
 .salle-rang > .texte { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; font-size: 16px; line-height: 21px; overflow-wrap: anywhere; }
 .salle-rang > .texte small { font-size: 13px; line-height: 17px; color: var(--salle-sub); }
 .salle-rang .salle-btn { min-height: 36px; }
+/* ⛔ AU DOIGT (17 octobre 2026) : les boutons des feuilles « Plus », « Participants » et « Quitter la salle » répondaient sur 36 px, les menus Micro / Caméra / Sortie sur 40 — sous les 44 px du reste de la page.
+   Le plancher se pose sous (pointer: coarse), jamais sous la largeur d'un téléphone (un iPad n'est ni l'un ni l'autre) ; la souris garde ses boutons compacts. `.salle-rang .salle-btn` est
+   plus spécifique que `.salle-btn` : il faut le nommer ici, sinon sa règle de 36 px bat le plancher dans toutes les rangées de la feuille Participants. */
+@media (pointer: coarse) { .salle-btn, .salle-rang .salle-btn, .salle-appareil select { min-height: 44px; } }
 .salle-rang.actions { padding-left: 58px; background: rgba(255,255,255,.05); }
 button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-inter { flex: none; position: relative; width: 51px; height: 31px; border-radius: 16px; background: rgba(120,120,128,.5); transition: background-color .2s; }
@@ -1942,6 +2031,9 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .salle-fil { max-height: 38vh; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; padding: 4px 2px; }
 .salle-msg { max-width: 92%; padding: 7px 11px; border-radius: 14px; background: rgba(255,255,255,.14); font-size: 15px; line-height: 20px; overflow-wrap: anywhere; align-self: flex-start; }
 .salle-msg.moi { align-self: flex-end; background: var(--fill); }
+.salle-msg .salle-envoi { text-align: right; }
+/* Le mot d'état se pose sur la bulle de MOI (--fill) : il prend l'encre de cette surface (--on-fill), pas le blanc à 78 % de `small` — 4,08:1 en thème sombre, sous les 4,5:1 d'un texte de 12 px. */
+.salle-msg.moi .salle-envoi { color: var(--on-fill); }
 .salle-msg small { display: block; font-size: 12px; line-height: 15px; color: var(--salle-sub); }
 .salle-saisie { display: flex; gap: 8px; margin-top: 8px; }
 .salle-joindre { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; font-size: 20px; }
@@ -1988,6 +2080,7 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .invite-carte { margin: 0 auto; max-width: 420px; padding: 18px; border-radius: 18px; background: var(--card); border: var(--line); text-align: center; }
 .invite-carte h3 { margin: 0 0 4px; font-size: 20px; line-height: 26px; overflow-wrap: anywhere; }
 .invite-carte p { margin: 4px 0; overflow-wrap: anywhere; }
+.invite-carte .info-actions { justify-content: center; margin-top: 14px; }      /* les boutons de la salle : centrés comme le reste de la carte, et à distance du texte de la date (17 octobre 2026) */
 .salle-btn .ic { width: 16px; height: 16px; stroke-width: 1.8; flex: none; }
 .salle-cmd-texte { display: block; max-width: 100%; overflow-wrap: anywhere; }
 .salle-ecran[data-attente] .salle-cmds, .salle-ecran[data-attente] .salle-tuile { display: none; }
@@ -2078,7 +2171,13 @@ button.salle-rang { width: 100%; text-align: left; color: #fff; }
 .bord-date { margin: -4px 4px 14px; font-size: 15px; color: var(--sub-meta); }
 .bord-jour { list-style: none; padding: 10px 14px 4px; font-size: 13px; font-weight: 600; color: var(--sub-meta); text-transform: none; }
 .carte-liste > li.bord-jour::after { display: none; }
-.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--rouge-txt) 14%, transparent); color: var(--rouge-txt); }
+/* ⛔ UNE PASTILLE QUI PEUT PASSER À LA LIGNE N'EST PAS UNE CAPSULE (lot p03, n#7) : « A appelé 2 fois · Collègue » demande 162 px, la colonne en offre 154 (iPhone) ou 124 (Android) — l'heure et le bouton « i »
+   prennent le reste. Sur une ligne, un rayon de 12 px est une capsule ; sur deux, ce n'est plus un disque aplati de 33 px mais un rectangle doux. Un mot trop long se coupe plutôt que de sortir. On ne tronque
+   pas par une ellipse : une raison coupée ne nomme rien (la règle de `.appel-kind`). */
+.bord-raison { display: inline-block; align-self: flex-start; width: max-content; max-width: 100%; margin-top: 2px; padding: 2px 8px; border-radius: 12px; line-height: 16px; overflow-wrap: anywhere; font-size: 12px; font-weight: 600; background: color-mix(in srgb, var(--text) 8%, transparent); color: var(--sub-meta); }
+/* ⛔ LE ROUGE EST POUR L'APPEL MANQUÉ, PAS POUR LA RAISON DE L'AFFICHER (17 octobre 2026, capture iPad) : « Collègue », « Favori », « A appelé 3 fois » informent, ils n'alertent pas — la pastille prend un gris de
+   légende sur un voile neutre, et le nom de l'appelant l'encre du texte. La liste des Appels, elle, garde son rouge (`.appel-nom-ligne.manque`). tests/test-2504.js. */
+#bord-appels .appel-nom-ligne.manque { color: var(--text); }
 .bord-vide { padding: 14px; font-size: 15px; line-height: 20px; color: var(--sub-meta); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 #vue-accueil > #bord-portee { max-width: 320px; margin-inline: auto; }        /* comme l'Agenda : un petit segmenté centré, jamais une barre de toute la largeur */
 .bord-plus { list-style: none; }
@@ -2211,7 +2310,7 @@ a.menu-action { text-decoration: none; }
   .contenu { padding: 0 24px 32px; }
   .vue { position: relative; max-width: none; }
   .vue > .entete-vue {
-    position: sticky; top: 0; z-index: 6; min-height: 52px; margin: 0 -24px 14px; padding: 0 14px 0 24px; justify-content: flex-end; gap: 4px;
+    position: sticky; top: var(--pousse, 0px); z-index: 6; min-height: 52px; margin: 0 -24px 14px; padding: 0 14px 0 24px; justify-content: flex-end; gap: 4px;
     background: var(--nav-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); border-bottom: var(--line);
   }
   .vue > .grand-titre {
@@ -2296,7 +2395,7 @@ a.menu-action { text-decoration: none; }
 
   /* PROFIL = LES RÉGLAGES SYSTÈME : la colonne des rubriques (ma carte en tête, puis les rubriques en lignes de 28 px, la choisie en aplat d'accent), la rubrique à droite */
   #vue-reglages .reg-grille { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 32px; align-items: start; max-width: 1100px; margin-inline: auto; }
-  #vue-reglages .reg-accueil { position: sticky; top: 66px; display: block !important; }
+  #vue-reglages .reg-accueil { position: sticky; top: calc(66px + var(--pousse, 0px)); display: block !important; }
   #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: flex; }
   #vue-reglages .reg-barre { display: none; }
   .reg-moi { flex-direction: row; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 14px; border-radius: 12px; background: transparent; text-align: left; display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 0; }
@@ -2323,8 +2422,10 @@ a.menu-action { text-decoration: none; }
   /* CONTACTS = Contacts sur Mac : la liste (380 px) à gauche, la fiche à droite, séparées d'un filet ; la fiche se tient en haut quand la liste défile */
   #vue-contacts { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); column-gap: 0; }
   #vue-contacts > .entete-vue { grid-column: 1 / -1; }
-  #vue-contacts > .vc-col { max-width: none; margin: 0; padding-right: 20px; min-width: 0; }
-  #vue-contacts > .vc-fiche { max-width: none; margin: -14px -24px 0 0; min-height: calc(100vh - 52px); border-left: var(--line); position: sticky; top: 52px; align-self: start; }
+  #vue-contacts > .vc-col { max-width: none; margin: 0; padding-right: 20px; min-width: 0; padding-bottom: 32px; }
+  /* Contacts remplit la fenêtre PILE : la fiche de droite fait `100vh − 52 px` (sous la barre d'outils), la vue 100vh — et la marge basse du contenu y ajoutait ses 32 px, donc la page défilait de 33 px. Sur cette seule rubrique la marge passe à la LISTE (sa dernière ligne ne colle pas au bas de la fenêtre). */
+  html[data-vue="contacts"] .contenu { padding-bottom: 0; }
+  #vue-contacts > .vc-fiche { max-width: none; margin: -14px -24px 0 0; min-height: calc(100vh - 52px); border-left: var(--line); position: sticky; top: calc(52px + var(--pousse, 0px)); align-self: start; }
   #vue-contacts .contact[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
   #vue-contacts .contact[aria-current="true"] .vc-chevron { stroke: currentColor; }
   #vue-contacts .vc-ligne .vc-chevron { display: none; }
@@ -2424,6 +2525,7 @@ a.menu-action { text-decoration: none; }
   <symbol id="i-courriel" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm0 .5 8 6 8-6"/></symbol>
   <symbol id="i-personne" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 19.5c.9-3.4 3.7-5.2 7-5.2s6.1 1.8 7 5.2"/></symbol>
   <symbol id="i-cloche" viewBox="0 0 24 24"><path d="M6.5 16.5V11a5.5 5.5 0 0 1 11 0v5.5l1.5 1.5H5l1.5-1.5ZM10 20.5a2.2 2.2 0 0 0 4 0"/></symbol>
+  <symbol id="i-sourdine" viewBox="0 0 24 24"><path d="M20 14.2A8 8 0 0 1 9.8 4 8 8 0 1 0 20 14.2ZM4 4l16 16"/></symbol>
   <symbol id="i-cadenas" viewBox="0 0 24 24"><rect x="5.5" y="10.5" width="13" height="9.5" rx="2.2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5M12 14.3v2.2"/></symbol>
   <symbol id="i-appareil" viewBox="0 0 24 24"><rect x="7" y="3.5" width="10" height="17" rx="2.4"/><path d="M11 17.5h2"/></symbol>
   <symbol id="i-disque" viewBox="0 0 24 24"><ellipse cx="12" cy="6.5" rx="7" ry="2.8"/><path d="M5 6.5v11c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8v-11M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/></symbol>
@@ -2512,7 +2614,7 @@ a.menu-action { text-decoration: none; }
 <p class="hors-ligne" id="hors-ligne" role="status" hidden>Connexion perdue — reconnexion en cours…</p>
 
 <div class="appel-barre" id="appel-barre" role="region" aria-label="Appel en cours">
-  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte">Appel en cours</span><b>Revenir</b></button>
+  <button type="button" class="appel-barre-revenir presse" id="appel-barre-revenir"><span class="texte" id="appel-barre-texte"><span class="texte-prefixe" id="appel-barre-prefixe">Appel en cours · </span><span class="texte-nom" id="appel-barre-nom"></span><span class="texte-duree" id="appel-barre-duree"></span></span><b>Revenir</b></button>
   <button type="button" class="appel-barre-raccrocher presse" id="appel-barre-raccrocher" aria-label="Raccrocher"><span class="rond"><svg class="ic" aria-hidden="true"><use href="#i-raccrocher"/></svg></span></button>
 </div>
 <div class="app" id="app">
@@ -2721,7 +2823,7 @@ a.menu-action { text-decoration: none; }
   <div class="feuille-corps" id="feuille-corps">
     <div class="g-identite">
       <label class="g-photo" id="g-photo" title="Ajouter une photo au groupe"><svg class="ic" aria-hidden="true"><use href="#i-photo"/></svg><span class="sr-seul">Photo du groupe</span><input type="file" id="g-photo-fichier" accept="image/*"></label>
-      <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
+      <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
       <p class="g-resume" id="g-resume" aria-live="polite" hidden></p>
     </div>
     <p class="g-erreur" id="g-erreur" role="alert" hidden></p>
@@ -2731,8 +2833,8 @@ a.menu-action { text-decoration: none; }
     </div>
     <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher un contact</span><input type="search" id="g-recherche" placeholder="Rechercher un contact" autocomplete="off" enterkeyhint="search"></label>
     <ul class="puces" id="g-puces" role="list" aria-label="Membres choisis"></ul>
-    <div class="rubrique"><span>Contacts de l'entreprise</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
-    <div class="carte" id="g-contacts" role="group" aria-label="Contacts de l'entreprise"></div>
+    <div class="rubrique"><span id="g-rubrique">Mes contacts</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
+    <div class="carte" id="g-contacts" role="group" aria-label="Mes contacts"></div>
     <div class="carte" id="g-reglages">
       <button type="button" class="reglage presse" id="g-ephemeres" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur"><span id="g-ephemeres-val">Désactivés</span><svg class="chev-ud" viewBox="0 0 9 14" aria-hidden="true"><path d="M1.5 5 4.5 2 7.5 5M1.5 9 4.5 12 7.5 9"/></svg></span></button>
       <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>

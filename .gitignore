@@ -22,6 +22,8 @@ node_modules/
 .claude/.proven-config-version
 .claude-flow/
 .swarm/
+# Les copies de travail des agents (worktrees d'un workflow) : une branche par lot, jamais versionnées comme fichiers
+.claude/worktrees/
 
 # ── Fichiers de comparaison du concepteur : jamais versionnés ──
 # Il produit des copies « avant » pour juger un redessin côte à côte (2 Mo pièce).

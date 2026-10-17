@@ -304,6 +304,8 @@ function installerReunions(H, ctx) {
       const conv = R.reunion.conv;
       if (!stockage.convPourMembre(conv, par.id)) return null;
       const p = stockage.presenceSalle(salle, horloge()); if (!p || p.en_cours) return null;
+      /* la séance est finie et écrite : tous les participants relisent l'agenda et la fiche (`stockage.reunionSeanceSignaler`) — avant le message, qui ne parle qu'à la conversation */
+      if (stockage.reunionSeanceSignaler(reunion)) hub.reveiller({ conv });
       const fin = p.fin || horloge(), duree_s = Math.max(0, Math.round((fin - p.debut) / 1000));
       const nom = (x) => ((x.prenom || '') + ' ' + (x.nom || '')).trim() || 'Compte supprimé';
       const venus = p.venus.slice(0, LISTE_CR_MAX).map(x => ({ id: x.id, nom: nom(x), duree_s: x.duree_s }));

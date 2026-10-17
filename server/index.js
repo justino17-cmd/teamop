@@ -5429,13 +5429,14 @@ app.post('/api/monitor/espaces/promo', monPatronStrict, (req, res) => {
 //    Une seule adresse par entreprise (dédoublonnée), tout passe par le beau
 //    gabarit TeamOP et le journal des e-mails.
 const ANNONCE = {
-  version: '767',
-  sujet: '🆕 OP GESTION : l\'application de votre métier, et du nouveau sur l\'abonnement',
-  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. La nouvelle version s\'installe d\'elle-même, sans interrompre une saisie, et un message le confirme à l\'ouverture suivante.',
+  version: '768',
+  sujet: '🆕 OP GESTION : près de deux cents corrections, du planning à la facture',
+  intro: 'Bonjour,<br>votre application OP GESTION vient d\'être mise à jour. Nous l\'avons fait tester écran par écran, au téléphone, sur tablette et sur ordinateur, de jour et de nuit, comme vous l\'utilisez : cette version corrige tout ce que ces essais ont trouvé. Elle s\'installe d\'elle-même, sans interrompre une saisie.',
   points: [
-    ['🧰 L\'application de votre métier', 'OP GESTION connaît désormais treize métiers : 3D (hygiène anti-nuisibles), plomberie, électricité, chauffage et climatisation, serrurerie, nettoyage, maçonnerie, menuiserie, peinture, espaces verts, couverture, multiservices et autres métiers de terrain. Les types d\'intervention, les prestations et les relevés suivent le vôtre. Rien ne change tant que vous n\'avez rien demandé : pour régler le vôtre, écrivez à contact@teamop.fr.'],
-    ['📅 Les contrats à renouveler', 'L\'écran Contrats montre ceux qui arrivent à échéance — « Fin dans 12 j », « Échu » sur chaque ligne — et la cloche le rappelle aux personnes qui gèrent les contrats. Rien ne se renouvelle tout seul : vous gardez la main.'],
-    ['💳 Plus de formule gratuite', 'L\'application se sert désormais avec un abonnement ou une période offerte. Une période offerte en cours va jusqu\'à sa date de fin, et un courriel vous le rappelle sept jours avant. Si le paiement s\'arrête, l\'accès est suspendu jusqu\'au règlement : rien n\'est effacé ni perdu, et tout revient dès que c\'est réglé. Seul l\'administrateur de l\'entreprise voit pourquoi, avec le bouton pour régler ; le reste de l\'équipe ne voit aucun message de paiement.']
+    ['📅 Planning et absences', 'Un glisser-déposer respecte les congés et les indisponibilités, un double-clic sur une case prépare l\'intervention avec la bonne personne et la bonne heure, deux absences ne se chevauchent plus, et une absence validée qu\'un technicien modifie repasse en attente de validation.'],
+    ['🧾 Devis, factures et numéros', 'Un double toucher sur « Créer » ne crée plus deux documents, un numéro n\'est jamais porté deux fois, un devis accepté ne se convertit qu\'une fois en facture, et les exports comptables sont plus sûrs (dates avec l\'année, décimales justes, formules neutralisées).'],
+    ['📱 Téléphone et tablette', 'Les écrans tiennent dans la largeur de l\'appareil, le champ de la messagerie reste visible (en portrait comme en paysage), plus rien ne se chevauche, et le retour du téléphone recule d\'un écran à la fois.'],
+    ['🔁 Une saisie interrompue se reprend en entier', '« Reprendre » rend un devis avec ses lignes, une intervention avec ses techniciens et son client : rien n\'est perdu quand on change d\'écran en cours de route.'],
   ],
   fin: 'Votre adresse et vos identifiants OP GESTION ne changent pas.'
 };

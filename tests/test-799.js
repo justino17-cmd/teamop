@@ -16,7 +16,7 @@ let ok = 0, ko = 0;
 const v = (t, a, b) => { const bon = JSON.stringify(a) === JSON.stringify(b); bon ? ok++ : ko++;
   console.log('  ' + (bon ? '✓' : '✗') + ' ' + t + (bon ? '' : '  → attendu ' + JSON.stringify(b) + ', reçu ' + JSON.stringify(a))); };
 
-const i = SRC.indexOf('function rendreVueSure(view){');
+const i = SRC.indexOf('function rendreVueSure(view,remonter){');
 let d = 0, fin = -1;
 for (let k = SRC.indexOf('{', i); k < SRC.length; k++) { if (SRC[k] === '{') d++; else if (SRC[k] === '}') { d--; if (!d) { fin = k + 1; break; } } }
 v('rendreVueSure est trouvée dans le fichier réel', i > 0 && fin > i, true);

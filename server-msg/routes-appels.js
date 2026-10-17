@@ -158,7 +158,7 @@ function installerAppels(H, ctx) {
     catch (e) { if (e && e.code === 'occupe_moi') return refus(res, 409, 'occupe', { moi: true }); throw e; }
     /* l'appelé est dans un appel : la ligne est écrite (il la lira « Manqué »), l'appelant lit « occupé » */
     if (r.occupe) return refus(res, 409, 'occupe', { moi: false });
-    res.status(201).json({ appel: r.vue });
+    res.status(201).json(r.joint ? { appel: r.vue, joint: true } : { appel: r.vue });          // `joint` : l'appel de l'autre sonnait déjà chez moi, je l'ai pris (la page lit une vue ENTRANTE, déjà en cours)
   });
 
   /* ── répondre, raccrocher ── */

@@ -30,6 +30,7 @@ const FONCTIONS = ['const PA_TYPES=', 'const MENTION_REGL=', 'const PH_MARQUE=',
   'function papZoneOf(', 'function papRoomAt(', 'function papFrac(', 'function papMerc(', 'function papWorld(', 'function papLL2F(', 'function papMPerPx(',
   'function paReleveOf(', 'function paHistoPoste(', 'function paLastEtat(',
   'function _pdfTranslit(', 'function _pdfTxt(', 'const _PDF_L=', 'function _pdfLarg(', 'function _pdfCoupe(', 'function _pdfDessinPlans(',
+  'function rapportDuree(',   /* g08 : la durée du rapport (réelle, sinon prévue) — rapportPdfStr l'appelle, comme printRapport */
   'function rapportProduitsLibres(', 'function rapportChampsPerso(', 'const PAP_IMPL_MAX_B64=', 'function rapportPdfStr(',
   'const _rapEnvoi=', 'async function rapportVia('];
 const SOURCES = FONCTIONS.map(decoupe);

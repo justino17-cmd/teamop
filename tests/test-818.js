@@ -39,7 +39,9 @@ console.log('\n── 818 · 1. aucune variable lue sans exister (ESLint no-unde
     'setInterval caches location clearTimeout prompt confirm FileReader Image FormData NodeFilter MutationObserver getComputedStyle btoa atob ' +
     'crypto TextEncoder CompressionStream Response DecompressionStream TextDecoder AbortController alert indexedDB URL Notification history CSS ' +
     'Event clearInterval sessionStorage matchMedia cancelAnimationFrame performance innerHeight File innerWidth MessageChannel addEventListener ' +
-    'L Tesseract render').split(/\s+/));
+    'L Tesseract render ' +
+    /* j01 : ResizeObserver est un global du navigateur, lu derrière un `typeof ResizeObserver===\'function\'` (msgAjusterVeiller) */
+    'ResizeObserver').split(/\s+/));
   let eslint = null;
   for (const p of ['/opt/node22/lib/node_modules/eslint', 'eslint']) { try { eslint = require(p); break; } catch (e) {} }
   if (!eslint || !eslint.Linter) console.log('  … SAUTÉ : ESLint absent de cette machine (la partie lue dans le code, plus bas, reste jouée)');

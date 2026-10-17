@@ -492,7 +492,7 @@ async function couple(b, env, cfg) {
     await toucher(B, '#g-annuler');
     await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomC + '")) [data-act="membre"]');
     await toucher(A, '#deroule-liste [data-valeur="retirer"]');
-    await verifier('« Retirer du groupe » : la page le dit (« … a été retiré du groupe »)', A, p => new RegExp(p + '.* a été retiré du groupe').test(document.getElementById('mot').textContent), prenomC, 6000, () => texteVu(A, '#mot'));
+    await verifier('« Retirer du groupe » : la page le dit (« … n\'est plus dans le groupe »)', A, p => new RegExp(p + '.* n\'est plus dans le groupe').test(document.getElementById('mot').textContent), prenomC, 6000, () => texteVu(A, '#mot'));
     await verifier('A retire C : C est averti (« Tu n\'es plus dans cette conversation »), revient à la liste, le groupe n\'y est plus', C, g => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(x => x.textContent === g) && document.documentElement.dataset.conv !== '1', G, 9000, () => texteVu(C, '#liste-conv'));
     await envoyerTexte(B, tag + '-apres');
     await dormir(1200);
@@ -638,6 +638,18 @@ async function couple(b, env, cfg) {
     const deux = (S) => verifier('⛔ D2 : ' + S.nom.split(' ')[0] + ' voit DEUX messages « ' + OK + ' » (envoyés à 250 ms d\'écart)', S, t => Array.from(document.querySelectorAll('#conv-messages .msg .bulle')).filter(x => x.textContent.trim() === t).length === 2, OK, 14000, () => texteVu(S, '#conv-messages'));
     await deux(A); await deux(B);
     await A.page.unroute('**/api/conversations/*/messages');
+    /* ⛔ (lot m08, temps-reel#0) Entrée pendant qu'un envoi est en vol : le message part TEL QU'IL ÉTAIT, et ce qu'on tape ensuite reste dans le champ. Avant, le texte attendait dans le champ
+       et partait à la fin du premier envoi tel que le champ était ALORS : « R3 à moit » partait à moitié, et « R2 » ne partait jamais. */
+    const R1 = tag + '-R1', R2 = tag + '-R2', R3 = tag + '-R3-a-moitie';
+    await A.page.route('**/api/conversations/*/messages', async r => { if (r.request().method() === 'POST') await dormir(900); await r.continue(); });
+    await envoyerTexte(A, R1);
+    await envoyerTexte(A, R2);                                 // pendant le vol du premier
+    await saisir(A, '#saisie', R3);                            // la suite est tapée, pas envoyée
+    await verifier('⛔ R1 et R2 sont chacun un message ENTIER chez B, dans l\'ordre', B, ([a, b]) => { const t = Array.from(document.querySelectorAll('#conv-messages .msg .bulle')).map(x => x.textContent.trim()); return t.indexOf(a) >= 0 && t.indexOf(b) > t.indexOf(a); }, [R1, R2], 14000, () => texteVu(B, '#conv-messages'));
+    v('⛔ … et la frappe en cours reste dans le champ, intacte (elle n\'est PAS partie)', await A.page.inputValue('#saisie'), R3);
+    vrai('… B ne voit pas de morceau de la suite', !(await B.page.evaluate(t => (document.getElementById('conv-messages').textContent || '').includes(t), '-R3-a')));
+    await saisir(A, '#saisie', '');
+    await A.page.unroute('**/api/conversations/*/messages');
     v('et le champ de saisie d\'Alice est vide (rien de renvoyé)', await A.page.inputValue('#saisie'), '');
     const nonLus = () => B.page.evaluate(async () => { const r = await fetch('/api/conversations'); const j = await r.json(); return j.conversations.reduce((n, c) => n + (c.non_lus || 0), 0); });
     /* D4 + G2 — l'onglet de B est CACHÉ pendant que le message arrive ; le service refuse son « Lu » (503) ; il revient : le refus se DIT ; puis un retour réussi marque lu */
@@ -679,7 +691,10 @@ async function couple(b, env, cfg) {
     await dormir(300);
     vrai('⛔ 5 000 émojis (10 000 unités UTF-16, 5 000 signes) : aucun « trop long » — le service les accepte', !/trop long/.test(await lire(B, '#avis')) || (await visible(B, '#avis')) === false);
     await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = '😀'.repeat(8001); t.dispatchEvent(new Event('input', { bubbles: true })); });
-    await attendreTexte('⛔ 8 001 émojis : « 1 signes en trop » (le compte est celui du service, pas 4 000 de trop)', B, '#avis', '1 signes en trop', 3000);
+    await attendreTexte('⛔ 8 001 émojis : « 1 signe en trop » (le compte est celui du service, pas 4 000 de trop ; l\'accord est au singulier)', B, '#avis', '1 signe en trop', 3000);
+    vrai('… et pas « 1 signes » (lot m08, conversations#7)', !/1 signes/.test(await lire(B, '#avis')));
+    await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = '😀'.repeat(8002); t.dispatchEvent(new Event('input', { bubbles: true })); });
+    await attendreTexte('8 002 émojis : « 2 signes en trop » (le pluriel garde son s)', B, '#avis', '2 signes en trop', 3000);
     await B.page.evaluate(() => { const t = document.getElementById('saisie'); t.value = ''; t.dispatchEvent(new Event('input', { bubbles: true })); });
   });
 

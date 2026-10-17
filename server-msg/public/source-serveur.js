@@ -111,10 +111,12 @@
     return e;
   }
 
+  /* ⛔ Des LETTRES, jamais le premier caractère venu (lot m10, 17 octobre 2026) : « Ana (Pro) » faisait « A( », un nom collé avec une balise « A< », « 👷 Léo Roux » « 👷R ». Un mot se lit
+     à partir de sa première lettre (`\p{L}`) ; un mot sans lettre ne compte pas ; un nom sans aucune lettre se replie sur « ? » — comme un nom vide. */
   const initialesDe = (nom) => {
-    const mots = String(nom || '').trim().split(/\s+/).filter(Boolean);
+    const mots = String(nom || '').split(/\s+/).map(m => m.replace(/^[^\p{L}]+/u, '')).filter(Boolean);
     if (!mots.length) return '?';
-    const a = Array.from(mots[0]), b = mots.length > 1 ? Array.from(mots[mots.length - 1]) : a.slice(1);
+    const a = Array.from(mots[0]), b = mots.length > 1 ? Array.from(mots[mots.length - 1]) : a.slice(1).filter(c => /\p{L}/u.test(c));
     return (a[0] + (b[0] || '')).toUpperCase();
   };
   const indexAvatar = (id) => { let h = 0; for (const c of String(id)) h = (h * 31 + c.charCodeAt(0)) % 6007; return h % 6; };
@@ -239,6 +241,8 @@
     const planifier = d.planifier, annuler = d.annuler, maintenant = d.maintenant;
     const pause = (ms) => new Promise((ok) => planifier(ok, ms));
     let courant = null, lancement = false;
+    /* ce que l'autre dit PENDANT que ma requête de lancement est en route (voir `lancer`) : une offre qui devance la réponse du service n'est pas perdue */
+    const signauxAvance = [];
     const dernieres = new Map();           // id d'appel → la dernière vue lue sur le flux : un événement qui devance la réponse de la route n'est pas perdu
     /* ⛔ UNE VUE D'AVANT, ARRIVÉE APRÈS LA SIENNE, NE LA REMPLACE PAS (9 octobre 2026 au soir — le défaut corrigé dans les salles, `creerMoteurSalle`, était ouvert ici aussi, jamais observé) : une vue
        arrive par TROIS chemins (le flux, la réponse d'un geste, une relecture de la liste), sans ordre garanti. Une vue « sonne » lue avant la réponse et rendue après elle remettait à l'écran en
@@ -293,9 +297,14 @@
         sens: c.role === 'appelant' ? 'sortant' : 'entrant', entrant, liaison: fini ? 'fini' : c.liaison, issue: fini ? c.fini.issue : null, avis: fini ? c.fini.avis : null, relais: c.relais,
       };
     }
+    /* ⛔ L'ISSUE d'un appel SORTANT qui n'a pas abouti (lot m19, appels@2) : la liste disait « Appel sortant » d'un appel annulé, refusé ou resté sans réponse — la personne avait vu « Ben a refusé l'appel »
+       à l'écran, et plus rien ensuite. Le service sait déjà : annulé, refusé, sans réponse (`manque`), occupé. `sens` reste « sortant » (l'icône, le tri et le filtre « Manqués » en dépendent) ; l'issue est un champ de plus,
+       absent (null) pour un appel répondu et pour tout appel ENTRANT (celui-là a déjà son « manqué »). */
+    const ISSUES_SORTANT = ['annule', 'refuse', 'manque', 'occupe'];
+    const issueSortant = (sortant, issue) => sortant && ISSUES_SORTANT.includes(issue) ? issue : null;
     function enregistrement(c) {
       const v = c.vue, p = autreVue(c);
-      return { id: c.id, type: v.type, sens: c.role === 'appelant' ? 'sortant' : 'entrant', groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: v.debut, duree: dureeFinale(c) };
+      return { id: c.id, type: v.type, sens: c.role === 'appelant' ? 'sortant' : 'entrant', issue: issueSortant(c.role === 'appelant', c.fini && c.fini.issue), groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: v.debut, duree: dureeFinale(c) };
     }
 
     /* ── ce qu'on dit quand un appel finit autrement que par un geste de la personne ── */
@@ -579,7 +588,12 @@
     function surSignal(s) {
       if (!s || typeof s !== 'object' || typeof s.appel !== 'string' || typeof s.type !== 'string') return;
       const c = courant;
-      if (!c || c.fini || c.id !== s.appel || !(c.local || c.accepte)) return;          // pas le nôtre : ni cet appel, ni cet onglet
+      if (!c || c.fini || c.id !== s.appel || !(c.local || c.accepte)) {
+        /* ⛔ MA requête de lancement est en route : si le service me répond « c'est l'appel de l'autre, je l'ai pris » (`joint`), l'autre a déjà reçu l'événement « en cours » et OFFRE — son offre peut arriver
+           ICI avant la réponse de ma requête, quand je ne sais pas encore que cet appel est le mien. On la met de côté (bornée) ; `lancer` la rejoue si la réponse dit que oui, la jette sinon. */
+        if (lancement && signauxAvance.length < 200 && (s.type === 'offre' || s.type === 'reponse' || s.type === 'candidats' || s.type === 'etat')) signauxAvance.push(s);
+        return;                                                                         // pas le nôtre : ni cet appel, ni cet onglet
+      }
       const de = c.vue.autre && c.vue.autre.id;
       if (!de || s.de !== de) return;
       if (s.type === 'etat') { traiterEtat(c, s.donnees); return; }
@@ -647,6 +661,11 @@
           if (!c.pc && !c.demarrage) demarrerLiaison(c);
         } else if (c.role === 'appele' && c.accepte) {
           if (!c.debut) c.debut = maintenant();
+        } else if (c.role === 'appele' && lancement) {
+          /* ⛔ « en cours » sur une sonnerie que je n'ai pas prise, PENDANT que ma propre requête de lancement est en route : si l'appel est celui de l'autre qui m'appelait (nos deux appels se sont
+             croisés), c'est MOI qui l'ai pris — la réponse de ma requête le dit (`joint`). On ne conclut pas « pris ailleurs » avant ; `lancer` tranche à sa réponse. */
+          c.priseEnVol = true;
+          return;
         } else { finir(c, 'pris_ailleurs', { service: true }); return; }
         emettreAppel(c);
         return;
@@ -685,6 +704,7 @@
         const r = await d.api.lancerAppel(Object.assign({ type: spec.video ? 'video' : 'audio' }, conv ? { conv } : { uid: ids[0] }));
         const v = r.appel;
         noterAutre(v);
+        if (r.joint === true && v.sens === 'entrant') return await prendreCroise(v);
         const c = entree(v, { local: true, accepte: true });
         courant = c;
         c.promesseIce = lireIce();
@@ -693,7 +713,33 @@
         const tard = dernieres.get(v.id);
         if (tard && tard !== v && tard.etat !== 'sonne') appliquer(c, tard);            // l'autre a répondu avant que la réponse de la route nous arrive
         return instantane(c);
-      } finally { lancement = false; }
+      } finally {
+        lancement = false; signauxAvance.length = 0;
+        /* une sonnerie restée en suspens (`appliquer`) que ma réponse n'a pas prise : ce n'était pas moi, l'appel est pris ailleurs */
+        const s = courant;
+        if (s && s.priseEnVol && !s.accepte && !s.fini) finir(s, 'pris_ailleurs', { service: true });
+      }
+    }
+    /* ⛔ DEUX APPELS QUI SE CROISENT (lot m18) : j'appelais l'autre pendant qu'il m'appelait. Le service n'écrit pas un second appel — il me donne le SIEN, déjà EN COURS, ENTRANT, mon appareil lié
+       (`joint: true`, `routes-appels.js`). Comme si j'avais répondu : la page ne doit pas le tenir pour un appel sortant qui sonne (l'autre est déjà « connecté », il a offert, personne ne répondrait
+       à son offre). Il n'y a rien à répondre au service ; on arme le pouls et la liaison, et on rejoue ce que l'autre a dit en route. */
+    async function prendreCroise(v) {
+      let c = courant && !courant.fini && courant.id === v.id ? courant : null;          // la sonnerie de l'autre m'était déjà arrivée par le flux
+      if (c) {
+        c.local = true; c.accepte = true; c.priseEnVol = false;
+        if (!perimee(c, v)) { c.vue = v; if (revDe(v) > c.rev) c.rev = revDe(v); }
+        if (c.minSonnerie) { annuler(c.minSonnerie); c.minSonnerie = null; }
+      } else { c = entree(v, { local: true, accepte: true }); courant = c; }
+      memoriser(v);
+      c.promesseIce = c.promesseIce || lireIce();
+      if (!c.debut) c.debut = maintenant();
+      if (d.fermerNotif) { try { d.fermerNotif('appel:' + v.id); } catch (e) { /* rien */ } }
+      armerPouls(c);
+      for (const sg of signauxAvance.splice(0)) surSignal(sg);                           // l'offre de l'autre, arrivée avant la réponse de ma requête (elle attend la liaison dans `c.file`)
+      const tard = dernieres.get(v.id);
+      if (tard && tard !== v) appliquer(c, tard);                                        // une vue plus récente (l'appel déjà fini ?) lue en route
+      await demarrerLiaison(c);
+      return instantane(c);
     }
     async function repondre(id, accepte) {
       const c = courant;
@@ -769,7 +815,7 @@
     function vueHistorique(a) {
       noterAutre(a);
       const p = a.autre && typeof a.autre.id === 'string' ? (d.personne(a.autre.id) || { id: a.autre.id, nom: 'Quelqu\'un', initiales: '?', avatar: 0, photo: null }) : { id: null, nom: d.nomSupprime, initiales: '?', avatar: 0, photo: null };
-      return { id: a.id, type: a.type, sens: a.manque ? 'manque' : a.sens === 'sortant' ? 'sortant' : 'entrant', groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: a.debut, duree: Number.isInteger(a.duree_s) ? a.duree_s : 0 };
+      return { id: a.id, type: a.type, sens: a.manque ? 'manque' : a.sens === 'sortant' ? 'sortant' : 'entrant', issue: issueSortant(a.sens === 'sortant', a.repondu === null || a.repondu === undefined ? a.etat : null), groupe: false, conv: null, membres: p.id ? [p.id] : [], nom: p.nom, court: p.nom, initiales: p.initiales, avatar: p.avatar, photo: p.photo, repetitions: 1, t: a.debut, duree: Number.isInteger(a.duree_s) ? a.duree_s : 0 };
     }
     function arreter() {
       const c = courant;
@@ -907,7 +953,7 @@
         id: c.id, etat, type: v.type, groupe: true, salle: true, genre: v.genre, conv: v.conv || null, reunion: v.reunion || null, nom: nomSalle(c), court: nomSalle(c),
         initiales: personneDe(v.autre && v.autre.id).initiales || '?', avatar: personneDe(v.autre && v.autre.id).avatar || 0, photo: null,
         membres, nb: v.nb || 0, capacite: v.capacite || null,
-        moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()), reseau: st === 'present' ? c.reseauMoi : null },
+        moi: { statut: st, grade: (v.moi && v.moi.grade) || 0, interim: !!(v.moi && v.moi.interim && st === 'present'), hote: estHote(c), proprietaire: !!(v.moi && v.moi.grade >= 2 && st === 'present'), camera: !!mon.camera, micro: mon.micro !== false, partage: !!mon.partage, main: c.salle.mains.includes(moi()), reseau: st === 'present' ? c.reseauMoi : null },
         entrant: !fini && c.entrant && !c.local, attente: !fini && st === 'attente', exclu: st === 'exclu',
         verrou: !!v.verrou, salleAttente: !!v.attente, partageOk: v.partage_ok !== false, rec: v.rec ? { par: v.rec.par, nom: v.rec.par === moi() ? 'vous' : personneDe(v.rec.par).prenom } : null,
         enAttente: v.en_attente || 0, epingle: c.salle.epingle || null, sondage: c.salle.sondage || null, outils: c.salle.outils === true,
@@ -925,7 +971,8 @@
       const sortant = c.vue.sens === 'sortant', reunion = c.vue.genre === 'reunion';
       switch (issue) {
         case 'fini': return null;
-        case 'termine': return 'L\'hôte a mis fin ' + (reunion ? 'à la réunion.' : 'à l\'appel.');
+        /* ⛔ le service ne dit pas QUI a terminé : celui qui vient de le demander lui-même (`action('terminerPourTous')`) lit son geste, pas « l'hôte a mis fin » à la troisième personne */
+        case 'termine': return c.termineParMoi ? (reunion ? 'Réunion terminée pour tous.' : 'Appel terminé pour tous.') : 'L\'hôte a mis fin ' + (reunion ? 'à la réunion.' : 'à l\'appel.');
         case 'exclu': return 'L\'hôte t\'a retiré de ' + (reunion ? 'la réunion.' : 'l\'appel.');
         case 'refuse_hote': return 'L\'hôte n\'a pas accepté ta demande.';
         case 'refuse': return sortant ? 'Personne n\'a pu répondre.' : null;
@@ -1934,7 +1981,10 @@
       if (!c || c.id !== id || c.fini) throw d.refus('appel_fini', 409);
       if (!Object.prototype.hasOwnProperty.call(ACTIONS, nom)) throw d.erreurLocale('invalide');
       const a = args || {};
-      const r = await ACTIONS[nom](id, a);
+      /* marquée AVANT l'appel : la réponse du service peut finir la salle (`appliquer`) avant que `await` ne rende la main ; un refus lève la marque, la fin viendrait alors d'un autre */
+      if (nom === 'terminerPourTous') c.termineParMoi = true;
+      let r;
+      try { r = await ACTIONS[nom](id, a); } catch (e) { if (nom === 'terminerPourTous') c.termineParMoi = false; throw e; }
       if (c.fini) return r;
       if ((nom === 'evt' || nom === 'annot') && r && r.ev) surSalleEvt(r.ev);   // l'épingle, le minuteur, le trait que je viens de poser : le service ne me le pousse pas, il me le rend
       if (nom === 'main') { c.salle.mains = c.salle.mains.filter(x => x !== moi()); if (a.actif) c.salle.mains.push(moi()); emettreAppel(c); }
@@ -2154,17 +2204,36 @@
     const nomDe = (id) => estMoi(id) ? 'Vous' : supprimesIds.has(id) ? NOM_SUPPRIME : (registre.has(id) ? vuePersonne(registre.get(id)).nom : 'Quelqu\'un');
 
     /* ── les contacts ── */
-    const vueContact = (c) => Object.assign(vuePersonne(c), { role: enReunion.has(c.id) ? 'En réunion' : enLigne.has(c.id) ? 'En ligne' : (c.statut || ''), enLigne: enLigne.has(c.id), enReunion: enReunion.has(c.id), favori: c.favori === true });
+    /* ⛔ le STATUT que la personne a écrit passe devant la présence (« Ce que tes contacts voient sous ton nom ») : tant qu'elle était en ligne, ses contacts lisaient « En ligne » et jamais son statut.
+       La présence reste dite quand il n'y en a pas, et le point de l'avatar (`enLigne`, `enReunion`) la dit toujours. Une règle d'AFFICHAGE : le service rend toujours les deux, séparés. */
+    const vueContact = (c) => Object.assign(vuePersonne(c), { statut: c.statut || '', role: c.statut || (enReunion.has(c.id) ? 'En réunion' : enLigne.has(c.id) ? 'En ligne' : ''), enLigne: enLigne.has(c.id), enReunion: enReunion.has(c.id), favori: c.favori === true });
     function installerContacts(liste) {
       contactsTous = liste.slice();
       contactsApi = liste.filter(c => c.mutuel && !c.bloque);
       enLigne.clear(); enReunion.clear();
       for (const c of liste) { noter(c); if (c.en_ligne) enLigne.add(c.id); if (c.en_reunion) enReunion.add(c.id); }
     }
+    /* ⛔ LES FICHES DE CONTACT SE REDESSINENT QUAND LES CONTACTS CHANGENT (lot m09) : une demande acceptée par l'autre rend la carte « Écrire » — la liste des contacts était relue, mais la conversation
+       ouverte ne l'apprenait qu'au rechargement. On ne prévient que les conversations chargées qui portent une fiche. */
+    const porteFiche = (c) => !!c && c.charge && Array.isArray(c.messages) && c.messages.some(m => m.meta && m.meta.k === 'contact');
     async function rafraichirContacts() {
       installerContacts(await A.contacts());
       emettre({ type: 'contacts' });
+      for (const [id, c] of convs) if (porteFiche(c)) emettre({ type: 'conversation', id });
     }
+    /* l'identifiant de la personne d'une fiche que je vois (dans les messages que j'ai déjà lus), ou null */
+    function uidFiche(conv, seq) { const c = convs.get(conv), m = c && Array.isArray(c.messages) ? c.messages.find(x => x.seq === seq) : null; return m && m.meta && m.meta.k === 'contact' && typeof m.meta.uid === 'string' ? m.meta.uid : null; }
+    /* ⛔ `demande` d'une fiche = ce que le service a dit à la lecture ; quand c'est MOI qui demande (ou qui annule), les fiches déjà lues de cette personne le suivent tout de suite — sans cette
+       mise à jour, il faudrait relire chaque conversation. Le service reste la vérité : à la prochaine lecture (ou au rechargement), c'est lui qui le redit. */
+    function demandeNoter(uid, oui) {
+      if (typeof uid !== 'string') return;
+      for (const [id, c] of convs) {
+        let change = false;
+        if (c && Array.isArray(c.messages)) for (const m of c.messages) if (m.meta && m.meta.k === 'contact' && m.meta.uid === uid && (m.meta.demande === true) !== oui) { if (oui) m.meta.demande = true; else delete m.meta.demande; change = true; }
+        if (change) emettre({ type: 'conversation', id });
+      }
+    }
+    const demandeSuite = (uid, resultat) => { if (resultat === 'envoyee' || resultat === 'deja_envoyee') demandeNoter(uid, true); };
 
     /* ── la liste ── */
     function resume(c) {
@@ -2184,13 +2253,21 @@
         apercu = prefixe + corps;
       }
       const loc = convs.get(c.id);
-      const nonLus = loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq ? 0 : c.non_lus;
+      /* ⛔ Le dernier message visible est de MOI : on vient de répondre, la ligne ne dit pas « Non lu » (le testeur l'a mesuré : « Vous : Oui, on démarre lundi. » avec un point bleu et un nom en gras).
+         C'est l'AFFICHAGE qui le tait : le service tient « envoyer n'est pas lire » exprès (un envoi sorti d'une file hors ligne ne marque pas lus des messages jamais vus), son `lu_seq` ne bouge
+         pas, et un message reçu APRÈS le mien rallume le point (le dernier n'est plus de moi). Rien ne s'écrit. */
+      const dernierEstMoi = !!c.apercu && c.apercu.type !== 'systeme' && estMoi(c.apercu.auteur);
+      const nonLus = dernierEstMoi || (loc && loc.luLocal !== undefined && loc.luLocal >= c.dernier_seq) ? 0 : c.non_lus;
+      /* ⛔ une conversation DIRECTE a la couleur de la PERSONNE (Contacts, Appels, Infos, la fiche et l'écran d'appel la prennent sur son identifiant) : la même personne n'a pas deux couleurs.
+         Un groupe, un canal, une réunion n'ont pas de personne : ils gardent celle de leur conversation. */
       return {
-        id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, archive: !!c.archive, supprime,
+        id: c.id, type: c.type, nom, court: nom, initiales: supprime ? '?' : direct ? initialesDe(nom) : '#', avatar: indexAvatar(direct && c.autre && c.autre.id ? c.autre.id : c.id), photo: supprime ? null : direct ? photoPiece(c.autre && c.autre.avatar) : photoPiece(c.avatar), epingle: !!c.epingle, archive: !!c.archive, supprime,
         theme: themeDe(c.theme),
         membres: [], admins: c.role === 'admin' && moiApi ? [moiApi.id] : [], annoncesSeulement: !!c.annonces_seules, ephemeres: c.ephemere_s || 0,
         nonLu: nonLus > 0, nonLus, apercu, t: c.dernier_ts, enLigne: direct && c.autre ? enLigne.has(c.autre.id) : false, enReunion: direct && c.autre ? enReunion.has(c.autre.id) : false,
         autre: direct && c.autre ? c.autre.id : null,
+        /* l'échéance de la sourdine de CETTE personne (0 : pas en sourdine) — la même lecture que `infos()` : la liste dessine un croissant de lune barré, et grise le point « non lu » */
+        sourdine: c.muet_jusqua > maintenant() ? c.muet_jusqua : 0,
         /* une directe peut être une INVITATION : « envoyee » (j'invite : j'écris, l'autre choisira), « recue » (on m'invite : la page la range dans « Invitations ») */
         invitation: direct && (c.invitation === 'envoyee' || c.invitation === 'recue') ? c.invitation : null,
         /* PERSO / PRO : le côté qui vaut, l'automatique, et celui que j'ai choisi à la main (null : l'automatique) — un service d'avant n'en dit rien : tout est Perso */
@@ -2260,7 +2337,8 @@
         case 'reunion_decalee': { const av = m.meta.avant || {}, ap = m.meta.apres || {}; return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' décalé la réunion' + (Number.isFinite(av.debut) && Number.isFinite(ap.debut) ? ' : ' + dateCourte(av.debut) + ' → ' + dateCourte(ap.debut) : '') + (typeof m.meta.motif === 'string' && m.meta.motif ? ' · Motif : ' + m.meta.motif : ''); }
         case 'groupe_cree': return estMoi(a) ? 'Vous avez créé le groupe' : nomDe(a) + ' a créé le groupe';
         case 'canal_cree': return estMoi(a) ? 'Vous avez créé le canal' : nomDe(a) + ' a créé le canal';
-        case 'membre_ajoute': return estMoi(a) ? 'Vous avez ajouté ' + nomDe(u) : nomDe(a) + ' a ajouté ' + (estMoi(u) ? 'vous' : nomDe(u));
+        /* ⛔ la personne ajoutée lit « Ana vous a ajouté », jamais « Ana a ajouté vous » (comme « vous a retiré » plus bas) */
+        case 'membre_ajoute': return estMoi(a) ? 'Vous avez ajouté ' + nomDe(u) : estMoi(u) ? nomDe(a) + ' vous a ajouté' : nomDe(a) + ' a ajouté ' + nomDe(u);
         case 'rejoint': return estMoi(u) ? 'Vous avez rejoint ' + LE : nomDe(u) + ' a rejoint ' + LE;
         case 'membre_retire': return estMoi(a) ? 'Vous avez retiré ' + nomDe(u) : estMoi(u) ? nomDe(a) + ' vous a retiré ' + DU : nomDe(a) + ' a retiré ' + nomDe(u);
         case 'membre_parti': return estMoi(u) ? 'Vous avez quitté ' + LE : nomDe(u) + ' a quitté ' + LE;
@@ -2319,6 +2397,7 @@
     /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. Le texte reste leur résumé (une version d'avant,
        une notification, l'aperçu de la liste) ; la page dessine la carte. Un SONDAGE se relit au service : chacun a SA vue (ses votes, les décomptes que les règles lui montrent). ── */
     const sondages = new Map(), sondagesEnVol = new Set();           // « conv|seq » → la vue du service ; ceux qu'on relit en ce moment
+    const sondagesEchus = new Map();                                  // « conv|seq » → quand on a relu un sondage dont l'heure de fin était passée (une fois par reprise)
     const SONDAGE_REPRISE_MS = 15000;                                 // une relecture ratée (réseau) ne se retente pas à chaque dessin : la page redessine souvent
     function relireSondage(conv, seq) {
       const k = conv + '|' + seq; if (sondagesEnVol.has(k)) return;
@@ -2333,6 +2412,13 @@
       if (!s) return Object.assign(base, { etat: 'charge' });
       if (s.absent) return Object.assign(base, { etat: 'absent' });
       if (s.erreur) return Object.assign(base, { etat: 'erreur' });
+      /* ⛔ L'ÉCHÉANCE PASSE PENDANT QUE LA PAGE EST OUVERTE (lot m09) : le service ne pousse rien à ce moment-là (personne n'a agi), la vue qu'on garde dit encore « ouvert » — et c'était l'écran
+         qui restait ouvert jusqu'au rechargement. À la première lecture après l'heure de fin, on RELIT : le service rend le sondage clos, avec les résultats promis « à la clôture » et sans droits
+         de vote. Une relecture par reprise : si l'horloge de cet appareil avance sur celle du service, il ne répond « ouvert » qu'une fois par reprise — jamais en boucle. */
+      if (!s.clos && s.regles && Number.isFinite(s.regles.fin) && maintenant() >= s.regles.fin) {
+        const dernier = sondagesEchus.get(k);
+        if (dernier === undefined || maintenant() - dernier >= SONDAGE_REPRISE_MS) { sondagesEchus.set(k, maintenant()); relireSondage(conv, seq); }
+      }
       const nomDeUid = (u) => typeof u === 'string' ? prenomDe(u) : null;
       return Object.assign(base, {
         etat: 'ok', regles: Object.assign({}, s.regles), clos: !!s.clos, closLe: s.clos_le || null, auteur: nomDeUid(s.auteur), deMoi: estMoi(s.auteur),
@@ -2342,12 +2428,32 @@
         peutVoter: !!s.peut_voter, peutAjouter: !!s.peut_ajouter, peutClore: !!s.peut_clore,
       });
     }
+    /* ⛔ (p04) UNE PERSONNE QUE LE SERVICE ME LAISSE VOIR, MAIS QUE LA SOURCE NE CONNAÎT PAS ENCORE : une fiche de contact reçue après un rechargement, avant d'avoir ouvert le groupe commun, écrivait
+       « CL / Cléo » (le prénom seul, tel que la fiche le porte), puis « CP / Cléo Petit » dès que le groupe avait été ouvert — la même personne, deux visages. Le registre n'apprend les membres d'un groupe
+       qu'à son ouverture. La source LIT donc la personne (`GET /api/personnes/:id`, que le service ne rend qu'à qui peut la voir : contact, conversation ou espace en commun), la note, et REDESSINE la
+       conversation. Une seule lecture par personne et par séance : « introuvable » (aucun lien) est définitif et reste au prénom seul ; une panne passagère se retente au dessin suivant. */
+    const personnesEnVol = new Set(), personnesInvisibles = new Set();
+    function lirePersonne(uid, conv) {
+      if (personnesEnVol.has(uid) || personnesInvisibles.has(uid) || registre.has(uid) || supprimesIds.has(uid)) return;
+      personnesEnVol.add(uid);
+      A.personne(uid).then(p => { if (p && p.id === uid) noter(p); else personnesInvisibles.add(uid); }, e => { if (e && e.code === 'introuvable') personnesInvisibles.add(uid); })
+        .then(() => { personnesEnVol.delete(uid); if (registre.has(uid)) emettre({ type: 'conversation', id: conv }); });
+    }
     function vueCarte(conv, m) {
       const x = m.meta;
       if (x.k === 'position' && Number.isFinite(x.lat) && Number.isFinite(x.lng) && Math.abs(x.lat) <= 90 && Math.abs(x.lng) <= 180) return { position: { lat: x.lat, lng: x.lng, prec: Number.isInteger(x.prec) ? x.prec : null } };
       /* une fiche dont la personne ne se laisse plus trouver (ou dont le compte est effacé) : le service ne dit plus qui c'est (`uid: null`) */
       if (x.k === 'contact' && x.uid === null) return { carteContact: { uid: null, indisponible: true, prenom: 'Contact', identifiant: null, moi: false, contact: false, avatar: 0, initiales: '?' } };
-      if (x.k === 'contact' && typeof x.uid === 'string') return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact: contactsApi.some(k => k.id === x.uid), avatar: indexAvatar(x.uid), initiales: initialesDe(x.prenom || '?') } };
+      if (x.k === 'contact' && typeof x.uid === 'string') {
+        /* ⛔ UNE PERSONNE QUE JE CONNAIS DÉJÀ (un contact, un membre d'un groupe commun) s'écrit sur la fiche comme ailleurs : ses initiales sont celles de son avatar (« CP » pour Cléo Petit, pas « CL »
+           tirées de son seul prénom) et son nom est complet. Le service ne partage que le PRÉNOM d'une personne qu'on ne connaît pas : alors la fiche n'invente rien. */
+        if (!estMoi(x.uid) && !personne(x.uid)) lirePersonne(x.uid, conv);
+        const connue = !estMoi(x.uid) ? personne(x.uid) : null, ok = !!connue && !connue.supprime;
+        const contact = contactsApi.some(k => k.id === x.uid);
+        /* ⛔ « DEMANDE ENVOYÉE » vient du SERVICE (`meta.demande`, relu à chaque lecture, tenu à jour par `demandeNoter` quand c'est moi qui la fais) — jamais d'une mémoire de la page ; être contact l'emporte */
+        return { carteContact: { uid: x.uid, prenom: typeof x.prenom === 'string' ? x.prenom : 'Contact', nom: ok ? connue.nom : null, identifiant: typeof x.identifiant === 'string' ? x.identifiant : null, moi: estMoi(x.uid), contact,
+          demande: x.demande === true && !contact, avatar: indexAvatar(x.uid), initiales: ok ? connue.initiales : initialesDe(x.prenom || '?') } };
+      }
       if (x.k === 'sondage') return { sondage: vueSondage(conv, m.seq, x.q) };
       /* le COMPTE RENDU d'une séance (8 octobre 2026) : rédigé par le service à « Terminer pour tous » — chaque champ relu, rien d'autre ne passe */
       if (x.k === 'compte_rendu') {
@@ -2428,7 +2534,8 @@
         espace: canalD && typeof d.conversation.espace === 'string' ? d.conversation.espace : null, prive: canalD && d.conversation.prive === true,
         reunion: d.conversation.type === 'reunion' && typeof d.conversation.reunion === 'string' ? d.conversation.reunion : null };
       const autre = d.conversation.type === 'direct' ? d.membres.find(x => !estMoi(x.id)) : null;
-      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), enReunion: enReunion.has(autre.id), autre: autre.id, photo: photoPiece(autre.avatar) }); }
+      /* la base porte la couleur de la CONVERSATION (le repli ci-dessus) : une directe prend celle de la personne, comme `resume()` */
+      if (autre) { Object.assign(base, { nom: nomComplet(autre), court: nomComplet(autre), initiales: initialesDe(nomComplet(autre)), enLigne: enLigne.has(autre.id), enReunion: enReunion.has(autre.id), autre: autre.id, avatar: indexAvatar(autre.id), photo: photoPiece(autre.avatar) }); }
       else if (d.conversation.type === 'groupe' || canalD) { base.nom = base.court = d.conversation.nom || (canalD ? 'Canal' : 'Groupe'); base.photo = photoPiece(d.conversation.avatar); }
       else if (d.conversation.type === 'reunion') { base.nom = base.court = d.conversation.nom || 'Réunion'; base.photo = null; }
       if (d.conversation.type === 'direct' && !autre) { base.supprime = true; base.nom = base.court = NOM_SUPPRIME; base.initiales = '?'; base.photo = null; }   // l'autre n'est plus membre : son compte est supprimé
@@ -2818,11 +2925,13 @@
         try { pieceAvatar = await deposerAvatar(spec.photoBlob); }
         catch (e) { if (e && e.code === 'session_requise') throw e; refusPhoto = e; }
       }
-      const r = await A.groupe({ nom: String(spec.nom || '').trim().slice(0, 80) || 'Nouveau groupe', membres, annonces_seules: !!spec.annonces, ephemere_s: spec.ephemeres | 0, avatar_piece: pieceAvatar || undefined });
+      const r = await A.groupe({ nom: Array.from(String(spec.nom || '').trim()).slice(0, 80).join('') || 'Nouveau groupe', membres, annonces_seules: !!spec.annonces, ephemere_s: spec.ephemeres | 0, avatar_piece: pieceAvatar || undefined });
       if (refusPhoto) emettre({ type: 'avis', texte: 'Le groupe est créé, mais sa photo n\'a pas pu être envoyée : ' + (refusPhoto.dit ? (refusPhoto.phrase ? refusPhoto.phrase() : refusPhoto.message) : 'erreur inattendue.') });
       await relireListe(); emettre({ type: 'liste' });
       const c = convsApi.find(x => x.id === r.conversation.id);
-      return c ? resume(c) : { id: r.conversation.id, type: 'groupe', nom: r.conversation.nom || 'Groupe', court: r.conversation.nom || 'Groupe', initiales: '#', avatar: indexAvatar(r.conversation.id), photo: null, epingle: false, membres: [], admins: [], annoncesSeulement: false, ephemeres: 0, nonLu: false, nonLus: 0, apercu: '', t: maintenant(), enLigne: false };
+      /* ⛔ ceux que le service a REFUSÉS (`non_ajoutes` : il m'a bloqué, ou ce n'est ni un contact mutuel ni un collègue) : la réponse les porte, la page DIT leurs noms — sinon le groupe naît sans eux, en silence */
+      const nonAjoutes = Array.isArray(r.non_ajoutes) ? r.non_ajoutes.filter(x => typeof x === 'string') : [];
+      return Object.assign(c ? resume(c) : { id: r.conversation.id, type: 'groupe', nom: r.conversation.nom || 'Groupe', court: r.conversation.nom || 'Groupe', initiales: '#', avatar: indexAvatar(r.conversation.id), photo: null, epingle: false, membres: [], admins: [], annoncesSeulement: false, ephemeres: 0, nonLu: false, nonLus: 0, apercu: '', t: maintenant(), enLigne: false }, { nonAjoutes });
     }
     async function ouvrirDirecte(uid) {
       const r = await A.directe(uid);
@@ -2914,7 +3023,9 @@
     const envoyerFiche = (id, uid) => envoyerCarte(id, 'contact', { uid });
     const envoyerSondage = (id, s) => envoyerCarte(id, 'sondage', { question: s.question, choix: s.choix, regles: s.regles });
     async function sondageAgir(conv, seq, faire) {
-      const v = await faire();
+      let v;
+      /* ⛔ le service refuse (409 « sondage_clos ») un geste sur un sondage clos : la carte qu'on garde est périmée — on la RELIT avant de dire le refus, pour que l'écran passe à « Clos » (lot m09) */
+      try { v = await faire(); } catch (e) { if (e && e.code === 'sondage_clos') relireSondage(conv, seq); throw e; }
       sondages.set(conv + '|' + seq, v); emettre({ type: 'conversation', id: conv });
       return vueSondage(conv, seq, '');
     }
@@ -2923,15 +3034,19 @@
     const sondageClore = (conv, seq) => sondageAgir(conv, seq, () => A.sondageClore(conv, seq));
     /* demander la personne d'une fiche reçue (`contacts.demander_carte`) : les mêmes résultats que `demanderContact` */
     async function demanderCarte(conv, seq) {
+      const uid = uidFiche(conv, seq);
       const r = await A.demanderCarte(conv, seq);
-      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      demandeSuite(uid, r.resultat);
+      if (r.resultat === 'acceptee' || r.resultat === 'deja') await rafraichirContacts(); else emettre({ type: 'contacts' });
       emettre({ type: 'conversation', id: conv });
       return r.resultat;
     }
     /* ÉCRIRE à la personne d'une fiche reçue (`contacts.ecrire_carte`) : la directe s'ouvre — une INVITATION si l'on n'est pas encore en contact. → { conv, resultat } */
     async function ecrireCarte(conv, seq) {
+      const uid = uidFiche(conv, seq);
       const r = await A.ecrireCarte(conv, seq);
-      if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
+      demandeSuite(uid, r.resultat);
+      if (r.resultat === 'acceptee' || r.resultat === 'deja') await rafraichirContacts(); else emettre({ type: 'contacts' });
       await relireListe(); emettre({ type: 'liste' });
       return { conv: r.conv, resultat: r.resultat };
     }
@@ -2959,6 +3074,7 @@
     }
     async function demanderContact(id) {
       const r = await A.demanderContact(id);
+      demandeSuite(id, r.resultat);
       if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
       return r.resultat;
     }
@@ -2973,7 +3089,7 @@
       if (r.resultat === 'acceptee') await rafraichirContacts(); else emettre({ type: 'contacts' });
       return r.resultat;
     }
-    async function annulerDemande(id) { await A.annulerDemande(id); emettre({ type: 'contacts' }); }
+    async function annulerDemande(id) { await A.annulerDemande(id); demandeNoter(id, false); emettre({ type: 'contacts' }); }
 
     async function accepterLien(code) {
       const r = await A.accepterLien(code);
@@ -3009,7 +3125,8 @@
            connaît pas encore (le premier message d'une directe) attend la liste relue pour le savoir. */
         const arrivee = (r) => {
           const inv = !!r && r.invitation === 'recue';
-          emettre({ type: 'arrivee', conv: d.conv, invitation: inv, de: inv ? resume(r).nom : nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
+          /* ⛔ `sourdine` : la conversation est en sourdine (« Plus de notification de cette conversation ») — la page reçoit TOUJOURS le message (la liste, le point non lu) mais ne fait pas surgir sa bannière ; une invitation n'est jamais en sourdine (elle n'est pas encore une conversation de moi). La mention, elle, passe la sourdine : c'est l'événement `notification`, pas celui-ci. */
+          emettre({ type: 'arrivee', conv: d.conv, invitation: inv, sourdine: !inv && !!r && Number(r.muet_jusqua) > maintenant(), de: inv ? resume(r).nom : nomDe(d.auteur), convNom: r ? resume(r).nom : null, groupe: r ? r.type === 'groupe' : false, texte: d.supprime ? '' : (d.texte === undefined || d.texte === null ? resumeMedia(d.type, d.meta) : (d.type === 'photo' ? '📷 ' : '') + extrait(d.texte, 140)) });
         };
         const r = convsApi.find(x => x.id === d.conv);
         if (r) arrivee(r); else relireListe().then(() => arrivee(convsApi.find(x => x.id === d.conv)), () => arrivee(null));
@@ -3887,7 +4004,7 @@
       messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
       surSessionMorte: (cb) => { suiviMort = cb; },
       /* `presence` : MA présence est-elle montrée ? Coupée, la barre de la page ne doit pas dire « Disponible » avec un point vert (relecture du testeur) : les autres ne me voient plus en ligne. */
-      moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
+      moi: () => moiApi ? Object.assign(vuePersonne(moiApi), { id: moiApi.id, statut: moiApi.statut || '', presence: !(moiApi.prefs && moiApi.prefs.presence === false) }) : null,
       contacts: () => contactsApi.map(vueContact).sort((x, y) => x.nom.localeCompare(y.nom, 'fr')),
       personne, rafraichirContacts,
       lister, ouvrir, precedents, envoyer, marquerLu, saisie, rangerConvs,

@@ -174,7 +174,7 @@ const NOMS = { ana: 'Ana Banc', ben: 'Ben Banc', cleo: 'Cléo Banc' };
     await A.page.evaluate(() => { location.hash = '#reglages'; });
     vrai('Profil : la ligne « Confirmer l\'envoi », « Jamais »', await att(A, () => { const r = document.getElementById('reg-confirmer'); return !!r && r.getClientRects().length > 0 && document.getElementById('reg-v-confirmer').textContent.trim() === 'Jamais'; }));
     await toucher(A, '#reg-confirmer');
-    vrai('son menu : Jamais (coché), Groupes et canaux, Partout', await att(A, () => document.getElementById('deroule').matches(':popover-open') && Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(x => x.textContent.trim() + (x.getAttribute('aria-checked') === 'true' ? '✓' : '')).join('|') === 'Jamais✓|Groupes et canaux|Partout'));
+    vrai('son menu : Jamais (coché), Groupes et canaux, Partout (côté Pro) — le mot « Partout » seul laissait croire qu\'une conversation Perso demandait aussi (lot m14, pro@6)', await att(A, () => document.getElementById('deroule').matches(':popover-open') && Array.from(document.querySelectorAll('#deroule-liste .deroule-choix')).map(x => x.textContent.trim() + (x.getAttribute('aria-checked') === 'true' ? '✓' : '')).join('|') === 'Jamais✓|Groupes et canaux|Partout (côté Pro)'));
     await A.page.locator('#deroule-liste .deroule-choix[data-valeur="groupes"]').tap();
     vrai('« Groupes et canaux » : la ligne le dit, le compte le garde', await att(A, () => document.getElementById('reg-v-confirmer').textContent.trim() === 'Groupes et canaux') && (await A0.get('/api/moi')).j.moi.prefs.confirmer_envoi === 'groupes');
     await capture(A, 'pp-6-confirmer-reglage');

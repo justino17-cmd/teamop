@@ -1,5 +1,35 @@
 # Point stable TeamOP
 
+**Version stable : v768** — publiée le 17 octobre 2026, sur la décision de Justin du 16 octobre au soir (« Bêta et version publique », à la
+question « où vont les correctifs d'OP GESTION ? ») : ELAN n'est plus client, aucune entreprise n'utilise l'application, et les correctifs de la
+campagne de test partent ensemble dans `app.html` et `beta.html`.
+
+v768 — ce qui change pour une entreprise : près de deux cents corrections, trouvées par une campagne d'agents qui ont UTILISÉ l'application
+écran par écran (téléphone, tablette, ordinateur ; jour et nuit ; administrateur et technicien), chacune prouvée par un banc qui tombait avant
+le correctif, relue à charge, puis rejouée au navigateur sur le code fusionné et contre-vérifiée par un second agent — six vagues, jusqu'à ce
+que la recampagne ne trouve plus rien de neuf qui ne soit mineur.
+- **Planning et absences** : un dépôt respecte les congés et les indisponibilités (vue Multi comprise), Alt + glisser duplique, un double-clic
+  sur une case prépare l'intervention avec la personne et l'heure, deux absences ne se chevauchent plus, une absence validée modifiée par un
+  technicien repasse en attente.
+- **Devis, factures, numéros** : un double toucher ne crée plus deux documents, un numéro n'est jamais porté deux fois, un devis accepté ne se
+  convertit qu'une fois, supprimer un client lié chiffre ce qui en dépend ; exports comptables : formules neutralisées, décimales justes,
+  dates avec l'année.
+- **Téléphone et tablette** : les écrans tiennent dans leur largeur (Rapports, Archives, Historique, bons de commande, Paramètres à 320 px),
+  la messagerie garde son champ visible en portrait et en paysage — et sa conversation quand on tourne l'appareil —, la boîte mail suit la
+  rotation, plus rien ne se recouvre.
+- **Une saisie interrompue se reprend en entier** (« Reprendre » rend lignes, techniciens et client), et le retour du téléphone recule d'un
+  écran à la fois (une fiche fermée ne se rouvre plus à la synchronisation).
+- **Droits et textes** : les gestes refusés le sont aussi par leurs seconds chemins, le dernier administrateur ne se désactive pas, des messages
+  qui disaient autre chose que ce qui se passait sont justes (« Facture créée », la fin d'un pointage, les bons créés en brouillon).
+Aucun format de données ne change : une v767 et une v768 travaillent ensemble. ⚠️ Restent à la décision de Justin (REPRISE.md) : le bouton
+« Démarrer » de « Ma journée », les fiches technicien inactives, les paiements partiels, Nominatim dans les pages juridiques, la vitre de nuit
+d'OP GESTION (le contraste du texte saisi y plafonne à 4,72:1).
+Publiée avec elle : la bêta d'OP MESSAGES (msg-beta) reçoit les vingt et un lots de correctifs d'octobre et leurs reprises (dont une réunion de
+plusieurs jours qui dit partout son jour de fin, et le rapport de présence qui dit ses jours) — la version publique d'OP MESSAGES attend toujours
+la phrase de Justin.
+
+## Ancien point
+
 **Version stable : v767** — publiée dans la nuit du 30 septembre au 1er octobre 2026, sur la phrase de Justin « Mais après ça tu publie » (juste après
 « pousse » : le serveur, la Tour v2.78 et la bêta v767, mis en ligne d'abord pour que l'application trouve le serveur qu'elle
 attend). Les v764, v765 et v766 n'ont jamais été publiées seules : elles partent avec elle.

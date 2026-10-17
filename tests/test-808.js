@@ -45,7 +45,7 @@ const CODE=['const PREF_CLES=','const _prefVue={};','function prefLocal(k,v){','
   'const ACC_PERSO_MAX=','function accentsPerso(){','function accentsPersoEcrire(l){','function setAccentCustom(hex){','function accentPersoRetirer(ev,hex){',
   'function prefFusion(gagnant,autre){','function usersFusionner(','function usersSansDoublonLogin(list){',
   /* la relecture de la v747 : les quatre autres réglages de PREF_CLES avaient la même fragilité */
-  'function getLang(){','function setLang(l){','const ONGLETS_MAX','function ongletsEcrire(l){',
+  'function getLang(){','function langDocAppliquer(){' /* g16 : setLang pose aussi <html lang> */,'function setLang(l){','const ONGLETS_MAX','function ongletsEcrire(l){',
   'const FAV_MAX=','function favorisEcrire(l){','function mapSatOn(){','function setMapSat(on){'].map(decoupe).join('\n');
 
 /* Un appareil : son rangement (qui peut être PLEIN), sa base, son écran. `J` note l'ordre de ce

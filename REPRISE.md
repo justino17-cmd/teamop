@@ -198,7 +198,136 @@ version affichée dans le tableau de bord Stripe (Développeurs → Version de l
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
-# 🟡 16 OCTOBRE 2026 — OP MESSAGES (BÊTA) : LA SALLE N'A PLUS QUE SA BARRE RONDE, ET LE FICHIER .ICS EST PARTI (PR À VENIR)
+# ⛔ DÉCISION DE JUSTIN, 16 OCTOBRE 2026 (SOIR) — ELAN N'EST PLUS CLIENT ; LES CORRECTIFS D'OP GESTION VONT AUSSI EN PUBLIC
+
+Justin : « le client ELAN a été supprimé pour non-paiement […] j'ai pris la décision de ne plus travailler avec eux, donc pas de risque pour l'instant,
+pas de client ». Puis, à la question « où vont les correctifs d'OP GESTION ? » : **« Bêta et version publique »**. Pour les correctifs de la campagne
+de test (ci-dessous), `app.html` ET `beta.html` changent ensemble, et la fusion les met en ligne — c'est la phrase que demande la règle du
+11 septembre, et elle lève, POUR CES CORRECTIFS, la suspension du 23 septembre (« rien en public tant que le serveur n'est pas séparé de Firebase »),
+dont la raison était ELAN. ⚠️ Ce n'est pas un blanc-seing pour la suite : un autre chantier qui toucherait `app.html` redemande sa phrase, et le jour
+où une entreprise reprend l'application, la règle « bêta d'abord » revient d'elle-même. Les preuves exigées avant une publication (suite complète,
+syntaxe, mesure au navigateur, fichier servi relu) restent toutes dues.
+
+# ✅ 16-17 OCTOBRE 2026 — CAMPAGNE DE TEST DE A À Z : OP GESTION v768 (BÊTA ET PUBLIC), OP MESSAGES CORRIGÉ (BÊTA)
+
+Justin : « je veux que tu mettes des agents sur OP GESTION qui testent toute l'application de A à Z, qui regardent et utilisent l'application pour voir les
+bugs » ; pour OP MESSAGES : « pareil, tu mets des agents à la tester, vérifier et améliorer s'il le faut » ; puis : « je veux tous les bugs, que tout soit
+corrigé et re-testé ». OP GESTION part en **v768 sur la bêta ET en public** (décision du 16 au soir, juste au-dessus) ; OP MESSAGES reste en bêta (msg-beta).
+
+**La méthode** (workflows, agents Sonnet), quatre temps qui se répètent tant qu'un re-test trouve quelque chose :
+1. **Tester** — treize parties par application, un testeur par partie qui UTILISE la page (vrais gestes, rôles, téléphone, tablette, bureau, jour et
+   nuit), sur une copie figée servie en 127.0.0.1 (OP GESTION : `beta.html` v767-beta ; OP MESSAGES : le service v207 lancé en local avec le faux
+   OP GESTION, quatre comptes ouverts ensemble). Chaque bug est rejoué par un second agent chargé de le RÉFUTER et d'en nommer la cause.
+2. **Corriger** — un lot par famille, chacun dans son worktree : le bug est d'abord PROUVÉ par un banc qui tombe sur le code d'avant (`test-1100` à
+   `test-16xx` pour OP GESTION, `test-2400` à `test-2661` pour OP MESSAGES), corrigé, relu à charge par un autre agent, repris, puis la mutation (le
+   défaut remis, le banc retombe).
+3. **Fusionner** — les lots entrent un par un sur la branche ; `beta.html` et `server-msg/public/` se régénèrent à chaque entrée.
+4. **Re-tester** — des agents NEUFS rejouent chaque bug sur le code FUSIONNÉ, pas sur la branche du lot. Ce qui reste « partiel » fait la vague suivante.
+
+| | OP GESTION | OP MESSAGES |
+|---|---|---|
+| bugs confirmés, première passe | 135 (11 parties) | 83, plus les améliorations retenues (13 parties) |
+| vagues de correction | 6 — g01–g21, h01–h05, i01–i03, j01–j03, k01–k03, puis le re-test final (r6–r10) | 4 — m01–m21, p01–p04, q01, puis le re-test final (r6–r8) |
+| corrections livrées (entrées de rapport) | 183, + la rotation de la Messagerie | 136, + le jour de fin à huit endroits et le rapport de présence |
+| re-tests du code fusionné | 121 corrigés / 28 partiels → 23 / 2 → 28 / 2 → final : k01–k03 corrigés, la rotation corrigée en cinq passes (r8 à r11) | 101 / 36 (les partiels : des décisions, ci-dessous) → 12 / 2 → final : q01 corrigé, puis r6, r7 et r8 corrigés |
+
+Suite complète sur le code final (e2fd563a) : **502 suites · 28 765 vérifications, toutes vertes**. Porte d'OP MESSAGES dans les conditions de la CI :
+**179 suites · 11 469 vérifications** (plancher 11 455). Porte du serveur dans les conditions du job de déploiement : 58 suites · 3 939 vérifications (plancher 3 925).
+
+**Le re-test final** (des agents neufs au navigateur sur le code fusionné, chacun suivi d'un second agent chargé de le RÉFUTER — c'est ce second agent qui a
+trouvé presque tout ce qui suit) :
+- ⛔ **trois bancs auraient bloqué la publication** : `test-845` déduisait « v768 = les options du Pro » (voir la leçon plus bas) et faisait tomber la porte
+  du serveur ; `test-856` refusait un vrai nom laissé dans un commentaire de la page d'OP MESSAGES par le lot p04 ; `main` avait avancé (`test-851`, la porte
+  du serveur refusait tout depuis le 7 octobre — une autre session l'a réparé, fusionné ici).
+- **OP MESSAGES — une réunion de plusieurs jours se lisait « 09:00 – 09:00 »** à huit endroits que q01 n'avait pas vus : l'aperçu du lien d'invité, le compte
+  rendu, `quandRdv` (menu de l'Agenda, « Prévu / Nouveau » de Décaler), la phrase de chevauchement, l'heure dans un autre fuseau (note de Décaler, parenthèse
+  de la rangée — nouvelle `finDans(debut, fin, tz)`), le « chez eux » du formulaire, le rapport de présence et son CSV. Un balayage complet (page ET service :
+  courriels, rappels, notifications) n'a plus rien trouvé. `test-2662`, `test-2663`.
+- **OP GESTION — la Messagerie : tourner l'appareil cachait la conversation** sous la rangée de saisie (défaut d'avant k01). Corrigé en TROIS passes, chacune
+  prise en défaut par le contre-vérificateur : « la page est-elle en bas ? » ratait le cas ordinaire sans « Reprendre » (10 à 31 px de défilement, tolérance
+  de 4 px) ; « la fin de la conversation se voit-elle ? » relue au seul défilement ratait ✕ sur « Reprendre » (la fin redevient visible sans défilement) ;
+  relue aussi quand la mise en page change, elle baissait la marque quand la fenêtre RACCOURCIT (barre d'adresse, clavier) ; et le bas du CONTENEUR
+  dépasse la dernière bulle de 27 px. Désormais : la dernière bulle fait foi (`msgFinCachee`), la mise en page ne fait que RELEVER la marque, le
+  défilement seul la baisse. `test-1660`. ⚠️ Le re-test de cette dernière écriture (r11) tournait encore à la publication : ce qu'il trouverait est
+  un correctif à part.
+- La « régression » de k01 (dernière bulle sous la rangée avec « Reprendre ») était un artefact : la sonde faisait `window.scrollTo(0,0)` ; par de vrais gestes,
+  0 px sur 864 mesures. ⚠️ Mais REMONTER la page au doigt pour voir les pastilles fait passer le bas de la liste sous la rangée collée — le prix assumé du
+  plancher de 140 px de k01 (« une page qui défile se lit ») : un balayage inverse le rend, et toucher une pastille ramène la conversation.
+- Le commentaire de k01 prêtait à Chrome pour Android un rognage de la fenêtre de mise en page au clavier qu'il ne fait plus depuis la version 108
+  (Firefox 132 aussi) : corrigé, aucune règle ne change.
+
+**Trois leçons de méthode, payées pendant la campagne** (les deux premières sont aussi dans `CLAUDE.md`) :
+- ⛔ **Un agent de workflow en `isolation: 'worktree'` part de `origin/main`, PAS de la branche de travail.** Les vagues 1 et 2 d'OP GESTION et les
+  lots m01–m21 ont été écrits sur `ecc9de23` (l'ancien `main`) : justes chacun, et une partie de leurs correctifs recouvrait ce que la branche avait déjà.
+  C'est le re-test sur le code FUSIONNÉ qui l'a montré. Depuis, chaque consigne de correcteur commence par `git checkout -b fix/<lot>
+  claude/apple-theme-op-messages-gcb3j9` et vérifie sa base avant d'écrire.
+- ⛔ **Deux lots fusionnés sans un conflit peuvent déclarer deux fois le même nom — et la page entière meurt.** `phraseNonAjoutes` et `motRetire`,
+  chacun déclaré par deux lots dans la même portée du script d'OP MESSAGES : SyntaxError au chargement, page blanche, et aucun banc ne l'a vu (chacun
+  compile SA tranche ; `verifier-syntaxe.js` ne lit que les pages de la racine). Renommés (`phraseRefusAjout`, `motRetireMembre`) et gardés par
+  `tests/test-2610.js`, qui compile la page source et ce que le service sert, avec sa contre-épreuve.
+- **Des numéros de bancs réservés en parallèle se chevauchent** : 1400–1609 avait été donné aux deux campagnes. Ceux d'OP MESSAGES ont été renumérotés
+  en 2400–2609 ; `test-900` et `test-933` (la règle des numéros admis par la porte) admettent désormais 2400–2699, et le plancher de la porte se
+  remesure en conditions de CI (`CHROME_MSG=/inexistant` : les bancs navigateur sautent) à chaque entrée.
+- ⛔ **Le numéro 768 avait déjà servi** : la branche `claude/op-gestion-interface-yb6p32` porte sa propre bêta v768 (« les options du Pro »,
+  1er octobre), jamais fusionnée. `test-845` en déduisait « v768 = les options » et faisait tomber la porte du déploiement du serveur sur la v768
+  des correctifs ; il lit désormais les options dans le CODE (la vraie `forfaitServeurSync` les appelle-t-elle ?), comme `test-848` depuis le
+  2 octobre — joué sur les trois pages (options, correctifs, v767). **Si les options du Pro rejoignent un jour `main`, elles prennent un numéro
+  au-dessus de 768.**
+
+**⏳ OP GESTION — ce qui attend une décision de Justin** (aucun n'est un défaut qui empêche de travailler ; chacun change un geste connu, une règle ou un
+texte juridique) :
+- ⚖️ **clients#5 — l'adresse d'un client part à `nominatim.openstreetmap.org`** (géocodage, après « Enregistrer ») et AUCUNE page juridique ne le dit
+  (`sous-traitance.html`, `registre-traitements.html`, `confidentialite.html` vérifiés). Portée juridique : à trancher en premier — le dire dans les
+  pages, ou ne plus envoyer l'adresse.
+- **technicien#9** — « Ma journée » n'a pas de bouton « ▶ Démarrer » (`renderIntTechDay` calcule `nextId` et ne s'en sert pas) : l'ajouter ?
+- **admin#6** — un technicien dont le COMPTE est désactivé reste assignable : il n'existe aucune notion de fiche technicien inactive. En créer une ?
+- **facturation#3** — pas de paiements partiels (l'encaissement est au registre). En faut-il ?
+- **ventes#5** — les numéros de contrat déjà en double sont SIGNALÉS (bandeau), pas renumérotés : un numéro émis ne change pas seul.
+- **factures d'avant à 144 €** (prix lu comme HT, lot g05) — laissées telles quelles, même si l'intervention est réenregistrée.
+- **clients#8** — l'avertissement de doublon joue à la CRÉATION d'un client, pas quand on en renomme un vers un nom déjà pris.
+- **appareils#8** — en paysage téléphone (844 px), le menu latéral permanent prend 272 px : un menu rétractable ?
+- **k02 (observation)** — au téléphone, six écrans (Tâches, Registre, Demandes, Historique, Historique des demandes, Bons) portent le même décalage de
+  16 px à gauche de leur rangée de filtres que k02 a corrigé ailleurs : le même correctif ? (recensement : `scratchpad/gestion/correctifs/k02/recens.js`)
+- **stock#5** — les vues d'UNE box (tableau de bord par box, alerte au DR) gardent leur propre seuil, pas celui de la fiche produit : voulu ?
+- **achats#4** — une désignation très longue (plus de ~60 lignes repliées) dépasse la page du PDF d'un bon (`bonPdfStr` ne coupe qu'entre les lignes).
+- **r5#5 (contrepartie assumée)** — sur un écran de moins de 420 px de haut, Messagerie s'ouvre sur la conversation, ses pastilles une remontée plus haut.
+- **j02 (à surveiller)** — OP GESTION de nuit : l'indice des champs est à 4,72:1, marge de 0,22 point ; toute retouche de la marque le remesure.
+
+**OP GESTION — restes connus, sans décision à prendre** : la liste Factures dit « 01 janv. » sans l'année à l'écran (les exports ont la date
+complète) ; le formulaire d'intervention passé à « Terminée » ne pose ni `finReel` ni le recalage au jour (les autres portes oui — `saveIntervention`) ;
+les zones de dépôt du planning sans `data-drop` (puces de jour, rangées de techniciens) n'ont pas de dépôt au doigt ; la case nue `appearance:none`
+reste sur « Box active », la fiche « Active »… ; les véhicules créés par un technicien avant le correctif (sans `creePar`) restent invisibles pour lui,
+l'administrateur les attribue ; le formulaire Box n'a pas la reprise de brouillon (règle « le stock d'une box ne se réécrit jamais en bloc ») ;
+`test-984` tombe encore sous forte charge (course au chronomètre du relais, tâche #95). Re-test final : deux changements de LARGEUR dans le même rendu
+(moins de 50 ms, aucun geste humain ne le fait) laissent la liste de la Messagerie décalée (défaut d'avant, inchangé) ; le rapport de présence suit la règle de
+`jourFinDit` — un séjour de moins de 24 h qui passe minuit garde l'heure seule (« 10:00 → 09:00 · 23 h 00 », la durée à côté), et en direct « Depuis »
+dit le jour d'une arrivée d'hier même pour une soirée.
+
+**⏳ OP MESSAGES — ce qui attend une décision de Justin** (rien n'est fait, chaque point change ce que l'utilisateur connaît) :
+- **contacts#1** — ce que devient la conversation d'un contact BLOQUÉ (règle du service, `server-msg/`).
+- **la fiche d'une réunion TERMINÉE** garde « Répondre », le rappel et le trajet : les retirer ? (salle#2 n'a retiré que « Rejoindre » et l'audio.)
+- **salle#4** — la bannière « réunion en cours » d'une AUTRE conversation reste, et intercepte le toucher (elle protège d'un départ involontaire).
+- **salle@4** — un refus d'entrer ramène tout de suite à l'écran d'avant : rendre la phrase durable ? **salle@10** — ajouter du contenu à l'écran de fin.
+- **agenda@2 / pro@3** — déplacer ou retirer un geste connu de l'agenda ; **agenda@5** — des rangées de réunion plus denses (plancher tactile de 64 px).
+- **appels@6** — « revenir » après un appel (il faudrait ranger un état sur l'appareil) ; **appels@2** — regrouper autrement les manqués d'affilée.
+- **groupes@5** — un nom de groupe par défaut ; **groupes@3** — dire « supprimé » plutôt que « retiré » quand un canal est supprimé ; **groupes@2** — une
+  phrase à la place de « Activité du groupe » sur les lignes système.
+- **conversations@1** — une conversation épinglée reste AUSSI dans la liste (« Désépingler » en dépend) : la retirer de la liste ?
+- **pro@5** — une information de plus à l'écran des heures ; **pro@6** — masquer une ligne en Perso.
+- **temps-reel@3** — le prénom dans « … écrit » en groupe, et le délai de 6 s avant de l'effacer.
+- **n#5** — deux limites (40 et 80) pour une même chose : laquelle ?
+- **une réunion de plusieurs jours** se montre sur CHACUN de ses jours (q01 dit désormais le jour de fin) : voulu ?
+- **l'organisateur qui « Quitte »** : sa phrase annonce un intérim qui n'a, lui, aucun des gestes de l'hôte.
+- **quandRdv / ligneEvenement** ne disent que les heures, jamais le fuseau.
+- **les 83 améliorations** que les testeurs ont proposées en utilisant l'application, rangées par partie, chacune avec la raison qui en fait une
+  décision : `scratchpad/campagne-octobre-2026/a-decider-op-messages.md` (dans le dépôt).
+
+# ✅ 16 OCTOBRE 2026 — OP MESSAGES (BÊTA) : LA SALLE N'A PLUS QUE SA BARRE RONDE, ET LE FICHIER .ICS EST PARTI (BÊTA, EN SERVICE)
+
+✅ **En service sur la bêta** : PR #144 fusionnée (`ecc9de23`), msg-beta relu le 16 octobre à 20 h 35 — `/health` sur `ecc9de23`, schéma 29, `index.html`,
+`opmsg-ui.js` et `api.js` servis identiques à `main` (empreintes comparées), `OPMSG_VERSION` 207, l'adresse .ics d'une réunion rend 404 ; le job de
+production a été sauté (la publication publique attend la phrase de Justin). La page avant/après (https://claude.ai/artifact/EqwWgtrdoqjkKpNFEqYQjp)
+porte désormais la salle en tête.
 
 Justin, aux deux questions de la page avant/après (la salle : ranger la rangée de pastilles dans « Plus » ; le code .ics dormant : le retirer) : « ok fait les deux ».
 · **La salle** (`3bc32d30`, puis la relecture `5a5728fc` et `8e553c19`, UI 207) : plus de rangée au-dessus de la barre ronde (micro, caméra, participants, plus ; « Partager »

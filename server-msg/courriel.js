@@ -142,8 +142,29 @@ function creerCourriel({ config, stockage, scelleur, horloge, journaliser }) {
     await transporter().verify();
     return true;
   }
+  /* ⛔ LE RELAIS EST-IL JOIGNABLE ? — la santé du relais, INDÉPENDANTE de toute adresse (entree#0, lot m02). `ouvert()` dit « configuré », jamais « joignable » : avec un relais mort, `inscrire` et
+     `oubli` répondaient 200 et la page annonçait « un code vient d'y partir » pour un courriel qui ne partirait jamais. Le silence de ces routes n'est voulu que pour ne pas dire si une
+     adresse a un compte ; une panne du relais ne dépend d'aucune adresse, elle se dit. ⛔ Elle ne se DÉDUIT PAS des échecs d'envoi : ceux-là ne frappent que les adresses qui ont un compte
+     (une adresse inconnue n'envoie rien), donc ils diraient qui est inscrit. C'est une SONDE (`verifier()`, une connexion, aucun courriel), gardée `SONDE_MS` : une connexion au relais par
+     demande ferait de ces routes un moyen d'user le relais, et un relais qui flanche une seconde ne ferme pas l'inscription pour une minute de plus que nécessaire. Plusieurs demandes
+     simultanées partagent UNE sonde. Jamais de rejet : une sonde qui lève dit « injoignable ». */
+  const SONDE_MS = 45000;
+  const sonde = { ok: null, t: 0, enCours: null };
+  const joignableVu = () => ouvert() && sonde.ok !== false;       // la dernière réponse connue, sans attendre (`/api/config`) : tant qu'on ne sait pas, on ne ferme rien
+  function joignable() {
+    if (!ouvert()) return Promise.resolve(false);
+    if (sonde.ok !== null && horloge() - sonde.t < SONDE_MS) return Promise.resolve(sonde.ok);
+    if (sonde.enCours) return sonde.enCours;
+    sonde.enCours = (async () => {
+      let ok = true;
+      try { await verifier(); } catch (e) { ok = false; if (sonde.ok !== false) journal('courriel', { etat: 'sonde_echec', nom: (e && (e.code || e.name)) || 'Erreur' }); }
+      sonde.ok = ok; sonde.t = horloge(); sonde.enCours = null;
+      return ok;
+    })();
+    return sonde.enCours;
+  }
   function arreter() { try { if (transport && typeof transport.close === 'function') transport.close(); } catch (e) { /* déjà fermé */ } transport = null; }
-  return { ouvert, envoyer, envoyerTexte, verifier, arreter, mode: () => cfg.mode, COMPTE_MAX, DEST_MAX };
+  return { ouvert, joignable, joignableVu, envoyer, envoyerTexte, verifier, arreter, mode: () => cfg.mode, COMPTE_MAX, DEST_MAX };
 }
 
 module.exports = { creerCourriel, adresseValide, normalisee, corpsDuMessage, SUJET, COMPTE_MAX, DEST_MAX, COMPTE_FENETRE_MS, DEST_FENETRE_MS };
