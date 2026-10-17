@@ -1478,24 +1478,6 @@ body.jour .lg-logo{box-shadow:0 8px 24px rgba(20,28,48,.18),0 0 0 1px rgba(0,0,0
 .lec-corps{padding:20px 0;font-size:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;color:var(--text2)}
 .lec-rep{border-top:1px solid var(--line);padding-top:16px}
 @media(max-width:640px){.lec{padding:18px 15px}}
-/* v2.88 — LA BOÎTE MAIL : le message HTML dans son cadre isolé, les pièces, le rangement par console, l'écriture. Le cadre est
-   blanc dans les deux modes : c'est la mise en page de l'expéditeur, écrite pour un fond clair — l'inverser la casserait. */
-.cour-html{width:100%;min-height:52vh;border:1px solid var(--line);border-radius:var(--r-2,12px);background:#fff;margin:14px 0}
-.cour-img{margin-top:12px;font-size:12.5px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.cour-dest{font-size:12.5px;margin-top:8px;word-break:break-word}
-.cour-trier{margin-top:12px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-2,12px);font-size:13px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.cour-range{margin-top:8px;font-size:12.5px}
-.cour-pieces{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
-.cour-piece{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--text);font:inherit;font-size:13px;cursor:pointer}
-.cour-x{min-width:32px;min-height:32px;border:0;background:none;color:var(--muted);cursor:pointer;font-size:14px}
-.cour-dep{display:inline-flex;align-items:center;gap:6px}
-.cour-champ{display:flex;flex-direction:column;gap:5px;margin:10px 0;font-size:12.5px;color:var(--muted)}
-.cour-champ .inp,.cour-champ .sel-f{width:100%}
-.cour-texte{width:100%;min-height:220px;margin-top:10px;font-family:inherit;line-height:1.6}
-.cour-lien{border:0;background:none;color:var(--link,var(--acc));font:inherit;font-size:13px;cursor:pointer;min-height:44px;padding:0}
-.cour-joindre{display:inline-flex;align-items:center;min-height:44px;cursor:pointer}
-.cour-actions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:12px}
-.cour-pied{padding:12px;display:flex;flex-direction:column;gap:8px;align-items:center;font-size:12.5px;color:var(--muted)}
 
 /* ══ RATTRAPAGE des restes inline ═══ le JS les pose en dur ; ces lignes les ramènent dans le système jusqu'à ce qu'on nettoie le JS ══ */
 #lg-rester{accent-color:var(--acc)!important}                              /* L217 : accent-color:var(--acc) (bleu) */
@@ -3078,7 +3060,7 @@ var APPS_TOUR={
 var MENU=[
   {section:'Tour',vues:[['accueil','Accueil','gestion messages']]},
   {section:'Clients',vues:[['demandes','Demandes','gestion','bdg-dem'],['comptes','Comptes','messages'],['entreprises','Entreprises','gestion messages'],['abonnements','Abonnements','gestion messages']]},
-  {section:'Support',vues:[['support','Courrier','gestion messages','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv']]},
+  {section:'Support',vues:[['support','Courrier','gestion','bdg-supp'],['surveillance','Surveillance','gestion messages','bdg-surv']]},
   /* v2.88 — le 5ᵉ champ RATTACHE une vue à une autre : elle quitte le menu et la barre du bas, et paraît en onglet en tête
      de sa vue de tête (Justin, 17 octobre 2026 : « améliore et simplifie-la »). Équipe est « qui peut entrer », comme Accès ;
      les Sauvegardes et le Journal sont les deux écrans de contrôle qu'on ouvre rarement. Dix entrées deviennent huit. */
@@ -3111,11 +3093,7 @@ var VUE_ALIAS={connexions:{vue:'entreprises',sous:'connexions'},devisia:{vue:'ab
 var SOUS={entreprises:'liste',abonnements:'abos',entreprisesmsg:'espaces',survmsg:'apps'};
 /* v2.88 — les deux clés d'avant sont des écrans d'OP GESTION : dans OP MESSAGES (qui a désormais SES Abonnements), « devisia » ne mène nulle part */
 function vueAlias(t,app){ var a=VUE_ALIAS[t]; if(!a||(app||APP)!=='gestion') return t; SOUS[a.vue]=a.sous; return a.vue; }
-function vuePermise(t){
-  /* v2.88 : le Courrier vit dans les deux consoles, mais le serveur range mail/* dans OP GESTION (la boîte porte les liens de
-     connexion des entreprises) : un compte qui n'a QU'OP MESSAGES ne le voit pas — il n'y lirait qu'un refus. */
-  if(t==='support'&&typeof MYAPPS!=='undefined'&&MYAPPS.indexOf('gestion')<0) return false;
-  return PATRON_SEUL.indexOf(t)<0||MYROLE==='patron'; }
+function vuePermise(t){ return PATRON_SEUL.indexOf(t)<0||MYROLE==='patron'; }
 function vuesDe(app){ var l=[]; MENU.forEach(function(g){ g.vues.forEach(function(x){ if((x[2]||'').split(' ').indexOf(app)>=0) l.push(x[0]); }); }); return l; }
 var VUES_PAR_APP={gestion:vuesDe('gestion'),messages:vuesDe('messages')};
 /* les vues de la console ouverte que CE compte peut ouvrir — c'est la porte de setTab */
@@ -4069,8 +4047,7 @@ function setTab(t,sansAnim){
   /* Le Courrier range par ENTREPRISE : sans l'annuaire ni les clients du site, il n'a aucun
      moyen de savoir à qui appartient une adresse, et tout retomberait dans « pas encore
      rattachées ». Ces deux listes ne se chargeaient que depuis l'onglet Entreprises. */
-  if(t==='support'){ if(!MSG.loaded) chargerMail(); else if(MSG.listeApp!==APP){ MSG.ouvert=null; MSG.lu=null; chargerMessages(); }   /* v2.88 : chaque console a SES messages */
-    if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); }
+  if(t==='support'){ if(!MSG.loaded) chargerMail(); if(!ENT.loaded) chargerEntreprises(); if(!CLI.loaded) chargerClients(); }
   /* PBL porte les espaces : sans lui, « Leurs espaces » resterait sur « Chargement… » pour qui
      ouvre Entreprises sans être passé par Accès. */
   if(APP==='messages'&&t==='accueil'){ if(!OPM.loaded||OPM.err) chargerEtatMessages(); if(!ENT.loaded) chargerEntreprises(); }
@@ -5617,6 +5594,15 @@ function tourStatutPack(nom){
     else toast((r&&r.d&&r.d.error)||'Statut indisponible');
   }).catch(function(){ toast('Serveur injoignable'); });
 }
+function supConnecterBoite(){
+  var email=prompt('Adresse de la boîte à connecter au Courrier :','contact@teamop.fr'); if(!email) return;
+  var pass=prompt('Mot de passe de cette boîte (celui du webmail OVH) :'); if(!pass) return;
+  toast('Connexion à '+email+'…');
+  apiPost('/api/monitor/support/connect',{email:email.trim(),pass:pass}).then(function(r){
+    if(r&&r.ok){ toast('📬 Boîte '+email.trim()+' connectée — ses mails arrivent dans le Courrier'); setTimeout(function(){ location.reload(); },900); }
+    else toast((r&&r.d&&r.d.error)||'Refusé — réservé au patron');
+  }).catch(function(){ toast('Serveur injoignable'); });
+}
 /* 💾 L'abonnement réglé à la main : formule, places, statut, fin — prime sur Stripe et les codes */
 function tourAboEnregistrer(nom,btn){
   var f=(document.getElementById('abo-f')||{}).value, q=parseInt((document.getElementById('abo-q')||{}).value,10)||1;
@@ -5690,9 +5676,7 @@ function chargerJournal(){
     if(TAB==='journal'||TAB==='accueil') render();
   }).catch(function(e){ JR.err=msgErreur(e); JR.loaded=true; if(TAB==='journal') render(); });
 }
-/* `releve` : la relève de fond (toutes les deux minutes) — elle met à jour les compteurs, mais ne recharge la liste ni
-   pendant qu'on écrit, ni quand on a demandé « les suivants » (la liste repartirait à la première page sous les yeux). */
-function chargerMail(frais,releve){
+function chargerMail(frais){
   if(MSG.busy) return; MSG.busy=true;
   apiGet('/api/monitor/mail/dossiers'+(frais?'?frais=1':'')).then(function(d){
     MSG.busy=false; MSG.loaded=true;
@@ -5700,11 +5684,33 @@ function chargerMail(frais,releve){
     MSG.err=''; MSG.boites=d.boites||[];
     MSG.nonLus=MSG.boites.reduce(function(n,b){ return n+(Number(b.nonLus)||0); },0);
     setBdg('bdg-supp',MSG.nonLus);
-    if(releve&&(MSG.compo||MSG.page>0||MSG.ouvert)) return;
-    if(TAB==='support') rendreEnGardantLeFocus(); else if(TAB==='accueil') render();
+    if(TAB==='support'||TAB==='accueil') render();
     chargerMessages();
-  }).catch(function(e){ MSG.busy=false; MSG.loaded=true; if(releve&&MSG.boites.length) return; MSG.err=msgErreur(e); if(TAB==='support') render(); });
+  }).catch(function(){ MSG.busy=false; MSG.loaded=true; MSG.err=INJOIGNABLE; if(TAB==='support') render(); });
 }
+function chargerMessages(){
+  var s=MSG.sel, p='/api/monitor/mail/liste?page=0'+(MSG.q?'&q='+encodeURIComponent(MSG.q):'');
+  if(s.boite&&s.boite!=='toutes') p+='&boite='+encodeURIComponent(s.boite)+'&dossier='+encodeURIComponent(s.dossier||'');
+  /* Elle avalait TOUT : « if(!d||d.error) return » sortait sans rien dire, et le .catch était
+     vide. Le serveur, lui, est bavard — il renvoie {error} avec un 502 quand une boîte est
+     injoignable, et un tableau « erreurs » en vue fusionnée. Résultat : quand l'IMAP refusait
+     la connexion, l'écran affichait « Rien dans ce dossier », ce qui est faux : il y a quelque
+     chose, on n'arrive simplement pas à le lire. C'est ce mensonge qui a fait dire « ça ne
+     marche plus » sans qu'on sache par quel bout le prendre. */
+  apiGet(p).then(function(d){
+    if(!d) return;
+    if(d.error){ MSG.errListe=String(d.error); MSG.messages=[]; MSG.total=0;
+      if(TAB==='support'||TAB==='accueil') render(); return; }
+    MSG.errListe=(d.erreurs&&d.erreurs.length)?d.erreurs.join(' · '):'';
+    MSG.messages=d.messages||[]; MSG.total=Number(d.total)||0;
+    if(TAB==='support'||TAB==='accueil') render();
+  }).catch(function(e){
+    MSG.errListe=(e&&e.status===502)?'La boîte ne répond pas (IMAP). Vérifiez l’adresse, le mot de passe d’application et le serveur dans « Boîtes reliées ».':msgErreur(e);
+    MSG.messages=[]; MSG.total=0;
+    if(TAB==='support'||TAB==='accueil') render();
+  });
+}
+
 /* ═══ RENDU ═══ */
 /* Le contenu d'un onglet remplaçait l'autre d'un coup : rien ne disait d'où on venait.
    L'API de transition de vue du navigateur croise les deux états — c'est elle qui fait le
@@ -7386,6 +7392,35 @@ function mailQ(v){ MSG.autoTout=false; MSG.q=v||''; chargerMessages(); }
    controle@ ou les trois à la fois. Un mot juste coûte le même clic qu'un mot faux. */
 function mailActualiser(){ chargerMail(true);
   toast(mailBoiteChoisie() ? (mailBoiteNom(mailBoiteChoisie())+' actualisée') : 'Toutes les boîtes actualisées'); }
+function compoOuvrir(dest){ MSG.compo=true; if(dest) MSG.cDest=dest; renderNav('lecture'); }
+function compoFermer(){ MSG.compo=false; renderNav('lecture-retour'); }
+function compoChamp(k,v){ MSG[k]=v; }
+function compoEnvoyer(){
+  if(!MSG.cDest||!(MSG.cTexte||'').trim()){ toast('Choisissez un destinataire et écrivez un message'); return; }
+  apiPost('/api/monitor/support/envoyer',{to:MSG.cDest,subject:MSG.cSujet||'(sans objet)',text:MSG.cTexte})
+    .then(function(x){
+      if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
+      toast('Message envoyé à '+MSG.cDest);
+      MSG.compo=false; MSG.cSujet=''; MSG.cTexte=''; renderNav('fondu');
+    }).catch(function(){ toast('Serveur injoignable — le message n’est pas parti. Réessayez.'); });   /* fetch qui jette : rien n'est parti, il faut le DIRE (INJOIGNABLE promet une nouvelle tentative : un envoi n'en fait pas) */
+}
+function lireMessage(b,d,u){
+  MSG.lu=b+'|'+d+'|'+u; MSG.ouvert=null; render();
+  apiGet('/api/monitor/mail/message?boite='+encodeURIComponent(b)+'&dossier='+encodeURIComponent(d)+'&uid='+u)
+    .then(function(m){ if(!m||m.error) return; MSG.ouvert=m;
+      var k=MSG.messages.filter(function(x){ return x.uid===u&&x.boite===b; })[0];
+      if(k&&!k.lu){ k.lu=true; MSG.nonLus=Math.max(0,MSG.nonLus-1); setBdg('bdg-supp',MSG.nonLus); }
+      renderNav('lecture'); }).catch(function(){});
+}
+function repondre(){
+  var z=$('rep-txt'), t=(z&&z.value)||'';
+  if(!t.trim()){ toast('Écrivez votre réponse avant d’envoyer'); return; }
+  var m=MSG.ouvert; if(!m) return;
+  apiPost('/api/monitor/support/envoyer',{to:m.de,subject:'Re: '+(m.objet||''),text:t})
+    .then(function(x){ if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
+      toast('Réponse envoyée à '+(m.deNom||m.de)); if(z) z.value=''; })
+    .catch(function(){ toast('Serveur injoignable — la réponse n’est pas partie. Réessayez.'); });
+}
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    LE COURRIER — un vrai client mail, à trois volets.
    Gauche : les dossiers, avec le nombre de messages non lus.
@@ -7508,8 +7543,7 @@ function mailLigneRecue(m,att){
      encombre une ligne où le nom, l'objet et l'heure, eux, comptent. */
   if(!mailBoiteChoisie()){ var bn=m.boiteNom||mailBoiteNom(m.boite); if(bn) l3.push(esc(bn)); }
   if(m.deNom&&m.de&&m.deNom!==m.de) l3.push(esc(m.de));
-  /* v2.88 : ni OP GESTION ni OP MESSAGES ne le réclament encore — dans les signes de la ligne, pas en 3ᵉ ligne : celle-ci se cache au téléphone */
-  return supLigne({nom:m.deNom||m.de,adr:m.de,ts:m.ts,objet:m.objet,l3:l3.join(' · '),trier:m.console==='atrier',
+  return supLigne({nom:m.deNom||m.de,adr:m.de,ts:m.ts,objet:m.objet,l3:l3.join(' · '),
     pieces:m.pieces,marque:m.marque,repondu:m.repondu,att:!!att,on:(MSG.lu===cle),
     action:"lireMessage('"+jsq(m.boite)+"','"+jsq(m.dossier)+"',"+m.uid+")"});
 }
@@ -7530,7 +7564,6 @@ function supGroupe(titre,n,sous,opt,bloc,lignes,pied){
 function supLigne(o){
   var sig=[],reste=0;
   var push=function(h){ if(sig.length<2) sig.push(h); else reste++; };
-  if(o.trier) push('<span class="past p-ambre" title="Ni OP GESTION ni OP MESSAGES ne réclament encore cette adresse">à trier</span>');
   if(o.pieces) push('<span class="sup-sig" title="'+nMot(o.pieces,'pièce jointe','pièces jointes')+'">📎 '+o.pieces+'</span>');
   if(o.marque) push('<span class="sup-sig" title="Marqué">⚑</span>');
   if(o.repondu) push('<span class="sup-sig" title="Une réponse est partie">↩</span>');
@@ -7575,7 +7608,7 @@ function mailListeRecueCorps(){
   if(!M.length) return supVide('support','Rien dans ce dossier',
     (MSG.boites||[]).some(function(b){ return b&&b.erreur; })
       ?'Rien de lisible pour l’instant — voir l’avertissement ci-dessus.'
-      :'La boîte se relève toute seule toutes les deux minutes ; ⟳ force une relève.');
+      :'Les nouveaux messages arrivent tout seuls ; le bouton ⟳ force une relève.');
 
   /* ── TOUTES LES ENTREPRISES : groupé PAR ENTREPRISE, jamais à plat ──
      C'est la demande, mot pour mot : « je ne veux pas que tout soit mélangé entre eux ».
@@ -7718,6 +7751,22 @@ function mailTeteLecture(nom, adr, ts, sujet, badge){
       '<div class="lec-h" title="'+esc(fmtDateLong(ts))+'">'+esc(fmtDateLong(ts))+'</div></div>'+
     (badge||'')+'</div>';
 }
+function lecture(){
+  var m=MSG.ouvert;
+  if(!m) return supVide('support','Aucun message ouvert','Choisissez un message à gauche.',
+    '<button type="button" class="btn-fant" onclick="compoOuvrir()">Écrire</button>');
+  var corps=String(m.texte||'').trim()||'(message vide)';
+  return '<div class="lec">'+
+    mailTeteLecture(m.deNom, m.de, m.ts, m.objet,
+      '<div class="lec-act"><button class="btn-fant" onclick="voirClient(\''+jsq(m.de||'')+'\')">Voir la fiche client</button></div>')+
+    '<div class="lec-corps">'+esc(corps)+'</div>'+
+    '<div class="lec-rep">'+
+      '<div class="lbl">RÉPONDRE À '+esc(String(m.deNom||m.de||'').toUpperCase())+'</div>'+
+      '<textarea id="rep-txt" class="inp" rows="4" placeholder="Votre réponse…"></textarea>'+
+      '<div style="display:flex;justify-content:flex-end;margin-top:10px">'+
+        '<button class="btn-plein" onclick="repondre()">'+svg('avion',15)+' Envoyer la réponse</button></div>'+
+    '</div></div>';
+}
 function envoyeLire(i){ MSG.envSel=i; renderNav('lecture'); }
 function envoyeLecture(){
   var m=(MSG.envoyes||[])[MSG.envSel];
@@ -7820,8 +7869,17 @@ try{ window.addEventListener('resize', function(){
 }); }catch(e){}
 function vueSupport(){
   var env=mailEnvoyes(), ouvert=env?((MSG.envoyes||[])[MSG.envSel]?true:false):!!MSG.ouvert;
-  /* v2.88 — le message s'écrit dans le volet de lecture (courCompo), plus dans une carte au-dessus de la liste */
-  var compo='';
+  var ent=CLI.list.map(function(c){ return '<option value="'+esc(c.email)+'"'+(MSG.cDest===c.email?' selected':'')+'>'+esc(c.entreprise||c.nom||c.email)+'</option>'; }).join('');
+  var compo=MSG.compo?'<div class="carte" style="border-color:var(--accBrd);margin-bottom:16px">'+
+      '<div class="ttl-carte">Nouveau message</div>'+
+      '<div style="display:flex;flex-direction:column;gap:12px;margin-top:14px">'+
+        '<div><div class="lbl">DESTINATAIRE</div><select class="sel-f" style="width:100%" onchange="compoChamp(\'cDest\',this.value)"><option value="">Choisir une entreprise…</option>'+ent+'</select></div>'+
+        '<div><div class="lbl">SUJET</div><input class="inp" value="'+esc(MSG.cSujet)+'" oninput="compoChamp(\'cSujet\',this.value)" placeholder="Objet du message"></div>'+
+        '<div><div class="lbl">MESSAGE</div><textarea class="inp" rows="5" oninput="compoChamp(\'cTexte\',this.value)" placeholder="Votre message…">'+esc(MSG.cTexte)+'</textarea></div>'+
+        '<div style="display:flex;gap:9px;justify-content:flex-end">'+
+          '<button class="btn-fant" onclick="compoFermer()">Annuler</button>'+
+          '<button class="btn-plein" onclick="compoEnvoyer()">'+svg('avion',15)+' Envoyer</button></div>'+
+      '</div></div>':'';
 
   var rech=env
     ? '<input placeholder="Rechercher un envoi…" value="'+esc(MSG.envQ||'')+'" oninput="envoyesQ(this.value)">'
@@ -7871,14 +7929,13 @@ function vueSupport(){
 
   /* Écran étroit : un seul volet à la fois. */
   if(mailEtroit()){
-    if(MSG.compo&&!env) return tete+'<div class="mail mail-1">'+courCompo()+'</div>';
     if(ouvert) return tete+compo+'<div class="mail mail-1">'+(env?envoyeLecture():lecture())+'</div>';
     return tete+compo+
       '<div class="dos-bar">'+mailDossiers()+'</div>'+
       '<div class="mail mail-1 mail-plat">'+
         '<div class="mail-rech"><div class="rech">'+svg('loupe',16)+rech+'</div>'+
           '<button class="btn-icone" onclick="'+rafraichir+'" title="Actualiser">'+svg('refresh',15)+'</button></div>'+
-        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue()+courPied())+'</div></div>';
+        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue())+'</div></div>';
   }
   return tete+compo+
     '<div class="mail">'+
@@ -7886,7 +7943,7 @@ function vueSupport(){
       '<div class="mail-liste">'+
         '<div class="mail-rech"><div class="rech">'+svg('loupe',16)+rech+'</div>'+
           '<button class="btn-icone" onclick="'+rafraichir+'" title="Actualiser">'+svg('refresh',15)+'</button></div>'+
-        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue()+courPied())+'</div></div>'+
+        '<div class="mail-rows">'+(env?mailListeEnvoyee():mailListeRecue())+'</div></div>'+
       '<div class="mail-lect">'+(env?envoyeLecture():lecture())+'</div>'+
     '</div>';
 }
@@ -7907,288 +7964,6 @@ function voirClient(email){
   else { chargerEntreprises(); var essais=0;
     var attendre=setInterval(function(){ if(ENT.loaded||++essais>40){ clearInterval(attendre); ouvrir(); } },100); }
 }
-
-/* ══ LA BOÎTE MAIL DE LA TOUR (v2.88, 17 octobre 2026) ══
-   Justin : « je veux une vraie boîte mail intégrée dans la Tour » ; « mêmes boîtes, triées » entre les deux consoles.
-   Le serveur (`server/mail.js`) range chaque message : `console` = 'gestion', 'messages' ou 'atrier' (l'adresse de
-   l'interlocuteur : une règle posée à la main, l'annuaire d'OP GESTION, sinon « à trier »). Chaque console demande SES
-   messages et ceux « à trier » (`console=`), jamais ceux de l'autre.
-   Ce que fait l'écran, et que l'ancien ne faisait pas : lire un message HTML tel qu'il a été écrit (dans un cadre isolé,
-   sans script ni image distante tant qu'on ne les demande pas), télécharger ses pièces, répondre (à l'expéditeur ou à
-   tous), transférer avec les pièces, écrire à une adresse libre avec copie, copie cachée et pièces, depuis la boîte de
-   son choix, garder un brouillon, marquer non lu ou important, déplacer, supprimer, ranger une adresse dans une console,
-   lire la suite d'un long dossier, et relever tout seul toutes les deux minutes.
-   ⛔ Règles gardées de l'écran d'avant (relecture du 17 octobre 2026) : un courriel « protégé » (code de sécurité) ne
-   se déplace ni ne se supprime — le serveur le refuse et l'écran ne le propose pas ; le texte s'affiche échappé, jamais en
-   HTML brut ; une boîte en panne coiffe tout, un dossier illisible n'est pas « rien dans ce dossier ». */
-var COUR={c:null,images:{},reglages:null};
-/* ── la liste : la console ouverte, page par page, et une réponse périmée ne remplace pas la liste qu'on regarde ── */
-function chargerMessages(suite){
-  var s=MSG.sel, page=suite?(MSG.page||0)+1:0, jeton=MSG.jetonListe=(MSG.jetonListe||0)+1;
-  MSG.listeApp=APP;
-  var p='/api/monitor/mail/liste?page='+page+'&console='+encodeURIComponent(APP)+(MSG.q?'&q='+encodeURIComponent(MSG.q):'');
-  if(s.boite&&s.boite!=='toutes') p+='&boite='+encodeURIComponent(s.boite)+'&dossier='+encodeURIComponent(s.dossier||'');
-  if(suite) MSG.suiteEnCours=true;
-  apiGet(p).then(function(d){
-    if(jeton!==MSG.jetonListe) return;   /* on a changé de boîte entre-temps : cette réponse ne vaut plus */
-    MSG.suiteEnCours=false;
-    if(!d) return;
-    if(d.error){ MSG.errListe=String(d.error); if(!suite){ MSG.messages=[]; MSG.total=0; } if(TAB==='support'||TAB==='accueil') render(); return; }
-    MSG.errListe=(d.erreurs&&d.erreurs.length)?d.erreurs.join(' · '):'';
-    MSG.messages=suite?(MSG.messages||[]).concat(d.messages||[]):(d.messages||[]);
-    MSG.total=Number(d.total)||0; MSG.page=Number(d.page)||page; MSG.pages=Math.max(1,Number(d.pages)||1); MSG.tronque=!!d.tronque;
-    if(TAB==='support'||TAB==='accueil') rendreEnGardantLeFocus();
-  }).catch(function(e){
-    if(jeton!==MSG.jetonListe) return;
-    MSG.suiteEnCours=false;
-    MSG.errListe=(e&&e.status===502)?'La boîte ne répond pas (IMAP). Vérifiez l’adresse, le mot de passe d’application et le serveur dans « Boîtes reliées ».':msgErreur(e);
-    if(!suite){ MSG.messages=[]; MSG.total=0; }
-    if(TAB==='support'||TAB==='accueil') render();
-  });
-}
-function courPied(){
-  var n=(MSG.messages||[]).length;
-  if(MSG.suiteEnCours) return '<div class="cour-pied">Chargement de la suite…</div>';
-  var plus=(MSG.page||0)+1<(MSG.pages||1);
-  return (plus||MSG.tronque)?'<div class="cour-pied">'+(plus?'<button type="button" class="btn-fant" onclick="chargerMessages(true)">Voir les suivants ('+n+' sur '+(MSG.total||n)+')</button>':'')+
-    (MSG.tronque?'<div class="g">Le tri par console regarde les 1 500 messages les plus récents de ce dossier — cherchez par le texte pour aller plus loin.</div>':'')+'</div>':'';
-}
-/* ── lire un message : la ligne touchée et le volet restent d'accord même sur deux clics rapprochés ── */
-function lireMessage(b,d,u){
-  var cle=b+'|'+d+'|'+u;
-  MSG.lu=cle; MSG.ouvert=null; MSG.luErr=''; MSG.compo=false; render();
-  apiGet('/api/monitor/mail/message?boite='+encodeURIComponent(b)+'&dossier='+encodeURIComponent(d)+'&uid='+u)
-    .then(function(m){ if(MSG.lu!==cle) return; if(!m) return;
-      MSG.ouvert=m;
-      var k=(MSG.messages||[]).filter(function(x){ return x.uid===u&&x.boite===b&&x.dossier===d; })[0];
-      /* le serveur marque lu à l'ouverture — sauf un courriel protégé ; seuls les non-lus de la Réception se comptent */
-      if(k&&!k.lu&&!m.protege){ k.lu=true;
-        var bx=(MSG.boites||[]).filter(function(x){ return (x.boite||{}).id===b; })[0];
-        var inbox=mailDossiersDe(b).some(function(x){ return x.chemin===d&&x.role==='inbox'; });
-        if(inbox){ MSG.nonLus=Math.max(0,MSG.nonLus-1); if(bx&&bx.nonLus) bx.nonLus--; setBdg('bdg-supp',MSG.nonLus); } }
-      renderNav('lecture'); })
-    .catch(function(e){ if(MSG.lu!==cle) return; MSG.luErr=msgErreur(e); render(); });
-}
-function courAdrs(l){ return (l||[]).map(function(p){ return p&&p.adr?(p.nom&&p.nom!==p.adr?p.nom+' <'+p.adr+'>':p.adr):''; }).filter(Boolean); }
-/* Un message HTML se lit tel qu'il a été écrit, dans un cadre ISOLÉ : `sandbox` sans `allow-scripts` ni `allow-same-origin`
-   (aucun script, aucun accès à la Tour ni à sa session), et une règle de sécurité qui n'admet aucune ressource distante —
-   une image de suivi dirait à l'expéditeur que le message est ouvert, et quand. « Afficher les images » l'ouvre, pour CE
-   message seulement. Un lien s'ouvre dans un nouvel onglet, hors du cadre. */
-function courHtml(m){
-  var cle=m.boite+'|'+m.dossier+'|'+m.uid, img=!!COUR.images[cle];
-  var csp="default-src 'none'; style-src 'unsafe-inline'; img-src data: cid:"+(img?' https: http:':'')+"; font-src data:";
-  var doc='<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="'+csp+'"><base target="_blank">'+
-    /* la balise de style est coupée en deux : écrite d'un bloc dans ce script, les bancs qui lisent les feuilles de la page
-       la prendraient pour une troisième feuille (test-830) */
-    '<st'+'yle>body{font:14px/1.6 -apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif;color:#1d2433;background:#fff;margin:14px;word-break:break-word}img{max-width:100%;height:auto}</st'+'yle></head><body>'+m.html+'</body></html>';
-  var distantes=/<img[^>]+src=["']?https?:/i.test(m.html);
-  return (distantes&&!img?'<div class="cour-img">Images distantes bloquées (elles diraient à l’expéditeur que vous avez lu). <button type="button" class="btn-fant" onclick="COUR.images[\''+jsq(cle)+'\']=true;render()">Afficher les images</button></div>':'')+
-    '<iframe class="cour-html" title="Contenu du message" sandbox="allow-popups allow-popups-to-escape-sandbox" referrerpolicy="no-referrer" srcdoc="'+esc(doc)+'"></iframe>';
-}
-function lecture(){
-  var m=MSG.ouvert;
-  if(MSG.compo&&!mailEtroit()) return courCompo();
-  if(MSG.luErr) return supVide('support','Ce message ne s’ouvre pas',esc(MSG.luErr),
-    MSG.lu?'<button type="button" class="btn-fant" onclick="lireMessage.apply(null,MSG.lu.split(\'|\').map(function(x,i){ return i===2?+x:x; }))">Réessayer</button>':'');
-  if(!m) return MSG.lu?supSquel():supVide('support','Aucun message ouvert','Choisissez un message à gauche.',
-    '<button type="button" class="btn-fant" onclick="compoOuvrir()">Écrire</button>');
-  var ici=m.boite+'|'+m.dossier+'|'+m.uid;
-  var dossiers=mailDossiersDe(m.boite).filter(function(x){ return x.chemin!==m.dossier&&x.role!=='noselect'; });
-  var gestes=
-    '<button type="button" class="btn-plein" onclick="courRepondre(false)">'+svg('avion',14)+' Répondre</button>'+
-    ((m.pour||[]).length+(m.copie||[]).length>1?'<button type="button" class="btn-fant" onclick="courRepondre(true)">Répondre à tous</button>':'')+
-    '<button type="button" class="btn-fant" onclick="courTransferer()">Transférer</button>'+
-    (m.protege?'<span class="past p-gris" title="Un courriel de sécurité (un code, un lien de connexion) ne se déplace ni ne se supprime">🔒 protégé</span>':
-      '<button type="button" class="btn-fant" onclick="courFlag({lu:false})">Marquer non lu</button>'+
-      '<button type="button" class="btn-fant" aria-pressed="'+(!!m.marque)+'" onclick="courFlag({marque:'+(!m.marque)+'})">'+(m.marque?'★ Important':'☆ Important')+'</button>'+
-      (dossiers.length?'<label class="cour-dep"><span class="g">Déplacer</span><select class="sel-f" onchange="if(this.value)courDeplacer(this.value)"><option value="">vers…</option>'+
-        dossiers.map(function(x){ return '<option value="'+esc(x.chemin)+'">'+esc(x.nom||x.chemin)+'</option>'; }).join('')+'</select></label>':'')+
-      '<button type="button" class="btn-fant danger" onclick="courSupprimer()">Supprimer</button>')+
-    '<button type="button" class="btn-fant" onclick="voirClient(\''+jsq(m.interlocuteur||m.de||'')+'\')">Fiche client</button>';
-  /* le rangement : à quelle console appartient cette adresse — c'est le geste qui trie la boîte */
-  var autre=APP==='gestion'?'messages':'gestion', adr=String(m.interlocuteur||m.de||'');
-  var dom=adr.indexOf('@')>0?'@'+adr.split('@')[1]:'';
-  var range=m.console==='atrier'
-    ?'<div class="cour-trier"><b>À trier.</b> Cette adresse n’appartient encore à aucune console. Ranger <span class="mono">'+esc(adr)+'</span> dans '+
-      '<button type="button" class="btn-fant" onclick="courRanger(\''+jsq(adr)+'\',\'gestion\')">OP GESTION</button>'+
-      '<button type="button" class="btn-fant" onclick="courRanger(\''+jsq(adr)+'\',\'messages\')">OP MESSAGES</button>'+
-      (dom&&MAIL_PUBLICS.indexOf(dom.slice(1))<0?' — ou tout <span class="mono">'+esc(dom)+'</span> : <button type="button" class="btn-fant" onclick="courRanger(\''+jsq(dom)+'\',\''+APP+'\')">ici</button>':'')+'</div>'
-    :(m.console&&m.console!==APP?'':'<div class="cour-range g">Rangé dans '+esc(APPS_TOUR[m.console]?APPS_TOUR[m.console].nom:m.console||'')+' · <a href="#" onclick="courRanger(\''+jsq(adr)+'\',\''+autre+'\');return false">le ranger dans '+esc(APPS_TOUR[autre].nom)+'</a></div>');
-  var pieces=(m.pieces||[]).length?'<div class="cour-pieces">'+m.pieces.map(function(p){
-      return '<button type="button" class="cour-piece" onclick="courPiece('+p.idx+',this)">📎 '+esc(p.nom)+' <span class="g">'+esc(courTaille(p.taille))+'</span></button>'; }).join('')+'</div>':'';
-  var dest='<div class="cour-dest g">À : '+esc(courAdrs(m.pour).join(', ')||'—')+(courAdrs(m.copie).length?' · Cc : '+esc(courAdrs(m.copie).join(', ')):'')+'</div>';
-  var corps=m.html&&String(m.html).trim()?courHtml(m):'<div class="lec-corps">'+esc(String(m.texte||'').trim()||'(message vide)')+'</div>';
-  return '<div class="lec" data-cle="'+esc(ici)+'">'+mailTeteLecture(m.deNom,m.de,m.ts,m.objet,'<div class="lec-act">'+gestes+'</div>')+dest+range+pieces+corps+'</div>';
-}
-function courTaille(o){ o=Number(o)||0; return o>1048576?(Math.round(o/104857.6)/10)+' Mo':o>1024?Math.round(o/1024)+' Ko':o+' o'; }
-/* Une pièce se télécharge AVEC la session (en-tête Authorization) : un lien nu partirait sans elle et rendrait 401. */
-function courPiece(idx,btn){
-  var m=MSG.ouvert; if(!m) return;
-  if(btn){ btn.disabled=true; }
-  fetch(API+'/api/monitor/mail/piece?boite='+encodeURIComponent(m.boite)+'&dossier='+encodeURIComponent(m.dossier)+'&uid='+m.uid+'&idx='+idx,{headers:hAuth()})
-    .then(function(r){ if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(d){ throw new Error(d.error||('refusé ('+r.status+')')); }); return r.blob(); })
-    .then(function(b){ var p=(m.pieces||[]).filter(function(x){ return x.idx===idx; })[0]||{}; var u=URL.createObjectURL(b), a=document.createElement('a');
-      a.href=u; a.download=p.nom||('piece-'+(idx+1)); document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){ URL.revokeObjectURL(u); },4000); })
-    .catch(function(e){ toast('⚠️ Pièce non téléchargée : '+(e&&e.message?e.message:'serveur injoignable')); })
-    .then(function(){ if(btn) btn.disabled=false; });
-}
-function courGeste(route,corps,fait){
-  var m=MSG.ouvert; if(!m) return;
-  geste('cour-'+route+'-'+m.uid,function(){ return apiPost('/api/monitor/mail/'+route,Object.assign({boite:m.boite,dossier:m.dossier,uid:m.uid},corps)); },fait);
-}
-function courFlag(f){ var m=MSG.ouvert;
-  courGeste('flag',f,function(){
-    var k=(MSG.messages||[]).filter(function(x){ return x.uid===m.uid&&x.boite===m.boite&&x.dossier===m.dossier; })[0];
-    if(f.lu===false){ if(k) k.lu=false; MSG.ouvert=null; MSG.lu=null; toast('Marqué non lu'); chargerMail(true); }
-    if(f.marque!=null){ m.marque=f.marque; if(k) k.marque=f.marque; toast(f.marque?'Marqué important':'Plus marqué important'); }
-    render(); }); }
-function courDeplacer(vers){ var m=MSG.ouvert;
-  courGeste('deplacer',{vers:vers},function(){ toast('Déplacé'); MSG.ouvert=null; MSG.lu=null; chargerMessages(); chargerMail(true); }); }
-function courSupprimer(){ var m=MSG.ouvert;
-  if(!confirm('Supprimer « '+(m.objet||'(sans objet)')+' » ?\n\nIl part dans la Corbeille de la boîte (supprimé pour de bon s’il y est déjà).')) return;
-  courGeste('supprimer',{},function(x){ toast(x.d&&x.d.definitif?'Supprimé définitivement':'Dans la Corbeille'); MSG.ouvert=null; MSG.lu=null; chargerMessages(); chargerMail(true); }); }
-/* Ranger une adresse (ou tout un domaine) dans une console : la règle vaut pour tous ses messages, passés et à venir. */
-function courRanger(adr,cons){
-  geste('cour-regle',function(){ return apiPost('/api/monitor/mail/regle',{adresse:adr,console:cons}); },function(){
-    toast(adr+' → '+(APPS_TOUR[cons]?APPS_TOUR[cons].nom:cons)); if(MSG.ouvert) MSG.ouvert.console=cons; chargerMessages(); render(); });
-}
-
-/* ── écrire, répondre, transférer ── */
-function courSignature(){ var s=COUR.reglages&&COUR.reglages.signature; return s?'\n\n-- \n'+s:''; }
-function chargerReglagesCourrier(){ if(COUR.reglages) return;
-  apiGet('/api/monitor/mail/reglages').then(function(d){ COUR.reglages=d||{signature:'',modeles:[]}; }).catch(function(){ COUR.reglages={signature:'',modeles:[]}; }); }
-function courBoiteDefaut(){ var s=MSG.sel; if(s&&s.boite&&s.boite!=='toutes') return s.boite; var b=((MSG.boites||[])[0]||{}).boite||{}; return b.id||''; }
-function courNouveau(o){
-  o=o||{}; chargerReglagesCourrier();
-  MSG.compo=true;
-  COUR.c={boite:o.boite||courBoiteDefaut(),a:o.a||'',copie:o.copie||'',cci:'',objet:o.objet||'',texte:o.texte!=null?o.texte:courSignature(),pieces:o.pieces||[],enReponseA:o.enReponseA||null,mode:o.mode||'nouveau',voirCopie:!!o.copie};
-  renderNav('lecture');
-}
-/* Le seul point d'entrée gardé de l'écran d'avant : les Demandes et les fiches l'appellent avec une adresse. */
-function compoOuvrir(dest){ courNouveau({a:dest||''}); }
-function compoFermer(){ MSG.compo=false; COUR.c=null; renderNav('lecture-retour'); }
-function courChamp(k,v){ if(COUR.c) COUR.c[k]=v; }
-function courRe(objet,pfx){ var o=String(objet||'').trim(); return new RegExp('^'+pfx+'\\s*:','i').test(o)?o:pfx+': '+o; }
-function courCitation(m){
-  var t=String(m.texte||'').trim().split('\n').map(function(l){ return '> '+l; }).join('\n');
-  return '\n\n'+courSignature().replace(/^\n\n/,'')+'\n\nLe '+fmtDateLong(m.ts)+', '+(m.deNom||m.de)+' a écrit :\n'+t;
-}
-function courRepondre(tous){
-  var m=MSG.ouvert; if(!m) return;
-  var moi=String(m.boiteEmail||'').toLowerCase(), envoye=String(m.de||'').toLowerCase()===moi;
-  /* un message que NOUS avons envoyé : on répond à ses destinataires — jamais à notre propre boîte (test-1018) */
-  var a=envoye?courAdrs((m.pour||[]).filter(function(p){ return String(p.adr||'').toLowerCase()!==moi; })).join(', '):(m.de||'');
-  var copie='';
-  if(tous){ var deja={}; deja[moi]=1; String(a).toLowerCase().split(/[,;]\s*/).forEach(function(x){ deja[x.replace(/.*<|>.*/g,'').trim()]=1; });
-    copie=(m.pour||[]).concat(m.copie||[]).filter(function(p){ var x=String(p.adr||'').toLowerCase(); if(!x||deja[x]) return false; deja[x]=1; return true; }).map(function(p){ return p.adr; }).join(', '); }
-  courNouveau({boite:m.boite,a:a,copie:copie,objet:courRe(m.objet,'Re'),texte:courCitation(m),enReponseA:{mid:m.mid,dossier:m.dossier,uid:m.uid},mode:tous?'tous':'repondre'});
-}
-/* Transférer emporte les pièces : on les relit au serveur (avec la session), et on les joint telles quelles. */
-function courTransferer(){
-  var m=MSG.ouvert; if(!m) return;
-  var tete='\n\n'+courSignature().replace(/^\n\n/,'')+'\n\n---------- Message transféré ----------\nDe : '+(m.deNom?m.deNom+' <'+m.de+'>':m.de)+'\nDate : '+fmtDateLong(m.ts)+'\nObjet : '+(m.objet||'')+'\nÀ : '+courAdrs(m.pour).join(', ')+'\n\n'+String(m.texte||'').trim();
-  var ps=m.pieces||[];
-  if(!ps.length){ courNouveau({boite:m.boite,objet:courRe(m.objet,'Tr'),texte:tete,mode:'transferer'}); return; }
-  toast('Récupération des pièces jointes…',20000);
-  Promise.all(ps.map(function(p){
-    return fetch(API+'/api/monitor/mail/piece?boite='+encodeURIComponent(m.boite)+'&dossier='+encodeURIComponent(m.dossier)+'&uid='+m.uid+'&idx='+p.idx,{headers:hAuth()})
-      .then(function(r){ if(!r.ok) throw new Error(p.nom); return r.blob(); }).then(function(b){ return courEnB64(b).then(function(b64){ return {nom:p.nom,type:p.type||b.type||'application/octet-stream',b64:b64,taille:b.size}; }); });
-  })).then(function(l){ toast(nMot(l.length,'pièce jointe reprise','pièces jointes reprises'));
-    courNouveau({boite:m.boite,objet:courRe(m.objet,'Tr'),texte:tete,pieces:l,mode:'transferer'}); })
-  .catch(function(e){ toast('⚠️ Une pièce n’a pas pu être reprise ('+(e&&e.message||'serveur injoignable')+') — le transfert part sans elles si vous l’envoyez.',8000);
-    courNouveau({boite:m.boite,objet:courRe(m.objet,'Tr'),texte:tete,mode:'transferer'}); });
-}
-function courEnB64(blob){ return new Promise(function(ok,ko){ var r=new FileReader(); r.onload=function(){ ok(String(r.result).split(',')[1]||''); }; r.onerror=ko; r.readAsDataURL(blob); }); }
-var COUR_MAX_PIECES=12, COUR_MAX_OCTETS=12*1048576;
-function courPieces(input){
-  var c=COUR.c; if(!c) return;
-  var fichiers=[].slice.call(input.files||[]); input.value='';
-  var total=c.pieces.reduce(function(s,p){ return s+(p.taille||0); },0);
-  var refus=[];
-  Promise.all(fichiers.map(function(f){
-    if(c.pieces.length>=COUR_MAX_PIECES){ refus.push(f.name+' (12 pièces au plus)'); return null; }
-    if(total+f.size>COUR_MAX_OCTETS){ refus.push(f.name+' (12 Mo au plus en tout)'); return null; }
-    total+=f.size; c.pieces.push({nom:f.name,type:f.type||'application/octet-stream',taille:f.size,b64:null,lecture:true});
-    var p=c.pieces[c.pieces.length-1];
-    return courEnB64(f).then(function(b){ p.b64=b; p.lecture=false; });
-  })).then(function(){ if(refus.length) toast('⚠️ Pas jointes : '+refus.join(', '),8000); rendreEnGardantLeFocus(); });
-  rendreEnGardantLeFocus();
-}
-function courRetirerPiece(i){ if(COUR.c){ COUR.c.pieces.splice(i,1); rendreEnGardantLeFocus(); } }
-function courCorps(){ var c=COUR.c;
-  return {boite:c.boite,a:c.a,copie:c.copie,copieCachee:c.cci,objet:c.objet,texte:c.texte,
-    pieces:c.pieces.filter(function(p){ return p.b64; }).map(function(p){ return {nom:p.nom,type:p.type,b64:p.b64}; })}; }
-function courEnvoyer(){
-  var c=COUR.c; if(!c) return;
-  if(!String(c.a||'').trim()&&!String(c.copie||'').trim()){ toast('Indiquez au moins un destinataire'); return; }
-  if(!String(c.texte||'').trim()){ toast('Le message est vide'); return; }
-  if(c.pieces.some(function(p){ return p.lecture; })){ toast('Une pièce jointe est encore en lecture — un instant'); return; }
-  var corps=courCorps(); if(c.enReponseA) corps.enReponseA=c.enReponseA;
-  var btn=document.getElementById('cour-envoyer'); if(btn){ btn.disabled=true; btn.textContent='Envoi…'; }
-  geste('cour-envoyer',function(){ return apiPost('/api/monitor/mail/envoyer',corps); },function(){
-    toast('Message envoyé'+(String(c.a).trim()?' à '+String(c.a).trim():''));
-    MSG.compo=false; COUR.c=null; MSG.envoyes=null; renderNav('fondu'); chargerMail(true); })
-  .then(function(ok){ if(!ok){ var b=document.getElementById('cour-envoyer'); if(b){ b.disabled=false; b.textContent='Envoyer'; } } });
-}
-function courBrouillon(){
-  var c=COUR.c; if(!c) return;
-  geste('cour-brouillon',function(){ return apiPost('/api/monitor/mail/brouillon',courCorps()); },function(){ toast('Brouillon enregistré dans la boîte'); });
-}
-function courCompo(){
-  var c=COUR.c; if(!c) return '';
-  var titres={nouveau:'Nouveau message',repondre:'Répondre',tous:'Répondre à tous',transferer:'Transférer'};
-  var boites=(MSG.boites||[]).map(function(x){ var b=x.boite||{}; return '<option value="'+esc(b.id)+'"'+(b.id===c.boite?' selected':'')+'>'+esc((b.nom?b.nom+' — ':'')+(b.email||b.id))+'</option>'; }).join('');
-  /* les adresses connues — clientes du site et entreprises — proposées au fil de la frappe, jamais imposées */
-  var vus={}, conn=[];
-  (CLI.list||[]).forEach(function(x){ if(x.email&&!vus[x.email]){ vus[x.email]=1; conn.push([x.email,x.entreprise||x.nom||'']); } });
-  (ENT.liste||[]).forEach(function(x){ if(x.email&&!vus[x.email]){ vus[x.email]=1; conn.push([x.email,x.nom||'']); } });
-  var champ=function(id,lib,k,type,place){ return '<label class="cour-champ"><span>'+lib+'</span><input class="inp" id="'+id+'" type="'+(type||'text')+'"'+(k==='a'||k==='copie'||k==='cci'?' list="cour-adrs" autocomplete="off"':'')+' value="'+esc(c[k]||'')+'" oninput="courChamp(\''+k+'\',this.value)" placeholder="'+esc(place||'')+'"></label>'; };
-  return '<div class="lec cour-compo">'+
-    (mailEtroit()?'<button class="btn-fant lec-ret" onclick="compoFermer()">‹ Fermer</button>':'')+
-    '<div class="lec-obj">'+esc(titres[c.mode]||'Nouveau message')+'</div>'+
-    '<datalist id="cour-adrs">'+conn.map(function(x){ return '<option value="'+esc(x[0])+'">'+esc(x[1])+'</option>'; }).join('')+'</datalist>'+
-    (boites?'<label class="cour-champ"><span>De</span><select class="sel-f" id="cour-boite" onchange="courChamp(\'boite\',this.value)">'+boites+'</select></label>':
-      '<div class="note">Aucune boîte reliée : le message partira de l’adresse d’envoi de TeamOP.</div>')+
-    champ('cour-a','À','a','text','adresse@exemple.fr, une autre…')+
-    (c.voirCopie?champ('cour-cc','Cc','copie')+champ('cour-cci','Cci','cci'):'<button type="button" class="cour-lien" onclick="COUR.c.voirCopie=true;rendreEnGardantLeFocus()">+ Copie, copie cachée</button>')+
-    champ('cour-objet','Objet','objet','text','Objet du message')+
-    '<textarea class="inp cour-texte" id="cour-texte" rows="12" oninput="courChamp(\'texte\',this.value)" placeholder="Votre message…">'+esc(c.texte||'')+'</textarea>'+
-    '<div class="cour-pieces">'+c.pieces.map(function(p,i){ return '<span class="cour-piece">📎 '+esc(p.nom)+' <span class="g">'+(p.lecture?'lecture…':esc(courTaille(p.taille)))+'</span> <button type="button" class="cour-x" aria-label="Retirer '+esc(p.nom)+'" onclick="courRetirerPiece('+i+')">✕</button></span>'; }).join('')+
-      '<label class="btn-fant cour-joindre">📎 Joindre<input type="file" multiple hidden onchange="courPieces(this)"></label></div>'+
-    '<div class="cour-actions"><button type="button" class="btn-fant" onclick="compoFermer()">Annuler</button>'+
-      '<button type="button" class="btn-fant" onclick="courBrouillon()">Enregistrer le brouillon</button>'+
-      '<button type="button" class="btn-plein" id="cour-envoyer" onclick="courEnvoyer()">'+svg('avion',15)+' Envoyer</button></div>'+
-  '</div>';
-}
-/* ── relier une boîte : un vrai formulaire (le mot de passe ne s'écrit plus dans une fenêtre du navigateur, en clair) ── */
-function supConnecterBoite(){
-  tourPanneau('<div style="font-size:18px;font-weight:800;margin-bottom:6px">Relier une boîte mail</div>'+
-    '<div class="g" style="margin-bottom:14px">La boîte arrive dans le Courrier des deux consoles : chaque message s’y range selon l’adresse de l’interlocuteur.</div>'+
-    '<label class="cour-champ"><span>Adresse</span><input class="inp" id="bx-email" type="email" autocomplete="off" placeholder="contact@teamop.fr"></label>'+
-    '<label class="cour-champ"><span>Mot de passe</span><input class="inp" id="bx-pass" type="password" autocomplete="new-password" placeholder="celui du webmail, ou un mot de passe d’application"></label>'+
-    '<label class="cour-champ"><span>Nom affiché</span><input class="inp" id="bx-nom" type="text" value="TEAM OP"></label>'+
-    '<details style="margin:6px 0 12px"><summary class="g">Serveurs (OVH par défaut)</summary>'+
-      '<label class="cour-champ"><span>IMAP</span><input class="inp" id="bx-imap" type="text" placeholder="imap.mail.ovh.net"></label>'+
-      '<label class="cour-champ"><span>SMTP</span><input class="inp" id="bx-smtp" type="text" placeholder="smtp.mail.ovh.net"></label></details>'+
-    '<div style="display:flex;gap:9px;justify-content:flex-end"><button type="button" class="btn-plein" id="bx-ok" onclick="supRelier()">Relier la boîte</button></div>');
-}
-function supRelier(){
-  var v=function(id){ var e=document.getElementById(id); return e?String(e.value||'').trim():''; };
-  var corps={email:v('bx-email'),pass:(document.getElementById('bx-pass')||{}).value||'',nom:v('bx-nom')};
-  if(v('bx-imap')) corps.imapHost=v('bx-imap'); if(v('bx-smtp')) corps.smtpHost=v('bx-smtp');
-  if(!corps.email||!corps.pass){ toast('L’adresse et le mot de passe sont nécessaires'); return; }
-  var b=document.getElementById('bx-ok'); if(b){ b.disabled=true; b.textContent='Vérification de la boîte…'; }
-  geste('bx-relier',function(){ return apiPost('/api/monitor/mail/boites',corps); },function(){
-    var p=document.getElementById('tour-panneau'); if(p) p.remove();
-    toast('📬 '+corps.email+' reliée'); chargerMail(true); })
-  .then(function(ok){ if(!ok){ var x=document.getElementById('bx-ok'); if(x){ x.disabled=false; x.textContent='Relier la boîte'; } } });
-}
-/* ── la relève : toutes les deux minutes, quand la Tour est à l'écran — jamais sous un message qu'on écrit ── */
-setInterval(function(){
-  try{ if(!TOKEN||document.hidden||MYAPPS.indexOf('gestion')<0) return;
-    chargerMail(false,true);
-  }catch(e){}
-},120000);
 
 /* ══════════ 4. ENTREPRISES ══════════ */
 function chargerDossier(nom){

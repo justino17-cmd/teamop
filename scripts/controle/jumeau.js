@@ -97,7 +97,7 @@ function decoder(brut) {
   const html = parties.filter(p => p.type === 'text/html').map(p => p.texte).join('\n');
   const liens = [...new Set(((texte + '\n' + html).match(/https?:\/\/[^\s"'<>)\]]+/g) || []).map(x => x.replace(/&amp;/g, '&').replace(/[.,;]+$/, '')))];
   return { a: enTete2047(entetes.to), de: enTete2047(entetes.from), sujet: enTete2047(entetes.subject), texte, html, liens,
-    pieces: parties.filter(p => p.nom).map(p => p.nom), entetes };
+    pieces: parties.filter(p => p.nom).map(p => p.nom) };
 }
 
 /* ── Stripe, imité DANS le processus du serveur, AVEC un état ─────────────────────────────────────────────────
@@ -224,11 +224,7 @@ async function demarrer(opts) {
   const portApi = await libre();
   const JOURNAL_SRV = path.join(SORTIE, 'serveur.log');
   const sortieSrv = fs.openSync(JOURNAL_SRV, 'w');
-  /* `donnees` : des fichiers posés dans les données du serveur avant son démarrage (une boîte reliée, par exemple) ;
-     `requires` : des modules chargés avant lui — `tests/faux-imap.js` remplace imapflow par une boîte de banc, sans réseau. */
-  for (const [f, c] of Object.entries(typeof o.donnees === 'function' ? o.donnees({ portSmtp, DATA }) : (o.donnees || {}))) fs.writeFileSync(path.join(DATA, f), typeof c === 'string' ? c : JSON.stringify(c));
-  const avant = [].concat(...(o.requires || []).map(r => ['--require', r]));
-  const srv = spawn(process.execPath, avant.concat(['--require', path.join(BANC, 'stripe-imite.js'), o.serveur || path.join(DEPOT, 'server', 'index.js')]), {
+  const srv = spawn(process.execPath, ['--require', path.join(BANC, 'stripe-imite.js'), o.serveur || path.join(DEPOT, 'server', 'index.js')], {
     /* la liste des abonnements relue à chaque fois (en ligne : 5 min de cache) — sinon le paiement ne « se voit » pas */
     env: Object.assign({}, process.env, { TEAMOP_CONFIG: CFG, TEAMOP_DATA: DATA, PORT: String(portApi), TEAMOP_STRIPE_CACHE_MS: '1',
       TEAMOP_FB_ADMIN: path.join(BANC, 'pas-de-firebase.json') }, o.envServeur || {}),
