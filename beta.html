@@ -5384,7 +5384,7 @@ html[data-refonte] #msg-list{
    (`--msg-sous` : aperçu de photo + rangée de saisie) — et le CSS retranche le reste, `100dvh` et `--tabh`, qui restent
    vivants. Sans le script (`data-ajuste` absent), les constantes d'avant restent le repli. */
 html[data-refonte] #msg-list[data-ajuste]{
-  height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--msg-bas,16px)))!important;min-height:0!important}
+  height:max(140px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--msg-bas,16px)))!important;min-height:0!important}
 html[data-refonte] #msg-list:has(> .empty){display:flex;align-items:center;justify-content:center}
 html[data-refonte] #msg-list > .empty{padding:0!important}
 html[data-refonte] .msg{border-radius:17px!important;font-size:14.5px!important;line-height:1.5!important;padding:10px 15px!important}
@@ -5424,7 +5424,7 @@ html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
     height:calc(100dvh - 446px - var(--tabh))!important;min-height:120px!important}
   /* j01 : mesurée, la liste s'arrête là où la rangée collante commence — au-dessus de la barre d'onglets */
   html[data-refonte] body.rf-onglets #msg-list[data-ajuste]{
-    height:max(80px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--tabh) - 6px))!important;min-height:0!important}
+    height:max(140px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - var(--tabh) - 6px))!important;min-height:0!important}
   html[data-refonte] body.rf-onglets #msg-saisie{
     position:sticky!important;bottom:calc(var(--tabh) + 6px);z-index:3;
     padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
@@ -5436,11 +5436,28 @@ html[data-refonte] body.msg-flot-on #msg-saisie{padding-right:76px}
    champ hors de portée sous le pli. Réservé aux écrans courts : une tablette ou un bureau n'en ont pas besoin. */
 @media (max-height:520px) and (max-width:959px){
   html[data-refonte][data-kind="mobile"] #msg-list[data-ajuste]{
-    height:max(48px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - 16px))!important}
+    height:max(120px,calc(100dvh - var(--msg-top,0px) - var(--msg-sous,0px) - 16px))!important}
   html[data-refonte][data-kind="mobile"] #msg-saisie{
     position:sticky!important;bottom:calc(env(safe-area-inset-bottom,0px) + 6px);z-index:3;
     padding:8px;border-radius:var(--rf-r-carte);background:var(--bg1);box-shadow:var(--rf-relief)}
   html[data-refonte][data-kind="mobile"] body.msg-flot-on #msg-saisie{padding-right:76px}
+}
+/* ⛔ k01 (r5#5, r5#4) — SOUS 420 PX DE HAUT, LA CONVERSATION NE SE CALE PLUS SUR CE QUI RESTE : ELLE PREND L'ÉCRAN ET LA PAGE DÉFILE.
+   Un téléphone couché de 360 à 375 px de haut (640×360, 667×375, 812×375), ou un téléphone debout dont le clavier a rogné la
+   fenêtre (375×367 : Android Chrome réduit la fenêtre de mise en page), n'a pas la place du haut de page (200 à 230 px, 75 de plus avec
+   la barre « Reprendre »), d'une rangée de saisie et d'une barre d'onglets en même temps. La liste se calait sur le reste — négatif — et
+   tombait sur son plancher (80, puis 48 px) : une bulle, posée dans le flux SOUS la rangée collante, donc 0 à 41 px visibles au repos.
+   Décision : une liste de 80 px ne lit rien, une page qui défile se lit. Ici la liste ignore `--msg-top` (le haut de page) et prend
+   tout l'écran moins ce qui est collé en bas (rangée de saisie, barre d'onglets) : en poussant la page d'un geste, la conversation
+   paraît entière, au-dessus du champ, avec un plancher de 140 px (deux ou trois bulles). Le champ et « Envoyer » restent collés et
+   atteignables en tout temps. Même raison, un cran plus haut : les trois planchers d'avant (80 px sous 781 px, 48 px couché de 421 à 520)
+   passent à 140 / 140 / 120 — un téléphone debout avec la barre « Reprendre » (375×667) tombait aussi sur 80 px.
+   Les deux règles ont les sélecteurs de celles qu'elles relèvent, et viennent APRÈS : même force, le rang gagne. */
+@media (max-height:420px) and (max-width:959px){
+  html[data-refonte] body.rf-onglets #msg-list[data-ajuste]{
+    height:max(140px,calc(100dvh - var(--msg-sous,0px) - var(--tabh) - 14px))!important}
+  html[data-refonte][data-kind="mobile"] #msg-list[data-ajuste]{
+    height:max(140px,calc(100dvh - var(--msg-sous,0px) - env(safe-area-inset-bottom,0px) - 14px))!important}
 }
 /* ── LE SEUIL DU COURRIER EST 1179, PAS 780 NI 959 ─────────────────────────────────────────
    Ce bloc relâchait la hauteur imposée au cadre de la boîte mail à partir de 780 px. Or
