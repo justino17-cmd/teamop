@@ -614,7 +614,7 @@ app.get('/api/stripe/prices', async (req, res) => {
   try {
     const sk = config.stripe && config.stripe.secretKey;
     if (!sk) return res.status(501).json({ error: 'stripe non configuré' });
-    const r = await fetch('https://api.stripe.com/v1/prices?active=true&limit=100&expand[]=data.product', { headers: { Authorization: 'Bearer ' + sk } });
+    const r = await fetch('https://api.stripe.com/v1/prices?active=true&limit=100&expand[]=data.product', { headers: stripeEntetes(sk) });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) return res.status(502).json({ error: 'stripe erreur' });
     res.json({ prices: (d.data || []).map(p => ({ id: p.id, montant: p.unit_amount, devise: p.currency, periode: p.recurring && p.recurring.interval, produit: p.product && p.product.name })) });
@@ -870,7 +870,7 @@ app.post('/api/stripe/checkout', async (req, res) => {
       p.append('client_reference_id', refGravee);
       p.append('subscription_data[metadata][espace]', refGravee);
     }
-    const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { Authorization: 'Bearer ' + sk, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+    const r = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: stripeEntetes(sk, { 'Content-Type': 'application/x-www-form-urlencoded' }), body: p.toString() });
     const d = await r.json().catch(() => ({}));
     if (!r.ok || !d.url) return res.status(502).json({ error: (d.error && d.error.message) || 'stripe erreur' });
     res.json({ url: d.url });
@@ -9540,12 +9540,37 @@ function stripeCache(c, vide, calcul, quoi) {
   return c.encours;
 }
 
-// appel GET vers l'API Stripe (même principe que /api/stripe/prices : Authorization Bearer + clé serveur)
+/* ⛔ LES EN-TÊTES DE STRIPE S'ÉCRIVENT ICI, ET NULLE PART AILLEURS — LA VERSION DE L'API Y EST FIGÉE (17 octobre 2026).
+   Trois `fetch` passent par elle : les tarifs, la page de paiement, et `stripeMonGet` (qui sert toutes les lectures :
+   abonnements, factures, relectures d'un impayé). ⚠️ `server/stripe-options.js`, outil lancé à la main, a son propre `fetch`
+   et suit encore la version du compte.
+   Sans `Stripe-Version`, chaque appel suit la version réglée dans le tableau de bord de Stripe : le jour où quelqu'un la
+   monte, la forme des réponses change sous le serveur (un champ renommé, une expansion refusée) sans qu'une ligne de ce dépôt
+   ait bougé — et `espacePaye` lit ces réponses pour décider qui est servi. `config.stripe.apiVersion` la fige ; ABSENTE, rien
+   n'est envoyé et tout reste comme avant. ⚠️ On y recopie la version du COMPTE (tableau de bord Stripe), jamais une autre :
+   en figer une différente changerait les réponses elles-mêmes. `server/set-stripe-version.sh` la pose et la vérifie.
+   Une valeur de forme inattendue n'est pas envoyée (un en-tête ne transporte jamais un texte libre) et se DIT, une fois, dans
+   le journal — sinon on croirait la version figée alors qu'elle ne l'est pas.
+   Déclaration de fonction, donc connue dès le chargement : pas de zone morte temporelle (CLAUDE.md, 19 septembre 2026). */
+function stripeEntetes(sk, extra) {
+  const h = Object.assign({ Authorization: 'Bearer ' + sk }, extra || {});
+  const v = config.stripe && config.stripe.apiVersion;
+  if (v !== undefined && v !== null && v !== '') {
+    if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}(\.[a-z]+)?$/.test(v)) h['Stripe-Version'] = v;
+    else if (!stripeEntetes.formeDite) {
+      stripeEntetes.formeDite = true;
+      console.error('stripe.apiVersion ignorée : forme inattendue (attendu « 2026-09-30 » ou « 2026-09-30.nom ») — les appels suivent la version du compte');
+    }
+  }
+  return h;
+}
+
+// appel GET vers l'API Stripe (même principe que /api/stripe/prices : en-têtes de `stripeEntetes`)
 async function stripeMonGet(url, sk) {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 12000);   // pas d'attente infinie si Stripe ne répond pas
   try {
-    const r = await fetch(url, { headers: { Authorization: 'Bearer ' + sk }, signal: ctrl.signal });
+    const r = await fetch(url, { headers: stripeEntetes(sk), signal: ctrl.signal });
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error((d.error && d.error.message) || ('stripe HTTP ' + r.status));
     return d;

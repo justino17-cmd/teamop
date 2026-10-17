@@ -45,7 +45,11 @@ Dépendances : `express`, `imapflow` + `mailparser` (réception des courriels),
 
 **Stripe n'est pas une dépendance** : l'API est appelée directement par `fetch`
 vers `api.stripe.com`. Une bibliothèque de moins à maintenir et à auditer — garder
-cette approche.
+cette approche. ⛔ **Tout appel à Stripe écrit ses en-têtes par `stripeEntetes(sk, extra)`**
+(17 octobre 2026) : c'est elle qui fige la version de l'API (`config.stripe.apiVersion`, posée et
+vérifiée par `server/set-stripe-version.sh`). Un `fetch` vers Stripe qui écrit son `Authorization`
+à la main suivrait la version du tableau de bord — `tests/test-1010.js` le refuse. Un banc qui
+extrait la route de paiement doit fournir `stripeEntetes` (`test-727`, `test-797`).
 
 `server/agent-devis.js` — assistant de rédaction de devis. Modèle `claude-opus-5`,
 un seul outil (`creer_devis`), plafond de 100 appels par jour, code d'accès d'équipe.

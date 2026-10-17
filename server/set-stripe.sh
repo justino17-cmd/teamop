@@ -8,11 +8,28 @@ read -s -p "Colle ta clé secrète Stripe : " K
 echo ""
 case "$K" in sk_live_*|rk_live_*) ;; *) echo "❌ Ce n'est pas une clé secrète (elle doit commencer par sk_live_). Rien n'a été modifié."; exit 1;; esac
 
-python3 - "$K" <<'PYEOF'
-import json, sys
-c = json.load(open('/opt/teamop/config.json'))
-c['stripe'] = {'secretKey': sys.argv[1]}
-json.dump(c, open('/opt/teamop/config.json', 'w'), indent=2)
+# ⛔ ON COMPLÈTE LE BLOC « stripe », ON NE LE REMPLACE PAS (17 octobre 2026). L'ancienne version écrivait
+# `c['stripe'] = {'secretKey': …}` : changer la clé effaçait en silence `apiVersion` (la version d'API figée,
+# `server/set-stripe-version.sh`) — et les appels se remettaient à suivre la version du tableau de bord.
+# La clé passe par l'ENVIRONNEMENT du seul processus python, plus par sa ligne de commande (lisible par `ps`).
+TEAMOP_CLE_STRIPE="$K" python3 - "${TEAMOP_CONFIG:-/opt/teamop/config.json}" <<'PYEOF'
+import json, os, sys
+chemin = sys.argv[1]
+c = json.load(open(chemin))
+s = c.get('stripe') if isinstance(c.get('stripe'), dict) else {}
+s['secretKey'] = os.environ['TEAMOP_CLE_STRIPE']
+c['stripe'] = s
+# temporaire créé en 600, puis renommage : jamais de config.json à moitié écrit, jamais lisible par tous
+tmp = chemin + '.tmp'
+try:
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, 'w') as f:
+        json.dump(c, f, indent=2)
+    os.chmod(tmp, os.stat(chemin).st_mode & 0o777)
+    os.replace(tmp, chemin)
+finally:
+    if os.path.exists(tmp):
+        os.remove(tmp)
 print('Configuration enregistrée.')
 PYEOF
 
