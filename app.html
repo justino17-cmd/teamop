@@ -16448,7 +16448,9 @@ views.planningGeneral=function(){
     /* ⛔ planning#9 — « en cours » se dit d'une absence qui recoupe AUJOURD'HUI, pas de toute absence de la période
        affichée : celle du 20 au 21/10 vue le 16 se dit avec ses dates. Les heures planifiées restent visibles. */
     const auj=todayISO(), hs=mesInts.length?fmtHmin(mn):'';
-    const enCours=mesAbs.find(a=>a.du<=auj&&auj<=(a.au||a.du));
+    /* … ET la période affichée doit contenir aujourd'hui : vue la semaine d'après, une absence d'aujourd'hui seul
+       n'est pas « en cours » (relecture planning#9). */
+    const enCours=jours.indexOf(auj)>=0?mesAbs.find(a=>a.du<=auj&&auj<=(a.au||a.du)):null;
     const aVenir=enCours?null:mesAbs.filter(a=>jours.some(j=>a.du<=j&&j<=(a.au||a.du))).sort((x,y)=>x.du.localeCompare(y.du))[0];
     const sous=p.id===''?'à répartir':(enCours?'absence en cours'+(hs?' · '+hs:''):aVenir?pgAbsLib(aVenir)+(hs?' · '+hs:''):(hs||'libre'));
     const focOn=(pgFocus!=='')&&(pgFocus===p.id);
@@ -20728,10 +20730,13 @@ function absSolde(techId){
      en attente ne recompte pas un jour déjà validé. */
   const parJour=st=>{ const m={}; l.filter(a=>absStatut(a)===st).forEach(a=>absJoursListe(a).forEach(x=>{
       const o=m[x[0]]||(m[x[0]]={matin:0,aprem:0}); if(x[2]==='j'){ o.matin=0.5; o.aprem=0.5; } else o[x[2]]=0.5; }));
-    const r={}; Object.keys(m).forEach(j=>{ r[j]=m[j].matin+m[j].aprem; }); return r; };
+    return m; };
   const mV=parJour('validee'), mA=parJour('attente');
-  const pris=Object.keys(mV).reduce((s,j)=>s+mV[j],0);
-  const dem =Object.keys(mA).reduce((s,j)=>s+Math.max(0,mA[j]-(mV[j]||0)),0);
+  const pris=Object.keys(mV).reduce((s,j)=>s+mV[j].matin+mV[j].aprem,0);
+  /* la demande se soustrait du validé PAR MOITIÉ de jour : un après-midi validé ne couvre pas un matin demandé
+     (absChevauche les admet tous deux le même jour). */
+  const dem =Object.keys(mA).reduce((s,j)=>{ const v=mV[j]||{matin:0,aprem:0};
+    return s+(v.matin?0:mA[j].matin)+(v.aprem?0:mA[j].aprem); },0);
   const droit=absDroit(techId);
   return {droit:droit,pris:pris,demande:dem,reste:Math.round((droit-pris-dem)*2)/2,periode:p};
 }

@@ -91,6 +91,22 @@ console.log('\n── 1141 · 1. ⛔ planning#9 — « absence en cours » ─�
   W.views.planningGeneral();
   v('contre-épreuve : une absence HORS de la période (30/10) ne dit rien', Object.fromEntries(sousTitres(W.__content.innerHTML))['Karim Benali'], 'libre'); }
 
+/* relecture planning#9 : « en cours » exige aussi que la période AFFICHÉE contienne aujourd'hui. */
+{ const W = monde([abs('a1', 'tK', '2026-10-16', '2026-10-16')], [], null);
+  vm.runInContext('pgRef="2026-10-26"', W);
+  W.views.planningGeneral();
+  const st = Object.fromEntries(sousTitres(W.__content.innerHTML));
+  v('⛔⛔ une absence d\'aujourd\'hui seul (16/10), vue la semaine du 26/10 au 01/11 : « libre », pas « en cours »', st['Karim Benali'], 'libre'); }
+{ const W = monde([abs('a1', 'tK', '2026-10-16', '2026-10-28')], [], null);
+  vm.runInContext('pgRef="2026-10-26"', W);
+  W.views.planningGeneral();
+  const st = Object.fromEntries(sousTitres(W.__content.innerHTML));
+  vrai('une absence qui a commencé avant et court dans la période affichée : pas « en cours » (aujourd\'hui n\'y est pas), elle se dit avec ses dates', !/en cours/.test(st['Karim Benali']) && /absence du/.test(st['Karim Benali']), st['Karim Benali']); }
+{ const W = monde([abs('a1', 'tK', '2026-10-16', '2026-10-16')], [], null);
+  vm.runInContext('pgRef="2026-10-12"', W);
+  W.views.planningGeneral();
+  v('contre-épreuve : la même absence vue la semaine du 12/10 (qui contient aujourd\'hui) est « en cours »', Object.fromEntries(sousTitres(W.__content.innerHTML))['Karim Benali'], 'absence en cours'); }
+
 console.log('\n── 1141 · 2. ⛔ planning#10 — les compteurs du bandeau suivent le périmètre filtré ──');
 const compteurs = html => { const m = html.match(/(\d+) intervention(?:s)?<i[^>]*><\/i>(\d+) absence/); return m ? [+m[1], +m[2]] : null; };
 const INTS = [int('i1', 'tS', '2026-10-17'), int('i2', 'tS', '2026-10-18'), int('i3', 'tK', '2026-10-17'), int('i4', 'tL', '2026-10-19'), int('i5', 'tL', '2026-10-20'), int('i6', 'tL', '2026-10-21'),

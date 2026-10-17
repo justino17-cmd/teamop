@@ -152,6 +152,19 @@ console.log('\n── 1140 · 3. ⛔ planning#8 — absSolde ne compte pas deux 
   v('contre-épreuve : un matin + un après-midi = une journée (0,5 + 0,5)', W.absSolde('tS').pris, 1); }
 { const W = monde([conge('x1', '2026-11-03', '2026-11-03', { demi: 'matin' }), conge('x2', '2026-11-03', '2026-11-03', { demi: 'matin' })], adminU, USERS());
   v('… mais deux matins identiques = une demi-journée', W.absSolde('tS').pris, 0.5); }
+/* relecture planning#8 : la demande en attente se soustrait du validé PAR MOITIÉ de jour. */
+{ const W = monde([conge('x1', '2026-11-03', '2026-11-03', { demi: 'aprem' }), conge('x2', '2026-11-03', '2026-11-03', { demi: 'matin', statut: 'attente' })], adminU, USERS());
+  const so = W.absSolde('tS');
+  v('⛔⛔ après-midi validé + matin demandé le même jour : pris 0,5, demande 0,5, reste 24', [so.pris, so.demande, so.reste], [0.5, 0.5, 24]); }
+{ const W = monde([conge('x1', '2026-11-03', '2026-11-03', { demi: 'matin' }), conge('x2', '2026-11-03', '2026-11-03', { demi: 'matin', statut: 'attente' })], adminU, USERS());
+  const so = W.absSolde('tS');
+  v('contre-épreuve : matin validé + MÊME matin demandé = rien de plus à demander (pris 0,5, demande 0)', [so.pris, so.demande], [0.5, 0]); }
+{ const W = monde([conge('x1', '2026-11-03', '2026-11-03', { demi: 'matin' }), conge('x2', '2026-11-03', '2026-11-03', { statut: 'attente' })], adminU, USERS());
+  const so = W.absSolde('tS');
+  v('un jour entier demandé sur un matin déjà validé : il reste l\'après-midi à demander (0,5)', [so.pris, so.demande], [0.5, 0.5]); }
+{ const W = monde([conge('x1', '2026-11-03', '2026-11-03'), conge('x2', '2026-11-03', '2026-11-03', { demi: 'aprem', statut: 'attente' })], adminU, USERS());
+  const so = W.absSolde('tS');
+  v('un jour entier validé couvre une demi-journée demandée (pris 1, demande 0)', [so.pris, so.demande], [1, 0]); }
 { const W = monde([conge('x1', '2026-11-02', '2026-11-06', { type: 'maladie' }), conge('x2', '2026-11-02', '2026-11-06', { type: 'maladie' })], adminU, USERS());
   v('contre-épreuve : un type qui ne touche pas au solde ne le touche toujours pas', W.absSolde('tS').pris, 0); }
 
