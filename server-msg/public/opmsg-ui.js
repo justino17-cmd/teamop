@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'de0f9b126df4';
+  const OPMSG_BUILD = '8395425e6572';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 210;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2883,8 +2883,17 @@
       }
     }
     A.mediaPret = true;
+    const sansCam = salleAudioSansCamera(A);
+    if (sansCam) dit = dit ? dit + ' ' + sansCam : sansCam;
     if (dit) avisAppel(dit);
     rendreAppel();
+  }
+  /* ⛔ ENTRER « EN VIDÉO » DANS UNE SALLE OUVERTE EN AUDIO, C'EST ENTRER SANS CAMÉRA — ET LE DIRE. La règle est voulue (une salle audio par le serveur de visio n'ouvre pas la caméra : le jeton ne la permet pas, et
+     la maille directe plafonne à quatre) ; ce qui manquait, c'est la raison : la personne avait allumé sa caméra dans « Avant d'entrer », entrait, et se voyait « Activer la caméra » sans un mot. Seul le choix fait dans
+     la feuille compte (`A.choix.camera`) : qui a coupé sa caméra, ou répond à un appel, n'a rien à se faire dire. */
+  function salleAudioSansCamera(A) {
+    if (!A.choix || A.choix.camera !== true || !enSalle(A) || !A.snap || A.snap.type === 'video') return '';
+    return 'Cette salle a été ouverte en audio : ta caméra n\'y est pas ouverte.' + (A.snap.visio ? ' Pour te montrer, lance un appel vidéo.' : ' Touche Caméra pour te montrer.');
   }
   async function basculerMicro() {
     const A = etat.appelUI; if (!A || !A.snap) return;

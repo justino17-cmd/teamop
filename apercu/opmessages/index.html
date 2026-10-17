@@ -5686,8 +5686,17 @@ a.menu-action { text-decoration: none; }
       }
     }
     A.mediaPret = true;
+    const sansCam = salleAudioSansCamera(A);
+    if (sansCam) dit = dit ? dit + ' ' + sansCam : sansCam;
     if (dit) avisAppel(dit);
     rendreAppel();
+  }
+  /* ⛔ ENTRER « EN VIDÉO » DANS UNE SALLE OUVERTE EN AUDIO, C'EST ENTRER SANS CAMÉRA — ET LE DIRE. La règle est voulue (une salle audio par le serveur de visio n'ouvre pas la caméra : le jeton ne la permet pas, et
+     la maille directe plafonne à quatre) ; ce qui manquait, c'est la raison : la personne avait allumé sa caméra dans « Avant d'entrer », entrait, et se voyait « Activer la caméra » sans un mot. Seul le choix fait dans
+     la feuille compte (`A.choix.camera`) : qui a coupé sa caméra, ou répond à un appel, n'a rien à se faire dire. */
+  function salleAudioSansCamera(A) {
+    if (!A.choix || A.choix.camera !== true || !enSalle(A) || !A.snap || A.snap.type === 'video') return '';
+    return 'Cette salle a été ouverte en audio : ta caméra n\'y est pas ouverte.' + (A.snap.visio ? ' Pour te montrer, lance un appel vidéo.' : ' Touche Caméra pour te montrer.');
   }
   async function basculerMicro() {
     const A = etat.appelUI; if (!A || !A.snap) return;
