@@ -21004,13 +21004,17 @@ document.addEventListener('contextmenu',e=>{ if(current!=='planning'&&current!==
   planCtxOpen(e.clientX,e.clientY,items); });
 /* Appui long tactile : ouvre le menu seulement si le doigt n'a pas bougé de plus de 8 px ;
    annule l'armement du glisser tactile existant (_tpDrag) au moment de l'ouverture. */
+/* ⛔ Le glisser tactile n'est défait QUE si un menu s'ouvre à sa place. Les zones de dépôt « day: », « tech: » et « intday: » (puces, cases du
+   Mois, rangées de technicien) contiennent les lignes qu'on glisse, mais planCtxTarget n'en tire aucun menu : annuler le glisser pour
+   rien faisait mourir le geste sans un mot dès qu'on tenait le doigt plus de 520 ms avant de bouger (rejoué : Jour en liste, 700 ms). */
 document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch'||current!=='planning') return;
   const has=(e.target.closest&&(e.target.closest('[data-drag-int]')||e.target.closest('[data-drop]'))); if(!has) return;
   const tx=e.clientX,ty=e.clientY,tg=e.target;
   _lpCtx={x:tx,y:ty,timer:setTimeout(()=>{ _lpCtx=null;
-    if(typeof _tpDrag!=='undefined'&&_tpDrag){ clearTimeout(_tpDrag.timer); try{ if(_tpDrag.ghost)_tpDrag.ghost.remove(); }catch(_){ } window._planDragging=false; _tpDrag=null; }
     try{ plHovHide(); }catch(_){ }
-    const items=planCtxTarget(tx,ty,tg); if(items&&items.length) planCtxOpen(tx,ty,items);
+    const items=planCtxTarget(tx,ty,tg); if(!(items&&items.length)) return;   // pas de menu pour cette cible : le glisser armé continue
+    if(typeof _tpDrag!=='undefined'&&_tpDrag){ clearTimeout(_tpDrag.timer); try{ if(_tpDrag.ghost)_tpDrag.ghost.remove(); }catch(_){ } window._planDragging=false; _tpDrag=null; }
+    planCtxOpen(tx,ty,items);
   },520)};
 },{passive:true});
 document.addEventListener('pointermove',e=>{ if(_lpCtx&&Math.hypot(e.clientX-_lpCtx.x,e.clientY-_lpCtx.y)>8){ clearTimeout(_lpCtx.timer); _lpCtx=null; } },{passive:true});
