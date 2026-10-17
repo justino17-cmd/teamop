@@ -27,17 +27,7 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<style id="polices">
-/* Les polices servies par teamop.fr, plus par Google (17 octobre 2026, contrôle client mystère) : chaque ouverture de
-   l'application envoyait l'adresse IP du client à fonts.googleapis.com. Archivo et Space Mono, licence SIL OFL 1.1
-   (vitrine/polices/OFL-*.txt) ; DM Sans, chargée sans être employée nulle part, n'est plus demandée. */
-@font-face{font-family:'Archivo';font-style:normal;font-weight:400 900;font-display:swap;src:url(/vitrine/polices/archivo-400-900-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
-@font-face{font-family:'Archivo';font-style:normal;font-weight:400 900;font-display:swap;src:url(/vitrine/polices/archivo-400-900-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
-@font-face{font-family:'Space Mono';font-style:normal;font-weight:400;font-display:swap;src:url(/vitrine/polices/space-mono-400-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
-@font-face{font-family:'Space Mono';font-style:normal;font-weight:400;font-display:swap;src:url(/vitrine/polices/space-mono-400-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
-@font-face{font-family:'Space Mono';font-style:normal;font-weight:700;font-display:swap;src:url(/vitrine/polices/space-mono-700-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF}
-@font-face{font-family:'Space Mono';font-style:normal;font-weight:700;font-display:swap;src:url(/vitrine/polices/space-mono-700-latin.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
-</style>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo:wght@400;500;600;700;800;900&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* ══ THÈME OFFICIEL OP GESTION (export design 22/07/2026) — navy + vert sapin ══ */
   /* ── MODE SOMBRE (par défaut — base commune du thème) ── */
@@ -8032,7 +8022,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '768';
+const APP_VERSION = '767';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -20713,10 +20703,10 @@ function absSolde(techId){
 /* ── Tâches ── */
 views.modulesElan=function(){
   const items=NAV.flatMap(g=>g.items).filter(x=>x.aside&&userSeesModule(currentUser,x.k));   // seulement ce que ce compte a le droit d'ouvrir
-  setHeader('Modules OP', showAside()?'Affichés dans le menu':'Masqués du menu',
+  setHeader('Modules OP (mis de côté)', showAside()?'Affichés dans le menu':'Masqués — interface 100 % Organilog',
     `<button class="btn" onclick="localStorage.setItem('elan_aside',showAside()?'0':'1');renderNav();go('modulesElan')">${showAside()?'Masquer du menu':'Afficher dans le menu'}</button>`);
   $('content').innerHTML=`<div class="card" style="padding:16px">
-    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules complémentaires sont <b>masqués du menu</b> pour garder une interface simple. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Vous pouvez les ouvrir ci-dessous ou les ré-afficher dans le menu.</p>
+    <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:14px">Ces modules métier (3D, circuits internes…) sont <b>mis de côté</b> pour garder une interface façon Organilog. <b>Rien n'est supprimé</b> : les données restent enregistrées et synchronisées. Vous pouvez les ouvrir ci-dessous ou les ré-afficher dans le menu.</p>
     ${items.map(x=>`<div class="pl-row" style="cursor:pointer" onclick="go('${x.k}')"><div class="pl-info"><div class="pl-title">${x.ic} ${esc(x.l)}</div></div><span style="color:var(--t3)">Ouvrir ›</span></div>`).join('')}
   </div>`;
 };
@@ -39842,10 +39832,7 @@ function enterApp(u){ currentUser=u;
   // vue demandée par l'adresse (#v=…) : seulement si ce compte y a droit — sinon tableau de bord, sans message (l'adresse peut venir d'un autre compte sur le même appareil)
   (function(){ const m=location.hash.match(/v=([A-Za-z0-9_-]+)/); let v=m&&views[m[1]]?m[1]:'dashboard'; try{ if(v!=='dashboard'){ let it=null; NAV.forEach(s=>s.items.forEach(x=>{ if(x.k===(v==='carteBox'?'boxes':v)) it=x; })); if(it&&!canSee(it)) v='dashboard'; } }catch(e){} go(v); })();
   if(getLang()!=='fr') setTimeout(()=>{ try{ translateNode($('app-root')); }catch(e){} },50);
-  /* La langue ne se demande qu'à un appareil qui n'est PAS réglé en français : l'application est en français par défaut
-     (getLang). Mesuré le 17 octobre 2026 (contrôle client mystère) : posée à tous, la question revenait à chaque ouverture
-     tant qu'on n'avait pas répondu — et à la première connexion, la fenêtre du mot de passe la remplaçait sans un mot. */
-  if(!prefLocalLire('elan_lang') && !/^fr\b/i.test(String((navigator.languages&&navigator.languages[0])||navigator.language||'fr'))) setTimeout(openLangPicker,300);
+  if(!prefLocalLire('elan_lang')) setTimeout(openLangPicker,300);
   maybeDemoTelecollecte();
   if(typeof syncInit==='function') syncInit();
   // migration : le code Devis IA saisi sur l'appareil d'un admin rejoint les données d'équipe (partagé, invisible)
