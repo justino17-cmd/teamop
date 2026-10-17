@@ -9160,6 +9160,10 @@ const I18N={
     'Tableau de bord':'Panel','Statistiques':'Estadísticas','Dashboard conso':'Consumo','Archives mensuelles':'Archivos mensuales','Carte interventions':'Mapa intervenciones','Carte des box':'Mapa de cajas','Historique':'Historial','Planning':'Agenda','Clients':'Clientes','Rapports':'Informes','Registre sanitaire':'Registro sanitario','Pointage':'Fichaje','Devis':'Presupuestos','Devis xylophage':'Presup. carcoma','Factures':'Facturas','Contrats':'Contratos','Produits':'Productos','Boxes':'Cajas','Stock':'Stock','Saisie conso':'Registro consumo','Mouvements stock':'Movimientos','Produits donnés':'Productos entregados','Fournisseurs':'Proveedores','Enveloppes':'Sobres','Brouillon':'Borrador','Mes demandes':'Mis solicitudes','Validations DR':'Validaciones DR','Bons de commande':'Órdenes de compra','Commandes en cours':'Pedidos en curso','Historique demandes':'Historial solicitudes','Messagerie':'Mensajería','Véhicules':'Vehículos','Secteurs':'Sectores','Utilisateurs':'Usuarios','Permissions':'Permisos','Paramètres':'Ajustes','Langue':'Idioma','Apparence':'Apariencia','Thème':'Tema',
     'Annuler':'Cancelar','Enregistrer':'Guardar','Créer':'Crear','Modifier':'Editar','Supprimer':'Eliminar','Fermer':'Cerrar','Envoyer':'Enviar','Ajouter':'Añadir','Valider':'Aprobar','Refuser':'Rechazar','Rechercher':'Buscar','Aujourd\'hui':'Hoy','Auj.':'Hoy','Semaine':'Semana','Liste':'Lista','Oui':'Sí','Non':'No','Effectué':'Hecho','Terminer':'Finalizar','Rapport':'Informe','Au client':'Al cliente','Facture':'Factura','Appeler':'Llamar','Itinéraire':'Ruta','Intervention':'Intervención','Nouvelle intervention':'Nueva intervención','Nouveau':'Nuevo','Client':'Cliente','Adresse':'Dirección','Téléphone':'Teléfono','Email':'Correo','Statut':'Estado','Priorité':'Prioridad','Date':'Fecha','Heure':'Hora','Durée (min)':'Duración (min)','Catégorie':'Categoría','Technicien':'Técnico','Commercial':'Comercial','Société':'Empresa','Description':'Descripción','Notes':'Notas','Compte-rendu':'Informe','Recommandations':'Recomendaciones','Équipement':'Equipo','Général':'General','Photos':'Fotos','Signature':'Firma','Couleur':'Color','Rôle':'Rol','Identifiant':'Usuario','Actif':'Activo','Désactivé':'Desactivado','Accès':'Acceso','Prévenir de l\'arrivée':'Avisar llegada','Tél. client':'Tel. cliente','Email client':'Correo cliente','Prénom':'Nombre','Nom':'Apellido','Nom complet':'Nombre completo','Ville':'Ciudad','Planifiée':'Programada','En cours':'En curso','Terminée':'Terminada','Annulée':'Cancelada','Basse':'Baja','Normale':'Normal','Haute':'Alta','Brouillon':'Borrador','Validée':'Aprobada','Refusée':'Rechazada','En attente':'Pendiente','Assistant IA':'Asistente IA' }
 };
+/* Compléments du dictionnaire, par lots : on les AJOUTE ici plutôt que de retoucher les deux lignes géantes ci-dessus.
+   Une clé est la chaîne française telle que l'écran l'écrit (texte entier d'un nœud) ; ce qui n'y est pas reste en français. */
+Object.assign(I18N.en,{ 'Tout':'All','Connexion':'Sign-in','Modifications':'Edits','Demandes':'Requests','Commandes':'Orders','Finance':'Finance','Support':'Support','Synchronisation':'Sync' });
+Object.assign(I18N.es,{ 'Tout':'Todo','Connexion':'Inicio de sesión','Modifications':'Modificaciones','Demandes':'Solicitudes','Commandes':'Pedidos','Finance':'Finanzas','Support':'Soporte','Synchronisation':'Sincronización' });
 function t(s){ const l=getLang(); if(l==='fr'||!s) return s; const d=I18N[l]; return (d&&d[s]!=null)?d[s]:s; }
 /* Traduction du rendu : remplace les textes français connus dans le DOM (FR = repli) */
 function translateNode(node){ const l=getLang(); if(l==='fr'||!node) return; const d=I18N[l]; if(!d) return;
@@ -32748,6 +32752,11 @@ function consoAnalyseHTML(){
 /* v755 — une puce par type d'entrée que le code écrit (logEvent), l'icône de sa rubrique au menu : cinq types
    (intervention, planning, commercial, synchro, réglages d'entreprise) tombaient sur la puce générique. */
 const TYPE_ICO={auth:'🔑',stock:'📦',crud:'✏️',demande:'✈️',commande:'✉️',finance:'💶',support:'🆘',intervention:'🧰',plan:'🗓️',commercial:'💰',sync:'🔄',admin:'🛠️',general:'•'};
+/* Le MOT de chaque puce de filtre. Les clés ci-dessus sont celles qu'écrit `logEvent` dans `db.journal` de toutes les
+   entreprises : elles ne se renomment pas, et le filtre (`histFilter`) les garde. L'écran montrait pourtant « auth »,
+   « crud », « finance » en minuscules et en jargon (g16, accueil#13). Un type absent de la table (version plus récente,
+   import) se montre par sa clé plutôt que de disparaître ; `test-1151` exige un libellé à chaque type que le code écrit. */
+const TYPE_LBL={auth:'Connexion',stock:'Stock',crud:'Modifications',demande:'Demandes',commande:'Commandes',finance:'Finance',support:'Support',intervention:'Interventions',plan:'Planning',commercial:'Commercial',sync:'Synchronisation',admin:'Administration',general:'Général'};
 let histFilter='all';
 /* Clic sur une ligne d'Audit / Historique → ouvre la fiche ou la page liée */
 function journalGo(id){ const j=db.journal.find(x=>x.id===id); if(!j) return;
@@ -32812,7 +32821,7 @@ function journalView(title,sub){
   if(histFilter!=='all') list=list.filter(j=>j.type===histFilter);
   const types=['all',...new Set(src.map(j=>j.type))];
   const vis=list.slice(0,_histMax), reste=list.length-vis.length;
-  $('content').innerHTML=`<div class="filters">${types.map(t=>`<div class="chip ${histFilter===t?'active':''}" onclick="histFilter='${t}';_histMax=${HIST_PAS};go('${current}')">${t==='all'?'Tout':t}</div>`).join('')}</div>
+  $('content').innerHTML=`<div class="filters">${types.map(t=>`<div class="chip ${histFilter===t?'active':''}" onclick="histFilter='${t}';_histMax=${HIST_PAS};go('${current}')">${t==='all'?'Tout':(TYPE_LBL[t]||t)}</div>`).join('')}</div>
     <div class="card">${vis.length? vis.map(j=>`<div class="tl-item" style="cursor:pointer" onclick="journalGo('${j.id}')"><div class="tl-dot">${TYPE_ICO[j.type]||'•'}</div>
       <div class="tl-body"><div class="tl-act">${esc(j.action)}</div><div class="tl-det">${esc(j.detail)||''} · 👤 ${esc(journalAuteur(j))}</div></div>
       <div class="tl-time">${fmtTs(j.ts)}</div></div>`).join('')

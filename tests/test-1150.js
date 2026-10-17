@@ -28,7 +28,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 
 console.log('\n── 1150 · 0. la population ──');
 const LOG = bloc('function logEvent('), AUT = bloc('function journalAuteur('), JV = bloc('function journalView('),
-  FN = ligne('const fullName = u =>'), ESC = ligne('const esc = s =>'), TI = ligne('const TYPE_ICO=');
+  FN = ligne('const fullName = u =>'), ESC = ligne('const esc = s =>'), TI = ligne('const TYPE_ICO='), TL = ligne('const TYPE_LBL=');
 v('les fonctions sont trouvées', [LOG.length > 100, AUT.length > 30, JV.length > 500, !!FN, !!ESC, !!TI], [true, true, true, true, true, true]);
 v('une seule définition de chacune (une seconde gagnerait partout, en silence)',
   ['function logEvent(', 'function journalAuteur(', 'function journalView('].map(n => SRC.split(n).length - 1), [1, 1, 1]);
@@ -37,7 +37,7 @@ function monde(users, moi, journal) {
   const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, __page: {}, __uid: 0,
     db: { users, journal: journal || [] }, currentUser: moi, current: 'historique' };
   vm.createContext(ctx);
-  vm.runInContext(`${ESC}\n${TI.replace('const ', 'var ')}\n${FN.replace('const ', 'var ')}\n${LOG}\n${AUT}\n
+  vm.runInContext(`${ESC}\n${TI.replace('const ', 'var ')}\n${TL.replace('const ', 'var ')}\n${FN.replace('const ', 'var ')}\n${LOG}\n${AUT}\n
     var histFilter='all', _histMax=80, _histVue='', HIST_PAS=80;
     function uid(){ return 'e'+(++__uid); } function setHeader(){} function t(s){ return s; }
     function visibleJournal(l){ return l; } function fmtTs(ts){ return String(ts); } function emptyState(){ return '<div class="vide"></div>'; }
