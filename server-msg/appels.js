@@ -166,7 +166,8 @@ function creerAppels({ stockage, hub, push, config, formule = null, visio = null
   function creer({ moi, appele, type, sessionH }) {
     const r = stockage.appelCreer({ appelant: moi.id, appele, type, session: sessionH, sonnerieMs: cfg.sonnerieMs });
     vivre(r.id, moi.id);
-    reveiller([appele, moi.id]);
+    reveiller(r.joint ? Object.keys(r.gids).concat([appele, moi.id]) : [appele, moi.id]);
+    if (r.joint) return { vue: r.vue, occupe: false, joint: true };           // l'appel INVERSE sonnait déjà chez moi : je l'ai pris, rien ne sonne de nouveau (pas de second push)
     if (r.occupe) pousserManque(r.notif, { id: r.id, type, appelant: moi });
     else pousserSonnerie({ id: r.id, type, appelant: moi, appele, gid: r.gids[appele] });
     return { vue: r.vue, occupe: r.occupe };

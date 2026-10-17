@@ -241,6 +241,8 @@
     const planifier = d.planifier, annuler = d.annuler, maintenant = d.maintenant;
     const pause = (ms) => new Promise((ok) => planifier(ok, ms));
     let courant = null, lancement = false;
+    /* ce que l'autre dit PENDANT que ma requête de lancement est en route (voir `lancer`) : une offre qui devance la réponse du service n'est pas perdue */
+    const signauxAvance = [];
     const dernieres = new Map();           // id d'appel → la dernière vue lue sur le flux : un événement qui devance la réponse de la route n'est pas perdu
     /* ⛔ UNE VUE D'AVANT, ARRIVÉE APRÈS LA SIENNE, NE LA REMPLACE PAS (9 octobre 2026 au soir — le défaut corrigé dans les salles, `creerMoteurSalle`, était ouvert ici aussi, jamais observé) : une vue
        arrive par TROIS chemins (le flux, la réponse d'un geste, une relecture de la liste), sans ordre garanti. Une vue « sonne » lue avant la réponse et rendue après elle remettait à l'écran en
@@ -581,7 +583,12 @@
     function surSignal(s) {
       if (!s || typeof s !== 'object' || typeof s.appel !== 'string' || typeof s.type !== 'string') return;
       const c = courant;
-      if (!c || c.fini || c.id !== s.appel || !(c.local || c.accepte)) return;          // pas le nôtre : ni cet appel, ni cet onglet
+      if (!c || c.fini || c.id !== s.appel || !(c.local || c.accepte)) {
+        /* ⛔ MA requête de lancement est en route : si le service me répond « c'est l'appel de l'autre, je l'ai pris » (`joint`), l'autre a déjà reçu l'événement « en cours » et OFFRE — son offre peut arriver
+           ICI avant la réponse de ma requête, quand je ne sais pas encore que cet appel est le mien. On la met de côté (bornée) ; `lancer` la rejoue si la réponse dit que oui, la jette sinon. */
+        if (lancement && signauxAvance.length < 200 && (s.type === 'offre' || s.type === 'reponse' || s.type === 'candidats' || s.type === 'etat')) signauxAvance.push(s);
+        return;                                                                         // pas le nôtre : ni cet appel, ni cet onglet
+      }
       const de = c.vue.autre && c.vue.autre.id;
       if (!de || s.de !== de) return;
       if (s.type === 'etat') { traiterEtat(c, s.donnees); return; }
@@ -649,6 +656,11 @@
           if (!c.pc && !c.demarrage) demarrerLiaison(c);
         } else if (c.role === 'appele' && c.accepte) {
           if (!c.debut) c.debut = maintenant();
+        } else if (c.role === 'appele' && lancement) {
+          /* ⛔ « en cours » sur une sonnerie que je n'ai pas prise, PENDANT que ma propre requête de lancement est en route : si l'appel est celui de l'autre qui m'appelait (nos deux appels se sont
+             croisés), c'est MOI qui l'ai pris — la réponse de ma requête le dit (`joint`). On ne conclut pas « pris ailleurs » avant ; `lancer` tranche à sa réponse. */
+          c.priseEnVol = true;
+          return;
         } else { finir(c, 'pris_ailleurs', { service: true }); return; }
         emettreAppel(c);
         return;
@@ -687,6 +699,7 @@
         const r = await d.api.lancerAppel(Object.assign({ type: spec.video ? 'video' : 'audio' }, conv ? { conv } : { uid: ids[0] }));
         const v = r.appel;
         noterAutre(v);
+        if (r.joint === true && v.sens === 'entrant') return await prendreCroise(v);
         const c = entree(v, { local: true, accepte: true });
         courant = c;
         c.promesseIce = lireIce();
@@ -695,7 +708,33 @@
         const tard = dernieres.get(v.id);
         if (tard && tard !== v && tard.etat !== 'sonne') appliquer(c, tard);            // l'autre a répondu avant que la réponse de la route nous arrive
         return instantane(c);
-      } finally { lancement = false; }
+      } finally {
+        lancement = false; signauxAvance.length = 0;
+        /* une sonnerie restée en suspens (`appliquer`) que ma réponse n'a pas prise : ce n'était pas moi, l'appel est pris ailleurs */
+        const s = courant;
+        if (s && s.priseEnVol && !s.accepte && !s.fini) finir(s, 'pris_ailleurs', { service: true });
+      }
+    }
+    /* ⛔ DEUX APPELS QUI SE CROISENT (lot m18) : j'appelais l'autre pendant qu'il m'appelait. Le service n'écrit pas un second appel — il me donne le SIEN, déjà EN COURS, ENTRANT, mon appareil lié
+       (`joint: true`, `routes-appels.js`). Comme si j'avais répondu : la page ne doit pas le tenir pour un appel sortant qui sonne (l'autre est déjà « connecté », il a offert, personne ne répondrait
+       à son offre). Il n'y a rien à répondre au service ; on arme le pouls et la liaison, et on rejoue ce que l'autre a dit en route. */
+    async function prendreCroise(v) {
+      let c = courant && !courant.fini && courant.id === v.id ? courant : null;          // la sonnerie de l'autre m'était déjà arrivée par le flux
+      if (c) {
+        c.local = true; c.accepte = true; c.priseEnVol = false;
+        if (!perimee(c, v)) { c.vue = v; if (revDe(v) > c.rev) c.rev = revDe(v); }
+        if (c.minSonnerie) { annuler(c.minSonnerie); c.minSonnerie = null; }
+      } else { c = entree(v, { local: true, accepte: true }); courant = c; }
+      memoriser(v);
+      c.promesseIce = c.promesseIce || lireIce();
+      if (!c.debut) c.debut = maintenant();
+      if (d.fermerNotif) { try { d.fermerNotif('appel:' + v.id); } catch (e) { /* rien */ } }
+      armerPouls(c);
+      for (const sg of signauxAvance.splice(0)) surSignal(sg);                           // l'offre de l'autre, arrivée avant la réponse de ma requête (elle attend la liaison dans `c.file`)
+      const tard = dernieres.get(v.id);
+      if (tard && tard !== v) appliquer(c, tard);                                        // une vue plus récente (l'appel déjà fini ?) lue en route
+      await demarrerLiaison(c);
+      return instantane(c);
     }
     async function repondre(id, accepte) {
       const c = courant;
