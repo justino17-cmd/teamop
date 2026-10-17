@@ -1604,6 +1604,11 @@ button.photo.attente, button.photo.chargement { cursor: pointer; }
 .sem-fleche.prec .chev { transform: scaleX(-1); }
 .sem-titre { flex: 1; min-width: 0; min-height: 44px; padding: 0 6px; text-align: center; font-size: 17px; font-weight: 600; letter-spacing: -.02em; color: var(--text); overflow-wrap: anywhere; }
 .sem-jours { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 4px; margin: 0 0 16px; }
+/* ⛔ AU DOIGT, SUR UN PETIT TÉLÉPHONE (17 octobre 2026, iPhone SE à 320 px) : sept colonnes et six écarts de 4 px dans 288 px de contenu donnaient 37,7 px de zone qui répond (43,4 à 360 px), sous les 44 px du
+   reste de la page. Les écarts se réduisent d'abord (2 px sous 380 px : 45,1 à 360) ; sous 340 px ils tombent et la barre déborde dans la marge de la page (-11 px de chaque côté : 310 / 7 = 44,3).
+   Ni défilement latéral, ni autre forme. Le titre d'une feuille (« Nouveau rendez-vous », 171 px) ne tenait pas non plus dans les 156 px laissés entre « Annuler » et « Créer » : 15 px, il tient. */
+@media (max-width: 380px) { .sem-jours { gap: 2px; } }
+@media (max-width: 340px) { .sem-jours { gap: 0; margin-inline: -11px; } .feuille-barre h2 { font-size: 15px; } }
 .jour { min-width: 0; min-height: 62px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; padding: 6px 0 4px; border-radius: 14px; color: var(--text); font-size: 12px; }
 .jour b { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 24px; }
 .jour .jour-point { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: 0; }
