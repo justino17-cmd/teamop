@@ -79,7 +79,9 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
   const liees = async (X, Y, ms) => att(() => X.monde.dernier() && Y.monde.dernier() && X.monde.dernier().iceConnectionState === 'connected' && Y.monde.dernier().iceConnectionState === 'connected', ms || 8000);
 
   try {
-    const A = monter(svc, 'ana'), B = monter(svc, 'ben');
+    /* ⛔ la veille (qui redémarre une liaison restée muette) est ALLONGÉE : sinon elle rattrape une offre perdue par une seconde offre, deux secondes plus tard, et le banc ne verrait plus qu'une offre a été jetée */
+    const LONGUE = { delais: { veille: 120000, deconnecte: 120000 } };
+    const A = monter(svc, 'ana', LONGUE), B = monter(svc, 'ben', LONGUE);
     const ana = await A.entrer(), ben = await B.entrer();
     vrai('population : deux personnes sont entrées par la porte bêta', ana.id !== ben.id);
     const l1 = await A.src.lienContact(); await B.src.accepterLien(l1.code);
@@ -132,6 +134,7 @@ const DELAIS = { pouls: 150, candidats: 5, veille: 2000, deconnecte: 250, reessa
       let ouvrir; A.retenir = { re: /POST \/api\/appels$/, porte: new Promise((ok) => { ouvrir = ok; }), faite: false, enRoute: false };
       const p = A.src.demarrerAppel({ membres: [ben.id], video: false });
       vrai('population : la requête d\'Ana est partie, sa réponse est retenue en route', !!(await att(() => A.retenir.enRoute)));
+      vrai('population : la sonnerie ET l\'événement « en cours » attendent en route chez Ana (deux événements, pas un)', !!(await att(() => A.fluxRetenu.length >= 2)));
       const file = A.fluxRetenu; A.fluxRetenu = null;
       for (const f of file) f();                                           // la sonnerie arrive (une entrée entrante naît), puis l'événement « en cours » : Ana ne sait pas encore que c'est elle qui l'a pris
       vrai('population : la sonnerie de Ben est arrivée à la page d\'Ana avant la réponse de sa requête', !!(await att(() => A.evs.some(e => e.type === 'appel-entrant' && e.id === sb.id))));
