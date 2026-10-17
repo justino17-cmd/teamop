@@ -134,7 +134,8 @@ function mondeEcran(moi, reglage) {
     CAPS: { technicien: {} }, fullName: x => ((x.prenom || '') + ' ' + (x.nom || '')).trim(), views: {},
     setHeader: () => {}, $: () => ({ set innerHTML(h) { out.html = h; } }), keyForClient: id => id.slice(1), parseTechDepts: s => String(s || '').split(',').map(x => x.trim()).filter(Boolean),
     techColor: () => '#123', initials: n => n[0], keyLabel: d => d, deptColor: () => '#456', encreSur: () => '#fff', esc: x => String(x == null ? '' : x),
-    techForKey: dep => techs.find(t => t.departements === dep) || null, badge: (o, k) => '<b>' + o[k].l + '</b>', canCat: () => true,
+    techForKey: dep => techs.find(t => t.departements === dep) || null, depDeKey: k => k,   // 1302 : Secteurs range par département via depDeKey (les clés de ce banc sont déjà des départements)
+    badge: (o, k) => '<b>' + o[k].l + '</b>', canCat: () => true,
     permGarde: () => true, toast: m => out.toasts.push(m), openModal: h => { out.modal = h; },
     techCouleurChoix: () => '<span class="tcc"></span>',   // v757 : le choix de couleur en pastilles (test-825 l'exécute)
     techCouleurPrevenus: () => [], techCouleursFiger: () => 0 };   // v758 : les couleurs des autres figées au geste (test-825 les exécute)

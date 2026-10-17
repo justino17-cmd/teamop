@@ -27,7 +27,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 
 console.log('\n── 795 · 0. la population ──');
 const HOM = bloc('function compteHomonyme(prenom,nom,sauf){'), MSG = bloc('function homonymeMessage(h,prenom,nom){'), NN = bloc('function nomNorm(s){'),
-  FN = ligne('const fullName = u =>'), SU = bloc('async function saveUser(e,id){');
+  FN = ligne('const fullName = u =>'), SU = bloc('async function saveUser(e,id){'), NET = bloc('function nomSaisieNet(s){');   // 1300 : saveUser rogne les noms par nomSaisieNet
 v('les fonctions sont trouvées', [!!HOM, !!MSG, !!NN, !!FN, SU.length > 3000], [true, true, true, true, true]);
 v('⛔ une seule définition de chacune (une seconde gagnerait partout, en silence)',
   ['function compteHomonyme(', 'function homonymeMessage(', 'function nomNorm('].map(n => SRC.split(n).length - 1), [1, 1, 1]);
@@ -38,7 +38,7 @@ function monde(users, moi) {
     db: { users, techniciens: [], boxes: [], vehicules: [] }, currentUser: moi, __toasts: [], __serveur: 0, __saves: 0,
     localStorage: { getItem: () => null, setItem: () => {} } };
   vm.createContext(ctx);
-  vm.runInContext(`${NN}\n${FN.replace('const ', 'var ')}\n${HOM}\n${MSG}
+  vm.runInContext(`${NN}\n${FN.replace('const ', 'var ')}\n${HOM}\n${MSG}\n${NET}
     var ROLE_PROTEGE='admin', drRattaches=new Set(), nuBoxes=new Set(), nuVehs=new Set(), nuStk=false, views={utilisateurs(){}};
     function toast(m){ __toasts.push(String(m)); } function save(){ __saves++; } function closeModal(){} function logEvent(){} /* lot g01 : saveUser verrouille son bouton (btnOccupe) ; ici l'événement n'a pas de bouton, le double suffit — la vraie est jouée par test-1100 §5 */ function btnOccupe(){ return function(){}; }
     function can(){ return false; } function planPlaceLibre(){ return true; } function proposerAbonnement(){ __toasts.push('abonnement'); }
