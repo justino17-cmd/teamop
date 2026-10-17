@@ -107,6 +107,33 @@ dont la raison était ELAN. ⚠️ Ce n'est pas un blanc-seing pour la suite : u
 où une entreprise reprend l'application, la règle « bêta d'abord » revient d'elle-même. Les preuves exigées avant une publication (suite complète,
 syntaxe, mesure au navigateur, fichier servi relu) restent toutes dues.
 
+# ⏸️ 17 OCTOBRE 2026 AU SOIR — SECONDE CAMPAGNE, ARRÊTÉE PAR JUSTIN (CONSOMMATION) : CE QUI EST SUR LA BRANCHE, CE QUI RESTE
+
+Justin : « on stop, ça consomme trop ». Tout est arrêté ; rien n'est publié. Sur `claude/apple-theme-op-messages-gcb3j9` (poussée, PAS
+fusionnée sur `main`, APP_VERSION toujours 768 — à monter avant toute publication) :
+- **Décisions de Justin du 17 octobre, appliquées** (chacune : banc qui tombe avant, relecture à charge, reprise) : clients#5 — les services
+  de carte (Nominatim, Base Adresse Nationale, IGN, OSRM, tuiles Google) écrits dans sous-traitance, registre et confidentialité, plus la
+  position GPS du pointage dite enregistrée (`test-1800`) ; technicien#9 — « ▶ Démarrer » dans Ma journée (`test-1810`) ; admin#6 — un compte
+  désactivé n'est plus proposé là où l'on affecte, ses interventions restent visibles et signalées (`techAssignable`, `test-1820`) ;
+  conversations#2 — OP MESSAGES garde l'heure de lecture (« Lu 22:50 » après rechargement ; migration 30 de `server-msg/stockage.js`,
+  `test-2668`, `test-2669` — à ajouter à `scripts/bancs-messages.liste` et au plancher avant la fusion).
+- **Restes connus corrigés** : glisser au doigt sur les puces de jour et les rangées de technicien (`test-1670` à `1673`) ; année des dates des
+  listes de documents et « Terminée » par le formulaire qui pose finReel (`test-1674` à `1676`) ; cases à cocher au dessin commun, état coché
+  et désactivé lisibles (`test-1678`) ; filtres décalés de 16 px sur six écrans (`test-1682`) ; PDF : une ligne plus haute qu'une page se
+  continue, devis et facture ne coupent plus la désignation à 48 signes (`test-1686`, `1687`) ; rotation de la Messagerie : la fin de la
+  fenêtre de 800 ms relit la marque (`test-1660`, 41 vérifications).
+- **Non fini** : le lot `test-984` (course au chronomètre, tâche #95) arrêté en cours, NON fusionné ; la suite complète n'a pas été relancée
+  sur ce code (seules les suites touchées : toutes vertes).
+- **83 bugs rapportés par 8 testeurs, NON contre-vérifiés et NON corrigés** : `scratchpad/campagne-octobre-2026/bugs-campagne2-non-verifies.json`
+  (OP GESTION : planning, cycle commercial, journée du technicien, stock et achats, droits ; OP MESSAGES : conversations, médias, agenda).
+  Les plus lourds : TVA arrondie autrement dans le PDF (9,50 € à l'écran, 9,49 € sur le PDF) et au virement ; un technicien voit les montants
+  dans la fiche client ; contrat mensuel qui dérive de 30 jours et contrat expiré qui génère encore ; facture à 0 € générée sans avertissement ;
+  synthèse Comptabilité qui perd une facture passée « Payée » ; double clic sur « Valider » (DR) qui valide deux éléments ; mot de passe avec
+  espace final qui bloque la connexion ; Mouvements montre le stockage sans la case. Chacun est à rejouer avant d'y toucher.
+- **À soumettre à Justin** (vus par les lots) : le préavis de 30 jours de la sous-traitance pour les cinq services de carte ; OSRM (serveur de
+  démonstration, usage non commercial) et tuiles Google lues hors API ; Nominatim appelé aussi en arrière-plan par le suivi GPS ; deux
+  interventions « en cours » possibles par le menu de statut ; un compte passé de technicien à commercial reste assignable.
+
 # ✅ 16-17 OCTOBRE 2026 — CAMPAGNE DE TEST DE A À Z : OP GESTION v768 (BÊTA ET PUBLIC), OP MESSAGES CORRIGÉ (BÊTA)
 
 Justin : « je veux que tu mettes des agents sur OP GESTION qui testent toute l'application de A à Z, qui regardent et utilisent l'application pour voir les
