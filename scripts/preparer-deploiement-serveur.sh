@@ -70,6 +70,19 @@ mapfile -t SUITES_MSG < <(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-messages.l
 # ⚠️ Même exigence que pour la liste du serveur : une liste vide ou tronquée ferait passer la porte sur rien.
 [ "${#SUITES_MSG[@]}" -ge 5 ] || { echo "✗ la liste des bancs d'OP MESSAGES n'a que ${#SUITES_MSG[@]} suite(s)"; exit 1; }
 for f in "${SUITES_MSG[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
+# 1 ter. Les AIDES des suites — un fichier de `tests/` qu'une suite charge (`require('./x')`, `path.join(__dirname, 'x.js')`)
+#    sans être une suite : le compteur ne le lance pas, la liste ne le nomme pas. Le 17 octobre 2026, `tests/faux-imap.js`
+#    (la boîte IMAP de banc que `test-834` et `test-1012` glissent au serveur par `node -r`) manquait : le serveur ne
+#    démarrait pas, deux suites s'interrompaient, la porte a refusé — sur un serveur juste. On les recense au lieu de les lister.
+mapfile -t AIDES < <(grep -ohE "__dirname, '[a-z0-9-]+\.js'|require\('\./[a-z0-9-]+(\.js)?'\)" "${SUITES[@]}" "${SUITES_MSG[@]}" \
+  | sed -E "s/.*'(\.\/)?([a-z0-9-]+)(\.js)?'.*/tests\/\2.js/" | sort -u)
+AIDES_PRISES=()
+for f in "${AIDES[@]}"; do
+  if git cat-file -e "$SOURCE:$f" 2>/dev/null && ! grep -qxF "$f" <(printf '%s\n' "${SUITES[@]}" "${SUITES_MSG[@]}"); then
+    git checkout -q "$SOURCE" -- "$f"; AIDES_PRISES+=("$f")
+  fi
+done
+echo "  aides des suites : ${AIDES_PRISES[*]:-aucune}"
 # ⚠️ Les pages que ces suites font parler au serveur partent avec lui : `test-797`, `test-839` et `test-840` lisent la
 #    page de paiement (ses refus, sa grille de prix). Restée celle de `main`, elle ne saurait pas DIRE le refus que le
 #    serveur neuf rend — et les bancs tomberaient ici, sur un serveur juste (relecture adverse, 28 septembre 2026, nuit).
@@ -81,7 +94,24 @@ for f in "${SUITES_MSG[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 #    accès jusqu'à ce que ce soit réglé » et « Formule attribuée, jamais payée » à côté d'une entreprise grisée — et
 #    treize suites de la liste lisent `tour.html` (relevé par `relecteur`).
 PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html tour.html apercu/tour.html)
+# ⛔ TOUR_EN_SERVICE=garder (Justin, 17 octobre 2026 : « serveur + aperçu ») : le serveur part, la Tour EN SERVICE reste
+#    celle de `main` — seul son APERÇU part, pour qu'il l'essaie. Le serveur doit alors parler à la Tour d'AVANT : les
+#    suites de la liste qui lisent `tour.html` gardent leur version de `main` (celle qui garde la Tour servie), et c'est
+#    elle qu'on joue contre le serveur neuf. Une suite NEUVE qui lirait `tour.html` part telle quelle : si elle attend la
+#    Tour neuve, la porte tombe ici — c'est le but.
+if [ "${TOUR_EN_SERVICE:-}" = "garder" ]; then
+  PAGES_LIEES=(recap-abonnement.html apercu/recap-abonnement.html merci.html apercu/merci.html apercu/tour.html)
+  for f in "${SUITES[@]}"; do
+    if grep -q 'tour\.html' "$f" && git cat-file -e "origin/main:$f" 2>/dev/null; then git checkout -q origin/main -- "$f"; echo "  (Tour gardée) $f : version de main"; fi
+  done
+fi
 for f in "${PAGES_LIEES[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
+# ⚠️ Les suites HORS des listes qui relisent le serveur partent avec lui. 17 octobre 2026 : `test-671` lit `server/mail.js`
+#    (le compteur de non-lus, désormais par dossier) ET `tour.html` ; restée celle de `main`, elle attendait l'ancien serveur
+#    et la suite complète tombait (1 ✗ sur 511 suites) sur un serveur juste. Sa version de la branche passe contre la Tour de
+#    `main` (vérifié) : elle part. Une suite ajoutée ici doit passer contre la Tour SERVIE.
+SUITES_SERVEUR_HORS_LISTE=(tests/test-671.js)
+for f in "${SUITES_SERVEUR_HORS_LISTE[@]}"; do git checkout -q "$SOURCE" -- "$f"; done
 
 # 2. Les deux workflows de la branche — la ligne des bancs lance la LISTE, pas tout (voir
 #    l'en-tête de la liste). ⚠️ Remplacement exact, compté : un workflow dont la ligne a changé
@@ -95,7 +125,10 @@ node -e '
   for (const w of [".github/workflows/deploiement.yml", ".github/workflows/ci.yml"]) {
     const s = fs.readFileSync(w, "utf8");
     const n = (s.match(avant) || []).length;
-    if (n !== 1) { console.error("✗ " + w + " : ligne des bancs trouvée " + n + " fois"); process.exit(1); }
+    /* une branche qui a fusionné main porte DÉJÀ la ligne réécrite : on la garde, si elle est bien celle-là, et une seule fois */
+    const deja = (s.match(/run: (?:[A-Z_]+="[^"\n]*" )*BANCS_PLANCHER=\$\(sed -n \x27s\/\^#plancher \/\/p\x27 scripts\/bancs-serveur\.liste\) bash scripts\/bancs-ci\.sh \$\(grep -vE \x27\^\[\[:space:\]\]\*\(#\|\$\)\x27 scripts\/bancs-serveur\.liste\)\n/g) || []).length;
+    if (n === 0 && deja === 1) { console.log("  " + w + " : ligne des bancs déjà réécrite (la liste du serveur)"); continue; }
+    if (n !== 1) { console.error("✗ " + w + " : ligne des bancs trouvée " + n + " fois (déjà réécrite : " + deja + ")"); process.exit(1); }
     fs.writeFileSync(w, s.replace(avant, apres));
   }'
 
@@ -136,7 +169,7 @@ VAPP="$(sed -n "s/.*APP_VERSION *= *'\([0-9]*\)'.*/\1/p" app.html | head -1)"
 [ -n "$VAPP" ] || { echo "✗ APP_VERSION illisible dans app.html de main"; exit 1; }
 git add server .github/scripts/surveillance.js .github/workflows/deploiement.yml .github/workflows/ci.yml \
         scripts/bancs-ci.sh scripts/bancs-serveur.liste scripts/preparer-deploiement-serveur.sh "${SUITES[@]}" "${PAGES_LIEES[@]}" \
-        "${OPMSG_FICHIERS[@]}" "${SUITES_MSG[@]}"
+        "${OPMSG_FICHIERS[@]}" "${SUITES_MSG[@]}" ${AIDES_PRISES[@]+"${AIDES_PRISES[@]}"} "${SUITES_SERVEUR_HORS_LISTE[@]}"
 git diff --cached --name-only | grep -q 'node_modules' && { echo "✗ node_modules dans le commit — rien ne se fait"; exit 1; }
 git -c user.name="$(git -C "$RACINE" config user.name || echo TeamOP)" \
     -c user.email="$(git -C "$RACINE" config user.email || echo noreply@teamop.fr)" \
@@ -145,7 +178,9 @@ Serveur seul : déploiement depuis ${SOURCE:0:8} (app.html et sw.js ne bougent p
 
 server/, sa surveillance (.github/scripts/surveillance.js) et ses bancs
 (scripts/bancs-serveur.liste, lancés par le job « bancs » dont le déploiement dépend).
-Les pages que ces bancs font parler au serveur partent avec lui : ${PAGES_LIEES[*]}.
+Les pages que ces bancs font parler au serveur partent avec lui : ${PAGES_LIEES[*]}.${TOUR_EN_SERVICE:+
+La Tour en service ne change pas (TOUR_EN_SERVICE=$TOUR_EN_SERVICE) : seul son aperçu part, et les suites
+qui lisent tour.html sont celles de main — jouées contre ce serveur.}
 server-msg/ (OP MESSAGES, service à part), son workflow (deploiement-messages.yml) et ses bancs
 (scripts/bancs-messages.liste) : la bêta se déploie à chaque poussée sur server-msg/, la production
 jamais sans l'approbation de l'environnement msg-prod.

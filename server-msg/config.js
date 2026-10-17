@@ -63,10 +63,13 @@
  *                                `securite` : starttls (défaut, port 587), ssl (465) ou aucune (relais local seulement en production). `de` : l'adresse d'expédition. Le mot de passe s'écrit par
  *                                `configurer-courriel.js` (saisie masquée), jamais à la main ni affiché.
  *   inscriptionCourriel  true pour OUVRIR les inscriptions par adresse e-mail (« comme Discord ») ; absent ou autre chose : fermées (503 `inscription_fermee`). Il faut aussi un relais (`courriel`).
+ *   admin         {secret}   L'ADMINISTRATION de la console interne (`admin.js`) : 64 hexadécimaux, posés par `configurer-admin.js` (saisie masquée) ; la MÊME valeur se pose côté relais. Absent, les routes
+ *                                `/api/admin/*` sont INERTES (404) ; invalide (pas 64 hexadécimaux, trop régulier, égal à la clé maître, une autre clé que `secret`), le démarrage est refusé.
  *   disqueMinMo   plancher d'espace libre sous lequel les écritures refusent (503).
  *   pulsationMs, presenceGraceMs, balayageMs, relectureMs   Rythmes (bancs).
  */
 const fs = require('fs'), path = require('path'), crypto = require('crypto');
+const { adminConfig } = require('./admin');
 
 const INTERDITS = ['/opt/teamop', '/etc/teamop'];
 
@@ -560,6 +563,7 @@ function charger(env = process.env) {
     transcription: transcriptionConfig(cfg, instance),
     trajet: trajetConfig(cfg, instance, env),
     courriel: courrielConfig(cfg, instance),
+    admin: adminConfig(cfg, kek),   // l'administration de la console interne : absente = INERTE ; invalide = démarrage refusé (voir `admin.js`)
     sms: cfg.sms && typeof cfg.sms === 'object' && !Array.isArray(cfg.sms) ? cfg.sms : {},   // validée par `lireConfigSms` (sms-garde.js)
     sauvegarde: cfg.sauvegarde === undefined ? null : cfg.sauvegarde,   // validée par `lireConfigSauvegarde` (sauvegarde.js) : absente = module inerte, invalide = démarrage refusé
     testCodes: testCodes,

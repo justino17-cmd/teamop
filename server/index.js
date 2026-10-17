@@ -38,6 +38,9 @@ if (config.smtp && config.smtp.host) {
 }
 
 const app = express();
+/* L'API ne dit pas sur quoi elle tourne : « X-Powered-By: Express » ne sert à personne qu'à qui cherche une faille
+   d'une version connue (relevé par le contrôle client mystère, 17 octobre 2026). `tests/test-1011.js`. */
+app.disable('x-powered-by');
 /* ⛔ UNE ROUTE `async` QUI REJETTE LAISSAIT LA REQUÊTE PENDUE (`gardien`, N1). Express 4 ne
    regarde pas la promesse que rend un gestionnaire : une exception après un `await` devenait un
    rejet orphelin (compté par le filet du processus, plus bas), et la personne en face attendait
@@ -61,7 +64,17 @@ for (const m of ['get', 'post', 'put', 'delete', 'patch', 'all', 'use']) {
 // serait inopérant. « 1 » = un seul intermédiaire de confiance devant nous.
 app.set('trust proxy', 1);
 
-app.use(express.json({ limit: '6mb' })); // large : les e-mails peuvent porter un PDF en pièce jointe (base64)
+/* ⛔ DEUX CHEMINS SEULEMENT ONT UN PLAFOND PLUS LARGE : l'envoi et le brouillon de la Messagerie de la Tour
+   (`server/mail.js`), qui annoncent 12 pièces et 12 Mo — soit ~16 Mo une fois en base64. Le plafond global les
+   refusait en 413 AVANT la route. Ils sont écartés d'ici, et la route monte `jsonGros` (20 Mo) APRÈS avoir vérifié
+   la session : lire 20 Mo avant de savoir qui parle serait le moyen le moins cher de remplir la mémoire du serveur.
+   Le chemin est comparé SANS tenir compte de la casse ni de la barre finale, comme Express le route : sinon la
+   route atteinte par « /API/MONITOR/MAIL/ENVOYER/ » retomberait sous les 6 Mo, et pire, l'inverse laisserait
+   une autre route sans aucun analyseur. Toutes les AUTRES routes gardent leurs 6 Mo. */
+const CHEMINS_GROS_JSON = /^\/api\/monitor\/mail\/(envoyer|brouillon)\/?$/i;
+const jsonCourant = express.json({ limit: '6mb' }); // large : les e-mails peuvent porter un PDF en pièce jointe (base64)
+const jsonGros = express.json({ limit: '20mb' });
+app.use((req, res, next) => CHEMINS_GROS_JSON.test(req.path) ? next() : jsonCourant(req, res, next));
 
 // CORS — uniquement le site TeamOP
 const ORIGINS = config.origins || ['https://teamop.fr', 'https://www.teamop.fr'];
@@ -88,6 +101,10 @@ app.use((req, res, next) => {
 //    état périmé — par exemple « Stripe non configuré » alors que Stripe vient d'être relié.
 //    Cela évite aussi de laisser des données privées de clients dans le cache disque.
 app.use('/api/monitor', (req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
+/* Chaque GESTE de la Tour s'inscrit au Journal une fois la réponse partie, et seulement s'il a réussi — voir `monGesteNoter`.
+   Posé ICI, avant toute route /api/monitor (mail.js, portail.js, documents.js et sauvegarde.js compris) : un crochet monté
+   plus bas ne verrait pas les routes déclarées avant lui. */
+app.use('/api/monitor', (req, res, next) => { if (req.method === 'POST') res.on('finish', () => { try { monGesteNoter(req, res); } catch (e) { console.error('journal des gestes :', e.message); } }); next(); });
 /*    La même raison vaut, mot pour mot, pour les routes qui rendent de la correspondance :
       corps d'e-mails de fournisseurs, adresses des boîtes connectées, fiches clients. Sans
       cet en-tête, Express ne pose qu'un ETag et ces réponses se rangent dans le cache disque
@@ -1711,8 +1728,8 @@ app.post('/api/email', async (req, res) => {
 const crypto = require('crypto');
 const MONITOR_PATH = path.join(path.dirname(CONFIG_PATH), 'monitor.json');
 
-let monIssues = [], monUsers = [], monJournal = [], monArchive = [];
-try { const d = JSON.parse(fs.readFileSync(MONITOR_PATH, 'utf8')); monIssues = d.issues || []; monUsers = d.users || []; monJournal = d.journal || []; monArchive = d.archive || []; } catch (e) {}
+let monIssues = [], monUsers = [], monJournal = [], monArchive = [], monActions = [];
+try { const d = JSON.parse(fs.readFileSync(MONITOR_PATH, 'utf8')); monIssues = d.issues || []; monUsers = d.users || []; monJournal = d.journal || []; monArchive = d.archive || []; monActions = Array.isArray(d.actions) ? d.actions : []; } catch (e) {}
 // Rien n'est jamais perdu : ce qui sort de la liste vivante part dans l'archive.
 function monArchiver(list) {
   if (!list.length) return;
@@ -1752,7 +1769,7 @@ let monSaveTimer = null;
 function monSave() {
   clearTimeout(monSaveTimer);
   monSaveTimer = setTimeout(() => {
-    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive })); } catch (e) { console.error('monitor save:', e.message); }
+    try { monPurge(); fs.writeFileSync(MONITOR_PATH, JSON.stringify({ issues: monIssues, users: monUsers, journal: monJournal, archive: monArchive, actions: monActions })); } catch (e) { console.error('monitor save:', e.message); }
   }, 500);
 }
 monPurge();
@@ -1969,6 +1986,83 @@ function monLog(ident, ok, req, motif, apps) {   // journal des connexions (réu
   if (monJournal.length > 300) monJournal = monJournal.slice(-300);
   monSave();
 }
+/* ⛔ LE JOURNAL DES GESTES DE LA TOUR (17 octobre 2026). Justin : « je veux tout reprendre la Tour de A à Z ». Mesuré le même
+   jour au jumeau (scripts/controle/audit-tour.js) : après avoir accepté une demande, ouvert un espace et envoyé son e-mail
+   d'accès, le Journal disait « Aucune action depuis l'ouverture de la console » — les gestes ne vivaient que dans la page
+   qui les avait faits, perdus au premier rechargement et invisibles d'un autre appareil. Le serveur les note désormais.
+   La table dit, pour CHAQUE route POST de la Tour, ce que le geste fait — ou `null` : une lecture, un aperçu, un geste de
+   rangement trop fréquent pour dire quelque chose (marquer lu, déplacer, brouillon). Une route absente de la table n'est
+   pas notée : `tests/test-1015.js` refuse qu'il en existe une, et refuse une entrée qui ne vise plus aucune route.
+   Ce qui est noté : qui, le geste, la console, et une CIBLE prise dans une liste fermée de champs du corps — jamais un mot
+   de passe, un code ou un lien ; une adresse e-mail n'y entre que masquée (`masqueMail`). */
+const MON_GESTES = {
+  'login': null, 'report': null,
+  'users': 'a créé un compte de la Tour', 'users/toggle': 'a désactivé ou réactivé un compte de la Tour',
+  'users/delete': 'a supprimé un compte de la Tour', 'users/apps': 'a changé les consoles d’un compte de la Tour',
+  'beta': 'a ouvert un accès bêta', 'beta/chantier': 'a changé le chantier d’un accès bêta', 'beta/mdp': 'a changé le mot de passe d’un accès bêta',
+  'beta/toggle': 'a coupé ou rouvert un accès bêta', 'beta/delete': 'a supprimé un accès bêta',
+  'espaces': 'a ouvert ou repris le lien de connexion d’une entreprise', 'espaces/lien-existant': null,
+  'espaces/metier': 'a changé le métier d’une entreprise', 'espaces/formule': 'a changé la formule d’une entreprise',
+  'espaces/abonnement': 'a réglé l’abonnement d’une entreprise à la main', 'espaces/statut': null, 'entreprise/dossier': null,
+  'espaces/activite': null, 'espaces/connexions': null, 'espaces/compteurs-zero': 'a remis à zéro ou rétabli les compteurs d’une entreprise',
+  'connexions/effacer-tentatives': 'a effacé les tentatives de connexion refusées',
+  'compte/supprimer': 'a supprimé un compte d’une entreprise', 'comptes/supprimer': 'a supprimé des comptes d’une entreprise',
+  'comptes/mdp': 'a posé un mot de passe provisoire', 'compte/reautoriser': 'a réautorisé un compte', 'compte/mdp-annuler': 'a annulé un mot de passe provisoire',
+  'espaces/renaitre': 'a fait repartir une entreprise à neuf', 'espaces/promo': 'a appliqué un code promo à une entreprise',
+  'annonce': 'a envoyé l’annonce de mise à jour', 'espaces/mail-acces': 'a envoyé l’e-mail d’accès d’une entreprise',
+  'espaces/acces': null, 'espaces/identifiants': 'a changé les identifiants de départ d’une entreprise',
+  'espaces/apps': 'a ouvert ou fermé OP MESSAGES pour une entreprise', 'messages/etat': 'a changé l’état d’OP MESSAGES',
+  'espaces/renommer': 'a renommé une entreprise', 'espaces/suspendre': 'a suspendu ou rouvert l’accès d’une entreprise',
+  'version-min': 'a changé la version exigée d’OP GESTION', 'messages/version-min': 'a changé la version exigée d’OP MESSAGES',
+  'messages/publier': 'a publié OP MESSAGES', 'clients/retirer': 'a demandé ou confirmé le retrait d’un client du site',
+  'entreprise/apercu-suppression': null, 'entreprise/supprimer': 'a demandé ou confirmé la suppression d’une entreprise',
+  'issues/tout-ignorer': 'a remis Surveillance à zéro', 'status': 'a changé le statut d’un incident',
+  'expliquer': 'a demandé l’explication d’un incident', 'proposer': 'a demandé une correction pour un incident',
+  'support/connect': 'a relié la boîte support', 'support/reply': 'a répondu à un courriel', 'support/envoyer': 'a envoyé un courriel',
+  'support/retirer': 'a retiré un courriel de la page', 'support/marquer': null,
+  'comptes-site/supprimer': 'a supprimé un compte du site', 'clients/metier': 'a changé le métier d’un client du site',
+  'clients/note': 'a écrit une note sur un client du site', 'clients/demande': 'a classé ou remis à traiter une demande',
+  'devisia': 'a changé l’accès Devis IA d’une entreprise',
+  'mail/boites': 'a relié une boîte mail', 'mail/boites/retirer': 'a retiré une boîte mail', 'mail/flag': null, 'mail/deplacer': null,
+  'mail/supprimer': 'a supprimé un courriel', 'mail/envoyer': 'a envoyé un courriel', 'mail/brouillon': null,
+  'mail/reglages': 'a changé les réglages du courrier', 'mail/suivi': null, 'mail/regle': 'a rangé une adresse dans une console',
+  'documents/inventaire': 'a lancé l’inventaire des documents',
+  'portail/message': 'a changé le message du portail', 'portail/etat': 'a ouvert ou fermé le portail',
+  'portail/actu': 'a publié une actualité du portail', 'portail/actu/supprimer': 'a supprimé une actualité du portail',
+  'portail/importer': 'a importé des comptes dans le portail', 'sauvegarde/lancer': 'a lancé une sauvegarde',
+  /* le socle (op-socle.js, déclarées par `poser`) — le retour en arrière est le geste le plus lourd de la console */
+  'op/double': 'a réglé la double écriture d’une entreprise', 'op/lecture': 'a basculé la lecture d’une entreprise',
+  'op/revenir': 'a demandé le code ou appliqué un retour en arrière d’une entreprise', 'op/ouvrir': 'a ouvert une lecture de diagnostic d’une entreprise',
+  'op/couper': 'a coupé le stockage d’une entreprise',
+};
+const MON_ACTIONS_MAX = 500;
+/* La cible d'un geste : le premier champ PARLANT d'une liste fermée. Le nom d'une entreprise avant son identifiant ; une
+   adresse masquée ; jamais `pass`, `code`, `mdp`, `lien`, `texte` — ils ne sont pas dans la liste, donc ils n'y entrent pas. */
+function monGesteCible(b) {
+  b = b && typeof b === 'object' ? b : {};
+  // un identifiant de connexion PEUT être une adresse : elle passe masquée, comme `email`
+  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return x.includes('@') ? masqueMail(x.trim()) : monStr(x.trim(), 60); }
+  if (typeof b.email === 'string' && b.email.trim()) return masqueMail(b.email);
+  // la règle de tri du Courrier : un domaine (« @exemple.fr ») n'est personne, il s'écrit tel quel ; une adresse, masquée
+  if (typeof b.adresse === 'string' && b.adresse.trim()) { const x = b.adresse.trim(); return x[0] === '@' ? monStr(x, 60) : masqueMail(x); }
+  return '';
+}
+function monGesteNoter(req, res) {
+  if (!req.tourUser || res.statusCode >= 400) return;   // un refus n'est pas un geste ; une route publique (report) n'a pas de compte
+  const chemin = String(req.route && typeof req.route.path === 'string' ? req.route.path : '').toLowerCase().replace(/\/+$/, '');
+  const g = MON_GESTES[chemin.replace(/^\/api\/monitor\//, '')];
+  if (!g) return;
+  const b = req.body && typeof req.body === 'object' ? req.body : {};
+  const detail = ['statut', 'formule'].map(k => typeof b[k] === 'string' ? monStr(b[k], 20) : '').filter(Boolean).join(' · ')
+    + (/\/clients\/demande$/.test(chemin) ? (b.traite === false ? 'remise à traiter' : 'classée') : '')   // la route classe quand `traite` manque
+    + (/\/mail\/regle$/.test(chemin) ? (b.console === 'gestion' || b.console === 'messages' ? '→ ' + b.console : 'règle retirée') : '');
+  const apps = Array.isArray(req._gesteApps) && req._gesteApps.length ? req._gesteApps : null;
+  const app = apps ? (apps.includes('gestion') ? 'gestion' : apps[0]) : monAppDeRoute(req);
+  monActions.push(Object.assign({ ts: Date.now(), qui: monStr(req.tourUser.nom, 60), geste: g, cible: req._gesteCible ? monStr(req._gesteCible, 60) : monGesteCible(b) },
+    detail ? { detail } : {}, app ? { app } : {}));
+  if (monActions.length > MON_ACTIONS_MAX) monActions = monActions.slice(-MON_ACTIONS_MAX);
+  monSave();
+}
 app.post('/api/monitor/login', (req, res) => {
   const ip = req.ip || '?';   // req.ip, jamais l'en-tête brut : nginx AJOUTE à la valeur reçue, donc .split(',')[0] rend celle de l'appelant
   const q = monLoginTries.get(ip) || { count: 0, reset: Date.now() + 3600000 };
@@ -2096,7 +2190,7 @@ app.get('/api/monitor/users', monPatronStrict, (req, res) => {
 // journal des connexions (réussies et échouées) — visible par le patron dans la section Équipe
 app.get('/api/monitor/mails', monAdmin, (req, res) => { res.json({ ok: true, mails: mailsLog.slice(0, 120) }); });
 app.get('/api/monitor/journal', monPatronStrict, (req, res) => {
-  res.json({ journal: monJournal.slice(-100).reverse() });
+  res.json({ journal: monJournal.slice(-100).reverse(), actions: monActions.slice(-200).reverse() });
 });
 app.post('/api/monitor/users', monPatronStrict, (req, res) => {
   const nom = monStr((req.body || {}).nom, 60).trim();
@@ -2174,6 +2268,14 @@ const betaApps = c => { const l = Array.isArray(c && c.apps) ? BETA_APPS.filter(
 const betaAppsValides = v => (Array.isArray(v) && v.length && v.every(a => typeof a === 'string' && BETA_APPS.includes(a))) ? BETA_APPS.filter(a => v.includes(a)) : null;
 const betaPublic = c => ({ id: c.id, login: c.login, nom: c.nom, chantier: c.chantier || '', apps: betaApps(c), actif: !!c.actif, ts: c.ts || 0, creePar: c.creePar || '', derniere: c.derniere || 0 });
 app.get('/api/monitor/beta', monPatronStrict, (req, res) => { res.json({ comptes: betaComptes.map(betaPublic) }); });
+/* Le journal des gestes : un accès bêta appartient à UNE console, que sa route ne dit pas (la même pour les deux). On le relit
+   AVANT la route — après, une suppression l'a déjà effacé (test-940 : un mot de passe posé depuis OP MESSAGES s'inscrivait
+   au Journal d'OP GESTION). */
+app.use('/api/monitor/beta', (req, res, next) => {
+  try { const b = req.body || {}, c = b.id ? betaComptes.find(x => x.id === b.id) : null;
+    if (c) { req._gesteApps = betaApps(c); req._gesteCible = c.login; } else if (Array.isArray(b.apps)) req._gesteApps = b.apps.filter(a => TOUR_APPS.includes(a)); } catch (e) {}
+  next();
+});
 app.post('/api/monitor/beta', monPatronStrict, (req, res) => {
   const login = monStr((req.body || {}).login, 40).trim().toLowerCase();
   const nom = monStr((req.body || {}).nom, 60).trim();
@@ -7253,6 +7355,76 @@ app.post('/api/monitor/messages/version-min', monPatronStrict, async (req, res) 
   return canalVersionPoser(req, res, 'messages-' + b.canal, b.min, async () => { const e = await msgInstanceEtat(b.canal); return e.joignable ? e.version : 0; });
 });
 
+/* ══ LE RELAIS VERS L'ADMINISTRATION D'OP MESSAGES (17 octobre 2026) ══
+   Justin : « je veux que la Tour contrôle OP GESTION et l'autre côté contrôle OP MESSAGES ; bien tout séparé » — et, à la
+   question du chemin : « par api.teamop.fr ». La Tour ne parle qu'à notre API ; celle-ci relaie, EN BOUCLE LOCALE, vers les
+   routes `/api/admin/*` du service d'OP MESSAGES (son module d'administration : le CONTRAT est dans son en-tête).
+   ⛔ Ce que le relais garantit, et que `tests/test-1016.js` joue contre un faux service :
+     · il ne relaie QUE six routes, en GET, avec les SEULS paramètres que le contrat nomme — rien d'autre de la requête de la
+       Tour ne passe : ni son jeton, ni ses cookies, ni son `Origin`, ni un en-tête de proxy (le service refuse tout ce qui en
+       porte : c'est sa seconde preuve) ;
+     · il présente le secret de l'instance dans `X-OPM-Admin` — `config.messagesAdmin.<beta|prod>`, 64 hexadécimaux, posé par
+       `server/configurer-relais-messages.js` en saisie masquée, jamais affiché, jamais dans une réponse ni un journal ;
+     · sans secret : 503 « relais non configuré », et la Tour le DIT ; un 404 du service (sa garde rend 404 à TOUT refus) devient
+       502 « OP MESSAGES refuse le relais » — un secret différent des deux côtés ne doit pas ressembler à « aucun compte » ;
+     · la réponse ne repart que si c'est du JSON, sous 2 Mo, en 4 s au plus.
+   Les routes vivent sous `/api/monitor/messages/` : `monAppDeRoute` les range dans la console OP MESSAGES (un compte limité à
+   OP GESTION reçoit 403). Des lectures seulement : rien ne s'écrit chez OP MESSAGES par ici.
+   ⚠ Ouvert à tout compte de la console OP MESSAGES (`monAdmin`), pas au seul patron : les adresses des comptes « courriel »
+     y sortent, comme la console OP GESTION montre les demandes et leurs adresses à ses opérateurs (relecture `gardien`,
+     17 octobre 2026 — à resserrer en `monPatronStrict` sur une phrase de Justin, voir REPRISE.md). Aucune adresse ne passe
+     dans l'URL : `adresses` vaut oui|non et `id` est un identifiant opaque (p_…) — rien de personnel au journal d'accès. */
+const OPM_ADMIN_PARAMS = {
+  sante: [], comptes: ['limite', 'apres', 'origine', 'etat', 'id', 'adresses'], espaces: ['limite', 'apres'],
+  abonnements: ['limite', 'apres', 'statut'], incidents: ['limite'], empreintes: ['limite', 'apres'],
+};
+const OPM_ADMIN_MAX = 2 * 1024 * 1024;
+function opmAdminSecret(instance) {
+  const c = config.messagesAdmin && typeof config.messagesAdmin === 'object' ? config.messagesAdmin : {};
+  const x = String(c[instance] || '');
+  return /^[0-9a-f]{64}$/i.test(x) ? x.toLowerCase() : '';
+}
+app.get('/api/monitor/messages/admin/:route', monAdmin, async (req, res) => {
+  const route = String(req.params.route || '');
+  if (!Object.prototype.hasOwnProperty.call(OPM_ADMIN_PARAMS, route)) return res.status(404).json({ error: 'route inconnue' });
+  const instance = String(req.query.instance || 'prod');
+  if (instance !== 'prod' && instance !== 'beta') return res.status(400).json({ error: 'instance : beta ou prod' });
+  const secret = opmAdminSecret(instance);
+  if (!secret) return res.status(503).json({ error: 'relais non configuré', motif: 'sans_secret', instance });
+  const q = new URLSearchParams();
+  for (const k of OPM_ADMIN_PARAMS[route]) {
+    const v = req.query[k];
+    if (typeof v === 'string' && v.length && v.length <= 200) q.set(k, v);
+  }
+  const url = msgInstanceUrl(instance) + '/api/admin/' + route + (q.toString() ? '?' + q.toString() : '');
+  let r;
+  try {
+    r = await fetch(url, { method: 'GET', headers: { 'X-OPM-Admin': secret, Accept: 'application/json' }, redirect: 'error', signal: AbortSignal.timeout(4000) });
+  } catch (e) {
+    return res.status(e && e.name === 'TimeoutError' ? 504 : 502).json({ error: 'OP MESSAGES injoignable', motif: e && e.name === 'TimeoutError' ? 'delai' : 'injoignable', instance });
+  }
+  if (r.status === 404) return res.status(502).json({ error: 'OP MESSAGES refuse le relais (secret différent des deux côtés, ou administration fermée)', motif: 'refuse', instance });
+  const type = String(r.headers.get('content-type') || '');
+  const taille = parseInt(r.headers.get('content-length') || '0', 10) || 0;
+  if (!/^application\/json\b/i.test(type) || taille > OPM_ADMIN_MAX) return res.status(502).json({ error: 'réponse inattendue d\'OP MESSAGES', motif: 'forme', instance });
+  /* lue morceau par morceau, comptée en OCTETS : sans `content-length` (réponse découpée), `r.text()` lisait tout avant de compter */
+  let txt = '';
+  try {
+    const lecteur = r.body.getReader(), morceaux = []; let n = 0;
+    for (;;) {
+      const { done, value } = await lecteur.read();
+      if (done) break;
+      n += value.length;
+      if (n > OPM_ADMIN_MAX) { try { await lecteur.cancel(); } catch (e) {} return res.status(502).json({ error: 'réponse trop grosse', motif: 'forme', instance }); }
+      morceaux.push(value);
+    }
+    txt = Buffer.concat(morceaux).toString('utf8');
+  } catch (e) { return res.status(502).json({ error: 'réponse coupée', motif: 'coupee', instance }); }
+  let j; try { j = JSON.parse(txt); } catch (e) { return res.status(502).json({ error: 'réponse illisible', motif: 'forme', instance }); }
+  if (!r.ok) return res.status(r.status === 400 || r.status === 429 || r.status === 503 ? r.status : 502).json(Object.assign({ instance }, j && typeof j === 'object' ? { error: String(j.error || 'refus'), champ: j.champ, retry: j.retry } : { error: 'refus' }));
+  res.json({ ok: true, instance, donnees: j });
+});
+
 /* ══ PUBLIER OP MESSAGES DEPUIS LA TOUR (7 octobre 2026) ══
    Justin : « la bêta, tu la fais ; la version publique, comme OP GESTION, on la fait dans la Tour ». UN geste du patron :
      1. le serveur lit le commit que SERT la bêta (son `/health`) — on publie ce qui a été essayé, jamais « le dernier commit de main » ;
@@ -8911,6 +9083,19 @@ async function supCorps(source) {
   } catch (e) { return { text: '', html: '', pieces: [] }; }
 }
 let supportBusy = false;
+/* ⛔ UNE BOÎTE QUE LA MESSAGERIE RELÈVE DÉJÀ NE SE MARQUE PLUS « LUE » ICI (17 octobre 2026). La relève du support
+   marquait `\Seen` tout ce qu'elle importait, toutes les 120 s ; la Messagerie (`mail.js`) compte les non-lus de
+   cette même boîte, dossier par dossier : elle les aurait vus tomber à zéro sans que personne ait rien lu — et elle
+   reprend d'office, au démarrage, la boîte de `support-box.json`. Quand l'adresse est reliée là, la relève IMPORTE
+   toujours (l'onglet Support d'avant vit de cette liste) mais ne touche plus un seul drapeau. */
+function supportReliee() {
+  try {
+    if (!supportBox || !messagerieTour) return false;
+    const a = adrNue(supportBox.email);
+    return !!a && (messagerieTour.boites() || []).some(b => b && adrNue(b.email) === a);
+  } catch (e) { return false; }
+}
+const supSansMid = new Set();   // un message sans Message-ID, retenu par sa place dans la boîte : sans drapeau, rien d'autre ne dit qu'il est rangé
 async function releveSupport(importHisto) {   // même mécanique que la relève des boîtes commandes
   if (!supportBox || supportBusy) return; supportBusy = true;
   const { ImapFlow } = require('imapflow'); const { simpleParser } = require('mailparser'); let client;
@@ -8931,17 +9116,31 @@ async function releveSupport(importHisto) {   // même mécanique que la relève
           }
         }
       }
+      const reliee = supportReliee();   // la Messagerie relève cette boîte : on importe, on ne marque rien
       const nouveaux = [];
-      for await (const msg of client.fetch({ seen: false }, { envelope: true, source: { maxLength: 600000 } })) nouveaux.push(msg);
+      /* Reliée : les enveloppes seules d'abord. Sans drapeau, les non-lus restent non lus, donc reviennent à chaque
+         passage — tirer le corps (600 Ko au plus) de chacun, toutes les deux minutes, ne s'impose que pour ceux
+         qu'on n'a pas encore rangés. */
+      for await (const msg of client.fetch({ seen: false }, reliee ? { uid: true, envelope: true } : { envelope: true, source: { maxLength: 600000 } })) nouveaux.push(msg);
       for (const msg of nouveaux) {
         const env = msg.envelope || {}; const mid = String(env.messageId || '').slice(0, 200);
         /* Un e-mail de sécurité (code, avis de suppression) n'entre pas dans la liste du support — que TOUT
            compte de la Tour lit — et il n'est pas marqué lu : il doit se voir non lu chez le patron. */
         if (mailProtege(env.messageId)) continue;
-        if (mid && supMids.has(mid)) { try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {} continue; }
-        supportMails.push(supEntry(env, await supCorps(msg.source)));
+        if (mid && supMids.has(mid)) { if (!reliee) { try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {} } continue; }
+        let source = msg.source;
+        if (reliee) {
+          if (!mid) {
+            const place = String((client.mailbox && client.mailbox.uidValidity) || '') + ':' + msg.uid;
+            if (supSansMid.has(place)) continue;
+            if (supSansMid.size > 5000) supSansMid.clear();
+            supSansMid.add(place);
+          }
+          try { const complet = await client.fetchOne(String(msg.uid), { source: { maxLength: 600000 } }, { uid: true }); source = complet && complet.source; } catch (_) { source = null; }
+        }
+        supportMails.push(supEntry(env, await supCorps(source)));
         if (mid) supMids.add(mid);
-        try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {}
+        if (!reliee) { try { await client.messageFlagsAdd(msg.seq, ['\\Seen']); } catch (_) {} }
       }
       supSave();
     } finally { lock.release(); }
@@ -9761,6 +9960,24 @@ if (config.stripe && config.stripe.secretKey) {
 }
 
 // ═══ MESSAGERIE COMPLÈTE (plusieurs boîtes : réception, envoi, dossiers, pièces jointes) ═══
+/* Le tri du courrier par console (Justin, 17 octobre 2026 : « mêmes boîtes, triées »). Ces deux questions sont
+   posées par `mail.js` pour l'adresse de l'INTERLOCUTEUR de chaque message ; une règle posée à la main passe avant
+   elles (voir l'en-tête de `mail.js`).
+   · OP GESTION connaît les adresses de son annuaire (le champ `email` des espaces) et celles de ses fiches
+     clients (les clés de `clientsData`).
+   · ⛔ OP MESSAGES : LE CROCHET EST POSÉ, IL RÉPOND FAUX. OP MESSAGES aura son propre serveur et ses comptes sont des
+     PERSONNES, quand l'annuaire d'ici cloisonne par ENTREPRISE (décision du 22 septembre 2026) : on ne lit donc pas
+     ses comptes ici. Le jour où il existe, c'est CETTE fonction qu'on branche (une requête à son serveur, avec un
+     délai court et un repli sur « faux » — un serveur muet ne doit pas figer la liste du courrier). Tant qu'elle
+     rend faux, ce qu'OP MESSAGES réclame se range par règle (`POST /api/monitor/mail/regle`).
+   Aucune des deux n'écrit, ni ne journalise : une adresse n'a rien à faire dans un journal. */
+function adresseConnueGestion(adr) {
+  const a = adrNue(adr);
+  if (!a || a.indexOf('@') < 1) return false;
+  try { if (Object.prototype.hasOwnProperty.call(clientsData, a)) return true; } catch (e) {}
+  try { return Object.values(espacesReg).some(e => e && typeof e.email === 'string' && e.email.trim().toLowerCase() === a); } catch (e) { return false; }
+}
+function adresseConnueMessages(adr) { return false; }
 try {
   const pousseNotif = async (titre, corps, url) => {
     const payload = JSON.stringify({ title: String(titre).slice(0, 120), body: String(corps || '').slice(0, 300), url: url || '/tour.html#support' });
@@ -9774,7 +9991,8 @@ try {
   /* `mailProtege` : les e-mails de sécurité que la Messagerie montre sans jamais les déplacer, les supprimer
      ni les marquer (voir plus haut). Et on garde ses boîtes (sans mot de passe) : `supprDestLisible` doit
      savoir si le code d'une suppression y atterrirait. */
-  messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege });
+  messagerieTour = require('./mail')(app, { DATA_DIR, monAdmin, monPatronStrict, monStr, pousseNotif, mailProtege,
+    quotaOk, masqueMail, sansAdresses, jsonGros, adresseGestion: adresseConnueGestion, adresseMessages: adresseConnueMessages });
   console.log('messagerie : module chargé');
 } catch (e) { console.error('messagerie indisponible :', e.message); }
 
