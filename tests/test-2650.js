@@ -14,7 +14,9 @@ const JS = ((/<script>([\s\S]*?)<\/script>/.exec(PAGE) || [, ''])[1]).replace(/^
 const ligne = debut => { const i = JS.indexOf(debut); return i < 0 ? '' : JS.slice(i, JS.indexOf('\n', i)); };
 const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1 : JS.indexOf(finTexte, i); return i < 0 || j < 0 ? '' : JS.slice(i, j + finTexte.length); };
 
-const M = { esc: ligne('const esc = '), FMT_HEURE: ligne('const FMT_HEURE = '), heureSaison: entre('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '), heureEmpilee: entre('const heureEmpilee = ', '\n  };') };
+const M = { esc: ligne('const esc = '), FMT_HEURE: ligne('const FMT_HEURE = '), heureSaison: entre('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '),
+  /* (lot q01) la rangée empilée dit le jour de fin d'une réunion de plusieurs jours : `heureEmpilee` lit `autreJour` et `FMT_JJMM` */
+  FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), plageLongue: ligne('const plageLongue = '), heureEmpilee: entre('const heureEmpilee = ', '\n  };') };
 const manquants = Object.keys(M).filter(k => !M[k]);
 vrai('(population) chaque morceau de la page est trouvé' + (manquants.length ? ' — manquent : ' + manquants.join(', ') : ''), !manquants.length);
 const ctx = { Intl, Date, Math, Number, String, Array, Set, Object, console }; vm.createContext(ctx);
@@ -30,8 +32,9 @@ if (!F) { fin(); } else {
   const D = Date.UTC(2026, 9, 23, 7, 0), E = Date.UTC(2026, 9, 26, 8, 0);
   v('(population) début et fin s\'affichent pareil (« 09:00 ») malgré deux décalages — c\'est le cas qui posait le suffixe', [H.format(D), H.format(E)], ['09:00', '09:00']);
   v('⛔ la plage d\'une réunion de plusieurs jours : « 09:00 – 09:00 », sans saison', F.plageHeures(D, E), '09:00 – 09:00');
-  v('⛔ la rangée empilée de l\'Agenda : « 09:00 » sur « 09:00 », sans saison', texteDe(F.heureEmpilee(D, E)), '09:00|09:00');
-  v('⛔ …et la colonne ne s\'élargit pas (pas de classe `saison`)', /class="reunion-heure saison"/.test(F.heureEmpilee(D, E)), false);
+  /* (lot q01) la rangée disait « 09:00 » sur « 09:00 », une durée nulle : elle dit désormais le jour de fin (« 26/10 09:00 », test-2661). Ce que p04 garantit reste : AUCUNE saison (« (été) / (hiver) »). */
+  v('⛔ la rangée empilée de l\'Agenda : pas de saison (le jour de fin est dit à la place, voir test-2661)', texteDe(F.heureEmpilee(D, E)), '09:00|26/10 09:00');
+  v('⛔ …et la colonne ne prend pas la classe `saison` (elle prend `jours`)', [/class="reunion-heure saison"/.test(F.heureEmpilee(D, E)), /class="reunion-heure jours"/.test(F.heureEmpilee(D, E))], [false, true]);
   v('⛔ chaque bout, un par un', [F.heureSaison(D, E), F.heureSaison(E, D)], ['09:00', '09:00']);
 
   /* ── le dimanche 25 octobre 02:30 (été) → 02:30 (hiver) : le suffixe reste (contre-épreuve : il ne faut pas l'avoir supprimé) ── */

@@ -35,6 +35,8 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
   const M = {
     esc: ligne('const esc = '), FMT_HEURE: ligne('const FMT_HEURE = '), FMT_JOUR_LONG: ligne('const FMT_JOUR_LONG = '), FMT_JOUR_COURT: ligne('const FMT_JOUR_COURT = '), maj1: ligne('const maj1 = '),
     heureSaison: entre('const heureSaison = ', '\n  };'), plageHeures: ligne('const plageHeures = '),
+    /* (lot q01) le jour de fin d'une réunion de plusieurs jours : `libelleHoraire` et `quandFiche` lisent `plageLongue` */
+    FMT_JOUR_FIN: ligne('const FMT_JOUR_FIN = '), FMT_JJMM: ligne('const FMT_JJMM = '), autreJour: ligne('const autreJour = '), plageLongue: ligne('const plageLongue = '),
     heureDans: ligne('function heureDans('), villeDe: ligne('const villeDe = '), libelleHoraire: decl('function libelleHoraire('), quandRdv: ligne('const quandRdv = '),
     titreElt: ligne('const titreElt = '), journeeElt: ligne('const journeeElt = '), termineeElt: ligne('const termineeElt = '), sorteElt: ligne('const sorteElt = '), nombreElts: decl('function nombreElts('),
     etiquetteJour: ligne('const etiquetteJour = '), libelleEtat: decl('function libelleEtat('), puceAgenda: entre('function puceAgenda(', "corps + '</button>';\n  }"), caseJour: decl('function caseJour('),
@@ -90,7 +92,7 @@ const entre = (debut, finTexte) => { const i = JS.indexOf(debut), j = i < 0 ? -1
   v('(non régressé) un lundi ordinaire : « 14:00 – 15:00 », sans saison', [F.libelleHoraire(reunion, { debut: D2, fin: F2 }).h, F.quandRdv(D2, F2, false, 1)], ['14:00 – 15:00', 'Lundi 26 octobre, 14:00 – 15:00']);
   const D3 = Date.UTC(2026, 9, 25, 0, 0), F3 = Date.UTC(2026, 9, 25, 0, 45);
   v('(non régressé) le même dimanche, avant la répétition : « 02:00 – 02:45 », sans saison (les heures diffèrent)', F.libelleHoraire(reunion, { debut: D3, fin: F3 }).h, '02:00 – 02:45');
-  v('(non régressé) 24 heures pile (même heure, même décalage) : pas de saison', F.libelleHoraire(reunion, { debut: Date.UTC(2026, 9, 20, 8, 0), fin: Date.UTC(2026, 9, 21, 8, 0) }).h, '10:00 – 10:00');
+  v('(non régressé) 24 heures pile (même heure, même décalage) : pas de saison, mais le jour de fin dit (q01)', F.libelleHoraire(reunion, { debut: Date.UTC(2026, 9, 20, 8, 0), fin: Date.UTC(2026, 9, 21, 8, 0) }).h, '10:00 – mer. 21 oct. 10:00');       // (lot q01) pas de saison ; la fin est un AUTRE jour, donc dite — « 10:00 – 10:00 » se lisait comme une durée nulle
 
   /* ── agenda@5 : ce que contient un jour ── */
   const rdv = (id) => ({ e: { id, titre: 'RDV ' + id, genre: 'rdv', debut: DEB, fin: FIN, journee: false }, o: { debut: DEB, fin: FIN } });
