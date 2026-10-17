@@ -24788,6 +24788,11 @@ views.clients=function(){
   const _tous=visibleClients(db.clients);
   setHeader('Clients',`${_tous.length} client(s)`,`${can('voirTout')?`<button class="btn ghost" onclick="exportClientsCsv()">CSV</button> `:''}<button class="btn" onclick="formClient()">＋ Client</button>`);
   const _tags=allTags();
+  /* ⛔ UN FILTRE NE SURVIT PAS À L'ÉTIQUETTE QU'IL VISE. `cliTagFilter` est global et ne retombait qu'au
+     rechargement : retirer la dernière « VIP » laissait l'écran sur « Aucun client. », sans la barre
+     d'étiquettes (plus aucune n'existe) donc sans geste pour lever le filtre — les clients semblaient
+     avoir disparu. Une étiquette qui n'existe plus nulle part ne filtre plus rien, et on le remet à zéro. */
+  if(cliTagFilter && !_tags.includes(cliTagFilter)) cliTagFilter='';
   let _clis=_tous; if(cliTagFilter) _clis=_clis.filter(c=>(c.tags||[]).includes(cliTagFilter));
   /* ⛔ LA RANGÉE DE LA MAQUETTE (thème final, 24 septembre 2026) : les initiales dans une pastille,
      le nom en 17 semi-gras, le nombre d'interventions à droite, « Ville · téléphone » dessous, le
@@ -24811,7 +24816,9 @@ views.clients=function(){
     </div>`;}).join('');
   const nPro=_tous.filter(c=>cliIsPro(c)).length;
   const typeBar=(nPro&&nPro<_tous.length)?`<div class="filters" style="margin-bottom:10px">${[['tous','Tous'],['pro','Pros'],['part','Particuliers']].map(([k,l])=>`<div class="chip ${cliTypeF===k?'active':''}" onclick="cliTypeF='${k}';views.clients()">${l}</div>`).join('')}</div>`:'';
-  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}</div>`:'';
+  /* un filtre actif se VOIT toujours, et se lève d'un geste : la puce « Filtre : VIP ✕ » */
+  const puceFiltre=cliTagFilter?`<div class="chip active" onclick="cliTagFilter='';views.clients()" title="Retirer le filtre">Filtre : ${esc(cliTagFilter)} ✕</div>`:'';
+  const tagBar=_tags.length?`<div class="filters" style="margin-bottom:10px"><div class="chip ${!cliTagFilter?'active':''}" onclick="cliTagFilter='';views.clients()">Tous</div>${_tags.map(t=>`<div class="chip ${cliTagFilter===t?'active':''}" onclick="cliTagFilter=this.textContent.trim();views.clients()">${esc(t)}</div>`).join('')}${puceFiltre}</div>`:'';
   $('content').innerHTML=typeBar+tagBar+(_clis.length? `<div class="tf-groupe">${rows}</div>`:`<div class="card">${emptyState('🏢','Aucun client.','Ajouter','formClient()')}</div>`);
 }
 /* ⛔ v738 — UNE FICHE S'OUVRE PAR SON IDENTIFIANT, PAS PAR SON MENU. La recherche, un lien, une
