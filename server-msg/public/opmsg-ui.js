@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = '99ea7d6c1cde';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 208;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -558,7 +558,15 @@
      navigateur à l'autre (Safari iOS ne la rend pas toujours sur un retour système) et masquait, ici, le retrait de notre propre mémoire (sonde, S04) */
   try { history.scrollRestoration = 'manual'; } catch (e) { /* un navigateur sans l'option garde la sienne */ }
   window.addEventListener('popstate', () => { retourEnVol = false; clearTimeout(filetRetour); });         // le retour demandé a eu lieu : le suivant peut se demander (AVANT l'écouteur qui applique la route)
-  window.addEventListener('popstate', e => appliquer(e.state && e.state.opmsg ? e.state.r : routeDepuisHash()));
+  window.addEventListener('popstate', e => {
+    if (e.state && e.state.opmsg) { appliquer(e.state.r); return; }
+    /* une adresse ÉCRITE À LA MAIN (aucun état de la page : `location.hash = …`, un lien collé) : un fragment que la page ne connaît pas (« #accueil » sans Pro, « #nimporte »)
+       replie sur Messages — mais l'adresse et l'historique GARDAIENT le fragment (17 octobre 2026 : seul un rechargement la corrigeait). On remplace l'entrée par la route
+       réellement affichée, comme le démarrage le fait (`n: 0` : arrivée par un lien, rien à rendre) ; un fragment connu (« #reglages/confidentialite ») n'est pas touché. */
+    const r = routeDepuisHash();
+    if (location.hash.slice(1).split('/')[0] !== r.vue) history.replaceState({ opmsg: 1, n: 0, r, p: null }, '', urlDe(r));
+    appliquer(r);
+  });
 
   /* appliquer(route) : l'écran DIT la route, rien d'autre. Elle ne pousse jamais d'historique — elle est jouée aussi par popstate. */
   function appliquer(r) {

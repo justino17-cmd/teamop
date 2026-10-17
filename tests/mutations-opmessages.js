@@ -44,7 +44,7 @@ const MUTATIONS = [
   /* ── ce que SEUL un navigateur voit ── */
   { id: 'S01', nom: 'la conversation ne défile plus en bas', cible: 'page', f: sub('    if (colle) defilerBas();\n  }', '    /* retiré */\n  }'), sonde: true },
   { id: 'S02', nom: 'fermer une couche ne rend plus l\'entrée d\'historique (remplace toujours)', cible: 'page', f: sub('if (h && h.n > 0 && h.p && memeRoute(h.p, parent)) rendreEntree(); else remplacer(parent);', 'remplacer(parent);'), sonde: true },
-  { id: 'S03', nom: 'le retour système n\'est plus écouté (popstate)', cible: 'page', f: sub("window.addEventListener('popstate', e => appliquer(", "window.addEventListener('popstateX', e => appliquer("), sonde: true },
+  { id: 'S03', nom: 'le retour système n\'est plus écouté (popstate)', cible: 'page', f: sub("window.addEventListener('popstate', e => {\n    if (e.state && e.state.opmsg) { appliquer(", "window.addEventListener('popstateX', e => {\n    if (e.state && e.state.opmsg) { appliquer("), sonde: true },
   { id: 'S04', nom: 'la liste ne revient plus à sa position de défilement', cible: 'page', f: sub("      if (etat.route && etat.route.vue === 'messages') window.scrollTo(0, etat.scrollListe);\n", ''), sonde: true, scenario: 'defilement' },
   { id: 'S05', nom: 'le micro n\'est plus relâché (les pistes restent vivantes)', cible: 'page', f: sub('if (enr.flux) enr.flux.getTracks().forEach(t => t.stop());', ''), sonde: true },
   { id: 'S06', nom: 'une photo n\'est plus réduite (le canvas garde la taille d\'origine)', cible: 'page', f: sub('const k = Math.min(1, cote / Math.max(w0, h0)),', 'const k = 1,'), sonde: true },
