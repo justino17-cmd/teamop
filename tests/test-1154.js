@@ -164,6 +164,8 @@ for (const L of ['en', 'es']) {
   m.journalView('Historique', '');
   const jh = jh0 + ' ' + texte(m.__contenu.html);
   vrai(L + ' · Historique : plus de français', !FR.test(jh), (jh.match(FR) || [])[0] + ' ← ' + jh);
+  vrai(L + ' · Historique : l\'heure d\'une ligne est écrite dans la langue (fmtTsEcran), pas en français (fmtTs)',
+    m.fmtTsEcran(1760000000000) !== m.fmtTs(1760000000000) && jh.includes(m.fmtTsEcran(1760000000000)) && !jh.includes(m.fmtTs(1760000000000)), [m.fmtTsEcran(1760000000000), m.fmtTs(1760000000000), jh.slice(0, 120)]);
   vrai(L + ' · Historique : « Afficher la suite · 1 … » avec le nombre', /1 (older event|evento anterior)/.test(jh), jh.slice(-120));
   vrai(L + ' · Historique : l\'action courante « Facture payée » est traduite', /(Invoice paid|Factura pagada)/.test(jh), jh);
   m.views.archives();
