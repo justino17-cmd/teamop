@@ -135,6 +135,7 @@ console.log('\n── 1220 · 2. Archives : brouillons écartés, droit comptabi
   vrai('⛔ sans « Voir la comptabilité » : ni CA encaissé ni CA facturé, ni leur montant', !/CA encaissé|CA facturé|200,00|300,00|data-regle/.test(hc), sans(hc).slice(0, 300));
   v('… et ses interventions à lui seulement (1 sur 2)', [kpi(hc, 'Interventions'), kpi(m.out.content, 'Interventions')], ['1', '2']);
   v('… et ses pointages à lui seulement : 11h00 (la nuit + 3 h), pas ceux d\'un autre', kpi(hc, 'Temps pointé'), '11h00');
+  { const sc = c.archStats(YM); v('… archStats elle-même ne porte aucun chiffre d\'argent sans le droit (écran ET PDF la partagent)', [sc.fin, sc.facts.length, sc.caPaye, sc.caTot], [false, 0, 0, 0]); }
   c.printArchive();
   vrai('… le PDF suit : pas de CA, 11h00', !/CA encaissé|CA facturé|300,00/.test(c.out.print) && /Temps pointé <b>11h00<\/b>/.test(c.out.print), sans(c.out.print).slice(0, 300));
   const f = monde({ db, caps: { voirTout: true, voirCompta: true, __seulementMoi: true } }); f.archMonth = YM; f.views.archives();
