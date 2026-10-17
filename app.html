@@ -296,6 +296,13 @@
   .frow-val>input:not([type=checkbox]):not([type=radio]),.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
   .frow>textarea{resize:vertical;min-height:44px;font-family:inherit;}
   .frow .frow-lbl{color:var(--t1);font-size:15px;white-space:nowrap;}
+  /* ⛔ k02/r5#0 — UN LIBELLÉ DE RANGÉE LONG PASSE À LA LIGNE : « Toute sortie de stock passe par le DR » (279 px, insécable)
+     poussait Paramètres à 342 px sur une fenêtre de 320 (22 px de défilement latéral), l'interrupteur n'ayant aucune
+     place à lui rendre. `white-space:nowrap` ci-dessus est juste pour un libellé COURT (« N° », « Prix ») ; un libellé
+     qui est une phrase se nomme `frow-lbl-long`. Le `flex-basis` de 120 px garde la protection du `flex-wrap` : sur un
+     écran très étroit l'interrupteur passe dessous plutôt que d'écraser le texte à une lettre par ligne. Posé sur les
+     deux libellés-phrases de la carte « Contrôle des mouvements de stock », pas sur tous les `.frow-lbl`. */
+  .frow .frow-lbl.frow-lbl-long{white-space:normal;min-width:0;flex:1 1 120px}
   /* ⛔ UN CHAMP POSÉ DIRECTEMENT APRÈS SON LIBELLÉ SE RANGE À CÔTÉ DE LUI (g03, achats#12). `.frow>input{width:100%}`
      (la ligne sans libellé, placeholder seul) forçait la ligne à passer : « N° » restait seul au-dessus de sa valeur
      — « Nouveau bon », « Modifier la box », fiche produit —, sur Mac comme sur iPhone, alors que la valeur est
@@ -35538,9 +35545,9 @@ views.parametres=function(){
     </div>`:''}
     ${currentUser.role==='admin'?`<div class="card"><div class="card-head"><h3>🔒 Contrôle des mouvements de stock</h3></div>
       <p style="color:var(--t2);font-size:13.5px;line-height:1.6;margin-bottom:12px">Jusqu'ici, la validation du DR se cochait <b>fiche par fiche</b>. Il suffisait d'oublier la case en créant un compte pour qu'un mouvement de stock parte sans contrôle — et personne ne s'en apercevait. Un contrôle qu'on peut oublier n'est pas un contrôle.</p>
-      <label class="frow" style="cursor:pointer"><span class="frow-lbl">Toute sortie de stock passe par le DR</span>
+      <label class="frow" style="cursor:pointer"><span class="frow-lbl frow-lbl-long">Toute sortie de stock passe par le DR</span>
         <span class="frow-val"><label class="switch"><input type="checkbox" ${db.validDRTous?'checked':''} onchange="validDRTousSet(this.checked)"><span class="track"></span><span class="knob"></span></label></span></label>
-      <label class="frow" style="cursor:pointer;margin-top:6px"><span class="frow-lbl">Bons de remise à la sortie de stock</span>
+      <label class="frow" style="cursor:pointer;margin-top:6px"><span class="frow-lbl frow-lbl-long">Bons de remise à la sortie de stock</span>
         <span class="frow-val"><label class="switch"><input type="checkbox" ${db.bonsRemiseOff?'':'checked'} onchange="bonsRemiseSet(this.checked)"><span class="track"></span><span class="knob"></span></label></span></label>
       <p style="color:var(--t3);font-size:11.5px;margin-top:6px;line-height:1.55">Activé : quand quelqu'un sort du matériel d'une box, on lui demande <b>pour qui</b>, et un bon de remise (BR-…, PDF) garde la trace de qui a reçu quoi. Coupé : plus de question, plus de bon — le stock bouge pareil.</p>
       <p style="color:var(--t3);font-size:11.5px;margin-top:9px;line-height:1.55">Activé : arrivages, réceptions, prises ＋/−, retraits de box et produits pris en intervention attendent le « Valider » du DR, <b>pour tout le monde</b> — la case des fiches n'a plus à être pensée. Les comptes qui ont le droit de valider ne sont jamais concernés : ils se valideraient eux-mêmes.</p>
@@ -35741,7 +35748,7 @@ views.parametres=function(){
       <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px">
         <span style="position:relative;width:52px;height:52px;border-radius:14px;flex-shrink:0;border:1px solid var(--brd);display:flex;align-items:center;justify-content:center;overflow:hidden;background:${E.couleur?esc(E.couleur):'var(--bg2)'}">${E.couleur?'':'<span style="font-size:20px">🎨</span>'}<input type="color" id="ent-couleur-in" value="${esc(E.couleur||'#1E7A4E')}" onchange="entCouleurSet(this.value)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%"></span>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn ghost sm" onclick="document.getElementById('ent-couleur-in').click()">${E.couleur?'Changer la couleur':'＋ Choisir la couleur de l’entreprise'}</button>
+          <button class="btn ghost sm" style="white-space:normal" onclick="document.getElementById('ent-couleur-in').click()">${E.couleur?'Changer la couleur':'＋ Choisir la couleur de l’entreprise'}</button>
           ${E.couleur?`<button class="btn ghost sm" style="color:var(--red)" onclick="entCouleurDel()">Retirer</button>`:''}
         </div>
       </div>
