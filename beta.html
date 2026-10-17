@@ -22136,14 +22136,18 @@ function printDossierClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) r
    retour chariot) reçoit une apostrophe ; un NOMBRE ne la reçoit jamais — un montant négatif légitime
    (« -12,50 », écrit par num()) doit rester un nombre. Les nombres sont écrits à la française (virgule) :
    « 33.5 » est lu comme du texte par Excel en locale française. */
-/* Un numéro de téléphone écrit comme on l'écrit (« +33 6 12 34 56 78 », « +33-6-… », « +33 (0)6… ») commence par + mais n'est
-   PAS une formule : une formule porte des lettres, « = », « @ », « | », « ! », « , » ou un second « + ». Seuls un + ou un -
-   en tête, puis des chiffres, espaces (insécables compris), points, tirets et parenthèses — avec au moins un chiffre —
-   passent tels quels. Tout le reste reste neutralisé (injection de formule, lot g07). */
+/* Un numéro de téléphone écrit comme on l'écrit (« +33 6 12 34 56 78 », « +33.6.12.34.56.78 », « +33 (0)6 12 34 56 78 ») commence par +
+   mais n'est PAS une formule. Ne passe tel quel que ce qui n'a RIEN À CALCULER : un + ou un - en tête, puis des chiffres, espaces
+   (insécables compris) et points — avec au moins un chiffre —, et le « (0) » collé au chiffre qui le suit (le zéro facultatif des
+   numéros français et britanniques : aucune syntaxe de formule n'accepte un chiffre juste après une parenthèse fermante).
+   ⛔ Pas de TIRET entre les chiffres, ni de parenthèse ordinaire : « - » est un opérateur, « +33-6-12-34-56-78 » est la soustraction
+   33-6-12-34-56-78 (= -153) et le tableur remplace le numéro par un nombre, sans un mot (lot i03 l'exemptait, k03 r5#3 le referme) ;
+   « +1 (555) 123 4567 » est une intersection de plages. Ces numéros-là gardent l'apostrophe : visible, mais la valeur ne change pas.
+   Tout le reste reste neutralisé (injection de formule, lot g07). */
 function csvCellule(v){
   if(v==null) v='';
   else if(typeof v==='number') v=Number.isFinite(v)?String(v).replace('.',','):'';
-  else { v=String(v); if(/^[=+\-@\t\r]/.test(v) && !/^[+-]?\d+(?:[.,]\d+)?$/.test(v) && !/^[+-][\d \u00a0\u202f.\-()]*\d[\d \u00a0\u202f.\-()]*$/.test(v)) v="'"+v; }
+  else { v=String(v); if(/^[=+\-@\t\r]/.test(v) && !/^[+-]?\d+(?:[.,]\d+)?$/.test(v) && !/^[+-][\d \u00a0\u202f.]*\d(?:[\d \u00a0\u202f.]|\(0\)(?=\d))*$/.test(v)) v="'"+v; }
   return '"'+v.replace(/"/g,'""')+'"'; }
 function csvCellMontant(m){ const n=Number(m); return Number.isFinite(n)?n:(m==null?0:String(m)); }
 function csvLignes(rows,eol){ return rows.map(r=>r.map(csvCellule).join(';')).join(eol); }
@@ -39496,11 +39500,13 @@ function savePointage(e,id){ e.preventDefault();
     d.finTs=new Date(jour+'T'+d.fin+':00').getTime()||null;
     if(!d.finTs){ toast('Heure de fin invalide'); return; }
     if(d.finTs < d.debutTs){
-      /* i02 (r3#12) : sur un pointage OUVERT commencé AUJOURD'HUI, une fin plus petite que le début ne peut pas être une nuit — le
-         lendemain est dans le futur par construction. C'est une faute de frappe : on la nomme comme la reprise d'un oubli
-         (`ptFinRefus`), au lieu de « dans le futur » qui renvoie la personne chercher une heure qu'elle n'a pas tapée.
-         La règle de nuit ne bouge pas : une nuit commencée hier, ou un pointage clos, passent comme avant. Rien n'est écrit. */
-      if(ancien && ptOuvert(ancien) && ptJour(d.debutTs)===ptJour(Date.now()) && d.finTs+86400000 > Date.now()+60000){
+      /* i02 (r3#12), étendu par k03 (r5#1) : pour un pointage commencé AUJOURD'HUI, une fin plus petite que le début ne peut pas
+         être une nuit — le lendemain est dans le futur par construction. C'est une faute de frappe : on la nomme comme la reprise
+         d'un oubli (`ptFinRefus`), au lieu de « dans le futur » qui renvoie la personne chercher une heure qu'elle n'a pas tapée.
+         ⛔ Ce qui décide, c'est le JOUR du début, jamais l'état du pointage : la garde lisait `ancien && ptOuvert(ancien)`, donc
+         un pointage CLOS corrigé (06:00-07:30, fin 05:00) ou NEUF (＋ 08:00 → 07:00) retombait sur « dans le futur ».
+         La règle de nuit ne bouge pas : une nuit commencée un jour passé (ouvert, clos ou neuf) passe comme avant. Rien n'est écrit. */
+      if(ptJour(d.debutTs)===ptJour(Date.now()) && d.finTs+86400000 > Date.now()+60000){
         toast('La fin ('+ptHM(d.finTs)+') est avant le début ('+ptHM(d.debutTs)+') — corrige l\'heure ou la date de fin'); return; }
       d.finTs += 86400000;   // une nuit : la fin est le lendemain
     }
