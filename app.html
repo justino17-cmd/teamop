@@ -8695,7 +8695,12 @@ const eur = n => { const v=Number(n)||0;
 let _dbGen=0;
 let _rechT=0;
 function rechDiffere(fn){ clearTimeout(_rechT); _rechT=setTimeout(function(){ try{ fn(); }catch(e){} },170); }
-const initials = name => (name||'?').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+/* Les initiales d'un nom, pour un avatar. On lit par POINTS DE CODE, jamais par unité UTF-16 : `w[0]` d'un nom qui
+   commence par un émoji (🐀 😀) rendait la moitié d'une paire de substitution, dessinée « � » dans 34 avatars. On
+   prend la première lettre ou le premier chiffre de chaque mot (`max` au plus, 2 par défaut) ; s'il n'y en a aucun
+   (« 😀 » seul), le premier signe ENTIER (une séquence ZWJ ou un drapeau ne se coupent pas) ; « ? » pour un nom vide.
+   Écrite sur UNE ligne : test-822 l'extrait ainsi. UNE seule définition (la seconde d'une fonction déclarée deux fois gagne en silence). */
+const initials = (name,max) => { const mots=String(name||'?').split(/\s+/).filter(Boolean); const ini=mots.map(w=>(w.match(/[\p{L}\p{N}]/u)||[''])[0]).filter(Boolean).slice(0,max||2).join('').toUpperCase(); if(ini) return ini; const w=mots[0]||'?'; try{ return new Intl.Segmenter().segment(w)[Symbol.iterator]().next().value.segment; }catch(e){ return [...w][0]; } };
 const todayISO = () => isoDe(new Date());
 /* Le jour d'un horodatage, DANS LE FUSEAU DE LA PERSONNE. new Date(ts).toISOString() range en
    UTC : un arrivage saisi le 10/09 à 01h30 à Paris ressortait daté du 09/09. La fenêtre est
@@ -27712,7 +27717,7 @@ views.mouvements=function(){
   const voile=mvtMenuOuvert?`<div class="mvt-voile" onclick="mvtMenu('')" style="position:fixed;inset:0;z-index:50"></div>`:'';
   const PALETTE=['#2EB872','#2563EB','#E79A3C','#A78BFA','#E0524D','#0EA5A4','#D96BB0','#8B5A2B'];
   const boxTeinte=b=>PALETTE[Math.abs(String(b.nom||b.numero||'').split('').reduce((s,c)=>s+c.charCodeAt(0),0))%PALETTE.length];
-  const tuileBox=b=>`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:color-mix(in srgb,${boxTeinte(b)} 16%,transparent);color:${boxTeinte(b)}">${esc(String(b.nom||b.numero||'B').trim()[0].toUpperCase())}</span>`;
+  const tuileBox=b=>`<span style="width:26px;height:26px;flex:none;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:color-mix(in srgb,${boxTeinte(b)} 16%,transparent);color:${boxTeinte(b)}">${esc(initials(String(b.nom||b.numero||'B').trim(),1))}</span>`;
   const boxesFiltrees=visibleBoxes(db.boxes||[]).filter(b=>!mvtFBoxQ.trim()||String((b.nom||'')+' '+(b.numero||'')).toLowerCase().includes(mvtFBoxQ.trim().toLowerCase()));   // le filtre « box » ne propose que ses box
   const nbMvtBox=id=>tout.filter(m=>m.boxId===id).length;
   const rangBox=(b,on,html)=>`<div onclick="mvtChoisirBox('${b?b.id:''}')" style="display:flex;align-items:center;gap:11px;padding:9px 14px;cursor:pointer;background:${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}" onmouseover="this.style.background='color-mix(in srgb,var(--acc) 6%,transparent)'" onmouseout="this.style.background='${on?'color-mix(in srgb,var(--acc) 9%,transparent)':'transparent'}'">${html}<span style="flex:1"></span>${on?'<span style="color:var(--acc-txt);font-weight:800">✓</span>':''}</div>`;
@@ -31162,7 +31167,7 @@ function mailReadHtml(r,type){
     </div>
     <div style="font-size:19px;font-weight:800;line-height:1.35;margin-bottom:15px">${esc(r.subject||'(sans objet)')}</div>
     <div style="display:flex;gap:12px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--brd);margin-bottom:17px">
-      <span style="width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:${mailColor(who)};font-size:17px">${esc((who||'?').trim().charAt(0).toUpperCase()||'?')}</span>
+      <span style="width:42px;height:42px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;background:${mailColor(who)};font-size:17px">${esc(initials((who||'?').trim(),1))}</span>
       <div style="min-width:0">
         <div style="font-weight:800;font-size:14px">${type==='envoye'?'À : ':''}${esc(who)}</div>
         ${type==='recu'&&r.from&&r.fromName?`<div style="font-size:12px;color:var(--t3)">${esc(r.from)}</div>`:''}
@@ -36106,7 +36111,7 @@ const FACT_ST={brouillon:{l:'En attente',c:'st-grey'},envoyee:{l:'Envoyée',c:'s
    (Total facturé) comptaient chacun à leur façon, et les deux premiers y mettaient les brouillons. */
 function docEmis(d){ return !!d && d.statut!=='brouillon'; }
 const DOCS_EMIS_NOTE='<div data-regle="docs-emis" style="font-size:12.5px;color:var(--t3);margin:0 2px 10px">Les brouillons ne comptent pas : sont « émis » les devis envoyés, acceptés ou refusés, et « facturées » les factures envoyées, payées ou en retard.</div>';
-const DOC={ devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DEV',st:DEVIS_ST}, factures:{coll:'factures',titre:'Facture',un:'facture',prefix:'FAC',st:FACT_ST} };
+const DOC={ devis:{coll:'devis',titre:'Devis',un:'devis',prefix:'DEV',st:DEVIS_ST}, factures:{coll:'factures',titre:'Facture',un:'facture',prefix:'FAC',st:FACT_ST,fem:true} };   /* `fem` : l'accord des messages (« Facture créée », « Devis créé ») est une donnée du document, pas un test sur son nom */
 /* Le total HT est la somme des lignes ARRONDIES AU CENTIME, pas la somme des valeurs exactes.
    Trois lignes de 1,5 × 33,33 s'affichaient « 49,99 » chacune sous un Total HT de 149,98 : le
    client qui additionne trouve 149,97, et il appelle. On arrondit là où il lit — c'est aussi
@@ -38450,8 +38455,8 @@ function saveDoc(e,kind,id){ e.preventDefault(); if(!permGarde('ventes',id?'modi
     if(a)cli.adresse=a.value.trim(); if(tl)cli.tel=tl.value.trim(); if(em)cli.email=em.value.trim();
     if(v&&v.value.trim()){ const mv=v.value.trim().match(/(\d{5})\s*(.*)/); if(mv){cli.codePostal=mv[1];cli.ville=mv[2].trim();} else cli.ville=v.value.trim(); } }
   const doc={num:f.num,clientId:f.clientId,date:f.date,tva:parseFloat(f.tva)||0,statut:f.statut,notes:f.notes,rapportModele:f.rapportModele||'',lignes:lignesOk};
-  if(id){ const ix=db[cfg.coll].findIndex(x=>x.id===id); db[cfg.coll][ix]={...db[cfg.coll][ix],...doc}; toast(cfg.titre+' mis à jour'); }
-  else{ db[cfg.coll].push({id:uid(),devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); logEvent(cfg.titre+' créé',f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cfg.titre+' créé'); }
+  if(id){ const ix=db[cfg.coll].findIndex(x=>x.id===id); db[cfg.coll][ix]={...db[cfg.coll][ix],...doc}; toast(cfg.titre+(cfg.fem?' mise à jour':' mis à jour')); }
+  else{ db[cfg.coll].push({id:uid(),devisId:'',creePar:(currentUser&&currentUser.id)||'',...doc}); const cree=cfg.titre+(cfg.fem?' créée':' créé'); logEvent(cree,f.num+' — '+eur(docTot(doc).ttc),'finance'); toast(cree); }
   save(); closeModal();
   if(kind==='devis'){ const cur=id?db.devis.find(x=>x.id===id):null; docListView('devis', !!(cur&&cur.xylo)); }
   /* g06 (facturation#10) : une facture enregistrée revient à l'écran Factures (cartes, filtres, boutons Payée / Valider /
@@ -38614,7 +38619,7 @@ function envoiDoc(kind,id,canal){ if(!permGarde('ventes','modifier',kind==='devi
       const opts=Object.assign({},docMailOpts(d.rapportModele)||{});
       if(pdf){ opts.atts=[{filename:(cfg.titre+'-'+(d.num||'document')).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\w-]+/g,'-')+'.pdf',content:btoa(pdf)}];
         opts.mailtoBody=genDocTexte(kind,d,false); }
-      const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+' envoyé à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
+      const ok=await srvMail(c.email,sujet,genDocTexte(kind,d,!!pdf),'✉️ '+cfg.titre+(cfg.fem?' envoyée':' envoyé')+' à '+(c.nom||c.email)+(pdf?' (PDF joint)':''),'devis',null,Object.keys(opts).length?opts:undefined);
       if(ok){ marquer(); if(current===kind&&views[kind]) views[kind](); }
       return ok; })();
   }
@@ -44181,7 +44186,7 @@ function pastillesMail(){
       var t=(nom.textContent||'').replace(/^À\s*:\s*/,'').trim();
       var p=document.createElement('span');
       p.className='rf-pastille-mail'; p.setAttribute('aria-hidden','true');
-      p.textContent=(t.charAt(0)||'?').toUpperCase();
+      p.textContent=initials(t,1);
       tonPastille(p,mailColor(t));
       var pt=ligne.firstElementChild;               // la pastille de non-lu reste devant
       if(pt) ligne.insertBefore(p,pt.nextSibling); else ligne.insertBefore(p,ligne.firstChild);
@@ -44270,6 +44275,49 @@ if(typeof window.deptColor==='function'){
     return m? 'hsl('+m[1]+' 30% 38%)' : c;
   };
 }
+
+/* ══ SAISIE — UN CHAMP OBLIGATOIRE NE SE REMPLIT PAS D'ESPACES ═══════════════════════════════
+   L'attribut HTML5 `required` n'écarte que le champ VIDE : cinq espaces le satisfont, et l'on
+   obtenait un client, une box, une intervention ou un produit au nom vide — une ligne blanche
+   dans les listes, un avatar sans initiales, rien de lisible à toucher (rejoué sur les quatre
+   formulaires, v767). Écrire un `trim()` dans chaque save* aurait été autant de rustines, et la
+   suivante oubliée : la garde est UNE, posée en phase de CAPTURE sur le document, donc avant le
+   `onsubmit` de n'importe quel formulaire, présent ou futur. Elle refuse à voix haute (toast,
+   focus sur le champ) et n'a rien écrit : la fonction d'enregistrement n'est jamais appelée.
+   Elle ne vise que les champs de TEXTE requis (pas un mot de passe, un nombre, une date, un
+   fichier, une liste) et seulement une valeur NON vide qui ne contient rien de visible : le cas
+   « vide » reste celui du navigateur, et « Dupont » entouré d'espaces passe comme avant. */
+function saisieGardeInstaller(doc){
+  var TYPES={text:1,search:1,tel:1,email:1,url:1};
+  function vide(v){ return v.length>0 && /^[\s​-‍⁠﻿]*$/.test(v); }
+  function libelle(el){
+    var champ=el.closest&&el.closest('.field'), l=champ&&champ.querySelector&&champ.querySelector('label');
+    var t=(l&&l.textContent)||el.getAttribute('aria-label')||'';
+    if(!t){
+      var ph=el.getAttribute('placeholder')||'';
+      if(ph && !/^\s*ex\s*:/i.test(ph)) t=ph.split(' (')[0];
+    }
+    t=String(t).replace(/\s*\*\s*$/,'').trim();
+    return t||el.getAttribute('name')||'ce champ';
+  }
+  doc.addEventListener('submit',function(e){
+    var form=e.target;
+    if(!form||!form.querySelectorAll) return;
+    var champs=form.querySelectorAll('input[required],textarea[required]');
+    for(var i=0;i<champs.length;i++){
+      var el=champs[i];
+      if(el.disabled) continue;
+      var type=String(el.tagName).toLowerCase()==='textarea'?'text':String(el.type||'text').toLowerCase();
+      if(!TYPES[type]) continue;
+      if(!vide(String(el.value==null?'':el.value))) continue;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if(typeof toast==='function') toast('Le champ « '+libelle(el)+' » est obligatoire',3200);
+      try{ el.focus(); if(el.select) el.select(); }catch(x){}
+      return;
+    }
+  },true);
+}
+saisieGardeInstaller(document);
 })();
 </script>
 </body>
