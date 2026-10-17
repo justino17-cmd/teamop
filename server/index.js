@@ -2037,7 +2037,7 @@ function monGesteNoter(req, res) {
   if (!g) return;
   const b = req.body && typeof req.body === 'object' ? req.body : {};
   const detail = ['statut', 'formule'].map(k => typeof b[k] === 'string' ? monStr(b[k], 20) : '').filter(Boolean).join(' · ')
-    + (typeof b.traite === 'boolean' ? (b.traite ? 'classée' : 'remise à traiter') : '');
+    + (/\/clients\/demande$/.test(chemin) ? (b.traite === false ? 'remise à traiter' : 'classée') : '');   // la route classe quand `traite` manque
   monActions.push(Object.assign({ ts: Date.now(), qui: monStr(req.tourUser.nom, 60), geste: g, cible: monGesteCible(b) },
     detail ? { detail } : {}, monAppDeRoute(req) ? { app: monAppDeRoute(req) } : {}));
   if (monActions.length > MON_ACTIONS_MAX) monActions = monActions.slice(-MON_ACTIONS_MAX);

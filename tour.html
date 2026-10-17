@@ -4315,7 +4315,7 @@ function chargerComptesSite(){
   apiGet('/api/monitor/comptes-site').then(function(d){
     CS.comptes=(d&&d.comptes)||[]; CS.anonymes=(d&&d.anonymes)||0;
     CS.loaded=true; rafraichirSiConcerne();
-  }).catch(function(){ CS.err='Impossible de lire les comptes du site — clé admin Firebase absente, ou serveur injoignable.'; CS.loaded=true; rafraichirSiConcerne(); });
+  }).catch(function(e){ CS.err=(e&&e.corps)||(e&&e.status?msgErreur(e):'Impossible de lire les comptes du site — serveur injoignable.'); CS.loaded=true; rafraichirSiConcerne(); });
 }
 /* Supprime un compte du site. Le serveur REFUSE (409) si le compte porte une entreprise :
    effacer le compte seul laisserait un espace orphelin que personne ne pourrait rouvrir.
@@ -5590,13 +5590,6 @@ function tourMetierEnregistrer(nom,btn){
     if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; }
   }).catch(function(){ toast('Serveur injoignable'); if(btn){ btn.disabled=false; btn.textContent='💾 Enregistrer le métier'; } });
 }
-function tourAttribuerPack(nom){
-  var f=(document.getElementById('pack-f')||{}).value, q=parseInt((document.getElementById('pack-q')||{}).value,10)||1;
-  apiPost('/api/monitor/espaces/formule',{nom:nom,formule:f,quantite:q}).then(function(r){
-    if(r&&r.ok){ toast('📦 Formule attribuée : '+f+(q>1?' ×'+q:'')+' — active à la prochaine ouverture de leur app'); tourPackPrefill(nom); }
-    else toast((r&&r.d&&r.d.error)||'Refusé — mets le serveur à jour (git pull) ou réservé au patron');
-  }).catch(function(){ toast('Serveur injoignable'); });
-}
 function chargerClients(){
   apiGet('/api/monitor/clients').then(function(d){
     if(!d) return;
@@ -5775,6 +5768,7 @@ function sousOnglets(vue,segs){
 }
 function sousOnglet(vue,s){ SOUS[vue]=s;
   if(s==='connexions'&&!CNX.loaded) chargerConnexions();
+  if(s==='comptes'&&!CS.loaded) chargerComptesSite();
   if(s==='devisia'&&!DIA.loaded) chargerDevisIA();
   ecrireHash(); render(); }
 function renderVue(v){
@@ -5784,7 +5778,7 @@ function renderVue(v){
   else if(TAB==='surveillance') v.innerHTML=vueSurveillance();
   else if(TAB==='support') v.innerHTML=vueSupport();
   else if(TAB==='demandes') v.innerHTML=vueDemandes();
-  else if(TAB==='entreprises') v.innerHTML=(APP==='messages')?vueEntreprisesMsg():(sousOnglets('entreprises',[['liste','Entreprises'],['connexions','Connexions']])+(SOUS.entreprises==='connexions'?vueConnexions():vueEntreprises()));
+  else if(TAB==='entreprises') v.innerHTML=(APP==='messages')?vueEntreprisesMsg():(sousOnglets('entreprises',[['liste','Entreprises'],['comptes','Comptes du site'],['connexions','Connexions']])+(SOUS.entreprises==='connexions'?vueConnexions():SOUS.entreprises==='comptes'?vueComptesSite():vueEntreprises()));
   else if(TAB==='abonnements') v.innerHTML=sousOnglets('abonnements',[['abos','Abonnements'],['devisia','Devis IA']])+(SOUS.abonnements==='devisia'?vueDevisIA():vueAbonnements());
   else if(TAB==='essais') v.innerHTML=vueEssais();
   else if(TAB==='donnees') v.innerHTML=vueDonnees();
@@ -7177,7 +7171,6 @@ function mailActualiser(){ chargerMail(true);
 function compoOuvrir(dest){ MSG.compo=true; if(dest) MSG.cDest=dest; renderNav('lecture'); }
 function compoFermer(){ MSG.compo=false; renderNav('lecture-retour'); }
 function compoChamp(k,v){ MSG[k]=v; }
-function boitePrincipale(){ var b=(MSG.boites[0]||{}).boite||{}; return b.id||b.email||''; }
 function compoEnvoyer(){
   if(!MSG.cDest||!(MSG.cTexte||'').trim()){ toast('Choisissez un destinataire et écrivez un message'); return; }
   apiPost('/api/monitor/support/envoyer',{to:MSG.cDest,subject:MSG.cSujet||'(sans objet)',text:MSG.cTexte})
@@ -7185,7 +7178,7 @@ function compoEnvoyer(){
       if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
       toast('Message envoyé à '+MSG.cDest);
       MSG.compo=false; MSG.cSujet=''; MSG.cTexte=''; renderNav('fondu');
-    });
+    }).catch(function(){ toast('Serveur injoignable — le message n’est pas parti. Réessayez.'); });   /* fetch qui jette : rien n'est parti, il faut le DIRE (INJOIGNABLE promet une nouvelle tentative : un envoi n'en fait pas) */
 }
 function lireMessage(b,d,u){
   MSG.lu=b+'|'+d+'|'+u; MSG.ouvert=null; render();
@@ -7201,7 +7194,8 @@ function repondre(){
   var m=MSG.ouvert; if(!m) return;
   apiPost('/api/monitor/support/envoyer',{to:m.de,subject:'Re: '+(m.objet||''),text:t})
     .then(function(x){ if(!x.ok){ toast('⚠️ '+(x.d.error||'envoi refusé')); return; }
-      toast('Réponse envoyée à '+(m.deNom||m.de)); if(z) z.value=''; });
+      toast('Réponse envoyée à '+(m.deNom||m.de)); if(z) z.value=''; })
+    .catch(function(){ toast('Serveur injoignable — la réponse n’est pas partie. Réessayez.'); });
 }
 /* ═══════════════════════════════════════════════════════════════════════════════════════
    LE COURRIER — un vrai client mail, à trois volets.
@@ -8603,21 +8597,18 @@ function blocComptesDe(o){
         '</span></div>';
     }).join('')+'</div></div>';
 }
-/* Les espaces ouverts par une inscription sur teamop.fr. Ils vivaient dans l'onglet Accès, où
-   ils n'avaient rien à faire : Accès, c'est ce que l'équipe s'ouvre à elle-même — la bêta et
-   les espaces de test. Un client n'est pas un accès qu'on se donne.
-   Ils gardent ici les mêmes cartes et les MÊMES BOUTONS (suspendre, renommer, OP MESSAGES,
-   supprimer) : les déplacer sans eux, c'était les perdre — l'onglet Entreprises ne portait
-   aucune de ces actions. */
 /* TOUS les comptes créés sur teamop.fr, y compris ceux qui n'ont jamais ouvert d'espace et
    qui n'apparaissaient donc nulle part. C'est la liste qu'il faut pour faire le ménage dans
    les essais : le trousseau du navigateur les gardait, la console les ignorait.
+   ⚠️ v2.87 (17 octobre 2026) : cette liste n'était plus appelée par AUCUN écran depuis que la fiche d'une entreprise
+   est passée en pleine page — un compte inscrit sans entreprise ne se rangeait plus nulle part. Elle est le
+   sous-onglet « Comptes du site » d'Entreprises.
    Un compte qui porte une entreprise n'est PAS supprimable ici — il passe par « Fermer
    définitivement », qui efface aussi son espace et ses données. Le bouton le dit. */
-function blocComptesSite(){
-  var t='<div style="margin-top:34px">'+
-    '<div style="font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text);border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:8px">👤 Tous les comptes du site</div>'+
-    '<div style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.55">Les comptes de personnes, lus chez Firebase — y compris ceux qui n’ont jamais ouvert d’espace, invisibles partout ailleurs. Supprimer un compte retire son accès à l’application ; sa boîte mail n’est pas touchée.</div>';
+function vueComptesSite(){
+  var t='<div>'+enTete('Comptes du site',
+    'Les comptes de personnes créés sur teamop.fr — y compris ceux qui n’ont jamais ouvert d’espace, invisibles partout ailleurs. Supprimer un compte retire son accès à l’espace client ; sa boîte mail n’est pas touchée.',
+    '<button type="button" class="btn-fant" onclick="chargerComptesSite()">↻ Actualiser</button>');
   if(!CS.loaded) return t+squelListe(4)+'</div>';
   if(CS.err) return t+videTour('Comptes illisibles',esc(CS.err),
     '<button type="button" class="btn-fant" onclick="chargerComptesSite()">Réessayer</button>')+'</div>';
@@ -8651,20 +8642,12 @@ function blocComptesSite(){
       '</div>'+
       '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
         (lie
-          ? '<span style="font-size:12px;color:var(--muted)">Porte une entreprise — passe par « Fermer définitivement » ci-dessus, qui efface aussi son espace et ses données.</span>'
+          ? '<span style="font-size:12px;color:var(--muted)">Porte une entreprise — sa suppression passe par la fiche de l’entreprise (« Fermer définitivement »), qui efface aussi son espace et ses données.</span>'
           : '<button class="btn-fant" style="color:var(--redText);border-color:rgba(255,107,107,.35)" onclick="csSupprimer(\''+jsq(c.email)+'\',this)">🗑 Supprimer</button>')+
       '</div>'+
     '</div>';
   }).join('');
   return t+'</div>';
-}
-function blocEspacesSite(){
-  var l=(PBL.liste||[]).filter(function(e){ return e.origine==='site'; });
-  return '<div style="margin-top:34px">'+
-    '<div style="font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text);border-bottom:1px solid var(--line);padding-bottom:7px;margin-bottom:8px">🏢 Leurs espaces</div>'+
-    '<div style="font-size:12px;color:var(--muted);margin:0 0 12px;line-height:1.55">Ouverts par une inscription sur teamop.fr. Ce sont de vrais espaces d’entreprise, avec de vraies données : on les suspend, on ne les efface pas à la légère.</div>'+
-    pubBloc(l,'Aucune entreprise inscrite depuis le site pour l’instant.')+
-  '</div>';
 }
 /* LA GESTION DU CLIENT — ce qu'on FAIT, pas seulement ce qu'on lit : formule, code promo,
    lien de connexion, OP MESSAGES, demandes, contact. Ce bloc était perdu quand la fiche est
@@ -9412,8 +9395,8 @@ async function pbCreer(btn){
   }catch(err){ toast('Création impossible'); }
   if(btn){ btn.disabled=false; btn.textContent='Ouvrir l’accès public'; }
 }
-/* pubLigne / pubBloc vivaient dans vueEssais() : sorties au niveau global pour que
-   l'onglet Entreprises puisse rendre les mêmes cartes. Une entreprise inscrite sur le
+/* pubLigne vivait dans vueEssais() : sortie au niveau global pour que la fiche d'une
+   entreprise rende la même carte (« SON ESPACE »). Une entreprise inscrite sur le
    site n'a rien à faire dans l'onglet Accès — Accès, c'est ce que l'équipe s'ouvre à
    elle-même (bêta et espaces de test) ; les clients ont leur onglet. */
 /* La liste des accès PUBLICS, sous celle de la bêta et clairement séparée : les confondre
@@ -9464,13 +9447,7 @@ function pubLigne(e){
     '</div>'+
   '</div>';
 }
-function pubBloc(l,vide){
-  if(!PBL.loaded) return squelListe(2);
-  if(PBL.err) return videTour('Espaces illisibles',esc(PBL.err),
-    '<button type="button" class="btn-fant" onclick="chargerAccesPublics()">Réessayer</button>');
-  if(!l.length) return videTour('',vide,'',false);
-  return l.map(pubLigne).join('');
-}
+
 
 /* Amener au formulaire de la porte qu'on vient de nommer — au téléphone il est deux écrans
    sous la liste, et c'est le geste principal de l'écran. */

@@ -79,7 +79,7 @@ const nu = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/
   v('au départ, aucun geste (la connexion n\'en est pas un : elle va au journal des connexions)', (await actions()).length, 0);
 
   /* des gestes qui réussissent, de formes différentes */
-  let r = await appel('/api/monitor/clients/demande', { email: 'camille@exemple-1015.fr', idx: 0, traite: true }, PATRON);
+  let r = await appel('/api/monitor/clients/demande', { email: 'camille@exemple-1015.fr', idx: 0 }, PATRON);   // sans `traite` : la route classe (c'est ce qu'envoie « Accepter »)
   v('classer la demande : 200', r.s, 200);
   r = await appel('/api/monitor/users', { nom: 'Collaboratrice', pass: SECRET_COLLAB }, PATRON);
   v('créer un compte de la Tour : 200', r.s, 200);
