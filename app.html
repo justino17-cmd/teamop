@@ -22321,7 +22321,13 @@ views.interventions=function(){
       </div>`:''; })()
     +(dayInts.length? `<div class="tf-groupe">${dayInts.map(cardOrg).join('')}</div>` : `<div class="card">${emptyState('🗓️','Aucune intervention ce jour.','Planifier',`formIntervention('','${intSelDay}')`)}</div>`);
 };
-function intDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Déplacer le planning n\'est pas autorisé pour ton compte (Permissions)'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return; if(i.date===iso)return; i.date=iso; save(); intSelDay=iso; views.interventions(); toast('Intervention déplacée au '+fmtShort(iso)); }
+function intDropDay(e,iso){ e.preventDefault(); if(!canPlan()){ toast('Déplacer le planning n\'est pas autorisé pour ton compte (Permissions)'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i)return; if(i.date===iso)return;
+  /* la MÊME suite que les autres dépôts de jour (planDropDay) : congé validé du technicien → refus net ou confirmation « obligation de
+     travailler » (planAbsGate), puis la date, le journal du planning (planStamp), la trace d'obligation levée, et SEULEMENT ensuite save().
+     Sans elle, la puce de jour des Interventions plaçait une intervention sur un congé validé sans un mot ni une ligne au journal. */
+  const de=planSnap(i);
+  if(!planAbsGate(intTechIds(i)[0]||'',iso,i)) return;
+  i.date=iso; planStamp(i,de); delete i._oblig; planObligationLever(i); save(); intSelDay=iso; views.interventions(); toast('Intervention déplacée au '+fmtShort(iso)); }
 function intEffectuer(id){ const i=db.interventions.find(x=>x.id===id); if(!i)return; if(!intStatutPermis(i,'terminee')){ toast('Changer ce statut n\'est pas autorisé pour ton compte (Permissions)'); return; } if(!i.debutReel)i.debutReel=Date.now(); save(); assistCloture(id); }
 /* ═══════════ REFONTE INTERVENTIONS — planning du technicien, diagnostic, plan d'appâtage, clôture guidée ═══════════ */
 /* Badges compacts d'une carte : récurrence / passage n/N, garantie, urgence */
