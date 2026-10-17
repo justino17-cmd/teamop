@@ -19,6 +19,27 @@ de ligne du tout.
 d'OP MESSAGES (msg.teamop.fr, le geste « publier en public » de la Tour) ne se propose plus d'elle-même : elle attend SA phrase. La bêta (msg-beta.teamop.fr) continue
 de se publier à chaque fusion, comme avant.
 
+# ⏳ 17 OCTOBRE 2026 — LE SITE NE SERT PLUS QUE LE SITE ; SKILLS VÉRIFIÉS ; QUATRE TÂCHES AUTOMATIQUES — ATTEND DEUX GESTES DE JUSTIN
+
+Mesuré ce jour : `teamop.fr/CLAUDE.md`, `/REPRISE.md`, `/.claude/agents/gardien.md` et `/firestore.rules` répondaient 200 —
+GitHub Pages servait la racine du dépôt. Justin a choisi « le dossier public ». Branche `claude/site-public` :
+`scripts/assembler-site.sh` (liste blanche → `_site`), `.github/workflows/publication-site.yml` (publie `_site`, puis
+vérifie au CDN que les pages répondent 200 et les fichiers internes 404), `tests/test-1008.js` (49 contrôles, quatre
+mutations qui le font tomber). Aucune page ni adresse ne change.
+⏳ **Ce qui attend Justin, dans cet ordre** : 1. Réglages → Pages → Source : « GitHub Actions » (réglage d'administrateur,
+la session n'y a pas accès) ; 2. sa phrase pour fusionner la branche sur `main`. Retour arrière : remettre la Source sur
+la branche `main`. ⚠️ Le dépôt reste PUBLIC sur GitHub : ce changement ferme teamop.fr, pas github.com.
+
+Branche `claude/skills-verifies` (attend sa phrase pour `main`) : 15 skills relus et figés (12 marketing de
+coreyhaines31/marketingskills @365b412, 3 sur commande de muratcankoylan/agent-skills-for-context-engineering @9ff0c99),
+les 13 skills vidéo passés sur commande seulement, « ELAN GESTION » → « OP GESTION » dans trois descriptions,
+`security-penetration-tester` ne se déclenche plus sur chaque route, `deployeur` ne signe plus avec une ancienne session.
+Refusés après lecture : stop-slop, heretic, Agent-Reach, MiroFish ; Strix seulement en local, jamais contre la production.
+
+Quatre tâches programmées, en LECTURE SEULE (aucun commit, aucun push), rapport poussé sur le téléphone : point du matin
+(jours ouvrés 7 h 53), revue sécurité (lundi 8 h 47), dépendances (lundi 9 h 20), audit du site (le 1er du mois, 9 h 46).
+Heure de Paris. Elles se modifient ou s'arrêtent dans la liste des tâches programmées de claude.ai.
+
 # 🟡 16 OCTOBRE 2026 — OP MESSAGES (BÊTA) : LA SALLE N'A PLUS QUE SA BARRE RONDE, ET LE FICHIER .ICS EST PARTI (PR À VENIR)
 
 Justin, aux deux questions de la page avant/après (la salle : ranger la rangée de pastilles dans « Plus » ; le code .ics dormant : le retirer) : « ok fait les deux ».

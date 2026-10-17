@@ -21,6 +21,11 @@ seule mémoire qui passe de l'une à l'autre. Le tenir à jour quand un chantier
 ## Structure
 
 - **Racine** — site vitrine et applications, HTML/CSS/JS sans framework, servi par GitHub Pages
+  ⛔ **depuis un dossier assemblé, pas depuis la racine** (17 octobre 2026) : `scripts/assembler-site.sh`
+  copie une LISTE BLANCHE dans `_site` (pages, scripts et manifestes de la racine par leur forme, plus
+  `icons/ vitrine/ sons/ screenshots/ apercu/ .well-known/`), `.github/workflows/publication-site.yml`
+  la publie. Avant, `teamop.fr/CLAUDE.md` répondait 200. Un DOSSIER neuf à servir s'ajoute dans le
+  script, sinon il n'est pas en ligne — `tests/test-1008.js` refuse une page qui pointe vers un fichier perdu.
 - **`server/`** — API Node/Express déployée sur un VPS, hors GitHub Pages
 - **`.github/workflows/`** — surveillance horaire du site et de l'API
 - **`scripts/web/`** — lire un site (Crawl4AI, installé à la première utilisation, dans une session du cloud comme sur le Mac) : `bash scripts/web/lire-site.sh <url> [--liens|--pages N]` — voir son `LISEZMOI.md` (et le cadre RGPD avant de prendre des coordonnées)

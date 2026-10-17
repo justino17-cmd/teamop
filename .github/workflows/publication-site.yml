@@ -1,0 +1,75 @@
+# Publication de teamop.fr depuis un dossier qui ne contient QUE le site public.
+#
+# Avant (jusqu'au 17 octobre 2026) : GitHub Pages servait la racine du dépôt, donc CLAUDE.md,
+# REPRISE.md, .claude/, le code du serveur et les règles Firestore répondaient 200 sur teamop.fr.
+# `scripts/assembler-site.sh` rassemble les seuls fichiers servis (liste blanche), et c'est ce
+# dossier qui part en ligne. Les pages, leurs adresses et le domaine ne changent pas.
+#
+# ⚠️ Ce workflow ne publie rien tant que Réglages → Pages → Source n'est pas sur « GitHub Actions »
+# (réglage d'administrateur : Justin). Avant ce réglage, son étape de publication échoue sans
+# effet sur le site, qui reste servi depuis la branche comme avant.
+name: Publication du site
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Une publication à la fois, et jamais annulée en cours : une moitié de site ne se sert pas.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploiement.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assembler le site public
+        run: bash scripts/assembler-site.sh _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deploiement
+        uses: actions/deploy-pages@v4
+
+      # ⛔ Une publication se prouve sur ce qui est SERVI, pas sur un job vert. Le paramètre
+      # `?v=<commit>` passe à côté du cache du CDN : sans lui, l'ancienne copie de CLAUDE.md
+      # répondrait encore 200 quelques minutes, et une vraie régression passerait pour du cache.
+      - name: Vérifier ce que teamop.fr sert
+        run: |
+          set -u
+          v="${GITHUB_SHA}"
+          verifier() {
+            attendu="$1"; chemin="$2"; essai=0
+            while [ "$essai" -lt 12 ]; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' "https://teamop.fr/${chemin}?v=${v}")
+              [ "$code" = "$attendu" ] && { echo "ok  ${code}  /${chemin}"; return 0; }
+              essai=$((essai + 1)); sleep 15
+            done
+            echo "::error::/${chemin} répond ${code}, attendu ${attendu}"
+            return 1
+          }
+          echec=0
+          verifier 200 index.html || echec=1
+          verifier 200 app.html || echec=1
+          verifier 200 sw.js || echec=1
+          verifier 200 .well-known/assetlinks.json || echec=1
+          verifier 404 CLAUDE.md || echec=1
+          verifier 404 REPRISE.md || echec=1
+          verifier 404 .claude/agents/gardien.md || echec=1
+          verifier 404 firestore.rules || echec=1
+          exit "$echec"
