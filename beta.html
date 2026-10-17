@@ -26387,7 +26387,7 @@ function renderProduitsList(){
   el.innerHTML=(q?prdCataloguePont(q,true):'')+`<div style="font-size:12px;color:var(--t3);margin:2px 2px 10px">${list.length} produit(s) · ${orderedCats.length} catégorie(s)</div>`+orderedCats.map(cat=>{
     const col=catColor(cat); const prods=groups[cat].slice().sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
     const open = !!q || prdExpanded[cat];
-    const rows=open? prods.map(p=>{ const tq=TOT[p.id]; const e=(tq==null&&!toutVu)?{k:'hors',l:'Pas dans tes box',c:'var(--t3)'}:boxEtat(tq||0); const bc=prdBoxCount(p);
+    const rows=open? prods.map(p=>{ const tq=TOT[p.id]; const e=(tq==null&&!toutVu)?{k:'hors',l:'Pas dans tes box',c:'var(--t3)'}:boxEtat(tq||0,p.seuil); const bc=prdBoxCount(p);
       return `<div class="pl-row" style="border:none;border-bottom:.5px solid color-mix(in srgb,var(--brd) 60%,transparent);border-radius:0;margin:0" onclick="formProduit('${p.id}')">
         <div class="pl-info">
           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font-size:14px;font-weight:600;color:var(--t1)">${esc(p.nom)}</span>${p.ref?`<span class="mono" style="font-size:9px;color:var(--t3)">${esc(p.ref)}</span>`:''}</div>
@@ -26687,7 +26687,7 @@ views.stock=function(){
   const all=stockLines();
   const totalU=all.reduce((s,l)=>s+l.eff,0);
   const nbBoxesPleines=visibleBoxes(db.boxes).filter(b=>!estStockage(b)&&Object.keys(b.stock||{}).length).length;   // le stockage a sa carte : il ne compte pas pour une box
-  const nbACmd=all.filter(l=>boxEtat(l.eff).k!=='enStock').length;
+  const nbACmd=all.filter(l=>boxEtat(l.eff,l.p.seuil).k!=='enStock').length;
   setHeader('Stock','Le stockage et toutes les box',`<button class="btn ghost" onclick="openScannerStock()">Scanner</button>`);
   $('content').innerHTML=`<div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(150px,1fr))">
     <div class="kpi" style="cursor:pointer" onclick="go('produits')" title="Voir le catalogue produits"><div class="kpi-ico" style="background:rgba(245,158,11,.14)">📦</div><div class="kpi-val">${all.length}</div><div class="kpi-lbl">Produits ›</div></div>
@@ -26700,7 +26700,7 @@ views.stock=function(){
   renderStockList();
 };
 function stockExportBon(){
-  let lines=stockLines().filter(l=>boxEtat(l.eff).k!=='enStock');
+  let lines=stockLines().filter(l=>boxEtat(l.eff,l.p.seuil).k!=='enStock');
   const q=norm(stockSearch); if(q) lines=lines.filter(l=>norm((l.p.nom||'')+' '+(l.p.ref||'')+' '+(l.p.categorie||'')).includes(q));
   if(!lines.length){ toast('Rien à commander — tout est en stock 👍'); return; }
   const num=nextNum('bons','BC','numero');
@@ -26714,7 +26714,7 @@ function stockExportBon(){
 let stockFiltreManque=false;
 function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=stockLines();
   const q=norm(stockSearch); if(q) lines=lines.filter(l=>norm((l.p.nom||'')+' '+(l.p.ref||'')+' '+(l.p.categorie||'')).includes(q));
-  if(stockFiltreManque) lines=lines.filter(l=>boxEtat(l.eff).k!=='enStock');
+  if(stockFiltreManque) lines=lines.filter(l=>boxEtat(l.eff,l.p.seuil).k!=='enStock');
   lines.sort((a,b)=>(a.p.nom||'').localeCompare(b.p.nom||''));
   if(!lines.length){ el.innerHTML=`<div class="card">${emptyState('🗃️',stockSearch?'Aucun résultat.':(stockageVisible()?'Aucun produit en stock — ni dans le stockage, ni dans les box. Un arrivage les fera entrer.':'Aucun produit en stock dans les box. Ouvre une box et ajoute des produits.'),'','')}</div>`; return; }
   const barreExport=stockFiltreManque?`<div class="card" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:14px 16px;margin-bottom:10px;border-left:3px solid var(--org)">
@@ -26723,8 +26723,8 @@ function renderStockList(){ const el=$('stock-list'); if(!el)return; let lines=s
     <button class="btn ghost sm" onclick="stockFiltreManque=false;views.stock()">Voir tout</button></div>`:'';
   // Rangé par état : d'abord ce qui manque, puis ce qu'il faut commander, puis le reste
   const grp={epuise:[],aCommander:[],enStock:[]};
-  lines.forEach(l=>grp[boxEtat(l.eff).k].push(l));
-  const ligne=l=>{ const e=boxEtat(l.eff);
+  lines.forEach(l=>grp[boxEtat(l.eff,l.p.seuil).k].push(l));
+  const ligne=l=>{ const e=boxEtat(l.eff,l.p.seuil);
     return `<div class="pl-row" data-pid="${l.p.id}" style="border-left:3px solid ${e.k!=='enStock'?e.c:'transparent'}">
       <div class="pl-info"><div class="pl-title">${esc(l.p.nom)}</div>
         <div class="pl-meta">${l.p.ref?'<span class="mono">'+esc(l.p.ref)+'</span> · ':''}${esc(l.p.categorie||'')}</div>
@@ -27135,7 +27135,15 @@ function catAbrev(c){ if(!c) return '??'; if(c.includes('TP18')) return '18'; if
 function fourColor(f){ return FOUR_COLORS[f]||'var(--t3)'; }
 function fourBadge(f){ const c=fourColor(f); return `<span style="font-size:10px;font-weight:700;color:${encreDonnee(c)};background:color-mix(in srgb,${c} 14%,transparent);border:.5px solid color-mix(in srgb,${c} 40%,transparent);padding:2px 8px;border-radius:12px">${esc(f)}</span>`; }
 /* État de stock d'un produit dans une box, d'après les unités (ELAN : 0 = épuisé, 1-2 = à commander, 3+ = en stock) */
-function boxEtat(u){ u=u||0; if(u<=0) return {k:'epuise',l:'Épuisé',c:'var(--red)'}; if(u<=2) return {k:'aCommander',l:'À commander',c:'var(--org)'}; return {k:'enStock',l:'En stock',c:'var(--acc-txt)'}; }
+/* ⛔ g19 · stock#5 — `seuil` est le « Seuil d'alerte » de la FICHE (`p.seuil`), à passer par tout appelant qui juge
+   un TOTAL (Stock, Produits, le bon créé depuis le Stock). Défini (> 0), il remplace le seuil fixe : « À commander »
+   jusqu'au seuil INCLUS, exactement comme la cloche (`computeNotifs` : q <= p.seuil) — sans ça, la cloche criait
+   « Stock bas (5/10) » pendant que l'écran disait « En stock » en vert. Absent, 0 ou illisible : le défaut de la box,
+   inchangé. Les appelants qui jugent la part d'UNE box ne le passent PAS : le seuil se compare au total. */
+function boxEtat(u,seuil){ u=u||0; const s=+seuil>0?+seuil:0;
+  if(u<=0) return {k:'epuise',l:'Épuisé',c:'var(--red)'};
+  if(u<=(s||2)) return {k:'aCommander',l:'À commander',c:'var(--org)'};
+  return {k:'enStock',l:'En stock',c:'var(--acc-txt)'}; }
 /* Alerte au Directeur régional (+ admins) quand un produit d'une box passe sous le seuil.
    Appelée après chaque déduction d'unités : notification push UNIQUEMENT au moment où
    l'état change (En stock → À commander, ou → Épuisé) — pas de spam à chaque sortie. */
