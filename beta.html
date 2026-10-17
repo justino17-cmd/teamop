@@ -24938,13 +24938,35 @@ function cliSetType(el){ const f=el.closest('form'); if(!f) return;
    les tournées pointaient La Rochelle pour une adresse à Bordeaux) et la ville de la liste ne bougeait pas ;
    et un client créé avec une adresse n'était jamais localisé, la box seule le faisait. Trois pièces :
    · `cliAdresseDerive` lit le code postal et la ville DANS l'adresse quand elle les porte (comme `saveDoc`) ;
-     sans eux, la ville connue reste — l'adresse ne la contredit pas, la corriger d'une faute de frappe ne doit
-     pas faire perdre un code postal posé par l'intervention (le rattachement au technicien le lit) ;
+     sans eux, `cliLieuApres` ne garde le lieu connu que si l'adresse ne le contredit pas (elle le nomme, ou n'est qu'une
+     retouche de l'ancienne : une faute de frappe corrigée ne doit pas faire perdre un code postal posé par
+     l'intervention, que le rattachement au technicien lit) — sinon il se vide, voir plus bas ;
    · `cliGeoRequete` joint code postal et ville à une adresse qui ne les porte pas ;
    · `cliLocaliserFond` géocode UN client en tâche de fond, ne bloque rien, échoue en silence, et ne pose
      ses coordonnées que si la fiche est restée telle qu'elle était à la demande (adresse identique, toujours
      sans coordonnées, toujours là). Jamais au chargement ni en boucle : seul `saveClientForm` l'appelle. */
 function cliAdresseDerive(adr){ const m=String(adr||'').replace(/[\s,]*france\s*$/i,'').match(/\b(\d{5})\s+([^,\d][^,]*?)\s*$/); return m?{codePostal:m[1],ville:m[2].trim()}:null; }
+/* ⛔ ON NE GARDE PAS UN LIEU QUE LA NOUVELLE ADRESSE CONTREDIT — relecture de g10. Le formulaire n'a qu'UN champ adresse :
+   sans code postal ni ville dedans, garder l'ancien code postal et l'ancienne ville faisait géocoder « 5 rue des Lilas
+   17000 La Rochelle » pour un client déménagé ailleurs (coordonnées fausses enregistrées), laissait la ville de la liste
+   et le rattachement au technicien (`keyForClient` lit `codePostal` AVANT l'adresse) sur l'ancien département, et les PDF
+   imprimaient la nouvelle rue avec l'ancien lieu. Ce que la nouvelle adresse dit gagne ; le lieu d'avant ne reste que si
+   elle ne le contredit pas : elle le NOMME (la ville, ou le même code postal), ou elle n'est qu'une RETOUCHE de l'ancienne
+   (faute de frappe, autre numéro dans la même rue : la distance d'édition reste sous le quart). Sinon on ne sait plus où
+   est le client : code postal et ville se vident plutôt que de mentir, et « Localiser les clients » le dira. */
+function cliRetouche(avant, apres){ const a=nomNorm(avant), b=nomNorm(apres); if(!a||!b) return false;
+  if(Math.min(a.length,b.length)>=6 && (a.includes(b)||b.includes(a))) return true;
+  let p=Array.from({length:b.length+1},(_,j)=>j);
+  for(let i=1;i<=a.length;i++){ const q=[i]; for(let j=1;j<=b.length;j++) q[j]=Math.min(p[j]+1,q[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1)); p=q; }
+  return p[b.length] <= Math.max(a.length,b.length)/4; }
+function cliLieuApres(adr, ancien){
+  const dv=cliAdresseDerive(adr); if(dv) return dv;
+  const n=' '+nomNorm(adr)+' ', cp5=(String(adr||'').match(/\b(\d{5})\b/)||[])[1]||'';
+  const ville=String(ancien.ville||'').trim(), cp=String(ancien.codePostal||'').trim();
+  const nomme=!!ville && n.includes(' '+nomNorm(ville)+' ');
+  if(cp5) return {codePostal:cp5, ville:(nomme||cp5===cp)?ville:''};   // un code postal que le motif de cliAdresseDerive ne lit pas (« …, 33000 Bordeaux, bât 3 »)
+  if(nomme || cliRetouche(ancien.adresse, adr)) return {codePostal:cp, ville};
+  return {codePostal:'', ville:''}; }
 function cliGeoRequete(c){ const a=String(c.adresse||'').trim(); if(/\b\d{5}\b/.test(a)) return a; return [a,c.codePostal,c.ville].filter(Boolean).join(' '); }
 function cliLocaliserFond(id){ const c=db.clients.find(x=>x.id===id); if(!c||!String(c.adresse||'').trim()||c.lat!=null) return;
   const adr=c.adresse;
@@ -24973,7 +24995,7 @@ function saveClientForm(e,id){ e.preventDefault(); if(!permGarde('crm',id?'modif
     /* l'adresse a changé : les coordonnées d'avant ne désignent plus la fiche (clients#4) */
     if(d.adresse!==undefined && String(d.adresse||'').trim()!==String(ancien.adresse||'').trim()){
       neuf.lat=null; neuf.lng=null;
-      const dv=cliAdresseDerive(d.adresse); if(dv){ if(d.codePostal===undefined) neuf.codePostal=dv.codePostal; if(d.ville===undefined) neuf.ville=dv.ville; } }
+      const lieu=cliLieuApres(d.adresse,ancien); if(d.codePostal===undefined) neuf.codePostal=lieu.codePostal; if(d.ville===undefined) neuf.ville=lieu.ville; }
     db.clients[ix]=neuf; toast('Mis à jour'); }
   else { const dbl=cliDoublon(d);
     if(dbl && !confirm(`Un client « ${dbl.c.nom} » existe déjà (${dbl.raison}). Le créer quand même ?`)) return;

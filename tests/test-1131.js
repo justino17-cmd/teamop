@@ -9,7 +9,12 @@
    Ce banc EXÉCUTE la vraie `saveClientForm` (et les pièces qu'elle appelle) dans un bac à sable, avec un
    `geocode` simulé (aucun réseau), des promesses relâchées au geste, et un FormData qui rend les champs.
    ⛔ Jamais au chargement : le géocodage n'est appelé que depuis l'enregistrement d'un client — ce banc le
-   compte dans le texte du fichier (les appels, pas les commentaires).                                      */
+   compte dans le texte du fichier (les appels, pas les commentaires).
+   Relecture de g10 : (1) une adresse nouvelle qui ne dit pas où elle est ne garde pas l'ancien code postal ni l'ancienne
+   ville (§ 3 bis) ; (2) le save() d'arrière-plan de cliLocaliserFond se mesure AU NAVIGATEUR, pas ici : la sonde
+   scratchpad/gestion/correctifs/g10/sonde-localiser-fond.js (bêta, nominatim simulé, synchro allumée pour que _m se pose)
+   rend 15 ✓ : deux save() exactement, aucun _m sur une autre fiche (181 fiches), un seul redessin de carteInt à la réponse,
+   aucun appel quand l'adresse ne change pas, échec silencieux sans boucle.                                  */
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const BRUT = fs.readFileSync(path.join(__dirname, '..', 'app.html'), 'utf8');
 const SRC = BRUT.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/.*$/gm, ' ');
@@ -26,7 +31,7 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 
 console.log('\n── 1131 · 0. la population ──');
 const SC = bloc('function saveClientForm(e,id){');
-const AIDES = ['function cliAdresseDerive(', 'function cliGeoRequete(', 'function cliLocaliserFond(', 'function cliDoublon(', 'function nomNorm('].map(bloc).join('\n');   // cliDoublon : g10 clients#8 (test-1134)
+const AIDES = ['function cliAdresseDerive(', 'function cliRetouche(', 'function cliLieuApres(', 'function cliGeoRequete(', 'function cliLocaliserFond(', 'function cliDoublon(', 'function nomNorm('].map(bloc).join('\n');   // cliDoublon : g10 clients#8 (test-1134)
 vrai('saveClientForm est trouvée', SC.length > 900, SC.length);
 v('⛔ une seule définition de saveClientForm', SRC.split('function saveClientForm(').length - 1, 1);
 
@@ -80,6 +85,35 @@ const BORDEAUX = { lat: 44.8378, lng: -0.5792 };
     v('coordonnées effacées (l’adresse n’est plus la même)', [c.lat, c.lng], [null, null]);
     v('ville et code postal gardés : l’adresse ne les contredit pas', [c.ville, c.codePostal], ['La Rochelle', '17000']);
     vrai('… et la requête les joint à l’adresse', /La Rochelle/.test(W.__geo[0] || ''), W.__geo); }
+
+  console.log('\n── 1131 · 3 bis. clients#4 (relecture) : on ne garde PAS un lieu que la nouvelle adresse contredit ──');
+  { const W = monde([rochelle()], null);   // La Rochelle (17000) → « 5 rue des Lilas » : un déménagement, sans ville
+    soumettre(W, { nom: 'Boulangerie Au Bon Pain', adresse: '5 rue des Lilas', tel: '0612345678' }, 'c1');
+    const c = W.db.clients[0];
+    v('⛔ l’ancien code postal et l’ancienne ville ne survivent pas à une adresse qui n’a plus rien à voir', [c.codePostal, c.ville], ['', '']);
+    vrai('⛔ … et le géocodeur n’est PAS interrogé sur « 5 rue des Lilas 17000 La Rochelle »', !/Rochelle|17000/.test(W.__geo.join('|')), W.__geo);
+    v('… les coordonnées d’avant sont effacées', [c.lat, c.lng], [null, null]); }
+  { const W = monde([rochelle()], null);   // un code postal que le motif de cliAdresseDerive ne lit pas (suffixe après la ville)
+    soumettre(W, { nom: 'Boulangerie Au Bon Pain', adresse: '1 place de la Bourse, 33000 Bordeaux, bât 3', tel: '0612345678' }, 'c1');
+    const c = W.db.clients[0];
+    v('⛔ le code postal de l’adresse l’emporte sur l’ancien (keyForClient lit codePostal AVANT l’adresse)', c.codePostal, '33000');
+    v('… et l’ancienne ville (La Rochelle) ne reste pas à côté d’un 33000', c.ville, ''); }
+  { const W = monde([rochelle()], null);   // même rue, autre numéro : le lieu ne bouge pas
+    soumettre(W, { nom: 'Boulangerie Au Bon Pain', adresse: '4 rue du Port', tel: '0612345678' }, 'c1');
+    const c = W.db.clients[0];
+    v('autre numéro dans la même rue : la ville et le code postal restent', [c.codePostal, c.ville], ['17000', 'La Rochelle']); }
+  { const W = monde([rochelle()], null);   // faute de frappe corrigée
+    soumettre(W, { nom: 'Boulangerie Au Bon Pain', adresse: '2 rue du Prot', tel: '0612345678' }, 'c1');
+    soumettre(W, { nom: 'Boulangerie Au Bon Pain', adresse: '2 rue du Port', tel: '0612345678' }, 'c1');
+    const c = W.db.clients[0];
+    v('faute de frappe puis correction : le lieu reste', [c.codePostal, c.ville], ['17000', 'La Rochelle']); }
+  { const W = monde([rochelle()], null);   // l’adresse NOMME la ville sans code postal
+    soumettre(W, { nom: 'Boulangerie Au Bon Pain', adresse: '9 avenue Carnot, La Rochelle', tel: '0612345678' }, 'c1');
+    const c = W.db.clients[0];
+    v('l’adresse nomme la ville connue : code postal et ville restent', [c.codePostal, c.ville], ['17000', 'La Rochelle']); }
+  { const W = monde([{ id: 'c2', nom: 'Sans lieu', adresse: '3 rue A', tel: '' }], null);
+    soumettre(W, { nom: 'Sans lieu', adresse: '7 impasse Zéro', tel: '' }, 'c2');
+    v('un client qui n’avait aucun lieu n’en reçoit pas d’inventé', [W.db.clients[0].codePostal, W.db.clients[0].ville], ['', '']); }
 
   console.log('\n── 1131 · 4. clients#5 : un client créé avec une adresse est localisé en tâche de fond ──');
   { const W = monde([], { lat: 46.16, lng: -1.15 });
