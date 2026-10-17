@@ -7300,6 +7300,8 @@ a.menu-action { text-decoration: none; }
   }
 
   /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
+  /* le mot du retrait d'un membre : sans genre (« Cléo Petit a été retiré » accordait tout le monde au masculin) */
+  const motRetire = nom => nom + ' n\'est plus dans le groupe';
   async function apresChoixInfo(id, geste, motReussi) {
     erreurInfo('');
     try { await geste(); if (motReussi) mot(motReussi); } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
@@ -7339,7 +7341,7 @@ a.menu-action { text-decoration: none; }
       else if (act === 'membre') {
         const uid = b.dataset.uid, nommer = b.dataset.admin === '1', nom = b.dataset.nom || '';
         ouvrirDeroule(b, 'Gérer ' + nom, nom, [{ valeur: 'admin', libelle: nommer ? 'Nommer admin' : 'Retirer l\'admin' }, '-', { valeur: 'retirer', libelle: 'Retirer du groupe', danger: true }],
-          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a été retiré du groupe'));
+          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : motRetire(nom)));
         return;
       }
       else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);

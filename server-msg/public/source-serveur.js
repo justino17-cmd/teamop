@@ -2260,7 +2260,8 @@
         case 'reunion_decalee': { const av = m.meta.avant || {}, ap = m.meta.apres || {}; return (estMoi(a) ? 'Vous avez' : nomDe(a) + ' a') + ' décalé la réunion' + (Number.isFinite(av.debut) && Number.isFinite(ap.debut) ? ' : ' + dateCourte(av.debut) + ' → ' + dateCourte(ap.debut) : '') + (typeof m.meta.motif === 'string' && m.meta.motif ? ' · Motif : ' + m.meta.motif : ''); }
         case 'groupe_cree': return estMoi(a) ? 'Vous avez créé le groupe' : nomDe(a) + ' a créé le groupe';
         case 'canal_cree': return estMoi(a) ? 'Vous avez créé le canal' : nomDe(a) + ' a créé le canal';
-        case 'membre_ajoute': return estMoi(a) ? 'Vous avez ajouté ' + nomDe(u) : nomDe(a) + ' a ajouté ' + (estMoi(u) ? 'vous' : nomDe(u));
+        /* ⛔ la personne ajoutée lit « Ana vous a ajouté », jamais « Ana a ajouté vous » (comme « vous a retiré » plus bas) */
+        case 'membre_ajoute': return estMoi(a) ? 'Vous avez ajouté ' + nomDe(u) : estMoi(u) ? nomDe(a) + ' vous a ajouté' : nomDe(a) + ' a ajouté ' + nomDe(u);
         case 'rejoint': return estMoi(u) ? 'Vous avez rejoint ' + LE : nomDe(u) + ' a rejoint ' + LE;
         case 'membre_retire': return estMoi(a) ? 'Vous avez retiré ' + nomDe(u) : estMoi(u) ? nomDe(a) + ' vous a retiré ' + DU : nomDe(a) + ' a retiré ' + nomDe(u);
         case 'membre_parti': return estMoi(u) ? 'Vous avez quitté ' + LE : nomDe(u) + ' a quitté ' + LE;

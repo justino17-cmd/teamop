@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '3ee1c64a7ec8';
+  const OPMSG_BUILD = '2bd391847e5d';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 207;
+  const OPMSG_VERSION = 208;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -4498,6 +4498,8 @@
   }
 
   /* un choix fait dans un menu des infos : il agit, puis la feuille se redit (si elle montre toujours CETTE conversation) ; un refus s'écrit dans la feuille */
+  /* le mot du retrait d'un membre : sans genre (« Cléo Petit a été retiré » accordait tout le monde au masculin) */
+  const motRetire = nom => nom + ' n\'est plus dans le groupe';
   async function apresChoixInfo(id, geste, motReussi) {
     erreurInfo('');
     try { await geste(); if (motReussi) mot(motReussi); } catch (er) { erreurInfo(phrase(er, 'Cette action n\'a pas pu se faire.')); }
@@ -4537,7 +4539,7 @@
       else if (act === 'membre') {
         const uid = b.dataset.uid, nommer = b.dataset.admin === '1', nom = b.dataset.nom || '';
         ouvrirDeroule(b, 'Gérer ' + nom, nom, [{ valeur: 'admin', libelle: nommer ? 'Nommer admin' : 'Retirer l\'admin' }, '-', { valeur: 'retirer', libelle: 'Retirer du groupe', danger: true }],
-          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : nom + ' a été retiré du groupe'));
+          v => apresChoixInfo(id, () => v === 'admin' ? source.nommerAdmin(id, uid, nommer) : source.retirerMembre(id, uid), v === 'admin' ? (nommer ? nom + ' est admin' : nom + ' n\'est plus admin') : motRetire(nom)));
         return;
       }
       else if (act === 'ajouter') await source.ajouterMembres(id, [b.dataset.uid]);

@@ -492,7 +492,7 @@ async function couple(b, env, cfg) {
     await toucher(B, '#g-annuler');
     await toucher(A, '#info-corps .contact:has(.contact-nom:has-text("' + prenomC + '")) [data-act="membre"]');
     await toucher(A, '#deroule-liste [data-valeur="retirer"]');
-    await verifier('« Retirer du groupe » : la page le dit (« … a été retiré du groupe »)', A, p => new RegExp(p + '.* a été retiré du groupe').test(document.getElementById('mot').textContent), prenomC, 6000, () => texteVu(A, '#mot'));
+    await verifier('« Retirer du groupe » : la page le dit (« … n\'est plus dans le groupe »)', A, p => new RegExp(p + '.* n\'est plus dans le groupe').test(document.getElementById('mot').textContent), prenomC, 6000, () => texteVu(A, '#mot'));
     await verifier('A retire C : C est averti (« Tu n\'es plus dans cette conversation »), revient à la liste, le groupe n\'y est plus', C, g => !Array.from(document.querySelectorAll('#liste-conv .conv-nom')).some(x => x.textContent === g) && document.documentElement.dataset.conv !== '1', G, 9000, () => texteVu(C, '#liste-conv'));
     await envoyerTexte(B, tag + '-apres');
     await dormir(1200);
