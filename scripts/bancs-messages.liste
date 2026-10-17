@@ -115,7 +115,10 @@
 # fichier .ics est parti — test-971 sort de la liste (ses 94 faits du monde réel entrent dans 970 : 107 → 109) ; 905 (1193 → 1180), 973 (298 → 285), 975 (141 → 140),
 # 976 (73 → 69), 1004 (66 → 52), 1005 (169 → 161), 1006 (89 → 78) perdent leur part .ics, rien d'autre — 98 suites, 9 942 vérifications mesurées par la commande de la
 # porte, toutes vertes en local (plus aucun banc ne dépend des fuseaux de la machine) — plancher 9928 (le total moins 14, jamais une addition).
-#plancher 9928
+# 17 octobre 2026, relecture du lot m08 : test-1540 entre dans la liste (40 : un message tapé pendant un envoi part tel qu'il était à l'Entrée, « écrit… » s'éteint avec le champ, « 1 signe en trop ») ;
+# 900 et 933 acceptent les numéros 1540-1549 et 933 exige 1540 dans la liste (+1) — 99 suites, 9 983 vérifications mesurées par la commande de la porte (9 982 au passage où test-984, la course
+# connue du relais au chronomètre, a laissé tomber un contrôle ; rejouée seule trois fois : 148 ✓ 0 ✗, comme sans ce lot) — plancher 9969 (le total moins 14, jamais une addition).
+#plancher 9969
 #
 # ── Le service ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 tests/test-900.js
@@ -281,3 +284,6 @@ tests/test-1002.js
 #    une seule bascule Perso / Pro et le passage automatique en Pro aux heures de travail (11 octobre 2026) : les vraies fonctions de la page, le vrai service, deux
 #    appareils de la même personne — la vraie page au doigt : tests/sonde-opmessages-bascule.js
 tests/test-1003.js
+# ── Un message tapé pendant un envoi, « écrit… » qui s'éteint avec le champ, l'accord de « signe(s) en trop » (17 octobre 2026) : les vraies fonctions de la page, un service lent que le banc libère ou refuse (1540) ;
+#    la vraie page : test-857 (motifs) et tests/sonde-opmessages-serveur.js (bloc 9 ter, rafale)
+tests/test-1540.js
