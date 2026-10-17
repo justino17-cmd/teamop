@@ -268,6 +268,12 @@
   .frow-val>input,.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
   .frow>textarea{resize:vertical;min-height:44px;font-family:inherit;}
   .frow .frow-lbl{color:var(--t1);font-size:15px;white-space:nowrap;}
+  /* ⛔ UN CHAMP POSÉ DIRECTEMENT APRÈS SON LIBELLÉ SE RANGE À CÔTÉ DE LUI (g03, achats#12). `.frow>input{width:100%}`
+     (la ligne sans libellé, placeholder seul) forçait la ligne à passer : « N° » restait seul au-dessus de sa valeur
+     — « Nouveau bon », « Modifier la box », fiche produit —, sur Mac comme sur iPhone, alors que la valeur est
+     écrite `text-align:right`, c'est-à-dire pensée pour la MÊME ligne. Une base de 140 px (et non 0) garde la
+     protection du `flex-wrap` : un libellé long sur un écran étroit renvoie quand même le champ dessous. */
+  .frow>.frow-lbl+input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]):not([type=color]){flex:1 1 140px;width:auto;min-width:0;}
   .frow .frow-val{margin-left:auto;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px;min-width:0;max-width:100%;}
   .frow select{appearance:none;-webkit-appearance:none;}
   /* champs de saisie d'un relevé : à l'écriture, rien d'autre */
@@ -324,7 +330,9 @@
   .tag{font-size:12px;font-weight:600;padding:3px 9px;border-radius:7px;background:color-mix(in srgb,var(--t3) 12%,transparent);color:var(--t2);}
   .tag.hot{background:color-mix(in srgb,var(--red) 14%,transparent);color:var(--red);}
 
-  .search-inp{width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;color:var(--t1);font-family:'Archivo',sans-serif;font-size:14px;margin-bottom:14px;}
+  .search-inp{width:100%;background:var(--bg1);border:1px solid var(--brd);border-radius:12px;padding:12px 14px;color:var(--t1);font-family:'Archivo',sans-serif;font-size:14px;margin-bottom:14px;text-overflow:ellipsis;}
+  /* un libellé trop long pour le champ (« Rechercher un produit, une référence, un fournisseur… » : 441 px dans 358) finit par « … » au lieu d'être coupé net sur « ur » — g03, technicien#13 */
+  .search-inp::placeholder{text-overflow:ellipsis;}
   .search-inp:focus{outline:none;border-color:color-mix(in srgb,var(--acc) 55%,transparent);}
   /* FILTERS */
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
@@ -454,7 +462,12 @@
   .bar-lbl{font-size:13px;color:var(--t2);width:140px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
   .bar-track{flex:1;height:12px;background:var(--bg);border-radius:100px;overflow:hidden;}
   .bar-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .5s;}
-  .bar-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:64px;text-align:right;flex-shrink:0;}
+  /* ⛔ UNE COLONNE DE MONTANTS NE SE FIXE PAS À 64 PX (g03, accueil#9, mesuré au navigateur) : « 1 055,00 € » passait sur deux
+     lignes (« € » seul dessous), « 12 345,67 € » dépassait de 6 px, « 123 456,78 € » de 14 px et « 118 518 518,52 € » de 46 px
+     — jusqu'à sortir de la carte (page à 395 px pour 390). 64 px reste le PLANCHER (les petits chiffres gardent leur
+     alignement), la colonne s'élargit à son contenu, insécable, et c'est la barre — `flex:1`, sans largeur propre — qui
+     cède la place : un chiffre se lit, une barre se devine. */
+  .bar-val{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;width:auto;min-width:64px;white-space:nowrap;text-align:right;flex-shrink:0;}
 
   /* MAP */
   .map-canvas{position:relative;height:440px;border-radius:16px;overflow:hidden;border:1px solid var(--brd);background:linear-gradient(135deg,#10141b,#181f2b);background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;}
@@ -4700,6 +4713,22 @@ html[data-refonte] .pl-row.lga{container:ligne-gestes / inline-size;flex-wrap:wr
   html[data-refonte] .lga::after{order:1}
   html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st,html[data-refonte] .lga > .btn{order:2;margin-left:auto}
 }
+/* ⛔ ET LES LIGNES DE BONS DE COMMANDE (g03, achats#2 et achats#9, mesuré au navigateur) : pastille de
+   fournisseur, TEXTE (numéro, quantités, courriel du destinataire), statut, puis trois boutons — Voir le PDF,
+   Envoyer, corbeille — sur une seule ligne. Texte à 0 px sur Android et iPhone (« BC- / 2026- / 001 / 2 / article(s) »
+   mot par mot, boutons sortis de 87 à 183 px de la carte) et à 14 px sur iPad ; sur Commandes en cours, 35 px
+   pour une commande partielle (« reste dû : … »). Même motif que `.lga`, avec SON seuil : le texte d'un bon est long
+   (une adresse courriel entière), il lui faut ~200 px, et la ligne en perd 430 aux gestes — d'où 700 px et non 440.
+   La ligne est son propre conteneur (`ligne-bon`), parce qu'elle vit dans la liste, dans « Par box » (plus étroite
+   de 68 px) et dans Commandes en cours : un @media sur l'écran ne voit pas l'iPad et son menu latéral.
+   Le statut ET les boutons forment UN groupe (`.lgb-a`) : deux marges automatiques s'en seraient partagé la place. */
+html[data-refonte] .pl-row.lgb{container:ligne-bon / inline-size;flex-wrap:wrap;row-gap:10px!important}
+html[data-refonte] .lgb > .lgb-a{display:flex;align-items:center;gap:15px;flex-shrink:0}
+@container ligne-bon (max-width:700px){
+  html[data-refonte] .lgb > .pl-info{flex:1 1 calc(100% - 60px)}   /* la base du texte prend la ligne : la pastille et le chevron seuls restent à côté */
+  html[data-refonte] .lgb::after{order:1}
+  html[data-refonte] .lgb > .lgb-a{order:2;flex-shrink:1;flex-wrap:wrap;justify-content:flex-end;gap:8px 10px;margin-left:auto}
+}
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
    C'est ce qui manquait pour que ça se lise comme une application de terrain et non comme un
@@ -6575,6 +6604,41 @@ html[data-refonte] .pl-row[onclick]:is(:has(.btn),:has(button))::after{
 html[data-refonte] .pl-row[onclick]:hover::after{opacity:1;border-color:var(--acc)}
 @media(max-width:780px){
   html[data-refonte] .list-tbl tbody tr{min-height:64px;padding-top:12px;padding-bottom:12px}
+}
+/* ⛔ LA RANGÉE DE GESTES D'UN TABLEAU DE LISTE PASSE À LA LIGNE — Devis et Contrats étaient COUPÉS
+   (g03, ventes#0 et ventes#1, mesuré au navigateur) : le dernier <td> porte `white-space:nowrap` EN
+   LIGNE, huit boutons de 58 px côte à côte (≈ 470 px). Au téléphone la ligne devient une carte de
+   280 à 308 px et `.tbl{overflow:hidden}` coupe la rangée : ✎ Modifier, → facture et 🗑 étaient
+   inatteignables, même au doigt (x = 441 à 499 sur un écran de 390). Sur iPad, le tableau, plus large
+   que sa carte (menu latéral permanent), défilait sans que rien ne le dise : « MO… », boutons
+   hors cadre. Un style en ligne bat la feuille — d'où `!important` sur LA propriété qu'il écrit.
+   Une cellule de gestes se range donc par le COMPOSANT (`.list-tbl`), jamais par l'écran où elle est née :
+   elle passe à la ligne sous 781 px (cartes) ET sur tablette, où elle garde de quoi ranger ses boutons
+   par rangées de trois au lieu d'imposer une largeur d'ordinateur au tableau entier. */
+html[data-refonte] .list-tbl td.cel-gestes{white-space:normal!important}
+html[data-refonte] .list-tbl td.cel-gestes .btn{margin:2px 0}
+@media(max-width:780px){
+  html[data-refonte] .list-tbl td.cel-gestes:not(:empty){display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;justify-content:flex-start}
+}
+/* ⛔ C'EST LA LARGEUR DU TABLEAU QUI DÉCIDE, PAS CELLE DE L'ÉCRAN : sur iPad le menu latéral reste posé, la
+   carte du tableau ne fait que 450 à 850 px dans un écran de 820 à 1180, et huit colonnes n'y tiennent pas
+   (Devis : 1 036 px, Contrats : 893 px, boutons à x = 1 286 dans une carte qui s'arrête à 796). Un @media
+   sur l'écran ne pouvait pas le voir — d'où une requête de CONTENEUR sur l'enveloppe du tableau, la même
+   mise en cartes que sous 781 px. `container` va sur `.tbl-wrap` (qui ne contient QUE le tableau), jamais
+   sur `#content`. Au-dessus de 900 px de carte, le tableau tient et reste un tableau. */
+html[data-refonte] .tbl-wrap:has(>.list-tbl .cel-gestes){container:tbl-liste / inline-size}
+@media(min-width:781px){
+  @container tbl-liste (max-width:900px){
+    html[data-refonte] .list-tbl,html[data-refonte] .list-tbl tbody,html[data-refonte] .list-tbl tr,html[data-refonte] .list-tbl td{display:block;width:100%}
+    html[data-refonte] .list-tbl thead{display:none}
+    html[data-refonte] .list-tbl{border-collapse:separate}
+    html[data-refonte] .list-tbl tr{background:var(--bg2);border:1px solid var(--brd);border-radius:12px;margin-bottom:8px;padding:12px 6px;position:relative;min-height:64px}
+    html[data-refonte] .list-tbl td{border:none!important;padding:3px 14px;font-size:13px;color:var(--t2)}
+    html[data-refonte] .list-tbl td:first-child{font-size:15px;font-weight:600;color:var(--t1);padding-top:6px;padding-bottom:2px}
+    html[data-refonte] .list-tbl td.cel-gestes{padding-top:8px;text-align:left!important}
+    html[data-refonte] .list-tbl td:empty{display:none}
+    html[data-refonte] .list-tbl td.cel-gestes:not(:empty){display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;justify-content:flex-start}
+  }
 }
 
 /* ── 3. LA RECHERCHE EN PILULE ──
@@ -29751,7 +29815,7 @@ views.demandes=function(){
   else if(!cours.length){ corps=`<div class="card">${emptyState('✈️',passe.length?'Rien en cours — tout est traité. L\'historique est dans l\'onglet à côté.':'Aucune demande.','Nouvelle','formDemande()')}</div>`; }
   else {
     const rows=cours.map(d=>`<tr class="row-clk" data-dem="${d.id}" onclick="ficheDemande('${d.id}')"><td class="strong mono">${esc(d.num)}</td><td class="strong">${esc(d.boxNom||boxLabel(d.boxId))}</td><td>${(d.lignes||[]).length} produit(s) · ${demTotal(d)} u.</td><td>${esc(d.chefNom||userName(d.chefId))}</td><td>${fmtShort(d.date)}</td><td>${badgeEtat(demandeEtat(d))}</td>
-      <td style="text-align:right" onclick="event.stopPropagation()">${((d.statut==='enAttente'&&d.chefId===currentUser.id)||currentUser.role==='admin')?`<button class="btn danger sm" onclick="delItem('demandes','${d.id}')">🗑</button>`:'—'}</td></tr>`).join('');
+      <td class="cel-gestes" style="text-align:right" onclick="event.stopPropagation()">${((d.statut==='enAttente'&&d.chefId===currentUser.id)||currentUser.role==='admin')?`<button class="btn danger sm" onclick="delItem('demandes','${d.id}')">🗑</button>`:'—'}</td></tr>`).join('');
     corps=tableCard(['N°','Box','Produits','Demandeur','Date','Statut',''],rows);
   }
   $('content').innerHTML=onglets+corps;
@@ -30173,14 +30237,14 @@ function renderBonsList(){
   if(!list.length){ el.innerHTML=`<div class="card">${emptyState('✉️','Aucun bon de commande.','Nouveau','formBon()')}</div>`; return; }
   const bulkBtn = bonsFilter==='prets' ? `<button class="btn" style="width:100%;justify-content:center;margin:0 0 10px" onclick="bonEnvoyerTousPrets()">✉️ Envoyer les bons prêts… (${list.length}) — tu choisis lesquels</button>` : '';
   const bonRow=b=>{ const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{}; const fn=f.nom||b.fournisseur||'Sans fournisseur'; const c=f.nom?fourColor(f.nom):'var(--t3)';
-    return `<div class="pl-row" onclick="ficheBon('${b.id}')" style="align-items:center">
+    return `<div class="pl-row lgb" onclick="ficheBon('${b.id}')" style="align-items:center">
     <span style="width:12px;height:12px;border-radius:50%;background:${c};flex-shrink:0"></span>
     <div class="pl-info"><div class="pl-title">${esc(fn)} <span style="color:var(--t3);font-weight:400;font-size:12px">· ${esc(bonNum(b))}</span></div>
-      <div class="pl-meta">${(b.lignes||[]).length} article(s) · ${bonQteTotTxt(b)} · ${fmtShort(b.date)}${bonEmailDest(b,f)?`<br>→ <span style="color:var(--acc-txt)">${esc(bonEmailDest(b,f))}</span>`:'<br>⚠️ e-mail fournisseur manquant'}</div></div>${badge(STATBC,b.statut)}
+      <div class="pl-meta">${(b.lignes||[]).length} article(s) · ${bonQteTotTxt(b)} · ${fmtShort(b.date)}${bonEmailDest(b,f)?`<br>→ <span style="color:var(--acc-txt)">${esc(bonEmailDest(b,f))}</span>`:'<br>⚠️ e-mail fournisseur manquant'}</div></div><span class="lgb-a">${badge(STATBC,b.statut)}
     <span onclick="event.stopPropagation()" style="display:flex;gap:4px;flex-shrink:0">
       <button class="btn ghost sm" title="Voir le PDF" onclick="bonPdfOpen('${b.id}')">📄</button>
       ${b.statut==='brouillon'?`<button class="btn sm" onclick="bonStatut('${b.id}','prete')">✓ Prêt</button>`:b.statut==='prete'?`<button class="btn sm" onclick="envoiBonApercu('${b.id}')">✉️ Envoyer</button>`:''}
-      <button class="btn danger sm" onclick="delItem('bons','${b.id}')">🗑</button></span></div>`; };
+      <button class="btn danger sm" onclick="delItem('bons','${b.id}')">🗑</button></span></span></div>`; };
   if(bonsTab==='box'){ el.innerHTML=bulkBtn+bonsParBoxHtml(list,bonRow); return; }
   if(bonsTab==='liste'){ el.innerHTML=bulkBtn+list.map(bonRow).join(''); return; }
   // groupé par site ou fournisseur
@@ -30848,6 +30912,26 @@ function bonQtyList(){ const el=$('bqty-wrap'); if(!el) return;
     #bqty-wrap th{position:sticky;top:0;background:var(--card);z-index:2;text-align:left;font-size:10.5px;font-weight:800;letter-spacing:.8px;color:var(--t3);padding:9px 8px;border-bottom:1px solid var(--brd2);white-space:nowrap}
     #bqty-wrap td{padding:8px;border-bottom:1px solid var(--brd);vertical-align:middle}
     #bqty-wrap tr.alt td{background:color-mix(in srgb,var(--bg1) 60%,transparent)}
+    /* ⛔ AU TÉLÉPHONE ET SUR iPAD PORTRAIT, LE TABLEAU DE 840 PX NE MONTRAIT QUE « PRODUIT » ET « CARTONS » (g03, achats#11) :
+       dans un écran de 390 px, seuls deux colonnes sur sept sont visibles à l'ouverture — U/CTN, UNITÉS, TOTAL et COMMENTAIRE
+       sont hors écran, sans la moindre indication qu'on peut défiler. La commande est la raison d'être de cet écran : on ne
+       cache pas la saisie des unités derrière un geste qu'on ne devine pas. Sous 900 px, chaque ligne devient une CARTE :
+       le produit sur toute la largeur, puis chaque champ sous son étiquette (reprise de l'en-tête, qui disparaît), qui passent
+       à la ligne quand ça ne tient pas. Au-dessus, le tableau reste un tableau. */
+    @media(max-width:900px){
+      #bqty-wrap table{min-width:0}
+      #bqty-wrap thead{display:none}
+      #bqty-wrap table,#bqty-wrap tbody{display:block;width:100%}
+      #bqty-wrap tr{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px;padding:12px;border-bottom:1px solid var(--brd)}
+      #bqty-wrap tr:last-child{border-bottom:0}
+      #bqty-wrap tr.alt{background:color-mix(in srgb,var(--bg1) 60%,transparent)}
+      #bqty-wrap tr.alt td{background:transparent}
+      #bqty-wrap td{display:flex;flex-direction:column;align-items:flex-start;gap:4px;padding:0;border:0}
+      #bqty-wrap td[data-l]::before{content:attr(data-l);font-size:10.5px;font-weight:800;letter-spacing:.8px;color:var(--t3)}
+      #bqty-wrap td:first-child{flex:1 0 100%}
+      #bqty-wrap td.bq-c{flex:1 1 100%}
+      #bqty-wrap td.bq-x{margin-left:auto}
+    }
   </style>`;
   _bqtyGroups.forEach((g,gi)=>{ const c=g.k==='Sans fournisseur'?'var(--t3)':fourColor(g.k);
     html+=`<div style="display:flex;align-items:center;gap:9px;margin:16px 2px 8px">
@@ -30860,12 +30944,12 @@ function bonQtyList(){ const el=$('bqty-wrap'); if(!el) return;
     g.idx.forEach((i,j)=>{ const l=bonLignes[i];
       html+=`<tr class="${j%2?'alt':''}">
         <td>${l.produitId?`<b style="font-size:13.5px">${esc(l.designation||'—')}</b>${l.reference?`<div class="mono" style="font-size:11px;color:var(--t3)">${esc(l.reference)}</div>`:''}`:`<input value="${esc(l.designation||'')}" placeholder="Désignation libre…" style="min-width:180px;width:100%" oninput="bonLignes[${i}].designation=this.value">`}</td>
-        <td><div style="display:flex;align-items:center;gap:4px">${step(i,'cartons',-1)}${num(i,'cartons',52)}${step(i,'cartons',1)}</div></td>
-        <td>${num(i,'upc',52)}</td>
-        <td><div style="display:flex;align-items:center;gap:4px">${step(i,'quantite',-1)}${num(i,'quantite',52)}${step(i,'quantite',1)}</div></td>
-        <td id="bqty-t-${i}" style="text-align:right;font-weight:800;color:var(--acc-txt);white-space:nowrap"></td>
-        <td><input value="${esc(l.commentaire||'')}" placeholder="Commentaire…" style="min-width:150px;width:100%" oninput="bonLignes[${i}].commentaire=this.value"></td>
-        <td><button type="button" class="btn danger sm" onclick="bonLignes.splice(${i},1);bonQtyList()">✕</button></td></tr>`;
+        <td data-l="CARTONS"><div style="display:flex;align-items:center;gap:4px">${step(i,'cartons',-1)}${num(i,'cartons',52)}${step(i,'cartons',1)}</div></td>
+        <td data-l="U/CTN">${num(i,'upc',52)}</td>
+        <td data-l="UNITÉS"><div style="display:flex;align-items:center;gap:4px">${step(i,'quantite',-1)}${num(i,'quantite',52)}${step(i,'quantite',1)}</div></td>
+        <td data-l="TOTAL" id="bqty-t-${i}" style="text-align:right;font-weight:800;color:var(--acc-txt);white-space:nowrap"></td>
+        <td data-l="COMMENTAIRE" class="bq-c"><input value="${esc(l.commentaire||'')}" placeholder="Commentaire…" style="min-width:150px;width:100%" oninput="bonLignes[${i}].commentaire=this.value"></td>
+        <td class="bq-x"><button type="button" class="btn danger sm" onclick="bonLignes.splice(${i},1);bonQtyList()">✕</button></td></tr>`;
     });
     html+='</tbody></table></div>';
   });
@@ -31025,10 +31109,13 @@ function renderBonLignes(){ const el=$('bon-lignes'); if(!el)return;
         <div class="pl-info"><div class="pl-title">${esc(k)}</div><div class="pl-meta">${ls.length} article(s) · ${bonQteTotTxt({lignes:ls})}</div></div>
         <span style="color:var(--t3);font-size:13px;white-space:nowrap">Modifier ›</span></div>`; }).join('');
   }
+  /* ⛔ 140 px et non 110 : « 💾 Garder de côté » en demande ~125, et à 110 sur un iPhone (trois colonnes de 111 px)
+     son icône recouvrait le « F » d'« Aperçu PDF » — le contenu d'un bouton centré déborde des DEUX côtés. À 140,
+     trois colonnes ne tiennent plus sous ~440 px : deux boutons, puis le troisième sur sa ligne (g03, achats#12). */
   el.innerHTML=recap+`<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
-      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:110px" onclick="bonPdfDraft()">📄 Aperçu PDF</button>
-      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:110px" onclick="bonGarder()">💾 Garder de côté</button>
-      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:110px" onclick="bonShareDraft()">📤 Partager</button>
+      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:140px" onclick="bonPdfDraft()">📄 Aperçu PDF</button>
+      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:140px" onclick="bonGarder()">💾 Garder de côté</button>
+      <button type="button" class="btn ghost sm" style="flex:1;justify-content:center;min-width:140px" onclick="bonShareDraft()">📤 Partager</button>
     </div>`;
   const c=$('bon-lignes-count'); if(c)c.textContent=lignes.length;
   bonTotRefresh();
@@ -31803,7 +31890,7 @@ views.commandes=function(){
        c'est la seule information qui permet de relancer le fournisseur. */
     const manque=b.statut==='partielle'?` · <b style="color:var(--org)">reste dû : ${esc(bonResteTxt(b))}</b>`:'';
     const suivi=enRoute+manque+(b.recuPar?` · reçu le ${fmtShort(b.recuLe)} par ${esc(b.recuPar)}`:'')+(b.valideDrNom?` · validé par ${esc(b.valideDrNom)}`:'');
-    return `<div class="pl-row" onclick="ficheBon('${b.id}')"><div class="pl-info"><div class="pl-title">${esc(fournName(b.fournisseurId)||b.fournisseur||'Fournisseur')} · ${(b.lignes||[]).length} article(s)</div><div class="pl-meta">${esc(bonNum(b))} · ${bonQteTotTxt(b)}${suivi}</div></div>${b.statut==='arrivageNote'?'<span class="st st-purple">📦 Arrivée — attente DR</span>':badge(STATBC,b.statut)}${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();cmdEnCoursSuppr('${b.id}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}</div>`;}).join('') : emptyState('📥','Aucune commande en cours.','',''))+pied;
+    return `<div class="pl-row lgb" onclick="ficheBon('${b.id}')"><div class="pl-info"><div class="pl-title">${esc(fournName(b.fournisseurId)||b.fournisseur||'Fournisseur')} · ${(b.lignes||[]).length} article(s)</div><div class="pl-meta">${esc(bonNum(b))} · ${bonQteTotTxt(b)}${suivi}</div></div><span class="lgb-a">${b.statut==='arrivageNote'?'<span class="st st-purple">📦 Arrivée — attente DR</span>':badge(STATBC,b.statut)}${currentUser&&currentUser.role==='admin'?`<button type="button" class="dos-x" onclick="event.stopPropagation();cmdEnCoursSuppr('${b.id}')" title="Supprimer définitivement" aria-label="Supprimer cette commande">🗑</button>`:''}</span></div>`;}).join('') : emptyState('📥','Aucune commande en cours.','',''))+pied;
 };
 
 /* ═══════════════ VÉHICULES (fiche complète : carte grise, assurance, conducteur — modèle ELAN) ═══════════════ */
@@ -32873,7 +32960,7 @@ views.techniciens=function(){
   setHeader('Techniciens',`${L.length} membre(s)`,`${nbDbl?`<button class="btn ghost" onclick="techFusionnerDoublons()" title="Des fiches portent le même nom">🧹 Fusionner ${nbDbl} doublon(s)</button> `:''}${peutAjout?`<button class="btn" onclick="formTech()">＋ Technicien</button>`:''}`);
   const rows=L.map(t=>{ const n=db.interventions.filter(i=>intTechIds(i).indexOf(t.id)>=0).length;   // v757 : second compris, pas seulement le premier
     return `<tr class="row-clk" onclick="ficheTech('${t.id}')"><td><div class="ppl"><span class="avatar av-tc" style="--tc:${techColor(t.id)}">${initials(t.nom)}</span> <span class="strong">${esc(t.nom)}</span></div></td><td>${esc(t.metier)||'—'}</td><td>${esc(t.tel)||'—'}</td><td>${certibBadge(t)}</td><td>${n}</td>
-    <td style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">${peutModif?`<button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button>`:''}${peutModif&&peutSuppr?' ':''}${peutSuppr?`<button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button>`:''}</td></tr>`;}).join('');
+    <td class="cel-gestes" style="text-align:right;white-space:nowrap" onclick="event.stopPropagation()">${peutModif?`<button class="btn ghost sm" onclick="formTech('${t.id}')">✎</button>`:''}${peutModif&&peutSuppr?' ':''}${peutSuppr?`<button class="btn danger sm" onclick="delItem('techniciens','${t.id}')">🗑</button>`:''}</td></tr>`;}).join('');
   $('content').innerHTML=L.length? tableCard(['Technicien','Rôle','Téléphone','Certibiocide','Interv.',''],rows)
     :`<div class="card">${peutAjout?emptyState('👷','Aucun technicien.','Ajouter','formTech()'):emptyState('👷','Aucune fiche du personnel n’est rattachée à ton compte.','','')}</div>`;
 }
@@ -35590,7 +35677,7 @@ function docListView(kind,xyloOnly){
   setHeader(titre, `${list.length} ${cfg.un}(s) · ${eur(total)} TTC`, canCat('ventes','ajouter')?headBtn:'');
   const rows=list.map(d=>{ const t=docTot(d);
     return `<tr><td class="strong mono">${esc(d.num)}</td><td>${esc(clientName(d.clientId))}</td><td>${fmtShort(d.date)}</td><td class="strong">${eur(t.ttc)}</td><td>${badge(cfg.st,d.statut)}</td>
-    <td style="text-align:right;white-space:nowrap">
+    <td class="cel-gestes" style="text-align:right;white-space:nowrap">
       ${vMod?`<button class="btn sm" onclick="envoiDoc('${kind}','${d.id}','mail')" title="Envoyer par email">📧</button>
       <button class="btn ghost sm" onclick="envoiDoc('${kind}','${d.id}','sms')" title="Envoyer par SMS (exception)">💬</button>`:''}
       <button class="btn ghost sm" onclick="printDoc('${kind}','${d.id}')" title="Aperçu">👁</button>
@@ -37519,7 +37606,7 @@ views.contrats=function(){
   const ech=ctrRappels(), echDe=new Map(ech.map(x=>[x.ct.id,x.j]));   // les rappels d'échéance (ctrEcheance)
   setHeader('Contrats','Contrats de maintenance & récurrents',cAj?`<button class="btn" onclick="formContrat()">＋ Contrat</button>`:'');
   const rows=list.map(ct=>`<tr data-ctr="${esc(ct.id)}"><td class="strong mono">${esc(ct.num)}</td><td class="strong">${esc(ct.titre)}</td><td>${esc(clientName(ct.clientId))}</td><td>${FREQ[ct.frequence]||'—'}</td><td>${eur(ct.montant)}</td><td>${fmtShort(ct.dateDebut)} → ${fmtShort(ct.dateFin)}${ctrPastille(echDe.get(ct.id))}</td><td>${badge(CTR_ST,ct.statut)}</td>
-    <td style="text-align:right;white-space:nowrap">${iAj?`<button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> `:''}${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> `:''}${cSup?`<button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button>`:''}</td></tr>`).join('');
+    <td class="cel-gestes" style="text-align:right;white-space:nowrap">${iAj?`<button class="btn sm" title="Générer la prochaine intervention" onclick="genererInterventionContrat('${ct.id}')">🔁</button> `:''}${cMod?`<button class="btn ghost sm" onclick="formContrat('${ct.id}')">✎</button> `:''}${cSup?`<button class="btn danger sm" onclick="delItem('contrats','${ct.id}')">🗑</button>`:''}</td></tr>`).join('');
   /* g02 : les doublons déjà en base se DISENT, ils ne se renumérotent pas (un numéro émis ne change pas seul) */
   const dbl=docNumsDoubles('contrats');
   const bandeauDbl=dbl.length?`<div class="card" style="border:1px solid var(--org);background:color-mix(in srgb,var(--org) 9%,transparent);padding:12px 14px;margin-bottom:12px">
