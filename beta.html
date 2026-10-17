@@ -21478,10 +21478,26 @@ function printDossierClient(id){ const c=db.clients.find(x=>x.id===id); if(!c) r
     <script>window.print()<\/script></body></html>`); w.document.close(); }
 
 /* ── Exports CSV ── */
-function csvEsc(v){ v=(v==null?'':String(v)); return '"'+v.replace(/"/g,'""')+'"'; }
-function csvDownload(name,heads,rows){ const txt='﻿'+[heads,...rows].map(r=>r.map(csvEsc).join(';')).join('\r\n');
+/* UNE seule fabrique de cellule pour TOUS les exports (interventions, clients, comptabilité, registre,
+   télécollecte, bons de commande). Elle en avait trois copies qui ne faisaient que doubler les guillemets :
+   un titre « =HYPERLINK(…) », un compte rendu « @SUM(…) » ou un client « =1+1 Resto » s'exécutait à
+   l'ouverture dans Excel (injection de formule). Tout TEXTE qui commence par = + - @ (ou tabulation,
+   retour chariot) reçoit une apostrophe ; un NOMBRE ne la reçoit jamais — un montant négatif légitime
+   (« -12,50 », écrit par num()) doit rester un nombre. Les nombres sont écrits à la française (virgule) :
+   « 33.5 » est lu comme du texte par Excel en locale française. */
+function csvCellule(v){
+  if(v==null) v='';
+  else if(typeof v==='number') v=Number.isFinite(v)?String(v).replace('.',','):'';
+  else { v=String(v); if(/^[=+\-@\t\r]/.test(v) && !/^[+-]?\d+(?:[.,]\d+)?$/.test(v)) v="'"+v; }
+  return '"'+v.replace(/"/g,'""')+'"'; }
+function csvCellMontant(m){ const n=Number(m); return Number.isFinite(n)?n:(m==null?0:String(m)); }
+function csvLignes(rows,eol){ return rows.map(r=>r.map(csvCellule).join(';')).join(eol); }
+/* La date d'un export est COMPLÈTE (JJ/MM/AAAA) : fmtShort (« 31 déc. ») est pour l'écran et ne dit pas
+   l'année — deux factures du 31/12/2025 et du 02/01/2026 devenaient indiscernables pour la comptable. */
+function csvDate(iso){ iso=String(iso||''); const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso); return m?m[3]+'/'+m[2]+'/'+m[1]:iso; }
+function csvDownload(name,heads,rows){ const txt='﻿'+csvLignes([heads,...rows],'\r\n');
   const blob=new Blob([txt],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); a.remove(); toast('Export téléchargé'); }
-function exportInterventionsCsv(){ const rows=visibleInts(db.interventions).map(i=>[i.num||'',i.date||'',i.heure||'',i.titre||'',i.type||'',clientName(i.clientId),techNames(i),(STATUT_INT[i.statut]||{}).l||i.statut||'',i.duree||'',i.adresse||'',i.montant||0,(i.nuisibles||[]).join(', '),i.compteRendu||'']);
+function exportInterventionsCsv(){ const rows=visibleInts(db.interventions).map(i=>[i.num||'',i.date||'',i.heure||'',i.titre||'',i.type||'',clientName(i.clientId),techNames(i),(STATUT_INT[i.statut]||{}).l||i.statut||'',i.duree||'',i.adresse||'',csvCellMontant(i.montant),(i.nuisibles||[]).join(', '),i.compteRendu||'']);
   csvDownload('interventions.csv',['N°','Date','Heure','Titre','Type','Client','Technicien','Statut','Durée (min)','Adresse','Montant','Nuisibles','Compte rendu'],rows); }
 function exportClientsCsv(){ const ints=visibleInts(db.interventions); const rows=visibleClients(db.clients).map(c=>[c.nom||'',c.contact||'',c.tel||'',c.email||'',c.adresse||'',c.codePostal||'',c.ville||'',ints.filter(i=>i.clientId===c.id).length]);
   csvDownload('clients.csv',['Nom','Contact','Téléphone','Email','Adresse','Code postal','Ville','Nb interventions'],rows); }
@@ -31949,7 +31965,7 @@ async function envoiBonEmail(id,quiet,mbId){ const b=db.bons.find(x=>x.id===id);
   return ok; }
 function exportBonCSV(id){ const b=db.bons.find(x=>x.id===id); if(!b)return;
   const rows=[['Réf','Désignation','Cartons','Unités/carton','Unités','Qté totale (u)','Commentaire']].concat((b.lignes||[]).map(l=>[l.reference||'',l.designation||'',l.cartons||0,l.upc||0,l.quantite||0,bonLU(l),l.commentaire||'']));
-  const csv=rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(';')).join('\n');
+  const csv=csvLignes(rows,'\n');
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=bonNum(b)+'.csv'; a.click(); URL.revokeObjectURL(a.href); toast('CSV exporté'); }
 
 /* ═══════════════ COMMANDES EN COURS ═══════════════ */
@@ -36198,19 +36214,19 @@ function regSupprimer(id){ if(!isFinanceMgr()) return;
   logEvent('Ligne du registre supprimée',regQui(l)+' — '+eur(l.montant),'finance'); save();
   if(views[current]) views[current]();
 }
-function downloadCSV(filename, rows){ const csv=rows.map(r=>r.map(c=>'"'+String(c==null?'':c).replace(/"/g,'""')+'"').join(';')).join('\n'); const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); toast('Export téléchargé'); }
+function downloadCSV(filename, rows){ const csv=csvLignes(rows,'\n'); const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000); toast('Export téléchargé'); }
 function exportComptaCSV(){ const rows=[['N° facture','Date','Client','HT','TVA','TTC','Statut','Société']];
-  (db.factures||[]).forEach(f=>{ const t=docTot(f); rows.push([f.num,fmtShort(f.date),clientName(f.clientId),t.ht.toFixed(2),t.tva.toFixed(2),t.ttc.toFixed(2),(FACT_ST[f.statut]||{}).l||f.statut,rapportSociete(f.rapportModele)]); });
+  (db.factures||[]).forEach(f=>{ const t=docTot(f); rows.push([f.num,csvDate(f.date),clientName(f.clientId),t.ht.toFixed(2).replace('.',','),t.tva.toFixed(2).replace('.',','),t.ttc.toFixed(2).replace('.',','),(FACT_ST[f.statut]||{}).l||f.statut,rapportSociete(f.rapportModele)]); });
   downloadCSV('comptabilite_factures_'+todayISO()+'.csv', rows); }
 /* Export TOUT (factures + télécollecte) dans un seul fichier Excel/CSV pour la comptable */
 function exportComptaTout(){ if(!isFinanceMgr()){ toast('Export comptable réservé au droit « Voir / gérer la comptabilité »'); return; } const num=n=>(Number(n)||0).toFixed(2).replace('.',',');
-  const rows=[['RÉCAP COMPTABLE OP GESTION — '+fmtShort(todayISO())],[],['FACTURES'],['N° facture','Date','Client','HT','TVA','TTC','Statut','Société']];
-  (db.factures||[]).forEach(f=>{ const t=docTot(f); rows.push([f.num,fmtShort(f.date),clientName(f.clientId),num(t.ht),num(t.tva),num(t.ttc),(FACT_ST[f.statut]||{}).l||f.statut,rapportSociete(f.rapportModele)]); });
+  const rows=[['RÉCAP COMPTABLE OP GESTION — '+csvDate(todayISO())],[],['FACTURES'],['N° facture','Date','Client','HT','TVA','TTC','Statut','Société']];
+  (db.factures||[]).forEach(f=>{ const t=docTot(f); rows.push([f.num,csvDate(f.date),clientName(f.clientId),num(t.ht),num(t.tva),num(t.ttc),(FACT_ST[f.statut]||{}).l||f.statut,rapportSociete(f.rapportModele)]); });
   rows.push([],['TÉLÉCOLLECTE (encaissements terrain)'],['Date','Heure','Technicien'].concat(TELE_CHAMPS.map(c=>c[1])).concat(['TOTAL (€)','Transmise']));
-  (db.telecollectes||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(r=>{ rows.push([fmtShort(r.date||''),r.heure||'',teleWho(r)].concat(TELE_CHAMPS.map(([k,l,u])=> u==='#'?(Number(r[k])||0):num(r[k]))).concat([num(teleTotal(r)),r.envoyeeCompta?'Oui':'Non'])); });
+  (db.telecollectes||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).forEach(r=>{ rows.push([csvDate(r.date),r.heure||'',teleWho(r)].concat(TELE_CHAMPS.map(([k,l,u])=> u==='#'?(Number(r[k])||0):num(r[k]))).concat([num(teleTotal(r)),r.envoyeeCompta?'Oui':'Non'])); });
   rows.push([],['REGISTRE DES ENCAISSEMENTS (une ligne = un euro, une seule fois)'],['Date','Heure','Qui','Client / note','Entré par','Mode','Montant (€)']);
   (db.registres||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.ts||0)-(b.ts||0)).forEach(l=>{
-    rows.push([fmtShort(l.date),l.heure||'',regQui(l),l.clientNom||l.note||'',(REG_SOURCES[l.source]||['?'])[0],(REG_MODES[l.mode]||['',l.mode])[1],num(l.montant)]); });
+    rows.push([csvDate(l.date),l.heure||'',regQui(l),l.clientNom||l.note||'',(REG_SOURCES[l.source]||['?'])[0],(REG_MODES[l.mode]||['',l.mode])[1],num(l.montant)]); });
   rows.push(['','','','','','TOTAL REGISTRE',num(regTotal(db.registres||[]))]);
   downloadCSV('comptabilite_complet_'+todayISO()+'.csv', rows);
 }
@@ -37115,32 +37131,52 @@ function comptaRegistreTab(){
 function exportRegistreCSV(){ const num=n=>(Number(n)||0).toFixed(2).replace('.',',');
   const list=(db.registres||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.ts||0)-(b.ts||0));
   const rows=[['Date','Heure','Qui','Client / note','Entré par','Mode','Nb chèques','Montant (€)','Journée validée']];
-  list.forEach(l=>rows.push([fmtShort(l.date),l.heure||'',regQui(l),l.clientNom||l.note||'',(REG_SOURCES[l.source]||['?'])[0],(REG_MODES[l.mode]||['',l.mode])[1],l.mode==='CHQ'?(l.nbChq||0):'',num(l.montant),l.jourValide?'Oui':'Non']));
+  list.forEach(l=>rows.push([csvDate(l.date),l.heure||'',regQui(l),l.clientNom||l.note||'',(REG_SOURCES[l.source]||['?'])[0],(REG_MODES[l.mode]||['',l.mode])[1],l.mode==='CHQ'?(l.nbChq||0):'',num(l.montant),l.jourValide?'Oui':'Non']));
   rows.push([]); rows.push(['','','','','','','TOTAL',num(regTotal(list)),'']);
   downloadCSV('registre_encaissements_'+todayISO()+'.csv',rows);
 }
 /* ── Pointer un virement reçu : la facture passe payée ET entre au registre ── */
+/* Ce que le prochain virement doit proposer : le RESTE dû (TTC moins ce que le registre porte déjà pour cette facture).
+   Proposer le TTC entier après un virement partiel faisait saisir 10 + 120 = 130 € sur une facture de 120 € : payée
+   sans un mot, et 10 € de trop au registre. Rien d'encaissé, ou déjà soldée au registre : le TTC (jamais 0, que
+   comptaVirementOk lirait comme « pas de montant »). */
+function virementReste(f){
+  const ttc=Math.round((docTot(f||{}).ttc||0)*100)/100;
+  const deja=Math.round((db.registres||[]).filter(l=>f&&l.factureId===f.id).reduce((s,l)=>s+(Number(l.montant)||0),0)*100)/100;
+  const reste=Math.round((ttc-deja)*100)/100;
+  return reste>0.004?reste:ttc;
+}
 function comptaVirement(fid){
   const imp=(db.factures||[]).filter(f=>f.statut==='envoyee'||f.statut==='retard');
   const opts=imp.map(f=>`<option value="${f.id}" ${f.id===fid?'selected':''}>${esc(f.num)} — ${esc(clientName(f.clientId))} — ${eur(docTot(f).ttc)}</option>`).join('');
   openModal(`<div class="modal-head"><h3>🏦 Pointer un virement reçu</h3><button class="modal-close" onclick="closeModal()">✕</button></div>
     <form onsubmit="comptaVirementOk(event)">
-      <div class="field"><label>Facture réglée</label><select name="fid" id="vir-fid" onchange="(function(s){ const f=(db.factures||[]).find(x=>x.id===s.value); const m=document.getElementById('vir-mnt'); if(f&&m) m.value=docTot(f).ttc.toFixed(2); })(this)">${opts||'<option value="">Aucune facture en attente</option>'}</select></div>
+      <div class="field"><label>Facture réglée</label><select name="fid" id="vir-fid" onchange="(function(s){ const f=(db.factures||[]).find(x=>x.id===s.value); const m=document.getElementById('vir-mnt'); if(f&&m) m.value=virementReste(f).toFixed(2); })(this)">${opts||'<option value="">Aucune facture en attente</option>'}</select></div>
       <div class="field-row">
-        <div class="field"><label>Montant reçu (€)</label><input name="montant" id="vir-mnt" type="number" step="0.01" min="0" required value="${fid?(docTot((db.factures||[]).find(f=>f.id===fid)||{}).ttc||0).toFixed(2):(imp[0]?docTot(imp[0]).ttc.toFixed(2):'')}" style="text-align:right"></div>
+        <div class="field"><label>Montant reçu (€)</label><input name="montant" id="vir-mnt" type="number" step="0.01" min="0" required value="${fid?virementReste((db.factures||[]).find(f=>f.id===fid)||{}).toFixed(2):(imp[0]?virementReste(imp[0]).toFixed(2):'')}" style="text-align:right"></div>
         <div class="field"><label>Date de réception</label><input name="date" type="date" required value="${todayISO()}"></div>
       </div>
-      <div style="font-size:12px;color:var(--t3);margin:2px 0 10px">La facture passe « Payée » et le virement entre au registre — une seule fois, comme tout le reste.</div>
+      <div style="font-size:12px;color:var(--t3);margin:2px 0 10px">Le virement entre au registre — une seule fois, comme tout le reste. La facture passe « Payée » quand le total reçu atteint son TTC ; en dessous, elle reste ouverte (on te demande confirmation).</div>
       <div class="modal-foot"><button type="button" class="btn ghost" onclick="closeModal()">Annuler</button><button type="submit" class="btn" ${opts?'':'disabled'}>Pointer le virement</button></div></form>`);
 }
-function comptaVirementOk(ev){ ev.preventDefault(); const d=Object.fromEntries(new FormData(ev.target));
+function comptaVirementOk(ev){ if(!isFinanceMgr()){ if(ev&&ev.preventDefault) ev.preventDefault(); toast('Pointer un virement : droit « Voir / gérer la comptabilité » requis'); return; }
+  ev.preventDefault(); const d=Object.fromEntries(new FormData(ev.target));
   const f=(db.factures||[]).find(x=>x.id===d.fid); if(!f){ toast('Choisis une facture'); return; }
-  regAdd({date:d.date||todayISO(),montant:+d.montant||docTot(f).ttc,mode:'VIR',factureId:f.id,
+  /* L'application n'a pas de paiements partiels : une facture est ouverte ou payée. Un virement plus petit
+     que le TTC (10 € sur 120 €) la marquait payée et plus rien ne signalait les 110 € manquants. Le total
+     reçu = ce qui est DÉJÀ au registre pour cette facture + ce virement ; la facture ne passe payée que
+     s'il atteint le TTC. En dessous, on DEMANDE avant d'écrire quoi que ce soit (refus = rien n'est écrit :
+     ni ligne de registre, ni statut) ; l'accord enregistre l'encaissement et laisse la facture ouverte. */
+  const ttc=Math.round(docTot(f).ttc*100)/100, recu=Math.round((+d.montant||ttc)*100)/100;
+  const deja=Math.round((db.registres||[]).filter(l=>l.factureId===f.id).reduce((s,l)=>s+(Number(l.montant)||0),0)*100)/100;
+  const reste=Math.round((ttc-deja-recu)*100)/100, complet=reste<=0.004;
+  if(!complet && !confirm('Le virement ('+eur(recu)+') est inférieur au total TTC de la facture '+f.num+' ('+eur(ttc)+').\nIl reste '+eur(reste)+' à recevoir.\n\nEnregistrer ce virement quand même ? La facture restera ouverte (Envoyée) tant que le total reçu n\'atteint pas le TTC.')) return;
+  regAdd({date:d.date||todayISO(),montant:recu,mode:'VIR',factureId:f.id,
     clientNom:clientName(f.clientId),declarantId:currentUser.id,declarantNom:fullName(currentUser),
-    source:'compta',note:'Virement — facture '+f.num,jourValide:true});
-  f.statut='payee'; if(!f.datePaiement) f.datePaiement=d.date||todayISO();
-  logEvent('Virement pointé',f.num+' — '+eur(+d.montant||docTot(f).ttc),'finance'); save(); closeModal();
-  toast('Virement pointé — facture '+f.num+' payée'); views.comptabilite();
+    source:'compta',note:'Virement — facture '+f.num+(complet?'':' (partiel)'),jourValide:true});
+  if(complet){ f.statut='payee'; if(!f.datePaiement) f.datePaiement=d.date||todayISO(); }
+  logEvent('Virement pointé',f.num+' — '+eur(recu)+(complet?'':' — il reste '+eur(reste)),'finance'); save(); closeModal();
+  toast(complet?'Virement pointé — facture '+f.num+' payée':'Virement pointé — facture '+f.num+' reste ouverte : il reste '+eur(reste)); views.comptabilite();
 }
 
 function comptaTeleTable(){
@@ -37333,7 +37369,7 @@ function exportTelecollecteCSV(){ const num=n=>(Number(n)||0).toFixed(2).replace
   const list=(db.telecollectes||[]).slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')||(a.ts||0)-(b.ts||0));
   const header=['Date','Heure','Technicien'].concat(TELE_CHAMPS.map(c=>c[1])).concat(['TOTAL (€)','Transmise compta']);
   const rows=[header];
-  list.forEach(r=>{ rows.push([fmtShort(r.date||''), r.heure||'', teleWho(r)]
+  list.forEach(r=>{ rows.push([csvDate(r.date), r.heure||'', teleWho(r)]
     .concat(TELE_CHAMPS.map(([k,l,u])=> u==='#' ? (Number(r[k])||0) : num(r[k])))
     .concat([num(teleTotal(r)), r.envoyeeCompta?'Oui':'Non'])); });
   if(list.length){ const tot=list.reduce((s,r)=>s+teleTotal(r),0); rows.push([]); rows.push(['','','TOTAL GÉNÉRAL'].concat(TELE_CHAMPS.map(()=>'')).concat([num(tot),''])); }
