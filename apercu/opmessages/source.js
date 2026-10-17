@@ -222,7 +222,7 @@
         spec = spec || {};
         const membres = (spec.membres || []).filter((x, i, tab) => contactDe(x) && tab.indexOf(x) === i);
         if (!membres.length) return Promise.reject(erreur('vide'));
-        const nom = String(spec.nom || '').trim().slice(0, 40) || 'Nouveau groupe';
+        const nom = Array.from(String(spec.nom || '').trim()).slice(0, 40).join('') || 'Nouveau groupe';      // des signes, pas des unités UTF-16 (un émoji en pèse deux)
         const t = maintenant();
         const c = {
           id: 'g' + (++seq), type: 'groupe', nom: nom + ' (' + (membres.length + 1) + ')', court: nom, membres: ['moi'].concat(membres), admins: ['moi'],

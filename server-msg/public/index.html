@@ -2750,7 +2750,7 @@ a.menu-action { text-decoration: none; }
   <div class="feuille-corps" id="feuille-corps">
     <div class="g-identite">
       <label class="g-photo" id="g-photo" title="Ajouter une photo au groupe"><svg class="ic" aria-hidden="true"><use href="#i-photo"/></svg><span class="sr-seul">Photo du groupe</span><input type="file" id="g-photo-fichier" accept="image/*"></label>
-      <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" maxlength="40" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
+      <input type="text" class="g-nom" id="g-nom" placeholder="Nom du groupe" autocomplete="off" enterkeyhint="done" aria-label="Nom du groupe">
       <p class="g-resume" id="g-resume" aria-live="polite" hidden></p>
     </div>
     <p class="g-erreur" id="g-erreur" role="alert" hidden></p>
@@ -2760,8 +2760,8 @@ a.menu-action { text-decoration: none; }
     </div>
     <label class="recherche"><svg class="ic" aria-hidden="true"><use href="#i-search"/></svg><span class="sr-seul">Rechercher un contact</span><input type="search" id="g-recherche" placeholder="Rechercher un contact" autocomplete="off" enterkeyhint="search"></label>
     <ul class="puces" id="g-puces" role="list" aria-label="Membres choisis"></ul>
-    <div class="rubrique"><span>Contacts de l'entreprise</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
-    <div class="carte" id="g-contacts" role="group" aria-label="Contacts de l'entreprise"></div>
+    <div class="rubrique"><span id="g-rubrique">Mes contacts</span><span id="g-compteur" aria-live="polite">0 / 0</span></div>
+    <div class="carte" id="g-contacts" role="group" aria-label="Mes contacts"></div>
     <div class="carte" id="g-reglages">
       <button type="button" class="reglage presse" id="g-ephemeres" aria-haspopup="menu" aria-expanded="false" aria-controls="deroule-liste"><span class="reglage-texte">Messages éphémères</span><span class="reglage-valeur"><span id="g-ephemeres-val">Désactivés</span><svg class="chev-ud" viewBox="0 0 9 14" aria-hidden="true"><path d="M1.5 5 4.5 2 7.5 5M1.5 9 4.5 12 7.5 9"/></svg></span></button>
       <button type="button" class="reglage presse" id="g-annonces" role="switch" aria-checked="false"><span class="reglage-texte">Seuls les admins écrivent<small>Groupe d'annonces</small></span><span class="interrupteur" aria-hidden="true"></span></button>

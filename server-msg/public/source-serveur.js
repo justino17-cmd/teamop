@@ -2865,11 +2865,13 @@
         try { pieceAvatar = await deposerAvatar(spec.photoBlob); }
         catch (e) { if (e && e.code === 'session_requise') throw e; refusPhoto = e; }
       }
-      const r = await A.groupe({ nom: String(spec.nom || '').trim().slice(0, 80) || 'Nouveau groupe', membres, annonces_seules: !!spec.annonces, ephemere_s: spec.ephemeres | 0, avatar_piece: pieceAvatar || undefined });
+      const r = await A.groupe({ nom: Array.from(String(spec.nom || '').trim()).slice(0, 80).join('') || 'Nouveau groupe', membres, annonces_seules: !!spec.annonces, ephemere_s: spec.ephemeres | 0, avatar_piece: pieceAvatar || undefined });
       if (refusPhoto) emettre({ type: 'avis', texte: 'Le groupe est créé, mais sa photo n\'a pas pu être envoyée : ' + (refusPhoto.dit ? (refusPhoto.phrase ? refusPhoto.phrase() : refusPhoto.message) : 'erreur inattendue.') });
       await relireListe(); emettre({ type: 'liste' });
       const c = convsApi.find(x => x.id === r.conversation.id);
-      return c ? resume(c) : { id: r.conversation.id, type: 'groupe', nom: r.conversation.nom || 'Groupe', court: r.conversation.nom || 'Groupe', initiales: '#', avatar: indexAvatar(r.conversation.id), photo: null, epingle: false, membres: [], admins: [], annoncesSeulement: false, ephemeres: 0, nonLu: false, nonLus: 0, apercu: '', t: maintenant(), enLigne: false };
+      /* ⛔ ceux que le service a REFUSÉS (`non_ajoutes` : il m'a bloqué, ou ce n'est ni un contact mutuel ni un collègue) : la réponse les porte, la page DIT leurs noms — sinon le groupe naît sans eux, en silence */
+      const nonAjoutes = Array.isArray(r.non_ajoutes) ? r.non_ajoutes.filter(x => typeof x === 'string') : [];
+      return Object.assign(c ? resume(c) : { id: r.conversation.id, type: 'groupe', nom: r.conversation.nom || 'Groupe', court: r.conversation.nom || 'Groupe', initiales: '#', avatar: indexAvatar(r.conversation.id), photo: null, epingle: false, membres: [], admins: [], annoncesSeulement: false, ephemeres: 0, nonLu: false, nonLus: 0, apercu: '', t: maintenant(), enLigne: false }, { nonAjoutes });
     }
     async function ouvrirDirecte(uid) {
       const r = await A.directe(uid);

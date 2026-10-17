@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '782ddecd3e6b';
+  const OPMSG_BUILD = '99564a6f382c';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 219;
+  const OPMSG_VERSION = 220;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -2475,17 +2475,51 @@
   /* ═══ 9. LA FEUILLE « NOUVEAU GROUPE » ══════════════════════════════════════════════════════════════════════════════════════ */
   let declencheur = null;
   const g = () => etat.groupe;
+  /* ⛔ (m13) LES GENS QU'ON PEUT CHOISIR dans « Nouveau groupe », « Nouvel appel » et « Nouvelle discussion » : UNE liste, et son libellé la dit.
+     · Perso : « Mes contacts » (des amis ajoutés par un lien — jamais « de l'entreprise », écrit en dur avant le 17 octobre 2026) ;
+     · Pro : « Contacts de l'entreprise » = mes contacts ET les collègues de mes espaces, comme l'onglet Contacts › Entreprise. Le service les accepte déjà (`peutEcrire` : un contact mutuel OU un
+       collègue d'un même espace, jamais un blocage) — la feuille n'en offrait aucun, et un groupe entre collègues n'était pas faisable depuis l'écran. Les collègues se LISENT (`chargerCollegues`,
+       relus à chaque ouverture) : tant qu'ils ne sont pas arrivés, la feuille montre les contacts, puis se complète. Côté Perso on ne propose JAMAIS un collègue non-contact (REPRISE.md, 8 et 11 octobre). */
+  let collegueChoix = [];
+  const coteEntreprise = () => !!etat.pro && (!modesActifs() || etat.mode === 'pro');
+  const libelleContacts = () => coteEntreprise() ? 'Contacts de l\'entreprise' : 'Mes contacts';
+  function contactsChoix() {
+    if (!coteEntreprise() || !collegueChoix.length) return CONTACTS;
+    const vus = new Set(CONTACTS.map(c => c.id)), bloques = new Set(typeof source.bloques === 'function' ? (source.bloques() || []).map(p => p.id) : []), plus = [];
+    for (const p of collegueChoix) {
+      if (!p || vus.has(p.id) || bloques.has(p.id)) continue;      // un collègue que J'AI bloqué (l'administrateur lit la liste complète de l'espace) n'est pas proposé : le service refuserait
+      vus.add(p.id);
+      const c = typeof source.personne === 'function' ? source.personne(p.id) : null;
+      if (c && c.nom) plus.push(Object.assign({}, c, { role: 'Collègue — ' + p.espace }));
+    }
+    return plus.length ? CONTACTS.concat(plus) : CONTACTS;
+  }
+  /* les collègues de la feuille qui s'ouvre (`cle` : la feuille qui les a demandés — une autre ouverte entre-temps ne les reçoit pas) */
+  function chargerChoixCollegues(cle) {
+    collegueChoix = [];
+    if (!CAP.espaces || !coteEntreprise() || typeof source.espaces !== 'function' || typeof source.espaceContacts !== 'function') return;
+    reu.colleagues = null;                    // un espace créé ou rejoint depuis la dernière feuille : ses membres sont relus à chaque ouverture
+    chargerCollegues().then(l => {
+      collegueChoix = l || [];
+      const G = g(); if (!collegueChoix.length || !G.ouvert || G.cle !== cle) return;
+      if (G.mode === 'nouvelle') rendreNouvelle();
+      else if (G.mode === 'chat' || G.mode === 'appel') { construireContacts(); synchroFeuille(); }
+    }).catch(() => { /* sans les collègues, il reste les contacts */ });
+  }
   function construireContacts() {
-    $('g-contacts').innerHTML = (CAP.liens ? '<button type="button" class="reglage presse" data-lien="1"><span class="avatar av0" aria-hidden="true" style="width:38px;height:38px;font-size:14px">' + icone('i-groupe') + '</span><span class="reglage-texte">Inviter par un lien<small>Ajoute quelqu\'un qui n\'est pas encore dans tes contacts</small></span>' + CHEVRON + '</button>' : '') + CONTACTS.map(c =>
+    const choix = contactsChoix();
+    $('g-contacts').innerHTML = (CAP.liens ? '<button type="button" class="reglage presse" data-lien="1"><span class="avatar av0" aria-hidden="true" style="width:38px;height:38px;font-size:14px">' + icone('i-groupe') + '</span><span class="reglage-texte">Inviter par un lien<small>Ajoute quelqu\'un qui n\'est pas encore dans tes contacts</small></span>' + CHEVRON + '</button>' : '') + choix.map(c =>
       '<button type="button" class="contact presse" role="checkbox" aria-checked="false" data-id="' + esc(c.id) + '">' + avatar(c) +
       '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span><span class="contact-role">' + esc(c.role) + '</span></span>' +
       '<span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('') +
-      '<p class="vide" id="g-aucun" hidden>' + (CONTACTS.length || !CAP.liens ? 'Aucun contact ne correspond.' : 'Tu n\'as pas encore de contact : invite quelqu\'un par un lien.') + '</p>';
+      '<p class="vide" id="g-aucun" hidden>' + (choix.length || !CAP.liens ? 'Aucun contact ne correspond.' : 'Tu n\'as pas encore de contact : invite quelqu\'un par un lien.') + '</p>';
   }
   function synchroFeuille() {
     const G = g();
+    const choix = contactsChoix(), parId = new Map(choix.map(c => [c.id, c]));
+    $('g-rubrique').textContent = libelleContacts(); $('g-contacts').setAttribute('aria-label', libelleContacts());
     document.querySelectorAll('#g-contacts .contact').forEach(b => {
-      const c = contactDe(b.dataset.id);
+      const c = parId.get(b.dataset.id) || contactDe(b.dataset.id);
       b.setAttribute('aria-checked', G.choisis.includes(b.dataset.id) ? 'true' : 'false');
       b.setAttribute('role', G.mode === 'appel' && CAP.appelsMedias && !CAP.appelsGroupe ? 'radio' : 'checkbox');
       b.hidden = !!G.recherche && !norme(c.nom + ' ' + c.role).includes(norme(G.recherche));
@@ -2496,7 +2530,7 @@
     $('g-puces').innerHTML = G.choisis.map(id => { const c = contactDe(id);
       return '<li><button type="button" class="puce presse" data-retirer="' + esc(id) + '" aria-label="Retirer ' + esc(prenom(c)) + (G.mode === 'appel' ? ' de l\'appel' : ' du groupe') + '">' + avatar(c) +
         '<span class="puce-x" aria-hidden="true">' + icone('i-croix') + '</span><span class="puce-nom">' + esc(prenom(c)) + '</span></button></li>'; }).join('');
-    $('g-compteur').textContent = G.choisis.length + ' / ' + CONTACTS.length;
+    $('g-compteur').textContent = G.choisis.length + ' / ' + choix.length;
     const transf = G.mode === 'transferer';
     $('g-creer').setAttribute('aria-disabled', (transf ? G.tVers.length && !G.tEnvoi : G.choisis.length) ? 'false' : 'true');
     /* la même feuille, trois visages : le titre, les deux boutons du haut, le corps et les réglages en dépendent */
@@ -2557,8 +2591,9 @@
     if (etat.groupe.mode === 'suivi') etat.groupe.pieceId = arg;
     if (etat.groupe.mode === 'espace' || etat.groupe.mode === 'abo') etat.groupe.espaceId = arg;
     if (etat.groupe.mode === 'reunion' || etat.groupe.mode === 'reunion-edit') etat.groupe.reunionId = arg;
-    if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; construireContacts(); }
-    if (etat.groupe.mode === 'nouvelle') { CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; $('nd-defile').scrollTop = 0; rendreNouvelle(); }
+    if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel' || etat.groupe.mode === 'nouvelle') { collegueChoix = []; CONTACTS = typeof source.contacts === 'function' ? source.contacts() : CONTACTS; chargerChoixCollegues(etat.groupe.cle); }
+    if (etat.groupe.mode === 'chat' || etat.groupe.mode === 'appel') construireContacts();
+    if (etat.groupe.mode === 'nouvelle') { $('nd-defile').scrollTop = 0; rendreNouvelle(); }
     if (etat.groupe.mode === 'transferer') {
       /* la route dit QUEL message (son numéro dans la conversation ouverte) : un message qui n'est plus là, ou qui ne se transfère pas, ne laisse pas une feuille vide */
       const m = etat.convDonnees && etat.convDonnees.id === etat.conv ? etat.convDonnees.messages.find(x => x.seq === +arg) : null;
@@ -2643,6 +2678,11 @@
     effacerRefusFeuille();
     try { await lancerAppel({ membres: G.choisis.slice(), video: G.video }, $('btn-nouvel-appel'), true); } finally { etat.creation = false; }
   }
+  /* « Dan n'a pas pu être ajouté. » · « Dan et Léa n'ont pas pu être ajoutés. » · « Dan, Léa et Max n'ont pas pu être ajoutés. » */
+  function phraseNonAjoutes(prenoms) {
+    const liste = prenoms.length > 1 ? prenoms.slice(0, -1).join(', ') + ' et ' + prenoms[prenoms.length - 1] : prenoms[0];
+    return liste + (prenoms.length > 1 ? ' n\'ont pas pu être ajoutés.' : ' n\'a pas pu être ajouté.');
+  }
   async function creerGroupe() {
     const G = g();
     if (!G.choisis.length) { $('g-compteur').textContent = 'Choisis au moins un contact'; setTimeout(synchroFeuille, 1600); return; }
@@ -2658,6 +2698,10 @@
     etat.neuves.add(c.id);
     await rafraichirListe();
     fermerFeuille(!CAP.avatars);          // l'aperçu GARDE l'adresse de la photo (elle sert d'image à la conversation) ; le service la rend : il lit la photo déposée, pas celle-là
+    /* ⛔ (m13) le service ne force personne dans un groupe : un contact qui m'a bloqué, ou qui n'est plus joignable, est RENDU (`non_ajoutes`) et le groupe naît sans lui. Écarté en silence, la
+       personne cochée à l'écran manquait au groupe sans un mot — on le dit, par leurs noms (la phrase de `phraseNonAjoutes`), le temps de la lire. */
+    const refusees = Array.isArray(c.nonAjoutes) ? c.nonAjoutes : [];
+    if (refusees.length) mot(phraseNonAjoutes(refusees.map(id => prenom(contactDe(id) || { nom: 'Quelqu\'un' }))), 6000);
     /* 300 ms plus tard, comme la maquette : la feuille a le temps de partir, la bannière arrive dans une liste déjà visible */
     if (!CAP.service) setTimeout(() => notifier('Vous avez été ajouté au groupe « ' + nom + ' »', 'Aperçu de la notification que reçoivent ' + prenoms.join(', ')), 300);
   }
@@ -2692,7 +2736,7 @@
     return { actions, frequents, groupes, lettres: groupes.map(x => x.lettre), total: liste.length };
   }
   function rendreNouvelle() {
-    const G = g(), M = ndModele(CONTACTS, etat.conversations, G.recherche);
+    const G = g(), M = ndModele(contactsChoix(), etat.conversations, G.recherche);
     const ligne = c => '<button type="button" class="contact presse" data-nd-contact="' + esc(c.id) + '">' + avatar(c) + '<span class="contact-texte"><span class="contact-nom">' + esc(c.nom) + '</span>' + (c.role ? '<span class="contact-role">' + esc(c.role) + '</span>' : '') + '</span></button>';
     let h = '';
     if (M.actions.length) h += '<div class="carte" role="group" aria-label="Actions">' + M.actions.map(a => '<button type="button" class="reglage nd-act presse" data-nd-act="' + a[0] + '">' + icone(a[2]) + '<span class="reglage-texte">' + esc(a[1]) + '</span></button>').join('') + '</div>';
@@ -2782,7 +2826,16 @@
     const ligne = document.querySelector('#g-contacts .contact[data-id="' + id.replace(/"/g, '') + '"]');
     if (ligne && !ligne.hidden) ligne.focus({ preventScroll: true });
   });
-  $('g-nom').addEventListener('input', e => { g().nom = e.target.value; });
+  /* ⛔ (m13) la limite du nom d'un groupe se compte en SIGNES (points de code), comme le service (`Array.from(nom).length <= 80`) : `maxlength` compte des unités UTF-16, un émoji en pèse deux —
+     45 émojis tapés, 20 gardés en silence. On coupe ici, au signe près, sans jamais couper un signe en deux. Pendant une composition (clavier chinois, japonais, accents morts) on attend sa fin. */
+  const NOM_GROUPE_MAX = 40;
+  function limiterNomGroupe(champ) {
+    const signes = Array.from(champ.value);
+    if (signes.length > NOM_GROUPE_MAX) champ.value = signes.slice(0, NOM_GROUPE_MAX).join('');
+    g().nom = champ.value;
+  }
+  $('g-nom').addEventListener('input', e => { if (!e.isComposing) limiterNomGroupe(e.target); else g().nom = e.target.value; });
+  $('g-nom').addEventListener('compositionend', e => limiterNomGroupe(e.target));
   $('g-nom').addEventListener('keydown', e => { if (e.key === 'Enter') e.target.blur(); });
   $('g-recherche').addEventListener('input', e => { g().recherche = e.target.value; synchroFeuille(); });
   $('g-ephemeres').addEventListener('click', () => {
