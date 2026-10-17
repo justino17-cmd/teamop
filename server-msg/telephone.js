@@ -312,7 +312,12 @@ function creerTelephone(ctx) {
     if (!Object.keys(c).length) return refus(res, 400, 'champ_invalide');
     const q = essai('moi_confidentialite', req.moi.id, { max: 30, fenetreMs: H });
     if (!q.ok) return trop(res, 'quota_atteint', q.retry);
-    if (c.trouvable !== undefined) stockage.telTrouvableMaj(req.moi.id, c.trouvable);
+    if (c.trouvable !== undefined) {
+      const avantT = stockage.telTrouvableLire(req.moi.id);
+      stockage.telTrouvableMaj(req.moi.id, c.trouvable);
+      /* « me trouver » ne regarde personne d'autre que moi (il n'est pas dans `prefs`) : mes AUTRES appareils relisent, sinon leur interrupteur montre l'ancien état (lot m14) */
+      if (avantT !== c.trouvable) hub.emettre([req.moi.id], 'prefs', {});
+    }
     if (c.presence !== undefined || c.accuses !== undefined || c.position !== undefined) {
       const avant = req.moi.prefs || {}, prefs = Object.assign({}, avant);
       for (const k of ['presence', 'accuses', 'position']) if (c[k] !== undefined) prefs[k] = c[k];
