@@ -4703,6 +4703,29 @@ html[data-refonte] .pl-row.lga{container:ligne-gestes / inline-size;flex-wrap:wr
   html[data-refonte] .lga::after{order:1}
   html[data-refonte] .lga > .lga-a,html[data-refonte] .lga > .st,html[data-refonte] .lga > .btn{order:2;margin-left:auto}
 }
+/* ── lot h04 (appareils#3) : RAPPORTS, ARCHIVES MENSUELLES, HISTORIQUE — la même ligne « texte puis gestes », la même parade ──
+   Au téléphone étroit, la colonne de texte de ces trois écrans n'avait que 113 à 145 px (71 à 105 px à 320) sur 4 à 8 lignes, à côté
+   d'un bouton « Rédiger », d'un statut ou d'une heure qui gardent leur largeur (`white-space:nowrap`) : « Dératisation / — passage /
+   2/3 ». Rapports et Archives prennent `.pl-row.lgt` : le motif de `.lga` (le texte prend sa ligne, bouton et statut passent
+   dessous, à droite) avec un seuil PLUS BAS — 380 px de ligne au lieu de 440. Mesuré (contenu de la ligne) : 207 px à 320, 247 à
+   360, 275 à 390, 315 à 430 — mais 417 sur iPad 820, où le menu latéral prend 272 px : à 440, la ligne d'un iPad passait en deux
+   étages alors que le texte y avait 283 px et tout tenait sur une ligne. Le seuil sépare les deux (le contre-essai « une ligne
+   large garde sa mise en page » est dans la sonde).
+   L'Historique n'est pas une `.pl-row` : sa ligne (`.tl-item` : pastille · texte · heure) devient son propre conteneur à son tour —
+   sous 400 px de ligne (348 sur le plus grand iPhone, 450 sur iPad 820), le texte prend toute la place à côté de la pastille
+   (34 px + 14 de gouttière = 48) et l'heure passe dessous, alignée sur lui. Au-dessus, rien ne change : la base du texte est nulle
+   (`flex:1`) et tout tient sur une ligne. */
+html[data-refonte] .pl-row.lgt{container:ligne-texte / inline-size;flex-wrap:wrap;row-gap:10px!important}
+@container ligne-texte (max-width:380px){
+  html[data-refonte] .lgt > .pl-info{flex:1 1 calc(100% - 40px)}
+  html[data-refonte] .lgt::after{order:1}
+  html[data-refonte] .lgt > .st,html[data-refonte] .lgt > .btn{order:2;margin-left:auto}
+}
+html[data-refonte] .tl-item{container:ligne-hist / inline-size;flex-wrap:wrap;row-gap:4px}
+@container ligne-hist (max-width:400px){
+  html[data-refonte] .tl-item > .tl-body{flex:1 1 calc(100% - 48px)}
+  html[data-refonte] .tl-item > .tl-time{flex:1 0 100%;padding-left:48px}
+}
 
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
    C'est ce qui manquait pour que ça se lise comme une application de terrain et non comme un
@@ -24944,9 +24967,9 @@ views.rapports=function(){
   const done=_mesInts.filter(i=>i.statut==='terminee');
   const pend=_mesInts.filter(i=>i.statut!=='terminee'&&i.statut!=='annulee');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Terminées</h3></div>
-    ${done.length? done.map(i=>`<div class="pl-row" onclick="formRapport('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
+    ${done.length? done.map(i=>`<div class="pl-row lgt" onclick="formRapport('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
   </div><div class="card"><div class="card-head"><h3>En attente de clôture</h3></div>
-    ${pend.length? pend.map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : emptyState('🎉','Tout est à jour !','','')}
+    ${pend.length? pend.map(i=>`<div class="pl-row lgt" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : emptyState('🎉','Tout est à jour !','','')}
   </div>`;
 };
 let rapPhotos=[];
@@ -38199,7 +38222,7 @@ views.archives=function(){
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
     </div></div>
     <div class="card"><div class="card-head"><h3>Interventions du mois (${s.ints.length})</h3></div>
-      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
+      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row lgt" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
     </div>`;
 };
 function shiftMonth(ym,n){ const [y,m]=ym.split('-').map(Number); return new Date(y,m-1+n,1).toLocaleDateString('sv-SE').slice(0,7); }
