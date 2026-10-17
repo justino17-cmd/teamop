@@ -63,10 +63,12 @@ else (async () => {
     await a1.post('/api/moi/maj', { prefs: { vitesse_vocal: '1.5' } });                                    // un réglage sans rapport
     await a1.post('/api/moi/maj', { prefs: { pause_reunion: false } });                                    // le même réglage renvoyé tel quel
     await a1.post('/api/moi/confidentialite', { presence: false, accuses: false, position: true, trouvable: 'personne' });     // idem, par l'autre route
-    await T.dort(150);
+    await T.dort(400);                                                                                      // le temps qu'une émission parasite ARRIVE, avant de compter
+    v('⛔ un réglage sans rapport (vitesse des vocaux), le même réglage renvoyé tel quel et la même confidentialité renvoyée telle quelle n\'ont RIEN envoyé', prefsDe(fA2).length, n1);
     await a1.post('/api/moi/maj', { prefs: { pause_reunion: true } });                                    // SENTINELLE : celui-ci doit partir
     await T.attendre(() => prefsDe(fA2).length > n1, 2500, 10);
-    v('⛔ un réglage sans rapport et un réglage renvoyé tel quel n\'ont RIEN envoyé ; la sentinelle, si', prefsDe(fA2).length, n1 + 1);
+    await T.dort(400);                                                                                      // marge : une émission en retard ferait dépasser n1 + 1
+    v('   …et la sentinelle, elle, est partie UNE fois (le flux marche, et aucun parasite ne s\'est glissé derrière)', prefsDe(fA2).length, n1 + 1);
 
     /* ⛔ à moi seul : Ben, contact ET co-membre, n'a rien reçu — et son flux marche */
     await a1.post('/api/moi/maj', { statut: 'Sur le chantier' });
