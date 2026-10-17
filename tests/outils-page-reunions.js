@@ -24,6 +24,8 @@ function decl(debut) {
   for (; j < JS.length; j++) {
     const ch = JS[j];
     if (q) { if (ch === '\\') { j++; continue; } if (ch === q) q = null; continue; }
+    /* un commentaire `/* … *\/` posé en fin de ligne n'est pas retiré par `sansCommJs` (seuls ceux qui COMMENCENT une ligne le sont) : son apostrophe ne doit pas ouvrir une chaîne */
+    if (ch === '/' && JS[j + 1] === '*') { const k = JS.indexOf('*/', j + 2); if (k < 0) return ''; j = k + 1; continue; }
     if (ch === "'" || ch === '"' || ch === '`') { q = ch; continue; }
     if (ch === '{') n++;
     else if (ch === '}') { n--; if (n === 0) return JS.slice(i, j + 1); }
