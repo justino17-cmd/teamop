@@ -39,6 +39,32 @@ personne et par appareil, et pas par-dessus une autre fenêtre — à la premiè
 
 ---
 
+# ⏳ 17 OCTOBRE 2026 (SOIR) — LE COURRIER DE LA TOUR : « MÊMES BOÎTES, TRIÉES » — LE SERVEUR EST PRÊT, LA TOUR NE L'APPELLE PAS ENCORE
+
+Justin : la Tour a deux consoles (OP GESTION, OP MESSAGES) et, pour le courrier, « mêmes boîtes, triées ». Branche
+`claude/tour-courrier-serveur` — **pas sur `main`** (un push de `server/` sur `main` déploie le VPS : il attend sa phrase).
+Serveur seulement : `tour.html` n'est pas touchée, la Tour d'aujourd'hui marche sans changement.
+
+- **Fait** (`server/mail.js`, `server/index.js`, `tests/test-1012.js`, `tests/faux-imap.js`) : chaque message de `/mail/liste` et
+  `/mail/message` porte `console` ('gestion' | 'messages' | 'atrier') et `interlocuteur` ; `/mail/liste?console=` rend la console demandée
+  ET les messages à trier ; `POST /mail/regle` pose une règle par adresse ou par domaine (`GET /mail/regles` les liste) ; l'envoi et le
+  brouillon ont leur analyseur de 20 Mo (les autres routes gardent 6 Mo) et l'envoi 60 messages par heure et par compte ; `/mail/dossiers`
+  rend les non-lus de CHAQUE dossier (STATUS, gardés 20 s, oubliés à chaque geste) ; les erreurs ne recopient plus d'adresse ; la relève du
+  support importe toujours mais ne marque plus « lu » une boîte que la Messagerie relève.
+- **⚠️ À faire avant que la Tour s'en serve** : (1) nginx de l'API doit laisser passer ≥ 20 Mo sur `/api/monitor/mail/envoyer` et
+  `/brouillon` (`client_max_body_size`, hors dépôt : à lire sur le VPS — les 6 Mo d'avant en supposaient déjà ≥ 6) ; (2) la Tour doit lire
+  `console`, `interlocuteur`, `nonLus` par dossier et appeler `/mail/regle` ; (3) ⛔ **les comptes limités à OP MESSAGES n'atteignent PAS le
+  courrier** (`ROUTES_COMMUNES`/`monAppDeRoute` : tout `mail/*` est GESTION — la boîte contient les liens de connexion des entreprises). « Mêmes
+  boîtes pour les deux consoles » demande à Justin ce que voit un compte OP MESSAGES seul : rien (état actuel), ou seulement `console=messages`
+  — ce qui exige de sortir `liste` et `message` de la table, et de filtrer côté serveur plutôt que de croire la Tour.
+- **Le crochet d'OP MESSAGES** : `adresseConnueMessages` (`server/index.js`) rend faux. Le jour où OP MESSAGES a son serveur, c'est elle qu'on branche
+  (une requête à délai court, repli sur « faux »). D'ici là, ce qu'OP MESSAGES réclame se range par règle.
+- **Limites connues** : le filtre par console examine les 1 500 messages les plus récents d'un dossier (`tronque: true` au-delà) ; monté sans
+  `quotaOk`, l'envoi répond 503 plutôt que de partir sans limite ; une règle ne se retire que par `POST /mail/regle … console:null` ; les
+  non-lus d'un dossier sont `null` quand le serveur IMAP n'a pas su répondre (« on ne sait pas » n'est pas « zéro »).
+
+---
+
 # ✅ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
 
 Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un

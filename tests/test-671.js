@@ -12,10 +12,14 @@
    arrivait déjà — aucune route touchée, aucun octet de plus sur le réseau.
 
    ── LES QUATRE RÈGLES QUI NE SE DÉDUISENT PAS DU CODE ─────────────────────────────────────
-   1. UN SEUL COMPTEUR EST VRAI. Le serveur ne calcule les non-lus que sur INBOX (il ouvre le
-      dossier trouvé par `role==='inbox'` et compte `seen:false`). Poser ce chiffre sur
-      Corbeille ou Archives afficherait un nombre inventé, et un nombre inventé dans une
-      console de surveillance est pire que pas de nombre.
+   1. UN COMPTEUR N'EST VRAI QUE LU DANS SON DOSSIER. Jusqu'au 17 octobre 2026 le serveur ne
+      calculait les non-lus que sur INBOX : poser ce chiffre sur Corbeille ou Archives aurait
+      affiché un nombre inventé, et un nombre inventé dans une console de surveillance est pire
+      que pas de nombre. Depuis, `/mail/dossiers` rend un compteur PAR DOSSIER (IMAP STATUS
+      UNSEEN, `nonLus` sur chaque dossier, `null` quand le serveur n'a pas su répondre) — la
+      règle tient toujours : on ne pose jamais sur un dossier le chiffre d'un autre. `nonLus`
+      de la boîte reste celui de la Réception, pour la Tour d'avant. La Tour, elle, n'affiche
+      toujours que celui de la Réception (§ 2) ; `test-1012` garde les compteurs du serveur.
    2. REPLIÉ PAR COMPTE. Seule la boîte OUVERTE montre ses dossiers. Trois boîtes à six
       dossiers font dix-huit lignes permanentes dans une barre qui porte déjà les filtres et
       l'annuaire — c'est exactement ce que Mail évite en repliant les comptes fermés.
@@ -64,8 +68,10 @@ console.log('Les dossiers de chaque boîte, comme dans Mail');
     /out\.push\(\{ boite: publique\(b\), dossiers: liste, nonLus \}\)/.test(SRV), true);
   v('…et chaque dossier porte chemin, nom et rôle',
     /out\.push\(\{ chemin: item\.path, nom: NOMS\[role\] \|\| item\.name \|\| item\.path, role: role \}\)/.test(SRV), true);
-  v('⛔ le compteur de non-lus est calculé sur la SEULE inbox — c’est ce qui interdit de l’afficher ailleurs',
-    /const inbox = \(liste\.find\(x => x\.role === 'inbox'\) \|\| \{\}\)\.chemin \|\| 'INBOX'/.test(SRV), true);
+  v('⛔ le compteur de non-lus de CHAQUE dossier est lu dans CE dossier (STATUS UNSEEN) — jamais celui d’un autre',
+    /client\.status\(d\.chemin, \{ unseen: true \}\)/.test(SRV) && /out\[d\.chemin\] = /.test(SRV), true);
+  v('…et celui de la boîte reste celui de la Réception, repéré par son RÔLE',
+    /const ib = liste\.find\(x => x\.role === 'inbox'\)/.test(SRV), true);
   v('le serveur trie déjà dans l’ordre de Mail',
     /const ordre = \['inbox', 'envoyes', 'brouillons', 'archives', 'indesirables', 'corbeille'\]/.test(SRV), true);
   /* La Tour lit `chemin` et `role` : les mêmes mots, ou rien ne s'affiche. */
