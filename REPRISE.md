@@ -43,6 +43,15 @@ Toutes les contre-épreuves de ces bancs mordent (scripts `scratchpad/mut-10*.py
   règle de tri), réponse du relais comptée en octets pendant la lecture (`test-1012`, `test-1015`, `test-1016` ; 8 mutations
   sur 8 mordent, `scratchpad/mut-gardien.py`). Vérifié et écarté : `adresses`/`id` du relais ne portent aucune adresse
   (oui|non, identifiant opaque) — rien de personnel au journal d'accès de nginx.
+- **passe de clics sur la Tour finale** (`scratchpad/sonde-tour-clics.js`, jumeau, bureau + téléphone, deux consoles) :
+  44 écrans, 114 gestes touchés pour de vrai, aucune erreur JavaScript, aucune page figée. Un défaut réel : « ↻ Actualiser »
+  (Comptes du site, Connexions) ne montrait rien sur une liste relue à l'identique — il le dit désormais (`test-1017` § 6 bis).
+  ⚠️ Le « gel » des deux premières passes était la SONDE : « Ouvrir dans Stripe » ouvrait un onglet qui passait devant la
+  Tour, dont la page ne se peignait plus (rAF arrêté) — vu par une pause du débogueur (`scratchpad/sonde-fige.js`). La sonde
+  neutralise `window.open`, borne chaque appel au navigateur, remet filtres et sous-onglets à leur départ entre deux gestes
+  et n'attribue à la Tour que les appels de SON onglet. Restent attendus : les 503 « relais non configuré » d'OP MESSAGES.
+- **toute la suite** (`bash scripts/bancs-ci.sh`) : 323 suites vertes — `test-968` et `test-1003` sautaient leur partie
+  service faute de `server-msg/node_modules` dans la copie de travail ; installées, 63 ✓ et 72 ✓.
 
 **Les autres branches :**
 | branche | contenu | ce qu'il lui faut |
