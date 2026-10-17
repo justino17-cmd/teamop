@@ -121,9 +121,19 @@
      une fenêtre, ou le menu latéral qui redéfinit --t1 à son encre). Il vaut l'encre du texte à 80 % la nuit (les surfaces
      de champ y sont des bleus vifs à mi-luminance : 5,3:1 au pire mesuré) et à 68 % le jour (≥ 6:1 ; 80 % y donnait 9:1, presque
      le texte saisi) : il suit la teinte et la surface sans réglage par écran, et il reste plus pâle que le texte saisi (--t1 plein).
+     ⛔ Mais ces deux pourcentages sont réglés pour l'encre du thème TEAM OP (#F0F3F8 / #0B1426). L'encre dépend de la MARQUE :
+     celle d'OP GESTION (#E4EFEA la nuit, #0B3B2E le jour) est plus verte, donc moins contrastée sur ses propres surfaces — et
+     la vitre de nuit y sature le VERT, qui pèse 72 % de la luminance, d'où des fonds plus clairs (60,114,99 au pire, Planning
+     général). Mesuré au pixel au Mac (relecture du lot j02) avec les pourcentages de TEAM OP : nuit 3,66 à 3,85 (planning,
+     Planning général, loupe), jour 4,19 à 4,49 (Mouvements, planning, Produits, Bons) — ce que l'ancien --t3 ne faisait pas
+     mieux la nuit (3,96) mais tenait le jour. Calculé sur ces fonds : 80 % d'encre de jour donne 5,7:1 au pire (68 % : 4,19) ;
+     de nuit, même l'encre PLEINE ne donne que 4,72:1 au pire (90 % : 4,18) : l'indice y vaut donc l'encre du texte, il n'y a pas
+     de marge pour le pâlir. Un pourcentage par marque ET par thème, jamais par écran.
      `opacity:1` parce que Firefox estompe encore l'indice par-dessus sa couleur. */
   input,textarea{--ph:color-mix(in srgb,var(--t1) 80%,transparent);}
   html[data-theme="light"] input,html[data-theme="light"] textarea{--ph:color-mix(in srgb,var(--t1) 68%,transparent);}
+  html[data-marque="opgestion"][data-theme="light"] input,html[data-marque="opgestion"][data-theme="light"] textarea{--ph:color-mix(in srgb,var(--t1) 80%,transparent);}
+  html[data-marque="opgestion"][data-theme="dark"] input,html[data-marque="opgestion"][data-theme="dark"] textarea{--ph:color-mix(in srgb,var(--t1) 100%,transparent);}
   input::placeholder,textarea::placeholder{color:var(--ph);opacity:1;}
   /* C'est le CONTENANT qui s'allume au focus (voir :focus-within ci-dessus) : le champ ne doit
      pas poser son propre anneau par-dessus, sinon on en voit deux emboîtés — mesuré, on lisait
