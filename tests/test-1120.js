@@ -28,10 +28,10 @@ const ligne = debut => { const i = SRC.indexOf(debut); return i < 0 ? '' : SRC.s
 console.log('\n── 1120 · 0. la population ──');
 const NOMS = ['csvCellule', 'csvCellMontant', 'csvLignes', 'csvDate', 'csvEsc', 'csvDownload', 'exportInterventionsCsv', 'exportClientsCsv',
   'downloadCSV', 'exportComptaCSV', 'exportComptaTout', 'exportRegistreCSV', 'exportTelecollecteCSV', 'exportBonCSV', 'comptaVirementOk',
-  'regAdd', 'regQui', 'regTotal', 'docTot'];
+  'regAdd', 'regQui', 'regTotal', 'docTot', 'virementReste', 'comptaVirement'];
 const CODE = {}; NOMS.forEach(n => { CODE[n] = bloc('function ' + n + '('); });
 v('les fonctions des exports et du virement sont trouvées', ['csvDownload', 'exportInterventionsCsv', 'exportClientsCsv', 'downloadCSV', 'exportComptaCSV',
-  'exportComptaTout', 'exportRegistreCSV', 'exportTelecollecteCSV', 'exportBonCSV', 'comptaVirementOk', 'regAdd', 'docTot'].map(n => CODE[n].length > 40), Array(12).fill(true));
+  'exportComptaTout', 'exportRegistreCSV', 'exportTelecollecteCSV', 'exportBonCSV', 'comptaVirementOk', 'regAdd', 'docTot', 'virementReste', 'comptaVirement'].map(n => CODE[n].length > 40), Array(14).fill(true));
 v('⛔ UNE seule fabrique de cellule : chaque fonction ne se déclare qu\'une fois (une seconde gagnerait partout)',
   NOMS.filter(n => CODE[n]).map(n => SRC.split('function ' + n + '(').length - 1).every(x => x === 1), true);
 /* Un export n'a pas sa propre copie d'échappement : les guillemets ne se doublent qu'à UN endroit. */
@@ -44,7 +44,7 @@ const TELE = [
 function monde(db, opts) {
   opts = opts || {};
   const ctx = { console, JSON, Math, Date, Set, Map, Object, Array, String, Number, RegExp, Intl, db, currentUser: { id: 'uA', prenom: 'Justin', nom: 'Roux' },
-    __blobs: [], __toasts: [], __confirms: [], __saves: 0, __logs: [], __droit: opts.droit !== false, __confirmRep: opts.confirm !== false };
+    __blobs: [], __modals: [], __toasts: [], __confirms: [], __saves: 0, __logs: [], __droit: opts.droit !== false, __confirmRep: opts.confirm !== false };
   vm.createContext(ctx);
   vm.runInContext(`
     class Blob { constructor(p){ this.texte=p.join(''); } }
@@ -53,6 +53,8 @@ function monde(db, opts) {
     function setTimeout(f){ }
     function toast(m){ __toasts.push(String(m)); }
     function confirm(m){ __confirms.push(String(m)); return __confirmRep; }
+    function esc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+    function openModal(h){ __modals.push(String(h)); }
     function save(){ __saves++; } function closeModal(){} function logEvent(a,b){ __logs.push(a+'|'+b); }
     var views={ comptabilite(){}, factures(){} };
     function can(c){ return __droit; }
@@ -211,6 +213,44 @@ console.log('\n── 4. facturation#3 — « Pointer un virement » : le montan
     const db = neuve(), m = monde(db, { droit: false });
     joue(m, 120);
     v('sans le droit « Voir / gérer la comptabilité » : rien n\'est écrit', [db.registres.length, db.factures[0].statut, m.__saves], [0, 'envoyee', 0]);
+  }
+}
+
+console.log('\n── 5. facturation#3 (suite) — le formulaire propose le RESTE dû, pas le TTC ──');
+{
+  const neuve = () => ({ clients: [{ id: 'c1', nom: 'Resto' }], registres: [],
+    factures: [{ id: 'f1', num: 'FAC-1', date: '2026-10-01', clientId: 'c1', lignes: [{ q: 1, pu: 100 }], tva: 20, statut: 'envoyee' },
+               { id: 'f2', num: 'FAC-2', date: '2026-10-02', clientId: 'c1', lignes: [{ q: 1, pu: 50 }], tva: 20, statut: 'envoyee' }] });
+  const proposé = (m, fid) => { m.__modals.length = 0; m.comptaVirement(fid); const h = m.__modals[0] || '';
+    const x = /id="vir-mnt"[^>]*value="([^"]*)"/.exec(h); return x ? x[1] : null; };
+  {
+    const db = neuve(), m = monde(db);
+    v('rien d\'encaissé : le formulaire propose le TTC entier', proposé(m, 'f1'), '120.00');
+    v('sans facture désignée, c\'est la première en attente (TTC)', proposé(m, undefined), '120.00');
+    db.registres.push({ id: 'r1', factureId: 'f1', montant: 10, mode: 'VIR', date: '2026-10-10' });
+    v('après un virement partiel de 10 € : le formulaire propose les 110 € restants', proposé(m, 'f1'), '110.00');
+    v('sans facture désignée : la première facture (déjà entamée) propose son reste', proposé(m, undefined), '110.00');
+    v('une AUTRE facture n\'est pas touchée par ce registre (50 HT + TVA = 60 TTC)', proposé(m, 'f2'), '60.00');
+    v('virementReste : le reste de f1 est 110, celui de f2 60', [m.virementReste(db.factures[0]), m.virementReste(db.factures[1])], [110, 60]);
+    /* le même nombre sert au changement de facture dans la liste déroulante */
+    const h = (m.__modals[0] || '');
+    vrai('le changement de facture (onchange) lit le même reste', /vir-fid"[^>]*onchange="[^"]*virementReste\(f\)/.test((m.comptaVirement('f1'), m.__modals[m.__modals.length - 1])), h.slice(0, 200));
+  }
+  {
+    /* Le parcours entier : 10 € puis le montant PROPOSÉ → facture payée, registre = TTC exactement, aucun surplus. */
+    const db = neuve(), m = monde(db);
+    vm.runInContext('function FormData(t){ return Object.entries(t); }', m);
+    m.comptaVirementOk({ preventDefault() {}, target: { fid: 'f1', montant: '10', date: '2026-10-15' } });
+    v('1er virement de 10 € : accepté (confirm), facture ouverte', [m.__confirms.length, db.factures[0].statut, db.registres.length], [1, 'envoyee', 1]);
+    const prop = proposé(m, 'f1');
+    m.comptaVirementOk({ preventDefault() {}, target: { fid: 'f1', montant: prop, date: '2026-10-16' } });
+    const somme = Math.round(db.registres.reduce((s, l) => s + l.montant, 0) * 100) / 100;
+    v('2e virement = le montant proposé : payée, sans second confirm, registre = 120 € (pas 130)', [db.factures[0].statut, m.__confirms.length, somme], ['payee', 1, 120]);
+  }
+  {
+    const db = neuve(); db.registres.push({ id: 'r9', factureId: 'f1', montant: 120, mode: 'CB', date: '2026-10-10' });
+    const m = monde(db);
+    v('déjà soldée au registre : on propose le TTC, jamais 0', proposé(m, 'f1'), '120.00');
   }
 }
 
