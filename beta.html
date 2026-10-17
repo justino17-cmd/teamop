@@ -19094,14 +19094,13 @@ function planMultiDrop(e,iso,techId,h0,PPH){
   const y=planYbord(e,r);
   let mins=h0*60+Math.round((y/PPH)*60/5)*5; mins=Math.max(0,Math.min(23*60+55,mins));
   const heure=String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
-  const avantD=i.date, avantT=techNames(i), avantH=i.heure;
-  const deSnap=planSnap(i);
-  if(typeof planAbsGate==='function'&&!planAbsGate(i,iso,techId)) return;
+  const avantD=i.date;
+  const deSnap=planDepotAvant(e,i,iso,techId,mins,{date:iso,heure:heure,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!deSnap) return;
   i.date=iso; i.heure=heure;
   planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
-  save();
-  try{ planStamp(i,deSnap); }catch(e){}
+  planDepotApres(i,deSnap);
   try{ if(typeof serieShiftPropose==='function') serieShiftPropose(i,avantD,iso); }catch(e){}
   if(planJours.indexOf(iso)<0){ planJours.push(iso); planJours.sort(); }
   views.planning();
@@ -19640,17 +19639,12 @@ function planWeekDrop(e,iso,techId,h0,PPH){
   const col=e.currentTarget, r=col.getBoundingClientRect();
   let m=h0*60+Math.round((planYbord(e,r)/PPH)*60/5)*5; m=Math.max(0,Math.min(23*60+55,m));
   const heure=clockFromMin(m);
-  const ind=techId?indispoAt(techId,iso,m,parseInt(i.duree)||60):null;
-  if(ind){ toast('⛔ '+techName(techId)+' est indisponible '+(ind.debut||'')+'–'+(ind.fin||'')+(ind.motif?' ('+ind.motif+')':'')); return; }
-  if(e.altKey){ if(!planAbsGate(techId,iso,null)) return;
-    planDup(i,{date:iso,heure:heure,techId:techId||'',techIds:techId?[techId]:[]}); return; }
-  const de=planSnap(i);
-  if(!planAbsGate(techId,iso,i)) return;
+  const de=planDepotAvant(e,i,iso,techId,m,{date:iso,heure:heure,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!de) return;
   i.date=iso; i.heure=heure; planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
   intHisto(i,'Replanifiée au '+fmtShort(iso)+' à '+heure+' · '+techNames(i));
-  try{ planStamp(i,de); }catch(err){}
-  save(); toast('📅 '+(i.titre||'Intervention')+' → '+fmtShort(iso)+' '+heure);
+  const forced=planDepotApres(i,de); toast('📅 '+(i.titre||'Intervention')+' → '+fmtShort(iso)+' '+heure+(forced?' · ⚠️ malgré congé':''));
   views.planning();
 }
 /* DOUBLE-clic sur une case vide de la semaine : créer à ce jour, ce technicien, cette heure */
@@ -19852,26 +19846,47 @@ function planDup(i,patch){ if(!permGarde('int','ajouter','une intervention')) re
 /* ── Absences BLOQUANTES : refus net, sauf droit « Obliger à travailler » (confirmation) ── */
 function planAbsGate(techId,iso,i){ if(!techId||!iso) return true; const ab=absentOn(techId,iso); if(!ab) return true;
   const nom=techName(techId), typ=ABS_TYPES[ab.type]||ab.type||'absence';
-  if(!can('planifObligerTravail')){ toast('❌ Impossible : '+nom+' est en '+typ+' le '+fmtShort(iso)); return false; }
-  if(!confirm(nom+' est en '+typ+' le '+fmtShort(iso)+'. Appliquer l\u2019obligation de travailler ?')){ return false; }
+  const jour=fmtShort(iso).replace(/\.$/,'');   // fmtShort finit par « . » (« 17 oct. ») : la phrase mettait « oct.. Appliquer »
+  if(!can('planifObligerTravail')){ toast('❌ Impossible : '+nom+' est en '+typ+' le '+jour); return false; }
+  if(!confirm(nom+' est en '+typ+' le '+jour+'. Appliquer l\u2019obligation de travailler ?')){ return false; }
   if(i){ i.obligation={par:(currentUser&&fullName(currentUser))||'',ts:Date.now()}; i._oblig=true;
     intHisto(i,'⚠️ Obligation de travailler appliquée ('+nom+' en '+typ+' le '+fmtShort(iso)+')'); }
   return true; }
+/* ── L'ENCHAÎNEMENT COMMUN des quatre dépôts (Multi, Semaine, Jour, case) ──────────────────────
+   Quatre copies avaient divergé, et la vue par défaut (Multi) n'avait ni le contrôle d'absence
+   (arguments inversés), ni Alt + glisser, ni l'indisponibilité, et sauvegardait AVANT d'écrire le
+   journal. Désormais UNE suite, dans cet ordre, que chaque dépôt appelle :
+     planDepotAvant : indisponibilité (si on connaît l'heure `m`) → Alt = dupliquer (absence contrôlée
+                      aussi) → instantané → absence/obligation. Rend l'instantané « avant », ou null
+                      quand le geste est terminé (refusé ou dupliqué) ;
+     planDepotApres : journal et planBy (planStamp) → _oblig retiré → save(). Le journal DOIT
+                      précéder save() (sinon il est perdu au rechargement) et _oblig DOIT être retiré
+                      après planStamp (sinon chaque entrée suivante affirme une obligation).
+   Le droit « Déplacer le planning » se lit, lui, en première instruction de chaque dépôt (test-790). */
+function planDepotAvant(e,i,iso,techId,m,patchDup){
+  const ind=(techId&&m!=null)?indispoAt(techId,iso,m,parseInt(i.duree)||60):null;
+  if(ind){ toast('⛔ '+techName(techId)+' est indisponible '+(ind.debut||'')+'–'+(ind.fin||'')+(ind.motif?' ('+ind.motif+')':'')); return null; }
+  if(e.altKey){ if(planAbsGate(techId,iso,null)) planDup(i,patchDup); return null; }
+  const de=planSnap(i);
+  if(!planAbsGate(techId,iso,i)) return null;
+  return de; }
+function planDepotApres(i,de){
+  planStamp(i,de);
+  const forced=!!i._oblig; delete i._oblig;
+  save(); return forced; }
 /* ── Dépôt sur une case (jour + technicien d'un geste) ── */
 function planDropCell(e,iso,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i) return;
-  if(e.altKey){ if(!planAbsGate(techId,iso,null)) return; planDup(i,{date:iso,techId:techId||'',techIds:techId?[techId]:[]}); return; }
-  const de=planSnap(i);
-  if(!planAbsGate(techId,iso,i)) return;
+  const de=planDepotAvant(e,i,iso,techId,null,{date:iso,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!de) return;
   const chg=[];
   if(i.date!==iso){ i.date=iso; chg.push('au '+fmtShort(iso)); }
   const cur=intTechIds(i);
   const apres=planEquipeApres(i,techId||'',window._planDragDe);
   if(apres.join()!==cur.join()){ i.techIds=apres; i.techId=apres[0]||''; chg.push(apres.length?('→ '+techNames(i)):'→ non assigné'); intHisto(i,'Réassignée à '+techNames(i)+' ('+fmtShort(iso)+')'); }
   if(i.statut==='aplanifier') i.statut='planifiee';
-  planStamp(i,de);
-  const forced=!!i._oblig; delete i._oblig;
+  const forced=planDepotApres(i,de);
   const cf=(i.heure)?intConflictOf(i,i.id):null;
-  save(); planSel=iso; views.planning();
+  planSel=iso; views.planning();
   toast((chg.length?('Déplacée '+chg.join(' ')):'Aucun changement')+(forced?' · ⚠️ malgré congé':'')+(cf?' · ⚠️ chevauchement':''));
   serieShiftPropose(i,(de||{}).date||''); }
 /* ── Dépôt sur la timeline (heure + technicien) ── */
@@ -19882,19 +19897,14 @@ function planDropTime(e,techId,h0,PPH){ PPH=PPH||48; e.preventDefault(); if(!can
   const col=e.currentTarget; const rect=col.getBoundingClientRect(); const y=Math.max(0,planYbord(e,rect));
   let m=h0*60+Math.round(y/PPH*60/5)*5; m=Math.max(0,Math.min(23*60+55,m));
   const hh=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-  // Indisponibilité (P5) : impossible de planifier dessus
-  const ind=techId?indispoAt(techId,planSel,m,parseInt(i.duree)||60):null;
-  if(ind){ toast('⛔ '+techName(techId)+' est indisponible '+(ind.debut||'')+'–'+(ind.fin||'')+(ind.motif?' ('+ind.motif+')':'')); return; }
-  if(e.altKey){ if(!planAbsGate(techId,planSel,null)) return; planDup(i,{date:planSel,heure:hh,techId:techId||'',techIds:techId?[techId]:[]}); return; }
-  const de=planSnap(i);
-  if(!planAbsGate(techId,planSel,i)) return;
+  const de=planDepotAvant(e,i,planSel,techId,m,{date:planSel,heure:hh,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!de) return;
   i.date=planSel; i.heure=hh; planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
   intHisto(i,'Replanifiée à '+hh+' · '+techNames(i));
-  planStamp(i,de);
-  const forced=!!i._oblig; delete i._oblig;
+  const forced=planDepotApres(i,de);
   const cf=intConflictOf(i,i.id);
-  save(); views.planning();
+  views.planning();
   toast('→ '+hh+' · '+techNames(i)+(forced?' · ⚠️ malgré congé':'')+(cf?' · ⚠️ chevauchement':''));
   serieShiftPropose(i,(de||{}).date||''); }
 /* ── Glisser au doigt (iPhone/iPad) : appui long puis déplacement ── */
