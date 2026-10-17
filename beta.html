@@ -39255,7 +39255,15 @@ function savePointage(e,id){ e.preventDefault();
   else{
     d.finTs=new Date(jour+'T'+d.fin+':00').getTime()||null;
     if(!d.finTs){ toast('Heure de fin invalide'); return; }
-    if(d.finTs < d.debutTs) d.finTs += 86400000;   // une nuit : la fin est le lendemain
+    if(d.finTs < d.debutTs){
+      /* i02 (r3#12) : sur un pointage OUVERT commencé AUJOURD'HUI, une fin plus petite que le début ne peut pas être une nuit — le
+         lendemain est dans le futur par construction. C'est une faute de frappe : on la nomme comme la reprise d'un oubli
+         (`ptFinRefus`), au lieu de « dans le futur » qui renvoie la personne chercher une heure qu'elle n'a pas tapée.
+         La règle de nuit ne bouge pas : une nuit commencée hier, ou un pointage clos, passent comme avant. Rien n'est écrit. */
+      if(ancien && ptOuvert(ancien) && ptJour(d.debutTs)===ptJour(Date.now()) && d.finTs+86400000 > Date.now()+60000){
+        toast('La fin ('+ptHM(d.finTs)+') est avant le début ('+ptHM(d.debutTs)+') — corrige l\'heure ou la date de fin'); return; }
+      d.finTs += 86400000;   // une nuit : la fin est le lendemain
+    }
   }
   if(d.debutTs > Date.now()+60000){ toast('Le début est dans le futur'); return; }
   if(d.finTs && d.finTs > Date.now()+60000){ toast('La fin est dans le futur — un pointage ne compte que des heures déjà travaillées'); return; }
