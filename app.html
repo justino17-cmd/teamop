@@ -2540,6 +2540,9 @@ html[data-theme="light"] .card::before,html[data-theme="light"] .kpi::before,htm
 .btn.ghost{background:var(--tint)!important;color:var(--acc-txt)!important}
 .btn.ghost:hover{background:color-mix(in srgb,var(--tint) 100%,var(--acc) 10%)!important;color:var(--acc-txt)!important}
 .btn.sm{min-height:32px;padding:0 12px!important;font-size:13.5px!important}
+/* lot h04 (appareils#2) : « ＋ Ajouter un point de livraison (même commande) » passe à la ligne au téléphone étroit.
+   Le `padding:0 …!important` ci-dessus collerait deux lignes de texte aux bords du bouton : il reprend de l'air en haut et en bas. */
+.btn.sm.bon-site-ajout{padding:8px 12px!important;height:auto;line-height:1.3;white-space:normal}
 .btn.danger{background:var(--danger-bg)!important;color:var(--danger-ink)!important}
 .btn.danger:hover{background:var(--red)!important;color:#FFFFFF!important}
 /* « Fin de journée » (Pointage) : le bouton PRINCIPAL de l'écran reste en tête — pleine largeur au
@@ -4745,6 +4748,30 @@ html[data-refonte] .lgb > .lgb-a{display:flex;align-items:center;gap:15px;flex-s
   html[data-refonte] .lgb > .lgb-a{order:2;flex-shrink:1;flex-wrap:wrap;justify-content:flex-end;gap:8px 10px;margin-left:auto}
 }
 
+/* ── lot h04 (appareils#3) : RAPPORTS, ARCHIVES MENSUELLES, HISTORIQUE — la même ligne « texte puis gestes », la même parade ──
+   Au téléphone étroit, la colonne de texte de ces trois écrans n'avait que 113 à 145 px (71 à 105 px à 320) sur 4 à 8 lignes, à côté
+   d'un bouton « Rédiger », d'un statut ou d'une heure qui gardent leur largeur (`white-space:nowrap`) : « Dératisation / — passage /
+   2/3 ». Rapports et Archives prennent `.pl-row.lgt` : le motif de `.lga` (le texte prend sa ligne, bouton et statut passent
+   dessous, à droite) avec un seuil PLUS BAS — 380 px de ligne au lieu de 440. Mesuré (contenu de la ligne) : 207 px à 320, 247 à
+   360, 275 à 390, 315 à 430 — mais 417 sur iPad 820, où le menu latéral prend 272 px : à 440, la ligne d'un iPad passait en deux
+   étages alors que le texte y avait 283 px et tout tenait sur une ligne. Le seuil sépare les deux (le contre-essai « une ligne
+   large garde sa mise en page » est dans la sonde).
+   L'Historique n'est pas une `.pl-row` : sa ligne (`.tl-item` : pastille · texte · heure) devient son propre conteneur à son tour —
+   sous 400 px de ligne (348 sur le plus grand iPhone, 450 sur iPad 820), le texte prend toute la place à côté de la pastille
+   (34 px + 14 de gouttière = 48) et l'heure passe dessous, alignée sur lui. Au-dessus, rien ne change : la base du texte est nulle
+   (`flex:1`) et tout tient sur une ligne. */
+html[data-refonte] .pl-row.lgt{container:ligne-texte / inline-size;flex-wrap:wrap;row-gap:10px!important}
+@container ligne-texte (max-width:380px){
+  html[data-refonte] .lgt > .pl-info{flex:1 1 calc(100% - 40px)}
+  html[data-refonte] .lgt::after{order:1}
+  html[data-refonte] .lgt > .st,html[data-refonte] .lgt > .btn{order:2;margin-left:auto}
+}
+html[data-refonte] .tl-item{container:ligne-hist / inline-size;flex-wrap:wrap;row-gap:4px}
+@container ligne-hist (max-width:400px){
+  html[data-refonte] .tl-item > .tl-body{flex:1 1 calc(100% - 48px)}
+  html[data-refonte] .tl-item > .tl-time{flex:1 0 100%;padding-left:48px}
+}
+
 /* ══ LA BARRE D'ONGLETS ══ posée par le bloc JS gardé, jamais par le HTML servi aux clients.
    C'est ce qui manquait pour que ça se lise comme une application de terrain et non comme un
    site : les quatre rubriques les plus ouvertes sous le pouce, en permanence, et « Plus » pour
@@ -5598,6 +5625,33 @@ html[data-refonte] .card[style*="padding:10px 8px;margin-bottom:12px"] > div:nth
   background:var(--rf-creux);border-radius:14px;padding:3px;gap:3px!important}
 html[data-refonte] [onclick^="intSelDay='"]{padding:8px 0!important}
 html[data-refonte] [onclick^="intSelDay='"] > div:last-child{height:14px!important;font-size:12px!important}
+/* ── lot h04 (appareils#7) : LES SEPT JOURS D'INTERVENTIONS AU TÉLÉPHONE ── les flèches ‹ › prenaient 92 px de la rangée des
+   jours (2 × 42 + les espacements) : il restait 26 px (Android 360) à 30 px (iPhone 390) par jour, au doigt — sous le plancher
+   de 38 px du dépôt. Elles montent sur la ligne du mois, avec « Aujourd'hui » : ‹ Aujourd'hui › se lit comme une seule
+   navigation, et les sept jours prennent toute la largeur de la carte (≥ 40 px à 360, ≥ 44 à 390). La rangée des jours
+   (`> div:nth-child(2)`) cesse d'avoir une boîte (`display:contents`) : ses trois enfants deviennent des enfants de la
+   carte, que `order` range. Seule la bande d'INTERVENTIONS porte `.int-jours` : la liste semaine du Planning, dont les jours
+   ne sont pas ces cases, garde sa rangée. Au-delà de 480 px (tablette), rien ne change : les jours y ont déjà 51 px.
+   Sous 340 px, la ligne ne tient plus en une seule : le mois garde la sienne, les flèches passent dessous.
+   ⛔ `!important` sur ce que le gabarit écrit DÉJÀ en ligne (`display:flex` de la rangée, `flex:1` du groupe de jours) : un
+   style en ligne bat la feuille — c'est ce qui avait laissé les flèches dans la rangée au premier essai. */
+@media (max-width:480px){
+  html[data-refonte] .card.int-jours{gap:8px 6px;padding:12px 10px!important}
+  html[data-refonte] .card.int-jours > div:first-child{order:0;flex:1 1 auto;min-width:0}
+  html[data-refonte] .card.int-jours > div:nth-child(2){display:contents!important}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button{min-width:38px;padding:0!important;justify-content:center}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button:first-child{order:1}
+  html[data-refonte] .card.int-jours > div:last-child{order:2;margin:0!important}
+  html[data-refonte] .card.int-jours > div:last-child .btn{padding:0 10px!important}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button:last-child{order:3}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > div{order:4;flex:1 1 100%!important}
+}
+@media (max-width:340px){
+  html[data-refonte] .card.int-jours{padding:12px 6px!important}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > div[style*="flex:1;display:flex"]{padding:1px;gap:1px!important}
+  html[data-refonte] .card.int-jours > div:first-child{flex:1 1 100%}
+  html[data-refonte] .card.int-jours > div:nth-child(2) > button:first-child{margin-left:auto}
+}
 
 /* ── LE JOUR REGARDÉ, DIT UNE SEULE FOIS ── la pastille du jour et les compteurs disaient deux
    choses sur deux étages ; ils tiennent sur une ligne, alignés à gauche comme le reste de la
@@ -7435,6 +7489,29 @@ html[data-os="windows"][data-marque][data-verre][data-refonte] .ph-actions .btn{
   html[data-marque][data-verre][data-refonte] .ph-actions{flex:0 1 auto!important;justify-content:flex-end}
   html[data-marque][data-verre][data-refonte] .ph-actions .btn:not(.ghost):not(.danger){order:0!important;flex:0 0 auto!important}
   html[data-marque][data-verre][data-refonte] .ph-actions .btn{min-height:44px!important;padding:0 16px!important}
+}
+
+/* ── lot h04 (appareils#8) : UN TÉLÉPHONE EN PAYSAGE (844×390) NE MONTRE PAS DE CONTENU — l'en-tête en mangeait la moitié ──
+   Mesuré (iPhone 844×390, Android 800×360) : la barre du haut 68 px + l'en-tête d'écran 196 à 213 px — bouton retour (44) sur une
+   rangée, titre et sous-titre (86) sur la suivante, actions (42-46) sur la troisième — : le premier bloc de contenu ne commençait
+   qu'à 288-352 px sur 390. Le menu latéral permanent (272 px dès 781 px) ne change PAS — c'est la règle « la navigation se choisit
+   à la largeur » (iPad) ; un menu rétractable en paysage téléphone est une décision de produit, pas de ce correctif. On compacte
+   ce qui est gonflé : le retour, le titre et les actions partagent UNE rangée (les actions repassent dessous quand elles n'y
+   tiennent pas), le titre passe de 34 à 22 px, la barre du haut perd son plancher de 58 px.
+   Borne : paysage ET hauteur ≤ 560 px ET largeur ≤ 1024 px — jamais un iPad (820 px de haut en paysage) ni un bureau ordinaire.
+   `[data-refonte][data-refonte]` : même force que la couche du thème final ci-dessus (`html[data-marque][data-refonte]`), écrite
+   avant — c'est l'ordre qui tranche, donc ce bloc vient APRÈS elle. Les cibles tactiles ne bougent pas (retour 44, actions 44-46). */
+@media (orientation:landscape) and (max-height:560px) and (max-width:1024px){
+  html[data-refonte][data-refonte] .topbar{min-height:44px!important;padding-top:max(6px,env(safe-area-inset-top))!important;padding-bottom:6px!important}
+  html[data-refonte][data-refonte] .page-head{display:flex;flex-wrap:wrap;align-items:center;column-gap:12px;padding-top:6px!important;padding-bottom:0!important}
+  html[data-refonte][data-refonte] .page-head:empty{display:none}
+  html[data-refonte][data-refonte] .page-head > .ph-back{flex:0 0 auto;margin:0!important}
+  html[data-refonte][data-refonte] .page-head > .ph-row{flex:1 1 280px;min-width:0;gap:8px 12px;align-items:center}
+  html[data-refonte][data-refonte] .ph-row > div:first-child{flex:1 1 200px!important;min-width:0}
+  html[data-refonte][data-refonte] .ph-actions{flex:0 1 auto!important;justify-content:flex-end}
+  html[data-refonte][data-refonte] .ph-title{font-size:22px!important;line-height:26px!important;letter-spacing:0!important}
+  html[data-refonte][data-refonte] .ph-sub{font-size:13px!important;line-height:17px;margin-top:0!important}
+  html[data-refonte][data-refonte] .ph-surtitre{font-size:11px;margin-bottom:0}
 }
 
 /* La barre « Reprendre » du multitâche : une vitre posée en haut de l'écran, comme une
@@ -21988,7 +22065,7 @@ views.interventions=function(){
   if(!intSelDay) intSelDay=todayISO(); if(!intWeekRef) intWeekRef=intSelDay;
   const days=weekDays(intWeekRef), WD=['L','M','M','J','V','S','D'];
   const moisLabel=new Date(intSelDay+'T00:00:00').toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
-  const strip=`<div class="card" style="padding:10px 8px;margin-bottom:12px">
+  const strip=`<div class="card int-jours" style="padding:10px 8px;margin-bottom:12px">
     <div style="text-align:center;font-weight:600;color:var(--t2);font-size:13px;margin-bottom:8px;text-transform:capitalize">${moisLabel}</div>
     <div style="display:flex;align-items:center;gap:4px">
       <button class="btn ghost sm" onclick="intWeekRef=shiftDay(intWeekRef,-7);views.interventions()">‹</button>
@@ -25654,9 +25731,9 @@ views.rapports=function(){
   const done=_mesInts.filter(i=>i.statut==='terminee');
   const pend=_mesInts.filter(i=>i.statut!=='terminee'&&i.statut!=='annulee');
   $('content').innerHTML=`<div class="card"><div class="card-head"><h3>Terminées</h3></div>
-    ${done.length? done.map(i=>`<div class="pl-row" onclick="formRapport('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
+    ${done.length? done.map(i=>`<div class="pl-row lgt" onclick="formRapport('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)} ${i.compteRendu?'<span class="st st-green">Rédigé</span>':'<span class="st st-org">À compléter</span>'}${i.compteRendu?(i.rapportEnvoye?'<span class="st st-green">✉ Envoyé</span>':'<span class="st st-org">Non envoyé</span>'):''}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}${i.rapportEnvoye?' · envoyé le '+fmtShort(new Date(i.rapportEnvoye.ts).toISOString().slice(0,10)):''}</div></div><button class="btn ghost sm">${i.compteRendu?'Voir':'Rédiger'}</button></div>`).join('') : emptyState('📄','Aucune intervention terminée.','','')}
   </div><div class="card"><div class="card-head"><h3>En attente de clôture</h3></div>
-    ${pend.length? pend.map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : emptyState('🎉','Tout est à jour !','','')}
+    ${pend.length? pend.map(i=>`<div class="pl-row lgt" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShort(i.date)} · ${esc(clientName(i.clientId))}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : emptyState('🎉','Tout est à jour !','','')}
   </div>`;
 };
 let rapPhotos=[];
@@ -31579,7 +31656,11 @@ function bonBoxPick(bid){ const bx=db.boxes.find(x=>x.id===bid); if(!bx) return;
     bonSites[0]={nom:bx.nom||bx.numero||'',adresse:bx.adresse||'',cp:bx.codePostal||'',ville:bx.ville||'',contact:resp?fullName(resp):'',tel:bx.tel||''};
     renderBonSites(); toast('📍 Adresse de livraison'+(bx.tel?' et téléphone sur place':'')+' remplis depuis la box');
   } else if(!s.tel&&bx.tel){ s.tel=bx.tel; if(!s.contact&&resp) s.contact=fullName(resp); renderBonSites(); toast('📞 Téléphone sur place repris de la box'); } }
-/* ── Points de livraison (une même commande peut partir vers plusieurs sites : un bon par site) ── */
+/* ── Points de livraison (une même commande peut partir vers plusieurs sites : un bon par site) ──
+   lot h04 : le libellé du bouton « ＋ Ajouter un point de livraison (même commande) » est long, et `.btn` est en
+   `white-space:nowrap` : à 360 px le texte sortait du bouton (353 px de texte dans 322) et poussait la fenêtre de 12 px vers
+   la droite. Il passe donc à la ligne (en ligne : la feuille n'impose pas `white-space` à `.btn`, mais un style en ligne
+   est la seule garde qui ne dépend pas de l'ordre des règles). */
 function renderBonSites(){ const el=$('bon-livraison'); if(!el) return;
   el.innerHTML=bonSites.map((s,i)=>`<div class="fgroup" style="margin-bottom:10px">
     ${bonSites.length>1?`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 0"><b style="font-size:11px;letter-spacing:.8px;color:var(--t3)">📍 POINT DE LIVRAISON ${i+1}</b><button type="button" class="btn danger sm" onclick="bonSites.splice(${i},1);renderBonSites()">✕</button></div>`:''}
@@ -31589,7 +31670,7 @@ function renderBonSites(){ const el=$('bon-livraison'); if(!el) return;
     <div class="frow"><input placeholder="Contact sur place" value="${esc(s.contact)}" oninput="bonSites[${i}].contact=this.value"></div>
     <div class="frow"><input placeholder="Téléphone" inputmode="tel" value="${esc(s.tel)}" oninput="bonSites[${i}].tel=this.value"></div>
   </div>`).join('')
-  +`<button type="button" class="btn ghost sm" style="width:100%;justify-content:center" onclick="bonSites.push({nom:'',adresse:'',cp:'',ville:'',contact:'',tel:''});renderBonSites()">＋ Ajouter un point de livraison (même commande)</button>
+  +`<button type="button" class="btn ghost sm bon-site-ajout" style="width:100%;justify-content:center;white-space:normal;text-align:center" onclick="bonSites.push({nom:'',adresse:'',cp:'',ville:'',contact:'',tel:''});renderBonSites()">＋ Ajouter un point de livraison (même commande)</button>
   ${bonSites.length>1?`<div class="detail-desc" style="margin-top:8px">📦 ${bonSites.length} points de livraison → à la validation, <b>${bonSites.length} bons identiques</b> seront créés (un par site), chacun envoyable au fournisseur.</div>`:''}`;
 }
 /* ── Sélecteur catalogue : filtre par fournisseur, cocher les produits, valider, puis régler les quantités ── */
@@ -39472,7 +39553,7 @@ views.archives=function(){
       <div class="kpi"><div class="kpi-ico" style="background:rgba(167,139,250,.14)">⏱️</div><div class="kpi-val">${dureeStr(s.minTot)}</div><div class="kpi-lbl">Temps pointé</div></div>
     </div>${s.fin?DOCS_EMIS_NOTE:''}</div>
     <div class="card"><div class="card-head"><h3>${t('Interventions du mois')} (${s.ints.length})</h3></div>
-      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShortEcran(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
+      ${s.ints.length? s.ints.sort((a,b)=>(a.date+a.heure).localeCompare(b.date+b.heure)).map(i=>`<div class="pl-row lgt" onclick="detailIntervention('${i.id}')"><div class="pl-info"><div class="pl-title">${esc(i.titre)}</div><div class="pl-meta">${fmtShortEcran(i.date)} · ${esc(clientName(i.clientId))} · ${techPuces(i)}</div></div>${badge(STATUT_INT,i.statut)}</div>`).join('') : '<div style="color:var(--t3);font-size:13px">Aucune intervention.</div>'}
     </div>`;
 };
 function shiftMonth(ym,n){ const [y,m]=ym.split('-').map(Number); return new Date(y,m-1+n,1).toLocaleDateString('sv-SE').slice(0,7); }
