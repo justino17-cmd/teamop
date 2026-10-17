@@ -173,3 +173,5 @@ tests/test-999.js
 tests/test-978.js
 tests/test-979.js
 tests/test-851.js
+# 17 octobre 2026 : `test-1010` (la version de l'API Stripe figée par `stripeEntetes`, les scripts du VPS qui la posent et la gardent).
+tests/test-1010.js
