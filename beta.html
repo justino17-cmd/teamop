@@ -14040,8 +14040,21 @@ function multiReprendre(vue){
     x.value = c.v;
     x.dispatchEvent(new Event(x.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
   });
-  /* ③ les champs cachés, APRÈS tous les événements */
-  cache.forEach(([x, v]) => { x.value = v; });
+  /* ③ les champs cachés, APRÈS tous les événements.
+     ⛔ Un champ caché qui DÉSIGNE une fiche (`clientId`) ne se restitue que si la fiche existe encore : « Reprendre » rouvre un
+     formulaire parfois longtemps après, et le client a pu être supprimé entre-temps (par un collègue, par une synchro). Posé tel
+     quel, l'identifiant mort rattachait l'intervention à un client qui n'existe plus — `saveIntervention` ne retombe sur le nom que
+     pour un identifiant VIDE. On le laisse vide ET on vide le texte qui l'affichait (il disait encore le nom du client supprimé,
+     comme si le choix tenait) : la personne le voit, et le dit la fenêtre, plutôt que de découvrir un client fantôme. */
+  let fichePerdue = false;
+  cache.forEach(([x, v]) => {
+    if(x.name === 'clientId' && v && !(db.clients || []).some(c => c && c.id === v)){
+      fichePerdue = true;
+      try{ const s = m.querySelector('#' + String(x.id || '').replace(/-(id|val)$/, '-search')); if(s) s.value = ''; }catch(err){}
+      return;
+    }
+    x.value = v;
+  });
   /* les listes de suggestions que les événements rejoués viennent d'ouvrir n'ont rien à faire là */
   try{ m.querySelectorAll('.soc-list').forEach(l => { l.style.display = 'none'; }); }catch(err){}
   /* ④ les puces (classe seule), dans l'ordre où elles étaient */
@@ -14061,7 +14074,7 @@ function multiReprendre(vue){
   }catch(err){}
   multiOublier(vue);
   try{ const b = document.querySelector('.multi-bar'); if(b) b.remove(); }catch(err){}
-  try{ toast('Reprise là où tu en étais'); }catch(err){}
+  try{ toast(fichePerdue ? 'Reprise — ce client n’existe plus, choisis-le de nouveau' : 'Reprise là où tu en étais'); }catch(err){}
 }
 /* La barre de reprise — discrète, en haut de l'écran, avec de quoi l'écarter. */
 function multiProposer(vue){
@@ -24461,6 +24474,10 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
     if(n){ const ex=db.clients.find(c=>(c.nom||'').toLowerCase()===n.toLowerCase());
       if(ex){ data.clientId=ex.id; } else { if(!permGarde('crm','ajouter','un client')) return; const nc={id:uid(),nom:n,creePar:(currentUser&&currentUser.id)||''}; db.clients.push(nc); data.clientId=nc.id; logEvent('Client créé',n,'crud'); } } }
   if(!data.clientId){ toast('Indique un client'); return; }
+  /* ⛔ Un identifiant de client qui n'existe plus (supprimé par un collègue ou par une synchro pendant que ce formulaire restait
+     ouvert) ne rattache RIEN : l'intervention naissait liée à un client fantôme, « Intervention créée », sans un mot. Seule exception :
+     une fiche DÉJÀ liée à ce client orphelin — modifier son titre ne doit pas être refusé pour un défaut d'avant. */
+  if(!db.clients.some(c=>c.id===data.clientId) && !(id && ((db.interventions.find(x=>x.id===id)||{}).clientId===data.clientId))){ toast('Ce client n’existe plus — choisis-en un autre'); return; }
   // Mise à jour des coordonnées du client (modifiables depuis l'intervention)
   const _cliTel=data.cliTel, _cliEmail=data.cliEmail; delete data.cliTel; delete data.cliEmail;
   if(data.clientId&&canCat('crm','modifier')){ const cli=db.clients.find(x=>x.id===data.clientId); if(cli){
