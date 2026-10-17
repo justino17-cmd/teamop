@@ -605,7 +605,7 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 @media (min-width: 1100px) {
   #vue-reglages { max-width: 1120px; }
   .reg-grille { display: grid; grid-template-columns: minmax(300px, 360px) minmax(0, 1fr); gap: 28px; align-items: start; }
-  .reg-accueil { position: sticky; top: 12px; }
+  .reg-accueil { position: sticky; top: calc(12px + var(--pousse, 0px)); }
   #vue-reglages[data-sec]:not([data-sec=""]) .reg-accueil, #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: revert; }
   .reg-barre { display: none; }
   .reg-detail { min-width: 0; padding-top: 4px; }
@@ -619,7 +619,7 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
    Le chemin d'entrée est le chemin de sortie (apple-design, §7). Elle ne reçoit aucun toucher : on ne la rate pas, on ne
    la ferme pas — elle ne se met jamais devant ce qu'on fait. */
 .notif {
-  --haut: max(10px, calc(env(safe-area-inset-top, 0px) + 8px));
+  --haut: calc(max(10px, calc(env(safe-area-inset-top, 0px) + 8px)) + var(--hl-h));
   position: fixed; z-index: 50; top: var(--haut); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
   margin: 0 auto; max-width: 440px; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 24px;
   background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
@@ -642,7 +642,7 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
    Le bandeau est une capsule de verre en haut (le même verre que la bannière, mais qu'on TOUCHE) ; rien ne bloque : la mise à jour n'est
    jamais obligatoire ici. L'écran de la mise à jour couvre tout, le temps de relire les fichiers (la barre avance au fil des octets). */
 .maj-bandeau {
-  position: fixed; z-index: 45; top: max(10px, calc(env(safe-area-inset-top, 0px) + 8px)); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  position: fixed; z-index: 45; top: calc(max(10px, calc(env(safe-area-inset-top, 0px) + 8px)) + var(--hl-h)); left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
   margin: 0 auto; max-width: 520px; display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 14px; border-radius: 26px;
   background: var(--notif-bg); -webkit-backdrop-filter: blur(40px) saturate(180%); backdrop-filter: blur(40px) saturate(180%);
   border: var(--line); box-shadow: 0 18px 44px rgba(0,0,0,.2), var(--verre-reflet); color: var(--text);
@@ -667,16 +667,28 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
 /* un petit mot qui s'efface seul (« Modifier » n'est pas encore dessiné) */
 /* ⛔ centré par left/right + margin:auto + width:max-content, JAMAIS par left:50% + translate(-50%) : à largeur automatique, la boîte
    ne prend que la place qui reste à droite de son bord gauche (180 px sur 360, deux lignes) — CLAUDE.md, « boîte absolue centrée ». */
+/* ⛔ LE PETIT MOT SE POSE EN BAS, AU-DESSUS DE CE QUI TIENT LE BAS (17 octobre 2026, lot m07). En haut, il tombait sur ce qu'on lit et touche : le grand titre « Tableau de bord » (≈ 42 %),
+   le segmenté Semaine / Mois, « Fermer » et le titre d'une feuille (pro#7, agenda#3) — et son déplacement d'octobre (84 px sous l'en-tête d'une conversation) n'avait déplacé le défaut que
+   d'un écran. Le haut de chaque écran est fait de titres et de commandes ; le bas, lui, n'a que la barre d'onglets (liste) ou le champ d'écriture (conversation) : le petit mot s'y pose
+   AU-DESSUS (`--mot-bas`). Il se mesure sur le bas de ce qu'on VOIT (`--vvt` + `--vvh` : le clavier ouvert le raccourcit), jamais sur le bas de la page. Une feuille ouverte, elle, tient le bas :
+   le petit mot passe EN HAUT, sur la page de derrière que le voile éteint (rien n'y est touchable). Un texte : `pointer-events: none`. */
+:root { --mot-bas: calc(max(14px, calc(env(safe-area-inset-bottom, 0px) - 8px)) + 76px); }
+@media (min-width: 900px) { :root { --mot-bas: calc(env(safe-area-inset-bottom, 0px) + 24px); } }
+html[data-kind="tablette"] { --mot-bas: calc(env(safe-area-inset-bottom, 0px) + 24px); }
+html[data-conv] { --mot-bas: calc(max(10px, env(safe-area-inset-bottom, 0px)) + 78px); }
 .mot {
   position: fixed; z-index: 49; left: 16px; right: 16px; margin: 0 auto; width: max-content; max-width: min(440px, calc(100vw - 32px));
-  top: calc(env(safe-area-inset-top, 0px) + 56px); padding: 9px 16px; border-radius: 18px; text-align: center;
+  top: calc(var(--vvt, 0px) + var(--vvh, 100%) - var(--mot-bas)); translate: 0 -100%; padding: 9px 16px; border-radius: 18px; text-align: center;
   background: rgba(28,28,30,.9); color: #fff; font-size: 14px; line-height: 18px; pointer-events: none; overflow-wrap: anywhere;
-  transform: translateY(-8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
+  transform: translateY(8px); opacity: 0; transition: transform .35s cubic-bezier(.32,.72,0,1), opacity .25s;
 }
 .mot.on { transform: none; opacity: 1; }
-/* ⛔ au téléphone, une conversation ouverte a un en-tête HAUT (l'avatar au-dessus du nom, comme Messages) : le petit mot passait SUR le nom de la conversation (vu au test de
-   A à Z, 8 octobre 2026 : « Je te le rappelle à … » posé sur le titre). Il se pose sous l'en-tête. */
-@media (max-width: 1099.98px) { html[data-conv] .mot { top: calc(var(--vvt, 0px) + env(safe-area-inset-top, 0px) + 84px); } }
+/* la SALLE tient le bas avec sa barre ronde (93 px + l'encoche) : le petit mot passe au-dessus d'elle */
+html[data-salle] { --mot-bas: calc(env(safe-area-inset-bottom, 0px) + 106px); }
+/* ⛔ en HAUT, sur ce qui n'a rien de touchable derrière : la page qu'une feuille éteint (voile, `inert`), et l'écran d'appel à deux, dont les 56 px sous l'encoche sont vides (ses commandes
+   tiennent le bas, sur deux rangées qui se replient : on n'y mesure pas de place fiable). Sous la bande hors ligne quand elle est là. */
+html.feuille-ouverte .mot, html[data-appel]:not([data-salle]) .mot { top: calc(var(--vvt, 0px) + env(safe-area-inset-top, 0px) + var(--hl-h) + 6px); translate: none; transform: translateY(-8px); }
+html.feuille-ouverte .mot.on, html[data-appel]:not([data-salle]) .mot.on { transform: none; }
 
 /* ⚠️ ÉCARTS AU PAQUET, À FAIRE VALIDER PAR JUSTIN (relecture du 1er octobre 2026) : (1) la flèche d'envoi n'est montrée qu'avec du texte, et le micro disparaît alors — le paquet
    dessine la flèche dans la pilule ET le micro à droite en permanence ; (2) le chevron de retour et son badge sont masqués dès 1 100 px (la liste est à côté) — la capture
@@ -687,12 +699,12 @@ html[data-plat]:not([data-verre-natif]):not([data-plat="web"]) { --verre-reflet:
    qu'elle ne dessine pas (un vrai champ, le retour, le défilement, l'enregistrement) est ajouté sans toucher aux jetons. */
 :root { --col-liste: clamp(340px, 30vw, 440px); }
 .conv-ecran {
-  position: fixed; z-index: 30; top: var(--vvt, 0px); left: 0; right: 0; height: var(--vvh, 100%); display: none; flex-direction: column; min-height: 0;
+  position: fixed; z-index: 30; top: calc(var(--vvt, 0px) + var(--pousse, 0px)); left: 0; right: 0; height: calc(var(--vvh, 100%) - var(--pousse, 0px)); display: none; flex-direction: column; min-height: 0;
   background-color: var(--base); background-image: var(--screen); background-attachment: fixed; outline: none;
 }
 html[data-conv] .conv-ecran { display: flex; }
 .conv-vide {
-  position: fixed; z-index: 20; top: 0; bottom: 0; right: 0; left: calc(236px + var(--col-liste)); display: none; place-items: center; padding: 24px; text-align: center;
+  position: fixed; z-index: 20; top: var(--pousse, 0px); bottom: 0; right: 0; left: calc(236px + var(--col-liste)); display: none; place-items: center; padding: 24px; text-align: center;
   border-left: var(--sep);
 }
 .conv-vide p { max-width: 28ch; font-size: 15px; line-height: 20px; color: var(--sub-meta); }
@@ -1002,7 +1014,7 @@ html[data-selection] .tabs { display: none; }
    vignette de 104 × 150 : la VRAIE caméra) et « groupe » (une grille de participants, « Vous » parmi eux). La mise en page suit la caméra, pas le type de l'appel :
    une caméra refusée laisse un appel audio, une caméra allumée en cours d'appel le fait basculer. */
 .appel-ecran {
-  position: fixed; z-index: 35; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
+  position: fixed; z-index: 35; top: var(--hl-h); left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
   background: var(--appel-fond); color: #fff; outline: none;
 }
 html[data-appel] .appel-ecran { display: flex; }
@@ -1011,10 +1023,11 @@ html[data-appel] .appel-ecran { display: flex; }
 .appel-barre { position: fixed; z-index: 45; top: 0; left: 0; right: 0; display: none; align-items: center; gap: 8px; min-height: var(--haut-appel); padding: env(safe-area-inset-top, 0px) max(10px, env(safe-area-inset-right, 0px)) 0 max(10px, env(safe-area-inset-left, 0px)); background: var(--vert); color: #000; }
 html[data-appel-reduit] { --haut-appel: calc(44px + env(safe-area-inset-top, 0px)); }
 html[data-appel-reduit] .appel-barre { display: flex; }
-html[data-appel-reduit] body { padding-top: var(--haut-appel); }
-html[data-appel-reduit] .conv-ecran { top: calc(var(--vvt, 0px) + var(--haut-appel)); height: calc(var(--vvh, 100%) - var(--haut-appel)); }
-html[data-appel-reduit] .conv-vide { top: var(--haut-appel); }
-html[data-appel-reduit] .side { top: var(--haut-appel); height: calc(100dvh - var(--haut-appel)); }
+/* ce qui pousse la page par le haut — la barre d'appel réduit ET la bande hors ligne — se lit dans UN nom, `--pousse` (la bande d'appel se pose sous la bande hors ligne) */
+.appel-barre { top: var(--hl-h); }
+body { padding-top: var(--pousse); }
+.app { min-height: calc(100vh - var(--pousse)); min-height: calc(100dvh - var(--pousse)); }
+.side { top: var(--pousse); height: calc(100vh - var(--pousse)); height: calc(100dvh - var(--pousse)); }
 .appel-barre-revenir { flex: 1; min-width: 0; min-height: 44px; display: flex; align-items: center; gap: 8px; padding: 0 4px; background: none; color: inherit; font-size: 15px; font-weight: 600; text-align: left; }
 .appel-barre-revenir .texte { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .appel-barre-revenir b { flex: none; padding: 4px 12px; border-radius: 999px; background: rgba(0,0,0,.14); font-size: 14px; }
@@ -1165,9 +1178,17 @@ html[data-service] .mention-apercu { display: none; }
 .champ input.cx-code { text-align: center; font-size: 26px; letter-spacing: .32em; font-variant-numeric: tabular-nums; }
 
 /* la coupure du temps réel : une bande qui reste tant que la connexion n'est pas revenue — jamais un écran qui fait semblant d'être à jour */
+/* ⛔ ELLE POUSSE LE CONTENU DE SA HAUTEUR au lieu de se poser dessus (17 octobre 2026, lot m07 : temps-reel#4, contacts@10, salle@3). En `position: fixed; top: 0` sans rien décaler, elle cachait,
+   tant que la coupure durait, le logo, « Messages / Modifier / + », « Ajouter » de Contacts, l'avatar et le titre de la conversation, « Quitter » de la salle — la coupure est précisément le
+   moment où l'on a besoin de les lire (« Quitter » reste utile quand le réseau est mauvais). Même mécanisme que la barre d'appel réduit : `--hl-h` (28 px tant qu'elle est là, rien sinon,
+   posé par `:has()` sur la bande elle-même : aucun JavaScript, la bande reste celle que le JavaScript montre ou cache) entre dans `--pousse`, que lisent le corps, la conversation, la salle,
+   la barre latérale et les barres collantes. La bande est de HAUTEUR FIXE (l'encoche en plus, que le contenu ne recompte pas : il garde son propre rembourrage d'encoche), sur une ligne :
+   un texte trop long se coupe plutôt que de recouvrir la ligne d'en dessous. Un texte : `pointer-events: none`. */
+:root { --hl-h: 0px; --pousse: calc(var(--hl-h) + var(--haut-appel, 0px)); }
+html:has(#hors-ligne:not([hidden])) { --hl-h: 28px; }
 .hors-ligne {
-  position: fixed; z-index: 55; top: 0; left: 0; right: 0; padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 7px; pointer-events: none;   /* un texte : il ne couvre pas les commandes de dessous */
-  background: rgba(28,28,30,.94); color: #fff; font-size: 14px; line-height: 18px; text-align: center; overflow-wrap: anywhere;
+  position: fixed; z-index: 55; top: 0; left: 0; right: 0; box-sizing: border-box; height: calc(env(safe-area-inset-top, 0px) + var(--hl-h)); padding: calc(env(safe-area-inset-top, 0px) + 5px) 16px 0; pointer-events: none;   /* un texte : il ne couvre pas les commandes de dessous */
+  background: rgba(28,28,30,.94); color: #fff; font-size: 14px; line-height: 18px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .liste-erreur {
   display: flex; align-items: center; gap: 10px; margin: 0 0 12px; padding: 10px 14px; border-radius: 14px; background: var(--card); border: var(--line);
@@ -1756,7 +1777,7 @@ html[data-os="windows"] .rappels-puces > .rappel-puce { border-radius: 6px; }   
    se replient (`auto-fit`, `flex-wrap`, `overflow-wrap`). */
 :root { --salle-fond: #0b0d12; --salle-vitre: rgba(255,255,255,.12); --salle-bord: rgba(255,255,255,.18); --salle-sub: rgba(255,255,255,.78); --salle-panneau: rgba(28,30,40,.95); }
 .salle-ecran {
-  position: fixed; z-index: 36; top: 0; left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
+  position: fixed; z-index: 36; top: var(--hl-h); left: 0; right: 0; bottom: 0; display: none; flex-direction: column; min-height: 0; overflow: hidden;
   background: var(--salle-fond); color: #fff; outline: none;
 }
 html[data-salle] .salle-ecran { display: flex; }
@@ -2212,7 +2233,7 @@ a.menu-action { text-decoration: none; }
   .contenu { padding: 0 24px 32px; }
   .vue { position: relative; max-width: none; }
   .vue > .entete-vue {
-    position: sticky; top: 0; z-index: 6; min-height: 52px; margin: 0 -24px 14px; padding: 0 14px 0 24px; justify-content: flex-end; gap: 4px;
+    position: sticky; top: var(--pousse, 0px); z-index: 6; min-height: 52px; margin: 0 -24px 14px; padding: 0 14px 0 24px; justify-content: flex-end; gap: 4px;
     background: var(--nav-bar); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%); border-bottom: var(--line);
   }
   .vue > .grand-titre {
@@ -2297,7 +2318,7 @@ a.menu-action { text-decoration: none; }
 
   /* PROFIL = LES RÉGLAGES SYSTÈME : la colonne des rubriques (ma carte en tête, puis les rubriques en lignes de 28 px, la choisie en aplat d'accent), la rubrique à droite */
   #vue-reglages .reg-grille { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 32px; align-items: start; max-width: 1100px; margin-inline: auto; }
-  #vue-reglages .reg-accueil { position: sticky; top: 66px; display: block !important; }
+  #vue-reglages .reg-accueil { position: sticky; top: calc(66px + var(--pousse, 0px)); display: block !important; }
   #vue-reglages[data-sec]:not([data-sec=""]) #titre-reglages { display: flex; }
   #vue-reglages .reg-barre { display: none; }
   .reg-moi { flex-direction: row; align-items: center; gap: 12px; padding: 10px 12px; margin-bottom: 14px; border-radius: 12px; background: transparent; text-align: left; display: grid; grid-template-columns: 48px 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 0; }
@@ -2325,7 +2346,7 @@ a.menu-action { text-decoration: none; }
   #vue-contacts { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); column-gap: 0; }
   #vue-contacts > .entete-vue { grid-column: 1 / -1; }
   #vue-contacts > .vc-col { max-width: none; margin: 0; padding-right: 20px; min-width: 0; }
-  #vue-contacts > .vc-fiche { max-width: none; margin: -14px -24px 0 0; min-height: calc(100vh - 52px); border-left: var(--line); position: sticky; top: 52px; align-self: start; }
+  #vue-contacts > .vc-fiche { max-width: none; margin: -14px -24px 0 0; min-height: calc(100vh - 52px); border-left: var(--line); position: sticky; top: calc(52px + var(--pousse, 0px)); align-self: start; }
   #vue-contacts .contact[aria-current="true"] { background: var(--fill); color: var(--on-fill); --sub-meta: color-mix(in srgb, var(--on-fill) 78%, transparent); }
   #vue-contacts .contact[aria-current="true"] .vc-chevron { stroke: currentColor; }
   #vue-contacts .vc-ligne .vc-chevron { display: none; }
