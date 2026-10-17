@@ -26811,7 +26811,11 @@ views.fournisseurs=function(){
 function delFournisseur(id){
   if(!currentUser||currentUser.role!=='admin'){ toast('Suppression réservée à l\'administrateur'); return; }
   const f=db.fournisseurs.find(x=>x.id===id); if(!f) return;
-  if(!confirm('Supprimer le fournisseur « '+(f.nom||'')+' » ?\n(Ses produits restent dans le catalogue.)')) return;
+  const bons=fournisseurBons(id); const enCours=bons.filter(b=>b.statut!=='livree'&&b.statut!=='annulee').length;
+  if(!confirm('Supprimer le fournisseur « '+(f.nom||'')+' » ?'+(bons.length?'\n\n'+liensPluriel(bons.length,'bon')+' de commande '+(bons.length>1?'l\'utilisent':'l\'utilise')+' ('+enCours+' en cours). '+(bons.length>1?'Ils gardent':'Il garde')+' son nom et son adresse e-mail.':'')+'\n(Ses produits restent dans le catalogue.)')) return;
+  /* Le bon ne portait que `fournisseurId` : une fois la fiche partie il devenait « Sans fournisseur », « e-mail manquant », PDF « FOURNISSEUR — ».
+     Il garde le NOM (`fournisseur`, que tout l'écran lit déjà en repli) et l'adresse (`emailDest`, sans écraser une adresse saisie sur le bon). */
+  bons.forEach(b=>{ if(f.nom) b.fournisseur=f.nom; if(!b.emailDest&&f.email) b.emailDest=f.email; });
   db.fournisseurs=db.fournisseurs.filter(x=>x.id!==id); logEvent('Suppression fournisseur',f.nom||'','crud'); save(); toast('Fournisseur supprimé'); views.fournisseurs();
 }
 function formFournisseur(id){ const f=id?db.fournisseurs.find(x=>x.id===id):{};
@@ -35185,6 +35189,25 @@ function saveSimple(e,coll,id,numFields){ e.preventDefault();
   else{ if(coll==='clients'){ d.x=10+Math.random()*80; d.y=10+Math.random()*80; } db[coll].push({id:uid(),...d}); logEvent('Création',`${coll} : ${d.nom||d.ref||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);
 }
+/* ⛔ g11 — SUPPRIMER UNE FICHE NE LAISSE PAS D'ORPHELINS SANS LE DIRE. Trois suppressions retiraient la fiche et
+   laissaient derrière elle ce qui la désignait : un client (ses interventions « — » sans adresse, sa facture sans
+   destinataire), une box (sa demande de sortie encore « à valider » pour le DR, qui la passait en silence à « refuse »),
+   un fournisseur (ses bons « Sans fournisseur »). Ces aides ne font que COMPTER et RANGER ; la suppression elle-même
+   garde son mécanisme (filter + save : la pierre tombale se pose à la sauvegarde, jamais contournée). */
+function liensPluriel(n,mot,plur){ return n+' '+(n>1?(plur||mot+'s'):mot); }
+function clientLiens(id){ const n=l=>(db[l]||[]).filter(x=>x&&x.clientId===id).length;
+  return {interventions:n('interventions'),devis:n('devis'),factures:n('factures'),contrats:n('contrats'),box:n('boxes')}; }
+function clientLiensTxt(l){ return [l.interventions&&liensPluriel(l.interventions,'intervention'),l.devis&&liensPluriel(l.devis,'devis','devis'),
+  l.factures&&liensPluriel(l.factures,'facture'),l.contrats&&liensPluriel(l.contrats,'contrat'),l.box&&liensPluriel(l.box,'box','box')].filter(Boolean).join(', '); }
+function boxDemandesAttente(boxId){ return (db.boxMvtAttente||[]).filter(m=>m&&m.boxId===boxId&&m.statut==='enAttente'); }
+/* Les demandes en attente d'une box qu'on supprime sont REFUSÉES par la fonction de tout refus (le bon d'arrivage lié
+   redevient « à réceptionner », l'auteur est prévenu) et GARDÉES comme trace ; ses brouillons, que personne n'enverra, partent.
+   À appeler AVANT de retirer la box : le libellé du refus la relit. */
+function boxDemandesRetirer(boxId){ const att=boxDemandesAttente(boxId);
+  att.forEach(m=>boxMvtRefuser(m,'box supprimée'));
+  db.boxMvtAttente=(db.boxMvtAttente||[]).filter(m=>!(m&&m.boxId===boxId&&m.statut==='brouillon'));
+  return att.length; }
+function fournisseurBons(id){ return (db.bons||[]).filter(b=>b&&b.fournisseurId===id); }
 function delItem(coll,id){
   const _grp=COLL_GRP[coll]||'';
   if(_grp ? !canCat(_grp,'supprimer') : !can('supprimer')){ toast('Suppression non autorisée pour ton compte (Permissions)'); return; }
@@ -35202,7 +35225,9 @@ function delItem(coll,id){
        repartirait vide, l'ancien stock du catalogue y ayant été rangé une fois pour toutes. Désactivé
        (« Stockage actif », ✎), il quitte les écrans, garde son contenu, et « Créer le stockage » le rouvre. */
     if(id===STOCKAGE_ID||estStockage(b)){ toast('Le stockage ne se supprime pas : c’est le stock de l’entreprise. Pour ne plus t’en servir, décoche « Stockage actif » (✎) — il reviendra tel quel si tu le recrées.',6500); return; }
-    if(!confirm('Supprimer la box « '+(b.nom||b.numero||'')+' » ? Son stock et son historique disparaîtront.')) return;
+    const nAtt=boxDemandesAttente(id).length;
+    if(!confirm('Supprimer la box « '+(b.nom||b.numero||'')+' » ? Son stock et son historique disparaîtront.'+(nAtt?'\n\n'+liensPluriel(nAtt,'demande')+' de sortie en attente du DR '+(nAtt>1?'seront refusées':'sera refusée')+' (« box supprimée »).':''))) return;
+    boxDemandesRetirer(id);   // refusées avec un motif lisible : sinon « Valider » les passait en silence à « refuse »
     /* APRÈS le confirm, jamais avant : ce filtre s'exécutait même quand on répondait « Annuler », et
        la box gardait alors une base sans ses écartés — le premier save() venu posait la tombe et la
        synchro effaçait pour toute l'équipe des décisions que personne n'avait révoquées. */
@@ -35214,6 +35239,13 @@ function delItem(coll,id){
       toast('Ce technicien a un compte (@'+(lu.login||'')+') : on supprime le compte, la fiche technicien part avec'); delUser(lu.id); return; }
     if(!confirm('Supprimer le technicien « '+(t.nom||'')+' » ?\n\nIl est retiré des box, des véhicules et du planning à venir ; son historique garde son nom.')) return;
     techArchiver(id); logEvent('Technicien supprimé',t.nom||'','crud'); save(); closeModal(); toast('Technicien retiré partout'); go(current); return;
+  } else if(coll==='clients'){ const c=db.clients.find(x=>x.id===id)||{}; const l=clientLiens(id);
+    /* Le client part comme avant — la suppression n'est PAS refusée (delFacture supprime une facture avec le seul droit
+       « Ventes · supprimer » : aucune règle ne protège les factures ici, on n'en invente pas). Mais ce qu'il porte
+       (interventions, devis, factures, contrats, box) RESTE, SANS client : on le dit avant, chiffres à l'appui, factures
+       comprises — c'est la confirmation honnête que le générique « Supprimer cet élément ? » ne donnait pas. */
+    const reste=clientLiensTxt(l);
+    if(!confirm(reste?'Supprimer le client « '+(c.nom||'')+' » ?\n\nIl est lié à : '+reste+'.\nCes éléments RESTENT, mais sans client : plus de nom ni d\'adresse dessus'+(l.factures?' (une facture sans client ne peut plus être réclamée)':'')+'.\n\nPour garder l\'historique lisible, garde plutôt la fiche.':'Supprimer cet élément ?')) return;
   } else if(!confirm('Supprimer cet élément ?'))return;
   db[coll]=db[coll].filter(x=>x.id!==id); logEvent('Suppression',coll,'crud'); save(); closeModal(); toast('Supprimé'); go(current); }
 

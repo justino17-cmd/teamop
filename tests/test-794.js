@@ -309,9 +309,11 @@ console.log('\n── 794 · 12. le scanner du catalogue range dans le stockage 
 console.log('\n── 794 · 14. la relecture : le stockage ne se supprime pas, ne s’ouvre qu’avec l’accès, et l’ancien compteur ne revit pas ──');
 /* Relecture adversariale du 24 septembre 2026 (trois angles, chaque constat contre-vérifié). On JOUE les vraies
    fonctions, dans un bac à sable à part : openBox, delItem, etiqAppliquerCat, saveProduitDonne. */
-{ const NOMS = ['openBox', 'delItem', 'etiqAppliquerCat', 'saveProduitDonne', 'estStockage', 'stockageBox', 'stockageOuvert'];
+{ const NOMS = ['openBox', 'delItem', 'etiqAppliquerCat', 'saveProduitDonne', 'estStockage', 'stockageBox', 'stockageOuvert',
+    /* g11 : delItem compte désormais les liens avant de supprimer (client, box) — ses aides font partie de la fonction jouée. */
+    'liensPluriel', 'clientLiens', 'clientLiensTxt', 'boxDemandesAttente', 'boxDemandesRetirer', 'boxMvtRefuser'];
   const C = {}; NOMS.forEach(n => { C[n] = bloc('function ' + n + '('); });
-  v('population : les sept fonctions sont trouvées', NOMS.filter(n => !C[n]), []);
+  v('population : les sept fonctions (et les aides de comptage de delItem) sont trouvées', NOMS.filter(n => !C[n]), []);
   const bac = o => { const ctx = { console, JSON, Math, Date, Set, Object, Array, String, Number,
       db: o.db, currentUser: moi, __vus: o.vus === undefined ? null : o.vus, __toasts: [], __ouvert: [], __conf: [], __saves: 0 };
     vm.createContext(ctx);
