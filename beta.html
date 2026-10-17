@@ -270,7 +270,11 @@
   .frow[hidden]{display:none!important}
   .frow:last-child{border-bottom:none;}
   .frow>input,.frow>select,.frow>textarea{background:transparent;border:none;padding:0;width:100%;color:var(--t1);font-size:15px;outline:none;}
-  .frow-val>input,.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
+  /* i01 (r3#11) : une case à cocher ou un bouton radio n'est pas un champ de saisie. `appearance:none` lui retirait TOUT
+     rendu — « Active » (enveloppe), « Box active » / « Stockage actif », « Intervention effectuée » : coché ou décoché,
+     la même image, rien à voir ni à viser. Ces contrôles gardent leur apparence native (et son anneau de focus) ; seuls
+     les champs de saisie et les listes prennent le fond transparent de la rangée. */
+  .frow-val>input:not([type=checkbox]):not([type=radio]),.frow-val>select,.frow-val>textarea{background:transparent;border:none;outline:none;padding:0;color:var(--t1);font-size:15px;text-align:right;font-family:inherit;appearance:none;-webkit-appearance:none;}
   .frow>textarea{resize:vertical;min-height:44px;font-family:inherit;}
   .frow .frow-lbl{color:var(--t1);font-size:15px;white-space:nowrap;}
   /* ⛔ UN CHAMP POSÉ DIRECTEMENT APRÈS SON LIBELLÉ SE RANGE À CÔTÉ DE LUI (g03, achats#12). `.frow>input{width:100%}`
@@ -6714,9 +6718,13 @@ html[data-refonte] .pl-row[onclick]:hover::after{opacity:1;border-color:var(--ac
    Une cellule de gestes se range donc par le COMPOSANT (`.list-tbl`), jamais par l'écran où elle est née :
    elle passe à la ligne sous 781 px (cartes) ET sur tablette, où elle garde de quoi ranger ses boutons
    par rangées de trois au lieu d'imposer une largeur d'ordinateur au tableau entier. */
-html[data-refonte] .list-tbl td.cel-gestes{white-space:normal!important}
 html[data-refonte] .list-tbl td.cel-gestes .btn{margin:2px 0}
+/* ⛔ … et ce n'est vrai QU'EN MODE CARTE (i01, r3#10). `white-space:normal!important` était posé à toutes les largeurs :
+   sur un ordinateur, où le tableau tient, la rangée de gestes de Devis et de Contrats passait sur deux lignes (🗑 seul
+   dessous, ligne de 114 px au lieu de 73 ; 111 au lieu de 96 pour un contrat) alors que rien n'était coupé. Le retour à
+   la ligne n'a de sens que là où la cellule devient un bloc : sous 781 px et dans la requête de conteneur ci-dessous. */
 @media(max-width:780px){
+  html[data-refonte] .list-tbl td.cel-gestes{white-space:normal!important}
   html[data-refonte] .list-tbl td.cel-gestes:not(:empty){display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;justify-content:flex-start}
 }
 /* ⛔ C'EST LA LARGEUR DU TABLEAU QUI DÉCIDE, PAS CELLE DE L'ÉCRAN : sur iPad le menu latéral reste posé, la
@@ -6734,7 +6742,7 @@ html[data-refonte] .tbl-wrap:has(>.list-tbl .cel-gestes){container:tbl-liste / i
     html[data-refonte] .list-tbl tr{background:var(--bg2);border:1px solid var(--brd);border-radius:12px;margin-bottom:8px;padding:12px 6px;position:relative;min-height:64px}
     html[data-refonte] .list-tbl td{border:none!important;padding:3px 14px;font-size:13px;color:var(--t2)}
     html[data-refonte] .list-tbl td:first-child{font-size:15px;font-weight:600;color:var(--t1);padding-top:6px;padding-bottom:2px}
-    html[data-refonte] .list-tbl td.cel-gestes{padding-top:8px;text-align:left!important}
+    html[data-refonte] .list-tbl td.cel-gestes{padding-top:8px;text-align:left!important;white-space:normal!important}
     html[data-refonte] .list-tbl td:empty{display:none}
     html[data-refonte] .list-tbl td.cel-gestes:not(:empty){display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;justify-content:flex-start}
   }
@@ -7677,6 +7685,16 @@ html[data-marque][data-verre] .login-card button.btn:not(.ghost){background:var(
 
 /* ── 19. LES BOUTONS — des pilules (Windows : 6 px), comme toute la maquette ── */
 html[data-marque][data-verre][data-refonte] .btn{border-radius:999px!important}
+/* i01 (r3#7) : un bouton qui passe sur plusieurs lignes n'est pas une pilule — à 108 px de haut, un rayon de 999 px en fait un
+   demi-disque aux deux bouts, qui rogne le texte. 22 px = la pilule d'une ligne (44 px), un rectangle arrondi au-delà. */
+html[data-marque][data-verre][data-refonte] .btn[style*="white-space:normal"]{border-radius:22px!important}
+/* i01 (r3#7, r3#13) : `.btn{padding:0 16px!important}` (et sa version au doigt, `padding:0 18px!important`) bat le `padding` EN LIGNE :
+   un bouton à libellé sur plusieurs lignes (« Proposition auto — … », « Envoyer les bons prêts… ») perdait sa marge verticale,
+   le texte touchait les bords de la pilule (0 px en haut, 1 px en bas, 108 px de haut). Un bouton qui DEMANDE le retour à la
+   ligne (`white-space:normal` écrit en ligne) reprend donc de l'air en haut et en bas — le sens vertical seulement : les côtés
+   restent ceux du bouton. Même geste que `.btn.sm.bon-site-ajout` (h04), qui a déjà sa valeur et la garde. Le plancher de
+   46 px au doigt, lui, vaut toujours. */
+html[data-refonte] .btn[style*="white-space:normal"]:not(.bon-site-ajout){padding-block:10px!important}
 html[data-os="windows"][data-marque][data-verre][data-refonte] .btn{border-radius:6px!important}
 
 /* ── 21. L'ÉCRAN « THÈME ET COULEUR » ── la grammaire des Réglages d'iOS : des groupes titrés en
@@ -7818,13 +7836,30 @@ html[data-refonte] .filters.tc-modes,html[data-refonte] .filters.seg-on:not(.seg
      `padding:0 18px!important` n'aurait laissé aucune marge à un libellé sur deux lignes. */
 @media (max-width:780px){
   html[data-refonte] #content .card > .btn,
-  html[data-refonte] #content .card > div:not([class]) > .btn{
+  html[data-refonte] #content .card > div:not([class]):not(:has(> :is(input:not([type=hidden],[type=file],[type=checkbox],[type=radio]),select,textarea))) > .btn{
     max-width:100%;white-space:normal;overflow-wrap:anywhere;line-height:1.3;padding-block:8px!important}
+  /* ⛔ … mais PAS le bouton qui partage sa rangée avec un champ (i01, r3#2 : « Ex : 3D Sud-Ouest SARL » + « ＋ Ajouter »).
+     `white-space:normal` + `overflow-wrap:anywhere` ramènent la largeur minimale d'un bouton à UNE lettre : dans une rangée
+     flex, le champ (`flex:1`) prend toute la place et le bouton s'écrase en colonne (49 × 156 px sur un Android de 360,
+     « ＋ / A / j / o / u… »). Le bouton court d'une rangée à champ reste sur une ligne (`nowrap` du `.btn`) et c'est le
+     CHAMP qui cède : `min-width:0` lui permet de rétrécir sous sa largeur d'origine, sinon la rangée sort de la carte.
+     Un champ caché (`hidden`, `file` en `display:none`, case) ne fait pas une rangée de saisie : les boutons de la rangée
+     Exporter / Importer gardent ce que g04 leur a donné. */
+  html[data-refonte] #content .card > div:not([class]):has(> :is(input:not([type=hidden],[type=file],[type=checkbox],[type=radio]),select,textarea)) > :is(input:not([type=hidden],[type=file],[type=checkbox],[type=radio]),select,textarea){min-width:0}
   /* · la rangée Français / English / Español fait 335 px pour 278 à 306 utiles : tronquée (« Españ »), elle
        défilait sans rien qui le dise. Trois pastilles passent à la ligne, la dernière sous les autres. */
   html[data-refonte] .filters:has(> .chip[onclick^="setLang("]){
     flex-wrap:wrap!important;overflow:visible;margin-left:0;margin-right:0;padding-left:0;padding-right:0;
-    -webkit-mask-image:none!important;mask-image:none!important}
+    -webkit-mask-image:none!important;mask-image:none!important;
+    /* i01 (r3#4) : la rangée gardait le rayon 999 px de la vitre des segmentés. Passée à la ligne, elle devenait une
+       pilule de 102 px de haut avec « Español » seul au bas (205 px de vide à sa droite). Le rayon suit la hauteur :
+       24 px fait une pilule sur UNE ligne (46 px) et un rectangle arrondi sur deux. */
+    border-radius:24px!important;gap:4px}
+  /* … et les trois pastilles se serrent pour TENIR sur une ligne (Android 360 : 280 px de rangée, 316 px de pastilles à
+     16 px de marge ; à 6 px de marge et 13 px de texte, 256 px) et se partagent la place à égalité. Elles ne passent à
+     la ligne que sur un écran plus étroit (320 px), où le rayon ci-dessus tient le rectangle arrondi. */
+  html[data-refonte] .filters:has(> .chip[onclick^="setLang("]) > .chip[onclick^="setLang("]{
+    flex:1 1 auto;justify-content:center;text-align:center;padding-left:6px!important;padding-right:6px!important;font-size:13px}
 }
 /* · la liste déroulante de l'étape « Produits » de la Clôture guidée (`flex:1` sans `min-width:0`, écrit en ligne)
      prend la largeur de sa plus longue option : 589 px dans une fenêtre de 388, et le ＋ — seul moyen d'ajouter
@@ -31045,7 +31080,10 @@ function renderBonsList(){
   const q=norm(bonsSearch); if(q) list=list.filter(b=>norm(bonNum(b)+' '+(fournName(b.fournisseurId)||'')+' '+(b.nomSiteLivraison||'')+' '+(b.lignes||[]).map(l=>l.designation).join(' ')).includes(q));
   list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   if(!list.length){ el.innerHTML=`<div class="card">${emptyState('✉️','Aucun bon de commande.','Nouveau','formBon()')}</div>`; return; }
-  const bulkBtn = bonsFilter==='prets' ? `<button class="btn" style="width:100%;justify-content:center;margin:0 0 10px" onclick="bonEnvoyerTousPrets()">✉️ Envoyer les bons prêts… (${list.length}) — tu choisis lesquels</button>` : '';
+  /* i01 (r3#13) : le libellé est long (« Envoyer les bons prêts… (2) — tu choisis lesquels », 385 px pour 328) et `.btn` est nowrap :
+     il sortait aux deux bords et poussait la page à 401 px sur un Android de 360. Il passe à la ligne (`white-space:normal` EN LIGNE,
+     ce qui lui donne aussi son rembourrage vertical : cf. la règle `.btn[style*="white-space:normal"]` de la feuille). */
+  const bulkBtn = bonsFilter==='prets' ? `<button class="btn" style="width:100%;justify-content:center;margin:0 0 10px;white-space:normal;text-align:center;line-height:1.3;padding-top:10px;padding-bottom:10px" onclick="bonEnvoyerTousPrets()">✉️ Envoyer les bons prêts… (${list.length}) — tu choisis lesquels</button>` : '';
   const bonRow=b=>{ const f=db.fournisseurs.find(x=>x.id===b.fournisseurId)||{}; const fn=f.nom||b.fournisseur||'Sans fournisseur'; const c=f.nom?fourColor(f.nom):'var(--t3)';
     return `<div class="pl-row lgb" onclick="ficheBon('${b.id}')" style="align-items:center">
     <span style="width:12px;height:12px;border-radius:50%;background:${c};flex-shrink:0"></span>

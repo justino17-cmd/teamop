@@ -68,7 +68,14 @@ vrai('la cellule de gestes des contrats porte `white-space:nowrap` en ligne', no
 
 console.log('── 1240 · 2. la feuille défait le nowrap (avec !important) ──');
 const rN = regles('html[data-refonte] .list-tbl td.cel-gestes').filter(r => /white-space:\s*normal\s*!important/.test(r.corps) && r.env.length === 0);
-vrai('`.list-tbl td.cel-gestes{white-space:normal!important}` existe au premier niveau', rN.length === 1, rN.length);
+/* i01 (r3#10, 17 octobre 2026) : la règle n'est PLUS posée au premier niveau. À toutes les largeurs, elle faisait passer les gestes de
+   Devis et de Contrats sur deux lignes au BUREAU (🗑 seul dessous, 114 px de haut au lieu de 73) alors que le tableau y tient : le
+   retour à la ligne n'a de sens qu'en mode carte — sous 781 px, et dans la requête de conteneur. test-1500 §4 garde les deux. */
+vrai('`.list-tbl td.cel-gestes{white-space:normal!important}` n\'est PAS posée au premier niveau (le bureau garde son nowrap)', rN.length === 0, rN.length);
+const rNtel = regles('html[data-refonte] .list-tbl td.cel-gestes').filter(r => /white-space:\s*normal\s*!important/.test(r.corps) && r.env.some(e => /^@media\s*\(max-width:\s*780px\)/.test(e)));
+vrai('… elle l\'est sous 780 px, où la ligne devient une carte', rNtel.length === 1, rNtel.length);
+const rNcont = regles('html[data-refonte] .list-tbl td.cel-gestes').filter(r => /white-space:\s*normal\s*!important/.test(r.corps) && r.env.some(e => /^@container\s+tbl-liste/.test(e)));
+vrai('… et dans la requête de conteneur du tableau (carte étroite, tablette)', rNcont.length === 1, rNcont.length);
 
 console.log('── 1240 · 3. sous 781 px : la cellule se range en rangées ──');
 const rT = regles('html[data-refonte] .list-tbl td.cel-gestes:not(:empty)').filter(r => r.env.some(e => /^@media\s*\(max-width:\s*780px\)/.test(e)));
