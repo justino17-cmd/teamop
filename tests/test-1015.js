@@ -43,6 +43,19 @@ const nu = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/
   vrai('(population) la table porte des gestes, pas seulement des lectures (' + gestes.length + ')', gestes.length >= 40);
   v('un geste se lit comme une phrase après un nom (« Justin a … »)', gestes.filter(g => !/^a /.test(g)), []);
 
+  /* ══ 1 bis. LA CIBLE : la VRAIE `monGesteCible`, avec la vraie `masqueMail` ══ */
+  const fn = (nom) => { const d = SRC.indexOf('\nfunction ' + nom + '('); const f = d < 0 ? -1 : SRC.indexOf('\n}\n', d); return d < 0 || f < 0 ? '' : SRC.slice(d, f + 3); };
+  const srcCible = fn('monGesteCible') + fn('masqueMail');
+  vrai('(population) monGesteCible et masqueMail sont trouvées dans le fichier réel', /function monGesteCible/.test(srcCible) && /function masqueMail/.test(srcCible));
+  const bac = { monStr: (x, n) => String(x == null ? '' : x).slice(0, n) };
+  try { vm.runInNewContext(srcCible + '\nthis.cible = monGesteCible;', bac); } catch (e) { vrai('elles se chargent', false, e.message); }
+  const cible = bac.cible || (() => '');
+  v('⛔ un identifiant de connexion qui EST une adresse n\'entre que masqué (`login`, prioritaire)', cible({ login: 'leo.martin@client-1015.fr', t: 't-x' }), 'l***@client-1015.fr');
+  v('   un identifiant ordinaire, tel quel', cible({ login: 'leo.martin', t: 't-x' }), 'leo.martin');
+  v('⛔ la règle de tri du Courrier : une adresse, masquée', cible({ adresse: 'paul@partenaire-1015.fr', console: 'messages' }), 'p***@partenaire-1015.fr');
+  v('   un DOMAINE n\'est personne : tel quel', cible({ adresse: '@societe-1015.fr', console: 'messages' }), '@societe-1015.fr');
+  v('   ni `pass`, ni `code`, ni `texte` (aucun champ de la liste) : rien', cible({ pass: 'x', code: '1234', texte: 'bonjour' }), '');
+
   /* ══ 2. LE VRAI SERVEUR ══ */
   if (!fs.existsSync(path.join(RACINE, 'server', 'node_modules'))) { console.log('  … partie serveur SAUTÉE : server/node_modules absent'); console.log('\n' + ok + ' ✓  ' + ko + ' ✗'); process.exit(ko ? 1 : 0); }
   const banc = fs.mkdtempSync(path.join(os.tmpdir(), 'b1015-'));
@@ -121,6 +134,13 @@ const nu = s => s.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, ' ').replace(/^[ \t]*\/\/
   const P2 = (await appel('/api/monitor/login', { nom: 'Patron', pass: MDP })).j.token;
   const A2 = ((await appel('/api/monitor/journal', null, P2, 'GET')).j.actions) || [];
   v('après redémarrage, les trois gestes sont toujours là', A2.map(a => a.geste), A.map(a => a.geste));
+  /* la règle de tri du Courrier : l'adresse masquée, et la console choisie dans le détail */
+  r = await appel('/api/monitor/mail/regle', { adresse: 'paul@partenaire-1015.fr', console: 'messages' }, P2);
+  v('(population) une règle de tri posée par le patron : 200', r.s, 200);
+  r = await appel('/api/monitor/mail/regle', { adresse: 'paul@partenaire-1015.fr', console: null }, P2);
+  const A3 = ((await appel('/api/monitor/journal', null, P2, 'GET')).j.actions) || [];
+  v('⛔ ranger puis retirer une adresse : deux gestes, la cible masquée, le détail dit la console (ou le retrait)',
+    A3.slice(0, 2).map(a => [a.geste, a.cible, a.detail]), [[TABLE['mail/regle'], 'p***@partenaire-1015.fr', 'règle retirée'], [TABLE['mail/regle'], 'p***@partenaire-1015.fr', '→ messages']]);
 
   console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
   await arreter(); fin();

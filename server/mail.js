@@ -27,6 +27,7 @@ const MAX_PIECES = 12;
 const MAX_PIECES_OCTETS = 12 * 1024 * 1024;   // 12 Mo au total pour un envoi — environ 16 Mo de JSON une fois en base64, d'où l'analyseur à 20 Mo de `index.js`
 const PAR_PAGE = 30;
 const ENVOIS_PAR_HEURE = 60;           // par compte de la Tour, pas par boîte : c'est la session volée qu'on borne
+const BROUILLONS_PAR_HEURE = 30;        // un brouillon porte jusqu'à 12 Mo de pièces rangées dans la boîte : sans budget, une session remplit Brouillons
 const MAX_TRI = 1500;                  // messages les plus récents examinés pour filtrer par console (`tronque` quand le dossier est plus long)
 const MAX_REGLES = 2000;
 const NON_LUS_MS = Math.max(1, parseInt(process.env.TEAMOP_MAIL_NONLUS_MS, 10) || 20000);   // les non-lus se périment vite, et tout geste qui les change les oublie aussitôt (la variable : pour les bancs seulement)
@@ -59,6 +60,7 @@ module.exports = function monterMessagerie(app, ctx) {
     if (m && m.envelope && protege(m.envelope.messageId)) throw erreurProtege();
   }
   const envoiQuota = new Map();   // 'u:<compte>' -> { n, reset } (le format de `quotaOk`)
+  const brouillonQuota = new Map();   // même forme, budget à part : écrire des brouillons ne doit pas manger les envois
   const BOITES_PATH = path.join(DATA_DIR, 'mail-boites.json');
   const SUIVI_PATH = path.join(DATA_DIR, 'mail-suivi.json');
   const REGLAGES_PATH = path.join(DATA_DIR, 'mail-reglages.json');
@@ -697,6 +699,15 @@ module.exports = function monterMessagerie(app, ctx) {
     // un brouillon garde ses pièces : sans elles, rouvrir le brouillon d'un envoi à joindre le rendrait incomplet, sans un mot
     try { const pj = piecesValides((req.body || {}).pieces); if (pj.length) options.attachments = pj; }
     catch (e) { return res.status(400).json({ error: String(e.message) }); }
+    if (!quotaOk) return res.status(503).json({ error: 'brouillon indisponible : la limite n\'est pas branchée' });
+    if (brouillonQuota.size > 2000) brouillonQuota.clear();
+    const cleBr = 'u:' + String((req.tourUser && (req.tourUser.id || req.tourUser.nom)) || '?');
+    if (!quotaOk(brouillonQuota, cleBr, BROUILLONS_PAR_HEURE, 3600000)) {
+      const q = brouillonQuota.get(cleBr);
+      const attente = Math.max(1, Math.ceil(((q && q.reset) - Date.now()) / 1000) || 3600);
+      res.setHeader('Retry-After', String(attente));
+      return res.status(429).json({ error: 'trop de brouillons : ' + BROUILLONS_PAR_HEURE + ' par heure et par compte — réessaie plus tard', limite: BROUILLONS_PAR_HEURE, reessayerDans: attente });
+    }
     try {
       const nodemailer = require('nodemailer');
       const info = await nodemailer.createTransport({ streamTransport: true, buffer: true, newline: 'windows' }).sendMail(options);
@@ -735,6 +746,10 @@ module.exports = function monterMessagerie(app, ctx) {
     const corps = req.body || {};
     const adresse = regleAdresse(corps.adresse);
     if (!adresse) return res.status(400).json({ error: 'adresse invalide : une adresse complète, ou un domaine « @exemple.fr »' });
+    /* Un DOMAINE entier déplace tout un pan du courrier d'une console à l'autre — « @gmail.com → messages » le ferait disparaître
+       de la vue d'un compte qui n'a que GESTION, en silence. C'est un réglage de la boîte, comme la signature : au patron.
+       Une adresse seule (ce que la Tour propose sous un message) reste à tout compte du Courrier. */
+    if (adresse[0] === '@' && !(req.tourUser && req.tourUser.role === 'patron')) return res.status(403).json({ error: 'ranger tout un domaine est réservé au patron' });
     if (!Object.prototype.hasOwnProperty.call(corps, 'console')) return res.status(400).json({ error: 'console manquante (gestion, messages, ou null pour retirer la règle)' });
     const c = corps.console;
     if (c !== null && c !== '' && c !== 'gestion' && c !== 'messages') return res.status(400).json({ error: 'console inconnue (gestion, messages, ou null pour retirer la règle)' });

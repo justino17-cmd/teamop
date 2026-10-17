@@ -354,7 +354,15 @@ console.log('\n── 1012 · la Messagerie de la Tour, triée entre OP GESTION 
     v('une règle sur une adresse (casse et espaces ignorés) : 200, adresse normalisée', [r.s, r.j.ok, r.j.adresse, r.j.console, r.j.regles], [200, true, 'paul@partenaire-1012.fr', 'messages', 1]);
     regles['paul@partenaire-1012.fr'] = 'messages';
     r = await post('/api/monitor/mail/regle', { adresse: '@societe-1012.fr', console: 'messages' }, TA);
-    v('une règle sur un DOMAINE, posée par un collaborateur (la garde est celle des autres routes du courrier) : 200', [r.s, r.j.adresse], [200, '@societe-1012.fr']);
+    v('⛔ une règle sur un DOMAINE entier, posée par un collaborateur : 403 (elle déplacerait tout un pan du courrier, en silence) — rien posé',
+      [r.s, /réservé au patron/.test(r.j.error || ''), '@societe-1012.fr' in (((lireD('mail-reglages.json') || {}).regles) || {})], [403, true, false]);
+    r = await post('/api/monitor/mail/regle', { adresse: '@societe-1012.fr', console: null }, TA);
+    v('   la RETIRER non plus', r.s, 403);
+    r = await post('/api/monitor/mail/regle', { adresse: 'agent@societe-1012.fr', console: 'messages' }, TA);
+    v('   une ADRESSE seule (ce que la Tour propose sous un message), le collaborateur la range : 200', [r.s, r.j.adresse], [200, 'agent@societe-1012.fr']);
+    r = await post('/api/monitor/mail/regle', { adresse: 'agent@societe-1012.fr', console: null }, TA);
+    r = await post('/api/monitor/mail/regle', { adresse: '@societe-1012.fr', console: 'messages' });
+    v('une règle sur un DOMAINE, posée par le patron : 200', [r.s, r.j.adresse], [200, '@societe-1012.fr']);
     regles['@societe-1012.fr'] = 'messages';
     r = await post('/api/monitor/mail/regle', { adresse: 'double@exemple-1012.fr', console: 'messages' });
     regles['double@exemple-1012.fr'] = 'messages';
@@ -555,6 +563,20 @@ console.log('\n── 1012 · la Messagerie de la Tour, triée entre OP GESTION 
     const depuis = facteurSrv.recus.slice(recus0);
     v('   et le facteur a reçu exactement ce qui est parti : 59 « Envoi N » (le 60ᵉ du patron est le gros envoi du début, le 61ᵉ n\'est pas parti)',
       [depuis.filter(x => /^Subject: Envoi \d+$/m.test(x)).length, depuis.filter(x => /^Subject: Envoi de l'agent$/m.test(x)).length], [59, 1]);
+
+    /* ══ 8 bis. LES BROUILLONS ONT LEUR BUDGET : 30 PAR HEURE ET PAR COMPTE, À PART DES ENVOIS ═══════════════════ */
+    console.log('\n8 bis. Le budget des brouillons : 30 par heure et par compte, à part des envois');
+    let brOk = 2, brRefus = null;   // les deux brouillons de 8,7 Mo du § 7
+    for (let i = 0; i < 40; i++) {
+      r = await post('/api/monitor/mail/brouillon', { boite: 'b-a', a: 'dest@exemple-1012.fr', objet: 'Brouillon ' + i, texte: 'x' });
+      if (r.s === 200) brOk++; else { brRefus = r; break; }
+    }
+    v('⛔ le patron — dont le budget d\'ENVOI est épuisé — range encore des brouillons, et 30 dans l\'heure, pas un de plus', [brOk, brRefus && brRefus.s], [30, 429]);
+    vrai('   le 31ᵉ : 429, qui DIT la limite et quand réessayer', brRefus && /trop de brouillons/.test(brRefus.j.error || '') && brRefus.j.limite === 30 && brRefus.j.reessayerDans > 3000);
+    r = await post('/api/monitor/mail/brouillon', { boite: 'b-a', a: 'dest@exemple-1012.fr', objet: 'Brouillon de l\'agent', texte: 'x' }, TA);
+    v('   par compte : le collaborateur en range encore', [r.s, r.j.ok], [200, true]);
+    r = await http('POST', '/api/monitor/mail/brouillon', TP, JSON.stringify({ boite: 'b-a', a: 'dest@exemple-1012.fr', texte: 'x', pieces: [{ nom: 'a.bin', b64: sept }, { nom: 'b.bin', b64: sept }] }));
+    v('   un brouillon refusé pour ses pièces répond 400 AVANT le budget (le patron, budget épuisé, lit l\'erreur de forme)', [r.s, r.j.error], [400, 'pièces jointes trop lourdes (12 Mo au total)']);
 
     /* ══ 9. LA RELÈVE DU SUPPORT NE MARQUE PLUS « LU » UNE BOÎTE QUE LA MESSAGERIE RELÈVE ══════════════════════════ */
     console.log('\n9. La relève du support : elle importe, elle ne marque rien (boîte reliée) — et marque encore (boîte non reliée)');

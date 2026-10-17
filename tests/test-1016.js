@@ -40,6 +40,13 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
     const u = new URL(q.url, 'http://x');
     if (mode === 'muet') return;   // ne répond jamais : le relais doit couper
     if (mode === 'html') { r.writeHead(200, { 'Content-Type': 'text/html' }); return r.end('<h1>oups</h1>'); }
+    if (mode === 'gros' || mode === 'decoupe') {   // découpée, SANS content-length : seule la lecture peut compter
+      r.writeHead(200, { 'Content-Type': 'application/json', 'Transfer-Encoding': 'chunked' });
+      if (mode === 'decoupe') { r.write('{"instance":"beta",'); return r.end('"version":13}'); }
+      r.write('{"x":"'); const bloc = 'a'.repeat(256 * 1024); let i = 0;
+      const pousse = () => { while (i < 12) { i++; if (!r.write(bloc)) return r.once('drain', pousse); } r.end('"}'); };
+      r.on('error', () => {}); return pousse();
+    }
     if (mode === 'texte') { r.writeHead(200, { 'Content-Type': 'text/plain' }); return r.end('{"total":0,"items":[]}'); }   // du JSON… annoncé comme texte
     if (u.pathname === '/api/admin/sante') return json(200, { instance: 'beta', version: 12, decompte: { espaces: 3 } });
     if (u.pathname === '/api/admin/comptes') {
@@ -124,6 +131,12 @@ const libre = () => new Promise(r => { const s = net.createServer(); s.listen(0,
   mode = 'texte';
   r = await lire('/api/monitor/messages/admin/sante?instance=beta', PATRON);
   v('du JSON annoncé comme texte : 502 aussi — le contrat dit application/json, on ne devine pas', [r.s, r.j.motif], [502, 'forme']);
+  mode = 'decoupe';
+  r = await lire('/api/monitor/messages/admin/sante?instance=beta', PATRON);
+  v('(population) une réponse DÉCOUPÉE, sans taille annoncée, de forme normale : 200, recomposée', [r.s, r.j.donnees && r.j.donnees.version], [200, 13]);
+  mode = 'gros';
+  r = await lire('/api/monitor/messages/admin/sante?instance=beta', PATRON);
+  v('⛔ 3 Mo découpés, sans taille annoncée : 502 « trop grosse » — comptés à la lecture, pas après', [r.s, r.j.motif, r.j.error], [502, 'forme', 'réponse trop grosse']);
   mode = 'muet';
   const t0 = Date.now();
   r = await lire('/api/monitor/messages/admin/sante?instance=beta', PATRON);

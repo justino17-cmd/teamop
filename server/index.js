@@ -2040,8 +2040,11 @@ const MON_ACTIONS_MAX = 500;
    adresse masquée ; jamais `pass`, `code`, `mdp`, `lien`, `texte` — ils ne sont pas dans la liste, donc ils n'y entrent pas. */
 function monGesteCible(b) {
   b = b && typeof b === 'object' ? b : {};
-  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return monStr(x.trim(), 60); }
+  // un identifiant de connexion PEUT être une adresse : elle passe masquée, comme `email`
+  for (const k of ['nom', 'slug', 'login', 'teamId', 't', 'id']) { const x = b[k]; if (typeof x === 'string' && x.trim()) return x.includes('@') ? masqueMail(x.trim()) : monStr(x.trim(), 60); }
   if (typeof b.email === 'string' && b.email.trim()) return masqueMail(b.email);
+  // la règle de tri du Courrier : un domaine (« @exemple.fr ») n'est personne, il s'écrit tel quel ; une adresse, masquée
+  if (typeof b.adresse === 'string' && b.adresse.trim()) { const x = b.adresse.trim(); return x[0] === '@' ? monStr(x, 60) : masqueMail(x); }
   return '';
 }
 function monGesteNoter(req, res) {
@@ -2051,7 +2054,8 @@ function monGesteNoter(req, res) {
   if (!g) return;
   const b = req.body && typeof req.body === 'object' ? req.body : {};
   const detail = ['statut', 'formule'].map(k => typeof b[k] === 'string' ? monStr(b[k], 20) : '').filter(Boolean).join(' · ')
-    + (/\/clients\/demande$/.test(chemin) ? (b.traite === false ? 'remise à traiter' : 'classée') : '');   // la route classe quand `traite` manque
+    + (/\/clients\/demande$/.test(chemin) ? (b.traite === false ? 'remise à traiter' : 'classée') : '')   // la route classe quand `traite` manque
+    + (/\/mail\/regle$/.test(chemin) ? (b.console === 'gestion' || b.console === 'messages' ? '→ ' + b.console : 'règle retirée') : '');
   const apps = Array.isArray(req._gesteApps) && req._gesteApps.length ? req._gesteApps : null;
   const app = apps ? (apps.includes('gestion') ? 'gestion' : apps[0]) : monAppDeRoute(req);
   monActions.push(Object.assign({ ts: Date.now(), qui: monStr(req.tourUser.nom, 60), geste: g, cible: req._gesteCible ? monStr(req._gesteCible, 60) : monGesteCible(b) },
@@ -7364,7 +7368,11 @@ app.post('/api/monitor/messages/version-min', monPatronStrict, async (req, res) 
        502 « OP MESSAGES refuse le relais » — un secret différent des deux côtés ne doit pas ressembler à « aucun compte » ;
      · la réponse ne repart que si c'est du JSON, sous 2 Mo, en 4 s au plus.
    Les routes vivent sous `/api/monitor/messages/` : `monAppDeRoute` les range dans la console OP MESSAGES (un compte limité à
-   OP GESTION reçoit 403). Des lectures seulement : rien ne s'écrit chez OP MESSAGES par ici. */
+   OP GESTION reçoit 403). Des lectures seulement : rien ne s'écrit chez OP MESSAGES par ici.
+   ⚠ Ouvert à tout compte de la console OP MESSAGES (`monAdmin`), pas au seul patron : les adresses des comptes « courriel »
+     y sortent, comme la console OP GESTION montre les demandes et leurs adresses à ses opérateurs (relecture `gardien`,
+     17 octobre 2026 — à resserrer en `monPatronStrict` sur une phrase de Justin, voir REPRISE.md). Aucune adresse ne passe
+     dans l'URL : `adresses` vaut oui|non et `id` est un identifiant opaque (p_…) — rien de personnel au journal d'accès. */
 const OPM_ADMIN_PARAMS = {
   sante: [], comptes: ['limite', 'apres', 'origine', 'etat', 'id', 'adresses'], espaces: ['limite', 'apres'],
   abonnements: ['limite', 'apres', 'statut'], incidents: ['limite'], empreintes: ['limite', 'apres'],
@@ -7398,9 +7406,19 @@ app.get('/api/monitor/messages/admin/:route', monAdmin, async (req, res) => {
   const type = String(r.headers.get('content-type') || '');
   const taille = parseInt(r.headers.get('content-length') || '0', 10) || 0;
   if (!/^application\/json\b/i.test(type) || taille > OPM_ADMIN_MAX) return res.status(502).json({ error: 'réponse inattendue d\'OP MESSAGES', motif: 'forme', instance });
+  /* lue morceau par morceau, comptée en OCTETS : sans `content-length` (réponse découpée), `r.text()` lisait tout avant de compter */
   let txt = '';
-  try { txt = await r.text(); } catch (e) { return res.status(502).json({ error: 'réponse coupée', motif: 'coupee', instance }); }
-  if (txt.length > OPM_ADMIN_MAX) return res.status(502).json({ error: 'réponse trop grosse', motif: 'forme', instance });
+  try {
+    const lecteur = r.body.getReader(), morceaux = []; let n = 0;
+    for (;;) {
+      const { done, value } = await lecteur.read();
+      if (done) break;
+      n += value.length;
+      if (n > OPM_ADMIN_MAX) { try { await lecteur.cancel(); } catch (e) {} return res.status(502).json({ error: 'réponse trop grosse', motif: 'forme', instance }); }
+      morceaux.push(value);
+    }
+    txt = Buffer.concat(morceaux).toString('utf8');
+  } catch (e) { return res.status(502).json({ error: 'réponse coupée', motif: 'coupee', instance }); }
   let j; try { j = JSON.parse(txt); } catch (e) { return res.status(502).json({ error: 'réponse illisible', motif: 'forme', instance }); }
   if (!r.ok) return res.status(r.status === 400 || r.status === 429 || r.status === 503 ? r.status : 502).json(Object.assign({ instance }, j && typeof j === 'object' ? { error: String(j.error || 'refus'), champ: j.champ, retry: j.retry } : { error: 'refus' }));
   res.json({ ok: true, instance, donnees: j });
