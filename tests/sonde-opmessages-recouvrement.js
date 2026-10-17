@@ -117,11 +117,25 @@ const MESURE = `(function (sel, rect) {
         }
 
         /* — 2. la bande hors ligne — */
+        /* l'en-tête de la vue visible et son champ de recherche : la bande les pousse de SA hauteur, ni plus (lot p03, n#11 : 56 px au lieu de 28 sur la liste « Messages » du bureau — la barre vitrée
+           recouvrait « Rechercher ») ni moins */
+        const ENTETE_VUE = () => page.evaluate(() => {
+          const vis = Array.from(document.querySelectorAll('.vue')).find(e => e.getBoundingClientRect().height > 0 && getComputedStyle(e).display !== 'none'), en = vis && vis.querySelector(':scope > .entete-vue');
+          const rech = vis && vis.querySelector('input[type=search], .recherche');
+          return en ? { haut: Math.round(en.getBoundingClientRect().top), bas: Math.round(en.getBoundingClientRect().bottom), champ: rech && rech.getBoundingClientRect().height ? Math.round(rech.getBoundingClientRect().top) : null } : null;
+        });
+        await poser(); const enteteAvant = await ENTETE_VUE();
         await coupe();
         vrai(nom + ' · ' + titre + ' : la bande « Connexion perdue » est là', await attendre(() => { const e = document.getElementById('hors-ligne'); return !!e && !e.hidden && e.getClientRects().length > 0; }, null, 4000));
         const r = await mesurer(PROTEGES_BANDE, RECT_BANDE);
         vrai('(population) ' + nom + ' · ' + titre + ' · bande : ' + r.examines + ' commandes ou titres examinés', r.examines >= 2);
         v('⛔ ' + nom + ' · ' + titre + ' : la bande hors ligne ne recouvre rien (le contenu est poussé de sa hauteur)', r.recouverts, []);
+        await poser(); const enteteApres = await ENTETE_VUE(), bande = await page.evaluate(() => Math.round(parseFloat(getComputedStyle(document.body).paddingTop)));      /* la poussée du corps (28 px), pas la hauteur peinte de la bande : l'encoche s'y ajoute et le contenu garde son propre rembourrage */
+        vrai('(population) ' + nom + ' · ' + titre + ' : l\'en-tête de la vue est mesuré en ligne et hors ligne, la bande pousse de ' + bande + ' px', !!enteteAvant && !!enteteApres && bande >= 20);
+        if (enteteAvant && enteteApres) {
+          vrai('⛔ ' + nom + ' · ' + titre + ' : l\'en-tête descend de la hauteur de la bande, ni plus ni moins (' + enteteAvant.haut + ' → ' + enteteApres.haut + ', bande ' + bande + ' px)', Math.abs(enteteApres.haut - enteteAvant.haut - bande) <= 1);
+          if (enteteApres.champ !== null) vrai('⛔ ' + nom + ' · ' + titre + ' : la barre de l\'en-tête (bas ' + enteteApres.bas + ' px) ne recouvre pas le champ de recherche (haut ' + enteteApres.champ + ' px)', enteteApres.bas <= enteteApres.champ + 1);
+        }
         const debord = await page.evaluate(() => ({ x: document.documentElement.scrollWidth - innerWidth }));
         vrai(nom + ' · ' + titre + ' : et rien ne déborde sur le côté (' + debord.x + ' px)', debord.x <= 0);
         await capture('hors-ligne-' + titre.replace(/[^\w]+/g, '_'));
