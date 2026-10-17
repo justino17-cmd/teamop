@@ -19934,34 +19934,47 @@ function planDropTime(e,techId,h0,PPH){ PPH=PPH||48; e.preventDefault(); if(!can
   views.planning();
   toast('→ '+hh+' · '+techNames(i)+(forced?' · ⚠️ malgré congé':'')+(cf?' · ⚠️ chevauchement':''));
   serieShiftPropose(i,(de||{}).date||''); }
-/* ── Glisser au doigt (iPhone/iPad) : appui long puis déplacement ── */
+/* ── Glisser au doigt (iPhone/iPad) : appui long puis déplacement ──
+   ⛔ Au TACTILE, pas au pointeur : le navigateur annule le flux de pointeur au premier mouvement dès
+   qu'il peut défiler (les cartes portent touch-action:pan-y) — pointerdown, UN pointermove, puis
+   pointercancel — pendant que les touchmove continuent. Écouté en pointeur, le geste ne déposait rien
+   et laissait le clone « fantôme » collé à l'écran avec _planDragging vrai. Un doigt se lit donc aux
+   événements tactiles (touchmove non passif : c'est lui qui empêche le défilement une fois le glisser
+   armé), et la souris garde le glisser natif. touchcancel (appel entrant, geste système, glisser natif
+   qui reprend la main) défait le glisser SANS déposer : fantôme retiré, _planDragging remis à faux. */
 let _tpDrag=null;
-document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch'||(current!=='planning'&&current!=='carteInt')) return;
+function planTpArreter(t){ if(!t) return; clearTimeout(t.timer);
+  try{ if(t.ghost) t.ghost.remove(); }catch(_){ }
+  try{ if(t.dz) t.dz.classList.remove('drop'); }catch(_){ }
+  if(t.on) window._planDragging=false; }
+document.addEventListener('touchstart',e=>{ if(e.touches.length!==1||(current!=='planning'&&current!=='carteInt')){ planTpArreter(_tpDrag); _tpDrag=null; return; }
   if(!canPlan()) return;   // sans le droit « Déplacer le planning », pas de glisser tactile
   const c=e.target.closest('[data-drag-int]'); if(!c) return;
-  const id=c.getAttribute('data-drag-int');
-  _tpDrag={id,x:e.clientX,y:e.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
-    const gh=c.cloneNode(true); Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.92,margin:0,transform:'translate('+(e.clientX+10)+'px,'+(e.clientY+10)+'px) rotate(-2deg)'});
-    document.body.appendChild(gh); _tpDrag.ghost=gh; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){}
+  const id=c.getAttribute('data-drag-int'), d0=e.touches[0];
+  planTpArreter(_tpDrag);
+  _tpDrag={id,x:d0.clientX,y:d0.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
+    const gh=c.cloneNode(true); Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.92,margin:0,transform:'translate('+(_tpDrag.x+10)+'px,'+(_tpDrag.y+10)+'px) rotate(-2deg)'});
+    document.body.appendChild(gh); _tpDrag.ghost=gh; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){ }
   },260)};
 },{passive:true});
-document.addEventListener('pointermove',e=>{ if(!_tpDrag) return;
-  if(!_tpDrag.on){ if(Math.hypot(e.clientX-_tpDrag.x,e.clientY-_tpDrag.y)>12){ clearTimeout(_tpDrag.timer); _tpDrag=null; } return; }
+document.addEventListener('touchmove',e=>{ if(!_tpDrag) return; const d0=e.touches[0]; if(!d0) return;
+  if(!_tpDrag.on){ if(Math.hypot(d0.clientX-_tpDrag.x,d0.clientY-_tpDrag.y)>12){ clearTimeout(_tpDrag.timer); _tpDrag=null; } return; }
   if(e.cancelable) e.preventDefault();
-  _tpDrag.ghost.style.transform='translate('+(e.clientX+10)+'px,'+(e.clientY+10)+'px) rotate(-2deg)';
-  const el=document.elementFromPoint(e.clientX,e.clientY); const dz=el&&el.closest('[data-drop]');
+  _tpDrag.x=d0.clientX; _tpDrag.y=d0.clientY;
+  _tpDrag.ghost.style.transform='translate('+(d0.clientX+10)+'px,'+(d0.clientY+10)+'px) rotate(-2deg)';
+  const el=document.elementFromPoint(d0.clientX,d0.clientY); const dz=el&&el.closest('[data-drop]');
   if(_tpDrag.dz&&_tpDrag.dz!==dz) _tpDrag.dz.classList.remove('drop');
   if(dz) dz.classList.add('drop');
   _tpDrag.dz=dz;
 },{passive:false});
-document.addEventListener('pointerup',e=>{ const t=_tpDrag; _tpDrag=null; if(!t) return; clearTimeout(t.timer);
+document.addEventListener('touchend',e=>{ const t=_tpDrag; _tpDrag=null; if(!t) return; clearTimeout(t.timer);
   if(!t.on) return;
-  try{ t.ghost.remove(); }catch(_){ }
-  window._planDragging=false;
+  const d0=(e.changedTouches&&e.changedTouches[0])||{clientY:t.y};
   const dz=t.dz;
-  if(dz){ dz.classList.remove('drop');
+  planTpArreter(t);
+  if(dz){
     const parts=(dz.getAttribute('data-drop')||'').split(':');
-    const fake={preventDefault(){},dataTransfer:{getData:()=>t.id},altKey:false,clientY:e.clientY,currentTarget:dz};
+    const fake={preventDefault(){},dataTransfer:{getData:()=>t.id},altKey:false,clientY:d0.clientY,currentTarget:dz};
     try{
       if(parts[0]==='cell') planDropCell(fake,parts[1],parts[2]||'');
       else if(parts[0]==='time') planDropTime(fake,parts[1]||'',parseInt(parts[2],10)||8);
@@ -19969,6 +19982,8 @@ document.addEventListener('pointerup',e=>{ const t=_tpDrag; _tpDrag=null; if(!t)
   }
   if(window._planPending){ window._planPending=false; if(current==='planning'){ try{ views.planning(); }catch(err){} } }
 });
+document.addEventListener('touchcancel',()=>{ const t=_tpDrag; _tpDrag=null; planTpArreter(t);
+  if(window._planPending){ window._planPending=false; if(current==='planning'){ try{ views.planning(); }catch(err){} } } });
 
 /* ═══════════════ PLANNING — traçabilité, indispos, notes, passages, garanties ═══════════════ */
 /* ── P9 : qui place / déplace — journal du planning (plafonné à 400 entrées) ── */
@@ -20325,6 +20340,9 @@ document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch'||current
 },{passive:true});
 document.addEventListener('pointermove',e=>{ if(_lpCtx&&Math.hypot(e.clientX-_lpCtx.x,e.clientY-_lpCtx.y)>8){ clearTimeout(_lpCtx.timer); _lpCtx=null; } },{passive:true});
 document.addEventListener('pointerup',()=>{ if(_lpCtx){ clearTimeout(_lpCtx.timer); _lpCtx=null; } },{passive:true});
+/* pointercancel : le navigateur reprend le doigt (défilement, ou glisser tactile armé) — ce n'est plus un appui
+   long immobile, le menu ne doit pas s'ouvrir au bout des 520 ms par-dessus le glisser. */
+document.addEventListener('pointercancel',()=>{ if(_lpCtx){ clearTimeout(_lpCtx.timer); _lpCtx=null; } },{passive:true});
 /* ── P15 : note de journée (📌), visible par toute l'équipe ── */
 function planNoteEdit(iso){
   db.planNotes=db.planNotes||{};
