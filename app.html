@@ -20846,7 +20846,8 @@ views.absences=function(){ db.absences=db.absences||[];
   const passees=rest.filter(a=>(a.au||a.du)<today).sort((a,b)=>b.du.localeCompare(a.du)).slice(0,30);
   const sect=(t,l)=>l.length?`<div class="abs-hdl">${t}</div>`+l.map(row).join(''):'';
   const corps=sect('À traiter',att)+sect('En cours / à venir',aVenir)+sect('Passées',passees);
-  $('content').innerHTML=compteurs+(corps||`<div class="card">${emptyState('','Aucune absence dans ce filtre.','＋ Absence','formAbsence()')}</div>`);
+  /* l'icône de l'état vide est l'émoji de la rubrique (NAV) : icones() le remplace par un trait ; vide, le carré .e-ico restait une pastille sans rien (test-1440) */
+  $('content').innerHTML=compteurs+(corps||`<div class="card">${emptyState('🏖️','Aucune absence dans ce filtre.','＋ Absence','formAbsence()')}</div>`);
 };
 /* ── Soldes de congés de l'équipe ── */
 function absSoldes(){
