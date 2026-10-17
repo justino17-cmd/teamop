@@ -40799,7 +40799,10 @@ function carteAide(){
     <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" onclick="startTour()">▶️ Visite guidée</button><button class="btn ghost" onclick="signalerProbleme()">Signaler un problème</button></div></div>`;
 }
 function signalerEnvoyer(e){ e.preventDefault();
-  const txt=String(new FormData(e.target).get('txt')||'').trim(); if(!txt) return;
+  const txt=String(new FormData(e.target).get('txt')||'').trim();
+  /* ⛔ UN ENVOI REFUSÉ SE DIT (accueil#15). Le `required` natif laisse passer des espaces ; la fonction sortait alors
+     sans un mot, fenêtre ouverte — la personne croyait son bouton cassé. La fenêtre reste ouverte pour qu'elle écrive. */
+  if(!txt){ toast('Écris quelques mots pour décrire le problème'); try{ const c=e.target.elements&&e.target.elements.txt; if(c){ c.value=''; c.focus(); } }catch(_e){} return; }
   logEvent('Problème signalé',txt,'support'); save(); closeModal();
   toast('Merci, c\'est transmis aux administrateurs');
 }
