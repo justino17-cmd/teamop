@@ -24899,19 +24899,45 @@ function formClient(id){ const c=id?db.clients.find(x=>x.id===id):{};
 function cliSetType(el){ const f=el.closest('form'); if(!f) return;
   const h=f.querySelector('[name=typeClient]'); if(h) h.value=el.dataset.v;
   f.querySelectorAll('.tc-chip').forEach(x=>x.classList.toggle('active',x===el)); }
+/* ⛔ L'ADRESSE D'UN CLIENT SUIT SA FICHE — clients#4 et clients#5 (rapport du testeur, mesuré au navigateur).
+   `saveClientForm` faisait `{...ancien,...d}` : changer l'adresse laissait lat/lng sur l'ANCIENNE (la carte et
+   les tournées pointaient La Rochelle pour une adresse à Bordeaux) et la ville de la liste ne bougeait pas ;
+   et un client créé avec une adresse n'était jamais localisé, la box seule le faisait. Trois pièces :
+   · `cliAdresseDerive` lit le code postal et la ville DANS l'adresse quand elle les porte (comme `saveDoc`) ;
+     sans eux, la ville connue reste — l'adresse ne la contredit pas, la corriger d'une faute de frappe ne doit
+     pas faire perdre un code postal posé par l'intervention (le rattachement au technicien le lit) ;
+   · `cliGeoRequete` joint code postal et ville à une adresse qui ne les porte pas ;
+   · `cliLocaliserFond` géocode UN client en tâche de fond, ne bloque rien, échoue en silence, et ne pose
+     ses coordonnées que si la fiche est restée telle qu'elle était à la demande (adresse identique, toujours
+     sans coordonnées, toujours là). Jamais au chargement ni en boucle : seul `saveClientForm` l'appelle. */
+function cliAdresseDerive(adr){ const m=String(adr||'').replace(/[\s,]*france\s*$/i,'').match(/\b(\d{5})\s+([^,\d][^,]*?)\s*$/); return m?{codePostal:m[1],ville:m[2].trim()}:null; }
+function cliGeoRequete(c){ const a=String(c.adresse||'').trim(); if(/\b\d{5}\b/.test(a)) return a; return [a,c.codePostal,c.ville].filter(Boolean).join(' '); }
+function cliLocaliserFond(id){ const c=db.clients.find(x=>x.id===id); if(!c||!String(c.adresse||'').trim()||c.lat!=null) return;
+  const adr=c.adresse;
+  geocode(cliGeoRequete(c)).then(g=>{ const x=db.clients.find(y=>y.id===id);
+    if(!g||!x||x.lat!=null||x.adresse!==adr) return;
+    x.lat=g.lat; x.lng=g.lng; save(); if(current==='carteInt') views.carteInt();
+  }).catch(()=>{}); }
 /* Enregistrement du client + préférences de passage (P10a : db.clients[x].prefPassage) */
 function saveClientForm(e,id){ e.preventDefault(); if(!permGarde('crm',id?'modifier':'ajouter','un client')) return; const d=Object.fromEntries(new FormData(e.target));
   const jours=[]; for(let k=0;k<7;k++){ if(d['pp_j'+k]!==undefined) jours.push(k); delete d['pp_j'+k]; }
   const prefPassage={jours,creneau:d.pp_creneau||'indifferent',heureFixe:d.pp_heureFixe||'',techId:d.pp_techId||'',prevenir48:d.pp_prevenir48!==undefined,appelerAvant:d.pp_appelerAvant!==undefined};
   ['pp_creneau','pp_heureFixe','pp_techId','pp_prevenir48','pp_appelerAvant'].forEach(k=>delete d[k]);
   d.prefPassage=prefPassage;
-  if(id){ const ix=db.clients.findIndex(x=>x.id===id); if(ix<0) return; db.clients[ix]={...db.clients[ix],...d}; toast('Mis à jour'); }
+  let cible=id;
+  if(id){ const ix=db.clients.findIndex(x=>x.id===id); if(ix<0) return; const ancien=db.clients[ix], neuf={...ancien,...d};
+    /* l'adresse a changé : les coordonnées d'avant ne désignent plus la fiche (clients#4) */
+    if(d.adresse!==undefined && String(d.adresse||'').trim()!==String(ancien.adresse||'').trim()){
+      neuf.lat=null; neuf.lng=null;
+      const dv=cliAdresseDerive(d.adresse); if(dv){ if(d.codePostal===undefined) neuf.codePostal=dv.codePostal; if(d.ville===undefined) neuf.ville=dv.ville; } }
+    db.clients[ix]=neuf; toast('Mis à jour'); }
   else { d.x=10+Math.random()*80; d.y=10+Math.random()*80;
     /* qui l'a créé : sans cela, un technicien qui ajoute un client le perdrait de vue
        à la seconde suivante, tant qu'aucune intervention ne l'y rattache */
     d.creePar=currentUser&&currentUser.id;
-    db.clients.push({id:uid(),...d}); logEvent('Création',`clients : ${d.nom||''}`,'crud'); toast('Créé'); }
+    cible=uid(); db.clients.push({id:cible,...d}); logEvent('Création',`clients : ${d.nom||''}`,'crud'); toast('Créé'); }
   save(); closeModal(); go(current);
+  cliLocaliserFond(cible);   // clients#5 : en tâche de fond, après l'écran — jamais avant, jamais au chargement
 }
 
 /* ═══════════════ RAPPORTS ═══════════════ */
