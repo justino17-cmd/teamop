@@ -50,9 +50,9 @@ corrigé et re-testé ». OP GESTION part en **v768 sur la bêta ET en public** 
 | bugs confirmés, première passe | 135 (11 parties) | 83, plus les améliorations retenues (13 parties) |
 | vagues de correction | 6 — g01–g21, h01–h05, i01–i03, j01–j03, k01–k03, puis le re-test final (r6–r10) | 4 — m01–m21, p01–p04, q01, puis le re-test final (r6–r8) |
 | corrections livrées (entrées de rapport) | 183, + la rotation de la Messagerie | 136, + le jour de fin à huit endroits et le rapport de présence |
-| re-tests du code fusionné | 121 corrigés / 28 partiels → 23 / 2 → 28 / 2 → final : k01–k03 corrigés, la rotation corrigée en trois passes (r8, r9, r10) | 101 / 36 (les partiels : des décisions, ci-dessous) → 12 / 2 → final : q01 corrigé, puis r6, r7 et r8 corrigés |
+| re-tests du code fusionné | 121 corrigés / 28 partiels → 23 / 2 → 28 / 2 → final : k01–k03 corrigés, la rotation corrigée en cinq passes (r8 à r11) | 101 / 36 (les partiels : des décisions, ci-dessous) → 12 / 2 → final : q01 corrigé, puis r6, r7 et r8 corrigés |
 
-Suite complète sur le code final (28471a17) : **502 suites · 28 760 vérifications, toutes vertes**. Porte d'OP MESSAGES dans les conditions de la CI :
+Suite complète sur le code final (e2fd563a) : **502 suites · 28 765 vérifications, toutes vertes**. Porte d'OP MESSAGES dans les conditions de la CI :
 **179 suites · 11 469 vérifications** (plancher 11 455). Porte du serveur dans les conditions du job de déploiement : 58 suites · 3 939 vérifications (plancher 3 925).
 
 **Le re-test final** (des agents neufs au navigateur sur le code fusionné, chacun suivi d'un second agent chargé de le RÉFUTER — c'est ce second agent qui a
@@ -67,7 +67,10 @@ trouvé presque tout ce qui suit) :
 - **OP GESTION — la Messagerie : tourner l'appareil cachait la conversation** sous la rangée de saisie (défaut d'avant k01). Corrigé en TROIS passes, chacune
   prise en défaut par le contre-vérificateur : « la page est-elle en bas ? » ratait le cas ordinaire sans « Reprendre » (10 à 31 px de défilement, tolérance
   de 4 px) ; « la fin de la conversation se voit-elle ? » relue au seul défilement ratait ✕ sur « Reprendre » (la fin redevient visible sans défilement) ;
-  elle se relit désormais aussi quand la mise en page change (`msgFinRelire` dans `msgAjusterPlus`). `test-1660`.
+  relue aussi quand la mise en page change, elle baissait la marque quand la fenêtre RACCOURCIT (barre d'adresse, clavier) ; et le bas du CONTENEUR
+  dépasse la dernière bulle de 27 px. Désormais : la dernière bulle fait foi (`msgFinCachee`), la mise en page ne fait que RELEVER la marque, le
+  défilement seul la baisse. `test-1660`. ⚠️ Le re-test de cette dernière écriture (r11) tournait encore à la publication : ce qu'il trouverait est
+  un correctif à part.
 - La « régression » de k01 (dernière bulle sous la rangée avec « Reprendre ») était un artefact : la sonde faisait `window.scrollTo(0,0)` ; par de vrais gestes,
   0 px sur 864 mesures. ⚠️ Mais REMONTER la page au doigt pour voir les pastilles fait passer le bas de la liste sous la rangée collée — le prix assumé du
   plancher de 140 px de k01 (« une page qui défile se lit ») : un balayage inverse le rend, et toucher une pastille ramène la conversation.
