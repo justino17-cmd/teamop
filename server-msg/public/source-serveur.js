@@ -2174,13 +2174,20 @@
       const supprime = direct && !!c.autre && c.autre.supprime === true;     // l'autre a supprimé son compte : la conversation reste lisible, on n'y écrit plus
       if (supprime) supprimesIds.add(c.autre.id);
       else if (direct && c.autre) noter(c.autre);
+      if (c.apercu && c.apercu.cible) noter(c.apercu.cible);   // la personne que concerne un message système en aperçu (« Ana a ajouté Dan ») : son nom vient avec lui
       if (c.apercu && c.apercu.par) noter(c.apercu.par);   // ⛔ l'auteur du dernier message d'un GROUPE : son nom vient avec l'aperçu (sinon « Quelqu'un » tant que la conversation n'est pas ouverte)
       const canal = c.type === 'canal';
       const nom = direct ? (supprime ? NOM_SUPPRIME : nomComplet(c.autre)) : (c.nom || (canal ? 'Canal' : 'Groupe'));
       let apercu = '';
       if (c.apercu) {
         const a = c.apercu;
-        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? (canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe') : (a.texte || '');
+        const generique = canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe';
+        /* ⛔ un message système en aperçu dit ce qui s'est passé (« Ana a ajouté Dan », « Vous avez créé le groupe ») : la phrase de la conversation ouverte, UNE table (`texteSysteme`). Elle ne se dit
+           que si les personnes qu'elle nomme sont CONNUES de cette page — sinon elle écrirait « Quelqu'un a quitté le groupe », moins vrai que « Activité du groupe » — et si le service (un
+           service d'avant) n'a pas joint la méta, on garde le mot générique. */
+        const connu = (id) => id === undefined || id === null || estMoi(id) || registre.has(id) || supprimesIds.has(id);
+        const phraseSys = a.meta && typeof a.meta === 'object' && connu(a.auteur) && connu(a.meta.uid) ? texteSysteme({ auteur: a.auteur, meta: a.meta }, canal ? 'canal' : c.type === 'reunion' ? 'reunion' : '') : generique;
+        let corps = a.supprime ? 'Message supprimé' : a.illisible ? 'Message illisible' : a.type === 'systeme' ? phraseSys : (a.texte || '');
         corps = corps.replace(/\s+/g, ' ').slice(0, 160);
         const prefixe = a.type === 'systeme' ? '' : estMoi(a.auteur) ? 'Vous : ' : (!direct ? prenomDe(a.auteur) + ' : ' : '');
         apercu = prefixe + corps;

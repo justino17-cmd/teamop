@@ -1620,6 +1620,18 @@ function ouvrir({ chemin, scelleur, horloge = Date.now, migrations = MIGRATIONS,
           const a = Q(`SELECT p.id, p.prenom, p.nom FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid = ? AND m.quitte_le IS NULL`).get(l.id, p.auteur);
           if (a) o.apercu.par = { id: a.id, prenom: a.prenom, nom: a.nom };
         }
+        /* ⛔ Un message SYSTÈME en aperçu dit CE QUI S'EST PASSÉ (« Ana a ajouté Dan »), pas « Activité du groupe » (lot m10, 17 octobre 2026) : sa méta (`k`, `uid`, l'horaire d'une réunion, le
+           motif d'un décalage — rien de secret, c'est ce que la conversation ouverte montre), et le nom de celui qui agit (`par`) et de celui que ça concerne (`cible`) — SEULEMENT s'ils sont
+           encore membres de cette conversation, comme pour l'auteur d'un message : un parti, un retiré, ne sont pas nommés ici (la page garde alors « Activité du groupe », jamais « Quelqu'un »). */
+        if (p.type === 'systeme' && !p.supprime_le && p.meta_ch && (l.type === 'groupe' || l.type === 'canal' || l.type === 'reunion')) {
+          let mt = null; try { mt = JSON.parse(ouvrirS('message', 'meta_ch', aadMsg(l.id, p.seq, p.auteur), p.meta_ch)); } catch (e) { mt = null; }
+          if (mt && typeof mt === 'object' && typeof mt.k === 'string') {
+            o.apercu.meta = mt;
+            const actif = (id) => { const a = Q(`SELECT p.id, p.prenom, p.nom FROM membre m JOIN personne p ON p.id = m.uid WHERE m.conv = ? AND m.uid = ? AND m.quitte_le IS NULL`).get(l.id, id); return a ? { id: a.id, prenom: a.prenom, nom: a.nom } : null; };
+            const par = p.auteur ? actif(p.auteur) : null; if (par) o.apercu.par = par;
+            const cible = typeof mt.uid === 'string' ? actif(mt.uid) : null; if (cible) o.apercu.cible = cible;
+          }
+        }
         if (p.corps_ch && !p.supprime_le && clair === null) o.apercu.illisible = true;
       }
       if (l.type === 'direct') {
