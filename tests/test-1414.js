@@ -77,7 +77,8 @@ const jeu = {
   client: () => [champ({ name: 'nom', value: CINQ, label: 'Nom / Raison sociale *' }), champ({ name: 'email', value: '', required: false })],
   box: () => [champ({ name: 'numero', value: CINQ, placeholder: 'Numéro (ex : BOX-0001)' })],
   intervention: () => [champ({ name: 'titre', value: CINQ, placeholder: 'Titre (ex : Dératisation cuisine)' })],
-  produit: () => [champ({ name: 'nom', value: CINQ, placeholder: 'Ex : XILIX 1000' })] };
+  /* j03 (r4#2) : l'input du formulaire Produit porte `aria-label="Nom du produit"` — lu dans le vrai balisage par test-1622 */
+  produit: () => [champ({ name: 'nom', value: CINQ, placeholder: 'Ex : XILIX 1000', aria: 'Nom du produit' })] };
 for (const k of Object.keys(jeu)) {
   const r = essai(jeu[k]());
   vrai(k + ' : l’événement est annulé et arrêté', r.e.defaut === true && r.e.stop === true);
@@ -87,7 +88,8 @@ for (const k of Object.keys(jeu)) {
 }
 { const r = essai(jeu.client()); vrai('le toast nomme le champ par son libellé, sans l’astérisque : « Nom / Raison sociale »', /« Nom \/ Raison sociale »/.test(r.toasts[0]), r.toasts); }
 { const r = essai(jeu.box()); vrai('… par son placeholder sinon, sans l’exemple : « Numéro »', /« Numéro »/.test(r.toasts[0]), r.toasts); }
-{ const r = essai(jeu.produit()); vrai('… et par le nom du champ quand le placeholder n’est qu’un exemple : « nom »', /« nom »/.test(r.toasts[0]), r.toasts); }
+{ const r = essai(jeu.produit()); vrai('… et par son aria-label quand le placeholder n’est qu’un exemple : « Nom du produit » (j03 r4#2 — il disait « nom »)', /« Nom du produit »/.test(r.toasts[0]), r.toasts); }
+{ const r = essai([champ({ name: 'nom', value: CINQ, placeholder: 'Ex : XILIX 1000' })]); vrai('… et, en tout dernier recours seulement (aucun libellé d’aucune sorte), par l’attribut name', /« nom »/.test(r.toasts[0]), r.toasts); }
 
 console.log('\n── 1414 · 3. ce qui doit PASSER comme avant ──');
 { const r = essai([champ({ name: 'nom', value: 'A', label: 'Nom *' })]); vrai('« A » est accepté', r.ecrit === 1 && !r.e.defaut && r.toasts.length === 0); }

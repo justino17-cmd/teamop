@@ -14089,8 +14089,21 @@ function multiReprendre(vue){
     x.value = c.v;
     x.dispatchEvent(new Event(x.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true }));
   });
-  /* ③ les champs cachés, APRÈS tous les événements */
-  cache.forEach(([x, v]) => { x.value = v; });
+  /* ③ les champs cachés, APRÈS tous les événements.
+     ⛔ Un champ caché qui DÉSIGNE une fiche (`clientId`) ne se restitue que si la fiche existe encore : « Reprendre » rouvre un
+     formulaire parfois longtemps après, et le client a pu être supprimé entre-temps (par un collègue, par une synchro). Posé tel
+     quel, l'identifiant mort rattachait l'intervention à un client qui n'existe plus — `saveIntervention` ne retombe sur le nom que
+     pour un identifiant VIDE. On le laisse vide ET on vide le texte qui l'affichait (il disait encore le nom du client supprimé,
+     comme si le choix tenait) : la personne le voit, et le dit la fenêtre, plutôt que de découvrir un client fantôme. */
+  let fichePerdue = false;
+  cache.forEach(([x, v]) => {
+    if(x.name === 'clientId' && v && !(db.clients || []).some(c => c && c.id === v)){
+      fichePerdue = true;
+      try{ const s = m.querySelector('#' + String(x.id || '').replace(/-(id|val)$/, '-search')); if(s) s.value = ''; }catch(err){}
+      return;
+    }
+    x.value = v;
+  });
   /* les listes de suggestions que les événements rejoués viennent d'ouvrir n'ont rien à faire là */
   try{ m.querySelectorAll('.soc-list').forEach(l => { l.style.display = 'none'; }); }catch(err){}
   /* ④ les puces (classe seule), dans l'ordre où elles étaient */
@@ -14110,7 +14123,7 @@ function multiReprendre(vue){
   }catch(err){}
   multiOublier(vue);
   try{ const b = document.querySelector('.multi-bar'); if(b) b.remove(); }catch(err){}
-  try{ toast('Reprise là où tu en étais'); }catch(err){}
+  try{ toast(fichePerdue ? 'Reprise — ce client n’existe plus, choisis-le de nouveau' : 'Reprise là où tu en étais'); }catch(err){}
 }
 /* La barre de reprise — discrète, en haut de l'écran, avec de quoi l'écarter. */
 function multiProposer(vue){
@@ -24510,6 +24523,10 @@ function saveIntervention(e,id){ e.preventDefault(); if(!permGarde('int',id?'mod
     if(n){ const ex=db.clients.find(c=>(c.nom||'').toLowerCase()===n.toLowerCase());
       if(ex){ data.clientId=ex.id; } else { if(!permGarde('crm','ajouter','un client')) return; const nc={id:uid(),nom:n,creePar:(currentUser&&currentUser.id)||''}; db.clients.push(nc); data.clientId=nc.id; logEvent('Client créé',n,'crud'); } } }
   if(!data.clientId){ toast('Indique un client'); return; }
+  /* ⛔ Un identifiant de client qui n'existe plus (supprimé par un collègue ou par une synchro pendant que ce formulaire restait
+     ouvert) ne rattache RIEN : l'intervention naissait liée à un client fantôme, « Intervention créée », sans un mot. Seule exception :
+     une fiche DÉJÀ liée à ce client orphelin — modifier son titre ne doit pas être refusé pour un défaut d'avant. */
+  if(!db.clients.some(c=>c.id===data.clientId) && !(id && ((db.interventions.find(x=>x.id===id)||{}).clientId===data.clientId))){ toast('Ce client n’existe plus — choisis-en un autre'); return; }
   // Mise à jour des coordonnées du client (modifiables depuis l'intervention)
   const _cliTel=data.cliTel, _cliEmail=data.cliEmail; delete data.cliTel; delete data.cliEmail;
   if(data.clientId&&canCat('crm','modifier')){ const cli=db.clients.find(x=>x.id===data.clientId); if(cli){
@@ -27371,7 +27388,7 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
         <div><div style="font-size:13px;font-weight:700;color:var(--t1)">${id?'Modifier produit':'Nouveau produit'}</div><div style="font-size:11px;color:var(--t2)">${id?'Produit du catalogue — modifiable':'Nouveau produit dans le catalogue'}</div></div>
       </div>
       <div class="form-sec">Nom du produit *</div>
-      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000"></div></div>
+      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000" aria-label="Nom du produit"></div></div>
       <div class="form-sec">Référence fournisseur</div>
       <div class="fgroup"><div class="frow"><input name="ref" value="${esc(p.ref)}" placeholder="Optionnel — ex : SG051" class="mono"></div></div>
       <div class="form-sec">Biocide <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour le registre réglementaire</span></div>
@@ -44633,13 +44650,26 @@ if(typeof window.deptColor==='function'){
    « vide » reste celui du navigateur, et « Dupont » entouré d'espaces passe comme avant. */
 function saisieGardeInstaller(doc){
   var TYPES={text:1,search:1,tel:1,email:1,url:1};
-  function vide(v){ return v.length>0 && /^[\s​-‍⁠﻿]*$/.test(v); }
+  /* ⛔ « Rien de visible » = espaces (\s, insécables compris), TOUT caractère de format (\p{Cf} : marques gauche-à-droite U+200E/200F,
+     trait d'union conditionnel U+00AD, U+2060–2064, U+180E, ZWSP/ZWNJ/ZWJ, BOM…), les contrôles (\p{Cc}), et les « remplisseurs » qui se
+     dessinent en blanc sans être des espaces : braille vide U+2800, Hangul filler U+115F/1160/3164/FFA0, liant de graphèmes U+034F,
+     voyelles inhérentes khmères U+17B4/17B5, sélecteurs de variation (U+180B–180D, U+FE00–FE0F). Une valeur faite de ça seulement
+     passait la garde ET l'homonymie (rejoué : un compte créé au prénom U+200E). La classe ne refuse JAMAIS un vrai signe :
+     un émoji seul, une lettre accentuée ou un idéogramme portent un caractère visible, donc ne sont pas « tout invisible ». */
+  function vide(v){ return v.length>0 && /^[\s\p{Cf}\p{Cc}\u034F\u115F\u1160\u17B4\u17B5\u180B-\u180D\u2800\u3164\uFE00-\uFE0F\uFFA0]*$/u.test(v); }
   function libelle(el){
     var champ=el.closest&&el.closest('.field'), l=champ&&champ.querySelector&&champ.querySelector('label');
     var t=(l&&l.textContent)||el.getAttribute('aria-label')||'';
     if(!t){
       var ph=el.getAttribute('placeholder')||'';
       if(ph && !/^\s*ex\s*:/i.test(ph)) t=ph.split(' (')[0];
+    }
+    /* Une rangée « Libellé | champ » (`.frow` + `.frow-lbl`, sans `.field` ni <label>) se nomme par son libellé de rangée : « N° » vaut
+       mieux que l'attribut technique `numero`. Un champ sans rien de tout cela porte un aria-label (le formulaire Produit : « Nom du
+       produit ») — jamais l'attribut `name` brut dans un toast, qui disait « Le champ « nom » est obligatoire » (rejoué v767). */
+    if(!t){
+      var rang=el.closest&&el.closest('.frow'), lb=rang&&rang.querySelector&&rang.querySelector('.frow-lbl');
+      if(lb) t=lb.textContent||'';
     }
     t=String(t).replace(/\s*\*\s*$/,'').trim();
     return t||el.getAttribute('name')||'ce champ';
