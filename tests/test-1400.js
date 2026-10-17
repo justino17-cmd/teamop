@@ -39,6 +39,14 @@ const PARTS = {
 };
 console.log('\n── 1400 · 0. la population ──');
 v('les pièces réelles sont trouvées', Object.keys(PARTS).map(k => PARTS[k].length > 40), Object.keys(PARTS).map(() => true));
+/* ⛔ un conteneur renommé dans le balisage laisserait le registre muet, sans erreur : chaque id existe UNE fois dans app.html,
+   et chaque variable que le registre lit est déclarée (une seule fois) */
+['lignes-box', 'int-nuis', 'int-meth', 'prod-fours', 'dem-lignes', 'bon-lignes', 'bon-livraison', 'dur-chips'].forEach(id =>
+  v('   le conteneur #' + id + ' existe une fois dans le balisage', BRUT.split('id="' + id + '"').length - 1, 1));
+['formLignes', 'intNuis', 'intMeth', 'intTrait', 'prodFours', 'demLignes', 'bonLignes', '_bonEditId', 'bonSites'].forEach(n =>
+  vrai('   la variable ' + n + ' est déclarée', new RegExp('\\b(let|var|const)\\s+(?:[\\w$]+\\s*=\\s*[^;]*?[,;]\\s*)*?' + n.replace('$', '\\$') + '\\s*=').test(BRUT) || new RegExp('(let|var)\\s[^;\\n]*\\b' + n + '\\s*=').test(BRUT)));
+['renderLignes', 'renderIntNuis', 'renderIntMeth', 'renderProdFours', 'renderDemLignes', 'renderBonLignes', 'renderBonSites', 'intDureePose'].forEach(n =>
+  v('   la fonction ' + n + ' existe, une seule fois', BRUT.split('function ' + n + '(').length - 1, 1));
 vrai('le registre est trouvé et porte les sept conteneurs de modèle + les puces de durée',
   ['lignes-box', 'int-nuis', 'int-meth', 'prod-fours', 'dem-lignes', 'bon-lignes', 'bon-livraison', 'dur-chips'].every(id => MULTI.indexOf("id: '" + id + "'") > 0));
 
