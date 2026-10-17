@@ -1084,6 +1084,7 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 }
 .tuile-nom { bottom: 8px; font-weight: 600; }
 .tuile-etat { top: 8px; }
+.tuile-nom:empty { display: none; }
 .tuile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
 .tuile[data-camera="on"] video { display: block; }
 .tuile[data-camera="on"] .tuile-av { display: none; }
@@ -1099,6 +1100,9 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 .appel-ecran[data-mise="video"] .tuile { position: absolute; inset: 0; border-radius: 0; }
 .appel-ecran[data-mise="video"] .tuile-av { width: 110px; height: 110px; font-size: 40px; }
 .appel-ecran[data-mise="video"] .tuile-nom { left: max(16px, env(safe-area-inset-left, 0px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); }
+/* ⛔ l'étiquette « Vidéo de … » se range À GAUCHE de la vignette « Vous » (104 px, 176 au bureau) et ne passe jamais dessous : un nom long prend l'ellipse (lot m19, appels#5) */
+.appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 104px - max(14px, env(safe-area-inset-right, 0px)) - 12px); }
+@media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 176px - max(14px, env(safe-area-inset-right, 0px)) - 12px); } }
 .appel-ecran[data-mise="video"] .tuile.vous {
   inset: auto; top: calc(env(safe-area-inset-top, 0px) + 110px); right: max(14px, env(safe-area-inset-right, 0px)); width: 104px; height: 150px; border-radius: 16px;
   background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 2;

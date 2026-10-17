@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '45ea183b62d0';
+  const OPMSG_BUILD = '45eb3c413923';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 210;
+  const OPMSG_VERSION = 211;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -3079,6 +3079,13 @@
     try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { sonnerieEtat.ctx = new AC(); if (sonnerieEtat.ctx.state === 'suspended') sonnerieEtat.ctx.resume().catch(() => {}); } } catch (e) { sonnerieEtat.ctx = null; }
     sonnerieUneFois(); sonnerieEtat.min = setInterval(sonnerieUneFois, 4500);
   }
+  /* ⛔ UN AVATAR ET UN SEUL STATUT tant que l'autre n'a pas répondu (lot m19, appels#5 et appels@9) : le haut de l'écran dit déjà « Sonnerie… » sous son nom, et la vignette ne le répétait pas seulement —
+     elle le posait en haut à gauche, SOUS l'en-tête (voilée) et sur la 1re ligne d'un nom de deux lignes, et l'étiquette « Vidéo de Ben » annonçait une vidéo qui n'existe pas encore. La pastille « Sonnerie… »
+     ne sert donc que dans la grille d'un appel de groupe (elle y dit QUI sonne encore) ; l'étiquette « Vidéo de … » n'existe que quand l'autre a répondu. Pure, pour que le banc l'exécute. */
+  function htmlTuileAppel(m, mise, medias) {
+    const sonne = m.etat === 'sonne', nom = mise === 'video' ? (sonne ? '' : 'Vidéo de ' + m.prenom) : m.prenom;
+    return (medias ? '<video muted playsinline autoplay aria-hidden="true"></video>' : '') + '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(nom) + '</span>' + (sonne && mise === 'groupe' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+  }
   /* l'écran DIT l'état : la mise en page, le nom, les vignettes (refaites seulement quand ce qui les décide change), les commandes */
   function rendreAppel() {
     const A = etat.appelUI; if (!A || !A.snap) return;
@@ -3102,7 +3109,7 @@
         const t = document.createElement('div');
         t.className = 'tuile av' + (((m.avatar | 0) % 6 + 6) % 6); t.setAttribute('role', 'listitem'); t.dataset.membre = m.id; t.dataset.etat = m.etat;
         if (CAP.appelsMedias) t.dataset.camera = m.camera ? 'on' : 'off';
-        t.innerHTML = (CAP.appelsMedias ? '<video muted playsinline autoplay aria-hidden="true"></video>' : '') + '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(mise === 'video' ? 'Vidéo de ' + m.prenom : m.prenom) + '</span>' + (m.etat === 'sonne' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+        t.innerHTML = htmlTuileAppel(m, mise, CAP.appelsMedias);
         scene.insertBefore(t, vous);
       });
     }

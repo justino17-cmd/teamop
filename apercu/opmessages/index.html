@@ -1080,6 +1080,7 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 }
 .tuile-nom { bottom: 8px; font-weight: 600; }
 .tuile-etat { top: 8px; }
+.tuile-nom:empty { display: none; }
 .tuile video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; background: #000; }
 .tuile[data-camera="on"] video { display: block; }
 .tuile[data-camera="on"] .tuile-av { display: none; }
@@ -1095,6 +1096,9 @@ html[data-service] .appel-mention, html[data-service] #appel-hp { display: none;
 .appel-ecran[data-mise="video"] .tuile { position: absolute; inset: 0; border-radius: 0; }
 .appel-ecran[data-mise="video"] .tuile-av { width: 110px; height: 110px; font-size: 40px; }
 .appel-ecran[data-mise="video"] .tuile-nom { left: max(16px, env(safe-area-inset-left, 0px)); bottom: auto; top: calc(env(safe-area-inset-top, 0px) + 112px); }
+/* ⛔ l'étiquette « Vidéo de … » se range À GAUCHE de la vignette « Vous » (104 px, 176 au bureau) et ne passe jamais dessous : un nom long prend l'ellipse (lot m19, appels#5) */
+.appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 104px - max(14px, env(safe-area-inset-right, 0px)) - 12px); }
+@media (min-width: 900px) { .appel-ecran[data-mise="video"] .tuile:not(.vous) .tuile-nom { max-width: calc(100% - max(16px, env(safe-area-inset-left, 0px)) - 176px - max(14px, env(safe-area-inset-right, 0px)) - 12px); } }
 .appel-ecran[data-mise="video"] .tuile.vous {
   inset: auto; top: calc(env(safe-area-inset-top, 0px) + 110px); right: max(14px, env(safe-area-inset-right, 0px)); width: 104px; height: 150px; border-radius: 16px;
   background-image: linear-gradient(180deg, #4f78d6, #2a4a9c); border: 1px solid rgba(255,255,255,.35); box-shadow: 0 10px 30px rgba(0,0,0,.4); z-index: 2;
@@ -5888,6 +5892,13 @@ a.menu-action { text-decoration: none; }
     try { const AC = window.AudioContext || window.webkitAudioContext; if (AC) { sonnerieEtat.ctx = new AC(); if (sonnerieEtat.ctx.state === 'suspended') sonnerieEtat.ctx.resume().catch(() => {}); } } catch (e) { sonnerieEtat.ctx = null; }
     sonnerieUneFois(); sonnerieEtat.min = setInterval(sonnerieUneFois, 4500);
   }
+  /* ⛔ UN AVATAR ET UN SEUL STATUT tant que l'autre n'a pas répondu (lot m19, appels#5 et appels@9) : le haut de l'écran dit déjà « Sonnerie… » sous son nom, et la vignette ne le répétait pas seulement —
+     elle le posait en haut à gauche, SOUS l'en-tête (voilée) et sur la 1re ligne d'un nom de deux lignes, et l'étiquette « Vidéo de Ben » annonçait une vidéo qui n'existe pas encore. La pastille « Sonnerie… »
+     ne sert donc que dans la grille d'un appel de groupe (elle y dit QUI sonne encore) ; l'étiquette « Vidéo de … » n'existe que quand l'autre a répondu. Pure, pour que le banc l'exécute. */
+  function htmlTuileAppel(m, mise, medias) {
+    const sonne = m.etat === 'sonne', nom = mise === 'video' ? (sonne ? '' : 'Vidéo de ' + m.prenom) : m.prenom;
+    return (medias ? '<video muted playsinline autoplay aria-hidden="true"></video>' : '') + '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(nom) + '</span>' + (sonne && mise === 'groupe' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+  }
   /* l'écran DIT l'état : la mise en page, le nom, les vignettes (refaites seulement quand ce qui les décide change), les commandes */
   function rendreAppel() {
     const A = etat.appelUI; if (!A || !A.snap) return;
@@ -5911,7 +5922,7 @@ a.menu-action { text-decoration: none; }
         const t = document.createElement('div');
         t.className = 'tuile av' + (((m.avatar | 0) % 6 + 6) % 6); t.setAttribute('role', 'listitem'); t.dataset.membre = m.id; t.dataset.etat = m.etat;
         if (CAP.appelsMedias) t.dataset.camera = m.camera ? 'on' : 'off';
-        t.innerHTML = (CAP.appelsMedias ? '<video muted playsinline autoplay aria-hidden="true"></video>' : '') + '<span class="tuile-av" aria-hidden="true">' + esc(m.initiales) + '</span><span class="tuile-nom">' + esc(mise === 'video' ? 'Vidéo de ' + m.prenom : m.prenom) + '</span>' + (m.etat === 'sonne' ? '<span class="tuile-etat">Sonnerie…</span>' : '');
+        t.innerHTML = htmlTuileAppel(m, mise, CAP.appelsMedias);
         scene.insertBefore(t, vous);
       });
     }
