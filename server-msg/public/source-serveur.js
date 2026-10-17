@@ -2336,6 +2336,7 @@
     /* ── LES CARTES D'UN MESSAGE (7 octobre 2026) : une position, la fiche d'un contact, un sondage — un message texte qui porte `meta.k`. Le texte reste leur résumé (une version d'avant,
        une notification, l'aperçu de la liste) ; la page dessine la carte. Un SONDAGE se relit au service : chacun a SA vue (ses votes, les décomptes que les règles lui montrent). ── */
     const sondages = new Map(), sondagesEnVol = new Set();           // « conv|seq » → la vue du service ; ceux qu'on relit en ce moment
+    const sondagesEchus = new Map();                                  // « conv|seq » → quand on a relu un sondage dont l'heure de fin était passée (une fois par reprise)
     const SONDAGE_REPRISE_MS = 15000;                                 // une relecture ratée (réseau) ne se retente pas à chaque dessin : la page redessine souvent
     function relireSondage(conv, seq) {
       const k = conv + '|' + seq; if (sondagesEnVol.has(k)) return;
@@ -2350,6 +2351,13 @@
       if (!s) return Object.assign(base, { etat: 'charge' });
       if (s.absent) return Object.assign(base, { etat: 'absent' });
       if (s.erreur) return Object.assign(base, { etat: 'erreur' });
+      /* ⛔ L'ÉCHÉANCE PASSE PENDANT QUE LA PAGE EST OUVERTE (lot m09) : le service ne pousse rien à ce moment-là (personne n'a agi), la vue qu'on garde dit encore « ouvert » — et c'était l'écran
+         qui restait ouvert jusqu'au rechargement. À la première lecture après l'heure de fin, on RELIT : le service rend le sondage clos, avec les résultats promis « à la clôture » et sans droits
+         de vote. Une relecture par reprise : si l'horloge de cet appareil avance sur celle du service, il ne répond « ouvert » qu'une fois par reprise — jamais en boucle. */
+      if (!s.clos && s.regles && Number.isFinite(s.regles.fin) && maintenant() >= s.regles.fin) {
+        const dernier = sondagesEchus.get(k);
+        if (dernier === undefined || maintenant() - dernier >= SONDAGE_REPRISE_MS) { sondagesEchus.set(k, maintenant()); relireSondage(conv, seq); }
+      }
       const nomDeUid = (u) => typeof u === 'string' ? prenomDe(u) : null;
       return Object.assign(base, {
         etat: 'ok', regles: Object.assign({}, s.regles), clos: !!s.clos, closLe: s.clos_le || null, auteur: nomDeUid(s.auteur), deMoi: estMoi(s.auteur),
@@ -2939,7 +2947,9 @@
     const envoyerFiche = (id, uid) => envoyerCarte(id, 'contact', { uid });
     const envoyerSondage = (id, s) => envoyerCarte(id, 'sondage', { question: s.question, choix: s.choix, regles: s.regles });
     async function sondageAgir(conv, seq, faire) {
-      const v = await faire();
+      let v;
+      /* ⛔ le service refuse (409 « sondage_clos ») un geste sur un sondage clos : la carte qu'on garde est périmée — on la RELIT avant de dire le refus, pour que l'écran passe à « Clos » (lot m09) */
+      try { v = await faire(); } catch (e) { if (e && e.code === 'sondage_clos') relireSondage(conv, seq); throw e; }
       sondages.set(conv + '|' + seq, v); emettre({ type: 'conversation', id: conv });
       return vueSondage(conv, seq, '');
     }

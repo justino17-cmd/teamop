@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'cf2535167322';
+  const OPMSG_BUILD = '5f2b6db57b43';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 209;
+  const OPMSG_VERSION = 210;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -837,12 +837,16 @@
   const sondEnVol = new Set();               // les sondages dont un vote part en ce moment (on ne vote pas deux fois sur le même geste)
   let sondClore = null;                       // { mid, t } : « Clore » touché une fois — la seconde touche, dans les cinq secondes, le clôt
   const FMT_FIN = new Intl.DateTimeFormat('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+  /* ⛔ « CLOS » SE CALCULE À L'AFFICHAGE (lot m09) : le service dit `clos` quand il est LU, mais un sondage dont l'heure de fin passe pendant que la page est ouverte restait ouvert à l'écran (choix
+     actifs, « Clore », « Ajouter un choix ») jusqu'au rechargement, alors que le service refusait déjà tout (409 sondage_clos). Le service reste la vérité des droits : la source relit la carte dès
+     que l'échéance passe (et au refus), ce qui apporte aussi les résultats promis « à la clôture » — ceci n'est que ce que l'écran montre entre-temps. */
+  const sondageClos = s => !!(s && (s.clos || (s.regles && Number.isFinite(s.regles.fin) && Date.now() >= s.regles.fin)));
   function reglesTexte(s) {
     const r = s.regles, l = [r.multiple ? 'Plusieurs réponses' : 'Une réponse'];
     if (r.anonyme) l.push('Anonyme');
     if (r.resultats === 'apres_vote') l.push('Résultats après ton vote'); else if (r.resultats === 'apres_cloture') l.push('Résultats à la clôture');
     if (r.ajout) l.push('Choix ouverts');
-    if (s.clos) l.push('Clos'); else if (r.fin) l.push('Jusqu\'au ' + FMT_FIN.format(r.fin));
+    if (sondageClos(s)) l.push('Clos'); else if (r.fin) l.push('Jusqu\'au ' + FMT_FIN.format(r.fin));
     return l.join(' · ');
   }
   /* la bulle d'un votant : moi, un contact, ou quelqu'un que la source a vu (membre du groupe) — sinon ses initiales */
@@ -872,12 +876,12 @@
       '<span class="sond-q" dir="auto">' + esc(s.q) + '</span>';
     if (s.etat !== 'ok') return h + '<span class="sond-etat">' + (s.etat === 'absent' ? 'Ce sondage n\'est plus disponible.' : s.etat === 'erreur' ? 'Le sondage n\'a pas pu être lu.' : 'Chargement…') + '</span></span>';
     h += '<span class="sond-regles">' + esc(reglesTexte(s)) + '</span><span class="sond-liste">';
-    const vol = sondEnVol.has(m.id), total = s.votants || 0;
+    const vol = sondEnVol.has(m.id), total = s.votants || 0, clos = sondageClos(s);
     for (const c of s.choix) {
       const n = c.n | 0, pct = s.resultats && total ? Math.max(0, Math.min(100, Math.round(n * 100 / total))) : 0;
       const ids = s.resultats && Array.isArray(c.quiIds) ? c.quiIds.slice().sort((a, b) => (b === (MOI && MOI.id)) - (a === (MOI && MOI.id))) : [];   // ma bulle d'abord, comme dans « Voir les votes »
       const etiquette = c.texte + (c.mien ? ', ton choix' : '') + (s.resultats ? ', ' + n + ' vote' + (n > 1 ? 's' : '') : '') + (ids.length && c.qui ? ' : ' + quiTexte(c.qui) : '');
-      h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + (c.idx | 0) + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
+      h += '<button type="button" class="sond-choix presse" data-sond="' + esc(m.id) + '|' + (c.idx | 0) + '" aria-pressed="' + (c.mien ? 'true' : 'false') + '"' + (!s.peutVoter || vol || clos ? ' aria-disabled="true"' : '') + ' aria-label="' + esc(etiquette) + '">' +
         (s.resultats ? '<span class="sond-barre" style="--p:' + pct + '%"></span>' : '') +
         '<span class="sond-coche" aria-hidden="true"></span><span class="sond-texte" dir="auto">' + esc(c.texte) + '</span>' +
         '<span class="sond-avatars" aria-hidden="true">' + ids.slice(0, 3).map(u => avatarVotant(u, true)).join('') + (ids.length > 3 ? '<span class="sond-plus">+' + (ids.length - 3) + '</span>' : '') + '</span>' +
@@ -889,8 +893,8 @@
       s.regles.resultats === 'apres_vote' ? 'Vote pour voir les résultats' : s.mesChoix.length ? 'Tu as voté — les résultats paraîtront à la clôture' : 'Les résultats paraîtront à la clôture';
     h += '<span class="sond-pied">' + esc(pied) + (s.peutVoter && s.mesChoix.length && !s.regles.multiple ? ' · touche ton choix pour le retirer' : '') + '</span>';
     const actions = (s.resultats && total ? '<button type="button" class="carte-btn presse" data-sond-votes="' + esc(m.id) + '">' + (s.regles.anonyme ? 'Voir les résultats' : 'Voir les votes') + '</button>' : '') +
-      (s.peutAjouter ? '<button type="button" class="carte-btn presse" data-sond-ajouter="' + esc(m.id) + '">Ajouter un choix</button>' : '') +
-      (s.peutClore ? '<button type="button" class="carte-btn presse" data-sond-clore="' + esc(m.id) + '">' + (sondClore && sondClore.mid === m.id ? 'Confirmer la clôture' : 'Clore le sondage') + '</button>' : '');
+      (s.peutAjouter && !clos ? '<button type="button" class="carte-btn presse" data-sond-ajouter="' + esc(m.id) + '">Ajouter un choix</button>' : '') +
+      (s.peutClore && !clos ? '<button type="button" class="carte-btn presse" data-sond-clore="' + esc(m.id) + '">' + (sondClore && sondClore.mid === m.id ? 'Confirmer la clôture' : 'Clore le sondage') + '</button>' : '');
     return h + (actions ? '<span class="carte-actions">' + actions + '</span>' : '') + '</span>';
   }
   /* ⛔ UNE PHOTO SEULE GARDE SES PROPORTIONS (relecture du testeur) : sa boîte tient dans 240 × 320 ; une image minuscule est agrandie du double au plus, mais jamais laissée sous 72 px de côté ; un panorama
@@ -962,6 +966,16 @@
   }
   /* pourquoi on ne peut pas écrire ici (le texte), ou '' : un groupe d'annonces dont on n'est pas admin, un compte supprimé */
   const compoFerme = c => !c ? '' : c.supprime ? 'Ce compte a été supprimé : tu ne peux plus lui écrire.' : (c.annoncesSeulement && c.admins.indexOf(MOI.id) < 0 ? 'Seuls les admins peuvent écrire dans ce groupe.' : '');
+  /* ⛔ UNE SEULE MINUTERIE POUR TOUS LES SONDAGES de la conversation affichée (jamais une par carte) : celle de la PROCHAINE échéance. À son déclenchement la conversation se redessine — `sondageClos` fait
+     passer la carte à « Clos », la source relit le sondage — et ce redessin repose la suivante. Un redessin pour rien (le sondage a changé de fin, la conversation a changé) la remplace. */
+  let sondEcheanceT = null;
+  function sondageEcheance(c) {
+    clearTimeout(sondEcheanceT); sondEcheanceT = null;
+    let prochaine = Infinity;
+    for (const m of (c && c.messages) || []) { const s = m.sondage; if (s && s.etat === 'ok' && !sondageClos(s) && s.regles && Number.isFinite(s.regles.fin)) prochaine = Math.min(prochaine, s.regles.fin); }
+    if (prochaine === Infinity) return;
+    sondEcheanceT = setTimeout(() => { sondEcheanceT = null; rafraichirConv(); }, Math.min(Math.max(0, prochaine - Date.now()), 2000000000) + 300);     // 300 ms de plus : le minuteur peut partir un peu tôt ; au-delà de ~23 jours il se repose lui-même
+  }
   function rendreConv(c, force) {
     const fil = $('conv-fil');
     const colle = force || etat.forcerBas || (fil.scrollHeight - fil.scrollTop - fil.clientHeight < 80);
@@ -970,6 +984,7 @@
     rendreEntete(c);
     if (etat.groupe.ouvert && etat.groupe.mode === 'sondage-votes' && typeof rendreSondageVotes === 'function') rendreSondageVotes();   // « Voir les votes » suit les votes qui arrivent
     peindreMessages(partiesMessages(c));
+    sondageEcheance(c);
     annoncerTranscriptions(c);
     $('conv-messages').setAttribute('aria-busy', 'false');
     $('precedents').hidden = !(CAP.historique && c.aPlus);
@@ -1814,7 +1829,7 @@
   /* voter : une réponse — toucher un autre choix le remplace, toucher le sien le retire ; plusieurs — chaque touche coche ou décoche */
   async function voterSondage(cle) {
     const [mid, i] = cle.split('|'), m = trouverMessage(mid), conv = etat.conv;
-    if (!m || !m.sondage || m.sondage.etat !== 'ok' || !conv || sondEnVol.has(mid)) return;
+    if (!m || !m.sondage || m.sondage.etat !== 'ok' || !conv || sondEnVol.has(mid) || sondageClos(m.sondage)) return;
     const s = m.sondage, idx = +i, mes = new Set(s.mesChoix);
     const liste = s.regles.multiple ? (mes.has(idx) ? s.mesChoix.filter(x => x !== idx) : s.mesChoix.concat([idx])) : (mes.has(idx) ? [] : [idx]);
     sondEnVol.add(mid); rafraichirConv();
@@ -7069,6 +7084,8 @@
         swSond('sd-anonyme', 'Vote anonyme', 'Personne ne voit qui a voté quoi — toi non plus. Seuls les décomptes se lisent.', false) +
         swSond('sd-ajout', 'Les membres ajoutent des choix', 'Douze choix au plus, jamais deux fois le même.', false) + '</div>' +
       '<div class="champ"><label for="sd-resultats">Résultats visibles</label><select id="sd-resultats">' + SOND_RESULTATS.map(x => '<option value="' + x[0] + '">' + esc(x[1]) + '</option>').join('') + '</select></div>' +
+      /* ⛔ l'AUTEUR voit toujours les résultats (le service le fait ainsi) : la règle choisie ne vaut que pour les autres — on le DIT quand elle en cache (lot m09) */
+      '<p class="info-note" id="sd-res-note" hidden>Seuls les autres attendent : toi, qui poses la question, tu vois toujours les résultats.</p>' +
       '<div class="champ"><label for="sd-fin">Fin du vote</label><select id="sd-fin">' + SOND_FINS.map(x => '<option value="' + x[0] + '">' + esc(x[1]) + '</option>').join('') + '</select></div>' +
       '<div class="champ" id="sd-date-champ" hidden><label for="sd-date">Date et heure de fin</label><input id="sd-date" type="datetime-local" step="60"></div>' +
       '<div class="info-actions"><button type="button" class="mini plein" data-sd="envoyer">Envoyer le sondage</button></div>';
@@ -7197,7 +7214,10 @@
     if (t.dataset && t.dataset.sdC !== undefined && sondForm) sondForm.choix[+t.dataset.sdC] = t.value;
     erreurInfo('');
   });
-  $('info-corps').addEventListener('change', e => { if (modeCarte() && e.target.id === 'sd-fin') { const c = $('sd-date-champ'); if (c) c.hidden = e.target.value !== 'date'; } });
+  $('info-corps').addEventListener('change', e => {
+    if (modeCarte() && e.target.id === 'sd-fin') { const c = $('sd-date-champ'); if (c) c.hidden = e.target.value !== 'date'; }
+    if (modeCarte() && e.target.id === 'sd-resultats') { const n = $('sd-res-note'); if (n) n.hidden = e.target.value === 'toujours'; }
+  });
   $('info-corps').addEventListener('keydown', e => {
     if (!modeCarte() || e.key !== 'Enter' || e.isComposing) return;
     const t = e.target;
