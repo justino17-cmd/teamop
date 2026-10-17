@@ -632,9 +632,9 @@ async function parcoursA2(E) {
     await toucher(A, '.profil-retour');
     await A.page.waitForFunction(() => document.getElementById('vue-reglages').hidden, null, { timeout: 12000 });
   }
-  await verifier('la conversation de la réunion est dans la liste d\'Alice : le titre pour nom, une icône d\'agenda, et — le dernier message étant une phrase système (Dora retirée) — « Activité de la réunion » (jamais « du groupe »)', A, (a) => {
+  await verifier('la conversation de la réunion est dans la liste d\'Alice : le titre pour nom, une icône d\'agenda, et — le dernier message étant une phrase système (Dora est partie, et Alice la connaît) — la phrase elle-même, « Dora Leroy a quitté la réunion » (lot m10 : plus « Activité de la réunion », qui reste le repli pour qui ne connaît pas la personne — test-976)', A, (a) => {
     const c = Array.from(document.querySelectorAll('#liste-conv .conv')).find(e => e.querySelector('.conv-nom').textContent === a);
-    return !!c && c.querySelector('.conv-apercu').textContent === 'Activité de la réunion' && !!c.querySelector('.avatar svg');
+    return !!c && c.querySelector('.conv-apercu').textContent === 'Dora Leroy a quitté la réunion' && !!c.querySelector('.avatar svg');
   }, TITRE, 12000, () => lire(A, '#liste-conv'));
   await onglet(A, 'reunions');
 

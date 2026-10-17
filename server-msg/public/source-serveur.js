@@ -2181,7 +2181,7 @@
       let apercu = '';
       if (c.apercu) {
         const a = c.apercu;
-        const generique = canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe';
+        const generique = (canal ? 'Activité du canal' : c.type === 'reunion' ? 'Activité de la réunion' : 'Activité du groupe');
         /* ⛔ un message système en aperçu dit ce qui s'est passé (« Ana a ajouté Dan », « Vous avez créé le groupe ») : la phrase de la conversation ouverte, UNE table (`texteSysteme`). Elle ne se dit
            que si les personnes qu'elle nomme sont CONNUES de cette page — sinon elle écrirait « Quelqu'un a quitté le groupe », moins vrai que « Activité du groupe » — et si le service (un
            service d'avant) n'a pas joint la méta, on garde le mot générique. */
