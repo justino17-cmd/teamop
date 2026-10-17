@@ -10770,7 +10770,7 @@ a.menu-action { text-decoration: none; }
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d);
     const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse rappel-puce" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" aria-label="' + esc(x[1]) + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(rappelCourt(x[1])) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
     let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
-      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
+      '<div class="info-tete"><span class="avatar av' + (((indexAvatarReunion(d)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
       (d.annulee ? '<p class="info-erreur">Cette réunion est annulée.</p>' : '') +
       '<div class="carte">' +
         '<div class="reglage">' + icone('i-agenda') + '<span class="reglage-texte">' + esc(maj1(FMT_JOUR_LONG.format(o.debut))) + '<small>' + esc(h + (note ? ' (' + note + ')' : '')) + '</small></span></div>' +
@@ -10847,6 +10847,9 @@ a.menu-action { text-decoration: none; }
     return s;
   }
   const indexAvatarPage = id => { let x = 0; for (const c of String(id)) x = (x * 31 + c.charCodeAt(0)) % 6007; return x % 6; };
+  /* ⛔ (p04) UNE RÉUNION N'A PAS DEUX COULEURS : la liste et l'en-tête de sa conversation hachent l'identifiant de la CONVERSATION (`c_…`, source-serveur : `indexAvatar(c.id)`), la feuille « Infos » hachait
+     celui de la RÉUNION (`r_…`) — deux entrées, deux teintes. La fiche prend l'identifiant de la conversation que la réunion porte ; sans lui (un service d'avant), celui de la réunion. */
+  const indexAvatarReunion = d => indexAvatarPage(d.conv || d.id);
   function htmlCourriel(d, o) {
     const C = reu.fiche.courriel, serie = d.repetition !== 'aucune';
     if (C.ouvert === false) return '<div class="carte carte-pad"><p class="info-note" id="reu-courriel-note">L\'envoi par courriel n\'est pas encore ouvert.</p></div>';

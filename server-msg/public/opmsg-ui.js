@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = '0386b777728f';
+  const OPMSG_BUILD = '9c7534c5a626';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 230;
+  const OPMSG_VERSION = 231;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -7881,7 +7881,7 @@
     const { h, note } = libelleHoraire(d, o), rep = libelleRepetition(d);
     const mesRappels = d.moi.rappels, rappelsHtml = RAPPELS_REUNION.map(x => '<button type="button" class="reglage presse rappel-puce" role="checkbox" aria-checked="' + (mesRappels.indexOf(x[0]) >= 0 ? 'true' : 'false') + '" aria-label="' + esc(x[1]) + '" data-reu="rappel" data-min="' + x[0] + '"' + (d.annulee ? ' disabled' : '') + '><span class="reglage-texte">' + esc(rappelCourt(x[1])) + '</span><span class="rond" aria-hidden="true">' + icone('i-coche') + '</span></button>').join('');
     let s = '<p class="info-erreur" id="info-erreur" role="alert"' + (F.erreur ? '>' + esc(F.erreur) : ' hidden>') + '</p>' +
-      '<div class="info-tete"><span class="avatar av' + (((indexAvatarPage(d.id)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
+      '<div class="info-tete"><span class="avatar av' + (((indexAvatarReunion(d)) % 6 + 6) % 6) + '" aria-hidden="true">' + icone('i-agenda') + '</span><div><h3 class="info-nom">' + esc(d.titre || 'Réunion') + '</h3><p class="info-sous">' + esc(hote ? 'Tu organises cette réunion' : 'Organisée par ' + nomPersonne(d.hote)) + '</p></div></div>' +
       (d.annulee ? '<p class="info-erreur">Cette réunion est annulée.</p>' : '') +
       '<div class="carte">' +
         '<div class="reglage">' + icone('i-agenda') + '<span class="reglage-texte">' + esc(maj1(FMT_JOUR_LONG.format(o.debut))) + '<small>' + esc(h + (note ? ' (' + note + ')' : '')) + '</small></span></div>' +
@@ -7958,6 +7958,9 @@
     return s;
   }
   const indexAvatarPage = id => { let x = 0; for (const c of String(id)) x = (x * 31 + c.charCodeAt(0)) % 6007; return x % 6; };
+  /* ⛔ (p04) UNE RÉUNION N'A PAS DEUX COULEURS : la liste et l'en-tête de sa conversation hachent l'identifiant de la CONVERSATION (`c_…`, source-serveur : `indexAvatar(c.id)`), la feuille « Infos » hachait
+     celui de la RÉUNION (`r_…`) — deux entrées, deux teintes. La fiche prend l'identifiant de la conversation que la réunion porte ; sans lui (un service d'avant), celui de la réunion. */
+  const indexAvatarReunion = d => indexAvatarPage(d.conv || d.id);
   function htmlCourriel(d, o) {
     const C = reu.fiche.courriel, serie = d.repetition !== 'aucune';
     if (C.ouvert === false) return '<div class="carte carte-pad"><p class="info-note" id="reu-courriel-note">L\'envoi par courriel n\'est pas encore ouvert.</p></div>';
