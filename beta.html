@@ -18271,7 +18271,7 @@ function planAPlanifier(SRC){ const pool=SRC.filter(i=>!i.date||i.statut==='apla
    · plusieurs jours affichés côte à côte, chaque colonne porte le technicien ET son jour
    · la carte à droite montre toutes les interventions des jours et techniciens choisis
    ═══════════════════════════════════════════════════════════════════════════ */
-let planJours=[], planTechM=null, planMenuOuvert=false, _planMap=null;
+let planJours=[], planTechM=null, planTechMConnus=null, planMenuOuvert=false, _planMap=null;
 let planCarteOn=(function(){ try{ const v=localStorage.getItem('elanB_plan_cartem'); return v===null?true:v==='1'; }catch(e){ return true; } })();
 let _planMapTok=0, _planMarkers={};
 /* carte affichee a cote du planning dans les vues Jour / Semaine / Mois (choix memorise) */
@@ -18954,15 +18954,32 @@ function planCarteFocus(id){
   }catch(e){}
 }
 
+/* Les techniciens affichés se mémorisent sur l'appareil (localStorage, jamais dans db). Mémoriser
+   SEULEMENT l'ensemble affiché faisait qu'un technicien créé après la première visite n'y était
+   jamais : « Filtre actif : 4 techniciens sur 5 », sa colonne absente et ses interventions cachées.
+   On mémorise donc aussi la liste des techniciens CONNUS à ce moment-là (elan_plan_techs_connus) :
+   un identifiant connu et absent de l'ensemble a été DÉCOCHÉ exprès (il le reste), un identifiant
+   jamais vu est NOUVEAU (il s'affiche). Rapproché à chaque appel, pas seulement au premier : le
+   technicien peut naître pendant que le Planning reste en mémoire. */
+function planTechMEcrire(){ try{ localStorage.setItem('elanB_plan_techs',JSON.stringify([...planTechM])); localStorage.setItem('elanB_plan_techs_connus',JSON.stringify([...planTechMConnus])); }catch(e){} }
 function planTechMSet(){
-  if(planTechM) return planTechM;
-  let sauv=null; try{ sauv=JSON.parse(localStorage.getItem('elanB_plan_techs')||'null'); }catch(e){}
   const connus=db.techniciens.map(t=>t.id).concat(['']);
-  planTechM=new Set(Array.isArray(sauv)&&sauv.length?sauv.filter(x=>connus.includes(x)):connus);
-  if(!planTechM.size) planTechM=new Set(connus);
+  if(!planTechM){
+    let sauv=null, sauvConnus=null;
+    try{ sauv=JSON.parse(localStorage.getItem('elanB_plan_techs')||'null'); }catch(e){}
+    try{ sauvConnus=JSON.parse(localStorage.getItem('elanB_plan_techs_connus')||'null'); }catch(e){}
+    planTechM=new Set(Array.isArray(sauv)&&sauv.length?sauv.filter(x=>connus.includes(x)):connus);
+    if(!planTechM.size) planTechM=new Set(connus);
+    /* sans liste mémorisée (réglage d'avant), tous ceux qui existent sont « connus » : on ne devine pas
+       lequel a été décoché exprès — comportement d'avant, puis les nouveaux paraissent d'eux-mêmes */
+    planTechMConnus=new Set(Array.isArray(sauvConnus)&&Array.isArray(sauv)&&sauv.length?sauvConnus:connus);
+  }
+  let neuf=false;
+  connus.forEach(id=>{ if(!planTechMConnus.has(id)){ planTechMConnus.add(id); planTechM.add(id); neuf=true; } });
+  if(neuf) planTechMEcrire();
   return planTechM;
 }
-function planTechMSave(){ try{ localStorage.setItem('elanB_plan_techs',JSON.stringify([...planTechMSet()])); }catch(e){} }
+function planTechMSave(){ planTechMSet(); planTechMEcrire(); }
 function planTechMToggle(id){ const s=planTechMSet(); if(s.has(id)) s.delete(id); else s.add(id); planTechMSave();
   if(planFocusT&&!s.has(planFocusT)) planFocusT='';
   views.planning(); }
@@ -19146,7 +19163,7 @@ function planMultiHtml(SRC){
           ${t.id?planGauge(mn,capM,'Charge de la journée ('+fmtHmin(mn)+' sur '+fmtHmin(capM)+')',techColor(t.id)):''}</span>
         ${t.id?`<span class="plg-go">›</span>`:''}</div>`;
       const absM=t.id?absentOn(t.id,j):null;
-      let col=`<div class="plm-col${fin}${absM?' absx':''}" data-ligne="${t.id}" ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${techColor(t.id)}')" ondragleave="this.classList.remove('drop');planGuideOff()" ondrop="this.classList.remove('drop');planGuideOff();planMultiDrop(event,'${j}','${t.id}',${h0},${PPH})" ondblclick="planMultiVide(event,'${j}','${t.id}',${h0},${PPH})">`;
+      let col=`<div class="plm-col${fin}${absM?' absx':''}" data-ligne="${t.id}" data-drop="multi:${j}:${t.id}:${h0}:${PPH}" ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${techColor(t.id)}')" ondragleave="this.classList.remove('drop');planGuideOff()" ondrop="this.classList.remove('drop');planGuideOff();planMultiDrop(event,'${j}','${t.id}',${h0},${PPH})" ondblclick="planMultiVide(event,'${j}','${t.id}',${h0},${PPH})">`;
       for(let h=h0;h<h1;h++) col+=`<div class="plm-cell" style="height:${PPH}px"></div>`;
       col+=absBloc(absM,'plm-abs');
       actM.forEach(a=>{ const m=toMinH(a.heure); if(m===null) return;
@@ -19193,7 +19210,7 @@ function planMultiHtml(SRC){
   return {tete:tete,larg:larg,bandes:bandes,entetes:entetes,colonnes:colonnes,vide:!techsP.length};
   });
   const grille=`<div>
-    <div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${canPlan()?'Glissez une carte sur une case pour changer <b>le jour et la personne</b> · Alt + glisser = dupliquer · ':''}double-cliquez une case vide pour créer</div>
+    ${planAide('Glissez une carte sur une case pour changer <b>le jour et la personne</b>',true)}
     ${planFenBarre(techs.length)}
     ${blocsHtml.map(b=>b.barre?b.barre:`<div class="card plm-wrap plt-bloc">${b.tete}${planNoteMini(planJours)}${b.vide?`<div class="fen-vide">Personne dans cette fenêtre — clique sur « ＋ personne » pour la remplir.</div>`:`<div class="plm-grid" style="grid-template-columns:${b.larg}">
       ${b.bandes}${b.entetes}${b.colonnes.replace('<div class="plm-gut">',`<div class="plm-gut" style="height:${H}px">`)}
@@ -19204,6 +19221,16 @@ function planMultiHtml(SRC){
     : `<div class="plm-split">${grille}${planCarteCard()}</div>`;
 }
 
+/* L'aide sous la barre du planning ne promet QUE ce que la personne peut faire : « glissez » demande
+   « Déplacer le planning », « Alt + glisser = dupliquer » et « double-cliquez pour créer » demandent
+   d'ajouter une intervention (planDup et planMultiVide refusent sans). Un technicien lisait
+   « double-cliquez une case vide pour créer » et le geste ne faisait rien. Rien à dire → pas de ligne. */
+function planAide(glisse,avecDouble,lecture){
+  const p=[], cree=canCat('int','ajouter');
+  if(canPlan()){ p.push(glisse); if(cree) p.push('Alt + glisser = dupliquer'); }
+  else if(lecture) p.push(lecture);
+  if(avecDouble&&cree) p.push('double-cliquez une case vide pour créer');
+  return p.length?`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${p.join(' · ')}</div>`:''; }
 /* DOUBLE-clic sur une case vide : créer une intervention à ce jour, ce technicien, cette heure.
    Un simple clic ne fait rien, pour ne pas proposer une création à chaque clic dans le vide. */
 function planMultiVide(e,iso,techId,h0,PPH){
@@ -19228,14 +19255,13 @@ function planMultiDrop(e,iso,techId,h0,PPH){
   const y=planYbord(e,r);
   let mins=h0*60+Math.round((y/PPH)*60/5)*5; mins=Math.max(0,Math.min(23*60+55,mins));
   const heure=String(Math.floor(mins/60)).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');
-  const avantD=i.date, avantT=techNames(i), avantH=i.heure;
-  const deSnap=planSnap(i);
-  if(typeof planAbsGate==='function'&&!planAbsGate(i,iso,techId)) return;
+  const avantD=i.date;
+  const deSnap=planDepotAvant(e,i,iso,techId,mins,{date:iso,heure:heure,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!deSnap) return;
   i.date=iso; i.heure=heure;
   planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
-  save();
-  try{ planStamp(i,deSnap); }catch(e){}
+  planDepotApres(i,deSnap);
   try{ if(typeof serieShiftPropose==='function') serieShiftPropose(i,avantD,iso); }catch(e){}
   if(planJours.indexOf(iso)<0){ planJours.push(iso); planJours.sort(); }
   views.planning();
@@ -19742,7 +19768,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
           style="${lg};${pos};height:${Math.round(hpx)}px;--cc:${sc}">
           ${pn}<b>${planPileAutres(i,gr.id)}${i.heure?`<span class="hh">${esc(i.heure)}</span> `:''}${esc(i.titre||'Intervention')}</b>${detail}</div>`;
       }).join('');
-      g+=`<div class="plg-cell heur ${iso===todayISO()?'today':''} ${abs?'absx':''}" data-drop="cell:${iso}:${gr.id}" data-ech="${eid}"
+      g+=`<div class="plg-cell heur ${iso===todayISO()?'today':''} ${abs?'absx':''}" data-drop="cell:${iso}:${gr.id}:${wh0}:${PPHW}" data-ech="${eid}"
         style="height:${HW}px"
         ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${wh0},${PPHW},'${techColor(gr.id||'')}')"
         ondragleave="this.classList.remove('drop');planGuideOff()"
@@ -19760,7 +19786,7 @@ function planWeekHtml(SRC){ if((window.innerWidth||1200)<700) return planWeekLis
         ${absBloc(abs,'plg-absv')}${cartes}
       </div>`; });
   });
-  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${canPlan()?'Glissez une carte sur une case pour changer <b>le jour et la personne</b> d\'un seul geste · Alt + glisser = dupliquer · ':''}double-cliquez une case vide pour créer</div>
+  return nav+`${planAide('Glissez une carte sur une case pour changer <b>le jour et la personne</b> d\'un seul geste',true)}
     <div class="card plg-wrap" style="padding:0">${planNoteMini(days)}<div class="plg" style="grid-template-columns:104px 20px repeat(${days.length},1fr);min-width:${124+days.length*112}px">${g}</div></div>`;
 }
 /* dépôt sur une case de la semaine : jour + technicien + heure d'un seul geste */
@@ -19774,17 +19800,12 @@ function planWeekDrop(e,iso,techId,h0,PPH){
   const col=e.currentTarget, r=col.getBoundingClientRect();
   let m=h0*60+Math.round((planYbord(e,r)/PPH)*60/5)*5; m=Math.max(0,Math.min(23*60+55,m));
   const heure=clockFromMin(m);
-  const ind=techId?indispoAt(techId,iso,m,parseInt(i.duree)||60):null;
-  if(ind){ toast('⛔ '+techName(techId)+' est indisponible '+(ind.debut||'')+'–'+(ind.fin||'')+(ind.motif?' ('+ind.motif+')':'')); return; }
-  if(e.altKey){ if(!planAbsGate(techId,iso,null)) return;
-    planDup(i,{date:iso,heure:heure,techId:techId||'',techIds:techId?[techId]:[]}); return; }
-  const de=planSnap(i);
-  if(!planAbsGate(techId,iso,i)) return;
+  const de=planDepotAvant(e,i,iso,techId,m,{date:iso,heure:heure,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!de) return;
   i.date=iso; i.heure=heure; planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
   intHisto(i,'Replanifiée au '+fmtShort(iso)+' à '+heure+' · '+techNames(i));
-  try{ planStamp(i,de); }catch(err){}
-  save(); toast('📅 '+(i.titre||'Intervention')+' → '+fmtShort(iso)+' '+heure);
+  const forced=planDepotApres(i,de); toast('📅 '+(i.titre||'Intervention')+' → '+fmtShort(iso)+' '+heure+(forced?' · ⚠️ malgré congé':''));
   views.planning();
 }
 /* DOUBLE-clic sur une case vide de la semaine : créer à ce jour, ce technicien, cette heure */
@@ -19893,11 +19914,11 @@ function planDayHtml(SRC){ if((window.innerWidth||1200)<700) return planDayListH
       const serre=gap<30 && adrA && adrB && adrA!==adrB;
       const mid=(finA+debB)/2;
       blocks+=`<div class="plt-gap ${serre?'hot':''}" style="top:${(mid-h0*60)/60*PPH-7}px"><b>${serre?'⚠️ enchaînement serré · ':''}${gap} min de battement</b></div>`; }
-    colsA.push(`<div class="plt-col ${abs?'absx':''}" style="height:${H}px" data-drop="time:${gr.id}:${h0}"
+    colsA.push(`<div class="plt-col ${abs?'absx':''}" style="height:${H}px" data-drop="time:${gr.id}:${h0}:${PPH}"
       ondragover="event.preventDefault();this.classList.add('drop');planGuideMaj(event,this,${h0},${PPH},'${cTech}')" ondragleave="this.classList.remove('drop');planGuideOff()"
       ondrop="this.classList.remove('drop');planGuideOff();planDropTime(event,'${gr.id}',${h0},${PPH})">${absBloc(abs,'plt-abs')}${blocks}</div>`);
   });
-  return nav+`<div style="font-size:12px;color:var(--t3);margin:0 2px 8px">${canPlan()?`Glissez un bloc <b>verticalement</b> pour changer l'heure (par 5 min) · <b>horizontalement</b> pour changer de personne · Alt + glisser = dupliquer`:'Lecture seule — le droit « Déplacer le planning » est requis pour réorganiser'}</div>
+  return nav+`${planAide('Glissez un bloc <b>verticalement</b> pour changer l\'heure (par 5 min) · <b>horizontalement</b> pour changer de personne',false,'Lecture seule — le droit « Déplacer le planning » est requis pour réorganiser')}
     ${planFenBarre(groups.length)}
     ${(function(){
       const paquets=planPaquets(groups.map((g,k)=>k),k=>groups[k].id);
@@ -19986,26 +20007,47 @@ function planDup(i,patch){ if(!permGarde('int','ajouter','une intervention')) re
 /* ── Absences BLOQUANTES : refus net, sauf droit « Obliger à travailler » (confirmation) ── */
 function planAbsGate(techId,iso,i){ if(!techId||!iso) return true; const ab=absentOn(techId,iso); if(!ab) return true;
   const nom=techName(techId), typ=ABS_TYPES[ab.type]||ab.type||'absence';
-  if(!can('planifObligerTravail')){ toast('❌ Impossible : '+nom+' est en '+typ+' le '+fmtShort(iso)); return false; }
-  if(!confirm(nom+' est en '+typ+' le '+fmtShort(iso)+'. Appliquer l\u2019obligation de travailler ?')){ return false; }
+  const jour=fmtShort(iso).replace(/\.$/,'');   // fmtShort finit par « . » (« 17 oct. ») : la phrase mettait « oct.. Appliquer »
+  if(!can('planifObligerTravail')){ toast('❌ Impossible : '+nom+' est en '+typ+' le '+jour); return false; }
+  if(!confirm(nom+' est en '+typ+' le '+jour+'. Appliquer l\u2019obligation de travailler ?')){ return false; }
   if(i){ i.obligation={par:(currentUser&&fullName(currentUser))||'',ts:Date.now()}; i._oblig=true;
     intHisto(i,'⚠️ Obligation de travailler appliquée ('+nom+' en '+typ+' le '+fmtShort(iso)+')'); }
   return true; }
+/* ── L'ENCHAÎNEMENT COMMUN des quatre dépôts (Multi, Semaine, Jour, case) ──────────────────────
+   Quatre copies avaient divergé, et la vue par défaut (Multi) n'avait ni le contrôle d'absence
+   (arguments inversés), ni Alt + glisser, ni l'indisponibilité, et sauvegardait AVANT d'écrire le
+   journal. Désormais UNE suite, dans cet ordre, que chaque dépôt appelle :
+     planDepotAvant : indisponibilité (si on connaît l'heure `m`) → Alt = dupliquer (absence contrôlée
+                      aussi) → instantané → absence/obligation. Rend l'instantané « avant », ou null
+                      quand le geste est terminé (refusé ou dupliqué) ;
+     planDepotApres : journal et planBy (planStamp) → _oblig retiré → save(). Le journal DOIT
+                      précéder save() (sinon il est perdu au rechargement) et _oblig DOIT être retiré
+                      après planStamp (sinon chaque entrée suivante affirme une obligation).
+   Le droit « Déplacer le planning » se lit, lui, en première instruction de chaque dépôt (test-790). */
+function planDepotAvant(e,i,iso,techId,m,patchDup){
+  const ind=(techId&&m!=null)?indispoAt(techId,iso,m,parseInt(i.duree)||60):null;
+  if(ind){ toast('⛔ '+techName(techId)+' est indisponible '+(ind.debut||'')+'–'+(ind.fin||'')+(ind.motif?' ('+ind.motif+')':'')); return null; }
+  if(e.altKey){ if(planAbsGate(techId,iso,null)) planDup(i,patchDup); return null; }
+  const de=planSnap(i);
+  if(!planAbsGate(techId,iso,i)) return null;
+  return de; }
+function planDepotApres(i,de){
+  planStamp(i,de);
+  const forced=!!i._oblig; delete i._oblig;
+  save(); return forced; }
 /* ── Dépôt sur une case (jour + technicien d'un geste) ── */
 function planDropCell(e,iso,techId){ e.preventDefault(); if(!canPlan()){ toast('Droit « Déplacer le planning » requis'); return; } const id=(e.dataTransfer.getData('text/plain')||'').trim(); const i=db.interventions.find(x=>x.id===id); if(!i) return;
-  if(e.altKey){ if(!planAbsGate(techId,iso,null)) return; planDup(i,{date:iso,techId:techId||'',techIds:techId?[techId]:[]}); return; }
-  const de=planSnap(i);
-  if(!planAbsGate(techId,iso,i)) return;
+  const de=planDepotAvant(e,i,iso,techId,null,{date:iso,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!de) return;
   const chg=[];
   if(i.date!==iso){ i.date=iso; chg.push('au '+fmtShort(iso)); }
   const cur=intTechIds(i);
   const apres=planEquipeApres(i,techId||'',window._planDragDe);
   if(apres.join()!==cur.join()){ i.techIds=apres; i.techId=apres[0]||''; chg.push(apres.length?('→ '+techNames(i)):'→ non assigné'); intHisto(i,'Réassignée à '+techNames(i)+' ('+fmtShort(iso)+')'); }
   if(i.statut==='aplanifier') i.statut='planifiee';
-  planStamp(i,de);
-  const forced=!!i._oblig; delete i._oblig;
+  const forced=planDepotApres(i,de);
   const cf=(i.heure)?intConflictOf(i,i.id):null;
-  save(); planSel=iso; views.planning();
+  planSel=iso; views.planning();
   toast((chg.length?('Déplacée '+chg.join(' ')):'Aucun changement')+(forced?' · ⚠️ malgré congé':'')+(cf?' · ⚠️ chevauchement':''));
   serieShiftPropose(i,(de||{}).date||''); }
 /* ── Dépôt sur la timeline (heure + technicien) ── */
@@ -20016,56 +20058,77 @@ function planDropTime(e,techId,h0,PPH){ PPH=PPH||48; e.preventDefault(); if(!can
   const col=e.currentTarget; const rect=col.getBoundingClientRect(); const y=Math.max(0,planYbord(e,rect));
   let m=h0*60+Math.round(y/PPH*60/5)*5; m=Math.max(0,Math.min(23*60+55,m));
   const hh=String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0');
-  // Indisponibilité (P5) : impossible de planifier dessus
-  const ind=techId?indispoAt(techId,planSel,m,parseInt(i.duree)||60):null;
-  if(ind){ toast('⛔ '+techName(techId)+' est indisponible '+(ind.debut||'')+'–'+(ind.fin||'')+(ind.motif?' ('+ind.motif+')':'')); return; }
-  if(e.altKey){ if(!planAbsGate(techId,planSel,null)) return; planDup(i,{date:planSel,heure:hh,techId:techId||'',techIds:techId?[techId]:[]}); return; }
-  const de=planSnap(i);
-  if(!planAbsGate(techId,planSel,i)) return;
+  const de=planDepotAvant(e,i,planSel,techId,m,{date:planSel,heure:hh,techId:techId||'',techIds:techId?[techId]:[]});
+  if(!de) return;
   i.date=planSel; i.heure=hh; planPoserEquipe(i,techId||'',window._planDragDe);
   if(i.statut==='aplanifier') i.statut='planifiee';
   intHisto(i,'Replanifiée à '+hh+' · '+techNames(i));
-  planStamp(i,de);
-  const forced=!!i._oblig; delete i._oblig;
+  const forced=planDepotApres(i,de);
   const cf=intConflictOf(i,i.id);
-  save(); views.planning();
+  views.planning();
   toast('→ '+hh+' · '+techNames(i)+(forced?' · ⚠️ malgré congé':'')+(cf?' · ⚠️ chevauchement':''));
   serieShiftPropose(i,(de||{}).date||''); }
-/* ── Glisser au doigt (iPhone/iPad) : appui long puis déplacement ── */
+/* ── Glisser au doigt (iPhone/iPad) : appui long puis déplacement ──
+   ⛔ Au TACTILE, pas au pointeur : le navigateur annule le flux de pointeur au premier mouvement dès
+   qu'il peut défiler (les cartes portent touch-action:pan-y) — pointerdown, UN pointermove, puis
+   pointercancel — pendant que les touchmove continuent. Écouté en pointeur, le geste ne déposait rien
+   et laissait le clone « fantôme » collé à l'écran avec _planDragging vrai. Un doigt se lit donc aux
+   événements tactiles (touchmove non passif : c'est lui qui empêche le défilement une fois le glisser
+   armé), et la souris garde le glisser natif. touchcancel (appel entrant, geste système, glisser natif
+   qui reprend la main) défait le glisser SANS déposer : fantôme retiré, _planDragging remis à faux. */
 let _tpDrag=null;
-document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch'||(current!=='planning'&&current!=='carteInt')) return;
+function planTpArreter(t){ if(!t) return; clearTimeout(t.timer);
+  try{ if(t.ghost) t.ghost.remove(); }catch(_){ }
+  try{ if(t.dz) t.dz.classList.remove('drop'); }catch(_){ }
+  if(t.on) window._planDragging=false; }
+document.addEventListener('touchstart',e=>{ if(e.touches.length!==1||(current!=='planning'&&current!=='carteInt')){ planTpArreter(_tpDrag); _tpDrag=null; return; }
   if(!canPlan()) return;   // sans le droit « Déplacer le planning », pas de glisser tactile
   const c=e.target.closest('[data-drag-int]'); if(!c) return;
-  const id=c.getAttribute('data-drag-int');
-  _tpDrag={id,x:e.clientX,y:e.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
-    const gh=c.cloneNode(true); Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.92,margin:0,transform:'translate('+(e.clientX+10)+'px,'+(e.clientY+10)+'px) rotate(-2deg)'});
-    document.body.appendChild(gh); _tpDrag.ghost=gh; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){}
+  const id=c.getAttribute('data-drag-int'), d0=e.touches[0];
+  planTpArreter(_tpDrag);
+  /* où le doigt tient la carte : comme à la souris (planDragStart), la carte se pose là où on l'a saisie */
+  let dy=0; try{ const rb=c.getBoundingClientRect(); dy=Math.max(0,Math.min(rb.height,d0.clientY-rb.top)); }catch(_){ }
+  _tpDrag={id,dy,x:d0.clientX,y:d0.clientY,timer:setTimeout(()=>{ if(!_tpDrag) return; _tpDrag.on=true; window._planDragging=true; window._planDragDe=planLigneDe(c);
+    const gh=c.cloneNode(true); Object.assign(gh.style,{position:'fixed',left:'0',top:'0',width:c.offsetWidth+'px',zIndex:999,pointerEvents:'none',opacity:.92,margin:0,transform:'translate('+(_tpDrag.x+10)+'px,'+(_tpDrag.y+10)+'px) rotate(-2deg)'});
+    document.body.appendChild(gh); _tpDrag.ghost=gh; if(navigator.vibrate) try{navigator.vibrate(12);}catch(_){ }
   },260)};
 },{passive:true});
-document.addEventListener('pointermove',e=>{ if(!_tpDrag) return;
-  if(!_tpDrag.on){ if(Math.hypot(e.clientX-_tpDrag.x,e.clientY-_tpDrag.y)>12){ clearTimeout(_tpDrag.timer); _tpDrag=null; } return; }
+document.addEventListener('touchmove',e=>{ if(!_tpDrag) return; const d0=e.touches[0]; if(!d0) return;
+  if(!_tpDrag.on){ if(Math.hypot(d0.clientX-_tpDrag.x,d0.clientY-_tpDrag.y)>12){ clearTimeout(_tpDrag.timer); _tpDrag=null; } return; }
   if(e.cancelable) e.preventDefault();
-  _tpDrag.ghost.style.transform='translate('+(e.clientX+10)+'px,'+(e.clientY+10)+'px) rotate(-2deg)';
-  const el=document.elementFromPoint(e.clientX,e.clientY); const dz=el&&el.closest('[data-drop]');
+  _tpDrag.x=d0.clientX; _tpDrag.y=d0.clientY;
+  _tpDrag.ghost.style.transform='translate('+(d0.clientX+10)+'px,'+(d0.clientY+10)+'px) rotate(-2deg)';
+  const el=document.elementFromPoint(d0.clientX,d0.clientY); const dz=el&&el.closest('[data-drop]');
   if(_tpDrag.dz&&_tpDrag.dz!==dz) _tpDrag.dz.classList.remove('drop');
   if(dz) dz.classList.add('drop');
   _tpDrag.dz=dz;
 },{passive:false});
-document.addEventListener('pointerup',e=>{ const t=_tpDrag; _tpDrag=null; if(!t) return; clearTimeout(t.timer);
+document.addEventListener('touchend',e=>{ const t=_tpDrag; _tpDrag=null; if(!t) return; clearTimeout(t.timer);
   if(!t.on) return;
-  try{ t.ghost.remove(); }catch(_){ }
-  window._planDragging=false;
+  const d0=(e.changedTouches&&e.changedTouches[0])||{clientY:t.y};
   const dz=t.dz;
-  if(dz){ dz.classList.remove('drop');
+  planTpArreter(t);
+  if(dz){
     const parts=(dz.getAttribute('data-drop')||'').split(':');
-    const fake={preventDefault(){},dataTransfer:{getData:()=>t.id},altKey:false,clientY:e.clientY,currentTarget:dz};
+    const fake={preventDefault(){},dataTransfer:{getData:()=>t.id},altKey:false,clientY:d0.clientY,currentTarget:dz};
+    /* chaque zone dit à quel dépôt elle mène — le MÊME que sous la souris : Multi (colonne d'une personne
+       un jour donné), Semaine (case jour + heure), Jour (colonne d'heures). Une vue sans zone ici
+       ne déposerait rien au doigt (la Multi, vue par défaut, n'en avait pas). */
+    window._planGrabDy=t.dy||0;
+    /* h0 peut valoir 0 (planning ouvert dès minuit) : `||8` l'aurait remplacé par 8 */
+    const nb=(v,d)=>{ const n=parseInt(v,10); return isNaN(n)?d:n; };
     try{
-      if(parts[0]==='cell') planDropCell(fake,parts[1],parts[2]||'');
-      else if(parts[0]==='time') planDropTime(fake,parts[1]||'',parseInt(parts[2],10)||8);
+      if(parts[0]==='multi') planMultiDrop(fake,parts[1],parts[2]||'',nb(parts[3],8),nb(parts[4],46));
+      else if(parts[0]==='cell'&&parts[3]) planWeekDrop(fake,parts[1],parts[2]||'',nb(parts[3],8),nb(parts[4],46));
+      else if(parts[0]==='cell') planDropCell(fake,parts[1],parts[2]||'');
+      else if(parts[0]==='time') planDropTime(fake,parts[1]||'',nb(parts[2],8),nb(parts[3],48));
     }catch(err){}
+    window._planGrabDy=0;
   }
   if(window._planPending){ window._planPending=false; if(current==='planning'){ try{ views.planning(); }catch(err){} } }
 });
+document.addEventListener('touchcancel',()=>{ const t=_tpDrag; _tpDrag=null; planTpArreter(t);
+  if(window._planPending){ window._planPending=false; if(current==='planning'){ try{ views.planning(); }catch(err){} } } });
 
 /* ═══════════════ PLANNING — traçabilité, indispos, notes, passages, garanties ═══════════════ */
 /* ── P9 : qui place / déplace — journal du planning (plafonné à 400 entrées) ── */
@@ -20422,6 +20485,9 @@ document.addEventListener('pointerdown',e=>{ if(e.pointerType!=='touch'||current
 },{passive:true});
 document.addEventListener('pointermove',e=>{ if(_lpCtx&&Math.hypot(e.clientX-_lpCtx.x,e.clientY-_lpCtx.y)>8){ clearTimeout(_lpCtx.timer); _lpCtx=null; } },{passive:true});
 document.addEventListener('pointerup',()=>{ if(_lpCtx){ clearTimeout(_lpCtx.timer); _lpCtx=null; } },{passive:true});
+/* pointercancel : le navigateur reprend le doigt (défilement, ou glisser tactile armé) — ce n'est plus un appui
+   long immobile, le menu ne doit pas s'ouvrir au bout des 520 ms par-dessus le glisser. */
+document.addEventListener('pointercancel',()=>{ if(_lpCtx){ clearTimeout(_lpCtx.timer); _lpCtx=null; } },{passive:true});
 /* ── P15 : note de journée (📌), visible par toute l'équipe ── */
 function planNoteEdit(iso){
   db.planNotes=db.planNotes||{};
