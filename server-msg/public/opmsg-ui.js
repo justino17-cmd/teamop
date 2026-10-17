@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'e5ca881e2d73';
+  const OPMSG_BUILD = 'f49b3a3f73d8';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 212;
+  const OPMSG_VERSION = 213;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -516,7 +516,7 @@
      donc le navigateur n'a pas de second retour à jouer ; et un bouton qui ferme ne ferme pas ET ne navigue pas — il navigue, et
      la fermeture suit. Une entrée neuve n'est posée que si quelque chose s'ouvre : passer d'une conversation à l'autre (au bureau)
      REMPLACE l'entrée au lieu d'en empiler. */
-  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && (a.sec || null) === (b.sec || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.appel || null) === (b.appel || null);
+  const memeRoute = (a, b) => !!a && !!b && a.vue === b.vue && (a.conv || null) === (b.conv || null) && (a.sec || null) === (b.sec || null) && !!a.feuille === !!b.feuille && (a.photo || null) === (b.photo || null) && (a.apercu || null) === (b.apercu || null) && (a.appel || null) === (b.appel || null);
   /* `sec` : une rubrique de Profil ouverte (« #reglages/confidentialite ») — une couche comme une conversation : le retour système la referme */
   const urlDe = r => '#' + r.vue + (r.conv ? '/' + encodeURIComponent(r.conv) : r.sec ? '/' + r.sec : '');
   function routeDepuisHash() {
@@ -528,23 +528,56 @@
     const feuille = vue === 'reunions' && CAP.reunions && ID_REUNION.test(conv || '') ? 'reunion:' + conv
       : vue === 'reunions' && CAP.agenda && ID_EVT.test(conv || '') ? 'evenement:' + conv : false;       // un RAPPEL de l'agenda (sa notification touchée) : sa fiche
     const sec = vue === 'reglages' && REG_SECTIONS.includes(p[1]) ? p[1] : null;
-    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, sec, feuille, photo: null, appel: null };
+    return { vue, conv: vue === 'messages' && p[0] === 'messages' ? conv : null, sec, feuille, photo: null, apercu: null, appel: null };
   }
   const entree = () => (history.state && history.state.opmsg) ? history.state : null;
   function parentDe(r) {
     if (r.appel) return Object.assign({}, r, { appel: null });
     if (r.photo) return Object.assign({}, r, { photo: null });
+    if (r.apercu) return Object.assign({}, r, { apercu: null });      // l'aperçu des photos AVANT l'envoi : une couche, comme la photo agrandie
     if (r.feuille) return Object.assign({}, r, { feuille: false });
     if (r.sec) return Object.assign({}, r, { sec: null });
     if (r.conv) return Object.assign({}, r, { conv: null });
     return null;
   }
-  function pousser(r) {
+  /* ⛔ LE MENU (d'un message, « + », « Envoyer plus tard ») EST UNE COUCHE (testeur « conversations#3 », 17 octobre 2026) : il vivait dans `etat.menu`, hors de la route, donc le retour
+     système (Android, geste d'iOS) jouait la route d'AVANT — la liste — et `fermerConv` (qui appelle `fermerMenu`) fermait la conversation ET perdait le contexte « Répondre à ».
+     Il POUSSE désormais une entrée marquée `menu` (même route : rien ne change à l'écran), `fermerMenu` la RENDS quand elle est au sommet, et `popstate` avec un menu ouvert ne
+     ferme QUE lui. Restent hors couche, comme avant : le menu d'un rendez-vous de l'Agenda et « Y aller » (ouverts par d'autres fonctions). */
+  let menuRetour = false, apresRetour = [], filetMenu = 0;
+  function menuEntreePoser() {
+    if (menuRetour || !etat.route) return false;                        // le retour d'un menu précédent est encore en vol : celui-ci reste hors couche, plutôt que de se croiser avec lui
     const h = entree();
+    if (h && h.menu) return true;                                       // son entrée est déjà là (un menu qui en remplace un autre)
+    history.pushState({ opmsg: 1, n: h ? h.n + 1 : 1, r: etat.route, p: etat.route, menu: 1 }, '', urlDe(etat.route));
+    return true;
+  }
+  /* ⛔ fermer le menu REND l'entrée par `rendreEntree` (un retour, une fois) ; le DOM, lui, se ferme tout de suite. Or ce retour est ASYNCHRONE, et un choix du menu ouvre souvent
+     quelque chose JUSTE APRÈS (Suivi, Transférer, Contact, Sondage → une feuille, donc `pousser`) : poussée avant que le retour tombe, la feuille serait refermée par lui. Tout
+     `pousser` / `remplacer` demandé pendant ce retour attend donc `popstate` (`menuRetourFin`) — ou le filet d'1,6 s si le navigateur ne le rend jamais. */
+  function menuEntreeRendre() {
+    const h = entree(); if (!h || !h.menu) return;
+    const avant = retourEnVol; rendreEntree();
+    if (avant || !retourEnVol) return;                                   // un autre retour était déjà en vol : le nôtre n'est pas parti
+    menuRetour = true; clearTimeout(filetMenu); filetMenu = setTimeout(menuRetourFin, 1600);
+  }
+  function menuRetourFin() {
+    clearTimeout(filetMenu);
+    if (!menuRetour) return;
+    menuRetour = false;
+    const q = apresRetour; apresRetour = [];
+    q.forEach(f => f());
+  }
+  function pousser(r) {
+    if (menuRetour) { apresRetour.push(() => pousser(r)); return; }
+    const h = entree();
+    /* une couche poussée PAR-DESSUS un menu ouvert (un appel entrant) prend la place de son entrée : sinon l'entrée du menu resterait dessous, un retour « pour rien » */
+    if (h && h.menu) { history.replaceState({ opmsg: 1, n: h.n, r, p: h.p }, '', urlDe(r)); appliquer(r); return; }
     history.pushState({ opmsg: 1, n: h ? h.n + 1 : 1, r, p: etat.route }, '', urlDe(r));
     appliquer(r);
   }
   function remplacer(r) {
+    if (menuRetour) { apresRetour.push(() => remplacer(r)); return; }
     const h = entree();
     history.replaceState({ opmsg: 1, n: h ? h.n : 0, r, p: h ? h.p : null }, '', urlDe(r));
     appliquer(r);
@@ -572,8 +605,21 @@
   /* la position de la liste est rendue PAR LA PAGE (etat.scrollListe, au retour), pas par la restauration native de l'historique : celle-ci diffère d'un
      navigateur à l'autre (Safari iOS ne la rend pas toujours sur un retour système) et masquait, ici, le retrait de notre propre mémoire (sonde, S04) */
   try { history.scrollRestoration = 'manual'; } catch (e) { /* un navigateur sans l'option garde la sienne */ }
+  /* le retour qui vient de rendre l'entrée du menu (ou le geste du navigateur) : le menu qui était ouvert se ferme, SANS rendre une entrée de plus. Un menu dont l'entrée est
+     encore sous nos pieds (on revient dessus depuis une couche posée par-dessus) reste ouvert. */
+  function menuAuRetour(e) { if (etat.menu && etat.menu.entree && !(e.state && e.state.menu)) fermerMenu(true); }
   window.addEventListener('popstate', () => { retourEnVol = false; clearTimeout(filetRetour); });         // le retour demandé a eu lieu : le suivant peut se demander (AVANT l'écouteur qui applique la route)
-  window.addEventListener('popstate', e => appliquer(e.state && e.state.opmsg ? e.state.r : routeDepuisHash()));
+  window.addEventListener('popstate', e => {
+    menuAuRetour(e);
+    if (e.state && e.state.opmsg) { appliquer(e.state.r); return; }
+    /* une adresse ÉCRITE À LA MAIN (aucun état de la page : `location.hash = …`, un lien collé) : un fragment que la page ne connaît pas (« #accueil » sans Pro, « #nimporte »)
+       replie sur Messages — mais l'adresse et l'historique GARDAIENT le fragment (17 octobre 2026 : seul un rechargement la corrigeait). On remplace l'entrée par la route
+       réellement affichée, comme le démarrage le fait (`n: 0` : arrivée par un lien, rien à rendre) ; un fragment connu (« #reglages/confidentialite ») n'est pas touché. */
+    const r = routeDepuisHash();
+    if (location.hash.slice(1).split('/')[0] !== r.vue) history.replaceState({ opmsg: 1, n: 0, r, p: null }, '', urlDe(r));
+    appliquer(r);
+  });
+  window.addEventListener('popstate', menuRetourFin);          // APRÈS l'application de la route : les gestes de navigation qui attendaient le retour du menu partent maintenant
 
   /* appliquer(route) : l'écran DIT la route, rien d'autre. Elle ne pousse jamais d'historique — elle est jouée aussi par popstate. */
   function appliquer(r) {
@@ -605,6 +651,7 @@
     if (r.feuille && (!etat.groupe.ouvert || etat.groupe.cle !== cleFeuille(r.feuille))) ouvrirFeuilleDom(r.feuille); else if (!r.feuille && etat.groupe.ouvert) fermerFeuilleDom();
     const cle = r.photo || null;
     if (cle !== etat.photo) { if (cle) ouvrirPhotoDom(cle); else fermerPhotoDom(); }
+    apercuAppliquer(r);
     /* l'appel est la couche du DESSUS. ⛔ Une route qui n'en porte plus le RÉDUIT (« Message », un onglet, le retour système, Échap) : l'appel continue, la barre du haut y ramène.
        Seul un RACCROCHAGE le termine (le bouton rouge, « Refuser », « Quitter la salle », l'appel fini ailleurs : `raccrocherCouche`) — et un appel ENTRANT qu'on quitte sans
        l'avoir pris est refusé, comme avant. Une seule sortie reste : `quitterAppel`. */
@@ -1462,7 +1509,7 @@
   /* ⛔ ENVOYER PLUS TARD (8 octobre 2026 : « écrire un message maintenant et le programmer pour demain 8 h ») — un appui long sur la flèche, ou le clic droit, comme dans Messages d'Apple ;
      la tuile « Plus tard » de la feuille « + » y mène aussi (au clavier, par exemple). Le clic que produit le relâcher d'un appui long n'envoie PAS le message. */
   { let minuteur = null;
-    const lancer = () => { if (typeof source.programmerMessage !== 'function' || !$('saisie').value.trim() || etat.menu) return; etat.envoyerLong = true; etat.menu = { plus: true, declencheur: $('envoyer'), t: Date.now(), appuiLong: true }; plusTardMenu(true); };
+    const lancer = () => { if (typeof source.programmerMessage !== 'function' || !$('saisie').value.trim() || etat.menu) return; etat.envoyerLong = true; etat.menu = { plus: true, declencheur: $('envoyer'), t: Date.now(), appuiLong: true, entree: menuEntreePoser() }; plusTardMenu(true); };
     $('envoyer').addEventListener('pointerdown', () => { clearTimeout(minuteur); etat.envoyerLong = false; minuteur = setTimeout(lancer, 550); });
     for (const ev of ['pointerup', 'pointercancel', 'pointerleave']) $('envoyer').addEventListener(ev, () => { clearTimeout(minuteur); if (etat.menu && etat.menu.appuiLong && !etat.menu.relache) etat.menu.relache = Date.now(); });
     $('envoyer').addEventListener('contextmenu', e => { e.preventDefault(); clearTimeout(minuteur); lancer(); }); }
@@ -1561,7 +1608,7 @@
   }
   function ouvrirMenuPlus() {
     if (etat.menu || !etat.conv) return;
-    etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now() };
+    etat.menu = { plus: true, declencheur: $('compo-plus'), t: Date.now(), entree: menuEntreePoser() };
     const M = $('menu-msg');
     M.setAttribute('aria-label', 'Joindre'); M.classList.add('pj'); $('menu-fond').classList.add('pj');   // le fond le sait aussi : à la souris, un menu ancré au « + », sans voile
     M.innerHTML = tuilesPlus().map(x => '<button type="button" class="pj-tuile presse" data-plus="' + x[0] + '"><span class="pj-disque" aria-hidden="true">' + icone(x[2]) + '</span><span>' + esc(x[1]) + '</span></button>').join('');
@@ -1677,6 +1724,16 @@
     epAjuster();      // ⛔ APRÈS l'ouverture : mesuré caché, le champ prenait 0 px de contenu et la légende se lisait coupée en deux
     epRendre();
     setTimeout(() => { try { $('ep-legende').focus({ preventScroll: true }); } catch (e) { /* rien */ } }, 30);
+    pousser(Object.assign({}, etat.route, { apercu: conv }));       // une COUCHE de la route (17 octobre 2026) : le retour système la referme, elle seule
+  }
+  /* ⛔ L'APERÇU EST UNE COUCHE (testeur « medias#1 », 17 octobre 2026) : il vivait HORS de la route — le retour du navigateur quittait la conversation et laissait l'aperçu ouvert
+     par-dessus la liste, et « Envoyer » faisait partir la photo vers une conversation qui n'était plus à l'écran. La route dit `apercu: <conversation>` ; `appliquer` rejoue ce
+     que la route dit (comme pour la photo agrandie) : l'aperçu ouvert dont la route ne parle plus se ferme, SANS rendre une entrée de plus (le navigateur l'a déjà rendue) ; une
+     route qui parle d'un aperçu que cette page n'a pas (un « avancer » vers une entrée d'avant) le retire. Les photos choisies ne se gardent pas d'une entrée à l'autre. */
+  function apercuAppliquer(r) {
+    const veut = r.apercu && r.apercu === r.conv ? r.apercu : null;         // un aperçu ne vaut que POUR la conversation que la route affiche
+    if (ep.ouvert && veut !== ep.conv) epFermer(false, true);
+    if (r.apercu && !(veut && ep.ouvert)) remplacer(Object.assign({}, r, { apercu: null }));
   }
   function epRendre() {
     if (!ep.ouvert) return;
@@ -1692,12 +1749,15 @@
     $('ep-ajouter').hidden = n >= ep.max;
   }
   function epAjuster() { const ta = $('ep-legende'); ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 124) + 'px'; }
-  function epFermer(envoye) {
+  function epFermer(envoye, routeDit) {
     if (!ep.ouvert) return;
     ep.ouvert = false; $('envoi-photos').hidden = true;
     if (!envoye) ep.photos.forEach(p => URL.revokeObjectURL(p.url));
     ep.photos = []; $('ep-grande').removeAttribute('src'); $('ep-vignettes').innerHTML = ''; $('ep-legende').value = '';
     synchroInert();
+    /* la croix, Échap, « Envoyer » et la dernière vignette retirée passent par ici : ils REDONNENT l'entrée de l'aperçu (fermerCouche), comme toute couche. Quand c'est la route
+       qui vient de dire que l'aperçu n'est plus (popstate, une route remplacée), il n'y a rien à rendre. */
+    if (!routeDit && etat.route && etat.route.apercu) fermerCouche();
     const d = ep.declencheur; ep.declencheur = null;
     try { if (d && d.focus && document.contains(d)) d.focus({ preventScroll: true }); else $('saisie').focus({ preventScroll: true }); } catch (e) { /* rien */ }
   }
@@ -5071,13 +5131,14 @@
 
   /* ── Le menu d'un message : réagir, répondre, copier, modifier, supprimer — au bouton (souris), à l'appui long (doigt) ou au clic droit ── */
   const REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'], DELAI_MODIF_MS = 15 * 60000;
-  function fermerMenu() {
+  function fermerMenu(passif) {
     if (!etat.menu) return;
     const m0 = etat.menu, d = m0.agenda ? retrouverAgenda(m0.declencheur, m0.cle) : m0.declencheur; etat.menu = null;
     $('menu-fond').hidden = true; $('menu-msg').innerHTML = ''; $('menu-msg').setAttribute('aria-label', 'Actions du message'); $('menu-msg').classList.remove('pj', 'pt', 'ag'); $('menu-fond').classList.remove('pj', 'ancre', 'de-moi', 'ag');
     $('conv-messages').querySelectorAll('.menu-ancre').forEach(x => x.classList.remove('menu-ancre'));
     synchroInert();
     rendreFocus(d);
+    if (m0.entree && passif !== true) menuEntreeRendre();       // `passif` : c'est le retour du navigateur qui ferme, l'entrée est déjà rendue
   }
   function ouvrirMenuMessage(mid, declencheurEl) {
     const m = trouverMessage(mid), c = etat.convDonnees;
@@ -5085,7 +5146,7 @@
     /* ⛔ admin, pour supprimer POUR TOUS, c'est dans un groupe ou un canal — le service ne l'accorde qu'à eux (l'organisateur d'une réunion se voyait proposer « pour tous », refusé) */
     const moi = m.auteur === MOI.id, admin = (c.type === 'groupe' || c.type === 'canal') && c.admins.indexOf(MOI.id) >= 0, ferme = !!compoFerme(c);
     const mienne = (m.reactions || []).find(r => r.moi);
-    etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now() };
+    etat.menu = { mid, declencheur: declencheurEl || null, t: Date.now(), entree: menuEntreePoser() };
     let h = '<div class="menu-emojis" role="group" aria-label="Réagir">' + (m.supprime ? '' : REACTIONS.map(x => '<button type="button" class="menu-emoji" data-menu-reac="' + x + '" aria-pressed="' + (mienne && mienne.emoji === x ? 'true' : 'false') + '" aria-label="Réagir avec ' + x + '">' + x + '</button>').join('')) + '</div>';
     if (!m.supprime && !ferme) h += '<button type="button" class="menu-action" data-menu="repondre">Répondre</button>';
     if (CAP.transferts && transferable(m)) h += '<button type="button" class="menu-action" data-menu="transferer" aria-haspopup="dialog">Transférer</button>';
@@ -5111,7 +5172,9 @@
     if (ancre) { ancre.classList.add('menu-ancre'); $('menu-fond').classList.add('ancre'); $('menu-fond').classList.toggle('de-moi', moi); }
     $('menu-fond').hidden = false;
     synchroInert();
-    const premier = $('menu-msg').querySelector('button'); if (premier) premier.focus({ preventScroll: true });
+    /* le premier bouton (le 👍) prend le focus pour le clavier et le lecteur d'écran — mais AU DOIGT ou à la souris sans anneau (`rendreFocus`) : l'anneau autour du 👍 faisait croire
+       qu'une réaction était déjà choisie (testeur, 17 octobre 2026). Ouvert au clavier, l'anneau reste : c'est lui qui dit où l'on est. */
+    const premier = $('menu-msg').querySelector('button'); if (premier) rendreFocus(premier);
   }
   /* ── « ME LE RAPPELER » (8 octobre 2026 : « il faudrait pouvoir le mettre en rappel ») : un événement de l'AGENDA, à l'heure choisie, avec son rappel à l'heure — la notification
      part du service, même application fermée. Le titre dit de quoi il s'agit, le lieu dit la conversation, la note garde le texte. Rien de neuf côté service : l'agenda sait déjà le faire. */
@@ -5128,15 +5191,36 @@
     $('menu-msg').innerHTML = '<p class="menu-question">Me le rappeler</p>' + h + '<button type="button" class="menu-action" data-menu="annuler">Annuler</button>';
     $('menu-msg').querySelector('button').focus({ preventScroll: true });
   }
+  /* ⛔ LE MÊME RAPPEL NE SE POSE PAS DEUX FOIS (testeur, 17 octobre 2026 : deux touches sur « Dans 1 heure » posaient deux événements « Rappel : On se fait un ciné ? »). Le rappel
+     garde le chemin vers son message (`source: { conv, seq }`) : même message, non coché, à la même heure à 5 minutes près (« Dans 1 heure » touché deux minutes plus tard reste le même
+     choix) → « Déjà dans ton agenda ». Un AUTRE horaire pour le même message reste permis (deux rappels voulus). `rappelsEnVol` couvre les deux touches avant que la première réponde ;
+     une relecture de l'agenda qui échoue ne bloque pas le rappel. */
+  const rappelsEnVol = [], RAPPEL_PROCHE_MS = 5 * 60000;
   async function rappelPoser(m, quand) {
     const x = rappelChoix().find(y => y.cle === quand), c = etat.convDonnees; if (!x || !c) return;
+    const lien = Number.isSafeInteger(m.seq) && m.seq > 0 && /^c_[0-9a-f]{32}$/.test(c.id) ? { conv: c.id, seq: m.seq } : null;
+    const enVol = lien ? { conv: lien.conv, seq: lien.seq, t: x.t } : null;
+    const memeRappel = y => y.conv === lien.conv && y.seq === lien.seq && Math.abs(y.t - x.t) <= RAPPEL_PROCHE_MS;
+    if (enVol) {
+      if (rappelsEnVol.some(memeRappel)) { mot('Déjà dans ton agenda'); return; }
+      rappelsEnVol.push(enVol);
+    }
+    try { await rappelPoserSuite(m, x, c, lien); }
+    finally { const i = rappelsEnVol.indexOf(enVol); if (i >= 0) rappelsEnVol.splice(i, 1); }
+  }
+  async function rappelPoserSuite(m, x, c, lien) {
+    if (lien && typeof source.evenements === 'function') {
+      let l = []; try { l = await source.evenements(x.t - RAPPEL_PROCHE_MS, x.t + RAPPEL_PROCHE_MS + 1) || []; } catch (er) { l = []; }
+      /* (« o » : le chemin du rappel lu à travers « source » — le générateur croirait à une méthode de la source) */
+      if (l.some(e => { const o = e.source; return o && o.conv === lien.conv && o.seq === lien.seq && !e.fait && Math.abs(e.debut - x.t) <= RAPPEL_PROCHE_MS; })) { mot('Déjà dans ton agenda'); return; }
+    }
     const moi = m.auteur === MOI.id, de = moi ? 'ton message' : 'le message de ' + nomAuteur(m.auteur);
     const quoi = m.texte ? m.texte.replace(/\s+/g, ' ').trim() : m.photos ? 'une photo' : m.vocal ? 'un message vocal' : m.fichier ? 'le fichier « ' + m.fichier.nom + ' »' : m.sondage ? 'un sondage' : m.position ? 'une position' : m.carteContact ? 'une fiche de contact' : 'un message';
     const titre = Array.from('Rappel : ' + quoi).slice(0, 118).join('') + (Array.from('Rappel : ' + quoi).length > 118 ? '…' : '');
     const note = Array.from('Rappel sur ' + de + ', dans « ' + nomConv(c) + ' ».' + (m.texte ? '\n\n' + m.texte : '')).slice(0, 2000).join('');
     try {
       await source.creerEvenement(Object.assign({ titre, lieu: Array.from(nomConv(c)).slice(0, 300).join(''), note, journee: false, debut: localDans(x.t, x.tz), fin: localDans(x.t + 15 * 60000, x.tz), rappel: 0, tz: x.tz },
-        Number.isSafeInteger(m.seq) && m.seq > 0 && /^c_[0-9a-f]{32}$/.test(c.id) ? { source: { conv: c.id, seq: m.seq } } : {},      // « Voir le message » : le chemin vers lui, pas une copie
+        lien ? { source: lien } : {},      // « Voir le message » : le chemin vers lui, pas une copie
         modesActifs() ? { cote: coteDe(etat.conversations.find(x => x.id === c.id) || c) } : {}));      // l'agenda du côté de sa conversation
       mot('Je te le rappelle ' + (x.cle === 'demain' ? 'demain à ' : x.cle === 'lundi' ? 'lundi à ' : 'à ') + heureDans(x.t, x.tz) + ' — c\'est dans ton agenda');
       if (etat.route && etat.route.vue === 'reunions') chargerReunions();
