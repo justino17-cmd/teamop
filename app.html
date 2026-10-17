@@ -27339,7 +27339,7 @@ function formProduit(id){ if(!id&&!permGarde('stock','ajouter','un produit')) re
         <div><div style="font-size:13px;font-weight:700;color:var(--t1)">${id?'Modifier produit':'Nouveau produit'}</div><div style="font-size:11px;color:var(--t2)">${id?'Produit du catalogue — modifiable':'Nouveau produit dans le catalogue'}</div></div>
       </div>
       <div class="form-sec">Nom du produit *</div>
-      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000"></div></div>
+      <div class="fgroup"><div class="frow"><input name="nom" required value="${esc(p.nom)}" placeholder="Ex : XILIX 1000" aria-label="Nom du produit"></div></div>
       <div class="form-sec">Référence fournisseur</div>
       <div class="fgroup"><div class="frow"><input name="ref" value="${esc(p.ref)}" placeholder="Optionnel — ex : SG051" class="mono"></div></div>
       <div class="form-sec">Biocide <span style="font-weight:400;text-transform:none;letter-spacing:0">— pour le registre réglementaire</span></div>
@@ -44551,6 +44551,13 @@ function saisieGardeInstaller(doc){
     if(!t){
       var ph=el.getAttribute('placeholder')||'';
       if(ph && !/^\s*ex\s*:/i.test(ph)) t=ph.split(' (')[0];
+    }
+    /* Une rangée « Libellé | champ » (`.frow` + `.frow-lbl`, sans `.field` ni <label>) se nomme par son libellé de rangée : « N° » vaut
+       mieux que l'attribut technique `numero`. Un champ sans rien de tout cela porte un aria-label (le formulaire Produit : « Nom du
+       produit ») — jamais l'attribut `name` brut dans un toast, qui disait « Le champ « nom » est obligatoire » (rejoué v767). */
+    if(!t){
+      var rang=el.closest&&el.closest('.frow'), lb=rang&&rang.querySelector&&rang.querySelector('.frow-lbl');
+      if(lb) t=lb.textContent||'';
     }
     t=String(t).replace(/\s*\*\s*$/,'').trim();
     return t||el.getAttribute('name')||'ce champ';
