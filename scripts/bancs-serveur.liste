@@ -173,5 +173,5 @@ tests/test-999.js
 tests/test-978.js
 tests/test-979.js
 tests/test-851.js
-# 17 octobre 2026 : `test-1010` (la version de l'API Stripe figée par `stripeEntetes`, les scripts du VPS qui la posent et la gardent)) — 3 996 contre les pages de `main` (59 suites), plancher relevé à 3 950.
+# 17 octobre 2026 : `test-1010` (la version de l'API Stripe figée par `stripeEntetes`, les scripts du VPS qui la posent et la gardent) — 3 996 contre les pages de `main` (59 suites), plancher relevé à 3 950.
 tests/test-1010.js
