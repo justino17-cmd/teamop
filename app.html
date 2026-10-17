@@ -9117,6 +9117,13 @@ function roleValider(cle){
   if(!nom){ toast('Donne un nom à ce rôle'); return; }
   const tech=!!(document.getElementById('rl-tech')||{}).checked;
   const chef=!!(document.getElementById('rl-chef')||{}).checked;
+  /* admin#5 : un nom de rôle est UNIQUE, fournis et maison confondus (casse, accents, espaces). Deux « Applicateur 3D »
+     — ou un « Technicien » à côté du fourni — étaient indistinguables dans la liste du formulaire de compte, qui
+     est justement faite pour s'y retrouver. Le rôle qu'on modifie s'écarte lui-même : le ré-enregistrer sous son
+     nom (pour changer une case) reste possible. */
+  const _nn=nomNorm(nom), _pris=Object.keys(ROLE).map(roleDef).concat(rolesPerso()).find(r=>r&&r.cle!==cle&&nomNorm(r.nom)===_nn);
+  if(_pris){ toast('Un rôle « '+_pris.nom+' » existe déjà — choisis un autre nom',4200); return; }
+  const ancienNom=cle?roleLbl(cle):'';
   if(cle){
     const perso=rolesPerso().find(r=>r&&r.cle===cle);
     if(perso){ perso.nom=nom; perso.tech=tech; perso.chef=chef; }
@@ -9129,6 +9136,11 @@ function roleValider(cle){
       if(tech!==!!ROLE_TECH_BASE[cle]||chef!==!!ROLE_CHEF_BASE[cle]) rolesPerso().push(p);
     }
   } else rolesPerso().push({cle:roleCle(nom),nom:nom,tech:tech,chef:chef});
+  /* admin#5 : la fenêtre promet « le renommer change ce qui s'affiche partout » — la fiche technicien recopie le nom du
+     rôle dans `metier` à la création du compte (saveUser). On la fait suivre, mais SEULEMENT si elle portait l'ancien
+     nom : un métier réglé à la main sur la fiche n'est pas écrasé. */
+  if(cle&&ancienNom&&ancienNom!==nom) (db.users||[]).forEach(u=>{ if(!u||u.role!==cle||!u.techId) return;
+    const t=(db.techniciens||[]).find(x=>x.id===u.techId); if(t&&nomNorm(t.metier)===nomNorm(ancienNom)) t.metier=nom; });
   logEvent(cle?'Rôle modifié':'Rôle créé',nom,'auth'); save(); toast('✓ Rôle « '+nom+' » enregistré'); rolesGerer();
 }
 function roleSupprimer(cle){
