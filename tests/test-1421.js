@@ -98,7 +98,13 @@ console.log('\n── 1421 · 3. la ROTATION : l\'écouteur « resize » reconst
    ligne laissait 19 ✓ 0 ✗). On EXÉCUTE ici la vraie ligne du fichier dans un bac à sable : une fenêtre factice qui
    retient ses écouteurs, une vue `boiteMail` factice qui fait ce que fait la vraie en entrée (poser le mode rendu —
    vérifié dans le code de la vraie vue plus bas), et on joue des redimensionnements. */
-const bloc = (/let _mailModeRendu=null;\s*try\{ window\.addEventListener\('resize'[^\n]*/.exec(CODE) || [''])[0];
+/* j01 (r4#7) : l'écouteur appelle désormais `mailBasculerMode()` (qui reconstruit la vue ET rouvre le message qu'on lisait,
+   test-1600) au lieu de `views.boiteMail()` en direct. La ligne de l'écouteur est donc jouée AVEC la vraie fonction, et un
+   `$`/`mailSel` factices (aucun message ouvert ici : la reconstruction seule est comptée, comme avant). */
+const iB = CODE.indexOf('function mailBasculerMode(){'); let jB = CODE.indexOf('{', iB), pB = 0;
+for (let k = jB; k < CODE.length; k++) { if (CODE[k] === '{') pB++; else if (CODE[k] === '}') { pB--; if (!pB) { jB = k; break; } } }
+const basculer = iB > 0 ? CODE.slice(iB, jB + 1) : '';
+const bloc = 'var mailSel=null; var $=function(){return null};\nfunction mailOpen(){}\nfunction renderMailList(){}\nfunction renderMailPane(){}\nlet _mailModeRendu=null;\n' + basculer + '\n' + (/try\{ window\.addEventListener\('resize',\(\)=>\{ if\(current==='boiteMail'[^\n]*/.exec(CODE) || [''])[0];
 vrai('la ligne de l\'écouteur « resize » est trouvée dans le code (pas dans un commentaire)', /addEventListener\('resize'/.test(bloc), bloc.slice(0, 80));
 vrai('la vraie vue pose le mode rendu en entrée (`_mailModeRendu=D` juste après `const D=_mailDesktop()`)', /const D=_mailDesktop\(\);\s*_mailModeRendu=D;/.test(VUE));
 function rotation() {

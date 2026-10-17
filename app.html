@@ -31224,7 +31224,24 @@ const _mailDesktop=()=>window.innerWidth>=MAIL_TROIS_VOLETS;
    redimensionner une fenêtre de part et d'autre du seuil) laissait la pile dessinée sous des règles de trois
    volets. On reconstruit la vue quand — et seulement quand — le mode a changé. */
 let _mailModeRendu=null;
-try{ window.addEventListener('resize',()=>{ if(current==='boiteMail'&&_mailModeRendu!==null&&_mailDesktop()!==_mailModeRendu) views.boiteMail(); }); }catch(e){}
+/* ⛔ j01 (r4#7) — LE MESSAGE OUVERT SUIT LE CHANGEMENT DE MODE. Reconstruire la vue seule laissait la lecture plein écran
+   (#mail-read, `position:fixed`, z-index 400, posée sur <body> et non dans la vue) PAR-DESSUS la grille neuve quand la fenêtre
+   passait à 1180 px ou plus (rotation d'un iPad 820 → 1180) ; et dans l'autre sens la sélection du volet de droite était
+   perdue, sans erreur. Le message qu'on lisait est relevé AVANT la reconstruction (l'overlay le porte dans son `dataset`,
+   le volet dans `mailSel`), puis rouvert à la manière du nouveau mode : dans le volet de lecture en trois volets, en plein
+   écran sinon. */
+function mailBasculerMode(){
+  const ov=$('mail-read');
+  const ouvert=ov&&ov.dataset&&ov.dataset.idx!==undefined&&ov.dataset.idx!==''?{type:ov.dataset.type,idx:+ov.dataset.idx}
+    :(_mailModeRendu&&mailSel?{type:mailSel.type,idx:mailSel.idx}:null);
+  if(ov) ov.remove();
+  mailSel=null;
+  views.boiteMail();
+  if(!ouvert) return;
+  if(_mailDesktop()&&$('mail-pane')){ mailSel=ouvert; renderMailList(); renderMailPane(); }
+  else mailOpen(ouvert.type,ouvert.idx);
+}
+try{ window.addEventListener('resize',()=>{ if(current==='boiteMail'&&_mailModeRendu!==null&&_mailDesktop()!==_mailModeRendu) mailBasculerMode(); }); }catch(e){}
 /* ═══ Boîte mail — 3 volets sur ordinateur (dossiers · liste · lecture), pile sur mobile ═══ */
 views.boiteMail=function(){
   setHeader('Boîte mail','',`<button class="btn ghost" onclick="mailBoxesManage()">📬 Boîtes</button> <button class="btn" onclick="mailCompose()">✏️ Écrire</button>`);
@@ -31421,7 +31438,7 @@ function mailOpen(type,idx){
   if(!r) return;
   if(type==='recu') _mailMarquerLu(mailKey(r));
   const old=$('mail-read'); if(old) old.remove();
-  const ov=document.createElement('div'); ov.id='mail-read';
+  const ov=document.createElement('div'); ov.id='mail-read'; ov.dataset.type=type; ov.dataset.idx=String(idx);   // j01 : le message qu'elle montre, pour le suivre au changement de mode
   ov.style.cssText='position:fixed;inset:0;z-index:400;background:var(--bg);display:flex;flex-direction:column';
   ov.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;border-bottom:1px solid var(--brd);flex-shrink:0">
       <button class="btn ghost sm" onclick="document.getElementById('mail-read').remove();if(current==='boiteMail')views.boiteMail()">← Retour</button><span style="flex:1"></span></div>
