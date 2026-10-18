@@ -76,7 +76,10 @@ const libre = () => new Promise(r => { const s = require('net').createServer(); 
   if (!(SRC.every(Boolean) && SRCV.every(Boolean))) { console.log('      manquent : ' + [...NOMS.filter((n, i) => !SRC[i]), ...VARS.filter((n, i) => !SRCV[i])].join(', ')); process.exit(1); }
   const vTour = (/\bvar TOUR_VERSION='v(\d+)\.(\d+)'/.exec(CODE) || []).slice(1).map(Number);
   vrai('la Tour porte au moins la v2.84', vTour.length === 2 && (vTour[0] > 2 || (vTour[0] === 2 && vTour[1] >= 84)));
-  vrai('⛔ chaque console sa Surveillance des versions : GESTION les siennes, MESSAGES les siennes', /\(APP==='gestion'\?blocVersions\(\)\+blocSortieFirebase\(\):blocVersionsMsg\(\)\)/.test(CODE));
+  /* v2.89 : chaque console a son onglet « Service » dans la Surveillance — GESTION y montre les siennes, MESSAGES les siennes */
+  vrai('⛔ chaque console sa Surveillance des versions : GESTION les siennes, MESSAGES les siennes',
+    /function vueServiceGestion\(\)\{[^}]*blocVersions\(\)\+blocSortieFirebase\(\);\s*\}/.test(CODE) && !/function vueServiceGestion\(\)\{[^}]*blocVersionsMsg/.test(CODE) &&
+    /SOUS\.survgest==='service'\?vueServiceGestion\(\)/.test(CODE) && /SOUS\.survmsg==='service'\?vueServiceMsg\(\)\+blocBasculeMsg\(\)\+blocVersionsMsg\(\)/.test(CODE));
 
   /* le serveur, ses deux instances d'OP MESSAGES, sa beta.html */
   let cfgBeta = { version_client: 14, min_client: 1, build: 'a1b2c3d4e5f6', comptes: { inscription: true } };

@@ -2954,7 +2954,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.88</div>
+    <div class="lg-pied">console interne · v2.89</div>
   </div>
 </div>
 
@@ -2996,7 +2996,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.88</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.89</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -3008,7 +3008,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.88</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.89</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3090,7 +3090,7 @@ var PATRON_SEUL=['essais','equipe','journal','donnees'];
    active et qui se paie). Un ancien favori, un lien d'e-mail (#gestion/devisia) ou la barre du bas d'avant y mènent
    encore : la clé d'avant ouvre la vue parente sur le bon onglet. */
 var VUE_ALIAS={connexions:{vue:'entreprises',sous:'connexions'},devisia:{vue:'abonnements',sous:'devisia'}};
-var SOUS={entreprises:'liste',abonnements:'abos',entreprisesmsg:'espaces',survmsg:'apps'};
+var SOUS={entreprises:'liste',abonnements:'abos',entreprisesmsg:'espaces',survmsg:'apps',survgest:'apps'};
 /* v2.88 — les deux clés d'avant sont des écrans d'OP GESTION : dans OP MESSAGES (qui a désormais SES Abonnements), « devisia » ne mène nulle part */
 function vueAlias(t,app){ var a=VUE_ALIAS[t]; if(!a||(app||APP)!=='gestion') return t; SOUS[a.vue]=a.sous; return a.vue; }
 function vuePermise(t){ return PATRON_SEUL.indexOf(t)<0||MYROLE==='patron'; }
@@ -3306,7 +3306,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.88';
+var TOUR_VERSION='v2.89';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5023,7 +5023,7 @@ function tourActiviteCharge(nm){
        elle porte la donnée elle-même. Tout le reste du bloc passe par les classes. */
     /* v2.68 — un vrai pluriel, et une phrase qui ne se coupe pas en trois au téléphone (le tiret orphelin
        en fin de ligne, le bouton seul dessous) : la phrase, puis le bouton. */
-    var bugs='<div class="act-bugs">'+(d.bugs?('🐛 <b class="ko">'+d.bugs+(d.bugs>1?' problèmes ouverts':' problème ouvert')+'</b>, '+(d.bugs>1?'signalés':'signalé')+' par leur application. <button type="button" class="pill-act" onclick="setTab(\'surveillance\')">Voir dans Surveillance</button>'):'✅ Aucun problème ouvert signalé par leur application')+'</div>';
+    var bugs='<div class="act-bugs">'+(d.bugs?('🐛 <b class="ko">'+d.bugs+(d.bugs>1?' problèmes ouverts':' problème ouvert')+'</b>, '+(d.bugs>1?'signalés':'signalé')+' par leur application. <button type="button" class="pill-act" onclick="allerIncidents()">Voir dans Surveillance</button>'):'✅ Aucun problème ouvert signalé par leur application')+'</div>';
     if(!d.total){ el.innerHTML=bugs+videTour('Pas encore d’activité remontée','Elle apparaît dès qu’ils utilisent l’application — les écrans ouverts sont signalés à partir de la v545.','','entreprises'); return; }
     var max=(d.vues[0]&&d.vues[0].n)||1;
     el.innerHTML=bugs+'<div class="act-tot">'+d.total+' écrans ouverts au total · dernière activité : '+(d.dernier?fmtDate(d.dernier):'—')+(d.version?' · application v'+esc(d.version):'')+'</div>'+
@@ -5805,6 +5805,7 @@ function renderAnime(){
 /* Deux écrans sous un même nom de menu (v2.87) : une rangée d'onglets en tête, la même pièce que les filtres de liste. */
 function sousOnglets(vue,segs){
   if(ENT.sel&&vue==='entreprises') return '';   /* dans la fiche d'une entreprise, on n'est plus dans la liste */
+  if((vue==='survgest'||vue==='survmsg')&&(INC.sel||INC.grp)) return '';   /* v2.89 : dans le dossier d'un problème ou d'une entreprise, on n'est plus dans les onglets de la Surveillance */
   return '<div class="sous-onglets">'+teteListe('','Choisir l’écran',segs,SOUS[vue],'sousOnglet(\''+vue+'\',')+'</div>';
 }
 function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
@@ -5816,8 +5817,11 @@ function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
-  else if(TAB==='surveillance'&&APP==='messages') v.innerHTML=sousOnglets('survmsg',[['apps','Incidents'],['service','Service']])+(SOUS.survmsg==='service'?vueServiceMsg():survAvert()+vueSurveillance());
-  else if(TAB==='surveillance') v.innerHTML=survAvert()+vueSurveillance();
+  /* v2.89 — SURVEILLANCE, MÊME FORME DANS LES DEUX CONSOLES : « Incidents » (ce que les clients rencontrent) et « Service »
+     (l'état et les réglages du service : versions exigées, mise en ligne, sortie de Firebase). Les réglages de version étaient
+     collés sous la liste des incidents. */
+  else if(TAB==='surveillance'&&APP==='messages') v.innerHTML=sousOnglets('survmsg',[['apps','Incidents'],['service','Service']])+(SOUS.survmsg==='service'?vueServiceMsg()+blocBasculeMsg()+blocVersionsMsg():survAvert()+vueSurveillance());
+  else if(TAB==='surveillance') v.innerHTML=sousOnglets('survgest',[['apps','Incidents'],['service','Service']])+(SOUS.survgest==='service'?vueServiceGestion():survAvert()+vueSurveillance());
   else if(TAB==='support') v.innerHTML=vueSupport();
   else if(TAB==='demandes') v.innerHTML=vueDemandes();
   else if(TAB==='comptes') v.innerHTML=vueComptesMsg();
@@ -5916,7 +5920,7 @@ function vueAccueil(){
         action:"setTab('demandes')"}); })});
   if(neufs.length) G.push({titre:'À prendre',n:Math.min(4,neufs.length),tot:neufs.length,bloc:'reg-bloc',
     sous:'Signalés par les applications, personne ne s’en est encore occupé.',opt:true,
-    voir:"setTab('surveillance')",
+    voir:"allerIncidents()",
     l:neufs.slice(0,4).map(function(i){ return ligneAc({ton:'ambre',ico:'surveillance',
       t1:esc(incTitre(i)),titre:incTitre(i),
       l2:esc(entNom(i))+' · '+esc(APP_L[i.app]||i.app||'—')+' · ×'+(i.count||1),
@@ -5951,7 +5955,7 @@ function vueAccueil(){
   if(INC.err) prio=acErr('La surveillance ne répond pas',INC.err,'chargerIncidents()');
   else if(!INC.loaded||!CLI.loaded||!ABO.loaded) prio=acSquel();
   else if(!G.length) prio=videTour('','Rien en attente. Les demandes du site, les incidents signalés par les applications, les courriels non lus et les prélèvements refusés arrivent ici.',
-    '<button type="button" class="btn-fant" onclick="setTab(\'surveillance\')">Ouvrir la surveillance</button>',false);
+    '<button type="button" class="btn-fant" onclick="allerIncidents()">Ouvrir la surveillance</button>',false);
   else prio='<div class="reg">'+G.map(acGroupe).join('')+'</div>';
 
   /* Quatre <div onclick> sans focus clavier, sans survol, sans rien qui dise qu'ils se cliquent.
@@ -5959,7 +5963,7 @@ function vueAccueil(){
      pas relié. Le chiffre passe en --strong, l'état passe dans une pastille qui porte un mot. */
   var coup=[
     {t:'Incidents ouverts',v:incOuverts().length,s:incCompteurs().nouveau?null:'aucun nouveau',
-      past:incCompteurs().nouveau?{c:'p-rouge',t:incCompteurs().nouveau+' nouveau'+(incCompteurs().nouveau>1?'x':'')}:null,go:"setTab('surveillance')"},
+      past:incCompteurs().nouveau?{c:'p-rouge',t:incCompteurs().nouveau+' nouveau'+(incCompteurs().nouveau>1?'x':'')}:null,go:"allerIncidents()"},
     {t:'Messages non lus',v:MSG.nonLus,s:MSG.boites.length+' boîte'+(MSG.boites.length>1?'s':'')+' reliée'+(MSG.boites.length>1?'s':''),go:"setTab('support')"},
     /* v2.87 : le chiffre est celui de l'écran où il mène — « 1 entreprise cliente » ouvrait une liste de 0 (comptes du
        site contre annuaire). Une demande sans espace se compte dans « Demandes », plus ici. */
@@ -6058,17 +6062,16 @@ function vueAccueilMsg(){
       /* v2.81 — plus la note du serveur : elle parlait encore de Firebase (« bascule vers le projet OP MESSAGES »), et Justin l'a lue le 2 octobre 2026 */
       /* v2.85 — le serveur d'OP MESSAGES EXISTE (la bêta tourne sur msg-beta.teamop.fr) : la carte ne dit plus qu'il reste à l'installer */
       '<div style="font-size:13px;color:var(--text2);line-height:1.6">OP MESSAGES a son propre serveur, séparé d’OP GESTION et de Firebase. La bêta tourne sur <span class="mono">msg-beta.teamop.fr</span> (accès dans l’onglet <b>Accès</b>) ; la version publique, <span class="mono">msg.teamop.fr</span>, s’ouvre à son déploiement.</div>'+
-      (MYROLE==='patron'?'<div class="sec" style="margin-top:12px">Ce qui attend pour la bascule</div><ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.7">'+
-        /* v2.81 — OP MESSAGES n'a plus de Firebase : il a son propre serveur (server-msg/), séparé d'OP GESTION */
-        '<li>déployer l’instance publique (<span class="mono">msg.teamop.fr</span>) — l’approbation « msg-prod » du déploiement ; les gestes sont dans <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span></li><li>régler sa version minimale dans <b>Surveillance</b> de cette console</li><li>puis « Déclarer la bascule faite »</li></ul>'+
-        '<div style="margin-top:12px"><button type="button" class="btn-fant" onclick="opmBascule()">Déclarer la bascule faite</button></div>':'')+'</div>';
+      /* v2.89 — la liste de la bascule et « Déclarer la bascule faite » sont des gestes de MISE EN LIGNE : ils vivent dans
+         Surveillance → Service, avec la publication et les versions. L'accueil dit où on en est, et y mène. */
+      (MYROLE==='patron'?'<div style="margin-top:12px"><button type="button" class="btn-fant" onclick="SOUS.survmsg=\'service\';setTab(\'surveillance\')">Voir la mise en ligne →</button></div>':'')+'</div>';
   else etat='<div class="carte"><div class="ttl-carte"><span class="past p-vert">En service</span> OP MESSAGES'+(d.projet?' <span class="n">sur '+esc(d.projet)+'</span>':'')+'</div></div>';
   var tuile=function(l,n,go,cls){ return '<button type="button" class="kpi clic '+(cls||'')+'" onclick="'+go+'"><div class="l">'+l+'</div><div class="n">'+n+'</div></button>'; };
   var kpis='<div class="grille-kpi rang" style="margin:0 0 20px">'+
     tuile('Comptes sur OP MESSAGES',nComptes,"setTab('comptes')")+
     tuile('Espaces sur OP MESSAGES',nEspaces,"SOUS.entreprisesmsg='espaces';setTab('entreprises')")+
     tuile('Entreprises d’OP GESTION ouvertes à OP MESSAGES',ouvertes,"SOUS.entreprisesmsg='gestion';setTab('entreprises')")+
-    tuile('Incidents OP MESSAGES ouverts',inc,"setTab('surveillance')",(inc&&inc!=='—')?'ko':'')+
+    tuile('Incidents OP MESSAGES ouverts',inc,"allerIncidents()",(inc&&inc!=='—')?'ko':'')+
     /* v2.85 — le courrier (support@, controle@) est celui d'OP GESTION : il n'a plus de tuile ici */
     (vuePermise('essais')?tuile('Accès à la bêta',(BT.loaded&&!BT.err)?btDeLaConsole().filter(function(c){ return c.actif!==false; }).length:'—',"setTab('essais')"):'')+'</div>'+
     (sa.loaded&&sa.err?'<div class="note" style="margin:-8px 0 18px">'+esc(sa.err)+'</div>':'');
@@ -6232,6 +6235,17 @@ function vueAbonnementsMsg(){
 }
 
 /* ── Le service : son état et son journal (la Surveillance d'OP MESSAGES, côté serveur) ── */
+/* v2.89 — « Ce qui attend pour la bascule » : l'état de la MISE EN LIGNE d'OP MESSAGES, avec le geste qui la déclare. Rangé dans
+   Surveillance → Service, à côté de la publication et des versions (il était sur l'Accueil, tout seul). */
+function blocBasculeMsg(){
+  var d=OPM.d||{}, enTravaux=!(OPM.loaded&&d&&d.enTravaux===false);
+  if(!OPM.loaded||OPM.err||!enTravaux||MYROLE!=='patron') return '';
+  return '<div class="carte" style="margin-bottom:16px"><div class="ttl-carte"><span class="past p-ambre">Bêta</span> OP MESSAGES — la version publique n’est pas encore ouverte</div>'+
+    '<div class="sec" style="margin-top:4px">Ce qui attend pour la bascule</div><ul style="margin:6px 0 0;padding-left:18px;font-size:13px;color:var(--text2);line-height:1.7">'+
+    /* v2.81 — OP MESSAGES n'a plus de Firebase : il a son propre serveur (server-msg/), séparé d'OP GESTION */
+    '<li>déployer l’instance publique (<span class="mono">msg.teamop.fr</span>) — l’approbation « msg-prod » du déploiement ; les gestes sont dans <span class="mono">design/opmessages/INSTALLER-LE-SERVEUR.md</span></li><li>régler sa version minimale (les cartes « Versions » plus bas)</li><li>puis « Déclarer la bascule faite »</li></ul>'+
+    '<div style="margin-top:12px"><button type="button" class="btn-fant" onclick="opmBascule()">Déclarer la bascule faite</button></div></div>';
+}
 function vueServiceMsg(){
   var tete=enTete('Service','L’état du serveur d’OP MESSAGES et ce qu’il a journalisé depuis son démarrage — sans adresse IP, sans nom, sans texte de message (le service ne laisse sortir que sa liste blanche).',
     '<button type="button" class="btn-fant" onclick="opmaLire(\'sante\',\'sante\',{});opmaLire(\'inc\',\'incidents\',{limite:\'100\'})">↻ Actualiser</button>');
@@ -6287,7 +6301,9 @@ function acErr(t,m,re){
   return '<div class="ac-err"><b>'+esc(t)+'</b>'+esc(m)+
     '<button type="button" class="btn-fant" onclick="'+re+'">Réessayer</button></div>';
 }
-function allerIncident(id){ INC.sel=id; INC.f.statut=''; setTab('surveillance'); }
+/* v2.89 : la Surveillance a deux onglets (Incidents | Service) — tout lien « vers les incidents » ouvre le premier */
+function allerIncidents(){ SOUS.survgest=SOUS.survmsg='apps'; setTab('surveillance'); }
+function allerIncident(id){ INC.sel=id; INC.f.statut=''; allerIncidents(); }
 /* Depuis un incident, aller à l'entreprise concernée. Le rapprochement se fait sur le nom :
    c'est le seul point commun entre un incident (qui porte le nom de l'entreprise) et la liste
    des clients (indexée par e-mail). Si elle n'est pas dans la liste, on bascule quand même
@@ -6811,10 +6827,14 @@ function vueSurveillance(){
   var teteL=teteListe('Entreprises touchées','Statut des problèmes',sSt.segs,sSt.cour,"incF('statut',");
   return enTete('Surveillance',SURV_DESC)+kpis+zeroBtn+teteL+filtres+
     '<div class="svl-compte">'+nomsG.length+' entreprise'+(nomsG.length>1?'s':'')+' · '+l.length+' problème'+(l.length>1?'s':'')+' affiché'+(l.length>1?'s':'')+' · '+ouverts+' ouvert'+(ouverts>1?'s':'')+incAffinePastille(sSt)+'</div>'+
-    (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende+
-    /* le réglage de version — une décision qu'on prend trois fois par an — vient APRÈS les incidents. Chaque console règle SES
-       applications (v2.84) : GESTION la publique et la bêta d'OP GESTION, MESSAGES les deux instances d'OP MESSAGES. */
-    (APP==='gestion'?blocVersions()+blocSortieFirebase():blocVersionsMsg());
+    (groupesRendus?'<div class="reg">'+groupesRendus+'</div>':listeVide)+saines+legende;
+}
+/* v2.89 — SURVEILLANCE › SERVICE d'OP GESTION. Le réglage de version — une décision qu'on prend trois fois par an — et les gestes
+   de la sortie de Firebase vivaient sous la liste des incidents ; ils ont leur onglet. Chaque console règle SES applications (v2.84) :
+   GESTION la publique et la bêta d'OP GESTION (ici), MESSAGES les deux instances d'OP MESSAGES (son propre onglet Service). */
+function vueServiceGestion(){
+  return enTete('Service','Ce que la Tour tient sur le service lui-même : la version minimale exigée des appareils, et les gestes de la sortie de Firebase. Les problèmes que rencontrent les clients sont dans l’onglet Incidents.')+
+    blocVersions()+blocSortieFirebase();
 }
 
 /* ── la page d'une entreprise : ses problèmes, regroupés par application ── */
@@ -8402,6 +8422,20 @@ function entSupprimer(t,nm){
       } });
   }).catch(function(){ toast('Serveur injoignable'); });
 }
+/* v2.89 — le chiffrement est un fait sur l'ESPACE (où vivent ses données), pas sur le paiement : il se lit dans « Son espace ». */
+function ficheChiffrement(o){
+  var fait=function(k,v){ return '<div><span class="k">'+k+'</span><span class="v">'+v+'</span></div>'; };
+  /* ⛔ TROIS ÉTATS, PAS DEUX. Ce champ n'affichait qu'un booléen : un espace HORS
+           ANNUAIRE, dont le serveur n'a aucun code enregistré et donc aucune clé connue,
+           s'affichait « 🔓 Clé partagée — à migrer ». Justin l'a lu comme un constat le
+           11 septembre 2026 alors que c'était un artefact du `false`. On ne fait pas dire à
+           une absence d'information ce qu'elle ne dit pas. */
+  return fait('Chiffrement',{
+          propre:'<span class="past p-vert">🔐 Clé propre</span> <span class="g">ses données ne se déchiffrent qu’avec sa clé à elle — rien à migrer</span>',
+          partagee:'<span class="past p-ambre">🔓 Clé partagée</span> <span class="g">celle qui est écrite en clair dans app.html — à migrer</span>',
+          inconnue:'<span class="past p-gris">❔ Clé inconnue</span> <span class="g">espace hors annuaire : le serveur n’a pas son code, il ne peut pas savoir. Ni « à migrer », ni « en règle ».</span>'
+        }[o.cleEtat||(o.cleePropre?'propre':'inconnue')]);
+}
 function ficheEntreprise(){
   if(!ENT.sel) return videTour('Choisissez une entreprise dans la liste',
     'Vous verrez son espace, ses utilisateurs, ses erreurs, ses échecs de connexion, sa formule et ses comptes du site — et rien de ceux des autres.','','entreprises');
@@ -8421,7 +8455,7 @@ function ficheEntreprise(){
         /* L'identifiant d'espace n'apparaissait NULLE PART sur la fiche d'une entreprise qui a
            une adresse : « o.email || o.t » montrait l'un OU l'autre. C'est pourtant lui qui dit
            où vivent ses données. Il s'affiche maintenant TOUJOURS, avec ce qu'il signifie. */
-        (o.email?'<div class="fiche-sous mono">espace '+esc(o.t)+'</div>':'')+
+        ((o.email&&!PBL.loaded)?'<div class="fiche-sous mono">espace '+esc(o.t)+'</div>':'')+
       '</div>'+
       '<div class="fiche-etats">'+
         (o.suspendu?'<span class="past p-rouge">⏸ Suspendue</span>':'')+
@@ -8429,9 +8463,9 @@ function ficheEntreprise(){
           (o.origine==='site'?'🏢 Cliente du site':(o.origine==='tour'?'🌍 Ouverte d’ici':'❔ Hors annuaire'))+'</span>'+
       '</div>'+
     '</div>'+
-    /* La clé de chiffrement est un FAIT sur cette entreprise, au même titre que sa formule :
-       elle descend dans la même liste plutôt que de flotter sous le nom. */
-    /* L'ARGENT, en haut : c'est la première question qu'on se pose devant un client. */
+    /* L'ARGENT, en haut : c'est la première question qu'on se pose devant un client. Les FAITS seulement — se règle dans
+       la carte « Abonnement », plus bas. L'espace, le chiffrement et OP MESSAGES sont des faits sur l'ESPACE : ils se lisent
+       dans « Son espace » (v2.89 — ils étaient rangés ici sous « Formule et paiement »). */
     '<div class="sous-sec"><div class="sec">FORMULE ET PAIEMENT</div>'+
       '<div class="kv">'+
         fait('Formule','<b>'+esc(o.formule||'aucune')+'</b>')+
@@ -8440,36 +8474,32 @@ function ficheEntreprise(){
               ? '🎁 <b class="mono">'+esc(o.promo.code)+'</b> — offert jusqu’au <b>'+esc(o.promo.finLe)+'</b> <span class="g">('+joursRestants(o.promo.finLe)+')</span>'
               : '🎁 <b class="mono">'+esc(o.promo.code)+'</b> — <span class="g">terminé le '+esc(o.promo.finLe)+'</span>')
           : '<span class="g">aucun</span>')+
-        fait('OP MESSAGES',o.opMessages?'<span class="past p-vert">ouvert</span>':'<span class="past p-gris">fermé</span>')+
-        /* ⛔ TROIS ÉTATS, PAS DEUX. Ce champ n'affichait qu'un booléen : un espace HORS
-           ANNUAIRE, dont le serveur n'a aucun code enregistré et donc aucune clé connue,
-           s'affichait « 🔓 Clé partagée — à migrer ». Justin l'a lu comme un constat le
-           11 septembre 2026 alors que c'était un artefact du `false`. On ne fait pas dire à
-           une absence d'information ce qu'elle ne dit pas. */
-        fait('Chiffrement',{
-          propre:'<span class="past p-vert">🔐 Clé propre</span> <span class="g">ses données ne se déchiffrent qu’avec sa clé à elle — rien à migrer</span>',
-          partagee:'<span class="past p-ambre">🔓 Clé partagée</span> <span class="g">celle qui est écrite en clair dans app.html — à migrer</span>',
-          inconnue:'<span class="past p-gris">❔ Clé inconnue</span> <span class="g">espace hors annuaire : le serveur n’a pas son code, il ne peut pas savoir. Ni « à migrer », ni « en règle ».</span>'
-        }[o.cleEtat||(o.cleePropre?'propre':'inconnue')])+
       '</div></div>'+
-  '</div>'+
-  /* Chaque bloc devient une carte de la grille. Sur 1100 px et plus, deux colonnes ;
-     l'identite et la formule, elles, tiennent toute la largeur : c'est ce qu'on lit
-     en premier et ce qui doit rester au-dessus du reste. */
-  /* L'ACCÈS, juste sous l'identité : c'est la fiche de la maquette validée — ce qu'on donne au
-     client (l'adresse de l'annuaire, l'identifiant de départ) et les trois gestes qu'on fait pour
-     lui. Pleine largeur : deux colonnes, les faits et l'adresse. */
-  (function(){ var h=blocAccesFiche(o); return h?'<div class="carte p24 pleine">'+h+'</div>':''; })()+
-  carteSi(blocUtilisateurs())+
-  carteSi(blocDossier())+
-  carteSi(blocEspaceDe(o))+
-  /* Pleine largeur : ce bloc porte des sélecteurs, des champs et sept boutons. Sur une
-     demi-colonne ils se replieraient les uns sous les autres. */
-  (function(){ var g=blocGestionClient(); return g?'<div class="carte p24 pleine">'+g+'</div>':''; })()+
-  carteSi(blocOrphelin(o))+
-  carteSi(blocComptesDe(o))+
-  blocSupprimer(o)+
   '</div>';
+  /* v2.89 — LA FICHE, UNE CARTE PAR SUJET, DANS CET ORDRE (le même pour toutes les entreprises) :
+       Identité et argent · Accès · Abonnement · Utilisateurs | Son espace · Activité · Contact | Comptes du site · Supprimer.
+     Chaque geste n'a qu'UNE place : le lien de connexion est avec l'adresse, « Voir dans Stripe » avec l'abonnement, le
+     métier et OP MESSAGES avec l'espace, les connexions et les erreurs avec l'activité. Sur 1100 px et plus, deux colonnes ;
+     ce qui porte des champs ou une longue liste tient toute la largeur. */
+  var g=gestionClientParts();   /* ⛔ une seule fois : elle arme le chargement de l'activité */
+  var pleine=function(html){ return html?'<div class="carte p24 pleine">'+html+'</div>':''; };
+  /* ACCÈS — c'est la fiche de la maquette validée : ce qu'on donne au client (l'adresse, l'identifiant de départ, le lien) */
+  var acces=blocAccesFiche(o);
+  t+=pleine((acces||(g?'<div class="sec">ACCÈS</div>':''))+(g?g.lien:''));
+  /* ABONNEMENT — l'argent se règle à côté de l'argent */
+  if(g) t+=pleine(g.abonnement);
+  t+=carteSi(blocUtilisateurs());
+  /* SON ESPACE — où vivent ses données : l'espace, son métier, ses applications, son chiffrement */
+  t+=carteSi(blocEspaceDe(o)+(g?g.metier:'')+
+    '<div class="sous-sec"><div class="sec">APPLICATIONS ET CHIFFREMENT</div><div class="kv">'+(g?g.declare+g.opmsg:'')+ficheChiffrement(o)+'</div></div>');
+  /* ACTIVITÉ — ce qu'ils font : usage, échecs, erreurs, connexions, écrans */
+  t+=pleine((blocDossier()||'')+(g?g.connexions+g.activite:''));
+  /* CONTACT — lui écrire, ce qu'il a demandé */
+  if(g) t+=carteSi('<div class="sous-sec"><div class="sec">CONTACT</div>'+g.contact+'</div>');
+  t+=carteSi(blocOrphelin(o))+
+    carteSi(blocComptesDe(o))+
+    blocSupprimer(o)+
+    '</div>';
   return t;
 }
 
@@ -8767,12 +8797,11 @@ function blocAccesFiche(o){
   })[0];
   var fait=function(k,v,mono){ return '<div><span class="k">'+k+'</span><span class="v'+(mono?' mono':'')+'">'+v+'</span></div>'; };
   var r=(e&&e.resume)||{};
-  var champs='<div class="sec">FICHE '+esc((o.nom||o.slug||o.t||'').toUpperCase())+'</div><div class="kv">'+
+  var champs='<div class="sec">ACCÈS · IDENTIFIANTS</div><div class="kv">'+
     fait('Adresse (slug)',e&&e.slug?esc(e.slug):'<span class="g">aucune — hors annuaire</span>',!!(e&&e.slug))+
     fait('Espace',esc(o.t||'—'),true)+
     fait('Identifiant de départ',e&&e.ident?esc(e.ident):'<span class="g">—</span>',!!(e&&e.ident))+
-    fait('Mot de passe provisoire',e&&e.annuaire?'haché · jamais relisible d’ici':'<span class="g">—</span>')+
-    fait('Formule',esc(o.formule||'aucune'))+'</div>';
+    fait('Mot de passe provisoire',e&&e.annuaire?'haché · jamais relisible d’ici':'<span class="g">—</span>')+'</div>';
   var adresse=(e&&e.slug)
     ? '<div class="tt-adresse"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg>'+
         '<span class="mono" id="fiche-adr">teamop.fr/e/'+esc(e.slug)+'</span><span class="tt-adresse-etat">'+(e.suspendu?'suspendue':(r.derniere?'en service':'jamais ouverte'))+'</span></div>'
@@ -8976,7 +9005,12 @@ function demClasser(email,i,traite){
 }
 function demOuvrirFiche(t){ setTab('entreprises'); setTimeout(function(){ try{ if(ENT.sel!==t) entSel(t); else { SOUS.entreprises='liste'; renderNav('detail'); } }catch(e){} },60); }
 
-function blocGestionClient(){
+/* v2.89 — LA FICHE PAR SUJET. Cette fonction était UN bloc « GÉRER CE CLIENT » de neuf rubriques empilées (gestes, métier,
+   abonnement, utilisation, connexions, activité, contact, demandes) : l'argent d'un client se lisait en haut de la fiche et se
+   réglait cinq cartes plus bas, ses connexions étaient dites trois fois. Elle rend maintenant des MORCEAUX, et c'est
+   ficheEntreprise() qui les range, chacun dans la carte de son sujet (Accès, Abonnement, Son espace, Activité, Contact).
+   Elle ne rend rien d'autre qu'avant : mêmes champs, mêmes identifiants (met-f, abo-f, pack-info, fiche-connexions…), mêmes appels. */
+function gestionClientParts(){
   var c=CLI.list.filter(function(x){ return x.email===CLI.sel; })[0];
   /* v2.88 — un espace ouvert DEPUIS LA TOUR n'a pas de compte du site : sans cette fiche de remplacement, il n'avait ni
      Abonnement, ni Métier, ni Code promo — alors que l'écran Accès dit « sa fiche → Abonnement → En essai » pour lever
@@ -8984,7 +9018,7 @@ function blocGestionClient(){
   if(!c&&ENT.sel){ var o=(ENT.liste||[]).find(function(x){ return x.t===ENT.sel; });
     if(o&&o.email&&o.email===CLI.sel) c={email:o.email,entreprise:o.nom||o.slug||'',nom:'',demandes:[],inscrit:o.ts||0,sansCompteSite:true}; }
   if(c){ var nmAct=c.entreprise||c.nom||c.email; clearTimeout(window._ficheActT); window._ficheActT=setTimeout(function(){ tourActiviteCharge(nmAct); },150); }
-  if(!c) return '';   /* pas de compte du site rattaché : rien à gérer ici */
+  if(!c) return null;   /* pas de compte du site rattaché : rien à gérer ici */
   var s=cliStatut(c), nm=c.entreprise||c.nom||c.email, prenom=String(c.nom||nm).split(' ')[0];
   var apps=(c.apps||[]).map(function(a){ return '<span class="chip acc">'+esc(a)+'</span>'; }).join(' ')||'<span class="g">—</span>';
   var traites=c.demandesTraitees||{};
@@ -9010,38 +9044,41 @@ function blocGestionClient(){
   dem=dem?'<div class="reg-bloc">'+dem+'</div>'
         :videTour('Aucune demande enregistrée','Les demandes arrivent du formulaire du site : formule souhaitée, nombre d’utilisateurs, besoin décrit.','','entreprises');
   var fait=function(k,v){ return '<div><span class="k">'+k+'</span><span class="v">'+v+'</span></div>'; };
-  var sect=function(t,l){ return '<div class="sous-sec"><div class="sec">'+t+'</div>'+
-    '<div class="kv">'+l.map(function(x){ return fait(x[0],x[1]); }).join('')+'</div></div>'; };
   /* Pas d'en-tête ici : la fiche porte déjà le nom et l'avatar de l'entreprise. Le répéter
      ferait deux titres pour un seul sujet. */
+  var sec=function(t,corps){ return '<div class="sous-sec"><div class="sec">'+t+'</div>'+corps+'</div>'; };
   /* UNE seule action pleine : écrire au client. « Accepter la demande » ouvre une fenêtre de
      confirmation avant d'agir — deux remplissages verts côte à côte se disputaient l'œil sans
      que l'un soit plus important que l'autre. */
-  return '<div class="sec">GÉRER CE CLIENT</div>'+
-    '<div class="note">'+esc(metDemande(c)?'métier demandé : '+MET_L[metDemande(c)]:'métier non précisé à la demande')+' · statut du site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
+  var parts={};
+  /* ── CONTACT : lui écrire, le joindre, ce qu'il a demandé ── */
+  parts.contact=
     '<div class="sous-act">'+
       '<button type="button" class="btn-plein" onclick="compoOuvrir(\''+jsq(c.email)+'\');setTab(\'support\')">Écrire à '+esc(prenom)+'</button>'+
       /* v2.88 — « Accepter la demande » ne vit plus que sur l'écran Demandes : ici il s'affichait pour TOUTE cliente, et sans
          demande à traiter il posait « Business ×1 » par-dessus une formule payée (relecture du 17 octobre 2026). */
       (demandesATraiter().some(function(x){ return x.c.email===c.email; })?'<button type="button" class="btn-fant" onclick="setTab(\'demandes\')">✅ Voir sa demande</button>':'')+
-      '<button type="button" class="btn-fant" onclick="tourLienEntreprise(\''+jsq(c.email)+'\',\''+jsq(nm)+'\')">🔗 Lien de connexion</button>'+
-      '<button type="button" class="btn-fant" onclick="window.open(\'https://dashboard.stripe.com/search?query='+encodeURIComponent(c.email)+'\',\'_blank\',\'noopener\')">Voir dans Stripe '+svg('ext',14)+'</button>'+
       /* Un seul geste destructif dans cette fiche, et c'est le complet : « Supprimer cette
          entreprise » plus bas. L'ancien « Retirer de la liste » laissait derrière lui les
          boîtes mail avec leurs mots de passe, les notifications avec le nom des salariés,
          l'usage, les connexions et le carnet d'adresses. Deux boutons dont un incomplet,
          c'est une invitation à se tromper. */
       '</div>'+
-    /* v2.77 — LE MÉTIER DE L'ESPACE : il règle l'application (types d'intervention, fiche de terrain, modules). Posé
-       ici par TEAM OP, prérempli avec la demande ; l'application le reçoit à sa prochaine ouverture. */
-    '<div class="sous-sec"><div class="sec">MÉTIER</div>'+
-      '<div class="form-rang">'+
-      '<select id="met-f" title="Métier de l’application" aria-label="Métier de l’application" class="sel-f"><option value="">— non réglé (3D) —</option>'+
-        Object.keys(MET_L).map(function(k){ return '<option value="'+k+'">'+esc(MET_L[k])+'</option>'; }).join('')+'</select>'+
-      '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
-      '<div id="met-info" class="note">Chargement…</div></div>'+
-    '<div class="sous-sec"><div class="sec">ABONNEMENT</div>'+
-      '<div class="note">Réglé ici par TEAM OP : formule, nombre d’abonnements (<b>un par utilisateur</b>), statut et date de fin. Ce réglage <b>prime</b> sur Stripe et les codes promo, et s’applique à l’espace « '+esc(nm)+' » à sa prochaine ouverture de l’app. Client depuis le '+esc(fmtJour(c.inscrit))+' · statut site : <span class="past '+s[1]+'">'+esc(s[0])+'</span></div>'+
+    '<div class="kv">'+
+      fait('Référent',esc(c.nom||'—'))+
+      fait('E-mail','<a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a>')+
+      fait('Téléphone',c.tel?('<a href="tel:'+esc(String(c.tel).replace(/[^0-9+]/g,''))+'">'+esc(c.tel)+'</a>'):'—')+
+      fait('Statut du site','<span class="past '+s[1]+'">'+esc(s[0])+'</span>')+
+      fait('Dernière visite',esc(fmtDate(c.majTs)))+
+    '</div>'+
+    sec('DEMANDES DU SITE',dem);
+  /* ── ACCÈS : le lien de connexion se donne avec l'adresse et l'identifiant ── */
+  parts.lien='<div class="sous-act">'+
+      '<button type="button" class="btn-fant" onclick="tourLienEntreprise(\''+jsq(c.email)+'\',\''+jsq(nm)+'\')">🔗 Lien de connexion</button></div>';
+  /* ── ABONNEMENT : l'argent se règle à côté de l'argent (formule, code promo, Stripe) ── */
+  parts.abonnement='<div class="sous-sec"><div class="sec">ABONNEMENT</div>'+
+      '<div class="note">Réglé ici par TEAM OP : formule, nombre d’abonnements (<b>un par utilisateur</b>), statut et date de fin. Ce réglage <b>prime</b> sur Stripe et les codes promo, et s’applique à l’espace « '+esc(nm)+' » à sa prochaine ouverture de l’app. Client depuis le '+esc(fmtJour(c.inscrit))+'.</div>'+
+      '<div class="sous-act"><button type="button" class="btn-fant" onclick="window.open(\'https://dashboard.stripe.com/search?query='+encodeURIComponent(c.email)+'\',\'_blank\',\'noopener\')">Voir dans Stripe '+svg('ext',14)+'</button></div>'+
       '<div class="form-rang">'+
       '<select id="abo-f" title="Formule" aria-label="Formule" class="sel-f" onchange="optsSynchro()">'+
         /* ⛔ UN ABONNEMENT = UN UTILISATEUR, quelle que soit la formule (Justin, 27 et 28 septembre 2026) : les formules ne
@@ -9067,23 +9104,33 @@ function blocGestionClient(){
          retiré d'`espace.html` pour cette raison exacte : il avait simplement changé de fichier.
          Un exemple de code promo n'est jamais un code qui marche. */
       '<input id="pack-promo" placeholder="Code promo" aria-label="Code promo" class="inp ch-promo">'+
-      '<button type="button" class="btn-fant" onclick="tourPromoEntreprise(\''+jsq(nm)+'\',this)">🎁 Activer le code</button></div></div>'+
-    /* Les applications de cette entreprise : ce qu'elle a DÉCLARÉ à l'inscription (chips), ce
-       qui lui est OUVERT par TEAM OP, et ce qu'elle UTILISE vraiment (bloc CONNEXIONS plus bas).
-       OP MESSAGES est une application à part, avec son propre abonnement : elle s'ouvre et se
-       ferme ici, sans toucher à la formule OP GESTION. */
-    sect('UTILISATION',[['Déclaré à l’inscription',apps],['Dernière visite',esc(fmtDate(c.majTs))],
-      ['OP MESSAGES',(function(){
+      '<button type="button" class="btn-fant" onclick="tourPromoEntreprise(\''+jsq(nm)+'\',this)">🎁 Activer le code</button></div></div>';
+  /* ── SON ESPACE : le métier qui règle l'application, ce qu'elle a déclaré, OP MESSAGES (l'état seul) ── */
+  /* v2.77 — LE MÉTIER DE L'ESPACE : il règle l'application (types d'intervention, fiche de terrain, modules). Posé
+     ici par TEAM OP, prérempli avec la demande ; l'application le reçoit à sa prochaine ouverture. */
+  parts.metier='<div class="sous-sec"><div class="sec">MÉTIER</div>'+
+      '<div class="form-rang">'+
+      '<select id="met-f" title="Métier de l’application" aria-label="Métier de l’application" class="sel-f"><option value="">— non réglé (3D) —</option>'+
+        Object.keys(MET_L).map(function(k){ return '<option value="'+k+'">'+esc(MET_L[k])+'</option>'; }).join('')+'</select>'+
+      '<button type="button" class="btn-plein" onclick="tourMetierEnregistrer(\''+jsq(nm)+'\',this)">💾 Enregistrer le métier</button></div>'+
+      '<div class="note">'+esc(metDemande(c)?'Métier demandé à l’inscription : '+MET_L[metDemande(c)]:'Métier non précisé à la demande')+'</div>'+
+      '<div id="met-info" class="note">Chargement…</div></div>';
+  /* Les applications de cette entreprise : ce qu'elle a DÉCLARÉ à l'inscription (chips), ce
+     qui lui est OUVERT par TEAM OP, et ce qu'elle UTILISE vraiment (bloc CONNEXIONS, rangé dans Activité).
+     OP MESSAGES est une application à part, avec son propre abonnement : elle s'ouvre et se
+     ferme dans SA console, sans toucher à la formule OP GESTION. */
+  parts.declare=fait('Déclaré à l’inscription',apps);
+  parts.opmsg=fait('OP MESSAGES',(function(){
         /* v2.85 — OP MESSAGES s'ouvre et se ferme dans SA console (Justin : « sépare bien OP GESTION et OP MESSAGES ») : ici, l'état seul */
         var es=(PBL.liste||[]).filter(function(x){ return (x.email&&c.email&&String(x.email).toLowerCase()===String(c.email).toLowerCase())||espSlugJs(x.nom||'')===espSlugJs(nm); })[0];
         if(!es) return '<span class="g">espace inconnu du serveur</span>';
         return '<span class="past '+(es.opMessages?'p-vert':'p-gris')+'">'+(es.opMessages?'ouvert':'fermé')+'</span>'+
-          '<span class="v-note">Se règle dans la console OP MESSAGES'+(MYAPPS.indexOf('messages')>=0?' — <a onclick="setApp(\'messages\',false,\'entreprises\')">l’ouvrir</a>':'')+'.</span>';
-      })()]])+
-    '<div class="sous-sec"><div class="sec">CONNEXIONS</div><div id="fiche-connexions">'+squelListe(2)+'</div></div>'+
-    '<div class="sous-sec"><div class="sec">ACTIVITÉ PAR ONGLET &amp; PROBLÈMES</div><div id="fiche-activite">'+squelListe(2)+'</div></div>'+
-    sect('CONTACT',[['Référent',esc(c.nom||'—')],['E-mail','<a href="mailto:'+esc(c.email)+'">'+esc(c.email)+'</a>'],['Téléphone',c.tel?('<a href="tel:'+esc(String(c.tel).replace(/[^0-9+]/g,''))+'">'+esc(c.tel)+'</a>'):'—']])+
-    '<div class="sous-sec"><div class="sec">ACTIVITÉ RÉCENTE</div>'+dem+'</div>';
+          '<span class="v-note">Se règle dans la console OP MESSAGES'+(MYAPPS.indexOf('messages')>=0?' — <a onclick="SOUS.entreprisesmsg=\'gestion\';setApp(\'messages\',false,\'entreprises\')">l’ouvrir</a>':'')+'.</span>';
+      })());
+  /* ── ACTIVITÉ : ce qu'ils font, rangé ensemble ── */
+  parts.connexions='<div class="sous-sec"><div class="sec">CONNEXIONS</div><div id="fiche-connexions">'+squelListe(2)+'</div></div>';
+  parts.activite='<div class="sous-sec"><div class="sec">ACTIVITÉ PAR ONGLET &amp; PROBLÈMES</div><div id="fiche-activite">'+squelListe(2)+'</div></div>';
+  return parts;
 }
 /* CE QUI SE PASSE CHEZ EUX — regroupe en un endroit ce qui etait eparpille sur quatre
    ecrans : leur usage, leurs connexions, leurs ECHECS de connexion, et surtout leurs
@@ -9416,7 +9463,7 @@ function vueAbonnements(){
   /* (`inconnu` : le serveur ne SAIT pas — Stripe muet, registre illisible ; `paye` y vaut vrai pour ne couper personne. Ce
      n'est pas « déjà réglée » : la ligne le dit plus bas, relecture de la poussée du 30 septembre 2026) */
   var attribPayees=(ESP.list||[]).filter(function(e){ return e.formule&&e.paye&&!e.inconnu&&!e.promoCode; });
-  if(attribPayees.length&&!f) G.push(abnGroupe('Attribuées depuis la console',attribPayees.length,
+  if(attribPayees.length&&!f) G.push(abnGroupe('Formules attribuées depuis la console',attribPayees.length,
     'Une formule posée à la main, déjà réglée. Elles n’apparaissent pas chez Stripe.',true,
     '<div class="reg-bloc mien">'+attribPayees.map(function(e){
       return '<button type="button" class="reg-l" onclick="abnVersEntreprise(\''+jsq(e.t||'')+'\')">'+
@@ -9689,7 +9736,9 @@ function pubLigne(e){
       (r.derniere?'<span style="font-size:12px;color:var(--muted)">Déjà utilisé — le mot de passe vit dans les données chiffrées de l’espace, le serveur ne peut plus le changer. Ouvre l’espace avec son lien et remets-le à zéro dans <b>Utilisateurs</b>.</span>'
                  :'<button class="btn-fant" onclick="tourIdentModifier(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\',\''+jsq(e.ident||'')+'\')">✏️ Changer identifiant / mot de passe</button>')+
       '<button class="btn-fant" onclick="tourAccesSuspendre(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.suspendu?'true':'false')+')">'+(e.suspendu?'▶️ Rouvrir':'⏸ Suspendre')+'</button>'+
-      '<button class="btn-fant" onclick="tourApps(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.opMessages?'false':'true')+')">'+(e.opMessages?'💬 Fermer OP MESSAGES':'💬 Ouvrir OP MESSAGES')+'</button>'+
+      /* v2.89 — OP MESSAGES s'ouvre et se ferme à UN seul endroit : sa console (Entreprises → « Depuis OP GESTION »). Le bouton
+         d'ici était la même action en double (même route, même corps) ; l'état reste dit par la pastille, et un lien y mène. */
+      (MYAPPS.indexOf('messages')>=0?'<button class="btn-fant" onclick="SOUS.entreprisesmsg=\'gestion\';setApp(\'messages\',false,\'entreprises\')">💬 OP MESSAGES : '+(e.opMessages?'le fermer':'l’ouvrir')+' dans sa console →</button>':'')+
       '<button class="btn-fant" onclick="tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (l’adresse ne bouge pas)</button>'+
       '<button class="btn-fant" style="color:var(--redText);border-color:rgba(255,107,107,.35)" onclick="tourAccesSupprimer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">🗑 Supprimer</button>'+
     '</div>'+
@@ -9772,7 +9821,8 @@ function accFichePub(slug){
        du serveur. On ne montre donc pas un bouton qui mentirait. */
     (r.derniere?'':'<button type="button" class="btn-fant" onclick="'+F+'tourIdentModifier(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\',\''+jsq(e.ident||'')+'\')">✏️ Changer identifiant / mot de passe</button>')+
     '<button type="button" class="btn-fant" onclick="'+F+'tourAccesSuspendre(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.suspendu?'true':'false')+')">'+(e.suspendu?'▶️ Rouvrir':'⏸ Suspendre')+'</button>'+
-    '<button type="button" class="btn-fant" onclick="'+F+'tourApps(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\','+(e.opMessages?'false':'true')+')">'+(e.opMessages?'💬 Fermer OP MESSAGES':'💬 Ouvrir OP MESSAGES')+'</button>'+
+    /* v2.89 — OP MESSAGES s'ouvre et se ferme dans SA console : ici, un lien (même geste qu'en fiche d'entreprise) */
+    (MYAPPS.indexOf('messages')>=0?'<button type="button" class="btn-fant" onclick="'+F+'SOUS.entreprisesmsg=\'gestion\';setApp(\'messages\',false,\'entreprises\')">💬 OP MESSAGES : '+(e.opMessages?'le fermer':'l’ouvrir')+' dans sa console →</button>':'')+
     '<button type="button" class="btn-fant" onclick="'+F+'tourAccesRenommer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">✏️ Renommer (l’adresse ne bouge pas)</button>'+
     '<button type="button" class="btn-fant danger" onclick="'+F+'tourAccesSupprimer(\''+jsq(e.slug||'')+'\',\''+jsq(e.nom||'')+'\')">🗑 Supprimer</button>'+
   '</div>'+
@@ -9886,7 +9936,7 @@ function vueEssaisMsg(){
     '</div><button type="button" class="ac-act" onclick="accAllerForm(\'ac-f-beta\')">Ouvrir un accès bêta</button></div>'+
     accBlocBeta()+'</div>';
   /* v2.84 — la version publique d'OP MESSAGES : on n'y ouvre pas d'accès (chacun s'inscrit lui-même, par son numéro ou son adresse), mais elle a SA
-     place, à côté de la bêta et jamais mêlée à elle. Son état se lit ici ; sa version minimale se règle dans Surveillance. */
+     place, à côté de la bêta et jamais mêlée à elle. Son état se lit ici ; sa version minimale se règle dans Surveillance → Service. */
   if(!MV.d&&!MV.err) chargerVersionsMsg();
   var sp=(MV.d&&MV.d.prod&&MV.d.prod.service)||null;
   var etatPub=!sp?(MV.err?esc(MV.err):'Lecture…')
@@ -9895,7 +9945,7 @@ function vueEssaisMsg(){
   var gPub='<div class="reg-g reg-g-fixe"><div class="ac-tete"><div class="reg-tete">'+
     '<span class="reg-nom">Version publique d’OP MESSAGES</span>'+
     '<div class="reg-sous">msg.teamop.fr — pour tout le monde. On ne crée pas d’accès ici : chacun ouvre son compte lui-même. '+etatPub+'</div>'+
-    '</div><button type="button" class="ac-act" onclick="setTab(\'surveillance\')">Régler sa version</button></div></div>';
+    '</div><button type="button" class="ac-act" onclick="SOUS.survmsg=\'service\';setTab(\'surveillance\')">Régler sa version</button></div></div>';
   return tete+'<div class="deux ac-deux"><div class="col-liste"><div class="reg">'+gBeta+gPub+'</div></div><div class="col-detail">'+accFormBeta()+'</div></div>';
 }
 /* Le formulaire d'un accès bêta, commun aux deux consoles : il crée l'accès de la console ouverte, et l'encart dit SA bêta. */

@@ -83,7 +83,7 @@ v('les noms du menu', LIB, { accueil: 'Accueil', demandes: 'Demandes', comptes: 
   support: 'Courrier', surveillance: 'Surveillance', essais: 'Accès', equipe: 'Équipe', journal: 'Journal', donnees: 'Sauvegardes' });
 /* v2.87 : un écran double porte ses onglets (sousOnglets) — l'écran d'un onglet se titre du nom de son onglet */
 const ONGLETS = {}; for (const m of fonction('renderVue').matchAll(/sousOnglets\('(\w+)',\[([^\]]*\](?:,\[[^\]]*\])*)\]\)/g)) ONGLETS[m[1]] = [...m[2].matchAll(/\['\w+','([^']+)'\]/g)].map(x => x[1]);
-v('les écrans doubles et leurs onglets', ONGLETS, { survmsg: ['Incidents', 'Service'], entreprisesmsg: ['Espaces d’OP MESSAGES', 'Depuis OP GESTION'], entreprises: ['Entreprises', 'Comptes du site', 'Connexions'], abonnements: ['Abonnements', 'Devis IA'] });
+v('les écrans doubles et leurs onglets', ONGLETS, { survmsg: ['Incidents', 'Service'], survgest: ['Incidents', 'Service'], entreprisesmsg: ['Espaces d’OP MESSAGES', 'Depuis OP GESTION'], entreprises: ['Entreprises', 'Comptes du site', 'Connexions'], abonnements: ['Abonnements', 'Devis IA'] });
 /* le titre de chaque page : toutes les chaînes passées à enTete() dans la fonction qui la dessine */
 const rv = fonction('renderVue');
 /* v2.88 : une vue peut avoir une ligne PAR CONSOLE (`TAB==='abonnements'&&APP==='messages'`) — chacune compte, avec les onglets qu'elle pose */
