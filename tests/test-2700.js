@@ -14,6 +14,8 @@
 const fs = require('fs'), os = require('os'), path = require('path'), vm = require('vm');
 const { spawnSync } = require('child_process');
 let ok = 0, ko = 0;
+/* ⛔ un banc qui MEURT n'est pas un banc vert : une exception (une tranche introuvable, un fichier absent) s'imprime comme un échec, avec son total */
+process.on('uncaughtException', (e) => { console.log('  ✗ le banc a jeté : ' + (e && e.stack || e).toString().split('\n').slice(0, 4).join(' | ')); console.log('\n' + ok + ' ✓  ' + (ko + 1) + ' ✗'); process.exit(1); });
 const v = (t, a, b) => { if (JSON.stringify(a) === JSON.stringify(b)) { ok++; console.log('  ✓ ' + t); } else { ko++; console.log('  ✗ ' + t + '\n      attendu : ' + JSON.stringify(b) + '\n      obtenu  : ' + JSON.stringify(a)); } };
 const vrai = (t, a) => v(t, !!a, true);
 
