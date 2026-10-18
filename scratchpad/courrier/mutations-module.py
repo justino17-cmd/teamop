@@ -39,7 +39,8 @@ NAVIGATEUR = [
 ]
 if '--navigateur' in sys.argv: MUTATIONS = NAVIGATEUR
 def sh(*a, **k): return subprocess.run(a, capture_output=True, text=True, **k)
-fichiers = sorted({m[1] for m in MUTATIONS})
+# beta.html est GÉNÉRÉE depuis app.html : une mutation d'app.html se propage par `node beta-build.js`, sinon la sonde qui lit beta.html ne verrait JAMAIS le défaut
+fichiers = sorted({m[1] for m in MUTATIONS} | ({'beta.html'} if any(m[1] == A for m in MUTATIONS) else set()))
 sale = sh('git', 'status', '--porcelain', '--', *fichiers).stdout.strip()
 if sale: sys.exit('REFUS : fichiers visés non commités (git checkout les restaurerait depuis HEAD et emporterait le correctif) :\n' + sale)
 tombent = 0; cours = None
@@ -50,10 +51,11 @@ try:
         n = t.count(ancien)
         if n != 1: print('  ?? %s : ancre trouvée %d fois (une mutation mal visée ne prouve rien)' % (nom, n)); continue
         open(f, 'w', encoding='utf-8').write(t.replace(ancien, neuf, 1))
+        if f == A: sh('node', 'beta-build.js')
         if sh('git', 'diff', '--quiet', '--', f).returncode == 0: print('  ?? %s : la mutation n\'a rien changé' % nom); continue
         try: r = sh('node', banc, timeout=(600 if banc.startswith('scratchpad') else 170))
         except subprocess.TimeoutExpired: r = None
-        sh('git', 'checkout', '--', f)
+        sh('git', 'checkout', '--', f, *(['beta.html'] if f == A else []))
         if r is None: print('  ?? %s : délai dépassé' % nom); continue
         sortie = r.stdout + r.stderr
         import re
