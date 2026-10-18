@@ -45,33 +45,6 @@ if (s.indexOf('teamopJoinPrompt') >= 0) { console.error('ÉCHEC : une entrée pa
 const LIEN_AVANT = '${(_surEspace&&_entNom)?`<div style="text-align:center;margin-top:14px"><a href="connexion.html?choix=1"';
 if (s.indexOf(LIEN_AVANT) < 0) { console.error('ÉCHEC : le lien « changer d\'entreprise » de la connexion est introuvable'); process.exit(1); }
 s = s.split(LIEN_AVANT).join('${false?`<div style="text-align:center;margin-top:14px"><a href="connexion.html?choix=1"');
-/* ══ OP COURRIER (étape 1, 18 octobre 2026) — l'entrée « OP Courrier » du menu SUITE, BÊTA SEULE ══
-   OP Courrier est la messagerie e-mail de TeamOP ; elle n'existe qu'en bêta (`courrier-beta.html`, aucun vrai mail n'est lu ni envoyé tant
-   que son serveur n'existe pas). L'entrée se pose ICI, dans la transformation, et PAS dans `app.html` : la version publique ne sait rien d'OP
-   Courrier, et un banc (test-2701) le vérifie dans les deux sens. Elle ouvre la page côté PRO (`#pro`) : OP GESTION est l'outil de l'entreprise.
-   Deux gestes :
-     1. la rangée est ajoutée à la liste déroulante `#suite-fly`, sous OP MESSAGES — la même forme que lui (`.suite-row.suite-mini`) ;
-     2. `suiteRefresh()` éteint TOUTE la barre SUITE quand OP MESSAGES n'est pas ouvert à l'entreprise (« un sélecteur qui n'ouvre rien est un bouton
-        mort ») : ici elle a quelque chose à ouvrir, donc elle reste (`BETA_ESSAI`, la même exception que `planBloque` : la bêta voit tout).
-   On vérifie chaque cible UNE fois, et l'absence de l'ancienne forme : un app.html qui change de forme fait ÉCHOUER la fabrication, il ne
-   fabrique pas en silence une bêta sans son entrée. */
-const COURRIER_ANCRE = "          </a>\n        </div>\n      </div>\n      <div class=\"suite-user\"";
-if (s.split(COURRIER_ANCRE).length - 1 !== 1) { console.error('ÉCHEC : la fin de la liste SUITE (#suite-fly) est introuvable UNE fois — l\'entrée OP Courrier ne peut pas se poser'); process.exit(1); }
-const COURRIER_RANGEE = "          </a>\n"
-  + "          <a id=\"suite-opcourrier\" href=\"courrier-beta.html#pro\" class=\"suite-row suite-mini\" style=\"display:flex;text-decoration:none;color:var(--t2)\" title=\"Ouvrir OP Courrier (bêta) — côté Pro\">\n"
-  + "            <span aria-hidden=\"true\" style=\"width:20px;height:20px;border-radius:6px;flex-shrink:0;display:inline-grid;place-items:center;background:#2a4a9c;color:#fff\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5.5\" width=\"18\" height=\"13\" rx=\"2.5\"/><path d=\"m3.6 7.6 8.4 6 8.4-6\"/></svg></span>\n"
-  + "            <b style=\"font-size:11.5px\">OP Courrier</b>\n"
-  + "            <span style=\"margin-left:auto;font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--org)\">BÊTA</span>\n"
-  + "          </a>\n        </div>\n      </div>\n      <div class=\"suite-user\"";
-s = s.split(COURRIER_ANCRE).join(COURRIER_RANGEE);
-const SUITE_AVANT = "sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none';";
-const SUITE_PIED = "pied.classList.toggle('sans-suite',!soOn)";
-if (s.split(SUITE_AVANT).length - 1 !== 1) { console.error('ÉCHEC : l\'affichage de la barre SUITE (suiteRefresh) est introuvable UNE fois'); process.exit(1); }
-if (s.split(SUITE_PIED).length - 1 !== 1) { console.error('ÉCHEC : le filet de la carte utilisateur (sans-suite) est introuvable UNE fois'); process.exit(1); }
-s = s.split(SUITE_AVANT).join("sb.style.display=(soOn||BETA_ESSAI)?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=(soOn||BETA_ESSAI)?'':'none';");
-s = s.split(SUITE_PIED).join("pied.classList.toggle('sans-suite',!(soOn||BETA_ESSAI))");
-if (s.indexOf("id=\"suite-opcourrier\"") < 0 || s.indexOf("(soOn||BETA_ESSAI)") < 0) { console.error('ÉCHEC : l\'entrée OP Courrier n\'est pas dans la bêta fabriquée'); process.exit(1); }
-
 /* On vérifie l'ABSENCE de la déclaration d'origine, pas la présence de la nouvelle. Chercher
    « const BETA_ESSAI=true; » n'importe où dans le fichier devenait creux : il suffisait qu'un
    commentaire de app.html cite cette ligne en exemple pour que l'assertion passe alors que le

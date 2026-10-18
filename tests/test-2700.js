@@ -1,12 +1,12 @@
-/* ⛔ CE QUE CE FICHIER GARDE — LE MOTEUR DE TRI D'OP COURRIER (18 octobre 2026) : celui de la PAGE, pas une copie.
+/* ⛔ CE QUE CE FICHIER GARDE — LE MOTEUR DE TRI D'OP COURRIER (18 octobre 2026) : celui du MODULE, pas une copie.
 
    OP Courrier classe chaque mail reçu (Principal, Notifications, Reçus, Voyages, Promotions, Indésirables) par un moteur de fonctions pures, `classify(msg, ctx)`.
-   La page `courrier-beta.html` l'EMBARQUE (un seul fichier, aucun chargement), et le futur serveur d'OP Courrier prendra le même code : « même code côté serveur ».
+   Le module `opcourrier.js` l'EMBARQUE (un seul fichier, aucun chargement), et le futur serveur d'OP Courrier prendra le même code : « même code côté serveur ».
    Les quatre bancs de la maquette (`tests/courrier-moteur-tri/`) le jugent : le sien (39 cas) et trois jeux « à l'aveugle » (60, 60 et 72 mails, écrits sans regarder
    les règles). Ce banc les joue deux fois :
      1. sur la copie de RÉFÉRENCE (`tests/courrier-moteur-tri/classify.js`) ;
-     2. sur le moteur EXTRAIT DE LA PAGE LIVRÉE — la même suite, les mêmes cas, le même juge : c'est ce que le client exécute ;
-   et il garde que les deux sont le MÊME texte (au fichier d'export Node près) : un moteur retouché dans la page seule serait un tri que le serveur ne ferait pas.
+     2. sur le moteur EXTRAIT DU MODULE LIVRÉ — la même suite, les mêmes cas, le même juge : c'est ce que le client exécute ;
+   et il garde que les deux sont le MÊME texte (au fichier d'export Node près) : un moteur retouché dans le module seul serait un tri que le serveur ne ferait pas.
    ⛔ LA POPULATION AVANT LE ZÉRO : « aucun légitime classé indésirable » n'a de sens que si les cas légitimes existent — chaque jeu est compté (39, 60, 60, 72), chaque
    catégorie aussi, et les dénominateurs sont lus dans la sortie des bancs (un jeu amputé ne passerait pas pour « 100 % »).
    Sans dépendance. Aucun appel réseau. */
@@ -21,26 +21,26 @@ const vrai = (t, a) => v(t, !!a, true);
 
 const RACINE = path.join(__dirname, '..');
 const REF = path.join(__dirname, 'courrier-moteur-tri');
-const PAGE = fs.readFileSync(path.join(RACINE, 'courrier-beta.html'), 'utf8');
+const PAGE = fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8');
 const FICHIERS = ['classify.js', 'test_classify.js', 'run_blind.js', 'run_blind2.js', 'run_blind3.js', 'blind_cases.js', 'blind2_cases.js', 'blind3_cases.js'];
 /* ce que chaque banc doit rendre : son total ET son dénominateur */
 const BANCS = [['test_classify.js', /(\d+)\/(\d+) correctement classés/, 39], ['run_blind.js', /TOTAL (\d+)\/(\d+)/, 60], ['run_blind2.js', /TOTAL (\d+)\/(\d+)/, 60], ['run_blind3.js', /TOTAL (\d+)\/(\d+)/, 72]];
 
-/* ── le moteur, tel que la page l'embarque : du `var OPClassify = (function () {` au `})();` qui le ferme ── */
+/* ── le moteur, tel que le module l'embarque : du `var OPClassify = (function () {` au `})();` qui le ferme ── */
 const iDebut = PAGE.indexOf('var OPClassify = (function () {');
 const iFin = PAGE.indexOf('\n})();', iDebut);
-vrai('le moteur est trouvé dans la page (début et fin)', iDebut > 0 && iFin > iDebut);
+vrai('le moteur est trouvé dans le module (début et fin)', iDebut > 0 && iFin > iDebut);
 const EMBARQUE = PAGE.slice(iDebut, iFin + '\n})();'.length);
 vrai('population : le moteur embarqué fait plus de 20 000 signes (' + EMBARQUE.length + ') — une tranche vide ne passe pas', EMBARQUE.length > 20000);
 const REFERENCE = fs.readFileSync(path.join(REF, 'classify.js'), 'utf8');
 
-/* ── 1. la référence et la page sont le MÊME texte ── */
-console.log('1. La page embarque la référence, au fichier d\'export près');
+/* ── 1. la référence et le module sont le MÊME texte ── */
+console.log('1. Le module embarque la référence, au fichier d\'export près');
 const sansExport = REFERENCE.replace(/\nif \(typeof module !== "undefined"\) module\.exports = OPClassify;\s*$/, '');
 vrai('la référence se termine par SA ligne d\'export Node (et rien d\'autre ne la distingue)', sansExport !== REFERENCE);
 const iRef = sansExport.indexOf('var OPClassify = (function () {');
 v('le moteur embarqué est EXACTEMENT celui de la référence (' + EMBARQUE.length + ' signes)', EMBARQUE, sansExport.slice(iRef));
-vrai('la page ne porte pas la ligne d\'export Node (elle n\'a pas de `module`)', !/module\.exports/.test(PAGE));
+vrai('le module ne porte pas la ligne d\'export Node (il n\'a pas de `module`)', !/module\.exports/.test(PAGE));
 
 /* ── 2. le moteur est pur : ni réseau, ni DOM, ni stockage ── */
 console.log('\n2. Des fonctions pures');
@@ -65,14 +65,14 @@ function jouer(dossier, etiquette) {
 console.log('\n3. Les quatre bancs sur la référence (39 + 60 + 60 + 72 mails)');
 jouer(REF, 'référence');
 
-console.log('\n4. Les MÊMES bancs sur le moteur extrait de la page livrée');
+console.log('\n4. Les MÊMES bancs sur le moteur extrait du module livré');
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-2700-'));
 try {
   for (const f of FICHIERS) fs.copyFileSync(path.join(REF, f), path.join(tmp, f));
   /* on remplace SA copie du moteur par celle de la PAGE, rien d'autre : le juge, les cas et les bancs sont ceux de la référence */
   fs.writeFileSync(path.join(tmp, 'classify.js'), EMBARQUE + '\nif (typeof module !== "undefined") module.exports = OPClassify;\n');
-  vrai('(population) le moteur de la page a bien remplacé celui du dossier de travail', fs.readFileSync(path.join(tmp, 'classify.js'), 'utf8') !== REFERENCE || EMBARQUE === sansExport.slice(iRef));
-  jouer(tmp, 'page');
+  vrai('(population) le moteur du module a bien remplacé celui du dossier de travail', fs.readFileSync(path.join(tmp, 'classify.js'), 'utf8') !== REFERENCE || EMBARQUE === sansExport.slice(iRef));
+  jouer(tmp, 'module');
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 
 /* ── 5. ce que « 100 % » veut dire : la population de chaque jeu, par catégorie, et aucun légitime en indésirable ── */
@@ -91,7 +91,7 @@ for (const [f, n] of JEUX) {
     if (k.expect !== 'junk') { legitimes++; if (r.junk) legitimesEnIndesirable.push(f + ' : ' + k.m.from.email + ' « ' + k.m.subject + ' »'); }
   }
 }
-vrai('(population) ' + legitimes + ' mails légitimes joués par le moteur de la page', legitimes >= 150);
+vrai('(population) ' + legitimes + ' mails légitimes joués par le moteur du module', legitimes >= 150);
 v('⛔ AUCUN mail légitime classé indésirable (sur ' + legitimes + ')', legitimesEnIndesirable, []);
 /* un contact connu n'est jamais mis en indésirable, même au score le plus haut ; et la règle « pas indésirable » de la personne est respectée */
 const pourriel = { from: { name: 'Gagnez', email: 'promo@gagnez-gros.xyz' }, subject: 'FÉLICITATIONS !!! Vous avez gagné 1 000 000 € — cliquez ICI', body: ['Cliquez vite pour récupérer votre cadeau gratuit !!!'], unsub: true };

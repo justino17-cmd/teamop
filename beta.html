@@ -8003,11 +8003,6 @@ html[data-refonte] .filters.tc-modes,html[data-refonte] .filters.seg-on:not(.seg
               <button class="btn ghost sm" style="padding:3px 7px;font-size:11px" title="Nouvelle fenêtre" onclick="window.open('messages.html','_blank')">⧉</button>
             </span>
           </a>
-          <a id="suite-opcourrier" href="courrier-beta.html#pro" class="suite-row suite-mini" style="display:flex;text-decoration:none;color:var(--t2)" title="Ouvrir OP Courrier (bêta) — côté Pro">
-            <span aria-hidden="true" style="width:20px;height:20px;border-radius:6px;flex-shrink:0;display:inline-grid;place-items:center;background:#2a4a9c;color:#fff"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5.5" width="18" height="13" rx="2.5"/><path d="m3.6 7.6 8.4 6 8.4-6"/></svg></span>
-            <b style="font-size:11.5px">OP Courrier</b>
-            <span style="margin-left:auto;font-size:9px;font-weight:800;letter-spacing:.12em;color:var(--org)">BÊTA</span>
-          </a>
         </div>
       </div>
       <div class="suite-user" onclick="go('parametres');document.getElementById('sidebar').classList.remove('open')" oncontextmenu="userFootMenu(event)" title="Clic : mes paramètres · Clic droit : options">
@@ -41642,9 +41637,9 @@ function opMsgDisponible(){ return _opMsgOuvert===true; }
 function suiteRefresh(){ if(!currentUser) return;
   const soOn=!!(can('opMessages')&&planOpMsg()&&opMsgDisponible());
   const so=$('suite-opmsg'); if(so) so.style.display=soOn?'flex':'none';
-  try{ const sb=$('suite-box'); if(sb){ sb.style.display=(soOn||BETA_ESSAI)?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=(soOn||BETA_ESSAI)?'':'none';
+  try{ const sb=$('suite-box'); if(sb){ sb.style.display=soOn?'':'none'; const lbl=sb.previousElementSibling; if(lbl) lbl.style.display=soOn?'':'none';
     /* la carte utilisateur perd son filet quand elle n'a plus rien au-dessus (voir .sans-suite) */
-    const pied=sb.closest('.sidebar-foot'); if(pied) pied.classList.toggle('sans-suite',!(soOn||BETA_ESSAI)); } }catch(e){}
+    const pied=sb.closest('.sidebar-foot'); if(pied) pied.classList.toggle('sans-suite',!soOn); } }catch(e){}
   try{ renderMsgFlottant(); }catch(e){} }
 function enterApp(u){ currentUser=u;
   /* Le thème, la couleur et la langue choisis sur un AUTRE appareil arrivent avec la fiche :

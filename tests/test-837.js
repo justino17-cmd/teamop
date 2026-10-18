@@ -335,9 +335,7 @@ vrai('population : ' + PAGES_PAIEMENT.length + ' pages de paiement relues (racin
      commentaires retirés. Les APPLICATIONS en sont écartées, nommées : elles fabriquent des devis et des factures, où
      « Total HT » et « prix unitaire HT » sont justes et obligatoires. */
   console.log('4 bis. le prix se dit TTC partout');
-  /* ⛔ `courrier-beta` (OP Courrier, 18 octobre 2026) est une APPLICATION au même titre : ses messages d'EXEMPLE sont les courriels d'un fournisseur imaginaire
-     (« 15,00 € TTC (12,50 € HT) » — le courriel d'un tiers, pas un prix TEAM OP). Le prix que TEAM OP annonce reste TTC partout. */
-  const APPLICATIONS = /^(apercu\/)?(app|beta|tour|messages|messages-beta|courrier-beta)\.html$/;
+  const APPLICATIONS = /^(apercu\/)?(app|beta|tour|messages|messages-beta)\.html$/;
   const DIT_HT = /\bPrix HT\b|\bHT\s*\/\s*mois|\bHT par mois|€\s*HT\b/, HORS_TAXES = /hors[ -]taxes?/i;
   const relus = SERVIS.filter(f => !APPLICATIONS.test(f));
   vrai('population : ' + relus.length + ' fichiers servis relus (hors applications : ' + SERVIS.filter(f => APPLICATIONS.test(f)).join(', ') + ')', relus.length > 40);

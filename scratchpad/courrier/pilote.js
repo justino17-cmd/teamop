@@ -1,5 +1,5 @@
-/* Pilote commun des sondes d'OP Courrier (bêta) — playwright-core + le Chromium de l'image, rien d'autre.
-   ⛔ 127.0.0.1 UNIQUEMENT, la page `courrier-beta.html` du dépôt (jamais teamop.fr, jamais app.html), UNE seule instance de navigateur
+/* Pilote commun des sondes d'OP Courrier — playwright-core + le Chromium de l'image, rien d'autre.
+   ⛔ 127.0.0.1 UNIQUEMENT, la page d'essai `scratchpad/courrier/essai.html` (le MODULE `opcourrier.js` monté avec sa source de démonstration ; jamais teamop.fr, jamais app.html), UNE seule instance de navigateur
    à la fois, tuée à la fin.
    `playwright-core` n'est PAS dans le dépôt (aucune dépendance) : l'installer dans un dossier HORS dépôt et le désigner,
        mkdir -p /tmp/pw && (cd /tmp/pw && npm i playwright-core) ; NODE_PATH=/tmp/pw/node_modules node scratchpad/courrier/ctx_check.js
@@ -14,7 +14,7 @@ let pw; try { pw = require('playwright-core'); } catch (e) { console.error('play
 function servir() {
   const srv = http.createServer((q, r) => {
     const u = decodeURIComponent(q.url.split('?')[0].split('#')[0]);
-    const f = path.join(RACINE, u === '/' ? 'courrier-beta.html' : u);
+    const f = path.join(RACINE, u === '/' ? 'scratchpad/courrier/essai.html' : u);
     if (!f.startsWith(RACINE)) { r.writeHead(403); return r.end(); }
     fs.readFile(f, (e, d) => { if (e) { r.writeHead(404); return r.end(); }
       r.writeHead(200, { 'Content-Type': f.endsWith('.js') ? 'text/javascript' : f.endsWith('.png') ? 'image/png' : 'text/html;charset=utf-8' }); r.end(d); });
@@ -33,7 +33,9 @@ async function ouvrir() {
   };
   const fermer = async () => { try { await b.close(); } catch (e) { /* déjà fermé */ } srv.close(); };
   /* `b` se comporte comme le navigateur de la maquette (`b.newContext`, `b.close`) mais passe par le garde-fou ci-dessus */
-  return { b: { newContext: ctxPour, close: fermer }, base, url: base + '/courrier-beta.html', ctxPour, sorties, fermer };
+  /* `url` : la page d'essai ; `avec('mode=reel&cotes=pro')` : la même avec ses paramètres */
+  const url = base + '/scratchpad/courrier/essai.html';
+  return { b: { newContext: ctxPour, close: fermer }, base, url, avec: (q) => url + '?' + q, ctxPour, sorties, fermer };
 }
 /* le bilan commun : les lignes, le total, ce qui est sorti du navigateur (doit être VIDE) ; code de sortie 1 au moindre ✗ */
 async function bilan(R, P, attendu) {

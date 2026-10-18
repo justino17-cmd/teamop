@@ -1,5 +1,5 @@
-/* PORTÉ de la maquette (maquette/ctx_check.js) : la même série de contrôles, sur la VRAIE page `courrier-beta.html` servie en local sur 127.0.0.1.
-   Ce qui change : playwright-core + le Chromium de l'image (pilote.js), la clé de stockage `opcourrierB_v2`, et plus de bouton de thème
+/* PORTÉ de la maquette (maquette/ctx_check.js) : la même série de contrôles, sur le MODULE `opcourrier.js` monté dans la page d'essai (source de démonstration), servi en local sur 127.0.0.1.
+   Ce qui change : playwright-core + le Chromium de l'image (pilote.js), la clé de stockage `opcourrierEssai_ui`, et plus de bouton de thème
    (le jour et la nuit se posent par `colorScheme`, c'est-à-dire par le média de l'appareil). Aucun octet ne sort : le pilote refuse tout ce qui
    n'est pas 127.0.0.1 et le COMPTE (`sorties`). Voir l'en-tête de pilote.js pour lancer. */
 const { ouvrir, bilan } = require('./pilote.js'); const path=require('path');

@@ -1,5 +1,5 @@
-/* PORTÉ de la maquette (maquette/sign_check.js) : la même série de contrôles, sur la VRAIE page `courrier-beta.html` servie en local sur 127.0.0.1.
-   Ce qui change : playwright-core + le Chromium de l'image (pilote.js), la clé de stockage `opcourrierB_v2`, et plus de bouton de thème
+/* PORTÉ de la maquette (maquette/sign_check.js) : la même série de contrôles, sur le MODULE `opcourrier.js` monté dans la page d'essai (source de démonstration), servi en local sur 127.0.0.1.
+   Ce qui change : playwright-core + le Chromium de l'image (pilote.js), la clé de stockage `opcourrierEssai_ui`, et plus de bouton de thème
    (le jour et la nuit se posent par `colorScheme`, c'est-à-dire par le média de l'appareil). Aucun octet ne sort : le pilote refuse tout ce qui
    n'est pas 127.0.0.1 et le COMPTE (`sorties`). Voir l'en-tête de pilote.js pour lancer. */
 const { ouvrir, bilan } = require('./pilote.js'); const path=require('path');
@@ -33,7 +33,7 @@ async function run(b,label,vp,scheme){
   await p.fill('#spCode','123456'); await p.locator('#spGo').click(); await p.waitForTimeout(300);
   log((await p.textContent('.sign-card')).includes('Télécharger le PDF signé'),label+': document signé par tous');
   log(await p.locator('.attbar .att').count()===3,label+': PDF signé + dossier de preuve joints');
-  const n=await p.evaluate(()=>{const r=JSON.parse(localStorage.getItem('opcourrierB_v2')); return r.user.filter(m=>/^Document signé/.test(m.subject)).map(m=>m.folder);});
+  const n=await p.evaluate(()=>{const r=JSON.parse(localStorage.getItem('opcourrierEssai_ui')); return r.user.filter(m=>/^Document signé/.test(m.subject)).map(m=>m.folder);});
   log(n.length===1&&n[0]==='inbox',label+': mail « Document signé » dans la réception '+JSON.stringify(n));
   // compose entry
   await p.locator('#btnCompose').click(); await p.waitForTimeout(200);

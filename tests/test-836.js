@@ -289,7 +289,6 @@ console.log('\n══ 9. TOUTES LES PAGES DU DÉPÔT : AUCUN BOUTON DE MODE HORS
     'messages.html': 'OP MESSAGES (fermée, OPMSG_EN_TRAVAUX) : son propre thème d\'application',
     'messages-beta.html': 'OP MESSAGES bêta : même thème',
     'server-msg/public/index.html': 'le front d\'OP MESSAGES servi par SON serveur (étape 1) : une application, pas une page du site — il suit l\'appareil (prefers-color-scheme), sans bouton, et déclare color-scheme pour que ses champs suivent aussi',
-    'courrier-beta.html': 'OP Courrier bêta (18 octobre 2026) : une application — la messagerie e-mail de TeamOP, pas une page du site. Elle suit l\'appareil (prefers-color-scheme), sans bouton ni data-theme (test-2701), et déclare color-scheme dans sa feuille (:root de jour, :root de nuit) : sa politique de sécurité n\'a aucune feuille commune à charger',
     'tour.html': 'la Tour : la console du patron, avec son propre jour et nuit — ce n\'est pas le site',
     'apercu/tour.html': 'la Tour en aperçu : même chose',
     'apercu/opmessages/index.html': 'OP MESSAGES en aperçu (écrans du paquet) : page d\'application, qui n\'a aucune feuille commune (CSP default-src \'none\') et déclare donc son color-scheme elle-même (meta + :root) — jour/nuit par prefers-color-scheme, sans bouton',

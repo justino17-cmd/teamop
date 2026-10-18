@@ -1,4 +1,4 @@
-// PORTÉ de la maquette (maquette/audit_contrast.js) sur la VRAIE page `courrier-beta.html`, servie en local (127.0.0.1) — voir l'en-tête de pilote.js.
+// PORTÉ de la maquette (maquette/audit_contrast.js) sur le MODULE `opcourrier.js` monté dans la page d'essai (source de démonstration), servi en local (127.0.0.1) — voir l'en-tête de pilote.js.
 // Audit de contraste WCAG AA (texte) d'OP Courrier : Mac, iPad, iPhone × clair / sombre. Le thème suit l'appareil (média prefers-color-scheme), plus de
 // bouton ni de data-theme : le mode « sombre-attr » de la maquette n'existe plus (3 formats × 2 = 6 combinaisons, et non 9).
 // Usage : node audit_contrast.js  → liste les textes sous 4,5:1 (3:1 pour le grand texte). Code de sortie 1 si échec.
@@ -33,9 +33,10 @@ const measure = () => {
     for (let i = layers.length - 1; i >= 0; i--) { const n = []; for (const alt of layers[i].alts) for (const r of res) n.push(blend(alt, r)); res = n; }
     return res;
   }
-  const overlayOpen = !!document.querySelector('#overlay');
+  const root = document.querySelector('[data-opcourrier]').shadowRoot;
+  const overlayOpen = !!root.querySelector('#overlay');
   const out = [];
-  for (const el of document.querySelectorAll('body *')) {
+  for (const el of root.querySelectorAll('*')) {
     if (['SCRIPT', 'STYLE', 'svg', 'path', 'circle', 'rect', 'OPTION'].includes(el.tagName)) continue;
     let text = Array.from(el.childNodes).filter(n => n.nodeType === 3 && n.textContent.trim()).map(n => n.textContent.trim()).join(' ');
     const ph = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.placeholder && !el.value;
@@ -68,6 +69,10 @@ const measure = () => {
   let fails = 0;
   for (const [vpName, vp] of vps) for (const [label, scheme, attr] of modes) {
     const ctx = await browser.newContext({ viewport: vp, colorScheme: scheme, reducedMotion: 'reduce' });
+    /* un message PROGRAMMÉ et un brouillon, écrits par la personne : ils vivent sur l'appareil, la source de démonstration n'en connaît pas */
+    await ctx.addInitScript(() => { const now = Date.now(); localStorage.setItem('opcourrierEssai_ui', JSON.stringify({ v: 4, scope: 'pro', folder: 'inbox', cat: 'principal', rules: { senders: {}, domains: {} }, contacts: [], settings: { notif: true, threads: true }, kinds: {}, names: {}, sigs: {}, msgs: {}, gone: [],
+      user: [{ id: 'm1', acct: 'a1', folder: 'scheduled', from: null, to: 'equipe@exemple.fr', subject: 'Rappel : point hebdo mardi 9 h 30', preview: 'Rappel du point hebdomadaire.', body: ['Bonjour,', 'Rappel du point hebdomadaire de mardi.'], read: true, flagged: false, vip: false, att: [], user: true, at: now - 3600000, sendAt: now + 86400000 },
+              { id: 'm2', acct: 'a1', folder: 'drafts', from: null, to: 'client@exemple.fr', subject: 'Réponse à votre proposition', preview: 'Bonjour, merci pour votre proposition.', body: ['Bonjour, merci pour votre proposition.'], read: true, flagged: false, vip: false, att: [], user: true, at: now - 7200000 }] })); });
     const page = await ctx.newPage();
     const errs = []; page.on('pageerror', e => errs.push(String(e)));
     await page.goto(url);
@@ -114,9 +119,9 @@ const measure = () => {
     await page.locator('.side-foot [data-addaccount]').click(); await page.locator('#aManual').click(); await page.locator('.prov[data-prov="gmail"]').click(); await snap('connexion OAuth');
     await page.fill('#kMail', 'x@gmail.com'); await page.locator('#kGo').click(); await snap('type de boîte : erreur');
     await page.locator('#kKind [data-kind="perso"]').click(); await snap('type de boîte : Perso'); await esc();
-    await page.evaluate(() => { const t = document.querySelector('#toast'); t.classList.add('show'); t.innerHTML = '<span>Envoi en cours…</span><button class="undo">Annuler l’envoi</button>'; });
+    await page.evaluate(() => { const t = document.querySelector('[data-opcourrier]').shadowRoot.querySelector('#toast'); t.classList.add('show'); t.innerHTML = '<span>Envoi en cours…</span><button class="undo">Annuler l’envoi</button>'; });
     await snap('toast');
-    await page.evaluate(() => { const t = document.querySelector('#toast'); t.innerHTML = '<span>Déplacé dans Indésirables — les prochains mails de x@y.fr aussi</span><button class="undo">Annuler</button>'; });
+    await page.evaluate(() => { const t = document.querySelector('[data-opcourrier]').shadowRoot.querySelector('#toast'); t.innerHTML = '<span>Déplacé dans Indésirables — les prochains mails de x@y.fr aussi</span><button class="undo">Annuler</button>'; });
     await snap('toast');
     const agg = new Map();
     for (const [st, arr] of res) for (const r of arr) { const k = r.sel + '|' + r.bg + '|' + r.ratio; if (!agg.has(k)) agg.set(k, Object.assign({ st }, r)); }

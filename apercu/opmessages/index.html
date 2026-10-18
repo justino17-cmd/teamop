@@ -6926,16 +6926,6 @@ a.menu-action { text-decoration: none; }
      sa page (une couche d'historique : le retour système la referme). Au bureau (≥ 1 100 px), la liste à gauche et la rubrique à droite, comme Réglages Système sur Mac.
      ⛔ Les cartes des rubriques gardent LEURS identifiants (`reg-conf`, `reg-notif`, `reg-stock`…) : elles sont toutes posées dans la page, une seule est montrée — les peintres, les gestes et la
      relecture des réglages n'ont pas changé d'un octet. */
-  /* ══ OP COURRIER (bêta, 18 octobre 2026) — l'entrée du canal d'essai ══
-     OP Courrier est la messagerie e-mail de TeamOP. Elle n'existe qu'en bêta : `courrier-beta.html` sur teamop.fr, où aucun vrai mail n'est lu ni envoyé tant que son
-     serveur n'existe pas. L'entrée ne se montre QUE sur le canal bêta d'OP MESSAGES (`msg-beta.teamop.fr`) : jamais sur la production (`msg.teamop.fr`), jamais sur l'aperçu publié
-     (`teamop.fr/apercu/…`). La page ne se reconnaît qu'à son NOM D'HÔTE — c'est la seule chose qui sépare les deux canaux : l'interface servie est la même octet pour octet.
-     Elle ouvre le côté où l'on est (`etat.mode`, Perso ou Pro) dans un NOUVEL onglet (`noopener`) : naviguer dans celui-ci couperait un appel en cours. Rien d'OP MESSAGES
-     ne part avec le lien, et rien n'est branché sur le service ni sur le socle d'OP GESTION (décision du 22 septembre 2026 : deux serveurs, deux modèles d'identité). */
-  const COURRIER_PAGE = '/courrier-beta.html';
-  const courrierBeta = () => /^msg-beta\.teamop\.fr$/i.test(location.hostname);
-  /* l'adresse se DÉDUIT du canal (msg-beta.teamop.fr → teamop.fr) : aucune adresse écrite en dur dans une page qui ne charge rien d'ailleurs */
-  const courrierUrl = () => location.protocol + '//' + location.hostname.replace(/^msg-beta\./i, '') + COURRIER_PAGE + '#' + (etat.mode === 'pro' ? 'pro' : 'perso');
   const regLigne = (sec, teinte, ic, titre, valeur) => '<button type="button" class="reglage reg-ligne-sec presse" data-reg-sec="' + sec + '" aria-controls="reg-sec-' + sec + '">' +
     '<span class="reg-tuile t-' + teinte + '" aria-hidden="true">' + icone(ic) + '</span><span class="reglage-texte">' + esc(titre) + '</span>' + (valeur || '') + CHEVRON + '</button>';
   const regSection = (sec, titre, corps) => '<section class="reg-sec" id="reg-sec-' + sec + '" data-sec="' + sec + '" aria-labelledby="reg-titre-' + sec + '" hidden>' +
@@ -6988,7 +6978,6 @@ a.menu-action { text-decoration: none; }
           (CAP.compte ? regLigne('compte', 'bleu', 'i-personne', 'Mes données et mon compte') : '') +
           regLigne('apropos', 'gris', 'i-info', 'À propos', '<span class="reglage-valeur" id="reg-v-apropos"></span>') +
         '</div>' +
-        (courrierBeta() ? '<div class="carte"><button type="button" class="reglage presse" id="reg-courrier"><span class="reg-tuile t-bleu" aria-hidden="true">' + icone('i-courriel') + '</span><span class="reglage-texte">OP Courrier<small>Bêta — aucun vrai mail n\'est lu ni envoyé</small></span>' + CHEVRON + '</button></div>' : '') +
         '<div class="carte"><button type="button" class="reglage presse danger" id="reg-sortir"><span class="reg-tuile t-rouge" aria-hidden="true">' + icone('i-sortie') + '</span><span class="reglage-texte">Se déconnecter</span></button></div>' +
       '</div><div class="reg-detail">' +
         (CAP.espaces ? regSection('entreprise', 'Entreprise et abonnement', '<div class="rubrique"><span>Mes espaces</span><span id="reg-esp-n"></span></div><div class="carte" id="reg-esp"></div><div class="rubrique"><span>Abonnement</span></div><div class="carte" id="reg-abo"></div>') : '') +
@@ -7014,8 +7003,6 @@ a.menu-action { text-decoration: none; }
   }
   /* revenir sur la page (après avoir autorisé les notifications dans les réglages du navigateur, par exemple) relit l'état affiché dans Réglages */
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && CAP.notifications && etat.route && etat.route.vue === 'reglages' && !reg.notifOccupe && $('reg-notif')) chargerReglages(); });
-  /* OP Courrier (bêta) : l'entrée de Réglages ouvre la messagerie, du côté où l'on est */
-  $('vue-reglages').addEventListener('click', e => { if (!e.target.closest('#reg-courrier') || !courrierBeta()) return; window.open(courrierUrl(), '_blank', 'noopener'); });
   /* les deux heures de travail : une heure se règle à la molette ou au clavier, elle s'enregistre quand on la lâche (« change ») ; début = fin n'est pas une plage */
   $('vue-reglages').addEventListener('change', e => {
     const x = e.target; if (!x || (x.id !== 'reg-hp-debut' && x.id !== 'reg-hp-fin') || !reg.notif || !reg.notif.heuresPro || reg.notifOccupe) return;
