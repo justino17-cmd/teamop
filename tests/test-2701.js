@@ -86,7 +86,8 @@ vrai('la clé est « opcourrierB_v2 » (bêta) et la clé de la maquette n\'exis
 v('une seule clé de stockage dans tout le fichier', Array.from(new Set(Array.from(CODE.matchAll(/["'](opcourrier[A-Za-z_.0-9]*)["']/g)).map(m => m[1]))), ['opcourrierB_v2']);
 v('ni sessionStorage, ni indexedDB, ni cookie', ['sessionStorage', 'indexedDB', 'document.cookie'].filter(x => CODE.includes(x)), []);
 const persistance = tranche('Persistance (persist, restore, acctExists, validScope)', '  var LS="opcourrierB_v2"', '  // ---------- Dates');
-v('⛔ tout accès au stockage est DANS persist ou restore, et chacun est dans un try', [/function persist\(\)\{ try\{/.test(persistance), /function restore\(\)\{ try\{/.test(persistance), (CODE.match(/localStorage/g) || []).length === (persistance.match(/localStorage/g) || []).length], [true, true, true]);
+v('⛔ le stockage n\'est touché que deux fois dans tout le fichier : l\'écriture de persist et la lecture de restore, chacune DANS un try', [(CODE.match(/localStorage/g) || []).length, (persistance.match(/localStorage/g) || []).length,
+  /function persist\(\)\{ try\{[^]*?localStorage\.setItem\(LS,JSON\.stringify\(snap\)\);\s*\}catch\(e\)\{\}/.test(persistance), /function restore\(\)\{ try\{\s*var raw=localStorage\.getItem\(LS\);[^]*?\}catch\(e\)\{\} \}/.test(persistance)], [2, 2, true, true]);
 function bacPersistance(stock, instantane) {
   const sb = { MESSAGES: [{ id: 'm1', read: true, flagged: false, folder: 'inbox', acct: 'a1' }, { id: 'm2', read: false, flagged: true, folder: 'sent', acct: 'a1', user: true, att: [] }],
     ACCOUNTS: [{ id: 'a1', kind: 'pro', name: 'A', email: 'a@x.fr', signature: '' }, { id: 'a2', kind: 'perso', name: 'B', email: 'b@y.fr', signature: '' }, { id: 'a3', kind: 'perso', name: 'C', email: 'c@z.fr' }],
@@ -160,7 +161,7 @@ function bacAjout(opts) {
     v('⛔ quitter le champ : UNE requête, et elle ne porte que le nom de domaine', a.fetchs, ['https://dns.google/resolve?name=societe-exemple.fr&type=MX']);
     vrai('…le service est reconnu (OVH, serveurs IMAP proposés) et le bouton dit « Se connecter »', /OVH/.test(a.el('#aDet').innerHTML) && a.el('#aGo').textContent === 'Se connecter' && a.el('#aImap').value === 'ssl0.ovh.net');
     a.quitte(); a.quitte(); await a.vide();
-    v('quitter le champ plusieurs fois ne refait pas la demande (le même domaine est déjà reconnu)', a.fetchs.length <= 2, true); }
+    v('quitter le champ plusieurs fois ne refait pas la demande (le même domaine est déjà en mémoire)', a.fetchs.length, 1); }
   { const a = bacAjout(); a.tape('paul@autre-societe.fr'); a.entree(); await a.vide(); a.quitte(); await a.vide();
     v('⛔ Entrée : UNE requête (et le « change » qui suit ne la double pas)', a.fetchs, ['https://dns.google/resolve?name=autre-societe.fr&type=MX']); }
   { const a = bacAjout(); a.tape('paul@encore-une-societe.fr'); a.el('#aGo').click(); await a.vide();
