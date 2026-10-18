@@ -142,7 +142,7 @@ const REPONSES = [
       return { fmt: eval(sr).querySelector('.opc').getAttribute('data-fmt'), larg: Math.round(r.width), haut: Math.round(r.height), bas: Math.round(r.bottom), fenetre: innerHeight, page: document.documentElement.scrollWidth - innerWidth, module: root.scrollWidth - root.clientWidth }; }, SR);
     const m = await mesure();
     log(m.page <= 1 && m.module <= 1, nom + ' : aucun défilement latéral (page ' + m.page + ' px, module ' + m.module + ' px) — format ' + m.fmt + ', zone ' + m.larg + '×' + m.haut);
-    log(m.haut >= 360 && m.bas <= m.fenetre + 1, nom + ' : la zone prend ce qui reste de la fenêtre, sans la dépasser (bas à ' + m.bas + ' sur ' + m.fenetre + ')');
+    log(m.haut >= 360 && m.bas <= m.fenetre + 1 && m.bas >= m.fenetre - 130, nom + ' : la zone REMPLIT ce qui reste de la fenêtre (bas à ' + m.bas + ' sur ' + m.fenetre + ' : au plus 130 px de marge pour le rembourrage de la page et la barre d’onglets), sans la dépasser');
     await p.locator('#btnCompose').click(); await p.waitForTimeout(400);
     const haut = await p.evaluate(() => { const e = document.elementFromPoint(innerWidth / 2, 6); return e ? (e.id || e.tagName + '.' + String(e.className).slice(0, 30)) : null; });
     log(await p.evaluate(() => !!document.querySelector('[data-opcourrier]').shadowRoot.querySelector('#overlay')) && /^DIV$|^DIV\./.test(String(haut)) && await p.evaluate(() => document.elementFromPoint(innerWidth / 2, 6) === document.querySelector('[data-opcourrier]')), nom + ' : la feuille « Nouveau message » passe AU-DESSUS de la barre d’OP GESTION (pile en haut de l’écran : ' + haut + ')');

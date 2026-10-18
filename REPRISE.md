@@ -36,7 +36,7 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
     `APP_VERSION` 768 → **769** (`beta.html` : 769-beta) ; le cache du service worker n'est PAS touché.
   · **Premier affichage = VIDE** : « Aucune boîte mail connectée » + « Ajouter une boîte mail ». Aucune donnée d'exemple, aucune boîte reprise de l'ancienne configuration en silence.
   · **Retiré** : `courrier-beta.html`, son entrée dans la rangée SUITE de `beta-build.js`, la carte « OP Courrier » des Réglages d'OP MESSAGES (`apercu/opmessages/` et `server-msg/public/` redevenus
-    ceux d'avant), `tests/test-2701.js`, `tests/sonde-opmessages-courrier.js`, `fabriquer-page.js`, `mutations-courrier.py` (à refaire sur le module : voir plus bas).
+    ceux d'avant), `tests/test-2701.js`, `tests/sonde-opmessages-courrier.js`, `fabriquer-page.js`, `mutations-courrier.py` (remplacé par `mutations-module.py`).
 - **Ce que la personne voit en « Bientôt » dans OP GESTION** (le serveur d'aujourd'hui ne le fait pas ; `capacites()` le déclare) : connexion Google / Yahoo par OAuth → « mot de passe d'application » ;
   Microsoft (Hotmail / Outlook) → « cette adresse ne peut pas être connectée pour l'instant » (Microsoft refuse les mots de passe) ; envoi programmé (dossier « Programmés » + bouton « Programmer »),
   signature électronique (dossier « Signatures », pas de « Faire signer »), plusieurs destinataires (un seul pour l'instant), réglages de serveur (le serveur choisit les siens), lu / non lu et
@@ -61,7 +61,8 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
   · `onCompter(n)` est reçu par OP GESTION (`window._courrierNonLus`) mais aucune pastille de menu ne l'affiche encore.
   · `/api/replies` ne rend ni état lu, ni pièces jointes, ni dossier : le « lu » est local, une pièce jointe reçue ne se voit pas, le texte est celui que le serveur a gardé (2 000 signes).
   · Safari / un vrai appareil : le Chromium de l'image rend DejaVu (plus large que SF Pro) et n'a pas de popover tactile réel ; l'iPad portrait et l'iPhone sont mesurés à largeur de conteneur, pas sur un appareil.
-  · `mutations-courrier.py` (31 mutations de la page) est retiré avec la page : les mutations du module sont à refaire si le module bouge (`tests/test-2702.js` est le garde).
+  · les mutations : `python3 scratchpad/courrier/mutations-module.py` (19 défauts remis un par un, TOUS tombent ; `--navigateur` : 5 de plus, que seules les sondes voient). La première passe en a laissé
+    passer UNE (un envoi refusé resté « Envoyé ») : le motif de `test-2702` voyait un autre endroit du fichier — il joue désormais la vraie `expedier`. Les 31 mutations de l'ancienne page sont retirées avec elle.
 
 ---
 
