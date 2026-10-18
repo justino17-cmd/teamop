@@ -13,48 +13,55 @@ de ligne du tout.
 
 ---
 
-# ⏳ OP COURRIER — ÉTAPE 1 EN BÊTA (18 octobre 2026)
+# ⏳ OP COURRIER — UN MODULE PARTAGÉ, MONTÉ DANS OP GESTION (BÊTA) ; LA TOUR ET OP MESSAGES PRO SUIVENT (18 octobre 2026)
 
-Justin a validé la maquette d'**OP Courrier**, la messagerie e-mail de TeamOP (côtés Pro et Perso, tri automatique, signature électronique).
-Étape 1 : **l'interface seule, en bêta**. Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). Aucun vrai mail n'est lu ni
-envoyé : la bêta le DIT partout (« Bêta — aucun vrai mail n'est lu ni envoyé »).
+Justin a validé la maquette d'**OP Courrier** (messagerie e-mail de TeamOP : côtés Pro et Perso, tri automatique, signature électronique), puis changé d'avis sur sa forme :
+« je veux pas que ça soit une application à part ; je veux que ça remplace Mail, qui est actuel dans OP GESTION et dans la Tour, et que tu l'ajoutes au côté Pro d'OP MESSAGES » ;
+« tu remplaces tous les systèmes de mail qu'on avait créés par celui-là » ; « la maquette c'était pour tester, quand tu l'intègres dans les applications c'est VIDE, les gens doivent se
+connecter à leur mail, comme nous dans la Tour — on devra se reconnecter au mail de la Tour ».
+Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `server/` n'est PAS touché (aucune route neuve : ce que le serveur d'aujourd'hui ne sait pas faire est dit « Bientôt »).
 
-- **Ce qui est fait**
-  · `courrier-beta.html` (racine, donc dans le site assemblé) : la maquette portée, mêmes classes, mêmes fonctions, mêmes trois formats (Mac ≥ 1000 px,
-    iPad, iPhone). Enveloppe `noindex`, icônes TeamOP du dépôt, **politique de sécurité** qui ne laisse sortir que `dns.google` et `cloudflare-dns.com`.
-  · Retiré de la maquette : le bouton de thème (`#btnTheme`, `toggleTheme`, les trois emplacements), tout `data-theme` (le jour et la nuit suivent
-    l'appareil par `prefers-color-scheme`, règle du 29 septembre), le mot « Maquette » (pastille, notes, état). Clé de stockage `opcourrierB_v2`.
-  · **Mode démo** = un drapeau (`DEMO=!window.OPCOURRIER_SERVEUR`) : messages d'exemple, mail qui « arrive » après 3 min, « Simuler la signature du client »,
-    « Recevoir un mail d'exemple », connexion et envoi simulés. Le jour où le serveur existe, il pose `window.OPCOURRIER_SERVEUR` AVANT la page : la démo s'éteint
-    d'un coup et ajouter une boîte / envoyer REFUSENT honnêtement (« pas encore relié à un serveur »).
-  · **La lecture du MX derrière un geste** : jamais pendant la frappe ; une demande (le seul nom de domaine) quand on quitte le champ, sur Entrée ou sur
-    « Vérifier la messagerie » ; aucune quand la feuille se ferme ; aucune pour Gmail, Outlook, iCloud… (table). Réseau refusé : retombe sur `mail.<domaine>`, en le disant.
-  · **Le côté d'ouverture** : `courrier-beta.html#pro` / `#perso` (le hash gagne sur le côté mémorisé et suit le côté choisi).
-  · **OP GESTION bêta** : `beta-build.js` ajoute « OP Courrier » (→ `courrier-beta.html#pro`) à la liste SUITE de `beta.html` ; la barre SUITE reste visible en bêta
-    (`BETA_ESSAI`). `app.html` n'est PAS touchée (test-2701 le garde dans les deux sens) ; la fabrique REFUSE si l'une de ses trois ancres disparaît d'`app.html`.
-  · **OP MESSAGES bêta** : une carte « OP Courrier » dans Réglages, visible **seulement** sous le nom d'hôte `msg-beta.teamop.fr` (jamais `msg.teamop.fr`), qui ouvre
-    le côté courant dans un NOUVEL onglet. Source : `apercu/opmessages/index.html`, `server-msg/public/` régénéré (`OPMSG_VERSION` 244). Rien n'est branché sur un serveur.
-  · `sw.js` : `courrier-beta.html` n'est jamais mise en cache (comme `beta.html`).
-  · Le moteur de tri (`tests/courrier-moteur-tri/`, 39 + 60 + 60 + 72 mails) : le même texte est embarqué dans la page et jugé par les quatre bancs.
-- **Les bancs** : `tests/test-2700.js` (le moteur de tri DE LA PAGE, identique à la référence, 100 % sur 231 cas, aucun légitime en indésirable) ;
-  `tests/test-2701.js` (la page : enveloppe, thème, ressources externes, stockage qui jette, lecture du MX derrière un geste — la vraie `openAddAccount` rejouée —,
-  mode démo, côté d'ouverture, entrées, site) ; `tests/sonde-opmessages-courrier.js` (l'entrée dans la vraie page d'OP MESSAGES servie par son vrai service, sous trois
-  noms d'hôte). Les sondes navigateur sont sous `scratchpad/courrier/` (ctx 16, miss 50, sign 48, contraste AA 6 combinaisons, bascule 48) ; `mutations-courrier.py` :
-  31 mutations, toutes font tomber un banc. Lancer : voir l'en-tête de `scratchpad/courrier/pilote.js` (`playwright-core` HORS dépôt, `NODE_PATH`).
-- **Ce qui reste SIMULÉ** : tout. Les messages, les boîtes (Justin Bruel / Justin), l'envoi, l'envoi programmé, la connexion d'une boîte (OAuth ou IMAP), la
-  signature électronique (Yousign) et ses relances, les notifications. Le tri est local (pas de SPF/DKIM/DMARC, pas d'IA). Le MX est lu par la page — la version
-  finale le fera sur le serveur d'OP Courrier, et `lireMX` disparaîtra de la page.
-- **Ce qui attend Justin**
-  · **où héberger le serveur d'OP Courrier** (pas sur le VPS Team Op — décision de Justin ; voir `PHASE-2-SERVEUR.md` du paquet) ;
-  · **les comptes développeur** : Google Cloud (OAuth Gmail), Microsoft (Outlook / 365) et Yousign — il les crée, Claude ne tape jamais ses mots de passe ;
-  · **le prix de Yousign** (à vérifier sur leur site) ;
-  · **la phrase pour publier** : `courrier-beta.html`, `beta.html`, `beta-build.js`, `sw.js`, `apercu/opmessages/` et `server-msg/public/` ne partent sur `main` que sur sa
-    phrase. ⚠️ `server-msg/public/` est déployé par `deploiement-messages.yml` dès qu'il part sur `main` ; ⚠️ `sw.js` change (une ligne d'exclusion, `CACHE` inchangé).
-  · un nom propre à l'écran : la maquette appelle les deux boîtes d'exemple « Justin Bruel » / « Justin » — à garder pour la démo ou à rendre neutres.
-- **Dettes et doutes connus** : la page ne se teste pas avec les vraies polices système d'un appareil (SF Pro) : le Chromium de l'image rend DejaVu, plus large — la pastille longue
-  passe à la ligne sous le grand titre sur iPad. Un navigateur sans `color-mix()`/requêtes récentes n'est pas géré (comme le reste du dépôt). `verifier-theme.js courrier-beta.html`
-  ne mesure pas les contrastes de cette page (pas de `data-theme`) : c'est `audit_contrast.js` (AA, 6 combinaisons) qui le fait. Le paquet de Justin parle de `messages-beta.html` pour
-  OP MESSAGES ; l'interface réellement servie sur `msg-beta.teamop.fr` est `server-msg/public/` (généré depuis `apercu/opmessages/`) — `messages-beta.html` (l'ancien « pont ») n'a pas d'entrée.
+- **Ce qui est fait (moitié 1 : le module et OP GESTION bêta)**
+  · **`opcourrier.js`** (racine, donc dans le site assemblé) : `OPCourrier.monter(conteneur, options)` → `{demonter(), cote(c), rafraichir()}`. Le contrat des options et de l'ADAPTATEUR de données est
+    écrit en tête du fichier. Un ARBRE D'OMBRE (la feuille ne touche pas l'hôte, celle de l'hôte ne le touche pas ; `all:initial` contre l'héritage), une feuille construite UNE fois et partagée,
+    tout sous `.opc`. Le calque (feuilles, menus, notification) est promu dans la COUCHE SUPÉRIEURE du navigateur (popover manuel) : il passe au-dessus de la barre de l'hôte. Le format (Mac ≥ 1000,
+    iPad, iPhone) se décide sur la LARGEUR DU CONTENEUR (`data-fmt`, ResizeObserver), jamais sur l'écran (le menu d'OP GESTION prend 258 px). Jour / nuit : `options.theme()`, vu aussi quand l'hôte
+    change `data-theme` sur `<html>` ; à défaut l'appareil. Aucun `fetch` : tout passe par la source.
+  · **La source d'exemple n'est PLUS dans le module** : `scratchpad/courrier/source-demo.js` (noms et adresses inventés, modes `demo | reel | vide | panne | panne-messages | refus | differe`) et la page
+    d'essai `scratchpad/courrier/essai.html`. `tests/test-2702.js` cherche chaque expéditeur et chaque objet de cette source dans `opcourrier.js`, `beta.html`, `app.html` et `beta-build.js` : zéro.
+  · **OP GESTION bêta** : `views.boiteMail` prend `courrierVue()` en PREMIÈRE instruction SI `BETA_ESSAI` ; en production, la vue d'avant, octet pour octet (empreinte dans `tests/test-2703.js`).
+    `courrierSource()` (dans `app.html`, à côté) branche le module sur les vraies routes : `/api/mailboxes`, `/api/replies` (une lecture par relevé), `/api/sendmail` (`useMailbox`, pièces en base64),
+    `/api/mailbox/connect` et `/disconnect`. Un refus (403, `text/plain`) REJETTE : « Boîtes mail illisibles » / « Réception indisponible », jamais « Aucune boîte connectée » (les trois états de
+    `_mailboxes`). `opcourrier.js` est chargé à l'OUVERTURE de la vue (`courrierCharger`), pas au démarrage. Clé de stockage `<préfixe>_courrier` (`elanB_courrier` en bêta), VIDÉE par `espaceQuitter`.
+    `APP_VERSION` 768 → **769** (`beta.html` : 769-beta) ; le cache du service worker n'est PAS touché.
+  · **Premier affichage = VIDE** : « Aucune boîte mail connectée » + « Ajouter une boîte mail ». Aucune donnée d'exemple, aucune boîte reprise de l'ancienne configuration en silence.
+  · **Retiré** : `courrier-beta.html`, son entrée dans la rangée SUITE de `beta-build.js`, la carte « OP Courrier » des Réglages d'OP MESSAGES (`apercu/opmessages/` et `server-msg/public/` redevenus
+    ceux d'avant), `tests/test-2701.js`, `tests/sonde-opmessages-courrier.js`, `fabriquer-page.js`, `mutations-courrier.py` (à refaire sur le module : voir plus bas).
+- **Ce que la personne voit en « Bientôt » dans OP GESTION** (le serveur d'aujourd'hui ne le fait pas ; `capacites()` le déclare) : connexion Google / Yahoo par OAuth → « mot de passe d'application » ;
+  Microsoft (Hotmail / Outlook) → « cette adresse ne peut pas être connectée pour l'instant » (Microsoft refuse les mots de passe) ; envoi programmé (dossier « Programmés » + bouton « Programmer »),
+  signature électronique (dossier « Signatures », pas de « Faire signer »), plusieurs destinataires (un seul pour l'instant), réglages de serveur (le serveur choisit les siens), lu / non lu et
+  déplacements gardés SUR L'APPAREIL (pas sur le serveur), dossiers Envoyés / Archive / Corbeille / Brouillons locaux (la réception seule vient du serveur). Pièces jointes : 3 fichiers, 4 Mo (limites de
+  `/api/sendmail`).
+- **Les bancs et les sondes** : `tests/test-2700.js` (le moteur de tri, joué sur le texte embarqué dans le module), `tests/test-2702.js` (le module : feuille enfermée, aucune donnée d'exemple, réseau,
+  contrat, persistance, traduction de la source), `tests/test-2703.js` (la porte, la vue d'avant intacte, et la VRAIE `courrierSource` contre le VRAI serveur isolé avec un facteur SMTP de banc ; les trois
+  états). Sondes navigateur sous `scratchpad/courrier/` (lancer : voir l'en-tête de `pilote.js` — `playwright-core` HORS dépôt, `NODE_PATH`) : `ctx_check` 16, `miss_check` 50, `sign_check` 48,
+  `audit_contrast` (AA, 6 combinaisons), `sonde-module` 110 (isolement dans les deux sens, format sur le conteneur, calque, côtés, « Bientôt », états, MX, stockage, démontage),
+  `sonde-gestion` 39 (sur `beta.html` : la vue, le menu, jour/nuit, 390 px et bureau, la feuille au-dessus de la barre).
+- **À FAIRE (moitié 2, un autre agent) : la Tour et OP MESSAGES Pro**, avec le MÊME module. Chacun écrit SON adaptateur (contrat en tête d'`opcourrier.js`) et monte :
+  `OPCourrier.monter(zone, {source: maSource, cotes:['pro'], cleStockage:'<clé propre à cette application>', theme:()=>…, onCompter:n=>…})`. OP MESSAGES Pro : `cotes:['pro']` (ou les deux si Perso y
+  vit aussi) ; la Tour : `cotes:['pro']`. ⛔ Les deux PARTENT VIDES : on ne reprend PAS en silence l'ancienne configuration de la boîte de la Tour — la personne se reconnecte à sa messagerie par
+  l'interface (« Ajouter une boîte mail »). OP MESSAGES garde SON serveur et ses comptes de PERSONNES (décision du 22 septembre) : ne pas le rebrancher sur le socle d'OP GESTION. Hôte avec une barre
+  fixe : donner au conteneur une HAUTEUR (voir `courrierAjuster` d'`app.html`) ; le module vit dans un arbre d'ombre, il n'a rien à déconflicter.
+- **Ce qui attend Justin** : où héberger le serveur d'OP Courrier (pas sur le VPS Team Op) ; les comptes développeur Google Cloud (OAuth Gmail), Microsoft (Outlook / 365) et Yousign — il les crée, Claude
+  ne tape jamais ses mots de passe ; le prix de Yousign ; **la phrase pour publier** (`opcourrier.js`, `app.html` v769, `beta.html`, `beta-build.js` ne partent sur `main` que sur sa phrase — et
+  la règle du 23 septembre « rien en version publique tant que le serveur n'est pas séparé de Firebase » tient toujours pour `app.html`).
+- **Dettes et doutes connus**
+  · ⚠️ **`/api/mailbox/connect`, `/disconnect` et `/api/sendmail` ne sont qu'OBSERVÉES (`cleEquipeObserve`) : seules `/api/replies` et `/api/mailboxes` EXIGENT la preuve de clé.** Connaître le `teamId`
+    suffit à envoyer depuis la boîte d'une entreprise ou à la retirer. Hors de ce chantier (aucune route touchée) — à fermer côté serveur ; l'adaptateur présente déjà la preuve partout (`test-2703`).
+  · `onCompter(n)` est reçu par OP GESTION (`window._courrierNonLus`) mais aucune pastille de menu ne l'affiche encore.
+  · `/api/replies` ne rend ni état lu, ni pièces jointes, ni dossier : le « lu » est local, une pièce jointe reçue ne se voit pas, le texte est celui que le serveur a gardé (2 000 signes).
+  · Safari / un vrai appareil : le Chromium de l'image rend DejaVu (plus large que SF Pro) et n'a pas de popover tactile réel ; l'iPad portrait et l'iPhone sont mesurés à largeur de conteneur, pas sur un appareil.
+  · `mutations-courrier.py` (31 mutations de la page) est retiré avec la page : les mutations du module sont à refaire si le module bouge (`tests/test-2702.js` est le garde).
 
 ---
 

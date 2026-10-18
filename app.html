@@ -8372,7 +8372,7 @@ function baseRangementPlein(e){
 }
 function baseRangementRetabli(){ if(!_basePlein) return; _basePlein=false; _basePleinRappel=0;
   try{ setTimeout(()=>{ try{ toast('✓ L’appareil enregistre de nouveau tes données.',4000); }catch(_){} },0); }catch(_){} }
-const APP_VERSION = '768';
+const APP_VERSION = '769';
 /* Le numéro seul, pour le nuage : les règles Firestore comparent des entiers, et « 616-beta »
    (généré par beta-build.js) doit compter comme 616. */
 const APP_VERSION_NUM=parseInt(APP_VERSION,10)||0;
@@ -13508,7 +13508,7 @@ function espaceQuitter(){
     localStorage.removeItem(STORE_KEY);
     localStorage.removeItem(P+'vierge_v1');
     localStorage.setItem(P+'frais','1');
-    ['anthropic_key','devis_code','sync_cfg','annuaire_cache','mail_lus','mail_supp','usage','espace_admin']
+    ['anthropic_key','devis_code','sync_cfg','annuaire_cache','mail_lus','mail_supp','usage','espace_admin','courrier']
       .forEach(k=>{ try{ localStorage.removeItem(P+k); }catch(_){} });
     localStorage.removeItem('op_devis_code');   // même code d'équipe, sous son autre nom
     /* ⛔ LES CLÉS DU SOCLE SE BALAIENT PAR PRÉFIXE, PAS PAR LISTE. `elan_op_haut_<espace>` et
@@ -31390,7 +31390,104 @@ function mailAjusterVeiller(){
   try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(mailAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
 }
 /* ═══ Boîte mail — 3 volets sur ordinateur (dossiers · liste · lecture), pile sur mobile ═══ */
+/* ═══ OP COURRIER (bêta seulement, 18 octobre 2026) — le module partagé `opcourrier.js` REMPLACE la « Boîte mail » ═══
+   Justin : « je veux pas que ça soit une application à part ; je veux que ça remplace Mail ». La messagerie d'OP Courrier est UNE pièce (`opcourrier.js`, montée
+   dans la zone de contenu) ; ce bloc ne fait que deux choses : lui donner de la place, et lui brancher les VRAIES routes de la boîte mail d'aujourd'hui.
+   ⛔ BÊTA SEULEMENT : `views.boiteMail` ne prend ce chemin que si `BETA_ESSAI` est vrai (`beta-build.js`). En production le drapeau vaut `false` : l'ancienne vue est
+   celle d'avant, octet pour octet (`tests/test-2703.js` le garde). `opcourrier.js` n'est chargé qu'à l'ouverture de la vue — jamais au démarrage (budget de poids).
+   ⛔ L'ADAPTATEUR respecte les TROIS ÉTATS de `_mailboxes` et `_mailReplies` (voir plus haut) : un refus du serveur — 403, 429, `text/plain` — est une PANNE qui se dit, jamais
+   une liste vide qui dirait « Aucune boîte connectée » à quelqu'un dont la boîte marche très bien. `!r.ok` se lit AVANT `r.json()`.
+   ⛔ Aucune donnée d'exemple, aucune boîte reprise en silence : la personne CONNECTE sa boîte par l'interface (`/api/mailbox/connect`), puis `/api/mailboxes` et `/api/replies`
+   la relisent. Ce que le serveur d'aujourd'hui ne sait pas faire (OAuth Google/Microsoft, envoi programmé application fermée, signature, dossiers IMAP au-delà de la réception,
+   plusieurs destinataires, lu/non lu côté serveur) est dit « Bientôt » par le module — `capacites()` ci-dessous le déclare. */
+let _courrierInst=null, _courrierChargement=null, _courrierRep=null, _courrierVeille=false, _courrierRaf=0;
+function courrierSource(){
+  let boites=[];   // les dernières boîtes lues : une réponse sans boîte nommée se range dans la première
+  /* un refus se LIT sur le code d'abord ; son corps (JSON ou text/plain) ne sert qu'à dire pourquoi, et peut ne pas se lire */
+  const refus=async(r,defaut)=>{ let d=null; try{ d=await r.json(); }catch(e){}
+    return new Error((d&&d.error)||(r.status===403?'accès refusé par le serveur — la clé de l’entreprise n’est pas reconnue':defaut+' (HTTP '+r.status+')')); };
+  /* UNE lecture de /api/replies par relevé, partagée par les boîtes (le serveur rend toute la réception de l'entreprise d'un coup) */
+  const reponses=()=>{ const t=Date.now(); if(_courrierRep&&t-_courrierRep.t<3000) return _courrierRep.p;
+    const p=(async()=>{ const r=await fetch(PUSH_API+'/api/replies?teamId='+encodeURIComponent(syncTeam()),{headers:await enteteEquipe()});
+      if(!r.ok) throw await refus(r,'Lecture de la réception refusée');
+      const d=await r.json(); if(!Array.isArray(d.replies)) throw new Error('réponse du serveur illisible'); return d.replies; })();
+    _courrierRep={t,p}; p.catch(()=>{ if(_courrierRep&&_courrierRep.p===p) _courrierRep=null; }); return p; };
+  const base64=async(f)=>{ const b=new Uint8Array(await f.arrayBuffer()); let s=''; for(let i=0;i<b.length;i+=0x8000) s+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000)); return btoa(s); };
+  return {
+    async capacites(){ return {oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,reglagesServeur:false,simulation:false,
+      dossiers:['inbox'],destinataires:1,pj:{nombre:3,octets:4*1024*1024}}; },
+    async boites(){
+      const r=await fetch(PUSH_API+'/api/mailboxes?teamId='+encodeURIComponent(syncTeam()),{headers:await enteteEquipe()});
+      if(!r.ok) throw await refus(r,'Lecture des boîtes refusée');
+      const d=await r.json(); if(!Array.isArray(d.mailboxes)) throw new Error('réponse du serveur illisible');
+      boites=d.mailboxes.map(b=>({id:b.id,email:b.email,nom:b.name||String(b.email).split('@')[0],cote:'pro'}));
+      return boites; },
+    async messages({boite,dossier}){
+      if(dossier!=='inbox') return [];
+      const rep=await reponses(), b=boites.find(x=>String(x.id)===String(boite)); if(!b) return [];
+      const premiere=boites[0]&&String(boites[0].id)===String(b.id);
+      return rep.filter(x=>{ const bx=String(x.boite||'').toLowerCase(); return bx?bx===String(b.email).toLowerCase():premiere; })
+        .map(x=>({id:String(x.mid||(x.ts+'|'+x.from)),de:{nom:x.fromName||x.from,email:x.from},a:b.nom,objet:x.subject||'',corps:x.text||'',date:x.ts,lu:false,ancien:!!x.histo,pj:[]})); },
+    async envoyer(m){
+      const atts=[]; for(const f of (m.pieces||[])) atts.push({filename:f.name,content:await base64(f)});
+      const payload={teamId:syncTeam(),to:(String(m.a).match(/[^\s<>,;:"']+@[^\s<>,;:"']+/)||[m.a])[0],subject:m.objet,text:m.texte,useMailbox:{id:m.boite}};
+      if(atts.length) payload.atts=atts;
+      const r=await fetch(PUSH_API+'/api/sendmail',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify(payload)});
+      if(!r.ok) throw await refus(r,'Envoi refusé'); },
+    async ajouterBoite(p){
+      const email=String(p.email||'').trim();
+      if(/@(hotmail|outlook|live|msn)\./i.test(email)) throw new Error('Microsoft (Hotmail / Outlook) refuse la connexion par mot de passe : cette adresse ne peut pas être connectée pour l’instant.');
+      const r=await fetch(PUSH_API+'/api/mailbox/connect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),email,pass:p.mdp,name:p.nom||mailBrandName()})});
+      let d=null; try{ d=await r.json(); }catch(e){}
+      if(!r.ok||!d||!d.ok) throw new Error((d&&d.error)||'Connexion refusée (HTTP '+r.status+')');
+      _courrierRep=null;
+      return {id:d.id,email:d.email||email,nom:p.nom,cote:'pro',importEnCours:true}; },
+    async retirerBoite(id){
+      const r=await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),body:JSON.stringify({teamId:syncTeam(),id})});
+      if(!r.ok) throw await refus(r,'Retrait refusé'); _courrierRep=null; }
+  };
+}
+function courrierCharger(){
+  if(window.OPCourrier) return Promise.resolve();
+  if(_courrierChargement) return _courrierChargement;
+  _courrierChargement=new Promise((ok,ko)=>{ const s=document.createElement('script'); s.src='opcourrier.js?v='+encodeURIComponent(APP_VERSION);
+    s.onload=()=>ok(); s.onerror=()=>{ _courrierChargement=null; ko(new Error('opcourrier.js')); }; document.head.appendChild(s); });
+  return _courrierChargement;
+}
+/* Le module remplit son conteneur : on lui donne ce qui reste de la fenêtre (même lecture que `mailAjuster` : où il commence, ce qui reste SOUS lui). */
+function courrierAjuster(){
+  const z=$('courrier-zone'); if(!z||current!=='boiteMail') return;
+  let top=0; for(let e=z;e;e=e.offsetParent) top+=e.offsetTop;
+  let bas=0; for(let e=z;e;e=e.parentElement){ const c=getComputedStyle(e); bas+=(parseFloat(c.marginBottom)||0); if(e!==z) bas+=(parseFloat(c.paddingBottom)||0)+(parseFloat(c.borderBottomWidth)||0); }
+  const h=Math.max(360,Math.floor(window.innerHeight-Math.round(top)-Math.ceil(bas)));
+  if(z.style.height!==h+'px') z.style.height=h+'px';
+}
+function courrierAjusterPlus(){ if(_courrierRaf||current!=='boiteMail') return; _courrierRaf=requestAnimationFrame(()=>{ _courrierRaf=0; courrierAjuster(); }); }
+function courrierVeiller(){
+  if(_courrierVeille) return; _courrierVeille=true;
+  try{ window.addEventListener('resize',courrierAjusterPlus); window.addEventListener('orientationchange',courrierAjusterPlus); }catch(e){}
+  try{ if(typeof ResizeObserver==='function'){ const ro=new ResizeObserver(courrierAjusterPlus); ro.observe($('content')); ro.observe(document.body); } }catch(e){}
+}
+function courrierVue(){
+  _mailModeRendu=null;   // l'ancienne vue ne reconstruit rien sous cette bascule
+  setHeader('Boîte mail','','');
+  const c=$('content'); if(!c) return;
+  /* un rafraîchissement automatique de la rubrique rappelle la vue : le module vit déjà, on ne le reconstruit pas (il perdrait sa lecture en cours) */
+  const vivant=c.querySelector('#courrier-zone');
+  if(vivant&&_courrierInst&&vivant.isConnected){ courrierAjuster(); return; }
+  if(_courrierInst){ try{ _courrierInst.demonter(); }catch(e){} _courrierInst=null; }
+  c.innerHTML='<div id="courrier-zone" style="min-height:360px"></div>';
+  const zone=$('courrier-zone'); courrierVeiller(); courrierAjuster();
+  courrierCharger().then(()=>{
+    if(!zone.isConnected||current!=='boiteMail') return;
+    _courrierInst=window.OPCourrier.monter(zone,{source:courrierSource(),cotes:['pro'],cleStockage:STORE_KEY.split('_')[0]+'_courrier',
+      theme:()=>{ const t=document.documentElement.getAttribute('data-theme'); return t==='dark'?'nuit':t==='light'?'jour':null; },
+      onCompter:n=>{ window._courrierNonLus=n; }});
+    courrierAjuster();
+  },()=>{ if(zone.isConnected) zone.innerHTML='<div class="card"><div class="card-head"><h3>Boîte mail indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Le module de messagerie n’a pas pu être chargé.</p><button class="btn" onclick="views.boiteMail()">Réessayer</button></div>'; });
+}
 views.boiteMail=function(){
+  if(BETA_ESSAI) return courrierVue();   // OP Courrier (bêta seulement) : voir le bloc juste au-dessus. En production : la vue d'avant, ci-dessous, inchangée.
   setHeader('Boîte mail','',`<button class="btn ghost" onclick="mailBoxesManage()">📬 Boîtes</button> <button class="btn" onclick="mailCompose()">✏️ Écrire</button>`);
   const lus=_mailLus(); const supp=_mailSupp();
   const reps=_mailReplies||[];

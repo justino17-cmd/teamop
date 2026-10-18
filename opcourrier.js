@@ -257,8 +257,10 @@ var CSS = `
        • iPad (700–999 px)  : vue partagée liste + lecture, barre latérale en colonne superposée ;
        • iPhone (< 700 px)  : pile de navigation Boîtes → liste → message, barres d'outils en bas.
      Textes secondaires assombris par rapport aux valeurs Apple par défaut pour tenir le contraste AA. */
+  /* ⛔ all:initial : les propriétés HÉRITÉES de l'hôte (police, interlettrage, couleur, alignement, direction…) traversent un arbre d'ombre — sans cette remise à zéro, le
+     letter-spacing d’un div de l’hôte se retrouve dans toute la messagerie. Les variables (--x) ne sont pas touchées par all. */
   .opc{
-    color-scheme:light;
+    all:initial; display:block; color-scheme:light;
     --tint:#2a4a9c; --tint-2:#3557b0; --on-tint:#ffffff;
     --tint-soft:rgba(42,74,156,.09); --tint-soft-2:rgba(42,74,156,.16);
     --sel:#2a4a9c; --on-sel:#ffffff; --on-sel-2:rgba(255,255,255,.86);
@@ -1614,12 +1616,13 @@ var MARKUP = `
   // ---------- Chargement : trois états, jamais deux ----------
   // LOAD.boites : "wait" (on ne sait pas encore) | "ok" (la liste est LUE — éventuellement vide) | "ko" (on n'a PAS pu savoir).
   // Une liste vide et une liste illisible ne se confondent pas : on ne propose de connecter une boîte que quand on SAIT qu'il n'y en a aucune.
-  var LOAD={boites:"wait",err:"",msgs:{},msgErr:{},vu:{},t:0};
+  var LOAD={boites:"wait",err:"",msgs:{},msgErr:{},vu:{},t:0,essai:0};
   var GONE=[];          // identifiants de messages reçus supprimés pour de bon (le serveur les rendra encore)
   var OVER={};          // état gardé SUR L'APPAREIL des messages reçus : {id:{a:compte,read,flagged,folder,co,uj,aj}}
   var SAVED={kinds:{},names:{},sigs:{}};   // choix de la personne sur ses boîtes (côté, nom affiché, signature)
   var SEEN={};          // messages reçus déjà vus par cette séance : seuls les NOUVEAUX préviennent
   var chargement=null;
+  var RETIRES={};       // boîtes retirées par la personne, en attente de la confirmation de la source
   function msgErr(e,defaut){ var t=e&&(e.message||e.error); t=typeof t==="string"?t.trim():""; return t||defaut||"erreur inconnue"; }
   function paragraphes(c){
     if(Array.isArray(c)) return c.map(function(p){ return Array.isArray(p)?p:String(p); });
@@ -1629,7 +1632,7 @@ var MARKUP = `
   function depuisSource(r,acct,dossier){
     var de=r.de||null, m={id:"s:"+acct+":"+r.id,sid:String(r.id),src:true,acct:acct,folder:folderOfStrict(r.dossier)?r.dossier:(dossier||"inbox"),
       from:de?{name:String(de.nom||de.email||""),email:String(de.email||"")}:null,to:String(r.a||""),subject:String(r.objet||""),
-      read:!!r.lu,flagged:!!r.drapeau,vip:!!r.vip,unsub:!!r.desinscription,at:+r.date||0,rcpt:Array.isArray(r.destinataires)?r.destinataires.map(String):undefined,
+      read:!!r.lu,flagged:!!r.drapeau,vip:!!r.vip,unsub:!!r.desinscription,ancien:!!r.ancien,at:+r.date||0,rcpt:Array.isArray(r.destinataires)?r.destinataires.map(String):undefined,
       att:(r.pj||[]).map(function(p){ return {name:String(p.nom||"pièce jointe"),size:String(p.taille||""),kind:p.type==="img"?"img":"doc"}; })};
     if(r.corps!=null){ m.body=paragraphes(r.corps); m.preview=firstLine(r.apercu||texteDe(m.body)); }
     else { m.body=null; m.preview=firstLine(r.apercu||""); }   // corps pas encore lu : SRC.lire(id) à l'ouverture
@@ -1648,7 +1651,8 @@ var MARKUP = `
     var ids={};
     liste.forEach(function(b){
       if(!b||b.id==null||!b.email) return;
-      var id=String(b.id); ids[id]=1;
+      var id=String(b.id); if(RETIRES[id]) return;   // retirée ici, pas encore confirmée par la source (délai d'annulation) : un relevé ne la ressuscite pas
+      ids[id]=1;
       var a=null; for(var i=0;i<ACCOUNTS.length;i++) if(ACCOUNTS[i].id===id) a=ACCOUNTS[i];
       var email=String(b.email), dom=email.split("@")[1]||"", det=b.fournisseur?{id:b.fournisseur}:detectParDomaine(dom.toLowerCase());
       if(!a){
@@ -1687,6 +1691,7 @@ var MARKUP = `
   // Lire la source : capacités, boîtes, puis les messages de chaque boîte. Un échec se DIT (LOAD) ; il n'efface jamais ce qu'on avait déjà lu.
   function charger(silencieux){
     if(chargement) return chargement;
+    LOAD.essai=Date.now();   // le relevé automatique se règle sur la dernière TENTATIVE : un serveur en panne n'est pas martelé toutes les 5 s
     var avant=empreinte();
     chargement=Promise.resolve().then(function(){ return typeof SRC.capacites==="function"?SRC.capacites():null; })
       .then(function(c){ appliquerCapacites(c); },function(){ appliquerCapacites(null); })
@@ -1708,7 +1713,7 @@ var MARKUP = `
       if(!validScope(state.scope)) state.scope=COTES[0]; }
     refreshCls();
     // les NOUVEAUX seulement (jamais le premier chargement d'une boîte), et pas ce que le tri a rangé en indésirable
-    var neufs=MESSAGES.filter(function(m){ var n=m.neuf; delete m.neuf; return n&&m.folder==="inbox"&&!m.read; });
+    var neufs=MESSAGES.filter(function(m){ var n=m.neuf; delete m.neuf; return n&&!m.ancien&&m.folder==="inbox"&&!m.read; });
     if(!silencieux||avant!==empreinte()||LOAD.boites==="ko"){ renderAll(); persist(); }
     if(neufs.length&&SETTINGS.notif) notifierArrivee(neufs);
     compter(); }
@@ -2494,7 +2499,7 @@ var MARKUP = `
   // Retrait local tout de suite, avec « Annuler » ; la SOURCE n'est prévenue qu'une fois le délai écoulé (ou la page quittée) — sinon « Annuler » mentirait.
   var retraits=[];
   function retirerCoteSource(r){ if(r.fait) return; r.fait=true;
-    Promise.resolve().then(function(){ return SRC.retirerBoite(r.a.sid); }).catch(function(e){ if(vivant){ toast("La boîte n’a pas pu être retirée : "+msgErr(e,"échec")); charger(false); } }); }
+    Promise.resolve().then(function(){ return SRC.retirerBoite(r.a.sid); }).then(function(){ delete RETIRES[r.a.id]; },function(e){ delete RETIRES[r.a.id]; if(vivant){ toast("La boîte n’a pas pu être retirée : "+msgErr(e,"échec")); charger(false); } }); }
   function deleteAcct(a){
     var ai=ACCOUNTS.indexOf(a), saved=[];
     for(var j=MESSAGES.length-1;j>=0;j--) if(MESSAGES[j].acct===a.id) saved.unshift({m:MESSAGES[j],i:j});
@@ -2502,10 +2507,10 @@ var MARKUP = `
     ACCOUNTS.splice(ai,1);
     var prevScope=state.scope; if(state.scope===a.id) state.scope=kindOf(a);
     state.selected=null; if(state.multi) state.multi=[]; refreshCls(); renderAll(); persist();
-    var r={a:a,fait:false,annule:false}; retraits.push(r);
+    var r={a:a,fait:false,annule:false}; retraits.push(r); RETIRES[a.id]=true;
     r.tm=setTimeout(function(){ if(!r.annule) retirerCoteSource(r); },6500);
     toast("Boîte "+a.email+" supprimée",{label:"Annuler",onAct:function(){
-      r.annule=true; clearTimeout(r.tm);
+      r.annule=true; clearTimeout(r.tm); delete RETIRES[a.id];
       ACCOUNTS.splice(Math.min(ai,ACCOUNTS.length),0,a);
       saved.forEach(function(x){ MESSAGES.splice(Math.min(x.i,MESSAGES.length),0,x.m); });
       state.scope=prevScope; refreshCls(); renderAll(); persist(); toast("Boîte rétablie"); }});
@@ -3151,9 +3156,11 @@ var MARKUP = `
   }
   // Ce que l'on dit d'une messagerie reconnue : jamais un réglage que le serveur n'utilisera pas.
   function provDetail(p){
+    if(p.kind==="oauth"&&!CAP.oauth&&p.via==="Microsoft") return "Bientôt : connexion sécurisée via Microsoft. Microsoft refuse les mots de passe dans toutes les applications : cette adresse ne peut pas être connectée pour l’instant.";
     if(p.kind==="oauth") return CAP.oauth?"Connexion sécurisée via "+p.via+" — sans mot de passe à saisir ici.":"Bientôt : connexion sécurisée via "+p.via+", sans mot de passe. En attendant, saisissez un mot de passe d’application.";
     return (CAP.reglagesServeur?"IMAP "+p.imap+" · SMTP "+p.smtp:"Réglages reconnus à la connexion")+(p.note?" — "+p.note:""); }
   function motDePasse(p){ return p&&(p.kind==="imap"||p.kind==="exchange"||(p.kind==="oauth"&&!CAP.oauth)); }
+  function sansVoie(p){ return !!p&&p.kind==="oauth"&&!CAP.oauth&&p.via==="Microsoft"; }   // ni OAuth ni mot de passe : rien à connecter pour l'instant
   function detectParMX(d,mx){
     if(!mx) return null;
     if(!mx.length) return {erreur:"Ce domaine ne reçoit pas d'e-mails (aucun serveur de réception trouvé). Vérifiez l'adresse."};
@@ -3206,10 +3213,10 @@ var MARKUP = `
       det.innerHTML=providerTile(p)+'<span class="pn"><b>'+H(p.name)+' <span class="ok-chip">'+(p.id==="autre"?"réglages proposés":"reconnu")+'</span></b><span>'+H(provDetail(p))+'</span></span>';
     }
     function apply(p){
-      found=p; var imap=motDePasse(p);
+      found=sansVoie(p)?null:p; var imap=motDePasse(p)&&!sansVoie(p);
       $("#aPassWrap").hidden=!imap; $("#aAdv").hidden=!(imap&&CAP.reglagesServeur);
       if(imap){ $("#aImap").value=p.imap||""; $("#aImapPort").value=p.imapPort||993; $("#aSmtp").value=p.smtp||""; $("#aSmtpPort").value=p.smtpPort||465; }
-      go.disabled=!p; go.textContent=!p?"Continuer":(p.kind==="oauth"&&CAP.oauth)?"Continuer avec "+p.via:"Se connecter";
+      go.disabled=!p||sansVoie(p); go.textContent=!p||sansVoie(p)?"Continuer":(p.kind==="oauth"&&CAP.oauth)?"Continuer avec "+p.via:"Se connecter";
     }
     var enCours="";   // domaine dont le MX est en cours de lecture : un Entrée + un « change » ne font qu'une demande
     function detect(geste){
@@ -3232,14 +3239,15 @@ var MARKUP = `
         paint("ok",r); apply(r);
       });
     }
-    mIn.addEventListener("input",function(){ clearTimeout(tmr); tmr=setTimeout(function(){ detect(false); },350); });
+    // l'adresse change : ce qui a été reconnu pour l'AVANT ne vaut plus (Entrée dans les 350 ms refait la reconnaissance, elle ne connecte pas avec l'ancienne)
+    mIn.addEventListener("input",function(){ found=null; clearTimeout(tmr); tmr=setTimeout(function(){ detect(false); },350); });
     mIn.addEventListener("change",function(){ clearTimeout(tmr); setTimeout(function(){ detect(true); },0); });   // le champ est quitté (ou Entrée) : la saisie est finie. Après un tour : fermer la feuille (Échap) fait aussi « quitter » le champ, avant de le retirer du document — ce n’est pas un geste
     mIn.addEventListener("keydown",function(e){ if(e.key==="Enter"&&!go.disabled){ e.preventDefault(); go.click(); } });
     $("#aAdvTog").onclick=function(){ var b=$("#aAdvBody"), open=b.hidden; b.hidden=!open; this.setAttribute("aria-expanded",String(open)); };
     $("#aClose").onclick=closeOverlay;
     $("#aManual").onclick=openProviderList;
     go.onclick=function(){
-      if(!found){ if(!go.disabled) detect(true); return; }
+      if(!found){ clearTimeout(tmr); if(!go.disabled) detect(true); return; }   // le geste passe avant la frappe en attente (350 ms) : sinon elle le repeindrait par-dessus
       var mail=mIn.value.trim(), name=$("#aName").value.trim();
       if(acctByEmail(mail)){ showErr("Cette adresse est déjà connectée ("+KINDS[kindOf(acctByEmail(mail))]+")."); mIn.focus(); return; }
       var pw=motDePasse(found);
@@ -3271,7 +3279,7 @@ var MARKUP = `
 
   function openConnect(p){
     closeOverlay();
-    var isImap=motDePasse(p);
+    var isImap=motDePasse(p)&&!sansVoie(p);
     var ov=makeOverlay("acct");
     var row=function(id,label,type,ph,extra){ return '<div class="fld"><label for="'+id+'">'+label+'</label><input id="'+id+'" type="'+type+'" placeholder="'+H(ph)+'"'+(extra||"")+'></div>'; };
     // Type de boîte : obligatoire, sans choix par défaut (contrôle segmenté iOS = groupe de boutons radio)
@@ -3295,7 +3303,7 @@ var MARKUP = `
           row("kSmtp","Serveur SMTP","text","smtp.entreprise.fr",' autocapitalize="off"')+'</div>':'')+
         '<p class="gfoot-s">'+I.lock+'<span>La connexion est chiffrée (TLS).'+(p.kind==="oauth"?" Bientôt : connexion sécurisée via "+H(p.name)+", sans mot de passe — en attendant, utilisez un mot de passe d’application.":"")+'</span></p>';
     }else{
-      inner='<div class="note-card">'+I.lock+'<div>Vous allez vous connecter à <b>'+H(p.name)+'</b> de façon sécurisée (OAuth). '+H(TITRE)+' n’enregistre jamais votre mot de passe.</div></div>'+
+      inner='<div class="note-card">'+I.lock+'<div>'+(sansVoie(p)?H(provDetail(p)):'Vous allez vous connecter à <b>'+H(p.name)+'</b> de façon sécurisée (OAuth). '+H(TITRE)+' n’enregistre jamais votre mot de passe.')+'</div></div>'+
         '<div class="ghead" aria-hidden="true">Compte</div><div class="gcard">'+
           row("kMail","Adresse","email","vous@"+(p.id==="gmail"?"gmail.com":p.id==="icloud"?"icloud.com":p.id==="yahoo"?"yahoo.com":"exemple.com"),' autocomplete="email"')+
           row("kName","Nom","text","Votre nom affiché",' autocomplete="name"')+'</div>'+mailErr+kindHtml;
@@ -3308,6 +3316,7 @@ var MARKUP = `
         '<button class="btn primary" id="kGo" type="button" data-home="r" data-mac="foot" data-ord="2">'+(isImap?"Connecter":"Se connecter")+'</button>',"kTitle")+
       '<div class="sheet-body"><div class="gwrap">'+inner+'</div></div>'+SHEET_FOOT+'</div>';
     placeSheetChrome();
+    if(sansVoie(p)) $("#kGo").disabled=true;
     $("#kBack").onclick=openProviderList;
     $("#kCancel").onclick=closeOverlay;
     setTimeout(function(){ var el=$("#kMail"); if(el) el.focus(); },30);
@@ -3353,6 +3362,8 @@ var MARKUP = `
       if(!acctExists(id)) majBoites(ACCOUNTS.map(function(a){ return {id:a.sid,email:a.email}; }).concat([{id:b.id,email:mail,nom:name,cote:kind,fournisseur:p.id}]));
       state.scope=id; state.folder="inbox"; state.selected=null; LOAD.boites="ok";
       refreshCls(); renderAll(); persist(); toast("Boîte "+(UN_COTE?"":KINDS[kindOf(acctOf(id))].toLowerCase()+" ")+"connectée : "+mail);
+      // la source importe parfois l'historique APRÈS la connexion (b.importEnCours) : on relit à 5, 15 et 40 s, sans bruit
+      if(b.importEnCours) [5000,15000,40000].forEach(function(t){ var h=setTimeout(function(){ if(vivant) charger(true); },t); finis.push(function(){ clearTimeout(h); }); });
       return charger(true);
     }); }
 
@@ -3564,9 +3575,9 @@ var MARKUP = `
   // Le format suit le conteneur (la fenêtre change, le menu de l'hôte s'ouvre…) ; le module s'éteint si l'hôte a retiré son conteneur
   try{ var obsTaille=new ResizeObserver(function(){ if(!hote.isConnected){ demonter(); return; } if(appliquerFormat()) placeChrome(); catFade(); });
     obsTaille.observe(hote); finis.push(function(){ obsTaille.disconnect(); }); }catch(e){}
-  var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&Date.now()-LOAD.t>=(opt.intervalle||60000)-500) charger(true); },5000);
+  var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&Date.now()-LOAD.essai>=(opt.intervalle||60000)-100) charger(true); },Math.max(250,Math.min(5000,opt.intervalle||60000)));
   finis.push(function(){ clearInterval(iv); retraits.forEach(function(r){ clearTimeout(r.tm); }); });
-  sur(document,"visibilitychange",function(){ if(!document.hidden){ flushScheduled(); if(Date.now()-LOAD.t>20000) charger(true); } });
+  sur(document,"visibilitychange",function(){ if(!document.hidden){ flushScheduled(); if(Date.now()-LOAD.essai>20000) charger(true); } });
 
   function demonter(){
     if(!vivant) return; vivant=false;

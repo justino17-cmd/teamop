@@ -864,7 +864,8 @@ function creer(o) {
       apercu: "Votre compte est relié.", corps: ["Bonjour " + p.nom + ",", "Votre compte est relié."], date: Date.now(), lu: false, drapeau: false, pj: [] });
     garder(); return Promise.resolve(b); };
   api.retirerBoite = function (id) { note("retirerBoite:" + id); etat.retirees.push(id); etat.ajoutees = etat.ajoutees.filter(function (b) { return b.id !== id; }); garder(); return Promise.resolve(); };
-  api.lireMX = function (d) { note("lireMX:" + d);
+  /* le service MX n'existe que dans le mode de démonstration : le serveur d'OP GESTION n'en offre pas (mode=reel → aucun appel réseau pour un domaine d'entreprise) */
+  if (mode === "demo") api.lireMX = function (d) { note("lireMX:" + d);
     var essai = function (url, headers) { return new Promise(function (ok, ko) {
       var ctl = typeof AbortController !== "undefined" ? new AbortController() : null, t = setTimeout(function () { if (ctl) ctl.abort(); ko(new Error("délai")); }, 3500);
       fetch(url, { headers: headers || {}, signal: ctl ? ctl.signal : undefined }).then(function (r) { return r.json(); }).then(function (j) { clearTimeout(t);
