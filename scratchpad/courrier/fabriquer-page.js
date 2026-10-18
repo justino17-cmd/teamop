@@ -30,7 +30,6 @@ const ENVELOPPE = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1633" media="(prefers-color-scheme: dark)">
 <meta name="description" content="OP Courrier — bêta : la messagerie e-mail de TeamOP. Aucun vrai mail n'est lu ni envoyé.">

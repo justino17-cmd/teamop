@@ -172,6 +172,7 @@ self.addEventListener('fetch', e => {
   // beta.html (canal d'essai) : jamais mise en cache — la bêta est toujours la dernière poussée
   if (url.pathname.endsWith('/beta.html')) return;
   if (url.pathname.endsWith('/messages-beta.html')) return;   // canal d'essai OP MESSAGES : toujours la dernière poussée
+  if (url.pathname.endsWith('/courrier-beta.html')) return;   // canal d'essai OP Courrier : toujours la dernière poussée
   if (url.pathname.endsWith('/dev.html')) return;   // portail bêta de l'équipe : jamais en cache, toujours frais
   if (url.origin !== self.location.origin) return;   // le reste du web ne nous regarde pas
 
