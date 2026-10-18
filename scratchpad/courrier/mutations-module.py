@@ -29,6 +29,15 @@ MUTATIONS = [
   ('M18 le module est chargé au démarrage', A, '<meta name="theme-color" content="#0D1624" media="(prefers-color-scheme: dark)">', '<meta name="theme-color" content="#0D1624" media="(prefers-color-scheme: dark)"><script src="opcourrier.js"></script>', 'tests/test-2703.js'),
   ('M19 la preuve de clé n\'est plus présentée au retrait', A, "const r=await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:await enteteEquipe({'Content-Type':'application/json'}),", "const r=await fetch(PUSH_API+'/api/mailbox/disconnect',{method:'POST',headers:{'Content-Type':'application/json'},", 'tests/test-2703.js'),
 ]
+# Mutations qui ne se voient qu'au NAVIGATEUR (sondes playwright-core : voir pilote.js) ; lancer avec --navigateur, NODE_PATH posé. Chacune dure plusieurs minutes.
+NAVIGATEUR = [
+  ('N01 le calque n\'est plus promu dans la couche supérieure (la feuille passe SOUS la barre de l\'hôte)', M, '  try{ layerEl.showPopover(); }catch(e){', '  try{ }catch(e){', 'scratchpad/courrier/sonde-module.js'),
+  ('N02 le format se décide sur l\'ÉCRAN, pas sur le conteneur', M, 'var w = hote.getBoundingClientRect().width || conteneur.clientWidth || window.innerWidth || 1024;', 'var w = window.innerWidth;', 'scratchpad/courrier/sonde-module.js'),
+  ('N03 la feuille de l\'hôte entre dans le module (plus d\'arbre d\'ombre)', M, 'var sr = hote.attachShadow({mode:"open"});', 'var sr = hote; sr.getElementById=function(i){ return sr.querySelector("#"+i); };', 'scratchpad/courrier/sonde-module.js'),
+  ('N04 une liste de boîtes illisible redevient « Aucune boîte »', M, 'function(e){ LOAD.boites="ko"; LOAD.err=msgErr(e,"Impossible de lire vos boîtes mail."); return null; })', 'function(e){ LOAD.boites="ok"; LOAD.err=""; return null; })', 'scratchpad/courrier/sonde-module.js'),
+  ('N05 la zone d\'OP GESTION ne reçoit plus la hauteur qui reste (le module s\'effondre)', A, "  if(z.style.height!==h+'px') z.style.height=h+'px';", "  void h;", 'scratchpad/courrier/sonde-gestion.js'),
+]
+if '--navigateur' in sys.argv: MUTATIONS = NAVIGATEUR
 def sh(*a, **k): return subprocess.run(a, capture_output=True, text=True, **k)
 fichiers = sorted({m[1] for m in MUTATIONS})
 sale = sh('git', 'status', '--porcelain', '--', *fichiers).stdout.strip()
@@ -42,13 +51,13 @@ try:
         if n != 1: print('  ?? %s : ancre trouvée %d fois (une mutation mal visée ne prouve rien)' % (nom, n)); continue
         open(f, 'w', encoding='utf-8').write(t.replace(ancien, neuf, 1))
         if sh('git', 'diff', '--quiet', '--', f).returncode == 0: print('  ?? %s : la mutation n\'a rien changé' % nom); continue
-        try: r = sh('node', banc, timeout=170)
+        try: r = sh('node', banc, timeout=(600 if banc.startswith('scratchpad') else 170))
         except subprocess.TimeoutExpired: r = None
         sh('git', 'checkout', '--', f)
         if r is None: print('  ?? %s : délai dépassé' % nom); continue
         sortie = r.stdout + r.stderr
         import re
-        m = re.findall(r'(\d+) ✓\s+(\d+) ✗', sortie); bilan = m[-1] if m else ('?', '?')
+        m = re.findall(r'(\d+) ✓\s+(\d+) ✗', sortie); bilan = m[-1] if m else (re.findall(r'TOTAL (\d+)/(\d+)', sortie) or [('?', '?')])[-1]
         tombe = r.returncode != 0
         tombent += tombe
         print('  %s %s → %s ✓ · %s ✗ (%s)' % ('✓ tombe ' if tombe else '✗ VERT   ', nom, bilan[0], bilan[1], banc))
