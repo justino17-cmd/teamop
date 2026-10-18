@@ -136,7 +136,7 @@ vrai('toute capacité est FAUSSE tant que la source ne dit pas le contraire (===
 for (const [k, mot] of [['oauth', 'Bientôt : connexion sécurisée'], ['programmeServeur', 'Bientôt : l’envoi programmé'], ['signature', 'Bientôt : signature électronique'], ['destinataires', 'Bientôt : plusieurs destinataires']])
   vrai('« Bientôt » : ce que la source ne sait pas faire (' + k + ') est DIT — « ' + mot + ' »', CODE.includes(mot));
 vrai('trois états : liste illisible ≠ liste vide (LOAD.boites wait | ok | ko ; un rejet n\'efface jamais ce qui était lu ; « Réception indisponible » ≠ « Aucun message »)', /LOAD\.boites="ko"/.test(CODE) && /Boîtes mail illisibles/.test(CODE) && /Réception indisponible/.test(CODE) && /LOAD\.msgs\[a\.id\]="ko"/.test(CODE));
-vrai('l\'envoi se DIT : « Message envoyé » après la réponse de la source, un échec remet le message dans les brouillons', /function expedier\(m,quiet,fin\)/.test(CODE) && /Envoi impossible : /.test(CODE) && /m\.folder="drafts"; delete m\.sendAt/.test(CODE));
+vrai('l\'envoi se DIT : « Message envoyé » après la réponse de la source, un échec remet le message dans les brouillons', /function expedier\(m,quiet,fin\)/.test(CODE) && /Envoi impossible : /.test(CODE));
 
 /* ═════════════════════════════ 5. LA PERSISTANCE — LA VRAIE ═════════════════════════════ */
 console.log('\n5. La persistance (la vraie persist, la vraie restore)');
@@ -203,6 +203,24 @@ const bacTraduction = () => { const sb = { FOLDERS: [{ id: 'inbox' }, { id: 'sen
   v('dossierServeur : un tri automatique vers Indésirables n\'est PAS un geste de la personne (la source ne l\'apprend pas)', (t.folder = 'junk', t.aj = true, t._srv.dos = 'inbox', sb.dossierServeur(t)), 'inbox');
   v('dossierServeur : un déplacement fait à la main, lui, part', (t.aj = false, t.folder = 'archive', sb.dossierServeur(t)), 'archive'); }
 
+(async () => {
+/* l'ENVOI : la vraie `expedier` — « envoyé » ne s'écrit qu'APRÈS la réponse de la source, un échec remet le message dans les brouillons et le dit */
+console.log('\n   L\'envoi : la vraie expedier');
+{ const EXP = ['expedier', 'courrierDe', 'msgErr', 'bodyText'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 30); return f; }).join('\n');
+  const joue = async (envoyer) => {
+    const notes = []; const sb = { vivant: true, SRC: { envoyer }, acctOf: () => ({ sid: 'b1', email: 'a@x.fr', name: 'A' }), learnContacts: () => notes.push('contacts'), renderAll: () => notes.push('rendu'), persist: () => notes.push('persist'),
+      toast: (t) => notes.push('toast:' + t), Date, Array, String, Promise, setTimeout };
+    vm.createContext(sb); vm.runInContext(EXP + '\n;this.expedier=expedier;', sb);
+    const m = { id: 'm1', acct: 'b1', to: 'c@x.fr', subject: 'S', body: ['Bonjour'], folder: 'outbox', _files: ['f'], sendAt: 5 }; let fin = null;
+    sb.expedier(m, false, (ok) => { fin = ok; }); await new Promise(r => setTimeout(r, 20));
+    return { m, fin, notes, sb }; };
+  const a = await joue(async (mail) => { if (mail.boite !== 'b1' || mail.a !== 'c@x.fr' || mail.objet !== 'S' || mail.texte !== 'Bonjour') throw new Error('courrier mal formé'); });
+  v('envoi réussi : le message passe dans Envoyés, ses fichiers sont lâchés, les contacts appris', [a.m.folder, '_files' in a.m, 'sendAt' in a.m, a.fin, a.notes.includes('contacts')], ['sent', false, false, true, true]);
+  const b = await joue(async () => { throw new Error('refusé par le serveur (essai)'); });
+  v('⛔ envoi REFUSÉ : le message retourne dans les BROUILLONS (jamais « Envoyé »), l\'erreur de la source est DITE', [b.m.folder, b.fin, b.notes.filter(x => /^toast:/.test(x))], ['drafts', false, ['toast:Envoi impossible : refusé par le serveur (essai) — le message est dans Brouillons']]);
+  const c = await joue(async () => { throw 'texte brut'; });
+  vrai('un échec qui n\'est pas une Error ne jette pas non plus (il se dit « échec »)', c.m.folder === 'drafts' && /Envoi impossible : /.test(c.notes.join('|'))); }
+
 /* ═════════════════════════════ 7. LE SITE ET LES SONDES ═════════════════════════════ */
 console.log('\n7. Dans le site assemblé, et gardé');
 vrai('opcourrier.js est à la racine : le script d\'assemblage prend les *.js de la racine par leur forme', fs.existsSync(path.join(RACINE, 'opcourrier.js')) && /for f in \*\.html \*\.js/.test(lire('scripts/assembler-site.sh')));
@@ -211,3 +229,4 @@ vrai('le moteur de tri du module est le MÊME texte que la référence (test-270
 
 console.log('\n' + ok + ' ✓  ' + ko + ' ✗');
 process.exitCode = ko ? 1 : 0;
+})();
