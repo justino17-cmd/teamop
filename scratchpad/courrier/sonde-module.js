@@ -126,38 +126,63 @@ const SR = "document.querySelector('[data-opcourrier]').shadowRoot";
     log(await p.evaluate(() => window.__opc.cote()) === 'perso', 'deux côtés : sans options.cote, le dernier côté ouvert reste (perso, ouvert à la visite d’avant)');
     log(err.length === 0, 'deux côtés : aucune erreur JS ' + err.join('|')); await ctx.close(); }
 
-  /* ── 6. ce que la source ne sait pas faire est dit « Bientôt » (mode=reel : ce que sait le serveur d'OP GESTION) ── */
+  /* ── 6. TOUTES les fonctions sont là ; « Bientôt » ne s'écrit que sur le geste précis qui exige un service absent (mode=reel : ce que sait le serveur d'OP GESTION) ── */
   { const { ctx, p, err, dns } = await nouveau({});
-    await p.goto(P.avec('mode=reel&cotes=pro')); await p.waitForTimeout(600);
+    await p.goto(P.avec('mode=reel&cotes=pro&titredoc=1')); await p.waitForTimeout(600);
     const t0 = await texte(p);
     log(!/Maquette|aucun vrai mail|Bêta/.test(t0), 'bientôt : aucune trace de maquette ni de « bêta » à l’écran');
-    log(await p.locator('.folder[data-folder="sign"] .soon').count() === 1 && await p.locator('.folder[data-folder="scheduled"] .soon').count() === 1, 'bientôt : « Signatures » et « Programmés » portent la pastille « Bientôt »');
+    log(await p.locator('.soon').count() === 0, 'bientôt : AUCUNE pastille « Bientôt » sur un dossier ou une rubrique — Signatures et Programmés sont de vrais dossiers');
+    log(/^\(\d+\) /.test(await p.title()), 'titre : les non lus s’écrivent devant le titre de la page de l’hôte — « ' + await p.title() + ' »');
     await p.locator('.folder[data-folder="sign"]').click(); await p.waitForTimeout(250);
-    log(/Bientôt : signature électronique/.test(await p.textContent('#rows')) && await p.locator('[data-signnew]').count() === 0, 'bientôt : le dossier Signatures le dit (pas de bouton qui ferait semblant)');
-    await p.locator('.folder[data-folder="scheduled"]').click(); await p.waitForTimeout(250);
-    log(/Bientôt : envoi programmé/.test(await p.textContent('#rows')), 'bientôt : le dossier Programmés le dit');
+    log(await p.locator('#rows [data-signnew]').count() === 1 && !/Bientôt/.test(await p.textContent('#rows')), 'signature : le dossier Signatures a son bouton « Envoyer un document à signer » (la fonction est là)');
+    await p.locator('#rows [data-signnew]').click(); await p.waitForTimeout(250);
+    await p.selectOption('#sgType', 'Contrat de maintenance'); await p.fill('#sgN0', 'Claire Dubois'); await p.fill('#sgE0', 'claire.dubois@sarl-mercier.fr'); await p.fill('#sgP0', '06 12 34 56 78'); await p.locator('#sgTpl').click(); await p.waitForTimeout(100);
+    await p.locator('#sgGo').click(); await p.waitForTimeout(200);
+    log(/Bientôt : l.envoi du document à signer/.test(await p.textContent('#toast')) && await p.locator('#sgGo').count() === 1, 'signature : le parcours est utilisable jusqu’à « Envoyer », qui dit « Bientôt : l’envoi du document à signer (Yousign) » et la feuille reste ouverte');
+    await p.locator('#sgCancel').click(); await p.waitForTimeout(250);
+    log(await p.locator('#rows .msg').count() === 0 && await p.locator('[data-act="signSim"]').count() === 0, 'signature : AUCUNE fausse demande n’a été créée, aucun « Simuler la signature »');
     await p.locator('.folder[data-folder="inbox"]').click(); await p.waitForTimeout(200);
     await p.locator('.side-foot [data-settings]').click(); await p.waitForTimeout(250);
-    log(await p.locator('#stTest').count() === 0 && !/exemple/i.test(await p.textContent('#stNotif') + ' ' + await texte(p).then(t => t.slice(t.indexOf('Notifications'), t.indexOf('Notifications') + 400))), 'bientôt : plus de « Recevoir un mail d’exemple » dans les Réglages');
+    log(await p.locator('#stTest').count() === 0 && await p.locator('#stThreads').count() === 1 && await p.locator('[data-sig]').count() >= 1, 'réglages : notifications, conversations, signatures par boîte sont là ; plus de « Recevoir un mail d’exemple »');
     await p.keyboard.press('Escape'); await p.waitForTimeout(150);
-    await p.locator('.msg').first().click(); await p.waitForTimeout(300);
-    log(await p.locator('[data-act="signFrom"]').count() === 0 && await p.locator('[data-act="signSim"]').count() === 0, 'bientôt : pas de « Faire signer » ni de « Simuler la signature » sur un message');
     await p.locator('#btnCompose').click(); await p.waitForTimeout(250);
-    log(await p.locator('#cSignBtn').isVisible() === false, 'bientôt : pas de « Faire signer » dans le composer');
-    await p.locator('#cSched').click(); await p.waitForTimeout(150);
-    log(/Bientôt : l.envoi programmé/.test(await p.textContent('#toast')) && await p.locator('#cSchedWrap').isHidden(), 'bientôt : « Programmer » dit « Bientôt » et n’ouvre rien');
+    log(await p.locator('#cSignBtn').isVisible(), 'composer : « Faire signer » est là (côté Pro)');
+    await p.locator('#cSched').click(); await p.waitForTimeout(200);
+    log(await p.locator('#cSchedWrap').isVisible() && /Bientôt : l.envoi à l.heure dite, même application fermée/.test(await p.textContent('#cSchedWrap')), 'programmer : le panneau s’ouvre (la fonction est là) ; « Bientôt » ne parle que de l’envoi APPLICATION FERMÉE');
     await p.fill('#cTo', 'a@exemple.fr, b@exemple.fr'); await p.locator('#cSend').click(); await p.waitForTimeout(200);
     log(/Bientôt : plusieurs destinataires/.test(await p.textContent('#toast')) && await p.locator('#cSheet').count() === 1, 'bientôt : deux destinataires → « Bientôt : plusieurs destinataires » (la feuille reste ouverte)');
     await p.fill('#cTo', 'a@exemple.fr'); await p.setInputFiles('#cFile', [{ name: 'gros.pdf', mimeType: 'application/pdf', buffer: Buffer.alloc(5 * 1024 * 1024) }]); await p.waitForTimeout(150);
-    log(await p.locator('#cAtt .att').count() === 0 && /4,0 Mo maximum/.test(await p.textContent('#toast')), 'bientôt : la limite de pièces jointes de la source (4 Mo) s’applique, pas celle de la maquette (25 Mo)');
-    await p.keyboard.press('Escape'); await p.waitForTimeout(300);
-    await ouvrirAjout(p); await p.locator('#aMail').pressSequentially('karim@gmail.com', { delay: 10 }); await p.locator('#aName').focus(); await p.waitForTimeout(500);
+    log(await p.locator('#cAtt .att').count() === 0 && /4,0 Mo maximum/.test(await p.textContent('#toast')), 'pièces jointes : la limite de la source (4 Mo) s’applique, pas celle de la maquette (25 Mo)');
+    /* programmer pour de vrai : 40 s plus tard, page ouverte → le message PART */
+    await p.fill('#cSub', 'Programmé essai'); await p.fill('#cBody', 'Bonjour');
+    const quand = await p.evaluate(() => { const d = new Date(Date.now() + 40000), p2 = (n) => (n < 10 ? '0' : '') + n; return [d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()), p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds())]; });
+    await p.locator('#cSched').click(); await p.waitForTimeout(250);
+    await p.locator('#cSchedPanel input[type="date"]').fill(quand[0]); await p.locator('#cSchedPanel input[type="time"]').fill(quand[1].slice(0, 5)); await p.evaluate((q) => { const i = document.querySelector('[data-opcourrier]').shadowRoot.querySelector('#cSchedPanel input[type="time"]'); i.value = q; }, quand[1]);
+    await p.locator('#cSchedPanel [data-custom]').click(); await p.waitForTimeout(400);
+    log(/Envoi programmé/.test(await p.textContent('#toast')), 'programmer : « Envoi programmé … » (le message est dans Programmés)');
+    await p.locator('.folder[data-folder="scheduled"]').click(); await p.waitForTimeout(250);
+    log(await p.locator('#rows .msg').count() === 1 && !(await p.evaluate(() => window.__source.envoyes.length)), 'programmer : il attend dans « Programmés », rien n’est parti');
+    await p.waitForTimeout(52000);
+    log(await p.evaluate(() => window.__source.envoyes.length) === 1 && /Programmé essai/.test(await p.evaluate(() => window.__source.envoyes[0].objet)), 'programmer : à l’heure dite, page ouverte, la source reçoit le message (UN seul envoi)');
+    await p.locator('.side-foot [data-addaccount]').click(); await p.waitForTimeout(200);
+    await p.locator('#aMail').pressSequentially('karim@gmail.com', { delay: 10 }); await p.locator('#aName').focus(); await p.waitForTimeout(500);
     const det = await p.textContent('#aDet');
     log(/Bientôt : connexion sécurisée via Google/.test(det) && /mot de passe d.application/.test(det), 'bientôt : Gmail sans OAuth → « Bientôt : connexion sécurisée via Google… mot de passe d’application »');
-    log(await p.locator('#aPassWrap').isVisible() && await p.locator('#aAdv').isVisible() === false, 'bientôt : le mot de passe est demandé, les réglages de serveur ne le sont pas (le serveur choisit les siens)');
+    log(await p.locator('#aPassWrap').isVisible() && await p.locator('#aAdv').isVisible(), 'connexion : le mot de passe est demandé et « Réglages du serveur » est présent');
+    await p.locator('#aAdvTog').click(); await p.waitForTimeout(100);
+    log(/Bientôt : des réglages de serveur personnalisés/.test(await p.textContent('#aAdvBody')) && await p.locator('#aImap').isVisible() === false, 'connexion : les réglages de serveur disent « Bientôt » (le serveur reconnaît les siens) au lieu de champs qu’il ignorerait');
     await p.locator('#aMail').fill('paul@societe-sans-mx.fr'); await p.locator('#aName').focus(); await p.waitForTimeout(700);
     log(dns.length === 0 && /reconnaît la messagerie à la connexion/.test(await p.textContent('#aDet')), 'bientôt : sans service MX, AUCUN appel réseau pour un domaine d’entreprise (' + dns.length + ' demande)');
     log(err.length === 0, 'bientôt : aucune erreur JS ' + err.join('|')); await ctx.close(); }
+  { /* un message programmé dont l'heure est passée PENDANT QUE LA PAGE ÉTAIT FERMÉE ne part pas tout seul */
+    const { ctx, p, err } = await nouveau({});
+    await p.addInitScript(() => { const now = Date.now(); localStorage.setItem('opcourrierEssai_ui', JSON.stringify({ v: 4, scope: 'pro', folder: 'scheduled', cat: 'principal', rules: { senders: {}, domains: {} }, contacts: [], settings: { notif: true, threads: true }, kinds: {}, names: {}, sigs: {}, msgs: {}, gone: [],
+      user: [{ id: 'm1', acct: 'a1', folder: 'scheduled', from: null, to: 'equipe@exemple.fr', subject: 'En retard', preview: 'x', body: ['Bonjour'], read: true, flagged: false, vip: false, att: [], user: true, at: now - 7200000, sendAt: now - 3600000 }] })); });
+    await p.goto(P.avec('mode=reel&cotes=pro&intervalle=1000')); await p.waitForTimeout(2500);
+    log(await p.evaluate(() => window.__source.envoyes.length) === 0 && await p.locator('#rows .msg').count() === 1, 'programmer : un message dont l’heure est passée depuis une heure (page fermée) NE part PAS tout seul — il attend dans Programmés');
+    await p.locator('#rows .msg').first().click(); await p.waitForTimeout(300);
+    log(/l.heure est passée pendant que la page était fermée/.test(await p.textContent('.sched-banner')) && await p.locator('[data-act="sendNow"]').count() === 1 && await p.locator('[data-act="reschedule"]').count() === 1, 'programmer : le bandeau le dit et propose « Envoyer maintenant » / « Changer l’heure »');
+    log(err.length === 0, 'programmer : aucune erreur JS ' + err.join('|')); await ctx.close(); }
 
   /* ── 7. l'état vide, les trois états, un envoi refusé ── */
   { const { ctx, p, err } = await nouveau({});

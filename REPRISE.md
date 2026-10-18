@@ -37,16 +37,20 @@ Branche `courrier/beta` — **pas sur `main`, pas de PR** (attend sa phrase). `s
   · **Premier affichage = VIDE** : « Aucune boîte mail connectée » + « Ajouter une boîte mail ». Aucune donnée d'exemple, aucune boîte reprise de l'ancienne configuration en silence.
   · **Retiré** : `courrier-beta.html`, son entrée dans la rangée SUITE de `beta-build.js`, la carte « OP Courrier » des Réglages d'OP MESSAGES (`apercu/opmessages/` et `server-msg/public/` redevenus
     ceux d'avant), `tests/test-2701.js`, `tests/sonde-opmessages-courrier.js`, `fabriquer-page.js`, `mutations-courrier.py` (remplacé par `mutations-module.py`).
-- **Ce que la personne voit en « Bientôt » dans OP GESTION** (le serveur d'aujourd'hui ne le fait pas ; `capacites()` le déclare) : connexion Google / Yahoo par OAuth → « mot de passe d'application » ;
-  Microsoft (Hotmail / Outlook) → « cette adresse ne peut pas être connectée pour l'instant » (Microsoft refuse les mots de passe) ; envoi programmé (dossier « Programmés » + bouton « Programmer »),
-  signature électronique (dossier « Signatures », pas de « Faire signer »), plusieurs destinataires (un seul pour l'instant), réglages de serveur (le serveur choisit les siens), lu / non lu et
-  déplacements gardés SUR L'APPAREIL (pas sur le serveur), dossiers Envoyés / Archive / Corbeille / Brouillons locaux (la réception seule vient du serveur). Pièces jointes : 3 fichiers, 4 Mo (limites de
-  `/api/sendmail`).
+- **« Bientôt » ne s'écrit que sur le GESTE précis qui exige un service absent** (Justin : « je veux que toute la création de ce système mail soit intégrée […] il est beaucoup mieux que celui qu'on avait fait » —
+  rien n'est retiré ni simplifié, seul le contenu d'exemple a disparu ; le tri, les règles apprises, « Pourquoi ici ? », les conversations, la recherche, la sélection multiple, le clic droit / l'appui long, les raccourcis,
+  la signature par boîte, les pièces jointes, « Annuler » 5 s, le brouillon automatique, les Réglages, les non-lus devant le titre de la page, le dossier Signatures et tout le parcours jusqu'à « Envoyer » fonctionnent sur les
+  VRAIS mails de la source). Dans OP GESTION aujourd'hui : connexion Google / Yahoo sans mot de passe (→ mot de passe d'application) ; Microsoft (Hotmail / Outlook) : « cette adresse ne peut pas être connectée pour l'instant »
+  (Microsoft refuse les mots de passe) ; l'envoi à l'heure dite APPLICATION FERMÉE (la programmation marche, le message part page ouverte ; un message dont l'heure est passée page fermée ATTEND un geste au lieu de partir
+  avec des heures de retard) ; l'ENVOI réel d'un document à signer à Yousign (le bouton « Envoyer » dit « Bientôt » et ne crée aucune fausse demande) ; plusieurs destinataires (un seul pour l'instant) ; des réglages de
+  serveur personnalisés (le serveur reconnaît ceux de la messagerie). Lu / non lu et déplacements restent gardés SUR L'APPAREIL ; les dossiers Envoyés / Archive / Corbeille / Brouillons sont locaux (la réception seule vient du
+  serveur) ; pièces jointes : 3 fichiers, 4 Mo (limites de `/api/sendmail`). ⚠️ OP GESTION monte le module côté **Pro seulement** (`cotes:['pro']`, consigne de départ : outil d'entreprise) ; le module sait aussi tenir Pro ET
+  Perso (une option), c'est un choix de l'hôte.
 - **Les bancs et les sondes** : `tests/test-2700.js` (le moteur de tri, joué sur le texte embarqué dans le module), `tests/test-2702.js` (le module : feuille enfermée, aucune donnée d'exemple, réseau,
   contrat, persistance, traduction de la source), `tests/test-2703.js` (la porte, la vue d'avant intacte, et la VRAIE `courrierSource` contre le VRAI serveur isolé avec un facteur SMTP de banc ; les trois
   états). Sondes navigateur sous `scratchpad/courrier/` (lancer : voir l'en-tête de `pilote.js` — `playwright-core` HORS dépôt, `NODE_PATH`) : `ctx_check` 16, `miss_check` 50, `sign_check` 48,
-  `audit_contrast` (AA, 6 combinaisons), `sonde-module` 110 (isolement dans les deux sens, format sur le conteneur, calque, côtés, « Bientôt », états, MX, stockage, démontage),
-  `sonde-gestion` 39 (sur `beta.html` : la vue, le menu, jour/nuit, 390 px et bureau, la feuille au-dessus de la barre).
+  `audit_contrast` (AA, 6 combinaisons), `sonde-module` 118 (isolement dans les deux sens, format sur le conteneur, calque, côtés, « Bientôt » et toutes les fonctions présentes, états, MX, stockage, démontage),
+  `sonde-gestion` 41 (sur `beta.html` : la vue, le menu, jour/nuit, 390 px et bureau, la feuille au-dessus de la barre).
 - **À FAIRE (moitié 2, un autre agent) : la Tour et OP MESSAGES Pro**, avec le MÊME module. Chacun écrit SON adaptateur (contrat en tête d'`opcourrier.js`) et monte :
   `OPCourrier.monter(zone, {source: maSource, cotes:['pro'], cleStockage:'<clé propre à cette application>', theme:()=>…, onCompter:n=>…})`. OP MESSAGES Pro : `cotes:['pro']` (ou les deux si Perso y
   vit aussi) ; la Tour : `cotes:['pro']`. ⛔ Les deux PARTENT VIDES : on ne reprend PAS en silence l'ancienne configuration de la boîte de la Tour — la personne se reconnecte à sa messagerie par

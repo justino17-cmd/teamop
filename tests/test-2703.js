@@ -55,6 +55,7 @@ const CHARGER = fonction(APP, 'courrierCharger');
 vrai('…avec la version de l\'application (le cache ne ressert pas un module périmé) et sans toucher au service worker', /s\.src='opcourrier\.js\?v='\+encodeURIComponent\(APP_VERSION\)/.test(CHARGER) && !/opcourrier/.test(fs.readFileSync(path.join(RACINE, 'sw.js'), 'utf8')));
 const VUE_C = fonction(APP, 'courrierVue');
 vrai('la vue monte le module côté Pro seulement (OP GESTION est un outil d\'entreprise), à la clé « <préfixe>_courrier »', /cotes:\['pro'\]/.test(VUE_C) && /cleStockage:STORE_KEY\.split\('_'\)\[0\]\+'_courrier'/.test(VUE_C));
+vrai('…écrit les non lus devant le titre de la page (titreDocument)', /titreDocument:true/.test(VUE_C));
 vrai('…décide le thème comme OP GESTION (data-theme de <html> : dark → nuit, light → jour, sinon l\'appareil)', /document\.documentElement\.getAttribute\('data-theme'\)/.test(VUE_C) && /t==='dark'\?'nuit':t==='light'\?'jour':null/.test(VUE_C));
 vrai('…ne reconstruit pas le module sur un rafraîchissement automatique de la rubrique (il perdrait la lecture en cours)', /if\(vivant&&_courrierInst&&vivant\.isConnected\)\{ courrierAjuster\(\); return; \}/.test(VUE_C));
 vrai('⛔ en quittant l\'entreprise, la clé du module est vidée (des mails écrits ne restent pas sur un appareil rendu)', /'espace_admin','courrier'\]/.test(APP) && /const P=STORE_KEY\.split\('_'\)\[0\]\+'_';/.test(fonction(APP, 'espaceQuitter')));

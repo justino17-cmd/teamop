@@ -32,6 +32,7 @@
   var opts = { source: src, cotes: (q.get("cotes") || "pro,perso").split(","), cleStockage: q.get("cle") || "opcourrierEssai_ui",
     intervalle: q.get("intervalle") != null ? +q.get("intervalle") : 60000, onCompter: function (n) { window.__compte = n; } };
   if (q.get("cote")) opts.cote = q.get("cote");
+  if (q.get("titredoc")) opts.titreDocument = true;
   if (q.get("theme") === "hote") opts.theme = function () { return document.documentElement.getAttribute("data-theme") === "nuit" ? "nuit" : "jour"; };
   window.__opc = OPCourrier.monter(document.getElementById("zone"), opts);
 })();

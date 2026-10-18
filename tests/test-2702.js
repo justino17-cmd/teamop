@@ -116,7 +116,7 @@ v('ni sessionStorage, ni indexedDB, ni cookie, ni document.write, ni eval', ['se
 const persistance = tranche('la persistance (persist, restore, acctExists, validScope)', '  var restoredLost=0;', '  // ---------- Dates ----------');
 vrai('⛔ le stockage n\'est touché que DEUX fois dans tout le fichier : persist écrit, restore lit, chacun dans un try', (CODE.match(/localStorage/g) || []).length === 2 && /function persist\(\)\{ try\{[^]*?localStorage\.setItem\(LS,JSON\.stringify\(snap\)\);\s*\}catch\(e\)\{\}/.test(persistance) && /function restore\(\)\{ try\{\s*var raw=localStorage\.getItem\(LS\);[^]*?\}catch\(e\)\{\} \}/.test(persistance));
 vrai('la clé est celle de l\'hôte (options.cleStockage), « opcourrier » à défaut — jamais une clé écrite en dur', /var LS = String\(opt\.cleStockage \|\| "opcourrier"\)/.test(CODE) && !/["']elan[B]?_[a-z]/.test(CODE));
-vrai('document.title n\'est écrit que si l\'hôte le demande (options.titreDocument)', /if\(opt\.titreDocument\) document\.title=/.test(CODE) && (CODE.match(/document\.title\s*=/g) || []).length === 1);
+vrai('document.title n\'est écrit que si l\'hôte le demande (options.titreDocument) : « (n) » devant SON titre, qui lui est RENDU au démontage', /if\(opt\.titreDocument\) document\.title=\(n\?"\("\+n\+"\) ":""\)\+TITRE_ORIG/.test(CODE) && /if\(opt\.titreDocument\)\{ try\{ document\.title=TITRE_ORIG; \}catch\(e\)\{\} \}/.test(CODE) && (CODE.match(/document\.title\s*=/g) || []).length === 2);
 vrai('tout ce que le module accroche hors de son arbre se décroche (sur(), finis, demonter)', /function sur\(cible, type, fn, o\)/.test(CODE) && /finis\.forEach\(function\(f\)\{ try\{ f\(\); \}catch\(e\)\{\} \}\)/.test(CODE) && !/\bwindow\.addEventListener\(/.test(CODE) && !/\bdocument\.addEventListener\(/.test(CODE));
 vrai('l\'hôte retire le conteneur sans prévenir : le module s\'éteint de lui-même (hote.isConnected)', /if\(!hote\.isConnected\)\{ demonter\(\); return; \}/.test(CODE));
 vrai('les raccourcis clavier n\'écoutent QUE l\'arbre du module (sr.addEventListener), jamais window ni document', !/window\.addEventListener\("key/.test(CODE) && !/document\.addEventListener\("key/.test(CODE) && /sr\.addEventListener\("keydown"/.test(CODE));
@@ -133,7 +133,7 @@ vrai('la valeur rendue : { demonter, cote, rafraichir }', /return \{\s*demonter:
 vrai('monter exige une source (message clair) et un conteneur', /l’option « source » \(l’adaptateur de données\) est obligatoire/.test(CODE));
 const capDecl = (CODE.match(/CAP\[k\]=c\[k\]===true/g) || []).length;
 vrai('toute capacité est FAUSSE tant que la source ne dit pas le contraire (=== true, jamais « truthy »)', capDecl === 1 && /var CAP=\{oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,/.test(CODE));
-for (const [k, mot] of [['oauth', 'Bientôt : connexion sécurisée'], ['programmeServeur', 'Bientôt : l’envoi programmé'], ['signature', 'Bientôt : signature électronique'], ['destinataires', 'Bientôt : plusieurs destinataires']])
+for (const [k, mot] of [['oauth', 'Bientôt : connexion sécurisée'], ['programmeServeur', 'Bientôt : l’envoi à l’heure dite'], ['signature', 'Bientôt : l’envoi du document à signer'], ['destinataires', 'Bientôt : plusieurs destinataires']])
   vrai('« Bientôt » : ce que la source ne sait pas faire (' + k + ') est DIT — « ' + mot + ' »', CODE.includes(mot));
 vrai('trois états : liste illisible ≠ liste vide (LOAD.boites wait | ok | ko ; un rejet n\'efface jamais ce qui était lu ; « Réception indisponible » ≠ « Aucun message »)', /LOAD\.boites="ko"/.test(CODE) && /Boîtes mail illisibles/.test(CODE) && /Réception indisponible/.test(CODE) && /LOAD\.msgs\[a\.id\]="ko"/.test(CODE));
 vrai('l\'envoi se DIT : « Message envoyé » après la réponse de la source, un échec remet le message dans les brouillons', /function expedier\(m,quiet,fin\)/.test(CODE) && /Envoi impossible : /.test(CODE));
@@ -204,6 +204,13 @@ const bacTraduction = () => { const sb = { FOLDERS: [{ id: 'inbox' }, { id: 'sen
   v('dossierServeur : un déplacement fait à la main, lui, part', (t.aj = false, t.folder = 'archive', sb.dossierServeur(t)), 'archive'); }
 
 (async () => {
+/* l'envoi programmé sans service côté source : il part PAGE OUVERTE ; un message dont l'heure est passée DEPUIS LONGTEMPS ne part pas tout seul */
+{ const f = fonction(MOD, 'enRetard'); vrai('(tranche trouvée) la fonction enRetard', f.length > 40);
+  const sb = { CAP: { programmeServeur: false }, MIN: 60000, RETARD_MAX: 120000, Date }; vm.createContext(sb); vm.runInContext(f + '\n;this.enRetard=enRetard;', sb);
+  const m = (dt) => ({ folder: 'scheduled', sendAt: Date.now() - dt });
+  v('⛔ sans service d\'envoi côté source : à l\'heure (ou 1 min de retard) le message part ; passé de plus de 2 min (page fermée entre-temps) il ATTEND un geste', [sb.enRetard(m(0)), sb.enRetard(m(60000)), sb.enRetard(m(3 * 3600000))], [false, false, true]);
+  sb.CAP.programmeServeur = true; v('avec un service d\'envoi côté source, jamais « en retard » (c\'est lui qui envoie)', sb.enRetard(m(3 * 3600000)), false); }
+
 /* l'ENVOI : la vraie `expedier` — « envoyé » ne s'écrit qu'APRÈS la réponse de la source, un échec remet le message dans les brouillons et le dit */
 console.log('\n   L\'envoi : la vraie expedier');
 { const EXP = ['expedier', 'courrierDe', 'msgErr', 'bodyText'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 30); return f; }).join('\n');

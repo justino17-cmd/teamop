@@ -64,10 +64,12 @@ const REPONSES = [
     log(await p.locator('#rows .msg').count() === 3, 'vue : les trois messages reçus de /api/replies sont là (dont celui sans boîte nommée, rangé dans la première boîte) — ' + await p.locator('#rows .msg').count());
     log(await p.evaluate(() => document.querySelector('#topbar-actions').innerHTML.trim() === '' && document.getElementById('page-title').textContent === 'Boîte mail'), 'vue : le titre de la page est « Boîte mail » et la barre n’affiche plus les anciens boutons (Boîtes, Écrire)');
     log(!/Maquette|aucun vrai mail|Bêta —|Simuler|exemple/i.test(await p.evaluate(sr => eval(sr).textContent, SR)), 'vue : aucune trace de maquette, de démonstration ni de « bêta » dans le module');
+    log(/^\(\d+\) /.test(await p.title()), 'titre : les non lus s’écrivent devant le titre de la page d’OP GESTION — « ' + await p.title() + ' »');
     const dem = vus.demandes.join(' '); log(/GET \/api\/mailboxes/.test(dem) && /GET \/api\/replies/.test(dem) && vus.demandes.filter(x => x === 'GET /api/replies').length === 1, 'vue : /api/mailboxes puis UNE seule lecture de /api/replies pour toutes les boîtes — ' + vus.demandes.filter(x => /api\//.test(x)).join(', '));
     /* le menu d'OP GESTION reste utilisable : on change de rubrique puis on revient */
     await p.evaluate(() => go('dashboard')); await p.waitForTimeout(800);
     log(await p.locator('[data-opcourrier]').count() === 0 && await p.evaluate(() => current) === 'dashboard', 'menu : changer de rubrique retire le module de la page');
+    await p.waitForTimeout(5500); log(!/^\(\d+\) /.test(await p.title()), 'titre : le titre de la page est rendu quand le module s’éteint — « ' + await p.title() + ' »');
     await p.evaluate(() => go('boiteMail')); await p.waitForSelector('[data-opcourrier]'); await p.waitForTimeout(700);
     await p.locator('#catBar [data-cat="tout"]').click(); await p.waitForTimeout(200);
     log(await p.locator('[data-opcourrier]').count() === 1 && await p.locator('#rows .msg').count() === 3 && scripts.length === 1, 'menu : on revient, le module se remonte (le script n’est pas rechargé) — ' + await p.locator('#rows .msg').count() + ' messages');
@@ -97,7 +99,8 @@ const REPONSES = [
     await ouvrirMail(p);
     await p.locator('#rows [data-addaccount]').click(); await p.waitForTimeout(250);
     await p.locator('#aMail').fill('contact@atelier-essai.example'); await p.locator('#aName').focus(); await p.waitForTimeout(600);
-    log(/Le serveur reconnaît la messagerie à la connexion/.test(await texte(p, '#aDet')) && await p.locator('#aAdv').isVisible() === false, 'connexion : aucun réglage de serveur n’est proposé (le serveur choisit les siens), aucun appel DNS');
+    await p.locator('#aPass').waitFor({ state: 'visible' }); await p.locator('#aAdvTog').click(); await p.waitForTimeout(100);
+    log(/Le serveur reconnaît la messagerie à la connexion/.test(await texte(p, '#aDet')) && /Bientôt : des réglages de serveur personnalisés/.test(await texte(p, '#aAdvBody')) && await p.locator('#aImap').isVisible() === false, 'connexion : « Réglages du serveur » dit « Bientôt » au lieu de champs que le serveur ignorerait (il choisit les siens) ; aucun appel DNS');
     log(await p.locator('#kKind').isVisible() === false, 'connexion : le côté n’est pas demandé (OP GESTION est un outil d’entreprise : côté Pro)');
     await p.locator('#aPass').fill('mdp-essai'); vus.etat.connexion = 'refus'; await p.locator('#aGo').click(); await p.waitForTimeout(700);
     log(/identifiants incorrects/.test(await texte(p, '#aMailErr')) && await p.locator('#aMail').count() === 1, 'connexion refusée : le message DU SERVEUR s’affiche dans la feuille, qui reste ouverte');

@@ -31482,7 +31482,7 @@ function courrierVue(){
     if(!zone.isConnected||current!=='boiteMail') return;
     _courrierInst=window.OPCourrier.monter(zone,{source:courrierSource(),cotes:['pro'],cleStockage:STORE_KEY.split('_')[0]+'_courrier',
       theme:()=>{ const t=document.documentElement.getAttribute('data-theme'); return t==='dark'?'nuit':t==='light'?'jour':null; },
-      onCompter:n=>{ window._courrierNonLus=n; }});
+      titreDocument:true,onCompter:n=>{ window._courrierNonLus=n; }});
     courrierAjuster();
   },()=>{ if(zone.isConnected) zone.innerHTML='<div class="card"><div class="card-head"><h3>Boîte mail indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Le module de messagerie n’a pas pu être chargé.</p><button class="btn" onclick="views.boiteMail()">Réessayer</button></div>'; });
 }
