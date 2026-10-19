@@ -466,7 +466,7 @@ console.log('\n6 quinquies. Logo par boîte : validé, recadré, rangé sur l\'a
   v('le recadrage garde le CARRÉ du centre (paysage, portrait, carré)', [sb.c(200, 100), sb.c(100, 300), sb.c(64, 64)], [{ sx: 50, sy: 0, c: 100 }, { sx: 0, sy: 100, c: 100 }, { sx: 0, sy: 0, c: 64 }]);
   const a1 = { id: 'b1', email: 'support@teamop.fr' }, a2 = { id: 'b2', email: 'controle@teamop.fr' };
   const sans = sb.tile(a1), avec = (sb.SAVED.logos.b1 = png, sb.tile(a1));
-  vrai('⛔ sans logo : une pastille à l\'INITIALE de l\'adresse, d\'une teinte stable par adresse (deux appels, même couleur ; deux adresses, deux couleurs)', /hsl\(\d+ 46% 36%\)[^>]*>S</.test(sans) && sb.t('support@teamop.fr') === sb.t('SUPPORT@teamop.fr') && sb.t('support@teamop.fr') !== sb.t('controle@teamop.fr') && /hsl\(\d+ 46% 36%\)[^>]*>C</.test(sb.tile(a2)), sans);
+  vrai('⛔ sans logo : une pastille à l\'INITIALE de l\'adresse, d\'une teinte stable par adresse (deux appels, même couleur ; deux adresses, deux couleurs)', /hsl\(\d+ 46% 30%\)[^>]*>S</.test(sans) && sb.t('support@teamop.fr') === sb.t('SUPPORT@teamop.fr') && sb.t('support@teamop.fr') !== sb.t('controle@teamop.fr') && /hsl\(\d+ 46% 30%\)[^>]*>C</.test(sb.tile(a2)), sans);
   vrai('⛔ avec logo : l\'image est une <img src="data:…"> sans texte alternatif parlant, jamais exécutée, et le logo d\'une boîte n\'habille pas l\'autre', /<img src="data:image\/png;base64,[^"]+" alt="" draggable="false">/.test(avec) && !/S</.test(avec) && /hsl\(/.test(sb.tile(a2)));
   sb.SAVED.logos.b1 = 'data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=';
   vrai('…un logo rangé qui ne serait plus une petite image PNG / JPEG n\'est PAS peint (retour à la pastille)', /hsl\(/.test(sb.tile(a1)) && !/<img/.test(sb.tile(a1)));

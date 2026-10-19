@@ -1611,7 +1611,7 @@ var MARKUP = `
   function acctTile(a){ var u=SAVED.logos[a.id];
     if(logoValide(u)) return '<span class="ptile alogo" aria-hidden="true"><img src="'+u+'" alt="" draggable="false"></span>';
     var ini=String(a.email||"?").charAt(0).toUpperCase();
-    return '<span class="ptile" style="background:hsl('+teinteAdresse(a.email)+' 46% 36%)" aria-hidden="true">'+H(ini)+'</span>'; }
+    return '<span class="ptile" style="background:hsl('+teinteAdresse(a.email)+' 46% 30%)" aria-hidden="true">'+H(ini)+'</span>'; }
   // fichier choisi → data URL carrée de 64 px (PNG, ou JPEG si l'image est une photo trop lourde). Refus DIT : mauvais type, trop gros, illisible.
   function logoDepuisFichier(f){
     return new Promise(function(ok,ko){
