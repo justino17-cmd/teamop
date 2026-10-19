@@ -171,6 +171,13 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   vrai('⛔ Yousign refuse l\'activation : l\'erreur dit que le prestataire a refusé, avec l\'étape', /Yousign\) a refusé/.test(r1 || '') && /étape/.test(r1 || ''), r1);
   const liste2 = await (await brut('GET', '/api/signature/demandes')).json();
   v('⛔ …et AUCUNE demande « Échec Yousign » ne reste sur le service (ni brouillon, ni envoyée)', liste2.demandes.filter(d => d.titre === 'Échec Yousign').length, 0);
+  /* le PREMIER VRAI ESSAI (19 octobre 2026) : « (étape : creer, code 400) » sans dire quel champ — la phrase de la page porte maintenant le champ refusé et la raison nettoyée par le service */
+  ys.st.refusCreer = { statut: 400, corps: { title: 'Bad Request', violations: [{ propertyPath: 'reminder_settings.max_occurrences', message: 'Valeur trop haute pour jean.dupont@exemple.fr 0612345678' }] } };
+  ys.st.echecs.set('creer', { fois: 1 });
+  r1 = await rejette(s.signature.envoyer(demande({ titre: 'Refus 400' }), [{ nom: 'a.pdf', blob: pdf('a') }]));
+  vrai('⛔ un refus 400 de Yousign : la phrase de la page nomme l\'étape, le code ET le champ refusé', /étape : creer, code 400, champ : reminder_settings\.max_occurrences/.test(r1 || ''), r1);
+  vrai('…avec la raison du prestataire, sans adresse ni numéro', /Valeur trop haute/.test(r1 || '') && !/@|0612/.test(r1 || ''), r1);
+  ys.st.refusCreer = null; ys.st.echecs.clear();
   ys.st.echecs.set('annuler', { fois: 1 });
   r1 = await rejette(s.signature.annuler(vue.id));
   vrai('annuler() sur une demande déjà signée : refus lisible', /déjà terminée/.test(r1 || ''), r1);

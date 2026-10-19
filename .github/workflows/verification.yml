@@ -82,6 +82,12 @@ jobs:
         if: always()
         run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-msg
 
+      # `test-2705` fait parler la VRAIE fonction de la Tour au VRAI serveur de signature (`server-courrier/`) : sans `server-courrier/node_modules` il se SAUTE,
+      # et le compteur lit un saut comme un échec (PR n° 151, 19 octobre 2026 : le seul rouge de « Vérification des pages »). Rien n'est déployé : on installe pour tester.
+      - name: Dépendances d'OP Courrier (serveur de signature)
+        if: always()
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-courrier
+
       # ⛔ APRÈS LES DÉPENDANCES, ET CE N'EST PAS UN DÉTAIL D'ORDRE. Six suites LANCENT le vrai
       # serveur et sautent d'elles-mêmes leur partie exécutée si server/node_modules manque.
       # Mesuré le 15 septembre 2026 : le total tombe alors de 1 923 à 1 758, sortie 0, sans un

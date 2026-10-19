@@ -7143,7 +7143,8 @@ function courrierSource(){
   function signMessage(d,statut){
     var c=d&&d.error, m=SIGN_MSG[c];
     if(c==='signataire_invalide'&&d.n){ m='Signataire '+d.n+' : '+(SIGN_CHAMP[d.champ]?SIGN_CHAMP[d.champ]+' est invalide ou manquant.':'informations invalides.'); }
-    if(c==='yousign_refuse'&&d.etape) m=(m||'')+' (étape : '+String(d.etape).slice(0,30)+(d.statut?', code '+(+d.statut):'')+')';
+    /* le prestataire dit QUEL champ il refuse (son nom) et pourquoi (une phrase déjà nettoyée par le service) : sans eux, un « code 400 » ne se corrige pas (premier vrai essai, 19 octobre 2026) */
+    if(c==='yousign_refuse'&&d.etape) m=(m||'')+' (étape : '+String(d.etape).slice(0,30)+(d.statut?', code '+(+d.statut):'')+(d.champ?', champ : '+String(d.champ).replace(/[^A-Za-z0-9_.,\[\]-]/g,'').slice(0,80):'')+')'+(d.raison?' — '+String(d.raison).replace(/[<>&"]/g,'').slice(0,140):'');
     return m||(statut===413?SIGN_MSG.trop_gros:statut===429?SIGN_MSG.trop_de_requetes:'Le service de signature a refusé la demande (HTTP '+statut+').'); }
   /* tout passe par ici : le même jeton que le reste de la Tour, aucune donnée du service ne revient comme succès si le code n'est pas 2xx, un corps illisible est une erreur */
   function sigRequete(methode,chemin,o){
