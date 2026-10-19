@@ -127,8 +127,12 @@ function get(url) {
         .filter(([motif, n]) => n > 0 && motif !== 'absent' && motif !== 'technique' && motif !== 'partagee');
       const recent = typeof j.mailRefus.ts === 'number' && j.mailRefus.ts > Date.now() - 2 * 3600000;
       if (vrais.length && recent) {
-        problems.push('⛔⛔ DES APPAREILS SE FONT REFUSER LEUR RÉCEPTION MAINTENANT (' +
-          vrais.map(([m, n]) => m + '×' + n).join(', ') + ') — ce ne sont ni des versions anciennes ni la bêta : c’est une entreprise vivante dont la preuve de clé est refusée, et ces gens-là n’ont plus leur courrier. Qui exactement : Tour → /api/mail/cles (gardée). Pour rouvrir le temps de comprendre : `mailPreuveExigee: false` sur le VPS.');
+        /* Depuis octobre 2026 la même porte garde AUSSI la connexion d'une boîte, sa déconnexion et l'ENVOI : le refus
+           peut donc tomber sur un « Envoyer » ou un « Connecter », pas seulement sur la Réception. `parRoute` dit sur
+           laquelle (clés = routes mail, aucune entreprise nommée : /health est publique). */
+        const routes = Object.entries(j.mailRefus.parRoute || {}).filter(([, n]) => n > 0).map(([r, n]) => r + '×' + n).join(', ');
+        problems.push('⛔⛔ DES APPAREILS SE FONT REFUSER LEUR COURRIER MAINTENANT (' +
+          vrais.map(([m, n]) => m + '×' + n).join(', ') + (routes ? ' · routes, tous motifs : ' + routes : '') + ') — ce ne sont ni des versions anciennes ni la bêta : c’est une entreprise vivante dont la preuve de clé est refusée, et ces gens-là n’ont plus leur courrier (réception, envoi, boîte connectée). Qui exactement : Tour → /api/mail/cles (gardée). Pour rouvrir le temps de comprendre : `mailPreuveExigee: false` sur le VPS.');
       }
     }
     /* ⛔ LE PORTAIL CLIENT — AJOUTÉ LE 21 SEPTEMBRE 2026, EN MÊME TEMPS QUE LE CHAMP.

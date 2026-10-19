@@ -527,7 +527,7 @@ app.get('/health', (req, res) => res.json({ ok: true, v: 5, histo: true, annonce
      sans espace ni adresse — c'est ce compteur qui dit, en une seconde et sans clé, si la
      fermeture a pris une vraie entreprise au passage. S'il monte, l'interrupteur
      « mailPreuve: false » rouvre le temps de comprendre (voir cleEquipeExige). */
-  mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, ts: mailRefus.ts },
+  mailRefus: { n: mailRefus.n, parMotif: mailRefus.parMotif, parRoute: mailRefus.parRoute, ts: mailRefus.ts },
   /* Le socle : allumé ou non, combien de bases, la clé maître est-elle là, combien de flux
      tenus. ⛔ AUCUN NOM D'ENTREPRISE, AUCUN POIDS — /health est publique, et y nommer un
      espace dirait au monde quelles entreprises existent. Et `routesDoublons` : voir le
@@ -1149,14 +1149,44 @@ function cleEquipeExige(req, res, next) {
      dans app.html ne prouve rien en la présentant : n'importe qui la calcule. */
   else if (cleEstPublique(t)) motif = 'partagee';
   if (!motif) return next();
+  /* La route qui refuse — la MÊME clé que `cleEquipeParRoute` (sans « /api/ »). `baseUrl` est le
+     chemin tel que le client l'a écrit : Express ne distingue pas la casse, « /API/SENDMAIL »
+     passe donc ici comme sur la route, d'où le `toLowerCase` — sinon une route écrite en
+     majuscules ne serait pas reconnue pour ce qu'elle est, et ferait grossir la table. */
+  const rt = String(req.baseUrl || req.path || '').toLowerCase().replace(/^\/api\//, '').slice(0, 24) || '?';
   mailRefus.n++; mailRefus.parMotif[motif] = (mailRefus.parMotif[motif] || 0) + 1; mailRefus.ts = Date.now();
+  mailRefus.parRoute[rt] = (mailRefus.parRoute[rt] || 0) + 1;
   /* Agrégé, et rien d'autre : /health est publique. Un slug ou un teamId ici dirait au
      monde quelles entreprises existent — c'est /api/mail/cles, protégée, qui les ventile. */
+  if (ROUTES_MAIL_REFUS_JSON.includes(rt)) {
+    /* ⛔ LE REFUS D'UNE ROUTE QUI ÉCRIT SE LIT PAR `r.json()` — L'inverse de la lecture. Mesuré dans
+       app.html : `mailDoConnect` fait « const d = await r.json() », et un refus en text/plain fait
+       jeter l'appel, tomber dans le `catch` et afficher « Serveur injoignable » alors que le serveur
+       a répondu. Ici un JSON `{error}` est EXACTEMENT ce que l'écran sait dire (« Connexion refusée »
+       + la raison ; « Envoi refusé (raison) » pour `srvMail`). Il n'y a pas le piège de /api/replies :
+       aucune liste ne peut devenir vide, rien n'est lu.
+       ⚠️ Les mots du message sont choisis : l'écran de connexion prend « refus », « auth », « login »,
+       « invalid », « password », « mot de passe » pour un problème de mot de passe de la boîte et
+       propose de le réinitialiser ; ici le mot de passe n'y est pour rien. */
+    return res.status(403).json({ error: motif === 'technique'
+      ? 'Cet espace de test n\'envoie aucun courriel réel et ne connecte aucune boîte.'
+      : 'Cet appareil n\'a pas pu prouver la clé de son entreprise — ferme puis rouvre l\'application (ou reconnecte-toi avec ton lien), et réessaie.' });
+  }
   res.status(403).type('text/plain; charset=utf-8')
      .send('Réception indisponible : cet appareil n\'a pas prouvé la clé de son entreprise.');
 }
-const mailRefus = { n: 0, parMotif: Object.create(null), ts: 0 };
-app.use(['/api/replies', '/api/mailboxes'], cleEquipeExige);
+const mailRefus = { n: 0, parMotif: Object.create(null), parRoute: Object.create(null), ts: 0 };
+/* ⛔ LES TROIS ROUTES QUI AGISSENT AU NOM D'UNE ENTREPRISE (11 septembre 2026 pour les deux qui lisent ; octobre 2026 pour
+   celles-ci) : connecter une boîte, la déconnecter, ENVOYER depuis elle — ou depuis le serveur mail de TeamOP, au nom de
+   l'entreprise. Elles n'étaient qu'OBSERVÉES : connaître le `teamId` (ni secret ni révocable : il voyage dans les URL, il est
+   écrit dans le `localStorage` de chaque appareil) suffisait à envoyer depuis la boîte d'une entreprise, ou à la lui
+   déconnecter. Même garde, même réglage (« mailPreuveExigee »: false rouvre les cinq d'un coup), même ordre de montage
+   (APRÈS cleEquipeObserve, qui pose req.cleEquipe). Les appareils d'abord : `app.html` envoie `x-teamop-kh` sur ces trois
+   appels depuis la v572, et le minimum exigé en ligne (/api/version) est bien au-delà.
+   `/api/subscribe` et `/api/notify` restent OBSERVÉES : `espace.html` et `messages.html` les appellent sans jamais envoyer
+   de preuve, leur fermer la porte les couperait. */
+const ROUTES_MAIL_REFUS_JSON = ['mailbox/connect', 'mailbox/disconnect', 'sendmail'];
+app.use(['/api/replies', '/api/mailboxes', '/api/mailbox/connect', '/api/mailbox/disconnect', '/api/sendmail'], cleEquipeExige);
 
 /* Le nombre d'essais de connexion à une boîte, par IP et par heure. La route tente un
    SMTP puis un IMAP chez le fournisseur et RENVOIE son message d'erreur : sans borne,

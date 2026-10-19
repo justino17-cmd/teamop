@@ -530,6 +530,16 @@ journalctl -u teamop-api | grep '^devis '   # appels d'outil de l'assistant devi
   oublié » (portail) et « me renvoyer le lien » (`connexion.html`) annonçaient « vient de partir » sur un 400,
   un 429, un 502 et une coupure — la version en ligne, mesurée : 6 cas faux sur 9. Un écran qui annonce un envoi
   lit le code AVANT (`tests/test-831.js`, `scratchpad/sonde-portail-envoi.js`).
+- ⛔ **CONNECTER, DÉCONNECTER ET ENVOYER EXIGENT LA MÊME PREUVE — ET LEUR REFUS EST DU JSON, L'INVERSE DE LA RÉCEPTION.**
+  Octobre 2026 : `/api/mailbox/connect`, `/api/mailbox/disconnect` et `/api/sendmail` n'étaient qu'OBSERVÉES (`cleEquipeObserve`) —
+  connaître le `teamId` suffisait à envoyer depuis la boîte d'une entreprise, ou à la lui déconnecter. Elles passent par
+  `cleEquipeExige`, **le même réglage** (`"mailPreuveExigee": false` rouvre les CINQ), **le même comptage** (`mailRefus`, plus
+  `parRoute`). Leur refus est un `403 {error}` en JSON : `mailDoConnect` fait `await r.json()`, et un refus en `text/plain` y
+  afficherait « Serveur injoignable » alors que le serveur a répondu ; le piège de `/api/replies` (une liste qui devient vide) n'existe
+  pas ici, rien n'est lu. ⚠️ Les mots du message sont choisis : l'écran de connexion prend « refus », « auth », « login », « invalid »,
+  « password » pour un mot de passe de boîte et propose de le réinitialiser. La bêta (`ESPACES_INTOUCHABLES`) ne connecte plus de boîte
+  et n'envoie plus de courriel : voulu, elle n'a pas de données d'entreprise. `/api/subscribe` et `/api/notify` restent observées
+  (`espace.html` et `messages.html` les appellent sans preuve). `tests/test-2692.js`, dans `scripts/bancs-serveur.liste`.
 - ⛔ **Le refus de `/api/replies` n'est PAS du JSON.** `loadMailReplies()` (`app.html`) fait
   `const d = await r.json(); _mailReplies = d.replies||[]` : un refus en JSON se parse sans
   erreur, la liste devient **vide** au lieu de **nulle**, et l'écran affiche « 📭 Aucun
