@@ -74,7 +74,7 @@ if sale: sys.exit('REFUS : fichiers visés non commités (git checkout les resta
 tombent = 0; cours = None
 try:
     for nom, f, ancien, neuf, banc in MUTATIONS:
-        if os.environ.get('FILTRE') and os.environ['FILTRE'] not in nom: continue
+        if os.environ.get('FILTRE') and not __import__('re').search(os.environ['FILTRE'], nom): continue
         cours = f
         t = open(f, encoding='utf-8').read()
         n = t.count(ancien)
@@ -94,6 +94,6 @@ try:
         print('  %s %s → %s ✓ · %s ✗ (%s)' % ('✓ tombe ' if tombe else '✗ VERT   ', nom, bilan[0], bilan[1], banc))
 finally:
     if cours: sh('git', 'checkout', '--', *fichiers)
-joue = len([x for x in MUTATIONS if not os.environ.get('FILTRE') or os.environ['FILTRE'] in x[0]])
+joue = len([x for x in MUTATIONS if not os.environ.get('FILTRE') or __import__('re').search(os.environ['FILTRE'], x[0])])
 print('\n%d mutations sur %d tombent' % (tombent, joue))
 sys.exit(0 if tombent == joue else 1)
