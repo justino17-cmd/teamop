@@ -204,7 +204,7 @@ if (fs.existsSync(dep)) {
      MÊME compteur avec SA liste (`scripts/bancs-messages.liste`) et son plancher : deux copies d'un compteur divergent
      toujours, et un quatrième appelant doit être un geste conscient, pas un bloc recopié. `test-933` garde ce que le
      troisième lance et dans quel ordre. */
-  v('   et les trois workflows l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement-messages.yml', 'deploiement.yml']);
+  v('   et les quatre workflows (dont celui d\'OP Courrier, éteint) l\'appellent, lui', utilise.sort(), ['ci.yml', 'deploiement-courrier.yml', 'deploiement-messages.yml', 'deploiement.yml']);
 }
 
 /* ⛔ LA LISTE DES BANCS DU SERVEUR — ce que le déploiement du serveur SEUL lance sur `main`

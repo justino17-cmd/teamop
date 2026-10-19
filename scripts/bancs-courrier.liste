@@ -1,0 +1,7 @@
+# Les suites qui gardent le serveur d'OP Courrier (`server-courrier/`, signature Yousign) — celles que
+# `.github/workflows/deploiement-courrier.yml` lance avant de toucher au VPS. Aucune ne lit une page d'OP GESTION.
+# Sans `npm ci --prefix server-courrier` les suites qui montent le vrai service SAUTENT (vertes, 0 vérification) :
+# d'où le plancher ci-dessous.
+#plancher 195
+tests/test-1670.js
+tests/test-1671.js

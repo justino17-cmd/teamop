@@ -1,0 +1,74 @@
+# Déploiement d'OP Courrier (serveur de signature, `server-courrier/`) sur SON VPS — un service à part.
+#
+# ⛔ DÉSACTIVÉ TANT QUE JUSTIN N'A PAS POSÉ LE VPS : ce workflow ne se déclenche QUE à la main (`workflow_dispatch`), jamais sur un push, et son
+# job qui parle au VPS refuse de partir tant que la variable de dépôt COURRIER_ACTIF ne vaut pas « oui » (Settings → Variables). Les bancs, eux,
+# tournent à chaque lancement : la porte est dans CE fichier (voir `deploiement.yml` : GitHub n'a pas de `needs` entre workflows).
+# La production demande en plus l'approbation de l'environnement GitHub `courrier-prod` (Justin relecteur obligatoire — à régler dans
+# Settings → Environments : ce fichier ne peut pas le poser).
+name: Déploiement d'OP Courrier
+run-name: ${{ format('Publier {0} {1}', inputs.cible, inputs.sha) }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      cible:
+        description: "Instance à déployer (prod demande l'approbation de l'environnement courrier-prod)"
+        type: choice
+        options: [beta, prod]
+        default: beta
+      sha:
+        description: "SHA complet du commit à déployer"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  bancs:
+    name: Bancs d'OP Courrier (avant de toucher au VPS)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Dépendances du service
+        run: npm ci --omit=dev --ignore-scripts --no-audit --no-fund --prefix server-courrier
+      - name: Failles des dépendances de production
+        run: npm audit --omit=dev --prefix server-courrier
+      - name: Syntaxe
+        run: |
+          find server-courrier -name '*.js' -not -path '*/node_modules/*' -print0 | xargs -0 -n1 node --check
+          for f in server-courrier/*.sh; do bash -n "$f" || exit 1; done
+      - name: Les bancs
+        run: BANCS_PLANCHER=$(sed -n 's/^#plancher //p' scripts/bancs-courrier.liste) bash scripts/bancs-ci.sh $(grep -vE '^[[:space:]]*(#|$)' scripts/bancs-courrier.liste)
+
+  deployer:
+    name: Déployer (${{ inputs.cible }})
+    needs: bancs
+    if: ${{ vars.COURRIER_ACTIF == 'oui' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: ${{ inputs.cible == 'prod' && 'courrier-prod' || 'courrier-beta' }}
+    concurrency:
+      group: deploiement-courrier
+      cancel-in-progress: false
+    env:
+      CLE_SSH: ${{ inputs.cible == 'prod' && secrets.VPS_SSH_KEY_COURRIER_PROD || secrets.VPS_SSH_KEY_COURRIER_BETA }}
+      HOTE: ${{ vars.COURRIER_HOTE }}
+      EMPREINTE: ${{ vars.COURRIER_EMPREINTE_HOTE }}
+      CIBLE: ${{ inputs.cible }}
+      SHA_VOULU: ${{ inputs.sha }}
+    steps:
+      - name: Déployer sur le VPS (commande forcée)
+        run: |
+          [[ "$SHA_VOULU" =~ ^[0-9a-f]{40}$ ]] || { echo "SHA complet de 40 hexadécimaux exigé"; exit 2; }
+          [ -n "$CLE_SSH" ] && [ -n "$HOTE" ] && [ -n "$EMPREINTE" ] || { echo "::error::clé SSH, hôte ou empreinte d hôte manquants (voir server-courrier/LISEZMOI.md)"; exit 2; }
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$CLE_SSH" > ~/.ssh/id_courrier && chmod 600 ~/.ssh/id_courrier
+          printf '%s %s\n' "$HOTE" "$EMPREINTE" > ~/.ssh/known_hosts && chmod 600 ~/.ssh/known_hosts
+          ssh -i ~/.ssh/id_courrier -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes "root@$HOTE" "$CIBLE $SHA_VOULU"
