@@ -58,11 +58,21 @@ vérifiée par `server/set-stripe-version.sh`). Un `fetch` vers Stripe qui écri
 à la main suivrait la version du tableau de bord — `tests/test-1010.js` le refuse. Un banc qui
 extrait la route de paiement doit fournir `stripeEntetes` (`test-727`, `test-797`).
 
-`server/agent-devis.js` — assistant de rédaction de devis. Modèle `claude-opus-5`,
+`server/agent-devis.js` — assistant de rédaction de devis. Modèle `claude-sonnet-5` (constante `MODEL`, relue le 19 octobre 2026 ; cette ligne disait `claude-opus-5`),
 un seul outil (`creer_devis`), plafond de 100 appels par jour, code d'accès d'équipe.
 **Ce fichier envoie des données de clients réels à Anthropic** : nom, adresse, ville.
 Toute modification touchant au contexte transmis a une portée juridique — voir
 `sous-traitance.html`.
+
+`server/agents.js` — le SOCLE de l'équipe d'agents IA (19 octobre 2026, branche `claude/equipe-agents`) : registre des
+seize agents, journal, file de validations, pause globale, file de tâches. **Il ne fait agir personne** : aucun appel à
+Anthropic, Stripe ni au courrier. ⛔ Les règles qui le tiennent, et que `tests/test-2703.js` garde (contre-épreuve :
+`python3 scratchpad/mutations-agents.py`, 25 mutations) : un agent qui LIT du texte venu de l'extérieur n'a pas le droit
+d'agir sur l'argent ni les comptes — ce qu'il transmet à un autre agent ne passe que par des champs de forme FERMÉE
+(`SCHEMAS` : un identifiant, une valeur d'une liste, jamais une phrase) ; un état illisible ARRÊTE les agents et rien ne
+s'écrit par-dessus ; seul `pause: false` reprend ; arrêt → brouillon → auto sans saut ; seul le patron décide, une fois.
+Un nouvel agent passe par `peutAgir` avant CHAQUE geste, ne propose que par `proposer` ce qu'il n'a pas le droit de
+faire seul, et ne parle à un autre que par `deposer`. Ses routes (`/api/monitor/agents/*`) restent en GESTION.
 
 ### Commandes
 

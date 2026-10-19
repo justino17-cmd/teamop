@@ -13,6 +13,42 @@ de ligne du tout.
 
 ---
 
+# ⏳ 19 OCTOBRE 2026 — L'ÉQUIPE D'AGENTS IA : LE SOCLE EST POSÉ, AUCUN AGENT N'EXISTE ENCORE — BRANCHE `claude/equipe-agents`
+
+Justin : une équipe de seize agents IA (l'API Claude), chacun avec un prénom, qui gère Team OP pour lui et lui rend compte —
+dans la Tour d'abord, par OP MESSAGES Pro le jour où l'application sera finie. Le plan complet vit dans le document
+« Équipe d'agents Team OP » (claude.ai) : Victor (chef d'orchestre), Inès (contrôle qualité), Camille (courrier et support :
+contact@ et support@), Hugo (paiements et accès), Margaux (facturation), Léa (onboarding), Max (sentinelle), Nina (sécurité et
+RGPD), Théo (sauvegardes), Jules (maintenance dev), Chloé (devis), Emma (réunions), Louis (documentation), Sarah (communication),
+Lola (Instagram, compte Business), Noah (réputation). Trois vagues : 1 = Hugo, Max, Nina, Théo ; 2 = Victor, Inès, Camille,
+Margaux, Léa ; 3 = le reste.
+
+- **Fait sur la branche** (`a3a785c`, poussée, PAS sur `main`) : `server/agents.js` — registre, journal, file de validations, pause
+  globale, file de tâches ; sept routes `/api/monitor/agents/*` (GESTION, écritures au patron, gestes dans `MON_GESTES`) ;
+  `tests/test-2703.js` (129 vérifications : le module sur un vrai Express, puis le vrai `index.js`) inscrit dans
+  `scripts/bancs-serveur.liste` (plancher 4 280) ; `scratchpad/mutations-agents.py` (25 mutations, les 25 font tomber le banc).
+  Trouvé au vrai serveur seulement : `monGesteCible` ne connaissait pas `agent`, le journal de la Tour ne disait pas lequel.
+- **Décisions de Justin, 19 octobre** (quatre questions) : Hugo vérifie Stripe par RELECTURE, sans webhook (comme `espacePaye`,
+  aucun secret de plus) ; un paiement confirmé sans espace : Hugo PRÉPARE, Justin valide dans la Tour (type `creer_espace`) ; une clé
+  Anthropic DÉDIÉE aux agents, dans l'organisation qui porte le crédit mensuel de 200 $ (Max 20x), séparée de `config.anthropic.cleApi`
+  (devis, EXPLIQUE, PROPOSE) — un workspace, une clé et un plafond par agent dans la Console ; on commence par le socle.
+- **Règle de présentation, décidée avec Justin** : un agent signe d'un prénom et d'un titre (« assistante virtuelle Team OP »), sans
+  « je suis une IA » à chaque message ; JAMAIS de prétention d'être une personne, et à la question sincère « êtes-vous un humain ? » il
+  répond honnêtement et propose de passer la main à Justin. Une demande d'un humain, un litige ou un sujet sensible passe à Justin avec un dossier.
+- **N'existe pas** : aucun agent (ni Claude appelé, ni courriel lu, ni Stripe touché) ; AUCUN panneau « Agents » dans `tour.html` — le
+  socle n'a que ses routes, la Tour ne le montre pas encore ; rien côté OP MESSAGES ; pas de `set-agents.sh` pour poser la clé dédiée.
+- ⏳ **Attend la phrase de Justin** avant `main` : un push de `server/**` sur `main` DÉPLOIE le VPS (`deploiement.yml`). Rien n'est fusionné.
+- **Suite, dans l'ordre** : 1. le panneau « Agents » de la Tour (maquette HTML d'abord, `tour.html` fait ~10 000 lignes et toute route
+  neuve doit rester déclarée dans `index.js`) ; 2. `server/set-agents.sh` sur le modèle de `set-claude.sh` ; 3. Hugo — relecture Stripe par
+  `espacePaye`/`stripeMonGet`, jamais de clé qui écrit ; il ne PROPOSE que (`proposer`), l'exécuteur de `creer_espace` appelle la création
+  d'espace existante (`POST /api/monitor/espaces`) ; 4. Max, Théo, Nina ; 5. Camille, en brouillons d'abord.
+- **Points relevés pendant la cartographie** : (1) `mail-boites.json` garde les mots de passe des boîtes EN CLAIR dans le dossier de
+  données — l'agent Courrier devra les lire, à trancher avant ; (2) aucun plafond global en jetons ou en euros pour l'usage d'Anthropic,
+  seulement des quotas par jour et par fonction — les plafonds par agent se posent dans la Console ; (3) aucune réponse automatique
+  aux courriels n'existe, la Tour ne fait que trier et suivre (`aTraiter` / `enCours` / `resolu`) ; (4) `CLAUDE.md` annonçait
+  `claude-opus-5` pour l'assistant devis alors que le code lit `claude-sonnet-5` : corrigé ; (5) rien dans le dépôt ne dit si contact@
+  ou support@ est branchée en IMAP : cela vit sur le VPS (`mail-boites.json`, `support-box.json`).
+
 # ⏳ 17 OCTOBRE 2026 (SOIR) — LE CONTRÔLE « CLIENT MYSTÈRE » : DU SITE À L'APPLICATION, SUR UN JUMEAU
 
 Justin : « je voudrais qu'ils partent du site internet comme s'ils commandaient l'application […] je veux un
