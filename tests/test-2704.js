@@ -63,7 +63,7 @@ console.log('\n── 2704 · 1. La page : l\'ancien Courrier n\'existe plus, OP
   vrai('« Écrire à… » d\'une fiche ouvre un nouveau message dans le module (ecrire), sans composeur maison', /function courrierEcrire\([\s\S]*?COUR\.inst\.ecrire\(/.test(BRUT) && (CODE.match(/courrierEcrire\(/g) || []).length >= 3);
   vrai('l\'accueil ne lit plus de messages (il n\'en a plus) : il compte les non lus et mène au Courrier', !/MSG\.messages/.test(CODE) && /nMot\(MSG\.nonLus,'message non lu'/.test(CODE));
   vrai('le relevé des compteurs (chargerMail) ne touche plus au chiffre quand le module est monté — la pastille ne saute pas entre deux manières de compter', /if\(!COUR\.inst\)\{ MSG\.nonLus=/.test(corps(BRUT, 'function chargerMail(')));
-  vrai('⛔ la version de la Tour est montée (v2.95)', /var TOUR_VERSION='v2\.95'/.test(BRUT));
+  vrai('⛔ la version de la Tour est montée (v2.96)', /var TOUR_VERSION='v2\.96'/.test(BRUT));
   /* v2.94 — le son du Courrier HORS de l'écran Courrier : la VRAIE `courrierSonner` et la VRAIE `courrierSonActif`, rejouées (la Tour n'a de relève de fond que par la pastille) */
   { const vm = require('vm');
     const fSon = ['courrierSonActif', 'courrierSonner'].map(n => { const i0 = BRUT.indexOf('function ' + n + '('); vrai('(tranche trouvée) ' + n, i0 > 0); return i0 > 0 ? corps(BRUT, 'function ' + n + '(') : ''; }).join('\n');
@@ -170,7 +170,7 @@ function facteur() {
   const src = corps(BRUT, 'function courrierSource(');
   vrai('(population) courrierSource est trouvée dans tour.html, et entière', src.length > 3000 && /retirerBoite:function/.test(src), src.length);
   let jeton = TP, deconnexions = 0, etats = [], nAdr = 0; const URLS = [];
-  const bac = { MYNOM: 'Patron', API: 'http://127.0.0.1:' + PORT, INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.', Promise, JSON, Date, encodeURIComponent, String, Array, Math, Error, parseInt,
+  const bac = { COURRIER_SRV: 'http://127.0.0.1:1', AbortSignal, MYNOM: 'Patron', API: 'http://127.0.0.1:' + PORT, INJOIGNABLE: 'Serveur injoignable — nouvelle tentative dans un instant.', Promise, JSON, Date, encodeURIComponent, String, Array, Math, Error, parseInt,
     hAuth: () => ({ 'Content-Type': 'application/json', Authorization: 'Bearer ' + jeton }), srvEtat: ok2 => etats.push(ok2), doLogout: () => { deconnexions++; },
     fetch: (u, o) => { URLS.push(String(u)); return fetch(u, Object.assign({}, o, { headers: Object.assign({ 'X-Forwarded-For': '10.7.' + ((++nAdr >> 8) & 255) + '.' + (nAdr & 255) }, (o && o.headers) || {}) })) },
     FileReader: class { readAsDataURL(f) { f.arrayBuffer().then(b => { this.result = 'data:' + (f.type || 'application/octet-stream') + ';base64,' + Buffer.from(b).toString('base64'); this.onload(); }, e => this.onerror(e)); } } };
@@ -181,7 +181,7 @@ function facteur() {
   let s = S();
 
   const cap = await s.capacites();
-  v('⛔ ce que la Tour sait faire est DIT : lu/non lu, déplacement et réglages de serveur oui ; Google/Microsoft, envoi programmé, signature non', [cap.marquage, cap.deplacement, cap.reglagesServeur, cap.oauth, cap.programmeServeur, cap.signature, cap.simulation], [true, true, true, false, false, false, false]);
+  v('⛔ ce que la Tour sait faire est DIT : lu/non lu, déplacement et réglages de serveur oui ; Google/Microsoft, envoi programmé non, et la signature non TANT QUE le service de signature ne répond pas (ici : injoignable, échec silencieux — le service prêt est gardé par test-2705)', [cap.marquage, cap.deplacement, cap.reglagesServeur, cap.oauth, cap.programmeServeur, cap.signature, cap.simulation], [true, true, true, false, false, false, false]);
   v('⛔ …et les TROIS gestes de l\'ancien écran sont déclarés : journal des envois, pièce reçue, suivi d\'une demande', [cap.journalEnvois, cap.telechargerPiece, cap.suivi], [true, true, true]);
   v('⛔ la Tour dit QUI est la personne connectée (`moi`), pour « Assignés à moi » — son nom de session, pas une valeur inventée', cap.moi, 'Patron');
   v('…les six dossiers que le serveur sait lire', cap.dossiers, ['inbox', 'drafts', 'sent', 'archive', 'junk', 'trash']);

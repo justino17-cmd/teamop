@@ -50,6 +50,13 @@
      retirerBoite(id)
      lireMX(domaine)             → [serveurs]                                      (facultatif : sans lui, jamais d'appel réseau pour reconnaître un domaine d'entreprise)
      simuler(quoi, {boite})                                                        (source de démonstration seulement, avec capacites().simulation)
+     signature                   → { envoyer, etat, relancer, annuler, signe, preuve }   (la VRAIE signature : un OBJET, lu seulement avec capacites().signature === true ET ses six méthodes ;
+                                     sinon le parcours reste utilisable jusqu'à « Envoyer » et la demande est rangée « Prête »). Toutes asynchrones, un échec = un rejet lisible, que le module DIT.
+         envoyer(demande, fichiers) → { id, etat, … }   demande = { titre, type, niveau:'avance'|'simple', jours:7|15|30, relances:boolean, signataires:[{nom,email,telephone}],
+                                     contresignature?:{nom,email,telephone} } ; fichiers = [{ nom, blob }] (les PDF gardés sur l'appareil). La source crée, dépose, active : ou tout, ou rien.
+                                     Le résultat est la VUE de la demande : { id, etat:'brouillon'|'en_attente'|'ouvert'|'a_contresigner'|'signe'|'refuse'|'annule'|'expire', echeance:ms,
+                                     signataires:[{nom,email,contre,etat:'pending'|'viewed'|'signed'|'declined'}], documents:[{n,nom,signe}], preuves:nombre, evenements:[{t,x}] }
+         etat(id) · relancer(id) · annuler(id)  → la même vue ;   signe(id, n) → Blob (le PDF signé du document n, à partir de 1) ;   preuve(id, i) → Blob (le dossier de preuve du signataire i, à partir de 1)
    ⛔ Toutes les fonctions de la maquette sont PRÉSENTES et UTILISABLES quelle que soit la source ; « Bientôt » ne s'écrit que sur le geste précis qui exige un service qui n'existe pas :
      oauth (connexion Google / Microsoft sans mot de passe), programmeServeur (envoi à l'heure dite APPLICATION FERMÉE : sinon il part page ouverte), signature (l'ENVOI réel du document à signer :
      le parcours est utilisable jusqu'à « Envoyer »), destinataires (plusieurs destinataires), reglagesServeur (réglages de serveur personnalisés).
@@ -1694,7 +1701,7 @@ var MARKUP = `
 
   // ---------- Ce que la source sait faire (SRC.capacites()) ----------
   // Tout est FAUX tant que la source ne dit pas le contraire : ce qu'elle ne sait pas faire, l'interface le dit (« Bientôt : … ») au lieu de faire semblant.
-  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,
+  var CAP={oauth:false,programmeServeur:false,signature:false,marquage:false,deplacement:false,simulation:false,reglagesServeur:false,mx:false,journalEnvois:false,telechargerPiece:false,suivi:false,signatureReelle:false,
     dossiers:["inbox"],destinataires:50,pj:{nombre:99,octets:25*1024*1024}};
   function appliquerCapacites(c){
     c=c&&typeof c==="object"?c:{};
@@ -1704,6 +1711,9 @@ var MARKUP = `
     CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
     CAP.telechargerPiece=c.telechargerPiece===true&&typeof SRC.piece==="function";
     CAP.suivi=c.suivi===true&&typeof SRC.suivi==="function";
+    // La VRAIE signature exige la déclaration ET les six méthodes de l'objet `signature` : sans elles, le module ne promet rien de plus qu'avant.
+    var sg=SRC.signature;
+    CAP.signatureReelle=c.signature===true&&!!sg&&typeof sg==="object"&&["envoyer","etat","relancer","annuler","signe","preuve"].every(function(k){ return typeof sg[k]==="function"; });
     CAP.moi=CAP.suivi&&typeof c.moi==="string"?c.moi.trim():"";   // le nom sous lequel la personne connectée est « assignée » (sans lui, « Assignés à moi » n'existe pas)
     if(!CAP.journalEnvois&&state.folder==="envois") state.folder="inbox";
     CAP.dossiers=Array.isArray(c.dossiers)&&c.dossiers.length?c.dossiers.filter(function(d){ var f=folderOfStrict(d); return !!f&&!f.journal; }):["inbox"];
@@ -1964,7 +1974,8 @@ var MARKUP = `
     var snap=JSON.parse(raw); if(!snap||snap.v!==4) return;
     ["kinds","names","sigs"].forEach(function(k){ if(snap[k]&&typeof snap[k]==="object") SAVED[k]=snap[k]; });
     if(snap.logos&&typeof snap.logos==="object") Object.keys(snap.logos).forEach(function(id){ if(logoValide(snap.logos[id])) SAVED.logos[id]=snap.logos[id]; });   // rien d'autre qu'une petite image PNG / JPEG ne revient du rangement
-    if(snap.settings&&typeof snap.settings==="object"){ SETTINGS.notif=snap.settings.notif!==false; SETTINGS.son=snap.settings.son!==false; SETTINGS.threads=snap.settings.threads!==false; }
+    if(snap.settings&&typeof snap.settings==="object"){ SETTINGS.notif=snap.settings.notif!==false; SETTINGS.son=snap.settings.son!==false; SETTINGS.threads=snap.settings.threads!==false;
+      if(typeof snap.settings.mobile==="string") SETTINGS.mobile=snap.settings.mobile.slice(0,30); }
     if(snap.rules&&typeof snap.rules==="object"){ ["senders","domains"].forEach(function(k){ var o=snap.rules[k]; if(o&&typeof o==="object") Object.keys(o).forEach(function(x){ var v=o[x]; if(v==="junk"||v==="notjunk"||isCat(v)) RULES[k][x]=v; }); }); }
     if(snap.msgs&&typeof snap.msgs==="object") OVER=snap.msgs;
     if(Array.isArray(snap.gone)) GONE=snap.gone.filter(function(x){ return typeof x==="string"; });
@@ -2565,7 +2576,7 @@ var MARKUP = `
       b.setAttribute("aria-label",(sp==="pro"?"Côté Pro":"Côté Perso")+(u?", "+u+" non lu"+(u>1?"s":""):""));
     });
   }
-  function renderAll(){ refreshCls(); renderSidebar(); renderSpace(); renderList(); renderReading(); paintTitle(); }
+  function renderAll(){ refreshCls(); renderSidebar(); renderSpace(); renderList(); renderReading(); paintTitle(); signOuverture(); }
   // Pastille dans l'onglet : nombre de mails non lus dans les boîtes de réception.
   function paintTitle(){ compter(); }
 
@@ -2893,26 +2904,103 @@ var MARKUP = `
   function signCardHtml(m){
     var g=m.sign, st=signState(m), live=st==="pending"||st==="viewed";
     var rows=g.signers.map(function(x){
-      var s=x.st==="signed"?'<span class="ok">✓ Signé le '+H(fmtDay(x.at))+'</span>':st==="ready"?'Pas encore envoyé':x.st==="viewed"?'Ouvert, pas encore signé':st==="cancelled"?'—':'En attente';
+      var s=x.st==="signed"?'<span class="ok">✓ Signé le '+H(fmtDay(x.at))+'</span>':x.st==="declined"?'<b>A refusé de signer</b>':st==="ready"?'Pas encore envoyé':x.st==="viewed"?'Ouvert, pas encore signé':st==="cancelled"?'—':'En attente';
       return '<li><span class="av" aria-hidden="true">'+H(initials(x.name||x.email))+'</span><span class="nm">'+H(x.name||x.email)+'<span>'+H(x.email)+(x.phone?' · '+H(x.phone):'')+'</span></span><span style="font-size:12px">'+s+'</span></li>'; }).join("");
-    if(g.counter) rows+='<li><span class="av" aria-hidden="true">'+H(initials(acctOf(m.acct).name))+'</span><span class="nm">Vous (contre-signature)<span>'+H(acctOf(m.acct).email)+'</span></span><span style="font-size:12px">'+(g.me?'<span class="ok">✓ Signé le '+H(fmtDay(g.me))+'</span>':st==="counter"?'<b>À vous de signer</b>':'Après le client')+'</span></li>';
+    if(g.counter) rows+='<li><span class="av" aria-hidden="true">'+H(initials(acctOf(m.acct).name))+'</span><span class="nm">Vous (contre-signature)<span>'+H(acctOf(m.acct).email)+'</span></span><span style="font-size:12px">'+(g.me?'<span class="ok">✓ Signé le '+H(fmtDay(g.me))+'</span>':st==="counter"?(g.srv?'<b>À vous de signer</b> — lien reçu par e-mail':'<b>À vous de signer</b>'):'Après le client')+'</span></li>';
     var acts="";
     if(live) acts=(CAP.simulation?'<button type="button" class="btn" data-act="signSim">Simuler la signature du client (démo)</button>':'')+'<button type="button" class="btn" data-act="signRemind">Relancer</button><button type="button" class="btn danger" data-act="signCancel">Annuler la demande</button>';
-    else if(st==="counter") acts='<button type="button" class="btn primary" data-act="signMe">Signer maintenant</button>';
-    else if(st==="signed") acts='<button type="button" class="btn primary" data-act="signDl">Télécharger le PDF signé</button><button type="button" class="btn" data-act="signProof">Dossier de preuve</button>';
+    else if(st==="counter") acts=g.srv?'<button type="button" class="btn danger" data-act="signCancel">Annuler la demande</button>':'<button type="button" class="btn primary" data-act="signMe">Signer maintenant</button>';
+    else if(st==="signed") acts=g.srv?signTelechargements(g):'<button type="button" class="btn primary" data-act="signDl">Télécharger le PDF signé</button><button type="button" class="btn" data-act="signProof">Dossier de preuve</button>';
     else if(st==="ready") acts='<button type="button" class="btn primary" data-act="signSend">Renvoyer</button><button type="button" class="btn danger" data-act="signDrop">Annuler</button>';
     else acts='<button type="button" class="btn primary" data-act="signResend">Renvoyer une demande</button>';
     return '<div class="sign-card" role="region" aria-label="Suivi de la signature">'+
-      '<div class="sg-head">'+signChip(m)+'<span>'+H(g.type)+' · '+(g.level==="adv"?"signature avancée (code SMS)":"signature simple (code e-mail)")+'</span><span>'+(live?'Échéance le '+H(fmtDay(g.expires))+(g.remind?' · relances auto tous les 3 jours':''):st==="ready"?'Rien n’est parti : la demande partira quand Yousign sera branché':'')+'</span></div>'+
+      '<div class="sg-head">'+signChip(m)+'<span>'+H(g.type)+' · '+(g.level==="adv"?"signature avancée (code SMS)":"signature simple (code e-mail)")+'</span><span>'+(live?'Échéance le '+H(fmtDay(g.expires))+(g.remind?' · relances auto tous les 3 jours':''):st==="ready"?(CAP.signatureReelle?'Rien n’est parti : « Renvoyer » l’envoie maintenant':'Rien n’est parti : la demande partira quand Yousign sera branché'):(g.srv&&st==="counter"?'Le client a signé':''))+'</span></div>'+
       '<ul class="sg-signers">'+rows+'</ul><div class="sg-acts">'+acts+'</div>'+
       '<ol class="sg-tl" aria-label="Historique">'+g.events.map(function(ev){ return '<li>'+H(fmtFull(ev.t))+' — '+H(ev.x)+'</li>'; }).join("")+'</ol>'+
       '</div>';
   }
+  // ---------- La VRAIE signature (capacites().signature + SRC.signature) : le serveur fait foi de l'état, la page ne le devine pas ----------
+  // Une demande envoyée porte `sign.srv` (son identifiant chez la source). Son état vient du serveur — à l'envoi, à l'ouverture de Signatures, puis toutes les 60 s tant qu'une demande est en cours —
+  // et un échec de la source se DIT ; il n'y a jamais de « Envoyé » sans la réponse du serveur, ni de faux « Signé ».
+  var SIGN_DEPUIS_SRV={brouillon:"ready",en_attente:"pending",ouvert:"viewed",a_contresigner:"counter",signe:"signed",refuse:"declined",annule:"cancelled",expire:"expired"};
+  var SIGN_SIGNATAIRE={pending:"pending",viewed:"viewed",signed:"signed",declined:"declined"};
+  var SIGN_EN_COURS={pending:1,viewed:1,counter:1};
+  var SIGN_RAF={t:0,enCours:false,erreurDite:false}, signVue=false;
+  function signSrv(m){ return !!(m&&m.sign&&m.sign.srv); }
+  function signIndisponible(){ toast("Le service de signature n’est pas joignable pour l’instant — réessayez dans un instant."); }
+  // Range la VUE que rend la source dans la demande. Rend vrai si quelque chose a changé (état, signataire, historique).
+  function signAppliquer(m,vue){
+    if(!m||!m.sign||!vue||typeof vue!=="object"||!SIGN_DEPUIS_SRV[vue.etat]||typeof vue.id!=="string") throw new Error("Réponse du service de signature illisible.");
+    var g=m.sign, avant=JSON.stringify(g), now=Date.now();
+    g.srv=vue.id; g.st=SIGN_DEPUIS_SRV[vue.etat];
+    if(vue.echeance>0) g.expires=vue.echeance;
+    var liste=Array.isArray(vue.signataires)?vue.signataires:[], clients=liste.filter(function(x){ return !x.contre; }), contre=liste.filter(function(x){ return x.contre; })[0];
+    g.signers.forEach(function(x,i){ var o=clients[i]; if(!o) return; var e=SIGN_SIGNATAIRE[o.etat]||"pending"; if(e==="signed"&&x.st!=="signed") x.at=now; x.st=e; });
+    if(contre&&contre.etat==="signed"&&!g.me) g.me=now;
+    if(Array.isArray(vue.evenements)) g.events=vue.evenements.map(function(e){ return {t:+e.t||now,x:String(e.x==null?"":e.x)}; });
+    g.docs=(Array.isArray(vue.documents)?vue.documents:[]).map(function(d){ return {n:+d.n,nom:String(d.nom||"")}; });
+    g.preuves=liste.slice(0,Math.max(0,+vue.preuves||0)).map(function(x,i){ return {n:i+1,nom:String(x.nom||x.email||"")}; });
+    signPreview(m);
+    var change=avant!==JSON.stringify(g);
+    if(change&&g.st==="signed") m.read=false;
+    return change; }
+  function signSrvPhrase(avant,m){ var g=m.sign, t=m.subject||"";
+    return g.st==="signed"?"Document signé par tous : "+t:g.st==="counter"?"Le client a signé « "+t+" » — à vous de contresigner (lien reçu par e-mail)":g.st==="declined"?"Signature refusée : "+t:g.st==="expired"?"Demande expirée : "+t:g.st==="cancelled"?"Demande annulée : "+t:g.st==="viewed"?"Document ouvert : "+t:g.st==="pending"&&avant==="ready"?"":"Signature en cours : "+t; }
+  function signEnCours(){ return CAP.signatureReelle&&MESSAGES.some(function(m){ return signSrv(m)&&!!SIGN_EN_COURS[m.sign.st]; }); }
+  // Relit l'état de chaque demande en cours. `dire` : l'échec se dit à chaque fois (ouverture de Signatures) ; en tâche de fond il ne se dit qu'une fois, jusqu'à la prochaine réussite.
+  function signRafraichir(dire){
+    if(!CAP.signatureReelle||SIGN_RAF.enCours) return Promise.resolve();
+    var cibles=MESSAGES.filter(function(m){ return signSrv(m)&&!!SIGN_EN_COURS[m.sign.st]; });
+    if(!cibles.length) return Promise.resolve();
+    SIGN_RAF.enCours=true; SIGN_RAF.t=Date.now();
+    var echecs=[], changes=[];
+    return cibles.reduce(function(p,m){ return p.then(function(){
+      return Promise.resolve().then(function(){ return SRC.signature.etat(m.sign.srv); }).then(function(vue){
+        if(!vivant||!msgById(m.id)) return; var av=m.sign.st; if(signAppliquer(m,vue)) changes.push({m:m,av:av}); })
+        .catch(function(e){ echecs.push(e); }); }); },Promise.resolve())   // une vue illisible est un échec comme un autre : elle ne casse ni la chaîne ni le verrou
+      .then(function(){
+        SIGN_RAF.enCours=false; if(!vivant) return;
+        if(changes.length){ renderAll(); persist(); changes.forEach(function(c){ if(c.m.sign.st!==c.av){ var t=signSrvPhrase(c.av,c.m); if(t) toast(t); } }); }
+        if(echecs.length){ if(dire||!SIGN_RAF.erreurDite){ SIGN_RAF.erreurDite=true; toast("L’état des signatures n’a pas pu être relu : "+msgErr(echecs[0],"service injoignable")); } }
+        else SIGN_RAF.erreurDite=false; }); }
+  // Ouvrir le dossier Signatures relit l'état (une fois par ouverture)
+  function signOuverture(){
+    if(state.folder!=="sign"){ signVue=false; return; }
+    if(!signVue&&CAP.signatureReelle){ signVue=true; signRafraichir(true); } }
+  function signTelechargements(g){
+    var docs=g.docs||[], pr=g.preuves||[], h="";
+    docs.forEach(function(d){ h+='<button type="button" class="btn primary" data-act="signDl:'+(+d.n)+'">'+(docs.length>1?"PDF signé — "+H(d.nom):"Télécharger le PDF signé")+'</button>'; });
+    pr.forEach(function(x){ h+='<button type="button" class="btn" data-act="signProof:'+(+x.n)+'">'+(pr.length>1?"Preuve — "+H(x.nom):"Dossier de preuve")+'</button>'; });
+    return h||'<span style="font-size:12px">Le PDF signé se prépare — rouvrez cette demande dans un instant.</span>'; }
+  // Le fichier téléchargé : un Blob neutre enregistré sous un nom assaini (jamais ouvert ici)
+  function signEnregistrer(b,nom){
+    if(!b||typeof b.size!=="number"||!b.size) throw new Error("Le service de signature a rendu un fichier vide.");
+    var n=nomFichierSur(nom), url=URL.createObjectURL(new Blob([b],{type:"application/octet-stream"})), l=document.createElement("a");
+    l.href=url; l.download=n; l.rel="noopener"; l.hidden=true; sr.appendChild(l); l.click(); sr.removeChild(l);
+    setTimeout(function(){ try{ URL.revokeObjectURL(url); }catch(e){} },30000); return n; }
+  // Les gestes d'une demande déjà envoyée : relancer, annuler, télécharger. Un seul à la fois par demande ; l'échec du serveur se dit.
+  function signActSrv(act,m){
+    var g=m.sign, P=act.split(":"), a=P[0], k=+P[1];
+    if(!CAP.signatureReelle){ signIndisponible(); return; }
+    if(m._occupe) return; m._occupe=true; var fin=function(){ m._occupe=false; };
+    var appliquer=function(vue){ fin(); if(!vivant||!msgById(m.id)) return false; signAppliquer(m,vue); return true; };
+    if(a==="signRemind") Promise.resolve().then(function(){ return SRC.signature.relancer(g.srv); }).then(function(vue){ if(appliquer(vue)){ renderAll(); persist(); toast("Relance envoyée"); } }).catch(function(e){ fin(); if(vivant) toast("Relance impossible : "+msgErr(e,"échec")); });
+    else if(a==="signCancel") Promise.resolve().then(function(){ return SRC.signature.annuler(g.srv); }).then(function(vue){ if(appliquer(vue)){ fichiersEffacer(fichiersDe(m)); renderAll(); persist(); toast("Demande annulée"); } }).catch(function(e){ fin(); if(vivant) toast("Annulation impossible : "+msgErr(e,"échec")); });
+    else if(a==="signDl"||a==="signProof"){
+      var preuve=a==="signProof", d=(g.docs||[]).filter(function(x){ return x.n===k; })[0], x=(g.preuves||[]).filter(function(y){ return y.n===k; })[0];
+      if(!(preuve?x:d)){ fin(); toast("Fichier introuvable."); return; }
+      Promise.resolve().then(function(){ return preuve?SRC.signature.preuve(g.srv,k):SRC.signature.signe(g.srv,k); }).then(function(b){
+        fin(); if(!vivant) return;
+        var nom=preuve?"Dossier de preuve — "+(x.nom||k)+".pdf":String(d.nom||"document").replace(/\.pdf$/i,"")+" (signé).pdf";
+        toast((preuve?"Dossier de preuve téléchargé : ":"PDF signé téléchargé : ")+signEnregistrer(b,nom)); })
+        .catch(function(e){ fin(); if(vivant) toast("Téléchargement impossible : "+msgErr(e,"échec")); }); }
+    else fin(); }
   function signAct(act,m){
     if(act==="signFrom"){ openSignRequest({acct:m.acct,title:m.subject.replace(/^\s*(re|tr|fwd?)\s*:\s*/i,""),att:m.att.filter(function(a){return a.kind!=="img";}),signers:m.from?[{name:m.from.name,email:m.from.email}]:[]}); return; }
     if(act==="signNew"){ openSignRequest(); return; }
     if(!m.sign) return;
     var g=m.sign;
+    if(g.srv&&/^sign(Remind|Cancel|Dl|Proof)(:|$)/.test(act)){ signActSrv(act,m); return; }
     if(act==="signSim"){ if(!CAP.simulation) return; var x=g.signers.filter(function(s){return s.st!=="signed";})[0]; if(!x) return;
       if(x.st!=="viewed") signLog(m,"Document ouvert par "+(x.name||x.email));
       x.st="signed"; x.at=Date.now(); signLog(m,"Signé par "+(x.name||x.email)+(g.level==="adv"?" (code SMS vérifié)":" (code e-mail vérifié)"));
@@ -2992,7 +3080,9 @@ var MARKUP = `
           '<div class="sgfld"><label for="sgLevel">Niveau de signature</label><select id="sgLevel"><option value="adv"'+(pre.level!=="simple"?' selected':'')+'>Code SMS</option><option value="simple"'+(pre.level==="simple"?' selected':'')+'>Code e-mail</option></select></div>'+
           '<div class="sgfld"><label for="sgDays">À signer avant</label><select id="sgDays"><option value="7">7 jours</option><option value="15" selected>15 jours</option><option value="30">30 jours</option></select></div>'+
           '<label class="swrow" for="sgRemind"><span class="swl">Relances automatiques tous les 3 jours</span><input type="checkbox" class="switch" id="sgRemind" role="switch" checked></label>'+
-          '<div class="sgfld"><label for="sgMsg">Message au signataire</label><textarea id="sgMsg"></textarea></div></div>'+
+          '<div class="sgfld" id="sgMeRow" hidden><label for="sgMe">Votre mobile (pour votre contre-signature par SMS)</label><input id="sgMe" type="tel" inputmode="tel" autocomplete="tel" value="'+H(SETTINGS.mobile||"")+'" placeholder="06 12 34 56 78"></div>'+
+          '<div class="sgfld"><label for="sgMsg">'+(CAP.signatureReelle?"Note gardée dans la demande (n’est pas envoyée au signataire)":"Message au signataire")+'</label><textarea id="sgMsg"></textarea></div></div>'+
+        '<p class="kind-err" id="sgErr" role="alert" hidden>'+I.warn+'<span></span></p>'+
         '<p class="gfoot-s">'+I.info+'<span>Le signataire reçoit un lien, lit le document et signe sur téléphone ou ordinateur avec un code. Les zones de signature sont placées en dernière page du document.</span></p>'+
       '</div></div>'+SHEET_FOOT+'</div>';
     placeSheetChrome();
@@ -3028,6 +3118,10 @@ var MARKUP = `
     $("#sgAdd").onclick=function(){ readSigners(); signers.push({name:"",email:"",phone:""}); paintSigners(); var l=$$("#sgSigners [data-f=name]"); l[l.length-1].focus(); };
     paintDocs(); paintSigners();
     $("#sgCancel").onclick=closeOverlay;
+    // Le mobile de la personne qui contresigne : demandé seulement quand la source signe pour de vrai, qu'on contresigne ET que le niveau est « Code SMS »
+    var majMe=function(){ $("#sgMeRow").hidden=!(CAP.signatureReelle&&$("#sgCounter").checked&&$("#sgLevel").value==="adv"); };
+    ["#sgCounter","#sgLevel","#sgType"].forEach(function(q){ $(q).addEventListener("change",majMe); }); majMe();   // le type coche la contre-signature SANS événement : il écoute aussi
+    var dit=function(t){ var e=$("#sgErr"); e.hidden=!t; e.querySelector("span").textContent=t||""; };
     // Les fichiers choisis sont rangés sur l'appareil (IndexedDB) et la pièce ne garde que sa clé `fid` ; une pièce déjà rangée (demande rouverte) la garde. Posés et désignés dans le même instant.
     function docsGardes(){ return docs.map(function(d){ var fid=d.fid||null;
       if(!fid&&d.file){ fid=fidNeuf(); fichierPoser(fid,d.file).catch(function(){ if(vivant) toast("« "+d.name+" » n’a pas pu être gardé sur cet appareil : l’aperçu ne sera pas disponible"); }); }
@@ -3041,6 +3135,7 @@ var MARKUP = `
         else if(level==="adv"&&!/^\+?[\d\s.-]{9,}$/.test(x.phone)) bad=["#sgP"+i,"Mobile du signataire "+(i+1)+" nécessaire pour le code SMS"]; });
       if(bad){ toast(bad[1]); $(bad[0]).focus(); return; }
       var a=$("#sgFrom").value, now=Date.now(), body=$("#sgMsg").value;
+      if(CAP.signatureReelle){ envoyerReel(a,title,level,body); return; }
       if(!CAP.signature){
         // Pas de prestataire branché (Yousign) : la demande est RANGÉE dans Signatures, état « Prête », avec tout ce qui a été saisi — aucune fausse signature, aucun faux « Envoyé ».
         var r=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docsGardes()});
@@ -3060,6 +3155,35 @@ var MARKUP = `
       state.folder="sign"; renderAll(); selectMessage(m.id); persist(); toast("Demande de signature envoyée");
       if(CAP.simulation) setTimeout(function(){ var x=m.sign&&m.sign.signers[0]; if(!x||x.st!=="pending"||m.sign.st!=="pending"||!msgById(m.id)) return; x.st="viewed"; m.sign.st="viewed"; signLog(m,"Document ouvert par "+(x.name||x.email)); signPreview(m); renderAll(); persist(); },8000);
     };
+    // L'envoi RÉEL : la source crée la demande chez le prestataire, y dépose les PDF et l'active. Rien n'est rangé ni annoncé avant sa réponse ; son refus s'affiche dans la fenêtre, qui reste ouverte.
+    var envoi=false;
+    function envoyerReel(a,title,level,body){
+      if(envoi) return;
+      var me=acctOf(a), mob=$("#sgMe").value.trim(), contre=$("#sgCounter").checked;
+      if(contre&&level==="adv"&&!/^\+?[\d\s.-]{9,}$/.test(mob)){ dit(""); toast("Votre mobile est nécessaire pour contresigner par SMS"); $("#sgMe").focus(); return; }
+      var tpl=docs.filter(function(d){ return !d.file&&!d.fid; });
+      if(tpl.length){ dit("« "+tpl[0].name+" » est un modèle sans fichier : choisissez le PDF à signer."); return; }
+      var dem={titre:title,type:$("#sgType").value,niveau:level==="adv"?"avance":"simple",jours:+$("#sgDays").value,relances:$("#sgRemind").checked,
+        signataires:signers.map(function(x){ return {nom:x.name,email:x.email,telephone:x.phone}; })};
+      if(contre) dem.contresignature={nom:me.name,email:me.email,telephone:mob};
+      envoi=true; dit(""); var go=$("#sgGo"); go.disabled=true; go.setAttribute("aria-busy","true");
+      var libre=function(){ envoi=false; go.disabled=false; go.removeAttribute("aria-busy"); };
+      Promise.all(docs.map(function(d){ return d.file?Promise.resolve(d.file):fichierLire(d.fid).then(function(b){ if(!b||typeof b.size!=="number") throw new Error("« "+d.name+" » n’est plus gardé sur cet appareil : choisissez-le de nouveau."); return b; }); }))
+        .then(function(blobs){ return SRC.signature.envoyer(dem,docs.map(function(d,i){ return {nom:d.name,blob:blobs[i]}; })); })
+        .then(function(vue){
+          if(!vivant) return;
+          var m=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docsGardes()});
+          m.user=true; m.at=Date.now();
+          m.sign={type:$("#sgType").value,level:level,counter:contre,remind:$("#sgRemind").checked,expires:0,st:"pending",
+            signers:signers.map(function(x){ return {name:x.name,email:x.email,phone:x.phone,st:"pending"}; }),events:[]};
+          // Le service a répondu mais sa réponse ne se lit pas : la demande est PEUT-ÊTRE partie — on le dit, on ne la range pas et on ne laisse pas croire qu'elle n'est pas partie.
+          try{ signAppliquer(m,vue); }catch(x){ libre(); var t0="La réponse du service de signature est illisible : la demande est peut-être partie. Ne la renvoyez pas avant d’avoir vérifié (rouvrez Signatures)."; dit(t0); toast(t0); return; }
+          if(contre&&level==="adv") SETTINGS.mobile=mob;
+          if(pre.remplace) removeMsg(pre.remplace,true);
+          MESSAGES.push(m); learnContacts(m); envoi=false;
+          closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer();
+          state.folder="sign"; renderAll(); selectMessage(m.id); persist(); toast("Demande de signature envoyée"); })
+        .catch(function(e){ if(!vivant) return; libre(); var t=msgErr(e,"échec de l’envoi"); dit("Rien n’est parti : "+t); toast("Rien n’est parti : "+t); }); }
     setTimeout(function(){ (docs.length?$("#sgN0"):$("#sgName")).focus(); },30);
   }
 
@@ -3971,7 +4095,8 @@ var MARKUP = `
   // Le format suit le conteneur (la fenêtre change, le menu de l'hôte s'ouvre…) ; le module s'éteint si l'hôte a retiré son conteneur
   try{ var obsTaille=new ResizeObserver(function(){ if(!hote.isConnected){ demonter(); return; } if(appliquerFormat()) placeChrome(); catFade(); });
     obsTaille.observe(hote); finis.push(function(){ obsTaille.disconnect(); }); }catch(e){}
-  var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&Date.now()-LOAD.essai>=(opt.intervalle||60000)-100) charger(true); },Math.max(250,Math.min(5000,opt.intervalle||60000)));
+  var iv=setInterval(function(){ if(!hote.isConnected){ demonter(); return; } flushScheduled(); if(!document.hidden&&opt.intervalle!==0&&Date.now()-LOAD.essai>=(opt.intervalle||60000)-100) charger(true);
+    if(!document.hidden&&Date.now()-SIGN_RAF.t>=60000-100&&signEnCours()) signRafraichir(false); },Math.max(250,Math.min(5000,opt.intervalle||60000)));
   finis.push(function(){ clearInterval(iv); retraits.forEach(function(r){ clearTimeout(r.tm); }); });
   sur(document,"visibilitychange",function(){ if(!document.hidden){ flushScheduled(); if(Date.now()-LOAD.essai>20000) charger(true); } });
 

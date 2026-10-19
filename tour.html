@@ -408,7 +408,7 @@ main{width:100%;max-width:1200px;margin:0 auto;padding:28px 20px 96px;flex:1;min
      là où elle compte — les paragraphes de description ont déjà leur propre max-width. */
   main{grid-column:2;max-width:none;padding:40px clamp(24px,3vw,56px) 96px}
   .pied{grid-column:2}
-  /* v2.95 (Justin, 19 octobre 2026 : « que dans la Tour la boîte mail prenne toute la page ») : le Courrier est un écran de
+  /* v2.96 (Justin, 19 octobre 2026 : « que dans la Tour la boîte mail prenne toute la page ») : le Courrier est un écran de
      travail qui se lit en largeur — il prend toute la place à droite du menu et jusqu'au bas de la fenêtre, sans marge ni pied.
      Bureau seulement : au téléphone la barre du bas a besoin de la réserve de `main`. La hauteur, elle, reste posée par
      `courrierAjuster`, qui compte les marges et rembourrages des ancêtres — à zéro, il rend toute la hauteur. */
@@ -2834,7 +2834,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.95</div>
+    <div class="lg-pied">console interne · v2.96</div>
   </div>
 </div>
 
@@ -2876,7 +2876,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.95</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.96</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2888,7 +2888,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.95</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.96</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3186,7 +3186,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.95';
+var TOUR_VERSION='v2.96';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -5679,7 +5679,7 @@ function sousOnglet(vue,s){ SOUS[vue]=s; if(vue==='entreprises') ENT.sel=null;
   ecrireHash(); render(); }
 function renderVue(v){
   if(!vuePermise(TAB)) TAB='accueil';   /* v2.68 : filet — aucun rendu d'un écran réservé au patron */
-  document.body.classList.toggle('plein-courrier',TAB==='support');   /* v2.95 : le Courrier prend toute la page (bureau) */
+  document.body.classList.toggle('plein-courrier',TAB==='support');   /* v2.96 : le Courrier prend toute la page (bureau) */
   if(TAB!=='support') courrierDemonter();   /* quitter le Courrier démonte le module (sa zone disparaît avec la vue) */
   if(v.classList.contains('entre')) setTimeout(function(){ v.classList.remove('entre'); },420);
   if(TAB==='accueil') v.innerHTML=(APP==='messages')?vueAccueilMsg():vueAccueil();
@@ -7057,6 +7057,10 @@ function incCopier(id){
    ⛔ AUCUNE BOÎTE REPRISE EN SILENCE PAR CE CODE : la personne CONNECTE sa boîte par « Ajouter une boîte mail » (`POST /api/monitor/mail/boites`, réservé au patron, qui
    éprouve l'envoi ET la réception avant de ranger quoi que ce soit). Ce que le SERVEUR détient déjà (`mail-boites.json`) est relu tel quel : l'effacer est un geste du
    module (« Retirer »), pas d'ici. La clé de stockage de l'appareil (`tour_courrier` : réglages, tri appris, brouillons) repart de zéro et part avec la déconnexion. */
+/* ⛔ LE SERVEUR DE SIGNATURE D'OP COURRIER (`server-courrier/`, Yousign) est un service À PART, sur SON adresse : une seule constante, ici. Il prend le même jeton que les autres routes de la Tour
+   (`hAuth()`) et le vérifie lui-même auprès d'OP GESTION (rôle patron). `capacites().signature` n'est VRAI que si son `/health` répond `signature.pret === true` — sinon (éteint, injoignable, pas
+   configuré) il est FAUX en silence et OP Courrier garde sa demande « Prête — en attente de Yousign ». */
+var COURRIER_SRV='https://courrier-beta.teamop.fr';
 var COUR={inst:null,chargement:null,veille:false,raf:0,ecrire:null};
 function courrierSource(){
   var D=null, listes={};
@@ -7123,10 +7127,73 @@ function courrierSource(){
     return lire(0); }
   function base64(f){ return new Promise(function(ok,ko){ var r=new FileReader();
     r.onload=function(){ var s=String(r.result); ok(s.slice(s.indexOf(',')+1)); }; r.onerror=function(){ ko(new Error('pièce illisible : '+f.name)); }; r.readAsDataURL(f); }); }
+  /* ── la signature : le service à part. Un refus se DIT avec la raison du serveur, en français ; rien n'est jamais « envoyé » sur une réponse qu'on n'a pas eue. ── */
+  var SIGN_MSG={jeton_absent:'Session expirée — reconnectez-vous.',jeton_refuse:'Session expirée — reconnectez-vous.',role_refuse:'Réservé au patron — ton compte n’a pas cet accès.',
+    verification_indisponible:'Le service de signature ne peut pas vérifier votre session pour l’instant — réessayez dans un instant.',
+    signature_non_configuree:'La signature électronique n’est pas encore configurée sur le serveur.',
+    titre_requis:'Donnez un titre au document.',niveau_invalide:'Niveau de signature invalide.',delai_invalide:'Délai invalide (7, 15 ou 30 jours).',
+    signataires_invalides:'Signataires invalides (au moins un, dix au plus).',signataire_en_double:'Deux signataires ont la même adresse e-mail.',
+    pdf_requis:'Le fichier PDF est vide.',pdf_invalide:'Ce fichier n’est pas un PDF lisible.',pdf_trop_gros:'Ce PDF dépasse 25 Mo.',type_pdf_requis:'Seul un PDF peut être déposé.',trop_gros:'Fichier trop gros.',
+    trop_de_documents:'Cinq documents au plus par demande.',document_requis:'Ajoutez le PDF à signer.',deja_activee:'Cette demande est déjà envoyée.',activation_en_cours:'L’envoi de cette demande est en cours — patientez.',
+    yousign_refuse:'Le prestataire de signature (Yousign) a refusé la demande.',pas_en_cours:'Cette demande n’est plus en cours.',relance_trop_proche:'Une relance vient de partir — patientez dix minutes.',
+    deja_terminee:'Cette demande est déjà terminée.',pas_signee:'Ce document n’est pas encore signé.',pieces_en_cours:'Le PDF signé se prépare — réessayez dans un instant.',
+    en_cours:'Une demande en cours ne s’efface pas : annulez-la d’abord.',introuvable:'Demande introuvable (elle a peut-être été effacée du service).',
+    trop_de_demandes:'Trop de demandes de signature pour l’instant — réessayez plus tard.',trop_de_requetes:'Trop de requêtes — réessayez dans un instant.',erreur_interne:'Le service de signature a rencontré une erreur.',json_invalide:'Demande illisible.'};
+  var SIGN_CHAMP={nom:'le nom',email:'l’adresse e-mail',telephone:'le mobile'};
+  function signMessage(d,statut){
+    var c=d&&d.error, m=SIGN_MSG[c];
+    if(c==='signataire_invalide'&&d.n){ m='Signataire '+d.n+' : '+(SIGN_CHAMP[d.champ]?SIGN_CHAMP[d.champ]+' est invalide ou manquant.':'informations invalides.'); }
+    if(c==='yousign_refuse'&&d.etape) m=(m||'')+' (étape : '+String(d.etape).slice(0,30)+(d.statut?', code '+(+d.statut):'')+')';
+    return m||(statut===413?SIGN_MSG.trop_gros:statut===429?SIGN_MSG.trop_de_requetes:'Le service de signature a refusé la demande (HTTP '+statut+').'); }
+  /* tout passe par ici : le même jeton que le reste de la Tour, aucune donnée du service ne revient comme succès si le code n'est pas 2xx, un corps illisible est une erreur */
+  function sigRequete(methode,chemin,o){
+    o=o||{}; var h=hAuth(); if(o.type) h['Content-Type']=o.type; else if(o.corps===undefined) delete h['Content-Type'];
+    var init={method:methode,headers:h}; if(o.corps!==undefined) init.body=o.json?JSON.stringify(o.corps):o.corps;
+    return fetch(COURRIER_SRV+'/api/signature'+chemin,init).then(null,function(){ throw new Error('Le service de signature est injoignable — réessayez dans un instant.'); })
+      .then(function(r){
+        if(r.status===401){ return r.json().catch(function(){ return {}; }).then(function(d){ if(!d||d.error!=='verification_indisponible'){ doLogout(); } throw new Error(signMessage(d,401)); }); }
+        if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(d){ throw new Error(signMessage(d,r.status)); });
+        return r; }); }
+  function sigVue(r){ return r.json().catch(function(){ throw new Error('Réponse du service de signature illisible.'); }).then(function(v){
+    if(!v||typeof v!=='object'||typeof v.id!=='string'||typeof v.etat!=='string') throw new Error('Réponse du service de signature illisible.'); return v; }); }
+  function sigId(id){ id=String(id); if(!/^[0-9a-f]{24}$/.test(id)) throw new Error('Demande introuvable.'); return encodeURIComponent(id); }
+  function sigBlob(r){ return r.blob().then(function(b){ if(!b||!b.size) throw new Error('Le service de signature a rendu un fichier vide.'); return b; }); }
+  /* le service est-il prêt ? `/health` public, cache de 30 s ; tout échec (éteint, lent, pas configuré, réponse bizarre) = faux, sans bruit */
+  var SIG_PRET=null;
+  function signaturePrete(){
+    var t=Date.now(); if(SIG_PRET&&t-SIG_PRET.t<30000) return SIG_PRET.p;
+    var o={cache:'no-store'}; try{ if(typeof AbortSignal!=='undefined'&&AbortSignal.timeout) o.signal=AbortSignal.timeout(4000); }catch(e){}
+    var p=Promise.resolve().then(function(){ return fetch(COURRIER_SRV+'/health',o); })
+      .then(function(r){ return r.ok?r.json():null; })
+      .then(function(j){ return !!(j&&j.ok===true&&j.signature&&j.signature.pret===true); },function(){ return false; });
+    SIG_PRET={t:t,p:p}; return p; }
+  var signature={
+    /* crée le brouillon, y dépose chaque PDF, l'active : ou tout, ou rien (un brouillon laissé en route est effacé) */
+    envoyer:function(dem,fichiers){
+      if(!fichiers||!fichiers.length) return Promise.reject(new Error('Ajoutez le PDF à signer.'));
+      var id=null;
+      var corps={titre:dem.titre,type:dem.type,niveau:dem.niveau,jours:dem.jours,relances:dem.relances!==false,signataires:dem.signataires};
+      if(dem.contresignature) corps.contresignature=dem.contresignature;
+      return sigRequete('POST','/demandes',{corps:corps,json:true}).then(sigVue).then(function(v){
+        id=v.id;
+        return fichiers.reduce(function(p,f){ return p.then(function(){ return sigRequete('PUT','/demandes/'+sigId(id)+'/documents?nom='+encodeURIComponent(f.nom),{corps:f.blob,type:'application/pdf'}); }); },Promise.resolve()); })
+        .then(function(){ return sigRequete('POST','/demandes/'+sigId(id)+'/activer'); }).then(sigVue)
+        .then(null,function(e){
+          if(!id) throw e;
+          /* un brouillon abandonné ne reste pas sur le service ; l'échec du ménage ne masque pas la raison du refus */
+          return sigRequete('POST','/demandes/'+sigId(id)+'/annuler').then(null,function(){}).then(function(){ throw e; }); }); },
+    /* un identifiant mal formé est un REJET (jamais une exception qui sortirait de la promesse), avant tout appel */
+    etat:function(id){ return Promise.resolve().then(function(){ return sigRequete('GET','/demandes/'+sigId(id)); }).then(sigVue); },
+    relancer:function(id){ return Promise.resolve().then(function(){ return sigRequete('POST','/demandes/'+sigId(id)+'/relancer'); }).then(sigVue); },
+    annuler:function(id){ return Promise.resolve().then(function(){ return sigRequete('POST','/demandes/'+sigId(id)+'/annuler'); }).then(sigVue); },
+    signe:function(id,n){ return Promise.resolve().then(function(){ n=parseInt(n,10); if(!(n>=1)) throw new Error('Document introuvable.'); return sigRequete('GET','/demandes/'+sigId(id)+'/documents/'+n+'/signe'); }).then(sigBlob); },
+    preuve:function(id,i){ return Promise.resolve().then(function(){ i=parseInt(i,10); if(!(i>=1)) throw new Error('Preuve introuvable.'); return sigRequete('GET','/demandes/'+sigId(id)+'/preuves/'+i); }).then(sigBlob); }
+  };
   return {
-    capacites:function(){ return Promise.resolve({oauth:false,programmeServeur:false,signature:false,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
+    signature:signature,
+    capacites:function(){ return signaturePrete().then(function(pret){ return {oauth:false,programmeServeur:false,signature:pret,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
       dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024},
-      journalEnvois:true,telechargerPiece:true,suivi:true,moi:MYNOM}); },
+      journalEnvois:true,telechargerPiece:true,suivi:true,moi:MYNOM}; }); },
     boites:function(){
       return appel('/api/monitor/mail/boites',undefined,'Lecture des boîtes refusée').then(function(d){
         if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible');
