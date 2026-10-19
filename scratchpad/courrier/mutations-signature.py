@@ -27,7 +27,7 @@ MUTS = [
  ('tour : le service est joint ailleurs', T, "var COURRIER_SRV='https://courrier-beta.teamop.fr';", "var COURRIER_SRV='https://courrier-beta.teamop.fr';\nCOURRIER_SRV='https://autre.example';", 'tests/test-2705.js'),
  ('tour : un refus du service devient un succès muet', T, "if(!r.ok) return r.json().catch(function(){ return {}; }).then(function(d){ throw new Error(signMessage(d,r.status)); });", '', 'tests/test-2705.js'),
 ]
-env = dict(os.environ, COURRIER_RACINE=os.environ.get('COURRIER_RACINE', '/home/user/teamop-csrv'))
+env = dict(os.environ, COURRIER_RACINE=os.environ.get('COURRIER_RACINE', R))
 mauvais = 0
 for nom, f, a, b, banc in MUTS:
     s = open(f, encoding='utf8').read()
