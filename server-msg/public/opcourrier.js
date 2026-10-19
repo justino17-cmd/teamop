@@ -13,6 +13,7 @@
        theme: function(){ return 'jour' }, // 'jour' | 'nuit' ; à défaut, l'appareil (prefers-color-scheme)
        titre: 'OP Courrier',             // nom affiché dans la barre latérale
        onCompter: function(n){},         // nombre de messages non lus en réception (pastille de l'hôte)
+       son: 'sons/courrier.mp3',         // le son d'un nouveau mail (adresse relative à la page de l'hôte, même origine) ; false : pas de son, et le réglage « Son des nouveaux mails » n'est pas proposé
        titreDocument: false,             // true : « (n) » (non lus) s'écrit devant le titre de la page de l'hôte, qui lui est rendu au démontage
        intervalle: 60000                 // relevé automatique de la source, en ms (0 : jamais)
      });
@@ -667,6 +668,21 @@ var CSS = `
   .opc .att-x{flex:none;width:26px;height:26px;border:0;border-radius:50%;background:none;color:var(--label-2);font-size:18px;line-height:1;cursor:pointer}
   .opc .att-x:hover{background:var(--fill)}
   .opc .att-x:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
+  .opc .att .att-pv{flex:none;border:0;background:none;color:var(--tint);font:inherit;font-size:13px;font-weight:600;padding:5px 8px;margin:-4px 0;border-radius:8px;cursor:pointer}
+  .opc .att .att-pv:hover{background:var(--fill)}
+  .opc .att .att-pv:focus-visible{outline:2px solid var(--tint);outline-offset:1px}
+  @media (pointer:coarse){ .opc .att .att-pv{min-height:44px;min-width:44px;margin:-9px 0} }
+  /* la visionneuse de PDF : plein écran DANS le calque, au-dessus de la feuille qui l'ouvre ; sa barre respecte les encoches */
+  .opc .opc-layer .overlay.ov-pdf{display:block;padding:0;background:var(--grouped);animation:opc-fade .2s ease}
+  .opc .pdfv{display:flex;flex-direction:column;width:100%;height:100%;color:var(--label)}
+  .opc .pdfv-bar{flex:none;display:flex;align-items:center;gap:12px;padding:calc(max(var(--sa-top),0px) + 10px) max(var(--sa-left,0px),14px) 10px max(var(--sa-left,0px),14px);box-shadow:0 var(--hair) 0 var(--sep-mac)}
+  .opc .pdfv-t{flex:1;min-width:0;margin:0;font-size:15px;font-weight:600;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .opc .pdfv-body{position:relative;flex:1;min-height:0;background:var(--fill-2)}
+  .opc .pdfv-body iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff}
+  .opc .pdfv-repli{position:absolute;inset:0;margin:0;padding:24px;display:grid;place-items:center;text-align:center;color:var(--label-2);font-size:14px}
+  .opc .pdfv .btn{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .opc .pdfv .btn svg{width:17px;height:17px}
+  .opc .swl .swsub{display:block;margin-top:2px;font-size:12px;font-weight:400;color:var(--label-2)}
   .opc .att-btn{display:inline-flex;align-items:center;gap:6px}
   .opc .att-btn svg{width:17px;height:17px}
   .opc .compose.drop{box-shadow:0 0 0 3px var(--tint)}
@@ -1824,7 +1840,9 @@ var MARKUP = `
     // les NOUVEAUX seulement (jamais le premier chargement d'une boîte), et pas ce que le tri a rangé en indésirable
     var neufs=MESSAGES.filter(function(m){ var n=m.neuf; delete m.neuf; return n&&!m.ancien&&m.folder==="inbox"&&!m.read; });
     if(!silencieux||avant!==empreinte()||LOAD.boites==="ko"||LOAD.boites==="calme"){ renderAll(); persist(); }
-    if(neufs.length&&SETTINGS.notif) notifierArrivee(neufs);
+    // UN son par relevé, quel que soit le nombre de mails, la boîte ou le dossier affichés ; la notification (alerte + système) est un réglage à part
+    // Page cachée + notification du SYSTÈME envoyée : c'est le système qui sonne (il respecte le mode silencieux, Concentration, Ne pas déranger) — la page ne double pas.
+    if(neufs.length){ var systeme=SETTINGS.notif?notifierArrivee(neufs):false; if(!systeme) jouerSon(); }
     compter(); }
   var dernierCompte=-1;
   // La pastille compte les non lus ET les demandes « À traiter » (une demande déjà lue mais pas traitée attend encore quelqu'un) — chaque message une fois.
@@ -1930,7 +1948,7 @@ var MARKUP = `
   // et ce qu'elle a ÉCRIT (brouillons, envoyés : user:true). ⚠️ Une clé par entreprise et par appareil (options.cleStockage) : l'application hôte la
   // vide en quittant l'entreprise — des mails écrits ne doivent pas rester sur un appareil rendu.
   var restoredLost=0;
-  var SETTINGS={notif:true,threads:true};
+  var SETTINGS={notif:true,son:true,threads:true};
   function nettoye(m){ var o={}; Object.keys(m).forEach(function(k){ if(k.charAt(0)!=="_"&&k!=="sending"&&k!=="neuf"&&k!=="lisant") o[k]=m[k]; }); return o; }
   function persist(){ try{
     majOver();
@@ -1946,7 +1964,7 @@ var MARKUP = `
     var snap=JSON.parse(raw); if(!snap||snap.v!==4) return;
     ["kinds","names","sigs"].forEach(function(k){ if(snap[k]&&typeof snap[k]==="object") SAVED[k]=snap[k]; });
     if(snap.logos&&typeof snap.logos==="object") Object.keys(snap.logos).forEach(function(id){ if(logoValide(snap.logos[id])) SAVED.logos[id]=snap.logos[id]; });   // rien d'autre qu'une petite image PNG / JPEG ne revient du rangement
-    if(snap.settings&&typeof snap.settings==="object"){ SETTINGS.notif=snap.settings.notif!==false; SETTINGS.threads=snap.settings.threads!==false; }
+    if(snap.settings&&typeof snap.settings==="object"){ SETTINGS.notif=snap.settings.notif!==false; SETTINGS.son=snap.settings.son!==false; SETTINGS.threads=snap.settings.threads!==false; }
     if(snap.rules&&typeof snap.rules==="object"){ ["senders","domains"].forEach(function(k){ var o=snap.rules[k]; if(o&&typeof o==="object") Object.keys(o).forEach(function(x){ var v=o[x]; if(v==="junk"||v==="notjunk"||isCat(v)) RULES[k][x]=v; }); }); }
     if(snap.msgs&&typeof snap.msgs==="object") OVER=snap.msgs;
     if(Array.isArray(snap.gone)) GONE=snap.gone.filter(function(x){ return typeof x==="string"; });
@@ -2227,7 +2245,7 @@ var MARKUP = `
         // Raccourcis de survol (souris) : hors de l'arbre d'accessibilité et du Tab — au clavier, f / e / Suppr et la barre d'outils font la même chose.
         (m.jr?'':'<span class="quick" aria-hidden="true">'+
           '<button type="button" tabindex="-1" data-q="flag" data-id="'+m.id+'" title="'+(m.flagged?"Retirer le drapeau":"Marquer")+'" aria-label="'+(m.flagged?"Retirer le drapeau":"Marquer")+'">'+I.flag+'</button>'+
-          '<button type="button" tabindex="-1" data-q="archive" data-id="'+m.id+'" title="Archiver (E)" aria-label="Archiver">'+I.archive+'</button>'+
+          (peutRemettre(m)?'<button type="button" tabindex="-1" data-q="toInbox" data-id="'+m.id+'" title="'+REMETTRE+'" aria-label="'+REMETTRE+'">'+I.inbox+'</button>':'<button type="button" tabindex="-1" data-q="archive" data-id="'+m.id+'" title="Archiver (E)" aria-label="Archiver">'+I.archive+'</button>')+
           '<button type="button" tabindex="-1" class="dng" data-q="trash" data-id="'+m.id+'" title="Supprimer (Suppr)" aria-label="Supprimer">'+I.trash+'</button>'+
         '</span>')+'</div>';
     }).join("");
@@ -2243,7 +2261,7 @@ var MARKUP = `
     bar.innerHTML='<button type="button" class="sa" data-multi="all">'+(n&&n===tot?"Aucun":"Tout")+'</button>'+
       '<span class="sc" aria-live="polite">'+(n?plural(n,"sélectionné","sélectionnés"):"Touchez des messages")+'</span>'+
       b("read",anyUnread?I.mail:I.unread,anyUnread?"Marquer comme lu":"Marquer comme non lu")+
-      (state.folder==="archive"||inTrash?'':b("archive",I.archive,"Archiver"))+
+      (state.folder==="archive"||state.folder==="junk"||inTrash?b("toInbox",I.inbox,REMETTRE):b("archive",I.archive,"Archiver"))+
       b("forward",I.forward,n>1?"Transférer les "+n+" messages":"Transférer")+
       b("trash",I.trash,inTrash?"Supprimer définitivement":"Supprimer","dng");
   }
@@ -2269,11 +2287,14 @@ var MARKUP = `
     if(act==="read"){ var any=sel.some(function(m){return !m.read;}); sel.forEach(function(m){ m.read=any; });
       setMulti(false); renderAll(); persist(); toast(plural(n,"message marqué","messages marqués")+(any?" comme lu":" comme non lu"),{label:"Annuler",onAct:function(){ restore(); toast("Annulé"); }}); return; }
     var inTrash=state.folder==="trash";
+    if(act==="toInbox") sel=sel.filter(peutRemettre);   // un message écrit ici n'a pas de réception à retrouver
+    if(!sel.length){ setMulti(false); renderAll(); return; }
+    n=sel.length;
     sel.forEach(function(m){
       if(act==="trash"&&inTrash){ var i=MESSAGES.indexOf(m); if(i>=0) MESSAGES.splice(i,1); return; }
-      m.folder=act==="archive"?"archive":"trash"; m.uj=true; m.aj=false; if(m.sendAt!=null) delete m.sendAt; });
+      m.folder=act==="archive"?"archive":act==="toInbox"?"inbox":"trash"; m.uj=true; m.aj=false; if(m.sendAt!=null) delete m.sendAt; });
     setMulti(false); state.selected=null; refreshCls(); renderAll(); persist();
-    toast((act==="archive"?plural(n,"message archivé","messages archivés"):inTrash?plural(n,"message supprimé définitivement","messages supprimés définitivement"):plural(n,"message déplacé","messages déplacés")+" dans la Corbeille"),
+    toast((act==="toInbox"?plural(n,"message remis","messages remis")+" dans la Réception":act==="archive"?plural(n,"message archivé","messages archivés"):inTrash?plural(n,"message supprimé définitivement","messages supprimés définitivement"):plural(n,"message déplacé","messages déplacés")+" dans la Corbeille"),
       {label:"Annuler",onAct:function(){ restore(); toast("Annulé"); }});
   }
 
@@ -2293,17 +2314,17 @@ var MARKUP = `
     if(isDraft) mac+='<button type="button" class="tb" data-act="editDraft" aria-label="Modifier le message" title="Modifier le message"'+dis+'>'+I.pencil+'</button>';
     else mac+='<button type="button" class="tb" data-act="unread" aria-label="Marquer comme non lu" title="Marquer comme non lu"'+dis+'>'+I.unread+'</button>';
     mac+='<span class="tsep" aria-hidden="true"></span>'+
-      '<button type="button" class="tb" data-act="archive" aria-label="Archiver" title="Archiver (E)"'+dis+'>'+I.archive+'</button>'+
+      (peutRemettre(m)?'<button type="button" class="tb" data-act="toInbox" aria-label="'+REMETTRE+'" title="'+REMETTRE+'"'+dis+'>'+I.inbox+'</button>':'<button type="button" class="tb" data-act="archive" aria-label="Archiver" title="Archiver (E)"'+dis+'>'+I.archive+'</button>')+
       '<button type="button" class="tb" data-act="trash" aria-label="Supprimer" title="Supprimer"'+dis+'>'+I.trash+'</button>'+
       // Indésirable : seulement pour un message reçu (un message envoyé n'a pas d'expéditeur à juger)
-      (isDraft?'':!!m&&m.folder==="junk"?'<button type="button" class="tb" data-act="notJunk" aria-label="Ce n’est pas un indésirable" title="Ce n’est pas un indésirable (remettre '+(m.from?'dans la réception':'dans Envoyés')+')">'+I.inbox+'</button>':
+      (isDraft?'':!!m&&m.folder==="junk"?(peutRemettre(m)?'':'<button type="button" class="tb" data-act="notJunk" aria-label="Ce n’est pas un indésirable" title="Ce n’est pas un indésirable (remettre dans Envoyés)">'+I.inbox+'</button>'):
         !!m&&!m.from?'':'<button type="button" class="tb" data-act="junk" aria-label="Déplacer dans les indésirables" title="Indésirable"'+dis+'>'+I.junk+'</button>');
     if(!isDraft) mac+='<span class="tsep" aria-hidden="true"></span>'+
       '<button type="button" class="tb" data-act="reply" aria-label="Répondre" title="Répondre (R)"'+dis+'>'+I.reply+'</button>'+
       '<button type="button" class="tb" data-act="replyAll" aria-label="Répondre à tous" title="Répondre à tous"'+dis+'>'+I.replyAll+'</button>'+
       '<button type="button" class="tb" data-act="forward" aria-label="Transférer" title="Transférer"'+dis+'>'+I.forward+'</button>';
     mac+='<span class="tsep" aria-hidden="true"></span>'+flagTb+'</div>';
-    var touch='<div class="acts-touch">'+(m?flagTb+tb("archive",I.archive,"Archiver")+tb("trash",I.trash,"Supprimer")+
+    var touch='<div class="acts-touch">'+(m?flagTb+(peutRemettre(m)?tb("toInbox",I.inbox,REMETTRE):tb("archive",I.archive,"Archiver"))+tb("trash",I.trash,"Supprimer")+
       (isDraft?'<button type="button" class="tb txt" data-act="editDraft" title="Modifier le message">Modifier</button>':tb("replyMenu",I.reply,"Répondre, transférer…")):'')+'</div>';
     return nav+mac+touch;
   }
@@ -2311,7 +2332,7 @@ var MARKUP = `
     if(!m||m.jr) return '';
     var isDraft=m.folder==="drafts"||m.folder==="scheduled";
     return '<button type="button" class="tbtn'+(m.flagged?" on-flag":"")+'" data-act="flag" aria-pressed="'+m.flagged+'" aria-label="Drapeau">'+(m.flagged?I.flagFill:I.flag)+'</button>'+
-      tbtn("archive",I.archive,"Archiver")+tbtn("trash",I.trash,"Supprimer")+
+      (peutRemettre(m)?tbtn("toInbox",I.inbox,REMETTRE):tbtn("archive",I.archive,"Archiver"))+tbtn("trash",I.trash,"Supprimer")+
       (isDraft?'<button type="button" class="tbtn txt" data-act="editDraft">Modifier</button>':tbtn("replyMenu",I.reply,"Répondre, transférer…"))+
       '<span class="tool-gap"></span>';
   }
@@ -2362,7 +2383,7 @@ var MARKUP = `
     var bodyHtml=m.body===null?'<p class="lecture">Chargement du message…</p>':(m.body||[]).map(function(p){ if(Array.isArray(p)&&p[0]==="quote") return '<div class="quote">'+H(p[1]).replace(/\n/g,"<br>")+'</div>'; return "<p>"+H(p).replace(/\n/g,"<br>")+"</p>"; }).join("");
     var canSign=!m.sign&&k0==="pro"&&m.att.some(function(a){ return a.kind!=="img"; })&&m.folder!=="junk"&&m.folder!=="trash";
     var dlOk=!!m.src&&CAP.telechargerPiece&&typeof SRC.piece==="function";
-    var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
+    var att=m.att.length?'<div class="attbar">'+m.att.map(function(a,i){ return '<div class="att"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(m.sign&&estPDF(a)?boutonApercu(i,"data-pv-att"):'')+(dlOk&&a.id!=null?'<button type="button" class="att-dl" data-dl="'+i+'" aria-label="Télécharger '+H(a.name)+'" title="Télécharger">'+I.down+'</button>':'')+'</div>'; }).join("")+(canSign?'<button type="button" class="btn att-btn" data-act="signFrom">'+I.sign+'<span>Faire signer</span></button>':'')+'</div>':'';
     var vip=m.vip?'<span class="vip" title="VIP">'+I.star+'<span class="sr">VIP</span></span>':'';
     // Pas de réponse rapide à un indésirable (on ne répond pas à une arnaque d'un clic),
     // ni à un envoi automatique (notification, reçu, voyage, publicité, adresse « no-reply »)
@@ -2434,6 +2455,85 @@ var MARKUP = `
     if(/^(con|prn|aux|nul|com[0-9]|lpt[0-9])(\..*)?$/i.test(n)) n="_"+n;
     if(n.length>120){ var d=n.lastIndexOf("."), ext=d>0&&n.length-d<=12?n.slice(d):""; n=n.slice(0,120-ext.length)+ext; }
     return n||"piece-jointe"; }
+  // ---------- Le fichier d'une pièce, gardé sur CET appareil : l'aperçu d'un PDF avant d'envoyer (signature, message en rédaction) ----------
+  // Avant, le module ne gardait que le nom et la taille : le document ne s'ouvrait nulle part, même rangé dans Signatures. Le fichier vit dans IndexedDB (une base par
+  // clé de stockage : `<cleStockage>_fichiers`), JAMAIS dans localStorage (5 Mo partagés) ni dans les données de l'entreprise ; la pièce garde seulement `fid`, sa clé.
+  // Borné à la limite d'un message (CAP.pj.octets, 25 Mo) PAR DEMANDE. Effacé avec la demande (annulée, retirée) ; au démarrage, ce qu'aucune pièce ne désigne plus est balayé.
+  var idbP=null;
+  function idbOuvrir(){
+    if(idbP) return idbP;
+    idbP=new Promise(function(ok,ko){ try{
+      if(!window.indexedDB) throw new Error("rangement indisponible");
+      var r=indexedDB.open(LS+"_fichiers",1);
+      r.onupgradeneeded=function(){ r.result.createObjectStore("f"); };
+      r.onsuccess=function(){ ok(r.result); }; r.onerror=r.onblocked=function(){ ko(r.error||new Error("rangement indisponible")); };
+    }catch(e){ ko(e); } });
+    idbP.catch(function(){ idbP=null; });   // un refus (navigation privée, rangement plein) ne ferme pas la porte pour toujours
+    return idbP; }
+  function idbFaire(mode,fn){ return idbOuvrir().then(function(db){ return new Promise(function(ok,ko){
+    var tx=db.transaction("f",mode), rq=fn(tx.objectStore("f"));
+    tx.oncomplete=function(){ ok(rq&&rq.result); }; tx.onerror=tx.onabort=function(){ ko(tx.error||new Error("rangement refusé")); }; }); }); }
+  finis.push(function(){ if(idbP) idbP.then(function(db){ db.close(); },function(){}); });
+  function fidNeuf(){ return "f"+Date.now().toString(36)+Math.random().toString(36).slice(2,9); }
+  function fichierPoser(fid,fic){ return idbFaire("readwrite",function(st){ return st.put(new Blob([fic],{type:"application/pdf"}),fid); }); }
+  function fichierLire(fid){ return idbFaire("readonly",function(st){ return st.get(fid); }); }
+  // ce que la demande (ou le message) désigne ; `sauf` : les pièces qu'une autre demande reprend (une demande préparée qu'on rouvre)
+  function fidsDe(m){ var l=[]; (m&&m.att||[]).forEach(function(a){ if(a&&a.fid&&l.indexOf(a.fid)<0) l.push(a.fid); }); return l; }
+  function fichiersEffacer(fids){ if(!fids.length) return;
+    idbFaire("readwrite",function(st){ fids.forEach(function(k){ st.delete(k); }); }).catch(function(){}); }
+  function fichiersDe(m){ var f=fidsDe(m); MESSAGES.forEach(function(x){ if(x!==m) fidsDe(x).forEach(function(k){ var i=f.indexOf(k); if(i>=0) f.splice(i,1); }); }); return f; }
+  // Le balayage : une pièce n'est « orpheline » que si AUCUN message de la mémoire ne la désigne, relu au retour de la liste des clés (le fichier est posé et la pièce désignée dans le même
+  // instant, donc une clé vue ici est déjà désignée). Une demande ANNULÉE ne garde pas son fichier.
+  function fichiersBalayer(){
+    if(!vivant||!window.indexedDB) return;
+    idbFaire("readonly",function(st){ return st.getAllKeys(); }).then(function(cles){
+      var vus={}; MESSAGES.forEach(function(m){ if(m.sign&&m.sign.st==="cancelled") return; fidsDe(m).forEach(function(k){ vus[k]=1; }); });
+      fichiersEffacer((cles||[]).filter(function(k){ return !vus[k]; })); }).catch(function(){}); }
+
+  // La visionneuse : le PDF dans un cadre plein écran, au-dessus de la feuille qui l'a ouverte. Fermer, et Télécharger ; si l'appareil n'affiche pas les PDF dans une page (iPhone…), le texte
+  // derrière le cadre le dit et le bouton reste. ⛔ PAS de `sandbox` sur ce cadre, et ce n'est pas un oubli : Chromium REFUSE d'afficher un PDF dans un cadre sandboxé, quelle que soit la valeur
+  // (« This page has been blocked by Chromium », mesuré : vide, allow-same-origin, allow-scripts, les deux). Ce qui isole le PDF : le visualiseur du navigateur tourne HORS de la page (processus
+  // à part), l'adresse est un blob: dont le type est FORCÉ à application/pdf (jamais lu comme une page HTML, donc aucun script du document n'atteint le module ni l'application), et la
+  // politique de l'hôte n'ouvre que `frame-src blob:`.
+  var pdfv=null;
+  function fermerApercu(){
+    if(!pdfv) return; var v=pdfv; pdfv=null;
+    try{ URL.revokeObjectURL(v.url); }catch(e){}
+    v.el.remove(); if(!$("#overlay")) app.inert=false;
+    if(v.retour&&sr.contains(v.retour)&&v.retour!==document.body){ try{ v.retour.focus({preventScroll:true}); }catch(e){} } }
+  finis.push(fermerApercu);
+  function apercuPDF(blob,nom){
+    fermerApercu();
+    var retour=actif(), url=URL.createObjectURL(new Blob([blob],{type:"application/pdf"})), el=document.createElement("div");
+    el.className="overlay ov-pdf"; el.id="pdfv"; el.setAttribute("role","dialog"); el.setAttribute("aria-modal","true"); el.setAttribute("aria-labelledby","pdfvT");
+    el.innerHTML='<div class="pdfv"><div class="pdfv-bar"><button type="button" class="btn" data-pv="close">Fermer</button><h2 class="pdfv-t" id="pdfvT">'+H(nom)+'</h2>'+
+      '<button type="button" class="btn primary" data-pv="dl">'+I.down+'<span>Télécharger</span></button></div>'+
+      '<div class="pdfv-body"><p class="pdfv-repli">Ce document ne s’affiche pas dans la page sur cet appareil. Touchez « Télécharger » pour l’ouvrir.</p></div></div>';
+    if(navigator.pdfViewerEnabled!==false){
+      var f=document.createElement("iframe"); f.setAttribute("title","Aperçu : "+nom); f.setAttribute("referrerpolicy","no-referrer"); f.src=url;
+      $(".pdfv-body",el).appendChild(f); }
+    app.inert=true; $("#overlays").appendChild(el); pdfv={el:el,url:url,retour:retour,nom:nom};
+    el.addEventListener("click",function(e){ var b=e.target.closest("[data-pv]"); if(!b) return;
+      if(b.getAttribute("data-pv")==="close"){ fermerApercu(); return; }
+      var l=document.createElement("a"); l.href=url; l.download=nomFichierSur(nom); l.rel="noopener"; l.hidden=true; el.appendChild(l); l.click(); l.remove(); });
+    el.addEventListener("keydown",function(e){
+      if(e.key==="Escape"){ e.preventDefault(); e.stopPropagation(); fermerApercu(); return; }
+      if(e.key!=="Tab") return;
+      var c=$$("button, iframe",el).filter(function(x){ return !x.disabled; }); if(!c.length) return;
+      var i=c.indexOf(sr.activeElement); if(e.shiftKey&&i<=0){ e.preventDefault(); c[c.length-1].focus(); } else if(!e.shiftKey&&i===c.length-1){ e.preventDefault(); c[0].focus(); } });
+    var fermer=$('[data-pv="close"]',el); if(fermer) fermer.focus();
+  }
+  // Ouvre l'aperçu d'une pièce : le fichier en mémoire (celui qu'on vient de choisir), sinon celui que l'appareil a gardé (a.fid) ; sinon on le DIT.
+  function apercuPiece(a){
+    if(!a) return;
+    if(a.file&&typeof a.file.size==="number"){ apercuPDF(a.file,a.name); return; }
+    if(!a.fid){ toast("Fichier non conservé sur cet appareil"); return; }
+    fichierLire(a.fid).then(function(b){
+      if(!vivant) return;
+      if(!b||typeof b.size!=="number") { toast("Fichier non conservé sur cet appareil"); return; }
+      apercuPDF(b,a.name); },function(){ if(vivant) toast("Fichier non conservé sur cet appareil"); }); }
+  function estPDF(a){ return !!a&&a.kind!=="img"&&!!(/\.pdf$/i.test(a.name||"")||(a.file&&a.file.type==="application/pdf")); }
+  function boutonApercu(i,attr){ return '<button type="button" class="att-pv" '+attr+'="'+i+'">Aperçu</button>'; }
   function telechargerPiece(m,i,btn){
     var a=m&&m.att&&m.att[i];
     if(!a||a.id==null||!m.src||!CAP.telechargerPiece||typeof SRC.piece!=="function"||a.dl) return;
@@ -2486,7 +2586,13 @@ var MARKUP = `
   function backToListMobile(){ if(isPhone()&&app.getAttribute("data-view")==="reading") go("list"); }
   function msgById(id){ if(!id) return null; for(var i=0;i<MESSAGES.length;i++) if(MESSAGES[i].id===id) return MESSAGES[i]; return null; }
   // uj : déplacé à la main — le tri automatique ne le renverra plus dans Indésirables.
-  function moveTo(m,folder,label){ var at=listIndex(m.id); m.folder=folder; m.uj=true; m.aj=false; if(m.sendAt!=null) delete m.sendAt; if(state.selected===m.id){ state.selected=null; } backToListMobile(); renderAll(); persist(); refocus(null,at); if(label) toast(label); }
+  // Un message REÇU rangé dans Archive, Indésirables ou Corbeille peut revenir dans la Réception de SA boîte : à la place du geste « Archiver », la barre, le clic droit, la ligne et la
+  // sélection multiple proposent alors « Remettre dans la Réception » (icône de la boîte de réception). Un message écrit ici (sans expéditeur) n'a pas de « réception » à retrouver.
+  function peutRemettre(m){ return !!m&&!!m.from&&!m.jr&&(m.folder==="archive"||m.folder==="trash"||m.folder==="junk"); }
+  var REMETTRE="Remettre dans la Réception";
+  // `Annuler` rend le message à son dossier d'avant (la source en est prévenue par le persist() suivant, comme pour tout déplacement)
+  function moveTo(m,folder,label){ var at=listIndex(m.id), av={f:m.folder,uj:m.uj,aj:m.aj,sendAt:m.sendAt}; m.folder=folder; m.uj=true; m.aj=false; if(m.sendAt!=null) delete m.sendAt; if(state.selected===m.id){ state.selected=null; } backToListMobile(); renderAll(); persist(); refocus(null,at);
+    if(label) toast(label,{label:"Annuler",onAct:function(){ if(!msgById(m.id)) return; m.folder=av.f; m.uj=av.uj; m.aj=av.aj; if(av.sendAt!=null) m.sendAt=av.sendAt; refreshCls(); renderAll(); persist(); toast("Annulé"); }}); }
   // Après un rendu qui a remplacé l'élément actif (déplacer, supprimer, indésirable…), le focus clavier ne retombe pas sur le corps de la page :
   // il revient sur le contrôle demandé s'il existe encore, sinon sur la ligne qui a pris la place du message, sinon sur la liste.
   function listIndex(id){ var l=listMessages(); for(var i=0;i<l.length;i++) if(l[i].id===id) return i; return 0; }
@@ -2537,6 +2643,7 @@ var MARKUP = `
     if(act==="flag"){ m.flagged=!m.flagged; renderAll(); persist(); toast(m.flagged?"Message marqué":"Drapeau retiré"); }
     else if(act==="unread"){ m.read=false; state.selected=null; backToListMobile(); renderAll(); persist(); toast("Marqué comme non lu"); }
     else if(act==="archive") moveTo(m,"archive","Message archivé");
+    else if(act==="toInbox"){ if(!peutRemettre(m)) return; if(m.folder==="junk") markNotJunk(m); else moveTo(m,"inbox","Remis dans la réception"); }
     else if(act==="junk") markJunk(m);
     else if(act==="notJunk") markNotJunk(m);
     else if(act==="moveCat") openMoveCat(m);
@@ -2589,6 +2696,7 @@ var MARKUP = `
     return ov;
   }
   function closeOverlay(){
+    fermerApercu();
     var had=false, o; while((o=$("#overlay"))){ o.remove(); had=true; }
     cadre.classList.remove("has-sheet","sheet-under"); app.inert=false; state.compose=null; rsOpenId=null;
     if(had&&returnFocus&&sr.contains(returnFocus)&&returnFocus!==document.body){ try{ returnFocus.focus({preventScroll:true}); }catch(e){} }
@@ -2667,7 +2775,8 @@ var MARKUP = `
     items.push({id:m.read?"unread":"markRead",label:m.read?"Marquer comme non lu":"Marquer comme lu",icon:m.read?I.unread:I.mail},
       {id:"flag",label:m.flagged?"Retirer le drapeau":"Marquer d’un drapeau",icon:I.flag});
     if(m.folder==="inbox") items.push({id:"moveCat",label:"Ranger dans…",icon:I.moveTo});
-    if(m.folder!=="archive"&&m.folder!=="trash") items.push({id:"archive",label:"Archiver",icon:I.archive});
+    if(peutRemettre(m)&&m.folder!=="junk") items.push({id:"toInbox",label:REMETTRE,icon:I.inbox});
+    else if(m.folder!=="archive"&&m.folder!=="trash") items.push({id:"archive",label:"Archiver",icon:I.archive});
     if(m.folder==="junk") items.push({id:"notJunk",label:"Ce n’est pas un indésirable",icon:I.inbox}); else if(m.from&&!own) items.push({id:"junk",label:"Indésirable",icon:I.junk});
     items.push({id:"trash",label:m.folder==="trash"?"Supprimer définitivement":"Supprimer",icon:I.trash,danger:true},{id:"pick",label:"Sélectionner plusieurs…",icon:I.check});
     openMenu(anchor,{label:"Actions sur le message",sheet:true,title:m.subject||"(Sans objet)",items:items,onPick:function(a){
@@ -2811,7 +2920,7 @@ var MARKUP = `
       else g.st="pending";
       signPreview(m); renderAll(); persist(); toast(g.st==="signed"?"Document signé par tous":g.st==="counter"?"Le client a signé — à vous de contresigner":"Signature reçue de "+(x.name||x.email)); }
     else if(act==="signRemind"){ signLog(m,"Relance envoyée à "+g.signers.filter(function(s){return s.st!=="signed";}).map(function(s){return s.name||s.email;}).join(", ")); signPreview(m); renderAll(); persist(); toast("Relance envoyée"); }
-    else if(act==="signCancel"){ g.st="cancelled"; signLog(m,"Demande annulée — le lien de signature ne fonctionne plus"); signPreview(m); renderAll(); persist(); toast("Demande annulée"); }
+    else if(act==="signCancel"){ g.st="cancelled"; fichiersEffacer(fichiersDe(m)); signLog(m,"Demande annulée — le lien de signature ne fonctionne plus"); signPreview(m); renderAll(); persist(); toast("Demande annulée"); }
     else if(act==="signSend"){
       // La demande rangée « Prête » repart par le formulaire (rempli comme elle l'était) le jour où la source sait signer ; d'ici là, on ne prétend rien.
       if(!CAP.signature){ toast("Toujours en attente de Yousign — rien n’est parti."); return; }
@@ -2894,18 +3003,20 @@ var MARKUP = `
     var msgTouched=false; $("#sgMsg").value=defMsg(); $("#sgMsg").addEventListener("input",function(){ msgTouched=true; });
     ["#sgType","#sgName","#sgFrom"].forEach(function(q){ $(q).addEventListener("input",function(){ if(!msgTouched) $("#sgMsg").value=defMsg(); }); $(q).addEventListener("change",function(){ if(!msgTouched) $("#sgMsg").value=defMsg(); }); });
     function paintDocs(){
-      $("#sgDocs").innerHTML=docs.map(function(a,i){ return '<span class="att"><span class="ic" aria-hidden="true">'+I.doc+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span><button type="button" class="att-x" data-drm="'+i+'" aria-label="Retirer '+H(a.name)+'">×</button></span>'; }).join("")+
+      $("#sgDocs").innerHTML=docs.map(function(a,i){ return '<span class="att"><span class="ic" aria-hidden="true">'+I.doc+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+boutonApercu(i,"data-dpv")+'<button type="button" class="att-x" data-drm="'+i+'" aria-label="Retirer '+H(a.name)+'">×</button></span>'; }).join("")+
         '<button type="button" class="btn att-btn" id="sgPick">'+I.attach+'<span>Choisir un PDF</span></button><button type="button" class="btn" id="sgTpl">Créer depuis un modèle OP</button><input type="file" id="sgFile" accept="application/pdf,.pdf" hidden>';
       $("#sgPick").onclick=function(){ $("#sgFile").click(); };
       $("#sgFile").onchange=function(){ Array.prototype.forEach.call(this.files,function(f){ if(!/\.pdf$/i.test(f.name)&&f.type!=="application/pdf"){ toast("Seuls les PDF peuvent être signés"); return; }
-        docs.push({name:f.name,size:f.size>=1048576?(f.size/1048576).toFixed(1).replace(".",",")+" Mo":Math.max(1,Math.round(f.size/1024))+" Ko",kind:"doc"}); });
+        var tot=docs.reduce(function(n,d){ return n+((d.file&&d.file.size)||d.bytes||0); },0);
+        if(tot+f.size>CAP.pj.octets){ toast("Fichier refusé : "+Math.round(CAP.pj.octets/1048576)+" Mo au maximum par demande"); return; }
+        docs.push({name:f.name,size:f.size>=1048576?(f.size/1048576).toFixed(1).replace(".",",")+" Mo":Math.max(1,Math.round(f.size/1024))+" Ko",kind:"doc",bytes:f.size,file:f}); });
         if(!$("#sgName").value.trim()&&docs.length) $("#sgName").value=docs[0].name.replace(/\.pdf$/i,"").replace(/[-_]+/g," ");
         paintDocs(); };
       $("#sgTpl").onclick=function(){ readSigners(); var t=$("#sgType").value, who=(signers[0]&&(signers[0].name||signers[0].email.split("@")[0]))||"client";
         docs.push({name:(t.replace(/’/g,"").replace(/\s+/g,"-"))+"-"+who.replace(/[^\p{L}\p{N}]+/gu,"-")+".pdf",size:"124 Ko",kind:"doc"});
         if(!$("#sgName").value.trim()) $("#sgName").value=t+" — "+who; if(!msgTouched) $("#sgMsg").value=defMsg(); paintDocs(); toast("Modèle « "+t+" » ajouté"); };
     }
-    $("#sgDocs").addEventListener("click",function(e){ var b=e.target.closest("[data-drm]"); if(!b) return; docs.splice(+b.getAttribute("data-drm"),1); paintDocs(); });
+    $("#sgDocs").addEventListener("click",function(e){ var v=e.target.closest("[data-dpv]"); if(v){ apercuPiece(docs[+v.getAttribute("data-dpv")]); return; } var b=e.target.closest("[data-drm]"); if(!b) return; docs.splice(+b.getAttribute("data-drm"),1); paintDocs(); });
     function readSigners(){ $$("#sgSigners .sg-row").forEach(function(r,i){ signers[i]={name:$("[data-f=name]",r).value.trim(),email:$("[data-f=email]",r).value.trim(),phone:$("[data-f=phone]",r).value.trim()}; }); }
     function paintSigners(){
       $("#sgSigners").innerHTML=signers.map(function(x,i){ return '<div class="sg-row"><div class="full"><span>Signataire '+(i+1)+'</span>'+(signers.length>1?'<button type="button" class="lnk" data-srm="'+i+'">Retirer</button>':'')+'</div>'+
@@ -2917,6 +3028,10 @@ var MARKUP = `
     $("#sgAdd").onclick=function(){ readSigners(); signers.push({name:"",email:"",phone:""}); paintSigners(); var l=$$("#sgSigners [data-f=name]"); l[l.length-1].focus(); };
     paintDocs(); paintSigners();
     $("#sgCancel").onclick=closeOverlay;
+    // Les fichiers choisis sont rangés sur l'appareil (IndexedDB) et la pièce ne garde que sa clé `fid` ; une pièce déjà rangée (demande rouverte) la garde. Posés et désignés dans le même instant.
+    function docsGardes(){ return docs.map(function(d){ var fid=d.fid||null;
+      if(!fid&&d.file){ fid=fidNeuf(); fichierPoser(fid,d.file).catch(function(){ if(vivant) toast("« "+d.name+" » n’a pas pu être gardé sur cet appareil : l’aperçu ne sera pas disponible"); }); }
+      var o={name:d.name,size:d.size,kind:"doc"}; if(fid) o.fid=fid; return o; }); }
     $("#sgGo").onclick=function(){
       readSigners();
       var title=$("#sgName").value.trim(), level=$("#sgLevel").value, bad=null;
@@ -2928,19 +3043,19 @@ var MARKUP = `
       var a=$("#sgFrom").value, now=Date.now(), body=$("#sgMsg").value;
       if(!CAP.signature){
         // Pas de prestataire branché (Yousign) : la demande est RANGÉE dans Signatures, état « Prête », avec tout ce qui a été saisi — aucune fausse signature, aucun faux « Envoyé ».
-        var r=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docs.map(function(d){ return {name:d.name,size:d.size,kind:"doc"}; })});
+        var r=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docsGardes()});
         r.user=true; r.at=now;
         r.sign={type:$("#sgType").value,level:level,counter:$("#sgCounter").checked,remind:$("#sgRemind").checked,expires:0,st:"ready",
           signers:signers.map(function(x){ return {name:x.name,email:x.email,phone:x.phone,st:"pending"}; }),events:[{t:now,x:"Demande préparée — en attente de Yousign (rien n’est parti)"}]};
         signPreview(r); r.preview="Prête — en attente de Yousign · "+r.sign.type;
-        if(pre.remplace) removeMsg(pre.remplace);
+        if(pre.remplace) removeMsg(pre.remplace,true);
         MESSAGES.push(r); closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer();
         state.folder="sign"; renderAll(); selectMessage(r.id); persist(); toast("Rangée dans Signatures : prête, elle partira quand Yousign sera branché. Rien n’est parti."); return; }
-      var m=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docs.map(function(d){ return {name:d.name,size:d.size,kind:"doc"}; })});
+      var m=mk({acct:a,folder:"sign",from:null,to:signers.map(function(x){return x.email;}).join(", "),subject:title,body:splitBody(body),read:true,att:docsGardes()});
       m.user=true; m.at=now;
       m.sign={type:$("#sgType").value,level:level,counter:$("#sgCounter").checked,remind:$("#sgRemind").checked,expires:now+(+$("#sgDays").value)*DAY,st:"pending",
         signers:signers.map(function(x){ return {name:x.name,email:x.email,phone:x.phone,st:"pending"}; }),events:[{t:now,x:"Envoyé à "+signers.map(function(x){return x.name||x.email;}).join(", ")}]};
-      signPreview(m); if(pre.remplace) removeMsg(pre.remplace); MESSAGES.push(m); learnContacts(m);
+      signPreview(m); if(pre.remplace) removeMsg(pre.remplace,true); MESSAGES.push(m); learnContacts(m);
       closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer();
       state.folder="sign"; renderAll(); selectMessage(m.id); persist(); toast("Demande de signature envoyée");
       if(CAP.simulation) setTimeout(function(){ var x=m.sign&&m.sign.signers[0]; if(!x||x.st!=="pending"||m.sign.st!=="pending"||!msgById(m.id)) return; x.st="viewed"; m.sign.st="viewed"; signLog(m,"Document ouvert par "+(x.name||x.email)); signPreview(m); renderAll(); persist(); },8000);
@@ -2959,8 +3074,9 @@ var MARKUP = `
       '<div class="sheet-body"><div class="gwrap">'+
         '<div class="ghead">Notifications</div><div class="gcard">'+
           '<label class="swrow" for="stNotif"><span class="swl">Me prévenir des nouveaux mails</span><input type="checkbox" class="switch" id="stNotif" role="switch"'+(SETTINGS.notif?" checked":"")+'></label>'+
+          (sonUrl()?'<label class="swrow" for="stSon"><span class="swl">Son des nouveaux mails<span class="swsub">Suit le mode silencieux de l’appareil</span></span><input type="checkbox" class="switch" id="stSon" role="switch"'+(SETTINGS.son?" checked":"")+'></label>':'')+
           (CAP.simulation?'<div class="strow"><button type="button" class="btn" id="stTest">Recevoir un mail d’exemple</button></div>':'')+'</div>'+
-        '<p class="gfoot-s">'+I.info+'<span>Une alerte s’affiche dans OP Courrier'+(canSys?' et, si vous l’autorisez, une notification de l’ordinateur ou du téléphone quand l’app est en arrière-plan':'')+'. Les indésirables ne sont jamais notifiés.</span></p>'+
+        '<p class="gfoot-s">'+I.info+'<span>Une alerte s’affiche dans OP Courrier'+(canSys?' et, si vous l’autorisez, une notification de l’ordinateur ou du téléphone quand l’app est en arrière-plan':'')+'. Les indésirables ne sont jamais notifiés.'+(sonUrl()?' Le son retentit à chaque nouveau mail, boîte ouverte ou non, au volume de l’appareil.':'')+'</span></p>'+
         '<div class="ghead">Lecture</div><div class="gcard">'+
           '<label class="swrow" for="stThreads"><span class="swl">Regrouper les conversations</span><input type="checkbox" class="switch" id="stThreads" role="switch"'+(SETTINGS.threads?" checked":"")+'></label></div>'+
         '<p class="gfoot-s">'+I.info+'<span>Les réponses d’un même échange s’affichent sous le message ouvert, et la liste indique leur nombre.</span></p>'+
@@ -2972,6 +3088,7 @@ var MARKUP = `
     ov.addEventListener("input",function(e){ if(e.target.hasAttribute("data-sig")) save(); });
     $("#stNotif").onchange=function(){ SETTINGS.notif=this.checked; persist();
       if(this.checked&&canSys&&Notification.permission==="default"){ try{ var r=Notification.requestPermission(); if(r&&r.catch) r.catch(function(){}); }catch(e){} } };
+    if($("#stSon")) $("#stSon").onchange=function(){ SETTINGS.son=this.checked; persist(); if(this.checked) jouerSon(); };   // l'essai : le geste de la personne débloque aussi la lecture
     $("#stThreads").onchange=function(){ SETTINGS.threads=this.checked; persist(); renderList(); renderReading(); };
     if($("#stTest")) $("#stTest").onclick=function(){ save(); closeOverlay(); recevoirExemple(); };
     $("#stDone").onclick=function(){ save(); closeOverlay(); toast("Réglages enregistrés"); };
@@ -2980,12 +3097,27 @@ var MARKUP = `
 
   // ---------- Arrivée de nouveaux mails : relevés par charger(), annoncés ici ----------
   // La source rend les nouveaux messages au relevé suivant (toutes les `intervalle` ms, et au retour sur la page).
+  // Le son : un Audio créé UNE fois. Le navigateur peut refuser tant que la personne n'a rien touché dans la page : on n'en dit rien, et le mail suivant réessaie.
+  // Le son de la page ne joue JAMAIS en plus d'une notification du système (finCharge) ; et `audioSession.type="ambient"` (Safari iOS 16.4+) le fait suivre l'interrupteur
+  // SILENCIEUX de l'appareil et se mêler à la musique au lieu de la couper — sans cette ligne, un <audio> joue même en silencieux sur iPhone, seule façon pour une page de le respecter.
+  var audioNouveau=null;
+  function sonUrl(){ return opt.son===false?"":(typeof opt.son==="string"&&opt.son?opt.son:"sons/courrier.mp3"); }
+  function jouerSon(){
+    if(!SETTINGS.son||!sonUrl()) return;
+    try{
+      try{ if(navigator.audioSession) navigator.audioSession.type="ambient"; }catch(e){}
+      if(!audioNouveau){ audioNouveau=new Audio(sonUrl()); audioNouveau.preload="auto"; }
+      try{ audioNouveau.currentTime=0; }catch(e){}
+      var p=audioNouveau.play(); if(p&&typeof p.catch==="function") p.catch(function(){});
+    }catch(e){} }
   function notifierArrivee(neufs){
     var m=neufs[0];
     var open=function(){ if(!msgById(m.id)) return; closeOverlay(); if(app.classList.contains("nav-open")) closeDrawer(); if(!inScope(m)) state.scope=m.acct; state.folder="inbox"; renderAll(); selectMessage(m.id); };
     toast(neufs.length>1?neufs.length+" nouveaux messages — dont celui de "+senderName(m):"Nouveau message de "+senderName(m)+" — "+m.subject,{label:"Ouvrir",onAct:open});
+    // la sonnerie de la notification est celle du système (une page ne la choisit pas) ; « Son des nouveaux mails » éteint, elle se tait
     if(document.hidden&&"Notification" in window&&Notification.permission==="granted"){
-      try{ var n=new Notification(senderName(m),{body:m.subject+"\n"+m.preview,tag:m.id}); n.onclick=function(){ try{ window.focus(); }catch(e){} open(); n.close(); }; }catch(e){} }
+      try{ var n=new Notification(senderName(m),{body:m.subject+"\n"+m.preview,tag:m.id,silent:!SETTINGS.son}); n.onclick=function(){ try{ window.focus(); }catch(e){} open(); n.close(); }; return true; }catch(e){} }
+    return false;
   }
   // Source de démonstration seulement (capacites().simulation) : lui demande de faire « arriver » un mail, puis relève.
   function recevoirExemple(){
@@ -3041,7 +3173,7 @@ var MARKUP = `
     var MAXB=CAP.pj.octets;
     function fmtSize(b){ return b>=1048576?(b/1048576).toFixed(1).replace(".",",")+" Mo":Math.max(1,Math.round(b/1024))+" Ko"; }
     function paintAtt(){ $("#cAtt").innerHTML=state.compose.att.map(function(a,i){
-      return '<span class="att" role="listitem"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+
+      return '<span class="att" role="listitem"><span class="ic" aria-hidden="true">'+(a.kind==="img"?I.img:I.doc)+'</span><span style="min-width:0"><span class="fn" style="display:block">'+H(a.name)+'</span><span class="fs" style="display:block">'+H(a.size)+'</span></span>'+(estPDF(a)?boutonApercu(i,"data-pv-c"):'')+
         '<button type="button" class="att-x" data-rm="'+i+'" aria-label="Retirer '+H(a.name)+'" title="Retirer">×</button></span>'; }).join(""); }
     function addFiles(list){ var c=state.compose; if(!c) return; var tot=c.att.reduce(function(s,a){ return s+(a.bytes||0); },0), added=0, refused=0;
       Array.prototype.forEach.call(list||[],function(f){ if(tot+f.size>MAXB){ refused++; return; } tot+=f.size; added++;
@@ -3060,7 +3192,7 @@ var MARKUP = `
       openSignRequest({acct:d.acct,title:sub,att:d.att.filter(function(a){return a.kind!=="img";}),
         signers:emailsIn(d.to).map(function(e){ return {name:"",email:e}; })}); };
     $("#cFile").onchange=function(){ addFiles(this.files); this.value=""; };
-    $("#cAtt").addEventListener("click",function(e){ var b=e.target.closest("[data-rm]"); if(!b) return; var i=+b.getAttribute("data-rm"), n=state.compose.att[i];
+    $("#cAtt").addEventListener("click",function(e){ var v=e.target.closest("[data-pv-c]"); if(v){ apercuPiece(state.compose.att[+v.getAttribute("data-pv-c")]); return; } var b=e.target.closest("[data-rm]"); if(!b) return; var i=+b.getAttribute("data-rm"), n=state.compose.att[i];
       state.compose.att.splice(i,1); paintAtt(); queueSave(); toast(n.name+" retiré"); $("#cAttBtn").focus(); });
     sheet.addEventListener("dragover",function(e){ if(e.dataTransfer&&[].indexOf.call(e.dataTransfer.types||[],"Files")>=0){ e.preventDefault(); sheet.classList.add("drop"); } });
     sheet.addEventListener("dragleave",function(e){ if(e.target===sheet) sheet.classList.remove("drop"); });
@@ -3262,7 +3394,8 @@ var MARKUP = `
   }
   // Aperçu de liste : le début du texte sur une seule ligne (la liste le coupe à deux lignes)
   function firstLine(b){ return String(b||"").replace(/\s+/g," ").trim().slice(0,200); }
-  function removeMsg(id){ for(var i=0;i<MESSAGES.length;i++) if(MESSAGES[i].id===id){ MESSAGES.splice(i,1); break; } }
+  // `garder` : ses fichiers passent à une autre demande (celle qui la remplace)
+  function removeMsg(id,garder){ for(var i=0;i<MESSAGES.length;i++) if(MESSAGES[i].id===id){ var m=MESSAGES.splice(i,1)[0]; if(!garder) fichiersEffacer(fichiersDe(m)); break; } }
 
   // Envoi avec fenêtre « Annuler » de 5 s.
   // Le message est écrit tout de suite dans une boîte d'envoi persistée (dossier interne « outbox », jamais affiché) :
@@ -3777,6 +3910,7 @@ var MARKUP = `
     var wb=e.target.closest("#whyBtn"); if(wb){ var open=wb.getAttribute("aria-expanded")!=="true", sm=msgById(state.selected);
       wb.setAttribute("aria-expanded",String(open)); $("#whyPanel").hidden=!open; state.whyOpen=open&&sm?sm.id:null; return; }
     var n=e.target.closest("[data-nav]"); if(n){ moveSelection(+n.getAttribute("data-nav")); return; }
+    var pv=e.target.closest("[data-pv-att]"); if(pv){ var mp=msgById(state.selected); if(mp) apercuPiece(mp.att[+pv.getAttribute("data-pv-att")]); return; }
     var dl=e.target.closest("[data-dl]"); if(dl){ telechargerPiece(msgById(state.selected),+dl.getAttribute("data-dl"),dl); return; }
     var sv=e.target.closest("[data-suivi]"); if(sv){ changerSuivi(msgById(state.selected),{statut:sv.getAttribute("data-suivi")}); return; }
     if(e.target.closest("[data-signnew]")){ openSignRequest(); return; }
@@ -3826,6 +3960,7 @@ var MARKUP = `
 
   // ---------- Démarrage ----------
   restore();
+  fichiersBalayer();   // ce qu'aucune pièce ne désigne plus (une demande retirée pendant que la page était fermée, un autre onglet) s'efface
   if(opt.cote&&COTES.indexOf(opt.cote)>=0) ouvrirCote(opt.cote);
   app.setAttribute("data-scope",state.scope);
   appliquerFormat(); placeChrome();

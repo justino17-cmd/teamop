@@ -33,7 +33,7 @@ de ligne du tout.
 > validations (Valider / Refuser, confirmation avant d'accepter), journal, tâches entre agents. Trois états par liste (0 pas lu, 1 lu,
 > −1 « on n'a pas pu savoir ») : un fichier `agents-*.json` illisible répond maintenant **503** côté serveur (il répondait `[]`, donc
 > « rien à valider » — défaut trouvé en écrivant le banc). Aucun montant de dépense affiché : le serveur ne les suit pas (Console
-> Anthropic, espace « Agents Team OP », limite 195 $). `tests/test-2704.js` : les vraies fonctions de `tour.html` contre le vrai serveur,
+> Anthropic, espace « Agents Team OP », limite 195 $). `tests/test-2709.js` : les vraies fonctions de `tour.html` contre le vrai serveur,
 > 47 vérifications, 11 mutations sur 11 détectées. Il lit `tour.html` de la branche : il n'entre PAS dans `scripts/bancs-serveur.liste`
 > (il tomberait contre la Tour de `main`). `test-828`, `829` passent à douze vues. Rien n'est sur `main`.
 

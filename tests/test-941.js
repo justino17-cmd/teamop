@@ -16,7 +16,7 @@ const GEN = require('../scripts/opmsg-public.js');
 const RACINE = path.join(__dirname, '..');
 
 const FICHIERS = ['apercu/opmessages/index.html', 'opcourrier.js', 'server-msg/public/api.js', 'server-msg/public/source-serveur.js', 'server-msg/public/sw.js', 'server-msg/public/manifest.webmanifest',
-  'icons/opmsg-192.png', 'icons/opmsg-512.png', 'icons/opmsg-apple-touch.png', 'icons/opmsg-favicon-32.png'];
+  'icons/opmsg-192.png', 'icons/opmsg-512.png', 'icons/opmsg-apple-touch.png', 'icons/opmsg-favicon-32.png', 'sons/courrier.mp3'];
 function copie() {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-941-'));
   for (const f of FICHIERS) { fs.mkdirSync(path.dirname(path.join(d, f)), { recursive: true }); fs.copyFileSync(path.join(RACINE, f), path.join(d, f)); }
@@ -42,7 +42,7 @@ try { g = GEN.generer({}); } catch (e) {
   vrai('⛔ le générateur ACCEPTE les sources commitées (il les refuse : « ' + String(e && e.message || e).slice(0, 220) + ' »)', false);
   fin();   // (sort en 1 : un ✗ est compté)
 }
-v('population : le générateur produit sept fichiers (la page, son script, le module de messagerie, quatre icônes) — le service worker et le manifeste sont des SOURCES lues, pas des sorties', Object.keys(g.fichiers).sort(), ['index.html', 'opcourrier.js', 'opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png', 'opmsg-ui.js']);
+v('population : le générateur produit huit fichiers (la page, son script, le module de messagerie, le son des nouveaux mails, quatre icônes) — le service worker et le manifeste sont des SOURCES lues, pas des sorties', Object.keys(g.fichiers).sort(), ['courrier.mp3', 'index.html', 'opcourrier.js', 'opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png', 'opmsg-ui.js']);
 v('⛔ server-msg/public/ est À JOUR (octet pour octet) : personne n\'a retouché la page servie à la main, l\'aperçu n\'a pas changé sans régénération', GEN.ecarts(g), []);
 vrai('population : l\'ensemble servi lit plus de 30 méthodes de la source et appelle plus de 15 routes /api/ (' + g.rapport.methodes + ', ' + g.rapport.routes + ')', g.rapport.methodes >= 30 && g.rapport.routes >= 15);
 

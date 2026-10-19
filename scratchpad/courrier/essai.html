@@ -7,7 +7,7 @@
 <!-- Page d'ESSAI du module OP Courrier (sondes du dépôt, 127.0.0.1 uniquement) : un hôte minimal, sa source de démonstration, rien d'autre.
      ?mode=demo|reel|vide|panne|panne-messages|refus|differe   (voir source-demo.js)   ?cotes=pro,perso   ?cote=pro   ?theme=hote   ?barre=1 (une barre d'hôte au-dessus)
      La politique ne laisse sortir que les deux annuaires DNS (réponses fournies par la sonde). -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src https://dns.google https://cloudflare-dns.com; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; media-src 'self'; frame-src blob:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src https://dns.google https://cloudflare-dns.com; base-uri 'none'; form-action 'none'">
 <title>Essai — module OP Courrier</title>
 <style>
   html,body{margin:0;height:100%;background:#eee;font:14px system-ui,sans-serif}

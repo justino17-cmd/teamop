@@ -53,7 +53,7 @@ vrai('   son voile le referme', /<div class="scrim" id="scrim-tiroir" hidden onc
 console.log('\n2. Le tiroir, joué avec les vraies fonctions');
 const MENU = bloc('var MENU=[', '];');
 vrai('le menu est trouvé (population)', MENU.length > 300, MENU.length);
-const JEU = [MENU, ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('menuVisible'),
+const JEU = [MENU, ligne('var GROUPE_LIB='), ligne('var PARENT_DE='), ligne('function tabMenu('), fonction('groupeDe'), ligne('var PATRON_SEUL='), fonction('vuePermise'), fonction('menuVisible'),
   /* esc tient sur UNE ligne, et son expression régulière porte des guillemets : le compteur d'accolades la prendrait
      pour une chaîne ouverte et déborderait sur la fonction d'après */
   ligne('function esc('),
@@ -77,7 +77,7 @@ function jouer(o) {
   return { h, lignes, vues: ctx.__vues };
 }
 let J = jouer({});
-vrai('population : le menu du patron compte ' + J.vues.length + ' vues', J.vues.length >= 10, J.vues.length);
+vrai('population : le menu du patron compte ' + J.vues.length + ' vues', J.vues.length >= 8, J.vues.length);   // v2.88 : dix entrées deviennent huit (Équipe sous Accès, Sauvegardes sous Système)
 v('⛔ patron, GESTION : TOUTES les vues du menu, dans l\'ordre, chacune une fois', J.lignes.map(x => x.t), J.vues);
 v('   la vue ouverte (Accueil), et elle seule, est marquée et annoncée (aria-current)', J.lignes.filter(x => x.on || x.cur).map(x => x.t + '/' + x.on + '/' + x.cur), ['accueil/true/true']);
 v('   une section par groupe du menu, en capitales dessinées (pas tapées)', (J.h.match(/<div class="ti-sec">/g) || []).length, 4);

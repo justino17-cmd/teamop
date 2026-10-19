@@ -64,7 +64,7 @@ function construireApp(ctx) {
      aucune autre, rejoignent `connect-src`. Sans visio, la politique est exactement celle d'avant. */
   const visioCfg = config.appels && config.appels.visio;
   const connectVisio = visioCfg ? ' ' + visioCfg.url + ' ' + visioCfg.url.replace(/^ws/, 'http') : '';
-  const CSP_PAGE = "default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; connect-src 'self'" + connectVisio + "; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
+  const CSP_PAGE = "default-src 'none'; script-src 'self'; worker-src 'self'; manifest-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self' blob:; frame-src blob:; connect-src 'self'" + connectVisio + "; frame-ancestors 'none'; base-uri 'none'; form-action 'self'";
   const CSP_PIECE = "sandbox; default-src 'none'";
   app.use((req, res, next) => {
     res.set({

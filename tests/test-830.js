@@ -387,10 +387,11 @@ partout('dans une liste encadrée, au bureau aussi, la bande ne se peint pas (el
   const f = lire('background-color', 'div.reg-tete', LISTE.concat(['div.reg', 'div.reg-g']), x);
   if (!/^rgba\(0, ?0, ?0, ?0\)$/.test(String(f.val))) return x.largeur + ' px : ' + f.val + ' par ' + qui(f.g);
 });
-const COURRIER = PAGE().concat(['div.carte', 'div.mail-rows']);
+/* Le Courrier est UN module dans un arbre d'ombre (opcourrier.js) : aucune règle de la Tour n'y entre, il n'a plus de `.reg-tete` à aligner.
+   Ce qui reste à garder ici est l'ABSENCE des règles de l'ancien écran (sinon elles survivent sans rien viser). */
 {
-  const x = TEL(390), t = depart('div.reg-tete', COURRIER.concat(['div.reg', 'div.reg-g']), x);
-  v('Courrier au téléphone : le titre d’un groupe suit ses lignes (16 px de retrait + le filet de 1 px)', t.n, 17);
+  const SRC_TOUR = SRC.replace(/\/\*[\s\S]*?\*\//g, ' ');   // le code, pas les commentaires qui racontent ce qui a été retiré
+  v('Courrier : les règles de groupe de l’ancien écran (.mail-rows) ne survivent pas à son retrait', /\.mail-rows|\.mail-lect|\.lec-corps/.test(SRC_TOUR), false);
 }
 
 console.log('\n3. Chaque texte sur sa colonne — lignes, notes, cartes');
@@ -584,7 +585,7 @@ function remise(cnt, apps, repondre, app) {
 {
   const expr = (() => { const i = CODE.indexOf('var zeroBtn='), j = CODE.indexOf(": '';", i); return i < 0 || j < 0 ? '' : CODE.slice(i, j + 5); })();
   vrai('population : le bouton de remise à zéro est trouvé', expr.length > 100);
-  const rendu = (n, apps, app) => { const ctx = { _aClasser: n, MYAPPS: apps, APP: app || 'gestion', APPS_TOUR: { gestion: { nom: 'OP GESTION', court: 'GESTION' }, messages: { nom: 'OP MESSAGES', court: 'MESSAGES' } }, esc: x => String(x) }; executer(expr + '\nthis.h=zeroBtn;', ctx);
+  const rendu = (n, apps, app) => { const ctx = { _aClasser: n, MYROLE: 'patron', MYAPPS: apps, APP: app || 'gestion', APPS_TOUR: { gestion: { nom: 'OP GESTION', court: 'GESTION' }, messages: { nom: 'OP MESSAGES', court: 'MESSAGES' } }, esc: x => String(x) }; executer(expr + '\nthis.h=zeroBtn;', ctx);
     return String(ctx.h).replace(/<[^>]+>/g, '|').split('|').map(s => s.trim()).filter(Boolean); };
   const a = rendu(1, ['gestion']), b = rendu(4, ['gestion', 'messages'], 'messages');
   v('le bouton compte juste, au singulier comme au pluriel', [a[0], b[0]], ['↺ Tout remettre à zéro — 1 problème', '↺ Tout remettre à zéro — 4 problèmes']);
