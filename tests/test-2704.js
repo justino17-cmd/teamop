@@ -88,6 +88,8 @@ console.log('\n── 2704 · le panneau Agents de la Tour : ses vraies fonction
       { id: 'val-a3', ts: maintenant - 7200000, agent: 'hugo', type: 'creer_espace', resume: 'Créer l’espace de Beta', params: { espace: 'beta', formule: 'pro' }, statut: 'accepte', decideTs: maintenant - 3600000, decidePar: 'Patron' },
       { id: 'val-a4', ts: maintenant - 900000, agent: 'hugo', type: 'creer_espace', resume: 'Créer l’espace de Kappa', params: { espace: 'kappa', formule: 'pro' }, statut: 'en_attente' }]));
     fs.writeFileSync(path.join(D, 'clients.json'), JSON.stringify({ 'delta@exemple-2704.fr': { email: 'delta@exemple-2704.fr', entreprise: 'Delta Propreté', prenom: 'Léa', nomFam: 'Martin', tel: '06 12 34 56 78', inscrit: maintenant - 86400000 } }));
+    const emp = e => crypto.createHash('sha256').update(e).digest('hex');
+    fs.writeFileSync(path.join(D, 'dossiers.json'), JSON.stringify({ prochain: 3, parCle: { [emp('delta@exemple-2704.fr')]: 'DOS-000001', [emp('parti@exemple-2704.fr')]: 'DOS-000002' } }));   /* le second client n'existe plus */
     fs.writeFileSync(path.join(D, 'agents-messages.json'), JSON.stringify([
       { id: 'm1', ts: maintenant - 5000, fil: 'hugo', de: 'hugo', texte: 'Stripe répond de nouveau.', niveau: 'info', lu: false },
       { id: 'm2', ts: maintenant - 4000, fil: 'hugo', de: 'hugo', texte: '<img src=x onerror=alert(2)> Le client du dossier DOS-000001 demande à parler à une vraie personne.', niveau: 'urgent', lu: false, dossier: 'DOS-000001', motif: 'demande_humain' }]));
@@ -236,6 +238,32 @@ console.log('\n── 2704 · le panneau Agents de la Tour : ses vraies fonction
   const nb = (S.lire('agents-messages.json') || []).length;
   C.ctx.AG.cv.brouillon = '   '; C.ctx.agCvEnvoyer(); await dormir(200);
   v('un message vide ne part pas', (S.lire('agents-messages.json') || []).length, nb);
+  const posts = []; const fetchOrig = C.ctx.fetch;
+  C.ctx.fetch = function (u, o) { if (o && o.method === 'POST') posts.push(String(u)); return fetchOrig.apply(this, arguments); };
+  C.ctx.AG.cv.brouillon = '   '; C.ctx.agCvEnvoyer(); await dormir(150);
+  v('un message vide ne part même pas vers le serveur', posts.filter(u => /envoyer/.test(u)).length, 0);
+  C.ctx.fetch = fetchOrig;
+  console.log('   … un fil rouvert sans non lu ne redemande pas « lu »');
+  const posts2 = []; C.ctx.fetch = function (u, o) { if (o && o.method === 'POST') posts2.push(String(u)); return fetchOrig.apply(this, arguments); };
+  C.ctx.agCvOuvrir('hugo'); await att(() => C.ctx.AG.cv.msgLec === 1); await dormir(150);
+  v('aucun appel « lire » quand tout est déjà lu', posts2.filter(u => /lire/.test(u)).length, 0);
+  C.ctx.fetch = fetchOrig;
+  console.log('   … une réponse tardive ne remplace pas le fil ouvert depuis');
+  C.ctx.fetch = function (u, o) { const p = fetchOrig.apply(this, arguments); return /conversations\/hugo$/.test(String(u)) ? dormir(500).then(() => p) : p; };
+  C.ctx.agCvOuvrir('hugo'); C.ctx.agCvOuvrir('equipe'); await dormir(900);
+  vrai('le fil affiché est « Équipe » (la réponse lente de Hugo n’a rien écrasé)', C.ctx.AG.cv.ouvert === 'equipe' && C.ctx.AG.cv.msgs.every(m => m.fil === 'equipe'));
+  C.ctx.fetch = fetchOrig;
+  C.ctx.AG.lec.taches === 1 || await att(() => C.ctx.AG.lec.taches === 1);
+  C.ctx.agCvOuvrir('equipe'); await att(() => C.ctx.AG.cv.msgLec === 1);
+  vrai('le groupe « Équipe » montre aussi les tâches entre agents (Hugo → Max)', /Hugo → Max/.test(C.etat.html) && /ag-msg tache/.test(C.etat.html));
+  console.log('   … un dossier : réponse tardive, et client supprimé');
+  C.ctx.fetch = function (u, o) { const p = fetchOrig.apply(this, arguments); return /dossiers\/DOS-000001$/.test(String(u)) ? dormir(500).then(() => p) : p; };
+  C.ctx.agDosOuvrir('DOS-000001'); C.ctx.agDosOuvrir('DOS-000999'); await dormir(900);
+  vrai('le dossier ouvert est le dernier demandé (999 est inconnu : « pas pu être lu »)', C.ctx.AG.dos.ouvert === 'DOS-000999' && C.ctx.AG.dos.ficheLec === -1 && !C.ctx.AG.dos.fiche);
+  C.ctx.fetch = fetchOrig;
+  C.ctx.AG.sec = 'dossiers';
+  C.ctx.agDosOuvrir('DOS-000002'); await att(() => C.ctx.AG.dos.ficheLec === 1);
+  vrai('un client supprimé : « supprimé », numéro jamais réutilisé, aucune coordonnée', /a été supprimé/.test(C.etat.html) && /jamais réutilisé/.test(C.etat.html) && !/exemple-2704/.test(C.etat.html));
   const K = tour(S.B, S.jeton, 'collaborateur'); K.ctx.AG.cv.ouvert = 'hugo'; K.ctx.AG.cv.brouillon = 'je ne devrais pas pouvoir'; K.ctx.agCvEnvoyer(); await dormir(200);
   v('un collaborateur n’écrit rien', (S.lire('agents-messages.json') || []).length, nb);
   console.log('\n9. Conversations et dossiers illisibles : « on ne sait pas », jamais « rien »');
@@ -245,6 +273,8 @@ console.log('\n── 2704 · le panneau Agents de la Tour : ses vraies fonction
   v('conversations : −1 (on n’a pas pu savoir)', Z.ctx.AG.cv.lec, -1);
   Z.ctx.agSec('conv'); hc = Z.etat.html;
   vrai('l’écran dit « n’ont pas pu être lues » et ne montre ni fil ni « Aucun message »', /pas pu être lues/.test(hc) && !/Aucun message/.test(hc) && !/Écrire dans ce fil/.test(hc));
+  Z.ctx.agCvOuvrir('hugo');
+  vrai('un fil illisible : −1, et la page ne dessine ni « Aucun message » ni la zone d’écriture', (await att(() => Z.ctx.AG.cv.msgLec === -1)) && /pas pu être lu/.test(Z.etat.html) && !/Aucun message/.test(Z.etat.html) && !/Écrire dans ce fil/.test(Z.etat.html));
   Z.ctx.agSec('dossiers');
   vrai('dossiers : la lecture a échoué', await att(() => Z.ctx.AG.dos.lec !== 0));
   v('dossiers : −1', Z.ctx.AG.dos.lec, -1);
