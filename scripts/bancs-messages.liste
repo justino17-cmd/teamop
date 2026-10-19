@@ -392,3 +392,5 @@ tests/test-2663.js
 # ── L'administration d'OP MESSAGES pour la console interne (17 octobre 2026) : la garde AD (boucle locale + sans proxy + secret), les six routes de lecture, l'absence de fuite (2690) ; l'outil de pose du secret (2691).
 tests/test-2690.js
 tests/test-2691.js
+# ── OP Courrier dans le côté Pro d'OP MESSAGES (18 octobre 2026) : la rubrique, sur la bêta seulement, VIDE ; la source du service ; le service sert le module lui-même (2705).
+tests/test-2705.js

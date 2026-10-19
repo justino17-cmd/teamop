@@ -15,7 +15,7 @@ const { v, vrai, fin } = T.compteur();
 const GEN = require('../scripts/opmsg-public.js');
 const RACINE = path.join(__dirname, '..');
 
-const FICHIERS = ['apercu/opmessages/index.html', 'server-msg/public/api.js', 'server-msg/public/source-serveur.js', 'server-msg/public/sw.js', 'server-msg/public/manifest.webmanifest',
+const FICHIERS = ['apercu/opmessages/index.html', 'opcourrier.js', 'server-msg/public/api.js', 'server-msg/public/source-serveur.js', 'server-msg/public/sw.js', 'server-msg/public/manifest.webmanifest',
   'icons/opmsg-192.png', 'icons/opmsg-512.png', 'icons/opmsg-apple-touch.png', 'icons/opmsg-favicon-32.png'];
 function copie() {
   const d = fs.mkdtempSync(path.join(os.tmpdir(), 'banc-941-'));
@@ -42,7 +42,7 @@ try { g = GEN.generer({}); } catch (e) {
   vrai('⛔ le générateur ACCEPTE les sources commitées (il les refuse : « ' + String(e && e.message || e).slice(0, 220) + ' »)', false);
   fin();   // (sort en 1 : un ✗ est compté)
 }
-v('population : le générateur produit six fichiers (la page, son script, quatre icônes) — le service worker et le manifeste sont des SOURCES lues, pas des sorties', Object.keys(g.fichiers).sort(), ['index.html', 'opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png', 'opmsg-ui.js']);
+v('population : le générateur produit sept fichiers (la page, son script, le module de messagerie, quatre icônes) — le service worker et le manifeste sont des SOURCES lues, pas des sorties', Object.keys(g.fichiers).sort(), ['index.html', 'opcourrier.js', 'opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png', 'opmsg-ui.js']);
 v('⛔ server-msg/public/ est À JOUR (octet pour octet) : personne n\'a retouché la page servie à la main, l\'aperçu n\'a pas changé sans régénération', GEN.ecarts(g), []);
 vrai('population : l\'ensemble servi lit plus de 30 méthodes de la source et appelle plus de 15 routes /api/ (' + g.rapport.methodes + ', ' + g.rapport.routes + ')', g.rapport.methodes >= 30 && g.rapport.routes >= 15);
 
@@ -98,6 +98,31 @@ refuse('l\'ensemble servi n\'appelle plus le service (aucune route /api/)', 'ser
   } finally { fs.rmSync(d, { recursive: true, force: true }); }
 }
 refuse('l\'interface change de forme : le commentaire de politique a disparu', 'apercu/opmessages/index.html', s => s.replace('<!-- ⛔ AUCUN APPEL RÉSEAU', '<!-- ⛔ AUTRE CHOSE'), /UNE cible|commentaire/);
+
+console.log('\nLe module de messagerie (OP Courrier) : copié tel quel, et refusé s\'il sortait de la page (chacun joué sur une copie mutée)');
+{
+  const copieOc = fs.readFileSync(path.join(RACINE, 'opcourrier.js'));
+  v('⛔ la sortie porte opcourrier.js OCTET POUR OCTET (jamais une seconde version du module)', g.fichiers['opcourrier.js'].equals(copieOc), true);
+  const d = copie();
+  try {
+    fs.appendFileSync(path.join(d, 'opcourrier.js'), '\n/* retouche */\n');
+    v('⛔ l\'empreinte de la version (« Mettre à jour ») change quand le MODULE change — une page ouverte saura qu\'il est périmé', GEN.generer({ racine: d }).empreinte !== g.empreinte, true);
+  } finally { fs.rmSync(d, { recursive: true, force: true }); }
+}
+refuse('opcourrier.js appelle le réseau (`fetch(`)', 'opcourrier.js', s => s + "\nfetch('/api/x');\n", /appelle le réseau/);
+refuse('opcourrier.js ouvre un WebSocket', 'opcourrier.js', s => s + "\nnew WebSocket('wss://x');\n", /appelle le réseau/);
+refuse('opcourrier.js référence une adresse d\'un autre domaine', 'opcourrier.js', s => s + "\nvar a = 'https://evil.example/collecte';\n", /autre domaine/);
+refuse('opcourrier.js porte de la source de DÉMONSTRATION', 'opcourrier.js', s => s + "\nvar d = 'Camille Roux';\n", /DÉMONSTRATION/);
+refuse('opcourrier.js a changé de forme (plus de OPCourrier.monter)', 'opcourrier.js', s => s.replace('window.OPCourrier = {', 'window.Autre = {'), /a changé de forme/);
+{
+  const d = copie();
+  try {
+    fs.rmSync(path.join(d, 'opcourrier.js'));
+    let msg = null;
+    try { GEN.generer({ racine: d }); } catch (e) { msg = e instanceof GEN.ErreurGenerateur ? e.message : 'AUTRE ERREUR : ' + (e && e.stack || e); }
+    vrai('⛔ le module manque au dépôt → le générateur REFUSE (« ' + String(msg).slice(0, 70) + ' »)', msg !== null && /introuvable/.test(msg) && /opcourrier/.test(msg));
+  } finally { fs.rmSync(d, { recursive: true, force: true }); }
+}
 
 console.log('\nLe service worker et le manifeste : le générateur REFUSE ceux qui mentiraient (chacun joué sur une copie mutée)');
 const SW = 'server-msg/public/sw.js', MAN = 'server-msg/public/manifest.webmanifest';
