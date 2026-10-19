@@ -112,7 +112,10 @@ console.log('\n3. Pas de réseau, un stockage, un titre qu\'on ne touche pas san
 v('⛔ le module ne sort JAMAIS du réseau : ni fetch, ni XHR, ni WebSocket, ni sendBeacon, ni worker, ni image distante, ni import', ['fetch(', 'XMLHttpRequest', 'WebSocket', 'EventSource', 'sendBeacon', 'importScripts', 'new Image', 'new Worker', 'import(', 'serviceWorker'].filter(x => CODE.includes(x)), []);
 const hotes = new Set(Array.from(CODE.matchAll(/https?:\/\/([a-z0-9.-]+)/gi)).map(m => m[1].toLowerCase()));
 v('les seules adresses du module : l\'espace de noms SVG (et les adresses d\'aide à la connexion, aucune)', Array.from(hotes).sort(), ['www.w3.org']);
-v('ni sessionStorage, ni indexedDB, ni cookie, ni document.write, ni eval', ['sessionStorage', 'indexedDB', 'document.cookie', 'document.write', 'eval('].filter(x => CODE.includes(x)), []);
+v('ni sessionStorage, ni cookie, ni document.write, ni eval', ['sessionStorage', 'document.cookie', 'document.write', 'eval('].filter(x => CODE.includes(x)), []);
+/* IndexedDB : UNE seule porte (`idbOuvrir`), une base nommée d'après la clé de l'hôte — c'est là que vit le fichier d'une pièce (aperçu d'un PDF avant d'envoyer) */
+{ const o = fonction(MOD, 'idbOuvrir'); vrai('(tranche trouvée) idbOuvrir', o.length > 100);
+  v('⛔ indexedDB n\'est touché que par `idbOuvrir` (ouverture, sur une base `<cleStockage>_fichiers` jamais une clé écrite en dur) et par le test de présence du balayage', [(CODE.match(/indexedDB/g) || []).length, (o.match(/indexedDB/g) || []).length, /indexedDB\.open\(LS\+"_fichiers",1\)/.test(o)], [3, 2, true]); }
 const persistance = tranche('la persistance (persist, restore, acctExists, validScope)', '  var restoredLost=0;', '  // ---------- Dates ----------');
 vrai('⛔ le stockage n\'est touché que DEUX fois dans tout le fichier : persist écrit, restore lit, chacun dans un try', (CODE.match(/localStorage/g) || []).length === 2 && /function persist\(\)\{ try\{[^]*?localStorage\.setItem\(LS,JSON\.stringify\(snap\)\);\s*\}catch\(e\)\{\}/.test(persistance) && /function restore\(\)\{ try\{\s*var raw=localStorage\.getItem\(LS\);[^]*?\}catch\(e\)\{\} \}/.test(persistance));
 vrai('la clé est celle de l\'hôte (options.cleStockage), « opcourrier » à défaut — jamais une clé écrite en dur', /var LS = String\(opt\.cleStockage \|\| "opcourrier"\)/.test(CODE) && !/["']elan[B]?_[a-z]/.test(CODE));
@@ -423,7 +426,7 @@ console.log('\n6 quater. Signature sans prestataire (« Prête — en attente de
   vrai('…l\'état a son libellé et ne s\'expire jamais (expires 0, signState ne touche que pending / viewed)', /ready:"Prête — en attente de Yousign"/.test(CODE) && /\(g\.st==="pending"\|\|g\.st==="viewed"\)&&Date\.now\(\)>g\.expires/.test(CODE));
   const carte = fonction(MOD, 'signCardHtml'), act = fonction(MOD, 'signAct');
   vrai('…sa carte propose « Renvoyer » et « Annuler », dit « Pas encore envoyé » de chaque signataire, jamais « Relancer » ni « Simuler »', /st==="ready"\) acts='<button type="button" class="btn primary" data-act="signSend">Renvoyer<\/button><button type="button" class="btn danger" data-act="signDrop">Annuler<\/button>'/.test(carte) && /Pas encore envoyé/.test(carte));
-  vrai('⛔ « Renvoyer » ne prétend rien tant que la source ne sait pas signer, puis rouvre le formulaire REMPLI (et remplace la demande rangée) ; « Annuler » la retire', /signSend"\)\{[\s\S]*?if\(!CAP\.signature\)\{ toast\("Toujours en attente de Yousign — rien n’est parti\."\); return; \}[\s\S]*?remplace:m\.id/.test(act) && /signDrop"\)\{ removeMsg\(m\.id\)/.test(act) && /if\(pre\.remplace\) removeMsg\(pre\.remplace\)/.test(CODE));
+  vrai('⛔ « Renvoyer » ne prétend rien tant que la source ne sait pas signer, puis rouvre le formulaire REMPLI (et remplace la demande rangée) ; « Annuler » la retire', /signSend"\)\{[\s\S]*?if\(!CAP\.signature\)\{ toast\("Toujours en attente de Yousign — rien n’est parti\."\); return; \}[\s\S]*?remplace:m\.id/.test(act) && /signDrop"\)\{ removeMsg\(m\.id\)/.test(act) && /if\(pre\.remplace\) removeMsg\(pre\.remplace,true\)/.test(CODE));
   /* le tri par la source : la VRAIE refreshCls + classifyCtx, avec le VRAI moteur */
   const iM2 = MOD.indexOf('var OPClassify = (function () {'), jM2 = MOD.indexOf('\n})();', iM2) + '\n})();'.length;
   const RC = ['classifyCtx', 'refreshCls', 'emailOf', 'emailsIn'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 30); return f; }).join('\n');
@@ -521,6 +524,138 @@ console.log('\n6 septies. Dossiers de suivi : seulement si la source déclare le
   vrai('…inFolder les lit sur l\'état de suivi (jamais un dossier de la boîte) ; un dossier de suivi choisi puis retiré par la source revient à la réception', /if\(\/\^s_\/\.test\(fid\)\) return CAP\.suivi&&suiviDossier\(m,fid\)/.test(inf) && /state\.folder="inbox";   \/\/ la source ne déclare plus le suivi/.test(rs));
   vrai('⛔ la PASTILLE du menu de l\'hôte compte les non lus ET les demandes « À traiter » (chaque message une fois, seulement avec le suivi déclaré)', /\(!m\.read\|\|\(CAP\.suivi&&!!m\.suivi&&m\.suivi\.statut==="aTraiter"\)\)/.test(cpt));
   vrai('…et `moi` ne vient que de la source déclarée (capacites().moi), jamais d\'une valeur par défaut', /CAP\.moi=CAP\.suivi&&typeof c\.moi==="string"\?c\.moi\.trim\(\):""/.test(CODE));
+}
+
+/* ═════════════════════════════ 6 octies. LE SON DES NOUVEAUX MAILS ═════════════════════════════ */
+console.log('\n6 octies. Le son des nouveaux mails (Justin : « boîte ouverte ou autre, ça sonne quand même ; on peut l\'activer dans les paramètres »)');
+{
+  const U = fonction(MOD, 'sonUrl'), J = fonction(MOD, 'jouerSon');
+  vrai('(tranches trouvées) sonUrl, jouerSon', U.length > 40 && J.length > 200);
+  const bac = (o) => { const jour = []; const sb = { opt: o.opt || {}, SETTINGS: o.SETTINGS || { son: true }, navigator: o.nav || {}, jour,
+    Audio: function (u) { if (o.jette) throw new Error('refus'); jour.push('nouveau:' + u); this.play = () => { jour.push('play:' + (sb.navigator.audioSession ? sb.navigator.audioSession.type : '-')); return o.refuse ? Promise.reject(new Error('NotAllowedError')) : Promise.resolve(); }; } };
+    vm.createContext(sb); vm.runInContext('var audioNouveau=null;\n' + U + '\n' + J + '\n;this.jouer=jouerSon;this.url=sonUrl;', sb); return sb; };
+  let sb = bac({ nav: { audioSession: { type: 'auto' } } }); sb.jouer(); sb.jouer();
+  v('⛔ le son joue ; l\'Audio est créé UNE seule fois (sons/courrier.mp3 à défaut), rejoué à chaque appel', sb.jour.filter(x => x.startsWith('nouveau')).concat(sb.jour.filter(x => x.startsWith('play')).length), ['nouveau:sons/courrier.mp3', 2]);
+  v('⛔ iPhone : `audioSession.type = "ambient"` est posé AVANT de jouer — le son suit l\'interrupteur silencieux au lieu de jouer quand même', sb.jour.filter(x => x.startsWith('play')), ['play:ambient', 'play:ambient']);
+  sb = bac({ nav: {} }); sb.jouer(); v('…un navigateur sans `audioSession` joue quand même (l\'API est optionnelle)', sb.jour, ['nouveau:sons/courrier.mp3', 'play:-']);
+  sb = bac({ SETTINGS: { son: false } }); sb.jouer(); v('⛔ « Son des nouveaux mails » éteint : aucun son, aucun Audio créé', sb.jour, []);
+  sb = bac({ opt: { son: false } }); sb.jouer(); v('…l\'hôte qui dit `son: false` n\'en a pas', [sb.jour, sb.url()], [[], '']);
+  sb = bac({ opt: { son: 'courrier.mp3' } }); sb.jouer(); v('…l\'hôte choisit l\'adresse du fichier (OP MESSAGES : courrier.mp3, à côté de sa page)', sb.jour[0], 'nouveau:courrier.mp3');
+  sb = bac({ refuse: true }); let jete = false; try { sb.jouer(); } catch (e) { jete = true; } v('⛔ le navigateur refuse la lecture (aucun geste encore) : rien ne casse, le mail suivant réessaie', [jete, sb.jour.length], [false, 2]);
+  sb = bac({ jette: true }); jete = false; try { sb.jouer(); sb.jouer(); } catch (e) { jete = true; } v('…un Audio qui ne se construit pas ne casse rien non plus', jete, false);
+
+  /* finCharge : la VRAIE fonction, rejouée sur des relevés */
+  const FC = fonction(MOD, 'finCharge'); vrai('(tranche trouvée) finCharge', FC.length > 400);
+  const relever = (msgs, o) => { o = o || {}; const jour = []; const sb2 = { vivant: true, LOAD: { boites: 'ok' }, MESSAGES: msgs, acctExists: () => true, SAVED: { kinds: {}, names: {}, sigs: {}, logos: {} }, state: { scope: 'pro' }, COTES: ['pro'], validScope: () => true,
+    refreshCls() {}, empreinte: () => 'x', renderAll() {}, persist() {}, compter() {}, Object, SETTINGS: o.SETTINGS || { notif: true, son: true },
+    jouerSon() { jour.push('son'); }, notifierArrivee(n) { jour.push('notif:' + n.length); return !!o.systeme; } };
+    vm.createContext(sb2); vm.runInContext(FC + '\n;this.f=finCharge;', sb2); sb2.f('', true); return jour; };
+  const mm = (id, o) => Object.assign({ id, folder: 'inbox', read: false, neuf: true }, o);
+  v('⛔ un NOUVEAU mail non lu : un son et l\'alerte', relever([mm('a')]), ['notif:1', 'son']);
+  v('⛔ un lot de cinq mails : UN SEUL son (et une seule alerte)', relever([mm('a'), mm('b'), mm('c'), mm('d'), mm('e')]), ['notif:5', 'son']);
+  v('⛔ rien de nouveau (le premier chargement ne marque aucun `neuf`) : silence', relever([mm('a', { neuf: false }), mm('b', { neuf: undefined })]), []);
+  v('⛔ un indésirable (rangé par le tri), un message lu, un ancien, un envoi : silence', relever([mm('a', { folder: 'junk' }), mm('b', { read: true }), mm('c', { ancien: true }), mm('d', { folder: 'sent' })]), []);
+  v('⛔ le son ne dépend PAS de la boîte ouverte ni du dossier affiché : un mail d\'une autre boîte, pendant qu\'on lit les Envoyés', (() => { const l = [mm('a', { acct: 'autre' })]; return relever(l); })(), ['notif:1', 'son']);
+  v('⛔ les notifications éteintes : le son sonne quand même (deux réglages à part)', relever([mm('a')], { SETTINGS: { notif: false, son: true } }), ['son']);
+  v('⛔ page cachée + notification du SYSTÈME envoyée : c\'est le système qui sonne — la page ne double PAS', relever([mm('a')], { systeme: true }), ['notif:1']);
+  /* la notification elle-même */
+  const NA = fonction(MOD, 'notifierArrivee'); vrai('(tranche trouvée) notifierArrivee', NA.length > 300);
+  const notif = (hidden, perm, son) => { const faits = []; const sb3 = { msgById: () => ({}), closeOverlay() {}, app: { classList: { contains: () => false } }, closeDrawer() {}, inScope: () => true, state: {}, renderAll() {}, selectMessage() {}, toast() {}, senderName: () => 'Claire', window: { focus() {} },
+    document: { hidden }, SETTINGS: { son }, Notification: Object.assign(function (t, o) { faits.push(o); this.close = () => {}; }, { permission: perm }), open() {} };
+    sb3.window.Notification = sb3.Notification; vm.createContext(sb3); vm.runInContext(NA + '\n;this.f=notifierArrivee;', sb3);
+    const r = sb3.f([{ id: 'a', subject: 'Objet', preview: 'Aperçu' }]); return { r, faits }; };
+  let n1 = notif(true, 'granted', true); v('⛔ page cachée + permission : notification du système (sa sonnerie, celle de l\'appareil), rend VRAI', [n1.r, n1.faits.length, n1.faits[0] && n1.faits[0].silent], [true, 1, false]);
+  n1 = notif(true, 'granted', false); v('…« Son des nouveaux mails » éteint : la notification du système se tait aussi (`silent`)', [n1.r, n1.faits[0].silent], [true, true]);
+  n1 = notif(false, 'granted', true); v('⛔ page visible : pas de notification du système, rend FAUX (c\'est le son de la page qui joue)', [n1.r, n1.faits.length], [false, 0]);
+  n1 = notif(true, 'denied', true); v('…permission refusée : FAUX aussi, le son de la page joue', [n1.r, n1.faits.length], [false, 0]);
+  /* les réglages */
+  vrai('⛔ « Son des nouveaux mails » est un réglage rangé (SETTINGS.son, activé par défaut, relu par restore) à côté de « Notifications »', /var SETTINGS=\{notif:true,son:true,threads:true\}/.test(CODE) && /SETTINGS\.son=snap\.settings\.son!==false/.test(CODE) && /id="stSon"/.test(CODE) && CODE.indexOf('id="stNotif"') < CODE.indexOf('id="stSon"') && CODE.indexOf('id="stSon"') < CODE.indexOf('id="stThreads"'));
+  vrai('…et il DIT qu\'il suit le mode silencieux de l\'appareil', /Suit le mode silencieux de l’appareil/.test(CODE));
+  vrai('…le volume est celui de l\'appareil : aucun réglage de volume dans le module', !/\.volume\s*=/.test(CODE));
+  vrai('(contre-épreuve) le son ne s\'appelle QUE depuis finCharge et le réglage (essai) — pas depuis un rendu', (CODE.match(/jouerSon\(\)/g) || []).length === 3 /* finCharge, essai du réglage, définition */);
+  vrai('le fichier du son existe dans le dépôt, il est servi (dossier sons/) et copié pour OP MESSAGES', fs.existsSync(path.join(RACINE, 'sons', 'courrier.mp3')) && fs.statSync(path.join(RACINE, 'sons', 'courrier.mp3')).size > 5000 && /const SON = 'courrier\.mp3'/.test(lire('scripts/opmsg-public.js')) && /son: 'courrier\.mp3'/.test(lire('apercu/opmessages/index.html')));
+  vrai('⛔ la politique d\'OP MESSAGES autorise le cadre `blob:` (la visionneuse de PDF) et rien d\'externe', (() => { const l = lire('scripts/opmsg-public.js').split('\n').find(x => x.startsWith('const CSP_SERVICE')) || ''; return /frame-src blob:;/.test(l) && !/https?:/.test(l); })());
+  vrai('…les hôtes sans politique (Tour, beta.html, app.html) ne bloquent aucun cadre `blob:` — ou la portent', ['tour.html', 'beta.html', 'app.html'].every(f => { const m = lire(f).match(/<meta[^>]+Content-Security-Policy[^>]*>/i); return !m || /frame-src[^;]*blob:/.test(m[0]); }));
+}
+
+/* ═════════════════════════════ 6 nonies. L'APERÇU DU PDF AVANT D'ENVOYER ═════════════════════════════ */
+console.log('\n6 nonies. Le fichier est gardé sur l\'appareil, l\'aperçu l\'ouvre (signature, message en rédaction)');
+{
+  /* un IndexedDB en mémoire, juste assez pour jouer les VRAIES fonctions du module */
+  const bases = {};
+  const fauxIDB = { open(nom) { const rq = {}; setTimeout(() => { const data = bases[nom] || (bases[nom] = new Map());
+    rq.result = { close() {}, createObjectStore() {}, transaction() { const tx = {}; tx.objectStore = () => ({ put(vv, k) { data.set(k, vv); return {}; }, get(k) { return { result: data.get(k) }; }, delete(k) { data.delete(k); return {}; }, getAllKeys() { return { result: Array.from(data.keys()) }; } });
+      setTimeout(() => tx.oncomplete && tx.oncomplete(), 0); return tx; } };
+    if (rq.onupgradeneeded) rq.onupgradeneeded(); if (rq.onsuccess) rq.onsuccess(); }, 0); return rq; } };
+  const NOMS = ['idbOuvrir', 'idbFaire', 'fidNeuf', 'fichierPoser', 'fichierLire', 'fidsDe', 'fichiersEffacer', 'fichiersDe', 'fichiersBalayer', 'removeMsg', 'apercuPiece', 'estPDF'];
+  const F = NOMS.map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 40); return f; }).join('\n');
+  const toasts = [], vus = [];
+  const bac = (msgs) => { const sb = { LS: 'cle-test', window: { indexedDB: fauxIDB }, indexedDB: fauxIDB, Blob, Error, Promise, Date, Math, MESSAGES: msgs, vivant: true, toast: (t) => toasts.push(t), apercuPDF: (b, nom) => vus.push([b.size, nom]), setTimeout };
+    vm.createContext(sb); vm.runInContext('var idbP=null;\n' + F + '\n;this.api={idbOuvrir,fichierPoser,fichierLire,fichiersDe,fichiersBalayer,removeMsg,apercuPiece,estPDF,fidsDe};', sb); return sb; };
+  const dormir2 = (ms) => new Promise(r => setTimeout(r, ms));
+  {
+    const msgs = [{ id: 'm1', att: [{ name: 'a.pdf', fid: 'F1' }] }, { id: 'm2', att: [{ name: 'b.pdf', fid: 'F2' }, { name: 'c.pdf', fid: 'F1' }] }, { id: 'm3', att: [{ name: 'd.pdf', fid: 'F3' }], sign: { st: 'cancelled' } }, { id: 'm4', att: [{ name: 'img.png' }] }];
+    const sb = bac(msgs), api = sb.api;
+    for (const k of ['F1', 'F2', 'F3', 'F4']) await api.fichierPoser(k, new Blob(['%PDF-1.4 ' + k]));
+    const lu = await api.fichierLire('F1');
+    vrai('⛔ un fichier posé se relit tel quel (Blob PDF, sa taille)', lu && lu.size === 11 && lu.type === 'application/pdf', lu && lu.size);
+    v('fidsDe : les clés d\'un message, sans doublon ni pièce sans fichier', [api.fidsDe(msgs[1]), api.fidsDe(msgs[3])], [['F2', 'F1'], []]);
+    v('⛔ fichiersDe : les fichiers d\'une demande, SAUF ceux qu\'une autre pièce désigne encore (F1 est aussi dans m1)', api.fichiersDe(msgs[1]), ['F2']);
+    api.fichiersBalayer(); await dormir2(40);
+    v('⛔ le balayage du démarrage efface ce qu\'AUCUNE pièce ne désigne (F4) et ce qu\'une demande ANNULÉE désigne (F3) ; garde F1 et F2', [await api.fichierLire('F1') !== undefined, await api.fichierLire('F2') !== undefined, await api.fichierLire('F3') === undefined, await api.fichierLire('F4') === undefined], [true, true, true, true]);
+    api.removeMsg('m2'); await dormir2(40);
+    v('⛔ retirer une demande efface SES fichiers (F2), jamais celui qu\'une autre demande garde (F1)', [await api.fichierLire('F2') === undefined, await api.fichierLire('F1') !== undefined], [true, true]);
+    api.removeMsg('m1', true); await dormir2(40);
+    vrai('⛔ …`removeMsg(id, true)` (la demande rouverte et renvoyée reprend ses pièces) NE touche à aucun fichier', await api.fichierLire('F1') !== undefined);
+    api.apercuPiece({ name: 'neuf.pdf', file: new Blob(['%PDF-1.4 12345']) }); v('aperçu : le fichier qu\'on vient de choisir s\'ouvre tel quel (en mémoire)', vus.pop(), [14, 'neuf.pdf']);
+    api.apercuPiece({ name: 'a.pdf', fid: 'F1' }); await dormir2(40); v('⛔ aperçu : le fichier GARDÉ sur l\'appareil s\'ouvre (relu d\'IndexedDB)', vus.pop(), [11, 'a.pdf']);
+    toasts.length = 0; api.apercuPiece({ name: 'x.pdf' }); v('⛔ aperçu : une pièce SANS fichier le dit', toasts, ['Fichier non conservé sur cet appareil']);
+    toasts.length = 0; api.apercuPiece({ name: 'x.pdf', fid: 'F-disparu' }); await dormir2(40); v('⛔ aperçu : un fichier DISPARU (effacé, rangement purgé) le dit aussi — jamais une visionneuse vide', [toasts, vus.length], [['Fichier non conservé sur cet appareil'], 0]);
+    v('estPDF : par le nom ou le type du fichier choisi, jamais une image', [api.estPDF({ name: 'a.PDF', kind: 'doc' }), api.estPDF({ name: 'scan', kind: 'doc', file: { type: 'application/pdf' } }), api.estPDF({ name: 'a.pdf', kind: 'img' }), api.estPDF({ name: 'a.docx', kind: 'doc' })], [true, true, false, false]);
+    const sbErr = bac([]); sbErr.window = {}; sbErr.indexedDB = undefined; let r = 'rien';
+    await sbErr.api.fichierLire('F1').then(() => { r = 'a répondu'; }, () => { r = 'refus dit'; }); v('⛔ sans IndexedDB (navigation privée) : un REFUS, jamais un fichier vide pris pour une réponse', r, 'refus dit');
+
+    /* la visionneuse et les câblages — le rendu, lui, est gardé par la sonde du navigateur */
+    const AP = fonction(MOD, 'apercuPDF'); vrai('(tranche trouvée) apercuPDF', AP.length > 800);
+    vrai('⛔ le PDF s\'affiche dans un cadre dont l\'adresse est un `blob:` fabriqué ici (type FORCÉ à application/pdf : jamais lu comme une page), aucune origine externe — et SANS `sandbox` : Chromium refuse d\'y afficher un PDF (mesuré, « blocked by Chromium »)', !/sandbox/.test(CODE.replace(/\/\/[^\n]*/g, '')) && /URL\.createObjectURL\(new Blob\(\[blob\],\{type:"application\/pdf"\}\)\)/.test(AP) && !/https?:/.test(AP));
+    vrai('…Fermer (bouton et Échap) et Télécharger ; l\'adresse est RÉVOQUÉE à la fermeture ; sur un appareil qui n\'affiche pas les PDF dans une page, le repli est « Télécharger »', /data-pv="close"/.test(AP) && /data-pv="dl"/.test(AP) && /e\.key==="Escape"/.test(AP) && /navigator\.pdfViewerEnabled!==false/.test(AP) && /pdfv-repli/.test(AP) && /revokeObjectURL/.test(fonction(MOD, 'fermerApercu')));
+    vrai('⛔ fermer une feuille ferme la visionneuse (closeOverlay), et le démontage aussi', /function closeOverlay\(\)\{\s*fermerApercu\(\);/.test(CODE) && /finis\.push\(fermerApercu\)/.test(CODE));
+    vrai('⛔ la fenêtre « Envoyer pour signature » : un bouton Aperçu sur chaque PDF, le fichier est GARDÉ à l\'envoi (les deux branches), borné à la limite d\'un message', /data-dpv/.test(CODE) && (CODE.match(/att:docsGardes\(\)/g) || []).length === 2 && /tot\+f\.size>CAP\.pj\.octets/.test(CODE) && /fichierPoser\(fid,d\.file\)/.test(CODE));
+    vrai('…la pièce n\'emporte que sa clé `fid` (jamais le fichier : il irait dans localStorage et dans la synchro)', /var o=\{name:d\.name,size:d\.size,kind:"doc"\}; if\(fid\) o\.fid=fid;/.test(CODE));
+    vrai('…la demande ANNULÉE efface ses fichiers, la demande retirée aussi ; au démarrage, ce qu\'aucune pièce ne désigne s\'efface', /act==="signCancel"\)\{ g\.st="cancelled"; fichiersEffacer\(fichiersDe\(m\)\);/.test(CODE) && /restore\(\);\s*fichiersBalayer\(\);/.test(CODE));
+    vrai('…la demande dans le dossier Signatures (la lecture) propose Aperçu sur ses PDF, et un message en rédaction aussi (data-pv-c)', /m\.sign&&estPDF\(a\)\?boutonApercu\(i,"data-pv-att"\)/.test(CODE) && /estPDF\(a\)\?boutonApercu\(i,"data-pv-c"\)/.test(CODE));
+    vrai('…la limite tactile : le bouton Aperçu fait 44 px sur écran tactile', /@media \(pointer:coarse\)\{ \.opc \.att \.att-pv\{min-height:44px/.test(CSS));
+  }
+}
+
+/* ═════════════════════════════ 6 decies. DÉSARCHIVER ═════════════════════════════ */
+console.log('\n6 decies. Remettre dans la Réception (Archive, Indésirables, Corbeille)');
+{
+  const PR = fonction(MOD, 'peutRemettre'); vrai('(tranche trouvée) peutRemettre', PR.length > 60);
+  const sb = {}; vm.createContext(sb); vm.runInContext(PR + '\n;this.p=peutRemettre;', sb);
+  const mm = (folder, o) => Object.assign({ folder, from: { email: 'a@x.fr' } }, o);
+  v('⛔ peutRemettre : un message REÇU dans Archive, Indésirables ou Corbeille — ni la Réception, ni les Envoyés, ni un message écrit ici, ni le journal', [sb.p(mm('archive')), sb.p(mm('junk')), sb.p(mm('trash')), sb.p(mm('inbox')), sb.p(mm('sent')), sb.p(mm('archive', { from: null })), sb.p(mm('archive', { jr: true })), sb.p(null)], [true, true, true, false, false, false, false, false]);
+  /* doAct */
+  const DA = fonction(MOD, 'doAct'); vrai('(tranche trouvée) doAct', DA.length > 500);
+  const jour = []; const M = { a: mm('archive', { id: 'a' }), j: mm('junk', { id: 'j' }), i: mm('inbox', { id: 'i' }) };
+  const sb2 = { msgById: (id) => M[id], state: { selected: null }, peutRemettre: sb.p, moveTo: (m, f, l) => jour.push(['move', m.id, f, l]), markNotJunk: (m) => jour.push(['notJunk', m.id]) };
+  vm.createContext(sb2); vm.runInContext(DA + '\n;this.d=doAct;', sb2);
+  sb2.d('toInbox', 'a'); sb2.d('toInbox', 'j'); sb2.d('toInbox', 'i');
+  v('⛔ doAct(toInbox) : Archive/Corbeille → la Réception ; Indésirables → « pas un indésirable » (l\'expéditeur est mémorisé) ; un message déjà en Réception ne bouge pas', jour, [['move', 'a', 'inbox', 'Remis dans la réception'], ['notJunk', 'j']]);
+  /* moveTo : « Annuler » le défait */
+  const MT = fonction(MOD, 'moveTo'); vrai('(tranche trouvée) moveTo', MT.length > 300);
+  const toasts = []; const m1 = mm('archive', { id: 'm1', uj: false, aj: false });
+  const sb3 = { listIndex: () => 0, state: { selected: 'm1' }, backToListMobile() {}, renderAll() {}, persist() {}, refocus() {}, refreshCls() {}, msgById: () => m1, toast: (t, a) => toasts.push([t, a]) };
+  vm.createContext(sb3); vm.runInContext(MT + '\n;this.mv=moveTo;', sb3);
+  sb3.mv(m1, 'inbox', 'Remis dans la réception');
+  v('⛔ remettre dans la Réception : le message est en Réception, marqué rangé par la personne (le tri ne le rejette pas), et un « Annuler » est proposé', [m1.folder, m1.uj, toasts[0][0], toasts[0][1].label], ['inbox', true, 'Remis dans la réception', 'Annuler']);
+  toasts[0][1].onAct(); v('⛔ « Annuler » le remet là où il était (Archive) et le dit', [m1.folder, m1.uj, toasts[1][0]], ['archive', false, 'Annulé']);
+  sb3.mv(m1, 'archive', 'Message archivé'); toasts[2][1].onAct(); v('⛔ « Annuler » après un ARCHIVAGE le défait aussi (retour en Réception)', m1.folder, 'archive');
+  /* les câblages */
+  const MA = fonction(MOD, 'multiAct');
+  vrai('⛔ la barre de sélection multiple propose « Remettre dans la Réception » dans Archive, Indésirables et Corbeille (et Archiver ailleurs) ; l\'action ne déplace que des messages reçus', /state\.folder==="archive"\|\|state\.folder==="junk"\|\|inTrash\?b\("toInbox",I\.inbox,REMETTRE\):b\("archive",I\.archive,"Archiver"\)/.test(CODE) && /if\(act==="toInbox"\) sel=sel\.filter\(peutRemettre\)/.test(MA) && /act==="toInbox"\?"inbox"/.test(MA));
+  vrai('⛔ le bouton de la barre de lecture (Mac, tactile, outils), la ligne au survol et le clic droit passent par peutRemettre', (CODE.match(/peutRemettre\(m\)/g) || []).length >= 7 && /id:"toInbox",label:REMETTRE,icon:I\.inbox/.test(CODE) && /data-q="toInbox"/.test(CODE) && /data-act="toInbox"/.test(CODE));
+  vrai('…le libellé est « Remettre dans la Réception » et l\'icône celle de la boîte de réception', /var REMETTRE="Remettre dans la Réception"/.test(CODE));
 }
 
 /* ═════════════════════════════ 7. LE SITE ET LES SONDES ═════════════════════════════ */

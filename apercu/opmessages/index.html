@@ -9470,7 +9470,7 @@ a.menu-action { text-decoration: none; }
     const zone = $('courrier-zone'); courrierDemonter(); courrierAjuster();
     courrierCharger().then(() => {
       if (!zone.isConnected || !etat.route || etat.route.vue !== 'courrier') return;
-      COUR.inst = window.OPCourrier.monter(zone, { source: source.courrierSource(), cotes: ['pro'], cote: 'pro', cleStockage: 'opmsg_courrier', titre: 'OP Courrier', titreDocument: false });      // jour / nuit : sans réglage de l'hôte, le module suit l'appareil — comme cette page (aucun prefers-color-scheme en JavaScript ici)
+      COUR.inst = window.OPCourrier.monter(zone, { source: source.courrierSource(), cotes: ['pro'], cote: 'pro', cleStockage: 'opmsg_courrier', titre: 'OP Courrier', son: 'courrier.mp3', titreDocument: false });      // jour / nuit : sans réglage de l'hôte, le module suit l'appareil — comme cette page (aucun prefers-color-scheme en JavaScript ici)
       courrierAjuster();
     }, () => { if (zone.isConnected) zone.innerHTML = '<p class="info-erreur" role="alert">Le module de messagerie n\'a pas pu être chargé. <button type="button" class="mini" id="courrier-reessayer">Réessayer</button></p>'; const b = $('courrier-reessayer'); if (b) b.addEventListener('click', () => entrerCourrier()); });
   }

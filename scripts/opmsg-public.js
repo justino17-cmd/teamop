@@ -45,11 +45,15 @@ const MARQUES_DEMO = ['simulerRecu', 'creerSourceApercu', 'OPMSG_creerSourceAper
 /* ⛔ `img-src … data:` (18 octobre 2026, OP Courrier) : le module de messagerie dessine deux petites icônes en `data:image/svg+xml` dans sa feuille de style (la croix du champ de recherche, le chevron des menus) ; la politique REFUSAIT
    ces images (`img-src 'self' blob:`) alors que l'EN-TÊTE que le service pose sur la page (`app.js`, `CSP_PAGE`) les permet déjà depuis toujours. La copie de la page rejoint l'en-tête : une image `data:` ne s'exécute pas, et `default-src 'none'`
    garde tout le reste fermé. */
+/* ⛔ `frame-src blob:` (19 octobre 2026, OP Courrier) : la visionneuse de PDF du module montre le document dans un cadre isolé (`sandbox` vide) dont l'adresse est un `blob:` fabriqué ici même — sans cette ligne,
+   `default-src 'none'` le refuse. Aucune origine externe. ⚠️ L'EN-TÊTE que le service pose (`server-msg/app.js`, `CSP_PAGE`) doit la porter aussi : un navigateur applique les DEUX politiques. */
 /* ⛔ `connect-src 'self' wss:` : la page se relie AUSSI au serveur de visio (LiveKit, `server-msg/visio.js`), en WebSocket sur l'adresse de l'instance (`wss://` + son domaine, chemin `/rtc`, par le nginx
    du service). « 'self' » la couvre déjà dans les navigateurs qui suivent CSP 3 (une origine https accepte le wss du même hôte), pas dans tous : `wss:` ne s'ajoute que pour eux. Cette méta n'est qu'une
    copie de défense : l'EN-TÊTE que le service pose sur la page (`app.js`) nomme l'adresse EXACTE (`appels.visio.url`), et un navigateur applique les DEUX politiques — la connexion permise est celle que les
    deux permettent : le service lui-même et la visio, rien d'autre. Ni `https:` ni `*` : la lecture de `/rtc/validate` (quand la liaison échoue) est sur l'origine du service, donc dans « 'self' ». */
-const CSP_SERVICE = "default-src 'none'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'self'";
+const CSP_SERVICE = "default-src 'none'; img-src 'self' blob: data:; media-src 'self' blob:; frame-src blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'self'";
+/* le son des nouveaux mails d'OP Courrier : `sons/courrier.mp3` du dépôt, copié tel quel à la racine du dossier public (l'hôte passe `son: 'courrier.mp3'`) */
+const SON = 'courrier.mp3';
 const ICONES = ['opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png'];
 /* ce que la page déclare pour être installable (et recevoir des notifications sur iPhone) : posé juste après son icône d'onglet */
 const LIGNE_ICONE = '<link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">';
@@ -180,6 +184,7 @@ function generer(o) {
   const uiServi = ui.replace(PLACE, () => "const OPMSG_BUILD = '" + empreinte + "';").replace(PLACE_V, () => 'const OPMSG_VERSION = ' + numero + ';');
   const fichiers = { 'index.html': Buffer.from(html, 'utf8'), 'opmsg-ui.js': Buffer.from(uiServi, 'utf8'), 'opcourrier.js': Buffer.from(courrier, 'utf8') };
   for (const i of ICONES) fichiers[i] = lire(racine, 'icons', i);
+  fichiers[SON] = lire(racine, 'sons', 'courrier.mp3');   // le son des nouveaux mails du module (même origine, aucune ressource externe)
   return { fichiers, empreinte, numero, rapport: { methodes: appelees.length, routes: routes.size, octets: Object.values(fichiers).reduce((a, b) => a + b.length, 0) }, racine, dossier: path.join(racine, pub) };
 }
 
@@ -197,7 +202,7 @@ function ecarts(g) {
   return diff;
 }
 
-module.exports = { generer, ecrire, ecarts, ErreurGenerateur, OBLIGATOIRES, MARQUES_DEMO, CSP_SERVICE, ICONES, LIGNE_ICONE, LIGNES_PWA };
+module.exports = { generer, ecrire, ecarts, ErreurGenerateur, OBLIGATOIRES, MARQUES_DEMO, CSP_SERVICE, ICONES, SON, LIGNE_ICONE, LIGNES_PWA };
 
 if (require.main === module) {
   try {
