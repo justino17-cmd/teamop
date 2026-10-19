@@ -31490,7 +31490,7 @@ function courrierVue(){
   },()=>{ if(zone.isConnected) zone.innerHTML='<div class="card"><div class="card-head"><h3>Boîte mail indisponible</h3></div><p style="color:var(--t2);font-size:13px;line-height:1.6">Le module de messagerie n’a pas pu être chargé.</p><button class="btn" onclick="views.boiteMail()">Réessayer</button></div>'; });
 }
 views.boiteMail=function(){
-  if(BETA_ESSAI) return courrierVue();   // OP Courrier (bêta seulement) : voir le bloc juste au-dessus. En production : la vue d'avant, ci-dessous, inchangée.
+  return courrierVue();   // OP Courrier, bêta ET production depuis la v769 (Justin, 19 octobre 2026 : « la publication… gestion pour les mails »). La vue d'avant, ci-dessous, ne sert plus.
   setHeader('Boîte mail','',`<button class="btn ghost" onclick="mailBoxesManage()">📬 Boîtes</button> <button class="btn" onclick="mailCompose()">✏️ Écrire</button>`);
   const lus=_mailLus(); const supp=_mailSupp();
   const reps=_mailReplies||[];
