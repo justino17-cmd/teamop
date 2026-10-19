@@ -188,6 +188,9 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   v('Yousign revenu : le téléchargement récupère LUI-MÊME les pièces (200)', (await req('GET', '/api/signature/demandes/' + E.id + '/documents/1/signe', { token: T_A })).s, 200);
 
   console.log('\n── 6. Un second compte ne voit rien ──');
+  r = await req('GET', '/api/signature/demandes', { token: T_A });
+  vrai('⛔ la liste du premier compte N\'EST PAS vide (node:sqlite rend les BLOB en Uint8Array : sans Buffer.from, chaque fiche était « illisible » et la liste sortait vide — pris le 19 octobre 2026, par la Tour)', r.s === 200 && r.j.demandes.length >= 3 && r.j.demandes.every((d) => /^[0-9a-f]{24}$/.test(d.id) && d.titre && Array.isArray(d.signataires)));
+  vrai('…et elle contient la demande qu\'on vient de lire, avec son état', r.j.demandes.some((d) => d.id === E.id && d.etat === 'signe'));
   r = await req('GET', '/api/signature/demandes', { token: T_B });
   v('sa liste est vide (alors que le premier en a)', [r.s, r.j.demandes.length], [200, 0]);
   const reponses = [];

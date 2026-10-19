@@ -36,7 +36,7 @@ function ouvrirStockage({ data, scelle, horloge = Date.now }) {
   return {
     lire(id) { const r = q.lire.get(sain(id, ID)); return r ? scelle.ouvrirJSON(Buffer.from(r.corps), id) : null; },
     ecrire(rec) { q.ecrire.run(rec.id, rec.proprio, rec.ysId || null, rec.etat, rec.cree, rec.purge, scelle.scellerJSON(rec, rec.id)); },
-    lister(proprio) { return q.liste.all(proprio).map((r) => { try { return scelle.ouvrirJSON(r.corps, r.id); } catch (e) { return null; } }).filter(Boolean); },
+    lister(proprio) { return q.liste.all(proprio).map((r) => { try { return scelle.ouvrirJSON(Buffer.from(r.corps), r.id); } catch (e) { return null; } }).filter(Boolean); },
     idParYs: (ysId) => { const r = q.parYs.get(String(ysId)); return r ? r.id : null; },
     echues: (now) => q.echues.all(now).map((r) => r.id),
     signees: () => q.aRecuperer.all().map((r) => r.id),
