@@ -1,10 +1,10 @@
 (function () {
   'use strict';
   /* l'empreinte de CETTE version de l'interface : vide dans l'aperçu, posée par `scripts/opmsg-public.js` dans la version servie (voir « 7 ter. LA MISE À JOUR ») */
-  const OPMSG_BUILD = 'ee48a9979a2d';
+  const OPMSG_BUILD = 'dcd539e4e681';
   /* le NUMÉRO de cette version : 0 dans l'aperçu, posé par le générateur dans la version servie (+1 à chaque empreinte nouvelle). Il part avec chaque écriture
      (`X-OPM-Version`, lu par api.js) : sous le minimum que la Tour pose, le service refuse d'écrire et la page se met à jour d'elle-même (« 7 ter »). */
-  const OPMSG_VERSION = 243;
+  const OPMSG_VERSION = 248;
   try { window.OPMSG_VERSION_CLIENT = OPMSG_VERSION; } catch (e) { /* hors navigateur */ }
 
   /* ═══ 0. L'APPAREIL — ce qu'on sait de lui, posé UNE fois sur <html> (7 octobre 2026 : « adapte le comportement selon data-plat ») ═══════════════════
@@ -65,6 +65,8 @@
     appels:   { titre: 'Appels',    icone: 'i-phone', texte: 'L\'historique des appels, les appels audio et vidéo.' },
     /* avec l'agenda personnel (le service), l'onglet porte les deux : « Agenda » ; l'aperçu garde « Réunions » */
     reunions: { titre: CAP.agenda ? 'Agenda' : 'Réunions',  icone: CAP.agenda ? 'i-agenda' : 'i-video', texte: 'L\'agenda, la programmation, les invités et les rappels.' },
+    /* « côté pro » (18 octobre 2026) : OP COURRIER, la messagerie e-mail — le MÊME module que dans OP GESTION et dans la Tour. Une rubrique du côté Pro seulement, et sur la bêta seulement (`courrierOuvert`) */
+    courrier: { titre: 'Courrier', icone: 'i-courrier', texte: 'Tes e-mails : tes boîtes mail, lues et écrites ici.' },
     /* « Profil » (6 octobre 2026 : « je veux que les réglages soient dans le profil ») : la page s'ouvre sur MOI — photo, nom, identifiant — et les réglages sont rangés dessous,
        une ligne par rubrique, comme Réglages sur iPhone (la carte du compte en tête) ; la clé de la vue reste « reglages » (adresses, notifications, bancs) */
     reglages: { titre: 'Profil',  icone: 'i-personne',  texte: 'Ton profil, le compte, les notifications et la confidentialité.' }
@@ -317,7 +319,7 @@
   const modesActifs = () => !!(etat.pro && CAP.modes && typeof source.choisirMode === 'function');
   const coteDe = c => c && c.cote === 'pro' ? 'pro' : 'perso';
   const dansMode = c => !modesActifs() || coteDe(c) === etat.mode;
-  const navPour = () => ORDRE.filter(k => k !== 'reglages' && (k !== 'accueil' || !modesActifs() || etat.mode === 'pro'));
+  const navPour = () => ORDRE.filter(k => k !== 'reglages' && ((k !== 'accueil' && k !== 'courrier') || !modesActifs() || etat.mode === 'pro'));       // le tableau de bord et le Courrier ne sont que du côté Pro
   const segCote = cls => '<div class="seg cote-seg ' + cls + '" role="group" aria-label="Perso ou Pro" data-cote-seg hidden><span class="seg-knob" aria-hidden="true"></span>' +
     ['perso', 'pro'].map(k => '<button type="button" class="seg-bouton" data-cote="' + k + '" aria-pressed="false">' + NOM_COTE[k] + '<b class="cote-n" hidden></b></button>').join('') + '</div>';
   /* ⛔ CÔTÉ PERSO, « RÉUNION » DEVIENT « RENDEZ-VOUS » (13 octobre 2026 : « dans Perso, à la place de réunion tu mets rendez-vous, comme ça les personnes peuvent gérer leurs rendez-vous
@@ -378,7 +380,7 @@
     etat.mode = m; etat.vcCat = null; etat.selection = null; etat.listeArchives = false;      // « Contacts » rouvre sur la catégorie du côté (« Entreprise » en Pro) ; on ne range pas d'un côté à l'autre
     const c0 = etat.conv ? etat.conversations.find(x => x.id === etat.conv) : null;
     rendreListe();
-    if (etat.route && etat.route.vue === 'accueil' && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
+    if (etat.route && (etat.route.vue === 'accueil' || etat.route.vue === 'courrier') && m === 'perso') remplacer({ vue: 'messages', conv: null, feuille: false, photo: null, appel: null });
     else if (!depuisOuverture && c0 && coteDe(c0) !== m && etat.route && etat.route.vue === 'messages' && !etat.route.feuille) remplacer(Object.assign({}, etat.route, { conv: null }));   // la conversation ouverte est de l'autre côté : on la ferme (sauf quand c'est elle qu'on ouvre)
     if (etat.route && etat.route.vue === 'contacts') rendreVueContacts();
     if ($('vue-reunions') && $('vue-reunions').dataset.pret && reu.charge) rendreReunions();      // l'Agenda ne montre que le côté où l'on est
@@ -682,7 +684,9 @@
       document.title = VUES[r.vue].titre + suffixeTitre();
       if (r.vue === 'reglages' && CAP.reglages && prec && typeof chargerReglages === 'function') chargerReglages();
       if (r.vue === 'reunions' && CAP.reunions) entrerReunions();
+      if (prec && prec.vue === 'courrier') courrierDemonter();           // quitter le Courrier démonte le module (sa relève ne tourne pas dans le dos d'une autre vue)
       if (r.vue === 'accueil') entrerAccueil();
+      if (r.vue === 'courrier') entrerCourrier();
       if (r.vue === 'contacts' && CAP.identifiants) { rendreVueContacts(); chargerDemandes(); }
       if (r.vue === 'appels' && CAP.appels && prec) rafraichirAppels();       // ⛔ entrer dans Appels RELIT l'historique : un appel passé ou pris sur un autre appareil pendant qu'on était ailleurs y est déjà (relecture, T1)
       /* chaque vue garde SA position (comme une barre d'onglets d'iPhone) : la liste défilée, un tour par Appels, et elle est là où on l'a laissée.
@@ -6524,6 +6528,43 @@
     if (etat.route && etat.route.vue === 'accueil') rendreAccueil();
   }
   function entrerAccueil() { if (modesActifs() && etat.mode !== 'pro') changerMode('pro'); rendreAccueil(); chargerAccueil(); }
+  /* ═══ OP COURRIER — la messagerie e-mail, côté Pro (18 octobre 2026) ═══════════════════════════════════════════════════════
+     Demande du 18 octobre 2026 : l'ajouter au côté Pro d'OP MESSAGES, VIDE — les gens se connectent à leur mail. C'est le MÊME module que dans OP GESTION et dans la Tour
+     (`opcourrier.js`, servi par ce service lui-même : même origine, aucune ressource externe), monté dans la zone de cette rubrique. Cette page ne contient AUCUNE donnée : l'adaptateur de données
+     vient de la SOURCE (`source.courrierSource()`), comme tout le reste. Le module n'est chargé qu'à l'OUVERTURE de la rubrique. Jour et nuit : ceux de l'appareil, comme la page (le module les suit tout seul).
+     ⛔ OP MESSAGES n'est branché ni sur le serveur d'OP GESTION ni sur ses boîtes : l'adaptateur de ce service est VIDE, et « Ajouter une boîte mail » dit « Bientôt » (le serveur d'OP Courrier n'existe pas encore). */
+  let COUR = { ouvert: false, inst: null, chargement: null, veille: false, raf: 0 };
+  function courrierCharger() {
+    if (window.OPCourrier) return Promise.resolve();
+    if (COUR.chargement) return COUR.chargement;
+    COUR.chargement = new Promise((ok, ko) => { const sc = document.createElement('script'); sc.src = 'opcourrier.js?v=' + encodeURIComponent(OPMSG_BUILD || 'apercu'); sc.onload = () => ok(); sc.onerror = () => { COUR.chargement = null; ko(new Error('opcourrier.js')); }; document.head.appendChild(sc); });
+    return COUR.chargement;
+  }
+  /* le module remplit son conteneur : on lui donne ce qui reste de la fenêtre (où il commence, et ce qui reste SOUS lui — la barre d'onglets flottante du téléphone, la marge du bureau) */
+  function courrierAjuster() {
+    const z = $('courrier-zone'); if (!z || !etat.route || etat.route.vue !== 'courrier') return;
+    let haut = 0; for (let e = z; e; e = e.offsetParent) haut += e.offsetTop;
+    let bas = 0; for (let e = z; e; e = e.parentElement) { const c = getComputedStyle(e); bas += (parseFloat(c.marginBottom) || 0); if (e !== z) bas += (parseFloat(c.paddingBottom) || 0) + (parseFloat(c.borderBottomWidth) || 0); }
+    const h = Math.max(360, Math.floor(window.innerHeight - Math.round(haut) + Math.round(window.scrollY) - Math.ceil(bas)));
+    if (z.style.height !== h + 'px') z.style.height = h + 'px';
+  }
+  function courrierAjusterPlus() { if (COUR.raf || !etat.route || etat.route.vue !== 'courrier') return; COUR.raf = requestAnimationFrame(() => { COUR.raf = 0; courrierAjuster(); }); }
+  function courrierDemonter() { if (COUR.inst) { try { COUR.inst.demonter(); } catch (e) { /* déjà parti */ } COUR.inst = null; } }
+  function entrerCourrier() {
+    if (modesActifs() && etat.mode !== 'pro') changerMode('pro');
+    const sec = $('vue-courrier'); if (!sec || !COUR.ouvert) return;
+    if (!sec.dataset.pret) {
+      sec.innerHTML = '<div class="entete-vue"></div>' + pastilleMoi() + '<h1 class="grand-titre" id="titre-courrier">Courrier</h1><div class="courrier-zone" id="courrier-zone"></div>';
+      sec.dataset.pret = '1';
+    }
+    if (!COUR.veille) { COUR.veille = true; window.addEventListener('resize', courrierAjusterPlus); window.addEventListener('orientationchange', courrierAjusterPlus); if (typeof ResizeObserver === 'function') new ResizeObserver(courrierAjusterPlus).observe(document.body); }
+    const zone = $('courrier-zone'); courrierDemonter(); courrierAjuster();
+    courrierCharger().then(() => {
+      if (!zone.isConnected || !etat.route || etat.route.vue !== 'courrier') return;
+      COUR.inst = window.OPCourrier.monter(zone, { source: source.courrierSource(), cotes: ['pro'], cote: 'pro', cleStockage: 'opmsg_courrier', titre: 'OP Courrier', titreDocument: false });      // jour / nuit : sans réglage de l'hôte, le module suit l'appareil — comme cette page (aucun prefers-color-scheme en JavaScript ici)
+      courrierAjuster();
+    }, () => { if (zone.isConnected) zone.innerHTML = '<p class="info-erreur" role="alert">Le module de messagerie n\'a pas pu être chargé. <button type="button" class="mini" id="courrier-reessayer">Réessayer</button></p>'; const b = $('courrier-reessayer'); if (b) b.addEventListener('click', () => entrerCourrier()); });
+  }
   $('vue-accueil').addEventListener('click', e => {
     const fa = e.target.closest('[data-evt-fait]');
     if (fa) { cocherRappel(fa.dataset.evtFait); return; }
@@ -10020,6 +10061,8 @@
     const codeLien = CAP.liens ? lienDansAdresse() : null;       // lu AVANT que la route ne réécrive l'adresse
     const codeInvitation = CAP.espaces ? invitationDansAdresse() : null;
     const codeReunion = CAP.salles ? reunionDansAdresse() : null;
+    /* ⛔ OP COURRIER (18 octobre 2026) : la rubrique n'existe que si la source la connaît ET si le SERVICE dit qu'elle est ouverte (la bêta) — lu ici, avant tout, indépendamment du compte ; une lecture refusée : rien n'est proposé */
+    if (CAP.courrier && typeof source.courrierOuvert === 'function' && typeof source.courrierSource === 'function') { try { COUR.ouvert = (await source.courrierOuvert()) === true; } catch (e) { COUR.ouvert = false; } }
     /* ⛔ « CÔTÉ PRO » : qui fait partie d'un espace d'entreprise (ou a Messages Pro) reçoit le tableau de bord, en tête. Une lecture de plus au démarrage — refusée, l'application
        démarre sans lui (il reviendra au prochain lancement), jamais l'inverse. */
     if (CAP.agenda && CAP.espaces && CAP.appels && typeof source.espaces === 'function') {
@@ -10032,6 +10075,7 @@
           etat.mode = h.cote; etat.modeGesteLe = Date.now(); ecrireCote(h.cote, false);
           etat.horaireAnnonce = h.cote === 'pro' ? 'Heures de travail : OP MESSAGES PRO' : 'Fin des heures de travail : OP MESSAGES · Perso';
         }
+        if (COUR.ouvert) ORDRE.splice(ORDRE.indexOf('reunions') + 1, 0, 'courrier');   // côté Pro, à la suite de l'Agenda
         NAV = navPour();
       }
     }

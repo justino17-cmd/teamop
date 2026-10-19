@@ -9,6 +9,8 @@
  *      refusé et la page resterait blanche (relecture du gardien, remarque 6) — on adapte le générateur, pas la politique ;
  *   3. la politique de la page (`<meta http-equiv="Content-Security-Policy">`) : celle de l'aperçu interdit tout `fetch` (`default-src 'none'`,
  *      aucun `connect-src`) ; celle du service autorise `connect-src 'self'` et rien d'autre de plus, et ses images/médias ne sortent pas de la page.
+ * 4. OP COURRIER (18 octobre 2026) : le module de messagerie `opcourrier.js` (celui d'OP GESTION et de la Tour, à la racine du dépôt) est COPIÉ tel quel dans `public/` — le service le sert
+ *    lui-même, même origine, jamais d'une autre adresse. Il entre dans l'empreinte de la version, et le générateur le REFUSE s'il appelait un réseau ou une adresse d'un autre domaine.
  * Plus des retouches de forme : le logo et l'icône se lisent à côté de la page, le titre ne dit plus « aperçu », et la page déclare son MANIFESTE (`manifest.webmanifest`) et son
  * icône d'écran d'accueil — sur iPhone, une page n'a droit aux notifications que « ajoutée à l'écran d'accueil ».
  * Le service worker (`sw.js`) et le manifeste vivent à côté de `api.js` : ce sont des SOURCES que le générateur ne réécrit pas, mais qu'il REFUSE si elles mentent (voir 5e).
@@ -24,7 +26,7 @@
  *   · une des substitutions ne trouve pas exactement UNE cible (une interface qui change de forme ne passe pas en silence).
  * `tests/test-941.js` mute chacune de ces gardes sur une COPIE et exige que le générateur tombe.
  *
- * Usage :  node scripts/opmsg-public.js              écrit `server-msg/public/{index.html, opmsg-ui.js, opmsg-*.png}`
+ * Usage :  node scripts/opmsg-public.js              écrit `server-msg/public/{index.html, opmsg-ui.js, opcourrier.js, opmsg-*.png}`
  *          node scripts/opmsg-public.js --verifier   ne fait qu'une chose : dit si ce qui est commité est ce que le générateur produirait (code 1 sinon)
  * Aucune dépendance. Aucun appel réseau.
  */
@@ -40,15 +42,22 @@ const OBLIGATOIRES = ['moi', 'contacts', 'lister', 'ouvrir', 'envoyer', 'marquer
 const MARQUES_DEMO = ['simulerRecu', 'creerSourceApercu', 'OPMSG_creerSourceApercu', 'Camille Roux', 'Mathis Lambert', 'Inès Garnier', 'Hugo Perrin', 'Lina Fabre', 'Noé Carpentier', 'Équipe dépôt', 'Chantier Les Tilleuls'];
 /* `worker-src` et `manifest-src` sont DITS : le manifeste ne retombe que sur `default-src 'none'` (le navigateur refuserait de le lire, sans erreur visible), et le service worker
    retomberait sur `script-src` — une règle qu'on n'écrit pas est une règle qu'un resserrement futur retire sans le vouloir. Tous deux `'self'`. */
+/* ⛔ `img-src … data:` (18 octobre 2026, OP Courrier) : le module de messagerie dessine deux petites icônes en `data:image/svg+xml` dans sa feuille de style (la croix du champ de recherche, le chevron des menus) ; la politique REFUSAIT
+   ces images (`img-src 'self' blob:`) alors que l'EN-TÊTE que le service pose sur la page (`app.js`, `CSP_PAGE`) les permet déjà depuis toujours. La copie de la page rejoint l'en-tête : une image `data:` ne s'exécute pas, et `default-src 'none'`
+   garde tout le reste fermé. */
 /* ⛔ `connect-src 'self' wss:` : la page se relie AUSSI au serveur de visio (LiveKit, `server-msg/visio.js`), en WebSocket sur l'adresse de l'instance (`wss://` + son domaine, chemin `/rtc`, par le nginx
    du service). « 'self' » la couvre déjà dans les navigateurs qui suivent CSP 3 (une origine https accepte le wss du même hôte), pas dans tous : `wss:` ne s'ajoute que pour eux. Cette méta n'est qu'une
    copie de défense : l'EN-TÊTE que le service pose sur la page (`app.js`) nomme l'adresse EXACTE (`appels.visio.url`), et un navigateur applique les DEUX politiques — la connexion permise est celle que les
    deux permettent : le service lui-même et la visio, rien d'autre. Ni `https:` ni `*` : la lecture de `/rtc/validate` (quand la liaison échoue) est sur l'origine du service, donc dans « 'self' ». */
-const CSP_SERVICE = "default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'self'";
+const CSP_SERVICE = "default-src 'none'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'self'";
 const ICONES = ['opmsg-192.png', 'opmsg-512.png', 'opmsg-apple-touch.png', 'opmsg-favicon-32.png'];
 /* ce que la page déclare pour être installable (et recevoir des notifications sur iPhone) : posé juste après son icône d'onglet */
 const LIGNE_ICONE = '<link rel="icon" href="opmsg-favicon-32.png" type="image/png" sizes="32x32">';
 const LIGNES_PWA = '\n<link rel="manifest" href="manifest.webmanifest">\n<link rel="apple-touch-icon" href="opmsg-apple-touch.png">\n<meta name="mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-title" content="OP MESSAGES">';
+
+/* le module de messagerie : aucune écriture réseau, aucune adresse — le seul « http: » qu'il porte est l'espace de noms SVG de ses images en `data:` */
+const RESEAU_INTERDIT = /\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\bsendBeacon\b|\bimportScripts\b|\bimport\s*\(/;
+const ESPACE_SVG = 'http://www.w3.org/2000/svg';
 
 const lire = (racine, ...p) => { const f = path.join(racine, ...p); try { return fs.readFileSync(f); } catch (e) { return jette('fichier introuvable : ' + path.relative(racine, f)); } };
 const texte = (racine, ...p) => lire(racine, ...p).toString('utf8');
@@ -64,6 +73,7 @@ function generer(o) {
   const racine = path.resolve(o.racine || path.join(__dirname, '..'));
   const pub = path.join('server-msg', 'public');
   let html = texte(racine, 'apercu', 'opmessages', 'index.html');
+  const courrier = texte(racine, 'opcourrier.js');
   const api = texte(racine, pub, 'api.js'), source = texte(racine, pub, 'source-serveur.js'), sw = texte(racine, pub, 'sw.js'), manifeste = texte(racine, pub, 'manifest.webmanifest');
 
   /* ── 1. la pièce de données ── */
@@ -114,6 +124,14 @@ function generer(o) {
   }
   if (/src="source\.js"/.test(html)) jette('la page référence encore source.js (les données de démonstration)');
 
+  /* 5b bis. le module de messagerie : copié, jamais réécrit — et il ne sort pas de la page (le seul appel réseau est celui de l'ADAPTATEUR que la source lui donne) */
+  const codeCourrier = sansCommentairesJs(courrier);
+  if (!/OPCourrier\s*=/.test(codeCourrier) || !/monter\s*:\s*function/.test(codeCourrier)) jette('opcourrier.js ne définit plus OPCourrier.monter : le module de messagerie a changé de forme');
+  if (RESEAU_INTERDIT.test(codeCourrier)) jette('opcourrier.js appelle le réseau (fetch, XMLHttpRequest, WebSocket…) : le module ne parle qu\'à l\'adaptateur que la page lui donne');
+  if (/https?:\/\//i.test(codeCourrier.split(ESPACE_SVG).join(''))) jette('opcourrier.js référence une adresse d\'un autre domaine');
+  const demoCourrier = MARQUES_DEMO.filter(x => codeCourrier.includes(x));
+  if (demoCourrier.length) jette('opcourrier.js contient de la source de DÉMONSTRATION (' + demoCourrier.join(', ') + ')');
+
   /* 5c. l'ensemble servi appelle le service */
   const routes = new Set(Array.from(sansCommentairesJs(api + '\n' + source + '\n' + ui).matchAll(/'(\/api\/[a-z][a-z0-9_/-]*)/g)).map(m => m[1]));
   if (routes.size < 10) jette('l\'ensemble servi n\'appelle que ' + routes.size + ' routes /api/ (au moins 10 attendues) : une page qui n\'appelle pas le service fait semblant');
@@ -147,7 +165,7 @@ function generer(o) {
      pas si les mises à jour se font »). Déterministe : `--verifier` recalcule la même. L'aperçu garde une empreinte VIDE (il ne parle à aucun service). */
   const PLACE = "const OPMSG_BUILD = '';";
   if (ui.split(PLACE).length !== 2) jette('le script de la page doit porter UNE fois « ' + PLACE + ' » (l\'empreinte de la version s\'y pose)');
-  const empreinte = require('crypto').createHash('sha256').update([html, ui, api, source, sw].join('\u0000')).digest('hex').slice(0, 12);
+  const empreinte = require('crypto').createHash('sha256').update([html, ui, api, source, sw, courrier].join('\u0000')).digest('hex').slice(0, 12);
   /* 5g. LE NUMÉRO DE LA VERSION (6 octobre 2026 : « le forçage de mise à jour, comme sur OP GESTION depuis la Tour »). Une empreinte ne
      s'ORDONNE pas : « exiger au moins celle-ci » n'a pas de sens. Le numéro, si — la Tour exige « au moins 14 » et toute page plus récente
      passe. Il se DÉDUIT de ce qui est commité, personne ne le monte à la main (un oubli rendrait « Exiger » muet) : la même empreinte garde
@@ -160,7 +178,7 @@ function generer(o) {
   const numero = !nAvant ? 1 : (bAvant === empreinte ? nAvant : nAvant + 1);
   if (numero > 99999) jette('le numéro de version dépasse 99 999 : la Tour ne sait pas l\'exiger');
   const uiServi = ui.replace(PLACE, () => "const OPMSG_BUILD = '" + empreinte + "';").replace(PLACE_V, () => 'const OPMSG_VERSION = ' + numero + ';');
-  const fichiers = { 'index.html': Buffer.from(html, 'utf8'), 'opmsg-ui.js': Buffer.from(uiServi, 'utf8') };
+  const fichiers = { 'index.html': Buffer.from(html, 'utf8'), 'opmsg-ui.js': Buffer.from(uiServi, 'utf8'), 'opcourrier.js': Buffer.from(courrier, 'utf8') };
   for (const i of ICONES) fichiers[i] = lire(racine, 'icons', i);
   return { fichiers, empreinte, numero, rapport: { methodes: appelees.length, routes: routes.size, octets: Object.values(fichiers).reduce((a, b) => a + b.length, 0) }, racine, dossier: path.join(racine, pub) };
 }

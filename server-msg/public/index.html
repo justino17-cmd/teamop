@@ -7,7 +7,7 @@
 <!-- ⛔ FICHIER GÉNÉRÉ par scripts/opmsg-public.js depuis apercu/opmessages/index.html — NE PAS LE MODIFIER À LA MAIN (tests/test-941.js compare).
      La politique ci-dessous est celle du SERVICE : seul `connect-src 'self'` rouvre le réseau (vers le service lui-même, jamais un autre domaine), les scripts viennent tous de
      cette origine (le script en ligne de l'aperçu est extrait dans opmsg-ui.js), les images et les médias ne sortent pas de la page. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' blob: data:; media-src 'self' blob:; style-src 'unsafe-inline'; script-src 'self'; worker-src 'self'; manifest-src 'self'; connect-src 'self' wss:; base-uri 'none'; form-action 'self'">
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0b1633" media="(prefers-color-scheme: dark)">
@@ -216,6 +216,9 @@ body > .sr-seul { top: 0; left: 0; }
 }
 
 .vue[hidden] { display: none; }
+/* OP COURRIER (18 octobre 2026) : la zone où l'on monte le module (arbre d'ombre : sa feuille ne touche pas cette page) ; sa hauteur est posée par `courrierAjuster` */
+.courrier-zone { min-height: 360px; border-radius: 14px; overflow: hidden; }
+#vue-courrier { max-width: none; }
 /* ⛔ une colonne de liste n'a pas de raison de faire 2 268 px à 2 560 : l'écran Messages passe en maître-détail dès 1 100 px
    (§ 9), et les autres vues sont bornées */
 .vue { max-width: 1000px; margin-inline: auto; }
@@ -2517,6 +2520,7 @@ a.menu-action { text-decoration: none; }
   <symbol id="i-grille" viewBox="0 0 24 24"><path d="M4 4h7v7H4ZM13 4h7v7h-7ZM4 13h7v7H4ZM13 13h7v7h-7Z"/></symbol>
   <symbol id="i-lien" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></symbol>
   <symbol id="i-raccrocher" viewBox="0 0 24 24"><path d="M3 12a15 15 0 0 1 18 0l-2 3-4-1.5v-2a9 9 0 0 0-6 0v2L5 15l-2-3Z"/></symbol>
+  <symbol id="i-courrier" viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9ZM4.5 7.5l7.5 5.5 7.5-5.5"/></symbol>
   <symbol id="i-agenda" viewBox="0 0 24 24"><path d="M5 6.5A2.5 2.5 0 0 1 7.5 4h9A2.5 2.5 0 0 1 19 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 5 17.5v-11ZM5 9.5h14M8.5 2.8v3M15.5 2.8v3"/></symbol>
   <symbol id="i-lieu" viewBox="0 0 24 24"><path d="M12 21s6-5.2 6-10a6 6 0 0 0-12 0c0 4.8 6 10 6 10Zm0-7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z"/></symbol>
   <symbol id="i-repeter" viewBox="0 0 24 24"><path d="M4.5 11V9.5A3.5 3.5 0 0 1 8 6h10m0 0-2.5-2.5M18 6l-2.5 2.5M19.5 13v1.5A3.5 3.5 0 0 1 16 18H6m0 0 2.5-2.5M6 18l2.5 2.5"/></symbol>
@@ -2657,6 +2661,7 @@ a.menu-action { text-decoration: none; }
     </section>
     <section class="vue" id="vue-reunions" aria-labelledby="titre-reunions" hidden></section>
     <section class="vue" id="vue-accueil" aria-labelledby="titre-accueil" hidden></section>
+    <section class="vue" id="vue-courrier" aria-labelledby="titre-courrier" hidden></section>
     <section class="vue" id="vue-reglages" aria-labelledby="titre-reglages" hidden></section>
     <p class="mention-apercu">Aperçu — données d'exemple</p>
   </main>

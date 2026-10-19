@@ -64,6 +64,7 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
   for (const p of sources) {
     const c = code(p), nom = path.basename(p);
     if (nom === VENDOR_LIVEKIT.nom) continue;   // la bibliothèque du serveur de visio : épinglée et recensée à part, juste en dessous
+    if (nom === 'opcourrier.js') continue;       // le module de messagerie (OP Courrier) : copie de celui d'OP GESTION, examiné à part (structure, pas lexique), juste en dessous
     if (/\/(opt|etc)\/teamop/.test(c) && !permis.has(nom)) interdits.push(nom + ' : chemin /opt|/etc/teamop');
     /* ⛔ UNE SECONDE EXCEPTION, NOMMÉE : `push.js` porte la LISTE BLANCHE des services push des navigateurs — celui de Chrome s'appelle `fcm.googleapis.com`. Ce n'est pas Firebase (le produit) : c'est la
        boîte aux lettres que le navigateur d'une personne impose pour la réveiller. On retire de ce fichier les noms exacts de la liste (et rien d'autre : toute autre trace de Firebase y reste interdite). */
@@ -99,6 +100,20 @@ console.log('\nAucun chemin d\'OP GESTION, aucun domaine tiers, aucune adresse d
     if (/teamop\.fr/i.test(c)) interdits.push(nom + ' : domaine teamop.fr en dur');
   }
   v('⛔ ni /opt/teamop (hors la garde), ni Firebase, ni domaine, ni IP autre que la boucle locale', interdits, []);
+  /* ⛔ LA HUITIÈME EXCEPTION, NOMMÉE ET JUGÉE SUR SA STRUCTURE (18 octobre 2026) : `public/opcourrier.js`, le module de messagerie (OP Courrier) — la MÊME pièce que dans OP GESTION et dans la Tour, copiée par
+     `scripts/opmsg-public.js`, servie par ce service lui-même. Le balayage de MOTS le refuserait pour de mauvaises raisons : il nomme « Google », « Microsoft », « iCloud » (les fournisseurs qu'il RECONNAÎT à l'adresse tapée,
+     des étiquettes à l'écran), et ses images `data:` portent des suites de chiffres qui ressemblent à des adresses IP. Ce qu'il ne doit JAMAIS faire, on le juge sur le CODE : aucun appel réseau (c'est l'adaptateur que la
+     source lui donne qui parle — et celui d'OP MESSAGES est VIDE), aucune adresse hors l'espace de noms SVG de ses images, aucun chemin d'OP GESTION. */
+  {
+    const p = sources.find(x => path.basename(x) === 'opcourrier.js');
+    vrai('le module de messagerie est là où la page le charge (public/)', !!p && /server-msg\/public\/opcourrier\.js$/.test(rel(p)));
+    const brut = p ? fs.readFileSync(p, 'utf8') : '', c = code(p || '');
+    v('⛔ c\'est la COPIE exacte de opcourrier.js (celui d\'OP GESTION et de la Tour) : jamais une seconde version', brut === fs.readFileSync(path.join(RACINE, 'opcourrier.js'), 'utf8'), true);
+    vrai('(population) le module est entier (OPCourrier.monter, l\'adaptateur, le moteur de tri)', /OPCourrier\s*=/.test(c) && /retirerBoite/.test(c) && /OPClassify/.test(c) && brut.length > 100000);
+    v('⛔ aucun appel réseau : ni fetch, ni XMLHttpRequest, ni WebSocket, ni EventSource, ni sendBeacon, ni importScripts', /\bfetch\s*\(|\bXMLHttpRequest\b|\bWebSocket\b|\bEventSource\b|\bsendBeacon\b|\bimportScripts\b/.test(c), false);
+    v('⛔ aucune adresse : la seule « http: » est l\'espace de noms SVG de ses images `data:`', c.split('http://www.w3.org/2000/svg').join('').match(/https?:\/\/[^\s"')]*/g) || [], []);
+    v('⛔ aucun chemin ni domaine d\'OP GESTION (teamop.fr, /api/, /opt|/etc, server/)', /teamop\.fr|\/api\/|\/(opt|etc)\/teamop|\bserver\//.test(c), false);
+  }
   /* ⛔ LA CINQUIÈME EXCEPTION, NOMMÉE ET ÉPINGLÉE : `public/vendor/livekit-client-2.22.3.umd.js`, la bibliothèque du SERVEUR DE VISIO (LiveKit, licence Apache 2.0, servie par le service lui-même — jamais un CDN,
      chargée seulement quand une salle passe par la visio). C'est le fichier PUBLIÉ, octet pour octet : son empreinte est épinglée ici, et une mise à jour oblige à trancher de nouveau. Ce qu'il porte et qui
      ressemble à une destination n'en est pas une : l'identifiant d'une extension RTP (`aomediacodec.github.io/av1-rtp-spec/…`, une URI de spécification comparée comme une chaîne), la base du « bac à sable »

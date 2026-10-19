@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<!-- Page d'ESSAI du module OP Courrier (sondes du dépôt, 127.0.0.1 uniquement) : un hôte minimal, sa source de démonstration, rien d'autre.
+     ?mode=demo|reel|vide|panne|panne-messages|refus|differe   (voir source-demo.js)   ?cotes=pro,perso   ?cote=pro   ?theme=hote   ?barre=1 (une barre d'hôte au-dessus)
+     La politique ne laisse sortir que les deux annuaires DNS (réponses fournies par la sonde). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src https://dns.google https://cloudflare-dns.com; base-uri 'none'; form-action 'none'">
+<title>Essai — module OP Courrier</title>
+<style>
+  html,body{margin:0;height:100%;background:#eee;font:14px system-ui,sans-serif}
+  html[data-theme="nuit"],html[data-theme="nuit"] body{background:#111}
+  #barre{display:none;position:fixed;top:0;left:0;right:0;height:56px;z-index:2147483000;background:#c22;color:#fff;align-items:center;padding:0 16px;font-weight:700}
+  body.avec-barre #barre{display:flex}
+  #zone{height:100%}
+  body.avec-barre #zone{margin-top:56px;height:calc(100% - 56px)}
+</style>
+</head>
+<body>
+<div id="barre">Barre de l'hôte (doit rester sous les feuilles du module)</div>
+<div id="zone"></div>
+<script src="/opcourrier.js"></script>
+<script src="/scratchpad/courrier/source-demo.js"></script>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  if (q.get("barre")) document.body.classList.add("avec-barre");
+  var src = OPCourrierDemo.creer({ mode: q.get("mode") || "demo" });
+  window.__source = src;
+  var opts = { source: src, cotes: (q.get("cotes") || "pro,perso").split(","), cleStockage: q.get("cle") || "opcourrierEssai_ui",
+    intervalle: q.get("intervalle") != null ? +q.get("intervalle") : 60000, onCompter: function (n) { window.__compte = n; } };
+  if (q.get("cote")) opts.cote = q.get("cote");
+  if (q.get("titredoc")) opts.titreDocument = true;
+  if (q.get("theme") === "hote") opts.theme = function () { return document.documentElement.getAttribute("data-theme") === "nuit" ? "nuit" : "jour"; };
+  window.__opc = OPCourrier.monter(document.getElementById("zone"), opts);
+})();
+</script>
+</body>
+</html>

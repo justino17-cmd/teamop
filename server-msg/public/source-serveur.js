@@ -3996,9 +3996,25 @@
     /* ⛔ combien de messages n'ont PAS encore quitté l'appareil (réseau coupé, service muet) : la page les perd quand elle repart de zéro ou qu'on la ferme — rien n'est rangé sur
        l'appareil, c'est voulu —, donc elle DOIT le dire (relectures du gardien, remarque 1, et du testeur, D8). */
     const enAttente = () => file.length;
+    /* ── OP COURRIER (18 octobre 2026) — la rubrique « Courrier » du côté Pro, sur la BÊTA seulement ──
+       ⛔ `courrierOuvert` : le SERVICE dit où l'on est (`instance`, rendue par `/api/config`), la page ne devine rien. Pas pu savoir : rien n'est proposé.
+       ⛔ `courrierSource` : l'adaptateur de données du module `opcourrier.js` (le contrat est écrit en tête de ce fichier-là). Il part VIDE et ne parle à AUCUN serveur : le serveur d'OP Courrier
+       n'existe pas encore, et OP MESSAGES ne se branche jamais sur celui d'OP GESTION (ni sur ses boîtes — `test-900`). `capacites()` est tout à faux, aucune boîte, aucun message, aucune donnée
+       d'exemple ; « Ajouter une boîte mail » dit « Bientôt » au lieu de faire semblant. Quand le serveur d'OP Courrier existera, c'est CE SEUL objet qu'on remplace. */
+    async function courrierOuvert() { try { const c = await A.config(); return !!c && c.instance === 'beta'; } catch (e) { return false; } }
+    function courrierSource() {
+      const BIENTOT = 'Bientôt : la connexion de vos boîtes arrive avec le serveur d\u2019OP Courrier.';
+      const bientot = () => Promise.reject(new Error(BIENTOT));
+      return {
+        capacites: () => Promise.resolve({ oauth: false, programmeServeur: false, signature: false, marquage: false, deplacement: false, reglagesServeur: false, simulation: false, dossiers: ['inbox'], destinataires: 1 }),
+        boites: () => Promise.resolve([]),
+        messages: () => Promise.resolve([]),
+        envoyer: bientot, ajouterBoite: bientot, retirerBoite: bientot
+      };
+    }
     const source = {
-      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, rendezVous: true, trajet: true, texteMax: 8000 },
-      demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller,
+      capacites: { service: true, connexion: true, photos: true, vocaux: true, fichiers: true, avatars: true, reglages: true, appels: true, appelsMedias: true, appelsGroupe: true, salles: true, reunions: true, actionsMessage: true, groupeInfos: true, liens: true, presence: true, saisie: true, historique: true, notifications: true, compte: true, espaces: true, reunionPlafond: true, identifiants: true, favoris: true, enCommun: true, suiviPieces: true, annotations: true, presenceRapport: true, positions: true, cartesContact: true, sondagesConv: true, themesConv: true, transferts: true, retrouver: true, transcription: true, invitations: true, modes: true, confirmerEnvoi: true, miseAJour: true, comptesCourriel: true, agenda: true, rendezVous: true, trajet: true, courrier: true, texteMax: 8000 },
+      demarrer, connexion, deconnexion, verifierSession, arreter, enAttente, reveiller, courrierOuvert, courrierSource,
       comptesOuverts, connexionCourriel, inscrire, confirmerInscription, oubliMdp, reinitMdp,
       evenements, creerEvenement, majEvenement, supprimerEvenement, faitEvenement, reporterEvenement, trajetOuvert, calculerTrajet, lieux, poserLieu,
       messagesProgrammes, programmerMessage, annulerProgramme, mentionsRecentes, mentionsLues,
