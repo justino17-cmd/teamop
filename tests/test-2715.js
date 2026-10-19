@@ -40,6 +40,8 @@ console.log('\n2. Le semis : des BROUILLONS, jamais validés');
 const M = monter('a', {}); 
 const D1 = path.join(banc, 'sem'); fs.mkdirSync(D1);
 const Ms = (() => { const r = {}; const app = { get() {}, post() {} }; return mod(app, { DATA_DIR: D1, monAdmin() {}, monPatronStrict() {}, textesDir: TXT, maintenant: () => ++horloge }); })();
+const notes0 = []; mod({ get() {}, post() {} }, { DATA_DIR: fs.mkdtempSync(path.join(banc, 'sj-')), monAdmin() {}, monPatronStrict() {}, textesDir: TXT, agents: { noter: (...a) => notes0.push(a) } });
+v('⛔ le semis ne pollue pas le rapport du jour (aucun geste noté)', notes0.length, 0);
 const reg = JSON.parse(fs.readFileSync(path.join(D1, 'contrats-documents.json'), 'utf8'));
 v('toutes les pièces sont entrées', Object.keys(reg).sort(), types.slice().sort());
 v('⛔ aucune n\'est validée par le semis', Object.values(reg).every(l => l.every(x => x.statut === 'brouillon')), true);

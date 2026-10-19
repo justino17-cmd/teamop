@@ -32,7 +32,7 @@ function fonction(nom) {
 const ESC = (/\nfunction esc\(s\)\{.*\n/.exec(CODE) || [''])[0];
 const NOMS = ['hAuth', 'srvRepond', 'srvMuet', 'apiGet', 'apiPost', 'msgErreur', 'acSquel', 'fmtDate', 'agParId', 'agNom', 'agMode', 'agParams', 'agEnPause',
   'chargerAgents', 'agSec', 'agMode_', 'agPause', 'agDecider', 'agHugo', 'agIllisible', 'vueAgents', 'fmtHeure',
-  'agDirCharger', 'agCharteAuto', 'agContratVoir', 'agContratBrouillon', 'agContratValider', 'agDirVue', 'agDosCharger', 'agDosOuvrir', 'agDosFermer', 'agDosPaiement', 'agDosFiche', 'agDosListe', 'agCvCharger', 'agCvOuvrir', 'agCvFermer', 'agCvEnvoyer', 'agCvDossier', 'agCvMessage', 'agCvVue'];
+  'agDirCharger', 'agCharteAuto', 'agContratVoir', 'agContratBrouillon', 'agContratValider', 'agDirVue', 'agContratBloc', 'agDosCharger', 'agDosOuvrir', 'agDosFermer', 'agDosPaiement', 'agDosFiche', 'agDosListe', 'agCvCharger', 'agCvOuvrir', 'agCvFermer', 'agCvEnvoyer', 'agCvDossier', 'agCvMessage', 'agCvVue'];
 const i0 = CODE.indexOf('var AG={'), i1 = CODE.indexOf('\nfunction agParId(');
 vrai('le bloc des agents est trouvé dans la Tour', i0 > 0 && i1 > i0);
 vrai('chaque fonction du panneau existe', ESC && NOMS.every(n => fonction(n)));
@@ -96,6 +96,8 @@ console.log('\n── 2714 · le panneau Agents de la Tour : ses vraies fonction
   vrai('un geste fixe ne propose aucun bouton', !/agCharteAuto\('mise_en_demeure'/.test(h) && /agCharteAuto\('envoyer_contrat'/.test(h));
   vrai('sans version validée, l’écran le dit : rien n’est envoyé', /Aucune version validée : rien n’est envoyé aux clients/.test(h));
 
+  vrai('les contrats sont rangés par application, avec l\'état de chaque abonnement', /Ce que reçoit un client, abonnement par abonnement/.test(h) && /OP GESTION · business premium/.test(h) && h.indexOf('Toute la société') < h.indexOf('OP GESTION</h4>') && /bloqué/.test(h) && /À CONFIRMER/.test(h));
+
   console.log('\n2. La charte : le serveur écrit, l’écran suit');
   await T.ctx.agCharteAuto('relancer_impaye', false);
   vrai('le geste repasse en « te proposer d’abord »', await att(() => (A().charte.find(g => g.id === 'relancer_impaye') || {}).auto === false));
@@ -106,13 +108,13 @@ console.log('\n── 2714 · le panneau Agents de la Tour : ses vraies fonction
   doc.v = 'Article 1. Objet du contrat.';
   T.ctx.AG.dir.ouvert = 'conditions_op_gestion';
   await T.ctx.agContratBrouillon('conditions_op_gestion');
-  vrai('le brouillon apparaît, pas en vigueur', await att(() => { const t = (A().contrats || {}).types; return t && t.find(x => x.type === 'conditions_op_gestion').versions.length === 1; }));
+  vrai('le brouillon apparaît, pas en vigueur', await att(() => { const t = (A().contrats || {}).types; return t && t.find(x => x.type === 'conditions_op_gestion').versions.length === 2; }));
   h = T.ctx.agDirVue();
-  vrai('« brouillon » + bouton Valider, et toujours « Aucune version validée »', /brouillon/.test(h) && /agContratValider\('conditions_op_gestion',1\)/.test(h) && /Aucune version validée/.test(h));
-  await T.ctx.agContratValider('conditions_op_gestion', 1);
-  vrai('la version passe en vigueur, validée par le nom du patron', await att(() => /En vigueur : version 1 · validée par/.test(T.ctx.agDirVue())));
+  vrai('« brouillon » + bouton Valider, et toujours « Aucune version validée »', /brouillon/.test(h) && /agContratValider\('conditions_op_gestion',2\)/.test(h) && /Aucune version validée/.test(h));
+  await T.ctx.agContratValider('conditions_op_gestion', 2);
+  vrai('la version passe en vigueur, validée par le nom du patron', await att(() => /En vigueur : version 2 · validée par/.test(T.ctx.agDirVue())));
   vrai('le tampon écrit par le serveur est celui de la personne connectée', JSON.stringify(S.lire('contrats-documents.json')).includes('"validePar":"Patron"'));
-  v('le texte du serveur est celui qui a été tapé', S.lire('contrats-documents.json').conditions_op_gestion[0].texte, 'Article 1. Objet du contrat.');
+  v('le texte du serveur est celui qui a été tapé', S.lire('contrats-documents.json').conditions_op_gestion[1].texte, 'Article 1. Objet du contrat.');
   doc.v = '   '; const avant = T.toasts.length; await T.ctx.agContratBrouillon('conditions_op_gestion');
   vrai('un texte vide ne part pas', T.toasts.length > avant && /vide/.test(T.toasts[T.toasts.length - 1]));
 

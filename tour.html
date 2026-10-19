@@ -2836,7 +2836,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;margin-top:1px;color:var(--link)"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
       <div class="encart-tx"><b>Accès nominatif réservé à l'équipe TEAM OP.</b> Les comptes sont créés uniquement par le patron — toutes les tentatives de connexion sont journalisées.</div>
     </div>
-    <div class="lg-pied">console interne · v2.99</div>
+    <div class="lg-pied">console interne · v2.100</div>
   </div>
 </div>
 
@@ -2878,7 +2878,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
           <button class="btn-icone" onclick="doLogout()" title="Quitter la console" aria-label="Quitter la console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5v16h4"/><path d="M13 12h8"/><path d="m17 8 4 4-4 4"/></svg></button>
         </div>
         <!-- la couleur ne parle jamais seule : le nom de la Tour est écrit -->
-        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.99</div>
+        <div class="hd-tour" id="hd-tour">Tour OP GESTION · v2.100</div>
       </div>
     </div>
     <nav class="tabs" id="tabs"></nav>
@@ -2890,7 +2890,7 @@ select.sel-f{background-image:var(--chevron);background-repeat:no-repeat;backgro
     <div class="tt-droite"><span class="tt-mode" id="tt-mode"></span>
       <span class="tt-srv" id="tt-srv" role="status"><i></i><span id="tt-srv-l">Serveur…</span><time id="tt-heure"></time></span></div></div>
   <main id="vue"></main>
-  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.99</div>
+  <div class="pied">console interne TEAM OP · toutes les actions sont journalisées · v2.100</div>
   <!-- téléphone : la barre d'onglets EN BAS, sous le pouce ; et la feuille qui monte pour le reste -->
   <nav class="barre-bas" id="barre-bas" aria-label="Navigation"></nav>
   <div class="scrim" id="scrim" hidden onclick="fermerFeuille()"></div>
@@ -3188,7 +3188,7 @@ function fmtJour(ts){ if(!ts) return '—'; return new Date(ts).toLocaleDateStri
    n'est plus lu : il figerait la console dans un mode que l'appareil a quitté.
    `?mode=light` ou `?mode=dark` force le mode — pour les APERÇUS et les captures seulement, jamais
    rangé : l'adresse suivante, sans le paramètre, rend la main au système. */
-var TOUR_VERSION='v2.99';
+var TOUR_VERSION='v2.100';
 var MODE_FORCE=(function(){ try{ var m=new URLSearchParams(location.search).get('mode'); return (m==='light'||m==='dark')?m:''; }catch(e){ return ''; } })();
 var _mqSombre=null; try{ _mqSombre=window.matchMedia('(prefers-color-scheme: dark)'); }catch(e){}
 function modeLu(){
@@ -10027,12 +10027,22 @@ function agDirVue(){
   if(D.contLec!==1) h+=D.contLec===0?acSquel():agIllisible('Les contrats n’ont pas pu être lus : rien ne sera envoyé à un client tant que le registre est illisible.');
   else { var K=D.contrats.clients||{};
     h+='<div class="encart bloc"><div class="tx" style="margin-top:0">Clients : '+esc(K.total||0)+' contrat'+((K.total||0)>1?'s':'')+' · '+esc(K.envoyes||0)+' envoyé'+((K.envoyes||0)>1?'s':'')+' · '+esc(K.acceptes||0)+' accepté'+((K.acceptes||0)>1?'s':'')+' · '+esc(K.enAttente||0)+' en attente de signature</div></div>';
-    D.contrats.types.forEach(function(t){
+    var PQ=D.contrats.paquets||[], ORD=[['Toute la société',['conditions_generales']],['OP GESTION',['conditions_op_gestion','cp_op_gestion_pro','cp_op_gestion_business','cp_op_gestion_business_premium']],['OP MESSAGES (pas encore ouvert)',['conditions_op_messages','cp_op_messages_perso','cp_op_messages_pro','cp_op_messages_business_premium']],['Annexes communes à tous les abonnements',['dpa','signature_electronique']]];
+    h+='<h4 class="ag-h" style="margin-top:16px">Ce que reçoit un client, abonnement par abonnement</h4><div class="ag-liste">'+PQ.map(function(q){ var pr=q.cle.split(':'); var ok=!(q.manquantes||[]).length;
+      return '<div class="ag-ligne"><span class="ag-etiq'+(ok?' ok':' ko')+'">'+(ok?'prêt':'bloqué')+'</span><div class="tx"><b>'+esc(pr[0].replace('op_','OP ').toUpperCase().replace('_',' ')+' · '+pr[1].replace(/_/g,' '))+'</b><span>'+(ok?'Les '+esc(q.pieces.length)+' pièces ont une version validée.':'Manque une version validée de : '+esc(q.manquantes.map(function(m){ return m.replace(/_/g,' '); }).join(', ')))+'</span></div></div>'; }).join('')+'</div>';
+    var PAR={}; D.contrats.types.forEach(function(t){ PAR[t.type]=t; });
+    ORD.forEach(function(g){ h+='<h4 class="ag-h" style="margin-top:20px">'+esc(g[0])+'</h4>'; g[1].forEach(function(k){ if(PAR[k]) h+=agContratBloc(PAR[k]); }); });
+  }
+  return h;
+}
+function agContratBloc(t){
+  var D=AG.dir, h='';
+  {
       var vig=null; (t.versions||[]).forEach(function(v){ if(v.statut==='valide'&&(!vig||v.n>vig.n)) vig=v; });
-      h+='<div class="encart bloc" style="margin-top:12px"><div class="tx" style="margin-top:0"><b>'+esc(t.libelle||t.type)+'</b><br>'+(vig?'En vigueur : version '+esc(vig.n)+' · validée par '+esc(vig.validePar)+' le '+esc(fmtDate(vig.valideLe))+' · empreinte '+esc(String(vig.empreinte||'').slice(0,12)):'<span style="color:var(--red,#c0392b)">Aucune version validée : rien n’est envoyé aux clients.</span>')+'</div>'+
+      h+='<div class="encart bloc" style="margin-top:12px"><div class="tx" style="margin-top:0"><b>'+esc(t.libelle||t.type)+'</b>'+(t.aConfirmer?' <span class="ag-etiq ko">points « À CONFIRMER » à trancher</span>':'')+'<br>'+(vig?'En vigueur : version '+esc(vig.n)+' · validée par '+esc(vig.validePar)+' le '+esc(fmtDate(vig.valideLe))+' · empreinte '+esc(String(vig.empreinte||'').slice(0,12)):'<span style="color:var(--red,#c0392b)">Aucune version validée : rien n’est envoyé aux clients.</span>')+'</div>'+
         '<div class="ag-liste" style="margin-top:8px">'+(t.versions||[]).map(function(v){ return '<div class="ag-ligne"><span class="ag-etiq'+(v.statut==='valide'?' ok':'')+'">'+esc(v.statut==='valide'?'validée':v.statut==='retire'?'retirée':'brouillon')+'</span><div class="tx"><b>Version '+esc(v.n)+'</b><span>'+esc(v.auteur||'')+' · '+esc(fmtDate(v.ts))+' · '+esc(v.longueur)+' signes</span></div><div class="ag-act"><button type="button" class="ag-btn" onclick="agContratVoir(\''+esc(t.type)+'\','+esc(v.n)+')">Lire</button>'+(v.statut==='brouillon'?'<button type="button" class="ag-btn ok"'+(AG.busy||MYROLE!=='patron'?' disabled':'')+' onclick="agContratValider(\''+esc(t.type)+'\','+esc(v.n)+')">Valider</button>':'')+'</div></div>'; }).join('')+'</div>'+
         (D.ouvert===t.type?'<div style="margin-top:10px"><textarea id="ag-ct-texte" rows="14" style="width:100%;box-sizing:border-box;font:inherit;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg2,transparent);color:inherit">'+esc(D.texte)+'</textarea><div class="ag-act" style="margin-top:8px"><button type="button" class="ag-btn ok"'+(AG.busy||MYROLE!=='patron'?' disabled':'')+' onclick="agContratBrouillon(\''+esc(t.type)+'\')">Enregistrer comme nouveau brouillon</button><button type="button" class="ag-btn" onclick="AG.dir.ouvert=\'\';render()">Fermer</button></div></div>'
-          :'<div class="ag-act" style="margin-top:8px"><button type="button" class="ag-btn" onclick="AG.dir.ouvert=\''+esc(t.type)+'\';AG.dir.texte=\'\';render()">Écrire un brouillon</button></div>')+'</div>'; });
+          :'<div class="ag-act" style="margin-top:8px"><button type="button" class="ag-btn" onclick="AG.dir.ouvert=\''+esc(t.type)+'\';AG.dir.texte=\'\';render()">Écrire un brouillon</button></div>')+'</div>';
   }
   return h;
 }

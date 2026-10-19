@@ -66,7 +66,8 @@ module.exports = function contrats(app, ctx) {
   }
   let docs = charger(F_DOCS, {});          // { type: [ {n, ts, auteur, texte, statut, note, validePar?, valideLe?, empreinte?} ] }
   let clients = charger(F_CLIENTS, []);    // [ {id, dossier, type, version, empreinte, envoyeLe, accepteLe} ]
-  const noter = (a, o) => { if (agents && agents.noter) { try { agents.noter('systeme', a, o); } catch (e) {} } };
+  let enSemis = false;
+  const noter = (a, o) => { if (!enSemis && agents && agents.noter) { try { agents.noter('systeme', a, o); } catch (e) {} } };
   const illisible = () => illisibles.has(F_DOCS) || illisibles.has(F_CLIENTS);
 
   const versions = type => (Array.isArray(docs[type]) ? docs[type] : []);
@@ -167,12 +168,12 @@ module.exports = function contrats(app, ctx) {
   /* Les textes rédigés (dossier contrats-textes) entrent comme BROUILLONS, une fois, sur un type encore vide. Jamais validés ici. */
   function semer(dossierTextes) {
     if (!dossierTextes || illisibles.has(F_DOCS)) return 0;
-    let n = 0;
-    for (const t of Object.keys(TYPES)) {
+    let n = 0; enSemis = true;
+    try { for (const t of Object.keys(TYPES)) {
       if (versions(t).length) continue;
       let texte; try { texte = fs.readFileSync(path.join(dossierTextes, t + '.txt'), 'utf8'); } catch (e) { continue; }
       if (brouillon(t, texte, 'Rédaction (agents)', 'Texte initial — à relire et trancher les points « À CONFIRMER »').code === 200) n++;
-    }
+    } } finally { enSemis = false; }
     return n;
   }
   if (ctx.textesDir) { try { semer(ctx.textesDir); } catch (e) { console.error('semis des contrats :', e.message); } }
