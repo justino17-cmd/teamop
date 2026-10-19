@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agents — maquette du panneau de la Tour</title>
+<!-- MAQUETTE (19 octobre 2026) : rien n'est branché. Les données sont des EXEMPLES. Elle reprend les jetons de la Tour
+     (jour/nuit suivent l'appareil) et les règles du socle `server/agents.js` : un agent neuf est à l'arrêt, un mode ne
+     saute pas d'étape (arrêt → brouillon → auto), seul le patron décide, une demande expire au bout de 7 jours. -->
+<style>
+:root{
+  --bg:#F7F7F9;--surface:#FFFFFF;--inset:#F3F4F6;--hover:#F1F2F5;--line:#E8E9ED;--border:#E3E4E9;
+  --text:#14161C;--muted:#5B6070;--faint:#8A8F9E;
+  --acc:#0F6B41;--acc-fill:#0F6B41;--on-acc:#FFFFFF;--accBg:#E7F0EC;--accBrd:rgba(15,107,65,.32);
+  --amb:#9A5B00;--ambBg:#FBF0DC;--red:#B42318;--redBg:#FCE9E7;--blu:#1B4FBF;--bluBg:#E8EDF9;
+  --ombre:0 1px 2px rgba(20,22,28,.06),0 4px 14px rgba(20,22,28,.05);
+  --r2:10px;--r3:14px;--r4:18px;--fs:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#0F1117;--surface:#161922;--inset:#0C0E14;--hover:#1B1F2B;--line:rgba(255,255,255,.08);--border:#262B38;
+  --text:#ECEEF3;--muted:#A3A8B8;--faint:#767C8D;
+  --acc:#2EB872;--acc-fill:#1B7A4A;--accBg:rgba(46,184,114,.14);--accBrd:rgba(46,184,114,.38);
+  --amb:#F2B544;--ambBg:rgba(242,181,68,.14);--red:#FF8A80;--redBg:rgba(255,138,128,.13);--blu:#8DB4FF;--bluBg:rgba(141,180,255,.14);
+  --ombre:0 1px 2px rgba(0,0,0,.4),0 6px 18px rgba(0,0,0,.28);
+}}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 var(--fs);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;background:none;border:0;padding:0}
+.page{max-width:1120px;margin:0 auto;padding:20px 16px 56px}
+.ruban{background:var(--ambBg);color:var(--amb);border-radius:var(--r2);padding:8px 12px;font-size:12.5px;font-weight:600;margin-bottom:16px}
+h1{font-size:24px;letter-spacing:-.02em;margin:0 0 2px}
+.sous{color:var(--muted);margin:0 0 18px}
+.tete{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+
+/* pause générale */
+.pause{display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:var(--r3);padding:10px 14px;box-shadow:var(--ombre)}
+.pause .etat{font-weight:650}
+.pause .pt{width:10px;height:10px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px var(--accBg)}
+.pause.on .pt{background:var(--red);box-shadow:0 0 0 4px var(--redBg)}
+.btn{min-height:40px;padding:0 16px;white-space:nowrap;border-radius:var(--r2);font-weight:650;background:var(--redBg);color:var(--red)}
+.pause.on .btn{background:var(--acc-fill);color:var(--on-acc)}
+
+/* indicateurs */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:0 0 18px}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r3);padding:14px 16px;box-shadow:var(--ombre)}
+.kpi b{display:block;font-size:26px;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi span{color:var(--muted);font-size:12.5px}
+.barre{height:6px;border-radius:99px;background:var(--inset);margin-top:10px;overflow:hidden}
+.barre i{display:block;height:100%;background:var(--acc);border-radius:99px}
+
+/* onglets */
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:16px;overflow-x:auto}
+.tab{padding:11px 14px;color:var(--muted);font-weight:600;white-space:nowrap;border-bottom:2px solid transparent;min-height:44px}
+.tab[aria-selected=true]{color:var(--text);border-color:var(--acc)}
+.pastille{display:inline-block;min-width:20px;padding:1px 7px;margin-left:6px;border-radius:99px;background:var(--acc-fill);color:var(--on-acc);font-size:11.5px;font-weight:700;text-align:center}
+.panneau[hidden]{display:none}
+
+/* équipe */
+.couche{margin:20px 0 8px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.agent{background:var(--surface);border:1px solid var(--line);border-radius:var(--r3);padding:14px;box-shadow:var(--ombre);display:flex;flex-direction:column;gap:12px}
+.agent .haut{display:flex;gap:12px;align-items:center}
+.av{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:17px;background:var(--accBg);color:var(--acc);flex:none}
+.agent[data-mode=arret] .av{background:var(--inset);color:var(--faint)}
+.agent h3{margin:0;font-size:16px;letter-spacing:-.01em}
+.agent .role{color:var(--muted);font-size:13px}
+.vague{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--inset);padding:3px 8px;border-radius:99px;white-space:nowrap}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--inset);border-radius:var(--r2);padding:3px;gap:2px}
+.seg button{min-height:38px;border-radius:8px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--surface);color:var(--text);box-shadow:var(--ombre)}
+.seg button[data-m=auto][aria-pressed=true]{background:var(--acc-fill);color:var(--on-acc)}
+.seg button[data-m=brouillon][aria-pressed=true]{background:var(--ambBg);color:var(--amb)}
+.seg button[disabled]{opacity:.4;cursor:not-allowed}
+.pied{display:flex;justify-content:space-between;color:var(--muted);font-size:12.5px;gap:8px}
+.pied b{color:var(--text);font-variant-numeric:tabular-nums}
+
+/* listes */
+.liste{background:var(--surface);border:1px solid var(--line);border-radius:var(--r3);box-shadow:var(--ombre);overflow:hidden}
+.ligne{display:flex;gap:12px;align-items:center;padding:13px 16px;border-top:1px solid var(--line)}
+.ligne:first-child{border-top:0}
+.ligne .txt{flex:1;min-width:0}
+.ligne .txt b{display:block}
+.ligne .txt span{color:var(--muted);font-size:12.5px}
+.etiq{font-size:11.5px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.e-info{background:var(--bluBg);color:var(--blu)}.e-ok{background:var(--accBg);color:var(--acc)}.e-att{background:var(--ambBg);color:var(--amb)}.e-ko{background:var(--redBg);color:var(--red)}
+.act{display:flex;gap:8px;flex-wrap:wrap}
+.b-ok,.b-no{min-height:38px;padding:0 14px;border-radius:var(--r2);font-weight:650}
+.b-ok{background:var(--acc-fill);color:var(--on-acc)}.b-no{background:var(--inset);color:var(--muted)}
+.vide{border:1.5px dashed var(--line);border-radius:var(--r4);padding:34px 20px;text-align:center;color:var(--muted)}
+.note{color:var(--muted);font-size:12.5px;margin-top:14px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:11px 16px;border-radius:var(--r2);font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:calc(100vw - 32px);text-align:center}
+.toast.on{opacity:1}
+@media (max-width:560px){.pause{width:100%;margin-bottom:16px}.ligne{flex-wrap:wrap}.act{width:100%}.act button{flex:1}}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="ruban">Maquette — rien n'est branché, les chiffres et les noms de clients sont des exemples.</div>
+
+  <div class="tete">
+    <div>
+      <h1>Agents</h1>
+      <p class="sous">L'équipe qui gère Team OP. Tu décides de ce que chaque agent a le droit de faire.</p>
+    </div>
+    <div class="pause" id="pause">
+      <span class="pt" aria-hidden="true"></span>
+      <span class="etat" id="pauseEtat">Les agents peuvent travailler</span>
+      <button class="btn" id="pauseBtn" type="button">Tout arrêter</button>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><b id="kEnMarche">0 / 16</b><span>agents allumés (brouillon ou auto)</span></div>
+    <div class="kpi"><b id="kAttente">3</b><span>demandes à valider</span></div>
+    <div class="kpi"><b>12,40 $ <small style="font-size:14px;color:var(--muted);font-weight:500">/ 195 $</small></b><span>dépensés ce mois-ci</span><div class="barre"><i style="width:6.4%"></i></div></div>
+    <div class="kpi"><b>5 nov.</b><span>le crédit expire, sans report</span></div>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" aria-selected="true" data-p="equipe">Équipe</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="valid">Validations <span class="pastille" id="pAttente">3</span></button>
+    <button class="tab" role="tab" aria-selected="false" data-p="journal">Journal</button>
+    <button class="tab" role="tab" aria-selected="false" data-p="taches">Tâches entre agents</button>
+  </nav>
+
+  <section class="panneau" id="p-equipe"></section>
+
+  <section class="panneau" id="p-valid" hidden>
+    <div class="liste" id="listeValid"></div>
+    <p class="note">Une demande qui n'est pas décidée disparaît au bout de 7 jours. Seul toi peux valider : un agent ne se valide jamais lui-même.</p>
+  </section>
+
+  <section class="panneau" id="p-journal" hidden>
+    <div class="liste">
+      <div class="ligne"><span class="etiq e-ok">fait</span><div class="txt"><b>Hugo a relu le paiement de dupont-nuisibles</b><span>Stripe : abonnement Pro actif · il y a 12 min</span></div></div>
+      <div class="ligne"><span class="etiq e-att">proposé</span><div class="txt"><b>Hugo propose de créer l'espace dupont-nuisibles</b><span>Formule Pro · en attente de toi</span></div></div>
+      <div class="ligne"><span class="etiq e-info">brouillon</span><div class="txt"><b>Camille a préparé une réponse sur le fil support-0412</b><span>Rien n'est parti : tu relis avant l'envoi · il y a 1 h</span></div></div>
+      <div class="ligne"><span class="etiq e-ko">arrêt</span><div class="txt"><b>Max s'est arrêté : état illisible</b><span>Il ne reprend pas tout seul · hier</span></div></div>
+      <div class="ligne"><span class="etiq e-ok">fait</span><div class="txt"><b>Théo a vérifié la sauvegarde de nuit</b><span>Archive recalée, relue · hier</span></div></div>
+    </div>
+    <p class="note">Aucune adresse e-mail n'est écrite en clair dans le journal.</p>
+  </section>
+
+  <section class="panneau" id="p-taches" hidden>
+    <div class="liste">
+      <div class="ligne"><span class="etiq e-info">en cours</span><div class="txt"><b>Camille → Hugo : vérifier le paiement</b><span>espace dupont-nuisibles · expire dans 47 h</span></div></div>
+      <div class="ligne"><span class="etiq e-att">en attente</span><div class="txt"><b>Max → Camille : signaler une erreur</b><span>source : mail · ref 0412</span></div></div>
+      <div class="ligne"><span class="etiq e-ok">terminée</span><div class="txt"><b>Camille → toi : un client veut parler à une personne</b><span>motif : demande_humain · tu prends la main</span></div></div>
+    </div>
+    <p class="note">Entre agents, ne passent que des demandes fermées : un identifiant, une valeur d'une liste. Jamais une phrase d'un client.</p>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* Données d'exemple — le vrai panneau lira GET /api/monitor/agents. */
+var AGENTS=[
+ ['victor','Victor','Chef d’orchestre','Coordination',2,15],['ines','Inès','Contrôle qualité','Coordination',2,5],
+ ['camille','Camille','Courrier et support','Clients',2,35],['hugo','Hugo','Paiements et accès','Clients',1,10],
+ ['margaux','Margaux','Facturation et compta','Clients',2,10],['lea','Léa','Onboarding et fidélisation','Clients',2,10],
+ ['max','Max','Sentinelle','Plateforme',1,15],['nina','Nina','Sécurité et RGPD','Plateforme',1,10],
+ ['theo','Théo','Sauvegardes et données','Plateforme',1,5],['jules','Jules','Maintenance dev','Plateforme',3,20],
+ ['chloe','Chloé','Devis et interventions','Produit',3,20],['emma','Emma','Réunions et agenda','Produit',3,10],
+ ['louis','Louis','Documentation et aide','Produit',3,10],['sarah','Sarah','Communication','Croissance',3,5],
+ ['lola','Lola','Instagram','Croissance',3,10],['noah','Noah','Réputation et visibilité','Croissance',3,5]
+];
+var modes={};AGENTS.forEach(function(a){modes[a[0]]='arret'});   /* un agent neuf est À L'ARRÊT */
+var enPause=false;
+var VALID=[
+ {id:1,agent:'Hugo',txt:'Créer l’espace dupont-nuisibles',det:'Formule Pro · paiement relu : abonnement actif',reste:'6 jours'},
+ {id:2,agent:'Hugo',txt:'Suspendre l’accès de nettoyage-atlantique',det:'Motif : impayé · facture ouverte depuis 9 jours',reste:'5 jours'},
+ {id:3,agent:'Camille',txt:'Envoyer la réponse du fil support-0412',det:'Boîte support · le brouillon est prêt à relire',reste:'7 jours'}
+];
+function $(i){return document.getElementById(i)}
+function toast(m){var t=$('toast');t.textContent=m;t.className='toast on';clearTimeout(toast._t);toast._t=setTimeout(function(){t.className='toast'},2800)}
+function nom(m){return m==='arret'?'À l’arrêt':m==='brouillon'?'Brouillon':'Auto'}
+
+function dessinerEquipe(){
+  var h='',c='';
+  AGENTS.forEach(function(a){
+    if(a[3]!==c){c=a[3];h+=(h?'</div>':'')+'<div class="couche">'+c+'</div><div class="grille">'}
+    var m=modes[a[0]];
+    h+='<article class="agent" data-mode="'+m+'"><div class="haut"><div class="av" aria-hidden="true">'+a[1][0]+'</div>'
+     +'<div><h3>'+a[1]+'</h3><div class="role">'+a[2]+'</div></div><span class="vague">Vague '+a[4]+'</span></div>'
+     +'<div class="seg" role="group" aria-label="Mode de '+a[1]+'">'
+     +['arret','brouillon','auto'].map(function(x){
+        var off=(x==='auto'&&m==='arret');
+        return '<button type="button" data-a="'+a[0]+'" data-m="'+x+'" aria-pressed="'+(m===x)+'"'+(off?' disabled title="Passe d’abord par brouillon"':'')+'>'+nom(x)+'</button>'}).join('')
+     +'</div><div class="pied"><span>Plafond mensuel</span><b>'+a[5]+' $</b></div></article>';
+  });
+  $('p-equipe').innerHTML=h+'</div><p class="note">Un agent neuf est à l’arrêt. Il passe par « brouillon » (il prépare, tu relis) avant « auto ». Couper est toujours permis d’un seul geste.</p>';
+  var on=AGENTS.filter(function(a){return modes[a[0]]!=='arret'}).length;
+  $('kEnMarche').textContent=on+' / 16';
+}
+function dessinerValid(){
+  var l=$('listeValid');
+  if(!VALID.length){l.innerHTML='<div class="vide">Rien à valider pour l’instant.</div>'}
+  else l.innerHTML=VALID.map(function(v){
+    return '<div class="ligne"><span class="etiq e-att">'+v.agent+'</span><div class="txt"><b>'+v.txt+'</b><span>'+v.det+' · expire dans '+v.reste+'</span></div>'
+      +'<div class="act"><button class="b-no" data-d="'+v.id+'" data-r="refuse" type="button">Refuser</button><button class="b-ok" data-d="'+v.id+'" data-r="accepte" type="button">Valider</button></div></div>'}).join('');
+  $('kAttente').textContent=VALID.length;$('pAttente').textContent=VALID.length;$('pAttente').style.display=VALID.length?'':'none';
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('button');if(!b)return;
+  if(b.dataset.p){document.querySelectorAll('.tab').forEach(function(t){t.setAttribute('aria-selected',t===b)});
+    document.querySelectorAll('.panneau').forEach(function(p){p.hidden=p.id!=='p-'+b.dataset.p});return}
+  if(b.dataset.a){
+    var de=modes[b.dataset.a],vers=b.dataset.m;
+    if(de==='arret'&&vers==='auto'){toast('Un agent passe par « brouillon » avant « auto ».');return}
+    modes[b.dataset.a]=vers;dessinerEquipe();toast(b.dataset.a.charAt(0).toUpperCase()+b.dataset.a.slice(1)+' : '+nom(vers).toLowerCase());return}
+  if(b.dataset.d){var id=+b.dataset.d;VALID=VALID.filter(function(v){return v.id!==id});dessinerValid();
+    toast(b.dataset.r==='accepte'?'Demande validée.':'Demande refusée.');return}
+  if(b.id==='pauseBtn'){enPause=!enPause;$('pause').classList.toggle('on',enPause);
+    $('pauseEtat').textContent=enPause?'Tous les agents sont à l’arrêt':'Les agents peuvent travailler';
+    b.textContent=enPause?'Reprendre':'Tout arrêter';toast(enPause?'Pause générale posée.':'Les agents reprennent.')}
+});
+dessinerEquipe();dessinerValid();
+</script>
+</body>
+</html>
