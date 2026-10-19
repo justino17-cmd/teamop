@@ -348,6 +348,16 @@ const MAIL_C = 'client.dupont@exemple.fr', MAIL_C2 = 'second.martin@exemple.fr',
   gestion.ajouter(T_C, { id: '', nom: 'sans id', role: 'patron' });
   maintenant += 61000; a.oublier();
   v('un compte sans identifiant ne passe pas (fermé)', (await a.verifier('Bearer ' + T_C)).ok, false);
+  // un événement dont le traitement ÉCHOUE est OUBLIÉ (500) : Yousign le renverra, et il sera traité (pas « déjà »)
+  const srv = P.app.listen(0, '127.0.0.1'); await new Promise((r2) => srv.on('listening', r2));
+  const vraiTraitement = P.demandes.appliquerEvenement;
+  const envoyer = async (e2) => { const b = Buffer.from(JSON.stringify(e2)); const x = await fetch('http://127.0.0.1:' + srv.address().port + '/api/signature/webhook/yousign', { method: 'POST', body: b, headers: { 'X-Yousign-Signature-256': 'sha256=' + crypto.createHmac('sha256', 's').update(b).digest('hex') } }); return [x.status, (await x.json()).deja === true]; };
+  P.demandes.appliquerEvenement = async () => { throw new Error('disque plein'); };
+  const e500 = { event_id: 'ev_500', event_name: 'signer.signed', data: {} };
+  v('traitement en échec : 500', (await envoyer(e500))[0], 500);
+  P.demandes.appliquerEvenement = vraiTraitement;
+  v('…Yousign renvoie le même événement : REPRIS (200, pas « déjà vu »)', await envoyer(e500), [200, false]);
+  srv.close();
   P.fermer(); fs.rmSync(dir2, { recursive: true, force: true });
 
   gestion.fermer(); ys.fermer();
