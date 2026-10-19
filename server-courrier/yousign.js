@@ -5,7 +5,7 @@
  * ⚠️ À VÉRIFIER CONTRE LA DOCUMENTATION OFFICIELLE (https://developers.yousign.com) AVANT LE PREMIER ESSAI RÉEL — ces noms ont été
  * écrits de mémoire, sans accès à la documentation. Tout ce qui est incertain est marqué « VÉRIFIER » : si Yousign diffère, on corrige ICI
  * et nulle part ailleurs (le reste du service n'appelle que les fonctions exportées).
- *   · POST /signature_requests                         { name, delivery_mode:'email', timezone, expiration_date:'AAAA-MM-JJ', ordered_signers, reminder_settings:{interval_in_days,max_occurrences} }
+ *   · POST /signature_requests                         { name, delivery_mode:'email', timezone, expiration_date:'AAAA-MM-JJ', ordered_signers, reminder_settings:{interval_in_days:1|2|7|14, max_occurrences:1..10} }
  *   · POST /signature_requests/{id}/documents          multipart : file, nature:'signable_document'  → { id, total_pages }   VÉRIFIER total_pages
  *   · POST /signature_requests/{id}/signers            { info:{first_name,last_name,email,phone_number,locale:'fr'}, signature_level, signature_authentication_mode, fields:[{type:'signature',document_id,page,x,y,width,height}] }
  *        simple  → signature_level 'electronic_signature'          + otp_email     VÉRIFIER
@@ -75,7 +75,8 @@ function creerYousign({ cleApi, urlApi, fetchImpl = fetch, timeoutMs = 20000 }) 
     async creerDemande({ nom, jours, relances, ordonne }) {
       const fin = new Date(Date.now() + jours * 86400000).toISOString().slice(0, 10);
       const corps = { name: nom, delivery_mode: 'email', timezone: 'Europe/Paris', expiration_date: fin, ordered_signers: !!ordonne };
-      if (relances) corps.reminder_settings = { interval_in_days: 3, max_occurrences: Math.max(1, Math.floor(jours / 3)) };
+      /* ⛔ Yousign n'accepte que 1, 2, 7 ou 14 jours entre deux relances, et 1 à 10 relances (guide « manage signature reminders ») : « 3 jours » donnait un 400 « invalid params in your payload » (premier vrai essai, 19 octobre 2026) */
+      if (relances) corps.reminder_settings = { interval_in_days: 2, max_occurrences: Math.min(10, Math.max(1, Math.floor(jours / 2))) };
       const j = await appel('creer', 'POST', '/signature_requests', { json: corps });
       if (!j || !j.id) throw new YousignErreur('creer', 502);
       return { id: String(j.id) };
