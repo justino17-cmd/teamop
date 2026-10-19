@@ -10046,7 +10046,7 @@ try {
     /* LA DIRECTION : la charte d'autonomie (ce que chaque geste a le droit de faire seul) et le rapport du jour. Elle ne fait agir personne. */
     directionMod = require('./direction')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });
     /* LES CONTRATS : rien ne part sans une version VALIDÉE par une personne nommée ; le tampon est posé par le serveur. */
-    contratsMod = require('./contrats')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod });
+    contratsMod = require('./contrats')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, textesDir: path.join(__dirname, 'contrats-textes') });
     /* LES DOSSIERS : un numéro par client (`DOS-000123`), la fiche pour le patron, la même fiche pour un agent à qui il le donne. */
     dossiersMod = require('./dossiers')(app, { DATA_DIR, monPatronStrict, clients: () => clientsData,
       espaceDe: (email) => { const m = String(email).toLowerCase(); const sl = Object.keys(espacesReg).find(k => espacesReg[k] && String(espacesReg[k].email || '').toLowerCase() === m); return sl ? Object.assign({ slug: sl }, espacesReg[sl]) : null; },

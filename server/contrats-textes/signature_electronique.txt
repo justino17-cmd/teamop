@@ -1,0 +1,16 @@
+CONDITIONS DE LA SIGNATURE ÉLECTRONIQUE
+
+Article 1 — Principe
+Le Client accepte son contrat en ligne, par une signature électronique simple : il ouvre le lien reçu à l'adresse électronique confirmée de son compte, lit les documents du contrat, puis exprime son accord par un geste explicite (« J'accepte »).
+
+Article 2 — Ce que TEAM OP conserve
+Au moment de l'acceptation, TEAM OP conserve : l'identifiant du dossier du Client, la liste et l'empreinte numérique (SHA-256) de chacun des documents acceptés, la date et l'heure, et l'adresse électronique confirmée du compte. Ces éléments permettent de prouver quel texte exact a été accepté, par qui et quand.
+
+Article 3 — Valeur
+Les parties reconnaissent à ces éléments la valeur de preuve d'un écrit électronique, au sens des articles 1366 et 1367 du code civil. [À CONFIRMER PAR UN JURISTE : qu'une signature électronique simple suffit pour ces contrats d'abonnement, ou s'il faut un niveau supérieur.]
+
+Article 4 — Copie
+Le Client reçoit par courriel une copie des documents acceptés. Il peut en demander une nouvelle à tout moment à contact@teamop.fr.
+
+Article 5 — Documents modifiés
+Une nouvelle version d'un document est soumise à acceptation dans les conditions de l'article 16 des conditions générales. L'ancienne version reste conservée avec son empreinte.

@@ -16,11 +16,33 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+/* Les PIÈCES. `groupe` range la Tour : générales (toute la société), application, formule (conditions particulières d'un abonnement), annexes. */
 const TYPES = {
-  conditions_op_gestion:  'Conditions d’utilisation et de vente — OP GESTION',
+  conditions_generales:   'Conditions générales TEAM OP (toutes les applications)',
+  conditions_op_gestion:  'Conditions d’utilisation — OP GESTION',
   conditions_op_messages: 'Conditions d’utilisation — OP MESSAGES',
+  cp_op_gestion_pro:      'Conditions particulières — OP GESTION Pro',
+  cp_op_gestion_business: 'Conditions particulières — OP GESTION Business',
+  cp_op_gestion_business_premium: 'Conditions particulières — OP GESTION Business Premium',
+  cp_op_messages_perso:   'Conditions particulières — OP MESSAGES Perso',
+  cp_op_messages_pro:     'Conditions particulières — OP MESSAGES Pro',
+  cp_op_messages_business_premium: 'Conditions particulières — OP MESSAGES Business Premium',
+  dpa:                    'Contrat de sous-traitance des données (RGPD art. 28)',
   signature_electronique: 'Conditions de la signature électronique',
 };
+const GROUPES = { generales: ['conditions_generales'], op_gestion: ['conditions_op_gestion'], op_messages: ['conditions_op_messages'], annexes: ['dpa', 'signature_electronique'] };
+const COMMUNES = ['conditions_generales', 'dpa', 'signature_electronique'];
+/* Le PAQUET d'un abonnement = ce que le client reçoit et accepte : générales + application + conditions particulières de SA formule + annexes. */
+const PAQUETS = {
+  'op_gestion:pro':  ['conditions_generales', 'conditions_op_gestion', 'cp_op_gestion_pro', 'dpa', 'signature_electronique'],
+  'op_gestion:business': ['conditions_generales', 'conditions_op_gestion', 'cp_op_gestion_business', 'dpa', 'signature_electronique'],
+  'op_gestion:business_premium': ['conditions_generales', 'conditions_op_gestion', 'cp_op_gestion_business_premium', 'dpa', 'signature_electronique'],
+  'op_messages:perso': ['conditions_generales', 'conditions_op_messages', 'cp_op_messages_perso', 'dpa', 'signature_electronique'],
+  'op_messages:pro': ['conditions_generales', 'conditions_op_messages', 'cp_op_messages_pro', 'dpa', 'signature_electronique'],
+  'op_messages:business_premium': ['conditions_generales', 'conditions_op_messages', 'cp_op_messages_business_premium', 'dpa', 'signature_electronique'],
+};
+/* Un texte qui porte encore un point à confirmer ne se valide pas : le tampon dirait que tout est relu. */
+const MARQUEUR = /\[À (?:CONFIRMER|COMPLÉTER)/;
 const TEXTE_MAX = 80000, NOTE_MAX = 300;
 const DOS = /^DOS-\d{6}$/;
 const sha = t => crypto.createHash('sha256').update(String(t), 'utf8').digest('hex');
@@ -77,6 +99,7 @@ module.exports = function contrats(app, ctx) {
     if (i < 0) return { code: 404, error: 'Version inconnue' };
     if (liste[i].statut !== 'brouillon') return { code: 409, error: 'Cette version est déjà ' + (liste[i].statut === 'valide' ? 'validée' : 'retirée') };
     if (!qui) return { code: 400, error: 'Personne nommée manquante' };
+    if (MARQUEUR.test(liste[i].texte)) return { code: 409, error: 'Ce texte porte encore des points « À CONFIRMER » : les trancher dans un nouveau brouillon avant de valider' };
     const copie = liste.map(x => Object.assign({}, x));
     Object.assign(copie[i], { statut: 'valide', validePar: String(qui).slice(0, 60), valideLe: maintenant(), empreinte: sha(copie[i].texte) });
     const avant = docs[type]; docs[type] = copie;
@@ -123,13 +146,43 @@ module.exports = function contrats(app, ctx) {
     noter(champ === 'envoyeLe' ? 'contrat : envoyé' : 'contrat : accepté', { cible: clients[i].dossier, detail: clients[i].type + ' v' + clients[i].version });
     return { ok: true, contrat: Object.assign({}, clients[i]) };
   }
+  /* Le contrat d'un ABONNEMENT : toutes les pièces de son paquet, chacune dans sa version en vigueur, figées ensemble. Une pièce sans version validée bloque tout. */
+  function paquetManquant(cle) { return (PAQUETS[cle] || []).filter(t => !enVigueur(t)); }
+  function creerPaquet(dossier, application, formule) {
+    const cle = String(application) + ':' + String(formule);
+    if (!DOS.test(String(dossier))) return { ok: false, raison: 'dossier' };
+    if (!PAQUETS[cle]) return { ok: false, raison: 'formule' };
+    if (illisible()) return { ok: false, raison: 'registre_illisible' };
+    const type = 'paquet:' + cle;
+    const deja = clients.find(c => c.dossier === dossier && c.type === type);
+    if (deja) return { ok: true, deja: true, contrat: Object.assign({}, deja) };
+    const manquantes = paquetManquant(cle);
+    if (manquantes.length) { noter('contrat : rien à envoyer', { cible: dossier, resultat: 'refuse', detail: 'pièces sans version validée : ' + manquantes.join(', ') }); return { ok: false, raison: 'aucune_version_validee', manquantes }; }
+    const pieces = PAQUETS[cle].map(t => { const v = enVigueur(t); return { type: t, version: v.n, empreinte: v.empreinte }; });
+    const c = { id: crypto.randomBytes(6).toString('hex'), dossier, type, pieces, version: 0, empreinte: sha(pieces.map(p => p.type + p.version + p.empreinte).join('|')), envoyeLe: 0, accepteLe: 0 };
+    const avant = clients; clients = clients.concat([c]);
+    if (!ecrire(F_CLIENTS, clients)) { clients = avant; return { ok: false, raison: 'non_ecrit' }; }
+    return { ok: true, contrat: Object.assign({}, c) };
+  }
+  /* Les textes rédigés (dossier contrats-textes) entrent comme BROUILLONS, une fois, sur un type encore vide. Jamais validés ici. */
+  function semer(dossierTextes) {
+    if (!dossierTextes || illisibles.has(F_DOCS)) return 0;
+    let n = 0;
+    for (const t of Object.keys(TYPES)) {
+      if (versions(t).length) continue;
+      let texte; try { texte = fs.readFileSync(path.join(dossierTextes, t + '.txt'), 'utf8'); } catch (e) { continue; }
+      if (brouillon(t, texte, 'Rédaction (agents)', 'Texte initial — à relire et trancher les points « À CONFIRMER »').code === 200) n++;
+    }
+    return n;
+  }
+  if (ctx.textesDir) { try { semer(ctx.textesDir); } catch (e) { console.error('semis des contrats :', e.message); } }
   const marquerEnvoye = id => marquer(id, 'envoyeLe');
   const marquerAccepte = id => marquer(id, 'accepteLe');
 
   /* ── les routes (le patron seul écrit ; l'administrateur lit) ── */
   app.get('/api/monitor/contrats', monAdmin, (req, res) => {
     if (illisible()) return res.status(503).json({ error: 'Le registre des contrats est illisible' });
-    res.json({ ok: true, types: Object.keys(TYPES).map(t => ({ type: t, libelle: TYPES[t], enVigueur: (() => { const v = enVigueur(t); return v ? { n: v.n, validePar: v.validePar, valideLe: v.valideLe, empreinte: v.empreinte } : null; })(), versions: versions(t).map(x => vueVersion(x, false)).reverse() })),
+    res.json({ ok: true, groupes: GROUPES, paquets: Object.keys(PAQUETS).map(k => ({ cle: k, pieces: PAQUETS[k], manquantes: paquetManquant(k) })), types: Object.keys(TYPES).map(t => ({ type: t, libelle: TYPES[t], aConfirmer: versions(t).some(x => x.statut === 'brouillon' && MARQUEUR.test(x.texte)), enVigueur: (() => { const v = enVigueur(t); return v ? { n: v.n, validePar: v.validePar, valideLe: v.valideLe, empreinte: v.empreinte } : null; })(), versions: versions(t).map(x => vueVersion(x, false)).reverse() })),
       clients: { total: clients.length, envoyes: clients.filter(c => c.envoyeLe).length, acceptes: clients.filter(c => c.accepteLe).length, enAttente: clients.filter(c => c.envoyeLe && !c.accepteLe).length } });
   });
   app.get('/api/monitor/contrats/version', monAdmin, (req, res) => {
@@ -148,7 +201,8 @@ module.exports = function contrats(app, ctx) {
   app.post('/api/monitor/contrats/valider', monPatronStrict, (req, res) => { const b = req.body || {}; reponse(res, valider(String(b.type || ''), Number(b.n), req.tourUser && req.tourUser.nom)); });
   app.post('/api/monitor/contrats/retirer', monPatronStrict, (req, res) => { const b = req.body || {}; reponse(res, retirer(String(b.type || ''), Number(b.n), req.tourUser && req.tourUser.nom)); });
 
-  return { enVigueur, brouillon, valider, creerPourClient, marquerEnvoye, marquerAccepte, estIllisible: illisible, TYPES };
+  return { enVigueur, brouillon, valider, creerPourClient, creerPaquet, semer, marquerEnvoye, marquerAccepte, estIllisible: illisible, TYPES };
 };
 module.exports.TYPES = TYPES;
+module.exports.PAQUETS = PAQUETS;
 module.exports.sha = sha;
