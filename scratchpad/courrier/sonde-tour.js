@@ -243,9 +243,22 @@ const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers
     { const e = S3.lireEtat(), mm = e.boites['support@teamop.fr'].messages; mm.find(x => x.dossier === 'INBOX' && x.uid === 1).flags = ['\\Seen']; mm.find(x => x.dossier === 'INBOX' && x.uid === 2).flags = ['\\Flagged'];
       mm.push({ dossier: 'INBOX', uid: 90, messageId: '<robot@sonde>', from: 'noreply@teamop.fr', fromNom: 'TeamOP', to: 'support@teamop.fr', subject: 'Votre code de connexion', text: 'Code 123456', ts: Date.now() - 1000, flags: [] });
       require('fs').writeFileSync(S3.lireEtatChemin(), JSON.stringify(e)); }
+    /* le suivi : une demande « À traiter » (déjà lue), une « En cours » assignée à la personne connectée (Patron) */
+    { const tk = (await (await fetch('http://127.0.0.1:' + S3.port + '/api/monitor/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Forwarded-For': '10.8.0.1' }, body: JSON.stringify({ nom: 'Patron', pass: S3.MDP }) })).json()).token;
+      for (const [mid, st, as] of [['<b0-1@sonde>', 'aTraiter', ''], ['<b0-2@sonde>', 'enCours', 'Patron']]) await fetch('http://127.0.0.1:' + S3.port + '/api/monitor/mail/suivi', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + tk, 'X-Forwarded-For': '10.8.0.2' }, body: JSON.stringify({ mid, statut: st, assigne: as }) }); }
     const { ctx, p, err } = await nouveau({}, S3); await ouvrirCourrier(p); await p.waitForTimeout(2500);
     const noms = await p.evaluate(sr => [...eval(sr).querySelectorAll('.scope-row')].map(r => r.querySelector('.sn').textContent + '|' + r.querySelector('.ss').textContent), SR);
     log(noms.slice(1).every((n, i) => n.split('|')[0] === ['support', 'controle', 'contact'][i] + '@teamop.fr' && n.split('|')[1] === 'TEAM OP'), 'boîtes : trois boîtes « TEAM OP » se lisent par leur ADRESSE (le nom dessous) — ' + noms.join(' / '));
+    const suivi = await p.evaluate(sr => [...eval(sr).querySelectorAll('#sideBody section')].filter(x => /Suivi/.test(x.querySelector('h2').textContent)).map(x => [...x.querySelectorAll('.folder')].map(f => f.querySelector('.sn').textContent + ':' + ((f.querySelector('.cnt') || {}).textContent || '0').trim())), SR);
+    log(JSON.stringify(suivi) === '[["À traiter:1","En cours:1","Assignés à moi:1"]]', 'suivi : la section « Suivi » (À traiter, En cours, Assignés à moi) avec compteurs — ' + JSON.stringify(suivi));
+    const pastille = await p.evaluate(() => (document.getElementById('bdg-supp') || {}).textContent);
+    log(pastille === '7', 'suivi : la pastille du menu de la Tour compte les non lus ET les « À traiter » (6 non lus + 1 demande lue à traiter) — ' + pastille);
+    await p.evaluate(sr => eval(sr).querySelector('.folder[data-folder="s_atraiter"]').click(), SR); await p.waitForTimeout(500);
+    const atr = await p.evaluate(sr => [...eval(sr).querySelectorAll('#rows .msg')].map(x => x.textContent.replace(/\s+/g, ' ')), SR);
+    log(atr.length === 1 && /Reception support@teamop\.fr/.test(atr[0]), 'suivi : le dossier « À traiter » ne montre que la demande à traiter — ' + atr.join('|').slice(0, 80));
+    await p.evaluate(sr => eval(sr).querySelector('.folder[data-folder="s_moi"]').click(), SR); await p.waitForTimeout(500);
+    log(await p.locator('#rows .msg').count() === 1, 'suivi : « Assignés à moi » montre la demande assignée à Patron');
+    await p.screenshot({ path: path.join(CAP, 'tour-suivi-dossiers-jour-bureau.png'), clip: { x: 0, y: 0, width: 900, height: 900 } });
     const cliquer = (sel) => p.evaluate(([sr, s]) => { const b = eval(sr).querySelector(s); if (b) b.click(); return !!b; }, [SR, sel]);
     const dossierActif = () => p.evaluate(sr => (eval(sr).querySelector('.folder.active .sn') || {}).textContent, SR);
     const nbCats = () => p.evaluate(sr => [...eval(sr).querySelectorAll('#catBar .cat')].map(c => c.textContent.replace(/\s+/g, ' ').trim()), SR);

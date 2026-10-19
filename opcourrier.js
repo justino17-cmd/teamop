@@ -26,7 +26,7 @@
    ── Le contrat de l'adaptateur ───────────────────────────────────────────────────────────────────────────────────────────────────────────
    Toutes les méthodes sont asynchrones (elles rendent une promesse). Un échec = un rejet avec un Error dont le message est lisible : le module le DIT à l'écran.
    « Liste vide » et « on n'a pas pu savoir » ne se confondent jamais : un rejet n'est PAS un tableau vide.
-     capacites()                 → { oauth, programmeServeur, signature, marquage, deplacement, reglagesServeur, simulation : booléens (faux par défaut),
+     capacites()                 → { moi?:string (le nom sous lequel la personne connectée est « assignée » : « Assignés à moi »),  oauth, programmeServeur, signature, marquage, deplacement, reglagesServeur, simulation : booléens (faux par défaut),
                                      journalEnvois (le dossier « Envois TeamOP », lu par envois()), telechargerPiece (le bouton sur chaque pièce reçue, via piece()),
                                      suivi (le suivi d'une demande, via suivi()) : booléens, faux par défaut — le module ne promet RIEN qu'une source ne déclare pas,
                                      dossiers : ['inbox', …] les dossiers que la source remplit (les autres restent sur l'appareil),
@@ -401,6 +401,7 @@ var CSS = `
   .opc .sic.orange{color:var(--flag)}
   .opc .sic.tile{width:24px;height:24px;border-radius:7px;color:#fff;background:var(--tc,#8e8e93);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.08),0 1px 1.5px rgba(0,0,0,.12)}
   .opc .sic.tile svg{width:15px;height:15px;stroke-width:2.1}
+  .opc .f-s_atraiter{--tc:linear-gradient(180deg,#ff8a5c,#d9480f)} .opc .f-s_encours{--tc:linear-gradient(180deg,#e0a64a,#b36b00)} .opc .f-s_moi{--tc:linear-gradient(180deg,#3d6bd6,#2a4a9c)}
   .opc .f-inbox{--tc:linear-gradient(180deg,#3d6bd6,#2a4a9c)} .opc .f-flagged{--tc:linear-gradient(180deg,#ffb340,#ff9500)} .opc .f-drafts{--tc:linear-gradient(180deg,#a1a1a6,#7c7c82)}
   .opc .f-scheduled{--tc:linear-gradient(180deg,#7a78e8,#5856d6)} .opc .f-sign{--tc:linear-gradient(180deg,#2f9a55,#17602a)} .opc .f-sent{--tc:linear-gradient(180deg,#4fc3d9,#1e9bb5)} .opc .f-envois{--tc:linear-gradient(180deg,#8e8e93,#636366)} .opc .f-archive{--tc:linear-gradient(180deg,#b8996f,#957852)}
   .opc .f-junk{--tc:linear-gradient(180deg,#ff6a5f,#e8362b)} .opc .f-trash{--tc:linear-gradient(180deg,#7d7d83,#58585e)}
@@ -1655,7 +1656,11 @@ var MARKUP = `
     {id:"envois", name:"Envois TeamOP",      icon:"sent",    fav:true, journal:true},   // le journal des e-mails que le SERVEUR envoie : lecture seule, présent seulement si la source le déclare
     {id:"archive",name:"Archive",            icon:"archive"},
     {id:"junk",   name:"Indésirables",       icon:"junk"},
-    {id:"trash",  name:"Corbeille",          icon:"trash"}
+    {id:"trash",  name:"Corbeille",          icon:"trash"},
+    // Le SUIVI d'une demande (seulement si la source le déclare) : des dossiers intelligents, lus sur l'état de suivi du message — jamais des dossiers de la boîte
+    {id:"s_atraiter",name:"À traiter",        icon:"clock",   suivi:true, smart:true},
+    {id:"s_encours", name:"En cours",         icon:"tray2",   suivi:true, smart:true},
+    {id:"s_moi",     name:"Assignés à moi",   icon:"person",  suivi:true, smart:true}
   ];
   function folderOf(id){ for(var i=0;i<FOLDERS.length;i++) if(FOLDERS[i].id===id) return FOLDERS[i]; return FOLDERS[0]; }
 
@@ -1683,6 +1688,7 @@ var MARKUP = `
     CAP.journalEnvois=c.journalEnvois===true&&typeof SRC.envois==="function";
     CAP.telechargerPiece=c.telechargerPiece===true&&typeof SRC.piece==="function";
     CAP.suivi=c.suivi===true&&typeof SRC.suivi==="function";
+    CAP.moi=CAP.suivi&&typeof c.moi==="string"?c.moi.trim():"";   // le nom sous lequel la personne connectée est « assignée » (sans lui, « Assignés à moi » n'existe pas)
     if(!CAP.journalEnvois&&state.folder==="envois") state.folder="inbox";
     CAP.dossiers=Array.isArray(c.dossiers)&&c.dossiers.length?c.dossiers.filter(function(d){ var f=folderOfStrict(d); return !!f&&!f.journal; }):["inbox"];
     if(!CAP.dossiers.length) CAP.dossiers=["inbox"];
@@ -1821,7 +1827,8 @@ var MARKUP = `
     if(neufs.length&&SETTINGS.notif) notifierArrivee(neufs);
     compter(); }
   var dernierCompte=-1;
-  function compter(){ var n=MESSAGES.filter(function(m){ return m.folder==="inbox"&&!m.read&&acctExists(m.acct); }).length;
+  // La pastille compte les non lus ET les demandes « À traiter » (une demande déjà lue mais pas traitée attend encore quelqu'un) — chaque message une fois.
+  function compter(){ var n=MESSAGES.filter(function(m){ return m.folder==="inbox"&&acctExists(m.acct)&&(!m.read||(CAP.suivi&&!!m.suivi&&m.suivi.statut==="aTraiter")); }).length;
     if(n!==dernierCompte){ dernierCompte=n; try{ if(typeof opt.onCompter==="function") opt.onCompter(n); }catch(e){} }
     if(opt.titreDocument) document.title=(n?"("+n+") ":"")+TITRE_ORIG; }
 
@@ -1988,7 +1995,13 @@ var MARKUP = `
   // Vue : toutes les boîtes, tout l'univers pro, tout l'univers perso, ou un seul compte.
   function inScopeOf(m,sc){ if(sc==="all"||m.jr) return true; if(sc==="pro"||sc==="perso") return kindOf(acctOf(m.acct))===sc; return m.acct===sc; }
   function inScope(m){ return inScopeOf(m,state.scope); }
-  function inFolder(m,fid){ if(fid==="flagged") return m.flagged&&m.folder!=="trash"&&m.folder!=="outbox"; return m.folder===fid; }
+  function nomSuivi(x){ return String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim(); }
+  // Les dossiers de suivi : l'état lu par la source sur une demande de la RÉCEPTION ; « Assignés à moi » = l'assigné est la personne connectée, tant que ce n'est pas résolu.
+  function suiviDossier(m,fid){ var s=m.suivi; if(!s||!m.src||m.folder!=="inbox") return false;
+    if(fid==="s_atraiter") return s.statut==="aTraiter"; if(fid==="s_encours") return s.statut==="enCours";
+    return !!CAP.moi&&s.statut!=="resolu"&&nomSuivi(s.assigne)===nomSuivi(CAP.moi); }
+  function suiviDossiers(){ return CAP.suivi?FOLDERS.filter(function(f){ return f.suivi&&(f.id!=="s_moi"||!!CAP.moi); }):[]; }
+  function inFolder(m,fid){ if(/^s_/.test(fid)) return CAP.suivi&&suiviDossier(m,fid); if(fid==="flagged") return m.flagged&&m.folder!=="trash"&&m.folder!=="outbox"; return m.folder===fid; }
   // Brouillon ou message programmé encore modifiable (pas déjà parti entre-temps)
   function liveDraft(id){ var x=msgById(id); return x&&(x.folder==="drafts"||x.folder==="scheduled")?x:null; }
   function folderMessages(fid){ var arr=MESSAGES.filter(function(m){return inScope(m)&&inFolder(m,fid);});
@@ -2069,6 +2082,7 @@ var MARKUP = `
     var acctRow=function(a){ var k=kindOf(a); return {id:a.id,name:acctLabel(a),sub:acctSous(a),title:a.email,badge:kindBadge(k),tile:acctTile(a)}; };
     // Pas de mélange : la barre ne montre que le côté choisi (Pro OU Perso) — ses comptes, ses compteurs.
     var cote=coteCourant();
+    if(/^s_/.test(state.folder)&&!suiviDossiers().some(function(f){ return f.id===state.folder; })) state.folder="inbox";   // la source ne déclare plus le suivi (ou la personne n'a pas de nom)
     if(cote==="perso"&&state.folder==="sign") state.folder="inbox";   // la signature de contrats est réservée au côté Pro
     var mine=cote==="pro"?pro:perso, K=cote==="pro"?"pro":"perso";
     var h=group("hAcc",UN_COTE?"Boîtes mail":cote==="pro"?"Comptes pro":"Comptes perso",
@@ -2082,7 +2096,7 @@ var MARKUP = `
          '<button type="button" class="srow add" data-addaccount="1"><span class="sic" aria-hidden="true">'+I.plusCircle+'</span><span class="sl"><span class="sn">Ajouter une boîte mail</span></span></button>')+'</div></section>'; }
     function sect(id,label,list){ var s='<section class="sgroup" aria-labelledby="'+id+'"><h2 class="shead" id="'+id+'">'+label+'</h2><div class="glist">';
       list.forEach(function(f){ var badge="", n;
-        if(f.id==="drafts"||f.id==="flagged"||f.id==="scheduled"){ n=totalCount(f.id); if(n) badge='<span class="cnt">'+n+'</span>'; }
+        if(f.id==="drafts"||f.id==="flagged"||f.id==="scheduled"||f.suivi){ n=totalCount(f.id); if(n) badge='<span class="cnt">'+n+'</span>'; }
         else{ n=unreadCount(f.id); if(n) badge='<span class="cnt">'+n+'<span class="sr"> '+nonLus(n)+'</span></span>'; }
         var on=state.folder===f.id;
         s+='<button type="button" class="srow folder'+(on?" active":"")+'" data-folder="'+f.id+'" aria-current="'+on+'">'+
@@ -2090,7 +2104,8 @@ var MARKUP = `
           '<span class="chev" aria-hidden="true">'+I.chevR+'</span></button>';
       }); return s+'</div></section>'; }
     h+=sect("hFav","Favoris",FOLDERS.filter(function(f){return f.fav&&(!f.pro||cote==="pro")&&(!f.journal||CAP.journalEnvois);}));
-    h+=sect("hOther","Autres dossiers",FOLDERS.filter(function(f){return !f.fav;}));
+    if(suiviDossiers().length) h+=sect("hSuivi","Suivi",suiviDossiers());
+    h+=sect("hOther","Autres dossiers",FOLDERS.filter(function(f){return !f.fav&&!f.suivi;}));
     h+='<div class="side-foot"><div class="glist">'+(LOAD.boites==="calme"&&!ACCOUNTS.length?'':'<button type="button" class="srow add" data-addaccount="1"><span class="sic" aria-hidden="true">'+I.plusCircle+'</span><span class="sl"><span class="sn">Ajouter un compte</span></span></button>')+
       '<button type="button" class="srow add" data-settings="1"><span class="sic" aria-hidden="true">'+I.gear+'</span><span class="sl"><span class="sn">Réglages</span></span></button></div></div>';
     $("#sideBody").innerHTML=h;

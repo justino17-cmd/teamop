@@ -7047,7 +7047,7 @@ function courrierSource(){
   return {
     capacites:function(){ return Promise.resolve({oauth:false,programmeServeur:false,signature:false,marquage:true,deplacement:true,reglagesServeur:true,simulation:false,
       dossiers:['inbox','drafts','sent','archive','junk','trash'],destinataires:20,pj:{nombre:12,octets:12*1024*1024},
-      journalEnvois:true,telechargerPiece:true,suivi:true}); },
+      journalEnvois:true,telechargerPiece:true,suivi:true,moi:MYNOM}); },
     boites:function(){
       return appel('/api/monitor/mail/boites',undefined,'Lecture des boîtes refusée').then(function(d){
         if(!d||!Array.isArray(d.boites)) throw new Error('réponse du serveur illisible');

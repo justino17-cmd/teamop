@@ -501,6 +501,28 @@ console.log('\n6 sexies. Un rejet « calme » n\'est pas une panne');
   vrai('…et la liste calme se repeint (renderAll) comme une panne se repeint', /LOAD\.boites==="ko"\|\|LOAD\.boites==="calme"/.test(CODE));
 }
 
+/* ═════════════════════════════ 6 septies. v2.92 — LES DOSSIERS DE SUIVI (À traiter, En cours, Assignés à moi) ═════════════════════════════ */
+console.log('\n6 septies. Dossiers de suivi : seulement si la source déclare le suivi, comptés, et la pastille aussi');
+{
+  const F = ['nomSuivi', 'suiviDossier', 'suiviDossiers'].map(n => { const f = fonction(MOD, n); vrai('(tranche trouvée) la fonction ' + n, f.length > 40); return f; }).join('\n');
+  const FOLD = tranche('les dossiers de suivi', '    {id:"s_atraiter"', '  ];', MOD);
+  const jouer = (cap, msgs, fid) => { const sb = { CAP: cap, String, FOLDERS: [] }; vm.createContext(sb); vm.runInContext('var FOLDERS=[' + FOLD.replace(/\/\/[^\n]*/g, '') + '];\n' + F + '\n;this.d=suiviDossier;this.l=suiviDossiers;', sb);
+    return { dans: msgs.filter(m => sb.d(m, fid)).map(m => m.id), liste: sb.l().map(f => f.id) }; };
+  const m = (id, statut, assigne, o) => Object.assign({ id, src: true, folder: 'inbox', suivi: statut ? { statut, assigne: assigne || '', par: '' } : null }, o);
+  const L = [m('a', 'aTraiter', ''), m('b', 'enCours', 'Patron'), m('c', 'resolu', 'Patron'), m('d', null), m('e', 'aTraiter', 'Léa Moreau'), m('f', 'enCours', ' patron '), m('g', 'aTraiter', 'Patron', { folder: 'archive' }), m('h', 'aTraiter', 'Patron', { src: false })];
+  const cap = { suivi: true, moi: 'Patron' };
+  v('⛔ « À traiter » = les demandes de la RÉCEPTION dont le suivi dit « à traiter » (ni résolues, ni sans suivi, ni archivées, ni écrites ici)', jouer(cap, L, 's_atraiter').dans, ['a', 'e']);
+  v('⛔ « En cours » = celles dont le suivi dit « en cours »', jouer(cap, L, 's_encours').dans, ['b', 'f']);
+  v('⛔ « Assignés à moi » = l\'assigné est la personne connectée (casse, accents, espaces ignorés), tant que ce n\'est pas RÉSOLU', jouer(cap, L, 's_moi').dans, ['b', 'f']);
+  v('⛔ les trois dossiers n\'existent QUE si la source déclare le suivi ; « Assignés à moi » exige en plus un nom de personne', [jouer({ suivi: false }, L, 's_atraiter').liste, jouer({ suivi: true, moi: '' }, L, 's_moi').liste, jouer(cap, L, 's_moi').liste],
+    [[], ['s_atraiter', 's_encours'], ['s_atraiter', 's_encours', 's_moi']]);
+  const rs = fonction(MOD, 'renderSidebar'), inf = fonction(MOD, 'inFolder'), cpt = fonction(MOD, 'compter');
+  vrai('⛔ la barre latérale a une section « Suivi » (compteur = le nombre de demandes, comme Brouillons), et « Autres dossiers » n\'en reprend pas', /if\(suiviDossiers\(\)\.length\) h\+=sect\("hSuivi","Suivi",suiviDossiers\(\)\);/.test(rs) && /f\.id==="scheduled"\|\|f\.suivi\)\{/.test(rs) && /FOLDERS\.filter\(function\(f\)\{return !f\.fav&&!f\.suivi;\}\)/.test(rs));
+  vrai('…inFolder les lit sur l\'état de suivi (jamais un dossier de la boîte) ; un dossier de suivi choisi puis retiré par la source revient à la réception', /if\(\/\^s_\/\.test\(fid\)\) return CAP\.suivi&&suiviDossier\(m,fid\)/.test(inf) && /state\.folder="inbox";   \/\/ la source ne déclare plus le suivi/.test(rs));
+  vrai('⛔ la PASTILLE du menu de l\'hôte compte les non lus ET les demandes « À traiter » (chaque message une fois, seulement avec le suivi déclaré)', /\(!m\.read\|\|\(CAP\.suivi&&!!m\.suivi&&m\.suivi\.statut==="aTraiter"\)\)/.test(cpt));
+  vrai('…et `moi` ne vient que de la source déclarée (capacites().moi), jamais d\'une valeur par défaut', /CAP\.moi=CAP\.suivi&&typeof c\.moi==="string"\?c\.moi\.trim\(\):""/.test(CODE));
+}
+
 /* ═════════════════════════════ 7. LE SITE ET LES SONDES ═════════════════════════════ */
 console.log('\n7. Dans le site assemblé, et gardé');
 vrai('opcourrier.js est à la racine : le script d\'assemblage prend les *.js de la racine par leur forme', fs.existsSync(path.join(RACINE, 'opcourrier.js')) && /for f in \*\.html \*\.js/.test(lire('scripts/assembler-site.sh')));
