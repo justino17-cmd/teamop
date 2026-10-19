@@ -76,6 +76,27 @@ module.exports = function hugo(ctx) {
     } finally { enCours = false; }
   }
 
-  return { passer };
+  /* ── la CONVERSATION : Justin écrit dans le fil de Hugo, Hugo répond (Claude). Il ne fait RIEN d'autre : il ne propose ni n'exécute
+        par ce chemin. Le prompt ne reçoit que le texte de Justin et des FAITS fermés sur les dossiers qu'il nomme (jamais un nom, une
+        adresse, un téléphone ni une note de client). ── */
+  const cerveau = ctx.cerveau && typeof ctx.cerveau.penser === 'function' ? ctx.cerveau : null;
+  const faits = ctx.faits && typeof ctx.faits === 'function' ? ctx.faits : null;
+  const SYSTEM = 'Tu es Hugo, l’agent « Paiements et accès » de Team OP (logiciels OP GESTION et OP MESSAGES). Tu parles à Justin, le patron, en français, avec des phrases courtes et directes. ' +
+    'Tu vois les paiements Stripe et l’état des espaces clients. Dans cette conversation tu ne peux RIEN faire : tu expliques, tu constates, et si une action te paraît utile tu dis laquelle — elle passera par une validation de Justin dans la Tour. ' +
+    'Tu ne promets jamais d’avoir fait quelque chose. Si les faits fournis ne répondent pas à la question, tu dis que tu ne sais pas. Ne répète jamais d’adresse e-mail ni de numéro de téléphone.';
+  async function repondre(texte) {
+    if (!cerveau || !conv) return { saute: 'pas_de_cerveau' };
+    const t = String(texte || '').slice(0, 1000);
+    const numeros = [...new Set(t.toUpperCase().match(/DOS-\d{6}/g) || [])].slice(0, 3);
+    let lignes = [];
+    if (faits) for (const n of numeros) { let f = null; try { f = await faits(n); } catch (e) { f = null; } lignes.push(f ? JSON.stringify(f) : '{"numero":"' + n + '","lecture":"impossible"}'); }
+    const system = SYSTEM + (lignes.length ? '\nFaits relevés par le serveur sur les dossiers cités (JSON, un par ligne) :\n' + lignes.join('\n') : '\nAucun dossier cité : tu n’as aucun fait client sous les yeux.');
+    const r = await cerveau.penser(ID, system, [{ role: 'user', content: t }]);
+    if (!r.ok) { if (r.raison === 'plafond_agent' || r.raison === 'plafond_total' || r.raison === 'pas_de_cle' || r.raison === 'erreur_api') dire('Je ne peux pas te répondre pour l’instant (' + ({ plafond_agent: 'mon budget du mois est atteint', plafond_total: 'le budget des agents est atteint', pas_de_cle: 'ma clé n’est pas posée', erreur_api: 'Claude ne répond pas' })[r.raison] + ').', 'important'); return { saute: r.raison }; }
+    const d = conv.parler(ID, ID, r.texte, { niveau: 'info' });
+    return d.ok ? { repondu: true } : { saute: d.raison };
+  }
+
+  return { passer, repondre };
 };
 module.exports.FORMULES = FORMULES;

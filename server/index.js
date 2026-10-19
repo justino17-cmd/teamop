@@ -10056,12 +10056,20 @@ try {
     console.log('dossiers : ' + Object.keys(clientsData).length + ' client(s) examiné(s)');
     /* LES CONVERSATIONS : un fil privé par agent, un fil « Équipe ». Un agent y parle par `parler` / `rappelClient`, jamais par une route. */
     conversationsMod = require('./conversations')(app, { DATA_DIR, monAdmin, monPatronStrict, agents: agentsMod, sansAdresses, pousseNotif,
-      formeDossier: dossiersMod.FORME, dossierExiste: n => dossiersMod.existe(n) });
+      formeDossier: dossiersMod.FORME, dossierExiste: n => dossiersMod.existe(n),
+      surMessagePatron: (fil, t) => (fil === 'hugo' && agentHugo) ? agentHugo.repondre(t) : null });
+    /* LE CERVEAU : l'unique appel à Claude des agents (clé `agents.cleApi`, budget tenu dans `agents-budget.json`). */
+    const cerveauMod = require('./cerveau')({ DATA_DIR, agents: agentsMod, cleApi: (config.agents && config.agents.cleApi) || '' });
+    console.log('cerveau : ' + (config.agents && config.agents.cleApi ? 'clé des agents posée' : 'pas de clé (agents.cleApi) : les agents ne répondent pas'));
     /* HUGO : relit Stripe et DÉPOSE une demande de création d'espace — Justin valide. Il ne crée rien. Les règles de rattachement d'un
        abonnement sont celles du serveur (`espaceStripeDans`, `formulePayee`) : Hugo n'en a pas de seconde copie. Une fiche neutre
        (nom d'accès, adresse, SANS formule) : un abonnement d'avant la bascule, ou douteux, ne se lit pas → aucune demande. */
     agentHugo = require('./agent-hugo')({
-      agents: agentsMod, conversations: conversationsMod, slug: espSlug,
+      agents: agentsMod, conversations: conversationsMod, cerveau: cerveauMod, slug: espSlug,
+      /* ce que Hugo peut savoir d'un dossier : des FAITS fermés — jamais un nom, une adresse, un téléphone ni une note */
+      faits: async (n) => { const f = await dossiersMod.fiche(n); if (!f) return { numero: n, existe: false }; if (f.supprime) return { numero: n, supprime: true };
+        return { numero: n, inscritDepuis_jours: f.client.inscrit ? Math.floor((Date.now() - f.client.inscrit) / 86400000) : null, espace: f.espace.existe ? { existe: true, formule: f.espace.formule } : { existe: false },
+          paiement: f.paiement, formuleDemandee: f.client.plan || '', demandes: f.demandes.map(d => ({ app: d.app, formule: d.formule, statut: d.statut })) }; },
       clients: () => Object.values(clientsData || {}).map(c => ({ email: c && c.email, entreprise: c && c.entreprise })),
       espaceExiste: (email, sl) => !!espacesReg[sl] || Object.values(espacesReg).some(x => x && String(x.email || '').toLowerCase() === String(email).toLowerCase()),
       /* ⛔ `stripeListe` rend `[]` quand la lecture a échoué et qu'aucune liste n'a jamais été lue (une minute d'attente après un échec) :

@@ -291,7 +291,7 @@ const P = jeton.patron, S = jeton.simple;
   const IDX = fs.readFileSync(path.join(RACINE, 'server', 'index.js'), 'utf8'), CODE = nu(IDX);
   const MOD = fs.readFileSync(path.join(RACINE, 'server', 'agents.js'), 'utf8'), CODE_MOD = nu(MOD);
   vrai('index.js monte le module', /require\('\.\/agents'\)\(app, \{[^}]*\bmonAdmin\b[^}]*\bmonPatronStrict\b[^}]*\}\)/.test(CODE));
-  vrai('… sous son propre try, pour ne pas emporter la Messagerie avec lui', /try \{\s*agentsMod = require\('\.\/agents'\)[\s\S]{0,3500}?catch \(e\) \{ console\.error\('agents indisponibles/.test(CODE));
+  vrai('… sous son propre try, pour ne pas emporter la Messagerie avec lui', /try \{\s*agentsMod = require\('\.\/agents'\)[\s\S]{0,6000}?catch \(e\) \{ console\.error\('agents indisponibles/.test(CODE));
   const routes = [...CODE_MOD.matchAll(/app\.(get|post)\('(\/api\/monitor\/[^']+)'/g)].map(m => [m[1], m[2]]);
   v('(population) sept routes : quatre lectures, trois écritures', [routes.filter(x => x[0] === 'get').length, routes.filter(x => x[0] === 'post').length], [4, 3]);
   const i0 = IDX.indexOf('const MON_GESTES = {'), i1 = IDX.indexOf('\n};', i0);

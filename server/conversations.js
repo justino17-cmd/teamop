@@ -129,6 +129,8 @@ module.exports = function monterConversations(app, ctx) {
     if (!t) return res.status(400).json({ error: 'Message vide' });
     const m = { id: crypto.randomBytes(6).toString('hex'), ts: maintenant(), fil: b.fil, de: 'justin', texte: t, niveau: 'info', lu: true };
     if (!ajouter(m)) return res.status(503).json({ error: 'Message non enregistré' });
+    /* L'agent du fil peut répondre (s'il en a un « cerveau » et le droit d'agir) : sans attendre, et sans jamais faire échouer l'envoi. */
+    if (typeof ctx.surMessagePatron === 'function') { try { Promise.resolve(ctx.surMessagePatron(b.fil, t)).catch(e => console.error('réponse d’agent :', e && e.message)); } catch (e) {} }
     res.json({ ok: true, message: vue(m) });
   });
   app.post('/api/monitor/conversations/lire', monPatronStrict, (req, res) => {
